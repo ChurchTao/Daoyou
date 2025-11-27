@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import type { Cultivator } from '../../types/cultivator';
-import { calculateCultivatorPower, battle } from '../../utils/powerCalculator';
-import { getCharacterGenerationPrompt, getBattleReportPrompt, getDefaultBoss } from '../../utils/prompts';
+import { battle } from '../../utils/powerCalculator';
+import { getDefaultBoss } from '../../utils/prompts';
 // AI 调用已移至 API 路由
 import { createCultivatorFromAI } from '../../utils/cultivatorUtils';
 
@@ -24,6 +24,8 @@ export default function DemoPage() {
     report: string;
     triggeredMiracle: boolean;
   } | null>(null);
+  const [streamingReport, setStreamingReport] = useState<string>(''); // 流式生成的内容
+  const [isStreaming, setIsStreaming] = useState(false); // 是否正在流式生成
 
   // 生成角色
   const handleGenerateCharacter = async () => {
@@ -75,6 +77,10 @@ export default function DemoPage() {
     }
 
     setLoading(true);
+    setIsStreaming(true);
+    setStreamingReport('');
+    setBattleResult(null);
+
     try {
       // 1. 获取 Boss
       const boss = getDefaultBoss();
@@ -83,12 +89,16 @@ export default function DemoPage() {
       const result = battle(player, boss);
       console.log('战斗结果:', result);
 
-      // 3. 生成战斗播报
-      const battlePrompt = getBattleReportPrompt(player, boss, result.winner);
-      console.log('战斗播报 Prompt:', battlePrompt);
+      // 先显示战斗结果（不含播报）
+      setBattleResult({
+        winner: result.winner,
+        loser: result.loser,
+        report: '', // 暂时为空，等待流式生成
+        triggeredMiracle: result.triggeredMiracle,
+      });
 
-      // 调用 API 生成战斗播报
-      const reportResponse = await fetch('/api/generate-battle-report', {
+      // 3. 流式生成战斗播报
+      const response = await fetch('/api/generate-battle-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,24 +110,71 @@ export default function DemoPage() {
         }),
       });
 
-      const reportResult = await reportResponse.json();
-
-      if (!reportResponse.ok || !reportResult.success) {
-        throw new Error(reportResult.error || '生成战斗播报失败');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '生成战斗播报失败');
       }
 
-      const report = reportResult.data;
-      console.log('战斗播报:', report);
+      // 读取 SSE 流
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      setBattleResult({
-        winner: result.winner,
-        loser: result.loser,
-        report,
-        triggeredMiracle: result.triggeredMiracle,
-      });
+      if (!reader) {
+        throw new Error('无法读取响应流');
+      }
+
+      let fullReport = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+
+        // 解码数据
+        buffer += decoder.decode(value, { stream: true });
+        
+        // 处理完整的 SSE 消息
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // 保留不完整的行
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'chunk') {
+                // 接收到内容块，实时更新 UI
+                fullReport += data.content;
+                setStreamingReport(fullReport);
+              } else if (data.type === 'done') {
+                // 生成完成
+                setIsStreaming(false);
+                setBattleResult({
+                  winner: result.winner,
+                  loser: result.loser,
+                  report: fullReport,
+                  triggeredMiracle: result.triggeredMiracle,
+                });
+                setStreamingReport('');
+              } else if (data.type === 'error') {
+                // 发生错误
+                throw new Error(data.error || '生成战斗播报失败');
+              }
+            } catch (e) {
+              console.error('解析 SSE 数据失败:', e);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('战斗失败:', error);
-      alert('战斗失败，请检查控制台');
+      setIsStreaming(false);
+      setStreamingReport('');
+      const errorMessage = error instanceof Error ? error.message : '战斗失败，请检查控制台';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -211,30 +268,51 @@ export default function DemoPage() {
         )}
 
         {/* 战斗结果区域 */}
-        {battleResult && (
+        {(battleResult || isStreaming) && (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
             <h2 className="text-2xl font-semibold text-white mb-4">战斗结果</h2>
             <div className="space-y-4 text-white">
-              <div className="flex items-center justify-between p-4 bg-green-500/20 rounded-lg">
-                <div>
-                  <p className="text-green-200">胜利者</p>
-                  <p className="text-2xl font-bold">{battleResult.winner.name}</p>
-                  <p className="text-sm text-green-300">战力: {battleResult.winner.totalPower}</p>
-                </div>
-                {battleResult.triggeredMiracle && (
-                  <div className="px-4 py-2 bg-yellow-500/30 rounded-lg">
-                    <p className="text-yellow-200 font-bold">✨ 触发顿悟！</p>
+              {battleResult && (
+                <>
+                  <div className="flex items-center justify-between p-4 bg-green-500/20 rounded-lg">
+                    <div>
+                      <p className="text-green-200">胜利者</p>
+                      <p className="text-2xl font-bold">{battleResult.winner.name}</p>
+                      <p className="text-sm text-green-300">战力: {battleResult.winner.totalPower}</p>
+                    </div>
+                    {battleResult.triggeredMiracle && (
+                      <div className="px-4 py-2 bg-yellow-500/30 rounded-lg">
+                        <p className="text-yellow-200 font-bold">✨ 触发顿悟！</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="p-4 bg-red-500/20 rounded-lg">
-                <p className="text-red-200">失败者</p>
-                <p className="text-xl font-bold">{battleResult.loser.name}</p>
-                <p className="text-sm text-red-300">战力: {battleResult.loser.totalPower}</p>
-              </div>
+                  <div className="p-4 bg-red-500/20 rounded-lg">
+                    <p className="text-red-200">失败者</p>
+                    <p className="text-xl font-bold">{battleResult.loser.name}</p>
+                    <p className="text-sm text-red-300">战力: {battleResult.loser.totalPower}</p>
+                  </div>
+                </>
+              )}
               <div className="p-4 bg-purple-500/20 rounded-lg">
-                <p className="text-purple-200 mb-2">战斗播报</p>
-                <p className="text-lg leading-relaxed whitespace-pre-wrap">{battleResult.report}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-purple-200">战斗播报</p>
+                  {isStreaming && (
+                    <span className="inline-flex items-center gap-1 text-purple-300 text-sm">
+                      <span className="animate-pulse">●</span>
+                      <span>正在生成...</span>
+                    </span>
+                  )}
+                </div>
+                <div className="text-lg leading-relaxed whitespace-pre-wrap min-h-[100px]">
+                  {isStreaming ? (
+                    <span>
+                      {streamingReport}
+                      <span className="animate-pulse text-purple-400">▊</span>
+                    </span>
+                  ) : battleResult ? (
+                    battleResult.report
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>

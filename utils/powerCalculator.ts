@@ -105,7 +105,7 @@ export function calculateMiracleProbability(lowerPower: number, higherPower: num
   
   // 公式：(1 - 自己战力/对方战力) * 30%
   const ratio = lowerPower / higherPower;
-  return (1 - ratio) * 0.3;
+  return (1 - ratio) * 0.05;
 }
 
 /**

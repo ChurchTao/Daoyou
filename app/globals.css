@@ -1,26 +1,164 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 色彩系统 */
+  --color-paper: #f8f3e6; /* 旧纸 */
+  --color-ink: #2c1810; /* 正文墨色 */
+  --color-ink-secondary: #5a4a42; /* 次要墨色 */
+  --color-crimson: #c1121f; /* 朱砂红 */
+  --color-teal: #4a7c59; /* 青黛 */
+  --color-wood: #8b4513; /* 木色 */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-ma-shan-zheng);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-ma-shan-zheng), Arial, Helvetica, sans-serif;
+}
+
+/* 宣纸背景 */
+.bg-paper {
+  background-color: var(--color-paper);
+  background-image: url("/assets/paper.png");
+  background-size: 300px;
+  min-height: 100vh;
+}
+
+.bg-paper-light {
+  background-color: rgba(248, 243, 230, 0.8);
+  background-image: url("/assets/paper.png");
+  background-size: 300px;
+}
+
+/* 按钮样式 */
+.btn-primary {
+  background-color: var(--color-crimson);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(193, 18, 31, 0.3);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #a00e1a;
+  box-shadow: 0 4px 8px rgba(193, 18, 31, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-ink);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid var(--color-ink);
+  cursor: pointer;
+}
+
+.btn-outline:hover {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* 卷轴效果 */
+.character-scroll {
+  position: relative;
+  margin: 2rem 0;
+}
+
+.character-scroll::before,
+.character-scroll::after {
+  content: "";
+  display: block;
+  height: 20px;
+  background: var(--color-wood);
+  margin: 0 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.scroll-content {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(44, 24, 16, 0.1);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+/* 云纹分隔线 */
+.cloud-divider {
+  height: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,10 Q25,5 50,10 T100,10' stroke='%232c1810' stroke-width='1' fill='none' opacity='0.2'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 100px 20px;
+  margin: 2rem 0;
+}
+
+/* 淡入动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.6s ease-out;
+}
+
+/* 丹炉冒烟动画 */
+@keyframes smoke {
+  0% {
+    opacity: 0.8;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: translateY(-10px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(1.5);
+  }
+}
+
+.smoke {
+  animation: smoke 2s infinite;
 }

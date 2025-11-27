@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 生成 prompt
-    const prompt = getCharacterGenerationPrompt(userInput);
+    const prompt = getCharacterGenerationPrompt();
 
     // 调用 AI 生成角色
-    const aiResponse = await generateCharacter(prompt);
+    const aiResponse = await generateCharacter(prompt, userInput);
 
     return NextResponse.json({ 
       success: true,

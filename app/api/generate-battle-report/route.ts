@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateBattleReport } from '../../../utils/aiClient';
+import { NextRequest } from 'next/server';
+import { generateBattleReportStream } from '../../../utils/aiClient';
 import { getBattleReportPrompt } from '../../../utils/prompts';
 import type { Cultivator } from '../../../types/cultivator';
 
 /**
  * POST /api/generate-battle-report
- * 生成战斗播报
+ * 生成战斗播报（SSE 流式输出）
  */
 export async function POST(request: NextRequest) {
   try {
@@ -13,9 +13,12 @@ export async function POST(request: NextRequest) {
     const { cultivatorA, cultivatorB, winner } = body;
 
     if (!cultivatorA || !cultivatorB || !winner) {
-      return NextResponse.json(
-        { error: '请提供完整的角色信息' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: '请提供完整的角色信息' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
@@ -25,14 +28,44 @@ export async function POST(request: NextRequest) {
     const winnerCultivator = winner as Cultivator;
 
     // 生成战斗播报 prompt
-    const prompt = getBattleReportPrompt(playerA, playerB, winnerCultivator);
+    const [prompt,userPrompt] = getBattleReportPrompt(playerA, playerB, winnerCultivator);
 
-    // 调用 AI 生成战斗播报
-    const report = await generateBattleReport(prompt);
+    // 创建 SSE 流
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // 发送开始标记
+          controller.enqueue(encoder.encode('data: {"type":"start"}\n\n'));
 
-    return NextResponse.json({ 
-      success: true,
-      data: report 
+          // 调用流式生成函数
+          await generateBattleReportStream(prompt, userPrompt, (chunk: string) => {
+            // 发送内容块
+            const data = JSON.stringify({ type: 'chunk', content: chunk });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          });
+
+          // 发送结束标记
+          controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
+          controller.close();
+        } catch (error) {
+          console.error('生成战斗播报流式输出错误:', error);
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : '生成战斗播报失败';
+          const errorData = JSON.stringify({ type: 'error', error: errorMessage });
+          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
   } catch (error) {
     console.error('生成战斗播报 API 错误:', error);
@@ -41,10 +74,12 @@ export async function POST(request: NextRequest) {
       ? error.message 
       : '生成战斗播报失败，请稍后重试';
 
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
-

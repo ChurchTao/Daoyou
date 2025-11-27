@@ -29,9 +29,10 @@ function getOpenAIClient(): OpenAI {
 /**
  * 调用 AI 生成角色
  * @param prompt 角色生成 prompt
+ * @param userInput 用户输入
  * @returns 生成的角色 JSON 字符串
  */
-export async function generateCharacter(prompt: string): Promise<string> {
+export async function generateCharacter(prompt: string, userInput: string): Promise<string> {
   try {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -41,11 +42,11 @@ export async function generateCharacter(prompt: string): Promise<string> {
       messages: [
         {
           role: 'system',
-          content: '你是一个修仙世界造化玉碟，专门根据用户描述生成修仙者角色。请严格按照 JSON 格式输出，不要添加任何其他文字说明。',
+          content: prompt,
         },
         {
           role: 'user',
-          content: prompt,
+          content: userInput,
         },
       ],
       response_format: { type: 'json_object' },
@@ -80,38 +81,49 @@ export async function generateCharacter(prompt: string): Promise<string> {
 }
 
 /**
- * 调用 AI 生成战斗播报
- * @param prompt 战斗播报 prompt
- * @returns 生成的战斗播报文本
+ * 调用 AI 生成战斗播报（流式输出）
+ * @param prompt 战斗播报系统提示词 prompt
+ * @param userPrompt 用户输入的战斗播报 prompt
+ * @param onChunk 接收到新内容块时的回调函数
+ * @returns Promise，解析时返回完整文本
  */
-export async function generateBattleReport(prompt: string): Promise<string> {
+export async function generateBattleReportStream(
+  prompt: string,
+  userPrompt: string,
+  onChunk: (chunk: string) => void
+): Promise<string> {
   try {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-    const response = await client.chat.completions.create({
+    const stream = await client.chat.completions.create({
       model,
       messages: [
         {
           role: 'system',
-          content: '你是一位修仙小说作家，擅长写精彩的战斗场景。请根据提供的角色信息，写一段50-150字的激烈对决描写，要求有动作、有台词、有转折，语言要符合修仙小说的风格。',
+          content: prompt,
         },
         {
           role: 'user',
-          content: prompt,
+          content: userPrompt,
         },
       ],
       temperature: 0.9, // 提高创造性，让战斗描写更生动
-      max_tokens: 500, // 限制最大长度
+      max_tokens: 1000, // 限制最大长度
+      stream: true, // 启用流式输出
     });
 
-    const content = response.choices[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('AI 返回的内容为空');
+    let fullContent = '';
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        fullContent += content;
+        onChunk(content);
+      }
     }
 
-    return content.trim();
+    return fullContent.trim();
   } catch (error) {
     console.error('生成战斗播报失败:', error);
     
@@ -130,6 +142,19 @@ export async function generateBattleReport(prompt: string): Promise<string> {
     
     throw new Error(`生成战斗播报失败: ${error instanceof Error ? error.message : '未知错误'}`);
   }
+}
+
+/**
+ * 调用 AI 生成战斗播报（非流式，保留用于兼容）
+ * @param prompt 战斗播报 prompt
+ * @returns 生成的战斗播报文本
+ */
+export async function generateBattleReport(prompt: string, userPrompt: string): Promise<string> {
+  let fullContent = '';
+  await generateBattleReportStream(prompt, userPrompt, (chunk) => {
+    fullContent += chunk;
+  });
+  return fullContent;
 }
 
 /**
