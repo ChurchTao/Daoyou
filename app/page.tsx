@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AlchemyFurnaceIcon, FlameIcon, CloudDivider } from '@/components/SVGIcon';
+import { AlchemyFurnaceIcon, FlameIcon, CloudDivider, DragonPatternIcon } from '@/components/SVGIcon';
 import { mockRankings } from '@/data/mockRankings';
 
 /**
@@ -34,7 +34,7 @@ export default function HomePage() {
         <div className="max-w-md mx-auto">
           <h2 className="font-ma-shan-zheng text-xl text-ink mb-4 flex items-center justify-center">
             <span>天榜前十</span>
-            <FlameIcon className="ml-2" />
+            <DragonPatternIcon className="ml-2" />
           </h2>
 
           <div className="space-y-0">

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Cultivator } from '@/types/cultivator';
 import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
-import { AlchemyFurnaceIcon } from '@/components/SVGIcon';
+import { AlchemyFurnaceIcon, InkstoneIcon, ScrollIcon } from '@/components/SVGIcon';
 
 /**
  * 角色创建页 —— 「凝气篇」
@@ -82,7 +82,8 @@ export default function CreatePage() {
 
         {/* 输入区：仿砚台 */}
         <div className="mb-8">
-          <label className="block font-ma-shan-zheng text-ink mb-2 text-lg">
+          <label className="block font-ma-shan-zheng text-ink mb-2 text-lg flex items-center gap-2">
+            <InkstoneIcon className="w-5 h-5" />
             以心念唤道：
           </label>
           <textarea
@@ -133,6 +134,9 @@ export default function CreatePage() {
         {/* 角色卡：仿卷轴 */}
         {player && (
           <div className="character-scroll animate-fade-in max-w-lg mx-auto">
+            <div className="flex justify-center mb-2">
+              <ScrollIcon className="w-8 h-8 text-ink/30" />
+            </div>
             <div className="scroll-content">
               <h3 className="font-ma-shan-zheng text-2xl text-ink mb-4 text-center">
                 {player.name}

@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Cultivator } from '@/types/cultivator';
 import { battle } from '@/utils/powerCalculator';
 import { getDefaultBoss } from '@/utils/prompts';
-import { VictorySeal } from '@/components/SVGIcon';
+import { VictorySeal, AnnotationIcon } from '@/components/SVGIcon';
 import { mockRankings } from '@/data/mockRankings';
 
 /**
@@ -22,6 +22,7 @@ function BattlePageContent() {
     triggeredMiracle: boolean;
   } | null>(null);
   const [streamingReport, setStreamingReport] = useState<string>('');
+  const [finalReport, setFinalReport] = useState<string>(''); // 保存最终的完整播报
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -67,6 +68,7 @@ function BattlePageContent() {
     setLoading(true);
     setIsStreaming(true);
     setStreamingReport('');
+    setFinalReport(''); // 清空最终播报
     setBattleResult(null);
 
     try {
@@ -121,7 +123,9 @@ function BattlePageContent() {
                 setStreamingReport(fullReport);
               } else if (data.type === 'done') {
                 setIsStreaming(false);
-                setStreamingReport('');
+                // 保存完整的播报内容，不清空
+                setFinalReport(fullReport);
+                setStreamingReport(fullReport);
               } else if (data.type === 'error') {
                 throw new Error(data.error || '生成战斗播报失败');
               }
@@ -135,6 +139,7 @@ function BattlePageContent() {
       console.error('战斗失败:', error);
       setIsStreaming(false);
       setStreamingReport('');
+      setFinalReport('');
       alert(error instanceof Error ? error.message : '战斗失败');
     } finally {
       setLoading(false);
@@ -145,6 +150,7 @@ function BattlePageContent() {
   const handleBattleAgain = () => {
     setBattleResult(null);
     setStreamingReport('');
+    setFinalReport('');
     setIsStreaming(false);
     handleBattle();
   };
@@ -163,7 +169,8 @@ function BattlePageContent() {
   }
 
   const isWin = battleResult?.winner.id === player.id;
-  const displayReport = streamingReport || (battleResult ? `${battleResult.winner.name} 获胜！` : '');
+  // 优先显示流式内容，如果已完成则显示最终播报，否则显示简单结果
+  const displayReport = streamingReport || finalReport || (battleResult ? `${battleResult.winner.name} 获胜！` : '');
 
   return (
     <div className="bg-paper min-h-screen p-4">
@@ -202,7 +209,9 @@ function BattlePageContent() {
         {displayReport && (
           <div className="narrative-box max-w-lg mx-auto p-6 bg-paper-light border border-ink/10 rounded relative animate-fade-in">
             {/* 左侧朱批竖线 */}
-            <div className="absolute left-2 top-2 bottom-2 w-1 bg-crimson rounded-full opacity-30"></div>
+            <div className="absolute left-2 top-2 bottom-2 flex items-center">
+              <AnnotationIcon className="w-4 h-full" />
+            </div>
 
             {/* 播报内容 */}
             <p className="text-ink leading-relaxed text-center whitespace-pre-line pl-4">
