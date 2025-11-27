@@ -1,18 +1,29 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import type { Cultivator } from '@/types/cultivator';
-import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
-import { AlchemyFurnaceIcon, InkstoneIcon, ScrollIcon } from '@/components/SVGIcon';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { Cultivator } from "@/types/cultivator";
+import { createCultivatorFromAI } from "@/utils/cultivatorUtils";
+import {
+  AlchemyFurnaceIcon,
+  InkstoneIcon,
+  ScrollIcon,
+} from "@/components/SVGIcon";
+
+const getCombatRating = (cultivator: Cultivator | null): string => {
+  if (!cultivator?.battleProfile) return "--";
+  const { vitality, spirit, wisdom, speed } =
+    cultivator.battleProfile.attributes;
+  return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
+};
 
 /**
  * 角色创建页 —— 「凝气篇」
  */
 export default function CreatePage() {
   const router = useRouter();
-  const [userPrompt, setUserPrompt] = useState('');
+  const [userPrompt, setUserPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +31,7 @@ export default function CreatePage() {
   // 生成角色
   const handleGenerateCharacter = async () => {
     if (!userPrompt.trim()) {
-      setError('请输入角色描述');
+      setError("请输入角色描述");
       return;
     }
 
@@ -29,10 +40,10 @@ export default function CreatePage() {
     setPlayer(null);
 
     try {
-      const response = await fetch('/api/generate-character', {
-        method: 'POST',
+      const response = await fetch("/api/generate-character", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userInput: userPrompt }),
       });
@@ -40,15 +51,17 @@ export default function CreatePage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || '生成角色失败');
+        throw new Error(result.error || "生成角色失败");
       }
 
       const aiResponse = result.data;
       const cultivator = createCultivatorFromAI(aiResponse, userPrompt);
+      console.log("cultivator", cultivator);
       setPlayer(cultivator);
     } catch (error) {
-      console.error('生成角色失败:', error);
-      const errorMessage = error instanceof Error ? error.message : '生成角色失败，请检查控制台';
+      console.error("生成角色失败:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "生成角色失败，请检查控制台";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -58,8 +71,8 @@ export default function CreatePage() {
   // 立即挑战
   const handleChallenge = () => {
     if (player) {
-      sessionStorage.setItem('player', JSON.stringify(player));
-      router.push('/battle');
+      sessionStorage.setItem("player", JSON.stringify(player));
+      router.push("/battle");
     }
   };
 
@@ -82,7 +95,7 @@ export default function CreatePage() {
 
         {/* 输入区：仿砚台 */}
         <div className="mb-8">
-          <label className="block font-ma-shan-zheng text-ink mb-2 text-lg flex items-center gap-2">
+          <label className="font-ma-shan-zheng text-ink mb-2 text-lg flex items-center gap-2">
             <InkstoneIcon className="w-5 h-5" />
             以心念唤道：
           </label>
@@ -90,7 +103,7 @@ export default function CreatePage() {
             value={userPrompt}
             onChange={(e) => setUserPrompt(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 handleGenerateCharacter();
               }
             }}
@@ -141,34 +154,165 @@ export default function CreatePage() {
               <h3 className="font-ma-shan-zheng text-2xl text-ink mb-4 text-center">
                 {player.name}
               </h3>
-              
+
               <div className="grid grid-cols-2 gap-2 text-sm mb-4">
                 <div>
                   <span className="text-ink/70">境界：</span>
-                  <span className="text-ink font-semibold ml-1">{player.cultivationLevel}</span>
+                  <span className="text-ink font-semibold ml-1">
+                    {player.cultivationLevel}
+                  </span>
                 </div>
                 <div>
                   <span className="text-ink/70">灵根：</span>
-                  <span className="text-ink font-semibold ml-1">{player.spiritRoot}</span>
+                  <span className="text-ink font-semibold ml-1">
+                    {player.spiritRoot}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-ink/70">元素：</span>
+                  <span className="text-ink font-semibold ml-1">
+                    {player.battleProfile?.element || "无"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-ink/70">生命：</span>
+                  <span className="text-ink font-semibold ml-1">
+                    {player.battleProfile?.maxHp || 0}
+                  </span>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <span className="text-ink/70">天赋：</span>
-                <span className="text-teal-700 font-semibold ml-1">
-                  {player.talents.join('｜')}
-                </span>
-              </div>
+              {/* 基础属性 */}
+              {player.battleProfile && (
+                <div className="mb-4">
+                  <span className="text-ink/70">基础属性：</span>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                      <p className="font-semibold">体魄</p>
+                      <p className="text-ink/80">
+                        {player.battleProfile.attributes.vitality}
+                      </p>
+                    </div>
+                    <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                      <p className="font-semibold">灵力</p>
+                      <p className="text-ink/80">
+                        {player.battleProfile.attributes.spirit}
+                      </p>
+                    </div>
+                    <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                      <p className="font-semibold">悟性</p>
+                      <p className="text-ink/80">
+                        {player.battleProfile.attributes.wisdom}
+                      </p>
+                    </div>
+                    <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                      <p className="font-semibold">速度</p>
+                      <p className="text-ink/80">
+                        {player.battleProfile.attributes.speed}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 先天气运 */}
+              {player.preHeavenFates?.length ? (
+                <div className="mb-4">
+                  <span className="text-ink/70">先天气运：</span>
+                  <div className="mt-2 space-y-1 text-sm">
+                    {player.preHeavenFates.map((fate, idx) => (
+                      <div
+                        key={fate.name + idx}
+                        className="bg-ink/5 rounded p-2 border border-ink/10"
+                      >
+                        <p className="font-semibold">
+                          {fate.name} · {fate.type}
+                        </p>
+                        <p className="text-ink/80">{fate.effect}</p>
+                        <p className="text-ink/60 text-xs italic">
+                          {fate.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 技能 */}
+              {player.battleProfile?.skills &&
+              player.battleProfile.skills.length > 0 ? (
+                <div className="mb-4">
+                  <span className="text-ink/70">技能：</span>
+                  <div className="mt-2 space-y-1 text-sm">
+                    {player.battleProfile.skills.map((skill, idx) => (
+                      <div
+                        key={skill.name + idx}
+                        className="bg-ink/5 rounded p-2 border border-ink/10"
+                      >
+                        <p className="font-semibold">
+                          {skill.name} · {skill.type} · {skill.element}
+                        </p>
+                        <p className="text-ink/80">
+                          威力：{skill.power} | 效果：
+                          {skill.effects?.join(", ") || "无"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 装备 */}
+              {player.battleProfile?.equipment &&
+              player.battleProfile.equipment.length > 0 ? (
+                <div className="mb-4">
+                  <span className="text-ink/70">装备：</span>
+                  <div className="mt-2 space-y-1 text-sm">
+                    {player.battleProfile.equipment.map((eq, idx) => (
+                      <div
+                        key={eq.name + idx}
+                        className="bg-ink/5 rounded p-2 border border-ink/10"
+                      >
+                        <p className="font-semibold">{eq.name}</p>
+                        <p className="text-ink/80">
+                          {eq.bonus &&
+                            Object.entries(eq.bonus)
+                              .map(([key, value]) => {
+                                if (key === "elementBoost") {
+                                  return `${Object.entries(
+                                    value as Record<string, number>
+                                  )
+                                    .map(
+                                      ([elem, boost]) =>
+                                        `${elem}系技能威力+${(
+                                          boost * 100
+                                        ).toFixed(0)}%`
+                                    )
+                                    .join(", ")}`;
+                                }
+                                return `${key} +${value}`;
+                              })
+                              .join(", ")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mb-3">
-                <span className="text-ink/70">战力：</span>
+                <span className="text-ink/70">战力评估：</span>
                 <span className="text-crimson font-bold text-lg ml-1">
-                  {player.totalPower}
+                  {getCombatRating(player)}
                 </span>
               </div>
 
-              <p className="text-ink/90 mb-3 leading-relaxed">{player.appearance}</p>
-              <p className="text-ink/80 italic leading-relaxed">「{player.backstory}」</p>
+              <p className="text-ink/90 mb-3 leading-relaxed">
+                {player.appearance}
+              </p>
+              <p className="text-ink/80 italic leading-relaxed">
+                「{player.backstory}」
+              </p>
             </div>
           </div>
         )}

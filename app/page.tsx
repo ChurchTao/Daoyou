@@ -1,8 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { AlchemyFurnaceIcon, FlameIcon, CloudDivider, DragonPatternIcon } from '@/components/SVGIcon';
+import { AlchemyFurnaceIcon, CloudDivider, DragonPatternIcon } from '@/components/SVGIcon';
 import { mockRankings } from '@/data/mockRankings';
+import type { Cultivator } from '@/types/cultivator';
+
+const getCombatRating = (cultivator: Cultivator): string => {
+  const profile = cultivator.battleProfile;
+  if (!profile) return '--';
+  const { vitality, spirit, wisdom, speed } = profile.attributes;
+  return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
+};
 
 /**
  * 首页 / 排行榜页 —— 「道录·天榜」
@@ -38,7 +46,7 @@ export default function HomePage() {
           </h2>
 
           <div className="space-y-0">
-            {mockRankings.slice(0, 10).map((cultivator, idx) => (
+            {mockRankings.slice(0, 10).map((cultivator) => (
               <div
                 key={cultivator.id}
                 className="ranking-item border-b border-ink/10 py-3 px-2 hover:bg-paper-light/50 transition-colors"
@@ -47,12 +55,15 @@ export default function HomePage() {
                   <span className="font-ma-shan-zheng text-lg text-ink">
                     {cultivator.name}
                   </span>
-                  <span className="text-sm text-ink/80">
-                    {cultivator.cultivationLevel} · 战力 {cultivator.totalPower}
+                  <span className="text-sm text-ink/80 flex flex-col text-right">
+                    <span>{cultivator.cultivationLevel}</span>
+                    <span className="text-ink/60">
+                      灵根 {cultivator.spiritRoot} · 战力 {getCombatRating(cultivator)}
+                    </span>
                   </span>
                 </div>
                 <div className="text-xs text-ink/60 mt-1">
-                  {cultivator.talents.join('｜')}
+                  {cultivator.preHeavenFates?.map((f) => f.name).join('｜') || '——'}
                 </div>
                 <Link
                   href={`/battle?opponent=${cultivator.id}`}

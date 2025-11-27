@@ -71,7 +71,7 @@ body {
   transition: all 0.3s ease;
   border: 2px solid var(--color-ink);
   cursor: pointer;
-}
+  }
 
 .btn-outline:hover {
   background-color: var(--color-ink);
@@ -161,4 +161,40 @@ body {
 
 .smoke {
   animation: smoke 2s infinite;
+}
+
+/* 战斗报告样式 */
+.battle-report turn {
+  color: var(--color-crimson); /* 朱砂红 */
+  font-weight: bold;
+}
+
+.battle-report name {
+  color: var(--color-ink); /* 墨色 */
+  font-weight: 600;
+}
+
+.battle-report skill {
+  color: var(--color-teal); /* 青黛色 */
+  font-weight: 600;
+}
+
+.battle-report damage {
+  color: var(--color-crimson); /* 朱砂红 */
+  font-weight: bold;
+}
+
+.battle-report heal {
+  color: var(--color-teal); /* 青黛色 */
+  font-weight: bold;
+}
+
+.battle-report effect {
+  color: var(--color-wood); /* 木色 */
+  font-style: italic;
+}
+
+.battle-report result {
+  color: var(--color-crimson); /* 朱砂红 */
+  font-weight: bold;
 }

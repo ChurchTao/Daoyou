@@ -1,6 +1,13 @@
 import type { Cultivator } from '@/types/cultivator';
 import Link from 'next/link';
 
+const getCombatRating = (cultivator: Cultivator): string => {
+  const profile = cultivator.battleProfile;
+  if (!profile) return '--';
+  const { vitality, spirit, wisdom, speed } = profile.attributes;
+  return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
+};
+
 interface CultivatorCardProps {
   cultivator: Cultivator;
   rank?: number;
@@ -56,24 +63,24 @@ export default function CultivatorCard({
               <span className="text-[#4cc9f0]">{cultivator.spiritRoot}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-[#e0c5a3]/70">战力：</span>
-              <span className="font-bold text-[#c1121f]">{cultivator.totalPower}</span>
+              <span className="text-[#e0c5a3]/70">战力评估：</span>
+              <span className="font-bold text-[#c1121f]">{getCombatRating(cultivator)}</span>
             </div>
           </div>
 
-          {/* 天赋标签 */}
-          {cultivator.talents.length > 0 && (
+          {/* 气运标签 */}
+          {cultivator.preHeavenFates?.length ? (
             <div className="mb-2 flex flex-wrap gap-1">
-              {cultivator.talents.map((talent, idx) => (
+              {cultivator.preHeavenFates.map((fate, idx) => (
                 <span
                   key={idx}
                   className="rounded px-2 py-0.5 text-xs bg-[#4cc9f0]/20 text-[#4cc9f0] border border-[#4cc9f0]/30"
                 >
-                  {talent}
+                  {fate.name}
                 </span>
               ))}
             </div>
-          )}
+          ) : null}
 
           {/* 挑战按钮 */}
           {showChallengeButton && (

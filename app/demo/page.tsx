@@ -2,10 +2,16 @@
 
 import { useState } from 'react';
 import type { Cultivator } from '../../types/cultivator';
-import { battle } from '../../utils/powerCalculator';
 import { getDefaultBoss } from '../../utils/prompts';
 // AI 调用已移至 API 路由
 import { createCultivatorFromAI } from '../../utils/cultivatorUtils';
+import { simulateBattle, BattleEngineResult } from '../../engine/battleEngine';
+
+const getCombatRating = (cultivator: Cultivator | null): string => {
+  if (!cultivator?.battleProfile) return '--';
+  const { vitality, spirit, wisdom, speed } = cultivator.battleProfile.attributes;
+  return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
+};
 
 /**
  * 第二阶段最小可运行 Demo
@@ -18,14 +24,10 @@ export default function DemoPage() {
   const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
-  const [battleResult, setBattleResult] = useState<{
-    winner: Cultivator;
-    loser: Cultivator;
-    report: string;
-    triggeredMiracle: boolean;
-  } | null>(null);
+  const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(null);
   const [streamingReport, setStreamingReport] = useState<string>(''); // 流式生成的内容
   const [isStreaming, setIsStreaming] = useState(false); // 是否正在流式生成
+  const [finalReport, setFinalReport] = useState<string>(''); // 最终战报内容
 
   // 生成角色
   const handleGenerateCharacter = async () => {
@@ -79,6 +81,7 @@ export default function DemoPage() {
     setLoading(true);
     setIsStreaming(true);
     setStreamingReport('');
+    setFinalReport('');
     setBattleResult(null);
 
     try {
@@ -86,16 +89,11 @@ export default function DemoPage() {
       const boss = getDefaultBoss();
 
       // 2. 执行战斗
-      const result = battle(player, boss);
+      const result = simulateBattle(player, boss);
       console.log('战斗结果:', result);
 
       // 先显示战斗结果（不含播报）
-      setBattleResult({
-        winner: result.winner,
-        loser: result.loser,
-        report: '', // 暂时为空，等待流式生成
-        triggeredMiracle: result.triggeredMiracle,
-      });
+      setBattleResult(result);
 
       // 3. 流式生成战斗播报
       const response = await fetch('/api/generate-battle-report', {
@@ -104,9 +102,16 @@ export default function DemoPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorA: player,
-          cultivatorB: boss,
-          winner: result.winner,
+          player,
+          opponent: boss,
+          battleSummary: {
+            winnerId: result.winner.id,
+            log: result.log,
+            turns: result.turns,
+            playerHp: result.playerHp,
+            opponentHp: result.opponentHp,
+            triggeredMiracle: result.triggeredMiracle,
+          },
         }),
       });
 
@@ -152,13 +157,8 @@ export default function DemoPage() {
               } else if (data.type === 'done') {
                 // 生成完成
                 setIsStreaming(false);
-                setBattleResult({
-                  winner: result.winner,
-                  loser: result.loser,
-                  report: fullReport,
-                  triggeredMiracle: result.triggeredMiracle,
-                });
                 setStreamingReport('');
+                setFinalReport(fullReport);
               } else if (data.type === 'error') {
                 // 发生错误
                 throw new Error(data.error || '生成战斗播报失败');
@@ -171,8 +171,9 @@ export default function DemoPage() {
       }
     } catch (error) {
       console.error('战斗失败:', error);
-      setIsStreaming(false);
-      setStreamingReport('');
+        setIsStreaming(false);
+        setStreamingReport('');
+        setFinalReport('');
       const errorMessage = error instanceof Error ? error.message : '战斗失败，请检查控制台';
       alert(errorMessage);
     } finally {
@@ -181,7 +182,7 @@ export default function DemoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+    <div className="min-h-screen bg-linear-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-2 text-center">
           万界道友 - 第二阶段 Demo
@@ -228,10 +229,6 @@ export default function DemoPage() {
                 <p className="text-blue-200">灵根</p>
                 <p className="text-xl font-bold">{player.spiritRoot}</p>
               </div>
-              <div>
-                <p className="text-blue-200">天赋</p>
-                <p className="text-xl font-bold">{player.talents.join('、')}</p>
-              </div>
               <div className="md:col-span-2">
                 <p className="text-blue-200">外观</p>
                 <p className="text-lg">{player.appearance}</p>
@@ -240,19 +237,53 @@ export default function DemoPage() {
                 <p className="text-blue-200">背景</p>
                 <p className="text-lg">{player.backstory}</p>
               </div>
+              {player.preHeavenFates?.length ? (
+                <div className="md:col-span-2">
+                  <p className="text-blue-200">先天气运</p>
+                  <div className="mt-2 space-y-1 text-sm">
+                    {player.preHeavenFates.map((fate, idx) => (
+                      <div key={fate.name + idx} className="bg-white/5 p-2 rounded border border-white/10">
+                        <p className="font-semibold text-white">
+                          {fate.name} · {fate.type}
+                        </p>
+                        <p className="text-white/80">{fate.effect}</p>
+                        <p className="text-white/60 text-xs italic">{fate.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="md:col-span-2 border-t border-white/20 pt-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <p className="text-blue-200">基础战力</p>
-                    <p className="text-2xl font-bold text-yellow-400">{player.basePower}</p>
+                    <p className="text-blue-200">气血上限</p>
+                    <p className="text-2xl font-bold text-yellow-400">
+                      {player.battleProfile?.maxHp ?? '--'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-blue-200">天赋加成</p>
-                    <p className="text-2xl font-bold text-green-400">+{player.talentBonus}</p>
+                    <p className="text-blue-200">灵力</p>
+                    <p className="text-2xl font-bold text-green-400">
+                      {player.battleProfile?.attributes.spirit ?? '--'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-blue-200">总战力</p>
-                    <p className="text-3xl font-bold text-red-400">{player.totalPower}</p>
+                    <p className="text-blue-200">速度</p>
+                    <p className="text-3xl font-bold text-red-400">
+                      {player.battleProfile?.attributes.speed ?? '--'}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <p className="text-blue-200">悟性</p>
+                    <p className="text-2xl font-bold text-purple-300">
+                      {player.battleProfile?.attributes.wisdom ?? '--'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-blue-200">战力评估</p>
+                    <p className="text-2xl font-bold text-orange-300">{getCombatRating(player)}</p>
                   </div>
                 </div>
               </div>
@@ -268,7 +299,7 @@ export default function DemoPage() {
         )}
 
         {/* 战斗结果区域 */}
-        {(battleResult || isStreaming) && (
+        {(battleResult || isStreaming || finalReport) && (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6">
             <h2 className="text-2xl font-semibold text-white mb-4">战斗结果</h2>
             <div className="space-y-4 text-white">
@@ -278,7 +309,9 @@ export default function DemoPage() {
                     <div>
                       <p className="text-green-200">胜利者</p>
                       <p className="text-2xl font-bold">{battleResult.winner.name}</p>
-                      <p className="text-sm text-green-300">战力: {battleResult.winner.totalPower}</p>
+                      <p className="text-sm text-green-300">
+                        战力评估: {getCombatRating(battleResult.winner)}
+                      </p>
                     </div>
                     {battleResult.triggeredMiracle && (
                       <div className="px-4 py-2 bg-yellow-500/30 rounded-lg">
@@ -289,7 +322,9 @@ export default function DemoPage() {
                   <div className="p-4 bg-red-500/20 rounded-lg">
                     <p className="text-red-200">失败者</p>
                     <p className="text-xl font-bold">{battleResult.loser.name}</p>
-                    <p className="text-sm text-red-300">战力: {battleResult.loser.totalPower}</p>
+                    <p className="text-sm text-red-300">
+                      战力评估: {getCombatRating(battleResult.loser)}
+                    </p>
                   </div>
                 </>
               )}
@@ -309,8 +344,8 @@ export default function DemoPage() {
                       {streamingReport}
                       <span className="animate-pulse text-purple-400">▊</span>
                     </span>
-                  ) : battleResult ? (
-                    battleResult.report
+                  ) : finalReport ? (
+                    finalReport
                   ) : null}
                 </div>
               </div>
@@ -324,8 +359,8 @@ export default function DemoPage() {
           <ul className="list-disc list-inside space-y-1">
             <li>这是一个最小可运行的 Demo，用于验证第二阶段的核心功能</li>
             <li>目前 AI 调用使用模拟响应，实际使用时需要配置真实的 API Key</li>
-            <li>战力计算包括：基础战力（根据境界）+ 天赋加成 + 随机波动</li>
-            <li>战斗系统包含"顿悟"机制：低战力方有小概率逆袭</li>
+            <li>战力计算包括：属性成长 + 先天气运 + 装备加成</li>
+            <li>战斗系统包含「顿悟」机制：低战力方有小概率逆袭</li>
             <li>所有数据结构和计算逻辑都已实现，可在控制台查看详细日志</li>
           </ul>
         </div>
@@ -333,4 +368,5 @@ export default function DemoPage() {
     </div>
   );
 }
+
 

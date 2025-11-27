@@ -10,11 +10,11 @@ import type { Cultivator } from '../../../types/cultivator';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { cultivatorA, cultivatorB, winner } = body;
+    const { player, opponent, battleSummary } = body;
 
-    if (!cultivatorA || !cultivatorB || !winner) {
+    if (!player || !opponent || !battleSummary || !Array.isArray(battleSummary.log)) {
       return new Response(
-        JSON.stringify({ error: '请提供完整的角色信息' }),
+        JSON.stringify({ error: '请提供完整的角色与战斗日志信息' }),
         { 
           status: 400,
           headers: { 'Content-Type': 'application/json' }
@@ -23,12 +23,22 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证角色数据
-    const playerA = cultivatorA as Cultivator;
-    const playerB = cultivatorB as Cultivator;
-    const winnerCultivator = winner as Cultivator;
+    const playerCultivator = player as Cultivator;
+    const opponentCultivator = opponent as Cultivator;
 
     // 生成战斗播报 prompt
-    const [prompt,userPrompt] = getBattleReportPrompt(playerA, playerB, winnerCultivator);
+    const [prompt, userPrompt] = getBattleReportPrompt({
+      player: playerCultivator,
+      opponent: opponentCultivator,
+      battleResult: {
+        winnerId: battleSummary.winnerId,
+        log: battleSummary.log ?? [],
+        turns: battleSummary.turns,
+        playerHp: battleSummary.playerHp,
+        opponentHp: battleSummary.opponentHp,
+        triggeredMiracle: battleSummary.triggeredMiracle,
+      },
+    });
 
     // 创建 SSE 流
     const encoder = new TextEncoder();

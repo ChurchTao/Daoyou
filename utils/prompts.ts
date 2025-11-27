@@ -1,97 +1,149 @@
-import type { Cultivator } from '../types/cultivator';
+import type { Cultivator } from "../types/cultivator";
+import type { BattleEngineResult } from "@/engine/battleEngine";
+import { mapSpiritRootToElement } from "./battleProfile";
 
 /**
- * 角色生成 Prompt 模板
- * 用于调用 AI 生成修仙者角色
+ * 角色生成 Prompt 模板（系统提示词）
  */
 export function getCharacterGenerationPrompt(): string {
-  const prompt = `你是一位精通修仙之道的“造化玉碟”，能根据凡人一句心念，为其凝练命格、塑就道躯。请根据用户描述，生成一位独一无二的修仙者。请严格按以下JSON格式输出，不要添加任何其他文字说明：
+  return `你是“造化玉碟”，精通修仙设定。你会收到凡人的心念描述，请基于描述创造一个结构化的修仙者。
 
+请严格输出 JSON（不要任何额外文字），字段与约束如下：
 {
-  "name": "角色名（2-4个字，符合修仙风格）",
-  "cultivationLevel": "境界（如：炼气三层、筑基初期、金丹中期、元婴后期等）",
-  "spiritRoot": "灵根类型（如：火灵根、水灵根、雷灵根、混沌灵根、变异灵根等）",
-  "talents": ["天赋1（2-4个字）", "天赋2（2-4个字）", "天赋3（可选）"],
-  "appearance": "外观描述（20-40字，描述发色、服饰、气质、武器等）",
-  "backstory": "背景故事（30-60字，一句话概括角色的出身和经历）"
-}
-
-要求：
-1. 严格按以下 JSON 格式输出，不要任何额外文字或解释
-2. 所有字段必须填写，不可为空
-3. 角色名要符合修仙风格，不要使用现代名字
-4. 境界从低到高：炼气、筑基、金丹、元婴、化神、炼虚、合体、大乘、渡劫，并加上具体层数（如"三层"、"初期"、"中期"、"后期"、"巅峰"）
-5. 灵根类型：金、木、水、火、土、风、雷、冰、暗、光，或“变异·XXX”（如“变异·混沌灵根”）
-6. 天赋数量为2-3个，每个天赋2-4个字，要有修仙特色（如：剑心通明、百毒不侵、雷法亲和、夺舍转生、九转金丹等）
-7. 外观描述需包含发色、服饰、气质、标志性特征
-8. 背景故事要简洁有力，能体现角色的独特性
-`;
-  return prompt;
-}
-
-/**
- * 战斗播报 Prompt 模板
- * 用于生成小说式的战斗场景描述
- * 
- * @param cultivatorA 角色A
- * @param cultivatorB 角色B
- * @param winner 获胜者
- * @returns [战斗播报系统提示词,角色设定描述] [string, string]
- */
-export function getBattleReportPrompt(
-  cultivatorA: Cultivator,
-  cultivatorB: Cultivator,
-  winner: Cultivator
-): [string, string] {
-  const powerDiff = Math.abs(cultivatorA.totalPower - cultivatorB.totalPower);
-  const powerRatio = Math.min(cultivatorA.totalPower, cultivatorB.totalPower) / 
-                     Math.max(cultivatorA.totalPower, cultivatorB.totalPower);
-
-  let battleType = '';
-  if (powerRatio > 0.9) {
-    battleType = '这是一场势均力敌的苦战，双方实力接近';
-  } else if (powerRatio > 0.7) {
-    battleType = '这是一场激烈的对决，双方实力有一定差距';
-  } else if (powerDiff > 200) {
-    battleType = '这是一场实力悬殊的战斗，一方明显强于另一方';
-  } else {
-    battleType = '这是一场精彩的战斗';
+  "name": "角色名，2-4字",
+  "gender": "性别",
+  "origin": "出身",
+  "personality": "性格概述",
+  "level": "境界，例如：筑基中期",
+  "spirit_root": "灵根，例如：雷灵根 / 变异·混沌灵根",
+  "appearance": "20~40字外观描写",
+  "background": "30~60字背景故事",
+  "pre_heaven_fates": [
+    {
+      "name": "气运名称，2-4字",
+      "type": "吉 或 凶",
+      "effect": "简要说明对属性或战斗的影响",
+      "description": "一句古风描述"
+    }
+  ],
+  "battle_profile": {
+    "attributes": {
+      "vitality": 70-110,
+      "spirit": 65-85,
+      "wisdom": 65-85,
+      "speed": 60-85
+    },
+    "max_hp": 150 + (attributes.vitality * 0.8) （四舍五入为整数）,
+    "skills": [
+      {
+        "name": "技能名",
+        "type": "attack|heal|control|buff",
+        "power": 50-85,
+        "element": "金|木|水|火|土|雷|无",
+        "effects": ["可选效果列表，如 stun/burn/heal"]
+      }
+    ],
+    "equipment": [
+      {
+        "name": "法器或符箓名称",
+        "bonus": {
+          "vitality": 可选加成（建议 5-10）,
+          "spirit": 可选加成（建议 5-10）,
+          "elementBoost": { "雷": 0.1 } // 可选，建议 0.05-0.15
+        }
+      }
+    ]
   }
-
-  const system_prompt = `你是一位畅销修仙小说作家，擅长描写惊天动地的对决。请根据两位修仙者的设定，创作一段 150~200 字的战斗场景。
+}
 
 要求：
-- 必须包含动作、台词、转折或底牌
-- ${battleType}
-- 若一方战力远高于另一方，描写碾压；若接近，描写苦战；若低者胜，描写"顿悟/底牌/天劫"等奇迹
-- 结尾明确写出谁胜谁负
-- 语言风格：热血、简练、画面感强，像起点/番茄小说热门章节
-- 战斗情节需要符合双方的角色设定，比如双方的功法神通，天赋，法宝等
-- 不要使用“只见”“忽然”等老套词汇
-`
-const user_prompt = `
-【角色A】
-姓名：${cultivatorA.name}
-境界：${cultivatorA.cultivationLevel}
-灵根：${cultivatorA.spiritRoot}
-天赋：${cultivatorA.talents.join('、')}
-外观：${cultivatorA.appearance}
-背景：${cultivatorA.backstory}
-战力：${cultivatorA.totalPower}
+1. 角色必须包含 EXACT 3 个「pre_heaven_fates」。
+2. 数值统一为整数，不得超出范围。
+3. 技能至少 2 个，必须符合角色设定；若描述与元素有关，请对应元素。
+4. 战斗属性需与气运描述一致，例如“紫府通明”应提高 spirit。
+5. 输出必须为合法 JSON。`;
+}
 
-【角色B】
-姓名：${cultivatorB.name}
-境界：${cultivatorB.cultivationLevel}
-灵根：${cultivatorB.spiritRoot}
-天赋：${cultivatorB.talents.join('、')}
-外观：${cultivatorB.appearance}
-背景：${cultivatorB.backstory}
-战力：${cultivatorB.totalPower}
+interface BattlePromptPayload {
+  player: Cultivator;
+  opponent: Cultivator;
+  battleResult: Pick<
+    BattleEngineResult,
+    "log" | "turns" | "playerHp" | "opponentHp" | "triggeredMiracle"
+  > & { winnerId: string };
+}
 
-战斗结果：${winner.name} 获胜
+export function getBattleReportPrompt({
+  player,
+  opponent,
+  battleResult,
+}: BattlePromptPayload): [string, string] {
+  const winner = battleResult.winnerId === opponent.id ? opponent : player;
 
-请直接输出战斗描写，不要有任何前缀或后缀说明。`;
-  return [system_prompt, user_prompt];
+  const summarizeCultivator = (cultivator: Cultivator) => {
+    const profile = cultivator.battleProfile;
+    const element =
+      profile?.element ?? mapSpiritRootToElement(cultivator.spiritRoot);
+    const attributes = profile
+      ? `体魄${profile.attributes.vitality} 灵力${profile.attributes.spirit} 悟性${profile.attributes.wisdom} 速度${profile.attributes.speed}`
+      : "属性：未知";
+    const skills =
+      profile?.skills
+        ?.map((skill) => `${skill.name}(${skill.element}/${skill.type})`)
+        .join("，") ?? "无";
+    const fates =
+      cultivator.preHeavenFates
+        ?.map((fate) => `${fate.name}(${fate.type})`)
+        .join("，") ?? "无";
+    return `姓名：${cultivator.name}
+境界：${cultivator.cultivationLevel}
+灵根/属性：${cultivator.spiritRoot} · ${element}
+属性：${attributes}
+技能：${skills}
+先天气运：${fates}`;
+  };
+
+  const battleLog = (battleResult.log || []).join("\n");
+
+  const systemPrompt = `你是一位修仙题材连载小说作者，擅长写具有画面感的战斗场景。请根据设定与战斗日志，创作分回合的战斗播报，每回合描述控制在30-50字左右。
+
+要求：
+- 语言热血、古风、有镜头感
+- 每回合战斗描述独立成行，以"【第X回合】"开头
+- 双方招式须与技能、气运相符
+- 明确写出每回合的攻击者、技能名称和伤害/治疗效果
+- 若触发顿悟或底牌，需要重点描写
+- 结尾单独一行，点明胜负与双方状态（可引用血量信息）
+- 请为关键信息添加HTML标记，具体规则如下：
+  - 回合数：<turn>【第X回合】</turn>
+  - 人名：<name>人名</name>
+  - 技能名称：<skill>技能名</skill>
+  - 伤害数值：<damage>数字</damage>
+  - 治疗数值：<heal>数字</heal>
+  - 效果描述：<effect>效果描述</effect>
+  - 胜负结果：<result>胜负描述</result>
+- 禁止输出 JSON 或列表，仅写正文`;
+
+  const userPrompt = `【对战双方设定】
+${summarizeCultivator(player)}
+
+---
+${summarizeCultivator(opponent)}
+
+【战斗日志】
+${battleLog}
+
+【战斗结论】
+胜者：${winner.name}
+回合数：${battleResult.turns ?? battleResult.log.length}
+双方剩余气血：${player.name} ${battleResult.playerHp ?? "未知"} / ${
+    opponent.name
+  } ${battleResult.opponentHp ?? "未知"}
+是否出现奇迹逆转：${battleResult.triggeredMiracle ? "是" : "否"}
+
+请写一段完整的战斗描写。`;
+
+  return [systemPrompt, userPrompt];
 }
 
 /**
@@ -99,16 +151,72 @@ const user_prompt = `
  */
 export function getDefaultBoss(): Cultivator {
   return {
-    id: 'boss-001',
-    name: '血手人屠',
-    prompt: '魔道巨擘，嗜血成性',
-    cultivationLevel: '元婴后期',
-    spiritRoot: '血魔灵根',
-    talents: ['血海滔天', '魔心不灭', '夺魂摄魄'],
-    appearance: '黑袍遮身，双目赤红，周身血雾缭绕，手持一柄血色长刀',
-    backstory: '曾是正道天骄，因心魔入体堕入魔道，以吞噬修士精血为乐，凶名赫赫',
-    basePower: 850,
-    talentBonus: 250,
-    totalPower: 1100,
+    id: "boss-001",
+    name: "血手人屠",
+    prompt: "魔道巨擘，嗜血成性",
+    cultivationLevel: "元婴后期",
+    spiritRoot: "血魔灵根",
+    appearance: "黑袍遮身，双目赤红，血雾缭绕，手持血色长刀",
+    backstory: "昔年正道第一，如今坠入魔渊，以血养道，屠戮无数。",
+    preHeavenFates: [
+      {
+        name: "血煞命格",
+        type: "凶",
+        effect: "vitality +15, wisdom -5",
+        description: "煞气入骨，杀孽滔天。",
+      },
+      {
+        name: "魔心不灭",
+        type: "吉",
+        effect: "max_hp +30",
+        description: "魔念护身，百劫不磨。",
+      },
+      {
+        name: "尸山血海",
+        type: "凶",
+        effect: "火系技能威力 +15%",
+        description: "血海为源，冥焰滔天。",
+      },
+    ],
+    battleProfile: {
+      maxHp: 350,
+      hp: 350,
+      element: "火",
+      attributes: {
+        vitality: 110,
+        spirit: 80,
+        wisdom: 65,
+        speed: 60,
+      },
+      skills: [
+        {
+          name: "血海滔天",
+          type: "attack",
+          power: 85,
+          element: "火",
+          effects: ["burn"],
+        },
+        {
+          name: "魔焰护身",
+          type: "buff",
+          power: 55,
+          element: "火",
+          effects: ["speed_up"],
+        },
+        {
+          name: "血元回潮",
+          type: "heal",
+          power: 65,
+          element: "土",
+          effects: ["heal"],
+        },
+      ],
+      equipment: [
+        {
+          name: "血炼魔刀",
+          bonus: { vitality: 8, elementBoost: { 火: 0.15 } },
+        },
+      ],
+    },
   };
 }
