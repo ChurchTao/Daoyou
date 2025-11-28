@@ -13,13 +13,18 @@
 @theme inline {
   --color-background: var(--color-paper);
   --color-foreground: var(--color-ink);
-  --font-sans: var(--font-ma-shan-zheng);
+  --font-sans: var(--font-zcool-xiao-wei);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--color-paper);
   color: var(--color-ink);
+  font-family: var(--font-zcool-xiao-wei), Arial, Helvetica, sans-serif;
+}
+
+/* 标题字体样式 */
+h1, h2, h3, h4, h5, h6, .font-ma-shan-zheng {
   font-family: var(--font-ma-shan-zheng), Arial, Helvetica, sans-serif;
 }
 

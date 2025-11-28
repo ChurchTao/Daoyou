@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { Ma_Shan_Zheng } from "next/font/google";
+import { Ma_Shan_Zheng, ZCOOL_XiaoWei } from "next/font/google";
 import "./globals.css";
 
 const maShanZheng = Ma_Shan_Zheng({
   variable: "--font-ma-shan-zheng",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const zcooLiaoWei = ZCOOL_XiaoWei({
+  variable: "--font-zcool-xiao-wei",
   weight: "400",
   subsets: ["latin"],
 });
@@ -21,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body
-        className={`${maShanZheng.variable} antialiased`}
+        className={`${zcooLiaoWei.variable} ${maShanZheng.variable} antialiased`}
       >
         {children}
       </body>
