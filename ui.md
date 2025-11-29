@@ -23,13 +23,13 @@
 
 ## 🎨 核心视觉元素（SVG 推荐）
 
-| 元素           | 用途                 | 设计建议                                                      |
-| -------------- | -------------------- | ------------------------------------------------------------- |
-| **卷轴边框**   | 包裹角色卡、战斗播报 | 两端木轴 + 中间纸纹，可用 `<svg>` 绘制，或 CSS `border-image` |
-| **符箓底纹**   | 按钮背景 / 卡片装饰  | 简化道教符咒线条，单色（墨或朱砂），半透明叠加                |
-| **丹炉图标**   | “生成”按钮图标       | 小型 SVG，炉中冒烟（CSS 动画）                                |
-| **云纹分隔线** | 页面区块分隔         | 底部波浪形云纹 SVG，淡墨色                                    |
-| **印章**       | 胜利标识 / Logo      | “道”“胜”“灵”等篆体红印，PNG/SVG                               |
+| 元素 | 用途 | 设计建议 |
+| --- | --- | --- |
+| **卷轴边框** | 包裹角色卡、战斗播报 | 两端木轴 + 中间纸纹，可用 `<svg>` 绘制，或 CSS `border-image` |
+| **符箓底纹** | 按钮背景 / 卡片装饰 | 简化道教符咒线条，单色（墨或朱砂），半透明叠加 |
+| **丹炉图标** | “生成”按钮图标 | 小型 SVG，炉中冒烟（CSS 动画） |
+| **云纹分隔线** | 页面区块分隔 | 底部波浪形云纹 SVG，淡墨色 |
+| **印章** | 胜利标识 / Logo | “道”“胜”“灵”等篆体红印，PNG/SVG |
 
 > ✅ 所有 SVG 均可内联到 HTML，避免额外请求，且支持动态上色。
 
@@ -45,34 +45,34 @@
   <!-- 宣纸纹理背景 -->
 
   <!-- 顶部标题 -->
-  <h1 class="font-ma-shan-zheng text-4xl text-ink mb-6 text-center">
+  <h1 class="font-ma-shan-zheng text-ink mb-6 text-center text-4xl">
     万界道录
   </h1>
-  <p class="text-ink/70 text-center mb-8">输入心念，凝练道身</p>
+  <p class="text-ink/70 mb-8 text-center">输入心念，凝练道身</p>
 
   <!-- 主按钮：仿丹炉 -->
-  <button class="btn-primary flex items-center justify-center mx-auto mb-10">
-    <svg class="w-6 h-6 mr-2" viewBox="0 0 24 24">...</svg>
+  <button class="btn-primary mx-auto mb-10 flex items-center justify-center">
+    <svg class="mr-2 h-6 w-6" viewBox="0 0 24 24">...</svg>
     <!-- 丹炉 SVG -->
     觉醒灵根
   </button>
 
   <!-- 排行榜：仿古籍名录 -->
-  <div class="ranking-list max-w-md mx-auto">
-    <h2 class="font-ma-shan-zheng text-xl text-ink mb-4 flex items-center">
+  <div class="ranking-list mx-auto max-w-md">
+    <h2 class="font-ma-shan-zheng text-ink mb-4 flex items-center text-xl">
       <span>天榜前十</span>
-      <svg class="ml-2 w-5 h-5" fill="#c1121f">...</svg>
+      <svg class="ml-2 h-5 w-5" fill="#c1121f">...</svg>
       <!-- 小火焰或龙纹 -->
     </h2>
 
     <!-- 每个条目：仿竹简 or 名帖 -->
-    <div class="ranking-item border-b border-ink/10 py-3">
-      <div class="flex justify-between items-center">
+    <div class="ranking-item border-ink/10 border-b py-3">
+      <div class="flex items-center justify-between">
         <span class="font-ma-shan-zheng">玄霄子</span>
-        <span class="text-sm text-ink/80">元婴初期 · 战力 892</span>
+        <span class="text-ink/80 text-sm">元婴初期 · 战力 892</span>
       </div>
-      <div class="text-xs text-ink/60 mt-1">剑心通明｜雷劫不灭</div>
-      <button class="text-xs text-crimson mt-2">挑战</button>
+      <div class="text-ink/60 mt-1 text-xs">剑心通明｜雷劫不灭</div>
+      <button class="text-crimson mt-2 text-xs">挑战</button>
     </div>
   </div>
 
@@ -95,26 +95,26 @@
 <div class="page-create bg-paper p-6">
   <!-- 输入区：仿砚台 -->
   <div class="input-area mb-8">
-    <label class="block font-ma-shan-zheng text-ink mb-2">以心念唤道：</label>
+    <label class="font-ma-shan-zheng text-ink mb-2 block">以心念唤道：</label>
     <textarea
       placeholder="例：我想成为一位靠炼丹逆袭的废柴少主..."
-      class="w-full h-32 p-4 bg-paper-light border border-ink/20 rounded-lg focus:ring-1 focus:ring-crimson"
+      class="bg-paper-light border-ink/20 focus:ring-crimson h-32 w-full rounded-lg border p-4 focus:ring-1"
     ></textarea>
   </div>
 
   <!-- 生成按钮 -->
-  <button class="btn-primary mx-auto block mb-10">
-    <svg class="w-5 h-5 inline mr-1">...</svg> 凝气成形
+  <button class="btn-primary mx-auto mb-10 block">
+    <svg class="mr-1 inline h-5 w-5">...</svg> 凝气成形
   </button>
 
   <!-- 角色卡：仿卷轴 -->
   {generated && (
-  <div class="character-scroll max-w-lg mx-auto">
+  <div class="character-scroll mx-auto max-w-lg">
     <div
-      class="scroll-content p-6 bg-white/80 backdrop-blur-sm border border-ink/10 rounded"
+      class="scroll-content border-ink/10 rounded border bg-white/80 p-6 backdrop-blur-sm"
     >
-      <h3 class="font-ma-shan-zheng text-2xl text-ink mb-2">{name}</h3>
-      <div class="grid grid-cols-2 gap-2 text-sm mb-4">
+      <h3 class="font-ma-shan-zheng text-ink mb-2 text-2xl">{name}</h3>
+      <div class="mb-4 grid grid-cols-2 gap-2 text-sm">
         <div><span class="text-ink/70">境界：</span>{cultivation_level}</div>
         <div><span class="text-ink/70">灵根：</span>{spirit_root}</div>
       </div>
@@ -129,7 +129,7 @@
   )}
 
   <!-- 底部操作 -->
-  <div class="flex justify-center gap-4 mt-6">
+  <div class="mt-6 flex justify-center gap-4">
     <button class="btn-outline">重凝</button>
     <button class="btn-primary">入世对战</button>
   </div>
@@ -142,7 +142,7 @@
   ```css
   .character-scroll::before,
   .character-scroll::after {
-    content: "";
+    content: '';
     display: block;
     height: 20px;
     background: #8b4513; /* 木色 */
@@ -158,46 +158,46 @@
 ```html
 <div class="battle-page bg-paper p-4">
   <!-- 对战双方（左右分列，仿对战图谱）-->
-  <div class="flex justify-between mb-8 px-4">
+  <div class="mb-8 flex justify-between px-4">
     <div class="text-center">
-      <div class="font-ma-shan-zheng text-lg text-ink">{player.name}</div>
-      <div class="text-xs text-ink/70">{player.cultivation_level}</div>
+      <div class="font-ma-shan-zheng text-ink text-lg">{player.name}</div>
+      <div class="text-ink/70 text-xs">{player.cultivation_level}</div>
     </div>
     <div class="text-center">
-      <div class="font-ma-shan-zheng text-lg text-ink">{opponent.name}</div>
-      <div class="text-xs text-ink/70">{opponent.cultivation_level}</div>
+      <div class="font-ma-shan-zheng text-ink text-lg">{opponent.name}</div>
+      <div class="text-ink/70 text-xs">{opponent.cultivation_level}</div>
     </div>
   </div>
 
   <!-- 战斗播报：仿古籍批注 -->
   <div
-    class="narrative-box max-w-lg mx-auto p-6 bg-paper-light border border-ink/10 rounded relative"
+    class="narrative-box bg-paper-light border-ink/10 relative mx-auto max-w-lg rounded border p-6"
   >
     <!-- 左侧朱批竖线 -->
     <div
-      class="absolute left-2 top-2 bottom-2 w-1 bg-crimson rounded-full opacity-30"
+      class="bg-crimson absolute top-2 bottom-2 left-2 w-1 rounded-full opacity-30"
     ></div>
 
-    <p class="text-ink leading-relaxed text-center whitespace-pre-line">
+    <p class="text-ink text-center leading-relaxed whitespace-pre-line">
       {narrativeText}
     </p>
 
     <!-- 胜利印章（条件渲染）-->
     {isWin && (
     <div class="absolute -top-4 -right-4">
-      <svg class="w-16 h-16" fill="#c1121f" opacity="0.8">...</svg>
+      <svg class="h-16 w-16" fill="#c1121f" opacity="0.8">...</svg>
       <!-- “胜”字篆印 -->
     </div>
     )}
   </div>
 
   <!-- 操作按钮 -->
-  <div class="flex justify-center gap-4 mt-8">
+  <div class="mt-8 flex justify-center gap-4">
     <button class="btn-outline">再战</button>
     <button class="btn-primary">载入道录</button>
     <!-- 存入排行榜 -->
     <button class="btn-outline flex items-center">
-      <svg class="w-4 h-4 mr-1">...</svg> 分享
+      <svg class="mr-1 h-4 w-4">...</svg> 分享
     </button>
   </div>
 </div>
@@ -219,7 +219,7 @@
   ```css
   .bg-paper {
     background-color: #f8f3e6;
-    background-image: url("/textures/paper.png");
+    background-image: url('/textures/paper.png');
     background-size: 300px;
   }
   ```

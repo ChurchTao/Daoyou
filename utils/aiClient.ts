@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 /**
  * AI 客户端工具
  * 用于调用 OpenAI API 生成角色和战斗播报
- * 
+ *
  * 环境变量配置：
  * - OPENAI_API_KEY: OpenAI API Key（必需）
  * - OPENAI_BASE_URL: 自定义 API 地址（可选，用于兼容其他 OpenAI 兼容的 API）
@@ -13,13 +13,15 @@ import OpenAI from 'openai';
 // 初始化 OpenAI 客户端
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
-  
+
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY 环境变量未设置。请在 .env.local 文件中配置 OPENAI_API_KEY');
+    throw new Error(
+      'OPENAI_API_KEY 环境变量未设置。请在 .env.local 文件中配置 OPENAI_API_KEY',
+    );
   }
 
   const baseURL = process.env.OPENAI_BASE_URL;
-  
+
   return new OpenAI({
     apiKey,
     ...(baseURL && { baseURL }), // 如果设置了自定义 baseURL，则使用它（用于兼容其他 API）
@@ -32,7 +34,10 @@ function getOpenAIClient(): OpenAI {
  * @param userInput 用户输入
  * @returns 生成的角色 JSON 字符串
  */
-export async function generateCharacter(prompt: string, userInput: string): Promise<string> {
+export async function generateCharacter(
+  prompt: string,
+  userInput: string,
+): Promise<string> {
   try {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -54,7 +59,7 @@ export async function generateCharacter(prompt: string, userInput: string): Prom
     });
 
     const content = response.choices[0]?.message?.content;
-    
+
     if (!content) {
       throw new Error('AI 返回的内容为空');
     }
@@ -62,7 +67,7 @@ export async function generateCharacter(prompt: string, userInput: string): Prom
     return content;
   } catch (error) {
     console.error('生成角色失败:', error);
-    
+
     if (error instanceof Error) {
       // 处理 OpenAI API 错误
       if (error.message.includes('API key')) {
@@ -75,8 +80,10 @@ export async function generateCharacter(prompt: string, userInput: string): Prom
         throw new Error('API 配额不足，请检查账户余额');
       }
     }
-    
-    throw new Error(`生成角色失败: ${error instanceof Error ? error.message : '未知错误'}`);
+
+    throw new Error(
+      `生成角色失败: ${error instanceof Error ? error.message : '未知错误'}`,
+    );
   }
 }
 
@@ -90,7 +97,7 @@ export async function generateCharacter(prompt: string, userInput: string): Prom
 export async function generateBattleReportStream(
   prompt: string,
   userPrompt: string,
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
 ): Promise<string> {
   try {
     const client = getOpenAIClient();
@@ -126,7 +133,7 @@ export async function generateBattleReportStream(
     return fullContent.trim();
   } catch (error) {
     console.error('生成战斗播报失败:', error);
-    
+
     if (error instanceof Error) {
       // 处理 OpenAI API 错误
       if (error.message.includes('API key')) {
@@ -139,8 +146,10 @@ export async function generateBattleReportStream(
         throw new Error('API 配额不足，请检查账户余额');
       }
     }
-    
-    throw new Error(`生成战斗播报失败: ${error instanceof Error ? error.message : '未知错误'}`);
+
+    throw new Error(
+      `生成战斗播报失败: ${error instanceof Error ? error.message : '未知错误'}`,
+    );
   }
 }
 
@@ -149,7 +158,10 @@ export async function generateBattleReportStream(
  * @param prompt 战斗播报 prompt
  * @returns 生成的战斗播报文本
  */
-export async function generateBattleReport(prompt: string, userPrompt: string): Promise<string> {
+export async function generateBattleReport(
+  prompt: string,
+  userPrompt: string,
+): Promise<string> {
   let fullContent = '';
   await generateBattleReportStream(prompt, userPrompt, (chunk) => {
     fullContent += chunk;

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { generateCharacter } from "../../../utils/aiClient";
-import { getCharacterGenerationPrompt } from "../../../utils/prompts";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { generateCharacter } from '../../../utils/aiClient';
+import { getCharacterGenerationPrompt } from '../../../utils/prompts';
 
 /**
  * POST /api/generate-character
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      return NextResponse.json({ error: "未授权访问" }, { status: 401 });
+      return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
     // 输入验证
     if (
       !userInput ||
-      typeof userInput !== "string" ||
+      typeof userInput !== 'string' ||
       userInput.trim().length < 5
     ) {
       return NextResponse.json(
-        { error: "请提供至少5个字符的角色描述" },
-        { status: 400 }
+        { error: '请提供至少5个字符的角色描述' },
+        { status: 400 },
       );
     }
 
@@ -48,15 +48,15 @@ export async function POST(request: NextRequest) {
       data: aiResponse,
     });
   } catch (error) {
-    console.error("生成角色 API 错误:", error);
+    console.error('生成角色 API 错误:', error);
 
     // 安全处理错误信息，避免泄露敏感信息
     const errorMessage =
-      process.env.NODE_ENV === "development"
+      process.env.NODE_ENV === 'development'
         ? error instanceof Error
           ? error.message
-          : "生成角色失败，请稍后重试"
-        : "生成角色失败，请稍后重试";
+          : '生成角色失败，请稍后重试'
+        : '生成角色失败，请稍后重试';
 
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

@@ -4,12 +4,13 @@ import { useState } from 'react';
 import type { Cultivator } from '../../types/cultivator';
 import { getDefaultBoss } from '../../utils/prompts';
 // AI 调用已移至 API 路由
+import { BattleEngineResult, simulateBattle } from '../../engine/battleEngine';
 import { createCultivatorFromAI } from '../../utils/cultivatorUtils';
-import { simulateBattle, BattleEngineResult } from '../../engine/battleEngine';
 
 const getCombatRating = (cultivator: Cultivator | null): string => {
   if (!cultivator?.battleProfile) return '--';
-  const { vitality, spirit, wisdom, speed } = cultivator.battleProfile.attributes;
+  const { vitality, spirit, wisdom, speed } =
+    cultivator.battleProfile.attributes;
   return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
 };
 
@@ -24,7 +25,9 @@ export default function DemoPage() {
   const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
-  const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(null);
+  const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(
+    null,
+  );
   const [streamingReport, setStreamingReport] = useState<string>(''); // 流式生成的内容
   const [isStreaming, setIsStreaming] = useState(false); // 是否正在流式生成
   const [finalReport, setFinalReport] = useState<string>(''); // 最终战报内容
@@ -64,7 +67,8 @@ export default function DemoPage() {
       setBattleResult(null);
     } catch (error) {
       console.error('生成角色失败:', error);
-      const errorMessage = error instanceof Error ? error.message : '生成角色失败，请检查控制台';
+      const errorMessage =
+        error instanceof Error ? error.message : '生成角色失败，请检查控制台';
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -133,14 +137,14 @@ export default function DemoPage() {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           break;
         }
 
         // 解码数据
         buffer += decoder.decode(value, { stream: true });
-        
+
         // 处理完整的 SSE 消息
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // 保留不完整的行
@@ -149,7 +153,7 @@ export default function DemoPage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              
+
               if (data.type === 'chunk') {
                 // 接收到内容块，实时更新 UI
                 fullReport += data.content;
@@ -171,10 +175,11 @@ export default function DemoPage() {
       }
     } catch (error) {
       console.error('战斗失败:', error);
-        setIsStreaming(false);
-        setStreamingReport('');
-        setFinalReport('');
-      const errorMessage = error instanceof Error ? error.message : '战斗失败，请检查控制台';
+      setIsStreaming(false);
+      setStreamingReport('');
+      setFinalReport('');
+      const errorMessage =
+        error instanceof Error ? error.message : '战斗失败，请检查控制台';
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -193,7 +198,9 @@ export default function DemoPage() {
 
         {/* 角色生成区域 */}
         <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 mb-6">
-          <h2 className="text-2xl font-semibold text-white mb-4">1. 生成角色</h2>
+          <h2 className="text-2xl font-semibold text-white mb-4">
+            1. 生成角色
+          </h2>
           <div className="space-y-4">
             <textarea
               value={userPrompt}
@@ -242,12 +249,17 @@ export default function DemoPage() {
                   <p className="text-blue-200">先天气运</p>
                   <div className="mt-2 space-y-1 text-sm">
                     {player.preHeavenFates.map((fate, idx) => (
-                      <div key={fate.name + idx} className="bg-white/5 p-2 rounded border border-white/10">
+                      <div
+                        key={fate.name + idx}
+                        className="bg-white/5 p-2 rounded border border-white/10"
+                      >
                         <p className="font-semibold text-white">
                           {fate.name} · {fate.type}
                         </p>
                         <p className="text-white/80">{fate.effect}</p>
-                        <p className="text-white/60 text-xs italic">{fate.description}</p>
+                        <p className="text-white/60 text-xs italic">
+                          {fate.description}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -283,7 +295,9 @@ export default function DemoPage() {
                   </div>
                   <div>
                     <p className="text-blue-200">战力评估</p>
-                    <p className="text-2xl font-bold text-orange-300">{getCombatRating(player)}</p>
+                    <p className="text-2xl font-bold text-orange-300">
+                      {getCombatRating(player)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -308,20 +322,26 @@ export default function DemoPage() {
                   <div className="flex items-center justify-between p-4 bg-green-500/20 rounded-lg">
                     <div>
                       <p className="text-green-200">胜利者</p>
-                      <p className="text-2xl font-bold">{battleResult.winner.name}</p>
+                      <p className="text-2xl font-bold">
+                        {battleResult.winner.name}
+                      </p>
                       <p className="text-sm text-green-300">
                         战力评估: {getCombatRating(battleResult.winner)}
                       </p>
                     </div>
                     {battleResult.triggeredMiracle && (
                       <div className="px-4 py-2 bg-yellow-500/30 rounded-lg">
-                        <p className="text-yellow-200 font-bold">✨ 触发顿悟！</p>
+                        <p className="text-yellow-200 font-bold">
+                          ✨ 触发顿悟！
+                        </p>
                       </div>
                     )}
                   </div>
                   <div className="p-4 bg-red-500/20 rounded-lg">
                     <p className="text-red-200">失败者</p>
-                    <p className="text-xl font-bold">{battleResult.loser.name}</p>
+                    <p className="text-xl font-bold">
+                      {battleResult.loser.name}
+                    </p>
                     <p className="text-sm text-red-300">
                       战力评估: {getCombatRating(battleResult.loser)}
                     </p>
@@ -368,5 +388,3 @@ export default function DemoPage() {
     </div>
   );
 }
-
-

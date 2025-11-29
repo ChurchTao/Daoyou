@@ -36,4 +36,3 @@ OPENAI_MODEL=gpt-4o-mini
 - `.env.local` 文件不会被提交到 Git（已在 .gitignore 中）
 - 修改环境变量后需要重启开发服务器
 - 生产环境需要在部署平台（如 Vercel）配置环境变量
-

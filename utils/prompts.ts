@@ -1,6 +1,6 @@
-import type { Cultivator } from "../types/cultivator";
-import type { BattleEngineResult } from "@/engine/battleEngine";
-import { mapSpiritRootToElement } from "./battleProfile";
+import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { Cultivator } from '../types/cultivator';
+import { mapSpiritRootToElement } from './battleProfile';
 
 /**
  * 角色生成 Prompt 模板（系统提示词）
@@ -69,7 +69,7 @@ interface BattlePromptPayload {
   opponent: Cultivator;
   battleResult: Pick<
     BattleEngineResult,
-    "log" | "turns" | "playerHp" | "opponentHp" | "triggeredMiracle"
+    'log' | 'turns' | 'playerHp' | 'opponentHp' | 'triggeredMiracle'
   > & { winnerId: string };
 }
 
@@ -86,15 +86,15 @@ export function getBattleReportPrompt({
       profile?.element ?? mapSpiritRootToElement(cultivator.spiritRoot);
     const attributes = profile
       ? `体魄${profile.attributes.vitality} 灵力${profile.attributes.spirit} 悟性${profile.attributes.wisdom} 速度${profile.attributes.speed}`
-      : "属性：未知";
+      : '属性：未知';
     const skills =
       profile?.skills
         ?.map((skill) => `${skill.name}(${skill.element}/${skill.type})`)
-        .join("，") ?? "无";
+        .join('，') ?? '无';
     const fates =
       cultivator.preHeavenFates
         ?.map((fate) => `${fate.name}(${fate.type})`)
-        .join("，") ?? "无";
+        .join('，') ?? '无';
     return `姓名：${cultivator.name}
 境界：${cultivator.cultivationLevel}
 灵根/属性：${cultivator.spiritRoot} · ${element}
@@ -103,7 +103,7 @@ export function getBattleReportPrompt({
 先天气运：${fates}`;
   };
 
-  const battleLog = (battleResult.log || []).join("\n");
+  const battleLog = (battleResult.log || []).join('\n');
 
   const systemPrompt = `你是一位修仙题材连载小说作者，擅长写具有画面感的战斗场景。请根据设定与战斗日志，创作分回合的战斗播报，每回合描述控制在30-50字左右。
 
@@ -136,10 +136,10 @@ ${battleLog}
 【战斗结论】
 胜者：${winner.name}
 回合数：${battleResult.turns ?? battleResult.log.length}
-双方剩余气血：${player.name} ${battleResult.playerHp ?? "未知"} / ${
+双方剩余气血：${player.name} ${battleResult.playerHp ?? '未知'} / ${
     opponent.name
-  } ${battleResult.opponentHp ?? "未知"}
-是否出现奇迹逆转：${battleResult.triggeredMiracle ? "是" : "否"}
+  } ${battleResult.opponentHp ?? '未知'}
+是否出现奇迹逆转：${battleResult.triggeredMiracle ? '是' : '否'}
 
 请写一段完整的战斗描写。`;
 
@@ -151,37 +151,37 @@ ${battleLog}
  */
 export function getDefaultBoss(): Cultivator {
   return {
-    id: "boss-001",
-    name: "血手人屠",
-    prompt: "魔道巨擘，嗜血成性",
-    cultivationLevel: "元婴后期",
-    spiritRoot: "血魔灵根",
-    appearance: "黑袍遮身，双目赤红，血雾缭绕，手持血色长刀",
-    backstory: "昔年正道第一，如今坠入魔渊，以血养道，屠戮无数。",
+    id: 'boss-001',
+    name: '血手人屠',
+    prompt: '魔道巨擘，嗜血成性',
+    cultivationLevel: '元婴后期',
+    spiritRoot: '血魔灵根',
+    appearance: '黑袍遮身，双目赤红，血雾缭绕，手持血色长刀',
+    backstory: '昔年正道第一，如今坠入魔渊，以血养道，屠戮无数。',
     preHeavenFates: [
       {
-        name: "血煞命格",
-        type: "凶",
-        effect: "vitality +15, wisdom -5",
-        description: "煞气入骨，杀孽滔天。",
+        name: '血煞命格',
+        type: '凶',
+        effect: 'vitality +15, wisdom -5',
+        description: '煞气入骨，杀孽滔天。',
       },
       {
-        name: "魔心不灭",
-        type: "吉",
-        effect: "max_hp +30",
-        description: "魔念护身，百劫不磨。",
+        name: '魔心不灭',
+        type: '吉',
+        effect: 'max_hp +30',
+        description: '魔念护身，百劫不磨。',
       },
       {
-        name: "尸山血海",
-        type: "凶",
-        effect: "火系技能威力 +15%",
-        description: "血海为源，冥焰滔天。",
+        name: '尸山血海',
+        type: '凶',
+        effect: '火系技能威力 +15%',
+        description: '血海为源，冥焰滔天。',
       },
     ],
     battleProfile: {
       maxHp: 350,
       hp: 350,
-      element: "火",
+      element: '火',
       attributes: {
         vitality: 110,
         spirit: 80,
@@ -190,30 +190,30 @@ export function getDefaultBoss(): Cultivator {
       },
       skills: [
         {
-          name: "血海滔天",
-          type: "attack",
+          name: '血海滔天',
+          type: 'attack',
           power: 85,
-          element: "火",
-          effects: ["burn"],
+          element: '火',
+          effects: ['burn'],
         },
         {
-          name: "魔焰护身",
-          type: "buff",
+          name: '魔焰护身',
+          type: 'buff',
           power: 55,
-          element: "火",
-          effects: ["speed_up"],
+          element: '火',
+          effects: ['speed_up'],
         },
         {
-          name: "血元回潮",
-          type: "heal",
+          name: '血元回潮',
+          type: 'heal',
           power: 65,
-          element: "土",
-          effects: ["heal"],
+          element: '土',
+          effects: ['heal'],
         },
       ],
       equipment: [
         {
-          name: "血炼魔刀",
+          name: '血炼魔刀',
           bonus: { vitality: 8, elementBoost: { 火: 0.15 } },
         },
       ],

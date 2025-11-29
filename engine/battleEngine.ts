@@ -1,11 +1,11 @@
 import type {
-  Cultivator,
-  BattleProfile,
-  Skill,
-  ElementType,
   ActiveEffect,
-} from "@/types/cultivator";
-import { ensureBattleProfile, cloneBattleProfile } from "@/utils/battleProfile";
+  BattleProfile,
+  Cultivator,
+  ElementType,
+  Skill,
+} from '@/types/cultivator';
+import { cloneBattleProfile, ensureBattleProfile } from '@/utils/battleProfile';
 
 export interface BattleEngineResult {
   winner: Cultivator;
@@ -27,22 +27,22 @@ const MAX_TURNS = 20;
 
 const ELEMENT_MOD: Record<string, number> = {
   // 雷系克制关系
-  "雷-金": 1.3,
-  "雷-木": 1.3,
-  "土-雷": 1.3,
-  "金-雷": 0.7,
-  "木-雷": 0.7,
+  '雷-金': 1.3,
+  '雷-木': 1.3,
+  '土-雷': 1.3,
+  '金-雷': 0.7,
+  '木-雷': 0.7,
   // 五行相克关系
-  "金-木": 1.3,
-  "木-土": 1.3,
-  "土-水": 1.3,
-  "水-火": 1.3,
-  "火-金": 1.3,
-  "木-金": 0.7,
-  "土-木": 0.7,
-  "水-土": 0.7,
-  "火-水": 0.7,
-  "金-火": 0.7,
+  '金-木': 1.3,
+  '木-土': 1.3,
+  '土-水': 1.3,
+  '水-火': 1.3,
+  '火-金': 1.3,
+  '木-金': 0.7,
+  '土-木': 0.7,
+  '水-土': 0.7,
+  '火-水': 0.7,
+  '金-火': 0.7,
 };
 
 const clamp = (value: number, min: number, max: number) =>
@@ -61,12 +61,12 @@ const randomChoice = <T>(items: T[], fallback: T): T =>
 
 export function simulateBattle(
   player: Cultivator,
-  opponent: Cultivator
+  opponent: Cultivator,
 ): BattleEngineResult {
   const playerProfile = cloneBattleProfile(ensureBattleProfile(player));
-  console.log("playerProfile", playerProfile);
+  console.log('playerProfile', playerProfile);
   const opponentProfile = cloneBattleProfile(ensureBattleProfile(opponent));
-  console.log("opponentProfile", opponentProfile);
+  console.log('opponentProfile', opponentProfile);
 
   const p: Combatant = {
     ...playerProfile,
@@ -155,11 +155,11 @@ export function simulateBattle(
 function executeAction(
   attacker: Combatant,
   defender: Combatant,
-  log: string[]
+  log: string[],
 ) {
   // 检查是否眩晕
   const isStunned = attacker.activeEffects.some(
-    (effect) => effect.type === "stun"
+    (effect) => effect.type === 'stun',
   );
   if (isStunned) {
     log.push(`${attacker.name} 处于眩晕状态，无法行动！`);
@@ -168,44 +168,44 @@ function executeAction(
 
   const skill = selectSkill(attacker, defender);
   switch (skill.type) {
-    case "attack":
-    case "control": {
+    case 'attack':
+    case 'control': {
       const { damage, isCrit, elementNote } = calculateDamage(
         attacker,
         defender,
-        skill
+        skill,
       );
       applyDamage(defender, damage);
-      const critText = isCrit ? "（暴击）" : "";
+      const critText = isCrit ? '（暴击）' : '';
       log.push(
-        `${attacker.name} 施展 ${skill.name}${critText}，对 ${defender.name} 造成 ${damage} 点伤害${elementNote}。`
+        `${attacker.name} 施展 ${skill.name}${critText}，对 ${defender.name} 造成 ${damage} 点伤害${elementNote}。`,
       );
 
       // 应用持续效果
       applyEffects(defender, skill.effects || [], attacker.name, log);
       break;
     }
-    case "heal": {
+    case 'heal': {
       const heal = Math.round(
-        skill.power * 0.5 + attacker.attributes.spirit * 0.3
+        skill.power * 0.5 + attacker.attributes.spirit * 0.3,
       );
       attacker.hp = clamp(attacker.hp + heal, 0, attacker.maxHp);
       log.push(`${attacker.name} 运转 ${skill.name}，回复 ${heal} 点气血。`);
       break;
     }
-    case "buff": {
-      if (skill.effects?.includes("speed_up")) {
+    case 'buff': {
+      if (skill.effects?.includes('speed_up')) {
         attacker.attributes.speed = clamp(
           attacker.attributes.speed + 5,
           40,
-          120
+          120,
         );
       }
-      if (skill.effects?.includes("spirit_up")) {
+      if (skill.effects?.includes('spirit_up')) {
         attacker.attributes.spirit = clamp(
           attacker.attributes.spirit + 5,
           40,
-          120
+          120,
         );
       }
       // 应用持续buff效果
@@ -227,60 +227,60 @@ function processActiveEffects(target: Combatant, log: string[]) {
   for (const effect of target.activeEffects) {
     // 效果结算
     switch (effect.type) {
-      case "bleed":
+      case 'bleed':
         // 流血效果：每回合造成固定伤害
         applyDamage(target, effect.value);
         log.push(
-          `${target.name} 受到 ${effect.name} 影响，流血不止，损失 ${effect.value} 点气血！`
+          `${target.name} 受到 ${effect.name} 影响，流血不止，损失 ${effect.value} 点气血！`,
         );
         break;
-      case "burn":
+      case 'burn':
         // 燃烧效果：每回合造成固定伤害
         applyDamage(target, effect.value);
         log.push(
-          `${target.name} 身上 ${effect.name} 燃烧，损失 ${effect.value} 点气血！`
+          `${target.name} 身上 ${effect.name} 燃烧，损失 ${effect.value} 点气血！`,
         );
         break;
-      case "stun":
+      case 'stun':
         // 眩晕效果：已经在executeAction中检查，这里只是减少持续时间
         break;
-      case "poison":
+      case 'poison':
         // 中毒效果：每回合造成固定伤害
         applyDamage(target, effect.value);
         log.push(
-          `${target.name} 身中 ${effect.name}，毒性发作，损失 ${effect.value} 点气血！`
+          `${target.name} 身中 ${effect.name}，毒性发作，损失 ${effect.value} 点气血！`,
         );
         break;
-      case "spirit_up":
+      case 'spirit_up':
         // 灵力提升效果：每回合持续生效，提升灵力
         target.attributes.spirit = clamp(
           target.attributes.spirit + effect.value,
           40,
-          120
+          120,
         );
         break;
-      case "vitality_up":
+      case 'vitality_up':
         // 体魄提升效果：每回合持续生效，提升体魄
         target.attributes.vitality = clamp(
           target.attributes.vitality + effect.value,
           40,
-          120
+          120,
         );
         break;
-      case "wisdom_up":
+      case 'wisdom_up':
         // 悟性提升效果：每回合持续生效，提升悟性
         target.attributes.wisdom = clamp(
           target.attributes.wisdom + effect.value,
           40,
-          120
+          120,
         );
         break;
-      case "speed_up":
+      case 'speed_up':
         // 速度提升效果：每回合持续生效，提升速度
         target.attributes.speed = clamp(
           target.attributes.speed + effect.value,
           40,
-          120
+          120,
         );
         break;
     }
@@ -293,7 +293,7 @@ function processActiveEffects(target: Combatant, log: string[]) {
       newEffects.push(effect);
     } else {
       // 效果结束提示
-      if (effect.type !== "stun") {
+      if (effect.type !== 'stun') {
         log.push(`${target.name} 身上的 ${effect.name} 效果消失了。`);
       }
     }
@@ -307,102 +307,102 @@ function applyEffects(
   target: Combatant,
   effects: string[],
   source: string,
-  log: string[]
+  log: string[],
 ) {
   if (!effects || effects.length === 0) return;
 
   for (const effect of effects) {
     switch (effect) {
-      case "bleed":
+      case 'bleed':
         // 流血效果：持续3回合，每回合造成10点伤害
         target.activeEffects.push({
-          name: "流血",
-          type: "bleed",
+          name: '流血',
+          type: 'bleed',
           value: 2,
           duration: 5,
           source,
         });
         log.push(`${target.name} 被 ${source} 的招式击中，伤口血流不止！`);
         break;
-      case "burn":
+      case 'burn':
         // 燃烧效果：持续2回合，每回合造成15点伤害
         target.activeEffects.push({
-          name: "烈焰",
-          type: "burn",
+          name: '烈焰',
+          type: 'burn',
           value: 6,
           duration: 2,
           source,
         });
         log.push(`${target.name} 被 ${source} 的招式击中，身上燃起熊熊烈焰！`);
         break;
-      case "stun":
+      case 'stun':
         // 眩晕效果：当前回合无法行动（需要在行动前检查）
         target.activeEffects.push({
-          name: "眩晕",
-          type: "stun",
+          name: '眩晕',
+          type: 'stun',
           value: 0,
           duration: 1,
           source,
         });
         log.push(
-          `${target.name} 被 ${source} 的招式击中，头晕目眩，无法行动！`
+          `${target.name} 被 ${source} 的招式击中，头晕目眩，无法行动！`,
         );
         break;
-      case "poison":
+      case 'poison':
         // 中毒效果：持续4回合，每回合造成8点伤害
         target.activeEffects.push({
-          name: "剧毒",
-          type: "poison",
+          name: '剧毒',
+          type: 'poison',
           value: 6,
           duration: 2,
           source,
         });
         log.push(`${target.name} 中了 ${source} 的毒，毒素开始扩散！`);
         break;
-      case "heal":
+      case 'heal':
         // 治疗效果：立即回复生命值
         const healAmount = Math.round(target.maxHp * 0.2); // 回复20%最大生命值
         target.hp = clamp(target.hp + healAmount, 0, target.maxHp);
         log.push(`${target.name} 受到治疗效果，回复 ${healAmount} 点生命值！`);
         break;
-      case "spirit_up":
+      case 'spirit_up':
         // 灵力提升效果：持续3回合，提升10点灵力
         target.activeEffects.push({
-          name: "灵力提升",
-          type: "spirit_up",
+          name: '灵力提升',
+          type: 'spirit_up',
           value: 10,
           duration: 3,
           source,
         });
         log.push(`${target.name} 灵力涌动，精神大振！`);
         break;
-      case "vitality_up":
+      case 'vitality_up':
         // 体魄提升效果：持续3回合，提升10点体魄
         target.activeEffects.push({
-          name: "体魄提升",
-          type: "vitality_up",
+          name: '体魄提升',
+          type: 'vitality_up',
           value: 10,
           duration: 3,
           source,
         });
         log.push(`${target.name} 体魄增强，气血旺盛！`);
         break;
-      case "wisdom_up":
+      case 'wisdom_up':
         // 悟性提升效果：持续3回合，提升10点悟性
         target.activeEffects.push({
-          name: "悟性提升",
-          type: "wisdom_up",
+          name: '悟性提升',
+          type: 'wisdom_up',
           value: 10,
           duration: 3,
           source,
         });
         log.push(`${target.name} 悟性大开，灵台清明！`);
         break;
-      case "speed_up":
+      case 'speed_up':
         // 速度提升效果：持续3回合，提升10点速度
         target.activeEffects.push({
-          name: "速度提升",
-          type: "speed_up",
+          name: '速度提升',
+          type: 'speed_up',
           value: 10,
           duration: 3,
           source,
@@ -415,10 +415,10 @@ function applyEffects(
 
 function selectSkill(attacker: Combatant, defender: Combatant): Skill {
   const attackSkills = attacker.skills.filter(
-    (s) => s.type === "attack" || s.type === "control"
+    (s) => s.type === 'attack' || s.type === 'control',
   );
-  const healSkills = attacker.skills.filter((s) => s.type === "heal");
-  const buffSkills = attacker.skills.filter((s) => s.type === "buff");
+  const healSkills = attacker.skills.filter((s) => s.type === 'heal');
+  const buffSkills = attacker.skills.filter((s) => s.type === 'buff');
 
   if (attacker.hp < attacker.maxHp * 0.3 && healSkills.length) {
     return randomChoice(healSkills, attacker.skills[0]);
@@ -442,7 +442,7 @@ function selectSkill(attacker: Combatant, defender: Combatant): Skill {
 function calculateDamage(
   attacker: Combatant,
   defender: Combatant,
-  skill: Skill
+  skill: Skill,
 ) {
   let basePower = skill.power;
   let spirit = attacker.attributes.spirit;
@@ -490,7 +490,7 @@ function calculateDamage(
     damage,
     isCrit,
     elementNote:
-      elementMod > 1 ? "（属性克制）" : elementMod < 1 ? "（被克制）" : "",
+      elementMod > 1 ? '（属性克制）' : elementMod < 1 ? '（被克制）' : '',
   };
 }
 
@@ -500,8 +500,8 @@ function applyDamage(target: Combatant, damage: number) {
 }
 
 function getElementModifier(
-  attacking: ElementType = "无",
-  defending: ElementType = "无"
+  attacking: ElementType = '无',
+  defending: ElementType = '无',
 ) {
   if (!attacking || !defending) return 1;
   return ELEMENT_MOD[`${attacking}-${defending}`] ?? 1;

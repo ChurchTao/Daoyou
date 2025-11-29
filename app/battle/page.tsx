@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import type { Cultivator } from "@/types/cultivator";
-import { getDefaultBoss } from "@/utils/prompts";
-import { mockRankings } from "@/data/mockRankings";
-import { simulateBattle, BattleEngineResult } from "@/engine/battleEngine";
+import { mockRankings } from '@/data/mockRankings';
+import { BattleEngineResult, simulateBattle } from '@/engine/battleEngine';
+import type { Cultivator } from '@/types/cultivator';
+import { getDefaultBoss } from '@/utils/prompts';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 /**
  * 对战播报页内容组件
@@ -16,26 +16,26 @@ function BattlePageContent() {
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<Cultivator | null>(null);
   const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(
-    null
+    null,
   );
-  const [streamingReport, setStreamingReport] = useState<string>("");
-  const [finalReport, setFinalReport] = useState<string>(""); // 保存最终的完整播报
+  const [streamingReport, setStreamingReport] = useState<string>('');
+  const [finalReport, setFinalReport] = useState<string>(''); // 保存最终的完整播报
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // 初始化
   useEffect(() => {
-    const playerData = sessionStorage.getItem("player");
+    const playerData = sessionStorage.getItem('player');
     if (playerData) {
       try {
         const playerObj = JSON.parse(playerData) as Cultivator;
         setPlayer(playerObj);
       } catch (e) {
-        console.error("解析玩家数据失败:", e);
+        console.error('解析玩家数据失败:', e);
       }
     }
 
-    const opponentId = searchParams.get("opponent");
+    const opponentId = searchParams.get('opponent');
     if (opponentId) {
       const foundOpponent = mockRankings.find((c) => c.id === opponentId);
       if (foundOpponent) {
@@ -64,19 +64,19 @@ function BattlePageContent() {
 
     setLoading(true);
     setIsStreaming(true);
-    setStreamingReport("");
-    setFinalReport(""); // 清空最终播报
+    setStreamingReport('');
+    setFinalReport(''); // 清空最终播报
     setBattleResult(null);
 
     try {
       const result = simulateBattle(player, opponent);
-      console.log("战斗结果:", result);
+      console.log('战斗结果:', result);
       setBattleResult(result);
 
-      const response = await fetch("/api/generate-battle-report", {
-        method: "POST",
+      const response = await fetch('/api/generate-battle-report', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           player,
@@ -94,18 +94,18 @@ function BattlePageContent() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "生成战斗播报失败");
+        throw new Error(errorData.error || '生成战斗播报失败');
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer = '';
 
       if (!reader) {
-        throw new Error("无法读取响应流");
+        throw new Error('无法读取响应流');
       }
 
-      let fullReport = "";
+      let fullReport = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -115,37 +115,37 @@ function BattlePageContent() {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
+          if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
 
-              if (data.type === "chunk") {
+              if (data.type === 'chunk') {
                 fullReport += data.content;
                 setStreamingReport(fullReport);
-              } else if (data.type === "done") {
+              } else if (data.type === 'done') {
                 setIsStreaming(false);
                 // 保存完整的播报内容，不清空
                 setFinalReport(fullReport);
                 setStreamingReport(fullReport);
-              } else if (data.type === "error") {
-                throw new Error(data.error || "生成战斗播报失败");
+              } else if (data.type === 'error') {
+                throw new Error(data.error || '生成战斗播报失败');
               }
             } catch (e) {
-              console.error("解析 SSE 数据失败:", e);
+              console.error('解析 SSE 数据失败:', e);
             }
           }
         }
       }
     } catch (error) {
-      console.error("战斗失败:", error);
+      console.error('战斗失败:', error);
       setIsStreaming(false);
-      setStreamingReport("");
-      setFinalReport("");
-      alert(error instanceof Error ? error.message : "战斗失败");
+      setStreamingReport('');
+      setFinalReport('');
+      alert(error instanceof Error ? error.message : '战斗失败');
     } finally {
       setLoading(false);
     }
@@ -154,8 +154,8 @@ function BattlePageContent() {
   // 再战一次
   const handleBattleAgain = () => {
     setBattleResult(null);
-    setStreamingReport("");
-    setFinalReport("");
+    setStreamingReport('');
+    setFinalReport('');
     setIsStreaming(false);
     handleBattle();
   };
@@ -178,7 +178,7 @@ function BattlePageContent() {
   const displayReport =
     streamingReport ||
     finalReport ||
-    (battleResult ? `${battleResult.winner.name} 获胜！` : "");
+    (battleResult ? `${battleResult.winner.name} 获胜！` : '');
 
   return (
     <div className="bg-paper min-h-screen p-4">
@@ -221,13 +221,13 @@ function BattlePageContent() {
             {/* 播报内容 */}
             <div className="battle-report text-ink leading-relaxed text-center pl-4">
               {displayReport
-                .split("\n")
-                .filter((line) => line.trim() !== "")
+                .split('\n')
+                .filter((line) => line.trim() !== '')
                 .map((line, index) => (
                   <p key={index} className="mb-2 whitespace-pre-line">
                     <span dangerouslySetInnerHTML={{ __html: line }} />
                     {isStreaming &&
-                      index === displayReport.split("\n").length - 2 && (
+                      index === displayReport.split('\n').length - 2 && (
                         <span className="inline-block ml-1 animate-pulse text-crimson">
                           ▊
                         </span>
@@ -263,7 +263,7 @@ function BattlePageContent() {
             </Link>
             <button
               onClick={() => {
-                alert("分享功能开发中...");
+                alert('分享功能开发中...');
               }}
               className="btn-outline flex items-center"
             >

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { generateBattleReportStream } from "../../../utils/aiClient";
-import { getBattleReportPrompt } from "../../../utils/prompts";
-import type { Cultivator } from "../../../types/cultivator";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import type { Cultivator } from '../../../types/cultivator';
+import { generateBattleReportStream } from '../../../utils/aiClient';
+import { getBattleReportPrompt } from '../../../utils/prompts';
 
 /**
  * POST /api/generate-battle-report
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      return NextResponse.json({ error: "未授权访问" }, { status: 401 });
+      return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -29,23 +29,23 @@ export async function POST(request: NextRequest) {
     // 增强输入验证
     if (
       !player ||
-      typeof player !== "object" ||
+      typeof player !== 'object' ||
       !player.id ||
       !player.name ||
       !opponent ||
-      typeof opponent !== "object" ||
+      typeof opponent !== 'object' ||
       !opponent.id ||
       !opponent.name ||
       !battleSummary ||
-      typeof battleSummary !== "object" ||
+      typeof battleSummary !== 'object' ||
       !Array.isArray(battleSummary.log)
     ) {
       return new Response(
-        JSON.stringify({ error: "请提供完整的角色与战斗日志信息" }),
+        JSON.stringify({ error: '请提供完整的角色与战斗日志信息' }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
     }
 
@@ -81,25 +81,25 @@ export async function POST(request: NextRequest) {
             userPrompt,
             (chunk: string) => {
               // 发送内容块
-              const data = JSON.stringify({ type: "chunk", content: chunk });
+              const data = JSON.stringify({ type: 'chunk', content: chunk });
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            }
+            },
           );
 
           // 发送结束标记
           controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
           controller.close();
         } catch (error) {
-          console.error("生成战斗播报流式输出错误:", error);
+          console.error('生成战斗播报流式输出错误:', error);
           // 安全处理错误信息
           const errorMessage =
-            process.env.NODE_ENV === "development"
+            process.env.NODE_ENV === 'development'
               ? error instanceof Error
                 ? error.message
-                : "生成战斗播报失败"
-              : "生成战斗播报失败";
+                : '生成战斗播报失败'
+              : '生成战斗播报失败';
           const errorData = JSON.stringify({
-            type: "error",
+            type: 'error',
             error: errorMessage,
           });
           controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
@@ -110,25 +110,25 @@ export async function POST(request: NextRequest) {
 
     return new Response(stream, {
       headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
       },
     });
   } catch (error) {
-    console.error("生成战斗播报 API 错误:", error);
+    console.error('生成战斗播报 API 错误:', error);
 
     // 安全处理错误信息
     const errorMessage =
-      process.env.NODE_ENV === "development"
+      process.env.NODE_ENV === 'development'
         ? error instanceof Error
           ? error.message
-          : "生成战斗播报失败，请稍后重试"
-        : "生成战斗播报失败，请稍后重试";
+          : '生成战斗播报失败，请稍后重试'
+        : '生成战斗播报失败，请稍后重试';
 
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 }

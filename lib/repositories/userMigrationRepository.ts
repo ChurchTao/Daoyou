@@ -3,7 +3,10 @@
  * @param anonymousUserId 匿名用户ID
  * @param registeredUserId 注册用户ID
  */
-export async function migrateAnonymousUserData(anonymousUserId: string, registeredUserId: string): Promise<boolean> {
+export async function migrateAnonymousUserData(
+  anonymousUserId: string,
+  registeredUserId: string,
+): Promise<boolean> {
   try {
     // 这里为了简化，我们只返回true
     return true;

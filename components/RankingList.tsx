@@ -45,7 +45,9 @@ export default function RankingList({
       {/* Top 5 */}
       {topList.length > 0 && (
         <div>
-          <h2 className="mb-3 text-lg font-semibold text-[#e0c5a3]">排行榜 Top 5</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[#e0c5a3]">
+            排行榜 Top 5
+          </h2>
           <div className="space-y-3">
             {topList.map((cultivator, idx) => (
               <CultivatorCard
@@ -61,4 +63,3 @@ export default function RankingList({
     </div>
   );
 }
-

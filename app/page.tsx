@@ -1,9 +1,13 @@
 'use client';
 
-import Link from 'next/link';
-import { AlchemyFurnaceIcon, CloudDivider, DragonPatternIcon } from '@/components/SVGIcon';
+import {
+  AlchemyFurnaceIcon,
+  CloudDivider,
+  DragonPatternIcon,
+} from '@/components/SVGIcon';
 import { mockRankings } from '@/data/mockRankings';
 import type { Cultivator } from '@/types/cultivator';
+import Link from 'next/link';
 
 const getCombatRating = (cultivator: Cultivator): string => {
   const profile = cultivator.battleProfile;
@@ -58,12 +62,14 @@ export default function HomePage() {
                   <span className="text-sm text-ink/80 flex flex-col text-right">
                     <span>{cultivator.cultivationLevel}</span>
                     <span className="text-ink/60">
-                      灵根 {cultivator.spiritRoot} · 战力 {getCombatRating(cultivator)}
+                      灵根 {cultivator.spiritRoot} · 战力{' '}
+                      {getCombatRating(cultivator)}
                     </span>
                   </span>
                 </div>
                 <div className="text-xs text-ink/60 mt-1">
-                  {cultivator.preHeavenFates?.map((f) => f.name).join('｜') || '——'}
+                  {cultivator.preHeavenFates?.map((f) => f.name).join('｜') ||
+                    '——'}
                 </div>
                 <Link
                   href={`/battle?opponent=${cultivator.id}`}

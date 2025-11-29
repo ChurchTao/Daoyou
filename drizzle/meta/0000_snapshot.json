@@ -65,12 +65,8 @@
           "name": "wanjiedaoyou_active_effects_battle_profile_id_wanjiedaoyou_battle_profiles_id_fk",
           "tableFrom": "wanjiedaoyou_active_effects",
           "tableTo": "wanjiedaoyou_battle_profiles",
-          "columnsFrom": [
-            "battle_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["battle_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -161,12 +157,8 @@
           "name": "wanjiedaoyou_battle_profiles_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_battle_profiles",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -176,9 +168,7 @@
         "wanjiedaoyou_battle_profiles_cultivator_id_unique": {
           "name": "wanjiedaoyou_battle_profiles_cultivator_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "cultivator_id"
-          ]
+          "columns": ["cultivator_id"]
         }
       },
       "policies": {},
@@ -277,12 +267,8 @@
           "name": "wanjiedaoyou_cultivators_user_id_wanjiedaoyou_users_id_fk",
           "tableFrom": "wanjiedaoyou_cultivators",
           "tableTo": "wanjiedaoyou_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -336,12 +322,8 @@
           "name": "wanjiedaoyou_equipment_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_equipment",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -407,12 +389,8 @@
           "name": "wanjiedaoyou_pre_heaven_fates_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_pre_heaven_fates",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -484,12 +462,8 @@
           "name": "wanjiedaoyou_skills_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_skills",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -558,9 +532,7 @@
         "wanjiedaoyou_users_email_unique": {
           "name": "wanjiedaoyou_users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},

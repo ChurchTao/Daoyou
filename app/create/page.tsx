@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import type { Cultivator } from "@/types/cultivator";
-import { createCultivatorFromAI } from "@/utils/cultivatorUtils";
 import {
   AlchemyFurnaceIcon,
   InkstoneIcon,
   ScrollIcon,
-} from "@/components/SVGIcon";
-import { useAuth } from "@/lib/auth/AuthContext";
+} from '@/components/SVGIcon';
+import { useAuth } from '@/lib/auth/AuthContext';
+import type { Cultivator } from '@/types/cultivator';
+import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 const getCombatRating = (cultivator: Cultivator | null): string => {
-  if (!cultivator?.battleProfile) return "--";
+  if (!cultivator?.battleProfile) return '--';
   const { vitality, spirit, wisdom, speed } =
     cultivator.battleProfile.attributes;
   return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
@@ -25,7 +25,7 @@ const getCombatRating = (cultivator: Cultivator | null): string => {
 export default function CreatePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [userPrompt, setUserPrompt] = useState("");
+  const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export default function CreatePage() {
   // 生成角色
   const handleGenerateCharacter = async () => {
     if (!userPrompt.trim()) {
-      setError("请输入角色描述");
+      setError('请输入角色描述');
       return;
     }
 
@@ -43,10 +43,10 @@ export default function CreatePage() {
 
     try {
       // 调用AI生成角色
-      const aiResponse = await fetch("/api/generate-character", {
-        method: "POST",
+      const aiResponse = await fetch('/api/generate-character', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userInput: userPrompt }),
       });
@@ -54,34 +54,34 @@ export default function CreatePage() {
       const aiResult = await aiResponse.json();
 
       if (!aiResponse.ok || !aiResult.success) {
-        throw new Error(aiResult.error || "生成角色失败");
+        throw new Error(aiResult.error || '生成角色失败');
       }
 
       // 解析AI响应，创建角色对象
       const aiData = aiResult.data;
       const cultivator = createCultivatorFromAI(aiData, userPrompt);
-      console.log("cultivator", cultivator);
-      
+      console.log('cultivator', cultivator);
+
       // 保存角色到数据库
       if (user) {
-        const saveResponse = await fetch("/api/cultivators", {
-          method: "POST",
+        const saveResponse = await fetch('/api/cultivators', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             cultivatorData: {
               ...cultivator,
               battleProfile: undefined,
             },
-            battleProfile: cultivator.battleProfile!
+            battleProfile: cultivator.battleProfile!,
           }),
         });
 
         const saveResult = await saveResponse.json();
 
         if (!saveResponse.ok || !saveResult.success) {
-          throw new Error(saveResult.error || "保存角色失败");
+          throw new Error(saveResult.error || '保存角色失败');
         }
 
         setPlayer(saveResult.data);
@@ -90,8 +90,9 @@ export default function CreatePage() {
         setPlayer(cultivator);
       }
     } catch (error) {
-      console.error("生成角色失败:", error);
-      const errorMessage = error instanceof Error ? error.message : "生成角色失败，请检查控制台";
+      console.error('生成角色失败:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : '生成角色失败，请检查控制台';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -101,8 +102,8 @@ export default function CreatePage() {
   // 立即挑战
   const handleChallenge = () => {
     if (player) {
-      sessionStorage.setItem("player", JSON.stringify(player));
-      router.push("/battle");
+      sessionStorage.setItem('player', JSON.stringify(player));
+      router.push('/battle');
     }
   };
 
@@ -133,7 +134,7 @@ export default function CreatePage() {
             value={userPrompt}
             onChange={(e) => setUserPrompt(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 handleGenerateCharacter();
               }
             }}
@@ -201,7 +202,7 @@ export default function CreatePage() {
                 <div>
                   <span className="text-ink/70">元素：</span>
                   <span className="text-ink font-semibold ml-1">
-                    {player.battleProfile?.element || "无"}
+                    {player.battleProfile?.element || '无'}
                   </span>
                 </div>
                 <div>
@@ -284,7 +285,7 @@ export default function CreatePage() {
                         </p>
                         <p className="text-ink/80">
                           威力：{skill.power} | 效果：
-                          {skill.effects?.join(", ") || "无"}
+                          {skill.effects?.join(', ') || '无'}
                         </p>
                       </div>
                     ))}
@@ -308,21 +309,21 @@ export default function CreatePage() {
                           {eq.bonus &&
                             Object.entries(eq.bonus)
                               .map(([key, value]) => {
-                                if (key === "elementBoost") {
+                                if (key === 'elementBoost') {
                                   return `${Object.entries(
-                                    value as Record<string, number>
+                                    value as Record<string, number>,
                                   )
                                     .map(
                                       ([elem, boost]) =>
                                         `${elem}系技能威力+${(
                                           boost * 100
-                                        ).toFixed(0)}%`
+                                        ).toFixed(0)}%`,
                                     )
-                                    .join(", ")}`;
+                                    .join(', ')}`;
                                 }
                                 return `${key} +${value}`;
                               })
-                              .join(", ")}
+                              .join(', ')}
                         </p>
                       </div>
                     ))}

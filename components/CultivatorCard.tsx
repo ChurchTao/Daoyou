@@ -54,7 +54,9 @@ export default function CultivatorCard({
             <h3 className="text-xl font-bold text-[#e0c5a3] truncate">
               {cultivator.name}
             </h3>
-            <p className="text-sm text-[#4cc9f0]">{cultivator.cultivationLevel}</p>
+            <p className="text-sm text-[#4cc9f0]">
+              {cultivator.cultivationLevel}
+            </p>
           </div>
 
           <div className="mb-2 space-y-1">
@@ -64,7 +66,9 @@ export default function CultivatorCard({
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-[#e0c5a3]/70">战力评估：</span>
-              <span className="font-bold text-[#c1121f]">{getCombatRating(cultivator)}</span>
+              <span className="font-bold text-[#c1121f]">
+                {getCombatRating(cultivator)}
+              </span>
             </div>
           </div>
 
@@ -96,4 +100,3 @@ export default function CultivatorCard({
     </div>
   );
 }
-

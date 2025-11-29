@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
+import { Session, User } from '@supabase/supabase-js';
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   ReactNode,
-} from "react";
-import { createClient } from "../supabase/client";
-import { Session, User } from "@supabase/supabase-js";
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { createClient } from '../supabase/client';
 
 interface AuthContextType {
   session: Session | null;
@@ -21,7 +21,7 @@ interface AuthContextType {
   createAnonymousUser: () => Promise<{ error: any }>;
   linkAnonymousUser: (
     email: string,
-    password: string
+    password: string,
   ) => Promise<{ error: any }>;
 }
 
@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

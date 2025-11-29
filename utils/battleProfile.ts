@@ -1,4 +1,10 @@
-import { BattleProfile, BattleAttributes, Cultivator, ElementType, Skill } from '@/types/cultivator';
+import {
+  BattleAttributes,
+  BattleProfile,
+  Cultivator,
+  ElementType,
+  Skill,
+} from '@/types/cultivator';
 
 const ELEMENT_KEYWORDS: Record<ElementType, string[]> = {
   金: ['金', '剑', '锋', '铁', '金属'],
@@ -10,9 +16,18 @@ const ELEMENT_KEYWORDS: Record<ElementType, string[]> = {
   无: [],
 };
 
-const ELEMENT_COUNTERPARTS: ElementType[] = ['金', '木', '水', '火', '土', '雷', '无'];
+const ELEMENT_COUNTERPARTS: ElementType[] = [
+  '金',
+  '木',
+  '水',
+  '火',
+  '土',
+  '雷',
+  '无',
+];
 
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
 
 /**
  * 根据灵根推断元素属性
@@ -44,7 +59,12 @@ function buildDefaultSkills(name: string, element: ElementType): Skill[] {
     type: 'attack',
     power: randomInt(70, 90),
     element: primaryElement,
-    effects: primaryElement === '雷' ? ['stun'] : primaryElement === '火' ? ['burn'] : [],
+    effects:
+      primaryElement === '雷'
+        ? ['stun']
+        : primaryElement === '火'
+          ? ['burn']
+          : [],
   };
 
   const secondarySkill: Skill = {
@@ -83,37 +103,23 @@ const LEVEL_BASE_MAP: { keyword: string; base: number }[] = [
 
 function deriveBaseFromLevel(level: string): number {
   const normalized = level || '';
-  const entry = LEVEL_BASE_MAP.find(({ keyword }) => normalized.includes(keyword));
+  const entry = LEVEL_BASE_MAP.find(({ keyword }) =>
+    normalized.includes(keyword),
+  );
   return entry?.base ?? 65;
 }
 
 export function generateDefaultBattleProfile(
   cultivator: Cultivator,
-  seed?: Partial<BattleAttributes>
+  seed?: Partial<BattleAttributes>,
 ): BattleProfile {
   const element = mapSpiritRootToElement(cultivator.spiritRoot);
   const base = deriveBaseFromLevel(cultivator.cultivationLevel);
 
-  const vitality = clamp(
-    seed?.vitality ?? base + randomInt(-5, 5),
-    55,
-    100
-  );
-  const spirit = clamp(
-    seed?.spirit ?? base + randomInt(0, 10),
-    55,
-    100
-  );
-  const wisdom = clamp(
-    seed?.wisdom ?? base + randomInt(-10, 8),
-    55,
-    100
-  );
-  const speed = clamp(
-    seed?.speed ?? base + randomInt(-5, 5),
-    55,
-    100
-  );
+  const vitality = clamp(seed?.vitality ?? base + randomInt(-5, 5), 55, 100);
+  const spirit = clamp(seed?.spirit ?? base + randomInt(0, 10), 55, 100);
+  const wisdom = clamp(seed?.wisdom ?? base + randomInt(-10, 8), 55, 100);
+  const speed = clamp(seed?.speed ?? base + randomInt(-5, 5), 55, 100);
 
   const attributes: BattleAttributes = {
     vitality,
@@ -156,4 +162,3 @@ export function ensureBattleProfile(cultivator: Cultivator): BattleProfile {
 export function cloneBattleProfile(profile: BattleProfile): BattleProfile {
   return JSON.parse(JSON.stringify(profile));
 }
-

@@ -1,18 +1,12 @@
-import { db } from "../drizzle/db";
-import * as schema from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
-import type {
-  Cultivator,
-  BattleProfile,
-  Skill,
-  Equipment,
-  PreHeavenFate,
-} from "../../types/cultivator";
+import { and, eq } from 'drizzle-orm';
+import type { BattleProfile, Cultivator } from '../../types/cultivator';
+import { db } from '../drizzle/db';
+import * as schema from '../drizzle/schema';
 
 export async function createCultivator(
   userId: string,
-  cultivatorData: Omit<Cultivator, "id" | "battleProfile">,
-  battleProfile: BattleProfile
+  cultivatorData: Omit<Cultivator, 'id' | 'battleProfile'>,
+  battleProfile: BattleProfile,
 ): Promise<Cultivator> {
   // 开始事务，确保原子性操作
   const result = await db.transaction(async (tx) => {
@@ -60,7 +54,7 @@ export async function createCultivator(
           power: skill.power,
           element: skill.element,
           effects: skill.effects ? JSON.stringify(skill.effects) : undefined,
-        }))
+        })),
       );
     }
 
@@ -71,7 +65,7 @@ export async function createCultivator(
           cultivatorId: cultivator.id,
           name: equipment.name,
           bonus: equipment.bonus ? JSON.stringify(equipment.bonus) : undefined,
-        }))
+        })),
       );
     }
 
@@ -87,7 +81,7 @@ export async function createCultivator(
           type: fate.type,
           effect: fate.effect,
           description: fate.description,
-        }))
+        })),
       );
     }
 
@@ -104,7 +98,7 @@ export async function createCultivator(
 
 export async function getCultivatorById(
   userId: string,
-  cultivatorId: string
+  cultivatorId: string,
 ): Promise<Cultivator | null> {
   // 使用join查询获取角色基本信息和战斗属性
   const cultivatorWithBattleProfile = await db
@@ -115,13 +109,13 @@ export async function getCultivatorById(
     .from(schema.cultivators)
     .innerJoin(
       schema.battleProfiles,
-      eq(schema.battleProfiles.cultivatorId, schema.cultivators.id)
+      eq(schema.battleProfiles.cultivatorId, schema.cultivators.id),
     )
     .where(
       and(
         eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId)
-      )
+        eq(schema.cultivators.userId, userId),
+      ),
     );
 
   if (cultivatorWithBattleProfile.length === 0) {
@@ -155,14 +149,14 @@ export async function getCultivatorById(
     prompt: cultivator.prompt,
     cultivationLevel: cultivator.cultivationLevel,
     spiritRoot: cultivator.spiritRoot,
-    appearance: cultivator.appearance || "",
-    backstory: cultivator.backstory || "",
+    appearance: cultivator.appearance || '',
+    backstory: cultivator.backstory || '',
     gender: cultivator.gender || undefined,
     origin: cultivator.origin || undefined,
     personality: cultivator.personality || undefined,
     preHeavenFates: preHeavenFatesResult.map((fate) => ({
       name: fate.name,
-      type: fate.type as "吉" | "凶",
+      type: fate.type as '吉' | '凶',
       effect: fate.effect,
       description: fate.description,
     })),
@@ -177,7 +171,7 @@ export async function getCultivatorById(
       },
       skills: skillsResult.map((skill) => ({
         name: skill.name,
-        type: skill.type as "attack" | "heal" | "control" | "buff",
+        type: skill.type as 'attack' | 'heal' | 'control' | 'buff',
         power: skill.power,
         element: skill.element as any,
         effects: skill.effects
@@ -198,7 +192,7 @@ export async function getCultivatorById(
 }
 
 export async function getCultivatorsByUserId(
-  userId: string
+  userId: string,
 ): Promise<Cultivator[]> {
   // 获取用户的所有角色基本信息和战斗属性
   const cultivatorsWithBattleProfiles = await db
@@ -209,7 +203,7 @@ export async function getCultivatorsByUserId(
     .from(schema.cultivators)
     .innerJoin(
       schema.battleProfiles,
-      eq(schema.battleProfiles.cultivatorId, schema.cultivators.id)
+      eq(schema.battleProfiles.cultivatorId, schema.cultivators.id),
     )
     .where(eq(schema.cultivators.userId, userId));
 
@@ -240,14 +234,14 @@ export async function getCultivatorsByUserId(
           prompt: cultivator.prompt,
           cultivationLevel: cultivator.cultivationLevel,
           spiritRoot: cultivator.spiritRoot,
-          appearance: cultivator.appearance || "",
-          backstory: cultivator.backstory || "",
+          appearance: cultivator.appearance || '',
+          backstory: cultivator.backstory || '',
           gender: cultivator.gender || undefined,
           origin: cultivator.origin || undefined,
           personality: cultivator.personality || undefined,
           preHeavenFates: preHeavenFatesResult.map((fate) => ({
             name: fate.name,
-            type: fate.type as "吉" | "凶",
+            type: fate.type as '吉' | '凶',
             effect: fate.effect,
             description: fate.description,
           })),
@@ -262,7 +256,7 @@ export async function getCultivatorsByUserId(
             },
             skills: skillsResult.map((skill) => ({
               name: skill.name,
-              type: skill.type as "attack" | "heal" | "control" | "buff",
+              type: skill.type as 'attack' | 'heal' | 'control' | 'buff',
               power: skill.power,
               element: skill.element as any,
               effects: skill.effects
@@ -278,8 +272,8 @@ export async function getCultivatorsByUserId(
             element: battleProfileData.element as any,
           },
         } as Cultivator;
-      }
-    )
+      },
+    ),
   );
 
   return fullCultivators;
@@ -288,7 +282,7 @@ export async function getCultivatorsByUserId(
 export async function updateCultivator(
   userId: string,
   cultivatorId: string,
-  updates: Partial<Omit<Cultivator, "id" | "battleProfile">>
+  updates: Partial<Omit<Cultivator, 'id' | 'battleProfile'>>,
 ): Promise<Cultivator | null> {
   // 权限验证：确保只有角色所有者可以更新角色
   const existingCultivator = await db
@@ -297,8 +291,8 @@ export async function updateCultivator(
     .where(
       and(
         eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId)
-      )
+        eq(schema.cultivators.userId, userId),
+      ),
     );
 
   if (existingCultivator.length === 0) {
@@ -312,8 +306,8 @@ export async function updateCultivator(
     .where(
       and(
         eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId)
-      )
+        eq(schema.cultivators.userId, userId),
+      ),
     );
 
   // 返回更新后的完整角色信息
@@ -322,7 +316,7 @@ export async function updateCultivator(
 
 export async function deleteCultivator(
   userId: string,
-  cultivatorId: string
+  cultivatorId: string,
 ): Promise<boolean> {
   // 权限验证：确保只有角色所有者可以删除角色
   const existingCultivator = await db
@@ -331,8 +325,8 @@ export async function deleteCultivator(
     .where(
       and(
         eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId)
-      )
+        eq(schema.cultivators.userId, userId),
+      ),
     );
 
   if (existingCultivator.length === 0) {
@@ -367,8 +361,8 @@ export async function deleteCultivator(
       .where(
         and(
           eq(schema.cultivators.id, cultivatorId),
-          eq(schema.cultivators.userId, userId)
-        )
+          eq(schema.cultivators.userId, userId),
+        ),
       );
   });
 
@@ -378,7 +372,7 @@ export async function deleteCultivator(
 export async function updateBattleProfile(
   userId: string,
   cultivatorId: string,
-  updates: Partial<BattleProfile>
+  updates: Partial<BattleProfile>,
 ): Promise<BattleProfile | null> {
   // 权限验证：确保只有角色所有者可以更新战斗属性
   const existingCultivator = await db
@@ -387,8 +381,8 @@ export async function updateBattleProfile(
     .where(
       and(
         eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId)
-      )
+        eq(schema.cultivators.userId, userId),
+      ),
     );
 
   if (existingCultivator.length === 0) {
@@ -440,7 +434,7 @@ export async function updateBattleProfile(
           power: skill.power,
           element: skill.element,
           effects: skill.effects ? JSON.stringify(skill.effects) : undefined,
-        }))
+        })),
       );
     }
 
@@ -457,7 +451,7 @@ export async function updateBattleProfile(
           cultivatorId,
           name: equipment.name,
           bonus: equipment.bonus ? JSON.stringify(equipment.bonus) : undefined,
-        }))
+        })),
       );
     }
   });
@@ -497,7 +491,7 @@ export async function updateBattleProfile(
     },
     skills: skillsResult.map((skill) => ({
       name: skill.name,
-      type: skill.type as "attack" | "heal" | "control" | "buff",
+      type: skill.type as 'attack' | 'heal' | 'control' | 'buff',
       power: skill.power,
       element: skill.element as any,
       effects: skill.effects ? JSON.parse(skill.effects as string) : undefined,

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useAuth } from "../lib/auth/AuthContext";
+import { useEffect } from 'react';
+import { useAuth } from '../lib/auth/AuthContext';
 
 const AnonymousUserManager = () => {
   const { user, isLoading, createAnonymousUser } = useAuth();

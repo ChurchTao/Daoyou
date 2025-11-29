@@ -1,41 +1,41 @@
 import type {
-  Cultivator,
-  BattleProfile,
   BattleAttributes,
-  Skill,
+  BattleProfile,
+  Cultivator,
+  ElementType,
   Equipment,
   PreHeavenFate,
-  ElementType,
-} from "../types/cultivator";
-import { parseAIResponse } from "./aiClient";
+  Skill,
+} from '../types/cultivator';
+import { parseAIResponse } from './aiClient';
 import {
   generateDefaultBattleProfile,
   mapSpiritRootToElement,
-} from "./battleProfile";
+} from './battleProfile';
 
 export function createCultivatorFromAI(
   aiResponse: string,
-  userPrompt: string
+  userPrompt: string,
 ): Cultivator {
   const data = parseAIResponse(aiResponse);
 
   const getString = (value: unknown, fallback: string) =>
-    typeof value === "string" && value.trim().length ? value : fallback;
+    typeof value === 'string' && value.trim().length ? value : fallback;
 
-  const name = getString(data.name, "未命名");
+  const name = getString(data.name, '未命名');
   const cultivationLevel = getString(
     data.level ?? data.cultivationLevel,
-    "炼气一层"
+    '炼气一层',
   );
-  const spiritRoot = getString(data.spirit_root ?? data.spiritRoot, "无灵根");
-  const appearance = getString(data.appearance, "普通修士");
-  const backstory = getString(data.background ?? data.backstory, "来历不明");
-  const gender = getString(data.gender, "");
-  const origin = getString(data.origin, "");
-  const personality = getString(data.personality, "");
+  const spiritRoot = getString(data.spirit_root ?? data.spiritRoot, '无灵根');
+  const appearance = getString(data.appearance, '普通修士');
+  const backstory = getString(data.background ?? data.backstory, '来历不明');
+  const gender = getString(data.gender, '');
+  const origin = getString(data.origin, '');
+  const personality = getString(data.personality, '');
 
   const preHeavenFates = parseFates(
-    data.pre_heaven_fates ?? data.preHeavenFates
+    data.pre_heaven_fates ?? data.preHeavenFates,
   );
   const cultivator: Cultivator = {
     id: generateUUID(),
@@ -61,7 +61,7 @@ export function createCultivatorFromAI(
 
 export function generateUUID(): string {
   return (
-    "cultivator-" + Date.now() + "-" + Math.random().toString(36).slice(2, 11)
+    'cultivator-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11)
   );
 }
 
@@ -80,21 +80,21 @@ function parseFates(raw: unknown): PreHeavenFate[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((item) => {
-      if (!item || typeof item !== "object") return null;
+      if (!item || typeof item !== 'object') return null;
       const record = item as Record<string, unknown>;
-      const name = typeof record.name === "string" ? record.name : null;
+      const name = typeof record.name === 'string' ? record.name : null;
       if (!name) return null;
-      const type = record.type === "凶" ? "凶" : "吉";
-      const effect = typeof record.effect === "string" ? record.effect : "";
+      const type = record.type === '凶' ? '凶' : '吉';
+      const effect = typeof record.effect === 'string' ? record.effect : '';
       const description =
-        typeof record.description === "string" ? record.description : "";
+        typeof record.description === 'string' ? record.description : '';
       return { name, type, effect, description };
     })
     .filter((fate): fate is PreHeavenFate => !!fate);
 }
 
 function parseAttributes(raw: unknown): BattleAttributes | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== 'object') return null;
   const record = raw as Record<string, unknown>;
   const vitality = Number(record.vitality);
   const spirit = Number(record.spirit);
@@ -110,21 +110,21 @@ function parseSkills(raw: unknown): Skill[] {
   if (!Array.isArray(raw)) return [];
   const parsed = raw
     .map((item) => {
-      if (!item || typeof item !== "object") return null;
+      if (!item || typeof item !== 'object') return null;
       const record = item as Record<string, unknown>;
-      const name = typeof record.name === "string" ? record.name : null;
-      const typeValue = typeof record.type === "string" ? record.type : null;
+      const name = typeof record.name === 'string' ? record.name : null;
+      const typeValue = typeof record.type === 'string' ? record.type : null;
       const power = Number(record.power);
-      const elementValue = (record.element as ElementType) ?? "无";
+      const elementValue = (record.element as ElementType) ?? '无';
       if (!name || !typeValue || !Number.isFinite(power)) return null;
       const effects = Array.isArray(record.effects)
         ? record.effects.filter(
-            (effect: unknown): effect is string => typeof effect === "string"
+            (effect: unknown): effect is string => typeof effect === 'string',
           )
         : undefined;
       return {
         name,
-        type: typeValue as Skill["type"],
+        type: typeValue as Skill['type'],
         power,
         element: elementValue,
         effects,
@@ -138,12 +138,12 @@ function parseEquipment(raw: unknown): Equipment[] | undefined {
   if (!Array.isArray(raw)) return undefined;
   const equipments = raw
     .map((item) => {
-      if (!item || typeof item !== "object") return null;
+      if (!item || typeof item !== 'object') return null;
       const record = item as Record<string, unknown>;
-      const name = typeof record.name === "string" ? record.name : null;
+      const name = typeof record.name === 'string' ? record.name : null;
       if (!name) return null;
       const bonus =
-        record.bonus && typeof record.bonus === "object"
+        record.bonus && typeof record.bonus === 'object'
           ? { ...(record.bonus as Record<string, unknown>) }
           : undefined;
       const result: Equipment = { name, bonus };
@@ -156,7 +156,7 @@ function parseEquipment(raw: unknown): Equipment[] | undefined {
 function buildBattleProfileFromData(
   data: Record<string, unknown>,
   name: string,
-  spiritRoot: string
+  spiritRoot: string,
 ): BattleProfile | null {
   // 获取battle_profile对象
   const battleProfile = data.battle_profile as Record<string, unknown>;
@@ -175,7 +175,7 @@ function buildBattleProfileFromData(
 
   // 解析先天气运（从data中获取，而不是从battle_profile中）
   const preHeavenFates = parseFates(
-    data.pre_heaven_fates ?? data.preHeavenFates
+    data.pre_heaven_fates ?? data.preHeavenFates,
   );
 
   // 应用先天气运效果
@@ -188,7 +188,7 @@ function buildBattleProfileFromData(
     (data.max_hp as number);
 
   let maxHp =
-    Number.isFinite(maxHpRaw) && typeof maxHpRaw === "number"
+    Number.isFinite(maxHpRaw) && typeof maxHpRaw === 'number'
       ? maxHpRaw
       : Math.round(150 + finalAttributes.vitality * 0.8);
 
@@ -220,7 +220,7 @@ function buildBattleProfileFromData(
  */
 function applyFateEffects(
   attributes: BattleAttributes,
-  fates: PreHeavenFate[]
+  fates: PreHeavenFate[],
 ): BattleAttributes {
   const finalAttributes = { ...attributes };
 
@@ -231,30 +231,30 @@ function applyFateEffects(
     const vitalityMatch = effect.match(/vitality\s*([+-]\s*\d+)/i);
     if (vitalityMatch) {
       finalAttributes.vitality += parseInt(
-        vitalityMatch[1].replace(/\s/g, ""),
-        10
+        vitalityMatch[1].replace(/\s/g, ''),
+        10,
       );
     }
 
     const spiritMatch = effect.match(/spirit\s*([+-]\s*\d+)/i);
     if (spiritMatch) {
-      finalAttributes.spirit += parseInt(spiritMatch[1].replace(/\s/g, ""), 10);
+      finalAttributes.spirit += parseInt(spiritMatch[1].replace(/\s/g, ''), 10);
     }
 
     const wisdomMatch = effect.match(/wisdom\s*([+-]\s*\d+)/i);
     if (wisdomMatch) {
-      finalAttributes.wisdom += parseInt(wisdomMatch[1].replace(/\s/g, ""), 10);
+      finalAttributes.wisdom += parseInt(wisdomMatch[1].replace(/\s/g, ''), 10);
     }
 
     const speedMatch = effect.match(/speed\s*([+-]\s*\d+)/i);
     if (speedMatch) {
-      finalAttributes.speed += parseInt(speedMatch[1].replace(/\s/g, ""), 10);
+      finalAttributes.speed += parseInt(speedMatch[1].replace(/\s/g, ''), 10);
     }
 
     // 解析所有属性加成
     const allAttrMatch = effect.match(/所有属性\s*([+-]\s*\d+)/i);
     if (allAttrMatch) {
-      const bonus = parseInt(allAttrMatch[1].replace(/\s/g, ""), 10);
+      const bonus = parseInt(allAttrMatch[1].replace(/\s/g, ''), 10);
       finalAttributes.vitality += bonus;
       finalAttributes.spirit += bonus;
       finalAttributes.wisdom += bonus;
@@ -265,7 +265,7 @@ function applyFateEffects(
   // 确保属性在合理范围内
   finalAttributes.vitality = Math.max(
     50,
-    Math.min(100, finalAttributes.vitality)
+    Math.min(100, finalAttributes.vitality),
   );
   finalAttributes.spirit = Math.max(50, Math.min(100, finalAttributes.spirit));
   finalAttributes.wisdom = Math.max(50, Math.min(100, finalAttributes.wisdom));
@@ -285,12 +285,12 @@ function applyFateMaxHpBonus(maxHp: number, fates: PreHeavenFate[]): number {
 
     // 解析maxHp加成
     const maxHpMatch = effect.match(
-      /max_hp\s*([+-]\s*\d+)|maxhp\s*([+-]\s*\d+)|生命值上限\s*([+-]\s*\d+)/i
+      /max_hp\s*([+-]\s*\d+)|maxhp\s*([+-]\s*\d+)|生命值上限\s*([+-]\s*\d+)/i,
     );
     if (maxHpMatch) {
       const bonus = parseInt(
-        (maxHpMatch[1] || maxHpMatch[2] || maxHpMatch[3]).replace(/\s/g, ""),
-        10
+        (maxHpMatch[1] || maxHpMatch[2] || maxHpMatch[3]).replace(/\s/g, ''),
+        10,
       );
       finalMaxHp += bonus;
     }
