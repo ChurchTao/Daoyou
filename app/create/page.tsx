@@ -10,6 +10,7 @@ import {
   InkstoneIcon,
   ScrollIcon,
 } from "@/components/SVGIcon";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 const getCombatRating = (cultivator: Cultivator | null): string => {
   if (!cultivator?.battleProfile) return "--";
@@ -23,6 +24,7 @@ const getCombatRating = (cultivator: Cultivator | null): string => {
  */
 export default function CreatePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [userPrompt, setUserPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
@@ -40,7 +42,8 @@ export default function CreatePage() {
     setPlayer(null);
 
     try {
-      const response = await fetch("/api/generate-character", {
+      // 调用AI生成角色
+      const aiResponse = await fetch("/api/generate-character", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,20 +51,47 @@ export default function CreatePage() {
         body: JSON.stringify({ userInput: userPrompt }),
       });
 
-      const result = await response.json();
+      const aiResult = await aiResponse.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "生成角色失败");
+      if (!aiResponse.ok || !aiResult.success) {
+        throw new Error(aiResult.error || "生成角色失败");
       }
 
-      const aiResponse = result.data;
-      const cultivator = createCultivatorFromAI(aiResponse, userPrompt);
+      // 解析AI响应，创建角色对象
+      const aiData = aiResult.data;
+      const cultivator = createCultivatorFromAI(aiData, userPrompt);
       console.log("cultivator", cultivator);
-      setPlayer(cultivator);
+      
+      // 保存角色到数据库
+      if (user) {
+        const saveResponse = await fetch("/api/cultivators", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cultivatorData: {
+              ...cultivator,
+              battleProfile: undefined,
+            },
+            battleProfile: cultivator.battleProfile!
+          }),
+        });
+
+        const saveResult = await saveResponse.json();
+
+        if (!saveResponse.ok || !saveResult.success) {
+          throw new Error(saveResult.error || "保存角色失败");
+        }
+
+        setPlayer(saveResult.data);
+      } else {
+        // 匿名用户，直接使用生成的角色
+        setPlayer(cultivator);
+      }
     } catch (error) {
       console.error("生成角色失败:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "生成角色失败，请检查控制台";
+      const errorMessage = error instanceof Error ? error.message : "生成角色失败，请检查控制台";
       setError(errorMessage);
     } finally {
       setLoading(false);

@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* 引入本地字体 */
+@font-face {
+  font-family: 'ZCOOL XiaoWei';
+  src: url('/assets/ZCOOL_XiaoWei/ZCOOLXiaoWei-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ma Shan Zheng';
+  src: url('/assets/Ma_Shan_Zheng/MaShanZheng-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* 色彩系统 */
   --color-paper: #f8f3e6; /* 旧纸 */
@@ -8,6 +25,10 @@
   --color-crimson: #c1121f; /* 朱砂红 */
   --color-teal: #4a7c59; /* 青黛 */
   --color-wood: #8b4513; /* 木色 */
+  
+  /* 字体变量 */
+  --font-zcool-xiao-wei: 'ZCOOL XiaoWei', serif;
+  --font-ma-shan-zheng: 'Ma Shan Zheng', cursive;
 }
 
 @theme inline {

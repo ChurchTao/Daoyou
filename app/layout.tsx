@@ -1,18 +1,7 @@
 import type { Metadata } from "next";
-import { Ma_Shan_Zheng, ZCOOL_XiaoWei } from "next/font/google";
 import "./globals.css";
-
-const maShanZheng = Ma_Shan_Zheng({
-  variable: "--font-ma-shan-zheng",
-  weight: "400",
-  subsets: ["latin"],
-});
-
-const zcooLiaoWei = ZCOOL_XiaoWei({
-  variable: "--font-zcool-xiao-wei",
-  weight: "400",
-  subsets: ["latin"],
-});
+import { AuthProvider } from '../lib/auth/AuthContext';
+import AnonymousUserManager from '../components/AnonymousUserManager';
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -27,9 +16,12 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body
-        className={`${zcooLiaoWei.variable} ${maShanZheng.variable} antialiased`}
+        className="antialiased"
       >
-        {children}
+        <AuthProvider>
+          <AnonymousUserManager />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
