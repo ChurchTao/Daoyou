@@ -1,13 +1,9 @@
 'use client';
 
-import {
-  AlchemyFurnaceIcon,
-  CloudDivider,
-  DragonPatternIcon,
-} from '@/components/SVGIcon';
 import { mockRankings } from '@/data/mockRankings';
 import type { Cultivator } from '@/types/cultivator';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const getCombatRating = (cultivator: Cultivator): string => {
   const profile = cultivator.battleProfile;
@@ -23,9 +19,16 @@ export default function HomePage() {
   return (
     <div className="bg-paper min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* 顶部标题 */}
+        {/* 顶部标题与Logo */}
         <div className="text-center mb-8">
-          <h1 className="font-ma-shan-zheng text-4xl md:text-5xl text-ink mb-4">
+          <div className="mb-4 h-24 w-full relative">
+            <Image 
+              src="/assets/daoyou_logo.png" 
+              alt="万界道录 Logo" 
+              fill
+            />
+          </div>
+          <h1 className="font-ma-shan-zheng text-4xl md:text-5xl text-ink mb-2">
             万界道录
           </h1>
           <p className="text-ink/70 text-center mb-8">输入心念，凝练道身</p>
@@ -37,16 +40,14 @@ export default function HomePage() {
             href="/create"
             className="btn-primary inline-flex items-center justify-center"
           >
-            <AlchemyFurnaceIcon className="w-6 h-6 mr-2" />
             觉醒灵根
           </Link>
         </div>
 
         {/* 排行榜：仿古籍名录 */}
         <div className="max-w-md mx-auto">
-          <h2 className="font-ma-shan-zheng text-xl text-ink mb-4 flex items-center justify-center">
-            <span>天榜前十</span>
-            <DragonPatternIcon className="ml-2" />
+          <h2 className="font-ma-shan-zheng text-xl text-ink mb-4 text-center">
+            天榜前十
           </h2>
 
           <div className="space-y-0">
@@ -80,11 +81,6 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* 底部云纹 */}
-        <div className="mt-8">
-          <CloudDivider />
         </div>
 
         {/* 底部链接 */}

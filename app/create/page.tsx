@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  AlchemyFurnaceIcon,
-  InkstoneIcon,
-  ScrollIcon,
-} from '@/components/SVGIcon';
+
 import { useAuth } from '@/lib/auth/AuthContext';
 import type { Cultivator } from '@/types/cultivator';
 import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
@@ -126,8 +122,7 @@ export default function CreatePage() {
 
         {/* 输入区：仿砚台 */}
         <div className="mb-8">
-          <label className="font-ma-shan-zheng text-ink mb-2 text-lg flex items-center gap-2">
-            <InkstoneIcon className="w-5 h-5" />
+          <label className="font-ma-shan-zheng text-ink mb-2 text-lg">
             以心念唤道：
           </label>
           <textarea
@@ -160,8 +155,7 @@ export default function CreatePage() {
                 灵气汇聚中...
               </span>
             ) : (
-              <span className="flex items-center">
-                <AlchemyFurnaceIcon className="w-5 h-5 mr-1" />
+              <span>
                 凝气成形
               </span>
             )}
@@ -178,9 +172,7 @@ export default function CreatePage() {
         {/* 角色卡：仿卷轴 */}
         {player && (
           <div className="character-scroll animate-fade-in max-w-lg mx-auto">
-            <div className="flex justify-center mb-2">
-              <ScrollIcon className="w-8 h-8 text-ink/30" />
-            </div>
+            
             <div className="scroll-content">
               <h3 className="font-ma-shan-zheng text-2xl text-ink mb-4 text-center">
                 {player.name}
