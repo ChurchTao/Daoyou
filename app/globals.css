@@ -124,6 +124,7 @@ h6,
   font-size: 1.25rem;
   color: var(--color-ink);
   opacity: 0.7;
+  overflow: hidden;
 }
 
 .divider-line {
