@@ -158,6 +158,8 @@ export function getDefaultBoss(): Cultivator {
     spiritRoot: '血魔灵根',
     appearance: '黑袍遮身，双目赤红，血雾缭绕，手持血色长刀',
     backstory: '昔年正道第一，如今坠入魔渊，以血养道，屠戮无数。',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '血煞命格',
@@ -214,6 +216,8 @@ export function getDefaultBoss(): Cultivator {
       equipment: [
         {
           name: '血炼魔刀',
+          type: 'weapon',
+          element: '火',
           bonus: { vitality: 8, elementBoost: { 火: 0.15 } },
         },
       ],

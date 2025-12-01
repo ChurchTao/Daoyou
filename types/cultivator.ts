@@ -28,9 +28,42 @@ export interface EquipmentBonus {
   skillPowerBoost?: number;
 }
 
+export type EquipmentType = 'weapon' | 'armor' | 'accessory';
+
 export interface Equipment {
+  id?: string;
   name: string;
+  type: EquipmentType;
+  element: ElementType;
   bonus?: EquipmentBonus;
+  specialEffect?: string;
+}
+
+/**
+ * 消耗品类型
+ */
+export interface Consumable {
+  id?: string;
+  name: string;
+  effect: string;
+  description?: string;
+}
+
+/**
+ * 角色物品栏
+ */
+export interface Inventory {
+  equipments: Equipment[];
+  consumables: Consumable[];
+}
+
+/**
+ * 角色装备状态
+ */
+export interface EquippedItems {
+  weapon?: string; // 武器ID
+  armor?: string; // 防具ID
+  accessory?: string; // 饰品ID
 }
 
 export interface PreHeavenFate {
@@ -71,6 +104,10 @@ export interface Cultivator {
   personality?: string;
   preHeavenFates?: PreHeavenFate[];
   battleProfile?: BattleProfile;
+  inventory?: Inventory;
+  equipped?: EquippedItems;
+  maxEquipments: number;
+  maxSkills: number;
 }
 
 export type CultivationLevelType =

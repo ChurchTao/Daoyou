@@ -13,6 +13,8 @@ export const mockRankings: Cultivator[] = [
     spiritRoot: '变异·雷灵根',
     appearance: '青衫长剑，眉目如星，周身雷光隐现',
     backstory: '出身名门，自幼习剑，三十岁便突破元婴，被誉为千年一遇的剑道奇才',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '紫府通明',
@@ -69,6 +71,8 @@ export const mockRankings: Cultivator[] = [
       equipment: [
         {
           name: '惊雷剑',
+          type: 'weapon',
+          element: '雷',
           bonus: {
             spirit: 8,
             elementBoost: { 雷: 0.15 },
@@ -85,6 +89,8 @@ export const mockRankings: Cultivator[] = [
     spiritRoot: '血魔灵根',
     appearance: '黑袍遮身，双目赤红，周身血雾缭绕，手持一柄血色长刀',
     backstory: '曾是正道天骄，因心魔入体堕入魔道，以吞噬修士精血为乐，凶名赫赫',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '血煞命格',
@@ -141,6 +147,8 @@ export const mockRankings: Cultivator[] = [
       equipment: [
         {
           name: '血炼魔刀',
+          type: 'weapon',
+          element: '火',
           bonus: {
             vitality: 8,
             elementBoost: { 火: 0.15 },
@@ -157,6 +165,8 @@ export const mockRankings: Cultivator[] = [
     spiritRoot: '变异·冰焰双生',
     appearance: '白衣染霜，眉心一点赤焰印记，腰间挂着一只古朴丹炉',
     backstory: '幼时被逐出宗门，靠一本残破丹方崛起，以丹道证得金丹大道',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '丹心通神',
@@ -213,6 +223,8 @@ export const mockRankings: Cultivator[] = [
       equipment: [
         {
           name: '玄火丹炉',
+          type: 'accessory',
+          element: '火',
           bonus: {
             spirit: 8,
             elementBoost: { 火: 0.1 },
@@ -229,6 +241,8 @@ export const mockRankings: Cultivator[] = [
     spiritRoot: '水灵根',
     appearance: '白衣胜雪，长发如瀑，手持一柄寒冰长剑，气质清冷如月',
     backstory: '出身水月宗，以清冷孤傲闻名，剑法出神入化，被誉为水月第一剑',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '冰心玉骨',
@@ -285,6 +299,8 @@ export const mockRankings: Cultivator[] = [
       equipment: [
         {
           name: '寒霜古剑',
+          type: 'weapon',
+          element: '水',
           bonus: {
             speed: 5,
             elementBoost: { 水: 0.12 },
@@ -301,6 +317,8 @@ export const mockRankings: Cultivator[] = [
     spiritRoot: '暗灵根',
     appearance: '黑衣如墨，面容冷峻，腰间佩剑，周身散发阴冷气息',
     backstory: '来历不明，以暗杀闻名，剑法诡异莫测，令人闻风丧胆',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '无影无踪',
@@ -357,6 +375,8 @@ export const mockRankings: Cultivator[] = [
       equipment: [
         {
           name: '影蚀匕首',
+          type: 'weapon',
+          element: '木',
           bonus: {
             speed: 6,
             elementBoost: { 木: 0.08 },
@@ -373,6 +393,8 @@ export const mockRankings: Cultivator[] = [
     spiritRoot: '木灵根',
     appearance: '青衫飘逸，手持青莲剑，气质潇洒不羁，如诗如画',
     backstory: '出身青莲剑宗，以潇洒不羁闻名，剑法如诗如画，被誉为青莲剑仙',
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: [
       {
         name: '青莲剑骨',
@@ -429,6 +451,8 @@ export const mockRankings: Cultivator[] = [
       equipment: [
         {
           name: '青莲古剑',
+          type: 'weapon',
+          element: '木',
           bonus: {
             spirit: 4,
             elementBoost: { 木: 0.1 },

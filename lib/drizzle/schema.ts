@@ -21,6 +21,8 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   gender: varchar('gender', { length: 20 }),
   origin: varchar('origin', { length: 100 }),
   personality: text('personality'),
+  maxEquipments: integer('max_equipments').default(3), // 最大装备数
+  maxSkills: integer('max_skills').default(4), // 最大技能数
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
@@ -68,8 +70,45 @@ export const equipment = pgTable('wanjiedaoyou_equipment', {
     .references(() => cultivators.id)
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 20 }), // weapon, armor, accessory
+  element: varchar('element', { length: 20 }),
   bonus: jsonb('bonus'),
+  specialEffect: text('special_effect'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// 消耗品表
+export const consumables = pgTable('wanjiedaoyou_consumables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id)
+    .notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  effect: text('effect').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// 角色装备状态表
+export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id)
+    .notNull()
+    .unique(),
+  weaponId: uuid('weapon_id')
+    .references(() => equipment.id)
+    .unique(),
+  armorId: uuid('armor_id')
+    .references(() => equipment.id)
+    .unique(),
+  accessoryId: uuid('accessory_id')
+    .references(() => equipment.id)
+    .unique(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 // 先天命格表

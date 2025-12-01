@@ -139,6 +139,8 @@ export function generateDefaultBattleProfile(
     equipment: [
       {
         name: '灵纹戒',
+        type: 'accessory',
+        element,
         bonus: {
           spirit: 5,
           elementBoost: element !== '无' ? { [element]: 0.1 } : undefined,

@@ -154,6 +154,8 @@ export async function getCultivatorById(
     gender: cultivator.gender || undefined,
     origin: cultivator.origin || undefined,
     personality: cultivator.personality || undefined,
+    maxEquipments: cultivator.maxEquipments || 3,
+    maxSkills: cultivator.maxSkills || 4,
     preHeavenFates: preHeavenFatesResult.map((fate) => ({
       name: fate.name,
       type: fate.type as '吉' | '凶',
@@ -182,6 +184,8 @@ export async function getCultivatorById(
       })),
       equipment: equipmentResult.map((equipment) => ({
         name: equipment.name,
+        type: equipment.type as any,
+        element: equipment.element as any,
         bonus: equipment.bonus
           ? typeof equipment.bonus === 'string' && equipment.bonus.trim() !== ''
             ? JSON.parse(equipment.bonus)
@@ -243,6 +247,8 @@ export async function getCultivatorsByUserId(
           gender: cultivator.gender || undefined,
           origin: cultivator.origin || undefined,
           personality: cultivator.personality || undefined,
+          maxEquipments: cultivator.maxEquipments || 3,
+          maxSkills: cultivator.maxSkills || 4,
           preHeavenFates: preHeavenFatesResult.map((fate) => ({
             name: fate.name,
             type: fate.type as '吉' | '凶',
@@ -271,6 +277,8 @@ export async function getCultivatorsByUserId(
             })),
             equipment: equipmentResult.map((equipment) => ({
               name: equipment.name,
+              type: equipment.type as any,
+              element: equipment.element as any,
               bonus: equipment.bonus
                 ? typeof equipment.bonus === 'string' && equipment.bonus.trim() !== ''
                   ? JSON.parse(equipment.bonus)
@@ -510,6 +518,8 @@ export async function updateBattleProfile(
     })),
     equipment: equipmentResult.map((equipment) => ({
       name: equipment.name,
+      type: equipment.type as any,
+      element: equipment.element as any,
       bonus: equipment.bonus
         ? typeof equipment.bonus === 'string' && equipment.bonus.trim() !== ''
           ? JSON.parse(equipment.bonus)
@@ -623,6 +633,343 @@ export async function deleteTempCultivator(
     .returning();
 
   return result.length > 0;
+}
+
+/**
+ * 创建装备
+ */
+export async function createEquipment(
+  userId: string,
+  cultivatorId: string,
+  equipmentData: Omit<import('../../types/cultivator').Equipment, 'id'>,
+): Promise<import('../../types/cultivator').Equipment> {
+  // 权限验证：确保只有角色所有者可以创建装备
+  const existingCultivator = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    );
+
+  if (existingCultivator.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+
+  // 创建装备
+  const result = await db
+    .insert(schema.equipment)
+    .values({
+      cultivatorId,
+      name: equipmentData.name,
+      type: equipmentData.type,
+      element: equipmentData.element,
+      bonus: equipmentData.bonus,
+      specialEffect: equipmentData.specialEffect,
+    })
+    .returning();
+
+  return {
+    id: result[0].id,
+    ...equipmentData,
+  };
+}
+
+/**
+ * 获取角色物品栏
+ */
+export async function getInventory(
+  userId: string,
+  cultivatorId: string,
+): Promise<import('../../types/cultivator').Inventory> {
+  // 权限验证：确保只有角色所有者可以获取物品栏
+  const existingCultivator = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    );
+
+  if (existingCultivator.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+
+  // 获取装备列表
+  const equipmentResult = await db
+    .select()
+    .from(schema.equipment)
+    .where(eq(schema.equipment.cultivatorId, cultivatorId));
+
+  // 获取消耗品列表
+  const consumablesResult = await db
+    .select()
+    .from(schema.consumables)
+    .where(eq(schema.consumables.cultivatorId, cultivatorId));
+
+  return {
+    equipments: equipmentResult.map((eq) => ({
+      id: eq.id,
+      name: eq.name,
+      type: eq.type as any,
+      element: eq.element as any,
+      bonus: eq.bonus as any,
+      specialEffect: eq.specialEffect || undefined,
+    })),
+    consumables: consumablesResult.map((con) => ({
+      id: con.id,
+      name: con.name,
+      effect: con.effect,
+      description: con.description || undefined,
+    })),
+  };
+}
+
+/**
+ * 装备/卸下装备
+ */
+export async function equipEquipment(
+  userId: string,
+  cultivatorId: string,
+  equipmentId: string,
+): Promise<import('../../types/cultivator').EquippedItems> {
+  // 权限验证：确保只有角色所有者可以装备/卸下装备
+  const existingCultivator = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    );
+
+  if (existingCultivator.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+
+  // 获取装备信息
+  const equipment = await db
+    .select()
+    .from(schema.equipment)
+    .where(
+      and(
+        eq(schema.equipment.id, equipmentId),
+        eq(schema.equipment.cultivatorId, cultivatorId),
+      ),
+    );
+
+  if (equipment.length === 0) {
+    throw new Error('装备不存在或无权限操作');
+  }
+
+  const equipmentItem = equipment[0];
+
+  // 获取当前装备状态
+  let equippedItems = await db
+    .select()
+    .from(schema.equippedItems)
+    .where(eq(schema.equippedItems.cultivatorId, cultivatorId));
+
+  let equippedItem;
+
+  if (equippedItems.length === 0) {
+    // 如果没有装备状态记录，创建一个
+    const newEquipped = await db
+      .insert(schema.equippedItems)
+      .values({
+        cultivatorId,
+      })
+      .returning();
+    equippedItem = newEquipped[0];
+  } else {
+    equippedItem = equippedItems[0];
+  }
+
+  // 装备或卸下装备
+  let updateData: any = {};
+  let isEquipping = true;
+
+  // 检查是否已经装备了该类型的装备
+  if (equipmentItem.type === 'weapon') {
+    if (equippedItem.weaponId === equipmentItem.id) {
+      // 卸下装备
+      updateData.weaponId = null;
+      isEquipping = false;
+    } else {
+      // 装备新武器，替换旧武器
+      updateData.weaponId = equipmentItem.id;
+    }
+  } else if (equipmentItem.type === 'armor') {
+    if (equippedItem.armorId === equipmentItem.id) {
+      updateData.armorId = null;
+      isEquipping = false;
+    } else {
+      updateData.armorId = equipmentItem.id;
+    }
+  } else if (equipmentItem.type === 'accessory') {
+    if (equippedItem.accessoryId === equipmentItem.id) {
+      updateData.accessoryId = null;
+      isEquipping = false;
+    } else {
+      updateData.accessoryId = equipmentItem.id;
+    }
+  }
+
+  // 更新装备状态
+  const updated = await db
+    .update(schema.equippedItems)
+    .set(updateData)
+    .where(eq(schema.equippedItems.id, equippedItem.id))
+    .returning();
+
+  // 返回装备状态
+  return {
+    weapon: updated[0].weaponId || undefined,
+    armor: updated[0].armorId || undefined,
+    accessory: updated[0].accessoryId || undefined,
+  };
+}
+
+/**
+ * 创建技能
+ */
+export async function createSkill(
+  userId: string,
+  cultivatorId: string,
+  skillData: Omit<import('../../types/cultivator').Skill, 'id'>,
+): Promise<import('../../types/cultivator').Skill> {
+  // 权限验证：确保只有角色所有者可以创建技能
+  const existingCultivator = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    );
+
+  if (existingCultivator.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+
+  // 创建技能
+  const result = await db
+    .insert(schema.skills)
+    .values({
+      cultivatorId,
+      name: skillData.name,
+      type: skillData.type,
+      power: skillData.power,
+      element: skillData.element,
+      effects: skillData.effects,
+    })
+    .returning();
+
+  return {
+    name: result[0].name,
+    type: result[0].type as any,
+    power: result[0].power,
+    element: result[0].element as any,
+    effects: result[0].effects as string[] | undefined,
+  };
+}
+
+/**
+ * 替换技能
+ */
+export async function replaceSkill(
+  userId: string,
+  cultivatorId: string,
+  oldSkillId: string,
+  newSkillData: Omit<import('../../types/cultivator').Skill, 'id'>,
+): Promise<import('../../types/cultivator').Skill> {
+  // 权限验证：确保只有角色所有者可以替换技能
+  const existingCultivator = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    );
+
+  if (existingCultivator.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+
+  // 替换技能
+  const result = await db
+    .update(schema.skills)
+    .set({
+      name: newSkillData.name,
+      type: newSkillData.type,
+      power: newSkillData.power,
+      element: newSkillData.element,
+      effects: newSkillData.effects,
+    })
+    .where(
+      and(
+        eq(schema.skills.id, oldSkillId),
+        eq(schema.skills.cultivatorId, cultivatorId),
+      ),
+    )
+    .returning();
+
+  if (result.length === 0) {
+    throw new Error('技能不存在或无权限操作');
+  }
+
+  return {
+    name: result[0].name,
+    type: result[0].type as any,
+    power: result[0].power,
+    element: result[0].element as any,
+    effects: result[0].effects as string[] | undefined,
+  };
+}
+
+/**
+ * 获取角色技能
+ */
+export async function getSkills(
+  userId: string,
+  cultivatorId: string,
+): Promise<import('../../types/cultivator').Skill[]> {
+  // 权限验证：确保只有角色所有者可以获取技能
+  const existingCultivator = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    );
+
+  if (existingCultivator.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+
+  // 获取技能列表
+  const skillsResult = await db
+    .select()
+    .from(schema.skills)
+    .where(eq(schema.skills.cultivatorId, cultivatorId));
+
+  return skillsResult.map((skill) => ({
+    name: skill.name,
+    type: skill.type as any,
+    power: skill.power,
+    element: skill.element as any,
+    effects: skill.effects as string[] | undefined,
+  }));
 }
 
 /**

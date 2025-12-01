@@ -4,6 +4,7 @@ import type {
   Cultivator,
   ElementType,
   Equipment,
+  EquipmentType,
   PreHeavenFate,
   Skill,
 } from '../types/cultivator';
@@ -48,6 +49,8 @@ export function createCultivatorFromAI(
     gender: gender || undefined,
     origin: origin || undefined,
     personality: personality || undefined,
+    maxEquipments: 3,
+    maxSkills: 4,
     preHeavenFates: preHeavenFates.length ? preHeavenFates : undefined,
     battleProfile: undefined,
   };
@@ -146,7 +149,9 @@ function parseEquipment(raw: unknown): Equipment[] | undefined {
         record.bonus && typeof record.bonus === 'object'
           ? { ...(record.bonus as Record<string, unknown>) }
           : undefined;
-      const result: Equipment = { name, bonus };
+      const type = typeof record.type === 'string' && ['weapon', 'armor', 'accessory'].includes(record.type) ? record.type as EquipmentType : 'accessory';
+      const element = typeof record.element === 'string' && ['金', '木', '水', '火', '土', '雷', '无'].includes(record.element) ? record.element as ElementType : '无';
+      const result: Equipment = { name, type, element, bonus };
       return result;
     })
     .filter((item): item is Equipment => !!item);
