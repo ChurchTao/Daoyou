@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, lt } from 'drizzle-orm';
 import type { BattleProfile, Cultivator } from '../../types/cultivator';
 import { db } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
@@ -175,13 +175,17 @@ export async function getCultivatorById(
         power: skill.power,
         element: skill.element as any,
         effects: skill.effects
-          ? JSON.parse(skill.effects as string)
+          ? typeof skill.effects === 'string' && skill.effects.trim() !== ''
+            ? JSON.parse(skill.effects)
+            : skill.effects
           : undefined,
       })),
       equipment: equipmentResult.map((equipment) => ({
         name: equipment.name,
         bonus: equipment.bonus
-          ? JSON.parse(equipment.bonus as string)
+          ? typeof equipment.bonus === 'string' && equipment.bonus.trim() !== ''
+            ? JSON.parse(equipment.bonus)
+            : equipment.bonus
           : undefined,
       })),
       element: battleProfileData.element as any,
@@ -260,13 +264,17 @@ export async function getCultivatorsByUserId(
               power: skill.power,
               element: skill.element as any,
               effects: skill.effects
-                ? JSON.parse(skill.effects as string)
+                ? typeof skill.effects === 'string' && skill.effects.trim() !== ''
+                  ? JSON.parse(skill.effects)
+                  : skill.effects
                 : undefined,
             })),
             equipment: equipmentResult.map((equipment) => ({
               name: equipment.name,
               bonus: equipment.bonus
-                ? JSON.parse(equipment.bonus as string)
+                ? typeof equipment.bonus === 'string' && equipment.bonus.trim() !== ''
+                  ? JSON.parse(equipment.bonus)
+                  : equipment.bonus
                 : undefined,
             })),
             element: battleProfileData.element as any,
@@ -494,14 +502,135 @@ export async function updateBattleProfile(
       type: skill.type as 'attack' | 'heal' | 'control' | 'buff',
       power: skill.power,
       element: skill.element as any,
-      effects: skill.effects ? JSON.parse(skill.effects as string) : undefined,
+      effects: skill.effects
+        ? typeof skill.effects === 'string' && skill.effects.trim() !== ''
+          ? JSON.parse(skill.effects)
+          : skill.effects
+        : undefined,
     })),
     equipment: equipmentResult.map((equipment) => ({
       name: equipment.name,
       bonus: equipment.bonus
-        ? JSON.parse(equipment.bonus as string)
+        ? typeof equipment.bonus === 'string' && equipment.bonus.trim() !== ''
+          ? JSON.parse(equipment.bonus)
+          : equipment.bonus
         : undefined,
     })),
     element: battleProfileData.element as any,
   };
+}
+
+// 临时角色相关操作
+
+/**
+ * 创建临时角色
+ */
+export async function createTempCultivator(
+  userId: string,
+  cultivator: Cultivator,
+): Promise<string> {
+  // 计算过期时间：当前时间 + 24小时
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  // 插入临时角色数据
+  const result = await db
+    .insert(schema.tempCultivators)
+    .values({
+      userId,
+      cultivatorData: cultivator,
+      expiresAt,
+    })
+    .returning();
+
+  return result[0].id;
+}
+
+/**
+ * 获取临时角色
+ */
+export async function getTempCultivator(
+  userId: string,
+  tempCultivatorId: string,
+): Promise<Cultivator | null> {
+  // 查询临时角色
+    const result = await db
+      .select()
+      .from(schema.tempCultivators)
+      .where(
+        and(
+          eq(schema.tempCultivators.id, tempCultivatorId),
+          eq(schema.tempCultivators.userId, userId),
+          gt(schema.tempCultivators.expiresAt, new Date()), // 确保角色未过期
+        ),
+      );
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  // 直接返回完整的角色数据
+  return result[0].cultivatorData as Cultivator;
+}
+
+/**
+ * 将临时角色保存到正式表
+ */
+export async function saveTempCultivatorToFormal(
+  userId: string,
+  tempCultivatorId: string,
+): Promise<Cultivator> {
+  // 1. 获取临时角色
+  const tempCultivator = await getTempCultivator(userId, tempCultivatorId);
+  if (!tempCultivator) {
+    throw new Error('临时角色不存在或已过期');
+  }
+
+  // 2. 将临时角色转换为正式角色
+  const cultivatorData = {
+    ...tempCultivator,
+    battleProfile: undefined,
+  };
+
+  // 3. 创建正式角色
+  const formalCultivator = await createCultivator(
+    userId,
+    cultivatorData as Omit<Cultivator, 'id' | 'battleProfile'>,
+    tempCultivator.battleProfile!, // 确保battleProfile存在
+  );
+
+  // 4. 删除临时角色
+  await deleteTempCultivator(userId, tempCultivatorId);
+
+  return formalCultivator;
+}
+
+/**
+ * 删除临时角色
+ */
+export async function deleteTempCultivator(
+  userId: string,
+  tempCultivatorId: string,
+): Promise<boolean> {
+  // 删除临时角色
+  const result = await db
+    .delete(schema.tempCultivators)
+    .where(
+      and(
+        eq(schema.tempCultivators.id, tempCultivatorId),
+        eq(schema.tempCultivators.userId, userId),
+      ),
+    )
+    .returning();
+
+  return result.length > 0;
+}
+
+/**
+ * 清理过期的临时角色
+ */
+export async function cleanupExpiredTempCultivators(): Promise<void> {
+  // 删除所有过期的临时角色
+  await db
+    .delete(schema.tempCultivators)
+    .where(lt(schema.tempCultivators.expiresAt, new Date()));
 }

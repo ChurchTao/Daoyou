@@ -15,6 +15,20 @@
       "when": 1764393195642,
       "tag": "0001_workable_alex_wilder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764557303732,
+      "tag": "0002_big_pyro",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764557977190,
+      "tag": "0003_nosy_kabuki",
+      "breakpoints": true
     }
   ]
 }

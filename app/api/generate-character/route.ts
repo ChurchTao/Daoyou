@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { generateCharacter } from '../../../utils/aiClient';
 import { getCharacterGenerationPrompt } from '../../../utils/prompts';
+import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
+import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
 
 /**
  * POST /api/generate-character
@@ -12,13 +14,13 @@ export async function POST(request: NextRequest) {
     // 创建Supabase客户端，用于验证用户身份
     const supabase = await createClient();
 
-    // 获取当前会话，验证用户身份
+    // 获取当前用户，验证用户身份
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
@@ -43,9 +45,18 @@ export async function POST(request: NextRequest) {
     // 调用 AI 生成角色
     const aiResponse = await generateCharacter(prompt, userInput);
 
+    // 解析AI响应，创建角色对象
+    const cultivator = createCultivatorFromAI(aiResponse, userInput);
+
+    // 保存到临时表
+    const tempCultivatorId = await createTempCultivator(user.id, cultivator);
+
     return NextResponse.json({
       success: true,
-      data: aiResponse,
+      data: {
+        cultivator,
+        tempCultivatorId,
+      },
     });
   } catch (error) {
     console.error('生成角色 API 错误:', error);

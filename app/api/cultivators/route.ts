@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
     // 创建Supabase客户端，用于验证用户身份
     const supabase = await createClient();
 
-    // 获取当前会话，验证用户身份
+    // 获取当前用户，验证用户身份
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
@@ -71,9 +71,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 检查用户是否已有角色
+    const existingCultivators = await getCultivatorsByUserId(user.id);
+    if (existingCultivators.length > 0) {
+      return NextResponse.json({ error: '您已经拥有一位道身，无法创建新的道身' }, { status: 400 });
+    }
+
     // 使用事务创建角色，确保数据一致性
     const createdCultivator = await createCultivator(
-      session.user.id,
+      user.id,
       cultivatorData as Omit<Cultivator, 'id' | 'battleProfile'>,
       battleProfile as BattleProfile,
     );
@@ -106,13 +112,13 @@ export async function GET(request: NextRequest) {
     // 创建Supabase客户端，用于验证用户身份
     const supabase = await createClient();
 
-    // 获取当前会话，验证用户身份
+    // 获取当前用户，验证用户身份
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
@@ -122,7 +128,7 @@ export async function GET(request: NextRequest) {
 
     if (cultivatorId) {
       // 获取单个角色
-      const cultivator = await getCultivatorById(session.user.id, cultivatorId);
+      const cultivator = await getCultivatorById(user.id, cultivatorId);
 
       if (!cultivator) {
         return NextResponse.json({ error: '角色不存在' }, { status: 404 });
@@ -134,7 +140,7 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // 获取所有角色
-      const cultivators = await getCultivatorsByUserId(session.user.id);
+      const cultivators = await getCultivatorsByUserId(user.id);
 
       return NextResponse.json({
         success: true,
@@ -165,13 +171,13 @@ export async function DELETE(request: NextRequest) {
     // 创建Supabase客户端，用于验证用户身份
     const supabase = await createClient();
 
-    // 获取当前会话，验证用户身份
+    // 获取当前用户，验证用户身份
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
@@ -184,7 +190,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 删除角色
-    const success = await deleteCultivator(session.user.id, cultivatorId);
+    const success = await deleteCultivator(user.id, cultivatorId);
 
     if (!success) {
       return NextResponse.json(

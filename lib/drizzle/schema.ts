@@ -98,3 +98,12 @@ export const activeEffects = pgTable('wanjiedaoyou_active_effects', {
   source: varchar('source', { length: 100 }).notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// 临时角色表 - 用于存放AI生成的角色结果，用户确认后保存到正式表
+export const tempCultivators = pgTable('wanjiedaoyou_temp_cultivators', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(), // 关联到用户
+  cultivatorData: jsonb('cultivator_data').notNull(), // 完整的角色数据，包含所有信息
+  createdAt: timestamp('created_at').defaultNow(),
+  expiresAt: timestamp('expires_at'), // 过期时间，在程序中设置
+});
