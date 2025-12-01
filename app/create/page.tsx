@@ -1,6 +1,5 @@
 'use client';
 
-
 import { useAuth } from '@/lib/auth/AuthContext';
 import type { Cultivator } from '@/types/cultivator';
 import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
@@ -155,9 +154,7 @@ export default function CreatePage() {
                 灵气汇聚中...
               </span>
             ) : (
-              <span>
-                凝气成形
-              </span>
+              <span>凝气成形</span>
             )}
           </button>
         </div>
@@ -172,7 +169,6 @@ export default function CreatePage() {
         {/* 角色卡：仿卷轴 */}
         {player && (
           <div className="character-scroll animate-fade-in max-w-lg mx-auto">
-            
             <div className="scroll-content">
               <h3 className="font-ma-shan-zheng text-2xl text-ink mb-4 text-center">
                 {player.name}

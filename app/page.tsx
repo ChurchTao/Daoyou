@@ -2,8 +2,8 @@
 
 import { mockRankings } from '@/data/mockRankings';
 import type { Cultivator } from '@/types/cultivator';
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const getCombatRating = (cultivator: Cultivator): string => {
   const profile = cultivator.battleProfile;
@@ -22,10 +22,12 @@ export default function HomePage() {
         {/* 顶部标题与Logo */}
         <div className="text-center mb-8">
           <div className="mb-4 h-24 w-full relative">
-            <Image 
-              src="/assets/daoyou_logo.png" 
-              alt="万界道录 Logo" 
-              fill
+            <Image
+              src="/assets/daoyou_logo.png"
+              alt="万界道录 Logo"
+              width={96}
+              height={96}
+              className="object-contain h-24 mx-auto"
             />
           </div>
           <h1 className="font-ma-shan-zheng text-4xl md:text-5xl text-ink mb-2">
@@ -33,7 +35,6 @@ export default function HomePage() {
           </h1>
           <p className="text-ink/70 text-center mb-8">输入心念，凝练道身</p>
         </div>
-
         {/* 主按钮：仿丹炉 */}
         <div className="text-center mb-10">
           <Link
