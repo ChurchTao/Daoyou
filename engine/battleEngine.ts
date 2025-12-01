@@ -4,6 +4,7 @@ import type {
   Cultivator,
   ElementType,
   Skill,
+  Consumable,
 } from '@/types/cultivator';
 import { cloneBattleProfile, ensureBattleProfile } from '@/utils/battleProfile';
 
@@ -21,6 +22,72 @@ interface Combatant extends BattleProfile {
   id: string;
   name: string;
   activeEffects: ActiveEffect[];
+  consumables?: Consumable[];
+}
+
+// 使用消耗品
+function useConsumable(
+  combatant: Combatant,
+  consumable: Consumable,
+  log: string[],
+): boolean {
+  if (!combatant.consumables || combatant.consumables.length === 0) {
+    return false;
+  }
+
+  // 查找消耗品
+  const consumableIndex = combatant.consumables.findIndex(
+    (c) => c.id === consumable.id || c.name === consumable.name
+  );
+
+  if (consumableIndex === -1) {
+    return false;
+  }
+
+  // 应用消耗品效果
+  switch (consumable.name.toLowerCase()) {
+    case '回春丹':
+      // 恢复生命值
+      const healAmount = Math.round(combatant.maxHp * 0.3); // 恢复30%最大生命值
+      combatant.hp = clamp(combatant.hp + healAmount, 0, combatant.maxHp);
+      log.push(`${combatant.name} 使用了 ${consumable.name}，恢复了 ${healAmount} 点生命值！`);
+      break;
+    case '灵力丹':
+      // 提升灵力
+      combatant.attributes.spirit = clamp(combatant.attributes.spirit + 10, 40, 120);
+      log.push(`${combatant.name} 使用了 ${consumable.name}，灵力提升了 10 点！`);
+      break;
+    case '速度符':
+      // 提升速度
+      combatant.attributes.speed = clamp(combatant.attributes.speed + 10, 40, 120);
+      log.push(`${combatant.name} 使用了 ${consumable.name}，速度提升了 10 点！`);
+      break;
+    default:
+      // 解析消耗品效果
+      if (consumable.effect.includes('恢复')) {
+        const healMatch = consumable.effect.match(/恢复(\d+)点生命值/);
+        if (healMatch && healMatch[1]) {
+          const healAmount = parseInt(healMatch[1]);
+          combatant.hp = clamp(combatant.hp + healAmount, 0, combatant.maxHp);
+          log.push(`${combatant.name} 使用了 ${consumable.name}，恢复了 ${healAmount} 点生命值！`);
+        }
+      } else if (consumable.effect.includes('提升')) {
+        const attributeMatch = consumable.effect.match(/提升(\w+)\s*(\d+)点/);
+        if (attributeMatch && attributeMatch[1] && attributeMatch[2]) {
+          const attribute = attributeMatch[1] as keyof typeof combatant.attributes;
+          const value = parseInt(attributeMatch[2]);
+          if (attribute in combatant.attributes) {
+            combatant.attributes[attribute] = clamp(combatant.attributes[attribute] + value, 40, 120);
+            log.push(`${combatant.name} 使用了 ${consumable.name}，${attribute} 提升了 ${value} 点！`);
+          }
+        }
+      }
+      break;
+  }
+
+  // 移除使用过的消耗品
+  combatant.consumables.splice(consumableIndex, 1);
+  return true;
 }
 
 const MAX_TURNS = 20;
@@ -59,9 +126,46 @@ const computeRating = (combatant: Combatant) => {
 const randomChoice = <T>(items: T[], fallback: T): T =>
   items.length ? items[Math.floor(Math.random() * items.length)] : fallback;
 
+// 应用装备加成到战斗属性
+function applyEquipmentBonuses(combatant: Combatant) {
+  if (!combatant.equipment || combatant.equipment.length === 0) return;
+
+  // 应用装备加成到基础属性
+  combatant.equipment.forEach((eq) => {
+    if (eq.bonus?.spirit) {
+      combatant.attributes.spirit += eq.bonus.spirit;
+    }
+    if (eq.bonus?.wisdom) {
+      combatant.attributes.wisdom += eq.bonus.wisdom;
+    }
+    if (eq.bonus?.vitality) {
+      combatant.attributes.vitality += eq.bonus.vitality;
+      // 体魄提升会增加最大生命值
+      combatant.maxHp += Math.round(eq.bonus.vitality * 0.5);
+    }
+    if (eq.bonus?.speed) {
+      combatant.attributes.speed += eq.bonus.speed;
+    }
+  });
+
+  // 确保属性值在合理范围内
+  combatant.attributes.vitality = clamp(combatant.attributes.vitality, 40, 120);
+  combatant.attributes.spirit = clamp(combatant.attributes.spirit, 40, 120);
+  combatant.attributes.wisdom = clamp(combatant.attributes.wisdom, 40, 120);
+  combatant.attributes.speed = clamp(combatant.attributes.speed, 40, 120);
+}
+
+export interface BattleOptions {
+  // 玩家使用的消耗品列表
+  playerConsumables?: Consumable[];
+  // 对手使用的消耗品列表
+  opponentConsumables?: Consumable[];
+}
+
 export function simulateBattle(
   player: Cultivator,
   opponent: Cultivator,
+  options?: BattleOptions,
 ): BattleEngineResult {
   const playerProfile = cloneBattleProfile(ensureBattleProfile(player));
   console.log('playerProfile', playerProfile);
@@ -73,13 +177,19 @@ export function simulateBattle(
     id: player.id,
     name: player.name,
     activeEffects: playerProfile.activeEffects || [],
+    consumables: [],
   };
   const o: Combatant = {
     ...opponentProfile,
     id: opponent.id,
     name: opponent.name,
     activeEffects: opponentProfile.activeEffects || [],
+    consumables: [],
   };
+
+  // 应用装备加成
+  applyEquipmentBonuses(p);
+  applyEquipmentBonuses(o);
 
   p.hp = p.maxHp;
   o.hp = o.maxHp;
@@ -88,6 +198,18 @@ export function simulateBattle(
   let winner: Combatant | null = null;
   let loser: Combatant | null = null;
   let turns = 0;
+
+  // 战斗前使用消耗品
+  if (options?.playerConsumables) {
+    options.playerConsumables.forEach((consumable) => {
+      useConsumable(p, consumable, log);
+    });
+  }
+  if (options?.opponentConsumables) {
+    options.opponentConsumables.forEach((consumable) => {
+      useConsumable(o, consumable, log);
+    });
+  }
 
   for (let turn = 1; turn <= MAX_TURNS; turn++) {
     turns = turn;

@@ -1,12 +1,24 @@
 'use client';
 
-import { mockRankings } from '@/data/mockRankings';
-import { BattleEngineResult, simulateBattle } from '@/engine/battleEngine';
-import type { Cultivator } from '@/types/cultivator';
+import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { Cultivator, Consumable } from '@/types/cultivator';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+
+/**
+ * 敌人数据类型（简化版）
+ */
+type EnemyData = {
+  id: string;
+  name: string;
+  cultivationLevel: string;
+  spiritRoot: string;
+  appearance: string;
+  element: string;
+  combatRating: number;
+};
 
 /**
  * 对战播报页内容组件
@@ -14,7 +26,7 @@ import { Suspense, useEffect, useState } from 'react';
 function BattlePageContent() {
   const searchParams = useSearchParams();
   const [player, setPlayer] = useState<Cultivator | null>(null);
-  const [opponent, setOpponent] = useState<Cultivator | null>(null);
+  const [opponent, setOpponent] = useState<EnemyData | null>(null);
   const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(
     null,
   );
@@ -22,39 +34,110 @@ function BattlePageContent() {
   const [finalReport, setFinalReport] = useState<string>(''); // 保存最终的完整播报
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [playerLoading, setPlayerLoading] = useState(false);
+  const [opponentLoading, setOpponentLoading] = useState(false);
 
   // 初始化
   useEffect(() => {
-    const playerData = sessionStorage.getItem('player');
-    if (playerData) {
+    // 获取玩家角色
+    const fetchPlayer = async () => {
+      setPlayerLoading(true);
       try {
-        const playerObj = JSON.parse(playerData) as Cultivator;
-        setPlayer(playerObj);
-      } catch (e) {
-        console.error('解析玩家数据失败:', e);
+        const playerResponse = await fetch('/api/cultivators');
+        const playerResult = await playerResponse.json();
+        
+        if (playerResult.success && playerResult.data.length > 0) {
+          setPlayer(playerResult.data[0]);
+        }
+      } catch (error) {
+        console.error('获取玩家数据失败:', error);
+      } finally {
+        setPlayerLoading(false);
       }
-    }
-
-    const opponentId = searchParams.get('opponent');
-    if (opponentId) {
-      const foundOpponent = mockRankings.find((c) => c.id === opponentId);
-      if (foundOpponent) {
-        setOpponent(foundOpponent);
-      } else {
-        setOpponent(getDefaultBoss());
+    };
+    
+    // 获取对手角色
+    const fetchOpponent = async () => {
+      setOpponentLoading(true);
+      try {
+        const opponentId = searchParams.get('opponent');
+        if (opponentId) {
+          // 从敌人API获取对手数据
+          const enemyResponse = await fetch(`/api/enemies/${opponentId}`);
+          const enemyResult = await enemyResponse.json();
+          
+          if (enemyResult.success) {
+            setOpponent(enemyResult.data);
+          } else {
+            // 如果获取失败，使用默认BOSS
+            const defaultBoss = getDefaultBoss();
+            setOpponent({
+              id: defaultBoss.id,
+              name: defaultBoss.name,
+              cultivationLevel: defaultBoss.cultivationLevel,
+              spiritRoot: defaultBoss.spiritRoot,
+              appearance: defaultBoss.appearance,
+              element: defaultBoss.battleProfile?.element || '无',
+              combatRating: Math.round(
+                ((defaultBoss.battleProfile?.attributes.vitality || 0) + 
+                 (defaultBoss.battleProfile?.attributes.spirit || 0) + 
+                 (defaultBoss.battleProfile?.attributes.wisdom || 0) + 
+                 (defaultBoss.battleProfile?.attributes.speed || 0)) / 4
+              ) || 0
+            });
+          }
+        } else {
+          // 如果没有对手ID，使用默认BOSS
+          const defaultBoss = getDefaultBoss();
+          setOpponent({
+            id: defaultBoss.id,
+            name: defaultBoss.name,
+            cultivationLevel: defaultBoss.cultivationLevel,
+            spiritRoot: defaultBoss.spiritRoot,
+            appearance: defaultBoss.appearance,
+            element: defaultBoss.battleProfile?.element || '无',
+            combatRating: Math.round(
+              ((defaultBoss.battleProfile?.attributes.vitality || 0) + 
+               (defaultBoss.battleProfile?.attributes.spirit || 0) + 
+               (defaultBoss.battleProfile?.attributes.wisdom || 0) + 
+               (defaultBoss.battleProfile?.attributes.speed || 0)) / 4
+            ) || 0
+          });
+        }
+      } catch (error) {
+        console.error('获取对手数据失败:', error);
+        // 使用默认BOSS
+        const defaultBoss = getDefaultBoss();
+        setOpponent({
+          id: defaultBoss.id,
+          name: defaultBoss.name,
+          cultivationLevel: defaultBoss.cultivationLevel,
+          spiritRoot: defaultBoss.spiritRoot,
+          appearance: defaultBoss.appearance,
+          element: defaultBoss.battleProfile?.element || '无',
+          combatRating: Math.round(
+            ((defaultBoss.battleProfile?.attributes.vitality || 0) + 
+             (defaultBoss.battleProfile?.attributes.spirit || 0) + 
+             (defaultBoss.battleProfile?.attributes.wisdom || 0) + 
+             (defaultBoss.battleProfile?.attributes.speed || 0)) / 4
+          ) || 0
+        });
+      } finally {
+        setOpponentLoading(false);
       }
-    } else {
-      setOpponent(getDefaultBoss());
-    }
+    };
+    
+    fetchPlayer();
+    fetchOpponent();
   }, [searchParams]);
 
   // 自动开始战斗
   useEffect(() => {
-    if (player && opponent && !battleResult && !loading) {
+    if (player && opponent && !battleResult && !loading && !playerLoading && !opponentLoading) {
       handleBattle();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, opponent]);
+  }, [player, opponent, battleResult, loading, playerLoading, opponentLoading]);
 
   // 执行战斗
   const handleBattle = async () => {
@@ -69,7 +152,30 @@ function BattlePageContent() {
     setBattleResult(null);
 
     try {
-      const result = simulateBattle(player, opponent);
+      // 从URL参数获取消耗品ID列表
+      const consumablesParam = searchParams.get('consumables');
+      const consumableIds = consumablesParam ? consumablesParam.split(',') : [];
+      
+      // 调用后端战斗引擎API
+      const battleResponse = await fetch('/api/generate-battle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cultivatorId: player.id,
+          opponentId: opponent.id,
+          consumableIds: consumableIds,
+        }),
+      });
+
+      if (!battleResponse.ok) {
+        const errorData = await battleResponse.json();
+        throw new Error(errorData.error || '生成战斗结果失败');
+      }
+
+      const battleResultData = await battleResponse.json();
+      const result = battleResultData.data;
       console.log('战斗结果:', result);
       setBattleResult(result);
 
@@ -215,16 +321,19 @@ function BattlePageContent() {
 
         {/* 战斗播报：仿古籍批注 */}
         {displayReport && (
-          <div className="narrative-box max-w-lg mx-auto p-6 bg-paper-light border border-ink/10 rounded relative animate-fade-in">
-            {/* 左侧朱批竖线 */}
-
+          <div className="battle-report max-w-lg mx-auto p-6 bg-paper-light border border-ink/10 rounded animate-fade-in">
+            {/* 播报标题 */}
+            <h2 className="font-ma-shan-zheng text-xl text-ink mb-4 text-center">
+              战报 · {player?.name} vs {opponent?.name}
+            </h2>
+            
             {/* 播报内容 */}
-            <div className="battle-report text-ink leading-relaxed text-center pl-4">
+            <div className="text-ink leading-relaxed text-center">
               {displayReport
                 .split('\n')
                 .filter((line) => line.trim() !== '')
                 .map((line, index) => (
-                  <p key={index} className="mb-2 whitespace-pre-line">
+                  <p key={index} className="mb-4 whitespace-pre-line">
                     <span dangerouslySetInnerHTML={{ __html: line }} />
                     {isStreaming &&
                       index === displayReport.split('\n').length - 2 && (
@@ -238,14 +347,14 @@ function BattlePageContent() {
 
             {/* 顿悟提示 */}
             {battleResult?.triggeredMiracle && (
-              <div className="mt-4 text-center text-crimson text-sm font-semibold">
+              <div className="mt-6 text-center text-crimson text-sm font-semibold">
                 ✨ 触发顿悟！逆天改命！
               </div>
             )}
 
             {/* 胜利印章（条件渲染） */}
             {isWin && !isStreaming && battleResult && (
-              <div className="absolute -top-4 -right-4 animate-slide-down">
+              <div className="absolute -top-4 -right-4 animate-slide-down text-4xl font-bold text-crimson opacity-80">
                 胜
               </div>
             )}
@@ -256,10 +365,10 @@ function BattlePageContent() {
         {battleResult && !isStreaming && (
           <div className="flex flex-wrap justify-center gap-4 mt-8">
             <button onClick={handleBattleAgain} className="btn-outline">
-              再战
+              [再战]
             </button>
             <Link href="/" className="btn-primary">
-              载入道录
+              [返回主界]
             </Link>
             <button
               onClick={() => {
@@ -267,7 +376,7 @@ function BattlePageContent() {
               }}
               className="btn-outline"
             >
-              分享
+              [分享战报]
             </button>
           </div>
         )}
@@ -276,9 +385,9 @@ function BattlePageContent() {
         <div className="text-center mt-8">
           <Link
             href="/"
-            className="text-sm text-ink/50 hover:text-ink/70 transition-colors"
+            className="text-ink hover:underline"
           >
-            ← 返回首页
+            [← 返回主界]
           </Link>
         </div>
       </div>

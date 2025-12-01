@@ -770,7 +770,7 @@ export async function equipEquipment(
   const equipmentItem = equipment[0];
 
   // 获取当前装备状态
-  let equippedItems = await db
+  const equippedItems = await db
     .select()
     .from(schema.equippedItems)
     .where(eq(schema.equippedItems.cultivatorId, cultivatorId));

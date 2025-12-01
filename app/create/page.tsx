@@ -413,16 +413,14 @@ export default function CreatePage() {
         )}
 
         {/* 返回首页 */}
-        {!checkingExisting && !hasExistingCultivator && (
-          <div className="text-center mt-8">
-            <Link
-              href="/"
-              className="text-sm text-ink/50 hover:text-ink/70 transition-colors"
-            >
-              ← 返回首页
-            </Link>
-          </div>
-        )}
+        <div className="text-center mt-8">
+          <Link
+            href="/"
+            className="text-ink hover:underline"
+          >
+            [← 返回主界]
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -110,6 +110,72 @@ h6,
   color: var(--color-paper);
 }
 
+/* 小按钮样式 */
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+}
+
+/* 分隔线样式 */
+.divider {
+  text-align: center;
+  margin: 1.5rem 0;
+  font-size: 1.25rem;
+  color: var(--color-ink);
+  opacity: 0.7;
+}
+
+.divider-line {
+  display: block;
+  font-family: monospace;
+  letter-spacing: 2px;
+}
+
+.divider-yin-yang {
+  display: block;
+  letter-spacing: 4px;
+}
+
+/* 状态图标样式 */
+.status-icon {
+  margin-right: 0.25rem;
+  font-size: 1.125rem;
+  vertical-align: middle;
+}
+
+/* 修仙语境提示样式 */
+.xianxia-tip {
+  text-align: center;
+  color: var(--color-ink-secondary);
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+/* 加载提示 */
+.loading-tip {
+  text-align: center;
+  color: var(--color-ink-secondary);
+  font-style: italic;
+  margin: 2rem 0;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  color: var(--color-ink-secondary);
+  font-style: italic;
+  margin: 2rem 0;
+}
+
+/* 错误提示 */
+.error-tip {
+  text-align: center;
+  color: var(--color-crimson);
+  font-style: italic;
+  margin: 1rem 0;
+}
+
 /* 卷轴效果 */
 .character-scroll {
   position: relative;
@@ -142,6 +208,178 @@ h6,
   background-repeat: repeat-x;
   background-size: 100px 20px;
   margin: 2rem 0;
+}
+
+/* 底部导航栏 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-paper);
+  border-top: 1px solid rgba(44, 24, 16, 0.1);
+  padding: 0.75rem 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+
+.bottom-nav-item {
+  text-decoration: none;
+  color: var(--color-ink-secondary);
+  font-weight: 600;
+  transition: color 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.bottom-nav-item.active {
+  color: var(--color-crimson);
+  background-color: rgba(193, 18, 31, 0.1);
+}
+
+.bottom-nav-item:hover {
+  color: var(--color-crimson);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  h1 {
+    font-size: 1.75rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+  }
+  
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .btn-primary,
+  .btn-outline {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+  
+  /* 确保操作区域在屏幕下半部 */
+  .main-content {
+    padding-bottom: 6rem;
+  }
+  
+  /* 单列布局 */
+  .grid-cols-2,
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 装备/技能卡片样式 */
+.item-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(44, 24, 16, 0.1);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.item-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.item-card-equipped {
+  border-color: var(--color-crimson);
+  background-color: rgba(193, 18, 31, 0.05);
+}
+
+/* 技能/装备描述样式 */
+.item-description {
+  color: var(--color-ink-secondary);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+/* 标记样式 */
+.new-mark {
+  color: var(--color-crimson);
+  font-weight: 600;
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.equipped-mark {
+  color: var(--color-crimson);
+  font-weight: 600;
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* 战报样式增强 */
+.battle-report {
+  font-family: var(--font-zcool-xiao-wei), serif;
+  line-height: 1.8;
+  text-align: center;
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(44, 24, 16, 0.1);
+  border-radius: 0.5rem;
+  margin: 2rem 0;
+}
+
+/* 天骄榜样式 */
+.ranking-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(44, 24, 16, 0.1);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.ranking-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ranking-item-current {
+  border-color: var(--color-crimson);
+  background-color: rgba(193, 18, 31, 0.05);
+  font-weight: 600;
+}
+
+/* 输入框样式 */
+.textarea-large {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  border: 1px solid rgba(44, 24, 16, 0.2);
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-zcool-xiao-wei), serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.textarea-large:focus {
+  outline: none;
+  border-color: var(--color-crimson);
+  box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.1);
 }
 
 /* 淡入动画 */

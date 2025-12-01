@@ -35,6 +35,7 @@ export interface Equipment {
   name: string;
   type: EquipmentType;
   element: ElementType;
+  quality?: string;
   bonus?: EquipmentBonus;
   specialEffect?: string;
 }

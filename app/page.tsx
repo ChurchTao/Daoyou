@@ -28,31 +28,41 @@ export default function HomePage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [equippedItems, setEquippedItems] = useState<{ weapon?: string; armor?: string; accessory?: string }>({});
   const [message, setMessage] = useState<string>('');
+  const [opponents, setOpponents] = useState<Cultivator[]>([]);
 
-  // 获取用户角色
+  // 获取用户角色和排行榜数据
   useEffect(() => {
     if (!user) return;
-
-    const fetchUserCultivator = async () => {
+    
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/cultivators');
-        const result = await response.json();
-
-        if (result.success && result.data.length > 0) {
-          setUserCultivator(result.data[0]); // 只显示第一个角色
-          await fetchInventoryAndSkills(result.data[0].id);
+        // 获取用户角色
+        const cultivatorResponse = await fetch('/api/cultivators');
+        const cultivatorResult = await cultivatorResponse.json();
+        
+        if (cultivatorResult.success && cultivatorResult.data.length > 0) {
+          setUserCultivator(cultivatorResult.data[0]); // 只显示第一个角色
+          await fetchInventoryAndSkills(cultivatorResult.data[0].id);
         } else {
           setUserCultivator(null);
         }
+        
+        // 获取排行榜数据
+        const rankingsResponse = await fetch('/api/rankings');
+        const rankingsResult = await rankingsResponse.json();
+        
+        if (rankingsResult.success) {
+          setOpponents(rankingsResult.data);
+        }
       } catch (error) {
-        console.error('获取角色失败:', error);
+        console.error('获取数据失败:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchUserCultivator();
+    
+    fetchData();
   }, [user]);
 
   // 获取物品栏和技能
@@ -197,6 +207,7 @@ export default function HomePage() {
       if (result.success) {
         setEquippedItems(result.data);
         setMessage('装备操作成功');
+        await fetchInventoryAndSkills(userCultivator.id);
       } else {
         setMessage(`装备操作失败：${result.error}`);
       }
@@ -247,24 +258,89 @@ export default function HomePage() {
 
   return (
     <div className="bg-paper min-h-screen">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* 顶部标题与Logo */}
-        <div className="text-center mb-8">
-          <div className="mb-4 h-24 w-full relative">
-            <Image
-              src="/assets/daoyou_logo.png"
-              alt="万界道录 Logo"
-              width={96}
-              height={96}
-              className="object-contain h-24 mx-auto"
-            />
+      {/* 主内容区域 */}
+      <div className="container mx-auto px-4 py-8 max-w-2xl main-content">
+        {/* 顶部角色状态栏 */}
+        {userCultivator && (
+          <div className="bg-paper-light rounded-lg p-4 mb-6 shadow-sm border border-ink/10">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+              <div className="mb-2 md:mb-0">
+                <div className="text-lg font-semibold">
+                  <span className="status-icon">☯</span>道号：{userCultivator.name}
+                </div>
+                <div className="text-md">
+                  <span className="status-icon">🌿</span>境界：{userCultivator.cultivationLevel} · {userCultivator.spiritRoot}
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div>
+                  <span className="status-icon">❤️</span>气血：{userCultivator.battleProfile?.attributes.vitality || 0}/100
+                </div>
+                <div>
+                  <span className="status-icon">⚡</span>灵力：{userCultivator.battleProfile?.attributes.spirit || 0}/100
+                </div>
+              </div>
+            </div>
           </div>
-          <h1 className="font-ma-shan-zheng text-4xl md:text-5xl text-ink mb-2">
-            万界道录
-          </h1>
-          <p className="text-ink/70 text-center mb-8">输入心念，凝练道身</p>
+        )}
+
+        {/* 天机模块 */}
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-2">【天机】</h3>
+          <div className="bg-paper-light rounded-lg p-4 shadow-sm border border-ink/10">
+            <p className="mb-1">{'>'} 今日宜：炼器、挑战</p>
+            <p>{'>'} 忌：双修（身负孤辰入命）</p>
+          </div>
         </div>
-        
+
+        {/* 快捷入口 */}
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-3">【快捷入口】</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/battle-prep" className="btn-primary py-3 text-center">
+              ⚔️ 挑战天骄
+            </Link>
+            <Link href="#inventory" className="btn-primary py-3 text-center">
+              🎒 储物袋
+            </Link>
+            <button onClick={() => setShowCreateSkill(true)} className="btn-primary py-3 text-center">
+              📖 顿悟
+            </button>
+            <button onClick={() => setShowCreateEquipment(true)} className="btn-primary py-3 text-center">
+              🔥 炼器
+            </button>
+            <button onClick={handleGenerateAdventure} className="btn-primary py-3 text-center">
+              🌀 奇遇
+            </button>
+            <Link href="#battle-reports" className="btn-primary py-3 text-center">
+              📜 战报
+            </Link>
+          </div>
+        </div>
+
+        {/* 近期战绩 */}
+        <div className="mb-8">
+          <h3 className="font-semibold text-lg mb-3">【近期战绩】</h3>
+          <div className="bg-paper-light rounded-lg p-4 shadow-sm border border-ink/10">
+            <div className="space-y-2">
+              <p>✓ 胜 苏红袖（火凤门）</p>
+              <p>✗ 败 剑无尘（天剑阁）</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 底部引文 */}
+        <div className="text-center mb-10">
+          <div className="divider">
+            <span className="divider-line">───────────────────────</span>
+          </div>
+          <p className="text-lg italic my-4">天地不仁，以万物为刍狗。</p>
+          <p className="text-lg mb-4">道友，今日可要逆天改命？</p>
+          <div className="divider">
+            <span className="divider-line">───────────────────────</span>
+          </div>
+        </div>
+
         {/* 主按钮区域 */}
         {!userCultivator ? (
           <div className="text-center mb-10">
@@ -286,30 +362,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 成长演化功能按钮 */}
-        {userCultivator && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <button
-              onClick={() => setShowCreateEquipment(true)}
-              className="btn-primary py-3"
-            >
-              🔥 炼器
-            </button>
-            <button
-              onClick={() => setShowCreateSkill(true)}
-              className="btn-primary py-3"
-            >
-              🌌 顿悟
-            </button>
-            <button
-              onClick={handleGenerateAdventure}
-              className="btn-primary py-3"
-            >
-              🌀 奇遇
-            </button>
-          </div>
-        )}
-
         {/* 消息提示 */}
         {message && (
           <div className="bg-ink/5 rounded-lg p-4 mb-6 text-center">
@@ -321,9 +373,9 @@ export default function HomePage() {
         {loading ? (
           <div className="text-center py-8">加载中...</div>
         ) : userCultivator ? (
-          <div className="max-w-md mx-auto bg-paper-light rounded-lg p-6 shadow-sm border border-ink/10">
+          <div id="character-detail" className="max-w-md mx-auto bg-paper-light rounded-lg p-6 shadow-sm border border-ink/10 mb-10">
             <h2 className="font-ma-shan-zheng text-2xl text-ink mb-4 text-center">
-              我的道身
+              道我真形
             </h2>
 
             {/* 角色基本信息 */}
@@ -351,10 +403,27 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 角色属性 */}
+            {/* 先天气运 */}
+            {userCultivator.preHeavenFates && userCultivator.preHeavenFates.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-semibold text-ink mb-3">【先天命格】</h4>
+                <div className="space-y-2">
+                  {userCultivator.preHeavenFates.map((fate, idx) => (
+                    <div key={idx} className="bg-ink/5 rounded p-2">
+                      <p className="font-semibold">
+                        {fate.name} · {fate.type}
+                      </p>
+                      <p className="text-ink/80 text-sm">{fate.effect}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 根基属性 */}
             {userCultivator.battleProfile && (
               <div className="mb-6">
-                <h4 className="font-semibold text-ink mb-2">基础属性</h4>
+                <h4 className="font-semibold text-ink mb-3">【根基属性】</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="bg-ink/5 rounded p-2">
                     <p className="font-semibold">体魄</p>
@@ -376,117 +445,65 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* 先天气运 */}
-            {userCultivator.preHeavenFates && userCultivator.preHeavenFates.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-ink mb-2">先天气运</h4>
-                <div className="space-y-2">
-                  {userCultivator.preHeavenFates.map((fate, idx) => (
-                    <div key={idx} className="bg-ink/5 rounded p-2">
+            {/* 当前所御法宝 */}
+            <div className="mb-6">
+              <h4 className="font-semibold text-ink mb-3">【当前所御法宝】</h4>
+              <div className="space-y-2">
+                {inventory.equipments.filter(equip => 
+                  equippedItems.weapon === equip.id || 
+                  equippedItems.armor === equip.id || 
+                  equippedItems.accessory === equip.id
+                ).map((equipment) => (
+                  <div key={equipment.id} className="bg-ink/5 rounded p-3">
+                    <div>
                       <p className="font-semibold">
-                        {fate.name} · {fate.type}
-                      </p>
-                      <p className="text-ink/80 text-sm">{fate.effect}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 角色描述 */}
-            <div className="mb-6">
-              <h4 className="font-semibold text-ink mb-2">道身描述</h4>
-              <p className="text-ink/90 leading-relaxed">{userCultivator.appearance}</p>
-              <p className="text-ink/80 italic leading-relaxed mt-2">
-                「{userCultivator.backstory}」
-              </p>
-            </div>
-
-            {/* 装备管理 */}
-            <div className="mb-6">
-              <h4 className="font-semibold text-ink mb-2">储物袋</h4>
-              {inventory.equipments.length > 0 ? (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {inventory.equipments.map((equipment) => (
-                    <div key={equipment.id} className="bg-ink/5 rounded p-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold">
-                            {equipment.name} · {equipment.type === 'weapon' ? '武器' : equipment.type === 'armor' ? '防具' : '饰品'}
-                          </p>
-                          <p className="text-ink/80 text-sm">
-                            元素：{equipment.element} | {equipment.specialEffect || '无特殊效果'}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => equipment.id && handleEquipEquipment(equipment.id)}
-                          className={`btn-sm ${equippedItems.weapon === equipment.id || equippedItems.armor === equipment.id || equippedItems.accessory === equipment.id ? 'btn-outline' : 'btn-primary'}`}
-                        >
-                          {equippedItems.weapon === equipment.id || equippedItems.armor === equipment.id || equippedItems.accessory === equipment.id ? '卸下' : '装备'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-ink/80">储物袋中暂无装备</p>
-              )}
-            </div>
-
-            {/* 技能管理 */}
-            <div className="mb-6">
-              <h4 className="font-semibold text-ink mb-2">技能</h4>
-              {skills.length > 0 ? (
-                <div className="space-y-2">
-                  {skills.map((skill, idx) => (
-                    <div key={idx} className="bg-ink/5 rounded p-3">
-                      <p className="font-semibold">
-                        {skill.name} · {skill.type === 'attack' ? '攻击' : skill.type === 'heal' ? '治疗' : skill.type === 'control' ? '控制' : '增益'}
+                        {equipment.type === 'weapon' ? '🗡️ 武器' : equipment.type === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{equipment.name}
                       </p>
                       <p className="text-ink/80 text-sm">
-                        威力：{skill.power} | 元素：{skill.element}
+                        {equipment.element}·{equipment.quality}｜{equipment.specialEffect || '无特殊效果'}
                       </p>
-                      {skill.effects && skill.effects.length > 0 && (
-                        <p className="text-ink/80 text-sm mt-1">
-                          效果：{skill.effects.join('，')}
-                        </p>
-                      )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-ink/80">暂无技能</p>
-              )}
+                  </div>
+                ))}
+              </div>
+              <div className="text-center mt-4">
+                <Link href="#inventory" className="text-crimson hover:underline">
+                  [前往储物袋更换装备 →]
+                </Link>
+              </div>
             </div>
 
-            {/* 消耗品管理 */}
+            {/* 所修神通 */}
             <div className="mb-6">
-              <h4 className="font-semibold text-ink mb-2">消耗品</h4>
-              {inventory.consumables.length > 0 ? (
-                <div className="space-y-2">
-                  {inventory.consumables.map((consumable, idx) => (
-                    <div key={idx} className="bg-ink/5 rounded p-3">
-                      <p className="font-semibold">{consumable.name}</p>
-                      <p className="text-ink/80 text-sm">效果：{consumable.effect}</p>
-                      {consumable.description && (
-                        <p className="text-ink/80 text-sm mt-1">{consumable.description}</p>
-                      )}
+              <h4 className="font-semibold text-ink mb-3">【所修神通】</h4>
+              <div className="space-y-2">
+                {skills.map((skill, idx) => (
+                  <div key={idx} className="bg-ink/5 rounded p-3">
+                    <div>
+                      <p className="font-semibold">
+                        {skill.type === 'attack' ? '⚡ 攻击' : skill.type === 'heal' ? '❤️ 治疗' : skill.type === 'control' ? '🌀 控制' : '✨ 增益'}：{skill.name}
+                      </p>
+                      <p className="text-ink/80 text-sm">
+                        威力：{skill.power}｜元素：{skill.element}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-ink/80">暂无消耗品</p>
-              )}
+                  </div>
+                ))}
+              </div>
+              <div className="text-center mt-4">
+                <button 
+                  onClick={() => setShowCreateSkill(true)} 
+                  className="text-crimson hover:underline"
+                >
+                  [闭关顿悟新神通 →]
+                </button>
+              </div>
             </div>
 
-            {/* 战斗按钮 */}
-            <div className="text-center">
-              <Link
-                href={`/battle?opponent=${userCultivator.id}`}
-                className="btn-primary inline-flex items-center justify-center"
-              >
-                入世对战
-              </Link>
+            {/* 底部导航 */}
+            <div className="flex justify-between mt-6">
+              <Link href="/" className="text-ink hover:underline">[← 返回主界]</Link>
+              <button className="text-ink hover:underline">[推演战力]</button>
             </div>
           </div>
         ) : (
@@ -495,73 +512,161 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 炼器弹窗 */}
-        {showCreateEquipment && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-paper rounded-lg p-6 max-w-md w-full">
-              <h3 className="font-semibold text-xl text-ink mb-4">🔥 炼器</h3>
-              <p className="text-ink/80 mb-4">请描述你想要炼制的装备，例如："炼制一把融合凤凰真火与玄冰之力的长枪"</p>
-              <textarea
-                value={equipmentPrompt}
-                onChange={(e) => setEquipmentPrompt(e.target.value)}
-                placeholder="输入装备描述..."
-                className="w-full p-3 border border-ink/20 rounded-lg mb-4 h-24"
-              />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setShowCreateEquipment(false)}
-                  className="btn-outline"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleCreateEquipment}
-                  className="btn-primary"
-                >
-                  开始炼制
-                </button>
+        {/* 储物袋界面 */}
+        {userCultivator && (
+          <div id="inventory" className="mb-10">
+            <h3 className="font-semibold text-xl mb-4">【储物袋 · 共 {inventory.equipments.length} 件法宝】</h3>
+            <div className="bg-paper-light rounded-lg p-4 shadow-sm border border-ink/10">
+              {inventory.equipments.length > 0 ? (
+                <div className="space-y-3">
+                  {inventory.equipments.map((equipment) => (
+                    <div 
+                      key={equipment.id} 
+                      className={`item-card ${equippedItems.weapon === equipment.id || equippedItems.armor === equipment.id || equippedItems.accessory === equipment.id ? 'item-card-equipped' : ''}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold">
+                            {equipment.type === 'weapon' ? '🗡️ 武器' : equipment.type === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{equipment.name}
+                            {equippedItems.weapon === equipment.id || equippedItems.armor === equipment.id || equippedItems.accessory === equipment.id && (
+                              <span className="equipped-mark">← 已装备</span>
+                            )}
+                          </p>
+                          <p className="item-description">
+                            {equipment.element}·{equipment.quality}｜{equipment.specialEffect || '无特殊效果'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => equipment.id && handleEquipEquipment(equipment.id)}
+                          className="btn-primary btn-sm"
+                        >
+                          {equippedItems.weapon === equipment.id || equippedItems.armor === equipment.id || equippedItems.accessory === equipment.id ? '卸下' : '装备'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">储物袋空空如也，道友该去寻宝了。</div>
+              )}
+              
+              <div className="flex justify-between mt-6">
+                <Link href="/" className="text-ink hover:underline">[返回主界]</Link>
+                <button className="text-ink hover:underline">[整理法宝]</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* 顿悟弹窗 */}
-        {showCreateSkill && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-paper rounded-lg p-6 max-w-md w-full">
-              <h3 className="font-semibold text-xl text-ink mb-4">🌌 顿悟</h3>
-              <p className="text-ink/80 mb-4">请描述你想要顿悟的技能，例如："在雷劫中顿悟一门攻防一体的雷遁之术"</p>
-              <textarea
-                value={skillPrompt}
-                onChange={(e) => setSkillPrompt(e.target.value)}
-                placeholder="输入技能描述..."
-                className="w-full p-3 border border-ink/20 rounded-lg mb-4 h-24"
-              />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setShowCreateSkill(false)}
-                  className="btn-outline"
+        {/* 技能/神通界面 */}
+        {userCultivator && (
+          <div id="skills" className="mb-10">
+            <h3 className="font-semibold text-xl mb-4">【所修神通 · 共 {skills.length}/3】</h3>
+            <div className="bg-paper-light rounded-lg p-4 shadow-sm border border-ink/10">
+              {skills.length > 0 ? (
+                <div className="space-y-3">
+                  {skills.map((skill, idx) => (
+                    <div key={idx} className="item-card">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold">
+                            {skill.type === 'attack' ? '⚡ 攻击' : skill.type === 'heal' ? '❤️ 治疗' : skill.type === 'control' ? '🌀 控制' : '✨ 增益'}：{skill.name}
+                            {idx === 0 && <span className="new-mark">← 新悟</span>}
+                          </p>
+                          <p className="item-description">
+                            威力：{skill.power}｜元素：{skill.element}
+                          </p>
+                        </div>
+                        <button className="btn-outline btn-sm">[替换]</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">暂无神通，快去闭关顿悟吧。</div>
+              )}
+              
+              <div className="flex justify-between mt-6">
+                <Link href="/" className="text-ink hover:underline">[返回]</Link>
+                <button 
+                  onClick={() => setShowCreateSkill(true)} 
+                  className="text-crimson hover:underline"
                 >
-                  取消
-                </button>
-                <button
-                  onClick={handleCreateSkill}
-                  className="btn-primary"
-                >
-                  开始顿悟
+                  [闭关顿悟新神通 →]
                 </button>
               </div>
             </div>
           </div>
         )}
-
-        {/* 底部链接 */}
-        <div className="text-center mt-8 text-sm text-ink/50">
-          <Link href="/demo" className="hover:text-ink/70 transition-colors">
-            开发者 Demo →
-          </Link>
-        </div>
       </div>
+
+      {/* 底部固定导航栏 */}
+      <div className="bottom-nav">
+        <Link href="/" className="bottom-nav-item active">首页</Link>
+        <Link href="#inventory" className="bottom-nav-item">储物</Link>
+        <Link href="#skills" className="bottom-nav-item">神通</Link>
+        <Link href="/battle-prep" className="bottom-nav-item">天机榜</Link>
+      </div>
+
+      {/* 炼器弹窗 */}
+      {showCreateEquipment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-paper rounded-lg p-6 max-w-md w-full">
+            <h3 className="font-semibold text-xl text-ink mb-4">🔥 炼器</h3>
+            <p className="text-ink/80 mb-4">请描述你想要炼制的装备，例如：&quot;炼制一把融合凤凰真火与玄冰之力的长枪&quot;</p>
+            <textarea
+              value={equipmentPrompt}
+              onChange={(e) => setEquipmentPrompt(e.target.value)}
+              placeholder="输入装备描述..."
+              className="textarea-large"
+            />
+            <div className="flex justify-end space-x-2 mt-4">
+              <button
+                onClick={() => setShowCreateEquipment(false)}
+                className="btn-outline"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCreateEquipment}
+                className="btn-primary"
+              >
+                开始炼制
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 顿悟弹窗 */}
+      {showCreateSkill && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-paper rounded-lg p-6 max-w-md w-full">
+            <h3 className="font-semibold text-xl text-ink mb-4">🌌 顿悟</h3>
+            <p className="text-ink/80 mb-4">请描述你想要顿悟的技能，例如："在雷劫中顿悟一门攻防一体的雷遁之术"</p>
+            <textarea
+              value={skillPrompt}
+              onChange={(e) => setSkillPrompt(e.target.value)}
+              placeholder="输入技能描述..."
+              className="textarea-large"
+            />
+            <div className="flex justify-end space-x-2 mt-4">
+              <button
+                onClick={() => setShowCreateSkill(false)}
+                className="btn-outline"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCreateSkill}
+                className="btn-primary"
+              >
+                开始顿悟
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

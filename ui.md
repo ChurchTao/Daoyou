@@ -1,240 +1,297 @@
-「**实体修仙古籍 + 水墨风 + Ma Shan Zheng 字体 + SVG 点缀元素**」是一个极具辨识度和沉浸感的视觉方向。这种风格既有东方美学的留白意境，又能通过现代 Web 技术实现轻量、高性能的交互体验。
-
-下面我为你重新设计一套完整的 **水墨古籍风 UI 方案**，从整体氛围到每个页面细节，全部围绕“翻开一本会动的修仙秘典”这一核心体验展开。
+已实现核心系统（角色创建、战斗、演化），现在需要一个**以文字为核心、水墨风格、移动端优先、沉浸感强**的 UI 架构。下面我为你设计一套**纯文字 + 极简排版 + 氛围营造**的界面方案，完全适配手机屏幕，同时在 PC 上优雅降级。
 
 ---
 
-## 📜 整体设计哲学
+## 🎨 整体设计原则
 
-> **“这不是一个网页游戏，而是一本由 AI 书写的《万界道录》。”**
-
-- **载体隐喻**：整个界面 = 一本摊开的古籍（左右页布局可选）
-- **材质感**：背景为泛黄宣纸纹理，带细微纤维与墨渍
-- **色彩系统**：
-  - 主色：`#f8f3e6`（旧纸）
-  - 墨色：`#2c1810`（正文）、`#5a4a42`（次要）
-  - 点睛色：`#c1121f`（朱砂红，用于按钮/胜利）、`#4a7c59`（青黛，用于灵力/天赋）
-- **字体**：
-  - 标题/角色名：**Ma Shan Zheng**（手写感强，免费可商用）
-  - 正文/描述：**Ma Shan Zheng**
-- **动效原则**：缓慢、沉稳，如墨滴晕染、卷轴展开
+| 原则 | 说明 |
+|------|------|
+| **文字即界面** | 所有信息通过排版、符号、留白呈现，不用图标或图片 |
+| **水墨意境** | 使用中文标点、古风分隔符、留白呼吸感 |
+| **移动端优先** | 单列布局，操作区域在屏幕下半部（拇指热区） |
+| **状态清晰** | 当前角色/背包/战斗等模块一目了然 |
+| **沉浸叙事** | 界面语言采用修仙语境（如“道友请留步”而非“欢迎回来”） |
 
 ---
 
-## 🎨 核心视觉元素（SVG 推荐）
+## 📱 主界面结构（首页）
 
-| 元素 | 用途 | 设计建议 |
-| --- | --- | --- |
-| **卷轴边框** | 包裹角色卡、战斗播报 | 两端木轴 + 中间纸纹，可用 `<svg>` 绘制，或 CSS `border-image` |
-| **符箓底纹** | 按钮背景 / 卡片装饰 | 简化道教符咒线条，单色（墨或朱砂），半透明叠加 |
-| **丹炉图标** | “生成”按钮图标 | 小型 SVG，炉中冒烟（CSS 动画） |
-| **云纹分隔线** | 页面区块分隔 | 底部波浪形云纹 SVG，淡墨色 |
-| **印章** | 胜利标识 / Logo | “道”“胜”“灵”等篆体红印，PNG/SVG |
+```
+┌──────────────────────────────┐
+│  ☯ 道号：林青萝              │
+│  🌿 境界：筑基中期 · 药王谷弟子 │
+│  ❤️ 气血：92/100  ⚡ 灵力：85   │
+└──────────────────────────────┘
 
-> ✅ 所有 SVG 均可内联到 HTML，避免额外请求，且支持动态上色。
+【天机】  
+> 今日宜：炼器、挑战  
+> 忌：双修（身负孤辰入命）  
 
----
+【快捷入口】  
+[⚔️ 挑战天骄]  [🎒 储物袋]  [📖 顿悟]  
+[🔥 炼器]     [🌀 奇遇]    [📜 战报]
 
-## 📖 页面 UI 详细设计（三页一体）
+【近期战绩】  
+✓ 胜 苏红袖（火凤门）  
+✗ 败 剑无尘（天剑阁）  
 
-### 1. **首页 / 排行榜页 —— 「道录·天榜」**
-
-```html
-<!-- 背景 -->
-<div class="bg-paper">
-  <!-- 宣纸纹理背景 -->
-
-  <!-- 顶部标题 -->
-  <h1 class="font-ma-shan-zheng text-ink mb-6 text-center text-4xl">
-    万界道录
-  </h1>
-  <p class="text-ink/70 mb-8 text-center">输入心念，凝练道身</p>
-
-  <!-- 主按钮：仿丹炉 -->
-  <button class="btn-primary mx-auto mb-10 flex items-center justify-center">
-    <svg class="mr-2 h-6 w-6" viewBox="0 0 24 24">...</svg>
-    <!-- 丹炉 SVG -->
-    觉醒灵根
-  </button>
-
-  <!-- 排行榜：仿古籍名录 -->
-  <div class="ranking-list mx-auto max-w-md">
-    <h2 class="font-ma-shan-zheng text-ink mb-4 flex items-center text-xl">
-      <span>天榜前十</span>
-      <svg class="ml-2 h-5 w-5" fill="#c1121f">...</svg>
-      <!-- 小火焰或龙纹 -->
-    </h2>
-
-    <!-- 每个条目：仿竹简 or 名帖 -->
-    <div class="ranking-item border-ink/10 border-b py-3">
-      <div class="flex items-center justify-between">
-        <span class="font-ma-shan-zheng">玄霄子</span>
-        <span class="text-ink/80 text-sm">元婴初期 · 战力 892</span>
-      </div>
-      <div class="text-ink/60 mt-1 text-xs">剑心通明｜雷劫不灭</div>
-      <button class="text-crimson mt-2 text-xs">挑战</button>
-    </div>
-  </div>
-
-  <!-- 底部云纹 -->
-  <div class="cloud-divider mt-8"></div>
-</div>
+──────────────────────────────
+          天地不仁，以万物为刍狗。
+        道友，今日可要逆天改命？
+──────────────────────────────
 ```
 
-**样式要点**：
-
-- `.bg-paper`：使用 [Transparent Textures](https://www.transparenttextures.com/) 的 “paper.png” 作为背景, 已经下载在 assets/paper.png
-- 按钮：圆角矩形 + 朱砂红底 + 白字 + 微投影，hover 时墨色加深
-- 排行榜条目：无头像，纯文字，突出“名录”感
+> 💡 说明：
+> - 顶部固定角色状态栏（气血/灵力可后续用于消耗品）
+> - “天机”模块每日更新（由 AIGC 生成）
+> - 六宫格按钮用 Unicode 符号 + 文字，点击区域大
+> - 底部引文增强氛围，每日轮换
 
 ---
 
-### 2. **角色创建页 —— 「凝气篇」**
+## 🧍‍♀️ 角色详情页（“道我真形”）
 
-```html
-<div class="page-create bg-paper p-6">
-  <!-- 输入区：仿砚台 -->
-  <div class="input-area mb-8">
-    <label class="font-ma-shan-zheng text-ink mb-2 block">以心念唤道：</label>
-    <textarea
-      placeholder="例：我想成为一位靠炼丹逆袭的废柴少主..."
-      class="bg-paper-light border-ink/20 focus:ring-crimson h-32 w-full rounded-lg border p-4 focus:ring-1"
-    ></textarea>
-  </div>
+```
+【道我真形 · 林青萝】
 
-  <!-- 生成按钮 -->
-  <button class="btn-primary mx-auto mb-10 block">
-    <svg class="mr-1 inline h-5 w-5">...</svg> 凝气成形
-  </button>
+☯ 道号：林青萝  
+🌿 境界：筑基中期（药王谷真传）  
+❤️ 气血：92 / 100　⚡ 灵力：85 / 100  
 
-  <!-- 角色卡：仿卷轴 -->
-  {generated && (
-  <div class="character-scroll mx-auto max-w-lg">
-    <div
-      class="scroll-content border-ink/10 rounded border bg-white/80 p-6 backdrop-blur-sm"
-    >
-      <h3 class="font-ma-shan-zheng text-ink mb-2 text-2xl">{name}</h3>
-      <div class="mb-4 grid grid-cols-2 gap-2 text-sm">
-        <div><span class="text-ink/70">境界：</span>{cultivation_level}</div>
-        <div><span class="text-ink/70">灵根：</span>{spirit_root}</div>
-      </div>
-      <div class="mb-3">
-        <span class="text-ink/70">天赋：</span>
-        <span class="text-teal-700">{talents.join('｜')}</span>
-      </div>
-      <p class="text-ink/90 mb-3">{appearance}</p>
-      <p class="text-ink/80 italic">「{backstory}」</p>
-    </div>
-  </div>
-  )}
+──────────────────────────────
 
-  <!-- 底部操作 -->
-  <div class="mt-6 flex justify-center gap-4">
-    <button class="btn-outline">重凝</button>
-    <button class="btn-primary">入世对战</button>
-  </div>
-</div>
+【先天命格】  
+✨ 紫府通明（吉）——元神澄澈，spirit +15  
+⚠️ 孤辰入命（凶）——悟性 -5，不可结道侣  
+🐉 草莽龙气（吉）——体魄异于常人，vitality +10  
+
+──────────────────────────────
+
+【根基属性】  
+体魄（vitality）：78  
+灵力（spirit）　：95 ← 受“紫府通明”加成  
+悟性（wisdom）　：75  
+身法（speed）　 ：70  
+
+──────────────────────────────
+
+【当前所御法宝】  
+🗡️ 武器：焚天剑（火·道器）  
+　　　　+spirit 15｜火系伤害 +25%  
+🛡️ 护甲：无  
+📿 饰品：青木玉佩（木·宝器）  
+　　　　+wisdom 8｜木系技能冷却 -10%  
+
+[前往储物袋更换装备 →]
+
+──────────────────────────────
+
+【所修神通】  
+🌀 藤蔓缚（控制·木）｜威力 60  
+❤️ 回春诀（治疗·木）｜威力 50  
+⚡ 九霄雷引（攻击·雷）｜威力 85  
+
+[闭关顿悟新神通 →]
+
+──────────────────────────────
+[← 返回主界]　　　　　[推演战力]
 ```
 
-**卷轴效果实现建议**：
+---
 
-- 用 CSS 伪元素在 `.character-scroll` 上下加“木轴”：
-  ```css
-  .character-scroll::before,
-  .character-scroll::after {
-    content: '';
-    display: block;
-    height: 20px;
-    background: #8b4513; /* 木色 */
-    margin: 0 20px;
-    border-radius: 4px;
-  }
+## 🎒 储物袋界面（装备管理）
+
+```
+【储物袋 · 共 5 件法宝】
+
+🗡️ 焚天剑（火·道器）  
+   +spirit 15｜火系伤害 +25%  
+   [装备]  
+
+🌿 青木灵杖（木·宝器） ← 已装备  
+   +spirit 10｜木系技能威力 +30%  
+   [卸下]  
+
+🛡️ 玄龟甲（水·灵器）  
+   +vitality 12｜受到伤害 -10%  
+   [装备]  
+
+...（其余折叠，点击展开）
+
+──────────────────────────────
+[返回主界]  [整理法宝]
+```
+
+> 💡 交互逻辑：
+> - 当前装备高亮显示（如“← 已装备”）
+> - 每件装备下方只有 **一个操作按钮**（避免误触）
+> - 装备描述用“｜”分隔属性，紧凑易读
+
+---
+
+## 📖 技能/神通界面
+
+```
+【所修神通 · 共 3/3】
+
+🌀 藤蔓缚（控制·木）  
+   威力：60｜效果：缠绕（减速）  
+   [替换]  
+
+❤️ 回春诀（治疗·木）  
+   威力：50｜效果：恢复 40 HP  
+   [替换]  
+
+⚡ 九霄雷引（攻击·雷） ← 新悟  
+   威力：85｜效果：暴击率 +15%  
+   [替换]  
+
+──────────────────────────────
+[返回]  [闭关顿悟新神通 →]
+```
+
+> 💡 设计亮点：
+> - 显示“3/3”提示已达上限
+> - 新获得技能标记“← 新悟”
+> - “闭关顿悟”按钮引导下一步行为
+
+---
+
+## 🔥 炼器 / 📖 顿悟 / 🌀 奇遇 —— 统一输入界面
+
+```
+【炼器台 · 请输入炼器意图】
+
+示例：  
+“以千年寒铁铸一柄冰属性长剑，剑名‘霜魄’”
+
+──────────────────────────────
+[输入框：多行文本，占屏幕 40% 高度]
+
+──────────────────────────────
+[取消]                [开始炼制]
+```
+
+> 💡 优化体验：
+> - 提供示例降低用户输入门槛
+> - 输入框足够大，方便手机打字
+> - 按钮右对齐（符合移动端阅读动线）
+
+---
+
+## ⚔️ 挑战界面（排行榜）
+
+```
+【天骄榜 · 筑基境】
+
+1. 剑无尘（天剑阁） ❤️9820  
+   [挑战]  
+
+2. 苏红袖（火凤门） ❤️9750  
+   [挑战]  
+
+3. 林青萝（药王谷） ❤️9680 ← 你  
+
+...（4-10 名略）
+
+──────────────────────────────
+[刷新榜单]  [返回]
+```
+
+> 💡 细节：
+> - 你的名字高亮标注
+> - 战力值用 ❤️ 符号替代“分”
+> - 每行只保留一个操作按钮
+
+---
+
+## 📜 战报界面（AIGC 输出展示）
+
+```
+【战报 · 林青萝 vs 剑无尘】
+
+乌云压顶，雷霆滚滚。  
+林青萝眸光如电，手中青木灵杖挥出万藤缠空！  
+剑无尘冷笑：“雕虫小技！” 一剑斩断藤蔓，剑气直逼咽喉……  
+
+然青萝早有准备，暗掐雷诀——  
+“九霄雷引！”  
+一道紫电自天而降，正中剑无尘天灵！  
+
+最终，林青萝以 12 点气血险胜！
+
+──────────────────────────────
+[再战]  [返回主界]  [分享战报]
+```
+
+> 💡 沉浸感关键：
+> - 全屏展示 AIGC 生成的战报
+> - 不显示数值过程，只保留小说式描写
+> - 底部操作简洁
+
+---
+
+## 🧭 全局导航设计
+
+- **底部固定导航栏（仅主界面显示）**：
   ```
-
----
-
-### 3. **战斗播报页 —— 「斗战纪」**
-
-```html
-<div class="battle-page bg-paper p-4">
-  <!-- 对战双方（左右分列，仿对战图谱）-->
-  <div class="mb-8 flex justify-between px-4">
-    <div class="text-center">
-      <div class="font-ma-shan-zheng text-ink text-lg">{player.name}</div>
-      <div class="text-ink/70 text-xs">{player.cultivation_level}</div>
-    </div>
-    <div class="text-center">
-      <div class="font-ma-shan-zheng text-ink text-lg">{opponent.name}</div>
-      <div class="text-ink/70 text-xs">{opponent.cultivation_level}</div>
-    </div>
-  </div>
-
-  <!-- 战斗播报：仿古籍批注 -->
-  <div
-    class="narrative-box bg-paper-light border-ink/10 relative mx-auto max-w-lg rounded border p-6"
-  >
-    <!-- 左侧朱批竖线 -->
-    <div
-      class="bg-crimson absolute top-2 bottom-2 left-2 w-1 rounded-full opacity-30"
-    ></div>
-
-    <p class="text-ink text-center leading-relaxed whitespace-pre-line">
-      {narrativeText}
-    </p>
-
-    <!-- 胜利印章（条件渲染）-->
-    {isWin && (
-    <div class="absolute -top-4 -right-4">
-      <svg class="h-16 w-16" fill="#c1121f" opacity="0.8">...</svg>
-      <!-- “胜”字篆印 -->
-    </div>
-    )}
-  </div>
-
-  <!-- 操作按钮 -->
-  <div class="mt-8 flex justify-center gap-4">
-    <button class="btn-outline">再战</button>
-    <button class="btn-primary">载入道录</button>
-    <!-- 存入排行榜 -->
-    <button class="btn-outline flex items-center">
-      <svg class="mr-1 h-4 w-4">...</svg> 分享
-    </button>
-  </div>
-</div>
-```
-
-**动效建议**：
-
-- 播报文字逐行浮现（用 React state + useEffect 控制）
-- 胜利时印章从天而降（`animate-fade-in + slide-down`）
-
----
-
-## 🖌️ 资源与实现建议
-
-### 宣纸背景（免费资源）
-
-- 下载地址：[https://www.transparenttextures.com/patterns/paper.png](https://www.transparenttextures.com/patterns/paper.png)
-- CSS：
-  ```css
-  .bg-paper {
-    background-color: #f8f3e6;
-    background-image: url('/textures/paper.png');
-    background-size: 300px;
-  }
+  [首页]  [储物]  [神通]  [天机榜]
   ```
+  - 用文字而非图标，避免歧义
+  - 当前页高亮（如【首页】）
 
-### SVG 图标库（推荐）
+- **所有子页面左上角**：  
+  `[← 返回]` 按钮（统一返回逻辑）
 
-- 自己用 [SVGOMG](https://jakearchibald.github.io/svgomg/) 优化
-- 或使用 [Iconify](https://icon-sets.iconify.design/) 搜索 “ink”, “scroll”, “alchemy”
+---
+
+## 🌙 氛围细节（提升沉浸感）
+
+| 元素 | 实现方式 |
+|------|--------|
+| **分隔线** | 用 `────────────────` 或 `☯☯☯☯☯` 替代横线 |
+| **状态图标** | ❤️（气血）、⚡（灵力）、☯（道号）、🌿（木系）等 Unicode |
+| **加载提示** | “正在推演天机……”、“炉火正旺，请稍候” |
+| **空状态** | “储物袋空空如也，道友该去寻宝了。” |
+| **错误提示** | “此法有违天道，恐遭反噬。”（而非“输入错误”） |
 
 ---
 
-## 🌟 最终体验目标
+## 📐 响应式适配（PC 兼容）
 
-当玩家打开你的游戏，应该有如下感受：
+- **移动端**：单列，按钮大，输入框高
+- **PC 端**：
+  - 内容居中，最大宽度 600px
+  - 字体稍大（16px+）
+  - 按钮横向排列（如 [挑战] [分享] 并排）
+  - 保留所有文字氛围元素
 
-> “仿佛深夜独坐，偶然翻到一本尘封的修仙手札。指尖轻点，竟能唤醒其中人物，看他们于纸上厮杀、顿悟、飞升……而我，正是这《万界道录》的新一代执笔人。”
+> ✅ 无需两套 UI，通过媒体查询适配即可。
 
 ---
+
+## 🛠️ 技术实现建议
+
+- **字体**：标题、UI中使用 Ma Shan Zheng, 内容区域使用 ZCOOL XiaoWei, 字体都已经引入
+- **排版**：
+  - 行高 1.6
+  - 段间距用 `<br>` 或 `margin`
+  - 重要信息加粗（如角色名）
+- **交互**：所有按钮用 `<button>`，确保无障碍访问
+
+---
+
+## ✅ 总结：这套 UI 的优势
+
+1. **零美术资源**：全靠文字排版与符号
+2. **强沉浸感**：语言、符号、留白均服务修仙世界观
+3. **移动端友好**：操作区域集中，文字大小适中
+4. **扩展性强**：新增系统（如宗门、丹药）可沿用相同模式
+5. **开发成本低**：几十行 CSS + 语义化 HTML 即可实现
+
+---
+
+如果你需要，我可以进一步提供：
+- **完整的 HTML/CSS 代码模板**
+- **各页面的状态管理伪代码（如如何高亮当前装备）**
+- **Unicode 符号推荐表（气血、元素、境界等）**
