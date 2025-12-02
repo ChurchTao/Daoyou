@@ -2,7 +2,8 @@
 
 import { InkButton } from '@/components/InkComponents';
 import type { BattleEngineResult } from '@/engine/battleEngine';
-import type { Cultivator, StatusEffect } from '@/types/cultivator';
+import { StatusEffect } from '@/types/constants';
+import type { Cultivator } from '@/types/cultivator';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';

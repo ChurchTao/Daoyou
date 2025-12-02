@@ -1,12 +1,19 @@
+import {
+  ELEMENT_VALUES,
+  ElementType,
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+  RealmStage,
+  RealmType,
+  SKILL_TYPE_VALUES,
+  STATUS_EFFECT_VALUES,
+} from '../types/constants';
 import type {
   Attributes,
   Consumable,
   CultivationTechnique,
   Cultivator,
-  ElementType,
   PreHeavenFate,
-  RealmStage,
-  RealmType,
   Skill,
   SpiritualRoot,
 } from '../types/cultivator';
@@ -295,17 +302,7 @@ function asGender(value: unknown): Cultivator['gender'] {
 }
 
 function asRealm(value: unknown): RealmType {
-  const realms: RealmType[] = [
-    '炼气',
-    '筑基',
-    '金丹',
-    '元婴',
-    '化神',
-    '炼虚',
-    '合体',
-    '大乘',
-    '渡劫',
-  ];
+  const realms: RealmType[] = [...REALM_VALUES];
   if (typeof value === 'string' && realms.includes(value as RealmType)) {
     return value as RealmType;
   }
@@ -313,7 +310,7 @@ function asRealm(value: unknown): RealmType {
 }
 
 function asRealmStage(value: unknown): RealmStage {
-  const stages: RealmStage[] = ['初期', '中期', '后期', '圆满'];
+  const stages: RealmStage[] = [...REALM_STAGE_VALUES];
   if (typeof value === 'string' && stages.includes(value as RealmStage)) {
     return value as RealmStage;
   }
@@ -321,17 +318,7 @@ function asRealmStage(value: unknown): RealmStage {
 }
 
 function asElement(value: unknown): ElementType {
-  const elements: ElementType[] = [
-    '金',
-    '木',
-    '水',
-    '火',
-    '土',
-    '风',
-    '雷',
-    '冰',
-    '无',
-  ];
+  const elements: ElementType[] = [...ELEMENT_VALUES];
   if (typeof value === 'string' && elements.includes(value as ElementType)) {
     return value as ElementType;
   }
@@ -480,13 +467,7 @@ function asSkills(raw: unknown): Skill[] {
 }
 
 function asSkillType(value: unknown): Skill['type'] {
-  const types: Skill['type'][] = [
-    'attack',
-    'heal',
-    'control',
-    'debuff',
-    'buff',
-  ];
+  const types: Skill['type'][] = [...SKILL_TYPE_VALUES];
   if (typeof value === 'string' && types.includes(value as Skill['type'])) {
     return value as Skill['type'];
   }
@@ -494,18 +475,7 @@ function asSkillType(value: unknown): Skill['type'] {
 }
 
 function asStatusEffect(value: unknown): Skill['effect'] {
-  const effects: Skill['effect'][] = [
-    'burn',
-    'bleed',
-    'poison',
-    'stun',
-    'silence',
-    'root',
-    'armor_up',
-    'speed_up',
-    'crit_rate_up',
-    'armor_down',
-  ];
+  const effects: Skill['effect'][] = [...STATUS_EFFECT_VALUES];
   if (typeof value === 'string' && effects.includes(value as Skill['effect'])) {
     return value as Skill['effect'];
   }

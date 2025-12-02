@@ -1,10 +1,5 @@
-import type {
-  Artifact,
-  Cultivator,
-  ElementType,
-  Skill,
-  StatusEffect,
-} from '@/types/cultivator';
+import { ElementType, StatusEffect } from '@/types/constants';
+import type { Artifact, Cultivator, Skill } from '@/types/cultivator';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
 
 export interface TurnUnitSnapshot {

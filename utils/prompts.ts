@@ -1,4 +1,12 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
+import {
+  ELEMENT_VALUES,
+  GENDER_VALUES,
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+  SKILL_TYPE_VALUES,
+  STATUS_EFFECT_VALUES,
+} from '../types/constants';
 import type { Cultivator } from '../types/cultivator';
 
 /**
@@ -6,17 +14,24 @@ import type { Cultivator } from '../types/cultivator';
  * 基于 basic.md 中的新 Cultivator JSON 结构。
  */
 export function getCharacterGenerationPrompt(): string {
+  const genderOptions = GENDER_VALUES.join(' | ');
+  const realmOptions = REALM_VALUES.join(' | ');
+  const realmStageOptions = REALM_STAGE_VALUES.join(' | ');
+  const elementOptions = ELEMENT_VALUES.filter((e) => e !== '无').join(' | ');
+  const skillTypeOptions = SKILL_TYPE_VALUES.join(' | ');
+  const statusEffectOptions = STATUS_EFFECT_VALUES.join(' | ');
+
   return `你是“造化玉碟”，精通修仙设定。你会收到凡人的心念描述，请基于描述创造一个结构化的修仙者。
 
 请严格输出 JSON（不要任何额外文字），遵循以下结构和取值范围：
 {
   "name": "2~4 字中文姓名",
-  "gender": "男 | 女 | 无",
+  "gender": "${genderOptions}",
   "origin": "出身势力或地域，10~20字",
   "personality": "性格概述，15~30字",
 
-  "realm": "炼气 | 筑基 | 金丹 | 元婴 | 化神 | 炼虚 | 合体 | 大乘 | 渡劫",
-  "realm_stage": "初期 | 中期 | 后期 | 圆满",
+  "realm": "${realmOptions}",
+  "realm_stage": "${realmStageOptions}",
   "age": 整数，>= 10,
   "lifespan": 整数，不同境界合理范围（例如 炼气 80~120，金丹 300~600，渡劫 800~1200），不得小于 age,
 
@@ -30,7 +45,7 @@ export function getCharacterGenerationPrompt(): string {
 
   "spiritual_roots": [
     {
-      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰",
+      "element": "${elementOptions}",
       "strength": 0~100
     }
   ],
@@ -67,12 +82,12 @@ export function getCharacterGenerationPrompt(): string {
   "skills": [
     {
       "name": "技能名",
-      "type": "attack | heal | control | debuff | buff",
-      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰",
+      "type": "${skillTypeOptions}",
+      "element": "${elementOptions}",
       "power": 30~150,
       "cost": 0~100,
       "cooldown": 0~5,
-      "effect": "可选：burn | bleed | poison | stun | silence | root | armor_up | speed_up | crit_rate_up | armor_down",
+      "effect": "可选：${statusEffectOptions}",
       "duration": 可选整数（持续回合数，1~4）,
       "target_self": 可选布尔值
     }
@@ -94,9 +109,9 @@ export function getCharacterGenerationPrompt(): string {
 }
 
 重要约束与说明：
-- 元素必须从固定列表中选择：金、木、水、火、土、风、雷、冰。
-- 技能类型必须是：attack, heal, control, debuff, buff 之一。
-- 状态效果必须是：burn, bleed, poison, stun, silence, root, armor_up, speed_up, crit_rate_up, armor_down 之一。
+ - 元素必须从固定列表中选择：${elementOptions}。
+ - 技能类型必须是：${skillTypeOptions} 之一。
+ - 状态效果必须是：${statusEffectOptions} 之一。
 - 所有数值字段必须是整数，且在给定范围之内。
 - 至少 1 个灵根，最多 3 个。
 - 先天气运(pre_heaven_fates) 建议 2~3 条，务必与属性加成相呼应。

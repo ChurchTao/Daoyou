@@ -1,16 +1,15 @@
 // ===== 新一代修仙底层数据模型 =====
 
-// 元素类型
-export type ElementType =
-  | '金'
-  | '木'
-  | '水'
-  | '火'
-  | '土'
-  | '风'
-  | '雷'
-  | '冰'
-  | '无';
+import type {
+  ConsumableType,
+  ElementType,
+  EquipmentSlot,
+  GenderType,
+  RealmStage,
+  RealmType,
+  SkillType,
+  StatusEffect,
+} from './constants';
 
 // 基础属性
 export interface Attributes {
@@ -51,20 +50,6 @@ export interface CultivationTechnique {
 }
 
 // 技能
-export type SkillType = 'attack' | 'heal' | 'control' | 'debuff' | 'buff';
-
-export type StatusEffect =
-  | 'burn'
-  | 'bleed'
-  | 'poison'
-  | 'stun'
-  | 'silence'
-  | 'root'
-  | 'armor_up'
-  | 'speed_up'
-  | 'crit_rate_up'
-  | 'armor_down';
-
 export interface Skill {
   id?: string;
   name: string;
@@ -79,8 +64,6 @@ export interface Skill {
 }
 
 // 法宝 / 装备
-export type EquipmentSlot = 'weapon' | 'armor' | 'accessory';
-
 export interface ArtifactBonus {
   vitality?: number;
   spirit?: number;
@@ -138,8 +121,6 @@ export interface Artifact {
 }
 
 // 消耗品
-export type ConsumableType = 'heal' | 'buff' | 'revive' | 'breakthrough';
-
 export interface TemporaryBonus extends Partial<Attributes> {
   duration: number;
 }
@@ -166,25 +147,11 @@ export interface EquippedItems {
   accessory: string | null;
 }
 
-// 境界
-export type RealmType =
-  | '炼气'
-  | '筑基'
-  | '金丹'
-  | '元婴'
-  | '化神'
-  | '炼虚'
-  | '合体'
-  | '大乘'
-  | '渡劫';
-
-export type RealmStage = '初期' | '中期' | '后期' | '圆满';
-
 // 角色完整数据模型（与 basic.md 中 JSON Schema 对齐的运行时结构）
 export interface Cultivator {
   id?: string;
   name: string;
-  gender: '男' | '女' | '无';
+  gender: GenderType;
   origin?: string;
   personality?: string;
 
