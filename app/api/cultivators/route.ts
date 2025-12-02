@@ -4,6 +4,7 @@ import {
   getCultivatorsByUserId,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
+import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -37,17 +38,34 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: '角色不存在' }, { status: 404 });
       }
 
+      // 计算最终属性
+      const finalAttrs = calculateFinalAttributes(cultivator);
+
       return NextResponse.json({
         success: true,
-        data: cultivator,
+        data: {
+          ...cultivator,
+          finalAttributes: finalAttrs.final,
+          attributeBreakdown: finalAttrs.breakdown,
+        },
       });
     } else {
       // 获取所有角色
       const cultivators = await getCultivatorsByUserId(user.id);
 
+      // 为每个角色计算最终属性
+      const cultivatorsWithFinalAttrs = cultivators.map((c) => {
+        const finalAttrs = calculateFinalAttributes(c);
+        return {
+          ...c,
+          finalAttributes: finalAttrs.final,
+          attributeBreakdown: finalAttrs.breakdown,
+        };
+      });
+
       return NextResponse.json({
         success: true,
-        data: cultivators,
+        data: cultivatorsWithFinalAttrs,
       });
     }
   } catch (error) {

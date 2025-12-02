@@ -1,8 +1,8 @@
 'use client';
 
+import { InkButton } from '@/components/InkComponents';
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import type { Cultivator } from '@/types/cultivator';
-import { InkButton } from '@/components/InkComponents';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -46,7 +46,7 @@ function BattlePageContent() {
       try {
         const playerResponse = await fetch('/api/cultivators');
         const playerResult = await playerResponse.json();
-        
+
         if (playerResult.success && playerResult.data.length > 0) {
           setPlayer(playerResult.data[0]);
         }
@@ -56,7 +56,7 @@ function BattlePageContent() {
         setPlayerLoading(false);
       }
     };
-    
+
     // 获取对手角色
     const fetchOpponent = async () => {
       setOpponentLoading(true);
@@ -66,13 +66,14 @@ function BattlePageContent() {
           // 从敌人API获取对手数据
           const enemyResponse = await fetch(`/api/enemies/${opponentId}`);
           const enemyResult = await enemyResponse.json();
-          
+
           if (enemyResult.success) {
             setOpponent(enemyResult.data);
           } else {
             // 如果获取失败，使用默认BOSS
             const defaultBoss = getDefaultBoss();
-            const { vitality, spirit, wisdom, speed, willpower } = defaultBoss.attributes;
+            const { vitality, spirit, wisdom, speed, willpower } =
+              defaultBoss.attributes;
             setOpponent({
               id: defaultBoss.id!,
               name: defaultBoss.name,
@@ -80,13 +81,17 @@ function BattlePageContent() {
               realm_stage: defaultBoss.realm_stage,
               spiritual_roots: defaultBoss.spiritual_roots,
               background: defaultBoss.background,
-              combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5) || 0
+              combatRating:
+                Math.round(
+                  (vitality + spirit + wisdom + speed + willpower) / 5,
+                ) || 0,
             });
           }
         } else {
           // 如果没有对手ID，使用默认BOSS
           const defaultBoss = getDefaultBoss();
-          const { vitality, spirit, wisdom, speed, willpower } = defaultBoss.attributes;
+          const { vitality, spirit, wisdom, speed, willpower } =
+            defaultBoss.attributes;
           setOpponent({
             id: defaultBoss.id!,
             name: defaultBoss.name,
@@ -94,14 +99,18 @@ function BattlePageContent() {
             realm_stage: defaultBoss.realm_stage,
             spiritual_roots: defaultBoss.spiritual_roots,
             background: defaultBoss.background,
-            combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5) || 0
+            combatRating:
+              Math.round(
+                (vitality + spirit + wisdom + speed + willpower) / 5,
+              ) || 0,
           });
         }
       } catch (error) {
         console.error('获取对手数据失败:', error);
         // 使用默认BOSS
         const defaultBoss = getDefaultBoss();
-        const { vitality, spirit, wisdom, speed, willpower } = defaultBoss.attributes;
+        const { vitality, spirit, wisdom, speed, willpower } =
+          defaultBoss.attributes;
         setOpponent({
           id: defaultBoss.id!,
           name: defaultBoss.name,
@@ -109,20 +118,29 @@ function BattlePageContent() {
           realm_stage: defaultBoss.realm_stage,
           spiritual_roots: defaultBoss.spiritual_roots,
           background: defaultBoss.background,
-          combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5) || 0
+          combatRating:
+            Math.round((vitality + spirit + wisdom + speed + willpower) / 5) ||
+            0,
         });
       } finally {
         setOpponentLoading(false);
       }
     };
-    
+
     fetchPlayer();
     fetchOpponent();
   }, [searchParams]);
 
   // 自动开始战斗
   useEffect(() => {
-    if (player && opponent && !battleResult && !loading && !playerLoading && !opponentLoading) {
+    if (
+      player &&
+      opponent &&
+      !battleResult &&
+      !loading &&
+      !playerLoading &&
+      !opponentLoading
+    ) {
       handleBattle();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,7 +213,7 @@ function BattlePageContent() {
                   playerHp: result.playerHp,
                   opponentHp: result.opponentHp,
                 });
-                console.log("战斗结果：",result);
+                console.log('战斗结果：', result);
               } else if (data.type === 'chunk') {
                 // 接收播报内容块
                 fullReport += data.content;
@@ -281,7 +299,10 @@ function BattlePageContent() {
                   <p key={index} className="mb-4 whitespace-pre-line">
                     <span dangerouslySetInnerHTML={{ __html: line }} />
                     {isStreaming &&
-                      index === displayReport.split('\n').filter(l => l.trim() !== '').length - 1 && (
+                      index ===
+                        displayReport.split('\n').filter((l) => l.trim() !== '')
+                          .length -
+                          1 && (
                         <span className="inline-block ml-1 animate-pulse text-crimson">
                           ▊
                         </span>
@@ -304,9 +325,7 @@ function BattlePageContent() {
         {/* 操作按钮 */}
         {battleResult && !isStreaming && (
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-2">
-            <InkButton onClick={handleBattleAgain}>
-              再战
-            </InkButton>
+            <InkButton onClick={handleBattleAgain}>再战</InkButton>
             <InkButton href="/" variant="primary">
               返回主界
             </InkButton>

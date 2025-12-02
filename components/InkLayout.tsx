@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 interface InkPageShellProps {
   title: string;
@@ -47,12 +47,12 @@ export function InkPageShell({
             <p className="mt-1 text-base text-ink-secondary">{subtitle}</p>
           )}
           {lead && <p className="mt-3 text-lg text-ink">{lead}</p>}
-          {note && (
-            <p className="mt-2 text-sm text-crimson/80">
-              {note}
-            </p>
+          {note && <p className="mt-2 text-sm text-crimson/80">{note}</p>}
+          {actions && (
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              {actions}
+            </div>
           )}
-          {actions && <div className="mt-4 flex flex-wrap justify-center gap-3">{actions}</div>}
         </header>
 
         <div className="flex-1">{children}</div>
@@ -63,15 +63,19 @@ export function InkPageShell({
   );
 }
 
-export function InkSection({ title, children, hint, subdued = false }: InkSectionProps) {
+export function InkSection({
+  title,
+  children,
+  hint,
+  subdued = false,
+}: InkSectionProps) {
   return (
-    <section className="mb-8">
-      <h2 className="text-lg font-semibold text-ink">{title}</h2>
-      <div className={`mt-3 ${subdued ? '' : ''} pb-4 border-b border-ink/10`}>
-        {children}
-      </div>
+    <section className="mb-6">
+      {title && (
+        <h2 className="text-lg font-semibold text-ink mb-3">{title}</h2>
+      )}
+      <div className={subdued ? 'opacity-75' : ''}>{children}</div>
       {hint && <p className="mt-2 text-sm text-ink-secondary">{hint}</p>}
     </section>
   );
 }
-

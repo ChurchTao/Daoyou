@@ -14,8 +14,14 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: AuthError | null }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   createAnonymousUser: () => Promise<{ error: AuthError | null }>;

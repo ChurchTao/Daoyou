@@ -2,57 +2,61 @@
 
 下面我将为你设计一套 **完整、自洽、面向未来的文字修仙游戏底层架构**，涵盖：
 
-- ✅ **六大核心维度**（属性、灵根、境界、技能体系、状态系统、物品体系）  
-- ✅ **严格的数据模型**（JSON Schema 友好）  
-- ✅ **战斗引擎可解析的语义结构**  
+- ✅ **六大核心维度**（属性、灵根、境界、技能体系、状态系统、物品体系）
+- ✅ **严格的数据模型**（JSON Schema 友好）
+- ✅ **战斗引擎可解析的语义结构**
 - ✅ **AIGC 生成时的约束与自由边界**
 
 ---
 
 ## 一、整体设计原则
 
-| 原则 | 说明 |
-|------|------|
-| **正交性** | 每个机制只负责一件事 |
-| **可组合性** | 属性 + 灵根 + 功法 + 法宝 → 最终战力 |
-| **可枚举性** | 所有类型（元素、状态、技能类型）必须预定义白名单 |
-| **可扩展性** | 新增内容只需往列表追加，不改核心逻辑 |
-| **AIGC 友好** | LLM 生成时只需从枚举值中选择，无需发明新概念 |
+| 原则          | 说明                                             |
+| ------------- | ------------------------------------------------ |
+| **正交性**    | 每个机制只负责一件事                             |
+| **可组合性**  | 属性 + 灵根 + 功法 + 法宝 → 最终战力             |
+| **可枚举性**  | 所有类型（元素、状态、技能类型）必须预定义白名单 |
+| **可扩展性**  | 新增内容只需往列表追加，不改核心逻辑             |
+| **AIGC 友好** | LLM 生成时只需从枚举值中选择，无需发明新概念     |
 
 ---
 
 ## 二、核心机制定义（基石）
 
 ### 1. 🌿 元素体系（Element System）
+
 ```python
 ELEMENTS = ["金", "木", "水", "火", "土", "风", "雷", "冰", "无"]
 ```
+
 - 所有技能、法宝、灵根必须指定 `element` ∈ ELEMENTS
 - 克制关系单独维护（见后文）
 
 ---
 
 ### 2. 🧬 基础属性（Base Attributes）
+
 每个角色必须拥有以下 **5 项基础属性**（整数，建议范围 10~200）：
 
-| 属性 | 作用 |
-|------|------|
-| `vitality`（体魄） | 决定伤害减免系数；血量上限 |
-| `spirit`（灵力） | 决定法术伤害系数；蓝量上限 |
-| `wisdom`（悟性） | 暴击率 = min(10%, (wisdom - 50) / 200)；突破成功率 |
-| `speed`（速度） | 决定出手顺序；闪避率 = speed / 400（上限 25%） |
-| `willpower`（神识） | 状态抗性 = willpower / 200（如抵抗眩晕、魅惑） |
+| 属性                | 作用                                               |
+| ------------------- | -------------------------------------------------- |
+| `vitality`（体魄）  | 决定伤害减免系数；血量上限                         |
+| `spirit`（灵力）    | 决定法术伤害系数；蓝量上限                         |
+| `wisdom`（悟性）    | 暴击率 = min(10%, (wisdom - 50) / 200)；突破成功率 |
+| `speed`（速度）     | 决定出手顺序；闪避率 = speed / 400（上限 25%）     |
+| `willpower`（神识） | 状态抗性 = willpower / 200（如抵抗眩晕、魅惑）     |
 
 > 💡 **注意**：不再用“气血/灵力”作为独立资源，而是由属性动态计算。
 
 ---
 
 ### 3. 🔮 灵根系统（Spiritual Roots）
+
 - 每个角色有 **1~3 个灵根**，每个灵根包含：
   ```json
   {
     "element": "火",
-    "strength": 85   // 0~100，影响该元素技能伤害
+    "strength": 85 // 0~100，影响该元素技能伤害
   }
   ```
 - 技能伤害加成公式：
@@ -63,12 +67,14 @@ ELEMENTS = ["金", "木", "水", "火", "土", "风", "雷", "冰", "无"]
 ---
 
 ### 4. 🧘 境界体系（Cultivation Realm）
+
 ```python
 REALMS = [
   "炼气", "筑基", "金丹", "元婴", "化神",
   "炼虚", "合体", "大乘", "渡劫"
 ]
 ```
+
 - 每个境界有：
   - **属性上限**（如筑基期 vitality ≤ 120）
   - **寿命**（如金丹 500 年）
@@ -86,25 +92,28 @@ REALMS = [
 ### 5. 📜 技能体系（Abilities）
 
 #### 分为两类：
-| 类型 | 说明 | 存储位置 |
-|------|------|--------|
-| **神通**（Active） | 主动技能，战斗中使用 | `skills` 列表 |
-| **功法**（Passive） | 被动加成，永久生效 | `cultivations` 列表 |
+
+| 类型                | 说明                 | 存储位置            |
+| ------------------- | -------------------- | ------------------- |
+| **神通**（Active）  | 主动技能，战斗中使用 | `skills` 列表       |
+| **功法**（Passive） | 被动加成，永久生效   | `cultivations` 列表 |
 
 #### 神通（Skill）结构：
+
 ```json
 {
   "id": "sk_001",
   "name": "九霄雷引",
-  "type": "attack",          // attack / heal / control / debuff / buff
+  "type": "attack", // attack / heal / control / debuff / buff
   "element": "雷",
-  "power": 85,               // 基础威力
-  "cost": 20,                // 灵力消耗
-  "cooldown": 0              // 冷却回合（0=无）
+  "power": 85, // 基础威力
+  "cost": 20, // 灵力消耗
+  "cooldown": 0 // 冷却回合（0=无）
 }
 ```
 
 #### 功法（Cultivation）结构：
+
 ```json
 {
   "name": "太上忘情诀",
@@ -112,7 +121,7 @@ REALMS = [
     "wisdom": 15,
     "willpower": 10
   },
-  "required_realm": "金丹"   // 学习前提
+  "required_realm": "金丹" // 学习前提
 }
 ```
 
@@ -121,17 +130,20 @@ REALMS = [
 ### 6. ⚔️ 状态系统（Status Effects）
 
 #### 增益状态（Buffs）：
+
 - `armor_up`（防御提升）
 - `speed_up`
 - `crit_rate_up`
 - `element_affinity_fire`（火系亲和）
 
 #### 控制状态（Controls）：
+
 - `stun`（眩晕，跳过回合）
 - `silence`（禁言，无法使用技能）
 - `root`（定身）
 
 #### 异常状态（Debuffs）：
+
 - `burn`（每回合掉血）
 - `bleed`
 - `poison`
@@ -144,29 +156,33 @@ REALMS = [
 ### 7. 🎒 物品体系（Items）
 
 #### 消耗品（Consumables）：
+
 ```json
 {
   "name": "九转金丹",
-  "type": "heal",            // heal / buff / revive / breakthrough
+  "type": "heal", // heal / buff / revive / breakthrough
   "effect": {
     "hp_restore": 100,
-    "temporary_bonus": { "wisdom": 20, "duration": 3 }  // 持续3回合
+    "temporary_bonus": { "wisdom": 20, "duration": 3 } // 持续3回合
   }
 }
 ```
 
 #### 法宝（Artifacts）：
+
 ```json
 {
   "id": "eq_001",
   "name": "焚天剑",
-  "slot": "weapon",          // weapon / armor / accessory
+  "slot": "weapon", // weapon / armor / accessory
   "element": "火",
   "bonus": { "spirit": 15 },
-  "special_effects": [       // 结构化效果（见下文）
+  "special_effects": [
+    // 结构化效果（见下文）
     { "type": "on_hit_add_effect", "effect": "burn", "chance": 30 }
   ],
-  "curses": [                // 负面效果（可选）
+  "curses": [
+    // 负面效果（可选）
     { "type": "on_use_cost_hp", "amount": 5 }
   ]
 }
@@ -183,15 +199,15 @@ EFFECT_TYPES = {
   # 伤害相关
   "damage_bonus": {"element", "bonus"},
   "ignore_resistance": {"element", "ratio"},
-  
+
   # 触发式
   "on_hit_add_effect": {"effect", "chance"},
   "on_use_cost_hp": {"amount"},
   "on_low_hp_trigger": {"threshold", "action"},  # action 可是 "self_destruct"
-  
+
   # 环境
   "environment_change": {"env_type"},  # 如 "fire_field"
-  
+
   # 冷却
   "cooldown_reduce": {"skill_type", "reduction"}
 }
@@ -209,9 +225,20 @@ EFFECT_TYPES = {
   "type": "object",
   "title": "Cultivator",
   "required": [
-    "name", "gender", "realm", "realm_stage", "age", "lifespan",
-    "attributes", "spiritual_roots", "pre_heaven_fates",
-    "cultivations", "skills", "inventory", "equipped", "max_skills"
+    "name",
+    "gender",
+    "realm",
+    "realm_stage",
+    "age",
+    "lifespan",
+    "attributes",
+    "spiritual_roots",
+    "pre_heaven_fates",
+    "cultivations",
+    "skills",
+    "inventory",
+    "equipped",
+    "max_skills"
   ],
   "properties": {
     "name": { "type": "string", "minLength": 1 },
@@ -221,7 +248,17 @@ EFFECT_TYPES = {
 
     "realm": {
       "type": "string",
-      "enum": ["炼气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]
+      "enum": [
+        "炼气",
+        "筑基",
+        "金丹",
+        "元婴",
+        "化神",
+        "炼虚",
+        "合体",
+        "大乘",
+        "渡劫"
+      ]
     },
     "realm_stage": {
       "type": "string",
@@ -306,7 +343,17 @@ EFFECT_TYPES = {
           },
           "required_realm": {
             "type": "string",
-            "enum": ["炼气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]
+            "enum": [
+              "炼气",
+              "筑基",
+              "金丹",
+              "元婴",
+              "化神",
+              "炼虚",
+              "合体",
+              "大乘",
+              "渡劫"
+            ]
           }
         },
         "additionalProperties": false
@@ -387,7 +434,10 @@ EFFECT_TYPES = {
             "required": ["name", "type"],
             "properties": {
               "name": { "type": "string" },
-              "type": { "type": "string", "enum": ["heal", "buff", "revive", "breakthrough"] },
+              "type": {
+                "type": "string",
+                "enum": ["heal", "buff", "revive", "breakthrough"]
+              },
               "effect": {
                 "type": "object",
                 "properties": {
@@ -434,7 +484,9 @@ EFFECT_TYPES = {
         {
           "properties": {
             "type": { "const": "damage_bonus" },
-            "element": { "enum": ["金", "木", "水", "火", "土", "风", "雷", "冰", "无"] },
+            "element": {
+              "enum": ["金", "木", "水", "火", "土", "风", "雷", "冰", "无"]
+            },
             "bonus": { "type": "integer", "minimum": 1 }
           },
           "required": ["element", "bonus"]
@@ -443,7 +495,16 @@ EFFECT_TYPES = {
           "properties": {
             "type": { "const": "on_hit_add_effect" },
             "effect": {
-              "enum": ["burn", "bleed", "poison", "stun", "silence", "root", "armor_up", "speed_up"]
+              "enum": [
+                "burn",
+                "bleed",
+                "poison",
+                "stun",
+                "silence",
+                "root",
+                "armor_up",
+                "speed_up"
+              ]
             },
             "chance": { "type": "integer", "minimum": 1, "maximum": 100 }
           },
@@ -492,10 +553,11 @@ EFFECT_TYPES = {
 
 所有 LLM Prompt 必须包含：
 
-> “请从以下预定义列表中选择：  
-> - 元素：金、木、水、火、土、风、雷、冰、无  
-> - 技能类型：attack / heal / control / debuff / buff  
-> - 状态效果：burn, stun, armor_up, ...（列出全部）  
+> “请从以下预定义列表中选择：
+>
+> - 元素：金、木、水、火、土、风、雷、冰、无
+> - 技能类型：attack / heal / control / debuff / buff
+> - 状态效果：burn, stun, armor_up, ...（列出全部）
 > - 效果类型：damage_bonus, on_hit_add_effect, ...”
 
 这样，**创意在框架内绽放，系统在边界内稳定**。
@@ -508,10 +570,16 @@ EFFECT_TYPES = {
 // =============== 类型定义 ===============
 type Element = '金' | '木' | '水' | '火' | '土' | '风' | '雷' | '冰' | '无';
 type SkillType = 'attack' | 'heal' | 'control' | 'debuff' | 'buff';
-type StatusEffect = 
-  | 'burn' | 'bleed' | 'poison'
-  | 'stun' | 'silence' | 'root'
-  | 'armor_up' | 'speed_up' | 'crit_rate_up';
+type StatusEffect =
+  | 'burn'
+  | 'bleed'
+  | 'poison'
+  | 'stun'
+  | 'silence'
+  | 'root'
+  | 'armor_up'
+  | 'speed_up'
+  | 'crit_rate_up';
 
 interface Attributes {
   vitality: number;
@@ -540,9 +608,9 @@ interface Skill {
   name: string;
   type: SkillType;
   element: Element;
-  power: number;          // 所有技能均有 power（攻击=伤害基数，控制=命中强度）
-  effect?: StatusEffect;  // debuff/control/buff 必填
-  duration?: number;      // 状态持续回合
+  power: number; // 所有技能均有 power（攻击=伤害基数，控制=命中强度）
+  effect?: StatusEffect; // debuff/control/buff 必填
+  duration?: number; // 状态持续回合
   cooldown: number;
   target_self?: boolean;
 }
@@ -579,14 +647,27 @@ interface BattleState {
 
 // =============== 全局配置 ===============
 const ELEMENT_WEAKNESS: Record<Element, Element[]> = {
-  '金': ['火', '雷'], '木': ['金', '雷'], '水': ['土', '风'],
-  '火': ['水', '冰'], '土': ['木', '风'], '风': ['雷', '冰'],
-  '雷': ['土', '水'], '冰': ['火', '雷'], '无': []
+  金: ['火', '雷'],
+  木: ['金', '雷'],
+  水: ['土', '风'],
+  火: ['水', '冰'],
+  土: ['木', '风'],
+  风: ['雷', '冰'],
+  雷: ['土', '水'],
+  冰: ['火', '雷'],
+  无: [],
 };
 
 const STATUS_EFFECTS = new Set<StatusEffect>([
-  'burn', 'bleed', 'poison', 'stun', 'silence', 'root',
-  'armor_up', 'speed_up', 'crit_rate_up'
+  'burn',
+  'bleed',
+  'poison',
+  'stun',
+  'silence',
+  'root',
+  'armor_up',
+  'speed_up',
+  'crit_rate_up',
 ]);
 
 // =============== 核心函数 ===============
@@ -598,7 +679,11 @@ function calculateFinalAttributes(c: Cultivator): Required<Attributes> {
       base[k as keyof Attributes] += v;
     }
   }
-  for (const equip of [c.equipped.weapon, c.equipped.armor, c.equipped.accessory]) {
+  for (const equip of [
+    c.equipped.weapon,
+    c.equipped.armor,
+    c.equipped.accessory,
+  ]) {
     if (!equip) continue;
     for (const [k, v] of Object.entries(equip.bonus)) {
       base[k as keyof Attributes] += v;
@@ -606,23 +691,37 @@ function calculateFinalAttributes(c: Cultivator): Required<Attributes> {
   }
   const cap = getRealmAttributeCap(c.realm);
   for (const key in base) {
-    base[key as keyof Attributes] = Math.min(base[key as keyof Attributes], cap);
+    base[key as keyof Attributes] = Math.min(
+      base[key as keyof Attributes],
+      cap,
+    );
   }
   return base;
 }
 
 function getRealmAttributeCap(realm: string): number {
   const caps: Record<string, number> = {
-    '炼气': 100, '筑基': 120, '金丹': 150, '元婴': 180,
-    '化神': 210, '炼虚': 240, '合体': 270, '大乘': 300, '渡劫': 300
+    炼气: 100,
+    筑基: 120,
+    金丹: 150,
+    元婴: 180,
+    化神: 210,
+    炼虚: 240,
+    合体: 270,
+    大乘: 300,
+    渡劫: 300,
   };
   return caps[realm] || 100;
 }
 
-function getElementMultiplier(attacker: Cultivator, defender: Cultivator, el: Element): number {
+function getElementMultiplier(
+  attacker: Cultivator,
+  defender: Cultivator,
+  el: Element,
+): number {
   let mult = 1.0;
-  const root = attacker.spiritual_roots.find(r => r.element === el);
-  if (root) mult *= (1.0 + root.strength / 200);
+  const root = attacker.spiritual_roots.find((r) => r.element === el);
+  if (root) mult *= 1.0 + root.strength / 200;
   if (ELEMENT_WEAKNESS[el]?.includes(defender.spiritual_roots[0]?.element)) {
     mult *= 1.5;
   }
@@ -632,14 +731,18 @@ function getElementMultiplier(attacker: Cultivator, defender: Cultivator, el: El
 // ✅ 新增：状态命中率计算（核心修正）
 function calculateStatusHitChance(
   attackerPower: number,
-  defenderWillpower: number
+  defenderWillpower: number,
 ): number {
   const baseHit = Math.min(0.9, Math.max(0.3, attackerPower / 100)); // power=30 → 30%, power=90 → 90%
-  const resist = Math.min(0.7, defenderWillpower / 250);            // willpower=175 → 70% 抗性上限
-  return Math.max(0.1, baseHit * (1 - resist));                    // 最低10%命中保底
+  const resist = Math.min(0.7, defenderWillpower / 250); // willpower=175 → 70% 抗性上限
+  return Math.max(0.1, baseHit * (1 - resist)); // 最低10%命中保底
 }
 
-function applyStatus(unit: BattleUnit, effect: StatusEffect, duration: number): boolean {
+function applyStatus(
+  unit: BattleUnit,
+  effect: StatusEffect,
+  duration: number,
+): boolean {
   if (!STATUS_EFFECTS.has(effect)) return false;
   unit.statuses.set(effect, duration);
   return true;
@@ -688,7 +791,7 @@ function executeSkill(
   attacker: BattleUnit,
   defender: BattleUnit,
   skill: Skill,
-  state: BattleState
+  state: BattleState,
 ): void {
   const log = state.log;
   const finalAtt = calculateFinalAttributes(attacker.data);
@@ -698,7 +801,9 @@ function executeSkill(
   if (!['heal', 'buff'].includes(skill.type)) {
     const evasion = Math.min(0.25, finalDef.speed / 400);
     if (Math.random() < evasion) {
-      log.push(`${defender.data.name} 闪避了 ${attacker.data.name} 的「${skill.name}」！`);
+      log.push(
+        `${defender.data.name} 闪避了 ${attacker.data.name} 的「${skill.name}」！`,
+      );
       attacker.skillCooldowns.set(skill.id, skill.cooldown);
       return;
     }
@@ -711,14 +816,13 @@ function executeSkill(
     const isCrit = Math.random() < critRate;
     if (isCrit) damage *= 2;
     const defReduction = finalDef.vitality / 500;
-    damage *= (1 - defReduction);
+    damage *= 1 - defReduction;
     defender.hp -= Math.max(1, Math.floor(damage));
     log.push(
       `${attacker.data.name} 使用「${skill.name}」！` +
-      (isCrit ? '【暴击】' : '') +
-      `造成 ${Math.floor(damage)} 点伤害！`
+        (isCrit ? '【暴击】' : '') +
+        `造成 ${Math.floor(damage)} 点伤害！`,
     );
-
   } else if (skill.type === 'debuff' || skill.type === 'control') {
     if (!skill.effect) {
       log.push(`⚠️ 技能 ${skill.name} 缺少 effect 字段！`);
@@ -735,18 +839,20 @@ function executeSkill(
 
     if (Math.random() < hitChance) {
       applyStatus(defender, skill.effect, duration);
-      log.push(`${attacker.data.name} 成功对 ${defender.data.name} 施加「${skill.effect}」！`);
+      log.push(
+        `${attacker.data.name} 成功对 ${defender.data.name} 施加「${skill.effect}」！`,
+      );
     } else {
       log.push(`${defender.data.name} 凭借强大神识，抵抗了「${skill.name}」！`);
     }
-
   } else if (skill.type === 'heal') {
     const heal = skill.power + finalAtt.spirit / 2;
     const target = skill.target_self === false ? defender : attacker;
     const maxHp = 80 + calculateFinalAttributes(target.data).vitality;
     target.hp = Math.min(target.hp + heal, maxHp);
-    log.push(`${attacker.data.name} 使用「${skill.name}」，恢复 ${Math.floor(heal)} 点气血！`);
-
+    log.push(
+      `${attacker.data.name} 使用「${skill.name}」，恢复 ${Math.floor(heal)} 点气血！`,
+    );
   } else if (skill.type === 'buff') {
     if (!skill.effect) return;
     const duration = skill.duration ?? 2;
@@ -757,17 +863,27 @@ function executeSkill(
   // 触发装备效果（仅当技能命中目标时）
   if (['attack', 'debuff', 'control'].includes(skill.type)) {
     // 检查是否命中（攻击必然命中除非闪避；debuff/control 需判断）
-    const isDebuffHit = 
-      skill.type === 'attack' || 
-      (skill.type !== 'attack' && log.some(msg => msg.includes('成功') || !msg.includes('抵抗')));
+    const isDebuffHit =
+      skill.type === 'attack' ||
+      (skill.type !== 'attack' &&
+        log.some((msg) => msg.includes('成功') || !msg.includes('抵抗')));
 
     if (isDebuffHit) {
-      for (const equip of [attacker.data.equipped.weapon, attacker.data.equipped.armor, attacker.data.equipped.accessory]) {
+      for (const equip of [
+        attacker.data.equipped.weapon,
+        attacker.data.equipped.armor,
+        attacker.data.equipped.accessory,
+      ]) {
         if (!equip) continue;
         for (const eff of [...equip.special_effects, ...equip.curses]) {
-          if (eff.type === 'on_hit_add_effect' && Math.random() * 100 < eff.chance) {
+          if (
+            eff.type === 'on_hit_add_effect' &&
+            Math.random() * 100 < eff.chance
+          ) {
             applyStatus(defender, eff.effect, 2);
-            log.push(`${defender.data.name} 因 ${equip.name} 被附加「${eff.effect}」！`);
+            log.push(
+              `${defender.data.name} 因 ${equip.name} 被附加「${eff.effect}」！`,
+            );
           }
         }
       }
@@ -777,20 +893,26 @@ function executeSkill(
   attacker.skillCooldowns.set(skill.id, skill.cooldown);
 }
 
-function runBattle(playerData: Cultivator, opponentData: Cultivator): BattleState {
-  const initUnit = (data: Cultivator, id: 'player' | 'opponent'): BattleUnit => ({
+function runBattle(
+  playerData: Cultivator,
+  opponentData: Cultivator,
+): BattleState {
+  const initUnit = (
+    data: Cultivator,
+    id: 'player' | 'opponent',
+  ): BattleUnit => ({
     id,
     data,
     hp: 80 + calculateFinalAttributes(data).vitality,
     statuses: new Map(),
-    skillCooldowns: new Map(data.skills.map(s => [s.id, 0]))
+    skillCooldowns: new Map(data.skills.map((s) => [s.id, 0])),
   });
 
   const state: BattleState = {
     player: initUnit(playerData, 'player'),
     opponent: initUnit(opponentData, 'opponent'),
     turn: 0,
-    log: []
+    log: [],
   };
 
   while (state.player.hp > 0 && state.opponent.hp > 0 && state.turn < 30) {
@@ -798,9 +920,16 @@ function runBattle(playerData: Cultivator, opponentData: Cultivator): BattleStat
     tickStatusEffects(state.opponent, state.log);
     if (state.player.hp <= 0 || state.opponent.hp <= 0) break;
 
-    const pSpeed = calculateFinalAttributes(state.player.data).speed + (state.player.statuses.has('speed_up') ? 20 : 0);
-    const oSpeed = calculateFinalAttributes(state.opponent.data).speed + (state.opponent.statuses.has('speed_up') ? 20 : 0);
-    const actors = pSpeed >= oSpeed ? [state.player, state.opponent] : [state.opponent, state.player];
+    const pSpeed =
+      calculateFinalAttributes(state.player.data).speed +
+      (state.player.statuses.has('speed_up') ? 20 : 0);
+    const oSpeed =
+      calculateFinalAttributes(state.opponent.data).speed +
+      (state.opponent.statuses.has('speed_up') ? 20 : 0);
+    const actors =
+      pSpeed >= oSpeed
+        ? [state.player, state.opponent]
+        : [state.opponent, state.player];
 
     for (const actor of actors) {
       if (actor.hp <= 0) continue;
@@ -809,7 +938,7 @@ function runBattle(playerData: Cultivator, opponentData: Cultivator): BattleStat
         continue;
       }
 
-      const available = actor.data.skills.filter(s => canUseSkill(actor, s));
+      const available = actor.data.skills.filter((s) => canUseSkill(actor, s));
       if (available.length === 0) {
         state.log.push(`${actor.data.name} 无可用技能！`);
         continue;
@@ -834,4 +963,3 @@ function runBattle(playerData: Cultivator, opponentData: Cultivator): BattleStat
 ```
 
 ---
-

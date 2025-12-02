@@ -208,4 +208,3 @@ export interface Cultivator {
   // 兼容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）
   prompt?: string;
 }
-

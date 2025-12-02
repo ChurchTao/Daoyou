@@ -1,5 +1,8 @@
+import {
+  getCultivatorsByUserId,
+  saveTempCultivatorToFormal,
+} from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { getCultivatorsByUserId, saveTempCultivatorToFormal } from '@/lib/repositories/cultivatorRepository';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -28,14 +31,17 @@ export async function POST(request: NextRequest) {
     if (!tempCultivatorId || typeof tempCultivatorId !== 'string') {
       return NextResponse.json(
         { error: '请提供有效的临时角色ID' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 检查用户是否已有角色
     const existingCultivators = await getCultivatorsByUserId(user.id);
     if (existingCultivators.length > 0) {
-      return NextResponse.json({ error: '您已经拥有一位道身，无法创建新的道身' }, { status: 400 });
+      return NextResponse.json(
+        { error: '您已经拥有一位道身，无法创建新的道身' },
+        { status: 400 },
+      );
     }
 
     // 将临时角色保存到正式表

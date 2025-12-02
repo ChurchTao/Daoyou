@@ -1,7 +1,12 @@
 'use client';
 
+import {
+  InkButton,
+  InkCard,
+  InkDivider,
+  InkLink,
+} from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { InkButton, InkLink, InkDivider } from '@/components/InkComponents';
 
 const quickActions = [
   { label: '⚔️ 挑战天骄', href: '/rankings' },
@@ -17,7 +22,10 @@ const quickActions = [
 const dailyQuotes = [
   { quote: '天地不仁，以万物为刍狗。', question: '道友，今日可要逆天改命？' },
   { quote: '道可道，非常道。', question: '名可名，非常名。' },
-  { quote: '上善若水，水善利万物而不争。', question: '处众人之所恶，故几于道。' },
+  {
+    quote: '上善若水，水善利万物而不争。',
+    question: '处众人之所恶，故几于道。',
+  },
   { quote: '大道无形，生育天地。', question: '大道无情，运行日月。' },
 ];
 
@@ -47,43 +55,50 @@ export default function HomePage() {
 
   return (
     <div className="bg-paper min-h-screen">
-      <main className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-24 main-content">
+      <main className="mx-auto flex max-w-xl flex-col px-4 pt-4 pb-24 main-content">
         {/* 顶部角色状态栏 */}
-        <section className="mb-6 pb-4 border-b border-ink/10">
+        <InkCard>
           {cultivator ? (
             <>
-              <div className="text-lg font-semibold">
-                <span className="status-icon">☯</span>道号：{cultivator.name}
+              <div className="text-lg font-semibold font-ma-shan-zheng">
+                ☯ 道号：{cultivator.name}
               </div>
               <p className="mt-1">
-                <span className="status-icon">🌿</span>境界：{cultivator.realm}{cultivator.realm_stage} · {cultivator.origin || '散修'}
+                🌿 境界：{cultivator.realm}
+                {cultivator.realm_stage} · {cultivator.origin || '散修'}
               </p>
-              <div className="mt-3 flex flex-wrap gap-4 text-base">
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-base">
                 <span>
-                  <span className="status-icon">❤️</span>气血：{currentHp}/{maxHp}
+                  ❤️ 气血：{currentHp}/{maxHp}
                 </span>
                 <span>
-                  <span className="status-icon">⚡</span>灵力：{spirit}/{maxSpirit}
+                  ⚡ 灵力：{spirit}/{maxSpirit}
+                </span>
+                <span>
+                  ⏳ 年龄/寿元：{cultivator.age} / {cultivator.lifespan}
                 </span>
               </div>
             </>
           ) : (
             <div className="text-center text-ink-secondary">
-              道友尚未觉醒灵根，先至【创建】一观。
+              道友尚未觉醒灵根，请道友先
+              <InkButton href="/create" variant="primary">
+                觉醒灵根
+              </InkButton>
             </div>
           )}
-        </section>
+        </InkCard>
 
         {/* 天机模块 */}
-        <section className="mb-6">
+        <InkCard>
           <h2 className="text-lg font-semibold text-ink">【天机】</h2>
-          <div className="mt-3 pb-4 border-b border-ink/10">
+          <div className="mt-3">
             {cultivator && cultivator.pre_heaven_fates?.length > 0 ? (
               <>
                 <p>{'>'} 今日宜：炼器、挑战</p>
-                {cultivator.pre_heaven_fates.some(f => f.name.includes('孤辰') || f.name.includes('孤')) && (
-                  <p>{'>'} 忌：双修（身负孤辰入命）</p>
-                )}
+                {cultivator.pre_heaven_fates.some(
+                  (f) => f.name.includes('孤辰') || f.name.includes('孤'),
+                ) && <p>{'>'} 忌：双修（身负孤辰入命）</p>}
               </>
             ) : (
               <>
@@ -91,12 +106,14 @@ export default function HomePage() {
                 <p>{'>'} 忌：无</p>
               </>
             )}
-            <p className="mt-2 text-sm text-ink-secondary">【占位】天机文案由 AIGC 生成，接口待接入。</p>
+            <p className="mt-2 text-sm text-ink-secondary">
+              【占位】天机文案由 AIGC 生成，接口待接入。
+            </p>
           </div>
-        </section>
+        </InkCard>
 
         {/* 快捷入口 - 紧凑排列 */}
-        <section className="mb-6">
+        <InkCard>
           <h2 className="text-lg font-semibold text-ink">【快捷入口】</h2>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
             {quickActions.map((action) => (
@@ -110,26 +127,20 @@ export default function HomePage() {
               </InkButton>
             ))}
           </div>
-        </section>
-
+        </InkCard>
         {/* 近期战绩 */}
-        <section className="mb-8">
+        <InkCard>
           <h2 className="text-lg font-semibold text-ink">【近期战绩】</h2>
-          <div className="mt-3 pb-4 border-b border-ink/10">
-            <p className="text-ink-secondary">【占位】真实战绩将与战报系统联动。</p>
-            <p className="mt-2 text-sm text-ink-secondary">✓ 胜 苏红袖（火凤门）</p>
+          <div className="mt-3">
+            <p className="text-ink-secondary">
+              【占位】真实战绩将与战报系统联动。
+            </p>
+            <p className="mt-2 text-sm text-ink-secondary">
+              ✓ 胜 苏红袖（火凤门）
+            </p>
             <p className="text-sm text-ink-secondary">✗ 败 剑无尘（天剑阁）</p>
           </div>
-        </section>
-
-        {/* CTA */}
-        {!cultivator && (
-          <div className="mb-8 text-center">
-            <InkButton href="/create" variant="primary" className="text-lg">
-              觉醒灵根
-            </InkButton>
-          </div>
-        )}
+        </InkCard>
 
         {/* 底部引文 */}
         <div className="mt-auto text-center">
@@ -151,17 +162,10 @@ export default function HomePage() {
         <InkLink href="/" active={true}>
           首页
         </InkLink>
-        <InkLink href="/inventory">
-          储物
-        </InkLink>
-        <InkLink href="/skills">
-          神通
-        </InkLink>
-        <InkLink href="/rankings">
-          天机榜
-        </InkLink>
+        <InkLink href="/inventory">储物</InkLink>
+        <InkLink href="/skills">神通</InkLink>
+        <InkLink href="/rankings">天机榜</InkLink>
       </nav>
     </div>
   );
 }
-

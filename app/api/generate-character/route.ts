@@ -1,9 +1,9 @@
+import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
+import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
 import { NextRequest, NextResponse } from 'next/server';
 import { generateCharacter } from '../../../utils/aiClient';
 import { getCharacterGenerationPrompt } from '../../../utils/prompts';
-import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
-import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
 
 /**
  * POST /api/generate-character

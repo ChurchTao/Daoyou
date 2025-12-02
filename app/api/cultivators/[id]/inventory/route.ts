@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
 import { getInventory } from '@/lib/repositories/cultivatorRepository';
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // 创建Supabase客户端，用于验证用户身份
@@ -30,7 +30,7 @@ export async function GET(
     if (!cultivatorId || typeof cultivatorId !== 'string') {
       return NextResponse.json(
         { error: '请提供有效的角色ID' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

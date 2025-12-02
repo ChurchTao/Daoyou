@@ -73,12 +73,8 @@
           "name": "wanjiedaoyou_artifacts_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_artifacts",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -138,12 +134,8 @@
           "name": "wanjiedaoyou_consumables_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_consumables",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -203,12 +195,8 @@
           "name": "wanjiedaoyou_cultivation_techniques_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_cultivation_techniques",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -414,12 +402,8 @@
           "name": "wanjiedaoyou_equipped_items_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_equipped_items",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -427,12 +411,8 @@
           "name": "wanjiedaoyou_equipped_items_weapon_id_wanjiedaoyou_artifacts_id_fk",
           "tableFrom": "wanjiedaoyou_equipped_items",
           "tableTo": "wanjiedaoyou_artifacts",
-          "columnsFrom": [
-            "weapon_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["weapon_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -440,12 +420,8 @@
           "name": "wanjiedaoyou_equipped_items_armor_id_wanjiedaoyou_artifacts_id_fk",
           "tableFrom": "wanjiedaoyou_equipped_items",
           "tableTo": "wanjiedaoyou_artifacts",
-          "columnsFrom": [
-            "armor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["armor_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -453,12 +429,8 @@
           "name": "wanjiedaoyou_equipped_items_accessory_id_wanjiedaoyou_artifacts_id_fk",
           "tableFrom": "wanjiedaoyou_equipped_items",
           "tableTo": "wanjiedaoyou_artifacts",
-          "columnsFrom": [
-            "accessory_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["accessory_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -468,9 +440,7 @@
         "wanjiedaoyou_equipped_items_cultivator_id_unique": {
           "name": "wanjiedaoyou_equipped_items_cultivator_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "cultivator_id"
-          ]
+          "columns": ["cultivator_id"]
         }
       },
       "policies": {},
@@ -532,12 +502,8 @@
           "name": "wanjiedaoyou_pre_heaven_fates_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_pre_heaven_fates",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -636,12 +602,8 @@
           "name": "wanjiedaoyou_skills_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_skills",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -695,12 +657,8 @@
           "name": "wanjiedaoyou_spiritual_roots_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_spiritual_roots",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": [
-            "cultivator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cultivator_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

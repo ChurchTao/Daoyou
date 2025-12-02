@@ -1,7 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 /**
  * 文字化按钮组件 - 使用方括号样式
@@ -26,7 +26,8 @@ export function InkButton({
   const baseClass = 'ink-button';
   const variantClass = `ink-button-${variant}`;
   const disabledClass = disabled ? 'ink-button-disabled' : '';
-  const combinedClass = `${baseClass} ${variantClass} ${disabledClass} ${className}`.trim();
+  const combinedClass =
+    `${baseClass} ${variantClass} ${disabledClass} ${className}`.trim();
 
   if (href && !disabled) {
     return (
@@ -58,7 +59,12 @@ interface InkLinkProps {
   active?: boolean;
 }
 
-export function InkLink({ children, href, className = '', active = false }: InkLinkProps) {
+export function InkLink({
+  children,
+  href,
+  className = '',
+  active = false,
+}: InkLinkProps) {
   const baseClass = 'ink-link';
   const activeClass = active ? 'ink-link-active' : '';
   const combinedClass = `${baseClass} ${activeClass} ${className}`.trim();
@@ -102,7 +108,11 @@ interface InkDividerProps {
   className?: string;
 }
 
-export function InkDivider({ variant = 'line', symbol = '☯', className = '' }: InkDividerProps) {
+export function InkDivider({
+  variant = 'line',
+  symbol = '☯',
+  className = '',
+}: InkDividerProps) {
   if (variant === 'symbol') {
     return (
       <div className={`ink-divider ink-divider-symbol ${className}`.trim()}>
@@ -113,7 +123,9 @@ export function InkDivider({ variant = 'line', symbol = '☯', className = '' }:
 
   return (
     <div className={`ink-divider ink-divider-line ${className}`.trim()}>
-      <span className="ink-divider-content">──────────────────────────────</span>
+      <span className="ink-divider-content">
+        ──────────────────────────────
+      </span>
     </div>
   );
 }
@@ -127,7 +139,11 @@ interface InkCardProps {
   highlighted?: boolean;
 }
 
-export function InkCard({ children, className = '', highlighted = false }: InkCardProps) {
+export function InkCard({
+  children,
+  className = '',
+  highlighted = false,
+}: InkCardProps) {
   const baseClass = 'ink-card';
   const highlightedClass = highlighted ? 'ink-card-highlighted' : '';
   const combinedClass = `${baseClass} ${highlightedClass} ${className}`.trim();
@@ -154,4 +170,3 @@ export function InkActionGroup({
 
   return <div className={combinedClass}>{children}</div>;
 }
-

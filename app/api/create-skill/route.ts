@@ -1,5 +1,9 @@
+import {
+  createSkill,
+  getSkills,
+  replaceSkill,
+} from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { createSkill, getSkills, replaceSkill } from '@/lib/repositories/cultivatorRepository';
 import { generateCharacter } from '@/utils/aiClient';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -35,7 +39,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: '请提供有效的角色ID和技能描述' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,8 +77,29 @@ export async function POST(request: NextRequest) {
 
     // 验证AI生成的技能数据
     const validTypes = ['attack', 'heal', 'control', 'debuff', 'buff'];
-    const validElements = ['金', '木', '水', '火', '土', '风', '雷', '冰', '无'];
-    const validEffects = ['burn', 'bleed', 'poison', 'stun', 'silence', 'root', 'armor_up', 'speed_up', 'crit_rate_up', 'armor_down'];
+    const validElements = [
+      '金',
+      '木',
+      '水',
+      '火',
+      '土',
+      '风',
+      '雷',
+      '冰',
+      '无',
+    ];
+    const validEffects = [
+      'burn',
+      'bleed',
+      'poison',
+      'stun',
+      'silence',
+      'root',
+      'armor_up',
+      'speed_up',
+      'crit_rate_up',
+      'armor_down',
+    ];
 
     if (
       !skillData.name ||
@@ -86,7 +111,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: '生成技能失败，AI返回格式不正确' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -96,10 +121,22 @@ export async function POST(request: NextRequest) {
       type: skillData.type,
       element: skillData.element,
       power: Math.max(30, Math.min(150, Math.round(skillData.power))),
-      cost: skillData.cost !== undefined ? Math.max(0, Math.min(100, Math.round(skillData.cost))) : undefined,
-      cooldown: skillData.cooldown !== undefined ? Math.max(0, Math.min(5, Math.round(skillData.cooldown))) : 0,
-      effect: skillData.effect && validEffects.includes(skillData.effect) ? skillData.effect : undefined,
-      duration: skillData.duration !== undefined ? Math.max(1, Math.min(4, Math.round(skillData.duration))) : undefined,
+      cost:
+        skillData.cost !== undefined
+          ? Math.max(0, Math.min(100, Math.round(skillData.cost)))
+          : undefined,
+      cooldown:
+        skillData.cooldown !== undefined
+          ? Math.max(0, Math.min(5, Math.round(skillData.cooldown)))
+          : 0,
+      effect:
+        skillData.effect && validEffects.includes(skillData.effect)
+          ? skillData.effect
+          : undefined,
+      duration:
+        skillData.duration !== undefined
+          ? Math.max(1, Math.min(4, Math.round(skillData.duration)))
+          : undefined,
       target_self: skillData.target_self === true ? true : undefined,
     };
 
@@ -107,7 +144,12 @@ export async function POST(request: NextRequest) {
 
     if (oldSkillId) {
       // 替换技能
-      result = await replaceSkill(user.id, cultivatorId, oldSkillId, normalizedSkill);
+      result = await replaceSkill(
+        user.id,
+        cultivatorId,
+        oldSkillId,
+        normalizedSkill,
+      );
     } else {
       // 创建新技能
       result = await createSkill(user.id, cultivatorId, normalizedSkill);

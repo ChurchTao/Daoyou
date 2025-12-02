@@ -1,8 +1,8 @@
 import type {
   Attributes,
   Consumable,
-  Cultivator,
   CultivationTechnique,
+  Cultivator,
   ElementType,
   PreHeavenFate,
   RealmStage,
@@ -79,6 +79,188 @@ export function validateCultivator(c: Partial<Cultivator>): boolean {
   return true;
 }
 
+/**
+ * 获取境界属性上限
+ */
+export function getRealmAttributeCap(realm: RealmType): number {
+  const caps: Record<RealmType, number> = {
+    炼气: 100,
+    筑基: 120,
+    金丹: 150,
+    元婴: 180,
+    化神: 210,
+    炼虚: 240,
+    合体: 270,
+    大乘: 300,
+    渡劫: 300,
+  };
+  return caps[realm] ?? 100;
+}
+
+/**
+ * 计算最终属性（包含先天命格、功法、装备的加成）
+ * 返回最终属性以及各来源的加成明细
+ */
+export interface FinalAttributesResult {
+  final: Required<Attributes>;
+  breakdown: {
+    base: Required<Attributes>;
+    fromFates: Required<Attributes>;
+    fromCultivations: Required<Attributes>;
+    fromEquipment: Required<Attributes>;
+    cap: number;
+  };
+}
+
+export function calculateFinalAttributes(c: Cultivator): FinalAttributesResult {
+  // 基础属性
+  const base: Required<Attributes> = {
+    vitality: c.attributes.vitality,
+    spirit: c.attributes.spirit,
+    wisdom: c.attributes.wisdom,
+    speed: c.attributes.speed,
+    willpower: c.attributes.willpower,
+  };
+
+  // 先天命格加成
+  const fromFates: Required<Attributes> = {
+    vitality: 0,
+    spirit: 0,
+    wisdom: 0,
+    speed: 0,
+    willpower: 0,
+  };
+  for (const fate of c.pre_heaven_fates || []) {
+    if (fate.attribute_mod.vitality) {
+      fromFates.vitality += fate.attribute_mod.vitality;
+    }
+    if (fate.attribute_mod.spirit) {
+      fromFates.spirit += fate.attribute_mod.spirit;
+    }
+    if (fate.attribute_mod.wisdom) {
+      fromFates.wisdom += fate.attribute_mod.wisdom;
+    }
+    if (fate.attribute_mod.speed) {
+      fromFates.speed += fate.attribute_mod.speed;
+    }
+    if (fate.attribute_mod.willpower) {
+      fromFates.willpower += fate.attribute_mod.willpower;
+    }
+  }
+
+  // 功法加成
+  const fromCultivations: Required<Attributes> = {
+    vitality: 0,
+    spirit: 0,
+    wisdom: 0,
+    speed: 0,
+    willpower: 0,
+  };
+  for (const cult of c.cultivations || []) {
+    if (cult.bonus.vitality) {
+      fromCultivations.vitality += cult.bonus.vitality;
+    }
+    if (cult.bonus.spirit) {
+      fromCultivations.spirit += cult.bonus.spirit;
+    }
+    if (cult.bonus.wisdom) {
+      fromCultivations.wisdom += cult.bonus.wisdom;
+    }
+    if (cult.bonus.speed) {
+      fromCultivations.speed += cult.bonus.speed;
+    }
+    if (cult.bonus.willpower) {
+      fromCultivations.willpower += cult.bonus.willpower;
+    }
+  }
+
+  // 装备加成
+  const fromEquipment: Required<Attributes> = {
+    vitality: 0,
+    spirit: 0,
+    wisdom: 0,
+    speed: 0,
+    willpower: 0,
+  };
+  const artifactsById = new Map(
+    (c.inventory?.artifacts || []).map((a) => [a.id!, a]),
+  );
+  const equippedArtifacts = [
+    c.equipped.weapon,
+    c.equipped.armor,
+    c.equipped.accessory,
+  ]
+    .filter(Boolean)
+    .map((id) => artifactsById.get(id!))
+    .filter(Boolean) as typeof c.inventory.artifacts;
+
+  for (const art of equippedArtifacts) {
+    if (art.bonus.vitality) {
+      fromEquipment.vitality += art.bonus.vitality;
+    }
+    if (art.bonus.spirit) {
+      fromEquipment.spirit += art.bonus.spirit;
+    }
+    if (art.bonus.wisdom) {
+      fromEquipment.wisdom += art.bonus.wisdom;
+    }
+    if (art.bonus.speed) {
+      fromEquipment.speed += art.bonus.speed;
+    }
+    if (art.bonus.willpower) {
+      fromEquipment.willpower += art.bonus.willpower;
+    }
+  }
+
+  // 计算最终属性
+  const final: Required<Attributes> = {
+    vitality:
+      base.vitality +
+      fromFates.vitality +
+      fromCultivations.vitality +
+      fromEquipment.vitality,
+    spirit:
+      base.spirit +
+      fromFates.spirit +
+      fromCultivations.spirit +
+      fromEquipment.spirit,
+    wisdom:
+      base.wisdom +
+      fromFates.wisdom +
+      fromCultivations.wisdom +
+      fromEquipment.wisdom,
+    speed:
+      base.speed +
+      fromFates.speed +
+      fromCultivations.speed +
+      fromEquipment.speed,
+    willpower:
+      base.willpower +
+      fromFates.willpower +
+      fromCultivations.willpower +
+      fromEquipment.willpower,
+  };
+
+  // 境界上限裁剪
+  const cap = getRealmAttributeCap(c.realm);
+  final.vitality = Math.min(final.vitality, cap);
+  final.spirit = Math.min(final.spirit, cap);
+  final.wisdom = Math.min(final.wisdom, cap);
+  final.speed = Math.min(final.speed, cap);
+  final.willpower = Math.min(final.willpower, cap);
+
+  return {
+    final,
+    breakdown: {
+      base,
+      fromFates,
+      fromCultivations,
+      fromEquipment,
+      cap,
+    },
+  };
+}
+
 // ===== 内部工具函数 =====
 
 function asString(value: unknown, fallback: string): string {
@@ -139,7 +321,17 @@ function asRealmStage(value: unknown): RealmStage {
 }
 
 function asElement(value: unknown): ElementType {
-  const elements: ElementType[] = ['金', '木', '水', '火', '土', '风', '雷', '冰', '无'];
+  const elements: ElementType[] = [
+    '金',
+    '木',
+    '水',
+    '火',
+    '土',
+    '风',
+    '雷',
+    '冰',
+    '无',
+  ];
   if (typeof value === 'string' && elements.includes(value as ElementType)) {
     return value as ElementType;
   }
@@ -147,9 +339,9 @@ function asElement(value: unknown): ElementType {
 }
 
 function asAttributes(raw: unknown): Attributes {
-  const obj = (raw && typeof raw === 'object'
-    ? (raw as Record<string, unknown>)
-    : {}) as Record<string, unknown>;
+  const obj = (
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  ) as Record<string, unknown>;
 
   return {
     vitality: asInteger(obj.vitality, 60, 10, 300),
@@ -186,10 +378,8 @@ function asPreHeavenFates(raw: unknown): PreHeavenFate[] {
     if (!name) continue;
     const type = rec.type === '凶' ? '凶' : '吉';
     const modRaw =
-      (rec.attribute_mod as Record<string, unknown>) ?? ({} as Record<
-        string,
-        unknown
-      >);
+      (rec.attribute_mod as Record<string, unknown>) ??
+      ({} as Record<string, unknown>);
     const attribute_mod: PreHeavenFate['attribute_mod'] = {};
     if (typeof modRaw.vitality === 'number') {
       attribute_mod.vitality = Math.round(modRaw.vitality);
@@ -225,10 +415,8 @@ function asCultivations(raw: unknown): CultivationTechnique[] {
       const name = asString(rec.name, '');
       if (!name) return null;
       const bonusRaw =
-        (rec.bonus as Record<string, unknown>) ?? ({} as Record<
-          string,
-          unknown
-        >);
+        (rec.bonus as Record<string, unknown>) ??
+        ({} as Record<string, unknown>);
       const bonus: CultivationTechnique['bonus'] = {};
       if (typeof bonusRaw.vitality === 'number') {
         bonus.vitality = Math.round(bonusRaw.vitality);
@@ -292,7 +480,13 @@ function asSkills(raw: unknown): Skill[] {
 }
 
 function asSkillType(value: unknown): Skill['type'] {
-  const types: Skill['type'][] = ['attack', 'heal', 'control', 'debuff', 'buff'];
+  const types: Skill['type'][] = [
+    'attack',
+    'heal',
+    'control',
+    'debuff',
+    'buff',
+  ];
   if (typeof value === 'string' && types.includes(value as Skill['type'])) {
     return value as Skill['type'];
   }
@@ -426,4 +620,3 @@ function normaliseEquipped(
 
   return { weapon, armor, accessory };
 }
-

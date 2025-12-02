@@ -1,7 +1,12 @@
 'use client';
 
 import { useAuth } from '@/lib/auth/AuthContext';
-import type { Cultivator, EquippedItems, Inventory, Skill } from '@/types/cultivator';
+import type {
+  Cultivator,
+  EquippedItems,
+  Inventory,
+  Skill,
+} from '@/types/cultivator';
 import { useCallback, useEffect, useState } from 'react';
 
 type FetchState = {
@@ -53,7 +58,11 @@ export function useCultivatorBundle() {
       const cultivatorResponse = await fetch('/api/cultivators');
       const cultivatorResult = await cultivatorResponse.json();
 
-      if (!cultivatorResponse.ok || !cultivatorResult.success || cultivatorResult.data.length === 0) {
+      if (
+        !cultivatorResponse.ok ||
+        !cultivatorResult.success ||
+        cultivatorResult.data.length === 0
+      ) {
         throw new Error('未获取到角色数据');
       }
 
@@ -63,12 +72,18 @@ export function useCultivatorBundle() {
       // 如果 API 返回的数据不完整，可以从单独的接口获取（向后兼容）
       let inventory = cultivator.inventory || defaultInventory;
       let skills = cultivator.skills || [];
-      let equipped = cultivator.equipped || { weapon: null, armor: null, accessory: null };
+      let equipped = cultivator.equipped || {
+        weapon: null,
+        armor: null,
+        accessory: null,
+      };
 
       // 如果数据不完整，尝试从单独接口获取（向后兼容）
       if (!inventory.artifacts || inventory.artifacts.length === 0) {
         try {
-          const inventoryRes = await fetch(`/api/cultivators/${cultivator.id}/inventory`);
+          const inventoryRes = await fetch(
+            `/api/cultivators/${cultivator.id}/inventory`,
+          );
           const inventoryJson = await inventoryRes.json();
           if (inventoryJson.success) {
             inventory = inventoryJson.data;
@@ -80,7 +95,9 @@ export function useCultivatorBundle() {
 
       if (!skills || skills.length === 0) {
         try {
-          const skillsRes = await fetch(`/api/create-skill?cultivatorId=${cultivator.id}`);
+          const skillsRes = await fetch(
+            `/api/create-skill?cultivatorId=${cultivator.id}`,
+          );
           const skillsJson = await skillsRes.json();
           if (skillsJson.success) {
             skills = skillsJson.data;
@@ -90,9 +107,14 @@ export function useCultivatorBundle() {
         }
       }
 
-      if (!equipped || (!equipped.weapon && !equipped.armor && !equipped.accessory)) {
+      if (
+        !equipped ||
+        (!equipped.weapon && !equipped.armor && !equipped.accessory)
+      ) {
         try {
-          const equippedRes = await fetch(`/api/cultivators/${cultivator.id}/equip`);
+          const equippedRes = await fetch(
+            `/api/cultivators/${cultivator.id}/equip`,
+          );
           const equippedJson = await equippedRes.json();
           if (equippedJson.success) {
             equipped = equippedJson.data;
@@ -119,10 +141,9 @@ export function useCultivatorBundle() {
       });
     } catch (error) {
       console.warn('加载角色资料失败，回退到占位数据：', error);
-      setState(
-        prev=>({
-          ...prev,
-          isLoading: false,
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
       }));
     }
   }, [user]);
@@ -136,4 +157,3 @@ export function useCultivatorBundle() {
     refresh: loadFromServer,
   };
 }
-

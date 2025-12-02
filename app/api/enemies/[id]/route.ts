@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
-import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { mockRankings } from '@/data/mockRankings';
-import { NextRequest, NextResponse } from 'next/server';
+import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
+import { createClient } from '@/lib/supabase/server';
 import type { Cultivator } from '@/types/cultivator';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/enemies/[id]
@@ -10,7 +10,7 @@ import type { Cultivator } from '@/types/cultivator';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   // 获取实际的参数值
   const { id } = await params;
@@ -32,7 +32,7 @@ export async function GET(
     if (!id || typeof id !== 'string') {
       return NextResponse.json(
         { error: '请提供有效的敌人ID' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,7 +42,7 @@ export async function GET(
     // 检查是否为mock敌人（id以mock-开头）
     if (id.startsWith('mock-')) {
       // 从mock数据中获取对手
-      enemy = mockRankings.find(r => r.id === id) || null;
+      enemy = mockRankings.find((r) => r.id === id) || null;
       isMock = true;
     } else {
       // 从数据库中获取对手
@@ -63,7 +63,9 @@ export async function GET(
       spiritual_roots: enemy.spiritual_roots,
       background: enemy.background,
       // 计算战力（基于属性）
-      combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5),
+      combatRating: Math.round(
+        (vitality + spirit + wisdom + speed + willpower) / 5,
+      ),
       // 不返回详细的战斗属性、技能和装备信息
     };
 

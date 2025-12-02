@@ -134,12 +134,15 @@ export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull()
     .unique(),
-  weapon_id: uuid('weapon_id')
-    .references(() => artifacts.id, { onDelete: 'set null' }),
-  armor_id: uuid('armor_id')
-    .references(() => artifacts.id, { onDelete: 'set null' }),
-  accessory_id: uuid('accessory_id')
-    .references(() => artifacts.id, { onDelete: 'set null' }),
+  weapon_id: uuid('weapon_id').references(() => artifacts.id, {
+    onDelete: 'set null',
+  }),
+  armor_id: uuid('armor_id').references(() => artifacts.id, {
+    onDelete: 'set null',
+  }),
+  accessory_id: uuid('accessory_id').references(() => artifacts.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
     .defaultNow()

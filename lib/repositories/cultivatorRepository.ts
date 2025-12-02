@@ -66,7 +66,8 @@ async function assembleCultivator(
   const pre_heaven_fates = preHeavenFatesResult.map((f) => ({
     name: f.name,
     type: f.type as '吉' | '凶',
-    attribute_mod: f.attribute_mod as Cultivator['pre_heaven_fates'][0]['attribute_mod'],
+    attribute_mod:
+      f.attribute_mod as Cultivator['pre_heaven_fates'][0]['attribute_mod'],
     description: f.description || undefined,
   }));
 
@@ -74,7 +75,8 @@ async function assembleCultivator(
   const cultivations = cultivationsResult.map((c) => ({
     name: c.name,
     bonus: c.bonus as Cultivator['cultivations'][0]['bonus'],
-    required_realm: c.required_realm as Cultivator['cultivations'][0]['required_realm'],
+    required_realm:
+      c.required_realm as Cultivator['cultivations'][0]['required_realm'],
   }));
 
   // 组装技能（使用数据库 UUID 作为 id）
@@ -98,22 +100,32 @@ async function assembleCultivator(
     slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
     element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
     bonus: a.bonus as Cultivator['inventory']['artifacts'][0]['bonus'],
-    special_effects: (a.special_effects || []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
-    curses: (a.curses || []) as Cultivator['inventory']['artifacts'][0]['curses'],
+    special_effects: (a.special_effects ||
+      []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
+    curses: (a.curses ||
+      []) as Cultivator['inventory']['artifacts'][0]['curses'],
   }));
 
   // 组装消耗品
   const consumables = consumablesResult.map((c) => ({
     name: c.name,
     type: c.type as Cultivator['inventory']['consumables'][0]['type'],
-    effect: c.effect as Cultivator['inventory']['consumables'][0]['effect'] | undefined,
+    effect: c.effect as
+      | Cultivator['inventory']['consumables'][0]['effect']
+      | undefined,
   }));
 
   // 组装装备状态（将 UUID 转换为字符串）
   const equipped: Cultivator['equipped'] = {
-    weapon: equippedResult[0]?.weapon_id ? String(equippedResult[0].weapon_id) : null,
-    armor: equippedResult[0]?.armor_id ? String(equippedResult[0].armor_id) : null,
-    accessory: equippedResult[0]?.accessory_id ? String(equippedResult[0].accessory_id) : null,
+    weapon: equippedResult[0]?.weapon_id
+      ? String(equippedResult[0].weapon_id)
+      : null,
+    armor: equippedResult[0]?.armor_id
+      ? String(equippedResult[0].armor_id)
+      : null,
+    accessory: equippedResult[0]?.accessory_id
+      ? String(equippedResult[0].accessory_id)
+      : null,
   };
 
   // 组装完整的 Cultivator 对象
@@ -549,13 +561,17 @@ export async function getInventory(
       slot: a.slot as import('../../types/cultivator').EquipmentSlot,
       element: a.element as import('../../types/cultivator').ElementType,
       bonus: a.bonus as import('../../types/cultivator').ArtifactBonus,
-      special_effects: (a.special_effects || []) as import('../../types/cultivator').ArtifactEffect[],
-      curses: (a.curses || []) as import('../../types/cultivator').ArtifactEffect[],
+      special_effects: (a.special_effects ||
+        []) as import('../../types/cultivator').ArtifactEffect[],
+      curses: (a.curses ||
+        []) as import('../../types/cultivator').ArtifactEffect[],
     })),
     consumables: consumablesResult.map((c) => ({
       name: c.name,
       type: c.type as import('../../types/cultivator').ConsumableType,
-      effect: c.effect as import('../../types/cultivator').ConsumableEffect | undefined,
+      effect: c.effect as
+        | import('../../types/cultivator').ConsumableEffect
+        | undefined,
     })),
   };
 }
@@ -677,23 +693,26 @@ export async function createSkill(
   }
 
   // 创建技能
-  const skill = await db.insert(schema.skills).values({
-    cultivatorId,
-    name: skillData.name,
-    type: skillData.type,
-    element: skillData.element,
-    power: skillData.power,
-    cost: skillData.cost || 0,
-    cooldown: skillData.cooldown,
-    effect: skillData.effect || null,
-    duration: skillData.duration || null,
-    target_self: skillData.target_self ? 1 : 0,
-  }).returning();
+  const skill = await db
+    .insert(schema.skills)
+    .values({
+      cultivatorId,
+      name: skillData.name,
+      type: skillData.type,
+      element: skillData.element,
+      power: skillData.power,
+      cost: skillData.cost || 0,
+      cooldown: skillData.cooldown,
+      effect: skillData.effect || null,
+      duration: skillData.duration || null,
+      target_self: skillData.target_self ? 1 : 0,
+    })
+    .returning();
 
   const skillRecord = skill[0];
 
   return {
-    id: skillRecord.id, 
+    id: skillRecord.id,
     ...skillData,
   };
 }
@@ -785,7 +804,9 @@ export async function getSkills(
     power: skill.power,
     cost: skill.cost || undefined,
     cooldown: skill.cooldown,
-    effect: skill.effect as import('../../types/cultivator').Skill['effect'] | undefined,
+    effect: skill.effect as
+      | import('../../types/cultivator').Skill['effect']
+      | undefined,
     duration: skill.duration || undefined,
     target_self: skill.target_self === 1 ? true : undefined,
   }));
@@ -817,15 +838,18 @@ export async function createEquipment(
   }
 
   // 创建装备（使用数据库生成的 UUID 作为 id）
-  const artifactResult = await db.insert(schema.artifacts).values({
-    cultivatorId,
-    name: equipmentData.name,
-    slot: equipmentData.slot,
-    element: equipmentData.element,
-    bonus: equipmentData.bonus,
-    special_effects: equipmentData.special_effects || [],
-    curses: equipmentData.curses || [],
-  }).returning();
+  const artifactResult = await db
+    .insert(schema.artifacts)
+    .values({
+      cultivatorId,
+      name: equipmentData.name,
+      slot: equipmentData.slot,
+      element: equipmentData.element,
+      bonus: equipmentData.bonus,
+      special_effects: equipmentData.special_effects || [],
+      curses: equipmentData.curses || [],
+    })
+    .returning();
 
   const artifactRecord = artifactResult[0];
 

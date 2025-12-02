@@ -1,9 +1,13 @@
-import { createClient } from '@/lib/supabase/server';
-import { getCultivatorById, createEquipment, createSkill } from '@/lib/repositories/cultivatorRepository';
-import { generateCharacter } from '@/utils/aiClient';
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
+import {
+  createEquipment,
+  createSkill,
+  getCultivatorById,
+} from '@/lib/repositories/cultivatorRepository';
+import { createClient } from '@/lib/supabase/server';
+import { generateCharacter } from '@/utils/aiClient';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * POST /api/generate-adventure
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (!cultivatorId || typeof cultivatorId !== 'string') {
       return NextResponse.json(
         { error: '请提供有效的角色ID' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
 - 境界：${cultivator.realm}${cultivator.realm_stage}
 - 灵根：${cultivator.spiritual_roots[0]?.element || '无'}（强度：${cultivator.spiritual_roots[0]?.strength || 0}）
 - 元素：${cultivator.spiritual_roots[0]?.element || '无'}
-- 现有技能：${cultivator.skills?.map(skill => skill.name).join(', ') || '无'}
+- 现有技能：${cultivator.skills?.map((skill) => skill.name).join(', ') || '无'}
 
 示例输出（装备）：
 {
@@ -108,7 +112,10 @@ export async function POST(request: NextRequest) {
 `;
 
     // 调用AI生成奇遇
-    const aiResponse = await generateCharacter(adventurePrompt, cultivator.name);
+    const aiResponse = await generateCharacter(
+      adventurePrompt,
+      cultivator.name,
+    );
     const adventureData = JSON.parse(aiResponse);
 
     // 验证AI生成的奇遇数据
@@ -122,7 +129,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: '生成奇遇失败，AI返回格式不正确' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -130,7 +137,11 @@ export async function POST(request: NextRequest) {
     let rewardResult;
     if (adventureData.type === 'equipment') {
       // 创建装备
-      rewardResult = await createEquipment(user.id, cultivatorId, adventureData.reward);
+      rewardResult = await createEquipment(
+        user.id,
+        cultivatorId,
+        adventureData.reward,
+      );
     } else if (adventureData.type === 'consumable') {
       // 创建消耗品
       rewardResult = await db
@@ -145,7 +156,11 @@ export async function POST(request: NextRequest) {
         .then((result) => result[0]);
     } else if (adventureData.type === 'skill') {
       // 创建技能
-      rewardResult = await createSkill(user.id, cultivatorId, adventureData.reward);
+      rewardResult = await createSkill(
+        user.id,
+        cultivatorId,
+        adventureData.reward,
+      );
     }
 
     // 获取更新后的角色信息

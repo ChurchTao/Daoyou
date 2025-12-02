@@ -1,7 +1,7 @@
 'use client';
 
-import { InkPageShell } from '@/components/InkLayout';
 import { InkButton, InkDivider } from '@/components/InkComponents';
+import { InkPageShell } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useMemo, useState } from 'react';
 
@@ -97,7 +97,11 @@ export default function RitualPage() {
       setPrompt('');
       await refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? `此法未成：${error.message}` : '仪式失败，请稍后再试。');
+      setStatus(
+        error instanceof Error
+          ? `此法未成：${error.message}`
+          : '仪式失败，请稍后再试。',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -112,7 +116,9 @@ export default function RitualPage() {
       footer={
         <div className="flex justify-between text-ink">
           <InkButton href="/">返回</InkButton>
-          <span className="text-ink-secondary text-xs">AIGC 接口未覆盖的模式将以假数据提示</span>
+          <span className="text-ink-secondary text-xs">
+            AIGC 接口未覆盖的模式将以假数据提示
+          </span>
         </div>
       }
     >
@@ -131,19 +137,25 @@ export default function RitualPage() {
               }}
               className={isActive ? 'font-semibold' : 'text-sm'}
             >
-              {config.title.replace(/[【】]/g, '').split('·')[0].trim()}
+              {config.title
+                .replace(/[【】]/g, '')
+                .split('·')[0]
+                .trim()}
             </InkButton>
           );
         })}
       </div>
 
       {/* 输入区域 */}
-      <div className="pb-4 border-b border-ink/10">
+      <div>
         <div className="mb-4">
           <p className="text-sm text-ink-secondary mb-2">{currentMode.hint}</p>
           <p className="text-sm text-ink-secondary">
-            示例：<br />
-            <span className="text-ink italic">&quot;{currentMode.example}&quot;</span>
+            示例：
+            <br />
+            <span className="text-ink italic">
+              &quot;{currentMode.example}&quot;
+            </span>
           </p>
         </div>
 
@@ -160,18 +172,18 @@ export default function RitualPage() {
         <InkDivider />
 
         <div className="flex justify-end gap-3">
-          <InkButton 
+          <InkButton
             onClick={() => {
               setPrompt('');
               setStatus('');
-            }} 
+            }}
             disabled={isSubmitting}
           >
             取消
           </InkButton>
-          <InkButton 
+          <InkButton
             variant="primary"
-            onClick={handleSubmit} 
+            onClick={handleSubmit}
             disabled={isSubmitting || (!prompt.trim() && mode !== 'adventure')}
           >
             {isSubmitting ? '运转灵力……' : currentMode.actionLabel}
@@ -180,14 +192,18 @@ export default function RitualPage() {
       </div>
 
       {status && (
-        <div className="mt-4 pb-3 border-b border-ink/10 text-center text-sm text-ink">
-          {status}
-          {mode === 'adventure' && (
-            <p className="text-xs text-ink-secondary mt-2">【占位】奇遇输入尚未驱动 AI，但意图已记录。</p>
-          )}
-        </div>
+        <>
+          <InkDivider />
+          <div className="mt-4 text-center text-sm text-ink">
+            {status}
+            {mode === 'adventure' && (
+              <p className="text-xs text-ink-secondary mt-2">
+                【占位】奇遇输入尚未驱动 AI，但意图已记录。
+              </p>
+            )}
+          </div>
+        </>
       )}
     </InkPageShell>
   );
 }
-

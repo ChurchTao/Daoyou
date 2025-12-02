@@ -334,35 +334,35 @@ h6,
   body {
     font-size: 16px;
   }
-  
+
   h1 {
     font-size: 1.75rem;
   }
-  
+
   h2 {
     font-size: 1.5rem;
   }
-  
+
   h3 {
     font-size: 1.25rem;
   }
-  
+
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
   }
-  
+
   .btn-primary,
   .btn-outline {
     padding: 0.75rem 1.25rem;
     font-size: 0.875rem;
   }
-  
+
   /* 确保操作区域在屏幕下半部 */
   .main-content {
     padding-bottom: 6rem;
   }
-  
+
   /* 单列布局 */
   .grid-cols-2,
   .grid-cols-3 {
@@ -430,7 +430,6 @@ h6,
   text-align: left;
   padding: 2rem 0;
   margin: 2rem 0;
-  border-bottom: 1px solid rgba(44, 24, 16, 0.1);
 }
 
 /* 天骄榜样式 */

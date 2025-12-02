@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
 import { createEquipment } from '@/lib/repositories/cultivatorRepository';
+import { createClient } from '@/lib/supabase/server';
 import { generateCharacter } from '@/utils/aiClient';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: '请提供有效的角色ID和装备描述' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -77,7 +77,17 @@ export async function POST(request: NextRequest) {
 
     // 验证AI生成的装备数据
     const validSlots = ['weapon', 'armor', 'accessory'];
-    const validElements = ['金', '木', '水', '火', '土', '风', '雷', '冰', '无'];
+    const validElements = [
+      '金',
+      '木',
+      '水',
+      '火',
+      '土',
+      '风',
+      '雷',
+      '冰',
+      '无',
+    ];
 
     if (
       !equipmentData.name ||
@@ -88,7 +98,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: '生成装备失败，AI返回格式不正确' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -98,12 +108,18 @@ export async function POST(request: NextRequest) {
       slot: equipmentData.slot,
       element: equipmentData.element,
       bonus: equipmentData.bonus || {},
-      special_effects: Array.isArray(equipmentData.special_effects) ? equipmentData.special_effects : [],
+      special_effects: Array.isArray(equipmentData.special_effects)
+        ? equipmentData.special_effects
+        : [],
       curses: Array.isArray(equipmentData.curses) ? equipmentData.curses : [],
     };
 
     // 创建装备
-    const createdEquipment = await createEquipment(user.id, cultivatorId, normalizedEquipment);
+    const createdEquipment = await createEquipment(
+      user.id,
+      cultivatorId,
+      normalizedEquipment,
+    );
 
     return NextResponse.json({
       success: true,

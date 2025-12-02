@@ -24,9 +24,7 @@ export const mockRankings: Cultivator[] = [
       speed: 85,
       willpower: 75,
     },
-    spiritual_roots: [
-      { element: '雷', strength: 95 },
-    ],
+    spiritual_roots: [{ element: '雷', strength: 95 }],
     pre_heaven_fates: [
       {
         name: '紫府通明',
@@ -114,7 +112,8 @@ export const mockRankings: Cultivator[] = [
       accessory: null,
     },
     max_skills: 4,
-    background: '出身名门，自幼习剑，三十岁便突破元婴，被誉为千年一遇的剑道奇才。青衫长剑，眉目如星，周身雷光隐现。',
+    background:
+      '出身名门，自幼习剑，三十岁便突破元婴，被誉为千年一遇的剑道奇才。青衫长剑，眉目如星，周身雷光隐现。',
   },
   {
     id: 'mock-002',
@@ -134,9 +133,7 @@ export const mockRankings: Cultivator[] = [
       speed: 60,
       willpower: 50,
     },
-    spiritual_roots: [
-      { element: '火', strength: 90 },
-    ],
+    spiritual_roots: [{ element: '火', strength: 90 }],
     pre_heaven_fates: [
       {
         name: '血煞命格',
@@ -229,7 +226,8 @@ export const mockRankings: Cultivator[] = [
       accessory: null,
     },
     max_skills: 4,
-    background: '曾是正道天骄，因心魔入体堕入魔道，以吞噬修士精血为乐，凶名赫赫。黑袍遮身，双目赤红，周身血雾缭绕，手持一柄血色长刀。',
+    background:
+      '曾是正道天骄，因心魔入体堕入魔道，以吞噬修士精血为乐，凶名赫赫。黑袍遮身，双目赤红，周身血雾缭绕，手持一柄血色长刀。',
   },
   {
     id: 'mock-003',
@@ -340,7 +338,8 @@ export const mockRankings: Cultivator[] = [
       accessory: 'art-003-1',
     },
     max_skills: 4,
-    background: '幼时被逐出宗门，靠一本残破丹方崛起，以丹道证得金丹大道。白衣染霜，眉心一点赤焰印记，腰间挂着一只古朴丹炉。',
+    background:
+      '幼时被逐出宗门，靠一本残破丹方崛起，以丹道证得金丹大道。白衣染霜，眉心一点赤焰印记，腰间挂着一只古朴丹炉。',
   },
   {
     id: 'mock-004',
@@ -360,9 +359,7 @@ export const mockRankings: Cultivator[] = [
       speed: 80,
       willpower: 90,
     },
-    spiritual_roots: [
-      { element: '水', strength: 85 },
-    ],
+    spiritual_roots: [{ element: '水', strength: 85 }],
     pre_heaven_fates: [
       {
         name: '冰心玉骨',
@@ -449,7 +446,8 @@ export const mockRankings: Cultivator[] = [
       accessory: null,
     },
     max_skills: 4,
-    background: '出身水月宗，以清冷孤傲闻名，剑法出神入化，被誉为水月第一剑。白衣胜雪，长发如瀑，手持一柄寒冰长剑，气质清冷如月。',
+    background:
+      '出身水月宗，以清冷孤傲闻名，剑法出神入化，被誉为水月第一剑。白衣胜雪，长发如瀑，手持一柄寒冰长剑，气质清冷如月。',
   },
   {
     id: 'mock-005',
@@ -469,9 +467,7 @@ export const mockRankings: Cultivator[] = [
       speed: 85,
       willpower: 65,
     },
-    spiritual_roots: [
-      { element: '木', strength: 80 },
-    ],
+    spiritual_roots: [{ element: '木', strength: 80 }],
     pre_heaven_fates: [
       {
         name: '无影无踪',
@@ -565,7 +561,8 @@ export const mockRankings: Cultivator[] = [
       accessory: null,
     },
     max_skills: 4,
-    background: '来历不明，以暗杀闻名，剑法诡异莫测，令人闻风丧胆。黑衣如墨，面容冷峻，腰间佩剑，周身散发阴冷气息。',
+    background:
+      '来历不明，以暗杀闻名，剑法诡异莫测，令人闻风丧胆。黑衣如墨，面容冷峻，腰间佩剑，周身散发阴冷气息。',
   },
   {
     id: 'mock-006',
@@ -585,9 +582,7 @@ export const mockRankings: Cultivator[] = [
       speed: 80,
       willpower: 70,
     },
-    spiritual_roots: [
-      { element: '木', strength: 75 },
-    ],
+    spiritual_roots: [{ element: '木', strength: 75 }],
     pre_heaven_fates: [
       {
         name: '青莲剑骨',
@@ -673,6 +668,7 @@ export const mockRankings: Cultivator[] = [
       accessory: null,
     },
     max_skills: 4,
-    background: '出身青莲剑宗，以潇洒不羁闻名，剑法如诗如画，被誉为青莲剑仙。青衫飘逸，手持青莲剑，气质潇洒不羁，如诗如画。',
+    background:
+      '出身青莲剑宗，以潇洒不羁闻名，剑法如诗如画，被誉为青莲剑仙。青衫飘逸，手持青莲剑，气质潇洒不羁，如诗如画。',
   },
 ];

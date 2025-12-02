@@ -1,7 +1,7 @@
 'use client';
 
+import { InkButton, InkCard, InkDivider } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
-import { InkButton, InkCard } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Artifact } from '@/types/cultivator';
 import { useState } from 'react';
@@ -15,7 +15,15 @@ const attributeLabels: Record<string, string> = {
 };
 
 export default function InventoryPage() {
-  const { cultivator, inventory, equipped, isLoading, refresh, note, usingMock } = useCultivatorBundle();
+  const {
+    cultivator,
+    inventory,
+    equipped,
+    isLoading,
+    refresh,
+    note,
+    usingMock,
+  } = useCultivatorBundle();
   const [feedback, setFeedback] = useState<string>('');
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -46,14 +54,20 @@ export default function InventoryPage() {
       setFeedback('操作完成，法宝灵性已调顺。');
       await refresh();
     } catch (error) {
-      setFeedback(error instanceof Error ? `此法有违天道：${error.message}` : '操作失败，请稍后重试。');
+      setFeedback(
+        error instanceof Error
+          ? `此法有违天道：${error.message}`
+          : '操作失败，请稍后重试。',
+      );
     } finally {
       setPendingId(null);
     }
   };
 
   // 获取装备特效描述
-  const getEffectText = (effect: NonNullable<Artifact['special_effects']>[0]) => {
+  const getEffectText = (
+    effect: NonNullable<Artifact['special_effects']>[0],
+  ) => {
     if (effect.type === 'damage_bonus') {
       return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
     } else if (effect.type === 'on_hit_add_effect') {
@@ -84,43 +98,59 @@ export default function InventoryPage() {
       }
     >
       {feedback && (
-        <div className="mb-4 pb-3 border-b border-ink/10 text-center text-sm text-ink">
-          {feedback}
-        </div>
+        <>
+          <div className="mb-4 text-center text-sm text-ink">{feedback}</div>
+          <InkDivider />
+        </>
       )}
 
       {!cultivator ? (
-        <div className="pb-4 border-b border-ink/10 text-center">
-          尚无角色，自然也无储物袋可查。
-        </div>
+        <div className="text-center">尚无角色，自然也无储物袋可查。</div>
       ) : totalEquipments > 0 ? (
         <div className="space-y-2">
           {inventory.artifacts.map((item) => {
             const equippedNow = Boolean(
               item.id &&
-              (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id)
+              (equipped.weapon === item.id ||
+                equipped.armor === item.id ||
+                equipped.accessory === item.id),
             );
-            
-            const slotIcon = item.slot === 'weapon' ? '🗡️' : item.slot === 'armor' ? '🛡️' : '📿';
-            const artifactType = item.slot === 'weapon' ? '道器' : item.slot === 'armor' ? '灵器' : '宝器';
-            
+
+            const slotIcon =
+              item.slot === 'weapon'
+                ? '🗡️'
+                : item.slot === 'armor'
+                  ? '🛡️'
+                  : '📿';
+            const artifactType =
+              item.slot === 'weapon'
+                ? '道器'
+                : item.slot === 'armor'
+                  ? '灵器'
+                  : '宝器';
+
             const bonusText = Object.entries(item.bonus)
               .filter(([, v]) => v !== undefined && v !== 0)
               .map(([k, v]) => {
-                const label = attributeLabels[k as keyof typeof attributeLabels] || k;
+                const label =
+                  attributeLabels[k as keyof typeof attributeLabels] || k;
                 return `+${label} ${v}`;
               })
               .join('｜');
-            
-            const effectText = item.special_effects?.map(e => getEffectText(e)).join('｜') || '';
-            
+
+            const effectText =
+              item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
+              '';
+
             return (
               <InkCard key={item.id ?? item.name} highlighted={equippedNow}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm">
                       {slotIcon} {item.name}（{item.element}·{artifactType}）
-                      {equippedNow && <span className="equipped-mark">← 已装备</span>}
+                      {equippedNow && (
+                        <span className="equipped-mark">← 已装备</span>
+                      )}
                     </p>
                     <p className="mt-0.5 text-xs text-ink-secondary">
                       {bonusText}
@@ -133,7 +163,11 @@ export default function InventoryPage() {
                       onClick={() => handleEquipToggle(item)}
                       className="text-sm"
                     >
-                      {pendingId === item.id ? '操作中…' : equippedNow ? '卸下' : '装备'}
+                      {pendingId === item.id
+                        ? '操作中…'
+                        : equippedNow
+                          ? '卸下'
+                          : '装备'}
                     </InkButton>
                   </div>
                 </div>
@@ -153,4 +187,3 @@ export default function InventoryPage() {
     </InkPageShell>
   );
 }
-

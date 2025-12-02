@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
-import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
-import { simulateBattle } from '@/engine/battleEngine';
 import { mockRankings } from '@/data/mockRankings';
+import { simulateBattle } from '@/engine/battleEngine';
+import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
+import { createClient } from '@/lib/supabase/server';
+import type { Cultivator } from '@/types/cultivator';
 import { generateBattleReportStream } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';
-import type { Cultivator } from '@/types/cultivator';
 
 /**
  * POST /api/battle
@@ -24,13 +24,10 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: '未授权访问' }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      return new Response(JSON.stringify({ error: '未授权访问' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const body = await request.json();
@@ -71,7 +68,7 @@ export async function POST(request: NextRequest) {
           // 检查是否为mock敌人（id以mock-开头）
           if (opponentId.startsWith('mock-')) {
             // 从mock数据中获取对手
-            const mockOpponent = mockRankings.find(r => r.id === opponentId);
+            const mockOpponent = mockRankings.find((r) => r.id === opponentId);
             if (!mockOpponent) {
               throw new Error('对手角色不存在');
             }
@@ -172,4 +169,3 @@ export async function POST(request: NextRequest) {
     });
   }
 }
-

@@ -52,15 +52,15 @@ export function getCharacterGenerationPrompt(): string {
 
   "cultivations": [
     {
-      "name": "功法名称",
+      "name": "功法名称（2~6字，古风）",
       "bonus": {
-        "vitality": 可选整数加成,
-        "spirit": 可选整数加成,
-        "wisdom": 可选整数加成,
-        "speed": 可选整数加成,
-        "willpower": 可选整数加成
+        "vitality": 可选整数加成（建议范围：-10~+30，根据境界调整）,
+        "spirit": 可选整数加成（建议范围：-10~+30，根据境界调整）,
+        "wisdom": 可选整数加成（建议范围：-10~+30，根据境界调整）,
+        "speed": 可选整数加成（建议范围：-10~+30，根据境界调整）,
+        "willpower": 可选整数加成（建议范围：-10~+30，根据境界调整）
       },
-      "required_realm": "与上文 realm 相同或更低的境界名"
+      "required_realm": "与上文 realm 相同或更低的境界名（必须从预定义列表中选择）"
     }
   ],
 
@@ -101,7 +101,7 @@ export function getCharacterGenerationPrompt(): string {
 - 至少 1 个灵根，最多 3 个。
 - 先天气运(pre_heaven_fates) 建议 2~3 条，务必与属性加成相呼应。
 - 技能(skills)至少 2 个，且应与角色设定和元素相符。
-- 功法(cultivations)至少 1 个，且应与角色设定和元素相符。
+- 功法(cultivations)至少 1 个，建议 1~3 个，且应与角色设定和元素相符。功法是**被动加成**，会永久提升属性，请确保 bonus 字段至少包含一个非零的属性加成。
 - 装备（inventory.artifacts, inventory.consumables 和 equipped）不需要生成，创建角色时为空，由用户后续手动装备。
 - 输出必须是**合法 JSON**，不要添加任何注释或多余文字。`;
 }

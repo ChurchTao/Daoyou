@@ -9,7 +9,9 @@ import { useEffect, useState } from 'react';
 const getCombatRating = (cultivator: Cultivator | null): string => {
   if (!cultivator?.attributes) return '--';
   const { vitality, spirit, wisdom, speed, willpower } = cultivator.attributes;
-  return Math.round((vitality + spirit + wisdom + speed + willpower) / 5).toString();
+  return Math.round(
+    (vitality + spirit + wisdom + speed + willpower) / 5,
+  ).toString();
 };
 
 /**
@@ -236,13 +238,15 @@ export default function CreatePage() {
                     <div>
                       <span className="text-ink/70">境界：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.realm}{player.realm_stage}
+                        {player.realm}
+                        {player.realm_stage}
                       </span>
                     </div>
                     <div>
                       <span className="text-ink/70">灵根：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.spiritual_roots[0]?.element || '无'}（强度：{player.spiritual_roots[0]?.strength || 0}）
+                        {player.spiritual_roots[0]?.element || '无'}（强度：
+                        {player.spiritual_roots[0]?.strength || 0}）
                       </span>
                     </div>
                     <div>
@@ -283,9 +287,7 @@ export default function CreatePage() {
                       </div>
                       <div className="bg-ink/5 rounded p-2 border border-ink/10">
                         <p className="font-semibold">速度</p>
-                        <p className="text-ink/80">
-                          {player.attributes.speed}
-                        </p>
+                        <p className="text-ink/80">{player.attributes.speed}</p>
                       </div>
                       <div className="bg-ink/5 rounded p-2 border border-ink/10">
                         <p className="font-semibold">神识</p>
@@ -341,8 +343,11 @@ export default function CreatePage() {
                             </p>
                             <p className="text-ink/80">
                               威力：{skill.power} | 冷却：{skill.cooldown}回合
-                              {skill.effect && ` | 效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
-                              {skill.cost !== undefined && skill.cost > 0 && ` | 消耗：${skill.cost} 灵力`}
+                              {skill.effect &&
+                                ` | 效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
+                              {skill.cost !== undefined &&
+                                skill.cost > 0 &&
+                                ` | 消耗：${skill.cost} 灵力`}
                             </p>
                           </div>
                         ))}
@@ -411,10 +416,7 @@ export default function CreatePage() {
 
         {/* 返回首页 */}
         <div className="text-center mt-8">
-          <Link
-            href="/"
-            className="text-ink hover:underline"
-          >
+          <Link href="/" className="text-ink hover:underline">
             [← 返回主界]
           </Link>
         </div>

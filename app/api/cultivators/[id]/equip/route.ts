@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
-import { equipEquipment } from '@/lib/repositories/cultivatorRepository';
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
+import { equipEquipment } from '@/lib/repositories/cultivatorRepository';
+import { createClient } from '@/lib/supabase/server';
 import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/cultivators/:id/equip
@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: cultivatorId } = await params;
   try {
@@ -32,7 +32,7 @@ export async function GET(
     if (!cultivatorId || typeof cultivatorId !== 'string') {
       return NextResponse.json(
         { error: '请提供有效的角色ID' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,12 +40,13 @@ export async function GET(
     const cultivator = await db
       .select({ id: schema.cultivators.id })
       .from(schema.cultivators)
-      .where(
-        eq(schema.cultivators.id, cultivatorId)
-      );
+      .where(eq(schema.cultivators.id, cultivatorId));
 
     if (cultivator.length === 0) {
-      return NextResponse.json({ error: '角色不存在或无权限操作' }, { status: 404 });
+      return NextResponse.json(
+        { error: '角色不存在或无权限操作' },
+        { status: 404 },
+      );
     }
 
     // 获取装备状态
@@ -91,7 +92,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     // 创建Supabase客户端，用于验证用户身份
@@ -120,12 +121,16 @@ export async function POST(
     ) {
       return NextResponse.json(
         { error: '请提供有效的角色ID和法宝ID' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 装备或卸下装备
-    const equippedItems = await equipEquipment(user.id, cultivatorId, artifactId);
+    const equippedItems = await equipEquipment(
+      user.id,
+      cultivatorId,
+      artifactId,
+    );
 
     return NextResponse.json({
       success: true,

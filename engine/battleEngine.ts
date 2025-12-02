@@ -1,11 +1,11 @@
 import type {
   Artifact,
-  Attributes,
   Cultivator,
   ElementType,
   Skill,
   StatusEffect,
 } from '@/types/cultivator';
+import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
 
 export interface BattleEngineResult {
   winner: Cultivator;
@@ -56,75 +56,7 @@ const STATUS_EFFECTS = new Set<StatusEffect>([
   'armor_down',
 ]);
 
-function getRealmAttributeCap(realm: string): number {
-  const caps: Record<string, number> = {
-    炼气: 100,
-    筑基: 120,
-    金丹: 150,
-    元婴: 180,
-    化神: 210,
-    炼虚: 240,
-    合体: 270,
-    大乘: 300,
-    渡劫: 300,
-  };
-  return caps[realm] ?? 100;
-}
-
-function calculateFinalAttributes(c: Cultivator): Required<Attributes> {
-  const base: Required<Attributes> = {
-    vitality: c.attributes.vitality,
-    spirit: c.attributes.spirit,
-    wisdom: c.attributes.wisdom,
-    speed: c.attributes.speed,
-    willpower: c.attributes.willpower,
-  };
-
-  // 功法加成
-  for (const cult of c.cultivations) {
-    for (const [k, v] of Object.entries(cult.bonus)) {
-      if (typeof v === 'number') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (base as any)[k] += v;
-      }
-    }
-  }
-
-  // 装备加成
-  const equippedArtifacts: Artifact[] = [];
-  const { inventory, equipped } = c;
-  const artifactsById = new Map<string, Artifact>(
-    (inventory.artifacts || []).map((a) => [a.id!, a]),
-  );
-  if (equipped.weapon && artifactsById.has(equipped.weapon)) {
-    equippedArtifacts.push(artifactsById.get(equipped.weapon)!);
-  }
-  if (equipped.armor && artifactsById.has(equipped.armor)) {
-    equippedArtifacts.push(artifactsById.get(equipped.armor)!);
-  }
-  if (equipped.accessory && artifactsById.has(equipped.accessory)) {
-    equippedArtifacts.push(artifactsById.get(equipped.accessory)!);
-  }
-
-  for (const art of equippedArtifacts) {
-    for (const [k, v] of Object.entries(art.bonus)) {
-      if (typeof v === 'number') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (base as any)[k] += v;
-      }
-    }
-  }
-
-  // 境界上限裁剪
-  const cap = getRealmAttributeCap(c.realm);
-  base.vitality = Math.min(base.vitality, cap);
-  base.spirit = Math.min(base.spirit, cap);
-  base.wisdom = Math.min(base.wisdom, cap);
-  base.speed = Math.min(base.speed, cap);
-  base.willpower = Math.min(base.willpower, cap);
-
-  return base;
-}
+// 使用统一的属性计算函数（从utils导入）
 
 function getElementMultiplier(
   attacker: Cultivator,
@@ -164,7 +96,7 @@ function applyStatus(
 
 function tickStatusEffects(unit: BattleUnit, log: string[]): void {
   const toRemove: StatusEffect[] = [];
-  const finalAttrs = calculateFinalAttributes(unit.data);
+  const finalAttrs = calcFinalAttrs(unit.data).final;
 
   for (const [effect, dur] of unit.statuses.entries()) {
     if (dur <= 0) {
@@ -208,11 +140,15 @@ function executeSkill(
   state: BattleState,
 ): void {
   const log = state.log;
-  const finalAtt = calculateFinalAttributes(attacker.data);
-  const finalDef = calculateFinalAttributes(defender.data);
+  const finalAtt = calcFinalAttrs(attacker.data).final;
+  const finalDef = calcFinalAttrs(defender.data).final;
 
   // 闪避判定
-  if (skill.type === 'attack' || skill.type === 'control' || skill.type === 'debuff') {
+  if (
+    skill.type === 'attack' ||
+    skill.type === 'control' ||
+    skill.type === 'debuff'
+  ) {
     const evasion = Math.min(0.25, finalDef.speed / 400);
     if (Math.random() < evasion) {
       log.push(
@@ -263,7 +199,7 @@ function executeSkill(
   } else if (skill.type === 'heal') {
     const heal = skill.power + finalAtt.spirit / 2;
     const target = skill.target_self === false ? defender : attacker;
-    const maxHp = 80 + calculateFinalAttributes(target.data).vitality;
+    const maxHp = 80 + calcFinalAttrs(target.data).final.vitality;
     const healInt = Math.floor(heal);
     target.hp = Math.min(target.hp + healInt, maxHp);
     log.push(
@@ -278,7 +214,11 @@ function executeSkill(
   }
 
   // 装备 on_hit_add_effect 触发
-  if (skill.type === 'attack' || skill.type === 'control' || skill.type === 'debuff') {
+  if (
+    skill.type === 'attack' ||
+    skill.type === 'control' ||
+    skill.type === 'debuff'
+  ) {
     const artifactsById = new Map<string, Artifact>(
       attacker.data.inventory.artifacts.map((a) => [a.id!, a]),
     );
@@ -320,7 +260,7 @@ function chooseSkill(actor: BattleUnit, target: BattleUnit): Skill {
   const heals = available.filter((s) => s.type === 'heal');
   const buffs = available.filter((s) => s.type === 'buff');
 
-  const hpRatio = actor.hp / (80 + calculateFinalAttributes(actor.data).vitality);
+  const hpRatio = actor.hp / (80 + calcFinalAttrs(actor.data).final.vitality);
   if (hpRatio < 0.3 && heals.length) {
     return heals[Math.floor(Math.random() * heals.length)];
   }
@@ -340,10 +280,13 @@ export function simulateBattle(
   player: Cultivator,
   opponent: Cultivator,
 ): BattleEngineResult {
-  const initUnit = (data: Cultivator, id: 'player' | 'opponent'): BattleUnit => ({
+  const initUnit = (
+    data: Cultivator,
+    id: 'player' | 'opponent',
+  ): BattleUnit => ({
     id,
     data,
-    hp: 80 + calculateFinalAttributes(data).vitality,
+    hp: 80 + calcFinalAttrs(data).final.vitality,
     statuses: new Map(),
     skillCooldowns: new Map(data.skills.map((s) => [s.id!, 0])),
   });
@@ -355,11 +298,7 @@ export function simulateBattle(
     log: [],
   };
 
-  while (
-    state.player.hp > 0 &&
-    state.opponent.hp > 0 &&
-    state.turn < 30
-  ) {
+  while (state.player.hp > 0 && state.opponent.hp > 0 && state.turn < 30) {
     state.turn += 1;
     state.log.push(`[第${state.turn}回合]`);
 
@@ -370,13 +309,15 @@ export function simulateBattle(
     if (state.player.hp <= 0 || state.opponent.hp <= 0) break;
 
     const pSpeed =
-      calculateFinalAttributes(state.player.data).speed +
+      calcFinalAttrs(state.player.data).final.speed +
       (state.player.statuses.has('speed_up') ? 20 : 0);
     const oSpeed =
-      calculateFinalAttributes(state.opponent.data).speed +
+      calcFinalAttrs(state.opponent.data).final.speed +
       (state.opponent.statuses.has('speed_up') ? 20 : 0);
     const actors =
-      pSpeed >= oSpeed ? [state.player, state.opponent] : [state.opponent, state.player];
+      pSpeed >= oSpeed
+        ? [state.player, state.opponent]
+        : [state.opponent, state.player];
 
     for (const actor of actors) {
       if (actor.hp <= 0) continue;
@@ -401,10 +342,10 @@ export function simulateBattle(
     state.player.hp > 0 && state.opponent.hp <= 0
       ? state.player
       : state.opponent.hp > 0 && state.player.hp <= 0
-      ? state.opponent
-      : state.player.hp >= state.opponent.hp
-      ? state.player
-      : state.opponent;
+        ? state.opponent
+        : state.player.hp >= state.opponent.hp
+          ? state.player
+          : state.opponent;
 
   const loserUnit = winnerUnit.id === 'player' ? state.opponent : state.player;
 
@@ -421,4 +362,3 @@ export function simulateBattle(
     opponentHp: state.opponent.hp,
   };
 }
-

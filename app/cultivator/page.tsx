@@ -1,8 +1,10 @@
 'use client';
 
+import { InkButton, InkCard, InkDivider } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
-import { InkButton, InkDivider, InkCard } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import type { Attributes } from '@/types/cultivator';
+import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 
 const attributeLabels: Record<string, string> = {
   vitality: '体魄',
@@ -13,7 +15,8 @@ const attributeLabels: Record<string, string> = {
 };
 
 export default function CultivatorPage() {
-  const { cultivator, inventory, skills, equipped, isLoading, note } = useCultivatorBundle();
+  const { cultivator, inventory, skills, equipped, isLoading, note } =
+    useCultivatorBundle();
 
   if (isLoading && !cultivator) {
     return (
@@ -35,22 +38,30 @@ export default function CultivatorPage() {
           </InkButton>
         }
       >
-        <div className="rounded-lg border border-ink/10 bg-paper-light p-6 text-center">
+        <div className="text-center">
           尚无角色资料，先去觉醒灵根，再来凝视真形。
         </div>
       </InkPageShell>
     );
   }
 
-  const maxHp = 80 + cultivator.attributes.vitality;
+  // 计算最终属性
+  const finalAttrsResult = calculateFinalAttributes(cultivator);
+  const finalAttrs = finalAttrsResult.final;
+  const breakdown = finalAttrsResult.breakdown;
+  const maxHp = 80 + finalAttrs.vitality;
+  const maxMp = finalAttrs.spirit;
+
   const equippedItems = inventory.artifacts.filter(
     (item) =>
       item.id &&
-      (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id),
+      (equipped.weapon === item.id ||
+        equipped.armor === item.id ||
+        equipped.accessory === item.id),
   );
 
   // 获取命格属性加成说明
-  const getFateModText = (fate: typeof cultivator.pre_heaven_fates[0]) => {
+  const getFateModText = (fate: (typeof cultivator.pre_heaven_fates)[0]) => {
     const mods = Object.entries(fate.attribute_mod)
       .filter(([, v]) => v !== undefined && v !== 0)
       .map(([k, v]) => {
@@ -61,7 +72,9 @@ export default function CultivatorPage() {
   };
 
   // 获取装备特效描述
-  const getEffectText = (effect: NonNullable<typeof inventory.artifacts[0]['special_effects']>[0]) => {
+  const getEffectText = (
+    effect: NonNullable<(typeof inventory.artifacts)[0]['special_effects']>[0],
+  ) => {
     if (effect.type === 'damage_bonus') {
       return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
     } else if (effect.type === 'on_hit_add_effect') {
@@ -87,8 +100,16 @@ export default function CultivatorPage() {
       <InkSection title="">
         <div className="space-y-2 text-base">
           <p>☯ 道号：{cultivator.name}</p>
-          <p>🌿 境界：{cultivator.realm}{cultivator.realm_stage}（{cultivator.origin || '散修'}）</p>
-          <p>❤️ 气血：{maxHp} / {maxHp}　⚡ 灵力：{cultivator.attributes.spirit} / {cultivator.attributes.spirit}</p>
+          <p>
+            🌿 境界：{cultivator.realm}
+            {cultivator.realm_stage}（{cultivator.origin || '散修'}）
+          </p>
+          <p>
+            ⏳ 年龄：{cultivator.age} 岁 / 寿元：{cultivator.lifespan} 岁
+          </p>
+          <p>
+            ❤️ 气血：{maxHp} / {maxHp}　⚡ 灵力：{maxMp} / {maxMp}
+          </p>
         </div>
       </InkSection>
 
@@ -102,13 +123,16 @@ export default function CultivatorPage() {
               {cultivator.pre_heaven_fates.map((fate, idx) => (
                 <InkCard key={fate.name + idx} highlighted={fate.type === '吉'}>
                   <p className="font-semibold text-sm">
-                    {fate.type === '吉' ? '✨' : '⚠️'} {fate.name}（{fate.type}）
+                    {fate.type === '吉' ? '✨' : '⚠️'} {fate.name}（{fate.type}
+                    ）
                   </p>
                   <p className="mt-0.5 text-xs text-ink-secondary">
                     ——{getFateModText(fate)}
                   </p>
                   {fate.description && (
-                    <p className="mt-0.5 text-xs text-ink-secondary italic">{fate.description}</p>
+                    <p className="mt-0.5 text-xs text-ink-secondary italic">
+                      {fate.description}
+                    </p>
                   )}
                 </InkCard>
               ))}
@@ -121,19 +145,56 @@ export default function CultivatorPage() {
       {/* 根基属性 */}
       <InkSection title="【根基属性】">
         <div className="space-y-2 text-base">
-          {Object.entries(cultivator.attributes).map(([key, value]) => {
-            const label = attributeLabels[key as keyof typeof attributeLabels] || key;
-            // 检查是否有命格加成
-            const hasMod = cultivator.pre_heaven_fates?.some(f => 
-              f.attribute_mod[key as keyof typeof f.attribute_mod] !== undefined
-            );
+          {Object.entries(cultivator.attributes).map(([key, baseValue]) => {
+            const label =
+              attributeLabels[key as keyof typeof attributeLabels] || key;
+            const finalValue = finalAttrs[key as keyof Attributes];
+            const fateMod = breakdown.fromFates[key as keyof Attributes];
+            const cultMod = breakdown.fromCultivations[key as keyof Attributes];
+            const equipMod = breakdown.fromEquipment[key as keyof Attributes];
+            const hasMod = fateMod !== 0 || cultMod !== 0 || equipMod !== 0;
+
             return (
-              <p key={key}>
-                {label}（{key}）：{value}
-                {hasMod && <span className="text-xs text-ink-secondary ml-2">← 受命格加成</span>}
-              </p>
+              <div key={key} className="space-y-1">
+                <p>
+                  {label}（{key}）：
+                  <span
+                    className={baseValue !== finalValue ? 'font-semibold' : ''}
+                  >
+                    {baseValue}
+                  </span>
+                  {hasMod && (
+                    <>
+                      {' → '}
+                      <span className="font-semibold text-ink-accent">
+                        {finalValue}
+                      </span>
+                      <span className="text-xs text-ink-secondary ml-2">
+                        （
+                        {fateMod !== 0
+                          ? `命格${fateMod > 0 ? '+' : ''}${fateMod}`
+                          : ''}
+                        {fateMod !== 0 && cultMod !== 0 ? '，' : ''}
+                        {cultMod !== 0
+                          ? `功法${cultMod > 0 ? '+' : ''}${cultMod}`
+                          : ''}
+                        {(fateMod !== 0 || cultMod !== 0) && equipMod !== 0
+                          ? '，'
+                          : ''}
+                        {equipMod !== 0
+                          ? `装备${equipMod > 0 ? '+' : ''}${equipMod}`
+                          : ''}
+                        ）
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
             );
           })}
+          <p className="text-xs text-ink-secondary mt-2">
+            境界上限：{breakdown.cap}（当前境界：{cultivator.realm}）
+          </p>
         </div>
       </InkSection>
 
@@ -144,21 +205,40 @@ export default function CultivatorPage() {
         {equippedItems.length > 0 ? (
           <div className="space-y-2">
             {equippedItems.map((item) => {
-              const slotIcon = item.slot === 'weapon' ? '🗡️' : item.slot === 'armor' ? '🛡️' : '📿';
-              const slotName = item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '护甲' : '饰品';
+              const slotIcon =
+                item.slot === 'weapon'
+                  ? '🗡️'
+                  : item.slot === 'armor'
+                    ? '🛡️'
+                    : '📿';
+              const slotName =
+                item.slot === 'weapon'
+                  ? '武器'
+                  : item.slot === 'armor'
+                    ? '护甲'
+                    : '饰品';
               const bonusText = Object.entries(item.bonus)
                 .filter(([, v]) => v !== undefined && v !== 0)
                 .map(([k, v]) => {
-                  const label = attributeLabels[k as keyof typeof attributeLabels] || k;
+                  const label =
+                    attributeLabels[k as keyof typeof attributeLabels] || k;
                   return `+${label} ${v}`;
                 })
                 .join('｜');
-              const effectText = item.special_effects?.map(e => getEffectText(e)).join('｜') || '';
-              
+              const effectText =
+                item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
+                '';
+
               return (
                 <InkCard key={item.id}>
                   <p className="font-semibold text-sm">
-                    {slotIcon} {slotName}：{item.name}（{item.element}·{item.slot === 'weapon' ? '道器' : item.slot === 'armor' ? '灵器' : '宝器'}）
+                    {slotIcon} {slotName}：{item.name}（{item.element}·
+                    {item.slot === 'weapon'
+                      ? '道器'
+                      : item.slot === 'armor'
+                        ? '灵器'
+                        : '宝器'}
+                    ）
                   </p>
                   <p className="mt-0.5 text-xs text-ink-secondary">
                     {bonusText}
@@ -180,28 +260,79 @@ export default function CultivatorPage() {
 
       <InkDivider />
 
+      {/* 所修功法 */}
+      <InkSection title="【所修功法】">
+        {cultivator.cultivations && cultivator.cultivations.length > 0 ? (
+          <div className="space-y-2">
+            {cultivator.cultivations.map((cult, index) => {
+              const bonusText = Object.entries(cult.bonus)
+                .filter(([, v]) => v !== undefined && v !== 0)
+                .map(([k, v]) => {
+                  const label =
+                    attributeLabels[k as keyof typeof attributeLabels] || k;
+                  return `${label} ${v > 0 ? '+' : ''}${v}`;
+                })
+                .join('，');
+
+              return (
+                <InkCard key={cult.name + index}>
+                  <p className="font-semibold text-sm">📜 {cult.name}</p>
+                  <p className="mt-0.5 text-xs text-ink-secondary">
+                    {bonusText || '无属性加成'}
+                    {cult.required_realm &&
+                      `｜需求境界：${cult.required_realm}`}
+                  </p>
+                </InkCard>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="empty-state text-sm">暂无功法，待闭关参悟。</p>
+        )}
+      </InkSection>
+
+      <InkDivider />
+
       {/* 所修神通 */}
       <InkSection title="【所修神通】">
         {skills.length > 0 ? (
           <div className="space-y-2">
             {skills.map((skill, index) => {
-              const typeIcon = skill.type === 'attack' ? '⚡' : 
-                             skill.type === 'heal' ? '❤️' : 
-                             skill.type === 'control' ? '🌀' : '✨';
-              const typeName = skill.type === 'attack' ? '攻击' : 
-                              skill.type === 'heal' ? '治疗' : 
-                              skill.type === 'control' ? '控制' : '增益';
-              
+              const typeIcon =
+                skill.type === 'attack'
+                  ? '⚡'
+                  : skill.type === 'heal'
+                    ? '❤️'
+                    : skill.type === 'control'
+                      ? '🌀'
+                      : '✨';
+              const typeName =
+                skill.type === 'attack'
+                  ? '攻击'
+                  : skill.type === 'heal'
+                    ? '治疗'
+                    : skill.type === 'control'
+                      ? '控制'
+                      : '增益';
+
               return (
-                <InkCard key={skill.id || skill.name} highlighted={index === skills.length - 1}>
+                <InkCard
+                  key={skill.id || skill.name}
+                  highlighted={index === skills.length - 1}
+                >
                   <p className="font-semibold text-sm">
                     {typeIcon} {skill.name}（{typeName}·{skill.element}）
-                    {index === skills.length - 1 && <span className="new-mark">← 新悟</span>}
+                    {index === skills.length - 1 && (
+                      <span className="new-mark">← 新悟</span>
+                    )}
                   </p>
                   <p className="mt-0.5 text-xs text-ink-secondary">
                     威力：{skill.power}｜冷却：{skill.cooldown}回合
-                    {skill.effect && `｜效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
-                    {skill.cost !== undefined && skill.cost > 0 && `｜消耗：${skill.cost} 灵力`}
+                    {skill.effect &&
+                      `｜效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
+                    {skill.cost !== undefined &&
+                      skill.cost > 0 &&
+                      `｜消耗：${skill.cost} 灵力`}
                   </p>
                 </InkCard>
               );
@@ -219,4 +350,3 @@ export default function CultivatorPage() {
     </InkPageShell>
   );
 }
-

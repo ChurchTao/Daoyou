@@ -1,9 +1,9 @@
 'use client';
 
-import { InkPageShell } from '@/components/InkLayout';
 import { InkButton, InkCard } from '@/components/InkComponents';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { InkPageShell } from '@/components/InkLayout';
 import { mockRankings } from '@/data/mockRankings';
+import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Cultivator } from '@/types/cultivator';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -94,10 +94,7 @@ export default function RankingsPage() {
       note={note || error}
       footer={
         <div className="flex justify-between text-ink">
-          <InkButton 
-            onClick={() => loadRankings()} 
-            disabled={loadingRankings}
-          >
+          <InkButton onClick={() => loadRankings()} disabled={loadingRankings}>
             {loadingRankings ? '推演中…' : '刷新榜单'}
           </InkButton>
           <InkButton href="/">返回</InkButton>
@@ -105,9 +102,7 @@ export default function RankingsPage() {
       }
     >
       {!cultivator ? (
-        <div className="pb-4 border-b border-ink/10 text-center">
-          请先觉醒角色再来挑战天骄。
-        </div>
+        <div className="text-center">请先觉醒角色再来挑战天骄。</div>
       ) : (
         <div className="space-y-3">
           {rankings.map((item, index) => {
@@ -116,7 +111,9 @@ export default function RankingsPage() {
               <InkCard key={item.id} highlighted={isSelf}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-6 text-base font-semibold flex-shrink-0">{index + 1}.</div>
+                    <div className="w-6 text-base font-semibold flex-shrink-0">
+                      {index + 1}.
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate">
                         {item.name}（{item.faction ?? '散修'}）
@@ -130,7 +127,7 @@ export default function RankingsPage() {
                       {item.combatRating}
                     </span>
                     {!isSelf && (
-                      <InkButton 
+                      <InkButton
                         onClick={() => handleChallenge(item.id)}
                         variant="primary"
                         className="text-sm"
@@ -154,4 +151,3 @@ export default function RankingsPage() {
     </InkPageShell>
   );
 }
-
