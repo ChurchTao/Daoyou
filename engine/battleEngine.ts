@@ -16,11 +16,32 @@ export interface BattleEngineResult {
   opponentHp: number;
 }
 
+type UnitId = 'player' | 'opponent';
+
+interface StatusSourceSnapshot {
+  id: UnitId;
+  name: string;
+  spirit: number;
+  wisdom: number;
+  speed: number;
+  willpower: number;
+  vitality: number;
+  elementMultipliers: Partial<Record<ElementType, number>>;
+}
+
+interface StatusInstance {
+  remaining: number;
+  potency?: number;
+  element?: ElementType;
+  skillName?: string;
+  source?: StatusSourceSnapshot;
+}
+
 interface BattleUnit {
-  id: 'player' | 'opponent';
+  id: UnitId;
   data: Cultivator;
   hp: number;
-  statuses: Map<StatusEffect, number>;
+  statuses: Map<StatusEffect, StatusInstance>;
   skillCooldowns: Map<string, number>;
 }
 
@@ -56,6 +77,19 @@ const STATUS_EFFECTS = new Set<StatusEffect>([
   'armor_down',
 ]);
 
+const STATUS_LABELS: Record<StatusEffect, string> = {
+  burn: '灼烧',
+  bleed: '流血',
+  poison: '中毒',
+  stun: '眩晕',
+  silence: '沉默',
+  root: '定身',
+  armor_up: '护体',
+  speed_up: '疾速',
+  crit_rate_up: '会心',
+  armor_down: '破防',
+};
+
 // 使用统一的属性计算函数（从utils导入）
 
 function getElementMultiplier(
@@ -64,60 +98,106 @@ function getElementMultiplier(
   el: ElementType,
 ): number {
   let mult = 1.0;
-  const root = attacker.spiritual_roots.find((r) => r.element === el);
-  if (root) {
-    mult *= 1.0 + (root.strength / 100) * 0.5;
-  }
   const defenderMainRoot = defender.spiritual_roots[0]?.element;
   if (defenderMainRoot && ELEMENT_WEAKNESS[el]?.includes(defenderMainRoot)) {
-    mult *= 1.5;
+    mult *= 1.25;
   }
   return mult;
+}
+
+function getRootDamageMultiplier(
+  attacker: Cultivator,
+  el: ElementType,
+): number {
+  const root = attacker.spiritual_roots.find((r) => r.element === el);
+  if (!root) return 1.0;
+  return 1.0 + (root.strength / 100) * 0.5;
+}
+
+function getDefenseMultiplier(unit: BattleUnit): number {
+  const final = calcFinalAttrs(unit.data).final;
+  let reduction = final.vitality / 400;
+  if (unit.statuses.has('armor_up')) reduction += 0.15;
+  if (unit.statuses.has('armor_down')) reduction -= 0.15;
+  reduction = Math.min(Math.max(reduction, 0), 0.7);
+  return 1 - reduction;
+}
+
+function getCritRate(attacker: BattleUnit): number {
+  const final = calcFinalAttrs(attacker.data).final;
+  let rate = (final.wisdom - 40) / 200;
+  if (attacker.statuses.has('crit_rate_up')) rate += 0.15;
+  return Math.min(Math.max(rate, 0.05), 0.6);
+}
+
+function calculateSpellBase(
+  attacker: BattleUnit,
+  defender: BattleUnit,
+  power: number,
+  element: ElementType,
+): { damage: number; isCrit: boolean } {
+  const attFinal = calcFinalAttrs(attacker.data).final;
+
+  let damage = power * (1 + attFinal.spirit / 150);
+  damage *= getRootDamageMultiplier(attacker.data, element);
+  damage *= getElementMultiplier(attacker.data, defender.data, element);
+
+  const critRate = getCritRate(attacker);
+  const isCrit = Math.random() < critRate;
+  if (isCrit) damage *= 1.8;
+
+  damage *= getDefenseMultiplier(defender);
+
+  return { damage, isCrit };
 }
 
 function calculateStatusHitChance(
   attackerPower: number,
   defenderWillpower: number,
 ): number {
-  const baseHit = Math.min(0.9, Math.max(0.3, attackerPower / 100));
-  const resist = Math.min(0.7, defenderWillpower / 250);
+  const baseHit = Math.min(0.95, Math.max(0.35, attackerPower / 100));
+  const resist = Math.min(0.7, defenderWillpower / 240);
   return Math.max(0.1, baseHit * (1 - resist));
 }
 
 function applyStatus(
   unit: BattleUnit,
   effect: StatusEffect,
-  duration: number,
+  instance: StatusInstance,
 ): boolean {
   if (!STATUS_EFFECTS.has(effect)) return false;
-  unit.statuses.set(effect, duration);
+  unit.statuses.set(effect, instance);
   return true;
 }
 
 function tickStatusEffects(unit: BattleUnit, log: string[]): void {
   const toRemove: StatusEffect[] = [];
-  const finalAttrs = calcFinalAttrs(unit.data).final;
 
-  for (const [effect, dur] of unit.statuses.entries()) {
-    if (dur <= 0) {
+  for (const [effect, info] of unit.statuses.entries()) {
+    if (info.remaining <= 0) {
       toRemove.push(effect);
       continue;
     }
 
-    if (effect === 'burn') {
-      const dmg = 5 + Math.floor(finalAttrs.spirit / 20);
+    if (effect === 'burn' || effect === 'bleed' || effect === 'poison') {
+      const dmg = calculateDotDamage(effect, info, unit);
       unit.hp -= dmg;
-      log.push(`${unit.data.name} 被灼烧，受到 ${dmg} 点伤害！`);
-    } else if (effect === 'bleed') {
-      unit.hp -= 4;
-      log.push(`${unit.data.name} 流血不止，受到 4 点伤害！`);
-    } else if (effect === 'poison') {
-      const dmg = 3 + Math.floor(finalAttrs.vitality / 30);
-      unit.hp -= dmg;
-      log.push(`${unit.data.name} 中毒，受到 ${dmg} 点伤害！`);
+      const descriptor =
+        effect === 'burn'
+          ? '被烈焰侵蚀'
+          : effect === 'bleed'
+            ? '伤口难愈'
+            : '毒气攻心';
+      log.push(
+        `${unit.data.name} ${descriptor}，「${describeStatus(effect)}」造成 ${dmg} 点伤害。`,
+      );
     }
 
-    unit.statuses.set(effect, dur - 1);
+    const nextRemaining = info.remaining - 1;
+    unit.statuses.set(effect, { ...info, remaining: nextRemaining });
+    if (nextRemaining <= 0) {
+      toRemove.push(effect);
+    }
   }
 
   for (const e of toRemove) unit.statuses.delete(e);
@@ -131,6 +211,160 @@ function canUseSkill(unit: BattleUnit, skill: Skill): boolean {
   if (unit.statuses.has('silence') && skill.type !== 'heal') return false;
   const cd = unit.skillCooldowns.get(skill.id!) ?? 0;
   return cd <= 0;
+}
+
+function describeStatus(effect?: StatusEffect | null): string {
+  if (!effect) return '';
+  return STATUS_LABELS[effect] ?? effect;
+}
+
+function snapshotUnit(unit: BattleUnit): StatusSourceSnapshot {
+  const final = calcFinalAttrs(unit.data).final;
+  const elementMultipliers: Partial<Record<ElementType, number>> = {};
+  for (const root of unit.data.spiritual_roots) {
+    elementMultipliers[root.element] = 1.0 + (root.strength / 100) * 0.5;
+  }
+  return {
+    id: unit.id,
+    name: unit.data.name,
+    spirit: final.spirit,
+    wisdom: final.wisdom,
+    speed: final.speed,
+    willpower: final.willpower,
+    vitality: final.vitality,
+    elementMultipliers,
+  };
+}
+
+function calculateDotDamage(
+  effect: StatusEffect,
+  instance: StatusInstance,
+  target: BattleUnit,
+): number {
+  if (effect !== 'burn' && effect !== 'bleed' && effect !== 'poison') return 0;
+  const targetFinal = calcFinalAttrs(target.data).final;
+  const baseHp = 80 + targetFinal.vitality;
+  const potency = instance.potency ?? 60;
+  const sourceSpirit = instance.source?.spirit ?? targetFinal.spirit;
+  const element =
+    instance.element ??
+    (effect === 'burn' ? '火' : effect === 'poison' ? '木' : '金');
+  const elementBonus = instance.source?.elementMultipliers?.[element] ?? 1.0;
+
+  let ratio = 0.05;
+  if (effect === 'burn') ratio = 0.07;
+  else if (effect === 'bleed') ratio = 0.06;
+
+  let damage =
+    baseHp * ratio +
+    potency * (effect === 'poison' ? 0.25 : 0.2) +
+    sourceSpirit * 0.15;
+  damage *= elementBonus;
+  damage *= getDefenseMultiplier(target);
+
+  return Math.max(1, Math.floor(damage));
+}
+
+function logAttackAction(
+  attacker: BattleUnit,
+  defender: BattleUnit,
+  skill: Skill,
+  damage: number,
+  isCrit: boolean,
+  log: string[],
+): void {
+  if (damage <= 0) {
+    log.push(
+      `${attacker.data.name} 对 ${defender.data.name} 使用「${skill.name}」，但未能造成有效伤害。`,
+    );
+    return;
+  }
+  log.push(
+    `${attacker.data.name} 对 ${defender.data.name} 使用「${skill.name}」${
+      isCrit ? '（暴击）' : ''
+    }，造成 ${damage} 点伤害。`,
+  );
+}
+
+function logHealAction(
+  attacker: BattleUnit,
+  target: BattleUnit,
+  skill: Skill,
+  heal: number,
+  log: string[],
+): void {
+  const targetName = target === attacker ? '自己' : target.data.name;
+  if (heal <= 0) {
+    log.push(
+      `${attacker.data.name} 对 ${targetName} 使用「${skill.name}」，但未能恢复气血。`,
+    );
+  } else {
+    log.push(
+      `${attacker.data.name} 对 ${targetName} 使用「${skill.name}」，恢复 ${heal} 点气血。`,
+    );
+  }
+}
+
+function applyAndLogStatusFromSkill(
+  caster: BattleUnit,
+  target: BattleUnit,
+  skill: Skill,
+  log: string[],
+): void {
+  if (!skill.effect) {
+    if (
+      skill.type === 'buff' ||
+      skill.type === 'control' ||
+      skill.type === 'debuff'
+    ) {
+      log.push(`⚠️ 技能「${skill.name}」未配置可用的状态效果，已跳过。`);
+    }
+    return;
+  }
+  if (!STATUS_EFFECTS.has(skill.effect)) {
+    log.push(
+      `⚠️ 技能「${skill.name}」配置了未知效果「${skill.effect}」，请检查设定。`,
+    );
+    return;
+  }
+
+  const duration = skill.duration ?? (skill.type === 'control' ? 1 : 2);
+  const label = describeStatus(skill.effect);
+  const instance: StatusInstance = {
+    remaining: duration,
+    potency: skill.power,
+    element: skill.element,
+    skillName: skill.name,
+    source: snapshotUnit(caster),
+  };
+
+  const appliesToSelf = skill.target_self === true || skill.type === 'buff';
+  const recipient = appliesToSelf ? caster : target;
+
+  if (appliesToSelf) {
+    const applied = applyStatus(recipient, skill.effect, instance);
+    if (applied) {
+      log.push(
+        `${caster.data.name} 使用「${skill.name}」，获得「${label}」状态（持续 ${duration} 回合）。`,
+      );
+    }
+    return;
+  }
+
+  const defFinal = calcFinalAttrs(recipient.data).final;
+  const hitChance = calculateStatusHitChance(skill.power, defFinal.willpower);
+  const hit = Math.random() < hitChance;
+
+  if (hit) {
+    applyStatus(recipient, skill.effect, instance);
+    log.push(
+      `${recipient.data.name} 被「${skill.name}」影响，陷入「${label}」状态（持续 ${duration} 回合）。`,
+    );
+  } else {
+    log.push(
+      `${recipient.data.name} 神识强大，抵抗了「${skill.name}」试图施加的「${label}」状态。`,
+    );
+  }
 }
 
 function executeSkill(
@@ -149,7 +383,8 @@ function executeSkill(
     skill.type === 'control' ||
     skill.type === 'debuff'
   ) {
-    const evasion = Math.min(0.25, finalDef.speed / 400);
+    const speedBonus = defender.statuses.has('speed_up') ? 20 : 0;
+    const evasion = Math.min(0.3, (finalDef.speed + speedBonus) / 350);
     if (Math.random() < evasion) {
       log.push(
         `${defender.data.name} 闪避了 ${attacker.data.name} 的「${skill.name}」！`,
@@ -160,58 +395,46 @@ function executeSkill(
   }
 
   if (skill.type === 'attack') {
-    let damage = skill.power * (finalAtt.spirit / 100);
-    damage *= getElementMultiplier(attacker.data, defender.data, skill.element);
-    const critRate = Math.min(0.3, (finalAtt.wisdom - 50) / 200);
-    const isCrit = Math.random() < critRate;
-    if (isCrit) damage *= 2;
-    const defReduction = finalDef.vitality / 500;
-    damage *= 1 - defReduction;
-    const dmgInt = Math.max(1, Math.floor(damage));
-    defender.hp -= dmgInt;
-    log.push(
-      `${attacker.data.name} 使用「${skill.name}」${
-        Math.random() < critRate ? '【暴击】' : ''
-      }造成 ${dmgInt} 点伤害！`,
+    const { damage, isCrit } = calculateSpellBase(
+      attacker,
+      defender,
+      skill.power,
+      skill.element,
     );
+    const dmgInt = Math.max(0, Math.floor(damage));
+    defender.hp -= dmgInt;
+    logAttackAction(attacker, defender, skill, dmgInt, isCrit, log);
   } else if (skill.type === 'debuff' || skill.type === 'control') {
-    if (!skill.effect) {
-      log.push(`⚠️ 技能 ${skill.name} 缺少 effect 字段！`);
-    } else if (!STATUS_EFFECTS.has(skill.effect)) {
-      log.push(`⚠️ 无效状态效果：${skill.effect}`);
-    } else {
-      const hitChance = calculateStatusHitChance(
-        skill.power,
-        finalDef.willpower,
+    if (skill.power > 0) {
+      const { damage, isCrit } = calculateSpellBase(
+        attacker,
+        defender,
+        skill.power * 0.7,
+        skill.element,
       );
-      const duration = skill.duration ?? (skill.type === 'control' ? 1 : 2);
-      if (Math.random() < hitChance) {
-        applyStatus(defender, skill.effect, duration);
-        log.push(
-          `${attacker.data.name} 成功对 ${defender.data.name} 施加「${skill.effect}」！`,
-        );
-      } else {
-        log.push(
-          `${defender.data.name} 凭借强大神识，抵抗了「${skill.name}」！`,
-        );
-      }
+      const dmgInt = Math.max(0, Math.floor(damage));
+      defender.hp -= dmgInt;
+      logAttackAction(attacker, defender, skill, dmgInt, isCrit, log);
+    } else {
+      log.push(
+        `${attacker.data.name} 对 ${defender.data.name} 使用「${skill.name}」，试图扭转战局。`,
+      );
     }
   } else if (skill.type === 'heal') {
-    const heal = skill.power + finalAtt.spirit / 2;
     const target = skill.target_self === false ? defender : attacker;
-    const maxHp = 80 + calcFinalAttrs(target.data).final.vitality;
-    const healInt = Math.floor(heal);
+    const targetFinal = calcFinalAttrs(target.data).final;
+    const maxHp = 80 + targetFinal.vitality;
+    const rawHeal = skill.power * (1 + finalAtt.spirit / 160);
+    const healInt = Math.max(0, Math.floor(rawHeal));
     target.hp = Math.min(target.hp + healInt, maxHp);
-    log.push(
-      `${attacker.data.name} 使用「${skill.name}」，恢复 ${healInt} 点气血！`,
-    );
+    logHealAction(attacker, target, skill, healInt, log);
   } else if (skill.type === 'buff') {
-    if (skill.effect) {
-      const duration = skill.duration ?? 2;
-      applyStatus(attacker, skill.effect, duration);
-      log.push(`${attacker.data.name} 获得「${skill.effect}」效果！`);
-    }
+    log.push(
+      `${attacker.data.name} 引导灵力，施展「${skill.name}」，强化自身。`,
+    );
   }
+
+  applyAndLogStatusFromSkill(attacker, defender, skill, log);
 
   // 装备 on_hit_add_effect 触发
   if (
@@ -235,10 +458,24 @@ function executeSkill(
       for (const eff of effects) {
         if (eff.type === 'on_hit_add_effect') {
           if (Math.random() * 100 < eff.chance) {
-            applyStatus(defender, eff.effect, 2);
-            log.push(
-              `${defender.data.name} 因 ${art.name} 被附加「${eff.effect}」！`,
-            );
+            const duration = 2;
+            const effectInstance: StatusInstance = {
+              remaining: duration,
+              potency: 60,
+              element: art.element,
+              skillName: art.name,
+              source: snapshotUnit(attacker),
+            };
+            const applied = applyStatus(defender, eff.effect, effectInstance);
+            if (applied) {
+              log.push(
+                `${attacker.data.name} 的 ${art.name} 触发，对 ${defender.data.name} 附加「${describeStatus(eff.effect)}」（持续 ${duration} 回合）。`,
+              );
+            } else {
+              log.push(
+                `⚠️ 法宝 ${art.name} 试图施加未知状态「${eff.effect}」，已忽略。`,
+              );
+            }
           }
         }
       }
