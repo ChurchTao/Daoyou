@@ -1,5 +1,7 @@
 import { mockRankings } from '@/data/mockRankings';
 import { simulateBattle } from '@/engine/battleEngine';
+import { db } from '@/lib/drizzle/db';
+import { battleRecords } from '@/lib/drizzle/schema';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import type { Cultivator } from '@/types/cultivator';
@@ -113,8 +115,8 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // 6. 流式生成战斗播报
-          await generateBattleReportStream(
+          // 6. 流式生成战斗播报，并在服务端累积完整文本
+          const fullReport = await generateBattleReportStream(
             prompt,
             userPrompt,
             (chunk: string) => {
@@ -124,7 +126,20 @@ export async function POST(request: NextRequest) {
             },
           );
 
-          // 7. 发送结束标记
+          // 7. 将本次战斗结果以快照方式写入数据库
+          try {
+            await db.insert(battleRecords).values({
+              userId: user.id,
+              cultivatorId,
+              battleResult,
+              battleReport: fullReport,
+            });
+          } catch (e) {
+            // 写入战斗记录失败不应影响前端体验，仅记录日志
+            console.error('写入战斗记录失败:', e);
+          }
+
+          // 8. 发送结束标记
           controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
           controller.close();
         } catch (error) {

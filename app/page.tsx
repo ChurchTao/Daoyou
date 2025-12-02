@@ -2,6 +2,7 @@
 
 import { InkButton, InkDivider } from '@/components/InkComponents';
 import { InkSection } from '@/components/InkLayout';
+import { RecentBattles } from '@/components/RecentBattles';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import Image from 'next/image';
 
@@ -133,15 +134,7 @@ export default function HomePage() {
         </InkSection>
         {/* 近期战绩 */}
         <InkSection title="【近期战绩】">
-          <div>
-            <p className="text-ink-secondary">
-              【占位】真实战绩将与战报系统联动。
-            </p>
-            <p className="mt-2 text-sm text-ink-secondary">
-              ✓ 胜 苏红袖（火凤门）
-            </p>
-            <p className="text-sm text-ink-secondary">✗ 败 剑无尘（天剑阁）</p>
-          </div>
+          <RecentBattles />
         </InkSection>
 
         <div className="text-center">

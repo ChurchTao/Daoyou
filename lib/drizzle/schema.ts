@@ -157,3 +157,22 @@ export const tempCultivators = pgTable('wanjiedaoyou_temp_cultivators', {
   createdAt: timestamp('created_at').defaultNow(),
   expiresAt: timestamp('expires_at'), // 过期时间，在程序中设置
 });
+
+// 战斗记录表 - 存放每场战斗的完整结果快照与战报
+export const battleRecords = pgTable('wanjiedaoyou_battle_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // 关联用户和正式角色
+  userId: uuid('user_id').notNull(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+
+  // 战斗结果快照（完整 BattleEngineResult 或其扩展）
+  battleResult: jsonb('battle_result').notNull(),
+
+  // AIGC 生成的战斗播报完整文本
+  battleReport: text('battle_report'),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
