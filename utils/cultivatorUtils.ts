@@ -254,7 +254,7 @@ function asCultivations(raw: unknown): CultivationTechnique[] {
 function asSkills(raw: unknown): Skill[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((item, index) => {
+    .map((item) => {
       if (!item || typeof item !== 'object') return null;
       const rec = item as Record<string, unknown>;
       const name = asString(rec.name, '');
@@ -318,6 +318,7 @@ function asStatusEffect(value: unknown): Skill['effect'] {
   return undefined;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normaliseInventory(raw: unknown): Cultivator['inventory'] {
   const obj =
     raw && typeof raw === 'object'
@@ -402,6 +403,7 @@ function normaliseInventory(raw: unknown): Cultivator['inventory'] {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normaliseEquipped(
   raw: unknown,
   inventory: Cultivator['inventory'],

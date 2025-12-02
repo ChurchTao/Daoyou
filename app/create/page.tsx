@@ -311,7 +311,7 @@ export default function CreatePage() {
                             </p>
                             <p className="text-ink/80">
                               {Object.entries(fate.attribute_mod)
-                                .filter(([_, v]) => v !== undefined && v !== 0)
+                                .filter(([, v]) => v !== undefined && v !== 0)
                                 .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
                                 .join(', ') || '无属性加成'}
                             </p>
@@ -363,7 +363,7 @@ export default function CreatePage() {
                             <p className="font-semibold">{cult.name}</p>
                             <p className="text-ink/80">
                               {Object.entries(cult.bonus)
-                                .filter(([_, v]) => v !== undefined && v !== 0)
+                                .filter(([, v]) => v !== undefined && v !== 0)
                                 .map(([k, v]) => `${k} +${v}`)
                                 .join(', ') || '无属性加成'}
                             </p>

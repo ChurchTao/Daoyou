@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
 
 角色信息：
 - 名称：${cultivator.name}
-- 境界：${cultivator.cultivationLevel}
-- 灵根：${cultivator.spiritRoot}
-- 元素：${cultivator.battleProfile?.element || '无'}
-- 现有技能：${cultivator.battleProfile?.skills.map(skill => skill.name).join(', ') || '无'}
+- 境界：${cultivator.realm}${cultivator.realm_stage}
+- 灵根：${cultivator.spiritual_roots[0]?.element || '无'}（强度：${cultivator.spiritual_roots[0]?.strength || 0}）
+- 元素：${cultivator.spiritual_roots[0]?.element || '无'}
+- 现有技能：${cultivator.skills?.map(skill => skill.name).join(', ') || '无'}
 
 示例输出（装备）：
 {
@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
         .values({
           cultivatorId,
           name: adventureData.reward.name,
-          effect: adventureData.reward.effect,
-          description: adventureData.reward.description,
+          type: adventureData.reward.type || 'heal',
+          effect: adventureData.reward.effect || null,
         })
         .returning()
         .then((result) => result[0]);

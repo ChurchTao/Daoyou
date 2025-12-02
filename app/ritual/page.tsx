@@ -3,7 +3,6 @@
 import { InkPageShell } from '@/components/InkLayout';
 import { InkButton, InkDivider } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 type RitualMode = 'equipment' | 'skill' | 'adventure';
@@ -62,7 +61,7 @@ export default function RitualPage() {
 
     try {
       let endpoint = '';
-      let body: Record<string, unknown> = {
+      const body: Record<string, unknown> = {
         cultivatorId: cultivator.id,
       };
 
@@ -144,7 +143,7 @@ export default function RitualPage() {
           <p className="text-sm text-ink-secondary mb-2">{currentMode.hint}</p>
           <p className="text-sm text-ink-secondary">
             示例：<br />
-            <span className="text-ink italic">"{currentMode.example}"</span>
+            <span className="text-ink italic">&quot;{currentMode.example}&quot;</span>
           </p>
         </div>
 

@@ -53,7 +53,7 @@ export default function InventoryPage() {
   };
 
   // 获取装备特效描述
-  const getEffectText = (effect: typeof inventory.artifacts[0]['special_effects'][0]) => {
+  const getEffectText = (effect: NonNullable<Artifact['special_effects']>[0]) => {
     if (effect.type === 'damage_bonus') {
       return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
     } else if (effect.type === 'on_hit_add_effect') {
@@ -96,12 +96,12 @@ export default function InventoryPage() {
       ) : totalEquipments > 0 ? (
         <div className="space-y-2">
           {inventory.artifacts.map((item) => {
-            const equippedNow =
+            const equippedNow = Boolean(
               item.id &&
-              (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id);
+              (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id)
+            );
             
             const slotIcon = item.slot === 'weapon' ? '🗡️' : item.slot === 'armor' ? '🛡️' : '📿';
-            const slotName = item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '护甲' : '饰品';
             const artifactType = item.slot === 'weapon' ? '道器' : item.slot === 'armor' ? '灵器' : '宝器';
             
             const bonusText = Object.entries(item.bonus)
@@ -127,7 +127,7 @@ export default function InventoryPage() {
                       {effectText && `｜${effectText}`}
                     </p>
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <InkButton
                       disabled={pendingId === item.id}
                       onClick={() => handleEquipToggle(item)}

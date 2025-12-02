@@ -20,117 +20,6 @@ const defaultInventory: Inventory = {
   consumables: [],
 };
 
-const mockCultivator: Cultivator = {
-  id: 'mock-linqingluo',
-  name: '林青萝',
-  prompt: '以药修与木灵为核心的女修',
-  gender: '女',
-  origin: '药王谷',
-  personality: '温和克制，心怀慈悲',
-  realm: '筑基',
-  realm_stage: '中期',
-  age: 25,
-  lifespan: 200,
-  attributes: {
-    vitality: 78,
-    spirit: 95,
-    wisdom: 75,
-    speed: 70,
-    willpower: 80,
-  },
-  spiritual_roots: [
-    { element: '木', strength: 85 },
-  ],
-  pre_heaven_fates: [
-    {
-      name: '紫府通明',
-      type: '吉',
-      attribute_mod: { spirit: 15 },
-      description: '元神澄澈，灵识通透',
-    },
-    {
-      name: '孤辰入命',
-      type: '凶',
-      attribute_mod: { wisdom: -5 },
-      description: '悟性降低且无法结成道侣',
-    },
-    {
-      name: '草莽龙气',
-      type: '吉',
-      attribute_mod: { vitality: 10 },
-      description: '体魄异于常人',
-    },
-  ],
-  cultivations: [],
-  skills: [
-    {
-      id: 'sk_mock_1',
-      name: '藤蔓缚',
-      type: 'control',
-      power: 60,
-      element: '木',
-      cooldown: 2,
-      effect: 'root',
-      duration: 2,
-    },
-    {
-      id: 'sk_mock_2',
-      name: '回春诀',
-      type: 'heal',
-      power: 50,
-      element: '木',
-      cooldown: 1,
-    },
-    {
-      id: 'sk_mock_3',
-      name: '九霄雷引',
-      type: 'attack',
-      power: 85,
-      element: '雷',
-      cooldown: 2,
-    },
-  ],
-  inventory: {
-    artifacts: [
-      {
-        id: 'mock-weapon',
-        name: '焚天剑',
-        slot: 'weapon',
-        element: '火',
-        bonus: { spirit: 15 },
-        special_effects: [],
-        curses: [],
-      },
-      {
-        id: 'mock-armor',
-        name: '玄龟甲',
-        slot: 'armor',
-        element: '水',
-        bonus: { vitality: 12 },
-        special_effects: [],
-        curses: [],
-      },
-      {
-        id: 'mock-accessory',
-        name: '青木玉佩',
-        slot: 'accessory',
-        element: '木',
-        bonus: { wisdom: 8 },
-        special_effects: [],
-        curses: [],
-      },
-    ],
-    consumables: [],
-  },
-  equipped: {
-    weapon: 'mock-weapon',
-    armor: 'mock-armor',
-    accessory: 'mock-accessory',
-  },
-  max_skills: 3,
-  background: '药王谷真传弟子，兼修丹道与木灵，擅以藤木护道。',
-};
-
 export function useCultivatorBundle() {
   const { user } = useAuth();
   const [state, setState] = useState<FetchState>({
@@ -184,7 +73,7 @@ export function useCultivatorBundle() {
           if (inventoryJson.success) {
             inventory = inventoryJson.data;
           }
-        } catch (e) {
+        } catch {
           // 忽略错误，使用默认值
         }
       }
@@ -196,7 +85,7 @@ export function useCultivatorBundle() {
           if (skillsJson.success) {
             skills = skillsJson.data;
           }
-        } catch (e) {
+        } catch {
           // 忽略错误，使用默认值
         }
       }
@@ -208,7 +97,7 @@ export function useCultivatorBundle() {
           if (equippedJson.success) {
             equipped = equippedJson.data;
           }
-        } catch (e) {
+        } catch {
           // 忽略错误，使用默认值
         }
       }

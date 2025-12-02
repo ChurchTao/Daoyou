@@ -1,12 +1,12 @@
 import { mockRankings } from '@/data/mockRankings';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 /**
  * GET /api/rankings
  * 获取排行榜数据
  * 目前使用mock数据，后续将接入真实数据库
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 返回mock排行榜数据
     return NextResponse.json({

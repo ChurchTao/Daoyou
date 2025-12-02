@@ -1,6 +1,6 @@
 'use client';
 
-import { Session, User } from '@supabase/supabase-js';
+import { AuthError, Session, User } from '@supabase/supabase-js';
 import React, {
   createContext,
   ReactNode,
@@ -14,15 +14,15 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  createAnonymousUser: () => Promise<{ error: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signOut: () => Promise<{ error: AuthError | null }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  createAnonymousUser: () => Promise<{ error: AuthError | null }>;
   linkAnonymousUser: (
     email: string,
     password: string,
-  ) => Promise<{ error: any }>;
+  ) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     // 获取初始会话
     const getInitialSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);

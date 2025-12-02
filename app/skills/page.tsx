@@ -64,7 +64,7 @@ export default function SkillsPage() {
                       <p className="text-xs text-ink-secondary">冷却：{skill.cooldown}回合</p>
                     )}
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <InkButton disabled className="text-sm">
                       替换
                     </InkButton>
