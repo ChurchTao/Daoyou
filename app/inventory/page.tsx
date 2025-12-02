@@ -6,6 +6,14 @@ import type { Artifact } from '@/types/cultivator';
 import Link from 'next/link';
 import { useState } from 'react';
 
+const attributeLabels: Record<string, string> = {
+  vitality: '体魄',
+  spirit: '灵力',
+  wisdom: '悟性',
+  speed: '身法',
+  willpower: '神识',
+};
+
 export default function InventoryPage() {
   const { cultivator, inventory, equipped, isLoading, refresh, note, usingMock } = useCultivatorBundle();
   const [feedback, setFeedback] = useState<string>('');
@@ -44,6 +52,16 @@ export default function InventoryPage() {
     }
   };
 
+  // 获取装备特效描述
+  const getEffectText = (effect: typeof inventory.artifacts[0]['special_effects'][0]) => {
+    if (effect.type === 'damage_bonus') {
+      return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
+    } else if (effect.type === 'on_hit_add_effect') {
+      return `命中时${effect.chance}%概率附加${effect.effect}`;
+    }
+    return effect.type;
+  };
+
   if (isLoading && !cultivator) {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
@@ -55,7 +73,7 @@ export default function InventoryPage() {
   return (
     <InkPageShell
       title={`【储物袋 · 共 ${totalEquipments} 件法宝】`}
-      subtitle="仅保留文字 + 氛围排版，操作区域置于拇指热区"
+      subtitle=""
       backHref="/"
       note={note}
       footer={
@@ -63,7 +81,7 @@ export default function InventoryPage() {
           <Link href="/" className="hover:text-crimson">
             [返回主界]
           </Link>
-          <span className="text-ink-secondary">[整理法宝 · TODO]</span>
+          <span className="text-ink-secondary">[整理法宝]</span>
         </div>
       }
     >
@@ -77,12 +95,27 @@ export default function InventoryPage() {
         <div className="rounded-lg border border-ink/10 bg-paper-light p-6 text-center">
           尚无角色，自然也无储物袋可查。
         </div>
-      ) : totalEquipments ? (
+      ) : totalEquipments > 0 ? (
         <div className="space-y-4">
           {inventory.artifacts.map((item) => {
             const equippedNow =
               item.id &&
               (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id);
+            
+            const slotIcon = item.slot === 'weapon' ? '🗡️' : item.slot === 'armor' ? '🛡️' : '📿';
+            const slotName = item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '护甲' : '饰品';
+            const artifactType = item.slot === 'weapon' ? '道器' : item.slot === 'armor' ? '灵器' : '宝器';
+            
+            const bonusText = Object.entries(item.bonus)
+              .filter(([_, v]) => v !== undefined && v !== 0)
+              .map(([k, v]) => {
+                const label = attributeLabels[k as keyof typeof attributeLabels] || k;
+                return `+${label} ${v}`;
+              })
+              .join('｜');
+            
+            const effectText = item.special_effects?.map(e => getEffectText(e)).join('｜') || '';
+            
             return (
               <div
                 key={item.id ?? item.name}
@@ -90,34 +123,24 @@ export default function InventoryPage() {
                   equippedNow ? 'border-crimson/60 bg-crimson/5' : 'border-ink/10 bg-paper-light'
                 }`}
               >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-3/4">
-                      <p className="font-semibold">
-                        {item.slot === 'weapon' ? '🗡️ 武器' : item.slot === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{item.name}
-                        {equippedNow && <span className="equipped-mark">← 已装备</span>}
-                      </p>
-                      <p className="text-sm text-ink-secondary">
-                        {item.element}元素
-                        {Object.entries(item.bonus)
-                          .filter(([_, v]) => v !== undefined && v !== 0)
-                          .map(([k, v]) => `${k} +${v}`)
-                          .join(', ')}
-                      </p>
-                      {item.special_effects && item.special_effects.length > 0 && (
-                        <p className="text-xs text-ink-secondary">
-                          特效：{item.special_effects.map(e => e.type).join(', ')}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      className="btn-primary btn-sm"
-                      disabled={pendingId === item.id}
-                      onClick={() => handleEquipToggle(item)}
-                    >
-                      {pendingId === item.id ? '操作中…' : equippedNow ? '卸下' : '装备'}
-                    </button>
-                  </div>
+                <div className="mb-3">
+                  <p className="font-semibold">
+                    {slotIcon} {item.name}（{item.element}·{artifactType}）
+                    {equippedNow && <span className="equipped-mark">← 已装备</span>}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-secondary">
+                    {bonusText}
+                    {effectText && `｜${effectText}`}
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    className="btn-primary btn-sm"
+                    disabled={pendingId === item.id}
+                    onClick={() => handleEquipToggle(item)}
+                  >
+                    {pendingId === item.id ? '操作中…' : equippedNow ? '卸下' : '装备'}
+                  </button>
                 </div>
               </div>
             );

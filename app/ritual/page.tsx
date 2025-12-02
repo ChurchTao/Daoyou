@@ -16,22 +16,22 @@ const modes: Record<
   }
 > = {
   equipment: {
-    title: '【炼器台 · 火候自控】',
+    title: '【炼器台 · 请输入炼器意图】',
     actionLabel: '开始炼制',
     hint: '描述材料、属性与命名，炼炉将按意图生成法宝。',
-    example: '以千年寒铁铸一柄冰属性长剑，剑名“霜魄”。',
+    example: '以千年寒铁铸一柄冰属性长剑，剑名"霜魄"',
   },
   skill: {
     title: '【闭关 · 顿悟神通】',
     actionLabel: '开始顿悟',
     hint: '描述场景或愿景，AI 将生成对应神通。',
-    example: '在雷劫中悟得一门攻防一体的雷遁之术。',
+    example: '在雷劫中悟得一门攻防一体的雷遁之术',
   },
   adventure: {
     title: '【奇遇 · 推演天机】',
     actionLabel: '触发奇遇',
     hint: '描述想去之地或目标，暂未接入 AI，但会记录意图。',
-    example: '求一段药王谷秘境之旅，盼得疗伤灵药。',
+    example: '求一段药王谷秘境之旅，盼得疗伤灵药',
   },
 };
 
@@ -104,22 +104,26 @@ export default function RitualPage() {
 
   return (
     <InkPageShell
-      title="【炉火 · 顿悟 · 奇遇】"
-      subtitle="三大交互统一界面 · 纯文字输入"
+      title={currentMode.title}
+      subtitle=""
       backHref="/"
       note={note}
       footer={
-        <p className="text-center text-sm text-ink-secondary">
-          AIGC 接口未覆盖的模式将以假数据提示，均已标注「占位」说明。
-        </p>
+        <div className="flex justify-between text-ink">
+          <Link href="/" className="hover:text-crimson">
+            [返回]
+          </Link>
+          <span className="text-ink-secondary text-xs">AIGC 接口未覆盖的模式将以假数据提示</span>
+        </div>
       }
     >
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      {/* 模式切换 */}
+      <div className="mb-6 grid grid-cols-3 gap-2">
         {Object.entries(modes).map(([key, config]) => {
           const isActive = mode === key;
           const className = [
             'rounded-lg border px-3 py-2 text-sm transition',
-            isActive ? 'border-crimson bg-crimson/10 text-crimson' : 'border-ink/10 bg-paper-light text-ink',
+            isActive ? 'border-crimson bg-crimson/10 text-crimson font-semibold' : 'border-ink/10 bg-paper-light text-ink',
           ].join(' ');
           return (
             <button
@@ -131,36 +135,54 @@ export default function RitualPage() {
                 setStatus('');
               }}
             >
-              {config.title.replace(/[【】]/g, '')}
+              {config.title.replace(/[【】]/g, '').split('·')[0].trim()}
             </button>
           );
         })}
       </div>
 
+      {/* 输入区域 */}
       <div className="rounded-lg border border-ink/10 bg-paper-light p-4 shadow-sm">
-        <h2 className="text-lg font-semibold text-ink">{currentMode.title}</h2>
-        <p className="mt-2 text-sm text-ink-secondary">{currentMode.hint}</p>
-        <p className="mt-2 text-sm text-ink-secondary">
-          示例：<span className="text-ink">{currentMode.example}</span>
-        </p>
+        <div className="mb-4">
+          <p className="text-sm text-ink-secondary mb-2">{currentMode.hint}</p>
+          <p className="text-sm text-ink-secondary">
+            示例：<br />
+            <span className="text-ink italic">"{currentMode.example}"</span>
+          </p>
+        </div>
+
+        <div className="divider">
+          <span className="divider-line">──────────────────────────────</span>
+        </div>
 
         <textarea
-          className="textarea-large mt-4 min-h-[180px]"
+          className="textarea-large w-full min-h-[40vh] p-4 border border-ink/20 rounded-lg focus:ring-1 focus:ring-crimson focus:outline-none text-ink placeholder-ink/40 resize-none"
           placeholder="请在此输入你的意图……"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
+          disabled={isSubmitting}
         />
 
-        <div className="mt-4 flex justify-between text-sm text-ink-secondary">
-          <span>输入框高度约占屏幕 40%，适配手机打字。</span>
-          <span>按钮右对齐。</span>
+        <div className="divider">
+          <span className="divider-line">──────────────────────────────</span>
         </div>
 
-        <div className="mt-4 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setPrompt('')} disabled={isSubmitting}>
-            取消
+        <div className="flex justify-end gap-3">
+          <button 
+            className="btn-outline" 
+            onClick={() => {
+              setPrompt('');
+              setStatus('');
+            }} 
+            disabled={isSubmitting}
+          >
+            [取消]
           </button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+          <button 
+            className="btn-primary" 
+            onClick={handleSubmit} 
+            disabled={isSubmitting || (!prompt.trim() && mode !== 'adventure')}
+          >
             {isSubmitting ? '运转灵力……' : currentMode.actionLabel}
           </button>
         </div>
@@ -170,7 +192,7 @@ export default function RitualPage() {
         <div className="mt-4 rounded border border-ink/10 bg-white/70 p-3 text-center text-sm text-ink">
           {status}
           {mode === 'adventure' && (
-            <p className="text-xs text-ink-secondary">【占位】奇遇输入尚未驱动 AI，但意图已记录。</p>
+            <p className="text-xs text-ink-secondary mt-2">【占位】奇遇输入尚未驱动 AI，但意图已记录。</p>
           )}
         </div>
       )}

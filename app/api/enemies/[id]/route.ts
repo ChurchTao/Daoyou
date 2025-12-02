@@ -54,16 +54,16 @@ export async function GET(
     }
 
     // 返回简化版的敌人数据，仅包含基础信息
+    const { vitality, spirit, wisdom, speed, willpower } = enemy.attributes;
     const simplifiedEnemy = {
       id: enemy.id,
       name: enemy.name,
-      cultivationLevel: enemy.cultivationLevel,
-      spiritRoot: enemy.spiritRoot,
-      appearance: enemy.appearance,
-      element: enemy.battleProfile?.element || '无',
-      // 计算战力（简化版）
-      combatRating: enemy.battleProfile ? 
-        Math.round((enemy.battleProfile.attributes.vitality + enemy.battleProfile.attributes.spirit + enemy.battleProfile.attributes.wisdom + enemy.battleProfile.attributes.speed) / 4) : 0,
+      realm: enemy.realm,
+      realm_stage: enemy.realm_stage,
+      spiritual_roots: enemy.spiritual_roots,
+      background: enemy.background,
+      // 计算战力（基于属性）
+      combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5),
       // 不返回详细的战斗属性、技能和装备信息
     };
 

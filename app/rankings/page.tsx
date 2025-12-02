@@ -18,10 +18,9 @@ type RankingItem = {
 };
 
 const calcCombatRating = (cultivator: Cultivator): number => {
-  const profile = cultivator.battleProfile;
-  if (!profile) return 0;
-  const { vitality, spirit, wisdom, speed } = profile.attributes;
-  return Math.round((vitality + spirit + wisdom + speed) / 4);
+  if (!cultivator?.attributes) return 0;
+  const { vitality, spirit, wisdom, speed, willpower } = cultivator.attributes;
+  return Math.round((vitality + spirit + wisdom + speed + willpower) / 5);
 };
 
 export default function RankingsPage() {
@@ -41,9 +40,13 @@ export default function RankingsPage() {
         throw new Error(result.error || '榜单暂不可用');
       }
       setRankings(
-        result.data.map((item: RankingItem) => ({
-          ...item,
-          combatRating: item.combatRating ?? 0,
+        result.data.map((item: Cultivator) => ({
+          id: item.id ?? `item-${Math.random()}`,
+          name: item.name,
+          cultivationLevel: `${item.realm}${item.realm_stage}`,
+          spiritRoot: item.spiritual_roots[0]?.element || '无',
+          faction: item.origin,
+          combatRating: calcCombatRating(item),
         })),
       );
     } catch (err) {
@@ -52,8 +55,8 @@ export default function RankingsPage() {
         mockRankings.map((item, index) => ({
           id: item.id ?? `mock-${index}`,
           name: item.name,
-          cultivationLevel: item.cultivationLevel,
-          spiritRoot: item.spiritRoot,
+          cultivationLevel: `${item.realm}${item.realm_stage}`,
+          spiritRoot: item.spiritual_roots[0]?.element || '无',
           faction: item.origin,
           combatRating: calcCombatRating(item),
         })),
@@ -72,6 +75,9 @@ export default function RankingsPage() {
     router.push(`/battle?opponent=${opponentId}`);
   };
 
+  // 根据当前角色境界确定榜单标题
+  const realmTitle = cultivator ? `${cultivator.realm}境` : '筑基境';
+
   if (isLoading && !cultivator) {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
@@ -82,21 +88,22 @@ export default function RankingsPage() {
 
   return (
     <InkPageShell
-      title="【天骄榜 · 筑基境】"
-      subtitle="挑战天骄 · 证道天下"
+      title={`【天骄榜 · ${realmTitle}】`}
+      subtitle=""
       backHref="/"
       note={note || error}
-      actions={
-        <button className="btn-outline btn-sm" onClick={() => loadRankings()} disabled={loadingRankings}>
-          {loadingRankings ? '推演中…' : '刷新榜单'}
-        </button>
-      }
       footer={
         <div className="flex justify-between text-ink">
+          <button 
+            className="hover:text-crimson" 
+            onClick={() => loadRankings()} 
+            disabled={loadingRankings}
+          >
+            {loadingRankings ? '[推演中…]' : '[刷新榜单]'}
+          </button>
           <Link href="/" className="hover:text-crimson">
-            [返回主界]
+            [返回]
           </Link>
-          <span className="text-ink-secondary">榜单每晨更新，敬请留意。</span>
         </div>
       }
     >
@@ -111,31 +118,34 @@ export default function RankingsPage() {
             return (
               <div
                 key={item.id}
-                className={`flex items-center justify-between rounded-lg border p-3 shadow-sm ${
+                className={`rounded-lg border p-4 shadow-sm ${
                   isSelf ? 'border-crimson/60 bg-crimson/5 font-semibold' : 'border-ink/10 bg-paper-light'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 text-lg font-semibold">{index + 1}.</div>
-                  <div>
-                    <p>
-                      {item.name}（{item.faction ?? '散修'}）{isSelf && <span className="equipped-mark">← 你</span>}
-                    </p>
-                    <p className="text-sm text-ink-secondary">
-                      {item.cultivationLevel} · {item.spiritRoot}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 text-lg font-semibold">{index + 1}.</div>
+                    <div>
+                      <p>
+                        {item.name}（{item.faction ?? '散修'}）
+                        {isSelf && <span className="equipped-mark">← 你</span>}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <span>
-                    <span className="status-icon">❤️</span>
-                    {item.combatRating}
-                  </span>
-                  {!isSelf && (
-                    <button className="btn-primary btn-sm" onClick={() => handleChallenge(item.id)}>
-                      [挑战]
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">
+                      <span className="status-icon">❤️</span>
+                      {item.combatRating}
+                    </span>
+                    {!isSelf && (
+                      <button 
+                        className="btn-primary btn-sm" 
+                        onClick={() => handleChallenge(item.id)}
+                      >
+                        [挑战]
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

@@ -16,7 +16,6 @@ type EnemyData = {
   realm: string;
   realm_stage: string;
   spiritual_roots: Array<{ element: string; strength: number }>;
-  appearance?: string;
   background?: string;
   combatRating: number;
 };
@@ -72,6 +71,7 @@ function BattlePageContent() {
           } else {
             // 如果获取失败，使用默认BOSS
             const defaultBoss = getDefaultBoss();
+            const { vitality, spirit, wisdom, speed, willpower } = defaultBoss.attributes;
             setOpponent({
               id: defaultBoss.id!,
               name: defaultBoss.name,
@@ -79,18 +79,13 @@ function BattlePageContent() {
               realm_stage: defaultBoss.realm_stage,
               spiritual_roots: defaultBoss.spiritual_roots,
               background: defaultBoss.background,
-              combatRating: Math.round(
-                (defaultBoss.attributes.vitality + 
-                 defaultBoss.attributes.spirit + 
-                 defaultBoss.attributes.wisdom + 
-                 defaultBoss.attributes.speed +
-                 defaultBoss.attributes.willpower) / 5
-              ) || 0
+              combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5) || 0
             });
           }
         } else {
           // 如果没有对手ID，使用默认BOSS
           const defaultBoss = getDefaultBoss();
+          const { vitality, spirit, wisdom, speed, willpower } = defaultBoss.attributes;
           setOpponent({
             id: defaultBoss.id!,
             name: defaultBoss.name,
@@ -98,19 +93,14 @@ function BattlePageContent() {
             realm_stage: defaultBoss.realm_stage,
             spiritual_roots: defaultBoss.spiritual_roots,
             background: defaultBoss.background,
-            combatRating: Math.round(
-              (defaultBoss.attributes.vitality + 
-               defaultBoss.attributes.spirit + 
-               defaultBoss.attributes.wisdom + 
-               defaultBoss.attributes.speed +
-               defaultBoss.attributes.willpower) / 5
-            ) || 0
+            combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5) || 0
           });
         }
       } catch (error) {
         console.error('获取对手数据失败:', error);
         // 使用默认BOSS
         const defaultBoss = getDefaultBoss();
+        const { vitality, spirit, wisdom, speed, willpower } = defaultBoss.attributes;
         setOpponent({
           id: defaultBoss.id!,
           name: defaultBoss.name,
@@ -118,13 +108,7 @@ function BattlePageContent() {
           realm_stage: defaultBoss.realm_stage,
           spiritual_roots: defaultBoss.spiritual_roots,
           background: defaultBoss.background,
-          combatRating: Math.round(
-            (defaultBoss.attributes.vitality + 
-             defaultBoss.attributes.spirit + 
-             defaultBoss.attributes.wisdom + 
-             defaultBoss.attributes.speed +
-             defaultBoss.attributes.willpower) / 5
-          ) || 0
+          combatRating: Math.round((vitality + spirit + wisdom + speed + willpower) / 5) || 0
         });
       } finally {
         setOpponentLoading(false);
@@ -270,48 +254,25 @@ function BattlePageContent() {
     (battleResult ? `${battleResult.winner.name} 获胜！` : '');
 
   return (
-    <div className="bg-paper min-h-screen p-4">
-      <div className="container mx-auto max-w-2xl">
+    <div className="bg-paper min-h-screen">
+      <div className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16 main-content">
+        {/* 返回按钮 */}
+        <Link href="/" className="mb-4 text-ink transition hover:text-crimson">
+          [← 返回]
+        </Link>
+
         {/* 标题 */}
-        <div className="text-center mb-6">
-          <h1 className="font-ma-shan-zheng text-2xl md:text-3xl text-ink mb-2">
-            斗战纪
+        <div className="mb-6 text-center">
+          <h1 className="font-ma-shan-zheng text-2xl text-ink">
+            【战报 · {player?.name} vs {opponent?.name}】
           </h1>
         </div>
 
-        {/* 对战双方（左右分列，仿对战图谱） */}
-        {player && opponent && (
-          <div className="flex justify-between mb-8 px-4">
-            <div className="text-center">
-              <div className="font-ma-shan-zheng text-lg text-ink">
-                {player.name}
-              </div>
-              <div className="text-xs text-ink/70 mt-1">
-                {player.realm}{player.realm_stage}
-              </div>
-            </div>
-            <div className="text-center text-ink/50">VS</div>
-            <div className="text-center">
-              <div className="font-ma-shan-zheng text-lg text-ink">
-                {opponent.name}
-              </div>
-              <div className="text-xs text-ink/70 mt-1">
-                {opponent.realm}{opponent.realm_stage}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 战斗播报：仿古籍批注 */}
+        {/* 战斗播报：全屏展示 AIGC 生成的战报 */}
         {displayReport && (
-          <div className="battle-report max-w-lg mx-auto p-6 bg-paper-light border border-ink/10 rounded animate-fade-in">
-            {/* 播报标题 */}
-            <h2 className="font-ma-shan-zheng text-xl text-ink mb-4 text-center">
-              战报 · {player?.name} vs {opponent?.name}
-            </h2>
-            
+          <div className="battle-report mb-8 rounded-lg border border-ink/10 bg-paper-light p-6 animate-fade-in">
             {/* 播报内容 */}
-            <div className="text-ink leading-relaxed text-center">
+            <div className="text-ink leading-relaxed">
               {displayReport
                 .split('\n')
                 .filter((line) => line.trim() !== '')
@@ -319,7 +280,7 @@ function BattlePageContent() {
                   <p key={index} className="mb-4 whitespace-pre-line">
                     <span dangerouslySetInnerHTML={{ __html: line }} />
                     {isStreaming &&
-                      index === displayReport.split('\n').length - 2 && (
+                      index === displayReport.split('\n').filter(l => l.trim() !== '').length - 1 && (
                         <span className="inline-block ml-1 animate-pulse text-crimson">
                           ▊
                         </span>
@@ -328,11 +289,12 @@ function BattlePageContent() {
                 ))}
             </div>
 
-
-            {/* 胜利印章（条件渲染） */}
+            {/* 胜利标记 */}
             {isWin && !isStreaming && battleResult && (
-              <div className="absolute -top-4 -right-4 animate-slide-down text-4xl font-bold text-crimson opacity-80">
-                胜
+              <div className="mt-4 text-center">
+                <p className="text-lg font-semibold text-crimson">
+                  最终，{player?.name} 获胜！
+                </p>
               </div>
             )}
           </div>
@@ -340,7 +302,7 @@ function BattlePageContent() {
 
         {/* 操作按钮 */}
         {battleResult && !isStreaming && (
-          <div className="flex flex-wrap justify-center gap-4 mt-8">
+          <div className="flex flex-wrap justify-center gap-4">
             <button onClick={handleBattleAgain} className="btn-outline">
               [再战]
             </button>
@@ -358,15 +320,12 @@ function BattlePageContent() {
           </div>
         )}
 
-        {/* 返回首页 */}
-        <div className="text-center mt-8">
-          <Link
-            href="/"
-            className="text-ink hover:underline"
-          >
-            [← 返回主界]
-          </Link>
-        </div>
+        {/* 加载中提示 */}
+        {loading && !battleResult && (
+          <div className="text-center">
+            <p className="loading-tip">正在推演天机……</p>
+          </div>
+        )}
       </div>
     </div>
   );

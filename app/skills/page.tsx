@@ -20,21 +20,16 @@ export default function SkillsPage() {
   return (
     <InkPageShell
       title="【所修神通】"
-      subtitle={`已习 ${skills.length}/${maxSkills}`}
+      subtitle={`共 ${skills.length}/${maxSkills}`}
       backHref="/"
       note={note}
-      actions={
-        <Link href="/ritual" className="btn-primary btn-sm">
-          闭关顿悟新神通
-        </Link>
-      }
       footer={
         <div className="flex justify-between text-ink">
           <Link href="/" className="hover:text-crimson">
-            [返回主界]
+            [返回]
           </Link>
-          <Link href="/battle" className="hover:text-crimson">
-            [阅览战报]
+          <Link href="/ritual" className="text-crimson hover:underline">
+            [闭关顿悟新神通 →]
           </Link>
         </div>
       }
@@ -43,42 +38,44 @@ export default function SkillsPage() {
         <div className="rounded-lg border border-ink/10 bg-paper-light p-6 text-center">
           还未觉醒道身，何谈神通？先去首页觉醒吧。
         </div>
-      ) : skills.length ? (
+      ) : skills.length > 0 ? (
         <div className="space-y-4">
-          {skills.map((skill, index) => (
-            <div
-              key={skill.name}
-              className="rounded-lg border border-ink/10 bg-paper-light p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
+          {skills.map((skill, index) => {
+            const typeIcon = skill.type === 'attack' ? '⚡' : 
+                           skill.type === 'heal' ? '❤️' : 
+                           skill.type === 'control' ? '🌀' : '✨';
+            const typeName = skill.type === 'attack' ? '攻击' : 
+                            skill.type === 'heal' ? '治疗' : 
+                            skill.type === 'control' ? '控制' : '增益';
+            
+            return (
+              <div
+                key={skill.id || skill.name}
+                className="rounded-lg border border-ink/10 bg-paper-light p-4 shadow-sm"
+              >
+                <div className="mb-3">
                   <p className="font-semibold">
-                    {skill.type === 'attack'
-                      ? '⚡ 攻击'
-                      : skill.type === 'heal'
-                        ? '❤️ 治疗'
-                        : skill.type === 'control'
-                          ? '🌀 控制'
-                          : '✨ 增益'}{' '}
-                    · {skill.name}
+                    {typeIcon} {skill.name}（{typeName}·{skill.element}）
                     {index === skills.length - 1 && <span className="new-mark">← 新悟</span>}
                   </p>
-                  <p className="text-sm text-ink-secondary">
-                    威力：{skill.power}｜元素：{skill.element}｜冷却：{skill.cooldown}回合
+                  <p className="mt-1 text-sm text-ink-secondary">
+                    威力：{skill.power}｜效果：{skill.effect ? `${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}` : '无特殊效果'}
                   </p>
-                  {skill.effect && (
-                    <p className="text-xs text-ink-secondary">效果：{skill.effect}{skill.duration ? `（${skill.duration}回合）` : ''}</p>
-                  )}
                   {skill.cost !== undefined && skill.cost > 0 && (
-                    <p className="text-xs text-ink-secondary">消耗：{skill.cost} 灵力</p>
+                    <p className="text-xs text-ink-secondary">消耗：{skill.cost} 灵力｜冷却：{skill.cooldown}回合</p>
+                  )}
+                  {(!skill.cost || skill.cost === 0) && (
+                    <p className="text-xs text-ink-secondary">冷却：{skill.cooldown}回合</p>
                   )}
                 </div>
-                <button className="btn-outline btn-sm" disabled>
-                  [替换 · TODO]
-                </button>
+                <div className="flex justify-end">
+                  <button className="btn-outline btn-sm" disabled>
+                    [替换]
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="empty-state">暂无神通，请前往闭关顿悟。</p>
