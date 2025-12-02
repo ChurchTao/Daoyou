@@ -15,7 +15,7 @@ export default function SkillsPage() {
     );
   }
 
-  const maxSkills = cultivator?.maxSkills ?? 3;
+  const maxSkills = cultivator?.max_skills ?? 3;
 
   return (
     <InkPageShell
@@ -64,10 +64,13 @@ export default function SkillsPage() {
                     {index === skills.length - 1 && <span className="new-mark">← 新悟</span>}
                   </p>
                   <p className="text-sm text-ink-secondary">
-                    威力：{skill.power}｜元素：{skill.element}
+                    威力：{skill.power}｜元素：{skill.element}｜冷却：{skill.cooldown}回合
                   </p>
-                  {skill.effects && (
-                    <p className="text-xs text-ink-secondary">{skill.effects.join(' / ')}</p>
+                  {skill.effect && (
+                    <p className="text-xs text-ink-secondary">效果：{skill.effect}{skill.duration ? `（${skill.duration}回合）` : ''}</p>
+                  )}
+                  {skill.cost !== undefined && skill.cost > 0 && (
+                    <p className="text-xs text-ink-secondary">消耗：{skill.cost} 灵力</p>
                   )}
                 </div>
                 <button className="btn-outline btn-sm" disabled>

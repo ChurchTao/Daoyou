@@ -39,11 +39,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 将临时角色保存到正式表
-    const cultivator = await saveTempCultivatorToFormal(user.id, tempCultivatorId);
+    await saveTempCultivatorToFormal(user.id, tempCultivatorId);
 
     return NextResponse.json({
       success: true,
-      data: cultivator,
     });
   } catch (error) {
     console.error('保存角色 API 错误:', error);

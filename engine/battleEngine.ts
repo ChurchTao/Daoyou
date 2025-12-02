@@ -1,12 +1,11 @@
 import type {
-  ActiveEffect,
-  BattleProfile,
+  Artifact,
+  Attributes,
   Cultivator,
   ElementType,
   Skill,
-  Consumable,
+  StatusEffect,
 } from '@/types/cultivator';
-import { cloneBattleProfile, ensureBattleProfile } from '@/utils/battleProfile';
 
 export interface BattleEngineResult {
   winner: Cultivator;
@@ -15,616 +14,411 @@ export interface BattleEngineResult {
   turns: number;
   playerHp: number;
   opponentHp: number;
-  triggeredMiracle: boolean;
 }
 
-interface Combatant extends BattleProfile {
-  id: string;
-  name: string;
-  activeEffects: ActiveEffect[];
-  consumables?: Consumable[];
+interface BattleUnit {
+  id: 'player' | 'opponent';
+  data: Cultivator;
+  hp: number;
+  statuses: Map<StatusEffect, number>;
+  skillCooldowns: Map<string, number>;
 }
 
-// 使用消耗品
-function useConsumable(
-  combatant: Combatant,
-  consumable: Consumable,
-  log: string[],
-): boolean {
-  if (!combatant.consumables || combatant.consumables.length === 0) {
-    return false;
-  }
+interface BattleState {
+  player: BattleUnit;
+  opponent: BattleUnit;
+  turn: number;
+  log: string[];
+}
 
-  // 查找消耗品
-  const consumableIndex = combatant.consumables.findIndex(
-    (c) => c.id === consumable.id || c.name === consumable.name
-  );
+const ELEMENT_WEAKNESS: Record<ElementType, ElementType[]> = {
+  金: ['火', '雷'],
+  木: ['金', '雷'],
+  水: ['土', '风'],
+  火: ['水', '冰'],
+  土: ['木', '风'],
+  风: ['雷', '冰'],
+  雷: ['土', '水'],
+  冰: ['火', '雷'],
+  无: [],
+};
 
-  if (consumableIndex === -1) {
-    return false;
-  }
+const STATUS_EFFECTS = new Set<StatusEffect>([
+  'burn',
+  'bleed',
+  'poison',
+  'stun',
+  'silence',
+  'root',
+  'armor_up',
+  'speed_up',
+  'crit_rate_up',
+  'armor_down',
+]);
 
-  // 应用消耗品效果
-  switch (consumable.name.toLowerCase()) {
-    case '回春丹':
-      // 恢复生命值
-      const healAmount = Math.round(combatant.maxHp * 0.3); // 恢复30%最大生命值
-      combatant.hp = clamp(combatant.hp + healAmount, 0, combatant.maxHp);
-      log.push(`${combatant.name} 使用了 ${consumable.name}，恢复了 ${healAmount} 点生命值！`);
-      break;
-    case '灵力丹':
-      // 提升灵力
-      combatant.attributes.spirit = clamp(combatant.attributes.spirit + 10, 40, 120);
-      log.push(`${combatant.name} 使用了 ${consumable.name}，灵力提升了 10 点！`);
-      break;
-    case '速度符':
-      // 提升速度
-      combatant.attributes.speed = clamp(combatant.attributes.speed + 10, 40, 120);
-      log.push(`${combatant.name} 使用了 ${consumable.name}，速度提升了 10 点！`);
-      break;
-    default:
-      // 解析消耗品效果
-      if (consumable.effect.includes('恢复')) {
-        const healMatch = consumable.effect.match(/恢复(\d+)点生命值/);
-        if (healMatch && healMatch[1]) {
-          const healAmount = parseInt(healMatch[1]);
-          combatant.hp = clamp(combatant.hp + healAmount, 0, combatant.maxHp);
-          log.push(`${combatant.name} 使用了 ${consumable.name}，恢复了 ${healAmount} 点生命值！`);
-        }
-      } else if (consumable.effect.includes('提升')) {
-        const attributeMatch = consumable.effect.match(/提升(\w+)\s*(\d+)点/);
-        if (attributeMatch && attributeMatch[1] && attributeMatch[2]) {
-          const attribute = attributeMatch[1] as keyof typeof combatant.attributes;
-          const value = parseInt(attributeMatch[2]);
-          if (attribute in combatant.attributes) {
-            combatant.attributes[attribute] = clamp(combatant.attributes[attribute] + value, 40, 120);
-            log.push(`${combatant.name} 使用了 ${consumable.name}，${attribute} 提升了 ${value} 点！`);
-          }
-        }
+function getRealmAttributeCap(realm: string): number {
+  const caps: Record<string, number> = {
+    炼气: 100,
+    筑基: 120,
+    金丹: 150,
+    元婴: 180,
+    化神: 210,
+    炼虚: 240,
+    合体: 270,
+    大乘: 300,
+    渡劫: 300,
+  };
+  return caps[realm] ?? 100;
+}
+
+function calculateFinalAttributes(c: Cultivator): Required<Attributes> {
+  const base: Required<Attributes> = {
+    vitality: c.attributes.vitality,
+    spirit: c.attributes.spirit,
+    wisdom: c.attributes.wisdom,
+    speed: c.attributes.speed,
+    willpower: c.attributes.willpower,
+  };
+
+  // 功法加成
+  for (const cult of c.cultivations) {
+    for (const [k, v] of Object.entries(cult.bonus)) {
+      if (typeof v === 'number') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (base as any)[k] += v;
       }
-      break;
+    }
   }
 
-  // 移除使用过的消耗品
-  combatant.consumables.splice(consumableIndex, 1);
+  // 装备加成
+  const equippedArtifacts: Artifact[] = [];
+  const { inventory, equipped } = c;
+  const artifactsById = new Map<string, Artifact>(
+    (inventory.artifacts || []).map((a) => [a.id!, a]),
+  );
+  if (equipped.weapon && artifactsById.has(equipped.weapon)) {
+    equippedArtifacts.push(artifactsById.get(equipped.weapon)!);
+  }
+  if (equipped.armor && artifactsById.has(equipped.armor)) {
+    equippedArtifacts.push(artifactsById.get(equipped.armor)!);
+  }
+  if (equipped.accessory && artifactsById.has(equipped.accessory)) {
+    equippedArtifacts.push(artifactsById.get(equipped.accessory)!);
+  }
+
+  for (const art of equippedArtifacts) {
+    for (const [k, v] of Object.entries(art.bonus)) {
+      if (typeof v === 'number') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (base as any)[k] += v;
+      }
+    }
+  }
+
+  // 境界上限裁剪
+  const cap = getRealmAttributeCap(c.realm);
+  base.vitality = Math.min(base.vitality, cap);
+  base.spirit = Math.min(base.spirit, cap);
+  base.wisdom = Math.min(base.wisdom, cap);
+  base.speed = Math.min(base.speed, cap);
+  base.willpower = Math.min(base.willpower, cap);
+
+  return base;
+}
+
+function getElementMultiplier(
+  attacker: Cultivator,
+  defender: Cultivator,
+  el: ElementType,
+): number {
+  let mult = 1.0;
+  const root = attacker.spiritual_roots.find((r) => r.element === el);
+  if (root) {
+    mult *= 1.0 + (root.strength / 100) * 0.5;
+  }
+  const defenderMainRoot = defender.spiritual_roots[0]?.element;
+  if (defenderMainRoot && ELEMENT_WEAKNESS[el]?.includes(defenderMainRoot)) {
+    mult *= 1.5;
+  }
+  return mult;
+}
+
+function calculateStatusHitChance(
+  attackerPower: number,
+  defenderWillpower: number,
+): number {
+  const baseHit = Math.min(0.9, Math.max(0.3, attackerPower / 100));
+  const resist = Math.min(0.7, defenderWillpower / 250);
+  return Math.max(0.1, baseHit * (1 - resist));
+}
+
+function applyStatus(
+  unit: BattleUnit,
+  effect: StatusEffect,
+  duration: number,
+): boolean {
+  if (!STATUS_EFFECTS.has(effect)) return false;
+  unit.statuses.set(effect, duration);
   return true;
 }
 
-const MAX_TURNS = 20;
+function tickStatusEffects(unit: BattleUnit, log: string[]): void {
+  const toRemove: StatusEffect[] = [];
+  const finalAttrs = calculateFinalAttributes(unit.data);
 
-const ELEMENT_MOD: Record<string, number> = {
-  // 雷系克制关系
-  '雷-金': 1.3,
-  '雷-木': 1.3,
-  '土-雷': 1.3,
-  '金-雷': 0.7,
-  '木-雷': 0.7,
-  // 五行相克关系
-  '金-木': 1.3,
-  '木-土': 1.3,
-  '土-水': 1.3,
-  '水-火': 1.3,
-  '火-金': 1.3,
-  '木-金': 0.7,
-  '土-木': 0.7,
-  '水-土': 0.7,
-  '火-水': 0.7,
-  '金-火': 0.7,
-};
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, value));
-
-const randomFloat = (min: number, max: number) =>
-  Math.random() * (max - min) + min;
-
-const computeRating = (combatant: Combatant) => {
-  const { vitality, spirit, wisdom, speed } = combatant.attributes;
-  return (vitality + spirit + wisdom + speed) / 4;
-};
-
-const randomChoice = <T>(items: T[], fallback: T): T =>
-  items.length ? items[Math.floor(Math.random() * items.length)] : fallback;
-
-// 应用装备加成到战斗属性
-function applyEquipmentBonuses(combatant: Combatant) {
-  if (!combatant.equipment || combatant.equipment.length === 0) return;
-
-  // 应用装备加成到基础属性
-  combatant.equipment.forEach((eq) => {
-    if (eq.bonus?.spirit) {
-      combatant.attributes.spirit += eq.bonus.spirit;
+  for (const [effect, dur] of unit.statuses.entries()) {
+    if (dur <= 0) {
+      toRemove.push(effect);
+      continue;
     }
-    if (eq.bonus?.wisdom) {
-      combatant.attributes.wisdom += eq.bonus.wisdom;
-    }
-    if (eq.bonus?.vitality) {
-      combatant.attributes.vitality += eq.bonus.vitality;
-      // 体魄提升会增加最大生命值
-      combatant.maxHp += Math.round(eq.bonus.vitality * 0.5);
-    }
-    if (eq.bonus?.speed) {
-      combatant.attributes.speed += eq.bonus.speed;
-    }
-  });
 
-  // 确保属性值在合理范围内
-  combatant.attributes.vitality = clamp(combatant.attributes.vitality, 40, 120);
-  combatant.attributes.spirit = clamp(combatant.attributes.spirit, 40, 120);
-  combatant.attributes.wisdom = clamp(combatant.attributes.wisdom, 40, 120);
-  combatant.attributes.speed = clamp(combatant.attributes.speed, 40, 120);
+    if (effect === 'burn') {
+      const dmg = 5 + Math.floor(finalAttrs.spirit / 20);
+      unit.hp -= dmg;
+      log.push(`${unit.data.name} 被灼烧，受到 ${dmg} 点伤害！`);
+    } else if (effect === 'bleed') {
+      unit.hp -= 4;
+      log.push(`${unit.data.name} 流血不止，受到 4 点伤害！`);
+    } else if (effect === 'poison') {
+      const dmg = 3 + Math.floor(finalAttrs.vitality / 30);
+      unit.hp -= dmg;
+      log.push(`${unit.data.name} 中毒，受到 ${dmg} 点伤害！`);
+    }
+
+    unit.statuses.set(effect, dur - 1);
+  }
+
+  for (const e of toRemove) unit.statuses.delete(e);
 }
 
-export interface BattleOptions {
-  // 玩家使用的消耗品列表
-  playerConsumables?: Consumable[];
-  // 对手使用的消耗品列表
-  opponentConsumables?: Consumable[];
+function isActionBlocked(unit: BattleUnit): boolean {
+  return unit.statuses.has('stun') || unit.statuses.has('root');
+}
+
+function canUseSkill(unit: BattleUnit, skill: Skill): boolean {
+  if (unit.statuses.has('silence') && skill.type !== 'heal') return false;
+  const cd = unit.skillCooldowns.get(skill.id!) ?? 0;
+  return cd <= 0;
+}
+
+function executeSkill(
+  attacker: BattleUnit,
+  defender: BattleUnit,
+  skill: Skill,
+  state: BattleState,
+): void {
+  const log = state.log;
+  const finalAtt = calculateFinalAttributes(attacker.data);
+  const finalDef = calculateFinalAttributes(defender.data);
+
+  // 闪避判定
+  if (skill.type === 'attack' || skill.type === 'control' || skill.type === 'debuff') {
+    const evasion = Math.min(0.25, finalDef.speed / 400);
+    if (Math.random() < evasion) {
+      log.push(
+        `${defender.data.name} 闪避了 ${attacker.data.name} 的「${skill.name}」！`,
+      );
+      attacker.skillCooldowns.set(skill.id!, skill.cooldown);
+      return;
+    }
+  }
+
+  if (skill.type === 'attack') {
+    let damage = skill.power * (finalAtt.spirit / 100);
+    damage *= getElementMultiplier(attacker.data, defender.data, skill.element);
+    const critRate = Math.min(0.3, (finalAtt.wisdom - 50) / 200);
+    const isCrit = Math.random() < critRate;
+    if (isCrit) damage *= 2;
+    const defReduction = finalDef.vitality / 500;
+    damage *= 1 - defReduction;
+    const dmgInt = Math.max(1, Math.floor(damage));
+    defender.hp -= dmgInt;
+    log.push(
+      `${attacker.data.name} 使用「${skill.name}」${
+        Math.random() < critRate ? '【暴击】' : ''
+      }造成 ${dmgInt} 点伤害！`,
+    );
+  } else if (skill.type === 'debuff' || skill.type === 'control') {
+    if (!skill.effect) {
+      log.push(`⚠️ 技能 ${skill.name} 缺少 effect 字段！`);
+    } else if (!STATUS_EFFECTS.has(skill.effect)) {
+      log.push(`⚠️ 无效状态效果：${skill.effect}`);
+    } else {
+      const hitChance = calculateStatusHitChance(
+        skill.power,
+        finalDef.willpower,
+      );
+      const duration = skill.duration ?? (skill.type === 'control' ? 1 : 2);
+      if (Math.random() < hitChance) {
+        applyStatus(defender, skill.effect, duration);
+        log.push(
+          `${attacker.data.name} 成功对 ${defender.data.name} 施加「${skill.effect}」！`,
+        );
+      } else {
+        log.push(
+          `${defender.data.name} 凭借强大神识，抵抗了「${skill.name}」！`,
+        );
+      }
+    }
+  } else if (skill.type === 'heal') {
+    const heal = skill.power + finalAtt.spirit / 2;
+    const target = skill.target_self === false ? defender : attacker;
+    const maxHp = 80 + calculateFinalAttributes(target.data).vitality;
+    const healInt = Math.floor(heal);
+    target.hp = Math.min(target.hp + healInt, maxHp);
+    log.push(
+      `${attacker.data.name} 使用「${skill.name}」，恢复 ${healInt} 点气血！`,
+    );
+  } else if (skill.type === 'buff') {
+    if (skill.effect) {
+      const duration = skill.duration ?? 2;
+      applyStatus(attacker, skill.effect, duration);
+      log.push(`${attacker.data.name} 获得「${skill.effect}」效果！`);
+    }
+  }
+
+  // 装备 on_hit_add_effect 触发
+  if (skill.type === 'attack' || skill.type === 'control' || skill.type === 'debuff') {
+    const artifactsById = new Map<string, Artifact>(
+      attacker.data.inventory.artifacts.map((a) => [a.id!, a]),
+    );
+    const eqIds = [
+      attacker.data.equipped.weapon,
+      attacker.data.equipped.armor,
+      attacker.data.equipped.accessory,
+    ].filter(Boolean) as string[];
+
+    for (const id of eqIds) {
+      const art = artifactsById.get(id);
+      if (!art) continue;
+      const effects = [...(art.special_effects || []), ...(art.curses || [])];
+      for (const eff of effects) {
+        if (eff.type === 'on_hit_add_effect') {
+          if (Math.random() * 100 < eff.chance) {
+            applyStatus(defender, eff.effect, 2);
+            log.push(
+              `${defender.data.name} 因 ${art.name} 被附加「${eff.effect}」！`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  attacker.skillCooldowns.set(skill.id!, skill.cooldown);
+}
+
+function chooseSkill(actor: BattleUnit, target: BattleUnit): Skill {
+  const available = actor.data.skills.filter((s) => canUseSkill(actor, s));
+  if (!available.length) {
+    return actor.data.skills[0];
+  }
+
+  const offensive = available.filter(
+    (s) => s.type === 'attack' || s.type === 'control' || s.type === 'debuff',
+  );
+  const heals = available.filter((s) => s.type === 'heal');
+  const buffs = available.filter((s) => s.type === 'buff');
+
+  const hpRatio = actor.hp / (80 + calculateFinalAttributes(actor.data).vitality);
+  if (hpRatio < 0.3 && heals.length) {
+    return heals[Math.floor(Math.random() * heals.length)];
+  }
+  if (target.hp < actor.hp && offensive.length) {
+    return offensive[Math.floor(Math.random() * offensive.length)];
+  }
+  if (offensive.length) {
+    return offensive[Math.floor(Math.random() * offensive.length)];
+  }
+  if (buffs.length) {
+    return buffs[Math.floor(Math.random() * buffs.length)];
+  }
+  return available[0];
 }
 
 export function simulateBattle(
   player: Cultivator,
   opponent: Cultivator,
-  options?: BattleOptions,
 ): BattleEngineResult {
-  const playerProfile = cloneBattleProfile(ensureBattleProfile(player));
-  console.log('playerProfile', playerProfile);
-  const opponentProfile = cloneBattleProfile(ensureBattleProfile(opponent));
-  console.log('opponentProfile', opponentProfile);
-
-  const p: Combatant = {
-    ...playerProfile,
-    id: player.id,
-    name: player.name,
-    activeEffects: playerProfile.activeEffects || [],
-    consumables: [],
-  };
-  const o: Combatant = {
-    ...opponentProfile,
-    id: opponent.id,
-    name: opponent.name,
-    activeEffects: opponentProfile.activeEffects || [],
-    consumables: [],
-  };
-
-  // 应用装备加成
-  applyEquipmentBonuses(p);
-  applyEquipmentBonuses(o);
-
-  p.hp = p.maxHp;
-  o.hp = o.maxHp;
-
-  const log: string[] = [];
-  let winner: Combatant | null = null;
-  let loser: Combatant | null = null;
-  let turns = 0;
-
-  // 战斗前使用消耗品
-  if (options?.playerConsumables) {
-    options.playerConsumables.forEach((consumable) => {
-      useConsumable(p, consumable, log);
-    });
-  }
-  if (options?.opponentConsumables) {
-    options.opponentConsumables.forEach((consumable) => {
-      useConsumable(o, consumable, log);
-    });
-  }
-
-  for (let turn = 1; turn <= MAX_TURNS; turn++) {
-    turns = turn;
-
-    // 为当前回合添加回合标记
-    log.push(`[第${turn}回合]`);
-
-    // 处理持续效果
-    processActiveEffects(p, log);
-    processActiveEffects(o, log);
-
-    // 检查是否有角色因持续效果死亡
-    if (p.hp <= 0) {
-      winner = o;
-      loser = p;
-      break;
-    }
-    if (o.hp <= 0) {
-      winner = p;
-      loser = o;
-      break;
-    }
-
-    const [first, second] =
-      p.attributes.speed >= o.attributes.speed ? [p, o] : [o, p];
-
-    executeAction(first, second, log);
-    if (second.hp <= 0) {
-      winner = first;
-      loser = second;
-      break;
-    }
-
-    executeAction(second, first, log);
-    if (first.hp <= 0) {
-      winner = second;
-      loser = first;
-      break;
-    }
-  }
-
-  if (!winner || !loser) {
-    if (p.hp === o.hp) {
-      winner = p;
-      loser = o;
-    } else {
-      winner = p.hp > o.hp ? p : o;
-      loser = winner === p ? o : p;
-    }
-  }
-
-  const triggeredMiracle = computeRating(winner) + 8 < computeRating(loser);
-
-  return {
-    winner: winner.id === player.id ? player : opponent,
-    loser: loser.id === player.id ? player : opponent,
-    log,
-    turns,
-    playerHp: p.hp,
-    opponentHp: o.hp,
-    triggeredMiracle,
-  };
-}
-
-function executeAction(
-  attacker: Combatant,
-  defender: Combatant,
-  log: string[],
-) {
-  // 检查是否眩晕
-  const isStunned = attacker.activeEffects.some(
-    (effect) => effect.type === 'stun',
-  );
-  if (isStunned) {
-    log.push(`${attacker.name} 处于眩晕状态，无法行动！`);
-    return;
-  }
-
-  const skill = selectSkill(attacker, defender);
-  switch (skill.type) {
-    case 'attack':
-    case 'control': {
-      const { damage, isCrit, elementNote } = calculateDamage(
-        attacker,
-        defender,
-        skill,
-      );
-      applyDamage(defender, damage);
-      const critText = isCrit ? '（暴击）' : '';
-      log.push(
-        `${attacker.name} 施展 ${skill.name}${critText}，对 ${defender.name} 造成 ${damage} 点伤害${elementNote}。`,
-      );
-
-      // 应用持续效果
-      applyEffects(defender, skill.effects || [], attacker.name, log);
-      break;
-    }
-    case 'heal': {
-      const heal = Math.round(
-        skill.power * 0.5 + attacker.attributes.spirit * 0.3,
-      );
-      attacker.hp = clamp(attacker.hp + heal, 0, attacker.maxHp);
-      log.push(`${attacker.name} 运转 ${skill.name}，回复 ${heal} 点气血。`);
-      break;
-    }
-    case 'buff': {
-      if (skill.effects?.includes('speed_up')) {
-        attacker.attributes.speed = clamp(
-          attacker.attributes.speed + 5,
-          40,
-          120,
-        );
-      }
-      if (skill.effects?.includes('spirit_up')) {
-        attacker.attributes.spirit = clamp(
-          attacker.attributes.spirit + 5,
-          40,
-          120,
-        );
-      }
-      // 应用持续buff效果
-      applyEffects(attacker, skill.effects || [], attacker.name, log);
-      log.push(`${attacker.name} 激发 ${skill.name}，气势更盛。`);
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-function processActiveEffects(target: Combatant, log: string[]) {
-  if (!target.activeEffects || target.activeEffects.length === 0) return;
-
-  // 创建新的效果列表，过滤掉已结束的效果
-  const newEffects: ActiveEffect[] = [];
-
-  for (const effect of target.activeEffects) {
-    // 效果结算
-    switch (effect.type) {
-      case 'bleed':
-        // 流血效果：每回合造成固定伤害
-        applyDamage(target, effect.value);
-        log.push(
-          `${target.name} 受到 ${effect.name} 影响，流血不止，损失 ${effect.value} 点气血！`,
-        );
-        break;
-      case 'burn':
-        // 燃烧效果：每回合造成固定伤害
-        applyDamage(target, effect.value);
-        log.push(
-          `${target.name} 身上 ${effect.name} 燃烧，损失 ${effect.value} 点气血！`,
-        );
-        break;
-      case 'stun':
-        // 眩晕效果：已经在executeAction中检查，这里只是减少持续时间
-        break;
-      case 'poison':
-        // 中毒效果：每回合造成固定伤害
-        applyDamage(target, effect.value);
-        log.push(
-          `${target.name} 身中 ${effect.name}，毒性发作，损失 ${effect.value} 点气血！`,
-        );
-        break;
-      case 'spirit_up':
-        // 灵力提升效果：每回合持续生效，提升灵力
-        target.attributes.spirit = clamp(
-          target.attributes.spirit + effect.value,
-          40,
-          120,
-        );
-        break;
-      case 'vitality_up':
-        // 体魄提升效果：每回合持续生效，提升体魄
-        target.attributes.vitality = clamp(
-          target.attributes.vitality + effect.value,
-          40,
-          120,
-        );
-        break;
-      case 'wisdom_up':
-        // 悟性提升效果：每回合持续生效，提升悟性
-        target.attributes.wisdom = clamp(
-          target.attributes.wisdom + effect.value,
-          40,
-          120,
-        );
-        break;
-      case 'speed_up':
-        // 速度提升效果：每回合持续生效，提升速度
-        target.attributes.speed = clamp(
-          target.attributes.speed + effect.value,
-          40,
-          120,
-        );
-        break;
-    }
-
-    // 减少持续时间
-    effect.duration -= 1;
-
-    // 如果效果还未结束，保留到新列表
-    if (effect.duration > 0) {
-      newEffects.push(effect);
-    } else {
-      // 效果结束提示
-      if (effect.type !== 'stun') {
-        log.push(`${target.name} 身上的 ${effect.name} 效果消失了。`);
-      }
-    }
-  }
-
-  // 更新效果列表
-  target.activeEffects = newEffects;
-}
-
-function applyEffects(
-  target: Combatant,
-  effects: string[],
-  source: string,
-  log: string[],
-) {
-  if (!effects || effects.length === 0) return;
-
-  for (const effect of effects) {
-    switch (effect) {
-      case 'bleed':
-        // 流血效果：持续3回合，每回合造成10点伤害
-        target.activeEffects.push({
-          name: '流血',
-          type: 'bleed',
-          value: 2,
-          duration: 5,
-          source,
-        });
-        log.push(`${target.name} 被 ${source} 的招式击中，伤口血流不止！`);
-        break;
-      case 'burn':
-        // 燃烧效果：持续2回合，每回合造成15点伤害
-        target.activeEffects.push({
-          name: '烈焰',
-          type: 'burn',
-          value: 6,
-          duration: 2,
-          source,
-        });
-        log.push(`${target.name} 被 ${source} 的招式击中，身上燃起熊熊烈焰！`);
-        break;
-      case 'stun':
-        // 眩晕效果：当前回合无法行动（需要在行动前检查）
-        target.activeEffects.push({
-          name: '眩晕',
-          type: 'stun',
-          value: 0,
-          duration: 1,
-          source,
-        });
-        log.push(
-          `${target.name} 被 ${source} 的招式击中，头晕目眩，无法行动！`,
-        );
-        break;
-      case 'poison':
-        // 中毒效果：持续4回合，每回合造成8点伤害
-        target.activeEffects.push({
-          name: '剧毒',
-          type: 'poison',
-          value: 6,
-          duration: 2,
-          source,
-        });
-        log.push(`${target.name} 中了 ${source} 的毒，毒素开始扩散！`);
-        break;
-      case 'heal':
-        // 治疗效果：立即回复生命值
-        const healAmount = Math.round(target.maxHp * 0.2); // 回复20%最大生命值
-        target.hp = clamp(target.hp + healAmount, 0, target.maxHp);
-        log.push(`${target.name} 受到治疗效果，回复 ${healAmount} 点生命值！`);
-        break;
-      case 'spirit_up':
-        // 灵力提升效果：持续3回合，提升10点灵力
-        target.activeEffects.push({
-          name: '灵力提升',
-          type: 'spirit_up',
-          value: 10,
-          duration: 3,
-          source,
-        });
-        log.push(`${target.name} 灵力涌动，精神大振！`);
-        break;
-      case 'vitality_up':
-        // 体魄提升效果：持续3回合，提升10点体魄
-        target.activeEffects.push({
-          name: '体魄提升',
-          type: 'vitality_up',
-          value: 10,
-          duration: 3,
-          source,
-        });
-        log.push(`${target.name} 体魄增强，气血旺盛！`);
-        break;
-      case 'wisdom_up':
-        // 悟性提升效果：持续3回合，提升10点悟性
-        target.activeEffects.push({
-          name: '悟性提升',
-          type: 'wisdom_up',
-          value: 10,
-          duration: 3,
-          source,
-        });
-        log.push(`${target.name} 悟性大开，灵台清明！`);
-        break;
-      case 'speed_up':
-        // 速度提升效果：持续3回合，提升10点速度
-        target.activeEffects.push({
-          name: '速度提升',
-          type: 'speed_up',
-          value: 10,
-          duration: 3,
-          source,
-        });
-        log.push(`${target.name} 身法轻盈，速度大增！`);
-        break;
-    }
-  }
-}
-
-function selectSkill(attacker: Combatant, defender: Combatant): Skill {
-  const attackSkills = attacker.skills.filter(
-    (s) => s.type === 'attack' || s.type === 'control',
-  );
-  const healSkills = attacker.skills.filter((s) => s.type === 'heal');
-  const buffSkills = attacker.skills.filter((s) => s.type === 'buff');
-
-  if (attacker.hp < attacker.maxHp * 0.3 && healSkills.length) {
-    return randomChoice(healSkills, attacker.skills[0]);
-  }
-
-  if (defender.hp < defender.maxHp * 0.4 && attackSkills.length) {
-    return randomChoice(attackSkills, attacker.skills[0]);
-  }
-
-  if (attackSkills.length) {
-    return randomChoice(attackSkills, attacker.skills[0]);
-  }
-
-  if (buffSkills.length) {
-    return randomChoice(buffSkills, attacker.skills[0]);
-  }
-
-  return attacker.skills[0];
-}
-
-function calculateDamage(
-  attacker: Combatant,
-  defender: Combatant,
-  skill: Skill,
-) {
-  let basePower = skill.power;
-  let spirit = attacker.attributes.spirit;
-  let wisdom = attacker.attributes.wisdom;
-  let vitality = attacker.attributes.vitality;
-  let speed = attacker.attributes.speed;
-
-  // 装备属性加成
-  attacker.equipment?.forEach((eq) => {
-    if (eq.bonus?.spirit) {
-      spirit += eq.bonus.spirit;
-    }
-    if (eq.bonus?.wisdom) {
-      wisdom += eq.bonus.wisdom;
-    }
-    if (eq.bonus?.vitality) {
-      vitality += eq.bonus.vitality;
-    }
-    if (eq.bonus?.speed) {
-      speed += eq.bonus.speed;
-    }
-    // 装备技能威力加成
-    if (eq.bonus?.skillPowerBoost) {
-      basePower *= 1 + eq.bonus.skillPowerBoost;
-    }
+  const initUnit = (data: Cultivator, id: 'player' | 'opponent'): BattleUnit => ({
+    id,
+    data,
+    hp: 80 + calculateFinalAttributes(data).vitality,
+    statuses: new Map(),
+    skillCooldowns: new Map(data.skills.map((s) => [s.id!, 0])),
   });
 
-  let elementMod = getElementModifier(skill.element, defender.element);
-  attacker.equipment?.forEach((eq) => {
-    const bonus = eq.bonus?.elementBoost?.[skill.element];
-    if (bonus) {
-      elementMod += bonus;
+  const state: BattleState = {
+    player: initUnit(player, 'player'),
+    opponent: initUnit(opponent, 'opponent'),
+    turn: 0,
+    log: [],
+  };
+
+  while (
+    state.player.hp > 0 &&
+    state.opponent.hp > 0 &&
+    state.turn < 30
+  ) {
+    state.turn += 1;
+    state.log.push(`[第${state.turn}回合]`);
+
+    // 持续状态
+    tickStatusEffects(state.player, state.log);
+    tickStatusEffects(state.opponent, state.log);
+
+    if (state.player.hp <= 0 || state.opponent.hp <= 0) break;
+
+    const pSpeed =
+      calculateFinalAttributes(state.player.data).speed +
+      (state.player.statuses.has('speed_up') ? 20 : 0);
+    const oSpeed =
+      calculateFinalAttributes(state.opponent.data).speed +
+      (state.opponent.statuses.has('speed_up') ? 20 : 0);
+    const actors =
+      pSpeed >= oSpeed ? [state.player, state.opponent] : [state.opponent, state.player];
+
+    for (const actor of actors) {
+      if (actor.hp <= 0) continue;
+      if (isActionBlocked(actor)) {
+        state.log.push(`${actor.data.name} 无法行动！`);
+        continue;
+      }
+
+      const target = actor.id === 'player' ? state.opponent : state.player;
+      const skill = chooseSkill(actor, target);
+      executeSkill(actor, target, skill, state);
+      if (target.hp <= 0) break;
+
+      // 冷却递减
+      for (const [id, cd] of actor.skillCooldowns.entries()) {
+        if (cd > 0) actor.skillCooldowns.set(id, cd - 1);
+      }
     }
-  });
+  }
 
-  const critRate = clamp((wisdom - 50) / 200, 0, 0.3);
-  const isCrit = Math.random() < critRate;
-  const critMod = isCrit ? 1.5 : 1;
+  const winnerUnit =
+    state.player.hp > 0 && state.opponent.hp <= 0
+      ? state.player
+      : state.opponent.hp > 0 && state.player.hp <= 0
+      ? state.opponent
+      : state.player.hp >= state.opponent.hp
+      ? state.player
+      : state.opponent;
 
-  // 调整伤害系数，降低单次攻击伤害，使战斗更平衡
-  let damage = (basePower * 0.3 + spirit * 0.2) * elementMod * critMod;
-  damage = Math.round(damage * randomFloat(0.9, 1.1));
+  const loserUnit = winnerUnit.id === 'player' ? state.opponent : state.player;
+
+  state.log.push(
+    `✨ ${winnerUnit.data.name} 获胜！剩余气血：${winnerUnit.hp}，对手剩余气血：${loserUnit.hp}。`,
+  );
 
   return {
-    damage,
-    isCrit,
-    elementNote:
-      elementMod > 1 ? '（属性克制）' : elementMod < 1 ? '（被克制）' : '',
+    winner: winnerUnit.data,
+    loser: loserUnit.data,
+    log: state.log,
+    turns: state.turn,
+    playerHp: state.player.hp,
+    opponentHp: state.opponent.hp,
   };
 }
 
-function applyDamage(target: Combatant, damage: number) {
-  const finalDamage = Math.max(1, damage);
-  target.hp = clamp(target.hp - finalDamage, 0, target.maxHp);
-}
-
-function getElementModifier(
-  attacking: ElementType = '无',
-  defending: ElementType = '无',
-) {
-  if (!attacking || !defending) return 1;
-  return ELEMENT_MOD[`${attacking}-${defending}`] ?? 1;
-}

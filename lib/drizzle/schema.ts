@@ -8,134 +8,142 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 
-// 角色表
+// ===== 新一代修仙游戏数据库 Schema =====
+// 基于 basic.md 中的新 Cultivator 模型设计
+
+// 角色主表
 export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  prompt: text('prompt').notNull(),
-  cultivationLevel: varchar('cultivation_level', { length: 50 }).notNull(),
-  spiritRoot: varchar('spirit_root', { length: 50 }).notNull(),
-  appearance: text('appearance'),
-  backstory: text('backstory'),
-  gender: varchar('gender', { length: 20 }),
+  gender: varchar('gender', { length: 10 }), // 男 | 女 | 无
   origin: varchar('origin', { length: 100 }),
   personality: text('personality'),
-  maxEquipments: integer('max_equipments').default(3), // 最大装备数
-  maxSkills: integer('max_skills').default(4), // 最大技能数
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+  background: text('background'),
+  prompt: text('prompt').notNull(), // 用户原始输入
 
-// 战斗属性表
-export const battleProfiles = pgTable('wanjiedaoyou_battle_profiles', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id)
-    .notNull()
-    .unique(),
-  maxHp: integer('max_hp').notNull(),
-  hp: integer('hp').notNull(),
+  // 境界相关
+  realm: varchar('realm', { length: 20 }).notNull(), // 炼气 | 筑基 | 金丹 | ...
+  realm_stage: varchar('realm_stage', { length: 10 }).notNull(), // 初期 | 中期 | 后期 | 圆满
+  age: integer('age').notNull().default(18),
+  lifespan: integer('lifespan').notNull().default(100),
+
+  // 基础属性
   vitality: integer('vitality').notNull(),
   spirit: integer('spirit').notNull(),
   wisdom: integer('wisdom').notNull(),
   speed: integer('speed').notNull(),
-  element: varchar('element', { length: 20 }),
+  willpower: integer('willpower').notNull(),
+
+  max_skills: integer('max_skills').notNull().default(4),
+
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date()),
 });
 
-// 技能表
-export const skills = pgTable('wanjiedaoyou_skills', {
+// 灵根表（1对多）
+export const spiritualRoots = pgTable('wanjiedaoyou_spiritual_roots', {
   id: uuid('id').primaryKey().defaultRandom(),
   cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id)
+    .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 20 }).notNull(), // attack, heal, control, buff
-  power: integer('power').notNull(),
-  element: varchar('element', { length: 20 }).notNull(),
-  effects: jsonb('effects'),
+  element: varchar('element', { length: 10 }).notNull(), // 金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无
+  strength: integer('strength').notNull(), // 0-100
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// 装备表
-export const equipment = pgTable('wanjiedaoyou_equipment', {
+// 先天命格表（1对多）
+export const preHeavenFates = pgTable('wanjiedaoyou_pre_heaven_fates', {
   id: uuid('id').primaryKey().defaultRandom(),
   cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id)
+    .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 20 }), // weapon, armor, accessory
-  element: varchar('element', { length: 20 }),
-  bonus: jsonb('bonus'),
-  specialEffect: text('special_effect'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// 消耗品表
-export const consumables = pgTable('wanjiedaoyou_consumables', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id)
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  effect: text('effect').notNull(),
+  type: varchar('type', { length: 10 }).notNull(), // 吉 | 凶
+  attribute_mod: jsonb('attribute_mod').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// 角色装备状态表
+// 功法表（1对多）
+export const cultivationTechniques = pgTable(
+  'wanjiedaoyou_cultivation_techniques',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
+    required_realm: varchar('required_realm', { length: 20 }).notNull(),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+);
+
+// 技能表（1对多）
+export const skills = pgTable('wanjiedaoyou_skills', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(), // attack | heal | control | debuff | buff
+  element: varchar('element', { length: 10 }).notNull(),
+  power: integer('power').notNull(), // 30-150
+  cost: integer('cost').default(0),
+  cooldown: integer('cooldown').notNull().default(0),
+  effect: varchar('effect', { length: 50 }), // burn | bleed | poison | stun | ...
+  duration: integer('duration'), // 持续回合数
+  target_self: integer('target_self').default(0), // 0 = false, 1 = true
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// 法宝表（1对多，不在创建时生成，由用户后续添加）
+export const artifacts = pgTable('wanjiedaoyou_artifacts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  slot: varchar('slot', { length: 20 }).notNull(), // weapon | armor | accessory
+  element: varchar('element', { length: 10 }).notNull(),
+  bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
+  special_effects: jsonb('special_effects').default([]), // ArtifactEffect[]
+  curses: jsonb('curses').default([]), // ArtifactEffect[]
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// 消耗品表（1对多，不在创建时生成，由用户后续添加）
+export const consumables = pgTable('wanjiedaoyou_consumables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(), // heal | buff | revive | breakthrough
+  effect: jsonb('effect'), // ConsumableEffect
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// 装备状态表（1对1）
 export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id)
+    .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull()
     .unique(),
-  weaponId: uuid('weapon_id')
-    .references(() => equipment.id)
-    .unique(),
-  armorId: uuid('armor_id')
-    .references(() => equipment.id)
-    .unique(),
-  accessoryId: uuid('accessory_id')
-    .references(() => equipment.id)
-    .unique(),
+  weapon_id: uuid('weapon_id')
+    .references(() => artifacts.id, { onDelete: 'set null' }),
+  armor_id: uuid('armor_id')
+    .references(() => artifacts.id, { onDelete: 'set null' }),
+  accessory_id: uuid('accessory_id')
+    .references(() => artifacts.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
-
-// 先天命格表
-export const preHeavenFates = pgTable('wanjiedaoyou_pre_heaven_fates', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id)
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 10 }).notNull(), // 吉, 凶
-  effect: text('effect').notNull(),
-  description: text('description').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// 活跃效果表
-export const activeEffects = pgTable('wanjiedaoyou_active_effects', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  battleProfileId: uuid('battle_profile_id')
-    .references(() => battleProfiles.id)
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 50 }).notNull(),
-  value: integer('value').notNull(),
-  duration: integer('duration').notNull(),
-  source: varchar('source', { length: 100 }).notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // 临时角色表 - 用于存放AI生成的角色结果，用户确认后保存到正式表

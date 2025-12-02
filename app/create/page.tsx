@@ -7,10 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const getCombatRating = (cultivator: Cultivator | null): string => {
-  if (!cultivator?.battleProfile) return '--';
-  const { vitality, spirit, wisdom, speed } =
-    cultivator.battleProfile.attributes;
-  return Math.round((vitality + spirit + wisdom + speed) / 4).toString();
+  if (!cultivator?.attributes) return '--';
+  const { vitality, spirit, wisdom, speed, willpower } = cultivator.attributes;
+  return Math.round((vitality + spirit + wisdom + speed + willpower) / 5).toString();
 };
 
 /**
@@ -237,68 +236,72 @@ export default function CreatePage() {
                     <div>
                       <span className="text-ink/70">境界：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.cultivationLevel}
+                        {player.realm}{player.realm_stage}
                       </span>
                     </div>
                     <div>
                       <span className="text-ink/70">灵根：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.spiritRoot}
+                        {player.spiritual_roots[0]?.element || '无'}（强度：{player.spiritual_roots[0]?.strength || 0}）
                       </span>
                     </div>
                     <div>
-                      <span className="text-ink/70">元素：</span>
+                      <span className="text-ink/70">年龄/寿命：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.battleProfile?.element || '无'}
+                        {player.age}/{player.lifespan}
                       </span>
                     </div>
                     <div>
-                      <span className="text-ink/70">生命：</span>
+                      <span className="text-ink/70">最大气血：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.battleProfile?.maxHp || 0}
+                        {80 + player.attributes.vitality}
                       </span>
                     </div>
                   </div>
 
                   {/* 基础属性 */}
-                  {player.battleProfile && (
-                    <div className="mb-4">
-                      <span className="text-ink/70">基础属性：</span>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                        <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                          <p className="font-semibold">体魄</p>
-                          <p className="text-ink/80">
-                            {player.battleProfile.attributes.vitality}
-                          </p>
-                        </div>
-                        <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                          <p className="font-semibold">灵力</p>
-                          <p className="text-ink/80">
-                            {player.battleProfile.attributes.spirit}
-                          </p>
-                        </div>
-                        <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                          <p className="font-semibold">悟性</p>
-                          <p className="text-ink/80">
-                            {player.battleProfile.attributes.wisdom}
-                          </p>
-                        </div>
-                        <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                          <p className="font-semibold">速度</p>
-                          <p className="text-ink/80">
-                            {player.battleProfile.attributes.speed}
-                          </p>
-                        </div>
+                  <div className="mb-4">
+                    <span className="text-ink/70">基础属性：</span>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                        <p className="font-semibold">体魄</p>
+                        <p className="text-ink/80">
+                          {player.attributes.vitality}
+                        </p>
+                      </div>
+                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                        <p className="font-semibold">灵力</p>
+                        <p className="text-ink/80">
+                          {player.attributes.spirit}
+                        </p>
+                      </div>
+                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                        <p className="font-semibold">悟性</p>
+                        <p className="text-ink/80">
+                          {player.attributes.wisdom}
+                        </p>
+                      </div>
+                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                        <p className="font-semibold">速度</p>
+                        <p className="text-ink/80">
+                          {player.attributes.speed}
+                        </p>
+                      </div>
+                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
+                        <p className="font-semibold">神识</p>
+                        <p className="text-ink/80">
+                          {player.attributes.willpower}
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* 先天气运 */}
-                  {player.preHeavenFates?.length ? (
+                  {player.pre_heaven_fates?.length ? (
                     <div className="mb-4">
                       <span className="text-ink/70">先天气运：</span>
                       <div className="mt-2 space-y-1 text-sm">
-                        {player.preHeavenFates.map((fate, idx) => (
+                        {player.pre_heaven_fates.map((fate, idx) => (
                           <div
                             key={fate.name + idx}
                             className="bg-ink/5 rounded p-2 border border-ink/10"
@@ -306,10 +309,17 @@ export default function CreatePage() {
                             <p className="font-semibold">
                               {fate.name} · {fate.type}
                             </p>
-                            <p className="text-ink/80">{fate.effect}</p>
-                            <p className="text-ink/60 text-xs italic">
-                              {fate.description}
+                            <p className="text-ink/80">
+                              {Object.entries(fate.attribute_mod)
+                                .filter(([_, v]) => v !== undefined && v !== 0)
+                                .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+                                .join(', ') || '无属性加成'}
                             </p>
+                            {fate.description && (
+                              <p className="text-ink/60 text-xs italic">
+                                {fate.description}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -317,22 +327,22 @@ export default function CreatePage() {
                   ) : null}
 
                   {/* 技能 */}
-                  {player.battleProfile?.skills &&
-                  player.battleProfile.skills.length > 0 ? (
+                  {player.skills && player.skills.length > 0 ? (
                     <div className="mb-4">
                       <span className="text-ink/70">技能：</span>
                       <div className="mt-2 space-y-1 text-sm">
-                        {player.battleProfile.skills.map((skill, idx) => (
+                        {player.skills.map((skill, idx) => (
                           <div
-                            key={skill.name + idx}
+                            key={skill.id || skill.name + idx}
                             className="bg-ink/5 rounded p-2 border border-ink/10"
                           >
                             <p className="font-semibold">
                               {skill.name} · {skill.type} · {skill.element}
                             </p>
                             <p className="text-ink/80">
-                              威力：{skill.power} | 效果：
-                              {skill.effects?.join(', ') || '无'}
+                              威力：{skill.power} | 冷却：{skill.cooldown}回合
+                              {skill.effect && ` | 效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
+                              {skill.cost !== undefined && skill.cost > 0 && ` | 消耗：${skill.cost} 灵力`}
                             </p>
                           </div>
                         ))}
@@ -340,37 +350,25 @@ export default function CreatePage() {
                     </div>
                   ) : null}
 
-                  {/* 装备 */}
-                  {player.battleProfile?.equipment &&
-                  player.battleProfile.equipment.length > 0 ? (
+                  {/* 功法 */}
+                  {player.cultivations && player.cultivations.length > 0 ? (
                     <div className="mb-4">
-                      <span className="text-ink/70">装备：</span>
+                      <span className="text-ink/70">功法：</span>
                       <div className="mt-2 space-y-1 text-sm">
-                        {player.battleProfile.equipment.map((eq, idx) => (
+                        {player.cultivations.map((cult, idx) => (
                           <div
-                            key={eq.name + idx}
+                            key={cult.name + idx}
                             className="bg-ink/5 rounded p-2 border border-ink/10"
                           >
-                            <p className="font-semibold">{eq.name}</p>
+                            <p className="font-semibold">{cult.name}</p>
                             <p className="text-ink/80">
-                              {eq.bonus &&
-                                Object.entries(eq.bonus)
-                                  .map(([key, value]) => {
-                                    if (key === 'elementBoost') {
-                                      return `${Object.entries(
-                                        value as Record<string, number>,
-                                      )
-                                        .map(
-                                          ([elem, boost]) =>
-                                            `${elem}系技能威力+${(
-                                              boost * 100
-                                            ).toFixed(0)}%`,
-                                        )
-                                        .join(', ')}`;
-                                    }
-                                    return `${key} +${value}`;
-                                  })
-                                  .join(', ')}
+                              {Object.entries(cult.bonus)
+                                .filter(([_, v]) => v !== undefined && v !== 0)
+                                .map(([k, v]) => `${k} +${v}`)
+                                .join(', ') || '无属性加成'}
+                            </p>
+                            <p className="text-ink/60 text-xs">
+                              要求境界：{cult.required_realm}
                             </p>
                           </div>
                         ))}
@@ -385,12 +383,11 @@ export default function CreatePage() {
                     </span>
                   </div>
 
-                  <p className="text-ink/90 mb-3 leading-relaxed">
-                    {player.appearance}
-                  </p>
-                  <p className="text-ink/80 italic leading-relaxed">
-                    「{player.backstory}」
-                  </p>
+                  {player.background && (
+                    <p className="text-ink/80 italic leading-relaxed mb-3">
+                      「{player.background}」
+                    </p>
+                  )}
                 </div>
               </div>
             )}

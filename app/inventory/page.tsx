@@ -2,7 +2,7 @@
 
 import { InkPageShell } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import type { Equipment } from '@/types/cultivator';
+import type { Artifact } from '@/types/cultivator';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -11,9 +11,9 @@ export default function InventoryPage() {
   const [feedback, setFeedback] = useState<string>('');
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const totalEquipments = inventory.equipments.length;
+  const totalEquipments = inventory.artifacts.length;
 
-  const handleEquipToggle = async (item: Equipment) => {
+  const handleEquipToggle = async (item: Artifact) => {
     if (!cultivator || !item.id) {
       setFeedback('此法宝暂无有效 ID，无法操作。');
       return;
@@ -27,7 +27,7 @@ export default function InventoryPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ equipmentId: item.id }),
+        body: JSON.stringify({ artifactId: item.id }),
       });
 
       const result = await response.json();
@@ -79,7 +79,7 @@ export default function InventoryPage() {
         </div>
       ) : totalEquipments ? (
         <div className="space-y-4">
-          {inventory.equipments.map((item) => {
+          {inventory.artifacts.map((item) => {
             const equippedNow =
               item.id &&
               (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id);
@@ -94,12 +94,21 @@ export default function InventoryPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-3/4">
                       <p className="font-semibold">
-                        {item.type === 'weapon' ? '🗡️ 武器' : item.type === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{item.name}
+                        {item.slot === 'weapon' ? '🗡️ 武器' : item.slot === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{item.name}
                         {equippedNow && <span className="equipped-mark">← 已装备</span>}
                       </p>
                       <p className="text-sm text-ink-secondary">
-                        {item.element}·{item.quality ?? '未知品阶'}｜{item.specialEffect ?? '暂无附加描述'}
+                        {item.element}元素
+                        {Object.entries(item.bonus)
+                          .filter(([_, v]) => v !== undefined && v !== 0)
+                          .map(([k, v]) => `${k} +${v}`)
+                          .join(', ')}
                       </p>
+                      {item.special_effects && item.special_effects.length > 0 && (
+                        <p className="text-xs text-ink-secondary">
+                          特效：{item.special_effects.map(e => e.type).join(', ')}
+                        </p>
+                      )}
                     </div>
                     <button
                       className="btn-primary btn-sm"

@@ -1,67 +1,108 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import type { Cultivator } from '../types/cultivator';
-import { mapSpiritRootToElement } from './battleProfile';
 
 /**
  * 角色生成 Prompt 模板（系统提示词）
+ * 基于 basic.md 中的新 Cultivator JSON 结构。
  */
 export function getCharacterGenerationPrompt(): string {
   return `你是“造化玉碟”，精通修仙设定。你会收到凡人的心念描述，请基于描述创造一个结构化的修仙者。
 
-请严格输出 JSON（不要任何额外文字），字段与约束如下：
+请严格输出 JSON（不要任何额外文字），遵循以下结构和取值范围：
 {
-  "name": "角色名，2-4字",
-  "gender": "性别",
-  "origin": "出身",
-  "personality": "性格概述",
-  "level": "境界，例如：筑基中期",
-  "spirit_root": "灵根，例如：雷灵根 / 变异·混沌灵根",
-  "appearance": "20~40字外观描写",
-  "background": "30~60字背景故事",
+  "name": "2~4 字中文姓名",
+  "gender": "男 | 女 | 无",
+  "origin": "出身势力或地域，10~20字",
+  "personality": "性格概述，15~30字",
+
+  "realm": "炼气 | 筑基 | 金丹 | 元婴 | 化神 | 炼虚 | 合体 | 大乘 | 渡劫",
+  "realm_stage": "初期 | 中期 | 后期 | 圆满",
+  "age": 整数，>= 10,
+  "lifespan": 整数，不同境界合理范围（例如 炼气 80~120，金丹 300~600，渡劫 800~1200），不得小于 age,
+
+  "attributes": {
+    "vitality": 10~300,
+    "spirit": 10~300,
+    "wisdom": 10~300,
+    "speed": 10~300,
+    "willpower": 10~300
+  },
+
+  "spiritual_roots": [
+    {
+      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无",
+      "strength": 0~100
+    }
+  ],
+
   "pre_heaven_fates": [
     {
-      "name": "气运名称，2-4字",
-      "type": "吉 或 凶",
-      "effect": "简要说明对属性或战斗的影响",
+      "name": "气运名称，2~4字",
+      "type": "吉 | 凶",
+      "attribute_mod": {
+        "vitality": 可选整数加成,
+        "spirit": 可选整数加成,
+        "wisdom": 可选整数加成,
+        "speed": 可选整数加成,
+        "willpower": 可选整数加成
+      },
       "description": "一句古风描述"
     }
   ],
-  "battle_profile": {
-    "attributes": {
-      "vitality": 70-110,
-      "spirit": 65-85,
-      "wisdom": 65-85,
-      "speed": 60-85
-    },
-    "max_hp": 150 + (attributes.vitality * 0.8) （四舍五入为整数）,
-    "skills": [
-      {
-        "name": "技能名",
-        "type": "attack|heal|control|buff",
-        "power": 50-85,
-        "element": "金|木|水|火|土|雷|无",
-        "effects": ["可选效果列表，如 stun/burn/heal"]
-      }
-    ],
-    "equipment": [
-      {
-        "name": "法器或符箓名称",
-        "bonus": {
-          "vitality": 可选加成（建议 5-10）,
-          "spirit": 可选加成（建议 5-10）,
-          "elementBoost": { "雷": 0.1 } // 可选，建议 0.05-0.15
-        }
-      }
-    ]
-  }
+
+  "cultivations": [
+    {
+      "name": "功法名称",
+      "bonus": {
+        "vitality": 可选整数加成,
+        "spirit": 可选整数加成,
+        "wisdom": 可选整数加成,
+        "speed": 可选整数加成,
+        "willpower": 可选整数加成
+      },
+      "required_realm": "与上文 realm 相同或更低的境界名"
+    }
+  ],
+
+  "skills": [
+    {
+      "name": "技能名",
+      "type": "attack | heal | control | debuff | buff",
+      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无",
+      "power": 30~150,
+      "cost": 0~100,
+      "cooldown": 0~5,
+      "effect": "可选：burn | bleed | poison | stun | silence | root | armor_up | speed_up | crit_rate_up | armor_down",
+      "duration": 可选整数（持续回合数，1~4）,
+      "target_self": 可选布尔值
+    }
+  ],
+
+  "inventory": {
+    "artifacts": [],
+    "consumables": []
+  },
+
+  "equipped": {
+    "weapon": null,
+    "armor": null,
+    "accessory": null
+  },
+
+  "max_skills": 2~6 的整数,
+  "background": "30~80字背景故事"
 }
 
-要求：
-1. 角色必须包含 EXACT 3 个「pre_heaven_fates」。
-2. 数值统一为整数，不得超出范围。
-3. 技能至少 2 个，必须符合角色设定；若描述与元素有关，请对应元素。
-4. 战斗属性需与气运描述一致，例如“紫府通明”应提高 spirit。
-5. 输出必须为合法 JSON。`;
+重要约束与说明：
+- 元素必须从固定列表中选择：金、木、水、火、土、风、雷、冰、无。
+- 技能类型必须是：attack, heal, control, debuff, buff 之一。
+- 状态效果必须是：burn, bleed, poison, stun, silence, root, armor_up, speed_up, crit_rate_up, armor_down 之一。
+- 所有数值字段必须是整数，且在给定范围之内。
+- 至少 1 个灵根，最多 3 个。
+- pre_heaven_fates 建议 2~3 条，务必与属性加成相呼应。
+- 技能至少 2 个，且应与角色设定和元素相符。
+- 装备（inventory.artifacts 和 equipped）不需要生成，创建角色时为空，由用户后续手动装备。
+- 输出必须是**合法 JSON**，不要添加任何注释或多余文字。`;
 }
 
 interface BattlePromptPayload {
@@ -69,7 +110,7 @@ interface BattlePromptPayload {
   opponent: Cultivator;
   battleResult: Pick<
     BattleEngineResult,
-    'log' | 'turns' | 'playerHp' | 'opponentHp' | 'triggeredMiracle'
+    'log' | 'turns' | 'playerHp' | 'opponentHp'
   > & { winnerId: string };
 }
 
@@ -81,24 +122,20 @@ export function getBattleReportPrompt({
   const winner = battleResult.winnerId === opponent.id ? opponent : player;
 
   const summarizeCultivator = (cultivator: Cultivator) => {
-    const profile = cultivator.battleProfile;
-    const element =
-      profile?.element ?? mapSpiritRootToElement(cultivator.spiritRoot);
-    const attributes = profile
-      ? `体魄${profile.attributes.vitality} 灵力${profile.attributes.spirit} 悟性${profile.attributes.wisdom} 速度${profile.attributes.speed}`
-      : '属性：未知';
+    const attrs = cultivator.attributes;
+    const mainRoot = cultivator.spiritual_roots[0];
     const skills =
-      profile?.skills
+      cultivator.skills
         ?.map((skill) => `${skill.name}(${skill.element}/${skill.type})`)
         .join('，') ?? '无';
     const fates =
-      cultivator.preHeavenFates
+      cultivator.pre_heaven_fates
         ?.map((fate) => `${fate.name}(${fate.type})`)
         .join('，') ?? '无';
     return `姓名：${cultivator.name}
-境界：${cultivator.cultivationLevel}
-灵根/属性：${cultivator.spiritRoot} · ${element}
-属性：${attributes}
+境界：${cultivator.realm}${cultivator.realm_stage}
+灵根/属性：${mainRoot?.element ?? '无'} 灵根·${mainRoot?.strength ?? 0}
+属性：体魄${attrs.vitality} 灵力${attrs.spirit} 悟性${attrs.wisdom} 速度${attrs.speed} 神识${attrs.willpower}
 技能：${skills}
 先天气运：${fates}`;
   };
@@ -136,10 +173,9 @@ ${battleLog}
 【战斗结论】
 胜者：${winner.name}
 回合数：${battleResult.turns ?? battleResult.log.length}
-双方剩余气血：${player.name} ${battleResult.playerHp ?? '未知'} / ${
-    opponent.name
-  } ${battleResult.opponentHp ?? '未知'}
-是否出现奇迹逆转：${battleResult.triggeredMiracle ? '是' : '否'}
+双方剩余气血：${player.name} ${
+    battleResult.playerHp ?? '未知'
+  } / ${opponent.name} ${battleResult.opponentHp ?? '未知'}
 
 请写一段完整的战斗描写。`;
 
@@ -153,74 +189,101 @@ export function getDefaultBoss(): Cultivator {
   return {
     id: 'boss-001',
     name: '血手人屠',
-    prompt: '魔道巨擘，嗜血成性',
-    cultivationLevel: '元婴后期',
-    spiritRoot: '血魔灵根',
-    appearance: '黑袍遮身，双目赤红，血雾缭绕，手持血色长刀',
-    backstory: '昔年正道第一，如今坠入魔渊，以血养道，屠戮无数。',
-    maxEquipments: 3,
-    maxSkills: 4,
-    preHeavenFates: [
+    gender: '男',
+    origin: '魔渊深处',
+    personality: '嗜血成性，杀意滔天',
+    realm: '元婴',
+    realm_stage: '后期',
+    age: 350,
+    lifespan: 600,
+    attributes: {
+      vitality: 110,
+      spirit: 80,
+      wisdom: 65,
+      speed: 60,
+      willpower: 70,
+    },
+    spiritual_roots: [
+      { element: '火', strength: 80 },
+      { element: '土', strength: 40 },
+    ],
+    pre_heaven_fates: [
       {
         name: '血煞命格',
         type: '凶',
-        effect: 'vitality +15, wisdom -5',
         description: '煞气入骨，杀孽滔天。',
+        attribute_mod: { vitality: 15, wisdom: -5 },
       },
       {
         name: '魔心不灭',
         type: '吉',
-        effect: 'max_hp +30',
         description: '魔念护身，百劫不磨。',
+        attribute_mod: { willpower: 10 },
       },
       {
         name: '尸山血海',
         type: '凶',
-        effect: '火系技能威力 +15%',
         description: '血海为源，冥焰滔天。',
+        attribute_mod: { spirit: 10 },
       },
     ],
-    battleProfile: {
-      maxHp: 350,
-      hp: 350,
-      element: '火',
-      attributes: {
-        vitality: 110,
-        spirit: 80,
-        wisdom: 65,
-        speed: 60,
+    cultivations: [],
+    skills: [
+      {
+        id: 'sk_boss_blood_sea',
+        name: '血海滔天',
+        type: 'attack',
+        power: 120,
+        element: '火',
+        cooldown: 1,
+        cost: 30,
+        effect: 'burn',
+        duration: 2,
       },
-      skills: [
+      {
+        id: 'sk_boss_flame_shield',
+        name: '魔焰护身',
+        type: 'buff',
+        power: 60,
+        element: '火',
+        cooldown: 2,
+        cost: 20,
+        effect: 'speed_up',
+        duration: 2,
+      },
+      {
+        id: 'sk_boss_blood_heal',
+        name: '血元回潮',
+        type: 'heal',
+        power: 90,
+        element: '土',
+        cooldown: 2,
+        cost: 25,
+        effect: undefined,
+      },
+    ],
+    inventory: {
+      artifacts: [
         {
-          name: '血海滔天',
-          type: 'attack',
-          power: 85,
-          element: '火',
-          effects: ['burn'],
-        },
-        {
-          name: '魔焰护身',
-          type: 'buff',
-          power: 55,
-          element: '火',
-          effects: ['speed_up'],
-        },
-        {
-          name: '血元回潮',
-          type: 'heal',
-          power: 65,
-          element: '土',
-          effects: ['heal'],
-        },
-      ],
-      equipment: [
-        {
+          id: 'eq_boss_blade',
           name: '血炼魔刀',
-          type: 'weapon',
+          slot: 'weapon',
           element: '火',
-          bonus: { vitality: 8, elementBoost: { 火: 0.15 } },
+          bonus: { vitality: 8, spirit: 10 },
+          special_effects: [],
+          curses: [],
         },
       ],
+      consumables: [],
     },
+    equipped: {
+      weapon: 'eq_boss_blade',
+      armor: null,
+      accessory: null,
+    },
+    max_skills: 4,
+    background:
+      '昔年正道第一，如今坠入魔渊，以血养道，屠戮无数，被世人称为血手人屠。',
+    prompt: '魔道巨擘，嗜血成性',
   };
 }

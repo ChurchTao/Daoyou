@@ -8,7 +8,8 @@ const attributeLabels: Record<string, string> = {
   vitality: '体魄（vitality）',
   spirit: '灵力（spirit）',
   wisdom: '悟性（wisdom）',
-  speed: '身法（speed）',
+  speed: '速度（speed）',
+  willpower: '神识（willpower）',
 };
 
 export default function CultivatorPage() {
@@ -41,7 +42,7 @@ export default function CultivatorPage() {
     );
   }
 
-  const equippedItems = inventory.equipments.filter(
+  const equippedItems = inventory.artifacts.filter(
     (item) =>
       item.id &&
       (equipped.weapon === item.id || equipped.armor === item.id || equipped.accessory === item.id),
@@ -50,7 +51,7 @@ export default function CultivatorPage() {
   return (
     <InkPageShell
       title={`【道我真形 · ${cultivator.name}】`}
-      subtitle={`${cultivator.cultivationLevel} ｜ ${cultivator.spiritRoot}`}
+      subtitle={`${cultivator.realm}${cultivator.realm_stage} ｜ ${cultivator.spiritual_roots[0]?.element || '无'}灵根`}
       backHref="/"
       note={note}
       actions={
@@ -75,41 +76,48 @@ export default function CultivatorPage() {
       <InkSection title="道号与根骨">
         <div className="space-y-2 text-base">
           <p>☯ 道号：{cultivator.name}</p>
-          <p>🌿 境界：{cultivator.cultivationLevel}（{cultivator.spiritRoot}）</p>
+          <p>🌿 境界：{cultivator.realm}{cultivator.realm_stage}（{cultivator.spiritual_roots[0]?.element || '无'}灵根）</p>
           <p>
-            ❤️ 气血：{cultivator.battleProfile?.hp}/{cultivator.battleProfile?.maxHp}
+            ❤️ 气血：{80 + cultivator.attributes.vitality}（基于体魄）
           </p>
-          <p>⚡ 灵力：{cultivator.battleProfile?.attributes.spirit ?? '--'}</p>
+          <p>⚡ 灵力：{cultivator.attributes.spirit}</p>
+          <p>🧠 神识：{cultivator.attributes.willpower}</p>
         </div>
       </InkSection>
 
-      {cultivator.preHeavenFates?.length ? (
+      {cultivator.pre_heaven_fates?.length ? (
         <InkSection title="【先天命格】">
           <div className="space-y-3">
-            {cultivator.preHeavenFates.map((fate) => (
+            {cultivator.pre_heaven_fates.map((fate) => (
               <div key={fate.name} className="rounded border border-ink/10 bg-white/60 p-3">
                 <p className="font-semibold">
                   ✨ {fate.name}（{fate.type}）
                 </p>
-                <p className="mt-1 text-sm text-ink-secondary">{fate.effect}</p>
+                <p className="mt-1 text-sm text-ink-secondary">
+                  {Object.entries(fate.attribute_mod)
+                    .filter(([_, v]) => v !== undefined && v !== 0)
+                    .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+                    .join(', ') || '无属性加成'}
+                </p>
+                {fate.description && (
+                  <p className="mt-1 text-xs text-ink-secondary italic">{fate.description}</p>
+                )}
               </div>
             ))}
           </div>
         </InkSection>
       ) : null}
 
-      {cultivator.battleProfile && (
-        <InkSection title="【根基属性】" hint="灵力受“紫府通明”加持，已折算至面板。">
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(cultivator.battleProfile.attributes).map(([key, value]) => (
-              <div key={key} className="rounded border border-ink/10 bg-white/60 p-3">
-                <p className="font-semibold">{attributeLabels[key as keyof typeof attributeLabels] ?? key}</p>
-                <p className="mt-1 text-ink-secondary">{value}</p>
-              </div>
-            ))}
-          </div>
-        </InkSection>
-      )}
+      <InkSection title="【根基属性】" hint="包含功法、装备、命格等所有加成后的最终属性。">
+        <div className="grid grid-cols-2 gap-3">
+          {Object.entries(cultivator.attributes).map(([key, value]) => (
+            <div key={key} className="rounded border border-ink/10 bg-white/60 p-3">
+              <p className="font-semibold">{attributeLabels[key as keyof typeof attributeLabels] ?? key}</p>
+              <p className="mt-1 text-ink-secondary">{value}</p>
+            </div>
+          ))}
+        </div>
+      </InkSection>
 
       <InkSection title="【当前所御法宝】" hint="更多法宝请前往储物袋更换。">
         {equippedItems.length ? (
@@ -117,11 +125,20 @@ export default function CultivatorPage() {
             {equippedItems.map((item) => (
               <div key={item.id} className="rounded border border-ink/10 bg-white/60 p-3">
                 <p className="font-semibold">
-                  {item.type === 'weapon' ? '🗡️ 武器' : item.type === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{item.name}
+                  {item.slot === 'weapon' ? '🗡️ 武器' : item.slot === 'armor' ? '🛡️ 护甲' : '📿 饰品'}：{item.name}
                 </p>
                 <p className="mt-1 text-sm text-ink-secondary">
-                  {item.element}·{item.quality}｜{item.specialEffect ?? '无特殊效果'}
+                  {item.element}元素
+                  {Object.entries(item.bonus)
+                    .filter(([_, v]) => v !== undefined && v !== 0)
+                    .map(([k, v]) => `${k} +${v}`)
+                    .join(', ')}
                 </p>
+                {item.special_effects && item.special_effects.length > 0 && (
+                  <p className="mt-1 text-xs text-ink-secondary">
+                    特效：{item.special_effects.map(e => e.type).join(', ')}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -147,10 +164,13 @@ export default function CultivatorPage() {
                   {index === skills.length - 1 && <span className="new-mark">← 新悟</span>}
                 </p>
                 <p className="mt-1 text-sm text-ink-secondary">
-                  威力：{skill.power}｜元素：{skill.element}
+                  威力：{skill.power}｜元素：{skill.element}｜冷却：{skill.cooldown}回合
                 </p>
-                {skill.effects && (
-                  <p className="text-xs text-ink-secondary">{skill.effects.join(' / ')}</p>
+                {skill.effect && (
+                  <p className="text-xs text-ink-secondary">效果：{skill.effect}{skill.duration ? `（${skill.duration}回合）` : ''}</p>
+                )}
+                {skill.cost !== undefined && skill.cost > 0 && (
+                  <p className="text-xs text-ink-secondary">消耗：{skill.cost} 灵力</p>
                 )}
               </div>
             ))}

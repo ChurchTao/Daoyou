@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { cultivatorId, opponentId, consumableIds } = body;
+    const { cultivatorId, opponentId } = body;
 
     // 输入验证
     if (
@@ -62,20 +62,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 处理消耗品
-    let playerConsumables: Array<{ id?: string; name: string; effect: string; description?: string }> = [];
-    if (consumableIds && Array.isArray(consumableIds) && consumableIds.length > 0) {
-      // 从玩家的消耗品列表中筛选出选中的消耗品
-      playerConsumables = player.inventory?.consumables?.filter(consumable => 
-        consumable.id && consumableIds.includes(consumable.id)
-      ) || [];
-    }
-
-    // 调用战斗引擎生成战斗结果
-    const battleResult = simulateBattle(player, opponent, {
-      playerConsumables,
-      opponentConsumables: [],
-    });
+    const battleResult = simulateBattle(player, opponent);
 
     return NextResponse.json({
       success: true,

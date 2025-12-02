@@ -58,16 +58,16 @@ export async function GET(
       // 如果没有装备状态记录，返回空状态
       return NextResponse.json({
         success: true,
-        data: { weapon: undefined, armor: undefined, accessory: undefined },
+        data: { weapon: null, armor: null, accessory: null },
       });
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        weapon: equippedItems[0].weaponId,
-        armor: equippedItems[0].armorId,
-        accessory: equippedItems[0].accessoryId,
+        weapon: equippedItems[0].weapon_id || null,
+        armor: equippedItems[0].armor_id || null,
+        accessory: equippedItems[0].accessory_id || null,
       },
     });
   } catch (error) {
@@ -109,23 +109,23 @@ export async function POST(
 
     const { id: cultivatorId } = await params;
     const body = await request.json();
-    const { equipmentId } = body;
+    const { artifactId } = body; // 使用 artifactId 而不是 equipmentId
 
     // 输入验证
     if (
       !cultivatorId ||
       typeof cultivatorId !== 'string' ||
-      !equipmentId ||
-      typeof equipmentId !== 'string'
+      !artifactId ||
+      typeof artifactId !== 'string'
     ) {
       return NextResponse.json(
-        { error: '请提供有效的角色ID和装备ID' },
+        { error: '请提供有效的角色ID和法宝ID' },
         { status: 400 }
       );
     }
 
     // 装备或卸下装备
-    const equippedItems = await equipEquipment(user.id, cultivatorId, equipmentId);
+    const equippedItems = await equipEquipment(user.id, cultivatorId, artifactId);
 
     return NextResponse.json({
       success: true,

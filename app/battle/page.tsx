@@ -13,10 +13,11 @@ import { Suspense, useEffect, useState } from 'react';
 type EnemyData = {
   id: string;
   name: string;
-  cultivationLevel: string;
-  spiritRoot: string;
-  appearance: string;
-  element: string;
+  realm: string;
+  realm_stage: string;
+  spiritual_roots: Array<{ element: string; strength: number }>;
+  appearance?: string;
+  background?: string;
   combatRating: number;
 };
 
@@ -72,17 +73,18 @@ function BattlePageContent() {
             // 如果获取失败，使用默认BOSS
             const defaultBoss = getDefaultBoss();
             setOpponent({
-              id: defaultBoss.id,
+              id: defaultBoss.id!,
               name: defaultBoss.name,
-              cultivationLevel: defaultBoss.cultivationLevel,
-              spiritRoot: defaultBoss.spiritRoot,
-              appearance: defaultBoss.appearance,
-              element: defaultBoss.battleProfile?.element || '无',
+              realm: defaultBoss.realm,
+              realm_stage: defaultBoss.realm_stage,
+              spiritual_roots: defaultBoss.spiritual_roots,
+              background: defaultBoss.background,
               combatRating: Math.round(
-                ((defaultBoss.battleProfile?.attributes.vitality || 0) + 
-                 (defaultBoss.battleProfile?.attributes.spirit || 0) + 
-                 (defaultBoss.battleProfile?.attributes.wisdom || 0) + 
-                 (defaultBoss.battleProfile?.attributes.speed || 0)) / 4
+                (defaultBoss.attributes.vitality + 
+                 defaultBoss.attributes.spirit + 
+                 defaultBoss.attributes.wisdom + 
+                 defaultBoss.attributes.speed +
+                 defaultBoss.attributes.willpower) / 5
               ) || 0
             });
           }
@@ -90,17 +92,18 @@ function BattlePageContent() {
           // 如果没有对手ID，使用默认BOSS
           const defaultBoss = getDefaultBoss();
           setOpponent({
-            id: defaultBoss.id,
+            id: defaultBoss.id!,
             name: defaultBoss.name,
-            cultivationLevel: defaultBoss.cultivationLevel,
-            spiritRoot: defaultBoss.spiritRoot,
-            appearance: defaultBoss.appearance,
-            element: defaultBoss.battleProfile?.element || '无',
+            realm: defaultBoss.realm,
+            realm_stage: defaultBoss.realm_stage,
+            spiritual_roots: defaultBoss.spiritual_roots,
+            background: defaultBoss.background,
             combatRating: Math.round(
-              ((defaultBoss.battleProfile?.attributes.vitality || 0) + 
-               (defaultBoss.battleProfile?.attributes.spirit || 0) + 
-               (defaultBoss.battleProfile?.attributes.wisdom || 0) + 
-               (defaultBoss.battleProfile?.attributes.speed || 0)) / 4
+              (defaultBoss.attributes.vitality + 
+               defaultBoss.attributes.spirit + 
+               defaultBoss.attributes.wisdom + 
+               defaultBoss.attributes.speed +
+               defaultBoss.attributes.willpower) / 5
             ) || 0
           });
         }
@@ -109,17 +112,18 @@ function BattlePageContent() {
         // 使用默认BOSS
         const defaultBoss = getDefaultBoss();
         setOpponent({
-          id: defaultBoss.id,
+          id: defaultBoss.id!,
           name: defaultBoss.name,
-          cultivationLevel: defaultBoss.cultivationLevel,
-          spiritRoot: defaultBoss.spiritRoot,
-          appearance: defaultBoss.appearance,
-          element: defaultBoss.battleProfile?.element || '无',
+          realm: defaultBoss.realm,
+          realm_stage: defaultBoss.realm_stage,
+          spiritual_roots: defaultBoss.spiritual_roots,
+          background: defaultBoss.background,
           combatRating: Math.round(
-            ((defaultBoss.battleProfile?.attributes.vitality || 0) + 
-             (defaultBoss.battleProfile?.attributes.spirit || 0) + 
-             (defaultBoss.battleProfile?.attributes.wisdom || 0) + 
-             (defaultBoss.battleProfile?.attributes.speed || 0)) / 4
+            (defaultBoss.attributes.vitality + 
+             defaultBoss.attributes.spirit + 
+             defaultBoss.attributes.wisdom + 
+             defaultBoss.attributes.speed +
+             defaultBoss.attributes.willpower) / 5
           ) || 0
         });
       } finally {
@@ -304,7 +308,7 @@ function BattlePageContent() {
                 {player.name}
               </div>
               <div className="text-xs text-ink/70 mt-1">
-                {player.cultivationLevel}
+                {player.realm}{player.realm_stage}
               </div>
             </div>
             <div className="text-center text-ink/50">VS</div>
@@ -313,7 +317,7 @@ function BattlePageContent() {
                 {opponent.name}
               </div>
               <div className="text-xs text-ink/70 mt-1">
-                {opponent.cultivationLevel}
+                {opponent.realm}{opponent.realm_stage}
               </div>
             </div>
           </div>
@@ -345,12 +349,6 @@ function BattlePageContent() {
                 ))}
             </div>
 
-            {/* 顿悟提示 */}
-            {battleResult?.triggeredMiracle && (
-              <div className="mt-6 text-center text-crimson text-sm font-semibold">
-                ✨ 触发顿悟！逆天改命！
-              </div>
-            )}
 
             {/* 胜利印章（条件渲染） */}
             {isWin && !isStreaming && battleResult && (

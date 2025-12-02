@@ -1,306 +1,427 @@
 import type {
-  BattleAttributes,
-  BattleProfile,
+  Attributes,
+  Consumable,
   Cultivator,
+  CultivationTechnique,
   ElementType,
-  Equipment,
-  EquipmentType,
   PreHeavenFate,
+  RealmStage,
+  RealmType,
   Skill,
+  SpiritualRoot,
 } from '../types/cultivator';
 import { parseAIResponse } from './aiClient';
-import {
-  generateDefaultBattleProfile,
-  mapSpiritRootToElement,
-} from './battleProfile';
 
 export function createCultivatorFromAI(
   aiResponse: string,
   userPrompt: string,
 ): Cultivator {
-  const data = parseAIResponse(aiResponse);
+  const raw = parseAIResponse(aiResponse);
 
-  const getString = (value: unknown, fallback: string) =>
-    typeof value === 'string' && value.trim().length ? value : fallback;
+  const name = asString(raw.name, '未命名');
+  const gender = asGender(raw.gender);
+  const realm = asRealm(raw.realm);
+  const realmStage = asRealmStage(raw.realm_stage);
+  const age = asInteger(raw.age, 18, 0);
+  const lifespan = asInteger(raw.lifespan, 100, 1);
 
-  const name = getString(data.name, '未命名');
-  const cultivationLevel = getString(
-    data.level ?? data.cultivationLevel,
-    '炼气一层',
-  );
-  const spiritRoot = getString(data.spirit_root ?? data.spiritRoot, '无灵根');
-  const appearance = getString(data.appearance, '普通修士');
-  const backstory = getString(data.background ?? data.backstory, '来历不明');
-  const gender = getString(data.gender, '');
-  const origin = getString(data.origin, '');
-  const personality = getString(data.personality, '');
+  const attributes = asAttributes(raw.attributes);
+  const spiritualRoots = asSpiritualRoots(raw.spiritual_roots);
+  const preHeavenFates = asPreHeavenFates(raw.pre_heaven_fates);
+  const cultivations = asCultivations(raw.cultivations);
+  const skills = asSkills(raw.skills);
 
-  const preHeavenFates = parseFates(
-    data.pre_heaven_fates ?? data.preHeavenFates,
-  );
-  const cultivator: Cultivator = {
-    id: generateUUID(),
-    name,
-    prompt: userPrompt,
-    cultivationLevel,
-    spiritRoot,
-    appearance,
-    backstory,
-    gender: gender || undefined,
-    origin: origin || undefined,
-    personality: personality || undefined,
-    maxEquipments: 3,
-    maxSkills: 4,
-    preHeavenFates: preHeavenFates.length ? preHeavenFates : undefined,
-    battleProfile: undefined,
+  // 装备不由 AI 生成，创建角色时为空，由用户后续手动装备
+  const inventory: Cultivator['inventory'] = {
+    artifacts: [],
+    consumables: [],
   };
+  const equipped: Cultivator['equipped'] = {
+    weapon: null,
+    armor: null,
+    accessory: null,
+  };
+  const maxSkills = asInteger(raw.max_skills, 4, 2, 6);
 
-  cultivator.battleProfile =
-    buildBattleProfileFromData(data, name, spiritRoot) ??
-    generateDefaultBattleProfile(cultivator);
+  const background = asOptionalString(
+    raw.background ?? raw.backstory ?? raw.story,
+  );
+
+  const cultivator: Cultivator = {
+    name,
+    gender,
+    origin: asOptionalString(raw.origin),
+    personality: asOptionalString(raw.personality),
+    realm,
+    realm_stage: realmStage,
+    age,
+    lifespan,
+    attributes,
+    spiritual_roots: spiritualRoots,
+    pre_heaven_fates: preHeavenFates,
+    cultivations,
+    skills,
+    inventory,
+    equipped,
+    max_skills: maxSkills,
+    background,
+    prompt: userPrompt,
+  };
 
   return cultivator;
 }
 
-export function generateUUID(): string {
-  return (
-    'cultivator-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11)
-  );
+export function validateCultivator(c: Partial<Cultivator>): boolean {
+  if (!c) return false;
+  if (!c.name || !c.gender || !c.realm || !c.realm_stage) return false;
+  if (!c.attributes || !c.skills || !c.inventory || !c.equipped) return false;
+  if (!c.spiritual_roots || c.spiritual_roots.length === 0) return false;
+  return true;
 }
 
-export function validateCultivator(cultivator: Partial<Cultivator>): boolean {
-  return !!(
-    cultivator.name &&
-    cultivator.cultivationLevel &&
-    cultivator.spiritRoot &&
-    cultivator.appearance &&
-    cultivator.backstory &&
-    cultivator.battleProfile
-  );
+// ===== 内部工具函数 =====
+
+function asString(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length
+    ? value.trim()
+    : fallback;
 }
 
-function parseFates(raw: unknown): PreHeavenFate[] {
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length
+    ? value.trim()
+    : undefined;
+}
+
+function asInteger(
+  value: unknown,
+  fallback: number,
+  min?: number,
+  max?: number,
+): number {
+  const n = typeof value === 'number' ? Math.round(value) : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  let v = n;
+  if (typeof min === 'number') v = Math.max(min, v);
+  if (typeof max === 'number') v = Math.min(max, v);
+  return v;
+}
+
+function asGender(value: unknown): Cultivator['gender'] {
+  if (value === '男' || value === '女' || value === '无') return value;
+  return '无';
+}
+
+function asRealm(value: unknown): RealmType {
+  const realms: RealmType[] = [
+    '炼气',
+    '筑基',
+    '金丹',
+    '元婴',
+    '化神',
+    '炼虚',
+    '合体',
+    '大乘',
+    '渡劫',
+  ];
+  if (typeof value === 'string' && realms.includes(value as RealmType)) {
+    return value as RealmType;
+  }
+  return '炼气';
+}
+
+function asRealmStage(value: unknown): RealmStage {
+  const stages: RealmStage[] = ['初期', '中期', '后期', '圆满'];
+  if (typeof value === 'string' && stages.includes(value as RealmStage)) {
+    return value as RealmStage;
+  }
+  return '初期';
+}
+
+function asElement(value: unknown): ElementType {
+  const elements: ElementType[] = ['金', '木', '水', '火', '土', '风', '雷', '冰', '无'];
+  if (typeof value === 'string' && elements.includes(value as ElementType)) {
+    return value as ElementType;
+  }
+  return '无';
+}
+
+function asAttributes(raw: unknown): Attributes {
+  const obj = (raw && typeof raw === 'object'
+    ? (raw as Record<string, unknown>)
+    : {}) as Record<string, unknown>;
+
+  return {
+    vitality: asInteger(obj.vitality, 60, 10, 300),
+    spirit: asInteger(obj.spirit, 60, 10, 300),
+    wisdom: asInteger(obj.wisdom, 60, 10, 300),
+    speed: asInteger(obj.speed, 60, 10, 300),
+    willpower: asInteger(obj.willpower, 60, 10, 300),
+  };
+}
+
+function asSpiritualRoots(raw: unknown): SpiritualRoot[] {
+  if (!Array.isArray(raw)) {
+    return [{ element: '无', strength: 0 }];
+  }
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const rec = item as Record<string, unknown>;
+      const element = asElement(rec.element);
+      const strength = asInteger(rec.strength, 50, 0, 100);
+      return { element, strength } as SpiritualRoot;
+    })
+    .filter((r): r is SpiritualRoot => !!r)
+    .slice(0, 3);
+}
+
+function asPreHeavenFates(raw: unknown): PreHeavenFate[] {
+  if (!Array.isArray(raw)) return [];
+  const list: PreHeavenFate[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const name = asString(rec.name, '');
+    if (!name) continue;
+    const type = rec.type === '凶' ? '凶' : '吉';
+    const modRaw =
+      (rec.attribute_mod as Record<string, unknown>) ?? ({} as Record<
+        string,
+        unknown
+      >);
+    const attribute_mod: PreHeavenFate['attribute_mod'] = {};
+    if (typeof modRaw.vitality === 'number') {
+      attribute_mod.vitality = Math.round(modRaw.vitality);
+    }
+    if (typeof modRaw.spirit === 'number') {
+      attribute_mod.spirit = Math.round(modRaw.spirit);
+    }
+    if (typeof modRaw.wisdom === 'number') {
+      attribute_mod.wisdom = Math.round(modRaw.wisdom);
+    }
+    if (typeof modRaw.speed === 'number') {
+      attribute_mod.speed = Math.round(modRaw.speed);
+    }
+    if (typeof modRaw.willpower === 'number') {
+      attribute_mod.willpower = Math.round(modRaw.willpower);
+    }
+    list.push({
+      name,
+      type,
+      attribute_mod,
+      description: asOptionalString(rec.description),
+    });
+  }
+  return list;
+}
+
+function asCultivations(raw: unknown): CultivationTechnique[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((item) => {
       if (!item || typeof item !== 'object') return null;
-      const record = item as Record<string, unknown>;
-      const name = typeof record.name === 'string' ? record.name : null;
+      const rec = item as Record<string, unknown>;
+      const name = asString(rec.name, '');
       if (!name) return null;
-      const type = record.type === '凶' ? '凶' : '吉';
-      const effect = typeof record.effect === 'string' ? record.effect : '';
-      const description =
-        typeof record.description === 'string' ? record.description : '';
-      return { name, type, effect, description };
+      const bonusRaw =
+        (rec.bonus as Record<string, unknown>) ?? ({} as Record<
+          string,
+          unknown
+        >);
+      const bonus: CultivationTechnique['bonus'] = {};
+      if (typeof bonusRaw.vitality === 'number') {
+        bonus.vitality = Math.round(bonusRaw.vitality);
+      }
+      if (typeof bonusRaw.spirit === 'number') {
+        bonus.spirit = Math.round(bonusRaw.spirit);
+      }
+      if (typeof bonusRaw.wisdom === 'number') {
+        bonus.wisdom = Math.round(bonusRaw.wisdom);
+      }
+      if (typeof bonusRaw.speed === 'number') {
+        bonus.speed = Math.round(bonusRaw.speed);
+      }
+      if (typeof bonusRaw.willpower === 'number') {
+        bonus.willpower = Math.round(bonusRaw.willpower);
+      }
+      const required_realm = asRealm(rec.required_realm);
+      return { name, bonus, required_realm };
     })
-    .filter((fate): fate is PreHeavenFate => !!fate);
+    .filter((c): c is CultivationTechnique => !!c);
 }
 
-function parseAttributes(raw: unknown): BattleAttributes | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const record = raw as Record<string, unknown>;
-  const vitality = Number(record.vitality);
-  const spirit = Number(record.spirit);
-  const wisdom = Number(record.wisdom);
-  const speed = Number(record.speed);
-  if ([vitality, spirit, wisdom, speed].every((n) => Number.isFinite(n))) {
-    return { vitality, spirit, wisdom, speed };
-  }
-  return null;
-}
-
-function parseSkills(raw: unknown): Skill[] {
+function asSkills(raw: unknown): Skill[] {
   if (!Array.isArray(raw)) return [];
-  const parsed = raw
-    .map((item) => {
+  return raw
+    .map((item, index) => {
       if (!item || typeof item !== 'object') return null;
-      const record = item as Record<string, unknown>;
-      const name = typeof record.name === 'string' ? record.name : null;
-      const typeValue = typeof record.type === 'string' ? record.type : null;
-      const power = Number(record.power);
-      const elementValue = (record.element as ElementType) ?? '无';
-      if (!name || !typeValue || !Number.isFinite(power)) return null;
-      const effects = Array.isArray(record.effects)
-        ? record.effects.filter(
-            (effect: unknown): effect is string => typeof effect === 'string',
-          )
-        : undefined;
+      const rec = item as Record<string, unknown>;
+      const name = asString(rec.name, '');
+      if (!name) return null;
+      const type = asSkillType(rec.type);
+      const element = asElement(rec.element);
+      const power = asInteger(rec.power, 60, 30, 150);
+      const cost =
+        typeof rec.cost === 'number' ? Math.max(0, Math.round(rec.cost)) : 0;
+      const cooldown =
+        typeof rec.cooldown === 'number'
+          ? Math.max(0, Math.round(rec.cooldown))
+          : 0;
+      const effect = asStatusEffect(rec.effect);
+      const duration =
+        typeof rec.duration === 'number'
+          ? Math.max(1, Math.round(rec.duration))
+          : undefined;
+      const target_self =
+        typeof rec.target_self === 'boolean' ? rec.target_self : undefined;
+
       return {
         name,
-        type: typeValue as Skill['type'],
+        type,
+        element,
         power,
-        element: elementValue,
-        effects,
+        cost,
+        cooldown,
+        effect,
+        duration,
+        target_self,
       } as Skill;
     })
-    .filter((skill): skill is Skill => !!skill);
-  return parsed;
+    .filter((s): s is Skill => !!s);
 }
 
-function parseEquipment(raw: unknown): Equipment[] | undefined {
-  if (!Array.isArray(raw)) return undefined;
-  const equipments = raw
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null;
-      const record = item as Record<string, unknown>;
-      const name = typeof record.name === 'string' ? record.name : null;
-      if (!name) return null;
-      const bonus =
-        record.bonus && typeof record.bonus === 'object'
-          ? { ...(record.bonus as Record<string, unknown>) }
-          : undefined;
-      const type = typeof record.type === 'string' && ['weapon', 'armor', 'accessory'].includes(record.type) ? record.type as EquipmentType : 'accessory';
-      const element = typeof record.element === 'string' && ['金', '木', '水', '火', '土', '雷', '无'].includes(record.element) ? record.element as ElementType : '无';
-      const result: Equipment = { name, type, element, bonus };
-      return result;
-    })
-    .filter((item): item is Equipment => !!item);
-  return equipments.length ? equipments : undefined;
-}
-
-function buildBattleProfileFromData(
-  data: Record<string, unknown>,
-  name: string,
-  spiritRoot: string,
-): BattleProfile | null {
-  // 获取battle_profile对象
-  const battleProfile = data.battle_profile as Record<string, unknown>;
-
-  // 优先解析battle_profile中的attributes，而不是直接在data中的attributes
-  const attributes =
-    parseAttributes(battleProfile?.attributes) ||
-    parseAttributes(data.attributes);
-
-  // 优先解析battle_profile中的skills，而不是直接在data中的skills
-  const skills = parseSkills(battleProfile?.skills) || parseSkills(data.skills);
-
-  if (!attributes || skills.length === 0) {
-    return null;
+function asSkillType(value: unknown): Skill['type'] {
+  const types: Skill['type'][] = ['attack', 'heal', 'control', 'debuff', 'buff'];
+  if (typeof value === 'string' && types.includes(value as Skill['type'])) {
+    return value as Skill['type'];
   }
+  return 'attack';
+}
 
-  // 解析先天气运（从data中获取，而不是从battle_profile中）
-  const preHeavenFates = parseFates(
-    data.pre_heaven_fates ?? data.preHeavenFates,
-  );
+function asStatusEffect(value: unknown): Skill['effect'] {
+  const effects: Skill['effect'][] = [
+    'burn',
+    'bleed',
+    'poison',
+    'stun',
+    'silence',
+    'root',
+    'armor_up',
+    'speed_up',
+    'crit_rate_up',
+    'armor_down',
+  ];
+  if (typeof value === 'string' && effects.includes(value as Skill['effect'])) {
+    return value as Skill['effect'];
+  }
+  return undefined;
+}
 
-  // 应用先天气运效果
-  const finalAttributes = applyFateEffects(attributes, preHeavenFates);
+function normaliseInventory(raw: unknown): Cultivator['inventory'] {
+  const obj =
+    raw && typeof raw === 'object'
+      ? (raw as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
 
-  // 计算maxHp，考虑先天气运影响
-  const maxHpRaw =
-    (battleProfile?.max_hp as number) ??
-    (battleProfile?.maxHp as number) ??
-    (data.max_hp as number);
+  const artifactsArray = Array.isArray(obj.artifacts)
+    ? (obj.artifacts as unknown[])
+    : [];
+  const consumablesArray = Array.isArray(obj.consumables)
+    ? (obj.consumables as unknown[])
+    : [];
 
-  let maxHp =
-    Number.isFinite(maxHpRaw) && typeof maxHpRaw === 'number'
-      ? maxHpRaw
-      : Math.round(150 + finalAttributes.vitality * 0.8);
+  const artifacts: Cultivator['inventory']['artifacts'] = [];
+  artifactsArray.forEach((item, idx) => {
+    if (!item || typeof item !== 'object') return;
+    const rec = item as Record<string, unknown>;
+    const name = asString(rec.name, '');
+    if (!name) return;
+    const slot =
+      rec.slot === 'weapon' || rec.slot === 'armor' || rec.slot === 'accessory'
+        ? rec.slot
+        : 'weapon';
+    const id =
+      typeof rec.id === 'string' && rec.id.trim().length
+        ? rec.id
+        : `eq_${idx}_${Date.now().toString(36)}`;
+    const element = asElement(rec.element);
+    const bonusRaw =
+      (rec.bonus as Record<string, unknown>) ?? ({} as Record<string, unknown>);
+    const bonus: Cultivator['inventory']['artifacts'][number]['bonus'] = {};
+    if (typeof bonusRaw.vitality === 'number') {
+      bonus.vitality = Math.round(bonusRaw.vitality);
+    }
+    if (typeof bonusRaw.spirit === 'number') {
+      bonus.spirit = Math.round(bonusRaw.spirit);
+    }
+    if (typeof bonusRaw.wisdom === 'number') {
+      bonus.wisdom = Math.round(bonusRaw.wisdom);
+    }
+    if (typeof bonusRaw.speed === 'number') {
+      bonus.speed = Math.round(bonusRaw.speed);
+    }
+    if (typeof bonusRaw.willpower === 'number') {
+      bonus.willpower = Math.round(bonusRaw.willpower);
+    }
+    artifacts.push({
+      id,
+      name,
+      slot,
+      element,
+      bonus,
+      special_effects: [],
+      curses: [],
+    });
+  });
 
-  // 额外处理先天气运中的maxHp加成
-  maxHp = applyFateMaxHpBonus(maxHp, preHeavenFates);
-
-  // 优先解析battle_profile中的equipment，而不是直接在data中的equipment
-  const equipment =
-    parseEquipment(battleProfile?.equipment) || parseEquipment(data.equipment);
-
-  // 优先解析battle_profile中的element，而不是直接在data中的element
-  const element =
-    (battleProfile?.element as ElementType) ||
-    (data.element as ElementType) ||
-    mapSpiritRootToElement(spiritRoot);
+  const consumables: Consumable[] = [];
+  consumablesArray.forEach((item) => {
+    if (!item || typeof item !== 'object') return;
+    const rec = item as Record<string, unknown>;
+    const name = asString(rec.name, '');
+    if (!name) return;
+    const typeRaw = rec.type;
+    const type: Consumable['type'] =
+      typeRaw === 'heal' ||
+      typeRaw === 'buff' ||
+      typeRaw === 'revive' ||
+      typeRaw === 'breakthrough'
+        ? typeRaw
+        : 'heal';
+    consumables.push({
+      name,
+      type,
+      effect: rec.effect as Consumable['effect'],
+    });
+  });
 
   return {
-    maxHp,
-    hp: maxHp,
-    attributes: finalAttributes,
-    skills,
-    equipment,
-    element,
+    artifacts,
+    consumables,
   };
 }
 
-/**
- * 应用先天气运效果到属性上
- */
-function applyFateEffects(
-  attributes: BattleAttributes,
-  fates: PreHeavenFate[],
-): BattleAttributes {
-  const finalAttributes = { ...attributes };
+function normaliseEquipped(
+  raw: unknown,
+  inventory: Cultivator['inventory'],
+): Cultivator['equipped'] {
+  const obj =
+    raw && typeof raw === 'object'
+      ? (raw as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
 
-  for (const fate of fates) {
-    const effect = fate.effect;
+  const ids = new Set(inventory.artifacts.map((a) => a.id));
 
-    // 解析属性加成
-    const vitalityMatch = effect.match(/vitality\s*([+-]\s*\d+)/i);
-    if (vitalityMatch) {
-      finalAttributes.vitality += parseInt(
-        vitalityMatch[1].replace(/\s/g, ''),
-        10,
-      );
-    }
+  const weapon =
+    typeof obj.weapon === 'string' && ids.has(obj.weapon) ? obj.weapon : null;
+  const armor =
+    typeof obj.armor === 'string' && ids.has(obj.armor) ? obj.armor : null;
+  const accessory =
+    typeof obj.accessory === 'string' && ids.has(obj.accessory)
+      ? obj.accessory
+      : null;
 
-    const spiritMatch = effect.match(/spirit\s*([+-]\s*\d+)/i);
-    if (spiritMatch) {
-      finalAttributes.spirit += parseInt(spiritMatch[1].replace(/\s/g, ''), 10);
-    }
-
-    const wisdomMatch = effect.match(/wisdom\s*([+-]\s*\d+)/i);
-    if (wisdomMatch) {
-      finalAttributes.wisdom += parseInt(wisdomMatch[1].replace(/\s/g, ''), 10);
-    }
-
-    const speedMatch = effect.match(/speed\s*([+-]\s*\d+)/i);
-    if (speedMatch) {
-      finalAttributes.speed += parseInt(speedMatch[1].replace(/\s/g, ''), 10);
-    }
-
-    // 解析所有属性加成
-    const allAttrMatch = effect.match(/所有属性\s*([+-]\s*\d+)/i);
-    if (allAttrMatch) {
-      const bonus = parseInt(allAttrMatch[1].replace(/\s/g, ''), 10);
-      finalAttributes.vitality += bonus;
-      finalAttributes.spirit += bonus;
-      finalAttributes.wisdom += bonus;
-      finalAttributes.speed += bonus;
-    }
-  }
-
-  // 确保属性在合理范围内
-  finalAttributes.vitality = Math.max(
-    50,
-    Math.min(100, finalAttributes.vitality),
-  );
-  finalAttributes.spirit = Math.max(50, Math.min(100, finalAttributes.spirit));
-  finalAttributes.wisdom = Math.max(50, Math.min(100, finalAttributes.wisdom));
-  finalAttributes.speed = Math.max(50, Math.min(100, finalAttributes.speed));
-
-  return finalAttributes;
+  return { weapon, armor, accessory };
 }
 
-/**
- * 应用先天气运对maxHp的加成
- */
-function applyFateMaxHpBonus(maxHp: number, fates: PreHeavenFate[]): number {
-  let finalMaxHp = maxHp;
-
-  for (const fate of fates) {
-    const effect = fate.effect;
-
-    // 解析maxHp加成
-    const maxHpMatch = effect.match(
-      /max_hp\s*([+-]\s*\d+)|maxhp\s*([+-]\s*\d+)|生命值上限\s*([+-]\s*\d+)/i,
-    );
-    if (maxHpMatch) {
-      const bonus = parseInt(
-        (maxHpMatch[1] || maxHpMatch[2] || maxHpMatch[3]).replace(/\s/g, ''),
-        10,
-      );
-      finalMaxHp += bonus;
-    }
-  }
-
-  // 确保maxHp至少为50
-  return Math.max(50, finalMaxHp);
-}

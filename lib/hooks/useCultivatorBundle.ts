@@ -16,7 +16,7 @@ type FetchState = {
 };
 
 const defaultInventory: Inventory = {
-  equipments: [],
+  artifacts: [],
   consumables: [],
 };
 
@@ -24,115 +24,111 @@ const mockCultivator: Cultivator = {
   id: 'mock-linqingluo',
   name: '林青萝',
   prompt: '以药修与木灵为核心的女修',
-  cultivationLevel: '筑基中期',
-  spiritRoot: '药王谷弟子',
-  appearance: '青衣白裙，墨发若瀑',
-  backstory: '药王谷真传弟子，兼修丹道与木灵，擅以藤木护道。',
-  origin: '药王谷',
   gender: '女',
+  origin: '药王谷',
   personality: '温和克制，心怀慈悲',
-  preHeavenFates: [
+  realm: '筑基',
+  realm_stage: '中期',
+  age: 25,
+  lifespan: 200,
+  attributes: {
+    vitality: 78,
+    spirit: 95,
+    wisdom: 75,
+    speed: 70,
+    willpower: 80,
+  },
+  spiritual_roots: [
+    { element: '木', strength: 85 },
+  ],
+  pre_heaven_fates: [
     {
       name: '紫府通明',
       type: '吉',
-      effect: '元神澄澈，灵识通透',
-      description: 'Spirit +15',
+      attribute_mod: { spirit: 15 },
+      description: '元神澄澈，灵识通透',
     },
     {
       name: '孤辰入命',
       type: '凶',
-      effect: '悟性 -5，不可结道侣',
+      attribute_mod: { wisdom: -5 },
       description: '悟性降低且无法结成道侣',
     },
     {
       name: '草莽龙气',
       type: '吉',
-      effect: '体魄异于常人',
-      description: 'Vitality +10',
+      attribute_mod: { vitality: 10 },
+      description: '体魄异于常人',
     },
   ],
-  maxEquipments: 5,
-  maxSkills: 3,
-  battleProfile: {
-    maxHp: 100,
-    hp: 92,
-    attributes: {
-      vitality: 78,
-      spirit: 95,
-      wisdom: 75,
-      speed: 70,
-    },
-    element: '木',
-    skills: [],
-  },
-};
-
-const mockInventory: Inventory = {
-  equipments: [
+  cultivations: [],
+  skills: [
     {
-      id: 'mock-weapon',
-      name: '焚天剑',
-      type: 'weapon',
-      element: '火',
-      quality: '道器',
-      specialEffect: '+spirit 15｜火系伤害 +25%',
-    },
-    {
-      id: 'mock-staff',
-      name: '青木灵杖',
-      type: 'weapon',
+      id: 'sk_mock_1',
+      name: '藤蔓缚',
+      type: 'control',
+      power: 60,
       element: '木',
-      quality: '宝器',
-      specialEffect: '+spirit 10｜木系技能威力 +30%',
+      cooldown: 2,
+      effect: 'root',
+      duration: 2,
     },
     {
-      id: 'mock-armor',
-      name: '玄龟甲',
-      type: 'armor',
-      element: '水',
-      quality: '灵器',
-      specialEffect: '+vitality 12｜受到伤害 -10%',
-    },
-    {
-      id: 'mock-accessory',
-      name: '青木玉佩',
-      type: 'accessory',
+      id: 'sk_mock_2',
+      name: '回春诀',
+      type: 'heal',
+      power: 50,
       element: '木',
-      quality: '宝器',
-      specialEffect: '+wisdom 8｜木系技能冷却 -10%',
+      cooldown: 1,
+    },
+    {
+      id: 'sk_mock_3',
+      name: '九霄雷引',
+      type: 'attack',
+      power: 85,
+      element: '雷',
+      cooldown: 2,
     },
   ],
-  consumables: [],
-};
-
-const mockSkills: Skill[] = [
-  {
-    name: '藤蔓缚',
-    type: 'control',
-    power: 60,
-    element: '木',
-    effects: ['缠绕（减速）'],
+  inventory: {
+    artifacts: [
+      {
+        id: 'mock-weapon',
+        name: '焚天剑',
+        slot: 'weapon',
+        element: '火',
+        bonus: { spirit: 15 },
+        special_effects: [],
+        curses: [],
+      },
+      {
+        id: 'mock-armor',
+        name: '玄龟甲',
+        slot: 'armor',
+        element: '水',
+        bonus: { vitality: 12 },
+        special_effects: [],
+        curses: [],
+      },
+      {
+        id: 'mock-accessory',
+        name: '青木玉佩',
+        slot: 'accessory',
+        element: '木',
+        bonus: { wisdom: 8 },
+        special_effects: [],
+        curses: [],
+      },
+    ],
+    consumables: [],
   },
-  {
-    name: '回春诀',
-    type: 'heal',
-    power: 50,
-    element: '木',
-    effects: ['恢复 40 气血'],
+  equipped: {
+    weapon: 'mock-weapon',
+    armor: 'mock-armor',
+    accessory: 'mock-accessory',
   },
-  {
-    name: '九霄雷引',
-    type: 'attack',
-    power: 85,
-    element: '雷',
-    effects: ['暴击率 +15%'],
-  },
-];
-
-const mockEquipped: EquippedItems = {
-  weapon: 'mock-weapon',
-  armor: 'mock-armor',
-  accessory: 'mock-accessory',
+  max_skills: 3,
+  background: '药王谷真传弟子，兼修丹道与木灵，擅以藤木护道。',
 };
 
 export function useCultivatorBundle() {
@@ -141,7 +137,7 @@ export function useCultivatorBundle() {
     cultivator: null,
     inventory: defaultInventory,
     skills: [],
-    equipped: {},
+    equipped: { weapon: null, armor: null, accessory: null },
     isLoading: false,
     usingMock: false,
   });
@@ -153,7 +149,7 @@ export function useCultivatorBundle() {
         cultivator: null,
         inventory: defaultInventory,
         skills: [],
-        equipped: {},
+        equipped: { weapon: null, armor: null, accessory: null },
         isLoading: false,
         error: undefined,
         note: undefined,
@@ -174,21 +170,59 @@ export function useCultivatorBundle() {
 
       const cultivator: Cultivator = cultivatorResult.data[0];
 
-      const [inventoryRes, skillsRes, equippedRes] = await Promise.all([
-        fetch(`/api/cultivators/${cultivator.id}/inventory`),
-        fetch(`/api/create-skill?cultivatorId=${cultivator.id}`),
-        fetch(`/api/cultivators/${cultivator.id}/equip`),
-      ]);
+      // 新模型中，Cultivator 已经包含完整的 inventory、skills、equipped 数据
+      // 如果 API 返回的数据不完整，可以从单独的接口获取（向后兼容）
+      let inventory = cultivator.inventory || defaultInventory;
+      let skills = cultivator.skills || [];
+      let equipped = cultivator.equipped || { weapon: null, armor: null, accessory: null };
 
-      const inventoryJson = await inventoryRes.json();
-      const skillsJson = await skillsRes.json();
-      const equippedJson = await equippedRes.json();
+      // 如果数据不完整，尝试从单独接口获取（向后兼容）
+      if (!inventory.artifacts || inventory.artifacts.length === 0) {
+        try {
+          const inventoryRes = await fetch(`/api/cultivators/${cultivator.id}/inventory`);
+          const inventoryJson = await inventoryRes.json();
+          if (inventoryJson.success) {
+            inventory = inventoryJson.data;
+          }
+        } catch (e) {
+          // 忽略错误，使用默认值
+        }
+      }
+
+      if (!skills || skills.length === 0) {
+        try {
+          const skillsRes = await fetch(`/api/create-skill?cultivatorId=${cultivator.id}`);
+          const skillsJson = await skillsRes.json();
+          if (skillsJson.success) {
+            skills = skillsJson.data;
+          }
+        } catch (e) {
+          // 忽略错误，使用默认值
+        }
+      }
+
+      if (!equipped || (!equipped.weapon && !equipped.armor && !equipped.accessory)) {
+        try {
+          const equippedRes = await fetch(`/api/cultivators/${cultivator.id}/equip`);
+          const equippedJson = await equippedRes.json();
+          if (equippedJson.success) {
+            equipped = equippedJson.data;
+          }
+        } catch (e) {
+          // 忽略错误，使用默认值
+        }
+      }
 
       setState({
-        cultivator,
-        inventory: inventoryJson.success ? inventoryJson.data : defaultInventory,
-        skills: skillsJson.success ? skillsJson.data : [],
-        equipped: equippedJson.success ? equippedJson.data : {},
+        cultivator: {
+          ...cultivator,
+          inventory,
+          skills,
+          equipped,
+        },
+        inventory,
+        skills,
+        equipped,
         isLoading: false,
         error: undefined,
         note: undefined,
@@ -196,16 +230,11 @@ export function useCultivatorBundle() {
       });
     } catch (error) {
       console.warn('加载角色资料失败，回退到占位数据：', error);
-      setState({
-        cultivator: mockCultivator,
-        inventory: mockInventory,
-        skills: mockSkills,
-        equipped: mockEquipped,
-        isLoading: false,
-        error: error instanceof Error ? error.message : '加载角色资料失败',
-        note: '【占位数据】后端接口暂未返回数据，当前为硬编码示例，仅供 UI 联调。',
-        usingMock: true,
-      });
+      setState(
+        prev=>({
+          ...prev,
+          isLoading: false,
+      }));
     }
   }, [user]);
 

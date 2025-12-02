@@ -15,11 +15,12 @@ const quickActions = [
 export default function HomePage() {
   const { cultivator, isLoading, note, usingMock } = useCultivatorBundle();
 
-  const hp = cultivator?.battleProfile?.hp ?? '--';
-  const maxHp = cultivator?.battleProfile?.maxHp ?? 100;
-  const spirit = cultivator?.battleProfile?.attributes.spirit ?? '--';
+  // 计算气血（基于体魄属性）
+  const maxHp = cultivator ? 80 + cultivator.attributes.vitality : 100;
+  const hp = cultivator ? maxHp : '--'; // 简化显示，实际应该从战斗状态获取
+  const spirit = cultivator?.attributes.spirit ?? '--';
 
-  if (isLoading && !cultivator) {
+  if (isLoading) {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
         <p className="loading-tip">正在推演天机……</p>
@@ -38,7 +39,7 @@ export default function HomePage() {
                 <span className="status-icon">☯</span>道号：{cultivator.name}
               </div>
               <p className="mt-1">
-                <span className="status-icon">🌿</span>境界：{cultivator.cultivationLevel} · {cultivator.spiritRoot}
+                <span className="status-icon">🌿</span>境界：{cultivator.realm}{cultivator.realm_stage} · {cultivator.spiritual_roots[0]?.element || '无'}灵根
               </p>
               <div className="mt-3 flex flex-wrap gap-4 text-base">
                 <span>

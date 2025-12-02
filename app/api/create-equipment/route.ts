@@ -39,27 +39,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 生成装备提示词
+    // 生成装备提示词（基于新的 Artifact 结构）
     const equipmentPrompt = `
-请根据用户提示生成一件修仙装备，返回格式为JSON，包含以下字段：
+请根据用户提示生成一件修仙装备（法宝），返回格式为JSON，包含以下字段：
 - name: 装备名称
-- type: 装备类型，只能是weapon、armor或accessory
-- element: 装备元素，只能是金、木、水、火、土、雷或无
-- bonus: 装备属性加成，包含vitality、spirit、wisdom、speed等属性
-- specialEffect: 装备特殊效果描述
+- slot: 装备槽位，只能是 weapon、armor 或 accessory
+- element: 装备元素，只能是 金、木、水、火、土、风、雷、冰、无
+- bonus: 装备属性加成对象，可包含 vitality、spirit、wisdom、speed、willpower（都是整数）
+- special_effects: 特殊效果数组（可选），每个效果格式：{ "type": "on_hit_add_effect", "effect": "burn", "chance": 30 }
+- curses: 负面效果数组（可选），格式同上
 
 用户提示：${prompt}
 
 示例输出：
 {
   "name": "青木灵杖",
-  "type": "weapon",
+  "slot": "weapon",
   "element": "木",
   "bonus": {
-    "spirit": 10,
-    "elementBoost": { "木": 0.3 }
+    "spirit": 15,
+    "wisdom": 10
   },
-  "specialEffect": "木系技能威力 +30%"
+  "special_effects": [
+    {
+      "type": "on_hit_add_effect",
+      "effect": "root",
+      "chance": 25
+    }
+  ],
+  "curses": []
 }
 `;
 
@@ -68,10 +76,15 @@ export async function POST(request: NextRequest) {
     const equipmentData = JSON.parse(aiResponse);
 
     // 验证AI生成的装备数据
+    const validSlots = ['weapon', 'armor', 'accessory'];
+    const validElements = ['金', '木', '水', '火', '土', '风', '雷', '冰', '无'];
+
     if (
       !equipmentData.name ||
-      !['weapon', 'armor', 'accessory'].includes(equipmentData.type) ||
-      !['金', '木', '水', '火', '土', '雷', '无'].includes(equipmentData.element)
+      !validSlots.includes(equipmentData.slot) ||
+      !validElements.includes(equipmentData.element) ||
+      !equipmentData.bonus ||
+      typeof equipmentData.bonus !== 'object'
     ) {
       return NextResponse.json(
         { error: '生成装备失败，AI返回格式不正确' },
@@ -79,8 +92,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 规范化装备数据
+    const normalizedEquipment = {
+      name: equipmentData.name,
+      slot: equipmentData.slot,
+      element: equipmentData.element,
+      bonus: equipmentData.bonus || {},
+      special_effects: Array.isArray(equipmentData.special_effects) ? equipmentData.special_effects : [],
+      curses: Array.isArray(equipmentData.curses) ? equipmentData.curses : [],
+    };
+
     // 创建装备
-    const createdEquipment = await createEquipment(user.id, cultivatorId, equipmentData);
+    const createdEquipment = await createEquipment(user.id, cultivatorId, normalizedEquipment);
 
     return NextResponse.json({
       success: true,

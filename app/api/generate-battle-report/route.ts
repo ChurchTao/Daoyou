@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
         turns: battleSummary.turns,
         playerHp: battleSummary.playerHp,
         opponentHp: battleSummary.opponentHp,
-        triggeredMiracle: battleSummary.triggeredMiracle,
       },
     });
 

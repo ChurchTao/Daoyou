@@ -1,107 +1,10 @@
 import {
-  createCultivator,
   deleteCultivator,
   getCultivatorById,
   getCultivatorsByUserId,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import type { BattleProfile, Cultivator } from '@/types/cultivator';
 import { NextRequest, NextResponse } from 'next/server';
-
-/**
- * POST /api/cultivators
- * 创建角色
- */
-export async function POST(request: NextRequest) {
-  try {
-    // 创建Supabase客户端，用于验证用户身份
-    const supabase = await createClient();
-
-    // 获取当前用户，验证用户身份
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: '未授权访问' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { cultivatorData, battleProfile } = body;
-
-    // 验证输入数据完整性
-    if (
-      !cultivatorData ||
-      typeof cultivatorData !== 'object' ||
-      !cultivatorData.name ||
-      !cultivatorData.prompt ||
-      !battleProfile ||
-      typeof battleProfile !== 'object' ||
-      !battleProfile.attributes ||
-      !battleProfile.skills
-    ) {
-      return NextResponse.json(
-        { error: '请提供完整的角色数据' },
-        { status: 400 },
-      );
-    }
-
-    // 验证技能数据
-    if (
-      !Array.isArray(battleProfile.skills) ||
-      battleProfile.skills.length === 0
-    ) {
-      return NextResponse.json(
-        { error: '角色必须至少有一个技能' },
-        { status: 400 },
-      );
-    }
-
-    // 验证战斗属性数据
-    if (
-      typeof battleProfile.attributes.vitality !== 'number' ||
-      typeof battleProfile.attributes.spirit !== 'number' ||
-      typeof battleProfile.attributes.wisdom !== 'number' ||
-      typeof battleProfile.attributes.speed !== 'number'
-    ) {
-      return NextResponse.json(
-        { error: '请提供有效的战斗属性' },
-        { status: 400 },
-      );
-    }
-
-    // 检查用户是否已有角色
-    const existingCultivators = await getCultivatorsByUserId(user.id);
-    if (existingCultivators.length > 0) {
-      return NextResponse.json({ error: '您已经拥有一位道身，无法创建新的道身' }, { status: 400 });
-    }
-
-    // 使用事务创建角色，确保数据一致性
-    const createdCultivator = await createCultivator(
-      user.id,
-      cultivatorData as Omit<Cultivator, 'id' | 'battleProfile'>,
-      battleProfile as BattleProfile,
-    );
-
-    return NextResponse.json({
-      success: true,
-      data: createdCultivator,
-    });
-  } catch (error) {
-    console.error('创建角色 API 错误:', error);
-
-    // 安全处理错误信息，避免泄露敏感信息
-    const errorMessage =
-      process.env.NODE_ENV === 'development'
-        ? error instanceof Error
-          ? error.message
-          : '创建角色失败，请稍后重试'
-        : '创建角色失败，请稍后重试';
-
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
-  }
-}
 
 /**
  * GET /api/cultivators

@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1764346310456,
-      "tag": "0000_ambiguous_thor",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1764393195642,
-      "tag": "0001_workable_alex_wilder",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1764557303732,
-      "tag": "0002_big_pyro",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1764557977190,
-      "tag": "0003_nosy_kabuki",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1764560900425,
-      "tag": "0004_black_vengeance",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1764560935180,
-      "tag": "0005_friendly_brood",
+      "when": 1764642063368,
+      "tag": "0000_equal_the_fury",
       "breakpoints": true
     }
   ]

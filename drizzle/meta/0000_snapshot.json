@@ -1,84 +1,11 @@
 {
-  "id": "8423fe5d-80fe-40bc-bdff-829691d1496d",
+  "id": "b7594e1b-4ae9-45fa-b799-e61dd4e5e458",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.wanjiedaoyou_active_effects": {
-      "name": "wanjiedaoyou_active_effects",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "battle_profile_id": {
-          "name": "battle_profile_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "duration": {
-          "name": "duration",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source": {
-          "name": "source",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "wanjiedaoyou_active_effects_battle_profile_id_wanjiedaoyou_battle_profiles_id_fk": {
-          "name": "wanjiedaoyou_active_effects_battle_profile_id_wanjiedaoyou_battle_profiles_id_fk",
-          "tableFrom": "wanjiedaoyou_active_effects",
-          "tableTo": "wanjiedaoyou_battle_profiles",
-          "columnsFrom": ["battle_profile_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.wanjiedaoyou_battle_profiles": {
-      "name": "wanjiedaoyou_battle_profiles",
+    "public.wanjiedaoyou_artifacts": {
+      "name": "wanjiedaoyou_artifacts",
       "schema": "",
       "columns": {
         "id": {
@@ -94,45 +21,106 @@
           "primaryKey": false,
           "notNull": true
         },
-        "max_hp": {
-          "name": "max_hp",
-          "type": "integer",
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
-        "hp": {
-          "name": "hp",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "vitality": {
-          "name": "vitality",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "spirit": {
-          "name": "spirit",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "wisdom": {
-          "name": "wisdom",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "speed": {
-          "name": "speed",
-          "type": "integer",
+        "slot": {
+          "name": "slot",
+          "type": "varchar(20)",
           "primaryKey": false,
           "notNull": true
         },
         "element": {
           "name": "element",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bonus": {
+          "name": "bonus",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "special_effects": {
+          "name": "special_effects",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
+        },
+        "curses": {
+          "name": "curses",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wanjiedaoyou_artifacts_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
+          "name": "wanjiedaoyou_artifacts_cultivator_id_wanjiedaoyou_cultivators_id_fk",
+          "tableFrom": "wanjiedaoyou_artifacts",
+          "tableTo": "wanjiedaoyou_cultivators",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.wanjiedaoyou_consumables": {
+      "name": "wanjiedaoyou_consumables",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "cultivator_id": {
+          "name": "cultivator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
           "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effect": {
+          "name": "effect",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -142,9 +130,67 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wanjiedaoyou_consumables_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
+          "name": "wanjiedaoyou_consumables_cultivator_id_wanjiedaoyou_cultivators_id_fk",
+          "tableFrom": "wanjiedaoyou_consumables",
+          "tableTo": "wanjiedaoyou_cultivators",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.wanjiedaoyou_cultivation_techniques": {
+      "name": "wanjiedaoyou_cultivation_techniques",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "updated_at": {
-          "name": "updated_at",
+        "cultivator_id": {
+          "name": "cultivator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bonus": {
+          "name": "bonus",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "required_realm": {
+          "name": "required_realm",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
@@ -153,24 +199,22 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "wanjiedaoyou_battle_profiles_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
-          "name": "wanjiedaoyou_battle_profiles_cultivator_id_wanjiedaoyou_cultivators_id_fk",
-          "tableFrom": "wanjiedaoyou_battle_profiles",
+        "wanjiedaoyou_cultivation_techniques_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
+          "name": "wanjiedaoyou_cultivation_techniques_cultivator_id_wanjiedaoyou_cultivators_id_fk",
+          "tableFrom": "wanjiedaoyou_cultivation_techniques",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": ["cultivator_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "wanjiedaoyou_battle_profiles_cultivator_id_unique": {
-          "name": "wanjiedaoyou_battle_profiles_cultivator_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["cultivator_id"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -198,39 +242,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cultivation_level": {
-          "name": "cultivation_level",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "spirit_root": {
-          "name": "spirit_root",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "appearance": {
-          "name": "appearance",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "backstory": {
-          "name": "backstory",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "gender": {
           "name": "gender",
-          "type": "varchar(20)",
+          "type": "varchar(10)",
           "primaryKey": false,
           "notNull": false
         },
@@ -243,6 +257,139 @@
         "personality": {
           "name": "personality",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "background": {
+          "name": "background",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "realm": {
+          "name": "realm",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "realm_stage": {
+          "name": "realm_stage",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "age": {
+          "name": "age",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 18
+        },
+        "lifespan": {
+          "name": "lifespan",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "vitality": {
+          "name": "vitality",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spirit": {
+          "name": "spirit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wisdom": {
+          "name": "wisdom",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speed": {
+          "name": "speed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "willpower": {
+          "name": "willpower",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_skills": {
+          "name": "max_skills",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 4
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.wanjiedaoyou_equipped_items": {
+      "name": "wanjiedaoyou_equipped_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "cultivator_id": {
+          "name": "cultivator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weapon_id": {
+          "name": "weapon_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "armor_id": {
+          "name": "armor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accessory_id": {
+          "name": "accessory_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -263,73 +410,69 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "wanjiedaoyou_cultivators_user_id_wanjiedaoyou_users_id_fk": {
-          "name": "wanjiedaoyou_cultivators_user_id_wanjiedaoyou_users_id_fk",
-          "tableFrom": "wanjiedaoyou_cultivators",
-          "tableTo": "wanjiedaoyou_users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.wanjiedaoyou_equipment": {
-      "name": "wanjiedaoyou_equipment",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "cultivator_id": {
-          "name": "cultivator_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "bonus": {
-          "name": "bonus",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "wanjiedaoyou_equipment_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
-          "name": "wanjiedaoyou_equipment_cultivator_id_wanjiedaoyou_cultivators_id_fk",
-          "tableFrom": "wanjiedaoyou_equipment",
+        "wanjiedaoyou_equipped_items_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
+          "name": "wanjiedaoyou_equipped_items_cultivator_id_wanjiedaoyou_cultivators_id_fk",
+          "tableFrom": "wanjiedaoyou_equipped_items",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": ["cultivator_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "wanjiedaoyou_equipped_items_weapon_id_wanjiedaoyou_artifacts_id_fk": {
+          "name": "wanjiedaoyou_equipped_items_weapon_id_wanjiedaoyou_artifacts_id_fk",
+          "tableFrom": "wanjiedaoyou_equipped_items",
+          "tableTo": "wanjiedaoyou_artifacts",
+          "columnsFrom": [
+            "weapon_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "wanjiedaoyou_equipped_items_armor_id_wanjiedaoyou_artifacts_id_fk": {
+          "name": "wanjiedaoyou_equipped_items_armor_id_wanjiedaoyou_artifacts_id_fk",
+          "tableFrom": "wanjiedaoyou_equipped_items",
+          "tableTo": "wanjiedaoyou_artifacts",
+          "columnsFrom": [
+            "armor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "wanjiedaoyou_equipped_items_accessory_id_wanjiedaoyou_artifacts_id_fk": {
+          "name": "wanjiedaoyou_equipped_items_accessory_id_wanjiedaoyou_artifacts_id_fk",
+          "tableFrom": "wanjiedaoyou_equipped_items",
+          "tableTo": "wanjiedaoyou_artifacts",
+          "columnsFrom": [
+            "accessory_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "wanjiedaoyou_equipped_items_cultivator_id_unique": {
+          "name": "wanjiedaoyou_equipped_items_cultivator_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cultivator_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -363,9 +506,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "effect": {
-          "name": "effect",
-          "type": "text",
+        "attribute_mod": {
+          "name": "attribute_mod",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
@@ -373,7 +516,7 @@
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -389,9 +532,13 @@
           "name": "wanjiedaoyou_pre_heaven_fates_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_pre_heaven_fates",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": ["cultivator_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -430,23 +577,50 @@
           "primaryKey": false,
           "notNull": true
         },
+        "element": {
+          "name": "element",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "power": {
           "name": "power",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "element": {
-          "name": "element",
-          "type": "varchar(20)",
+        "cost": {
+          "name": "cost",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "default": 0
         },
-        "effects": {
-          "name": "effects",
-          "type": "jsonb",
+        "cooldown": {
+          "name": "cooldown",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "effect": {
+          "name": "effect",
+          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": false
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target_self": {
+          "name": "target_self",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -462,9 +636,13 @@
           "name": "wanjiedaoyou_skills_cultivator_id_wanjiedaoyou_cultivators_id_fk",
           "tableFrom": "wanjiedaoyou_skills",
           "tableTo": "wanjiedaoyou_cultivators",
-          "columnsFrom": ["cultivator_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -474,8 +652,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.wanjiedaoyou_users": {
-      "name": "wanjiedaoyou_users",
+    "public.wanjiedaoyou_spiritual_roots": {
+      "name": "wanjiedaoyou_spiritual_roots",
       "schema": "",
       "columns": {
         "id": {
@@ -485,30 +663,76 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
+        "cultivator_id": {
+          "name": "cultivator_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "password_hash": {
-          "name": "password_hash",
-          "type": "varchar(255)",
+        "element": {
+          "name": "element",
+          "type": "varchar(10)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "is_anonymous": {
-          "name": "is_anonymous",
-          "type": "boolean",
+        "strength": {
+          "name": "strength",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "default": false
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wanjiedaoyou_spiritual_roots_cultivator_id_wanjiedaoyou_cultivators_id_fk": {
+          "name": "wanjiedaoyou_spiritual_roots_cultivator_id_wanjiedaoyou_cultivators_id_fk",
+          "tableFrom": "wanjiedaoyou_spiritual_roots",
+          "tableTo": "wanjiedaoyou_cultivators",
+          "columnsFrom": [
+            "cultivator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.wanjiedaoyou_temp_cultivators": {
+      "name": "wanjiedaoyou_temp_cultivators",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "anonymous_id": {
-          "name": "anonymous_id",
-          "type": "varchar(255)",
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "cultivator_data": {
+          "name": "cultivator_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -517,24 +741,17 @@
           "notNull": false,
           "default": "now()"
         },
-        "updated_at": {
-          "name": "updated_at",
+        "expires_at": {
+          "name": "expires_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "wanjiedaoyou_users_email_unique": {
-          "name": "wanjiedaoyou_users_email_unique",
-          "nullsNotDistinct": false,
-          "columns": ["email"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
