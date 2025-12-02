@@ -1,8 +1,8 @@
 'use client';
 
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkButton, InkDivider, InkCard } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import Link from 'next/link';
 
 const attributeLabels: Record<string, string> = {
   vitality: '体魄',
@@ -30,9 +30,9 @@ export default function CultivatorPage() {
         subtitle="需先觉醒方可照鉴真形"
         backHref="/"
         actions={
-          <Link href="/create" className="btn-primary">
+          <InkButton href="/create" variant="primary">
             觉醒灵根
-          </Link>
+          </InkButton>
         }
       >
         <div className="rounded-lg border border-ink/10 bg-paper-light p-6 text-center">
@@ -78,9 +78,7 @@ export default function CultivatorPage() {
       note={note}
       footer={
         <div className="flex justify-between text-ink">
-          <Link href="/" className="hover:text-crimson">
-            [← 返回主界]
-          </Link>
+          <InkButton href="/">← 返回主界</InkButton>
           <span className="text-ink-secondary">[推演战力]</span>
         </div>
       }
@@ -94,34 +92,29 @@ export default function CultivatorPage() {
         </div>
       </InkSection>
 
-      <div className="divider">
-        <span className="divider-line">──────────────────────────────</span>
-      </div>
+      <InkDivider />
 
       {/* 先天命格 */}
       {cultivator.pre_heaven_fates?.length > 0 && (
         <>
           <InkSection title="【先天命格】">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {cultivator.pre_heaven_fates.map((fate, idx) => (
-                <div key={fate.name + idx} className="rounded border border-ink/10 bg-white/60 p-3">
-                  <p className="font-semibold">
+                <InkCard key={fate.name + idx} highlighted={fate.type === '吉'}>
+                  <p className="font-semibold text-sm">
                     {fate.type === '吉' ? '✨' : '⚠️'} {fate.name}（{fate.type}）
                   </p>
-                  <p className="mt-1 text-sm text-ink-secondary">
+                  <p className="mt-0.5 text-xs text-ink-secondary">
                     ——{getFateModText(fate)}
                   </p>
                   {fate.description && (
-                    <p className="mt-1 text-xs text-ink-secondary italic">{fate.description}</p>
+                    <p className="mt-0.5 text-xs text-ink-secondary italic">{fate.description}</p>
                   )}
-                </div>
+                </InkCard>
               ))}
             </div>
           </InkSection>
-
-          <div className="divider">
-            <span className="divider-line">──────────────────────────────</span>
-          </div>
+          <InkDivider />
         </>
       )}
 
@@ -144,14 +137,12 @@ export default function CultivatorPage() {
         </div>
       </InkSection>
 
-      <div className="divider">
-        <span className="divider-line">──────────────────────────────</span>
-      </div>
+      <InkDivider />
 
       {/* 当前所御法宝 */}
       <InkSection title="【当前所御法宝】">
         {equippedItems.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {equippedItems.map((item) => {
               const slotIcon = item.slot === 'weapon' ? '🗡️' : item.slot === 'armor' ? '🛡️' : '📿';
               const slotName = item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '护甲' : '饰品';
@@ -165,36 +156,34 @@ export default function CultivatorPage() {
               const effectText = item.special_effects?.map(e => getEffectText(e)).join('｜') || '';
               
               return (
-                <div key={item.id} className="rounded border border-ink/10 bg-white/60 p-3">
-                  <p className="font-semibold">
+                <InkCard key={item.id}>
+                  <p className="font-semibold text-sm">
                     {slotIcon} {slotName}：{item.name}（{item.element}·{item.slot === 'weapon' ? '道器' : item.slot === 'armor' ? '灵器' : '宝器'}）
                   </p>
-                  <p className="mt-1 text-sm text-ink-secondary">
+                  <p className="mt-0.5 text-xs text-ink-secondary">
                     {bonusText}
                     {effectText && `｜${effectText}`}
                   </p>
-                </div>
+                </InkCard>
               );
             })}
           </div>
         ) : (
-          <p className="empty-state">尚未佩戴法宝</p>
+          <p className="empty-state text-sm">尚未佩戴法宝</p>
         )}
-        <div className="mt-4">
-          <Link href="/inventory" className="text-crimson hover:underline">
-            [前往储物袋更换装备 →]
-          </Link>
+        <div className="mt-3">
+          <InkButton href="/inventory" className="text-sm">
+            前往储物袋更换装备 →
+          </InkButton>
         </div>
       </InkSection>
 
-      <div className="divider">
-        <span className="divider-line">──────────────────────────────</span>
-      </div>
+      <InkDivider />
 
       {/* 所修神通 */}
       <InkSection title="【所修神通】">
         {skills.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {skills.map((skill, index) => {
               const typeIcon = skill.type === 'attack' ? '⚡' : 
                              skill.type === 'heal' ? '❤️' : 
@@ -204,27 +193,27 @@ export default function CultivatorPage() {
                               skill.type === 'control' ? '控制' : '增益';
               
               return (
-                <div key={skill.id || skill.name} className="rounded border border-ink/10 bg-white/60 p-3">
-                  <p className="font-semibold">
+                <InkCard key={skill.id || skill.name} highlighted={index === skills.length - 1}>
+                  <p className="font-semibold text-sm">
                     {typeIcon} {skill.name}（{typeName}·{skill.element}）
                     {index === skills.length - 1 && <span className="new-mark">← 新悟</span>}
                   </p>
-                  <p className="mt-1 text-sm text-ink-secondary">
+                  <p className="mt-0.5 text-xs text-ink-secondary">
                     威力：{skill.power}｜冷却：{skill.cooldown}回合
                     {skill.effect && `｜效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
                     {skill.cost !== undefined && skill.cost > 0 && `｜消耗：${skill.cost} 灵力`}
                   </p>
-                </div>
+                </InkCard>
               );
             })}
           </div>
         ) : (
-          <p className="empty-state">暂无神通，待闭关顿悟。</p>
+          <p className="empty-state text-sm">暂无神通，待闭关顿悟。</p>
         )}
-        <div className="mt-4">
-          <Link href="/ritual" className="text-crimson hover:underline">
-            [闭关顿悟新神通 →]
-          </Link>
+        <div className="mt-3">
+          <InkButton href="/ritual" className="text-sm">
+            闭关顿悟新神通 →
+          </InkButton>
         </div>
       </InkSection>
     </InkPageShell>

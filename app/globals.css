@@ -69,68 +69,119 @@ h6,
   background-size: 300px;
 }
 
-/* 按钮样式 */
-.btn-primary {
-  background-color: var(--color-crimson);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(193, 18, 31, 0.3);
+/* ===== 文字化组件样式 ===== */
+
+/* 文字化按钮 - 纯文字，无背景、无边框、无圆角 */
+.ink-button {
+  background: none;
   border: none;
+  padding: 0.25rem 0.5rem;
+  color: var(--color-ink);
+  font-family: var(--font-zcool-xiao-wei), serif;
+  font-size: 0.95rem;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.2s ease;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
-.btn-primary:hover {
-  background-color: #a00e1a;
-  box-shadow: 0 4px 8px rgba(193, 18, 31, 0.4);
-  transform: translateY(-1px);
+.ink-button:hover:not(.ink-button-disabled) {
+  color: var(--color-crimson);
+}
+
+.ink-button-disabled {
+  color: var(--color-ink-secondary);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ink-button-primary {
+  color: var(--color-crimson);
+  font-weight: 600;
+}
+
+.ink-button-primary:hover:not(.ink-button-disabled) {
+  color: var(--color-crimson);
+  opacity: 0.8;
+}
+
+.ink-button-secondary {
+  color: var(--color-ink-secondary);
+}
+
+/* 兼容旧按钮样式（逐步迁移） */
+.btn-primary,
+.btn-outline {
+  background: none;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-ink);
+  font-family: var(--font-zcool-xiao-wei), serif;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.2s ease;
+  line-height: 1.6;
+}
+
+.btn-primary:hover:not(:disabled) {
+  color: var(--color-crimson);
 }
 
 .btn-primary:disabled {
+  color: var(--color-ink-secondary);
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-}
-
-.btn-outline {
-  background-color: transparent;
-  color: var(--color-ink);
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid var(--color-ink);
-  cursor: pointer;
 }
 
 .btn-outline:hover {
-  background-color: var(--color-ink);
-  color: var(--color-paper);
+  color: var(--color-crimson);
 }
 
-/* 小按钮样式 */
 .btn-sm {
-  padding: 0.375rem 0.75rem;
+  padding: 0.375rem 0.5rem;
   font-size: 0.875rem;
-  border-radius: 0.375rem;
 }
 
-/* 分隔线样式 */
+/* 文字化分隔线 */
+.ink-divider {
+  text-align: center;
+  margin: 1rem 0;
+  color: var(--color-ink);
+  opacity: 0.6;
+}
+
+.ink-divider-line {
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.ink-divider-symbol {
+  font-size: 1.2rem;
+  letter-spacing: 0.5rem;
+}
+
+.ink-divider-content {
+  display: block;
+}
+
+/* 兼容旧分隔线样式 */
 .divider {
   text-align: center;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   font-size: 1.25rem;
   color: var(--color-ink);
-  opacity: 0.7;
+  opacity: 0.6;
   overflow: hidden;
 }
 
 .divider-line {
   display: block;
   font-family: monospace;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 
 .divider-yin-yang {
@@ -211,7 +262,41 @@ h6,
   margin: 2rem 0;
 }
 
-/* 底部导航栏 */
+/* 文字化链接 */
+.ink-link {
+  color: var(--color-ink);
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  transition: color 0.2s ease;
+  display: inline-block;
+  font-family: var(--font-zcool-xiao-wei), serif;
+}
+
+.ink-link:hover {
+  color: var(--color-crimson);
+}
+
+.ink-link-active {
+  color: var(--color-crimson);
+  font-weight: 600;
+}
+
+/* 文字化导航栏 */
+.ink-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-paper);
+  padding: 1rem 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  border-top: 1px solid rgba(44, 24, 16, 0.1);
+}
+
+/* 兼容旧导航样式 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -219,7 +304,7 @@ h6,
   right: 0;
   background-color: var(--color-paper);
   border-top: 1px solid rgba(44, 24, 16, 0.1);
-  padding: 0.75rem 0;
+  padding: 1rem 0;
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -228,16 +313,16 @@ h6,
 
 .bottom-nav-item {
   text-decoration: none;
-  color: var(--color-ink-secondary);
-  font-weight: 600;
-  transition: color 0.3s ease;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  color: var(--color-ink);
+  font-family: var(--font-zcool-xiao-wei), serif;
+  transition: color 0.2s ease;
+  padding: 0.5rem 0.75rem;
+  display: inline-block;
 }
 
 .bottom-nav-item.active {
   color: var(--color-crimson);
-  background-color: rgba(193, 18, 31, 0.1);
+  font-weight: 600;
 }
 
 .bottom-nav-item:hover {
@@ -285,24 +370,34 @@ h6,
   }
 }
 
-/* 装备/技能卡片样式 */
+/* 文字化卡片 - 最小化视觉元素 */
+.ink-card {
+  padding: 0.75rem 0;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(44, 24, 16, 0.1);
+}
+
+.ink-card-highlighted {
+  border-left: 2px solid var(--color-crimson);
+  padding-left: 0.75rem;
+  color: var(--color-crimson);
+}
+
+/* 兼容旧卡片样式 */
 .item-card {
-  background-color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(44, 24, 16, 0.1);
-  border-radius: 0.5rem;
-  padding: 1rem;
+  padding: 1rem 0;
   margin-bottom: 1rem;
-  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(44, 24, 16, 0.1);
 }
 
 .item-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  border-bottom-color: var(--color-crimson);
 }
 
 .item-card-equipped {
-  border-color: var(--color-crimson);
-  background-color: rgba(193, 18, 31, 0.05);
+  border-left: 2px solid var(--color-crimson);
+  padding-left: 0.75rem;
+  color: var(--color-crimson);
 }
 
 /* 技能/装备描述样式 */
@@ -328,16 +423,14 @@ h6,
   font-size: 0.875rem;
 }
 
-/* 战报样式增强 */
+/* 战报样式增强 - 文字化 */
 .battle-report {
   font-family: var(--font-zcool-xiao-wei), serif;
   line-height: 1.8;
-  text-align: center;
-  padding: 2rem;
-  background-color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(44, 24, 16, 0.1);
-  border-radius: 0.5rem;
+  text-align: left;
+  padding: 2rem 0;
   margin: 2rem 0;
+  border-bottom: 1px solid rgba(44, 24, 16, 0.1);
 }
 
 /* 天骄榜样式 */
@@ -363,14 +456,38 @@ h6,
   font-weight: 600;
 }
 
-/* 输入框样式 */
+/* 文字化操作组 */
+.ink-action-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.ink-action-group-left {
+  justify-content: flex-start;
+}
+
+.ink-action-group-center {
+  justify-content: center;
+}
+
+.ink-action-group-right {
+  justify-content: flex-end;
+}
+
+.ink-action-group-between {
+  justify-content: space-between;
+}
+
+/* 输入框样式 - 文字化 */
 .textarea-large {
   width: 100%;
   min-height: 120px;
   padding: 1rem;
   border: 1px solid rgba(44, 24, 16, 0.2);
-  border-radius: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 0;
+  background-color: transparent;
   font-family: var(--font-zcool-xiao-wei), serif;
   font-size: 1rem;
   line-height: 1.6;
@@ -380,7 +497,7 @@ h6,
 .textarea-large:focus {
   outline: none;
   border-color: var(--color-crimson);
-  box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.1);
+  border-width: 2px;
 }
 
 /* 淡入动画 */

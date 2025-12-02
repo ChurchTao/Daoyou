@@ -2,6 +2,7 @@
 
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import type { Cultivator } from '@/types/cultivator';
+import { InkButton } from '@/components/InkComponents';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -270,7 +271,7 @@ function BattlePageContent() {
 
         {/* 战斗播报：全屏展示 AIGC 生成的战报 */}
         {displayReport && (
-          <div className="battle-report mb-8 rounded-lg border border-ink/10 bg-paper-light p-6 animate-fade-in">
+          <div className="battle-report mb-8 animate-fade-in">
             {/* 播报内容 */}
             <div className="text-ink leading-relaxed">
               {displayReport
@@ -302,21 +303,20 @@ function BattlePageContent() {
 
         {/* 操作按钮 */}
         {battleResult && !isStreaming && (
-          <div className="flex flex-wrap justify-center gap-4">
-            <button onClick={handleBattleAgain} className="btn-outline">
-              [再战]
-            </button>
-            <Link href="/" className="btn-primary">
-              [返回主界]
-            </Link>
-            <button
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-2">
+            <InkButton onClick={handleBattleAgain}>
+              再战
+            </InkButton>
+            <InkButton href="/" variant="primary">
+              返回主界
+            </InkButton>
+            <InkButton
               onClick={() => {
                 alert('分享功能开发中...');
               }}
-              className="btn-outline"
             >
-              [分享战报]
-            </button>
+              分享战报
+            </InkButton>
           </div>
         )}
 

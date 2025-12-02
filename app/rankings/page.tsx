@@ -1,10 +1,10 @@
 'use client';
 
 import { InkPageShell } from '@/components/InkLayout';
+import { InkButton, InkCard } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { mockRankings } from '@/data/mockRankings';
 import type { Cultivator } from '@/types/cultivator';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -94,21 +94,18 @@ export default function RankingsPage() {
       note={note || error}
       footer={
         <div className="flex justify-between text-ink">
-          <button 
-            className="hover:text-crimson" 
+          <InkButton 
             onClick={() => loadRankings()} 
             disabled={loadingRankings}
           >
-            {loadingRankings ? '[推演中…]' : '[刷新榜单]'}
-          </button>
-          <Link href="/" className="hover:text-crimson">
-            [返回]
-          </Link>
+            {loadingRankings ? '推演中…' : '刷新榜单'}
+          </InkButton>
+          <InkButton href="/">返回</InkButton>
         </div>
       }
     >
       {!cultivator ? (
-        <div className="rounded-lg border border-ink/10 bg-paper-light p-6 text-center">
+        <div className="pb-4 border-b border-ink/10 text-center">
           请先觉醒角色再来挑战天骄。
         </div>
       ) : (
@@ -116,38 +113,34 @@ export default function RankingsPage() {
           {rankings.map((item, index) => {
             const isSelf = item.name === cultivator.name;
             return (
-              <div
-                key={item.id}
-                className={`rounded-lg border p-4 shadow-sm ${
-                  isSelf ? 'border-crimson/60 bg-crimson/5 font-semibold' : 'border-ink/10 bg-paper-light'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 text-lg font-semibold">{index + 1}.</div>
-                    <div>
-                      <p>
+              <InkCard key={item.id} highlighted={isSelf}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-6 text-base font-semibold flex-shrink-0">{index + 1}.</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate">
                         {item.name}（{item.faction ?? '散修'}）
                         {isSelf && <span className="equipped-mark">← 你</span>}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-base">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-sm whitespace-nowrap">
                       <span className="status-icon">❤️</span>
                       {item.combatRating}
                     </span>
                     {!isSelf && (
-                      <button 
-                        className="btn-primary btn-sm" 
+                      <InkButton 
                         onClick={() => handleChallenge(item.id)}
+                        variant="primary"
+                        className="text-sm"
                       >
-                        [挑战]
-                      </button>
+                        挑战
+                      </InkButton>
                     )}
                   </div>
                 </div>
-              </div>
+              </InkCard>
             );
           })}
         </div>

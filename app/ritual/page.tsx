@@ -1,7 +1,9 @@
 'use client';
 
 import { InkPageShell } from '@/components/InkLayout';
+import { InkButton, InkDivider } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 type RitualMode = 'equipment' | 'skill' | 'adventure';
@@ -110,39 +112,34 @@ export default function RitualPage() {
       note={note}
       footer={
         <div className="flex justify-between text-ink">
-          <Link href="/" className="hover:text-crimson">
-            [返回]
-          </Link>
+          <InkButton href="/">返回</InkButton>
           <span className="text-ink-secondary text-xs">AIGC 接口未覆盖的模式将以假数据提示</span>
         </div>
       }
     >
       {/* 模式切换 */}
-      <div className="mb-6 grid grid-cols-3 gap-2">
+      <div className="mb-4 flex flex-wrap gap-x-3 gap-y-2">
         {Object.entries(modes).map(([key, config]) => {
           const isActive = mode === key;
-          const className = [
-            'rounded-lg border px-3 py-2 text-sm transition',
-            isActive ? 'border-crimson bg-crimson/10 text-crimson font-semibold' : 'border-ink/10 bg-paper-light text-ink',
-          ].join(' ');
           return (
-            <button
+            <InkButton
               key={key}
-              className={className}
+              variant={isActive ? 'primary' : 'default'}
               onClick={() => {
                 setMode(key as RitualMode);
                 setPrompt('');
                 setStatus('');
               }}
+              className={isActive ? 'font-semibold' : 'text-sm'}
             >
               {config.title.replace(/[【】]/g, '').split('·')[0].trim()}
-            </button>
+            </InkButton>
           );
         })}
       </div>
 
       {/* 输入区域 */}
-      <div className="rounded-lg border border-ink/10 bg-paper-light p-4 shadow-sm">
+      <div className="pb-4 border-b border-ink/10">
         <div className="mb-4">
           <p className="text-sm text-ink-secondary mb-2">{currentMode.hint}</p>
           <p className="text-sm text-ink-secondary">
@@ -151,45 +148,40 @@ export default function RitualPage() {
           </p>
         </div>
 
-        <div className="divider">
-          <span className="divider-line">──────────────────────────────</span>
-        </div>
+        <InkDivider />
 
         <textarea
-          className="textarea-large w-full min-h-[40vh] p-4 border border-ink/20 rounded-lg focus:ring-1 focus:ring-crimson focus:outline-none text-ink placeholder-ink/40 resize-none"
+          className="textarea-large w-full min-h-[40vh] p-4 border border-ink/20 focus:outline-none text-ink placeholder-ink/40 resize-none"
           placeholder="请在此输入你的意图……"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           disabled={isSubmitting}
         />
 
-        <div className="divider">
-          <span className="divider-line">──────────────────────────────</span>
-        </div>
+        <InkDivider />
 
         <div className="flex justify-end gap-3">
-          <button 
-            className="btn-outline" 
+          <InkButton 
             onClick={() => {
               setPrompt('');
               setStatus('');
             }} 
             disabled={isSubmitting}
           >
-            [取消]
-          </button>
-          <button 
-            className="btn-primary" 
+            取消
+          </InkButton>
+          <InkButton 
+            variant="primary"
             onClick={handleSubmit} 
             disabled={isSubmitting || (!prompt.trim() && mode !== 'adventure')}
           >
             {isSubmitting ? '运转灵力……' : currentMode.actionLabel}
-          </button>
+          </InkButton>
         </div>
       </div>
 
       {status && (
-        <div className="mt-4 rounded border border-ink/10 bg-white/70 p-3 text-center text-sm text-ink">
+        <div className="mt-4 pb-3 border-b border-ink/10 text-center text-sm text-ink">
           {status}
           {mode === 'adventure' && (
             <p className="text-xs text-ink-secondary mt-2">【占位】奇遇输入尚未驱动 AI，但意图已记录。</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import Link from 'next/link';
+import { InkButton, InkLink, InkDivider } from '@/components/InkComponents';
 
 const quickActions = [
   { label: '⚔️ 挑战天骄', href: '/rankings' },
@@ -49,7 +49,7 @@ export default function HomePage() {
     <div className="bg-paper min-h-screen">
       <main className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-24 main-content">
         {/* 顶部角色状态栏 */}
-        <section className="mb-6 rounded-lg border border-ink/15 bg-paper-light p-4 shadow-sm">
+        <section className="mb-6 pb-4 border-b border-ink/10">
           {cultivator ? (
             <>
               <div className="text-lg font-semibold">
@@ -77,7 +77,7 @@ export default function HomePage() {
         {/* 天机模块 */}
         <section className="mb-6">
           <h2 className="text-lg font-semibold text-ink">【天机】</h2>
-          <div className="mt-3 rounded-lg border border-ink/10 bg-paper-light p-4 shadow-sm">
+          <div className="mt-3 pb-4 border-b border-ink/10">
             {cultivator && cultivator.pre_heaven_fates?.length > 0 ? (
               <>
                 <p>{'>'} 今日宜：炼器、挑战</p>
@@ -95,18 +95,19 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 快捷入口 - 六宫格 */}
+        {/* 快捷入口 - 紧凑排列 */}
         <section className="mb-6">
           <h2 className="text-lg font-semibold text-ink">【快捷入口】</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
             {quickActions.map((action) => (
-              <Link 
-                key={action.label} 
-                href={action.href} 
-                className="btn-primary py-4 text-center text-base font-semibold"
+              <InkButton
+                key={action.label}
+                href={action.href}
+                variant="default"
+                className="text-sm"
               >
                 {action.label}
-              </Link>
+              </InkButton>
             ))}
           </div>
         </section>
@@ -114,7 +115,7 @@ export default function HomePage() {
         {/* 近期战绩 */}
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-ink">【近期战绩】</h2>
-          <div className="mt-3 rounded-lg border border-ink/10 bg-paper-light p-4 shadow-sm">
+          <div className="mt-3 pb-4 border-b border-ink/10">
             <p className="text-ink-secondary">【占位】真实战绩将与战报系统联动。</p>
             <p className="mt-2 text-sm text-ink-secondary">✓ 胜 苏红袖（火凤门）</p>
             <p className="text-sm text-ink-secondary">✗ 败 剑无尘（天剑阁）</p>
@@ -124,22 +125,18 @@ export default function HomePage() {
         {/* CTA */}
         {!cultivator && (
           <div className="mb-8 text-center">
-            <Link href="/create" className="btn-primary inline-flex items-center justify-center px-6 py-3">
+            <InkButton href="/create" variant="primary" className="text-lg">
               觉醒灵根
-            </Link>
+            </InkButton>
           </div>
         )}
 
         {/* 底部引文 */}
         <div className="mt-auto text-center">
-          <div className="divider">
-            <span className="divider-line">──────────────────────────────</span>
-          </div>
+          <InkDivider />
           <p className="my-4 text-lg italic">{dailyQuote.quote}</p>
           <p className="mb-4 text-lg">{dailyQuote.question}</p>
-          <div className="divider">
-            <span className="divider-line">──────────────────────────────</span>
-          </div>
+          <InkDivider />
           {note && <p className="mt-2 text-sm text-crimson/80">{note}</p>}
           {usingMock && (
             <p className="text-xs text-ink-secondary">
@@ -151,18 +148,18 @@ export default function HomePage() {
 
       {/* 底部固定导航栏（主界面专属） */}
       <nav className="bottom-nav">
-        <Link href="/" className="bottom-nav-item active">
+        <InkLink href="/" active={true}>
           首页
-        </Link>
-        <Link href="/inventory" className="bottom-nav-item">
+        </InkLink>
+        <InkLink href="/inventory">
           储物
-        </Link>
-        <Link href="/skills" className="bottom-nav-item">
+        </InkLink>
+        <InkLink href="/skills">
           神通
-        </Link>
-        <Link href="/rankings" className="bottom-nav-item">
+        </InkLink>
+        <InkLink href="/rankings">
           天机榜
-        </Link>
+        </InkLink>
       </nav>
     </div>
   );

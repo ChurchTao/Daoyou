@@ -67,11 +67,7 @@ export function InkSection({ title, children, hint, subdued = false }: InkSectio
   return (
     <section className="mb-8">
       <h2 className="text-lg font-semibold text-ink">{title}</h2>
-      <div
-        className={`mt-3 rounded-lg border border-ink/10 ${
-          subdued ? 'bg-white/60' : 'bg-paper-light'
-        } p-4 shadow-sm`}
-      >
+      <div className={`mt-3 ${subdued ? '' : ''} pb-4 border-b border-ink/10`}>
         {children}
       </div>
       {hint && <p className="mt-2 text-sm text-ink-secondary">{hint}</p>}

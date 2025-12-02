@@ -1,9 +1,9 @@
 'use client';
 
 import { InkPageShell } from '@/components/InkLayout';
+import { InkButton, InkCard } from '@/components/InkComponents';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Artifact } from '@/types/cultivator';
-import Link from 'next/link';
 import { useState } from 'react';
 
 const attributeLabels: Record<string, string> = {
@@ -78,25 +78,23 @@ export default function InventoryPage() {
       note={note}
       footer={
         <div className="flex justify-between text-ink">
-          <Link href="/" className="hover:text-crimson">
-            [返回主界]
-          </Link>
+          <InkButton href="/">返回主界</InkButton>
           <span className="text-ink-secondary">[整理法宝]</span>
         </div>
       }
     >
       {feedback && (
-        <div className="mb-4 rounded border border-ink/10 bg-white/70 p-3 text-center text-sm text-ink">
+        <div className="mb-4 pb-3 border-b border-ink/10 text-center text-sm text-ink">
           {feedback}
         </div>
       )}
 
       {!cultivator ? (
-        <div className="rounded-lg border border-ink/10 bg-paper-light p-6 text-center">
+        <div className="pb-4 border-b border-ink/10 text-center">
           尚无角色，自然也无储物袋可查。
         </div>
       ) : totalEquipments > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {inventory.artifacts.map((item) => {
             const equippedNow =
               item.id &&
@@ -107,7 +105,7 @@ export default function InventoryPage() {
             const artifactType = item.slot === 'weapon' ? '道器' : item.slot === 'armor' ? '灵器' : '宝器';
             
             const bonusText = Object.entries(item.bonus)
-              .filter(([_, v]) => v !== undefined && v !== 0)
+              .filter(([, v]) => v !== undefined && v !== 0)
               .map(([k, v]) => {
                 const label = attributeLabels[k as keyof typeof attributeLabels] || k;
                 return `+${label} ${v}`;
@@ -117,32 +115,29 @@ export default function InventoryPage() {
             const effectText = item.special_effects?.map(e => getEffectText(e)).join('｜') || '';
             
             return (
-              <div
-                key={item.id ?? item.name}
-                className={`rounded-lg border p-4 shadow-sm ${
-                  equippedNow ? 'border-crimson/60 bg-crimson/5' : 'border-ink/10 bg-paper-light'
-                }`}
-              >
-                <div className="mb-3">
-                  <p className="font-semibold">
-                    {slotIcon} {item.name}（{item.element}·{artifactType}）
-                    {equippedNow && <span className="equipped-mark">← 已装备</span>}
-                  </p>
-                  <p className="mt-1 text-sm text-ink-secondary">
-                    {bonusText}
-                    {effectText && `｜${effectText}`}
-                  </p>
+              <InkCard key={item.id ?? item.name} highlighted={equippedNow}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">
+                      {slotIcon} {item.name}（{item.element}·{artifactType}）
+                      {equippedNow && <span className="equipped-mark">← 已装备</span>}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-secondary">
+                      {bonusText}
+                      {effectText && `｜${effectText}`}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <InkButton
+                      disabled={pendingId === item.id}
+                      onClick={() => handleEquipToggle(item)}
+                      className="text-sm"
+                    >
+                      {pendingId === item.id ? '操作中…' : equippedNow ? '卸下' : '装备'}
+                    </InkButton>
+                  </div>
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    className="btn-primary btn-sm"
-                    disabled={pendingId === item.id}
-                    onClick={() => handleEquipToggle(item)}
-                  >
-                    {pendingId === item.id ? '操作中…' : equippedNow ? '卸下' : '装备'}
-                  </button>
-                </div>
-              </div>
+              </InkCard>
             );
           })}
         </div>
