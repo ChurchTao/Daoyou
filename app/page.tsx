@@ -1,12 +1,9 @@
 'use client';
 
-import {
-  InkButton,
-  InkCard,
-  InkDivider,
-  InkLink,
-} from '@/components/InkComponents';
+import { InkButton, InkDivider } from '@/components/InkComponents';
+import { InkSection } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import Image from 'next/image';
 
 const quickActions = [
   { label: '⚔️ 挑战天骄', href: '/rankings' },
@@ -36,7 +33,7 @@ const getDailyQuote = () => {
 };
 
 export default function HomePage() {
-  const { cultivator, isLoading, note, usingMock } = useCultivatorBundle();
+  const { cultivator, isLoading, note } = useCultivatorBundle();
   const dailyQuote = getDailyQuote();
 
   // 计算气血（基于体魄属性）
@@ -56,13 +53,21 @@ export default function HomePage() {
   return (
     <div className="bg-paper min-h-screen">
       <main className="mx-auto flex max-w-xl flex-col px-4 pt-4 pb-24 main-content">
+        <div className="flex items-center gap-2 mb-4">
+          <Image
+            src="/assets/daoyou_logo.png"
+            alt="万界道友_logo"
+            width={96}
+            height={96}
+            className="object-contain"
+          />
+          <h1 className="text-3xl font-semibold text-ink">万界道友</h1>
+        </div>
         {/* 顶部角色状态栏 */}
-        <InkCard>
+        <InkSection title="【道身】">
           {cultivator ? (
-            <>
-              <div className="text-lg font-semibold font-ma-shan-zheng">
-                ☯ 道号：{cultivator.name}
-              </div>
+            <div>
+              <p>☯ 道号：{cultivator.name}</p>
               <p className="mt-1">
                 🌿 境界：{cultivator.realm}
                 {cultivator.realm_stage} · {cultivator.origin || '散修'}
@@ -78,7 +83,7 @@ export default function HomePage() {
                   ⏳ 年龄/寿元：{cultivator.age} / {cultivator.lifespan}
                 </span>
               </div>
-            </>
+            </div>
           ) : (
             <div className="text-center text-ink-secondary">
               道友尚未觉醒灵根，请道友先
@@ -87,12 +92,11 @@ export default function HomePage() {
               </InkButton>
             </div>
           )}
-        </InkCard>
+        </InkSection>
 
         {/* 天机模块 */}
-        <InkCard>
-          <h2 className="text-lg font-semibold text-ink">【天机】</h2>
-          <div className="mt-3">
+        <InkSection title="【天机】">
+          <div>
             {cultivator && cultivator.pre_heaven_fates?.length > 0 ? (
               <>
                 <p>{'>'} 今日宜：炼器、挑战</p>
@@ -110,12 +114,11 @@ export default function HomePage() {
               【占位】天机文案由 AIGC 生成，接口待接入。
             </p>
           </div>
-        </InkCard>
+        </InkSection>
 
         {/* 快捷入口 - 紧凑排列 */}
-        <InkCard>
-          <h2 className="text-lg font-semibold text-ink">【快捷入口】</h2>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+        <InkSection title="【快捷入口】">
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
             {quickActions.map((action) => (
               <InkButton
                 key={action.label}
@@ -127,11 +130,10 @@ export default function HomePage() {
               </InkButton>
             ))}
           </div>
-        </InkCard>
+        </InkSection>
         {/* 近期战绩 */}
-        <InkCard>
-          <h2 className="text-lg font-semibold text-ink">【近期战绩】</h2>
-          <div className="mt-3">
+        <InkSection title="【近期战绩】">
+          <div>
             <p className="text-ink-secondary">
               【占位】真实战绩将与战报系统联动。
             </p>
@@ -140,32 +142,16 @@ export default function HomePage() {
             </p>
             <p className="text-sm text-ink-secondary">✗ 败 剑无尘（天剑阁）</p>
           </div>
-        </InkCard>
+        </InkSection>
 
-        {/* 底部引文 */}
-        <div className="mt-auto text-center">
+        <div className="text-center">
           <InkDivider />
           <p className="my-4 text-lg italic">{dailyQuote.quote}</p>
           <p className="mb-4 text-lg">{dailyQuote.question}</p>
           <InkDivider />
           {note && <p className="mt-2 text-sm text-crimson/80">{note}</p>}
-          {usingMock && (
-            <p className="text-xs text-ink-secondary">
-              当前展示为硬编码示例，后续接入真实数据信息。
-            </p>
-          )}
         </div>
       </main>
-
-      {/* 底部固定导航栏（主界面专属） */}
-      <nav className="bottom-nav">
-        <InkLink href="/" active={true}>
-          首页
-        </InkLink>
-        <InkLink href="/inventory">储物</InkLink>
-        <InkLink href="/skills">神通</InkLink>
-        <InkLink href="/rankings">天机榜</InkLink>
-      </nav>
     </div>
   );
 }
