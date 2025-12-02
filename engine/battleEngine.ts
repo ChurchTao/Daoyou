@@ -7,6 +7,18 @@ import type {
 } from '@/types/cultivator';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
 
+export interface TurnUnitSnapshot {
+  hp: number;
+  mp: number;
+  statuses: StatusEffect[];
+}
+
+export interface TurnSnapshot {
+  turn: number;
+  player: TurnUnitSnapshot;
+  opponent: TurnUnitSnapshot;
+}
+
 export interface BattleEngineResult {
   winner: Cultivator;
   loser: Cultivator;
@@ -14,6 +26,7 @@ export interface BattleEngineResult {
   turns: number;
   playerHp: number;
   opponentHp: number;
+  timeline: TurnSnapshot[];
 }
 
 type UnitId = 'player' | 'opponent';
@@ -41,6 +54,7 @@ interface BattleUnit {
   id: UnitId;
   data: Cultivator;
   hp: number;
+  mp: number;
   statuses: Map<StatusEffect, StatusInstance>;
   skillCooldowns: Map<string, number>;
 }
@@ -50,6 +64,7 @@ interface BattleState {
   opponent: BattleUnit;
   turn: number;
   log: string[];
+  timeline: TurnSnapshot[];
 }
 
 const ELEMENT_WEAKNESS: Record<ElementType, ElementType[]> = {
@@ -305,6 +320,24 @@ function logHealAction(
   }
 }
 
+function snapshotTurn(
+  turn: number,
+  player: BattleUnit,
+  opponent: BattleUnit,
+): TurnSnapshot {
+  const buildUnit = (unit: BattleUnit): TurnUnitSnapshot => ({
+    hp: unit.hp,
+    mp: unit.mp,
+    statuses: Array.from(unit.statuses.keys()),
+  });
+
+  return {
+    turn,
+    player: buildUnit(player),
+    opponent: buildUnit(opponent),
+  };
+}
+
 function applyAndLogStatusFromSkill(
   caster: BattleUnit,
   target: BattleUnit,
@@ -436,6 +469,11 @@ function executeSkill(
 
   applyAndLogStatusFromSkill(attacker, defender, skill, log);
 
+  // 灵力消耗
+  if (typeof skill.cost === 'number' && skill.cost > 0) {
+    attacker.mp = Math.max(0, attacker.mp - skill.cost);
+  }
+
   // 装备 on_hit_add_effect 触发
   if (
     skill.type === 'attack' ||
@@ -524,6 +562,7 @@ export function simulateBattle(
     id,
     data,
     hp: 80 + calcFinalAttrs(data).final.vitality,
+    mp: calcFinalAttrs(data).final.spirit * 2,
     statuses: new Map(),
     skillCooldowns: new Map(data.skills.map((s) => [s.id!, 0])),
   });
@@ -533,9 +572,15 @@ export function simulateBattle(
     opponent: initUnit(opponent, 'opponent'),
     turn: 0,
     log: [],
+    timeline: [],
   };
 
+  // 初始回合（0 回合）状态
+  state.timeline.push(snapshotTurn(0, state.player, state.opponent));
+
   while (state.player.hp > 0 && state.opponent.hp > 0 && state.turn < 30) {
+    let snapshottedThisTurn = false;
+
     state.turn += 1;
     state.log.push(`[第${state.turn}回合]`);
 
@@ -543,7 +588,13 @@ export function simulateBattle(
     tickStatusEffects(state.player, state.log);
     tickStatusEffects(state.opponent, state.log);
 
-    if (state.player.hp <= 0 || state.opponent.hp <= 0) break;
+    if (state.player.hp <= 0 || state.opponent.hp <= 0) {
+      state.timeline.push(
+        snapshotTurn(state.turn, state.player, state.opponent),
+      );
+      snapshottedThisTurn = true;
+      break;
+    }
 
     const pSpeed =
       calcFinalAttrs(state.player.data).final.speed +
@@ -566,12 +617,27 @@ export function simulateBattle(
       const target = actor.id === 'player' ? state.opponent : state.player;
       const skill = chooseSkill(actor, target);
       executeSkill(actor, target, skill, state);
-      if (target.hp <= 0) break;
+      if (target.hp <= 0) {
+        if (!snapshottedThisTurn) {
+          state.timeline.push(
+            snapshotTurn(state.turn, state.player, state.opponent),
+          );
+          snapshottedThisTurn = true;
+        }
+        break;
+      }
 
       // 冷却递减
       for (const [id, cd] of actor.skillCooldowns.entries()) {
         if (cd > 0) actor.skillCooldowns.set(id, cd - 1);
       }
+    }
+
+    if (!snapshottedThisTurn) {
+      state.timeline.push(
+        snapshotTurn(state.turn, state.player, state.opponent),
+      );
+      snapshottedThisTurn = true;
     }
   }
 
@@ -597,5 +663,6 @@ export function simulateBattle(
     turns: state.turn,
     playerHp: state.player.hp,
     opponentHp: state.opponent.hp,
+    timeline: state.timeline,
   };
 }

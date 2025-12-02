@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
               turns: battleResult.turns,
               playerHp: battleResult.playerHp,
               opponentHp: battleResult.opponentHp,
+              timeline: battleResult.timeline,
             },
           });
           controller.enqueue(encoder.encode(`data: ${battleData}\n\n`));

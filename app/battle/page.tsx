@@ -2,7 +2,7 @@
 
 import { InkButton } from '@/components/InkComponents';
 import type { BattleEngineResult } from '@/engine/battleEngine';
-import type { Cultivator } from '@/types/cultivator';
+import type { Cultivator, StatusEffect } from '@/types/cultivator';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -37,6 +37,21 @@ function BattlePageContent() {
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
   const [opponentLoading, setOpponentLoading] = useState(false);
+  const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+  const [autoPlayTurn, setAutoPlayTurn] = useState(true);
+
+  const STATUS_LABELS: Record<StatusEffect, string> = {
+    burn: '灼烧',
+    bleed: '流血',
+    poison: '中毒',
+    stun: '眩晕',
+    silence: '沉默',
+    root: '定身',
+    armor_up: '护体',
+    speed_up: '疾速',
+    crit_rate_up: '会心',
+    armor_down: '破防',
+  };
 
   // 初始化
   useEffect(() => {
@@ -146,6 +161,30 @@ function BattlePageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, opponent, battleResult, loading, playerLoading, opponentLoading]);
 
+  // 战斗结果到达后，重置回合播放
+  useEffect(() => {
+    if (battleResult?.timeline && battleResult.timeline.length > 0) {
+      setCurrentTurnIndex(0);
+      setAutoPlayTurn(true);
+    }
+  }, [battleResult?.timeline]);
+
+  // 回合自动播放，营造停顿感
+  useEffect(() => {
+    if (!autoPlayTurn || !battleResult?.timeline) return;
+    const total = battleResult.timeline.length;
+    if (total === 0) return;
+
+    const timer = setInterval(() => {
+      setCurrentTurnIndex((idx) => {
+        if (idx >= total - 1) return idx;
+        return idx + 1;
+      });
+    }, 900);
+
+    return () => clearInterval(timer);
+  }, [autoPlayTurn, battleResult?.timeline]);
+
   // 执行战斗（使用合并接口）
   const handleBattle = async () => {
     if (!player || !opponent) {
@@ -212,6 +251,7 @@ function BattlePageContent() {
                   turns: result.turns,
                   playerHp: result.playerHp,
                   opponentHp: result.opponentHp,
+                  timeline: result.timeline ?? [],
                 });
                 console.log('战斗结果：', result);
               } else if (data.type === 'chunk') {
@@ -287,9 +327,119 @@ function BattlePageContent() {
           </h1>
         </div>
 
+        {/* 数值战斗回放：HP / MP / 状态随回合变化（遵循极简文字 UI 规范） */}
+        {battleResult?.timeline &&
+          battleResult.timeline.length > 0 &&
+          opponent && (
+            <div className="mb-8 p-4">
+              {(() => {
+                const snaps = battleResult.timeline;
+                const first = snaps[0];
+                const maxPlayerHp = first?.player.hp || 1;
+                const maxOpponentHp = first?.opponent.hp || 1;
+                const maxPlayerMp = first?.player.mp || 1;
+                const maxOpponentMp = first?.opponent.mp || 1;
+                const totalTurns = snaps.length;
+                const safeIndex = Math.min(
+                  Math.max(currentTurnIndex, 0),
+                  totalTurns - 1,
+                );
+                const snap = snaps[safeIndex];
+
+                const renderStatusList = (statuses: StatusEffect[]) =>
+                  statuses.length
+                    ? statuses.map((s) => STATUS_LABELS[s] ?? s).join('、')
+                    : '无';
+
+                return (
+                  <>
+                    {/* 顶部：回合信息 + 播放控制（纯文字与符号） */}
+                    <div className="mb-2 flex items-center justify-between text-sm text-ink/80">
+                      <span className="tracking-wide">
+                        {snap.turn === 0
+                          ? '[战前状态]'
+                          : `回合: ${snap.turn} / ${
+                              battleResult.turns ?? snap.turn
+                            }`}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="text-ink/60 hover:text-ink"
+                          onClick={() => {
+                            setAutoPlayTurn(false);
+                            setCurrentTurnIndex((idx) => Math.max(0, idx - 1));
+                          }}
+                        >
+                          ‹ 上一回合
+                        </button>
+                        <button
+                          type="button"
+                          className="text-ink/60 hover:text-ink"
+                          onClick={() => setAutoPlayTurn((v) => !v)}
+                        >
+                          {autoPlayTurn ? '⏸ 暂停' : '▶ 播放'}
+                        </button>
+                        <button
+                          type="button"
+                          className="text-ink/60 hover:text-ink"
+                          onClick={() => {
+                            setAutoPlayTurn(false);
+                            setCurrentTurnIndex((idx) =>
+                              Math.min(totalTurns - 1, idx + 1),
+                            );
+                          }}
+                        >
+                          下一回合 ›
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 中部：左右文字排版展示双方数值与状态 */}
+                    <div className="mt-2 border-t border-dashed border-ink/20 pt-3 text-sm">
+                      <div className="flex items-start justify-between gap-4">
+                        {/* 左侧：玩家 */}
+                        <div className="flex-1 leading-relaxed">
+                          <div className="mb-1 font-semibold text-ink">
+                            {player.name}
+                          </div>
+                          <div className="mb-0.5 text-ink/80">
+                            气血：{snap.player.hp}/{maxPlayerHp}
+                          </div>
+                          <div className="mb-0.5 text-ink/80">
+                            灵力：{snap.player.mp}/{maxPlayerMp}
+                          </div>
+                          <div className="text-ink/70">
+                            状态：{renderStatusList(snap.player.statuses)}
+                          </div>
+                        </div>
+
+                        {/* 右侧：对手 */}
+                        <div className="flex-1 text-right leading-relaxed">
+                          <div className="mb-1 font-semibold text-ink">
+                            {opponent.name}
+                          </div>
+                          <div className="mb-0.5 text-ink/80">
+                            气血：{snap.opponent.hp}/{maxOpponentHp}
+                          </div>
+                          <div className="mb-0.5 text-ink/80">
+                            灵力：{snap.opponent.mp}/{maxOpponentMp}
+                          </div>
+                          <div className="text-ink/70">
+                            状态：{renderStatusList(snap.opponent.statuses)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
         {/* 战斗播报：全屏展示 AIGC 生成的战报 */}
         {displayReport && (
-          <div className="battle-report mb-8 animate-fade-in">
+          <div className="battle-report mt-2 mb-8 animate-fade-in">
             {/* 播报内容 */}
             <div className="text-ink leading-relaxed">
               {displayReport
