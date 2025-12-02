@@ -30,7 +30,7 @@ export function getCharacterGenerationPrompt(): string {
 
   "spiritual_roots": [
     {
-      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无",
+      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰",
       "strength": 0~100
     }
   ],
@@ -68,7 +68,7 @@ export function getCharacterGenerationPrompt(): string {
     {
       "name": "技能名",
       "type": "attack | heal | control | debuff | buff",
-      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无",
+      "element": "金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰",
       "power": 30~150,
       "cost": 0~100,
       "cooldown": 0~5,
@@ -94,14 +94,15 @@ export function getCharacterGenerationPrompt(): string {
 }
 
 重要约束与说明：
-- 元素必须从固定列表中选择：金、木、水、火、土、风、雷、冰、无。
+- 元素必须从固定列表中选择：金、木、水、火、土、风、雷、冰。
 - 技能类型必须是：attack, heal, control, debuff, buff 之一。
 - 状态效果必须是：burn, bleed, poison, stun, silence, root, armor_up, speed_up, crit_rate_up, armor_down 之一。
 - 所有数值字段必须是整数，且在给定范围之内。
 - 至少 1 个灵根，最多 3 个。
-- pre_heaven_fates 建议 2~3 条，务必与属性加成相呼应。
-- 技能至少 2 个，且应与角色设定和元素相符。
-- 装备（inventory.artifacts 和 equipped）不需要生成，创建角色时为空，由用户后续手动装备。
+- 先天气运(pre_heaven_fates) 建议 2~3 条，务必与属性加成相呼应。
+- 技能(skills)至少 2 个，且应与角色设定和元素相符。
+- 功法(cultivations)至少 1 个，且应与角色设定和元素相符。
+- 装备（inventory.artifacts, inventory.consumables 和 equipped）不需要生成，创建角色时为空，由用户后续手动装备。
 - 输出必须是**合法 JSON**，不要添加任何注释或多余文字。`;
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import type { BattleEngineResult } from '@/engine/battleEngine';
-import type { Cultivator, Consumable } from '@/types/cultivator';
+import type { Cultivator } from '@/types/cultivator';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -143,7 +143,7 @@ function BattlePageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, opponent, battleResult, loading, playerLoading, opponentLoading]);
 
-  // 执行战斗
+  // 执行战斗（使用合并接口）
   const handleBattle = async () => {
     if (!player || !opponent) {
       return;
@@ -156,12 +156,8 @@ function BattlePageContent() {
     setBattleResult(null);
 
     try {
-      // 从URL参数获取消耗品ID列表
-      const consumablesParam = searchParams.get('consumables');
-      const consumableIds = consumablesParam ? consumablesParam.split(',') : [];
-      
-      // 调用后端战斗引擎API
-      const battleResponse = await fetch('/api/generate-battle', {
+      // 调用合并的战斗接口（执行战斗并生成播报）
+      const response = await fetch('/api/battle', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,42 +165,12 @@ function BattlePageContent() {
         body: JSON.stringify({
           cultivatorId: player.id,
           opponentId: opponent.id,
-          consumableIds: consumableIds,
-        }),
-      });
-
-      if (!battleResponse.ok) {
-        const errorData = await battleResponse.json();
-        throw new Error(errorData.error || '生成战斗结果失败');
-      }
-
-      const battleResultData = await battleResponse.json();
-      const result = battleResultData.data;
-      console.log('战斗结果:', result);
-      setBattleResult(result);
-
-      const response = await fetch('/api/generate-battle-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          player,
-          opponent,
-          battleSummary: {
-            winnerId: result.winner.id,
-            log: result.log,
-            turns: result.turns,
-            playerHp: result.playerHp,
-            opponentHp: result.opponentHp,
-            triggeredMiracle: result.triggeredMiracle,
-          },
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '生成战斗播报失败');
+        throw new Error(errorData.error || '战斗失败');
       }
 
       const reader = response.body?.getReader();
@@ -233,16 +199,29 @@ function BattlePageContent() {
             try {
               const data = JSON.parse(line.slice(6));
 
-              if (data.type === 'chunk') {
+              if (data.type === 'battle_result') {
+                // 接收战斗结果数据
+                const result = data.data;
+                setBattleResult({
+                  winner: result.winner,
+                  loser: result.loser,
+                  log: result.log,
+                  turns: result.turns,
+                  playerHp: result.playerHp,
+                  opponentHp: result.opponentHp,
+                });
+                console.log("战斗结果：",result);
+              } else if (data.type === 'chunk') {
+                // 接收播报内容块
                 fullReport += data.content;
                 setStreamingReport(fullReport);
               } else if (data.type === 'done') {
+                // 播报生成完成
                 setIsStreaming(false);
-                // 保存完整的播报内容，不清空
                 setFinalReport(fullReport);
                 setStreamingReport(fullReport);
               } else if (data.type === 'error') {
-                throw new Error(data.error || '生成战斗播报失败');
+                throw new Error(data.error || '战斗失败');
               }
             } catch (e) {
               console.error('解析 SSE 数据失败:', e);
