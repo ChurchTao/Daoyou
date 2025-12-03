@@ -1,18 +1,33 @@
 import {
+  CONSUMABLE_TYPE_VALUES,
+  ConsumableType,
   ELEMENT_VALUES,
   ElementType,
+  FATE_QUALITY_VALUES,
+  FateQuality,
   REALM_STAGE_VALUES,
   REALM_VALUES,
   RealmStage,
   RealmType,
+  SKILL_GRADE_VALUES,
   SKILL_TYPE_VALUES,
+  SkillGrade,
+  SkillType,
+  SPIRITUAL_ROOT_GRADE_VALUES,
+  SpiritualRootGrade,
   STATUS_EFFECT_VALUES,
+  StatusEffect,
 } from '../types/constants';
 import type {
+  Artifact,
+  ArtifactBonus,
   Attributes,
   Consumable,
+  ConsumableEffect,
   CultivationTechnique,
   Cultivator,
+  EquippedItems,
+  Inventory,
   PreHeavenFate,
   Skill,
   SpiritualRoot,
@@ -37,13 +52,14 @@ export function createCultivatorFromAI(
   const preHeavenFates = asPreHeavenFates(raw.pre_heaven_fates);
   const cultivations = asCultivations(raw.cultivations);
   const skills = asSkills(raw.skills);
+  const balance_notes = asOptionalString(raw.balance_notes);
 
   // 装备不由 AI 生成，创建角色时为空，由用户后续手动装备
-  const inventory: Cultivator['inventory'] = {
+  const inventory: Inventory = {
     artifacts: [],
     consumables: [],
   };
-  const equipped: Cultivator['equipped'] = {
+  const equipped: EquippedItems = {
     weapon: null,
     armor: null,
     accessory: null,
@@ -73,6 +89,7 @@ export function createCultivatorFromAI(
     max_skills: maxSkills,
     background,
     prompt: userPrompt,
+    balance_notes,
   };
 
   return cultivator;
@@ -322,7 +339,7 @@ function asElement(value: unknown): ElementType {
   if (typeof value === 'string' && elements.includes(value as ElementType)) {
     return value as ElementType;
   }
-  return '无';
+  return '金';
 }
 
 function asAttributes(raw: unknown): Attributes {
@@ -339,9 +356,20 @@ function asAttributes(raw: unknown): Attributes {
   };
 }
 
+function asSpiritualRootGrade(value: unknown): SpiritualRootGrade | undefined {
+  const grades: SpiritualRootGrade[] = [...SPIRITUAL_ROOT_GRADE_VALUES];
+  if (
+    typeof value === 'string' &&
+    grades.includes(value as SpiritualRootGrade)
+  ) {
+    return value as SpiritualRootGrade;
+  }
+  return undefined;
+}
+
 function asSpiritualRoots(raw: unknown): SpiritualRoot[] {
   if (!Array.isArray(raw)) {
-    return [{ element: '无', strength: 0 }];
+    return [{ element: '金', strength: 50 }];
   }
   return raw
     .map((item) => {
@@ -349,10 +377,19 @@ function asSpiritualRoots(raw: unknown): SpiritualRoot[] {
       const rec = item as Record<string, unknown>;
       const element = asElement(rec.element);
       const strength = asInteger(rec.strength, 50, 0, 100);
-      return { element, strength } as SpiritualRoot;
+      const grade = asSpiritualRootGrade(rec.grade);
+      return { element, strength, grade } as SpiritualRoot;
     })
     .filter((r): r is SpiritualRoot => !!r)
-    .slice(0, 3);
+    .slice(0, 4);
+}
+
+function asFateQuality(value: unknown): FateQuality | undefined {
+  const qualities: FateQuality[] = [...FATE_QUALITY_VALUES];
+  if (typeof value === 'string' && qualities.includes(value as FateQuality)) {
+    return value as FateQuality;
+  }
+  return undefined;
 }
 
 function asPreHeavenFates(raw: unknown): PreHeavenFate[] {
@@ -364,6 +401,7 @@ function asPreHeavenFates(raw: unknown): PreHeavenFate[] {
     const name = asString(rec.name, '');
     if (!name) continue;
     const type = rec.type === '凶' ? '凶' : '吉';
+    const quality = asFateQuality(rec.quality);
     const modRaw =
       (rec.attribute_mod as Record<string, unknown>) ??
       ({} as Record<string, unknown>);
@@ -386,11 +424,20 @@ function asPreHeavenFates(raw: unknown): PreHeavenFate[] {
     list.push({
       name,
       type,
+      quality,
       attribute_mod,
       description: asOptionalString(rec.description),
     });
   }
   return list;
+}
+
+function asSkillGrade(value: unknown): SkillGrade | undefined {
+  const grades: SkillGrade[] = [...SKILL_GRADE_VALUES];
+  if (typeof value === 'string' && grades.includes(value as SkillGrade)) {
+    return value as SkillGrade;
+  }
+  return undefined;
 }
 
 function asCultivations(raw: unknown): CultivationTechnique[] {
@@ -401,6 +448,7 @@ function asCultivations(raw: unknown): CultivationTechnique[] {
       const rec = item as Record<string, unknown>;
       const name = asString(rec.name, '');
       if (!name) return null;
+      const grade = asSkillGrade(rec.grade);
       const bonusRaw =
         (rec.bonus as Record<string, unknown>) ??
         ({} as Record<string, unknown>);
@@ -421,9 +469,13 @@ function asCultivations(raw: unknown): CultivationTechnique[] {
         bonus.willpower = Math.round(bonusRaw.willpower);
       }
       const required_realm = asRealm(rec.required_realm);
-      return { name, bonus, required_realm };
+      const result: CultivationTechnique = { name, bonus, required_realm };
+      if (grade) {
+        result.grade = grade;
+      }
+      return result;
     })
-    .filter((c): c is CultivationTechnique => !!c);
+    .filter((c): c is CultivationTechnique => c !== null);
 }
 
 function asSkills(raw: unknown): Skill[] {
@@ -436,6 +488,7 @@ function asSkills(raw: unknown): Skill[] {
       if (!name) return null;
       const type = asSkillType(rec.type);
       const element = asElement(rec.element);
+      const grade = asSkillGrade(rec.grade);
       const power = asInteger(rec.power, 60, 30, 150);
       const cost =
         typeof rec.cost === 'number' ? Math.max(0, Math.round(rec.cost)) : 0;
@@ -455,6 +508,7 @@ function asSkills(raw: unknown): Skill[] {
         name,
         type,
         element,
+        grade,
         power,
         cost,
         cooldown,
@@ -466,24 +520,24 @@ function asSkills(raw: unknown): Skill[] {
     .filter((s): s is Skill => !!s);
 }
 
-function asSkillType(value: unknown): Skill['type'] {
-  const types: Skill['type'][] = [...SKILL_TYPE_VALUES];
-  if (typeof value === 'string' && types.includes(value as Skill['type'])) {
-    return value as Skill['type'];
+function asSkillType(value: unknown): SkillType {
+  const types: SkillType[] = [...SKILL_TYPE_VALUES];
+  if (typeof value === 'string' && types.includes(value as SkillType)) {
+    return value as SkillType;
   }
   return 'attack';
 }
 
-function asStatusEffect(value: unknown): Skill['effect'] {
-  const effects: Skill['effect'][] = [...STATUS_EFFECT_VALUES];
-  if (typeof value === 'string' && effects.includes(value as Skill['effect'])) {
-    return value as Skill['effect'];
+function asStatusEffect(value: unknown): StatusEffect | undefined {
+  const effects: StatusEffect[] = [...STATUS_EFFECT_VALUES];
+  if (typeof value === 'string' && effects.includes(value as StatusEffect)) {
+    return value as StatusEffect;
   }
   return undefined;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normaliseInventory(raw: unknown): Cultivator['inventory'] {
+function normaliseInventory(raw: unknown): Inventory {
   const obj =
     raw && typeof raw === 'object'
       ? (raw as Record<string, unknown>)
@@ -496,7 +550,7 @@ function normaliseInventory(raw: unknown): Cultivator['inventory'] {
     ? (obj.consumables as unknown[])
     : [];
 
-  const artifacts: Cultivator['inventory']['artifacts'] = [];
+  const artifacts: Artifact[] = [];
   artifactsArray.forEach((item, idx) => {
     if (!item || typeof item !== 'object') return;
     const rec = item as Record<string, unknown>;
@@ -513,7 +567,7 @@ function normaliseInventory(raw: unknown): Cultivator['inventory'] {
     const element = asElement(rec.element);
     const bonusRaw =
       (rec.bonus as Record<string, unknown>) ?? ({} as Record<string, unknown>);
-    const bonus: Cultivator['inventory']['artifacts'][number]['bonus'] = {};
+    const bonus: ArtifactBonus = {};
     if (typeof bonusRaw.vitality === 'number') {
       bonus.vitality = Math.round(bonusRaw.vitality);
     }
@@ -547,17 +601,15 @@ function normaliseInventory(raw: unknown): Cultivator['inventory'] {
     const name = asString(rec.name, '');
     if (!name) return;
     const typeRaw = rec.type;
-    const type: Consumable['type'] =
-      typeRaw === 'heal' ||
-      typeRaw === 'buff' ||
-      typeRaw === 'revive' ||
-      typeRaw === 'breakthrough'
-        ? typeRaw
-        : 'heal';
+    const type: ConsumableType = CONSUMABLE_TYPE_VALUES.includes(
+      typeRaw as ConsumableType,
+    )
+      ? (typeRaw as ConsumableType)
+      : 'heal';
     consumables.push({
       name,
       type,
-      effect: rec.effect as Consumable['effect'],
+      effect: rec.effect as ConsumableEffect | undefined,
     });
   });
 
@@ -568,10 +620,7 @@ function normaliseInventory(raw: unknown): Cultivator['inventory'] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normaliseEquipped(
-  raw: unknown,
-  inventory: Cultivator['inventory'],
-): Cultivator['equipped'] {
+function normaliseEquipped(raw: unknown, inventory: Inventory): EquippedItems {
   const obj =
     raw && typeof raw === 'object'
       ? (raw as Record<string, unknown>)

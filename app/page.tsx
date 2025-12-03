@@ -118,24 +118,28 @@ export default function HomePage() {
         </InkSection>
 
         {/* 快捷入口 - 紧凑排列 */}
-        <InkSection title="【快捷入口】">
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {quickActions.map((action) => (
-              <InkButton
-                key={action.label}
-                href={action.href}
-                variant="default"
-                className="text-sm"
-              >
-                {action.label}
-              </InkButton>
-            ))}
-          </div>
-        </InkSection>
+        {cultivator && (
+          <InkSection title="【快捷入口】">
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {quickActions.map((action) => (
+                <InkButton
+                  key={action.label}
+                  href={action.href}
+                  variant="default"
+                  className="text-sm"
+                >
+                  {action.label}
+                </InkButton>
+              ))}
+            </div>
+          </InkSection>
+        )}
         {/* 近期战绩 */}
-        <InkSection title="【近期战绩】">
-          <RecentBattles />
-        </InkSection>
+        {cultivator && (
+          <InkSection title="【近期战绩】">
+            <RecentBattles />
+          </InkSection>
+        )}
 
         <div className="text-center">
           <InkDivider />

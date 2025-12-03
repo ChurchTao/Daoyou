@@ -24,6 +24,11 @@ export default function CreatePage() {
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [tempCultivatorId, setTempCultivatorId] = useState<string | null>(null);
+  const [availableFates, setAvailableFates] = useState<
+    Cultivator['pre_heaven_fates']
+  >([]);
+  const [selectedFateIndices, setSelectedFateIndices] = useState<number[]>([]);
+  const [balanceNotes, setBalanceNotes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasExistingCultivator, setHasExistingCultivator] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
@@ -63,6 +68,9 @@ export default function CreatePage() {
     setLoading(true);
     setError(null);
     setPlayer(null);
+    setAvailableFates([]);
+    setSelectedFateIndices([]);
+    setBalanceNotes([]);
 
     try {
       // 调用AI生成角色
@@ -83,6 +91,9 @@ export default function CreatePage() {
       // 保存临时角色ID和角色数据
       setPlayer(aiResult.data.cultivator);
       setTempCultivatorId(aiResult.data.tempCultivatorId);
+      setAvailableFates(aiResult.data.preHeavenFates || []);
+      setSelectedFateIndices([]);
+      setBalanceNotes(aiResult.data.balanceNotes || []);
     } catch (error) {
       console.error('生成角色失败:', error);
       const errorMessage =
@@ -93,9 +104,26 @@ export default function CreatePage() {
     }
   };
 
+  // 切换气运选择
+  const toggleFateSelection = (index: number) => {
+    setSelectedFateIndices((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((i) => i !== index);
+      } else if (prev.length < 3) {
+        return [...prev, index];
+      }
+      return prev;
+    });
+  };
+
   // 保存角色到正式表
   const handleSaveCharacter = async () => {
     if (!player || !tempCultivatorId) {
+      return;
+    }
+
+    if (selectedFateIndices.length !== 3) {
+      setError('请选择3个先天气运');
       return;
     }
 
@@ -109,7 +137,10 @@ export default function CreatePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tempCultivatorId }),
+        body: JSON.stringify({
+          tempCultivatorId,
+          selectedFateIndices,
+        }),
       });
 
       const saveResult = await saveResponse.json();
@@ -141,6 +172,9 @@ export default function CreatePage() {
   // 重新生成
   const handleRegenerate = () => {
     setPlayer(null);
+    setAvailableFates([]);
+    setSelectedFateIndices([]);
+    setBalanceNotes([]);
     setError(null);
   };
 
@@ -245,8 +279,13 @@ export default function CreatePage() {
                     <div>
                       <span className="text-ink/70">灵根：</span>
                       <span className="text-ink font-semibold ml-1">
-                        {player.spiritual_roots[0]?.element || '无'}（强度：
-                        {player.spiritual_roots[0]?.strength || 0}）
+                        {player.spiritual_roots[0]?.element || '无'}
+                        {player.spiritual_roots[0]?.grade && (
+                          <span className="text-crimson ml-1">
+                            ·{player.spiritual_roots[0].grade}
+                          </span>
+                        )}
+                        （强度：{player.spiritual_roots[0]?.strength || 0}）
                       </span>
                     </div>
                     <div>
@@ -298,35 +337,77 @@ export default function CreatePage() {
                     </div>
                   </div>
 
-                  {/* 先天气运 */}
-                  {player.pre_heaven_fates?.length ? (
+                  {/* 天道平衡提示 */}
+                  {balanceNotes.length > 0 && (
                     <div className="mb-4">
-                      <span className="text-ink/70">先天气运：</span>
-                      <div className="mt-2 space-y-1 text-sm">
-                        {player.pre_heaven_fates.map((fate, idx) => (
-                          <div
-                            key={fate.name + idx}
-                            className="bg-ink/5 rounded p-2 border border-ink/10"
-                          >
-                            <p className="font-semibold">
-                              {fate.name} · {fate.type}
-                            </p>
-                            <p className="text-ink/80">
-                              {Object.entries(fate.attribute_mod)
-                                .filter(([, v]) => v !== undefined && v !== 0)
-                                .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
-                                .join(', ') || '无属性加成'}
-                            </p>
-                            {fate.description && (
-                              <p className="text-ink/60 text-xs italic">
-                                {fate.description}
-                              </p>
-                            )}
-                          </div>
+                      <span className="text-ink/70">天道评语：</span>
+                      <ul className="mt-2 space-y-1 text-sm bg-ink/5 rounded p-3 border border-ink/10">
+                        {balanceNotes.map((note) => (
+                          <li key={note} className="text-ink/80">
+                            · {note}
+                          </li>
                         ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* 先天气运选择 */}
+                  {availableFates.length > 0 && (
+                    <div className="mb-4">
+                      <span className="text-ink/70">
+                        先天气运选择（已选择 {selectedFateIndices.length}/3）：
+                      </span>
+                      <div className="mt-2 space-y-2 text-sm">
+                        {availableFates.map((fate, idx) => {
+                          const isSelected = selectedFateIndices.includes(idx);
+                          const qualityColors: Record<string, string> = {
+                            凡品: 'text-gray-500',
+                            灵品: 'text-blue-500',
+                            玄品: 'text-purple-500',
+                            真品: 'text-crimson',
+                          };
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => toggleFateSelection(idx)}
+                              className={`bg-ink/5 rounded p-2 border-2 cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'border-crimson bg-crimson/10'
+                                  : 'border-ink/10 hover:border-ink/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <p className="font-semibold">
+                                  {fate.name} · {fate.type}
+                                  {fate.quality && (
+                                    <span
+                                      className={`ml-2 ${qualityColors[fate.quality] || 'text-ink/70'}`}
+                                    >
+                                      [{fate.quality}]
+                                    </span>
+                                  )}
+                                </p>
+                                {isSelected && (
+                                  <span className="text-crimson">✓</span>
+                                )}
+                              </div>
+                              <p className="text-ink/80">
+                                {Object.entries(fate.attribute_mod)
+                                  .filter(([, v]) => v !== undefined && v !== 0)
+                                  .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+                                  .join(', ') || '无属性加成'}
+                              </p>
+                              {fate.description && (
+                                <p className="text-ink/60 text-xs italic mt-1">
+                                  {fate.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
                   {/* 技能 */}
                   {player.skills && player.skills.length > 0 ? (
@@ -340,6 +421,11 @@ export default function CreatePage() {
                           >
                             <p className="font-semibold">
                               {skill.name} · {skill.type} · {skill.element}
+                              {skill.grade && (
+                                <span className="text-crimson ml-1">
+                                  ·{skill.grade}
+                                </span>
+                              )}
                             </p>
                             <p className="text-ink/80">
                               威力：{skill.power} | 冷却：{skill.cooldown}回合
@@ -365,7 +451,14 @@ export default function CreatePage() {
                             key={cult.name + idx}
                             className="bg-ink/5 rounded p-2 border border-ink/10"
                           >
-                            <p className="font-semibold">{cult.name}</p>
+                            <p className="font-semibold">
+                              {cult.name}
+                              {cult.grade && (
+                                <span className="text-crimson ml-1">
+                                  ·{cult.grade}
+                                </span>
+                              )}
+                            </p>
                             <p className="text-ink/80">
                               {Object.entries(cult.bonus)
                                 .filter(([, v]) => v !== undefined && v !== 0)

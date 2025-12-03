@@ -10,7 +10,6 @@ export const ELEMENT_VALUES = [
   '风',
   '雷',
   '冰',
-  '无',
 ] as const;
 export type ElementType = (typeof ELEMENT_VALUES)[number];
 
@@ -78,4 +77,32 @@ export type RealmStage = (typeof REALM_STAGE_VALUES)[number];
 export const FATE_TYPE_VALUES = ['吉', '凶'] as const;
 export type FateType = (typeof FATE_TYPE_VALUES)[number];
 
+// 灵根品阶
+export const SPIRITUAL_ROOT_GRADE_VALUES = [
+  '天灵根',
+  '真灵根',
+  '伪灵根',
+  '变异灵根',
+] as const;
+export type SpiritualRootGrade = (typeof SPIRITUAL_ROOT_GRADE_VALUES)[number];
 
+// 技能/功法品阶
+export const SKILL_GRADE_VALUES = [
+  '天阶上品',
+  '天阶中品',
+  '天阶下品',
+  '地阶上品',
+  '地阶中品',
+  '地阶下品',
+  '玄阶上品',
+  '玄阶中品',
+  '玄阶下品',
+  '黄阶上品',
+  '黄阶中品',
+  '黄阶下品',
+] as const;
+export type SkillGrade = (typeof SKILL_GRADE_VALUES)[number];
+
+// 先天气运品质
+export const FATE_QUALITY_VALUES = ['凡品', '灵品', '玄品', '真品'] as const;
+export type FateQuality = (typeof FATE_QUALITY_VALUES)[number];

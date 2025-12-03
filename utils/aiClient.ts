@@ -54,8 +54,9 @@ export async function generateCharacter(
           content: userInput,
         },
       ],
-      response_format: { type: 'json_object' },
-      temperature: 0.8, // 稍微提高创造性
+      max_tokens: 8192,
+      temperature: 0.6, // 稍微提高创造性
+      top_p: 0.95,
     });
 
     const content = response.choices[0]?.message?.content;
@@ -115,8 +116,8 @@ export async function generateBattleReportStream(
           content: userPrompt,
         },
       ],
-      temperature: 0.9, // 提高创造性，让战斗描写更生动
-      max_tokens: 1000, // 限制最大长度
+      max_tokens: 8192,
+      temperature: 0.6, // 稍微提高创造性
       stream: true, // 启用流式输出
     });
 

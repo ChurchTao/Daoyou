@@ -2,8 +2,7 @@ import type { BattleEngineResult } from '@/engine/battleEngine';
 import {
   ELEMENT_VALUES,
   GENDER_VALUES,
-  REALM_STAGE_VALUES,
-  REALM_VALUES,
+  SKILL_GRADE_VALUES,
   SKILL_TYPE_VALUES,
   STATUS_EFFECT_VALUES,
 } from '../types/constants';
@@ -15,33 +14,35 @@ import type { Cultivator } from '../types/cultivator';
  */
 export function getCharacterGenerationPrompt(): string {
   const genderOptions = GENDER_VALUES.join(' | ');
-  const realmOptions = REALM_VALUES.join(' | ');
-  const realmStageOptions = REALM_STAGE_VALUES.join(' | ');
-  const elementOptions = ELEMENT_VALUES.filter((e) => e !== '无').join(' | ');
+  const elementOptions = ELEMENT_VALUES.join(' | ');
   const skillTypeOptions = SKILL_TYPE_VALUES.join(' | ');
   const statusEffectOptions = STATUS_EFFECT_VALUES.join(' | ');
 
-  return `你是“造化玉碟”，精通修仙设定。你会收到凡人的心念描述，请基于描述创造一个结构化的修仙者。
+  const skillGradeOptions = SKILL_GRADE_VALUES.join(' | ');
+
+  return `你是"造化玉碟"，精通修仙设定。你会收到凡人的心念描述，请基于描述创造一个结构化的修仙者，并遵循天道平衡律：凡事有得必有失。
 
 请严格输出 JSON（不要任何额外文字），遵循以下结构和取值范围：
 {
   "name": "2~4 字中文姓名",
   "gender": "${genderOptions}",
   "origin": "出身势力或地域，10~20字",
-  "personality": "性格概述，15~30字",
+  "personality": "性格概述，20~40字",
 
-  "realm": "${realmOptions}",
-  "realm_stage": "${realmStageOptions}",
+  "realm": "炼气 | 筑基",
+  "realm_stage": "初期 | 中期 | 后期",
   "age": 整数，>= 10,
-  "lifespan": 整数，不同境界合理范围（例如 炼气 80~120，金丹 300~600，渡劫 800~1200），不得小于 age,
+  "lifespan": 整数，炼气 80~120，筑基 120~200，不得小于 age,
 
   "attributes": {
-    "vitality": 10~300,
-    "spirit": 10~300,
-    "wisdom": 10~300,
-    "speed": 10~300,
-    "willpower": 10~300
+    "vitality": 10~120,
+    "spirit": 10~120,
+    "wisdom": 10~120,
+    "speed": 10~120,
+    "willpower": 10~120
   },
+  
+  注意：属性总和不应超过所有属性上限总和的80%（筑基后期上限为120，总和上限为480）。
 
   "spiritual_roots": [
     {
@@ -49,42 +50,42 @@ export function getCharacterGenerationPrompt(): string {
       "strength": 0~100
     }
   ],
-
-  "pre_heaven_fates": [
-    {
-      "name": "气运名称，2~4字",
-      "type": "吉 | 凶",
-      "attribute_mod": {
-        "vitality": 可选整数加成,
-        "spirit": 可选整数加成,
-        "wisdom": 可选整数加成,
-        "speed": 可选整数加成,
-        "willpower": 可选整数加成
-      },
-      "description": "一句古风描述"
-    }
-  ],
+  
+  灵根品阶规则：
+  - 单灵根 = 天灵根（强度范围：70-90）
+  - 双灵根 = 真灵根（强度范围：50-80）
+  - 三/四灵根 = 伪灵根（强度范围：30-60）
+  - 变异灵根（雷、风、冰）= 单灵根 = 天灵根（强度范围：70-95）
+  注意：灵根品阶会根据灵根数量自动确定，无需在JSON中指定。
 
   "cultivations": [
     {
       "name": "功法名称（2~6字，古风）",
+      "grade": "${skillGradeOptions}",
       "bonus": {
-        "vitality": 可选整数加成（建议范围：-10~+30，根据境界调整）,
-        "spirit": 可选整数加成（建议范围：-10~+30，根据境界调整）,
-        "wisdom": 可选整数加成（建议范围：-10~+30，根据境界调整）,
-        "speed": 可选整数加成（建议范围：-10~+30，根据境界调整）,
-        "willpower": 可选整数加成（建议范围：-10~+30，根据境界调整）
+        "vitality": 可选整数加成（根据品阶调整：天阶上品20-30，天阶中品15-25，天阶下品10-20，地阶上品8-15，地阶中品5-12，地阶下品3-10，玄阶上品2-8，玄阶中品1-6，玄阶下品0-5，黄阶上品0-3，黄阶中品0-2，黄阶下品0-1）,
+        "spirit": 可选整数加成（范围同上）,
+        "wisdom": 可选整数加成（范围同上）,
+        "speed": 可选整数加成（范围同上）,
+        "willpower": 可选整数加成（范围同上）
       },
       "required_realm": "与上文 realm 相同或更低的境界名（必须从预定义列表中选择）"
     }
   ],
+  
+  功法要求：
+  - 创建时带1-2个功法
+  - 每个功法必须指定品阶（${skillGradeOptions}）
+  - 功法是**被动加成**，会永久提升属性，请确保 bonus 字段至少包含一个非零的属性加成
+  - 增幅数值必须符合品阶范围
 
   "skills": [
     {
       "name": "技能名",
       "type": "${skillTypeOptions}",
       "element": "${elementOptions}",
-      "power": 30~150,
+      "grade": "${skillGradeOptions}",
+      "power": 30~150（必须符合品阶范围：天阶上品130-150，天阶中品115-135，天阶下品100-120，地阶上品85-105，地阶中品70-90，地阶下品55-75，玄阶上品50-70，玄阶中品40-60，玄阶下品30-50，黄阶上品30-45，黄阶中品30-40，黄阶下品30-35）,
       "cost": 0~100,
       "cooldown": 0~5,
       "effect": "可选：${statusEffectOptions}",
@@ -92,6 +93,11 @@ export function getCharacterGenerationPrompt(): string {
       "target_self": 可选布尔值
     }
   ],
+  
+  技能要求：
+  - 创建时带2个技能（神通）
+  - 每个技能必须指定品阶（${skillGradeOptions}）
+  - 技能威力必须符合品阶范围
 
   "inventory": {
     "artifacts": [],
@@ -105,18 +111,21 @@ export function getCharacterGenerationPrompt(): string {
   },
 
   "max_skills": 2~6 的整数,
-  "background": "30~80字背景故事"
+  "background": "30~80字背景故事",
+  "balance_notes": "古风描述，记录平衡原因"
 }
 
 重要约束与说明：
- - 元素必须从固定列表中选择：${elementOptions}。
- - 技能类型必须是：${skillTypeOptions} 之一。
- - 状态效果必须是：${statusEffectOptions} 之一。
+- **天道平衡律**：若用户描述过于强大，则天道会自动削弱角色，请在"balance_notes"字段中用古风描述记录平衡原因，若用户描述过于弱小，则天道会自动增强角色，请在"balance_notes"字段中用古风描述记录增强原因。
+- **境界限制**：最高只能生成筑基后期，如果生成超过此境界，将自动降级。
+- 元素必须从固定列表中选择：${elementOptions}。
+- 技能类型必须是：${skillTypeOptions} 之一。
+- 状态效果必须是：${statusEffectOptions} 之一。
 - 所有数值字段必须是整数，且在给定范围之内。
-- 至少 1 个灵根，最多 3 个。
-- 先天气运(pre_heaven_fates) 建议 2~3 条，务必与属性加成相呼应。
-- 技能(skills)至少 2 个，且应与角色设定和元素相符。
-- 功法(cultivations)至少 1 个，建议 1~3 个，且应与角色设定和元素相符。功法是**被动加成**，会永久提升属性，请确保 bonus 字段至少包含一个非零的属性加成。
+- 至少 1 个灵根，最多 4 个。
+- **先天气运(pre_heaven_fates)不在角色生成时创建，由系统单独生成供玩家选择。**
+- 技能(skills)必须恰好2个，且应与角色设定和元素相符。
+- 功法(cultivations)必须1-2个，且应与角色设定和元素相符。
 - 装备（inventory.artifacts, inventory.consumables 和 equipped）不需要生成，创建角色时为空，由用户后续手动装备。
 - 输出必须是**合法 JSON**，不要添加任何注释或多余文字。`;
 }

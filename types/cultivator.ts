@@ -4,10 +4,13 @@ import type {
   ConsumableType,
   ElementType,
   EquipmentSlot,
+  FateQuality,
   GenderType,
   RealmStage,
   RealmType,
+  SkillGrade,
   SkillType,
+  SpiritualRootGrade,
   StatusEffect,
 } from './constants';
 
@@ -24,6 +27,7 @@ export interface Attributes {
 export interface SpiritualRoot {
   element: ElementType;
   strength: number; // 0-100
+  grade?: SpiritualRootGrade; // 天灵根 | 真灵根 | 伪灵根
 }
 
 // 先天命格 / 气运
@@ -38,6 +42,7 @@ export interface PreHeavenFateAttributeMod {
 export interface PreHeavenFate {
   name: string;
   type: '吉' | '凶';
+  quality?: FateQuality; // 凡品 | 灵品 | 玄品 | 真品
   attribute_mod: PreHeavenFateAttributeMod;
   description?: string;
 }
@@ -45,6 +50,7 @@ export interface PreHeavenFate {
 // 功法（被动）
 export interface CultivationTechnique {
   name: string;
+  grade?: SkillGrade; // 天阶上品 | 天阶中品 | ... | 黄阶下品
   bonus: Partial<Attributes>;
   required_realm: RealmType;
 }
@@ -55,6 +61,7 @@ export interface Skill {
   name: string;
   type: SkillType;
   element: ElementType;
+  grade?: SkillGrade; // 天阶上品 | 天阶中品 | ... | 黄阶下品
   power: number; // 30-150
   cost?: number;
   cooldown: number;
@@ -174,4 +181,5 @@ export interface Cultivator {
 
   // 兼容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）
   prompt?: string;
+  balance_notes?: string;
 }

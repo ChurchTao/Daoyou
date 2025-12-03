@@ -1,6 +1,8 @@
 import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
+import { validateAndAdjustCultivator } from '@/utils/characterEngine';
 import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
+import { generatePreHeavenFates } from '@/utils/fateGenerator';
 import { NextRequest, NextResponse } from 'next/server';
 import { generateCharacter } from '../../../utils/aiClient';
 import { getCharacterGenerationPrompt } from '../../../utils/prompts';
@@ -46,15 +48,29 @@ export async function POST(request: NextRequest) {
     const aiResponse = await generateCharacter(prompt, userInput);
 
     // 解析AI响应，创建角色对象
-    const cultivator = createCultivatorFromAI(aiResponse, userInput);
+    let cultivator = createCultivatorFromAI(aiResponse, userInput);
 
-    // 保存到临时表
-    const tempCultivatorId = await createTempCultivator(user.id, cultivator);
+    // 使用角色生成引擎进行验证和修正
+    const { cultivator: balancedCultivator, balanceNotes } =
+      validateAndAdjustCultivator(cultivator);
+    cultivator = balancedCultivator;
+
+    // 生成10个先天气运供玩家选择
+    const preHeavenFates = await generatePreHeavenFates(userInput);
+
+    // 保存到临时表（包含角色和10个气运）
+    const tempCultivatorId = await createTempCultivator(
+      user.id,
+      cultivator,
+      preHeavenFates,
+    );
 
     return NextResponse.json({
       success: true,
       data: {
         cultivator,
+        preHeavenFates, // 返回10个气运供前端选择
+        balanceNotes,
         tempCultivatorId,
       },
     });

@@ -36,6 +36,7 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   willpower: integer('willpower').notNull(),
 
   max_skills: integer('max_skills').notNull().default(4),
+  balance_notes: text('balance_notes'),
 
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
@@ -51,6 +52,7 @@ export const spiritualRoots = pgTable('wanjiedaoyou_spiritual_roots', {
     .notNull(),
   element: varchar('element', { length: 10 }).notNull(), // 金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无
   strength: integer('strength').notNull(), // 0-100
+  grade: varchar('grade', { length: 20 }), // 天灵根 | 真灵根 | 伪灵根
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -62,6 +64,7 @@ export const preHeavenFates = pgTable('wanjiedaoyou_pre_heaven_fates', {
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
   type: varchar('type', { length: 10 }).notNull(), // 吉 | 凶
+  quality: varchar('quality', { length: 10 }), // 凡品 | 灵品 | 玄品 | 真品
   attribute_mod: jsonb('attribute_mod').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -76,6 +79,7 @@ export const cultivationTechniques = pgTable(
       .references(() => cultivators.id, { onDelete: 'cascade' })
       .notNull(),
     name: varchar('name', { length: 100 }).notNull(),
+    grade: varchar('grade', { length: 20 }), // 天阶上品 | 天阶中品 | 天阶下品 | 地阶上品 | ... | 黄阶下品
     bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
     required_realm: varchar('required_realm', { length: 20 }).notNull(),
     createdAt: timestamp('created_at').defaultNow(),
@@ -91,6 +95,7 @@ export const skills = pgTable('wanjiedaoyou_skills', {
   name: varchar('name', { length: 100 }).notNull(),
   type: varchar('type', { length: 20 }).notNull(), // attack | heal | control | debuff | buff
   element: varchar('element', { length: 10 }).notNull(),
+  grade: varchar('grade', { length: 20 }), // 天阶上品 | 天阶中品 | 天阶下品 | 地阶上品 | ... | 黄阶下品
   power: integer('power').notNull(), // 30-150
   cost: integer('cost').default(0),
   cooldown: integer('cooldown').notNull().default(0),
@@ -154,6 +159,7 @@ export const tempCultivators = pgTable('wanjiedaoyou_temp_cultivators', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(), // 关联到用户
   cultivatorData: jsonb('cultivator_data').notNull(), // 完整的角色数据，包含所有信息
+  availableFates: jsonb('available_fates'), // 10个可选的先天气运
   createdAt: timestamp('created_at').defaultNow(),
   expiresAt: timestamp('expires_at'), // 过期时间，在程序中设置
 });

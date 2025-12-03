@@ -15,6 +15,20 @@
       "when": 1764688861676,
       "tag": "0001_cynical_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764742924559,
+      "tag": "0002_strong_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764748094810,
+      "tag": "0003_careless_tigra",
+      "breakpoints": true
     }
   ]
 }

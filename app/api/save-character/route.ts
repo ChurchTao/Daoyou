@@ -25,12 +25,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { tempCultivatorId } = body;
+    const { tempCultivatorId, selectedFateIndices } = body;
 
     // 输入验证
     if (!tempCultivatorId || typeof tempCultivatorId !== 'string') {
       return NextResponse.json(
         { error: '请提供有效的临时角色ID' },
+        { status: 400 },
+      );
+    }
+
+    // 验证选中的气运索引
+    if (
+      !selectedFateIndices ||
+      !Array.isArray(selectedFateIndices) ||
+      selectedFateIndices.length !== 3
+    ) {
+      return NextResponse.json(
+        { error: '请选择3个先天气运' },
         { status: 400 },
       );
     }
@@ -44,8 +56,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 将临时角色保存到正式表
-    await saveTempCultivatorToFormal(user.id, tempCultivatorId);
+    // 将临时角色保存到正式表，只保存选中的3个气运
+    await saveTempCultivatorToFormal(
+      user.id,
+      tempCultivatorId,
+      selectedFateIndices,
+    );
 
     return NextResponse.json({
       success: true,

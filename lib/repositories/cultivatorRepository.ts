@@ -1,3 +1,11 @@
+import {
+  ConsumableType,
+  ElementType,
+  EquipmentSlot,
+  SkillGrade,
+  SkillType,
+  StatusEffect,
+} from '@/types/constants';
 import { and, eq, gt, lt } from 'drizzle-orm';
 import type { Cultivator } from '../../types/cultivator';
 import { db } from '../drizzle/db';
@@ -60,12 +68,16 @@ async function assembleCultivator(
   const spiritual_roots = spiritualRootsResult.map((r) => ({
     element: r.element as Cultivator['spiritual_roots'][0]['element'],
     strength: r.strength,
+    grade: r.grade as Cultivator['spiritual_roots'][0]['grade'] | undefined,
   }));
 
   // 组装先天命格
   const pre_heaven_fates = preHeavenFatesResult.map((f) => ({
     name: f.name,
     type: f.type as '吉' | '凶',
+    quality: f.quality as
+      | Cultivator['pre_heaven_fates'][0]['quality']
+      | undefined,
     attribute_mod:
       f.attribute_mod as Cultivator['pre_heaven_fates'][0]['attribute_mod'],
     description: f.description || undefined,
@@ -74,6 +86,7 @@ async function assembleCultivator(
   // 组装功法
   const cultivations = cultivationsResult.map((c) => ({
     name: c.name,
+    grade: c.grade as Cultivator['cultivations'][0]['grade'] | undefined,
     bonus: c.bonus as Cultivator['cultivations'][0]['bonus'],
     required_realm:
       c.required_realm as Cultivator['cultivations'][0]['required_realm'],
@@ -85,6 +98,7 @@ async function assembleCultivator(
     name: s.name,
     type: s.type as Cultivator['skills'][0]['type'],
     element: s.element as Cultivator['skills'][0]['element'],
+    grade: s.grade as Cultivator['skills'][0]['grade'] | undefined,
     power: s.power,
     cost: s.cost || undefined,
     cooldown: s.cooldown,
@@ -205,6 +219,7 @@ export async function createCultivator(
           cultivatorId,
           element: root.element,
           strength: root.strength,
+          grade: root.grade || null,
         })),
       );
     }
@@ -216,6 +231,7 @@ export async function createCultivator(
           cultivatorId,
           name: fate.name,
           type: fate.type,
+          quality: fate.quality || null,
           attribute_mod: fate.attribute_mod,
           description: fate.description || null,
         })),
@@ -228,6 +244,7 @@ export async function createCultivator(
         cultivator.cultivations.map((cult) => ({
           cultivatorId,
           name: cult.name,
+          grade: cult.grade || null,
           bonus: cult.bonus,
           required_realm: cult.required_realm,
         })),
@@ -242,6 +259,7 @@ export async function createCultivator(
           name: skill.name,
           type: skill.type,
           element: skill.element,
+          grade: skill.grade || null,
           power: skill.power,
           cost: skill.cost || 0,
           cooldown: skill.cooldown,
@@ -428,6 +446,7 @@ export async function deleteCultivator(
 export async function createTempCultivator(
   userId: string,
   cultivator: Cultivator,
+  availableFates?: Cultivator['pre_heaven_fates'],
 ): Promise<string> {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小时后过期
 
@@ -436,6 +455,7 @@ export async function createTempCultivator(
     .values({
       userId,
       cultivatorData: cultivator,
+      availableFates: availableFates || null,
       expiresAt,
     })
     .returning();
@@ -449,7 +469,10 @@ export async function createTempCultivator(
 export async function getTempCultivator(
   userId: string,
   tempCultivatorId: string,
-): Promise<Cultivator | null> {
+): Promise<{
+  cultivator: Cultivator;
+  availableFates: Cultivator['pre_heaven_fates'] | null;
+} | null> {
   const result = await db
     .select()
     .from(schema.tempCultivators)
@@ -465,7 +488,11 @@ export async function getTempCultivator(
     return null;
   }
 
-  return result[0].cultivatorData as Cultivator;
+  return {
+    cultivator: result[0].cultivatorData as Cultivator,
+    availableFates:
+      (result[0].availableFates as Cultivator['pre_heaven_fates']) || null,
+  };
 }
 
 /**
@@ -474,14 +501,27 @@ export async function getTempCultivator(
 export async function saveTempCultivatorToFormal(
   userId: string,
   tempCultivatorId: string,
+  selectedFateIndices?: number[],
 ): Promise<Cultivator> {
-  const tempCultivator = await getTempCultivator(userId, tempCultivatorId);
-  if (!tempCultivator) {
+  const tempData = await getTempCultivator(userId, tempCultivatorId);
+  if (!tempData) {
     throw new Error('临时角色不存在或已过期');
   }
 
+  const { cultivator, availableFates } = tempData;
+
+  // 如果提供了选中的气运索引，从可用气运中选择
+  if (selectedFateIndices && availableFates && availableFates.length > 0) {
+    const selectedFates = selectedFateIndices
+      .filter((idx) => idx >= 0 && idx < availableFates.length)
+      .map((idx) => availableFates[idx])
+      .slice(0, 3); // 最多选择3个
+
+    cultivator.pre_heaven_fates = selectedFates;
+  }
+
   // 创建正式角色
-  const formalCultivator = await createCultivator(userId, tempCultivator);
+  const formalCultivator = await createCultivator(userId, cultivator);
 
   // 删除临时角色
   await deleteTempCultivator(userId, tempCultivatorId);
@@ -558,8 +598,8 @@ export async function getInventory(
     artifacts: artifactsResult.map((a) => ({
       id: a.id,
       name: a.name,
-      slot: a.slot as import('../../types/cultivator').EquipmentSlot,
-      element: a.element as import('../../types/cultivator').ElementType,
+      slot: a.slot as EquipmentSlot,
+      element: a.element as ElementType,
       bonus: a.bonus as import('../../types/cultivator').ArtifactBonus,
       special_effects: (a.special_effects ||
         []) as import('../../types/cultivator').ArtifactEffect[],
@@ -568,7 +608,7 @@ export async function getInventory(
     })),
     consumables: consumablesResult.map((c) => ({
       name: c.name,
-      type: c.type as import('../../types/cultivator').ConsumableType,
+      type: c.type as ConsumableType,
       effect: c.effect as
         | import('../../types/cultivator').ConsumableEffect
         | undefined,
@@ -700,6 +740,7 @@ export async function createSkill(
       name: skillData.name,
       type: skillData.type,
       element: skillData.element,
+      grade: skillData.grade || null,
       power: skillData.power,
       cost: skillData.cost || 0,
       cooldown: skillData.cooldown,
@@ -748,6 +789,7 @@ export async function replaceSkill(
       name: newSkillData.name,
       type: newSkillData.type,
       element: newSkillData.element,
+      grade: newSkillData.grade || null,
       power: newSkillData.power,
       cost: newSkillData.cost || 0,
       cooldown: newSkillData.cooldown,
@@ -799,14 +841,13 @@ export async function getSkills(
   return skillsResult.map((skill) => ({
     id: skill.id,
     name: skill.name,
-    type: skill.type as import('../../types/cultivator').Skill['type'],
-    element: skill.element as import('../../types/cultivator').Skill['element'],
+    type: skill.type as SkillType,
+    element: skill.element as ElementType,
+    grade: skill.grade as SkillGrade | undefined,
     power: skill.power,
     cost: skill.cost || undefined,
     cooldown: skill.cooldown,
-    effect: skill.effect as
-      | import('../../types/cultivator').Skill['effect']
-      | undefined,
+    effect: skill.effect as StatusEffect | undefined,
     duration: skill.duration || undefined,
     target_self: skill.target_self === 1 ? true : undefined,
   }));
