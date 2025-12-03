@@ -10,10 +10,10 @@ const quickActions = [
   { label: '⚔️ 挑战天骄', href: '/rankings' },
   { label: '👤 凝视道身', href: '/cultivator' },
   { label: '🎒 储物袋', href: '/inventory' },
-  { label: '📖 顿悟', href: '/skills' },
+  { label: '📖 神通', href: '/skills' },
   { label: '🔥 炼器', href: '/ritual' },
   { label: '🌀 奇遇', href: '/ritual' },
-  { label: '📜 战报', href: '/battle' },
+  { label: '📜 顿悟', href: '/ritual' },
 ];
 
 // 每日引文轮换

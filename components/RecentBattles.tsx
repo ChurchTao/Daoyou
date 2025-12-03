@@ -3,6 +3,7 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { InkButton } from './InkComponents';
 
 type BattleSummary = {
   id: string;
@@ -82,14 +83,7 @@ export function RecentBattles() {
         );
       })}
 
-      <div className="pt-1">
-        <Link
-          href="/battle/history"
-          className="text-xs text-ink-secondary hover:text-ink"
-        >
-          查看全部战绩 →
-        </Link>
-      </div>
+      <InkButton href="/battle/history">查看全部战绩 →</InkButton>
     </div>
   );
 }
