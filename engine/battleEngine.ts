@@ -1,5 +1,6 @@
 import { ElementType, StatusEffect } from '@/types/constants';
 import type { Artifact, Cultivator, Skill } from '@/types/cultivator';
+import { getStatusLabel } from '@/types/dictionaries';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
 
 export interface TurnUnitSnapshot {
@@ -62,7 +63,7 @@ interface BattleState {
   timeline: TurnSnapshot[];
 }
 
-const ELEMENT_WEAKNESS: Record<ElementType, ElementType[]> = {
+const ELEMENT_WEAKNESS: Partial<Record<ElementType, ElementType[]>> = {
   金: ['火', '雷'],
   木: ['金', '雷'],
   水: ['土', '风'],
@@ -71,7 +72,6 @@ const ELEMENT_WEAKNESS: Record<ElementType, ElementType[]> = {
   风: ['雷', '冰'],
   雷: ['土', '水'],
   冰: ['火', '雷'],
-  无: [],
 };
 
 const STATUS_EFFECTS = new Set<StatusEffect>([
@@ -86,19 +86,6 @@ const STATUS_EFFECTS = new Set<StatusEffect>([
   'crit_rate_up',
   'armor_down',
 ]);
-
-const STATUS_LABELS: Record<StatusEffect, string> = {
-  burn: '灼烧',
-  bleed: '流血',
-  poison: '中毒',
-  stun: '眩晕',
-  silence: '沉默',
-  root: '定身',
-  armor_up: '护体',
-  speed_up: '疾速',
-  crit_rate_up: '会心',
-  armor_down: '破防',
-};
 
 // 使用统一的属性计算函数（从utils导入）
 
@@ -225,7 +212,7 @@ function canUseSkill(unit: BattleUnit, skill: Skill): boolean {
 
 function describeStatus(effect?: StatusEffect | null): string {
   if (!effect) return '';
-  return STATUS_LABELS[effect] ?? effect;
+  return getStatusLabel(effect);
 }
 
 function snapshotUnit(unit: BattleUnit): StatusSourceSnapshot {

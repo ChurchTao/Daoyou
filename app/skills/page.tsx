@@ -3,6 +3,7 @@
 import { InkButton, InkCard } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { getSkillTypeLabel, getStatusLabel } from '@/types/dictionaries';
 
 export default function SkillsPage() {
   const { cultivator, skills, isLoading, note, usingMock } =
@@ -48,14 +49,7 @@ export default function SkillsPage() {
                   : skill.type === 'control'
                     ? '🌀'
                     : '✨';
-            const typeName =
-              skill.type === 'attack'
-                ? '攻击'
-                : skill.type === 'heal'
-                  ? '治疗'
-                  : skill.type === 'control'
-                    ? '控制'
-                    : '增益';
+            const typeName = getSkillTypeLabel(skill.type);
 
             return (
               <InkCard
@@ -73,7 +67,9 @@ export default function SkillsPage() {
                     <p className="mt-0.5 text-xs text-ink-secondary">
                       威力：{skill.power}｜效果：
                       {skill.effect
-                        ? `${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`
+                        ? `${getStatusLabel(skill.effect)}${
+                            skill.duration ? `（${skill.duration}回合）` : ''
+                          }`
                         : '无特殊效果'}
                     </p>
                     {skill.cost !== undefined && skill.cost > 0 && (

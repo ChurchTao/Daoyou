@@ -4,15 +4,12 @@ import { InkButton, InkCard, InkDivider } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Artifact } from '@/types/cultivator';
+import {
+  formatAttributeBonusMap,
+  getArtifactTypeLabel,
+  getStatusLabel,
+} from '@/types/dictionaries';
 import { useState } from 'react';
-
-const attributeLabels: Record<string, string> = {
-  vitality: '体魄',
-  spirit: '灵力',
-  wisdom: '悟性',
-  speed: '身法',
-  willpower: '神识',
-};
 
 export default function InventoryPage() {
   const {
@@ -71,7 +68,7 @@ export default function InventoryPage() {
     if (effect.type === 'damage_bonus') {
       return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
     } else if (effect.type === 'on_hit_add_effect') {
-      return `命中时${effect.chance}%概率附加${effect.effect}`;
+      return `命中时${effect.chance}%概率附加${getStatusLabel(effect.effect)}`;
     }
     return effect.type;
   };
@@ -122,21 +119,9 @@ export default function InventoryPage() {
                 : item.slot === 'armor'
                   ? '🛡️'
                   : '📿';
-            const artifactType =
-              item.slot === 'weapon'
-                ? '道器'
-                : item.slot === 'armor'
-                  ? '灵器'
-                  : '宝器';
+            const artifactType = getArtifactTypeLabel(item.slot);
 
-            const bonusText = Object.entries(item.bonus)
-              .filter(([, v]) => v !== undefined && v !== 0)
-              .map(([k, v]) => {
-                const label =
-                  attributeLabels[k as keyof typeof attributeLabels] || k;
-                return `+${label} ${v}`;
-              })
-              .join('｜');
+            const bonusText = formatAttributeBonusMap(item.bonus);
 
             const effectText =
               item.special_effects?.map((e) => getEffectText(e)).join('｜') ||

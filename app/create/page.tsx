@@ -2,6 +2,12 @@
 
 import { useAuth } from '@/lib/auth/AuthContext';
 import type { Cultivator } from '@/types/cultivator';
+import {
+  formatAttributeBonusMap,
+  getAttributeLabel,
+  getSkillTypeLabel,
+  getStatusLabel,
+} from '@/types/dictionaries';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -13,6 +19,14 @@ const getCombatRating = (cultivator: Cultivator | null): string => {
     (vitality + spirit + wisdom + speed + willpower) / 5,
   ).toString();
 };
+
+const BASE_ATTRIBUTE_KEYS: Array<keyof Cultivator['attributes']> = [
+  'vitality',
+  'spirit',
+  'wisdom',
+  'speed',
+  'willpower',
+];
 
 /**
  * 角色创建页 —— 「凝气篇」
@@ -306,34 +320,19 @@ export default function CreatePage() {
                   <div className="mb-4">
                     <span className="text-ink/70">基础属性：</span>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                        <p className="font-semibold">体魄</p>
-                        <p className="text-ink/80">
-                          {player.attributes.vitality}
-                        </p>
-                      </div>
-                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                        <p className="font-semibold">灵力</p>
-                        <p className="text-ink/80">
-                          {player.attributes.spirit}
-                        </p>
-                      </div>
-                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                        <p className="font-semibold">悟性</p>
-                        <p className="text-ink/80">
-                          {player.attributes.wisdom}
-                        </p>
-                      </div>
-                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                        <p className="font-semibold">速度</p>
-                        <p className="text-ink/80">{player.attributes.speed}</p>
-                      </div>
-                      <div className="bg-ink/5 rounded p-2 border border-ink/10">
-                        <p className="font-semibold">神识</p>
-                        <p className="text-ink/80">
-                          {player.attributes.willpower}
-                        </p>
-                      </div>
+                      {BASE_ATTRIBUTE_KEYS.map((key) => (
+                        <div
+                          key={key}
+                          className="bg-ink/5 rounded p-2 border border-ink/10"
+                        >
+                          <p className="font-semibold">
+                            {getAttributeLabel(key)}
+                          </p>
+                          <p className="text-ink/80">
+                            {player.attributes[key]}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -392,10 +391,8 @@ export default function CreatePage() {
                                 )}
                               </div>
                               <p className="text-ink/80">
-                                {Object.entries(fate.attribute_mod)
-                                  .filter(([, v]) => v !== undefined && v !== 0)
-                                  .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
-                                  .join(', ') || '无属性加成'}
+                                {formatAttributeBonusMap(fate.attribute_mod) ||
+                                  '无属性加成'}
                               </p>
                               {fate.description && (
                                 <p className="text-ink/60 text-xs italic mt-1">
@@ -420,7 +417,8 @@ export default function CreatePage() {
                             className="bg-ink/5 rounded p-2 border border-ink/10"
                           >
                             <p className="font-semibold">
-                              {skill.name} · {skill.type} · {skill.element}
+                              {skill.name} · {getSkillTypeLabel(skill.type)} ·{' '}
+                              {skill.element}
                               {skill.grade && (
                                 <span className="text-crimson ml-1">
                                   ·{skill.grade}
@@ -430,7 +428,11 @@ export default function CreatePage() {
                             <p className="text-ink/80">
                               威力：{skill.power} | 冷却：{skill.cooldown}回合
                               {skill.effect &&
-                                ` | 效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
+                                ` | 效果：${getStatusLabel(skill.effect)}${
+                                  skill.duration
+                                    ? `（${skill.duration}回合）`
+                                    : ''
+                                }`}
                               {skill.cost !== undefined &&
                                 skill.cost > 0 &&
                                 ` | 消耗：${skill.cost} 灵力`}
@@ -460,10 +462,8 @@ export default function CreatePage() {
                               )}
                             </p>
                             <p className="text-ink/80">
-                              {Object.entries(cult.bonus)
-                                .filter(([, v]) => v !== undefined && v !== 0)
-                                .map(([k, v]) => `${k} +${v}`)
-                                .join(', ') || '无属性加成'}
+                              {formatAttributeBonusMap(cult.bonus) ||
+                                '无属性加成'}
                             </p>
                             <p className="text-ink/60 text-xs">
                               要求境界：{cult.required_realm}

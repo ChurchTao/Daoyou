@@ -3,6 +3,7 @@
 import { InkButton } from '@/components/InkComponents';
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import { StatusEffect } from '@/types/constants';
+import { getStatusLabel } from '@/types/dictionaries';
 import type { Cultivator } from '@/types/cultivator';
 import { getDefaultBoss } from '@/utils/prompts';
 import Link from 'next/link';
@@ -40,19 +41,6 @@ function BattlePageContent() {
   const [opponentLoading, setOpponentLoading] = useState(false);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [autoPlayTurn, setAutoPlayTurn] = useState(true);
-
-  const STATUS_LABELS: Record<StatusEffect, string> = {
-    burn: '灼烧',
-    bleed: '流血',
-    poison: '中毒',
-    stun: '眩晕',
-    silence: '沉默',
-    root: '定身',
-    armor_up: '护体',
-    speed_up: '疾速',
-    crit_rate_up: '会心',
-    armor_down: '破防',
-  };
 
   // 初始化
   useEffect(() => {
@@ -349,7 +337,7 @@ function BattlePageContent() {
 
                 const renderStatusList = (statuses: StatusEffect[]) =>
                   statuses.length
-                    ? statuses.map((s) => STATUS_LABELS[s] ?? s).join('、')
+                    ? statuses.map((s) => getStatusLabel(s)).join('、')
                     : '无';
 
                 return (

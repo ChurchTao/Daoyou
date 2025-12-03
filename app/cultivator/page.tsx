@@ -4,15 +4,14 @@ import { InkButton, InkCard, InkDivider } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
+import {
+  formatAttributeBonusMap,
+  getArtifactTypeLabel,
+  getAttributeLabel,
+  getSkillTypeLabel,
+  getStatusLabel,
+} from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
-
-const attributeLabels: Record<string, string> = {
-  vitality: '体魄',
-  spirit: '灵力',
-  wisdom: '悟性',
-  speed: '身法',
-  willpower: '神识',
-};
 
 export default function CultivatorPage() {
   const { cultivator, inventory, skills, equipped, isLoading, note } =
@@ -65,7 +64,7 @@ export default function CultivatorPage() {
     const mods = Object.entries(fate.attribute_mod)
       .filter(([, v]) => v !== undefined && v !== 0)
       .map(([k, v]) => {
-        const label = attributeLabels[k as keyof typeof attributeLabels] || k;
+        const label = getAttributeLabel(k as keyof Attributes);
         return `${label} ${v > 0 ? '+' : ''}${v}`;
       });
     return mods.length > 0 ? mods.join('，') : '无属性加成';
@@ -77,8 +76,15 @@ export default function CultivatorPage() {
   ) => {
     if (effect.type === 'damage_bonus') {
       return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
-    } else if (effect.type === 'on_hit_add_effect') {
-      return `命中时${effect.chance}%概率附加${effect.effect}`;
+    }
+    if (effect.type === 'on_hit_add_effect') {
+      return `命中时${effect.chance}%概率附加${getStatusLabel(effect.effect)}`;
+    }
+    if (effect.type === 'on_use_cost_hp') {
+      return `施展时消耗自身气血 ${effect.amount} 点`;
+    }
+    if (effect.type === 'environment_change') {
+      return `改变战场环境为「${effect.env_type}」`;
     }
     return effect.type;
   };
@@ -146,8 +152,7 @@ export default function CultivatorPage() {
       <InkSection title="【根基属性】">
         <div className="space-y-2 text-base">
           {Object.entries(cultivator.attributes).map(([key, baseValue]) => {
-            const label =
-              attributeLabels[key as keyof typeof attributeLabels] || key;
+            const label = getAttributeLabel(key as keyof Attributes);
             const finalValue = finalAttrs[key as keyof Attributes];
             const fateMod = breakdown.fromFates[key as keyof Attributes];
             const cultMod = breakdown.fromCultivations[key as keyof Attributes];
@@ -211,20 +216,8 @@ export default function CultivatorPage() {
                   : item.slot === 'armor'
                     ? '🛡️'
                     : '📿';
-              const slotName =
-                item.slot === 'weapon'
-                  ? '武器'
-                  : item.slot === 'armor'
-                    ? '护甲'
-                    : '饰品';
-              const bonusText = Object.entries(item.bonus)
-                .filter(([, v]) => v !== undefined && v !== 0)
-                .map(([k, v]) => {
-                  const label =
-                    attributeLabels[k as keyof typeof attributeLabels] || k;
-                  return `+${label} ${v}`;
-                })
-                .join('｜');
+              const slotName = getArtifactTypeLabel(item.slot);
+              const bonusText = formatAttributeBonusMap(item.bonus);
               const effectText =
                 item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
                 '';
@@ -265,14 +258,7 @@ export default function CultivatorPage() {
         {cultivator.cultivations && cultivator.cultivations.length > 0 ? (
           <div className="space-y-2">
             {cultivator.cultivations.map((cult, index) => {
-              const bonusText = Object.entries(cult.bonus)
-                .filter(([, v]) => v !== undefined && v !== 0)
-                .map(([k, v]) => {
-                  const label =
-                    attributeLabels[k as keyof typeof attributeLabels] || k;
-                  return `${label} ${v > 0 ? '+' : ''}${v}`;
-                })
-                .join('，');
+              const bonusText = formatAttributeBonusMap(cult.bonus);
 
               return (
                 <InkCard key={cult.name + index}>
@@ -306,14 +292,7 @@ export default function CultivatorPage() {
                     : skill.type === 'control'
                       ? '🌀'
                       : '✨';
-              const typeName =
-                skill.type === 'attack'
-                  ? '攻击'
-                  : skill.type === 'heal'
-                    ? '治疗'
-                    : skill.type === 'control'
-                      ? '控制'
-                      : '增益';
+              const typeName = getSkillTypeLabel(skill.type);
 
               return (
                 <InkCard
@@ -329,7 +308,9 @@ export default function CultivatorPage() {
                   <p className="mt-0.5 text-xs text-ink-secondary">
                     威力：{skill.power}｜冷却：{skill.cooldown}回合
                     {skill.effect &&
-                      `｜效果：${skill.effect}${skill.duration ? `（${skill.duration}回合）` : ''}`}
+                      `｜效果：${getStatusLabel(skill.effect)}${
+                        skill.duration ? `（${skill.duration}回合）` : ''
+                      }`}
                     {skill.cost !== undefined &&
                       skill.cost > 0 &&
                       `｜消耗：${skill.cost} 灵力`}

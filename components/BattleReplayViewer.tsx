@@ -2,6 +2,7 @@
 
 import type { TurnSnapshot } from '@/engine/battleEngine';
 import type { StatusEffect } from '@/types/constants';
+import { getStatusLabel } from '@/types/dictionaries';
 import { useState } from 'react';
 
 type Props = {
@@ -11,19 +12,6 @@ type Props = {
   battleReport?: string | null;
   turns?: number;
   isWin: boolean;
-};
-
-const STATUS_LABELS: Record<StatusEffect, string> = {
-  burn: '灼烧',
-  bleed: '流血',
-  poison: '中毒',
-  stun: '眩晕',
-  silence: '沉默',
-  root: '定身',
-  armor_up: '护体',
-  speed_up: '疾速',
-  crit_rate_up: '会心',
-  armor_down: '破防',
 };
 
 export function BattleReplayViewer({
@@ -60,9 +48,7 @@ export function BattleReplayViewer({
   const maxOpponentMp = first?.opponent.mp || 1;
 
   const renderStatusList = (statuses: StatusEffect[]) =>
-    statuses.length
-      ? statuses.map((s) => STATUS_LABELS[s] ?? s).join('、')
-      : '无';
+    statuses.length ? statuses.map((s) => getStatusLabel(s)).join('、') : '无';
 
   return (
     <div>
