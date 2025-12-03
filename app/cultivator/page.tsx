@@ -1,21 +1,35 @@
 'use client';
 
-import { InkButton, InkCard, InkDivider } from '@/components/InkComponents';
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkList,
+  InkListItem,
+  InkNotice,
+  InkStatRow,
+  InkStatusBar,
+  InkTag,
+} from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
   getArtifactTypeLabel,
+  getAttributeInfo,
   getAttributeLabel,
-  getSkillTypeLabel,
+  getElementInfo,
+  getSkillTypeInfo,
   getStatusLabel,
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import { usePathname } from 'next/navigation';
 
 export default function CultivatorPage() {
-  const { cultivator, inventory, skills, equipped, isLoading, note } =
+  const { cultivator, inventory, skills, equipped, isLoading } =
     useCultivatorBundle();
+  const pathname = usePathname();
 
   if (isLoading && !cultivator) {
     return (
@@ -86,129 +100,151 @@ export default function CultivatorPage() {
     if (effect.type === 'environment_change') {
       return `改变战场环境为「${effect.env_type}」`;
     }
-    return effect.type;
+    return '';
   };
 
   return (
     <InkPageShell
-      title={`【道我真形 · ${cultivator.name}】`}
-      subtitle=""
+      title={`道我真形`}
+      subtitle="大道五十，我遁其一"
       backHref="/"
-      note={note}
+      currentPath={pathname}
       footer={
-        <div className="flex justify-between text-ink">
+        <InkActionGroup align="between">
           <InkButton href="/">← 返回主界</InkButton>
-          <span className="text-ink-secondary">[推演战力]</span>
-        </div>
+          <InkButton href="/battle" variant="secondary">
+            推演战力
+          </InkButton>
+        </InkActionGroup>
       }
     >
-      {/* 道号与境界 */}
-      <InkSection title="">
-        <div className="space-y-2 text-base">
-          <p>☯ 道号：{cultivator.name}</p>
-          <p>
-            🌿 境界：{cultivator.realm}
-            {cultivator.realm_stage}（{cultivator.origin || '散修'}）
-          </p>
-          <p>
-            ⏳ 年龄：{cultivator.age} 岁 / 寿元：{cultivator.lifespan} 岁
-          </p>
-          <p>
-            ❤️ 气血：{maxHp} / {maxHp}　⚡ 灵力：{maxMp} / {maxMp}
-          </p>
-        </div>
+      <InkSection title="【道身】">
+        <InkList dense>
+          <InkListItem
+            title={
+              <span>
+                ☯ 姓名：{cultivator.name}
+                <InkBadge
+                  tone="accent"
+                  className="ml-2"
+                >{`境界 · ${cultivator.realm}${cultivator.realm_stage}`}</InkBadge>
+              </span>
+            }
+            meta={
+              <div className="py-1">
+                <p>身世：{cultivator.origin || '散修'}</p>
+                <p>性格：{cultivator.personality}</p>
+                <p>背景：{cultivator.background}</p>
+                {cultivator?.balance_notes && (
+                  <p>天道评语：{cultivator.balance_notes}</p>
+                )}
+              </div>
+            }
+            description={
+              <InkStatusBar
+                className="mt-2 grid! grid-cols-3! gap-2"
+                items={[
+                  { label: '年龄：', value: cultivator.age, icon: '⏳' },
+                  { label: '寿元：', value: cultivator.lifespan, icon: '🔮' },
+                  {
+                    label: '性别：',
+                    value: cultivator.gender,
+                    icon: cultivator.gender === '男' ? '♂' : '♀',
+                  },
+                  { label: '气血：', value: maxHp, icon: '❤️' },
+                  { label: '灵力：', value: maxMp, icon: '⚡️' },
+                ]}
+              />
+            }
+          />
+        </InkList>
       </InkSection>
 
-      <InkDivider />
-
-      {/* 先天命格 */}
-      {cultivator.pre_heaven_fates?.length > 0 && (
-        <>
-          <InkSection title="【先天命格】">
-            <div className="space-y-2">
-              {cultivator.pre_heaven_fates.map((fate, idx) => (
-                <InkCard key={fate.name + idx} highlighted={fate.type === '吉'}>
-                  <p className="font-semibold text-sm">
-                    {fate.type === '吉' ? '✨' : '⚠️'} {fate.name}（{fate.type}
-                    ）
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-secondary">
-                    ——{getFateModText(fate)}
-                  </p>
-                  {fate.description && (
-                    <p className="mt-0.5 text-xs text-ink-secondary italic">
-                      {fate.description}
-                    </p>
-                  )}
-                </InkCard>
-              ))}
-            </div>
-          </InkSection>
-          <InkDivider />
-        </>
+      {cultivator.spiritual_roots?.length > 0 && (
+        <InkSection title="【灵根】">
+          <InkList>
+            {cultivator.spiritual_roots.map((root, idx) => (
+              <InkListItem
+                key={root.element + idx}
+                title={
+                  <div className="flex items-center">
+                    <span>
+                      {getElementInfo(root.element).icon} {root.element}
+                    </span>
+                    <InkBadge tier={root.grade} />
+                  </div>
+                }
+                meta={`强度：${root.strength}`}
+              />
+            ))}
+          </InkList>
+        </InkSection>
       )}
 
-      {/* 根基属性 */}
-      <InkSection title="【根基属性】">
-        <div className="space-y-2 text-base">
-          {Object.entries(cultivator.attributes).map(([key, baseValue]) => {
-            const label = getAttributeLabel(key as keyof Attributes);
-            const finalValue = finalAttrs[key as keyof Attributes];
-            const fateMod = breakdown.fromFates[key as keyof Attributes];
-            const cultMod = breakdown.fromCultivations[key as keyof Attributes];
-            const equipMod = breakdown.fromEquipment[key as keyof Attributes];
-            const hasMod = fateMod !== 0 || cultMod !== 0 || equipMod !== 0;
+      {cultivator.pre_heaven_fates?.length > 0 && (
+        <InkSection title="【先天命格】">
+          <InkList>
+            {cultivator.pre_heaven_fates.map((fate, idx) => (
+              <InkListItem
+                key={fate.name + idx}
+                title={
+                  <div className="flex items-center">
+                    <span>
+                      {fate.type === '吉' ? '🍀' : '😈'} {fate.name}
+                    </span>
+                    {fate.quality && (
+                      <InkBadge tier={fate.quality}>气运</InkBadge>
+                    )}
+                  </div>
+                }
+                meta={`加成：${getFateModText(fate)}`}
+                description={fate.description}
+                highlight={fate.type === '吉'}
+              />
+            ))}
+          </InkList>
+        </InkSection>
+      )}
 
-            return (
-              <div key={key} className="space-y-1">
-                <p>
-                  {label}（{key}）：
-                  <span
-                    className={baseValue !== finalValue ? 'font-semibold' : ''}
-                  >
-                    {baseValue}
-                  </span>
-                  {hasMod && (
-                    <>
-                      {' → '}
-                      <span className="font-semibold text-ink-accent">
-                        {finalValue}
-                      </span>
-                      <span className="text-xs text-ink-secondary ml-2">
-                        （
-                        {fateMod !== 0
-                          ? `命格${fateMod > 0 ? '+' : ''}${fateMod}`
-                          : ''}
-                        {fateMod !== 0 && cultMod !== 0 ? '，' : ''}
-                        {cultMod !== 0
-                          ? `功法${cultMod > 0 ? '+' : ''}${cultMod}`
-                          : ''}
-                        {(fateMod !== 0 || cultMod !== 0) && equipMod !== 0
-                          ? '，'
-                          : ''}
-                        {equipMod !== 0
-                          ? `装备${equipMod > 0 ? '+' : ''}${equipMod}`
-                          : ''}
-                        ）
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-            );
-          })}
-          <p className="text-xs text-ink-secondary mt-2">
-            境界上限：{breakdown.cap}（当前境界：{cultivator.realm}）
-          </p>
-        </div>
+      <InkSection title="【根基属性】">
+        {Object.entries(cultivator.attributes).map(([key, baseValue]) => {
+          const attrKey = key as keyof Attributes;
+          const attrInfo = getAttributeInfo(attrKey);
+          const finalValue = finalAttrs[attrKey];
+          const fateMod = breakdown.fromFates[attrKey];
+          const cultMod = breakdown.fromCultivations[attrKey];
+          const equipMod = breakdown.fromEquipment[attrKey];
+
+          const detailParts = [
+            fateMod !== 0
+              ? `命格 ${fateMod > 0 ? '+' : ''}${fateMod}`
+              : undefined,
+            cultMod !== 0
+              ? `功法 ${cultMod > 0 ? '+' : ''}${cultMod}`
+              : undefined,
+            equipMod !== 0
+              ? `法宝 ${equipMod > 0 ? '+' : ''}${equipMod}`
+              : undefined,
+          ].filter(Boolean);
+
+          return (
+            <InkStatRow
+              key={key}
+              label={`${attrInfo.icon} ${attrInfo.label}`}
+              base={baseValue}
+              final={finalValue}
+              detail={detailParts.length ? detailParts.join('｜') : undefined}
+            />
+          );
+        })}
+        <p className="mt-2 text-xs text-ink-secondary">
+          境界上限：{breakdown.cap}（当前境界：{cultivator.realm}）
+        </p>
       </InkSection>
 
-      <InkDivider />
-
-      {/* 当前所御法宝 */}
       <InkSection title="【当前所御法宝】">
         {equippedItems.length > 0 ? (
-          <div className="space-y-2">
+          <InkList>
             {equippedItems.map((item) => {
               const slotIcon =
                 item.slot === 'weapon'
@@ -217,32 +253,32 @@ export default function CultivatorPage() {
                     ? '🛡️'
                     : '📿';
               const slotName = getArtifactTypeLabel(item.slot);
-              const bonusText = formatAttributeBonusMap(item.bonus);
+              const bonusText =
+                formatAttributeBonusMap(item.bonus) || '无属性加成';
               const effectText =
                 item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
                 '';
 
               return (
-                <InkCard key={item.id}>
-                  <p className="font-semibold text-sm">
-                    {slotIcon} {slotName}：{item.name}（{item.element}·
-                    {item.slot === 'weapon'
-                      ? '道器'
-                      : item.slot === 'armor'
-                        ? '灵器'
-                        : '宝器'}
-                    ）
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-secondary">
-                    {bonusText}
-                    {effectText && `｜${effectText}`}
-                  </p>
-                </InkCard>
+                <InkListItem
+                  key={item.id}
+                  title={`${slotIcon} ${slotName}：${item.name}`}
+                  meta={
+                    <InkTag tone="good">{`${item.element} · ${
+                      item.slot === 'weapon'
+                        ? '道器'
+                        : item.slot === 'armor'
+                          ? '灵器'
+                          : '宝器'
+                    }`}</InkTag>
+                  }
+                  description={`${bonusText}${effectText ? `｜${effectText}` : ''}`}
+                />
               );
             })}
-          </div>
+          </InkList>
         ) : (
-          <p className="empty-state text-sm">尚未佩戴法宝</p>
+          <InkNotice>尚未佩戴法宝</InkNotice>
         )}
         <div className="mt-3">
           <InkButton href="/inventory" className="text-sm">
@@ -251,76 +287,66 @@ export default function CultivatorPage() {
         </div>
       </InkSection>
 
-      <InkDivider />
-
-      {/* 所修功法 */}
       <InkSection title="【所修功法】">
         {cultivator.cultivations && cultivator.cultivations.length > 0 ? (
-          <div className="space-y-2">
+          <InkList>
             {cultivator.cultivations.map((cult, index) => {
-              const bonusText = formatAttributeBonusMap(cult.bonus);
-
+              const bonusText =
+                formatAttributeBonusMap(cult.bonus) || '无属性加成';
               return (
-                <InkCard key={cult.name + index}>
-                  <p className="font-semibold text-sm">📜 {cult.name}</p>
-                  <p className="mt-0.5 text-xs text-ink-secondary">
-                    {bonusText || '无属性加成'}
-                    {cult.required_realm &&
-                      `｜需求境界：${cult.required_realm}`}
-                  </p>
-                </InkCard>
+                <InkListItem
+                  key={cult.name + index}
+                  title={
+                    <div className="flex items-center">
+                      <span>📜 {cult.name} </span>
+                      {cult.grade && <InkBadge tier={cult.grade} />}
+                    </div>
+                  }
+                  meta={`需求境界：${cult.required_realm}`}
+                  description={bonusText}
+                />
               );
             })}
-          </div>
+          </InkList>
         ) : (
-          <p className="empty-state text-sm">暂无功法，待闭关参悟。</p>
+          <InkNotice>暂无功法，待闭关参悟。</InkNotice>
         )}
       </InkSection>
 
-      <InkDivider />
-
-      {/* 所修神通 */}
       <InkSection title="【所修神通】">
         {skills.length > 0 ? (
-          <div className="space-y-2">
-            {skills.map((skill, index) => {
-              const typeIcon =
-                skill.type === 'attack'
-                  ? '⚡'
-                  : skill.type === 'heal'
-                    ? '❤️'
-                    : skill.type === 'control'
-                      ? '🌀'
-                      : '✨';
-              const typeName = getSkillTypeLabel(skill.type);
+          <InkList>
+            {skills.map((skill) => {
+              const skillInfo = getSkillTypeInfo(skill.type);
+              const typeIcon = skillInfo.icon;
+              const typeName = skillInfo.label;
 
               return (
-                <InkCard
+                <InkListItem
                   key={skill.id || skill.name}
-                  highlighted={index === skills.length - 1}
-                >
-                  <p className="font-semibold text-sm">
-                    {typeIcon} {skill.name}（{typeName}·{skill.element}）
-                    {index === skills.length - 1 && (
-                      <span className="new-mark">← 新悟</span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-secondary">
-                    威力：{skill.power}｜冷却：{skill.cooldown}回合
-                    {skill.effect &&
-                      `｜效果：${getStatusLabel(skill.effect)}${
-                        skill.duration ? `（${skill.duration}回合）` : ''
-                      }`}
-                    {skill.cost !== undefined &&
-                      skill.cost > 0 &&
-                      `｜消耗：${skill.cost} 灵力`}
-                  </p>
-                </InkCard>
+                  title={
+                    <div className="flex items-center">
+                      <span>
+                        {typeIcon} {skill.name}·{skill.element}
+                      </span>
+                      <InkBadge tier={skill.grade}>{typeName}</InkBadge>
+                    </div>
+                  }
+                  description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
+                    skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
+                  }${
+                    skill.effect
+                      ? `｜效果：${getStatusLabel(skill.effect)}${
+                          skill.duration ? `（${skill.duration}回合）` : ''
+                        }`
+                      : ''
+                  }`}
+                />
               );
             })}
-          </div>
+          </InkList>
         ) : (
-          <p className="empty-state text-sm">暂无神通，待闭关顿悟。</p>
+          <InkNotice>暂无神通，待闭关顿悟。</InkNotice>
         )}
         <div className="mt-3">
           <InkButton href="/ritual" className="text-sm">

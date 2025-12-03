@@ -1,13 +1,23 @@
 'use client';
 
-import { InkButton, InkCard } from '@/components/InkComponents';
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkList,
+  InkListItem,
+  InkNotice,
+  InkTag,
+} from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { getSkillTypeLabel, getStatusLabel } from '@/types/dictionaries';
+import { usePathname } from 'next/navigation';
 
 export default function SkillsPage() {
   const { cultivator, skills, isLoading, note, usingMock } =
     useCultivatorBundle();
+  const pathname = usePathname();
 
   if (isLoading && !cultivator) {
     return (
@@ -25,25 +35,24 @@ export default function SkillsPage() {
       subtitle={`共 ${skills.length}/${maxSkills}`}
       backHref="/"
       note={note}
+      currentPath={pathname}
       footer={
-        <div className="flex justify-between text-ink">
+        <InkActionGroup align="between">
           <InkButton href="/">返回</InkButton>
           <InkButton href="/ritual" variant="primary">
             闭关顿悟新神通 →
           </InkButton>
-        </div>
+        </InkActionGroup>
       }
     >
       {!cultivator ? (
-        <div className="text-center">
-          还未觉醒道身，何谈神通？先去首页觉醒吧。
-        </div>
+        <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>
       ) : skills.length > 0 ? (
-        <div className="space-y-2">
+        <InkList>
           {skills.map((skill, index) => {
             const typeIcon =
               skill.type === 'attack'
-                ? '⚡'
+                ? '⚡️'
                 : skill.type === 'heal'
                   ? '❤️'
                   : skill.type === 'control'
@@ -52,49 +61,39 @@ export default function SkillsPage() {
             const typeName = getSkillTypeLabel(skill.type);
 
             return (
-              <InkCard
+              <InkListItem
                 key={skill.id || skill.name}
-                highlighted={index === skills.length - 1}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">
-                      {typeIcon} {skill.name}（{typeName}·{skill.element}）
-                      {index === skills.length - 1 && (
-                        <span className="new-mark">← 新悟</span>
-                      )}
-                    </p>
-                    <p className="mt-0.5 text-xs text-ink-secondary">
-                      威力：{skill.power}｜效果：
-                      {skill.effect
-                        ? `${getStatusLabel(skill.effect)}${
-                            skill.duration ? `（${skill.duration}回合）` : ''
-                          }`
-                        : '无特殊效果'}
-                    </p>
-                    {skill.cost !== undefined && skill.cost > 0 && (
-                      <p className="text-xs text-ink-secondary">
-                        消耗：{skill.cost} 灵力｜冷却：{skill.cooldown}回合
-                      </p>
+                title={
+                  <>
+                    {typeIcon} {skill.name}{' '}
+                    <InkTag tone="info">{`${typeName}·${skill.element}`}</InkTag>
+                    {skill.grade && (
+                      <InkBadge tone="accent">{skill.grade}</InkBadge>
                     )}
-                    {(!skill.cost || skill.cost === 0) && (
-                      <p className="text-xs text-ink-secondary">
-                        冷却：{skill.cooldown}回合
-                      </p>
-                    )}
-                  </div>
-                  <div className="shrink-0">
-                    <InkButton disabled className="text-sm">
-                      替换
-                    </InkButton>
-                  </div>
-                </div>
-              </InkCard>
+                  </>
+                }
+                description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
+                  skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
+                }｜效果：${
+                  skill.effect
+                    ? `${getStatusLabel(skill.effect)}${
+                        skill.duration ? `（${skill.duration}回合）` : ''
+                      }`
+                    : '无'
+                }`}
+                highlight={index === skills.length - 1}
+                newMark={index === skills.length - 1}
+                actions={
+                  <InkButton disabled className="text-sm">
+                    替换
+                  </InkButton>
+                }
+              />
             );
           })}
-        </div>
+        </InkList>
       ) : (
-        <p className="empty-state">暂无神通，请前往闭关顿悟。</p>
+        <InkNotice>暂无神通，请前往闭关顿悟。</InkNotice>
       )}
 
       {usingMock && (

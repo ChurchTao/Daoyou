@@ -1,15 +1,22 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { InkNav } from './InkComponents';
 
 interface InkPageShellProps {
   title: string;
   subtitle?: string;
   lead?: string;
+  hero?: ReactNode;
   backHref?: string;
   note?: string;
   actions?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  statusBar?: ReactNode;
+  toolbar?: ReactNode;
+  currentPath?: string;
+  showBottomNav?: boolean;
+  navItems?: Array<{ label: string; href: string }>;
 }
 
 interface InkSectionProps {
@@ -23,15 +30,28 @@ export function InkPageShell({
   title,
   subtitle,
   lead,
+  hero,
   backHref,
   note,
   actions,
   children,
   footer,
+  statusBar,
+  toolbar,
+  currentPath,
+  showBottomNav = true,
+  navItems,
 }: InkPageShellProps) {
+  const baseNav = navItems ?? [
+    { label: '首页', href: '/' },
+    { label: '储物', href: '/inventory' },
+    { label: '神通', href: '/skills' },
+    { label: '天机榜', href: '/rankings' },
+  ];
+
   return (
     <div className="bg-paper min-h-screen">
-      <div className="mx-auto flex max-w-xl flex-col px-4 pb-16 pt-8 main-content">
+      <div className="mx-auto flex max-w-xl flex-col px-4 pb-24 pt-8 main-content">
         {backHref && (
           <Link
             href={backHref}
@@ -42,7 +62,8 @@ export function InkPageShell({
         )}
 
         <header className="mb-6 text-center">
-          <h1 className="font-ma-shan-zheng text-3xl text-ink">{title}</h1>
+          {hero && <div className="mb-3 flex justify-center">{hero}</div>}
+          <h1 className="text-3xl text-ink">{title}</h1>
           {subtitle && (
             <p className="mt-1 text-base text-ink-secondary">{subtitle}</p>
           )}
@@ -53,12 +74,20 @@ export function InkPageShell({
               {actions}
             </div>
           )}
+          {statusBar && <div className="mt-4">{statusBar}</div>}
         </header>
+
+        {toolbar && <div className="mb-4">{toolbar}</div>}
 
         <div className="flex-1">{children}</div>
 
         {footer && <div className="mt-8">{footer}</div>}
       </div>
+      {showBottomNav && (
+        <div className="ink-shell-bottom">
+          <InkNav items={baseNav} currentPath={currentPath} />
+        </div>
+      )}
     </div>
   );
 }

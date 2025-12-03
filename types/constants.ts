@@ -104,5 +104,14 @@ export const SKILL_GRADE_VALUES = [
 export type SkillGrade = (typeof SKILL_GRADE_VALUES)[number];
 
 // 先天气运品质
-export const FATE_QUALITY_VALUES = ['凡品', '灵品', '玄品', '真品'] as const;
+export const FATE_QUALITY_VALUES = [
+  '凡品',
+  '灵品',
+  '玄品',
+  '真品',
+  '地品',
+  '天品',
+  '仙品',
+  '神品',
+] as const;
 export type FateQuality = (typeof FATE_QUALITY_VALUES)[number];

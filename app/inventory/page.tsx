@@ -1,7 +1,15 @@
 'use client';
 
-import { InkButton, InkCard, InkDivider } from '@/components/InkComponents';
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkList,
+  InkListItem,
+  InkNotice,
+} from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
+import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Artifact } from '@/types/cultivator';
 import {
@@ -9,6 +17,7 @@ import {
   getArtifactTypeLabel,
   getStatusLabel,
 } from '@/types/dictionaries';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 export default function InventoryPage() {
@@ -21,19 +30,19 @@ export default function InventoryPage() {
     note,
     usingMock,
   } = useCultivatorBundle();
-  const [feedback, setFeedback] = useState<string>('');
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const pathname = usePathname();
+  const { pushToast } = useInkUI();
 
   const totalEquipments = inventory.artifacts.length;
 
   const handleEquipToggle = async (item: Artifact) => {
     if (!cultivator || !item.id) {
-      setFeedback('此法宝暂无有效 ID，无法操作。');
+      pushToast({ message: '此法宝暂无有效 ID，无法操作。', tone: 'warning' });
       return;
     }
 
     setPendingId(item.id);
-    setFeedback('');
     try {
       const response = await fetch(`/api/cultivators/${cultivator.id}/equip`, {
         method: 'POST',
@@ -48,14 +57,16 @@ export default function InventoryPage() {
         throw new Error(result.error || '装备操作失败');
       }
 
-      setFeedback('操作完成，法宝灵性已调顺。');
+      pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
       await refresh();
     } catch (error) {
-      setFeedback(
-        error instanceof Error
-          ? `此法有违天道：${error.message}`
-          : '操作失败，请稍后重试。',
-      );
+      pushToast({
+        message:
+          error instanceof Error
+            ? `此法有违天道：${error.message}`
+            : '操作失败，请稍后重试。',
+        tone: 'danger',
+      });
     } finally {
       setPendingId(null);
     }
@@ -87,81 +98,68 @@ export default function InventoryPage() {
       subtitle=""
       backHref="/"
       note={note}
+      currentPath={pathname}
       footer={
-        <div className="flex justify-between text-ink">
+        <InkActionGroup align="between">
           <InkButton href="/">返回主界</InkButton>
-          <span className="text-ink-secondary">[整理法宝]</span>
-        </div>
+          <InkButton href="/inventory" variant="secondary">
+            整理法宝
+          </InkButton>
+        </InkActionGroup>
       }
     >
-      {feedback && (
-        <>
-          <div className="mb-4 text-center text-sm text-ink">{feedback}</div>
-          <InkDivider />
-        </>
-      )}
-
       {!cultivator ? (
-        <div className="text-center">尚无角色，自然也无储物袋可查。</div>
+        <InkNotice>尚无角色，自然也无储物袋可查。</InkNotice>
       ) : totalEquipments > 0 ? (
-        <div className="space-y-2">
+        <InkList>
           {inventory.artifacts.map((item) => {
             const equippedNow = Boolean(
               item.id &&
-              (equipped.weapon === item.id ||
-                equipped.armor === item.id ||
-                equipped.accessory === item.id),
+                (equipped.weapon === item.id ||
+                  equipped.armor === item.id ||
+                  equipped.accessory === item.id),
             );
 
             const slotIcon =
-              item.slot === 'weapon'
-                ? '🗡️'
-                : item.slot === 'armor'
-                  ? '🛡️'
-                  : '📿';
+              item.slot === 'weapon' ? '🗡️' : item.slot === 'armor' ? '🛡️' : '📿';
             const artifactType = getArtifactTypeLabel(item.slot);
 
             const bonusText = formatAttributeBonusMap(item.bonus);
 
             const effectText =
-              item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
-              '';
+              item.special_effects?.map((e) => getEffectText(e)).join('｜') || '';
 
             return (
-              <InkCard key={item.id ?? item.name} highlighted={equippedNow}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">
-                      {slotIcon} {item.name}（{item.element}·{artifactType}）
-                      {equippedNow && (
-                        <span className="equipped-mark">← 已装备</span>
-                      )}
-                    </p>
-                    <p className="mt-0.5 text-xs text-ink-secondary">
-                      {bonusText}
-                      {effectText && `｜${effectText}`}
-                    </p>
-                  </div>
-                  <div className="shrink-0">
-                    <InkButton
-                      disabled={pendingId === item.id}
-                      onClick={() => handleEquipToggle(item)}
-                      className="text-sm"
-                    >
-                      {pendingId === item.id
-                        ? '操作中…'
-                        : equippedNow
-                          ? '卸下'
-                          : '装备'}
-                    </InkButton>
-                  </div>
-                </div>
-              </InkCard>
+              <InkListItem
+                key={item.id ?? item.name}
+                title={
+                  <>
+                    {slotIcon} {item.name}{' '}
+                    <InkBadge tone="accent">{artifactType}</InkBadge>
+                    {equippedNow && <span className="equipped-mark">← 已装备</span>}
+                  </>
+                }
+                meta={`${item.element} · ${bonusText}`}
+                description={effectText}
+                actions={
+                  <InkButton
+                    disabled={pendingId === item.id}
+                    onClick={() => handleEquipToggle(item)}
+                    className="text-sm"
+                  >
+                    {pendingId === item.id
+                      ? '操作中…'
+                      : equippedNow
+                        ? '卸下'
+                        : '装备'}
+                  </InkButton>
+                }
+              />
             );
           })}
-        </div>
+        </InkList>
       ) : (
-        <p className="empty-state">储物袋空空如也，道友该去寻宝了。</p>
+        <InkNotice>储物袋空空如也，道友该去寻宝了。</InkNotice>
       )}
 
       {usingMock && (

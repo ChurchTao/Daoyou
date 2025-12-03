@@ -1,16 +1,31 @@
 'use client';
 
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkInput,
+  InkList,
+  InkListItem,
+  InkNotice,
+  InkStatRow,
+  InkStatusBar,
+  InkTag,
+} from '@/components/InkComponents';
+import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { useInkUI } from '@/components/InkUIProvider';
 import { useAuth } from '@/lib/auth/AuthContext';
-import type { Cultivator } from '@/types/cultivator';
+import type { Attributes, Cultivator } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
-  getAttributeLabel,
-  getSkillTypeLabel,
+  getAttributeInfo,
+  getElementInfo,
+  getSkillTypeInfo,
   getStatusLabel,
 } from '@/types/dictionaries';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 const getCombatRating = (cultivator: Cultivator | null): string => {
   if (!cultivator?.attributes) return '--';
@@ -34,6 +49,8 @@ const BASE_ATTRIBUTE_KEYS: Array<keyof Cultivator['attributes']> = [
 export default function CreatePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const pathname = usePathname();
+  const { pushToast, openDialog } = useInkUI();
   const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
@@ -76,6 +93,7 @@ export default function CreatePage() {
   const handleGenerateCharacter = async () => {
     if (!userPrompt.trim()) {
       setError('请输入角色描述');
+      pushToast({ message: '请输入角色描述', tone: 'warning' });
       return;
     }
 
@@ -108,11 +126,13 @@ export default function CreatePage() {
       setAvailableFates(aiResult.data.preHeavenFates || []);
       setSelectedFateIndices([]);
       setBalanceNotes(aiResult.data.balanceNotes || []);
+      pushToast({ message: '灵气汇聚，真形初现。', tone: 'success' });
     } catch (error) {
       console.error('生成角色失败:', error);
       const errorMessage =
         error instanceof Error ? error.message : '生成角色失败，请检查控制台';
       setError(errorMessage);
+      pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setLoading(false);
     }
@@ -164,23 +184,59 @@ export default function CreatePage() {
       }
 
       // 保存成功，跳转到首页
+      pushToast({ message: '道友真形已落地，速回主界。', tone: 'success' });
       router.push('/');
     } catch (error) {
       console.error('保存角色失败:', error);
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';
       setError(errorMessage);
+      pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setLoading(false);
     }
   };
 
-  // 立即挑战
-  const handleChallenge = () => {
-    if (player) {
-      sessionStorage.setItem('player', JSON.stringify(player));
-      router.push('/battle');
+  const confirmSaveCharacter = () => {
+    if (!player || !tempCultivatorId) {
+      return;
     }
+
+    if (selectedFateIndices.length !== 3) {
+      const warning = '请选择3个先天气运';
+      setError(warning);
+      pushToast({ message: warning, tone: 'warning' });
+      return;
+    }
+
+    openDialog({
+      title: '以此真身入世？',
+      content: (
+        <div className="space-y-1 text-sm">
+          <p>姓名：{player.name}</p>
+          <p>
+            境界：{player.realm}
+            {player.realm_stage}
+          </p>
+          <p>
+            灵根：
+            {player.spiritual_roots.length > 0
+              ? player.spiritual_roots
+                  .map(
+                    (root) =>
+                      `${root.element}${root.grade ? `·${root.grade}` : ''}（强度：${root.strength ?? '--'}）`,
+                  )
+                  .join('｜')
+              : '无'}
+          </p>
+        </div>
+      ),
+      confirmLabel: '入世',
+      cancelLabel: '再想想',
+      onConfirm: () => {
+        void handleSaveCharacter();
+      },
+    });
   };
 
   // 重新生成
@@ -192,328 +248,351 @@ export default function CreatePage() {
     setError(null);
   };
 
+  const finalAttrsMemo = useMemo(() => {
+    if (!player) return null;
+    // 计算最终属性
+    const finalAttrsResult = calculateFinalAttributes(player);
+    const finalAttrs = finalAttrsResult.final;
+    const breakdown = finalAttrsResult.breakdown;
+    const maxHp = 80 + finalAttrs.vitality;
+    const maxMp = finalAttrs.spirit;
+    return {
+      finalAttrsResult,
+      finalAttrs,
+      breakdown,
+      maxHp,
+      maxMp,
+    };
+  }, [player]);
+
+  if (checkingExisting) {
+    return (
+      <InkPageShell
+        title="【凝气篇】"
+        subtitle="以心念唤道，凝气成形"
+        backHref="/"
+        currentPath={pathname}
+        showBottomNav={false}
+      >
+        <InkNotice tone="info">检查道身状态……</InkNotice>
+      </InkPageShell>
+    );
+  }
+
+  if (hasExistingCultivator) {
+    return (
+      <InkPageShell
+        title="【凝气篇】"
+        subtitle="每位修士仅限一具真身"
+        backHref="/"
+        currentPath={pathname}
+        showBottomNav={false}
+      >
+        <InkNotice tone="warning">
+          您已拥有道身，若想重修需先完成转世。
+          <div className="mt-3">
+            <InkButton href="/">返回道身</InkButton>
+          </div>
+        </InkNotice>
+      </InkPageShell>
+    );
+  }
+
   return (
-    <div className="bg-paper min-h-screen p-6">
-      <div className="container mx-auto max-w-2xl">
-        {/* 标题 */}
-        <div className="text-center mb-8">
-          <h1 className="font-ma-shan-zheng text-3xl md:text-4xl text-ink mb-2">
-            凝气篇
-          </h1>
-          <p className="text-ink/70 text-sm">以心念唤道，凝气成形</p>
-        </div>
-
-        {/* 检查用户是否已有角色 */}
-        {checkingExisting ? (
-          <div className="text-center py-12">
-            <div className="animate-spin inline-block w-8 h-8 border-4 border-ink/30 border-t-4 border-t-crimson rounded-full mb-4"></div>
-            <p className="text-ink/70">检查道身状态...</p>
-          </div>
-        ) : hasExistingCultivator ? (
-          <div className="text-center py-12">
-            <div className="mb-4 text-4xl">🔄</div>
-            <h2 className="font-ma-shan-zheng text-2xl text-ink mb-2">
-              您已拥有道身
-            </h2>
-            <p className="text-ink/70 mb-6">
-              每位修士只能拥有一位道身，若要重新凝练，请先进行转世重修
-            </p>
-            <Link
-              href="/"
-              className="btn-primary inline-flex items-center justify-center"
+    <InkPageShell
+      title="【凝气篇】"
+      subtitle="以心念唤道，凝气成形"
+      backHref="/"
+      currentPath={pathname}
+      showBottomNav={false}
+    >
+      <InkSection title="【以心念唤道】">
+        <InkInput
+          multiline
+          rows={6}
+          value={userPrompt}
+          onChange={(value) => setUserPrompt(value)}
+          placeholder="例：我想成为一位靠炼丹逆袭的废柴少主……"
+          hint="💡 Cmd/Ctrl + Enter 可快速提交"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+              event.preventDefault();
+              handleGenerateCharacter();
+            }
+          }}
+        />
+        <InkActionGroup align="center">
+          {!player && (
+            <InkButton
+              variant="primary"
+              onClick={handleGenerateCharacter}
+              disabled={loading || !userPrompt.trim()}
             >
-              返回道身
-            </Link>
-          </div>
-        ) : (
-          <>
-            {/* 输入区：仿砚台 */}
-            <div className="mb-8">
-              <label className="font-ma-shan-zheng text-ink mb-2 text-lg">
-                以心念唤道：
-              </label>
-              <textarea
-                value={userPrompt}
-                onChange={(e) => setUserPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    handleGenerateCharacter();
-                  }
-                }}
-                placeholder="例：我想成为一位靠炼丹逆袭的废柴少主..."
-                className="w-full h-32 p-4 bg-paper-light border border-ink/20 rounded-lg focus:ring-1 focus:ring-crimson focus:outline-none text-ink placeholder-ink/40 resize-none"
-                disabled={loading}
-              />
-              <p className="mt-2 text-xs text-ink/50">
-                💡 提示：按 Cmd/Ctrl + Enter 快速提交
-              </p>
-            </div>
+              {loading ? '灵气汇聚中…' : '凝气成形'}
+            </InkButton>
+          )}
+          {player && (
+            <InkButton onClick={handleRegenerate} variant="secondary">
+              重凝
+            </InkButton>
+          )}
+        </InkActionGroup>
+      </InkSection>
 
-            {/* 生成按钮 */}
-            <div className="text-center mb-10">
-              <button
-                onClick={handleGenerateCharacter}
-                disabled={loading || !userPrompt.trim()}
-                className="btn-primary"
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin mr-2">🌀</span>
-                    灵气汇聚中...
+      {error && <InkNotice tone="danger">{error}</InkNotice>}
+
+      {player ? (
+        <>
+          <InkSection title="【真形一瞥】">
+            <InkList dense>
+              <InkListItem
+                title={
+                  <span>
+                    ☯ 姓名：{player.name}
+                    <InkBadge
+                      tone="accent"
+                      className="ml-2"
+                    >{`境界 · ${player.realm}${player.realm_stage}`}</InkBadge>
                   </span>
-                ) : (
-                  <span>凝气成形</span>
-                )}
-              </button>
-            </div>
-
-            {/* 错误提示 */}
-            {error && (
-              <div className="mb-6 p-4 rounded-lg bg-crimson/10 border-2 border-crimson/30 text-crimson">
-                {error}
-              </div>
-            )}
-
-            {/* 角色卡：仿卷轴 */}
-            {player && (
-              <div className="character-scroll animate-fade-in max-w-lg mx-auto">
-                <div className="scroll-content">
-                  <h3 className="font-ma-shan-zheng text-2xl text-ink mb-4 text-center">
-                    {player.name}
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-                    <div>
-                      <span className="text-ink/70">境界：</span>
-                      <span className="text-ink font-semibold ml-1">
-                        {player.realm}
-                        {player.realm_stage}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-ink/70">灵根：</span>
-                      <span className="text-ink font-semibold ml-1">
-                        {player.spiritual_roots[0]?.element || '无'}
-                        {player.spiritual_roots[0]?.grade && (
-                          <span className="text-crimson ml-1">
-                            ·{player.spiritual_roots[0].grade}
-                          </span>
-                        )}
-                        （强度：{player.spiritual_roots[0]?.strength || 0}）
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-ink/70">年龄/寿命：</span>
-                      <span className="text-ink font-semibold ml-1">
-                        {player.age}/{player.lifespan}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-ink/70">最大气血：</span>
-                      <span className="text-ink font-semibold ml-1">
-                        {80 + player.attributes.vitality}
-                      </span>
-                    </div>
+                }
+                meta={
+                  <div className="py-1">
+                    <p>身世：{player.origin || '散修'}</p>
+                    <p>性格：{player.personality}</p>
                   </div>
+                }
+                description={
+                  <InkStatusBar
+                    className="mt-2 grid! grid-cols-3! gap-2"
+                    items={[
+                      { label: '年龄：', value: player.age, icon: '⏳' },
+                      { label: '寿元：', value: player.lifespan, icon: '🔮' },
+                      {
+                        label: '性别：',
+                        value: player.gender,
+                        icon: player.gender === '男' ? '♂' : '♀',
+                      },
+                      {
+                        label: '气血：',
+                        value: `${finalAttrsMemo?.maxHp}`,
+                        icon: '❤️',
+                      },
+                      {
+                        label: '灵力：',
+                        value: `${finalAttrsMemo?.maxMp}`,
+                        icon: '⚡️',
+                      },
+                    ]}
+                  />
+                }
+              />
+            </InkList>
+          </InkSection>
 
-                  {/* 基础属性 */}
-                  <div className="mb-4">
-                    <span className="text-ink/70">基础属性：</span>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                      {BASE_ATTRIBUTE_KEYS.map((key) => (
-                        <div
-                          key={key}
-                          className="bg-ink/5 rounded p-2 border border-ink/10"
-                        >
-                          <p className="font-semibold">
-                            {getAttributeLabel(key)}
-                          </p>
-                          <p className="text-ink/80">
-                            {player.attributes[key]}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+          {player.spiritual_roots?.length > 0 && (
+            <InkSection title="【灵根】">
+              <InkList>
+                {player.spiritual_roots.map((root, idx) => (
+                  <InkListItem
+                    key={root.element + idx}
+                    title={
+                      <div className="flex items-center">
+                        <span>
+                          {getElementInfo(root.element).icon} {root.element}
+                        </span>
+                        <InkBadge tier={root.grade} />
+                      </div>
+                    }
+                    meta={`强度：${root.strength}`}
+                  />
+                ))}
+              </InkList>
+            </InkSection>
+          )}
 
-                  {/* 天道平衡提示 */}
-                  {balanceNotes.length > 0 && (
-                    <div className="mb-4">
-                      <span className="text-ink/70">天道评语：</span>
-                      <ul className="mt-2 space-y-1 text-sm bg-ink/5 rounded p-3 border border-ink/10">
-                        {balanceNotes.map((note) => (
-                          <li key={note} className="text-ink/80">
-                            · {note}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+          <InkSection title="【根基属性】">
+            {Object.entries(player.attributes).map(([key, baseValue]) => {
+              const attrKey = key as keyof Attributes;
+              const attrInfo = getAttributeInfo(attrKey);
+              const finalValue = finalAttrsMemo?.finalAttrs[attrKey];
+              const fateMod = finalAttrsMemo?.breakdown.fromFates[attrKey];
+              const cultMod =
+                finalAttrsMemo?.breakdown.fromCultivations[attrKey];
+              const equipMod = finalAttrsMemo?.breakdown.fromEquipment[attrKey];
 
-                  {/* 先天气运选择 */}
-                  {availableFates.length > 0 && (
-                    <div className="mb-4">
-                      <span className="text-ink/70">
-                        先天气运选择（已选择 {selectedFateIndices.length}/3）：
-                      </span>
-                      <div className="mt-2 space-y-2 text-sm">
-                        {availableFates.map((fate, idx) => {
-                          const isSelected = selectedFateIndices.includes(idx);
-                          const qualityColors: Record<string, string> = {
-                            凡品: 'text-gray-500',
-                            灵品: 'text-blue-500',
-                            玄品: 'text-purple-500',
-                            真品: 'text-crimson',
-                          };
-                          return (
-                            <div
-                              key={idx}
-                              onClick={() => toggleFateSelection(idx)}
-                              className={`bg-ink/5 rounded p-2 border-2 cursor-pointer transition-all ${
-                                isSelected
-                                  ? 'border-crimson bg-crimson/10'
-                                  : 'border-ink/10 hover:border-ink/30'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <p className="font-semibold">
-                                  {fate.name} · {fate.type}
-                                  {fate.quality && (
-                                    <span
-                                      className={`ml-2 ${qualityColors[fate.quality] || 'text-ink/70'}`}
-                                    >
-                                      [{fate.quality}]
-                                    </span>
-                                  )}
-                                </p>
-                                {isSelected && (
-                                  <span className="text-crimson">✓</span>
-                                )}
-                              </div>
-                              <p className="text-ink/80">
-                                {formatAttributeBonusMap(fate.attribute_mod) ||
-                                  '无属性加成'}
-                              </p>
-                              {fate.description && (
-                                <p className="text-ink/60 text-xs italic mt-1">
-                                  {fate.description}
-                                </p>
+              const detailParts = [
+                fateMod !== 0
+                  ? `命格 ${fateMod && fateMod > 0 ? '+' : ''}${fateMod}`
+                  : undefined,
+                cultMod !== 0
+                  ? `功法 ${cultMod && cultMod > 0 ? '+' : ''}${cultMod}`
+                  : undefined,
+                equipMod !== 0
+                  ? `法宝 ${equipMod && equipMod > 0 ? '+' : ''}${equipMod}`
+                  : undefined,
+              ].filter(Boolean);
+
+              return (
+                <InkStatRow
+                  key={key}
+                  label={`${attrInfo.icon} ${attrInfo.label}`}
+                  base={baseValue}
+                  final={finalValue}
+                  detail={
+                    detailParts.length ? detailParts.join('｜') : undefined
+                  }
+                />
+              );
+            })}
+            <p className="mt-2 text-xs text-ink-secondary">
+              境界上限：{finalAttrsMemo?.breakdown.cap}（当前境界：
+              {player.realm}）
+            </p>
+          </InkSection>
+
+          {(balanceNotes.length > 0 || player?.balance_notes) && (
+            <InkSection title="【天道评语】">
+              {balanceNotes.length > 0 && (
+                <InkList dense>
+                  {balanceNotes.map((note) => (
+                    <InkListItem key={note} title={`· ${note}`} />
+                  ))}
+                </InkList>
+              )}
+              {player?.balance_notes && (
+                <InkNotice>{player.balance_notes}</InkNotice>
+              )}
+            </InkSection>
+          )}
+
+          {availableFates.length > 0 && (
+            <InkSection
+              title={`【先天气运】（已选 ${selectedFateIndices.length}/3）`}
+            >
+              <InkList>
+                {availableFates.map((fate, idx) => {
+                  const isSelected = selectedFateIndices.includes(idx);
+                  return (
+                    <div
+                      key={fate.name + idx}
+                      className={`ink-selectable ${
+                        isSelected ? 'ink-selectable-active' : ''
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleFateSelection(idx)}
+                      >
+                        <InkListItem
+                          title={
+                            <div className="flex items-center">
+                              <span>
+                                {fate.type === '吉' ? '🍀' : '😈'} {fate.name}
+                              </span>
+                              {fate.quality && (
+                                <InkBadge tier={fate.quality}>气运</InkBadge>
                               )}
                             </div>
-                          );
-                        })}
-                      </div>
+                          }
+                          meta={
+                            formatAttributeBonusMap(fate.attribute_mod) ||
+                            '无属性加成'
+                          }
+                          description={fate.description}
+                          actions={
+                            isSelected ? (
+                              <InkTag tone="good">已取</InkTag>
+                            ) : null
+                          }
+                        />
+                      </button>
                     </div>
-                  )}
+                  );
+                })}
+              </InkList>
+            </InkSection>
+          )}
 
-                  {/* 技能 */}
-                  {player.skills && player.skills.length > 0 ? (
-                    <div className="mb-4">
-                      <span className="text-ink/70">技能：</span>
-                      <div className="mt-2 space-y-1 text-sm">
-                        {player.skills.map((skill, idx) => (
-                          <div
-                            key={skill.id || skill.name + idx}
-                            className="bg-ink/5 rounded p-2 border border-ink/10"
-                          >
-                            <p className="font-semibold">
-                              {skill.name} · {getSkillTypeLabel(skill.type)} ·{' '}
-                              {skill.element}
-                              {skill.grade && (
-                                <span className="text-crimson ml-1">
-                                  ·{skill.grade}
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-ink/80">
-                              威力：{skill.power} | 冷却：{skill.cooldown}回合
-                              {skill.effect &&
-                                ` | 效果：${getStatusLabel(skill.effect)}${
-                                  skill.duration
-                                    ? `（${skill.duration}回合）`
-                                    : ''
-                                }`}
-                              {skill.cost !== undefined &&
-                                skill.cost > 0 &&
-                                ` | 消耗：${skill.cost} 灵力`}
-                            </p>
-                          </div>
-                        ))}
+          {player.cultivations && player.cultivations.length > 0 && (
+            <InkSection title="【功法】">
+              <InkList>
+                {player.cultivations.map((cult, idx) => (
+                  <InkListItem
+                    key={cult.name + idx}
+                    title={
+                      <div className="flex items-center">
+                        <span>📜 {cult.name} </span>
+                        {cult.grade && <InkBadge tier={cult.grade} />}
                       </div>
-                    </div>
-                  ) : null}
+                    }
+                    meta={`需求境界：${cult.required_realm}`}
+                    description={
+                      formatAttributeBonusMap(cult.bonus) || '无属性加成'
+                    }
+                  />
+                ))}
+              </InkList>
+            </InkSection>
+          )}
 
-                  {/* 功法 */}
-                  {player.cultivations && player.cultivations.length > 0 ? (
-                    <div className="mb-4">
-                      <span className="text-ink/70">功法：</span>
-                      <div className="mt-2 space-y-1 text-sm">
-                        {player.cultivations.map((cult, idx) => (
-                          <div
-                            key={cult.name + idx}
-                            className="bg-ink/5 rounded p-2 border border-ink/10"
-                          >
-                            <p className="font-semibold">
-                              {cult.name}
-                              {cult.grade && (
-                                <span className="text-crimson ml-1">
-                                  ·{cult.grade}
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-ink/80">
-                              {formatAttributeBonusMap(cult.bonus) ||
-                                '无属性加成'}
-                            </p>
-                            <p className="text-ink/60 text-xs">
-                              要求境界：{cult.required_realm}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
+          {player.skills && player.skills.length > 0 && (
+            <InkSection title="【神通】">
+              <InkList>
+                {player.skills.map((skill) => {
+                  const skillInfo = getSkillTypeInfo(skill.type);
+                  const typeIcon = skillInfo.icon;
+                  const typeName = skillInfo.label;
 
-                  <div className="mb-3">
-                    <span className="text-ink/70">战力评估：</span>
-                    <span className="text-crimson font-bold text-lg ml-1">
-                      {getCombatRating(player)}
-                    </span>
-                  </div>
+                  return (
+                    <InkListItem
+                      key={skill.id || skill.name}
+                      title={
+                        <div className="flex items-center">
+                          <span>
+                            {typeIcon} {skill.name}·{skill.element}
+                          </span>
+                          <InkBadge tier={skill.grade}>{typeName}</InkBadge>
+                        </div>
+                      }
+                      description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
+                        skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
+                      }${
+                        skill.effect
+                          ? `｜效果：${getStatusLabel(skill.effect)}${
+                              skill.duration ? `（${skill.duration}回合）` : ''
+                            }`
+                          : ''
+                      }`}
+                    />
+                  );
+                })}
+              </InkList>
+            </InkSection>
+          )}
 
-                  {player.background && (
-                    <p className="text-ink/80 italic leading-relaxed mb-3">
-                      「{player.background}」
-                    </p>
-                  )}
-                </div>
-              </div>
+          <InkSection title="【战力评估】">
+            <InkNotice tone="info">
+              推演战力：{getCombatRating(player)}（以基础属性估算）
+            </InkNotice>
+            {player.background && (
+              <p className="mt-2 text-ink-secondary italic">
+                「{player.background}」
+              </p>
             )}
+          </InkSection>
 
-            {/* 底部操作 */}
-            {player && (
-              <div className="flex justify-center gap-4 mt-6">
-                <button onClick={handleRegenerate} className="btn-outline">
-                  重凝
-                </button>
-                <button onClick={handleSaveCharacter} className="btn-primary">
-                  保存道身
-                </button>
-                <button onClick={handleChallenge} className="btn-outline">
-                  入世对战
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* 返回首页 */}
-        <div className="text-center mt-8">
-          <Link href="/" className="text-ink hover:underline">
-            [← 返回主界]
-          </Link>
-        </div>
-      </div>
-    </div>
+          <InkActionGroup align="center">
+            <InkButton onClick={handleRegenerate} variant="secondary">
+              重凝
+            </InkButton>
+            <InkButton variant="primary" onClick={confirmSaveCharacter}>
+              保存道身
+            </InkButton>
+          </InkActionGroup>
+        </>
+      ) : (
+        <InkNotice>以心念描摹真身，生成后即可参阅。</InkNotice>
+      )}
+    </InkPageShell>
   );
 }

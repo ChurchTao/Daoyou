@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { InkUIProvider } from '@/components/InkUIProvider';
 import AnonymousUserManager from '../components/AnonymousUserManager';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import './globals.css';
@@ -18,7 +19,7 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           <AnonymousUserManager />
-          {children}
+          <InkUIProvider>{children}</InkUIProvider>
         </AuthProvider>
       </body>
     </html>

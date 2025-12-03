@@ -149,7 +149,7 @@ export function useCultivatorBundle() {
   }, [user]);
 
   useEffect(() => {
-    void loadFromServer();
+    loadFromServer();
   }, [loadFromServer]);
 
   return {

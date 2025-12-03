@@ -1,10 +1,19 @@
 'use client';
 
-import { InkButton, InkDivider } from '@/components/InkComponents';
-import { InkSection } from '@/components/InkLayout';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+
+import {
+  InkBadge,
+  InkButton,
+  InkList,
+  InkListItem,
+  InkNotice,
+  InkStatusBar,
+} from '@/components/InkComponents';
+import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { RecentBattles } from '@/components/RecentBattles';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import Image from 'next/image';
 
 const quickActions = [
   { label: '⚔️ 挑战天骄', href: '/rankings' },
@@ -16,7 +25,6 @@ const quickActions = [
   { label: '📜 顿悟', href: '/ritual' },
 ];
 
-// 每日引文轮换
 const dailyQuotes = [
   { quote: '天地不仁，以万物为刍狗。', question: '道友，今日可要逆天改命？' },
   { quote: '道可道，非常道。', question: '名可名，非常名。' },
@@ -27,21 +35,20 @@ const dailyQuotes = [
   { quote: '大道无形，生育天地。', question: '大道无情，运行日月。' },
 ];
 
-// 根据日期选择引文
 const getDailyQuote = () => {
   const day = new Date().getDate();
   return dailyQuotes[day % dailyQuotes.length];
 };
 
 export default function HomePage() {
+  const pathname = usePathname();
   const { cultivator, isLoading, note } = useCultivatorBundle();
   const dailyQuote = getDailyQuote();
+  const spiritualRoots = cultivator?.spiritual_roots ?? [];
 
-  // 计算气血（基于体魄属性）
   const maxHp = cultivator ? 80 + cultivator.attributes.vitality : 100;
-  const currentHp = maxHp; // 暂时使用最大值，后续可从战斗状态获取
   const spirit = cultivator?.attributes.spirit ?? 0;
-  const maxSpirit = spirit; // 暂时使用当前值，后续可从战斗状态获取
+  const maxSpirit = spirit;
 
   if (isLoading) {
     return (
@@ -51,104 +58,134 @@ export default function HomePage() {
     );
   }
 
-  return (
-    <div className="bg-paper min-h-screen">
-      <main className="mx-auto flex max-w-xl flex-col px-4 pt-4 pb-24 main-content">
-        <div className="flex items-center gap-2 mb-4">
-          <Image
-            src="/assets/daoyou_logo.png"
-            alt="万界道友_logo"
-            width={96}
-            height={96}
-            className="object-contain"
-          />
-          <h1 className="text-3xl font-semibold text-ink">万界道友</h1>
-        </div>
-        {/* 顶部角色状态栏 */}
-        <InkSection title="【道身】">
-          {cultivator ? (
-            <div>
-              <p>☯ 道号：{cultivator.name}</p>
-              <p className="mt-1">
-                🌿 境界：{cultivator.realm}
-                {cultivator.realm_stage} · {cultivator.origin || '散修'}
-              </p>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-base">
-                <span>
-                  ❤️ 气血：{currentHp}/{maxHp}
-                </span>
-                <span>
-                  ⚡ 灵力：{spirit}/{maxSpirit}
-                </span>
-                <span>
-                  ⏳ 年龄/寿元：{cultivator.age} / {cultivator.lifespan}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center text-ink-secondary">
-              道友尚未觉醒灵根，请道友先
-              <InkButton href="/create" variant="primary">
-                觉醒灵根
-              </InkButton>
-            </div>
-          )}
-        </InkSection>
+  const statusItems = cultivator
+    ? [
+        { label: '气血', value: maxHp, icon: '❤️' },
+        { label: '灵力', value: maxSpirit, icon: '⚡️' },
+        {
+          label: '寿元',
+          value: `${cultivator.age} / ${cultivator.lifespan}`,
+          icon: '⏳',
+        },
+      ]
+    : [];
 
-        {/* 天机模块 */}
-        <InkSection title="【天机】">
-          <div>
-            {cultivator && cultivator.pre_heaven_fates?.length > 0 ? (
-              <>
-                <p>{'>'} 今日宜：炼器、挑战</p>
-                {cultivator.pre_heaven_fates.some(
-                  (f) => f.name.includes('孤辰') || f.name.includes('孤'),
-                ) && <p>{'>'} 忌：双修（身负孤辰入命）</p>}
-              </>
-            ) : (
-              <>
-                <p>{'>'} 今日宜：炼器、挑战</p>
-                <p>{'>'} 忌：无</p>
-              </>
+  return (
+    <InkPageShell
+      hero={
+        <Image
+          src="/assets/daoyou_logo.png"
+          alt="万界道友_logo"
+          width={96}
+          height={96}
+          className="object-contain"
+        />
+      }
+      title="万界道友"
+      subtitle="灵根歪了，但不影响我菜得理直气壮"
+      note={note}
+      currentPath={pathname}
+      footer={
+        <div className="text-center">
+          <p className="my-2 text-lg italic">{dailyQuote.quote}</p>
+          <p className="text-lg">{dailyQuote.question}</p>
+        </div>
+      }
+    >
+      <InkSection title="【道身】">
+        {cultivator ? (
+          <InkList dense>
+            <InkListItem
+              title={`☯️ 姓名：${cultivator.name}`}
+              meta={
+                <span>
+                  <InkBadge tone="accent">{`境界 · ${cultivator.realm}${cultivator.realm_stage}`}</InkBadge>
+                  <InkBadge tone="default">
+                    {cultivator.origin || '散修'}
+                  </InkBadge>
+                </span>
+              }
+              description={
+                <InkStatusBar
+                  className="grid! grid-cols-3! gap-2"
+                  items={statusItems}
+                />
+              }
+            />
+            {spiritualRoots.length > 0 && (
+              <InkListItem
+                title="👁️ 灵根"
+                meta={
+                  <div className="flex flex-wrap">
+                    {spiritualRoots.map((root, idx) => (
+                      <InkBadge
+                        tier={root.grade}
+                        key={`${root.element}-${root.grade}-${idx}`}
+                      >
+                        {root.element}
+                      </InkBadge>
+                    ))}
+                  </div>
+                }
+              />
             )}
-            <p className="mt-2 text-sm text-ink-secondary">
-              【占位】天机文案由 AIGC 生成，接口待接入。
-            </p>
+          </InkList>
+        ) : (
+          <InkNotice>
+            道友尚未觉醒灵根，
+            <InkButton href="/create" variant="primary">
+              速去觉醒
+            </InkButton>
+          </InkNotice>
+        )}
+        {cultivator && (
+          <div className="mt-3">
+            <InkButton href="/cultivator" className="text-sm">
+              内视查探 →
+            </InkButton>
+          </div>
+        )}
+      </InkSection>
+
+      <InkSection title="【天机】">
+        <InkList dense>
+          <InkListItem title="> 今日宜" description="炼器、挑战" />
+          <InkListItem
+            title="> 今日忌"
+            description={
+              cultivator &&
+              cultivator.pre_heaven_fates.some((f) => f.name.includes('孤辰'))
+                ? '双修（身负孤辰入命）'
+                : '暂无'
+            }
+          />
+          <InkListItem
+            title="> 占位提示"
+            description="天机文案将由 AIGC 生成，接口接入后自动填充。"
+          />
+        </InkList>
+      </InkSection>
+      {cultivator && (
+        <InkSection title="【快捷入口】">
+          <div className="flex flex-wrap gap-3">
+            {quickActions.map((action) => (
+              <InkButton
+                key={action.label}
+                href={action.href}
+                className="text-sm"
+              >
+                {action.label}
+              </InkButton>
+            ))}
           </div>
         </InkSection>
+      )}
 
-        {/* 快捷入口 - 紧凑排列 */}
-        {cultivator && (
-          <InkSection title="【快捷入口】">
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {quickActions.map((action) => (
-                <InkButton
-                  key={action.label}
-                  href={action.href}
-                  variant="default"
-                  className="text-sm"
-                >
-                  {action.label}
-                </InkButton>
-              ))}
-            </div>
-          </InkSection>
-        )}
-        {/* 近期战绩 */}
-        {cultivator && (
-          <InkSection title="【近期战绩】">
-            <RecentBattles />
-          </InkSection>
-        )}
-
-        <div className="text-center">
-          <InkDivider />
-          <p className="my-4 text-lg italic">{dailyQuote.quote}</p>
-          <p className="mb-4 text-lg">{dailyQuote.question}</p>
-          <InkDivider />
-          {note && <p className="mt-2 text-sm text-crimson/80">{note}</p>}
-        </div>
-      </main>
-    </div>
+      {cultivator && (
+        <InkSection title="【近期战绩】">
+          <RecentBattles />
+        </InkSection>
+      )}
+    </InkPageShell>
   );
 }

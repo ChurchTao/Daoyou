@@ -1,9 +1,19 @@
 'use client';
 
-import { InkButton, InkDivider } from '@/components/InkComponents';
+import {
+  InkActionGroup,
+  InkButton,
+  InkDivider,
+  InkInput,
+  InkList,
+  InkListItem,
+  InkNotice,
+} from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
+import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type RitualMode = 'equipment' | 'skill' | 'adventure';
 
@@ -42,17 +52,19 @@ export default function RitualPage() {
   const [prompt, setPrompt] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
+  const { pushToast } = useInkUI();
+  const pathname = usePathname();
 
   const currentMode = useMemo(() => modes[mode], [mode]);
 
   const handleSubmit = async () => {
     if (!cultivator) {
-      setStatus('请先在首页觉醒灵根。');
+      pushToast({ message: '请先在首页觉醒灵根。', tone: 'warning' });
       return;
     }
 
     if (!prompt.trim() && mode !== 'adventure') {
-      setStatus('请先输入你的意图。');
+      pushToast({ message: '请先输入你的意图。', tone: 'warning' });
       return;
     }
 
@@ -89,19 +101,21 @@ export default function RitualPage() {
         throw new Error(result.error || '仪式失败');
       }
 
-      setStatus(
+      const successMessage =
         mode === 'adventure'
           ? `奇遇：${result.data.adventure.name} —— ${result.data.adventure.result}`
-          : `成功！${mode === 'equipment' ? '炼成法宝' : '顿悟神通'}：${result.data.name}`,
-      );
+          : `成功！${mode === 'equipment' ? '炼成法宝' : '顿悟神通'}：${result.data.name}`;
+      setStatus(successMessage);
+      pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
       await refresh();
     } catch (error) {
-      setStatus(
+      const failMessage =
         error instanceof Error
           ? `此法未成：${error.message}`
-          : '仪式失败，请稍后再试。',
-      );
+          : '仪式失败，请稍后再试。';
+      setStatus(failMessage);
+      pushToast({ message: failMessage, tone: 'danger' });
     } finally {
       setSubmitting(false);
     }
@@ -113,13 +127,14 @@ export default function RitualPage() {
       subtitle=""
       backHref="/"
       note={note}
+      currentPath={pathname}
       footer={
-        <div className="flex justify-between text-ink">
+        <InkActionGroup align="between">
           <InkButton href="/">返回</InkButton>
           <span className="text-ink-secondary text-xs">
             AIGC 接口未覆盖的模式将以假数据提示
           </span>
-        </div>
+        </InkActionGroup>
       }
     >
       {/* 模式切换 */}
@@ -149,29 +164,30 @@ export default function RitualPage() {
       {/* 输入区域 */}
       <div>
         <div className="mb-4">
-          <p className="text-sm text-ink-secondary mb-2">{currentMode.hint}</p>
-          <p className="text-sm text-ink-secondary">
-            示例：
-            <br />
-            <span className="text-ink italic">
-              &quot;{currentMode.example}&quot;
-            </span>
-          </p>
+          <InkList dense>
+            <InkListItem title="提示" description={currentMode.hint} />
+            <InkListItem
+              title="示例"
+              description={`“${currentMode.example}”`}
+            />
+          </InkList>
         </div>
 
         <InkDivider />
 
-        <textarea
-          className="textarea-large w-full min-h-[40vh] p-4 border border-ink/20 focus:outline-none text-ink placeholder-ink/40 resize-none"
+        <InkInput
+          multiline
+          rows={8}
           placeholder="请在此输入你的意图……"
           value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
+          onChange={(value) => setPrompt(value)}
           disabled={isSubmitting}
+          hint="💡 Cmd/Ctrl + Enter 可快速提交"
         />
 
         <InkDivider />
 
-        <div className="flex justify-end gap-3">
+        <InkActionGroup align="right">
           <InkButton
             onClick={() => {
               setPrompt('');
@@ -188,21 +204,18 @@ export default function RitualPage() {
           >
             {isSubmitting ? '运转灵力……' : currentMode.actionLabel}
           </InkButton>
-        </div>
+        </InkActionGroup>
       </div>
 
       {status && (
-        <>
-          <InkDivider />
-          <div className="mt-4 text-center text-sm text-ink">
-            {status}
-            {mode === 'adventure' && (
-              <p className="text-xs text-ink-secondary mt-2">
-                【占位】奇遇输入尚未驱动 AI，但意图已记录。
-              </p>
-            )}
-          </div>
-        </>
+        <InkNotice tone="info">
+          {status}
+          {mode === 'adventure' && (
+            <p className="text-xs text-ink-secondary mt-2">
+              【占位】奇遇输入尚未驱动 AI，但意图已记录。
+            </p>
+          )}
+        </InkNotice>
       )}
     </InkPageShell>
   );

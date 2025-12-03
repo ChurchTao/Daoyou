@@ -3,7 +3,7 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { InkButton } from './InkComponents';
+import { InkButton, InkList, InkListItem, InkNotice } from './InkComponents';
 
 type BattleSummary = {
   id: string;
@@ -37,53 +37,36 @@ export function RecentBattles() {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-ink-secondary">近期战绩加载中……</p>;
+    return <InkNotice tone="info">近期战绩加载中……</InkNotice>;
   }
 
   if (!records.length) {
-    return <p className="text-sm text-ink-secondary">暂无战斗记录。</p>;
+    return <InkNotice>暂无战斗记录。</InkNotice>;
   }
 
   return (
-    <div className="space-y-2 text-sm">
+    <InkList dense>
       {records.map((r) => {
         const winnerName = r.winner?.name ?? '未知';
         const loserName = r.loser?.name ?? '未知';
         const isWin = !!r.winner?.name && !!r.loser?.name;
         const turns = r.turns ?? 0;
+        const battleTime = r.createdAt
+          ? new Date(r.createdAt).toLocaleString()
+          : undefined;
 
         return (
-          <Link
-            key={r.id}
-            href={`/battle/${r.id}`}
-            className="block text-ink/80 hover:text-crimson transition"
-          >
-            <span className={isWin ? 'text-emerald-600' : 'text-crimson'}>
-              {isWin ? '胜' : '战斗'}
-            </span>
-            <span className="mx-1">·</span>
-            <span>
-              {winnerName} vs {loserName}
-            </span>
-            {turns > 0 && (
-              <>
-                <span className="mx-1">·</span>
-                <span>{turns} 回合</span>
-              </>
-            )}
-            {r.createdAt && (
-              <>
-                <span className="mx-1">·</span>
-                <span className="text-ink/50">
-                  {new Date(r.createdAt).toLocaleString()}
-                </span>
-              </>
-            )}
+          <Link key={r.id} href={`/battle/${r.id}`} className="ink-list-link">
+            <InkListItem
+              title={`${isWin ? '✓ 胜' : '✗ 败'} ${winnerName} vs ${loserName}`}
+              meta={turns ? `${turns} 回合` : undefined}
+              description={battleTime}
+            />
           </Link>
         );
       })}
 
       <InkButton href="/battle/history">查看全部战绩 →</InkButton>
-    </div>
+    </InkList>
   );
 }

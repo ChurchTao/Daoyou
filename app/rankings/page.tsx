@@ -1,12 +1,21 @@
 'use client';
 
-import { InkButton, InkCard } from '@/components/InkComponents';
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkList,
+  InkListItem,
+  InkNotice,
+  InkTag,
+} from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
 import { mockRankings } from '@/data/mockRankings';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Cultivator } from '@/types/cultivator';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type RankingItem = {
   id: string;
@@ -29,6 +38,7 @@ export default function RankingsPage() {
   const [rankings, setRankings] = useState<RankingItem[]>([]);
   const [loadingRankings, setLoadingRankings] = useState(false);
   const [error, setError] = useState<string>('');
+  const pathname = usePathname();
 
   const loadRankings = async () => {
     setLoadingRankings(true);
@@ -92,55 +102,54 @@ export default function RankingsPage() {
       subtitle=""
       backHref="/"
       note={note || error}
+      currentPath={pathname}
       footer={
-        <div className="flex justify-between text-ink">
+        <InkActionGroup align="between">
           <InkButton onClick={() => loadRankings()} disabled={loadingRankings}>
             {loadingRankings ? '推演中…' : '刷新榜单'}
           </InkButton>
           <InkButton href="/">返回</InkButton>
-        </div>
+        </InkActionGroup>
       }
     >
       {!cultivator ? (
-        <div className="text-center">请先觉醒角色再来挑战天骄。</div>
+        <InkNotice>请先觉醒角色再来挑战天骄。</InkNotice>
       ) : (
-        <div className="space-y-3">
+        <InkList>
           {rankings.map((item, index) => {
             const isSelf = item.name === cultivator.name;
             return (
-              <InkCard key={item.id} highlighted={isSelf}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-6 text-base font-semibold flex-shrink-0">
-                      {index + 1}.
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate">
-                        {item.name}（{item.faction ?? '散修'}）
-                        {isSelf && <span className="equipped-mark">← 你</span>}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-sm whitespace-nowrap">
-                      <span className="status-icon">❤️</span>
-                      {item.combatRating}
-                    </span>
-                    {!isSelf && (
-                      <InkButton
-                        onClick={() => handleChallenge(item.id)}
-                        variant="primary"
-                        className="text-sm"
-                      >
-                        挑战
-                      </InkButton>
-                    )}
-                  </div>
-                </div>
-              </InkCard>
+              <InkListItem
+                key={item.id}
+                title={
+                  <>
+                    {index + 1}. {item.name}{' '}
+                    {isSelf && <span className="equipped-mark">← 你</span>}
+                  </>
+                }
+                meta={
+                  <>
+                    <InkTag tone="info">{item.cultivationLevel}</InkTag>{' '}
+                    <InkBadge tone="default">{item.faction ?? '散修'}</InkBadge>
+                  </>
+                }
+                description={`❤️ ${item.combatRating}`}
+                actions={
+                  !isSelf && (
+                    <InkButton
+                      onClick={() => handleChallenge(item.id)}
+                      variant="primary"
+                      className="text-sm"
+                    >
+                      挑战
+                    </InkButton>
+                  )
+                }
+                highlight={isSelf}
+              />
             );
           })}
-        </div>
+        </InkList>
       )}
 
       {usingMock && (
