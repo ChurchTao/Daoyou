@@ -42,7 +42,8 @@ export default function CreatePage() {
   const pathname = usePathname();
   const { pushToast, openDialog } = useInkUI();
   const [userPrompt, setUserPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [tempCultivatorId, setTempCultivatorId] = useState<string | null>(null);
   const [availableFates, setAvailableFates] = useState<
@@ -87,7 +88,7 @@ export default function CreatePage() {
       return;
     }
 
-    setLoading(true);
+    setIsGenerating(true);
     setError(null);
     setPlayer(null);
     setAvailableFates([]);
@@ -124,7 +125,7 @@ export default function CreatePage() {
       setError(errorMessage);
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -151,7 +152,7 @@ export default function CreatePage() {
       return;
     }
 
-    setLoading(true);
+    setIsSaving(true);
     setError(null);
 
     try {
@@ -183,7 +184,7 @@ export default function CreatePage() {
       setError(errorMessage);
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -316,9 +317,9 @@ export default function CreatePage() {
             <InkButton
               variant="primary"
               onClick={handleGenerateCharacter}
-              disabled={loading || !userPrompt.trim()}
+              disabled={isGenerating || !userPrompt.trim()}
             >
-              {loading ? '灵气汇聚中…' : '凝气成形'}
+              {isGenerating ? '灵气汇聚中…' : '凝气成形'}
             </InkButton>
           )}
           {player && (
@@ -502,8 +503,12 @@ export default function CreatePage() {
             <InkButton onClick={handleRegenerate} variant="secondary">
               重凝
             </InkButton>
-            <InkButton variant="primary" onClick={confirmSaveCharacter}>
-              保存道身
+            <InkButton
+              variant="primary"
+              onClick={confirmSaveCharacter}
+              disabled={isSaving}
+            >
+              {isSaving ? '入世中…' : '保存道身'}
             </InkButton>
           </InkActionGroup>
         </>

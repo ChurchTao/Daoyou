@@ -20,6 +20,7 @@ import {
   getArtifactTypeLabel,
   getAttributeInfo,
   getAttributeLabel,
+  getStatusLabel,
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname } from 'next/navigation';
