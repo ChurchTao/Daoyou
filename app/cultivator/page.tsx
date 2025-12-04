@@ -124,10 +124,9 @@ export default function CultivatorPage() {
             title={
               <span>
                 ☯ 姓名：{cultivator.name}
-                <InkBadge
-                  tone="accent"
-                  className="ml-2"
-                >{`境界 · ${cultivator.realm}${cultivator.realm_stage}`}</InkBadge>
+                <InkBadge tier={cultivator.realm} className="ml-2">
+                  {cultivator.realm_stage}
+                </InkBadge>
               </span>
             }
             meta={

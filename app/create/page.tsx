@@ -349,10 +349,9 @@ export default function CreatePage() {
                 title={
                   <span>
                     ☯ 姓名：{player.name}
-                    <InkBadge
-                      tone="accent"
-                      className="ml-2"
-                    >{`境界 · ${player.realm}${player.realm_stage}`}</InkBadge>
+                    <InkBadge tier={player.realm} className="ml-2">
+                      {player.realm_stage}
+                    </InkBadge>
                   </span>
                 }
                 meta={

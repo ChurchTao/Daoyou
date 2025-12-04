@@ -63,10 +63,16 @@ export default function HomePage() {
         { label: '气血', value: maxHp, icon: '❤️' },
         { label: '灵力', value: maxSpirit, icon: '⚡️' },
         {
-          label: '寿元',
-          value: `${cultivator.age} / ${cultivator.lifespan}`,
+          label: '性别',
+          value: cultivator.gender,
+          icon: cultivator.gender === '男' ? '♂' : '♀',
+        },
+        {
+          label: '年龄',
+          value: cultivator.age,
           icon: '⏳',
         },
+        { label: '寿元', value: cultivator.lifespan, icon: '🔮' },
       ]
     : [];
 
@@ -96,16 +102,15 @@ export default function HomePage() {
         {cultivator ? (
           <InkList dense>
             <InkListItem
-              title={`☯️ 姓名：${cultivator.name}`}
-              meta={
-                <span>
-                  <InkBadge tone="accent">{`境界 · ${cultivator.realm}${cultivator.realm_stage}`}</InkBadge>
-                  <InkBadge tone="default">
-                    {cultivator.origin || '散修'}
+              title={
+                <div className="flex items-center">
+                  <span>☯️ 姓名：{cultivator.name}</span>
+                  <InkBadge tier={cultivator.realm}>
+                    {cultivator.realm_stage}
                   </InkBadge>
-                </span>
+                </div>
               }
-              description={
+              meta={
                 <InkStatusBar
                   className="grid! grid-cols-3! gap-2"
                   items={statusItems}

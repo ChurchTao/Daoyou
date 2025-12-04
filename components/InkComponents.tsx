@@ -1,6 +1,11 @@
 'use client';
 
-import { FateQuality, SkillGrade, SpiritualRootGrade } from '@/types/constants';
+import {
+  FateQuality,
+  RealmType,
+  SkillGrade,
+  SpiritualRootGrade,
+} from '@/types/constants';
 import Link from 'next/link';
 import { type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 
@@ -175,7 +180,7 @@ export function InkActionGroup({
 /**
  * 品阶/状态徽记
  */
-type Tier = FateQuality | SpiritualRootGrade | SkillGrade;
+type Tier = FateQuality | SpiritualRootGrade | SkillGrade | RealmType;
 const tierSlugMap: Record<Tier, string> = {
   凡品: 'fan',
   灵品: 'ling',
@@ -186,7 +191,7 @@ const tierSlugMap: Record<Tier, string> = {
   仙品: 'xian',
   神品: 'shen',
   天灵根: 'tian',
-  真灵根: 'di',
+  真灵根: 'zhen',
   伪灵根: 'fan',
   变异灵根: 'shen',
   天阶上品: 'shen',
@@ -201,6 +206,15 @@ const tierSlugMap: Record<Tier, string> = {
   黄阶上品: 'ling',
   黄阶中品: 'ling',
   黄阶下品: 'ling',
+  炼气: 'fan',
+  筑基: 'ling',
+  金丹: 'xuan',
+  元婴: 'zhen',
+  化神: 'shen',
+  炼虚: 'di',
+  合体: 'tian',
+  大乘: 'xian',
+  渡劫: 'shen',
 };
 
 /**

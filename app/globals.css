@@ -28,13 +28,22 @@
   --color-ink-muted: rgba(44, 24, 16, 0.6);
 
   /* 品阶色板 */
-  --tier-fan: #6b7280;
-  --tier-ling: #0e7490;
-  --tier-xuan: #7c3aed;
-  --tier-di: #ea580c;
-  --tier-tian: #ca8a04;
-  --tier-xian: #16a34a;
-  --tier-shen: #b91c1c;
+  /* 墨灰 */
+  --tier-fan: #758a99;
+  /* 石绿 */
+  --tier-ling: #16a951;
+  /* 石蓝 */
+  --tier-xuan: #1685a9;
+  /* 茶色 */
+  --tier-zhen: #b35c44;
+  /* 花青 */
+  --tier-di: #003472;
+  /* 暗金 */
+  --tier-tian: #efbf04;
+  /* 青莲 */
+  --tier-xian: #801dae;
+  /* 朱砂 */
+  --tier-shen: #c1121f;
 
   /* 间距与圆角 */
   --ink-gap-xs: 0.25rem;
@@ -437,7 +446,7 @@ h6,
 }
 
 .ink-badge-tier-zhen {
-  color: #f97316;
+  color: var(--tier-zhen);
 }
 
 .ink-badge-tier-di {
