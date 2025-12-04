@@ -13,6 +13,10 @@ const QUALITY_PROBABILITIES: Record<FateQuality, number> = {
   灵品: 0.3,
   玄品: 0.15,
   真品: 0.05,
+  地品: 0,
+  天品: 0,
+  仙品: 0,
+  神品: 0
 };
 
 const ATTRIBUTE_KEYS = ['vitality', 'spirit', 'wisdom', 'speed', 'willpower'];
