@@ -73,6 +73,19 @@ export type RealmType = (typeof REALM_VALUES)[number];
 export const REALM_STAGE_VALUES = ['初期', '中期', '后期', '圆满'] as const;
 export type RealmStage = (typeof REALM_STAGE_VALUES)[number];
 
+// 境界 + 阶段属性上限（圆满阶段与后期共享同一上限，用于突破前的瓶颈）
+export const REALM_STAGE_CAPS: Record<RealmType, Record<RealmStage, number>> = {
+  炼气: { 初期: 20, 中期: 40, 后期: 60, 圆满: 60 },
+  筑基: { 初期: 80, 中期: 100, 后期: 120, 圆满: 120 },
+  金丹: { 初期: 140, 中期: 160, 后期: 180, 圆满: 180 },
+  元婴: { 初期: 220, 中期: 240, 后期: 260, 圆满: 260 },
+  化神: { 初期: 300, 中期: 320, 后期: 340, 圆满: 340 },
+  炼虚: { 初期: 400, 中期: 420, 后期: 440, 圆满: 440 },
+  合体: { 初期: 500, 中期: 520, 后期: 560, 圆满: 560 },
+  大乘: { 初期: 600, 中期: 620, 后期: 640, 圆满: 640 },
+  渡劫: { 初期: 700, 中期: 720, 后期: 740, 圆满: 740 },
+} as const;
+
 // 命格吉凶
 export const FATE_TYPE_VALUES = ['吉', '凶'] as const;
 export type FateType = (typeof FATE_TYPE_VALUES)[number];

@@ -6,7 +6,8 @@ import {
   SKILL_TYPE_VALUES,
   STATUS_EFFECT_VALUES,
 } from '../types/constants';
-import type { Cultivator } from '../types/cultivator';
+import type { Attributes, Cultivator } from '../types/cultivator';
+import type { BreakthroughAttemptSummary } from './breakthroughEngine';
 
 /**
  * 角色生成 Prompt 模板（系统提示词）
@@ -32,7 +33,7 @@ export function getCharacterGenerationPrompt(): string {
   "realm": "炼气 | 筑基",
   "realm_stage": "初期 | 中期 | 后期",
   "age": 整数，>= 10,
-  "lifespan": 整数，炼气 80~120，筑基 120~200，不得小于 age,
+  "lifespan": 整数，炼气 100~130，筑基 300~330，不得小于 age,
 
   "attributes": {
     "vitality": 10~120,
@@ -212,4 +213,112 @@ ${battleLog}
 请写一段完整的战斗描写。`;
 
   return [systemPrompt, userPrompt];
+}
+
+export interface BreakthroughStoryPayload {
+  cultivator: Cultivator;
+  summary: BreakthroughAttemptSummary;
+}
+
+export function getBreakthroughStoryPrompt({
+  cultivator,
+  summary,
+}: BreakthroughStoryPayload): [string, string] {
+  const systemPrompt = `你是一位修仙题材小说作者，需要描写角色闭关突破成功的瞬间。
+
+要求：
+- 120~280字，语言古风、细腻，有意境
+- 结合角色姓名、境界、悟性、灵根、功法等背景
+- 具体写出闭关年限、感悟、瓶颈、破境细节以及天地异象
+- 若为大境界突破，要强调劫难与蜕变；若为小境界，突出积累与打磨
+- 可引用诗句/心声，但不要使用列表或标题
+- 最后一两句点明突破后的境界与状态，为后续剧情埋下伏笔`;
+
+  const roots =
+    cultivator.spiritual_roots
+      ?.map(
+        (root) =>
+          `${root.element}${root.grade ? `(${root.grade}/${root.strength})` : ''}`,
+      )
+      .join('，') ?? '未知';
+  const cultivations =
+    cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
+  const attributeGain = formatAttributeGrowth(summary.attributeGrowth);
+  const chancePercent = `${(summary.chance * 100).toFixed(1)}%`;
+  const rollPercent = `${(summary.roll * 100).toFixed(1)}%`;
+  const targetRealm = summary.toRealm ?? summary.fromRealm;
+  const targetStage = summary.toStage ?? summary.fromStage;
+  const userPrompt = `【角色】${cultivator.name}｜${cultivator.realm}${cultivator.realm_stage}｜悟性 ${cultivator.attributes.wisdom}
+灵根：${roots}
+功法：${cultivations}
+年龄：${cultivator.age}，寿元：${cultivator.lifespan}
+
+【闭关】本次闭关 ${summary.yearsSpent} 年，系统判定成功率 ${chancePercent}，实际掷值 ${rollPercent}。
+【突破】从 ${summary.fromRealm}${summary.fromStage} → ${targetRealm}${targetStage}，${
+    summary.isMajor ? '大境界突破' : '小境界精进'
+  }，寿元提升 ${summary.lifespanGained} 年。
+【收获】基础属性增幅：${attributeGain || '无（已触及上限）'}。
+
+请依据以上资料创作突破成功的短篇故事，重点描绘心境、天地异象与突破瞬间。`;
+
+  return [systemPrompt, userPrompt];
+}
+
+export interface LifespanExhaustedStoryPayload {
+  cultivator: Cultivator;
+  summary: BreakthroughAttemptSummary;
+}
+
+export function getLifespanExhaustedStoryPrompt({
+  cultivator,
+  summary,
+}: LifespanExhaustedStoryPayload): [string, string] {
+  const systemPrompt = `你是一位修仙志怪小说作者，需要描写寿元耗尽、突破失败的修士坐化场景。
+
+要求：
+- 180~320字，古意盎然
+- 细写寿元将尽的征兆、失败后的心绪，以及天地对其的回应
+- 提及其曾经的境界、灵根、功法与执念
+- 结尾要引出“转世重修/轮回再来”的伏笔，语气既有惋惜又有希望`;
+
+  const roots =
+    cultivator.spiritual_roots
+      ?.map(
+        (root) =>
+          `${root.element}${root.grade ? `(${root.grade}/${root.strength})` : ''}`,
+      )
+      .join('，') ?? '未知';
+  const chancePercent = `${(summary.chance * 100).toFixed(1)}%`;
+  const rollPercent = `${(summary.roll * 100).toFixed(1)}%`;
+  const userPrompt = `【角色】${cultivator.name}｜${cultivator.realm}${cultivator.realm_stage}｜悟性 ${cultivator.attributes.wisdom}
+灵根：${roots}
+功法：${cultivator.cultivations?.map((c) => c.name).join('，') || '无'}
+年龄：${cultivator.age}，寿元上限：${cultivator.lifespan}
+
+【闭关】本次闭关 ${summary.yearsSpent} 年，突破方向：${summary.fromRealm}${summary.fromStage} → ${
+    summary.toRealm ?? summary.fromRealm
+  }${summary.toStage ?? summary.fromStage}。
+系统给出的成功率 ${chancePercent}，实际掷值 ${rollPercent}，结果失败且寿元耗尽。
+
+请描绘其油尽灯枯的心境、未了的执念，以及天道赐予转世重修机会的伏笔，让玩家在阅读后愿意点击“转世重修”。`;
+
+  return [systemPrompt, userPrompt];
+}
+
+function formatAttributeGrowth(growth: Partial<Attributes>): string {
+  if (!growth) return '';
+  const mapping: Array<{ key: keyof Attributes; label: string }> = [
+    { key: 'vitality', label: '体魄' },
+    { key: 'spirit', label: '灵力' },
+    { key: 'speed', label: '身法' },
+    { key: 'willpower', label: '神识' },
+  ];
+  return mapping
+    .map(({ key, label }) => {
+      const value = growth[key];
+      if (!value) return null;
+      return `${label}+${value}`;
+    })
+    .filter(Boolean)
+    .join('，');
 }

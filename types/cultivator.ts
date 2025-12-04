@@ -30,6 +30,33 @@ export interface SpiritualRoot {
   grade?: SpiritualRootGrade; // 天灵根 | 真灵根 | 伪灵根
 }
 
+export interface RetreatRecordModifiers {
+  comprehension: number;
+  years: number;
+  failureStreak: number;
+}
+
+export interface RetreatRecord {
+  realm: RealmType;
+  realm_stage: RealmStage;
+  years: number;
+  success: boolean;
+  chance: number;
+  roll: number;
+  timestamp: string;
+  modifiers: RetreatRecordModifiers;
+}
+
+export interface BreakthroughHistoryEntry {
+  from_realm: RealmType;
+  from_stage: RealmStage;
+  to_realm: RealmType;
+  to_stage: RealmStage;
+  age: number;
+  years_spent: number;
+  story?: string;
+}
+
 // 先天命格 / 气运
 export interface PreHeavenFateAttributeMod {
   vitality?: number;
@@ -166,6 +193,9 @@ export interface Cultivator {
   realm_stage: RealmStage;
   age: number;
   lifespan: number;
+  closed_door_years_total?: number;
+  retreat_records?: RetreatRecord[];
+  breakthrough_history?: BreakthroughHistoryEntry[];
 
   attributes: Attributes;
   spiritual_roots: SpiritualRoot[];

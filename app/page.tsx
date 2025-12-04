@@ -19,6 +19,7 @@ import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 const quickActions = [
   { label: '⚔️ 挑战天骄', href: '/rankings' },
   { label: '👤 凝视道身', href: '/cultivator' },
+  { label: '🧘 闭关问道', href: '/retreat' },
   { label: '🎒 储物袋', href: '/inventory' },
   { label: '📖 神通', href: '/skills' },
   { label: '🔥 炼器', href: '/ritual' },

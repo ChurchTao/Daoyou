@@ -7,7 +7,11 @@ import {
   StatusEffect,
 } from '@/types/constants';
 import { and, eq, gt, lt } from 'drizzle-orm';
-import type { Cultivator } from '../../types/cultivator';
+import type {
+  BreakthroughHistoryEntry,
+  Cultivator,
+  RetreatRecord,
+} from '../../types/cultivator';
 import { db } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
@@ -33,6 +37,8 @@ async function assembleCultivator(
     artifactsResult,
     consumablesResult,
     equippedResult,
+    retreatRecordsResult,
+    breakthroughHistoryResult,
   ] = await Promise.all([
     db
       .select()
@@ -62,6 +68,16 @@ async function assembleCultivator(
       .select()
       .from(schema.equippedItems)
       .where(eq(schema.equippedItems.cultivatorId, cultivatorId)),
+    db
+      .select()
+      .from(schema.retreatRecords)
+      .where(eq(schema.retreatRecords.cultivatorId, cultivatorId))
+      .orderBy(schema.retreatRecords.timestamp),
+    db
+      .select()
+      .from(schema.breakthroughHistory)
+      .where(eq(schema.breakthroughHistory.cultivatorId, cultivatorId))
+      .orderBy(schema.breakthroughHistory.createdAt),
   ]);
 
   // 组装灵根
@@ -129,6 +145,31 @@ async function assembleCultivator(
       | undefined,
   }));
 
+  const retreat_records: Cultivator['retreat_records'] =
+    retreatRecordsResult.map((record) => ({
+      realm: record.realm as Cultivator['realm'],
+      realm_stage: record.realm_stage as Cultivator['realm_stage'],
+      years: record.years,
+      success: record.success ?? false,
+      chance: record.chance,
+      roll: record.roll,
+      timestamp: record.timestamp
+        ? record.timestamp.toISOString()
+        : new Date().toISOString(),
+      modifiers: record.modifiers as RetreatRecord['modifiers'],
+    }));
+
+  const breakthrough_history: Cultivator['breakthrough_history'] =
+    breakthroughHistoryResult.map((entry) => ({
+      from_realm: entry.from_realm as Cultivator['realm'],
+      from_stage: entry.from_stage as Cultivator['realm_stage'],
+      to_realm: entry.to_realm as Cultivator['realm'],
+      to_stage: entry.to_stage as Cultivator['realm_stage'],
+      age: entry.age,
+      years_spent: entry.years_spent,
+      story: entry.story ?? undefined,
+    }));
+
   // 组装装备状态（将 UUID 转换为字符串）
   const equipped: Cultivator['equipped'] = {
     weapon: equippedResult[0]?.weapon_id
@@ -155,6 +196,9 @@ async function assembleCultivator(
     realm_stage: cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     age: cultivatorRecord.age,
     lifespan: cultivatorRecord.lifespan,
+    closed_door_years_total: cultivatorRecord.closedDoorYearsTotal ?? undefined,
+    retreat_records,
+    breakthrough_history,
     attributes: {
       vitality: cultivatorRecord.vitality,
       spirit: cultivatorRecord.spirit,
@@ -172,6 +216,7 @@ async function assembleCultivator(
     },
     equipped,
     max_skills: cultivatorRecord.max_skills,
+    balance_notes: cultivatorRecord.balance_notes || undefined,
   };
 
   return cultivator;
@@ -200,6 +245,7 @@ export async function createCultivator(
         realm_stage: cultivator.realm_stage,
         age: cultivator.age,
         lifespan: cultivator.lifespan,
+        closedDoorYearsTotal: cultivator.closed_door_years_total ?? 0,
         vitality: cultivator.attributes.vitality,
         spirit: cultivator.attributes.spirit,
         wisdom: cultivator.attributes.wisdom,
@@ -354,6 +400,7 @@ export async function updateCultivator(
       | 'lifespan'
       | 'attributes'
       | 'max_skills'
+      | 'closed_door_years_total'
     >
   >,
 ): Promise<Cultivator | null> {
@@ -394,6 +441,8 @@ export async function updateCultivator(
   }
   if (updates.max_skills !== undefined)
     updateData.max_skills = updates.max_skills;
+  if (updates.closed_door_years_total !== undefined)
+    updateData.closedDoorYearsTotal = updates.closed_door_years_total;
 
   await db
     .update(schema.cultivators)
@@ -401,6 +450,63 @@ export async function updateCultivator(
     .where(eq(schema.cultivators.id, cultivatorId));
 
   return getCultivatorById(userId, cultivatorId);
+}
+
+async function assertCultivatorOwnership(
+  userId: string,
+  cultivatorId: string,
+): Promise<void> {
+  const existing = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length === 0) {
+    throw new Error('角色不存在或无权限操作');
+  }
+}
+
+export async function addRetreatRecord(
+  userId: string,
+  cultivatorId: string,
+  record: RetreatRecord,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+  await db.insert(schema.retreatRecords).values({
+    cultivatorId,
+    realm: record.realm,
+    realm_stage: record.realm_stage,
+    years: record.years,
+    success: record.success ?? false,
+    chance: record.chance,
+    roll: record.roll,
+    timestamp: record.timestamp ? new Date(record.timestamp) : new Date(),
+    modifiers: record.modifiers,
+  });
+}
+
+export async function addBreakthroughHistoryEntry(
+  userId: string,
+  cultivatorId: string,
+  entry: BreakthroughHistoryEntry,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+  await db.insert(schema.breakthroughHistory).values({
+    cultivatorId,
+    from_realm: entry.from_realm,
+    from_stage: entry.from_stage,
+    to_realm: entry.to_realm,
+    to_stage: entry.to_stage,
+    age: entry.age,
+    years_spent: entry.years_spent,
+    story: entry.story ?? null,
+  });
 }
 
 /**

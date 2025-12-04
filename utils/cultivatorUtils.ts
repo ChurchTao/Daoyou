@@ -5,6 +5,7 @@ import {
   ElementType,
   FATE_QUALITY_VALUES,
   FateQuality,
+  REALM_STAGE_CAPS,
   REALM_STAGE_VALUES,
   REALM_VALUES,
   RealmStage,
@@ -107,18 +108,22 @@ export function validateCultivator(c: Partial<Cultivator>): boolean {
  * 获取境界属性上限
  */
 export function getRealmAttributeCap(realm: RealmType): number {
-  const caps: Record<RealmType, number> = {
-    炼气: 100,
-    筑基: 120,
-    金丹: 150,
-    元婴: 180,
-    化神: 210,
-    炼虚: 240,
-    合体: 270,
-    大乘: 300,
-    渡劫: 300,
-  };
-  return caps[realm] ?? 100;
+  const stageCaps = REALM_STAGE_CAPS[realm];
+  if (!stageCaps) return 100;
+  return (
+    stageCaps.圆满 ?? stageCaps.后期 ?? stageCaps.中期 ?? stageCaps.初期 ?? 100
+  );
+}
+
+export function getRealmStageAttributeCap(
+  realm: RealmType,
+  realmStage: RealmStage,
+): number {
+  const stageCaps = REALM_STAGE_CAPS[realm];
+  if (!stageCaps) {
+    return getRealmAttributeCap(realm);
+  }
+  return stageCaps[realmStage] ?? getRealmAttributeCap(realm);
 }
 
 /**
@@ -265,13 +270,7 @@ export function calculateFinalAttributes(c: Cultivator): FinalAttributesResult {
       fromEquipment.willpower,
   };
 
-  // 境界上限裁剪
-  const cap = getRealmAttributeCap(c.realm);
-  final.vitality = Math.min(final.vitality, cap);
-  final.spirit = Math.min(final.spirit, cap);
-  final.wisdom = Math.min(final.wisdom, cap);
-  final.speed = Math.min(final.speed, cap);
-  final.willpower = Math.min(final.willpower, cap);
+  const cap = getRealmStageAttributeCap(c.realm, c.realm_stage);
 
   return {
     final,

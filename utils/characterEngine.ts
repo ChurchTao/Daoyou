@@ -2,6 +2,7 @@ import {
   SKILL_GRADE_VALUES,
   SpiritualRootGrade,
   type ElementType,
+  type RealmStage,
   type RealmType,
   type SkillGrade,
 } from '../types/constants';
@@ -12,7 +13,7 @@ import type {
   Skill,
   SpiritualRoot,
 } from '../types/cultivator';
-import { getRealmAttributeCap } from './cultivatorUtils';
+import { getRealmStageAttributeCap } from './cultivatorUtils';
 
 export interface BalanceAdjustedCultivator {
   cultivator: Cultivator;
@@ -67,8 +68,8 @@ export const CULTIVATION_BONUS_RANGES: Record<
  */
 export function limitRealmToFoundation(
   realm: RealmType,
-  realmStage: string,
-): { realm: RealmType; realmStage: string } {
+  realmStage: RealmStage,
+): { realm: RealmType; realmStage: RealmStage } {
   if (realm === '筑基' && (realmStage === '后期' || realmStage === '圆满')) {
     return { realm: '筑基', realmStage: '后期' };
   }
@@ -85,8 +86,9 @@ export function limitRealmToFoundation(
 export function validateAttributeBalance(
   attributes: Attributes,
   realm: RealmType,
+  realmStage: RealmStage = '后期',
 ): boolean {
-  const cap = getRealmAttributeCap(realm);
+  const cap = getRealmStageAttributeCap(realm, realmStage);
   const totalCap = cap * 5; // 5个属性
   const totalAttributes =
     attributes.vitality +
@@ -104,9 +106,10 @@ export function validateAttributeBalance(
 export function adjustAttributesToBalance(
   attributes: Attributes,
   realm: RealmType,
+  realmStage: RealmStage,
   notes: string[],
 ): Attributes {
-  const cap = getRealmAttributeCap(realm);
+  const cap = getRealmStageAttributeCap(realm, realmStage);
   const totalCap = cap * 5;
   const maxTotal = totalCap * 0.8;
   const currentTotal =
@@ -409,6 +412,7 @@ export function validateAndAdjustCultivator(
   const adjustedAttributes = adjustAttributesToBalance(
     cultivator.attributes,
     realm,
+    realmStage,
     balanceNotes,
   );
 
@@ -425,7 +429,7 @@ export function validateAndAdjustCultivator(
     adjustCultivationBonus(technique),
   );
 
-  const cap = getRealmAttributeCap(realm);
+  const cap = getRealmStageAttributeCap(realm, realmStage);
   const { attributes, skills, cultivations, notes } = applyHeavenlyBalance({
     cultivator: { ...cultivator, spiritual_roots: adjustedRoots },
     attributes: adjustedAttributes,

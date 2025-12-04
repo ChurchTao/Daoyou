@@ -1,4 +1,6 @@
 import {
+  boolean,
+  doublePrecision,
   integer,
   jsonb,
   pgTable,
@@ -27,6 +29,7 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   realm_stage: varchar('realm_stage', { length: 10 }).notNull(), // 初期 | 中期 | 后期 | 圆满
   age: integer('age').notNull().default(18),
   lifespan: integer('lifespan').notNull().default(100),
+  closedDoorYearsTotal: integer('closed_door_years_total').default(0),
 
   // 基础属性
   vitality: integer('vitality').notNull(),
@@ -131,6 +134,39 @@ export const consumables = pgTable('wanjiedaoyou_consumables', {
   effect: jsonb('effect'), // ConsumableEffect
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export const retreatRecords = pgTable('wanjiedaoyou_retreat_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  realm: varchar('realm', { length: 20 }).notNull(),
+  realm_stage: varchar('realm_stage', { length: 10 }).notNull(),
+  years: integer('years').notNull(),
+  success: boolean('success').notNull().default(false),
+  chance: doublePrecision('chance').notNull(),
+  roll: doublePrecision('roll').notNull(),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  modifiers: jsonb('modifiers').notNull(),
+});
+
+export const breakthroughHistory = pgTable(
+  'wanjiedaoyou_breakthrough_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    from_realm: varchar('from_realm', { length: 20 }).notNull(),
+    from_stage: varchar('from_stage', { length: 10 }).notNull(),
+    to_realm: varchar('to_realm', { length: 20 }).notNull(),
+    to_stage: varchar('to_stage', { length: 10 }).notNull(),
+    age: integer('age').notNull(),
+    years_spent: integer('years_spent').notNull(),
+    story: text('story'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+);
 
 // 装备状态表（1对1）
 export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {

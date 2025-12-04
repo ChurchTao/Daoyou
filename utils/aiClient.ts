@@ -170,6 +170,50 @@ export async function generateBattleReport(
   return fullContent;
 }
 
+export async function generateNarrative(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature = 0.7,
+): Promise<string> {
+  try {
+    const client = getOpenAIClient();
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      max_tokens: 2048,
+      temperature,
+      top_p: 0.95,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('AI 返回的内容为空');
+    }
+    return content.trim();
+  } catch (error) {
+    console.error('生成叙事文本失败:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        throw new Error('API Key 无效，请检查 OPENAI_API_KEY 环境变量');
+      }
+      if (error.message.includes('rate limit')) {
+        throw new Error('AI 接口调用频繁，请稍后再试');
+      }
+      if (error.message.includes('insufficient_quota')) {
+        throw new Error('AI 接口配额不足，请检查账户余额');
+      }
+    }
+    throw new Error(
+      `生成叙事文本失败: ${error instanceof Error ? error.message : '未知错误'}`,
+    );
+  }
+}
+
 /**
  * 解析 AI 返回的 JSON（处理可能的格式问题）
  * @param jsonString AI 返回的 JSON 字符串
