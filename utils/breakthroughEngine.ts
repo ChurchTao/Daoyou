@@ -122,9 +122,12 @@ export function performRetreatBreakthrough(
   };
   updatedCultivator.age = rawCultivator.age + years;
   // 如果突破成功，则重置闭关年限，否则累加闭关年限
-  updatedCultivator.closed_door_years_total = success
-    ? 0
-    : (rawCultivator.closed_door_years_total ?? 0) + years;
+  updatedCultivator.closed_door_years_total = Math.floor(
+    (rawCultivator.closed_door_years_total ?? 0) + years,
+  );
+  if (success) {
+    updatedCultivator.closed_door_years_total = 0;
+  }
 
   let lifespanGained = 0;
   const attributeGrowth: Partial<Attributes> = {};
@@ -296,10 +299,10 @@ function getAttributeGrowthRange(
   const nextCap = getRealmStageAttributeCap(nextStage.realm, nextStage.stage);
   const capDiff = nextCap - fromCap;
   const wisdomModifier = getComprehensionModifier(wisdom);
-  const min = capDiff * Math.min(1, 0.3 + wisdomModifier);
-  const max = capDiff * Math.min(1, 0.7 + wisdomModifier);
-  const majorMin = min * Math.min(1, 0.5 + wisdomModifier);
-  const majorMax = max * Math.min(1, 0.8 + wisdomModifier);
+  const min = Math.round(capDiff * Math.min(1, 0.3 + wisdomModifier));
+  const max = Math.round(capDiff * Math.min(1, 0.7 + wisdomModifier));
+  const majorMin = Math.round(min * Math.min(1, 0.5 + wisdomModifier));
+  const majorMax = Math.round(max * Math.min(1, 0.8 + wisdomModifier));
   return isMajor ? { min: majorMin, max: majorMax } : { min, max };
 }
 

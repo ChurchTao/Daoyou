@@ -2,6 +2,7 @@ import {
   deleteCultivator,
   getCultivatorById,
   getCultivatorsByUserId,
+  hasDeadCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
@@ -50,8 +51,9 @@ export async function GET(request: NextRequest) {
         },
       });
     } else {
-      // 获取所有角色
+      // 获取所有存活角色
       const cultivators = await getCultivatorsByUserId(user.id);
+      const deadExists = await hasDeadCultivator(user.id);
 
       // 为每个角色计算最终属性
       const cultivatorsWithFinalAttrs = cultivators.map((c) => {
@@ -66,6 +68,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: cultivatorsWithFinalAttrs,
+        meta: {
+          hasActive: cultivatorsWithFinalAttrs.length > 0,
+          hasDead: deadExists,
+        },
       });
     }
   } catch (error) {

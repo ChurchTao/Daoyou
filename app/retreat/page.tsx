@@ -2,6 +2,7 @@
 
 import {
   InkActionGroup,
+  InkBadge,
   InkButton,
   InkInput,
   InkNotice,
@@ -141,8 +142,13 @@ export default function RetreatPage() {
       <InkSection title="【悟道修行】">
         <div className="space-y-2 text-sm leading-6">
           <p>
-            当前境界：{cultivator.realm}
-            {cultivator.realm_stage}｜剩余寿元：{remainingLifespan} 年｜累计闭关{' '}
+            当前境界：
+            <InkBadge tier={cultivator.realm}>
+              {cultivator.realm_stage}
+            </InkBadge>
+          </p>
+          <p>
+            剩余寿元：{remainingLifespan} 年｜累计闭关{' '}
             {cultivator.closed_door_years_total ?? 0} 年
           </p>
           <InkInput

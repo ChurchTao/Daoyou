@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       lifespan: result.cultivator.lifespan,
       attributes: result.cultivator.attributes,
       closed_door_years_total: result.cultivator.closed_door_years_total,
+      status: result.summary.lifespanDepleted ? 'dead' : 'active',
     });
 
     if (!saved) {

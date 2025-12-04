@@ -196,6 +196,7 @@ async function assembleCultivator(
     realm_stage: cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     age: cultivatorRecord.age,
     lifespan: cultivatorRecord.lifespan,
+    status: (cultivatorRecord.status as Cultivator['status']) ?? 'active',
     closed_door_years_total: cultivatorRecord.closedDoorYearsTotal ?? undefined,
     retreat_records,
     breakthrough_history,
@@ -246,6 +247,7 @@ export async function createCultivator(
         age: cultivator.age,
         lifespan: cultivator.lifespan,
         closedDoorYearsTotal: cultivator.closed_door_years_total ?? 0,
+        status: 'active',
         vitality: cultivator.attributes.vitality,
         spirit: cultivator.attributes.spirit,
         wisdom: cultivator.attributes.wisdom,
@@ -351,6 +353,7 @@ export async function getCultivatorById(
       and(
         eq(schema.cultivators.id, cultivatorId),
         eq(schema.cultivators.userId, userId),
+        eq(schema.cultivators.status, 'active'),
       ),
     )
     .limit(1);
@@ -371,13 +374,72 @@ export async function getCultivatorsByUserId(
   const cultivatorRecords = await db
     .select()
     .from(schema.cultivators)
-    .where(eq(schema.cultivators.userId, userId));
+    .where(
+      and(
+        eq(schema.cultivators.userId, userId),
+        eq(schema.cultivators.status, 'active'),
+      ),
+    );
 
   const cultivators = await Promise.all(
     cultivatorRecords.map((record) => assembleCultivator(record, userId)),
   );
 
   return cultivators.filter((c): c is Cultivator => c !== null);
+}
+
+export async function hasDeadCultivator(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: schema.cultivators.id })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.userId, userId),
+        eq(schema.cultivators.status, 'dead'),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
+export async function getLastDeadCultivatorSummary(userId: string): Promise<{
+  id: string;
+  name: string;
+  realm: Cultivator['realm'];
+  realm_stage: Cultivator['realm_stage'];
+  story?: string;
+} | null> {
+  const rows = await db
+    .select()
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.userId, userId),
+        eq(schema.cultivators.status, 'dead'),
+      ),
+    )
+    .orderBy(schema.cultivators.updatedAt)
+    .limit(1);
+
+  if (rows.length === 0) return null;
+
+  const record = rows[0];
+  const history = await db
+    .select()
+    .from(schema.breakthroughHistory)
+    .where(eq(schema.breakthroughHistory.cultivatorId, record.id))
+    .orderBy(schema.breakthroughHistory.createdAt)
+    .limit(1);
+
+  const storyEntry = history[0];
+
+  return {
+    id: record.id,
+    name: record.name,
+    realm: record.realm as Cultivator['realm'],
+    realm_stage: record.realm_stage as Cultivator['realm_stage'],
+    story: storyEntry?.story ?? undefined,
+  };
 }
 
 /**
@@ -401,6 +463,7 @@ export async function updateCultivator(
       | 'attributes'
       | 'max_skills'
       | 'closed_door_years_total'
+      | 'status'
     >
   >,
 ): Promise<Cultivator | null> {
@@ -433,16 +496,17 @@ export async function updateCultivator(
   if (updates.age !== undefined) updateData.age = updates.age;
   if (updates.lifespan !== undefined) updateData.lifespan = updates.lifespan;
   if (updates.attributes !== undefined) {
-    updateData.vitality = updates.attributes.vitality;
-    updateData.spirit = updates.attributes.spirit;
-    updateData.wisdom = updates.attributes.wisdom;
-    updateData.speed = updates.attributes.speed;
-    updateData.willpower = updates.attributes.willpower;
+    updateData.vitality = Math.round(updates.attributes.vitality);
+    updateData.spirit = Math.round(updates.attributes.spirit);
+    updateData.wisdom = Math.round(updates.attributes.wisdom);
+    updateData.speed = Math.round(updates.attributes.speed);
+    updateData.willpower = Math.round(updates.attributes.willpower);
   }
   if (updates.max_skills !== undefined)
     updateData.max_skills = updates.max_skills;
   if (updates.closed_door_years_total !== undefined)
     updateData.closedDoorYearsTotal = updates.closed_door_years_total;
+  if (updates.status !== undefined) updateData.status = updates.status;
 
   await db
     .update(schema.cultivators)

@@ -193,6 +193,7 @@ export interface Cultivator {
   realm_stage: RealmStage;
   age: number;
   lifespan: number;
+  status?: 'active' | 'dead';
   closed_door_years_total?: number;
   retreat_records?: RetreatRecord[];
   breakthrough_history?: BreakthroughHistoryEntry[];

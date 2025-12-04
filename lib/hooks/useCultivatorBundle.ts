@@ -7,6 +7,7 @@ import type {
   Inventory,
   Skill,
 } from '@/types/cultivator';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type FetchState = {
@@ -32,6 +33,7 @@ let cachedUserId: string | null = null;
 export function useCultivatorBundle() {
   const { user } = useAuth();
   const userId = user?.id || null;
+  const router = useRouter();
 
   // 使用 ref 来跟踪是否已经初始化过
   const initializedRef = useRef(false);
@@ -77,15 +79,34 @@ export function useCultivatorBundle() {
       const cultivatorResponse = await fetch('/api/cultivators');
       const cultivatorResult = await cultivatorResponse.json();
 
-      if (
-        !cultivatorResponse.ok ||
-        !cultivatorResult.success ||
-        cultivatorResult.data.length === 0
-      ) {
-        throw new Error('未获取到角色数据');
+      if (!cultivatorResponse.ok || !cultivatorResult.success) {
+        throw new Error(cultivatorResult.error || '未获取到角色数据');
       }
 
-      const cultivator: Cultivator = cultivatorResult.data[0];
+      const list: Cultivator[] = cultivatorResult.data || [];
+      const hasActive = !!cultivatorResult.meta?.hasActive;
+      const hasDead = !!cultivatorResult.meta?.hasDead;
+
+      if (!hasActive) {
+        // 没有在生效中的角色
+        // 如果存在已坐化角色，前端会根据 hasDead 强制引导到转世页面
+        setState((prev) => ({
+          ...prev,
+          cultivator: null,
+          inventory: defaultInventory,
+          skills: [],
+          equipped: { weapon: null, armor: null, accessory: null },
+          isLoading: false,
+          error: undefined,
+          note: hasDead ? '前世道途已尽，待转世重修。' : undefined,
+          usingMock: false,
+        }));
+        cachedData = null;
+        cachedUserId = user.id;
+        return;
+      }
+
+      const cultivator: Cultivator = list[0];
 
       // 新模型中，Cultivator 已经包含完整的 inventory、skills、equipped 数据
       // 如果 API 返回的数据不完整，可以从单独的接口获取（向后兼容）
@@ -209,6 +230,20 @@ export function useCultivatorBundle() {
       initializedRef.current = true;
     }
   }, [user, userId, loadFromServer]);
+
+  useEffect(() => {
+    const cultivator = state.cultivator;
+    if (!cultivator) return;
+    const isDead =
+      cultivator.status === 'dead' || cultivator.age >= cultivator.lifespan;
+    if (!isDead) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.location.pathname !== '/reincarnate'
+    ) {
+      router.push('/reincarnate');
+    }
+  }, [state.cultivator, router]);
 
   return {
     ...state,

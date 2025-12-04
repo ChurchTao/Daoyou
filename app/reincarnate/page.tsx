@@ -17,17 +17,45 @@ export default function ReincarnatePage() {
   const [context, setContext] = useState<ReincarnateContext | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const raw = window.sessionStorage.getItem('reincarnateContext');
-    if (raw) {
-      try {
-        setContext(JSON.parse(raw) as ReincarnateContext);
-      } catch (err) {
-        console.warn('解析转世上下文失败：', err);
-      } finally {
-        window.sessionStorage.removeItem('reincarnateContext');
+    let cancelled = false;
+
+    const init = async () => {
+      // 优先使用本地 sessionStorage（刚坐化的场景）
+      if (typeof window !== 'undefined') {
+        const raw = window.sessionStorage.getItem('reincarnateContext');
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as ReincarnateContext;
+            if (!cancelled) {
+              setContext(parsed);
+            }
+          } catch (err) {
+            console.warn('解析转世上下文失败：', err);
+          } finally {
+            window.sessionStorage.removeItem('reincarnateContext');
+          }
+          return;
+        }
       }
-    }
+
+      // 重新登录或直接访问转世页时，从服务端获取最近坐化角色信息
+      try {
+        const res = await fetch('/api/cultivators/reincarnate-context');
+        const json = await res.json();
+        if (!res.ok || !json.success || !json.data) return;
+        if (!cancelled) {
+          setContext(json.data as ReincarnateContext);
+        }
+      } catch (err) {
+        console.warn('获取转世上下文失败：', err);
+      }
+    };
+
+    void init();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -42,9 +70,7 @@ export default function ReincarnatePage() {
             {context.story}
           </div>
         ) : (
-          <InkNotice>
-            尚无前世故事，可直接返回主界面或重新创建角色。
-          </InkNotice>
+          <InkNotice>尚无前世故事，可直接返回主界面或重新创建角色。</InkNotice>
         )}
         {context?.name && (
           <p className="mt-3 text-sm text-ink-secondary">
@@ -67,4 +93,3 @@ export default function ReincarnatePage() {
     </InkPageShell>
   );
 }
-

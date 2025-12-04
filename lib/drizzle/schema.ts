@@ -30,6 +30,8 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   age: integer('age').notNull().default(18),
   lifespan: integer('lifespan').notNull().default(100),
   closedDoorYearsTotal: integer('closed_door_years_total').default(0),
+  status: varchar('status', { length: 20 }).notNull().default('active'),
+  diedAt: timestamp('died_at'),
 
   // 基础属性
   vitality: integer('vitality').notNull(),
