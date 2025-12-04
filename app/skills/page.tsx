@@ -2,16 +2,12 @@
 
 import {
   InkActionGroup,
-  InkBadge,
   InkButton,
-  InkList,
-  InkListItem,
   InkNotice,
-  InkTag,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
+import { ShenTong } from '@/components/func';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { getSkillTypeLabel, getStatusLabel } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 
 export default function SkillsPage() {
@@ -47,53 +43,14 @@ export default function SkillsPage() {
     >
       {!cultivator ? (
         <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>
-      ) : skills.length > 0 ? (
-        <InkList>
-          {skills.map((skill, index) => {
-            const typeIcon =
-              skill.type === 'attack'
-                ? '⚡️'
-                : skill.type === 'heal'
-                  ? '❤️'
-                  : skill.type === 'control'
-                    ? '🌀'
-                    : '✨';
-            const typeName = getSkillTypeLabel(skill.type);
-
-            return (
-              <InkListItem
-                key={skill.id || skill.name}
-                title={
-                  <>
-                    {typeIcon} {skill.name}{' '}
-                    <InkTag tone="info">{`${typeName}·${skill.element}`}</InkTag>
-                    {skill.grade && (
-                      <InkBadge tone="accent">{skill.grade}</InkBadge>
-                    )}
-                  </>
-                }
-                description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
-                  skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
-                }｜效果：${
-                  skill.effect
-                    ? `${getStatusLabel(skill.effect)}${
-                        skill.duration ? `（${skill.duration}回合）` : ''
-                      }`
-                    : '无'
-                }`}
-                highlight={index === skills.length - 1}
-                newMark={index === skills.length - 1}
-                actions={
-                  <InkButton disabled className="text-sm">
-                    替换
-                  </InkButton>
-                }
-              />
-            );
-          })}
-        </InkList>
       ) : (
-        <InkNotice>暂无神通，请前往闭关顿悟。</InkNotice>
+        <ShenTong
+          skills={skills}
+          showSection={false}
+          highlightLast={true}
+          markLastAsNew={true}
+          showActions={true}
+        />
       )}
 
       {usingMock && (

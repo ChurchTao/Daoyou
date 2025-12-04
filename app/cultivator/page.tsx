@@ -12,6 +12,7 @@ import {
   InkTag,
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { GongFa, LingGen, ShenTong } from '@/components/func';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
 import {
@@ -19,9 +20,6 @@ import {
   getArtifactTypeLabel,
   getAttributeInfo,
   getAttributeLabel,
-  getElementInfo,
-  getSkillTypeInfo,
-  getStatusLabel,
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname } from 'next/navigation';
@@ -159,26 +157,7 @@ export default function CultivatorPage() {
         </InkList>
       </InkSection>
 
-      {cultivator.spiritual_roots?.length > 0 && (
-        <InkSection title="【灵根】">
-          <InkList>
-            {cultivator.spiritual_roots.map((root, idx) => (
-              <InkListItem
-                key={root.element + idx}
-                title={
-                  <div className="flex items-center">
-                    <span>
-                      {getElementInfo(root.element).icon} {root.element}
-                    </span>
-                    <InkBadge tier={root.grade} />
-                  </div>
-                }
-                meta={`强度：${root.strength}`}
-              />
-            ))}
-          </InkList>
-        </InkSection>
-      )}
+      <LingGen spiritualRoots={cultivator.spiritual_roots || []} />
 
       {cultivator.pre_heaven_fates?.length > 0 && (
         <InkSection title="【先天命格】">
@@ -286,73 +265,20 @@ export default function CultivatorPage() {
         </div>
       </InkSection>
 
-      <InkSection title="【所修功法】">
-        {cultivator.cultivations && cultivator.cultivations.length > 0 ? (
-          <InkList>
-            {cultivator.cultivations.map((cult, index) => {
-              const bonusText =
-                formatAttributeBonusMap(cult.bonus) || '无属性加成';
-              return (
-                <InkListItem
-                  key={cult.name + index}
-                  title={
-                    <div className="flex items-center">
-                      <span>📜 {cult.name} </span>
-                      {cult.grade && <InkBadge tier={cult.grade} />}
-                    </div>
-                  }
-                  meta={`需求境界：${cult.required_realm}`}
-                  description={bonusText}
-                />
-              );
-            })}
-          </InkList>
-        ) : (
-          <InkNotice>暂无功法，待闭关参悟。</InkNotice>
-        )}
-      </InkSection>
+      <GongFa cultivations={cultivator.cultivations || []} />
 
-      <InkSection title="【所修神通】">
-        {skills.length > 0 ? (
-          <InkList>
-            {skills.map((skill) => {
-              const skillInfo = getSkillTypeInfo(skill.type);
-              const typeIcon = skillInfo.icon;
-              const typeName = skillInfo.label;
-
-              return (
-                <InkListItem
-                  key={skill.id || skill.name}
-                  title={
-                    <div className="flex items-center">
-                      <span>
-                        {typeIcon} {skill.name}·{skill.element}
-                      </span>
-                      <InkBadge tier={skill.grade}>{typeName}</InkBadge>
-                    </div>
-                  }
-                  description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
-                    skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
-                  }${
-                    skill.effect
-                      ? `｜效果：${getStatusLabel(skill.effect)}${
-                          skill.duration ? `（${skill.duration}回合）` : ''
-                        }`
-                      : ''
-                  }`}
-                />
-              );
-            })}
-          </InkList>
-        ) : (
-          <InkNotice>暂无神通，待闭关顿悟。</InkNotice>
-        )}
-        <div className="mt-3">
-          <InkButton href="/ritual" className="text-sm">
-            闭关顿悟新神通 →
-          </InkButton>
-        </div>
-      </InkSection>
+      <ShenTong
+        skills={skills}
+        footer={
+          skills.length > 0 ? (
+            <div className="mt-3">
+              <InkButton href="/ritual" className="text-sm">
+                闭关顿悟新神通 →
+              </InkButton>
+            </div>
+          ) : undefined
+        }
+      />
     </InkPageShell>
   );
 }

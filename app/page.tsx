@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
+import { LingGen } from '@/components/func';
 import {
   InkBadge,
   InkButton,
@@ -112,7 +113,7 @@ export default function HomePage() {
               }
               meta={
                 <InkStatusBar
-                  className="grid! grid-cols-3! gap-2"
+                  className="grid! grid-cols-3! gap-2 mt-3"
                   items={statusItems}
                 />
               }
@@ -121,16 +122,11 @@ export default function HomePage() {
               <InkListItem
                 title="👁️ 灵根"
                 meta={
-                  <div className="flex flex-wrap">
-                    {spiritualRoots.map((root, idx) => (
-                      <InkBadge
-                        tier={root.grade}
-                        key={`${root.element}-${root.grade}-${idx}`}
-                      >
-                        {root.element}
-                      </InkBadge>
-                    ))}
-                  </div>
+                  <LingGen
+                    spiritualRoots={spiritualRoots}
+                    showSection={false}
+                    compact={true}
+                  />
                 }
               />
             )}

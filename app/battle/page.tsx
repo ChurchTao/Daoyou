@@ -3,9 +3,8 @@
 import { InkButton } from '@/components/InkComponents';
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import { StatusEffect } from '@/types/constants';
-import { getStatusLabel } from '@/types/dictionaries';
 import type { Cultivator } from '@/types/cultivator';
-import { getDefaultBoss } from '@/utils/prompts';
+import { getStatusLabel } from '@/types/dictionaries';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -39,6 +38,7 @@ function BattlePageContent() {
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
   const [opponentLoading, setOpponentLoading] = useState(false);
+  const [opponentError, setOpponentError] = useState<string | null>(null);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [autoPlayTurn, setAutoPlayTurn] = useState(true);
 
@@ -64,68 +64,30 @@ function BattlePageContent() {
     // 获取对手角色
     const fetchOpponent = async () => {
       setOpponentLoading(true);
+      setOpponentError(null);
       try {
         const opponentId = searchParams.get('opponent');
-        if (opponentId) {
-          // 从敌人API获取对手数据
-          const enemyResponse = await fetch(`/api/enemies/${opponentId}`);
-          const enemyResult = await enemyResponse.json();
-
-          if (enemyResult.success) {
-            setOpponent(enemyResult.data);
-          } else {
-            // 如果获取失败，使用默认BOSS
-            const defaultBoss = getDefaultBoss();
-            const { vitality, spirit, wisdom, speed, willpower } =
-              defaultBoss.attributes;
-            setOpponent({
-              id: defaultBoss.id!,
-              name: defaultBoss.name,
-              realm: defaultBoss.realm,
-              realm_stage: defaultBoss.realm_stage,
-              spiritual_roots: defaultBoss.spiritual_roots,
-              background: defaultBoss.background,
-              combatRating:
-                Math.round(
-                  (vitality + spirit + wisdom + speed + willpower) / 5,
-                ) || 0,
-            });
-          }
-        } else {
-          // 如果没有对手ID，使用默认BOSS
-          const defaultBoss = getDefaultBoss();
-          const { vitality, spirit, wisdom, speed, willpower } =
-            defaultBoss.attributes;
-          setOpponent({
-            id: defaultBoss.id!,
-            name: defaultBoss.name,
-            realm: defaultBoss.realm,
-            realm_stage: defaultBoss.realm_stage,
-            spiritual_roots: defaultBoss.spiritual_roots,
-            background: defaultBoss.background,
-            combatRating:
-              Math.round(
-                (vitality + spirit + wisdom + speed + willpower) / 5,
-              ) || 0,
-          });
+        if (!opponentId) {
+          throw new Error('missing_opponent');
         }
+
+        // 从敌人API获取对手数据
+        const enemyResponse = await fetch(`/api/enemies/${opponentId}`);
+        const enemyResult = await enemyResponse.json();
+
+        if (!enemyResponse.ok || !enemyResult.success) {
+          throw new Error(enemyResult.error || 'fetch_failed');
+        }
+
+        setOpponent(enemyResult.data);
       } catch (error) {
         console.error('获取对手数据失败:', error);
-        // 使用默认BOSS
-        const defaultBoss = getDefaultBoss();
-        const { vitality, spirit, wisdom, speed, willpower } =
-          defaultBoss.attributes;
-        setOpponent({
-          id: defaultBoss.id!,
-          name: defaultBoss.name,
-          realm: defaultBoss.realm,
-          realm_stage: defaultBoss.realm_stage,
-          spiritual_roots: defaultBoss.spiritual_roots,
-          background: defaultBoss.background,
-          combatRating:
-            Math.round((vitality + spirit + wisdom + speed + willpower) / 5) ||
-            0,
-        });
+        const errMsg =
+          error instanceof Error && error.message === 'missing_opponent'
+            ? '天机未定，对手无踪，难启杀局。'
+            : '天机逆乱，对手行迹莫测，战不可开。';
+        setOpponentError(errMsg);
+        setOpponent(null);
       } finally {
         setOpponentLoading(false);
       }
@@ -143,12 +105,21 @@ function BattlePageContent() {
       !battleResult &&
       !loading &&
       !playerLoading &&
-      !opponentLoading
+      !opponentLoading &&
+      !opponentError
     ) {
       handleBattle();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, opponent, battleResult, loading, playerLoading, opponentLoading]);
+  }, [
+    player,
+    opponent,
+    battleResult,
+    loading,
+    playerLoading,
+    opponentLoading,
+    opponentError,
+  ]);
 
   // 战斗结果到达后，重置回合播放
   useEffect(() => {
@@ -300,6 +271,7 @@ function BattlePageContent() {
     streamingReport ||
     finalReport ||
     (battleResult ? `${battleResult.winner.name} 获胜！` : '');
+  const opponentName = opponent?.name ?? '未知对手';
 
   return (
     <div className="bg-paper min-h-screen">
@@ -312,9 +284,13 @@ function BattlePageContent() {
         {/* 标题 */}
         <div className="mb-6 text-center">
           <h1 className="font-ma-shan-zheng text-2xl text-ink">
-            【战报 · {player?.name} vs {opponent?.name}】
+            【战报 · {player?.name} vs {opponentName}】
           </h1>
         </div>
+
+        {opponentError && (
+          <p className="mb-6 text-center text-crimson">{opponentError}</p>
+        )}
 
         {/* 数值战斗回放：HP / MP / 状态随回合变化（遵循极简文字 UI 规范） */}
         {battleResult?.timeline &&

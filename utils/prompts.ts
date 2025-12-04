@@ -148,10 +148,16 @@ export function getBattleReportPrompt({
 
   const summarizeCultivator = (cultivator: Cultivator) => {
     const attrs = cultivator.attributes;
-    const mainRoot = cultivator.spiritual_roots[0];
+    const roots = cultivator.spiritual_roots
+      .map((root) => `${root.element}`)
+      .join('，');
     const skills =
       cultivator.skills
         ?.map((skill) => `${skill.name}(${skill.element}/${skill.type})`)
+        .join('，') ?? '无';
+    const cultivations =
+      cultivator.cultivations
+        ?.map((cultivation) => `${cultivation.name}`)
         .join('，') ?? '无';
     const fates =
       cultivator.pre_heaven_fates
@@ -159,23 +165,24 @@ export function getBattleReportPrompt({
         .join('，') ?? '无';
     return `姓名：${cultivator.name}
 境界：${cultivator.realm}${cultivator.realm_stage}
-灵根/属性：${mainRoot?.element ?? '无'} 灵根·${mainRoot?.strength ?? 0}
+灵根/属性：${roots}
 属性：体魄${attrs.vitality} 灵力${attrs.spirit} 悟性${attrs.wisdom} 速度${attrs.speed} 神识${attrs.willpower}
-技能：${skills}
-先天气运：${fates}`;
+神通：${skills}
+功法：${cultivations}
+先天气运/体质：${fates}`;
   };
 
   const battleLog = (battleResult.log || []).join('\n');
 
-  const systemPrompt = `你是一位修仙题材连载小说作者，擅长写具有画面感的战斗场景。请根据设定与战斗日志，创作分回合的战斗播报，每回合描述控制在30-50字左右。
+  const systemPrompt = `你是一位修仙题材连载小说作者，擅长写具有画面感的战斗场景。请根据设定与战斗日志，创作分回合的战斗播报，每回合描述控制在30-100字左右。
 
 要求：
-- 语言热血、古风、有镜头感
+- 语言热血、古风、有镜头感、可以有台词、可以有心理描写
 - 每回合战斗描述独立成行，以"【第X回合】"开头
 - 双方招式须与技能、气运相符
 - 明确写出每回合的攻击者、技能名称和伤害/治疗效果
 - 若触发顿悟或底牌，需要重点描写
-- 结尾单独一行，点明胜负与双方状态（可引用血量信息）
+- 结尾单独一行，点明胜负与双方状态，可以有角色台词、心理描写
 - 请为关键信息添加HTML标记，具体规则如下：
   - 回合数：<turn>【第X回合】</turn>
   - 人名：<name>人名</name>
@@ -205,110 +212,4 @@ ${battleLog}
 请写一段完整的战斗描写。`;
 
   return [systemPrompt, userPrompt];
-}
-
-/**
- * 预设 Boss 角色（用于测试和初期对战）
- */
-export function getDefaultBoss(): Cultivator {
-  return {
-    id: 'boss-001',
-    name: '血手人屠',
-    gender: '男',
-    origin: '魔渊深处',
-    personality: '嗜血成性，杀意滔天',
-    realm: '元婴',
-    realm_stage: '后期',
-    age: 350,
-    lifespan: 600,
-    attributes: {
-      vitality: 110,
-      spirit: 80,
-      wisdom: 65,
-      speed: 60,
-      willpower: 70,
-    },
-    spiritual_roots: [
-      { element: '火', strength: 80 },
-      { element: '土', strength: 40 },
-    ],
-    pre_heaven_fates: [
-      {
-        name: '血煞命格',
-        type: '凶',
-        description: '煞气入骨，杀孽滔天。',
-        attribute_mod: { vitality: 15, wisdom: -5 },
-      },
-      {
-        name: '魔心不灭',
-        type: '吉',
-        description: '魔念护身，百劫不磨。',
-        attribute_mod: { willpower: 10 },
-      },
-      {
-        name: '尸山血海',
-        type: '凶',
-        description: '血海为源，冥焰滔天。',
-        attribute_mod: { spirit: 10 },
-      },
-    ],
-    cultivations: [],
-    skills: [
-      {
-        id: 'sk_boss_blood_sea',
-        name: '血海滔天',
-        type: 'attack',
-        power: 120,
-        element: '火',
-        cooldown: 1,
-        cost: 30,
-        effect: 'burn',
-        duration: 2,
-      },
-      {
-        id: 'sk_boss_flame_shield',
-        name: '魔焰护身',
-        type: 'buff',
-        power: 60,
-        element: '火',
-        cooldown: 2,
-        cost: 20,
-        effect: 'speed_up',
-        duration: 2,
-      },
-      {
-        id: 'sk_boss_blood_heal',
-        name: '血元回潮',
-        type: 'heal',
-        power: 90,
-        element: '土',
-        cooldown: 2,
-        cost: 25,
-        effect: undefined,
-      },
-    ],
-    inventory: {
-      artifacts: [
-        {
-          id: 'eq_boss_blade',
-          name: '血炼魔刀',
-          slot: 'weapon',
-          element: '火',
-          bonus: { vitality: 8, spirit: 10 },
-          special_effects: [],
-          curses: [],
-        },
-      ],
-      consumables: [],
-    },
-    equipped: {
-      weapon: 'eq_boss_blade',
-      armor: null,
-      accessory: null,
-    },
-    max_skills: 4,
-    background:
-      '昔年正道第一，如今坠入魔渊，以血养道，屠戮无数，被世人称为血手人屠。',
-    prompt: '魔道巨擘，嗜血成性',
-  };
 }

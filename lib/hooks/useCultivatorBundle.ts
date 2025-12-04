@@ -7,7 +7,7 @@ import type {
   Inventory,
   Skill,
 } from '@/types/cultivator';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type FetchState = {
   cultivator: Cultivator | null;
@@ -25,19 +25,38 @@ const defaultInventory: Inventory = {
   consumables: [],
 };
 
+// 模块级别的缓存，在页面切换时保持数据
+let cachedData: FetchState | null = null;
+let cachedUserId: string | null = null;
+
 export function useCultivatorBundle() {
   const { user } = useAuth();
-  const [state, setState] = useState<FetchState>({
-    cultivator: null,
-    inventory: defaultInventory,
-    skills: [],
-    equipped: { weapon: null, armor: null, accessory: null },
-    isLoading: false,
-    usingMock: false,
+  const userId = user?.id || null;
+
+  // 使用 ref 来跟踪是否已经初始化过
+  const initializedRef = useRef(false);
+
+  // 初始化时从缓存恢复数据（如果存在且用户ID匹配）
+  const [state, setState] = useState<FetchState>(() => {
+    // 注意：这里 userId 可能还是 null（首次渲染时），所以只检查缓存是否存在
+    // 实际的用户ID匹配会在 useEffect 中处理
+    if (cachedData && cachedUserId) {
+      return cachedData;
+    }
+    return {
+      cultivator: null,
+      inventory: defaultInventory,
+      skills: [],
+      equipped: { weapon: null, armor: null, accessory: null },
+      isLoading: false,
+      usingMock: false,
+    };
   });
 
   const loadFromServer = useCallback(async () => {
     if (!user) {
+      cachedData = null;
+      cachedUserId = null;
       setState((prev) => ({
         ...prev,
         cultivator: null,
@@ -124,7 +143,7 @@ export function useCultivatorBundle() {
         }
       }
 
-      setState({
+      const newState = {
         cultivator: {
           ...cultivator,
           inventory,
@@ -138,7 +157,13 @@ export function useCultivatorBundle() {
         error: undefined,
         note: undefined,
         usingMock: false,
-      });
+      };
+
+      // 更新缓存
+      cachedData = newState;
+      cachedUserId = user.id;
+
+      setState(newState);
     } catch (error) {
       console.warn('加载角色资料失败，回退到占位数据：', error);
       setState((prev) => ({
@@ -149,8 +174,41 @@ export function useCultivatorBundle() {
   }, [user]);
 
   useEffect(() => {
-    loadFromServer();
-  }, [loadFromServer]);
+    // 如果没有用户，清除缓存
+    if (!user) {
+      if (cachedData) {
+        cachedData = null;
+        cachedUserId = null;
+      }
+      initializedRef.current = false;
+      return;
+    }
+
+    // 如果用户ID变化，清除缓存并重新加载
+    if (cachedUserId !== userId) {
+      cachedData = null;
+      cachedUserId = null;
+      initializedRef.current = false;
+    }
+
+    // 如果缓存存在且用户ID匹配，直接使用缓存数据（不重新加载）
+    if (cachedData && cachedUserId === userId) {
+      if (!initializedRef.current) {
+        setState(cachedData);
+        initializedRef.current = true;
+      }
+      return;
+    }
+
+    // 只有在以下情况才从服务器加载：
+    // 1. 有用户
+    // 2. 没有缓存数据或用户ID不匹配
+    // 3. 还未初始化过
+    if (!initializedRef.current) {
+      loadFromServer();
+      initializedRef.current = true;
+    }
+  }, [user, userId, loadFromServer]);
 
   return {
     ...state,

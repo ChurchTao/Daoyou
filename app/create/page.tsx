@@ -1,5 +1,6 @@
 'use client';
 
+import { GongFa, LingGen, ShenTong } from '@/components/func';
 import {
   InkActionGroup,
   InkBadge,
@@ -19,9 +20,6 @@ import type { Attributes, Cultivator } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
   getAttributeInfo,
-  getElementInfo,
-  getSkillTypeInfo,
-  getStatusLabel,
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname, useRouter } from 'next/navigation';
@@ -34,14 +32,6 @@ const getCombatRating = (cultivator: Cultivator | null): string => {
     (vitality + spirit + wisdom + speed + willpower) / 5,
   ).toString();
 };
-
-const BASE_ATTRIBUTE_KEYS: Array<keyof Cultivator['attributes']> = [
-  'vitality',
-  'spirit',
-  'wisdom',
-  'speed',
-  'willpower',
-];
 
 /**
  * 角色创建页 —— 「凝气篇」
@@ -388,26 +378,7 @@ export default function CreatePage() {
             </InkList>
           </InkSection>
 
-          {player.spiritual_roots?.length > 0 && (
-            <InkSection title="【灵根】">
-              <InkList>
-                {player.spiritual_roots.map((root, idx) => (
-                  <InkListItem
-                    key={root.element + idx}
-                    title={
-                      <div className="flex items-center">
-                        <span>
-                          {getElementInfo(root.element).icon} {root.element}
-                        </span>
-                        <InkBadge tier={root.grade} />
-                      </div>
-                    }
-                    meta={`强度：${root.strength}`}
-                  />
-                ))}
-              </InkList>
-            </InkSection>
-          )}
+          <LingGen spiritualRoots={player.spiritual_roots || []} />
 
           <InkSection title="【根基属性】">
             {Object.entries(player.attributes).map(([key, baseValue]) => {
@@ -512,62 +483,9 @@ export default function CreatePage() {
             </InkSection>
           )}
 
-          {player.cultivations && player.cultivations.length > 0 && (
-            <InkSection title="【功法】">
-              <InkList>
-                {player.cultivations.map((cult, idx) => (
-                  <InkListItem
-                    key={cult.name + idx}
-                    title={
-                      <div className="flex items-center">
-                        <span>📜 {cult.name} </span>
-                        {cult.grade && <InkBadge tier={cult.grade} />}
-                      </div>
-                    }
-                    meta={`需求境界：${cult.required_realm}`}
-                    description={
-                      formatAttributeBonusMap(cult.bonus) || '无属性加成'
-                    }
-                  />
-                ))}
-              </InkList>
-            </InkSection>
-          )}
+          <GongFa cultivations={player.cultivations || []} title="【功法】" />
 
-          {player.skills && player.skills.length > 0 && (
-            <InkSection title="【神通】">
-              <InkList>
-                {player.skills.map((skill) => {
-                  const skillInfo = getSkillTypeInfo(skill.type);
-                  const typeIcon = skillInfo.icon;
-                  const typeName = skillInfo.label;
-
-                  return (
-                    <InkListItem
-                      key={skill.id || skill.name}
-                      title={
-                        <div className="flex items-center">
-                          <span>
-                            {typeIcon} {skill.name}·{skill.element}
-                          </span>
-                          <InkBadge tier={skill.grade}>{typeName}</InkBadge>
-                        </div>
-                      }
-                      description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
-                        skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
-                      }${
-                        skill.effect
-                          ? `｜效果：${getStatusLabel(skill.effect)}${
-                              skill.duration ? `（${skill.duration}回合）` : ''
-                            }`
-                          : ''
-                      }`}
-                    />
-                  );
-                })}
-              </InkList>
-            </InkSection>
-          )}
+          <ShenTong skills={player.skills || []} title="【神通】" />
 
           <InkSection title="【战力评估】">
             <InkNotice tone="info">
