@@ -3,7 +3,7 @@
 /* 引入本地字体 */
 @font-face {
   font-family: 'LXGWWenKai';
-  src: url('/assets/LXGWWenKaiLite-Regular.ttf') format('truetype');
+  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/LXGWWenKaiLite-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -11,7 +11,7 @@
 
 @font-face {
   font-family: 'Ma Shan Zheng';
-  src: url('/assets/Ma_Shan_Zheng/MaShanZheng-Regular.ttf') format('truetype');
+  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/MaShanZheng-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
