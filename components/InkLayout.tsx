@@ -44,9 +44,9 @@ export function InkPageShell({
 }: InkPageShellProps) {
   const baseNav = navItems ?? [
     { label: '首页', href: '/' },
-    { label: '储物', href: '/inventory' },
-    { label: '神通', href: '/skills' },
-    { label: '天机榜', href: '/rankings' },
+    { label: '储物袋', href: '/inventory' },
+    { label: '道身', href: '/cultivator' },
+    { label: '天骄榜', href: '/rankings' },
   ];
 
   return (

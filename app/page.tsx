@@ -17,9 +17,9 @@ import { RecentBattles } from '@/components/RecentBattles';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 
 const quickActions = [
-  { label: '⚔️ 挑战天骄', href: '/rankings' },
-  { label: '👤 凝视道身', href: '/cultivator' },
-  { label: '🧘 闭关问道', href: '/retreat' },
+  { label: '⚔️ 天骄榜', href: '/rankings' },
+  { label: '👤 道身', href: '/cultivator' },
+  { label: '🧘 闭关', href: '/retreat' },
   { label: '🎒 储物袋', href: '/inventory' },
   { label: '📖 神通', href: '/skills' },
   { label: '🔥 炼器', href: '/ritual' },
@@ -149,24 +149,6 @@ export default function HomePage() {
         )}
       </InkSection>
 
-      <InkSection title="【天机】">
-        <InkList dense>
-          <InkListItem title="> 今日宜" description="炼器、挑战" />
-          <InkListItem
-            title="> 今日忌"
-            description={
-              cultivator &&
-              cultivator.pre_heaven_fates.some((f) => f.name.includes('孤辰'))
-                ? '双修（身负孤辰入命）'
-                : '暂无'
-            }
-          />
-          <InkListItem
-            title="> 占位提示"
-            description="天机文案将由 AIGC 生成，接口接入后自动填充。"
-          />
-        </InkList>
-      </InkSection>
       {cultivator && (
         <InkSection title="【快捷入口】">
           <div className="flex flex-wrap gap-3">

@@ -111,8 +111,8 @@ export default function CultivatorPage() {
       footer={
         <InkActionGroup align="between">
           <InkButton href="/">← 返回主界</InkButton>
-          <InkButton href="/battle" variant="secondary">
-            推演战力
+          <InkButton href="/retreat" variant="secondary">
+            闭关修炼
           </InkButton>
         </InkActionGroup>
       }
@@ -273,8 +273,8 @@ export default function CultivatorPage() {
         footer={
           skills.length > 0 ? (
             <div className="mt-3">
-              <InkButton href="/ritual" className="text-sm">
-                闭关顿悟新神通 →
+              <InkButton href="/skills" className="text-sm">
+                所有神通一览 →
               </InkButton>
             </div>
           ) : undefined
