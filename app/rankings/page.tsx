@@ -35,8 +35,6 @@ type MyRankInfo = {
   isProtected: boolean;
 };
 
-
-
 export default function RankingsPage() {
   const router = useRouter();
   const { cultivator, isLoading, note } = useCultivatorBundle();
@@ -295,25 +293,6 @@ export default function RankingsPage() {
                       {isChallenging ? '挑战中…' : '挑战'}
                     </InkButton>,
                   );
-                } else if (!isSelf) {
-                  let reason: string | null = null;
-                  if (item.isNewcomer) {
-                    reason = '保护期';
-                  } else if (myRank && myRank <= item.rank) {
-                    reason = '排名过低';
-                  } else if (remainingChallenges === 0) {
-                    reason = '次数已用完';
-                  }
-                  if (reason) {
-                    actions.push(
-                      <span
-                        key="reason"
-                        className="text-xs text-ink-secondary whitespace-nowrap"
-                      >
-                        {reason}
-                      </span>,
-                    );
-                  }
                 }
 
                 if (!isSelf) {

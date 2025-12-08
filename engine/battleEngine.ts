@@ -543,7 +543,7 @@ export function simulateBattle(
   ): BattleUnit => ({
     id,
     data,
-    hp: 80 + calcFinalAttrs(data).final.vitality,
+    hp: 80 + calcFinalAttrs(data).final.vitality * 5,
     mp: calcFinalAttrs(data).final.spirit * 2,
     statuses: new Map(),
     skillCooldowns: new Map(data.skills.map((s) => [s.id!, 0])),

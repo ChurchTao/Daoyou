@@ -163,8 +163,12 @@ function ChallengeBattlePageContent() {
                   opponentHp: result.opponentHp,
                   timeline: result.timeline ?? [],
                 });
-                // 设置对手信息
-                setOpponent(result.loser);
+                // 设置对手信息：判断谁是对手（不是玩家的那个）
+                const opponentData =
+                  result.winner.id === player?.id
+                    ? result.loser
+                    : result.winner;
+                setOpponent(opponentData);
               } else if (data.type === 'chunk') {
                 // 接收播报内容块
                 fullReport += data.content;
