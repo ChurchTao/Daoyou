@@ -6,7 +6,7 @@ import {
   SkillType,
   StatusEffect,
 } from '@/types/constants';
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 import type {
   BreakthroughHistoryEntry,
   Cultivator,
@@ -400,6 +400,165 @@ export async function hasDeadCultivator(userId: string): Promise<boolean> {
     )
     .limit(1);
   return rows.length > 0;
+}
+
+export interface CultivatorWithOwner {
+  cultivator: Cultivator;
+  userId: string;
+  updatedAt?: Date | null;
+}
+
+export interface CultivatorBasic {
+  id: string;
+  userId: string;
+  name: string;
+  realm: string;
+  realm_stage: string;
+  origin?: string | null;
+  attributes: Attributes;
+  updatedAt?: Date | null;
+}
+
+/**
+ * 获取角色所属用户ID（不校验当前用户，系统用途）
+ */
+export async function getCultivatorOwnerId(
+  cultivatorId: string,
+): Promise<string | null> {
+  const record = await db
+    .select({
+      userId: schema.cultivators.userId,
+      status: schema.cultivators.status,
+    })
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId))
+    .limit(1);
+
+  if (record.length === 0 || record[0].status !== 'active') {
+    return null;
+  }
+
+  return record[0].userId;
+}
+
+/**
+ * 根据ID获取角色（系统用途，不做用户匹配校验）
+ */
+export async function getCultivatorByIdUnsafe(
+  cultivatorId: string,
+): Promise<CultivatorWithOwner | null> {
+  const record = await db
+    .select()
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.id, cultivatorId),
+        eq(schema.cultivators.status, 'active'),
+      ),
+    )
+    .limit(1);
+
+  if (record.length === 0) {
+    return null;
+  }
+
+  const full = await assembleCultivator(record[0], record[0].userId);
+  if (!full) {
+    return null;
+  }
+
+  return {
+    cultivator: full,
+    userId: record[0].userId,
+    updatedAt: record[0].updatedAt,
+  };
+}
+
+/**
+ * 批量获取角色（系统用途，不做用户匹配校验）
+ */
+export async function getCultivatorsByIdsUnsafe(
+  cultivatorIds: string[],
+): Promise<CultivatorWithOwner[]> {
+  if (cultivatorIds.length === 0) {
+    return [];
+  }
+
+  const records = await db
+    .select()
+    .from(schema.cultivators)
+    .where(
+      and(
+        inArray(schema.cultivators.id, cultivatorIds),
+        eq(schema.cultivators.status, 'active'),
+      ),
+    );
+
+  const assembled = await Promise.all(
+    records.map(async (record): Promise<CultivatorWithOwner | null> => {
+      const full = await assembleCultivator(record, record.userId);
+      if (!full) return null;
+      return {
+        cultivator: full,
+        userId: record.userId,
+        updatedAt: record.updatedAt,
+      };
+    }),
+  );
+
+  return assembled.filter((item): item is CultivatorWithOwner => item !== null);
+}
+
+/**
+ * 批量获取角色主表基础信息（系统用途）
+ */
+export async function getCultivatorBasicsByIdsUnsafe(
+  cultivatorIds: string[],
+): Promise<CultivatorBasic[]> {
+  if (cultivatorIds.length === 0) {
+    return [];
+  }
+
+  const rows = await db
+    .select({
+      id: schema.cultivators.id,
+      userId: schema.cultivators.userId,
+      name: schema.cultivators.name,
+      realm: schema.cultivators.realm,
+      realm_stage: schema.cultivators.realm_stage,
+      origin: schema.cultivators.origin,
+      vitality: schema.cultivators.vitality,
+      spirit: schema.cultivators.spirit,
+      wisdom: schema.cultivators.wisdom,
+      speed: schema.cultivators.speed,
+      willpower: schema.cultivators.willpower,
+      updatedAt: schema.cultivators.updatedAt,
+      status: schema.cultivators.status,
+    })
+    .from(schema.cultivators)
+    .where(
+      and(
+        inArray(schema.cultivators.id, cultivatorIds),
+        eq(schema.cultivators.status, 'active'),
+      ),
+    );
+
+  return rows.map((row) => ({
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    realm: row.realm,
+    realm_stage: row.realm_stage,
+    origin: row.origin,
+    attributes: {
+      vitality: row.vitality,
+      spirit: row.spirit,
+      wisdom: row.wisdom,
+      speed: row.speed,
+      willpower: row.willpower,
+    },
+    updatedAt: row.updatedAt,
+  }));
 }
 
 export async function getLastDeadCultivatorSummary(userId: string): Promise<{

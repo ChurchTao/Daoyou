@@ -1,12 +1,12 @@
-import type { Cultivator } from '@/types/cultivator';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import { getCultivatorBasicsByIdsUnsafe } from '@/lib/repositories/cultivatorRepository';
+import type { Attributes, Cultivator } from '@/types/cultivator';
 import { redis } from './index';
 
 const RANKING_LIST_KEY = 'golden_rank:list';
-const CULTIVATOR_INFO_PREFIX = 'golden_rank:cultivator:';
 const PROTECTION_PREFIX = 'golden_rank:protection:';
 const DAILY_CHALLENGES_PREFIX = 'golden_rank:daily_challenges:';
 const CHALLENGE_LOCK_PREFIX = 'golden_rank:challenge_lock:';
+const LEGACY_CULTIVATOR_INFO_PREFIX = 'golden_rank:cultivator:'; // 兼容老数据清理
 
 const MAX_RANKING_SIZE = 100;
 const PROTECTION_DURATION = 1800; // 30分钟，单位：秒
@@ -36,10 +36,8 @@ export interface CultivatorRankInfo {
 /**
  * 计算战力评分
  */
-function calcCombatRating(cultivator: Cultivator): number {
-  if (!cultivator?.attributes) return 0;
-  const { final } = calculateFinalAttributes(cultivator);
-  const { vitality, spirit, wisdom, speed, willpower } = final;
+function calcCombatRatingFromAttributes(attrs: Attributes): number {
+  const { vitality, spirit, wisdom, speed, willpower } = attrs;
   return Math.round((vitality + spirit + wisdom + speed + willpower) / 5);
 }
 
@@ -55,32 +53,66 @@ function getTodayString(): string {
 }
 
 /**
- * 获取排行榜列表（前100名）
+ * 获取排行榜顺序及保护信息
  */
-export async function getRankingList(): Promise<RankingItem[]> {
-  // Upstash Redis: zrange(key, start, stop, { rev?: boolean })
+async function getRankingOrder(): Promise<
+  { cultivatorId: string; rank: number; isNewcomer: boolean }[]
+> {
   const members = await redis.zrange(RANKING_LIST_KEY, 0, MAX_RANKING_SIZE - 1);
 
-  const items: RankingItem[] = [];
+  const items: { cultivatorId: string; rank: number; isNewcomer: boolean }[] =
+    [];
   for (let i = 0; i < members.length; i++) {
     const cultivatorId = members[i] as string;
     const rank = i + 1;
-    const info = await getCultivatorRankInfo(cultivatorId);
-    if (info) {
-      const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-      const protectionTime = await redis.get(protectionKey);
-      const isNewcomer = protectionTime
-        ? Date.now() - parseInt(protectionTime as string, 10) <
-          PROTECTION_DURATION * 1000
-        : false;
+    const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
+    const protectionTime = await redis.get(protectionKey);
+    const isNewcomer = protectionTime
+      ? Date.now() - parseInt(protectionTime as string, 10) <
+        PROTECTION_DURATION * 1000
+      : false;
 
-      items.push({
-        ...info,
-        cultivatorId,
-        rank,
-        isNewcomer,
-      });
-    }
+    items.push({
+      cultivatorId,
+      rank,
+      isNewcomer,
+    });
+  }
+
+  return items;
+}
+
+/**
+ * 获取排行榜列表（回表查询最新数据）
+ */
+export async function getRankingList(): Promise<RankingItem[]> {
+  const order = await getRankingOrder();
+  const ids = order.map((item) => item.cultivatorId);
+  const cultivators = await getCultivatorBasicsByIdsUnsafe(ids);
+  const map = new Map(cultivators.map((item) => [item.id, item]));
+
+  const items: RankingItem[] = [];
+  for (const entry of order) {
+    const record = map.get(entry.cultivatorId);
+    if (!record) continue;
+
+    const combatRating = calcCombatRatingFromAttributes(record.attributes);
+    items.push({
+      cultivatorId: entry.cultivatorId,
+      rank: entry.rank,
+      name: record.name,
+      realm: record.realm,
+      realm_stage: record.realm_stage,
+      combat_rating: combatRating,
+      faction: record.origin || '',
+      spirit_root: '无',
+      user_id: record.userId,
+      isNewcomer: entry.isNewcomer,
+      updated_at:
+        record.updatedAt instanceof Date
+          ? record.updatedAt.getTime()
+          : Date.now(),
+    });
   }
 
   return items;
@@ -92,23 +124,23 @@ export async function getRankingList(): Promise<RankingItem[]> {
 export async function getCultivatorRankInfo(
   cultivatorId: string,
 ): Promise<Omit<RankingItem, 'cultivatorId' | 'rank' | 'isNewcomer'> | null> {
-  const infoKey = `${CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
-  // Upstash Redis: hgetall(key) 返回 Record<string, string>
-  const info = await redis.hgetall<Record<string, string>>(infoKey);
-
-  if (!info || Object.keys(info).length === 0) {
+  const [record] = await getCultivatorBasicsByIdsUnsafe([cultivatorId]);
+  if (!record) {
     return null;
   }
 
   return {
-    name: info.name || '',
-    realm: info.realm || '',
-    realm_stage: info.realm_stage || '',
-    combat_rating: parseInt(info.combat_rating || '0', 10),
-    faction: info.faction || undefined,
-    spirit_root: info.spirit_root || '无',
-    user_id: info.user_id || '',
-    updated_at: parseInt(info.updated_at || '0', 10),
+    name: record.name,
+    realm: record.realm,
+    realm_stage: record.realm_stage,
+    combat_rating: calcCombatRatingFromAttributes(record.attributes),
+    faction: record.origin || '',
+    spirit_root: '无',
+    user_id: record.userId,
+    updated_at:
+      record.updatedAt instanceof Date
+        ? record.updatedAt.getTime()
+        : Date.now(),
   };
 }
 
@@ -129,25 +161,9 @@ export async function getCultivatorRank(
 export async function addToRanking(
   cultivatorId: string,
   cultivator: Cultivator,
-  userId: string,
+  _userId: string,
   targetRank?: number,
 ): Promise<void> {
-  const combatRating = calcCombatRating(cultivator);
-
-  // 保存角色详细信息
-  const infoKey = `${CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
-  // Upstash Redis: hset(key, field, value) 或 hset(key, { field: value })
-  await redis.hset(infoKey, {
-    name: cultivator.name,
-    realm: cultivator.realm,
-    realm_stage: cultivator.realm_stage,
-    combat_rating: combatRating.toString(),
-    faction: cultivator.origin || '',
-    spirit_root: cultivator.spiritual_roots[0]?.element || '无',
-    user_id: userId,
-    updated_at: Date.now().toString(),
-  });
-
   // 添加到排行榜（使用排名作为score）
   // 如果指定了排名，需要先调整后续排名，再插入
   if (targetRank) {
@@ -277,17 +293,6 @@ export async function updateRanking(
 
   await pipeline.exec();
 
-  // 更新挑战者的信息时间戳
-  const challengerInfoKey = `${CULTIVATOR_INFO_PREFIX}${challengerId}`;
-  const existingInfo =
-    await redis.hgetall<Record<string, string>>(challengerInfoKey);
-  if (existingInfo && Object.keys(existingInfo).length > 0) {
-    await redis.hset(challengerInfoKey, {
-      ...existingInfo,
-      updated_at: Date.now().toString(),
-    });
-  }
-
   // 限制排行榜大小
   await redis.zremrangebyrank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
 }
@@ -407,7 +412,8 @@ export async function isLocked(cultivatorId: string): Promise<boolean> {
  */
 export async function removeFromRanking(cultivatorId: string): Promise<void> {
   await redis.zrem(RANKING_LIST_KEY, cultivatorId);
-  const infoKey = `${CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
+  // 兼容旧数据，清理遗留哈希
+  const infoKey = `${LEGACY_CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
   await redis.del(infoKey);
 }
 

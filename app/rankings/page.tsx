@@ -9,10 +9,13 @@ import {
   InkNotice,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
+import { ProbeResultModal } from '@/components/func';
+import type { ProbeResultData } from '@/components/func/ProbeResult';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { RealmType } from '@/types/constants';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 type RankingItem = {
   cultivatorId: string;
@@ -32,6 +35,8 @@ type MyRankInfo = {
   isProtected: boolean;
 };
 
+
+
 export default function RankingsPage() {
   const router = useRouter();
   const { cultivator, isLoading, note } = useCultivatorBundle();
@@ -40,6 +45,9 @@ export default function RankingsPage() {
   const [loadingRankings, setLoadingRankings] = useState(false);
   const [challenging, setChallenging] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
+  const [probing, setProbing] = useState<string | null>(null);
+  const [probeResult, setProbeResult] = useState<ProbeResultData | null>(null);
+  const [probeError, setProbeError] = useState<string>('');
   const pathname = usePathname();
 
   const loadRankings = async () => {
@@ -61,7 +69,7 @@ export default function RankingsPage() {
     }
   };
 
-  const loadMyRankInfo = async () => {
+  const loadMyRankInfo = useCallback(async () => {
     if (!cultivator?.id) return;
 
     try {
@@ -79,7 +87,7 @@ export default function RankingsPage() {
     } catch (err) {
       console.error('获取我的排名失败:', err);
     }
-  };
+  }, [cultivator?.id]);
 
   useEffect(() => {
     void loadRankings();
@@ -89,7 +97,38 @@ export default function RankingsPage() {
     if (cultivator?.id) {
       void loadMyRankInfo();
     }
-  }, [cultivator?.id]);
+  }, [cultivator?.id, loadMyRankInfo]);
+
+  const handleProbe = async (targetId: string) => {
+    if (!cultivator?.id) return;
+    setProbing(targetId);
+    setProbeError('');
+    try {
+      const response = await fetch('/api/rankings/probe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cultivatorId: cultivator.id,
+          targetId,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '神识查探失败');
+      }
+      setProbeResult(result.data);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '神识查探失败，请稍后重试';
+      setProbeError(errorMessage);
+      setProbeResult(null);
+    } finally {
+      setProbing(null);
+    }
+  };
 
   const handleChallenge = async (targetId: string) => {
     if (!cultivator?.id) return;
@@ -186,111 +225,160 @@ export default function RankingsPage() {
   const isEmpty = rankings.length === 0;
 
   return (
-    <InkPageShell
-      title={`【万界金榜】`}
-      subtitle="战天下英豪，登万界金榜"
-      lead={
-        myRankInfo
-          ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${remainingChallenges}/10`
-          : ''
-      }
-      backHref="/"
-      note={note || error}
-      currentPath={pathname}
-      footer={
-        <InkActionGroup align="between">
-          <InkButton onClick={() => loadRankings()} disabled={loadingRankings}>
-            {loadingRankings ? '推演中…' : '刷新榜单'}
-          </InkButton>
-          <InkButton href="/">返回</InkButton>
-        </InkActionGroup>
-      }
-    >
-      {!cultivator ? (
-        <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
-      ) : isEmpty && myRank === null ? (
-        <div className="space-y-4">
-          <InkNotice>万界金榜当前为空，你可以直接上榜占据第一名！</InkNotice>
-          <InkButton
-            onClick={handleDirectEntry}
-            variant="primary"
-            disabled={challenging === 'direct'}
-            className="w-full"
-          >
-            {challenging === 'direct' ? '上榜中…' : '直接上榜'}
-          </InkButton>
-        </div>
-      ) : (
-        <>
-          {remainingChallenges === 0 && (
-            <InkNotice tone="warning">
-              今日挑战次数已用完（每日限10次），请明日再来。
-            </InkNotice>
-          )}
-          <InkList>
-            {rankings.map((item) => {
-              const isSelf = item.cultivatorId === cultivator.id;
-              const canChallenge =
-                !isSelf &&
-                (!myRank || myRank > item.rank) &&
-                remainingChallenges > 0 &&
-                !item.isNewcomer; // 新天骄不可被挑战
-              const isChallenging = challenging === item.cultivatorId;
+    <>
+      <InkPageShell
+        title={`【万界金榜】`}
+        subtitle="战天下英豪，登万界金榜"
+        lead={
+          myRankInfo
+            ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${remainingChallenges}/10`
+            : ''
+        }
+        backHref="/"
+        note={note || error}
+        currentPath={pathname}
+        footer={
+          <InkActionGroup align="between">
+            <InkButton
+              onClick={() => loadRankings()}
+              disabled={loadingRankings}
+            >
+              {loadingRankings ? '推演中…' : '刷新榜单'}
+            </InkButton>
+            <InkButton href="/">返回</InkButton>
+          </InkActionGroup>
+        }
+      >
+        {!cultivator ? (
+          <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
+        ) : isEmpty && myRank === null ? (
+          <div className="space-y-4">
+            <InkNotice>万界金榜当前为空，你可以直接上榜占据第一名！</InkNotice>
+            <InkButton
+              onClick={handleDirectEntry}
+              variant="primary"
+              disabled={challenging === 'direct'}
+              className="w-full"
+            >
+              {challenging === 'direct' ? '上榜中…' : '直接上榜'}
+            </InkButton>
+          </div>
+        ) : (
+          <>
+            {remainingChallenges === 0 && (
+              <InkNotice tone="warning">
+                今日挑战次数已用完（每日限10次），请明日再来。
+              </InkNotice>
+            )}
+            <InkList>
+              {rankings.map((item) => {
+                const isSelf = item.cultivatorId === cultivator.id;
+                const canChallenge =
+                  !isSelf &&
+                  (!myRank || myRank > item.rank) &&
+                  remainingChallenges > 0 &&
+                  !item.isNewcomer; // 新天骄不可被挑战
+                const isChallenging = challenging === item.cultivatorId;
+                const isProbing = probing === item.cultivatorId;
 
-              return (
-                <InkListItem
-                  key={item.cultivatorId}
-                  title={
-                    <>
-                      {item.rank}. {item.name}{' '}
-                      {isSelf && <span className="equipped-mark">← 你</span>}
-                      {item.isNewcomer && (
-                        <InkBadge tone="accent" className="ml-2">
-                          [新天骄]
-                        </InkBadge>
-                      )}
-                    </>
+                const actions: ReactNode[] = [];
+
+                if (canChallenge) {
+                  actions.push(
+                    <InkButton
+                      key="challenge"
+                      onClick={() => handleChallenge(item.cultivatorId)}
+                      variant="primary"
+                      className="text-sm"
+                      disabled={isChallenging}
+                    >
+                      {isChallenging ? '挑战中…' : '挑战'}
+                    </InkButton>,
+                  );
+                } else if (!isSelf) {
+                  let reason: string | null = null;
+                  if (item.isNewcomer) {
+                    reason = '保护期';
+                  } else if (myRank && myRank <= item.rank) {
+                    reason = '排名过低';
+                  } else if (remainingChallenges === 0) {
+                    reason = '次数已用完';
                   }
-                  meta={
-                    <>
-                      <InkBadge tier={item.realm as RealmType}>
-                        {item.realm_stage}
-                      </InkBadge>{' '}
-                      <InkBadge tone="default">
-                        {item.faction ?? '散修'}
-                      </InkBadge>
-                    </>
-                  }
-                  description={`⚔️ 战力：${item.combat_rating}`}
-                  actions={
-                    canChallenge ? (
-                      <InkButton
-                        onClick={() => handleChallenge(item.cultivatorId)}
-                        variant="primary"
-                        className="text-sm"
-                        disabled={isChallenging}
+                  if (reason) {
+                    actions.push(
+                      <span
+                        key="reason"
+                        className="text-xs text-ink-secondary whitespace-nowrap"
                       >
-                        {isChallenging ? '挑战中…' : '挑战'}
-                      </InkButton>
-                    ) : isSelf ? null : item.isNewcomer ? (
-                      <span className="text-xs text-ink-secondary">保护期</span>
-                    ) : myRank && myRank <= item.rank ? (
-                      <span className="text-xs text-ink-secondary">
-                        排名过低
-                      </span>
-                    ) : remainingChallenges === 0 ? (
-                      <span className="text-xs text-ink-secondary">
-                        次数已用完
-                      </span>
-                    ) : null
+                        {reason}
+                      </span>,
+                    );
                   }
-                  highlight={isSelf}
-                />
-              );
-            })}
-          </InkList>
-        </>
-      )}
-    </InkPageShell>
+                }
+
+                if (!isSelf) {
+                  actions.push(
+                    <InkButton
+                      key="probe"
+                      onClick={() => handleProbe(item.cultivatorId)}
+                      variant="secondary"
+                      className="text-sm"
+                      disabled={isProbing}
+                    >
+                      {isProbing ? '查探中…' : '神识查探'}
+                    </InkButton>,
+                  );
+                }
+
+                return (
+                  <InkListItem
+                    key={item.cultivatorId}
+                    title={
+                      <>
+                        {item.rank}. {item.name}{' '}
+                        {isSelf && <span className="equipped-mark">← 你</span>}
+                        {item.isNewcomer && (
+                          <InkBadge tone="accent" className="ml-2">
+                            [新天骄]
+                          </InkBadge>
+                        )}
+                      </>
+                    }
+                    meta={
+                      <>
+                        <InkBadge tier={item.realm as RealmType}>
+                          {item.realm_stage}
+                        </InkBadge>{' '}
+                        <InkBadge tone="default">
+                          {item.faction ?? '散修'}
+                        </InkBadge>
+                      </>
+                    }
+                    description={`⚔️ 战力：${item.combat_rating}`}
+                    actions={
+                      actions.length > 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {actions}
+                        </div>
+                      ) : null
+                    }
+                    highlight={isSelf}
+                  />
+                );
+              })}
+            </InkList>
+            {probeError && (
+              <div className="mt-4">
+                <InkNotice tone="warning">{probeError}</InkNotice>
+              </div>
+            )}
+          </>
+        )}
+      </InkPageShell>
+      <ProbeResultModal
+        probeResult={probeResult}
+        onClose={() => setProbeResult(null)}
+      />
+    </>
   );
 }

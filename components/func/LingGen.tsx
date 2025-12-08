@@ -64,3 +64,25 @@ export function LingGen({
 
   return <>{content}</>;
 }
+
+export function LingGenMini({
+  spiritualRoots,
+  title = '灵根',
+}: Pick<LingGenProps, 'spiritualRoots' | 'title'>) {
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-semibold">{title}</div>
+      <div className="flex flex-wrap gap-2">
+        {spiritualRoots && spiritualRoots.length > 0 ? (
+          spiritualRoots.map((root, idx) => (
+            <InkBadge tier={root.grade} key={`${root.element}-${idx}`}>
+              {`${root.element} · ${root.strength}`}
+            </InkBadge>
+          ))
+        ) : (
+          <span className="text-xs text-ink-secondary">无灵根信息</span>
+        )}
+      </div>
+    </div>
+  );
+}

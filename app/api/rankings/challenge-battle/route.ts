@@ -12,7 +12,10 @@ import {
   releaseChallengeLock,
   updateRanking,
 } from '@/lib/redis/rankings';
-import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
+import {
+  getCultivatorById,
+  getCultivatorByIdUnsafe,
+} from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import { generateBattleReportStream } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
@@ -144,21 +147,13 @@ export async function POST(request: NextRequest) {
           }
           lockAcquired = true;
 
-          // 9. 获取被挑战者角色信息
-          const { redis } = await import('@/lib/redis/index');
-          const infoKey = `golden_rank:cultivator:${targetId}`;
-          // Upstash Redis: hget(key, field)
-          const targetUserId = await redis.hget<string>(infoKey, 'user_id');
-
-          if (!targetUserId) {
-            throw new Error('无法获取被挑战者用户ID');
-          }
-
-          // 获取被挑战者完整信息
-          const target = await getCultivatorById(targetUserId, targetId);
-          if (!target) {
+          // 9. 获取被挑战者完整信息（回表）
+          const targetRecord = await getCultivatorByIdUnsafe(targetId);
+          if (!targetRecord) {
             throw new Error('被挑战者角色不存在');
           }
+          const target = targetRecord.cultivator;
+          const targetUserId = targetRecord.userId;
 
           // 10. 执行战斗
           const battleResult = simulateBattle(challenger, target);

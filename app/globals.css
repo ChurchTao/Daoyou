@@ -86,7 +86,6 @@ h6,
   background-color: var(--color-paper);
   background-image: url('/assets/paper.png');
   background-size: 300px;
-  min-height: 100vh;
 }
 
 .bg-paper-light {

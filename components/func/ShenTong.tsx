@@ -116,3 +116,34 @@ export function ShenTong({
     </>
   );
 }
+
+export function ShenTongMini({
+  skills,
+  title = '神通',
+}: Pick<ShenTongProps, 'skills' | 'title'>) {
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-semibold">{title}</div>
+      {skills && skills.length > 0 ? (
+        <div className="flex flex-col gap-2 text-sm">
+          {skills.map((skill, idx) => {
+            const skillInfo = getSkillTypeInfo(skill.type);
+            return (
+              <div key={skill.id || skill.name + idx} className="flex items-center gap-2">
+                <span>
+                  {skillInfo.icon} {skill.name}·{skill.element}
+                </span>
+                <InkBadge tier={skill.grade}>{skillInfo.label}</InkBadge>
+                <span className="text-xs text-ink-secondary">
+                  威力{skill.power} 冷却{skill.cooldown}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <span className="text-xs text-ink-secondary">暂无神通</span>
+      )}
+    </div>
+  );
+}

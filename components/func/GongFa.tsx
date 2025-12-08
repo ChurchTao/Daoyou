@@ -64,3 +64,29 @@ export function GongFa({
 
   return <>{content}</>;
 }
+
+export function GongFaMini({
+  cultivations,
+  title = '功法',
+}: Pick<GongFaProps, 'cultivations' | 'title'>) {
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-semibold">{title}</div>
+      {cultivations && cultivations.length > 0 ? (
+        <div className="flex flex-col gap-2 text-sm">
+          {cultivations.map((cult, index) => (
+            <div key={cult.name + index} className="flex items-center gap-2">
+              <span>📜 {cult.name}</span>
+              {cult.grade && <InkBadge tier={cult.grade} />}
+              <span className="text-xs text-ink-secondary">
+                需求：{cult.required_realm}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span className="text-xs text-ink-secondary">暂无功法</span>
+      )}
+    </div>
+  );
+}
