@@ -1,0 +1,3 @@
+ALTER TABLE "wanjiedaoyou_battle_records" ADD COLUMN "challenge_type" varchar(20);--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_battle_records" ADD COLUMN "opponent_cultivator_id" uuid;--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_battle_records" ADD CONSTRAINT "wanjiedaoyou_battle_records_opponent_cultivator_id_wanjiedaoyou_cultivators_id_fk" FOREIGN KEY ("opponent_cultivator_id") REFERENCES "public"."wanjiedaoyou_cultivators"("id") ON DELETE set null ON UPDATE no action;

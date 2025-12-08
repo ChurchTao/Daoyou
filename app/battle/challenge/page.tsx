@@ -3,32 +3,21 @@
 import { BattlePageLayout } from '@/components/BattlePageLayout';
 import { BattleReportViewer } from '@/components/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/BattleTimelineViewer';
+import { InkButton } from '@/components/InkComponents';
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import type { Cultivator } from '@/types/cultivator';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 /**
- * 敌人数据类型（简化版）
+ * 挑战战斗播报页内容组件
  */
-type EnemyData = {
-  id: string;
-  name: string;
-  realm: string;
-  realm_stage: string;
-  spiritual_roots: Array<{ element: string; strength: number }>;
-  background?: string;
-  combatRating: number;
-};
-
-/**
- * 对战播报页内容组件
- */
-function BattlePageContent() {
+function ChallengeBattlePageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [player, setPlayer] = useState<Cultivator | null>(null);
-  const [opponent, setOpponent] = useState<EnemyData | null>(null);
+  const [opponent, setOpponent] = useState<Cultivator | null>(null);
   const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(
     null,
   );
@@ -37,11 +26,27 @@ function BattlePageContent() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
-  const [opponentLoading, setOpponentLoading] = useState(false);
-  const [opponentError, setOpponentError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rankingUpdate, setRankingUpdate] = useState<{
+    isWin: boolean;
+    challengerRank: number | null;
+    targetRank: number | null;
+    remainingChallenges: number;
+  } | null>(null);
+  const [directEntry, setDirectEntry] = useState<{
+    rank: number;
+  } | null>(null);
+
+  const cultivatorId = searchParams.get('cultivatorId');
+  const targetId = searchParams.get('targetId');
 
   // 初始化
   useEffect(() => {
+    if (!cultivatorId) {
+      setError('缺少角色ID');
+      return;
+    }
+
     // 获取玩家角色
     const fetchPlayer = async () => {
       setPlayerLoading(true);
@@ -50,78 +55,44 @@ function BattlePageContent() {
         const playerResult = await playerResponse.json();
 
         if (playerResult.success && playerResult.data.length > 0) {
-          setPlayer(playerResult.data[0]);
+          const found = playerResult.data.find(
+            (c: Cultivator) => c.id === cultivatorId,
+          );
+          if (found) {
+            setPlayer(found);
+          } else {
+            setError('未找到角色信息');
+          }
         }
       } catch (error) {
         console.error('获取玩家数据失败:', error);
+        setError('获取玩家数据失败');
       } finally {
         setPlayerLoading(false);
       }
     };
 
-    // 获取对手角色
-    const fetchOpponent = async () => {
-      setOpponentLoading(true);
-      setOpponentError(null);
-      try {
-        const opponentId = searchParams.get('opponent');
-        if (!opponentId) {
-          throw new Error('missing_opponent');
-        }
-
-        // 从敌人API获取对手数据
-        const enemyResponse = await fetch(`/api/enemies/${opponentId}`);
-        const enemyResult = await enemyResponse.json();
-
-        if (!enemyResponse.ok || !enemyResult.success) {
-          throw new Error(enemyResult.error || 'fetch_failed');
-        }
-
-        setOpponent(enemyResult.data);
-      } catch (error) {
-        console.error('获取对手数据失败:', error);
-        const errMsg =
-          error instanceof Error && error.message === 'missing_opponent'
-            ? '天机未定，对手无踪，难启杀局。'
-            : '天机逆乱，对手行迹莫测，战不可开。';
-        setOpponentError(errMsg);
-        setOpponent(null);
-      } finally {
-        setOpponentLoading(false);
-      }
-    };
-
     fetchPlayer();
-    fetchOpponent();
-  }, [searchParams]);
+  }, [cultivatorId]);
 
   // 自动开始战斗
   useEffect(() => {
     if (
       player &&
-      opponent &&
       !battleResult &&
       !loading &&
       !playerLoading &&
-      !opponentLoading &&
-      !opponentError
+      !error &&
+      !directEntry
     ) {
-      handleBattle();
+      handleChallengeBattle();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    player,
-    opponent,
-    battleResult,
-    loading,
-    playerLoading,
-    opponentLoading,
-    opponentError,
-  ]);
+  }, [player, battleResult, loading, playerLoading, error, directEntry]);
 
-  // 执行战斗（使用合并接口）
-  const handleBattle = async () => {
-    if (!player || !opponent) {
+  // 执行挑战战斗
+  const handleChallengeBattle = async () => {
+    if (!player || !cultivatorId) {
       return;
     }
 
@@ -130,23 +101,24 @@ function BattlePageContent() {
     setStreamingReport('');
     setFinalReport('');
     setBattleResult(null);
+    setError(null);
 
     try {
-      // 调用合并的战斗接口（执行战斗并生成播报）
-      const response = await fetch('/api/battle', {
+      // 调用挑战战斗接口
+      const response = await fetch('/api/rankings/challenge-battle', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: player.id,
-          opponentId: opponent.id,
+          cultivatorId,
+          targetId: targetId || null,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '战斗失败');
+        throw new Error(errorData.error || '挑战失败');
       }
 
       const reader = response.body?.getReader();
@@ -175,7 +147,11 @@ function BattlePageContent() {
             try {
               const data = JSON.parse(line.slice(6));
 
-              if (data.type === 'battle_result') {
+              if (data.type === 'direct_entry') {
+                // 直接上榜
+                setDirectEntry({ rank: data.rank });
+                setIsStreaming(false);
+              } else if (data.type === 'battle_result') {
                 // 接收战斗结果数据
                 const result = data.data;
                 setBattleResult({
@@ -187,18 +163,22 @@ function BattlePageContent() {
                   opponentHp: result.opponentHp,
                   timeline: result.timeline ?? [],
                 });
-                console.log('战斗结果：', result);
+                // 设置对手信息
+                setOpponent(result.loser);
               } else if (data.type === 'chunk') {
                 // 接收播报内容块
                 fullReport += data.content;
                 setStreamingReport(fullReport);
+              } else if (data.type === 'ranking_update') {
+                // 接收排名更新信息
+                setRankingUpdate(data);
               } else if (data.type === 'done') {
                 // 播报生成完成
                 setIsStreaming(false);
                 setFinalReport(fullReport);
                 setStreamingReport(fullReport);
               } else if (data.type === 'error') {
-                throw new Error(data.error || '战斗失败');
+                throw new Error(data.error || '挑战失败');
               }
             } catch (e) {
               console.error('解析 SSE 数据失败:', e);
@@ -207,39 +187,61 @@ function BattlePageContent() {
         }
       }
     } catch (error) {
-      console.error('战斗失败:', error);
+      console.error('挑战战斗失败:', error);
       setIsStreaming(false);
       setStreamingReport('');
       setFinalReport('');
-      alert(error instanceof Error ? error.message : '战斗失败');
+      setError(error instanceof Error ? error.message : '挑战失败，请稍后重试');
     } finally {
       setLoading(false);
     }
   };
 
-  // 再战一次
-  const handleBattleAgain = () => {
-    setBattleResult(null);
-    setStreamingReport('');
-    setFinalReport('');
-    setIsStreaming(false);
-    handleBattle();
-  };
-
-  if (!player) {
+  if (!player && !playerLoading) {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="mb-4 text-ink">未找到角色信息</p>
-          <Link href="/create" className="btn-primary">
-            创建角色
+          <Link href="/rankings" className="btn-primary">
+            返回排行榜
           </Link>
         </div>
       </div>
     );
   }
 
-  const isWin = battleResult?.winner.id === player.id;
+  if (error) {
+    return (
+      <div className="bg-paper min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="mb-4 text-crimson">{error}</p>
+          <InkButton onClick={() => router.push('/rankings')}>
+            返回排行榜
+          </InkButton>
+        </div>
+      </div>
+    );
+  }
+
+  if (directEntry) {
+    return (
+      <div className="bg-paper min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="mb-4 font-ma-shan-zheng text-2xl text-ink">
+            成功上榜！
+          </h1>
+          <p className="mb-6 text-ink">
+            你已占据万界金榜第 {directEntry.rank} 名
+          </p>
+          <InkButton onClick={() => router.push('/rankings')} variant="primary">
+            返回排行榜
+          </InkButton>
+        </div>
+      </div>
+    );
+  }
+
+  const isWin = battleResult?.winner.id === player?.id;
   const displayReport =
     streamingReport ||
     finalReport ||
@@ -248,29 +250,18 @@ function BattlePageContent() {
 
   return (
     <BattlePageLayout
-      title={`【战报 · ${player?.name} vs ${opponentName}】`}
-      backHref="/"
-      error={opponentError}
+      title={`【挑战战报 · ${player?.name} vs ${opponentName}】`}
+      backHref="/rankings"
+      backLabel="返回排行榜"
+      error={error}
       loading={loading}
       battleResult={battleResult}
       isStreaming={isStreaming}
       actions={{
         primary: {
-          label: '返回主界',
-          href: '/',
+          label: '返回排行榜',
+          onClick: () => router.push('/rankings'),
         },
-        secondary: [
-          {
-            label: '再战',
-            onClick: handleBattleAgain,
-          },
-          {
-            label: '分享战报',
-            onClick: () => {
-              alert('分享功能开发中...');
-            },
-          },
-        ],
       }}
     >
       {/* 数值战斗回放 */}
@@ -279,7 +270,7 @@ function BattlePageContent() {
         opponent && (
           <BattleTimelineViewer
             battleResult={battleResult}
-            playerName={player.name}
+            playerName={player?.name ?? ''}
             opponentName={opponent.name}
           />
         )}
@@ -291,16 +282,16 @@ function BattlePageContent() {
         battleResult={battleResult}
         player={player}
         isWin={isWin}
+        rankingUpdate={rankingUpdate}
       />
     </BattlePageLayout>
   );
 }
 
 /**
- * 对战播报页
- * 目标：制造爽感 + 可分享
+ * 挑战战斗播报页
  */
-export default function BattlePage() {
+export default function ChallengeBattlePage() {
   return (
     <Suspense
       fallback={
@@ -311,7 +302,7 @@ export default function BattlePage() {
         </div>
       }
     >
-      <BattlePageContent />
+      <ChallengeBattlePageContent />
     </Suspense>
   );
 }

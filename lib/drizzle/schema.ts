@@ -212,6 +212,13 @@ export const battleRecords = pgTable('wanjiedaoyou_battle_records', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
 
+  // 挑战相关字段
+  challengeType: varchar('challenge_type', { length: 20 }), // 'challenge' | 'challenged' | 'normal'
+  opponentCultivatorId: uuid('opponent_cultivator_id').references(
+    () => cultivators.id,
+    { onDelete: 'set null' },
+  ), // 对手角色ID（用于被挑战记录）
+
   // 战斗结果快照（完整 BattleEngineResult 或其扩展）
   battleResult: jsonb('battle_result').notNull(),
 

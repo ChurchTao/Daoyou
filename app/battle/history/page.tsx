@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 type BattleSummary = {
   id: string;
   createdAt: string | null;
+  challengeType?: 'challenge' | 'challenged' | 'normal';
+  opponentCultivatorId?: string | null;
 } & Pick<BattleEngineResult, 'winner' | 'loser' | 'turns'>;
 
 type BattleListResponse = {
@@ -20,32 +22,60 @@ type BattleListResponse = {
   };
 };
 
+type TabType = 'all' | 'challenge' | 'challenged';
+
 export default function BattleHistoryPage() {
   const [records, setRecords] = useState<BattleSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('all');
+
+  const fetchBattleHistory = async (type?: TabType) => {
+    setLoading(true);
+    try {
+      const typeParam = type === 'all' ? '' : `&type=${type}`;
+      const res = await fetch(
+        `/api/battles?page=1&pageSize=100${typeParam}`,
+        {
+          cache: 'no-store',
+        },
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as BattleListResponse;
+      if (data.success && Array.isArray(data.data)) {
+        setRecords(data.data);
+      }
+    } catch (e) {
+      console.error('获取战斗历史失败:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBattleHistory = async () => {
-      setLoading(true);
-      try {
-        // 简单取第一页 100 条
-        const res = await fetch('/api/battles?page=1&pageSize=100', {
-          cache: 'no-store',
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as BattleListResponse;
-        if (data.success && Array.isArray(data.data)) {
-          setRecords(data.data);
-        }
-      } catch (e) {
-        console.error('获取战斗历史失败:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
+    void fetchBattleHistory(activeTab);
+  }, [activeTab]);
 
-    fetchBattleHistory();
-  }, []);
+  const getChallengeTypeLabel = (type?: string) => {
+    switch (type) {
+      case 'challenge':
+        return '【挑战】';
+      case 'challenged':
+        return '【被挑战】';
+      default:
+        return '【战】';
+    }
+  };
+
+  const getChallengeTypeColor = (type?: string) => {
+    switch (type) {
+      case 'challenge':
+        return 'text-blue-600';
+      case 'challenged':
+        return 'text-purple-600';
+      default:
+        return 'text-ink/80';
+    }
+  };
 
   return (
     <div className="bg-paper min-h-screen">
@@ -61,6 +91,40 @@ export default function BattleHistoryPage() {
           【全部战绩】
         </h1>
 
+        {/* 标签页 */}
+        <div className="mb-4 flex gap-2 border-b border-ink/10">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 text-sm transition ${
+              activeTab === 'all'
+                ? 'border-b-2 border-crimson text-crimson'
+                : 'text-ink/60 hover:text-ink'
+            }`}
+          >
+            全部
+          </button>
+          <button
+            onClick={() => setActiveTab('challenge')}
+            className={`px-4 py-2 text-sm transition ${
+              activeTab === 'challenge'
+                ? 'border-b-2 border-crimson text-crimson'
+                : 'text-ink/60 hover:text-ink'
+            }`}
+          >
+            我的挑战
+          </button>
+          <button
+            onClick={() => setActiveTab('challenged')}
+            className={`px-4 py-2 text-sm transition ${
+              activeTab === 'challenged'
+                ? 'border-b-2 border-crimson text-crimson'
+                : 'text-ink/60 hover:text-ink'
+            }`}
+          >
+            我被挑战
+          </button>
+        </div>
+
         {loading && <p className="text-ink-secondary">战绩加载中……</p>}
 
         {!loading && !records.length && (
@@ -73,6 +137,8 @@ export default function BattleHistoryPage() {
             const loserName = r.loser?.name ?? '未知';
             const isWin = !!r.winner?.name && !!r.loser?.name;
             const turns = r.turns ?? 0;
+            const typeLabel = getChallengeTypeLabel(r.challengeType);
+            const typeColor = getChallengeTypeColor(r.challengeType);
 
             return (
               <Link
@@ -83,9 +149,11 @@ export default function BattleHistoryPage() {
                 <div className="flex justify-between">
                   <div>
                     <span
-                      className={isWin ? 'text-emerald-600' : 'text-crimson'}
+                      className={`${typeColor} ${
+                        isWin ? 'text-emerald-600' : 'text-crimson'
+                      }`}
                     >
-                      {isWin ? '【胜】' : '【战】'}
+                      {isWin ? '【胜】' : typeLabel}
                     </span>
                     <span className="ml-1">
                       {winnerName} vs {loserName}

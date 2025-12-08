@@ -2,7 +2,7 @@ import type { BattleEngineResult } from '@/engine/battleEngine';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { createClient } from '@/lib/supabase/server';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
@@ -26,12 +26,27 @@ export async function GET(req: Request) {
     Math.max(1, Number(searchParams.get('pageSize') ?? '10')),
   );
   const offset = (page - 1) * pageSize;
+  const type = searchParams.get('type'); // 'challenge' | 'challenged' | null (全部)
+
+  // 构建查询条件
+  let whereCondition = eq(battleRecords.userId, user.id);
+  if (type === 'challenge') {
+    whereCondition = and(
+      eq(battleRecords.userId, user.id),
+      eq(battleRecords.challengeType, 'challenge'),
+    )!;
+  } else if (type === 'challenged') {
+    whereCondition = and(
+      eq(battleRecords.userId, user.id),
+      eq(battleRecords.challengeType, 'challenged'),
+    )!;
+  }
 
   // 总数用于分页信息
   const [countRow] = await db
     .select({ count: sql<number>`count(*)` })
     .from(battleRecords)
-    .where(eq(battleRecords.userId, user.id));
+    .where(whereCondition);
 
   const total = Number(countRow?.count ?? 0);
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
@@ -39,7 +54,7 @@ export async function GET(req: Request) {
   const records = await db
     .select()
     .from(battleRecords)
-    .where(eq(battleRecords.userId, user.id))
+    .where(whereCondition)
     .orderBy(desc(battleRecords.createdAt))
     .limit(pageSize)
     .offset(offset);
@@ -53,6 +68,8 @@ export async function GET(req: Request) {
       winner: result.winner,
       loser: result.loser,
       turns: result.turns,
+      challengeType: r.challengeType || 'normal',
+      opponentCultivatorId: r.opponentCultivatorId,
     };
   });
 

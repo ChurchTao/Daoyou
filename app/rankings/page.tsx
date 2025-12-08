@@ -10,33 +10,35 @@ import {
   InkTag,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
-import { mockRankings } from '@/data/mockRankings';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import type { Cultivator } from '@/types/cultivator';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 
 type RankingItem = {
-  id: string;
+  cultivatorId: string;
+  rank: number;
   name: string;
-  cultivationLevel: string;
-  spiritRoot: string;
+  realm: string;
+  realm_stage: string;
+  combat_rating: number;
   faction?: string;
-  combatRating: number;
+  spirit_root: string;
+  isNewcomer: boolean;
 };
 
-const calcCombatRating = (cultivator: Cultivator): number => {
-  if (!cultivator?.attributes) return 0;
-  const { vitality, spirit, wisdom, speed, willpower } = cultivator.attributes;
-  return Math.round((vitality + spirit + wisdom + speed + willpower) / 5);
+type MyRankInfo = {
+  rank: number | null;
+  remainingChallenges: number;
+  isProtected: boolean;
 };
 
 export default function RankingsPage() {
   const router = useRouter();
-  const { cultivator, isLoading, note, usingMock } = useCultivatorBundle();
+  const { cultivator, isLoading, note } = useCultivatorBundle();
   const [rankings, setRankings] = useState<RankingItem[]>([]);
+  const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
   const [loadingRankings, setLoadingRankings] = useState(false);
+  const [challenging, setChallenging] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
   const pathname = usePathname();
 
@@ -49,31 +51,33 @@ export default function RankingsPage() {
       if (!response.ok || !result.success) {
         throw new Error(result.error || '榜单暂不可用');
       }
-      setRankings(
-        result.data.map((item: Cultivator) => ({
-          id: item.id ?? `item-${Math.random()}`,
-          name: item.name,
-          cultivationLevel: `${item.realm}${item.realm_stage}`,
-          spiritRoot: item.spiritual_roots[0]?.element || '无',
-          faction: item.origin,
-          combatRating: calcCombatRating(item),
-        })),
-      );
+      setRankings(result.data || []);
     } catch (err) {
-      console.warn('排行榜接口未就绪，使用占位数据。', err);
-      setRankings(
-        mockRankings.map((item, index) => ({
-          id: item.id ?? `mock-${index}`,
-          name: item.name,
-          cultivationLevel: `${item.realm}${item.realm_stage}`,
-          spiritRoot: item.spiritual_roots[0]?.element || '无',
-          faction: item.origin,
-          combatRating: calcCombatRating(item),
-        })),
-      );
-      setError('【占位】天骄榜使用假数据，待后端接入。');
+      console.error('获取排行榜失败:', err);
+      setError('获取排行榜失败，请稍后重试');
+      setRankings([]);
     } finally {
       setLoadingRankings(false);
+    }
+  };
+
+  const loadMyRankInfo = async () => {
+    if (!cultivator?.id) return;
+
+    try {
+      const response = await fetch(
+        `/api/rankings/my-rank?cultivatorId=${cultivator.id}`,
+      );
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setMyRankInfo({
+          rank: result.data.rank,
+          remainingChallenges: result.data.remainingChallenges,
+          isProtected: result.data.isProtected,
+        });
+      }
+    } catch (err) {
+      console.error('获取我的排名失败:', err);
     }
   };
 
@@ -81,8 +85,87 @@ export default function RankingsPage() {
     void loadRankings();
   }, []);
 
-  const handleChallenge = (opponentId: string) => {
-    router.push(`/battle?opponent=${opponentId}`);
+  useEffect(() => {
+    if (cultivator?.id) {
+      void loadMyRankInfo();
+    }
+  }, [cultivator?.id]);
+
+  const handleChallenge = async (targetId: string) => {
+    if (!cultivator?.id) return;
+
+    setChallenging(targetId);
+    try {
+      // 先验证挑战条件
+      const response = await fetch('/api/rankings/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cultivatorId: cultivator.id,
+          targetId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '挑战验证失败');
+      }
+
+      // 如果是直接上榜，显示提示并刷新
+      if (result.data.directEntry) {
+        alert(`成功上榜，占据第${result.data.rank}名！`);
+        await Promise.all([loadRankings(), loadMyRankInfo()]);
+        return;
+      }
+
+      // 验证通过，跳转到挑战战斗页面
+      router.push(
+        `/battle/challenge?cultivatorId=${cultivator.id}&targetId=${targetId}`,
+      );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '挑战验证失败，请稍后重试';
+      alert(errorMessage);
+    } finally {
+      setChallenging(null);
+    }
+  };
+
+  const handleDirectEntry = async () => {
+    if (!cultivator?.id) return;
+
+    setChallenging('direct');
+    try {
+      // 验证直接上榜条件
+      const response = await fetch('/api/rankings/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cultivatorId: cultivator.id,
+          targetId: null, // null表示直接上榜
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '上榜失败');
+      }
+
+      // 如果是直接上榜，跳转到挑战战斗页面（会显示直接上榜结果）
+      router.push(`/battle/challenge?cultivatorId=${cultivator.id}`);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '上榜失败，请稍后重试';
+      alert(errorMessage);
+    } finally {
+      setChallenging(null);
+    }
   };
 
   // 根据当前角色境界确定榜单标题
@@ -91,15 +174,23 @@ export default function RankingsPage() {
   if (isLoading && !cultivator) {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
-        <p className="loading-tip">天骄榜刷新中……</p>
+        <p className="loading-tip">万界金榜刷新中……</p>
       </div>
     );
   }
 
+  const myRank = myRankInfo?.rank;
+  const remainingChallenges = myRankInfo?.remainingChallenges ?? 0;
+  const isEmpty = rankings.length === 0;
+
   return (
     <InkPageShell
-      title={`【天骄榜 · ${realmTitle}】`}
-      subtitle=""
+      title={`【万界金榜 · ${realmTitle}】`}
+      subtitle={
+        myRankInfo
+          ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${remainingChallenges}/10`
+          : ''
+      }
       backHref="/"
       note={note || error}
       currentPath={pathname}
@@ -113,49 +204,90 @@ export default function RankingsPage() {
       }
     >
       {!cultivator ? (
-        <InkNotice>请先觉醒角色再来挑战天骄。</InkNotice>
+        <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
+      ) : isEmpty && myRank === null ? (
+        <div className="space-y-4">
+          <InkNotice>万界金榜当前为空，你可以直接上榜占据第一名！</InkNotice>
+          <InkButton
+            onClick={handleDirectEntry}
+            variant="primary"
+            disabled={challenging === 'direct'}
+            className="w-full"
+          >
+            {challenging === 'direct' ? '上榜中…' : '直接上榜'}
+          </InkButton>
+        </div>
       ) : (
-        <InkList>
-          {rankings.map((item, index) => {
-            const isSelf = item.name === cultivator.name;
-            return (
-              <InkListItem
-                key={item.id}
-                title={
-                  <>
-                    {index + 1}. {item.name}{' '}
-                    {isSelf && <span className="equipped-mark">← 你</span>}
-                  </>
-                }
-                meta={
-                  <>
-                    <InkTag tone="info">{item.cultivationLevel}</InkTag>{' '}
-                    <InkBadge tone="default">{item.faction ?? '散修'}</InkBadge>
-                  </>
-                }
-                description={`❤️ ${item.combatRating}`}
-                actions={
-                  !isSelf && (
-                    <InkButton
-                      onClick={() => handleChallenge(item.id)}
-                      variant="primary"
-                      className="text-sm"
-                    >
-                      挑战
-                    </InkButton>
-                  )
-                }
-                highlight={isSelf}
-              />
-            );
-          })}
-        </InkList>
-      )}
+        <>
+          {remainingChallenges === 0 && (
+            <InkNotice tone="warning">
+              今日挑战次数已用完（每日限10次），请明日再来。
+            </InkNotice>
+          )}
+          <InkList>
+            {rankings.map((item) => {
+              const isSelf = item.cultivatorId === cultivator.id;
+              const canChallenge =
+                !isSelf &&
+                (!myRank || myRank > item.rank) &&
+                remainingChallenges > 0 &&
+                !item.isNewcomer; // 新天骄不可被挑战
+              const isChallenging = challenging === item.cultivatorId;
 
-      {usingMock && (
-        <p className="mt-6 text-center text-xs text-ink-secondary">
-          【占位】排行榜为硬编码示例，后续将接入实时数据。
-        </p>
+              return (
+                <InkListItem
+                  key={item.cultivatorId}
+                  title={
+                    <>
+                      {item.rank}. {item.name}{' '}
+                      {isSelf && <span className="equipped-mark">← 你</span>}
+                      {item.isNewcomer && (
+                        <InkBadge tone="accent" className="ml-2">
+                          [新天骄]
+                        </InkBadge>
+                      )}
+                    </>
+                  }
+                  meta={
+                    <>
+                      <InkTag tone="info">
+                        {item.realm}
+                        {item.realm_stage}
+                      </InkTag>{' '}
+                      <InkBadge tone="default">
+                        {item.faction ?? '散修'}
+                      </InkBadge>
+                    </>
+                  }
+                  description={`❤️ ${item.combat_rating}`}
+                  actions={
+                    canChallenge ? (
+                      <InkButton
+                        onClick={() => handleChallenge(item.cultivatorId)}
+                        variant="primary"
+                        className="text-sm"
+                        disabled={isChallenging}
+                      >
+                        {isChallenging ? '挑战中…' : '挑战'}
+                      </InkButton>
+                    ) : isSelf ? null : item.isNewcomer ? (
+                      <span className="text-xs text-ink-secondary">保护期</span>
+                    ) : myRank && myRank <= item.rank ? (
+                      <span className="text-xs text-ink-secondary">
+                        排名过低
+                      </span>
+                    ) : remainingChallenges === 0 ? (
+                      <span className="text-xs text-ink-secondary">
+                        次数已用完
+                      </span>
+                    ) : null
+                  }
+                  highlight={isSelf}
+                />
+              );
+            })}
+          </InkList>
+        </>
       )}
     </InkPageShell>
   );

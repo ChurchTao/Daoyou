@@ -1,17 +1,18 @@
-import { mockRankings } from '@/data/mockRankings';
+import { getRankingList } from '@/lib/redis/rankings';
 import { NextResponse } from 'next/server';
 
 /**
  * GET /api/rankings
- * 获取排行榜数据
- * 目前使用mock数据，后续将接入真实数据库
+ * 获取万界金榜数据（前100名）
+ * 从Redis读取排行榜数据，包含新天骄标记
  */
 export async function GET() {
   try {
-    // 返回mock排行榜数据
+    const rankings = await getRankingList();
+
     return NextResponse.json({
       success: true,
-      data: mockRankings,
+      data: rankings,
     });
   } catch (error) {
     console.error('获取排行榜 API 错误:', error);

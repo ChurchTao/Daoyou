@@ -13,6 +13,7 @@
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.0",
+    "@upstash/redis": "^1.35.7",
     "@vercel/analytics": "^1.6.1",
     "drizzle-orm": "^0.44.7",
     "next": "16.0.4",
