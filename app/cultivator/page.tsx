@@ -61,7 +61,7 @@ export default function CultivatorPage() {
   const finalAttrsResult = calculateFinalAttributes(cultivator);
   const finalAttrs = finalAttrsResult.final;
   const breakdown = finalAttrsResult.breakdown;
-  const maxHp = 80 + finalAttrs.vitality;
+  const maxHp = 100 + finalAttrs.vitality * 5;
   const maxMp = finalAttrs.spirit;
 
   const equippedItems = inventory.artifacts.filter(

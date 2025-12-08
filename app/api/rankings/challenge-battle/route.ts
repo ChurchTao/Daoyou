@@ -1,11 +1,11 @@
 import { simulateBattle } from '@/engine/battleEngine';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
-import { redis } from '@/lib/redis';
 import {
   acquireChallengeLock,
   checkDailyChallenges,
   getCultivatorRank,
+  incrementDailyChallenges,
   isLocked,
   isProtected,
   isRankingEmpty,
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
           const challengerRank = await getCultivatorRank(cultivatorId);
 
           // 如果targetId为空或未提供，且排行榜为空，则直接上榜
+          // 注意：直接上榜不消耗挑战次数
           if (
             (!targetId || targetId === '') &&
             isEmpty &&
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
                   type: 'direct_entry',
                   message: '成功上榜，占据第一名！',
                   rank: 1,
+                  remainingChallenges: challengeCheck.remaining, // 直接上榜不消耗次数
                 })}\n\n`,
               ),
             );
@@ -143,8 +145,10 @@ export async function POST(request: NextRequest) {
           lockAcquired = true;
 
           // 9. 获取被挑战者角色信息
+          const { redis } = await import('@/lib/redis/index');
           const infoKey = `golden_rank:cultivator:${targetId}`;
-          const targetUserId = await redis.hGet(infoKey, 'user_id');
+          // Upstash Redis: hget(key, field)
+          const targetUserId = await redis.hget<string>(infoKey, 'user_id');
 
           if (!targetUserId) {
             throw new Error('无法获取被挑战者用户ID');
@@ -209,7 +213,11 @@ export async function POST(request: NextRequest) {
             newTargetRank = await getCultivatorRank(targetId);
           }
 
-          // 15. 记录战斗结果
+          // 15. 挑战完成，增加挑战次数（无论成功或失败都消耗次数）
+          const remainingChallenges =
+            await incrementDailyChallenges(cultivatorId);
+
+          // 16. 记录战斗结果
           // 为挑战者记录挑战记录
           await db.insert(battleRecords).values({
             userId: user.id,
@@ -230,7 +238,7 @@ export async function POST(request: NextRequest) {
             battleReport: fullReport,
           });
 
-          // 16. 发送排名更新信息
+          // 17. 发送排名更新信息
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({
@@ -238,7 +246,7 @@ export async function POST(request: NextRequest) {
                 isWin,
                 challengerRank: newChallengerRank,
                 targetRank: newTargetRank,
-                remainingChallenges: challengeCheck.remaining - 1,
+                remainingChallenges,
               })}\n\n`,
             ),
           );

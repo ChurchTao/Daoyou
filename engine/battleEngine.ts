@@ -438,7 +438,7 @@ function executeSkill(
   } else if (skill.type === 'heal') {
     const target = skill.target_self === false ? defender : attacker;
     const targetFinal = calcFinalAttrs(target.data).final;
-    const maxHp = 80 + targetFinal.vitality;
+    const maxHp = 100 + targetFinal.vitality * 5;
     const rawHeal = skill.power * (1 + finalAtt.spirit / 160);
     const healInt = Math.max(0, Math.floor(rawHeal));
     target.hp = Math.min(target.hp + healInt, maxHp);

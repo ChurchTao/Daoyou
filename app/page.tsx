@@ -48,7 +48,7 @@ export default function HomePage() {
   const dailyQuote = getDailyQuote();
   const spiritualRoots = cultivator?.spiritual_roots ?? [];
 
-  const maxHp = cultivator ? 80 + cultivator.attributes.vitality : 100;
+  const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
   const spirit = cultivator?.attributes.spirit ?? 0;
   const maxSpirit = spirit;
 

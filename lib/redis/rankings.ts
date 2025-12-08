@@ -9,7 +9,7 @@ const DAILY_CHALLENGES_PREFIX = 'golden_rank:daily_challenges:';
 const CHALLENGE_LOCK_PREFIX = 'golden_rank:challenge_lock:';
 
 const MAX_RANKING_SIZE = 100;
-const PROTECTION_DURATION = 7200; // 2小时，单位：秒
+const PROTECTION_DURATION = 1800; // 30分钟，单位：秒
 const LOCK_DURATION = 300; // 5分钟，单位：秒
 const MAX_DAILY_CHALLENGES = 10;
 
@@ -58,26 +58,20 @@ function getTodayString(): string {
  * 获取排行榜列表（前100名）
  */
 export async function getRankingList(): Promise<RankingItem[]> {
-  const client = redis;
-  const members = await client.zRange(
-    RANKING_LIST_KEY,
-    0,
-    MAX_RANKING_SIZE - 1,
-    {
-      REV: false, // 从低到高（排名1到100）
-    },
-  );
+  // Upstash Redis: zrange(key, start, stop, { rev?: boolean })
+  const members = await redis.zrange(RANKING_LIST_KEY, 0, MAX_RANKING_SIZE - 1);
 
   const items: RankingItem[] = [];
   for (let i = 0; i < members.length; i++) {
-    const cultivatorId = members[i];
+    const cultivatorId = members[i] as string;
     const rank = i + 1;
     const info = await getCultivatorRankInfo(cultivatorId);
     if (info) {
       const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-      const protectionTime = await client.get(protectionKey);
+      const protectionTime = await redis.get(protectionKey);
       const isNewcomer = protectionTime
-        ? Date.now() - parseInt(protectionTime) < PROTECTION_DURATION * 1000
+        ? Date.now() - parseInt(protectionTime as string, 10) <
+          PROTECTION_DURATION * 1000
         : false;
 
       items.push({
@@ -98,9 +92,9 @@ export async function getRankingList(): Promise<RankingItem[]> {
 export async function getCultivatorRankInfo(
   cultivatorId: string,
 ): Promise<Omit<RankingItem, 'cultivatorId' | 'rank' | 'isNewcomer'> | null> {
-  const client = redis;
   const infoKey = `${CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
-  const info = await client.hGetAll(infoKey);
+  // Upstash Redis: hgetall(key) 返回 Record<string, string>
+  const info = await redis.hgetall<Record<string, string>>(infoKey);
 
   if (!info || Object.keys(info).length === 0) {
     return null;
@@ -124,9 +118,9 @@ export async function getCultivatorRankInfo(
 export async function getCultivatorRank(
   cultivatorId: string,
 ): Promise<number | null> {
-  const client = redis;
-  const rank = await client.zRank(RANKING_LIST_KEY, cultivatorId);
-  return rank !== null ? rank + 1 : null; // zRank返回0-based索引，需要+1
+  // Upstash Redis: zrank(key, member) 返回 number | null
+  const rank = await redis.zrank(RANKING_LIST_KEY, cultivatorId);
+  return rank !== null ? rank + 1 : null; // zrank返回0-based索引，需要+1
 }
 
 /**
@@ -138,12 +132,12 @@ export async function addToRanking(
   userId: string,
   targetRank?: number,
 ): Promise<void> {
-  const client = redis;
   const combatRating = calcCombatRating(cultivator);
 
   // 保存角色详细信息
   const infoKey = `${CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
-  await client.hSet(infoKey, {
+  // Upstash Redis: hset(key, field, value) 或 hset(key, { field: value })
+  await redis.hset(infoKey, {
     name: cultivator.name,
     realm: cultivator.realm,
     realm_stage: cultivator.realm_stage,
@@ -158,52 +152,56 @@ export async function addToRanking(
   // 如果指定了排名，需要先调整后续排名，再插入
   if (targetRank) {
     await adjustRankingsAfterInsert(targetRank);
-    await client.zAdd(RANKING_LIST_KEY, {
+    // Upstash Redis: zadd(key, { score, member })
+    await redis.zadd(RANKING_LIST_KEY, {
       score: targetRank,
-      value: cultivatorId,
+      member: cultivatorId,
     });
   } else {
-    const currentSize = await client.zCard(RANKING_LIST_KEY);
+    const currentSize = await redis.zcard(RANKING_LIST_KEY);
     const rank = currentSize + 1;
-    await client.zAdd(RANKING_LIST_KEY, {
+    await redis.zadd(RANKING_LIST_KEY, {
       score: rank,
-      value: cultivatorId,
+      member: cultivatorId,
     });
   }
 
   // 设置新上榜保护（2小时）
   const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-  await client.setEx(protectionKey, PROTECTION_DURATION, Date.now().toString());
+  // Upstash Redis: setex(key, seconds, value)
+  await redis.setex(protectionKey, PROTECTION_DURATION, Date.now().toString());
 
   // 限制排行榜大小（只保留前100名）
-  await client.zRemRangeByRank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
+  // Upstash Redis: zremrangebyrank(key, start, stop)
+  await redis.zremrangebyrank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
 }
 
 /**
  * 调整插入后的排名（将targetRank及之后的排名+1）
  */
 async function adjustRankingsAfterInsert(targetRank: number): Promise<void> {
-  const client = redis;
   // 获取从targetRank开始的所有成员（0-based索引，所以是targetRank-1）
-  const members = await client.zRange(RANKING_LIST_KEY, targetRank - 1, -1, {
-    REV: false,
-  });
+  const members = (await redis.zrange(
+    RANKING_LIST_KEY,
+    targetRank - 1,
+    -1,
+  )) as string[];
 
   if (members.length === 0) {
     return; // 没有需要调整的成员
   }
 
-  // 使用事务更新排名
-  const multi = client.multi();
+  // Upstash Redis 使用 pipeline 而不是 multi
+  const pipeline = redis.pipeline();
   for (let i = 0; i < members.length; i++) {
     const cultivatorId = members[i];
     const newRank = targetRank + i + 1; // 所有排名+1
-    multi.zAdd(RANKING_LIST_KEY, {
+    pipeline.zadd(RANKING_LIST_KEY, {
       score: newRank,
-      value: cultivatorId,
+      member: cultivatorId,
     });
   }
-  await multi.exec();
+  await pipeline.exec();
 }
 
 /**
@@ -213,42 +211,37 @@ export async function updateRanking(
   challengerId: string,
   targetId: string,
 ): Promise<void> {
-  const client = redis;
-
   // 获取被挑战者当前排名
-  const targetRank = await client.zRank(RANKING_LIST_KEY, targetId);
+  const targetRank = await redis.zrank(RANKING_LIST_KEY, targetId);
   if (targetRank === null) {
     throw new Error('被挑战者不在排行榜上');
   }
   const targetRank1Based = targetRank + 1;
 
   // 获取挑战者当前排名（如果不在榜上则为null）
-  const challengerRank = await client.zRank(RANKING_LIST_KEY, challengerId);
+  const challengerRank = await redis.zrank(RANKING_LIST_KEY, challengerId);
 
-  // 使用事务确保原子性
-  const multi = client.multi();
+  // 使用 pipeline 确保原子性
+  const pipeline = redis.pipeline();
 
   if (challengerRank === null) {
     // 挑战者不在榜上，直接插入到被挑战者的位置
-    multi.zAdd(RANKING_LIST_KEY, {
+    pipeline.zadd(RANKING_LIST_KEY, {
       score: targetRank1Based,
-      value: challengerId,
+      member: challengerId,
     });
     // 将被挑战者及其下方所有角色排名+1
-    const members = await client.zRange(
+    const members = (await redis.zrange(
       RANKING_LIST_KEY,
       targetRank1Based,
       -1,
-      {
-        REV: false,
-      },
-    );
+    )) as string[];
     for (let i = 0; i < members.length; i++) {
       const id = members[i];
       if (id !== challengerId) {
-        multi.zAdd(RANKING_LIST_KEY, {
+        pipeline.zadd(RANKING_LIST_KEY, {
           score: targetRank1Based + i + 1,
-          value: id,
+          member: id,
         });
       }
     }
@@ -260,60 +253,83 @@ export async function updateRanking(
     }
 
     // 将被挑战者及其下方所有角色排名+1
-    const members = await client.zRange(RANKING_LIST_KEY, targetRank, -1, {
-      REV: false,
-    });
+    const members = (await redis.zrange(
+      RANKING_LIST_KEY,
+      targetRank,
+      -1,
+    )) as string[];
     for (let i = 0; i < members.length; i++) {
       const id = members[i];
       if (id === challengerId) continue; // 跳过挑战者自己
       const newRank = targetRank1Based + i + 1;
-      multi.zAdd(RANKING_LIST_KEY, {
+      pipeline.zadd(RANKING_LIST_KEY, {
         score: newRank,
-        value: id,
+        member: id,
       });
     }
 
     // 将挑战者排名设为被挑战者的排名
-    multi.zAdd(RANKING_LIST_KEY, {
+    pipeline.zadd(RANKING_LIST_KEY, {
       score: targetRank1Based,
-      value: challengerId,
+      member: challengerId,
     });
   }
 
+  await pipeline.exec();
+
   // 更新挑战者的信息时间戳
   const challengerInfoKey = `${CULTIVATOR_INFO_PREFIX}${challengerId}`;
-  multi.hSet(challengerInfoKey, 'updated_at', Date.now().toString());
-
-  await multi.exec();
+  const existingInfo =
+    await redis.hgetall<Record<string, string>>(challengerInfoKey);
+  if (existingInfo && Object.keys(existingInfo).length > 0) {
+    await redis.hset(challengerInfoKey, {
+      ...existingInfo,
+      updated_at: Date.now().toString(),
+    });
+  }
 
   // 限制排行榜大小
-  await client.zRemRangeByRank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
+  await redis.zremrangebyrank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
 }
 
 /**
- * 检查并增加挑战次数
+ * 检查挑战次数（不增加）
  * @returns 返回是否还有剩余挑战次数
  */
 export async function checkDailyChallenges(
   cultivatorId: string,
 ): Promise<{ success: boolean; remaining: number }> {
-  const client = redis;
   const today = getTodayString();
   const key = `${DAILY_CHALLENGES_PREFIX}${cultivatorId}:${today}`;
 
-  const current = await client.get(key);
-  const count = current ? parseInt(current, 10) : 0;
+  const current = await redis.get(key);
+  const count = current ? parseInt(current as string, 10) : 0;
 
   if (count >= MAX_DAILY_CHALLENGES) {
     return { success: false, remaining: 0 };
   }
 
+  return { success: true, remaining: MAX_DAILY_CHALLENGES - count };
+}
+
+/**
+ * 增加挑战次数（挑战成功后调用）
+ */
+export async function incrementDailyChallenges(
+  cultivatorId: string,
+): Promise<number> {
+  const today = getTodayString();
+  const key = `${DAILY_CHALLENGES_PREFIX}${cultivatorId}:${today}`;
+
+  const current = await redis.get(key);
+  const count = current ? parseInt(current as string, 10) : 0;
+
   // 增加挑战次数
   const newCount = count + 1;
   const ttl = getSecondsUntilMidnight();
-  await client.setEx(key, ttl, newCount.toString());
+  await redis.setex(key, ttl, newCount.toString());
 
-  return { success: true, remaining: MAX_DAILY_CHALLENGES - newCount };
+  return MAX_DAILY_CHALLENGES - newCount;
 }
 
 /**
@@ -322,12 +338,11 @@ export async function checkDailyChallenges(
 export async function getRemainingChallenges(
   cultivatorId: string,
 ): Promise<number> {
-  const client = redis;
   const today = getTodayString();
   const key = `${DAILY_CHALLENGES_PREFIX}${cultivatorId}:${today}`;
 
-  const current = await client.get(key);
-  const count = current ? parseInt(current, 10) : 0;
+  const current = await redis.get(key);
+  const count = current ? parseInt(current as string, 10) : 0;
 
   return Math.max(0, MAX_DAILY_CHALLENGES - count);
 }
@@ -336,15 +351,14 @@ export async function getRemainingChallenges(
  * 检查是否在保护期
  */
 export async function isProtected(cultivatorId: string): Promise<boolean> {
-  const client = redis;
   const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-  const protectionTime = await client.get(protectionKey);
+  const protectionTime = await redis.get(protectionKey);
 
   if (!protectionTime) {
     return false;
   }
 
-  const timeDiff = Date.now() - parseInt(protectionTime);
+  const timeDiff = Date.now() - parseInt(protectionTime as string, 10);
   return timeDiff < PROTECTION_DURATION * 1000;
 }
 
@@ -355,13 +369,14 @@ export async function isProtected(cultivatorId: string): Promise<boolean> {
 export async function acquireChallengeLock(
   cultivatorId: string,
 ): Promise<boolean> {
-  const client = redis;
   const lockKey = `${CHALLENGE_LOCK_PREFIX}${cultivatorId}`;
 
   // 使用SET NX EX实现分布式锁
-  const result = await client.set(lockKey, Date.now().toString(), {
-    EX: LOCK_DURATION,
-    NX: true, // 只在key不存在时设置
+  // Upstash Redis: set(key, value, { ex?: number, nx?: boolean })
+  // 返回 'OK' | null
+  const result = await redis.set(lockKey, Date.now().toString(), {
+    ex: LOCK_DURATION,
+    nx: true, // 只在key不存在时设置
   });
 
   return result === 'OK';
@@ -373,18 +388,17 @@ export async function acquireChallengeLock(
 export async function releaseChallengeLock(
   cultivatorId: string,
 ): Promise<void> {
-  const client = redis;
   const lockKey = `${CHALLENGE_LOCK_PREFIX}${cultivatorId}`;
-  await client.del(lockKey);
+  await redis.del(lockKey);
 }
 
 /**
  * 检查是否被锁定
  */
 export async function isLocked(cultivatorId: string): Promise<boolean> {
-  const client = redis;
   const lockKey = `${CHALLENGE_LOCK_PREFIX}${cultivatorId}`;
-  const exists = await client.exists(lockKey);
+  // Upstash Redis: exists(key) 返回 number (0 或 1)
+  const exists = await redis.exists(lockKey);
   return exists === 1;
 }
 
@@ -392,18 +406,16 @@ export async function isLocked(cultivatorId: string): Promise<boolean> {
  * 从排行榜移除角色
  */
 export async function removeFromRanking(cultivatorId: string): Promise<void> {
-  const client = redis;
-  await client.zRem(RANKING_LIST_KEY, cultivatorId);
+  await redis.zrem(RANKING_LIST_KEY, cultivatorId);
   const infoKey = `${CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
-  await client.del(infoKey);
+  await redis.del(infoKey);
 }
 
 /**
  * 检查排行榜是否为空
  */
 export async function isRankingEmpty(): Promise<boolean> {
-  const client = redis;
-  const count = await client.zCard(RANKING_LIST_KEY);
+  const count = await redis.zcard(RANKING_LIST_KEY);
   return count === 0;
 }
 

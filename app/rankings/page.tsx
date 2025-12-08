@@ -7,10 +7,10 @@ import {
   InkList,
   InkListItem,
   InkNotice,
-  InkTag,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { RealmType } from '@/types/constants';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -139,7 +139,7 @@ export default function RankingsPage() {
 
     setChallenging('direct');
     try {
-      // 验证直接上榜条件
+      // 验证直接上榜条件并直接上榜
       const response = await fetch('/api/rankings/challenge', {
         method: 'POST',
         headers: {
@@ -157,8 +157,13 @@ export default function RankingsPage() {
         throw new Error(result.error || '上榜失败');
       }
 
-      // 如果是直接上榜，跳转到挑战战斗页面（会显示直接上榜结果）
-      router.push(`/battle/challenge?cultivatorId=${cultivator.id}`);
+      // 直接上榜成功，刷新排行榜和我的排名信息
+      await Promise.all([loadRankings(), loadMyRankInfo()]);
+
+      // 显示成功提示
+      if (result.data.directEntry) {
+        alert(`成功上榜，占据第${result.data.rank}名！`);
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '上榜失败，请稍后重试';
@@ -167,9 +172,6 @@ export default function RankingsPage() {
       setChallenging(null);
     }
   };
-
-  // 根据当前角色境界确定榜单标题
-  const realmTitle = cultivator ? `${cultivator.realm}境` : '筑基境';
 
   if (isLoading && !cultivator) {
     return (
@@ -185,8 +187,9 @@ export default function RankingsPage() {
 
   return (
     <InkPageShell
-      title={`【万界金榜 · ${realmTitle}】`}
-      subtitle={
+      title={`【万界金榜】`}
+      subtitle="战天下英豪，登万界金榜"
+      lead={
         myRankInfo
           ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${remainingChallenges}/10`
           : ''
@@ -250,16 +253,15 @@ export default function RankingsPage() {
                   }
                   meta={
                     <>
-                      <InkTag tone="info">
-                        {item.realm}
+                      <InkBadge tier={item.realm as RealmType}>
                         {item.realm_stage}
-                      </InkTag>{' '}
+                      </InkBadge>{' '}
                       <InkBadge tone="default">
                         {item.faction ?? '散修'}
                       </InkBadge>
                     </>
                   }
-                  description={`❤️ ${item.combat_rating}`}
+                  description={`⚔️ 战力：${item.combat_rating}`}
                   actions={
                     canChallenge ? (
                       <InkButton
