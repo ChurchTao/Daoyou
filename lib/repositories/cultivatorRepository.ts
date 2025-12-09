@@ -8,7 +8,6 @@ import {
 } from '@/types/constants';
 import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 import type {
-  Attributes,
   BreakthroughHistoryEntry,
   Cultivator,
   RetreatRecord,
@@ -411,13 +410,15 @@ export interface CultivatorWithOwner {
 
 export interface CultivatorBasic {
   id: string;
-  userId: string;
   name: string;
+  age: number;
   realm: string;
   realm_stage: string;
-  origin?: string | null;
-  attributes: Attributes;
-  updatedAt?: Date | null;
+  origin: string | null;
+  gender: string | null;
+  personality: string | null;
+  background: string | null;
+  updatedAt: Date | null;
 }
 
 /**
@@ -523,18 +524,16 @@ export async function getCultivatorBasicsByIdsUnsafe(
   const rows = await db
     .select({
       id: schema.cultivators.id,
-      userId: schema.cultivators.userId,
       name: schema.cultivators.name,
       realm: schema.cultivators.realm,
       realm_stage: schema.cultivators.realm_stage,
+      gender: schema.cultivators.gender,
       origin: schema.cultivators.origin,
-      vitality: schema.cultivators.vitality,
-      spirit: schema.cultivators.spirit,
-      wisdom: schema.cultivators.wisdom,
-      speed: schema.cultivators.speed,
-      willpower: schema.cultivators.willpower,
+      personality: schema.cultivators.personality,
+      background: schema.cultivators.background,
       updatedAt: schema.cultivators.updatedAt,
       status: schema.cultivators.status,
+      age: schema.cultivators.age,
     })
     .from(schema.cultivators)
     .where(
@@ -546,18 +545,14 @@ export async function getCultivatorBasicsByIdsUnsafe(
 
   return rows.map((row) => ({
     id: row.id,
-    userId: row.userId,
     name: row.name,
+    age: row.age,
     realm: row.realm,
     realm_stage: row.realm_stage,
     origin: row.origin,
-    attributes: {
-      vitality: row.vitality,
-      spirit: row.spirit,
-      wisdom: row.wisdom,
-      speed: row.speed,
-      willpower: row.willpower,
-    },
+    gender: row.gender,
+    personality: row.personality,
+    background: row.background,
     updatedAt: row.updatedAt,
   }));
 }

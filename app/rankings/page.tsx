@@ -1,33 +1,19 @@
 'use client';
 
+import { ProbeResultModal } from '@/components/func';
+import type { ProbeResultData } from '@/components/func/ProbeResult';
 import {
   InkActionGroup,
-  InkBadge,
   InkButton,
-  InkList,
-  InkListItem,
   InkNotice,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
-import { ProbeResultModal } from '@/components/func';
-import type { ProbeResultData } from '@/components/func/ProbeResult';
+import { useInkUI } from '@/components/InkUIProvider';
+import { RankingListItem } from '@/components/RankingListItem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { RealmType } from '@/types/constants';
+import { RankingItem } from '@/lib/redis/rankings';
 import { usePathname, useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useState } from 'react';
-
-type RankingItem = {
-  cultivatorId: string;
-  rank: number;
-  name: string;
-  realm: string;
-  realm_stage: string;
-  combat_rating: number;
-  faction?: string;
-  spirit_root: string;
-  isNewcomer: boolean;
-};
 
 type MyRankInfo = {
   rank: number | null;
@@ -35,17 +21,21 @@ type MyRankInfo = {
   isProtected: boolean;
 };
 
+type LoadingState = 'idle' | 'loading' | 'loaded';
+
 export default function RankingsPage() {
   const router = useRouter();
+  const { pushToast } = useInkUI();
   const { cultivator, isLoading, note } = useCultivatorBundle();
   const [rankings, setRankings] = useState<RankingItem[]>([]);
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
+  const [myRankInfoLoadingState, setMyRankInfoLoadingState] =
+    useState<LoadingState>('idle');
   const [loadingRankings, setLoadingRankings] = useState(false);
   const [challenging, setChallenging] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
   const [probing, setProbing] = useState<string | null>(null);
   const [probeResult, setProbeResult] = useState<ProbeResultData | null>(null);
-  const [probeError, setProbeError] = useState<string>('');
   const pathname = usePathname();
 
   const loadRankings = async () => {
@@ -60,7 +50,9 @@ export default function RankingsPage() {
       setRankings(result.data || []);
     } catch (err) {
       console.error('获取排行榜失败:', err);
-      setError('获取排行榜失败，请稍后重试');
+      const errorMessage = '获取排行榜失败，请稍后重试';
+      setError(errorMessage);
+      pushToast({ message: errorMessage, tone: 'danger' });
       setRankings([]);
     } finally {
       setLoadingRankings(false);
@@ -70,6 +62,7 @@ export default function RankingsPage() {
   const loadMyRankInfo = useCallback(async () => {
     if (!cultivator?.id) return;
 
+    setMyRankInfoLoadingState('loading');
     try {
       const response = await fetch(
         `/api/rankings/my-rank?cultivatorId=${cultivator.id}`,
@@ -81,11 +74,14 @@ export default function RankingsPage() {
           remainingChallenges: result.data.remainingChallenges,
           isProtected: result.data.isProtected,
         });
+        setMyRankInfoLoadingState('loaded');
       }
     } catch (err) {
       console.error('获取我的排名失败:', err);
+      pushToast({ message: '获取排名信息失败', tone: 'danger' });
+      setMyRankInfoLoadingState('loaded');
     }
-  }, [cultivator?.id]);
+  }, [cultivator?.id, pushToast]);
 
   useEffect(() => {
     void loadRankings();
@@ -100,7 +96,6 @@ export default function RankingsPage() {
   const handleProbe = async (targetId: string) => {
     if (!cultivator?.id) return;
     setProbing(targetId);
-    setProbeError('');
     try {
       const response = await fetch('/api/rankings/probe', {
         method: 'POST',
@@ -121,7 +116,7 @@ export default function RankingsPage() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '神识查探失败，请稍后重试';
-      setProbeError(errorMessage);
+      pushToast({ message: errorMessage, tone: 'danger' });
       setProbeResult(null);
     } finally {
       setProbing(null);
@@ -153,7 +148,10 @@ export default function RankingsPage() {
 
       // 如果是直接上榜，显示提示并刷新
       if (result.data.directEntry) {
-        alert(`成功上榜，占据第${result.data.rank}名！`);
+        pushToast({
+          message: `成功上榜，占据第${result.data.rank}名！`,
+          tone: 'success',
+        });
         await Promise.all([loadRankings(), loadMyRankInfo()]);
         return;
       }
@@ -165,7 +163,7 @@ export default function RankingsPage() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '挑战验证失败，请稍后重试';
-      alert(errorMessage);
+      pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setChallenging(null);
     }
@@ -199,12 +197,15 @@ export default function RankingsPage() {
 
       // 显示成功提示
       if (result.data.directEntry) {
-        alert(`成功上榜，占据第${result.data.rank}名！`);
+        pushToast({
+          message: `成功上榜，占据第${result.data.rank}名！`,
+          tone: 'success',
+        });
       }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '上榜失败，请稍后重试';
-      alert(errorMessage);
+      pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setChallenging(null);
     }
@@ -219,8 +220,9 @@ export default function RankingsPage() {
   }
 
   const myRank = myRankInfo?.rank;
-  const remainingChallenges = myRankInfo?.remainingChallenges ?? 0;
+  const remainingChallenges = myRankInfo?.remainingChallenges;
   const isEmpty = rankings.length === 0;
+  const isLoadingChallenges = myRankInfoLoadingState !== 'loaded';
 
   return (
     <>
@@ -229,7 +231,7 @@ export default function RankingsPage() {
         subtitle="战天下英豪，登万界金榜"
         lead={
           myRankInfo
-            ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${remainingChallenges}/10`
+            ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${isLoadingChallenges ? '推演中…' : `${remainingChallenges}/10`}`
             : ''
         }
         backHref="/"
@@ -263,94 +265,38 @@ export default function RankingsPage() {
           </div>
         ) : (
           <>
-            {remainingChallenges === 0 && (
+            {!isLoadingChallenges && remainingChallenges === 0 && (
               <InkNotice tone="warning">
                 今日挑战次数已用完（每日限10次），请明日再来。
               </InkNotice>
             )}
-            <InkList>
+            <div>
               {rankings.map((item) => {
-                const isSelf = item.cultivatorId === cultivator.id;
+                const isSelf = item.id === cultivator.id;
                 const canChallenge =
                   !isSelf &&
                   (!myRank || myRank > item.rank) &&
+                  !isLoadingChallenges &&
+                  remainingChallenges !== undefined &&
                   remainingChallenges > 0 &&
-                  !item.isNewcomer; // 新天骄不可被挑战
-                const isChallenging = challenging === item.cultivatorId;
-                const isProbing = probing === item.cultivatorId;
-
-                const actions: ReactNode[] = [];
-
-                if (canChallenge) {
-                  actions.push(
-                    <InkButton
-                      key="challenge"
-                      onClick={() => handleChallenge(item.cultivatorId)}
-                      variant="primary"
-                      className="text-sm"
-                      disabled={isChallenging}
-                    >
-                      {isChallenging ? '挑战中…' : '挑战'}
-                    </InkButton>,
-                  );
-                }
-
-                if (!isSelf) {
-                  actions.push(
-                    <InkButton
-                      key="probe"
-                      onClick={() => handleProbe(item.cultivatorId)}
-                      variant="secondary"
-                      className="text-sm"
-                      disabled={isProbing}
-                    >
-                      {isProbing ? '查探中…' : '神识查探'}
-                    </InkButton>,
-                  );
-                }
+                  !item.is_new_comer; // 新天骄不可被挑战
+                const isChallenging = challenging === item.id;
+                const isProbing = probing === item.id;
 
                 return (
-                  <InkListItem
-                    key={item.cultivatorId}
-                    title={
-                      <>
-                        {item.rank}. {item.name}{' '}
-                        {isSelf && <span className="equipped-mark">← 你</span>}
-                        {item.isNewcomer && (
-                          <InkBadge tone="accent" className="ml-2">
-                            [新天骄]
-                          </InkBadge>
-                        )}
-                      </>
-                    }
-                    meta={
-                      <>
-                        <InkBadge tier={item.realm as RealmType}>
-                          {item.realm_stage}
-                        </InkBadge>{' '}
-                        <InkBadge tone="default">
-                          {item.faction ?? '散修'}
-                        </InkBadge>
-                      </>
-                    }
-                    description={`⚔️ 战力：${item.combat_rating}`}
-                    actions={
-                      actions.length > 0 ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {actions}
-                        </div>
-                      ) : null
-                    }
-                    highlight={isSelf}
+                  <RankingListItem
+                    key={item.id}
+                    item={item}
+                    isSelf={isSelf}
+                    canChallenge={canChallenge}
+                    isChallenging={isChallenging}
+                    isProbing={isProbing}
+                    onChallenge={handleChallenge}
+                    onProbe={handleProbe}
                   />
                 );
               })}
-            </InkList>
-            {probeError && (
-              <div className="mt-4">
-                <InkNotice tone="warning">{probeError}</InkNotice>
-              </div>
-            )}
+            </div>
           </>
         )}
       </InkPageShell>

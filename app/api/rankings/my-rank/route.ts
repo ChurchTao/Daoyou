@@ -1,6 +1,5 @@
 import {
   getCultivatorRank,
-  getCultivatorRankInfo,
   getRemainingChallenges,
   isProtected,
 } from '@/lib/redis/rankings';
@@ -28,17 +27,11 @@ export async function GET(request: NextRequest) {
     const cultivatorId = searchParams.get('cultivatorId');
 
     if (!cultivatorId) {
-      return NextResponse.json(
-        { error: '请提供角色ID' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: '请提供角色ID' }, { status: 400 });
     }
 
     // 获取排名
     const rank = await getCultivatorRank(cultivatorId);
-
-    // 获取角色详细信息
-    const rankInfo = await getCultivatorRankInfo(cultivatorId);
 
     // 获取剩余挑战次数
     const remainingChallenges = await getRemainingChallenges(cultivatorId);
@@ -50,7 +43,6 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         rank,
-        rankInfo,
         remainingChallenges,
         isProtected: isProtectedStatus,
       },
@@ -68,4 +60,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

@@ -1,4 +1,7 @@
-import { getCultivatorBasicsByIdsUnsafe } from '@/lib/repositories/cultivatorRepository';
+import {
+  CultivatorBasic,
+  getCultivatorBasicsByIdsUnsafe,
+} from '@/lib/repositories/cultivatorRepository';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { redis } from './index';
 
@@ -13,17 +16,10 @@ const PROTECTION_DURATION = 1800; // 30分钟，单位：秒
 const LOCK_DURATION = 300; // 5分钟，单位：秒
 const MAX_DAILY_CHALLENGES = 10;
 
-export interface RankingItem {
-  cultivatorId: string;
+export interface RankingItem extends CultivatorBasic {
   rank: number;
-  name: string;
-  realm: string;
-  realm_stage: string;
-  combat_rating: number;
   faction?: string;
-  spirit_root: string;
-  user_id: string;
-  isNewcomer: boolean; // 是否为新天骄（2小时内）
+  is_new_comer: boolean; // 是否为新天骄（2小时内）
   updated_at: number;
 }
 
@@ -96,52 +92,27 @@ export async function getRankingList(): Promise<RankingItem[]> {
     const record = map.get(entry.cultivatorId);
     if (!record) continue;
 
-    const combatRating = calcCombatRatingFromAttributes(record.attributes);
     items.push({
-      cultivatorId: entry.cultivatorId,
+      id: record.id,
       rank: entry.rank,
       name: record.name,
+      age: record.age,
       realm: record.realm,
       realm_stage: record.realm_stage,
-      combat_rating: combatRating,
-      faction: record.origin || '',
-      spirit_root: '无',
-      user_id: record.userId,
-      isNewcomer: entry.isNewcomer,
+      origin: record.origin,
+      is_new_comer: entry.isNewcomer,
       updated_at:
         record.updatedAt instanceof Date
           ? record.updatedAt.getTime()
           : Date.now(),
+      gender: record.gender,
+      personality: record.personality,
+      background: record.background,
+      updatedAt: record.updatedAt,
     });
   }
 
   return items;
-}
-
-/**
- * 获取角色排名信息
- */
-export async function getCultivatorRankInfo(
-  cultivatorId: string,
-): Promise<Omit<RankingItem, 'cultivatorId' | 'rank' | 'isNewcomer'> | null> {
-  const [record] = await getCultivatorBasicsByIdsUnsafe([cultivatorId]);
-  if (!record) {
-    return null;
-  }
-
-  return {
-    name: record.name,
-    realm: record.realm,
-    realm_stage: record.realm_stage,
-    combat_rating: calcCombatRatingFromAttributes(record.attributes),
-    faction: record.origin || '',
-    spirit_root: '无',
-    user_id: record.userId,
-    updated_at:
-      record.updatedAt instanceof Date
-        ? record.updatedAt.getTime()
-        : Date.now(),
-  };
 }
 
 /**
