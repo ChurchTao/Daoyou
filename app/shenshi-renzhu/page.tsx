@@ -36,10 +36,7 @@ function ShenShiRenZhuContent() {
   useEffect(() => {
     if (!isLoading && user && !user.is_anonymous) {
       pushToast({ message: '你的真身已与神识绑定成功' });
-      setTimeout(() => {
-        router.push('/');
-        window.location.reload();
-      }, 1500);
+      router.push('/');
     }
   }, [user, isLoading, router, pushToast]);
 

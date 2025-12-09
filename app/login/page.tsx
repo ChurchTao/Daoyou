@@ -35,10 +35,7 @@ function LoginPageContent() {
   useEffect(() => {
     if (!isLoading && user && !user.is_anonymous) {
       pushToast({ message: '真身已召回成功' });
-      setTimeout(() => {
-        router.push('/');
-        window.location.reload();
-      }, 1500);
+      router.push('/');
     }
   }, [user, isLoading, router, pushToast]);
 
