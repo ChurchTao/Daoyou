@@ -1,0 +1,82 @@
+'use client';
+
+import { useDivineFortune } from '@/lib/hooks/useDivineFortune';
+import { cn } from '@/lib/utils';
+import { TypewriterText } from './TypewriterText';
+
+interface DivineFortuneProps {
+  className?: string;
+  onComplete?: () => void;
+  showImmediately?: boolean; // 是否立即显示（跳过打字机效果）
+  startDelay?: number; // 延迟开始时间（ms）
+}
+
+/**
+ * 天机推演显示组件
+ * 显示 AIGC 生成的天机格言
+ */
+export function DivineFortune({
+  className,
+  onComplete,
+  showImmediately = false,
+  startDelay = 0,
+}: DivineFortuneProps) {
+  const { fortune, isLoading } = useDivineFortune();
+
+  if (isLoading) {
+    return (
+      <div className={cn('text-center py-8', className)}>
+        <p className="text-amber-800/60 text-lg animate-pulse">
+          正在推演天机……
+        </p>
+      </div>
+    );
+  }
+
+  if (!fortune) {
+    return null;
+  }
+
+  return (
+    <div className={cn('divine-fortune text-center space-y-6', className)}>
+      {/* 标题 */}
+      <div className="text-amber-900/70 text-sm tracking-widest mb-4">
+        ◆ 今日天机 ◆
+      </div>
+
+      {/* 天机格言 */}
+      <div className="fortune-text px-4">
+        <TypewriterText
+          text={fortune.fortune}
+          speed={100}
+          startDelay={startDelay}
+          enabled={!showImmediately}
+          className="text-2xl md:text-3xl text-amber-900 leading-relaxed"
+        />
+      </div>
+
+      {/* 提示 */}
+      <div className="hint-text px-4">
+        <TypewriterText
+          text={fortune.hint}
+          speed={100}
+          startDelay={
+            showImmediately
+              ? 0
+              : startDelay + fortune.fortune.length * 100 + 300
+          }
+          enabled={!showImmediately}
+          onComplete={onComplete}
+          className="text-lg md:text-xl text-amber-800/80"
+        />
+      </div>
+
+      {/* 装饰性分隔线 */}
+      <div className="flex items-center justify-center gap-3 pt-4">
+        <div className="h-px w-12 bg-linear-to-r from-transparent to-amber-900/30" />
+        <div className="text-amber-900/40 text-xs">☯</div>
+        <div className="h-px w-12 bg-linear-to-l from-transparent to-amber-900/30" />
+      </div>
+    </div>
+  );
+}

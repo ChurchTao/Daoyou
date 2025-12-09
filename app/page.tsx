@@ -14,6 +14,7 @@ import {
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { RecentBattles } from '@/components/RecentBattles';
+import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 
@@ -44,7 +45,7 @@ const getDailyQuote = () => {
   return dailyQuotes[day % dailyQuotes.length];
 };
 
-export default function HomePage() {
+function HomePageContent() {
   const pathname = usePathname();
   const { isAnonymous } = useAuth();
   const { cultivator, isLoading, note } = useCultivatorBundle();
@@ -184,5 +185,13 @@ export default function HomePage() {
         </InkSection>
       )}
     </InkPageShell>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <WelcomeRedirect>
+      <HomePageContent />
+    </WelcomeRedirect>
   );
 }

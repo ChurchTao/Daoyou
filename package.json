@@ -15,12 +15,14 @@
     "@supabase/supabase-js": "^2.87.0",
     "@upstash/redis": "^1.35.7",
     "@vercel/analytics": "^1.6.1",
+    "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.0",
     "next": "16.0.8",
     "openai": "^6.10.0",
     "postgres": "^3.4.7",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

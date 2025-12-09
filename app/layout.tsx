@@ -1,4 +1,5 @@
 import { InkUIProvider } from '@/components/InkUIProvider';
+import '@/components/welcome/welcome.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import AnonymousUserManager from '../components/AnonymousUserManager';
