@@ -14,6 +14,7 @@ import {
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { RecentBattles } from '@/components/RecentBattles';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 
 const quickActions = [
@@ -25,6 +26,7 @@ const quickActions = [
   { label: '🔥 炼器', href: '/ritual' },
   { label: '🌀 奇遇', href: '/ritual' },
   { label: '📜 顿悟', href: '/ritual' },
+  { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
 
 const dailyQuotes = [
@@ -44,6 +46,7 @@ const getDailyQuote = () => {
 
 export default function HomePage() {
   const pathname = usePathname();
+  const { isAnonymous } = useAuth();
   const { cultivator, isLoading, note } = useCultivatorBundle();
   const dailyQuote = getDailyQuote();
   const spiritualRoots = cultivator?.spiritual_roots ?? [];
@@ -152,15 +155,17 @@ export default function HomePage() {
       {cultivator && (
         <InkSection title="【快捷入口】">
           <div className="flex flex-wrap gap-3">
-            {quickActions.map((action) => (
-              <InkButton
-                key={action.label}
-                href={action.href}
-                className="text-sm"
-              >
-                {action.label}
-              </InkButton>
-            ))}
+            {quickActions
+              .filter((action) => !action.anonymousOnly || isAnonymous)
+              .map((action) => (
+                <InkButton
+                  key={action.label}
+                  href={action.href}
+                  className="text-sm"
+                >
+                  {action.label}
+                </InkButton>
+              ))}
           </div>
         </InkSection>
       )}

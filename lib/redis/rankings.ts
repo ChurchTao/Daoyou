@@ -239,20 +239,28 @@ export async function updateRanking(
       throw new Error('只能挑战排名比自己高的角色');
     }
 
-    // 将被挑战者及其下方所有角色排名+1
+    // 获取被挑战者位置开始的所有成员（需要下移）
+    // 使用 targetRank（0-based）作为起始索引
     const members = (await redis.zrange(
       RANKING_LIST_KEY,
       targetRank,
       -1,
     )) as string[];
+
+    // 将获取到的成员（除了挑战者）都下移一位
+    // 关键：需要用单独的计数器追踪实际要分配的排名
+    let rankOffset = 1; // 从被挑战者的下一名开始（因为挑战者会占据被挑战者的位置）
     for (let i = 0; i < members.length; i++) {
       const id = members[i];
       if (id === challengerId) continue; // 跳过挑战者自己
-      const newRank = targetRank1Based + i + 1;
+
+      // 分配新排名：被挑战者原排名 + 偏移量
+      const newRank = targetRank1Based + rankOffset;
       pipeline.zadd(RANKING_LIST_KEY, {
         score: newRank,
         member: id,
       });
+      rankOffset++; // 下一个成员的偏移量增加
     }
 
     // 将挑战者排名设为被挑战者的排名

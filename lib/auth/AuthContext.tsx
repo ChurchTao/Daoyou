@@ -14,6 +14,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
+  isAnonymous: boolean;
   signUp: (
     email: string,
     password: string,
@@ -111,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     session,
     user,
     isLoading,
+    isAnonymous: user?.is_anonymous ?? false,
     signUp,
     signIn,
     signOut,
