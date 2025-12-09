@@ -62,19 +62,19 @@ export default function HomePage() {
 
   const statusItems = cultivator
     ? [
-        { label: '气血', value: maxHp, icon: '❤️' },
-        { label: '灵力', value: maxSpirit, icon: '⚡️' },
+        { label: '气血：', value: maxHp, icon: '❤️' },
+        { label: '灵力：', value: maxSpirit, icon: '⚡️' },
         {
-          label: '性别',
+          label: '性别：',
           value: cultivator.gender,
           icon: cultivator.gender === '男' ? '♂' : '♀',
         },
         {
-          label: '年龄',
+          label: '年龄：',
           value: cultivator.age,
           icon: '⏳',
         },
-        { label: '寿元', value: cultivator.lifespan, icon: '🔮' },
+        { label: '寿元：', value: cultivator.lifespan, icon: '🔮' },
       ]
     : [];
 
