@@ -28,7 +28,7 @@ export function RankingListItem({
 
   return (
     <div
-      className={`py-3 border-b border-ink-border ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
+      className={`py-3 border-b border-ink/20 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
     >
       {/* 第一行：排名、姓名、性别、年龄、标记 */}
       <div className="flex items-baseline gap-2 mb-1">
