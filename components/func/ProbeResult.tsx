@@ -28,8 +28,18 @@ export function ProbeResultModal({
   const target = probeResult.cultivator;
   const finalAttrs = probeResult.finalAttributes;
 
-  const formatAttrs = (attrs: Attributes) =>
-    `体魄${attrs.vitality} / 灵力${attrs.spirit} / 悟性${attrs.wisdom} / 速度${attrs.speed} / 神识${attrs.willpower}`;
+  // 格式化单个属性：基础 → 最终
+  const formatAttr = (label: string, base: number, final: number) => {
+    if (base === final) {
+      return `${label}${base}`;
+    }
+    return (
+      <>
+        {label}
+        {base} → <span className="text-crimson">{final}</span>
+      </>
+    );
+  };
 
   const formatEquipped = (equipped: EquippedItems) =>
     [
@@ -54,11 +64,16 @@ export function ProbeResultModal({
           神识查探：{target.name}{' '}
           <InkBadge tier={target.realm}>{target.realm_stage}</InkBadge>
         </div>
-        <div className="text-sm text-ink-secondary">
-          基础属性：{formatAttrs(target.attributes)}
-        </div>
-        <div className="text-sm text-ink-secondary">
-          最终属性：{formatAttrs(finalAttrs)}
+        <div className="text-sm text-ink-secondary mt-2">
+          {formatAttr('体魄', target.attributes.vitality, finalAttrs.vitality)}{' '}
+          / {formatAttr('灵力', target.attributes.spirit, finalAttrs.spirit)} /{' '}
+          {formatAttr('悟性', target.attributes.wisdom, finalAttrs.wisdom)} /{' '}
+          {formatAttr('速度', target.attributes.speed, finalAttrs.speed)} /{' '}
+          {formatAttr(
+            '神识',
+            target.attributes.willpower,
+            finalAttrs.willpower,
+          )}
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">

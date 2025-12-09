@@ -2,7 +2,7 @@ import {
   CultivatorBasic,
   getCultivatorBasicsByIdsUnsafe,
 } from '@/lib/repositories/cultivatorRepository';
-import type { Attributes, Cultivator } from '@/types/cultivator';
+import type { Cultivator } from '@/types/cultivator';
 import { redis } from './index';
 
 const RANKING_LIST_KEY = 'golden_rank:list';
@@ -27,14 +27,6 @@ export interface CultivatorRankInfo {
   rank: number | null; // null表示不在榜上
   isProtected: boolean;
   remainingChallenges: number;
-}
-
-/**
- * 计算战力评分
- */
-function calcCombatRatingFromAttributes(attrs: Attributes): number {
-  const { vitality, spirit, wisdom, speed, willpower } = attrs;
-  return Math.round((vitality + spirit + wisdom + speed + willpower) / 5);
 }
 
 /**

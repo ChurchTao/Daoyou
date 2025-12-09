@@ -53,6 +53,7 @@ interface BattleUnit {
   mp: number;
   statuses: Map<StatusEffect, StatusInstance>;
   skillCooldowns: Map<string, number>;
+  isDefending: boolean;
 }
 
 interface BattleState {
@@ -116,6 +117,7 @@ function getDefenseMultiplier(unit: BattleUnit): number {
   let reduction = final.vitality / 400;
   if (unit.statuses.has('armor_up')) reduction += 0.15;
   if (unit.statuses.has('armor_down')) reduction -= 0.15;
+  if (unit.isDefending) reduction += 0.5; // 防御状态减伤50%
   reduction = Math.min(Math.max(reduction, 0), 0.7);
   return 1 - reduction;
 }
@@ -207,7 +209,13 @@ function isActionBlocked(unit: BattleUnit): boolean {
 function canUseSkill(unit: BattleUnit, skill: Skill): boolean {
   if (unit.statuses.has('silence') && skill.type !== 'heal') return false;
   const cd = unit.skillCooldowns.get(skill.id!) ?? 0;
-  return cd <= 0;
+  if (cd > 0) return false;
+
+  // 检查MP是否足够
+  const cost = skill.cost ?? 0;
+  if (cost > 0 && unit.mp < cost) return false;
+
+  return true;
 }
 
 function describeStatus(effect?: StatusEffect | null): string {
@@ -505,10 +513,10 @@ function executeSkill(
   attacker.skillCooldowns.set(skill.id!, skill.cooldown);
 }
 
-function chooseSkill(actor: BattleUnit, target: BattleUnit): Skill {
+function chooseSkill(actor: BattleUnit, target: BattleUnit): Skill | null {
   const available = actor.data.skills.filter((s) => canUseSkill(actor, s));
   if (!available.length) {
-    return actor.data.skills[0];
+    return null;
   }
 
   const offensive = available.filter(
@@ -547,6 +555,7 @@ export function simulateBattle(
     mp: calcFinalAttrs(data).final.spirit * 2,
     statuses: new Map(),
     skillCooldowns: new Map(data.skills.map((s) => [s.id!, 0])),
+    isDefending: false,
   });
 
   const state: BattleState = {
@@ -591,6 +600,10 @@ export function simulateBattle(
 
     for (const actor of actors) {
       if (actor.hp <= 0) continue;
+
+      // 重置防御状态
+      actor.isDefending = false;
+
       if (isActionBlocked(actor)) {
         state.log.push(`${actor.data.name} 无法行动！`);
         continue;
@@ -598,15 +611,38 @@ export function simulateBattle(
 
       const target = actor.id === 'player' ? state.opponent : state.player;
       const skill = chooseSkill(actor, target);
-      executeSkill(actor, target, skill, state);
-      if (target.hp <= 0) {
-        if (!snapshottedThisTurn) {
-          state.timeline.push(
-            snapshotTurn(state.turn, state.player, state.opponent),
+
+      // 如果没有可用技能，区分沉默和MP耗尽两种情况
+      if (!skill) {
+        // 检查是否被沉默
+        const isSilenced = actor.statuses.has('silence');
+
+        if (isSilenced) {
+          // 被沉默时进行防御
+          actor.isDefending = true;
+          state.log.push(
+            `${actor.data.name} 因被沉默无法施展术法，摆出防御姿态。`,
           );
-          snapshottedThisTurn = true;
+        } else {
+          // MP耗尽时恢复MP
+          const maxMp = calcFinalAttrs(actor.data).final.spirit * 2;
+          const recoveredMp = Math.floor(maxMp * 0.3);
+          actor.mp = Math.min(actor.mp + recoveredMp, maxMp);
+          state.log.push(
+            `${actor.data.name} 因灵力耗尽，使用灵石恢复了 ${recoveredMp} 点灵力。`,
+          );
         }
-        break;
+      } else {
+        executeSkill(actor, target, skill, state);
+        if (target.hp <= 0) {
+          if (!snapshottedThisTurn) {
+            state.timeline.push(
+              snapshotTurn(state.turn, state.player, state.opponent),
+            );
+            snapshottedThisTurn = true;
+          }
+          break;
+        }
       }
 
       // 冷却递减

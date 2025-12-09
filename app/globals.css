@@ -3,7 +3,8 @@
 /* 引入本地字体 */
 @font-face {
   font-family: 'LXGWWenKai';
-  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/LXGWWenKaiLite-Regular.ttf') format('truetype');
+  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/LXGWWenKaiLite-Regular.ttf')
+    format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -11,10 +12,29 @@
 
 @font-face {
   font-family: 'Ma Shan Zheng';
-  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/MaShanZheng-Regular.ttf') format('truetype');
+  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/MaShanZheng-Regular.ttf')
+    format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+}
+
+@theme {
+  /* 色彩系统 */
+  --color-paper: #f8f3e6; /* 旧纸 */
+  --color-ink: #2c1810; /* 正文墨色 */
+  --color-ink-secondary: #5a4a42; /* 次要墨色 */
+  --color-crimson: #c1121f; /* 朱砂红 */
+  --color-teal: #4a7c59; /* 青黛 */
+  --color-wood: #8b4513; /* 木色 */
+  --color-ink-muted: rgba(44, 24, 16, 0.6);
+}
+
+@theme inline {
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-lxgwwenkai);
+  --font-mono: var(--font-geist-mono);
 }
 
 :root {
@@ -55,13 +75,6 @@
   /* 字体变量 */
   --font-lxgwwenkai: 'LXGWWenKai', serif;
   --font-ma-shan-zheng: 'Ma Shan Zheng', cursive;
-}
-
-@theme inline {
-  --color-background: var(--color-paper);
-  --color-foreground: var(--color-ink);
-  --font-sans: var(--font-lxgwwenkai);
-  --font-mono: var(--font-geist-mono);
 }
 
 body {
