@@ -136,12 +136,20 @@ export default function HomePage() {
             )}
           </InkList>
         ) : (
-          <InkNotice>
-            道友尚未觉醒灵根，
-            <InkButton href="/create" variant="primary">
-              速去觉醒
-            </InkButton>
-          </InkNotice>
+          <>
+            <InkNotice>
+              道友尚未觉醒灵根，
+              <InkButton href="/create" variant="primary">
+                速去觉醒
+              </InkButton>
+            </InkNotice>
+            <InkNotice>
+              曾在此修炼？
+              <InkButton href="/login" variant="primary">
+                召回真身
+              </InkButton>
+            </InkNotice>
+          </>
         )}
         {cultivator && (
           <div className="mt-3">

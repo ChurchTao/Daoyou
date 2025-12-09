@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
-function ShenShiRenZhuContent() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pushToast } = useInkUI();
@@ -16,26 +16,25 @@ function ShenShiRenZhuContent() {
   const supabase = createClient();
 
   const [email, setEmail] = useState('');
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Check if user came back from email confirmation link
+  // Check if user came back from magic link
   useEffect(() => {
-    const handleEmailConfirmation = async () => {
+    const handleMagicLinkCallback = async () => {
       const code = searchParams.get('code');
       if (code && !processing) {
         setProcessing(true);
       }
     };
-
-    handleEmailConfirmation();
+    handleMagicLinkCallback();
   }, [searchParams, processing]);
 
-  // Redirect if user is already bound (not anonymous)
+  // Redirect if user is already logged in
   useEffect(() => {
     if (!isLoading && user && !user.is_anonymous) {
-      pushToast({ message: '你的真身已与神识绑定成功' });
+      pushToast({ message: '真身已召回成功' });
       setTimeout(() => {
         router.push('/');
         window.location.reload();
@@ -43,7 +42,7 @@ function ShenShiRenZhuContent() {
     }
   }, [user, isLoading, router, pushToast]);
 
-  const handleSendConfirmation = async () => {
+  const handleSendMagicLink = async () => {
     if (!email.trim()) {
       pushToast({ message: '请输入飞鸽传书地址', tone: 'warning' });
       return;
@@ -56,31 +55,31 @@ function ShenShiRenZhuContent() {
       return;
     }
 
-    setSendingEmail(true);
+    setSendingLink(true);
     try {
-      // Use updateUser to send email confirmation
-      // This will send an email with a confirmation link
-      const { error } = await supabase.auth.updateUser(
-        {
-          email: email.trim().toLowerCase(),
+      // Send magic link for login
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          shouldCreateUser: false, // Don't create new users on login page
+          emailRedirectTo: `${window.location.origin}/login`,
         },
-        { emailRedirectTo: `${window.location.origin}/shenshi-renzhu` },
-      );
+      });
 
       if (error) {
         // Check for specific error cases
         if (error.message.includes('rate limit')) {
           throw new Error('请求过于频繁，请一个时辰后再试');
         }
-        if (error.message.includes('already registered')) {
-          throw new Error('此飞鸽传书地址已被他人占用');
+        if (error.message.includes('not found')) {
+          throw new Error('未找到此真身，请先进行神识认主');
         }
         throw error;
       }
 
-      setEmailSent(true);
+      setLinkSent(true);
       pushToast({
-        message: '天机印已发往你的飞鸽传书地址，请查收完成认主',
+        message: '召唤符已发往你的飞鸽传书地址',
         tone: 'success',
       });
     } catch (error) {
@@ -88,7 +87,7 @@ function ShenShiRenZhuContent() {
         error instanceof Error ? error.message : '发送失败，请稍后重试';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
-      setSendingEmail(false);
+      setSendingLink(false);
     }
   };
 
@@ -96,7 +95,7 @@ function ShenShiRenZhuContent() {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
         <p className="loading-tip">
-          {processing ? '验证天机印中……' : '神识感应中……'}
+          {processing ? '召回真身中……' : '神识感应中……'}
         </p>
       </div>
     );
@@ -104,20 +103,19 @@ function ShenShiRenZhuContent() {
 
   return (
     <InkPageShell
-      title="【神识认主】"
-      subtitle="绑定飞鸽传书，永存真身"
+      title="【召回真身】"
+      subtitle="已有真身，重归修仙之路"
       backHref="/"
-      currentPath="/shenshi-renzhu"
-      footer={
-        <div className="flex justify-between">
-          <InkButton href="/">返回</InkButton>
-        </div>
-      }
+      currentPath="/login"
     >
       <div className="space-y-6">
-        {!emailSent ? (
+        {!linkSent ? (
           <>
-            <InkNotice>游客真身易逝，绑定神识方可长存。</InkNotice>
+            <InkNotice>
+              若你曾在此修炼，真身已与神识绑定。
+              <br />
+              留下飞鸽传书地址，系统将发送召唤符助你真身归位。
+            </InkNotice>
 
             <div className="space-y-4">
               <div>
@@ -128,29 +126,29 @@ function ShenShiRenZhuContent() {
                   value={email}
                   onChange={(value) => setEmail(value)}
                   placeholder="例：daoyou@xiuxian.com"
-                  disabled={sendingEmail}
+                  disabled={sendingLink}
                 />
               </div>
 
               <InkButton
-                onClick={handleSendConfirmation}
+                onClick={handleSendMagicLink}
                 variant="primary"
-                disabled={sendingEmail}
+                disabled={sendingLink}
                 className="w-full"
               >
-                {sendingEmail ? '发送中…' : '发送天机印'}
+                {sendingLink ? '发送中…' : '发送召唤符'}
               </InkButton>
             </div>
           </>
         ) : (
           <>
             <InkNotice>
-              ✓ 天机印已发送！
+              ✓ 召唤符已发送！
               <br />
               <br />
               请查收发送至 <strong>{email}</strong> 的邮件。
               <br />
-              点击邮件中的链接即可完成神识认主。
+              点击邮件中的链接即可召回真身，重归修仙之路。
             </InkNotice>
 
             <InkNotice>
@@ -164,7 +162,7 @@ function ShenShiRenZhuContent() {
 
             <InkButton
               onClick={() => {
-                setEmailSent(false);
+                setLinkSent(false);
                 setEmail('');
               }}
               variant="secondary"
@@ -179,7 +177,7 @@ function ShenShiRenZhuContent() {
   );
 }
 
-export default function ShenShiRenZhuPage() {
+export default function LoginPage() {
   return (
     <Suspense
       fallback={
@@ -188,7 +186,7 @@ export default function ShenShiRenZhuPage() {
         </div>
       }
     >
-      <ShenShiRenZhuContent />
+      <LoginPageContent />
     </Suspense>
   );
 }
