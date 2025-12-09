@@ -18,15 +18,13 @@ function ChallengeBattlePageContent() {
   const router = useRouter();
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<Cultivator | null>(null);
-  const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(
-    null,
-  );
+  const [battleResult, setBattleResult] = useState<BattleEngineResult>();
   const [streamingReport, setStreamingReport] = useState<string>('');
   const [finalReport, setFinalReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
   const [rankingUpdate, setRankingUpdate] = useState<{
     isWin: boolean;
     challengerRank: number | null;
@@ -100,8 +98,8 @@ function ChallengeBattlePageContent() {
     setIsStreaming(true);
     setStreamingReport('');
     setFinalReport('');
-    setBattleResult(null);
-    setError(null);
+    setBattleResult(undefined);
+    setError(undefined);
 
     try {
       // 调用挑战战斗接口

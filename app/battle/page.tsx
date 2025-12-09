@@ -29,16 +29,14 @@ function BattlePageContent() {
   const searchParams = useSearchParams();
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<EnemyData | null>(null);
-  const [battleResult, setBattleResult] = useState<BattleEngineResult | null>(
-    null,
-  );
+  const [battleResult, setBattleResult] = useState<BattleEngineResult>();
   const [streamingReport, setStreamingReport] = useState<string>('');
   const [finalReport, setFinalReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
   const [opponentLoading, setOpponentLoading] = useState(false);
-  const [opponentError, setOpponentError] = useState<string | null>(null);
+  const [opponentError, setOpponentError] = useState<string>();
 
   // 初始化
   useEffect(() => {
@@ -62,7 +60,7 @@ function BattlePageContent() {
     // 获取对手角色
     const fetchOpponent = async () => {
       setOpponentLoading(true);
-      setOpponentError(null);
+      setOpponentError(undefined);
       try {
         const opponentId = searchParams.get('opponent');
         if (!opponentId) {
@@ -129,7 +127,7 @@ function BattlePageContent() {
     setIsStreaming(true);
     setStreamingReport('');
     setFinalReport('');
-    setBattleResult(null);
+    setBattleResult(undefined);
 
     try {
       // 调用合并的战斗接口（执行战斗并生成播报）
@@ -219,7 +217,7 @@ function BattlePageContent() {
 
   // 再战一次
   const handleBattleAgain = () => {
-    setBattleResult(null);
+    setBattleResult(undefined);
     setStreamingReport('');
     setFinalReport('');
     setIsStreaming(false);

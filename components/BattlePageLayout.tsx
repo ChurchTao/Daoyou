@@ -1,14 +1,15 @@
-import { InkButton } from './InkComponents';
+import { BattleEngineResult } from '@/engine/battleEngine';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { InkButton } from './InkComponents';
 
 interface BattlePageLayoutProps {
   title: string;
   backHref: string;
   backLabel?: string;
-  error?: string | null;
+  error?: string;
   loading?: boolean;
-  battleResult?: unknown;
+  battleResult?: BattleEngineResult;
   isStreaming?: boolean;
   children: ReactNode;
   // 操作按钮配置
@@ -44,7 +45,10 @@ export function BattlePageLayout({
     <div className="bg-paper min-h-screen">
       <div className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16 main-content">
         {/* 返回按钮 */}
-        <Link href={backHref} className="mb-4 text-ink transition hover:text-crimson">
+        <Link
+          href={backHref}
+          className="mb-4 text-ink transition hover:text-crimson"
+        >
           [← {backLabel}]
         </Link>
 
@@ -54,9 +58,7 @@ export function BattlePageLayout({
         </div>
 
         {/* 错误提示 */}
-        {error && (
-          <p className="mb-6 text-center text-crimson">{error}</p>
-        )}
+        {error && <p className="mb-6 text-center text-crimson">{error}</p>}
 
         {/* 内容 */}
         {children}
@@ -95,4 +97,3 @@ export function BattlePageLayout({
     </div>
   );
 }
-

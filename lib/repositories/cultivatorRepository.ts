@@ -8,6 +8,7 @@ import {
 } from '@/types/constants';
 import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 import type {
+  Attributes,
   BreakthroughHistoryEntry,
   Cultivator,
   RetreatRecord,

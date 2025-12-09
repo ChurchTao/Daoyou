@@ -4,7 +4,7 @@ import type { Cultivator } from '@/types/cultivator';
 interface BattleReportViewerProps {
   displayReport: string;
   isStreaming: boolean;
-  battleResult: BattleEngineResult | null;
+  battleResult?: BattleEngineResult;
   player: Cultivator | null;
   isWin: boolean;
   // 挑战相关（可选）
@@ -43,7 +43,8 @@ export function BattleReportViewer({
               <span dangerouslySetInnerHTML={{ __html: line }} />
               {isStreaming &&
                 index ===
-                  displayReport.split('\n').filter((l) => l.trim() !== '').length -
+                  displayReport.split('\n').filter((l) => l.trim() !== '')
+                    .length -
                     1 && (
                   <span className="inline-block ml-1 animate-pulse text-crimson">
                     ▊
@@ -104,4 +105,3 @@ export function BattleReportViewer({
     </div>
   );
 }
-
