@@ -228,7 +228,7 @@ function getBreakthroughBaseChance(
 ): number {
   const realmIndex = REALM_ORDER.indexOf(realm);
   const base = type === 'minor' ? 0.7 : 0.4;
-  const difficulty = Math.pow(0.82, realmIndex);
+  const difficulty = Math.pow(0.6, realmIndex);
   return base * difficulty;
 }
 
@@ -257,8 +257,8 @@ function getComprehensionModifier(wisdom: number): number {
 
 function getRetreatYearModifier(years: number): number {
   if (years <= 0) return 0;
-  const scaled = Math.log1p(years / 3) / 6;
-  return Math.min(0.25, scaled);
+  const scaled = Math.log1p(years) / 50;
+  return Math.min(0.15, scaled);
 }
 
 function getFailureStreakModifier(

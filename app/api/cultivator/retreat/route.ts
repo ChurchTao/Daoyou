@@ -12,6 +12,8 @@ import {
 } from '@/utils/storyService';
 import { NextRequest, NextResponse } from 'next/server';
 
+const COOLDOWN_HOURS = 2;
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -42,6 +44,35 @@ export async function POST(request: NextRequest) {
     const cultivator = await getCultivatorById(user.id, cultivatorId);
     if (!cultivator) {
       return NextResponse.json({ error: '角色不存在' }, { status: 404 });
+    }
+
+    // 检查闭关冷却时间（2小时）
+    if (cultivator.retreat_records && cultivator.retreat_records.length > 0) {
+      const lastRetreat =
+        cultivator.retreat_records[cultivator.retreat_records.length - 1];
+      const lastRetreatTime = new Date(lastRetreat.timestamp).getTime();
+      const now = Date.now();
+      const cooldownTime = COOLDOWN_HOURS * 60 * 60 * 1000;
+
+      if (now - lastRetreatTime < cooldownTime) {
+        const remainingTime = cooldownTime - (now - lastRetreatTime);
+        const remainingMinutes = Math.ceil(remainingTime / (60 * 1000));
+        const hours = Math.floor(remainingMinutes / 60);
+        const minutes = remainingMinutes % 60;
+
+        let timeString = '';
+        if (hours > 0) {
+          timeString += `${hours / 2}时辰`;
+        }
+        timeString += `${minutes / 15}刻钟`;
+
+        return NextResponse.json(
+          {
+            error: `道友切莫心急，闭关需循序渐进，请等待 ${timeString}`,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     const result = performRetreatBreakthrough(cultivator, { years });
