@@ -125,27 +125,6 @@
   opacity: 0.2;
 }
 
-/* 天机推演装饰 */
-.divine-fortune {
-  position: relative;
-}
-
-.divine-fortune::before {
-  content: '';
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(139, 69, 19, 0.3),
-    transparent
-  );
-}
-
 /* 响应式调整 */
 @media (max-width: 768px) {
   .book-title-frame {

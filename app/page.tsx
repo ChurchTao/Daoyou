@@ -14,6 +14,7 @@ import {
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { RecentBattles } from '@/components/RecentBattles';
+import { DivineFortune } from '@/components/welcome/DivineFortune';
 import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
@@ -30,26 +31,10 @@ const quickActions = [
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
 
-const dailyQuotes = [
-  { quote: '天地不仁，以万物为刍狗。', question: '道友，今日可要逆天改命？' },
-  { quote: '道可道，非常道。', question: '名可名，非常名。' },
-  {
-    quote: '上善若水，水善利万物而不争。',
-    question: '处众人之所恶，故几于道。',
-  },
-  { quote: '大道无形，生育天地。', question: '大道无情，运行日月。' },
-];
-
-const getDailyQuote = () => {
-  const day = new Date().getDate();
-  return dailyQuotes[day % dailyQuotes.length];
-};
-
 function HomePageContent() {
   const pathname = usePathname();
   const { isAnonymous } = useAuth();
   const { cultivator, isLoading, note } = useCultivatorBundle();
-  const dailyQuote = getDailyQuote();
   const spiritualRoots = cultivator?.spiritual_roots ?? [];
 
   const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
@@ -97,12 +82,7 @@ function HomePageContent() {
       subtitle="灵根歪了，但不影响我菜得理直气壮"
       note={note}
       currentPath={pathname}
-      footer={
-        <div className="text-center">
-          <p className="my-2 text-lg italic">{dailyQuote.quote}</p>
-          <p className="text-lg">{dailyQuote.question}</p>
-        </div>
-      }
+      footer={<DivineFortune />}
     >
       <InkSection title="【道身】">
         {cultivator ? (

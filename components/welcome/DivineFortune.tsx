@@ -38,41 +38,35 @@ export function DivineFortune({
   }
 
   return (
-    <div className={cn('divine-fortune text-center space-y-6', className)}>
+    <div className={cn('divine-fortune text-center space-y-3', className)}>
       {/* 标题 */}
       <div className="text-amber-900/70 text-sm tracking-widest mb-4">
         ◆ 今日天机 ◆
       </div>
 
       {/* 天机格言 */}
-      <div className="fortune-text px-4">
-        <TypewriterText
-          text={fortune.fortune}
-          speed={100}
-          startDelay={startDelay}
-          enabled={!showImmediately}
-          className="text-2xl md:text-3xl text-amber-900 leading-relaxed"
-        />
-      </div>
+      <TypewriterText
+        text={fortune.fortune}
+        speed={100}
+        startDelay={startDelay}
+        enabled={!showImmediately}
+        className="block text-lg italic"
+      />
 
       {/* 提示 */}
-      <div className="hint-text px-4">
-        <TypewriterText
-          text={fortune.hint}
-          speed={100}
-          startDelay={
-            showImmediately
-              ? 0
-              : startDelay + fortune.fortune.length * 100 + 300
-          }
-          enabled={!showImmediately}
-          onComplete={onComplete}
-          className="text-lg md:text-xl text-amber-800/80"
-        />
-      </div>
+      <TypewriterText
+        text={fortune.hint}
+        speed={100}
+        startDelay={
+          showImmediately ? 0 : startDelay + fortune.fortune.length * 100 + 300
+        }
+        enabled={!showImmediately}
+        onComplete={onComplete}
+        className="block text-lg"
+      />
 
       {/* 装饰性分隔线 */}
-      <div className="flex items-center justify-center gap-3 pt-4">
+      <div className="flex items-center justify-center gap-3 pt-2">
         <div className="h-px w-12 bg-linear-to-r from-transparent to-amber-900/30" />
         <div className="text-amber-900/40 text-xs">☯</div>
         <div className="h-px w-12 bg-linear-to-l from-transparent to-amber-900/30" />

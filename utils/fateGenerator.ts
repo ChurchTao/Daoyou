@@ -1,7 +1,7 @@
 import type { FateQuality } from '../types/constants';
 import { FATE_QUALITY_VALUES } from '../types/constants';
 import type { PreHeavenFate } from '../types/cultivator';
-import { generateCharacter } from './aiClient';
+import { text } from './aiClient';
 
 /**
  * 先天气运生成器 —— 完全由 LLM 生成
@@ -16,7 +16,7 @@ const QUALITY_PROBABILITIES: Record<FateQuality, number> = {
   地品: 0,
   天品: 0,
   仙品: 0,
-  神品: 0
+  神品: 0,
 };
 
 const ATTRIBUTE_KEYS = ['vitality', 'spirit', 'wisdom', 'speed', 'willpower'];
@@ -35,8 +35,8 @@ export async function generatePreHeavenFates(
   });
 
   try {
-    const aiResponse = await generateCharacter(prompt, userInput);
-    const parsed = parseFateResponse(aiResponse);
+    const aiResponse = await text(prompt, userInput);
+    const parsed = parseFateResponse(aiResponse.text);
     fates = [...fates, ...parsed];
   } catch (error) {
     console.error('生成气运失败:', error);

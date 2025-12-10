@@ -1,11 +1,11 @@
 import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
+import { text } from '@/utils/aiClient';
 import { validateAndAdjustCultivator } from '@/utils/characterEngine';
 import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
 import { generatePreHeavenFates } from '@/utils/fateGenerator';
+import { getCharacterGenerationPrompt } from '@/utils/prompts';
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCharacter } from '../../../utils/aiClient';
-import { getCharacterGenerationPrompt } from '../../../utils/prompts';
 
 /**
  * POST /api/generate-character
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
     const prompt = getCharacterGenerationPrompt();
 
     // 调用 AI 生成角色
-    const aiResponse = await generateCharacter(prompt, userInput);
+    const aiResponse = await text(prompt, userInput);
 
     // 解析AI响应，创建角色对象
-    let cultivator = createCultivatorFromAI(aiResponse, userInput);
+    let cultivator = createCultivatorFromAI(aiResponse.text, userInput);
 
     // 使用角色生成引擎进行验证和修正
     const { cultivator: balancedCultivator, balanceNotes } =

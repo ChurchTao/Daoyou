@@ -5,7 +5,7 @@ import { battleRecords } from '@/lib/drizzle/schema';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import type { Cultivator } from '@/types/cultivator';
-import { generateBattleReportStream } from '@/utils/aiClient';
+import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';
 
@@ -116,15 +116,14 @@ export async function POST(request: NextRequest) {
           });
 
           // 6. 流式生成战斗播报，并在服务端累积完整文本
-          const fullReport = await generateBattleReportStream(
-            prompt,
-            userPrompt,
-            (chunk: string) => {
-              // 发送内容块
-              const data = JSON.stringify({ type: 'chunk', content: chunk });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            },
-          );
+          let fullReport = '';
+          const { textStream } = stream_text(prompt, userPrompt);
+          for await (const chunk of textStream) {
+            // 发送内容块
+            const data = JSON.stringify({ type: 'chunk', content: chunk });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            fullReport += chunk;
+          }
 
           // 7. 将本次战斗结果以快照方式写入数据库
           try {

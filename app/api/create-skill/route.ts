@@ -4,7 +4,7 @@ import {
   replaceSkill,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { generateCharacter } from '@/utils/aiClient';
+import { text } from '@/utils/aiClient';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
 `;
 
     // 调用AI生成技能
-    const aiResponse = await generateCharacter(skillPrompt, prompt);
-    const skillData = JSON.parse(aiResponse);
+    const aiResponse = await text(skillPrompt, prompt);
+    const skillData = JSON.parse(aiResponse.text);
 
     // 验证AI生成的技能数据
     const validTypes = ['attack', 'heal', 'control', 'debuff', 'buff'];

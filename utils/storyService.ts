@@ -1,4 +1,4 @@
-import { generateNarrative } from './aiClient';
+import { text } from './aiClient';
 import {
   type BreakthroughStoryPayload,
   type LifespanExhaustedStoryPayload,
@@ -10,12 +10,12 @@ export async function createBreakthroughStory(
   payload: BreakthroughStoryPayload,
 ): Promise<string> {
   const [systemPrompt, userPrompt] = getBreakthroughStoryPrompt(payload);
-  return generateNarrative(systemPrompt, userPrompt, 0.75);
+  return (await text(systemPrompt, userPrompt)).text;
 }
 
 export async function createLifespanExhaustedStory(
   payload: LifespanExhaustedStoryPayload,
 ): Promise<string> {
   const [systemPrompt, userPrompt] = getLifespanExhaustedStoryPrompt(payload);
-  return generateNarrative(systemPrompt, userPrompt, 0.72);
+  return (await text(systemPrompt, userPrompt)).text;
 }

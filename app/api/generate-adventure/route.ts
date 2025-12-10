@@ -6,7 +6,7 @@ import {
   getCultivatorById,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { generateCharacter } from '@/utils/aiClient';
+import { text } from '@/utils/aiClient';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -112,11 +112,8 @@ export async function POST(request: NextRequest) {
 `;
 
     // 调用AI生成奇遇
-    const aiResponse = await generateCharacter(
-      adventurePrompt,
-      cultivator.name,
-    );
-    const adventureData = JSON.parse(aiResponse);
+    const aiResponse = await text(adventurePrompt, cultivator.name);
+    const adventureData = JSON.parse(aiResponse.text);
 
     // 验证AI生成的奇遇数据
     if (

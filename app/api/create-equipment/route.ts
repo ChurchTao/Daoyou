@@ -1,6 +1,6 @@
 import { createEquipment } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { generateCharacter } from '@/utils/aiClient';
+import { text } from '@/utils/aiClient';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
 `;
 
     // 调用AI生成装备
-    const aiResponse = await generateCharacter(equipmentPrompt, prompt);
-    const equipmentData = JSON.parse(aiResponse);
+    const aiResponse = await text(equipmentPrompt, prompt);
+    const equipmentData = JSON.parse(aiResponse.text);
 
     // 验证AI生成的装备数据
     const validSlots = ['weapon', 'armor', 'accessory'];
