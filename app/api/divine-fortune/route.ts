@@ -1,11 +1,12 @@
 import { redis } from '@/lib/redis';
-import { text } from '@/utils/aiClient';
+import { object } from '@/utils/aiClient';
 import {
   getDivineFortunePrompt,
   getRandomFallbackFortune,
   type DivineFortune,
 } from '@/utils/divineFortune';
 import { NextResponse } from 'next/server';
+import z from 'zod';
 
 const CACHE_KEY = 'divine_fortune_data';
 const CACHE_TTL = 30 * 60; // 30 minutes in seconds
@@ -29,12 +30,19 @@ export async function GET() {
     const [systemPrompt, userPrompt] = getDivineFortunePrompt();
 
     // 调用 AI 生成天机格言
-    const aiResponse = await text(systemPrompt, userPrompt);
+    const aiResponse = await object(systemPrompt, userPrompt, {
+      schema: z.object({
+        fortune: z.string(),
+        hint: z.string(),
+      }),
+      schemaName: 'DivineFortune',
+      schemaDescription: '天机格言',
+    });
 
     // 解析 JSON 响应
     let fortune: DivineFortune;
     try {
-      fortune = JSON.parse(aiResponse.text) as DivineFortune;
+      fortune = aiResponse.object;
 
       // 验证格式
       if (!fortune.fortune || !fortune.hint) {

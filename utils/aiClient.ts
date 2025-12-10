@@ -1,5 +1,5 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { generateObject, generateText, streamText } from 'ai';
+import { generateObject, generateText, streamText, ToolSet } from 'ai';
 import z from 'zod';
 
 /**
@@ -56,7 +56,7 @@ export function stream_text(prompt: string, userInput: string) {
 /**
  * 通用生成 Structured Data
  */
-export async function structuredData<T>(
+export async function object<T>(
   prompt: string,
   userInput: string,
   options: {
@@ -74,6 +74,21 @@ export async function structuredData<T>(
     schemaName: options.schemaName,
     schemaDescription: options.schemaDescription,
   });
+  return res;
+}
+
+/**
+ * tool 生成器
+ */
+export async function tool(prompt: string, userInput: string, tools: ToolSet) {
+  const model = getModel();
+  const res = await generateText({
+    model,
+    system: prompt,
+    prompt: userInput,
+    tools,
+  });
+  console.debug('AI生成Text by tool：totalUsage', res.totalUsage);
   return res;
 }
 

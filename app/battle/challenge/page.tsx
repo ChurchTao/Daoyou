@@ -20,7 +20,6 @@ function ChallengeBattlePageContent() {
   const [opponent, setOpponent] = useState<Cultivator | null>(null);
   const [battleResult, setBattleResult] = useState<BattleEngineResult>();
   const [streamingReport, setStreamingReport] = useState<string>('');
-  const [finalReport, setFinalReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
@@ -38,66 +37,60 @@ function ChallengeBattlePageContent() {
   const cultivatorId = searchParams.get('cultivatorId');
   const targetId = searchParams.get('targetId');
 
-  // 初始化
+  // 初始化 & 自动开始战斗
   useEffect(() => {
     if (!cultivatorId) {
       setError('缺少角色ID');
       return;
     }
 
-    // 获取玩家角色
-    const fetchPlayer = async () => {
-      setPlayerLoading(true);
-      try {
-        const playerResponse = await fetch('/api/cultivators');
-        const playerResult = await playerResponse.json();
-
-        if (playerResult.success && playerResult.data.length > 0) {
-          const found = playerResult.data.find(
-            (c: Cultivator) => c.id === cultivatorId,
+    // 并行执行：获取玩家信息 和 开始战斗
+    const init = async () => {
+      // 1. 获取玩家角色 (优化：直接通过ID获取，而不是获取全部再查找)
+      const fetchPlayerPromise = async () => {
+        setPlayerLoading(true);
+        try {
+          const playerResponse = await fetch(
+            `/api/cultivators?id=${cultivatorId}`,
           );
-          if (found) {
-            setPlayer(found);
+          const playerResult = await playerResponse.json();
+
+          if (playerResult.success && playerResult.data) {
+            setPlayer(playerResult.data);
           } else {
-            setError('未找到角色信息');
+            // 如果战斗能成功，也许不需要强制报错，但在 UI 上需要显示名字
+            console.warn('未找到角色信息');
           }
+        } catch (error) {
+          console.error('获取玩家数据失败:', error);
+        } finally {
+          setPlayerLoading(false);
         }
-      } catch (error) {
-        console.error('获取玩家数据失败:', error);
-        setError('获取玩家数据失败');
-      } finally {
-        setPlayerLoading(false);
-      }
+      };
+
+      // 2. 自动开始战斗 (不需要等待 fetchPlayer 完成)
+      const startBattlePromise = async () => {
+        if (!battleResult && !loading && !error && !directEntry) {
+          await handleChallengeBattle();
+        }
+      };
+
+      await Promise.all([fetchPlayerPromise(), startBattlePromise()]);
     };
 
-    fetchPlayer();
-  }, [cultivatorId]);
-
-  // 自动开始战斗
-  useEffect(() => {
-    if (
-      player &&
-      !battleResult &&
-      !loading &&
-      !playerLoading &&
-      !error &&
-      !directEntry
-    ) {
-      handleChallengeBattle();
-    }
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, battleResult, loading, playerLoading, error, directEntry]);
+  }, [cultivatorId]);
 
   // 执行挑战战斗
   const handleChallengeBattle = async () => {
-    if (!player || !cultivatorId) {
+    if (!cultivatorId) {
       return;
     }
 
     setLoading(true);
     setIsStreaming(true);
     setStreamingReport('');
-    setFinalReport('');
     setBattleResult(undefined);
     setError(undefined);
 
@@ -161,9 +154,18 @@ function ChallengeBattlePageContent() {
                   opponentHp: result.opponentHp,
                   timeline: result.timeline ?? [],
                 });
-                // 设置对手信息：判断谁是对手（不是玩家的那个）
+
+                // 如果此时 player 尚未加载完成，尝试从战斗结果中通过 ID 匹配来设置
+                setPlayer((prev) => {
+                  if (prev) return prev;
+                  return result.winner.id === cultivatorId
+                    ? result.winner
+                    : result.loser;
+                });
+
+                // 设置对手信息：判断谁是对手（通过ID判断）
                 const opponentData =
-                  result.winner.id === player?.id
+                  result.winner.id === cultivatorId
                     ? result.loser
                     : result.winner;
                 setOpponent(opponentData);
@@ -177,7 +179,6 @@ function ChallengeBattlePageContent() {
               } else if (data.type === 'done') {
                 // 播报生成完成
                 setIsStreaming(false);
-                setFinalReport(fullReport);
                 setStreamingReport(fullReport);
               } else if (data.type === 'error') {
                 throw new Error(data.error || '挑战失败');
@@ -192,7 +193,6 @@ function ChallengeBattlePageContent() {
       console.error('挑战战斗失败:', error);
       setIsStreaming(false);
       setStreamingReport('');
-      setFinalReport('');
       setError(error instanceof Error ? error.message : '挑战失败，请稍后重试');
     } finally {
       setLoading(false);
@@ -243,12 +243,9 @@ function ChallengeBattlePageContent() {
     );
   }
 
-  const isWin = battleResult?.winner.id === player?.id;
-  const displayReport =
-    streamingReport ||
-    finalReport ||
-    (battleResult ? `${battleResult.winner.name} 获胜！` : '');
-  const opponentName = opponent?.name ?? '未知对手';
+  const isWin = battleResult?.winner.id === cultivatorId;
+  const displayReport = streamingReport;
+  const opponentName = opponent?.name ?? '神秘对手';
 
   return (
     <BattlePageLayout
@@ -269,7 +266,8 @@ function ChallengeBattlePageContent() {
       {/* 数值战斗回放 */}
       {battleResult?.timeline &&
         battleResult.timeline.length > 0 &&
-        opponent && (
+        opponent &&
+        isStreaming && (
           <BattleTimelineViewer
             battleResult={battleResult}
             playerName={player?.name ?? ''}

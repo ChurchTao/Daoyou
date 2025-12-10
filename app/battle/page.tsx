@@ -31,102 +31,93 @@ function BattlePageContent() {
   const [opponent, setOpponent] = useState<EnemyData | null>(null);
   const [battleResult, setBattleResult] = useState<BattleEngineResult>();
   const [streamingReport, setStreamingReport] = useState<string>('');
-  const [finalReport, setFinalReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
   const [opponentLoading, setOpponentLoading] = useState(false);
   const [opponentError, setOpponentError] = useState<string>();
 
-  // 初始化
+  // 初始化 & 自动开始战斗
   useEffect(() => {
-    // 获取玩家角色
-    const fetchPlayer = async () => {
-      setPlayerLoading(true);
-      try {
-        const playerResponse = await fetch('/api/cultivators');
-        const playerResult = await playerResponse.json();
+    const opponentId = searchParams.get('opponent');
 
-        if (playerResult.success && playerResult.data.length > 0) {
-          setPlayer(playerResult.data[0]);
+    const init = async () => {
+      // 1. 并行获取数据
+      const fetchPlayerData = async () => {
+        setPlayerLoading(true);
+        try {
+          const res = await fetch('/api/cultivators');
+          const json = await res.json();
+          if (json.success && json.data.length > 0) {
+            setPlayer(json.data[0]);
+            return json.data[0];
+          }
+        } catch (e) {
+          console.error('获取玩家数据失败', e);
+        } finally {
+          setPlayerLoading(false);
         }
-      } catch (error) {
-        console.error('获取玩家数据失败:', error);
-      } finally {
-        setPlayerLoading(false);
-      }
-    };
+        return null;
+      };
 
-    // 获取对手角色
-    const fetchOpponent = async () => {
-      setOpponentLoading(true);
-      setOpponentError(undefined);
-      try {
-        const opponentId = searchParams.get('opponent');
+      const fetchOpponentData = async () => {
         if (!opponentId) {
-          throw new Error('missing_opponent');
+          setOpponentError('天机未定，对手无踪，难启杀局。');
+          return null;
         }
-
-        // 从敌人API获取对手数据
-        const enemyResponse = await fetch(`/api/enemies/${opponentId}`);
-        const enemyResult = await enemyResponse.json();
-
-        if (!enemyResponse.ok || !enemyResult.success) {
-          throw new Error(enemyResult.error || 'fetch_failed');
+        setOpponentLoading(true);
+        setOpponentError(undefined);
+        try {
+          const res = await fetch(`/api/enemies/${opponentId}`);
+          const json = await res.json();
+          if (res.ok && json.success) {
+            setOpponent(json.data);
+            return json.data;
+          } else {
+            throw new Error(json.error || 'fetch_failed');
+          }
+        } catch (e) {
+          console.error('获取对手数据失败', e);
+          const errMsg =
+            e instanceof Error && e.message === 'missing_opponent'
+              ? '天机未定，对手无踪，难启杀局。'
+              : '天机逆乱，对手行迹莫测，战不可开。';
+          setOpponentError(errMsg);
+        } finally {
+          setOpponentLoading(false);
         }
+        return null;
+      };
 
-        setOpponent(enemyResult.data);
-      } catch (error) {
-        console.error('获取对手数据失败:', error);
-        const errMsg =
-          error instanceof Error && error.message === 'missing_opponent'
-            ? '天机未定，对手无踪，难启杀局。'
-            : '天机逆乱，对手行迹莫测，战不可开。';
-        setOpponentError(errMsg);
-        setOpponent(null);
-      } finally {
-        setOpponentLoading(false);
+      // 2. 执行请求
+      const [pData, oData] = await Promise.all([
+        fetchPlayerData(),
+        fetchOpponentData(),
+      ]);
+
+      // 3. 如果数据都存在且没有之前的战斗结果，自动开始
+      if (pData && oData && !battleResult && !loading) {
+        handleBattle(pData.id, oData.id);
       }
     };
 
-    fetchPlayer();
-    fetchOpponent();
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // 自动开始战斗
-  useEffect(() => {
-    if (
-      player &&
-      opponent &&
-      !battleResult &&
-      !loading &&
-      !playerLoading &&
-      !opponentLoading &&
-      !opponentError
-    ) {
-      handleBattle();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    player,
-    opponent,
-    battleResult,
-    loading,
-    playerLoading,
-    opponentLoading,
-    opponentError,
-  ]);
-
   // 执行战斗（使用合并接口）
-  const handleBattle = async () => {
-    if (!player || !opponent) {
+  const handleBattle = async (pId?: string, oId?: string) => {
+    // 优先使用参数ID，其次使用状态ID
+    const currentPid = pId || player?.id;
+    const currentOid = oId || opponent?.id;
+
+    if (!currentPid || !currentOid) {
       return;
     }
 
     setLoading(true);
     setIsStreaming(true);
     setStreamingReport('');
-    setFinalReport('');
     setBattleResult(undefined);
 
     try {
@@ -137,8 +128,8 @@ function BattlePageContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: player.id,
-          opponentId: opponent.id,
+          cultivatorId: currentPid,
+          opponentId: currentOid,
         }),
       });
 
@@ -185,7 +176,6 @@ function BattlePageContent() {
                   opponentHp: result.opponentHp,
                   timeline: result.timeline ?? [],
                 });
-                console.log('战斗结果：', result);
               } else if (data.type === 'chunk') {
                 // 接收播报内容块
                 fullReport += data.content;
@@ -193,7 +183,6 @@ function BattlePageContent() {
               } else if (data.type === 'done') {
                 // 播报生成完成
                 setIsStreaming(false);
-                setFinalReport(fullReport);
                 setStreamingReport(fullReport);
               } else if (data.type === 'error') {
                 throw new Error(data.error || '战斗失败');
@@ -208,7 +197,6 @@ function BattlePageContent() {
       console.error('战斗失败:', error);
       setIsStreaming(false);
       setStreamingReport('');
-      setFinalReport('');
       alert(error instanceof Error ? error.message : '战斗失败');
     } finally {
       setLoading(false);
@@ -219,10 +207,19 @@ function BattlePageContent() {
   const handleBattleAgain = () => {
     setBattleResult(undefined);
     setStreamingReport('');
-    setFinalReport('');
     setIsStreaming(false);
     handleBattle();
   };
+
+  if (playerLoading || opponentLoading) {
+    return (
+      <div className="bg-paper min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-ink">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!player) {
     return (
@@ -237,12 +234,9 @@ function BattlePageContent() {
     );
   }
 
-  const isWin = battleResult?.winner.id === player.id;
-  const displayReport =
-    streamingReport ||
-    finalReport ||
-    (battleResult ? `${battleResult.winner.name} 获胜！` : '');
-  const opponentName = opponent?.name ?? '未知对手';
+  const isWin = battleResult?.winner.id === player?.id;
+  const displayReport = streamingReport;
+  const opponentName = opponent?.name ?? '神秘对手';
 
   return (
     <BattlePageLayout
@@ -274,7 +268,8 @@ function BattlePageContent() {
       {/* 数值战斗回放 */}
       {battleResult?.timeline &&
         battleResult.timeline.length > 0 &&
-        opponent && (
+        opponent &&
+        isStreaming && (
           <BattleTimelineViewer
             battleResult={battleResult}
             playerName={player.name}
