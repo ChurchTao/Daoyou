@@ -33,6 +33,7 @@ function ChallengeBattlePageContent() {
   const [directEntry, setDirectEntry] = useState<{
     rank: number;
   } | null>(null);
+  const [battleEnd, setBattleEnd] = useState(false);
 
   const cultivatorId = searchParams.get('cultivatorId');
   const targetId = searchParams.get('targetId');
@@ -180,6 +181,7 @@ function ChallengeBattlePageContent() {
                 // 播报生成完成
                 setIsStreaming(false);
                 setStreamingReport(fullReport);
+                setBattleEnd(true);
               } else if (data.type === 'error') {
                 throw new Error(data.error || '挑战失败');
               }
@@ -267,7 +269,7 @@ function ChallengeBattlePageContent() {
       {battleResult?.timeline &&
         battleResult.timeline.length > 0 &&
         opponent &&
-        isStreaming && (
+        (isStreaming || battleEnd) && (
           <BattleTimelineViewer
             battleResult={battleResult}
             playerName={player?.name ?? ''}

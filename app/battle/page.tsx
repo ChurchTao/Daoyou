@@ -36,6 +36,7 @@ function BattlePageContent() {
   const [playerLoading, setPlayerLoading] = useState(false);
   const [opponentLoading, setOpponentLoading] = useState(false);
   const [opponentError, setOpponentError] = useState<string>();
+  const [battleEnd, setBattleEnd] = useState(false);
 
   // 初始化 & 自动开始战斗
   useEffect(() => {
@@ -184,6 +185,7 @@ function BattlePageContent() {
                 // 播报生成完成
                 setIsStreaming(false);
                 setStreamingReport(fullReport);
+                setBattleEnd(true);
               } else if (data.type === 'error') {
                 throw new Error(data.error || '战斗失败');
               }
@@ -269,7 +271,7 @@ function BattlePageContent() {
       {battleResult?.timeline &&
         battleResult.timeline.length > 0 &&
         opponent &&
-        isStreaming && (
+        (isStreaming || battleEnd) && (
           <BattleTimelineViewer
             battleResult={battleResult}
             playerName={player.name}

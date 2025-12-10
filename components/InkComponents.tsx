@@ -92,7 +92,7 @@ interface InkNavProps {
 
 export function InkNav({ items, currentPath }: InkNavProps) {
   return (
-    <nav className="ink-nav">
+    <nav className="ink-nav max-w-xl mx-auto">
       {items.map((item) => {
         const isActive = currentPath === item.href;
         return (
