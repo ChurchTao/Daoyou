@@ -1,6 +1,10 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { generateText, streamText } from 'ai';
 
+/**
+ * 获取 DeepSeek Provider
+ * @returns DeepSeek Provider
+ */
 function getDeepSeekProvider() {
   return createDeepSeek({
     apiKey: process.env.OPENAI_API_KEY,
@@ -9,13 +13,22 @@ function getDeepSeekProvider() {
 }
 
 /**
+ * 获取 DeepSeek Model
+ * @returns DeepSeek Model
+ */
+function getModel() {
+  const provider = getDeepSeekProvider();
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  return provider(model);
+}
+
+/**
  * 通用直接生成Text
  */
 export async function text(prompt: string, userInput: string) {
-  const provider = getDeepSeekProvider();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const model = getModel();
   const res = await generateText({
-    model: provider(model),
+    model,
     system: prompt,
     prompt: userInput,
   });
@@ -27,10 +40,9 @@ export async function text(prompt: string, userInput: string) {
  * 通用Stream生成Text
  */
 export function stream_text(prompt: string, userInput: string) {
-  const provider = getDeepSeekProvider();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const model = getModel();
   const stream = streamText({
-    model: provider(model),
+    model,
     system: prompt,
     prompt: userInput,
     onFinish: (res) => {
