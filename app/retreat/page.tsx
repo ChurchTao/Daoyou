@@ -8,6 +8,7 @@ import {
   InkNotice,
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
 import type { BreakthroughAttemptSummary } from '@/utils/breakthroughEngine';
@@ -16,6 +17,7 @@ import { useMemo, useState } from 'react';
 
 export default function RetreatPage() {
   const { cultivator, isLoading, refresh, note } = useCultivatorBundle();
+  const { pushToast } = useInkUI();
   const pathname = usePathname();
   const router = useRouter();
   const [retreatYears, setRetreatYears] = useState('10');
@@ -24,7 +26,6 @@ export default function RetreatPage() {
     story?: string;
     storyType?: 'breakthrough' | 'lifespan' | null;
   } | null>(null);
-  const [retreatError, setRetreatError] = useState<string | null>(null);
   const [retreatLoading, setRetreatLoading] = useState(false);
   const attributeGrowthText = useMemo(() => {
     if (!retreatResult?.summary?.attributeGrowth) return '';
@@ -79,11 +80,13 @@ export default function RetreatPage() {
   const handleRetreat = async () => {
     const parsedYears = Number(retreatYears || '0');
     if (!Number.isFinite(parsedYears) || parsedYears <= 0) {
-      setRetreatError('请输入合法的闭关年限');
+      pushToast({
+        message: '闭关年限似乎不对哦，道友请三思而行',
+        tone: 'warning',
+      });
       return;
     }
     setRetreatLoading(true);
-    setRetreatError(null);
     try {
       const response = await fetch('/api/cultivator/retreat', {
         method: 'POST',
@@ -100,9 +103,11 @@ export default function RetreatPage() {
       setRetreatResult(payload.data);
       await refresh();
     } catch (error) {
-      setRetreatError(
-        error instanceof Error ? error.message : '闭关失败，请稍后再试',
-      );
+      pushToast({
+        message:
+          error instanceof Error ? error.message : '闭关失败，请稍后再试',
+        tone: 'danger',
+      });
     } finally {
       setRetreatLoading(false);
     }
@@ -133,9 +138,6 @@ export default function RetreatPage() {
       footer={
         <InkActionGroup align="between">
           <InkButton href="/">返回</InkButton>
-          <InkButton href="/battle" variant="secondary">
-            推演战力
-          </InkButton>
         </InkActionGroup>
       }
     >
@@ -158,7 +160,6 @@ export default function RetreatPage() {
             onChange={handleRetreatYearsChange}
             hint="闭关越久突破几率越高，但寿元也随之消耗"
           />
-          {retreatError && <InkNotice tone="danger">{retreatError}</InkNotice>}
           <InkButton onClick={handleRetreat} disabled={retreatLoading}>
             {retreatLoading ? '推演中……' : '闭关冲关'}
           </InkButton>
@@ -173,12 +174,11 @@ export default function RetreatPage() {
                 ? '🌅 突破成功！'
                 : retreatResult.summary.lifespanDepleted
                   ? '⛅️ 坐化于洞府……'
-                  : '☁️ 暂未破境'}
+                  : '☁️ 虽收益颇多，但境界仍未突破'}
             </p>
             <p>
               成功率 {`${(retreatResult.summary.chance * 100).toFixed(1)}%`}
-              ｜掷值 {`${(retreatResult.summary.roll * 100).toFixed(1)}%`}｜闭关{' '}
-              {retreatResult.summary.yearsSpent} 年
+              ｜闭关 {retreatResult.summary.yearsSpent} 年
             </p>
             {attributeGrowthText && <p>属性收获：{attributeGrowthText}</p>}
             {retreatResult.summary.lifespanGained > 0 && (

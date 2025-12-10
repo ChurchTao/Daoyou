@@ -1,5 +1,6 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { generateText, streamText } from 'ai';
+import { generateObject, generateText, streamText } from 'ai';
+import z from 'zod';
 
 /**
  * 获取 DeepSeek Provider
@@ -50,6 +51,30 @@ export function stream_text(prompt: string, userInput: string) {
     },
   });
   return stream;
+}
+
+/**
+ * 通用生成 Structured Data
+ */
+export async function structuredData<T>(
+  prompt: string,
+  userInput: string,
+  options: {
+    schemaName?: string;
+    schemaDescription?: string;
+    schema: z.ZodType<T>;
+  },
+) {
+  const model = getModel();
+  const res = await generateObject({
+    model,
+    system: prompt,
+    prompt: userInput,
+    schema: options.schema,
+    schemaName: options.schemaName,
+    schemaDescription: options.schemaDescription,
+  });
+  return res;
 }
 
 /**

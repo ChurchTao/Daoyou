@@ -2,9 +2,9 @@
 
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { InkButton, InkList, InkListItem, InkNotice } from './InkComponents';
+import { InkButton, InkList, InkNotice } from './InkComponents';
+import Zhanji from './func/Zhanji';
 
 type BattleSummary = {
   id: string;
@@ -37,7 +37,7 @@ export function RecentBattles() {
   }, []);
 
   if (loading) {
-    return <InkNotice tone="info">近期战绩加载中……</InkNotice>;
+    return <InkNotice>近期战绩加载中……</InkNotice>;
   }
 
   if (!records.length) {
@@ -46,25 +46,9 @@ export function RecentBattles() {
 
   return (
     <InkList dense>
-      {records.map((r) => {
-        const winnerName = r.winner?.name ?? '未知';
-        const loserName = r.loser?.name ?? '未知';
-        const isWin = cultivator?.id === r.winner?.id;
-        const turns = r.turns ?? 0;
-        const battleTime = r.createdAt
-          ? new Date(r.createdAt).toLocaleString()
-          : undefined;
-
-        return (
-          <Link key={r.id} href={`/battle/${r.id}`} className="ink-list-link">
-            <InkListItem
-              title={`${isWin ? '✓ 胜' : '✗ 败'} ${winnerName} vs ${loserName}`}
-              meta={turns ? `${turns} 回合` : undefined}
-              description={battleTime}
-            />
-          </Link>
-        );
-      })}
+      {records.map((r) => (
+        <Zhanji key={r.id} record={r} currentCultivatorId={cultivator?.id} />
+      ))}
 
       <InkButton href="/battle/history">查看全部战绩 →</InkButton>
     </InkList>

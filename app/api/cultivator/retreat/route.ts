@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         if (hours > 0) {
           timeString += `${hours / 2}时辰`;
         }
-        timeString += `${minutes / 15}刻钟`;
+        timeString += `${Math.floor(minutes / 15)}刻钟`;
 
         return NextResponse.json(
           {
