@@ -185,7 +185,7 @@ export default function RetreatPage() {
               <p>寿元增加：+{retreatResult.summary.lifespanGained} 年</p>
             )}
             {retreatResult.story && (
-              <div className="whitespace-pre-line rounded bg-paper/80 p-3 text-xs leading-6">
+              <div className="whitespace-pre-line rounded p-3 text-sm leading-6">
                 {retreatResult.story}
               </div>
             )}
