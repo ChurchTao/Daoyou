@@ -5,13 +5,17 @@ import type { ProbeResultData } from '@/components/func/ProbeResult';
 import {
   InkActionGroup,
   InkButton,
+  InkList,
+  InkListItem,
   InkNotice,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
+import { InkModal } from '@/components/InkModal';
 import { useInkUI } from '@/components/InkUIProvider';
 import { RankingListItem } from '@/components/RankingListItem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { RankingItem } from '@/lib/redis/rankings';
+import { RANKING_REWARDS } from '@/types/constants';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -36,9 +40,10 @@ export default function RankingsPage() {
   const [error, setError] = useState<string>('');
   const [probing, setProbing] = useState<string | null>(null);
   const [probeResult, setProbeResult] = useState<ProbeResultData | null>(null);
+  const [showRules, setShowRules] = useState(false);
   const pathname = usePathname();
 
-  const loadRankings = async () => {
+  const loadRankings = useCallback(async () => {
     setLoadingRankings(true);
     setError('');
     try {
@@ -57,7 +62,7 @@ export default function RankingsPage() {
     } finally {
       setLoadingRankings(false);
     }
-  };
+  }, [pushToast]);
 
   const loadMyRankInfo = useCallback(async () => {
     if (!cultivator?.id) return;
@@ -85,7 +90,7 @@ export default function RankingsPage() {
 
   useEffect(() => {
     void loadRankings();
-  }, []);
+  }, [loadRankings]);
 
   useEffect(() => {
     if (cultivator?.id) {
@@ -245,6 +250,9 @@ export default function RankingsPage() {
             >
               {loadingRankings ? '推演中…' : '刷新榜单'}
             </InkButton>
+            <InkButton onClick={() => setShowRules(true)} variant="secondary">
+              奖励说明
+            </InkButton>
             <InkButton href="/">返回</InkButton>
           </InkActionGroup>
         }
@@ -300,10 +308,49 @@ export default function RankingsPage() {
           </>
         )}
       </InkPageShell>
+
       <ProbeResultModal
         probeResult={probeResult}
         onClose={() => setProbeResult(null)}
       />
+
+      <InkModal
+        isOpen={showRules}
+        onClose={() => setShowRules(false)}
+        title="万界金榜奖励规则"
+      >
+        <div className="space-y-4">
+          <InkNotice tone="info">
+            每日凌晨自动结算榜单，根据排名发放灵石奖励。
+          </InkNotice>
+          <InkList dense>
+            <InkListItem
+              title="🏆 第一名"
+              meta={`${RANKING_REWARDS[1]} 灵石`}
+            />
+            <InkListItem
+              title="🥈 第二名"
+              meta={`${RANKING_REWARDS[2]} 灵石`}
+            />
+            <InkListItem
+              title="🥉 第三名"
+              meta={`${RANKING_REWARDS[3]} 灵石`}
+            />
+            <InkListItem
+              title="✨ 第 4-10 名"
+              meta={`${RANKING_REWARDS['4-10']} 灵石`}
+            />
+            <InkListItem
+              title="🔹 第 11-50 名"
+              meta={`${RANKING_REWARDS['11-50']} 灵石`}
+            />
+            <InkListItem
+              title="🔸 第 51-100 名"
+              meta={`${RANKING_REWARDS['51-100']} 灵石`}
+            />
+          </InkList>
+        </div>
+      </InkModal>
     </>
   );
 }

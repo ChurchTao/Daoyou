@@ -244,6 +244,7 @@ async function assembleCultivator(
     equipped,
     max_skills: cultivatorRecord.max_skills,
     spirit_stones: cultivatorRecord.spirit_stones,
+    last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
   };
 

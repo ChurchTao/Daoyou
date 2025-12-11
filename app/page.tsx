@@ -1,8 +1,5 @@
 'use client';
 
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-
 import { LingGen } from '@/components/func';
 import {
   InkBadge,
@@ -13,11 +10,17 @@ import {
   InkStatusBar,
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkModal } from '@/components/InkModal';
+import { useInkUI } from '@/components/InkUIProvider';
 import { RecentBattles } from '@/components/RecentBattles';
 import { DivineFortune } from '@/components/welcome/DivineFortune';
 import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
+import { YieldCard } from '@/components/YieldCard';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 const quickActions = [
   { label: '🧘 闭关', href: '/retreat' },
@@ -32,12 +35,56 @@ const quickActions = [
 function HomePageContent() {
   const pathname = usePathname();
   const { isAnonymous } = useAuth();
-  const { cultivator, isLoading, note } = useCultivatorBundle();
+  const { cultivator, isLoading, note, refresh } = useCultivatorBundle();
+  const { pushToast } = useInkUI();
   const spiritualRoots = cultivator?.spiritual_roots ?? [];
+
+  const [yieldResult, setYieldResult] = useState<{
+    amount: number;
+    hours: number;
+    story: string;
+  } | null>(null);
 
   const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
   const spirit = cultivator?.attributes.spirit ?? 0;
   const maxSpirit = spirit;
+
+  const [claiming, setClaiming] = useState(false);
+
+  // 历练相关
+  const handleClaimYield = async () => {
+    if (!cultivator) return;
+    setClaiming(true);
+
+    try {
+      const response = await fetch('/api/cultivators/yield', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cultivatorId: cultivator.id }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '领取失败');
+      }
+
+      // Show story modal/overlay
+      setYieldResult({
+        amount: result.data.amount,
+        hours: result.data.hours,
+        story: result.data.story,
+      });
+
+      await refresh();
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '领取失败',
+        tone: 'danger',
+      });
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -82,6 +129,15 @@ function HomePageContent() {
       currentPath={pathname}
       footer={<DivineFortune />}
     >
+      {/* 历练收益卡片 (放在最上方) */}
+      {cultivator && (
+        <YieldCard
+          cultivator={cultivator}
+          onClaim={handleClaimYield}
+          isClaiming={claiming}
+        />
+      )}
+
       <InkSection title="【道身】">
         {cultivator ? (
           <InkList dense>
@@ -162,6 +218,32 @@ function HomePageContent() {
           <RecentBattles />
         </InkSection>
       )}
+      {/* 历练结果弹窗 */}
+      <InkModal
+        isOpen={!!yieldResult}
+        onClose={() => setYieldResult(null)}
+        title="历练归来"
+        footer={
+          <InkButton
+            variant="primary"
+            className="w-full"
+            onClick={() => setYieldResult(null)}
+          >
+            收入囊中
+          </InkButton>
+        }
+      >
+        <div className="prose prose-sm prose-invert max-w-none mb-6 text-foreground/90 leading-relaxed bg-ink/5 p-4 rounded-lg border border-ink/10">
+          {yieldResult?.story}
+        </div>
+
+        <div className="flex justify-center items-center gap-2 mb-6">
+          <span className="text-ink-secondary">获得灵石：</span>
+          <span className="text-2xl font-bold text-yellow-500 flex items-center gap-1">
+            💎 {yieldResult?.amount}
+          </span>
+        </div>
+      </InkModal>
     </InkPageShell>
   );
 }

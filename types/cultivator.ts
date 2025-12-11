@@ -238,6 +238,7 @@ export interface Cultivator {
 
   max_skills: number;
   spirit_stones: number;
+  last_yield_at?: Date;
   background?: string;
 
   // 兼容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）

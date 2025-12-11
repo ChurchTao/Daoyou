@@ -4,6 +4,10 @@
     {
       "path": "/api/market",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/rank-rewards",
+      "schedule": "0 0 * * *"
     }
   ]
 }

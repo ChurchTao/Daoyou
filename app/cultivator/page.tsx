@@ -90,9 +90,9 @@ export default function CultivatorPage() {
       currentPath={pathname}
       footer={
         <InkActionGroup align="between">
-          <InkButton href="/">← 返回主界</InkButton>
-          <InkButton href="/retreat" variant="secondary">
-            闭关修炼
+          <InkButton href="/">返回</InkButton>
+          <InkButton href="/reincarnate" variant="secondary">
+            转世重修
           </InkButton>
         </InkActionGroup>
       }

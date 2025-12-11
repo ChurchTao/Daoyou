@@ -41,6 +41,7 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   willpower: integer('willpower').notNull(),
 
   spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
+  last_yield_at: timestamp('last_yield_at').defaultNow(),
 
   max_skills: integer('max_skills').notNull().default(4),
   balance_notes: text('balance_notes'),

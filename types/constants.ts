@@ -161,3 +161,29 @@ export const CONSUMABLE_EFFECT_VALUES = [
   '永久提升神识',
 ] as const;
 export type ConsumableEffectType = (typeof CONSUMABLE_EFFECT_VALUES)[number];
+
+// ===== 灵石产出相关 =====
+
+// 境界历练收益基数（每小时）
+export const REALM_YIELD_RATES: Record<RealmType, number> = {
+  炼气: 100,
+  筑基: 200,
+  金丹: 400,
+  元婴: 800,
+  化神: 1600,
+  炼虚: 3200,
+  合体: 4800,
+  大乘: 6400,
+  渡劫: 12800,
+};
+
+// 排行榜每日结算奖励（灵石）
+export const RANKING_REWARDS = {
+  1: 30000,
+  2: 20000,
+  3: 15000,
+  '4-10': 8000,
+  '11-50': 5000,
+  '51-100': 2000,
+  default: 1000, // 未上榜（前100）但在榜单统计范围内
+};
