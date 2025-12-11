@@ -10,8 +10,10 @@ import {
   InkNotice,
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkModal } from '@/components/InkModal';
 import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -23,6 +25,7 @@ export default function AlchemyPage() {
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
+  const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
   const { pushToast } = useInkUI();
   const pathname = usePathname();
 
@@ -157,13 +160,22 @@ export default function AlchemyPage() {
                         <span className="font-bold">
                           {typeInfo.icon} {m.name}
                         </span>
-                        <InkBadge tier={m.rank} compact>
-                          {m.rank}
-                        </InkBadge>
+                        <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
                       </div>
-                      <span className="text-xs text-ink-secondary">
-                        x{m.quantity}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-ink-secondary">
+                          x{m.quantity}
+                        </span>
+                        <InkButton
+                          variant="secondary"
+                          className="text-xs leading-none"
+                          onClick={() => {
+                            setViewingMaterial(m);
+                          }}
+                        >
+                          详情
+                        </InkButton>
+                      </div>
                     </div>
                     <div className="text-xs text-ink-secondary ml-6 mt-1 truncate">
                       {m.description || '无描述'}
@@ -186,7 +198,7 @@ export default function AlchemyPage() {
           <InkList dense>
             <InkListItem
               title="提示"
-              description="描述你期望的丹药功效，如增进修为（灵力）、强健体魄（体魄）或开智悟道（悟性）。"
+              description="描述你期望的丹药功效，如增进修为（灵力）、强健体魄（体魄）。"
             />
             <InkListItem
               title="示例"
@@ -233,6 +245,39 @@ export default function AlchemyPage() {
           <InkNotice tone="info">{status}</InkNotice>
         </div>
       )}
+
+      {/* 物品详情弹窗 */}
+      <InkModal
+        isOpen={!!viewingMaterial}
+        onClose={() => setViewingMaterial(null)}
+      >
+        {viewingMaterial && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="text-4xl p-2 bg-ink/5 rounded-lg border border-ink/10">
+                {getMaterialTypeInfo(viewingMaterial.type).icon}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold ">{viewingMaterial.name}</h3>
+                  <InkBadge tier={viewingMaterial.rank}>
+                    {getMaterialTypeInfo(viewingMaterial.type).label}
+                  </InkBadge>
+                </div>
+                <p className="text-sm text-ink-secondary">
+                  拥有数量：{viewingMaterial.quantity}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-ink/5 p-3 rounded-lg border border-ink/10">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {viewingMaterial.description || '此物灵韵内敛，暂无详细记载。'}
+              </p>
+            </div>
+          </div>
+        )}
+      </InkModal>
     </InkPageShell>
   );
 }
