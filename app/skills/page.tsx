@@ -11,8 +11,7 @@ import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { usePathname } from 'next/navigation';
 
 export default function SkillsPage() {
-  const { cultivator, skills, isLoading, note, usingMock } =
-    useCultivatorBundle();
+  const { cultivator, skills, isLoading, note } = useCultivatorBundle();
   const pathname = usePathname();
 
   if (isLoading && !cultivator) {
@@ -51,12 +50,6 @@ export default function SkillsPage() {
           markLastAsNew={true}
           showActions={true}
         />
-      )}
-
-      {usingMock && (
-        <p className="mt-6 text-center text-xs text-ink-secondary">
-          【占位】技能列表展示硬编码样例，待真实接口替换。
-        </p>
       )}
     </InkPageShell>
   );
