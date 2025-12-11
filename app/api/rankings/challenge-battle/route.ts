@@ -6,7 +6,6 @@ import {
   checkDailyChallenges,
   getCultivatorRank,
   incrementDailyChallenges,
-  isLocked,
   isProtected,
   isRankingEmpty,
   releaseChallengeLock,
@@ -134,16 +133,10 @@ export async function POST(request: NextRequest) {
             throw new Error('被挑战者处于新天骄保护期（2小时内不可挑战）');
           }
 
-          // 7. 检查被挑战者是否被锁定
-          const targetLocked = await isLocked(targetId);
-          if (targetLocked) {
-            throw new Error('被挑战者正在被其他玩家挑战，请稍后再试');
-          }
-
           // 8. 获取挑战锁
           const lockAcquiredResult = await acquireChallengeLock(targetId);
           if (!lockAcquiredResult) {
-            throw new Error('获取挑战锁失败，请稍后再试');
+            throw new Error('被挑战者正在被其他玩家挑战，请稍后再试');
           }
           lockAcquired = true;
 
