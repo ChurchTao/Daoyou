@@ -3,7 +3,7 @@ import { cultivators } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { createClient } from '@/lib/supabase/server';
 import { REALM_YIELD_RATES, RealmType } from '@/types/constants';
-import { text } from '@/utils/aiClient';
+import { stream_text } from '@/utils/aiClient';
 import { eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -96,40 +96,65 @@ export async function POST(req: NextRequest) {
         };
       });
 
-      // 5. Generate Flavor Text via AI (Outside Transaction)
-      let story = '历练归来，收获颇丰。';
-      try {
-        const systemPrompt =
-          '你是一个修仙世界的记录者，负责记录修士在万界历练的经历。';
-        const userPrompt = `
-          请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
-          修士在历练中花费了【${result.hours.toFixed(1)}】小时，获得了【${result.amount}】灵石。
-          
-          要求：
-          1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇、甚至是被打劫反杀等）。
-          2. 必须符合修仙世界观，文风古风，有代入感。
-          3. 结尾自然地提到获得了灵石。
-        `;
+      // 5. Generate Flavor Text via SSE
+      const encoder = new TextEncoder();
+      const customStream = new ReadableStream({
+        async start(controller) {
+          try {
+            // First send the calculation result
+            const initialData = JSON.stringify({
+              type: 'result',
+              data: {
+                ...result,
+                message: `道友此番历练 ${result.hours.toFixed(1)} 时辰，气运加身，斩获灵石 ${result.amount} 枚。`,
+              },
+            });
+            controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
-        const aiRes = await text(systemPrompt, userPrompt, true);
-        story = aiRes.text;
-      } catch (e) {
-        console.error('AI generation failed', e);
-        // Fallback story if AI fails
-        story = `修士在外游历${result.hours.toFixed(1)}时辰，偶遇些许机缘，虽有惊无险，但也收获灵石${result.amount}枚。`;
-      }
+            const systemPrompt =
+              '你是一个修仙世界的记录者，负责记录修士在万界历练的经历。';
+            const userPrompt = `
+              请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
+              修士在历练中花费了【${result.hours.toFixed(1)}】小时，获得了【${result.amount}】灵石。
+              
+              要求：
+              1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇、甚至是被打劫反杀等）。
+              2. 必须符合修仙世界观，文风古风，有代入感。
+              3. 结尾自然地提到获得了灵石。
+            `;
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...result,
-          story,
-          message: `道友此番历练 ${result.hours.toFixed(1)} 时辰，气运加身，斩获灵石 ${result.amount} 枚。`,
+            // Stream AI generation
+            const aiStreamResult = stream_text(systemPrompt, userPrompt, true);
+            for await (const chunk of aiStreamResult.textStream) {
+              const msg = JSON.stringify({ type: 'chunk', text: chunk });
+              controller.enqueue(encoder.encode(`data: ${msg}\n\n`));
+            }
+          } catch (e) {
+            console.error('Stream processing error:', e);
+            const errorMsg = JSON.stringify({
+              type: 'error',
+              error: '天机推演中断...',
+            });
+            controller.enqueue(encoder.encode(`data: ${errorMsg}\n\n`));
+          } finally {
+            controller.close();
+            // Release lock when stream ends
+            await redis.del(lockKey);
+          }
         },
       });
-    } finally {
-      // Release lock
+
+      return new NextResponse(customStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    } catch (e) {
+      // If error happens before stream creation, release lock here
       await redis.del(lockKey);
+      throw e;
     }
   } catch (error) {
     console.error('Yield API Error:', error);
