@@ -2,6 +2,8 @@ import {
   ConsumableType,
   ElementType,
   EquipmentSlot,
+  MaterialType,
+  Quality,
   SkillGrade,
   SkillType,
   StatusEffect,
@@ -39,6 +41,7 @@ async function assembleCultivator(
     equippedResult,
     retreatRecordsResult,
     breakthroughHistoryResult,
+    materialsResult,
   ] = await Promise.all([
     db
       .select()
@@ -78,6 +81,10 @@ async function assembleCultivator(
       .from(schema.breakthroughHistory)
       .where(eq(schema.breakthroughHistory.cultivatorId, cultivatorId))
       .orderBy(schema.breakthroughHistory.createdAt),
+    db
+      .select()
+      .from(schema.materials)
+      .where(eq(schema.materials.cultivatorId, cultivatorId)),
   ]);
 
   // 组装灵根
@@ -143,6 +150,18 @@ async function assembleCultivator(
     effect: c.effect as
       | Cultivator['inventory']['consumables'][0]['effect']
       | undefined,
+  }));
+
+  // 组装材料
+  const materials = materialsResult.map((m) => ({
+    id: m.id,
+    name: m.name,
+    type: m.type as MaterialType,
+    rank: m.rank as Quality,
+    element: m.element as ElementType | undefined,
+    description: m.description || undefined,
+    details: (m.details as Record<string, unknown>) || undefined,
+    quantity: m.quantity,
   }));
 
   const retreat_records: Cultivator['retreat_records'] =
@@ -214,9 +233,11 @@ async function assembleCultivator(
     inventory: {
       artifacts,
       consumables,
+      materials,
     },
     equipped,
     max_skills: cultivatorRecord.max_skills,
+    spirit_stones: cultivatorRecord.spirit_stones,
     balance_notes: cultivatorRecord.balance_notes || undefined,
   };
 
@@ -907,17 +928,22 @@ export async function getInventory(
     throw new Error('角色不存在或无权限操作');
   }
 
-  // 获取法宝和消耗品
-  const [artifactsResult, consumablesResult] = await Promise.all([
-    db
-      .select()
-      .from(schema.artifacts)
-      .where(eq(schema.artifacts.cultivatorId, cultivatorId)),
-    db
-      .select()
-      .from(schema.consumables)
-      .where(eq(schema.consumables.cultivatorId, cultivatorId)),
-  ]);
+  // 获取法宝、消耗品和材料
+  const [artifactsResult, consumablesResult, materialsResult] =
+    await Promise.all([
+      db
+        .select()
+        .from(schema.artifacts)
+        .where(eq(schema.artifacts.cultivatorId, cultivatorId)),
+      db
+        .select()
+        .from(schema.consumables)
+        .where(eq(schema.consumables.cultivatorId, cultivatorId)),
+      db
+        .select()
+        .from(schema.materials)
+        .where(eq(schema.materials.cultivatorId, cultivatorId)),
+    ]);
 
   return {
     artifacts: artifactsResult.map((a) => ({
@@ -934,9 +960,21 @@ export async function getInventory(
     consumables: consumablesResult.map((c) => ({
       name: c.name,
       type: c.type as ConsumableType,
-      effect: c.effect as
-        | import('../../types/cultivator').ConsumableEffect
+      effect: (Array.isArray(c.effect)
+        ? c.effect
+        : [c.effect].filter(Boolean)) as
+        | import('../../types/cultivator').ConsumableEffect[]
         | undefined,
+    })),
+    materials: materialsResult.map((m) => ({
+      id: m.id,
+      name: m.name,
+      type: m.type as MaterialType,
+      rank: m.rank as Quality,
+      element: m.element as ElementType | undefined,
+      description: m.description || undefined,
+      details: (m.details as Record<string, unknown>) || undefined,
+      quantity: m.quantity,
     })),
   };
 }

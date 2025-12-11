@@ -9,3 +9,4 @@ const client = postgres(connectionString!, { prepare: false });
 
 // 创建drizzle实例
 export const db = drizzle(client, { schema });
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];

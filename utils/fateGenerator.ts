@@ -1,5 +1,5 @@
-import type { FateQuality } from '../types/constants';
-import { FATE_QUALITY_VALUES } from '../types/constants';
+import type { Quality } from '../types/constants';
+import { QUALITY_VALUES } from '../types/constants';
 import type { PreHeavenFate } from '../types/cultivator';
 import { text } from './aiClient';
 
@@ -8,7 +8,7 @@ import { text } from './aiClient';
  * 规则：前两条贴合用户输入，其余随机但遵循品质概率与天道平衡
  */
 
-const QUALITY_PROBABILITIES: Record<FateQuality, number> = {
+const QUALITY_PROBABILITIES: Record<Quality, number> = {
   凡品: 0.5,
   灵品: 0.3,
   玄品: 0.15,
@@ -125,12 +125,9 @@ function normaliseFate(item: unknown): PreHeavenFate | null {
   };
 }
 
-function normaliseQuality(value: unknown): FateQuality {
-  if (
-    typeof value === 'string' &&
-    FATE_QUALITY_VALUES.includes(value as FateQuality)
-  ) {
-    return value as FateQuality;
+function normaliseQuality(value: unknown): Quality {
+  if (typeof value === 'string' && QUALITY_VALUES.includes(value as Quality)) {
+    return value as Quality;
   }
   return randomQuality();
 }
@@ -150,13 +147,13 @@ function normaliseAttributeMod(value: unknown): PreHeavenFate['attribute_mod'] {
   return result;
 }
 
-function randomQuality(): FateQuality {
+function randomQuality(): Quality {
   const rand = Math.random();
   let cumulative = 0;
   for (const [quality, probability] of Object.entries(QUALITY_PROBABILITIES)) {
     cumulative += probability;
     if (rand <= cumulative) {
-      return quality as FateQuality;
+      return quality as Quality;
     }
   }
   return '凡品';

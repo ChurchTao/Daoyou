@@ -1,15 +1,12 @@
 import type {
-  Attributes,
-  Artifact,
-  Skill,
-} from './cultivator';
-import type {
   ConsumableType,
   ElementType,
   EquipmentSlot,
+  MaterialType,
   SkillType,
   StatusEffect,
 } from './constants';
+import type { Artifact, Attributes, Skill } from './cultivator';
 
 // ===== 元素相关 =====
 
@@ -20,46 +17,47 @@ export interface ElementDisplayInfo {
 
 export const ELEMENT_DISPLAY_MAP: Record<ElementType, ElementDisplayInfo> = {
   金: {
-    label:'金',
-    icon:'⚔️',
+    label: '金',
+    icon: '⚔️',
   },
   木: {
-    label:'木',
-    icon:'🌿',
+    label: '木',
+    icon: '🌿',
   },
   水: {
-    label:'水',
-    icon:'💧',
+    label: '水',
+    icon: '💧',
   },
   火: {
-    label:'火',
-    icon:'🔥',
+    label: '火',
+    icon: '🔥',
   },
   土: {
-    label:'土',
-    icon:'⛰️',
+    label: '土',
+    icon: '⛰️',
   },
   风: {
-    label:'风',
-    icon:'🌪️',
+    label: '风',
+    icon: '🌪️',
   },
   雷: {
-    label:'雷',
-    icon:'⚡️️',
+    label: '雷',
+    icon: '⚡️️',
   },
   冰: {
-    label:'冰',
-    icon:'❄️',
+    label: '冰',
+    icon: '❄️',
   },
 };
 
 export function getElementInfo(key: ElementType): ElementDisplayInfo {
-  return ELEMENT_DISPLAY_MAP[key] ?? {
-    label: key,
-    icon: '',
-  };
+  return (
+    ELEMENT_DISPLAY_MAP[key] ?? {
+      label: key,
+      icon: '',
+    }
+  );
 }
-
 
 // ===== 属性相关 =====
 
@@ -111,12 +109,14 @@ export function getAttributeLabel(key: AttributeKey): string {
 }
 
 export function getAttributeInfo(key: AttributeKey): AttributeDisplayInfo {
-  return ATTRIBUTE_DISPLAY_MAP[key] ?? {
-    label: key,
-    icon: '',
-    shortLabel: key,
-    description: '',
-  };
+  return (
+    ATTRIBUTE_DISPLAY_MAP[key] ?? {
+      label: key,
+      icon: '',
+      shortLabel: key,
+      description: '',
+    }
+  );
 }
 
 // ===== 技能类型 =====
@@ -159,13 +159,14 @@ export function getSkillTypeLabel(type: SkillType): string {
   return SKILL_TYPE_DISPLAY_MAP[type]?.label ?? type;
 }
 
-
 export function getSkillTypeInfo(type: SkillType): SkillTypeDisplayInfo {
-  return SKILL_TYPE_DISPLAY_MAP[type] ?? {
-    label: type,
-    icon: '',
-    description: '',
-  };
+  return (
+    SKILL_TYPE_DISPLAY_MAP[type] ?? {
+      label: type,
+      icon: '',
+      description: '',
+    }
+  );
 }
 
 // ===== 状态效果 =====
@@ -236,15 +237,17 @@ export function getStatusLabel(effect: StatusEffect): string {
   return STATUS_EFFECT_DISPLAY_MAP[effect]?.label ?? effect;
 }
 
-
-export function getStatusEffectInfo(effect: StatusEffect): StatusEffectDisplayInfo {
-  return STATUS_EFFECT_DISPLAY_MAP[effect] ?? {
-    label: effect,
-    icon: '',
-    description: '',
-  };
+export function getStatusEffectInfo(
+  effect: StatusEffect,
+): StatusEffectDisplayInfo {
+  return (
+    STATUS_EFFECT_DISPLAY_MAP[effect] ?? {
+      label: effect,
+      icon: '',
+      description: '',
+    }
+  );
 }
-
 
 // ===== 装备槽位与类型 =====
 
@@ -283,33 +286,69 @@ export function getArtifactTypeLabel(slot: EquipmentSlot): string {
 
 export interface ConsumableTypeDisplayInfo {
   label: string;
-  description: string;
+  icon: string;
 }
 
 export const CONSUMABLE_TYPE_DISPLAY_MAP: Record<
   ConsumableType,
   ConsumableTypeDisplayInfo
 > = {
-  heal: {
-    label: '疗伤丹',
-    description: '回复气血的丹药或灵物',
-  },
-  buff: {
-    label: '增益丹',
-    description: '短时间内提升某项能力的秘药',
-  },
-  revive: {
-    label: '续命丹',
-    description: '在重创之时挽回一线生机',
-  },
-  breakthrough: {
-    label: '破境丹',
-    description: '助力闭关突破境界的灵丹',
+  丹药: {
+    label: '丹药',
+    icon: '🌕',
   },
 };
 
 export function getConsumableTypeLabel(type: ConsumableType): string {
   return CONSUMABLE_TYPE_DISPLAY_MAP[type]?.label ?? type;
+}
+
+// 材料相关
+
+export interface MaterialTypeDisplayInfo {
+  label: string;
+  icon: string;
+}
+
+export const MATERIAL_TYPE_DISPLAY_MAP: Record<
+  MaterialType,
+  MaterialTypeDisplayInfo
+> = {
+  herb: {
+    label: '灵药',
+    icon: '🌿',
+  },
+  ore: {
+    label: '矿石',
+    icon: '🪨',
+  },
+  monster: {
+    label: '妖兽材料',
+    icon: '🐉',
+  },
+  tcdb: {
+    label: '天材地宝',
+    icon: '💎',
+  },
+  aux: {
+    label: '特殊辅料',
+    icon: '💧',
+  },
+};
+
+export function getMaterialTypeLabel(type: MaterialType): string {
+  return MATERIAL_TYPE_DISPLAY_MAP[type]?.label ?? type;
+}
+
+export function getMaterialTypeInfo(
+  type: MaterialType,
+): MaterialTypeDisplayInfo {
+  return (
+    MATERIAL_TYPE_DISPLAY_MAP[type] ?? {
+      label: type,
+      icon: '',
+    }
+  );
 }
 
 // ===== 一些高层封装工具（便于前端使用） =====
@@ -330,5 +369,3 @@ export function formatAttributeBonusMap(
     })
     .join('｜');
 }
-
-

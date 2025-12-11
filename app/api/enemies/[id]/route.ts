@@ -1,7 +1,5 @@
-import { mockRankings } from '@/data/mockRankings';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import type { Cultivator } from '@/types/cultivator';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -36,18 +34,7 @@ export async function GET(
       );
     }
 
-    let enemy: Cultivator | null = null;
-    let isMock = false;
-
-    // 检查是否为mock敌人（id以mock-开头）
-    if (id.startsWith('mock-')) {
-      // 从mock数据中获取对手
-      enemy = mockRankings.find((r) => r.id === id) || null;
-      isMock = true;
-    } else {
-      // 从数据库中获取对手
-      enemy = await getCultivatorById(user.id, id);
-    }
+    const enemy = await getCultivatorById(user.id, id);
 
     if (!enemy) {
       return NextResponse.json({ error: '敌人角色不存在' }, { status: 404 });
@@ -72,7 +59,6 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: simplifiedEnemy,
-      isMock,
     });
   } catch (error) {
     console.error('获取敌人数据 API 错误:', error);

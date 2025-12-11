@@ -1,0 +1,2 @@
+ALTER TABLE "wanjiedaoyou_artifacts" ADD COLUMN "quality" varchar(20) DEFAULT '凡品' NOT NULL;--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_artifacts" ADD COLUMN "required_realm" varchar(20) DEFAULT '练气' NOT NULL;

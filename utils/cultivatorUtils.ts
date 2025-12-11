@@ -1,10 +1,8 @@
 import {
-  CONSUMABLE_TYPE_VALUES,
-  ConsumableType,
   ELEMENT_VALUES,
   ElementType,
-  FATE_QUALITY_VALUES,
-  FateQuality,
+  Quality,
+  QUALITY_VALUES,
   REALM_STAGE_CAPS,
   REALM_STAGE_VALUES,
   REALM_VALUES,
@@ -20,11 +18,7 @@ import {
   StatusEffect,
 } from '../types/constants';
 import type {
-  Artifact,
-  ArtifactBonus,
   Attributes,
-  Consumable,
-  ConsumableEffect,
   CultivationTechnique,
   Cultivator,
   EquippedItems,
@@ -59,6 +53,7 @@ export function createCultivatorFromAI(
   const inventory: Inventory = {
     artifacts: [],
     consumables: [],
+    materials: [],
   };
   const equipped: EquippedItems = {
     weapon: null,
@@ -88,6 +83,7 @@ export function createCultivatorFromAI(
     inventory,
     equipped,
     max_skills: maxSkills,
+    spirit_stones: 0,
     background,
     prompt: userPrompt,
     balance_notes,
@@ -383,10 +379,10 @@ function asSpiritualRoots(raw: unknown): SpiritualRoot[] {
     .slice(0, 4);
 }
 
-function asFateQuality(value: unknown): FateQuality | undefined {
-  const qualities: FateQuality[] = [...FATE_QUALITY_VALUES];
-  if (typeof value === 'string' && qualities.includes(value as FateQuality)) {
-    return value as FateQuality;
+function asFateQuality(value: unknown): Quality | undefined {
+  const qualities: Quality[] = [...QUALITY_VALUES];
+  if (typeof value === 'string' && qualities.includes(value as Quality)) {
+    return value as Quality;
   }
   return undefined;
 }
@@ -533,108 +529,4 @@ function asStatusEffect(value: unknown): StatusEffect | undefined {
     return value as StatusEffect;
   }
   return undefined;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normaliseInventory(raw: unknown): Inventory {
-  const obj =
-    raw && typeof raw === 'object'
-      ? (raw as Record<string, unknown>)
-      : ({} as Record<string, unknown>);
-
-  const artifactsArray = Array.isArray(obj.artifacts)
-    ? (obj.artifacts as unknown[])
-    : [];
-  const consumablesArray = Array.isArray(obj.consumables)
-    ? (obj.consumables as unknown[])
-    : [];
-
-  const artifacts: Artifact[] = [];
-  artifactsArray.forEach((item, idx) => {
-    if (!item || typeof item !== 'object') return;
-    const rec = item as Record<string, unknown>;
-    const name = asString(rec.name, '');
-    if (!name) return;
-    const slot =
-      rec.slot === 'weapon' || rec.slot === 'armor' || rec.slot === 'accessory'
-        ? rec.slot
-        : 'weapon';
-    const id =
-      typeof rec.id === 'string' && rec.id.trim().length
-        ? rec.id
-        : `eq_${idx}_${Date.now().toString(36)}`;
-    const element = asElement(rec.element);
-    const bonusRaw =
-      (rec.bonus as Record<string, unknown>) ?? ({} as Record<string, unknown>);
-    const bonus: ArtifactBonus = {};
-    if (typeof bonusRaw.vitality === 'number') {
-      bonus.vitality = Math.round(bonusRaw.vitality);
-    }
-    if (typeof bonusRaw.spirit === 'number') {
-      bonus.spirit = Math.round(bonusRaw.spirit);
-    }
-    if (typeof bonusRaw.wisdom === 'number') {
-      bonus.wisdom = Math.round(bonusRaw.wisdom);
-    }
-    if (typeof bonusRaw.speed === 'number') {
-      bonus.speed = Math.round(bonusRaw.speed);
-    }
-    if (typeof bonusRaw.willpower === 'number') {
-      bonus.willpower = Math.round(bonusRaw.willpower);
-    }
-    artifacts.push({
-      id,
-      name,
-      slot,
-      element,
-      bonus,
-      special_effects: [],
-      curses: [],
-    });
-  });
-
-  const consumables: Consumable[] = [];
-  consumablesArray.forEach((item) => {
-    if (!item || typeof item !== 'object') return;
-    const rec = item as Record<string, unknown>;
-    const name = asString(rec.name, '');
-    if (!name) return;
-    const typeRaw = rec.type;
-    const type: ConsumableType = CONSUMABLE_TYPE_VALUES.includes(
-      typeRaw as ConsumableType,
-    )
-      ? (typeRaw as ConsumableType)
-      : 'heal';
-    consumables.push({
-      name,
-      type,
-      effect: rec.effect as ConsumableEffect | undefined,
-    });
-  });
-
-  return {
-    artifacts,
-    consumables,
-  };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normaliseEquipped(raw: unknown, inventory: Inventory): EquippedItems {
-  const obj =
-    raw && typeof raw === 'object'
-      ? (raw as Record<string, unknown>)
-      : ({} as Record<string, unknown>);
-
-  const ids = new Set(inventory.artifacts.map((a) => a.id));
-
-  const weapon =
-    typeof obj.weapon === 'string' && ids.has(obj.weapon) ? obj.weapon : null;
-  const armor =
-    typeof obj.armor === 'string' && ids.has(obj.armor) ? obj.armor : null;
-  const accessory =
-    typeof obj.accessory === 'string' && ids.has(obj.accessory)
-      ? obj.accessory
-      : null;
-
-  return { weapon, armor, accessory };
 }

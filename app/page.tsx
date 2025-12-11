@@ -28,6 +28,7 @@ const quickActions = [
   { label: '🔥 炼器', href: '/ritual' },
   { label: '🌀 奇遇', href: '/ritual' },
   { label: '📜 顿悟', href: '/ritual' },
+  { label: '🛖 修仙坊市', href: '/market' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
 

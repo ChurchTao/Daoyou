@@ -1,11 +1,14 @@
 // ===== 新一代修仙底层数据模型 =====
 
 import type {
+  ConsumableEffectType,
   ConsumableType,
+  EffectType,
   ElementType,
   EquipmentSlot,
-  FateQuality,
   GenderType,
+  MaterialType,
+  Quality,
   RealmStage,
   RealmType,
   SkillGrade,
@@ -69,7 +72,7 @@ export interface PreHeavenFateAttributeMod {
 export interface PreHeavenFate {
   name: string;
   type: '吉' | '凶';
-  quality?: FateQuality; // 凡品 | 灵品 | 玄品 | 真品
+  quality?: Quality; // 凡品 | 灵品 | 玄品 | 真品
   attribute_mod: PreHeavenFateAttributeMod;
   description?: string;
 }
@@ -106,33 +109,40 @@ export interface ArtifactBonus {
   willpower?: number;
 }
 
-export type EffectType =
-  | 'damage_bonus'
-  | 'on_hit_add_effect'
-  | 'on_use_cost_hp'
-  | 'environment_change';
-
 export interface BaseEffect {
   type: EffectType;
+  power: number;
 }
 
+/**
+ * 伤害加成效果
+ */
 export interface DamageBonusEffect extends BaseEffect {
   type: 'damage_bonus';
   element: ElementType;
   bonus: number;
 }
 
+/**
+ * 攻击命中后添加状态效果
+ */
 export interface OnHitAddEffect extends BaseEffect {
   type: 'on_hit_add_effect';
   effect: StatusEffect;
   chance: number; // 1-100
 }
 
+/**
+ * 使用法术消耗气血
+ */
 export interface OnUseCostHpEffect extends BaseEffect {
   type: 'on_use_cost_hp';
   amount: number;
 }
 
+/**
+ * 环境变化
+ */
 export interface EnvironmentChangeEffect extends BaseEffect {
   type: 'environment_change';
   env_type: string;
@@ -154,25 +164,40 @@ export interface Artifact {
   curses?: ArtifactEffect[];
 }
 
-// 消耗品
-export interface TemporaryBonus extends Partial<Attributes> {
-  duration: number;
+// 永久提升效果
+export interface PermanentBonusEffect
+  extends BaseConsumableEffect, Partial<Attributes> {
+  bonus: number;
 }
 
-export interface ConsumableEffect {
-  hp_restore?: number;
-  temporary_bonus?: TemporaryBonus;
+interface BaseConsumableEffect {
+  effect_type: ConsumableEffectType;
 }
+
+export type ConsumableEffect = PermanentBonusEffect;
 
 export interface Consumable {
   name: string;
   type: ConsumableType;
-  effect?: ConsumableEffect;
+  effect?: ConsumableEffect[];
+}
+
+export interface Material {
+  id?: string;
+  name: string;
+  type: MaterialType;
+  rank: Quality;
+  price?: number;
+  element?: ElementType;
+  description?: string;
+  details?: Record<string, unknown>;
+  quantity: number;
 }
 
 export interface Inventory {
   artifacts: Artifact[];
   consumables: Consumable[];
+  materials: Material[];
 }
 
 export interface EquippedItems {
@@ -208,6 +233,7 @@ export interface Cultivator {
   equipped: EquippedItems;
 
   max_skills: number;
+  spirit_stones: number;
   background?: string;
 
   // 兼容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）

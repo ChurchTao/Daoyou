@@ -40,6 +40,8 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   speed: integer('speed').notNull(),
   willpower: integer('willpower').notNull(),
 
+  spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
+
   max_skills: integer('max_skills').notNull().default(4),
   balance_notes: text('balance_notes'),
 
@@ -110,6 +112,22 @@ export const skills = pgTable('wanjiedaoyou_skills', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// 材料表（1对多）
+export const materials = pgTable('wanjiedaoyou_materials', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(), // herb | ore | monster | other
+  rank: varchar('rank', { length: 20 }).notNull(), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
+  element: varchar('element', { length: 10 }),
+  description: text('description'),
+  details: jsonb('details').default({}), // 额外属性
+  quantity: integer('quantity').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // 法宝表（1对多，不在创建时生成，由用户后续添加）
 export const artifacts = pgTable('wanjiedaoyou_artifacts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -117,11 +135,17 @@ export const artifacts = pgTable('wanjiedaoyou_artifacts', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
+  prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
+  quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
+  required_realm: varchar('required_realm', { length: 20 })
+    .notNull()
+    .default('练气'),
   slot: varchar('slot', { length: 20 }).notNull(), // weapon | armor | accessory
   element: varchar('element', { length: 10 }).notNull(),
   bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
   special_effects: jsonb('special_effects').default([]), // ArtifactEffect[]
   curses: jsonb('curses').default([]), // ArtifactEffect[]
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -132,8 +156,11 @@ export const consumables = pgTable('wanjiedaoyou_consumables', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 20 }).notNull(), // heal | buff | revive | breakthrough
+  type: varchar('type', { length: 20 }).notNull(), // 丹药
+  prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
+  quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
   effect: jsonb('effect'), // ConsumableEffect
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

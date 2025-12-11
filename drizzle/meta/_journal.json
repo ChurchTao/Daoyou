@@ -50,6 +50,27 @@
       "when": 1765166355764,
       "tag": "0006_nice_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1765358301804,
+      "tag": "0007_common_black_widow",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1765374461481,
+      "tag": "0008_acoustic_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1765426148046,
+      "tag": "0009_zippy_sharon_ventura",
+      "breakpoints": true
     }
   ]
 }

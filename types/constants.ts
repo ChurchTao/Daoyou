@@ -43,12 +43,7 @@ export const EQUIPMENT_SLOT_VALUES = ['weapon', 'armor', 'accessory'] as const;
 export type EquipmentSlot = (typeof EQUIPMENT_SLOT_VALUES)[number];
 
 // 消耗品类型
-export const CONSUMABLE_TYPE_VALUES = [
-  'heal',
-  'buff',
-  'revive',
-  'breakthrough',
-] as const;
+export const CONSUMABLE_TYPE_VALUES = ['丹药'] as const;
 export type ConsumableType = (typeof CONSUMABLE_TYPE_VALUES)[number];
 
 // 性别
@@ -117,7 +112,7 @@ export const SKILL_GRADE_VALUES = [
 export type SkillGrade = (typeof SKILL_GRADE_VALUES)[number];
 
 // 先天气运品质
-export const FATE_QUALITY_VALUES = [
+export const QUALITY_VALUES = [
   '凡品',
   '灵品',
   '玄品',
@@ -127,4 +122,42 @@ export const FATE_QUALITY_VALUES = [
   '仙品',
   '神品',
 ] as const;
-export type FateQuality = (typeof FATE_QUALITY_VALUES)[number];
+export type Quality = (typeof QUALITY_VALUES)[number];
+
+// 材料类型
+export const MATERIAL_TYPE_VALUES = [
+  'herb',
+  'ore',
+  'monster',
+  'tcdb',
+  'aux',
+] as const;
+export type MaterialType = (typeof MATERIAL_TYPE_VALUES)[number];
+
+export const EFFECT_TYPE_VALUES = [
+  'damage_bonus',
+  'on_hit_add_effect',
+  'on_use_cost_hp',
+  'environment_change',
+];
+
+/**
+ * 法宝效果类型
+ * - damage_bonus: 伤害加成
+ * - on_hit_add_effect: 攻击命中后添加状态效果
+ * - on_use_cost_hp: 使用法术消耗气血
+ * - environment_change: 环境变化
+ */
+export type EffectType = (typeof EFFECT_TYPE_VALUES)[number];
+
+/**
+ * 消耗品效果
+ */
+export const CONSUMABLE_EFFECT_VALUES = [
+  '永久提升体魄',
+  '永久提升灵力',
+  '永久提升悟性',
+  '永久提升身法',
+  '永久提升神识',
+] as const;
+export type ConsumableEffectType = (typeof CONSUMABLE_EFFECT_VALUES)[number];

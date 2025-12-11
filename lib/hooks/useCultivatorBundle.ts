@@ -24,6 +24,7 @@ type FetchState = {
 const defaultInventory: Inventory = {
   artifacts: [],
   consumables: [],
+  materials: [],
 };
 
 // 模块级别的缓存，在页面切换时保持数据

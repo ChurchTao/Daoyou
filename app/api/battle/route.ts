@@ -1,10 +1,8 @@
-import { mockRankings } from '@/data/mockRankings';
 import { simulateBattle } from '@/engine/battleEngine';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import type { Cultivator } from '@/types/cultivator';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';
@@ -66,22 +64,9 @@ export async function POST(request: NextRequest) {
           }
 
           // 2. 获取对手角色信息
-          let opponent: Cultivator;
-          // 检查是否为mock敌人（id以mock-开头）
-          if (opponentId.startsWith('mock-')) {
-            // 从mock数据中获取对手
-            const mockOpponent = mockRankings.find((r) => r.id === opponentId);
-            if (!mockOpponent) {
-              throw new Error('对手角色不存在');
-            }
-            opponent = mockOpponent;
-          } else {
-            // 从数据库中获取对手
-            const dbOpponent = await getCultivatorById(user.id, opponentId);
-            if (!dbOpponent) {
-              throw new Error('对手角色不存在');
-            }
-            opponent = dbOpponent;
+          const opponent = await getCultivatorById(user.id, opponentId);
+          if (!opponent) {
+            throw new Error('对手角色不存在');
           }
 
           // 3. 执行战斗引擎
