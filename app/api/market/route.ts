@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 const MARKET_CACHE_KEY = 'market:listings';
 const MARKET_LOCK_KEY = 'market:generating';
-const MARKET_CACHE_TTL = 3600; // 1 hour
+const MARKET_CACHE_TTL = 7200; // 2 hours
 
 // Schema for AI generation
 const MaterialSchema = z.object({
@@ -81,7 +81,7 @@ export async function GET() {
          - 天品: 10000-50000
          - 仙品: 50000-100000
          - 神品: 100000+
-      5. description 详细描述材料的用途、效果、来源等，符合修仙世界观，最多100字。
+      5. description 详细描述材料的用途、效果、来源等，符合修仙世界观，60-100字。
     `;
 
       const aiResponse = await object('你是一个修仙游戏生成器', prompt, {

@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/market",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
