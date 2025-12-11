@@ -55,65 +55,67 @@ export default function RitualPage() {
   const currentMode = useMemo(() => modes[mode], [mode]);
 
   const handleSubmit = async () => {
-    if (!cultivator) {
-      pushToast({ message: '请先在首页觉醒灵根。', tone: 'warning' });
-      return;
-    }
+    pushToast({ message: '暂未开放，敬请期待', tone: 'warning' });
+    return;
+    // if (!cultivator) {
+    //   pushToast({ message: '请先在首页觉醒灵根。', tone: 'warning' });
+    //   return;
+    // }
 
-    if (!prompt.trim() && mode !== 'adventure') {
-      pushToast({ message: '请先输入你的意图。', tone: 'warning' });
-      return;
-    }
+    // if (!prompt.trim() && mode !== 'adventure') {
+    //   pushToast({ message: '请先输入你的意图。', tone: 'warning' });
+    //   return;
+    // }
 
-    setSubmitting(true);
-    setStatus('天人感应，神游太虚……');
+    // setSubmitting(true);
+    // setStatus('天人感应，神游太虚……');
 
-    try {
-      const endpoint = currentMode.apiEndpoint;
-      const body: Record<string, unknown> = {
-        cultivatorId: cultivator.id,
-      };
+    // try {
+    //   const endpoint = currentMode.apiEndpoint;
+    //   const body: Record<string, unknown> = {
+    //     cultivatorId: cultivator.id,
+    //   };
 
-      if (mode === 'skill') {
-        body.prompt = prompt;
-      } else {
-        body.intent = prompt;
-      }
+    //   if (mode === 'skill') {
+    //     body.prompt = prompt;
+    //   } else {
+    //     body.intent = prompt;
+    //   }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+    //   const response = await fetch(endpoint, {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify(body),
+    //   });
 
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '仪式失败');
-      }
+    //   const result = await response.json();
+    //   if (!response.ok || !result.success) {
+    //     throw new Error(result.error || '仪式失败');
+    //   }
 
-      let successMessage = '操作成功';
-      if (mode === 'skill') {
-        successMessage = `顿悟神通：${result.data.name}`;
-      } else {
-        successMessage = `奇遇：${result.data.adventure.name}`;
-      }
+    //   let successMessage = '操作成功';
+    //   if (mode === 'skill') {
+    //     successMessage = `顿悟神通：${result.data.name}`;
+    //   } else {
+    //     successMessage = `奇遇：${result.data.adventure.name}`;
+    //   }
 
-      setStatus(successMessage);
-      pushToast({ message: successMessage, tone: 'success' });
-      setPrompt('');
-      await refresh();
-    } catch (error) {
-      const failMessage =
-        error instanceof Error
-          ? `此法未成：${error.message}`
-          : '仪式失败，请稍后再试。';
-      setStatus(failMessage);
-      pushToast({ message: failMessage, tone: 'danger' });
-    } finally {
-      setSubmitting(false);
-    }
+    //   setStatus(successMessage);
+    //   pushToast({ message: successMessage, tone: 'success' });
+    //   setPrompt('');
+    //   await refresh();
+    // } catch (error) {
+    //   const failMessage =
+    //     error instanceof Error
+    //       ? `此法未成：${error.message}`
+    //       : '仪式失败，请稍后再试。';
+    //   setStatus(failMessage);
+    //   pushToast({ message: failMessage, tone: 'danger' });
+    // } finally {
+    //   setSubmitting(false);
+    // }
   };
 
   if (isLoading && !cultivator) {
