@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       craftType,
     );
 
-    return NextResponse.json({ success: true, result });
+    return NextResponse.json({ success: true, data: result });
   } catch (error: unknown) {
     console.error('Crafting API Error:', error);
     return NextResponse.json(
