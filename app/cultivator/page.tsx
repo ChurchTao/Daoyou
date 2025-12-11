@@ -9,7 +9,6 @@ import {
   InkNotice,
   InkStatRow,
   InkStatusBar,
-  InkTag,
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { GongFa, LingGen, ShenTong } from '@/components/func';
@@ -17,10 +16,10 @@ import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
-  getArtifactTypeLabel,
   getAttributeInfo,
   getAttributeLabel,
-  getStatusLabel,
+  getEffectText,
+  getEquipmentSlotInfo,
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname } from 'next/navigation';
@@ -81,25 +80,6 @@ export default function CultivatorPage() {
         return `${label} ${v > 0 ? '+' : ''}${v}`;
       });
     return mods.length > 0 ? mods.join('，') : '无属性加成';
-  };
-
-  // 获取装备特效描述
-  const getEffectText = (
-    effect: NonNullable<(typeof inventory.artifacts)[0]['special_effects']>[0],
-  ) => {
-    if (effect.type === 'damage_bonus') {
-      return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
-    }
-    if (effect.type === 'on_hit_add_effect') {
-      return `命中时${effect.chance}%概率附加${getStatusLabel(effect.effect)}`;
-    }
-    if (effect.type === 'on_use_cost_hp') {
-      return `施展时消耗自身气血 ${effect.amount} 点`;
-    }
-    if (effect.type === 'environment_change') {
-      return `改变战场环境为「${effect.env_type}」`;
-    }
-    return '';
   };
 
   return (
@@ -225,33 +205,25 @@ export default function CultivatorPage() {
         {equippedItems.length > 0 ? (
           <InkList>
             {equippedItems.map((item) => {
-              const slotIcon =
-                item.slot === 'weapon'
-                  ? '🗡️'
-                  : item.slot === 'armor'
-                    ? '🛡️'
-                    : '📿';
-              const slotName = getArtifactTypeLabel(item.slot);
+              const slotInfo = getEquipmentSlotInfo(item.slot);
               const bonusText =
                 formatAttributeBonusMap(item.bonus) || '无属性加成';
               const effectText =
-                item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
+                item.special_effects?.map((e) => getEffectText(e)).join('\n') ||
                 '';
 
               return (
                 <InkListItem
                   key={item.id}
-                  title={`${slotIcon} ${slotName}：${item.name}`}
-                  meta={
-                    <InkTag tone="good">{`${item.element} · ${
-                      item.slot === 'weapon'
-                        ? '道器'
-                        : item.slot === 'armor'
-                          ? '灵器'
-                          : '宝器'
-                    }`}</InkTag>
+                  title={
+                    <div>
+                      <span>{`${slotInfo.icon} ${item.name}`}</span>
+                      <InkBadge
+                        tier={item.quality}
+                      >{`${item.element} · ${slotInfo.label}`}</InkBadge>
+                    </div>
                   }
-                  description={`${bonusText}${effectText ? `｜${effectText}` : ''}`}
+                  description={`${bonusText}${effectText ? '\n' + effectText : ''}`}
                 />
               );
             })}

@@ -6,7 +6,7 @@ import type {
   SkillType,
   StatusEffect,
 } from './constants';
-import type { Artifact, Attributes, Skill } from './cultivator';
+import type { Artifact, ArtifactEffect, Attributes, Skill } from './cultivator';
 
 // ===== 元素相关 =====
 
@@ -253,7 +253,7 @@ export function getStatusEffectInfo(
 
 export interface EquipmentSlotDisplayInfo {
   label: string;
-  artifactTypeLabel: string;
+  icon: string;
 }
 
 export const EQUIPMENT_SLOT_DISPLAY_MAP: Record<
@@ -261,16 +261,16 @@ export const EQUIPMENT_SLOT_DISPLAY_MAP: Record<
   EquipmentSlotDisplayInfo
 > = {
   weapon: {
-    label: '武器',
-    artifactTypeLabel: '道器',
+    label: '攻击法宝',
+    icon: '🗡️',
   },
   armor: {
-    label: '护甲',
-    artifactTypeLabel: '灵器',
+    label: '护身法宝',
+    icon: '🛡️',
   },
   accessory: {
-    label: '饰品',
-    artifactTypeLabel: '宝器',
+    label: '辅助法宝',
+    icon: '💍',
   },
 };
 
@@ -278,8 +278,15 @@ export function getEquipmentSlotLabel(slot: EquipmentSlot): string {
   return EQUIPMENT_SLOT_DISPLAY_MAP[slot]?.label ?? slot;
 }
 
-export function getArtifactTypeLabel(slot: EquipmentSlot): string {
-  return EQUIPMENT_SLOT_DISPLAY_MAP[slot]?.artifactTypeLabel ?? '法宝';
+export function getEquipmentSlotInfo(
+  slot: EquipmentSlot,
+): EquipmentSlotDisplayInfo {
+  return (
+    EQUIPMENT_SLOT_DISPLAY_MAP[slot] ?? {
+      label: slot,
+      icon: '',
+    }
+  );
 }
 
 // ===== 消耗品类型 =====
@@ -349,6 +356,25 @@ export function getMaterialTypeInfo(
       icon: '',
     }
   );
+}
+
+// 装备特效描述
+
+// 获取装备特效描述
+export function getEffectText(effect: ArtifactEffect) {
+  if (effect.type === 'damage_bonus') {
+    return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
+  }
+  if (effect.type === 'on_hit_add_effect') {
+    return `命中时${effect.chance}%概率附加${getStatusLabel(effect.effect)}`;
+  }
+  if (effect.type === 'on_use_cost_hp') {
+    return `施展时消耗自身气血 ${effect.amount} 点`;
+  }
+  if (effect.type === 'environment_change') {
+    return `改变战场环境为「${effect.env_type}」`;
+  }
+  return '';
 }
 
 // ===== 一些高层封装工具（便于前端使用） =====

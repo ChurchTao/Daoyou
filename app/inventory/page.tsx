@@ -15,9 +15,9 @@ import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Artifact, Consumable } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
-  getArtifactTypeLabel,
+  getEffectText,
+  getEquipmentSlotInfo,
   getMaterialTypeInfo,
-  getStatusLabel,
 } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -107,18 +107,6 @@ export default function InventoryPage() {
     }
   };
 
-  // 获取装备特效描述
-  const getEffectText = (
-    effect: NonNullable<Artifact['special_effects']>[0],
-  ) => {
-    if (effect.type === 'damage_bonus') {
-      return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
-    } else if (effect.type === 'on_hit_add_effect') {
-      return `命中时${effect.chance}%概率附加${getStatusLabel(effect.effect)}`;
-    }
-    return effect.type;
-  };
-
   const renderArtifacts = () => (
     <>
       {inventory.artifacts.length > 0 ? (
@@ -131,16 +119,10 @@ export default function InventoryPage() {
                 equipped.accessory === item.id),
             );
 
-            const slotIcon =
-              item.slot === 'weapon'
-                ? '🗡️'
-                : item.slot === 'armor'
-                  ? '🛡️'
-                  : '📿';
-            const artifactType = getArtifactTypeLabel(item.slot);
+            const slotInfo = getEquipmentSlotInfo(item.slot);
             const bonusText = formatAttributeBonusMap(item.bonus);
             const effectText =
-              item.special_effects?.map((e) => getEffectText(e)).join('｜') ||
+              item.special_effects?.map((e) => getEffectText(e)).join('\n') ||
               '';
 
             return (
@@ -148,15 +130,7 @@ export default function InventoryPage() {
                 key={item.id ?? item.name}
                 title={
                   <>
-                    {slotIcon} {item.name} {/* Added Quality Badge */}
-                    {item.quality && (
-                      <InkBadge tier={item.quality} className="ml-2">
-                        {item.quality}
-                      </InkBadge>
-                    )}
-                    <InkBadge tone="accent" className="ml-2">
-                      {artifactType}
-                    </InkBadge>
+                    {slotInfo.icon} {item.name} · {item.element}
                     {equippedNow && (
                       <span className="ml-2 text-xs text-ink-primary font-bold">
                         ← 已装备
@@ -166,9 +140,7 @@ export default function InventoryPage() {
                 }
                 meta={
                   <>
-                    <span>
-                      {item.element} · {bonusText}
-                    </span>
+                    <InkBadge tier={item.quality}>{slotInfo.label}</InkBadge>
                     {item.required_realm && (
                       <span className="block text-xs text-ink-secondary mt-1">
                         境界要求：{item.required_realm}
@@ -176,7 +148,12 @@ export default function InventoryPage() {
                     )}
                   </>
                 }
-                description={effectText}
+                description={
+                  <>
+                    {bonusText}
+                    {effectText ? `\n${effectText}` : null}
+                  </>
+                }
                 actions={
                   <InkButton
                     disabled={pendingId === item.id}
@@ -195,7 +172,7 @@ export default function InventoryPage() {
           })}
         </InkList>
       ) : (
-        <InkNotice>法宝囊空空如也。</InkNotice>
+        <InkNotice>空空如也，道友快去寻宝吧！</InkNotice>
       )}
     </>
   );
@@ -211,21 +188,16 @@ export default function InventoryPage() {
                 key={item.id || idx}
                 title={
                   <>
-                    {item.name}
+                    {typeInfo.icon} {item.name}
                     <InkBadge tier={item.rank} className="ml-2">
-                      {item.rank}
+                      {typeInfo.label}
                     </InkBadge>
                     <span className="ml-2 text-xs text-ink-secondary">
                       x{item.quantity}
                     </span>
                   </>
                 }
-                meta={
-                  <span>
-                    {typeInfo.icon} {typeInfo.label}
-                    {item.element ? ` · ${item.element}` : ''}
-                  </span>
-                }
+                meta={`属性：${item.element}`}
                 description={item.description || '平平无奇的材料'}
               />
             );
@@ -260,12 +232,11 @@ export default function InventoryPage() {
                     {item.name}
                     {item.quality && (
                       <InkBadge tier={item.quality} className="ml-2">
-                        {item.quality}
+                        {item.type}
                       </InkBadge>
                     )}
                   </>
                 }
-                meta={item.type}
                 description={effectDescriptions}
                 actions={
                   <InkButton

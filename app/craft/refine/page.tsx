@@ -156,7 +156,7 @@ export default function RefinePage() {
                           {typeInfo.icon} {m.name}
                         </span>
                         <InkBadge tier={m.rank} compact>
-                          {m.rank}
+                          {typeInfo.label}
                         </InkBadge>
                       </div>
                       <span className="text-xs text-ink-secondary">
