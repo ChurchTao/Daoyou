@@ -7,14 +7,16 @@ import {
   InkList,
   InkListItem,
   InkNotice,
+  InkTabs,
 } from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkPageShell } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import type { Artifact } from '@/types/cultivator';
+import type { Artifact, Consumable } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
   getArtifactTypeLabel,
+  getMaterialTypeInfo,
   getStatusLabel,
 } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -23,21 +25,12 @@ import { useState } from 'react';
 type Tab = 'artifacts' | 'materials' | 'consumables';
 
 export default function InventoryPage() {
-  const {
-    cultivator,
-    inventory,
-    equipped,
-    isLoading,
-    refresh,
-    note,
-    usingMock,
-  } = useCultivatorBundle();
+  const { cultivator, inventory, equipped, isLoading, refresh, note } =
+    useCultivatorBundle();
   const [activeTab, setActiveTab] = useState<Tab>('artifacts');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const pathname = usePathname();
   const { pushToast } = useInkUI();
-
-  const totalEquipments = inventory.artifacts.length;
 
   const handleEquipToggle = async (item: Artifact) => {
     if (!cultivator || !item.id) {
@@ -68,6 +61,45 @@ export default function InventoryPage() {
           error instanceof Error
             ? `此法有违天道：${error.message}`
             : '操作失败，请稍后重试。',
+        tone: 'danger',
+      });
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleConsume = async (item: Consumable) => {
+    if (!cultivator || !item.id) {
+      pushToast({ message: '此丹药暂无有效 ID，无法服用。', tone: 'warning' });
+      return;
+    }
+
+    setPendingId(item.id);
+    try {
+      const response = await fetch(
+        `/api/cultivators/${cultivator.id}/consume`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ consumableId: item.id }),
+        },
+      );
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '服用失败');
+      }
+
+      pushToast({ message: result.data.message, tone: 'success' });
+      await refresh();
+    } catch (error) {
+      pushToast({
+        message:
+          error instanceof Error
+            ? `药力冲突：${error.message}`
+            : '服用失败，请稍后重试。',
         tone: 'danger',
       });
     } finally {
@@ -116,8 +148,15 @@ export default function InventoryPage() {
                 key={item.id ?? item.name}
                 title={
                   <>
-                    {slotIcon} {item.name}{' '}
-                    <InkBadge tone="accent">{artifactType}</InkBadge>
+                    {slotIcon} {item.name} {/* Added Quality Badge */}
+                    {item.quality && (
+                      <InkBadge tier={item.quality} className="ml-2">
+                        {item.quality}
+                      </InkBadge>
+                    )}
+                    <InkBadge tone="accent" className="ml-2">
+                      {artifactType}
+                    </InkBadge>
                     {equippedNow && (
                       <span className="ml-2 text-xs text-ink-primary font-bold">
                         ← 已装备
@@ -125,7 +164,18 @@ export default function InventoryPage() {
                     )}
                   </>
                 }
-                meta={`${item.element} · ${bonusText}`}
+                meta={
+                  <>
+                    <span>
+                      {item.element} · {bonusText}
+                    </span>
+                    {item.required_realm && (
+                      <span className="block text-xs text-ink-secondary mt-1">
+                        境界要求：{item.required_realm}
+                      </span>
+                    )}
+                  </>
+                }
                 description={effectText}
                 actions={
                   <InkButton
@@ -154,24 +204,32 @@ export default function InventoryPage() {
     <>
       {inventory.materials && inventory.materials.length > 0 ? (
         <InkList>
-          {inventory.materials.map((item, idx) => (
-            <InkListItem
-              key={item.id || idx}
-              title={
-                <>
-                  {item.name}
-                  <InkBadge tier={item.rank} className="ml-2">
-                    {item.rank}
-                  </InkBadge>
-                  <span className="ml-2 text-xs text-ink-secondary">
-                    x{item.quantity}
+          {inventory.materials.map((item, idx) => {
+            const typeInfo = getMaterialTypeInfo(item.type);
+            return (
+              <InkListItem
+                key={item.id || idx}
+                title={
+                  <>
+                    {item.name}
+                    <InkBadge tier={item.rank} className="ml-2">
+                      {item.rank}
+                    </InkBadge>
+                    <span className="ml-2 text-xs text-ink-secondary">
+                      x{item.quantity}
+                    </span>
+                  </>
+                }
+                meta={
+                  <span>
+                    {typeInfo.icon} {typeInfo.label}
+                    {item.element ? ` · ${item.element}` : ''}
                   </span>
-                </>
-              }
-              meta={`${item.type}${item.element ? ` · ${item.element}` : ''}`}
-              description={item.description || '平平无奇的材料'}
-            />
-          ))}
+                }
+                description={item.description || '平平无奇的材料'}
+              />
+            );
+          })}
         </InkList>
       ) : (
         <InkNotice>暂无修炼材料。</InkNotice>
@@ -183,14 +241,45 @@ export default function InventoryPage() {
     <>
       {inventory.consumables && inventory.consumables.length > 0 ? (
         <InkList>
-          {inventory.consumables.map((item, idx) => (
-            <InkListItem
-              key={idx}
-              title={item.name}
-              meta={item.type}
-              description="暂未实装使用效果"
-            />
-          ))}
+          {inventory.consumables.map((item, idx) => {
+            // Parse effects for display
+            const effectDescriptions = item.effect
+              ? item.effect
+                  .map((e) => {
+                    const bonus = e.bonus ? `+${e.bonus}` : '';
+                    return `${e.effect_type}${bonus}`;
+                  })
+                  .join('，')
+              : '未知效果';
+
+            return (
+              <InkListItem
+                key={item.id || idx}
+                title={
+                  <>
+                    {item.name}
+                    {item.quality && (
+                      <InkBadge tier={item.quality} className="ml-2">
+                        {item.quality}
+                      </InkBadge>
+                    )}
+                  </>
+                }
+                meta={item.type}
+                description={effectDescriptions}
+                actions={
+                  <InkButton
+                    disabled={!item.id || pendingId === item.id}
+                    onClick={() => handleConsume(item)}
+                    variant="primary"
+                    className="text-sm"
+                  >
+                    {pendingId === item.id ? '服用中…' : '服用'}
+                  </InkButton>
+                }
+              />
+            );
+          })}
         </InkList>
       ) : (
         <InkNotice>暂无丹药储备。</InkNotice>
@@ -225,38 +314,20 @@ export default function InventoryPage() {
         </InkActionGroup>
       }
     >
-      <InkSection title="筛选">
-        <div className="flex gap-2 mb-4 border-b border-ink-border pb-2">
-          <button
-            onClick={() => setActiveTab('artifacts')}
-            className={`px-3 py-1 ${activeTab === 'artifacts' ? 'text-ink-primary font-bold border-b-2 border-ink-primary' : 'text-ink-secondary'}`}
-          >
-            法宝
-          </button>
-          <button
-            onClick={() => setActiveTab('materials')}
-            className={`px-3 py-1 ${activeTab === 'materials' ? 'text-ink-primary font-bold border-b-2 border-ink-primary' : 'text-ink-secondary'}`}
-          >
-            材料
-          </button>
-          <button
-            onClick={() => setActiveTab('consumables')}
-            className={`px-3 py-1 ${activeTab === 'consumables' ? 'text-ink-primary font-bold border-b-2 border-ink-primary' : 'text-ink-secondary'}`}
-          >
-            丹药
-          </button>
-        </div>
+      <InkTabs
+        className="mb-4"
+        activeValue={activeTab}
+        onChange={(val) => setActiveTab(val as Tab)}
+        items={[
+          { label: '法宝', value: 'artifacts' },
+          { label: '材料', value: 'materials' },
+          { label: '丹药', value: 'consumables' },
+        ]}
+      />
 
-        {activeTab === 'artifacts' && renderArtifacts()}
-        {activeTab === 'materials' && renderMaterials()}
-        {activeTab === 'consumables' && renderConsumables()}
-      </InkSection>
-
-      {usingMock && (
-        <p className="mt-6 text-center text-xs text-ink-secondary">
-          【占位】当前为示例数据，待真实物品栏接口完成后替换。
-        </p>
-      )}
+      {activeTab === 'artifacts' && renderArtifacts()}
+      {activeTab === 'materials' && renderMaterials()}
+      {activeTab === 'consumables' && renderConsumables()}
     </InkPageShell>
   );
 }

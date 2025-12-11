@@ -20,15 +20,12 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 
 const quickActions = [
-  { label: '⚔️ 天骄榜', href: '/rankings' },
-  { label: '👤 道身', href: '/cultivator' },
   { label: '🧘 闭关', href: '/retreat' },
   { label: '🎒 储物袋', href: '/inventory' },
   { label: '📖 神通', href: '/skills' },
-  { label: '🔥 炼器', href: '/ritual' },
-  { label: '🌀 奇遇', href: '/ritual' },
   { label: '📜 顿悟', href: '/ritual' },
   { label: '🛖 修仙坊市', href: '/market' },
+  { label: '⚗️ 造物仙炉', href: '/craft' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
 

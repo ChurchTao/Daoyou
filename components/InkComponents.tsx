@@ -593,3 +593,46 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
     </div>
   );
 }
+
+/**
+ * 标签页组件
+ */
+export interface InkTabItem {
+  label: ReactNode;
+  value: string;
+}
+
+interface InkTabsProps {
+  items: InkTabItem[];
+  activeValue: string;
+  onChange: (value: string) => void;
+  className?: string;
+}
+
+export function InkTabs({
+  items,
+  activeValue,
+  onChange,
+  className = '',
+}: InkTabsProps) {
+  return (
+    <div className={`flex gap-2 border-b border-ink/10 ${className}`.trim()}>
+      {items.map((item) => {
+        const isActive = activeValue === item.value;
+        const activeClass = isActive
+          ? 'border-b-2 border-crimson text-crimson'
+          : 'text-ink/60 hover:text-ink';
+
+        return (
+          <button
+            key={item.value}
+            onClick={() => onChange(item.value)}
+            className={`px-4 py-2 text-base transition ${activeClass}`}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

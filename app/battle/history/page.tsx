@@ -1,5 +1,6 @@
 'use client';
 
+import { InkTabs } from '@/components/InkComponents';
 import Zhanji from '@/components/func/Zhanji';
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
@@ -70,38 +71,16 @@ export default function BattleHistoryPage() {
         </h1>
 
         {/* 标签页 */}
-        <div className="mb-4 flex gap-2 border-b border-ink/10">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 text-sm transition ${
-              activeTab === 'all'
-                ? 'border-b-2 border-crimson text-crimson'
-                : 'text-ink/60 hover:text-ink'
-            }`}
-          >
-            全部
-          </button>
-          <button
-            onClick={() => setActiveTab('challenge')}
-            className={`px-4 py-2 text-sm transition ${
-              activeTab === 'challenge'
-                ? 'border-b-2 border-crimson text-crimson'
-                : 'text-ink/60 hover:text-ink'
-            }`}
-          >
-            我的挑战
-          </button>
-          <button
-            onClick={() => setActiveTab('challenged')}
-            className={`px-4 py-2 text-sm transition ${
-              activeTab === 'challenged'
-                ? 'border-b-2 border-crimson text-crimson'
-                : 'text-ink/60 hover:text-ink'
-            }`}
-          >
-            我被挑战
-          </button>
-        </div>
+        <InkTabs
+          className="mb-4"
+          activeValue={activeTab}
+          onChange={(val) => setActiveTab(val as TabType)}
+          items={[
+            { label: '全部', value: 'all' },
+            { label: '我的挑战', value: 'challenge' },
+            { label: '我被挑战', value: 'challenged' },
+          ]}
+        />
 
         {loading && <p className="text-ink-secondary">战绩加载中……</p>}
 
@@ -109,15 +88,17 @@ export default function BattleHistoryPage() {
           <p className="text-ink-secondary">暂无战斗记录。</p>
         )}
 
-        <div className="mt-4 space-y-3">
-          {records.map((r) => (
-            <Zhanji
-              key={r.id}
-              record={r}
-              currentCultivatorId={cultivator?.id}
-            />
-          ))}
-        </div>
+        {!loading && (
+          <div className="mt-4 space-y-3">
+            {records.map((r) => (
+              <Zhanji
+                key={r.id}
+                record={r}
+                currentCultivatorId={cultivator?.id}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

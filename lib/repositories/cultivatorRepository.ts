@@ -137,6 +137,12 @@ async function assembleCultivator(
     slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
     element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
     bonus: a.bonus as Cultivator['inventory']['artifacts'][0]['bonus'],
+    quality: a.quality as
+      | Cultivator['inventory']['artifacts'][0]['quality']
+      | undefined,
+    required_realm: a.required_realm as
+      | Cultivator['inventory']['artifacts'][0]['required_realm']
+      | undefined,
     special_effects: (a.special_effects ||
       []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
     curses: (a.curses ||
@@ -958,8 +964,10 @@ export async function getInventory(
         []) as import('../../types/cultivator').ArtifactEffect[],
     })),
     consumables: consumablesResult.map((c) => ({
+      id: c.id,
       name: c.name,
       type: c.type as ConsumableType,
+      quality: c.quality as Quality | undefined,
       effect: (Array.isArray(c.effect)
         ? c.effect
         : [c.effect].filter(Boolean)) as
@@ -1261,4 +1269,110 @@ export async function createEquipment(
     id: artifactRecord.id, // 使用数据库生成的 UUID
     ...equipmentData,
   };
+}
+
+/**
+ * 服用丹药
+ */
+export async function consumeItem(
+  userId: string,
+  cultivatorId: string,
+  consumableId: string,
+): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
+  // 1. 验证归属
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  // 2. 查找丹药
+  const consumableRows = await db
+    .select()
+    .from(schema.consumables)
+    .where(eq(schema.consumables.id, consumableId));
+
+  if (consumableRows.length === 0) {
+    throw new Error('丹药不存在或已消耗');
+  }
+  const item = consumableRows[0];
+  if (item.cultivatorId !== cultivatorId) {
+    throw new Error('丹药不属于该道友');
+  }
+
+  // 3. 应用效果
+  const effects =
+    (item.effect as import('../../types/cultivator').ConsumableEffect[]) || [];
+
+  if (effects.length === 0) {
+    // 即使无效也消耗掉
+    await db
+      .delete(schema.consumables)
+      .where(eq(schema.consumables.id, consumableId));
+    return {
+      success: false,
+      message: '此丹药灵气尽失，服用后毫无反应。',
+      cultivator: (await getCultivatorById(userId, cultivatorId))!,
+    };
+  }
+
+  const cultivator = await getCultivatorById(userId, cultivatorId);
+  if (!cultivator) throw new Error('道友状态异常');
+
+  const newStats = { ...cultivator.attributes };
+  let message = `服用了【${item.name}】，`;
+  const changes: string[] = [];
+
+  for (const effect of effects) {
+    const bonus = effect.bonus || 0;
+    if (bonus > 0) {
+      if (effect.effect_type === '永久提升体魄') {
+        newStats.vitality += bonus;
+        changes.push(`体魄+${bonus}`);
+      }
+      if (effect.effect_type === '永久提升灵力') {
+        newStats.spirit += bonus;
+        changes.push(`灵力+${bonus}`);
+      }
+      if (effect.effect_type === '永久提升悟性') {
+        newStats.wisdom += bonus;
+        changes.push(`悟性+${bonus}`);
+      }
+      if (effect.effect_type === '永久提升身法') {
+        newStats.speed += bonus;
+        changes.push(`身法+${bonus}`);
+      }
+      if (effect.effect_type === '永久提升神识') {
+        newStats.willpower += bonus;
+        changes.push(`神识+${bonus}`);
+      }
+    }
+  }
+
+  if (changes.length === 0) {
+    message += '感觉身体热了一下，除此之外并无变化。';
+  } else {
+    message += '顿感灵台清明，' + changes.join('，') + '。';
+  }
+
+  // 4. 执行事务：删除丹药 + 更新属性
+  await db.transaction(async (tx) => {
+    // 删除消耗品
+    await tx
+      .delete(schema.consumables)
+      .where(eq(schema.consumables.id, consumableId));
+
+    // 更新角色属性
+    await tx
+      .update(schema.cultivators)
+      .set({
+        vitality: newStats.vitality,
+        spirit: newStats.spirit,
+        wisdom: newStats.wisdom,
+        speed: newStats.speed,
+        willpower: newStats.willpower,
+      })
+      .where(eq(schema.cultivators.id, cultivatorId));
+  });
+
+  const updatedCultivator = await getCultivatorById(userId, cultivatorId);
+  if (!updatedCultivator) throw new Error('更新后无法获取数据');
+
+  return { success: true, message, cultivator: updatedCultivator };
 }

@@ -9,13 +9,13 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/InkComponents';
-import { InkPageShell } from '@/components/InkLayout';
+import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
-type RitualMode = 'equipment' | 'skill' | 'adventure';
+type RitualMode = 'skill' | 'adventure';
 
 const modes: Record<
   RitualMode,
@@ -24,31 +24,28 @@ const modes: Record<
     actionLabel: string;
     hint: string;
     example: string;
+    apiEndpoint: string;
   }
 > = {
-  equipment: {
-    title: '【炼器台 · 请输入炼器意图】',
-    actionLabel: '开始炼制',
-    hint: '描述材料、属性与命名，炼炉将按意图生成法宝。',
-    example: '以千年寒铁铸一柄冰属性长剑，剑名"霜魄"',
-  },
   skill: {
     title: '【闭关 · 顿悟神通】',
     actionLabel: '开始顿悟',
     hint: '描述场景或愿景，AI 将生成对应神通。',
     example: '在雷劫中悟得一门攻防一体的雷遁之术',
+    apiEndpoint: '/api/create-skill',
   },
   adventure: {
     title: '【奇遇 · 推演天机】',
     actionLabel: '触发奇遇',
     hint: '描述想去之地或目标，暂未接入 AI，但会记录意图。',
     example: '求一段药王谷秘境之旅，盼得疗伤灵药',
+    apiEndpoint: '/api/generate-adventure',
   },
 };
 
 export default function RitualPage() {
-  const { cultivator, refresh, note } = useCultivatorBundle();
-  const [mode, setMode] = useState<RitualMode>('equipment');
+  const { cultivator, refresh, note, isLoading } = useCultivatorBundle();
+  const [mode, setMode] = useState<RitualMode>('skill');
   const [prompt, setPrompt] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
@@ -69,23 +66,18 @@ export default function RitualPage() {
     }
 
     setSubmitting(true);
-    setStatus('炉火正旺，请稍候……');
+    setStatus('天人感应，神游太虚……');
 
     try {
-      let endpoint = '';
+      const endpoint = currentMode.apiEndpoint;
       const body: Record<string, unknown> = {
         cultivatorId: cultivator.id,
       };
 
-      if (mode === 'equipment') {
-        endpoint = '/api/create-equipment';
-        body.prompt = prompt;
-      } else if (mode === 'skill') {
-        endpoint = '/api/create-skill';
+      if (mode === 'skill') {
         body.prompt = prompt;
       } else {
-        endpoint = '/api/generate-adventure';
-        body.intent = prompt; // 后端暂未使用，先写入以便后续扩展
+        body.intent = prompt;
       }
 
       const response = await fetch(endpoint, {
@@ -101,10 +93,13 @@ export default function RitualPage() {
         throw new Error(result.error || '仪式失败');
       }
 
-      const successMessage =
-        mode === 'adventure'
-          ? `奇遇：${result.data.adventure.name} —— ${result.data.adventure.result}`
-          : `成功！${mode === 'equipment' ? '炼成法宝' : '顿悟神通'}：${result.data.name}`;
+      let successMessage = '操作成功';
+      if (mode === 'skill') {
+        successMessage = `顿悟神通：${result.data.name}`;
+      } else {
+        successMessage = `奇遇：${result.data.adventure.name}`;
+      }
+
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
@@ -121,24 +116,33 @@ export default function RitualPage() {
     }
   };
 
+  if (isLoading && !cultivator) {
+    return (
+      <div className="bg-paper min-h-screen flex items-center justify-center">
+        <p className="loading-tip">道场开启中……</p>
+      </div>
+    );
+  }
+
   return (
     <InkPageShell
-      title={currentMode.title}
-      subtitle=""
+      title={currentMode.title
+        .replace(/[【】]/g, '')
+        .split('·')[0]
+        .trim()}
+      subtitle={currentMode.title.split('·')[1]?.replace('】', '') || ''}
       backHref="/"
       note={note}
       currentPath={pathname}
       footer={
         <InkActionGroup align="between">
           <InkButton href="/">返回</InkButton>
-          <span className="text-ink-secondary text-xs">
-            AIGC 接口未覆盖的模式将以假数据提示
-          </span>
+          <span className="text-ink-secondary text-xs">心诚则灵，神念合一</span>
         </InkActionGroup>
       }
     >
       {/* 模式切换 */}
-      <div className="mb-4 flex flex-wrap gap-x-3 gap-y-2">
+      <div className="mb-6 flex flex-wrap gap-x-3 gap-y-2">
         {Object.entries(modes).map(([key, config]) => {
           const isActive = mode === key;
           return (
@@ -162,7 +166,7 @@ export default function RitualPage() {
       </div>
 
       {/* 输入区域 */}
-      <div>
+      <InkSection title="注入神识">
         <div className="mb-4">
           <InkList dense>
             <InkListItem title="提示" description={currentMode.hint} />
@@ -173,11 +177,9 @@ export default function RitualPage() {
           </InkList>
         </div>
 
-        <InkDivider />
-
         <InkInput
           multiline
-          rows={8}
+          rows={6}
           placeholder="请在此输入你的意图……"
           value={prompt}
           onChange={(value) => setPrompt(value)}
@@ -195,7 +197,7 @@ export default function RitualPage() {
             }}
             disabled={isSubmitting}
           >
-            取消
+            重置
           </InkButton>
           <InkButton
             variant="primary"
@@ -205,17 +207,12 @@ export default function RitualPage() {
             {isSubmitting ? '运转灵力……' : currentMode.actionLabel}
           </InkButton>
         </InkActionGroup>
-      </div>
+      </InkSection>
 
       {status && (
-        <InkNotice tone="info">
-          {status}
-          {mode === 'adventure' && (
-            <p className="text-xs text-ink-secondary mt-2">
-              【占位】奇遇输入尚未驱动 AI，但意图已记录。
-            </p>
-          )}
-        </InkNotice>
+        <div className="mt-4">
+          <InkNotice tone="info">{status}</InkNotice>
+        </div>
       )}
     </InkPageShell>
   );

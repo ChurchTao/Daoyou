@@ -159,6 +159,8 @@ export interface Artifact {
   name: string;
   slot: EquipmentSlot;
   element: ElementType;
+  quality?: Quality;
+  required_realm?: RealmType;
   bonus: ArtifactBonus;
   special_effects?: ArtifactEffect[];
   curses?: ArtifactEffect[];
@@ -177,8 +179,10 @@ interface BaseConsumableEffect {
 export type ConsumableEffect = PermanentBonusEffect;
 
 export interface Consumable {
+  id?: string;
   name: string;
   type: ConsumableType;
+  quality?: Quality;
   effect?: ConsumableEffect[];
 }
 
