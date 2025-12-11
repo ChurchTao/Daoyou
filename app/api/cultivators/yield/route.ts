@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
           3. 结尾自然地提到获得了灵石。
         `;
 
-        const aiRes = await text(systemPrompt, userPrompt);
+        const aiRes = await text(systemPrompt, userPrompt, true);
         story = aiRes.text;
       } catch (e) {
         console.error('AI generation failed', e);

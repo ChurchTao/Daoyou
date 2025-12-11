@@ -74,8 +74,6 @@ function HomePageContent() {
         hours: result.data.hours,
         story: result.data.story,
       });
-
-      await refresh();
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '领取失败',
@@ -84,6 +82,11 @@ function HomePageContent() {
     } finally {
       setClaiming(false);
     }
+  };
+
+  const handleCloseYieldModal = () => {
+    setYieldResult(null);
+    refresh();
   };
 
   if (isLoading) {
@@ -221,13 +224,13 @@ function HomePageContent() {
       {/* 历练结果弹窗 */}
       <InkModal
         isOpen={!!yieldResult}
-        onClose={() => setYieldResult(null)}
+        onClose={handleCloseYieldModal}
         title="历练归来"
         footer={
           <InkButton
             variant="primary"
             className="w-full"
-            onClick={() => setYieldResult(null)}
+            onClick={handleCloseYieldModal}
           >
             收入囊中
           </InkButton>

@@ -17,17 +17,21 @@ function getDeepSeekProvider() {
  * 获取 DeepSeek Model
  * @returns DeepSeek Model
  */
-function getModel() {
+function getModel(fast: boolean = false) {
   const provider = getDeepSeekProvider();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  return provider(model);
+  const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
+  return provider(model || 'Qwen/Qwen3-8B');
 }
 
 /**
  * 通用直接生成Text
  */
-export async function text(prompt: string, userInput: string) {
-  const model = getModel();
+export async function text(
+  prompt: string,
+  userInput: string,
+  fast: boolean = false,
+) {
+  const model = getModel(fast);
   const res = await generateText({
     model,
     system: prompt,
@@ -40,8 +44,12 @@ export async function text(prompt: string, userInput: string) {
 /**
  * 通用Stream生成Text
  */
-export function stream_text(prompt: string, userInput: string) {
-  const model = getModel();
+export function stream_text(
+  prompt: string,
+  userInput: string,
+  fast: boolean = false,
+) {
+  const model = getModel(fast);
   const stream = streamText({
     model,
     system: prompt,
@@ -64,8 +72,9 @@ export async function object<T>(
     schemaDescription?: string;
     schema: z.ZodType<T>;
   },
+  fast: boolean = false,
 ) {
-  const model = getModel();
+  const model = getModel(fast);
   const res = await generateObject({
     model,
     system: prompt,
