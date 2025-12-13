@@ -157,6 +157,7 @@ async function assembleCultivator(
     quality: c.quality as Quality,
     type: c.type as ConsumableType,
     effect: c.effect as ConsumableEffect[],
+    description: c.description || '',
   }));
 
   // 组装材料
@@ -166,7 +167,7 @@ async function assembleCultivator(
     type: m.type as MaterialType,
     rank: m.rank as Quality,
     element: m.element as ElementType | undefined,
-    description: m.description || undefined,
+    description: m.description || '',
     details: (m.details as Record<string, unknown>) || undefined,
     quantity: m.quantity,
   }));

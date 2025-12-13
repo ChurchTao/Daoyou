@@ -184,6 +184,7 @@ export interface Consumable {
   type: ConsumableType;
   quality?: Quality;
   effect?: ConsumableEffect[];
+  description?: string;
 }
 
 export interface Material {
