@@ -152,11 +152,11 @@ async function assembleCultivator(
 
   // 组装消耗品
   const consumables = consumablesResult.map((c) => ({
+    id: c.id,
     name: c.name,
-    type: c.type as Cultivator['inventory']['consumables'][0]['type'],
-    effect: c.effect as
-      | Cultivator['inventory']['consumables'][0]['effect']
-      | undefined,
+    quality: c.quality as Quality,
+    type: c.type as ConsumableType,
+    effect: c.effect as ConsumableEffect[],
   }));
 
   // 组装材料

@@ -16,11 +16,12 @@ function LoginPageContent() {
   const supabase = createClient();
 
   const [email, setEmail] = useState('');
-  const [sendingLink, setSendingLink] = useState(false);
-  const [linkSent, setLinkSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Check if user came back from magic link
+  // Check if user came back from magic link (keeping as fallback)
   useEffect(() => {
     const handleMagicLinkCallback = async () => {
       const code = searchParams.get('code');
@@ -39,7 +40,7 @@ function LoginPageContent() {
     }
   }, [user, isLoading, router, pushToast]);
 
-  const handleSendMagicLink = async () => {
+  const handleSendOtp = async () => {
     if (!email.trim()) {
       pushToast({ message: '请输入飞鸽传书地址', tone: 'warning' });
       return;
@@ -52,19 +53,16 @@ function LoginPageContent() {
       return;
     }
 
-    setSendingLink(true);
+    setLoading(true);
     try {
-      // Send magic link for login
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
-          shouldCreateUser: false, // Don't create new users on login page
-          emailRedirectTo: `${window.location.origin}/login`,
+          shouldCreateUser: false,
         },
       });
 
       if (error) {
-        // Check for specific error cases
         if (error.message.includes('rate limit')) {
           throw new Error('请求过于频繁，请一个时辰后再试');
         }
@@ -74,7 +72,7 @@ function LoginPageContent() {
         throw error;
       }
 
-      setLinkSent(true);
+      setStep('otp');
       pushToast({
         message: '召唤符已发往你的飞鸽传书地址',
         tone: 'success',
@@ -84,7 +82,34 @@ function LoginPageContent() {
         error instanceof Error ? error.message : '发送失败，请稍后重试';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
-      setSendingLink(false);
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) {
+      pushToast({ message: '请输入召唤符', tone: 'warning' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: otp.trim(),
+        type: 'email',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      pushToast({ message: '口令验证通过，真身归位', tone: 'success' });
+      // Redirect will happen via useEffect when user state updates
+    } catch (error) {
+      console.error(error);
+      pushToast({ message: '召唤符有误或已失效', tone: 'danger' });
+      setLoading(false);
     }
   };
 
@@ -106,7 +131,7 @@ function LoginPageContent() {
       currentPath="/login"
     >
       <div className="space-y-6">
-        {!linkSent ? (
+        {step === 'email' ? (
           <>
             <InkNotice>
               若你曾在此修炼，真身已与神识绑定。
@@ -123,17 +148,17 @@ function LoginPageContent() {
                   value={email}
                   onChange={(value) => setEmail(value)}
                   placeholder="例：daoyou@xiuxian.com"
-                  disabled={sendingLink}
+                  disabled={loading}
                 />
               </div>
 
               <InkButton
-                onClick={handleSendMagicLink}
+                onClick={handleSendOtp}
                 variant="primary"
-                disabled={sendingLink}
+                disabled={loading}
                 className="w-full"
               >
-                {sendingLink ? '发送中…' : '发送召唤符'}
+                {loading ? '发送中…' : '发送召唤符'}
               </InkButton>
             </div>
           </>
@@ -142,31 +167,55 @@ function LoginPageContent() {
             <InkNotice>
               ✓ 召唤符已发送！
               <br />
-              <br />
-              请查收发送至 <strong>{email}</strong> 的邮件。
-              <br />
-              点击邮件中的链接即可召回真身，重归修仙之路。
+              请查收发送至 <strong>{email}</strong> 的邮件，并填入下方的口令。
             </InkNotice>
 
-            <InkNotice>
-              未收到邮件？
-              <br />
-              • 请检查垃圾邮件文件夹
-              <br />
-              • 等待片刻后重试
-              <br />• 确认邮箱地址正确
-            </InkNotice>
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-2 text-sm opacity-70">
+                  召唤符（验证码）
+                </label>
+                <InkInput
+                  value={otp}
+                  onChange={(value) => setOtp(value)}
+                  placeholder="请输入8位召唤符"
+                  disabled={loading}
+                />
+              </div>
 
-            <InkButton
-              onClick={() => {
-                setLinkSent(false);
-                setEmail('');
-              }}
-              variant="secondary"
-              className="w-full"
-            >
-              重新输入邮箱
-            </InkButton>
+              <InkButton
+                onClick={handleVerifyOtp}
+                variant="primary"
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? '验证中…' : '口令认证'}
+              </InkButton>
+
+              <div className="flex justify-between items-center pt-2">
+                <button
+                  onClick={() => setStep('email')}
+                  className="text-sm opacity-60 hover:opacity-100 transition-opacity"
+                  disabled={loading}
+                >
+                  ← 修改地址
+                </button>
+                <button
+                  onClick={handleSendOtp}
+                  className="text-sm opacity-60 hover:opacity-100 transition-opacity"
+                  disabled={loading}
+                >
+                  重发口令
+                </button>
+              </div>
+
+              <InkNotice tone="info">
+                未收到？
+                <br />
+                • 请检查垃圾邮件文件夹
+                <br />• 稍等片刻后点击重发
+              </InkNotice>
+            </div>
           </>
         )}
       </div>

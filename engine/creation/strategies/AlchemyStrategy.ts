@@ -24,7 +24,7 @@ const ConsumableSchema = z.object({
       bonus: z.number().optional().describe('丹药效果加成数值'),
     }),
   ),
-  description: z.string().max(50).optional().describe('丹药描述'),
+  description: z.string().max(200).optional().describe('丹药描述'),
 });
 
 export class AlchemyStrategy implements CreationStrategy<
@@ -61,7 +61,7 @@ export class AlchemyStrategy implements CreationStrategy<
       )
       .join('\n');
 
-    const systemPrompt = `你是一位修仙界的丹道大宗师，深谙君臣佐使之理。请根据投入的灵草药材和修士的神念，炼制一枚神效丹药(Consumable)。
+    const systemPrompt = `你是一位修仙界的丹道大宗师，深谙君臣佐使之理。请根据投入的灵草药材和修士的神念，炼制一枚神效丹药(Consumable)。你的输出必须是**严格符合指定 JSON Schema 的纯 JSON 对象**，不得包含任何额外文本、解释、注释或 Markdown。
 
 请遵循丹道法则：
 1. **药效匹配 (Effect Logic)**：
@@ -99,7 +99,7 @@ export class AlchemyStrategy implements CreationStrategy<
 
 4. **命名与描述**：
    - 名称需古朴典雅，如"九转金丹"、"洗髓伐骨液"、"紫气东来丹"。
-   - 描述(description)包含丹药色泽、丹香以及服用后的感受，最多50字。`;
+   - 描述(description)可以包含：所使用的材料、炼制过程、丹药色泽、丹香以及服用后的感受，最多120字。`;
 
     const userPromptText = `
 【丹炉升火】
@@ -110,7 +110,7 @@ export class AlchemyStrategy implements CreationStrategy<
 【投入药材】:
 ${materialsDesc}
 
-请以此炼丹，生成唯一的丹药数据。
+请以此炼丹，生成唯一的丹药数据，请直接输出符合规则和 Schema 的 JSON。
 `;
 
     return {

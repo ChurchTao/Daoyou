@@ -36,14 +36,14 @@ export function RankingListItem({
         <span className="font-bold">
           {genderSymbol} {item.name}
         </span>
-        <span className="text-sm opacity-70">{item.age}岁</span>
+        <InkBadge tier={item.realm as RealmType}>{item.realm_stage}</InkBadge>
+        <span className="text-sm opacity-70">「{item.age}岁」</span>
         {isSelf && <span className="equipped-mark text-sm">← 你</span>}
         {item.is_new_comer && <InkBadge tone="accent">[新天骄]</InkBadge>}
       </div>
 
       {/* 第二行：境界、来源 */}
-      <div className="flex items-center gap-2 mb-2 ml-10">
-        <InkBadge tier={item.realm as RealmType}>{item.realm_stage}</InkBadge>
+      <div className="flex flex-col gap-2 mb-2 ml-10">
         <InkBadge tone="default">{item.origin ?? '散修'}</InkBadge>
       </div>
 

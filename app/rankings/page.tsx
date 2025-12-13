@@ -319,37 +319,26 @@ export default function RankingsPage() {
         onClose={() => setShowRules(false)}
         title="万界金榜奖励规则"
       >
-        <div className="space-y-4">
-          <InkNotice tone="info">
-            每日凌晨自动结算榜单，根据排名发放灵石奖励。
-          </InkNotice>
-          <InkList dense>
-            <InkListItem
-              title="🏆 第一名"
-              meta={`${RANKING_REWARDS[1]} 灵石`}
-            />
-            <InkListItem
-              title="🥈 第二名"
-              meta={`${RANKING_REWARDS[2]} 灵石`}
-            />
-            <InkListItem
-              title="🥉 第三名"
-              meta={`${RANKING_REWARDS[3]} 灵石`}
-            />
-            <InkListItem
-              title="✨ 第 4-10 名"
-              meta={`${RANKING_REWARDS['4-10']} 灵石`}
-            />
-            <InkListItem
-              title="🔹 第 11-50 名"
-              meta={`${RANKING_REWARDS['11-50']} 灵石`}
-            />
-            <InkListItem
-              title="🔸 第 51-100 名"
-              meta={`${RANKING_REWARDS['51-100']} 灵石`}
-            />
-          </InkList>
-        </div>
+        <InkNotice tone="info" className="text-sm">
+          每日凌晨自动结算，根据排名发放灵石奖励。
+        </InkNotice>
+        <InkList dense>
+          <InkListItem title="🏆 第一名" meta={`${RANKING_REWARDS[1]} 灵石`} />
+          <InkListItem title="🥈 第二名" meta={`${RANKING_REWARDS[2]} 灵石`} />
+          <InkListItem title="🥉 第三名" meta={`${RANKING_REWARDS[3]} 灵石`} />
+          <InkListItem
+            title="✨ 第 4-10 名"
+            meta={`${RANKING_REWARDS['4-10']} 灵石`}
+          />
+          <InkListItem
+            title="🔹 第 11-50 名"
+            meta={`${RANKING_REWARDS['11-50']} 灵石`}
+          />
+          <InkListItem
+            title="🔸 第 51-100 名"
+            meta={`${RANKING_REWARDS['51-100']} 灵石`}
+          />
+        </InkList>
       </InkModal>
     </>
   );

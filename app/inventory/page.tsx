@@ -131,19 +131,19 @@ export default function InventoryPage() {
                 title={
                   <>
                     {slotInfo.icon} {item.name} · {item.element}
-                    {equippedNow && (
-                      <span className="ml-2 text-xs text-ink-primary font-bold">
-                        ← 已装备
-                      </span>
-                    )}
+                    <InkBadge tier={item.quality}>{slotInfo.label}</InkBadge>
                   </>
                 }
                 meta={
                   <>
-                    <InkBadge tier={item.quality}>{slotInfo.label}</InkBadge>
                     {item.required_realm && (
-                      <span className="block text-xs text-ink-secondary mt-1">
+                      <span className="text-xs text-ink-secondary">
                         境界要求：{item.required_realm}
+                      </span>
+                    )}
+                    {equippedNow && (
+                      <span className="ml-2 text-xs text-ink-primary font-bold">
+                        ← 已装备
                       </span>
                     )}
                   </>

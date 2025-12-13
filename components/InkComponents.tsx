@@ -428,11 +428,20 @@ export function InkInput({
  */
 interface InkNoticeProps {
   tone?: 'muted' | 'info' | 'warning' | 'danger';
+  className?: string;
   children: ReactNode;
 }
 
-export function InkNotice({ tone = 'muted', children }: InkNoticeProps) {
-  return <div className={`ink-notice ink-notice-${tone}`}>{children}</div>;
+export function InkNotice({
+  tone = 'muted',
+  className = '',
+  children,
+}: InkNoticeProps) {
+  return (
+    <div className={`ink-notice ink-notice-${tone} ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 /**

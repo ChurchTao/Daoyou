@@ -231,6 +231,11 @@ export const STATUS_EFFECT_DISPLAY_MAP: Record<
     icon: '💔',
     description: '护体被破，所受伤害显著增加',
   },
+  crit_rate_down: {
+    label: '暴击降低',
+    icon: '💔',
+    description: '暴击几率大幅降低',
+  },
 };
 
 export function getStatusLabel(effect: StatusEffect): string {

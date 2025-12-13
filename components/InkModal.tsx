@@ -75,7 +75,7 @@ export function InkModal({
           </h3>
         )}
 
-        <div className="max-h-[70vh] overflow-y-auto mb-6 custom-scrollbar">
+        <div className="max-h-[50vh] overflow-y-auto mb-6 custom-scrollbar">
           {children}
         </div>
 

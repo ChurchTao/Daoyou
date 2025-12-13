@@ -85,7 +85,7 @@ export class RefiningStrategy implements CreationStrategy<
 
     // - \`environment_change\`: 改变战场环境。指定 env_type (如 'scorched_earth', 'frozen_ground')。
 
-    const systemPrompt = `你是一位修仙界的炼器宗师、天工开物之主。请根据投入的灵材和修士的神念，熔炼出一件惊世法宝(Artifact)。
+    const systemPrompt = `你是一位修仙界的炼器宗师、天工开物之主。请根据投入的灵材和修士的神念，熔炼出一件法宝(Artifact)。你的输出必须是**严格符合指定 JSON Schema 的纯 JSON 对象**，不得包含任何额外文本、解释、注释或 Markdown。
 
 请仔细遵循以下法则：
 1. **威能匹配**：
@@ -121,7 +121,7 @@ export class RefiningStrategy implements CreationStrategy<
 
 5. **命名与描述**：
    - 名称需符合修仙世界观，略显霸气，结合材料特性与五行，如"九天避魔梭"、"太乙分光剑"。
-   - 描述(description)需包含法宝的外观、散发/气/息以及传说背景（50字左右）。
+   - 描述(description)可以包含：所使用的材料、炼制过程、法宝的外观、散发/气/息以及传说背景（120字左右）。
 
 6. **部位限制**：
    - slot 必须是 weapon (主攻), armor (主防), accessory (辅助)。
@@ -143,7 +143,7 @@ export class RefiningStrategy implements CreationStrategy<
 【投入灵材】:
 ${materialsDesc}
 
-请以此开炉，根据材料灵性生成唯一的法宝数据。
+请以此开炉，根据材料灵性生成唯一的法宝数据，请直接输出符合规则和 Schema 的 JSON。
 `;
 
     return {
