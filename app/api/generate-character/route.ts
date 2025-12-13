@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 调用 characterEngine 生成角色
-    const { cultivator: rawCultivator, balanceNotes: aiNotes } =
+    const { cultivator: rawCultivator } =
       await generateCultivatorFromAI(userInput);
 
     // 使用角色生成引擎进行验证和修正

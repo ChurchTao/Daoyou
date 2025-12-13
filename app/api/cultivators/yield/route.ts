@@ -112,13 +112,13 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
             const systemPrompt =
-              '你是一个修仙世界的记录者，负责记录修士在万界历练的经历。';
+              '你是一个修仙世界的记录者，负责记录修士外出历练的经历。';
             const userPrompt = `
               请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
               修士在历练中花费了【${result.hours.toFixed(1)}】小时，获得了【${result.amount}】灵石。
               
               要求：
-              1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇、甚至是被打劫反杀等）。
+              1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等）。
               2. 必须符合修仙世界观，文风古风，有代入感。
               3. 结尾自然地提到获得了灵石。
             `;
