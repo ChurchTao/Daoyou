@@ -23,7 +23,7 @@ export interface Attributes {
   spirit: number; // 灵力：法术伤害、蓝量上限
   wisdom: number; // 悟性：暴击率、突破几率
   speed: number; // 速度：出手顺序、闪避率
-  willpower: number; // 神识：状态抗性
+  willpower: number; // 神识：状态（暴击）抗性、暴击伤害
 }
 
 // 灵根
@@ -129,6 +129,7 @@ export interface DamageBonusEffect extends BaseEffect {
 export interface OnHitAddEffect extends BaseEffect {
   type: 'on_hit_add_effect';
   effect: StatusEffect;
+  target_self?: boolean;
   chance: number; // 1-100
 }
 
@@ -167,8 +168,7 @@ export interface Artifact {
 }
 
 // 永久提升效果
-export interface PermanentBonusEffect
-  extends BaseConsumableEffect, Partial<Attributes> {
+export interface PermanentBonusEffect extends BaseConsumableEffect {
   bonus: number;
 }
 

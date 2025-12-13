@@ -299,10 +299,10 @@ function getAttributeGrowthRange(
   const nextCap = getRealmStageAttributeCap(nextStage.realm, nextStage.stage);
   const capDiff = nextCap - fromCap;
   const wisdomModifier = getComprehensionModifier(wisdom);
-  const min = Math.round(capDiff * Math.min(1, 0.3 + wisdomModifier));
-  const max = Math.round(capDiff * Math.min(1, 0.7 + wisdomModifier));
-  const majorMin = Math.round(min * Math.min(1, 0.5 + wisdomModifier));
-  const majorMax = Math.round(max * Math.min(1, 0.8 + wisdomModifier));
+  const min = Math.round(capDiff * (0.7 + wisdomModifier));
+  const max = Math.round(capDiff * (0.8 + wisdomModifier));
+  const majorMin = Math.round(capDiff * (0.8 + wisdomModifier));
+  const majorMax = Math.round(capDiff * (0.9 + wisdomModifier));
   return isMajor ? { min: majorMin, max: majorMax } : { min, max };
 }
 

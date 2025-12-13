@@ -51,7 +51,6 @@ export default function CreatePage() {
   >([]);
   const [selectedFateIndices, setSelectedFateIndices] = useState<number[]>([]);
   const [balanceNotes, setBalanceNotes] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [hasExistingCultivator, setHasExistingCultivator] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
 
@@ -83,13 +82,11 @@ export default function CreatePage() {
   // 生成角色
   const handleGenerateCharacter = async () => {
     if (!userPrompt.trim()) {
-      setError('请输入角色描述');
       pushToast({ message: '请输入角色描述', tone: 'warning' });
       return;
     }
 
     setIsGenerating(true);
-    setError(null);
     setPlayer(null);
     setAvailableFates([]);
     setSelectedFateIndices([]);
@@ -119,10 +116,8 @@ export default function CreatePage() {
       setBalanceNotes(aiResult.data.balanceNotes || []);
       pushToast({ message: '灵气汇聚，真形初现。', tone: 'success' });
     } catch (error) {
-      console.error('生成角色失败:', error);
       const errorMessage =
         error instanceof Error ? error.message : '生成角色失败，请检查控制台';
-      setError(errorMessage);
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setIsGenerating(false);
@@ -148,12 +143,11 @@ export default function CreatePage() {
     }
 
     if (selectedFateIndices.length !== 3) {
-      setError('请选择3个先天气运');
+      pushToast({ message: '请选择3个先天气运', tone: 'warning' });
       return;
     }
 
     setIsSaving(true);
-    setError(null);
 
     try {
       // 调用保存角色API
@@ -178,10 +172,8 @@ export default function CreatePage() {
       pushToast({ message: '道友真形已落地，速回主界。', tone: 'success' });
       router.push('/');
     } catch (error) {
-      console.error('保存角色失败:', error);
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';
-      setError(errorMessage);
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setIsSaving(false);
@@ -194,9 +186,7 @@ export default function CreatePage() {
     }
 
     if (selectedFateIndices.length !== 3) {
-      const warning = '请选择3个先天气运';
-      setError(warning);
-      pushToast({ message: warning, tone: 'warning' });
+      pushToast({ message: '请选择3个先天气运', tone: 'warning' });
       return;
     }
 
@@ -236,7 +226,6 @@ export default function CreatePage() {
     setAvailableFates([]);
     setSelectedFateIndices([]);
     setBalanceNotes([]);
-    setError(null);
   };
 
   const finalAttrsMemo = useMemo(() => {
@@ -329,8 +318,6 @@ export default function CreatePage() {
           )}
         </InkActionGroup>
       </InkSection>
-
-      {error && <InkNotice tone="danger">{error}</InkNotice>}
 
       {player ? (
         <>

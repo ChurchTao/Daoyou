@@ -1,160 +1,111 @@
-import type { Quality } from '../types/constants';
-import { QUALITY_VALUES } from '../types/constants';
-import type { PreHeavenFate } from '../types/cultivator';
-import { text } from './aiClient';
+import { z } from 'zod';
+import { Quality, QUALITY_VALUES } from '../types/constants';
+import { PreHeavenFate } from '../types/cultivator';
+import { object } from './aiClient';
 
-/**
- * 先天气运生成器 —— 完全由 LLM 生成
- * 规则：前两条贴合用户输入，其余随机但遵循品质概率与天道平衡
- */
-
-const QUALITY_PROBABILITIES: Record<Quality, number> = {
-  凡品: 0.5,
-  灵品: 0.3,
-  玄品: 0.15,
-  真品: 0.05,
-  地品: 0,
-  天品: 0,
-  仙品: 0,
-  神品: 0,
+const QUALITY_RANGES: Record<Quality, { min: number; max: number }> = {
+  凡品: { min: -5, max: 5 },
+  灵品: { min: 4, max: 10 },
+  玄品: { min: 8, max: 15 },
+  真品: { min: 12, max: 20 },
+  地品: { min: 18, max: 30 },
+  天品: { min: 28, max: 45 },
+  仙品: { min: 40, max: 70 },
+  神品: { min: 60, max: 100 },
 };
 
-const ATTRIBUTE_KEYS = ['vitality', 'spirit', 'wisdom', 'speed', 'willpower'];
+/**
+ * 每个品质出现的概率
+ */
+const QUALITY_CHANCE_MAP: Record<Quality, string> = {
+  凡品: '30%',
+  灵品: '30%',
+  玄品: '20%',
+  真品: '10%',
+  地品: '4%',
+  天品: '3%',
+  仙品: '2%',
+  神品: '1%',
+};
 
-interface FatePromptOptions {
-  count: number;
-}
+const getQualityChancePrompt = () => {
+  return Object.entries(QUALITY_CHANCE_MAP)
+    .map(([quality, chance]) => `${quality}:${chance}`)
+    .join('、');
+};
 
-export async function generatePreHeavenFates(
-  userInput: string,
-): Promise<PreHeavenFate[]> {
-  let fates: PreHeavenFate[] = [];
+const PreHeavenFateSchema = z.object({
+  name: z.string().min(2).max(6).describe('气运名称，2-6字'),
+  type: z.enum(['吉', '凶']).describe('气运类型'),
+  quality: z.enum(QUALITY_VALUES).describe('气运品质'),
+  attribute_mod: z
+    .object({
+      vitality: z.number().optional().describe('体魄加成'),
+      spirit: z.number().optional().describe('灵力加成'),
+      wisdom: z.number().optional().describe('悟性加成'),
+      speed: z.number().optional().describe('速度加成'),
+      willpower: z.number().optional().describe('神识加成'),
+    })
+    .describe('属性加成对象'),
+  description: z
+    .string()
+    .min(20)
+    .max(150)
+    .describe('气运描述，包含来源、代价或触发条件'),
+});
 
-  const prompt = buildFatePrompt({
-    count: 10,
-  });
+const FatesResponseSchema = z.object({
+  fates: z.array(PreHeavenFateSchema).length(10),
+});
+
+/**
+ * 先天气运生成器 —— 通过 Structured Output 生成
+ */
+export async function generatePreHeavenFates(): Promise<PreHeavenFate[]> {
+  const count = 10;
+
+  const systemPrompt = `
+    你是修仙世界的天道掌管者，擅长创造多种多样的修仙界先天气运、修仙体质。
+    你的输出必须是**严格符合指定 JSON Schema 的纯 JSON 对象**，不得包含任何额外文本、解释、注释或 Markdown。
+
+    ### 核心规则：
+    1. 气运名称(name)必须富有意象，3-6个字，也可以为某体质的特征，如"天魔之体"、"通玉凤髓之身"等。
+    2. 气运类型(type)必须是"吉"或"凶"。
+    3. 气运品质(quality)必须是：${QUALITY_VALUES.join('、')}。
+    4. 气运品质(quality)的出现概率必须符合以下概率要求：
+    ${getQualityChancePrompt()}
+    5. 每个气运都会对基础属性有一定的加成，加成可能有正有负
+    6. 每个气运的描述(description)必须富有想象力，包含来源、代价或触发条件,长度在20~120字之间。
+    7. 不同品质的气运加成的属性数量如下：
+    - 凡品/灵品：1个属性
+    - 玄品/真品/地品：2～3个属性
+    - 天品/仙品：3～4个属性
+    - 神品：4～5个属性
+    8. 每个气运严格遵守以下品质对应的加成属性总值范围，所有加成之和不能超过品质范围。
+    ${Object.entries(QUALITY_RANGES)
+      .map(([q, range]) => `- ${q}: [${range.min}, ${range.max}]`)
+      .join('\n    ')}
+  `;
+
+  const userPrompt = `
+  请生成fates恰好等于${count}条数据，请直接输出符合规则和 Schema 的 JSON。
+  `;
 
   try {
-    const aiResponse = await text(prompt, userInput);
-    const parsed = parseFateResponse(aiResponse.text);
-    fates = [...fates, ...parsed];
+    const result = await object(
+      systemPrompt,
+      userPrompt,
+      {
+        schema: FatesResponseSchema,
+        schemaName: 'GenerateFates',
+      },
+      true, // use fast model
+    );
+
+    return result.object.fates;
   } catch (error) {
-    console.error('生成气运失败:', error);
+    console.error('AI生成气运失败:', error);
+    // Fallback: return empty or handle error upstream
+    throw new Error('天道紊乱，本次凝聚失败，请重试');
   }
-
-  if (fates.length === 0) {
-    throw new Error('气运生成失败，请稍后重试');
-  }
-
-  return fates.slice(0, 10);
-}
-
-function buildFatePrompt({ count }: FatePromptOptions): string {
-  return `你是精通修仙设定的大能，请一次性生成 ${count} 条先天气运，并严格输出 JSON 数组（不可添加额外文字）。
-
-重要约束与说明：
-- 输出必须是一个长度恰为 ${count} 的 JSON 数组，条目不得多也不得少。
-- 如果发现数量不足，请自动补齐后再输出最终 JSON。
-- 前 2 条必须与用户描述密切相关，说明其如何呼应用户愿景
-- 其他可完全自由发挥，与用户描述无直接关联
-- 每条气运字段必须符合以下结构：
-  {
-    "name": "2~4字，富有意象",
-    "type": "吉 或 凶（若好坏参半仍需择其一）",
-    "quality": "凡品 | 灵品 | 玄品 | 真品",
-    "attribute_mod": {
-      "vitality": 可选整数，可为负,
-      "spirit": 可选整数，可为负,
-      "wisdom": 可选整数，可为负,
-      "speed": 可选整数，可为负,
-      "willpower": 可选整数，可为负
-    },
-    "description": "古风描述，指出来源、代价或触发条件"
-  }
-- 属性加成可以体现体质特征（如天魔之体=体魄+10 灵力-3、天煞之人=灵力+10 体魄-8）。
-- 品质概率须接近：凡品50%、灵品30%、玄品15%、真品5%。
-- 至少生成一条好坏参半（正负并存）的气运。
-- 字段必须完整，输出合法 JSON 数组。`;
-}
-
-function parseFateResponse(response: string): PreHeavenFate[] {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(response);
-  } catch {
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    raw = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  }
-
-  if (!Array.isArray(raw)) {
-    if (raw && typeof raw === 'object') {
-      const single = normaliseFate(raw);
-      return single ? [single] : [];
-    }
-    return [];
-  }
-
-  return raw
-    .map((item) => normaliseFate(item))
-    .filter((fate): fate is PreHeavenFate => Boolean(fate));
-}
-
-function normaliseFate(item: unknown): PreHeavenFate | null {
-  if (!item || typeof item !== 'object') return null;
-  const record = item as Record<string, unknown>;
-  const name =
-    typeof record.name === 'string' && record.name.trim().length > 0
-      ? record.name.trim()
-      : null;
-  if (!name) return null;
-
-  const type = record.type === '凶' ? '凶' : '吉';
-  const quality = normaliseQuality(record.quality);
-  const attribute_mod = normaliseAttributeMod(record.attribute_mod);
-  const description =
-    typeof record.description === 'string' && record.description.trim().length
-      ? record.description.trim()
-      : '此运来历成谜，需谨慎调息。';
-
-  return {
-    name,
-    type,
-    quality,
-    attribute_mod,
-    description,
-  };
-}
-
-function normaliseQuality(value: unknown): Quality {
-  if (typeof value === 'string' && QUALITY_VALUES.includes(value as Quality)) {
-    return value as Quality;
-  }
-  return randomQuality();
-}
-
-function normaliseAttributeMod(value: unknown): PreHeavenFate['attribute_mod'] {
-  const result: PreHeavenFate['attribute_mod'] = {};
-  if (!value || typeof value !== 'object') return result;
-  const record = value as Record<string, unknown>;
-
-  ATTRIBUTE_KEYS.forEach((key) => {
-    const val = record[key];
-    if (typeof val === 'number' && Number.isFinite(val)) {
-      result[key as keyof PreHeavenFate['attribute_mod']] = Math.round(val);
-    }
-  });
-
-  return result;
-}
-
-function randomQuality(): Quality {
-  const rand = Math.random();
-  let cumulative = 0;
-  for (const [quality, probability] of Object.entries(QUALITY_PROBABILITIES)) {
-    cumulative += probability;
-    if (rand <= cumulative) {
-      return quality as Quality;
-    }
-  }
-  return '凡品';
 }

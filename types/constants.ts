@@ -35,6 +35,7 @@ export const STATUS_EFFECT_VALUES = [
   'speed_up',
   'crit_rate_up',
   'armor_down',
+  'crit_rate_down',
 ] as const;
 export type StatusEffect = (typeof STATUS_EFFECT_VALUES)[number];
 
@@ -47,7 +48,7 @@ export const CONSUMABLE_TYPE_VALUES = ['丹药'] as const;
 export type ConsumableType = (typeof CONSUMABLE_TYPE_VALUES)[number];
 
 // 性别
-export const GENDER_VALUES = ['男', '女', '无'] as const;
+export const GENDER_VALUES = ['男', '女'] as const;
 export type GenderType = (typeof GENDER_VALUES)[number];
 
 // 境界
@@ -70,15 +71,15 @@ export type RealmStage = (typeof REALM_STAGE_VALUES)[number];
 
 // 境界 + 阶段属性上限（圆满阶段与后期共享同一上限，用于突破前的瓶颈）
 export const REALM_STAGE_CAPS: Record<RealmType, Record<RealmStage, number>> = {
-  炼气: { 初期: 20, 中期: 40, 后期: 60, 圆满: 60 },
-  筑基: { 初期: 80, 中期: 100, 后期: 120, 圆满: 120 },
-  金丹: { 初期: 140, 中期: 160, 后期: 180, 圆满: 180 },
-  元婴: { 初期: 220, 中期: 240, 后期: 260, 圆满: 260 },
-  化神: { 初期: 300, 中期: 320, 后期: 340, 圆满: 340 },
-  炼虚: { 初期: 400, 中期: 420, 后期: 440, 圆满: 440 },
-  合体: { 初期: 500, 中期: 520, 后期: 560, 圆满: 560 },
-  大乘: { 初期: 600, 中期: 620, 后期: 640, 圆满: 640 },
-  渡劫: { 初期: 700, 中期: 720, 后期: 740, 圆满: 740 },
+  炼气: { 初期: 20, 中期: 25, 后期: 30, 圆满: 30 },
+  筑基: { 初期: 40, 中期: 50, 后期: 60, 圆满: 60 },
+  金丹: { 初期: 80, 中期: 100, 后期: 120, 圆满: 120 },
+  元婴: { 初期: 160, 中期: 200, 后期: 240, 圆满: 240 },
+  化神: { 初期: 320, 中期: 400, 后期: 480, 圆满: 480 },
+  炼虚: { 初期: 640, 中期: 800, 后期: 960, 圆满: 960 },
+  合体: { 初期: 1280, 中期: 1600, 后期: 1920, 圆满: 1920 },
+  大乘: { 初期: 2560, 中期: 3200, 后期: 3840, 圆满: 3840 },
+  渡劫: { 初期: 5120, 中期: 6400, 后期: 7680, 圆满: 7680 },
 } as const;
 
 // 命格吉凶

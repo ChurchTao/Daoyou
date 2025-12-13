@@ -1,10 +1,10 @@
 import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { text } from '@/utils/aiClient';
-import { validateAndAdjustCultivator } from '@/utils/characterEngine';
-import { createCultivatorFromAI } from '@/utils/cultivatorUtils';
+import {
+  generateCultivatorFromAI,
+  validateAndAdjustCultivator,
+} from '@/utils/characterEngine';
 import { generatePreHeavenFates } from '@/utils/fateGenerator';
-import { getCharacterGenerationPrompt } from '@/utils/prompts';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -33,30 +33,28 @@ export async function POST(request: NextRequest) {
     if (
       !userInput ||
       typeof userInput !== 'string' ||
-      userInput.trim().length < 5
+      userInput.trim().length < 2 ||
+      userInput.trim().length > 200
     ) {
       return NextResponse.json(
-        { error: '请提供至少5个字符的角色描述' },
+        { error: '道友请提供至少2~200字的角色描述' },
         { status: 400 },
       );
     }
 
-    // 生成 prompt
-    const prompt = getCharacterGenerationPrompt();
-
-    // 调用 AI 生成角色
-    const aiResponse = await text(prompt, userInput);
-
-    // 解析AI响应，创建角色对象
-    let cultivator = createCultivatorFromAI(aiResponse.text, userInput);
+    // 调用 characterEngine 生成角色
+    const { cultivator: rawCultivator, balanceNotes: aiNotes } =
+      await generateCultivatorFromAI(userInput);
 
     // 使用角色生成引擎进行验证和修正
-    const { cultivator: balancedCultivator, balanceNotes } =
-      validateAndAdjustCultivator(cultivator);
-    cultivator = balancedCultivator;
+    const { cultivator: balancedCultivator, balanceNotes: engineNotes } =
+      validateAndAdjustCultivator(rawCultivator);
+
+    // We need to use 'let' if we want to reassign cultivator, but here we can just use a new variable name
+    const cultivator = balancedCultivator;
 
     // 生成10个先天气运供玩家选择
-    const preHeavenFates = await generatePreHeavenFates(userInput);
+    const preHeavenFates = await generatePreHeavenFates();
 
     // 保存到临时表（包含角色和10个气运）
     const tempCultivatorId = await createTempCultivator(
@@ -70,7 +68,7 @@ export async function POST(request: NextRequest) {
       data: {
         cultivator,
         preHeavenFates, // 返回10个气运供前端选择
-        balanceNotes,
+        balanceNotes: engineNotes,
         tempCultivatorId,
       },
     });

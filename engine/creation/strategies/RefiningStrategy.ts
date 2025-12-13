@@ -15,38 +15,34 @@ import {
   PromptData,
 } from '../CreationStrategy';
 
+const EffectSchema = z.object({
+  type: z.enum(EFFECT_TYPE_VALUES.filter((t) => t !== 'environment_change')),
+  element: z.enum(ELEMENT_VALUES).optional(),
+  effect: z.string().optional(),
+  chance: z.number().optional(),
+  amount: z.number().optional(),
+  bonus: z.number().optional(),
+  power: z.number().optional(),
+  env_type: z.string().optional(),
+});
+
 // Zod Schema for Artifacts
 const ArtifactSchema = z.object({
-  name: z.string(),
-  slot: z.enum(EQUIPMENT_SLOT_VALUES),
-  element: z.enum(ELEMENT_VALUES),
+  name: z.string().describe('法宝名称'),
+  slot: z.enum(EQUIPMENT_SLOT_VALUES).describe('法宝部位'),
+  element: z.enum(ELEMENT_VALUES).describe('法宝元素'),
   bonus: z.object({
-    vitality: z.number().optional(),
-    spirit: z.number().optional(),
-    wisdom: z.number().optional(),
-    speed: z.number().optional(),
-    willpower: z.number().optional(),
+    vitality: z.number().optional().describe('体魄加成'),
+    spirit: z.number().optional().describe('灵力加成'),
+    wisdom: z.number().optional().describe('悟性加成'),
+    speed: z.number().optional().describe('身法加成'),
+    willpower: z.number().optional().describe('神识加成'),
   }),
-  required_realm: z.enum(REALM_VALUES),
-  quality: z.enum(QUALITY_VALUES),
-  special_effects: z
-    .array(
-      z.object({
-        type: z.enum(
-          EFFECT_TYPE_VALUES.filter((t) => t !== 'environment_change'),
-        ),
-        element: z.enum(ELEMENT_VALUES).optional(),
-        effect: z.string().optional(),
-        chance: z.number().optional(),
-        amount: z.number().optional(),
-        bonus: z.number().optional(),
-        power: z.number().optional(),
-        env_type: z.string().optional(),
-      }),
-    )
-    .optional(),
-  curses: z.array(z.any()).optional(),
-  description: z.string().optional(),
+  required_realm: z.enum(REALM_VALUES).describe('法宝所需境界'),
+  quality: z.enum(QUALITY_VALUES).describe('法宝品质'),
+  special_effects: z.array(EffectSchema).optional().describe('法宝特效'),
+  curses: z.array(EffectSchema).optional().describe('法宝诅咒效果'),
+  description: z.string().optional().describe('法宝描述'),
 });
 
 export class RefiningStrategy implements CreationStrategy<
@@ -71,10 +67,8 @@ export class RefiningStrategy implements CreationStrategy<
     if (context.cultivator.realm === '炼气') {
       throw new Error('炼器需要至少筑基境界');
     }
-    if (context.materials.some((m) => m.type === 'herb' || m.type === 'aux')) {
-      const herb = context.materials.find(
-        (m) => m.type === 'herb' || m.type === 'aux',
-      );
+    if (context.materials.some((m) => m.type === 'herb')) {
+      const herb = context.materials.find((m) => m.type === 'herb');
       throw new Error(`道友慎重，${herb?.name}不适合炼器`);
     }
   }
@@ -100,15 +94,15 @@ export class RefiningStrategy implements CreationStrategy<
    - 玄/真/地品材料：基础属性加成中等，通常加成1-2个属性，1-2个实用特效。
    - 天/仙/神品材料：基础属性加成极高，通常加成2-3个属性，必带强力特效，甚至规则级能力。
    法宝的基础属性(bonus)强度必须与修士境界匹配
-   - 炼气境界：基础属性加成范围（-5～10）
-   - 筑基境界：基础属性加成范围（-10～20）
-   - 金丹境界：基础属性加成范围（-15～40）
-   - 元婴境界：基础属性加成范围（-20～80）
-   - 化神境界：基础属性加成范围（-25～120）
-   - 炼虚境界：基础属性加成范围（-30～160）
-   - 合体境界：基础属性加成范围（-35～200）
-   - 大乘境界：基础属性加成范围（-40～240）
-   - 渡劫境界：基础属性加成范围（-45～300）
+   - 炼气境界：基础属性加成范围（10～20）
+   - 筑基境界：基础属性加成范围（20～40）
+   - 金丹境界：基础属性加成范围（40～80）
+   - 元婴境界：基础属性加成范围（80～160）
+   - 化神境界：基础属性加成范围（160～320）
+   - 炼虚境界：基础属性加成范围（320～640）
+   - 合体境界：基础属性加成范围（640～1280）
+   - 大乘境界：基础属性加成范围（1280～2560）
+   - 渡劫境界：基础属性加成范围（2560～5120）
    法宝的品质(quality)必须与材料品阶相匹配。
    - 法宝的品质，必须等于或小于材料中最高品阶的材料。
 

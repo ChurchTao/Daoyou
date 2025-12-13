@@ -11,6 +11,7 @@ import {
 import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 import type {
   BreakthroughHistoryEntry,
+  ConsumableEffect,
   Cultivator,
   RetreatRecord,
 } from '../../types/cultivator';
@@ -1298,8 +1299,7 @@ export async function consumeItem(
   }
 
   // 3. 应用效果
-  const effects =
-    (item.effect as import('../../types/cultivator').ConsumableEffect[]) || [];
+  const effects = (item.effect as ConsumableEffect[]) || [];
 
   if (effects.length === 0) {
     // 即使无效也消耗掉

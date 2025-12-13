@@ -15,21 +15,16 @@ import {
 
 // Zod Schema for Consumables
 const ConsumableSchema = z.object({
-  name: z.string(),
-  type: z.enum(CONSUMABLE_TYPE_VALUES),
-  quality: z.enum(QUALITY_VALUES),
+  name: z.string().describe('丹药名称'),
+  type: z.enum(CONSUMABLE_TYPE_VALUES).describe('丹药类型'),
+  quality: z.enum(QUALITY_VALUES).describe('丹药品质'),
   effect: z.array(
     z.object({
-      effect_type: z.enum(CONSUMABLE_EFFECT_VALUES),
-      bonus: z.number().optional(),
-      vitality: z.number().optional(),
-      spirit: z.number().optional(),
-      wisdom: z.number().optional(),
-      speed: z.number().optional(),
-      willpower: z.number().optional(),
+      effect_type: z.enum(CONSUMABLE_EFFECT_VALUES).describe('丹药效果类型'),
+      bonus: z.number().optional().describe('丹药效果加成数值'),
     }),
   ),
-  description: z.string().max(50).optional(),
+  description: z.string().max(50).optional().describe('丹药描述'),
 });
 
 export class AlchemyStrategy implements CreationStrategy<
@@ -94,7 +89,7 @@ export class AlchemyStrategy implements CreationStrategy<
    炼丹者的境界决定了对药力的吸收和凝练程度。
    - 炼气/筑基：药力利用率低，数值取下限。
    - 金丹/元婴：药力利用率中等。
-   - 化神以上：药力利用率高，可发挥材料极致甚至突破上限。
+   - 化神以上：药力利用率高，可发挥材料极致甚至突破少许上限。
 
 3. **数据结构 (Schema Rules)**：
    - \`type\`: 必须固定为 '丹药'。
