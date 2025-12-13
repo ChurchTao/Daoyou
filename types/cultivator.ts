@@ -165,6 +165,7 @@ export interface Artifact {
   bonus: ArtifactBonus;
   special_effects?: ArtifactEffect[];
   curses?: ArtifactEffect[];
+  description?: string;
 }
 
 // 永久提升效果

@@ -148,6 +148,7 @@ async function assembleCultivator(
       []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
     curses: (a.curses ||
       []) as Cultivator['inventory']['artifacts'][0]['curses'],
+    description: a.description || '',
   }));
 
   // 组装消耗品
