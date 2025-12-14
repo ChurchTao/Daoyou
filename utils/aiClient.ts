@@ -82,6 +82,7 @@ export async function object<T>(
     schema: options.schema,
     schemaName: options.schemaName,
     schemaDescription: options.schemaDescription,
+    maxRetries: 3,
   });
   return res;
 }

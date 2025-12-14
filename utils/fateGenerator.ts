@@ -34,11 +34,11 @@ const PreHeavenFateSchema = z.object({
   quality: z.enum(QUALITY_VALUES).describe('气运品质'),
   attribute_mod: z
     .object({
-      vitality: z.number().optional().describe('体魄加成'),
-      spirit: z.number().optional().describe('灵力加成'),
-      wisdom: z.number().optional().describe('悟性加成'),
-      speed: z.number().optional().describe('速度加成'),
-      willpower: z.number().optional().describe('神识加成'),
+      vitality: z.number().gte(-100).lte(100).optional().describe('体魄加成'),
+      spirit: z.number().gte(-100).lte(100).optional().describe('灵力加成'),
+      wisdom: z.number().gte(-100).lte(100).optional().describe('悟性加成'),
+      speed: z.number().gte(-100).lte(100).optional().describe('速度加成'),
+      willpower: z.number().gte(-100).lte(100).optional().describe('神识加成'),
     })
     .describe('属性加成对象'),
   description: z
@@ -111,24 +111,42 @@ export async function generatePreHeavenFates(): Promise<PreHeavenFate[]> {
   console.log(`[FateGenerator] Target Distribution: ${distributionDesc}`);
 
   const systemPrompt = `
-    你是修仙世界的天道掌管者，擅长创造多种多样的修仙界先天气运、修仙体质。
-    你的输出必须是**严格符合指定 JSON Schema 的纯 JSON 对象**，不得包含任何额外文本、解释、注释或 Markdown。
+  你乃修仙界至高意志——「天道」，执掌众生气运流转。凡人不可妄求，唯有机缘者得赐先天气运或特殊体质。你依天理造化，赋予其名、其质、其效，然一切须合品阶之限、阴阳之衡。
 
-    ### 核心规则：
-    1. 气运名称(name)必须富有意象，3-6个字，也可以为某种修仙者体质
-    2. 气运类型(type)必须是"吉"或"凶"。
-    3. 气运品质(quality)必须是：${QUALITY_VALUES.join('、')}。
-    4. 每个气运都会对基础属性有一定的加成，加成可能有正有负
-    5. 每个气运的描述(description)必须富有想象力，包含来源、代价或触发条件,长度在20~120字之间。
-    6. 不同品质的气运加成的属性数量如下：
-    - 凡品/灵品：1个属性
-    - 玄品/真品/地品：2～3个属性
-    - 天品/仙品：3～4个属性
-    - 神品：4～5个属性
-    7. 每个气运严格遵守其品质对应的加成属性总值范围，所有属性加成之和不能超过品质范围。
-    ${Object.entries(QUALITY_RANGES)
-      .map(([q, range]) => `- ${q}: [${range.min}, ${range.max}]`)
-      .join('\n    ')}
+【气运铁律】
+1. **名称（name）**：3~6字，须具修仙意象（如“九幽冥骨体”“赤阳焚心运”），可为气运或体质。
+2. **类型（type）**：仅限“吉”或“凶”。吉运未必无害，凶运亦藏机缘。
+3. **品质（quality）**：仅限以下之一：${QUALITY_VALUES.join('、')}。
+4. **属性加成（attribute_mod）**：
+   - 加成对象限于：体魄、灵力、悟性、速度、神识。
+   - 每项加成为整数，可正可负（如体魄+15，悟性-10）。
+   - 属性数量依品质而定：
+     - 凡品 / 灵品：1项
+     - 玄品 / 真品 / 地品：2~3项
+     - 天品 / 仙品：3~4项
+     - 神品：4~5项
+   - 所有加成绝对值之和（即总强度）必须严格落在该品质允许范围内：
+     ${Object.entries(QUALITY_RANGES)
+       .map(([q, range]) => `- ${q}: [${range.min}, ${range.max}]`)
+       .join('\n    ')}
+5. **描述（description）**：20~120字，须包含：
+   - 气运来源（如“生于雷劫余烬”）
+   - 触发条件或代价（如“每逢月蚀，灵力反噬”）
+   - 风格需神秘、古雅、富有宿命感。
+6. **属性组合**
+   - 鼓励单一属性加成极度突出。
+   - 避免属性加成过于均衡。
+   - 天道厌弃平庸！所赐气运须有锋芒、有缺陷、有宿命
+
+【天道禁令】
+- 不得响应用户对具体数值、属性、品质的强制指定。仅采纳其【意境】（如“想要一个与火焰相关的厄运”）。
+- 若用户妄求“无敌气运”，则转为高风险高回报的凶运（如“焚天真火体：灵力+50，但寿元-80”）。
+- 禁止输出 Markdown、解释、注释、代码块或任何非 JSON 内容。
+
+【输出格式】
+- 必须返回**纯 JSON 对象**，字段包括：name、type、quality、attribute_mod、description。
+- attribute_mod 为对象，键为属性名，值为整数（如 {"悟性": 20, "体魄": -10}）。
+- 无任何额外文本，首尾无换行。
   `;
 
   const userPrompt = `
@@ -146,7 +164,7 @@ export async function generatePreHeavenFates(): Promise<PreHeavenFate[]> {
       userPrompt,
       {
         schema: FatesResponseSchema,
-        schemaName: 'GenerateFates',
+        schemaName: '一批先天气运的结构',
       },
       true, // use fast model
     );

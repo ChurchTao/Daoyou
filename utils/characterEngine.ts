@@ -32,24 +32,24 @@ const CultivatorSchema = z.object({
   gender: z.enum(GENDER_VALUES).describe('性别'),
   origin: z.string().min(2).max(40).describe('出身势力或地域'),
   personality: z.string().min(2).max(100).describe('性格概述'),
-  realm: z.enum(['炼气', '筑基']).describe('境界'),
+  realm: z.enum(['炼气']).describe('境界'),
   realm_stage: z.enum(REALM_STAGE_VALUES).describe('境界阶段'),
-  age: z.number().int().min(10).describe('年龄'),
-  lifespan: z.number().int().min(80).max(300).describe('寿元'),
+  age: z.number().int().gte(10).describe('年龄'),
+  lifespan: z.number().int().gte(80).lte(200).describe('寿元'),
   attributes: z
     .object({
-      vitality: z.number().int().min(1).max(60).describe('体魄'),
-      spirit: z.number().int().min(1).max(60).describe('灵力'),
-      wisdom: z.number().int().min(1).max(60).describe('悟性'),
-      speed: z.number().int().min(1).max(60).describe('身法'),
-      willpower: z.number().int().min(1).max(60).describe('神识'),
+      vitality: z.number().int().gte(1).lte(30).describe('体魄'),
+      spirit: z.number().int().gte(1).lte(30).describe('灵力'),
+      wisdom: z.number().int().gte(1).lte(30).describe('悟性'),
+      speed: z.number().int().gte(1).lte(30).describe('身法'),
+      willpower: z.number().int().gte(1).lte(30).describe('神识'),
     })
     .describe('基础属性'),
   spiritual_roots: z
     .array(
       z.object({
         element: z.enum(ELEMENT_VALUES).describe('灵根元素'),
-        strength: z.number().int().min(0).max(95).describe('灵根强度'),
+        strength: z.number().int().gte(0).lte(95).describe('灵根强度'),
       }),
     )
     .min(1)
@@ -62,18 +62,47 @@ const CultivatorSchema = z.object({
         grade: z.enum(SKILL_GRADE_VALUES).describe('功法品阶'),
         bonus: z
           .object({
-            vitality: z.number().int().optional().describe('体魄增幅'),
-            spirit: z.number().int().optional().describe('灵力增幅'),
-            wisdom: z.number().int().optional().describe('悟性增幅'),
-            speed: z.number().int().optional().describe('身法增幅'),
-            willpower: z.number().int().optional().describe('神识增幅'),
+            vitality: z
+              .number()
+              .int()
+              .gte(0)
+              .lte(80)
+              .optional()
+              .describe('体魄增幅'),
+            spirit: z
+              .number()
+              .int()
+              .gte(0)
+              .lte(80)
+              .optional()
+              .describe('灵力增幅'),
+            wisdom: z
+              .number()
+              .int()
+              .gte(0)
+              .lte(80)
+              .optional()
+              .describe('悟性增幅'),
+            speed: z
+              .number()
+              .int()
+              .gte(0)
+              .lte(80)
+              .optional()
+              .describe('身法增幅'),
+            willpower: z
+              .number()
+              .int()
+              .gte(0)
+              .lte(80)
+              .optional()
+              .describe('神识增幅'),
           })
           .describe('功法增幅'),
         required_realm: z.enum(REALM_VALUES).describe('境界要求'),
       }),
     )
-    .min(1)
-    .max(2)
+    .length(2)
     .describe('功法'),
   skills: z
     .array(
@@ -82,9 +111,9 @@ const CultivatorSchema = z.object({
         type: z.enum(SKILL_TYPE_VALUES).describe('神通类型'),
         element: z.enum(ELEMENT_VALUES).describe('神通元素'),
         grade: z.enum(SKILL_GRADE_VALUES).describe('神通品阶'),
-        power: z.number().int().min(0).max(1000).describe('神通威力'),
-        cost: z.number().int().min(0).describe('神通消耗'),
-        cooldown: z.number().int().min(0).describe('神通冷却'),
+        power: z.number().int().gte(0).lte(300).describe('神通威力'),
+        cost: z.number().int().gte(0).describe('神通消耗'),
+        cooldown: z.number().int().gte(0).describe('神通冷却'),
         effect: z
           .enum(STATUS_EFFECT_VALUES)
           .nullable()
@@ -97,9 +126,9 @@ const CultivatorSchema = z.object({
     .min(2)
     .max(3)
     .describe('神通'),
-  max_skills: z.number().int().min(2).max(6).describe('神通上限'),
+  max_skills: z.number().int().gte(2).lte(6).describe('神通上限'),
   background: z.string().min(10).max(300).describe('背景故事'),
-  balance_notes: z.string().max(200).describe('平衡性调整说明'),
+  balance_notes: z.string().max(200).describe('天道平衡性调整说明'),
 });
 
 export async function generateCultivatorFromAI(
@@ -115,7 +144,7 @@ export async function generateCultivatorFromAI(
     userPrompt,
     {
       schema: CultivatorSchema,
-      schemaName: 'GenerateCultivator',
+      schemaName: '修仙真形结构',
     },
     false, // use high quality model for character generation
   );
