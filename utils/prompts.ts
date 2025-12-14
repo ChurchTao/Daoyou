@@ -1,5 +1,5 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
-import { GENDER_VALUES } from '../types/constants';
+import { ELEMENT_VALUES, GENDER_VALUES } from '../types/constants';
 import type { Attributes, Cultivator } from '../types/cultivator';
 import type { BreakthroughAttemptSummary } from './breakthroughEngine';
 import {
@@ -34,7 +34,13 @@ export function getCharacterGenerationPrompt(): string {
     - 双灵根 = 强度范围：50-80
     - 三/四灵根 = 强度范围：30-60
     - 变异灵根（雷、风、冰）= 强度范围：70-95
-  8. 初始神通(skills): 2~3 个
+  8. 初始属性(attributes): 
+    - 体魄(vitality): 最高60
+    - 灵力(spirit): 最高60
+    - 悟性(wisdom): 最高60
+    - 速度(speed): 最高60
+    - 神识(willpower): 最高60
+  9. 初始神通(skills): 2~3 个
     - 神通品阶(grade)出现概率：
       - 天阶上品：1%
       - 天阶中品：2%
@@ -43,6 +49,8 @@ export function getCharacterGenerationPrompt(): string {
       - 玄阶上品/中品/下品：40%
       - 黄阶上品/中品/下品：50%
     - 神通类型(type)：攻击(attack)、治疗(heal)、控制(control)、异常(debuff)、增益(buff)
+      - 必须包含一个攻击类型神通
+    - 神通元素(element)必须是：${ELEMENT_VALUES.join('、')}
     - 神通附加状态效果(effect)：
       - 攻击类型：无
       - 治疗类型：无
