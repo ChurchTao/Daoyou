@@ -1,5 +1,11 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { generateObject, generateText, streamText, ToolSet } from 'ai';
+import {
+  generateObject,
+  generateText,
+  streamObject,
+  streamText,
+  ToolSet,
+} from 'ai';
 import z from 'zod';
 
 /**
@@ -85,6 +91,32 @@ export async function object<T>(
     maxRetries: 3,
   });
   return res;
+}
+
+/**
+ * stream_object
+ */
+export function stream_object<T>(
+  prompt: string,
+  userInput: string,
+  options: {
+    schemaName?: string;
+    schemaDescription?: string;
+    schema: z.ZodType<T>;
+  },
+  fast: boolean = false,
+) {
+  const model = getModel(fast);
+  const stream = streamObject({
+    model,
+    system: prompt,
+    prompt: userInput,
+    schema: options.schema,
+    schemaName: options.schemaName,
+    schemaDescription: options.schemaDescription,
+    maxRetries: 3,
+  });
+  return stream;
 }
 
 /**

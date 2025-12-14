@@ -1,5 +1,6 @@
 import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
+import { shuffle } from '@/lib/utils';
 import {
   generateCultivatorFromAI,
   validateAndAdjustCultivator,
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
 
     // 生成10个先天气运供玩家选择
     const preHeavenFates = await generatePreHeavenFates();
+    // 气运打乱顺序
+    const shuffledFates = shuffle(preHeavenFates);
 
     // 保存到临时表（包含角色和10个气运）
     const tempCultivatorId = await createTempCultivator(
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         cultivator,
-        preHeavenFates, // 返回10个气运供前端选择
+        preHeavenFates: shuffledFates,
         balanceNotes: engineNotes,
         tempCultivatorId,
       },

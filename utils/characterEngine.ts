@@ -591,11 +591,8 @@ export function validateAndAdjustCultivator(
   cultivator: Cultivator,
 ): BalanceAdjustedCultivator {
   const balanceNotes: string[] = [];
-  // 1. 限制境界
-  const { realm, realmStage } = limitRealmToFoundation(
-    cultivator.realm,
-    cultivator.realm_stage,
-  );
+
+  const { realm, realm_stage: realmStage } = cultivator;
 
   // 2. 调整属性平衡
   const adjustedAttributes = adjustAttributesToBalance(
