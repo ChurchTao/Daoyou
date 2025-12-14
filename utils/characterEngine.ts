@@ -30,8 +30,8 @@ import { getRealmStageAttributeCap } from './cultivatorUtils';
 const CultivatorSchema = z.object({
   name: z.string().min(2).max(4).describe('2-4字中文姓名'),
   gender: z.enum(GENDER_VALUES).describe('性别'),
-  origin: z.string().min(2).max(20).describe('出身势力或地域'),
-  personality: z.string().min(2).max(40).describe('性格概述'),
+  origin: z.string().min(2).max(40).describe('出身势力或地域'),
+  personality: z.string().min(2).max(100).describe('性格概述'),
   realm: z.enum(['炼气', '筑基']).describe('境界'),
   realm_stage: z.enum(REALM_STAGE_VALUES).describe('境界阶段'),
   age: z.number().int().min(10).describe('年龄'),
