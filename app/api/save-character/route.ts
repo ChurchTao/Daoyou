@@ -1,7 +1,12 @@
 import {
+  createCultivator,
   getCultivatorsByUserId,
-  saveTempCultivatorToFormal,
 } from '@/lib/repositories/cultivatorRepository';
+import {
+  deleteTempData,
+  getTempCharacter,
+  getTempFates,
+} from '@/lib/repositories/redisCultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -41,10 +46,7 @@ export async function POST(request: NextRequest) {
       !Array.isArray(selectedFateIndices) ||
       selectedFateIndices.length !== 3
     ) {
-      return NextResponse.json(
-        { error: '请选择3个先天气运' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: '请选择3个先天气运' }, { status: 400 });
     }
 
     // 检查用户是否已有角色
@@ -56,12 +58,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 将临时角色保存到正式表，只保存选中的3个气运
-    await saveTempCultivatorToFormal(
-      user.id,
-      tempCultivatorId,
-      selectedFateIndices,
-    );
+    // 从Redis获取临时数据
+    const [cultivator, availableFates] = await Promise.all([
+      getTempCharacter(tempCultivatorId),
+      getTempFates(tempCultivatorId),
+    ]);
+
+    if (!cultivator) {
+      return NextResponse.json(
+        { error: '角色数据已过期，请重新生成' },
+        { status: 400 },
+      );
+    }
+
+    // 处理气运
+    if (selectedFateIndices && selectedFateIndices.length === 3) {
+      // 如果没有生成过气运（比如旧流程或者异常），则需要处理
+      if (!availableFates) {
+        return NextResponse.json(
+          { error: '气运数据丢失，请重新生成' },
+          { status: 400 },
+        );
+      }
+
+      const selectedFates = selectedFateIndices
+        .filter((idx: number) => idx >= 0 && idx < availableFates.length)
+        .map((idx: number) => availableFates[idx]);
+
+      if (selectedFates.length !== 3) {
+        return NextResponse.json({ error: '气运选择有误' }, { status: 400 });
+      }
+
+      cultivator.pre_heaven_fates = selectedFates;
+    }
+
+    // 保存到正式表
+    await createCultivator(user.id, cultivator);
+
+    // 清理Redis临时数据
+    await deleteTempData(tempCultivatorId);
 
     return NextResponse.json({
       success: true,

@@ -49,7 +49,7 @@ const PreHeavenFateSchema = z.object({
 });
 
 const FatesResponseSchema = z.object({
-  fates: z.array(PreHeavenFateSchema).length(10),
+  fates: z.array(PreHeavenFateSchema),
 });
 
 /**
@@ -95,9 +95,9 @@ function getRandomFatesDistribution(count: number): Record<Quality, number> {
 /**
  * 先天气运生成器 —— 通过 Structured Output 生成
  */
-export async function generatePreHeavenFates(): Promise<PreHeavenFate[]> {
-  const count = 10;
-
+export async function generatePreHeavenFates(
+  count: number = 10,
+): Promise<PreHeavenFate[]> {
   // 1. 在代码中随机生成品质分布
   const distribution = getRandomFatesDistribution(count);
 
@@ -114,7 +114,7 @@ export async function generatePreHeavenFates(): Promise<PreHeavenFate[]> {
   你乃修仙界至高意志——「天道」，执掌众生气运流转。凡人不可妄求，唯有机缘者得赐先天气运或特殊体质。你依天理造化，赋予其名、其质、其效，然一切须合品阶之限、阴阳之衡。
 
 【气运铁律】
-1. **名称（name）**：3~6字，须具修仙意象（如“九幽冥骨体”“赤阳焚心运”），可为气运或体质。
+1. **名称（name）**：3~6字，须具修仙意象（如“九幽冥骨体”“天煞孤星”“剑仙转世”），可为气运或体质。
 2. **类型（type）**：仅限“吉”或“凶”。吉运未必无害，凶运亦藏机缘。
 3. **品质（quality）**：仅限以下之一：${QUALITY_VALUES.join('、')}。
 4. **属性加成（attribute_mod）**：

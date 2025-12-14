@@ -1,11 +1,9 @@
-import { createTempCultivator } from '@/lib/repositories/cultivatorRepository';
+import { saveTempCharacter } from '@/lib/repositories/redisCultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { shuffle } from '@/lib/utils';
 import {
   generateCultivatorFromAI,
   validateAndAdjustCultivator,
 } from '@/utils/characterEngine';
-import { generatePreHeavenFates } from '@/utils/fateGenerator';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -54,23 +52,13 @@ export async function POST(request: NextRequest) {
     // We need to use 'let' if we want to reassign cultivator, but here we can just use a new variable name
     const cultivator = balancedCultivator;
 
-    // 生成10个先天气运供玩家选择
-    const preHeavenFates = await generatePreHeavenFates();
-    // 气运打乱顺序
-    const shuffledFates = shuffle(preHeavenFates);
-
-    // 保存到临时表（包含角色和10个气运）
-    const tempCultivatorId = await createTempCultivator(
-      user.id,
-      cultivator,
-      preHeavenFates,
-    );
+    // 保存到Redis临时存储
+    const tempCultivatorId = await saveTempCharacter(cultivator);
 
     return NextResponse.json({
       success: true,
       data: {
         cultivator,
-        preHeavenFates: shuffledFates,
         balanceNotes: engineNotes,
         tempCultivatorId,
       },

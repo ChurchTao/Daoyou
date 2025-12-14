@@ -54,6 +54,9 @@ export default function CreatePage() {
   const [hasExistingCultivator, setHasExistingCultivator] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
 
+  const [remainingRerolls, setRemainingRerolls] = useState<number>(0);
+  const [isGeneratingFates, setIsGeneratingFates] = useState(false);
+
   // 检查用户是否已有角色
   useEffect(() => {
     if (!user) {
@@ -79,6 +82,38 @@ export default function CreatePage() {
     checkExistingCultivator();
   }, [user]);
 
+  // 生成气运
+  const handleGenerateFates = async (tempId: string) => {
+    setIsGeneratingFates(true);
+    setAvailableFates([]);
+    setSelectedFateIndices([]);
+
+    try {
+      const response = await fetch('/api/generate-fates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempId }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '生成气运失败');
+      }
+
+      setAvailableFates(result.data.fates);
+      setRemainingRerolls(result.data.remainingRerolls);
+      if (result.data.remainingRerolls < 5) {
+        pushToast({ message: '天机变幻，气运已更易。', tone: 'success' });
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '生成气运失败';
+      pushToast({ message: errorMessage, tone: 'danger' });
+    } finally {
+      setIsGeneratingFates(false);
+    }
+  };
+
   // 生成角色
   const handleGenerateCharacter = async () => {
     if (!userPrompt.trim()) {
@@ -91,6 +126,8 @@ export default function CreatePage() {
     setAvailableFates([]);
     setSelectedFateIndices([]);
     setBalanceNotes([]);
+    setTempCultivatorId(null);
+    setRemainingRerolls(0);
 
     try {
       // 调用AI生成角色
@@ -111,10 +148,15 @@ export default function CreatePage() {
       // 保存临时角色ID和角色数据
       setPlayer(aiResult.data.cultivator);
       setTempCultivatorId(aiResult.data.tempCultivatorId);
-      setAvailableFates(aiResult.data.preHeavenFates || []);
-      setSelectedFateIndices([]);
       setBalanceNotes(aiResult.data.balanceNotes || []);
-      pushToast({ message: '灵气汇聚，真形初现。', tone: 'success' });
+
+      pushToast({
+        message: '灵气汇聚，真形初现。正在推演气运...',
+        tone: 'success',
+      });
+
+      // 自动生成第一次气运
+      await handleGenerateFates(aiResult.data.tempCultivatorId);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '生成角色失败，请检查控制台';
@@ -226,6 +268,8 @@ export default function CreatePage() {
     setAvailableFates([]);
     setSelectedFateIndices([]);
     setBalanceNotes([]);
+    setRemainingRerolls(0);
+    setTempCultivatorId(null);
   };
 
   const finalAttrsMemo = useMemo(() => {
@@ -423,10 +467,27 @@ export default function CreatePage() {
             </InkSection>
           )}
 
-          {availableFates.length > 0 && (
-            <InkSection
-              title={`【先天气运】（已选 ${selectedFateIndices.length}/3）`}
-            >
+          <InkSection title="【先天气运】">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-sm text-ink-secondary">{`已选 ${selectedFateIndices.length}/3`}</span>
+              {tempCultivatorId && (
+                <InkButton
+                  variant="secondary"
+                  disabled={isGeneratingFates || remainingRerolls <= 0}
+                  onClick={() => handleGenerateFates(tempCultivatorId)}
+                >
+                  {isGeneratingFates
+                    ? '推演中...'
+                    : `逆天改命 (${remainingRerolls})`}
+                </InkButton>
+              )}
+            </div>
+
+            {isGeneratingFates ? (
+              <div className="py-8 text-center text-ink-secondary">
+                <p>正在推演天机...</p>
+              </div>
+            ) : availableFates.length > 0 ? (
               <InkList>
                 {availableFates.map((fate, idx) => {
                   const isSelected = selectedFateIndices.includes(idx);
@@ -468,8 +529,12 @@ export default function CreatePage() {
                   );
                 })}
               </InkList>
-            </InkSection>
-          )}
+            ) : (
+              <div className="py-4 text-center text-ink-secondary">
+                <p>暂无气运，请尝试逆天改命</p>
+              </div>
+            )}
+          </InkSection>
 
           <GongFa cultivations={player.cultivations || []} title="【功法】" />
 

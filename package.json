@@ -15,6 +15,7 @@
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.87.0",
+    "@types/uuid": "^10.0.0",
     "@upstash/redis": "^1.35.7",
     "@vercel/analytics": "^1.6.1",
     "ai": "^5.0.108",
@@ -25,6 +26,7 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "tailwind-merge": "^3.4.0",
+    "uuid": "^13.0.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
