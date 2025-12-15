@@ -551,6 +551,8 @@ export interface InkDialogState {
   content: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  loading?: boolean;
+  loadingLabel?: string;
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void | Promise<void>;
 }
@@ -570,9 +572,13 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
     content,
     confirmLabel = '允',
     cancelLabel = '罢',
+    loading = false,
+    loadingLabel = '稍待...',
     onConfirm,
     onCancel,
   } = dialog;
+
+  console.log('dialog.loading', dialog.loading);
 
   return (
     <div className="ink-dialog-overlay" role="dialog" aria-modal="true">
@@ -590,12 +596,13 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
           </InkButton>
           <InkButton
             variant="primary"
-            onClick={() => {
-              onConfirm?.();
+            onClick={async () => {
+              await onConfirm?.();
               onClose();
             }}
+            disabled={loading}
           >
-            {confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </InkButton>
         </div>
       </div>

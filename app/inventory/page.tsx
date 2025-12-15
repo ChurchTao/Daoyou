@@ -4,6 +4,8 @@ import {
   InkActionGroup,
   InkBadge,
   InkButton,
+  InkDialog,
+  InkDialogState,
   InkList,
   InkListItem,
   InkNotice,
@@ -26,8 +28,15 @@ import { useState } from 'react';
 type Tab = 'artifacts' | 'materials' | 'consumables';
 
 export default function InventoryPage() {
-  const { cultivator, inventory, equipped, isLoading, refresh, note } =
-    useCultivatorBundle();
+  const {
+    cultivator,
+    inventory,
+    equipped,
+    isLoading,
+    refresh,
+    refreshInventory,
+    note,
+  } = useCultivatorBundle();
   const [activeTab, setActiveTab] = useState<Tab>('artifacts');
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -37,8 +46,76 @@ export default function InventoryPage() {
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [dialog, setDialog] = useState<InkDialogState | null>(null);
+
   const pathname = usePathname();
   const { pushToast } = useInkUI();
+
+  const handleDiscard = async (
+    item: Artifact | Consumable | Material,
+    type: 'artifact' | 'consumable' | 'material',
+  ) => {
+    if (!cultivator) return;
+
+    try {
+      setDialog((prev) => ({
+        ...prev!,
+        loading: true,
+      }));
+      const response = await fetch(
+        `/api/cultivators/${cultivator.id}/inventory/discard`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            itemId: item.id,
+            itemType: type,
+          }),
+        },
+      );
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '丢弃失败');
+      }
+
+      pushToast({ message: '物品已丢弃', tone: 'success' });
+      await refreshInventory();
+    } catch (error) {
+      pushToast({
+        message:
+          error instanceof Error ? `操作失败：${error.message}` : '操作失败',
+        tone: 'danger',
+      });
+    } finally {
+      setDialog((prev) => ({
+        ...prev!,
+        loading: false,
+      }));
+    }
+  };
+
+  const openDiscardConfirm = (
+    item: Artifact | Consumable | Material,
+    type: 'artifact' | 'consumable' | 'material',
+  ) => {
+    setDialog({
+      id: 'discard-confirm',
+      title: '丢弃确认',
+      content: (
+        <p className="text-center py-4">
+          确定要丢弃 <span className="font-bold">{item.name}</span> 吗？
+          <br />
+          <span className="text-xs text-ink-secondary">丢弃后将无法找回。</span>
+        </p>
+      ),
+      confirmLabel: '确认丢弃',
+      loadingLabel: '丢弃中...',
+      onConfirm: async () => await handleDiscard(item, type),
+    });
+  };
 
   const handleEquipToggle = async (item: Artifact) => {
     if (!cultivator || !item.id) {
@@ -171,7 +248,7 @@ export default function InventoryPage() {
                   <div className="flex gap-2">
                     <InkButton
                       variant="secondary"
-                      className="text-xs px-2"
+                      className="text-xs"
                       onClick={() => handleShowDetails(item)}
                     >
                       详情
@@ -187,6 +264,15 @@ export default function InventoryPage() {
                           ? '卸下'
                           : '装备'}
                     </InkButton>
+                    {!equippedNow && (
+                      <InkButton
+                        variant="primary"
+                        className="text-xs px-2"
+                        onClick={() => openDiscardConfirm(item, 'artifact')}
+                      >
+                        丢弃
+                      </InkButton>
+                    )}
                   </div>
                 }
               />
@@ -222,13 +308,22 @@ export default function InventoryPage() {
                 meta={`属性：${item.element}`}
                 description={item.description || '平平无奇的材料'}
                 actions={
-                  <InkButton
-                    variant="secondary"
-                    className="text-xs px-2"
-                    onClick={() => handleShowDetails(item)}
-                  >
-                    详情
-                  </InkButton>
+                  <div className="flex gap-2">
+                    <InkButton
+                      variant="secondary"
+                      className="text-xs"
+                      onClick={() => handleShowDetails(item)}
+                    >
+                      详情
+                    </InkButton>
+                    <InkButton
+                      variant="primary"
+                      className="text-xs"
+                      onClick={() => openDiscardConfirm(item, 'material')}
+                    >
+                      丢弃
+                    </InkButton>
+                  </div>
                 }
               />
             );
@@ -273,7 +368,7 @@ export default function InventoryPage() {
                   <div className="flex gap-2">
                     <InkButton
                       variant="secondary"
-                      className="text-xs px-2"
+                      className="text-xs"
                       onClick={() => handleShowDetails(item)}
                     >
                       详情
@@ -285,6 +380,13 @@ export default function InventoryPage() {
                       className="text-sm"
                     >
                       {pendingId === item.id ? '服用中…' : '服用'}
+                    </InkButton>
+                    <InkButton
+                      variant="primary"
+                      className="text-xs"
+                      onClick={() => openDiscardConfirm(item, 'consumable')}
+                    >
+                      丢弃
                     </InkButton>
                   </div>
                 }
@@ -518,6 +620,7 @@ export default function InventoryPage() {
           </InkButton>
         </div>
       </InkModal>
+      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>
   );
 }
