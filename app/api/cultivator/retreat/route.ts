@@ -12,7 +12,7 @@ import {
 } from '@/utils/storyService';
 import { NextRequest, NextResponse } from 'next/server';
 
-const COOLDOWN_HOURS = 2;
+const COOLDOWN_MINUTES = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,23 +52,15 @@ export async function POST(request: NextRequest) {
         cultivator.retreat_records[cultivator.retreat_records.length - 1];
       const lastRetreatTime = new Date(lastRetreat.timestamp).getTime();
       const now = Date.now();
-      const cooldownTime = COOLDOWN_HOURS * 60 * 60 * 1000;
+      const cooldownTime = COOLDOWN_MINUTES * 60 * 1000;
 
       if (now - lastRetreatTime < cooldownTime) {
         const remainingTime = cooldownTime - (now - lastRetreatTime);
         const remainingMinutes = Math.ceil(remainingTime / (60 * 1000));
-        const hours = Math.floor(remainingMinutes / 60);
-        const minutes = remainingMinutes % 60;
-
-        let timeString = '';
-        if (hours > 0) {
-          timeString += `${hours / 2}时辰`;
-        }
-        timeString += `${Math.floor(minutes / 15)}刻钟`;
 
         return NextResponse.json(
           {
-            error: `道友切莫心急，闭关需循序渐进，请等待 ${timeString}`,
+            error: `道友切莫心急，闭关需循序渐进，请等待 ${remainingMinutes} 分钟`,
           },
           { status: 400 },
         );
