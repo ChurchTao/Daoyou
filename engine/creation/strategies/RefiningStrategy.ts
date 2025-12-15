@@ -6,6 +6,7 @@ import {
   EQUIPMENT_SLOT_VALUES,
   QUALITY_VALUES,
   REALM_VALUES,
+  STATUS_EFFECT_VALUES,
 } from '@/types/constants';
 import { getMaterialTypeLabel } from '@/types/dictionaries';
 import { z } from 'zod';
@@ -18,7 +19,7 @@ import {
 const EffectSchema = z.object({
   type: z.enum(EFFECT_TYPE_VALUES.filter((t) => t !== 'environment_change')),
   element: z.enum(ELEMENT_VALUES).optional(),
-  effect: z.string().optional(),
+  effect: z.enum(STATUS_EFFECT_VALUES).optional(),
   chance: z.number().optional(),
   amount: z.number().optional(),
   bonus: z.number().optional(),
@@ -116,7 +117,7 @@ export class RefiningStrategy implements CreationStrategy<
 4. **特效构造 (special_effects)**：
    你必须使用结构化的数据来描述特效，类型(type)严格限于：
    - \`damage_bonus\`: 属性伤害加成。必须指定 element 和 bonus (0.1 = 10%加成)。
-   - \`on_hit_add_effect\`: 攻击附带状态。必须指定 effect (如 'burn', 'stun', 'poison') 和 chance (触发几率%) 和 power (威力)。
+   - \`on_hit_add_effect\`: 攻击附带状态。必须指定 effect (如 ${STATUS_EFFECT_VALUES.join('、')}) 和 chance (触发几率%) 和 power (威力)。
    - \`on_use_cost_hp\`: 伤敌一千自损八百。指定 amount (消耗血量)。这类法宝威力通常极大。
 
 5. **命名与描述**：

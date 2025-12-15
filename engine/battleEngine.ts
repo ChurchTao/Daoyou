@@ -1,7 +1,19 @@
+import type { Quality } from '@/types/constants';
 import { ElementType, StatusEffect } from '@/types/constants';
 import type { Artifact, Cultivator, Skill } from '@/types/cultivator';
 import { getStatusLabel } from '@/types/dictionaries';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
+
+const QUALITY_POWER_MAP: Record<Quality, number> = {
+  凡品: 10,
+  灵品: 25,
+  玄品: 40,
+  真品: 60,
+  地品: 90,
+  天品: 130,
+  仙品: 180,
+  神品: 250,
+};
 
 export interface TurnUnitSnapshot {
   hp: number;
@@ -86,6 +98,7 @@ const STATUS_EFFECTS = new Set<StatusEffect>([
   'speed_up',
   'crit_rate_up',
   'armor_down',
+  'crit_rate_down',
 ]);
 
 // 使用统一的属性计算函数（从utils导入）
@@ -126,7 +139,36 @@ function getCritRate(attacker: BattleUnit): number {
   const final = calcFinalAttrs(attacker.data).final;
   let rate = (final.wisdom - 40) / 200;
   if (attacker.statuses.has('crit_rate_up')) rate += 0.15;
+  if (attacker.statuses.has('crit_rate_down')) rate -= 0.15;
   return Math.min(Math.max(rate, 0.05), 0.6);
+}
+
+function getArtifactDamageBonus(
+  attacker: BattleUnit,
+  element: ElementType,
+): number {
+  let multiplier = 0;
+  // Iterate equipped artifacts
+  const artifactsById = new Map(
+    attacker.data.inventory.artifacts.map((a) => [a.id!, a]),
+  );
+  const eqIds = [
+    attacker.data.equipped.weapon,
+    attacker.data.equipped.armor,
+    attacker.data.equipped.accessory,
+  ].filter(Boolean) as string[];
+
+  for (const id of eqIds) {
+    const art = artifactsById.get(id);
+    if (!art) continue;
+    const effects = [...(art.special_effects || []), ...(art.curses || [])];
+    for (const eff of effects) {
+      if (eff.type === 'damage_bonus' && eff.element === element) {
+        multiplier += eff.bonus;
+      }
+    }
+  }
+  return multiplier;
 }
 
 function calculateSpellBase(
@@ -140,6 +182,12 @@ function calculateSpellBase(
   let damage = power * (1 + attFinal.spirit / 150);
   damage *= getRootDamageMultiplier(attacker.data, element);
   damage *= getElementMultiplier(attacker.data, defender.data, element);
+
+  // Apply artifact damage bonuses
+  const artBonus = getArtifactDamageBonus(attacker, element);
+  if (artBonus > 0) {
+    damage *= 1 + artBonus;
+  }
 
   const critRate = getCritRate(attacker);
   const isCrit = Math.random() < critRate;
@@ -208,6 +256,7 @@ function isActionBlocked(unit: BattleUnit): boolean {
 
 function canUseSkill(unit: BattleUnit, skill: Skill): boolean {
   if (unit.statuses.has('silence') && skill.type !== 'heal') return false;
+  // Use skill.id explicitly, assuming it's always set for active skills
   const cd = unit.skillCooldowns.get(skill.id!) ?? 0;
   if (cd > 0) return false;
 
@@ -216,6 +265,33 @@ function canUseSkill(unit: BattleUnit, skill: Skill): boolean {
   if (cost > 0 && unit.mp < cost) return false;
 
   return true;
+}
+
+function getArtifactPowerAndCost(
+  quality: Quality | undefined,
+  willpower: number,
+): { power: number; cost: number } {
+  const baseQ = quality ? (QUALITY_POWER_MAP[quality] ?? 10) : 10;
+  const multiplier = willpower * (250 / 6000);
+  return { power: baseQ + multiplier, cost: baseQ };
+}
+
+function createArtifactSkill(artifact: Artifact, actor: BattleUnit): Skill {
+  const final = calcFinalAttrs(actor.data).final;
+  const { power, cost } = getArtifactPowerAndCost(
+    artifact.quality,
+    final.willpower,
+  );
+
+  return {
+    id: artifact.id,
+    name: artifact.name,
+    type: 'attack',
+    element: artifact.element,
+    power: power,
+    cost: cost,
+    cooldown: 2, // Fixed 2 turns
+  };
 }
 
 function describeStatus(effect?: StatusEffect | null): string {
@@ -407,7 +483,13 @@ function executeSkill(
     skill.type === 'debuff'
   ) {
     const speedBonus = defender.statuses.has('speed_up') ? 20 : 0;
-    const evasion = Math.min(0.3, (finalDef.speed + speedBonus) / 350);
+
+    // 眩晕或束缚状态下无法闪避
+    let evasion = 0;
+    if (!defender.statuses.has('stun') && !defender.statuses.has('root')) {
+      evasion = Math.min(0.3, (finalDef.speed + speedBonus) / 350);
+    }
+
     if (Math.random() < evasion) {
       log.push(
         `${defender.data.name} 闪避了 ${attacker.data.name} 的「${skill.name}」！`,
@@ -464,6 +546,29 @@ function executeSkill(
     attacker.mp = Math.max(0, attacker.mp - skill.cost);
   }
 
+  // 检查是否为主动法宝攻击 (Artifact Skill) 并触发 on_use_cost_hp
+  // 只有当技能ID与装备的武器ID一致时，才视为使用了该法宝 active skill
+  if (skill.id === attacker.data.equipped.weapon) {
+    const weapon = attacker.data.inventory.artifacts.find(
+      (a) => a.id === skill.id,
+    );
+    if (weapon) {
+      const effects = [
+        ...(weapon.special_effects || []),
+        ...(weapon.curses || []),
+      ];
+      for (const eff of effects) {
+        if (eff.type === 'on_use_cost_hp') {
+          const hpCost = eff.amount;
+          attacker.hp -= hpCost;
+          log.push(
+            `${attacker.data.name} 催动 ${weapon.name}，消耗了 ${hpCost} 点精血！`,
+          );
+        }
+      }
+    }
+  }
+
   // 装备 on_hit_add_effect 触发
   if (
     skill.type === 'attack' ||
@@ -494,10 +599,13 @@ function executeSkill(
               skillName: art.name,
               source: snapshotUnit(attacker),
             };
-            const applied = applyStatus(defender, eff.effect, effectInstance);
+
+            const targetUnit = eff.target_self ? attacker : defender; // Handle target_self
+            const applied = applyStatus(targetUnit, eff.effect, effectInstance);
+
             if (applied) {
               log.push(
-                `${attacker.data.name} 的 ${art.name} 触发，对 ${defender.data.name} 附加「${describeStatus(eff.effect)}」（持续 ${duration} 回合）。`,
+                `${attacker.data.name} 的 ${art.name} 触发，对 ${targetUnit.data.name} 附加「${describeStatus(eff.effect)}」（持续 ${duration} 回合）。`,
               );
             } else {
               log.push(
@@ -515,6 +623,21 @@ function executeSkill(
 
 function chooseSkill(actor: BattleUnit, target: BattleUnit): Skill | null {
   const available = actor.data.skills.filter((s) => canUseSkill(actor, s));
+
+  // Collect artifact active skill (Weapon only)
+  const weaponId = actor.data.equipped.weapon;
+  if (weaponId) {
+    const artifact = actor.data.inventory.artifacts.find(
+      (a) => a.id === weaponId,
+    );
+    if (artifact) {
+      const artSkill = createArtifactSkill(artifact, actor);
+      if (canUseSkill(actor, artSkill)) {
+        available.push(artSkill);
+      }
+    }
+  }
+
   if (!available.length) {
     return null;
   }
@@ -548,15 +671,24 @@ export function simulateBattle(
   const initUnit = (
     data: Cultivator,
     id: 'player' | 'opponent',
-  ): BattleUnit => ({
-    id,
-    data,
-    hp: 80 + calcFinalAttrs(data).final.vitality * 5,
-    mp: calcFinalAttrs(data).final.spirit * 2,
-    statuses: new Map(),
-    skillCooldowns: new Map(data.skills.map((s) => [s.id!, 0])),
-    isDefending: false,
-  });
+  ): BattleUnit => {
+    // Skills cooldowns
+    const cds = new Map(data.skills.map((s) => [s.id!, 0]));
+    // Weapon cooldown
+    if (data.equipped.weapon) {
+      cds.set(data.equipped.weapon, 0);
+    }
+
+    return {
+      id,
+      data,
+      hp: 80 + calcFinalAttrs(data).final.vitality * 5,
+      mp: calcFinalAttrs(data).final.spirit * 2,
+      statuses: new Map(),
+      skillCooldowns: cds,
+      isDefending: false,
+    };
+  };
 
   const state: BattleState = {
     player: initUnit(player, 'player'),
