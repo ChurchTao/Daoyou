@@ -4,6 +4,8 @@ import {
   InkActionGroup,
   InkBadge,
   InkButton,
+  InkDialog,
+  type InkDialogState,
   InkList,
   InkListItem,
   InkNotice,
@@ -23,11 +25,13 @@ import {
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 export default function CultivatorPage() {
   const { cultivator, inventory, skills, equipped, isLoading } =
     useCultivatorBundle();
   const pathname = usePathname();
+  const [dialog, setDialog] = useState<InkDialogState | null>(null);
 
   if (isLoading && !cultivator) {
     return (
@@ -187,17 +191,30 @@ export default function CultivatorPage() {
           ].filter(Boolean);
 
           return (
-            <InkStatRow
+            <div
               key={key}
-              label={`${attrInfo.icon} ${attrInfo.label}`}
-              base={baseValue}
-              final={finalValue}
-              detail={detailParts.length ? detailParts.join('｜') : undefined}
-            />
+              onClick={() =>
+                setDialog({
+                  id: `attr-help-${key}`,
+                  title: `${attrInfo.icon} ${attrInfo.label}`,
+                  content: attrInfo.description,
+                  confirmLabel: '明悟',
+                })
+              }
+              className="cursor-pointer hover:bg-ink/5 rounded px-2 -mx-2 transition-colors"
+            >
+              <InkStatRow
+                label={`${attrInfo.icon} ${attrInfo.label}`}
+                base={baseValue}
+                final={finalValue}
+                detail={detailParts.length ? detailParts.join('｜') : undefined}
+              />
+            </div>
           );
         })}
         <p className="mt-2 text-xs text-ink-secondary">
-          境界上限：{breakdown.cap}（当前境界：{cultivator.realm}）
+          境界上限：{breakdown.cap}（当前境界：{cultivator.realm}
+          ）(点击属性可查看详情)
         </p>
       </InkSection>
 
@@ -252,6 +269,8 @@ export default function CultivatorPage() {
           ) : undefined
         }
       />
+
+      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>
   );
 }

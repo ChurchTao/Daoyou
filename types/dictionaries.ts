@@ -100,7 +100,7 @@ export const ATTRIBUTE_DISPLAY_MAP: Record<AttributeKey, AttributeDisplayInfo> =
       label: '神识',
       icon: '👁️',
       shortLabel: '识',
-      description: '神魂坚韧程度，影响状态抗性与神识对冲',
+      description: '神魂坚韧程度，影响状态抗性、暴击伤害',
     },
   };
 

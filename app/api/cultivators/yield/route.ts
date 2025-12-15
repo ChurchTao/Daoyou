@@ -1,9 +1,14 @@
 import { db } from '@/lib/drizzle/db';
+import * as schema from '@/lib/drizzle/schema';
 import { cultivators } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { createClient } from '@/lib/supabase/server';
 import { REALM_YIELD_RATES, RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';
+import {
+  GeneratedMaterial,
+  generateRandomMaterials,
+} from '@/utils/materialGenerator';
 import { eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -32,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Prevent concurrent claims with Redis lock
     const lockKey = `yield:lock:${cultivatorId}`;
-    const acquired = await redis.set(lockKey, 'locked', { nx: true, ex: 10 }); // 10s lock
+    const acquired = await redis.set(lockKey, 'locked', { nx: true, ex: 100 }); // 10s lock
 
     if (!acquired) {
       return NextResponse.json(
@@ -77,7 +82,31 @@ export async function POST(req: NextRequest) {
         const randomMultiplier = 0.8 + Math.random() * (2 - 0.8); // 0.8 ~ 2.0
         const amount = Math.floor(baseRate * hoursElapsed * randomMultiplier);
 
-        // 4. Update DB
+        // 4. Calculate Material Drops
+        const materialCount = Math.floor(hoursElapsed / 3);
+        let gainedMaterials: GeneratedMaterial[] = [];
+
+        if (materialCount > 0) {
+          gainedMaterials = await generateRandomMaterials(materialCount);
+
+          if (gainedMaterials.length > 0) {
+            await tx.insert(schema.materials).values(
+              gainedMaterials.map((m) => ({
+                id: crypto.randomUUID(),
+                cultivatorId: cultivatorId,
+                name: m.name,
+                type: m.type,
+                rank: m.rank, // Corrected from quality to rank
+                description: m.description,
+                element: m.element,
+                quantity: m.quantity,
+                price: m.price,
+              })),
+            );
+          }
+        }
+
+        // 5. Update DB
         await tx
           .update(cultivators)
           .set({
@@ -90,13 +119,14 @@ export async function POST(req: NextRequest) {
           cultivatorName: cultivator.name,
           cultivatorRealm: cultivator.realm,
           amount,
+          materials: gainedMaterials,
           hours: hoursElapsed,
           prevBalance: cultivator.spirit_stones,
           newBalance: cultivator.spirit_stones + amount,
         };
       });
 
-      // 5. Generate Flavor Text via SSE
+      // 6. Generate Flavor Text via SSE
       const encoder = new TextEncoder();
       const customStream = new ReadableStream({
         async start(controller) {
@@ -106,7 +136,6 @@ export async function POST(req: NextRequest) {
               type: 'result',
               data: {
                 ...result,
-                message: `道友此番历练 ${result.hours.toFixed(1)} 时辰，气运加身，斩获灵石 ${result.amount} 枚。`,
               },
             });
             controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
@@ -114,14 +143,22 @@ export async function POST(req: NextRequest) {
             const systemPrompt =
               '你是一个修仙世界的记录者，负责记录修士外出历练的经历。';
             const userPrompt = `
-              请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
-              修士在历练中花费了【${result.hours.toFixed(1)}】小时，获得了【${result.amount}】灵石。
-              
-              要求：
-              1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等）。
-              2. 必须符合修仙世界观，文风古风，有代入感。
-              3. 结尾自然地提到获得了灵石。
-            `;
+                  请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
+                  修士在历练中花费了【${result.hours.toFixed(1)}】小时。
+                  
+                  收获如下：
+                  1. 灵石：【${result.amount}】枚。
+                  ${
+                    result.materials.length > 0
+                      ? `2. 获得材料：${result.materials.map((m) => `【${m.rank}】${m.name}`).join('、')}。`
+                      : ''
+                  }
+                  
+                  要求：
+                  1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石和材料的过程融入故事中。
+                  2. 必须符合修仙世界观，文风古风，有代入感。
+                  3. 若获得了稀有材料（玄品以上），请着重描写其获取的不易或机缘巧合。
+                `;
 
             // Stream AI generation
             const aiStreamResult = stream_text(systemPrompt, userPrompt, true);

@@ -1,9 +1,17 @@
 'use client';
 
-import { InkBadge, InkList, InkListItem } from '@/components/InkComponents';
+import {
+  InkBadge,
+  InkButton,
+  InkList,
+  InkListItem,
+} from '@/components/InkComponents';
 import { InkSection } from '@/components/InkLayout';
+import { ELEMENT_VALUES } from '@/types/constants';
 import type { SpiritualRoot } from '@/types/cultivator';
 import { getElementInfo } from '@/types/dictionaries';
+import { ReactNode } from 'react';
+import { useInkUI } from '../InkUIProvider';
 
 interface LingGenProps {
   spiritualRoots: SpiritualRoot[];
@@ -12,7 +20,7 @@ interface LingGenProps {
   /** 是否使用简化显示（仅显示badge），默认 false */
   compact?: boolean;
   /** 自定义标题，默认 "【灵根】" */
-  title?: string;
+  title?: ReactNode;
 }
 
 /**
@@ -24,9 +32,34 @@ export function LingGen({
   compact = false,
   title = '【灵根】',
 }: LingGenProps) {
+  const { openDialog } = useInkUI();
   if (!spiritualRoots || spiritualRoots.length === 0) {
     return null;
   }
+
+  const showRootHelp = () => {
+    openDialog({
+      title: '灵根说明',
+      content: (
+        <div className="flex flex-col gap-2 text-ink-secondary text-sm">
+          <p>灵根是修仙者感应天地灵气的根本。</p>
+          <p>
+            <span className="text-ink font-bold">属性：</span>
+            决定了可修炼的功法属性与法术威力加成（如同属性法术伤害提升）。
+          </p>
+          <p>
+            <span className="text-ink font-bold">强度：</span>
+            灵根越纯净（强度越高），修炼速度越快，感应灵气越容易。
+          </p>
+          <p>单一属性的天灵根修炼速度最快，多属性杂灵根则较慢。</p>
+          <p>
+            灵根有共有 {ELEMENT_VALUES.join('、')}, 其中 风、雷、冰为变异灵根
+          </p>
+        </div>
+      ),
+      confirmLabel: '明悟',
+    });
+  };
 
   const content = compact ? (
     <div className="flex flex-wrap">
@@ -59,7 +92,12 @@ export function LingGen({
   );
 
   if (showSection) {
-    return <InkSection title={title}>{content}</InkSection>;
+    return (
+      <InkSection title={title}>
+        {content}
+        <InkButton onClick={showRootHelp}>💡 灵根说明</InkButton>
+      </InkSection>
+    );
   }
 
   return <>{content}</>;

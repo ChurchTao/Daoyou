@@ -2,6 +2,7 @@
 
 import { InkBadge, InkButton } from '@/components/InkComponents';
 import type { Cultivator } from '@/types/cultivator';
+import { GeneratedMaterial } from '@/utils/materialGenerator';
 import { useEffect, useState } from 'react';
 import { InkModal } from './InkModal';
 import { useInkUI } from './InkUIProvider';
@@ -18,6 +19,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
     amount: number;
     hours: number;
     story: string;
+    materials?: GeneratedMaterial[];
   } | null>(null);
 
   const [claiming, setClaiming] = useState(false);
@@ -73,6 +75,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
                 setYieldResult(() => ({
                   amount: data.data.amount,
                   hours: data.data.hours,
+                  materials: data.data.materials,
                   story: currentStory || '',
                 }));
               } else if (data.type === 'chunk') {
@@ -177,6 +180,21 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
             💎 {yieldResult?.amount}
           </span>
         </div>
+
+        {yieldResult?.materials && yieldResult.materials.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm font-bold text-ink mb-2">天材地宝：</p>
+            <div className="flex flex-wrap gap-2">
+              {yieldResult.materials.map(
+                (m: GeneratedMaterial, idx: number) => (
+                  <InkBadge key={idx} tier={m.rank}>
+                    {`${m.name} x ${m.quantity}`}
+                  </InkBadge>
+                ),
+              )}
+            </div>
+          </div>
+        )}
       </InkModal>
     </div>
   );

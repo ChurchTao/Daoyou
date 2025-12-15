@@ -20,7 +20,7 @@ interface InkPageShellProps {
 }
 
 interface InkSectionProps {
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   hint?: string;
   subdued?: boolean;

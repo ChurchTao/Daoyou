@@ -227,7 +227,7 @@ const tierSlugMap: Record<Tier, string> = {
  * @returns 品阶徽记
  */
 interface InkBadgeProps {
-  children?: ReactNode;
+  children?: string;
   tier?: Tier;
   tierText?: string;
   tone?: 'default' | 'accent' | 'warning' | 'danger';
