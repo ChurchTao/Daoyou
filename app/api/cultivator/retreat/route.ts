@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '角色不存在' }, { status: 404 });
     }
 
-    // 检查闭关冷却时间（2小时）
+    // 检查闭关冷却时间（30分钟）
     if (cultivator.retreat_records && cultivator.retreat_records.length > 0) {
       const lastRetreat =
         cultivator.retreat_records[cultivator.retreat_records.length - 1];

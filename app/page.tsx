@@ -4,6 +4,8 @@ import { LingGen } from '@/components/func';
 import {
   InkBadge,
   InkButton,
+  InkDialog,
+  type InkDialogState,
   InkList,
   InkListItem,
   InkNotice,
@@ -18,6 +20,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 const quickActions = [
   { label: '🧘 闭关', href: '/retreat' },
@@ -31,13 +34,40 @@ const quickActions = [
 
 function HomePageContent() {
   const pathname = usePathname();
-  const { isAnonymous } = useAuth();
+  const { isAnonymous, signOut } = useAuth();
   const { cultivator, isLoading, note, refresh } = useCultivatorBundle();
+  const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const spiritualRoots = cultivator?.spiritual_roots ?? [];
 
   const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
   const spirit = cultivator?.attributes.spirit ?? 0;
   const maxSpirit = spirit;
+
+  const handleLogout = () => {
+    if (isAnonymous) {
+      setDialog({
+        id: 'logout-confirm',
+        title: '神魂出窍',
+        content: (
+          <div className="space-y-2">
+            <p>道友现为无名散修（游客身份）。</p>
+            <p className="text-crimson">
+              若是此时离去，恐将迷失在虚空之中，再也无法找回这具肉身。
+            </p>
+            <p>确定要神魂出窍吗？</p>
+          </div>
+        ),
+        confirmLabel: '去意已决',
+        cancelLabel: '且慢',
+        onConfirm: async () => {
+          await signOut();
+          refresh();
+        },
+      });
+    } else {
+      signOut().then(() => refresh());
+    }
+  };
 
   if (isLoading) {
     return (
@@ -158,6 +188,9 @@ function HomePageContent() {
                   {action.label}
                 </InkButton>
               ))}
+            <InkButton className="text-sm" onClick={handleLogout}>
+              👻 神魂出窍
+            </InkButton>
           </div>
         </InkSection>
       )}
@@ -167,6 +200,8 @@ function HomePageContent() {
           <RecentBattles />
         </InkSection>
       )}
+
+      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>
   );
 }
