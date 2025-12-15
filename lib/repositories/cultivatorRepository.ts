@@ -31,18 +31,13 @@ async function assembleCultivator(
 
   const cultivatorId = cultivatorRecord.id;
 
-  // 并行获取所有关联数据
+  // 并行获取所有关联数据 (仅核心数据)
   const [
     spiritualRootsResult,
     preHeavenFatesResult,
     cultivationsResult,
     skillsResult,
-    artifactsResult,
-    consumablesResult,
     equippedResult,
-    retreatRecordsResult,
-    breakthroughHistoryResult,
-    materialsResult,
   ] = await Promise.all([
     db
       .select()
@@ -62,30 +57,8 @@ async function assembleCultivator(
       .where(eq(schema.skills.cultivatorId, cultivatorId)),
     db
       .select()
-      .from(schema.artifacts)
-      .where(eq(schema.artifacts.cultivatorId, cultivatorId)),
-    db
-      .select()
-      .from(schema.consumables)
-      .where(eq(schema.consumables.cultivatorId, cultivatorId)),
-    db
-      .select()
       .from(schema.equippedItems)
       .where(eq(schema.equippedItems.cultivatorId, cultivatorId)),
-    db
-      .select()
-      .from(schema.retreatRecords)
-      .where(eq(schema.retreatRecords.cultivatorId, cultivatorId))
-      .orderBy(schema.retreatRecords.timestamp),
-    db
-      .select()
-      .from(schema.breakthroughHistory)
-      .where(eq(schema.breakthroughHistory.cultivatorId, cultivatorId))
-      .orderBy(schema.breakthroughHistory.createdAt),
-    db
-      .select()
-      .from(schema.materials)
-      .where(eq(schema.materials.cultivatorId, cultivatorId)),
   ]);
 
   // 组装灵根
@@ -131,72 +104,18 @@ async function assembleCultivator(
     target_self: s.target_self === 1 ? true : undefined,
   }));
 
-  // 组装法宝
-  const artifacts = artifactsResult.map((a) => ({
-    id: a.id,
-    name: a.name,
-    slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
-    element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
-    bonus: a.bonus as Cultivator['inventory']['artifacts'][0]['bonus'],
-    quality: a.quality as
-      | Cultivator['inventory']['artifacts'][0]['quality']
-      | undefined,
-    required_realm: a.required_realm as
-      | Cultivator['inventory']['artifacts'][0]['required_realm']
-      | undefined,
-    special_effects: (a.special_effects ||
-      []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
-    curses: (a.curses ||
-      []) as Cultivator['inventory']['artifacts'][0]['curses'],
-    description: a.description || '',
-  }));
+  // 组装法宝 - 延迟加载
+  const artifacts = await getCultivatorArtifacts(userId, cultivatorId);
 
-  // 组装消耗品
-  const consumables = consumablesResult.map((c) => ({
-    id: c.id,
-    name: c.name,
-    quality: c.quality as Quality,
-    type: c.type as ConsumableType,
-    effect: c.effect as ConsumableEffect[],
-    description: c.description || '',
-  }));
+  // 组装消耗品 - 延迟加载
+  const consumables: Cultivator['inventory']['consumables'] = [];
 
-  // 组装材料
-  const materials = materialsResult.map((m) => ({
-    id: m.id,
-    name: m.name,
-    type: m.type as MaterialType,
-    rank: m.rank as Quality,
-    element: m.element as ElementType | undefined,
-    description: m.description || '',
-    details: (m.details as Record<string, unknown>) || undefined,
-    quantity: m.quantity,
-  }));
+  // 组装材料 - 延迟加载
+  const materials: Cultivator['inventory']['materials'] = [];
 
-  const retreat_records: Cultivator['retreat_records'] =
-    retreatRecordsResult.map((record) => ({
-      realm: record.realm as Cultivator['realm'],
-      realm_stage: record.realm_stage as Cultivator['realm_stage'],
-      years: record.years,
-      success: record.success ?? false,
-      chance: record.chance,
-      roll: record.roll,
-      timestamp: record.timestamp
-        ? record.timestamp.toISOString()
-        : new Date().toISOString(),
-      modifiers: record.modifiers as RetreatRecord['modifiers'],
-    }));
+  const retreat_records: Cultivator['retreat_records'] = undefined;
 
-  const breakthrough_history: Cultivator['breakthrough_history'] =
-    breakthroughHistoryResult.map((entry) => ({
-      from_realm: entry.from_realm as Cultivator['realm'],
-      from_stage: entry.from_stage as Cultivator['realm_stage'],
-      to_realm: entry.to_realm as Cultivator['realm'],
-      to_stage: entry.to_stage as Cultivator['realm_stage'],
-      age: entry.age,
-      years_spent: entry.years_spent,
-      story: entry.story ?? undefined,
-    }));
+  const breakthrough_history: Cultivator['breakthrough_history'] = undefined;
 
   // 组装装备状态（将 UUID 转换为字符串）
   const equipped: Cultivator['equipped'] = {
@@ -792,6 +711,122 @@ export async function deleteCultivator(
     );
 
   return true;
+}
+
+// ===== 单独获取数据的接口 =====
+
+export async function getCultivatorConsumables(
+  userId: string,
+  cultivatorId: string,
+): Promise<Cultivator['inventory']['consumables']> {
+  const result = await db
+    .select()
+    .from(schema.consumables)
+    .where(eq(schema.consumables.cultivatorId, cultivatorId));
+
+  return result.map((c) => ({
+    id: c.id,
+    name: c.name,
+    quality: c.quality as Quality,
+    type: c.type as ConsumableType,
+    effect: c.effect as ConsumableEffect[],
+    description: c.description || '',
+  }));
+}
+
+export async function getCultivatorMaterials(
+  userId: string,
+  cultivatorId: string,
+): Promise<Cultivator['inventory']['materials']> {
+  const result = await db
+    .select()
+    .from(schema.materials)
+    .where(eq(schema.materials.cultivatorId, cultivatorId));
+
+  return result.map((m) => ({
+    id: m.id,
+    name: m.name,
+    type: m.type as MaterialType,
+    rank: m.rank as Quality,
+    element: m.element as ElementType | undefined,
+    description: m.description || '',
+    details: (m.details as Record<string, unknown>) || undefined,
+    quantity: m.quantity,
+  }));
+}
+
+export async function getCultivatorRetreatRecords(
+  userId: string,
+  cultivatorId: string,
+): Promise<Cultivator['retreat_records']> {
+  const result = await db
+    .select()
+    .from(schema.retreatRecords)
+    .where(eq(schema.retreatRecords.cultivatorId, cultivatorId))
+    .orderBy(schema.retreatRecords.timestamp);
+
+  return result.map((record) => ({
+    realm: record.realm as Cultivator['realm'],
+    realm_stage: record.realm_stage as Cultivator['realm_stage'],
+    years: record.years,
+    success: record.success ?? false,
+    chance: record.chance,
+    roll: record.roll,
+    timestamp: record.timestamp
+      ? record.timestamp.toISOString()
+      : new Date().toISOString(),
+    modifiers: record.modifiers as RetreatRecord['modifiers'],
+  }));
+}
+
+export async function getCultivatorBreakthroughHistory(
+  userId: string,
+  cultivatorId: string,
+): Promise<Cultivator['breakthrough_history']> {
+  const result = await db
+    .select()
+    .from(schema.breakthroughHistory)
+    .where(eq(schema.breakthroughHistory.cultivatorId, cultivatorId))
+    .orderBy(schema.breakthroughHistory.createdAt);
+
+  return result.map((entry) => ({
+    from_realm: entry.from_realm as Cultivator['realm'],
+    from_stage: entry.from_stage as Cultivator['realm_stage'],
+    to_realm: entry.to_realm as Cultivator['realm'],
+    to_stage: entry.to_stage as Cultivator['realm_stage'],
+    age: entry.age,
+    years_spent: entry.years_spent,
+    story: entry.story ?? undefined,
+  }));
+}
+
+export async function getCultivatorArtifacts(
+  userId: string,
+  cultivatorId: string,
+): Promise<Cultivator['inventory']['artifacts']> {
+  const result = await db
+    .select()
+    .from(schema.artifacts)
+    .where(eq(schema.artifacts.cultivatorId, cultivatorId));
+
+  return result.map((a) => ({
+    id: a.id,
+    name: a.name,
+    slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
+    element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
+    bonus: a.bonus as Cultivator['inventory']['artifacts'][0]['bonus'],
+    quality: a.quality as
+      | Cultivator['inventory']['artifacts'][0]['quality']
+      | undefined,
+    required_realm: a.required_realm as
+      | Cultivator['inventory']['artifacts'][0]['required_realm']
+      | undefined,
+    special_effects: (a.special_effects ||
+      []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
+    curses: (a.curses ||
+      []) as Cultivator['inventory']['artifacts'][0]['curses'],
+    description: a.description || '',
+  }));
 }
 
 // ===== 临时角色相关操作 =====

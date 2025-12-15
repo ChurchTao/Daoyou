@@ -54,8 +54,100 @@ export function useCultivatorBundle() {
     };
   });
 
+  // 提取通用获取逻辑，不包含 setState
+  const fetchInventoryData = useCallback(async (cultivatorId: string) => {
+    try {
+      const res = await fetch(`/api/cultivators/${cultivatorId}/inventory`);
+      const json = await res.json();
+      return json.success ? json.data : null;
+    } catch (e) {
+      console.error('获取背包失败', e);
+      return null;
+    }
+  }, []);
+
+  const fetchHistoryData = useCallback(async (cultivatorId: string) => {
+    try {
+      const res = await fetch(`/api/cultivators/${cultivatorId}/history`);
+      const json = await res.json();
+      return json.success ? json.data : null;
+    } catch (e) {
+      console.error('获取历史记录失败', e);
+      return null;
+    }
+  }, []);
+
+  // 单独刷新背包数据 (Consumables, Materials, Artifacts)
+  const refreshInventory = useCallback(async () => {
+    if (!state.cultivator?.id) return;
+    const data = await fetchInventoryData(state.cultivator.id);
+
+    if (data) {
+      setState((prev) => {
+        if (!prev.cultivator) return prev;
+
+        const newInventory = {
+          ...prev.inventory,
+          consumables: data.consumables,
+          materials: data.materials,
+          artifacts: data.artifacts,
+        };
+
+        const newCultivator = {
+          ...prev.cultivator,
+          inventory: newInventory,
+        };
+
+        // 更新缓存
+        if (cachedData) {
+          cachedData = {
+            ...cachedData,
+            cultivator: newCultivator,
+            inventory: newInventory,
+          };
+        }
+
+        return {
+          ...prev,
+          cultivator: newCultivator,
+          inventory: newInventory,
+        };
+      });
+    }
+  }, [state.cultivator?.id, fetchInventoryData]);
+
+  // 单独刷新历史记录 (Retreat, Breakthrough)
+  const refreshHistory = useCallback(async () => {
+    if (!state.cultivator?.id) return;
+    const data = await fetchHistoryData(state.cultivator.id);
+
+    if (data) {
+      setState((prev) => {
+        if (!prev.cultivator) return prev;
+
+        const newCultivator = {
+          ...prev.cultivator,
+          retreat_records: data.retreat_records,
+          breakthrough_history: data.breakthrough_history,
+        };
+
+        if (cachedData) {
+          cachedData = {
+            ...cachedData,
+            cultivator: newCultivator,
+          };
+        }
+
+        return {
+          ...prev,
+          cultivator: newCultivator,
+        };
+      });
+    }
+  }, [state.cultivator?.id, fetchHistoryData]);
+
   const loadFromServer = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       cachedData = null;
       cachedUserId = null;
       setState((prev) => ({
@@ -74,6 +166,7 @@ export function useCultivatorBundle() {
     setState((prev) => ({ ...prev, isLoading: true, error: undefined }));
 
     try {
+      // 1. 获取核心数据
       const cultivatorResponse = await fetch('/api/cultivators');
       const cultivatorResult = await cultivatorResponse.json();
 
@@ -86,8 +179,6 @@ export function useCultivatorBundle() {
       const hasDead = !!cultivatorResult.meta?.hasDead;
 
       if (!hasActive) {
-        // 没有在生效中的角色
-        // 如果存在已坐化角色，前端会根据 hasDead 强制引导到转世页面
         setState((prev) => ({
           ...prev,
           cultivator: null,
@@ -99,75 +190,51 @@ export function useCultivatorBundle() {
           note: hasDead ? '前世道途已尽，待转世重修。' : undefined,
         }));
         cachedData = null;
-        cachedUserId = user.id;
+        cachedUserId = userId;
         return;
       }
 
       const cultivator: Cultivator = list[0];
 
-      // 新模型中，Cultivator 已经包含完整的 inventory、skills、equipped 数据
-      // 如果 API 返回的数据不完整，可以从单独的接口获取（向后兼容）
-      let inventory = cultivator.inventory || defaultInventory;
-      let skills = cultivator.skills || [];
-      let equipped = cultivator.equipped || {
+      // 2. 并行获取背包和历史记录
+      const [inventoryData, historyData] = await Promise.all([
+        fetchInventoryData(cultivator.id!),
+        fetchHistoryData(cultivator.id!),
+      ]);
+
+      // 3. 组装完整数据
+      // 核心数据已加载，清单可能不完整（consumables/materials 是空的）
+      // 这里只处理核心数据中已有的部分，然后用 fetch 到的数据覆盖
+      const baseInventory = cultivator.inventory || defaultInventory;
+
+      const inventory = {
+        ...baseInventory,
+        consumables: inventoryData?.consumables || [],
+        materials: inventoryData?.materials || [],
+        artifacts: inventoryData?.artifacts || [],
+      };
+
+      const skills = cultivator.skills || [];
+      const equipped = cultivator.equipped || {
         weapon: null,
         armor: null,
         accessory: null,
       };
 
-      // 如果数据不完整，尝试从单独接口获取（向后兼容）
-      if (!inventory.artifacts || inventory.artifacts.length === 0) {
-        try {
-          const inventoryRes = await fetch(
-            `/api/cultivators/${cultivator.id}/inventory`,
-          );
-          const inventoryJson = await inventoryRes.json();
-          if (inventoryJson.success) {
-            inventory = inventoryJson.data;
-          }
-        } catch {
-          // 忽略错误，使用默认值
-        }
-      }
+      const retreat_records = historyData?.retreat_records || [];
+      const breakthrough_history = historyData?.breakthrough_history || [];
 
-      if (!skills || skills.length === 0) {
-        try {
-          const skillsRes = await fetch(
-            `/api/create-skill?cultivatorId=${cultivator.id}`,
-          );
-          const skillsJson = await skillsRes.json();
-          if (skillsJson.success) {
-            skills = skillsJson.data;
-          }
-        } catch {
-          // 忽略错误，使用默认值
-        }
-      }
-
-      if (
-        !equipped ||
-        (!equipped.weapon && !equipped.armor && !equipped.accessory)
-      ) {
-        try {
-          const equippedRes = await fetch(
-            `/api/cultivators/${cultivator.id}/equip`,
-          );
-          const equippedJson = await equippedRes.json();
-          if (equippedJson.success) {
-            equipped = equippedJson.data;
-          }
-        } catch {
-          // 忽略错误，使用默认值
-        }
-      }
+      const fullCultivator = {
+        ...cultivator,
+        inventory,
+        skills,
+        equipped,
+        retreat_records,
+        breakthrough_history,
+      };
 
       const newState = {
-        cultivator: {
-          ...cultivator,
-          inventory,
-          skills,
-          equipped,
-        },
+        cultivator: fullCultivator,
         inventory,
         skills,
         equipped,
@@ -178,7 +245,7 @@ export function useCultivatorBundle() {
 
       // 更新缓存
       cachedData = newState;
-      cachedUserId = user.id;
+      cachedUserId = userId;
 
       setState(newState);
     } catch (error) {
@@ -188,11 +255,11 @@ export function useCultivatorBundle() {
         isLoading: false,
       }));
     }
-  }, [user]);
+  }, [userId, fetchInventoryData, fetchHistoryData]);
 
   useEffect(() => {
     // 如果没有用户，清除缓存
-    if (!user) {
+    if (!userId) {
       if (cachedData) {
         cachedData = null;
         cachedUserId = null;
@@ -225,7 +292,7 @@ export function useCultivatorBundle() {
       loadFromServer();
       initializedRef.current = true;
     }
-  }, [user, userId, loadFromServer]);
+  }, [userId, loadFromServer]);
 
   useEffect(() => {
     const cultivator = state.cultivator;
@@ -244,5 +311,7 @@ export function useCultivatorBundle() {
   return {
     ...state,
     refresh: loadFromServer,
+    refreshInventory,
+    refreshHistory,
   };
 }

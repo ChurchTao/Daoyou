@@ -19,7 +19,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 export default function RefinePage() {
-  const { cultivator, inventory, refresh, note, isLoading } =
+  const { cultivator, inventory, refreshInventory, note, isLoading } =
     useCultivatorBundle();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
@@ -93,7 +93,7 @@ export default function RefinePage() {
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
       setSelectedMaterialIds([]);
-      await refresh();
+      await refreshInventory();
     } catch (error) {
       const failMessage =
         error instanceof Error

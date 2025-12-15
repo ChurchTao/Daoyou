@@ -2,6 +2,7 @@ import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
   getCultivatorById,
+  getCultivatorRetreatRecords,
   updateCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
@@ -47,9 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查闭关冷却时间（30分钟）
-    if (cultivator.retreat_records && cultivator.retreat_records.length > 0) {
-      const lastRetreat =
-        cultivator.retreat_records[cultivator.retreat_records.length - 1];
+    const retreat_records = await getCultivatorRetreatRecords(
+      user.id,
+      cultivatorId,
+    );
+    if (retreat_records && retreat_records.length > 0) {
+      const lastRetreat = retreat_records[retreat_records.length - 1];
       const lastRetreatTime = new Date(lastRetreat.timestamp).getTime();
       const now = Date.now();
       const cooldownTime = COOLDOWN_MINUTES * 60 * 1000;

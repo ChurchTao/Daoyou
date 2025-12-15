@@ -1,7 +1,6 @@
 import {
-  getCultivatorArtifacts,
-  getCultivatorConsumables,
-  getCultivatorMaterials,
+  getCultivatorBreakthroughHistory,
+  getCultivatorRetreatRecords,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,22 +22,20 @@ export async function GET(
 
     const { id: cultivatorId } = await params;
 
-    const [consumables, materials, artifacts] = await Promise.all([
-      getCultivatorConsumables(user.id, cultivatorId),
-      getCultivatorMaterials(user.id, cultivatorId),
-      getCultivatorArtifacts(user.id, cultivatorId),
+    const [retreat_records, breakthrough_history] = await Promise.all([
+      getCultivatorRetreatRecords(user.id, cultivatorId),
+      getCultivatorBreakthroughHistory(user.id, cultivatorId),
     ]);
 
     return NextResponse.json({
       success: true,
       data: {
-        consumables,
-        materials,
-        artifacts,
+        retreat_records,
+        breakthrough_history,
       },
     });
   } catch (error) {
-    console.error('获取背包数据失败:', error);
-    return NextResponse.json({ error: '获取背包数据失败' }, { status: 500 });
+    console.error('获取历史记录失败:', error);
+    return NextResponse.json({ error: '获取历史记录失败' }, { status: 500 });
   }
 }
