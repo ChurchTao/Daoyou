@@ -1,5 +1,4 @@
 import { Cultivator } from '@/types/cultivator';
-import { v4 as uuidv4 } from 'uuid';
 import { redis } from '../redis';
 
 const TEMP_CHAR_TTL = 3600; // 1 hour in seconds
@@ -13,7 +12,7 @@ const REROLL_COUNT_PREFIX = 'reroll_count:';
 export async function saveTempCharacter(
   cultivator: Cultivator,
 ): Promise<string> {
-  const tempId = uuidv4();
+  const tempId = crypto.randomUUID();
   const key = `${TEMP_PREFIX}${tempId}`;
 
   await redis.set(key, JSON.stringify(cultivator), { ex: TEMP_CHAR_TTL });
