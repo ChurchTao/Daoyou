@@ -28,7 +28,7 @@ export function RankingListItem({
 
   return (
     <div
-      className={`py-3 border-b border-ink/20 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
+      className={`py-3 border-b border-dashed border-ink/20 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
     >
       {/* 第一行：排名、姓名、性别、年龄、标记 */}
       <div className="flex items-baseline gap-2 mb-1">
@@ -49,7 +49,7 @@ export function RankingListItem({
 
       {/* 第三行：操作按钮（仅非自己时显示） */}
       {!isSelf && (
-        <div className="flex gap-2 ml-10">
+        <div className="flex justify-end gap-2 ml-10">
           {canChallenge && (
             <InkButton
               onClick={() => onChallenge(item.id)}

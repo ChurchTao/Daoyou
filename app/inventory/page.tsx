@@ -218,6 +218,7 @@ export default function InventoryPage() {
             return (
               <InkListItem
                 key={item.id ?? item.name}
+                layout="col"
                 title={
                   <>
                     {slotInfo.icon} {item.name} · {item.element}
@@ -294,6 +295,7 @@ export default function InventoryPage() {
             return (
               <InkListItem
                 key={item.id || idx}
+                layout="col"
                 title={
                   <>
                     {typeInfo.icon} {item.name}
@@ -353,6 +355,7 @@ export default function InventoryPage() {
             return (
               <InkListItem
                 key={item.id || idx}
+                layout="col"
                 title={
                   <>
                     {item.name}
@@ -408,7 +411,7 @@ export default function InventoryPage() {
       const item = selectedItem as Artifact;
       const slotInfo = getEquipmentSlotInfo(item.slot);
       return (
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
             <div className="text-4xl mb-2">{slotInfo.icon}</div>
             <h4 className="text-lg font-bold">{item.name}</h4>
@@ -485,7 +488,7 @@ export default function InventoryPage() {
     else if ('effect' in selectedItem) {
       const item = selectedItem as Consumable;
       return (
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
             <div className="text-4xl mb-2">🌕</div>
             <h4 className="text-lg font-bold">{item.name}</h4>
@@ -496,7 +499,7 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          <div className="space-y-4 text-sm">
+          <div className="space-y-2 text-sm">
             {item.description && (
               <div>
                 <span className="block opacity-70 mb-1">丹药详述</span>
@@ -534,7 +537,7 @@ export default function InventoryPage() {
       const item = selectedItem as Material;
       const typeInfo = getMaterialTypeInfo(item.type);
       return (
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
             <div className="text-4xl mb-2">{typeInfo.icon}</div>
             <h4 className="text-lg font-bold">{item.name}</h4>

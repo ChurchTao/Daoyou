@@ -65,17 +65,15 @@ export function InkModal({
 
       {/* Modal Content */}
       <div
-        className={`bg-paper max-w-md w-full rounded-xl shadow-2xl border-2 border-primary/30 p-6 relative animate-in zoom-in-95 duration-200 z-10 ${className}`}
+        className={`bg-paper max-w-md w-full rounded-xl shadow-2xl border border-ink/30 p-6 relative animate-in zoom-in-95 duration-200 z-10 ${className}`}
         role="dialog"
         aria-modal="true"
       >
         {title && (
-          <h3 className="text-xl font-bold text-center mb-4 text-primary">
-            {title}
-          </h3>
+          <h3 className="text-xl font-bold text-center text-ink">{title}</h3>
         )}
 
-        <div className="max-h-[50vh] overflow-y-auto mb-6 custom-scrollbar">
+        <div className="max-h-[50vh] overflow-y-auto custom-scrollbar">
           {children}
         </div>
 

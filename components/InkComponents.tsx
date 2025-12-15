@@ -339,6 +339,7 @@ interface InkListItemProps {
   actions?: ReactNode;
   highlight?: boolean;
   newMark?: boolean;
+  layout?: 'row' | 'col';
 }
 
 export function InkListItem({
@@ -348,11 +349,14 @@ export function InkListItem({
   actions,
   highlight = false,
   newMark = false,
+  layout = 'row',
 }: InkListItemProps) {
+  const layoutClass = layout === 'col' ? 'ink-list-item-column' : '';
+  const combinedClass =
+    `ink-list-item ${highlight ? 'ink-list-item-highlight' : ''} ${layoutClass}`.trim();
+
   return (
-    <div
-      className={`ink-list-item ${highlight ? 'ink-list-item-highlight' : ''}`}
-    >
+    <div className={combinedClass}>
       <div className="ink-list-main">
         <div className="ink-list-title">
           <span>{title}</span>

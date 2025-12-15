@@ -1,6 +1,5 @@
 'use client';
 
-import { LingGen } from '@/components/func';
 import {
   InkBadge,
   InkButton,
@@ -136,18 +135,6 @@ function HomePageContent() {
                 />
               }
             />
-            {spiritualRoots.length > 0 && (
-              <InkListItem
-                title="👁️ 灵根"
-                meta={
-                  <LingGen
-                    spiritualRoots={spiritualRoots}
-                    showSection={false}
-                    compact={true}
-                  />
-                }
-              />
-            )}
           </InkList>
         ) : (
           <>

@@ -573,7 +573,7 @@ h6,
   justify-content: space-between;
   gap: var(--ink-gap-sm);
   padding: var(--ink-gap-sm) 0;
-  border-bottom: 1px solid rgba(44, 24, 16, 0.1);
+  border-bottom: 1px dashed rgba(44, 24, 16, 0.1);
 }
 
 .ink-list-item-highlight {
@@ -1017,4 +1017,22 @@ h6,
 .battle-report result {
   color: var(--color-crimson); /* 朱砂红 */
   font-weight: bold;
+}
+
+/* Column Layout for InkListItem */
+.ink-list-item-column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ink-list-item-column .ink-list-main {
+  width: 100%;
+}
+
+.ink-list-item-column .ink-list-actions {
+  width: 100%;
+  justify-content: flex-end;
+  padding-top: var(--ink-gap-xs);
+  margin-top: var(--ink-gap-xs);
+  flex-wrap: wrap;
 }
