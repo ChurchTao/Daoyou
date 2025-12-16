@@ -35,16 +35,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少角色ID' }, { status: 400 });
     }
 
-    if (!Number.isFinite(years) || years < 1 || years > 500) {
+    if (!Number.isFinite(years) || years < 1 || years > 300) {
       return NextResponse.json(
-        { error: '闭关年限需在 1~500 年之间' },
+        { error: '闭关年限需在 1~300 年之间' },
         { status: 400 },
       );
     }
 
+    // 检查寿命是否足够
     const cultivator = await getCultivatorById(user.id, cultivatorId);
     if (!cultivator) {
       return NextResponse.json({ error: '角色不存在' }, { status: 404 });
+    }
+
+    if (cultivator.lifespan - cultivator.age <= years) {
+      return NextResponse.json(
+        { error: '道友，您没有这么多寿元了' },
+        { status: 400 },
+      );
     }
 
     // 检查闭关冷却时间（30分钟）

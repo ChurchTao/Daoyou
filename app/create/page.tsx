@@ -69,7 +69,7 @@ export default function CreatePage() {
         const response = await fetch('/api/cultivators');
         const result = await response.json();
 
-        if (result.success && result.data.length > 0) {
+        if (result.success && result.meta.hasActive) {
           setHasExistingCultivator(true);
         }
       } catch (error) {

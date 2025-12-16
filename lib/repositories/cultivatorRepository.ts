@@ -292,6 +292,29 @@ export async function createCultivator(
   return fullCultivator;
 }
 
+export async function getUserAliveCultivatorId(
+  userId: string,
+): Promise<string | null> {
+  const record = await db
+    .select({
+      id: schema.cultivators.id,
+    })
+    .from(schema.cultivators)
+    .where(
+      and(
+        eq(schema.cultivators.userId, userId),
+        eq(schema.cultivators.status, 'active'),
+      ),
+    )
+    .limit(1);
+
+  if (record.length === 0) {
+    return null;
+  }
+
+  return record[0].id;
+}
+
 /**
  * 根据 ID 获取角色
  */

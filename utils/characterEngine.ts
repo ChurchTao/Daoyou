@@ -34,7 +34,7 @@ const CultivatorSchema = z.object({
   personality: z.string().min(2).max(100).describe('性格概述'),
   realm: z.enum(['炼气']).describe('境界'),
   realm_stage: z.enum(REALM_STAGE_VALUES).describe('境界阶段'),
-  age: z.number().int().gte(10).describe('年龄'),
+  age: z.number().int().gte(10).lte(100).describe('年龄'),
   lifespan: z.number().int().gte(80).lte(200).describe('寿元'),
   attributes: z
     .object({

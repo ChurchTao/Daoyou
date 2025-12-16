@@ -1,8 +1,9 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
+import { getUserAliveCultivatorId } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
@@ -27,17 +28,29 @@ export async function GET(req: Request) {
   );
   const offset = (page - 1) * pageSize;
   const type = searchParams.get('type'); // 'challenge' | 'challenged' | null (全部)
+  const cultivatorId = await getUserAliveCultivatorId(user.id);
+  console.log('cultivatorId', cultivatorId);
+
+  if (!cultivatorId) {
+    return NextResponse.json(
+      { success: false, error: '未找到角色' },
+      { status: 404 },
+    );
+  }
 
   // 构建查询条件
-  let whereCondition = eq(battleRecords.userId, user.id);
+  let whereCondition = or(
+    eq(battleRecords.cultivatorId, cultivatorId),
+    eq(battleRecords.opponentCultivatorId, cultivatorId),
+  );
   if (type === 'challenge') {
     whereCondition = and(
-      eq(battleRecords.userId, user.id),
+      eq(battleRecords.cultivatorId, cultivatorId),
       eq(battleRecords.challengeType, 'challenge'),
     )!;
   } else if (type === 'challenged') {
     whereCondition = and(
-      eq(battleRecords.userId, user.id),
+      eq(battleRecords.opponentCultivatorId, cultivatorId),
       eq(battleRecords.challengeType, 'challenged'),
     )!;
   }
