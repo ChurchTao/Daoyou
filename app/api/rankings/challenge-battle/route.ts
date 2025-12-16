@@ -215,16 +215,6 @@ export async function POST(request: NextRequest) {
             battleReport: fullReport,
           });
 
-          // 为被挑战者记录被挑战记录
-          await db.insert(battleRecords).values({
-            userId: targetUserId,
-            cultivatorId: targetId,
-            challengeType: 'challenged',
-            opponentCultivatorId: cultivatorId,
-            battleResult,
-            battleReport: fullReport,
-          });
-
           // 17. 发送排名更新信息
           controller.enqueue(
             encoder.encode(
