@@ -10,7 +10,10 @@ import type {
   Cultivator,
   RetreatRecord,
 } from '../types/cultivator';
-import { getRealmStageAttributeCap } from './cultivatorUtils';
+import {
+  calculateFinalAttributes,
+  getRealmStageAttributeCap,
+} from './cultivatorUtils';
 
 const REALM_ORDER = [...REALM_VALUES];
 const STAGE_ORDER = [...REALM_STAGE_VALUES];
@@ -90,11 +93,12 @@ export function performRetreatBreakthrough(
     fromRealm,
     fromStage,
   );
+  const finalAttributes = calculateFinalAttributes(rawCultivator);
   const modifiers: BreakthroughModifiers = {
     // 基础成功率
     base: nextStage ? getBreakthroughBaseChance(fromRealm, attemptType) : 0,
     // 悟性修正
-    comprehension: getComprehensionModifier(rawCultivator.attributes.wisdom),
+    comprehension: getComprehensionModifier(finalAttributes.final.wisdom),
     // 闭关年限修正
     years: getRetreatYearModifier(years),
     // 失败连败修正
@@ -144,6 +148,7 @@ export function performRetreatBreakthrough(
       updatedCultivator.attributes,
       cap,
       growthRange,
+      isMajor,
       rng,
     );
     updatedCultivator.attributes = grownAttributes;
@@ -257,8 +262,8 @@ function getComprehensionModifier(wisdom: number): number {
 
 function getRetreatYearModifier(years: number): number {
   if (years <= 0) return 0;
-  const scaled = Math.log1p(years) / 50;
-  return Math.min(0.15, scaled);
+  const scaled = years / 1000;
+  return Math.min(0.3, scaled);
 }
 
 function getFailureStreakModifier(
@@ -267,18 +272,17 @@ function getFailureStreakModifier(
   stage: RealmStage,
 ): number {
   if (!records?.length) return 0;
-  let bonus = 0;
+  let allYears = 0;
   for (let i = records.length - 1; i >= 0; i -= 1) {
     const record = records[i];
     if (record.realm !== realm || record.realm_stage !== stage) break;
     if (record.success) break;
     const years = record.years;
-    // 每次闭关年限越长，修正倍率呈对数增长，最终修正为倍率% * 0.05，最大不超过0.05
-    bonus += Math.min(0.05, (Math.log1p(years) / 10) * 0.05);
-    // 累计修正不超过0.15
-    if (bonus >= 0.15) break;
+    allYears += years;
   }
-  return bonus;
+  if (allYears <= 0) return 0;
+  const scaled = allYears / 2000;
+  return Math.min(0.15, scaled);
 }
 
 /**
@@ -310,12 +314,14 @@ function applyAttributeGrowth(
   attributes: Attributes,
   cap: number,
   range: { min: number; max: number },
+  isMajor: boolean,
   rng: () => number,
 ): { attributes: Attributes; growth: Partial<Attributes> } {
   const updated = { ...attributes };
   const growth: Partial<Attributes> = {};
   ATTRIBUTE_KEYS.forEach((key) => {
-    if (key === 'wisdom') {
+    if (key === 'wisdom' && !isMajor) {
+      // 只有大境界突破才可能提升悟性
       growth[key] = 0;
       return;
     }

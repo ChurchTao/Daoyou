@@ -434,10 +434,13 @@ export default function InventoryPage() {
               <span className="block opacity-70 mb-1">基础属性</span>
               <div className="grid grid-cols-2 gap-2">
                 {formatAttributeBonusMap(item.bonus)
-                  .split('\n')
+                  .split('｜')
                   .filter(Boolean)
                   .map((line, i) => (
-                    <div key={i} className="px-2 py-1 rounded">
+                    <div
+                      key={i}
+                      className="px-2 py-1 rounded border border-ink/10 bg-ink/5"
+                    >
                       {line}
                     </div>
                   ))}

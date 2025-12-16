@@ -155,7 +155,7 @@ export function getBreakthroughStoryPrompt({
   const systemPrompt = `你是一位修仙题材小说作者，需要描写角色闭关突破成功的瞬间。
 
 要求：
-- 120~280字，语言古风、细腻，有意境
+- 80~150字，语言古风、细腻，有意境
 - 结合角色姓名、境界、悟性、灵根、功法等背景
 - 具体写出闭关年限、感悟、瓶颈、破境细节以及天地异象
 - 若为大境界突破，要强调劫难与蜕变；若为小境界，突出积累与打磨
@@ -171,21 +171,24 @@ export function getBreakthroughStoryPrompt({
       .join('，') ?? '未知';
   const cultivations =
     cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
+  const fates =
+    cultivator.pre_heaven_fates
+      ?.map((fate) => `${fate.name}(${fate.description})`)
+      .join('，') ?? '无';
   const attributeGain = formatAttributeGrowth(summary.attributeGrowth);
-  const chancePercent = `${(summary.chance * 100).toFixed(1)}%`;
-  const rollPercent = `${(summary.roll * 100).toFixed(1)}%`;
   const targetRealm = summary.toRealm ?? summary.fromRealm;
   const targetStage = summary.toStage ?? summary.fromStage;
   const userPrompt = `【角色】${cultivator.name}｜${cultivator.realm}${cultivator.realm_stage}｜悟性 ${cultivator.attributes.wisdom}
 灵根：${roots}
 功法：${cultivations}
+气运：${fates}
 年龄：${cultivator.age}，寿元：${cultivator.lifespan}
 
-【闭关】本次闭关 ${summary.yearsSpent} 年，系统判定成功率 ${chancePercent}，实际掷值 ${rollPercent}。
+【闭关】本次闭关 ${summary.yearsSpent} 年。
 【突破】从 ${summary.fromRealm}${summary.fromStage} → ${targetRealm}${targetStage}，${
     summary.isMajor ? '大境界突破' : '小境界精进'
   }，寿元提升 ${summary.lifespanGained} 年。
-【收获】基础属性增幅：${attributeGain || '无（已触及上限）'}。
+【收获】基础属性增幅：${attributeGain}。
 
 请依据以上资料创作突破成功的短篇故事，重点描绘心境、天地异象与突破瞬间。`;
 
@@ -204,7 +207,7 @@ export function getLifespanExhaustedStoryPrompt({
   const systemPrompt = `你是一位修仙志怪小说作者，需要描写寿元耗尽、突破失败的修士坐化场景。
 
 要求：
-- 180~320字，古意盎然
+- 80~120字，古意盎然
 - 细写寿元将尽的征兆、失败后的心绪，以及天地对其的回应
 - 提及其曾经的境界、灵根、功法与执念
 - 结尾要引出“转世重修/轮回再来”的伏笔，语气既有惋惜又有希望`;
@@ -216,17 +219,20 @@ export function getLifespanExhaustedStoryPrompt({
           `${root.element}${root.grade ? `(${root.grade}/${root.strength})` : ''}`,
       )
       .join('，') ?? '未知';
-  const chancePercent = `${(summary.chance * 100).toFixed(1)}%`;
-  const rollPercent = `${(summary.roll * 100).toFixed(1)}%`;
+  const fates =
+    cultivator.pre_heaven_fates
+      ?.map((fate) => `${fate.name}(${fate.description})`)
+      .join('，') ?? '无';
   const userPrompt = `【角色】${cultivator.name}｜${cultivator.realm}${cultivator.realm_stage}｜悟性 ${cultivator.attributes.wisdom}
 灵根：${roots}
 功法：${cultivator.cultivations?.map((c) => c.name).join('，') || '无'}
+气运：${fates}
 年龄：${cultivator.age}，寿元上限：${cultivator.lifespan}
 
 【闭关】本次闭关 ${summary.yearsSpent} 年，突破方向：${summary.fromRealm}${summary.fromStage} → ${
     summary.toRealm ?? summary.fromRealm
   }${summary.toStage ?? summary.fromStage}。
-系统给出的成功率 ${chancePercent}，实际掷值 ${rollPercent}，结果失败且寿元耗尽。
+寿元耗尽，突破失败。
 
 请描绘其油尽灯枯的心境、未了的执念，以及天道赐予转世重修机会的伏笔，让玩家在阅读后愿意点击“转世重修”。`;
 
@@ -240,6 +246,7 @@ function formatAttributeGrowth(growth: Partial<Attributes>): string {
     { key: 'spirit', label: '灵力' },
     { key: 'speed', label: '身法' },
     { key: 'willpower', label: '神识' },
+    { key: 'wisdom', label: '悟性' },
   ];
   return mapping
     .map(({ key, label }) => {

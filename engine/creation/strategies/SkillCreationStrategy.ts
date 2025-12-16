@@ -7,6 +7,7 @@ import {
   STATUS_EFFECT_VALUES,
 } from '@/types/constants';
 import { getAllSkillPowerRangePrompt } from '@/utils/characterEngine';
+import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { z } from 'zod';
 import {
   CreationContext,
@@ -76,7 +77,8 @@ export class SkillCreationStrategy implements CreationStrategy<
         .join('，') ?? '无';
 
     // Wisdom plays a big role in skill creation
-    const wisdom = cultivator.attributes.wisdom;
+    const finalAttributes = calculateFinalAttributes(cultivator);
+    const wisdom = finalAttributes.final.wisdom;
 
     const systemPrompt = `你是一位修仙界的传功长老、神通推演大师。请根据修士的先天条件（灵根、悟性）、当前装备（尤其是本命法宝/武器）以及修士的心念（Prompt），推演创造出一门神通(Skill)。你的输出必须是**严格符合指定 JSON Schema 的纯 JSON 对象**。
 

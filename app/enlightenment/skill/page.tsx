@@ -23,7 +23,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 export default function SkillCreationPage() {
-  const { cultivator, refreshInventory, note, isLoading } =
+  const { cultivator, finalAttributes, refreshInventory, note, isLoading } =
     useCultivatorBundle();
   const [prompt, setPrompt] = useState<string>('');
   const [status, setStatus] = useState<string>('');
@@ -182,7 +182,7 @@ export default function SkillCreationPage() {
             />
             <InkListItem
               title="悟性"
-              description={`${cultivator?.attributes.wisdom} （决定神通品阶上限）`}
+              description={`${finalAttributes?.wisdom} （决定神通品阶上限）`}
             />
           </InkList>
           <InkList dense>
