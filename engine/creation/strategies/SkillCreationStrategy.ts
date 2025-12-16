@@ -17,7 +17,7 @@ import {
 
 // Zod Schema for Skills
 const SkillSchema = z.object({
-  name: z.string().describe('神通名称'),
+  name: z.string().min(2).max(8).describe('神通名称'),
   type: z
     .enum(SKILL_TYPE_VALUES)
     .describe('神通类型(attack/heal/control/debuff/buff)'),
@@ -102,7 +102,7 @@ export class SkillCreationStrategy implements CreationStrategy<
      - 筑基: 最高玄阶
      - 金丹: 最高地阶
      - 元婴及以上: 最高天阶
-   - 悟性高者更容易领悟高阶神通，且有些许概率突破境界限制。
+   - 悟性高者更容易领悟高阶神通，在满足境界限制的前提下。
      - 悟性<50: 无法领悟天/地阶神通
      - 悟性50-100: 有20%概率领悟地阶神通/5%概率领悟天阶神通
      - 悟性100-150: 有30%概率领悟地阶神通/10%概率领悟天阶神通
@@ -131,7 +131,7 @@ export class SkillCreationStrategy implements CreationStrategy<
    - \`target_self\`: 治疗(heal)和增益(buff)通常为 true。
 
 7. **命名与风味**：
-   - 名字要极其贴切修仙风格，结合五行、武器和意境。
+   - 名字要极其贴切修仙风格，结合五行、武器和意境,2～6字。
    - 描述(description)要体现出神通的施展过程，如果是"不合理"的创造，描述中要体现出别扭、勉强甚至反噬的感觉,最多180字。
 
 8. **神念限制**：
