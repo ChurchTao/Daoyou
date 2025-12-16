@@ -16,7 +16,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { cultivatorId, materialIds, prompt, craftType } = body;
 
-    if (
+    if (craftType === 'create_skill') {
+      if (!cultivatorId || !prompt) {
+        return NextResponse.json(
+          { error: '请注入神念，描述神通法门。' },
+          { status: 400 },
+        );
+      }
+      if (prompt.trim().length < 5 || prompt.trim().length > 200) {
+        return NextResponse.json(
+          { error: '神念长度应在5-200字之间。' },
+          { status: 400 },
+        );
+      }
+    } else if (
       !cultivatorId ||
       !materialIds ||
       !Array.isArray(materialIds) ||

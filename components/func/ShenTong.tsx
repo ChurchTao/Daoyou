@@ -2,14 +2,13 @@
 
 import {
   InkBadge,
-  InkButton,
   InkList,
   InkListItem,
   InkNotice,
 } from '@/components/InkComponents';
 import { InkSection } from '@/components/InkLayout';
 import type { Skill } from '@/types/cultivator';
-import { getSkillTypeInfo, getStatusLabel } from '@/types/dictionaries';
+import { getSkillTypeInfo, getStatusEffectInfo } from '@/types/dictionaries';
 
 interface ShenTongProps {
   skills: Skill[];
@@ -60,10 +59,14 @@ export function ShenTong({
         const typeIcon = skillInfo.icon;
         const typeName = skillInfo.label;
         const isLast = index === skills.length - 1;
+        const effectInfo = skill.effect
+          ? getStatusEffectInfo(skill.effect)
+          : null;
 
         return (
           <InkListItem
             key={skill.id || skill.name}
+            layout="col"
             title={
               <div className="flex items-center">
                 <span>
@@ -75,8 +78,8 @@ export function ShenTong({
             description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
               skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
             }${
-              skill.effect
-                ? `｜效果：${getStatusLabel(skill.effect)}${
+              effectInfo
+                ? `｜效果：${effectInfo.icon}${effectInfo.label}${
                     skill.duration ? `（${skill.duration}回合）` : ''
                   }`
                 : ''
@@ -84,15 +87,11 @@ export function ShenTong({
             highlight={highlightLast && isLast}
             newMark={markLastAsNew && isLast}
             actions={
-              showActions ? (
-                renderAction ? (
-                  renderAction(skill, index)
-                ) : (
-                  <InkButton disabled className="text-sm">
-                    替换
-                  </InkButton>
-                )
-              ) : undefined
+              showActions
+                ? renderAction
+                  ? renderAction?.(skill, index)
+                  : undefined
+                : undefined
             }
           />
         );
@@ -129,7 +128,10 @@ export function ShenTongMini({
           {skills.map((skill, idx) => {
             const skillInfo = getSkillTypeInfo(skill.type);
             return (
-              <div key={skill.id || skill.name + idx} className="flex items-center gap-2">
+              <div
+                key={skill.id || skill.name + idx}
+                className="flex items-center gap-2"
+              >
                 <span>
                   {skillInfo.icon} {skill.name}·{skill.element}
                 </span>

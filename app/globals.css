@@ -393,12 +393,6 @@ h6,
   .main-content {
     padding-bottom: 6rem;
   }
-
-  /* 单列布局 */
-  .grid-cols-2,
-  .grid-cols-3 {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* 文字化卡片 - 最小化视觉元素 */

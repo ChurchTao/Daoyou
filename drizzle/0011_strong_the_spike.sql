@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_skills" ADD COLUMN "description" text;

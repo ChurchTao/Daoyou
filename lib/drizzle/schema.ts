@@ -110,6 +110,7 @@ export const skills = pgTable('wanjiedaoyou_skills', {
   effect: varchar('effect', { length: 50 }), // burn | bleed | poison | stun | ...
   duration: integer('duration'), // 持续回合数
   target_self: integer('target_self').default(0), // 0 = false, 1 = true
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

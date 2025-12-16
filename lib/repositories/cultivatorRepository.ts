@@ -102,6 +102,7 @@ async function assembleCultivator(
     effect: s.effect as Cultivator['skills'][0]['effect'] | undefined,
     duration: s.duration || undefined,
     target_self: s.target_self === 1 ? true : undefined,
+    description: s.description || undefined,
   }));
 
   // 组装法宝 - 延迟加载
@@ -264,6 +265,7 @@ export async function createCultivator(
           effect: skill.effect || null,
           duration: skill.duration || null,
           target_self: skill.target_self ? 1 : 0,
+          description: skill.description || null,
         })),
       );
     }
@@ -1120,107 +1122,6 @@ export async function equipEquipment(
 // ===== 技能相关操作 =====
 
 /**
- * 创建技能
- */
-export async function createSkill(
-  userId: string,
-  cultivatorId: string,
-  skillData: Omit<import('../../types/cultivator').Skill, 'id'>,
-): Promise<import('../../types/cultivator').Skill> {
-  // 权限验证
-  const existing = await db
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    );
-
-  if (existing.length === 0) {
-    throw new Error('角色不存在或无权限操作');
-  }
-
-  // 创建技能
-  const skill = await db
-    .insert(schema.skills)
-    .values({
-      cultivatorId,
-      name: skillData.name,
-      type: skillData.type,
-      element: skillData.element,
-      grade: skillData.grade || null,
-      power: skillData.power,
-      cost: skillData.cost || 0,
-      cooldown: skillData.cooldown,
-      effect: skillData.effect || null,
-      duration: skillData.duration || null,
-      target_self: skillData.target_self ? 1 : 0,
-    })
-    .returning();
-
-  const skillRecord = skill[0];
-
-  return {
-    id: skillRecord.id,
-    ...skillData,
-  };
-}
-
-/**
- * 替换技能
- */
-export async function replaceSkill(
-  userId: string,
-  cultivatorId: string,
-  oldSkillId: string,
-  newSkillData: Omit<import('../../types/cultivator').Skill, 'id'>,
-): Promise<import('../../types/cultivator').Skill> {
-  // 权限验证
-  const existing = await db
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    );
-
-  if (existing.length === 0) {
-    throw new Error('角色不存在或无权限操作');
-  }
-
-  // 更新技能
-  await db
-    .update(schema.skills)
-    .set({
-      name: newSkillData.name,
-      type: newSkillData.type,
-      element: newSkillData.element,
-      grade: newSkillData.grade || null,
-      power: newSkillData.power,
-      cost: newSkillData.cost || 0,
-      cooldown: newSkillData.cooldown,
-      effect: newSkillData.effect || null,
-      duration: newSkillData.duration || null,
-      target_self: newSkillData.target_self ? 1 : 0,
-    })
-    .where(
-      and(
-        eq(schema.skills.cultivatorId, cultivatorId),
-        eq(schema.skills.id, oldSkillId),
-      ),
-    );
-
-  return {
-    id: oldSkillId,
-    ...newSkillData,
-  };
-}
-
-/**
  * 获取角色技能
  */
 export async function getSkills(
@@ -1260,6 +1161,7 @@ export async function getSkills(
     effect: skill.effect as StatusEffect | undefined,
     duration: skill.duration || undefined,
     target_self: skill.target_self === 1 ? true : undefined,
+    description: skill.description || undefined,
   }));
 }
 

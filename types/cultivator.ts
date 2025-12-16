@@ -98,6 +98,7 @@ export interface Skill {
   effect?: StatusEffect;
   duration?: number;
   target_self?: boolean;
+  description?: string;
 }
 
 // 法宝 / 装备

@@ -22,10 +22,10 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const quickActions = [
-  { label: '🧘 闭关', href: '/retreat' },
+  { label: '🧘 闭关突破', href: '/retreat' },
   { label: '🎒 储物袋', href: '/inventory' },
-  { label: '📖 神通', href: '/skills' },
-  { label: '📜 顿悟', href: '/ritual' },
+  { label: '📖 所修神通', href: '/skills' },
+  { label: '📚 藏经阁', href: '/enlightenment' },
   { label: '🛖 修仙坊市', href: '/market' },
   { label: '⚗️ 造物仙炉', href: '/craft' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
@@ -36,7 +36,6 @@ function HomePageContent() {
   const { isAnonymous, signOut } = useAuth();
   const { cultivator, isLoading, note, refresh } = useCultivatorBundle();
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
-  const spiritualRoots = cultivator?.spiritual_roots ?? [];
 
   const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
   const spirit = cultivator?.attributes.spirit ?? 0;

@@ -8,8 +8,12 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { CreationContext } from './CreationStrategy';
 import { AlchemyStrategy } from './strategies/AlchemyStrategy';
 import { RefiningStrategy } from './strategies/RefiningStrategy';
+import { SkillCreationStrategy } from './strategies/SkillCreationStrategy';
 
-export type SupportedStrategies = RefiningStrategy | AlchemyStrategy;
+export type SupportedStrategies =
+  | RefiningStrategy
+  | AlchemyStrategy
+  | SkillCreationStrategy;
 
 export class CreationEngine {
   private strategies: Map<string, SupportedStrategies> = new Map();
@@ -17,6 +21,7 @@ export class CreationEngine {
   constructor() {
     this.registerStrategy(new RefiningStrategy());
     this.registerStrategy(new AlchemyStrategy());
+    this.registerStrategy(new SkillCreationStrategy());
   }
 
   private registerStrategy(strategy: SupportedStrategies) {
