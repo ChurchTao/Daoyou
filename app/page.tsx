@@ -37,16 +37,16 @@ const quickActions = [
 function HomePageContent() {
   const pathname = usePathname();
   const { isAnonymous, signOut } = useAuth();
-  const { cultivator, isLoading, note, refresh } = useCultivatorBundle();
+  const { cultivator, isLoading, note, refresh, finalAttributes } =
+    useCultivatorBundle();
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const { pushToast } = useInkUI();
 
-  const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
-  const spirit = cultivator?.attributes.spirit ?? 0;
-  const maxSpirit = spirit;
+  const maxHp = finalAttributes?.maxHp ?? 100;
+  const maxSpirit = finalAttributes?.maxMp ?? 100;
 
   const handleLogout = () => {
     if (isAnonymous) {

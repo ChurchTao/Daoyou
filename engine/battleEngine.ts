@@ -181,7 +181,8 @@ function calculateSpellBase(
 
   let damage = power * (1 + attFinal.spirit / 150);
   damage *= getRootDamageMultiplier(attacker.data, element);
-  damage *= getElementMultiplier(attacker.data, defender.data, element);
+  // todo 先移除元素克制
+  // damage *= getElementMultiplier(attacker.data, defender.data, element);
 
   // Apply artifact damage bonuses
   const artBonus = getArtifactDamageBonus(attacker, element);
@@ -527,8 +528,8 @@ function executeSkill(
     }
   } else if (skill.type === 'heal') {
     const target = skill.target_self === false ? defender : attacker;
-    const targetFinal = calcFinalAttrs(target.data).final;
-    const maxHp = 100 + targetFinal.vitality * 5;
+    const targetFinal = calcFinalAttrs(target.data);
+    const maxHp = targetFinal.maxHp;
     const rawHeal = skill.power * (1 + finalAtt.spirit / 160);
     const healInt = Math.max(0, Math.floor(rawHeal));
     target.hp = Math.min(target.hp + healInt, maxHp);
@@ -679,11 +680,13 @@ export function simulateBattle(
       cds.set(data.equipped.weapon, 0);
     }
 
+    const finalAttrs = calcFinalAttrs(data);
+
     return {
       id,
       data,
-      hp: 80 + calcFinalAttrs(data).final.vitality * 5,
-      mp: calcFinalAttrs(data).final.spirit * 2,
+      hp: finalAttrs.maxHp,
+      mp: finalAttrs.maxMp,
       statuses: new Map(),
       skillCooldowns: cds,
       isDefending: false,

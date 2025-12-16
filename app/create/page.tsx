@@ -278,8 +278,8 @@ export default function CreatePage() {
     const finalAttrsResult = calculateFinalAttributes(player);
     const finalAttrs = finalAttrsResult.final;
     const breakdown = finalAttrsResult.breakdown;
-    const maxHp = 100 + finalAttrs.vitality * 5;
-    const maxMp = finalAttrs.spirit;
+    const maxHp = finalAttrsResult.maxHp;
+    const maxMp = finalAttrsResult.maxMp;
     return {
       finalAttrsResult,
       finalAttrs,

@@ -106,14 +106,10 @@ export function performRetreatBreakthrough(
   };
 
   const chance = nextStage
-    ? clampChance(
-        fromRealm,
-        attemptType,
-        modifiers.base +
-          modifiers.comprehension +
-          modifiers.years +
-          modifiers.failureStreak,
-      )
+    ? modifiers.base +
+      modifiers.comprehension +
+      modifiers.years +
+      modifiers.failureStreak
     : 0;
   const roll = rng();
   const success = nextStage ? roll <= chance : false;
@@ -237,24 +233,6 @@ function getBreakthroughBaseChance(
   return base * difficulty;
 }
 
-function clampChance(
-  realm: RealmType,
-  type: BreakthroughAttemptType,
-  value: number,
-): number {
-  const realmIndex = REALM_ORDER.indexOf(realm);
-  const maxBase = type === 'minor' ? 0.9 : 0.55;
-  const minBase = type === 'minor' ? 0.15 : 0.05;
-  const maxDecay = Math.pow(0.9, realmIndex);
-  const minDecay = Math.pow(0.95, realmIndex);
-  const max =
-    type === 'major' && realm === '渡劫'
-      ? 0.3
-      : Math.max(0.08, maxBase * maxDecay);
-  const min = Math.max(0.02, minBase * minDecay);
-  return clamp(value, min, max);
-}
-
 function getComprehensionModifier(wisdom: number): number {
   // 悟性越高，修正倍率越高，最高不超过0.18
   return Math.min(0.18, Math.max((wisdom - 50) / 1000, 0));
@@ -340,8 +318,4 @@ function applyAttributeGrowth(
 function randomInt(min: number, max: number, rng: () => number): number {
   if (max <= min) return min;
   return Math.floor(rng() * (max - min + 1)) + min;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }

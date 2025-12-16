@@ -182,7 +182,7 @@ export default function SkillCreationPage() {
             />
             <InkListItem
               title="悟性"
-              description={`${finalAttributes?.wisdom} （决定神通品阶上限）`}
+              description={`${finalAttributes?.final?.wisdom} （决定神通品阶上限）`}
             />
           </InkList>
           <InkList dense>

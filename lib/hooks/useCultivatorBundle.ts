@@ -2,19 +2,21 @@
 
 import { useAuth } from '@/lib/auth/AuthContext';
 import type {
-  Attributes,
   Cultivator,
   EquippedItems,
   Inventory,
   Skill,
 } from '@/types/cultivator';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import {
+  calculateFinalAttributes,
+  FinalAttributesResult,
+} from '@/utils/cultivatorUtils';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type FetchState = {
   cultivator: Cultivator | null;
-  finalAttributes: Attributes | null;
+  finalAttributes: FinalAttributesResult | null;
   inventory: Inventory;
   skills: Skill[];
   equipped: EquippedItems;
@@ -245,7 +247,7 @@ export function useCultivatorBundle() {
         isLoading: false,
         error: undefined,
         note: undefined,
-        finalAttributes: calculateFinalAttributes(fullCultivator).final,
+        finalAttributes: calculateFinalAttributes(fullCultivator),
       };
 
       // 更新缓存

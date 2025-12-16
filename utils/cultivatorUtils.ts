@@ -37,6 +37,8 @@ export function getRealmStageAttributeCap(
  */
 export interface FinalAttributesResult {
   final: Required<Attributes>;
+  maxHp: number;
+  maxMp: number;
   breakdown: {
     base: Required<Attributes>;
     fromFates: Required<Attributes>;
@@ -186,6 +188,8 @@ export function calculateFinalAttributes(c: Cultivator): FinalAttributesResult {
       fromEquipment,
       cap,
     },
+    maxHp: 100 + final.vitality * 10,
+    maxMp: 100 + final.spirit * 5,
   };
 }
 
