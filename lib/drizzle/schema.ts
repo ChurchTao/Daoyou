@@ -18,6 +18,7 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
   name: varchar('name', { length: 100 }).notNull(),
+  title: varchar('title', { length: 50 }),
   gender: varchar('gender', { length: 10 }), // 男 | 女 | 无
   origin: varchar('origin', { length: 100 }),
   personality: text('personality'),

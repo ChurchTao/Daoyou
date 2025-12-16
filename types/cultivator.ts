@@ -217,6 +217,7 @@ export interface EquippedItems {
 export interface Cultivator {
   id?: string;
   name: string;
+  title?: string | null;
   gender: GenderType;
   origin?: string;
   personality?: string;

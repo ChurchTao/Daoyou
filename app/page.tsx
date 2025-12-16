@@ -5,12 +5,15 @@ import {
   InkButton,
   InkDialog,
   type InkDialogState,
+  InkInput,
   InkList,
   InkListItem,
   InkNotice,
   InkStatusBar,
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkModal } from '@/components/InkModal';
+import { useInkUI } from '@/components/InkUIProvider';
 import { RecentBattles } from '@/components/RecentBattles';
 import { DivineFortune } from '@/components/welcome/DivineFortune';
 import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
@@ -36,6 +39,10 @@ function HomePageContent() {
   const { isAnonymous, signOut } = useAuth();
   const { cultivator, isLoading, note, refresh } = useCultivatorBundle();
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
+  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const { pushToast } = useInkUI();
 
   const maxHp = cultivator ? 100 + cultivator.attributes.vitality * 5 : 100;
   const spirit = cultivator?.attributes.spirit ?? 0;
@@ -64,6 +71,50 @@ function HomePageContent() {
       });
     } else {
       signOut().then(() => refresh());
+    }
+  };
+
+  const openTitleEditor = () => {
+    setEditingTitle(cultivator?.title || '');
+    setIsTitleModalOpen(true);
+  };
+
+  const handleSaveTitle = async () => {
+    if (!cultivator) return;
+    if (
+      editingTitle.length > 0 &&
+      (editingTitle.length < 2 || editingTitle.length > 20)
+    ) {
+      pushToast({ message: '称号长度需在2-20字之间', tone: 'warning' });
+      return;
+    }
+
+    try {
+      setIsSavingTitle(true);
+      const response = await fetch('/api/cultivators/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cultivatorId: cultivator.id,
+          title: editingTitle,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '保存失败');
+      }
+
+      pushToast({ message: '名号已定，威震八方！', tone: 'success' });
+      setIsTitleModalOpen(false);
+      refresh();
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '保存失败',
+        tone: 'danger',
+      });
+    } finally {
+      setIsSavingTitle(false);
     }
   };
 
@@ -128,6 +179,19 @@ function HomePageContent() {
                 </div>
               }
               meta={
+                <div className="flex items-center">
+                  🏅 称号：
+                  {cultivator.title ? (
+                    <span className="font-bold text-ink">
+                      「{cultivator.title}」
+                    </span>
+                  ) : (
+                    '暂无'
+                  )}
+                  <InkButton onClick={openTitleEditor}>修改</InkButton>
+                </div>
+              }
+              description={
                 <InkStatusBar
                   className="grid! grid-cols-3! gap-2 mt-3"
                   items={statusItems}
@@ -188,6 +252,38 @@ function HomePageContent() {
       )}
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
+
+      <InkModal
+        isOpen={isTitleModalOpen}
+        onClose={() => setIsTitleModalOpen(false)}
+        title="定制名号"
+      >
+        <div className="space-y-4 mt-4">
+          <div className="text-sm opacity-80">
+            行走江湖，岂能无号？
+            <br />
+            请为自己起一个响亮的名号（如：乱星海虫魔）。
+          </div>
+          <InkInput
+            value={editingTitle}
+            onChange={setEditingTitle}
+            placeholder="在此输入名号..."
+            hint="限2-8字"
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <InkButton onClick={() => setIsTitleModalOpen(false)}>
+              取消
+            </InkButton>
+            <InkButton
+              variant="primary"
+              onClick={handleSaveTitle}
+              disabled={isSavingTitle}
+            >
+              {isSavingTitle ? '镌刻中...' : '确认修改'}
+            </InkButton>
+          </div>
+        </div>
+      </InkModal>
     </InkPageShell>
   );
 }

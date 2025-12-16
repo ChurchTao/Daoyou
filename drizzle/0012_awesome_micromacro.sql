@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_cultivators" ADD COLUMN "title" varchar(50);

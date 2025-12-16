@@ -151,7 +151,7 @@ export class SkillCreationStrategy implements CreationStrategy<
 
 修士心念(Prompt): "${userPrompt}"
 
-请据此推演一门神通。如果心念极其离谱（不符合五行/武器逻辑），请生成一个"废品"神通以示惩戒。
+请据此推演一门神通。如果心念极其离谱（不符合五行/武器逻辑/过于逆天/不合理），请生成一个"废品"神通以示惩戒。
 请直接输出 JSON。
 `;
 

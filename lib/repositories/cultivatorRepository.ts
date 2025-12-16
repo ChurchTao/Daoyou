@@ -135,6 +135,7 @@ async function assembleCultivator(
   const cultivator: Cultivator = {
     id: cultivatorRecord.id,
     name: cultivatorRecord.name,
+    title: cultivatorRecord.title || undefined,
     gender: (cultivatorRecord.gender as Cultivator['gender']) || undefined,
     origin: cultivatorRecord.origin || undefined,
     personality: cultivatorRecord.personality || undefined,
@@ -363,6 +364,7 @@ export interface CultivatorWithOwner {
 export interface CultivatorBasic {
   id: string;
   name: string;
+  title: string | null;
   age: number;
   realm: string;
   realm_stage: string;
@@ -477,6 +479,7 @@ export async function getCultivatorBasicsByIdsUnsafe(
     .select({
       id: schema.cultivators.id,
       name: schema.cultivators.name,
+      title: schema.cultivators.title,
       realm: schema.cultivators.realm,
       realm_stage: schema.cultivators.realm_stage,
       gender: schema.cultivators.gender,
@@ -498,6 +501,7 @@ export async function getCultivatorBasicsByIdsUnsafe(
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
+    title: row.title,
     age: row.age,
     realm: row.realm,
     realm_stage: row.realm_stage,

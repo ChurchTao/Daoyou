@@ -34,18 +34,18 @@ export function RankingListItem({
       <div className="flex items-baseline gap-2 mb-1">
         <span className="font-bold text-lg min-w-8">{item.rank}.</span>
         <span className="font-bold">
-          {genderSymbol} {item.name}
+          {genderSymbol} {item.name} {item.title ? `「${item.title}」` : ''}
         </span>
-        <InkBadge tier={item.realm as RealmType}>{item.realm_stage}</InkBadge>
-        <span className="text-sm opacity-70">「{item.age}岁」</span>
         {isSelf && <span className="equipped-mark text-sm">← 你</span>}
         {item.is_new_comer && <InkBadge tone="accent">[新天骄]</InkBadge>}
       </div>
 
       {/* 第二行：境界、来源 */}
-      <div className="flex flex-col gap-2 mb-2 ml-10">
-        <InkBadge tone="default">{item.origin ?? '散修'}</InkBadge>
+      <div className="flex gap-2 mb-2 ml-10">
+        <InkBadge tier={item.realm as RealmType}>{item.realm_stage}</InkBadge>
+        <span className="text-sm opacity-70">「{item.age}岁」</span>
       </div>
+      <p className="ml-10 text-sm opacity-70 mb-2">{item.origin ?? '散修'}</p>
 
       {/* 第三行：操作按钮（仅非自己时显示） */}
       {!isSelf && (
