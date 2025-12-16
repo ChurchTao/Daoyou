@@ -23,7 +23,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 export default function SkillCreationPage() {
-  const { cultivator, finalAttributes, refreshInventory, note, isLoading } =
+  const { cultivator, finalAttributes, refresh, note, isLoading } =
     useCultivatorBundle();
   const [prompt, setPrompt] = useState<string>('');
   const [status, setStatus] = useState<string>('');
@@ -76,7 +76,7 @@ export default function SkillCreationPage() {
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
-      await refreshInventory();
+      refresh();
     } catch (error) {
       const failMessage =
         error instanceof Error
