@@ -1,11 +1,5 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import {
-  generateObject,
-  generateText,
-  streamObject,
-  streamText,
-  ToolSet,
-} from 'ai';
+import { generateObject, generateText, streamText, ToolSet } from 'ai';
 import z from 'zod';
 
 /**
@@ -13,6 +7,12 @@ import z from 'zod';
  * @returns DeepSeek Provider
  */
 function getDeepSeekProvider() {
+  if (process.env.PROVIDER_CHOOSE === 'ark') {
+    return createDeepSeek({
+      baseURL: process.env.ARK_BASE_URL,
+      apiKey: process.env.ARK_API_KEY,
+    });
+  }
   return createDeepSeek({
     apiKey: process.env.OPENAI_API_KEY,
     baseURL: process.env.OPENAI_BASE_URL,
@@ -25,8 +25,15 @@ function getDeepSeekProvider() {
  */
 function getModel(fast: boolean = false) {
   const provider = getDeepSeekProvider();
-  const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
-  return provider(model || 'Qwen/Qwen3-8B');
+  if (process.env.PROVIDER_CHOOSE === 'ark') {
+    const model = fast
+      ? process.env.ARK_MODEL_FAST_USE
+      : process.env.ARK_MODEL_USE;
+    return provider(model!);
+  } else {
+    const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
+    return provider(model!);
+  }
 }
 
 /**
@@ -42,6 +49,13 @@ export async function text(
     model,
     system: prompt,
     prompt: userInput,
+    providerOptions: {
+      deepseek: {
+        thinking: {
+          type: 'disabled',
+        },
+      },
+    },
   });
   console.debug('通用AI生成Text：totalUsage', res.totalUsage);
   return res;
@@ -54,6 +68,7 @@ export function stream_text(
   prompt: string,
   userInput: string,
   fast: boolean = false,
+  thinking: boolean = false,
 ) {
   const model = getModel(fast);
   const stream = streamText({
@@ -62,6 +77,13 @@ export function stream_text(
     prompt: userInput,
     onFinish: (res) => {
       console.debug('通用AI生成Text Stream：totalUsage', res.totalUsage);
+    },
+    providerOptions: {
+      deepseek: {
+        thinking: {
+          type: thinking ? 'auto' : 'disabled',
+        },
+      },
     },
   });
   return stream;
@@ -79,6 +101,7 @@ export async function object<T>(
     schema: z.ZodType<T>;
   },
   fast: boolean = false,
+  thinking: boolean = false,
 ) {
   const model = getModel(fast);
   const res = await generateObject({
@@ -89,14 +112,21 @@ export async function object<T>(
     schemaName: options.schemaName,
     schemaDescription: options.schemaDescription,
     maxRetries: 3,
+    providerOptions: {
+      deepseek: {
+        thinking: {
+          type: thinking ? 'auto' : 'disabled',
+        },
+      },
+    },
   });
   return res;
 }
 
 /**
- * stream_object
+ * 通用生成 Structured Data
  */
-export function stream_object<T>(
+export async function objectArray<T>(
   prompt: string,
   userInput: string,
   options: {
@@ -105,9 +135,10 @@ export function stream_object<T>(
     schema: z.ZodType<T>;
   },
   fast: boolean = false,
+  thinking: boolean = false,
 ) {
   const model = getModel(fast);
-  const stream = streamObject({
+  const res = await generateObject({
     model,
     system: prompt,
     prompt: userInput,
@@ -115,20 +146,40 @@ export function stream_object<T>(
     schemaName: options.schemaName,
     schemaDescription: options.schemaDescription,
     maxRetries: 3,
+    providerOptions: {
+      deepseek: {
+        thinking: {
+          type: thinking ? 'auto' : 'disabled',
+        },
+      },
+    },
+    output: 'array',
   });
-  return stream;
+  return res;
 }
 
 /**
  * tool 生成器
  */
-export async function tool(prompt: string, userInput: string, tools: ToolSet) {
+export async function tool(
+  prompt: string,
+  userInput: string,
+  tools: ToolSet,
+  thinking: boolean = false,
+) {
   const model = getModel();
   const res = await generateText({
     model,
     system: prompt,
     prompt: userInput,
     tools,
+    providerOptions: {
+      deepseek: {
+        thinking: {
+          type: thinking ? 'auto' : 'disabled',
+        },
+      },
+    },
   });
   console.debug('AI生成Text by tool：totalUsage', res.totalUsage);
   return res;

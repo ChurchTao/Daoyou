@@ -15,7 +15,7 @@ import {
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
-import { useAuth } from '@/lib/auth/AuthContext';
+import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
@@ -38,9 +38,9 @@ const getCombatRating = (cultivator: Cultivator | null): string => {
  */
 export default function CreatePage() {
   const router = useRouter();
-  const { user } = useAuth();
   const pathname = usePathname();
   const { pushToast, openDialog } = useInkUI();
+  const { hasActiveCultivator, refresh } = useCultivatorBundle();
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,30 +57,18 @@ export default function CreatePage() {
   const [remainingRerolls, setRemainingRerolls] = useState<number>(0);
   const [isGeneratingFates, setIsGeneratingFates] = useState(false);
 
-  // 检查用户是否已有角色
   useEffect(() => {
-    if (!user) {
+    setCheckingExisting(false);
+    refresh().finally(() => {
       setCheckingExisting(false);
-      return;
+    });
+  }, [refresh]);
+
+  useEffect(() => {
+    if (hasActiveCultivator) {
+      setHasExistingCultivator(true);
     }
-
-    const checkExistingCultivator = async () => {
-      try {
-        const response = await fetch('/api/cultivators');
-        const result = await response.json();
-
-        if (result.success && result.meta.hasActive) {
-          setHasExistingCultivator(true);
-        }
-      } catch (error) {
-        console.error('检查角色失败:', error);
-      } finally {
-        setCheckingExisting(false);
-      }
-    };
-
-    checkExistingCultivator();
-  }, [user]);
+  }, [hasActiveCultivator]);
 
   // 生成气运
   const handleGenerateFates = async (tempId: string) => {
@@ -212,6 +200,7 @@ export default function CreatePage() {
 
       // 保存成功，跳转到首页
       pushToast({ message: '道友真形已落地，速回主界。', tone: 'success' });
+      await refresh();
       router.push('/');
     } catch (error) {
       const errorMessage =

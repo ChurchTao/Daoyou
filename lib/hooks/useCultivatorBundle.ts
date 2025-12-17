@@ -23,6 +23,7 @@ type FetchState = {
   isLoading: boolean;
   error?: string;
   note?: string;
+  hasActiveCultivator: boolean;
 };
 
 const defaultInventory: Inventory = {
@@ -57,6 +58,7 @@ export function useCultivatorBundle() {
       skills: [],
       equipped: { weapon: null, armor: null, accessory: null },
       isLoading: false,
+      hasActiveCultivator: false,
     };
   });
 
@@ -194,6 +196,7 @@ export function useCultivatorBundle() {
           isLoading: false,
           error: undefined,
           note: hasDead ? '前世道途已尽，待转世重修。' : undefined,
+          hasActiveCultivator: false,
         }));
         cachedData = null;
         cachedUserId = userId;
@@ -248,6 +251,7 @@ export function useCultivatorBundle() {
         error: undefined,
         note: undefined,
         finalAttributes: calculateFinalAttributes(fullCultivator),
+        hasActiveCultivator: true,
       };
 
       // 更新缓存

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Quality, QUALITY_VALUES } from '../types/constants';
 import { PreHeavenFate } from '../types/cultivator';
-import { object } from './aiClient';
+import { objectArray } from './aiClient';
 
 const QUALITY_RANGES: Record<Quality, { min: number; max: number }> = {
   凡品: { min: -5, max: 5 },
@@ -46,10 +46,6 @@ const PreHeavenFateSchema = z.object({
     .min(20)
     .max(150)
     .describe('气运描述，包含来源、代价或触发条件'),
-});
-
-const FatesResponseSchema = z.object({
-  fates: z.array(PreHeavenFateSchema),
 });
 
 /**
@@ -111,42 +107,37 @@ export async function generatePreHeavenFates(
   console.log(`[FateGenerator] Target Distribution: ${distributionDesc}`);
 
   const systemPrompt = `
-  你乃修仙界至高意志——「天道」，执掌众生气运流转。凡人不可妄求，唯有机缘者得赐先天气运或特殊体质。你依天理造化，赋予其名、其质、其效，然一切须合品阶之限、阴阳之衡。
+  你是一位精通东方玄幻修真体系的大能，负责为踏入修仙之路的凡人弟子随机生成其「先天命格」——包括一种【先天气运】或【特殊体质】。
 
-【气运铁律】
-1. **名称（name）**：3~6字，需符合修仙世界观，可为气运（如“天煞孤星”，“剑仙转世”）或修仙者体质（如“九幽冥骨体”，“荒古圣体”）。
-2. **类型（type）**：仅限“吉”或“凶”。吉运未必无害，凶运亦藏机缘。
-3. **品质（quality）**：仅限以下之一：${QUALITY_VALUES.join('、')}。
-4. **属性加成（attribute_mod）**：
-   - 加成对象限于：体魄、灵力、悟性、速度、神识。
+  请严格遵守以下规则：
+
+1. **世界观背景**：
+   - 世界等级：炼气 → 筑基 → 金丹 → 元婴 → 化神 → 炼虚 → 合体 → 大乘 → 渡劫
+   - 风格参考《凡人修仙传》小说：现实残酷、机缘与风险并存、资质决定起点但非终点。
+   - 气运/体质应体现“天道无常”、“福祸相依”的哲学。
+2. **生成要求**：
+   - 名称(name):3~6字需古风、有韵味（如“九阳圣体”、“厄运缠身”、“灵犀道骨”、“剑仙转世”）。
+   - 类型(type):仅限“吉”或“凶”
+   - 品质(quality):仅限以下之一：${QUALITY_VALUES.join(' → ')}
+   - 属性加成(attribute_mod)：加成对象限于（体魄-vitality、灵力-spirit、悟性-wisdom、速度-speed、神识-willpower）。
    - 每项加成为整数，可正可负（如体魄+15，悟性-10）。
    - 属性数量依品质而定：
      - 凡品 / 灵品：1项
      - 玄品 / 真品 / 地品：2项
-     - 天品 / 仙品：3项
-     - 神品：4项
+     - 天品 / 仙品 / 神品：3项
+   - 属性组合：鼓励单一属性加成极度突出、避免属性加成过于均衡。
    - 所有气运都会有属性加成，请勿出现无属性加成的情况。
    - 所有加成绝对值之和必须严格落在该品质允许范围内：
      ${Object.entries(QUALITY_RANGES)
        .map(([q, range]) => `- ${q}: [${range.min}, ${range.max}]`)
        .join('\n    ')}
-5. **描述（description）**：20~120字，须包含：
-   - 气运来源（如“生于雷劫余烬”）
-   - 触发条件或代价（如“每逢月蚀，灵力反噬”）
-   - 风格需神秘、古雅、富有宿命感。
-6. **属性组合**
-   - 鼓励单一属性加成极度突出。
-   - 避免属性加成过于均衡。
-   - 天道厌弃平庸！所赐气运须有锋芒、有缺陷、有宿命
-
-【输出格式】
-- 必须返回**纯 JSON 对象**，字段包括：name、type、quality、attribute_mod、description。
-- attribute_mod 为对象，键为属性名，值为整数（如 {"悟性": 20, "体魄": -10}）,至少有一个加成属性。
-- 无任何额外文本，首尾无换行。
+   - 描述(description):20~120字，风格需神秘、古雅、富有宿命感
+3. **输出格式**
+   - 必须返回**纯 JSON 对象**，无任何额外文本。
   `;
 
   const userPrompt = `
-  请生成fates恰好等于${count}条数据。
+  现在，请为一位初入修仙界的凡人，随机生成其先天命格。请生成恰好等于${count}条数据。
   
   **必须严格按照以下品质分布生成：**
   ${distributionDesc}
@@ -155,17 +146,17 @@ export async function generatePreHeavenFates(
   `;
 
   try {
-    const result = await object(
+    const result = await objectArray(
       systemPrompt,
       userPrompt,
       {
-        schema: FatesResponseSchema,
-        schemaName: '一批先天气运的结构',
+        schema: PreHeavenFateSchema,
+        schemaName: '先天气运的结构',
       },
       true, // use fast model
     );
 
-    return result.object.fates;
+    return result.object;
   } catch (error) {
     console.error('AI生成气运失败:', error);
     // Fallback: return empty or handle error upstream

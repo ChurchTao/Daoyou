@@ -5,7 +5,7 @@ import {
   Quality,
   QUALITY_VALUES,
 } from '../types/constants';
-import { object } from './aiClient';
+import { objectArray } from './aiClient';
 
 // Schema used by the AI generation result
 const MaterialSchema = z.object({
@@ -19,10 +19,6 @@ const MaterialSchema = z.object({
 });
 
 export type GeneratedMaterial = z.infer<typeof MaterialSchema>;
-
-const MaterialsBatchSchema = z.object({
-  items: z.array(MaterialSchema).describe('一批生成的材料列表'),
-});
 
 /**
  * 每个品质出现的概率
@@ -50,9 +46,9 @@ function getRandomQualityDistribution(count: number): Record<Quality, number> {
     玄品: 0,
     真品: 0,
     地品: 0,
-    天品: 0,
-    仙品: 0,
-    神品: 0,
+    天品: 1,
+    仙品: 1,
+    神品: 1,
   };
 
   for (let i = 0; i < count; i++) {
@@ -100,31 +96,76 @@ export async function generateRandomMaterials(
   console.log(`[MaterialGenerator] Target Distribution: ${distributionDesc}`);
 
   const systemPrompt = `
-  你是一个修仙世界的「天道」系统。负责生成符合世界观的修仙材料。
+你是一个修仙世界的「天道」系统。负责生成符合世界观的修仙材料。请严格依下述规则生成：
+
+### 一、生成规则
+
+1. **名称（name）**
+  - 长度：2–8 个汉字。
+  - 风格：古朴玄奥，贴合《凡人修仙传》小说世界观（如“赤炎藤”、“玄冥骨砂”）。
+  - 禁止：现代词、西幻词、重复常见模板（如“千年灵芝”“万年雪莲”需具体化）。
+
+2. **类型（type）** —— 必须从以下值中选择其一：
+  - 药材(herb)
+  - 矿石(ore)
+  - 妖兽材料(monster)
+  - 天材地宝(tcdb)
+  - 特殊辅料(aux)
   
-  【生成规则】
-  1. **基本属性**：
-     - 名称(name)：2-8字，古风修仙感。
-     - 类型(type)：药材(herb)、矿石(ore)、妖兽材料(monster)、天材地宝(tcdb)、特殊辅料(aux)。
-        * 注意：天材地宝(tcdb)和特殊辅料(aux)通常对应【玄品】及以上品质。凡品、灵品尽量生成 herb, ore, monster。
-     - 五行(element)：金、木、水、火、土、风、雷、冰 随机分配。
-     
-  2. **定价(price)**：根据品质参考如下灵石价格范围，可浮动：
-     - 凡品: 10-100
-     - 灵品: 100-500
-     - 玄品: 500-2000
-     - 真品: 2000-5000
-     - 地品: 5000-20000
-     - 天品: 20000-100000
-     - 仙品/神品: 100000+
-     
-  3. **数量(quantity)**：每个项目的堆叠数量，默认 1~5 随机，稀有物品倾向于 1。
+  > 注：**天材地宝** 与 **特殊辅料** 仅可用于 **玄品及以上** 品质
+
+3. **品质（rank）** —— 必须从以下值中选择其一：
+  - 凡品
+  - 灵品
+  - 玄品
+  - 真品
+  - 地品
+  - 天品
+  - 仙品
+  - 神品
   
-  4. **描述(description)**：60-100字。描述其外形、产地、用途或传说。风格沧桑古朴，符合修仙世界观。
+  > 注：**品质** 影响材料的稀有度，不要直接把品质放到名称里。
+
+4. **五行属性（element）** —— 必须从以下值中选择其一：
+  - 金
+  - 木
+  - 水
+  - 火
+  - 土
+  - 风
+  - 雷
+  - 冰
+
+5. **描述（description）**
+  - 字数：60–100 字。
+  - 内容：说明外形、产地（如“生于极北冰渊裂缝”）、用途（如“可炼制筑基丹”）或风险（如“触之寒毒入髓”）。
+  - 风格：沧桑、克制、略带危险感，符合“凡人流”现实修仙基调。
+
+6. **价格（price）**
+  - 凡品：10–100
+  - 灵品：100–500
+  - 玄品：500–2000
+  - 真品：2000–5000
+  - 地品：5000–20000
+  - 天品：20000–100000
+  - 仙品/神品：100000+
+
+7. **数量（quantity）**
+  - 凡品：2–5
+  - 灵品：1–3
+  - 玄品及以上：1（神品、仙品、天品、地品必须为 1）
+
+### 二、禁止行为
+  - 不得虚构未列出的 type / rank / element 值。
+  - 不得使用英文、拼音或符号混杂名称。
+  - 不得描述“无敌”“必成大道”等违背凡人流平衡性的效果。
+
+### 三、输出格式
+  - 请直接输出符合规则和 Schema 的 JSON。
 `;
 
   const userPrompt = `
-  请生成恰好 ${count} 个材料(items数量)。
+  现在，请生成恰好 ${count} 项修仙材料。
   
   **必须严格按照以下品质分布生成：**
   ${distributionDesc}
@@ -133,17 +174,17 @@ export async function generateRandomMaterials(
 `;
 
   try {
-    const aiResponse = await object(
+    const aiResponse = await objectArray(
       systemPrompt,
       userPrompt,
       {
-        schema: MaterialsBatchSchema,
-        schemaName: '修仙界的材料列表',
+        schema: MaterialSchema,
+        schemaName: '修仙界的材料',
       },
       true, // use fast model
     );
 
-    return aiResponse.object.items;
+    return aiResponse.object;
   } catch (error) {
     console.error('Material Generation Failed:', error);
     throw new Error('天道暂隐，材料生成失败');
