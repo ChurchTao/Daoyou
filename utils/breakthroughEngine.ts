@@ -72,6 +72,46 @@ export interface RetreatOptions {
   rng?: () => number;
 }
 
+export interface BreakthroughChanceResult {
+  chance: number;
+  modifiers: BreakthroughModifiers;
+  nextStage: { realm: RealmType; stage: RealmStage } | null;
+}
+
+export function calculateBreakthroughChance(
+  cultivator: Cultivator,
+  years: number,
+): BreakthroughChanceResult {
+  const fromRealm = cultivator.realm;
+  const fromStage = cultivator.realm_stage;
+  const nextStage = getNextStage(fromRealm, fromStage);
+  const isMajor = nextStage ? nextStage.realm !== fromRealm : false;
+  const attemptType: BreakthroughAttemptType = isMajor ? 'major' : 'minor';
+
+  const finalAttributes = calculateFinalAttributes(cultivator);
+  const modifiers: BreakthroughModifiers = {
+    // 基础成功率
+    base: nextStage ? getBreakthroughBaseChance(fromRealm, attemptType) : 0,
+    // 悟性修正
+    comprehension: getComprehensionModifier(finalAttributes.final.wisdom),
+    // 闭关年限修正
+    years: getRetreatYearModifier(years),
+    // 失败连败修正
+    failureStreak: getFailureStreakModifier(
+      cultivator.closed_door_years_total || 0,
+    ),
+  };
+
+  const chance = nextStage
+    ? modifiers.base +
+      modifiers.comprehension +
+      modifiers.years +
+      modifiers.failureStreak
+    : 0;
+
+  return { chance, modifiers, nextStage };
+}
+
 export function performRetreatBreakthrough(
   rawCultivator: Cultivator,
   options: RetreatOptions,
@@ -82,35 +122,16 @@ export function performRetreatBreakthrough(
 
   const rng = options.rng ?? Math.random;
   const years = Math.floor(options.years);
+
+  const { chance, modifiers, nextStage } = calculateBreakthroughChance(
+    rawCultivator,
+    years,
+  );
+
   const fromRealm = rawCultivator.realm;
   const fromStage = rawCultivator.realm_stage;
-  const nextStage = getNextStage(fromRealm, fromStage);
   const isMajor = nextStage ? nextStage.realm !== fromRealm : false;
-  const attemptType: BreakthroughAttemptType = isMajor ? 'major' : 'minor';
 
-  const failureStreakBonus = getFailureStreakModifier(
-    rawCultivator.retreat_records,
-    fromRealm,
-    fromStage,
-  );
-  const finalAttributes = calculateFinalAttributes(rawCultivator);
-  const modifiers: BreakthroughModifiers = {
-    // 基础成功率
-    base: nextStage ? getBreakthroughBaseChance(fromRealm, attemptType) : 0,
-    // 悟性修正
-    comprehension: getComprehensionModifier(finalAttributes.final.wisdom),
-    // 闭关年限修正
-    years: getRetreatYearModifier(years),
-    // 失败连败修正
-    failureStreak: failureStreakBonus,
-  };
-
-  const chance = nextStage
-    ? modifiers.base +
-      modifiers.comprehension +
-      modifiers.years +
-      modifiers.failureStreak
-    : 0;
   const roll = rng();
   const success = nextStage ? roll <= chance : false;
 
@@ -244,22 +265,8 @@ function getRetreatYearModifier(years: number): number {
   return Math.min(0.3, scaled);
 }
 
-function getFailureStreakModifier(
-  records: RetreatRecord[] | undefined,
-  realm: RealmType,
-  stage: RealmStage,
-): number {
-  if (!records?.length) return 0;
-  let allYears = 0;
-  for (let i = records.length - 1; i >= 0; i -= 1) {
-    const record = records[i];
-    if (record.realm !== realm || record.realm_stage !== stage) break;
-    if (record.success) break;
-    const years = record.years;
-    allYears += years;
-  }
-  if (allYears <= 0) return 0;
-  const scaled = allYears / 2000;
+function getFailureStreakModifier(closedDoorYearsTotal: number): number {
+  const scaled = closedDoorYearsTotal / 2000;
   return Math.min(0.15, scaled);
 }
 

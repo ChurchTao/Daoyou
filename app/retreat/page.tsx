@@ -12,6 +12,7 @@ import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
 import type { BreakthroughAttemptSummary } from '@/utils/breakthroughEngine';
+import { calculateBreakthroughChance } from '@/utils/breakthroughEngine';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
@@ -27,6 +28,16 @@ export default function RetreatPage() {
     storyType?: 'breakthrough' | 'lifespan' | null;
   } | null>(null);
   const [retreatLoading, setRetreatLoading] = useState(false);
+
+  const previewChance = useMemo(() => {
+    if (!cultivator) return null;
+    const years = parseInt(retreatYears);
+    if (isNaN(years) || years <= 0) return null;
+    const modifiers = calculateBreakthroughChance(cultivator, years);
+    console.log(modifiers);
+    return modifiers.chance;
+  }, [cultivator, retreatYears]);
+
   const attributeGrowthText = useMemo(() => {
     if (!retreatResult?.summary?.attributeGrowth) return '';
     const mapping: Array<{ key: keyof Attributes; label: string }> = [
@@ -156,9 +167,13 @@ export default function RetreatPage() {
           <InkInput
             label="闭关年限"
             value={retreatYears}
-            placeholder="输入 1~500 之间的整数"
+            placeholder="输入 1~300 之间的整数"
             onChange={handleRetreatYearsChange}
-            hint="闭关越久突破几率越高，但寿元也随之消耗"
+            hint={
+              previewChance !== null
+                ? `预计突破成功率：${(previewChance * 100).toFixed(1)}%`
+                : '闭关越久突破几率越高，但寿元也随之消耗'
+            }
           />
           <InkButton onClick={handleRetreat} disabled={retreatLoading}>
             {retreatLoading ? '推演中……' : '闭关冲关'}
