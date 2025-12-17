@@ -208,12 +208,35 @@ function calculateStatusHitChance(
   return Math.max(0.1, baseHit * (1 - resist));
 }
 
+const BUFF_EFFECTS = new Set<StatusEffect>([
+  'armor_up',
+  'speed_up',
+  'crit_rate_up',
+]);
+
+const DEBUFF_EFFECTS = new Set<StatusEffect>([
+  'burn',
+  'bleed',
+  'poison',
+  'stun',
+  'silence',
+  'root',
+  'armor_down',
+  'crit_rate_down',
+]);
+
 function applyStatus(
   unit: BattleUnit,
   effect: StatusEffect,
   instance: StatusInstance,
 ): boolean {
   if (!STATUS_EFFECTS.has(effect)) return false;
+
+  // Rule: If already under an abnormal status (debuff), cannot be hit by the same effect again.
+  if (DEBUFF_EFFECTS.has(effect) && unit.statuses.has(effect)) {
+    return false;
+  }
+
   unit.statuses.set(effect, instance);
   return true;
 }
@@ -456,10 +479,14 @@ function applyAndLogStatusFromSkill(
   const hit = Math.random() < hitChance;
 
   if (hit) {
-    applyStatus(recipient, skill.effect, instance);
-    log.push(
-      `${recipient.data.name} 被「${skill.name}」影响，陷入「${label}」状态（持续 ${duration} 回合）。`,
-    );
+    const applied = applyStatus(recipient, skill.effect, instance);
+    if (applied) {
+      log.push(
+        `${recipient.data.name} 被「${skill.name}」影响，陷入「${label}」状态（持续 ${duration} 回合）。`,
+      );
+    } else {
+      log.push(`${recipient.data.name} 已经受到「${label}」影响，无法叠加。`);
+    }
   } else {
     log.push(
       `${recipient.data.name} 神识强大，抵抗了「${skill.name}」试图施加的「${label}」状态。`,
@@ -601,7 +628,9 @@ function executeSkill(
               source: snapshotUnit(attacker),
             };
 
-            const targetUnit = eff.target_self ? attacker : defender; // Handle target_self
+            const isBuff = BUFF_EFFECTS.has(eff.effect);
+            // If it is a buff, force target to self. Otherwise use target_self setting or default to defender.
+            const targetUnit = eff.target_self || isBuff ? attacker : defender;
             const applied = applyStatus(targetUnit, eff.effect, effectInstance);
 
             if (applied) {
@@ -609,9 +638,19 @@ function executeSkill(
                 `${attacker.data.name} 的 ${art.name} 触发，对 ${targetUnit.data.name} 附加「${describeStatus(eff.effect)}」（持续 ${duration} 回合）。`,
               );
             } else {
-              log.push(
-                `⚠️ 法宝 ${art.name} 试图施加未知状态「${eff.effect}」，已忽略。`,
-              );
+              // Check reason?
+              if (
+                DEBUFF_EFFECTS.has(eff.effect) &&
+                targetUnit.statuses.has(eff.effect)
+              ) {
+                log.push(
+                  `${targetUnit.data.name} 已经陷入「${describeStatus(eff.effect)}」，无法叠加。`,
+                );
+              } else {
+                log.push(
+                  `⚠️ 法宝 ${art.name} 试图施加未知状态「${eff.effect}」，已忽略。`,
+                );
+              }
             }
           }
         }

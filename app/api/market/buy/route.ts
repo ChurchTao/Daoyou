@@ -48,13 +48,28 @@ export async function POST(request: NextRequest) {
 
     try {
       // 3. Fetch Market Listings
-      const listings: Material[] | null = await redis.get(MARKET_CACHE_KEY);
-      if (!listings) {
+      let cachedData = (await redis.get(MARKET_CACHE_KEY)) as {
+        listings: Material[];
+        nextRefresh: number;
+      } | null;
+
+      // Handle legacy cache or missing data
+      if (Array.isArray(cachedData)) {
+        // If legacy array, wrap it (though GET route fixes this, race conditions exist)
+        cachedData = {
+          listings: cachedData,
+          nextRefresh: Date.now() + 7200000,
+        };
+      }
+
+      if (!cachedData || !cachedData.listings) {
         return NextResponse.json(
           { error: '坊市正在进货中，暂未开启' },
           { status: 404 },
         );
       }
+
+      const listings = cachedData.listings;
 
       // 4. Find Item
       const itemIndex = listings.findIndex((i: Material) => i.id === itemId);
@@ -110,14 +125,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 简单验证拥有权（虽然上面 update 已经隐含验证了 id 存在，但如果有更复杂的权限逻辑可以在这加，或者在前面 query）
-        // 这里假设只要扣钱成功就是合法的，因为 authenticated user 才能传进来 (待完善: 确保 cultivatorId 属于 user)
-        // 为了严格安全，应该先查 owner。但为了性能，我们在 update 后不再查。
-        // *更好的做法*: 在 update 前先查 owner，或者把 owner 校验加到 update where 里。
-        // 让我们稍微优化一下，把 owner check 放在最前面（无 lock 时），或者信任 request 中的 cultivatorId 属于当前 user（假设前端传对，后端没做严格归属校验是一个风险点）。
-        // *修正*: 第一版代码里有 `cultivator.userId !== user.id` 的检查。我们应该保留这个检查。
-
-        // 重新插入 owner check 逻辑 (不影响性能太多的情况下)
+        // 简单验证拥有权
         const ownerCheck = await tx.query.cultivators.findFirst({
           where: eq(cultivators.id, cultivatorId),
           columns: { userId: true },
@@ -147,9 +155,10 @@ export async function POST(request: NextRequest) {
       } else {
         listings[itemIndex] = item;
       }
+      cachedData.listings = listings;
 
       if (await redis.exists(MARKET_CACHE_KEY)) {
-        await redis.set(MARKET_CACHE_KEY, listings, { keepTtl: true });
+        await redis.set(MARKET_CACHE_KEY, cachedData, { keepTtl: true });
       }
 
       return NextResponse.json({

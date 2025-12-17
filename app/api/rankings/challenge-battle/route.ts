@@ -146,7 +146,6 @@ export async function POST(request: NextRequest) {
             throw new Error('被挑战者角色不存在');
           }
           const target = targetRecord.cultivator;
-          const targetUserId = targetRecord.userId;
 
           // 10. 执行战斗
           const battleResult = simulateBattle(challenger, target);
