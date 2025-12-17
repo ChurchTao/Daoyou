@@ -129,6 +129,7 @@ export class SkillCreationStrategy implements CreationStrategy<
      - 控制类允许：眩晕(stun)、沉默(silence)、束缚(root)
    - \`cost\`： 消耗值，值为威力值的1～2倍之间浮动。
    - \`target_self\`: 治疗(heal)和增益(buff)通常为 true。
+   - \`duration\`: 效果持续回合数，增益类最高为 3，异常类最高为 3，控制类最高为 2。
 
 7. **命名与风味**：
    - 名字要极其贴切修仙风格，结合五行、武器和意境,2～6字。
@@ -170,6 +171,7 @@ export class SkillCreationStrategy implements CreationStrategy<
       cultivatorId: context.cultivator.id!,
       name: resultItem.name,
       type: resultItem.type,
+      prompt: context.userPrompt,
       element: resultItem.element,
       grade: resultItem.grade,
       power: resultItem.power,

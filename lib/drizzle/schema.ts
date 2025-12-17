@@ -102,6 +102,7 @@ export const skills = pgTable('wanjiedaoyou_skills', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
+  prompt: text('prompt').notNull().default(''),
   type: varchar('type', { length: 20 }).notNull(), // attack | heal | control | debuff | buff
   element: varchar('element', { length: 10 }).notNull(),
   grade: varchar('grade', { length: 20 }), // 天阶上品 | 天阶中品 | 天阶下品 | 地阶上品 | ... | 黄阶下品

@@ -58,12 +58,13 @@ export async function POST(request: NextRequest) {
     const selfFinal = calculateFinalAttributes(selfCultivator).final;
     const targetFinal = calculateFinalAttributes(targetCultivator);
 
-    if (selfFinal.willpower <= targetFinal.final.willpower) {
-      return NextResponse.json(
-        { error: '你的神识不足，未能窥破对方底细' },
-        { status: 403 },
-      );
-    }
+    // todo 神识查探先关闭
+    // if (selfFinal.willpower <= targetFinal.final.willpower) {
+    //   return NextResponse.json(
+    //     { error: '你的神识不足，未能窥破对方底细' },
+    //     { status: 403 },
+    //   );
+    // }
 
     return NextResponse.json({
       success: true,
