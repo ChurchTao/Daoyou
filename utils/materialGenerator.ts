@@ -181,7 +181,7 @@ export async function generateRandomMaterials(
         schema: MaterialSchema,
         schemaName: '修仙界的材料',
       },
-      true, // use fast model
+      false, // use fast model
     );
 
     return aiResponse.object;

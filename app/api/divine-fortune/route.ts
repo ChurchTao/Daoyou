@@ -30,14 +30,19 @@ export async function GET() {
     const [systemPrompt, userPrompt] = getDivineFortunePrompt();
 
     // 调用 AI 生成天机格言
-    const aiResponse = await object(systemPrompt, userPrompt, {
-      schema: z.object({
-        fortune: z.string(),
-        hint: z.string(),
-      }),
-      schemaName: 'DivineFortune',
-      schemaDescription: '天机格言',
-    });
+    const aiResponse = await object(
+      systemPrompt,
+      userPrompt,
+      {
+        schema: z.object({
+          fortune: z.string(),
+          hint: z.string(),
+        }),
+        schemaName: 'DivineFortune',
+        schemaDescription: '天机格言',
+      },
+      true,
+    );
 
     // 解析 JSON 响应
     let fortune: DivineFortune;

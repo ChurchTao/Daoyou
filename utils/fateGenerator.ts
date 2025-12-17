@@ -138,7 +138,7 @@ export async function generatePreHeavenFates(
 
   const userPrompt = `
   现在，请为一位初入修仙界的凡人，随机生成其先天命格。请生成恰好等于${count}条数据。
-  
+
   **必须严格按照以下品质分布生成：**
   ${distributionDesc}
   
@@ -153,7 +153,7 @@ export async function generatePreHeavenFates(
         schema: PreHeavenFateSchema,
         schemaName: '先天气运的结构',
       },
-      true, // use fast model
+      false, // use fast model
     );
 
     return result.object;
