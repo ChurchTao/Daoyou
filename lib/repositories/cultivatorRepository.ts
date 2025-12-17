@@ -15,6 +15,7 @@ import type {
   Cultivator,
   RetreatRecord,
 } from '../../types/cultivator';
+import { getRealmStageAttributeCap } from '../../utils/cultivatorUtils';
 import { db } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
@@ -759,6 +760,7 @@ export async function getCultivatorConsumables(
     quality: c.quality as Quality,
     type: c.type as ConsumableType,
     effect: c.effect as ConsumableEffect[],
+    quantity: c.quantity,
     description: c.description || '',
   }));
 }
@@ -1041,6 +1043,7 @@ export async function getInventory(
         : [c.effect].filter(Boolean)) as
         | import('../../types/cultivator').ConsumableEffect[]
         | undefined,
+      quantity: c.quantity,
     })),
     materials: materialsResult.map((m) => ({
       id: m.id,
@@ -1264,14 +1267,15 @@ export async function consumeItem(
     throw new Error('丹药不属于该道友');
   }
 
+  const cultivator = await getCultivatorById(userId, cultivatorId);
+  if (!cultivator) throw new Error('道友状态异常');
+
   // 3. 应用效果
   const effects = (item.effect as ConsumableEffect[]) || [];
 
   if (effects.length === 0) {
     // 即使无效也消耗掉
-    await db
-      .delete(schema.consumables)
-      .where(eq(schema.consumables.id, consumableId));
+    await handleConsumeItem(item.id, item.quantity);
     return {
       success: false,
       message: '此丹药灵气尽失，服用后毫无反应。',
@@ -1279,35 +1283,76 @@ export async function consumeItem(
     };
   }
 
-  const cultivator = await getCultivatorById(userId, cultivatorId);
-  if (!cultivator) throw new Error('道友状态异常');
-
   const newStats = { ...cultivator.attributes };
   let message = `服用了【${item.name}】，`;
   const changes: string[] = [];
 
+  // 获取当前境界属性上限
+  const attrCap = getRealmStageAttributeCap(
+    cultivator.realm,
+    cultivator.realm_stage,
+  );
+
+  let isFullyCapped = true;
+
+  // 预检：检查是否所有属性都已达到上限
   for (const effect of effects) {
     const bonus = effect.bonus || 0;
     if (bonus > 0) {
+      if (effect.effect_type === '永久提升体魄' && newStats.vitality < attrCap)
+        isFullyCapped = false;
+      if (effect.effect_type === '永久提升灵力' && newStats.spirit < attrCap)
+        isFullyCapped = false;
+      if (effect.effect_type === '永久提升悟性' && newStats.wisdom < attrCap)
+        isFullyCapped = false;
+      if (effect.effect_type === '永久提升身法' && newStats.speed < attrCap)
+        isFullyCapped = false;
+      if (effect.effect_type === '永久提升神识' && newStats.willpower < attrCap)
+        isFullyCapped = false;
+    }
+  }
+
+  if (isFullyCapped && effects.some((e) => e.bonus > 0)) {
+    return {
+      success: false,
+      message: '道友当前境界已臻圆满，无法再吸收药力。请先尝试突破瓶颈。',
+      cultivator,
+    };
+  }
+
+  for (const effect of effects) {
+    const bonus = effect.bonus || 0;
+    if (bonus > 0) {
+      let realGain = 0;
+      let targetAttr = '';
+
       if (effect.effect_type === '永久提升体魄') {
-        newStats.vitality += bonus;
-        changes.push(`体魄+${bonus}`);
+        targetAttr = '体魄';
+        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.vitality));
+        newStats.vitality += realGain;
+      } else if (effect.effect_type === '永久提升灵力') {
+        targetAttr = '灵力';
+        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.spirit));
+        newStats.spirit += realGain;
+      } else if (effect.effect_type === '永久提升悟性') {
+        targetAttr = '悟性';
+        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.wisdom));
+        newStats.wisdom += realGain;
+      } else if (effect.effect_type === '永久提升身法') {
+        targetAttr = '身法';
+        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.speed));
+        newStats.speed += realGain;
+      } else if (effect.effect_type === '永久提升神识') {
+        targetAttr = '神识';
+        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.willpower));
+        newStats.willpower += realGain;
       }
-      if (effect.effect_type === '永久提升灵力') {
-        newStats.spirit += bonus;
-        changes.push(`灵力+${bonus}`);
-      }
-      if (effect.effect_type === '永久提升悟性') {
-        newStats.wisdom += bonus;
-        changes.push(`悟性+${bonus}`);
-      }
-      if (effect.effect_type === '永久提升身法') {
-        newStats.speed += bonus;
-        changes.push(`身法+${bonus}`);
-      }
-      if (effect.effect_type === '永久提升神识') {
-        newStats.willpower += bonus;
-        changes.push(`神识+${bonus}`);
+
+      if (realGain > 0) {
+        changes.push(`${targetAttr}+${realGain}`);
+      } else if (bonus > 0) {
+        // 尝试提升但被阻断
+        changes.push(`${targetAttr}已至上限`);
       }
     }
   }
@@ -1318,12 +1363,19 @@ export async function consumeItem(
     message += '顿感灵台清明，' + changes.join('，') + '。';
   }
 
-  // 4. 执行事务：删除丹药 + 更新属性
+  // 4. 执行事务：消耗丹药 + 更新属性
   await db.transaction(async (tx) => {
-    // 删除消耗品
-    await tx
-      .delete(schema.consumables)
-      .where(eq(schema.consumables.id, consumableId));
+    // 消耗丹药
+    if (item.quantity > 1) {
+      await tx
+        .update(schema.consumables)
+        .set({ quantity: item.quantity - 1 })
+        .where(eq(schema.consumables.id, consumableId));
+    } else {
+      await tx
+        .delete(schema.consumables)
+        .where(eq(schema.consumables.id, consumableId));
+    }
 
     // 更新角色属性
     await tx
@@ -1342,4 +1394,17 @@ export async function consumeItem(
   if (!updatedCultivator) throw new Error('更新后无法获取数据');
 
   return { success: true, message, cultivator: updatedCultivator };
+}
+
+async function handleConsumeItem(itemId: string, currentQuantity: number) {
+  if (currentQuantity > 1) {
+    await db
+      .update(schema.consumables)
+      .set({ quantity: currentQuantity - 1 })
+      .where(eq(schema.consumables.id, itemId));
+  } else {
+    await db
+      .delete(schema.consumables)
+      .where(eq(schema.consumables.id, itemId));
+  }
 }

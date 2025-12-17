@@ -163,6 +163,7 @@ export const consumables = pgTable('wanjiedaoyou_consumables', {
   prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
   quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
   effect: jsonb('effect'), // ConsumableEffect
+  quantity: integer('quantity').notNull().default(1),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });

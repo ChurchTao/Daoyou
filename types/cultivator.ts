@@ -186,6 +186,7 @@ export interface Consumable {
   type: ConsumableType;
   quality?: Quality;
   effect?: ConsumableEffect[];
+  quantity: number;
   description?: string;
 }
 
