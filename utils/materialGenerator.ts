@@ -46,9 +46,9 @@ function getRandomQualityDistribution(count: number): Record<Quality, number> {
     玄品: 0,
     真品: 0,
     地品: 0,
-    天品: 1,
-    仙品: 1,
-    神品: 1,
+    天品: 0,
+    仙品: 0,
+    神品: 0,
   };
 
   for (let i = 0; i < count; i++) {
