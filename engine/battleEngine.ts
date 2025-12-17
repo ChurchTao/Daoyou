@@ -1,6 +1,11 @@
-import type { Quality } from '@/types/constants';
+import type { Quality, SkillType } from '@/types/constants';
 import { ElementType, StatusEffect } from '@/types/constants';
-import type { Artifact, Cultivator, Skill } from '@/types/cultivator';
+import type {
+  Artifact,
+  Cultivator,
+  OnHitAddEffect,
+  Skill,
+} from '@/types/cultivator';
 import { getStatusLabel } from '@/types/dictionaries';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
 
@@ -203,9 +208,9 @@ function calculateStatusHitChance(
   attackerPower: number,
   defenderWillpower: number,
 ): number {
-  const baseHit = Math.min(0.95, Math.max(0.35, attackerPower / 100));
-  const resist = Math.min(0.7, defenderWillpower / 240);
-  return Math.max(0.1, baseHit * (1 - resist));
+  const baseHit = Math.min(0.8, Math.max(0.2, attackerPower / 2.5 / 100));
+  const resist = Math.min(0.7, defenderWillpower / 3000);
+  return Math.max(0.2, baseHit * (1 - resist));
 }
 
 const BUFF_EFFECTS = new Set<StatusEffect>([
@@ -300,6 +305,14 @@ function getArtifactPowerAndCost(
   return { power: baseQ + multiplier, cost: baseQ };
 }
 
+function getArtifactSpecialEffects(
+  artifact: Artifact,
+): OnHitAddEffect | undefined {
+  return artifact?.special_effects?.find(
+    (eff) => eff.type === 'on_hit_add_effect',
+  );
+}
+
 function createArtifactSkill(artifact: Artifact, actor: BattleUnit): Skill {
   const final = calcFinalAttrs(actor.data).final;
   const { power, cost } = getArtifactPowerAndCost(
@@ -307,15 +320,23 @@ function createArtifactSkill(artifact: Artifact, actor: BattleUnit): Skill {
     final.willpower,
   );
 
-  return {
+  const skill: Skill = {
     id: artifact.id,
-    name: artifact.name,
-    type: 'attack',
+    name: `${artifact.name}（法宝）`,
+    type: 'attack' as SkillType,
     element: artifact.element,
     power: power,
     cost: cost,
-    cooldown: 2, // Fixed 2 turns
+    cooldown: 3, // Fixed 3 turns
   };
+  const effect = getArtifactSpecialEffects(artifact);
+  if (!effect) return skill;
+
+  const isBuff = BUFF_EFFECTS.has(effect?.effect);
+  skill.duration = 2; // Fixed 2 turns
+  skill.effect = effect?.effect;
+  skill.target_self = isBuff;
+  return skill;
 }
 
 function describeStatus(effect?: StatusEffect | null): string {
@@ -567,6 +588,7 @@ function executeSkill(
     );
   }
 
+  // 状态判定
   applyAndLogStatusFromSkill(attacker, defender, skill, log);
 
   // 灵力消耗
@@ -597,67 +619,7 @@ function executeSkill(
     }
   }
 
-  // 装备 on_hit_add_effect 触发
-  if (
-    skill.type === 'attack' ||
-    skill.type === 'control' ||
-    skill.type === 'debuff'
-  ) {
-    const artifactsById = new Map<string, Artifact>(
-      attacker.data.inventory.artifacts.map((a) => [a.id!, a]),
-    );
-    const eqIds = [
-      attacker.data.equipped.weapon,
-      attacker.data.equipped.armor,
-      attacker.data.equipped.accessory,
-    ].filter(Boolean) as string[];
-
-    for (const id of eqIds) {
-      const art = artifactsById.get(id);
-      if (!art) continue;
-      const effects = [...(art.special_effects || []), ...(art.curses || [])];
-      for (const eff of effects) {
-        if (eff.type === 'on_hit_add_effect') {
-          if (Math.random() * 100 < eff.chance) {
-            const duration = 2;
-            const effectInstance: StatusInstance = {
-              remaining: duration,
-              potency: 60,
-              element: art.element,
-              skillName: art.name,
-              source: snapshotUnit(attacker),
-            };
-
-            const isBuff = BUFF_EFFECTS.has(eff.effect);
-            // If it is a buff, force target to self. Otherwise use target_self setting or default to defender.
-            const targetUnit = eff.target_self || isBuff ? attacker : defender;
-            const applied = applyStatus(targetUnit, eff.effect, effectInstance);
-
-            if (applied) {
-              log.push(
-                `${attacker.data.name} 的 ${art.name} 触发，对 ${targetUnit.data.name} 附加「${describeStatus(eff.effect)}」（持续 ${duration} 回合）。`,
-              );
-            } else {
-              // Check reason?
-              if (
-                DEBUFF_EFFECTS.has(eff.effect) &&
-                targetUnit.statuses.has(eff.effect)
-              ) {
-                log.push(
-                  `${targetUnit.data.name} 已经陷入「${describeStatus(eff.effect)}」，无法叠加。`,
-                );
-              } else {
-                log.push(
-                  `⚠️ 法宝 ${art.name} 试图施加未知状态「${eff.effect}」，已忽略。`,
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
+  // 计算冷却
   attacker.skillCooldowns.set(skill.id!, skill.cooldown);
 }
 
