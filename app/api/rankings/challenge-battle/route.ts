@@ -123,9 +123,9 @@ export async function POST(request: NextRequest) {
           }
 
           // 5. 验证只能挑战排名比自己高的
-          if (challengerRank !== null && challengerRank <= targetRank) {
-            throw new Error('只能挑战排名比自己高的角色');
-          }
+          // if (challengerRank !== null && challengerRank <= targetRank) {
+          //   throw new Error('只能挑战排名比自己高的角色');
+          // }
 
           // 6. 检查被挑战者是否在保护期
           const targetProtected = await isProtected(targetId);
@@ -194,9 +194,13 @@ export async function POST(request: NextRequest) {
           let newTargetRank: number | null = targetRank;
 
           if (isWin) {
-            await updateRanking(cultivatorId, targetId);
-            newChallengerRank = await getCultivatorRank(cultivatorId);
-            newTargetRank = await getCultivatorRank(targetId);
+            // 只有当挑战者排名比对方低（数字大），或者挑战者未上榜时，才互换名次
+            // 如果挑战者排名比对方高（数字小），说明是向下挑战（切磋），不改变名次
+            if (challengerRank === null || challengerRank > targetRank) {
+              await updateRanking(cultivatorId, targetId);
+              newChallengerRank = await getCultivatorRank(cultivatorId);
+              newTargetRank = await getCultivatorRank(targetId);
+            }
           }
 
           // 15. 挑战完成，增加挑战次数（无论成功或失败都消耗次数）

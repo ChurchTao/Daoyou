@@ -283,7 +283,6 @@ export default function RankingsPage() {
                 const isSelf = item.id === cultivator.id;
                 const canChallenge =
                   !isSelf &&
-                  (!myRank || myRank > item.rank) &&
                   !isLoadingChallenges &&
                   remainingChallenges !== undefined &&
                   remainingChallenges > 0 &&

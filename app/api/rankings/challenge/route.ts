@@ -1,4 +1,3 @@
-import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import {
   addToRanking,
   checkDailyChallenges,
@@ -7,6 +6,7 @@ import {
   isProtected,
   isRankingEmpty,
 } from '@/lib/redis/rankings';
+import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -75,10 +75,7 @@ export async function POST(request: NextRequest) {
 
     // 如果提供了targetId，则必须进行挑战
     if (!targetId || (typeof targetId === 'string' && targetId.trim() === '')) {
-      return NextResponse.json(
-        { error: '请提供被挑战者ID' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: '请提供被挑战者ID' }, { status: 400 });
     }
 
     // 验证targetId类型
@@ -99,12 +96,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. 验证只能挑战排名比自己高的
-    if (challengerRank !== null && challengerRank <= targetRank) {
-      return NextResponse.json(
-        { error: '只能挑战排名比自己高的角色' },
-        { status: 400 },
-      );
-    }
+    // if (challengerRank !== null && challengerRank <= targetRank) {
+    //   return NextResponse.json(
+    //     { error: '只能挑战排名比自己高的角色' },
+    //     { status: 400 },
+    //   );
+    // }
 
     // 6. 检查被挑战者是否在保护期
     const targetProtected = await isProtected(targetId);
