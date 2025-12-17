@@ -2,6 +2,7 @@ import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
   getCultivatorById,
+  getCultivatorRetreatRecords,
   updateCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
@@ -55,28 +56,28 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查闭关冷却时间（30分钟）
-    // const retreat_records = await getCultivatorRetreatRecords(
-    //   user.id,
-    //   cultivatorId,
-    // );
-    // if (retreat_records && retreat_records.length > 0) {
-    //   const lastRetreat = retreat_records[retreat_records.length - 1];
-    //   const lastRetreatTime = new Date(lastRetreat.timestamp).getTime();
-    //   const now = Date.now();
-    //   const cooldownTime = COOLDOWN_MINUTES * 60 * 1000;
+    const retreat_records = await getCultivatorRetreatRecords(
+      user.id,
+      cultivatorId,
+    );
+    if (retreat_records && retreat_records.length > 0) {
+      const lastRetreat = retreat_records[retreat_records.length - 1];
+      const lastRetreatTime = new Date(lastRetreat.timestamp).getTime();
+      const now = Date.now();
+      const cooldownTime = COOLDOWN_MINUTES * 60 * 1000;
 
-    //   if (now - lastRetreatTime < cooldownTime) {
-    //     const remainingTime = cooldownTime - (now - lastRetreatTime);
-    //     const remainingMinutes = Math.ceil(remainingTime / (60 * 1000));
+      if (now - lastRetreatTime < cooldownTime) {
+        const remainingTime = cooldownTime - (now - lastRetreatTime);
+        const remainingMinutes = Math.ceil(remainingTime / (60 * 1000));
 
-    //     return NextResponse.json(
-    //       {
-    //         error: `道友切莫心急，闭关需循序渐进，请等待 ${remainingMinutes} 分钟`,
-    //       },
-    //       { status: 400 },
-    //     );
-    //   }
-    // }
+        return NextResponse.json(
+          {
+            error: `道友切莫心急，闭关需循序渐进，请等待 ${remainingMinutes} 分钟`,
+          },
+          { status: 400 },
+        );
+      }
+    }
 
     const result = performRetreatBreakthrough(cultivator, { years });
     let story: string | undefined;
