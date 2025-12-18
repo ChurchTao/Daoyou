@@ -1,7 +1,7 @@
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { createClient } from '@/lib/supabase/server';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 type Params = {
@@ -27,7 +27,7 @@ export async function GET(req: Request, ctx: Params) {
   const rows = await db
     .select()
     .from(battleRecords)
-    .where(and(eq(battleRecords.id, id), eq(battleRecords.userId, user.id)))
+    .where(eq(battleRecords.id, id))
     .limit(1);
 
   const record = rows[0];
