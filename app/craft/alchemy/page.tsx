@@ -136,53 +136,55 @@ export default function AlchemyPage() {
         {inventory.materials && inventory.materials.length > 0 ? (
           <div className="max-h-60 overflow-y-auto border border-ink-border rounded p-2">
             <InkList dense>
-              {inventory.materials.map((m) => {
-                const typeInfo = getMaterialTypeInfo(m.type);
-                const isSelected = selectedMaterialIds.includes(m.id!);
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => !isSubmitting && toggleMaterial(m.id!)}
-                    className={`cursor-pointer border-b border-ink-border/30 last:border-0 p-2 transition-colors ${
-                      isSelected
-                        ? 'bg-emerald-900/10'
-                        : 'hover:bg-ink-primary/5'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          readOnly
-                          className="accent-ink-primary"
-                        />
-                        <span className="font-bold">
-                          {typeInfo.icon} {m.name}
-                        </span>
-                        <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
+              {inventory.materials
+                .filter((m) => m.type != 'ore')
+                .map((m) => {
+                  const typeInfo = getMaterialTypeInfo(m.type);
+                  const isSelected = selectedMaterialIds.includes(m.id!);
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => !isSubmitting && toggleMaterial(m.id!)}
+                      className={`cursor-pointer border-b border-ink-border/30 last:border-0 p-2 transition-colors ${
+                        isSelected
+                          ? 'bg-emerald-900/10'
+                          : 'hover:bg-ink-primary/5'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            readOnly
+                            className="accent-ink-primary"
+                          />
+                          <span className="font-bold">
+                            {typeInfo.icon} {m.name}
+                          </span>
+                          <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-ink-secondary">
+                            x{m.quantity}
+                          </span>
+                          <InkButton
+                            variant="secondary"
+                            className="text-xs leading-none"
+                            onClick={() => {
+                              setViewingMaterial(m);
+                            }}
+                          >
+                            详情
+                          </InkButton>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-ink-secondary">
-                          x{m.quantity}
-                        </span>
-                        <InkButton
-                          variant="secondary"
-                          className="text-xs leading-none"
-                          onClick={() => {
-                            setViewingMaterial(m);
-                          }}
-                        >
-                          详情
-                        </InkButton>
+                      <div className="text-xs text-ink-secondary ml-6 mt-1 truncate">
+                        {m.description || '无描述'}
                       </div>
                     </div>
-                    <div className="text-xs text-ink-secondary ml-6 mt-1 truncate">
-                      {m.description || '无描述'}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </InkList>
           </div>
         ) : (
@@ -261,7 +263,7 @@ export default function AlchemyPage() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold ">{viewingMaterial.name}</h3>
                   <InkBadge tier={viewingMaterial.rank}>
-                    {getMaterialTypeInfo(viewingMaterial.type).label}
+                    {`${getMaterialTypeInfo(viewingMaterial.type).label} · ${viewingMaterial.element}`}
                   </InkBadge>
                 </div>
                 <p className="text-sm text-ink-secondary">

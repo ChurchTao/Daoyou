@@ -70,8 +70,6 @@ export class RefiningStrategy implements CreationStrategy<
       const herb = context.materials.find((m) => m.type === 'herb');
       throw new Error(`道友慎重，${herb?.name}不适合炼器`);
     }
-
-    context.userPrompt = sanitizePrompt(context.userPrompt);
   }
 
   constructPrompt(context: CreationContext): PromptData {
@@ -175,9 +173,4 @@ export class RefiningStrategy implements CreationStrategy<
       score,
     });
   }
-}
-
-// 清理用户输入，移除所有空白字符、换行符、制表符、数字
-function sanitizePrompt(prompt: string): string {
-  return prompt.replace(/\s+/g, '').replace(/\d+/g, '');
 }

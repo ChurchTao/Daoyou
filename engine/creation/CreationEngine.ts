@@ -4,6 +4,7 @@ import { redis } from '@/lib/redis';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { Material } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';
+import { sanitizePrompt } from '@/utils/prompts';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { CreationContext } from './CreationStrategy';
 import { AlchemyStrategy } from './strategies/AlchemyStrategy';
@@ -84,7 +85,7 @@ export class CreationEngine {
       const context: CreationContext = {
         cultivator: cultivator,
         materials: selectedMaterials as unknown as Material[],
-        userPrompt: prompt,
+        userPrompt: sanitizePrompt(prompt),
       };
       await strategy.validate(context);
 
