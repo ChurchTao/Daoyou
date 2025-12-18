@@ -1,17 +1,23 @@
 'use client';
 
-import { InkBadge, InkButton } from '@/components/InkComponents';
-import { RankingItem } from '@/lib/redis/rankings';
-import { RealmType } from '@/types/constants';
+import { InkBadge, InkButton, Tier } from '@/components/InkComponents';
+import {
+  BattleRankingItem,
+  ItemRankingEntry,
+  RankingsDisplayItem,
+} from '@/types/rankings';
 
 interface RankingListItemProps {
-  item: RankingItem;
+  item: RankingsDisplayItem;
   isSelf: boolean;
   canChallenge: boolean;
   isChallenging: boolean;
   isProbing: boolean;
-  onChallenge: (targetId: string) => void;
-  onProbe: (targetId: string) => void;
+  onChallenge: (targetId: string) => Promise<void>;
+  onProbe: (targetId: string) => Promise<void>;
+  customSubtitle?: string;
+  customMeta?: string;
+  isItem?: boolean;
 }
 
 export function RankingListItem({
@@ -22,33 +28,72 @@ export function RankingListItem({
   isProbing,
   onChallenge,
   onProbe,
+  customSubtitle,
+  customMeta,
+  isItem = false,
 }: RankingListItemProps) {
-  // 获取性别符号
-  const genderSymbol = item.gender === '男' ? '☯' : '🌸';
+  // Type guards/assertions for convenience
+  const battleItem = !isItem ? (item as BattleRankingItem) : null;
+  const rankItem = isItem ? (item as ItemRankingEntry) : null;
+
+  // 获取性别符号 (Only for characters)
+  const genderSymbol =
+    battleItem && battleItem.gender
+      ? battleItem.gender === '男'
+        ? '☯'
+        : '🌸'
+      : '';
 
   return (
     <div
       className={`py-3 border-b border-dashed border-ink/20 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
     >
-      {/* 第一行：排名、姓名、性别、年龄、标记 */}
+      {/* 第一行：排名、姓名、性别、标题/品质、标记 */}
       <div className="flex items-baseline gap-2 mb-1">
         <span className="font-bold text-lg min-w-8">{item.rank}.</span>
         <span className="font-bold">
-          {genderSymbol} {item.name} {item.title ? `「${item.title}」` : ''}
+          {genderSymbol} {item.name}{' '}
+          {!isItem && item.title ? `「${item.title}」` : ''}
         </span>
         {isSelf && <span className="equipped-mark text-sm">← 你</span>}
         {item.is_new_comer && <InkBadge tone="accent">[新天骄]</InkBadge>}
+        {isItem && (rankItem?.quality || rankItem?.grade) && (
+          <InkBadge tier={(rankItem.quality || rankItem.grade) as Tier}>
+            {rankItem.type}
+          </InkBadge>
+        )}
       </div>
 
-      {/* 第二行：境界、来源 */}
-      <div className="flex gap-2 mb-2 ml-10">
-        <InkBadge tier={item.realm as RealmType}>{item.realm_stage}</InkBadge>
-        <span className="text-sm opacity-70">「{item.age}岁」</span>
+      {/* 第二行：信息展示 (Battle: Realm/Age, Item: Subtitle/Meta) */}
+      <div className="flex gap-2 mb-2 ml-10 flex-wrap">
+        {!isItem && battleItem ? (
+          <>
+            <InkBadge tier={battleItem.realm as Tier}>
+              {battleItem.realm_stage}
+            </InkBadge>
+            <span className="text-sm opacity-70">「{battleItem.age}岁」</span>
+          </>
+        ) : (
+          <>
+            {customSubtitle && (
+              <span className="text-sm opacity-70">{customSubtitle}</span>
+            )}
+            {customMeta && (
+              <span className="text-sm font-semibold">{customMeta}</span>
+            )}
+          </>
+        )}
       </div>
-      <p className="ml-10 text-sm opacity-70 mb-2">{item.origin ?? '散修'}</p>
 
-      {/* 第三行：操作按钮（仅非自己时显示） */}
-      {!isSelf && (
+      {/* 来源 / 描述 */}
+      <p className="ml-10 text-sm opacity-70 mb-2">
+        {!isItem && battleItem
+          ? (battleItem.origin ?? '散修')
+          : rankItem?.description || '暂无描述'}
+      </p>
+
+      {/* 第三行：操作按钮（仅非自己时显示，且仅Battle榜显示） */}
+      {!isSelf && !isItem && (
         <div className="flex justify-end gap-2 ml-10">
           {canChallenge && (
             <InkButton

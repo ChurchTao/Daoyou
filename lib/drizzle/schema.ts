@@ -113,6 +113,7 @@ export const skills = pgTable('wanjiedaoyou_skills', {
   duration: integer('duration'), // 持续回合数
   target_self: integer('target_self').default(0), // 0 = false, 1 = true
   description: text('description'),
+  score: integer('score').notNull().default(0), // 评分
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -150,6 +151,7 @@ export const artifacts = pgTable('wanjiedaoyou_artifacts', {
   special_effects: jsonb('special_effects').default([]), // ArtifactEffect[]
   curses: jsonb('curses').default([]), // ArtifactEffect[]
   description: text('description'),
+  score: integer('score').notNull().default(0), // 评分
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -166,6 +168,7 @@ export const consumables = pgTable('wanjiedaoyou_consumables', {
   effect: jsonb('effect'), // ConsumableEffect
   quantity: integer('quantity').notNull().default(1),
   description: text('description'),
+  score: integer('score').notNull().default(0), // 评分
   createdAt: timestamp('created_at').defaultNow(),
 });
 

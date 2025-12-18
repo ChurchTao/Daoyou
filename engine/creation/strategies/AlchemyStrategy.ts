@@ -5,7 +5,9 @@ import {
   CONSUMABLE_TYPE_VALUES,
   QUALITY_VALUES,
 } from '@/types/constants';
+import { Consumable } from '@/types/cultivator';
 import { getMaterialTypeLabel } from '@/types/dictionaries';
+import { calculateSingleElixirScore } from '@/utils/rankingUtils';
 import { z } from 'zod';
 import {
   CreationContext,
@@ -25,6 +27,7 @@ const ConsumableSchema = z.object({
     }),
   ),
   description: z.string().max(200).optional().describe('丹药描述'),
+  quantity: z.number().gte(1).lte(3).optional().default(1).describe('丹药数量'),
 });
 
 export class AlchemyStrategy implements CreationStrategy<
@@ -124,6 +127,7 @@ ${materialsDesc}
     context: CreationContext,
     resultItem: z.infer<typeof ConsumableSchema>,
   ): Promise<void> {
+    const score = calculateSingleElixirScore(resultItem as Consumable);
     await tx.insert(consumables).values({
       cultivatorId: context.cultivator.id!,
       name: resultItem.name,
@@ -132,6 +136,8 @@ ${materialsDesc}
       quality: resultItem.quality,
       effect: resultItem.effect,
       description: resultItem.description,
+      quantity: resultItem.quantity || 1,
+      score,
     });
   }
 }

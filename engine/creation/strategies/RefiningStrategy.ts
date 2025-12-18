@@ -8,6 +8,8 @@ import {
   REALM_VALUES,
   STATUS_EFFECT_VALUES,
 } from '@/types/constants';
+import { Artifact } from '@/types/cultivator';
+import { calculateSingleArtifactScore } from '@/utils/rankingUtils';
 import { z } from 'zod';
 import {
   CreationContext,
@@ -157,6 +159,7 @@ export class RefiningStrategy implements CreationStrategy<
     context: CreationContext,
     resultItem: z.infer<typeof ArtifactSchema>,
   ): Promise<void> {
+    const score = calculateSingleArtifactScore(resultItem as Artifact);
     await tx.insert(artifacts).values({
       cultivatorId: context.cultivator.id!,
       prompt: context.userPrompt,
@@ -169,6 +172,7 @@ export class RefiningStrategy implements CreationStrategy<
       special_effects: resultItem.special_effects || [],
       curses: resultItem.curses || [],
       description: resultItem.description,
+      score,
     });
   }
 }

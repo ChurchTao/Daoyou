@@ -1198,51 +1198,6 @@ export async function getSkills(
 // ===== 装备相关操作 =====
 
 /**
- * 创建装备（法宝）
- */
-export async function createEquipment(
-  userId: string,
-  cultivatorId: string,
-  equipmentData: Omit<import('../../types/cultivator').Artifact, 'id'>,
-): Promise<import('../../types/cultivator').Artifact> {
-  // 权限验证
-  const existing = await db
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    );
-
-  if (existing.length === 0) {
-    throw new Error('角色不存在或无权限操作');
-  }
-
-  // 创建装备（使用数据库生成的 UUID 作为 id）
-  const artifactResult = await db
-    .insert(schema.artifacts)
-    .values({
-      cultivatorId,
-      name: equipmentData.name,
-      slot: equipmentData.slot,
-      element: equipmentData.element,
-      bonus: equipmentData.bonus,
-      special_effects: equipmentData.special_effects || [],
-      curses: equipmentData.curses || [],
-    })
-    .returning();
-
-  const artifactRecord = artifactResult[0];
-
-  return {
-    id: artifactRecord.id, // 使用数据库生成的 UUID
-    ...equipmentData,
-  };
-}
-
-/**
  * 服用丹药
  */
 export async function consumeItem(

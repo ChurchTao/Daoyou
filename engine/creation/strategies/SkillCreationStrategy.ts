@@ -6,8 +6,10 @@ import {
   SKILL_TYPE_VALUES,
   STATUS_EFFECT_VALUES,
 } from '@/types/constants';
+import { Skill } from '@/types/cultivator';
 import { getAllSkillPowerRangePrompt } from '@/utils/characterEngine';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import { calculateSingleSkillScore } from '@/utils/rankingUtils';
 import { z } from 'zod';
 import {
   CreationContext,
@@ -167,6 +169,7 @@ export class SkillCreationStrategy implements CreationStrategy<
     context: CreationContext,
     resultItem: z.infer<typeof SkillSchema>,
   ): Promise<void> {
+    const score = calculateSingleSkillScore(resultItem as Skill);
     await tx.insert(skills).values({
       cultivatorId: context.cultivator.id!,
       name: resultItem.name,
@@ -181,6 +184,7 @@ export class SkillCreationStrategy implements CreationStrategy<
       duration: resultItem.duration,
       target_self: resultItem.target_self ? 1 : 0,
       description: resultItem.description,
+      score,
     });
   }
 }

@@ -8,14 +8,15 @@ import {
   InkList,
   InkListItem,
   InkNotice,
+  InkTabs,
 } from '@/components/InkComponents';
 import { InkPageShell } from '@/components/InkLayout';
 import { InkModal } from '@/components/InkModal';
 import { useInkUI } from '@/components/InkUIProvider';
 import { RankingListItem } from '@/components/RankingListItem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { RankingItem } from '@/lib/redis/rankings';
 import { RANKING_REWARDS } from '@/types/constants';
+import { ItemRankingEntry, RankingsDisplayItem } from '@/types/rankings';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -27,11 +28,14 @@ type MyRankInfo = {
 
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
+type RankingTab = 'battle' | 'artifact' | 'skill' | 'elixir';
+
 export default function RankingsPage() {
   const router = useRouter();
   const { pushToast } = useInkUI();
   const { cultivator, isLoading, note } = useCultivatorBundle();
-  const [rankings, setRankings] = useState<RankingItem[]>([]);
+  const [activeTab, setActiveTab] = useState<RankingTab>('battle');
+  const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
   const [myRankInfoLoadingState, setMyRankInfoLoadingState] =
     useState<LoadingState>('idle');
@@ -43,26 +47,34 @@ export default function RankingsPage() {
   const [showRules, setShowRules] = useState(false);
   const pathname = usePathname();
 
-  const loadRankings = useCallback(async () => {
-    setLoadingRankings(true);
-    setError('');
-    try {
-      const response = await fetch('/api/rankings');
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '榜单暂不可用');
+  const loadRankings = useCallback(
+    async (tab: RankingTab) => {
+      setLoadingRankings(true);
+      setError('');
+      try {
+        let url = '/api/rankings';
+        if (tab !== 'battle') {
+          url = `/api/rankings/items?type=${tab}`;
+        }
+
+        const response = await fetch(url);
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || '榜单暂不可用');
+        }
+        setRankings(result.data || []);
+      } catch (err) {
+        console.error('获取排行榜失败:', err);
+        const errorMessage = '获取排行榜失败，请稍后重试';
+        setError(errorMessage);
+        pushToast({ message: errorMessage, tone: 'danger' });
+        setRankings([]);
+      } finally {
+        setLoadingRankings(false);
       }
-      setRankings(result.data || []);
-    } catch (err) {
-      console.error('获取排行榜失败:', err);
-      const errorMessage = '获取排行榜失败，请稍后重试';
-      setError(errorMessage);
-      pushToast({ message: errorMessage, tone: 'danger' });
-      setRankings([]);
-    } finally {
-      setLoadingRankings(false);
-    }
-  }, [pushToast]);
+    },
+    [pushToast],
+  );
 
   const loadMyRankInfo = useCallback(async () => {
     if (!cultivator?.id) return;
@@ -89,14 +101,20 @@ export default function RankingsPage() {
   }, [cultivator?.id, pushToast]);
 
   useEffect(() => {
-    void loadRankings();
-  }, [loadRankings]);
+    void loadRankings(activeTab);
+  }, [loadRankings, activeTab]);
 
   useEffect(() => {
-    if (cultivator?.id) {
+    if (cultivator?.id && activeTab === 'battle') {
       void loadMyRankInfo();
     }
-  }, [cultivator?.id, loadMyRankInfo]);
+  }, [cultivator?.id, loadMyRankInfo, activeTab]);
+
+  const handleTabChange = (val: string) => {
+    setRankings([]);
+    setLoadingRankings(true);
+    setActiveTab(val as RankingTab);
+  };
 
   const handleProbe = async (targetId: string) => {
     if (!cultivator?.id) return;
@@ -157,7 +175,7 @@ export default function RankingsPage() {
           message: `成功上榜，占据第${result.data.rank}名！`,
           tone: 'success',
         });
-        await Promise.all([loadRankings(), loadMyRankInfo()]);
+        await Promise.all([loadRankings(activeTab), loadMyRankInfo()]);
         return;
       }
 
@@ -198,7 +216,7 @@ export default function RankingsPage() {
       }
 
       // 直接上榜成功，刷新排行榜和我的排名信息
-      await Promise.all([loadRankings(), loadMyRankInfo()]);
+      await Promise.all([loadRankings(activeTab), loadMyRankInfo()]);
 
       // 显示成功提示
       if (result.data.directEntry) {
@@ -235,7 +253,7 @@ export default function RankingsPage() {
         title={`【万界金榜】`}
         subtitle="战天下英豪，登万界金榜"
         lead={
-          myRankInfo
+          activeTab === 'battle' && myRankInfo
             ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${isLoadingChallenges ? '推演中…' : `${remainingChallenges}/10`}`
             : ''
         }
@@ -245,7 +263,7 @@ export default function RankingsPage() {
         footer={
           <InkActionGroup align="between">
             <InkButton
-              onClick={() => loadRankings()}
+              onClick={() => loadRankings(activeTab)}
               disabled={loadingRankings}
             >
               {loadingRankings ? '推演中…' : '刷新榜单'}
@@ -257,9 +275,25 @@ export default function RankingsPage() {
           </InkActionGroup>
         }
       >
+        <InkTabs
+          className="mb-6"
+          activeValue={activeTab}
+          onChange={handleTabChange}
+          items={[
+            { label: '天骄榜', value: 'battle' },
+            { label: '法宝榜', value: 'artifact' },
+            { label: '神通榜', value: 'skill' },
+            { label: '丹药榜', value: 'elixir' },
+          ]}
+        />
+
         {!cultivator ? (
           <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
-        ) : isEmpty && myRank === null ? (
+        ) : loadingRankings ? (
+          <div className="py-12 text-center text-muted opacity-80 animate-pulse">
+            <div>正在推演金榜天机...</div>
+          </div>
+        ) : isEmpty && myRank === null && activeTab === 'battle' ? (
           <div className="space-y-4">
             <InkNotice>万界金榜当前为空，你可以直接上榜占据第一名！</InkNotice>
             <InkButton
@@ -271,22 +305,32 @@ export default function RankingsPage() {
               {challenging === 'direct' ? '上榜中…' : '直接上榜'}
             </InkButton>
           </div>
+        ) : isEmpty && activeTab !== 'battle' ? (
+          <InkNotice>此榜单暂无记录，静待宝物出世。</InkNotice>
         ) : (
           <>
-            {!isLoadingChallenges && remainingChallenges === 0 && (
-              <InkNotice tone="warning">
-                今日挑战次数已用完（每日限10次），请明日再来。
-              </InkNotice>
-            )}
+            {activeTab === 'battle' &&
+              !isLoadingChallenges &&
+              remainingChallenges === 0 && (
+                <InkNotice tone="warning">
+                  今日挑战次数已用完（每日限10次），请明日再来。
+                </InkNotice>
+              )}
             <div>
               {rankings.map((item) => {
-                const isSelf = item.id === cultivator.id;
+                const isSelf = item.id === cultivator.id; // For items, id is itemId, so this is false usually.
+                // For battle, item.id is cultivatorId.
+                const isBattle = activeTab === 'battle';
+
+                // Battle Logic
                 const canChallenge =
+                  isBattle &&
                   !isSelf &&
                   !isLoadingChallenges &&
                   remainingChallenges !== undefined &&
                   remainingChallenges > 0 &&
                   !item.is_new_comer; // 新天骄不可被挑战
+
                 const isChallenging = challenging === item.id;
                 const isProbing = probing === item.id;
 
@@ -294,12 +338,27 @@ export default function RankingsPage() {
                   <RankingListItem
                     key={item.id}
                     item={item}
-                    isSelf={isSelf}
+                    isSelf={isBattle ? isSelf : false} // Only show "Self" highlight on battle rank for now, or check ownerName
                     canChallenge={canChallenge}
                     isChallenging={isChallenging}
                     isProbing={isProbing}
                     onChallenge={handleChallenge}
                     onProbe={handleProbe}
+                    // Pass extra props if component supports them or rely on generic fields
+                    // Note: RankingListItem needs to be robust to handle Item data
+                    // Item Data: { rank, name, ownerName, score, quality, description }
+                    // Battle Data: { rank, name, title, level... }
+                    customSubtitle={
+                      !isBattle
+                        ? `持有者: ${(item as ItemRankingEntry).ownerName}`
+                        : undefined
+                    }
+                    customMeta={
+                      !isBattle
+                        ? `评分: ${(item as ItemRankingEntry).score}`
+                        : undefined
+                    }
+                    isItem={!isBattle}
                   />
                 );
               })}

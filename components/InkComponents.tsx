@@ -180,7 +180,7 @@ export function InkActionGroup({
 /**
  * 品阶/状态徽记
  */
-type Tier = Quality | SpiritualRootGrade | SkillGrade | RealmType;
+export type Tier = Quality | SpiritualRootGrade | SkillGrade | RealmType;
 const tierSlugMap: Record<Tier, string> = {
   凡品: 'fan',
   灵品: 'ling',
