@@ -23,6 +23,7 @@ type FetchState = {
   isLoading: boolean;
   error?: string;
   note?: string;
+  unreadMailCount: number;
   hasActiveCultivator: boolean;
 };
 
@@ -58,6 +59,9 @@ export function useCultivatorBundle() {
       skills: [],
       equipped: { weapon: null, armor: null, accessory: null },
       isLoading: false,
+      error: undefined,
+      note: undefined,
+      unreadMailCount: 0,
       hasActiveCultivator: false,
     };
   });
@@ -82,6 +86,20 @@ export function useCultivatorBundle() {
     } catch (e) {
       console.error('获取历史记录失败', e);
       return null;
+    }
+  }, []);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/mail/unread-count');
+      if (res.ok) {
+        const data = await res.json();
+        return data.count || 0;
+      }
+      return 0;
+    } catch (e) {
+      console.error('获取未读邮件失败', e);
+      return 0;
     }
   }, []);
 
@@ -167,6 +185,7 @@ export function useCultivatorBundle() {
         isLoading: false,
         error: undefined,
         note: undefined,
+        unreadMailCount: 0,
       }));
       return;
     }
@@ -196,6 +215,7 @@ export function useCultivatorBundle() {
           isLoading: false,
           error: undefined,
           note: hasDead ? '前世道途已尽，待转世重修。' : undefined,
+          unreadMailCount: 0,
           hasActiveCultivator: false,
         }));
         cachedData = null;
@@ -205,10 +225,11 @@ export function useCultivatorBundle() {
 
       const cultivator: Cultivator = list[0];
 
-      // 2. 并行获取背包和历史记录
-      const [inventoryData, historyData] = await Promise.all([
+      // 2. 并行获取背包和历史记录，以及未读邮件
+      const [inventoryData, historyData, unreadCount] = await Promise.all([
         fetchInventoryData(cultivator.id!),
         fetchHistoryData(cultivator.id!),
+        fetchUnreadCount(),
       ]);
 
       // 3. 组装完整数据
@@ -251,6 +272,7 @@ export function useCultivatorBundle() {
         error: undefined,
         note: undefined,
         finalAttributes: calculateFinalAttributes(fullCultivator),
+        unreadMailCount: unreadCount,
         hasActiveCultivator: true,
       };
 
@@ -266,7 +288,7 @@ export function useCultivatorBundle() {
         isLoading: false,
       }));
     }
-  }, [userId, fetchInventoryData, fetchHistoryData]);
+  }, [userId, fetchInventoryData, fetchHistoryData, fetchUnreadCount]);
 
   useEffect(() => {
     // 如果没有用户，清除缓存

@@ -2,7 +2,14 @@ import { Material } from '@/types/cultivator';
 import { db } from '../drizzle/db';
 import { MailAttachmentType, MailService } from './MailService';
 
-test('test 分数计算', async () => {
+test('test 邮件发送', async () => {
+  const cultivatorId = '786160f5-cdb2-4df6-a8fb-c2b63ead212c';
+  const title = '系统测试邮件';
+  const content = '这是一封测试邮件，包含20000灵石和几样材料。';
+  await MailService.sendSystemMail(cultivatorId, title, content);
+});
+
+test('test 邮件发送', async () => {
   // 查询所有 title 不是null的角色
   const cultivators = await db.query.cultivators.findMany({
     where: (cultivators, { isNotNull }) => isNotNull(cultivators.title),

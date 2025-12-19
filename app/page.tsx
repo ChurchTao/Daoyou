@@ -31,7 +31,7 @@ const quickActions = [
   { label: '📚 藏经阁', href: '/enlightenment' },
   { label: '🛖 修仙坊市', href: '/market' },
   { label: '⚗️ 造物仙炉', href: '/craft' },
-  { label: '🔔 传音玉简', href: '/mail' },
+
   { label: '📜 版本日志', href: '/changelog' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
@@ -39,8 +39,14 @@ const quickActions = [
 function HomePageContent() {
   const pathname = usePathname();
   const { isAnonymous, signOut } = useAuth();
-  const { cultivator, isLoading, note, refresh, finalAttributes } =
-    useCultivatorBundle();
+  const {
+    cultivator,
+    isLoading,
+    note,
+    refresh,
+    finalAttributes,
+    unreadMailCount,
+  } = useCultivatorBundle();
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
@@ -229,6 +235,16 @@ function HomePageContent() {
       {cultivator && (
         <InkSection title="【快捷入口】">
           <div className="flex flex-wrap gap-3">
+            <InkButton href="/mail" className="text-sm relative">
+              🔔 传音玉简
+              {unreadMailCount > 0 && (
+                <span className="absolute -top-0.5 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-crimson"></span>
+                </span>
+              )}
+            </InkButton>
+
             {quickActions
               .filter((action) => !action.anonymousOnly || isAnonymous)
               .map((action) => (

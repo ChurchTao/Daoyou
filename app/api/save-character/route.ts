@@ -7,6 +7,7 @@ import {
   getTempCharacter,
   getTempFates,
 } from '@/lib/repositories/redisCultivatorRepository';
+import { MailService } from '@/lib/services/MailService';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -93,7 +94,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 保存到正式表
-    await createCultivator(user.id, cultivator);
+    const newCultivator = await createCultivator(user.id, cultivator);
+
+    // 发送新手礼包
+    await MailService.sendMail(
+      newCultivator.id!,
+      '仙缘初结·新手礼包',
+      '恭喜道友踏入仙途！大道争锋，财侣法地缺一不可。这有些许灵石，聊表心意，助道友仙路顺遂。',
+      [{ type: 'spirit_stones', name: '灵石', quantity: 20000 }],
+      'reward',
+    );
 
     // 清理Redis临时数据
     await deleteTempData(tempCultivatorId);
