@@ -8,6 +8,13 @@ export interface ChangelogItem {
 
 export const changelogs: ChangelogItem[] = [
   {
+    version: 'v0.5.2',
+    date: '2025-12-19',
+    title: '神通系统重构',
+    type: 'minor',
+    changes: ['✨ 重构神通系统，神通生成更合理。'],
+  },
+  {
     version: 'v0.5.1',
     date: '2025-12-19',
     title: '传音玉简上线',

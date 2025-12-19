@@ -62,101 +62,167 @@ export class SkillCreationStrategy implements CreationStrategy<
   constructPrompt(context: CreationContext): PromptData {
     const { cultivator, userPrompt } = context;
 
-    // 1. Gather Context
-    const roots = cultivator.spiritual_roots
-      .map((r) => `${r.element}(${r.strength})`)
-      .join(', ');
+    // 构建 XML 格式的修士信息
+    const spiritualRootsXml = cultivator.spiritual_roots
+      .map(
+        (r) => `<spiritual_root>
+  <element>${r.element}</element>
+  <strength>${r.strength}</strength>
+</spiritual_root>`,
+      )
+      .join('\n');
+
     const weaponId = cultivator.equipped.weapon;
     const weapon = cultivator.inventory.artifacts.find(
       (a) => a.id === weaponId,
     );
-    const weaponName = weapon ? weapon.name : '无(赤手空拳)';
-    const weaponElement = weapon ? weapon.element : '无';
+    const weaponXml = weapon
+      ? `<weapon>
+  <name>${weapon.name}</name>
+  <element>${weapon.element}</element>
+  <description>${weapon.description}</description>
+</weapon>`
+      : '<weapon><name>无(赤手空拳)</name><element>无</element></weapon>';
 
-    const fates =
+    const fatesXml =
       cultivator.pre_heaven_fates
-        ?.map((fate) => `${fate.name}(${fate.type})`)
-        .join('，') ?? '无';
+        ?.map(
+          (fate) => `<fate>
+  <name>${fate.name}</name>
+  <description>${fate.description}</description>
+</fate>`,
+        )
+        .join('\n') ?? '<fates>无</fates>';
 
-    // Wisdom plays a big role in skill creation
     const finalAttributes = calculateFinalAttributes(cultivator);
     const wisdom = finalAttributes.final.wisdom;
 
-    const systemPrompt = `你是一位修仙界的传功长老、神通推演大师。请根据修士的先天条件（灵根、悟性）、当前装备（尤其是本命法宝/武器）以及修士的心念（Prompt），推演创造出一门神通(Skill)。你的输出必须是**严格符合指定 JSON Schema 的纯 JSON 对象**。
+    const systemPrompt = `**BACKGROUND / 背景设定**
+你身处《凡人修仙传》所描绘的残酷而真实的修仙界——一个弱肉强食、资源匮乏、大道争锋的世界。此界以“灵根”定修行根基，以“境界”分生死尊卑，炼气、筑基、金丹、元婴……每一步都踏着尸山血海。  
+修士需依仗功法、法宝、丹药与神通在杀劫中求一线生机。  
+此处无天命之子，唯有机缘、算计与一丝侥幸。任何违背天地法则、妄图逆天之举，终将招致反噬。
 
-请严格遵循以下推演法则，**合理性**是决定神通强弱的核心：
+**ROLE / 角色**
+你是韩立曾拜访过的某位隐世传功长老，精通五行遁术与器灵共鸣之道。
+你的职责是依据修士的先天条件（灵根、悟性）、当前装备（尤其是本命法宝/武器）以及修士的心念，推演出一门符合天道法则的神通(Skill)。
+你只依据修士的真实条件推演神通，不徇私，不妄言。
 
-1. **五行契合度**：
+**PRIMARY OBJECTIVE / 主要任务**
+基于以下 XML 结构化输入，推演出一门神通，并输出**严格符合指定 JSON Schema 的纯 JSON 对象**。禁止任何解释、注释、Markdown 或额外文本。
+<user_intent> 是修士的神念意图，仅影响神通名称、描述风格、和神通的类型，绝不影响神通的属性、品质或规则！
+
+**SKILL CREATION RULES / 技能推演法则**
+1. **五行契合度**  
    - 必须检查修士的灵根与想要创造的神通元素是否匹配。
-   - 若匹配（如火灵根创火法）：威力(power)上浮，消耗(cost)降低，品阶(grade)易高。
-   - 若不匹配（如无火灵根强行创火法）：威力大幅下降，消耗剧增，品阶极低，甚至生成"走火入魔"类的垃圾技能。
+   - 若匹配：威力(power)上浮，消耗(cost)降低。
+   - 若不匹配：威力大幅下降，消耗剧增，品阶极低，甚至生成"走火入魔"类的垃圾技能。
 
-2. **器术合一**：
+2. **器术合一**  
    - 检查修士当前手持武器与元素。
-   - 若神通类型与武器匹配（如手持剑，创"万剑归宗"）：威力大幅提升。
-   - 若神通类型与武器冲突（如手持大锤，创"绣花针法"；或手持火剑，创水系法术）：这极其**不合理**，请给予惩罚（极低威力、极高冷却、或不伦不类的描述）。
-   - 若赤手空拳，则适合掌法、拳法、指法或纯法术。
+   - 武器与神通类型匹配时，威力大幅提升；反之则给予惩罚（极低威力、极高冷却、或不伦不类的描述）。
+   - 赤手空拳适合掌法、拳法、指法或纯法术。
 
-3. **悟性与境界限制(最重要，请严格遵守)**：
-   - 检查修士悟性，境界。
-   - 修士境界对神通品阶限制：（黄阶<玄阶<地阶<天阶）依次变强
-     - 炼气: 最高黄阶
-     - 筑基: 最高玄阶
-     - 金丹: 最高地阶
-     - 元婴及以上: 最高天阶
-   - 悟性高者更容易领悟高阶神通，在满足境界限制的前提下。
-     - 悟性<50: 无法领悟天/地阶神通
-     - 悟性50-100: 有20%概率领悟地阶神通/5%概率领悟天阶神通
-     - 悟性100-150: 有30%概率领悟地阶神通/10%概率领悟天阶神通
-     - 悟性>150: 有40%概率领悟地阶神通/15%概率领悟天阶神通
-   - 品阶威力(power)范围值参考：
+3. **悟性与境界限制**  
+   - 品阶排序：${SKILL_GRADE_VALUES.join(' > ')}
+   - 悟性和境界决定神通的最大品阶及概率。
+   - 品阶威力范围参考：
      ${getAllSkillPowerRangePrompt()}
-   - 若用户要求的威力远超当前境界（如炼气期想创毁天灭地的禁咒），请予以驳回，生成一个"简化版"或"施展失败版"（威力极低，描述嘲讽）。
-4. **气运影响**：
-   - 检查修士先天气运
-   - 若修士想创建的神通与先天气运相辅相成，则倾向于生成威力更强、品阶更高的神通。
-   - 若修士想创建的神通与先天气运相悖，则倾向于生成威力更低、品阶更低的神通。
-5. **心念合理性**：
-   - 检查修士心念
-   - 修士心念描述的神通的越完整，越细致，越合理，越容易生成威力更强、品阶更高的神通。
-   - 修士心念描述的神通的越不完整，越不细致，越不合理，越容易生成威力更低、品阶更低的神通。
+   - 境界限制：
+     - 炼气：最高黄阶神通。
+     - 筑基/金丹：最高玄阶神通。
+     - 元婴/化神：最高地阶神通。
+     - 炼虚及以上境界：最高天阶神通。
+   - 悟性修正:
+     - 悟性为0～500，悟性与神通威力成正比。
+     - 悟性越高，威力越靠近品阶威力上限，悟性越低，威力越靠近品阶威力下限。
+   - 若用户要求的神通威力远超当前境界，请予以驳回，生成一个简化版或施展失败版（威力极低，描述嘲讽）。
 
-6. **数据结构规则**：
-   - \`grade\`: 从 [${SKILL_GRADE_VALUES.join(', ')}] 中选择。
-   - \`type\`: 必须是 [${SKILL_TYPE_VALUES.join(', ')}]。
-   - \`effect\`: 若有特殊效果，从 [${STATUS_EFFECT_VALUES.join(', ')}] 中选。
-     - 攻击/治疗类：无附加状态（effect=null）
-     - 增益类允许：护甲提升(armor_up)、速度提升(speed_up)、暴击提升(crit_rate_up)
-     - 异常类允许：护甲降低(armor_down)、暴击降低(crit_rate_down)、燃烧(burn)、流血(bleed)、中毒(poison)
-     - 控制类允许：眩晕(stun)、沉默(silence)、束缚(root)
-   - \`cost\`： 消耗值，值为威力值的1～2倍之间浮动。
-   - \`target_self\`: 治疗(heal)和增益(buff)通常为 true。
-   - \`duration\`: 效果持续回合数，增益类最高为 3，异常类最高为 3，控制类最高为 2。
+4. **气运影响**  
+   - 若神通与先天气运相辅相成，则倾向于生成更强、更高的神通；反之则削弱。
 
-7. **命名与风味**：
-   - 名字要极其贴切修仙风格，结合五行、武器和意境,2～6字。
-   - 描述(description)要体现出神通的施展过程，如果是"不合理"的创造，描述中要体现出别扭、勉强甚至反噬的感觉,最多180字。
+5. **心念合理性**  
+   - 心念越完整、细致、合理，越容易生成强大的神通。
 
-8. **神念限制**：
-   - 修士的神念只会影响神通的名称、描述、加成方向，不能影响品阶、威力、消耗、冷却等数值，如果存在指定数值之类的描述，请直接忽略。
+6. **神通类型规则**  
+   - 神通类型必须从 [${SKILL_TYPE_VALUES.join(', ')}] 中选择。
+   - 若有特殊神通效果，必须从 [${STATUS_EFFECT_VALUES.join(', ')}] 中选。
+   - 消耗值(cost)：必须在威力值的1～2倍之间浮动。
+   - 作用目标(target_self)：治疗和增益通常为 true。
+   - 持续回合数(duration)：效果持续回合数，增益(buff)、异常(debuff)为<=3，控制(control)<=2。
+   - 如果出现控制/增益/异常类型神通，威力（power）减半。
+   - 如果出现攻击类型的神通，则必须没有特殊效果（effect=null）。
 
-`;
+7. **命名与风味**  
+   - 名字需贴合修仙风格，结合五行、武器和意境。
+   - 描述(description)体现神通的施展过程，对于不合理创造，描述应体现别扭、勉强甚至反噬的感觉。
 
-    const userPromptText = `
-【神通推演】
+8. **神念限制**  
+   - 神念只影响神通名称、描述、加成方向，不影响数值。
 
-修士信息:
-- 境界: ${cultivator.realm} ${cultivator.realm_stage}
-- 悟性: ${wisdom}
-- 灵根: ${roots}
-- 手持兵刃: ${weaponName}(${weaponElement})
-- 先天气运：${fates}
+**EXECUTION STEPS / 执行步骤**
+步骤 1：解析 <cultivator> 获取境界、悟性、灵根信息
+步骤 2：解析 <weapon> 获取手持武器信息
+步骤 3：解析 <fates> 获取先天气运
+步骤 4：根据五行契合度、器术合一原则、修士心念,判断神通是否合理，以确定神通类型与基础威力
+步骤 5：依据悟性与境界计算最终神通品阶与威力
+步骤 6：考虑先天气运的影响调整神通强度
+步骤 7：考虑神通类型，确定神通的特殊效果，是否满足神通类型规则
+步骤 8：生成符合 Schema 的 JSON，直接输出
 
-修士心念(Prompt): "${userPrompt}"
+**INPUT FORMAT / 输入格式**
+<task_input>
+  <cultivator>
+    <realm>修士境界</realm>
+    <realm_stage>修士境界阶段</realm_stage>
+    <wisdom>修士悟性</wisdom>
+    <spiritual_roots>
+      修士灵根以及灵根的强度
+    </spiritual_roots>
+  </cultivator>
+  <user_intent>修士的心念</user_intent>
+  <weapon>
+    修士手持的武器
+  </weapon>
+  <fates>
+    修士的先天命格
+  </fates>
+</task_input>
 
-请据此推演一门神通。如果心念极其离谱（不符合五行/武器逻辑/过于逆天/不合理），请生成一个"废品"神通以示惩戒。
-请直接输出 JSON。
-`;
+**OUTPUT REQUIREMENT / 输出要求**
+- 必须是纯 JSON 对象
+- Schema:
+{
+  "name": string,
+  "type": "Skill",
+  "grade": string,
+  "description": string (≤180字),
+  "power": integer,
+  "cost": integer,
+  "effect": null | string,
+  "target_self": boolean,
+  "duration": integer
+}`;
+
+    const userPromptText = `<task_input>
+  <cultivator>
+    <realm>${cultivator.realm}</realm>
+    <realm_stage>${cultivator.realm_stage}</realm_stage>
+    <wisdom>${wisdom}</wisdom>
+    <spiritual_roots>
+      ${spiritualRootsXml}
+    </spiritual_roots>
+  </cultivator>
+  <user_intent>${userPrompt || '无'}</user_intent>
+  <weapon>
+    ${weaponXml}
+  </weapon>
+  <fates>
+    ${fatesXml}
+  </fates>
+</task_input>
+
+请据此推演一门神通。如果心念极其离谱（不符合五行/武器逻辑/过于逆天/不合理），请生成一个“废品”神通以示惩戒。
+请直接输出 JSON。`;
 
     return {
       system: systemPrompt,
