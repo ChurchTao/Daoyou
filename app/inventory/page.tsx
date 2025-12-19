@@ -233,7 +233,7 @@ export default function InventoryPage() {
                       </span>
                     )}
                     {equippedNow && (
-                      <span className="ml-2 text-xs text-ink-primary font-bold">
+                      <span className="ml-2 text-xs text-ink font-bold">
                         ← 已装备
                       </span>
                     )}
@@ -364,6 +364,9 @@ export default function InventoryPage() {
                         {item.type}
                       </InkBadge>
                     )}
+                    <span className="ml-2 text-xs text-ink-secondary">
+                      x{item.quantity}
+                    </span>
                   </>
                 }
                 description={effectDescriptions}
@@ -450,7 +453,7 @@ export default function InventoryPage() {
             {/* Special Effects */}
             {item.special_effects && item.special_effects.length > 0 && (
               <div className="pt-2">
-                <span className="block opacity-70 mb-1 font-bold text-ink-primary">
+                <span className="block opacity-70 mb-1 font-bold text-ink">
                   特殊效果
                 </span>
                 <ul className="list-disc list-inside space-y-1">
@@ -464,10 +467,10 @@ export default function InventoryPage() {
             {/* Curses */}
             {item.curses && item.curses.length > 0 && (
               <div className="pt-2">
-                <span className="block opacity-70 mb-1 font-bold text-ink-danger">
+                <span className="block opacity-70 mb-1 font-bold text-crimson">
                   诅咒效果
                 </span>
-                <ul className="list-disc list-inside space-y-1 text-ink-danger">
+                <ul className="list-disc list-inside space-y-1 text-crimson">
                   {item.curses.map((e, i) => (
                     <li key={i}>{getEffectText(e)}</li>
                   ))}
@@ -503,9 +506,15 @@ export default function InventoryPage() {
           </div>
 
           <div className="space-y-2 text-sm">
+            <div className="flex justify-between border-b border-border/50 pb-2">
+              <span className="opacity-70">持有数量</span>
+              <span className="font-bold">{item.quantity}</span>
+            </div>
             {item.description && (
               <div>
-                <span className="block opacity-70 mb-1">丹药详述</span>
+                <span className="block opacity-70 mb-1 font-bold text-ink">
+                  丹药详述
+                </span>
                 <p className="indent-4 leading-relaxed opacity-90">
                   {item.description}
                 </p>
@@ -514,17 +523,13 @@ export default function InventoryPage() {
 
             {item.effect && item.effect.length > 0 && (
               <div>
-                <span className="block opacity-70 mb-1">药效</span>
-                <ul className="space-y-2">
+                <span className="block opacity-70 mb-1 font-bold text-ink">
+                  药效
+                </span>
+                <ul className="list-disc list-inside space-y-1">
                   {item.effect.map((e, i) => (
-                    <li
-                      key={i}
-                      className="flex justify-between items-center bg-paper-2 p-2 rounded"
-                    >
-                      <span>{e.effect_type}</span>
-                      <span className="font-bold text-ink-primary">
-                        +{e.bonus}
-                      </span>
+                    <li key={i}>
+                      {e.effect_type} + {e.bonus}
                     </li>
                   ))}
                 </ul>
