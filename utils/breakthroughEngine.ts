@@ -43,6 +43,7 @@ export interface BreakthroughModifiers {
   comprehension: number;
   years: number;
   failureStreak: number;
+  summaryDifficulty: number;
 }
 
 export interface BreakthroughAttemptSummary {
@@ -100,13 +101,16 @@ export function calculateBreakthroughChance(
     failureStreak: getFailureStreakModifier(
       cultivator.closed_door_years_total || 0,
     ),
+    // 突破难度修正
+    summaryDifficulty: getBreakthroughSummaryDifficulty(fromRealm),
   };
 
   const chance = nextStage
-    ? modifiers.base +
-      modifiers.comprehension +
-      modifiers.years +
-      modifiers.failureStreak
+    ? modifiers.summaryDifficulty *
+      (modifiers.base +
+        modifiers.comprehension +
+        modifiers.years +
+        modifiers.failureStreak)
     : 0;
 
   return { chance, modifiers, nextStage };
@@ -248,10 +252,19 @@ function getBreakthroughBaseChance(
   realm: RealmType,
   type: BreakthroughAttemptType,
 ): number {
-  const realmIndex = REALM_ORDER.indexOf(realm);
   const base = type === 'minor' ? 0.7 : 0.4;
-  const difficulty = Math.pow(0.6, realmIndex);
+  const difficulty = getBreakthroughDifficulty(realm);
   return base * difficulty;
+}
+
+function getBreakthroughDifficulty(realm: RealmType): number {
+  const realmIndex = REALM_ORDER.indexOf(realm);
+  return Math.pow(0.6, realmIndex);
+}
+
+function getBreakthroughSummaryDifficulty(realm: RealmType): number {
+  const realmIndex = REALM_ORDER.indexOf(realm);
+  return Math.pow(0.9, realmIndex);
 }
 
 function getComprehensionModifier(wisdom: number): number {
