@@ -234,6 +234,7 @@ interface InkBadgeProps {
   compact?: boolean;
   className?: string;
   expandText?: string;
+  hideTierText?: boolean;
 }
 
 export function InkBadge({
@@ -243,6 +244,7 @@ export function InkBadge({
   tone = 'default',
   compact = false,
   className = '',
+  hideTierText = false,
 }: InkBadgeProps) {
   const tierClass = tier ? `ink-badge-tier-${tierSlugMap[tier]}` : '';
   const toneClass = `ink-badge-${tone}`;
@@ -251,7 +253,11 @@ export function InkBadge({
     `ink-badge ${toneClass} ${tierClass} ${densityClass} ${className}`.trim();
   return (
     <span className={combined}>
-      {tier ? `「${tierText || tier}」${children || ''}` : children || ''}
+      {hideTierText
+        ? children
+        : tier
+          ? `「${tierText || tier}」${children || ''}`
+          : children || ''}
     </span>
   );
 }

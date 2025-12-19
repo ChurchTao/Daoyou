@@ -70,12 +70,9 @@ export default function ChangelogPage() {
               <span>{selectedVersion.date}</span>
               <span>{selectedVersion.title}</span>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-2 list-disc list-inside text-ink/90">
               {selectedVersion.changes.map((change, index) => (
-                <li key={index} className="flex gap-2 text-ink/90 leading-6">
-                  <span className="opacity-70 mt-1">•</span>
-                  <span>{change}</span>
-                </li>
+                <li key={index}>{change}</li>
               ))}
             </ul>
           </div>

@@ -8,6 +8,16 @@ export interface ChangelogItem {
 
 export const changelogs: ChangelogItem[] = [
   {
+    version: 'v0.5.1',
+    date: '2025-12-19',
+    title: '传音玉简上线',
+    type: 'minor',
+    changes: [
+      '✨ 新增传音玉简功能，道友可随时查看天道消息。',
+      '🎁 新增系统奖励，道友可领取。',
+    ],
+  },
+  {
     version: 'v0.5.0',
     date: '2025-12-19',
     title: '万界道友初现',

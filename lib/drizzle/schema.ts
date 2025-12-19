@@ -262,3 +262,18 @@ export const battleRecords = pgTable('wanjiedaoyou_battle_records', {
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// 邮件/传音玉简表
+export const mails = pgTable('wanjiedaoyou_mails', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  title: varchar('title', { length: 200 }).notNull(),
+  content: text('content').notNull(),
+  type: varchar('type', { length: 20 }).notNull().default('system'), // system | reward
+  attachments: jsonb('attachments'), // Array of { type, id?, name, quantity, data? }
+  isRead: boolean('is_read').notNull().default(false),
+  isClaimed: boolean('is_claimed').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
