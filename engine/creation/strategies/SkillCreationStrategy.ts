@@ -28,11 +28,7 @@ const SkillSchema = z.object({
   power: z.number().gte(0).lte(300).describe('神通威力(30-150)'),
   cost: z.number().gte(0).describe('灵力消耗'),
   cooldown: z.number().gte(0).lte(10).describe('冷却回合数'),
-  effect: z
-    .enum(STATUS_EFFECT_VALUES)
-    .nullable()
-    .optional()
-    .describe('附带特殊效果'),
+  effect: z.enum(STATUS_EFFECT_VALUES).optional().describe('附带特殊效果'),
   duration: z.number().optional().describe('效果持续回合数'),
   target_self: z.boolean().default(false).describe('是否作用于自身'),
   description: z.string().max(200).describe('神通描述(包含原理、施法表现等)'),
@@ -150,7 +146,7 @@ export class SkillCreationStrategy implements CreationStrategy<
    - 作用目标(target_self)：治疗和增益通常为 true。
    - 持续回合数(duration)：效果持续回合数，增益(buff)、异常(debuff)为<=3，控制(control)<=2。
    - 如果出现控制/增益/异常类型神通，威力（power）减半。
-   - 如果出现攻击类型的神通，则必须没有特殊效果（effect=null）。
+   - 如果出现攻击/治疗类型的神通，则必须没有特殊效果。
 
 7. **命名与风味**  
    - 名字需贴合修仙风格，结合五行、武器和意境。
@@ -198,10 +194,12 @@ export class SkillCreationStrategy implements CreationStrategy<
   "description": string (≤180字),
   "power": integer,
   "cost": integer,
-  "effect": null | string,
+  "effect": string | null,
   "target_self": boolean,
   "duration": integer
-}`;
+}
+> 注：若没有特殊效果，输出时， "effect": null
+`;
 
     const userPromptText = `<task_input>
   <cultivator>
