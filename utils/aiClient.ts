@@ -23,7 +23,7 @@ function getDeepSeekProvider() {
  * 获取 DeepSeek Model
  * @returns DeepSeek Model
  */
-function getModel(fast: boolean = false) {
+export function getModel(fast: boolean = false) {
   const provider = getDeepSeekProvider();
   if (process.env.PROVIDER_CHOOSE === 'ark') {
     const model = fast
