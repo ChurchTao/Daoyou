@@ -25,6 +25,7 @@ export default function DungeonPage() {
   const [dungeonState, setDungeonState] = useState<DungeonState | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingAction, setProcessingAction] = useState(false);
+  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
 
   const [lastRoundData, setLastRoundData] = useState<DungeonRound | null>(null); // For immediate display update
 
@@ -139,6 +140,7 @@ export default function DungeonPage() {
       } else {
         setDungeonState(data.state);
         setLastRoundData(data.roundData);
+        setSelectedOptionId(null);
       }
     } catch (e) {
       pushToast({
@@ -258,50 +260,74 @@ export default function DungeonPage() {
 
         <InkSection title="抉择时刻">
           <div className="space-y-3">
-            {lastRoundData.interaction.options.map((opt: DungeonOption) => (
-              <button
-                key={opt.id}
-                disabled={processingAction}
-                onClick={() => handleAction(opt)}
-                className={`w-full text-left p-4 rounded border transition-all 
-                                   ${processingAction ? 'opacity-50 cursor-not-allowed' : 'hover:border-crimson hover:bg-paper-dark'}
-                                   border-ink/20 bg-paper`}
-              >
-                <div className="flex justify-between items-start gap-3 mb-2">
-                  <span className="font-bold flex-1 leading-tight">
-                    {opt.text}
-                  </span>
-                  <InkTag
-                    tone={
-                      opt.risk_level === 'high'
-                        ? 'bad'
+            {lastRoundData.interaction.options.map((opt: DungeonOption) => {
+              const isSelected = selectedOptionId === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  disabled={processingAction}
+                  onClick={() => setSelectedOptionId(opt.id)}
+                  className={`w-full text-left p-4 rounded border transition-all 
+                                   ${
+                                     isSelected
+                                       ? 'border-crimson bg-crimson/5 ring-1 ring-crimson'
+                                       : 'border-ink/20 bg-paper hover:border-crimson hover:bg-paper-dark'
+                                   }
+                                   ${processingAction ? 'opacity-50 cursor-not-allowed' : ''}
+                                  `}
+                >
+                  <div className="flex justify-between items-start gap-3 mb-2">
+                    <span
+                      className={`font-bold flex-1 leading-tight ${isSelected ? 'text-crimson' : ''}`}
+                    >
+                      {opt.text}
+                    </span>
+                    <InkTag
+                      tone={
+                        opt.risk_level === 'high'
+                          ? 'bad'
+                          : opt.risk_level === 'medium'
+                            ? 'info'
+                            : 'good'
+                      }
+                      variant="outline"
+                      className="text-xs shrink-0"
+                    >
+                      {opt.risk_level === 'high'
+                        ? '凶险'
                         : opt.risk_level === 'medium'
-                          ? 'info'
-                          : 'good'
-                    }
-                    variant="outline"
-                    className="text-xs shrink-0"
-                  >
-                    {opt.risk_level === 'high'
-                      ? '凶险'
-                      : opt.risk_level === 'medium'
-                        ? '莫测'
-                        : '稳健'}
-                  </InkTag>
-                </div>
-                {opt.requirement && (
-                  <div className="text-sm text-crimson mt-2">
-                    需: {opt.requirement}
+                          ? '莫测'
+                          : '稳健'}
+                    </InkTag>
                   </div>
-                )}
-                {opt.potential_cost && (
-                  <div className="text-sm text-ink-secondary mt-1">
-                    代价: {opt.potential_cost}
-                  </div>
-                )}
-              </button>
-            ))}
+                  {opt.requirement && (
+                    <div className="text-sm text-crimson mt-2">
+                      需: {opt.requirement}
+                    </div>
+                  )}
+                  {opt.potential_cost && (
+                    <div className="text-sm text-ink-secondary mt-1">
+                      代价: {opt.potential_cost}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
+
+          <InkButton
+            variant="primary"
+            className="mt-4 mx-auto block!"
+            disabled={!selectedOptionId || processingAction}
+            onClick={() => {
+              const opt = lastRoundData.interaction.options.find(
+                (o) => o.id === selectedOptionId,
+              );
+              if (opt) handleAction(opt);
+            }}
+          >
+            {processingAction ? '推演中...' : '确定抉择'}
+          </InkButton>
         </InkSection>
 
         {dungeonState.history.length > 0 && (
