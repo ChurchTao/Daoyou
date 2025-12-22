@@ -11,11 +11,13 @@ import {
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
 import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
+import { getAllMapNodes } from '@/lib/game/mapSystem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useEffect, useState } from 'react';
+import { MapSelection } from './components/MapSelection';
 
 // Theme options
-const THEMES = ['古修士洞府', '崩塌的上古宗门', '乱星海无名荒岛', '坠魔谷外围'];
+// Removed legacy THEMES array
 
 export default function DungeonPage() {
   const { cultivator, isLoading: isCultivatorLoading } = useCultivatorBundle();
@@ -24,7 +26,7 @@ export default function DungeonPage() {
   const [dungeonState, setDungeonState] = useState<DungeonState | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingAction, setProcessingAction] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
+  const [selectedTheme, setSelectedTheme] = useState(getAllMapNodes()[0].id);
   const [lastRoundData, setLastRoundData] = useState<DungeonRound | null>(null); // For immediate display update
 
   // Fetch initial state
@@ -80,7 +82,7 @@ export default function DungeonPage() {
         method: 'POST',
         body: JSON.stringify({
           cultivatorId: cultivator.id,
-          theme: selectedTheme,
+          mapNodeId: selectedTheme, // selectedTheme now holds the ID
         }),
       });
       const data = await res.json();
@@ -308,18 +310,7 @@ export default function DungeonPage() {
       </InkCard>
 
       <InkSection title="选择秘境">
-        <div className="grid grid-cols-1 gap-2">
-          {THEMES.map((t) => (
-            <button
-              key={t}
-              onClick={() => setSelectedTheme(t)}
-              className={`p-3 text-left border rounded transition
-                                 ${selectedTheme === t ? 'border-crimson bg-crimson/5 text-crimson' : 'border-ink/10 hover:border-ink/30'}`}
-            >
-              {selectedTheme === t ? '🔘' : '◯'} {t}
-            </button>
-          ))}
-        </div>
+        <MapSelection selectedId={selectedTheme} onSelect={setSelectedTheme} />
       </InkSection>
 
       <div className="mt-8">

@@ -1,5 +1,6 @@
 import { db } from '@/lib/drizzle/db'; // Assuming db export exists
 import { dungeonHistories } from '@/lib/drizzle/schema';
+import { getMapNode } from '@/lib/game/mapSystem';
 import { redis } from '@/lib/redis';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
@@ -25,7 +26,7 @@ function getDungeonKey(cultivatorId: string) {
 }
 
 // Loot Tables (Simplified for now)
-const LOOT_TABLE = {
+export const LOOT_TABLE = {
   S: {
     spirit_stones: [500, 1000],
     material_rank: '仙品',
@@ -41,11 +42,15 @@ export class DungeonService {
   /**
    * Start a new dungeon session
    */
-  async startDungeon(cultivatorId: string, theme: string) {
+  async startDungeon(cultivatorId: string, mapNodeId: string) {
     const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
 
     if (!cultivatorBundle || !cultivatorBundle.cultivator)
       throw new Error('未找到名为该道友的记录');
+
+    // Fetch Map Node Data
+    const mapNode = getMapNode(mapNodeId);
+    if (!mapNode) throw new Error('无效的地图节点');
 
     const cultivator = cultivatorBundle.cultivator;
     const finalAttributes = calculateFinalAttributes(cultivator);
@@ -86,7 +91,9 @@ export class DungeonService {
         },
       },
       dungeon_context: {
-        location: theme,
+        location: mapNode.name,
+        location_tags: mapNode.tags,
+        location_description: mapNode.description,
         current_round: 1,
         max_rounds: DUNGEON_MAX_ROUNDS,
         history: [],
@@ -101,6 +108,7 @@ export class DungeonService {
 ## 核心叙事准则
 
 1. **凡人流风格**：强调修仙界的残酷与资源匮乏。主角并非无敌，每一次选择都可能导致重伤甚至陨落。描述需简练、有古意，注重环境描写（如：禁制波动、药香、阴冷气息）。
+   - **环境权重**：生成的副本场景必须高度契合 \`dungeon_context\` 中的【location_tags】和【location_description】。
 2. **逻辑判定**：
    - 依据玩家的【境界】判断其实力上限。
    - 依据玩家的【性格/命格】触发特殊文本（如：性格谨慎者更易发现陷阱）。
@@ -137,7 +145,7 @@ export class DungeonService {
     // Update State (Initial)
     const state: DungeonState = {
       cultivatorId,
-      theme,
+      theme: mapNode.name,
       playerInfo: context.player_info,
       currentRound: 1,
       maxRounds: DUNGEON_MAX_ROUNDS,

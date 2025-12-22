@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const StartSchema = z.object({
-  theme: z.string().min(1),
+  mapNodeId: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json();
-    const { theme } = StartSchema.parse(body);
-    const result = await dungeonService.startDungeon(cultivator.id, theme);
+    const { mapNodeId } = StartSchema.parse(body);
+    const result = await dungeonService.startDungeon(cultivator.id, mapNodeId);
     return NextResponse.json(result);
   } catch (error) {
     console.error('Start Dungeon Error:', error);
