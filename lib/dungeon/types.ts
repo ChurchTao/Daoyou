@@ -128,4 +128,5 @@ export interface DungeonState {
   dangerScore: number;
   isFinished: boolean;
   currentOptions?: DungeonOption[]; // Store active options to validate choice and process costs
+  settlement?: DungeonSettlement;
 }

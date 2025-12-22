@@ -1,0 +1,245 @@
+'use client';
+
+import { InkButton, InkTag } from '@/components/InkComponents';
+import {
+  getAllMapNodes,
+  getAllSatelliteNodes,
+  getMapNode,
+  MapNode,
+} from '@/lib/game/mapSystem';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
+
+export default function MapPage() {
+  const router = useRouter();
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  const allNodes = getAllMapNodes();
+  const selectedNode = selectedNodeId
+    ? (getMapNode(selectedNodeId) as MapNode)
+    : null;
+
+  // Handle Mobile Orientation via CSS logic simulation or just checking window
+  // For now simple toggle button for "Immersive Mode" which forces landscape-like container
+
+  const handleNodeClick = (id: string) => {
+    setSelectedNodeId(id);
+  };
+
+  const handleSelectNode = () => {
+    if (!selectedNodeId) return;
+    // Navigate back to dungeon page with selected node
+    router.push(`/game/dungeon?nodeId=${selectedNodeId}`);
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 bg-paper-dark overflow-hidden flex flex-col ${isLandscape ? 'md:flex-col' : ''}`}
+    >
+      {/* Header Overlay - Keep existing */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start pointer-events-none">
+        <div className="pointer-events-auto flex gap-2">
+          <InkButton
+            onClick={() => router.back()}
+            variant="outline"
+            className="bg-paper px-2 text-sm"
+          >
+            关闭
+          </InkButton>
+          <InkButton
+            onClick={() => setIsLandscape(!isLandscape)}
+            variant="outline"
+            className="md:hidden bg-paper  px-2 text-sm"
+          >
+            {isLandscape ? '切换竖屏' : '切换横屏'}
+          </InkButton>
+        </div>
+        <div className="pointer-events-auto bg-paper px-4 py-2 rounded border border-ink/10">
+          <div className=" font-bold text-ink">凡人修仙界</div>
+          <div className="text-xs text-ink-secondary">人界·全图</div>
+        </div>
+      </div>
+
+      {/* Map Canvas */}
+      <div className="flex-1 w-full h-full bg-[#e8e4dc] relative cursor-grab active:cursor-grabbing">
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.5}
+          maxScale={4}
+          centerOnInit={true}
+          limitToBounds={false}
+        >
+          <TransformComponent
+            wrapperClass="w-full h-full"
+            contentClass="w-full h-full"
+          >
+            {/* The Map Container - Fixed Aspect Ratio or Large Grid */}
+            <div
+              className="relative"
+              style={{
+                width: '2000px',
+                height: '1500px',
+                backgroundImage: 'url("/texture/paper-noise.png")',
+              }} // Placeholder texture
+            >
+              {/* Grid Lines for style */}
+              <div
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(#2c1810 1px, transparent 1px), linear-gradient(90deg, #2c1810 1px, transparent 1px)',
+                  backgroundSize: '100px 100px',
+                }}
+              />
+
+              {/* Region Labels (Background) - Keep existing */}
+              <div className="absolute top-[20%] right-[15%] text-4xl  text-ink/10 pointer-events-none select-none tracking-widest rotate-6">
+                乱星海
+              </div>
+              <div className="absolute bottom-[35%] left-[45%] text-4xl  text-ink/10 pointer-events-none select-none tracking-widest">
+                天南
+              </div>
+              <div className="absolute top-[60%] left-[15%] text-5xl  text-ink/10 pointer-events-none select-none tracking-widest writing-vertical">
+                大晋
+              </div>
+
+              {/* Connections (Edges) - Keep existing */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                {allNodes.flatMap((node) =>
+                  node.connections.map((targetId) => {
+                    const target = getMapNode(targetId) as MapNode;
+                    if (!target) return null;
+                    if (node.id > targetId) return null;
+
+                    return (
+                      <line
+                        key={`${node.id}-${targetId}`}
+                        x1={`${node.x}%`}
+                        y1={`${node.y}%`}
+                        x2={`${target.x}%`}
+                        y2={`${target.y}%`}
+                        stroke="#2c1810"
+                        strokeWidth="2"
+                        strokeOpacity="0.2"
+                        strokeDasharray="5,5"
+                      />
+                    );
+                  }),
+                )}
+              </svg>
+
+              {/* Main Nodes */}
+              {allNodes.map((node) => (
+                <div key={node.id}>
+                  <div
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300
+                                      ${selectedNodeId === node.id ? 'z-30 scale-125' : 'z-20 hover:scale-110'}
+                                  `}
+                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNodeClick(node.id);
+                    }}
+                  >
+                    {/* Marker Icon */}
+                    <div
+                      className={`
+                                      w-4 h-4 rounded-full border-2 
+                                      ${selectedNodeId === node.id ? 'bg-crimson border-paper ring-4 ring-crimson/20' : 'bg-paper border-ink hover:bg-crimson/50'}
+                                      shadow-lg
+                                  `}
+                    />
+                    {/* Label */}
+                    <div
+                      className={`
+                                      absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold px-2 py-0.5 rounded
+                                      ${selectedNodeId === node.id ? 'bg-crimson text-paper' : 'bg-paper text-ink shadow-sm border border-ink/10'}
+                                  `}
+                    >
+                      {node.name.split('·').pop()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Satellite Nodes - Rendered separately now with explicit logic */}
+              {getAllSatelliteNodes().map((sat) => (
+                <div
+                  key={sat.id}
+                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300
+                                    ${selectedNodeId === sat.id ? 'z-30 scale-125' : 'z-10 hover:scale-110'}
+                                `}
+                  style={{ left: `${sat.x}%`, top: `${sat.y}%` }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNodeClick(sat.id);
+                  }}
+                >
+                  {/* Improved Satellite Icon */}
+                  <div
+                    className={`w-3 h-3 rotate-45 border 
+                        ${selectedNodeId === sat.id ? 'bg-crimson border-paper ring-2 ring-crimson/20' : 'bg-ink/60 border-paper hover:bg-crimson/60'}
+                        shadow-sm
+                    `}
+                  />
+
+                  {/* Label appears on hover or select */}
+                  {selectedNodeId === sat.id && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] bg-crimson text-paper px-1 rounded z-40">
+                      {sat.name}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </TransformComponent>
+        </TransformWrapper>
+      </div>
+
+      {/* Selected Node Details Panel */}
+      {selectedNode && (
+        <div className="absolute bottom-16 left-4 right-4 z-40 md:w-96 md:left-auto md:right-8">
+          <div className="shadow-2xl animate-in slide-in-from-bottom duration-300 border-ink/20 bg-paper p-3">
+            <div className="flex justify-between items-start mb-2">
+              <h2 className="text-xl font-bold">{selectedNode.name}</h2>
+              <InkButton
+                variant="ghost"
+                className="p-0!"
+                onClick={() => setSelectedNodeId(null)}
+              >
+                ×
+              </InkButton>
+            </div>
+
+            <p className="text-sm text-ink-secondary leading-relaxed mb-4">
+              {selectedNode.description}
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {selectedNode.tags.map((tag) => (
+                <InkTag
+                  key={tag}
+                  tone="neutral"
+                  variant="outline"
+                  className="text-xs"
+                >
+                  {tag}
+                </InkTag>
+              ))}
+            </div>
+
+            <InkButton
+              variant="primary"
+              className="w-full justify-center"
+              onClick={handleSelectNode}
+            >
+              选择此地
+            </InkButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

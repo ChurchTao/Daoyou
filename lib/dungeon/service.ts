@@ -43,6 +43,12 @@ export class DungeonService {
    * Start a new dungeon session
    */
   async startDungeon(cultivatorId: string, mapNodeId: string) {
+    const activeKey = getDungeonKey(cultivatorId);
+    const existingSession = await redis.get(activeKey);
+    if (existingSession) {
+      throw new Error('当前已有正在进行的副本，请先完成或放弃');
+    }
+
     const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
 
     if (!cultivatorBundle || !cultivatorBundle.cultivator)
@@ -299,6 +305,36 @@ export class DungeonService {
       isFinished: true,
       settlement,
     };
+  }
+
+  /**
+   * Abandon the current dungeon
+   */
+  async quitDungeon(cultivatorId: string) {
+    const key = getDungeonKey(cultivatorId);
+
+    // Retrieve state to log the abandonment
+    const rawState = await redis.get<string>(key);
+    if (rawState) {
+      const state = rawState as unknown as DungeonState;
+      await db.insert(dungeonHistories).values({
+        cultivatorId: state.cultivatorId,
+        theme: state.theme,
+        result: {
+          settlement: {
+            reward_tier: '放弃',
+            ending_narrative: '道友中途放弃了探索。',
+          },
+        },
+        log:
+          state.history
+            .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
+            .join('\n') + '\n[ABANDONED]',
+      });
+    }
+
+    await redis.del(key);
+    return { success: true };
   }
 
   /**

@@ -1,9 +1,5 @@
 {
-  "printWidth": 80,
+  "semi": true,
   "singleQuote": true,
-  "trailingComma": "all",
-  "proseWrap": "never",
-  "overrides": [{ "files": ".prettierrc", "options": { "parser": "json" } }],
-  "pluginSearchDirs": ["."],
-  "plugins": ["prettier-plugin-tailwindcss","prettier-plugin-organize-imports", "prettier-plugin-packagejson"]
+  "tabWidth": 2
 }

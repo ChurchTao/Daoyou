@@ -17,7 +17,7 @@ interface InkButtonProps {
   onClick?: () => void;
   href?: string;
   disabled?: boolean;
-  variant?: 'default' | 'primary' | 'secondary';
+  variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'ghost';
   className?: string;
 }
 

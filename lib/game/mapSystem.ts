@@ -7,6 +7,8 @@ export interface MapNode {
   tags: string[];
   description: string;
   connections: string[];
+  x: number;
+  y: number;
 }
 
 export interface SatelliteNode {
@@ -17,6 +19,8 @@ export interface SatelliteNode {
   tags: string[];
   description: string;
   connections: string[];
+  x: number;
+  y: number;
 }
 
 export interface MapData {
@@ -27,6 +31,8 @@ export interface MapData {
 
 // Load typed data
 const worldData: MapData = mapData as MapData;
+
+export type MapNodeInfo = MapNode | SatelliteNode;
 
 export function getAllMapNodes(): MapNode[] {
   return worldData.map_nodes;

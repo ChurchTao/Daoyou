@@ -11,23 +11,29 @@ import {
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
 import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
-import { getAllMapNodes } from '@/lib/game/mapSystem';
+import { getMapNode, MapNodeInfo } from '@/lib/game/mapSystem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { useEffect, useState } from 'react';
-import { MapSelection } from './components/MapSelection';
-
-// Theme options
-// Removed legacy THEMES array
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function DungeonPage() {
   const { cultivator, isLoading: isCultivatorLoading } = useCultivatorBundle();
-  const { pushToast } = useInkUI();
+  const { pushToast, openDialog } = useInkUI();
+  const searchParams = useSearchParams();
+  const preSelectedNodeId = searchParams.get('nodeId');
 
   const [dungeonState, setDungeonState] = useState<DungeonState | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingAction, setProcessingAction] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState(getAllMapNodes()[0].id);
+
   const [lastRoundData, setLastRoundData] = useState<DungeonRound | null>(null); // For immediate display update
+
+  const selectedMapNode = useMemo(() => {
+    if (!preSelectedNodeId) return null;
+    return getMapNode(preSelectedNodeId);
+  }, [preSelectedNodeId]);
+
+  console.log('selectedMapNode', selectedMapNode);
 
   // Fetch initial state
   useEffect(() => {
@@ -75,14 +81,18 @@ export default function DungeonPage() {
   }, [cultivator, isCultivatorLoading]);
 
   const handleStart = async () => {
-    if (!cultivator) return;
+    if (!cultivator || !selectedMapNode) {
+      if (!selectedMapNode)
+        pushToast({ message: '请先选择探险地点', tone: 'warning' });
+      return;
+    }
     try {
       setLoading(true);
       const res = await fetch('/api/dungeon/start', {
         method: 'POST',
         body: JSON.stringify({
           cultivatorId: cultivator.id,
-          mapNodeId: selectedTheme, // selectedTheme now holds the ID
+          mapNodeId: selectedMapNode.id,
         }),
       });
       const data = await res.json();
@@ -132,8 +142,11 @@ export default function DungeonPage() {
         setDungeonState(data.state);
         setLastRoundData(data.roundData);
       }
-    } catch (e: any) {
-      pushToast({ message: e.message || '行动失败', tone: 'danger' });
+    } catch (e) {
+      pushToast({
+        message: e instanceof Error ? e.message : '行动失败',
+        tone: 'danger',
+      });
     } finally {
       setProcessingAction(false);
     }
@@ -159,7 +172,7 @@ export default function DungeonPage() {
 
   // Finished View
   if (dungeonState?.isFinished) {
-    const settlement = (dungeonState as any).settlement;
+    const settlement = dungeonState.settlement;
     return (
       <InkPageShell title="探索结束" backHref="/game">
         <InkCard className="p-4 space-y-4">
@@ -170,20 +183,21 @@ export default function DungeonPage() {
           <div className="bg-paper-dark p-4 rounded text-center">
             <div className="text-base text-ink-secondary">评价</div>
             <div className="text-4xl text-crimson my-2">
-              {settlement?.settlement.reward_tier}
+              {settlement?.settlement?.reward_tier}
             </div>
             <div className="text-base text-ink-secondary">获得机缘</div>
           </div>
 
-          {settlement?.settlement.potential_items?.length > 0 && (
-            <InkList dense>
-              {settlement.settlement.potential_items.map(
-                (item: string, idx: number) => (
-                  <InkListItem key={idx} title={item} />
-                ),
-              )}
-            </InkList>
-          )}
+          {settlement?.settlement &&
+            settlement.settlement.potential_items?.length > 0 && (
+              <InkList dense>
+                {settlement?.settlement?.potential_items?.map(
+                  (item: string, idx: number) => (
+                    <InkListItem key={idx} title={item} />
+                  ),
+                )}
+              </InkList>
+            )}
           <InkButton
             href="/"
             variant="primary"
@@ -196,6 +210,30 @@ export default function DungeonPage() {
     );
   }
 
+  const handleQuit = () => {
+    openDialog({
+      title: '放弃探索',
+      content:
+        '确定要放弃当前探索吗？放弃后无法获得任何奖励，且本轮进度将丢失。',
+      confirmLabel: '确认放弃',
+      cancelLabel: '取消',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await fetch('/api/dungeon/quit', { method: 'POST' });
+          if (!res.ok) throw new Error('放弃失败');
+          setDungeonState(null);
+          setLastRoundData(null);
+          pushToast({ message: '已放弃探索', tone: 'success' });
+        } catch {
+          pushToast({ message: '操作失败', tone: 'danger' });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   // Active View
   if (dungeonState && lastRoundData) {
     const round = dungeonState.currentRound;
@@ -206,9 +244,18 @@ export default function DungeonPage() {
         title={`${dungeonState.theme} (${round}/${max})`}
         backHref="/"
         statusBar={
-          <div className="flex justify-between text-xs text-ink-secondary px-2">
-            <span>危: {dungeonState.dangerScore ?? 0}</span>
-            <span>道友: {cultivator.name}</span>
+          <div className="flex justify-between items-center text-xs text-ink-secondary px-2 w-full">
+            <div className="flex gap-4">
+              <span>危: {dungeonState.dangerScore ?? 0}</span>
+              <span>道友: {cultivator.name}</span>
+            </div>
+            <InkButton
+              variant="ghost"
+              className="text-xs px-2 h-6"
+              onClick={handleQuit}
+            >
+              放弃
+            </InkButton>
           </div>
         }
       >
@@ -310,7 +357,13 @@ export default function DungeonPage() {
       </InkCard>
 
       <InkSection title="选择秘境">
-        <MapSelection selectedId={selectedTheme} onSelect={setSelectedTheme} />
+        <InkButton
+          href="/game/map"
+          className="w-full text-center justify-center py-6 mb-4 border-dashed border-ink/40 hover:border-crimson hover:text-crimson group"
+        >
+          {`🌍 ${selectedMapNode ? '重新选择' : '选择秘境'}`}
+        </InkButton>
+        {selectedMapNode && <MapNodeCard node={selectedMapNode} />}
       </InkSection>
 
       <div className="mt-8">
@@ -318,7 +371,7 @@ export default function DungeonPage() {
           variant="primary"
           className="w-full text-center justify-center py-4 text-lg"
           onClick={handleStart}
-          disabled={loading}
+          disabled={loading || !selectedMapNode}
         >
           {loading ? '推演中...' : '开启探险'}
         </InkButton>
@@ -327,5 +380,35 @@ export default function DungeonPage() {
         </p>
       </div>
     </InkPageShell>
+  );
+}
+
+function MapNodeCard({ node }: { node: MapNodeInfo }) {
+  return (
+    <div
+      className={`border rounded transition-all duration-300 border-crimson bg-crimson/5 ring-crimson`}
+    >
+      <div className="p-3 cursor-pointer">
+        <div className="flex justify-between items-start mb-1">
+          <h3 className={`font-bold text-crimson`}>{node.name}</h3>
+          <span className="text-crimson text-xs">● 已选择</span>
+        </div>
+        <p className="text-xs text-ink-secondary line-clamp-2 mb-2">
+          {node.description}
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {node.tags.slice(0, 3).map((t) => (
+            <InkTag
+              key={t}
+              variant="outline"
+              tone="neutral"
+              className="text-[10px] py-0"
+            >
+              {t}
+            </InkTag>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
