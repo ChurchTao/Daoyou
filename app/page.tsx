@@ -33,6 +33,7 @@ const quickActions = [
   { label: '⚗️ 造物仙炉', href: '/craft' },
 
   { label: '📜 版本日志', href: '/changelog' },
+  { label: '🏔️ 云游探秘', href: '/game/dungeon' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
 

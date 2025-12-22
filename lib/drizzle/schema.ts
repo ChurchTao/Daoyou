@@ -277,3 +277,15 @@ export const mails = pgTable('wanjiedaoyou_mails', {
   isClaimed: boolean('is_claimed').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// 单人副本历史记录表
+export const dungeonHistories = pgTable('wanjiedaoyou_dungeon_histories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id')
+    .references(() => cultivators.id, { onDelete: 'cascade' })
+    .notNull(),
+  theme: varchar('theme', { length: 100 }).notNull(), // 副本主题
+  result: jsonb('result').notNull(), // 副本结算结果 { ending_narrative, settlement: { reward_tier, potential_items, resource_loss } }
+  log: text('log').notNull(), // 完整交互日志
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

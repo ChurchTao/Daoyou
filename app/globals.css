@@ -399,7 +399,7 @@ h6,
 .ink-card {
   padding: 0.75rem 0;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(44, 24, 16, 0.1);
+  border-bottom: 1px dashed rgba(44, 24, 16, 0.1);
 }
 
 .ink-card-highlighted {

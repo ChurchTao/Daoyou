@@ -1,0 +1,199 @@
+{
+  "world_name": "凡人修仙界·人界",
+  "map_nodes": [
+    {
+      "id": "TN_YUE_01",
+      "name": "越国·太岳山脉",
+      "region": "天南",
+      "tags": ["黄枫谷", "灵气中等", "新手区"],
+      "description": "越国七大派割据之地，黄枫谷所在地，山势雄奇。",
+      "connections": ["TN_YUE_02", "TN_YW_01", "TN_XI_01", "TN_BORDER_01"]
+    },
+    {
+      "id": "TN_YUE_02",
+      "name": "血色禁地",
+      "region": "天南",
+      "tags": ["副本", "筑基丹主药", "空间禁制"],
+      "description": "每六十年开启一次，内部奇草无数，也伴随极高陨落风险。",
+      "connections": ["TN_YUE_01"]
+    },
+    {
+      "id": "TN_YW_01",
+      "name": "元武国",
+      "region": "天南",
+      "tags": ["天星宗", "阵法交易", "齐云霄"],
+      "description": "阵法之道极其发达，许多珍稀阵盘均产自此地。",
+      "connections": ["TN_YUE_01", "TN_WE_01"]
+    },
+    {
+      "id": "TN_XI_01",
+      "name": "溪国·云梦山脉",
+      "region": "天南",
+      "tags": ["落云宗", "古剑门", "百巧院"],
+      "description": "天南灵气最浓郁的三个地点之一，三派共治。",
+      "connections": ["TN_YUE_01", "TN_ZMG_01"]
+    },
+    {
+      "id": "TN_ZMG_01",
+      "name": "坠魔谷",
+      "region": "天南",
+      "tags": ["顶级副本", "空间裂缝", "古魔遗迹"],
+      "description": "天南第一禁地，内部充斥着空间裂缝，传闻有上古修士宝藏。",
+      "connections": ["TN_XI_01"]
+    },
+    {
+      "id": "TN_BORDER_01",
+      "name": "矿区·灵石矿",
+      "region": "天南",
+      "tags": ["魔道入侵", "古传送阵", "转折点"],
+      "description": "废弃灵石矿脉，深处隐藏着通往乱星海的古传送阵。",
+      "connections": ["TN_YUE_01", "LX_INNER_01"]
+    },
+    {
+      "id": "ML_PLAINS_01",
+      "name": "慕兰草原",
+      "region": "慕兰",
+      "tags": ["法士", "部落", "边境战争"],
+      "description": "天南修士与慕兰法士对峙的广袤草原，民风剽悍。",
+      "connections": ["TN_WE_01", "DJ_NORTH_01"]
+    },
+    {
+      "id": "LX_INNER_01",
+      "name": "乱星海·天星城",
+      "region": "乱星海",
+      "tags": ["枢纽", "星宫", "圣山", "修仙圣地"],
+      "description": "乱星海核心，围绕巨型灵脉建立的城市，严禁私斗。",
+      "connections": ["TN_BORDER_01", "LX_INNER_02", "LX_OUTER_01"]
+    },
+    {
+      "id": "LX_INNER_02",
+      "name": "魁星岛",
+      "region": "乱星海",
+      "tags": ["初期发育", "六连殿", "猎妖"],
+      "description": "内星海边缘岛屿，韩立初入乱星海的落脚点。",
+      "connections": ["LX_INNER_01"]
+    },
+    {
+      "id": "LX_OUTER_01",
+      "name": "外星海·奇渊岛",
+      "region": "乱星海",
+      "tags": ["高阶妖兽", "猎妖营地", "黑市"],
+      "description": "深入妖兽腹地的孤岛，是猎取高阶妖丹的绝佳去处。",
+      "connections": ["LX_INNER_01", "LX_VOID_01"]
+    },
+    {
+      "id": "LX_VOID_01",
+      "name": "虚天殿",
+      "region": "乱星海",
+      "tags": ["史诗副本", "虚天鼎", "极阴祖师"],
+      "description": "每数百年现世一次的上古秘殿，非结丹以上不可入。",
+      "connections": ["LX_INNER_01"]
+    },
+    {
+      "id": "DJ_CENTRAL_01",
+      "name": "大晋·晋京",
+      "region": "大晋",
+      "tags": ["人界巅峰", "顶级拍卖会", "皇权"],
+      "description": "大晋帝都，商贸发达，元婴修士多如牛毛。",
+      "connections": ["ML_PLAINS_01", "DJ_SOUTH_01", "DJ_NORTH_01", "DJ_KW_01"]
+    },
+    {
+      "id": "DJ_KW_01",
+      "name": "昆吾山",
+      "region": "大晋",
+      "tags": ["终极副本", "封印", "通天灵宝"],
+      "description": "上古被封印的圣山，内部灵气已液化，镇压着元刹分魂。",
+      "connections": ["DJ_CENTRAL_01"]
+    },
+    {
+      "id": "DJ_NORTH_01",
+      "name": "北夜小极宫",
+      "region": "大晋",
+      "tags": ["冰属性", "寒髓", "传送阵"],
+      "description": "极北寒冷之地，擅长冰系功法，守卫着通往虚空殿的节点。",
+      "connections": ["DJ_CENTRAL_01"]
+    },
+    {
+      "id": "DJ_SOUTH_01",
+      "name": "南疆·十万大山",
+      "region": "大晋",
+      "tags": ["毒瘴", "阴气", "天鬼门"],
+      "description": "大晋南方的蛮荒之地，各种秘术和毒物横行。",
+      "connections": ["DJ_CENTRAL_01"]
+    }
+  ],
+  "satellite_nodes": [
+    {
+      "id": "SAT_TN_01",
+      "name": "太岳山·无名古修士洞府",
+      "parent_id": "TN_YUE_01",
+      "type": "隐秘地点",
+      "tags": ["单人副本", "阵法破解", "坐化遗骸", "古宝"],
+      "description": "掩映在瀑布后的隐秘洞穴，洞口禁制已然残破，透着一股岁月腐朽的气息。",
+      "connections": ["TN_YUE_01"]
+    },
+    {
+      "id": "SAT_TN_02",
+      "name": "云梦山·崩塌的上古宗门",
+      "parent_id": "TN_XI_01",
+      "type": "遗迹",
+      "tags": ["断壁残垣", "残魂", "功法残页", "多重禁制"],
+      "description": "昔日鼎盛的剑宗遗址，即便崩塌多年，空气中仍残留着令人心悸的剑意。",
+      "connections": ["TN_XI_01"]
+    },
+    {
+      "id": "SAT_LX_01",
+      "name": "乱星海·无名荒岛",
+      "parent_id": "LX_OUTER_01",
+      "type": "荒野",
+      "tags": ["偏僻", "高阶灵草", "妖兽巢穴", "闭关地"],
+      "description": "一座在海图上没有任何标记的孤岛，岛上怪石嶙峋，偶有惊人妖气冲天而起。",
+      "connections": ["LX_OUTER_01"]
+    },
+    {
+      "id": "SAT_LX_02",
+      "name": "深海·沉船遗迹",
+      "parent_id": "LX_INNER_01",
+      "type": "水下遗迹",
+      "tags": ["水属性", "禁制宝箱", "海兽袭击"],
+      "description": "数百年前大型商船的沉没之地，被密集的珊瑚与海草覆盖，幽暗中似有眼睛在窥视。",
+      "connections": ["LX_INNER_01"]
+    },
+    {
+      "id": "SAT_ZMG_01",
+      "name": "坠魔谷外围·空间断层带",
+      "parent_id": "TN_ZMG_01",
+      "type": "极度危险区",
+      "tags": ["空间裂缝", "古魔气", "瞬移危险"],
+      "description": "此处空间极不稳定，肉眼可见道道漆黑裂缝如蛛网般蔓延，稍有不慎便会形神俱灭。",
+      "connections": ["TN_ZMG_01"]
+    },
+    {
+      "id": "SAT_DJ_01",
+      "name": "南疆·无名古墓",
+      "parent_id": "DJ_SOUTH_01",
+      "type": "阴冢",
+      "tags": ["炼尸", "阴气滔天", "万年尸熊", "阴属性材料"],
+      "description": "藏于沼泽深处的古老石墓，石门上刻满了镇邪符文，却掩盖不住内部溢出的尸气。",
+      "connections": ["DJ_SOUTH_01"]
+    },
+    {
+      "id": "SAT_ML_01",
+      "name": "草原·法士秘密祭坛",
+      "parent_id": "ML_PLAINS_01",
+      "type": "敌对营地",
+      "tags": ["潜入", "圣兽分身", "慕兰灵石"],
+      "description": "慕兰法士秘密举行祭祀的简易阵地，戒备森严，似乎在酝酿某种阴谋。",
+      "connections": ["ML_PLAINS_01"]
+    },
+    {
+      "id": "SAT_TN_03",
+      "name": "落日森林·废弃药园",
+      "parent_id": "TN_YUE_02",
+      "type": "资源点",
+      "tags": ["灵药残存", "木灵气", "陷阱"],
+      "description": "血色禁地边缘的一处荒废园子，虽然杂草丛生，但偶尔能惊鸿一瞥地看到年份久远的药草。",
+      "connections": ["TN_YUE_02"]
+    }
+  ]
+}

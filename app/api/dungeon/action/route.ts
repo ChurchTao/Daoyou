@@ -1,0 +1,51 @@
+import { db } from '@/lib/drizzle/db';
+import { dungeonService } from '@/lib/dungeon/service';
+import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const ActionSchema = z.object({
+  choiceId: z.number(),
+  choiceText: z.string(),
+});
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Get active cultivator
+  const cultivator = await db.query.cultivators.findFirst({
+    where: (cultivators, { eq, and }) =>
+      and(eq(cultivators.userId, user.id), eq(cultivators.status, 'active')),
+  });
+
+  if (!cultivator) {
+    return NextResponse.json(
+      { error: 'No active cultivator' },
+      { status: 404 },
+    );
+  }
+  try {
+    const body = await req.json();
+    const { choiceId, choiceText } = ActionSchema.parse(body);
+
+    const result = await dungeonService.handleAction(
+      cultivator.id,
+      choiceId,
+      choiceText,
+    );
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Start Dungeon Error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '系统内部错误' },
+      { status: 500 },
+    );
+  }
+}
