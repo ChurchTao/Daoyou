@@ -33,8 +33,6 @@ export default function DungeonPage() {
     return getMapNode(preSelectedNodeId);
   }, [preSelectedNodeId]);
 
-  console.log('selectedMapNode', selectedMapNode);
-
   // Fetch initial state
   useEffect(() => {
     async function fetchState() {
@@ -154,7 +152,7 @@ export default function DungeonPage() {
 
   if (loading || isCultivatorLoading) {
     return (
-      <InkPageShell title="...推演中...">
+      <InkPageShell title="推演中...">
         <div className="flex justify-center p-12">
           <p className="animate-pulse">天机混沌，正在解析...</p>
         </div>
@@ -244,28 +242,21 @@ export default function DungeonPage() {
         title={`${dungeonState.theme} (${round}/${max})`}
         backHref="/"
         statusBar={
-          <div className="flex justify-between items-center text-xs text-ink-secondary px-2 w-full">
-            <div className="flex gap-4">
-              <span>危: {dungeonState.dangerScore ?? 0}</span>
-              <span>道友: {cultivator.name}</span>
-            </div>
-            <InkButton
-              variant="ghost"
-              className="text-xs px-2 h-6"
-              onClick={handleQuit}
-            >
+          <div className="flex justify-between items-center  text-ink-secondary px-2 w-full">
+            <span>危: {dungeonState.dangerScore ?? 0}</span>
+            <InkButton variant="primary" onClick={handleQuit}>
               放弃
             </InkButton>
           </div>
         }
       >
         <InkCard className="mb-6 min-h-[200px] flex flex-col justify-center">
-          <p className="text-lg leading-relaxed text-ink">
+          <p className="leading-relaxed text-ink">
             {lastRoundData.scene_description}
           </p>
         </InkCard>
 
-        <InkSection title="抉择时刻" hint="一念成仙，一念成魔">
+        <InkSection title="抉择时刻">
           <div className="space-y-3">
             {lastRoundData.interaction.options.map((opt: DungeonOption) => (
               <button
@@ -276,8 +267,10 @@ export default function DungeonPage() {
                                    ${processingAction ? 'opacity-50 cursor-not-allowed' : 'hover:border-crimson hover:bg-paper-dark'}
                                    border-ink/20 bg-paper`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold">[{opt.text}]</span>
+                <div className="flex justify-between items-start gap-3 mb-2">
+                  <span className="font-bold flex-1 leading-tight">
+                    {opt.text}
+                  </span>
                   <InkTag
                     tone={
                       opt.risk_level === 'high'
@@ -287,7 +280,7 @@ export default function DungeonPage() {
                           : 'good'
                     }
                     variant="outline"
-                    className="text-xs"
+                    className="text-xs shrink-0"
                   >
                     {opt.risk_level === 'high'
                       ? '凶险'
@@ -296,28 +289,14 @@ export default function DungeonPage() {
                         : '稳健'}
                   </InkTag>
                 </div>
-                {opt.content && (
-                  <div className="text-sm text-ink-secondary mt-1">
-                    {opt.content}
-                  </div>
-                )}
                 {opt.requirement && (
-                  <div className="text-xs text-crimson mt-2">
+                  <div className="text-sm text-crimson mt-2">
                     需: {opt.requirement}
                   </div>
                 )}
                 {opt.potential_cost && (
-                  <div className="text-xs text-ink-secondary mt-1">
+                  <div className="text-sm text-ink-secondary mt-1">
                     代价: {opt.potential_cost}
-                  </div>
-                )}
-                {opt.costs && opt.costs.length > 0 && (
-                  <div className="text-xs text-ink-secondary mt-1">
-                    {opt.costs.map((c, i) => (
-                      <span key={i} className="mr-2">
-                        [{c.desc || `${c.type} ${c.value}`}]
-                      </span>
-                    ))}
                   </div>
                 )}
               </button>
@@ -326,7 +305,7 @@ export default function DungeonPage() {
         </InkSection>
 
         {dungeonState.history.length > 0 && (
-          <InkSection title="前尘往事" subdued>
+          <InkSection title="回顾前路" subdued>
             <div className="text-sm space-y-2 text-ink-secondary max-h-40 overflow-y-auto px-2">
               {dungeonState.history.map((h, i) => (
                 <div key={i} className="border-l-2 border-ink/10 pl-2">
