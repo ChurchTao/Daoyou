@@ -44,19 +44,19 @@ export default function MapPage() {
           <InkButton
             onClick={() => router.back()}
             variant="outline"
-            className="bg-paper px-2 text-sm"
+            className="bg-paper! px-2 text-sm shadow"
           >
             关闭
           </InkButton>
           <InkButton
             onClick={() => setIsLandscape(!isLandscape)}
             variant="outline"
-            className="md:hidden bg-paper  px-2 text-sm"
+            className="md:hidden bg-paper! px-2 text-sm shadow"
           >
             {isLandscape ? '切换竖屏' : '切换横屏'}
           </InkButton>
         </div>
-        <div className="pointer-events-auto bg-paper px-4 py-2 rounded border border-ink/10">
+        <div className="pointer-events-auto bg-paper px-4 py-2 rounded border border-ink/10 shadow">
           <div className=" font-bold text-ink">凡人修仙界</div>
           <div className="text-xs text-ink-secondary">人界·全图</div>
         </div>
@@ -201,7 +201,7 @@ export default function MapPage() {
       {/* Selected Node Details Panel */}
       {selectedNode && (
         <div className="absolute bottom-16 left-4 right-4 z-40 md:w-96 md:left-auto md:right-8">
-          <div className="shadow-2xl animate-in slide-in-from-bottom duration-300 border-ink/20 bg-paper p-3">
+          <div className="shadow-xl animate-in slide-in-from-bottom duration-300 border-ink/20 bg-paper p-3">
             <div className="flex justify-between items-start mb-2">
               <h2 className="text-xl font-bold">{selectedNode.name}</h2>
               <InkButton
