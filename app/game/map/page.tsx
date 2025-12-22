@@ -36,7 +36,7 @@ export default function MapPage() {
 
   return (
     <div
-      className={`fixed inset-0 bg-paper-dark overflow-hidden flex flex-col ${isLandscape ? 'md:flex-col' : ''}`}
+      className={`fixed inset-0 bg-paper overflow-hidden flex flex-col ${isLandscape ? 'md:flex-col' : ''}`}
     >
       {/* Header Overlay - Keep existing */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start pointer-events-none">
@@ -44,26 +44,26 @@ export default function MapPage() {
           <InkButton
             onClick={() => router.back()}
             variant="outline"
-            className="bg-paper! px-2 text-sm shadow"
+            className="px-2 text-sm shadow bg-background!"
           >
             关闭
           </InkButton>
           <InkButton
             onClick={() => setIsLandscape(!isLandscape)}
             variant="outline"
-            className="md:hidden bg-paper! px-2 text-sm shadow"
+            className="md:hidden px-2 text-sm shadow bg-background!"
           >
             {isLandscape ? '切换竖屏' : '切换横屏'}
           </InkButton>
         </div>
-        <div className="pointer-events-auto bg-paper px-4 py-2 rounded border border-ink/10 shadow">
+        <div className="pointer-events-auto px-4 py-2 rounded border border-ink/10 shadow bg-background">
           <div className=" font-bold text-ink">凡人修仙界</div>
           <div className="text-xs text-ink-secondary">人界·全图</div>
         </div>
       </div>
 
       {/* Map Canvas */}
-      <div className="flex-1 w-full h-full bg-[#e8e4dc] relative cursor-grab active:cursor-grabbing">
+      <div className="flex-1 w-full h-full  relative cursor-grab active:cursor-grabbing">
         <TransformWrapper
           initialScale={1}
           minScale={0.5}
@@ -81,7 +81,6 @@ export default function MapPage() {
               style={{
                 width: '2000px',
                 height: '1500px',
-                backgroundImage: 'url("/texture/paper-noise.png")',
               }} // Placeholder texture
             >
               {/* Grid Lines for style */}
@@ -147,7 +146,7 @@ export default function MapPage() {
                     <div
                       className={`
                                       w-4 h-4 rounded-full border-2 
-                                      ${selectedNodeId === node.id ? 'bg-crimson border-paper ring-4 ring-crimson/20' : 'bg-paper border-ink hover:bg-crimson/50'}
+                                      ${selectedNodeId === node.id ? 'bg-crimson border-paper ring-4 ring-crimson/20' : 'border-ink hover:bg-crimson/50 bg-background'}
                                       shadow-lg
                                   `}
                     />
@@ -155,7 +154,7 @@ export default function MapPage() {
                     <div
                       className={`
                                       absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold px-2 py-0.5 rounded
-                                      ${selectedNodeId === node.id ? 'bg-crimson text-paper' : 'bg-paper text-ink shadow-sm border border-ink/10'}
+                                      ${selectedNodeId === node.id ? 'bg-crimson text-paper' : 'text-ink shadow-sm border border-ink/10 bg-background'}
                                   `}
                     >
                       {node.name.split('·').pop()}
@@ -200,8 +199,8 @@ export default function MapPage() {
 
       {/* Selected Node Details Panel */}
       {selectedNode && (
-        <div className="absolute bottom-16 left-4 right-4 z-40 md:w-96 md:left-auto md:right-8">
-          <div className="shadow-xl animate-in slide-in-from-bottom duration-300 border-ink/20 bg-paper p-3">
+        <div className="absolute bottom-16 left-4 right-4 z-40 md:w-96 md:left-auto md:right-8 bg-background">
+          <div className="shadow-xl animate-in slide-in-from-bottom duration-300 border-ink/20 p-3">
             <div className="flex justify-between items-start mb-2">
               <h2 className="text-xl font-bold">{selectedNode.name}</h2>
               <InkButton

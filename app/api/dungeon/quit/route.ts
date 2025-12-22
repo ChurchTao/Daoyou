@@ -1,9 +1,9 @@
 import { db } from '@/lib/drizzle/db';
 import { dungeonService } from '@/lib/dungeon/service';
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const supabase = await createClient();
   const {
     data: { user },
