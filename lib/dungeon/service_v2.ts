@@ -113,6 +113,7 @@ export class DungeonService {
       isFinished: false,
       cultivatorId: context.playerInfo.id!,
       theme: context.location.location,
+      summary_of_sacrifice: [],
     };
 
     // 3. 首次 AI 调用
