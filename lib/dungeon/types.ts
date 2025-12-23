@@ -29,6 +29,7 @@ export const COST_TYPES = [
 // Resource Types
 export const ResourceTypeEnum = z.enum(COST_TYPES_VALUES);
 
+// todo，区分获得的类型，目前和获得用的是同一个schema，强化战斗的可能性
 export const ResourceChangeSchema = z.object({
   type: ResourceTypeEnum,
   value: z.number(), // Positive = gain, Negative = loss (for settlement), Positive = cost (for options usually)

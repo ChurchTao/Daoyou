@@ -31,9 +31,9 @@ const quickActions = [
   { label: '📚 藏经阁', href: '/enlightenment' },
   { label: '🛖 修仙坊市', href: '/market' },
   { label: '⚗️ 造物仙炉', href: '/craft' },
+  { label: '🏔️ 云游探秘', href: '/game/dungeon' },
 
   { label: '📜 版本日志', href: '/changelog' },
-  { label: '🏔️ 云游探秘', href: '/game/dungeon' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
 

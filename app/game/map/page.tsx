@@ -57,7 +57,7 @@ export default function MapPage() {
           </InkButton>
         </div>
         <div className="pointer-events-auto px-4 py-2 rounded border border-ink/10 shadow bg-background">
-          <div className=" font-bold text-ink">凡人修仙界</div>
+          <div className=" font-bold text-ink">修仙界</div>
           <div className="text-xs text-ink-secondary">人界·全图</div>
         </div>
       </div>
@@ -70,6 +70,13 @@ export default function MapPage() {
           maxScale={4}
           centerOnInit={true}
           limitToBounds={false}
+          onInit={(utils) => {
+            // Initialize view centered on Yellow Maple Valley (Novice Area)
+            // Use a slight delay to ensure DOM is ready if needed, though usually safe
+            setTimeout(() => {
+              utils.zoomToElement('node-TN_YUE_01', 1, 100);
+            }, 100);
+          }}
         >
           <TransformComponent
             wrapperClass="w-full h-full"
@@ -79,28 +86,24 @@ export default function MapPage() {
             <div
               className="relative"
               style={{
-                width: '2000px',
-                height: '1500px',
+                width: '3056px',
+                height: '2143px',
               }} // Placeholder texture
             >
               {/* Grid Lines for style */}
-              <div
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(#2c1810 1px, transparent 1px), linear-gradient(90deg, #2c1810 1px, transparent 1px)',
-                  backgroundSize: '100px 100px',
-                }}
-              />
+              <div className="absolute inset-0 opacity-80 bgi-map shadow ring-10 ring-ink/50" />
 
               {/* Region Labels (Background) - Keep existing */}
-              <div className="absolute top-[20%] right-[15%] text-4xl  text-ink/10 pointer-events-none select-none tracking-widest rotate-6">
+              <div className="absolute top-[65%] right-[35%] text-6xl  text-ink/40 pointer-events-none select-none tracking-widest rotate-6">
                 乱星海
               </div>
-              <div className="absolute bottom-[35%] left-[45%] text-4xl  text-ink/10 pointer-events-none select-none tracking-widest">
+              <div className="absolute top-[48%] left-[33%] text-6xl  text-ink/40 pointer-events-none select-none tracking-widest rotate-6">
+                无边海
+              </div>
+              <div className="absolute bottom-[4%] right-[15%] text-6xl  text-ink/40 pointer-events-none select-none tracking-widest">
                 天南
               </div>
-              <div className="absolute top-[60%] left-[15%] text-5xl  text-ink/10 pointer-events-none select-none tracking-widest writing-vertical">
+              <div className="absolute top-[30%] left-[44%] text-6xl  text-ink/40 pointer-events-none select-none tracking-widest writing-vertical">
                 大晋
               </div>
 
@@ -133,6 +136,7 @@ export default function MapPage() {
               {allNodes.map((node) => (
                 <div key={node.id}>
                   <div
+                    id={`node-${node.id}`}
                     className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300
                                       ${selectedNodeId === node.id ? 'z-30 scale-125' : 'z-20 hover:scale-110'}
                                   `}

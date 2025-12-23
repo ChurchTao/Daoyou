@@ -101,6 +101,10 @@ h6,
   background-size: 300px;
 }
 
+.bgi-map {
+  background-image: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/map/map.webp');
+}
+
 .bg-paper-light {
   background-color: rgba(248, 243, 230, 0.8);
   background-image: url('/assets/paper.png');
