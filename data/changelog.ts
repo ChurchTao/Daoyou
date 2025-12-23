@@ -8,6 +8,16 @@ export interface ChangelogItem {
 
 export const changelogs: ChangelogItem[] = [
   {
+    version: 'v0.5.4',
+    date: '2025-12-23',
+    title: '云游探秘上线',
+    type: 'minor',
+    changes: [
+      '✨ 新增云游探秘功能，道友可探索未知的天地异象。',
+      '✨ 新增修仙界大地图，道友可游历修仙界。',
+    ],
+  },
+  {
     version: 'v0.5.2',
     date: '2025-12-19',
     title: '神通系统重构',
