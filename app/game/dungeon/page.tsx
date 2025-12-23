@@ -14,9 +14,9 @@ import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
 import { getMapNode, MapNodeInfo } from '@/lib/game/mapSystem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 
-export default function DungeonPage() {
+function DungeonContent() {
   const { cultivator, isLoading: isCultivatorLoading } = useCultivatorBundle();
   const { pushToast, openDialog } = useInkUI();
   const searchParams = useSearchParams();
@@ -381,10 +381,26 @@ export default function DungeonPage() {
           {loading ? '推演中...' : '开启探险'}
         </InkButton>
         <p className="text-center text-xs text-ink-secondary mt-2">
-          * 每日仅可探索一次（暂无限制）
+          * 每日仅可探索一次（体验版，不会消耗材料、获得奖励）
         </p>
       </div>
     </InkPageShell>
+  );
+}
+
+export default function DungeonPage() {
+  return (
+    <Suspense
+      fallback={
+        <InkPageShell title="云游探秘">
+          <div className="flex justify-center p-12">
+            <p className="animate-pulse">正在加载探索数据...</p>
+          </div>
+        </InkPageShell>
+      }
+    >
+      <DungeonContent />
+    </Suspense>
   );
 }
 

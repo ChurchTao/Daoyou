@@ -1,5 +1,5 @@
 import { db } from '@/lib/drizzle/db';
-import { dungeonService } from '@/lib/dungeon/service';
+import { dungeonService } from '@/lib/dungeon/service_v2';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 

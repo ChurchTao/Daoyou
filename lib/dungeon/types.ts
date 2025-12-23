@@ -26,11 +26,35 @@ export const COST_TYPES = [
   { type: 'battle', name: '遭遇战斗' },
 ] as const;
 
+export const GAIN_TYPES_VALUES = [
+  'artifact_gain',
+  'material_gain',
+  'consumable_gain',
+  'spirit_stones_gain',
+  'exp_gain',
+  'lifespan_gain',
+] as const;
+
+export const GAIN_TYPES = [
+  { type: 'artifact_gain', name: '法宝获得' },
+  { type: 'material_gain', name: '材料获得' },
+  { type: 'consumable_gain', name: '消耗品获得' },
+  { type: 'spirit_stones_gain', name: '灵石获得' },
+  { type: 'exp_gain', name: '修为获得' },
+  { type: 'lifespan_gain', name: '寿元获得' },
+] as const;
+
 // Resource Types
 export const ResourceTypeEnum = z.enum(COST_TYPES_VALUES);
 
 // todo，区分获得的类型，目前和获得用的是同一个schema，强化战斗的可能性
-export const ResourceChangeSchema = z.object({
+export const ResourceLossSchema = z.object({
+  type: ResourceTypeEnum,
+  value: z.number(), //战斗难度系数 (1-10)
+  desc: z.string().optional(), // 敌人名称及特征，例如："二级顶阶傀儡，速度极快"
+});
+
+export const ResourceGainSchema = z.object({
   type: ResourceTypeEnum,
   value: z.number(), // Positive = gain, Negative = loss (for settlement), Positive = cost (for options usually)
   desc: z.string().optional(), // Description for UI e.g. "损耗寿元10年"
@@ -44,7 +68,7 @@ export const DungeonOptionSchema = z.object({
   risk_level: z.enum(['low', 'medium', 'high']),
   requirement: z.string().optional(), // e.g. "Fire Spirit Root", "Sword Attribute"
   potential_cost: z.string().optional(), // Legacy text description
-  costs: z.array(ResourceChangeSchema).optional(), // Structured costs
+  costs: z.array(ResourceLossSchema).optional(), // Structured costs
 });
 
 // Response from AI for each round
@@ -61,23 +85,15 @@ export const DungeonRoundSchema = z.object({
 
 // Settlement info from AI
 export const DungeonSettlementSchema = z.object({
-  ending_narrative: z.string(),
+  ending_narrative: z.string().describe('结局叙述'),
   settlement: z.object({
-    reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']),
-    potential_items: z.array(z.string()), // Flavor text for items
-
-    // Structured gains/losses
-    gains: z.array(ResourceChangeSchema).optional(),
-    losses: z.array(ResourceChangeSchema).optional(),
-
-    // Legacy support (optional, can be removed if prompt is perfect, but keeping for safety)
-    resource_loss: z
-      .object({
-        durability_loss: z.number().optional(),
-        spirit_stones: z.number().optional(),
-        health_loss: z.number().optional(),
-      })
-      .optional(),
+    reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
+    potential_items: z
+      .array(z.string())
+      .describe('可能获得的物品（如：法宝、材料、消耗品等）'),
+    performance_tags: z
+      .array(z.string())
+      .describe('评价标签（如：收获颇丰、险象环生、九死一生、空手而归）'),
   }),
 });
 
@@ -97,13 +113,17 @@ export const PlayerInfoSchema = z.object({
   }),
   spiritual_roots: z.array(z.string()),
   fates: z.array(z.string()),
-  cultivations: z.array(z.string()),
   skills: z.array(z.string()),
   spirit_stones: z.number(),
   background: z.string(),
   inventory: z.object({
     artifacts: z.array(z.string()),
-    materials: z.array(z.string()),
+    materials: z.array(
+      z.object({
+        name: z.string(),
+        count: z.number(),
+      }),
+    ),
   }),
 });
 
@@ -111,7 +131,14 @@ export type PlayerInfo = z.infer<typeof PlayerInfoSchema>;
 export type DungeonOption = z.infer<typeof DungeonOptionSchema>;
 export type DungeonRound = z.infer<typeof DungeonRoundSchema>;
 export type DungeonSettlement = z.infer<typeof DungeonSettlementSchema>;
-
+export type DungeonOptionCost = z.infer<typeof ResourceLossSchema>;
+export type DungeonResourceGain = z.infer<typeof ResourceGainSchema>;
+export interface History {
+  round: number;
+  scene: string;
+  choice?: string;
+  outcome?: string; // Narrative outcome of the choice? (maybe next scene covers this)
+}
 // === Internal State Management ===
 
 export interface DungeonState {
@@ -120,14 +147,15 @@ export interface DungeonState {
   theme: string;
   currentRound: number;
   maxRounds: number;
-  history: {
-    round: number;
-    scene: string;
-    choice?: string;
-    outcome?: string; // Narrative outcome of the choice? (maybe next scene covers this)
-  }[];
+  history: History[];
   dangerScore: number;
   isFinished: boolean;
   currentOptions?: DungeonOption[]; // Store active options to validate choice and process costs
   settlement?: DungeonSettlement;
+  location: {
+    location: string;
+    location_tags: string[];
+    location_description: string;
+  };
+  summary_of_sacrifice?: DungeonOptionCost[];
 }
