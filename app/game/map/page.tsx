@@ -11,10 +11,18 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
+const getInitPosition = () => {
+  if (typeof window === 'undefined') return { x: -2382, y: -1224 };
+  return window.innerWidth < 768
+    ? { x: -2382, y: -1224 }
+    : { x: -1318, y: -1262 };
+};
+
 export default function MapPage() {
   const router = useRouter();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   // const [isLandscape, setIsLandscape] = useState(false);
+  const initPosition = getInitPosition();
 
   const allNodes = getAllMapNodes();
   const selectedNode = selectedNodeId
@@ -68,8 +76,8 @@ export default function MapPage() {
           minScale={0.5}
           maxScale={4}
           limitToBounds={false}
-          initialPositionX={-2382}
-          initialPositionY={-1224}
+          initialPositionX={initPosition.x}
+          initialPositionY={initPosition.y}
         >
           <TransformComponent
             wrapperClass="w-full h-full"
