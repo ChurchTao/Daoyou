@@ -14,7 +14,7 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 export default function MapPage() {
   const router = useRouter();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [isLandscape, setIsLandscape] = useState(false);
+  // const [isLandscape, setIsLandscape] = useState(false);
 
   const allNodes = getAllMapNodes();
   const selectedNode = selectedNodeId
@@ -35,9 +35,7 @@ export default function MapPage() {
   };
 
   return (
-    <div
-      className={`fixed inset-0 bg-paper overflow-hidden flex flex-col ${isLandscape ? 'md:flex-col' : ''}`}
-    >
+    <div className={`fixed inset-0 bg-paper overflow-hidden flex flex-col`}>
       {/* Header Overlay - Keep existing */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start pointer-events-none">
         <div className="pointer-events-auto flex gap-2">
@@ -48,13 +46,14 @@ export default function MapPage() {
           >
             关闭
           </InkButton>
-          <InkButton
+          {/* <InkButton
             onClick={() => setIsLandscape(!isLandscape)}
             variant="outline"
+            disabled
             className="md:hidden px-2 text-sm shadow bg-background!"
           >
             {isLandscape ? '切换竖屏' : '切换横屏'}
-          </InkButton>
+          </InkButton> */}
         </div>
         <div className="pointer-events-auto px-4 py-2 rounded border border-ink/10 shadow bg-background">
           <div className=" font-bold text-ink">修仙界</div>
@@ -68,15 +67,9 @@ export default function MapPage() {
           initialScale={1}
           minScale={0.5}
           maxScale={4}
-          centerOnInit={true}
           limitToBounds={false}
-          onInit={(utils) => {
-            // Initialize view centered on Yellow Maple Valley (Novice Area)
-            // Use a slight delay to ensure DOM is ready if needed, though usually safe
-            setTimeout(() => {
-              utils.zoomToElement('node-TN_YUE_01', 1, 100);
-            }, 100);
-          }}
+          initialPositionX={-2382}
+          initialPositionY={-1224}
         >
           <TransformComponent
             wrapperClass="w-full h-full"
@@ -88,7 +81,7 @@ export default function MapPage() {
               style={{
                 width: '3056px',
                 height: '2143px',
-              }} // Placeholder texture
+              }}
             >
               {/* Grid Lines for style */}
               <div className="absolute inset-0 opacity-80 bgi-map shadow ring-10 ring-ink/50" />
