@@ -1,5 +1,8 @@
+import { enemyGenerator } from '@/engine/enemyGenerator';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import { randomUUID } from 'crypto';
+import { BattleEngineResult } from '../../engine/battleEngine';
 import { db } from '../drizzle/db';
 import { dungeonHistories } from '../drizzle/schema';
 import { getMapNode } from '../game/mapSystem';
@@ -9,6 +12,7 @@ import {
   getInventory,
 } from '../repositories/cultivatorRepository';
 import {
+  BattleSession,
   COST_TYPES,
   DungeonOptionCost,
   DungeonResourceGain,
@@ -17,6 +21,7 @@ import {
   DungeonSettlement,
   DungeonSettlementSchema,
   DungeonState,
+  PlayerInfo,
 } from './types';
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
@@ -74,15 +79,15 @@ export class DungeonService {
   - 71-100：必死之局或绝境，必须通过极大的代价（燃血、自爆法宝）才能生还，但往往有丰厚的收获。
 - costs: 必须严格使用规定的类型（COST_TYPES） ${COST_TYPES.map((cost) => `${cost.type}(${cost.name})`).join(', ')}，禁止自定义类型
 - costs类型规定:
-  - cost类型为battle,value为战斗难度系数(1-10),desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快"
-  - cost类型为artifact_damage,value为法宝损坏程度(1-10),desc为法宝名称
-  - cost类型为material_loss,value为材料消耗数量(1-5),desc为材料名称
-  - cost类型为spirit_stones_loss,value为灵石消耗数量(1-10000)
-  - cost类型为hp_loss,value为气血损耗程度(1-10)
-  - cost类型为mp_loss,value为灵力损耗程度(1-10)
-  - cost类型为exp_loss,value为修为损耗程度(1-10)
-  - cost类型为lifespan_loss,value为寿元损耗年数(1-100)
-  - cost类型为weak,value为虚弱程度(1-10)
+  - cost类型为battle: value为战斗难度系数(1-10),desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快",metadata为敌人信息(enemy_name, is_boss, enemy_stage, enemy_realm)
+  - cost类型为artifact_damage: value为法宝损坏程度(1-10),desc为法宝名称
+  - cost类型为material_loss: value为材料消耗数量(1-5),desc为材料名称
+  - cost类型为spirit_stones_loss: value为灵石消耗数量(1-10000)
+  - cost类型为hp_loss: value为气血损耗程度(1-10)
+  - cost类型为mp_loss: value为灵力损耗程度(1-10)
+  - cost类型为exp_loss: value为修为损耗程度(1-10)
+  - cost类型为lifespan_loss: value为寿元损耗年数(1-100)
+  - cost类型为weak: value为虚弱程度(1-10)
 
 ## 5. 当前上下文摘要
 - 地点：读取 location
@@ -114,6 +119,7 @@ export class DungeonService {
       cultivatorId: context.playerInfo.id!,
       theme: context.location.location,
       summary_of_sacrifice: [],
+      status: 'EXPLORING',
     };
 
     // 3. 首次 AI 调用
@@ -144,6 +150,31 @@ export class DungeonService {
       // 在这里进行硬核校验，比如灵石不够则报错
       await this.processResources(cultivatorId, chosenOption.costs, 'cost');
       state.summary_of_sacrifice?.push(...chosenOption.costs);
+
+      // --- Battle Interception ---
+      const battleCost = chosenOption.costs.find((c) => c.type === 'battle');
+      if (battleCost) {
+        state.history[state.history.length - 1].choice = choiceText;
+        state.status = 'IN_BATTLE';
+
+        const session = await this.createBattleSession(
+          cultivatorId,
+          getDungeonKey(cultivatorId),
+          battleCost,
+          state.playerInfo,
+          state.summary_of_sacrifice || [],
+        );
+
+        state.activeBattleId = session.battleId;
+        await this.saveState(cultivatorId, state);
+
+        return {
+          state,
+          type: 'TRIGGER_BATTLE',
+          battleId: session.battleId,
+          isFinished: false,
+        };
+      }
     }
 
     // 2. 推进状态
@@ -161,6 +192,126 @@ export class DungeonService {
     const roundData = await this.callAI(state);
 
     // 4. 更新状态
+    state.history.push({
+      round: state.currentRound,
+      scene: roundData.scene_description,
+    });
+    state.currentOptions = roundData.interaction.options;
+    state.dangerScore = roundData.status_update.internal_danger_score;
+
+    await this.saveState(cultivatorId, state);
+    return { state, roundData, isFinished: false };
+  }
+
+  // --- Battle Integration ---
+
+  /* Removed old generateEnemy in favor of enemyGenerator */
+
+  private async createBattleSession(
+    cultivatorId: string,
+    dungeonStateKey: string,
+    battleCost: DungeonOptionCost,
+    playerInfo: PlayerInfo,
+    sacrificeSummary: DungeonOptionCost[],
+  ): Promise<BattleSession> {
+    console.log('[createBattleSession]', battleCost);
+    const battleId = randomUUID();
+
+    // Calculate current HP/MP based on sacrifices
+    // This is a simplified view; ideally we track current HP in DungeonState if we want persistence across rounds
+    // For now, we assume full HP minus accumulated loss
+    let hpLoss = 0;
+    let mpLoss = 0;
+
+    sacrificeSummary.forEach((s) => {
+      if (s.type === 'hp_loss') hpLoss += s.value * 30; // 30 per value
+      if (s.type === 'mp_loss') mpLoss += s.value * 10; // 10 per value
+    });
+
+    // Add current round cost
+    if (battleCost.type === 'hp_loss') hpLoss += battleCost.value * 30;
+
+    const currentHp = Math.max(1, playerInfo.attributes.vitality * 5 - hpLoss); // Rough max HP formula
+    const currentMp = Math.max(1, playerInfo.attributes.spirit * 10 - mpLoss); // Rough max MP formula
+
+    // Check for "weak" status in sacrifices to apply debuffs?
+    // For now we just lower HP/MP.
+
+    const enemy = await enemyGenerator.generate(
+      battleCost.metadata || {
+        enemy_name: battleCost.desc,
+        is_boss: false,
+        enemy_stage: playerInfo.realm,
+        enemy_realm: '中期',
+      }, // Ensure metadata is passed safely
+      battleCost.value,
+      playerInfo,
+    );
+
+    const session: BattleSession = {
+      battleId,
+      dungeonStateKey,
+      cultivatorId,
+      enemyData: {
+        name: enemy.name,
+        realm: enemy.realm,
+        stage: enemy.realm_stage,
+        level: `${enemy.realm} ${enemy.realm_stage}`,
+        difficulty: battleCost.value,
+      },
+      playerSnapshot: {
+        currentHp: currentHp,
+        currentMp: currentMp,
+      },
+    };
+
+    // Save to Redis
+    await redis.set(
+      `dungeon:battle:${battleId}`,
+      JSON.stringify({ session, enemyObject: enemy }),
+      { ex: 3600 },
+    );
+
+    return session;
+  }
+
+  async handleBattleCallback(
+    cultivatorId: string,
+    battleResult: BattleEngineResult,
+  ) {
+    const state = await this.getState(cultivatorId);
+    if (!state) throw new Error('Dungeon state not found');
+
+    const lastHistory = state.history[state.history.length - 1];
+
+    // Update State
+    state.status = 'EXPLORING';
+    delete state.activeBattleId;
+
+    // Construct Narrative
+    const enemyName =
+      battleResult.loser.name === state.playerInfo.name
+        ? battleResult.winner.name
+        : battleResult.loser.name;
+    const isWin = battleResult.winner.name === state.playerInfo.name;
+
+    const outcomeText = isWin
+      ? `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`
+      : `你终究是不敌 ${enemyName}，在其重击下狼狈遁走，侥幸捡回一条命。`;
+
+    lastHistory.outcome = outcomeText; // Update the pending outcome
+
+    // Add implicit costs from battle (e.g. HP loss, consumables used)
+    // For now, we just record "Battle" occurred.
+
+    state.currentRound++;
+
+    if (state.currentRound > state.maxRounds) {
+      return this.settleDungeon(state);
+    }
+
+    // Resume AI
+    const roundData = await this.callAI(state);
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,

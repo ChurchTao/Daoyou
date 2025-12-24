@@ -1,5 +1,8 @@
 'use client';
 
+import { BattlePageLayout } from '@/components/BattlePageLayout';
+import { BattleReportViewer } from '@/components/BattleReportViewer';
+import { BattleTimelineViewer } from '@/components/BattleTimelineViewer';
 import {
   InkButton,
   InkCard,
@@ -10,6 +13,7 @@ import {
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
+import { BattleEngineResult } from '@/engine/battleEngine';
 import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
 import { getMapNode, MapNodeInfo } from '@/lib/game/mapSystem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
@@ -27,7 +31,22 @@ function DungeonContent() {
   const [processingAction, setProcessingAction] = useState(false);
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
 
+  // Battle State
+  const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
+  const [battleResult, setBattleResult] = useState<BattleEngineResult>();
+  const [streamingReport, setStreamingReport] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [battleEnd, setBattleEnd] = useState(false);
+  const [opponentNameForBattle, setOpponentNameForBattle] =
+    useState('神秘敌手'); // Metadata for UI
+
   const [lastRoundData, setLastRoundData] = useState<DungeonRound | null>(null); // For immediate display update
+
+  // Pre-Battle State
+  const [pendingBattle, setPendingBattle] = useState<{
+    id: string;
+    reason: string;
+  } | null>(null);
 
   const selectedMapNode = useMemo(() => {
     if (!preSelectedNodeId) return null;
@@ -126,16 +145,24 @@ function DungeonContent() {
         // Finished
         setDungeonState(null); // Clear active state
         setLastRoundData(null);
-        // Show settlement modal or redirect?
-        // The API returns `settlement`.
-        // Let's show a settlement view.
         pushToast({ message: '探索结束！', tone: 'success' });
-        // Ideally show a result card.
-        // I'll stick the result in a local state to show "Run Completed" screen.
         setDungeonState({
           ...data.state,
           isFinished: true,
           settlement: data.settlement,
+        });
+      } else if (data.type === 'TRIGGER_BATTLE') {
+        // Trigger Battle View
+        // setActiveBattleId(data.battleId); // Defer to user confirmation
+
+        const enemyDesc =
+          option.costs?.find((c) => c.type === 'battle')?.desc || '强敌';
+        setOpponentNameForBattle(enemyDesc);
+
+        // Show confirmation screen
+        setPendingBattle({
+          id: data.battleId,
+          reason: enemyDesc,
         });
       } else {
         setDungeonState(data.state);
@@ -233,6 +260,172 @@ function DungeonContent() {
       },
     });
   };
+
+  // --- Battle Logic ---
+  const executeDungeonBattle = async (battleId: string) => {
+    setIsStreaming(true);
+    setStreamingReport('');
+    setBattleResult(undefined);
+    setBattleEnd(false);
+
+    try {
+      const response = await fetch('/api/dungeon/battle/execute', {
+        method: 'POST',
+        body: JSON.stringify({ cultivatorId: cultivator?.id, battleId }),
+      });
+
+      if (!response.ok) throw new Error('Battle connection failed');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      if (!reader) throw new Error('No stream');
+
+      let fullReport = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'battle_result') {
+                const res = data.data;
+                setBattleResult({
+                  winner: res.winner,
+                  loser: res.loser,
+                  log: res.log,
+                  turns: res.turns,
+                  playerHp: res.playerHp,
+                  opponentHp: res.opponentHp,
+                  timeline: res.timeline ?? [],
+                });
+              } else if (data.type === 'chunk') {
+                fullReport += data.content;
+                setStreamingReport(fullReport);
+              } else if (data.type === 'done') {
+                setIsStreaming(false);
+                setStreamingReport(fullReport);
+                setBattleEnd(true);
+
+                if (data.isFinished) {
+                  setDungeonState((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          isFinished: true,
+                          settlement: data.settlement,
+                        }
+                      : null,
+                  );
+                  setLastRoundData(null);
+                } else {
+                  setDungeonState(data.dungeonState);
+                  setLastRoundData(data.roundData);
+                }
+                setSelectedOptionId(null);
+              } else if (data.type === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              console.error('Stream parse error', e);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      pushToast({
+        message: e instanceof Error ? e.message : '战斗模拟失败',
+        tone: 'danger',
+      });
+      setIsStreaming(false);
+      // Fallback?
+      setActiveBattleId(null);
+    }
+  };
+
+  // --- Render Battle View ---
+  if (activeBattleId) {
+    return (
+      <BattlePageLayout
+        title={`【激战 · ${dungeonState?.theme || '秘境'}】`}
+        backHref="#"
+        loading={!battleResult && isStreaming}
+        battleResult={battleResult}
+        isStreaming={isStreaming}
+        actions={{
+          primary: {
+            label: battleEnd ? '继续探险' : '战斗中...',
+            onClick: () => {
+              if (battleEnd) {
+                setActiveBattleId(null);
+              }
+            },
+            disabled: !battleEnd,
+          },
+        }}
+      >
+        {/* Timeline */}
+        {battleResult?.timeline && battleResult.timeline.length > 0 && (
+          <BattleTimelineViewer
+            battleResult={battleResult}
+            playerName={cultivator!.name}
+            opponentName={opponentNameForBattle}
+          />
+        )}
+
+        {/* Report */}
+        <BattleReportViewer
+          displayReport={streamingReport}
+          isStreaming={isStreaming}
+          battleResult={battleResult}
+          player={cultivator!}
+          isWin={battleResult?.winner.id === cultivator?.id} // Rough check, id might mismatch slightly if not careful
+        />
+      </BattlePageLayout>
+    );
+  }
+
+  // Pending Battle Confirmation
+  if (pendingBattle) {
+    return (
+      <InkPageShell title="遭遇战" backHref="#">
+        <InkCard className="p-8 text-center space-y-6">
+          <div className="text-6xl animate-bounce">⚔️</div>
+          <div>
+            <h2 className="text-2xl font-bold text-crimson mb-2">遭遇强敌</h2>
+            <p className="text-lg text-ink">
+              前方发现了{' '}
+              <span className="font-bold">{pendingBattle.reason}</span>
+            </p>
+            <p className="text-sm text-ink-secondary mt-2">
+              此战避无可避，唯有迎难而上！
+            </p>
+          </div>
+          <InkButton
+            variant="primary"
+            className="w-full py-4 text-lg"
+            onClick={() => {
+              const battleId = pendingBattle.id;
+              setPendingBattle(null); // Clear pending
+              setActiveBattleId(battleId); // Set active
+              executeDungeonBattle(battleId); // Execute
+            }}
+          >
+            开始战斗
+          </InkButton>
+        </InkCard>
+      </InkPageShell>
+    );
+  }
 
   // Active View
   if (dungeonState && lastRoundData) {

@@ -666,13 +666,20 @@ function chooseSkill(actor: BattleUnit, target: BattleUnit): Skill | null {
   return available[0];
 }
 
+export interface InitialUnitState {
+  hp?: number;
+  mp?: number;
+}
+
 export function simulateBattle(
   player: Cultivator,
   opponent: Cultivator,
+  initialPlayerState?: InitialUnitState,
 ): BattleEngineResult {
   const initUnit = (
     data: Cultivator,
     id: 'player' | 'opponent',
+    initialState?: InitialUnitState,
   ): BattleUnit => {
     // Skills cooldowns
     const cds = new Map(data.skills.map((s) => [s.id!, 0]));
@@ -686,8 +693,8 @@ export function simulateBattle(
     return {
       id,
       data,
-      hp: finalAttrs.maxHp,
-      mp: finalAttrs.maxMp,
+      hp: initialState?.hp ?? finalAttrs.maxHp,
+      mp: initialState?.mp ?? finalAttrs.maxMp,
       statuses: new Map(),
       skillCooldowns: cds,
       isDefending: false,
@@ -695,7 +702,7 @@ export function simulateBattle(
   };
 
   const state: BattleState = {
-    player: initUnit(player, 'player'),
+    player: initUnit(player, 'player', initialPlayerState),
     opponent: initUnit(opponent, 'opponent'),
     turn: 0,
     log: [],

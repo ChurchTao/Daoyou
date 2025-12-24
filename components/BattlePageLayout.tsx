@@ -18,11 +18,13 @@ interface BattlePageLayoutProps {
       label: string;
       onClick?: () => void;
       href?: string;
+      disabled?: boolean;
     };
     secondary?: Array<{
       label: string;
       onClick?: () => void;
       href?: string;
+      disabled?: boolean;
     }>;
   };
 }
@@ -71,6 +73,7 @@ export function BattlePageLayout({
                 key={index}
                 onClick={action.onClick}
                 href={action.href}
+                disabled={action.disabled}
               >
                 {action.label}
               </InkButton>
@@ -80,6 +83,7 @@ export function BattlePageLayout({
                 onClick={actions.primary.onClick}
                 href={actions.primary.href}
                 variant="primary"
+                disabled={actions.primary.disabled}
               >
                 {actions.primary.label}
               </InkButton>

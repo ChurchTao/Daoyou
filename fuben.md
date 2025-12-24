@@ -252,7 +252,6 @@ export const ResourceChangeSchema = z.object({
   metadata: z
     .object({
       enemy_name: z.string().optional(),
-      enemy_level: z.string().optional(), // 如 "筑基后期"
       is_boss: z.boolean().optional(),
     })
     .optional(),
