@@ -15,6 +15,7 @@ import {
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { InkModal } from '@/components/InkModal';
 import { useInkUI } from '@/components/InkUIProvider';
+import { LifespanStatusCard } from '@/components/LifespanStatusCard';
 import { RecentBattles } from '@/components/RecentBattles';
 import { DivineFortune } from '@/components/welcome/DivineFortune';
 import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
@@ -148,7 +149,7 @@ function HomePageContent() {
         {
           label: '年龄：',
           value: cultivator.age,
-          icon: '⏳',
+          icon: '⌛',
         },
         { label: '寿元：', value: cultivator.lifespan, icon: '🔮' },
       ]
@@ -208,6 +209,11 @@ function HomePageContent() {
                 />
               }
             />
+
+            {/* 今日寿元消耗状态 */}
+            {cultivator.id && (
+              <LifespanStatusCard cultivatorId={cultivator.id} />
+            )}
           </InkList>
         ) : (
           <>
@@ -228,7 +234,7 @@ function HomePageContent() {
         {/* 修为状态卡片 */}
         {cultivator && cultivator.cultivation_progress && (
           <div className="mt-3">
-            <CultivatorStatusCard cultivator={cultivator} />
+            <CultivatorStatusCard cultivator={cultivator} showTitle={false} />
           </div>
         )}
       </InkSection>

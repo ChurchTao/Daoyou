@@ -178,23 +178,23 @@ export function getCultivationTechniqueMultiplier(
 
   // 使用最高品级的功法
   const gradeMultipliers: Record<string, number> = {
-    黄阶下品: 1.0,
-    黄阶中品: 1.05,
-    黄阶上品: 1.1,
-    玄阶下品: 1.2,
-    玄阶中品: 1.25,
-    玄阶上品: 1.3,
-    地阶下品: 1.5,
-    地阶中品: 1.6,
-    地阶上品: 1.7,
-    天阶下品: 2.0,
-    天阶中品: 2.2,
-    天阶上品: 2.5,
+    黄阶下品: 0.8,
+    黄阶中品: 0.85,
+    黄阶上品: 0.9,
+    玄阶下品: 0.95,
+    玄阶中品: 1.0,
+    玄阶上品: 1.05,
+    地阶下品: 1.1,
+    地阶中品: 1.15,
+    地阶上品: 1.2,
+    天阶下品: 1.25,
+    天阶中品: 1.3,
+    天阶上品: 1.4,
   };
 
-  let maxMultiplier = 1.0;
+  let maxMultiplier = 0.8;
   for (const cultivation of cultivator.cultivations) {
-    const multiplier = gradeMultipliers[cultivation.grade || ''] ?? 1.0;
+    const multiplier = gradeMultipliers[cultivation.grade || ''] ?? 0.8;
     if (multiplier > maxMultiplier) {
       maxMultiplier = multiplier;
     }
@@ -209,7 +209,8 @@ export function getCultivationTechniqueMultiplier(
  * 范围：0.75 ~ 1.5
  */
 export function calculateWisdomMultiplier(wisdom: number): number {
-  return 1.0 + (wisdom - 50) / 200;
+  // 暂时无影响
+  return 1.0;
 }
 
 /**
@@ -218,7 +219,7 @@ export function calculateWisdomMultiplier(wisdom: number): number {
  */
 export function calculateYearsMultiplier(years: number): number {
   if (years <= 0) return 1.0;
-  return 1.0 + Math.log10(years);
+  return Math.log10(years);
 }
 
 /**

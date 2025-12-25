@@ -260,12 +260,12 @@ function getBreakthroughBaseChance(
 
 function getBreakthroughDifficulty(realm: RealmType): number {
   const realmIndex = REALM_ORDER.indexOf(realm);
-  return Math.pow(0.6, realmIndex);
+  return Math.pow(0.75, realmIndex);
 }
 
 function getBreakthroughSummaryDifficulty(realm: RealmType): number {
   const realmIndex = REALM_ORDER.indexOf(realm);
-  return Math.pow(0.9, realmIndex);
+  return Math.pow(0.92, realmIndex);
 }
 
 function getComprehensionModifier(wisdom: number): number {

@@ -9,11 +9,13 @@ import { useMemo, useState } from 'react';
 interface CultivatorStatusCardProps {
   cultivator: Cultivator;
   showDetails?: boolean;
+  showTitle?: boolean;
 }
 
 export function CultivatorStatusCard({
   cultivator,
   showDetails = true,
+  showTitle = true,
 }: CultivatorStatusCardProps) {
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -68,28 +70,30 @@ export function CultivatorStatusCard({
     <>
       <div className="px-4 py-3 border border-ink/20 rounded-lg bg-ink/5 shadow-sm relative overflow-hidden">
         {/* 顶部标题 */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="font-bold text-lg text-ink flex items-center gap-2">
-            <span>⚡️ 修炼状态</span>
-            <span>
-              {statusData.bottleneck_state && (
-                <InkBadge tone="warning">瓶颈</InkBadge>
-              )}
-              {statusData.inner_demon && (
-                <InkBadge tone="danger">心魔</InkBadge>
-              )}
-            </span>
+        {showTitle && (
+          <div className="flex justify-between items-center mb-4">
+            <div className="font-bold text-lg text-ink flex items-center gap-2">
+              <span>⚡️ 修炼状态</span>
+              <span>
+                {statusData.bottleneck_state && (
+                  <InkBadge tone="warning">瓶颈</InkBadge>
+                )}
+                {statusData.inner_demon && (
+                  <InkBadge tone="danger">心魔</InkBadge>
+                )}
+              </span>
+            </div>
+            {showDetails && (
+              <InkButton
+                variant="secondary"
+                onClick={() => setShowExplanation(true)}
+                className="text-xs"
+              >
+                💡说明
+              </InkButton>
+            )}
           </div>
-          {showDetails && (
-            <InkButton
-              variant="secondary"
-              onClick={() => setShowExplanation(true)}
-              className="text-xs"
-            >
-              💡说明
-            </InkButton>
-          )}
-        </div>
+        )}
 
         {/* 修为进度条 */}
         <div className="mb-3">
@@ -185,13 +189,13 @@ export function CultivatorStatusCard({
             )}
 
             {/* 顿悟buff */}
-            {/* {statusData.epiphany_buff_expires_at && ( */}
-            <div className="p-2 bg-yellow-600/5 rounded border border-yellow-600/30">
-              <p className="text-xs text-yellow-600">
-                ✨ 顿悟状态，修为获取翻倍！
-              </p>
-            </div>
-            {/* )} */}
+            {statusData.epiphany_buff_expires_at && (
+              <div className="p-2 bg-yellow-600/5 rounded border border-yellow-600/30">
+                <p className="text-xs text-yellow-600">
+                  ✨ 顿悟状态，修为获取翻倍！
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

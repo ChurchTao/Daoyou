@@ -2,11 +2,11 @@ import {
   attemptBreakthrough,
   performCultivation,
 } from '@/engine/cultivation/CultivationEngine';
+import { getLifespanLimiter } from '@/lib/redis/lifespanLimiter';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
   getCultivatorById,
-  getCultivatorRetreatRecords,
   updateCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
@@ -16,9 +16,12 @@ import {
 } from '@/utils/storyService';
 import { NextRequest, NextResponse } from 'next/server';
 
-const COOLDOWN_MINUTES = 5;
-
 export async function POST(request: NextRequest) {
+  const limiter = getLifespanLimiter();
+  let cultivatorId: string | undefined;
+  let years: number = 0;
+  let lockAcquired = false;
+
   try {
     const supabase = await createClient();
     const {
@@ -31,8 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const cultivatorId = body?.cultivatorId as string | undefined;
-    const years = Number(body?.years);
+    cultivatorId = body?.cultivatorId as string | undefined;
+    years = Number(body?.years);
     const action =
       (body?.action as 'cultivate' | 'breakthrough') || 'cultivate';
 
@@ -40,51 +43,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少角色ID' }, { status: 400 });
     }
 
-    if (!Number.isFinite(years) || years < 1 || years > 300) {
+    if (!Number.isFinite(years) || years < 1 || years > 200) {
       return NextResponse.json(
-        { error: '闭关年限需在 1~300 年之间' },
+        { error: '闭关年限需在 1~200 年之间' },
         { status: 400 },
       );
     }
 
-    // 检查寿命是否足够
+    // 1. 尝试获取闭关锁，防止并发
+    lockAcquired = await limiter.acquireRetreatLock(cultivatorId);
+    if (!lockAcquired) {
+      return NextResponse.json(
+        { error: '角色正在闭关中，请稍后再试' },
+        { status: 409 },
+      );
+    }
+
+    // 2. 检查每日寿元消耗限制
+    const lifespanCheck = await limiter.checkAndConsumeLifespan(
+      cultivatorId,
+      years,
+    );
+    if (!lifespanCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: lifespanCheck.message,
+          remaining: lifespanCheck.remaining,
+          consumed: lifespanCheck.consumed,
+        },
+        { status: 400 },
+      );
+    }
+
+    // 3. 检查寿命是否足够
     const cultivator = await getCultivatorById(user.id, cultivatorId);
     if (!cultivator) {
+      // 回滚寿元消耗
+      await limiter.rollbackLifespan(cultivatorId, years);
       return NextResponse.json({ error: '角色不存在' }, { status: 404 });
     }
 
     if (cultivator.lifespan - cultivator.age <= years) {
+      // 回滚寿元消耗
+      await limiter.rollbackLifespan(cultivatorId, years);
       return NextResponse.json(
         { error: '道友，您没有这么多寿元了' },
         { status: 400 },
       );
     }
 
-    // 检查闭关冷却时间（30分钟）
-    const retreat_records = await getCultivatorRetreatRecords(
-      user.id,
-      cultivatorId,
-    );
-    if (retreat_records && retreat_records.length > 0) {
-      const lastRetreat = retreat_records[retreat_records.length - 1];
-      const lastRetreatTime = new Date(lastRetreat.timestamp).getTime();
-      const now = Date.now();
-      const cooldownTime = COOLDOWN_MINUTES * 60 * 1000;
-
-      if (now - lastRetreatTime < cooldownTime) {
-        const remainingTime = cooldownTime - (now - lastRetreatTime);
-        const remainingMinutes = Math.ceil(remainingTime / (60 * 1000));
-
-        return NextResponse.json(
-          {
-            error: `道友切莫心急，闭关需循序渐进，请等待 ${remainingMinutes} 分钟`,
-          },
-          { status: 400 },
-        );
-      }
-    }
-
-    // 根据action执行不同操作
+    // 根捯action执行不同操作
     if (action === 'cultivate') {
       // 修炼模式：积累修为
       const result = performCultivation(cultivator, years);
@@ -100,6 +108,8 @@ export async function POST(request: NextRequest) {
       });
 
       if (!saved) {
+        // 更新失败，回滚寿元消耗
+        await limiter.rollbackLifespan(cultivatorId, years);
         throw new Error('更新角色数据失败');
       }
 
@@ -109,6 +119,10 @@ export async function POST(request: NextRequest) {
           cultivator: saved,
           summary: result.summary,
           action: 'cultivate',
+          lifespanInfo: {
+            remaining: lifespanCheck.remaining,
+            consumed: lifespanCheck.consumed,
+          },
         },
       });
     } else if (action === 'breakthrough') {
@@ -190,6 +204,8 @@ export async function POST(request: NextRequest) {
       });
 
       if (!saved) {
+        // 更新失败，回滚寿元消耗
+        await limiter.rollbackLifespan(cultivatorId, years);
         throw new Error('更新角色数据失败');
       }
 
@@ -201,13 +217,29 @@ export async function POST(request: NextRequest) {
           story,
           storyType,
           action: 'breakthrough',
+          lifespanInfo: {
+            remaining: lifespanCheck.remaining,
+            consumed: lifespanCheck.consumed,
+          },
         },
       });
     } else {
+      // 回滚寿元消耗
+      await limiter.rollbackLifespan(cultivatorId, years);
       return NextResponse.json({ error: '无效的action参数' }, { status: 400 });
     }
   } catch (err) {
     console.error('闭关突破 API 错误:', err);
+
+    // 发生错误时，尝试回滚寿元消耗
+    if (cultivatorId && years > 0) {
+      try {
+        await limiter.rollbackLifespan(cultivatorId, years);
+      } catch (rollbackErr) {
+        console.error('回滚寿元消耗失败:', rollbackErr);
+      }
+    }
+
     return NextResponse.json(
       {
         error:
@@ -219,5 +251,14 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 },
     );
+  } finally {
+    // 始终释放锁
+    if (lockAcquired && cultivatorId) {
+      try {
+        await limiter.releaseRetreatLock(cultivatorId);
+      } catch (unlockErr) {
+        console.error('释放闭关锁失败:', unlockErr);
+      }
+    }
   }
 }
