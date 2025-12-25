@@ -127,6 +127,20 @@
       "when": 1766382168399,
       "tag": "0017_good_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1766640767620,
+      "tag": "0018_add_persistent_statuses",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1766643755556,
+      "tag": "0019_amused_mastermind",
+      "breakpoints": true
     }
   ]
 }

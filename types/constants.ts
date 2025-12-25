@@ -25,17 +25,38 @@ export type SkillType = (typeof SKILL_TYPE_VALUES)[number];
 
 // 状态效果
 export const STATUS_EFFECT_VALUES = [
-  'burn',
-  'bleed',
-  'poison',
-  'stun',
-  'silence',
-  'root',
+  // 战斗状态 - Buff
   'armor_up',
   'speed_up',
   'crit_rate_up',
+  // 战斗状态 - Debuff
   'armor_down',
   'crit_rate_down',
+  // 战斗状态 - Control
+  'stun',
+  'silence',
+  'root',
+  // 战斗状态 - DOT
+  'burn',
+  'bleed',
+  'poison',
+  // 持久状态
+  'weakness',
+  'minor_wound',
+  'major_wound',
+  'near_death',
+  'artifact_damaged',
+  'mana_depleted',
+  'hp_deficit',
+  'enlightenment',
+  'willpower_enhanced',
+  'fate_blessing',
+  // 环境状态
+  'scorching',
+  'freezing',
+  'toxic_air',
+  'formation_suppressed',
+  'abundant_qi',
 ] as const;
 export type StatusEffect = (typeof STATUS_EFFECT_VALUES)[number];
 

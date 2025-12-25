@@ -48,6 +48,12 @@ export interface RetreatRecord {
   roll: number;
   timestamp: string;
   modifiers: RetreatRecordModifiers;
+  // 修为系统扩展
+  exp_gained?: number; // 本次闭关获得修为
+  exp_before?: number; // 闭关前修为
+  exp_after?: number; // 闭关后修为
+  insight_gained?: number; // 本次闭关获得感悟
+  epiphany_triggered?: boolean; // 是否触发顿悟
 }
 
 export interface BreakthroughHistoryEntry {
@@ -58,6 +64,11 @@ export interface BreakthroughHistoryEntry {
   age: number;
   years_spent: number;
   story?: string;
+  // 修为系统扩展
+  exp_progress?: number; // 突破时的修为进度（0-100百分比）
+  insight_value?: number; // 突破时的感悟值
+  exp_lost_on_failure?: number; // 失败时损失的修为（仅失败记录有）
+  breakthrough_type?: 'forced' | 'normal' | 'perfect'; // 突破类型
 }
 
 // 先天命格 / 气运
@@ -214,6 +225,19 @@ export interface EquippedItems {
   accessory: string | null;
 }
 
+// 修为进度系统
+export interface CultivationProgress {
+  cultivation_exp: number; // 当前修为值
+  exp_cap: number; // 当前境界修为上限
+  comprehension_insight: number; // 当前感悟值（0-100）
+  breakthrough_failures: number; // 连续突破失败次数
+  bottleneck_state: boolean; // 是否处于瓶颈期
+  inner_demon: boolean; // 是否有心魔debuff
+  deviation_risk: number; // 走火入魔风险值（0-100）
+  last_epiphany_at?: string; // 上次顿悟时间（ISO字符串）
+  epiphany_buff_expires_at?: string; // 顿悟buff过期时间（ISO字符串）
+}
+
 // 角色完整数据模型（与 basic.md 中 JSON Schema 对齐的运行时结构）
 export interface Cultivator {
   id?: string;
@@ -249,4 +273,7 @@ export interface Cultivator {
   // 兼容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）
   prompt?: string;
   balance_notes?: string;
+
+  // 修为系统
+  cultivation_progress?: CultivationProgress;
 }

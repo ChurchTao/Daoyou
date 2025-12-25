@@ -252,7 +252,8 @@ function getBreakthroughBaseChance(
   realm: RealmType,
   type: BreakthroughAttemptType,
 ): number {
-  const base = type === 'minor' ? 0.7 : 0.4;
+  // 优化：提高基础成功率以适应新修为系统
+  const base = type === 'minor' ? 0.85 : 0.55;
   const difficulty = getBreakthroughDifficulty(realm);
   return base * difficulty;
 }
@@ -291,7 +292,7 @@ function getFailureStreakModifier(closedDoorYearsTotal: number): number {
  * @param isMajor 是否大境界突破
  * @returns 属性增长范围
  */
-function getAttributeGrowthRange(
+export function getAttributeGrowthRange(
   wisdom: number,
   fromStage: { realm: RealmType; stage: RealmStage },
   nextStage: { realm: RealmType; stage: RealmStage },
@@ -308,7 +309,7 @@ function getAttributeGrowthRange(
   return isMajor ? { min: majorMin, max: majorMax } : { min, max };
 }
 
-function applyAttributeGrowth(
+export function applyAttributeGrowth(
   attributes: Attributes,
   cap: number,
   range: { min: number; max: number },

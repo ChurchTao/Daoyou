@@ -236,6 +236,83 @@ export const STATUS_EFFECT_DISPLAY_MAP: Record<
     icon: '💔',
     description: '暴击几率大幅降低',
   },
+  // 持久状态
+  weakness: {
+    label: '虚弱',
+    icon: '😰',
+    description: '元气大伤，战力大幅下降',
+  },
+  minor_wound: {
+    label: '轻伤',
+    icon: '🩹',
+    description: '身负轻伤，稍有影响',
+  },
+  major_wound: {
+    label: '重伤',
+    icon: '💥',
+    description: '身负重伤，实力大损',
+  },
+  near_death: {
+    label: '濒死',
+    icon: '☠️',
+    description: '命悬一线，随时可能陨落',
+  },
+  artifact_damaged: {
+    label: '法宝受损',
+    icon: '🔧',
+    description: '法宝损坏，威力大减',
+  },
+  mana_depleted: {
+    label: '灵力枯竭',
+    icon: '💫',
+    description: '灵力耗尽，难以施展术法',
+  },
+  hp_deficit: {
+    label: '气血不足',
+    icon: '🩸',
+    description: '气血亏虚，行动受限',
+  },
+  enlightenment: {
+    label: '顿悟',
+    icon: '💡',
+    description: '灵台清明，修炼事半功倍',
+  },
+  willpower_enhanced: {
+    label: '意志增强',
+    icon: '💪',
+    description: '道心坚固，抗性提升',
+  },
+  fate_blessing: {
+    label: '天命眷顾',
+    icon: '🌟',
+    description: '气运加身，诸事顺遂',
+  },
+  // 环境状态
+  scorching: {
+    label: '酷热',
+    icon: '🌡️',
+    description: '烈日当空，持续受到灼烧',
+  },
+  freezing: {
+    label: '严寒',
+    icon: '❄️',
+    description: '天寒地冻，行动迟缓',
+  },
+  toxic_air: {
+    label: '瘴气',
+    icon: '☁️',
+    description: '毒气弥漫，持续中毒',
+  },
+  formation_suppressed: {
+    label: '阵法压制',
+    icon: '⛓️',
+    description: '被阵法压制，实力受限',
+  },
+  abundant_qi: {
+    label: '灵气充沛',
+    icon: '✨',
+    description: '灵气浓郁，修炼速度提升',
+  },
 };
 
 export function getStatusLabel(effect: StatusEffect): string {

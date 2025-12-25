@@ -8,10 +8,12 @@ import {
   SkillType,
   StatusEffect,
 } from '@/types/constants';
+import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 import type {
   BreakthroughHistoryEntry,
   ConsumableEffect,
+  CultivationProgress,
   Cultivator,
   RetreatRecord,
 } from '../../types/cultivator';
@@ -171,6 +173,12 @@ async function assembleCultivator(
     spirit_stones: cultivatorRecord.spirit_stones,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
+    // 修为系统：如果数据库有值则使用，否则初始化
+    cultivation_progress: getOrInitCultivationProgress(
+      cultivatorRecord.cultivation_progress as CultivationProgress,
+      cultivatorRecord.realm as Cultivator['realm'],
+      cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+    ),
   };
 
   return cultivator;
@@ -599,6 +607,7 @@ export async function updateCultivator(
       | 'max_skills'
       | 'closed_door_years_total'
       | 'status'
+      | 'cultivation_progress'
     >
   >,
 ): Promise<Cultivator | null> {
@@ -642,6 +651,8 @@ export async function updateCultivator(
   if (updates.closed_door_years_total !== undefined)
     updateData.closedDoorYearsTotal = updates.closed_door_years_total;
   if (updates.status !== undefined) updateData.status = updates.status;
+  if (updates.cultivation_progress !== undefined)
+    updateData.cultivation_progress = updates.cultivation_progress;
 
   await db
     .update(schema.cultivators)

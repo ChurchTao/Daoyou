@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_cultivators" ADD COLUMN "cultivation_progress" jsonb DEFAULT '{}'::jsonb;

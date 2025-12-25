@@ -47,6 +47,12 @@ export const cultivators = pgTable('wanjiedaoyou_cultivators', {
   max_skills: integer('max_skills').notNull().default(4),
   balance_notes: text('balance_notes'),
 
+  // 持久状态（用于存储战斗/副本中产生的持久状态）
+  persistent_statuses: jsonb('persistent_statuses').default([]),
+
+  // 修为进度系统
+  cultivation_progress: jsonb('cultivation_progress').default({}),
+
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
     .defaultNow()

@@ -1,5 +1,6 @@
 'use client';
 
+import { CultivatorStatusCard } from '@/components/CultivatorStatusCard';
 import {
   InkBadge,
   InkButton,
@@ -25,7 +26,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const quickActions = [
-  { label: '🧘 闭关突破', href: '/retreat' },
+  { label: '🧘 洞府', href: '/retreat' },
   { label: '🎒 储物袋', href: '/inventory' },
   { label: '📖 所修神通', href: '/skills' },
   { label: '📚 藏经阁', href: '/enlightenment' },
@@ -170,7 +171,7 @@ function HomePageContent() {
       currentPath={pathname}
       footer={<DivineFortune />}
     >
-      {/* 历练收益卡片 (放在最上方) */}
+      {/* 历练收益卡片 */}
       {cultivator && (
         <YieldCard cultivator={cultivator} onOk={() => refresh()} />
       )}
@@ -224,11 +225,10 @@ function HomePageContent() {
             </InkNotice>
           </>
         )}
-        {cultivator && (
+        {/* 修为状态卡片 */}
+        {cultivator && cultivator.cultivation_progress && (
           <div className="mt-3">
-            <InkButton href="/cultivator" className="text-sm">
-              内视查探 →
-            </InkButton>
+            <CultivatorStatusCard cultivator={cultivator} />
           </div>
         )}
       </InkSection>

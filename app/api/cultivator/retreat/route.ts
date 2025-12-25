@@ -1,4 +1,8 @@
 import {
+  attemptBreakthrough,
+  performCultivation,
+} from '@/engine/cultivation/CultivationEngine';
+import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
   getCultivatorById,
@@ -6,14 +10,13 @@ import {
   updateCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { performRetreatBreakthrough } from '@/utils/breakthroughEngine';
 import {
   createBreakthroughStory,
   createLifespanExhaustedStory,
 } from '@/utils/storyService';
 import { NextRequest, NextResponse } from 'next/server';
 
-const COOLDOWN_MINUTES = 30;
+const COOLDOWN_MINUTES = 5;
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +33,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const cultivatorId = body?.cultivatorId as string | undefined;
     const years = Number(body?.years);
+    const action =
+      (body?.action as 'cultivate' | 'breakthrough') || 'cultivate';
 
     if (!cultivatorId) {
       return NextResponse.json({ error: '缺少角色ID' }, { status: 400 });
@@ -79,88 +84,128 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = performRetreatBreakthrough(cultivator, { years });
-    let story: string | undefined;
-    let storyType: 'breakthrough' | 'lifespan' | null = null;
+    // 根据action执行不同操作
+    if (action === 'cultivate') {
+      // 修炼模式：积累修为
+      const result = performCultivation(cultivator, years);
 
-    if (result.summary.success) {
-      try {
-        story = await createBreakthroughStory({
-          cultivator: result.cultivator,
+      // 保存闭关记录
+      await addRetreatRecord(user.id, cultivatorId, result.record);
+
+      // 更新角色数据
+      const saved = await updateCultivator(user.id, cultivatorId, {
+        age: result.cultivator.age,
+        closed_door_years_total: result.cultivator.closed_door_years_total,
+        cultivation_progress: result.cultivator.cultivation_progress,
+      });
+
+      if (!saved) {
+        throw new Error('更新角色数据失败');
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          cultivator: saved,
           summary: result.summary,
-        });
-        storyType = 'breakthrough';
-        if (
-          story &&
-          result.cultivator.breakthrough_history &&
-          result.cultivator.breakthrough_history.length > 0
-        ) {
-          result.cultivator.breakthrough_history[
-            result.cultivator.breakthrough_history.length - 1
-          ].story = story;
+          action: 'cultivate',
+        },
+      });
+    } else if (action === 'breakthrough') {
+      // 突破模式
+      const result = attemptBreakthrough(cultivator, years);
+      let story: string | undefined;
+      let storyType: 'breakthrough' | 'lifespan' | null = null;
+
+      if (result.summary.success) {
+        try {
+          story = await createBreakthroughStory({
+            cultivator: result.cultivator,
+            summary: {
+              success: result.summary.success,
+              isMajor: result.summary.toRealm !== result.summary.fromRealm,
+              yearsSpent: result.summary.yearsSpent,
+              chance: result.summary.chance,
+              roll: result.summary.roll,
+              fromRealm: result.summary.fromRealm,
+              fromStage: result.summary.fromStage,
+              toRealm: result.summary.toRealm,
+              toStage: result.summary.toStage,
+              lifespanGained: result.summary.lifespanGained,
+              attributeGrowth: result.summary.attributeGrowth,
+              lifespanDepleted: result.summary.lifespanDepleted,
+              modifiers: result.summary.modifiers,
+            },
+          });
+          storyType = 'breakthrough';
+          if (result.historyEntry && story) {
+            result.historyEntry.story = story;
+          }
+        } catch (storyError) {
+          console.warn('生成突破故事失败：', storyError);
         }
-      } catch (storyError) {
-        console.warn('生成突破故事失败：', storyError);
+      } else if (result.summary.lifespanDepleted) {
+        try {
+          story = await createLifespanExhaustedStory({
+            cultivator: result.cultivator,
+            summary: {
+              success: false,
+              isMajor: false,
+              yearsSpent: result.summary.yearsSpent,
+              chance: result.summary.chance,
+              roll: result.summary.roll,
+              fromRealm: result.summary.fromRealm,
+              fromStage: result.summary.fromStage,
+              lifespanGained: 0,
+              attributeGrowth: {},
+              lifespanDepleted: true,
+              modifiers: result.summary.modifiers,
+            },
+          });
+          storyType = 'lifespan';
+        } catch (storyError) {
+          console.warn('生成坐化故事失败：', storyError);
+        }
       }
-    } else if (result.summary.lifespanDepleted) {
-      try {
-        story = await createLifespanExhaustedStory({
-          cultivator: result.cultivator,
-          summary: result.summary,
-        });
-        storyType = 'lifespan';
-      } catch (storyError) {
-        console.warn('生成坐化故事失败：', storyError);
-      }
-    }
 
-    const retreatRecords = result.cultivator.retreat_records ?? [];
-    const latestRetreatRecord =
-      retreatRecords.length > 0
-        ? retreatRecords[retreatRecords.length - 1]
-        : undefined;
-    if (latestRetreatRecord) {
-      await addRetreatRecord(user.id, cultivatorId, latestRetreatRecord);
-    }
-
-    if (result.summary.success) {
-      const breakthroughHistory = result.cultivator.breakthrough_history ?? [];
-      const latestBreakthrough =
-        breakthroughHistory.length > 0
-          ? breakthroughHistory[breakthroughHistory.length - 1]
-          : undefined;
-      if (latestBreakthrough) {
+      // 保存突破历史
+      if (result.summary.success && result.historyEntry) {
         await addBreakthroughHistoryEntry(
           user.id,
           cultivatorId,
-          latestBreakthrough,
+          result.historyEntry,
         );
       }
+
+      // 更新角色数据
+      const saved = await updateCultivator(user.id, cultivatorId, {
+        realm: result.cultivator.realm,
+        realm_stage: result.cultivator.realm_stage,
+        age: result.cultivator.age,
+        lifespan: result.cultivator.lifespan,
+        attributes: result.cultivator.attributes,
+        closed_door_years_total: result.cultivator.closed_door_years_total,
+        status: result.summary.lifespanDepleted ? 'dead' : 'active',
+        cultivation_progress: result.cultivator.cultivation_progress,
+      });
+
+      if (!saved) {
+        throw new Error('更新角色数据失败');
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          cultivator: saved,
+          summary: result.summary,
+          story,
+          storyType,
+          action: 'breakthrough',
+        },
+      });
+    } else {
+      return NextResponse.json({ error: '无效的action参数' }, { status: 400 });
     }
-
-    const saved = await updateCultivator(user.id, cultivatorId, {
-      realm: result.cultivator.realm,
-      realm_stage: result.cultivator.realm_stage,
-      age: result.cultivator.age,
-      lifespan: result.cultivator.lifespan,
-      attributes: result.cultivator.attributes,
-      closed_door_years_total: result.cultivator.closed_door_years_total,
-      status: result.summary.lifespanDepleted ? 'dead' : 'active',
-    });
-
-    if (!saved) {
-      throw new Error('更新角色数据失败');
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        cultivator: saved,
-        summary: result.summary,
-        story,
-        storyType,
-      },
-    });
   } catch (err) {
     console.error('闭关突破 API 错误:', err);
     return NextResponse.json(
