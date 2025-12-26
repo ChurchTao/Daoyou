@@ -37,6 +37,7 @@ export function CultivatorStatusCard({
     if (canBreakthrough) {
       try {
         const result = calculateBreakthroughChance(cultivator);
+        console.log('Breakthrough Chance Calculation Result:', result);
         breakthroughType = result.breakthroughType;
         breakthroughChance = result.chance;
         breakthroughRecommendation = result.recommendation;
@@ -253,9 +254,9 @@ export function CultivatorStatusCard({
             </p>
             <div className="bg-ink/5 p-3 rounded border border-ink/10">
               <p className="text-xs text-ink-secondary">
-                <strong>公式：</strong>成功率加成 = 1.0 + (感悟值 / 100) × 0.6
+                <strong>公式：</strong>成功率加成 = 1.0 + (感悟值 / 100) × 0.25
                 <br />
-                <strong>示例：</strong>50感悟 → 1.3倍加成
+                <strong>示例：</strong>100感悟 → 1.25倍加成
               </p>
             </div>
           </section>

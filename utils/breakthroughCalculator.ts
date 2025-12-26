@@ -41,27 +41,6 @@ const LIFESPAN_BONUS_BY_REALM: Partial<Record<RealmType, number>> = {
 };
 
 /**
- * 突破尝试结果摘要（兼容旧版接口）
- * @deprecated 请使用新版 BreakthroughResult
- */
-export interface BreakthroughAttemptSummary {
-  success: boolean;
-  isMajor: boolean;
-  yearsSpent: number;
-  chance: number;
-  roll: number;
-  fromRealm: RealmType;
-  fromStage: RealmStage;
-  toRealm?: RealmType;
-  toStage?: RealmStage;
-  lifespanGained: number;
-  attributeGrowth: Partial<Attributes>;
-  lifespanDepleted: boolean;
-  failureReason?: 'MAX_REALM';
-  modifiers: BreakthroughModifiers;
-}
-
-/**
  * 突破修正系数详情
  */
 export interface BreakthroughModifiers {
@@ -211,18 +190,18 @@ export function getNextStage(
 /**
  * 根据突破类型获取基础成功率
  *
- * 强行突破：40%（小） / 25%（大）
- * 常规突破：65%（小） / 45%（大）
- * 圆满突破：85%（小） / 65%（大）
+ * 强行突破：40%（小） / 20%（大）
+ * 常规突破：60%（小） / 40%（大）
+ * 圆满突破：80%（小） / 60%（大）
  */
 function getBaseChanceByType(
   type: 'forced' | 'normal' | 'perfect',
   isMajor: boolean,
 ): number {
   const rates = {
-    forced: { minor: 0.4, major: 0.25 },
-    normal: { minor: 0.65, major: 0.45 },
-    perfect: { minor: 0.85, major: 0.65 },
+    forced: { minor: 0.4, major: 0.2 },
+    normal: { minor: 0.6, major: 0.4 },
+    perfect: { minor: 0.8, major: 0.6 },
   };
 
   return isMajor ? rates[type].major : rates[type].minor;
@@ -233,15 +212,15 @@ function getBaseChanceByType(
  *
  * 境界越高，突破越难
  * 炼气：1.0
- * 筑基：0.92
- * 金丹：0.85
- * 元婴：0.78
+ * 筑基：0.9
+ * 金丹：0.81
+ * 元婴：0.72
  * ...
  */
 function calculateRealmDifficulty(realm: RealmType): number {
   const realmIndex = REALM_ORDER.indexOf(realm);
-  // 使用0.92的衰减率，比原版的0.9更温和
-  return Math.pow(0.92, realmIndex);
+  // 使用0.9的衰减率
+  return Math.pow(0.9, realmIndex);
 }
 
 /**
@@ -265,14 +244,14 @@ function calculateProgressMultiplier(progress: number): number {
  * 计算感悟系数（新系统核心）
  *
  * 感悟值越高，成功率加成越大
- * 公式：1.0 + (感悟值 / 100) × 0.6
+ * 公式：1.0 + (感悟值 / 100) × 0.25
  *
  * 0感悟：  1.0倍（无加成）
- * 50感悟： 1.3倍
- * 100感悟：1.6倍
+ * 50感悟： 1.125倍
+ * 100感悟：1.25倍
  */
 function calculateInsightMultiplier(insight: number): number {
-  return 1.0 + (insight / 100) * 0.6;
+  return 1.0 + (insight / 100) * 0.25;
 }
 
 /**

@@ -11,28 +11,14 @@ import {
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { InkModal } from '@/components/InkModal';
 import { useInkUI } from '@/components/InkUIProvider';
+import {
+  BreakthroughResult,
+  CultivationResult,
+} from '@/engine/cultivation/CultivationEngine';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
-import { type BreakthroughAttemptSummary } from '@/utils/breakthroughCalculator';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-
-interface CultivationSummary {
-  exp_gained: number;
-  exp_before: number;
-  exp_after: number;
-  insight_gained: number;
-  epiphany_triggered: boolean;
-  bottleneck_entered: boolean;
-  can_breakthrough: boolean;
-  progress: number;
-}
-
-interface ExtendedBreakthroughSummary extends BreakthroughAttemptSummary {
-  exp_lost?: number;
-  insight_change?: number;
-  inner_demon_triggered?: boolean;
-}
 
 export default function RetreatPage() {
   const { cultivator, isLoading, refresh, note } = useCultivatorBundle();
@@ -41,7 +27,7 @@ export default function RetreatPage() {
   const router = useRouter();
   const [retreatYears, setRetreatYears] = useState('10');
   const [retreatResult, setRetreatResult] = useState<{
-    summary: ExtendedBreakthroughSummary | CultivationSummary;
+    summary: BreakthroughResult['summary'] | CultivationResult['summary'];
     story?: string;
     storyType?: 'breakthrough' | 'lifespan' | null;
     action?: 'cultivate' | 'breakthrough';
@@ -75,25 +61,6 @@ export default function RetreatPage() {
       breakthroughType,
     };
   }, [cultivator]);
-
-  const attributeGrowthText = useMemo(() => {
-    if (!retreatResult || retreatResult.action !== 'breakthrough') return '';
-    const summary = retreatResult.summary as ExtendedBreakthroughSummary;
-    if (!summary.attributeGrowth) return '';
-    const mapping: Array<{ key: keyof Attributes; label: string }> = [
-      { key: 'vitality', label: '体魄' },
-      { key: 'spirit', label: '灵力' },
-      { key: 'speed', label: '身法' },
-      { key: 'willpower', label: '神识' },
-    ];
-    return mapping
-      .map(({ key, label }) => {
-        const gain = summary.attributeGrowth[key];
-        return gain ? `${label}+${gain}` : null;
-      })
-      .filter(Boolean)
-      .join('，');
-  }, [retreatResult]);
 
   if (isLoading && !cultivator) {
     return (
@@ -365,155 +332,153 @@ export default function RetreatPage() {
 
       {/* 修炼/突破结果 */}
       {retreatResult && (
-        <InkSection
-          title={
-            retreatResult.action === 'cultivate'
-              ? '【修炼成果】'
-              : '【突破结果】'
-          }
-        >
-          <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
-            {/* 修炼结果 */}
-            {retreatResult.action === 'cultivate' && (
-              <>
-                <p className="font-medium">🌱 修炼有成</p>
-                <p>
-                  修为增长：+
-                  {Number(
-                    (retreatResult.summary as CultivationSummary).exp_gained,
-                  )}
-                </p>
-                <p>
-                  当前进度：
-                  {(retreatResult.summary as CultivationSummary).progress}%
-                </p>
-                {(retreatResult.summary as CultivationSummary).insight_gained >
-                  0 && (
-                  <p>
-                    感悟提升：+
-                    {
-                      (retreatResult.summary as CultivationSummary)
-                        .insight_gained
-                    }
-                  </p>
-                )}
-                {(retreatResult.summary as CultivationSummary)
-                  .epiphany_triggered && (
-                  <p className="text-gold">✨ 触发顿悟！修为翻倍！</p>
-                )}
-                {(retreatResult.summary as CultivationSummary)
-                  .bottleneck_entered && (
-                  <p className="text-orange-500">
-                    ⚠️
-                    已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式积累感悟。
-                  </p>
-                )}
-              </>
-            )}
-
-            {/* 突破结果 */}
-            {retreatResult.action === 'breakthrough' && (
-              <>
-                <p className="font-medium">
-                  {(retreatResult.summary as ExtendedBreakthroughSummary)
-                    .success
-                    ? '🌅 突破成功！'
-                    : (retreatResult.summary as ExtendedBreakthroughSummary)
-                          .lifespanDepleted
-                      ? '⛅️ 坐化于洞府……'
-                      : '☁️ 冲关失败'}
-                </p>
-                <p>
-                  成功率{' '}
-                  {`${Math.min((retreatResult.summary as ExtendedBreakthroughSummary).chance * 100, 100).toFixed(1)}%`}
-                  ｜闭关{' '}
-                  {
-                    (retreatResult.summary as ExtendedBreakthroughSummary)
-                      .yearsSpent
-                  }{' '}
-                  年
-                </p>
-                {attributeGrowthText && <p>属性收获：{attributeGrowthText}</p>}
-                {(retreatResult.summary as ExtendedBreakthroughSummary)
-                  .lifespanGained > 0 && (
-                  <p>
-                    寿元增加：+
-                    {
-                      (retreatResult.summary as ExtendedBreakthroughSummary)
-                        .lifespanGained
-                    }{' '}
-                    年
-                  </p>
-                )}
-
-                {/* 失败时显示损失信息 */}
-                {!(retreatResult.summary as ExtendedBreakthroughSummary)
-                  .success &&
-                  !(retreatResult.summary as ExtendedBreakthroughSummary)
-                    .lifespanDepleted && (
-                    <div className="mt-3 p-3 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
-                      <p className="text-orange-800 font-medium">
-                        【道途坎坷，受创不轻】
-                      </p>
-                      {(retreatResult.summary as ExtendedBreakthroughSummary)
-                        .exp_lost && (
-                        <p className="text-orange-700">
-                          修为损失：-
-                          {
-                            (
-                              retreatResult.summary as ExtendedBreakthroughSummary
-                            ).exp_lost
-                          }{' '}
-                          点
-                          <span className="text-xs ml-1 opacity-80">
-                            （冲关失败，真元涣散）
-                          </span>
-                        </p>
-                      )}
-                      {(retreatResult.summary as ExtendedBreakthroughSummary)
-                        .insight_change &&
-                        (retreatResult.summary as ExtendedBreakthroughSummary)
-                          .insight_change! < 0 && (
-                          <p className="text-orange-700">
-                            道行感悟：
-                            {
-                              (
-                                retreatResult.summary as ExtendedBreakthroughSummary
-                              ).insight_change
-                            }
-                            <span className="text-xs ml-1 opacity-80">
-                              （未能破关，心生迷惘）
-                            </span>
-                          </p>
-                        )}
-                      {(retreatResult.summary as ExtendedBreakthroughSummary)
-                        .inner_demon_triggered && (
-                        <p className="text-red-600 font-medium">
-                          ⚠️ 屡战屡败，已生心魔！下次突破成功率将降低
-                          <span className="text-xs ml-1 opacity-80">
-                            （可通过副本、战斗等历练消除）
-                          </span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                {retreatResult.story && (
-                  <div className="whitespace-pre-line rounded p-3 text-sm leading-6">
-                    {retreatResult.story}
-                  </div>
-                )}
-                {(retreatResult.summary as ExtendedBreakthroughSummary)
-                  .lifespanDepleted ? (
-                  <InkButton variant="primary" onClick={handleGoReincarnate}>
-                    转世重修 →
-                  </InkButton>
-                ) : null}
-              </>
-            )}
-          </div>
-        </InkSection>
+        <RetreatResult
+          retreatResult={retreatResult}
+          handleGoReincarnate={handleGoReincarnate}
+        />
       )}
     </InkPageShell>
   );
 }
+
+// 修炼/突破结果
+const RetreatResult = ({
+  retreatResult,
+  handleGoReincarnate,
+}: {
+  retreatResult: {
+    summary: BreakthroughResult['summary'] | CultivationResult['summary'];
+    story?: string;
+    storyType?: 'breakthrough' | 'lifespan' | null;
+    action?: 'cultivate' | 'breakthrough';
+  };
+  handleGoReincarnate: () => void;
+}) => {
+  let summary = retreatResult.summary;
+  const isCultivation = retreatResult.action === 'cultivate';
+
+  const attributeGrowthText = useMemo(() => {
+    if (!retreatResult || retreatResult.action !== 'breakthrough') return '';
+    const summary = retreatResult.summary as BreakthroughResult['summary'];
+    if (!summary.attributeGrowth) return '';
+    const mapping: Array<{ key: keyof Attributes; label: string }> = [
+      { key: 'vitality', label: '体魄' },
+      { key: 'spirit', label: '灵力' },
+      { key: 'speed', label: '身法' },
+      { key: 'willpower', label: '神识' },
+    ];
+    return mapping
+      .map(({ key, label }) => {
+        const gain = summary.attributeGrowth[key];
+        return gain ? `${label}+${gain}` : null;
+      })
+      .filter(Boolean)
+      .join('，');
+  }, [retreatResult]);
+  if (isCultivation) {
+    summary = summary as CultivationResult['summary'];
+    return (
+      <InkSection title="【修炼成果】">
+        <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
+          {/* 修炼结果 */}
+          <p className="font-medium">🌱 修炼有成</p>
+          <p>
+            修为增长：+
+            {Number(summary.exp_gained)}
+          </p>
+          <p>
+            当前进度：
+            {summary.progress.toFixed(2)}%
+          </p>
+          {summary.insight_gained > 0 && (
+            <p>
+              感悟提升：+
+              {summary.insight_gained}
+            </p>
+          )}
+          {summary.epiphany_triggered && (
+            <p className="text-gold">✨ 触发顿悟！修为翻倍！</p>
+          )}
+          {summary.bottleneck_entered && (
+            <p className="text-orange-500">
+              ⚠️ 已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式积累感悟。
+            </p>
+          )}
+        </div>
+      </InkSection>
+    );
+  }
+
+  summary = summary as BreakthroughResult['summary'];
+  return (
+    <InkSection title="【突破结果】">
+      <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
+        {/* 突破结果 */}
+        <p className="font-medium">
+          {summary.success
+            ? '🌅 突破成功！'
+            : summary.lifespanDepleted
+              ? '⛅️ 坐化于洞府……'
+              : '☁️ 冲关失败'}
+        </p>
+        <p>
+          成功率 {`${Math.min(summary.chance * 100, 100).toFixed(1)}%`}
+          ｜闭关 {summary.yearsSpent} 年
+        </p>
+        {attributeGrowthText && <p>属性收获：{attributeGrowthText}</p>}
+        {summary.lifespanGained > 0 && (
+          <p>
+            寿元增加：+
+            {summary.lifespanGained} 年
+          </p>
+        )}
+
+        {/* 失败时显示损失信息 */}
+        {!summary.success && !summary.lifespanDepleted && (
+          <div className="mt-3 p-3 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
+            <p className="text-orange-800 font-medium">
+              【道途坎坷，受创不轻】
+            </p>
+            {summary.exp_lost && (
+              <p className="text-orange-700">
+                修为损失：-
+                {summary.exp_lost} 点
+                <span className="text-xs ml-1 opacity-80">
+                  （冲关失败，真元涣散）
+                </span>
+              </p>
+            )}
+            {summary.insight_change && summary.insight_change! < 0 && (
+              <p className="text-orange-700">
+                道行感悟：
+                {summary.insight_change}
+                <span className="text-xs ml-1 opacity-80">
+                  （未能破关，心生迷惘）
+                </span>
+              </p>
+            )}
+            {summary.inner_demon_triggered && (
+              <p className="text-red-600 font-medium">
+                ⚠️ 屡战屡败，已生心魔！下次突破成功率将降低
+                <span className="text-xs ml-1 opacity-80">
+                  （可通过副本、战斗等历练消除）
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {retreatResult.story && (
+          <div className="whitespace-pre-line rounded p-3 text-sm leading-6">
+            {retreatResult.story}
+          </div>
+        )}
+        {summary.lifespanDepleted ? (
+          <InkButton variant="primary" onClick={handleGoReincarnate}>
+            转世重修 →
+          </InkButton>
+        ) : null}
+      </div>
+    </InkSection>
+  );
+};
