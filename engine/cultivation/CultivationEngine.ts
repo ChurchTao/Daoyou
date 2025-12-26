@@ -53,7 +53,6 @@ export interface BreakthroughResult {
   cultivator: Cultivator;
   summary: {
     success: boolean;
-    yearsSpent: number;
     chance: number;
     roll: number;
     fromRealm: RealmType;
@@ -62,7 +61,6 @@ export interface BreakthroughResult {
     toStage?: RealmStage;
     lifespanGained: number;
     attributeGrowth: Partial<Attributes>;
-    lifespanDepleted: boolean;
     exp_progress: number;
     insight_value: number;
     exp_lost?: number;
@@ -170,7 +168,6 @@ export function performCultivation(
  */
 export function attemptBreakthrough(
   rawCultivator: Cultivator,
-  years: number = 0,
   rng: () => number = Math.random,
 ): BreakthroughResult {
   const cultivator = JSON.parse(JSON.stringify(rawCultivator)) as Cultivator;
@@ -299,7 +296,7 @@ export function attemptBreakthrough(
       to_realm: nextStage.realm,
       to_stage: nextStage.stage,
       age: cultivator.age,
-      years_spent: years,
+      years_spent: 0,
       exp_progress,
       insight_value,
       breakthrough_type,
@@ -326,14 +323,10 @@ export function attemptBreakthrough(
     }
   }
 
-  // 检查寿元是否耗尽
-  const lifespanDepleted = !success && cultivator.age >= cultivator.lifespan;
-
   return {
     cultivator,
     summary: {
       success,
-      yearsSpent: years,
       chance: finalChance,
       roll,
       fromRealm,
@@ -342,7 +335,6 @@ export function attemptBreakthrough(
       toStage: success ? nextStage.stage : undefined,
       lifespanGained,
       attributeGrowth,
-      lifespanDepleted,
       exp_progress,
       insight_value,
       exp_lost: success ? undefined : exp_lost,

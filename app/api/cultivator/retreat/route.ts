@@ -2,6 +2,7 @@ import {
   attemptBreakthrough,
   performCultivation,
 } from '@/engine/cultivation/CultivationEngine';
+import { consumeLifespanAndHandleDepletion } from '@/lib/lifespan/handleLifespan';
 import { getLifespanLimiter } from '@/lib/redis/lifespanLimiter';
 import {
   addBreakthroughHistoryEntry,
@@ -10,10 +11,7 @@ import {
   updateCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import {
-  createBreakthroughStory,
-  createLifespanExhaustedStory,
-} from '@/utils/storyService';
+import { createBreakthroughStory } from '@/utils/storyService';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -43,13 +41,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少角色ID' }, { status: 400 });
     }
 
-    if (!Number.isFinite(years) || years < 1 || years > 200) {
-      return NextResponse.json(
-        { error: '闭关年限需在 1~200 年之间' },
-        { status: 400 },
-      );
-    }
-
     // 1. 尝试获取闭关锁，防止并发
     lockAcquired = await limiter.acquireRetreatLock(cultivatorId);
     if (!lockAcquired) {
@@ -59,41 +50,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. 检查每日寿元消耗限制
-    const lifespanCheck = await limiter.checkAndConsumeLifespan(
-      cultivatorId,
-      years,
-    );
-    if (!lifespanCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: lifespanCheck.message,
-          remaining: lifespanCheck.remaining,
-          consumed: lifespanCheck.consumed,
-        },
-        { status: 400 },
-      );
-    }
-
-    // 3. 检查寿命是否足够
     const cultivator = await getCultivatorById(user.id, cultivatorId);
     if (!cultivator) {
-      // 回滚寿元消耗
-      await limiter.rollbackLifespan(cultivatorId, years);
       return NextResponse.json({ error: '角色不存在' }, { status: 404 });
-    }
-
-    if (cultivator.lifespan - cultivator.age <= years) {
-      // 回滚寿元消耗
-      await limiter.rollbackLifespan(cultivatorId, years);
-      return NextResponse.json(
-        { error: '道友，您没有这么多寿元了' },
-        { status: 400 },
-      );
     }
 
     // 根捯action执行不同操作
     if (action === 'cultivate') {
+      if (!Number.isFinite(years) || years < 1 || years > 200) {
+        return NextResponse.json(
+          { error: '闭关年限需在 1~200 年之间' },
+          { status: 400 },
+        );
+      }
+      // 1. 检查寿命是否足够
+      if (cultivator.lifespan - cultivator.age < years) {
+        return NextResponse.json(
+          { error: '道友，您没有这么多寿元了' },
+          { status: 400 },
+        );
+      }
+      // 2. 检查每日寿元消耗限制
+      const lifespanCheck = await limiter.checkAndConsumeLifespan(
+        cultivatorId,
+        years,
+      );
+      if (!lifespanCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: lifespanCheck.message,
+            remaining: lifespanCheck.remaining,
+            consumed: lifespanCheck.consumed,
+          },
+          { status: 400 },
+        );
+      }
+
       // 修炼模式：积累修为
       const result = performCultivation(cultivator, years);
 
@@ -101,7 +93,7 @@ export async function POST(request: NextRequest) {
       await addRetreatRecord(user.id, cultivatorId, result.record);
 
       // 更新角色数据
-      const saved = await updateCultivator(user.id, cultivatorId, {
+      const saved = await updateCultivator(cultivatorId, {
         age: result.cultivator.age,
         closed_door_years_total: result.cultivator.closed_door_years_total,
         cultivation_progress: result.cultivator.cultivation_progress,
@@ -109,8 +101,37 @@ export async function POST(request: NextRequest) {
 
       if (!saved) {
         // 更新失败，回滚寿元消耗
-        await limiter.rollbackLifespan(cultivatorId, years);
+        if (lifespanCheck) {
+          await limiter.rollbackLifespan(cultivatorId, years);
+        }
         throw new Error('更新角色数据失败');
+      }
+
+      // 统一处理寿元耗尽的副作用：若寿元耗尽则自动把角色标记为 dead 并生成坐化故事
+      try {
+        const lifespanResult = await consumeLifespanAndHandleDepletion(
+          cultivatorId,
+          years,
+        );
+        if (lifespanResult.depleted && lifespanResult.story) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              cultivator: lifespanResult.updatedCultivator ?? saved,
+              summary: result.summary,
+              action: 'cultivate',
+              story: lifespanResult.story,
+              storyType: 'lifespan',
+              depleted: lifespanResult.depleted,
+              lifespanInfo: {
+                remaining: lifespanCheck?.remaining,
+                consumed: lifespanCheck?.consumed,
+              },
+            },
+          });
+        }
+      } catch (e) {
+        console.warn('处理寿元耗尽失败：', e);
       }
 
       return NextResponse.json({
@@ -120,14 +141,14 @@ export async function POST(request: NextRequest) {
           summary: result.summary,
           action: 'cultivate',
           lifespanInfo: {
-            remaining: lifespanCheck.remaining,
-            consumed: lifespanCheck.consumed,
+            remaining: lifespanCheck?.remaining,
+            consumed: lifespanCheck?.consumed,
           },
         },
       });
     } else if (action === 'breakthrough') {
       // 突破模式
-      const result = attemptBreakthrough(cultivator, years);
+      const result = attemptBreakthrough(cultivator);
       let story: string | undefined;
       let storyType: 'breakthrough' | 'lifespan' | null = null;
 
@@ -138,7 +159,7 @@ export async function POST(request: NextRequest) {
             summary: {
               success: result.summary.success,
               isMajor: result.summary.toRealm !== result.summary.fromRealm,
-              yearsSpent: result.summary.yearsSpent,
+              yearsSpent: 1,
               chance: result.summary.chance,
               roll: result.summary.roll,
               fromRealm: result.summary.fromRealm,
@@ -147,7 +168,7 @@ export async function POST(request: NextRequest) {
               toStage: result.summary.toStage,
               lifespanGained: result.summary.lifespanGained,
               attributeGrowth: result.summary.attributeGrowth,
-              lifespanDepleted: result.summary.lifespanDepleted,
+              lifespanDepleted: false,
               modifiers: result.summary.modifiers,
             },
           });
@@ -157,28 +178,6 @@ export async function POST(request: NextRequest) {
           }
         } catch (storyError) {
           console.warn('生成突破故事失败：', storyError);
-        }
-      } else if (result.summary.lifespanDepleted) {
-        try {
-          story = await createLifespanExhaustedStory({
-            cultivator: result.cultivator,
-            summary: {
-              success: false,
-              isMajor: false,
-              yearsSpent: result.summary.yearsSpent,
-              chance: result.summary.chance,
-              roll: result.summary.roll,
-              fromRealm: result.summary.fromRealm,
-              fromStage: result.summary.fromStage,
-              lifespanGained: 0,
-              attributeGrowth: {},
-              lifespanDepleted: true,
-              modifiers: result.summary.modifiers,
-            },
-          });
-          storyType = 'lifespan';
-        } catch (storyError) {
-          console.warn('生成坐化故事失败：', storyError);
         }
       }
 
@@ -192,22 +191,14 @@ export async function POST(request: NextRequest) {
       }
 
       // 更新角色数据
-      const saved = await updateCultivator(user.id, cultivatorId, {
+      const saved = await updateCultivator(cultivatorId, {
         realm: result.cultivator.realm,
         realm_stage: result.cultivator.realm_stage,
         age: result.cultivator.age,
         lifespan: result.cultivator.lifespan,
         attributes: result.cultivator.attributes,
-        closed_door_years_total: result.cultivator.closed_door_years_total,
-        status: result.summary.lifespanDepleted ? 'dead' : 'active',
         cultivation_progress: result.cultivator.cultivation_progress,
       });
-
-      if (!saved) {
-        // 更新失败，回滚寿元消耗
-        await limiter.rollbackLifespan(cultivatorId, years);
-        throw new Error('更新角色数据失败');
-      }
 
       return NextResponse.json({
         success: true,
@@ -217,15 +208,9 @@ export async function POST(request: NextRequest) {
           story,
           storyType,
           action: 'breakthrough',
-          lifespanInfo: {
-            remaining: lifespanCheck.remaining,
-            consumed: lifespanCheck.consumed,
-          },
         },
       });
     } else {
-      // 回滚寿元消耗
-      await limiter.rollbackLifespan(cultivatorId, years);
       return NextResponse.json({ error: '无效的action参数' }, { status: 400 });
     }
   } catch (err) {

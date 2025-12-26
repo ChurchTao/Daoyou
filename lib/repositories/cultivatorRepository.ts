@@ -398,6 +398,7 @@ export interface CultivatorBasic {
   name: string;
   title: string | null;
   age: number;
+  lifespan: number;
   realm: string;
   realm_stage: string;
   origin: string | null;
@@ -497,6 +498,33 @@ export async function getCultivatorsByIdsUnsafe(
   return assembled.filter((item): item is CultivatorWithOwner => item !== null);
 }
 
+export async function getCultivatorBasicsByIdUnsafe(
+  cultivatorId: string,
+): Promise<CultivatorBasic | null> {
+  const record = await db
+    .select()
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId));
+  if (record.length === 0) {
+    return null;
+  }
+  const row = record[0];
+  return {
+    id: row.id,
+    name: row.name,
+    title: row.title,
+    age: row.age,
+    lifespan: row.lifespan,
+    realm: row.realm,
+    realm_stage: row.realm_stage,
+    origin: row.origin,
+    gender: row.gender,
+    personality: row.personality,
+    background: row.background,
+    updatedAt: row.updatedAt,
+  };
+}
+
 /**
  * 批量获取角色主表基础信息（系统用途）
  */
@@ -521,6 +549,7 @@ export async function getCultivatorBasicsByIdsUnsafe(
       updatedAt: schema.cultivators.updatedAt,
       status: schema.cultivators.status,
       age: schema.cultivators.age,
+      lifespan: schema.cultivators.lifespan,
     })
     .from(schema.cultivators)
     .where(
@@ -535,6 +564,7 @@ export async function getCultivatorBasicsByIdsUnsafe(
     name: row.name,
     title: row.title,
     age: row.age,
+    lifespan: row.lifespan,
     realm: row.realm,
     realm_stage: row.realm_stage,
     origin: row.origin,
@@ -589,7 +619,6 @@ export async function getLastDeadCultivatorSummary(userId: string): Promise<{
  * 更新角色基本信息
  */
 export async function updateCultivator(
-  userId: string,
   cultivatorId: string,
   updates: Partial<
     Pick<
@@ -615,12 +644,7 @@ export async function updateCultivator(
   const existing = await db
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    );
+    .where(and(eq(schema.cultivators.id, cultivatorId)));
 
   if (existing.length === 0) {
     return null;
@@ -658,8 +682,8 @@ export async function updateCultivator(
     .update(schema.cultivators)
     .set(updateData)
     .where(eq(schema.cultivators.id, cultivatorId));
-
-  return getCultivatorById(userId, cultivatorId);
+  const res = await getCultivatorByIdUnsafe(cultivatorId);
+  return res?.cultivator || null;
 }
 
 async function assertCultivatorOwnership(

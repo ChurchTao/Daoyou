@@ -90,6 +90,7 @@ export async function getRankingList(): Promise<RankingItem[]> {
       name: record.name,
       title: record.title,
       age: record.age,
+      lifespan: record.lifespan,
       realm: record.realm,
       realm_stage: record.realm_stage,
       origin: record.origin,

@@ -133,20 +133,11 @@ export default function RetreatPage() {
   };
 
   const handleBreakthroughClick = () => {
-    const parsedYears = Number(retreatYears || '0');
-    if (!Number.isFinite(parsedYears) || parsedYears <= 0) {
-      pushToast({
-        message: '请输入闭关年限',
-        tone: 'warning',
-      });
-      return;
-    }
     setShowBreakthroughConfirm(true);
   };
 
   const handleBreakthrough = async () => {
     setShowBreakthroughConfirm(false);
-    const parsedYears = Number(retreatYears || '0');
     setRetreatLoading(true);
     try {
       const response = await fetch('/api/cultivator/retreat', {
@@ -154,7 +145,6 @@ export default function RetreatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cultivatorId: cultivator.id,
-          years: parsedYears,
           action: 'breakthrough',
         }),
       });
@@ -300,30 +290,7 @@ export default function RetreatPage() {
             <p className="text-amber-800 text-xs">
               • 连续失败三次将生心魔，影响后续突破
             </p>
-            <p className="text-amber-800 text-xs">• 消耗{retreatYears}年寿元</p>
           </div>
-
-          {cultivationProgress && (
-            <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg space-y-2">
-              <p className="text-blue-900 font-medium">【当前状态】</p>
-              <p className="text-blue-800 text-xs">
-                修为进度：{cultivationProgress.percent}%
-              </p>
-              <p className="text-blue-800 text-xs">
-                道行感悟：{cultivationProgress.comprehension_insight}/100
-              </p>
-              <p className="text-blue-800 text-xs">
-                突破类型：
-                {cultivationProgress.breakthroughType === 'perfect' &&
-                  '圆满突破（修为100%+感悟50+）'}
-                {cultivationProgress.breakthroughType === 'normal' &&
-                  '正常突破（修为80%+）'}
-                {cultivationProgress.breakthroughType === 'forced' &&
-                  '强行突破（属性成长减少20%）'}
-              </p>
-            </div>
-          )}
-
           <p className="text-ink-secondary text-xs text-center opacity-80">
             修行之路，本就充满坎坷。机缘造化，在此一举。
           </p>
@@ -351,6 +318,7 @@ const RetreatResult = ({
     story?: string;
     storyType?: 'breakthrough' | 'lifespan' | null;
     action?: 'cultivate' | 'breakthrough';
+    depleted?: boolean;
   };
   handleGoReincarnate: () => void;
 }) => {
@@ -404,6 +372,16 @@ const RetreatResult = ({
               ⚠️ 已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式积累感悟。
             </p>
           )}
+          {retreatResult.story && (
+            <div className="whitespace-pre-line rounded p-3 text-sm leading-6">
+              {retreatResult.story}
+            </div>
+          )}
+          {retreatResult.depleted ? (
+            <InkButton variant="primary" onClick={handleGoReincarnate}>
+              转世重修 →
+            </InkButton>
+          ) : null}
         </div>
       </InkSection>
     );
@@ -415,16 +393,9 @@ const RetreatResult = ({
       <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
         {/* 突破结果 */}
         <p className="font-medium">
-          {summary.success
-            ? '🌅 突破成功！'
-            : summary.lifespanDepleted
-              ? '⛅️ 坐化于洞府……'
-              : '☁️ 冲关失败'}
+          {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
         </p>
-        <p>
-          成功率 {`${Math.min(summary.chance * 100, 100).toFixed(1)}%`}
-          ｜闭关 {summary.yearsSpent} 年
-        </p>
+        <p>成功率 {`${Math.min(summary.chance * 100, 100).toFixed(1)}%`}</p>
         {attributeGrowthText && <p>属性收获：{attributeGrowthText}</p>}
         {summary.lifespanGained > 0 && (
           <p>
@@ -434,7 +405,7 @@ const RetreatResult = ({
         )}
 
         {/* 失败时显示损失信息 */}
-        {!summary.success && !summary.lifespanDepleted && (
+        {!summary.success && (
           <div className="mt-3 p-3 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
             <p className="text-orange-800 font-medium">
               【道途坎坷，受创不轻】
@@ -473,11 +444,6 @@ const RetreatResult = ({
             {retreatResult.story}
           </div>
         )}
-        {summary.lifespanDepleted ? (
-          <InkButton variant="primary" onClick={handleGoReincarnate}>
-            转世重修 →
-          </InkButton>
-        ) : null}
       </div>
     </InkSection>
   );
