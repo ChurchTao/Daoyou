@@ -1,7 +1,7 @@
 import {
+  REALM_STAGE_CAPS,
   type RealmStage,
   type RealmType,
-  REALM_STAGE_CAPS,
 } from '@/types/constants';
 import type {
   Attributes,
@@ -10,12 +10,13 @@ import type {
   RetreatRecord,
 } from '@/types/cultivator';
 import {
-  type BreakthroughModifiers,
   applyAttributeGrowth,
   calculateBreakthroughChance,
   getAttributeGrowthRange,
   getNextStage,
-} from '@/utils/breakthroughEngine';
+  LIFESPAN_BONUS_BY_REALM,
+  type BreakthroughModifiers,
+} from '@/utils/breakthroughCalculator';
 import {
   calculateCultivationExp,
   calculateExpCap,
@@ -26,17 +27,6 @@ import {
   getCultivationProgress,
   isBottleneckReached,
 } from '@/utils/cultivationUtils';
-
-const LIFESPAN_BONUS_BY_REALM: Record<string, number> = {
-  筑基: 200,
-  金丹: 500,
-  元婴: 1200,
-  化神: 2000,
-  炼虚: 3000,
-  合体: 4000,
-  大乘: 5000,
-  渡劫: 8000,
-};
 
 /**
  * 闭关修炼结果
@@ -206,35 +196,15 @@ export function attemptBreakthrough(
   const exp_progress = calculateExpProgress(progress);
   const insight_value = progress.comprehension_insight;
 
-  // 计算突破成功率
-  const { chance: baseChance, modifiers } = calculateBreakthroughChance(
-    cultivator,
-    years,
-  );
+  // 使用新的突破概率计算系统
+  const breakthroughResult = calculateBreakthroughChance(cultivator);
 
-  // 应用修为进度系数（优化：降低惩罚，提高奖励）
-  let progressMultiplier = 1.0;
-  if (exp_progress < 70) {
-    progressMultiplier = 0.5;
-  } else if (exp_progress < 80) {
-    progressMultiplier = 0.75;
-  } else if (exp_progress < 90) {
-    progressMultiplier = 0.95;
-  } else if (exp_progress < 100) {
-    progressMultiplier = 1.05;
-  } else {
-    progressMultiplier = 1.2;
+  if (!breakthroughResult.canAttempt) {
+    throw new Error(breakthroughResult.recommendation);
   }
 
-  // 应用感悟系数（优化：提升感悟价值）
-  const insightMultiplier = 1.0 + insight_value / 150;
-
-  // 应用心魔debuff
-  const demonMultiplier = progress.inner_demon ? 0.95 : 1.0;
-
-  // 最终成功率
-  const finalChance =
-    baseChance * progressMultiplier * insightMultiplier * demonMultiplier;
+  const finalChance = breakthroughResult.chance;
+  const modifiers = breakthroughResult.modifiers;
 
   // roll突破
   const roll = rng();

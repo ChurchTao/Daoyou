@@ -3,6 +3,7 @@
 import { InkBadge, InkButton } from '@/components/InkComponents';
 import { InkModal } from '@/components/InkModal';
 import type { Cultivator } from '@/types/cultivator';
+import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { calculateExpProgress } from '@/utils/cultivationUtils';
 import { useMemo, useState } from 'react';
 
@@ -28,14 +29,28 @@ export function CultivatorStatusCard({
     const expPercent = calculateExpProgress(progress);
     const canBreakthrough = expPercent >= 60;
 
-    // 计算突破类型
+    // 使用新的突破概率计算系统
     let breakthroughType: 'forced' | 'normal' | 'perfect' | null = null;
-    if (expPercent >= 100) {
-      breakthroughType = 'perfect';
-    } else if (expPercent >= 80) {
-      breakthroughType = 'normal';
-    } else if (expPercent >= 60) {
-      breakthroughType = 'forced';
+    let breakthroughChance = 0;
+    let breakthroughRecommendation = '';
+
+    if (canBreakthrough) {
+      try {
+        const result = calculateBreakthroughChance(cultivator);
+        breakthroughType = result.breakthroughType;
+        breakthroughChance = result.chance;
+        breakthroughRecommendation = result.recommendation;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        // 容错处理：使用简单的类型判断
+        if (expPercent >= 100) {
+          breakthroughType = 'perfect';
+        } else if (expPercent >= 80) {
+          breakthroughType = 'normal';
+        } else {
+          breakthroughType = 'forced';
+        }
+      }
     }
 
     return {
@@ -43,8 +58,10 @@ export function CultivatorStatusCard({
       expPercent,
       canBreakthrough,
       breakthroughType,
+      breakthroughChance,
+      breakthroughRecommendation,
     };
-  }, [cultivator.cultivation_progress]);
+  }, [cultivator]);
 
   if (!statusData) {
     return null;
@@ -157,13 +174,23 @@ export function CultivatorStatusCard({
           <div className="space-y-2 text-sm">
             {/* 突破可用性 */}
             {statusData.canBreakthrough && breakthroughLabel && (
-              <div className="flex items-center gap-2 px-2 py-1 bg-ink/5 rounded">
-                <span className="text-ink-secondary">可尝试：</span>
-                <span className={`font-bold ${breakthroughLabel.color}`}>
-                  {breakthroughLabel.text}
-                </span>
-                {statusData.breakthroughType === 'perfect' && (
-                  <span className="text-xs opacity-70">(成功率最高)</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 px-2 py-1 bg-ink/5 rounded">
+                  <span className="text-ink-secondary">可尝试：</span>
+                  <span className={`font-bold ${breakthroughLabel.color}`}>
+                    {breakthroughLabel.text}
+                  </span>
+                  {statusData.breakthroughChance > 0 && (
+                    <span className="text-xs opacity-70">
+                      (成功率{(statusData.breakthroughChance * 100).toFixed(1)}
+                      %)
+                    </span>
+                  )}
+                </div>
+                {statusData.breakthroughRecommendation && (
+                  <div className="px-2 py-1 text-xs text-ink-secondary">
+                    💡 {statusData.breakthroughRecommendation}
+                  </div>
                 )}
               </div>
             )}
@@ -226,9 +253,9 @@ export function CultivatorStatusCard({
             </p>
             <div className="bg-ink/5 p-3 rounded border border-ink/10">
               <p className="text-xs text-ink-secondary">
-                <strong>公式：</strong>成功率加成 = 1.0 + 感悟值/150
+                <strong>公式：</strong>成功率加成 = 1.0 + (感悟值 / 100) × 0.6
                 <br />
-                <strong>示例：</strong>50感悟 → 1.33倍加成
+                <strong>示例：</strong>50感悟 → 1.3倍加成
               </p>
             </div>
           </section>

@@ -1,6 +1,7 @@
 import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { RealmStage, RealmType } from '../types/constants';
 import type { Attributes, Cultivator } from '../types/cultivator';
-import type { BreakthroughAttemptSummary } from './breakthroughEngine';
+import type { BreakthroughModifiers } from './breakthroughCalculator';
 import {
   getAllCultivationBonusRangePrompt,
   getAllSkillPowerRangePrompt,
@@ -146,7 +147,21 @@ ${battleLog}
 
 export interface BreakthroughStoryPayload {
   cultivator: Cultivator;
-  summary: BreakthroughAttemptSummary;
+  summary: {
+    success: boolean;
+    isMajor: boolean;
+    yearsSpent: number;
+    chance: number;
+    roll: number;
+    fromRealm: RealmType;
+    fromStage: RealmStage;
+    toRealm?: RealmType;
+    toStage?: RealmStage;
+    lifespanGained: number;
+    attributeGrowth: Partial<Attributes>;
+    lifespanDepleted: boolean;
+    modifiers: BreakthroughModifiers;
+  };
 }
 
 export function getBreakthroughStoryPrompt({
@@ -198,7 +213,21 @@ export function getBreakthroughStoryPrompt({
 
 export interface LifespanExhaustedStoryPayload {
   cultivator: Cultivator;
-  summary: BreakthroughAttemptSummary;
+  summary: {
+    success: boolean;
+    isMajor: boolean;
+    yearsSpent: number;
+    chance: number;
+    roll: number;
+    fromRealm: RealmType;
+    fromStage: RealmStage;
+    toRealm?: RealmType;
+    toStage?: RealmStage;
+    lifespanGained: number;
+    attributeGrowth: Partial<Attributes>;
+    lifespanDepleted: boolean;
+    modifiers: BreakthroughModifiers;
+  };
 }
 
 export function getLifespanExhaustedStoryPrompt({

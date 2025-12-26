@@ -208,6 +208,7 @@ export function getCultivationTechniqueMultiplier(
  * 公式：1.0 + (悟性 - 50) / 200
  * 范围：0.75 ~ 1.5
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function calculateWisdomMultiplier(wisdom: number): number {
   // 暂时无影响
   return 1.0;
@@ -224,10 +225,10 @@ export function calculateYearsMultiplier(years: number): number {
 
 /**
  * 计算顿悟触发概率
- * 基于悟性，公式：悟性 / 2000
+ * 基于悟性，公式：Math.log10(悟性) / 100
  */
 export function calculateEpiphanyChance(wisdom: number): number {
-  return wisdom / 2000;
+  return Math.log10(wisdom) / 100 + 0.05;
 }
 
 /**

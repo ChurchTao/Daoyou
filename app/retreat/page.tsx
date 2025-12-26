@@ -13,10 +13,7 @@ import { InkModal } from '@/components/InkModal';
 import { useInkUI } from '@/components/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';
-import {
-  calculateBreakthroughChance,
-  type BreakthroughAttemptSummary,
-} from '@/utils/breakthroughEngine';
+import { type BreakthroughAttemptSummary } from '@/utils/breakthroughCalculator';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
@@ -344,15 +341,6 @@ export default function RetreatPage() {
               <p className="text-blue-900 font-medium">【当前状态】</p>
               <p className="text-blue-800 text-xs">
                 修为进度：{cultivationProgress.percent}%
-              </p>
-              <p className="text-blue-800 text-xs">
-                基础概率：
-                {Math.min(
-                  calculateBreakthroughChance(cultivator, Number(retreatYears))
-                    .chance * 100,
-                  100,
-                ).toFixed(2)}
-                %
               </p>
               <p className="text-blue-800 text-xs">
                 道行感悟：{cultivationProgress.comprehension_insight}/100
