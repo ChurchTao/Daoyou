@@ -1,6 +1,6 @@
-import type { Cultivator, Skill } from '@/types/cultivator';
-import type { Quality } from '@/types/constants';
 import type { TickContext } from '@/engine/status/types';
+import type { Quality } from '@/types/constants';
+import type { Cultivator, Skill } from '@/types/cultivator';
 import { BattleUnit } from './BattleUnit';
 import { skillExecutor } from './SkillExecutor';
 import { damageCalculator } from './calculators/DamageCalculator';
@@ -158,6 +158,7 @@ export class BattleEngineV2 {
         currentTurn: state.turn,
         currentTime: Date.now(),
         unitSnapshot: unit.createUnitSnapshot(),
+        unitName: unit.getName(),
         battleContext: {
           turnNumber: state.turn,
           isPlayerTurn: unit.unitId === 'player',
@@ -188,9 +189,11 @@ export class BattleEngineV2 {
    * 决定行动顺序
    */
   private determineActionOrder(state: BattleState): BattleUnit[] {
-    const playerSpeed = state.player.getFinalAttributes().speed +
+    const playerSpeed =
+      state.player.getFinalAttributes().speed +
       (state.player.hasStatus('speed_up') ? 20 : 0);
-    const opponentSpeed = state.opponent.getFinalAttributes().speed +
+    const opponentSpeed =
+      state.opponent.getFinalAttributes().speed +
       (state.opponent.hasStatus('speed_up') ? 20 : 0);
 
     return playerSpeed >= opponentSpeed
@@ -211,7 +214,7 @@ export class BattleEngineV2 {
   private chooseSkill(actor: BattleUnit, target: BattleUnit): Skill | null {
     // 获取可用技能
     const available = actor.cultivatorData.skills.filter((s) =>
-      actor.canUseSkill(s)
+      actor.canUseSkill(s),
     );
 
     // 添加法宝技能
@@ -246,6 +249,17 @@ export class BattleEngineV2 {
       return heals[Math.floor(Math.random() * heals.length)];
     }
 
+    // 战斗开始前2回合，有一定概率释放buff
+    if (
+      actor.statusContainer.getActiveStatuses().length === 0 &&
+      buffs.length
+    ) {
+      // 30%概率释放buff
+      if (Math.random() < 0.3) {
+        return buffs[Math.floor(Math.random() * buffs.length)];
+      }
+    }
+
     // 优势时优先进攻
     if (target.currentHp < actor.currentHp && offensive.length) {
       return offensive[Math.floor(Math.random() * offensive.length)];
@@ -267,10 +281,7 @@ export class BattleEngineV2 {
   /**
    * 创建法宝技能
    */
-  private createArtifactSkill(
-    artifact: unknown,
-    actor: BattleUnit,
-  ): Skill {
+  private createArtifactSkill(artifact: unknown, actor: BattleUnit): Skill {
     const art = artifact as {
       id?: string;
       name: string;
@@ -324,9 +335,7 @@ export class BattleEngineV2 {
     if (isSilenced) {
       // 沉默时防御
       actor.isDefending = true;
-      state.log.push(
-        `${actor.getName()} 因被沉默无法施展术法，摆出防御姿态。`,
-      );
+      state.log.push(`${actor.getName()} 因被沉默无法施展术法，摆出防御姿态。`);
     } else {
       // MP耗尽时恢复
       const recoveredMp = Math.floor(actor.maxMp * 0.3);
@@ -378,7 +387,8 @@ export class BattleEngineV2 {
             ? state.player
             : state.opponent;
 
-    const loserUnit = winnerUnit.unitId === 'player' ? state.opponent : state.player;
+    const loserUnit =
+      winnerUnit.unitId === 'player' ? state.opponent : state.player;
 
     state.log.push(
       `✨ ${winnerUnit.getName()} 获胜！剩余气血：${winnerUnit.currentHp}，对手剩余气血：${loserUnit.currentHp}。`,
@@ -392,8 +402,10 @@ export class BattleEngineV2 {
     state.opponent.statusContainer.clearTemporaryStatuses();
 
     // 导出持久状态
-    const playerPersistentStatuses = state.player.statusContainer.exportPersistentStatuses();
-    const opponentPersistentStatuses = state.opponent.statusContainer.exportPersistentStatuses();
+    const playerPersistentStatuses =
+      state.player.statusContainer.exportPersistentStatuses();
+    const opponentPersistentStatuses =
+      state.opponent.statusContainer.exportPersistentStatuses();
 
     return {
       winner: winnerUnit.cultivatorData,

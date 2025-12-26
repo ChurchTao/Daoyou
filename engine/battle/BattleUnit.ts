@@ -1,12 +1,11 @@
-import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
-import type { StatusEffect } from '@/types/constants';
 import { StatusContainer } from '@/engine/status/StatusContainer';
 import type {
+  CalculationContext,
   CasterSnapshot,
   UnitSnapshot,
-  AttributeModification,
-  CalculationContext,
 } from '@/engine/status/types';
+import type { StatusEffect } from '@/types/constants';
+import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
 import { attributeCalculator } from './calculators/AttributeCalculator';
 import type { UnitId } from './types';
@@ -312,9 +311,7 @@ export class BattleUnit {
    * 获取当前状态效果列表（用于快照）
    */
   getActiveStatusEffects(): StatusEffect[] {
-    return this.statusContainer
-      .getActiveStatuses()
-      .map((s) => s.statusKey);
+    return this.statusContainer.getActiveStatuses().map((s) => s.statusKey);
   }
 
   /**

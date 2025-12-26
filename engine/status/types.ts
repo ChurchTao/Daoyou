@@ -184,6 +184,7 @@ export interface TickContext {
   currentTurn: number;
   currentTime: number;
   unitSnapshot: UnitSnapshot;
+  unitName: string; // 单位名称，用于生成日志
   battleContext?: BattleContext;
 }
 

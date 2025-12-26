@@ -1,7 +1,6 @@
 import type { StatusEffect } from '@/types/constants';
 import { randomUUID } from 'crypto';
 import {
-  actionBlockerCalculator,
   attributeModifierCalculator,
   damageOverTimeCalculator,
   resistanceCalculator,
@@ -87,8 +86,7 @@ export class StatusContainer {
           request.durationOverride?.remaining ??
           definition.defaultDuration.remaining;
         existingStatus.duration.total =
-          request.durationOverride?.total ??
-          definition.defaultDuration.total;
+          request.durationOverride?.total ?? definition.defaultDuration.total;
         existingStatus.potency = request.potency ?? definition.defaultPotency;
         return {
           success: true,
@@ -218,6 +216,12 @@ export class StatusContainer {
     const toRemove: string[] = [];
     const statuses = this.getSortedStatuses();
 
+    // 用于合并相同statusKey的DOT伤害日志
+    const dotDamageByKey = new Map<
+      StatusEffect,
+      { damage: number; count: number }
+    >();
+
     for (const status of statuses) {
       // 1. 检查durationType并递减
       if (status.duration.durationType === 'turn') {
@@ -242,17 +246,44 @@ export class StatusContainer {
 
         if (damage > 0) {
           result.damageDealt += damage;
-          result.effectLogs.push(
-            `受到「${status.displayName}」影响,损失 ${damage} 点气血`,
-          );
+
+          // 累计相同statusKey的伤害
+          const existing = dotDamageByKey.get(status.statusKey) || {
+            damage: 0,
+            count: 0,
+          };
+          existing.damage += damage;
+          existing.count += 1;
+          dotDamageByKey.set(status.statusKey, existing);
         }
       }
 
       // 3. 检查是否过期
-      if (status.duration.durationType !== 'permanent' && status.duration.remaining <= 0) {
+      if (
+        status.duration.durationType !== 'permanent' &&
+        status.duration.remaining <= 0
+      ) {
         toRemove.push(status.statusId);
         result.expiredStatuses.push(status.statusId);
-        result.effectLogs.push(`「${status.displayName}」效果消退`);
+        result.effectLogs.push(
+          `${context.unitName} 的「${status.displayName}」效果消退`,
+        );
+      }
+    }
+
+    // 生成合并后的DOT伤害日志
+    for (const [statusKey, { damage, count }] of dotDamageByKey.entries()) {
+      const definition = statusRegistry.getDefinition(statusKey);
+      const displayName = definition?.displayName || statusKey;
+
+      if (count > 1) {
+        result.effectLogs.push(
+          `${context.unitName} 受到「${displayName}」影响（${count}层），损失 ${damage} 点气血`,
+        );
+      } else {
+        result.effectLogs.push(
+          `${context.unitName} 受到「${displayName}」影响，损失 ${damage} 点气血`,
+        );
       }
     }
 
@@ -307,10 +338,11 @@ export class StatusContainer {
     };
 
     for (const status of this.statusesById.values()) {
-      const statusMod = attributeModifierCalculator.calculateAttributeModification(
-        status,
-        context,
-      );
+      const statusMod =
+        attributeModifierCalculator.calculateAttributeModification(
+          status,
+          context,
+        );
 
       if (statusMod) {
         modification.vitality += statusMod.vitality ?? 0;
@@ -329,7 +361,7 @@ export class StatusContainer {
    */
   private getSortedStatuses(): StatusInstance[] {
     const statuses = Array.from(this.statusesById.values());
-    
+
     // 优先级: control > buff/debuff > dot > persistent > environmental
     const priority: Record<StatusType, number> = {
       control: 1,
@@ -357,10 +389,10 @@ export class StatusContainer {
    */
   fromJSON(statuses: StatusInstance[]): void {
     this.clearAllStatuses();
-    
+
     for (const status of statuses) {
       this.statusesById.set(status.statusId, status);
-      
+
       const keyStatuses = this.statusesByKey.get(status.statusKey) ?? [];
       keyStatuses.push(status);
       this.statusesByKey.set(status.statusKey, keyStatuses);
@@ -378,7 +410,7 @@ export class StatusContainer {
     metadata: Record<string, unknown>;
   }> {
     const persistent = Array.from(this.statusesById.values()).filter(
-      (status) => status.statusType === 'persistent'
+      (status) => status.statusType === 'persistent',
     );
 
     return persistent.map((status) => ({
@@ -400,10 +432,12 @@ export class StatusContainer {
       createdAt: number;
       metadata: Record<string, unknown>;
     }>,
-    target: UnitSnapshot
+    target: UnitSnapshot,
   ): void {
     for (const saved of persistentStatuses) {
-      const definition = statusRegistry.getDefinition(saved.statusKey as StatusEffect);
+      const definition = statusRegistry.getDefinition(
+        saved.statusKey as StatusEffect,
+      );
       if (!definition) {
         console.warn(`未知的持久状态: ${saved.statusKey}`);
         continue;

@@ -1,5 +1,5 @@
+import { StatusEffect } from '@/types/constants';
 import { StatusContainer } from './StatusContainer';
-import { statusRegistry } from './StatusRegistry';
 import type {
   StatusApplicationRequest,
   TickContext,
@@ -147,6 +147,7 @@ describe('StatusContainer', () => {
         currentTurn: 1,
         currentTime: Date.now(),
         unitSnapshot: mockTarget,
+        unitName: '测试单位',
       };
 
       const result1 = container.tickStatuses(context);
@@ -178,6 +179,7 @@ describe('StatusContainer', () => {
         currentTurn: 1,
         currentTime: Date.now(),
         unitSnapshot: mockTarget,
+        unitName: '测试单位',
       };
 
       const result = container.tickStatuses(context);

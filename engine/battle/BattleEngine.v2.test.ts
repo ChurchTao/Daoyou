@@ -1,5 +1,5 @@
-import { simulateBattle } from './BattleEngine.v2';
 import type { Cultivator } from '@/types/cultivator';
+import { simulateBattle } from './BattleEngine.v2';
 
 describe('BattleEngineV2', () => {
   const createMockCultivator = (name: string): Cultivator => ({
@@ -19,7 +19,7 @@ describe('BattleEngineV2', () => {
       },
     ],
     attributes: {
-      vitality: 50,
+      vitality: 80,
       spirit: 50,
       wisdom: 50,
       speed: 50,
@@ -35,17 +35,49 @@ describe('BattleEngineV2', () => {
         element: '金',
         power: 60,
         cost: 20,
-        cooldown: 0,
+        cooldown: 1,
+        effect: 'bleed',
+        duration: 2,
+        grade: '黄阶下品',
+      },
+      {
+        id: 'skill_2',
+        name: '护体术',
+        type: 'buff',
+        target_self: true,
+        element: '金',
+        power: 30,
+        cost: 20,
+        effect: 'armor_up',
+        duration: 2,
+        cooldown: 2,
         grade: '黄阶下品',
       },
     ],
     inventory: {
-      artifacts: [],
+      artifacts: [
+        {
+          id: 'artifact_1',
+          name: '金刃',
+          element: '金',
+          slot: 'weapon',
+          bonus: { spirit: 10 },
+          special_effects: [
+            {
+              type: 'on_hit_add_effect',
+              effect: 'crit_rate_down',
+              chance: 50,
+              power: 10,
+            },
+          ],
+        },
+      ],
       consumables: [],
       materials: [],
     },
     equipped: {
-      weapon: null,
+      weapon: 'artifact_1',
+      // weapon: null,
       armor: null,
       accessory: null,
     },
@@ -58,7 +90,7 @@ describe('BattleEngineV2', () => {
     const opponent = createMockCultivator('对手');
 
     const result = simulateBattle(player, opponent);
-    console.log(result);
+    console.log(result.log);
 
     expect(result).toBeDefined();
     expect(result.winner).toBeDefined();

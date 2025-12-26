@@ -4,7 +4,6 @@ import type {
   EffectCalculator,
   StatusInstance,
 } from '../types';
-import type { ElementType } from '@/types/constants';
 
 /**
  * 属性修正计算器
@@ -41,7 +40,7 @@ export class AttributeModifierCalculator implements EffectCalculator {
         break;
 
       // ===== 持久状态 =====
-      
+
       // weakness: 全属性降低10%
       case 'weakness':
         {
@@ -141,8 +140,8 @@ export class AttributeModifierCalculator implements EffectCalculator {
         {
           const bonus = status.potency / 100;
           modification.elementDamageMultiplier = {
-            '火': 1 + bonus,
-            '水': 1 - bonus,
+            火: 1 + bonus,
+            水: 1 - bonus,
           };
         }
         break;
@@ -152,8 +151,8 @@ export class AttributeModifierCalculator implements EffectCalculator {
         {
           const bonus = status.potency / 100;
           modification.elementDamageMultiplier = {
-            '冰': 1 + bonus,
-            '火': 1 - bonus,
+            冰: 1 + bonus,
+            火: 1 - bonus,
           };
         }
         break;

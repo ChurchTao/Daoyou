@@ -1,15 +1,12 @@
-import type { Skill } from '@/types/cultivator';
-import type { StatusEffect } from '@/types/constants';
 import type {
   ApplyResult,
   StatusApplicationRequest,
-  TickContext,
 } from '@/engine/status/types';
+import type { Skill } from '@/types/cultivator';
 import { getStatusLabel } from '@/types/dictionaries';
+import type { BattleUnit } from './BattleUnit';
 import { damageCalculator } from './calculators/DamageCalculator';
 import { evasionCalculator } from './calculators/EvasionCalculator';
-import { criticalCalculator } from './calculators/CriticalCalculator';
-import type { BattleUnit } from './BattleUnit';
 
 /**
  * 技能执行结果
@@ -360,7 +357,11 @@ export class SkillExecutor {
    * 判断是否需要进行闪避判定
    */
   private shouldCheckEvasion(skillType: string): boolean {
-    return skillType === 'attack' || skillType === 'control' || skillType === 'debuff';
+    return (
+      skillType === 'attack' ||
+      skillType === 'control' ||
+      skillType === 'debuff'
+    );
   }
 }
 

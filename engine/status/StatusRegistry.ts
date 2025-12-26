@@ -1,10 +1,5 @@
 import type { StatusEffect } from '@/types/constants';
-import type {
-  EffectCalculator,
-  StatusDefinition,
-  StatusDuration,
-  StatusType,
-} from './types';
+import type { EffectCalculator, StatusDefinition, StatusType } from './types';
 
 /**
  * 状态注册表
@@ -325,9 +320,9 @@ function registerEnvironmentalStatuses(): void {
       statusType: 'environmental',
       displayName: '炎热',
       description: '火元素加强20%，水元素削弱20%',
-      defaultDuration: { 
-        durationType: 'conditional', 
-        remaining: -1, 
+      defaultDuration: {
+        durationType: 'conditional',
+        remaining: -1,
         total: -1,
         condition: { conditionType: 'custom' },
       },
@@ -341,9 +336,9 @@ function registerEnvironmentalStatuses(): void {
       statusType: 'environmental',
       displayName: '冰冻',
       description: '冰元素加强20%，火元素削弱20%',
-      defaultDuration: { 
-        durationType: 'conditional', 
-        remaining: -1, 
+      defaultDuration: {
+        durationType: 'conditional',
+        remaining: -1,
         total: -1,
         condition: { conditionType: 'custom' },
       },
@@ -357,9 +352,9 @@ function registerEnvironmentalStatuses(): void {
       statusType: 'environmental',
       displayName: '瘴气',
       description: '每回合损失最大气蠀2%',
-      defaultDuration: { 
-        durationType: 'conditional', 
-        remaining: -1, 
+      defaultDuration: {
+        durationType: 'conditional',
+        remaining: -1,
         total: -1,
         condition: { conditionType: 'custom' },
       },
@@ -373,9 +368,9 @@ function registerEnvironmentalStatuses(): void {
       statusType: 'environmental',
       displayName: '阵法压制',
       description: '全属性降低20%',
-      defaultDuration: { 
-        durationType: 'conditional', 
-        remaining: -1, 
+      defaultDuration: {
+        durationType: 'conditional',
+        remaining: -1,
         total: -1,
         condition: { conditionType: 'custom' },
       },
@@ -388,9 +383,9 @@ function registerEnvironmentalStatuses(): void {
       statusType: 'environmental',
       displayName: '灵气充裕',
       description: 'MP恢复增强50%',
-      defaultDuration: { 
-        durationType: 'conditional', 
-        remaining: -1, 
+      defaultDuration: {
+        durationType: 'conditional',
+        remaining: -1,
         total: -1,
         condition: { conditionType: 'custom' },
       },
