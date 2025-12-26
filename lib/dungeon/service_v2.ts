@@ -1,11 +1,12 @@
+import { BattleEngineResult } from '@/engine/battle';
 import { enemyGenerator } from '@/engine/enemyGenerator';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { randomUUID } from 'crypto';
-import { BattleEngineResult } from '../../engine/battleEngine';
+import { eq } from 'drizzle-orm';
 import { db } from '../drizzle/db';
-import { dungeonHistories } from '../drizzle/schema';
-import { getMapNode } from '../game/mapSystem';
+import { cultivators, dungeonHistories } from '../drizzle/schema';
+import { getMapNode, SatelliteNode } from '../game/mapSystem';
 import { redis } from '../redis';
 import {
   getCultivatorByIdUnsafe,
@@ -21,6 +22,7 @@ import {
   DungeonSettlement,
   DungeonSettlementSchema,
   DungeonState,
+  PersistentStatusSnapshot,
   PlayerInfo,
 } from './types';
 
@@ -108,7 +110,37 @@ export class DungeonService {
     // 1. 获取玩家与地图数据 (逻辑同你之前)
     const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
 
-    // 2. 初始状态
+    // 2. 加载持久状态和环境状态
+    const cultivator = await getCultivatorByIdUnsafe(cultivatorId);
+    if (!cultivator || !cultivator.cultivator) {
+      throw new Error('未找到修真者数据');
+    }
+
+    // 从数据库加载持久状态
+    const persistentStatuses: PersistentStatusSnapshot[] = Array.isArray(
+      cultivator.cultivator.persistent_statuses,
+    )
+      ? (cultivator.cultivator
+          .persistent_statuses as PersistentStatusSnapshot[])
+      : [];
+
+    // 从地图节点获取环境状态
+    const environmentalStatuses: PersistentStatusSnapshot[] = [];
+    const mapNode = getMapNode(mapNodeId);
+    if (mapNode && 'environmental_status' in mapNode) {
+      const satellite = mapNode as SatelliteNode;
+      if (satellite.environmental_status) {
+        // 添加环境状态到数组
+        environmentalStatuses.push({
+          statusKey: satellite.environmental_status,
+          potency: 1, // 环境状态默认强度为1
+          createdAt: Date.now(),
+          metadata: { source: 'environment', location: mapNode.name },
+        });
+      }
+    }
+
+    // 3. 初始状态
     const state: DungeonState = {
       ...context,
       currentRound: 1,
@@ -120,12 +152,17 @@ export class DungeonService {
       theme: context.location.location,
       summary_of_sacrifice: [],
       status: 'EXPLORING',
+      // 新增字段：状态和累积损失
+      persistentStatuses,
+      environmentalStatuses,
+      accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
+      accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
     };
 
-    // 3. 首次 AI 调用
+    // 4. 首次 AI 调用
     const roundData = await this.callAI(state);
 
-    // 4. 更新历史并存入 Redis
+    // 5. 更新历史并存入 Redis
     state.history.push({ round: 1, scene: roundData.scene_description });
     state.currentOptions = roundData.interaction.options;
     await this.saveState(cultivatorId, state);
@@ -144,14 +181,58 @@ export class DungeonService {
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('副本已失效');
 
-    // 1. 校验并处理消耗
+    // 1. 校验并处理消耗（成本校验前置）
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
     if (chosenOption?.costs) {
       // 在这里进行硬核校验，比如灵石不够则报错
       await this.processResources(cultivatorId, chosenOption.costs, 'cost');
       state.summary_of_sacrifice?.push(...chosenOption.costs);
 
-      // --- Battle Interception ---
+      // 1.1 累加 HP/MP 损失百分比
+      for (const cost of chosenOption.costs) {
+        if (cost.type === 'hp_loss') {
+          // 每个 value 点转换为 10% HP 损失
+          state.accumulatedHpLoss = Math.min(
+            1,
+            state.accumulatedHpLoss + cost.value * 0.1,
+          );
+        } else if (cost.type === 'mp_loss') {
+          // 每个 value 点转换为 10% MP 损失
+          state.accumulatedMpLoss = Math.min(
+            1,
+            state.accumulatedMpLoss + cost.value * 0.1,
+          );
+        } else if (cost.type === 'weak') {
+          // 1.2 weak 成本映射为 weakness 状态
+          const weaknessPotency = cost.value; // value 即为虚弱程度
+          // 添加或更新 weakness 状态
+          const existingWeakness = state.persistentStatuses.find(
+            (s) => s.statusKey === 'weakness',
+          );
+          if (existingWeakness) {
+            // 更新现有虚弱状态的强度
+            existingWeakness.potency = Math.min(
+              10,
+              existingWeakness.potency + weaknessPotency,
+            );
+            existingWeakness.metadata = {
+              ...existingWeakness.metadata,
+              lastUpdated: Date.now(),
+              source: 'dungeon_sacrifice',
+            };
+          } else {
+            // 添加新的虚弱状态
+            state.persistentStatuses.push({
+              statusKey: 'weakness',
+              potency: weaknessPotency,
+              createdAt: Date.now(),
+              metadata: { source: 'dungeon_sacrifice' },
+            });
+          }
+        }
+      }
+
+      // 1.3 Battle Interception
       const battleCost = chosenOption.costs.find((c) => c.type === 'battle');
       if (battleCost) {
         state.history[state.history.length - 1].choice = choiceText;
@@ -162,7 +243,7 @@ export class DungeonService {
           getDungeonKey(cultivatorId),
           battleCost,
           state.playerInfo,
-          state.summary_of_sacrifice || [],
+          state,
         );
 
         state.activeBattleId = session.battleId;
@@ -212,31 +293,26 @@ export class DungeonService {
     dungeonStateKey: string,
     battleCost: DungeonOptionCost,
     playerInfo: PlayerInfo,
-    sacrificeSummary: DungeonOptionCost[],
+    dungeonState: DungeonState,
   ): Promise<BattleSession> {
     console.log('[createBattleSession]', battleCost);
     const battleId = randomUUID();
 
-    // Calculate current HP/MP based on sacrifices
-    // This is a simplified view; ideally we track current HP in DungeonState if we want persistence across rounds
-    // For now, we assume full HP minus accumulated loss
-    let hpLoss = 0;
-    let mpLoss = 0;
+    // 计算玩家当前 HP/MP（基于累积损失百分比）
+    const maxHp = playerInfo.attributes.vitality * 5; // 基础 maxHP 公式
+    const maxMp = playerInfo.attributes.spirit * 10; // 基础 maxMP 公式
 
-    sacrificeSummary.forEach((s) => {
-      if (s.type === 'hp_loss') hpLoss += s.value * 30; // 30 per value
-      if (s.type === 'mp_loss') mpLoss += s.value * 10; // 10 per value
-    });
+    // 计算虚拟 HP/MP：根据累积损失百分比减少
+    const currentHp = Math.max(
+      1,
+      Math.floor(maxHp * (1 - dungeonState.accumulatedHpLoss)),
+    );
+    const currentMp = Math.max(
+      1,
+      Math.floor(maxMp * (1 - dungeonState.accumulatedMpLoss)),
+    );
 
-    // Add current round cost
-    if (battleCost.type === 'hp_loss') hpLoss += battleCost.value * 30;
-
-    const currentHp = Math.max(1, playerInfo.attributes.vitality * 5 - hpLoss); // Rough max HP formula
-    const currentMp = Math.max(1, playerInfo.attributes.spirit * 10 - mpLoss); // Rough max MP formula
-
-    // Check for "weak" status in sacrifices to apply debuffs?
-    // For now we just lower HP/MP.
-
+    // 生成敌人
     const enemy = await enemyGenerator.generate(
       battleCost.metadata || {
         enemy_name: battleCost.desc,
@@ -248,6 +324,7 @@ export class DungeonService {
       playerInfo,
     );
 
+    // 构建 BattleSession，传递状态快照和虚拟 HP/MP 损失百分比
     const session: BattleSession = {
       battleId,
       dungeonStateKey,
@@ -260,8 +337,12 @@ export class DungeonService {
         difficulty: battleCost.value,
       },
       playerSnapshot: {
-        currentHp: currentHp,
-        currentMp: currentMp,
+        currentHp,
+        currentMp,
+        persistentStatuses: dungeonState.persistentStatuses, // 持久状态快照
+        environmentalStatuses: dungeonState.environmentalStatuses, // 环境状态快照
+        hpLossPercent: dungeonState.accumulatedHpLoss, // 虚拟 HP 损失百分比
+        mpLossPercent: dungeonState.accumulatedMpLoss, // 虚拟 MP 损失百分比
       },
     };
 
@@ -295,14 +376,81 @@ export class DungeonService {
         : battleResult.loser.name;
     const isWin = battleResult.winner.name === state.playerInfo.name;
 
-    const outcomeText = isWin
-      ? `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`
-      : `你终究是不敌 ${enemyName}，在其重击下狼狈遁走，侥幸捡回一条命。`;
+    // 战斗失败处理：生成伤势状态
+    if (!isWin) {
+      // 根据当前伤势状态升级：minor_wound → major_wound → near_death
+      const hasMinorWound = state.persistentStatuses.find(
+        (s) => s.statusKey === 'minor_wound',
+      );
+      const hasMajorWound = state.persistentStatuses.find(
+        (s) => s.statusKey === 'major_wound',
+      );
+      const hasNearDeath = state.persistentStatuses.find(
+        (s) => s.statusKey === 'near_death',
+      );
 
-    lastHistory.outcome = outcomeText; // Update the pending outcome
+      if (hasNearDeath) {
+        // 已经是 near_death，增加强度
+        hasNearDeath.potency = Math.min(10, hasNearDeath.potency + 1);
+        hasNearDeath.metadata = {
+          ...hasNearDeath.metadata,
+          lastUpdated: Date.now(),
+          source: 'dungeon_battle_defeat',
+        };
+      } else if (hasMajorWound) {
+        // 从 major_wound 升级到 near_death
+        state.persistentStatuses = state.persistentStatuses.filter(
+          (s) => s.statusKey !== 'major_wound',
+        );
+        state.persistentStatuses.push({
+          statusKey: 'near_death',
+          potency: 1,
+          createdAt: Date.now(),
+          metadata: {
+            source: 'dungeon_battle_defeat',
+            upgradedFrom: 'major_wound',
+          },
+        });
+      } else if (hasMinorWound) {
+        // 从 minor_wound 升级到 major_wound
+        state.persistentStatuses = state.persistentStatuses.filter(
+          (s) => s.statusKey !== 'minor_wound',
+        );
+        state.persistentStatuses.push({
+          statusKey: 'major_wound',
+          potency: 1,
+          createdAt: Date.now(),
+          metadata: {
+            source: 'dungeon_battle_defeat',
+            upgradedFrom: 'minor_wound',
+          },
+        });
+      } else {
+        // 添加 minor_wound
+        state.persistentStatuses.push({
+          statusKey: 'minor_wound',
+          potency: 1,
+          createdAt: Date.now(),
+          metadata: { source: 'dungeon_battle_defeat' },
+        });
+      }
 
-    // Add implicit costs from battle (e.g. HP loss, consumables used)
-    // For now, we just record "Battle" occurred.
+      // 战斗失败后立即触发副本结算
+      const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
+      lastHistory.outcome = outcomeText;
+
+      // 立即触发结算
+      return this.settleDungeon(state);
+    }
+
+    // 战斗胜利处理
+    const outcomeText = `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
+    lastHistory.outcome = outcomeText;
+
+    // 从战斗结果中同步持久状态（如果有）
+    if (battleResult.playerPersistentStatuses) {
+      state.persistentStatuses = battleResult.playerPersistentStatuses;
+    }
 
     state.currentRound++;
 
@@ -483,17 +631,108 @@ export class DungeonService {
     return mapNode;
   }
 
+  /**
+   * 处理资源消耗和获得（真实数据库操作）
+   */
   async processResources(
     cultivatorId: string,
     resources: DungeonResourceGain[] | DungeonOptionCost[],
     type: 'gain' | 'cost',
   ) {
-    console.log('[processResources]', resources, type);
+    if (!resources || resources.length === 0) return;
+
+    const cultivator = await getCultivatorByIdUnsafe(cultivatorId);
+    if (!cultivator || !cultivator.cultivator) {
+      throw new Error('未找到修真者数据');
+    }
+
+    // 成本校验
+    if (type === 'cost') {
+      for (const resource of resources) {
+        if (resource.type === 'spirit_stones_loss') {
+          if (cultivator.cultivator.spirit_stones < resource.value) {
+            throw new Error(`灵石不足，需要 ${resource.value}`);
+          }
+        }
+      }
+    }
+
+    // 处理资源变化
+    for (const resource of resources) {
+      const multiplier = type === 'gain' ? 1 : -1;
+
+      switch (resource.type) {
+        case 'spirit_stones_loss':
+        case 'spirit_stones_gain':
+          await db
+            .update(cultivators)
+            .set({
+              spirit_stones:
+                cultivator.cultivator.spirit_stones +
+                resource.value * multiplier,
+            })
+            .where(eq(cultivators.id, cultivatorId));
+          break;
+
+        case 'lifespan_loss':
+        case 'lifespan_gain':
+          await db
+            .update(cultivators)
+            .set({
+              lifespan:
+                cultivator.cultivator.lifespan + resource.value * multiplier,
+            })
+            .where(eq(cultivators.id, cultivatorId));
+          break;
+
+        default:
+          console.log(
+            `[processResources] ${type} ${resource.type}: ${resource.value}`,
+          );
+      }
+    }
   }
 
-  async generateRealRewards(rewardTier: string, realm: string) {
-    console.log('[generateRealRewards]', rewardTier, realm);
-    return [];
+  /**
+   * 生成真实奖励（根据评级和境界）
+   */
+  async generateRealRewards(
+    rewardTier: string,
+    realm: string,
+  ): Promise<DungeonResourceGain[]> {
+    const gains: DungeonResourceGain[] = [];
+
+    // TODO: 从 utils/dungeonRewards.ts 中获取配置
+    // 根据 rewardTier 和 realm 生成奖励
+    // 这里先返回基础灵石奖励
+
+    const tierMultiplier: Record<string, number> = {
+      S: 2.0,
+      A: 1.5,
+      B: 1.0,
+      C: 0.7,
+      D: 0.5,
+    };
+
+    const realmBase: Record<string, number> = {
+      炼气期: 20,
+      筑基期: 75,
+      金丹期: 300,
+      元婴期: 1500,
+      化神期: 7500,
+    };
+
+    const mult = tierMultiplier[rewardTier] || 1.0;
+    const base = realmBase[realm] || 20;
+    const spiritStones = Math.floor(base * mult);
+
+    gains.push({
+      type: 'spirit_stones_gain',
+      value: spiritStones,
+      desc: `灵石 x${spiritStones}`,
+    });
+
+    return gains;
   }
 
   async archiveDungeon(state: DungeonState, settlement: DungeonSettlement) {
@@ -501,7 +740,7 @@ export class DungeonService {
     await db.insert(dungeonHistories).values({
       cultivatorId: state.cultivatorId,
       theme: state.theme,
-      result: settlement, // jsonb
+      result: settlement,
       log: state.history
         .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
         .join('\n'),
@@ -517,7 +756,6 @@ export class DungeonService {
   async quitDungeon(cultivatorId: string) {
     const key = getDungeonKey(cultivatorId);
 
-    // Retrieve state to log the abandonment
     const state = await redis.get<DungeonState>(key);
     if (state) {
       await db.insert(dungeonHistories).values({

@@ -1,6 +1,6 @@
 'use client';
 
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useEffect, useState } from 'react';
 import { InkButton, InkList, InkNotice } from './InkComponents';

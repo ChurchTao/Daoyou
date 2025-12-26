@@ -1,4 +1,4 @@
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getUserAliveCultivatorId } from '@/lib/repositories/cultivatorRepository';

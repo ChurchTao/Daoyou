@@ -2,7 +2,7 @@
 
 import { InkTabs } from '@/components/InkComponents';
 import Zhanji from '@/components/func/Zhanji';
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';

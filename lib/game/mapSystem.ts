@@ -1,3 +1,4 @@
+import { RealmType } from '@/types/constants';
 import mapData from '../../data/map.json';
 
 export interface MapNode {
@@ -21,6 +22,14 @@ export interface SatelliteNode {
   connections: string[];
   x: number;
   y: number;
+  realm_requirement: RealmType;
+  environmental_status?:
+    | 'scorching'
+    | 'freezing'
+    | 'toxic_air'
+    | 'formation_suppressed'
+    | 'abundant_qi'
+    | null; // 环境状态（可选）
 }
 
 export interface MapData {

@@ -1,4 +1,4 @@
-import { simulateBattle } from '@/engine/battleEngine';
+import { simulateBattle } from '@/engine/battle';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';

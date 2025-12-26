@@ -1,4 +1,4 @@
-import { simulateBattle } from '@/engine/battleEngine';
+import { simulateBattle } from '@/engine/battle';
 import { db } from '@/lib/drizzle/db';
 import { dungeonService } from '@/lib/dungeon/service_v2';
 import { BattleSession } from '@/lib/dungeon/types';

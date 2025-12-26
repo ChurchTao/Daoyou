@@ -1,4 +1,4 @@
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import { StatusEffect } from '@/types/constants';
 import { getStatusLabel } from '@/types/dictionaries';
 import { useEffect, useState } from 'react';

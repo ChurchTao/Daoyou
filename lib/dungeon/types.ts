@@ -67,7 +67,7 @@ export const ResourceLossSchema = z.object({
 });
 
 export const ResourceGainSchema = z.object({
-  type: ResourceTypeEnum,
+  type: z.enum(GAIN_TYPES_VALUES),
   value: z.number(), // Positive = gain, Negative = loss (for settlement), Positive = cost (for options usually)
   desc: z.string().optional(), // Description for UI e.g. "损耗寿元10年"
 });
@@ -158,6 +158,14 @@ export interface History {
   outcome?: string; // Narrative outcome of the choice? (maybe next scene covers this)
 }
 
+// 持久状态快照类型（用于序列化到Redis和数据库）
+export interface PersistentStatusSnapshot {
+  statusKey: string;
+  potency: number;
+  createdAt: number;
+  metadata: Record<string, unknown>;
+}
+
 export interface BattleSession {
   battleId: string;
   dungeonStateKey: string; // Redis key for the dungeon
@@ -172,8 +180,10 @@ export interface BattleSession {
   playerSnapshot: {
     currentHp: number;
     currentMp: number;
-    // We can also store status identifiers if needed, but for now BattleEngine takes StatusInstance[]
-    // For simplicity, we might only pass HP/MP adjustments or full status objects if serializable
+    persistentStatuses: PersistentStatusSnapshot[]; // 持久状态快照
+    environmentalStatuses: PersistentStatusSnapshot[]; // 环境状态快照
+    hpLossPercent: number; // 虚拟HP损失百分比
+    mpLossPercent: number; // 虚拟MP损失百分比
   };
 }
 // === Internal State Management ===
@@ -197,4 +207,10 @@ export interface DungeonState {
     location_description: string;
   };
   summary_of_sacrifice?: DungeonOptionCost[];
+
+  // 新增字段：状态系统集成
+  accumulatedHpLoss: number; // 累积HP损失百分比 (0-1)
+  accumulatedMpLoss: number; // 累积MP损失百分比 (0-1)
+  persistentStatuses: PersistentStatusSnapshot[]; // 持久状态快照
+  environmentalStatuses: PersistentStatusSnapshot[]; // 环境状态快照
 }

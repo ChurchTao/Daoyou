@@ -216,11 +216,11 @@ export function calculateWisdomMultiplier(wisdom: number): number {
 
 /**
  * 计算年限系数
- * 公式：1.0 + log10(闭关年限)
+ * 公式：0.15 + log10(闭关年限)
  */
 export function calculateYearsMultiplier(years: number): number {
   if (years <= 0) return 1.0;
-  return Math.log10(years);
+  return 0.15 + Math.log10(years);
 }
 
 /**

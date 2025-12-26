@@ -406,21 +406,41 @@ persistent_statuses: {
 
 实现策略：
 
+**第一阶段：根据评级确定基础奖励框架**
+
 定义奖励池表格：
 
 | 奖励等级 | 灵石数量 | 材料数量 | 消耗品数量 | 法宝概率 | 修为奖励 | 寿元奖励 | 增益状态 |
-|---------|---------|---------|-----------|---------|---------|---------|---------|
-| S | 5000-10000 | 3-5个稀有材料 | 2-3个高级丹药 | 30%获得高品质法宝 | +5000 | +10年 | 30%获得enlightenment或fate_blessing |
-| A | 2000-5000 | 2-3个稀有材料 | 1-2个中级丹药 | 15%获得中品质法宝 | +2000 | +5年 | 15%获得willpower_enhanced |
-| B | 500-2000 | 1-2个普通材料 | 1个普通丹药 | 5%获得低品质法宝 | +500 | +2年 | - |
-| C | 100-500 | 1个普通材料 | - | - | +100 | - | - |
+|---------|---------|---------|-----------|---------|---------|---------|----------|
+| S | 5000-10000 | 3-5个 | 2-3个 | 30% | +5000 | +10年 | 30%获得enlightenment或fate_blessing |
+| A | 2000-5000 | 2-3个 | 1-2个 | 15% | +2000 | +5年 | 15%获得willpower_enhanced |
+| B | 500-2000 | 1-2个 | 1个 | 5% | +500 | +2年 | - |
+| C | 100-500 | 1个 | - | - | +100 | - | - |
 | D | 0-100 | - | - | - | - | - | - |
 
+**第二阶段：根据玩家境界调整奖励品质**
+
+境界对应的奖励调整：
+- 练气期：低阶材料、基础丹药、普通法宝
+- 筑基期：中阶材料、中级丹药、优秀法宝
+- 金丹期及以上：高阶材料、高级丹药、精良/史诗法宝
+
+**第三阶段：通过AI生成具体奖励内容**
+
+调用AI接口，传入：
+- 奖励等级（reward_tier）
+- 玩家境界（realm）
+- 需要生成的物品类型和数量
+
+AI返回具体物品名称、描述、品质等。
+
 实现步骤：
-- 根据reward_tier查询奖励池配置
-- 根据玩家境界调整材料、法宝的品质和数量
-- 随机生成具体的奖励项
-- 返回DungeonResourceGain[]数组
+1. 根据reward_tier查询奖励池配置
+2. 根据玩家境界调整材料、法宝的品质和数量
+3. 对于法宝：如果命中概率，调用AI生成法宝
+4. 对于材料/消耗品：从预定义池中根据境界随机选择
+5. 对于增益状态：如果命中概率，添加到奖励列表
+6. 返回DungeonResourceGain[]数组
 
 **archiveDungeon方法扩展**
 - 将持久状态保存到cultivator.persistent_statuses字段
@@ -469,13 +489,12 @@ persistent_statuses: {
 
 ### 4.1 状态引擎完善
 
-- [ ] 扩展StatusRegistry注册持久状态（10个）
+- [ ] 扩展StatusRegistry注册持久状态（9个，暂不包含artifact_damaged）
 - [ ] 扩展StatusRegistry注册环境状态（5个）
-- [ ] 实现持久状态的效果计算器
-  - [ ] minor_wound、major_wound、near_death：maxHp修正
-  - [ ] artifact_damaged：法宝技能power修正
+- [ ] 实现持久状态的效果计算器（暂不实现artifact_damaged）
+  - [ ] minor_wound、major_wound、near_death：maxHp百分比修正
   - [ ] mana_depleted、hp_deficit：maxMp修正、治疗效果修正
-  - [ ] enlightenment、willpower_enhanced、fate_blessing：属性增益
+  - [ ] enlightenment、willpower_enhanced、fate_blessing：属性百分比增益
 - [ ] 实现环境状态的效果计算器
   - [ ] scorching、freezing：元素伤害修正
   - [ ] toxic_air：DOT计算器扩展
@@ -489,37 +508,43 @@ persistent_statuses: {
 
 - [ ] 扩展BattleUnit构造函数支持initialStatuses
 - [ ] 扩展BattleEngineV2.initializeBattle加载持久状态
-- [ ] 实现战斗结束时的持久状态判定逻辑
-  - [ ] 低血量判定（minor_wound、major_wound）
-  - [ ] 法宝损坏判定（artifact_damaged）
-  - [ ] 灵力枯竭判定（mana_depleted）
+- [ ] 实现战斗结束时的持久状态判定逻辑（仅失败方）
+  - [ ] 低血量判定：HP<30% → minor_wound, HP<10% → major_wound
+  - [ ] 状态升级：minor_wound → major_wound → near_death
 - [ ] 扩展BattleEngineResult返回持久状态快照
 - [ ] 实现战斗结束时的状态清理（clearTemporaryStatuses）
-- [ ] 实现环境状态影响战斗的逻辑
+- [ ] 实现环境状态影响战斗的逻辑（仅副本战斗）
   - [ ] scorching、freezing影响元素伤害
   - [ ] toxic_air每回合DOT
   - [ ] formation_suppressed属性压制
+  - [ ] abundant_qi MP恢复增强
 
 ### 4.3 副本引擎重构
 
-- [ ] 扩展DungeonState增加playerStatusContainer字段
+- [ ] 扩展DungeonState增加accumulatedHpLoss字段
+- [ ] 扩展DungeonState增加accumulatedMpLoss字段
+- [ ] 扩展DungeonState增加persistentStatuses字段
 - [ ] 扩展DungeonState增加environmentalStatuses字段
 - [ ] 修改startDungeon：加载持久状态、添加环境状态
-- [ ] 修改handleAction：将costs转换为状态应用
-  - [ ] hp_loss映射为状态
-  - [ ] mp_loss映射为状态
+- [ ] 修改handleAction：将costs转换为状态应用或虚拟HP/MP损失
+  - [ ] hp_loss累加到accumulatedHpLoss
+  - [ ] mp_loss累加到accumulatedMpLoss
   - [ ] weak映射为weakness状态
-  - [ ] artifact_damage映射为artifact_damaged状态
-- [ ] 修改createBattleSession：传递状态快照
-- [ ] 修改handleBattleCallback：合并战斗产生的持久状态
-- [ ] 实现processResources真实修改角色数据
+- [ ] 修改createBattleSession：传递状态快照+虚拟HP/MP损失百分比
+- [ ] 修改handleBattleCallback：
+  - [ ] 判断战斗结果（胜利/失败）
+  - [ ] 失败时生成伤势状态并触发结算
+  - [ ] 胜利时继续副本
+- [ ] 实现processResources真实修改角色数据（使用数据库事务）
   - [ ] 灵石增减
   - [ ] 修为、寿元增减
   - [ ] 法宝、材料、消耗品增减
-  - [ ] 状态施加
-- [ ] 实现generateRealRewards根据奖励等级生成奖励
+  - [ ] 状态施加（weakness等）
+- [ ] 实现generateRealRewards根据奖励等级和境界生成奖励
   - [ ] 定义奖励池配置表
-  - [ ] 实现随机生成逻辑
+  - [ ] 实现根据境界调整奖励品质逻辑
+  - [ ] 集成AI生成法宝逻辑
+  - [ ] 实现材料/消耗品预定义池
 - [ ] 修改archiveDungeon保存持久状态到数据库
 - [ ] 修改settleDungeon应用增益状态
 
@@ -638,6 +663,31 @@ persistent_statuses: {
 ### 7.4 状态的社交影响
 
 战斗时，对方可以探测到部分持久状态，影响挑战决策。
+
+**应对**：
+- 限制同类状态的叠加上限
+- 清理低效或过期的状态
+
+### 6.3 性能影响
+
+**风险**：每回合刷新状态、计算属性修正可能影响性能
+
+**应对**：
+- 使用属性缓存与脏标记机制（已实现）
+- 避免不必要的状态遍历
+
+### 6.4 AI生成内容的不确定性
+
+**风险**：AI生成的costs类型可能不符合预期，导致processResources报错
+
+**应对**：
+- 严格验证AI返回的schema
+- 对不支持的cost类型进行降级处理（如打印警告，不应用效果）
+
+## 七、后续扩展
+
+### 7.1 状态驱动的UI展示
+
 在角色详情页展示当前持久状态，提供状态图标和说明。
 
 ### 7.2 状态清除机制

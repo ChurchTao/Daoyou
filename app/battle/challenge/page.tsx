@@ -4,7 +4,7 @@ import { BattlePageLayout } from '@/components/BattlePageLayout';
 import { BattleReportViewer } from '@/components/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/BattleTimelineViewer';
 import { InkButton } from '@/components/InkComponents';
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import type { Cultivator } from '@/types/cultivator';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';

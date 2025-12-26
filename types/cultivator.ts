@@ -270,10 +270,13 @@ export interface Cultivator {
   last_yield_at?: Date;
   background?: string;
 
-  // 兼容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）
+  // 兹容现有系统 & AI：保留原 prompt 入口（不进入战斗模型）
   prompt?: string;
   balance_notes?: string;
 
   // 修为系统
   cultivation_progress?: CultivationProgress;
+
+  // 持久状态（用于存储战斗/副本中产生的持久状态）
+  persistent_statuses?: unknown; // JSONB field from database
 }

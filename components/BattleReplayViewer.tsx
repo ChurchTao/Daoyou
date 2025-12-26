@@ -1,6 +1,6 @@
 'use client';
 
-import type { TurnSnapshot } from '@/engine/battleEngine';
+import type { TurnSnapshot } from '@/engine/battle';
 import type { StatusEffect } from '@/types/constants';
 import { getStatusLabel } from '@/types/dictionaries';
 import { useState } from 'react';

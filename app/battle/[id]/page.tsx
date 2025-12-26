@@ -1,7 +1,7 @@
 'use client';
 
 import { BattleReplayViewer } from '@/components/BattleReplayViewer';
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';

@@ -1,4 +1,4 @@
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import type { RealmStage, RealmType } from '../types/constants';
 import type { Attributes, Cultivator } from '../types/cultivator';
 import type { BreakthroughModifiers } from './breakthroughCalculator';

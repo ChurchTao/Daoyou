@@ -1,4 +1,4 @@
-import type { BattleEngineResult } from '@/engine/battleEngine';
+import type { BattleEngineResult } from '@/engine/battle';
 import Link from 'next/link';
 
 export type ZhanjiRecord = {

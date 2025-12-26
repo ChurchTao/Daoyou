@@ -13,7 +13,7 @@ import {
 } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
-import { BattleEngineResult } from '@/engine/battleEngine';
+import { BattleEngineResult } from '@/engine/battle';
 import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
 import { getMapNode, MapNodeInfo } from '@/lib/game/mapSystem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
