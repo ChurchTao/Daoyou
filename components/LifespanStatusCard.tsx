@@ -116,7 +116,7 @@ export function LifespanStatusCard({
   if (loading && !status) {
     return (
       <div className={`text-sm opacity-60 text-center py-2 ${className}`}>
-        正在查询体力状态...
+        正在查询寿元状态...
       </div>
     );
   }
@@ -164,7 +164,7 @@ export function LifespanStatusCard({
           </div>
 
           {/* 进度条 */}
-          <div className="w-full h-2 bg-paper-dark rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-ink/10 rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-300 ${progressColor}`}
               style={{

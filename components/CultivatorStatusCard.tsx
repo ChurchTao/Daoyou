@@ -114,14 +114,14 @@ export function CultivatorStatusCard({
         )}
 
         {/* 修为进度条 */}
-        <div className="mb-3">
+        <div className="mb-2">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-ink-secondary">修为进度</span>
             <span className="text-sm text-ink">
               {statusData.expPercent.toFixed(2)}%
             </span>
           </div>
-          <div className="relative w-full border-ink/20 border rounded-full h-3 overflow-hidden">
+          <div className="relative w-full h-2 bg-ink/10 rounded-full overflow-hidden">
             {/* 进度条 */}
             <div
               className={`h-full transition-all duration-500 ${
@@ -148,7 +148,7 @@ export function CultivatorStatusCard({
         </div>
 
         {/* 感悟值 */}
-        <div className="mb-3">
+        <div className="mb-2">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-ink-secondary">道心感悟</span>
             <span className="text-sm text-ink">
