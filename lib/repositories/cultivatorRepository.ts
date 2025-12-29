@@ -20,7 +20,7 @@ import type {
   RetreatRecord,
 } from '../../types/cultivator';
 import { getRealmStageAttributeCap } from '../../utils/cultivatorUtils';
-import { db } from '../drizzle/db';
+import { db, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
 /**
@@ -1410,10 +1410,12 @@ export async function updateSpiritStones(
   userId: string,
   cultivatorId: string,
   delta: number,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const cultivator = await db
+  const dbInstance = tx || db;
+  const cultivator = await dbInstance
     .select({ spirit_stones: schema.cultivators.spirit_stones })
     .from(schema.cultivators)
     .where(eq(schema.cultivators.id, cultivatorId))
@@ -1430,7 +1432,7 @@ export async function updateSpiritStones(
     );
   }
 
-  await db
+  await dbInstance
     .update(schema.cultivators)
     .set({ spirit_stones: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -1443,10 +1445,12 @@ export async function updateLifespan(
   userId: string,
   cultivatorId: string,
   delta: number,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const cultivator = await db
+  const dbInstance = tx || db;
+  const cultivator = await dbInstance
     .select({ lifespan: schema.cultivators.lifespan })
     .from(schema.cultivators)
     .where(eq(schema.cultivators.id, cultivatorId))
@@ -1463,7 +1467,7 @@ export async function updateLifespan(
     );
   }
 
-  await db
+  await dbInstance
     .update(schema.cultivators)
     .set({ lifespan: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -1479,10 +1483,12 @@ export async function updateCultivationExp(
   cultivatorId: string,
   cultivationExpDelta: number,
   comprehensionInsightDelta?: number,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const cultivatorData = await db
+  const dbInstance = tx || db;
+  const cultivatorData = await dbInstance
     .select({
       cultivation_progress: schema.cultivators.cultivation_progress,
       realm: schema.cultivators.realm,
@@ -1527,7 +1533,7 @@ export async function updateCultivationExp(
     comprehension_insight: newComprehensionInsight,
   };
 
-  await db
+  await dbInstance
     .update(schema.cultivators)
     .set({ cultivation_progress: updatedProgress })
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -1611,10 +1617,12 @@ export async function removeMaterialFromInventory(
   cultivatorId: string,
   materialName: string,
   quantity: number,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const materials = await db
+  const dbInstance = tx || db;
+  const materials = await dbInstance
     .select()
     .from(schema.materials)
     .where(
@@ -1637,12 +1645,12 @@ export async function removeMaterialFromInventory(
 
   if (material.quantity === quantity) {
     // 删除材料
-    await db
+    await dbInstance
       .delete(schema.materials)
       .where(eq(schema.materials.id, material.id));
   } else {
     // 减少数量
-    await db
+    await dbInstance
       .update(schema.materials)
       .set({ quantity: material.quantity - quantity })
       .where(eq(schema.materials.id, material.id));

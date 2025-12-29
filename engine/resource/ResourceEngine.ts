@@ -130,11 +130,13 @@ export class ResourceEngine {
 
   /**
    * 消耗资源
+   * @param action 可选的回调函数，在资源扣除后执行。如果失败会回滚资源扣除
    */
   async consume(
     userId: string,
     cultivatorId: string,
     costs: ResourceOperation[],
+    action?: () => Promise<void>,
     dryRun = false,
   ): Promise<ResourceOperationResult> {
     // 先校验资源是否充足
@@ -155,53 +157,77 @@ export class ResourceEngine {
       };
     }
 
-    // 执行资源消耗
+    // 执行资源消耗（在事务中）
     const errors: string[] = [];
 
     try {
-      for (const cost of costs) {
-        switch (cost.type) {
-          case 'spirit_stones':
-            await updateSpiritStones(userId, cultivatorId, -cost.value);
-            break;
+      const { db } = await import('@/lib/drizzle/db');
 
-          case 'lifespan':
-            await updateLifespan(userId, cultivatorId, -cost.value);
-            break;
+      await db.transaction(async (tx) => {
+        // 1. 扣除资源
+        for (const cost of costs) {
+          switch (cost.type) {
+            case 'spirit_stones':
+              await updateSpiritStones(userId, cultivatorId, -cost.value, tx);
+              break;
 
-          case 'cultivation_exp':
-            await updateCultivationExp(userId, cultivatorId, -cost.value);
-            break;
+            case 'lifespan':
+              await updateLifespan(userId, cultivatorId, -cost.value, tx);
+              break;
 
-          case 'comprehension_insight':
-            // 只修改感悟值，修为变化为0
-            await updateCultivationExp(userId, cultivatorId, 0, -cost.value);
-            break;
-
-          case 'material':
-            if (cost.name) {
-              await removeMaterialFromInventory(
+            case 'cultivation_exp':
+              await updateCultivationExp(
                 userId,
                 cultivatorId,
-                cost.name,
-                cost.value,
+                -cost.value,
+                undefined,
+                tx,
               );
-            }
-            break;
+              break;
 
-          // 副本特有类型，不在资源引擎中处理，由副本系统内部处理
-          case 'hp_loss':
-          case 'mp_loss':
-          case 'weak':
-          case 'battle':
-          case 'artifact_damage':
-            // 这些类型不消耗实际资源，跳过
-            break;
+            case 'comprehension_insight':
+              // 只修改感悟值，修为变化为0
+              await updateCultivationExp(
+                userId,
+                cultivatorId,
+                0,
+                -cost.value,
+                tx,
+              );
+              break;
 
-          default:
-            errors.push(`未知的资源类型: ${cost.type}`);
+            case 'material':
+              if (cost.name) {
+                await removeMaterialFromInventory(
+                  userId,
+                  cultivatorId,
+                  cost.name,
+                  cost.value,
+                  tx,
+                );
+              }
+              break;
+
+            // 副本特有类型，不在资源引擎中处理，由副本系统内部处理
+            case 'hp_loss':
+            case 'mp_loss':
+            case 'weak':
+            case 'battle':
+            case 'artifact_damage':
+              // 这些类型不消耗实际资源，跳过
+              break;
+
+            default:
+              errors.push(`未知的资源类型: ${cost.type}`);
+          }
         }
-      }
+
+        // 2. 如果提供了action，执行它
+        // 如果action失败，会抛出异常，导致事务回滚
+        if (action) {
+          await action();
+        }
+      });
 
       return {
         success: errors.length === 0,
@@ -213,7 +239,7 @@ export class ResourceEngine {
         success: false,
         operations: costs,
         errors: [
-          `消耗资源时发生错误: ${error instanceof Error ? error.message : String(error)}`,
+          `操作失败已回滚: ${error instanceof Error ? error.message : String(error)}`,
         ],
       };
     }
@@ -364,7 +390,8 @@ export class ResourceEngine {
         userId,
         cultivatorId,
         operations.consume,
-        false,
+        undefined, // action
+        false, // dryRun
       );
       if (!consumeResult.success) {
         errors.push(...(consumeResult.errors || []));
