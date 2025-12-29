@@ -1,20 +1,21 @@
 import { BattleEngineResult } from '@/engine/battle';
 import { enemyGenerator } from '@/engine/enemyGenerator';
+import { resourceEngine } from '@/engine/resource/ResourceEngine';
+import type { ResourceOperation } from '@/engine/resource/types';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { randomUUID } from 'crypto';
-import { eq } from 'drizzle-orm';
 import { db } from '../drizzle/db';
-import { cultivators, dungeonHistories } from '../drizzle/schema';
+import { dungeonHistories } from '../drizzle/schema';
 import { getMapNode, SatelliteNode } from '../game/mapSystem';
 import { redis } from '../redis';
 import {
   getCultivatorByIdUnsafe,
+  getCultivatorOwnerId,
   getInventory,
 } from '../repositories/cultivatorRepository';
 import {
   BattleSession,
-  COST_TYPES,
   DungeonOptionCost,
   DungeonResourceGain,
   DungeonRound,
@@ -68,9 +69,9 @@ export class DungeonService {
 - **因果律**：必须参考 history。若前一轮玩家损坏了法宝，本轮描述中应体现该法宝无法使用的窘境。
 
 ## 3. 强制选项模板 (必须生成3个选项)
-- **选项 A (求稳)**：低风险、低收益。通常体现“韩立式谨慎”（如：布下匿踪阵观察、绕路而行）。消耗：灵石(spirit_stones_loss)、气血(hp_loss)、灵力(mp_loss)、材料损耗(material_loss)、陷入虚弱(weak)。
-- **选项 B (弄险)**：高风险、高收益。体现“富贵险中求”。消耗：法宝损坏(artifact_damage)、材料损耗(material_loss)、遭遇战斗(battle)、寿元损耗(lifespan_loss)、修为损耗(exp_loss)。
-- **选项 C (奇招)**：属性/道具/功法/命格触发。必须检索 player_info 中的 inventory 或 skills 或 fates。消耗：视情况而定，从COST_TYPES中选择合适的。
+- **选项 A (求稳)**：低风险、低收益。通常体现“韩立式谨慎”（如：布下匿踪阵观察、绕路而行）。
+- **选项 B (弄险)**：高风险、高收益。体现“富贵险中求”。
+- **选项 C (奇招)**：属性/道具/功法/命格触发。必须检索 player_info 中的 inventory 或 skills 或 fates。
 
 ## 4. 输出约束
 - 必须使用 JSON 输出。
@@ -79,17 +80,21 @@ export class DungeonService {
   - 0-30：相对安全，以寻宝、破禁为主，收获一般。
   - 31-70：很有挑战，如遭遇傀儡、妖兽，或者发现其他修士的踪迹，收获尚可。
   - 71-100：必死之局或绝境，必须通过极大的代价（燃血、自爆法宝）才能生还，但往往有丰厚的收获。
-- costs: 必须严格使用规定的类型（COST_TYPES） ${COST_TYPES.map((cost) => `${cost.type}(${cost.name})`).join(', ')}，禁止自定义类型
-- costs类型规定:
-  - cost类型为battle: value为战斗难度系数(1-10),desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快",metadata为敌人信息(enemy_name, is_boss, enemy_stage, enemy_realm)
-  - cost类型为artifact_damage: value为法宝损坏程度(1-10),desc为法宝名称
-  - cost类型为material_loss: value为材料消耗数量(1-5),desc为材料名称
-  - cost类型为spirit_stones_loss: value为灵石消耗数量(1-10000)
-  - cost类型为hp_loss: value为气血损耗程度(1-10)
-  - cost类型为mp_loss: value为灵力损耗程度(1-10)
-  - cost类型为exp_loss: value为修为损耗程度(1-10)
-  - cost类型为lifespan_loss: value为寿元损耗年数(1-100)
-  - cost类型为weak: value为虚弱程度(1-10)
+- costs: 必须严格使用规定的类型：spirit_stones(灵石), lifespan(寿元), cultivation_exp(修为), comprehension_insight(感悟值), material(材料), hp_loss(气血损耗), mp_loss(灵力损耗), weak(虚弱), battle(战斗), artifact_damage(法宝损坏)，禁止自定义类型
+- costs类型规定（分为资源消耗类和副本特有类）:
+  
+  **资源消耗类**（会真实扣除玩家资源）:
+  - type为spirit_stones: 灵石消耗，value为消耗数量(1-10000)，desc为消耗原因
+  - type为lifespan: 寿元消耗，value为消耗年数(1-100)，desc为消耗原因，例如："强行催动法宝"
+  - type为cultivation_exp: 修为消耗，value为消耗点数(1-1000)，desc为消耗原因，例如："逆转禁制"
+  - type为material: 材料消耗，value为消耗数量(1-5)，name为材料名称（必须），desc为消耗原因，例如："破阵需要'破禁符'"
+  
+  **副本特有类**（虚拟损耗，不直接扣除资源，但会影响副本内状态和结算）:
+  - type为battle: 遭遇战斗，value为战斗难度系数(1-10)，desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快"，metadata必须包含(enemy_name, is_boss, enemy_stage, enemy_realm)
+  - type为hp_loss: 气血损耗，value为损耗程度(1-10，每1点=10%最大气血)，desc为损耗原因，影响副本内战斗状态
+  - type为mp_loss: 灵力损耗，value为损耗程度(1-10，每1点=10%最大灵力)，desc为损耗原因，影响副本内战斗状态
+  - type为weak: 陷入虚弱，value为虚弱程度(1-10)，desc为虚弱原因，会累加到角色的weakness状态，结算后持久化
+  - type为artifact_damage: 法宝损坏，value为损坏程度(1-10)，desc为法宝名称及损坏原因（注意：当前版本仅作记录，不真实处理）
 
 ## 5. 当前上下文摘要
 - 地点：读取 location
@@ -143,6 +148,7 @@ export class DungeonService {
     // 3. 初始状态
     const state: DungeonState = {
       ...context,
+      mapNodeId, // 保存地图节点ID
       currentRound: 1,
       maxRounds: 5, // 建议固定或根据地图设定
       history: [],
@@ -184,8 +190,24 @@ export class DungeonService {
     // 1. 校验并处理消耗（成本校验前置）
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
     if (chosenOption?.costs) {
-      // 在这里进行硬核校验，比如灵石不够则报错
-      await this.processResources(cultivatorId, chosenOption.costs, 'cost');
+      // 获取 userId
+      const userId = await getCultivatorOwnerId(cultivatorId);
+      if (!userId) {
+        throw new Error('无法获取修真者所属用户');
+      }
+
+      // DungeonOptionCost 与 ResourceOperation 结构兼容
+      // desc 字段在 ResourceEngine 中会被忽略
+      const result = await resourceEngine.consume(
+        userId,
+        cultivatorId,
+        chosenOption.costs as ResourceOperation[],
+      );
+
+      if (!result.success) {
+        throw new Error(result.errors?.join('; ') || '资源消耗失败');
+      }
+
       state.summary_of_sacrifice?.push(...chosenOption.costs);
 
       // 1.1 累加 HP/MP 损失百分比
@@ -298,30 +320,22 @@ export class DungeonService {
     console.log('[createBattleSession]', battleCost);
     const battleId = randomUUID();
 
-    // 计算玩家当前 HP/MP（基于累积损失百分比）
-    const maxHp = playerInfo.attributes.vitality * 5; // 基础 maxHP 公式
-    const maxMp = playerInfo.attributes.spirit * 10; // 基础 maxMP 公式
+    // 获取地图节点的境界要求
+    const mapNode = getMapNode(dungeonState.mapNodeId);
+    if (!mapNode || !('realm_requirement' in mapNode)) {
+      throw new Error('Invalid map node or missing realm_requirement');
+    }
+    const realmRequirement = (mapNode as { realm_requirement: string })
+      .realm_requirement;
 
-    // 计算虚拟 HP/MP：根据累积损失百分比减少
-    const currentHp = Math.max(
-      1,
-      Math.floor(maxHp * (1 - dungeonState.accumulatedHpLoss)),
-    );
-    const currentMp = Math.max(
-      1,
-      Math.floor(maxMp * (1 - dungeonState.accumulatedMpLoss)),
-    );
-
-    // 生成敌人
+    // 生成敌人（传入境界门槛）
     const enemy = await enemyGenerator.generate(
       battleCost.metadata || {
         enemy_name: battleCost.desc,
         is_boss: false,
-        enemy_stage: playerInfo.realm,
-        enemy_realm: '中期',
-      }, // Ensure metadata is passed safely
+      },
       battleCost.value,
-      playerInfo,
+      realmRequirement as import('@/types/constants').RealmType,
     );
 
     // 构建 BattleSession，传递状态快照和虚拟 HP/MP 损失百分比
@@ -337,8 +351,6 @@ export class DungeonService {
         difficulty: battleCost.value,
       },
       playerSnapshot: {
-        currentHp,
-        currentMp,
         persistentStatuses: dungeonState.persistentStatuses, // 持久状态快照
         environmentalStatuses: dungeonState.environmentalStatuses, // 环境状态快照
         hpLossPercent: dungeonState.accumulatedHpLoss, // 虚拟 HP 损失百分比
@@ -359,7 +371,13 @@ export class DungeonService {
   async handleBattleCallback(
     cultivatorId: string,
     battleResult: BattleEngineResult,
-  ) {
+  ): Promise<{
+    state?: DungeonState;
+    roundData?: DungeonRound;
+    isFinished: boolean;
+    realGains?: ResourceOperation[];
+    settlement?: DungeonSettlement;
+  }> {
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('Dungeon state not found');
 
@@ -474,12 +492,24 @@ export class DungeonService {
   /**
    * 结算副本：采用“AI评价 + 后端发放”模式
    */
-  private async settleDungeon(state: DungeonState) {
+  async settleDungeon(
+    state: DungeonState,
+    options?: {
+      skipInjury?: boolean; // 跳过受伤逻辑
+      abandonedBattle?: boolean; // 标记为主动放弃
+    },
+  ): Promise<{
+    state?: DungeonState;
+    settlement: DungeonSettlement;
+    isFinished: boolean;
+    realGains: ResourceOperation[];
+  }> {
     const settlementPrompt = `
 # Role: 《凡人修仙传》天道平衡者
 
 ## 结算背景
 玩家刚刚经历了一场艰难的历练。你需要根据其【付出】与【危险】给出最终评价。
+${options?.abandonedBattle ? '\n**特别注意**: 玩家在战斗前主动放弃撤退，未完成副本，评价应该更低（D或更低），奖励应该极少或无。' : ''}
 
 ## 核心准则：等价交换
 1. **惨烈补偿**：若玩家在历练中损失了法宝、消耗了大量寿元或多次陷入死斗（参考 summary_of_sacrifice），结算等级严禁低于 B。
@@ -524,8 +554,23 @@ export class DungeonService {
       state.playerInfo.realm,
     );
 
-    // 执行真正的资源变更
-    await this.processResources(state.cultivatorId, realGains, 'gain');
+    // 获取 userId
+    const userId = await getCultivatorOwnerId(state.cultivatorId);
+    if (!userId) {
+      throw new Error('无法获取修真者所属用户');
+    }
+
+    // DungeonResourceGain 与 ResourceOperation 结构兼容
+    // desc 字段在 ResourceEngine 中会被忽略
+    const result = await resourceEngine.gain(
+      userId,
+      state.cultivatorId,
+      realGains as ResourceOperation[],
+    );
+
+    if (!result.success) {
+      console.error('[DungeonSettlement] 资源获得失败:', result.errors);
+    }
 
     // 清理并存档 (逻辑同你之前)
     await this.archiveDungeon(state, settlement);
@@ -632,68 +677,6 @@ export class DungeonService {
   }
 
   /**
-   * 处理资源消耗和获得（真实数据库操作）
-   */
-  async processResources(
-    cultivatorId: string,
-    resources: DungeonResourceGain[] | DungeonOptionCost[],
-    type: 'gain' | 'cost',
-  ) {
-    if (!resources || resources.length === 0) return;
-
-    const cultivator = await getCultivatorByIdUnsafe(cultivatorId);
-    if (!cultivator || !cultivator.cultivator) {
-      throw new Error('未找到修真者数据');
-    }
-
-    // 成本校验
-    if (type === 'cost') {
-      for (const resource of resources) {
-        if (resource.type === 'spirit_stones_loss') {
-          if (cultivator.cultivator.spirit_stones < resource.value) {
-            throw new Error(`灵石不足，需要 ${resource.value}`);
-          }
-        }
-      }
-    }
-
-    // 处理资源变化
-    for (const resource of resources) {
-      const multiplier = type === 'gain' ? 1 : -1;
-
-      switch (resource.type) {
-        case 'spirit_stones_loss':
-        case 'spirit_stones_gain':
-          await db
-            .update(cultivators)
-            .set({
-              spirit_stones:
-                cultivator.cultivator.spirit_stones +
-                resource.value * multiplier,
-            })
-            .where(eq(cultivators.id, cultivatorId));
-          break;
-
-        case 'lifespan_loss':
-        case 'lifespan_gain':
-          await db
-            .update(cultivators)
-            .set({
-              lifespan:
-                cultivator.cultivator.lifespan + resource.value * multiplier,
-            })
-            .where(eq(cultivators.id, cultivatorId));
-          break;
-
-        default:
-          console.log(
-            `[processResources] ${type} ${resource.type}: ${resource.value}`,
-          );
-      }
-    }
-  }
-
-  /**
    * 生成真实奖励（根据评级和境界）
    */
   async generateRealRewards(
@@ -727,7 +710,7 @@ export class DungeonService {
     const spiritStones = Math.floor(base * mult);
 
     gains.push({
-      type: 'spirit_stones_gain',
+      type: 'spirit_stones',
       value: spiritStones,
       desc: `灵石 x${spiritStones}`,
     });

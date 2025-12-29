@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         { status: 404 },
       );
     }
-    const { session, enemyObject } = sessionData;
+    const { enemyObject } = sessionData;
 
     const playerBundle = await getCultivatorByIdUnsafe(cultivatorId);
 
@@ -66,10 +66,7 @@ export async function POST(req: NextRequest) {
     const enemyUnit = enemyObject;
 
     // Simulate Battle
-    const result = simulateBattle(playerUnit, enemyUnit, {
-      hp: session.playerSnapshot.currentHp,
-      mp: session.playerSnapshot.currentMp,
-    });
+    const result = simulateBattle(playerUnit, enemyUnit);
 
     // Stream Response
     const encoder = new TextEncoder();
@@ -124,8 +121,8 @@ export async function POST(req: NextRequest) {
           // Await the state update after streaming is done
           const callbackResult = await stateUpdatePromise;
 
-          if ((callbackResult as any).isFinished) {
-            const finished = callbackResult as any;
+          if (callbackResult.isFinished) {
+            const finished = callbackResult;
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({
@@ -136,7 +133,7 @@ export async function POST(req: NextRequest) {
               ),
             );
           } else {
-            const active = callbackResult as any;
+            const active = callbackResult;
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({

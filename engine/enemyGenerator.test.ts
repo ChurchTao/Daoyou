@@ -30,11 +30,9 @@ const mockPlayer: PlayerInfo = {
 test('test 敌人生成器', async () => {
   const metadata = {
     enemy_name: '古剑宗阵法中的古修士鬼魂',
-    enemy_realm: '筑基',
-    enemy_stage: '后期',
     is_boss: true,
   };
-  const enemy = await enemyGenerator.generate(metadata, 10, mockPlayer);
+  const enemy = await enemyGenerator.generate(metadata, 10, '筑基');
 
   console.log('生成的敌人:', JSON.stringify(enemy, null, 2));
 

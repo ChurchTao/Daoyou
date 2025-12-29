@@ -4,6 +4,8 @@ import {
   EquipmentSlot,
   MaterialType,
   Quality,
+  RealmStage,
+  RealmType,
   SkillGrade,
   SkillType,
   StatusEffect,
@@ -1396,5 +1398,325 @@ async function handleConsumeItem(itemId: string, currentQuantity: number) {
     await db
       .delete(schema.consumables)
       .where(eq(schema.consumables.id, itemId));
+  }
+}
+
+// ===== 资源管理引擎底层操作 =====
+
+/**
+ * 更新角色灵石数量
+ */
+export async function updateSpiritStones(
+  userId: string,
+  cultivatorId: string,
+  delta: number,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const cultivator = await db
+    .select({ spirit_stones: schema.cultivators.spirit_stones })
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId))
+    .limit(1);
+
+  if (cultivator.length === 0) {
+    throw new Error('修真者不存在');
+  }
+
+  const newValue = cultivator[0].spirit_stones + delta;
+  if (newValue < 0) {
+    throw new Error(
+      `灵石不足，需要 ${-delta}，当前拥有 ${cultivator[0].spirit_stones}`,
+    );
+  }
+
+  await db
+    .update(schema.cultivators)
+    .set({ spirit_stones: newValue })
+    .where(eq(schema.cultivators.id, cultivatorId));
+}
+
+/**
+ * 更新角色寿元
+ */
+export async function updateLifespan(
+  userId: string,
+  cultivatorId: string,
+  delta: number,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const cultivator = await db
+    .select({ lifespan: schema.cultivators.lifespan })
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId))
+    .limit(1);
+
+  if (cultivator.length === 0) {
+    throw new Error('修真者不存在');
+  }
+
+  const newValue = cultivator[0].lifespan + delta;
+  if (newValue < 0) {
+    throw new Error(
+      `寿元不足，需要 ${-delta}，当前剩余 ${cultivator[0].lifespan}`,
+    );
+  }
+
+  await db
+    .update(schema.cultivators)
+    .set({ lifespan: newValue })
+    .where(eq(schema.cultivators.id, cultivatorId));
+}
+
+/**
+ * 更新角色修为和感悟值
+ * @param cultivationExpDelta 修为变化量（可为负数）
+ * @param comprehensionInsightDelta 感悟值变化量（可选，可为负数）
+ */
+export async function updateCultivationExp(
+  userId: string,
+  cultivatorId: string,
+  cultivationExpDelta: number,
+  comprehensionInsightDelta?: number,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const cultivatorData = await db
+    .select({
+      cultivation_progress: schema.cultivators.cultivation_progress,
+      realm: schema.cultivators.realm,
+      realm_stage: schema.cultivators.realm_stage,
+    })
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId))
+    .limit(1);
+
+  if (cultivatorData.length === 0) {
+    throw new Error('修真者不存在');
+  }
+
+  // 使用 getOrInitCultivationProgress 自动初始化
+  const progress = getOrInitCultivationProgress(
+    (cultivatorData[0].cultivation_progress as CultivationProgress | null) ||
+      ({} as CultivationProgress),
+    cultivatorData[0].realm as RealmType,
+    cultivatorData[0].realm_stage as RealmStage,
+  );
+
+  // 计算新的修为值
+  const newCultivationExp = progress.cultivation_exp + cultivationExpDelta;
+  if (newCultivationExp < 0) {
+    throw new Error(
+      `修为不足，需要 ${-cultivationExpDelta}，当前修为 ${progress.cultivation_exp}`,
+    );
+  }
+
+  // 计算新的感悟值（如果提供）
+  let newComprehensionInsight = progress.comprehension_insight;
+  if (comprehensionInsightDelta !== undefined) {
+    newComprehensionInsight = Math.max(
+      0,
+      Math.min(100, progress.comprehension_insight + comprehensionInsightDelta),
+    ); // 限制在 0-100 范围内
+  }
+
+  const updatedProgress: CultivationProgress = {
+    ...progress,
+    cultivation_exp: newCultivationExp,
+    comprehension_insight: newComprehensionInsight,
+  };
+
+  await db
+    .update(schema.cultivators)
+    .set({ cultivation_progress: updatedProgress })
+    .where(eq(schema.cultivators.id, cultivatorId));
+}
+
+/**
+ * 检查角色是否拥有足够数量的材料
+ */
+export async function hasMaterial(
+  userId: string,
+  cultivatorId: string,
+  materialName: string,
+  quantity: number,
+): Promise<boolean> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const materials = await db
+    .select()
+    .from(schema.materials)
+    .where(
+      and(
+        eq(schema.materials.cultivatorId, cultivatorId),
+        eq(schema.materials.name, materialName),
+      ),
+    );
+
+  if (materials.length === 0) {
+    return false;
+  }
+
+  return materials[0].quantity >= quantity;
+}
+
+/**
+ * 添加材料到物品栏（如果已存在则增加数量）
+ */
+export async function addMaterialToInventory(
+  userId: string,
+  cultivatorId: string,
+  material: import('../../types/cultivator').Material,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  // 检查是否已经有相同的材料
+  const existing = await db
+    .select()
+    .from(schema.materials)
+    .where(
+      and(
+        eq(schema.materials.cultivatorId, cultivatorId),
+        eq(schema.materials.name, material.name),
+      ),
+    );
+
+  if (existing.length > 0) {
+    // 增加数量
+    await db
+      .update(schema.materials)
+      .set({ quantity: existing[0].quantity + material.quantity })
+      .where(eq(schema.materials.id, existing[0].id));
+  } else {
+    // 添加新材料
+    await db.insert(schema.materials).values({
+      cultivatorId,
+      name: material.name,
+      type: material.type,
+      rank: material.rank,
+      element: material.element || null,
+      description: material.description || null,
+      details: (material.details as Record<string, unknown>) || null,
+      quantity: material.quantity,
+    });
+  }
+}
+
+/**
+ * 从物品栏移除材料
+ */
+export async function removeMaterialFromInventory(
+  userId: string,
+  cultivatorId: string,
+  materialName: string,
+  quantity: number,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const materials = await db
+    .select()
+    .from(schema.materials)
+    .where(
+      and(
+        eq(schema.materials.cultivatorId, cultivatorId),
+        eq(schema.materials.name, materialName),
+      ),
+    );
+
+  if (materials.length === 0) {
+    throw new Error(`材料 ${materialName} 不存在`);
+  }
+
+  const material = materials[0];
+  if (material.quantity < quantity) {
+    throw new Error(
+      `材料 ${materialName} 不足，需要 ${quantity}，当前拥有 ${material.quantity}`,
+    );
+  }
+
+  if (material.quantity === quantity) {
+    // 删除材料
+    await db
+      .delete(schema.materials)
+      .where(eq(schema.materials.id, material.id));
+  } else {
+    // 减少数量
+    await db
+      .update(schema.materials)
+      .set({ quantity: material.quantity - quantity })
+      .where(eq(schema.materials.id, material.id));
+  }
+}
+
+/**
+ * 添加法宝到物品栏
+ */
+export async function addArtifactToInventory(
+  userId: string,
+  cultivatorId: string,
+  artifact: import('../../types/cultivator').Artifact,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  await db.insert(schema.artifacts).values({
+    cultivatorId,
+    name: artifact.name,
+    slot: artifact.slot,
+    element: artifact.element,
+    prompt: '', // 默认空提示词
+    quality: artifact.quality || '凡品',
+    required_realm: artifact.required_realm || '炼气',
+    bonus: artifact.bonus as Record<string, number>,
+    special_effects: (artifact.special_effects || []) as unknown as Record<
+      string,
+      unknown
+    >[],
+    curses: (artifact.curses || []) as unknown as Record<string, unknown>[],
+    description: artifact.description || null,
+    score: 0, // 默认评分
+  });
+}
+
+/**
+ * 添加消耗品到物品栏（如果已存在则增加数量）
+ */
+export async function addConsumableToInventory(
+  userId: string,
+  cultivatorId: string,
+  consumable: import('../../types/cultivator').Consumable,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  // 检查是否已经有相同的消耗品
+  const existing = await db
+    .select()
+    .from(schema.consumables)
+    .where(
+      and(
+        eq(schema.consumables.cultivatorId, cultivatorId),
+        eq(schema.consumables.name, consumable.name),
+      ),
+    );
+
+  if (existing.length > 0) {
+    // 增加数量
+    await db
+      .update(schema.consumables)
+      .set({ quantity: existing[0].quantity + consumable.quantity })
+      .where(eq(schema.consumables.id, existing[0].id));
+  } else {
+    // 添加新消耗品
+    await db.insert(schema.consumables).values({
+      cultivatorId,
+      name: consumable.name,
+      type: consumable.type,
+      prompt: '', // 默认空提示词
+      quality: consumable.quality || '凡品',
+      effect: (consumable.effect || []) as unknown as Record<string, unknown>[],
+      quantity: consumable.quantity,
+      description: consumable.description || null,
+      score: 0, // 默认评分
+    });
   }
 }

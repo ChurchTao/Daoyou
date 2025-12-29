@@ -1,9 +1,7 @@
-import { PlayerInfo } from '@/lib/dungeon/types';
 import {
   ElementType,
   GenderType,
-  REALM_STAGE_VALUES,
-  REALM_VALUES,
+  REALM_STAGE_CAPS,
   RealmStage,
   RealmType,
   SkillType,
@@ -14,36 +12,25 @@ import { object } from '@/utils/aiClient';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 
-// Zod Schema for AI Generation
-const EnemyCSchema = z.object({
+// Zod Schema for AI Generation - 只生成文本描述
+const EnemyTextSchema = z.object({
   name: z.string().describe('敌人的名字'),
-  title: z.string().optional().describe('称号，如“烈火老祖”'),
+  title: z.string().optional().describe('称号，如"烈火老祖"'),
   gender: z.enum(['男', '女']).describe('性别'),
-  realm: z.enum(REALM_VALUES).describe('大境界'),
-  realm_stage: z.enum(REALM_STAGE_VALUES).describe('小境界'),
-  attributes: z.object({
-    vitality: z.number().describe('体魄'),
-    spirit: z.number().describe('灵力'),
-    wisdom: z.number().describe('悟性'),
-    speed: z.number().describe('速度'),
-    willpower: z.number().describe('神识'),
-  }),
   spiritual_roots: z.array(
     z.object({
       element: z
         .enum(['金', '木', '水', '火', '土', '风', '雷', '冰'])
         .describe('属性'),
-      strength: z.number().describe('强度 1-100'),
+      // 移除 strength 字段，由算法计算
     }),
   ),
   skills: z.array(
     z.object({
-      name: z.string(),
+      name: z.string().describe('技能名称'),
       type: z.enum(['attack', 'heal', 'control', 'debuff', 'buff']),
       element: z.enum(['金', '木', '水', '火', '土', '风', '雷', '冰']),
-      power: z.number().describe('威力 30-200'),
-      cooldown: z.number().describe('冷却回合'),
-      cost: z.number().describe('消耗'),
+      // 移除 power, cooldown, cost 字段，由算法计算
       effect: z
         .enum([
           'burn',
@@ -68,83 +55,185 @@ const EnemyCSchema = z.object({
 
 export class EnemyGenerator {
   /**
-   * Use AI to generate a detailed enemy based on metadata and player info.
+   * 根据难度系数确定敌人境界阶段
+   */
+  private getEnemyStageByDifficulty(difficulty: number): RealmStage {
+    if (difficulty <= 2) return '初期';
+    if (difficulty <= 4) return Math.random() < 0.5 ? '初期' : '中期';
+    if (difficulty <= 6) return '中期';
+    if (difficulty <= 8) return '后期';
+    return '圆满';
+  }
+
+  /**
+   * 基于境界门槛和难度计算属性
+   */
+  private calculateAttributes(
+    realmRequirement: RealmType,
+    difficulty: number,
+  ): {
+    vitality: number;
+    spirit: number;
+    wisdom: number;
+    speed: number;
+    willpower: number;
+  } {
+    const stage = this.getEnemyStageByDifficulty(difficulty);
+    const baseCap = REALM_STAGE_CAPS[realmRequirement][stage];
+
+    // 在上限的 80%-100% 范围内随机
+    const minRatio = 0.8;
+    const maxRatio = 1.0;
+
+    const randomInRange = () =>
+      Math.floor(baseCap * (minRatio + Math.random() * (maxRatio - minRatio)));
+
+    return {
+      vitality: randomInRange(),
+      spirit: randomInRange(),
+      wisdom: randomInRange(),
+      speed: randomInRange(),
+      willpower: randomInRange(),
+    };
+  }
+
+  /**
+   * 计算技能数值
+   */
+  private calculateSkillPower(
+    difficulty: number,
+    skillType: SkillType,
+  ): { power: number; cooldown: number; cost: number } {
+    // 基础威力（按技能类型）
+    const basePower = {
+      attack: 60,
+      buff: 30,
+      debuff: 30,
+      heal: 50,
+      control: 40,
+    }[skillType];
+
+    // 难度加成（1-10 → +10 到 +100）
+    const diffBonus = difficulty * 10;
+
+    const finalPower = basePower + diffBonus;
+
+    return {
+      power: finalPower,
+      cooldown: skillType === 'attack' ? 0 : Math.ceil(difficulty / 3),
+      cost: Math.floor(finalPower * 0.3),
+    };
+  }
+
+  /**
+   * 计算灵根强度
+   */
+  private calculateSpiritualRootStrength(
+    realmRequirement: RealmType,
+    difficulty: number,
+  ): number {
+    // 基于境界的基础强度
+    const baseStrength: Record<RealmType, number> = {
+      炼气: 30,
+      筑基: 50,
+      金丹: 70,
+      元婴: 85,
+      化神: 90,
+      炼虚: 95,
+      合体: 97,
+      大乘: 98,
+      渡劫: 99,
+    };
+
+    const base = baseStrength[realmRequirement] || 30;
+
+    // 难度加成
+    const diffBonus = difficulty * 2;
+
+    return Math.min(100, base + diffBonus);
+  }
+
+  /**
+   * Use AI to generate enemy text descriptions, calculate stats algorithmically.
    */
   async generate(
     metadata: {
       enemy_name?: string;
-      enemy_realm?: string;
-      enemy_stage?: string;
       is_boss?: boolean;
     },
     difficulty: number,
-    playerInfo: PlayerInfo,
+    realmRequirement: RealmType, // 新增：地图境界门槛
   ): Promise<Cultivator> {
     const prompt = `
 # Role: 修仙界敌人生成器
 
 ## 任务
-根据玩家信息和副本描述，生成一个合理的敌人数据。
+根据副本信息生成敌人的**文本描述**（数值由系统自动计算）
 
 ## 上下文
-- 玩家境界: ${playerInfo.realm}
-- 玩家属性参考: 
-    体魄${playerInfo.attributes.vitality}
-    灵力${playerInfo.attributes.spirit}
-    速度${playerInfo.attributes.speed}
-    神识${playerInfo.attributes.willpower}
-    悟性${playerInfo.attributes.wisdom}
-- 目标敌人描述: ${metadata.enemy_name || '未知道友'}
-- 目标境界: ${metadata.enemy_realm || '同境界'} ${metadata.enemy_stage || ''}
+- 境界门槛: ${realmRequirement}
+- 目标敌人: ${metadata.enemy_name || '未知道友'}
 - 难度系数: ${difficulty} (1-10)
+- 是否BOSS: ${metadata.is_boss ? '是' : '否'}
 
 ## 生成规则
-1. **属性平衡**: 如果难度>5，敌人的主要属性应略高于玩家；如果难度<5，应略低。
-2. **技能设计**: 必须生成 2-4 个技能，包含攻击、增益、治疗、控制、异常技能。如果难度>5，拥有4个技能，且威力更大。
-3. **法宝**: 如果是 Boss (is_boss=${
-      metadata.is_boss
-    })，必须有一个强力法宝作为武器。
-4. **合理性**: 境界必须符合《凡人修仙传》体系。
+1. **名字和描述**: 生成符合《凡人修仙传》世界观的敌人
+2. **技能设计**: 生成 2-4 个技能的**名称、类型、元素**
+3. **不要生成任何数值**（属性、威力、强度等由系统计算）
+4. **如果是BOSS**，可以有更华丽的称号和描述
     `;
 
-    console.log('[生成敌人 prompt]', prompt);
+    console.log('[EnemyGenerator] 生成敌人文本描述');
 
     try {
-      const result = await object(prompt, '请按照要求生成一个敌人', {
-        schema: EnemyCSchema,
-        schemaName: 'EnemyData',
+      const result = await object(prompt, '请按照要求生成一个敌人的文本描述', {
+        schema: EnemyTextSchema,
+        schemaName: 'EnemyText',
       });
 
-      const data = result.object;
+      const textData = result.object;
+
+      // 使用算法计算数值
+      const stage = this.getEnemyStageByDifficulty(difficulty);
+      const attributes = this.calculateAttributes(realmRequirement, difficulty);
 
       // Map to System Cultivator Type
       const enemy: Cultivator = {
         id: `enemy-${randomUUID()}`,
-        name: data.name,
-        title: data.title,
-        gender: data.gender as GenderType,
-        realm: data.realm as RealmType,
-        realm_stage: data.realm_stage as RealmStage,
+        name: textData.name,
+        title: textData.title,
+        gender: textData.gender as GenderType,
+        realm: realmRequirement, // 使用地图境界门槛
+        realm_stage: stage, // 由难度计算
         age: 100 + Math.floor(Math.random() * 200),
         lifespan: 1000,
-        attributes: data.attributes,
-        spiritual_roots: data.spiritual_roots.map((r) => ({
+        attributes: attributes, // 算法生成
+        spiritual_roots: textData.spiritual_roots.map((r) => ({
           element: r.element as ElementType,
-          strength: r.strength,
+          strength: this.calculateSpiritualRootStrength(
+            realmRequirement,
+            difficulty,
+          ),
         })),
         pre_heaven_fates: [],
         cultivations: [],
-        skills: data.skills.map((s) => ({
-          id: randomUUID(),
-          name: s.name,
-          type: s.type as SkillType,
-          element: s.element as ElementType,
-          power: s.power,
-          cooldown: s.cooldown,
-          cost: s.cost,
-          effect: s.effect as StatusEffect,
-          duration: s.effect ? 2 : 0,
-        })),
+        skills: textData.skills.map((s) => {
+          const skillPower = this.calculateSkillPower(
+            difficulty,
+            s.type as SkillType,
+          );
+          return {
+            id: randomUUID(),
+            name: s.name,
+            type: s.type as SkillType,
+            element: s.element as ElementType,
+            power: skillPower.power,
+            cooldown: skillPower.cooldown,
+            cost: skillPower.cost,
+            effect: s.effect as StatusEffect,
+            duration: s.effect ? 2 : 0,
+          };
+        }),
         max_skills: 10,
         spirit_stones: Math.floor(Math.random() * 100 * difficulty),
         inventory: {
@@ -157,17 +246,17 @@ export class EnemyGenerator {
           armor: null,
           accessory: null,
         },
-        background: data.description,
+        background: textData.description,
       };
 
       // Handle Weapon/Artifact if generated
-      if (data.equipped_weapon_name) {
+      if (textData.equipped_weapon_name) {
         const weaponId = randomUUID();
         enemy.inventory.artifacts.push({
           id: weaponId,
-          name: data.equipped_weapon_name,
+          name: textData.equipped_weapon_name,
           slot: 'weapon',
-          element: data.skills[0]?.element || '无',
+          element: textData.skills[0]?.element || '无',
           quality: '灵品', // Default
           bonus: {},
         });

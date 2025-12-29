@@ -3,7 +3,9 @@
 import { BattlePageLayout } from '@/components/BattlePageLayout';
 import { BattleReportViewer } from '@/components/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/BattleTimelineViewer';
+import { LingGenMini } from '@/components/func';
 import {
+  InkBadge,
   InkButton,
   InkCard,
   InkList,
@@ -14,9 +16,15 @@ import {
 import { InkPageShell, InkSection } from '@/components/InkLayout';
 import { useInkUI } from '@/components/InkUIProvider';
 import { BattleEngineResult } from '@/engine/battle';
-import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
+import {
+  DungeonOption,
+  DungeonRound,
+  DungeonSettlement,
+  DungeonState,
+} from '@/lib/dungeon/types';
 import { getMapNode, MapNodeInfo } from '@/lib/game/mapSystem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { Cultivator } from '@/types/cultivator';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 
@@ -42,11 +50,21 @@ function DungeonContent() {
 
   const [lastRoundData, setLastRoundData] = useState<DungeonRound | null>(null); // For immediate display update
 
+  // Battle Settlement Confirmation State
+  const [battleSettlement, setBattleSettlement] = useState<{
+    isFinished: boolean;
+    settlement: DungeonSettlement;
+  } | null>(null);
+
   // Pre-Battle State
   const [pendingBattle, setPendingBattle] = useState<{
     id: string;
     reason: string;
+    enemyData?: Cultivator; // 敌人数据（查探后加载）
   } | null>(null);
+
+  const [isProbing, setIsProbing] = useState(false); // 是否正在查探
+  const [showEnemyDetails, setShowEnemyDetails] = useState(false); // 是否显示敌人详情
 
   const selectedMapNode = useMemo(() => {
     if (!preSelectedNodeId) return null;
@@ -261,6 +279,86 @@ function DungeonContent() {
     });
   };
 
+  // 神识查探敌人
+  const handleProbeEnemy = async () => {
+    if (!pendingBattle || !cultivator) return;
+
+    try {
+      setIsProbing(true);
+      const res = await fetch(
+        `/api/dungeon/battle/probe?battleId=${pendingBattle.id}`,
+      );
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      // 更新 pendingBattle 状态，添加敌人数据
+      setPendingBattle((prev) =>
+        prev
+          ? {
+              ...prev,
+              enemyData: data.enemy,
+            }
+          : null,
+      );
+
+      setShowEnemyDetails(true);
+    } catch (e) {
+      pushToast({
+        message: e instanceof Error ? e.message : '查探失败',
+        tone: 'danger',
+      });
+    } finally {
+      setIsProbing(false);
+    }
+  };
+
+  // 放弃战斗
+  const handleAbandonBattle = () => {
+    if (!pendingBattle || !cultivator) return;
+
+    openDialog({
+      title: '放弃战斗',
+      content:
+        '确定要放弃此战吗？你将狼狈退出，但不会受伤。放弃后会直接进入副本结算。',
+      confirmLabel: '确认放弃',
+      cancelLabel: '取消',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await fetch('/api/dungeon/battle/abandon', {
+            method: 'POST',
+            body: JSON.stringify({
+              cultivatorId: cultivator.id,
+              battleId: pendingBattle.id,
+            }),
+          });
+
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+
+          // 进入结算
+          setPendingBattle(null);
+          setShowEnemyDetails(false);
+          setDungeonState({
+            ...data.state,
+            isFinished: true,
+            settlement: data.settlement,
+          });
+
+          pushToast({ message: '已放弃战斗', tone: 'success' });
+        } catch (e) {
+          pushToast({
+            message: e instanceof Error ? e.message : '操作失败',
+            tone: 'danger',
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   // --- Battle Logic ---
   const executeDungeonBattle = async (battleId: string) => {
     setIsStreaming(true);
@@ -316,16 +414,12 @@ function DungeonContent() {
                 setBattleEnd(true);
 
                 if (data.isFinished) {
-                  setDungeonState((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          isFinished: true,
-                          settlement: data.settlement,
-                        }
-                      : null,
-                  );
-                  setLastRoundData(null);
+                  // 不立即跳转，保存结算信息等待用户确认
+                  setBattleSettlement({
+                    isFinished: true,
+                    settlement: data.settlement,
+                  });
+                  // 保持战斗视图，让用户查看战报
                 } else {
                   setDungeonState(data.dungeonState);
                   setLastRoundData(data.roundData);
@@ -363,13 +457,30 @@ function DungeonContent() {
         isStreaming={isStreaming}
         actions={{
           primary: {
-            label: battleEnd ? '继续探险' : '战斗中...',
+            label: battleSettlement
+              ? '查看结算'
+              : battleEnd
+                ? '继续探险'
+                : '战斗中...',
             onClick: () => {
-              if (battleEnd) {
+              if (battleSettlement) {
+                // 用户确认查看战报后，跳转到结算页面
+                setDungeonState((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        isFinished: true,
+                        settlement: battleSettlement.settlement,
+                      }
+                    : null,
+                );
+                setActiveBattleId(null);
+                setBattleSettlement(null);
+              } else if (battleEnd) {
                 setActiveBattleId(null);
               }
             },
-            disabled: !battleEnd,
+            disabled: !battleEnd && !battleSettlement,
           },
         }}
       >
@@ -398,30 +509,151 @@ function DungeonContent() {
   if (pendingBattle) {
     return (
       <InkPageShell title="遭遇战" backHref="#">
-        <InkCard className="p-8 text-center space-y-6">
-          <div className="text-6xl animate-bounce">⚔️</div>
-          <div>
-            <h2 className="text-2xl font-bold text-crimson mb-2">遭遇强敌</h2>
-            <p className="text-lg text-ink">
-              前方发现了{' '}
-              <span className="font-bold">{pendingBattle.reason}</span>
-            </p>
-            <p className="text-sm text-ink-secondary mt-2">
-              此战避无可避，唯有迎难而上！
-            </p>
+        <InkCard className="p-6 space-y-6">
+          {/* 顶部：敌人信息 */}
+          <div className="text-center space-y-4">
+            <div className="text-6xl animate-bounce">⚔️</div>
+            <div>
+              <h2 className="text-2xl font-bold text-crimson mb-2">遭遇强敌</h2>
+              <p className="text-lg text-ink">
+                前方发现了{' '}
+                <span className="font-bold">{pendingBattle.reason}</span>
+              </p>
+              <p className="text-sm text-ink-secondary mt-2">
+                此战避无可避，当速决断！
+              </p>
+            </div>
           </div>
-          <InkButton
-            variant="primary"
-            className="w-full py-4 text-lg"
-            onClick={() => {
-              const battleId = pendingBattle.id;
-              setPendingBattle(null); // Clear pending
-              setActiveBattleId(battleId); // Set active
-              executeDungeonBattle(battleId); // Execute
-            }}
-          >
-            开始战斗
-          </InkButton>
+
+          {/* 中部：敌人详情（查探后显示） */}
+          {showEnemyDetails && pendingBattle.enemyData && (
+            <InkCard className="bg-paper-dark p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-ink/10 pb-2">
+                <h3 className="font-bold text-crimson">
+                  {pendingBattle.enemyData.name}
+                  {pendingBattle.enemyData.title && (
+                    <span className="text-sm text-ink-secondary ml-2">
+                      ({pendingBattle.enemyData.title})
+                    </span>
+                  )}
+                </h3>
+                <InkBadge tier={pendingBattle.enemyData.realm}>
+                  {pendingBattle.enemyData.realm_stage}
+                </InkBadge>
+              </div>
+
+              {/* 五维属性 */}
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>体魄: {pendingBattle.enemyData.attributes.vitality}</div>
+                <div>灵力: {pendingBattle.enemyData.attributes.spirit}</div>
+                <div>悟性: {pendingBattle.enemyData.attributes.wisdom}</div>
+                <div>速度: {pendingBattle.enemyData.attributes.speed}</div>
+                <div className="col-span-2">
+                  神识: {pendingBattle.enemyData.attributes.willpower}
+                </div>
+              </div>
+
+              {/* 灵根 */}
+              <LingGenMini
+                spiritualRoots={pendingBattle.enemyData.spiritual_roots}
+              />
+
+              {/* 技能 */}
+              {pendingBattle.enemyData.skills &&
+                pendingBattle.enemyData.skills.length > 0 && (
+                  <div className="text-sm">
+                    <div className="text-ink-secondary mb-1">技能:</div>
+                    <div className="space-y-1">
+                      {pendingBattle.enemyData.skills.map((skill, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span>
+                            {skill.name} ({skill.element})
+                          </span>
+                          <span className="text-ink-secondary">
+                            威力:{skill.power}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* 描述 */}
+              {pendingBattle.enemyData.background && (
+                <p className="text-xs text-ink-secondary italic leading-relaxed">
+                  {pendingBattle.enemyData.background}
+                </p>
+              )}
+            </InkCard>
+          )}
+
+          {/* 底部：操作按钮 */}
+          <div className="space-y-3">
+            {/* 神识查探按钮 */}
+            {!showEnemyDetails && (
+              <InkButton
+                variant="secondary"
+                className="w-full py-3"
+                onClick={handleProbeEnemy}
+                disabled={isProbing || loading}
+              >
+                {isProbing ? '查探中...' : '👁️ 神识查探'}
+              </InkButton>
+            )}
+
+            {/* 开始战斗按钮 */}
+            <InkButton
+              variant="primary"
+              className="w-full py-4 text-lg"
+              disabled={loading}
+              onClick={async () => {
+                const battleId = pendingBattle.id;
+
+                try {
+                  // 设置敌人名字用于战斗显示
+                  if (pendingBattle.enemyData) {
+                    // 已经查探过，直接使用
+                    const enemyName = pendingBattle.enemyData.title
+                      ? `${pendingBattle.enemyData.title}·${pendingBattle.enemyData.name}`
+                      : pendingBattle.enemyData.name;
+                    setOpponentNameForBattle(enemyName);
+                  } else {
+                    // 没有查探过，先获取敌人数据
+                    const res = await fetch(
+                      `/api/dungeon/battle/probe?battleId=${battleId}`,
+                    );
+                    const data = await res.json();
+                    if (data.enemy) {
+                      const enemyName = data.enemy.title
+                        ? `${data.enemy.title}·${data.enemy.name}`
+                        : data.enemy.name;
+                      setOpponentNameForBattle(enemyName);
+                    }
+                  }
+                } catch (e) {
+                  // 获取失败则使用默认名字
+                  setOpponentNameForBattle(pendingBattle.reason || '神秘敌手');
+                }
+
+                setPendingBattle(null);
+                setShowEnemyDetails(false);
+                setActiveBattleId(battleId);
+                executeDungeonBattle(battleId);
+              }}
+            >
+              ⚔️ 开始战斗
+            </InkButton>
+
+            {/* 放弃战斗按钮 */}
+            <InkButton
+              variant="ghost"
+              className="w-full py-2 text-ink-secondary hover:text-crimson"
+              onClick={handleAbandonBattle}
+              disabled={loading}
+            >
+              🏃 放弃战斗（撤退）
+            </InkButton>
+          </div>
         </InkCard>
       </InkPageShell>
     );
