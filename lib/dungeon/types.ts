@@ -1,4 +1,3 @@
-import { REALM_STAGE_VALUES, REALM_VALUES } from '@/types/constants';
 import { z } from 'zod';
 
 // === AI Interaction Schemas ===
@@ -27,11 +26,6 @@ export const DungeonCostSchema = z.object({
   metadata: z
     .object({
       enemy_name: z.string().optional().describe('敌人名称'),
-      enemy_realm: z.enum(REALM_VALUES).optional().describe('敌人境界'),
-      enemy_stage: z
-        .enum(REALM_STAGE_VALUES)
-        .optional()
-        .describe('敌人境界阶段'),
       is_boss: z.boolean().optional().describe('是否BOSS'),
     })
     .optional()

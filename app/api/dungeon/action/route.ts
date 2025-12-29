@@ -6,7 +6,6 @@ import { z } from 'zod';
 
 const ActionSchema = z.object({
   choiceId: z.number(),
-  choiceText: z.string(),
 });
 
 export async function POST(req: NextRequest) {
@@ -33,13 +32,9 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json();
-    const { choiceId, choiceText } = ActionSchema.parse(body);
+    const { choiceId } = ActionSchema.parse(body);
 
-    const result = await dungeonService.handleAction(
-      cultivator.id,
-      choiceId,
-      choiceText,
-    );
+    const result = await dungeonService.handleAction(cultivator.id, choiceId);
     return NextResponse.json(result);
   } catch (error) {
     console.error('Start Dungeon Error:', error);

@@ -45,6 +45,7 @@ const EnemyTextSchema = z.object({
           'armor_down',
           'crit_rate_down',
         ])
+        .nullable()
         .optional()
         .describe('附带效果'),
     }),

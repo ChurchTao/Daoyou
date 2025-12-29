@@ -90,7 +90,7 @@ export class DungeonService {
   - type为material: 材料消耗，value为消耗数量(1-5)，name为材料名称（必须），desc为消耗原因，例如："破阵需要'破禁符'"
   
   **副本特有类**（虚拟损耗，不直接扣除资源，但会影响副本内状态和结算）:
-  - type为battle: 遭遇战斗，value为战斗难度系数(1-10)，desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快"，metadata必须包含(enemy_name, is_boss, enemy_stage, enemy_realm)
+  - type为battle: 遭遇战斗，value为战斗难度系数(1-10)，desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快"，metadata必须包含(enemy_name, is_boss)
   - type为hp_loss: 气血损耗，value为损耗程度(1-10，每1点=10%最大气血)，desc为损耗原因，影响副本内战斗状态
   - type为mp_loss: 灵力损耗，value为损耗程度(1-10，每1点=10%最大灵力)，desc为损耗原因，影响副本内战斗状态
   - type为weak: 陷入虚弱，value为虚弱程度(1-10)，desc为虚弱原因，会累加到角色的weakness状态，结算后持久化
@@ -179,11 +179,7 @@ export class DungeonService {
   /**
    * 处理玩家交互
    */
-  async handleAction(
-    cultivatorId: string,
-    choiceId: number,
-    choiceText: string,
-  ) {
+  async handleAction(cultivatorId: string, choiceId: number) {
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('副本已失效');
 
@@ -257,7 +253,7 @@ export class DungeonService {
       // 1.3 Battle Interception
       const battleCost = chosenOption.costs.find((c) => c.type === 'battle');
       if (battleCost) {
-        state.history[state.history.length - 1].choice = choiceText;
+        state.history[state.history.length - 1].choice = chosenOption.text;
         state.status = 'IN_BATTLE';
 
         const session = await this.createBattleSession(
@@ -281,7 +277,7 @@ export class DungeonService {
     }
 
     // 2. 推进状态
-    state.history[state.history.length - 1].choice = choiceText;
+    state.history[state.history.length - 1].choice = chosenOption?.text;
     state.history[state.history.length - 1].outcome =
       chosenOption?.potential_cost;
 
