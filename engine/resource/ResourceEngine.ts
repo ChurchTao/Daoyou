@@ -1,3 +1,4 @@
+import { db } from '@/lib/drizzle/db';
 import {
   addArtifactToInventory,
   addConsumableToInventory,
@@ -161,8 +162,6 @@ export class ResourceEngine {
     const errors: string[] = [];
 
     try {
-      const { db } = await import('@/lib/drizzle/db');
-
       await db.transaction(async (tx) => {
         // 1. 扣除资源
         for (const cost of costs) {
@@ -247,11 +246,13 @@ export class ResourceEngine {
 
   /**
    * 获得资源
+   * @param action 可选的回调函数，在资源获取后执行。如果失败会回滚资源获取
    */
   async gain(
     userId: string,
     cultivatorId: string,
     gains: ResourceOperation[],
+    action?: () => Promise<void>,
     dryRun = false,
   ): Promise<ResourceOperationResult> {
     // 如果是干运行模式，直接返回成功
@@ -265,65 +266,89 @@ export class ResourceEngine {
     const errors: string[] = [];
 
     try {
-      for (const gain of gains) {
-        switch (gain.type) {
-          case 'spirit_stones':
-            await updateSpiritStones(userId, cultivatorId, gain.value);
-            break;
+      await db.transaction(async (tx) => {
+        // 1. 获取资源
+        for (const gain of gains) {
+          switch (gain.type) {
+            case 'spirit_stones':
+              await updateSpiritStones(userId, cultivatorId, gain.value, tx);
+              break;
 
-          case 'lifespan':
-            await updateLifespan(userId, cultivatorId, gain.value);
-            break;
+            case 'lifespan':
+              await updateLifespan(userId, cultivatorId, gain.value, tx);
+              break;
 
-          case 'cultivation_exp':
-            await updateCultivationExp(userId, cultivatorId, gain.value);
-            break;
-
-          case 'comprehension_insight':
-            // 只修改感悟值，修为变化为0
-            await updateCultivationExp(userId, cultivatorId, 0, gain.value);
-            break;
-
-          case 'material':
-            if (gain.data && 'name' in gain.data) {
-              await addMaterialToInventory(
+            case 'cultivation_exp':
+              await updateCultivationExp(
                 userId,
                 cultivatorId,
-                gain.data as Material,
+                gain.value,
+                undefined,
+                tx,
               );
-            } else {
-              errors.push('材料数据不完整，缺少 name 字段');
-            }
-            break;
+              break;
 
-          case 'artifact':
-            if (gain.data && 'name' in gain.data) {
-              await addArtifactToInventory(
+            case 'comprehension_insight':
+              // 只修改感悟值，修为变化为0
+              await updateCultivationExp(
                 userId,
                 cultivatorId,
-                gain.data as Artifact,
+                0,
+                gain.value,
+                tx,
               );
-            } else {
-              errors.push('法宝数据不完整，缺少 name 字段');
-            }
-            break;
+              break;
 
-          case 'consumable':
-            if (gain.data && 'name' in gain.data) {
-              await addConsumableToInventory(
-                userId,
-                cultivatorId,
-                gain.data as Consumable,
-              );
-            } else {
-              errors.push('消耗品数据不完整，缺少 name 字段');
-            }
-            break;
+            case 'material':
+              if (gain.data && 'name' in gain.data) {
+                await addMaterialToInventory(
+                  userId,
+                  cultivatorId,
+                  gain.data as Material,
+                  tx,
+                );
+              } else {
+                errors.push('材料数据不完整，缺少 name 字段');
+              }
+              break;
 
-          default:
-            errors.push(`未知的资源类型: ${gain.type}`);
+            case 'artifact':
+              if (gain.data && 'name' in gain.data) {
+                await addArtifactToInventory(
+                  userId,
+                  cultivatorId,
+                  gain.data as Artifact,
+                  tx,
+                );
+              } else {
+                errors.push('法宝数据不完整，缺少 name 字段');
+              }
+              break;
+
+            case 'consumable':
+              if (gain.data && 'name' in gain.data) {
+                await addConsumableToInventory(
+                  userId,
+                  cultivatorId,
+                  gain.data as Consumable,
+                  tx,
+                );
+              } else {
+                errors.push('消耗品数据不完整，缺少 name 字段');
+              }
+              break;
+
+            default:
+              errors.push(`未知的资源类型: ${gain.type}`);
+          }
         }
-      }
+
+        // 2. 如果提供了 action，执行它
+        // 如果 action 失败，会抛出异常，导致事务回滚
+        if (action) {
+          await action();
+        }
+      });
 
       return {
         success: errors.length === 0,
@@ -335,7 +360,7 @@ export class ResourceEngine {
         success: false,
         operations: gains,
         errors: [
-          `获得资源时发生错误: ${error instanceof Error ? error.message : String(error)}`,
+          `操作失败已回滚: ${error instanceof Error ? error.message : String(error)}`,
         ],
       };
     }
@@ -404,7 +429,8 @@ export class ResourceEngine {
         userId,
         cultivatorId,
         operations.gain,
-        false,
+        undefined, // action
+        false, // dryRun
       );
       if (!gainResult.success) {
         errors.push(...(gainResult.errors || []));

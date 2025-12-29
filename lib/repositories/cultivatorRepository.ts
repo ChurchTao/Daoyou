@@ -1574,11 +1574,13 @@ export async function addMaterialToInventory(
   userId: string,
   cultivatorId: string,
   material: import('../../types/cultivator').Material,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
+  const dbInstance = tx || db;
   // 检查是否已经有相同的材料
-  const existing = await db
+  const existing = await dbInstance
     .select()
     .from(schema.materials)
     .where(
@@ -1590,13 +1592,13 @@ export async function addMaterialToInventory(
 
   if (existing.length > 0) {
     // 增加数量
-    await db
+    await dbInstance
       .update(schema.materials)
       .set({ quantity: existing[0].quantity + material.quantity })
       .where(eq(schema.materials.id, existing[0].id));
   } else {
     // 添加新材料
-    await db.insert(schema.materials).values({
+    await dbInstance.insert(schema.materials).values({
       cultivatorId,
       name: material.name,
       type: material.type,
@@ -1664,10 +1666,12 @@ export async function addArtifactToInventory(
   userId: string,
   cultivatorId: string,
   artifact: import('../../types/cultivator').Artifact,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  await db.insert(schema.artifacts).values({
+  const dbInstance = tx || db;
+  await dbInstance.insert(schema.artifacts).values({
     cultivatorId,
     name: artifact.name,
     slot: artifact.slot,
@@ -1693,11 +1697,13 @@ export async function addConsumableToInventory(
   userId: string,
   cultivatorId: string,
   consumable: import('../../types/cultivator').Consumable,
+  tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
+  const dbInstance = tx || db;
   // 检查是否已经有相同的消耗品
-  const existing = await db
+  const existing = await dbInstance
     .select()
     .from(schema.consumables)
     .where(
@@ -1709,13 +1715,13 @@ export async function addConsumableToInventory(
 
   if (existing.length > 0) {
     // 增加数量
-    await db
+    await dbInstance
       .update(schema.consumables)
       .set({ quantity: existing[0].quantity + consumable.quantity })
       .where(eq(schema.consumables.id, existing[0].id));
   } else {
     // 添加新消耗品
-    await db.insert(schema.consumables).values({
+    await dbInstance.insert(schema.consumables).values({
       cultivatorId,
       name: consumable.name,
       type: consumable.type,
