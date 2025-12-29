@@ -45,8 +45,8 @@ export class BattleUnit {
   constructor(
     unitId: UnitId,
     cultivatorData: Cultivator,
-    initialHp?: number,
-    initialMp?: number,
+    hpLossPercent?: number, // HP损失百分比，0-1之间
+    mpLossPercent?: number, // MP损失百分比，0-1之间
     initialStatuses?: Array<{
       statusKey: string;
       potency: number;
@@ -76,9 +76,11 @@ export class BattleUnit {
       this.updateMaxHpMp();
     }
 
-    // 设置初始HP/MP
-    this.currentHp = initialHp ?? this.maxHp;
-    this.currentMp = initialMp ?? this.maxMp;
+    // 根据损失百分比计算初始HP/MP
+    const hpLoss = hpLossPercent ?? 0;
+    const mpLoss = mpLossPercent ?? 0;
+    this.currentHp = Math.max(1, Math.floor(this.maxHp * (1 - hpLoss)));
+    this.currentMp = Math.max(0, Math.floor(this.maxMp * (1 - mpLoss)));
 
     // 初始化技能冷却
     this.skillCooldowns = new Map();

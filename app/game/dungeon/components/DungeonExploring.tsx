@@ -1,5 +1,6 @@
 import { InkButton, InkCard, InkTag } from '@/components/InkComponents';
 import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { DungeonProgressCard } from '@/components/dungeon/DungeonProgressCard';
 import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
 import { useState } from 'react';
 
@@ -28,28 +29,17 @@ export function DungeonExploring({
     return null;
   }
 
-  const round = state.currentRound;
-  const max = state.maxRounds;
-
   return (
-    <InkPageShell
-      title={`${state.theme} (${round}/${max})`}
-      backHref="/"
-      statusBar={
-        <div className="flex justify-between items-center text-ink-secondary px-2 w-full">
-          <span>危: {state.dangerScore ?? 0}</span>
-          <InkButton variant="primary" onClick={onQuit}>
-            放弃
-          </InkButton>
-        </div>
-      }
-    >
+    <InkPageShell title={state.theme} backHref="/">
       {/* 场景描述 */}
       <InkCard className="mb-6 min-h-[200px] flex flex-col justify-center">
         <p className="leading-relaxed text-ink">
           {lastRound.scene_description}
         </p>
       </InkCard>
+
+      {/* 副本状态和进度 */}
+      <DungeonProgressCard state={state} onQuit={onQuit} />
 
       {/* 选项列表 */}
       <InkSection title="抉择时刻">

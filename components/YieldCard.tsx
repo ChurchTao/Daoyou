@@ -138,9 +138,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
           </div>
           <div className="text-sm text-ink-secondary mt-1">
             已历练{' '}
-            <span className="font-mono font-bold text-ink-primary">
-              {timeSinceYield}
-            </span>{' '}
+            <span className="font-bold text-ink-primary">{timeSinceYield}</span>{' '}
             小时
             <span className="opacity-60"> (上限24h)</span>
           </div>

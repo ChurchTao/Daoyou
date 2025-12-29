@@ -65,8 +65,14 @@ export async function POST(req: NextRequest) {
     const playerUnit = playerBundle.cultivator;
     const enemyUnit = enemyObject;
 
-    // Simulate Battle
-    const result = simulateBattle(playerUnit, enemyUnit);
+    // Simulate Battle with dungeon state
+    const result = simulateBattle(playerUnit, enemyUnit, {
+      hpLossPercent: sessionData.session.playerSnapshot.hpLossPercent,
+      mpLossPercent: sessionData.session.playerSnapshot.mpLossPercent,
+      persistentStatuses: sessionData.session.playerSnapshot.persistentStatuses,
+      environmentalStatuses:
+        sessionData.session.playerSnapshot.environmentalStatuses,
+    });
 
     // Stream Response
     const encoder = new TextEncoder();

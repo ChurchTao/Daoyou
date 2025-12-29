@@ -53,10 +53,10 @@ export function BattleTimelineViewer({
   }
 
   const first = timeline[0];
-  const maxPlayerHp = first?.player.hp || 1;
-  const maxOpponentHp = first?.opponent.hp || 1;
-  const maxPlayerMp = first?.player.mp || 1;
-  const maxOpponentMp = first?.opponent.mp || 1;
+  const maxPlayerHp = first?.player.maxHp || first?.player.hp || 1;
+  const maxOpponentHp = first?.opponent.maxHp || first?.opponent.hp || 1;
+  const maxPlayerMp = first?.player.maxMp || first?.player.mp || 1;
+  const maxOpponentMp = first?.opponent.maxMp || first?.opponent.mp || 1;
   const safeIndex = Math.min(Math.max(currentTurnIndex, 0), totalTurns - 1);
   const snap = timeline[safeIndex];
 

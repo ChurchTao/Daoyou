@@ -78,7 +78,7 @@ export function DungeonBattle({
       isStreaming={isStreaming}
       actions={{
         primary: {
-          label: battleSettlement
+          label: battleSettlement?.isFinished
             ? '查看结算'
             : battleEnd
               ? '继续探险'

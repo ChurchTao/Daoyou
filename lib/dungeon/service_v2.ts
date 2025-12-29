@@ -2,6 +2,7 @@ import { BattleEngineResult } from '@/engine/battle';
 import { enemyGenerator } from '@/engine/enemyGenerator';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@/engine/resource/types';
+import { REALM_VALUES, RealmType } from '@/types/constants';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { randomUUID } from 'crypto';
@@ -35,8 +36,74 @@ function getDungeonKey(cultivatorId: string) {
 }
 
 export class DungeonService {
+  /**
+   * 计算境界差距
+   * @param playerRealm 玩家境界字符串，如 "化神 中期"
+   * @param mapRealm 地图要求境界
+   * @returns 境界差距（正数表示玩家更强，负数表示地图更难）
+   */
+  private calculateRealmGap(playerRealm: string, mapRealm: RealmType): number {
+    // 提取玩家境界（去掉阶段）
+    const playerRealmName = playerRealm.split(' ')[0] as RealmType;
+
+    const playerIndex = REALM_VALUES.indexOf(playerRealmName);
+    const mapIndex = REALM_VALUES.indexOf(mapRealm);
+
+    if (playerIndex === -1 || mapIndex === -1) {
+      console.warn('[DungeonService] 无法识别境界:', { playerRealm, mapRealm });
+      return 0;
+    }
+
+    return playerIndex - mapIndex;
+  }
+
+  /**
+   * 根据境界差距生成叙事指导
+   */
+  private getRealmGuidance(realmGap: number): string {
+    if (realmGap >= 2) {
+      return `
+> [!IMPORTANT] 境界碾压场景
+> 玩家境界远超此地图要求（差距${realmGap}个大境界）。叙事应体现**轻松应对、游刃有余**的状态：
+> - 剧情避免使用"险象环生"、"巨大代价"、"死里逃生"等词汇
+> - 风险选项的危险程度应大幅降低
+> - 代价（costs）应极少或轻微（如少量灵力消耗）
+> - 战斗难度系数（battle.value）不应超过3
+> - 整体危险分（danger_score）应保持在30以下
+`;
+    } else if (realmGap === 1) {
+      return `
+> 境界优势场景：玩家境界略高于地图要求。应体现**有一定优势但不至于碾压**的状态。风险和代价适中偏低。
+`;
+    } else if (realmGap === 0) {
+      return `
+> 实力相当场景：玩家与地图境界匹配。应体现**正常挑战难度**，风险和代价中等。
+`;
+    } else {
+      return `
+> 挑战场景：玩家境界低于地图要求。应体现**高风险高挑战**，但仍有机会通过谨慎操作成功。
+`;
+    }
+  }
+
   // 核心配置：定义每个轮次对应的副本相位
-  private getPhase(currentRound: number, maxRounds: number): string {
+  private getPhase(
+    currentRound: number,
+    maxRounds: number,
+    realmGap: number,
+  ): string {
+    // 境界碾压场景：简化剧情，降低风险
+    if (realmGap >= 2) {
+      if (currentRound === 1)
+        return '**【Phase 1: 探索期】**: 凭借境界优势，轻松探查环境。选项应偏向顺利推进。';
+      if (currentRound < maxRounds - 1)
+        return '**【Phase 2: 收获期】**: 以实力碾压，顺利获取资源。轻微消耗即可。';
+      if (currentRound === maxRounds - 1)
+        return '**【Phase 3: 收尾期】**: 轻松解决最后的阻碍。风险和代价极低。';
+      return '**【Phase 4: 圆满期】**: 毫无悬念地完成探索，满载而归。';
+    }
+
+    // 正常场景
     if (currentRound === 1)
       return '**【Phase 1: 潜入期】(Round 1)**: 侧重环境描写。发现阵法、禁制或古修遗迹入口。选项应偏向探测与尝试。';
     if (currentRound < maxRounds - 1)
@@ -48,20 +115,32 @@ export class DungeonService {
 
   // 统一的 System Prompt 生成器
   private getSystemPrompt(state: DungeonState): string {
-    const phaseDesc = this.getPhase(state.currentRound, state.maxRounds);
+    // 获取地图境界要求
+    const mapNode = getMapNode(state.mapNodeId);
+    const mapRealm =
+      mapNode && 'realm_requirement' in mapNode
+        ? (mapNode as SatelliteNode).realm_requirement
+        : ('筑基' as RealmType); // 默认筑基
+
+    // 计算境界差距
+    const realmGap = this.calculateRealmGap(state.playerInfo.realm, mapRealm);
+    const realmGuidance = this.getRealmGuidance(realmGap);
+    const phaseDesc = this.getPhase(
+      state.currentRound,
+      state.maxRounds,
+      realmGap,
+    );
 
     return `
 # Role: 《凡人修仙传》副本演化天道 (Dungeon Engine)
+
+${realmGuidance}
 
 ## 当前相位: ${phaseDesc}
 你现在负责驱动一个${state.maxRounds}轮次的修仙副本。当前为第${state.currentRound}轮。
 
 ## 1. 核心叙事相位逻辑
-你必须根据 currentRound 严格切换叙事逻辑：
-- **【Phase 1: 潜入期】(Round 1)**: 侧重环境描写。如：发现阵法、禁制或古修遗迹入口。选项应偏向探测与尝试。
-- **【Phase 2: 变局期】(Round 2-3)**: 引入转折。如：遭遇残存傀儡、禁制反弹、或发现同道斗法留下的血迹。开始消耗资源。
-- **【Phase 3: 夺宝/死战期】(Round 4)**: 副本高潮。如：面对核心守护者或最强禁制。选项必须包含极高风险或巨量消耗。
-- **【Phase 4: 结尾期】(Round 5)**: 副本结尾。如：禁制崩塌或取宝后的逃亡。评估玩家之前的行为，决定最终的狼狈程度或圆满程度。
+你必须根据 currentRound 严格切换叙事逻辑，并结合上述境界差距指导调整难度。
 
 ## 2. 凡人流叙事准则
 - **文风**：简练、冰冷、充满古意。
@@ -69,9 +148,16 @@ export class DungeonService {
 - **因果律**：必须参考 history。若前一轮玩家损坏了法宝，本轮描述中应体现该法宝无法使用的窘境。
 
 ## 3. 强制选项模板 (必须生成3个选项)
-- **选项 A (求稳)**：低风险、低收益。通常体现“韩立式谨慎”（如：布下匿踪阵观察、绕路而行）。
-- **选项 B (弄险)**：高风险、高收益。体现“富贵险中求”。
-- **选项 C (奇招)**：属性/道具/功法/命格触发。必须检索 player_info 中的 inventory 或 skills 或 fates。
+- **选项 A (求稳)**：低风险、低收益。通常体现"韩立式谨慎"（如：布下匿踪阵观察、绕路而行）。
+- **选项 B (弄险)**：高风险、高收益。体现"富贵险中求"。
+- **选项 C (奇招/随机)**：
+  - **60%概率**：需要特定道具/功法/命格（检索 player_info 中的 inventory/skills/fates）
+  - **40%概率**：通用选项（不依赖玩家特定资源）
+  
+**重要约束**：
+- **禁止所有选项都恰好匹配玩家的材料/命格**
+- **至少1个选项应该是玩家当前无法满足或不适用的**（如需要玩家没有的材料，或不符合玩家性格的选择）
+- 材料需求应该有一定的随机性，不总是玩家恰好拥有的
 
 ## 4. 输出约束
 - 必须使用 JSON 输出。
@@ -98,7 +184,9 @@ export class DungeonService {
 
 ## 5. 当前上下文摘要
 - 地点：读取 location
+- 地图境界要求：${mapRealm}
 - 玩家境界：读取 playerInfo.realm
+- 境界差距：${realmGap > 0 ? `玩家高出${realmGap}个大境界` : realmGap < 0 ? `玩家低${Math.abs(realmGap)}个大境界` : '实力相当'}
 - 关键物品：读取 playerInfo.inventory
 `;
   }

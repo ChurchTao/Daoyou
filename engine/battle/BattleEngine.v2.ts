@@ -69,8 +69,8 @@ export class BattleEngineV2 {
       player: new BattleUnit(
         'player',
         player,
-        initialPlayerState?.hp,
-        initialPlayerState?.mp,
+        initialPlayerState?.hpLossPercent,
+        initialPlayerState?.mpLossPercent,
         playerStatuses.length > 0 ? playerStatuses : undefined,
       ),
       opponent: new BattleUnit('opponent', opponent),
@@ -363,7 +363,9 @@ export class BattleEngineV2 {
   private snapshotTurn(state: BattleState): TurnSnapshot {
     const buildUnitSnapshot = (unit: BattleUnit): TurnUnitSnapshot => ({
       hp: unit.currentHp,
+      maxHp: unit.maxHp,
       mp: unit.currentMp,
+      maxMp: unit.maxMp,
       statuses: unit.getActiveStatusEffects(),
     });
 

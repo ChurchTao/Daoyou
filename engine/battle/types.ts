@@ -1,6 +1,6 @@
+import type { ApplyResult } from '@/engine/status/types';
 import type { ElementType, StatusEffect } from '@/types/constants';
 import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
-import type { ApplyResult } from '@/engine/status/types';
 
 /**
  * 战斗引擎类型定义
@@ -18,8 +18,8 @@ export type UnitId = 'player' | 'opponent';
  * 初始单元状态
  */
 export interface InitialUnitState {
-  hp?: number;
-  mp?: number;
+  hpLossPercent?: number; // HP损失百分比，0-1之间，例如0.3表示损失30%
+  mpLossPercent?: number; // MP损失百分比，0-1之间，例如0.2表示损失20%
   persistentStatuses?: Array<{
     statusKey: string;
     potency: number;
@@ -39,7 +39,9 @@ export interface InitialUnitState {
  */
 export interface TurnUnitSnapshot {
   hp: number;
+  maxHp: number;
   mp: number;
+  maxMp: number;
   statuses: StatusEffect[];
 }
 

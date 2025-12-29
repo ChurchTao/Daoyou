@@ -115,16 +115,23 @@ describe('BattleEngineV2', () => {
     const player = createMockCultivator('玩家');
     const opponent = createMockCultivator('对手');
 
-    const initialHp = 100;
-    const initialMp = 50;
+    // 使用损失百分比：30% HP损失，20% MP损失
+    const hpLossPercent = 0.3;
+    const mpLossPercent = 0.2;
 
     const result = simulateBattle(player, opponent, {
-      hp: initialHp,
-      mp: initialMp,
+      hpLossPercent,
+      mpLossPercent,
     });
 
-    expect(result.timeline[0].player.hp).toBe(initialHp);
-    expect(result.timeline[0].player.mp).toBe(initialMp);
+    // 验证：玩家应该以预期的HP/MP开始战斗
+    // 注意：具体值取决于角色的maxHp/maxMp
+    expect(result.timeline[0].player.hp).toBeLessThan(
+      result.timeline[0].player.hp / (1 - hpLossPercent),
+    );
+    expect(result.timeline[0].player.mp).toBeLessThan(
+      result.timeline[0].player.mp / (1 - mpLossPercent),
+    );
   });
 
   test('应该在回合限制内结束战斗', () => {

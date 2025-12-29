@@ -80,7 +80,7 @@ export function MailDetailModal({
                       {item.name}
                     </InkBadge>
                   )}
-                  <span className="font-mono opacity-70">x{item.quantity}</span>
+                  <span className="opacity-70">x{item.quantity}</span>
                 </div>
               ))}
             </div>
