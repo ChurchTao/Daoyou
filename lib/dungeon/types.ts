@@ -78,15 +78,58 @@ export const DungeonRoundSchema = z.object({
     .describe('状态更新'),
 });
 
+// 奖励蓝图 Schema - AI 只生成创意内容，数值由程序计算
+export const RewardBlueprintSchema = z.object({
+  type: z
+    .enum([
+      'spirit_stones',
+      'material',
+      'artifact',
+      'consumable',
+      'cultivation_exp',
+      'comprehension_insight',
+    ])
+    .describe('奖励类型'),
+  name: z.string().describe('物品名称（发挥创意，符合修仙世界观）'),
+  description: z.string().describe('物品描述（50字以内）'),
+  direction_tags: z
+    .array(
+      z.enum([
+        'increase_vitality',
+        'increase_spirit',
+        'increase_wisdom',
+        'increase_speed',
+        'increase_willpower',
+        'fire_affinity',
+        'water_affinity',
+        'wood_affinity',
+        'metal_affinity',
+        'earth_affinity',
+        'thunder_affinity',
+        'ice_affinity',
+        'wind_affinity',
+        'critical_boost',
+        'defense_boost',
+        'healing_boost',
+        'lifespan_boost',
+        'cultivation_boost',
+      ]),
+    )
+    .describe('方向性标签（1-3个）'),
+  quality_hint: z.enum(['lower', 'medium', 'upper']).describe('品质提示'),
+});
+
 // Settlement info from AI
 export const DungeonSettlementSchema = z
   .object({
     ending_narrative: z.string().describe('结局叙述'),
     settlement: z.object({
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
-      potential_items: z
-        .array(z.string())
-        .describe('可能获得的物品（如：法宝、材料、消耗品等）'),
+      reward_blueprints: z
+        .array(RewardBlueprintSchema)
+        .min(1)
+        .max(5)
+        .describe('奖励蓝图列表（根据评级1-5个）'),
       performance_tags: z
         .array(z.string())
         .describe('评价标签（如：收获颇丰、险象环生、九死一生、空手而归）'),

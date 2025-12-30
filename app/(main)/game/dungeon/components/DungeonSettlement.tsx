@@ -1,10 +1,5 @@
-import {
-  InkButton,
-  InkCard,
-  InkList,
-  InkListItem,
-} from '@/components/ui';
 import { InkPageShell } from '@/components/layout';
+import { InkButton, InkCard, InkList, InkListItem } from '@/components/ui';
 import { DungeonSettlement as DungeonSettlementType } from '@/lib/dungeon/types';
 
 interface DungeonSettlementProps {
@@ -32,11 +27,15 @@ export function DungeonSettlement({ settlement }: DungeonSettlementProps) {
         </div>
 
         {settlement?.settlement &&
-          settlement.settlement.potential_items?.length > 0 && (
+          settlement.settlement.reward_blueprints?.length > 0 && (
             <InkList dense>
-              {settlement.settlement.potential_items.map(
-                (item: string, idx: number) => (
-                  <InkListItem key={idx} title={item} />
+              {settlement.settlement.reward_blueprints.map(
+                (reward, idx: number) => (
+                  <InkListItem
+                    key={idx}
+                    title={reward.name}
+                    description={reward.description}
+                  />
                 ),
               )}
             </InkList>
@@ -47,7 +46,7 @@ export function DungeonSettlement({ settlement }: DungeonSettlementProps) {
           variant="primary"
           className="w-full text-center block mt-4"
         >
-          返回
+          收入囊中
         </InkButton>
       </InkCard>
     </InkPageShell>

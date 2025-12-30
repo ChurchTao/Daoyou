@@ -15,10 +15,11 @@ import {
   getCultivatorOwnerId,
   getInventory,
 } from '../repositories/cultivatorRepository';
+import type { RewardBlueprint } from './reward';
+import { RewardFactory } from './reward';
 import {
   BattleSession,
   DungeonOptionCost,
-  DungeonResourceGain,
   DungeonRound,
   DungeonRoundSchema,
   DungeonSettlement,
@@ -589,26 +590,70 @@ ${realmGuidance}
     realGains: ResourceOperation[];
   }> {
     const settlementPrompt = `
-# Role: 《凡人修仙传》天道平衡者
+# Role: 《凡人修仙传》天道平衡者 - 结算与奖励鉴定
 
-## 结算背景
-玩家刚刚经历了一场艰难的历练。你需要根据其【付出】与【危险】给出最终评价。
-${options?.abandonedBattle ? '\n**特别注意**: 玩家在战斗前主动放弃撤退，未完成副本，评价应该更低（D或更低），奖励应该极少或无。' : ''}
+## 核心职责
+你需要根据玩家的【付出】与【危险】给出最终评价，并**创造性地设计奖励物品**。
+${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤退，评价应为D级，奖励极少。' : ''}
+
+## ⚠️ 重要：奖励蓝图规范
+
+你只负责设计奖励的**创意内容**（名称、描述、方向性标签），具体数值由程序根据地图门槛自动计算。
+
+### 奖励类型说明
+| 类型 | 说明 | 适用场景 |
+|------|------|----------|
+| spirit_stones | 灵石 | 通用奖励，任何评级都可 |
+| material | 材料 | 炼丹/炼器材料，需有特色名称 |
+| artifact | 法宝 | A/S级专属，需设计独特效果方向 |
+| consumable | 丹药/消耗品 | 提升属性或恢复类 |
+| cultivation_exp | 修为 | 直接提升修为值 |
+| comprehension_insight | 感悟 | 提升感悟值 |
+
+### 方向性标签使用指南
+标签用于指示物品的效果方向，程序会据此分配具体数值：
+
+**属性方向**（法宝/丹药常用）：
+- increase_vitality: 增加体魄
+- increase_spirit: 增加灵力  
+- increase_wisdom: 增加悟性
+- increase_speed: 增加身法
+- increase_willpower: 增加神识
+
+**元素亲和**（法宝/材料常用）：
+- fire_affinity, water_affinity, wood_affinity, metal_affinity, earth_affinity, thunder_affinity, ice_affinity, wind_affinity
+
+**特殊效果**：
+- critical_boost: 暴击相关
+- defense_boost: 防御相关
+- healing_boost: 治疗相关
+- lifespan_boost: 寿元相关
+- cultivation_boost: 修炼速度相关
+
+### 品质提示
+- lower: 下品（相对偏低）
+- medium: 中品（标准品质）
+- upper: 上品（稀有高品质）
+
+## 评价等级定义
+
+| 等级 | 条件 | 奖励数量 | 奖励品质 |
+|------|------|----------|----------|
+| S | 2次+战斗/损失高价值法宝/危险分>80 | 3-5件 | 可含artifact(upper) |
+| A | 明显资源损耗且顺利通关 | 2-4件 | 可含artifact(medium) |
+| B | 损耗一般，有少量付出 | 2-3件 | material为主 |
+| C | 以稳健为主，损耗较少 | 1-2件 | spirit_stones + material |
+| D | 初期放弃/未遭遇危险 | 1件 | 仅spirit_stones |
 
 ## 核心准则：等价交换
-1. **惨烈补偿**：若玩家在历练中损失了法宝、消耗了大量寿元或多次陷入死斗（参考 summary_of_sacrifice），结算等级严禁低于 B。
-2. **风险对冲**：危险分 (danger_score) 越高，最终获得的【潜在奖励】品阶必须越高。
-3. **凡人逻辑**：即使是韩立，在丢弃法宝后也必然会收获关键材料。严禁出现“付出巨大却毫无所获”的结局。
+1. **惨烈补偿**：若玩家损失了法宝、消耗大量寿元或多次陷入死斗（参考 summary_of_sacrifice），结算等级严禁低于 B
+2. **风险对冲**：危险分越高，奖励品质越高
+3. **凡人逻辑**：严禁出现"付出巨大却毫无所获"的结局
 
-## 评价等级定义 (Strict Standard):
-- **S (九死一生)**: 经历了 2 次及以上战斗，或损失了高价值法宝，或危险分 > 80。奖励如：古修传承、玄天残片、顶级功法。
-- **A (险象环生)**: 有明显的资源损耗且顺利通关。奖励如：稀有材料、精进修为的古丹药。
-- **B (劳苦功高)**: 损耗一般，有少量损耗。奖励如：基础灵石、寻常材料、普通丹药。
-- **C (稳扎稳打)**: 损耗一般，以稳健为主。奖励如：基础灵石、寻常材料。
-- **D (空手而归)**: 玩家在初期就选择了放弃，或未遭遇任何危险。奖励如：基础灵石
-
-## 输出要求
-请综合 summary_of_sacrifice，给出一个让玩家感到“虽然损失惨重，但机缘惊人”或“代价沉重但物有所值”的叙事结局。
+## 奖励设计原则
+1. **风格契合**: 物品名称和描述要符合修仙世界观
+2. **场景关联**: 奖励应与副本场景/历程有关联（参考 location）
+3. **差异化**: 每个物品的名称和描述都应独特
     `;
 
     const settlementContext = {
@@ -631,11 +676,18 @@ ${options?.abandonedBattle ? '\n**特别注意**: 玩家在战斗前主动放弃
 
     const settlement = aiRes.object;
 
-    // --- 核心优化：后端根据 AI 的 reward_tier 匹配真正的奖励池 ---
-    // 防止 AI 随意发放极品法宝
-    const realGains = await this.generateRealRewards(
+    // --- 核心优化：使用 RewardFactory 将 AI 蓝图转化为真实奖励 ---
+    // 获取地图境界门槛
+    const mapNode = getMapNode(state.mapNodeId);
+    const mapRealm =
+      mapNode && 'realm_requirement' in mapNode
+        ? (mapNode as SatelliteNode).realm_requirement
+        : ('筑基' as RealmType);
+
+    const realGains = this.generateRealRewards(
+      settlement.settlement.reward_blueprints as RewardBlueprint[],
       settlement.settlement.reward_tier,
-      state.playerInfo.realm,
+      mapRealm,
     );
 
     // 获取 userId
@@ -761,45 +813,14 @@ ${options?.abandonedBattle ? '\n**特别注意**: 玩家在战斗前主动放弃
   }
 
   /**
-   * 生成真实奖励（根据评级和境界）
+   * 使用 RewardFactory 将 AI 蓝图转化为真实奖励
    */
-  async generateRealRewards(
-    rewardTier: string,
-    realm: string,
-  ): Promise<DungeonResourceGain[]> {
-    const gains: DungeonResourceGain[] = [];
-
-    // TODO: 从 utils/dungeonRewards.ts 中获取配置
-    // 根据 rewardTier 和 realm 生成奖励
-    // 这里先返回基础灵石奖励
-
-    const tierMultiplier: Record<string, number> = {
-      S: 2.0,
-      A: 1.5,
-      B: 1.0,
-      C: 0.7,
-      D: 0.5,
-    };
-
-    const realmBase: Record<string, number> = {
-      炼气期: 20,
-      筑基期: 75,
-      金丹期: 300,
-      元婴期: 1500,
-      化神期: 7500,
-    };
-
-    const mult = tierMultiplier[rewardTier] || 1.0;
-    const base = realmBase[realm] || 20;
-    const spiritStones = Math.floor(base * mult);
-
-    gains.push({
-      type: 'spirit_stones',
-      value: spiritStones,
-      desc: `灵石 x${spiritStones}`,
-    });
-
-    return gains;
+  generateRealRewards(
+    blueprints: RewardBlueprint[],
+    tier: string,
+    mapRealm: RealmType,
+  ): ResourceOperation[] {
+    return RewardFactory.materialize(blueprints, mapRealm, tier);
   }
 
   async archiveDungeon(state: DungeonState, settlement: DungeonSettlement) {
