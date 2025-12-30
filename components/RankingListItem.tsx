@@ -1,6 +1,6 @@
 'use client';
 
-import { InkBadge, InkButton, Tier } from '@/components/InkComponents';
+import { InkBadge, InkButton, Tier } from '@/components/ui';
 import {
   BattleRankingItem,
   ItemRankingEntry,

@@ -7,10 +7,10 @@ import {
   InkDialog,
   InkDialogState,
   InkNotice,
-} from '@/components/InkComponents';
-import { InkPageShell } from '@/components/InkLayout';
-import { InkModal } from '@/components/InkModal';
-import { useInkUI } from '@/components/InkUIProvider';
+} from '@/components/ui';
+import { InkPageShell } from '@/components/layout';
+import { InkModal } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { ShenTong } from '@/components/func';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { StatusEffect } from '@/types/constants';

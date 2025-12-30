@@ -1,5 +1,5 @@
-import { InkCard, InkNotice } from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkCard, InkNotice } from '@/components/ui';
+import { InkPageShell, InkSection } from '@/components/layout';
 import { DungeonOption } from '@/lib/dungeon/types';
 import { getMapNode } from '@/lib/game/mapSystem';
 import { DungeonViewState } from '@/lib/hooks/dungeon/useDungeonViewModel';

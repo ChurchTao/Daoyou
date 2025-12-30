@@ -1,8 +1,8 @@
 'use client';
 
-import { InkBadge, InkButton, InkNotice } from '@/components/InkComponents';
-import { InkModal } from '@/components/InkModal';
-import { useInkUI } from '@/components/InkUIProvider';
+import { InkBadge, InkButton, InkNotice } from '@/components/ui';
+import { InkModal } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { Material } from '@/types/cultivator';
 import { useState } from 'react';
 import { Mail } from './MailList';

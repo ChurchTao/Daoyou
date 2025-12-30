@@ -11,10 +11,10 @@ import {
   InkListItem,
   InkNotice,
   InkStatusBar,
-} from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
-import { InkModal } from '@/components/InkModal';
-import { useInkUI } from '@/components/InkUIProvider';
+} from '@/components/ui';
+import { InkPageShell, InkSection } from '@/components/layout';
+import { InkModal } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { LifespanStatusCard } from '@/components/LifespanStatusCard';
 import { RecentBattles } from '@/components/RecentBattles';
 import { DivineFortune } from '@/components/welcome/DivineFortune';

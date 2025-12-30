@@ -1,7 +1,7 @@
 import { LingGenMini } from '@/components/func';
-import { InkBadge, InkButton, InkCard } from '@/components/InkComponents';
-import { InkPageShell } from '@/components/InkLayout';
-import { useInkUI } from '@/components/InkUIProvider';
+import { InkBadge, InkButton, InkCard } from '@/components/ui';
+import { InkPageShell } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { useEnemyProbe } from '@/lib/hooks/dungeon/useEnemyProbe';
 import { useEffect, useState } from 'react';
 

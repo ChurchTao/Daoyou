@@ -1,4 +1,4 @@
-import { InkTag } from '@/components/InkComponents';
+import { InkTag } from '@/components/ui';
 import { MapNodeInfo } from '@/lib/game/mapSystem';
 
 export function MapNodeCard({ node }: { node: MapNodeInfo }) {

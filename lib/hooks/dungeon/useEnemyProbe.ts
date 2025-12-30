@@ -1,4 +1,4 @@
-import { useInkUI } from '@/components/InkUIProvider';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { Cultivator } from '@/types/cultivator';
 import { useEffect, useRef, useState } from 'react';
 

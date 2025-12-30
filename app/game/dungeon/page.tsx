@@ -1,6 +1,6 @@
 'use client';
 
-import { InkPageShell } from '@/components/InkLayout';
+import { InkPageShell } from '@/components/layout';
 import { useDungeonViewModel } from '@/lib/hooks/dungeon/useDungeonViewModel';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useSearchParams } from 'next/navigation';

@@ -1,4 +1,4 @@
-import { InkButton, InkCard } from '@/components/InkComponents';
+import { InkButton, InkCard } from '@/components/ui';
 import { MapNodeInfo } from '@/lib/game/mapSystem';
 import { MapNodeCard } from '../MapNodeCard';
 

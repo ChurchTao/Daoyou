@@ -5,7 +5,7 @@ import { useWelcomeStatus } from '@/lib/hooks/useWelcomeStatus';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { InkButton } from '../InkComponents';
+import { InkButton } from '../ui';
 import { BookCover } from './BookCover';
 import { BookPage } from './BookPage';
 import { TypewriterText } from './TypewriterText';

@@ -8,10 +8,10 @@ import {
   InkList,
   InkListItem,
   InkNotice,
-} from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
-import { InkModal } from '@/components/InkModal'; // Imported InkModal
-import { useInkUI } from '@/components/InkUIProvider';
+} from '@/components/ui';
+import { InkPageShell, InkSection } from '@/components/layout';
+import { InkModal } from '@/components/layout'; // Imported InkModal
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { Skill } from '@/types/cultivator'; // Assuming Skill type exists
 import {

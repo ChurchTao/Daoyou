@@ -1,4 +1,4 @@
-import { useInkUI } from '@/components/InkUIProvider';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { DungeonOption } from '@/lib/dungeon/types';
 import { useState } from 'react';
 

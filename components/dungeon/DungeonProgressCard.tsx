@@ -1,9 +1,9 @@
 'use client';
 
-import { InkSection } from '@/components/InkLayout';
+import { InkSection } from '@/components/layout';
 import { StatusCard } from '@/components/cultivator/StatusCard';
 import type { DungeonState } from '@/lib/dungeon/types';
-import { InkButton } from '../InkComponents';
+import { InkButton } from '../ui';
 import { ResourceCostCard } from './ResourceCostCard';
 
 interface DungeonProgressCardProps {

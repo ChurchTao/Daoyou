@@ -11,9 +11,9 @@ import {
   InkNotice,
   InkStatRow,
   InkStatusBar,
-} from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
-import { useInkUI } from '@/components/InkUIProvider';
+} from '@/components/ui';
+import { InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { GongFa, LingGen, ShenTong } from '@/components/func';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes } from '@/types/cultivator';

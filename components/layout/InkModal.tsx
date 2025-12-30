@@ -1,9 +1,10 @@
 'use client';
 
+import { cn } from '@/lib/cn';
 import { ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-interface InkModalProps {
+export interface InkModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: ReactNode;
@@ -12,6 +13,10 @@ interface InkModalProps {
   className?: string;
 }
 
+/**
+ * 模态框组件
+ * 使用 Portal 渲染到 body，支持 Escape 键关闭
+ */
 export function InkModal({
   isOpen,
   onClose,
@@ -23,12 +28,11 @@ export function InkModal({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Small delay to ensure client-side only and avoid synchronous update warning
     const timer = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(timer);
   }, []);
 
-  // Close on Escape key
+  // Escape 键关闭
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -41,7 +45,7 @@ export function InkModal({
     };
   }, [isOpen, onClose]);
 
-  // Prevent body scroll when open
+  // 防止背景滚动
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -57,25 +61,29 @@ export function InkModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* 遮罩层 */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal Content */}
+      {/* 模态框内容 */}
       <div
-        className={`bg-paper max-w-md w-full rounded-xl shadow-2xl border border-ink/30 p-6 relative animate-in zoom-in-95 duration-200 z-10 ${className}`}
+        className={cn(
+          'bg-paper max-w-md w-full rounded-xl shadow-2xl',
+          'border border-ink/30 p-6 relative z-10',
+          className,
+        )}
         role="dialog"
         aria-modal="true"
       >
         {title && (
-          <h3 className="text-xl font-bold text-center text-ink">{title}</h3>
+          <h3 className="text-xl font-bold text-center text-ink font-heading">
+            {title}
+          </h3>
         )}
 
-        <div className="max-h-[50vh] overflow-y-auto custom-scrollbar">
-          {children}
-        </div>
+        <div className="max-h-[50vh] overflow-y-auto">{children}</div>
 
         {footer}
       </div>

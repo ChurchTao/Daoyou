@@ -5,8 +5,8 @@ import {
   InkList,
   InkListItem,
   InkNotice,
-} from '@/components/InkComponents';
-import { InkSection } from '@/components/InkLayout';
+} from '@/components/ui';
+import { InkSection } from '@/components/layout';
 import type { Skill } from '@/types/cultivator';
 import { getSkillTypeInfo, getStatusEffectInfo } from '@/types/dictionaries';
 

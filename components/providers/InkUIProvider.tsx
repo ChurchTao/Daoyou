@@ -8,8 +8,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import type { InkDialogState, InkToastData } from './InkComponents';
-import { InkDialog, InkToastHost } from './InkComponents';
+import type { InkDialogState, InkToastData } from '../ui';
+import { InkDialog, InkToastHost } from '../ui';
 
 type ToastInput = Omit<InkToastData, 'id'> & { duration?: number };
 type DialogInput = Omit<InkDialogState, 'id'>;

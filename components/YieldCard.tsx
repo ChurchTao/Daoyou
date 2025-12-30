@@ -1,11 +1,11 @@
 'use client';
 
-import { InkBadge, InkButton } from '@/components/InkComponents';
+import { InkBadge, InkButton } from '@/components/ui';
 import type { Cultivator } from '@/types/cultivator';
 import { GeneratedMaterial } from '@/utils/materialGenerator';
 import { useEffect, useState } from 'react';
-import { InkModal } from './InkModal';
-import { useInkUI } from './InkUIProvider';
+import { InkModal } from './layout';
+import { useInkUI } from './providers/InkUIProvider';
 
 interface YieldCardProps {
   cultivator: Cultivator;

@@ -9,10 +9,10 @@ import {
   InkListItem,
   InkNotice,
   InkTabs,
-} from '@/components/InkComponents';
-import { InkPageShell } from '@/components/InkLayout';
-import { InkModal } from '@/components/InkModal';
-import { useInkUI } from '@/components/InkUIProvider';
+} from '@/components/ui';
+import { InkPageShell } from '@/components/layout';
+import { InkModal } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { RankingListItem } from '@/components/RankingListItem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { RANKING_REWARDS } from '@/types/constants';

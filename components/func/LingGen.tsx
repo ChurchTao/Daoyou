@@ -5,13 +5,13 @@ import {
   InkButton,
   InkList,
   InkListItem,
-} from '@/components/InkComponents';
-import { InkSection } from '@/components/InkLayout';
+} from '@/components/ui';
+import { InkSection } from '@/components/layout';
 import { ELEMENT_VALUES } from '@/types/constants';
 import type { SpiritualRoot } from '@/types/cultivator';
 import { getElementInfo } from '@/types/dictionaries';
 import { ReactNode } from 'react';
-import { useInkUI } from '../InkUIProvider';
+import { useInkUI } from '../providers/InkUIProvider';
 
 interface LingGenProps {
   spiritualRoots: SpiritualRoot[];

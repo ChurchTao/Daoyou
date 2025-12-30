@@ -1,6 +1,6 @@
 'use client';
 
-import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkPageShell, InkSection } from '@/components/layout';
 import { MailDetailModal } from '@/components/mail/MailDetailModal';
 import { Mail, MailList } from '@/components/mail/MailList';
 import { useCallback, useEffect, useState } from 'react';

@@ -12,9 +12,9 @@ import {
   InkStatRow,
   InkStatusBar,
   InkTag,
-} from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
-import { useInkUI } from '@/components/InkUIProvider';
+} from '@/components/ui';
+import { InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import {

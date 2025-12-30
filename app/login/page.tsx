@@ -1,8 +1,8 @@
 'use client';
 
-import { InkButton, InkInput, InkNotice } from '@/components/InkComponents';
-import { InkPageShell } from '@/components/InkLayout';
-import { useInkUI } from '@/components/InkUIProvider';
+import { InkButton, InkInput, InkNotice } from '@/components/ui';
+import { InkPageShell } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';

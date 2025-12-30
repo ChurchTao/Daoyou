@@ -1,4 +1,4 @@
-import { InkUIProvider } from '@/components/InkUIProvider';
+import { InkUIProvider } from '@/components/providers/InkUIProvider';
 import '@/components/welcome/welcome.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';

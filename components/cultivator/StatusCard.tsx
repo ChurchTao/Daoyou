@@ -1,6 +1,6 @@
 'use client';
 
-import { InkCard } from '@/components/InkComponents';
+import { InkCard } from '@/components/ui';
 import type { PersistentStatusSnapshot } from '@/lib/dungeon/types';
 import { getStatusesDisplay } from '@/lib/utils/statusDisplay';
 

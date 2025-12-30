@@ -3,8 +3,8 @@ import {
   InkCard,
   InkList,
   InkListItem,
-} from '@/components/InkComponents';
-import { InkPageShell } from '@/components/InkLayout';
+} from '@/components/ui';
+import { InkPageShell } from '@/components/layout';
 import { DungeonSettlement as DungeonSettlementType } from '@/lib/dungeon/types';
 
 interface DungeonSettlementProps {

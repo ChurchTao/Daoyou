@@ -1,7 +1,7 @@
 import { BattleEngineResult } from '@/engine/battle';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { InkButton } from './InkComponents';
+import { InkButton } from './ui';
 
 interface BattlePageLayoutProps {
   title: string;

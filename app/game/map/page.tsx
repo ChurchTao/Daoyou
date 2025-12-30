@@ -1,6 +1,6 @@
 'use client';
 
-import { InkButton, InkTag } from '@/components/InkComponents';
+import { InkButton, InkTag } from '@/components/ui';
 import {
   getAllMapNodes,
   getAllSatelliteNodes,

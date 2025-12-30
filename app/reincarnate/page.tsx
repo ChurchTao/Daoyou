@@ -1,7 +1,7 @@
 'use client';
 
-import { InkButton, InkNotice } from '@/components/InkComponents';
-import { InkPageShell, InkSection } from '@/components/InkLayout';
+import { InkButton, InkNotice } from '@/components/ui';
+import { InkPageShell, InkSection } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 

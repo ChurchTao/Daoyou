@@ -1,7 +1,7 @@
 'use client';
 
-import { InkBadge, InkButton } from '@/components/InkComponents';
-import { InkModal } from '@/components/InkModal';
+import { InkBadge, InkButton } from '@/components/ui';
+import { InkModal } from '@/components/layout';
 import type { Cultivator } from '@/types/cultivator';
 import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { calculateExpProgress } from '@/utils/cultivationUtils';

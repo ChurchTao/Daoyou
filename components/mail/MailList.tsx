@@ -1,6 +1,6 @@
 'use client';
 
-import { InkListItem, InkNotice } from '@/components/InkComponents';
+import { InkListItem, InkNotice } from '@/components/ui';
 import { MailAttachment } from '@/lib/services/MailService';
 
 // Define local interface to match API response/schema
