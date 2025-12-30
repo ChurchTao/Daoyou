@@ -159,23 +159,3 @@ h6,
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
-
-/* 丹炉冒烟动画 */
-@keyframes smoke {
-  0% {
-    opacity: 0.8;
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: translateY(-10px) scale(1.2);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-20px) scale(1.5);
-  }
-}
-
-.smoke {
-  animation: smoke 2s infinite;
-}

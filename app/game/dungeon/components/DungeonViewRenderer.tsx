@@ -1,5 +1,5 @@
-import { InkCard, InkNotice } from '@/components/ui';
 import { InkPageShell, InkSection } from '@/components/layout';
+import { InkCard, InkNotice } from '@/components/ui';
 import { DungeonOption } from '@/lib/dungeon/types';
 import { getMapNode } from '@/lib/game/mapSystem';
 import { DungeonViewState } from '@/lib/hooks/dungeon/useDungeonViewModel';
@@ -106,7 +106,7 @@ export function DungeonViewRenderer({
       : null;
 
     return (
-      <InkPageShell title="云游探秘" backHref="/game" subtitle="寻找上古机缘">
+      <InkPageShell title="云游探秘" backHref="/" subtitle="寻找上古机缘">
         <InkCard className="p-6 mb-6">
           <div className="text-center space-y-4">
             <div className="text-6xl my-4">🏔️</div>
