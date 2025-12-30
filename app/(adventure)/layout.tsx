@@ -1,8 +1,6 @@
 'use client';
 
-import { InkNav } from '@/components/ui/InkNav';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { usePathname } from 'next/navigation';
 import { createContext, useContext, type ReactNode } from 'react';
 
 // 修仙者数据 Bundle 类型
@@ -19,13 +17,6 @@ export function useCultivator(): CultivatorBundle {
   return context;
 }
 
-const navItems = [
-  { label: '首页', href: '/' },
-  { label: '储物袋', href: '/inventory' },
-  { label: '道身', href: '/cultivator' },
-  { label: '天骄榜', href: '/rankings' },
-];
-
 /**
  * 历练探索区布局
  * - 沉浸式体验
@@ -33,14 +24,10 @@ const navItems = [
  */
 export default function AdventureLayout({ children }: { children: ReactNode }) {
   const cultivatorBundle = useCultivatorBundle();
-  const pathname = usePathname();
 
   return (
     <CultivatorContext.Provider value={cultivatorBundle}>
       <div className="bg-paper min-h-screen pb-20">{children}</div>
-      <div className="fixed bottom-0 left-0 right-0 z-100 bg-paper border-t border-ink/10 shadow">
-        <InkNav items={navItems} currentPath={pathname} />
-      </div>
     </CultivatorContext.Provider>
   );
 }
