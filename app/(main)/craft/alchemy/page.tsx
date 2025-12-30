@@ -1,5 +1,7 @@
 'use client';
 
+import { InkModal, InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -9,10 +11,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { InkModal } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -20,7 +19,7 @@ import { useState } from 'react';
 
 export default function AlchemyPage() {
   const { cultivator, inventory, refreshInventory, note, isLoading } =
-    useCultivatorBundle();
+    useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [status, setStatus] = useState<string>('');

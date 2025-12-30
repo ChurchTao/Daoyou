@@ -10,7 +10,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react';
 type MarketListing = Material & { price: number };
 
 export default function MarketPage() {
-  const { cultivator, refresh } = useCultivatorBundle();
+  const { cultivator, refresh } = useCultivator();
   const [listings, setListings] = useState<MarketListing[]>([]);
   const [nextRefresh, setNextRefresh] = useState<number>(0);
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);

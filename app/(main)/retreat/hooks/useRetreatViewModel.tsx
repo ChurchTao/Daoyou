@@ -1,11 +1,11 @@
 'use client';
 
-import { useCultivator } from '@/app/(main)/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import type {
   BreakthroughResult,
   CultivationResult,
 } from '@/engine/cultivation/CultivationEngine';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 

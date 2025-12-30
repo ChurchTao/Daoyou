@@ -13,7 +13,7 @@ import {
   InkNotice,
   InkTabs,
 } from '@/components/ui';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { RANKING_REWARDS } from '@/types/constants';
 import { ItemRankingEntry, RankingsDisplayItem } from '@/types/rankings';
 import { usePathname, useRouter } from 'next/navigation';
@@ -32,7 +32,7 @@ type RankingTab = 'battle' | 'artifact' | 'skill' | 'elixir';
 export default function RankingsPage() {
   const router = useRouter();
   const { pushToast } = useInkUI();
-  const { cultivator, isLoading, note } = useCultivatorBundle();
+  const { cultivator, isLoading, note } = useCultivator();
   const [activeTab, setActiveTab] = useState<RankingTab>('battle');
   const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);

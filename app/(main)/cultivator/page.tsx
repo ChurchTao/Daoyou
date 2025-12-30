@@ -1,5 +1,8 @@
 'use client';
 
+import { GongFa, LingGen, ShenTong } from '@/components/func';
+import { InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -12,10 +15,7 @@ import {
   InkStatRow,
   InkStatusBar,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
-import { GongFa, LingGen, ShenTong } from '@/components/func';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Attributes } from '@/types/cultivator';
 import {
   formatAttributeBonusMap,
@@ -30,7 +30,7 @@ import { useState } from 'react';
 
 export default function CultivatorPage() {
   const { cultivator, inventory, skills, equipped, isLoading } =
-    useCultivatorBundle();
+    useCultivator();
   const pathname = usePathname();
   const router = useRouter();
   const { pushToast } = useInkUI();

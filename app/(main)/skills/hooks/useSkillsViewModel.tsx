@@ -1,12 +1,12 @@
 'use client';
 
-import { useCultivator } from '@/app/(main)/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import type { InkDialogState } from '@/components/ui';
-import type { Skill } from '@/types/cultivator';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { StatusEffect } from '@/types/constants';
+import type { Skill } from '@/types/cultivator';
 import { getStatusEffectInfo } from '@/types/dictionaries';
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export interface UseSkillsViewModelReturn {
   // 数据
@@ -102,7 +102,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         }));
       }
     },
-    [cultivator, pushToast, refresh]
+    [cultivator, pushToast, refresh],
   );
 
   // 打开遗忘确认
@@ -129,7 +129,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         onConfirm: async () => await handleForget(skill),
       });
     },
-    [handleForget]
+    [handleForget],
   );
 
   // 显示效果帮助
@@ -145,7 +145,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         confirmLabel: '了然',
       });
     },
-    [openDialog]
+    [openDialog],
   );
 
   return {

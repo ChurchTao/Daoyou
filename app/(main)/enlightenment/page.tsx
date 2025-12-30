@@ -1,12 +1,12 @@
 'use client';
 
-import { InkActionGroup, InkButton, InkCard } from '@/components/ui';
 import { InkPageShell, InkSection } from '@/components/layout';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { InkActionGroup, InkButton, InkCard } from '@/components/ui';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { usePathname } from 'next/navigation';
 
 export default function EnlightenmentPage() {
-  const { note } = useCultivatorBundle();
+  const { note } = useCultivator();
   const pathname = usePathname();
 
   return (

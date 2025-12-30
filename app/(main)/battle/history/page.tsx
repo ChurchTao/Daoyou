@@ -1,9 +1,9 @@
 'use client';
 
-import { InkTabs } from '@/components/ui';
 import Zhanji from '@/components/func/Zhanji';
+import { InkTabs } from '@/components/ui';
 import type { BattleEngineResult } from '@/engine/battle';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -31,7 +31,7 @@ export default function BattleHistoryPage() {
   const [records, setRecords] = useState<BattleSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('all');
-  const { cultivator } = useCultivatorBundle();
+  const { cultivator } = useCultivator();
 
   const fetchBattleHistory = async (type?: TabType) => {
     setLoading(true);

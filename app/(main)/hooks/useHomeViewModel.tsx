@@ -1,10 +1,10 @@
 'use client';
 
-import { useCultivator } from '@/app/(main)/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import type { InkDialogState } from '@/components/ui';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { useState, useCallback, useMemo } from 'react';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { useCallback, useMemo, useState } from 'react';
 
 export interface UseHomeViewModelReturn {
   // 数据

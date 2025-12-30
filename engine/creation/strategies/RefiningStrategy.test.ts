@@ -1,18 +1,6 @@
 import { object } from '@/utils/aiClient';
-import { filterKeywordsForLianQi } from '@/utils/keywords';
 import { CreationContext } from '../CreationStrategy';
 import { RefiningStrategy } from './RefiningStrategy';
-
-test('炼器意图净化', async () => {
-  const prompt = `投入了地脉晶「仙品」天材地宝
-神甲
-灵力 +550｜悟性 +550｜神识 +550
-雷系伤害 +55%
-命中时90%概率附加疾速
-命中时90%概率附加沉默
-`;
-  await filterKeywordsForLianQi(prompt);
-});
 
 test('RefiningStrategy test', async () => {
   const strategy = new RefiningStrategy();

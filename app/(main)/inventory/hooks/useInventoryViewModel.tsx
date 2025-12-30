@@ -1,10 +1,10 @@
 'use client';
 
-import { useCultivator } from '@/app/(main)/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import type { InkDialogState } from '@/components/ui';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
@@ -39,7 +39,7 @@ export interface UseInventoryViewModelReturn {
   handleConsume: (item: Consumable) => Promise<void>;
   openDiscardConfirm: (
     item: InventoryItem,
-    type: 'artifact' | 'consumable' | 'material'
+    type: 'artifact' | 'consumable' | 'material',
   ) => void;
 }
 
@@ -93,7 +93,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const handleDiscard = useCallback(
     async (
       item: InventoryItem,
-      type: 'artifact' | 'consumable' | 'material'
+      type: 'artifact' | 'consumable' | 'material',
     ) => {
       if (!cultivator) return;
 
@@ -109,7 +109,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ itemId: item.id, itemType: type }),
-          }
+          },
         );
 
         const result = await response.json();
@@ -132,7 +132,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         }));
       }
     },
-    [cultivator, pushToast, refreshInventory]
+    [cultivator, pushToast, refreshInventory],
   );
 
   // 打开丢弃确认
@@ -155,7 +155,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         onConfirm: async () => await handleDiscard(item, type),
       });
     },
-    [handleDiscard]
+    [handleDiscard],
   );
 
   // 装备/卸下法宝
@@ -177,7 +177,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ artifactId: item.id }),
-          }
+          },
         );
 
         const result = await response.json();
@@ -199,7 +199,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, pushToast, refresh]
+    [cultivator, pushToast, refresh],
   );
 
   // 服用丹药
@@ -221,7 +221,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ consumableId: item.id }),
-          }
+          },
         );
 
         const result = await response.json();
@@ -243,7 +243,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, pushToast, refresh]
+    [cultivator, pushToast, refresh],
   );
 
   return {

@@ -1,8 +1,8 @@
 'use client';
 
 import { InkPageShell } from '@/components/layout';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useDungeonViewModel } from '@/lib/hooks/dungeon/useDungeonViewModel';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { DungeonViewRenderer } from './components/DungeonViewRenderer';
@@ -16,7 +16,7 @@ import { DungeonViewRenderer } from './components/DungeonViewRenderer';
  * 3. 视图渲染：委托给 DungeonViewRenderer 处理
  */
 function DungeonContent() {
-  const { cultivator, isLoading: isCultivatorLoading } = useCultivatorBundle();
+  const { cultivator, isLoading: isCultivatorLoading } = useCultivator();
   const searchParams = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');
 

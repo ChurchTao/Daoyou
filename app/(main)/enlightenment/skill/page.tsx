@@ -1,5 +1,7 @@
 'use client';
 
+import { InkModal, InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -9,10 +11,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { InkModal } from '@/components/layout'; // Imported InkModal
-import { useInkUI } from '@/components/providers/InkUIProvider';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { Skill } from '@/types/cultivator'; // Assuming Skill type exists
 import {
   getElementInfo,
@@ -24,7 +23,7 @@ import { useState } from 'react';
 
 export default function SkillCreationPage() {
   const { cultivator, finalAttributes, refresh, note, isLoading } =
-    useCultivatorBundle();
+    useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
