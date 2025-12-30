@@ -1,5 +1,7 @@
 'use client';
 
+import { InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -8,8 +10,6 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
