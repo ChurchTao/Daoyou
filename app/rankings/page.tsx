@@ -1,7 +1,10 @@
 'use client';
 
+import { RankingListItem } from '@/components/feature/ranking/RankingListItem';
 import { ProbeResultModal } from '@/components/func';
 import type { ProbeResultData } from '@/components/func/ProbeResult';
+import { InkModal, InkPageShell } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkButton,
@@ -10,10 +13,6 @@ import {
   InkNotice,
   InkTabs,
 } from '@/components/ui';
-import { InkPageShell } from '@/components/layout';
-import { InkModal } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
-import { RankingListItem } from '@/components/RankingListItem';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { RANKING_REWARDS } from '@/types/constants';
 import { ItemRankingEntry, RankingsDisplayItem } from '@/types/rankings';

@@ -5,28 +5,19 @@ export { InkButton, type InkButtonProps } from './InkButton';
 export { InkCard, type InkCardProps } from './InkCard';
 export {
   InkDialog,
-  InkLink,
-  InkNav,
-  InkTabs,
-  InkToastHost,
   type InkDialogProps,
   type InkDialogState,
-  type InkLinkProps,
-  type InkNavProps,
-  type InkTabItem,
-  type InkTabsProps,
-  type InkToastData,
-  type InkToastHostProps,
-  type InkToastTone,
 } from './InkDialog';
 export { InkDivider, type InkDividerProps } from './InkDivider';
 export { InkInput, type InkInputProps } from './InkInput';
+export { InkLink, type InkLinkProps } from './InkLink';
 export {
   InkList,
   InkListItem,
   type InkListItemProps,
   type InkListProps,
 } from './InkList';
+export { InkNav, type InkNavProps } from './InkNav';
 export { InkNotice, type InkNoticeProps } from './InkNotice';
 export { InkStatRow, type InkStatRowProps } from './InkStatRow';
 export {
@@ -34,4 +25,12 @@ export {
   type InkStatusBarProps,
   type InkStatusDatum,
 } from './InkStatusBar';
+export { InkTabs, type InkTabItem, type InkTabsProps } from './InkTabs';
 export { InkTag, type InkTagProps } from './InkTag';
+export {
+  InkToast,
+  InkToastHost,
+  type InkToastData,
+  type InkToastHostProps,
+  type InkToastTone,
+} from './InkToast';

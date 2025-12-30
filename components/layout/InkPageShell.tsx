@@ -3,7 +3,7 @@
 import { cn } from '@/lib/cn';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { InkNav } from '../ui/InkDialog';
+import { InkNav } from '../ui/InkNav';
 
 export interface InkPageShellProps {
   title: string;

@@ -102,40 +102,6 @@ h6,
   }
 }
 
-/* 卷轴效果 */
-.character-scroll {
-  position: relative;
-  margin: 2rem 0;
-}
-
-.character-scroll::before,
-.character-scroll::after {
-  content: '';
-  display: block;
-  height: 20px;
-  background: var(--color-wood);
-  margin: 0 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.scroll-content {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(44, 24, 16, 0.1);
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-}
-
-/* 云纹分隔线 */
-.cloud-divider {
-  height: 40px;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,10 Q25,5 50,10 T100,10' stroke='%232c1810' stroke-width='1' fill='none' opacity='0.2'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-size: 100px 20px;
-  margin: 2rem 0;
-}
-
 /* 战报样式增强 */
 .battle-report {
   font-family: var(--font-lxgwwenkai), serif;

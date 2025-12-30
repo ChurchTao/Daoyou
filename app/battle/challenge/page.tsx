@@ -1,8 +1,8 @@
 'use client';
 
-import { BattlePageLayout } from '@/components/BattlePageLayout';
-import { BattleReportViewer } from '@/components/BattleReportViewer';
-import { BattleTimelineViewer } from '@/components/BattleTimelineViewer';
+import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
+import { BattleReportViewer } from '@/components/feature/battle/BattleReportViewer';
+import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimelineViewer';
 import { InkButton } from '@/components/ui';
 import type { BattleEngineResult } from '@/engine/battle';
 import type { Cultivator } from '@/types/cultivator';

@@ -1,6 +1,11 @@
 'use client';
 
-import { CultivatorStatusCard } from '@/components/CultivatorStatusCard';
+import { CultivatorStatusCard } from '@/components/feature/cultivator/CultivatorStatusCard';
+import { LifespanStatusCard } from '@/components/feature/cultivator/LifespanStatusCard';
+import { YieldCard } from '@/components/feature/cultivator/YieldCard';
+import { RecentBattles } from '@/components/feature/ranking/RecentBattles';
+import { InkModal, InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkBadge,
   InkButton,
@@ -12,14 +17,8 @@ import {
   InkNotice,
   InkStatusBar,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { InkModal } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
-import { LifespanStatusCard } from '@/components/LifespanStatusCard';
-import { RecentBattles } from '@/components/RecentBattles';
 import { DivineFortune } from '@/components/welcome/DivineFortune';
 import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
-import { YieldCard } from '@/components/YieldCard';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import Image from 'next/image';

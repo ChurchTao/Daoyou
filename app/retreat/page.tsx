@@ -1,6 +1,8 @@
 'use client';
 
-import { CultivatorStatusCard } from '@/components/CultivatorStatusCard';
+import { CultivatorStatusCard } from '@/components/feature/cultivator/CultivatorStatusCard';
+import { InkModal, InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -8,9 +10,6 @@ import {
   InkInput,
   InkNotice,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { InkModal } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   BreakthroughResult,
   CultivationResult,

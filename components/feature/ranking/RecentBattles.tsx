@@ -1,10 +1,10 @@
 'use client';
 
+import Zhanji from '@/components/func/Zhanji';
+import { InkButton, InkList, InkNotice } from '@/components/ui';
 import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useEffect, useState } from 'react';
-import { InkButton, InkList, InkNotice } from './ui';
-import Zhanji from './func/Zhanji';
 
 type BattleSummary = {
   id: string;

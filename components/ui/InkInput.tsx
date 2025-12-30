@@ -1,9 +1,37 @@
 'use client';
 
 import { cn } from '@/lib/cn';
+import { cva, type VariantProps } from 'class-variance-authority';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 
-export interface InkInputProps {
+/**
+ * InkInput 变体定义
+ */
+const inkInputVariants = cva(
+  // 基础样式
+  'w-full bg-transparent font-sans leading-[1.5] focus:outline-none',
+  {
+    variants: {
+      variant: {
+        default: 'border border-ink/20 focus:border-crimson',
+        outlined: 'border-2 border-ink/30 focus:border-crimson rounded-md',
+        underlined:
+          'border-b border-ink/20 focus:border-b-crimson border-t-0 border-l-0 border-r-0',
+      },
+      size: {
+        sm: 'px-2 py-2 text-sm',
+        md: 'px-3 py-3 text-base',
+        lg: 'px-4 py-4 text-lg',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'md',
+    },
+  },
+);
+
+export interface InkInputProps extends VariantProps<typeof inkInputVariants> {
   label?: string;
   placeholder?: string;
   value: string;
@@ -36,11 +64,11 @@ export function InkInput({
   error,
   disabled = false,
   onKeyDown,
+  variant,
+  size,
 }: InkInputProps) {
   const fieldClass = cn(
-    'w-full border border-ink/20 bg-transparent px-3 py-3',
-    'font-sans text-base leading-[1.5]',
-    'focus:outline-none focus:border-crimson',
+    inkInputVariants({ variant, size }),
     multiline && 'min-h-32 resize-y',
     disabled && 'opacity-50 cursor-not-allowed',
   );
