@@ -47,7 +47,7 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[300] flex items-center justify-center p-4',
+        'fixed inset-0 z-300 flex items-center justify-center p-4',
         'bg-[rgba(20,10,5,0.55)]',
       )}
       role="dialog"

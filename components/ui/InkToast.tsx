@@ -81,7 +81,7 @@ export function InkToastHost({ toasts, onDismiss }: InkToastHostProps) {
   return (
     <div
       className={cn(
-        'fixed bottom-20 left-1/2 -translate-x-1/2 z-[200]',
+        'fixed bottom-20 left-1/2 -translate-x-1/2 z-200',
         'flex flex-col gap-2 w-[min(90vw,420px)]',
       )}
     >
