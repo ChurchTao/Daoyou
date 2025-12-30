@@ -1,4 +1,4 @@
-import { BattleCallbackData } from '@/app/game/dungeon/components/DungeonBattle';
+import { BattleCallbackData } from '@/app/(adventure)/game/dungeon/components/DungeonBattle';
 import {
   DungeonOption,
   DungeonRound,
