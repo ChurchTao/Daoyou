@@ -62,9 +62,9 @@ export function HomeView() {
         <Image
           src="/assets/daoyou_logo.png"
           alt="万界道友_logo"
-          width={96}
-          height={96}
-          className="object-contain"
+          width={108}
+          height={108}
+          className="object-contain drop-shadow-lg"
         />
       }
       title="万界道友"
