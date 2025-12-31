@@ -13,9 +13,15 @@ export interface PromptData {
   user: string;
 }
 
-export interface CreationStrategy<T = unknown> {
+/**
+ * 造物策略接口
+ *
+ * TBlueprint: AI 生成的蓝图类型
+ * TResult: 最终产物类型（法宝、丹药等）
+ */
+export interface CreationStrategy<TBlueprint = unknown, TResult = unknown> {
   /**
-   * Identifies the craft type this strategy handles (e.g. 'refine', 'alchemy')
+   * 标识该策略处理的造物类型 (如 'refine', 'alchemy')
    */
   readonly craftType: string;
 
@@ -23,28 +29,36 @@ export interface CreationStrategy<T = unknown> {
 
   readonly schemaDescription: string;
 
-  readonly schema: z.ZodType<T>;
+  /**
+   * AI 输出的蓝图 Schema
+   */
+  readonly schema: z.ZodType<TBlueprint>;
 
   /**
-   * Validate if the materials and context are valid for this strategy.
-   * Should throw Error if invalid.
+   * 校验材料和上下文是否有效
+   * 无效时应抛出 Error
    */
   validate(context: CreationContext): Promise<void>;
 
   /**
-   * Construct the AI prompt and Zod schema for generation.
+   * 构建 AI Prompt（只生成蓝图，不含数值）
    */
   constructPrompt(context: CreationContext): PromptData;
 
   /**
-   * Execute the database result persistence logic.
-   * @param tx The database transaction object
-   * @param context The creation context
-   * @param resultItem The JSON object returned by AI
+   * 将蓝图转化为实际物品（数值由配置表决定）
+   */
+  materialize(blueprint: TBlueprint, context: CreationContext): TResult;
+
+  /**
+   * 执行数据库持久化逻辑
+   * @param tx 数据库事务对象
+   * @param context 造物上下文
+   * @param resultItem 转化后的实际物品
    */
   persistResult(
     tx: DbTransaction,
     context: CreationContext,
-    resultItem: T,
+    resultItem: TResult,
   ): Promise<void>;
 }

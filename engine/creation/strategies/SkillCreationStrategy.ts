@@ -1,54 +1,48 @@
+/**
+ * 技能创建策略 - 蓝图模式
+ *
+ * AI 只生成创意内容（名称、类型、元素、描述、品阶提示）
+ * 数值（威力、消耗、冷却等）由 SkillFactory 根据配置计算
+ */
+
 import { DbTransaction } from '@/lib/drizzle/db';
 import { skills } from '@/lib/drizzle/schema';
 import {
   ELEMENT_VALUES,
-  SKILL_GRADE_VALUES,
   SKILL_TYPE_VALUES,
   STATUS_EFFECT_VALUES,
 } from '@/types/constants';
-import { Skill } from '@/types/cultivator';
-import { getAllSkillPowerRangePrompt } from '@/utils/characterEngine';
+import type { Skill } from '@/types/cultivator';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { calculateSingleSkillScore } from '@/utils/rankingUtils';
-import { z } from 'zod';
 import {
   CreationContext,
   CreationStrategy,
   PromptData,
 } from '../CreationStrategy';
-
-// Zod Schema for Skills
-const SkillSchema = z.object({
-  name: z.string().min(2).max(8).describe('神通名称'),
-  type: z
-    .enum(SKILL_TYPE_VALUES)
-    .describe('神通类型(attack/heal/control/debuff/buff)'),
-  element: z.enum(ELEMENT_VALUES).describe('神通元素属性'),
-  grade: z.enum(SKILL_GRADE_VALUES).describe('神通品阶'),
-  power: z.number().gte(0).lte(300).describe('神通威力(30-150)'),
-  cost: z.number().gte(0).describe('灵力消耗'),
-  cooldown: z.number().gte(0).lte(10).describe('冷却回合数'),
-  effect: z.enum(STATUS_EFFECT_VALUES).optional().describe('附带特殊效果'),
-  duration: z.number().optional().describe('效果持续回合数'),
-  target_self: z.boolean().default(false).describe('是否作用于自身'),
-  description: z.string().max(200).describe('神通描述(包含原理、施法表现等)'),
-});
+import { SkillFactory } from '../SkillFactory';
+import {
+  ELEMENT_MATCH_VALUES,
+  GRADE_HINT_VALUES,
+  SkillBlueprint,
+  SkillBlueprintSchema,
+  SkillContext,
+} from '../types';
 
 export class SkillCreationStrategy implements CreationStrategy<
-  z.infer<typeof SkillSchema>
+  SkillBlueprint,
+  Skill
 > {
   readonly craftType = 'create_skill';
 
-  readonly schemaName = '修仙神通数据结构';
+  readonly schemaName = '神通蓝图';
 
   readonly schemaDescription =
-    '描述了神通的名称、类型、元素、品阶、威力、消耗、冷却等信息';
+    '描述了神通的名称、类型、元素、描述、品阶提示等创意信息（数值由程序计算）';
 
-  readonly schema = SkillSchema;
+  readonly schema = SkillBlueprintSchema;
 
   async validate(context: CreationContext): Promise<void> {
-    // Creating a skill allows for 0 materials (pure epiphany)
-    // But we might want to check for minimum realm?
     const max_skills = context.cultivator.max_skills || 3;
     if (context.cultivator.skills.length >= max_skills) {
       throw new Error(`道友神通已经很多了，如需再创，需要遗忘一些神通。`);
@@ -58,169 +52,104 @@ export class SkillCreationStrategy implements CreationStrategy<
   constructPrompt(context: CreationContext): PromptData {
     const { cultivator, userPrompt } = context;
 
-    // 构建 XML 格式的修士信息
-    const spiritualRootsXml = cultivator.spiritual_roots
-      .map(
-        (r) => `<spiritual_root>
-  <element>${r.element}</element>
-  <strength>${r.strength}</strength>
-</spiritual_root>`,
-      )
-      .join('\n');
+    // 构建灵根信息
+    const spiritualRootsDesc = cultivator.spiritual_roots
+      .map((r) => `${r.element}(强度${r.strength})`)
+      .join('、');
 
+    // 获取武器信息
     const weaponId = cultivator.equipped.weapon;
     const weapon = cultivator.inventory.artifacts.find(
       (a) => a.id === weaponId,
     );
-    const weaponXml = weapon
-      ? `<weapon>
-  <name>${weapon.name}</name>
-  <element>${weapon.element}</element>
-  <description>${weapon.description}</description>
-</weapon>`
-      : '<weapon><name>无(赤手空拳)</name><element>无</element></weapon>';
+    const weaponDesc = weapon
+      ? `${weapon.name}（${weapon.element}属性）`
+      : '无（赤手空拳）';
 
-    const fatesXml =
+    // 获取命格信息
+    const fatesDesc =
       cultivator.pre_heaven_fates
-        ?.map(
-          (fate) => `<fate>
-  <name>${fate.name}</name>
-  <description>${fate.description}</description>
-</fate>`,
-        )
-        .join('\n') ?? '<fates>无</fates>';
+        ?.map((f) => `${f.name}(${f.type})`)
+        .join('、') || '无';
 
     const finalAttributes = calculateFinalAttributes(cultivator);
     const wisdom = finalAttributes.final.wisdom;
 
-    const systemPrompt = `**BACKGROUND / 背景设定**
-你身处《凡人修仙传》所描绘的残酷而真实的修仙界——一个弱肉强食、资源匮乏、大道争锋的世界。此界以“灵根”定修行根基，以“境界”分生死尊卑，炼气、筑基、金丹、元婴……每一步都踏着尸山血海。  
-修士需依仗功法、法宝、丹药与神通在杀劫中求一线生机。  
-此处无天命之子，唯有机缘、算计与一丝侥幸。任何违背天地法则、妄图逆天之举，终将招致反噬。
+    const systemPrompt = `
+# Role: 修仙界传功长老 - 神通蓝图设计
 
-**ROLE / 角色**
-你是韩立曾拜访过的某位隐世传功长老，精通五行遁术与器灵共鸣之道。
-你的职责是依据修士的先天条件（灵根、悟性）、当前装备（尤其是本命法宝/武器）以及修士的心念，推演出一门符合天道法则的神通(Skill)。
-你只依据修士的真实条件推演神通，不徇私，不妄言。
+你是一位隐世传功长老，负责为修士推演神通蓝图。**你只负责创意设计，具体数值由天道法则（程序）决定。**
 
-**PRIMARY OBJECTIVE / 主要任务**
-基于以下 XML 结构化输入，推演出一门神通，并输出**严格符合指定 JSON Schema 的纯 JSON 对象**。禁止任何解释、注释、Markdown 或额外文本。
-<user_intent> 是修士的神念意图，仅影响神通名称、描述风格、和神通的类型，绝不影响神通的属性、品质或规则！
+## 重要约束
 
-**SKILL CREATION RULES / 技能推演法则**
-1. **五行契合度**  
-   - 必须检查修士的灵根与想要创造的神通元素是否匹配。
-   - 若匹配：威力(power)上浮，消耗(cost)降低。
-   - 若不匹配：威力大幅下降，消耗剧增，品阶极低，甚至生成"走火入魔"类的垃圾技能。
+> ⚠️ **你的输出不包含任何数值**！不要输出 power、cost、cooldown 等数字。
+> 程序会根据修士境界、悟性、五行契合度自动计算所有数值。
 
-2. **器术合一**  
-   - 检查修士当前手持武器与元素。
-   - 武器与神通类型匹配时，威力大幅提升；反之则给予惩罚（极低威力、极高冷却、或不伦不类的描述）。
-   - 赤手空拳适合掌法、拳法、指法或纯法术。
+## 输出格式（严格遵守）
 
-3. **悟性与境界限制**  
-   - 品阶排序：${SKILL_GRADE_VALUES.join(' > ')}
-   - 悟性和境界决定神通的最大品阶及概率。
-   - 品阶威力范围参考：
-     ${getAllSkillPowerRangePrompt()}
-   - 境界限制：
-     - 炼气：最高黄阶神通。
-     - 筑基/金丹：最高玄阶神通。
-     - 元婴/化神：最高地阶神通。
-     - 炼虚及以上境界：最高天阶神通。
-   - 悟性修正:
-     - 悟性为0～500，悟性与神通威力成正比。
-     - 悟性越高，威力越靠近品阶威力上限，悟性越低，威力越靠近品阶威力下限。
-   - 若用户要求的神通威力远超当前境界，请予以驳回，生成一个简化版或施展失败版（威力极低，描述嘲讽）。
+只输出一个符合 JSON Schema 的纯 JSON 对象，不得包含任何额外文字。
 
-4. **气运影响**  
-   - 若神通与先天气运相辅相成，则倾向于生成更强、更高的神通；反之则削弱。
+### 枚举值限制
+- **type**: ${SKILL_TYPE_VALUES.join(', ')}
+- **element**: ${ELEMENT_VALUES.join(', ')}
+- **grade_hint**: ${GRADE_HINT_VALUES.join(', ')}（low=黄阶, medium=玄阶, high=地阶, extreme=天阶）
+- **element_match_assessment**: ${ELEMENT_MATCH_VALUES.join(', ')}
+- **effect_hint.status**: ${STATUS_EFFECT_VALUES.join(', ')}
 
-5. **心念合理性**  
-   - 心念越完整、细致、合理，越容易生成强大的神通。
+## 核心规则
 
-6. **神通类型规则**  
-   - 神通类型必须从 [${SKILL_TYPE_VALUES.join(', ')}] 中选择。
-   - 若有特殊神通效果，必须从 [${STATUS_EFFECT_VALUES.join(', ')}] 中选。
-   - 消耗值(cost)：必须在威力值的1～2倍之间浮动。
-   - 作用目标(target_self)：治疗和增益通常为 true。
-   - 持续回合数(duration)：效果持续回合数，增益(buff)、异常(debuff)为<=3，控制(control)<=2。
-   - 如果出现控制/增益/异常类型神通，威力（power）减半。
-   - 如果出现攻击/治疗类型的神通，则必须没有特殊效果。
+### 1. 五行契合度评估
+根据修士灵根与技能元素的关系：
+- **perfect_match**：灵根强度 >= 70 且武器元素匹配
+- **partial_match**：有对应灵根且强度 >= 50
+- **no_match**：无对应灵根
+- **conflict**：灵根与技能元素相克（如：火元素技能 + 水灵根）
 
-7. **命名与风味**  
-   - 名字需贴合修仙风格，结合五行、武器和意境。
-   - 描述(description)体现神通的施展过程，对于不合理创造，描述应体现别扭、勉强甚至反噬的感觉。
+### 2. 品阶提示判定
+基于修士境界和心念合理性：
+- 炼气期 → 最高 low（黄阶）
+- 筑基/金丹 → 最高 medium（玄阶）
+- 元婴/化神 → 最高 high（地阶）
+- 炼虚及以上 → 可达 extreme（天阶）
 
-8. **神念限制**  
-   - 神念只影响神通名称、描述、加成方向，不影响数值。
+### 3. 技能类型规则
+- **attack**: 攻击型，effect_hint 应为 { type: 'none' }
+- **heal**: 治疗型，effect_hint 应为 { type: 'none' }, target_self: true
+- **control**: 控制型，可有 status 效果，duration 由程序决定
+- **debuff**: 异常型，可有 status 效果
+- **buff**: 增益型，target_self: true
 
-**EXECUTION STEPS / 执行步骤**
-步骤 1：解析 <cultivator> 获取境界、悟性、灵根信息
-步骤 2：解析 <weapon> 获取手持武器信息
-步骤 3：解析 <fates> 获取先天气运
-步骤 4：根据五行契合度、器术合一原则、修士心念,判断神通是否合理，以确定神通类型与基础威力
-步骤 5：依据悟性与境界计算最终神通品阶与威力
-步骤 6：考虑先天气运的影响调整神通强度
-步骤 7：考虑神通类型，确定神通的特殊效果，是否满足神通类型规则
-步骤 8：生成符合 Schema 的 JSON，直接输出
+### 4. 命名与描述
+- 名称：2-8字，贴合修仙风格，结合五行、武器和意境
+- 描述：描述施法过程、视觉效果
+- 若五行相克，描述应体现别扭、勉强的感觉
 
-**INPUT FORMAT / 输入格式**
-<task_input>
-  <cultivator>
-    <realm>修士境界</realm>
-    <realm_stage>修士境界阶段</realm_stage>
-    <wisdom>修士悟性</wisdom>
-    <spiritual_roots>
-      修士灵根以及灵根的强度
-    </spiritual_roots>
-  </cultivator>
-  <user_intent>修士的心念</user_intent>
-  <weapon>
-    修士手持的武器
-  </weapon>
-  <fates>
-    修士的先天命格
-  </fates>
-</task_input>
-
-**OUTPUT REQUIREMENT / 输出要求**
-- 必须是纯 JSON 对象
-- Schema:
-{
-  "name": string,
-  "type": "Skill",
-  "grade": string,
-  "description": string (≤180字),
-  "power": integer,
-  "cost": integer,
-  "effect": string | null,
-  "target_self": boolean,
-  "duration": integer
-}
-> 注：若没有特殊效果，输出时， "effect": null
+## 禁止行为
+- ❌ 不得输出任何数值（power、cost、cooldown、duration 等）
+- ❌ 不得自定义枚举值
+- ❌ 若境界过低要求极品，应降低 grade_hint
 `;
 
-    const userPromptText = `<task_input>
-  <cultivator>
-    <realm>${cultivator.realm}</realm>
-    <realm_stage>${cultivator.realm_stage}</realm_stage>
-    <wisdom>${wisdom}</wisdom>
-    <spiritual_roots>
-      ${spiritualRootsXml}
-    </spiritual_roots>
-  </cultivator>
-  <user_intent>${userPrompt || '无'}</user_intent>
-  <weapon>
-    ${weaponXml}
-  </weapon>
-  <fates>
-    ${fatesXml}
-  </fates>
-</task_input>
+    const userPromptText = `
+请为以下修士推演神通蓝图：
 
-请据此推演一门神通。如果心念极其离谱（不符合五行/武器逻辑/过于逆天/不合理），请生成一个“废品”神通以示惩戒。
-请直接输出 JSON。`;
+<cultivator>
+  <realm>${cultivator.realm} ${cultivator.realm_stage}</realm>
+  <wisdom>${wisdom}</wisdom>
+  <spiritual_roots>${spiritualRootsDesc}</spiritual_roots>
+  <weapon>${weaponDesc}</weapon>
+  <fates>${fatesDesc}</fates>
+</cultivator>
+
+<user_intent>
+${userPrompt || '无（自由发挥）'}
+</user_intent>
+
+注意：
+1. user_intent 仅影响名称、描述、技能类型的选择
+2. 请根据灵根判断五行契合度
+3. 若心念极其离谱（不符合五行/武器逻辑），使用 conflict 评估并选择 low 品阶
+`;
 
     return {
       system: systemPrompt,
@@ -228,12 +157,36 @@ export class SkillCreationStrategy implements CreationStrategy<
     };
   }
 
+  /**
+   * 将蓝图转化为实际技能
+   */
+  materialize(blueprint: SkillBlueprint, context: CreationContext): Skill {
+    const finalAttributes = calculateFinalAttributes(context.cultivator);
+
+    // 获取武器元素
+    const weaponId = context.cultivator.equipped.weapon;
+    const weapon = context.cultivator.inventory.artifacts.find(
+      (a) => a.id === weaponId,
+    );
+
+    const skillContext: SkillContext = {
+      realm: context.cultivator.realm,
+      realmStage: context.cultivator.realm_stage,
+      wisdom: finalAttributes.final.wisdom,
+      spiritualRoots: context.cultivator.spiritual_roots,
+      weaponElement: weapon?.element,
+      fates: context.cultivator.pre_heaven_fates,
+    };
+
+    return SkillFactory.materialize(blueprint, skillContext);
+  }
+
   async persistResult(
     tx: DbTransaction,
     context: CreationContext,
-    resultItem: z.infer<typeof SkillSchema>,
+    resultItem: Skill,
   ): Promise<void> {
-    const score = calculateSingleSkillScore(resultItem as Skill);
+    const score = calculateSingleSkillScore(resultItem);
     await tx.insert(skills).values({
       cultivatorId: context.cultivator.id!,
       name: resultItem.name,

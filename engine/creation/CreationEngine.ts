@@ -6,15 +6,13 @@ import { Material } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';
 import { sanitizePrompt } from '@/utils/prompts';
 import { eq, inArray, sql } from 'drizzle-orm';
-import { CreationContext } from './CreationStrategy';
+import { CreationStrategy } from './CreationStrategy';
 import { AlchemyStrategy } from './strategies/AlchemyStrategy';
 import { RefiningStrategy } from './strategies/RefiningStrategy';
 import { SkillCreationStrategy } from './strategies/SkillCreationStrategy';
 
-export type SupportedStrategies =
-  | RefiningStrategy
-  | AlchemyStrategy
-  | SkillCreationStrategy;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SupportedStrategies = CreationStrategy<any, any>;
 
 export class CreationEngine {
   private strategies: Map<string, SupportedStrategies> = new Map();
@@ -30,7 +28,13 @@ export class CreationEngine {
   }
 
   /**
-   * Process a crafting request end-to-end.
+   * 处理造物请求（端到端）
+   *
+   * 新流程：
+   * 1. 加载数据 & 校验
+   * 2. 调用 AI 获取蓝图
+   * 3. 调用 strategy.materialize() 将蓝图转化为实际物品
+   * 4. 事务内消耗材料 + 持久化结果
    */
   async processRequest(
     userId: string,
@@ -82,14 +86,14 @@ export class CreationEngine {
       }
 
       // 4. Strategy Validation
-      const context: CreationContext = {
+      const context = {
         cultivator: cultivator,
         materials: selectedMaterials as unknown as Material[],
         userPrompt: sanitizePrompt(prompt),
       };
       await strategy.validate(context);
 
-      // 5. Construct Prompt & Call AI
+      // 5. Construct Prompt & Call AI (获取蓝图)
       const { system, user } = strategy.constructPrompt(context);
 
       const aiResponse = await object(system, user, {
@@ -99,11 +103,14 @@ export class CreationEngine {
         schemaDescription: strategy.schemaDescription,
       });
 
-      const resultItem = aiResponse.object;
+      const blueprint = aiResponse.object;
 
-      // 6. Transaction: Consumption & Persistence
+      // 6. Materialize: 将蓝图转化为实际物品（数值由配置表控制）
+      const resultItem = strategy.materialize(blueprint, context);
+
+      // 7. Transaction: Consumption & Persistence
       await db.transaction(async (tx) => {
-        // 6.1 Consume Materials
+        // 7.1 Consume Materials
         for (const mat of selectedMaterials) {
           if (mat.quantity > 1) {
             await tx
@@ -115,13 +122,11 @@ export class CreationEngine {
           }
         }
 
-        // 6.2 Persist Result (Delegated to Strategy)
-        // We cast types because TS cannot correlate that resultItem (from strategy.schema) matches strategy.persistResult's input
+        // 7.2 Persist Result (Delegated to Strategy)
         await strategy.persistResult(
           tx as unknown as DbTransaction,
           context,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          resultItem as any,
+          resultItem,
         );
       });
 

@@ -1,5 +1,5 @@
 import { InkPageShell, InkSection } from '@/components/layout';
-import { InkCard, InkNotice } from '@/components/ui';
+import { InkButton, InkCard, InkNotice } from '@/components/ui';
 import { DungeonOption } from '@/lib/dungeon/types';
 import { getMapNode } from '@/lib/game/mapSystem';
 import { DungeonViewState } from '@/lib/hooks/dungeon/useDungeonViewModel';
@@ -108,14 +108,50 @@ export function DungeonViewRenderer({
     const selectedNode = viewState.preSelectedNodeId
       ? getMapNode(viewState.preSelectedNodeId)
       : null;
-
+  
+    // 渲染次数提示
+    const renderLimitHint = () => {
+      if (viewState.limitLoading) {
+        return (
+          <p className="text-center text-xs text-ink-secondary mt-2">
+            查询中...
+          </p>
+        );
+      }
+  
+      if (!viewState.limitInfo) {
+        // 错误或未登录，不显示次数信息
+        return null;
+      }
+  
+      const { remaining, dailyLimit } = viewState.limitInfo;
+  
+      // 根据剩余次数决定样式和文案
+      if (remaining === 0) {
+        return (
+          <p className="text-center text-sm text-crimson mt-2">
+            今日探索次数已用尽，明日再来
+          </p>
+        );
+      }
+  
+      const textColor =
+        remaining === 1 ? 'text-amber-600' : 'text-ink';
+  
+      return (
+        <p className={`text-center text-xs ${textColor} mt-2`}>
+          今日剩余探索次数：{remaining}/{dailyLimit}
+        </p>
+      );
+    };
+  
     return (
       <InkPageShell title="云游探秘" backHref="/" subtitle="寻找上古机缘">
         <InkCard className="p-6 mb-6">
           <div className="text-center space-y-4">
             <div className="text-6xl my-4">🏔️</div>
             <p>
-              修仙界广袤无垠，机缘与危机并存。
+              修仙界广袄无垠，机缘与危机并存。
               <br />
               道友可愿前往，体悟一段未知的旅程？
             </p>
@@ -128,9 +164,12 @@ export function DungeonViewRenderer({
             isStarting={processing}
           />
         </InkSection>
-        <p className="text-center text-xs text-ink-secondary mt-2">
-          * 每日仅可探索一次（体验版，不会消耗材料、获得奖励）
-        </p>
+        {renderLimitHint()}
+        <div className="text-center mt-4">
+          <InkButton href="/game/dungeon/history" variant="ghost">
+            📖 查看历史记录
+          </InkButton>
+        </div>
       </InkPageShell>
     );
   }

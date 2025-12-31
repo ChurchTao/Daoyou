@@ -46,6 +46,7 @@ const quickActionsConfig = [
   { label: '🛖 修仙坊市', href: '/market' },
   { label: '⚗️ 造物仙炉', href: '/craft' },
   { label: '🏔️ 云游探秘', href: '/game/dungeon' },
+  { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
   { label: '📜 版本日志', href: '/changelog' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];

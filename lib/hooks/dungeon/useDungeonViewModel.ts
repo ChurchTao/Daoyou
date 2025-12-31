@@ -7,6 +7,7 @@ import {
 } from '@/lib/dungeon/types';
 import { useMemo, useState } from 'react';
 import { useDungeonActions } from './useDungeonActions';
+import { useDungeonLimit } from './useDungeonLimit';
 import { useDungeonState } from './useDungeonState';
 
 /**
@@ -15,7 +16,12 @@ import { useDungeonState } from './useDungeonState';
 export type DungeonViewState =
   | { type: 'loading' }
   | { type: 'not_authenticated' }
-  | { type: 'map_selection'; preSelectedNodeId: string | null }
+  | {
+      type: 'map_selection';
+      preSelectedNodeId: string | null;
+      limitInfo?: { remaining: number; used: number; dailyLimit: number } | null;
+      limitLoading?: boolean;
+    }
   | { type: 'exploring'; state: DungeonState; lastRound: DungeonRound }
   | { type: 'battle_preparation'; state: DungeonState }
   | {
@@ -47,6 +53,13 @@ export function useDungeonViewModel(
   } = useDungeonState(hasCultivator);
   const { startDungeon, performAction, quitDungeon, processing } =
     useDungeonActions();
+
+  // 副本次数限制
+  const {
+    limitInfo,
+    isLoading: limitLoading,
+    refresh: refreshLimit,
+  } = useDungeonLimit(hasCultivator);
 
   // 战斗相关状态
   const [activeBattleId, setActiveBattleId] = useState<string>();
@@ -118,7 +131,12 @@ export function useDungeonViewModel(
     }
 
     // 地图选择
-    return { type: 'map_selection', preSelectedNodeId };
+    return {
+      type: 'map_selection',
+      preSelectedNodeId,
+      limitInfo,
+      limitLoading,
+    };
   }, [
     stateLoading,
     hasCultivator,
@@ -127,6 +145,8 @@ export function useDungeonViewModel(
     lastRound,
     opponentName,
     preSelectedNodeId,
+    limitInfo,
+    limitLoading,
   ]);
 
   /**
@@ -136,6 +156,8 @@ export function useDungeonViewModel(
     const newState = await startDungeon(nodeId);
     if (newState) {
       setState(newState);
+      // 刷新次数限制
+      refreshLimit();
     }
   };
 

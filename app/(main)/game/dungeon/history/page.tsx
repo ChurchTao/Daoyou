@@ -4,6 +4,51 @@ import { InkPageShell, InkSection } from '@/components/layout';
 import { InkButton, InkCard, InkList, InkListItem } from '@/components/ui';
 import { useCallback, useEffect, useState } from 'react';
 
+/**
+ * 日志条目结构
+ */
+interface LogEntry {
+  round: number;
+  scene: string;
+  choice: string | null;
+}
+
+/**
+ * 解析副本日志字符串
+ * 
+ * @param log 原始日志字符串，格式为：[Round 1] 场景描述 -> Choice: 选项\n[Round 2] ...
+ * @returns 解析后的结构化数组
+ */
+function parseDungeonLog(log: string): LogEntry[] {
+  if (!log || typeof log !== 'string') {
+    return [];
+  }
+
+  try {
+    const lines = log.split('\n').filter((line) => line.trim());
+    const entries: LogEntry[] = [];
+
+    for (const line of lines) {
+      // 正则匹配：[Round X] 场景描述 -> Choice: 选择文本
+      const match = line.match(/\[Round (\d+)\] (.+?)(?: -> Choice: (.+))?$/);
+
+      if (match) {
+        const [, roundStr, scene, choice] = match;
+        entries.push({
+          round: parseInt(roundStr, 10),
+          scene: scene.trim(),
+          choice: choice ? choice.trim() : null,
+        });
+      }
+    }
+
+    return entries;
+  } catch (error) {
+    console.error('日志解析失败:', error);
+    return [];
+  }
+}
+
 interface DungeonHistoryRecord {
   id: string;
   theme: string;
@@ -171,9 +216,40 @@ export default function DungeonHistoryPage() {
                     <summary className="text-ink-secondary cursor-pointer">
                       查看详细日志
                     </summary>
-                    <pre className="mt-2 p-2 bg-paper-dark rounded whitespace-pre-wrap text-ink/70">
-                      {record.log}
-                    </pre>
+                    <div className="mt-3 space-y-4">
+                      {(() => {
+                        const entries = parseDungeonLog(record.log);
+
+                        if (entries.length === 0) {
+                          // 降级处理：解析失败时显示原始日志
+                          return (
+                            <pre className="p-2 bg-paper-dark rounded whitespace-pre-wrap text-ink/70 text-xs">
+                              {record.log || '暂无详细记录'}
+                            </pre>
+                          );
+                        }
+
+                        // 结构化时间线展示
+                        return entries.map((entry) => (
+                          <div
+                            key={entry.round}
+                            className="border-l-2 border-ink/10 pl-3"
+                          >
+                            <div className="font-bold text-ink/90 mb-1">
+                              第 {entry.round} 回
+                            </div>
+                            <p className="text-sm text-ink/70 leading-relaxed mb-2">
+                              {entry.scene}
+                            </p>
+                            {entry.choice && (
+                              <div className="text-sm text-crimson">
+                                ➜ {entry.choice}
+                              </div>
+                            )}
+                          </div>
+                        ));
+                      })()}
+                    </div>
                   </details>
                 </div>
               )}
