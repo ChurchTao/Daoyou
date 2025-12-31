@@ -22,6 +22,7 @@ interface DungeonViewRendererProps {
     abandonBattle: () => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
   };
+  onSettlementConfirm?: () => void;
 }
 
 /**
@@ -35,6 +36,7 @@ export function DungeonViewRenderer({
   cultivator,
   processing,
   actions,
+  onSettlementConfirm,
 }: DungeonViewRendererProps) {
   // 加载状态
   if (viewState.type === 'loading') {
@@ -83,7 +85,12 @@ export function DungeonViewRenderer({
 
   // 结算
   if (viewState.type === 'settlement') {
-    return <DungeonSettlement settlement={viewState.settlement} />;
+    return (
+      <DungeonSettlement
+        settlement={viewState.settlement}
+        onConfirm={onSettlementConfirm}
+      />
+    );
   }
 
   // 探索中

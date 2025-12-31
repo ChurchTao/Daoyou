@@ -4,13 +4,26 @@ import { DungeonSettlement as DungeonSettlementType } from '@/lib/dungeon/types'
 
 interface DungeonSettlementProps {
   settlement: DungeonSettlementType | undefined;
+  onConfirm?: () => void;
 }
 
 /**
  * 副本结算组件
  * 展示副本探索的最终结果和奖励
  */
-export function DungeonSettlement({ settlement }: DungeonSettlementProps) {
+export function DungeonSettlement({
+  settlement,
+  onConfirm,
+}: DungeonSettlementProps) {
+  const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm();
+    } else {
+      // 默认行为：跳转首页
+      window.location.href = '/';
+    }
+  };
+
   return (
     <InkPageShell title="探索结束" backHref="/">
       <InkCard className="p-4 space-y-4">
@@ -42,7 +55,7 @@ export function DungeonSettlement({ settlement }: DungeonSettlementProps) {
           )}
 
         <InkButton
-          href="/"
+          onClick={handleConfirm}
           variant="primary"
           className="w-full text-center block mt-4"
         >

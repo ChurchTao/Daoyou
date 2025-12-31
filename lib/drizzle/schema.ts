@@ -293,5 +293,6 @@ export const dungeonHistories = pgTable('wanjiedaoyou_dungeon_histories', {
   theme: varchar('theme', { length: 100 }).notNull(), // 副本主题
   result: jsonb('result').notNull(), // 副本结算结果 { ending_narrative, settlement: { reward_tier, potential_items, resource_loss } }
   log: text('log').notNull(), // 完整交互日志
+  realGains: jsonb('real_gains'), // 实际发放的奖励 ResourceOperation[]
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

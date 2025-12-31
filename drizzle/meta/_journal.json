@@ -141,6 +141,13 @@
       "when": 1766643755556,
       "tag": "0019_amused_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1767146211412,
+      "tag": "0020_simple_lady_vermin",
+      "breakpoints": true
     }
   ]
 }

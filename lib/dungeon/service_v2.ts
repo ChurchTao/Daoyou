@@ -15,6 +15,7 @@ import {
   getCultivatorOwnerId,
   getInventory,
 } from '../repositories/cultivatorRepository';
+import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
 import { RewardFactory } from './reward';
 import {
@@ -183,6 +184,11 @@ ${realmGuidance}
   - type为weak: 陷入虚弱，value为虚弱程度(1-10)，desc为虚弱原因，会累加到角色的weakness状态，结算后持久化
   - type为artifact_damage: 法宝损坏，value为损坏程度(1-10)，desc为法宝名称及损坏原因（注意：当前版本仅作记录，不真实处理）
 
+**【严禁组合】**:
+- 若选项包含 'battle' 类型代价，则**绝对禁止**同时包含 'hp_loss' 或 'mp_loss'
+- 战斗代价自身已包含足够风险，额外扣血是不合理的惩罚
+- 违反此规则将导致玩家进入战斗即死亡的灾难性 bug
+
 ## 5. 当前上下文摘要
 - 地点：读取 location
 - 地图境界要求：${mapRealm}
@@ -196,11 +202,21 @@ ${realmGuidance}
    * 初始化副本
    */
   async startDungeon(cultivatorId: string, mapNodeId: string) {
+    // 0. 检查每日次数限制
+    const limit = await checkDungeonLimit(cultivatorId);
+    if (!limit.allowed) {
+      throw new Error('今日探索次数已用尽（每日限 2 次）');
+    }
+
     const activeKey = getDungeonKey(cultivatorId);
     const existingSession = await redis.get(activeKey);
     if (existingSession) {
       throw new Error('当前已有正在进行的副本，请先完成或放弃');
     }
+
+    // 消耗次数（开始即消耗）
+    await consumeDungeonLimit(cultivatorId);
+
     // 1. 获取玩家与地图数据 (逻辑同你之前)
     const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
 
@@ -275,6 +291,14 @@ ${realmGuidance}
     // 1. 校验并处理消耗（成本校验前置）
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
     if (chosenOption?.costs) {
+      // 防御性编程：如果 AI 违规生成了 battle + hp_loss/mp_loss 组合，过滤掉冲突项
+      const hasBattle = chosenOption.costs.some((c) => c.type === 'battle');
+      if (hasBattle) {
+        chosenOption.costs = chosenOption.costs.filter(
+          (c) => c.type !== 'hp_loss' && c.type !== 'mp_loss',
+        );
+      }
+
       // 获取 userId
       const userId = await getCultivatorOwnerId(cultivatorId);
       if (!userId) {
@@ -709,7 +733,7 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
     }
 
     // 清理并存档 (逻辑同你之前)
-    await this.archiveDungeon(state, settlement);
+    await this.archiveDungeon(state, settlement, realGains);
 
     return { isFinished: true, settlement, realGains };
   }
@@ -823,7 +847,11 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
     return RewardFactory.materialize(blueprints, mapRealm, tier);
   }
 
-  async archiveDungeon(state: DungeonState, settlement: DungeonSettlement) {
+  async archiveDungeon(
+    state: DungeonState,
+    settlement: DungeonSettlement,
+    realGains?: ResourceOperation[],
+  ) {
     // Archive to DB
     await db.insert(dungeonHistories).values({
       cultivatorId: state.cultivatorId,
@@ -832,6 +860,7 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
       log: state.history
         .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
         .join('\n'),
+      realGains: realGains ?? null,
     });
 
     // Clear Redis

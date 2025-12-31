@@ -3,8 +3,8 @@
 import { InkPageShell } from '@/components/layout';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useDungeonViewModel } from '@/lib/hooks/dungeon/useDungeonViewModel';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback } from 'react';
 import { DungeonViewRenderer } from './components/DungeonViewRenderer';
 
 /**
@@ -16,15 +16,26 @@ import { DungeonViewRenderer } from './components/DungeonViewRenderer';
  * 3. 视图渲染：委托给 DungeonViewRenderer 处理
  */
 function DungeonContent() {
-  const { cultivator, isLoading: isCultivatorLoading } = useCultivator();
+  const {
+    cultivator,
+    isLoading: isCultivatorLoading,
+    refresh,
+  } = useCultivator();
   const searchParams = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');
+  const router = useRouter();
 
   // 使用 ViewModel Hook 管理所有业务逻辑和状态
   const { viewState, processing, actions } = useDungeonViewModel(
     cultivator?.id,
     preSelectedNodeId,
   );
+
+  // 结算确认回调：刷新库存后跳转首页
+  const handleSettlementConfirm = useCallback(async () => {
+    await refresh();
+    router.push('/');
+  }, [refresh, router]);
 
   // 修正加载状态：ViewModel 内部已经处理了副本状态的加载
   // 这里只需要处理用户信息的加载
@@ -45,6 +56,7 @@ function DungeonContent() {
       cultivator={cultivator}
       processing={processing}
       actions={actions}
+      onSettlementConfirm={handleSettlementConfirm}
     />
   );
 }
