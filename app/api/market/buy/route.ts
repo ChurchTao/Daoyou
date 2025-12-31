@@ -1,36 +1,29 @@
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
-import { createClient } from '@/lib/supabase/server';
 import { Material } from '@/types/cultivator';
 import { eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const MARKET_CACHE_KEY = 'market:listings';
 const BUY_LOCK_PREFIX = 'market:buy:lock:';
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+const BuySchema = z.object({
+  itemId: z.string(),
+  quantity: z.number().min(1).default(1),
+});
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+/**
+ * POST /api/market/buy
+ * 购买市场物品
+ */
+export const POST = withActiveCultivator(
+  async (request: NextRequest, { cultivator }) => {
     const body = await request.json();
-    const { cultivatorId, itemId, quantity = 1 } = body;
-
-    // 1. Validate Input
-    if (!cultivatorId || !itemId) {
-      return NextResponse.json(
-        { error: '参数缺失 (Missing parameters)' },
-        { status: 400 },
-      );
-    }
+    const { itemId, quantity } = BuySchema.parse(body);
+    const cultivatorId = cultivator.id;
 
     // 2. Acquire Lock (防止并发购买同一物品)
     const lockKey = `${BUY_LOCK_PREFIX}${itemId}`;
@@ -125,16 +118,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 简单验证拥有权
-        const ownerCheck = await tx.query.cultivators.findFirst({
-          where: eq(cultivators.id, cultivatorId),
-          columns: { userId: true },
-        });
-
-        if (!ownerCheck || ownerCheck.userId !== user.id) {
-          throw new Error('非本人道号，不可操作');
-        }
-
         // 5.2 Add Material
         await tx.insert(materials).values({
           cultivatorId,
@@ -171,11 +154,5 @@ export async function POST(request: NextRequest) {
       // 7. Release Lock
       await redis.del(lockKey);
     }
-  } catch (error) {
-    console.error('Market Buy Error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : '交易失败，天道紊乱' },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

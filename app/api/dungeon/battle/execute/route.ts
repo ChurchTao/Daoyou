@@ -1,49 +1,24 @@
 import { simulateBattle } from '@/engine/battle';
-import { db } from '@/lib/drizzle/db';
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { dungeonService } from '@/lib/dungeon/service_v2';
 import { BattleSession } from '@/lib/dungeon/types';
 import { redis } from '@/lib/redis';
 import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
-import { createClient } from '@/lib/supabase/server';
 import { Cultivator } from '@/types/cultivator';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-// ... (keep imports)
-
 const ExecuteBattleSchema = z.object({
   battleId: z.string(),
 });
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Get active cultivator
-  const activeCultivator = await db.query.cultivators.findFirst({
-    where: (cultivators, { eq, and }) =>
-      and(eq(cultivators.userId, user.id), eq(cultivators.status, 'active')),
-  });
-
-  if (!activeCultivator) {
-    return NextResponse.json(
-      { error: 'No active cultivator' },
-      { status: 404 },
-    );
-  }
-
-  try {
+export const POST = withActiveCultivator(
+  async (req: NextRequest, { cultivator }) => {
     const body = await req.json();
     const { battleId } = ExecuteBattleSchema.parse(body);
-    const cultivatorId = activeCultivator.id;
+    const cultivatorId = cultivator.id;
 
     // Retrieve Battle Session
     const sessionData = await redis.get<{
@@ -173,11 +148,5 @@ export async function POST(req: NextRequest) {
         Connection: 'keep-alive',
       },
     });
-  } catch (error) {
-    console.error('Battle Execute Error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'System Error' },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

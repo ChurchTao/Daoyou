@@ -135,7 +135,6 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           years: parsedYears,
           action: 'cultivate',
         }),
@@ -181,7 +180,6 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           action: 'breakthrough',
         }),
       });

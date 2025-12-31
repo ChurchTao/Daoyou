@@ -76,7 +76,6 @@ export function DungeonViewRenderer({
     return (
       <BattlePreparation
         battleId={viewState.state.activeBattleId!}
-        cultivatorId={cultivator.id!}
         onStart={actions.startBattle}
         onAbandon={actions.abandonBattle}
       />

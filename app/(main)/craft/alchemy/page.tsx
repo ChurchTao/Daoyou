@@ -75,7 +75,6 @@ export default function AlchemyPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           materialIds: selectedMaterialIds,
           prompt: prompt,
           craftType: 'alchemy',

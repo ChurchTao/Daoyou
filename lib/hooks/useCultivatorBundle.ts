@@ -104,11 +104,13 @@ async function fetchCultivatorData(): Promise<{
   };
 }
 
-async function fetchInventoryData(
-  cultivatorId: string,
-): Promise<{ consumables: []; materials: []; artifacts: [] } | null> {
+async function fetchInventoryData(): Promise<{
+  consumables: [];
+  materials: [];
+  artifacts: [];
+} | null> {
   try {
-    const res = await fetch(`/api/cultivators/${cultivatorId}/inventory`);
+    const res = await fetch('/api/cultivator/inventory');
     const json = await res.json();
     return json.success ? json.data : null;
   } catch (e) {
@@ -117,22 +119,9 @@ async function fetchInventoryData(
   }
 }
 
-async function fetchHistoryData(
-  cultivatorId: string,
-): Promise<{ retreat_records: []; breakthrough_history: [] } | null> {
-  try {
-    const res = await fetch(`/api/cultivators/${cultivatorId}/history`);
-    const json = await res.json();
-    return json.success ? json.data : null;
-  } catch (e) {
-    console.error('获取历史记录失败', e);
-    return null;
-  }
-}
-
 async function fetchUnreadCount(): Promise<number> {
   try {
-    const res = await fetch('/api/mail/unread-count');
+    const res = await fetch('/api/cultivator/mail/unread-count');
     if (res.ok) {
       const data = await res.json();
       return data.count || 0;
@@ -209,9 +198,8 @@ export function useCultivatorBundle() {
       }
 
       // 2. 并行获取附属数据
-      const [inventoryData, historyData, unreadCount] = await Promise.all([
-        fetchInventoryData(cultivator.id!),
-        fetchHistoryData(cultivator.id!),
+      const [inventoryData, unreadCount] = await Promise.all([
+        fetchInventoryData(),
         fetchUnreadCount(),
       ]);
 
@@ -227,8 +215,6 @@ export function useCultivatorBundle() {
         inventory,
         skills: cultivator.skills || [],
         equipped: cultivator.equipped || defaultEquipped,
-        retreat_records: historyData?.retreat_records || [],
-        breakthrough_history: historyData?.breakthrough_history || [],
       };
 
       // 4. 设置完整状态
@@ -257,10 +243,9 @@ export function useCultivatorBundle() {
 
   // ========== 细粒度刷新函数 ==========
   const refreshInventory = useCallback(async () => {
-    const cultivatorId = state.cultivator?.id;
-    if (!cultivatorId) return;
+    if (!state.cultivator?.id) return;
 
-    const data = await fetchInventoryData(cultivatorId);
+    const data = await fetchInventoryData();
     if (!data) return;
 
     updateState((prev) => {
@@ -277,27 +262,6 @@ export function useCultivatorBundle() {
         ...prev,
         cultivator: { ...prev.cultivator, inventory: newInventory },
         inventory: newInventory,
-      };
-    });
-  }, [state.cultivator?.id, updateState]);
-
-  const refreshHistory = useCallback(async () => {
-    const cultivatorId = state.cultivator?.id;
-    if (!cultivatorId) return;
-
-    const data = await fetchHistoryData(cultivatorId);
-    if (!data) return;
-
-    updateState((prev) => {
-      if (!prev.cultivator) return prev;
-
-      return {
-        ...prev,
-        cultivator: {
-          ...prev.cultivator,
-          retreat_records: data.retreat_records,
-          breakthrough_history: data.breakthrough_history,
-        },
       };
     });
   }, [state.cultivator?.id, updateState]);
@@ -356,6 +320,5 @@ export function useCultivatorBundle() {
     ...state,
     refresh: loadFromServer,
     refreshInventory,
-    refreshHistory,
   };
 }

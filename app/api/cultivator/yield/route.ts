@@ -1,8 +1,8 @@
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
 import { cultivators } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
-import { createClient } from '@/lib/supabase/server';
 import { REALM_YIELD_RATES, RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';
 import {
@@ -10,30 +10,15 @@ import {
   generateRandomMaterials,
 } from '@/utils/materialGenerator';
 import { eq, sql } from 'drizzle-orm';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: '道友神识未至，请先入定（登录）。' },
-        { status: 401 },
-      );
-    }
-
-    const { cultivatorId } = await req.json();
-
-    if (!cultivatorId) {
-      return NextResponse.json(
-        { success: false, error: '天机混沌，无法锁定道友方位。' },
-        { status: 400 },
-      );
-    }
+/**
+ * POST /api/cultivator/yield
+ * 领取在外历练收益（灵石+材料）
+ */
+export const POST = withActiveCultivator(
+  async (_req, { cultivator: activeCultivator }) => {
+    const cultivatorId = activeCultivator.id;
 
     // Prevent concurrent claims with Redis lock
     const lockKey = `yield:lock:${cultivatorId}`;
@@ -49,7 +34,7 @@ export async function POST(req: NextRequest) {
     try {
       // Wrap in transaction to ensure atomicity
       const result = await db.transaction(async (tx) => {
-        // 1. Fetch Cultivator
+        // 1. Fetch Cultivator (fresh data)
         const [cultivator] = await tx
           .select()
           .from(cultivators)
@@ -58,10 +43,6 @@ export async function POST(req: NextRequest) {
 
         if (!cultivator) {
           throw new Error('三界之中未寻得此道友踪迹。');
-        }
-
-        if (cultivator.userId !== user.id) {
-          throw new Error('道友莫要妄图染指他人因果。');
         }
 
         // 2. Calculate time elapsed
@@ -96,7 +77,7 @@ export async function POST(req: NextRequest) {
                 cultivatorId: cultivatorId,
                 name: m.name,
                 type: m.type,
-                rank: m.rank, // Corrected from quality to rank
+                rank: m.rank,
                 description: m.description,
                 element: m.element,
                 quantity: m.quantity,
@@ -143,22 +124,22 @@ export async function POST(req: NextRequest) {
             const systemPrompt =
               '你是一个修仙世界的记录者，负责记录修士外出历练的经历。';
             const userPrompt = `
-                  请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
-                  修士在历练中花费了【${result.hours.toFixed(1)}】小时。
-                  
-                  收获如下：
-                  1. 灵石：【${result.amount}】枚。
-                  ${
-                    result.materials.length > 0
-                      ? `2. 获得材料：${result.materials.map((m) => `【${m.rank}】${m.name}`).join('、')}。`
-                      : ''
-                  }
-                  
-                  要求：
-                  1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石和材料的过程融入故事中。
-                  2. 必须符合修仙世界观，文风古风，有代入感。
-                  3. 若获得了稀有材料（玄品以上），请着重描写其获取的不易或机缘巧合。
-                `;
+                请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
+                修士在历练中花费了【${result.hours.toFixed(1)}】小时。
+                
+                收获如下：
+                1. 灵石：【${result.amount}】枚。
+                ${
+                  result.materials.length > 0
+                    ? `2. 获得材料：${result.materials.map((m) => `【${m.rank}】${m.name}`).join('、')}。`
+                    : ''
+                }
+                
+                要求：
+                1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石和材料的过程融入故事中。
+                2. 必须符合修仙世界观，文风古风，有代入感。
+                3. 若获得了稀有材料（玄品以上），请着重描写其获取的不易或机缘巧合。
+              `;
 
             // Stream AI generation
             const aiStreamResult = stream_text(systemPrompt, userPrompt, true);
@@ -193,14 +174,5 @@ export async function POST(req: NextRequest) {
       await redis.del(lockKey);
       throw e;
     }
-  } catch (error) {
-    console.error('Yield API Error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '未知错误',
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

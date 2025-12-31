@@ -59,13 +59,12 @@ export function useEnemyProbe(battleId: string) {
   /**
    * 放弃战斗
    */
-  const abandonBattle = async (cultivatorId: string) => {
+  const abandonBattle = async () => {
     try {
       const res = await fetch('/api/dungeon/battle/abandon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cultivatorId,
           battleId,
         }),
       });

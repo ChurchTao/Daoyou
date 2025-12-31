@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
  * 副本状态管理Hook
  * 负责获取和管理副本状态
  */
-export function useDungeonState(cultivatorId: string | undefined) {
+export function useDungeonState(hasCultivator: boolean) {
   const [state, setState] = useState<DungeonState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchState = async () => {
-    if (!cultivatorId) {
+    if (!hasCultivator) {
       setLoading(false);
       return;
     }
@@ -19,9 +19,7 @@ export function useDungeonState(cultivatorId: string | undefined) {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(
-        `/api/dungeon/state?cultivatorId=${cultivatorId}`,
-      );
+      const res = await fetch('/api/dungeon/state');
       const data = await res.json();
 
       if (data.error) {
@@ -40,7 +38,7 @@ export function useDungeonState(cultivatorId: string | undefined) {
   // 自动加载状态
   useEffect(() => {
     fetchState();
-  }, [cultivatorId]);
+  }, [hasCultivator]);
 
   const refresh = () => {
     fetchState();

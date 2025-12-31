@@ -1,3 +1,4 @@
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
 import {
   artifacts,
@@ -7,52 +8,43 @@ import {
   materials,
 } from '@/lib/drizzle/schema';
 import { MailAttachment } from '@/lib/services/MailService';
-import { createClient } from '@/lib/supabase/server';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const ClaimMailSchema = z.object({
+  mailId: z.string(),
+});
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+/**
+ * POST /api/cultivator/mail/claim
+ * 领取邮件附件
+ */
+export const POST = withActiveCultivator(
+  async (request: NextRequest, { cultivator }) => {
+    const body = await request.json();
+    const { mailId } = ClaimMailSchema.parse(body);
 
-  const mail = await db.query.mails.findFirst({
-    where: eq(mails.id, id),
-  });
+    // Verify mail belongs to this cultivator
+    const mail = await db.query.mails.findFirst({
+      where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)),
+    });
 
-  if (!mail) {
-    return NextResponse.json({ error: 'Mail not found' }, { status: 404 });
-  }
+    if (!mail) {
+      return NextResponse.json({ error: 'Mail not found' }, { status: 404 });
+    }
 
-  const cultivator = await db.query.cultivators.findFirst({
-    where: eq(cultivators.id, mail.cultivatorId),
-  });
+    if (mail.isClaimed) {
+      return NextResponse.json({ error: 'Already claimed' }, { status: 400 });
+    }
 
-  if (!cultivator || cultivator.userId !== user.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+    const attachments = (mail.attachments as MailAttachment[]) || [];
 
-  if (mail.isClaimed) {
-    return NextResponse.json({ error: 'Already claimed' }, { status: 400 });
-  }
+    if (attachments.length === 0) {
+      return NextResponse.json({ message: 'No attachments' });
+    }
 
-  const attachments = (mail.attachments as MailAttachment[]) || [];
-
-  if (attachments.length === 0) {
-    return NextResponse.json({ message: 'No attachments' });
-  }
-
-  try {
     await db.transaction(async (tx) => {
       for (const item of attachments) {
         if (item.type === 'spirit_stones') {
@@ -130,7 +122,6 @@ export async function POST(
           }
         } else if (item.type === 'artifact') {
           // Artifacts don't stack, just insert
-          // Loop if quantity > 1 (though usually 1)
           const artifact = item.data as Artifact;
           await tx.insert(artifacts).values({
             cultivatorId: cultivator.id,
@@ -150,15 +141,9 @@ export async function POST(
       await tx
         .update(mails)
         .set({ isClaimed: true, isRead: true })
-        .where(eq(mails.id, id));
+        .where(eq(mails.id, mailId));
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Claim error:', error);
-    return NextResponse.json(
-      { error: 'Failed to claim rewards' },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

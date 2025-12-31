@@ -1,8 +1,8 @@
 'use client';
 
-import { InkBadge, InkButton, InkNotice } from '@/components/ui';
 import { InkModal } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
+import { InkBadge, InkButton, InkNotice } from '@/components/ui';
 import { Material } from '@/types/cultivator';
 import { useState } from 'react';
 import { Mail } from './MailList';
@@ -29,7 +29,11 @@ export function MailDetailModal({
   const handleClaim = async () => {
     try {
       setIsClaiming(true);
-      const res = await fetch(`/api/mail/${mail.id}/claim`, { method: 'POST' });
+      const res = await fetch('/api/cultivator/mail/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mailId: mail.id }),
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || 'Claim failed');

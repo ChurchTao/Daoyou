@@ -30,10 +30,10 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
     setClaiming(true);
 
     try {
-      const response = await fetch('/api/cultivators/yield', {
+      const response = await fetch('/api/cultivator/yield', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cultivatorId: cultivator.id }),
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {

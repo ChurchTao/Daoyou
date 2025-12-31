@@ -1,23 +1,27 @@
 import { CreationEngine } from '@/engine/creation/CreationEngine';
-import { createClient } from '@/lib/supabase/server';
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const creationEngine = new CreationEngine();
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const CraftSchema = z.object({
+  materialIds: z.array(z.string()).optional(),
+  prompt: z.string().optional(),
+  craftType: z.string(),
+});
 
+/**
+ * POST /api/craft
+ * 炼制物品/创建技能
+ */
+export const POST = withActiveCultivator(
+  async (request: NextRequest, { user, cultivator }) => {
     const body = await request.json();
-    const { cultivatorId, materialIds, prompt, craftType } = body;
+    const { materialIds, prompt, craftType } = CraftSchema.parse(body);
 
     if (craftType === 'create_skill') {
-      if (!cultivatorId || !prompt) {
+      if (!prompt) {
         return NextResponse.json(
           { error: '请注入神念，描述神通法门。' },
           { status: 400 },
@@ -30,11 +34,9 @@ export async function POST(request: NextRequest) {
         );
       }
     } else if (
-      !cultivatorId ||
       !materialIds ||
       !Array.isArray(materialIds) ||
-      materialIds.length === 0 ||
-      !craftType
+      materialIds.length === 0
     ) {
       return NextResponse.json(
         { error: '参数缺失，无法开炉' },
@@ -44,18 +46,12 @@ export async function POST(request: NextRequest) {
 
     const result = await creationEngine.processRequest(
       user.id,
-      cultivatorId,
-      materialIds,
-      prompt,
+      cultivator.id,
+      materialIds || [],
+      prompt || '',
       craftType,
     );
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: unknown) {
-    console.error('Crafting API Error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : '炼制失败，炸炉了！' },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

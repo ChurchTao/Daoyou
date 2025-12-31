@@ -35,31 +35,22 @@ function ChallengeBattlePageContent() {
   } | null>(null);
   const [battleEnd, setBattleEnd] = useState(false);
 
-  const cultivatorId = searchParams.get('cultivatorId');
   const targetId = searchParams.get('targetId');
 
   // 初始化 & 自动开始战斗
   useEffect(() => {
-    if (!cultivatorId) {
-      setError('缺少角色ID');
-      return;
-    }
-
     // 并行执行：获取玩家信息 和 开始战斗
     const init = async () => {
-      // 1. 获取玩家角色 (优化：直接通过ID获取，而不是获取全部再查找)
+      // 1. 获取玩家角色
       const fetchPlayerPromise = async () => {
         setPlayerLoading(true);
         try {
-          const playerResponse = await fetch(
-            `/api/cultivators?id=${cultivatorId}`,
-          );
+          const playerResponse = await fetch('/api/cultivators');
           const playerResult = await playerResponse.json();
 
-          if (playerResult.success && playerResult.data) {
-            setPlayer(playerResult.data);
+          if (playerResult.success && playerResult.data?.[0]) {
+            setPlayer(playerResult.data[0]);
           } else {
-            // 如果战斗能成功，也许不需要强制报错，但在 UI 上需要显示名字
             console.warn('未找到角色信息');
           }
         } catch (error) {
@@ -69,7 +60,7 @@ function ChallengeBattlePageContent() {
         }
       };
 
-      // 2. 自动开始战斗 (不需要等待 fetchPlayer 完成)
+      // 2. 自动开始战斗
       const startBattlePromise = async () => {
         if (!battleResult && !loading && !error && !directEntry) {
           await handleChallengeBattle();
@@ -81,14 +72,10 @@ function ChallengeBattlePageContent() {
 
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cultivatorId]);
+  }, []);
 
   // 执行挑战战斗
   const handleChallengeBattle = async () => {
-    if (!cultivatorId) {
-      return;
-    }
-
     setLoading(true);
     setIsStreaming(true);
     setStreamingReport('');
@@ -103,7 +90,6 @@ function ChallengeBattlePageContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId,
           targetId: targetId || null,
         }),
       });
@@ -159,17 +145,12 @@ function ChallengeBattlePageContent() {
                 // 如果此时 player 尚未加载完成，尝试从战斗结果中通过 ID 匹配来设置
                 setPlayer((prev) => {
                   if (prev) return prev;
-                  return result.winner.id === cultivatorId
-                    ? result.winner
-                    : result.loser;
+                  // Use winner/loser based on some criteria if needed
+                  return result.winner;
                 });
 
-                // 设置对手信息：判断谁是对手（通过ID判断）
-                const opponentData =
-                  result.winner.id === cultivatorId
-                    ? result.loser
-                    : result.winner;
-                setOpponent(opponentData);
+                // 设置对手信息
+                setOpponent(result.loser);
               } else if (data.type === 'chunk') {
                 // 接收播报内容块
                 fullReport += data.content;
@@ -245,7 +226,7 @@ function ChallengeBattlePageContent() {
     );
   }
 
-  const isWin = battleResult?.winner.id === cultivatorId;
+  const isWin = battleResult?.winner.id === player?.id;
   const displayReport = streamingReport;
   const opponentName = opponent?.name ?? '神秘对手';
 

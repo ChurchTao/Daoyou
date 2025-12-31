@@ -63,7 +63,6 @@ export default function MarketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           itemId: item.id,
           quantity: 1,
         }),

@@ -1,35 +1,31 @@
+import { withAuth } from '@/lib/api/withAuth';
 import { redis } from '@/lib/redis';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * 神识查探 - 获取敌人数据
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
   const battleId = searchParams.get('battleId');
 
   if (!battleId) {
-    return Response.json({ error: 'Missing battleId' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing battleId' }, { status: 400 });
   }
 
-  try {
-    // 从 Redis 获取战斗会话数据
-    const sessionData = await redis.get<{ enemyObject: unknown }>(
-      `dungeon:battle:${battleId}`,
+  // 从 Redis 获取战斗会话数据
+  const sessionData = await redis.get<{ enemyObject: unknown }>(
+    `dungeon:battle:${battleId}`,
+  );
+
+  if (!sessionData) {
+    return NextResponse.json(
+      { error: 'Battle session not found' },
+      { status: 404 },
     );
-
-    if (!sessionData) {
-      return Response.json(
-        { error: 'Battle session not found' },
-        { status: 404 },
-      );
-    }
-
-    return Response.json({
-      enemy: sessionData.enemyObject,
-    });
-  } catch (error) {
-    console.error('[probe] Error:', error);
-    return Response.json({ error: 'Failed to probe enemy' }, { status: 500 });
   }
-}
+
+  return NextResponse.json({
+    enemy: sessionData.enemyObject,
+  });
+});

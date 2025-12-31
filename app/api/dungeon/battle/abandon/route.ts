@@ -1,29 +1,28 @@
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { dungeonService } from '@/lib/dungeon/service_v2';
 import { redis } from '@/lib/redis';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const AbandonSchema = z.object({
+  battleId: z.string(),
+});
 
 /**
  * 放弃战斗 - 触发副本结算（不受伤）
  */
-export async function POST(request: NextRequest) {
-  try {
+export const POST = withActiveCultivator(
+  async (request: NextRequest, { cultivator }) => {
     const body = await request.json();
-    const { cultivatorId, battleId } = body;
-
-    if (!cultivatorId || !battleId) {
-      return Response.json(
-        { error: 'Missing required fields' },
-        { status: 400 },
-      );
-    }
+    const { battleId } = AbandonSchema.parse(body);
 
     // 删除战斗会话
     await redis.del(`dungeon:battle:${battleId}`);
 
     // 获取副本状态
-    const state = await dungeonService.getState(cultivatorId);
+    const state = await dungeonService.getState(cultivator.id);
     if (!state) {
-      return Response.json(
+      return NextResponse.json(
         { error: 'Dungeon state not found' },
         { status: 404 },
       );
@@ -42,16 +41,10 @@ export async function POST(request: NextRequest) {
       abandonedBattle: true, // 标记为主动放弃
     });
 
-    return Response.json({
+    return NextResponse.json({
       isFinished: true,
       settlement: settlementResult.settlement,
       state: { ...state, isFinished: true },
     });
-  } catch (error) {
-    console.error('[abandon] Error:', error);
-    return Response.json(
-      { error: 'Failed to abandon battle' },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

@@ -66,9 +66,7 @@ export function LifespanStatusCard({
     setError(null);
 
     try {
-      const res = await fetch(
-        `/api/cultivators/lifespan-status?cultivatorId=${cultivatorId}`,
-      );
+      const res = await fetch(`/api/cultivator/lifespan-status`);
       const result = await res.json();
 
       if (result.success && result.data) {

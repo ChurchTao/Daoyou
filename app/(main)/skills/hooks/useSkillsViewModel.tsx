@@ -74,11 +74,10 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
           loading: true,
         }));
 
-        const response = await fetch('/api/cultivators/skills/forget', {
+        const response = await fetch('/api/cultivator/skills/forget', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            cultivatorId: cultivator.id,
             skillId: skill.id,
           }),
         });

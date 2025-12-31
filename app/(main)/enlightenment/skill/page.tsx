@@ -56,7 +56,6 @@ export default function SkillCreationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           materialIds: [], // Skills use no materials
           prompt: prompt,
           craftType: 'create_skill',

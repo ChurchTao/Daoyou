@@ -130,11 +130,10 @@ export function useHomeViewModel(): UseHomeViewModelReturn {
 
     try {
       setIsSavingTitle(true);
-      const response = await fetch('/api/cultivators/title', {
+      const response = await fetch('/api/cultivator/title', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           title: editingTitle,
         }),
       });

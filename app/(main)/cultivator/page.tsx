@@ -39,10 +39,10 @@ export default function CultivatorPage() {
   const handleReincarnate = async () => {
     if (!cultivator) return;
     try {
-      const res = await fetch('/api/cultivators/active-reincarnate', {
+      const res = await fetch('/api/cultivator/active-reincarnate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cultivatorId: cultivator.id }),
+        body: JSON.stringify({}),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || '兵解失败');

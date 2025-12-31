@@ -80,9 +80,7 @@ export default function RankingsPage() {
 
     setMyRankInfoLoadingState('loading');
     try {
-      const response = await fetch(
-        `/api/rankings/my-rank?cultivatorId=${cultivator.id}`,
-      );
+      const response = await fetch('/api/rankings/my-rank');
       const result = await response.json();
       if (response.ok && result.success) {
         setMyRankInfo({
@@ -125,7 +123,6 @@ export default function RankingsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           targetId,
         }),
       });
@@ -157,7 +154,6 @@ export default function RankingsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           targetId,
         }),
       });
@@ -179,9 +175,7 @@ export default function RankingsPage() {
       }
 
       // 验证通过，跳转到挑战战斗页面
-      router.push(
-        `/battle/challenge?cultivatorId=${cultivator.id}&targetId=${targetId}`,
-      );
+      router.push(`/battle/challenge?targetId=${targetId}`);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '挑战验证失败，请稍后重试';
@@ -203,7 +197,6 @@ export default function RankingsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cultivatorId: cultivator.id,
           targetId: null, // null表示直接上榜
         }),
       });

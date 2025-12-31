@@ -1,13 +1,12 @@
 import { LingGenMini } from '@/components/func';
-import { InkBadge, InkButton, InkCard } from '@/components/ui';
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
+import { InkBadge, InkButton, InkCard } from '@/components/ui';
 import { useEnemyProbe } from '@/lib/hooks/dungeon/useEnemyProbe';
 import { useEffect, useState } from 'react';
 
 interface BattlePreparationProps {
   battleId: string;
-  cultivatorId: string;
   onStart: (enemyName: string) => void;
   onAbandon: () => Promise<void>;
 }
@@ -18,7 +17,6 @@ interface BattlePreparationProps {
  */
 export function BattlePreparation({
   battleId,
-  cultivatorId,
   onStart,
   onAbandon,
 }: BattlePreparationProps) {
@@ -46,7 +44,7 @@ export function BattlePreparation({
       confirmLabel: '确认放弃',
       cancelLabel: '取消',
       onConfirm: async () => {
-        await abandonBattle(cultivatorId);
+        await abandonBattle();
         await onAbandon();
       },
     });

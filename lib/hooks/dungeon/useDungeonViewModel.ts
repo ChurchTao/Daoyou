@@ -35,7 +35,7 @@ export type DungeonViewState =
  * 3. 封装业务逻辑，简化组件复杂度
  */
 export function useDungeonViewModel(
-  cultivatorId: string | undefined,
+  hasCultivator: boolean,
   preSelectedNodeId: string | null,
 ) {
   // 副本状态管理
@@ -44,7 +44,7 @@ export function useDungeonViewModel(
     setState,
     loading: stateLoading,
     refresh,
-  } = useDungeonState(cultivatorId);
+  } = useDungeonState(hasCultivator);
   const { startDungeon, performAction, quitDungeon, processing } =
     useDungeonActions();
 
@@ -82,7 +82,7 @@ export function useDungeonViewModel(
     }
 
     // 未认证
-    if (!cultivatorId) {
+    if (!hasCultivator) {
       return { type: 'not_authenticated' };
     }
 
@@ -121,7 +121,7 @@ export function useDungeonViewModel(
     return { type: 'map_selection', preSelectedNodeId };
   }, [
     stateLoading,
-    cultivatorId,
+    hasCultivator,
     activeBattleId,
     state,
     lastRound,

@@ -13,7 +13,7 @@ export default function MailPage() {
   const fetchMails = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/mail');
+      const res = await fetch('/api/cultivator/mail');
       const data = await res.json();
       if (res.ok) {
         setMails(data.mails || []);
@@ -35,7 +35,11 @@ export default function MailPage() {
     // Mark as read if not already
     if (!mail.isRead) {
       try {
-        await fetch(`/api/mail/${mail.id}/read`, { method: 'POST' });
+        await fetch('/api/cultivator/mail/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mailId: mail.id }),
+        });
         // Optimistic update locally
         setMails((prev) =>
           prev.map((m) => (m.id === mail.id ? { ...m, isRead: true } : m)),

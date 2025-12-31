@@ -1,53 +1,26 @@
 import { simulateBattle } from '@/engine/battle';
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
-import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
-import { createClient } from '@/lib/supabase/server';
+import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';
+import { z } from 'zod';
+
+const BattleSchema = z.object({
+  opponentId: z.string(),
+});
 
 /**
  * POST /api/battle
  * 合并的战斗接口：执行战斗并生成战斗播报（SSE 流式输出）
- * 接收角色ID和敌人ID，直接返回战斗结果和播报
+ * 接收对手ID，直接返回战斗结果和播报
  */
-export async function POST(request: NextRequest) {
-  try {
-    // 创建Supabase客户端，用于验证用户身份
-    const supabase = await createClient();
-
-    // 获取当前用户，验证用户身份
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: '未授权访问' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
+export const POST = withActiveCultivator(
+  async (request: NextRequest, { user, cultivator }) => {
     const body = await request.json();
-    const { cultivatorId, opponentId } = body;
-
-    // 输入验证
-    if (
-      !cultivatorId ||
-      typeof cultivatorId !== 'string' ||
-      !opponentId ||
-      typeof opponentId !== 'string'
-    ) {
-      return new Response(
-        JSON.stringify({ error: '请提供有效的角色ID和对手ID' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
-    }
+    const { opponentId } = BattleSchema.parse(body);
 
     // 创建 SSE 流
     const encoder = new TextEncoder();
@@ -57,22 +30,23 @@ export async function POST(request: NextRequest) {
           // 发送开始标记
           controller.enqueue(encoder.encode('data: {"type":"start"}\n\n'));
 
-          // 1. 获取玩家角色信息
-          const player = await getCultivatorById(user.id, cultivatorId);
-          if (!player) {
+          const playerBundle = await getCultivatorByIdUnsafe(cultivator.id);
+          if (!playerBundle?.cultivator) {
             throw new Error('玩家角色不存在');
           }
+          const player = playerBundle.cultivator;
 
-          // 2. 获取对手角色信息
-          const opponent = await getCultivatorById(user.id, opponentId);
-          if (!opponent) {
+          // 1. 获取对手角色信息
+          const opponentBundle = await getCultivatorByIdUnsafe(opponentId);
+          if (!opponentBundle?.cultivator) {
             throw new Error('对手角色不存在');
           }
+          const opponent = opponentBundle.cultivator;
 
-          // 3. 执行战斗引擎
+          // 2. 执行战斗引擎
           const battleResult = simulateBattle(player, opponent);
 
-          // 4. 发送战斗结果数据
+          // 3. 发送战斗结果数据
           const battleData = JSON.stringify({
             type: 'battle_result',
             data: {
@@ -87,7 +61,7 @@ export async function POST(request: NextRequest) {
           });
           controller.enqueue(encoder.encode(`data: ${battleData}\n\n`));
 
-          // 5. 生成战斗播报 prompt
+          // 4. 生成战斗播报 prompt
           const [prompt, userPrompt] = getBattleReportPrompt({
             player,
             opponent,
@@ -100,7 +74,7 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // 6. 流式生成战斗播报，并在服务端累积完整文本
+          // 5. 流式生成战斗播报，并在服务端累积完整文本
           let fullReport = '';
           const { textStream } = stream_text(prompt, userPrompt);
           for await (const chunk of textStream) {
@@ -110,11 +84,11 @@ export async function POST(request: NextRequest) {
             fullReport += chunk;
           }
 
-          // 7. 将本次战斗结果以快照方式写入数据库
+          // 6. 将本次战斗结果以快照方式写入数据库
           try {
             await db.insert(battleRecords).values({
               userId: user.id,
-              cultivatorId,
+              cultivatorId: cultivator.id,
               battleResult,
               battleReport: fullReport,
             });
@@ -123,7 +97,7 @@ export async function POST(request: NextRequest) {
             console.error('写入战斗记录失败:', e);
           }
 
-          // 8. 发送结束标记
+          // 7. 发送结束标记
           controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
           controller.close();
         } catch (error) {
@@ -152,20 +126,5 @@ export async function POST(request: NextRequest) {
         Connection: 'keep-alive',
       },
     });
-  } catch (error) {
-    console.error('战斗 API 错误:', error);
-
-    // 安全处理错误信息
-    const errorMessage =
-      process.env.NODE_ENV === 'development'
-        ? error instanceof Error
-          ? error.message
-          : '战斗失败，请稍后重试'
-        : '战斗失败，请稍后重试';
-
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-}
+  },
+);

@@ -2,7 +2,6 @@ import {
   CultivatorBasic,
   getCultivatorBasicsByIdsUnsafe,
 } from '@/lib/repositories/cultivatorRepository';
-import type { Cultivator } from '@/types/cultivator';
 import { redis } from './index';
 
 const RANKING_LIST_KEY = 'golden_rank:list';
@@ -125,7 +124,6 @@ export async function getCultivatorRank(
  */
 export async function addToRanking(
   cultivatorId: string,
-  cultivator: Cultivator,
   _userId: string,
   targetRank?: number,
 ): Promise<void> {
