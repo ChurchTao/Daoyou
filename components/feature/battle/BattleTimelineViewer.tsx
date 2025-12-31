@@ -5,8 +5,6 @@ import { useEffect, useState } from 'react';
 
 interface BattleTimelineViewerProps {
   battleResult: BattleEngineResult;
-  playerName: string;
-  opponentName: string;
 }
 
 /**
@@ -14,14 +12,17 @@ interface BattleTimelineViewerProps {
  */
 export function BattleTimelineViewer({
   battleResult,
-  playerName,
-  opponentName,
 }: BattleTimelineViewerProps) {
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [autoPlayTurn, setAutoPlayTurn] = useState(true);
 
   const timeline = battleResult.timeline ?? [];
   const totalTurns = timeline.length;
+  const isPlayerWin = battleResult.winner.id === battleResult.player;
+  const playerInfo = isPlayerWin ? battleResult.winner : battleResult.loser;
+  const opponentInfo = isPlayerWin ? battleResult.loser : battleResult.winner;
+  const playerName = playerInfo.name;
+  const opponentName = opponentInfo.name;
 
   // 战斗结果到达后，重置回合播放
   useEffect(() => {

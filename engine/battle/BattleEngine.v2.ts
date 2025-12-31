@@ -419,6 +419,8 @@ export class BattleEngineV2 {
       timeline: state.timeline,
       playerPersistentStatuses,
       opponentPersistentStatuses,
+      player: state.player.cultivatorData.id!,
+      opponent: state.opponent.cultivatorData.id!,
     };
   }
 

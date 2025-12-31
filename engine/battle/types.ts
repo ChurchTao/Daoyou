@@ -67,6 +67,8 @@ export interface BattleEngineResult {
   playerHp: number;
   opponentHp: number;
   timeline: TurnSnapshot[];
+  player: string;
+  opponent: string;
   // 持久状态快照（战斗后）
   playerPersistentStatuses?: Array<{
     statusKey: string;

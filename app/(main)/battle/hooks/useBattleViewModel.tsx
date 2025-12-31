@@ -1,6 +1,7 @@
 'use client';
 
 import type { BattleEngineResult } from '@/engine/battle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Cultivator } from '@/types/cultivator';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,9 +29,6 @@ export interface UseBattleViewModelReturn {
   streamingReport: string;
   isStreaming: boolean;
   loading: boolean;
-  playerLoading: boolean;
-  opponentLoading: boolean;
-  opponentError?: string;
   battleEnd: boolean;
 
   // 计算属性
@@ -47,6 +45,7 @@ export interface UseBattleViewModelReturn {
  */
 export function useBattleViewModel(): UseBattleViewModelReturn {
   const searchParams = useSearchParams();
+  const { cultivator } = useCultivator();
 
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<EnemyData | null>(null);
@@ -54,9 +53,6 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
   const [streamingReport, setStreamingReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [playerLoading, setPlayerLoading] = useState(false);
-  const [opponentLoading, setOpponentLoading] = useState(false);
-  const [opponentError, setOpponentError] = useState<string>();
   const [battleEnd, setBattleEnd] = useState(false);
 
   // 执行战斗
@@ -117,7 +113,17 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
                     playerHp: result.playerHp,
                     opponentHp: result.opponentHp,
                     timeline: result.timeline ?? [],
+                    player: result.player,
+                    opponent: result.opponent,
                   });
+                  const playerId = result.player;
+                  const isPlayerWin = result.winner.id === playerId;
+                  const playerInfo = isPlayerWin ? result.winner : result.loser;
+                  const opponentInfo = isPlayerWin
+                    ? result.loser
+                    : result.winner;
+                  setPlayer(playerInfo);
+                  setOpponent(opponentInfo);
                 } else if (data.type === 'chunk') {
                   fullReport += data.content;
                   setStreamingReport(fullReport);
@@ -151,60 +157,8 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
     const opponentId = searchParams.get('opponent');
 
     const init = async () => {
-      const fetchPlayerData = async () => {
-        setPlayerLoading(true);
-        try {
-          const res = await fetch('/api/cultivators');
-          const json = await res.json();
-          if (json.success && json.data.length > 0) {
-            setPlayer(json.data[0]);
-            return json.data[0];
-          }
-        } catch (e) {
-          console.error('获取玩家数据失败', e);
-        } finally {
-          setPlayerLoading(false);
-        }
-        return null;
-      };
-
-      const fetchOpponentData = async () => {
-        if (!opponentId) {
-          setOpponentError('天机未定，对手无踪，难启杀局。');
-          return null;
-        }
-        setOpponentLoading(true);
-        setOpponentError(undefined);
-        try {
-          const res = await fetch(`/api/enemies/${opponentId}`);
-          const json = await res.json();
-          if (res.ok && json.success) {
-            setOpponent(json.data);
-            return json.data;
-          } else {
-            throw new Error(json.error || 'fetch_failed');
-          }
-        } catch (e) {
-          console.error('获取对手数据失败', e);
-          const errMsg =
-            e instanceof Error && e.message === 'missing_opponent'
-              ? '天机未定，对手无踪，难启杀局。'
-              : '天机逆乱，对手行迹莫测，战不可开。';
-          setOpponentError(errMsg);
-        } finally {
-          setOpponentLoading(false);
-        }
-        return null;
-      };
-
-      const [pData, oData] = await Promise.all([
-        fetchPlayerData(),
-        fetchOpponentData(),
-      ]);
-
-      if (pData && oData) {
-        handleBattle(pData.id, oData.id);
-      }
+      if (!cultivator || !opponentId) return;
+      handleBattle(cultivator.id, opponentId);
     };
 
     init();
@@ -230,9 +184,6 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
     streamingReport,
     isStreaming,
     loading,
-    playerLoading,
-    opponentLoading,
-    opponentError,
     battleEnd,
     isWin,
     displayReport,

@@ -20,8 +20,6 @@ export interface BattleCallbackData {
 
 interface DungeonBattleProps {
   battleId: string;
-  opponentName: string;
-  playerName: string;
   player: Cultivator;
   onBattleComplete: (data: BattleCallbackData | null) => void;
 }
@@ -32,8 +30,6 @@ interface DungeonBattleProps {
  */
 export function DungeonBattle({
   battleId,
-  opponentName,
-  playerName,
   player,
   onBattleComplete,
 }: DungeonBattleProps) {
@@ -98,8 +94,6 @@ export function DungeonBattle({
       {battleResult?.timeline && battleResult.timeline.length > 0 && (
         <BattleTimelineViewer
           battleResult={battleResult as BattleEngineResult}
-          playerName={playerName}
-          opponentName={opponentName}
         />
       )}
 

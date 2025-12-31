@@ -3,7 +3,6 @@
 import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { BattleReportViewer } from '@/components/feature/battle/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimelineViewer';
-import Link from 'next/link';
 
 import { useBattleViewModel } from '../hooks/useBattleViewModel';
 
@@ -17,9 +16,6 @@ export function BattleView() {
     battleResult,
     isStreaming,
     loading,
-    playerLoading,
-    opponentLoading,
-    opponentError,
     battleEnd,
     isWin,
     displayReport,
@@ -28,7 +24,7 @@ export function BattleView() {
   } = useBattleViewModel();
 
   // 加载中
-  if (playerLoading || opponentLoading) {
+  if (!player || !opponent) {
     return (
       <div className="bg-paper min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -38,25 +34,10 @@ export function BattleView() {
     );
   }
 
-  // 未找到玩家
-  if (!player) {
-    return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="mb-4 text-ink">未找到角色信息</p>
-          <Link href="/create" className="btn-primary">
-            创建角色
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <BattlePageLayout
       title={`【战报 · ${player?.name} vs ${opponentName}】`}
       backHref="/"
-      error={opponentError}
       loading={loading}
       battleResult={battleResult}
       isStreaming={isStreaming}
@@ -83,12 +64,9 @@ export function BattleView() {
       {battleResult?.timeline &&
         battleResult.timeline.length > 0 &&
         opponent &&
+        player &&
         (isStreaming || battleEnd) && (
-          <BattleTimelineViewer
-            battleResult={battleResult}
-            playerName={player.name}
-            opponentName={opponent.name}
-          />
+          <BattleTimelineViewer battleResult={battleResult} />
         )}
 
       {/* 战斗播报 */}

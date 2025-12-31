@@ -6,9 +6,8 @@ import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimeline
 import { InkButton } from '@/components/ui';
 import type { BattleEngineResult } from '@/engine/battle';
 import type { Cultivator } from '@/types/cultivator';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 /**
  * 挑战战斗播报页内容组件
@@ -22,7 +21,6 @@ function ChallengeBattlePageContent() {
   const [streamingReport, setStreamingReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [playerLoading, setPlayerLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [rankingUpdate, setRankingUpdate] = useState<{
     isWin: boolean;
@@ -35,39 +33,25 @@ function ChallengeBattlePageContent() {
   } | null>(null);
   const [battleEnd, setBattleEnd] = useState(false);
 
+  // 防止 React Strict Mode 重复调用战斗 API
+  const hasBattleStarted = useRef(false);
+
   const targetId = searchParams.get('targetId');
 
   // 初始化 & 自动开始战斗
   useEffect(() => {
+    // 防止重复调用
+    if (hasBattleStarted.current) return;
+
     // 并行执行：获取玩家信息 和 开始战斗
     const init = async () => {
-      // 1. 获取玩家角色
-      const fetchPlayerPromise = async () => {
-        setPlayerLoading(true);
-        try {
-          const playerResponse = await fetch('/api/cultivators');
-          const playerResult = await playerResponse.json();
-
-          if (playerResult.success && playerResult.data?.[0]) {
-            setPlayer(playerResult.data[0]);
-          } else {
-            console.warn('未找到角色信息');
-          }
-        } catch (error) {
-          console.error('获取玩家数据失败:', error);
-        } finally {
-          setPlayerLoading(false);
-        }
-      };
-
       // 2. 自动开始战斗
       const startBattlePromise = async () => {
-        if (!battleResult && !loading && !error && !directEntry) {
-          await handleChallengeBattle();
-        }
+        hasBattleStarted.current = true;
+        await handleChallengeBattle();
       };
 
-      await Promise.all([fetchPlayerPromise(), startBattlePromise()]);
+      await startBattlePromise();
     };
 
     init();
@@ -140,17 +124,15 @@ function ChallengeBattlePageContent() {
                   playerHp: result.playerHp,
                   opponentHp: result.opponentHp,
                   timeline: result.timeline ?? [],
+                  player: result.player,
+                  opponent: result.opponent,
                 });
 
-                // 如果此时 player 尚未加载完成，尝试从战斗结果中通过 ID 匹配来设置
-                setPlayer((prev) => {
-                  if (prev) return prev;
-                  // Use winner/loser based on some criteria if needed
-                  return result.winner;
-                });
-
-                // 设置对手信息
-                setOpponent(result.loser);
+                const isPlayerWin = result.winner.id === result.player;
+                const playerInfo = isPlayerWin ? result.winner : result.loser;
+                const opponentInfo = isPlayerWin ? result.loser : result.winner;
+                setPlayer(playerInfo);
+                setOpponent(opponentInfo);
               } else if (data.type === 'chunk') {
                 // 接收播报内容块
                 fullReport += data.content;
@@ -181,19 +163,6 @@ function ChallengeBattlePageContent() {
       setLoading(false);
     }
   };
-
-  if (!player && !playerLoading) {
-    return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="mb-4 text-ink">未找到角色信息</p>
-          <Link href="/rankings" className="btn-primary">
-            返回排行榜
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -232,7 +201,7 @@ function ChallengeBattlePageContent() {
 
   return (
     <BattlePageLayout
-      title={`【挑战战报 · ${player?.name} vs ${opponentName}】`}
+      title={`【挑战战报 · ${!player ? '加载中' : `${player?.name} vs ${opponentName}`}】`}
       backHref="/rankings"
       backLabel="返回排行榜"
       error={error}
@@ -250,12 +219,9 @@ function ChallengeBattlePageContent() {
       {battleResult?.timeline &&
         battleResult.timeline.length > 0 &&
         opponent &&
+        player &&
         (isStreaming || battleEnd) && (
-          <BattleTimelineViewer
-            battleResult={battleResult}
-            playerName={player?.name ?? ''}
-            opponentName={opponent.name}
-          />
+          <BattleTimelineViewer battleResult={battleResult} />
         )}
 
       {/* 战斗播报 */}

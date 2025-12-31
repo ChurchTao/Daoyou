@@ -63,8 +63,6 @@ export function DungeonViewRenderer({
     return (
       <DungeonBattle
         battleId={viewState.battleId}
-        opponentName={viewState.opponentName}
-        playerName={cultivator.name}
         player={cultivator}
         onBattleComplete={actions.completeBattle}
       />

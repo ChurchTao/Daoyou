@@ -124,15 +124,7 @@ export const POST = withActiveCultivator(
           // 8. 发送战斗结果数据
           const battleData = JSON.stringify({
             type: 'battle_result',
-            data: {
-              winner: battleResult.winner,
-              loser: battleResult.loser,
-              log: battleResult.log,
-              turns: battleResult.turns,
-              playerHp: battleResult.playerHp,
-              opponentHp: battleResult.opponentHp,
-              timeline: battleResult.timeline,
-            },
+            data: battleResult,
           });
           controller.enqueue(encoder.encode(`data: ${battleData}\n\n`));
 
