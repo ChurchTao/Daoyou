@@ -1,0 +1,342 @@
+/* Landing Page Styles - 古籍水墨风格宣传页 */
+
+/* 灵气粒子动画容器 */
+.spirit-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spirit-particle {
+  position: absolute;
+  bottom: -20px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(
+    circle,
+    rgba(239, 191, 4, 0.8) 0%,
+    rgba(239, 191, 4, 0.4) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  animation: float-particle 8s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(239, 191, 4, 0.5);
+}
+
+@keyframes float-particle {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  10% {
+    opacity: 0.9;
+    transform: translateY(-10vh) scale(0.8);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateY(-50vh) scale(1);
+  }
+  90% {
+    opacity: 0.3;
+    transform: translateY(-90vh) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100vh) scale(1.5);
+  }
+}
+
+/* 水墨渐变背景 */
+.ink-wash-bg {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(44, 24, 16, 0.03) 30%,
+    rgba(44, 24, 16, 0.08) 70%,
+    rgba(44, 24, 16, 0.15) 100%
+  );
+}
+
+/* Hero 区域山水装饰 */
+.hero-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(
+    to top,
+    rgba(255, 247, 225, 1) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* 标题光晕效果 */
+.title-glow {
+  text-shadow:
+    0 0 20px rgba(239, 191, 4, 0.3),
+    0 0 40px rgba(239, 191, 4, 0.2),
+    0 0 60px rgba(239, 191, 4, 0.1);
+}
+
+/* 滚动提示动画 */
+.scroll-hint {
+  animation: bounce-down 2s ease-in-out infinite;
+}
+
+@keyframes bounce-down {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+/* 特性卡片悬浮效果 */
+.feature-card {
+  position: relative;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(44, 24, 16, 0.15);
+}
+
+/* 截图卡片样式 */
+.screenshot-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(44, 24, 16, 0.1);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.screenshot-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px rgba(44, 24, 16, 0.2);
+}
+
+.screenshot-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(44, 24, 16, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* 渐入动画改进 */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 延迟动画类 */
+.delay-100 {
+  animation-delay: 0.1s;
+}
+.delay-200 {
+  animation-delay: 0.2s;
+}
+.delay-300 {
+  animation-delay: 0.3s;
+}
+.delay-400 {
+  animation-delay: 0.4s;
+}
+.delay-500 {
+  animation-delay: 0.5s;
+}
+.delay-600 {
+  animation-delay: 0.6s;
+}
+
+/* 古籍边框装饰 - "文武框"风格 */
+.ancient-border {
+  position: relative;
+  /* 外框：稍粗的墨色 */
+  border: 2px solid rgba(44, 24, 16, 0.6);
+  background-color: rgba(255, 255, 255, 0.6);
+  /* 内框：通过 box-shadow 实现，模拟线装书"版框" */
+  box-shadow:
+    inset 0 0 0 4px var(--color-paper),
+    /* 留白 */ inset 0 0 0 5px rgba(44, 24, 16, 0.3); /* 内细线 */
+  transition: all 0.3s ease;
+}
+
+/* 精致的角落装饰 */
+.ancient-border::before,
+.ancient-border::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-crimson); /* 朱砂红点缀 */
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+/* 左上角装饰 */
+.ancient-border::before {
+  top: 8px;
+  left: 8px;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* 右下角装饰 */
+.ancient-border::after {
+  bottom: 8px;
+  right: 8px;
+  border-left: none;
+  border-top: none;
+}
+
+.ancient-border:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--color-ink);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 4px var(--color-paper),
+    inset 0 0 0 5px var(--color-crimson),
+    /* 悬浮时内框变红 */ 0 4px 12px rgba(44, 24, 16, 0.1);
+}
+
+.ancient-border:hover::before,
+.ancient-border:hover::after {
+  opacity: 1;
+  border-color: var(--color-crimson);
+  /* 仅加深颜色，不再改变尺寸 */
+}
+
+/* Section 标题装饰线 */
+.section-title-decorated {
+  position: relative;
+  display: inline-block;
+}
+
+.section-title-decorated::before,
+.section-title-decorated::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(44, 24, 16, 0.3),
+    transparent
+  );
+}
+
+.section-title-decorated::before {
+  right: 100%;
+  margin-right: 20px;
+}
+
+.section-title-decorated::after {
+  left: 100%;
+  margin-left: 20px;
+}
+
+/* CTA 按钮增强 */
+.cta-button {
+  position: relative;
+  display: inline-block;
+  padding: 16px 40px;
+  font-size: 1.25rem;
+  color: var(--color-paper);
+  background: linear-gradient(135deg, var(--color-crimson) 0%, #a01018 100%);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(193, 18, 31, 0.3);
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(193, 18, 31, 0.4);
+}
+
+.cta-button::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px solid rgba(239, 191, 4, 0.3);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* 次要按钮 */
+.cta-button-secondary {
+  padding: 14px 36px;
+  font-size: 1.125rem;
+  color: var(--color-ink);
+  background: transparent;
+  border: 2px solid var(--color-ink);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cta-button-secondary:hover {
+  color: var(--color-crimson);
+  border-color: var(--color-crimson);
+  background: rgba(193, 18, 31, 0.05);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .section-title-decorated::before,
+  .section-title-decorated::after {
+    width: 30px;
+  }
+
+  .section-title-decorated::before {
+    margin-right: 10px;
+  }
+
+  .section-title-decorated::after {
+    margin-left: 10px;
+  }
+
+  .cta-button {
+    padding: 14px 32px;
+    font-size: 1.125rem;
+  }
+}
+
+/* PC端横向特性布局 */
+@media (min-width: 768px) {
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
