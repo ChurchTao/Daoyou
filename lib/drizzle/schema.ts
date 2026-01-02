@@ -96,6 +96,7 @@ export const cultivationTechniques = pgTable(
     name: varchar('name', { length: 100 }).notNull(),
     grade: varchar('grade', { length: 20 }), // 天阶上品 | 天阶中品 | 天阶下品 | 地阶上品 | ... | 黄阶下品
     bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
+    passive_traits: jsonb('passive_traits').default([]), // PassiveTrait[]
     required_realm: varchar('required_realm', { length: 20 }).notNull(),
     createdAt: timestamp('created_at').defaultNow(),
   },
@@ -156,6 +157,7 @@ export const artifacts = pgTable('wanjiedaoyou_artifacts', {
   bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
   special_effects: jsonb('special_effects').default([]), // ArtifactEffect[]
   curses: jsonb('curses').default([]), // ArtifactEffect[]
+  passive_traits: jsonb('passive_traits').default([]), // PassiveTrait[]
   description: text('description'),
   score: integer('score').notNull().default(0), // 评分
   createdAt: timestamp('created_at').defaultNow(),

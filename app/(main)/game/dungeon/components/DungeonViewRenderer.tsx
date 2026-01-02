@@ -108,7 +108,7 @@ export function DungeonViewRenderer({
     const selectedNode = viewState.preSelectedNodeId
       ? getMapNode(viewState.preSelectedNodeId)
       : null;
-  
+
     // 渲染次数提示
     const renderLimitHint = () => {
       if (viewState.limitLoading) {
@@ -118,14 +118,14 @@ export function DungeonViewRenderer({
           </p>
         );
       }
-  
+
       if (!viewState.limitInfo) {
         // 错误或未登录，不显示次数信息
         return null;
       }
-  
+
       const { remaining, dailyLimit } = viewState.limitInfo;
-  
+
       // 根据剩余次数决定样式和文案
       if (remaining === 0) {
         return (
@@ -134,17 +134,16 @@ export function DungeonViewRenderer({
           </p>
         );
       }
-  
-      const textColor =
-        remaining === 1 ? 'text-amber-600' : 'text-ink';
-  
+
+      const textColor = remaining === 1 ? 'text-amber-600' : 'text-ink';
+
       return (
         <p className={`text-center text-xs ${textColor} mt-2`}>
           今日剩余探索次数：{remaining}/{dailyLimit}
         </p>
       );
     };
-  
+
     return (
       <InkPageShell title="云游探秘" backHref="/" subtitle="寻找上古机缘">
         <InkCard className="p-6 mb-6">

@@ -15,7 +15,7 @@ interface LogEntry {
 
 /**
  * 解析副本日志字符串
- * 
+ *
  * @param log 原始日志字符串，格式为：[Round 1] 场景描述 -> Choice: 选项\n[Round 2] ...
  * @returns 解析后的结构化数组
  */
