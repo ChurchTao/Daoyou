@@ -44,9 +44,8 @@ export const POST = withActiveCultivator(
     const result = simulateBattle(playerUnit, enemyUnit, {
       hpLossPercent: sessionData.session.playerSnapshot.hpLossPercent,
       mpLossPercent: sessionData.session.playerSnapshot.mpLossPercent,
-      persistentStatuses: sessionData.session.playerSnapshot.persistentStatuses,
-      environmentalStatuses:
-        sessionData.session.playerSnapshot.environmentalStatuses,
+      // Note: dungeon 模块仍使用旧格式，这里暂时保持兼容
+      // 未来应统一为 BuffInstanceState
     });
 
     // Stream Response

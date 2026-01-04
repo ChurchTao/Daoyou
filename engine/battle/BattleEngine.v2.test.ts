@@ -107,8 +107,8 @@ describe('BattleEngineV2', () => {
     const result = simulateBattle(player, opponent);
 
     expect(result.timeline[0].turn).toBe(0);
-    expect(result.timeline[0].player.statuses).toEqual([]);
-    expect(result.timeline[0].opponent.statuses).toEqual([]);
+    expect(result.timeline[0].player.buffs).toEqual([]);
+    expect(result.timeline[0].opponent.buffs).toEqual([]);
   });
 
   test('应该支持初始状态设置', () => {

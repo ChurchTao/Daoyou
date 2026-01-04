@@ -1,3 +1,4 @@
+import type { BuffInstanceState } from '@/engine/buff/types';
 import { z } from 'zod';
 
 // === AI Interaction Schemas ===
@@ -181,14 +182,6 @@ export interface History {
   outcome?: string;
 }
 
-// 持久状态快照类型（用于序列化到Redis和数据库）
-export interface PersistentStatusSnapshot {
-  statusKey: string;
-  potency: number;
-  createdAt: number;
-  metadata: Record<string, unknown>;
-}
-
 export interface BattleSession {
   battleId: string;
   dungeonStateKey: string;
@@ -201,9 +194,11 @@ export interface BattleSession {
     difficulty: number;
   };
   playerSnapshot: {
-    persistentStatuses: PersistentStatusSnapshot[];
-    environmentalStatuses: PersistentStatusSnapshot[];
+    /** 持久 Buff 状态（使用新格式） */
+    persistentBuffs: BuffInstanceState[];
+    /** HP 损失百分比 */
     hpLossPercent: number;
+    /** MP 损失百分比 */
     mpLossPercent: number;
   };
 }
@@ -212,7 +207,7 @@ export interface BattleSession {
 
 export interface DungeonState {
   cultivatorId: string;
-  mapNodeId: string; // 地图节点ID，用于获取境界门槛
+  mapNodeId: string;
   playerInfo: PlayerInfo;
   theme: string;
   currentRound: number;
@@ -232,6 +227,6 @@ export interface DungeonState {
   summary_of_sacrifice?: DungeonOptionCost[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
-  persistentStatuses: PersistentStatusSnapshot[];
-  environmentalStatuses: PersistentStatusSnapshot[];
+  /** 持久 Buff 状态（使用新格式） */
+  persistentBuffs: BuffInstanceState[];
 }

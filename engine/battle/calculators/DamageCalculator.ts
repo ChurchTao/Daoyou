@@ -1,33 +1,27 @@
 import type { ElementType, Quality } from '@/types/constants';
-import type { Artifact, Attributes, Cultivator } from '@/types/cultivator';
-import { criticalCalculator } from './CriticalCalculator';
+import type { Cultivator } from '@/types/cultivator';
+import type { BattleUnit } from '../BattleUnit';
 import {
-  ELEMENT_WEAKNESS,
   MAX_DAMAGE_REDUCTION,
   type DamageContext,
   type DamageResult,
 } from '../types';
+import { criticalCalculator } from './CriticalCalculator';
 
 /**
  * 伤害计算器
- * 负责统一处理所有伤害计算，包括技能伤害、法宝伤害、元素加成等
+ * 负责统一处理所有伤害计算
  */
 export class DamageCalculator {
   /**
-   * 计算技能基础伤害
-   * 
-   * 流程：
-   * 1. 基础伤害 = 技能威力 × (1 + 灵力/150)
-   * 2. 灵根加成 = 基础伤害 × 灵根倍率
-   * 3. 元素克制（暂时禁用）
-   * 4. 法宝加成 = 伤害 × (1 + 法宝元素加成)
-   * 5. 暴击判定与倍率
-   * 6. 防御减伤
-   * 
-   * @param context 伤害计算上下文
-   * @returns 伤害结果
+   * 计算技能伤害
+   * Buff 修正通过 BattleUnit 获取
    */
-  calculateSkillDamage(context: DamageContext): DamageResult {
+  calculateSkillDamage(
+    context: DamageContext,
+    attackerUnit: BattleUnit,
+    defenderUnit: BattleUnit,
+  ): DamageResult {
     const { attacker, defender, skill } = context;
 
     // 1. 基础伤害
@@ -39,10 +33,7 @@ export class DamageCalculator {
       skill.element,
     );
 
-    // 3. 元素克制（暂时注释，根据原引擎的 todo）
-    // damage *= this.getElementMultiplier(attacker.cultivatorData, defender.cultivatorData, skill.element);
-
-    // 4. 法宝加成
+    // 3. 法宝加成
     const artifactBonus = this.getArtifactDamageBonus(
       attacker.cultivatorData,
       skill.element,
@@ -51,19 +42,21 @@ export class DamageCalculator {
       damage *= 1 + artifactBonus;
     }
 
-    // 5. 暴击判定
+    // 4. 暴击判定（使用 Buff 加成）
     const critContext = {
       attributes: attacker.attributes,
-      hasCritRateUp: false, // 由调用方传入
-      hasCritRateDown: false, // 由调用方传入
+      critRateBonus: attackerUnit.getCritRateBonus(),
     };
     const isCritical = criticalCalculator.rollCritical(critContext);
     if (isCritical) {
       damage *= criticalCalculator.getCriticalMultiplier();
     }
 
-    // 6. 防御减伤
-    damage *= this.getDefenseMultiplier(defender);
+    // 5. 防御减伤（使用 Buff 加成）
+    damage *= this.getDefenseMultiplier(
+      defender.attributes.vitality,
+      defenderUnit.getDamageReductionBonus(),
+    );
 
     return {
       damage: Math.max(0, Math.floor(damage)),
@@ -72,11 +65,7 @@ export class DamageCalculator {
   }
 
   /**
-   * 获取灵根伤害倍率
-   * 
-   * @param attacker 攻击者数据
-   * @param element 元素
-   * @returns 伤害倍率
+   * 灵根伤害倍率
    */
   getRootDamageMultiplier(attacker: Cultivator, element: ElementType): number {
     const root = attacker.spiritual_roots.find((r) => r.element === element);
@@ -85,37 +74,11 @@ export class DamageCalculator {
   }
 
   /**
-   * 获取元素克制倍率（暂时不使用）
-   * 
-   * @param attacker 攻击者数据
-   * @param defender 防御者数据
-   * @param element 元素
-   * @returns 克制倍率
-   */
-  getElementMultiplier(
-    attacker: Cultivator,
-    defender: Cultivator,
-    element: ElementType,
-  ): number {
-    let mult = 1.0;
-    const defenderMainRoot = defender.spiritual_roots[0]?.element;
-    if (defenderMainRoot && ELEMENT_WEAKNESS[element]?.includes(defenderMainRoot)) {
-      mult *= 1.25;
-    }
-    return mult;
-  }
-
-  /**
-   * 获取法宝元素伤害加成
-   * 
-   * @param attacker 攻击者数据
-   * @param element 元素
-   * @returns 加成倍率
+   * 法宝伤害加成
    */
   getArtifactDamageBonus(attacker: Cultivator, element: ElementType): number {
     let multiplier = 0;
 
-    // 遍历已装备的法宝
     const artifactsById = new Map(
       attacker.inventory.artifacts.map((a) => [a.id!, a]),
     );
@@ -145,45 +108,18 @@ export class DamageCalculator {
   }
 
   /**
-   * 获取防御减伤系数
-   * 
-   * 公式：
-   * 减伤率 = 体魄 / 400
-   * 状态修正：
-   * - 护体状态：+ 0.15
-   * - 破防状态：- 0.15
-   * - 防御姿态：+ 0.5
-   * 限制范围：0-0.7
-   * 
-   * @param defender 防御者上下文
-   * @returns 伤害系数（1 - 减伤率）
+   * 防御减伤系数
+   * @param vitality 体魄值
+   * @param buffBonus Buff 提供的减伤加成
    */
-  getDefenseMultiplier(defender: DamageContext['defender']): number {
-    let reduction = defender.attributes.vitality / 400;
-
-    // 状态修正
-    if (defender.hasArmorUp) {
-      reduction += 0.15;
-    }
-    if (defender.hasArmorDown) {
-      reduction -= 0.15;
-    }
-    if (defender.isDefending) {
-      reduction += 0.5; // 防御状态减伤50%
-    }
-
-    // 限制减伤范围
+  getDefenseMultiplier(vitality: number, buffBonus: number): number {
+    let reduction = vitality / 400 + buffBonus;
     reduction = Math.min(Math.max(reduction, 0), MAX_DAMAGE_REDUCTION);
-
     return 1 - reduction;
   }
 
   /**
-   * 计算法宝主动技能的威力和消耗
-   * 
-   * @param quality 法宝品质
-   * @param willpower 神识值
-   * @returns 威力和消耗
+   * 法宝技能威力和消耗
    */
   getArtifactPowerAndCost(
     quality: Quality | undefined,
@@ -208,19 +144,6 @@ export class DamageCalculator {
       cost: baseQ,
     };
   }
-
-  /**
-   * 获取法宝特殊效果（击中附加状态）
-   * 
-   * @param artifact 法宝
-   * @returns 击中附加效果，如果没有则返回 undefined
-   */
-  getArtifactOnHitEffect(artifact: Artifact) {
-    return artifact.special_effects?.find(
-      (eff) => eff.type === 'on_hit_add_effect',
-    );
-  }
 }
 
-// 导出单例
 export const damageCalculator = new DamageCalculator();

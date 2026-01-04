@@ -1,8 +1,6 @@
 'use client';
 
 import type { TurnSnapshot } from '@/engine/battle';
-import type { StatusEffect } from '@/types/constants';
-import { getStatusLabel } from '@/types/dictionaries';
 import { useState } from 'react';
 
 type Props = {
@@ -47,8 +45,8 @@ export function BattleReplayViewer({
   const maxPlayerMp = first?.player.mp || 1;
   const maxOpponentMp = first?.opponent.mp || 1;
 
-  const renderStatusList = (statuses: StatusEffect[]) =>
-    statuses.length ? statuses.map((s) => getStatusLabel(s)).join('、') : '无';
+  const renderBuffList = (buffs: string[]) =>
+    buffs.length ? buffs.join('、') : '无';
 
   return (
     <div>
@@ -91,7 +89,7 @@ export function BattleReplayViewer({
               灵力：{snap.player.mp}/{maxPlayerMp}
             </div>
             <div className="text-ink/70">
-              状态：{renderStatusList(snap.player.statuses)}
+              状态：{renderBuffList(snap.player.buffs)}
             </div>
           </div>
 
@@ -104,7 +102,7 @@ export function BattleReplayViewer({
               灵力：{snap.opponent.mp}/{maxOpponentMp}
             </div>
             <div className="text-ink/70">
-              状态：{renderStatusList(snap.opponent.statuses)}
+              状态：{renderBuffList(snap.opponent.buffs)}
             </div>
           </div>
         </div>

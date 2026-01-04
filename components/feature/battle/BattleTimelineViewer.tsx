@@ -1,6 +1,4 @@
 import type { BattleEngineResult } from '@/engine/battle';
-import { StatusEffect } from '@/types/constants';
-import { getStatusLabel } from '@/types/dictionaries';
 import { useEffect, useState } from 'react';
 
 interface BattleTimelineViewerProps {
@@ -27,7 +25,6 @@ export function BattleTimelineViewer({
   // 战斗结果到达后，重置回合播放
   useEffect(() => {
     if (timeline.length > 0) {
-      // 使用 setTimeout 确保在组件渲染完成后执行
       setTimeout(() => {
         setCurrentTurnIndex(0);
         setAutoPlayTurn(true);
@@ -61,8 +58,8 @@ export function BattleTimelineViewer({
   const safeIndex = Math.min(Math.max(currentTurnIndex, 0), totalTurns - 1);
   const snap = timeline[safeIndex];
 
-  const renderStatusList = (statuses: StatusEffect[]) =>
-    statuses.length ? statuses.map((s) => getStatusLabel(s)).join('、') : '无';
+  const renderBuffList = (buffs: string[]) =>
+    buffs.length ? buffs.join('、') : '无';
 
   return (
     <div className="mb-8 p-4">
@@ -117,7 +114,7 @@ export function BattleTimelineViewer({
               灵力：{snap.player.mp}/{maxPlayerMp}
             </div>
             <div className="text-ink/70">
-              状态：{renderStatusList(snap.player.statuses)}
+              状态：{renderBuffList(snap.player.buffs)}
             </div>
           </div>
 
@@ -131,7 +128,7 @@ export function BattleTimelineViewer({
               灵力：{snap.opponent.mp}/{maxOpponentMp}
             </div>
             <div className="text-ink/70">
-              状态：{renderStatusList(snap.opponent.statuses)}
+              状态：{renderBuffList(snap.opponent.buffs)}
             </div>
           </div>
         </div>

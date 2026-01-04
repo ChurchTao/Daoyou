@@ -1,7 +1,7 @@
 'use client';
 
-import { InkSection } from '@/components/layout';
 import { StatusCard } from '@/components/cultivator/StatusCard';
+import { InkSection } from '@/components/layout';
 import type { DungeonState } from '@/lib/dungeon/types';
 import { InkButton } from '../ui';
 import { ResourceCostCard } from './ResourceCostCard';
@@ -19,9 +19,7 @@ export function DungeonProgressCard({
   state,
   onQuit,
 }: DungeonProgressCardProps) {
-  const hasStatuses =
-    state.persistentStatuses.length > 0 ||
-    state.environmentalStatuses.length > 0;
+  const hasBuffs = state.persistentBuffs && state.persistentBuffs.length > 0;
 
   return (
     <InkSection title="副本状态" subdued>
@@ -40,23 +38,8 @@ export function DungeonProgressCard({
         </div>
 
         {/* 角色状态 */}
-        {hasStatuses && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {state.persistentStatuses.length > 0 && (
-              <StatusCard
-                statuses={state.persistentStatuses}
-                title="持久状态"
-                compact
-              />
-            )}
-            {state.environmentalStatuses.length > 0 && (
-              <StatusCard
-                statuses={state.environmentalStatuses}
-                title="环境影响"
-                compact
-              />
-            )}
-          </div>
+        {hasBuffs && (
+          <StatusCard buffs={state.persistentBuffs} title="持久状态" compact />
         )}
 
         {/* 资源损耗 */}

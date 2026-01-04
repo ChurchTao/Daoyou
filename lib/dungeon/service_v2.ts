@@ -1,4 +1,5 @@
 import { BattleEngineResult } from '@/engine/battle';
+import type { BuffInstanceState } from '@/engine/buff/types';
 import { enemyGenerator } from '@/engine/enemyGenerator';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@/engine/resource/types';
@@ -26,7 +27,6 @@ import {
   DungeonSettlement,
   DungeonSettlementSchema,
   DungeonState,
-  PersistentStatusSnapshot,
   PlayerInfo,
 } from './types';
 
@@ -226,29 +226,25 @@ ${realmGuidance}
       throw new Error('未找到修真者数据');
     }
 
-    // 从数据库加载持久状态
-    const persistentStatuses: PersistentStatusSnapshot[] = Array.isArray(
-      cultivator.cultivator.persistent_statuses,
-    )
-      ? (cultivator.cultivator
-          .persistent_statuses as PersistentStatusSnapshot[])
+    // 从数据库加载持久状态（转换为 BuffInstanceState 格式）
+    const rawStatuses = Array.isArray(cultivator.cultivator.persistent_statuses)
+      ? cultivator.cultivator.persistent_statuses
       : [];
-
-    // 从地图节点获取环境状态
-    const environmentalStatuses: PersistentStatusSnapshot[] = [];
-    const mapNode = getMapNode(mapNodeId);
-    if (mapNode && 'environmental_status' in mapNode) {
-      const satellite = mapNode as SatelliteNode;
-      if (satellite.environmental_status) {
-        // 添加环境状态到数组
-        environmentalStatuses.push({
-          statusKey: satellite.environmental_status,
-          potency: 1, // 环境状态默认强度为1
-          createdAt: Date.now(),
-          metadata: { source: 'environment', location: mapNode.name },
-        });
-      }
-    }
+    const persistentBuffs: BuffInstanceState[] = rawStatuses.map(
+      (s: {
+        statusKey?: string;
+        configId?: string;
+        potency?: number;
+        currentStacks?: number;
+        createdAt?: number;
+      }) => ({
+        instanceId: '',
+        configId: s.statusKey || s.configId || '',
+        currentStacks: s.potency || s.currentStacks || 1,
+        remainingTurns: -1,
+        createdAt: s.createdAt || Date.now(),
+      }),
+    );
 
     // 3. 初始状态
     const state: DungeonState = {
@@ -263,9 +259,7 @@ ${realmGuidance}
       theme: context.location.location,
       summary_of_sacrifice: [],
       status: 'EXPLORING',
-      // 新增字段：状态和累积损失
-      persistentStatuses,
-      environmentalStatuses,
+      persistentBuffs,
       accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
       accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
     };
@@ -335,29 +329,22 @@ ${realmGuidance}
           );
         } else if (cost.type === 'weak') {
           // 1.2 weak 成本映射为 weakness 状态
-          const weaknessPotency = cost.value; // value 即为虚弱程度
-          // 添加或更新 weakness 状态
-          const existingWeakness = state.persistentStatuses.find(
-            (s) => s.statusKey === 'weakness',
+          const weaknessPotency = cost.value;
+          const existingWeakness = state.persistentBuffs.find(
+            (b) => b.configId === 'weakness',
           );
           if (existingWeakness) {
-            // 更新现有虚弱状态的强度
-            existingWeakness.potency = Math.min(
+            existingWeakness.currentStacks = Math.min(
               10,
-              existingWeakness.potency + weaknessPotency,
+              existingWeakness.currentStacks + weaknessPotency,
             );
-            existingWeakness.metadata = {
-              ...existingWeakness.metadata,
-              lastUpdated: Date.now(),
-              source: 'dungeon_sacrifice',
-            };
           } else {
-            // 添加新的虚弱状态
-            state.persistentStatuses.push({
-              statusKey: 'weakness',
-              potency: weaknessPotency,
+            state.persistentBuffs.push({
+              instanceId: '',
+              configId: 'weakness',
+              currentStacks: weaknessPotency,
+              remainingTurns: -1,
               createdAt: Date.now(),
-              metadata: { source: 'dungeon_sacrifice' },
             });
           }
         }
@@ -460,10 +447,9 @@ ${realmGuidance}
         difficulty: battleCost.value,
       },
       playerSnapshot: {
-        persistentStatuses: dungeonState.persistentStatuses, // 持久状态快照
-        environmentalStatuses: dungeonState.environmentalStatuses, // 环境状态快照
-        hpLossPercent: dungeonState.accumulatedHpLoss, // 虚拟 HP 损失百分比
-        mpLossPercent: dungeonState.accumulatedMpLoss, // 虚拟 MP 损失百分比
+        persistentBuffs: dungeonState.persistentBuffs,
+        hpLossPercent: dungeonState.accumulatedHpLoss,
+        mpLossPercent: dungeonState.accumulatedMpLoss,
       },
     };
 
@@ -506,77 +492,65 @@ ${realmGuidance}
     // 战斗失败处理：生成伤势状态
     if (!isWin) {
       // 根据当前伤势状态升级：minor_wound → major_wound → near_death
-      const hasMinorWound = state.persistentStatuses.find(
-        (s) => s.statusKey === 'minor_wound',
+      const hasMinorWound = state.persistentBuffs.find(
+        (b) => b.configId === 'minor_wound',
       );
-      const hasMajorWound = state.persistentStatuses.find(
-        (s) => s.statusKey === 'major_wound',
+      const hasMajorWound = state.persistentBuffs.find(
+        (b) => b.configId === 'major_wound',
       );
-      const hasNearDeath = state.persistentStatuses.find(
-        (s) => s.statusKey === 'near_death',
+      const hasNearDeath = state.persistentBuffs.find(
+        (b) => b.configId === 'near_death',
       );
 
       if (hasNearDeath) {
-        // 已经是 near_death，增加强度
-        hasNearDeath.potency = Math.min(10, hasNearDeath.potency + 1);
-        hasNearDeath.metadata = {
-          ...hasNearDeath.metadata,
-          lastUpdated: Date.now(),
-          source: 'dungeon_battle_defeat',
-        };
-      } else if (hasMajorWound) {
-        // 从 major_wound 升级到 near_death
-        state.persistentStatuses = state.persistentStatuses.filter(
-          (s) => s.statusKey !== 'major_wound',
+        hasNearDeath.currentStacks = Math.min(
+          10,
+          hasNearDeath.currentStacks + 1,
         );
-        state.persistentStatuses.push({
-          statusKey: 'near_death',
-          potency: 1,
+      } else if (hasMajorWound) {
+        state.persistentBuffs = state.persistentBuffs.filter(
+          (b) => b.configId !== 'major_wound',
+        );
+        state.persistentBuffs.push({
+          instanceId: '',
+          configId: 'near_death',
+          currentStacks: 1,
+          remainingTurns: -1,
           createdAt: Date.now(),
-          metadata: {
-            source: 'dungeon_battle_defeat',
-            upgradedFrom: 'major_wound',
-          },
         });
       } else if (hasMinorWound) {
-        // 从 minor_wound 升级到 major_wound
-        state.persistentStatuses = state.persistentStatuses.filter(
-          (s) => s.statusKey !== 'minor_wound',
+        state.persistentBuffs = state.persistentBuffs.filter(
+          (b) => b.configId !== 'minor_wound',
         );
-        state.persistentStatuses.push({
-          statusKey: 'major_wound',
-          potency: 1,
+        state.persistentBuffs.push({
+          instanceId: '',
+          configId: 'major_wound',
+          currentStacks: 1,
+          remainingTurns: -1,
           createdAt: Date.now(),
-          metadata: {
-            source: 'dungeon_battle_defeat',
-            upgradedFrom: 'minor_wound',
-          },
         });
       } else {
-        // 添加 minor_wound
-        state.persistentStatuses.push({
-          statusKey: 'minor_wound',
-          potency: 1,
+        state.persistentBuffs.push({
+          instanceId: '',
+          configId: 'minor_wound',
+          currentStacks: 1,
+          remainingTurns: -1,
           createdAt: Date.now(),
-          metadata: { source: 'dungeon_battle_defeat' },
         });
       }
 
-      // 战斗失败后立即触发副本结算
       const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
       lastHistory.outcome = outcomeText;
 
-      // 立即触发结算
       return this.settleDungeon(state);
     }
 
-    // 战斗胜利处理
     const outcomeText = `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
     lastHistory.outcome = outcomeText;
 
-    // 从战斗结果中同步持久状态（如果有）
-    if (battleResult.playerPersistentStatuses) {
-      state.persistentStatuses = battleResult.playerPersistentStatuses;
+    // 从战斗结果中同步持久状态
+    if (battleResult.playerPersistentBuffs) {
+      state.persistentBuffs = battleResult.playerPersistentBuffs;
     }
 
     state.currentRound++;

@@ -1,34 +1,33 @@
-import { statusRegistry } from '@/engine/status/StatusRegistry';
-import type { PersistentStatusSnapshot } from '@/lib/dungeon/types';
-import type { StatusEffect } from '@/types/constants';
+import { buffRegistry } from '@/engine/buff';
+import type { BuffInstanceState } from '@/engine/buff/types';
+import { BuffTag } from '@/engine/buff/types';
 
 /**
  * 状态显示信息
  */
 export interface StatusDisplayInfo {
-  key: StatusEffect;
+  key: string;
   name: string;
   description: string;
   icon: string;
   color: string;
   type: 'buff' | 'debuff' | 'persistent' | 'environmental' | 'combat';
-  potency?: number;
+  stacks?: number;
 }
 
 /**
- * 获取状态显示信息
- * 统一的状态渲染逻辑，从 StatusRegistry 获取状态定义
+ * 获取状态显示信息（从 BuffRegistry）
  */
 export function getStatusDisplay(
-  statusKey: StatusEffect,
-  potency?: number,
+  configId: string,
+  stacks?: number,
 ): StatusDisplayInfo {
-  const definition = statusRegistry.getDefinition(statusKey);
+  const config = buffRegistry.get(configId);
 
-  if (!definition) {
+  if (!config) {
     return {
-      key: statusKey,
-      name: statusKey,
+      key: configId,
+      name: configId,
       description: '未知状态',
       icon: '❓',
       color: 'text-ink-secondary',
@@ -36,66 +35,47 @@ export function getStatusDisplay(
     };
   }
 
-  // 根据状态类型返回图标和颜色
+  // 根据标签确定类型
+  const tags = config.tags || [];
+  let displayType: StatusDisplayInfo['type'] = 'combat';
+  if (tags.includes(BuffTag.PERSISTENT)) displayType = 'persistent';
+  else if (tags.includes(BuffTag.BUFF)) displayType = 'buff';
+  else if (tags.includes(BuffTag.DEBUFF)) displayType = 'debuff';
+
   const iconMap: Record<string, string> = {
     buff: '⬆️',
     debuff: '⬇️',
-    dot: '🔥',
-    control: '⛓️',
     persistent: '💫',
+    combat: '⚔️',
     environmental: '🌍',
   };
 
   const colorMap: Record<string, string> = {
     buff: 'text-green-600',
     debuff: 'text-orange-600',
-    dot: 'text-red-600',
-    control: 'text-purple-600',
     persistent: 'text-blue-600',
+    combat: 'text-purple-600',
     environmental: 'text-teal-600',
   };
 
-  // 确定类型
-  let displayType:
-    | 'buff'
-    | 'debuff'
-    | 'persistent'
-    | 'environmental'
-    | 'combat' = 'combat';
-  if (
-    definition.statusType === 'buff' ||
-    definition.statusType === 'debuff' ||
-    definition.statusType === 'dot' ||
-    definition.statusType === 'control'
-  ) {
-    displayType = 'combat';
-  } else {
-    displayType = definition.statusType as
-      | 'persistent'
-      | 'environmental'
-      | 'combat';
-  }
-
   return {
-    key: statusKey,
-    name: definition.displayName,
-    description: definition.description ?? '状态效果',
-    icon: iconMap[definition.statusType] ?? '⭐',
-    color: colorMap[definition.statusType] ?? 'text-ink',
+    key: configId,
+    name: config.name,
+    description: config.description ?? '状态效果',
+    icon: iconMap[displayType] ?? '⭐',
+    color: colorMap[displayType] ?? 'text-ink',
     type: displayType,
-    potency: potency ?? definition.defaultPotency,
+    stacks,
   };
 }
 
 /**
  * 批量获取状态显示信息
  */
-export function getStatusesDisplay(
-  statuses: PersistentStatusSnapshot[],
+export function getBuffsDisplay(
+  buffs: BuffInstanceState[],
 ): StatusDisplayInfo[] {
-  return statuses.map((s) =>
-    getStatusDisplay(s.statusKey as StatusEffect, s.potency),
-  );
+  return buffs.map((b) => getStatusDisplay(b.configId, b.currentStacks));
 }
 
 /**

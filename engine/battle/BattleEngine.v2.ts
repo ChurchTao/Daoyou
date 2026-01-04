@@ -1,4 +1,4 @@
-import type { TickContext } from '@/engine/status/types';
+import { buffRegistry } from '@/engine/buff';
 import type { Quality } from '@/types/constants';
 import type { Cultivator, Skill } from '@/types/cultivator';
 import { BattleUnit } from './BattleUnit';
@@ -24,8 +24,8 @@ interface BattleState {
 }
 
 /**
- * 新版战斗引擎（V2）
- * 集成状态容器，使用模块化设计
+ * 战斗引擎 V2
+ * 完全基于 EffectEngine 和 BuffManager
  */
 export class BattleEngineV2 {
   /**
@@ -59,19 +59,13 @@ export class BattleEngineV2 {
     opponent: Cultivator,
     initialPlayerState?: InitialUnitState,
   ): BattleState {
-    // 合并持久状态和环境状态
-    const playerStatuses = [
-      ...(initialPlayerState?.persistentStatuses ?? []),
-      ...(initialPlayerState?.environmentalStatuses ?? []),
-    ];
-
     return {
       player: new BattleUnit(
         'player',
         player,
         initialPlayerState?.hpLossPercent,
         initialPlayerState?.mpLossPercent,
-        playerStatuses.length > 0 ? playerStatuses : undefined,
+        initialPlayerState?.persistentBuffs,
       ),
       opponent: new BattleUnit('opponent', opponent),
       turn: 0,
@@ -90,10 +84,10 @@ export class BattleEngineV2 {
     state.turn += 1;
     state.log.push(`[第${state.turn}回合]`);
 
-    // 1. 刷新状态（DOT伤害、状态过期等）
-    this.tickStatuses(state);
+    // 1. 回合开始：DOT 伤害 + Buff 过期
+    this.processTurnStart(state);
 
-    // 检查状态刷新后是否有单位死亡
+    // 检查是否有单位死亡
     if (!state.player.isAlive() || !state.opponent.isAlive()) {
       state.timeline.push(this.snapshotTurn(state));
       return;
@@ -106,18 +100,14 @@ export class BattleEngineV2 {
     for (const actor of actors) {
       if (!actor.isAlive()) continue;
 
-      // 重置防御状态
       actor.isDefending = false;
 
-      // 检查行动限制
       if (this.isActionBlocked(actor)) {
         state.log.push(`${actor.getName()} 无法行动！`);
         continue;
       }
 
       const target = actor.unitId === 'player' ? state.opponent : state.player;
-
-      // 选择技能
       const skill = this.chooseSkill(actor, target);
 
       if (!skill) {
@@ -125,11 +115,9 @@ export class BattleEngineV2 {
         continue;
       }
 
-      // 执行技能
       const result = skillExecutor.execute(actor, target, skill, state.turn);
       state.log.push(...result.logs);
 
-      // 检查目标是否死亡
       if (!target.isAlive()) {
         if (!snapshottedThisTurn) {
           state.timeline.push(this.snapshotTurn(state));
@@ -150,37 +138,26 @@ export class BattleEngineV2 {
   }
 
   /**
-   * 刷新状态
+   * 回合开始处理：DOT 伤害 + Buff 过期
    */
-  private tickStatuses(state: BattleState): void {
+  private processTurnStart(state: BattleState): void {
     for (const unit of [state.player, state.opponent]) {
-      const tickContext: TickContext = {
-        currentTurn: state.turn,
-        currentTime: Date.now(),
-        unitSnapshot: unit.createUnitSnapshot(),
-        unitName: unit.getName(),
-        battleContext: {
-          turnNumber: state.turn,
-          isPlayerTurn: unit.unitId === 'player',
-        },
-      };
-
-      const tickResult = unit.statusContainer.tickStatuses(tickContext);
-
-      // 应用DOT伤害
-      if (tickResult.damageDealt > 0) {
-        unit.applyDamage(tickResult.damageDealt);
+      // 1. DOT 伤害（通过 EffectEngine）
+      const { dotDamage, logs } = unit.processTurnStartEffects();
+      if (dotDamage > 0) {
+        unit.applyDamage(dotDamage);
+        state.log.push(...logs);
       }
 
-      // 应用治疗（如果有）
-      if (tickResult.healingDone > 0) {
-        unit.applyHealing(tickResult.healingDone);
+      // 2. Buff 时间流逝
+      const expiredEvents = unit.buffManager.tick();
+      for (const event of expiredEvents) {
+        if (event.message) {
+          state.log.push(event.message);
+        }
       }
 
-      // 添加日志
-      state.log.push(...tickResult.effectLogs);
-
-      // 标记属性脏（状态可能已过期）
+      // 3. 属性脏标记
       unit.markAttributesDirty();
     }
   }
@@ -189,12 +166,8 @@ export class BattleEngineV2 {
    * 决定行动顺序
    */
   private determineActionOrder(state: BattleState): BattleUnit[] {
-    const playerSpeed =
-      state.player.getFinalAttributes().speed +
-      (state.player.hasStatus('speed_up') ? 20 : 0);
-    const opponentSpeed =
-      state.opponent.getFinalAttributes().speed +
-      (state.opponent.hasStatus('speed_up') ? 20 : 0);
+    const playerSpeed = state.player.getFinalAttributes().speed;
+    const opponentSpeed = state.opponent.getFinalAttributes().speed;
 
     return playerSpeed >= opponentSpeed
       ? [state.player, state.opponent]
@@ -205,14 +178,13 @@ export class BattleEngineV2 {
    * 检查行动限制
    */
   private isActionBlocked(unit: BattleUnit): boolean {
-    return unit.hasStatus('stun') || unit.hasStatus('root');
+    return unit.hasBuff('stun') || unit.hasBuff('root');
   }
 
   /**
    * 选择技能
    */
   private chooseSkill(actor: BattleUnit, target: BattleUnit): Skill | null {
-    // 获取可用技能
     const available = actor.cultivatorData.skills.filter((s) =>
       actor.canUseSkill(s),
     );
@@ -231,11 +203,9 @@ export class BattleEngineV2 {
       }
     }
 
-    if (!available.length) {
-      return null;
-    }
+    if (!available.length) return null;
 
-    // AI决策逻辑
+    // AI 决策
     const offensive = available.filter(
       (s) => s.type === 'attack' || s.type === 'control' || s.type === 'debuff',
     );
@@ -244,33 +214,24 @@ export class BattleEngineV2 {
 
     const hpRatio = actor.currentHp / actor.maxHp;
 
-    // 低血量时优先治疗
     if (hpRatio < 0.3 && heals.length) {
       return heals[Math.floor(Math.random() * heals.length)];
     }
 
-    // 战斗开始前2回合，有一定概率释放buff
-    if (
-      actor.statusContainer.getActiveStatuses().length === 0 &&
-      buffs.length
-    ) {
-      // 30%概率释放buff
+    if (actor.buffManager.getActiveBuffs().length === 0 && buffs.length) {
       if (Math.random() < 0.3) {
         return buffs[Math.floor(Math.random() * buffs.length)];
       }
     }
 
-    // 优势时优先进攻
     if (target.currentHp < actor.currentHp && offensive.length) {
       return offensive[Math.floor(Math.random() * offensive.length)];
     }
 
-    // 默认进攻
     if (offensive.length) {
       return offensive[Math.floor(Math.random() * offensive.length)];
     }
 
-    // 增益
     if (buffs.length) {
       return buffs[Math.floor(Math.random() * buffs.length)];
     }
@@ -287,11 +248,7 @@ export class BattleEngineV2 {
       name: string;
       quality?: Quality;
       element: string;
-      special_effects?: Array<{
-        type: string;
-        effect?: string;
-        [key: string]: unknown;
-      }>;
+      special_effects?: Array<{ type: string; effect?: string }>;
     };
 
     const attrs = actor.getFinalAttributes();
@@ -310,7 +267,6 @@ export class BattleEngineV2 {
       cooldown: 3,
     };
 
-    // 检查特殊效果
     const effect = art.special_effects?.find?.(
       (eff) => eff.type === 'on_hit_add_effect',
     );
@@ -327,17 +283,13 @@ export class BattleEngineV2 {
   }
 
   /**
-   * 处理无技能可用的情况
+   * 处理无技能可用
    */
   private handleNoSkillAvailable(actor: BattleUnit, state: BattleState): void {
-    const isSilenced = actor.hasStatus('silence');
-
-    if (isSilenced) {
-      // 沉默时防御
+    if (actor.hasBuff('silence')) {
       actor.isDefending = true;
       state.log.push(`${actor.getName()} 因被沉默无法施展术法，摆出防御姿态。`);
     } else {
-      // MP耗尽时恢复
       const recoveredMp = Math.floor(actor.maxMp * 0.3);
       actor.restoreMp(recoveredMp);
       state.log.push(
@@ -347,7 +299,7 @@ export class BattleEngineV2 {
   }
 
   /**
-   * 检查是否应该继续战斗
+   * 检查是否继续战斗
    */
   private shouldContinueBattle(state: BattleState): boolean {
     return (
@@ -361,18 +313,18 @@ export class BattleEngineV2 {
    * 创建回合快照
    */
   private snapshotTurn(state: BattleState): TurnSnapshot {
-    const buildUnitSnapshot = (unit: BattleUnit): TurnUnitSnapshot => ({
+    const buildSnapshot = (unit: BattleUnit): TurnUnitSnapshot => ({
       hp: unit.currentHp,
       maxHp: unit.maxHp,
       mp: unit.currentMp,
       maxMp: unit.maxMp,
-      statuses: unit.getActiveStatusEffects(),
+      buffs: unit.getActiveBuffIds(),
     });
 
     return {
       turn: state.turn,
-      player: buildUnitSnapshot(state.player),
-      opponent: buildUnitSnapshot(state.opponent),
+      player: buildSnapshot(state.player),
+      opponent: buildSnapshot(state.opponent),
     };
   }
 
@@ -396,18 +348,12 @@ export class BattleEngineV2 {
       `✨ ${winnerUnit.getName()} 获胜！剩余气血：${winnerUnit.currentHp}，对手剩余气血：${loserUnit.currentHp}。`,
     );
 
-    // 生成失败方的伤势状态
+    // 伤势处理
     this.applyBattleInjuries(loserUnit, state.log);
 
-    // 清除临时状态
-    state.player.statusContainer.clearTemporaryStatuses();
-    state.opponent.statusContainer.clearTemporaryStatuses();
-
-    // 导出持久状态
-    const playerPersistentStatuses =
-      state.player.statusContainer.exportPersistentStatuses();
-    const opponentPersistentStatuses =
-      state.opponent.statusContainer.exportPersistentStatuses();
+    // 清除临时 Buff
+    state.player.clearTemporaryBuffs();
+    state.opponent.clearTemporaryBuffs();
 
     return {
       winner: winnerUnit.cultivatorData,
@@ -417,72 +363,42 @@ export class BattleEngineV2 {
       playerHp: state.player.currentHp,
       opponentHp: state.opponent.currentHp,
       timeline: state.timeline,
-      playerPersistentStatuses,
-      opponentPersistentStatuses,
+      playerPersistentBuffs: state.player.exportPersistentBuffs(),
+      opponentPersistentBuffs: state.opponent.exportPersistentBuffs(),
       player: state.player.cultivatorData.id!,
       opponent: state.opponent.cultivatorData.id!,
     };
   }
 
   /**
-   * 对失败方应用伤势状态
-   * 仅失败方会受伤
+   * 伤势处理
    */
   private applyBattleInjuries(loser: BattleUnit, log: string[]): void {
     const hpPercent = loser.currentHp / loser.maxHp;
 
-    // HP低于30%: 添加或升级伤势状态
     if (hpPercent < 0.3) {
-      const hasMinorWound = loser.statusContainer.hasStatus('minor_wound');
-      const hasMajorWound = loser.statusContainer.hasStatus('major_wound');
-      const hasNearDeath = loser.statusContainer.hasStatus('near_death');
+      const hasMinorWound = loser.hasBuff('minor_wound');
+      const hasMajorWound = loser.hasBuff('major_wound');
+      const hasNearDeath = loser.hasBuff('near_death');
 
       if (hasNearDeath) {
-        // 已经是濒死，不再叠加
         log.push(`${loser.getName()} 的伤势已达濒死状态。`);
       } else if (hasMajorWound && hpPercent < 0.1) {
-        // 重伤状态且HP<10% → 升级为濒死
-        loser.statusContainer.removeStatusByKey('major_wound');
-        loser.statusContainer.addStatus(
-          {
-            statusKey: 'near_death',
-            source: {
-              sourceType: 'system',
-              sourceName: '战斗伤势',
-            },
-          },
-          loser.createUnitSnapshot(),
-        );
+        loser.buffManager.removeBuff('major_wound');
+        const config = buffRegistry.get('near_death');
+        if (config) loser.buffManager.addBuff(config, loser);
         log.push(`${loser.getName()} 的伤势从重伤升级为濒死！`);
       } else if (hasMinorWound && hpPercent < 0.3) {
-        // 轻伤状态且HP<30% → 升级为重伤
-        loser.statusContainer.removeStatusByKey('minor_wound');
-        loser.statusContainer.addStatus(
-          {
-            statusKey: 'major_wound',
-            source: {
-              sourceType: 'system',
-              sourceName: '战斗伤势',
-            },
-          },
-          loser.createUnitSnapshot(),
-        );
+        loser.buffManager.removeBuff('minor_wound');
+        const config = buffRegistry.get('major_wound');
+        if (config) loser.buffManager.addBuff(config, loser);
         log.push(`${loser.getName()} 的伤势从轻伤升级为重伤！`);
       } else if (!hasMinorWound && !hasMajorWound) {
-        // 没有任何伤势，添加轻伤或重伤
-        const statusKey = hpPercent < 0.1 ? 'major_wound' : 'minor_wound';
-        loser.statusContainer.addStatus(
-          {
-            statusKey,
-            source: {
-              sourceType: 'system',
-              sourceName: '战斗伤势',
-            },
-          },
-          loser.createUnitSnapshot(),
-        );
+        const woundType = hpPercent < 0.1 ? 'major_wound' : 'minor_wound';
+        const config = buffRegistry.get(woundType);
+        if (config) loser.buffManager.addBuff(config, loser);
         log.push(
-          `${loser.getName()} 受了${statusKey === 'minor_wound' ? '轻伤' : '重伤'}！`,
+          `${loser.getName()} 受了${woundType === 'minor_wound' ? '轻伤' : '重伤'}！`,
         );
       }
     }
@@ -490,7 +406,7 @@ export class BattleEngineV2 {
 }
 
 /**
- * 导出函数式接口（兼容旧代码）
+ * 兼容接口
  */
 export function simulateBattle(
   player: Cultivator,

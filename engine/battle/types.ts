@@ -1,37 +1,29 @@
-import type { ApplyResult } from '@/engine/status/types';
-import type { ElementType, StatusEffect } from '@/types/constants';
+import type { BuffInstanceState } from '@/engine/buff/types';
+import type { ElementType } from '@/types/constants';
 import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
 
 /**
  * 战斗引擎类型定义
- * 用于战斗系统各模块之间的数据交互
+ * 简化版：删除旧格式兼容类型
  */
 
 // ===== 战斗单元相关 =====
 
 /**
- * 战斗单元ID类型
+ * 战斗单元 ID 类型
  */
 export type UnitId = 'player' | 'opponent';
 
 /**
- * 初始单元状态
+ * 初始单元状态（新格式）
  */
 export interface InitialUnitState {
-  hpLossPercent?: number; // HP损失百分比，0-1之间，例如0.3表示损失30%
-  mpLossPercent?: number; // MP损失百分比，0-1之间，例如0.2表示损失20%
-  persistentStatuses?: Array<{
-    statusKey: string;
-    potency: number;
-    createdAt: number;
-    metadata: Record<string, unknown>;
-  }>; // 持久状态
-  environmentalStatuses?: Array<{
-    statusKey: string;
-    potency: number;
-    createdAt: number;
-    metadata: Record<string, unknown>;
-  }>; // 环境状态
+  /** HP 损失百分比 (0-1) */
+  hpLossPercent?: number;
+  /** MP 损失百分比 (0-1) */
+  mpLossPercent?: number;
+  /** 持久 Buff 状态 */
+  persistentBuffs?: BuffInstanceState[];
 }
 
 /**
@@ -42,7 +34,7 @@ export interface TurnUnitSnapshot {
   maxHp: number;
   mp: number;
   maxMp: number;
-  statuses: StatusEffect[];
+  buffs: string[]; // Buff ID 列表
 }
 
 /**
@@ -69,19 +61,10 @@ export interface BattleEngineResult {
   timeline: TurnSnapshot[];
   player: string;
   opponent: string;
-  // 持久状态快照（战斗后）
-  playerPersistentStatuses?: Array<{
-    statusKey: string;
-    potency: number;
-    createdAt: number;
-    metadata: Record<string, unknown>;
-  }>;
-  opponentPersistentStatuses?: Array<{
-    statusKey: string;
-    potency: number;
-    createdAt: number;
-    metadata: Record<string, unknown>;
-  }>;
+  /** 玩家持久 Buff */
+  playerPersistentBuffs?: BuffInstanceState[];
+  /** 对手持久 Buff */
+  opponentPersistentBuffs?: BuffInstanceState[];
 }
 
 // ===== 计算器相关 =====
@@ -95,20 +78,21 @@ export interface DamageResult {
 }
 
 /**
- * 伤害计算上下文
+ * 伤害计算上下文（供 EffectEngine 使用）
  */
 export interface DamageContext {
+  /** 攻击者 */
   attacker: {
     attributes: Attributes;
     cultivatorData: Cultivator;
   };
+  /** 防御者 */
   defender: {
     attributes: Attributes;
     cultivatorData: Cultivator;
     isDefending: boolean;
-    hasArmorUp: boolean;
-    hasArmorDown: boolean;
   };
+  /** 技能 */
   skill: Skill;
 }
 
@@ -117,8 +101,7 @@ export interface DamageContext {
  */
 export interface CriticalContext {
   attributes: Attributes;
-  hasCritRateUp: boolean;
-  hasCritRateDown: boolean;
+  critRateBonus?: number; // Buff 提供的暴击率加成
 }
 
 /**
@@ -126,42 +109,8 @@ export interface CriticalContext {
  */
 export interface EvasionContext {
   attributes: Attributes;
-  hasSpeedUp: boolean;
-  isStunned: boolean;
-  isRooted: boolean;
-}
-
-/**
- * 属性计算上下文
- */
-export interface AttributeContext {
-  cultivatorData: Cultivator;
-  statusModifications: Partial<Attributes>;
-}
-
-// ===== 技能执行相关 =====
-
-/**
- * 技能执行上下文
- */
-export interface SkillExecutionContext {
-  caster: unknown; // BattleUnit，稍后定义
-  target: unknown; // BattleUnit，稍后定义
-  skill: Skill;
-  log: string[];
-}
-
-/**
- * 技能执行结果
- */
-export interface SkillExecutionResult {
-  success: boolean;
-  evaded: boolean;
-  damage: number;
-  healing: number;
-  isCritical: boolean;
-  statusApplied: ApplyResult[];
-  logs: string[];
+  speedBonus?: number; // Buff 提供的速度加成
+  cannotDodge?: boolean; // 是否被定身等无法闪避
 }
 
 // ===== 元素相关 =====
@@ -182,27 +131,17 @@ export const ELEMENT_WEAKNESS: Partial<Record<ElementType, ElementType[]>> = {
 
 // ===== 常量 =====
 
-/**
- * 暴击倍率
- */
+/** 暴击倍率 */
 export const CRITICAL_MULTIPLIER = 1.8;
 
-/**
- * 最大闪避率
- */
+/** 最大闪避率 */
 export const MAX_EVASION_RATE = 0.3;
 
-/**
- * 最小暴击率
- */
+/** 最小暴击率 */
 export const MIN_CRIT_RATE = 0.05;
 
-/**
- * 最大暴击率
- */
+/** 最大暴击率 */
 export const MAX_CRIT_RATE = 0.6;
 
-/**
- * 最大减伤率
- */
+/** 最大减伤率 */
 export const MAX_DAMAGE_REDUCTION = 0.7;
