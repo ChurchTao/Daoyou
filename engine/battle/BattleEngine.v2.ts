@@ -1,4 +1,4 @@
-import { buffRegistry, BuffTag } from '@/engine/buff';
+import { buffRegistry, BuffTag, TickMoment } from '@/engine/buff';
 import type { Cultivator, Skill } from '@/types/cultivator';
 import { effectEngine } from '../effect';
 import { EffectTrigger, EffectType } from '../effect/types';
@@ -102,8 +102,11 @@ export class BattleEngineV2 {
 
       actor.isDefending = false;
 
-      if (this.isActionBlocked(actor)) {
-        state.log.push(`${actor.getName()} 无法行动！`);
+      // 【关键】行动开始前，检查控制效果并结算控制类 Buff
+      const skipTurn = this.processActorTurnStart(actor, state);
+
+      if (skipTurn) {
+        // 被控制了也要让 Buff 时间流逝（消耗掉这次控制）
         continue;
       }
 
@@ -112,11 +115,16 @@ export class BattleEngineV2 {
 
       if (!skill) {
         this.handleNoSkillAvailable(actor, state);
+        // 行动结束后 tick 增益/减益类 Buff
+        this.processActorTurnEnd(actor, state);
         continue;
       }
 
       const result = skillExecutor.execute(actor, target, skill, state.turn);
       state.log.push(...result.logs);
+
+      // 【关键】行动结束后，结算增益/减益类 Buff
+      this.processActorTurnEnd(actor, state);
 
       if (!target.isAlive()) {
         if (!snapshottedThisTurn) {
@@ -141,26 +149,72 @@ export class BattleEngineV2 {
   }
 
   /**
-   * 回合开始处理：DOT 伤害 + Buff 过期
+   * 角色行动开始处理
+   * 检查控制效果，并结算控制类 Buff
+   * @returns true 表示该角色被控制，跳过行动
+   */
+  private processActorTurnStart(
+    actor: BattleUnit,
+    state: BattleState,
+  ): boolean {
+    // 检查是否被控制
+    const isControlled = this.isActionBlocked(actor);
+
+    // 【关键】结算控制类 Buff（生效即消耗）
+    if (isControlled) {
+      const controlBuffs = actor.buffManager.getBuffsByTag(BuffTag.CONTROL);
+      const controlBuffName = controlBuffs
+        .map((item) => item.config.name)
+        .join('、');
+      state.log.push(
+        `${actor.getName()} 处于「${controlBuffName}」状态，无法行动！`,
+      );
+    }
+
+    const expiredEvents = actor.buffManager.tick(
+      state.turn,
+      TickMoment.ON_ACTION_START,
+    );
+    for (const event of expiredEvents) {
+      if (event.message) {
+        state.log.push(event.message);
+      }
+    }
+
+    return isControlled;
+  }
+
+  /**
+   * 角色行动结束处理
+   * 结算增益/减益类 Buff
+   */
+  private processActorTurnEnd(actor: BattleUnit, state: BattleState): void {
+    const expiredEvents = actor.buffManager.tick(
+      state.turn,
+      TickMoment.ON_ACTION_END,
+    );
+    for (const event of expiredEvents) {
+      if (event.message) {
+        state.log.push(event.message);
+      }
+    }
+    actor.markAttributesDirty();
+  }
+
+  /**
+   * 回合开始处理：DOT 伤害
+   * 注意：Buff 时间流逝现在由 processActorTurnStart/End 处理
    */
   private processTurnStart(state: BattleState): void {
     for (const unit of [state.player, state.opponent]) {
-      // 1. DOT 伤害（通过 EffectEngine）
+      // DOT 伤害（通过 EffectEngine）
       const { dotDamage, logs } = unit.processTurnStartEffects();
       if (dotDamage > 0) {
         unit.applyDamage(dotDamage);
         state.log.push(...logs);
       }
 
-      // 2. Buff 时间流逝
-      const expiredEvents = unit.buffManager.tick();
-      for (const event of expiredEvents) {
-        if (event.message) {
-          state.log.push(event.message);
-        }
-      }
-
-      // 3. 属性脏标记
+      // 属性脏标记
       unit.markAttributesDirty();
     }
   }
@@ -184,7 +238,7 @@ export class BattleEngineV2 {
       if (hotHeal && hotHeal > 0) {
         const actualHeal = unit.applyHealing(hotHeal);
         if (actualHeal > 0) {
-          state.log.push(`${unit.getName()} 回复了 ${actualHeal} 点气血。`);
+          state.log.push(`${unit.getName()} 回复了 ${actualHeal} 点气血`);
         }
       }
 
@@ -377,12 +431,12 @@ export class BattleEngineV2 {
   private handleNoSkillAvailable(actor: BattleUnit, state: BattleState): void {
     if (actor.hasBuff('silence')) {
       actor.isDefending = true;
-      state.log.push(`${actor.getName()} 因被沉默无法施展术法，摆出防御姿态。`);
+      state.log.push(`${actor.getName()} 因被沉默无法施展术法，摆出防御姿态`);
     } else {
       const recoveredMp = Math.floor(actor.maxMp * 0.3);
       actor.restoreMp(recoveredMp);
       state.log.push(
-        `${actor.getName()} 因灵力耗尽，使用灵石恢复了 ${recoveredMp} 点灵力。`,
+        `${actor.getName()} 因灵力耗尽，使用灵石恢复了 ${recoveredMp} 点灵力`,
       );
     }
   }
@@ -434,11 +488,11 @@ export class BattleEngineV2 {
       winnerUnit.unitId === 'player' ? state.opponent : state.player;
 
     state.log.push(
-      `✨ ${winnerUnit.getName()} 获胜！剩余气血：${winnerUnit.currentHp}，对手剩余气血：${loserUnit.currentHp}。`,
+      `✨ ${winnerUnit.getName()} 获胜！剩余气血：${winnerUnit.currentHp}，对手剩余气血：${loserUnit.currentHp}`,
     );
 
     // 伤势处理
-    this.applyBattleInjuries(loserUnit, state.log);
+    this.applyBattleInjuries(loserUnit, state);
 
     // 清除临时 Buff
     state.player.clearTemporaryBuffs();
@@ -462,7 +516,7 @@ export class BattleEngineV2 {
   /**
    * 伤势处理
    */
-  private applyBattleInjuries(loser: BattleUnit, log: string[]): void {
+  private applyBattleInjuries(loser: BattleUnit, state: BattleState): void {
     const hpPercent = loser.currentHp / loser.maxHp;
 
     if (hpPercent < 0.3) {
@@ -471,22 +525,22 @@ export class BattleEngineV2 {
       const hasNearDeath = loser.hasBuff('near_death');
 
       if (hasNearDeath) {
-        log.push(`${loser.getName()} 的伤势已达濒死状态。`);
+        state.log.push(`${loser.getName()} 的伤势已达濒死状态`);
       } else if (hasMajorWound && hpPercent < 0.1) {
         loser.buffManager.removeBuff('major_wound');
         const config = buffRegistry.get('near_death');
-        if (config) loser.buffManager.addBuff(config, loser);
-        log.push(`${loser.getName()} 的伤势从重伤升级为濒死！`);
+        if (config) loser.buffManager.addBuff(config, loser, state.turn);
+        state.log.push(`${loser.getName()} 的伤势从重伤升级为濒死！`);
       } else if (hasMinorWound && hpPercent < 0.3) {
         loser.buffManager.removeBuff('minor_wound');
         const config = buffRegistry.get('major_wound');
-        if (config) loser.buffManager.addBuff(config, loser);
-        log.push(`${loser.getName()} 的伤势从轻伤升级为重伤！`);
+        if (config) loser.buffManager.addBuff(config, loser, state.turn);
+        state.log.push(`${loser.getName()} 的伤势从轻伤升级为重伤！`);
       } else if (!hasMinorWound && !hasMajorWound) {
         const woundType = hpPercent < 0.1 ? 'major_wound' : 'minor_wound';
         const config = buffRegistry.get(woundType);
-        if (config) loser.buffManager.addBuff(config, loser);
-        log.push(
+        if (config) loser.buffManager.addBuff(config, loser, state.turn);
+        state.log.push(
           `${loser.getName()} 受了${woundType === 'minor_wound' ? '轻伤' : '重伤'}！`,
         );
       }

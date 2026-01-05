@@ -3,7 +3,7 @@ import type { Entity } from '../effect/types';
 import { BuffInstance } from './BuffInstance';
 import { buffRegistry } from './BuffRegistry';
 import type { BuffConfig, BuffEvent, BuffInstanceState } from './types';
-import { BuffEventType, BuffStackType, BuffTag } from './types';
+import { BuffEventType, BuffStackType, BuffTag, TickMoment } from './types';
 
 /**
  * Buff 管理器
@@ -28,6 +28,7 @@ export class BuffManager {
   addBuff(
     configOrId: BuffConfig | string,
     caster: Entity,
+    currentRound: number,
     options: {
       initialStacks?: number;
       durationOverride?: number;
@@ -60,7 +61,7 @@ export class BuffManager {
 
     if (existing && config.stackType !== BuffStackType.INDEPENDENT) {
       // 叠加或刷新
-      const stacked = existing.addStack();
+      const stacked = existing.addStack(currentRound);
       const event: BuffEvent = {
         type: stacked ? BuffEventType.STACKED : BuffEventType.REFRESHED,
         buffId: config.id,
@@ -82,6 +83,7 @@ export class BuffManager {
       config,
       caster,
       this.owner,
+      currentRound,
       options.initialStacks,
       options.durationOverride,
     );
@@ -140,13 +142,33 @@ export class BuffManager {
 
   /**
    * 回合流逝 (Tick)
+   * @param currentRound 当前全局回合数
+   * @param moment 结算时机，不传则结算所有
    * @returns 过期的 Buff 事件列表
    */
-  tick(): BuffEvent[] {
+  tick(currentRound: number, moment?: TickMoment): BuffEvent[] {
     const expiredEvents: BuffEvent[] = [];
 
     const expired: BuffInstance[] = [];
     for (const buff of this.allBuffs) {
+      // 根据 Buff 的 tickMoment 配置决定是否结算
+      const buffTickMoment = this.getBuffTickMoment(buff.config);
+
+      // 如果指定了时机，只结算匹配的 Buff
+      if (moment && buffTickMoment !== moment) {
+        continue;
+      }
+
+      // 【关键修复】如果是 "回合/行动结束" 结算类型的 Buff (通常是增益类)
+      // 如果 Buff 是 "本回合行动期间" 刚刚添加或刷新的
+      // 跳过这次扣除，确保持续时间从 "下回合" 开始算
+      if (
+        moment === TickMoment.ON_ACTION_END &&
+        buff.addedRound === currentRound
+      ) {
+        continue;
+      }
+
       if (buff.tick()) {
         expired.push(buff);
       }
@@ -171,6 +193,19 @@ export class BuffManager {
     }
 
     return expiredEvents;
+  }
+
+  /**
+   * 获取 Buff 的结算时机
+   * 控制类 Buff 在行动开始时结算，其他在行动结束时结算
+   */
+  private getBuffTickMoment(config: BuffConfig): TickMoment {
+    // 控制类 Buff 在行动开始时结算（生效即消耗）
+    if (config.tags?.includes(BuffTag.CONTROL)) {
+      return TickMoment.ON_ACTION_START;
+    }
+    // 其他 Buff 在行动结束时结算
+    return TickMoment.ON_ACTION_END;
   }
 
   /**

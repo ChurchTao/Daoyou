@@ -63,6 +63,16 @@ export enum BuffTag {
   UNPURGEABLE = 'unpurgeable',
 }
 
+/**
+ * Buff 结算时机
+ */
+export enum TickMoment {
+  /** 持有者行动开始时结算 (控制类 Buff 推荐) */
+  ON_ACTION_START = 'on_action_start',
+  /** 持有者行动结束时结算 (增益/减益类 Buff 推荐) */
+  ON_ACTION_END = 'on_action_end',
+}
+
 // ============================================================
 // Buff 实例状态 (运行时数据)
 // ============================================================

@@ -223,7 +223,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'root', duration: 2 },
+              params: { buffId: 'root', duration: 2, chance: 0.7 },
             },
             {
               type: EffectType.AddBuff,
@@ -334,7 +334,6 @@ describe('BattleEngineV2', () => {
         {
           id: 'sword_skill_2',
           name: '剑意凌霄',
-
           target_self: true,
           element: '金',
           cost: 25,
@@ -489,7 +488,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'stun', duration: 1 },
+              params: { buffId: 'stun', duration: 1, chance: 0.7 },
             },
           ],
         },

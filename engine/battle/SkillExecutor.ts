@@ -1,8 +1,9 @@
 import { buffRegistry } from '@/engine/buff';
 import type { BuffEvent } from '@/engine/buff/types';
 import { EffectFactory, effectEngine } from '@/engine/effect';
-import { EffectTrigger } from '@/engine/effect/types';
+import { EffectContext, EffectTrigger } from '@/engine/effect/types';
 import type { Skill } from '@/types/cultivator';
+import { BuffApplicationResult } from '../effect/effects/AddBuffEffect';
 import type { BattleUnit } from './BattleUnit';
 
 /**
@@ -30,7 +31,7 @@ export class SkillExecutor {
     caster: BattleUnit,
     target: BattleUnit,
     skill: Skill,
-    _currentTurn: number,
+    currentTurn: number,
   ): SkillExecutionResult {
     const result: SkillExecutionResult = {
       success: false,
@@ -74,7 +75,7 @@ export class SkillExecutor {
             skillName: skill.name,
             skillElement: skill.element,
           },
-        };
+        } as EffectContext;
 
         // 执行效果获取基础值
         effect.apply(context);
@@ -111,7 +112,7 @@ export class SkillExecutor {
             // 生成日志
             const critText = isCritical ? '暴击！' : '';
             result.logs.push(
-              `${caster.getName()} 对 ${effectTarget.getName()} 使用「${skill.name}」，${critText}造成 ${actualDamage} 点伤害。`,
+              `${caster.getName()} 对 ${effectTarget.getName()} 使用「${skill.name}」，${critText}造成 ${actualDamage} 点伤害`,
             );
 
             // 调用 ON_AFTER_DAMAGE 处理吸血、反伤等
@@ -135,7 +136,7 @@ export class SkillExecutor {
               const healedAmount = caster.applyHealing(lifeSteal);
               if (healedAmount > 0) {
                 result.logs.push(
-                  `${caster.getName()} 吸取了 ${healedAmount} 点生命。`,
+                  `${caster.getName()} 吸取了 ${healedAmount} 点生命`,
                 );
               }
             }
@@ -159,35 +160,65 @@ export class SkillExecutor {
           result.healing += actualHeal;
           if (actualHeal > 0) {
             result.logs.push(
-              `${caster.getName()} 使用「${skill.name}」，恢复 ${actualHeal} 点气血。`,
+              `${caster.getName()} 使用「${skill.name}」，恢复 ${actualHeal} 点气血`,
             );
           }
         } else if (effectConfig.type === 'AddBuff') {
-          const params = effectConfig.params as
-            | { buffId?: string; duration?: number }
-            | undefined;
-          if (params?.buffId) {
-            const config = buffRegistry.get(params.buffId);
-            if (config) {
-              const event = effectTarget.buffManager.addBuff(config, caster, {
-                durationOverride: params.duration,
-              });
-              result.buffsApplied.push(event);
+          // AddBuffEffect 已经计算了命中和抵抗，结果在 context.metadata.buffsToApply
+          const buffsToApply =
+            (context.metadata?.buffsToApply as BuffApplicationResult[]) ?? [];
+          for (const buffResult of buffsToApply) {
+            if (buffResult.resisted) {
+              // 抵抗成功
               result.logs.push(
-                `${effectTarget.getName()} 获得「${config.name}」状态。`,
+                `${effectTarget.getName()} 神识强大，抵抗了「${buffResult.buffName ?? buffResult.buffId}」效果！`,
               );
-              effectTarget.markAttributesDirty();
+            } else if (buffResult.applied) {
+              // 施加成功
+              const config = buffRegistry.get(buffResult.buffId);
+              if (config) {
+                const actualTarget =
+                  buffResult.targetId === caster.id ? caster : target;
+                const event = actualTarget.buffManager.addBuff(
+                  config,
+                  caster,
+                  currentTurn,
+                  {
+                    durationOverride: buffResult.durationOverride,
+                  },
+                );
+                result.buffsApplied.push(event);
+
+                // 详细日志
+                const durationText =
+                  buffResult.duration && buffResult.duration > 0
+                    ? `（${buffResult.duration}回合）`
+                    : '';
+                result.logs.push(
+                  `${actualTarget.getName()} 获得「${config.name}」状态${durationText}`,
+                );
+                actualTarget.markAttributesDirty();
+              }
             }
           }
+          // 清空已处理的 buffs
+          context.metadata = context.metadata ?? {};
+          context.metadata.buffsToApply = [];
         }
       } catch (err) {
         console.warn(`执行效果失败: ${effectConfig.type}`, err);
       }
     }
 
-    // 如果没有任何效果，添加通用日志
-    if (effects.length === 0 || result.logs.length === 0) {
-      result.logs.push(`${caster.getName()} 使用「${skill.name}」。`);
+    // 【修复】如果是自目标技能且只有 Buff 效果，确保有使用技能的日志
+    const hasDamageOrHeal = effects.some(
+      (e) => e.type === 'Damage' || e.type === 'Heal',
+    );
+    if (!hasDamageOrHeal && result.logs.length > 0) {
+      // 在日志开头添加使用技能的信息
+      result.logs.unshift(`${caster.getName()} 使用「${skill.name}」`);
+    } else if (effects.length === 0 || result.logs.length === 0) {
+      result.logs.push(`${caster.getName()} 使用「${skill.name}」`);
     }
 
     // 3. 消耗 MP

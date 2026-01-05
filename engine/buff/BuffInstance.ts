@@ -20,6 +20,8 @@ export class BuffInstance {
   readonly createdAt: number;
   /** 施法者快照 */
   readonly casterSnapshot?: CasterSnapshot;
+  /** 添加时的回合数 */
+  public addedRound: number;
 
   constructor(
     /** Buff 配置 */
@@ -28,6 +30,8 @@ export class BuffInstance {
     public readonly caster: Entity,
     /** 持有者 */
     public readonly owner: Entity,
+    /** 当前回合数 */
+    currentRound: number,
     /** 初始层数 */
     initialStacks: number = 1,
     /** 持续时间覆盖 */
@@ -37,6 +41,7 @@ export class BuffInstance {
     this.currentStacks = Math.min(initialStacks, config.maxStacks);
     this.remainingTurns = durationOverride ?? config.duration;
     this.createdAt = Date.now();
+    this.addedRound = currentRound;
 
     // 创建施法者快照 (用于 DOT 等需要施法者属性的效果)
     this.casterSnapshot = this.createCasterSnapshot(caster);
@@ -44,9 +49,15 @@ export class BuffInstance {
 
   /**
    * 叠加层数/刷新持续时间
+   * @param currentRound 当前回合数
    * @returns 是否成功叠加
    */
-  addStack(): boolean {
+  addStack(currentRound?: number): boolean {
+    // 刷新 Buff 时更新添加回合，防止当回合被 tick
+    if (currentRound !== undefined) {
+      this.addedRound = currentRound;
+    }
+
     if (this.config.stackType === BuffStackType.STACK) {
       if (this.currentStacks < this.config.maxStacks) {
         this.currentStacks++;

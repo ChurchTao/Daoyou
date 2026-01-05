@@ -3,6 +3,7 @@ import type { BuffInstanceState } from '@/engine/buff/types';
 import { BuffTag } from '@/engine/buff/types';
 import {
   EffectTrigger,
+  EffectType,
   StatModifierType,
   type IBaseEffect,
 } from '@/engine/effect/types';
@@ -303,7 +304,7 @@ export class BattleUnit {
     for (const state of states) {
       const config = buffRegistry.get(state.configId);
       if (!config) continue;
-      this.buffManager.addBuff(config, this, {
+      this.buffManager.addBuff(config, this, 0, {
         initialStacks: state.currentStacks,
         durationOverride: state.remainingTurns,
       });
@@ -360,7 +361,7 @@ export class BattleUnit {
     const dotBuffs = this.buffManager
       .getActiveBuffs()
       .filter((buff) =>
-        buff.config.effects.some((e) => e.type === 'DotDamage'),
+        buff.config.effects.some((e) => e.type === EffectType.DotDamage),
       );
 
     for (const buff of dotBuffs) {
