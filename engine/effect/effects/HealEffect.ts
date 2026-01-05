@@ -7,7 +7,7 @@ import { EffectTrigger, type EffectContext, type HealParams } from '../types';
  */
 export class HealEffect extends BaseEffect {
   readonly id = 'Heal';
-  readonly trigger = EffectTrigger.ON_HEAL;
+  readonly trigger = EffectTrigger.ON_SKILL_HIT;
 
   /** 治疗倍率 */
   private multiplier: number;
