@@ -1,6 +1,12 @@
 export { AddBuffEffect } from './AddBuffEffect';
+export { CriticalEffect } from './CriticalEffect';
 export { DamageEffect } from './DamageEffect';
+export { DamageReductionEffect } from './DamageReductionEffect';
 export { DotDamageEffect } from './DotDamageEffect';
 export { HealEffect } from './HealEffect';
+export { LifeStealEffect } from './LifeStealEffect';
+export { ModifyHitRateEffect } from './ModifyHitRateEffect';
 export { NoOpEffect } from './NoOpEffect';
+export { ReflectDamageEffect } from './ReflectDamageEffect';
+export { ShieldEffect } from './ShieldEffect';
 export { StatModifierEffect } from './StatModifierEffect';

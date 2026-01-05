@@ -1,10 +1,9 @@
-import { buffRegistry } from '@/engine/buff';
-import type { Quality } from '@/types/constants';
+import { buffRegistry, BuffTag } from '@/engine/buff';
 import type { Cultivator, Skill } from '@/types/cultivator';
-import { EffectType } from '../effect/types';
+import { effectEngine } from '../effect';
+import { EffectTrigger, EffectType } from '../effect/types';
 import { BattleUnit } from './BattleUnit';
 import { skillExecutor } from './SkillExecutor';
-import { damageCalculator } from './calculators/DamageCalculator';
 import type {
   BattleEngineResult,
   InitialUnitState,
@@ -128,11 +127,14 @@ export class BattleEngineV2 {
       }
     }
 
-    // 4. 递减冷却
+    // 4. 回合结束触发 (HOT 治疗、回复类效果)
+    this.processTurnEnd(state);
+
+    // 5. 递减冷却
     state.player.tickCooldowns();
     state.opponent.tickCooldowns();
 
-    // 5. 记录回合快照
+    // 6. 记录回合快照
     if (!snapshottedThisTurn) {
       state.timeline.push(this.snapshotTurn(state));
     }
@@ -164,6 +166,33 @@ export class BattleEngineV2 {
   }
 
   /**
+   * 回合结束处理：HOT 治疗、回复类效果
+   */
+  private processTurnEnd(state: BattleState): void {
+    for (const unit of [state.player, state.opponent]) {
+      // 触发 ON_TURN_END 效果
+      const target = unit === state.player ? state.opponent : state.player;
+      const ctx = effectEngine.processWithContext(
+        EffectTrigger.ON_TURN_END,
+        unit,
+        target,
+        0,
+      );
+
+      // 处理 HOT 治疗
+      const hotHeal = ctx.metadata?.hotHeal as number | undefined;
+      if (hotHeal && hotHeal > 0) {
+        const actualHeal = unit.applyHealing(hotHeal);
+        if (actualHeal > 0) {
+          state.log.push(`${unit.getName()} 回复了 ${actualHeal} 点气血。`);
+        }
+      }
+
+      // 属性脏标记
+      unit.markAttributesDirty();
+    }
+  }
+  /**
    * 决定行动顺序
    */
   private determineActionOrder(state: BattleState): BattleUnit[] {
@@ -183,101 +212,163 @@ export class BattleEngineV2 {
   }
 
   /**
-   * 选择技能
+   * 选择技能 - 智能 AI 决策
+   * 基于技能效果类型和当前战斗状态选择最优技能
    */
   private chooseSkill(actor: BattleUnit, target: BattleUnit): Skill | null {
     const available = actor.cultivatorData.skills.filter((s) =>
       actor.canUseSkill(s),
     );
 
-    // 添加法宝技能
-    const weaponId = actor.cultivatorData.equipped.weapon;
-    if (weaponId) {
-      const artifact = actor.cultivatorData.inventory.artifacts.find(
-        (a) => a.id === weaponId,
-      );
-      if (artifact) {
-        const artifactSkill = this.createArtifactSkill(artifact, actor);
-        if (actor.canUseSkill(artifactSkill)) {
-          available.push(artifactSkill);
-        }
-      }
-    }
-
     if (!available.length) return null;
 
-    // AI 决策 todo 重构
-    // const offensive = available.filter(
-    //   (s) => s.type === 'attack' || s.type === 'control' || s.type === 'debuff',
-    // );
-    // const heals = available.filter((s) => s.type === 'heal');
-    // const buffs = available.filter((s) => s.type === 'buff');
+    // 分类技能
+    const classified = this.classifySkills(available);
 
-    // const hpRatio = actor.currentHp / actor.maxHp;
+    // 计算生命比例
+    const actorHpRatio = actor.currentHp / actor.maxHp;
+    const targetHpRatio = target.currentHp / target.maxHp;
 
-    // if (hpRatio < 0.3 && heals.length) {
-    //   return heals[Math.floor(Math.random() * heals.length)];
-    // }
+    // 决策逻辑
+    // 1. 濒死时优先治疗
+    if (actorHpRatio < 0.25 && classified.heals.length > 0) {
+      return this.pickRandom(classified.heals);
+    }
 
-    // if (actor.buffManager.getActiveBuffs().length === 0 && buffs.length) {
-    //   if (Math.random() < 0.3) {
-    //     return buffs[Math.floor(Math.random() * buffs.length)];
-    //   }
-    // }
+    // 2. 低血量时有一定概率治疗
+    if (
+      actorHpRatio < 0.5 &&
+      classified.heals.length > 0 &&
+      Math.random() < 0.6
+    ) {
+      return this.pickRandom(classified.heals);
+    }
 
-    // if (target.currentHp < actor.currentHp && offensive.length) {
-    //   return offensive[Math.floor(Math.random() * offensive.length)];
-    // }
+    // 3. 对方低血量时优先攻击
+    if (targetHpRatio < 0.3 && classified.attacks.length > 0) {
+      return this.pickRandom(classified.attacks);
+    }
 
-    // if (offensive.length) {
-    //   return offensive[Math.floor(Math.random() * offensive.length)];
-    // }
+    // 4. 如果没有增益 Buff 且有增益技能，考虑使用
+    const hasActiveBuff = actor.buffManager
+      .getActiveBuffs()
+      .some((b) => !b.config.tags?.includes(BuffTag.DEBUFF));
+    if (!hasActiveBuff && classified.buffs.length > 0 && Math.random() < 0.3) {
+      return this.pickRandom(classified.buffs);
+    }
 
-    // if (buffs.length) {
-    //   return buffs[Math.floor(Math.random() * buffs.length)];
-    // }
+    // 5. 敌人没有控制状态时，考虑使用控制技能
+    const targetHasControl = target.buffManager
+      .getActiveBuffs()
+      .some((b) => b.config.tags?.includes(BuffTag.CONTROL));
+    if (
+      !targetHasControl &&
+      classified.controls.length > 0 &&
+      Math.random() < 0.4
+    ) {
+      return this.pickRandom(classified.controls);
+    }
 
-    return available[0];
+    // 6. 敌人没有 DOT 时，考虑使用 DOT 技能
+    const targetHasDot = target.buffManager
+      .getActiveBuffs()
+      .some((b) => b.config.tags?.includes(BuffTag.DOT));
+    if (!targetHasDot && classified.dots.length > 0 && Math.random() < 0.5) {
+      return this.pickRandom(classified.dots);
+    }
+
+    // 7. 默认使用攻击技能
+    if (classified.attacks.length > 0) {
+      return this.pickRandom(classified.attacks);
+    }
+
+    // 8. 如果没有攻击技能，随机选择
+    return this.pickRandom(available);
   }
 
   /**
-   * 创建法宝技能
+   * 分类技能
+   * 基于技能的 effects 推断类型
    */
-  private createArtifactSkill(artifact: unknown, actor: BattleUnit): Skill {
-    const art = artifact as {
-      id?: string;
-      name: string;
-      quality?: Quality;
-      element: string;
-      effects?: Array<{ type: string; params?: Record<string, unknown> }>;
+  private classifySkills(skills: Skill[]): {
+    attacks: Skill[];
+    heals: Skill[];
+    buffs: Skill[];
+    debuffs: Skill[];
+    controls: Skill[];
+    dots: Skill[];
+  } {
+    const result = {
+      attacks: [] as Skill[],
+      heals: [] as Skill[],
+      buffs: [] as Skill[],
+      debuffs: [] as Skill[],
+      controls: [] as Skill[],
+      dots: [] as Skill[],
     };
 
-    const attrs = actor.getFinalAttributes();
-    const { power, cost } = damageCalculator.getArtifactPowerAndCost(
-      art.quality,
-      attrs.willpower,
-    );
+    for (const skill of skills) {
+      const effects = skill.effects || [];
+      let isAttack = false;
+      let isHeal = false;
+      let isBuff = false;
+      let isControl = false;
+      let isDot = false;
 
-    // 使用新的 effects 格式创建技能
-    const skill: Skill = {
-      id: art.id,
-      name: `${art.name}（法宝）`,
-      element: art.element as never,
-      cost: cost,
-      cooldown: 3,
-      effects: [
-        {
-          type: EffectType.Damage,
-          trigger: 'ON_SKILL_HIT',
-          params: {
-            multiplier: power / 100,
-            element: art.element,
-          },
-        },
-      ],
-    };
+      for (const effect of effects) {
+        switch (effect.type) {
+          case EffectType.Damage:
+            isAttack = true;
+            break;
+          case EffectType.Heal:
+            isHeal = true;
+            break;
+          case EffectType.AddBuff: {
+            const buffId = (effect.params as { buffId?: string })?.buffId;
+            if (buffId) {
+              // 检查是控制、DOT 还是普通 Buff
+              if (['stun', 'silence', 'root'].includes(buffId)) {
+                isControl = true;
+              } else if (['burn', 'bleed', 'poison'].includes(buffId)) {
+                isDot = true;
+              } else if (skill.target_self) {
+                isBuff = true;
+              }
+            }
+            break;
+          }
+          case EffectType.DotDamage:
+            isDot = true;
+            break;
+        }
+      }
 
-    return skill;
+      // 按优先级分类
+      if (isHeal && skill.target_self) {
+        result.heals.push(skill);
+      }
+      if (isBuff) {
+        result.buffs.push(skill);
+      }
+      if (isControl) {
+        result.controls.push(skill);
+      }
+      if (isDot) {
+        result.dots.push(skill);
+      }
+      if (isAttack) {
+        result.attacks.push(skill);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 随机选择
+   */
+  private pickRandom<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
   }
 
   /**

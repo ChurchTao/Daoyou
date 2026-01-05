@@ -4,9 +4,14 @@ import {
   DamageEffect,
   DotDamageEffect,
   HealEffect,
+  LifeStealEffect,
+  ModifyHitRateEffect,
   NoOpEffect,
+  ReflectDamageEffect,
+  ShieldEffect,
   StatModifierEffect,
 } from './effects';
+import type { ModifyHitRateParams } from './effects/ModifyHitRateEffect';
 import {
   EffectType,
   StatModifierType,
@@ -15,6 +20,9 @@ import {
   type DotDamageParams,
   type EffectConfig,
   type HealParams,
+  type LifeStealParams,
+  type ReflectDamageParams,
+  type ShieldParams,
   type StatModifierParams,
 } from './types';
 
@@ -46,6 +54,22 @@ export class EffectFactory {
 
       case EffectType.DotDamage:
         return new DotDamageEffect(config.params as unknown as DotDamageParams);
+
+      case EffectType.ReflectDamage:
+        return new ReflectDamageEffect(
+          config.params as unknown as ReflectDamageParams,
+        );
+
+      case EffectType.LifeSteal:
+        return new LifeStealEffect(config.params as unknown as LifeStealParams);
+
+      case EffectType.Shield:
+        return new ShieldEffect(config.params as unknown as ShieldParams);
+
+      case EffectType.ModifyHitRate:
+        return new ModifyHitRateEffect(
+          config.params as unknown as ModifyHitRateParams,
+        );
 
       case EffectType.NoOp:
       default:

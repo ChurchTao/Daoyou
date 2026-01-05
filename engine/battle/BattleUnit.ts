@@ -1,11 +1,15 @@
 import { BuffManager, buffRegistry } from '@/engine/buff';
 import type { BuffInstanceState } from '@/engine/buff/types';
 import { BuffTag } from '@/engine/buff/types';
-import { EffectTrigger, type IBaseEffect } from '@/engine/effect/types';
+import {
+  EffectTrigger,
+  StatModifierType,
+  type IBaseEffect,
+} from '@/engine/effect/types';
 import type { StatusEffect } from '@/types/constants';
 import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
-import { effectEngine } from '../effect';
+import { effectEngine, EffectFactory, StatModifierEffect } from '../effect';
 import type { UnitId } from './types';
 
 /**
@@ -107,7 +111,120 @@ export class BattleUnit {
   }
 
   collectAllEffects(): IBaseEffect[] {
-    return this.buffManager.getAllEffects();
+    const effects: IBaseEffect[] = [];
+
+    // 1. Buff 效果
+    effects.push(...this.buffManager.getAllEffects());
+
+    // 2. 装备效果
+    effects.push(...this.getEquipmentEffects());
+
+    // 3. 功法效果
+    effects.push(...this.getCultivationEffects());
+
+    // 4. 命格效果
+    effects.push(...this.getFateEffects());
+
+    return effects;
+  }
+
+  /**
+   * 获取装备提供的效果
+   */
+  private getEquipmentEffects(): IBaseEffect[] {
+    const effects: IBaseEffect[] = [];
+    const { equipped, inventory } = this.cultivatorData;
+
+    // 获取已装备的法宝 ID 列表
+    const equippedIds = [
+      equipped.weapon,
+      equipped.armor,
+      equipped.accessory,
+    ].filter(Boolean) as string[];
+
+    // 创建法宝 ID -> 法宝对象的映射
+    const artifactsById = new Map(inventory.artifacts.map((a) => [a.id!, a]));
+
+    // 遍历已装备的法宝，收集效果
+    for (const id of equippedIds) {
+      const artifact = artifactsById.get(id);
+      if (!artifact?.effects) continue;
+
+      // 使用 EffectFactory 创建效果实例
+      for (const effectConfig of artifact.effects) {
+        try {
+          const effect = EffectFactory.create(effectConfig);
+          effects.push(effect);
+        } catch (err) {
+          console.warn(`[BattleUnit] 加载装备效果失败: ${artifact.name}`, err);
+        }
+      }
+    }
+
+    return effects;
+  }
+
+  /**
+   * 获取功法提供的效果
+   */
+  private getCultivationEffects(): IBaseEffect[] {
+    const effects: IBaseEffect[] = [];
+    const { cultivations } = this.cultivatorData;
+
+    for (const technique of cultivations) {
+      if (!technique.effects) continue;
+
+      for (const effectConfig of technique.effects) {
+        try {
+          const effect = EffectFactory.create(effectConfig);
+          effects.push(effect);
+        } catch (err) {
+          console.warn(`[BattleUnit] 加载功法效果失败: ${technique.name}`, err);
+        }
+      }
+    }
+
+    return effects;
+  }
+
+  /**
+   * 获取命格提供的效果
+   * 将 attribute_mod 转换为 StatModifierEffect
+   */
+  private getFateEffects(): IBaseEffect[] {
+    const effects: IBaseEffect[] = [];
+    const { pre_heaven_fates } = this.cultivatorData;
+
+    for (const fate of pre_heaven_fates) {
+      const mods = fate.attribute_mod;
+      if (!mods) continue;
+
+      // 将每个属性修正转换为 StatModifierEffect
+      const attrEntries: [string, number | undefined][] = [
+        ['vitality', mods.vitality],
+        ['spirit', mods.spirit],
+        ['wisdom', mods.wisdom],
+        ['speed', mods.speed],
+        ['willpower', mods.willpower],
+      ];
+
+      for (const [stat, value] of attrEntries) {
+        if (value === undefined || value === 0) continue;
+
+        try {
+          const effect = new StatModifierEffect({
+            stat,
+            modType: StatModifierType.FIXED,
+            value,
+          });
+          effects.push(effect);
+        } catch (err) {
+          console.warn(`[BattleUnit] 加载命格效果失败: ${fate.name}`, err);
+        }
+      }
+    }
+
+    return effects;
   }
 
   // ============================================================

@@ -1,6 +1,12 @@
 import type { BaseEffect } from './BaseEffect';
 import { effectEngine } from './EffectEngine';
 import { EffectFactory } from './EffectFactory';
+import {
+  LifeStealEffect,
+  ModifyHitRateEffect,
+  ReflectDamageEffect,
+  ShieldEffect,
+} from './effects';
 import { DamageEffect } from './effects/DamageEffect';
 import { StatModifierEffect } from './effects/StatModifierEffect';
 import {
@@ -235,6 +241,123 @@ describe('Effect Engine', () => {
       // 应该先执行 FIXED 再执行 PERCENT
       // (100 + 50) * 1.5 = 225
       expect(result).toBe(225);
+    });
+  });
+
+  describe('ReflectDamageEffect', () => {
+    it('应该正确计算反伤', () => {
+      const effect = new ReflectDamageEffect({ reflectPercent: 0.2 });
+
+      const source = createMockEntity({ HP: 1000 });
+      const target = createMockEntity({ HP: 500 });
+
+      const ctx = {
+        source,
+        target,
+        trigger: EffectTrigger.ON_AFTER_DAMAGE,
+        value: 0,
+        metadata: { finalDamage: 100 } as Record<string, unknown>,
+      };
+
+      effect.apply(ctx);
+      expect(ctx.value).toBe(20); // 100 * 0.2 = 20
+      expect(ctx.metadata?.reflectDamage).toBe(20);
+    });
+  });
+
+  describe('LifeStealEffect', () => {
+    it('应该正确计算吸血量', () => {
+      const effect = new LifeStealEffect({ stealPercent: 0.15 });
+
+      const source = createMockEntity({ HP: 800 });
+      const target = createMockEntity({ HP: 500 });
+
+      const ctx = {
+        source,
+        target,
+        trigger: EffectTrigger.ON_AFTER_DAMAGE,
+        value: 0,
+        metadata: { finalDamage: 200 } as Record<string, unknown>,
+      };
+
+      effect.apply(ctx);
+      expect(ctx.value).toBe(30); // 200 * 0.15 = 30
+      expect(ctx.metadata?.lifeSteal).toBe(30);
+    });
+  });
+
+  describe('ShieldEffect', () => {
+    it('应该正确吸收伤害', () => {
+      const effect = new ShieldEffect({ amount: 50 });
+
+      const source = createMockEntity();
+      const target = createMockEntity();
+
+      const ctx = {
+        source,
+        target,
+        trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+        value: 80, // 入站伤害
+        metadata: {} as Record<string, unknown>,
+      };
+
+      effect.apply(ctx);
+      expect(ctx.value).toBe(30); // 80 - 50 = 30
+      expect(ctx.metadata?.shieldAbsorbed).toBe(50);
+    });
+
+    it('护盾不足时应完全吸收', () => {
+      const effect = new ShieldEffect({ amount: 100 });
+
+      const ctx = {
+        source: createMockEntity(),
+        target: createMockEntity(),
+        trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+        value: 30, // 入站伤害小于护盾
+        metadata: {} as Record<string, unknown>,
+      };
+
+      effect.apply(ctx);
+      expect(ctx.value).toBe(0); // 完全吸收
+      expect(ctx.metadata?.shieldAbsorbed).toBe(30);
+    });
+  });
+
+  describe('ModifyHitRateEffect', () => {
+    it('应该增加命中率', () => {
+      const effect = new ModifyHitRateEffect({
+        hitRateBonus: 0.2,
+        affectsTarget: false,
+      });
+
+      const ctx = {
+        source: createMockEntity(),
+        target: createMockEntity(),
+        trigger: EffectTrigger.ON_CALC_HIT_RATE,
+        value: 0.7, // 基础命中率
+        metadata: {},
+      };
+
+      effect.apply(ctx);
+      expect(ctx.value).toBeCloseTo(0.9, 10); // 0.7 + 0.2 = 0.9
+    });
+
+    it('目标闪避效果应减少命中率', () => {
+      const effect = new ModifyHitRateEffect({
+        hitRateBonus: 0.3,
+        affectsTarget: true, // 闪避效果
+      });
+
+      const ctx = {
+        source: createMockEntity(),
+        target: createMockEntity(),
+        trigger: EffectTrigger.ON_CALC_HIT_RATE,
+        value: 1.0, // 基础命中率
+        metadata: {},
+      };
+
+      effect.apply(ctx);
+      expect(ctx.value).toBe(0.7); // 1.0 - 0.3 = 0.7
     });
   });
 });
