@@ -29,11 +29,11 @@ export abstract class BaseEffect {
 
   /**
    * 检查是否满足触发条件
-   * 默认返回 true，子类可覆盖进行条件判断
+   * 默认返回子类的 trigger，子类可覆盖进行条件判断
    * @param ctx 效果上下文
    */
   shouldTrigger(ctx: EffectContext): boolean {
-    return true;
+    return ctx.trigger === this.trigger;
   }
 
   /**

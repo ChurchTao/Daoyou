@@ -8,6 +8,7 @@
  * 4. 生成特效（数值由配置表控制）
  */
 
+import { EffectType, type EffectConfig } from '@/engine/effect/types';
 import type {
   ElementType,
   EquipmentSlot,
@@ -40,6 +41,17 @@ import type {
   MaterialContext,
   ValueRange,
 } from './types';
+
+// 内部使用的旧版效果类型（用于 generateEffects/generateCurses）
+type OldArtifactEffect = {
+  type: string;
+  element?: string;
+  bonus?: number;
+  effect?: string;
+  chance?: number;
+  amount?: number;
+  power?: number;
+};
 
 export class CreationFactory {
   // ============ 法宝生成 ============
@@ -92,17 +104,61 @@ export class CreationFactory {
       config,
     );
 
+    // 生成 effects 数组
+    const effects: EffectConfig[] = [];
+
+    // 将属性加成转换为 StatModifier 效果
+    for (const [attr, value] of Object.entries(bonus)) {
+      if (value && value > 0) {
+        effects.push({
+          type: EffectType.StatModifier,
+          trigger: 'ON_STAT_CALC',
+          params: { attribute: attr, value, modType: 1 },
+        });
+      }
+    }
+
+    // 将特效转换为 effects
+    for (const se of specialEffects) {
+      effects.push(this.convertOldEffectToConfig(se));
+    }
+
+    // 将诅咒转换为 effects
+    for (const curse of curses) {
+      effects.push(this.convertOldEffectToConfig(curse));
+    }
+
     return {
       name: blueprint.name,
       slot: blueprint.slot,
       element,
       quality,
       required_realm: realm,
-      bonus,
-      special_effects: specialEffects.length > 0 ? specialEffects : undefined,
-      curses: curses.length > 0 ? curses : undefined,
       description: blueprint.description,
+      effects,
     };
+  }
+
+  /**
+   * 将旧版特效转换为 EffectConfig
+   */
+  private static convertOldEffectToConfig(oldEffect: {
+    type: string;
+    element?: string;
+    bonus?: number;
+    effect?: string;
+    chance?: number;
+    amount?: number;
+    power?: number;
+  }): EffectConfig {
+    if (oldEffect.type === 'on_hit_add_effect') {
+      return {
+        type: EffectType.AddBuff,
+        trigger: 'ON_SKILL_HIT',
+        params: { buffId: oldEffect.effect, chance: oldEffect.chance },
+      };
+    }
+    return { type: EffectType.NoOp, params: {} };
   }
 
   // ============ 丹药生成 ============
@@ -247,8 +303,8 @@ export class CreationFactory {
     quality: Quality,
     config: (typeof CREATION_CONFIG)[RealmType],
     element: ElementType,
-  ): ArtifactEffect[] {
-    const effects: ArtifactEffect[] = [];
+  ): OldArtifactEffect[] {
+    const effects: OldArtifactEffect[] = [];
 
     // 获取品质允许的最大特效数
     const maxByQuality = QUALITY_MAX_EFFECTS[quality] || 0;
@@ -350,8 +406,8 @@ export class CreationFactory {
     hints: CurseHint[],
     materials: MaterialContext['materials'],
     config: (typeof CREATION_CONFIG)[RealmType],
-  ): ArtifactEffect[] {
-    const curses: ArtifactEffect[] = [];
+  ): OldArtifactEffect[] {
+    const curses: OldArtifactEffect[] = [];
 
     // 检测材料元素相克
     const elements = materials.map((m) => m.element);

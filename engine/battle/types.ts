@@ -109,7 +109,6 @@ export interface CriticalContext {
  */
 export interface EvasionContext {
   attributes: Attributes;
-  speedBonus?: number; // Buff 提供的速度加成
   cannotDodge?: boolean; // 是否被定身等无法闪避
 }
 

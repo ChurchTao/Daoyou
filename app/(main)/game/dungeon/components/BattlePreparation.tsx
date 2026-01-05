@@ -123,9 +123,7 @@ export function BattlePreparation({
                       <span>
                         {skill.name} ({skill.element})
                       </span>
-                      <span className="text-ink-secondary">
-                        威力:{skill.power}
-                      </span>
+                      <span className="text-ink-secondary">威力: todo</span>
                     </div>
                   ))}
                 </div>

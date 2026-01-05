@@ -24,6 +24,10 @@ export class HealEffect extends BaseEffect {
     this.targetSelf = params.targetSelf ?? true;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    return ctx.trigger === EffectTrigger.ON_SKILL_HIT;
+  }
+
   /**
    * 应用治疗效果
    */

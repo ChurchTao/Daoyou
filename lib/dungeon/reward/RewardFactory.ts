@@ -5,6 +5,7 @@
  * 根据地图境界门槛和评级生成具体数值。
  */
 
+import { EffectType } from '@/engine/effect';
 import type { ResourceOperation } from '@/engine/resource/types';
 import type {
   ElementType,
@@ -153,14 +154,30 @@ export class RewardFactory {
     // 根据方向性标签分配属性加成
     const bonus = this.distributeBonus(bp.direction_tags, bonusValue);
 
+    // 将 bonus 转换为 effects 数组
+    const effects: {
+      type: EffectType;
+      trigger?: string;
+      params?: Record<string, unknown>;
+    }[] = [];
+    for (const [attr, value] of Object.entries(bonus)) {
+      if (value && value > 0) {
+        effects.push({
+          type: EffectType.StatModifier,
+          trigger: 'ON_STAT_CALC',
+          params: { attribute: attr, value, modType: 1 },
+        });
+      }
+    }
+
     const artifact: Artifact = {
       name: bp.name,
       slot: this.inferSlot(bp.direction_tags),
       element,
       quality,
       required_realm: mapRealm,
-      bonus,
       description: bp.description,
+      effects,
     };
 
     return {

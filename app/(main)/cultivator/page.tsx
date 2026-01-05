@@ -18,10 +18,8 @@ import {
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Attributes } from '@/types/cultivator';
 import {
-  formatAttributeBonusMap,
   getAttributeInfo,
   getAttributeLabel,
-  getEffectText,
   getEquipmentSlotInfo,
 } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
@@ -276,11 +274,9 @@ export default function CultivatorPage() {
           <InkList>
             {equippedItems.map((item) => {
               const slotInfo = getEquipmentSlotInfo(item.slot);
-              const bonusText =
-                formatAttributeBonusMap(item.bonus) || '无属性加成';
-              const effectText =
-                item.special_effects?.map((e) => getEffectText(e)).join('\n') ||
-                '';
+              // todo
+              const bonusText = '';
+              const effectText = '';
 
               return (
                 <InkListItem

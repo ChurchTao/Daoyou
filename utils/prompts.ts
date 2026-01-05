@@ -84,7 +84,7 @@ export function getBattleReportPrompt({
       .join('，');
     const skills =
       cultivator.skills
-        ?.map((skill) => `${skill.name}(${skill.element}/${skill.type})`)
+        ?.map((skill) => `${skill.name}(${skill.element}/todo(待填充))`)
         .join('，') ?? '无';
     const cultivations =
       cultivator.cultivations

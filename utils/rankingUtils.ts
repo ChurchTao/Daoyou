@@ -1,3 +1,7 @@
+import {
+  getArtifactDisplayInfo,
+  getSkillDisplayInfo,
+} from '@/lib/utils/effectDisplay';
 import { Quality } from '@/types/constants';
 import { Artifact, Consumable, Skill } from '@/types/cultivator';
 
@@ -34,16 +38,15 @@ export function calculateSingleArtifactScore(artifact: Artifact): number {
   // 基础分基于品质
   let score = QUALITY_SCORE_MAP[artifact.quality || '凡品'] || 10;
 
-  // 基础属性
-  if (artifact.bonus) {
-    score += Object.values(artifact.bonus).reduce((a, b) => a + b, 0);
+  // 从 effects 中提取属性加成
+  const displayInfo = getArtifactDisplayInfo(artifact);
+  for (const bonus of displayInfo.statBonuses) {
+    score += bonus.value;
   }
 
-  // 附加分：每个词条 +20%
-  const effectCount = artifact.special_effects?.length || 0;
+  // 附加分：每个特效 +20%
+  const effectCount = displayInfo.effects.length;
   score *= 1 + effectCount * 0.2;
-
-  // 诅咒扣分? 暂时不扣，诅咒也是稀有度体现
 
   return Math.floor(score);
 }
@@ -54,12 +57,9 @@ export function calculateSingleArtifactScore(artifact: Artifact): number {
 export function calculateSingleSkillScore(skill: Skill): number {
   let score = SKILL_GRADE_SCORE_MAP[skill.grade || '黄阶下品'] || 10;
 
-  // 威力修正
-  if (skill.power) {
-    score += skill.power;
-  }
-
-  // 消耗过大稍微减分? 不，消耗大通常威力大
+  // 从 effects 中提取威力
+  const displayInfo = getSkillDisplayInfo(skill);
+  score += displayInfo.power;
 
   return Math.floor(score);
 }

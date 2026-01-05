@@ -118,8 +118,10 @@ export interface IBaseEffect {
 export interface EffectConfig {
   /** 效果类型 */
   type: EffectType;
+  /** 触发时机 (可选) */
+  trigger?: EffectTrigger | string;
   /** 效果参数 */
-  params: Record<string, unknown>;
+  params?: Record<string, unknown>;
 }
 
 /**

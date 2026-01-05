@@ -8,6 +8,7 @@
  * 4. 根据技能类型应用规则
  */
 
+import { EffectType, type EffectConfig } from '@/engine/effect/types';
 import type {
   ElementType,
   RealmType,
@@ -78,18 +79,53 @@ export class SkillFactory {
       typeModifier,
     );
 
+    // 9. 构建 effects 数组
+    const effects: EffectConfig[] = [];
+
+    // 添加伤害效果（攻击/控制/减益类技能）
+    if (['attack', 'control', 'debuff'].includes(blueprint.type) && power > 0) {
+      effects.push({
+        type: EffectType.Damage,
+        trigger: 'ON_SKILL_HIT',
+        params: {
+          multiplier: power / 100,
+          element: blueprint.element,
+        },
+      });
+    }
+
+    // 添加治疗效果
+    if (blueprint.type === 'heal') {
+      effects.push({
+        type: EffectType.Heal,
+        trigger: 'ON_SKILL_HIT',
+        params: {
+          percent: power / 100,
+        },
+      });
+    }
+
+    // 添加 Buff 效果
+    if (effect) {
+      effects.push({
+        type: EffectType.AddBuff,
+        trigger: 'ON_SKILL_HIT',
+        params: {
+          buffId: effect,
+          duration: duration,
+        },
+      });
+    }
+
     return {
       name: blueprint.name,
-      type: blueprint.type,
       element: blueprint.element,
       grade,
-      power,
       cost,
       cooldown,
-      effect,
-      duration,
       target_self,
       description: blueprint.description,
+      effects,
     };
   }
 

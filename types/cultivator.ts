@@ -1,5 +1,6 @@
 // ===== 新一代修仙底层数据模型 =====
 
+import type { EffectConfig } from '@/engine/effect/types';
 import type {
   ConsumableEffectType,
   ConsumableType,
@@ -12,7 +13,6 @@ import type {
   RealmStage,
   RealmType,
   SkillGrade,
-  SkillType,
   SpiritualRootGrade,
   StatusEffect,
 } from './constants';
@@ -91,25 +91,22 @@ export interface PreHeavenFate {
 // 功法（被动）
 export interface CultivationTechnique {
   name: string;
-  grade?: SkillGrade; // 天阶上品 | 天阶中品 | ... | 黄阶下品
-  bonus: Partial<Attributes>;
+  grade?: SkillGrade;
   required_realm: RealmType;
+  effects?: EffectConfig[]; // 替代 bonus
 }
 
 // 技能
 export interface Skill {
   id?: string;
   name: string;
-  type: SkillType;
   element: ElementType;
-  grade?: SkillGrade; // 天阶上品 | 天阶中品 | ... | 黄阶下品
-  power: number; // 30-150
+  grade?: SkillGrade;
   cost?: number;
   cooldown: number;
-  effect?: StatusEffect;
-  duration?: number;
   target_self?: boolean;
   description?: string;
+  effects?: EffectConfig[]; // 替代 power/effect/duration
 }
 
 // 法宝 / 装备
@@ -174,10 +171,8 @@ export interface Artifact {
   element: ElementType;
   quality?: Quality;
   required_realm?: RealmType;
-  bonus: ArtifactBonus;
-  special_effects?: ArtifactEffect[];
-  curses?: ArtifactEffect[];
   description?: string;
+  effects?: EffectConfig[]; // 替代 bonus/special_effects/curses
 }
 
 // 永久提升效果

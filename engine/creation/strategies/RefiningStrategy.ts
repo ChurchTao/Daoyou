@@ -173,10 +173,8 @@ ${userPrompt || '无'}
       quality: resultItem.quality,
       required_realm: resultItem.required_realm,
       element: resultItem.element,
-      bonus: resultItem.bonus || {},
-      special_effects: resultItem.special_effects || [],
-      curses: resultItem.curses || [],
       description: resultItem.description,
+      effects: resultItem.effects ?? [],
       score,
     });
   }

@@ -190,17 +190,14 @@ ${userPrompt || '无（自由发挥）'}
     await tx.insert(skills).values({
       cultivatorId: context.cultivator.id!,
       name: resultItem.name,
-      type: resultItem.type,
       prompt: context.userPrompt,
       element: resultItem.element,
       grade: resultItem.grade,
-      power: resultItem.power,
       cost: resultItem.cost,
       cooldown: resultItem.cooldown,
-      effect: resultItem.effect,
-      duration: resultItem.duration,
       target_self: resultItem.target_self ? 1 : 0,
       description: resultItem.description,
+      effects: resultItem.effects ?? [],
       score,
     });
   }

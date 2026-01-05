@@ -129,10 +129,8 @@ export const POST = withActiveCultivator(
             quality: artifact.quality || '凡品',
             slot: artifact.slot || 'weapon',
             element: artifact.element || '无',
-            bonus: artifact.bonus || {},
-            special_effects: artifact.special_effects || [],
-            curses: artifact.curses || [],
             description: artifact.description || '',
+            effects: artifact.effects ?? [],
           });
         }
       }

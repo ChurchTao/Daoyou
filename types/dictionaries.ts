@@ -6,7 +6,7 @@ import type {
   SkillType,
   StatusEffect,
 } from './constants';
-import type { Artifact, ArtifactEffect, Attributes, Skill } from './cultivator';
+import type { ArtifactEffect, Attributes } from './cultivator';
 
 // ===== 元素相关 =====
 
@@ -457,23 +457,4 @@ export function getEffectText(effect: ArtifactEffect) {
     return `改变战场环境为「${effect.env_type}」`;
   }
   return '';
-}
-
-// ===== 一些高层封装工具（便于前端使用） =====
-
-export function formatAttributeBonusMap(
-  bonus: Artifact['bonus'] | Skill['power'] | Record<string, unknown>,
-): string {
-  if (!bonus || typeof bonus !== 'object') return '';
-  const entries = Object.entries(bonus as Record<string, unknown>).filter(
-    ([, v]) => typeof v === 'number' && v !== 0,
-  ) as [AttributeKey, number][];
-  if (!entries.length) return '';
-  return entries
-    .map(([key, value]) => {
-      const label = getAttributeLabel(key);
-      const sign = value > 0 ? '+' : '';
-      return `${label} ${sign}${value}`;
-    })
-    .join('｜');
 }

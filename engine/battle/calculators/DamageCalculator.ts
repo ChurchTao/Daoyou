@@ -1,3 +1,4 @@
+import { EffectType } from '@/engine/effect';
 import type { ElementType, Quality } from '@/types/constants';
 import type { Cultivator } from '@/types/cultivator';
 import type { BattleUnit } from '../BattleUnit';
@@ -24,8 +25,13 @@ export class DamageCalculator {
   ): DamageResult {
     const { attacker, defender, skill } = context;
 
+    // 从 effects 中提取 power（Damage 效果的 multiplier * 100）
+    const damageEffect = skill.effects?.find((e) => e.type === 'Damage');
+    const multiplier = (damageEffect?.params?.multiplier as number) ?? 0;
+    const power = multiplier * 100;
+
     // 1. 基础伤害
-    let damage = skill.power * (1 + attacker.attributes.spirit / 150);
+    let damage = power * (1 + attacker.attributes.spirit / 150);
 
     // 2. 灵根加成
     damage *= this.getRootDamageMultiplier(
@@ -92,14 +98,15 @@ export class DamageCalculator {
       const artifact = artifactsById.get(id);
       if (!artifact) continue;
 
-      const effects = [
-        ...(artifact.special_effects || []),
-        ...(artifact.curses || []),
-      ];
+      // 从 effects 中提取 damage_bonus
+      const effects = artifact.effects ?? [];
 
       for (const effect of effects) {
-        if (effect.type === 'damage_bonus' && effect.element === element) {
-          multiplier += effect.bonus;
+        const params = effect.params as
+          | { element?: string; bonus?: number }
+          | undefined;
+        if (effect.type === EffectType.Damage && params?.element === element) {
+          multiplier += params.bonus ?? 0;
         }
       }
     }

@@ -9,14 +9,14 @@ export class EvasionCalculator {
    * 公式：min(0.3, (速度 + speedBonus) / 350)
    */
   calculateEvasionChance(context: EvasionContext): number {
-    const { attributes, speedBonus = 0, cannotDodge = false } = context;
+    const { attributes, cannotDodge = false } = context;
 
     // 无法闪避
     if (cannotDodge) {
       return 0;
     }
 
-    const totalSpeed = attributes.speed + speedBonus;
+    const totalSpeed = attributes.speed;
     return Math.min(MAX_EVASION_RATE, totalSpeed / 350);
   }
 

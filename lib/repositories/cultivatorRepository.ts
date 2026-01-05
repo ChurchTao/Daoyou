@@ -1,3 +1,4 @@
+import { EffectConfig } from '@/engine/effect/types';
 import {
   ConsumableType,
   ElementType,
@@ -7,8 +8,6 @@ import {
   RealmStage,
   RealmType,
   SkillGrade,
-  SkillType,
-  StatusEffect,
 } from '@/types/constants';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, eq, gt, inArray, lt } from 'drizzle-orm';
@@ -89,25 +88,22 @@ async function assembleCultivator(
   const cultivations = cultivationsResult.map((c) => ({
     name: c.name,
     grade: c.grade as Cultivator['cultivations'][0]['grade'] | undefined,
-    bonus: c.bonus as Cultivator['cultivations'][0]['bonus'],
     required_realm:
       c.required_realm as Cultivator['cultivations'][0]['required_realm'],
+    effects: (c.effects ?? []) as Cultivator['cultivations'][0]['effects'],
   }));
 
   // 组装技能（使用数据库 UUID 作为 id）
   const skills = skillsResult.map((s) => ({
-    id: s.id, // 使用数据库生成的 UUID
+    id: s.id,
     name: s.name,
-    type: s.type as Cultivator['skills'][0]['type'],
     element: s.element as Cultivator['skills'][0]['element'],
     grade: s.grade as Cultivator['skills'][0]['grade'] | undefined,
-    power: s.power,
     cost: s.cost || undefined,
     cooldown: s.cooldown,
-    effect: s.effect as Cultivator['skills'][0]['effect'] | undefined,
-    duration: s.duration || undefined,
     target_self: s.target_self === 1 ? true : undefined,
     description: s.description || undefined,
+    effects: (s.effects ?? []) as Cultivator['skills'][0]['effects'],
   }));
 
   // 组装法宝 - 延迟加载
@@ -256,8 +252,8 @@ export async function createCultivator(
           cultivatorId,
           name: cult.name,
           grade: cult.grade || null,
-          bonus: cult.bonus,
           required_realm: cult.required_realm,
+          effects: cult.effects ?? [],
         })),
       );
     }
@@ -268,16 +264,13 @@ export async function createCultivator(
         cultivator.skills.map((skill) => ({
           cultivatorId,
           name: skill.name,
-          type: skill.type,
           element: skill.element,
           grade: skill.grade || null,
-          power: skill.power,
           cost: skill.cost || 0,
           cooldown: skill.cooldown,
-          effect: skill.effect || null,
-          duration: skill.duration || null,
           target_self: skill.target_self ? 1 : 0,
           description: skill.description || null,
+          effects: skill.effects ?? [],
         })),
       );
     }
@@ -882,18 +875,15 @@ export async function getCultivatorArtifacts(
     name: a.name,
     slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
     element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
-    bonus: a.bonus as Cultivator['inventory']['artifacts'][0]['bonus'],
     quality: a.quality as
       | Cultivator['inventory']['artifacts'][0]['quality']
       | undefined,
     required_realm: a.required_realm as
       | Cultivator['inventory']['artifacts'][0]['required_realm']
       | undefined,
-    special_effects: (a.special_effects ||
-      []) as Cultivator['inventory']['artifacts'][0]['special_effects'],
-    curses: (a.curses ||
-      []) as Cultivator['inventory']['artifacts'][0]['curses'],
     description: a.description || '',
+    effects: (a.effects ??
+      []) as Cultivator['inventory']['artifacts'][0]['effects'],
   }));
 }
 
@@ -1064,11 +1054,7 @@ export async function getInventory(
       name: a.name,
       slot: a.slot as EquipmentSlot,
       element: a.element as ElementType,
-      bonus: a.bonus as import('../../types/cultivator').ArtifactBonus,
-      special_effects: (a.special_effects ||
-        []) as import('../../types/cultivator').ArtifactEffect[],
-      curses: (a.curses ||
-        []) as import('../../types/cultivator').ArtifactEffect[],
+      effects: a.effects as EffectConfig[],
     })),
     consumables: consumablesResult.map((c) => ({
       id: c.id,
@@ -1219,16 +1205,13 @@ export async function getSkills(
   return skillsResult.map((skill) => ({
     id: skill.id,
     name: skill.name,
-    type: skill.type as SkillType,
     element: skill.element as ElementType,
     grade: skill.grade as SkillGrade | undefined,
-    power: skill.power,
     cost: skill.cost || undefined,
     cooldown: skill.cooldown,
-    effect: skill.effect as StatusEffect | undefined,
-    duration: skill.duration || undefined,
     target_self: skill.target_self === 1 ? true : undefined,
     description: skill.description || undefined,
+    effects: skill.effects as EffectConfig[],
   }));
 }
 
@@ -1679,14 +1662,9 @@ export async function addArtifactToInventory(
     prompt: '', // 默认空提示词
     quality: artifact.quality || '凡品',
     required_realm: artifact.required_realm || '炼气',
-    bonus: artifact.bonus as Record<string, number>,
-    special_effects: (artifact.special_effects || []) as unknown as Record<
-      string,
-      unknown
-    >[],
-    curses: (artifact.curses || []) as unknown as Record<string, unknown>[],
     description: artifact.description || null,
     score: 0, // 默认评分
+    effects: artifact.effects || [],
   });
 }
 

@@ -11,4 +11,4 @@ export * from './effects';
 export { EffectFactory } from './EffectFactory';
 
 // 引擎
-export { EffectEngine, effectEngine } from './EffectEngine';
+export { effectEngine } from './EffectEngine';

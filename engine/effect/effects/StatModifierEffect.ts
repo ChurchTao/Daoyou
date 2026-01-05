@@ -46,7 +46,10 @@ export class StatModifierEffect extends BaseEffect {
    * 只在计算目标属性时触发
    */
   shouldTrigger(ctx: EffectContext): boolean {
-    return ctx.metadata?.statName === this.stat;
+    return (
+      ctx.metadata?.statName === this.stat &&
+      ctx.trigger === EffectTrigger.ON_STAT_CALC
+    );
   }
 
   /**

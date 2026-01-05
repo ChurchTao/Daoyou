@@ -5,8 +5,8 @@ import {
   cultivators,
   skills,
 } from '@/lib/drizzle/schema';
-import { EquipmentSlot, SkillType } from '@/types/constants';
-import { getEquipmentSlotLabel, getSkillTypeLabel } from '@/types/dictionaries';
+import { EquipmentSlot } from '@/types/constants';
+import { getEquipmentSlotLabel } from '@/types/dictionaries';
 import { ItemRankingEntry } from '@/types/rankings';
 import { desc, eq, isNotNull } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         id: item.id,
         rank: index + 1,
         name: item.name,
-        type: `${getSkillTypeLabel(item.type as SkillType)}神通`,
+        type: `todo神通`,
         grade: item.grade || undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,

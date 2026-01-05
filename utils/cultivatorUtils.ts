@@ -84,7 +84,7 @@ export function calculateFinalAttributes(c: Cultivator): FinalAttributesResult {
     }
   }
 
-  // 功法加成
+  // 功法加成（从 effects 中提取 StatModifier）
   const fromCultivations: Required<Attributes> = {
     vitality: 0,
     spirit: 0,
@@ -93,20 +93,17 @@ export function calculateFinalAttributes(c: Cultivator): FinalAttributesResult {
     willpower: 0,
   };
   for (const cult of c.cultivations || []) {
-    if (cult.bonus.vitality) {
-      fromCultivations.vitality += cult.bonus.vitality;
-    }
-    if (cult.bonus.spirit) {
-      fromCultivations.spirit += cult.bonus.spirit;
-    }
-    if (cult.bonus.wisdom) {
-      fromCultivations.wisdom += cult.bonus.wisdom;
-    }
-    if (cult.bonus.speed) {
-      fromCultivations.speed += cult.bonus.speed;
-    }
-    if (cult.bonus.willpower) {
-      fromCultivations.willpower += cult.bonus.willpower;
+    for (const effect of cult.effects ?? []) {
+      if (effect.type === 'StatModifier') {
+        const params = effect.params as
+          | { attribute?: string; value?: number }
+          | undefined;
+        const attr = params?.attribute as keyof Attributes | undefined;
+        const value = params?.value ?? 0;
+        if (attr && attr in fromCultivations) {
+          fromCultivations[attr] += value;
+        }
+      }
     }
   }
 
@@ -131,20 +128,17 @@ export function calculateFinalAttributes(c: Cultivator): FinalAttributesResult {
     .filter(Boolean) as typeof c.inventory.artifacts;
 
   for (const art of equippedArtifacts) {
-    if (art.bonus.vitality) {
-      fromEquipment.vitality += art.bonus.vitality;
-    }
-    if (art.bonus.spirit) {
-      fromEquipment.spirit += art.bonus.spirit;
-    }
-    if (art.bonus.wisdom) {
-      fromEquipment.wisdom += art.bonus.wisdom;
-    }
-    if (art.bonus.speed) {
-      fromEquipment.speed += art.bonus.speed;
-    }
-    if (art.bonus.willpower) {
-      fromEquipment.willpower += art.bonus.willpower;
+    for (const effect of art.effects ?? []) {
+      if (effect.type === 'StatModifier') {
+        const params = effect.params as
+          | { attribute?: string; value?: number }
+          | undefined;
+        const attr = params?.attribute as keyof Attributes | undefined;
+        const value = params?.value ?? 0;
+        if (attr && attr in fromEquipment) {
+          fromEquipment[attr] += value;
+        }
+      }
     }
   }
 

@@ -1,14 +1,12 @@
 'use client';
 
-import {
-  InkBadge,
-  InkList,
-  InkListItem,
-  InkNotice,
-} from '@/components/ui';
 import { InkSection } from '@/components/layout';
+import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
+import {
+  formatStatBonuses,
+  getCultivationDisplayInfo,
+} from '@/lib/utils/effectDisplay';
 import type { CultivationTechnique } from '@/types/cultivator';
-import { formatAttributeBonusMap } from '@/types/dictionaries';
 
 interface GongFaProps {
   cultivations: CultivationTechnique[];
@@ -40,7 +38,8 @@ export function GongFa({
   const content = (
     <InkList>
       {cultivations.map((cult, index) => {
-        const bonusText = formatAttributeBonusMap(cult.bonus) || '无属性加成';
+        const displayInfo = getCultivationDisplayInfo(cult);
+        const bonusText = formatStatBonuses(displayInfo.statBonuses);
         return (
           <InkListItem
             key={cult.name + index}

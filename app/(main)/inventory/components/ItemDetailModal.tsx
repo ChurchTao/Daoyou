@@ -2,10 +2,9 @@
 
 import { InkModal } from '@/components/layout';
 import { InkBadge, InkButton } from '@/components/ui';
+import { getArtifactDisplayInfo } from '@/lib/utils/effectDisplay';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import {
-  formatAttributeBonusMap,
-  getEffectText,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
@@ -57,6 +56,7 @@ function ItemDetailContent({ item }: { item: InventoryItem }) {
 
 function ArtifactDetail({ item }: { item: Artifact }) {
   const slotInfo = getEquipmentSlotInfo(item.slot);
+  const displayInfo = getArtifactDisplayInfo(item);
 
   return (
     <div className="space-y-2">
@@ -77,47 +77,32 @@ function ArtifactDetail({ item }: { item: Artifact }) {
           </div>
         )}
 
-        {/* 基础属性 */}
-        <div className="pt-2">
-          <span className="block opacity-70 mb-1">基础属性</span>
-          <div className="grid grid-cols-2 gap-2">
-            {formatAttributeBonusMap(item.bonus)
-              .split('｜')
-              .filter(Boolean)
-              .map((line, i) => (
+        {/* 属性加成 */}
+        {displayInfo.statBonuses.length > 0 && (
+          <div className="pt-2">
+            <span className="block opacity-70 mb-1">属性加成</span>
+            <div className="grid grid-cols-2 gap-2">
+              {displayInfo.statBonuses.map((bonus, i) => (
                 <div
                   key={i}
                   className="px-2 py-1 rounded border border-ink/10 bg-ink/5"
                 >
-                  {line}
+                  {bonus.attribute}+{bonus.value}
                 </div>
               ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 特殊效果 */}
-        {item.special_effects && item.special_effects.length > 0 && (
+        {/* 其他效果 */}
+        {displayInfo.effects.length > 0 && (
           <div className="pt-2">
             <span className="block opacity-70 mb-1 font-bold text-ink">
               特殊效果
             </span>
             <ul className="list-disc list-inside space-y-1">
-              {item.special_effects.map((e, i) => (
-                <li key={i}>{getEffectText(e)}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* 诅咒效果 */}
-        {item.curses && item.curses.length > 0 && (
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1 font-bold text-crimson">
-              诅咒效果
-            </span>
-            <ul className="list-disc list-inside space-y-1 text-crimson">
-              {item.curses.map((e, i) => (
-                <li key={i}>{getEffectText(e)}</li>
+              {displayInfo.effects.map((e, i) => (
+                <li key={i}>{e}</li>
               ))}
             </ul>
           </div>

@@ -94,10 +94,9 @@ export const cultivationTechniques = pgTable(
       .references(() => cultivators.id, { onDelete: 'cascade' })
       .notNull(),
     name: varchar('name', { length: 100 }).notNull(),
-    grade: varchar('grade', { length: 20 }), // 天阶上品 | 天阶中品 | 天阶下品 | 地阶上品 | ... | 黄阶下品
-    bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
-    passive_traits: jsonb('passive_traits').default([]), // PassiveTrait[]
+    grade: varchar('grade', { length: 20 }),
     required_realm: varchar('required_realm', { length: 20 }).notNull(),
+    effects: jsonb('effects').default([]), // EffectConfig[]
     createdAt: timestamp('created_at').defaultNow(),
   },
 );
@@ -110,17 +109,14 @@ export const skills = pgTable('wanjiedaoyou_skills', {
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
   prompt: text('prompt').notNull().default(''),
-  type: varchar('type', { length: 20 }).notNull(), // attack | heal | control | debuff | buff
   element: varchar('element', { length: 10 }).notNull(),
-  grade: varchar('grade', { length: 20 }), // 天阶上品 | 天阶中品 | 天阶下品 | 地阶上品 | ... | 黄阶下品
-  power: integer('power').notNull(), // 30-150
+  grade: varchar('grade', { length: 20 }),
   cost: integer('cost').default(0),
   cooldown: integer('cooldown').notNull().default(0),
-  effect: varchar('effect', { length: 50 }), // burn | bleed | poison | stun | ...
-  duration: integer('duration'), // 持续回合数
-  target_self: integer('target_self').default(0), // 0 = false, 1 = true
+  target_self: integer('target_self').default(0),
   description: text('description'),
-  score: integer('score').notNull().default(0), // 评分
+  score: integer('score').notNull().default(0),
+  effects: jsonb('effects').default([]), // EffectConfig[]
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -140,26 +136,23 @@ export const materials = pgTable('wanjiedaoyou_materials', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// 法宝表（1对多，不在创建时生成，由用户后续添加）
+// 法宝表（1对多）
 export const artifacts = pgTable('wanjiedaoyou_artifacts', {
   id: uuid('id').primaryKey().defaultRandom(),
   cultivatorId: uuid('cultivator_id')
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
-  quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
+  prompt: varchar('prompt', { length: 200 }).notNull().default(''),
+  quality: varchar('quality', { length: 20 }).notNull().default('凡品'),
   required_realm: varchar('required_realm', { length: 20 })
     .notNull()
     .default('练气'),
   slot: varchar('slot', { length: 20 }).notNull(), // weapon | armor | accessory
   element: varchar('element', { length: 10 }).notNull(),
-  bonus: jsonb('bonus').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
-  special_effects: jsonb('special_effects').default([]), // ArtifactEffect[]
-  curses: jsonb('curses').default([]), // ArtifactEffect[]
-  passive_traits: jsonb('passive_traits').default([]), // PassiveTrait[]
   description: text('description'),
-  score: integer('score').notNull().default(0), // 评分
+  score: integer('score').notNull().default(0),
+  effects: jsonb('effects').default([]), // EffectConfig[]
   createdAt: timestamp('created_at').defaultNow(),
 });
 

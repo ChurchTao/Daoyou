@@ -5,12 +5,12 @@ import {
   RealmStage,
   RealmType,
   SkillType,
-  StatusEffect,
 } from '@/types/constants';
 import { Cultivator } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import { EffectType } from './effect/types';
 
 // Zod Schema for AI Generation - 只生成文本描述
 const EnemyTextSchema = z.object({
@@ -223,16 +223,47 @@ export class EnemyGenerator {
             difficulty,
             s.type as SkillType,
           );
+          // 将旧字段转换为 effects 数组
+          const effects: {
+            type: EffectType;
+            trigger?: string;
+            params?: Record<string, unknown>;
+          }[] = [];
+          // 添加伤害效果
+          if (['attack', 'control', 'debuff'].includes(s.type)) {
+            effects.push({
+              type: EffectType.Damage,
+              trigger: 'ON_SKILL_HIT',
+              params: {
+                multiplier: skillPower.power / 100,
+                element: s.element,
+              },
+            });
+          }
+          // 添加治疗效果
+          if (s.type === 'heal') {
+            effects.push({
+              type: EffectType.Heal,
+              trigger: 'ON_SKILL_HIT',
+              params: { percent: skillPower.power / 100 },
+            });
+          }
+          // 添加 Buff 效果
+          if (s.effect) {
+            effects.push({
+              type: EffectType.AddBuff,
+              trigger: 'ON_SKILL_HIT',
+              params: { buffId: s.effect, duration: 2 },
+            });
+          }
           return {
             id: randomUUID(),
             name: s.name,
             type: s.type as SkillType,
             element: s.element as ElementType,
-            power: skillPower.power,
             cooldown: skillPower.cooldown,
             cost: skillPower.cost,
-            effect: s.effect as StatusEffect,
-            duration: s.effect ? 2 : 0,
+            effects,
           };
         }),
         max_skills: 10,
@@ -258,8 +289,8 @@ export class EnemyGenerator {
           name: textData.equipped_weapon_name,
           slot: 'weapon',
           element: textData.skills[0]?.element || '无',
-          quality: '灵品', // Default
-          bonus: {},
+          quality: '灵品',
+          effects: [],
         });
         enemy.equipped.weapon = weaponId;
       }

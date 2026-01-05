@@ -1,6 +1,8 @@
 'use client';
 
 import { GongFa, LingGen, ShenTong } from '@/components/func';
+import { InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -13,14 +15,9 @@ import {
   InkStatusBar,
   InkTag,
 } from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { useInkUI } from '@/components/providers/InkUIProvider';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import type { Attributes, Cultivator } from '@/types/cultivator';
-import {
-  formatAttributeBonusMap,
-  getAttributeInfo,
-} from '@/types/dictionaries';
+import { getAttributeInfo } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -502,10 +499,7 @@ export default function CreatePage() {
                               )}
                             </div>
                           }
-                          meta={
-                            formatAttributeBonusMap(fate.attribute_mod) ||
-                            '无属性加成'
-                          }
+                          meta={'todo'}
                           description={fate.description}
                           actions={
                             isSelected ? (

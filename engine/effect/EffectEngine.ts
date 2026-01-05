@@ -10,7 +10,7 @@ import type {
  * 效果引擎
  * 统一处理所有效果的执行
  */
-export class EffectEngine {
+class EffectEngine {
   /**
    * 处理效果
    * @param trigger 触发时机

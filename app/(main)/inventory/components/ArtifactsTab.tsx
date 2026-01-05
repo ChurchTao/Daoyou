@@ -7,12 +7,12 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
-import type { Artifact } from '@/types/cultivator';
 import {
-  formatAttributeBonusMap,
-  getEffectText,
-  getEquipmentSlotInfo,
-} from '@/types/dictionaries';
+  formatStatBonuses,
+  getArtifactDisplayInfo,
+} from '@/lib/utils/effectDisplay';
+import type { Artifact } from '@/types/cultivator';
+import { getEquipmentSlotInfo } from '@/types/dictionaries';
 
 interface ArtifactsTabProps {
   artifacts: Artifact[];
@@ -53,9 +53,9 @@ export function ArtifactsTab({
         );
 
         const slotInfo = getEquipmentSlotInfo(item.slot);
-        const bonusText = formatAttributeBonusMap(item.bonus);
-        const effectText =
-          item.special_effects?.map((e) => getEffectText(e)).join('\n') || '';
+        const displayInfo = getArtifactDisplayInfo(item);
+        const bonusText = formatStatBonuses(displayInfo.statBonuses);
+        const effectText = displayInfo.effects.join('\n') || '';
 
         return (
           <InkListItem

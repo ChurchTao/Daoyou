@@ -29,6 +29,10 @@ export class DotDamageEffect extends BaseEffect {
     this.usesCasterStats = params.usesCasterStats ?? false;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    return ctx.trigger === EffectTrigger.ON_TURN_START;
+  }
+
   /**
    * 应用 DOT 伤害
    */

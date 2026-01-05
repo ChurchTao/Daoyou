@@ -12,12 +12,9 @@ import {
   InkNotice,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
 import { Skill } from '@/types/cultivator'; // Assuming Skill type exists
-import {
-  getElementInfo,
-  getSkillTypeInfo,
-  getStatusEffectInfo,
-} from '@/types/dictionaries';
+import { getElementInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
@@ -111,11 +108,13 @@ export default function SkillCreationPage() {
 
   const createdSkillRender = (createdSkill: Skill) => {
     if (!createdSkill) return null;
-    const skillTypeInfo = getSkillTypeInfo(createdSkill.type);
+    const skillTypeInfo = {
+      label: 'todo',
+      icon: 'todo',
+      description: 'todo',
+    };
     const elementInfo = getElementInfo(createdSkill.element);
-    const statusInfo = createdSkill.effect
-      ? getStatusEffectInfo(createdSkill.effect)
-      : null;
+    const displayInfo = getSkillDisplayInfo(createdSkill);
 
     return (
       <div className="space-y-4 p-2">
@@ -132,14 +131,15 @@ export default function SkillCreationPage() {
             元素：{elementInfo.icon}
             {elementInfo.label}
           </div>
-          <div>威力：{createdSkill.power}</div>
+          <div>威力：{displayInfo.power}</div>
           <div>消耗：{createdSkill.cost || 0}灵力</div>
           <div>冷却：{createdSkill.cooldown || 0} 回合</div>
-          {createdSkill.effect && (
+          {displayInfo.buffName && (
             <div>
-              附加效果：{statusInfo?.icon}
-              {statusInfo?.label}
-              {createdSkill.duration ? `（${createdSkill.duration}回合）` : ''}
+              附加效果：{displayInfo.buffName}
+              {displayInfo.buffDuration
+                ? `（${displayInfo.buffDuration}回合）`
+                : ''}
             </div>
           )}
         </div>

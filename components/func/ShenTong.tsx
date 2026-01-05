@@ -1,14 +1,9 @@
 'use client';
 
-import {
-  InkBadge,
-  InkList,
-  InkListItem,
-  InkNotice,
-} from '@/components/ui';
 import { InkSection } from '@/components/layout';
+import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
+import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
 import type { Skill } from '@/types/cultivator';
-import { getSkillTypeInfo, getStatusEffectInfo } from '@/types/dictionaries';
 
 interface ShenTongProps {
   skills: Skill[];
@@ -55,13 +50,10 @@ export function ShenTong({
   const content = (
     <InkList>
       {skills.map((skill, index) => {
-        const skillInfo = getSkillTypeInfo(skill.type);
-        const typeIcon = skillInfo.icon;
-        const typeName = skillInfo.label;
+        const typeIcon = 'todo';
+        const typeName = 'todo';
         const isLast = index === skills.length - 1;
-        const effectInfo = skill.effect
-          ? getStatusEffectInfo(skill.effect)
-          : null;
+        const displayInfo = getSkillDisplayInfo(skill);
 
         return (
           <InkListItem
@@ -75,12 +67,14 @@ export function ShenTong({
                 <InkBadge tier={skill.grade}>{typeName}</InkBadge>
               </div>
             }
-            description={`威力：${skill.power}｜冷却：${skill.cooldown}回合${
+            description={`威力：${displayInfo.power}｜冷却：${skill.cooldown}回合${
               skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
             }${
-              effectInfo
-                ? `｜效果：${effectInfo.icon}${effectInfo.label}${
-                    skill.duration ? `（${skill.duration}回合）` : ''
+              displayInfo.buffName
+                ? `｜效果：${displayInfo.buffName}${
+                    displayInfo.buffDuration
+                      ? `（${displayInfo.buffDuration}回合）`
+                      : ''
                   }`
                 : ''
             }`}
@@ -126,18 +120,18 @@ export function ShenTongMini({
       {skills && skills.length > 0 ? (
         <div className="flex flex-col gap-2 text-sm">
           {skills.map((skill, idx) => {
-            const skillInfo = getSkillTypeInfo(skill.type);
+            const displayInfo = getSkillDisplayInfo(skill);
             return (
               <div
                 key={skill.id || skill.name + idx}
                 className="flex items-center gap-2"
               >
                 <span>
-                  {skillInfo.icon} {skill.name}·{skill.element}
+                  {'todo'} {skill.name}·{skill.element}
                 </span>
-                <InkBadge tier={skill.grade}>{skillInfo.label}</InkBadge>
+                <InkBadge tier={skill.grade}>{'todo'}</InkBadge>
                 <span className="text-xs text-ink-secondary">
-                  威力{skill.power} 冷却{skill.cooldown}
+                  威力{displayInfo.power} 冷却{skill.cooldown}
                 </span>
               </div>
             );

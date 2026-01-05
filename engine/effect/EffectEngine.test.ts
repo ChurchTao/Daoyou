@@ -1,5 +1,5 @@
 import type { BaseEffect } from './BaseEffect';
-import { EffectEngine } from './EffectEngine';
+import { effectEngine } from './EffectEngine';
 import { EffectFactory } from './EffectFactory';
 import { DamageEffect } from './effects/DamageEffect';
 import { StatModifierEffect } from './effects/StatModifierEffect';
@@ -164,7 +164,7 @@ describe('Effect Engine', () => {
 
   describe('EffectEngine', () => {
     it('应该收集并执行所有匹配效果', () => {
-      const engine = new EffectEngine();
+      const engine = effectEngine;
 
       // 创建带效果的实体
       const effect1 = new StatModifierEffect({
@@ -199,7 +199,7 @@ describe('Effect Engine', () => {
     });
 
     it('应该按优先级排序执行', () => {
-      const engine = new EffectEngine();
+      const engine = effectEngine;
 
       // 百分比效果 (priority = 2000)
       const percentEffect = new StatModifierEffect({

@@ -1,6 +1,7 @@
 import { buffRegistry } from '@/engine/buff';
 import type { Quality } from '@/types/constants';
 import type { Cultivator, Skill } from '@/types/cultivator';
+import { EffectType } from '../effect/types';
 import { BattleUnit } from './BattleUnit';
 import { skillExecutor } from './SkillExecutor';
 import { damageCalculator } from './calculators/DamageCalculator';
@@ -205,36 +206,36 @@ export class BattleEngineV2 {
 
     if (!available.length) return null;
 
-    // AI 决策
-    const offensive = available.filter(
-      (s) => s.type === 'attack' || s.type === 'control' || s.type === 'debuff',
-    );
-    const heals = available.filter((s) => s.type === 'heal');
-    const buffs = available.filter((s) => s.type === 'buff');
+    // AI 决策 todo 重构
+    // const offensive = available.filter(
+    //   (s) => s.type === 'attack' || s.type === 'control' || s.type === 'debuff',
+    // );
+    // const heals = available.filter((s) => s.type === 'heal');
+    // const buffs = available.filter((s) => s.type === 'buff');
 
-    const hpRatio = actor.currentHp / actor.maxHp;
+    // const hpRatio = actor.currentHp / actor.maxHp;
 
-    if (hpRatio < 0.3 && heals.length) {
-      return heals[Math.floor(Math.random() * heals.length)];
-    }
+    // if (hpRatio < 0.3 && heals.length) {
+    //   return heals[Math.floor(Math.random() * heals.length)];
+    // }
 
-    if (actor.buffManager.getActiveBuffs().length === 0 && buffs.length) {
-      if (Math.random() < 0.3) {
-        return buffs[Math.floor(Math.random() * buffs.length)];
-      }
-    }
+    // if (actor.buffManager.getActiveBuffs().length === 0 && buffs.length) {
+    //   if (Math.random() < 0.3) {
+    //     return buffs[Math.floor(Math.random() * buffs.length)];
+    //   }
+    // }
 
-    if (target.currentHp < actor.currentHp && offensive.length) {
-      return offensive[Math.floor(Math.random() * offensive.length)];
-    }
+    // if (target.currentHp < actor.currentHp && offensive.length) {
+    //   return offensive[Math.floor(Math.random() * offensive.length)];
+    // }
 
-    if (offensive.length) {
-      return offensive[Math.floor(Math.random() * offensive.length)];
-    }
+    // if (offensive.length) {
+    //   return offensive[Math.floor(Math.random() * offensive.length)];
+    // }
 
-    if (buffs.length) {
-      return buffs[Math.floor(Math.random() * buffs.length)];
-    }
+    // if (buffs.length) {
+    //   return buffs[Math.floor(Math.random() * buffs.length)];
+    // }
 
     return available[0];
   }
@@ -248,7 +249,7 @@ export class BattleEngineV2 {
       name: string;
       quality?: Quality;
       element: string;
-      special_effects?: Array<{ type: string; effect?: string }>;
+      effects?: Array<{ type: string; params?: Record<string, unknown> }>;
     };
 
     const attrs = actor.getFinalAttributes();
@@ -257,27 +258,24 @@ export class BattleEngineV2 {
       attrs.willpower,
     );
 
+    // 使用新的 effects 格式创建技能
     const skill: Skill = {
       id: art.id,
       name: `${art.name}（法宝）`,
-      type: 'attack',
       element: art.element as never,
-      power: power,
       cost: cost,
       cooldown: 3,
+      effects: [
+        {
+          type: EffectType.Damage,
+          trigger: 'ON_SKILL_HIT',
+          params: {
+            multiplier: power / 100,
+            element: art.element,
+          },
+        },
+      ],
     };
-
-    const effect = art.special_effects?.find?.(
-      (eff) => eff.type === 'on_hit_add_effect',
-    );
-
-    if (effect && effect.effect) {
-      skill.duration = 2;
-      skill.effect = effect.effect as never;
-      skill.target_self = ['armor_up', 'speed_up', 'crit_rate_up'].includes(
-        effect.effect,
-      );
-    }
 
     return skill;
   }

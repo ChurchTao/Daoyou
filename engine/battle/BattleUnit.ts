@@ -1,11 +1,11 @@
 import { BuffManager, buffRegistry } from '@/engine/buff';
 import type { BuffInstanceState } from '@/engine/buff/types';
 import { BuffTag } from '@/engine/buff/types';
-import { EffectEngine } from '@/engine/effect/EffectEngine';
 import { EffectTrigger, type IBaseEffect } from '@/engine/effect/types';
 import type { StatusEffect } from '@/types/constants';
 import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
+import { effectEngine } from '../effect';
 import type { UnitId } from './types';
 
 /**
@@ -43,9 +43,6 @@ export class BattleUnit {
   // ===== 基础 maxHp/maxMp =====
   private baseMaxHp: number;
   private baseMaxMp: number;
-
-  // ===== EffectEngine 实例 =====
-  private effectEngine: EffectEngine = new EffectEngine();
 
   constructor(
     unitId: UnitId,
@@ -137,7 +134,7 @@ export class BattleUnit {
 
       for (const statName of statNames) {
         const baseValue = baseWithEquipment[statName];
-        const finalValue = this.effectEngine.process(
+        const finalValue = effectEngine.process(
           EffectTrigger.ON_STAT_CALC,
           this,
           undefined,
@@ -159,7 +156,7 @@ export class BattleUnit {
    */
   private recalculateMaxHpMp(): void {
     // 使用 EffectEngine 计算 maxHp 修正
-    const hpMod = this.effectEngine.process(
+    const hpMod = effectEngine.process(
       EffectTrigger.ON_STAT_CALC,
       this,
       undefined,
@@ -251,7 +248,7 @@ export class BattleUnit {
 
     for (const buff of dotBuffs) {
       // 使用 EffectEngine 计算 DOT 伤害
-      const ctx = this.effectEngine.processWithContext(
+      const ctx = effectEngine.processWithContext(
         EffectTrigger.ON_TURN_START,
         this,
         this,
@@ -308,7 +305,7 @@ export class BattleUnit {
   }
 
   canUseSkill(skill: Skill): boolean {
-    if (this.hasBuff('silence') && skill.type !== 'heal') {
+    if (this.hasBuff('silence')) {
       return false;
     }
     const cd = this.skillCooldowns.get(skill.id!) ?? 0;

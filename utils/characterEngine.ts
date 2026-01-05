@@ -1,3 +1,7 @@
+import {
+  getCultivationDisplayInfo,
+  getSkillDisplayInfo,
+} from '@/lib/utils/effectDisplay';
 import { object } from '@/utils/aiClient';
 import {
   getCharacterGenerationPrompt,
@@ -379,25 +383,46 @@ export function determineSpiritualRootGrade(
  * 验证技能威力是否符合品阶范围
  */
 export function validateSkillPower(skill: Skill): boolean {
-  if (!skill.grade) return true; // 如果没有品阶，不验证
+  if (!skill.grade) return true;
   const range = SKILL_POWER_RANGES[skill.grade];
   if (!range) return true;
-  return skill.power >= range.min && skill.power <= range.max;
+  const displayInfo = getSkillDisplayInfo(skill);
+  return displayInfo.power >= range.min && displayInfo.power <= range.max;
 }
 
 /**
  * 调整技能威力使其符合品阶范围
+ * 注：现在 power 存储在 effects 中，此函数需要重写技能的 effects
  */
 export function adjustSkillPower(skill: Skill): Skill {
   if (!skill.grade) return skill;
   const range = SKILL_POWER_RANGES[skill.grade];
   if (!range) return skill;
 
-  const adjustedPower = Math.max(range.min, Math.min(range.max, skill.power));
+  const displayInfo = getSkillDisplayInfo(skill);
+  const currentPower = displayInfo.power;
+  const adjustedPower = Math.max(range.min, Math.min(range.max, currentPower));
+
+  // 如果 power 未变，直接返回
+  if (adjustedPower === currentPower) return skill;
+
+  // 更新 effects 中的 Damage 效果
+  const updatedEffects = (skill.effects ?? []).map((effect) => {
+    if (effect.type === 'Damage') {
+      return {
+        ...effect,
+        params: {
+          ...effect.params,
+          multiplier: adjustedPower / 100,
+        },
+      };
+    }
+    return effect;
+  });
 
   return {
     ...skill,
-    power: adjustedPower,
+    effects: updatedEffects,
   };
 }
 
@@ -411,14 +436,9 @@ export function validateCultivationBonus(
   const range = CULTIVATION_BONUS_RANGES[technique.grade];
   if (!range) return true;
 
-  // 检查所有属性加成是否在范围内
-  const bonuses = [
-    technique.bonus.vitality,
-    technique.bonus.spirit,
-    technique.bonus.wisdom,
-    technique.bonus.speed,
-    technique.bonus.willpower,
-  ].filter((b) => b !== undefined && b !== 0) as number[];
+  // 从 effects 中提取属性加成
+  const displayInfo = getCultivationDisplayInfo(technique);
+  const bonuses = displayInfo.statBonuses.map((b) => b.value);
 
   if (bonuses.length === 0) return true;
 
@@ -434,6 +454,7 @@ export function validateCultivationBonus(
 
 /**
  * 调整功法增幅使其符合品阶范围
+ * 注：现在 bonus 存储在 effects 中，此函数需要重写 effects
  */
 export function adjustCultivationBonus(
   technique: CultivationTechnique,
@@ -442,18 +463,26 @@ export function adjustCultivationBonus(
   const range = CULTIVATION_BONUS_RANGES[technique.grade];
   if (!range) return technique;
 
-  const adjustedBonus: Partial<Attributes> = {};
-
-  for (const [key, value] of Object.entries(technique.bonus)) {
-    if (value !== undefined && value !== 0) {
+  // 更新 effects 中的 StatModifier 效果
+  const updatedEffects = (technique.effects ?? []).map((effect) => {
+    if (effect.type === 'StatModifier') {
+      const params = effect.params as { value?: number } | undefined;
+      const value = params?.value ?? 0;
       const adjustedValue = Math.max(range.min, Math.min(range.max, value));
-      adjustedBonus[key as keyof Attributes] = adjustedValue;
+      return {
+        ...effect,
+        params: {
+          ...effect.params,
+          value: adjustedValue,
+        },
+      };
     }
-  }
+    return effect;
+  });
 
   return {
     ...technique,
-    bonus: adjustedBonus,
+    effects: updatedEffects,
   };
 }
 
