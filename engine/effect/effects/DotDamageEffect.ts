@@ -58,12 +58,17 @@ export class DotDamageEffect extends BaseEffect {
       }
     }
 
+    // 【关键修复】根据 buff 层数叠加伤害
+    const buffStacks = (ctx.metadata?.buffStacks as number) ?? 1;
+    damage *= buffStacks;
+
     // 写入上下文
     ctx.value = (ctx.value ?? 0) + damage;
 
     // 记录元数据
     ctx.metadata = ctx.metadata ?? {};
     ctx.metadata.dotElement = this.element;
+    ctx.metadata.dotStacks = buffStacks;
   }
 
   displayInfo() {

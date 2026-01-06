@@ -2,6 +2,7 @@ import type { Cultivator } from '@/types/cultivator';
 import {
   AddBuffParams,
   DamageParams,
+  EffectTrigger,
   EffectType,
   LifeStealParams,
 } from '../effect';
@@ -340,8 +341,8 @@ describe('BattleEngineV2', () => {
             },
             {
               type: EffectType.LifeSteal,
-              trigger: 'ON_SKILL_HIT',
-              params: { stealPercent: 0.1 } as LifeStealParams,
+              trigger: EffectTrigger.ON_AFTER_DAMAGE,
+              params: { stealPercent: 0.3 } as LifeStealParams,
             },
           ],
         },

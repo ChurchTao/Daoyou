@@ -389,7 +389,8 @@ export class BattleUnit implements Entity {
 
   /**
    * 处理回合开始的 DOT 伤害
-   * 使用 EffectEngine.process(ON_TURN_START)
+   * 【重构】不使用 EffectEngine.processWithContext 收集全局效果（会导致重复计算）
+   * 改为直接调用每个 Buff 的效果实例
    */
   processTurnStartEffects(): { dotDamage: number; logs: string[] } {
     const logs: string[] = [];
@@ -403,17 +404,30 @@ export class BattleUnit implements Entity {
       );
 
     for (const buff of dotBuffs) {
-      // 使用 EffectEngine 计算 DOT 伤害
-      const ctx = effectEngine.processWithContext(
-        EffectTrigger.ON_TURN_START,
-        this,
-        this,
-        0,
-        {
+      // 【修复】直接获取并执行当前 buff 的效果，而不是收集全局效果
+      const buffEffects = buff.getEffects();
+
+      // 构建当前 buff 的效果上下文
+      const ctx = {
+        source: this as Entity,
+        target: this as Entity,
+        trigger: EffectTrigger.ON_TURN_START,
+        value: 0,
+        metadata: {
           casterSnapshot: buff.casterSnapshot,
           buffStacks: buff.currentStacks,
         },
-      );
+      };
+
+      // 只执行当前 buff 的 ON_TURN_START 效果
+      for (const effect of buffEffects) {
+        if (
+          effect.trigger === EffectTrigger.ON_TURN_START &&
+          effect.shouldTrigger(ctx)
+        ) {
+          effect.apply(ctx);
+        }
+      }
 
       const damage = Math.floor(ctx.value ?? 0);
       if (damage > 0) {

@@ -104,7 +104,8 @@ class EffectEngine {
     }
 
     // 2. 收集目标实体的效果（防御型 Buff、抗性等）
-    if (target?.collectAllEffects) {
+    // 【关键修复】当 source === target 时，不重复收集，避免效果被执行两次
+    if (target && target !== source && target.collectAllEffects) {
       effects.push(...target.collectAllEffects());
     }
 

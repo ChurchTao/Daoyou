@@ -23,11 +23,11 @@ export class LifeStealEffect extends BaseEffect {
 
   /**
    * 应用吸血效果
-   * 在 ON_AFTER_DAMAGE 时机，ctx.source 是攻击者（吸血方），ctx.metadata.finalDamage 是造成的伤害
+   * 在 ON_AFTER_DAMAGE 时机，ctx.value 是造成的伤害值
    */
   apply(ctx: EffectContext): void {
-    // 从 metadata 获取本次造成的最终伤害
-    const damageDealt = (ctx.metadata?.finalDamage as number) || 0;
+    // 【修复】从 ctx.value 获取本次造成的最终伤害（由 SkillExecutor 传入）
+    const damageDealt = ctx.value ?? 0;
 
     if (damageDealt <= 0) return;
 
@@ -41,9 +41,6 @@ export class LifeStealEffect extends BaseEffect {
     ctx.metadata.lifeSteal =
       ((ctx.metadata.lifeSteal as number) || 0) + healAmount;
     ctx.metadata.lifeStealTarget = ctx.source.id; // 吸血目标是攻击者自己
-
-    // 同时累加到 ctx.value 供统一处理
-    ctx.value = (ctx.value ?? 0) + healAmount;
   }
 
   displayInfo() {
