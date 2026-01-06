@@ -80,7 +80,7 @@ export class CriticalEffect extends BaseEffect {
       const currentDamage = ctx.value ?? 0;
       ctx.value = currentDamage * totalCritDamage;
       ctx.metadata.critDamageMultiplier = totalCritDamage;
-      ctx.metadata.critDamageBonus = currentDamage * (totalCritDamage - 1);
+      ctx.metadata.critDamageBonus = currentDamage * totalCritDamage;
     }
   }
 

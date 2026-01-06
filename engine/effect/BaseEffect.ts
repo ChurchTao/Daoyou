@@ -19,6 +19,19 @@ export abstract class BaseEffect {
   priority: number = 0;
 
   /**
+   * 效果持有者 ID
+   * 用于判断效果应该作用于谁（如护盾只对持有者生效）
+   */
+  ownerId?: string;
+
+  /**
+   * 关联的父 Buff ID
+   * 用于在效果需要移除整个 buff 时使用（如护盾耗尽）
+   * 命名为 parentBuffId 以避免与子类（如 AddBuffEffect）的 buffId 冲突
+   */
+  parentBuffId?: string;
+
+  /**
    * 效果配置
    * 可存储任意配置参数
    */
@@ -26,6 +39,24 @@ export abstract class BaseEffect {
 
   constructor(config: Record<string, unknown> = {}) {
     this.config = config;
+  }
+
+  /**
+   * 设置效果持有者
+   * @param ownerId 持有者实体 ID
+   */
+  setOwner(ownerId: string): this {
+    this.ownerId = ownerId;
+    return this;
+  }
+
+  /**
+   * 设置关联的父 Buff ID
+   * @param buffId Buff 配置 ID
+   */
+  setParentBuff(buffId: string): this {
+    this.parentBuffId = buffId;
+    return this;
   }
 
   /**

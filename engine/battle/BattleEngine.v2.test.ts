@@ -1,5 +1,10 @@
 import type { Cultivator } from '@/types/cultivator';
-import { EffectType } from '../effect';
+import {
+  AddBuffParams,
+  DamageParams,
+  EffectType,
+  LifeStealParams,
+} from '../effect';
 import { simulateBattle } from './BattleEngine.v2';
 
 describe('BattleEngineV2', () => {
@@ -46,7 +51,7 @@ describe('BattleEngineV2', () => {
           {
             type: EffectType.AddBuff,
             trigger: 'ON_SKILL_HIT',
-            params: { buffId: 'bleed', duration: 2 },
+            params: { buffId: 'bleed', durationOverride: 2 },
           },
         ],
       },
@@ -63,7 +68,7 @@ describe('BattleEngineV2', () => {
           {
             type: EffectType.AddBuff,
             trigger: 'ON_SKILL_HIT',
-            params: { buffId: 'armor_up', duration: 2 },
+            params: { buffId: 'armor_up', durationOverride: 2 },
           },
         ],
       },
@@ -202,7 +207,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'burn', duration: 3 },
+              params: { buffId: 'burn', durationOverride: 3 },
             },
           ],
         },
@@ -223,12 +228,12 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'root', duration: 2, chance: 0.7 },
+              params: { buffId: 'root', durationOverride: 2, chance: 0.7 },
             },
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'burn', duration: 2 },
+              params: { buffId: 'burn', durationOverride: 2 },
             },
           ],
         },
@@ -250,7 +255,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'speed_up', duration: 2 },
+              params: { buffId: 'speed_up', durationOverride: 2 },
             },
           ],
         },
@@ -313,7 +318,6 @@ describe('BattleEngineV2', () => {
         {
           id: 'sword_skill_1',
           name: '万剑归宗',
-
           element: '金',
           cost: 30,
           cooldown: 1,
@@ -322,12 +326,22 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.Damage,
               trigger: 'ON_SKILL_HIT',
-              params: { multiplier: 0.9, element: '金', canCrit: true },
+              params: {
+                multiplier: 0.9,
+                element: '金',
+                canCrit: true,
+                critRateBonus: 0.6,
+              } as DamageParams,
             },
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'bleed', duration: 3 },
+              params: { buffId: 'bleed', durationOverride: 3 },
+            },
+            {
+              type: EffectType.LifeSteal,
+              trigger: 'ON_SKILL_HIT',
+              params: { stealPercent: 0.1 } as LifeStealParams,
             },
           ],
         },
@@ -343,19 +357,27 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'armor_up', duration: 3 },
+              params: { buffId: 'armor_up', durationOverride: 3 },
             },
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'crit_rate_up', duration: 3 },
+              params: { buffId: 'crit_rate_up', durationOverride: 3 },
+            },
+            {
+              type: EffectType.AddBuff,
+              trigger: 'ON_SKILL_HIT',
+              params: {
+                buffId: 'shield',
+                durationOverride: 3,
+                targetSelf: true,
+              } as AddBuffParams,
             },
           ],
         },
         {
           id: 'sword_skill_3',
           name: '一剑破万法',
-
           element: '金',
           cost: 50,
           cooldown: 4,
@@ -364,14 +386,17 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.Damage,
               trigger: 'ON_SKILL_HIT',
-              params: { multiplier: 1.8, element: '金', ignoreDefense: true },
+              params: {
+                multiplier: 1.8,
+                element: '金',
+                ignoreDefense: true,
+              } as DamageParams,
             },
           ],
         },
         {
           id: 'sword_skill_4',
           name: '破军式',
-
           element: '金',
           cost: 20,
           cooldown: 2,
@@ -385,7 +410,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'armor_down', duration: 2 },
+              params: { buffId: 'armor_down', durationOverride: 2 },
             },
           ],
         },
@@ -467,7 +492,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'poison', duration: 4 },
+              params: { buffId: 'poison', durationOverride: 4 },
             },
           ],
         },
@@ -488,7 +513,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.AddBuff,
               trigger: 'ON_SKILL_HIT',
-              params: { buffId: 'stun', duration: 1, chance: 0.7 },
+              params: { buffId: 'stun', durationOverride: 1, chance: 0.7 },
             },
           ],
         },

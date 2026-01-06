@@ -62,6 +62,7 @@ class EffectEngine {
     target: Entity | undefined,
     initialValue: number,
     metadata: Record<string, unknown> = {},
+    extraEffects?: BaseEffect[],
   ): EffectContext {
     // 1. 构建效果上下文
     const ctx: EffectContext = {
@@ -77,6 +78,8 @@ class EffectEngine {
 
     // 3. 筛选与当前触发时机匹配的效果
     const activeEffects = effects
+      .concat(extraEffects || [])
+      .filter(Boolean)
       .filter((e) => e.trigger === trigger && e.shouldTrigger(ctx))
       .sort((a, b) => a.priority - b.priority);
 

@@ -17,6 +17,20 @@ import { EffectType, StatModifierType } from '@/engine/effect/types';
 export const buffConfigs: BuffConfig[] = [
   // ===== 增益 =====
   {
+    id: 'shield',
+    name: '护盾',
+    maxStacks: 1,
+    duration: 3,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.BUFF, BuffTag.PURGEABLE],
+    effects: [
+      {
+        type: EffectType.Shield,
+        params: { amount: 100 },
+      },
+    ],
+  },
+  {
     id: 'armor_up',
     name: '护体',
     description: '减伤提升15%',

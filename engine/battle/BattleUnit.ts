@@ -4,6 +4,7 @@ import { BuffTag } from '@/engine/buff/types';
 import {
   EffectTrigger,
   EffectType,
+  Entity,
   type IBaseEffect,
 } from '@/engine/effect/types';
 import type { StatusEffect } from '@/types/constants';
@@ -21,7 +22,7 @@ import type { UnitId } from './types';
  * 战斗单元
  * 实现 Entity 接口，属性计算完全通过 EffectEngine
  */
-export class BattleUnit {
+export class BattleUnit implements Entity {
   // ===== Entity 接口属性 =====
   readonly id: string;
   readonly name: string;

@@ -121,7 +121,7 @@ export interface EffectConfig {
   /** 触发时机 (可选) */
   trigger?: EffectTrigger | string;
   /** 效果参数 */
-  params?: Record<string, unknown>;
+  params?: Record<string, unknown> | EffectConfigParam;
 }
 
 /**
@@ -143,6 +143,18 @@ export enum EffectType {
   DamageReduction = 'DamageReduction',
   NoOp = 'NoOp',
 }
+
+type EffectConfigParam =
+  | StatModifierParams
+  | DamageParams
+  | HealParams
+  | AddBuffParams
+  | DotDamageParams
+  | ShieldParams
+  | LifeStealParams
+  | ReflectDamageParams
+  | CriticalParams
+  | DamageReductionParams;
 
 // ============================================================
 // 属性修正效果参数

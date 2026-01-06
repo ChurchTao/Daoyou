@@ -22,6 +22,8 @@ export class BuffInstance {
   readonly casterSnapshot?: CasterSnapshot;
   /** 添加时的回合数 */
   public addedRound: number;
+  /** 缓存的效果实例（避免每次创建新实例导致状态丢失）*/
+  private cachedEffects?: BaseEffect[];
 
   constructor(
     /** Buff 配置 */
@@ -89,13 +91,20 @@ export class BuffInstance {
 
   /**
    * 获取该 Buff 所有生效的效果
+   * 注意：使用缓存来保持效果实例的状态（如护盾剩余值）
    */
   getEffects(): BaseEffect[] {
-    return this.config.effects.map((effectConfig) => {
-      const effect = EffectFactory.create(effectConfig);
-      // 将施法者快照注入效果（如有需要）
-      return effect;
-    });
+    if (!this.cachedEffects) {
+      this.cachedEffects = this.config.effects.map((effectConfig) => {
+        const effect = EffectFactory.create(effectConfig);
+        // 注入持有者 ID，让效果知道应该保护谁
+        effect.setOwner(this.owner.id);
+        // 注入 Buff ID，让效果可以触发移除自己关联的 buff（如护盾耗尽）
+        effect.setParentBuff(this.config.id);
+        return effect;
+      });
+    }
+    return this.cachedEffects;
   }
 
   /**

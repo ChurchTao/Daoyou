@@ -103,6 +103,9 @@ export class SkillExecutor {
             Math.floor(beforeDamageCtx.value ?? 0),
           );
           const isCritical = beforeDamageCtx.metadata?.isCritical === true;
+          const shieldAbsorbed = beforeDamageCtx.metadata?.shieldAbsorbed as
+            | number
+            | undefined;
 
           if (finalDamage > 0) {
             // 应用伤害
@@ -113,7 +116,7 @@ export class SkillExecutor {
             // 生成日志
             const critText = isCritical ? '暴击！' : '';
             result.logs.push(
-              `${caster.getName()} 对 ${effectTarget.getName()} 使用「${skill.name}」，${critText}造成 ${actualDamage} 点伤害`,
+              `${caster.getName()} 对 ${effectTarget.getName()} 使用「${skill.name}」，${critText}造成 ${actualDamage} 点伤害${shieldAbsorbed ? `（护盾吸收 ${shieldAbsorbed} 点伤害）` : ''}`,
             );
 
             // 调用 ON_AFTER_DAMAGE 处理吸血、反伤等
@@ -133,7 +136,7 @@ export class SkillExecutor {
               const healedAmount = caster.applyHealing(lifeSteal);
               if (healedAmount > 0) {
                 result.logs.push(
-                  `${caster.getName()} 吸取了 ${healedAmount} 点生命`,
+                  `${caster.getName()} 吸取了 ${healedAmount} 点气血`,
                 );
               }
             }
@@ -150,6 +153,26 @@ export class SkillExecutor {
                 );
               }
             }
+
+            // 处理护盾耗尽 - 移除相关 buff 并记录日志
+            this.handleDepletedBuffs(
+              beforeDamageCtx.metadata,
+              caster,
+              target,
+              result.logs,
+            );
+          } else {
+            result.logs.push(
+              `${caster.getName()} 对 ${effectTarget.getName()} 使用「${skill.name}」，但未能造成伤害${shieldAbsorbed ? `（护盾吸收 ${shieldAbsorbed} 点伤害）` : ''}`,
+            );
+
+            // 即使没有造成伤害，也需要处理护盾耗尽
+            this.handleDepletedBuffs(
+              beforeDamageCtx.metadata,
+              caster,
+              target,
+              result.logs,
+            );
           }
         } else if (effectConfig.type === 'Heal') {
           const healValue = context.value ?? 0;
@@ -158,6 +181,10 @@ export class SkillExecutor {
           if (actualHeal > 0) {
             result.logs.push(
               `${caster.getName()} 使用「${skill.name}」，恢复 ${actualHeal} 点气血`,
+            );
+          } else {
+            result.logs.push(
+              `${caster.getName()} 使用「${skill.name}」，气血充足，未能恢复气血`,
             );
           }
         } else if (effectConfig.type === 'AddBuff') {
@@ -252,6 +279,43 @@ export class SkillExecutor {
 
     // 综合判定：finalHitRate 低于随机数或闪避判定成功
     return Math.random() > finalHitRate;
+  }
+
+  /**
+   * 处理耗尽的 buff（如护盾耗尽）
+   * 从 metadata 中读取需要移除的 buff，移除并记录日志
+   */
+  private handleDepletedBuffs(
+    metadata: Record<string, unknown> | undefined,
+    caster: BattleUnit,
+    target: BattleUnit,
+    logs: string[],
+  ): void {
+    const buffsToRemove = metadata?.buffsToRemove as
+      | Array<{ buffId: string; ownerId: string; reason: string }>
+      | undefined;
+
+    if (!buffsToRemove || buffsToRemove.length === 0) return;
+
+    for (const { buffId, ownerId, reason } of buffsToRemove) {
+      // 找到对应的单位
+      const unit = caster.id === ownerId ? caster : target;
+      const config = buffRegistry.get(buffId);
+      const buffName = config?.name ?? buffId;
+
+      // 移除 buff
+      const removed = unit.buffManager.removeBuff(buffId);
+
+      if (removed > 0) {
+        logs.push(`${unit.getName()} 的「${buffName}」${reason}，效果消失`);
+        unit.markAttributesDirty();
+      }
+    }
+
+    // 清空已处理的 buffs
+    if (metadata) {
+      metadata.buffsToRemove = [];
+    }
   }
 }
 
