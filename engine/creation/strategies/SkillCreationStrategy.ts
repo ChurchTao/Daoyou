@@ -68,9 +68,7 @@ export class SkillCreationStrategy implements CreationStrategy<
 
     // 获取命格信息
     const fatesDesc =
-      cultivator.pre_heaven_fates
-        ?.map((f) => `${f.name}(${f.type})`)
-        .join('、') || '无';
+      cultivator.pre_heaven_fates?.map((f) => `${f.name}`).join('、') || '无';
 
     const finalAttributes = calculateFinalAttributes(cultivator);
     const wisdom = finalAttributes.final.wisdom;

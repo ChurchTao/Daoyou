@@ -91,9 +91,8 @@ export function getBattleReportPrompt({
         ?.map((cultivation) => `${cultivation.name}`)
         .join('，') ?? '无';
     const fates =
-      cultivator.pre_heaven_fates
-        ?.map((fate) => `${fate.name}(${fate.type})`)
-        .join('，') ?? '无';
+      cultivator.pre_heaven_fates?.map((fate) => `${fate.name}`).join('，') ??
+      '无';
     return `姓名：${cultivator.name}
 境界：${cultivator.realm}${cultivator.realm_stage}
 灵根/属性：${roots}

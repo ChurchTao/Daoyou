@@ -13,7 +13,7 @@ import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, eq, gt, inArray, lt } from 'drizzle-orm';
 import type {
   BreakthroughHistoryEntry,
-  ConsumableEffect,
+  Consumable,
   CultivationProgress,
   Cultivator,
   RetreatRecord,
@@ -75,12 +75,8 @@ async function assembleCultivator(
   // 组装先天命格
   const pre_heaven_fates = preHeavenFatesResult.map((f) => ({
     name: f.name,
-    type: f.type as '吉' | '凶',
-    quality: f.quality as
-      | Cultivator['pre_heaven_fates'][0]['quality']
-      | undefined,
-    attribute_mod:
-      f.attribute_mod as Cultivator['pre_heaven_fates'][0]['attribute_mod'],
+    quality: f.quality as Quality,
+    effects: (f.effects ?? []) as EffectConfig[],
     description: f.description || undefined,
   }));
 
@@ -237,9 +233,8 @@ export async function createCultivator(
         cultivator.pre_heaven_fates.map((fate) => ({
           cultivatorId,
           name: fate.name,
-          type: fate.type,
           quality: fate.quality || null,
-          attribute_mod: fate.attribute_mod,
+          effects: fate.effects ?? [],
           description: fate.description || null,
         })),
       );
@@ -789,7 +784,7 @@ export async function getCultivatorConsumables(
     name: c.name,
     quality: c.quality as Quality,
     type: c.type as ConsumableType,
-    effect: c.effect as ConsumableEffect[],
+    effects: c.effects as EffectConfig[],
     quantity: c.quantity,
     description: c.description || '',
   }));
@@ -1061,11 +1056,9 @@ export async function getInventory(
       name: c.name,
       type: c.type as ConsumableType,
       quality: c.quality as Quality | undefined,
-      effect: (Array.isArray(c.effect)
-        ? c.effect
-        : [c.effect].filter(Boolean)) as
-        | import('../../types/cultivator').ConsumableEffect[]
-        | undefined,
+      effects: (Array.isArray(c.effects)
+        ? c.effects
+        : [c.effects].filter(Boolean)) as EffectConfig[],
       quantity: c.quantity,
     })),
     materials: materialsResult.map((m) => ({
@@ -1219,6 +1212,7 @@ export async function getSkills(
 
 /**
  * 服用丹药
+ * todo 使用效果系统重构
  */
 export async function consumeItem(
   userId: string,
@@ -1246,7 +1240,7 @@ export async function consumeItem(
   if (!cultivator) throw new Error('道友状态异常');
 
   // 3. 应用效果
-  const effects = (item.effect as ConsumableEffect[]) || [];
+  const effects = (item.effects as EffectConfig[]) || [];
 
   if (effects.length === 0) {
     // 即使无效也消耗掉
@@ -1259,7 +1253,7 @@ export async function consumeItem(
   }
 
   const newStats = { ...cultivator.attributes };
-  let message = `服用了【${item.name}】，`;
+  // let message = `服用了【${item.name}】，`;
   const changes: string[] = [];
 
   // 获取当前境界属性上限
@@ -1268,75 +1262,75 @@ export async function consumeItem(
     cultivator.realm_stage,
   );
 
-  let isFullyCapped = true;
+  // let isFullyCapped = true;
 
-  // 预检：检查是否所有属性都已达到上限
-  for (const effect of effects) {
-    const bonus = effect.bonus || 0;
-    if (bonus > 0) {
-      if (effect.effect_type === '永久提升体魄' && newStats.vitality < attrCap)
-        isFullyCapped = false;
-      if (effect.effect_type === '永久提升灵力' && newStats.spirit < attrCap)
-        isFullyCapped = false;
-      if (effect.effect_type === '永久提升悟性' && newStats.wisdom < attrCap)
-        isFullyCapped = false;
-      if (effect.effect_type === '永久提升身法' && newStats.speed < attrCap)
-        isFullyCapped = false;
-      if (effect.effect_type === '永久提升神识' && newStats.willpower < attrCap)
-        isFullyCapped = false;
-    }
-  }
+  // // 预检：检查是否所有属性都已达到上限
+  // for (const effect of effects) {
+  //   const bonus = effect.bonus || 0;
+  //   if (bonus > 0) {
+  //     if (effect.effect_type === '永久提升体魄' && newStats.vitality < attrCap)
+  //       isFullyCapped = false;
+  //     if (effect.effect_type === '永久提升灵力' && newStats.spirit < attrCap)
+  //       isFullyCapped = false;
+  //     if (effect.effect_type === '永久提升悟性' && newStats.wisdom < attrCap)
+  //       isFullyCapped = false;
+  //     if (effect.effect_type === '永久提升身法' && newStats.speed < attrCap)
+  //       isFullyCapped = false;
+  //     if (effect.effect_type === '永久提升神识' && newStats.willpower < attrCap)
+  //       isFullyCapped = false;
+  //   }
+  // }
 
-  if (isFullyCapped && effects.some((e) => e.bonus > 0)) {
-    return {
-      success: false,
-      message: '道友当前境界已臻圆满，无法再吸收药力。请先尝试突破瓶颈。',
-      cultivator,
-    };
-  }
+  // if (isFullyCapped && effects.some((e) => e.bonus > 0)) {
+  //   return {
+  //     success: false,
+  //     message: '道友当前境界已臻圆满，无法再吸收药力。请先尝试突破瓶颈。',
+  //     cultivator,
+  //   };
+  // }
 
-  for (const effect of effects) {
-    const bonus = effect.bonus || 0;
-    if (bonus > 0) {
-      let realGain = 0;
-      let targetAttr = '';
+  // for (const effect of effects) {
+  //   const bonus = effect.bonus || 0;
+  //   if (bonus > 0) {
+  //     let realGain = 0;
+  //     let targetAttr = '';
 
-      if (effect.effect_type === '永久提升体魄') {
-        targetAttr = '体魄';
-        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.vitality));
-        newStats.vitality += realGain;
-      } else if (effect.effect_type === '永久提升灵力') {
-        targetAttr = '灵力';
-        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.spirit));
-        newStats.spirit += realGain;
-      } else if (effect.effect_type === '永久提升悟性') {
-        targetAttr = '悟性';
-        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.wisdom));
-        newStats.wisdom += realGain;
-      } else if (effect.effect_type === '永久提升身法') {
-        targetAttr = '身法';
-        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.speed));
-        newStats.speed += realGain;
-      } else if (effect.effect_type === '永久提升神识') {
-        targetAttr = '神识';
-        realGain = Math.min(bonus, Math.max(0, attrCap - newStats.willpower));
-        newStats.willpower += realGain;
-      }
+  //     if (effect.effect_type === '永久提升体魄') {
+  //       targetAttr = '体魄';
+  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.vitality));
+  //       newStats.vitality += realGain;
+  //     } else if (effect.effect_type === '永久提升灵力') {
+  //       targetAttr = '灵力';
+  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.spirit));
+  //       newStats.spirit += realGain;
+  //     } else if (effect.effect_type === '永久提升悟性') {
+  //       targetAttr = '悟性';
+  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.wisdom));
+  //       newStats.wisdom += realGain;
+  //     } else if (effect.effect_type === '永久提升身法') {
+  //       targetAttr = '身法';
+  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.speed));
+  //       newStats.speed += realGain;
+  //     } else if (effect.effect_type === '永久提升神识') {
+  //       targetAttr = '神识';
+  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.willpower));
+  //       newStats.willpower += realGain;
+  //     }
 
-      if (realGain > 0) {
-        changes.push(`${targetAttr}+${realGain}`);
-      } else if (bonus > 0) {
-        // 尝试提升但被阻断
-        changes.push(`${targetAttr}已至上限`);
-      }
-    }
-  }
+  //     if (realGain > 0) {
+  //       changes.push(`${targetAttr}+${realGain}`);
+  //     } else if (bonus > 0) {
+  //       // 尝试提升但被阻断
+  //       changes.push(`${targetAttr}已至上限`);
+  //     }
+  //   }
+  // }
 
-  if (changes.length === 0) {
-    message += '感觉身体热了一下，除此之外并无变化。';
-  } else {
-    message += '顿感灵台清明，' + changes.join('，') + '。';
-  }
+  // if (changes.length === 0) {
+  //   message += '感觉身体热了一下，除此之外并无变化。';
+  // } else {
+  //   message += '顿感灵台清明，' + changes.join('，') + '。';
+  // }
 
   // 4. 执行事务：消耗丹药 + 更新属性
   await db.transaction(async (tx) => {
@@ -1368,7 +1362,7 @@ export async function consumeItem(
   const updatedCultivator = await getCultivatorById(userId, cultivatorId);
   if (!updatedCultivator) throw new Error('更新后无法获取数据');
 
-  return { success: true, message, cultivator: updatedCultivator };
+  return { success: true, message: '', cultivator: updatedCultivator };
 }
 
 async function handleConsumeItem(itemId: string, currentQuantity: number) {
@@ -1674,7 +1668,7 @@ export async function addArtifactToInventory(
 export async function addConsumableToInventory(
   userId: string,
   cultivatorId: string,
-  consumable: import('../../types/cultivator').Consumable,
+  consumable: Consumable,
   tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
@@ -1705,7 +1699,7 @@ export async function addConsumableToInventory(
       type: consumable.type,
       prompt: '', // 默认空提示词
       quality: consumable.quality || '凡品',
-      effect: (consumable.effect || []) as unknown as Record<string, unknown>[],
+      effects: consumable.effects || [],
       quantity: consumable.quantity,
       description: consumable.description || null,
       score: 0, // 默认评分

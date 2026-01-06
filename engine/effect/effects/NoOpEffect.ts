@@ -26,4 +26,12 @@ export class NoOpEffect extends BaseEffect {
   apply(_ctx: EffectContext): void {
     // 空操作
   }
+
+  displayInfo() {
+    return {
+      label: '空操作',
+      icon: '',
+      description: '空操作',
+    };
+  }
 }

@@ -35,14 +35,13 @@ export function ConsumablesTab({
     <InkList>
       {consumables.map((item, idx) => {
         // 解析药效用于展示
-        const effectDescriptions = item.effect
-          ? item.effect
+        const effectDescriptions = item.effects
+          ? item.effects
               .map((e) => {
-                const bonus = e.bonus ? `+${e.bonus}` : '';
-                return `${e.effect_type}${bonus}`;
+                return `todo 重构`;
               })
               .join('，')
-          : '未知效果';
+          : 'todo 重构';
 
         return (
           <InkListItem

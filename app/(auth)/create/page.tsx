@@ -491,9 +491,6 @@ export default function CreatePage() {
                         <InkListItem
                           title={
                             <div className="flex items-center">
-                              <span>
-                                {fate.type === '吉' ? '🍀' : '😈'} {fate.name}
-                              </span>
                               {fate.quality && (
                                 <InkBadge tier={fate.quality}>气运</InkBadge>
                               )}

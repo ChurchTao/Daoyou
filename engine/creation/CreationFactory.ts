@@ -15,22 +15,14 @@ import type {
   Quality,
   RealmType,
 } from '@/types/constants';
-import { QUALITY_VALUES, STATUS_EFFECT_VALUES } from '@/types/constants';
-import type {
-  Artifact,
-  ArtifactBonus,
-  ArtifactEffect,
-  Consumable,
-  ConsumableEffect,
-} from '@/types/cultivator';
+import { QUALITY_VALUES } from '@/types/constants';
+import type { Artifact, Attributes, Consumable } from '@/types/cultivator';
 import {
   CREATION_CONFIG,
   hasElementConflict,
-  QUALITY_MAX_BONUS_COUNT,
   QUALITY_MAX_EFFECTS,
   QUALITY_MULTIPLIER,
   QUANTITY_HINT_MAP,
-  SLOT_ALLOWED_ATTRIBUTES,
 } from './creationConfig';
 import type {
   ArtifactBlueprint,
@@ -109,13 +101,7 @@ export class CreationFactory {
 
     // 将属性加成转换为 StatModifier 效果
     for (const [attr, value] of Object.entries(bonus)) {
-      if (value && value > 0) {
-        effects.push({
-          type: EffectType.StatModifier,
-          trigger: 'ON_STAT_CALC',
-          params: { attribute: attr, value, modType: 1 },
-        });
-      }
+      //todo 重构
     }
 
     // 将特效转换为 effects
@@ -194,18 +180,11 @@ export class CreationFactory {
       quantity = 1;
     }
 
-    const effect: ConsumableEffect[] = [
-      {
-        effect_type: effectType,
-        bonus: effectValue,
-      },
-    ];
-
     return {
       name: blueprint.name,
       type: '丹药',
       quality,
-      effect,
+      effects: [],
       quantity,
       description: blueprint.description,
     };
@@ -239,60 +218,58 @@ export class CreationFactory {
     slot: EquipmentSlot,
     totalValue: number,
     quality: Quality,
-  ): ArtifactBonus {
-    const bonus: ArtifactBonus = {};
+  ): keyof Attributes {
+    // // 获取该槽位允许的属性
+    // const allowedAttrs = SLOT_ALLOWED_ATTRIBUTES[slot] || [
+    //   'vitality',
+    //   'spirit',
+    //   'wisdom',
+    //   'speed',
+    //   'willpower',
+    // ];
 
-    // 获取该槽位允许的属性
-    const allowedAttrs = SLOT_ALLOWED_ATTRIBUTES[slot] || [
-      'vitality',
-      'spirit',
-      'wisdom',
-      'speed',
-      'willpower',
-    ];
+    // // 方向标签 → 属性映射
+    // const attributeMap: Partial<Record<DirectionTag, keyof ArtifactBonus>> = {
+    //   increase_vitality: 'vitality',
+    //   increase_spirit: 'spirit',
+    //   increase_wisdom: 'wisdom',
+    //   increase_speed: 'speed',
+    //   increase_willpower: 'willpower',
+    //   defense_boost: 'vitality',
+    //   critical_boost: 'wisdom',
+    // };
 
-    // 方向标签 → 属性映射
-    const attributeMap: Partial<Record<DirectionTag, keyof ArtifactBonus>> = {
-      increase_vitality: 'vitality',
-      increase_spirit: 'spirit',
-      increase_wisdom: 'wisdom',
-      increase_speed: 'speed',
-      increase_willpower: 'willpower',
-      defense_boost: 'vitality',
-      critical_boost: 'wisdom',
-    };
+    // // 找出有效的属性标签
+    // const relevantAttrs: (keyof ArtifactBonus)[] = [];
+    // for (const tag of tags) {
+    //   const attr = attributeMap[tag];
+    //   if (
+    //     attr &&
+    //     allowedAttrs.includes(attr) &&
+    //     !relevantAttrs.includes(attr)
+    //   ) {
+    //     relevantAttrs.push(attr);
+    //   }
+    // }
 
-    // 找出有效的属性标签
-    const relevantAttrs: (keyof ArtifactBonus)[] = [];
-    for (const tag of tags) {
-      const attr = attributeMap[tag];
-      if (
-        attr &&
-        allowedAttrs.includes(attr) &&
-        !relevantAttrs.includes(attr)
-      ) {
-        relevantAttrs.push(attr);
-      }
-    }
+    // // 如果没有匹配的属性，随机选一个
+    // if (relevantAttrs.length === 0) {
+    //   const randomAttr =
+    //     allowedAttrs[Math.floor(Math.random() * allowedAttrs.length)];
+    //   relevantAttrs.push(randomAttr);
+    // }
 
-    // 如果没有匹配的属性，随机选一个
-    if (relevantAttrs.length === 0) {
-      const randomAttr =
-        allowedAttrs[Math.floor(Math.random() * allowedAttrs.length)];
-      relevantAttrs.push(randomAttr);
-    }
+    // // 根据品质限制属性条数
+    // const maxCount = QUALITY_MAX_BONUS_COUNT[quality] || 1;
+    // const finalAttrs = relevantAttrs.slice(0, maxCount);
 
-    // 根据品质限制属性条数
-    const maxCount = QUALITY_MAX_BONUS_COUNT[quality] || 1;
-    const finalAttrs = relevantAttrs.slice(0, maxCount);
+    // // 分配属性值
+    // const perAttr = Math.max(1, Math.floor(totalValue / finalAttrs.length));
+    // for (const attr of finalAttrs) {
+    //   bonus[attr] = (bonus[attr] || 0) + perAttr;
+    // }
 
-    // 分配属性值
-    const perAttr = Math.max(1, Math.floor(totalValue / finalAttrs.length));
-    for (const attr of finalAttrs) {
-      bonus[attr] = (bonus[attr] || 0) + perAttr;
-    }
-
-    return bonus;
+    return 'critDamage';
   }
 
   /**
@@ -329,70 +306,71 @@ export class CreationFactory {
 
   /**
    * 根据提示创建单个特效
+   * todo 重构
    */
   private static createEffect(
     hint: EffectHint,
     config: (typeof CREATION_CONFIG)[RealmType],
     element: ElementType,
-  ): ArtifactEffect | null {
+  ): EffectConfig | null {
     const power = this.randomInt(
       config.effect_power.min,
       config.effect_power.max,
     );
 
     switch (hint.type) {
-      case 'damage_boost':
-      case 'element_damage':
-      case 'defense':
-      case 'critical':
-        // 所有伤害相关效果使用 DamageBonusEffect
-        return {
-          type: 'damage_bonus',
-          element,
-          power,
-          bonus:
-            ((hint.type === 'defense' ? -1 : 1) *
-              this.randomInt(
-                config.effect_power.min,
-                config.effect_power.max,
-              )) /
-            100,
-        };
+      //   case 'damage_boost':
+      //   case 'element_damage':
+      //   case 'defense':
+      //   case 'critical':
+      //     // 所有伤害相关效果使用 DamageBonusEffect
+      //     return {
+      //       type: 'damage_bonus',
+      //       element,
+      //       power,
+      //       bonus:
+      //         ((hint.type === 'defense' ? -1 : 1) *
+      //           this.randomInt(
+      //             config.effect_power.min,
+      //             config.effect_power.max,
+      //           )) /
+      //         100,
+      //     };
 
-      case 'on_hit_status': {
-        // 映射 status hint 到游戏内状态
-        const statusMap: Record<string, (typeof STATUS_EFFECT_VALUES)[number]> =
-          {
-            burn: 'burn',
-            freeze: 'freezing', // freeze 映射到 freezing
-            poison: 'poison',
-            stun: 'stun',
-            slow: 'root', // slow 映射到 root
-            silence: 'silence',
-            weaken: 'weakness',
-            bleed: 'bleed',
-          };
-        const statusEffect = hint.status ? statusMap[hint.status] : 'burn';
-        return {
-          type: 'on_hit_add_effect',
-          effect: statusEffect || 'burn',
-          chance: this.randomInt(
-            config.effect_chance.min,
-            config.effect_chance.max,
-          ),
-          power,
-        };
-      }
+      //   case 'on_hit_status': {
+      //     // 映射 status hint 到游戏内状态
+      //     const statusMap: Record<string, (typeof STATUS_EFFECT_VALUES)[number]> =
+      //       {
+      //         burn: 'burn',
+      //         freeze: 'freezing', // freeze 映射到 freezing
+      //         poison: 'poison',
+      //         stun: 'stun',
+      //         slow: 'root', // slow 映射到 root
+      //         silence: 'silence',
+      //         weaken: 'weakness',
+      //         bleed: 'bleed',
+      //       };
+      //     const statusEffect = hint.status ? statusMap[hint.status] : 'burn';
+      //     return {
+      //       type: 'on_hit_add_effect',
+      //       effect: statusEffect || 'burn',
+      //       chance: this.randomInt(
+      //         config.effect_chance.min,
+      //         config.effect_chance.max,
+      //       ),
+      //       power,
+      //     };
+      //   }
 
-      case 'on_use_cost_hp':
-        return {
-          type: 'on_use_cost_hp',
-          power,
-          amount: this.randomInt(
-            config.effect_power.min * 5,
-            config.effect_power.max * 5,
-          ),
-        };
+      //   case 'on_use_cost_hp':
+      //     return {
+      //       type: 'on_use_cost_hp',
+      //       power,
+      //       amount: this.randomInt(
+      //         config.effect_power.min * 5,
+      //         config.effect_power.max * 5,
+      //       ),
+      //     };
 
       default:
         return null;

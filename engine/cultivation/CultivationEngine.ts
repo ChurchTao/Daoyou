@@ -239,7 +239,7 @@ export function attemptBreakthrough(
         if (growth[attrKey]) {
           growth[attrKey] = Math.floor(growth[attrKey]! * 1.2);
           grownAttributes[attrKey] =
-            cultivator.attributes[attrKey] + growth[attrKey]!;
+            cultivator.attributes[attrKey]! + growth[attrKey]!;
         }
       });
     } else if (breakthrough_type === 'forced') {
@@ -248,7 +248,7 @@ export function attemptBreakthrough(
         if (growth[attrKey]) {
           growth[attrKey] = Math.floor(growth[attrKey]! * 0.8);
           grownAttributes[attrKey] =
-            cultivator.attributes[attrKey] + growth[attrKey]!;
+            cultivator.attributes[attrKey]! + growth[attrKey]!;
         }
       });
     }

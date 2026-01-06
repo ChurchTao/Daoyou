@@ -123,14 +123,13 @@ export const QUALITY_MAX_BONUS_COUNT: Record<Quality, number> = {
 
 // ============ 槽位 → 允许的属性 ============
 
-import type { ArtifactBonus } from '@/types/cultivator';
+import type { Attributes } from '@/types/cultivator';
 
-export const SLOT_ALLOWED_ATTRIBUTES: Record<string, (keyof ArtifactBonus)[]> =
-  {
-    weapon: ['vitality', 'spirit', 'speed'],
-    armor: ['vitality', 'spirit', 'willpower'],
-    accessory: ['spirit', 'wisdom', 'willpower'],
-  };
+export const SLOT_ALLOWED_ATTRIBUTES: Record<string, (keyof Attributes)[]> = {
+  weapon: ['vitality', 'spirit', 'speed'],
+  armor: ['vitality', 'spirit', 'willpower'],
+  accessory: ['spirit', 'wisdom', 'willpower'],
+};
 
 // ============ 成丹数量映射 ============
 

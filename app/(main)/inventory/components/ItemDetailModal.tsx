@@ -149,16 +149,14 @@ function ConsumableDetail({ item }: { item: Consumable }) {
           </div>
         )}
 
-        {item.effect && item.effect.length > 0 && (
+        {item.effects && item.effects.length > 0 && (
           <div>
             <span className="block opacity-70 mb-1 font-bold text-ink">
               药效
             </span>
             <ul className="list-disc list-inside space-y-1">
-              {item.effect.map((e, i) => (
-                <li key={i}>
-                  {e.effect_type} + {e.bonus}
-                </li>
+              {item.effects.map((e, i) => (
+                <li key={i}>todo 重构</li>
               ))}
             </ul>
           </div>

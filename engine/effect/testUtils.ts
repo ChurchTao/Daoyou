@@ -192,7 +192,7 @@ export const effectBuilder = {
   critical: (params: Partial<CriticalEffectParams> = {}): CriticalEffect => {
     return new CriticalEffect({
       critRateBonus: params.critRateBonus ?? 0,
-      critDamageMultiplier: params.critDamageMultiplier ?? 1.5,
+      critDamageBonus: params.critDamageBonus ?? 1.5,
     });
   },
 

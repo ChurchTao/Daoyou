@@ -440,13 +440,8 @@ export function applyAttributeGrowth(
   const growth: Partial<Attributes> = {};
 
   ATTRIBUTE_KEYS.forEach((key) => {
-    if (key === 'wisdom' && !isMajor) {
-      // 只有大境界突破才可能提升悟性
-      growth[key] = 0;
-      return;
-    }
     const delta = randomInt(range.min, range.max, rng);
-    const current = Math.min(updated[key], cap);
+    const current = Math.min(updated[key]!, cap);
     if (current !== updated[key]) {
       updated[key] = current;
     }

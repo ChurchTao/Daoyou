@@ -139,6 +139,8 @@ export enum EffectType {
   Shield = 'Shield',
   LifeSteal = 'LifeSteal',
   ReflectDamage = 'ReflectDamage',
+  Critical = 'Critical',
+  DamageReduction = 'DamageReduction',
   NoOp = 'NoOp',
 }
 
@@ -153,8 +155,6 @@ export interface StatModifierParams {
   modType: StatModifierType;
   /** 修正值 (固定值时为具体数值，百分比时为小数如0.1表示10%) */
   value: number;
-  /** 是否为公式计算 (可选) */
-  formula?: string;
 }
 
 // ============================================================
@@ -170,6 +170,10 @@ export interface DamageParams {
   flatDamage?: number;
   /** 是否可暴击 */
   canCrit?: boolean;
+  /** 暴击率加成 (0-1)，叠加到基础暴击率上 */
+  critRateBonus?: number;
+  /** 暴击伤害倍率 */
+  critDamageBonus?: number;
   /** 是否无视防御 */
   ignoreDefense?: boolean;
 }
@@ -246,4 +250,28 @@ export interface ShieldParams {
   duration?: number;
   /** 吸收元素类型 (可选，空则吸收所有) */
   absorbElement?: ElementType;
+}
+
+// ============================================================
+// 暴击效果参数
+// ============================================================
+
+export interface CriticalParams {
+  /** 暴击率加成 (0-1)，叠加到基础暴击率上 */
+  critRateBonus?: number;
+  /** 暴击伤害倍率 */
+  critDamageBonus?: number;
+}
+
+// ============================================================
+// 减伤效果参数
+// ============================================================
+
+export interface DamageReductionParams {
+  /** 固定减伤值 */
+  flatReduction?: number;
+  /** 百分比减伤 (0-1) */
+  percentReduction?: number;
+  /** 最大减伤上限 (0-1)，默认 0.75 */
+  maxReduction?: number;
 }

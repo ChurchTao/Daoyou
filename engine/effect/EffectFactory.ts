@@ -1,7 +1,9 @@
 import { BaseEffect } from './BaseEffect';
 import {
   AddBuffEffect,
+  CriticalEffect,
   DamageEffect,
+  DamageReductionEffect,
   DotDamageEffect,
   HealEffect,
   LifeStealEffect,
@@ -16,7 +18,9 @@ import {
   EffectType,
   StatModifierType,
   type AddBuffParams,
+  type CriticalParams,
   type DamageParams,
+  type DamageReductionParams,
   type DotDamageParams,
   type EffectConfig,
   type HealParams,
@@ -69,6 +73,14 @@ export class EffectFactory {
       case EffectType.ModifyHitRate:
         return new ModifyHitRateEffect(
           config.params as unknown as ModifyHitRateParams,
+        );
+
+      case EffectType.Critical:
+        return new CriticalEffect(config.params as unknown as CriticalParams);
+
+      case EffectType.DamageReduction:
+        return new DamageReductionEffect(
+          config.params as unknown as DamageReductionParams,
         );
 
       case EffectType.NoOp:

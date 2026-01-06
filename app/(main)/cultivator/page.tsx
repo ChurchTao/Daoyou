@@ -17,11 +17,7 @@ import {
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Attributes } from '@/types/cultivator';
-import {
-  getAttributeInfo,
-  getAttributeLabel,
-  getEquipmentSlotInfo,
-} from '@/types/dictionaries';
+import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -99,13 +95,8 @@ export default function CultivatorPage() {
 
   // 获取命格属性加成说明
   const getFateModText = (fate: (typeof cultivator.pre_heaven_fates)[0]) => {
-    const mods = Object.entries(fate.attribute_mod)
-      .filter(([, v]) => v !== undefined && v !== 0)
-      .map(([k, v]) => {
-        const label = getAttributeLabel(k as keyof Attributes);
-        return `${label} ${v > 0 ? '+' : ''}${v}`;
-      });
-    return mods.length > 0 ? mods.join('，') : '无属性加成';
+    // todo重构
+    return 'todo重构';
   };
 
   return (
@@ -203,9 +194,6 @@ export default function CultivatorPage() {
                 key={fate.name + idx}
                 title={
                   <div className="flex items-center">
-                    <span>
-                      {fate.type === '吉' ? '🍀' : '😈'} {fate.name}
-                    </span>
                     {fate.quality && (
                       <InkBadge tier={fate.quality}>气运</InkBadge>
                     )}
@@ -213,7 +201,6 @@ export default function CultivatorPage() {
                 }
                 meta={`加成：${getFateModText(fate)}`}
                 description={fate.description}
-                highlight={fate.type === '吉'}
               />
             ))}
           </InkList>

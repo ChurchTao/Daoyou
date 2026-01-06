@@ -20,6 +20,10 @@ export class DamageEffect extends BaseEffect {
   private canCrit: boolean;
   /** 是否无视防御 */
   private ignoreDefense: boolean;
+  /** 暴击率加成 (0-1)，叠加到基础暴击率上 */
+  private critRateBonus?: number;
+  /** 暴击伤害倍率 */
+  private critDamageBonus?: number;
 
   constructor(params: DamageParams) {
     super(params as unknown as Record<string, unknown>);
@@ -29,6 +33,8 @@ export class DamageEffect extends BaseEffect {
     this.flatDamage = params.flatDamage ?? 0;
     this.canCrit = params.canCrit ?? true;
     this.ignoreDefense = params.ignoreDefense ?? false;
+    this.critRateBonus = params.critRateBonus ?? 0;
+    this.critDamageBonus = params.critDamageBonus ?? 0;
   }
 
   /**
@@ -60,6 +66,8 @@ export class DamageEffect extends BaseEffect {
     ctx.metadata.element = this.element;
     ctx.metadata.canCrit = this.canCrit;
     ctx.metadata.ignoreDefense = this.ignoreDefense;
+    ctx.metadata.critRateBonus = this.critRateBonus;
+    ctx.metadata.critDamageMultiplier = this.critDamageBonus;
   }
 
   /**
@@ -69,5 +77,31 @@ export class DamageEffect extends BaseEffect {
     if (!ctx.source) return 0;
     const sourceAtk = ctx.source.getAttribute('spirit');
     return sourceAtk * this.multiplier + this.flatDamage;
+  }
+
+  displayInfo() {
+    const elementText = this.element ? `${this.element}属性` : '';
+    const multiplierText =
+      this.multiplier !== 1.0
+        ? `，伤害倍率：自身灵力*${this.multiplier * 100}%`
+        : '';
+    const flatDamageText = this.flatDamage
+      ? `，固定伤害：${this.flatDamage}点`
+      : '';
+    const critRateBonusText = this.critRateBonus
+      ? `额外暴击率：${this.critRateBonus * 100}%`
+      : '';
+    const critDamageMultiplierText = this.critDamageBonus
+      ? `额外暴击伤害：${this.critDamageBonus * 100}%`
+      : '';
+    const critRate = this.canCrit
+      ? `${['「允许暴击」', critRateBonusText, critDamageMultiplierText].filter(Boolean).join('，')}`
+      : '「不可暴击」';
+    const ignoreDefenseText = this.ignoreDefense ? '「无视防御」' : '';
+    return {
+      label: '造成伤害',
+      icon: '💥',
+      description: `造成${elementText}伤害，${[multiplierText, flatDamageText].filter(Boolean).join('+')}，${critRate}${ignoreDefenseText}`,
+    };
   }
 }

@@ -92,24 +92,6 @@ describe('Effect Engine', () => {
 
       expect(effect.shouldTrigger(ctx)).toBe(false);
     });
-
-    it('应该支持动态值函数', () => {
-      const effect = new StatModifierEffect({
-        stat: 'ATK',
-        modType: StatModifierType.FIXED,
-        value: (ctx) => ctx.source.getAttribute('spirit') * 2,
-      });
-
-      const ctx = {
-        source: createMockEntity({ spirit: 50 }),
-        trigger: EffectTrigger.ON_STAT_CALC,
-        value: 100,
-        metadata: { statName: 'ATK' },
-      };
-
-      effect.apply(ctx);
-      expect(ctx.value).toBe(200); // 100 + 50*2
-    });
   });
 
   describe('DamageEffect', () => {
@@ -542,13 +524,14 @@ describe('Effect Engine', () => {
   });
 
   describe('CriticalEffect', () => {
-    it('应该在高智慧时增加暴击率', () => {
+    it('应该在高暂击率时增加暂击率', () => {
       const effect = new CriticalEffect({
-        critRateBonus: 0.1,
-        critDamageMultiplier: 1.5,
+        critRateBonus: 0.1, // 10% 加成
+        critDamageBonus: 1.5,
       });
 
-      const source = createMockEntity({ wisdom: 250 }); // 250/500 = 50% 基础暴击率
+      // critRate 属性加成 0.5 = 50%
+      const source = createMockEntity({ critRate: 0.5 });
       const target = createMockEntity();
 
       const ctx = {
@@ -559,9 +542,10 @@ describe('Effect Engine', () => {
         metadata: {} as Record<string, unknown>,
       };
 
-      // 模拟必定暴击
+      // 模拟必定暂击
+      // 总暂击率 = 5%(基础) + 50%(critRate) + 10%(效果) = 65%
       const originalRandom = Math.random;
-      Math.random = () => 0.4; // 小于 50% + 10% = 60%
+      Math.random = () => 0.6; // 小于 65%
 
       effect.apply(ctx);
 
@@ -572,13 +556,14 @@ describe('Effect Engine', () => {
       expect(ctx.value).toBe(150); // 100 * 1.5
     });
 
-    it('暴击未触发时伤害不应改变', () => {
+    it('暂击未触发时伤害不应改变', () => {
       const effect = new CriticalEffect({
         critRateBonus: 0,
-        critDamageMultiplier: 1.5,
+        critDamageBonus: 1.5,
       });
 
-      const source = createMockEntity({ wisdom: 100 }); // 100/500 = 20% 基础暴击率
+      // 无 critRate 属性加成，只有 5% 基础暂击率
+      const source = createMockEntity({});
       const target = createMockEntity();
 
       const ctx = {
@@ -589,9 +574,9 @@ describe('Effect Engine', () => {
         metadata: {} as Record<string, unknown>,
       };
 
-      // 模拟必定不暴击
+      // 模拟不暂击
       const originalRandom = Math.random;
-      Math.random = () => 0.8; // 大于 20%
+      Math.random = () => 0.9; // 大于 5%
 
       effect.apply(ctx);
 
@@ -602,7 +587,7 @@ describe('Effect Engine', () => {
     });
 
     it('已处理过暴击时不应重复判定', () => {
-      const effect = new CriticalEffect({ critDamageMultiplier: 2.0 });
+      const effect = new CriticalEffect({ critDamageBonus: 2.0 });
 
       const ctx = {
         source: createMockEntity({ wisdom: 500 }), // 100% 暴击率
@@ -684,15 +669,15 @@ describe('Effect Engine', () => {
       expect(ctx.metadata?.reductionPercent).toBe(0.3);
     });
 
-    it('体魄属性应提供基础减伤', () => {
+    it('属性减伤应正确计算', () => {
       const effect = new DamageReductionEffect({
         percentReduction: 0,
         flatReduction: 0,
         maxReduction: 0.75,
       });
 
-      // 200 体魄 = 200/400 = 50% 基础减伤
-      const target = createMockEntity({ vitality: 200 });
+      // damageReduction 属性 = 50% 减伤
+      const target = createMockEntity({ damageReduction: 0.5 });
 
       const ctx = {
         source: createMockEntity(),
@@ -706,14 +691,14 @@ describe('Effect Engine', () => {
       expect(ctx.value).toBe(50); // 100 * (1 - 0.5)
     });
 
-    it('百分比和固定减伤应叠加计算', () => {
+    it('百分比和固定减伤应叠加计算（固定优先）', () => {
       const effect = new DamageReductionEffect({
         percentReduction: 0.2,
         flatReduction: 10,
         maxReduction: 0.75,
       });
 
-      const target = createMockEntity({ vitality: 0 });
+      const target = createMockEntity({});
 
       const ctx = {
         source: createMockEntity(),
@@ -724,9 +709,8 @@ describe('Effect Engine', () => {
       };
 
       effect.apply(ctx);
-      // 先百分比: 100 * 0.8 = 80,
-      // 再固定: 80 - 10 = 70
-      expect(ctx.value).toBe(70);
+      // 固定减伤优先: (100 - 10) * 0.8 = 72
+      expect(ctx.value).toBe(72);
     });
 
     it('减伤后伤害不应为负', () => {

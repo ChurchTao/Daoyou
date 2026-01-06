@@ -158,7 +158,7 @@ ${userPrompt || '无'}
       prompt: context.userPrompt,
       type: resultItem.type,
       quality: resultItem.quality,
-      effect: resultItem.effect,
+      effects: resultItem.effects,
       description: resultItem.description,
       quantity: resultItem.quantity || 1,
       score,

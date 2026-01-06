@@ -45,4 +45,12 @@ export class LifeStealEffect extends BaseEffect {
     // 同时累加到 ctx.value 供统一处理
     ctx.value = (ctx.value ?? 0) + healAmount;
   }
+
+  displayInfo() {
+    return {
+      label: '吸血效果',
+      icon: '',
+      description: `神通命中后，吸取气血，比例为造成伤害的${this.stealPercent * 100}%`,
+    };
+  }
 }

@@ -69,12 +69,9 @@ export function calculateSingleSkillScore(skill: Skill): number {
  */
 export function calculateSingleElixirScore(consumable: Consumable): number {
   // 丹药主要看品质
-  let score = QUALITY_SCORE_MAP[consumable.quality || '凡品'] || 10;
+  const score = QUALITY_SCORE_MAP[consumable.quality || '凡品'] || 10;
 
   // 基础属性
-  if (consumable.effect) {
-    score += consumable.effect?.map((e) => e.bonus).reduce((a, b) => a + b, 0);
-  }
 
   return score;
 }

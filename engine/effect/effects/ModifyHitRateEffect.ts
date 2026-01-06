@@ -48,6 +48,14 @@ export class ModifyHitRateEffect extends BaseEffect {
     }
 
     // 确保命中率在合理范围
-    ctx.value = Math.max(0, Math.min(1, ctx.value));
+    ctx.value = Math.max(0, ctx.value);
+  }
+
+  displayInfo() {
+    return {
+      label: '命中修正',
+      icon: '',
+      description: `${this.affectsTarget ? '增加闪避' : '增加命中'}${this.hitRateBonus * 100}%`,
+    };
   }
 }

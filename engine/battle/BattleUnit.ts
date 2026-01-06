@@ -4,13 +4,17 @@ import { BuffTag } from '@/engine/buff/types';
 import {
   EffectTrigger,
   EffectType,
-  StatModifierType,
   type IBaseEffect,
 } from '@/engine/effect/types';
 import type { StatusEffect } from '@/types/constants';
 import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
 import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
-import { effectEngine, EffectFactory, StatModifierEffect } from '../effect';
+import {
+  CriticalEffect,
+  DamageReductionEffect,
+  effectEngine,
+  EffectFactory,
+} from '../effect';
 import type { UnitId } from './types';
 
 /**
@@ -114,6 +118,10 @@ export class BattleUnit {
   collectAllEffects(): IBaseEffect[] {
     const effects: IBaseEffect[] = [];
 
+    // 0. 基础战斗效果（暂击、减伤）
+    effects.push(this.getBaseCritEffect());
+    effects.push(this.getBaseDamageReductionEffect());
+
     // 1. Buff 效果
     effects.push(...this.buffManager.getAllEffects());
 
@@ -127,6 +135,27 @@ export class BattleUnit {
     effects.push(...this.getFateEffects());
 
     return effects;
+  }
+
+  /**
+   * 获取基础暂击效果
+   * 基础暂击率 5%，基础暂击伤害 1.5x
+   * 装备/功法/命格可通过 StatModifierEffect 修改 critRate/critDamage 属性
+   */
+  private getBaseCritEffect(): CriticalEffect {
+    return new CriticalEffect();
+  }
+
+  /**
+   * 获取基础减伤效果
+   * 无基础减伤，依赖装备/功法/命格通过 StatModifierEffect 提供
+   */
+  private getBaseDamageReductionEffect(): DamageReductionEffect {
+    return new DamageReductionEffect({
+      flatReduction: 0,
+      percentReduction: 0,
+      maxReduction: 0.75,
+    });
   }
 
   /**
@@ -197,27 +226,10 @@ export class BattleUnit {
     const { pre_heaven_fates } = this.cultivatorData;
 
     for (const fate of pre_heaven_fates) {
-      const mods = fate.attribute_mod;
-      if (!mods) continue;
-
-      // 将每个属性修正转换为 StatModifierEffect
-      const attrEntries: [string, number | undefined][] = [
-        ['vitality', mods.vitality],
-        ['spirit', mods.spirit],
-        ['wisdom', mods.wisdom],
-        ['speed', mods.speed],
-        ['willpower', mods.willpower],
-      ];
-
-      for (const [stat, value] of attrEntries) {
-        if (value === undefined || value === 0) continue;
-
+      if (!fate.effects) continue;
+      for (const effectConfig of fate.effects) {
         try {
-          const effect = new StatModifierEffect({
-            stat,
-            modType: StatModifierType.FIXED,
-            value,
-          });
+          const effect = EffectFactory.create(effectConfig);
           effects.push(effect);
         } catch (err) {
           console.warn(`[BattleUnit] 加载命格效果失败: ${fate.name}`, err);
@@ -231,27 +243,39 @@ export class BattleUnit {
   // ============================================================
   // 属性计算 - 完全通过 EffectEngine
   // ============================================================
-
   /**
    * 获取最终属性（基础 + 装备 + Buff 修正）
    * 使用 EffectEngine.process(ON_STAT_CALC) 管道
+   * 计算所有效果需要的属性，包括暴击、减伤等
    */
   getFinalAttributes(): Attributes {
     if (this.attributesDirty || !this.cachedAttributes) {
-      const baseWithEquipment = calcFinalAttrs(this.cultivatorData).final;
+      const baseAttrs = this.cultivatorData.attributes;
 
-      // 使用 EffectEngine 计算每个属性
-      const statNames = [
+      // 基础五维属性
+      const coreStats = [
         'vitality',
         'spirit',
         'wisdom',
         'speed',
         'willpower',
       ] as const;
-      const result: Attributes = { ...baseWithEquipment };
 
-      for (const statName of statNames) {
-        const baseValue = baseWithEquipment[statName];
+      // 战斗相关属性（基础值为 0，完全由装备/功法/命格/Buff 提供）
+      const combatStats = [
+        'critRate', // 暴击率加成
+        'critDamage', // 暴击伤害加成
+        'damageReduction', // 百分比减伤
+        'flatDamageReduction', // 固定减伤
+        'hitRate', // 命中率加成
+        'dodgeRate', // 闪避率加成
+      ] as const;
+
+      const result: Attributes = { ...baseAttrs };
+
+      // 计算基础五维
+      for (const statName of coreStats) {
+        const baseValue = baseAttrs[statName];
         const finalValue = effectEngine.process(
           EffectTrigger.ON_STAT_CALC,
           this,
@@ -260,6 +284,19 @@ export class BattleUnit {
           { statName },
         );
         result[statName] = Math.floor(finalValue);
+      }
+
+      // 计算战斗属性（基础值 0）
+      for (const statName of combatStats) {
+        const finalValue = effectEngine.process(
+          EffectTrigger.ON_STAT_CALC,
+          this,
+          undefined,
+          0, // 基础值为 0
+          { statName },
+        );
+        // 战斗属性保留小数（如暴击率 0.15 = 15%）
+        (result as unknown as Record<string, number>)[statName] = finalValue;
       }
 
       this.cachedAttributes = result;
@@ -476,26 +513,5 @@ export class BattleUnit {
       attributes: finalAttrs,
       elementMultipliers,
     };
-  }
-
-  /**
-   * 获取 Buff 提供的暴击率加成
-   */
-  getCritRateBonus(): number {
-    let bonus = 0;
-    if (this.hasBuff('crit_rate_up')) bonus += 0.15;
-    if (this.hasBuff('crit_rate_down')) bonus -= 0.15;
-    return bonus;
-  }
-
-  /**
-   * 获取 Buff 提供的减伤修正
-   */
-  getDamageReductionBonus(): number {
-    let bonus = 0;
-    if (this.hasBuff('armor_up')) bonus += 0.15;
-    if (this.hasBuff('armor_down')) bonus -= 0.15;
-    if (this.isDefending) bonus += 0.5;
-    return bonus;
   }
 }

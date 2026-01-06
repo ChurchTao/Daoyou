@@ -45,4 +45,12 @@ export class ReflectDamageEffect extends BaseEffect {
     // 同时累加到 ctx.value 供统一处理
     ctx.value = (ctx.value ?? 0) + reflectDamage;
   }
+
+  displayInfo() {
+    return {
+      label: '反伤',
+      icon: '💥',
+      description: `反弹${this.reflectPercent * 100}%的伤害给攻击者`,
+    };
+  }
 }

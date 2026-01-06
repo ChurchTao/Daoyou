@@ -1,4 +1,5 @@
 import { buffRegistry } from '@/engine/buff';
+import { EffectConfig, EffectFactory } from '@/engine/effect';
 import type { Artifact, CultivationTechnique, Skill } from '@/types/cultivator';
 
 /**
@@ -126,4 +127,16 @@ export function getCultivationDisplayInfo(
   }
 
   return info;
+}
+
+// 装备特效描述
+export interface EffectDisplayInfo {
+  label: string;
+  icon?: string;
+  description: string;
+}
+
+// 获取装备特效描述
+export function getEffectDisplayInfo(effect: EffectConfig): EffectDisplayInfo {
+  return EffectFactory.create(effect).displayInfo();
 }

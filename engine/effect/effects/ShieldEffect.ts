@@ -33,7 +33,7 @@ export class ShieldEffect extends BaseEffect {
 
     // 检查伤害元素是否匹配
     const damageElement = ctx.metadata?.element as ElementType | undefined;
-    return damageElement === this.absorbElement;
+    return damageElement === this.absorbElement && this.amount > 0;
   }
 
   /**
@@ -63,5 +63,15 @@ export class ShieldEffect extends BaseEffect {
     ctx.metadata.shieldAbsorbed =
       ((ctx.metadata.shieldAbsorbed as number) || 0) + absorbed;
     ctx.metadata.shieldRemaining = shieldRemaining;
+  }
+
+  displayInfo() {
+    const elementType = this.absorbElement || '所有';
+
+    return {
+      label: '护盾',
+      icon: '🛡️',
+      description: `形成一个吸收${elementType}属性伤害的护盾，护盾值${this.amount}点`,
+    };
   }
 }

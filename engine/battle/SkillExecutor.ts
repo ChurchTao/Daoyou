@@ -1,7 +1,11 @@
 import { buffRegistry } from '@/engine/buff';
 import type { BuffEvent } from '@/engine/buff/types';
 import { EffectFactory, effectEngine } from '@/engine/effect';
-import { EffectContext, EffectTrigger } from '@/engine/effect/types';
+import {
+  EffectContext,
+  EffectTrigger,
+  EffectType,
+} from '@/engine/effect/types';
 import type { Skill } from '@/types/cultivator';
 import { BuffApplicationResult } from '../effect/effects/AddBuffEffect';
 import type { BattleUnit } from './BattleUnit';
@@ -81,7 +85,7 @@ export class SkillExecutor {
         effect.apply(context);
 
         // 收集效果结果
-        if (effectConfig.type === 'Damage') {
+        if (effectConfig.type === EffectType.Damage) {
           // 使用伤害管道：ON_SKILL_HIT -> ON_BEFORE_DAMAGE -> 扣血 -> ON_AFTER_DAMAGE
           const baseDamage = context.value ?? 0;
 
@@ -91,10 +95,7 @@ export class SkillExecutor {
             caster,
             effectTarget,
             baseDamage,
-            {
-              skillName: skill.name,
-              skillElement: skill.element,
-            },
+            context.metadata,
           );
 
           const finalDamage = Math.max(
@@ -120,12 +121,8 @@ export class SkillExecutor {
               EffectTrigger.ON_AFTER_DAMAGE,
               caster,
               effectTarget,
-              0,
-              {
-                finalDamage: actualDamage,
-                skillName: skill.name,
-                skillElement: skill.element,
-              },
+              actualDamage,
+              context.metadata,
             );
 
             // 处理吸血

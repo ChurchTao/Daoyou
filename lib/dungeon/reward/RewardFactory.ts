@@ -16,7 +16,7 @@ import type {
 import { QUALITY_VALUES, REALM_VALUES } from '@/types/constants';
 import type {
   Artifact,
-  ArtifactBonus,
+  Attributes,
   Consumable,
   Material,
 } from '@/types/cultivator';
@@ -161,13 +161,6 @@ export class RewardFactory {
       params?: Record<string, unknown>;
     }[] = [];
     for (const [attr, value] of Object.entries(bonus)) {
-      if (value && value > 0) {
-        effects.push({
-          type: EffectType.StatModifier,
-          trigger: 'ON_STAT_CALC',
-          params: { attribute: attr, value, modType: 1 },
-        });
-      }
     }
 
     const artifact: Artifact = {
@@ -210,12 +203,7 @@ export class RewardFactory {
       name: bp.name,
       type: '丹药',
       quality,
-      effect: [
-        {
-          effect_type: effectType,
-          bonus: effectValue,
-        },
-      ],
+      effects: [],
       quantity: 1,
       description: bp.description,
     };
@@ -303,8 +291,8 @@ export class RewardFactory {
   private static distributeBonus(
     tags: DirectionTag[],
     totalValue: number,
-  ): ArtifactBonus {
-    const attributeMap: Partial<Record<DirectionTag, keyof ArtifactBonus>> = {
+  ): keyof Attributes {
+    const attributeMap: Partial<Record<DirectionTag, keyof Attributes>> = {
       increase_vitality: 'vitality',
       increase_spirit: 'spirit',
       increase_wisdom: 'wisdom',
@@ -314,29 +302,30 @@ export class RewardFactory {
       critical_boost: 'wisdom',
     };
 
-    const bonus: ArtifactBonus = {};
-    const relevantTags = tags.filter((t) => attributeMap[t]);
+    // const bonus: Attributes = {};
+    // const relevantTags = tags.filter((t) => attributeMap[t]);
 
-    if (relevantTags.length === 0) {
-      // 无明确指向，随机分配到一个属性
-      const attrs: (keyof ArtifactBonus)[] = [
-        'vitality',
-        'spirit',
-        'wisdom',
-        'speed',
-        'willpower',
-      ];
-      const randomAttr = attrs[Math.floor(Math.random() * attrs.length)];
-      bonus[randomAttr] = totalValue;
-    } else {
-      // 按标签数量均分
-      const perTag = Math.max(1, Math.floor(totalValue / relevantTags.length));
-      for (const tag of relevantTags) {
-        const attr = attributeMap[tag]!;
-        bonus[attr] = (bonus[attr] || 0) + perTag;
-      }
-    }
-    return bonus;
+    // if (relevantTags.length === 0) {
+    //   // 无明确指向，随机分配到一个属性
+    //   const attrs: (keyof ArtifactBonus)[] = [
+    //     'vitality',
+    //     'spirit',
+    //     'wisdom',
+    //     'speed',
+    //     'willpower',
+    //   ];
+    //   const randomAttr = attrs[Math.floor(Math.random() * attrs.length)];
+    //   bonus[randomAttr] = totalValue;
+    // } else {
+    //   // 按标签数量均分
+    //   const perTag = Math.max(1, Math.floor(totalValue / relevantTags.length));
+    //   for (const tag of relevantTags) {
+    //     const attr = attributeMap[tag]!;
+    //     bonus[attr] = (bonus[attr] || 0) + perTag;
+    //   }
+    // }
+    // return bonus;
+    return 'vitality';
   }
 
   /**

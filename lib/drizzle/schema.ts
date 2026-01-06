@@ -78,9 +78,8 @@ export const preHeavenFates = pgTable('wanjiedaoyou_pre_heaven_fates', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 10 }).notNull(), // 吉 | 凶
   quality: varchar('quality', { length: 10 }), // 凡品 | 灵品 | 玄品 | 真品
-  attribute_mod: jsonb('attribute_mod').notNull(), // { vitality?, spirit?, wisdom?, speed?, willpower? }
+  effects: jsonb('effects').default([]),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -166,7 +165,7 @@ export const consumables = pgTable('wanjiedaoyou_consumables', {
   type: varchar('type', { length: 20 }).notNull(), // 丹药
   prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
   quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
-  effect: jsonb('effect'), // ConsumableEffect
+  effects: jsonb('effects').default([]), // EffectConfig[]
   quantity: integer('quantity').notNull().default(1),
   description: text('description'),
   score: integer('score').notNull().default(0), // 评分

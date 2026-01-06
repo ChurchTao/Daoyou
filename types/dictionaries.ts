@@ -6,7 +6,7 @@ import type {
   SkillType,
   StatusEffect,
 } from './constants';
-import type { ArtifactEffect, Attributes } from './cultivator';
+import type { Attributes } from './cultivator';
 
 // ===== 元素相关 =====
 
@@ -101,6 +101,42 @@ export const ATTRIBUTE_DISPLAY_MAP: Record<AttributeKey, AttributeDisplayInfo> =
       icon: '👁️',
       shortLabel: '识',
       description: '神魂坚韧程度，影响状态抗性、暴击伤害',
+    },
+    critRate: {
+      label: '暴击率',
+      icon: '🎯',
+      shortLabel: '暴',
+      description: '暴击几率',
+    },
+    critDamage: {
+      label: '暴击伤害',
+      icon: '💥',
+      shortLabel: '暴伤',
+      description: '暴击伤害',
+    },
+    damageReduction: {
+      label: '伤害减免',
+      icon: '🛡️',
+      shortLabel: '减伤',
+      description: '伤害减免',
+    },
+    flatDamageReduction: {
+      label: '伤害减免',
+      icon: '🛡️',
+      shortLabel: '减伤',
+      description: '伤害减免',
+    },
+    hitRate: {
+      label: '命中率',
+      icon: '🎯',
+      shortLabel: '命',
+      description: '命中率',
+    },
+    dodgeRate: {
+      label: '闪避率',
+      icon: '🏃‍♂️',
+      shortLabel: '闪避',
+      description: '闪避率',
     },
   };
 
@@ -438,23 +474,4 @@ export function getMaterialTypeInfo(
       icon: '',
     }
   );
-}
-
-// 装备特效描述
-
-// 获取装备特效描述
-export function getEffectText(effect: ArtifactEffect) {
-  if (effect.type === 'damage_bonus') {
-    return `${effect.element}系伤害 +${Math.round(effect.bonus * 100)}%`;
-  }
-  if (effect.type === 'on_hit_add_effect') {
-    return `命中时${effect.chance}%概率附加${getStatusLabel(effect.effect)}`;
-  }
-  if (effect.type === 'on_use_cost_hp') {
-    return `施展时消耗自身气血 ${effect.amount} 点`;
-  }
-  if (effect.type === 'environment_change') {
-    return `改变战场环境为「${effect.env_type}」`;
-  }
-  return '';
 }

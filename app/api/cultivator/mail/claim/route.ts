@@ -116,7 +116,7 @@ export const POST = withActiveCultivator(
               quantity: item.quantity,
               type: consumable.type || '丹药',
               quality: consumable.quality || '凡品',
-              effect: consumable.effect || {},
+              effects: consumable.effects || [],
               description: consumable.description || '',
             });
           }

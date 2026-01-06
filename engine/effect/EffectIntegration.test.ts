@@ -26,7 +26,7 @@ describe('效果集成测试', () => {
       // 创建攻击者，有暴击效果
       const critEffect = new CriticalEffect({
         critRateBonus: 1.0, // 100% 必定暴击
-        critDamageMultiplier: 2.0,
+        critDamageBonus: 2.0,
       });
 
       const attacker = createMockEntity(
@@ -94,7 +94,8 @@ describe('效果集成测试', () => {
       reductionEffect.apply(reductionCtx);
 
       const afterReduction = reductionCtx.value!;
-      expect(afterReduction).toBe(150);
+      // 新计算：固定减伤优先 (200 - 10) * (1 - 0.2) = 190 * 0.8 = 152
+      expect(afterReduction).toBe(152);
 
       // 4. 应用护盾效果
       const shieldCtx: EffectContext = contextBuilder.forBeforeDamage(
@@ -106,7 +107,8 @@ describe('效果集成测试', () => {
       shieldEffect.apply(shieldCtx);
 
       const finalDamage = shieldCtx.value!;
-      expect(finalDamage).toBe(120);
+      // 152 - 30 = 122
+      expect(finalDamage).toBe(122);
       expect(
         (shieldCtx.metadata as Record<string, unknown>).shieldAbsorbed,
       ).toBe(30);

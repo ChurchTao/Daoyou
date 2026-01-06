@@ -1,3 +1,4 @@
+import { EffectDisplayInfo } from '@/lib/utils/effectDisplay';
 import type { EffectContext, EffectTrigger } from './types';
 
 /**
@@ -42,4 +43,9 @@ export abstract class BaseEffect {
    * @param ctx 效果上下文
    */
   abstract apply(ctx: EffectContext): void;
+
+  /**
+   * 前端显示渲染
+   */
+  abstract displayInfo(): EffectDisplayInfo;
 }

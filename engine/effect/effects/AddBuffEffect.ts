@@ -1,5 +1,6 @@
 import { buffRegistry } from '@/engine/buff';
-import { BuffTag } from '@/engine/buff/types';
+import { BuffStackType, BuffTag } from '@/engine/buff/types';
+import { getEffectDisplayInfo } from '@/lib/utils/effectDisplay';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -131,5 +132,37 @@ export class AddBuffEffect extends BaseEffect {
     ctx.metadata = ctx.metadata ?? {};
     ctx.metadata.buffsToApply = ctx.metadata.buffsToApply ?? [];
     (ctx.metadata.buffsToApply as BuffApplicationResult[]).push(result);
+  }
+
+  displayInfo() {
+    const buffConfig = buffRegistry.get(this.buffId);
+    /** 最大叠加层数 */
+    const stackText =
+      buffConfig?.stackType == BuffStackType.STACK
+        ? `，初始叠加层数 ${this.initialStacks}层，最大叠加层数 ${buffConfig.maxStacks}层`
+        : '';
+    /** 叠加策略 */
+    const stackTypeText =
+      buffConfig?.stackType == BuffStackType.STACK
+        ? '可叠加' + stackText
+        : buffConfig?.stackType == BuffStackType.REFRESH
+          ? '不可叠加'
+          : '每次施加为独立状态';
+    /** 默认持续回合数 */
+    const durationText = `，持续${this.durationOverride ?? buffConfig?.duration}回合`;
+
+    /** Buff 携带的效果列表 */
+    const effectText = buffConfig?.effects?.length
+      ? `，效果为：${buffConfig.effects
+          .map((e) => getEffectDisplayInfo(e)?.description ?? '')
+          .filter(Boolean)
+          .join('、')}`
+      : '';
+
+    return {
+      label: '附加状态',
+      icon: buffConfig?.icon,
+      description: `${!this.targetSelf ? '技能命中目标时，' : '为自身'}施加${buffConfig?.name}状态，${stackTypeText}${durationText}${effectText}`,
+    };
   }
 }

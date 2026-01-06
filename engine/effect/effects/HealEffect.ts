@@ -13,15 +13,12 @@ export class HealEffect extends BaseEffect {
   private multiplier: number;
   /** 固定治疗量 */
   private flatHeal: number;
-  /** 目标自身还是他人 */
-  private targetSelf: boolean;
 
   constructor(params: HealParams) {
     super(params as unknown as Record<string, unknown>);
 
     this.multiplier = params.multiplier ?? 1.0;
     this.flatHeal = params.flatHeal ?? 0;
-    this.targetSelf = params.targetSelf ?? true;
   }
 
   shouldTrigger(ctx: EffectContext): boolean {
@@ -35,7 +32,7 @@ export class HealEffect extends BaseEffect {
     if (!ctx.source) return;
 
     // 确定治疗目标
-    const healTarget = this.targetSelf ? ctx.source : ctx.target;
+    const healTarget = ctx.source;
     if (!healTarget) return;
 
     // 获取施法者的灵力属性
@@ -49,6 +46,14 @@ export class HealEffect extends BaseEffect {
 
     // 记录元数据
     ctx.metadata = ctx.metadata ?? {};
-    ctx.metadata.targetSelf = this.targetSelf;
+    ctx.metadata.targetSelf = true;
+  }
+
+  displayInfo() {
+    return {
+      label: '治疗效果',
+      icon: '',
+      description: `治疗效果，治疗${this.multiplier * 100}%灵力+${this.flatHeal}`,
+    };
   }
 }
