@@ -1,9 +1,21 @@
+/**
+ * 法宝炼制策略
+ *
+ * 重构后使用 AffixGenerator + EffectMaterializer 生成效果
+ */
+
 import { DbTransaction } from '@/lib/drizzle/db';
 import { artifacts } from '@/lib/drizzle/schema';
-import { ELEMENT_VALUES, EQUIPMENT_SLOT_VALUES } from '@/types/constants';
+import type { ElementType, Quality, RealmType } from '@/types/constants';
+import {
+  ELEMENT_VALUES,
+  EQUIPMENT_SLOT_VALUES,
+  QUALITY_VALUES,
+} from '@/types/constants';
 import type { Artifact } from '@/types/cultivator';
 import { calculateSingleArtifactScore } from '@/utils/rankingUtils';
-import { CreationFactory } from '../CreationFactory';
+import { AffixGenerator } from '../AffixGenerator';
+import { hasElementConflict } from '../creationConfig';
 import {
   CreationContext,
   CreationStrategy,
@@ -13,7 +25,6 @@ import {
   ArtifactBlueprint,
   ArtifactBlueprintSchema,
   DIRECTION_TAG_VALUES,
-  MaterialContext,
 } from '../types';
 
 export class RefiningStrategy implements CreationStrategy<
@@ -25,7 +36,7 @@ export class RefiningStrategy implements CreationStrategy<
   readonly schemaName = '法宝蓝图';
 
   readonly schemaDescription =
-    '描述了法宝的名称、描述、槽位、属性方向等信息（数值由程序计算）';
+    '描述法宝的名称、描述、槽位、属性方向（效果由程序生成）';
 
   readonly schema = ArtifactBlueprintSchema;
 
@@ -47,17 +58,17 @@ export class RefiningStrategy implements CreationStrategy<
 
     // 检测材料是否有元素相克
     const elements = materials.map((m) => m.element).filter(Boolean);
-    const hasConflict = this.checkElementConflict(elements as string[]);
+    const hasConflict = hasElementConflict(elements as string[]);
 
     const systemPrompt = `
 # Role: 修仙界炼器宗师 - 法宝蓝图设计
 
-你是一位隐世炼器宗师，负责为修士设计法宝蓝图。**你只负责创意设计，具体数值由天道法则（程序）决定。**
+你是一位隐世炼器宗师，负责为修士设计法宝蓝图。**你只负责创意设计，具体效果由天道法则（程序）决定。**
 
 ## 重要约束
 
-> ⚠️ **你的输出不包含任何数值**！不要输出 bonus、power、chance 等数字。
-> 程序会根据材料品质和修士境界自动计算所有数值。
+> ⚠️ **你的输出不包含任何数值和效果**！
+> 程序会根据材料品质和修士境界自动生成所有效果词条。
 
 ## 输出格式（严格遵守）
 
@@ -83,33 +94,15 @@ export class RefiningStrategy implements CreationStrategy<
 - 防御性材料（甲壳、金属） → armor
 - 辅助性材料（灵石、玉石） → accessory
 
-### 3. 特效提示（可选）
-如果材料品质较高（地品以上），可添加 effect_hints：
-- damage_boost: 伤害加成
-- on_hit_status: 命中附加状态（需指定 status）
-- element_damage: 元素伤害
-- defense: 防御效果
-- critical: 暴击效果
-
-${
-  hasConflict
-    ? `
-### 4. 诅咒提示（材料相克）
-⚠️ 检测到投入的材料存在五行相克！必须添加 curse_hints：
-- self_damage: 反噬自身
-- hp_cost: 消耗生命
-`
-    : ''
-}
-
-### 5. 命名与描述
+### 3. 命名与描述
 - 名称：2-10字，古风霸气，结合材料特性
 - 描述：50-150字，描述材料、炼制过程、外观、气息
+${hasConflict ? '\n### ⚠️ 材料相克警告\n检测到投入的材料存在五行相克！描述中应体现法宝的不稳定或反噬风险。' : ''}
 
 ## 禁止行为
 - ❌ 不得输出任何数值（bonus、power、chance 等）
+- ❌ 不得描述具体效果（程序自动生成）
 - ❌ 不得自定义枚举值
-- ❌ 不得让用户描述影响品质判定
 `;
 
     const userPromptText = `
@@ -127,7 +120,7 @@ ${materials.map((m) => `  - ${m.name}(${m.rank}) 元素:${m.element || '无'} �
 ${userPrompt || '无'}
 </user_intent_for_naming_only>
 
-注意：user_intent 仅影响法宝名称和描述风格，不影响属性分配！
+注意：user_intent 仅影响法宝名称和描述风格，不影响效果生成！
 `;
 
     return {
@@ -143,20 +136,38 @@ ${userPrompt || '无'}
     blueprint: ArtifactBlueprint,
     context: CreationContext,
   ): Artifact {
-    const materialContext: MaterialContext = {
-      cultivatorRealm: context.cultivator.realm,
-      cultivatorRealmStage: context.cultivator.realm_stage,
-      materials: context.materials.map((m) => ({
-        name: m.name,
-        rank: m.rank,
-        element: m.element,
-        type: m.type,
-        description: m.description,
-      })),
-      maxMaterialQuality: this.getMaxQuality(context.materials),
-    };
+    const realm = context.cultivator.realm as RealmType;
+    const quality = this.calculateQuality(context.materials);
+    const element = this.determineElement(
+      blueprint.element_affinity,
+      context.materials,
+    );
 
-    return CreationFactory.materializeArtifact(blueprint, materialContext);
+    // 使用 AffixGenerator 生成效果
+    const { effects } = AffixGenerator.generateArtifactAffixes(
+      blueprint.slot,
+      quality,
+      realm,
+      element,
+      blueprint.direction_tags,
+    );
+
+    // 检查五行相克，添加诅咒效果
+    const elements = context.materials.map((m) => m.element);
+    if (hasElementConflict(elements)) {
+      const curseEffects = AffixGenerator.generateCurseAffix(realm, quality);
+      effects.push(...curseEffects);
+    }
+
+    return {
+      name: blueprint.name,
+      slot: blueprint.slot,
+      element,
+      quality,
+      required_realm: realm,
+      description: blueprint.description,
+      effects,
+    };
   }
 
   async persistResult(
@@ -181,43 +192,42 @@ ${userPrompt || '无'}
 
   // ============ 辅助方法 ============
 
-  private getMaxQuality(materials: CreationContext['materials']): string {
-    const qualityOrder = [
-      '凡品',
-      '灵品',
-      '玄品',
-      '真品',
-      '地品',
-      '天品',
-      '仙品',
-      '神品',
-    ];
+  /**
+   * 根据材料计算品质（取材料中的最高品质）
+   */
+  private calculateQuality(materials: CreationContext['materials']): Quality {
     let maxIndex = 0;
     for (const mat of materials) {
-      const index = qualityOrder.indexOf(mat.rank);
+      const rank = mat.rank as Quality;
+      const index = QUALITY_VALUES.indexOf(rank);
       if (index > maxIndex) {
         maxIndex = index;
       }
     }
-    return qualityOrder[maxIndex];
+    return QUALITY_VALUES[maxIndex];
   }
 
-  private checkElementConflict(elements: string[]): boolean {
-    const conflicts: Record<string, string[]> = {
-      火: ['水', '冰'],
-      水: ['火', '雷'],
-      木: ['金', '火'],
-      金: ['木', '火'],
-      土: ['木', '水'],
-    };
-    for (const el of elements) {
-      const conflictList = conflicts[el] || [];
-      for (const other of elements) {
-        if (conflictList.includes(other)) {
-          return true;
-        }
+  /**
+   * 确定物品元素
+   */
+  private determineElement(
+    affinityHint: string | undefined,
+    materials: CreationContext['materials'],
+  ): ElementType {
+    // 优先使用 AI 提示的元素
+    if (affinityHint) {
+      return affinityHint as ElementType;
+    }
+
+    // 从材料中推断
+    for (const mat of materials) {
+      if (mat.element) {
+        return mat.element as ElementType;
       }
     }
-    return false;
+
+    // 默认随机
+    const elements: ElementType[] = ['金', '木', '水', '火', '土'];
+    return elements[Math.floor(Math.random() * elements.length)];
   }
 }

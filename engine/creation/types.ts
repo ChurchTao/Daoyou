@@ -273,3 +273,170 @@ export interface SkillContext {
   /** 先天命格 */
   fates?: PreHeavenFate[];
 }
+
+// ============================================================
+// 词条系统类型定义
+// ============================================================
+
+import type {
+  EffectConfig,
+  EffectType,
+  StatModifierType,
+} from '@/engine/effect/types';
+import type { EquipmentSlot, Quality, SkillGrade } from '@/types/constants';
+
+/**
+ * 词条权重配置
+ * 用于定义词条池中每个词条的选取概率和适用条件
+ */
+export interface AffixWeight {
+  /** 效果类型 */
+  effectType: EffectType;
+  /** 效果触发时机 (可选，默认根据效果类型自动推断) */
+  trigger?: string;
+  /** 效果参数模板 (数值字段使用 'SCALE' 占位符，由 EffectMaterializer 填充) */
+  paramsTemplate: AffixParamsTemplate;
+  /** 权重（用于随机选取，数值越大概率越高） */
+  weight: number;
+  /** 适用槽位（仅法宝词条使用） */
+  slots?: EquipmentSlot[];
+  /** 最低品质要求 */
+  minQuality?: Quality;
+  /** 最高品质要求 */
+  maxQuality?: Quality;
+  /** 标签（用于筛选和分类） */
+  tags?: AffixTag[];
+  /** 显示名称（用于蓝图描述） */
+  displayName: string;
+}
+
+/**
+ * 词条参数模板
+ * 固定值直接填写，需要根据品质/境界缩放的值使用特殊标记
+ */
+export interface AffixParamsTemplate {
+  /** StatModifier 专用 */
+  stat?: string;
+  modType?: StatModifierType;
+  /**
+   * 数值字段 - 使用 ScalableValue 表示可缩放的数值
+   * 例如: { base: 10, scale: 'quality' } 表示基础值10，按品质缩放
+   */
+  value?: number | ScalableValue;
+
+  /** Damage 专用 */
+  multiplier?: number | ScalableValue;
+  element?: ElementType | 'INHERIT'; // INHERIT 表示继承物品元素
+  flatDamage?: number | ScalableValue;
+  canCrit?: boolean;
+  critRateBonus?: number | ScalableValue;
+  critDamageBonus?: number | ScalableValue;
+  ignoreDefense?: boolean;
+
+  /** Heal 专用 */
+  targetSelf?: boolean;
+  flatHeal?: number | ScalableValue;
+
+  /** AddBuff 专用 */
+  buffId?: string;
+  chance?: number | ScalableValue;
+  durationOverride?: number;
+  initialStacks?: number;
+
+  /** DotDamage 专用 */
+  baseDamage?: number | ScalableValue;
+  usesCasterStats?: boolean;
+
+  /** Shield 专用 */
+  amount?: number | ScalableValue;
+  duration?: number;
+  absorbElement?: ElementType;
+
+  /** LifeSteal 专用 */
+  stealPercent?: number | ScalableValue;
+
+  /** ReflectDamage 专用 */
+  reflectPercent?: number | ScalableValue;
+
+  /** DamageReduction 专用 */
+  flatReduction?: number | ScalableValue;
+  percentReduction?: number | ScalableValue;
+  maxReduction?: number;
+
+  /** Critical 专用 */
+  // critRateBonus 和 critDamageBonus 已在 Damage 中定义
+}
+
+/**
+ * 可缩放数值
+ * 用于表示需要根据品质/境界动态计算的数值
+ */
+export interface ScalableValue {
+  /** 基础值 */
+  base: number;
+  /** 缩放类型 */
+  scale: 'quality' | 'realm' | 'wisdom' | 'none';
+  /** 可选的缩放系数 */
+  coefficient?: number;
+}
+
+/**
+ * 词条标签
+ */
+export type AffixTag =
+  | 'primary' // 主词条
+  | 'secondary' // 副词条
+  | 'curse' // 诅咒词条
+  | 'offensive' // 攻击类
+  | 'defensive' // 防御类
+  | 'utility' // 功能类
+  | 'healing' // 治疗类
+  | 'control' // 控制类
+  | 'dot' // 持续伤害
+  | 'buff' // 增益
+  | 'debuff'; // 减益
+
+/**
+ * 词条池配置
+ */
+export interface AffixPool {
+  /** 主词条池 */
+  primary: AffixWeight[];
+  /** 副词条池 */
+  secondary: AffixWeight[];
+  /** 诅咒词条池（可选，用于负面效果） */
+  curse?: AffixWeight[];
+}
+
+/**
+ * 效果数值化上下文
+ * 提供数值计算所需的所有信息
+ */
+export interface MaterializationContext {
+  /** 修士境界 */
+  realm: RealmType;
+  /** 物品品质 */
+  quality: Quality;
+  /** 物品元素 */
+  element?: ElementType;
+  /** 悟性（影响技能威力） */
+  wisdom?: number;
+  /** 五行契合度（技能专用） */
+  elementMatch?: ElementMatch;
+  /** 技能品阶（技能专用） */
+  skillGrade?: SkillGrade;
+}
+
+/**
+ * 词条生成结果
+ */
+export interface AffixGenerationResult {
+  /** 生成的效果配置数组 */
+  effects: EffectConfig[];
+  /** 选中的词条信息（用于调试/展示） */
+  selectedAffixes: {
+    displayName: string;
+    effectType: EffectType;
+    tags: AffixTag[];
+  }[];
+}

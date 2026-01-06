@@ -1,8 +1,17 @@
+/**
+ * 丹药炼制策略
+ *
+ * 重构后使用 AffixGenerator + EffectMaterializer 生成效果
+ */
+
 import { DbTransaction } from '@/lib/drizzle/db';
 import { consumables } from '@/lib/drizzle/schema';
+import type { Quality, RealmType } from '@/types/constants';
+import { QUALITY_VALUES } from '@/types/constants';
 import type { Consumable } from '@/types/cultivator';
 import { calculateSingleElixirScore } from '@/utils/rankingUtils';
-import { CreationFactory } from '../CreationFactory';
+import { AffixGenerator } from '../AffixGenerator';
+import { QUANTITY_HINT_MAP } from '../creationConfig';
 import {
   CreationContext,
   CreationStrategy,
@@ -12,7 +21,6 @@ import {
   ConsumableBlueprint,
   ConsumableBlueprintSchema,
   DIRECTION_TAG_VALUES,
-  MaterialContext,
 } from '../types';
 
 export class AlchemyStrategy implements CreationStrategy<
@@ -24,7 +32,7 @@ export class AlchemyStrategy implements CreationStrategy<
   readonly schemaName = '丹药蓝图';
 
   readonly schemaDescription =
-    '描述了丹药的名称、描述、效果方向等信息（数值由程序计算）';
+    '描述丹药的名称、描述、效果方向（效果由程序生成）';
 
   readonly schema = ConsumableBlueprintSchema;
 
@@ -54,12 +62,12 @@ export class AlchemyStrategy implements CreationStrategy<
     const systemPrompt = `
 # Role: 修仙界丹道宗师 - 丹药蓝图设计
 
-你是一位隐世丹道宗师，负责为修士设计丹药蓝图。**你只负责创意设计，具体数值由天道法则（程序）决定。**
+你是一位隐世丹道宗师，负责为修士设计丹药蓝图。**你只负责创意设计，具体效果由天道法则（程序）决定。**
 
 ## 重要约束
 
-> ⚠️ **你的输出不包含任何数值**！不要输出 bonus、power 等数字。
-> 程序会根据材料品质和修士境界自动计算所有数值。
+> ⚠️ **你的输出不包含任何数值和具体效果**！
+> 程序会根据材料品质和修士境界自动生成所有效果。
 
 ## 输出格式（严格遵守）
 
@@ -71,7 +79,7 @@ export class AlchemyStrategy implements CreationStrategy<
 
 ## 核心规则
 
-### 1. 效果类型判定（通过 direction_tags）
+### 1. 效果方向判定（通过 direction_tags）
 根据材料特性选择 1-2 个方向标签：
 - 材料坚硬、血气旺盛（如龙骨、赤炎藤） → increase_vitality
 - 材料蕴含高浓度灵气（如星髓草、千年灵芝） → increase_spirit
@@ -83,18 +91,18 @@ export class AlchemyStrategy implements CreationStrategy<
 - 低品材料 → batch（2-3颗）
 - 中品材料 → medium（1-2颗）
 - 高品材料（地品以上） → single（1颗）
-- 程序会根据最终品质再次调整
 
 ### 3. 命名与描述
 - 名称：2-10字，古朴典雅（如"九转凝魄丹"）
 - 描述：30-100字，描述丹色、丹香或服用感
 - **不得编造未提供的材料**
+- **不得描述具体数值效果**
 
 ## 禁止行为
 - ❌ 不得输出任何数值（bonus、power 等）
+- ❌ 不得描述具体效果（"增加10点体魄"）
 - ❌ 不得自定义枚举值
 - ❌ 不得编造材料
-- ❌ 不得让用户描述影响品质判定
 `;
 
     const userPromptText = `
@@ -130,20 +138,34 @@ ${userPrompt || '无'}
     blueprint: ConsumableBlueprint,
     context: CreationContext,
   ): Consumable {
-    const materialContext: MaterialContext = {
-      cultivatorRealm: context.cultivator.realm,
-      cultivatorRealmStage: context.cultivator.realm_stage,
-      materials: context.materials.map((m) => ({
-        name: m.name,
-        rank: m.rank,
-        element: m.element,
-        type: m.type,
-        description: m.description,
-      })),
-      maxMaterialQuality: this.getMaxQuality(context.materials),
-    };
+    const realm = context.cultivator.realm as RealmType;
+    const quality = this.calculateQuality(context.materials);
 
-    return CreationFactory.materializeConsumable(blueprint, materialContext);
+    // 使用 AffixGenerator 生成效果
+    const { effects } = AffixGenerator.generateConsumableAffixes(
+      quality,
+      realm,
+      blueprint.direction_tags,
+    );
+
+    // 确定成丹数量
+    const quantityRange =
+      QUANTITY_HINT_MAP[blueprint.quantity_hint] || QUANTITY_HINT_MAP['single'];
+    let quantity = this.randomInt(quantityRange.min, quantityRange.max);
+
+    // 高品质丹药降低数量
+    if (['地品', '天品', '仙品', '神品'].includes(quality) && quantity > 1) {
+      quantity = 1;
+    }
+
+    return {
+      name: blueprint.name,
+      type: '丹药',
+      quality,
+      effects,
+      quantity,
+      description: blueprint.description,
+    };
   }
 
   async persistResult(
@@ -158,7 +180,7 @@ ${userPrompt || '无'}
       prompt: context.userPrompt,
       type: resultItem.type,
       quality: resultItem.quality,
-      effects: resultItem.effects,
+      effects: resultItem.effects ?? [],
       description: resultItem.description,
       quantity: resultItem.quantity || 1,
       score,
@@ -167,24 +189,25 @@ ${userPrompt || '无'}
 
   // ============ 辅助方法 ============
 
-  private getMaxQuality(materials: CreationContext['materials']): string {
-    const qualityOrder = [
-      '凡品',
-      '灵品',
-      '玄品',
-      '真品',
-      '地品',
-      '天品',
-      '仙品',
-      '神品',
-    ];
+  /**
+   * 根据材料计算品质（取材料中的最高品质）
+   */
+  private calculateQuality(materials: CreationContext['materials']): Quality {
     let maxIndex = 0;
     for (const mat of materials) {
-      const index = qualityOrder.indexOf(mat.rank);
+      const rank = mat.rank as Quality;
+      const index = QUALITY_VALUES.indexOf(rank);
       if (index > maxIndex) {
         maxIndex = index;
       }
     }
-    return qualityOrder[maxIndex];
+    return QUALITY_VALUES[maxIndex];
+  }
+
+  /**
+   * 随机整数
+   */
+  private randomInt(min: number, max: number): number {
+    return Math.floor(min + Math.random() * (max - min + 1));
   }
 }

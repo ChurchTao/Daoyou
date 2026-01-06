@@ -1,32 +1,44 @@
 /**
- * 技能创建策略 - 蓝图模式
+ * 技能创建策略
  *
- * AI 只生成创意内容（名称、类型、元素、描述、品阶提示）
- * 数值（威力、消耗、冷却等）由 SkillFactory 根据配置计算
+ * 重构后使用 AffixGenerator + EffectMaterializer 生成效果
  */
 
 import { DbTransaction } from '@/lib/drizzle/db';
 import { skills } from '@/lib/drizzle/schema';
+import type { ElementType, RealmType, SkillGrade } from '@/types/constants';
 import {
   ELEMENT_VALUES,
   SKILL_TYPE_VALUES,
   STATUS_EFFECT_VALUES,
 } from '@/types/constants';
-import type { Skill } from '@/types/cultivator';
+import type { Skill, SpiritualRoot } from '@/types/cultivator';
+import { SKILL_POWER_RANGES } from '@/utils/characterEngine';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { calculateSingleSkillScore } from '@/utils/rankingUtils';
+import { AffixGenerator } from '../AffixGenerator';
 import {
   CreationContext,
   CreationStrategy,
   PromptData,
 } from '../CreationStrategy';
-import { SkillFactory } from '../SkillFactory';
+import {
+  calculateBaseCost,
+  calculateCooldown,
+  clampGrade,
+  ELEMENT_MATCH_MODIFIER,
+  GRADE_HINT_TO_GRADES,
+  REALM_GRADE_LIMIT,
+  SKILL_ELEMENT_CONFLICT,
+  wisdomToPowerRatio,
+} from '../skillConfig';
 import {
   ELEMENT_MATCH_VALUES,
+  ElementMatch,
   GRADE_HINT_VALUES,
+  GradeHint,
   SkillBlueprint,
   SkillBlueprintSchema,
-  SkillContext,
 } from '../types';
 
 export class SkillCreationStrategy implements CreationStrategy<
@@ -38,7 +50,7 @@ export class SkillCreationStrategy implements CreationStrategy<
   readonly schemaName = '神通蓝图';
 
   readonly schemaDescription =
-    '描述了神通的名称、类型、元素、描述、品阶提示等创意信息（数值由程序计算）';
+    '描述神通的名称、类型、元素、描述（效果由程序生成）';
 
   readonly schema = SkillBlueprintSchema;
 
@@ -76,12 +88,12 @@ export class SkillCreationStrategy implements CreationStrategy<
     const systemPrompt = `
 # Role: 修仙界传功长老 - 神通蓝图设计
 
-你是一位隐世传功长老，负责为修士推演神通蓝图。**你只负责创意设计，具体数值由天道法则（程序）决定。**
+你是一位隐世传功长老，负责为修士推演神通蓝图。**你只负责创意设计，具体效果由天道法则（程序）决定。**
 
 ## 重要约束
 
-> ⚠️ **你的输出不包含任何数值**！不要输出 power、cost、cooldown 等数字。
-> 程序会根据修士境界、悟性、五行契合度自动计算所有数值。
+> ⚠️ **你的输出不包含任何数值**！
+> 程序会根据修士境界、悟性、五行契合度自动生成所有效果。
 
 ## 输出格式（严格遵守）
 
@@ -101,10 +113,10 @@ export class SkillCreationStrategy implements CreationStrategy<
 - **perfect_match**：灵根强度 >= 70 且武器元素匹配
 - **partial_match**：有对应灵根且强度 >= 50
 - **no_match**：无对应灵根
-- **conflict**：灵根与技能元素相克（如：火元素技能 + 水灵根）
+- **conflict**：灵根与技能元素相克
 
 ### 2. 品阶提示判定
-基于修士境界和心念合理性：
+基于修士境界：
 - 炼气期 → 最高 low（黄阶）
 - 筑基/金丹 → 最高 medium（玄阶）
 - 元婴/化神 → 最高 high（地阶）
@@ -113,19 +125,18 @@ export class SkillCreationStrategy implements CreationStrategy<
 ### 3. 技能类型规则
 - **attack**: 攻击型，effect_hint 应为 { type: 'none' }
 - **heal**: 治疗型，effect_hint 应为 { type: 'none' }, target_self: true
-- **control**: 控制型，可有 status 效果，duration 由程序决定
-- **debuff**: 异常型，可有 status 效果
+- **control**: 控制型，可有 status 效果
+- **debuff**: 减益型，可有 status 效果
 - **buff**: 增益型，target_self: true
 
 ### 4. 命名与描述
-- 名称：2-8字，贴合修仙风格，结合五行、武器和意境
+- 名称：2-8字，贴合修仙风格
 - 描述：描述施法过程、视觉效果
-- 若五行相克，描述应体现别扭、勉强的感觉
+- 若五行相克，描述应体现别扭的感觉
 
 ## 禁止行为
-- ❌ 不得输出任何数值（power、cost、cooldown、duration 等）
+- ❌ 不得输出任何数值
 - ❌ 不得自定义枚举值
-- ❌ 若境界过低要求极品，应降低 grade_hint
 `;
 
     const userPromptText = `
@@ -146,7 +157,7 @@ ${userPrompt || '无（自由发挥）'}
 注意：
 1. user_intent 仅影响名称、描述、技能类型的选择
 2. 请根据灵根判断五行契合度
-3. 若心念极其离谱（不符合五行/武器逻辑），使用 conflict 评估并选择 low 品阶
+3. 若心念极其离谱，使用 conflict 评估并选择 low 品阶
 `;
 
     return {
@@ -160,6 +171,7 @@ ${userPrompt || '无（自由发挥）'}
    */
   materialize(blueprint: SkillBlueprint, context: CreationContext): Skill {
     const finalAttributes = calculateFinalAttributes(context.cultivator);
+    const wisdom = finalAttributes.final.wisdom;
 
     // 获取武器元素
     const weaponId = context.cultivator.equipped.weapon;
@@ -167,16 +179,50 @@ ${userPrompt || '无（自由发挥）'}
       (a) => a.id === weaponId,
     );
 
-    const skillContext: SkillContext = {
-      realm: context.cultivator.realm,
-      realmStage: context.cultivator.realm_stage,
-      wisdom: finalAttributes.final.wisdom,
-      spiritualRoots: context.cultivator.spiritual_roots,
-      weaponElement: weapon?.element,
-      fates: context.cultivator.pre_heaven_fates,
-    };
+    // 1. 计算五行契合度（后端验证）
+    const elementMatch = this.calculateElementMatch(
+      blueprint.element,
+      context.cultivator.spiritual_roots,
+      weapon?.element,
+    );
 
-    return SkillFactory.materialize(blueprint, skillContext);
+    // 2. 确定品阶
+    const grade = this.calculateGrade(
+      blueprint.grade_hint,
+      context.cultivator.realm,
+      wisdom,
+    );
+
+    // 3. 计算消耗和冷却
+    const basePower = this.calculateBasePower(grade, wisdom);
+    const matchModifier = ELEMENT_MATCH_MODIFIER[elementMatch];
+    const adjustedPower = Math.floor(basePower * matchModifier.power);
+
+    const baseCost = calculateBaseCost(adjustedPower);
+    const cost = Math.floor(baseCost * matchModifier.cost);
+    const cooldown = calculateCooldown(adjustedPower);
+
+    // 4. 使用 AffixGenerator 生成效果
+    const { effects } = AffixGenerator.generateSkillAffixes(
+      blueprint.type,
+      blueprint.element,
+      grade,
+      wisdom,
+    );
+
+    // 5. 确定目标
+    const target_self = ['heal', 'buff'].includes(blueprint.type);
+
+    return {
+      name: blueprint.name,
+      element: blueprint.element,
+      grade,
+      cost,
+      cooldown,
+      target_self,
+      description: blueprint.description,
+      effects,
+    };
   }
 
   async persistResult(
@@ -198,5 +244,104 @@ ${userPrompt || '无（自由发挥）'}
       effects: resultItem.effects ?? [],
       score,
     });
+  }
+
+  // ============ 辅助方法 ============
+
+  /**
+   * 计算五行契合度
+   */
+  private calculateElementMatch(
+    skillElement: ElementType,
+    spiritualRoots: SpiritualRoot[],
+    weaponElement?: ElementType,
+  ): ElementMatch {
+    // 检查五行相克
+    const hasConflict = this.checkElementConflict(skillElement, spiritualRoots);
+    if (hasConflict) {
+      return 'conflict';
+    }
+
+    // 检查灵根是否匹配
+    const rootMatch = spiritualRoots.find((r) => r.element === skillElement);
+    const rootStrength = rootMatch?.strength || 0;
+
+    // 检查武器是否匹配
+    const weaponMatch = weaponElement === skillElement;
+
+    // 完美匹配
+    if (rootMatch && rootStrength >= 70 && weaponMatch) {
+      return 'perfect_match';
+    }
+
+    // 部分匹配
+    if (rootMatch && rootStrength >= 50) {
+      return 'partial_match';
+    }
+
+    // 弱匹配
+    if (rootMatch) {
+      return 'partial_match';
+    }
+
+    return 'no_match';
+  }
+
+  /**
+   * 检查技能元素是否与灵根相克
+   */
+  private checkElementConflict(
+    skillElement: ElementType,
+    spiritualRoots: SpiritualRoot[],
+  ): boolean {
+    const rootElements = spiritualRoots.map((r) => r.element);
+    const conflicts = SKILL_ELEMENT_CONFLICT[skillElement] || [];
+
+    for (const rootEl of rootElements) {
+      if (conflicts.includes(rootEl)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 计算最终品阶
+   */
+  private calculateGrade(
+    gradeHint: GradeHint,
+    realm: RealmType,
+    wisdom: number,
+  ): SkillGrade {
+    // 获取品阶候选列表
+    const candidates =
+      GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
+
+    // 根据悟性选择品阶
+    const wisdomRatio = wisdomToPowerRatio(wisdom);
+    const index = Math.min(
+      candidates.length - 1,
+      Math.floor(wisdomRatio * candidates.length),
+    );
+    let selectedGrade = candidates[index];
+
+    // 应用境界限制
+    const realmLimit = REALM_GRADE_LIMIT[realm];
+    selectedGrade = clampGrade(selectedGrade, realmLimit);
+
+    return selectedGrade;
+  }
+
+  /**
+   * 计算基础威力
+   */
+  private calculateBasePower(grade: SkillGrade, wisdom: number): number {
+    const range = SKILL_POWER_RANGES[grade];
+    if (!range) {
+      return 30;
+    }
+
+    const ratio = wisdomToPowerRatio(wisdom);
+    return range.min + Math.floor((range.max - range.min) * ratio);
   }
 }
