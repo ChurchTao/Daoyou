@@ -1,6 +1,7 @@
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type EffectContext,
   type ReflectDamageParams,
 } from '../types';
@@ -26,24 +27,38 @@ export class ReflectDamageEffect extends BaseEffect {
    * 注意：在 ON_AFTER_DAMAGE 时机，ctx.source 是攻击者，ctx.target 是受击者（反伤甲持有者）
    */
   apply(ctx: EffectContext): void {
-    // 从 metadata 获取本次造成的最终伤害
-    const damageTaken = (ctx.metadata?.finalDamage as number) || 0;
+    // 从 ctx.value 获取本次造成的最终伤害
+    const damageTaken = ctx.value ?? 0;
 
     if (damageTaken <= 0) return;
+
+    // 【修复】检查持有者：只有被攻击者（target）是持有者时才触发
+    if (this.ownerId && ctx.target?.id !== this.ownerId) {
+      return;
+    }
 
     // 计算反伤值
     const reflectDamage = Math.floor(damageTaken * this.reflectPercent);
 
     if (reflectDamage <= 0) return;
 
-    // 将反伤信息记录到 metadata，供战斗引擎处理
-    ctx.metadata = ctx.metadata ?? {};
-    ctx.metadata.reflectDamage =
-      ((ctx.metadata.reflectDamage as number) || 0) + reflectDamage;
-    ctx.metadata.reflectTarget = ctx.source.id; // 反伤目标是攻击者
+    // 检查攻击者是否为 BattleEntity
+    if (!ctx.source || !isBattleEntity(ctx.source)) {
+      console.warn(
+        '[ReflectDamageEffect] source (attacker) is not a BattleEntity',
+      );
+      return;
+    }
 
-    // 同时累加到 ctx.value 供统一处理
-    ctx.value = (ctx.value ?? 0) + reflectDamage;
+    // 直接对政击者造成反伤
+    const actualDamage = ctx.source.applyDamage(reflectDamage);
+
+    if (actualDamage > 0 && ctx.target) {
+      // 【修复】日志应该是：被攻击者反弹伤害，攻击者受到伤害
+      ctx.logCollector?.addLog(
+        `${ctx.target.name} 的反伤效果触发，${ctx.source.name} 受到 ${actualDamage} 点反弹伤害！`,
+      );
+    }
   }
 
   displayInfo() {

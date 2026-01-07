@@ -1,3 +1,4 @@
+import type { BuffEvent } from '@/engine/buff/types';
 import type { ElementType } from '@/types/constants';
 
 // ============================================================
@@ -12,19 +13,25 @@ export enum EffectTrigger {
   // 战斗流程
   ON_TURN_START = 'ON_TURN_START',
   ON_TURN_END = 'ON_TURN_END',
+  ON_BATTLE_START = 'ON_BATTLE_START',
+  ON_BATTLE_END = 'ON_BATTLE_END',
 
   // 命中相关
   ON_CALC_HIT_RATE = 'ON_CALC_HIT_RATE',
   ON_DODGE = 'ON_DODGE',
+  ON_CRITICAL_HIT = 'ON_CRITICAL_HIT',
+  ON_BEING_HIT = 'ON_BEING_HIT',
 
   // 伤害相关
   ON_BEFORE_DAMAGE = 'ON_BEFORE_DAMAGE',
   ON_AFTER_DAMAGE = 'ON_AFTER_DAMAGE',
   ON_SKILL_HIT = 'ON_SKILL_HIT',
+  ON_KILL = 'ON_KILL',
 
   // 系统事件
   ON_BREAKTHROUGH = 'ON_BREAKTHROUGH',
   ON_HEAL = 'ON_HEAL',
+  ON_CONSUME = 'ON_CONSUME',
 }
 
 // ============================================================
@@ -59,6 +66,8 @@ export interface EffectContext {
   value?: number;
   /** 额外参数，如技能ID、元素类型、突破等级等 */
   metadata?: Record<string, unknown>;
+  /** 日志收集器（可选，用于需要生成日志的效果） */
+  logCollector?: EffectLogCollector;
 }
 
 // ============================================================
@@ -88,6 +97,188 @@ export interface Entity {
    * 包括装备、功法、技能被动、命格、Buff 等
    */
   collectAllEffects(): IBaseEffect[];
+}
+
+// ============================================================
+// 效果日志系统
+// 统一收集 Effect 执行过程中产生的日志
+// ============================================================
+
+/**
+ * 效果日志收集器
+ * 统一收集 Effect 执行过程中产生的日志
+ */
+export class EffectLogCollector {
+  private logs: string[] = [];
+
+  /**
+   * 添加日志
+   */
+  addLog(message: string): void {
+    this.logs.push(message);
+  }
+
+  /**
+   * 获取日志消息字符串数组
+   */
+  getLogMessages(): string[] {
+    return [...this.logs];
+  }
+
+  /**
+   * 清空日志
+   */
+  clear(): void {
+    this.logs = [];
+  }
+
+  /**
+   * 检查是否有日志
+   */
+  hasLogs(): boolean {
+    return this.logs.length > 0;
+  }
+}
+
+// ============================================================
+// 战斗实体接口 (BattleEntity)
+// 继承 Entity，添加战斗所需的修改方法
+// ============================================================
+
+/**
+ * 战斗实体接口
+ * 扩展自 Entity，提供战斗操作方法
+ * Effect 可以通过此接口直接修改实体状态
+ */
+export interface BattleEntity extends Entity {
+  // === 生命值操作 ===
+
+  /**
+   * 应用伤害
+   * @param damage 伤害值
+   * @returns 实际伤害值
+   */
+  applyDamage(damage: number): number;
+
+  /**
+   * 应用治疗
+   * @param heal 治疗量
+   * @returns 实际治疗量
+   */
+  applyHealing(heal: number): number;
+
+  // === 法力值操作 ===
+
+  /**
+   * 消耗法力（用于技能释放等主动消耗）
+   * @param cost 消耗量
+   * @returns 是否成功（法力足够时返回 true）
+   */
+  consumeMp(cost: number): boolean;
+
+  /**
+   * 恢复法力
+   * @param amount 恢复量
+   * @returns 实际恢复量
+   */
+  restoreMp(amount: number): number;
+
+  /**
+   * 扣除法力（不经过消耗校验，用于法力吸取等被动效果）
+   * @param amount 扣除量
+   * @returns 实际扣除量
+   */
+  drainMp(amount: number): number;
+
+  // === Buff 操作 ===
+
+  /**
+   * 添加 Buff
+   * @param config Buff 配置
+   * @param caster 施法者
+   * @param turn 当前回合数
+   * @param options 额外选项
+   * @returns Buff 事件
+   */
+  addBuff(
+    config: import('@/engine/buff/types').BuffConfig,
+    caster: Entity,
+    turn: number,
+    options?: { durationOverride?: number; initialStacks?: number },
+  ): BuffEvent;
+
+  /**
+   * 移除 Buff
+   * @param buffId Buff ID
+   * @returns 移除的数量
+   */
+  removeBuff(buffId: string): number;
+
+  /**
+   * 检查是否有指定 Buff
+   * @param buffId Buff ID
+   */
+  hasBuff(buffId: string): boolean;
+
+  /**
+   * 驱散 Buff
+   * @param count 驱散数量
+   * @param type 驱散类型
+   * @param priorityTags 优先驱散的标签
+   * @returns 被驱散的 buffId 列表
+   */
+  dispelBuffs(
+    count: number,
+    type: 'buff' | 'debuff' | 'all',
+    priorityTags?: string[],
+  ): string[];
+
+  // === 状态查询 ===
+
+  /**
+   * 检查是否存活
+   */
+  isAlive(): boolean;
+
+  /**
+   * 获取当前生命值
+   */
+  getCurrentHp(): number;
+
+  /**
+   * 获取当前法力值
+   */
+  getCurrentMp(): number;
+
+  /**
+   * 获取最大生命值
+   */
+  getMaxHp(): number;
+
+  /**
+   * 获取最大法力值
+   */
+  getMaxMp(): number;
+
+  // === 辅助 ===
+
+  /**
+   * 标记属性为脏状态，触发重新计算
+   */
+  markAttributesDirty(): void;
+}
+
+/**
+ * 类型守卫：检查 Entity 是否为 BattleEntity
+ * @param entity 实体
+ */
+export function isBattleEntity(entity: Entity): entity is BattleEntity {
+  return (
+    'applyDamage' in entity &&
+    typeof entity.applyDamage === 'function' &&
+    'applyHealing' in entity &&
+    typeof entity.applyHealing === 'function'
+  );
 }
 
 // ============================================================
@@ -129,6 +320,7 @@ export interface EffectConfig {
  * 用于 EffectFactory 创建对应的效果实例
  */
 export enum EffectType {
+  // 基础效果
   StatModifier = 'StatModifier',
   Damage = 'Damage',
   Heal = 'Heal',
@@ -142,6 +334,24 @@ export enum EffectType {
   Critical = 'Critical',
   DamageReduction = 'DamageReduction',
   NoOp = 'NoOp',
+
+  // === P0: 伤害增幅类 ===
+  ElementDamageBonus = 'ElementDamageBonus', // 元素伤害加成
+
+  // === P0: 生存类 ===
+  HealAmplify = 'HealAmplify', // 治疗效果增幅
+
+  // === P0: 资源类 ===
+  ManaRegen = 'ManaRegen', // 法力回复
+  ManaDrain = 'ManaDrain', // 法力吸取
+
+  // === P0: 控制类 ===
+  Dispel = 'Dispel', // 驱散效果
+
+  // === P1: 伤害类 ===
+  ExecuteDamage = 'ExecuteDamage', // 斩杀伤害
+  TrueDamage = 'TrueDamage', // 真实伤害
+  CounterAttack = 'CounterAttack', // 反击效果
 }
 
 type EffectConfigParam =
@@ -207,6 +417,11 @@ export interface HealParams {
 // 施加 Buff 效果参数
 // ============================================================
 
+import type {
+  BuffMaterializationContext,
+  BuffParamsOverride,
+} from '@/engine/buff/types';
+
 export interface AddBuffParams {
   /** Buff 配置 ID */
   buffId: string;
@@ -218,6 +433,10 @@ export interface AddBuffParams {
   initialStacks?: number;
   /** 目标自身还是敌人 */
   targetSelf?: boolean;
+  /** Buff 效果参数覆盖 (动态 Buff 系统) */
+  paramsOverride?: BuffParamsOverride;
+  /** 数值化上下文 (动态 Buff 系统，施法时自动填充) */
+  materializationContext?: BuffMaterializationContext;
 }
 
 // ============================================================
@@ -286,4 +505,104 @@ export interface DamageReductionParams {
   percentReduction?: number;
   /** 最大减伤上限 (0-1)，默认 0.75 */
   maxReduction?: number;
+}
+
+// ============================================================
+// 元素伤害加成效果参数 (P0)
+// ============================================================
+
+export interface ElementDamageBonusParams {
+  /** 目标元素类型 */
+  element: ElementType | string;
+  /** 伤害加成百分比 (0.1 = 10%) */
+  damageBonus: number;
+}
+
+// ============================================================
+// 治疗增幅效果参数 (P0)
+// ============================================================
+
+export interface HealAmplifyParams {
+  /** 治疗倍率加成 (可为负数，如 -0.5 表示减少 50%) */
+  amplifyPercent: number;
+  /** 是否影响施放的治疗 (默认 false = 影响受到的治疗) */
+  affectOutgoing?: boolean;
+}
+
+// ============================================================
+// 法力回复效果参数 (P0)
+// ============================================================
+
+export interface ManaRegenParams {
+  /** 固定回复量 */
+  amount?: number;
+  /** 按最大法力百分比回复 (0.1 = 10%) */
+  percentOfMax?: number;
+}
+
+// ============================================================
+// 法力吸取效果参数 (P0)
+// ============================================================
+
+export interface ManaDrainParams {
+  /** 吸取百分比 (基于目标当前法力) */
+  drainPercent?: number;
+  /** 固定吸取量 */
+  drainAmount?: number;
+  /** 是否恢复给自身 (默认 true) */
+  restoreToSelf?: boolean;
+}
+
+// ============================================================
+// 驱散效果参数 (P0)
+// ============================================================
+
+export interface DispelParams {
+  /** 驱散数量 */
+  dispelCount: number;
+  /** 驱散类型 */
+  dispelType: 'buff' | 'debuff' | 'all';
+  /** 目标自身 (默认 false) */
+  targetSelf?: boolean;
+  /** 优先驱散的标签 (可选) */
+  priorityTags?: string[];
+}
+
+// ============================================================
+// 斩杀伤害效果参数 (P1)
+// ============================================================
+
+export interface ExecuteDamageParams {
+  /** 生命阈值百分比 (低于此值触发，如 0.3 = 30%) */
+  thresholdPercent: number;
+  /** 额外伤害倍率 */
+  bonusDamage: number;
+  /** 是否对护盾有效 */
+  affectShield?: boolean;
+}
+
+// ============================================================
+// 真实伤害效果参数 (P1)
+// ============================================================
+
+export interface TrueDamageParams {
+  /** 基础伤害 */
+  baseDamage: number;
+  /** 无视护盾 */
+  ignoreShield?: boolean;
+  /** 无视减伤 */
+  ignoreReduction?: boolean;
+}
+
+// ============================================================
+// 反击效果参数 (P1)
+// ============================================================
+
+export interface CounterAttackParams {
+  /** 触发几率 (0-1) */
+  chance: number;
+  /** 伤害倍率 (基于受到的伤害) */
+  damageMultiplier: number;
+  /** 元素类型 ('INHERIT' = 继承攻击者元素) */
+  element?: ElementType | 'INHERIT';
 }

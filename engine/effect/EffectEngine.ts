@@ -1,10 +1,21 @@
 import type { BaseEffect } from './BaseEffect';
+import { EffectLogCollector } from './types';
 import type {
   EffectContext,
   EffectTrigger,
   Entity,
   IBaseEffect,
 } from './types';
+
+/**
+ * 效果引擎执行结果
+ */
+export interface EffectEngineResult {
+  /** 效果上下文 */
+  ctx: EffectContext;
+  /** 日志消息数组 */
+  logs: string[];
+}
 
 /**
  * 效果引擎
@@ -53,8 +64,9 @@ class EffectEngine {
   }
 
   /**
-   * 处理效果并返回完整上下文
-   * 用于需要访问 metadata 的场景
+   * 处理效果并返回完整上下文和日志
+   * 用于需要访问 metadata 和日志的场景
+   * @returns 包含上下文和日志消息的结果
    */
   processWithContext(
     trigger: EffectTrigger,
@@ -63,32 +75,40 @@ class EffectEngine {
     initialValue: number,
     metadata: Record<string, unknown> = {},
     extraEffects?: BaseEffect[],
-  ): EffectContext {
-    // 1. 构建效果上下文
+  ): EffectEngineResult {
+    // 1. 创建日志收集器
+    const logCollector = new EffectLogCollector();
+
+    // 2. 构建效果上下文
     const ctx: EffectContext = {
       source,
       target,
       trigger,
       value: initialValue,
       metadata,
+      logCollector,
     };
 
-    // 2. 收集所有相关效果
+    // 3. 收集所有相关效果
     const effects = this.collectEffects(source, target);
 
-    // 3. 筛选与当前触发时机匹配的效果
+    // 4. 筛选与当前触发时机匹配的效果
     const activeEffects = effects
       .concat(extraEffects || [])
       .filter(Boolean)
       .filter((e) => e.trigger === trigger && e.shouldTrigger(ctx))
       .sort((a, b) => a.priority - b.priority);
 
-    // 4. 依次执行效果
+    // 5. 依次执行效果
     for (const effect of activeEffects) {
       effect.apply(ctx);
     }
 
-    return ctx;
+    // 6. 返回上下文和日志
+    return {
+      ctx,
+      logs: logCollector.getLogMessages(),
+    };
   }
 
   /**

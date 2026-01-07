@@ -22,6 +22,7 @@ export const DIRECTION_TAG_VALUES = [
   'increase_wisdom', // 增加悟性
   'increase_speed', // 增加身法
   'increase_willpower', // 增加神识
+
   // 元素亲和
   'fire_affinity', // 火属性
   'water_affinity', // 水属性
@@ -31,12 +32,26 @@ export const DIRECTION_TAG_VALUES = [
   'thunder_affinity', // 雷属性
   'ice_affinity', // 冰属性
   'wind_affinity', // 风属性
+
+  // 战斗机制导向
+  'offensive', // 进攻导向
+  'defensive', // 防御导向
+  'control', // 控制导向
+  'sustain', // 续航导向
+  'burst', // 爆发导向
+
   // 特殊效果
   'critical_boost', // 增加暴击
   'defense_boost', // 增加防御
   'healing_boost', // 增加治疗
   'lifespan_boost', // 增加寿元
   'cultivation_boost', // 增加修为速度
+  'lifesteal', // 吸血效果
+  'counter', // 反击效果
+  'execute', // 斩杀效果
+  'true_damage', // 真实伤害
+  'mana_regen', // 法力回复
+  'dispel', // 驱散效果
 ] as const;
 
 export type DirectionTag = (typeof DIRECTION_TAG_VALUES)[number];
@@ -365,6 +380,42 @@ export interface AffixParamsTemplate {
 
   /** Critical 专用 */
   // critRateBonus 和 critDamageBonus 已在 Damage 中定义
+
+  // ============================================================
+  // P0/P1 新增效果类型参数
+  // ============================================================
+
+  /** ElementDamageBonus 专用 */
+  damageBonus?: number | ScalableValue;
+
+  /** HealAmplify 专用 */
+  amplifyPercent?: number | ScalableValue;
+  affectOutgoing?: boolean;
+
+  /** ManaRegen 专用 */
+  percentOfMax?: number | ScalableValue;
+
+  /** ManaDrain 专用 */
+  drainPercent?: number | ScalableValue;
+  drainAmount?: number | ScalableValue;
+  restoreToSelf?: boolean;
+
+  /** Dispel 专用 */
+  dispelCount?: number;
+  dispelType?: 'buff' | 'debuff' | 'all';
+  priorityTags?: string[];
+
+  /** ExecuteDamage 专用 */
+  thresholdPercent?: number;
+  bonusDamage?: number | ScalableValue;
+  affectShield?: boolean;
+
+  /** TrueDamage 专用 */
+  ignoreShield?: boolean;
+  ignoreReduction?: boolean;
+
+  /** CounterAttack 专用 */
+  damageMultiplier?: number | ScalableValue;
 }
 
 /**
@@ -394,7 +445,26 @@ export type AffixTag =
   | 'control' // 控制类
   | 'dot' // 持续伤害
   | 'buff' // 增益
-  | 'debuff'; // 减益
+  | 'debuff' // 减益
+  // P0/P1 新增标签
+  | 'sustain' // 续航类
+  | 'burst' // 爆发类
+  | 'lifesteal' // 吸血类
+  | 'counter' // 反击类
+  | 'execute' // 斩杀类
+  | 'true_damage' // 真实伤害
+  | 'mana_regen' // 法力回复
+  | 'healing_boost' // 治疗增幅
+  | 'dispel' // 驱散类
+  // 元素亲和标签
+  | 'fire_affinity' // 火属性
+  | 'water_affinity' // 水属性
+  | 'wood_affinity' // 木属性
+  | 'metal_affinity' // 金属性
+  | 'earth_affinity' // 土属性
+  | 'thunder_affinity' // 雷属性
+  | 'ice_affinity' // 冰属性
+  | 'wind_affinity'; // 风属性
 
 /**
  * 词条池配置

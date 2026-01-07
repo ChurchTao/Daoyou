@@ -9,3 +9,7 @@ export { BuffManager } from './BuffManager';
 
 // 注册表
 export { buffRegistry, initializeBuffRegistry } from './BuffRegistry';
+
+// 模板系统
+export { BuffMaterializer } from './BuffMaterializer';
+export { buffTemplateRegistry } from './BuffTemplateRegistry';

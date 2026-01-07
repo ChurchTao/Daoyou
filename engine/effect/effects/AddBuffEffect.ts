@@ -1,31 +1,26 @@
-import { buffRegistry } from '@/engine/buff';
-import { BuffStackType, BuffTag } from '@/engine/buff/types';
+import { BuffMaterializer } from '@/engine/buff/BuffMaterializer';
+import { buffTemplateRegistry } from '@/engine/buff/BuffTemplateRegistry';
+import {
+  BuffEventType,
+  BuffStackType,
+  BuffTag,
+  type BuffConfig,
+  type BuffMaterializationContext,
+  type BuffParamsOverride,
+} from '@/engine/buff/types';
 import { getEffectDisplayInfo } from '@/lib/utils/effectDisplay';
+import type { Quality, RealmType } from '@/types/constants';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type AddBuffParams,
   type EffectContext,
 } from '../types';
 
 /**
- * Buff 应用结果
- */
-export interface BuffApplicationResult {
-  buffId: string;
-  targetId: string;
-  casterId: string;
-  durationOverride?: number;
-  initialStacks: number;
-  applied: boolean;
-  resisted: boolean;
-  buffName?: string;
-  duration?: number;
-}
-
-/**
  * 施加 Buff 效果
- * 用于在命中时给目标施加状态
+ * 支持动态 Buff 系统，可根据施法者属性动态计算 Buff 效果数值
  */
 export class AddBuffEffect extends BaseEffect {
   readonly id = 'AddBuff';
@@ -41,6 +36,10 @@ export class AddBuffEffect extends BaseEffect {
   private initialStacks: number;
   /** 目标自身还是敌人 */
   private targetSelf: boolean;
+  /** Buff 效果参数覆盖 (动态 Buff 系统) */
+  private paramsOverride?: BuffParamsOverride;
+  /** 数值化上下文 (动态 Buff 系统) */
+  private materializationContext?: BuffMaterializationContext;
 
   constructor(params: AddBuffParams) {
     super(params as unknown as Record<string, unknown>);
@@ -50,6 +49,8 @@ export class AddBuffEffect extends BaseEffect {
     this.durationOverride = params.durationOverride;
     this.initialStacks = params.initialStacks ?? 1;
     this.targetSelf = params.targetSelf ?? false;
+    this.paramsOverride = params.paramsOverride;
+    this.materializationContext = params.materializationContext;
   }
 
   /**
@@ -62,26 +63,34 @@ export class AddBuffEffect extends BaseEffect {
     const buffTarget = this.targetSelf ? ctx.source : ctx.target;
     if (!buffTarget) return;
 
-    // 获取 Buff 配置
-    const buffConfig = buffRegistry.get(this.buffId);
+    // 检查目标是否为 BattleEntity
+    if (!isBattleEntity(buffTarget)) {
+      console.warn('[AddBuffEffect] target is not a BattleEntity');
+      return;
+    }
 
-    // 创建结果对象
-    const result: BuffApplicationResult = {
-      buffId: this.buffId,
-      targetId: buffTarget.id,
-      casterId: ctx.source.id,
-      durationOverride: this.durationOverride,
-      initialStacks: this.initialStacks,
-      applied: false,
-      resisted: false,
-      buffName: buffConfig?.name,
-      duration: this.durationOverride ?? buffConfig?.duration,
-    };
+    // 构建数值化上下文
+    const context = this.buildMaterializationContext(ctx);
+
+    // 从模板获取并数值化 Buff
+    const template = buffTemplateRegistry.get(this.buffId);
+    if (!template) {
+      console.warn(`[AddBuffEffect] Buff 模板未找到: ${this.buffId}`);
+      return;
+    }
+
+    // 动态 Buff：从模板数值化
+    const buffConfig = BuffMaterializer.materialize(
+      template,
+      context,
+      this.paramsOverride,
+    );
 
     // 1. 基础概率判定
     if (Math.random() > this.chance) {
-      result.resisted = true;
-      this.recordResult(ctx, result);
+      ctx.logCollector?.addLog(
+        `${buffTarget.name} 神识强大，抵抗了「${buffConfig.name}」效果！`,
+      );
       return;
     }
 
@@ -90,15 +99,53 @@ export class AddBuffEffect extends BaseEffect {
     if (isControlBuff && !this.targetSelf && ctx.target) {
       const resisted = this.checkResistance(ctx);
       if (resisted) {
-        result.resisted = true;
-        this.recordResult(ctx, result);
+        ctx.logCollector?.addLog(
+          `${buffTarget.name} 神识强大，抵抗了「${buffConfig.name}」效果！`,
+        );
         return;
       }
     }
 
-    // 3. 成功施加
-    result.applied = true;
-    this.recordResult(ctx, result);
+    // 3. 成功施加，直接调用 addBuff
+    const event = buffTarget.addBuff(buffConfig, ctx.source, 0, {
+      durationOverride: this.durationOverride,
+      initialStacks: this.initialStacks,
+    });
+
+    if (event.type === BuffEventType.APPLIED) {
+      // 记录日志
+      const duration = this.durationOverride ?? buffConfig.duration;
+      const durationText = duration > 0 ? `（${duration}回合）` : '';
+      const desc = buffConfig.description ? `，${buffConfig.description}` : '';
+      ctx.logCollector?.addLog(
+        `${buffTarget.name} 获得「${buffConfig.name}」状态${durationText}${desc}`,
+      );
+    }
+  }
+
+  /**
+   * 构建 Buff 数值化上下文
+   * 从施法者和上下文中提取需要的信息
+   */
+  private buildMaterializationContext(
+    ctx: EffectContext,
+  ): BuffMaterializationContext {
+    // 如果已经提供了上下文，直接使用
+    if (this.materializationContext) {
+      return this.materializationContext;
+    }
+
+    // 从施法者构建上下文
+    return {
+      casterSpirit: ctx.source?.getAttribute('spirit'),
+      casterWisdom: ctx.source?.getAttribute('wisdom'),
+      casterWillpower: ctx.source?.getAttribute('willpower'),
+      casterVitality: ctx.source?.getAttribute('vitality'),
+      casterRealm: (ctx.metadata?.casterRealm as RealmType) ?? '炖气',
+      // 【修复】默认使用玄品（倍率 1.0）而不是凡品（倍率 0.5）
+      quality: (ctx.metadata?.quality as Quality) ?? '玄品',
+      stacks: this.initialStacks,
+    };
   }
 
   /**
@@ -123,19 +170,14 @@ export class AddBuffEffect extends BaseEffect {
   }
 
   /**
-   * 记录结果到 metadata
+   * 获取 Buff 配置用于显示
    */
-  private recordResult(
-    ctx: EffectContext,
-    result: BuffApplicationResult,
-  ): void {
-    ctx.metadata = ctx.metadata ?? {};
-    ctx.metadata.buffsToApply = ctx.metadata.buffsToApply ?? [];
-    (ctx.metadata.buffsToApply as BuffApplicationResult[]).push(result);
+  private getDisplayConfig(): BuffConfig | undefined {
+    return buffTemplateRegistry.getDefaultConfig(this.buffId);
   }
 
   displayInfo() {
-    const buffConfig = buffRegistry.get(this.buffId);
+    const buffConfig = this.getDisplayConfig();
     /** 最大叠加层数 */
     const stackText =
       buffConfig?.stackType == BuffStackType.STACK

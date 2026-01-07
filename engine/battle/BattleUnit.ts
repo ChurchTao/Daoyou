@@ -1,9 +1,14 @@
-import { BuffManager, buffRegistry } from '@/engine/buff';
-import type { BuffInstanceState } from '@/engine/buff/types';
+import { BuffManager, buffTemplateRegistry } from '@/engine/buff';
+import type {
+  BuffConfig,
+  BuffEvent,
+  BuffInstanceState,
+} from '@/engine/buff/types';
 import { BuffTag } from '@/engine/buff/types';
 import {
   EffectTrigger,
   EffectType,
+  BattleEntity,
   Entity,
   type IBaseEffect,
 } from '@/engine/effect/types';
@@ -20,9 +25,10 @@ import type { UnitId } from './types';
 
 /**
  * 战斗单元
- * 实现 Entity 接口，属性计算完全通过 EffectEngine
+ * 实现 BattleEntity 接口，属性计算完全通过 EffectEngine
+ * 提供战斗操作方法供 Effect 直接调用
  */
-export class BattleUnit implements Entity {
+export class BattleUnit implements BattleEntity {
   // ===== Entity 接口属性 =====
   readonly id: string;
   readonly name: string;
@@ -39,6 +45,9 @@ export class BattleUnit implements Entity {
 
   // ===== Buff 管理 =====
   readonly buffManager: BuffManager;
+
+  // ===== 临时技能效果（如 CounterAttackEffect） =====
+  private temporarySkillEffects: IBaseEffect[] = [];
 
   // ===== 技能冷却 =====
   skillCooldowns: Map<string, number>;
@@ -134,6 +143,9 @@ export class BattleUnit implements Entity {
 
     // 4. 命格效果
     effects.push(...this.getFateEffects());
+
+    // 5. 临时技能效果（如 CounterAttackEffect）
+    effects.push(...this.temporarySkillEffects);
 
     return effects;
   }
@@ -340,7 +352,7 @@ export class BattleUnit implements Entity {
 
   private loadInitialBuffs(states: BuffInstanceState[]): void {
     for (const state of states) {
-      const config = buffRegistry.get(state.configId);
+      const config = buffTemplateRegistry.getDefaultConfig(state.configId);
       if (!config) continue;
       this.buffManager.addBuff(config, this, 0, {
         initialStacks: state.currentStacks,
@@ -472,6 +484,160 @@ export class BattleUnit implements Entity {
     const oldMp = this.currentMp;
     this.currentMp = Math.min(this.currentMp + actualRestore, this.maxMp);
     return this.currentMp - oldMp;
+  }
+
+  /**
+   * 扣除法力（不经过消耗校验，用于法力吸取等被动效果）
+   * @param amount 扣除量
+   * @returns 实际扣除量
+   */
+  drainMp(amount: number): number {
+    const actualDrain = Math.max(0, Math.min(Math.floor(amount), this.currentMp));
+    this.currentMp = Math.max(0, this.currentMp - actualDrain);
+    return actualDrain;
+  }
+
+  // ============================================================
+  // BattleEntity 接口 - Buff 操作
+  // ============================================================
+
+  /**
+   * 添加 Buff（BattleEntity 接口实现）
+   * @param config Buff 配置
+   * @param caster 施法者
+   * @param turn 当前回合数
+   * @param options 额外选项
+   * @returns Buff 事件
+   */
+  addBuff(
+    config: BuffConfig,
+    caster: unknown,
+    turn: number,
+    options?: { durationOverride?: number; initialStacks?: number },
+  ): BuffEvent {
+    return this.buffManager.addBuff(config, caster as Entity, turn, options);
+  }
+
+  /**
+   * 移除 Buff（BattleEntity 接口实现）
+   * @param buffId Buff ID
+   * @returns 移除的数量
+   */
+  removeBuff(buffId: string): number {
+    return this.buffManager.removeBuff(buffId);
+  }
+
+  /**
+   * 驱散 Buff（BattleEntity 接口实现）
+   * @param count 驱散数量
+   * @param type 驱散类型
+   * @param priorityTags 优先驱散的标签
+   * @returns 被驱散的 buffId 列表
+   */
+  dispelBuffs(
+    count: number,
+    type: 'buff' | 'debuff' | 'all',
+    priorityTags?: string[],
+  ): string[] {
+    const activeBuffs = this.buffManager.getActiveBuffs();
+    let candidates: typeof activeBuffs = [];
+
+    if (type === 'all') {
+      candidates = activeBuffs;
+    } else {
+      const targetTag = type === 'buff' ? BuffTag.BUFF : BuffTag.DEBUFF;
+      candidates = activeBuffs.filter((b) => b.config.tags?.includes(targetTag));
+    }
+
+    // 优先标签排序
+    if (priorityTags && priorityTags.length > 0) {
+      candidates.sort((a, b) => {
+        const aHasPriority = a.config.tags?.some((t) => priorityTags.includes(t));
+        const bHasPriority = b.config.tags?.some((t) => priorityTags.includes(t));
+        return bHasPriority ? 1 : aHasPriority ? -1 : 0;
+      });
+    }
+
+    const toDispel = candidates.slice(0, count);
+    const dispelledIds: string[] = [];
+
+    for (const buff of toDispel) {
+      if (this.buffManager.removeBuff(buff.config.id) > 0) {
+        dispelledIds.push(buff.config.id);
+      }
+    }
+
+    if (dispelledIds.length > 0) {
+      this.markAttributesDirty();
+    }
+
+    return dispelledIds;
+  }
+
+  // ============================================================
+  // 临时技能效果管理
+  // ============================================================
+
+  /**
+   * 添加临时技能效果（如技能赋予的 CounterAttackEffect）
+   * @param effect 效果实例
+   */
+  addTemporaryEffect(effect: IBaseEffect): void {
+    // 设置效果持有者（如果是 BaseEffect）
+    if ('setOwner' in effect && typeof effect.setOwner === 'function') {
+      (effect as { setOwner(id: string): unknown }).setOwner(this.id);
+    }
+
+    this.temporarySkillEffects.push(effect);
+  }
+
+  /**
+   * 移除临时技能效果
+   * @param effectId 效果 ID
+   */
+  removeTemporaryEffect(effectId: string): void {
+    this.temporarySkillEffects = this.temporarySkillEffects.filter(
+      (e) => e.id !== effectId,
+    );
+  }
+
+  /**
+   * 清除所有临时技能效果（战斗结束时调用）
+   */
+  clearTemporaryEffects(): void {
+    this.temporarySkillEffects = [];
+  }
+
+  // ============================================================
+  // BattleEntity 接口 - 状态查询
+  // ============================================================
+
+  /**
+   * 获取当前生命值（BattleEntity 接口实现）
+   */
+  getCurrentHp(): number {
+    return this.currentHp;
+  }
+
+  /**
+   * 获取当前法力值（BattleEntity 接口实现）
+   */
+  getCurrentMp(): number {
+    return this.currentMp;
+  }
+
+  /**
+   * 获取最大生命值（BattleEntity 接口实现）
+   */
+  getMaxHp(): number {
+    return this.maxHp;
+  }
+
+  /**
+   * 获取最大法力值（BattleEntity 接口实现）
+   */
+  getMaxMp(): number {
+    return this.maxMp;
   }
 
   canUseSkill(skill: Skill): boolean {

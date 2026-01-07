@@ -1,14 +1,13 @@
-import { buffRegistry } from '@/engine/buff';
 import type { BuffEvent } from '@/engine/buff/types';
 import { EffectFactory, effectEngine } from '@/engine/effect';
 import type { BaseEffect } from '@/engine/effect/BaseEffect';
 import {
   EffectContext,
+  EffectLogCollector,
   EffectTrigger,
   EffectType,
 } from '@/engine/effect/types';
 import type { Skill } from '@/types/cultivator';
-import { BuffApplicationResult } from '../effect/effects/AddBuffEffect';
 import type { BattleUnit } from './BattleUnit';
 
 // ============================================================
@@ -41,6 +40,8 @@ interface SkillExecutionContext {
   skill: Skill;
   currentTurn: number;
   result: SkillExecutionResult;
+  /** 缓存的技能 ON_BEFORE_DAMAGE 效果（避免重复创建） */
+  cachedBeforeDamageEffects?: BaseEffect[];
   /** 缓存的技能 ON_AFTER_DAMAGE 效果（避免重复创建） */
   cachedAfterDamageEffects?: BaseEffect[];
 }
@@ -57,7 +58,7 @@ interface SkillExecutionContext {
  * 2. 每种效果类型有专门的处理方法
  * 3. 通用逻辑抽取为辅助方法
  *
- * 伤害管道：ON_SKILL_HIT -> ON_BEFORE_DAMAGE -> 扣血 -> ON_AFTER_DAMAGE
+ * 伤害管道：ON_SKILL_HIT -> ON_BEFORE_DAMAGE -> 扣血 -> ON_BEING_HIT -> ON_AFTER_DAMAGE
  */
 export class SkillExecutor {
   // ============================================================
@@ -156,14 +157,26 @@ export class SkillExecutor {
    * 执行技能的所有效果
    */
   private executeEffects(ctx: SkillExecutionContext): void {
-    const { skill } = ctx;
+    const { skill, caster } = ctx;
     const effects = skill.effects ?? [];
+
+    // 预先缓存 ON_BEFORE_DAMAGE 效果（避免多次伤害时重复创建）
+    ctx.cachedBeforeDamageEffects = this.collectSkillEffects(
+      skill,
+      EffectTrigger.ON_BEFORE_DAMAGE,
+      caster,
+    );
 
     // 预先缓存 ON_AFTER_DAMAGE 效果（避免多次伤害时重复创建）
     ctx.cachedAfterDamageEffects = this.collectSkillEffects(
       skill,
       EffectTrigger.ON_AFTER_DAMAGE,
+      caster,
     );
+
+    // 【修复】不再持久化 ON_BEING_HIT 效果到 temporarySkillEffects
+    // 这些效果应该通过技能的 effects 配置在每次被攻击时动态触发
+    // 避免重复触发的问题
 
     for (const effectConfig of effects) {
       try {
@@ -181,34 +194,56 @@ export class SkillExecutor {
     ctx: SkillExecutionContext,
     effectConfig: NonNullable<Skill['effects']>[number],
   ): void {
-    const { caster, effectTarget, skill } = ctx;
+    const { caster, effectTarget, skill, result } = ctx;
 
-    // 跳过非主动触发的效果（如 ON_AFTER_DAMAGE 的 LifeSteal）
     const trigger = effectConfig.trigger ?? EffectTrigger.ON_SKILL_HIT;
+
+    // 跳过非主动触发的效果（如 ON_AFTER_DAMAGE 的 LifeSteal、ON_BEFORE_DAMAGE 的 ExecuteDamage）
+    // 这些效果会在对应的阶段通过 cachedEffects 被触发
     if (trigger !== EffectTrigger.ON_SKILL_HIT && trigger !== undefined) {
-      // 这些效果会在对应的阶段被触发
       return;
     }
 
-    // 创建效果实例和上下文
+    // 创建效果实例和上下文（带日志收集器）
     const effect = EffectFactory.create(effectConfig);
     const effectContext = this.createEffectContext(caster, effectTarget, skill);
-
-    // 执行效果获取基础值
-    effect.apply(effectContext);
 
     // 根据效果类型分发处理
     switch (effectConfig.type) {
       case EffectType.Damage:
+        // 执行效果获取基础值
+        effect.apply(effectContext);
+        // 收集日志
+        if (effectContext.logCollector) {
+          result.logs.push(...effectContext.logCollector.getLogMessages());
+        }
         this.handleDamageEffect(ctx, effectContext);
         break;
       case EffectType.Heal:
+        // 执行效果获取基础值
+        effect.apply(effectContext);
+        // 收集日志
+        if (effectContext.logCollector) {
+          result.logs.push(...effectContext.logCollector.getLogMessages());
+        }
         this.handleHealEffect(ctx, effectContext);
         break;
-      case EffectType.AddBuff:
-        this.handleAddBuffEffect(ctx, effectContext);
+      case EffectType.TrueDamage:
+        // 真实伤害直接执行，不经过伤害管道
+        effect.apply(effectContext);
+        // 收集日志
+        if (effectContext.logCollector) {
+          result.logs.push(...effectContext.logCollector.getLogMessages());
+        }
         break;
       // 其他类型效果（如 LifeSteal）通过 ON_AFTER_DAMAGE 钩子处理
+      default:
+        // 其他主动效果（如 AddBuff、ManaDrain、Dispel 等）
+        effect.apply(effectContext);
+        if (effectContext.logCollector) {
+          result.logs.push(...effectContext.logCollector.getLogMessages());
+        }
+        break;
     }
   }
 
@@ -255,27 +290,35 @@ export class SkillExecutor {
 
   /**
    * 处理伤害效果
-   * 伤害管道：ON_BEFORE_DAMAGE -> 扣血 -> ON_AFTER_DAMAGE
+   * 伤害管道：ON_BEFORE_DAMAGE -> 扣血 -> ON_BEING_HIT -> ON_AFTER_DAMAGE
    */
   private handleDamageEffect(
     ctx: SkillExecutionContext,
     effectContext: EffectContext,
   ): void {
-    const { caster, effectTarget, skill, result } = ctx;
+    const { caster, effectTarget, skill, result, cachedBeforeDamageEffects } =
+      ctx;
     const baseDamage = effectContext.value ?? 0;
 
-    // 1. ON_BEFORE_DAMAGE: 暴击、减伤、护盾等
-    const beforeDamageCtx = effectEngine.processWithContext(
+    // 1. ON_BEFORE_DAMAGE: 暴击、减伤、护盾、斩杀等
+    const beforeDamageResult = effectEngine.processWithContext(
       EffectTrigger.ON_BEFORE_DAMAGE,
       caster,
       effectTarget,
       baseDamage,
       effectContext.metadata,
+      cachedBeforeDamageEffects,
     );
 
-    const finalDamage = Math.max(0, Math.floor(beforeDamageCtx.value ?? 0));
-    const isCritical = beforeDamageCtx.metadata?.isCritical === true;
-    const shieldAbsorbed = beforeDamageCtx.metadata?.shieldAbsorbed as
+    // 合并 ON_BEFORE_DAMAGE 阶段的日志
+    result.logs.push(...beforeDamageResult.logs);
+
+    const finalDamage = Math.max(
+      0,
+      Math.floor(beforeDamageResult.ctx.value ?? 0),
+    );
+    const isCritical = beforeDamageResult.ctx.metadata?.isCritical === true;
+    const shieldAbsorbed = beforeDamageResult.ctx.metadata?.shieldAbsorbed as
       | number
       | undefined;
 
@@ -297,7 +340,17 @@ export class SkillExecutor {
         ),
       );
 
-      // 3. ON_AFTER_DAMAGE: 吸血、反伤等
+      // 3. ON_BEING_HIT: 被击中时的反击等效果（从目标的角度）
+      const beingHitResult = effectEngine.processWithContext(
+        EffectTrigger.ON_BEING_HIT,
+        effectTarget,
+        caster,
+        actualDamage,
+        effectContext.metadata,
+      );
+      result.logs.push(...beingHitResult.logs);
+
+      // 4. ON_AFTER_DAMAGE: 吸血、反伤等（Effect 直接处理，合并日志）
       this.processAfterDamage(ctx, effectContext, actualDamage);
     } else {
       result.logs.push(
@@ -309,19 +362,11 @@ export class SkillExecutor {
         ),
       );
     }
-
-    // 4. 处理护盾耗尽（使用 effectTarget 而非 target）
-    this.handleDepletedBuffs(
-      beforeDamageCtx.metadata,
-      caster,
-      effectTarget,
-      result.logs,
-    );
   }
 
   /**
    * 处理 ON_AFTER_DAMAGE 阶段
-   * 包括吸血、反伤等效果
+   * 【重构后】Effect 直接处理吸血、反伤等，只需合并日志
    */
   private processAfterDamage(
     ctx: SkillExecutionContext,
@@ -331,25 +376,17 @@ export class SkillExecutor {
     const { caster, effectTarget, result, cachedAfterDamageEffects } = ctx;
 
     // 调用 ON_AFTER_DAMAGE 处理吸血、反伤等
-    const afterDamageCtx = effectEngine.processWithContext(
+    const afterDamageResult = effectEngine.processWithContext(
       EffectTrigger.ON_AFTER_DAMAGE,
       caster,
       effectTarget,
       actualDamage,
       effectContext.metadata,
-      cachedAfterDamageEffects, // 使用缓存的效果
+      cachedAfterDamageEffects,
     );
 
-    // 处理吸血
-    this.applyLifeSteal(caster, afterDamageCtx.metadata, result.logs);
-
-    // 处理反伤
-    this.applyReflectDamage(
-      caster,
-      effectTarget,
-      afterDamageCtx.metadata,
-      result.logs,
-    );
+    // 【重构】Effect 直接处理了状态修改，只需合并日志
+    result.logs.push(...afterDamageResult.logs);
   }
 
   /**
@@ -376,33 +413,6 @@ export class SkillExecutor {
         `${caster.getName()} 使用「${skill.name}」，${healTarget === caster ? '' : `${healTarget.getName()} `}气血充足，未能恢复气血`,
       );
     }
-  }
-
-  /**
-   * 处理添加 Buff 效果
-   */
-  private handleAddBuffEffect(
-    ctx: SkillExecutionContext,
-    effectContext: EffectContext,
-  ): void {
-    const { caster, target, effectTarget, currentTurn, result } = ctx;
-
-    const buffsToApply =
-      (effectContext.metadata?.buffsToApply as BuffApplicationResult[]) ?? [];
-
-    for (const buffResult of buffsToApply) {
-      if (buffResult.resisted) {
-        result.logs.push(
-          `${effectTarget.getName()} 神识强大，抵抗了「${buffResult.buffName ?? buffResult.buffId}」效果！`,
-        );
-      } else if (buffResult.applied) {
-        this.applyBuff(caster, target, buffResult, currentTurn, result);
-      }
-    }
-
-    // 清空已处理的 buffs
-    effectContext.metadata = effectContext.metadata ?? {};
-    effectContext.metadata.buffsToApply = [];
   }
 
   // ============================================================
@@ -443,6 +453,7 @@ export class SkillExecutor {
         skillName: skill.name,
         skillElement: skill.element,
       },
+      logCollector: new EffectLogCollector(),
     };
   }
 
@@ -452,10 +463,11 @@ export class SkillExecutor {
   private collectSkillEffects(
     skill: Skill,
     trigger: EffectTrigger,
+    caster: BattleUnit,
   ): BaseEffect[] {
     return (skill.effects ?? [])
       .filter((e) => e.trigger === trigger)
-      .map((e) => EffectFactory.create(e));
+      .map((e) => EffectFactory.create(e).setOwner(caster.id));
   }
 
   /**
@@ -507,107 +519,6 @@ export class SkillExecutor {
       ? `（护盾吸收 ${shieldAbsorbed} 点伤害）`
       : '';
     return `${caster.getName()} 对 ${target.getName()} 使用「${skillName}」，但未能造成伤害${shieldText}`;
-  }
-
-  /**
-   * 应用吸血效果
-   */
-  private applyLifeSteal(
-    caster: BattleUnit,
-    metadata: Record<string, unknown> | undefined,
-    logs: string[],
-  ): void {
-    const lifeSteal = metadata?.lifeSteal as number | undefined;
-    if (lifeSteal && lifeSteal > 0) {
-      const healedAmount = caster.applyHealing(lifeSteal);
-      if (healedAmount > 0) {
-        logs.push(`${caster.getName()} 吸取了 ${healedAmount} 点气血`);
-      }
-    }
-  }
-
-  /**
-   * 应用反伤效果
-   */
-  private applyReflectDamage(
-    caster: BattleUnit,
-    target: BattleUnit,
-    metadata: Record<string, unknown> | undefined,
-    logs: string[],
-  ): void {
-    const reflectDamage = metadata?.reflectDamage as number | undefined;
-    if (reflectDamage && reflectDamage > 0) {
-      const reflectedAmount = caster.applyDamage(reflectDamage);
-      if (reflectedAmount > 0) {
-        logs.push(`${target.getName()} 反弹了 ${reflectedAmount} 点伤害！`);
-      }
-    }
-  }
-
-  /**
-   * 应用 Buff 到目标
-   */
-  private applyBuff(
-    caster: BattleUnit,
-    target: BattleUnit,
-    buffResult: BuffApplicationResult,
-    currentTurn: number,
-    result: SkillExecutionResult,
-  ): void {
-    const config = buffRegistry.get(buffResult.buffId);
-    if (!config) return;
-
-    const actualTarget = buffResult.targetId === caster.id ? caster : target;
-    const event = actualTarget.buffManager.addBuff(
-      config,
-      caster,
-      currentTurn,
-      { durationOverride: buffResult.durationOverride },
-    );
-
-    result.buffsApplied.push(event);
-
-    const durationText =
-      buffResult.duration && buffResult.duration > 0
-        ? `（${buffResult.duration}回合）`
-        : '';
-    result.logs.push(
-      `${actualTarget.getName()} 获得「${config.name}」状态${durationText}`,
-    );
-
-    actualTarget.markAttributesDirty();
-  }
-
-  /**
-   * 处理耗尽的 buff（如护盾耗尽）
-   */
-  private handleDepletedBuffs(
-    metadata: Record<string, unknown> | undefined,
-    caster: BattleUnit,
-    effectTarget: BattleUnit,
-    logs: string[],
-  ): void {
-    const buffsToRemove = metadata?.buffsToRemove as
-      | Array<{ buffId: string; ownerId: string; reason: string }>
-      | undefined;
-
-    if (!buffsToRemove || buffsToRemove.length === 0) return;
-
-    for (const { buffId, ownerId, reason } of buffsToRemove) {
-      const unit = caster.id === ownerId ? caster : effectTarget;
-      const config = buffRegistry.get(buffId);
-      const buffName = config?.name ?? buffId;
-
-      const removed = unit.buffManager.removeBuff(buffId);
-      if (removed > 0) {
-        logs.push(`${unit.getName()} 的「${buffName}」${reason}，效果消失`);
-        unit.markAttributesDirty();
-      }
-    }
-
-    if (metadata) {
-      metadata.buffsToRemove = [];
-    }
   }
 }
 

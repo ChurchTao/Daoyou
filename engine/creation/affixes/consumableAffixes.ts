@@ -155,6 +155,82 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'buff', 'offensive'],
     displayName: '暴击增幅',
   },
+
+  // ============================================================
+  // P0/P1 新增丹药效果
+  // ============================================================
+
+  // 回蓝丹
+  {
+    effectType: EffectType.ManaRegen,
+    trigger: 'ON_CONSUME',
+    paramsTemplate: {
+      percentOfMax: { base: 0.4, scale: 'quality', coefficient: 0.15 },
+    },
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'sustain', 'mana_regen'],
+    displayName: '恢复法力',
+  },
+
+  // 狂暴丹
+  {
+    effectType: EffectType.AddBuff,
+    trigger: 'ON_CONSUME',
+    paramsTemplate: {
+      buffId: 'berserk',
+      durationOverride: 3,
+      targetSelf: true,
+    },
+    weight: 35,
+    minQuality: '地品',
+    tags: ['secondary', 'buff', 'offensive', 'burst'],
+    displayName: '狂暴增幅',
+  },
+
+  // 龟息丹
+  {
+    effectType: EffectType.AddBuff,
+    trigger: 'ON_CONSUME',
+    paramsTemplate: {
+      buffId: 'turtle_defense',
+      durationOverride: 2,
+      targetSelf: true,
+    },
+    weight: 30,
+    minQuality: '地品',
+    tags: ['secondary', 'buff', 'defensive'],
+    displayName: '极限防御',
+  },
+
+  // 顿悟丹
+  {
+    effectType: EffectType.AddBuff,
+    trigger: 'ON_CONSUME',
+    paramsTemplate: {
+      buffId: 'epiphany',
+      durationOverride: -1, // 战斗内永久
+      targetSelf: true,
+    },
+    weight: 20,
+    minQuality: '天品',
+    tags: ['secondary', 'buff', 'burst'],
+    displayName: '顿悟状态',
+  },
+
+  // 治疗增幅
+  {
+    effectType: EffectType.HealAmplify,
+    trigger: 'ON_HEAL',
+    paramsTemplate: {
+      amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      affectOutgoing: false,
+    },
+    weight: 25,
+    minQuality: '真品',
+    tags: ['secondary', 'healing_boost'],
+    displayName: '增强受疗',
+  },
 ];
 
 // ============================================================

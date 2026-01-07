@@ -1,6 +1,12 @@
+import { buffTemplateRegistry } from '@/engine/buff';
 import type { ElementType } from '@/types/constants';
 import { BaseEffect } from '../BaseEffect';
-import { EffectTrigger, type EffectContext, type ShieldParams } from '../types';
+import {
+  EffectTrigger,
+  isBattleEntity,
+  type EffectContext,
+  type ShieldParams,
+} from '../types';
 
 /**
  * 护盾效果
@@ -71,36 +77,26 @@ export class ShieldEffect extends BaseEffect {
     // 更新伤害值
     ctx.value = incomingDamage - absorbed;
 
-    // 更新 metadata（用于日志显示和后续处理）
+    // 更新 metadata（用于日志显示）
     ctx.metadata = ctx.metadata ?? {};
     ctx.metadata.shieldAbsorbed =
       ((ctx.metadata.shieldAbsorbed as number) || 0) + absorbed;
     ctx.metadata.shieldRemaining = this.shieldRemaining;
 
-    // 【新增】护盾耗尽时，标记需要移除的 buff
-    if (this.shieldRemaining <= 0 && this.parentBuffId && this.ownerId) {
-      ctx.metadata.shieldDepleted = true;
-      // 记录需要移除的 buff 信息（可能有多个护盾效果同时耗尽）
-      const buffsToRemove =
-        (ctx.metadata.buffsToRemove as Array<{
-          buffId: string;
-          ownerId: string;
-          reason: string;
-        }>) ?? [];
-      buffsToRemove.push({
-        buffId: this.parentBuffId,
-        ownerId: this.ownerId,
-        reason: '护盾耗尽',
-      });
-      ctx.metadata.buffsToRemove = buffsToRemove;
-    }
-  }
+    // 护盾耗尽时，直接移除 buff
+    if (this.shieldRemaining <= 0 && this.parentBuffId && ctx.target) {
+      if (isBattleEntity(ctx.target)) {
+        const template = buffTemplateRegistry.get(this.parentBuffId);
+        const buffName = template?.name ?? this.parentBuffId;
 
-  /**
-   * 获取当前护盾剩余值（供外部查询）
-   */
-  getShieldRemaining(): number {
-    return this.shieldRemaining;
+        ctx.target.removeBuff(this.parentBuffId);
+        ctx.target.markAttributesDirty();
+
+        ctx.logCollector?.addLog(
+          `${ctx.target.name} 的「${buffName}」护盾耗尽，效果消失`,
+        );
+      }
+    }
   }
 
   displayInfo() {

@@ -13,21 +13,37 @@ import {
   ShieldEffect,
   StatModifierEffect,
 } from './effects';
+import { CounterAttackEffect } from './effects/CounterAttackEffect';
+import { DispelEffect } from './effects/DispelEffect';
+import { ElementDamageBonusEffect } from './effects/ElementDamageBonusEffect';
+import { ExecuteDamageEffect } from './effects/ExecuteDamageEffect';
+import { HealAmplifyEffect } from './effects/HealAmplifyEffect';
+import { ManaDrainEffect } from './effects/ManaDrainEffect';
+import { ManaRegenEffect } from './effects/ManaRegenEffect';
 import type { ModifyHitRateParams } from './effects/ModifyHitRateEffect';
+import { TrueDamageEffect } from './effects/TrueDamageEffect';
 import {
   EffectType,
   StatModifierType,
   type AddBuffParams,
+  type CounterAttackParams,
   type CriticalParams,
   type DamageParams,
   type DamageReductionParams,
+  type DispelParams,
   type DotDamageParams,
   type EffectConfig,
+  type ElementDamageBonusParams,
+  type ExecuteDamageParams,
+  type HealAmplifyParams,
   type HealParams,
   type LifeStealParams,
+  type ManaDrainParams,
+  type ManaRegenParams,
   type ReflectDamageParams,
   type ShieldParams,
   type StatModifierParams,
+  type TrueDamageParams,
 } from './types';
 
 /**
@@ -81,6 +97,42 @@ export class EffectFactory {
       case EffectType.DamageReduction:
         return new DamageReductionEffect(
           config.params as unknown as DamageReductionParams,
+        );
+
+      // === P0 新效果类型 ===
+      case EffectType.ElementDamageBonus:
+        return new ElementDamageBonusEffect(
+          config.params as unknown as ElementDamageBonusParams,
+        );
+
+      case EffectType.HealAmplify:
+        return new HealAmplifyEffect(
+          config.params as unknown as HealAmplifyParams,
+        );
+
+      case EffectType.ManaRegen:
+        return new ManaRegenEffect(config.params as unknown as ManaRegenParams);
+
+      case EffectType.ManaDrain:
+        return new ManaDrainEffect(config.params as unknown as ManaDrainParams);
+
+      case EffectType.Dispel:
+        return new DispelEffect(config.params as unknown as DispelParams);
+
+      // === P1 新效果类型 ===
+      case EffectType.ExecuteDamage:
+        return new ExecuteDamageEffect(
+          config.params as unknown as ExecuteDamageParams,
+        );
+
+      case EffectType.TrueDamage:
+        return new TrueDamageEffect(
+          config.params as unknown as TrueDamageParams,
+        );
+
+      case EffectType.CounterAttack:
+        return new CounterAttackEffect(
+          config.params as unknown as CounterAttackParams,
         );
 
       case EffectType.NoOp:

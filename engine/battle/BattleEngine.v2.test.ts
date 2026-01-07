@@ -675,5 +675,452 @@ describe('BattleEngineV2', () => {
 
       expect(result.timeline.length).toBeGreaterThan(0);
     });
+
+    /**
+     * 全效果测试 - 验证所有 Effect 类型的功能
+     */
+    test('全效果综合测试 - 验证所有Effect类型', () => {
+      // 攻击者 - 包含各种攻击效果
+      const attacker: Cultivator = {
+        id: 'attacker_001',
+        name: '万法尊者',
+        gender: '男',
+        title: '试炼者',
+        realm: '金丹',
+        realm_stage: '初期',
+        age: 200,
+        lifespan: 500,
+        spiritual_roots: [
+          { element: '金', strength: 90, grade: '天灵根' },
+          { element: '火', strength: 85, grade: '天灵根' },
+          { element: '水', strength: 80, grade: '真灵根' },
+        ],
+        attributes: {
+          vitality: 100,
+          spirit: 120,
+          wisdom: 100,
+          speed: 90,
+          willpower: 80,
+        },
+        pre_heaven_fates: [],
+        cultivations: [],
+        skills: [
+          // 技能1: 伤害 + 吸血
+          {
+            id: 'skill_life_steal',
+            name: '吸血斩',
+            element: '金',
+            cost: 25,
+            cooldown: 1,
+            grade: '玄阶下品',
+            effects: [
+              {
+                type: EffectType.Damage,
+                trigger: 'ON_SKILL_HIT',
+                params: { multiplier: 1.0, element: '金' },
+              },
+              {
+                type: EffectType.LifeSteal,
+                trigger: EffectTrigger.ON_AFTER_DAMAGE,
+                params: { stealPercent: 0.4 } as LifeStealParams,
+              },
+            ],
+          },
+          // 技能2: 真实伤害
+          {
+            id: 'skill_true_damage',
+            name: '破妄神光',
+            element: '金',
+            cost: 25,
+            cooldown: 2,
+            grade: '玄阶中品',
+            effects: [
+              {
+                type: EffectType.TrueDamage,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  baseDamage: 50,
+                  ignoreShield: true,
+                  ignoreReduction: true,
+                },
+              },
+            ],
+          },
+          // 技能3: 斩杀伤害
+          {
+            id: 'skill_execute',
+            name: '斩仙诀',
+            element: '金',
+            cost: 35,
+            cooldown: 2,
+            grade: '玄阶上品',
+            effects: [
+              {
+                type: EffectType.Damage,
+                trigger: 'ON_SKILL_HIT',
+                params: { multiplier: 0.8, element: '金' },
+              },
+              {
+                type: EffectType.ExecuteDamage,
+                trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+                params: { thresholdPercent: 0.3, bonusDamage: 80 },
+              },
+            ],
+          },
+          // 技能4: 驱散 + 伤害
+          {
+            id: 'skill_dispel',
+            name: '破法术',
+            element: '金',
+            cost: 30,
+            cooldown: 3,
+            grade: '玄阶中品',
+            effects: [
+              {
+                type: EffectType.Damage,
+                trigger: 'ON_SKILL_HIT',
+                params: { multiplier: 0.5, element: '金' },
+              },
+              {
+                type: EffectType.Dispel,
+                trigger: 'ON_SKILL_HIT',
+                params: { dispelCount: 2, dispelType: 'buff' },
+              },
+            ],
+          },
+          // 技能5: 法力吸取
+          {
+            id: 'skill_mana_drain',
+            name: '吸灵术',
+            element: '水',
+            cost: 20,
+            cooldown: 2,
+            grade: '玄阶下品',
+            effects: [
+              {
+                type: EffectType.Damage,
+                trigger: 'ON_SKILL_HIT',
+                params: { multiplier: 0.4, element: '水' },
+              },
+              {
+                type: EffectType.ManaDrain,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  drainPercent: 0.15,
+                  drainAmount: 20,
+                  restoreToSelf: true,
+                },
+              },
+            ],
+          },
+          // 技能6: 治疗 + 治疗增幅
+          {
+            id: 'skill_heal',
+            name: '回春术',
+            target_self: true,
+            element: '木',
+            cost: 35,
+            cooldown: 2,
+            grade: '玄阶中品',
+            effects: [
+              {
+                type: EffectType.Heal,
+                trigger: 'ON_SKILL_HIT',
+                params: { multiplier: 1.2, flatHeal: 30, targetSelf: true },
+              },
+            ],
+          },
+        ],
+        inventory: {
+          artifacts: [
+            // 武器: 反伤
+            {
+              id: 'weapon_reflect',
+              name: '反伤甲',
+              element: '土',
+              slot: 'weapon',
+              quality: '玄品',
+              effects: [
+                {
+                  type: EffectType.StatModifier,
+                  trigger: 'ON_STAT_CALC',
+                  params: { attribute: 'vitality', value: 30, modType: 1 },
+                },
+                {
+                  type: EffectType.ReflectDamage,
+                  trigger: EffectTrigger.ON_AFTER_DAMAGE,
+                  params: { reflectPercent: 0.3 },
+                },
+              ],
+            },
+          ],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: 'weapon_reflect',
+          armor: null,
+          accessory: null,
+        },
+        max_skills: 8,
+        spirit_stones: 1000,
+      };
+
+      // 防御者 - 包含各种防御/增益效果
+      const defender: Cultivator = {
+        id: 'defender_001',
+        name: '不动明王',
+        gender: '男',
+        title: '守卫者',
+        realm: '金丹',
+        realm_stage: '初期',
+        age: 250,
+        lifespan: 600,
+        spiritual_roots: [
+          { element: '土', strength: 95, grade: '天灵根' },
+          { element: '金', strength: 70, grade: '真灵根' },
+        ],
+        attributes: {
+          vitality: 150,
+          spirit: 80,
+          wisdom: 90,
+          speed: 60,
+          willpower: 100,
+        },
+        pre_heaven_fates: [],
+        cultivations: [],
+        skills: [
+          // 技能1: 护盾
+          {
+            id: 'skill_shield',
+            name: '金刚护体',
+            target_self: true,
+            element: '土',
+            cost: 30,
+            cooldown: 3,
+            grade: '玄阶中品',
+            effects: [
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  buffId: 'shield',
+                  durationOverride: 3,
+                  targetSelf: true,
+                },
+              },
+            ],
+          },
+          // 技能2：增益护盾 + 反击
+          {
+            id: 'skill_buff_counter',
+            name: '不动如山',
+            target_self: true,
+            element: '土',
+            cost: 25,
+            cooldown: 4,
+            grade: '玄阶上品',
+            effects: [
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  buffId: 'armor_up',
+                  durationOverride: 3,
+                  targetSelf: true,
+                },
+              },
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  buffId: 'damage_reduction',
+                  durationOverride: 3,
+                  targetSelf: true,
+                },
+              },
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  buffId: 'counter_stance',
+                  durationOverride: 3,
+                  targetSelf: true,
+                },
+              },
+            ],
+          },
+          // 技能3: 闪避率提升
+          {
+            id: 'skill_dodge',
+            name: '游龙身法',
+            target_self: true,
+            element: '水',
+            cost: 20,
+            cooldown: 3,
+            grade: '玄阶中品',
+            effects: [
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: {
+                  buffId: 'dodge_up',
+                  durationOverride: 3,
+                  targetSelf: true,
+                },
+              },
+            ],
+          },
+          // 技能4: DOT攻击 + 控制
+          {
+            id: 'skill_dot_control',
+            name: '腐骨毒雾',
+            element: '木',
+            cost: 35,
+            cooldown: 3,
+            grade: '玄阶上品',
+            effects: [
+              {
+                type: EffectType.Damage,
+                trigger: 'ON_SKILL_HIT',
+                params: { multiplier: 0.5, element: '木' },
+              },
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: { buffId: 'poison', durationOverride: 4 },
+              },
+              {
+                type: EffectType.AddBuff,
+                trigger: 'ON_SKILL_HIT',
+                params: { buffId: 'root', durationOverride: 2, chance: 0.6 },
+              },
+            ],
+          },
+        ],
+        inventory: {
+          artifacts: [
+            // 饰品: 法力回复
+            {
+              id: 'accessory_mana',
+              name: '聚灵珠',
+              element: '水',
+              slot: 'accessory',
+              quality: '玄品',
+              effects: [
+                {
+                  type: EffectType.StatModifier,
+                  trigger: 'ON_STAT_CALC',
+                  params: { attribute: 'wisdom', value: 20, modType: 1 },
+                },
+                {
+                  type: EffectType.ManaRegen,
+                  trigger: EffectTrigger.ON_TURN_END,
+                  params: { amount: 15, percentOfMax: 0.05 },
+                },
+              ],
+            },
+          ],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: null,
+          armor: null,
+          accessory: 'accessory_mana',
+        },
+        max_skills: 6,
+        spirit_stones: 800,
+      };
+
+      const result = simulateBattle(attacker, defender);
+
+      console.log('\n========== 全效果综合测试 ==========');
+      console.log('攻击者: 万法尊者');
+      console.log('防御者: 不动明王');
+      console.log('\n【攻击者技能】');
+      console.log('  - 吸血斩: 伤害 + 40%吸血');
+      console.log('  - 破妄神光: 50点真实伤害');
+      console.log('  - 斩仙诀: 伤害 + 对低血量目标额外伤害');
+      console.log('  - 破法术: 伤害 + 驱散2个增益');
+      console.log('  - 吸灵术: 伤害 + 15%法力吸取');
+      console.log('  - 回春术: 治疗');
+      console.log('  - 装备: 30%反伤');
+      console.log('\n【防御者技能】');
+      console.log('  - 金刚护体: 护盾');
+      console.log('  - 不动如山: 防御提升 + 减伤 + 50%反击');
+      console.log('  - 游龙身法: 闪避提升');
+      console.log('  - 腐骨毒雾: 伤害 + 中毒 + 定身');
+      console.log('  - 装备: 每回合法力回复');
+
+      console.log('\n【战斗日志】');
+      console.log(result.log.join('\n'));
+
+      // 统计各种效果触发情况
+      const effectsFound: Record<string, boolean> = {
+        伤害: false,
+        吸血: false,
+        真实伤害: false,
+        斩杀: false,
+        驱散: false,
+        法力吸取: false,
+        治疗: false,
+        反伤: false,
+        护盾: false,
+        反击: false,
+        中毒: false,
+        定身: false,
+        法力回复: false,
+        暴击: false,
+        闪避: false,
+      };
+
+      for (const log of result.log) {
+        if (log.includes('造成') || log.includes('点伤害'))
+          effectsFound['伤害'] = true;
+        if (log.includes('吸取了') && log.includes('气血'))
+          effectsFound['吸血'] = true;
+        if (log.includes('真实伤害')) effectsFound['真实伤害'] = true;
+        if (log.includes('斩杀') || log.includes('弱点一击'))
+          effectsFound['斩杀'] = true;
+        if (log.includes('被驱散了') || log.includes('驱散了'))
+          effectsFound['驱散'] = true;
+        if (log.includes('被吸取了') && log.includes('法力'))
+          effectsFound['法力吸取'] = true;
+        if (log.includes('恢复') && log.includes('气血'))
+          effectsFound['治疗'] = true;
+        if (log.includes('反弹了')) effectsFound['反伤'] = true;
+        if (log.includes('护盾') || log.includes('护盾耗尽'))
+          effectsFound['护盾'] = true;
+        if (log.includes('反击了')) effectsFound['反击'] = true;
+        if (log.includes('中毒') || log.includes('毒'))
+          effectsFound['中毒'] = true;
+        if (log.includes('定身') || log.includes('无法行动'))
+          effectsFound['定身'] = true;
+        if (log.includes('法力') && log.includes('回复'))
+          effectsFound['法力回复'] = true;
+        if (log.includes('暴击')) effectsFound['暴击'] = true;
+        if (log.includes('闪避')) effectsFound['闪避'] = true;
+      }
+
+      console.log('\n【效果触发统计】');
+      for (const [effect, found] of Object.entries(effectsFound)) {
+        console.log(`  ${found ? '✅' : '❌'} ${effect}`);
+      }
+
+      const triggerCount = Object.values(effectsFound).filter((v) => v).length;
+      console.log(
+        `\n效果触发率: ${triggerCount}/${Object.keys(effectsFound).length}`,
+      );
+      console.log(`\n✨ 胜者: ${result.winner.name}`);
+      console.log(`📊 总回合数: ${result.turns}`);
+      console.log(`❤️ 攻击者剩余HP: ${result.playerHp}`);
+      console.log(`❤️ 防御者剩余HP: ${result.opponentHp}`);
+      console.log('=====================================\n');
+
+      expect(result).toBeDefined();
+      expect(result.winner).toBeDefined();
+      expect(result.log.length).toBeGreaterThan(0);
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { isBattleEntity } from '../types';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -26,7 +27,7 @@ export class LifeStealEffect extends BaseEffect {
    * 在 ON_AFTER_DAMAGE 时机，ctx.value 是造成的伤害值
    */
   apply(ctx: EffectContext): void {
-    // 【修复】从 ctx.value 获取本次造成的最终伤害（由 SkillExecutor 传入）
+    // 从 ctx.value 获取本次造成的最终伤害
     const damageDealt = ctx.value ?? 0;
 
     if (damageDealt <= 0) return;
@@ -36,11 +37,18 @@ export class LifeStealEffect extends BaseEffect {
 
     if (healAmount <= 0) return;
 
-    // 将吸血信息记录到 metadata，供战斗引擎处理
-    ctx.metadata = ctx.metadata ?? {};
-    ctx.metadata.lifeSteal =
-      ((ctx.metadata.lifeSteal as number) || 0) + healAmount;
-    ctx.metadata.lifeStealTarget = ctx.source.id; // 吸血目标是攻击者自己
+    // 检查是否为 BattleEntity
+    if (!isBattleEntity(ctx.source)) {
+      console.warn('[LifeStealEffect] source is not a BattleEntity');
+      return;
+    }
+
+    // 直接应用治疗
+    const actualHeal = ctx.source.applyHealing(healAmount);
+
+    if (actualHeal > 0) {
+      ctx.logCollector?.addLog(`${ctx.source.name} 吸取了 ${actualHeal} 点气血`);
+    }
   }
 
   displayInfo() {

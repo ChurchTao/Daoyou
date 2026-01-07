@@ -75,6 +75,33 @@ const ATTACK_AFFIXES: AffixWeight[] = [
     tags: ['primary', 'offensive'],
     displayName: '破甲攻击',
   },
+  // P1: 斩杀伤害
+  {
+    effectType: EffectType.ExecuteDamage,
+    trigger: 'ON_BEFORE_DAMAGE',
+    paramsTemplate: {
+      thresholdPercent: 0.3,
+      bonusDamage: { base: 0.2, scale: 'wisdom', coefficient: 0.1 },
+    },
+    weight: 20,
+    minQuality: '地品',
+    tags: ['secondary', 'offensive', 'burst', 'execute'],
+    displayName: '斩杀',
+  },
+  // P1: 真实伤害
+  {
+    effectType: EffectType.TrueDamage,
+    trigger: 'ON_SKILL_HIT',
+    paramsTemplate: {
+      baseDamage: { base: 50, scale: 'wisdom', coefficient: 15 },
+      ignoreShield: true,
+      ignoreReduction: true,
+    },
+    weight: 15,
+    minQuality: '天品',
+    tags: ['secondary', 'offensive', 'burst', 'true_damage'],
+    displayName: '诛仙剑气',
+  },
 ];
 
 // ============================================================
@@ -150,6 +177,33 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'healing'],
     displayName: '持续回复',
   },
+  // P0: 驱散负面状态
+  {
+    effectType: EffectType.Dispel,
+    trigger: 'ON_SKILL_HIT',
+    paramsTemplate: {
+      dispelCount: 1,
+      dispelType: 'debuff',
+      targetSelf: true,
+    },
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'sustain', 'dispel'],
+    displayName: '妙手回春',
+  },
+  // P0: 治疗增幅
+  {
+    effectType: EffectType.HealAmplify,
+    trigger: 'ON_HEAL',
+    paramsTemplate: {
+      amplifyPercent: { base: 0.15, scale: 'wisdom', coefficient: 0.05 },
+      affectOutgoing: true,
+    },
+    weight: 30,
+    minQuality: '地品',
+    tags: ['secondary', 'healing_boost'],
+    displayName: '木灵护体',
+  },
 ];
 
 // ============================================================
@@ -224,6 +278,19 @@ const CONTROL_SECONDARY_AFFIXES: AffixWeight[] = [
     weight: 50,
     tags: ['secondary', 'offensive'],
     displayName: '附带伤害',
+  },
+  // P0: 法力吸取
+  {
+    effectType: EffectType.ManaDrain,
+    trigger: 'ON_SKILL_HIT',
+    paramsTemplate: {
+      drainPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      restoreToSelf: true,
+    },
+    weight: 35,
+    minQuality: '地品',
+    tags: ['secondary', 'control', 'sustain'],
+    displayName: '封魂禁言',
   },
 ];
 
@@ -386,6 +453,18 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
     weight: 50,
     tags: ['secondary', 'healing'],
     displayName: '附加治疗',
+  },
+  // P0: 法力回复
+  {
+    effectType: EffectType.ManaRegen,
+    trigger: 'ON_TURN_END',
+    paramsTemplate: {
+      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+    },
+    weight: 35,
+    minQuality: '真品',
+    tags: ['secondary', 'sustain', 'mana_regen'],
+    displayName: '灵枢引力',
   },
 ];
 

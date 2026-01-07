@@ -277,6 +277,131 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'defensive'],
     displayName: '闪避率提升',
   },
+
+  // ============================================================
+  // P0/P1 新增战斗机制词条
+  // ============================================================
+
+  // 元素伤害加成 - 武器专属
+  {
+    effectType: EffectType.ElementDamageBonus,
+    trigger: 'ON_BEFORE_DAMAGE',
+    paramsTemplate: {
+      element: 'INHERIT', // 继承法宝元素
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+    },
+    weight: 50,
+    slots: ['weapon'],
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive', 'fire_affinity', 'thunder_affinity'],
+    displayName: '元素亲和',
+  },
+
+  // 反击 - 护甲专属
+  {
+    effectType: EffectType.CounterAttack,
+    trigger: 'ON_BEING_HIT',
+    paramsTemplate: {
+      chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      damageMultiplier: { base: 0.3, scale: 'quality', coefficient: 0.1 },
+      element: 'INHERIT',
+    },
+    weight: 35,
+    slots: ['armor'],
+    minQuality: '地品',
+    tags: ['secondary', 'defensive', 'counter'],
+    displayName: '以彼之道',
+  },
+
+  // 斩杀伤害 - 武器专属
+  {
+    effectType: EffectType.ExecuteDamage,
+    trigger: 'ON_BEFORE_DAMAGE',
+    paramsTemplate: {
+      thresholdPercent: 0.3,
+      bonusDamage: { base: 0.15, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 25,
+    slots: ['weapon'],
+    minQuality: '天品',
+    tags: ['secondary', 'offensive', 'burst', 'execute'],
+    displayName: '破军斩将',
+  },
+
+  // 真实伤害 - 武器专属
+  {
+    effectType: EffectType.TrueDamage,
+    trigger: 'ON_CRITICAL_HIT',
+    paramsTemplate: {
+      baseDamage: { base: 30, scale: 'quality', coefficient: 10 },
+      ignoreShield: true,
+      ignoreReduction: true,
+    },
+    weight: 20,
+    slots: ['weapon'],
+    minQuality: '地品',
+    tags: ['secondary', 'offensive', 'burst', 'true_damage'],
+    displayName: '雷霆震怒',
+  },
+
+  // 击杀回复 - 武器专属
+  {
+    effectType: EffectType.Heal,
+    trigger: 'ON_KILL',
+    paramsTemplate: {
+      flatHeal: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      targetSelf: true,
+    },
+    weight: 30,
+    slots: ['weapon'],
+    minQuality: '地品',
+    tags: ['secondary', 'sustain', 'lifesteal'],
+    displayName: '噬魂饮血',
+  },
+
+  // 法力回复 - 饰品专属
+  {
+    effectType: EffectType.ManaRegen,
+    trigger: 'ON_TURN_END',
+    paramsTemplate: {
+      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+    },
+    weight: 45,
+    slots: ['accessory'],
+    minQuality: '玄品',
+    tags: ['secondary', 'sustain', 'mana_regen'],
+    displayName: '灵枢引力',
+  },
+
+  // 持续回复 - 护甲专属
+  {
+    effectType: EffectType.Heal,
+    trigger: 'ON_TURN_END',
+    paramsTemplate: {
+      flatHeal: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      targetSelf: true,
+    },
+    weight: 35,
+    slots: ['armor'],
+    minQuality: '真品',
+    tags: ['secondary', 'sustain', 'defensive'],
+    displayName: '生生不息',
+  },
+
+  // 治疗增幅 - 饰品专属
+  {
+    effectType: EffectType.HealAmplify,
+    trigger: 'ON_HEAL',
+    paramsTemplate: {
+      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      affectOutgoing: false,
+    },
+    weight: 30,
+    slots: ['accessory'],
+    minQuality: '玄品',
+    tags: ['secondary', 'sustain', 'healing_boost'],
+    displayName: '妙手回春',
+  },
 ];
 
 // ============================================================

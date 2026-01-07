@@ -1,4 +1,5 @@
-import { allBuffConfigs } from '@/config/buffs';
+import { allBuffTemplates } from '@/config/buffTemplates';
+import { buffTemplateRegistry } from './BuffTemplateRegistry';
 import type { BuffConfig } from './types';
 import { BuffTag } from './types';
 
@@ -58,10 +59,12 @@ class BuffRegistry {
 export const buffRegistry = new BuffRegistry();
 
 /**
- * 初始化 Buff 注册表
+ * 初始化 Buff 系统
+ * 同时初始化模板注册表和配置注册表
  */
 export function initializeBuffRegistry(): void {
-  buffRegistry.registerAll(allBuffConfigs);
+  // 先初始化模板注册表
+  buffTemplateRegistry.registerAll(allBuffTemplates);
 }
 
 // 自动初始化

@@ -1,4 +1,4 @@
-import { buffRegistry, BuffTag, TickMoment } from '@/engine/buff';
+import { BuffTag, buffTemplateRegistry, TickMoment } from '@/engine/buff';
 import type { Cultivator, Skill } from '@/types/cultivator';
 import { effectEngine } from '../effect';
 import { EffectTrigger, EffectType } from '../effect/types';
@@ -233,12 +233,29 @@ export class BattleEngineV2 {
         0,
       );
 
-      // 处理 HOT 治疗
-      const hotHeal = ctx.metadata?.hotHeal as number | undefined;
-      if (hotHeal && hotHeal > 0) {
-        const actualHeal = unit.applyHealing(hotHeal);
-        if (actualHeal > 0) {
-          state.log.push(`${unit.getName()} 回复了 ${actualHeal} 点气血`);
+      // 【优化】合并日志，并添加总结性说明
+      if (ctx.logs.length > 0) {
+        // 检查是否有法力回复
+        const hasManaRegen = ctx.logs.some(
+          (log) => log.includes('回复了') && log.includes('法力'),
+        );
+        if (hasManaRegen) {
+          // 添加说明：由于装备效果
+          const regenLogs = ctx.logs.filter(
+            (log) => log.includes('回复了') && log.includes('法力'),
+          );
+          if (regenLogs.length > 0) {
+            state.log.push(...regenLogs.map((log) => `${log}（装备效果）`));
+            // 添加其他日志
+            const otherLogs = ctx.logs.filter(
+              (log) => !log.includes('回复了') || !log.includes('法力'),
+            );
+            state.log.push(...otherLogs);
+          } else {
+            state.log.push(...ctx.logs);
+          }
+        } else {
+          state.log.push(...ctx.logs);
         }
       }
 
@@ -372,6 +389,7 @@ export class BattleEngineV2 {
       for (const effect of effects) {
         switch (effect.type) {
           case EffectType.Damage:
+          case EffectType.TrueDamage: // 【修复】真实伤害也是攻击类技能
             isAttack = true;
             break;
           case EffectType.Heal:
@@ -528,17 +546,17 @@ export class BattleEngineV2 {
         state.log.push(`${loser.getName()} 的伤势已达濒死状态`);
       } else if (hasMajorWound && hpPercent < 0.1) {
         loser.buffManager.removeBuff('major_wound');
-        const config = buffRegistry.get('near_death');
+        const config = buffTemplateRegistry.getDefaultConfig('near_death');
         if (config) loser.buffManager.addBuff(config, loser, state.turn);
         state.log.push(`${loser.getName()} 的伤势从重伤升级为濒死！`);
       } else if (hasMinorWound && hpPercent < 0.3) {
         loser.buffManager.removeBuff('minor_wound');
-        const config = buffRegistry.get('major_wound');
+        const config = buffTemplateRegistry.getDefaultConfig('major_wound');
         if (config) loser.buffManager.addBuff(config, loser, state.turn);
         state.log.push(`${loser.getName()} 的伤势从轻伤升级为重伤！`);
       } else if (!hasMinorWound && !hasMajorWound) {
         const woundType = hpPercent < 0.1 ? 'major_wound' : 'minor_wound';
-        const config = buffRegistry.get(woundType);
+        const config = buffTemplateRegistry.getDefaultConfig(woundType);
         if (config) loser.buffManager.addBuff(config, loser, state.turn);
         state.log.push(
           `${loser.getName()} 受了${woundType === 'minor_wound' ? '轻伤' : '重伤'}！`,
