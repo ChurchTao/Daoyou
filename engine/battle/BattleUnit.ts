@@ -6,9 +6,9 @@ import type {
 } from '@/engine/buff/types';
 import { BuffTag } from '@/engine/buff/types';
 import {
+  BattleEntity,
   EffectTrigger,
   EffectType,
-  BattleEntity,
   Entity,
   type IBaseEffect,
 } from '@/engine/effect/types';
@@ -492,7 +492,10 @@ export class BattleUnit implements BattleEntity {
    * @returns 实际扣除量
    */
   drainMp(amount: number): number {
-    const actualDrain = Math.max(0, Math.min(Math.floor(amount), this.currentMp));
+    const actualDrain = Math.max(
+      0,
+      Math.min(Math.floor(amount), this.currentMp),
+    );
     this.currentMp = Math.max(0, this.currentMp - actualDrain);
     return actualDrain;
   }
@@ -546,14 +549,20 @@ export class BattleUnit implements BattleEntity {
       candidates = activeBuffs;
     } else {
       const targetTag = type === 'buff' ? BuffTag.BUFF : BuffTag.DEBUFF;
-      candidates = activeBuffs.filter((b) => b.config.tags?.includes(targetTag));
+      candidates = activeBuffs.filter((b) =>
+        b.config.tags?.includes(targetTag),
+      );
     }
 
     // 优先标签排序
     if (priorityTags && priorityTags.length > 0) {
       candidates.sort((a, b) => {
-        const aHasPriority = a.config.tags?.some((t) => priorityTags.includes(t));
-        const bHasPriority = b.config.tags?.some((t) => priorityTags.includes(t));
+        const aHasPriority = a.config.tags?.some((t) =>
+          priorityTags.includes(t),
+        );
+        const bHasPriority = b.config.tags?.some((t) =>
+          priorityTags.includes(t),
+        );
         return bHasPriority ? 1 : aHasPriority ? -1 : 0;
       });
     }

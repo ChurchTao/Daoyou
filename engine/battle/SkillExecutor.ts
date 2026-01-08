@@ -402,7 +402,6 @@ export class SkillExecutor {
     // 【修复】治疗目标应该是 effectTarget（考虑 target_self）
     const healTarget = effectTarget;
     const actualHeal = healTarget.applyHealing(healValue);
-    result.healing += actualHeal;
 
     if (actualHeal > 0) {
       result.logs.push(

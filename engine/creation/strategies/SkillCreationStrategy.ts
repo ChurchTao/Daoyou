@@ -13,7 +13,6 @@ import {
   STATUS_EFFECT_VALUES,
 } from '@/types/constants';
 import type { Skill, SpiritualRoot } from '@/types/cultivator';
-import { SKILL_POWER_RANGES } from '@/utils/characterEngine';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { calculateSingleSkillScore } from '@/utils/rankingUtils';
 import { AffixGenerator } from '../AffixGenerator';
@@ -23,8 +22,6 @@ import {
   PromptData,
 } from '../CreationStrategy';
 import {
-  calculateBaseCost,
-  calculateCooldown,
   clampGrade,
   ELEMENT_MATCH_MODIFIER,
   GRADE_HINT_TO_GRADES,
@@ -194,13 +191,7 @@ ${userPrompt || '无（自由发挥）'}
     );
 
     // 3. 计算消耗和冷却
-    const basePower = this.calculateBasePower(grade, wisdom);
     const matchModifier = ELEMENT_MATCH_MODIFIER[elementMatch];
-    const adjustedPower = Math.floor(basePower * matchModifier.power);
-
-    const baseCost = calculateBaseCost(adjustedPower);
-    const cost = Math.floor(baseCost * matchModifier.cost);
-    const cooldown = calculateCooldown(adjustedPower);
 
     // 4. 使用 AffixGenerator 生成效果
     const { effects } = AffixGenerator.generateSkillAffixes(
@@ -217,8 +208,9 @@ ${userPrompt || '无（自由发挥）'}
       name: blueprint.name,
       element: blueprint.element,
       grade,
-      cost,
-      cooldown,
+      // todo 修复
+      cost: 0,
+      cooldown: 0,
       target_self,
       description: blueprint.description,
       effects,
@@ -330,18 +322,5 @@ ${userPrompt || '无（自由发挥）'}
     selectedGrade = clampGrade(selectedGrade, realmLimit);
 
     return selectedGrade;
-  }
-
-  /**
-   * 计算基础威力
-   */
-  private calculateBasePower(grade: SkillGrade, wisdom: number): number {
-    const range = SKILL_POWER_RANGES[grade];
-    if (!range) {
-      return 30;
-    }
-
-    const ratio = wisdomToPowerRatio(wisdom);
-    return range.min + Math.floor((range.max - range.min) * ratio);
   }
 }

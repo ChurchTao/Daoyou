@@ -85,7 +85,7 @@ describe('BattleEngineV2', () => {
             {
               type: EffectType.StatModifier,
               trigger: 'ON_STAT_CALC',
-              params: { attribute: 'spirit', value: 10, modType: 1 },
+              params: { stat: 'spirit', value: 10, modType: 1 },
             },
           ],
         },
@@ -273,7 +273,7 @@ describe('BattleEngineV2', () => {
               {
                 type: EffectType.StatModifier,
                 trigger: 'ON_STAT_CALC',
-                params: { attribute: 'spirit', value: 25, modType: 1 },
+                params: { stat: 'spirit', value: 25, modType: 1 },
               },
             ],
           },
@@ -428,12 +428,12 @@ describe('BattleEngineV2', () => {
               {
                 type: EffectType.StatModifier,
                 trigger: 'ON_STAT_CALC',
-                params: { attribute: 'spirit', value: 20, modType: 1 },
+                params: { stat: 'spirit', value: 20, modType: 1 },
               },
               {
                 type: EffectType.StatModifier,
                 trigger: 'ON_STAT_CALC',
-                params: { attribute: 'speed', value: 15, modType: 1 },
+                params: { stat: 'speed', value: 15, modType: 1 },
               },
             ],
           },
@@ -844,7 +844,7 @@ describe('BattleEngineV2', () => {
                 {
                   type: EffectType.StatModifier,
                   trigger: 'ON_STAT_CALC',
-                  params: { attribute: 'vitality', value: 30, modType: 1 },
+                  params: { stat: 'vitality', value: 30, modType: 1 },
                 },
                 {
                   type: EffectType.ReflectDamage,
@@ -1011,7 +1011,7 @@ describe('BattleEngineV2', () => {
                 {
                   type: EffectType.StatModifier,
                   trigger: 'ON_STAT_CALC',
-                  params: { attribute: 'wisdom', value: 20, modType: 1 },
+                  params: { stat: 'wisdom', value: 20, modType: 1 },
                 },
                 {
                   type: EffectType.ManaRegen,

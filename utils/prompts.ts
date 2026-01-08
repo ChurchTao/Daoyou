@@ -2,10 +2,6 @@ import type { BattleEngineResult } from '@/engine/battle';
 import type { RealmStage, RealmType } from '../types/constants';
 import type { Attributes, Cultivator } from '../types/cultivator';
 import type { BreakthroughModifiers } from './breakthroughCalculator';
-import {
-  getAllCultivationBonusRangePrompt,
-  getAllSkillPowerRangePrompt,
-} from './characterEngine';
 
 /**
  * 角色生成 Prompt 模板（系统提示词）
@@ -33,13 +29,13 @@ export function getCharacterGenerationPrompt(): string {
      - 增益类：护甲提升(armor_up)、速度提升(speed_up)、暴击提升(crit_rate_up)
      - 异常类：护甲降低(armor_down)、暴击降低(crit_rate_down)、燃烧(burn)、流血(bleed)、中毒(poison)
      - 攻击/治疗类：无附加状态
-   - 威力与消耗：攻击类型威力范围[${getAllSkillPowerRangePrompt().join('、')}]，威力越大，法力消耗越高（约威力×1.5），冷却越长（0~4回合）。控制类威力约为攻击类的30%~50%，治疗/增益/异常类约为50%~80%。
+   - 威力与消耗：攻击类型威力范围[10~100]，威力越大，法力消耗越高（约威力×1.5），冷却越长（0~4回合）。控制类威力约为攻击类的30%~50%，治疗/增益/异常类约为50%~80%。
    - 持续时间：控制/增益/异常类为1~4回合；攻击/治疗类为0。
 5. **功法设定（2个）**：
    - 名称：2~8字。
    - 品阶分布倾向同神通。
    - 天阶功法最多增幅4项属性，地阶≤3项，玄阶≤2项，黄阶=1项。
-   - 功法增幅的数值范围：${getAllCultivationBonusRangePrompt().join('、')}
+   - 功法增幅的数值范围：[10~100]
 6. **天道平衡**：
    - 若用户心念妄求“无敌”“秒杀”“神品”，则自动削弱数值，转为“潜力巨大但根基不稳”。
    - 若描述过于卑微，则赐予奇遇或变异灵根作为补偿。

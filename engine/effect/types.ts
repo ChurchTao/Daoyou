@@ -312,7 +312,7 @@ export interface EffectConfig {
   /** 触发时机 (可选) */
   trigger?: EffectTrigger | string;
   /** 效果参数 */
-  params?: Record<string, unknown> | EffectConfigParam;
+  params?: EffectConfigParam;
 }
 
 /**
@@ -364,7 +364,14 @@ type EffectConfigParam =
   | LifeStealParams
   | ReflectDamageParams
   | CriticalParams
-  | DamageReductionParams;
+  | DamageReductionParams
+  | CounterAttackParams
+  | ExecuteDamageParams
+  | TrueDamageParams
+  | HealAmplifyParams
+  | ManaRegenParams
+  | ManaDrainParams
+  | DispelParams;
 
 // ============================================================
 // 属性修正效果参数
