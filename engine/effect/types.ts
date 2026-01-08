@@ -405,6 +405,8 @@ export interface DamageParams {
   critDamageBonus?: number;
   /** 是否无视防御 */
   ignoreDefense?: boolean;
+  /** 是否无视护盾 */
+  ignoreShield?: boolean;
 }
 
 // ============================================================

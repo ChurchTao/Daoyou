@@ -20,6 +20,8 @@ export class DamageEffect extends BaseEffect {
   private canCrit: boolean;
   /** 是否无视防御 */
   private ignoreDefense: boolean;
+  /** 是否无视护盾 */
+  private ignoreShield: boolean;
   /** 暴击率加成 (0-1)，叠加到基础暴击率上 */
   private critRateBonus?: number;
   /** 暴击伤害倍率 */
@@ -33,6 +35,7 @@ export class DamageEffect extends BaseEffect {
     this.flatDamage = params.flatDamage ?? 0;
     this.canCrit = params.canCrit ?? true;
     this.ignoreDefense = params.ignoreDefense ?? false;
+    this.ignoreShield = params.ignoreShield ?? false;
     this.critRateBonus = params.critRateBonus ?? 0;
     this.critDamageBonus = params.critDamageBonus ?? 0;
   }
@@ -66,6 +69,7 @@ export class DamageEffect extends BaseEffect {
     ctx.metadata.element = this.element;
     ctx.metadata.canCrit = this.canCrit;
     ctx.metadata.ignoreDefense = this.ignoreDefense;
+    ctx.metadata.ignoreShield = this.ignoreShield;
     ctx.metadata.critRateBonus = this.critRateBonus;
     ctx.metadata.critDamageMultiplier = this.critDamageBonus;
   }

@@ -21,7 +21,6 @@ import { HealAmplifyEffect } from './effects/HealAmplifyEffect';
 import { ManaDrainEffect } from './effects/ManaDrainEffect';
 import { ManaRegenEffect } from './effects/ManaRegenEffect';
 import type { ModifyHitRateParams } from './effects/ModifyHitRateEffect';
-import { TrueDamageEffect } from './effects/TrueDamageEffect';
 import {
   EffectType,
   StatModifierType,
@@ -125,10 +124,17 @@ export class EffectFactory {
           config.params as unknown as ExecuteDamageParams,
         );
 
-      case EffectType.TrueDamage:
-        return new TrueDamageEffect(
-          config.params as unknown as TrueDamageParams,
-        );
+      case EffectType.TrueDamage: {
+        // 【重构】TrueDamage 映射为 DamageEffect，设置无视防御和护盾
+        const trueParams = config.params as unknown as TrueDamageParams;
+        return new DamageEffect({
+          multiplier: 0,
+          flatDamage: trueParams.baseDamage,
+          ignoreDefense: trueParams.ignoreReduction ?? true,
+          ignoreShield: trueParams.ignoreShield ?? true,
+          canCrit: false,
+        });
+      }
 
       case EffectType.CounterAttack:
         return new CounterAttackEffect(
