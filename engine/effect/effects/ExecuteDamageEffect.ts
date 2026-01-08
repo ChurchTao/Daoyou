@@ -1,6 +1,7 @@
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type EffectContext,
   type ExecuteDamageParams,
 } from '../types';
@@ -43,8 +44,10 @@ export class ExecuteDamageEffect extends BaseEffect {
     // 检查目标生命是否低于阈值
     if (!ctx.target) return false;
 
-    const currentHp = ctx.target.getAttribute('hp') ?? 0;
-    const maxHp = ctx.target.getAttribute('maxHp') ?? 1;
+    // 使用 BattleEntity 接口获取动态血量
+    if (!isBattleEntity(ctx.target)) return false;
+    const currentHp = ctx.target.getCurrentHp();
+    const maxHp = ctx.target.getMaxHp();
     const hpPercent = currentHp / maxHp;
 
     return hpPercent <= this.thresholdPercent;
@@ -57,11 +60,11 @@ export class ExecuteDamageEffect extends BaseEffect {
   apply(ctx: EffectContext): void {
     const baseDamage = ctx.value ?? 0;
     if (baseDamage <= 0) return;
-    if (!ctx.target) return;
+    if (!ctx.target || !isBattleEntity(ctx.target)) return;
 
     // 计算目标缺少的生命百分比（越低伤害越高）
-    const currentHp = ctx.target.getAttribute('hp') ?? 0;
-    const maxHp = ctx.target.getAttribute('maxHp') ?? 1;
+    const currentHp = ctx.target.getCurrentHp();
+    const maxHp = ctx.target.getMaxHp();
     const missingHpPercent = 1 - currentHp / maxHp;
 
     // 斩杀加成 = 基础加成 * (1 + 缺失生命百分比)
@@ -78,7 +81,7 @@ export class ExecuteDamageEffect extends BaseEffect {
 
     // 添加日志反馈
     ctx.logCollector?.addLog(
-      `${ctx.target.name} 生命危急，斩杀效果触发，额外造成 ${Math.floor(bonusDamage)} 点伤害！`,
+      `${ctx.target.name} 到达斩杀线(${Math.round((currentHp / maxHp) * 100)}%)，触发斩杀效果，额外造成 ${Math.floor(bonusDamage)} 点伤害！`,
     );
   }
 

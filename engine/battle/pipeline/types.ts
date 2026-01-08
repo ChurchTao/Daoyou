@@ -72,6 +72,7 @@ export interface DamagePipelineContext {
 
   // ===== 日志 =====
   logs: string[];
+  deferredLogs: string[];
 }
 
 /**
@@ -107,6 +108,7 @@ export function createPipelineContext(
     critDamageBonus: 0,
 
     logs: [],
+    deferredLogs: [],
   };
 }
 

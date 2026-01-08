@@ -15,6 +15,9 @@ export class ApplyDamageStage implements PipelineStage {
   process(ctx: DamagePipelineContext): void {
     const { caster, target, skill, isCritical, shieldAbsorbed } = ctx;
 
+    // 判断是否为真实伤害（无视防御 + 无视护盾）
+    const isTrueDamage = ctx.ignoreDefense && ctx.ignoreShield;
+
     // 计算最终伤害
     const finalDamage = Math.max(0, Math.floor(ctx.damage));
 
@@ -31,6 +34,7 @@ export class ApplyDamageStage implements PipelineStage {
           skill.name,
           actualDamage,
           isCritical,
+          isTrueDamage,
           shieldAbsorbed,
         ),
       );
@@ -46,6 +50,12 @@ export class ApplyDamageStage implements PipelineStage {
         ),
       );
     }
+
+    // 在伤害日志后追加延迟日志（如护盾耗尽）
+    if (ctx.deferredLogs.length > 0) {
+      ctx.logs.push(...ctx.deferredLogs);
+      ctx.deferredLogs = [];
+    }
   }
 
   private formatDamageLog(
@@ -54,13 +64,15 @@ export class ApplyDamageStage implements PipelineStage {
     skillName: string,
     damage: number,
     isCritical: boolean,
+    isTrueDamage: boolean,
     shieldAbsorbed?: number,
   ): string {
     const critText = isCritical ? '暴击！' : '';
+    const trueDamageText = isTrueDamage ? '（真实伤害）' : '';
     const shieldText = shieldAbsorbed
       ? `（护盾吸收 ${shieldAbsorbed} 点伤害）`
       : '';
-    return `${casterName} 对 ${targetName} 使用「${skillName}」，${critText}造成 ${damage} 点伤害${shieldText}`;
+    return `${casterName} 对 ${targetName} 使用「${skillName}」，${critText}造成 ${damage} 点伤害${trueDamageText}${shieldText}`;
   }
 
   private formatNoDamageLog(

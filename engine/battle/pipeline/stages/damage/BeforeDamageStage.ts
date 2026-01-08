@@ -1,4 +1,4 @@
-import { effectEngine } from '@/engine/effect';
+import { effectEngine, EffectFactory } from '@/engine/effect';
 import { EffectTrigger } from '@/engine/effect/types';
 import {
   StagePriority,
@@ -12,7 +12,7 @@ import {
  * - CriticalEffect: 暴击判定
  * - DamageReductionEffect: 减伤计算
  * - ShieldEffect: 护盾吸收
- * - ExecuteDamageEffect: 斩杀伤害
+ * - ExecuteDamageEffect: 斩杀伤害（技能/装备）
  */
 export class BeforeDamageStage implements PipelineStage<DamagePipelineContext> {
   readonly name = 'BeforeDamageStage';
@@ -26,7 +26,21 @@ export class BeforeDamageStage implements PipelineStage<DamagePipelineContext> {
       return;
     }
 
+    // 从技能配置中提取 ON_BEFORE_DAMAGE 效果（如斩杀）
+    const skillEffects = (skill.effects ?? [])
+      .filter(
+        (e) =>
+          (e.trigger ?? EffectTrigger.ON_SKILL_HIT) ===
+          EffectTrigger.ON_BEFORE_DAMAGE,
+      )
+      .map((config) => {
+        const effect = EffectFactory.create(config);
+        effect.setOwner(caster.id);
+        return effect;
+      });
+
     // 调用 EffectEngine 处理所有 ON_BEFORE_DAMAGE 效果
+    // skillEffects 作为 extraEffects 与装备/Buff 效果一起处理
     const result = effectEngine.processWithContext(
       EffectTrigger.ON_BEFORE_DAMAGE,
       caster,
@@ -42,6 +56,7 @@ export class BeforeDamageStage implements PipelineStage<DamagePipelineContext> {
         critRateBonus: ctx.critRateBonus,
         critDamageBonus: ctx.critDamageBonus,
       },
+      skillEffects,
     );
 
     // 读取处理后的结果
@@ -49,7 +64,8 @@ export class BeforeDamageStage implements PipelineStage<DamagePipelineContext> {
     ctx.isCritical = result.ctx.metadata?.isCritical === true;
     ctx.shieldAbsorbed = (result.ctx.metadata?.shieldAbsorbed as number) ?? 0;
 
-    // 合并日志
-    ctx.logs.push(...result.logs);
+    if (result.logs?.length > 0) {
+      ctx.deferredLogs.push(...result.logs);
+    }
   }
 }

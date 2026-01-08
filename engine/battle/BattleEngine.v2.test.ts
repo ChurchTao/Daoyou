@@ -763,7 +763,7 @@ describe('BattleEngineV2', () => {
               {
                 type: EffectType.ExecuteDamage,
                 trigger: EffectTrigger.ON_BEFORE_DAMAGE,
-                params: { thresholdPercent: 0.3, bonusDamage: 80 },
+                params: { thresholdPercent: 0.5, bonusDamage: 1.5 },
               },
             ],
           },
@@ -1065,7 +1065,7 @@ describe('BattleEngineV2', () => {
         驱散: false,
         法力吸取: false,
         治疗: false,
-        反伤: false,
+        反弹: false,
         护盾: false,
         反击: false,
         中毒: false,
@@ -1089,10 +1089,10 @@ describe('BattleEngineV2', () => {
           effectsFound['法力吸取'] = true;
         if (log.includes('恢复') && log.includes('气血'))
           effectsFound['治疗'] = true;
-        if (log.includes('反弹了')) effectsFound['反伤'] = true;
+        if (log.includes('反弹')) effectsFound['反弹'] = true;
         if (log.includes('护盾') || log.includes('护盾耗尽'))
           effectsFound['护盾'] = true;
-        if (log.includes('反击了')) effectsFound['反击'] = true;
+        if (log.includes('反击')) effectsFound['反击'] = true;
         if (log.includes('中毒') || log.includes('毒'))
           effectsFound['中毒'] = true;
         if (log.includes('定身') || log.includes('无法行动'))
