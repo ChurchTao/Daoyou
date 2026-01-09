@@ -1,38 +1,43 @@
-# 环境变量配置说明
+# AI底座选择
 
-## 必需配置
+PROVIDER_CHOOSE=ark
 
-在项目根目录创建 `.env.local` 文件，并添加以下配置：
+# 硅基流动 ==============
 
-```bash
-# OpenAI API Key（必需）
-OPENAI_API_KEY=sk-your-api-key-here
-```
+# 必需：OpenAI API Key
 
-## 可选配置
+OPENAI_API_KEY=
 
-```bash
-# 自定义 API 地址（用于兼容其他 OpenAI 兼容的 API）
-# 例如：OpenRouter、DeepSeek、Qwen 等
-OPENAI_BASE_URL=https://api.openai.com/v1
+# 可选：自定义 API 地址（用于 OpenRouter、DeepSeek 等）
 
-# 使用的模型名称（默认：gpt-4o-mini）
-# 推荐模型：
-# - gpt-4o-mini（性价比高，速度快）
-# - gpt-4o（质量更高，但更贵）
-# - gpt-3.5-turbo（便宜但质量较低）
-OPENAI_MODEL=gpt-4o-mini
-```
+OPENAI_BASE_URL=
 
-## 获取 API Key
+# 可选：使用的模型（默认：gpt-4o-mini）
 
-1. **OpenAI 官方**：访问 https://platform.openai.com/api-keys
-2. **OpenRouter**：访问 https://openrouter.ai/keys（支持多种模型）
-3. **DeepSeek**：访问 https://platform.deepseek.com/api_keys
-4. **其他兼容服务**：确保支持 OpenAI 兼容的 API 格式
+# OPENAI_MODEL=Qwen/Qwen3-Next-80B-A3B-Instruct
 
-## 注意事项
+OPENAI_MODEL=
 
-- `.env.local` 文件不会被提交到 Git（已在 .gitignore 中）
-- 修改环境变量后需要重启开发服务器
-- 生产环境需要在部署平台（如 Vercel）配置环境变量
+# FAST_MODEL=Qwen/Qwen3-8B
+
+FAST_MODEL=
+
+# 火山引擎配置 =============
+
+ARK_API_KEY= ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+
+# doubao-seed-1.6
+
+# ARK_MODEL_USE=
+
+# doubao-seed-1.8
+
+ARK_MODEL_USE= ARK_MODEL_FAST_USE=
+
+# Supabase Configuration
+
+NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= DATABASE_URL=
+
+# Redis Config
+
+REDIS_URL= UPSTASH_REDIS_REST_URL= UPSTASH_REDIS_REST_TOKEN=
