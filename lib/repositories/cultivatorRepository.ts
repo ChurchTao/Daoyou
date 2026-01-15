@@ -10,7 +10,7 @@ import {
   SkillGrade,
 } from '@/types/constants';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
-import { and, eq, gt, inArray, lt } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type {
   BreakthroughHistoryEntry,
   Consumable,
@@ -883,124 +883,6 @@ export async function getCultivatorArtifacts(
 }
 
 // ===== 临时角色相关操作 =====
-
-/**
- * 创建临时角色
- */
-export async function createTempCultivator(
-  userId: string,
-  cultivator: Cultivator,
-  availableFates?: Cultivator['pre_heaven_fates'],
-): Promise<string> {
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小时后过期
-
-  const result = await db
-    .insert(schema.tempCultivators)
-    .values({
-      userId,
-      cultivatorData: cultivator,
-      availableFates: availableFates || null,
-      expiresAt,
-    })
-    .returning();
-
-  return result[0].id;
-}
-
-/**
- * 获取临时角色
- */
-export async function getTempCultivator(
-  userId: string,
-  tempCultivatorId: string,
-): Promise<{
-  cultivator: Cultivator;
-  availableFates: Cultivator['pre_heaven_fates'] | null;
-} | null> {
-  const result = await db
-    .select()
-    .from(schema.tempCultivators)
-    .where(
-      and(
-        eq(schema.tempCultivators.id, tempCultivatorId),
-        eq(schema.tempCultivators.userId, userId),
-        gt(schema.tempCultivators.expiresAt, new Date()), // 确保未过期
-      ),
-    );
-
-  if (result.length === 0) {
-    return null;
-  }
-
-  return {
-    cultivator: result[0].cultivatorData as Cultivator,
-    availableFates:
-      (result[0].availableFates as Cultivator['pre_heaven_fates']) || null,
-  };
-}
-
-/**
- * 将临时角色保存到正式表
- */
-export async function saveTempCultivatorToFormal(
-  userId: string,
-  tempCultivatorId: string,
-  selectedFateIndices?: number[],
-): Promise<Cultivator> {
-  const tempData = await getTempCultivator(userId, tempCultivatorId);
-  if (!tempData) {
-    throw new Error('临时角色不存在或已过期');
-  }
-
-  const { cultivator, availableFates } = tempData;
-
-  // 如果提供了选中的气运索引，从可用气运中选择
-  if (selectedFateIndices && availableFates && availableFates.length > 0) {
-    const selectedFates = selectedFateIndices
-      .filter((idx) => idx >= 0 && idx < availableFates.length)
-      .map((idx) => availableFates[idx])
-      .slice(0, 3); // 最多选择3个
-
-    cultivator.pre_heaven_fates = selectedFates;
-  }
-
-  // 创建正式角色
-  const formalCultivator = await createCultivator(userId, cultivator);
-
-  // 删除临时角色
-  await deleteTempCultivator(userId, tempCultivatorId);
-
-  return formalCultivator;
-}
-
-/**
- * 删除临时角色
- */
-export async function deleteTempCultivator(
-  userId: string,
-  tempCultivatorId: string,
-): Promise<boolean> {
-  const result = await db
-    .delete(schema.tempCultivators)
-    .where(
-      and(
-        eq(schema.tempCultivators.id, tempCultivatorId),
-        eq(schema.tempCultivators.userId, userId),
-      ),
-    )
-    .returning();
-
-  return result.length > 0;
-}
-
-/**
- * 清理过期的临时角色
- */
-export async function cleanupExpiredTempCultivators(): Promise<void> {
-  await db
-    .delete(schema.tempCultivators)
-    .where(lt(schema.tempCultivators.expiresAt, new Date()));
-}
 
 // ===== 物品栏和装备相关操作 =====
 

@@ -227,16 +227,6 @@ export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {
     .$onUpdate(() => new Date()),
 });
 
-// 临时角色表 - 用于存放AI生成的角色结果，用户确认后保存到正式表
-export const tempCultivators = pgTable('wanjiedaoyou_temp_cultivators', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(), // 关联到用户
-  cultivatorData: jsonb('cultivator_data').notNull(), // 完整的角色数据，包含所有信息
-  availableFates: jsonb('available_fates'), // 10个可选的先天气运
-  createdAt: timestamp('created_at').defaultNow(),
-  expiresAt: timestamp('expires_at'), // 过期时间，在程序中设置
-});
-
 // 战斗记录表 - 存放每场战斗的完整结果快照与战报
 export const battleRecords = pgTable('wanjiedaoyou_battle_records', {
   id: uuid('id').primaryKey().defaultRandom(),
