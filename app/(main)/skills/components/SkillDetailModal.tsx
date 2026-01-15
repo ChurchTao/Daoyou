@@ -2,7 +2,10 @@
 
 import { InkModal } from '@/components/layout';
 import { InkBadge, InkButton } from '@/components/ui';
-import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
+import {
+  getSkillDisplayInfo,
+  getSkillElementInfo,
+} from '@/lib/utils/effectDisplay';
 import { StatusEffect } from '@/types/constants';
 import type { Skill } from '@/types/cultivator';
 
@@ -25,16 +28,17 @@ export function SkillDetailModal({
   if (!skill) return null;
 
   const displayInfo = getSkillDisplayInfo(skill);
+  const { icon: skillIcon, typeName } = getSkillElementInfo(skill);
 
   return (
     <InkModal isOpen={isOpen} onClose={onClose}>
       <div className="space-y-2">
         {/* Header */}
         <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
-          <div className="text-4xl mb-2">todo</div>
+          <div className="text-4xl mb-2">{skillIcon}</div>
           <h4 className="text-lg font-bold">{skill.name}</h4>
           <div className="flex gap-2 mt-2">
-            <InkBadge tier={skill.grade}>todo</InkBadge>
+            <InkBadge tier={skill.grade}>{typeName}</InkBadge>
             <InkBadge tone="default">{skill.element}</InkBadge>
           </div>
         </div>

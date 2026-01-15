@@ -7,10 +7,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
-import {
-  formatStatBonuses,
-  getArtifactDisplayInfo,
-} from '@/lib/utils/effectDisplay';
+import { getArtifactDisplayInfo } from '@/lib/utils/effectDisplay';
 import type { Artifact } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
 
@@ -54,8 +51,7 @@ export function ArtifactsTab({
 
         const slotInfo = getEquipmentSlotInfo(item.slot);
         const displayInfo = getArtifactDisplayInfo(item);
-        const bonusText = formatStatBonuses(displayInfo.statBonuses);
-        const effectText = displayInfo.effects.join('\n') || '';
+        const effectText = displayInfo.effects.join('，') || '无特殊效果';
 
         return (
           <InkListItem
@@ -81,12 +77,7 @@ export function ArtifactsTab({
                 )}
               </>
             }
-            description={
-              <>
-                {bonusText}
-                {effectText ? `\n${effectText}` : null}
-              </>
-            }
+            description={effectText}
             actions={
               <div className="flex gap-2">
                 <InkButton

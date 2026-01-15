@@ -2,7 +2,10 @@
 
 import { InkModal } from '@/components/layout';
 import { InkBadge, InkButton } from '@/components/ui';
-import { getArtifactDisplayInfo } from '@/lib/utils/effectDisplay';
+import {
+  formatAllEffects,
+  getArtifactDisplayInfo,
+} from '@/lib/utils/effectDisplay';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import {
   getEquipmentSlotInfo,
@@ -45,8 +48,8 @@ function ItemDetailContent({ item }: { item: InventoryItem }) {
     return <ArtifactDetail item={item as Artifact} />;
   }
 
-  // 丹药（有 effect 数组但无 slot）
-  if ('effect' in item) {
+  // 丹药（有 effects 数组但无 slot）
+  if ('effects' in item && 'quantity' in item) {
     return <ConsumableDetail item={item as Consumable} />;
   }
 
@@ -77,28 +80,11 @@ function ArtifactDetail({ item }: { item: Artifact }) {
           </div>
         )}
 
-        {/* 属性加成 */}
-        {displayInfo.statBonuses.length > 0 && (
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1">属性加成</span>
-            <div className="grid grid-cols-2 gap-2">
-              {displayInfo.statBonuses.map((bonus, i) => (
-                <div
-                  key={i}
-                  className="px-2 py-1 rounded border border-ink/10 bg-ink/5"
-                >
-                  {bonus.attribute}+{bonus.value}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 其他效果 */}
+        {/* 效果列表 */}
         {displayInfo.effects.length > 0 && (
           <div className="pt-2">
             <span className="block opacity-70 mb-1 font-bold text-ink">
-              特殊效果
+              法宝效果
             </span>
             <ul className="list-disc list-inside space-y-1">
               {displayInfo.effects.map((e, i) => (
@@ -122,6 +108,8 @@ function ArtifactDetail({ item }: { item: Artifact }) {
 }
 
 function ConsumableDetail({ item }: { item: Consumable }) {
+  const effects = formatAllEffects(item.effects);
+
   return (
     <div className="space-y-2">
       <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
@@ -149,14 +137,16 @@ function ConsumableDetail({ item }: { item: Consumable }) {
           </div>
         )}
 
-        {item.effects && item.effects.length > 0 && (
+        {effects.length > 0 && (
           <div>
             <span className="block opacity-70 mb-1 font-bold text-ink">
               药效
             </span>
             <ul className="list-disc list-inside space-y-1">
-              {item.effects.map((e, i) => (
-                <li key={i}>todo 重构</li>
+              {effects.map((e, i) => (
+                <li key={i}>
+                  {e.icon} {e.description}
+                </li>
               ))}
             </ul>
           </div>

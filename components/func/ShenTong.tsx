@@ -2,7 +2,10 @@
 
 import { InkSection } from '@/components/layout';
 import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
-import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
+import {
+  getSkillDisplayInfo,
+  getSkillElementInfo,
+} from '@/lib/utils/effectDisplay';
 import type { Skill } from '@/types/cultivator';
 
 interface ShenTongProps {
@@ -50,8 +53,7 @@ export function ShenTong({
   const content = (
     <InkList>
       {skills.map((skill, index) => {
-        const typeIcon = 'todo';
-        const typeName = 'todo';
+        const { icon: typeIcon, typeName } = getSkillElementInfo(skill);
         const isLast = index === skills.length - 1;
         const displayInfo = getSkillDisplayInfo(skill);
 
@@ -120,6 +122,7 @@ export function ShenTongMini({
       {skills && skills.length > 0 ? (
         <div className="flex flex-col gap-2 text-sm">
           {skills.map((skill, idx) => {
+            const { icon: typeIcon, typeName } = getSkillElementInfo(skill);
             const displayInfo = getSkillDisplayInfo(skill);
             return (
               <div
@@ -127,9 +130,9 @@ export function ShenTongMini({
                 className="flex items-center gap-2"
               >
                 <span>
-                  {'todo'} {skill.name}·{skill.element}
+                  {typeIcon} {skill.name}·{skill.element}
                 </span>
-                <InkBadge tier={skill.grade}>{'todo'}</InkBadge>
+                <InkBadge tier={skill.grade}>{typeName}</InkBadge>
                 <span className="text-xs text-ink-secondary">
                   威力{displayInfo.power} 冷却{skill.cooldown}
                 </span>

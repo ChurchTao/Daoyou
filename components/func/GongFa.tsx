@@ -2,10 +2,7 @@
 
 import { InkSection } from '@/components/layout';
 import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
-import {
-  formatStatBonuses,
-  getCultivationDisplayInfo,
-} from '@/lib/utils/effectDisplay';
+import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { CultivationTechnique } from '@/types/cultivator';
 
 interface GongFaProps {
@@ -38,8 +35,7 @@ export function GongFa({
   const content = (
     <InkList>
       {cultivations.map((cult, index) => {
-        const displayInfo = getCultivationDisplayInfo(cult);
-        const bonusText = formatStatBonuses(displayInfo.statBonuses);
+        const effectText = formatEffectsText(cult.effects);
         return (
           <InkListItem
             key={cult.name + index}
@@ -50,7 +46,7 @@ export function GongFa({
               </div>
             }
             meta={`需求境界：${cult.required_realm}`}
-            description={bonusText}
+            description={effectText}
           />
         );
       })}

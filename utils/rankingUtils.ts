@@ -1,7 +1,4 @@
-import {
-  getArtifactDisplayInfo,
-  getSkillDisplayInfo,
-} from '@/lib/utils/effectDisplay';
+import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
 import { Quality } from '@/types/constants';
 import { Artifact, Consumable, Skill } from '@/types/cultivator';
 
@@ -38,15 +35,20 @@ export function calculateSingleArtifactScore(artifact: Artifact): number {
   // 基础分基于品质
   let score = QUALITY_SCORE_MAP[artifact.quality || '凡品'] || 10;
 
-  // 从 effects 中提取属性加成
-  const displayInfo = getArtifactDisplayInfo(artifact);
-  for (const bonus of displayInfo.statBonuses) {
-    score += bonus.value;
+  // 从 effects 中提取 StatModifier 的数值
+  for (const effect of artifact.effects ?? []) {
+    if (effect.type === 'StatModifier') {
+      const params = effect.params as Record<string, unknown> | undefined;
+      const value = (params?.value as number) ?? 0;
+      score += Math.abs(value);
+    }
   }
 
-  // 附加分：每个特效 +20%
-  const effectCount = displayInfo.effects.length;
-  score *= 1 + effectCount * 0.2;
+  // 附加分：每个非 StatModifier 特效 +20%
+  const specialEffectCount = (artifact.effects ?? []).filter(
+    (e) => e.type !== 'StatModifier',
+  ).length;
+  score *= 1 + specialEffectCount * 0.2;
 
   return Math.floor(score);
 }

@@ -16,6 +16,7 @@ import {
   InkStatusBar,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
@@ -95,8 +96,7 @@ export default function CultivatorPage() {
 
   // 获取命格属性加成说明
   const getFateModText = (fate: (typeof cultivator.pre_heaven_fates)[0]) => {
-    // todo重构
-    return 'todo重构';
+    return formatEffectsText(fate.effects);
   };
 
   return (
@@ -261,9 +261,7 @@ export default function CultivatorPage() {
           <InkList>
             {equippedItems.map((item) => {
               const slotInfo = getEquipmentSlotInfo(item.slot);
-              // todo
-              const bonusText = '';
-              const effectText = '';
+              const effectText = formatEffectsText(item.effects);
 
               return (
                 <InkListItem
@@ -276,7 +274,7 @@ export default function CultivatorPage() {
                       >{`${item.element} · ${slotInfo.label}`}</InkBadge>
                     </div>
                   }
-                  description={`${bonusText}${effectText ? '\n' + effectText : ''}`}
+                  description={effectText}
                 />
               );
             })}

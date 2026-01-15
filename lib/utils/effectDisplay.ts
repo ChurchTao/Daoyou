@@ -2,8 +2,60 @@ import { buffRegistry } from '@/engine/buff';
 import { EffectConfig, EffectFactory } from '@/engine/effect';
 import type { Artifact, CultivationTechnique, Skill } from '@/types/cultivator';
 
+// ============================================================
+// 效果显示信息类型
+// ============================================================
+
+export interface EffectDisplayInfo {
+  label: string;
+  icon?: string;
+  description: string;
+}
+
+// ============================================================
+// 核心工具函数
+// ============================================================
+
 /**
- * 从技能效果中提取显示信息
+ * 获取单个效果的显示信息
+ */
+export function getEffectDisplayInfo(effect: EffectConfig): EffectDisplayInfo {
+  try {
+    return EffectFactory.create(effect).displayInfo();
+  } catch {
+    return {
+      label: '未知效果',
+      icon: '❓',
+      description: `${effect.type}`,
+    };
+  }
+}
+
+/**
+ * 统一渲染效果列表，所有类型都通过 displayInfo() 获取描述
+ */
+export function formatAllEffects(
+  effects: EffectConfig[] | undefined,
+): EffectDisplayInfo[] {
+  if (!effects || effects.length === 0) return [];
+  return effects.map((effect) => getEffectDisplayInfo(effect));
+}
+
+/**
+ * 格式化为单行文本（用于命格、装备简介等）
+ */
+export function formatEffectsText(effects: EffectConfig[] | undefined): string {
+  const infos = formatAllEffects(effects);
+  if (infos.length === 0) return '无特殊效果';
+  return infos.map((info) => info.description).join('，');
+}
+
+// ============================================================
+// 技能相关
+// ============================================================
+
+/**
+ * 技能显示信息
  */
 export interface SkillDisplayInfo {
   /** 威力百分比（从 Damage 效果提取） */
@@ -31,11 +83,11 @@ export function getSkillDisplayInfo(skill: Skill): SkillDisplayInfo {
       const multiplier = (params?.multiplier as number) ?? 0;
       info.power = Math.round(multiplier * 100);
     } else if (effect.type === 'Heal') {
-      const percent = (params?.percent as number) ?? 0;
-      info.healPercent = Math.round(percent * 100);
+      const multiplier = (params?.multiplier as number) ?? 0;
+      info.healPercent = Math.round(multiplier * 100);
     } else if (effect.type === 'AddBuff') {
       info.buffId = params?.buffId as string;
-      info.buffDuration = params?.duration as number;
+      info.buffDuration = params?.durationOverride as number;
       if (info.buffId) {
         const config = buffRegistry.get(info.buffId);
         info.buffName = config?.name;
@@ -47,22 +99,39 @@ export function getSkillDisplayInfo(skill: Skill): SkillDisplayInfo {
 }
 
 /**
+ * 元素图标映射
+ */
+const elementInfoMap: Record<string, { icon: string; name: string }> = {
+  火: { icon: '🔥', name: '火系' },
+  水: { icon: '💧', name: '水系' },
+  木: { icon: '🌿', name: '木系' },
+  金: { icon: '⚔️', name: '金系' },
+  土: { icon: '🪨', name: '土系' },
+  无: { icon: '☯️', name: '无属性' },
+};
+
+/**
+ * 获取技能元素图标和类型名
+ */
+export function getSkillElementInfo(skill: Skill): {
+  icon: string;
+  typeName: string;
+} {
+  const info = elementInfoMap[skill.element] ?? { icon: '🌟', name: '神通' };
+  return { icon: info.icon, typeName: info.name };
+}
+
+// ============================================================
+// 装备相关
+// ============================================================
+
+/**
  * 装备效果显示信息
  */
 export interface ArtifactDisplayInfo {
-  /** 属性加成列表 */
-  statBonuses: Array<{ attribute: string; value: number }>;
-  /** 其他效果描述 */
+  /** 效果描述列表 */
   effects: string[];
 }
-
-const attributeNameMap: Record<string, string> = {
-  vitality: '体魄',
-  spirit: '灵力',
-  wisdom: '悟性',
-  speed: '速度',
-  willpower: '神识',
-};
 
 /**
  * 从 artifact.effects 中提取显示信息
@@ -70,73 +139,24 @@ const attributeNameMap: Record<string, string> = {
 export function getArtifactDisplayInfo(
   artifact: Artifact,
 ): ArtifactDisplayInfo {
-  const info: ArtifactDisplayInfo = { statBonuses: [], effects: [] };
-
-  for (const effect of artifact.effects ?? []) {
-    const params = effect.params as Record<string, unknown> | undefined;
-
-    if (effect.type === 'StatModifier') {
-      const attr = params?.attribute as string;
-      const value = params?.value as number;
-      if (attr && value) {
-        info.statBonuses.push({
-          attribute: attributeNameMap[attr] ?? attr,
-          value,
-        });
-      }
-    } else {
-      // 其他效果，生成描述文本
-      info.effects.push(`${effect.type}: ${JSON.stringify(params)}`);
-    }
-  }
-
-  return info;
+  const effects = formatAllEffects(artifact.effects);
+  return {
+    effects: effects.map((e) => e.description),
+  };
 }
 
-/**
- * 格式化属性加成为字符串
- */
-export function formatStatBonuses(
-  bonuses: Array<{ attribute: string; value: number }>,
-): string {
-  if (bonuses.length === 0) return '无属性加成';
-  return bonuses.map((b) => `${b.attribute}+${b.value}`).join(' ');
-}
+// ============================================================
+// 功法相关
+// ============================================================
 
 /**
- * 功法效果显示信息
+ * 从 cultivation.effects 中提取显示信息
  */
 export function getCultivationDisplayInfo(
   tech: CultivationTechnique,
 ): ArtifactDisplayInfo {
-  const info: ArtifactDisplayInfo = { statBonuses: [], effects: [] };
-
-  for (const effect of tech.effects ?? []) {
-    const params = effect.params as Record<string, unknown> | undefined;
-
-    if (effect.type === 'StatModifier') {
-      const attr = params?.attribute as string;
-      const value = params?.value as number;
-      if (attr && value) {
-        info.statBonuses.push({
-          attribute: attributeNameMap[attr] ?? attr,
-          value,
-        });
-      }
-    }
-  }
-
-  return info;
-}
-
-// 装备特效描述
-export interface EffectDisplayInfo {
-  label: string;
-  icon?: string;
-  description: string;
-}
-
-// 获取装备特效描述
-export function getEffectDisplayInfo(effect: EffectConfig): EffectDisplayInfo {
-  return EffectFactory.create(effect).displayInfo();
+  const effects = formatAllEffects(tech.effects);
+  return {
+    effects: effects.map((e) => e.description),
+  };
 }
