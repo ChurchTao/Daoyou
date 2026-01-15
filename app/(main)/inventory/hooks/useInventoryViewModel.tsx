@@ -103,14 +103,11 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
           loading: true,
         }));
 
-        const response = await fetch(
-          `/api/cultivators/${cultivator.id}/inventory/discard`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ itemId: item.id, itemType: type }),
-          },
-        );
+        const response = await fetch(`/api/cultivator/inventory/discard`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId: item.id, itemType: type }),
+        });
 
         const result = await response.json();
         if (!response.ok || !result.success) {
@@ -171,14 +168,11 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
       setPendingId(item.id);
       try {
-        const response = await fetch(
-          `/api/cultivators/${cultivator.id}/equip`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ artifactId: item.id }),
-          },
-        );
+        const response = await fetch(`/api/cultivator/equip`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ artifactId: item.id }),
+        });
 
         const result = await response.json();
         if (!response.ok || !result.success) {
@@ -215,14 +209,11 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
       setPendingId(item.id);
       try {
-        const response = await fetch(
-          `/api/cultivators/${cultivator.id}/consume`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ consumableId: item.id }),
-          },
-        );
+        const response = await fetch(`/api/cultivator/consume`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ consumableId: item.id }),
+        });
 
         const result = await response.json();
         if (!response.ok || !result.success) {
