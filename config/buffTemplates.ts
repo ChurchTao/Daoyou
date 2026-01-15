@@ -8,7 +8,11 @@
  */
 
 import { BuffStackType, BuffTag, type BuffTemplate } from '@/engine/buff/types';
-import { EffectType, StatModifierType } from '@/engine/effect/types';
+import {
+  EffectTrigger,
+  EffectType,
+  StatModifierType,
+} from '@/engine/effect/types';
 
 // ============================================================
 // 战斗 Buff 模板
@@ -618,10 +622,10 @@ export const advancedBuffTemplates: BuffTemplate[] = [
         paramsTemplate: {
           multiplier: 0,
           // 基础 5% + 品质加成
-          flatHeal: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+          flatHeal: { base: 0.05, scale: 'quality', coefficient: 0.5 },
           targetSelf: true,
           // 【重要】用于占位符替换的百分比参数
-          percentValue: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+          percentValue: { base: 0.05, scale: 'quality', coefficient: 0.5 },
         },
       },
     ],

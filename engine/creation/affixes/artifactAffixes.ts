@@ -143,7 +143,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      value: { base: 0.05, scale: 'quality', coefficient: 0.5 },
     },
     weight: 30,
     slots: ['armor'],
@@ -159,7 +159,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      value: { base: 0.05, scale: 'quality', coefficient: 0.5 },
     },
     weight: 30,
     slots: ['weapon'],
@@ -181,7 +181,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.5 },
     },
     weight: 60,
     slots: ['weapon', 'accessory'],
@@ -210,7 +210,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
-      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.5 },
     },
     weight: 40,
     slots: ['weapon'],
@@ -225,7 +225,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.DamageReduction,
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
-      percentReduction: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      percentReduction: { base: 0.05, scale: 'quality', coefficient: 0.5 },
       maxReduction: 0.5,
     },
     weight: 50,

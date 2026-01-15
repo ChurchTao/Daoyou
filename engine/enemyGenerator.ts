@@ -10,7 +10,7 @@ import { Cultivator } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { EffectType } from './effect/types';
+import { EffectTrigger, EffectType } from './effect/types';
 
 // Zod Schema for AI Generation - 只生成文本描述
 const EnemyTextSchema = z.object({

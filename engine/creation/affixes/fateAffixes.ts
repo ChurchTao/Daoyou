@@ -142,7 +142,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
-      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.5 },
     },
     weight: 50,
     minQuality: '地品',

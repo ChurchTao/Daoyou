@@ -7,7 +7,11 @@
  * - 特殊效果：修为增加、寿元增加等
  */
 
-import { EffectType, StatModifierType } from '@/engine/effect/types';
+import {
+  EffectTrigger,
+  EffectType,
+  StatModifierType,
+} from '@/engine/effect/types';
 import type { AffixPool, AffixWeight } from '../types';
 
 // ============================================================

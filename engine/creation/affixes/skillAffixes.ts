@@ -9,7 +9,7 @@
  * - buff: 增益型 - 攻击/防御增益
  */
 
-import { EffectType } from '@/engine/effect/types';
+import { EffectTrigger, EffectType } from '@/engine/effect/types';
 import type { SkillType } from '@/types/constants';
 import type { AffixWeight } from '../types';
 
@@ -567,7 +567,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.5 },
     },
     weight: 35,
     minQuality: '真品',
