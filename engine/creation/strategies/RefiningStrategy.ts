@@ -1,12 +1,17 @@
 /**
  * 法宝炼制策略
  *
- * 重构后使用 AffixGenerator + EffectMaterializer 生成效果
+ * 重构后使用 AI 直接选择词条 ID + EffectMaterializer 数值化
  */
 
 import { DbTransaction } from '@/lib/drizzle/db';
 import { artifacts } from '@/lib/drizzle/schema';
-import type { ElementType, Quality, RealmType } from '@/types/constants';
+import type {
+  ElementType,
+  EquipmentSlot,
+  Quality,
+  RealmType,
+} from '@/types/constants';
 import {
   ELEMENT_VALUES,
   EQUIPMENT_SLOT_VALUES,
@@ -14,7 +19,16 @@ import {
 } from '@/types/constants';
 import type { Artifact } from '@/types/cultivator';
 import { calculateSingleArtifactScore } from '@/utils/rankingUtils';
-import { AffixGenerator } from '../AffixGenerator';
+import { ARTIFACT_AFFIX_POOL } from '../affixes/artifactAffixes';
+import {
+  buildAffixSelectionPrompt,
+  filterAffixPool,
+  generateCurseAffix,
+  getMaxSecondaryAffixCount,
+  getPrimaryAffixCount,
+  materializeAffixesById,
+  validateArtifactAffixSelection,
+} from '../AffixUtils';
 import { hasElementConflict } from '../creationConfig';
 import {
   CreationContext,
@@ -24,7 +38,7 @@ import {
 import {
   ArtifactBlueprint,
   ArtifactBlueprintSchema,
-  DIRECTION_TAG_VALUES,
+  MaterializationContext,
 } from '../types';
 
 export class RefiningStrategy implements CreationStrategy<
@@ -36,7 +50,7 @@ export class RefiningStrategy implements CreationStrategy<
   readonly schemaName = '法宝蓝图';
 
   readonly schemaDescription =
-    '描述法宝的名称、描述、槽位、属性方向（效果由程序生成）';
+    '描述法宝的名称、描述、槽位，并从词条池中选择效果';
 
   readonly schema = ArtifactBlueprintSchema;
 
@@ -55,20 +69,48 @@ export class RefiningStrategy implements CreationStrategy<
 
   constructPrompt(context: CreationContext): PromptData {
     const { cultivator, materials, userPrompt } = context;
+    const realm = cultivator.realm as RealmType;
+    const quality = this.calculateQuality(materials);
 
     // 检测材料是否有元素相克
     const elements = materials.map((m) => m.element).filter(Boolean);
     const hasConflict = hasElementConflict(elements as string[]);
 
+    // 推断可能的槽位（让 AI 选择，但我们可以提供建议）
+    const suggestedSlot = this.suggestSlot(materials);
+
+    // 计算词条数量限制
+    const primaryCount = getPrimaryAffixCount(quality);
+    const maxSecondaryCount = getMaxSecondaryAffixCount(quality, realm);
+
+    // 过滤词条池（根据品质，槽位由AI选择后在materialize中再次校验）
+    const filteredPrimary = filterAffixPool(
+      ARTIFACT_AFFIX_POOL.primary,
+      quality,
+    );
+    const filteredSecondary = filterAffixPool(
+      ARTIFACT_AFFIX_POOL.secondary,
+      quality,
+    );
+
+    // 构建词条选择提示
+    const affixPrompt = buildAffixSelectionPrompt(
+      filteredPrimary,
+      filteredSecondary,
+      { min: 1, max: primaryCount },
+      { min: 0, max: maxSecondaryCount },
+      { showSlots: true, showQuality: true },
+    );
+
     const systemPrompt = `
 # Role: 修仙界炼器宗师 - 法宝蓝图设计
 
-你是一位隐世炼器宗师，负责为修士设计法宝蓝图。**你只负责创意设计，具体效果由天道法则（程序）决定。**
+你是一位隐世炼器宗师，负责为修士设计法宝蓝图。**你负责创意设计和选择词条，具体数值由天道法则（程序）决定。**
 
 ## 重要约束
 
-> ⚠️ **你的输出不包含任何数值和效果**！
-> 程序会根据材料品质和修士境界自动生成所有效果词条。
+> ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
+> 数值由材料品质和修士境界决定，你只需选择合适的词条组合。
 
 ## 输出格式（严格遵守）
 
@@ -77,32 +119,41 @@ export class RefiningStrategy implements CreationStrategy<
 ### 枚举值限制
 - **slot**: ${EQUIPMENT_SLOT_VALUES.join(', ')}
 - **element_affinity**: ${ELEMENT_VALUES.join(', ')}
-- **direction_tags**: ${DIRECTION_TAG_VALUES.join(', ')}
 
-## 核心规则
+## 当前炼制条件
 
-### 1. 方向性标签选择
-根据材料特性选择 1-3 个方向标签：
-- 材料坚硬、防御性强 → increase_vitality, defense_boost
-- 材料蕴含灵气 → increase_spirit
-- 材料轻盈、风/雷属性 → increase_speed
-- 材料与魂魄相关 → increase_willpower
-- 材料有顿悟特性 → increase_wisdom（罕见）
+- **材料最高品质**: ${quality}
+- **修士境界**: ${realm}
+- **主词条数量**: 1-${primaryCount}个
+- **副词条数量**: 0-${maxSecondaryCount}个
+- **建议槽位**: ${suggestedSlot}
 
-### 2. 槽位判定
-- 攻击性材料（利器、尖锐） → weapon
-- 防御性材料（甲壳、金属） → armor
-- 辅助性材料（灵石、玉石） → accessory
+${affixPrompt}
 
-### 3. 命名与描述
+## 选择规则
+
+1. **主词条**: 从"可选主词条"中选择 1-${primaryCount} 个词条ID
+2. **副词条**: 从"可选副词条"中选择 0-${maxSecondaryCount} 个词条ID
+3. **槽位限制**: 注意每个词条的槽位要求，选择后会在程序中校验
+4. **品质限制**: 只能选择符合当前品质要求的词条
+
+## 命名与描述
 - 名称：2-10字，古风霸气，结合材料特性
 - 描述：50-150字，描述材料、炼制过程、外观、气息
-${hasConflict ? '\n### ⚠️ 材料相克警告\n检测到投入的材料存在五行相克！描述中应体现法宝的不稳定或反噬风险。' : ''}
+${hasConflict ? '\n### ⚠️ 材料相克警告\n检测到投入的材料存在五行相克！描述中应体现法宝的不稳定或反噬风险。诅咒效果将由程序自动添加。' : ''}
 
-## 禁止行为
-- ❌ 不得输出任何数值（bonus、power、chance 等）
-- ❌ 不得描述具体效果（程序自动生成）
-- ❌ 不得自定义枚举值
+## 输出示例
+
+{
+  "name": "赤焰流光剑",
+  "description": "以赤焰石为魂，玄铁为骨...",
+  "slot": "weapon",
+  "element_affinity": "火",
+  "selected_affixes": {
+    "primary": ["artifact_p_spirit_fixed"],
+    "secondary": ["artifact_s_burn_on_hit"]
+  }
+}
 `;
 
     const userPromptText = `
@@ -116,11 +167,11 @@ ${hasConflict ? '\n### ⚠️ 材料相克警告\n检测到投入的材料存在
 ${materials.map((m) => `  - ${m.name}(${m.rank}) 元素:${m.element || '无'} 类型:${m.type} 描述:${m.description || '无'}`).join('\n')}
 </materials>
 
-<user_intent_for_naming_only>
+<user_intent>
 ${userPrompt || '无'}
-</user_intent_for_naming_only>
+</user_intent>
 
-注意：user_intent 仅影响法宝名称和描述风格，不影响效果生成！
+请根据材料特性和用户意图，选择合适的词条组合并设计法宝。
 `;
 
     return {
@@ -142,20 +193,50 @@ ${userPrompt || '无'}
       blueprint.element_affinity,
       context.materials,
     );
+    const slot = blueprint.slot as EquipmentSlot;
 
-    // 使用 AffixGenerator 生成效果
-    const { effects } = AffixGenerator.generateArtifactAffixes(
-      blueprint.slot,
+    // 1. 校验词条选择
+    const validation = validateArtifactAffixSelection(
+      blueprint.selected_affixes.primary,
+      blueprint.selected_affixes.secondary,
+      ARTIFACT_AFFIX_POOL.primary,
+      ARTIFACT_AFFIX_POOL.secondary,
       quality,
+      slot,
       realm,
-      element,
-      blueprint.direction_tags,
     );
 
-    // 检查五行相克，添加诅咒效果
+    if (!validation.valid) {
+      // 如果校验失败，记录警告但继续使用有效的词条
+      console.warn('词条选择校验警告:', validation.errors);
+    }
+
+    // 2. 构建数值化上下文
+    const matContext: MaterializationContext = {
+      realm,
+      quality,
+      element,
+    };
+
+    // 3. 数值化选中的词条
+    const primaryEffects = materializeAffixesById(
+      blueprint.selected_affixes.primary,
+      ARTIFACT_AFFIX_POOL.primary,
+      matContext,
+    );
+    const secondaryEffects = materializeAffixesById(
+      blueprint.selected_affixes.secondary,
+      ARTIFACT_AFFIX_POOL.secondary,
+      matContext,
+    );
+
+    const effects = [...primaryEffects, ...secondaryEffects];
+
+    // 4. 检查五行相克，添加诅咒效果
     const elements = context.materials.map((m) => m.element);
     if (hasElementConflict(elements)) {
-      const curseEffects = AffixGenerator.generateCurseAffix(realm, quality);
+      const cursePool = ARTIFACT_AFFIX_POOL.curse ?? [];
+      const curseEffects = generateCurseAffix(cursePool, matContext);
       effects.push(...curseEffects);
     }
 
@@ -205,6 +286,21 @@ ${userPrompt || '无'}
       }
     }
     return QUALITY_VALUES[maxIndex];
+  }
+
+  /**
+   * 根据材料类型建议槽位
+   */
+  private suggestSlot(materials: CreationContext['materials']): string {
+    // 简单的槽位推荐逻辑
+    const types = materials.map((m) => m.type);
+    if (types.includes('ore')) {
+      return 'weapon 或 armor';
+    }
+    if (types.includes('tcdb')) {
+      return 'accessory';
+    }
+    return 'weapon/armor/accessory (根据材料特性选择)';
   }
 
   /**

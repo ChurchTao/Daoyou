@@ -16,6 +16,7 @@ describe('EffectMaterializer', () => {
   describe('materialize', () => {
     it('应该正确处理固定值参数', () => {
       const affix: AffixWeight = {
+        id: 'test_vitality_fixed',
         effectType: EffectType.StatModifier,
         trigger: 'ON_STAT_CALC',
         paramsTemplate: {
@@ -25,6 +26,7 @@ describe('EffectMaterializer', () => {
         },
         weight: 100,
         displayName: '体魄加成',
+        displayDescription: '测试用体魄加成词条',
       };
 
       const result = EffectMaterializer.materialize(affix, baseContext);
@@ -40,6 +42,7 @@ describe('EffectMaterializer', () => {
 
     it('应该正确处理 realm 缩放值', () => {
       const affix: AffixWeight = {
+        id: 'test_spirit_realm',
         effectType: EffectType.StatModifier,
         trigger: 'ON_STAT_CALC',
         paramsTemplate: {
@@ -49,6 +52,7 @@ describe('EffectMaterializer', () => {
         },
         weight: 100,
         displayName: '灵力加成',
+        displayDescription: '测试用灵力加成词条',
       };
 
       // 筑基境界倍率为 2.0
@@ -66,6 +70,7 @@ describe('EffectMaterializer', () => {
 
     it('应该正确处理 quality 缩放值', () => {
       const affix: AffixWeight = {
+        id: 'test_crit_quality',
         effectType: EffectType.Critical,
         trigger: 'ON_STAT_CALC',
         paramsTemplate: {
@@ -73,6 +78,7 @@ describe('EffectMaterializer', () => {
         },
         weight: 100,
         displayName: '暴击率提升',
+        displayDescription: '测试用暴击率提升词条',
       };
 
       // 玄品品质倍率为 1.0
@@ -90,6 +96,7 @@ describe('EffectMaterializer', () => {
 
     it('应该正确处理 wisdom 缩放值', () => {
       const affix: AffixWeight = {
+        id: 'test_fire_damage',
         effectType: EffectType.Damage,
         trigger: 'ON_SKILL_HIT',
         paramsTemplate: {
@@ -99,6 +106,7 @@ describe('EffectMaterializer', () => {
         },
         weight: 100,
         displayName: '火焰伤害',
+        displayDescription: '测试用火焰伤害词条',
       };
 
       // 高悟性
@@ -124,6 +132,7 @@ describe('EffectMaterializer', () => {
 
     it('应该正确处理元素继承', () => {
       const affix: AffixWeight = {
+        id: 'test_element_inherit',
         effectType: EffectType.Damage,
         trigger: 'ON_SKILL_HIT',
         paramsTemplate: {
@@ -133,6 +142,7 @@ describe('EffectMaterializer', () => {
         },
         weight: 100,
         displayName: '元素伤害',
+        displayDescription: '测试用元素伤害词条',
       };
 
       const result = EffectMaterializer.materialize(affix, {
@@ -148,6 +158,7 @@ describe('EffectMaterializer', () => {
     it('应该批量数值化多个词条', () => {
       const affixes: AffixWeight[] = [
         {
+          id: 'test_batch_vitality',
           effectType: EffectType.StatModifier,
           trigger: 'ON_STAT_CALC',
           paramsTemplate: {
@@ -157,8 +168,10 @@ describe('EffectMaterializer', () => {
           },
           weight: 100,
           displayName: '体魄加成',
+          displayDescription: '测试用体魄加成词条',
         },
         {
+          id: 'test_batch_lifesteal',
           effectType: EffectType.LifeSteal,
           trigger: 'ON_AFTER_DAMAGE',
           paramsTemplate: {
@@ -166,6 +179,7 @@ describe('EffectMaterializer', () => {
           },
           weight: 50,
           displayName: '吸血',
+          displayDescription: '测试用吸血词条',
         },
       ];
 
@@ -206,6 +220,7 @@ describe('EffectMaterializer', () => {
 
   describe('不同境界的数值缩放', () => {
     const realmAffix: AffixWeight = {
+      id: 'test_realm_scaling',
       effectType: EffectType.StatModifier,
       trigger: 'ON_STAT_CALC',
       paramsTemplate: {
@@ -215,6 +230,7 @@ describe('EffectMaterializer', () => {
       },
       weight: 100,
       displayName: '体魄加成',
+      displayDescription: '测试用体魄加成词条',
     };
 
     it('炼气期数值应该较低', () => {

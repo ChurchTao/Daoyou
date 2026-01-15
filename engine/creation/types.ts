@@ -56,66 +56,23 @@ export const DIRECTION_TAG_VALUES = [
 
 export type DirectionTag = (typeof DIRECTION_TAG_VALUES)[number];
 
-// ============ 特效类型 ============
+// ============ 词条选择 Schema ============
 
 /**
- * 特效类型枚举
+ * 法宝词条选择 Schema
  */
-export const EFFECT_HINT_TYPE_VALUES = [
-  'damage_boost', // 伤害加成
-  'on_hit_status', // 命中附加状态
-  'on_use_cost_hp', // 使用消耗生命
-  'element_damage', // 元素伤害
-  'defense', // 防御效果
-  'critical', // 暴击效果
-  'speed', // 速度效果
-  'heal', // 治疗效果
-] as const;
-
-export type EffectHintType = (typeof EFFECT_HINT_TYPE_VALUES)[number];
-
-/**
- * 状态效果枚举 - 用于 on_hit_status
- */
-export const STATUS_HINT_VALUES = [
-  'burn', // 灼烧
-  'freeze', // 冰冻
-  'poison', // 中毒
-  'stun', // 眩晕
-  'slow', // 减速
-  'silence', // 沉默
-  'weaken', // 虚弱
-  'bleed', // 流血
-] as const;
-
-export type StatusHint = (typeof STATUS_HINT_VALUES)[number];
-
-// ============ 特效提示 Schema ============
-
-export const EffectHintSchema = z.object({
-  type: z.enum(EFFECT_HINT_TYPE_VALUES).describe('特效类型'),
-  status: z
-    .enum(STATUS_HINT_VALUES)
-    .optional()
-    .describe('附加的状态（on_hit_status 类型需要）'),
-  description: z
-    .string()
-    .max(50)
-    .describe('AI 对特效的描述，如"命中时有几率使敌人陷入定身"'),
+export const ArtifactAffixSelectionSchema = z.object({
+  primary: z.array(z.string()).min(1).max(2).describe('主词条ID列表（1-2个）'),
+  secondary: z
+    .array(z.string())
+    .max(5)
+    .default([])
+    .describe('副词条ID列表（0-5个，根据品质和境界限制）'),
 });
 
-export type EffectHint = z.infer<typeof EffectHintSchema>;
-
-// ============ 诅咒提示 Schema ============
-
-export const CurseHintSchema = z.object({
-  type: z
-    .enum(['self_damage', 'stat_reduction', 'hp_cost'])
-    .describe('诅咒类型'),
-  description: z.string().max(50).describe('AI 对诅咒的描述'),
-});
-
-export type CurseHint = z.infer<typeof CurseHintSchema>;
+export type ArtifactAffixSelection = z.infer<
+  typeof ArtifactAffixSelectionSchema
+>;
 
 // ============ 法宝蓝图 Schema ============
 
@@ -123,39 +80,33 @@ export const ArtifactBlueprintSchema = z.object({
   name: z.string().min(2).max(10).describe('法宝名称（2-10字，古风霸气）'),
   description: z.string().min(50).max(150).describe('法宝描述（50-150字）'),
   slot: z.enum(EQUIPMENT_SLOT_VALUES).describe('法宝槽位'),
-  direction_tags: z
-    .array(z.enum(DIRECTION_TAG_VALUES))
-    .min(1)
-    .max(3)
-    .describe('方向性标签（1-3个，决定属性分配方向）'),
   element_affinity: z.enum(ELEMENT_VALUES).optional().describe('元素亲和'),
-  effect_hints: z
-    .array(EffectHintSchema)
-    .max(2)
-    .optional()
-    .describe('特效提示（最多2个，具体数值由程序决定）'),
-  curse_hints: z
-    .array(CurseHintSchema)
-    .max(1)
-    .optional()
-    .describe('诅咒提示（材料相克时触发）'),
+  selected_affixes: ArtifactAffixSelectionSchema.describe('AI选择的词条ID'),
 });
 
 export type ArtifactBlueprint = z.infer<typeof ArtifactBlueprintSchema>;
 
 // ============ 丹药蓝图 Schema ============
 
+/**
+ * 丹药词条选择 Schema
+ */
+export const ConsumableAffixSelectionSchema = z.object({
+  primary: z.string().describe('主效果词条ID（必选1个）'),
+  secondary: z.string().optional().describe('副效果词条ID（可选）'),
+});
+
+export type ConsumableAffixSelection = z.infer<
+  typeof ConsumableAffixSelectionSchema
+>;
+
 export const ConsumableBlueprintSchema = z.object({
   name: z.string().min(2).max(10).describe('丹药名称（2-10字，古朴典雅）'),
   description: z.string().min(30).max(100).describe('丹药描述（30-100字）'),
-  direction_tags: z
-    .array(z.enum(DIRECTION_TAG_VALUES))
-    .min(1)
-    .max(2)
-    .describe('方向性标签（1-2个，决定效果类型）'),
   quantity_hint: z
     .enum(['single', 'medium', 'batch'])
     .describe('成丹数量提示：single=1颗, medium=1-2颗, batch=2-3颗'),
+  selected_affixes: ConsumableAffixSelectionSchema.describe('AI选择的词条ID'),
 });
 
 export type ConsumableBlueprint = z.infer<typeof ConsumableBlueprintSchema>;
@@ -186,22 +137,9 @@ export interface ValueRange {
   max: number;
 }
 
-export interface CreationRangeConfig {
-  /** 法宝属性加成总值范围 */
-  artifact_bonus: ValueRange;
-  /** 特效强度范围 */
-  effect_power: ValueRange;
-  /** 特效触发几率范围 (%) */
-  effect_chance: ValueRange;
-  /** 最大特效数量 */
-  max_effects: number;
-  /** 丹药效果值范围 */
-  consumable_effect: ValueRange;
-}
-
 // ============ 技能蓝图相关 ============
 
-import { SKILL_TYPE_VALUES, STATUS_EFFECT_VALUES } from '@/types/constants';
+import { SKILL_TYPE_VALUES } from '@/types/constants';
 
 /**
  * 品阶方向提示 - AI 给出建议，后端决定实际品阶
@@ -228,17 +166,14 @@ export const ELEMENT_MATCH_VALUES = [
 export type ElementMatch = (typeof ELEMENT_MATCH_VALUES)[number];
 
 /**
- * 技能特效提示 Schema
+ * 神通词条选择 Schema
  */
-export const SkillEffectHintSchema = z.object({
-  type: z
-    .enum(['status', 'buff', 'debuff', 'none'])
-    .describe('效果类型：status=附加状态, buff=增益, debuff=异常, none=无'),
-  status: z.enum(STATUS_EFFECT_VALUES).optional().describe('附加的状态效果'),
-  target_self: z.boolean().default(false).describe('是否作用于自身'),
+export const SkillAffixSelectionSchema = z.object({
+  primary: z.string().describe('主效果词条ID（必选1个）'),
+  secondary: z.string().optional().describe('副效果词条ID（可选）'),
 });
 
-export type SkillEffectHint = z.infer<typeof SkillEffectHintSchema>;
+export type SkillAffixSelection = z.infer<typeof SkillAffixSelectionSchema>;
 
 /**
  * 技能蓝图 Schema - AI 只生成创意部分
@@ -256,15 +191,13 @@ export const SkillBlueprintSchema = z.object({
     .enum(GRADE_HINT_VALUES)
     .describe('品阶提示：low=黄阶, medium=玄阶, high=地阶, extreme=天阶'),
 
-  // 特效提示（可选）
-  effect_hint: SkillEffectHintSchema.optional().describe(
-    '特效提示（attack/heal 类型应设为 none）',
-  ),
-
   // AI 对五行匹配的评估（后端会重新验证）
   element_match_assessment: z
     .enum(ELEMENT_MATCH_VALUES)
     .describe('AI 对五行契合度的评估'),
+
+  // AI选择的词条ID
+  selected_affixes: SkillAffixSelectionSchema.describe('AI选择的词条ID'),
 });
 
 export type SkillBlueprint = z.infer<typeof SkillBlueprintSchema>;
@@ -305,6 +238,8 @@ import type { EquipmentSlot, Quality, SkillGrade } from '@/types/constants';
  * 用于定义词条池中每个词条的选取概率和适用条件
  */
 export interface AffixWeight {
+  /** 词条唯一ID（用于AI选择和程序查找） */
+  id: string;
   /** 效果类型 */
   effectType: EffectType;
   /** 效果触发时机 (可选，默认根据效果类型自动推断) */
@@ -323,6 +258,8 @@ export interface AffixWeight {
   tags?: AffixTag[];
   /** 显示名称（用于蓝图描述） */
   displayName: string;
+  /** AI可读描述（用于提示词展示） */
+  displayDescription: string;
 }
 
 /**
@@ -510,3 +447,21 @@ export interface AffixGenerationResult {
     tags: AffixTag[];
   }[];
 }
+
+// ============ 命格蓝图 Schema ============
+
+/**
+ * 命格蓝图 Schema - AI 选择词条
+ */
+export const FateBlueprintSchema = z.object({
+  name: z.string().min(2).max(8).describe('命格名称（2-8字）'),
+  description: z.string().min(20).max(100).describe('命格描述（20-100字）'),
+  fate_type: z.enum(['吉', '凶']).describe('命格类型：吉相或凶相'),
+  selected_affixes: z
+    .array(z.string())
+    .min(1)
+    .max(3)
+    .describe('AI选择的词条ID（1-3个，根据品质）'),
+});
+
+export type FateBlueprint = z.infer<typeof FateBlueprintSchema>;

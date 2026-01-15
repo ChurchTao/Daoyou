@@ -1,7 +1,7 @@
 /**
  * 丹药炼制策略
  *
- * 重构后使用 AffixGenerator + EffectMaterializer 生成效果
+ * 重构后使用 AI 直接选择词条 ID + EffectMaterializer 数值化
  */
 
 import { DbTransaction } from '@/lib/drizzle/db';
@@ -10,7 +10,6 @@ import type { Quality, RealmType } from '@/types/constants';
 import { QUALITY_VALUES } from '@/types/constants';
 import type { Consumable } from '@/types/cultivator';
 import { calculateSingleElixirScore } from '@/utils/rankingUtils';
-import { AffixGenerator } from '../AffixGenerator';
 import { QUANTITY_HINT_MAP } from '../creationConfig';
 import {
   CreationContext,
@@ -20,8 +19,15 @@ import {
 import {
   ConsumableBlueprint,
   ConsumableBlueprintSchema,
-  DIRECTION_TAG_VALUES,
+  MaterializationContext,
 } from '../types';
+import { CONSUMABLE_AFFIX_POOL } from '../affixes/consumableAffixes';
+import {
+  buildAffixTable,
+  filterAffixPool,
+  validateConsumableAffixSelection,
+  materializeAffixesById,
+} from '../AffixUtils';
 
 export class AlchemyStrategy implements CreationStrategy<
   ConsumableBlueprint,
@@ -32,7 +38,7 @@ export class AlchemyStrategy implements CreationStrategy<
   readonly schemaName = '丹药蓝图';
 
   readonly schemaDescription =
-    '描述丹药的名称、描述、效果方向（效果由程序生成）';
+    '描述丹药的名称、描述，并从词条池中选择效果';
 
   readonly schema = ConsumableBlueprintSchema;
 
@@ -51,6 +57,8 @@ export class AlchemyStrategy implements CreationStrategy<
 
   constructPrompt(context: CreationContext): PromptData {
     const { cultivator, materials, userPrompt } = context;
+    const realm = cultivator.realm as RealmType;
+    const quality = this.calculateQuality(materials);
 
     const materialsDesc = materials
       .map(
@@ -59,50 +67,76 @@ export class AlchemyStrategy implements CreationStrategy<
       )
       .join('\n');
 
+    // 过滤词条池
+    const filteredPrimary = filterAffixPool(
+      CONSUMABLE_AFFIX_POOL.primary,
+      quality,
+    );
+    const filteredSecondary = filterAffixPool(
+      CONSUMABLE_AFFIX_POOL.secondary,
+      quality,
+    );
+
+    // 构建词条表格
+    const primaryTable = buildAffixTable(filteredPrimary, { showSlots: false });
+    const secondaryTable = filteredSecondary.length > 0
+      ? buildAffixTable(filteredSecondary, { showSlots: false })
+      : '（当前品质无可用副词条）';
+
     const systemPrompt = `
 # Role: 修仙界丹道宗师 - 丹药蓝图设计
 
-你是一位隐世丹道宗师，负责为修士设计丹药蓝图。**你只负责创意设计，具体效果由天道法则（程序）决定。**
+你是一位隐世丹道宗师，负责为修士设计丹药蓝图。**你负责创意设计和选择词条，具体数值由天道法则（程序）决定。**
 
 ## 重要约束
 
-> ⚠️ **你的输出不包含任何数值和具体效果**！
-> 程序会根据材料品质和修士境界自动生成所有效果。
+> ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
+> 数值由材料品质和修士境界决定，你只需选择合适的词条。
 
 ## 输出格式（严格遵守）
 
 只输出一个符合 JSON Schema 的纯 JSON 对象，不得包含任何额外文字。
 
-### 枚举值限制
-- **direction_tags**: ${DIRECTION_TAG_VALUES.join(', ')}
-- **quantity_hint**: single（1颗）, medium（1-2颗）, batch（2-3颗）
+## 当前炼制条件
 
-## 核心规则
+- **材料最高品质**: ${quality}
+- **修士境界**: ${realm}
 
-### 1. 效果方向判定（通过 direction_tags）
-根据材料特性选择 1-2 个方向标签：
-- 材料坚硬、血气旺盛（如龙骨、赤炎藤） → increase_vitality
-- 材料蕴含高浓度灵气（如星髓草、千年灵芝） → increase_spirit
-- 材料轻盈、风/雷属性（如云翼叶、疾风籽） → increase_speed
-- 材料作用于魂魄或精神（如幽冥花、心莲） → increase_willpower
-- 材料有"顿悟""道韵"等描述 → increase_wisdom（**谨慎使用**）
+## 可选主词条 (必选1个)
 
-### 2. 成丹数量提示
-- 低品材料 → batch（2-3颗）
-- 中品材料 → medium（1-2颗）
-- 高品材料（地品以上） → single（1颗）
+${primaryTable}
 
-### 3. 命名与描述
+## 可选副词条 (可选0-1个)
+
+${secondaryTable}
+
+## 选择规则
+
+1. **主词条**: 从"可选主词条"中选择 1 个词条ID（必选）
+2. **副词条**: 从"可选副词条"中选择 0-1 个词条ID（可选，真品以上更容易出现）
+3. **成丹数量提示**:
+   - 低品材料 → batch（2-3颗）
+   - 中品材料 → medium（1-2颗）
+   - 高品材料（地品以上） → single（1颗）
+
+## 命名与描述
 - 名称：2-10字，古朴典雅（如"九转凝魄丹"）
 - 描述：30-100字，描述丹色、丹香或服用感
 - **不得编造未提供的材料**
-- **不得描述具体数值效果**
 
-## 禁止行为
-- ❌ 不得输出任何数值（bonus、power 等）
-- ❌ 不得描述具体效果（"增加10点体魄"）
-- ❌ 不得自定义枚举值
-- ❌ 不得编造材料
+## 输出示例
+
+\`\`\`json
+{
+  "name": "凝魄丹",
+  "description": "丹呈青白色，散发淡淡药香...",
+  "quantity_hint": "medium",
+  "selected_affixes": {
+    "primary": "consumable_p_vitality",
+    "secondary": "consumable_s_heal"
+  }
+}
+\`\`\`
 `;
 
     const userPromptText = `
@@ -117,12 +151,11 @@ export class AlchemyStrategy implements CreationStrategy<
 ${materialsDesc}
 </materials>
 
-<user_intent_for_naming_only>
+<user_intent>
 ${userPrompt || '无'}
-</user_intent_for_naming_only>
+</user_intent>
 
-注意：user_intent 仅影响丹药名称和描述风格，不影响效果判定！
-依规炼丹，直接输出唯一合法 JSON。
+请根据材料特性和用户意图，选择合适的词条并设计丹药。
 `;
 
     return {
@@ -141,14 +174,43 @@ ${userPrompt || '无'}
     const realm = context.cultivator.realm as RealmType;
     const quality = this.calculateQuality(context.materials);
 
-    // 使用 AffixGenerator 生成效果
-    const { effects } = AffixGenerator.generateConsumableAffixes(
+    // 1. 校验词条选择
+    const validation = validateConsumableAffixSelection(
+      blueprint.selected_affixes.primary,
+      blueprint.selected_affixes.secondary,
+      CONSUMABLE_AFFIX_POOL.primary,
+      CONSUMABLE_AFFIX_POOL.secondary,
       quality,
-      realm,
-      blueprint.direction_tags,
     );
 
-    // 确定成丹数量
+    if (!validation.valid) {
+      console.warn('词条选择校验警告:', validation.errors);
+    }
+
+    // 2. 构建数值化上下文
+    const matContext: MaterializationContext = {
+      realm,
+      quality,
+    };
+
+    // 3. 数值化选中的词条
+    const primaryEffects = materializeAffixesById(
+      [blueprint.selected_affixes.primary],
+      CONSUMABLE_AFFIX_POOL.primary,
+      matContext,
+    );
+
+    const secondaryEffects = blueprint.selected_affixes.secondary
+      ? materializeAffixesById(
+          [blueprint.selected_affixes.secondary],
+          CONSUMABLE_AFFIX_POOL.secondary,
+          matContext,
+        )
+      : [];
+
+    const effects = [...primaryEffects, ...secondaryEffects];
+
+    // 4. 确定成丹数量
     const quantityRange =
       QUANTITY_HINT_MAP[blueprint.quantity_hint] || QUANTITY_HINT_MAP['single'];
     let quantity = this.randomInt(quantityRange.min, quantityRange.max);

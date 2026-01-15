@@ -11,12 +11,53 @@ import { EffectType, StatModifierType } from '@/engine/effect/types';
 import type { AffixPool, AffixWeight } from '../types';
 
 // ============================================================
+// 词条ID常量
+// ============================================================
+
+export const ARTIFACT_AFFIX_IDS = {
+  // 主词条
+  PRIMARY_VITALITY_FIXED: 'artifact_p_vitality_fixed',
+  PRIMARY_SPIRIT_FIXED: 'artifact_p_spirit_fixed',
+  PRIMARY_WISDOM_FIXED: 'artifact_p_wisdom_fixed',
+  PRIMARY_SPEED_FIXED: 'artifact_p_speed_fixed',
+  PRIMARY_WILLPOWER_FIXED: 'artifact_p_willpower_fixed',
+  PRIMARY_VITALITY_PERCENT: 'artifact_p_vitality_percent',
+  PRIMARY_SPIRIT_PERCENT: 'artifact_p_spirit_percent',
+  // 副词条
+  SECONDARY_CRIT_RATE: 'artifact_s_crit_rate',
+  SECONDARY_CRIT_DAMAGE: 'artifact_s_crit_damage',
+  SECONDARY_LIFESTEAL: 'artifact_s_lifesteal',
+  SECONDARY_DAMAGE_REDUCTION: 'artifact_s_damage_reduction',
+  SECONDARY_FLAT_REDUCTION: 'artifact_s_flat_reduction',
+  SECONDARY_REFLECT_DAMAGE: 'artifact_s_reflect_damage',
+  SECONDARY_BURN_ON_HIT: 'artifact_s_burn_on_hit',
+  SECONDARY_POISON_ON_HIT: 'artifact_s_poison_on_hit',
+  SECONDARY_FREEZE_ON_HIT: 'artifact_s_freeze_on_hit',
+  SECONDARY_SHIELD: 'artifact_s_shield',
+  SECONDARY_HIT_RATE: 'artifact_s_hit_rate',
+  SECONDARY_DODGE_RATE: 'artifact_s_dodge_rate',
+  SECONDARY_ELEMENT_DAMAGE: 'artifact_s_element_damage',
+  SECONDARY_COUNTER_ATTACK: 'artifact_s_counter_attack',
+  SECONDARY_EXECUTE_DAMAGE: 'artifact_s_execute_damage',
+  SECONDARY_TRUE_DAMAGE: 'artifact_s_true_damage',
+  SECONDARY_KILL_HEAL: 'artifact_s_kill_heal',
+  SECONDARY_MANA_REGEN: 'artifact_s_mana_regen',
+  SECONDARY_HOT: 'artifact_s_hot',
+  SECONDARY_HEAL_AMPLIFY: 'artifact_s_heal_amplify',
+  // 诅咒词条
+  CURSE_DOT: 'artifact_c_dot',
+  CURSE_SPIRIT_REDUCTION: 'artifact_c_spirit_reduction',
+  CURSE_VITALITY_REDUCTION: 'artifact_c_vitality_reduction',
+} as const;
+
+// ============================================================
 // 主词条池 - 属性加成
 // ============================================================
 
 const PRIMARY_AFFIXES: AffixWeight[] = [
   // 固定值属性加成
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_VITALITY_FIXED,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -28,8 +69,10 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     slots: ['weapon', 'armor', 'accessory'],
     tags: ['primary', 'defensive'],
     displayName: '体魄加成',
+    displayDescription: '固定增加体魄，数值随境界提升',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_SPIRIT_FIXED,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -41,8 +84,10 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     slots: ['weapon', 'armor', 'accessory'],
     tags: ['primary', 'offensive'],
     displayName: '灵力加成',
+    displayDescription: '固定增加灵力，数值随境界提升',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_WISDOM_FIXED,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -54,8 +99,10 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     slots: ['accessory'],
     tags: ['primary', 'utility'],
     displayName: '悟性加成',
+    displayDescription: '固定增加悟性，数值随境界提升',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_SPEED_FIXED,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -67,8 +114,10 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     slots: ['weapon', 'armor'],
     tags: ['primary', 'utility'],
     displayName: '速度加成',
+    displayDescription: '固定增加速度，数值随境界提升',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_WILLPOWER_FIXED,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -80,9 +129,11 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     slots: ['armor', 'accessory'],
     tags: ['primary', 'defensive'],
     displayName: '神识加成',
+    displayDescription: '固定增加神识，数值随境界提升',
   },
   // 百分比属性加成（高品质专属）
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_VITALITY_PERCENT,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -95,8 +146,10 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     minQuality: '真品',
     tags: ['primary', 'defensive'],
     displayName: '体魄百分比加成',
+    displayDescription: '百分比增加体魄，数值随品质提升',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.PRIMARY_SPIRIT_PERCENT,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -109,6 +162,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     minQuality: '真品',
     tags: ['primary', 'offensive'],
     displayName: '灵力百分比加成',
+    displayDescription: '百分比增加灵力，数值随品质提升',
   },
 ];
 
@@ -119,6 +173,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
 const SECONDARY_AFFIXES: AffixWeight[] = [
   // 暴击相关
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_CRIT_RATE,
     effectType: EffectType.Critical,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -129,8 +184,10 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'offensive'],
     displayName: '暴击率提升',
+    displayDescription: '提升暴击几率，数值随品质提升',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_CRIT_DAMAGE,
     effectType: EffectType.Critical,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -141,9 +198,11 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '真品',
     tags: ['secondary', 'offensive'],
     displayName: '暴击伤害提升',
+    displayDescription: '提升暴击伤害倍率，数值随品质提升',
   },
   // 吸血
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_LIFESTEAL,
     effectType: EffectType.LifeSteal,
     trigger: 'ON_AFTER_DAMAGE',
     paramsTemplate: {
@@ -154,9 +213,11 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '真品',
     tags: ['secondary', 'offensive', 'healing'],
     displayName: '吸血',
+    displayDescription: '攻击时按伤害比例吸取生命',
   },
   // 减伤
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_DAMAGE_REDUCTION,
     effectType: EffectType.DamageReduction,
     trigger: 'ON_BEFORE_DAMAGE',
     paramsTemplate: {
@@ -168,8 +229,10 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'defensive'],
     displayName: '伤害减免',
+    displayDescription: '按百分比减少受到的伤害',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_FLAT_REDUCTION,
     effectType: EffectType.DamageReduction,
     trigger: 'ON_BEFORE_DAMAGE',
     paramsTemplate: {
@@ -179,9 +242,11 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     slots: ['armor'],
     tags: ['secondary', 'defensive'],
     displayName: '固定减伤',
+    displayDescription: '固定减少受到的伤害，数值随境界提升',
   },
   // 反伤
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_REFLECT_DAMAGE,
     effectType: EffectType.ReflectDamage,
     trigger: 'ON_AFTER_DAMAGE',
     paramsTemplate: {
@@ -192,9 +257,11 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '地品',
     tags: ['secondary', 'defensive'],
     displayName: '伤害反射',
+    displayDescription: '将部分受到的伤害反弹给攻击者',
   },
   // 命中附加状态
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_BURN_ON_HIT,
     effectType: EffectType.AddBuff,
     trigger: 'ON_SKILL_HIT',
     paramsTemplate: {
@@ -207,8 +274,10 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'offensive', 'dot'],
     displayName: '灼烧附加',
+    displayDescription: '攻击有几率使敌人陷入灼烧状态',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_POISON_ON_HIT,
     effectType: EffectType.AddBuff,
     trigger: 'ON_SKILL_HIT',
     paramsTemplate: {
@@ -221,8 +290,10 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'offensive', 'dot'],
     displayName: '中毒附加',
+    displayDescription: '攻击有几率使敌人陷入中毒状态',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_FREEZE_ON_HIT,
     effectType: EffectType.AddBuff,
     trigger: 'ON_SKILL_HIT',
     paramsTemplate: {
@@ -235,9 +306,11 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '地品',
     tags: ['secondary', 'offensive', 'control'],
     displayName: '冰冻附加',
+    displayDescription: '攻击有几率冰冻敌人',
   },
   // 护盾
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_SHIELD,
     effectType: EffectType.Shield,
     trigger: 'ON_TURN_START',
     paramsTemplate: {
@@ -249,9 +322,11 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '地品',
     tags: ['secondary', 'defensive'],
     displayName: '回合护盾',
+    displayDescription: '每回合开始获得护盾',
   },
   // 命中率/闪避率
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_HIT_RATE,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -263,8 +338,10 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     slots: ['weapon', 'accessory'],
     tags: ['secondary', 'utility'],
     displayName: '命中率提升',
+    displayDescription: '提升技能命中几率',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_DODGE_RATE,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -276,6 +353,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     slots: ['armor', 'accessory'],
     tags: ['secondary', 'defensive'],
     displayName: '闪避率提升',
+    displayDescription: '提升闪避敌方攻击的几率',
   },
 
   // ============================================================
@@ -284,6 +362,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
 
   // 元素伤害加成 - 武器专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_ELEMENT_DAMAGE,
     effectType: EffectType.ElementDamageBonus,
     trigger: 'ON_BEFORE_DAMAGE',
     paramsTemplate: {
@@ -295,10 +374,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'offensive', 'fire_affinity', 'thunder_affinity'],
     displayName: '元素亲和',
+    displayDescription: '增加对应元素的伤害加成',
   },
 
   // 反击 - 护甲专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_COUNTER_ATTACK,
     effectType: EffectType.CounterAttack,
     trigger: 'ON_BEING_HIT',
     paramsTemplate: {
@@ -311,10 +392,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '地品',
     tags: ['secondary', 'defensive', 'counter'],
     displayName: '以彼之道',
+    displayDescription: '被攻击时有几率反击敌人',
   },
 
   // 斩杀伤害 - 武器专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_EXECUTE_DAMAGE,
     effectType: EffectType.ExecuteDamage,
     trigger: 'ON_BEFORE_DAMAGE',
     paramsTemplate: {
@@ -326,10 +409,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '天品',
     tags: ['secondary', 'offensive', 'burst', 'execute'],
     displayName: '破军斩将',
+    displayDescription: '对低生命值敌人造成额外伤害',
   },
 
   // 真实伤害 - 武器专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_TRUE_DAMAGE,
     effectType: EffectType.TrueDamage,
     trigger: 'ON_CRITICAL_HIT',
     paramsTemplate: {
@@ -342,10 +427,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '地品',
     tags: ['secondary', 'offensive', 'burst', 'true_damage'],
     displayName: '雷霆震怒',
+    displayDescription: '暴击时造成无视防御的真实伤害',
   },
 
   // 击杀回复 - 武器专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_KILL_HEAL,
     effectType: EffectType.Heal,
     trigger: 'ON_KILL',
     paramsTemplate: {
@@ -357,10 +444,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '地品',
     tags: ['secondary', 'sustain', 'lifesteal'],
     displayName: '噬魂饮血',
+    displayDescription: '击杀敌人时恢复自身生命',
   },
 
   // 法力回复 - 饰品专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_MANA_REGEN,
     effectType: EffectType.ManaRegen,
     trigger: 'ON_TURN_END',
     paramsTemplate: {
@@ -371,10 +460,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'sustain', 'mana_regen'],
     displayName: '灵枢引力',
+    displayDescription: '每回合结束恢复法力',
   },
 
   // 持续回复 - 护甲专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_HOT,
     effectType: EffectType.Heal,
     trigger: 'ON_TURN_END',
     paramsTemplate: {
@@ -386,10 +477,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '真品',
     tags: ['secondary', 'sustain', 'defensive'],
     displayName: '生生不息',
+    displayDescription: '每回合结束恢复生命',
   },
 
   // 治疗增幅 - 饰品专属
   {
+    id: ARTIFACT_AFFIX_IDS.SECONDARY_HEAL_AMPLIFY,
     effectType: EffectType.HealAmplify,
     trigger: 'ON_HEAL',
     paramsTemplate: {
@@ -401,6 +494,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     minQuality: '玄品',
     tags: ['secondary', 'sustain', 'healing_boost'],
     displayName: '妙手回春',
+    displayDescription: '增加受到的治疗效果',
   },
 ];
 
@@ -411,6 +505,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
 const CURSE_AFFIXES: AffixWeight[] = [
   // 使用消耗生命
   {
+    id: ARTIFACT_AFFIX_IDS.CURSE_DOT,
     effectType: EffectType.DotDamage,
     trigger: 'ON_TURN_START',
     paramsTemplate: {
@@ -420,9 +515,11 @@ const CURSE_AFFIXES: AffixWeight[] = [
     weight: 100,
     tags: ['curse'],
     displayName: '反噬诅咒',
+    displayDescription: '每回合受到反噬伤害',
   },
   // 属性削减
   {
+    id: ARTIFACT_AFFIX_IDS.CURSE_SPIRIT_REDUCTION,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -433,8 +530,10 @@ const CURSE_AFFIXES: AffixWeight[] = [
     weight: 80,
     tags: ['curse'],
     displayName: '灵力削减',
+    displayDescription: '降低5%灵力',
   },
   {
+    id: ARTIFACT_AFFIX_IDS.CURSE_VITALITY_REDUCTION,
     effectType: EffectType.StatModifier,
     trigger: 'ON_STAT_CALC',
     paramsTemplate: {
@@ -445,6 +544,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
     weight: 80,
     tags: ['curse'],
     displayName: '体魄削减',
+    displayDescription: '降低5%体魄',
   },
 ];
 

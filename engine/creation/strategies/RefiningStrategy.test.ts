@@ -67,11 +67,14 @@ test('RefiningStrategy test', async () => {
   };
   await strategy.validate(context);
   const result = strategy.constructPrompt(context);
-  console.log(result);
+  console.log(JSON.stringify(result));
   const aiResponse = await object(result.system, result.user, {
     schema: strategy.schema,
     schemaName: strategy.schemaName,
     schemaDescription: strategy.schemaDescription,
   });
   console.log(aiResponse.object);
+
+  const resultItem = strategy.materialize(aiResponse.object, context);
+  console.log(JSON.stringify(resultItem));
 });

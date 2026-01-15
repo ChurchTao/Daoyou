@@ -1,26 +1,26 @@
 /**
  * 命格效果生成器
  *
- * 根据命格品质和方向标签从词条池中生成效果配置
- * 采用 AIGC 架构：AI 生成蓝图（名称/描述/方向标签），程序生成数值
+ * 基于新的词条ID直接选择架构：
+ * - AI 直接从词条池中选择词条ID
+ * - 程序验证选择并生成数值
  */
 
 import type { EffectConfig } from '@/engine/effect/types';
 import type { Quality, RealmType } from '@/types/constants';
-import { QUALITY_VALUES } from '@/types/constants';
 import { FATE_AFFIX_POOLS } from './affixes/fateAffixes';
-import { EffectMaterializer } from './EffectMaterializer';
-import type {
-  AffixTag,
-  AffixWeight,
-  DirectionTag,
-  MaterializationContext,
-} from './types';
+import type { AffixWeight, MaterializationContext } from './types';
+import {
+  validateFateAffixSelection,
+  materializeAffixesById,
+  filterAffixPool,
+  buildAffixTable,
+} from './AffixUtils';
 
 /**
  * 命格品质对应的效果数量
  */
-const QUALITY_TO_EFFECT_COUNT: Record<Quality, number> = {
+export const QUALITY_TO_EFFECT_COUNT: Record<Quality, number> = {
   凡品: 1,
   灵品: 1,
   玄品: 2,
@@ -36,105 +36,104 @@ const QUALITY_TO_EFFECT_COUNT: Record<Quality, number> = {
  */
 export class FateAffixGenerator {
   /**
-   * 根据命格类型、品质和方向标签生成效果
-   *
-   * @param fateType 命格类型（吉/凶）
-   * @param quality 品质
-   * @param realm 境界（用于数值缩放）
-   * @param directionTags 方向标签
-   * @returns 效果配置数组
+   * 根据命格类型和品质获取可用词条池
    */
-  static generate(
-    fateType: '吉' | '凶',
-    quality: Quality,
-    realm: RealmType,
-    directionTags: DirectionTag[] = [],
-  ): EffectConfig[] {
-    // 1. 根据命格类型选择词条池
+  static getAffixPool(fateType: '吉' | '凶', quality: Quality): AffixWeight[] {
     const pool =
       fateType === '吉'
         ? FATE_AFFIX_POOLS.auspicious
         : FATE_AFFIX_POOLS.inauspicious;
 
-    // 2. 根据品质决定效果数量
-    const effectCount = QUALITY_TO_EFFECT_COUNT[quality] ?? 1;
+    return filterAffixPool(pool, quality);
+  }
 
-    // 3. 根据品质和方向标签筛选词条池
-    const filteredPool = this.filterPool(pool, quality, directionTags);
+  /**
+   * 获取指定品质的效果数量上限
+   */
+  static getEffectCount(quality: Quality): number {
+    return QUALITY_TO_EFFECT_COUNT[quality] ?? 1;
+  }
 
-    // 4. 权重随机选取
-    const selectedAffixes = this.selectWeightedRandom(
-      filteredPool,
-      effectCount,
+  /**
+   * 构建词条选择提示词
+   */
+  static buildSelectionPrompt(fateType: '吉' | '凶', quality: Quality): string {
+    const pool = this.getAffixPool(fateType, quality);
+    const effectCount = this.getEffectCount(quality);
+    const fateTypeLabel = fateType === '吉' ? '吉相' : '凶相';
+
+    const parts: string[] = [
+      `## ${fateTypeLabel}命格词条 (选择1-${effectCount}个)\n`,
+      buildAffixTable(pool, { showSlots: false, showQuality: true }),
+    ];
+
+    return parts.join('\n');
+  }
+
+  /**
+   * 根据AI选择的词条ID生成效果
+   *
+   * @param fateType 命格类型（吉/凶）
+   * @param quality 品质
+   * @param realm 境界（用于数值缩放）
+   * @param selectedAffixIds AI选择的词条ID数组
+   * @returns 效果配置数组
+   * @throws 如果词条选择无效
+   */
+  static generate(
+    fateType: '吉' | '凶',
+    quality: Quality,
+    realm: RealmType,
+    selectedAffixIds: string[],
+  ): EffectConfig[] {
+    // 1. 获取词条池
+    const pool =
+      fateType === '吉'
+        ? FATE_AFFIX_POOLS.auspicious
+        : FATE_AFFIX_POOLS.inauspicious;
+
+    // 2. 获取期望的效果数量
+    const expectedCount = this.getEffectCount(quality);
+
+    // 3. 验证选择
+    const validation = validateFateAffixSelection(
+      selectedAffixIds,
+      pool,
+      quality,
+      expectedCount,
     );
 
-    // 5. 数值化
+    if (!validation.valid) {
+      throw new Error(`命格词条选择无效: ${validation.errors.join('; ')}`);
+    }
+
+    // 4. 构建物化上下文
     const context: MaterializationContext = {
       quality,
       realm,
     };
 
-    return EffectMaterializer.materializeAll(selectedAffixes, context);
+    // 5. 物化词条为效果配置
+    return materializeAffixesById(selectedAffixIds, pool, context);
   }
 
   /**
-   * 根据品质和方向标签筛选词条池
+   * 生成随机命格效果（用于NPC或测试）
+   * 保留原有的权重随机选取逻辑
    */
-  private static filterPool(
-    pool: AffixWeight[],
+  static generateRandom(
+    fateType: '吉' | '凶',
     quality: Quality,
-    directionTags: DirectionTag[],
-  ): AffixWeight[] {
-    const qualityIndex = QUALITY_VALUES.indexOf(quality);
+    realm: RealmType,
+  ): EffectConfig[] {
+    const pool = this.getAffixPool(fateType, quality);
+    const effectCount = this.getEffectCount(quality);
 
-    return pool.filter((affix) => {
-      // 品质要求检查
-      if (affix.minQuality) {
-        const minIndex = QUALITY_VALUES.indexOf(affix.minQuality);
-        if (qualityIndex < minIndex) return false;
-      }
-      if (affix.maxQuality) {
-        const maxIndex = QUALITY_VALUES.indexOf(affix.maxQuality);
-        if (qualityIndex > maxIndex) return false;
-      }
+    // 权重随机选取
+    const selectedAffixes = this.selectWeightedRandom(pool, effectCount);
+    const selectedIds = selectedAffixes.map((a) => a.id);
 
-      // 如果没有方向标签，返回所有满足品质要求的词条
-      if (directionTags.length === 0) return true;
-
-      // 如果词条有标签，检查是否有匹配
-      if (affix.tags && affix.tags.length > 0) {
-        // 将方向标签和词条标签进行匹配
-        // 方向标签可能不直接等于词条标签，需要映射
-        const affixTagSet = new Set(affix.tags);
-        for (const tag of directionTags) {
-          const mappedTag = this.mapDirectionToAffixTag(tag);
-          if (mappedTag && affixTagSet.has(mappedTag)) {
-            return true;
-          }
-        }
-      }
-
-      return true; // 没有标签的词条默认通过
-    });
-  }
-
-  /**
-   * 将方向标签映射到词条标签
-   */
-  private static mapDirectionToAffixTag(
-    directionTag: DirectionTag,
-  ): AffixTag | null {
-    const mapping: Partial<Record<DirectionTag, AffixTag>> = {
-      offensive: 'offensive',
-      defensive: 'defensive',
-      critical_boost: 'burst',
-      lifesteal: 'lifesteal',
-      sustain: 'sustain',
-      burst: 'burst',
-      healing_boost: 'healing_boost',
-      mana_regen: 'mana_regen',
-    };
-    return mapping[directionTag] ?? null;
+    return this.generate(fateType, quality, realm, selectedIds);
   }
 
   /**
