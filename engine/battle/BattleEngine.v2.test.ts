@@ -46,12 +46,12 @@ describe('BattleEngineV2', () => {
         effects: [
           {
             type: EffectType.Damage,
-            trigger: 'ON_SKILL_HIT',
+            trigger: EffectTrigger.ON_SKILL_HIT,
             params: { multiplier: 0.6, element: '金' },
           },
           {
             type: EffectType.AddBuff,
-            trigger: 'ON_SKILL_HIT',
+            trigger: EffectTrigger.ON_SKILL_HIT,
             params: { buffId: 'bleed', durationOverride: 2 },
           },
         ],
@@ -68,7 +68,7 @@ describe('BattleEngineV2', () => {
         effects: [
           {
             type: EffectType.AddBuff,
-            trigger: 'ON_SKILL_HIT',
+            trigger: EffectTrigger.ON_SKILL_HIT,
             params: { buffId: 'armor_up', durationOverride: 2 },
           },
         ],
@@ -84,7 +84,7 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.StatModifier,
-              trigger: 'ON_STAT_CALC',
+              trigger: EffectTrigger.ON_STAT_CALC,
               params: { stat: 'spirit', value: 10, modType: 1 },
             },
           ],
@@ -202,12 +202,12 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 1.2, element: '火' },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'burn', durationOverride: 3 },
             },
           ],
@@ -223,17 +223,17 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 0.5, element: '火' },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'root', durationOverride: 2, chance: 0.7 },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'burn', durationOverride: 2 },
             },
           ],
@@ -250,12 +250,12 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Heal,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 0.8, targetSelf: true },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'speed_up', durationOverride: 2 },
             },
           ],
@@ -272,7 +272,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: { stat: 'spirit', value: 25, modType: 1 },
               },
             ],
@@ -326,7 +326,7 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: {
                 multiplier: 0.9,
                 element: '金',
@@ -336,7 +336,7 @@ describe('BattleEngineV2', () => {
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'bleed', durationOverride: 3 },
             },
             {
@@ -357,17 +357,17 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'armor_up', durationOverride: 3 },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'crit_rate_up', durationOverride: 3 },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: {
                 buffId: 'shield',
                 durationOverride: 3,
@@ -386,7 +386,7 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: {
                 multiplier: 1.8,
                 element: '金',
@@ -405,12 +405,12 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 0.4, element: '金' },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'armor_down', durationOverride: 2 },
             },
           ],
@@ -427,12 +427,12 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: { stat: 'spirit', value: 20, modType: 1 },
               },
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: { stat: 'speed', value: 15, modType: 1 },
               },
             ],
@@ -487,12 +487,12 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 0.6, element: '木' },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'poison', durationOverride: 4 },
             },
           ],
@@ -508,12 +508,12 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 1.1, element: '水' },
             },
             {
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: 'stun', durationOverride: 1, chance: 0.7 },
             },
           ],
@@ -530,7 +530,7 @@ describe('BattleEngineV2', () => {
           effects: [
             {
               type: EffectType.Heal,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { multiplier: 1.0, targetSelf: true },
             },
           ],
@@ -716,7 +716,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.Damage,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { multiplier: 1.0, element: '金' },
               },
               {
@@ -737,7 +737,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.TrueDamage,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   baseDamage: 50,
                   ignoreShield: true,
@@ -757,7 +757,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.Damage,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { multiplier: 0.8, element: '金' },
               },
               {
@@ -778,12 +778,12 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.Damage,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { multiplier: 0.5, element: '金' },
               },
               {
                 type: EffectType.Dispel,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { dispelCount: 2, dispelType: 'buff' },
               },
             ],
@@ -799,12 +799,12 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.Damage,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { multiplier: 0.4, element: '水' },
               },
               {
                 type: EffectType.ManaDrain,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   drainPercent: 0.15,
                   drainAmount: 20,
@@ -825,7 +825,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.Heal,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { multiplier: 1.2, flatHeal: 30, targetSelf: true },
               },
             ],
@@ -843,7 +843,7 @@ describe('BattleEngineV2', () => {
               effects: [
                 {
                   type: EffectType.StatModifier,
-                  trigger: 'ON_STAT_CALC',
+                  trigger: EffectTrigger.ON_STAT_CALC,
                   params: { stat: 'vitality', value: 30, modType: 1 },
                 },
                 {
@@ -902,7 +902,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   buffId: 'shield',
                   durationOverride: 3,
@@ -923,7 +923,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   buffId: 'armor_up',
                   durationOverride: 3,
@@ -932,7 +932,7 @@ describe('BattleEngineV2', () => {
               },
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   buffId: 'damage_reduction',
                   durationOverride: 3,
@@ -941,7 +941,7 @@ describe('BattleEngineV2', () => {
               },
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   buffId: 'counter_stance',
                   durationOverride: 3,
@@ -962,7 +962,7 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: {
                   buffId: 'dodge_up',
                   durationOverride: 3,
@@ -982,17 +982,17 @@ describe('BattleEngineV2', () => {
             effects: [
               {
                 type: EffectType.Damage,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { multiplier: 0.5, element: '木' },
               },
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { buffId: 'poison', durationOverride: 4 },
               },
               {
                 type: EffectType.AddBuff,
-                trigger: 'ON_SKILL_HIT',
+                trigger: EffectTrigger.ON_SKILL_HIT,
                 params: { buffId: 'root', durationOverride: 2, chance: 0.6 },
               },
             ],
@@ -1010,7 +1010,7 @@ describe('BattleEngineV2', () => {
               effects: [
                 {
                   type: EffectType.StatModifier,
-                  trigger: 'ON_STAT_CALC',
+                  trigger: EffectTrigger.ON_STAT_CALC,
                   params: { stat: 'wisdom', value: 20, modType: 1 },
                 },
                 {

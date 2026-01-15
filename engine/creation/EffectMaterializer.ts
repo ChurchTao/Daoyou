@@ -6,18 +6,32 @@
  */
 
 import {
+  EffectTrigger,
   EffectType,
   type EffectConfig,
-  type EffectTrigger,
 } from '@/engine/effect/types';
 import type { Quality, RealmType, SkillGrade } from '@/types/constants';
 import { QUALITY_MULTIPLIER } from './creationConfig';
+import { MATERIALIZATION_CONFIG } from './materializationConfig';
 import type {
   AffixParamsTemplate,
   AffixWeight,
+  BatchMaterializationResult,
   MaterializationContext,
+  MaterializationResult,
+  RollQuality,
   ScalableValue,
 } from './types';
+
+// ============================================================
+// 内部类型：缩放计算结果
+// ============================================================
+
+interface ScaledValueResult {
+  value: number;
+  variance: number;
+  isPerfect: boolean;
+}
 
 // ============================================================
 // 境界数值倍率
@@ -74,6 +88,64 @@ const SKILL_GRADE_MULTIPLIERS: Record<SkillGrade, number> = {
 // ============================================================
 
 export class EffectMaterializer {
+  // ============================================================
+  // 随机化辅助方法
+  // ============================================================
+
+  /**
+   * 生成随机波动倍率（梯形分布）
+   * - 70% 落在 0.85-1.15（±15%）
+   * - 20% 落在 1.15-1.35（+15%~+35%）
+   * - 10% 在极端区间（0.7-0.85 或 1.35-1.5）
+   */
+  private static generateVariance(): number {
+    const r = Math.random();
+    const cfg = MATERIALIZATION_CONFIG.variance;
+
+    if (r < 0.7) {
+      // 核心区间 70%
+      return cfg.coreMin + (r / 0.7) * (cfg.coreMax - cfg.coreMin);
+    } else if (r < 0.9) {
+      // 高值区间 20%
+      return cfg.coreMax + ((r - 0.7) / 0.2) * 0.2;
+    } else {
+      // 极端区间 10%（50%低/50%高）
+      return Math.random() < 0.5
+        ? cfg.min + Math.random() * (cfg.coreMin - cfg.min)
+        : 1.35 + Math.random() * (cfg.max - 1.35);
+    }
+  }
+
+  /**
+   * 判定是否触发闪光（完美词条）
+   */
+  private static rollPerfect(quality: Quality): boolean {
+    if (!MATERIALIZATION_CONFIG.enablePerfect) return false;
+
+    const { base, qualityBonus } = MATERIALIZATION_CONFIG.perfectChance;
+    const chance = base + (qualityBonus[quality] ?? 0);
+    return Math.random() < chance;
+  }
+
+  /**
+   * 根据波动倍率获取品质评级
+   */
+  private static getRollQuality(
+    variance: number,
+    isPerfect: boolean,
+  ): RollQuality {
+    if (isPerfect) return 'perfect';
+    const t = MATERIALIZATION_CONFIG.qualityThresholds;
+    if (variance < t.poor) return 'poor';
+    if (variance < t.normal) return 'normal';
+    if (variance < t.good) return 'good';
+    return 'perfect';
+  }
+
+  // ============================================================
+  // 主要 API 方法
+  // ============================================================
+
   /**
    * 将词条模板数值化
    * @param affix 词条配置
@@ -155,12 +227,12 @@ export class EffectMaterializer {
   }
 
   /**
-   * 计算缩放后的数值
+   * 计算缩放后的数值（带元数据）
    */
-  private static calculateScaledValue(
+  private static calculateScaledValueWithMetadata(
     scalable: ScalableValue,
     context: MaterializationContext,
-  ): number {
+  ): ScaledValueResult {
     const { base, scale, coefficient = 1 } = scalable;
 
     let multiplier = 1;
@@ -200,16 +272,158 @@ export class EffectMaterializer {
       multiplier *= gradeMultiplier;
     }
 
-    const finalValue = base * multiplier * coefficient;
+    let finalValue = base * multiplier * coefficient;
+
+    // === 随机化处理 ===
+    let variance = 1;
+    let isPerfect = false;
+
+    if (MATERIALIZATION_CONFIG.enableVariance && scale !== 'none') {
+      variance = this.generateVariance();
+      isPerfect = this.rollPerfect(context.quality);
+
+      if (isPerfect) {
+        variance *= MATERIALIZATION_CONFIG.perfectBonus;
+      }
+
+      finalValue *= variance;
+    }
 
     // 根据数值类型决定是否取整
     // 小于 1 的值（百分比）保留小数，大于 1 的值（固定值）取整
+    let roundedValue: number;
     if (Math.abs(base) < 1) {
-      return Math.round(finalValue * 1000) / 1000; // 保留3位小数
+      roundedValue = Math.round(finalValue * 1000) / 1000; // 保留3位小数
     } else {
-      return Math.floor(finalValue);
+      roundedValue = Math.floor(finalValue);
     }
+
+    return { value: roundedValue, variance, isPerfect };
   }
+
+  /**
+   * 计算缩放后的数值（向后兼容，仅返回数值）
+   */
+  private static calculateScaledValue(
+    scalable: ScalableValue,
+    context: MaterializationContext,
+  ): number {
+    return this.calculateScaledValueWithMetadata(scalable, context).value;
+  }
+
+  /**
+   * 将参数模板数值化并收集元数据
+   */
+  private static materializeParamsWithMetadata(
+    template: AffixParamsTemplate,
+    context: MaterializationContext,
+    metadataList: Array<{ variance: number; isPerfect: boolean }>,
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(template)) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      if (this.isScalableValue(value)) {
+        // 处理可缩放值并收集元数据
+        const scaled = this.calculateScaledValueWithMetadata(value, context);
+        result[key] = scaled.value;
+        metadataList.push({
+          variance: scaled.variance,
+          isPerfect: scaled.isPerfect,
+        });
+      } else if (typeof value === 'object' && !Array.isArray(value)) {
+        // 递归处理嵌套对象
+        result[key] = this.materializeParamsWithMetadata(
+          value as AffixParamsTemplate,
+          context,
+          metadataList,
+        );
+      } else {
+        // 直接复制固定值
+        result[key] = value;
+      }
+    }
+
+    return result;
+  }
+
+  // ============================================================
+  // 带元数据的 API 方法（新增）
+  // ============================================================
+
+  /**
+   * 将词条模板数值化并返回元数据
+   * @param affix 词条配置
+   * @param context 数值化上下文
+   * @returns 包含效果配置和随机性元数据的结果
+   */
+  static materializeWithMetadata(
+    affix: AffixWeight,
+    context: MaterializationContext,
+  ): MaterializationResult {
+    // 收集所有 ScalableValue 的随机化结果
+    const metadataList: Array<{ variance: number; isPerfect: boolean }> = [];
+
+    const params = this.materializeParamsWithMetadata(
+      affix.paramsTemplate,
+      context,
+      metadataList,
+    );
+
+    // 处理元素继承
+    if (params.element === 'INHERIT' && context.element) {
+      params.element = context.element;
+    }
+
+    // 聚合元数据（取最高值 / 任一闪光即为闪光）
+    const isPerfect = metadataList.some((m) => m.isPerfect);
+    const maxVariance =
+      metadataList.length > 0
+        ? Math.max(...metadataList.map((m) => m.variance))
+        : 1;
+    const rollQuality = this.getRollQuality(maxVariance, isPerfect);
+
+    return {
+      effect: {
+        type: affix.effectType,
+        trigger: affix.trigger as EffectTrigger | undefined,
+        params,
+      },
+      isPerfect,
+      rollQuality,
+      variance: maxVariance,
+      perfectBonus: isPerfect ? MATERIALIZATION_CONFIG.perfectBonus : undefined,
+    };
+  }
+
+  /**
+   * 批量数值化并返回元数据
+   * @param affixes 词条配置数组
+   * @param context 数值化上下文
+   * @returns 批量数值化结果
+   */
+  static materializeAllWithMetadata(
+    affixes: AffixWeight[],
+    context: MaterializationContext,
+  ): BatchMaterializationResult {
+    const details = affixes.map((affix) =>
+      this.materializeWithMetadata(affix, context),
+    );
+
+    return {
+      effects: details.map((d) => d.effect),
+      hasPerfect: details.some((d) => d.isPerfect),
+      perfectCount: details.filter((d) => d.isPerfect).length,
+      details,
+    };
+  }
+
+  // ============================================================
+  // 工具方法
+  // ============================================================
 
   /**
    * 快速创建属性修正效果
@@ -230,7 +444,7 @@ export class EffectMaterializer {
 
     return {
       type: EffectType.StatModifier,
-      trigger: 'ON_STAT_CALC',
+      trigger: EffectTrigger.ON_STAT_CALC,
       params: {
         stat,
         modType: isPercent ? 2 : 1, // PERCENT = 2, FIXED = 1

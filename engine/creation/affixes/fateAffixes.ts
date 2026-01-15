@@ -8,7 +8,11 @@
  * 与其他系统不同，命格效果是永久被动的
  */
 
-import { EffectType, StatModifierType } from '@/engine/effect/types';
+import {
+  EffectTrigger,
+  EffectType,
+  StatModifierType,
+} from '@/engine/effect/types';
 import type { AffixWeight } from '../types';
 
 // ============================================================
@@ -44,7 +48,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_WISDOM,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.PERCENT,
@@ -59,7 +63,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_CRIT,
     effectType: EffectType.Critical,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.03 },
       critDamageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
@@ -74,7 +78,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_DAMAGE_REDUCTION,
     effectType: EffectType.DamageReduction,
-    trigger: 'ON_BEFORE_DAMAGE',
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       percentReduction: { base: 0.08, scale: 'quality', coefficient: 0.03 },
       maxReduction: 0.6,
@@ -89,7 +93,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_SPIRIT,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
@@ -104,7 +108,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_SPEED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.PERCENT,
@@ -119,7 +123,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_VITALITY,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
@@ -136,7 +140,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_LIFESTEAL,
     effectType: EffectType.LifeSteal,
-    trigger: 'ON_AFTER_DAMAGE',
+    trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
       stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
     },
@@ -150,7 +154,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_MANA_REGEN,
     effectType: EffectType.ManaRegen,
-    trigger: 'ON_TURN_END',
+    trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
       percentOfMax: { base: 0.02, scale: 'quality', coefficient: 0.01 },
     },
@@ -164,7 +168,7 @@ export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.AUSPICIOUS_HEAL_AMPLIFY,
     effectType: EffectType.HealAmplify,
-    trigger: 'ON_HEAL',
+    trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
       amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
       affectOutgoing: false,
@@ -186,7 +190,7 @@ export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.INAUSPICIOUS_ATTACK_BOOST,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
@@ -201,7 +205,7 @@ export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.INAUSPICIOUS_DEFENSE_PENALTY,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
@@ -216,7 +220,7 @@ export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.INAUSPICIOUS_LIFESTEAL,
     effectType: EffectType.LifeSteal,
-    trigger: 'ON_AFTER_DAMAGE',
+    trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
       stealPercent: { base: 0.1, scale: 'quality', coefficient: 0.03 },
     },
@@ -230,7 +234,7 @@ export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.INAUSPICIOUS_CRIT_DAMAGE,
     effectType: EffectType.Critical,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       critDamageBonus: { base: 0.3, scale: 'quality', coefficient: 0.1 },
     },
@@ -244,7 +248,7 @@ export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.INAUSPICIOUS_SPEED_BOOST,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.PERCENT,

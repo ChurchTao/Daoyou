@@ -233,7 +233,7 @@ export class EnemyGenerator {
           if (['attack', 'control', 'debuff'].includes(s.type)) {
             effects.push({
               type: EffectType.Damage,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: {
                 multiplier: skillPower.power / 100,
                 element: s.element,
@@ -244,7 +244,7 @@ export class EnemyGenerator {
           if (s.type === 'heal') {
             effects.push({
               type: EffectType.Heal,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { percent: skillPower.power / 100 },
             });
           }
@@ -252,7 +252,7 @@ export class EnemyGenerator {
           if (s.effect) {
             effects.push({
               type: EffectType.AddBuff,
-              trigger: 'ON_SKILL_HIT',
+              trigger: EffectTrigger.ON_SKILL_HIT,
               params: { buffId: s.effect, duration: 2 },
             });
           }

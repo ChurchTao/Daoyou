@@ -46,7 +46,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_VITALITY,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_CONSUME', // 特殊触发器：服用时触发，永久生效
+    trigger: EffectTrigger.ON_CONSUME, // 特殊触发器：服用时触发，永久生效
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.FIXED,
@@ -61,7 +61,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_SPIRIT,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.FIXED,
@@ -76,7 +76,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_WISDOM,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.FIXED,
@@ -92,7 +92,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_SPEED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.FIXED,
@@ -107,7 +107,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_WILLPOWER,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.FIXED,
@@ -129,7 +129,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_SPIRIT_BUFF,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'spirit_boost',
       durationOverride: 3,
@@ -145,7 +145,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_VITALITY_BUFF,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'vitality_boost',
       durationOverride: 3,
@@ -161,7 +161,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_HEAL,
     effectType: EffectType.Heal,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       multiplier: { base: 0.2, scale: 'quality', coefficient: 0.1 },
       targetSelf: true,
@@ -175,7 +175,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_SHIELD,
     effectType: EffectType.Shield,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       amount: { base: 100, scale: 'realm', coefficient: 5 },
       duration: 3,
@@ -190,7 +190,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_CRIT_BUFF,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'crit_boost',
       durationOverride: 5,
@@ -211,7 +211,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_MANA_RESTORE,
     effectType: EffectType.ManaRegen,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       percentOfMax: { base: 0.4, scale: 'quality', coefficient: 0.15 },
     },
@@ -226,7 +226,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_BERSERK,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'berserk',
       durationOverride: 3,
@@ -243,7 +243,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_TURTLE_DEFENSE,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'turtle_defense',
       durationOverride: 2,
@@ -260,7 +260,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_EPIPHANY,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'epiphany',
       durationOverride: -1, // 战斗内永久
@@ -277,7 +277,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.SECONDARY_HEAL_AMPLIFY,
     effectType: EffectType.HealAmplify,
-    trigger: 'ON_HEAL',
+    trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
       amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.1 },
       affectOutgoing: false,
@@ -299,7 +299,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.CURSE_VIOLENT,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.FIXED,
@@ -315,7 +315,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
   {
     id: CONSUMABLE_AFFIX_IDS.CURSE_POISON,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_CONSUME',
+    trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       buffId: 'poison',
       durationOverride: 2,

@@ -69,7 +69,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.ATTACK_BASE_DAMAGE,
     effectType: EffectType.Damage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 1.0, scale: 'wisdom', coefficient: 0.5 },
       element: 'INHERIT',
@@ -84,7 +84,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.ATTACK_HEAVY_DAMAGE,
     effectType: EffectType.Damage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 1.5, scale: 'wisdom', coefficient: 0.8 },
       element: 'INHERIT',
@@ -100,7 +100,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.ATTACK_CRIT_DAMAGE,
     effectType: EffectType.Damage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 1.2, scale: 'wisdom', coefficient: 0.6 },
       element: 'INHERIT',
@@ -117,7 +117,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.ATTACK_ARMOR_PIERCE,
     effectType: EffectType.Damage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.8, scale: 'wisdom', coefficient: 0.4 },
       element: 'INHERIT',
@@ -134,7 +134,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.ATTACK_EXECUTE,
     effectType: EffectType.ExecuteDamage,
-    trigger: 'ON_BEFORE_DAMAGE',
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       thresholdPercent: 0.3,
       bonusDamage: { base: 0.2, scale: 'wisdom', coefficient: 0.1 },
@@ -149,7 +149,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.ATTACK_TRUE_DAMAGE,
     effectType: EffectType.TrueDamage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       baseDamage: { base: 50, scale: 'wisdom', coefficient: 15 },
       ignoreShield: true,
@@ -172,7 +172,7 @@ const HEAL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_BASE,
     effectType: EffectType.Heal,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.5, scale: 'wisdom', coefficient: 0.3 },
       targetSelf: true,
@@ -186,7 +186,7 @@ const HEAL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_STRONG,
     effectType: EffectType.Heal,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.8, scale: 'wisdom', coefficient: 0.5 },
       targetSelf: true,
@@ -201,7 +201,7 @@ const HEAL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_WITH_SHIELD,
     effectType: EffectType.Heal,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.4, scale: 'wisdom', coefficient: 0.2 },
       targetSelf: true,
@@ -219,7 +219,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_S_SHIELD,
     effectType: EffectType.Shield,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       amount: { base: 50, scale: 'wisdom', coefficient: 2 },
       duration: 2,
@@ -234,7 +234,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_S_HOT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'regeneration',
       durationOverride: 3,
@@ -250,7 +250,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_S_DISPEL,
     effectType: EffectType.Dispel,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       dispelCount: 1,
       dispelType: 'debuff',
@@ -266,7 +266,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.HEAL_S_AMPLIFY,
     effectType: EffectType.HealAmplify,
-    trigger: 'ON_HEAL',
+    trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
       amplifyPercent: { base: 0.15, scale: 'wisdom', coefficient: 0.05 },
       affectOutgoing: true,
@@ -288,7 +288,7 @@ const CONTROL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.CONTROL_STUN,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'stun',
       chance: { base: 0.6, scale: 'quality', coefficient: 0.1 },
@@ -303,7 +303,7 @@ const CONTROL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.CONTROL_FREEZE,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'freeze',
       chance: { base: 0.5, scale: 'quality', coefficient: 0.1 },
@@ -318,7 +318,7 @@ const CONTROL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.CONTROL_ROOT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'root',
       chance: { base: 0.7, scale: 'quality', coefficient: 0.1 },
@@ -333,7 +333,7 @@ const CONTROL_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.CONTROL_SILENCE,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'silence',
       chance: { base: 0.6, scale: 'quality', coefficient: 0.1 },
@@ -351,7 +351,7 @@ const CONTROL_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.CONTROL_S_DAMAGE,
     effectType: EffectType.Damage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.4, scale: 'wisdom', coefficient: 0.2 },
       element: 'INHERIT',
@@ -366,7 +366,7 @@ const CONTROL_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.CONTROL_S_MANA_DRAIN,
     effectType: EffectType.ManaDrain,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       drainPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
       restoreToSelf: true,
@@ -388,7 +388,7 @@ const DEBUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.DEBUFF_WEAKNESS,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'weakness',
       chance: { base: 0.7, scale: 'quality', coefficient: 0.1 },
@@ -403,7 +403,7 @@ const DEBUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.DEBUFF_POISON,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'poison',
       chance: { base: 0.8, scale: 'quality', coefficient: 0.05 },
@@ -418,7 +418,7 @@ const DEBUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.DEBUFF_BURN,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'burn',
       chance: { base: 0.8, scale: 'quality', coefficient: 0.05 },
@@ -433,7 +433,7 @@ const DEBUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.DEBUFF_BLEED,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'bleed',
       chance: { base: 0.75, scale: 'quality', coefficient: 0.05 },
@@ -451,7 +451,7 @@ const DEBUFF_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.DEBUFF_S_DAMAGE,
     effectType: EffectType.Damage,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.6, scale: 'wisdom', coefficient: 0.3 },
       element: 'INHERIT',
@@ -473,7 +473,7 @@ const BUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_SPIRIT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'spirit_boost',
       durationOverride: 3,
@@ -488,7 +488,7 @@ const BUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_VITALITY,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'vitality_boost',
       durationOverride: 3,
@@ -503,7 +503,7 @@ const BUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_SPEED,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'speed_boost',
       durationOverride: 3,
@@ -518,7 +518,7 @@ const BUFF_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_CRIT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'crit_boost',
       durationOverride: 3,
@@ -537,7 +537,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_S_SHIELD,
     effectType: EffectType.Shield,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       amount: { base: 80, scale: 'wisdom', coefficient: 3 },
       duration: 3,
@@ -551,7 +551,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_S_HEAL,
     effectType: EffectType.Heal,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       multiplier: { base: 0.2, scale: 'wisdom', coefficient: 0.1 },
       targetSelf: true,
@@ -565,7 +565,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: SKILL_AFFIX_IDS.BUFF_S_MANA_REGEN,
     effectType: EffectType.ManaRegen,
-    trigger: 'ON_TURN_END',
+    trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
       percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.02 },
     },

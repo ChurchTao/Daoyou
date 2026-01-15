@@ -449,6 +449,50 @@ export interface AffixGenerationResult {
   }[];
 }
 
+// ============================================================
+// 数值化结果类型（支持随机化元数据）
+// ============================================================
+
+/**
+ * 数值品质评级
+ * - poor: 低于期望值（< 85%）
+ * - normal: 正常范围（85% - 115%）
+ * - good: 高于期望值（115% - 135%）
+ * - perfect: 极品或闪光（>= 135% 或触发闪光）
+ */
+export type RollQuality = 'poor' | 'normal' | 'good' | 'perfect';
+
+/**
+ * 单个词条数值化结果
+ * 包含效果配置和随机性元数据
+ */
+export interface MaterializationResult {
+  /** 最终效果配置 */
+  effect: EffectConfig;
+  /** 是否触发闪光（完美词条） */
+  isPerfect: boolean;
+  /** 数值品质评级 */
+  rollQuality: RollQuality;
+  /** 实际波动倍率（相对期望值） */
+  variance: number;
+  /** 闪光加成倍率（仅闪光时有值） */
+  perfectBonus?: number;
+}
+
+/**
+ * 批量数值化结果
+ */
+export interface BatchMaterializationResult {
+  /** 所有效果配置 */
+  effects: EffectConfig[];
+  /** 是否存在闪光词条 */
+  hasPerfect: boolean;
+  /** 闪光词条数量 */
+  perfectCount: number;
+  /** 各词条的详细结果 */
+  details: MaterializationResult[];
+}
+
 // ============ 命格蓝图 Schema ============
 
 /**

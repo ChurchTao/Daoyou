@@ -1,5 +1,5 @@
 import type { Cultivator } from '@/types/cultivator';
-import { EffectType, StatModifierType } from '../effect/types';
+import { EffectTrigger, EffectType, StatModifierType } from '../effect/types';
 import { BattleUnit } from './BattleUnit';
 
 describe('BattleUnit Attribute Calculation', () => {
@@ -92,7 +92,7 @@ describe('BattleUnit Attribute Calculation', () => {
             effects: [
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'vitality',
                   value: 50,
@@ -101,7 +101,7 @@ describe('BattleUnit Attribute Calculation', () => {
               },
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'wisdom',
                   value: 0.1,
@@ -163,7 +163,7 @@ describe('BattleUnit Attribute Calculation', () => {
             effects: [
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'critRate',
                   value: 0.15,
@@ -172,7 +172,7 @@ describe('BattleUnit Attribute Calculation', () => {
               },
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'critDamage',
                   value: 0.5,
@@ -181,7 +181,7 @@ describe('BattleUnit Attribute Calculation', () => {
               },
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'damageReduction',
                   value: 0.1,
@@ -239,7 +239,7 @@ describe('BattleUnit Attribute Calculation', () => {
             effects: [
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'vitality',
                   value: 30,
@@ -256,7 +256,7 @@ describe('BattleUnit Attribute Calculation', () => {
             effects: [
               {
                 type: EffectType.StatModifier,
-                trigger: 'ON_STAT_CALC',
+                trigger: EffectTrigger.ON_STAT_CALC,
                 params: {
                   stat: 'vitality',
                   value: 0.5,

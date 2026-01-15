@@ -614,7 +614,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
     effectTemplates: [
       {
         type: EffectType.Heal,
-        trigger: 'ON_TURN_END',
+        trigger: EffectTrigger.ON_TURN_END,
         paramsTemplate: {
           multiplier: 0,
           // 基础 5% + 品质加成
