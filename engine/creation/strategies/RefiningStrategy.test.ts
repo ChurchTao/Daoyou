@@ -37,16 +37,16 @@ test('RefiningStrategy test', async () => {
       spirit_stones: 0,
     },
     materials: [
-      //   {
-      //     name: '赤阳玉髓',
-      //     type: 'tcdb',
-      //     rank: '天品',
-      //     element: '火',
-      //     description:
-      //       '藏于火山深处熔岩缝隙，呈赤红琉璃状，内蕴精纯火灵力，可助元婴修士突破瓶颈，炼制火属性法宝时加入能提升其威力。',
-      //     price: 80000,
-      //     quantity: 1,
-      //   },
+      {
+        name: '赤阳玉髓',
+        type: 'tcdb',
+        rank: '天品',
+        element: '火',
+        description:
+          '藏于火山深处熔岩缝隙，呈赤红琉璃状，内蕴精纯火灵力，可助元婴修士突破瓶颈，炼制火属性法宝时加入能提升其威力。',
+        price: 80000,
+        quantity: 1,
+      },
       {
         name: '赤铁矿',
         type: 'ore',
@@ -57,13 +57,7 @@ test('RefiningStrategy test', async () => {
         quantity: 1,
       },
     ],
-    userPrompt: `投入了地脉晶「仙品」天材地宝
-神甲
-灵力 +550｜悟性 +550｜神识 +550
-雷系伤害 +55%
-命中时90%概率附加疾速
-命中时90%概率附加沉默
-`,
+    userPrompt: `炼制一件护甲`,
   };
   await strategy.validate(context);
   const result = strategy.constructPrompt(context);

@@ -2,7 +2,11 @@
  * EffectMaterializer 单元测试
  */
 
-import { EffectType, StatModifierType } from '@/engine/effect/types';
+import {
+  EffectTrigger,
+  EffectType,
+  StatModifierType,
+} from '@/engine/effect/types';
 import { EffectMaterializer } from './EffectMaterializer';
 import type { AffixWeight, MaterializationContext } from './types';
 
@@ -18,7 +22,7 @@ describe('EffectMaterializer', () => {
       const affix: AffixWeight = {
         id: 'test_vitality_fixed',
         effectType: EffectType.StatModifier,
-        trigger: 'ON_STAT_CALC',
+        trigger: EffectTrigger.ON_STAT_CALC,
         paramsTemplate: {
           stat: 'vitality',
           modType: StatModifierType.FIXED,
@@ -44,7 +48,7 @@ describe('EffectMaterializer', () => {
       const affix: AffixWeight = {
         id: 'test_spirit_realm',
         effectType: EffectType.StatModifier,
-        trigger: 'ON_STAT_CALC',
+        trigger: EffectTrigger.ON_STAT_CALC,
         paramsTemplate: {
           stat: 'spirit',
           modType: StatModifierType.FIXED,
@@ -72,7 +76,7 @@ describe('EffectMaterializer', () => {
       const affix: AffixWeight = {
         id: 'test_crit_quality',
         effectType: EffectType.Critical,
-        trigger: 'ON_STAT_CALC',
+        trigger: EffectTrigger.ON_STAT_CALC,
         paramsTemplate: {
           critRateBonus: { base: 0.05, scale: 'quality', coefficient: 1 },
         },
@@ -98,7 +102,7 @@ describe('EffectMaterializer', () => {
       const affix: AffixWeight = {
         id: 'test_fire_damage',
         effectType: EffectType.Damage,
-        trigger: 'ON_SKILL_HIT',
+        trigger: EffectTrigger.ON_SKILL_HIT,
         paramsTemplate: {
           multiplier: { base: 1.0, scale: 'wisdom', coefficient: 1 },
           element: '火',
@@ -134,7 +138,7 @@ describe('EffectMaterializer', () => {
       const affix: AffixWeight = {
         id: 'test_element_inherit',
         effectType: EffectType.Damage,
-        trigger: 'ON_SKILL_HIT',
+        trigger: EffectTrigger.ON_SKILL_HIT,
         paramsTemplate: {
           multiplier: 1.0,
           element: 'INHERIT',
@@ -160,7 +164,7 @@ describe('EffectMaterializer', () => {
         {
           id: 'test_batch_vitality',
           effectType: EffectType.StatModifier,
-          trigger: 'ON_STAT_CALC',
+          trigger: EffectTrigger.ON_STAT_CALC,
           paramsTemplate: {
             stat: 'vitality',
             modType: StatModifierType.FIXED,
@@ -173,7 +177,7 @@ describe('EffectMaterializer', () => {
         {
           id: 'test_batch_lifesteal',
           effectType: EffectType.LifeSteal,
-          trigger: 'ON_AFTER_DAMAGE',
+          trigger: EffectTrigger.ON_AFTER_DAMAGE,
           paramsTemplate: {
             stealPercent: 0.05,
           },
@@ -222,7 +226,7 @@ describe('EffectMaterializer', () => {
     const realmAffix: AffixWeight = {
       id: 'test_realm_scaling',
       effectType: EffectType.StatModifier,
-      trigger: 'ON_STAT_CALC',
+      trigger: EffectTrigger.ON_STAT_CALC,
       paramsTemplate: {
         stat: 'vitality',
         modType: StatModifierType.FIXED,

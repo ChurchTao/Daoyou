@@ -228,6 +228,7 @@ export interface SkillContext {
 
 import type {
   EffectConfig,
+  EffectTrigger,
   EffectType,
   StatModifierType,
 } from '@/engine/effect/types';
@@ -243,7 +244,7 @@ export interface AffixWeight {
   /** 效果类型 */
   effectType: EffectType;
   /** 效果触发时机 (可选，默认根据效果类型自动推断) */
-  trigger?: string;
+  trigger?: EffectTrigger;
   /** 效果参数模板 (数值字段使用 'SCALE' 占位符，由 EffectMaterializer 填充) */
   paramsTemplate: AffixParamsTemplate;
   /** 权重（用于随机选取，数值越大概率越高） */

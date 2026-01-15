@@ -7,7 +7,11 @@
  * - 诅咒词条：负面效果（五行相克时触发）
  */
 
-import { EffectType, StatModifierType } from '@/engine/effect/types';
+import {
+  EffectTrigger,
+  EffectType,
+  StatModifierType,
+} from '@/engine/effect/types';
 import type { AffixPool, AffixWeight } from '../types';
 
 // ============================================================
@@ -59,7 +63,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_VITALITY_FIXED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.FIXED,
@@ -74,7 +78,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_SPIRIT_FIXED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.FIXED,
@@ -89,7 +93,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_WISDOM_FIXED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.FIXED,
@@ -104,7 +108,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_SPEED_FIXED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.FIXED,
@@ -119,7 +123,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_WILLPOWER_FIXED,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.FIXED,
@@ -135,7 +139,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_VITALITY_PERCENT,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
@@ -151,7 +155,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.PRIMARY_SPIRIT_PERCENT,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
@@ -175,7 +179,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_CRIT_RATE,
     effectType: EffectType.Critical,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.02 },
     },
@@ -189,7 +193,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_CRIT_DAMAGE,
     effectType: EffectType.Critical,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       critDamageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
     },
@@ -204,7 +208,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_LIFESTEAL,
     effectType: EffectType.LifeSteal,
-    trigger: 'ON_AFTER_DAMAGE',
+    trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
       stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
     },
@@ -219,7 +223,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_DAMAGE_REDUCTION,
     effectType: EffectType.DamageReduction,
-    trigger: 'ON_BEFORE_DAMAGE',
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       percentReduction: { base: 0.05, scale: 'quality', coefficient: 0.02 },
       maxReduction: 0.5,
@@ -234,7 +238,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_FLAT_REDUCTION,
     effectType: EffectType.DamageReduction,
-    trigger: 'ON_BEFORE_DAMAGE',
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       flatReduction: { base: 10, scale: 'realm', coefficient: 2 },
     },
@@ -248,7 +252,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_REFLECT_DAMAGE,
     effectType: EffectType.ReflectDamage,
-    trigger: 'ON_AFTER_DAMAGE',
+    trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
       reflectPercent: { base: 0.05, scale: 'quality', coefficient: 0.03 },
     },
@@ -263,7 +267,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_BURN_ON_HIT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'burn',
       chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
@@ -279,7 +283,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_POISON_ON_HIT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'poison',
       chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
@@ -295,7 +299,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_FREEZE_ON_HIT,
     effectType: EffectType.AddBuff,
-    trigger: 'ON_SKILL_HIT',
+    trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
       buffId: 'freeze',
       chance: { base: 0.08, scale: 'quality', coefficient: 0.03 },
@@ -312,7 +316,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_SHIELD,
     effectType: EffectType.Shield,
-    trigger: 'ON_TURN_START',
+    trigger: EffectTrigger.ON_TURN_START,
     paramsTemplate: {
       amount: { base: 50, scale: 'realm', coefficient: 3 },
       duration: 1,
@@ -328,7 +332,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_HIT_RATE,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'hitRate',
       modType: StatModifierType.FIXED,
@@ -343,7 +347,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_DODGE_RATE,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'dodgeRate',
       modType: StatModifierType.FIXED,
@@ -364,7 +368,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_ELEMENT_DAMAGE,
     effectType: EffectType.ElementDamageBonus,
-    trigger: 'ON_BEFORE_DAMAGE',
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: 'INHERIT', // 继承法宝元素
       damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
@@ -381,7 +385,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_COUNTER_ATTACK,
     effectType: EffectType.CounterAttack,
-    trigger: 'ON_BEING_HIT',
+    trigger: EffectTrigger.ON_BEING_HIT,
     paramsTemplate: {
       chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
       damageMultiplier: { base: 0.3, scale: 'quality', coefficient: 0.1 },
@@ -399,7 +403,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_EXECUTE_DAMAGE,
     effectType: EffectType.ExecuteDamage,
-    trigger: 'ON_BEFORE_DAMAGE',
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       thresholdPercent: 0.3,
       bonusDamage: { base: 0.15, scale: 'quality', coefficient: 0.1 },
@@ -416,7 +420,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_TRUE_DAMAGE,
     effectType: EffectType.TrueDamage,
-    trigger: 'ON_CRITICAL_HIT',
+    trigger: EffectTrigger.ON_CRITICAL_HIT,
     paramsTemplate: {
       baseDamage: { base: 30, scale: 'quality', coefficient: 10 },
       ignoreShield: true,
@@ -434,7 +438,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_KILL_HEAL,
     effectType: EffectType.Heal,
-    trigger: 'ON_KILL',
+    trigger: EffectTrigger.ON_KILL,
     paramsTemplate: {
       flatHeal: { base: 0.15, scale: 'quality', coefficient: 0.05 },
       targetSelf: true,
@@ -451,7 +455,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_MANA_REGEN,
     effectType: EffectType.ManaRegen,
-    trigger: 'ON_TURN_END',
+    trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
       percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.01 },
     },
@@ -467,7 +471,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_HOT,
     effectType: EffectType.Heal,
-    trigger: 'ON_TURN_END',
+    trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
       flatHeal: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       targetSelf: true,
@@ -484,7 +488,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_HEAL_AMPLIFY,
     effectType: EffectType.HealAmplify,
-    trigger: 'ON_HEAL',
+    trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
       amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
       affectOutgoing: false,
@@ -507,7 +511,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.CURSE_DOT,
     effectType: EffectType.DotDamage,
-    trigger: 'ON_TURN_START',
+    trigger: EffectTrigger.ON_TURN_START,
     paramsTemplate: {
       baseDamage: { base: 5, scale: 'realm', coefficient: 1 },
       usesCasterStats: false,
@@ -521,7 +525,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.CURSE_SPIRIT_REDUCTION,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
@@ -535,7 +539,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.CURSE_VITALITY_REDUCTION,
     effectType: EffectType.StatModifier,
-    trigger: 'ON_STAT_CALC',
+    trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
