@@ -361,7 +361,7 @@ export default function LandingPage() {
             {screenshots.map((screenshot, index) => (
               <div
                 key={index}
-                className="screenshot-card aspect-[4/3] shadow-lg group cursor-default"
+                className="screenshot-card aspect-4/3 shadow-lg group cursor-default"
               >
                 <ScreenshotMockup
                   type={screenshot.type}
