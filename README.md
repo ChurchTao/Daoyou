@@ -1,4 +1,4 @@
-# 万界道友 (WanJieDaoYou)
+# 万界道友 (daoyou.org)
 
 <p align="center">
   <img src="public/assets/daoyou_logo.png" alt="万界道友 Logo" width="200" />
@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL v3"></a>
   <a href="#项目愿景">项目愿景</a> •
   <a href="#核心特色">核心特色</a> •
   <a href="#核心功能模块">核心功能</a> •
@@ -194,7 +195,17 @@ npm run dev
 
 ## 开源协议
 
-本项目采用 MIT 协议开源。
+本项目采用 [GNU General Public License v3.0](LICENSE) 协议开源。
+
+这意味着你可以自由地：
+- 共享：在任何媒介或格式下复制和分发材料
+- 改编：混合、转换和构建材料
+
+但必须遵守以下条款：
+- **署名**：必须提供适当的归属。
+- **相同方式共享**：如果你混合、转换或基于该材料进行构建，你必须在相同的协议下分发你的贡献。
+
+详情请查阅 [LICENSE](LICENSE) 文件。
 
 ---
 <p align="center">

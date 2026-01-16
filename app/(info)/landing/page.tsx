@@ -486,7 +486,7 @@ export default function LandingPage() {
               <span className="font-heading text-lg">万界道友</span>
             </div>
             <p className="text-ink-muted text-xs">
-              © {new Date().getFullYear()} WanJieDaoYou. Open Source Project.
+              © {new Date().getFullYear()} daoyou.org. GPL-3.0 Licensed.
             </p>
           </div>
 

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**万界道友 (WanJieDaoYou)** is an open-source, AIGC-driven, text-based cultivation game framework. It aims to provide a "cultivation universe skeleton" that allows for high-freedom gameplay combined with strict numerical and battle models.
+**万界道友 (daoyou.org)** is an open-source, AIGC-driven, text-based cultivation game framework. It aims to provide a "cultivation universe skeleton" that allows for high-freedom gameplay combined with strict numerical and battle models.
 
 - **Type:** Web Application (Next.js)
 - **Core Concept:** Text-based interface (`Ink` style), AI-generated content (stories, battles), and a rigorous cultivation system.
