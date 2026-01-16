@@ -2,6 +2,7 @@ import { LingGenMini } from '@/components/func';
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkBadge, InkButton, InkCard } from '@/components/ui';
+import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
 import { useEnemyProbe } from '@/lib/hooks/dungeon/useEnemyProbe';
 import { useEffect, useState } from 'react';
 
@@ -123,7 +124,9 @@ export function BattlePreparation({
                       <span>
                         {skill.name} ({skill.element})
                       </span>
-                      <span className="text-ink-secondary">威力: todo</span>
+                      <span className="text-ink-secondary">
+                        威力: {getSkillDisplayInfo(skill).power}%
+                      </span>
                     </div>
                   ))}
                 </div>

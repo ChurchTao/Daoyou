@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         id: item.id,
         rank: index + 1,
         name: item.name,
-        type: `todo神通`,
+        type: item.element ? `${item.element}系神通` : '神通',
         grade: item.grade || undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,

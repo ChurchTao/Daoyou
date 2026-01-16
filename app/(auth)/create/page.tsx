@@ -16,6 +16,7 @@ import {
   InkTag,
 } from '@/components/ui';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getAttributeInfo } from '@/types/dictionaries';
 import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
@@ -496,7 +497,7 @@ export default function CreatePage() {
                               )}
                             </div>
                           }
-                          meta={'todo'}
+                          meta={formatEffectsText(fate.effects)}
                           description={fate.description}
                           actions={
                             isSelected ? (

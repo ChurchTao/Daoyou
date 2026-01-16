@@ -7,6 +7,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
+import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Consumable } from '@/types/cultivator';
 
 interface ConsumablesTabProps {
@@ -35,13 +36,7 @@ export function ConsumablesTab({
     <InkList>
       {consumables.map((item, idx) => {
         // 解析药效用于展示
-        const effectDescriptions = item.effects
-          ? item.effects
-              .map((e) => {
-                return `todo 重构`;
-              })
-              .join('，')
-          : 'todo 重构';
+        const effectDescriptions = formatEffectsText(item.effects);
 
         return (
           <InkListItem

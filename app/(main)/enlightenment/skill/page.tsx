@@ -12,7 +12,10 @@ import {
   InkNotice,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
+import {
+  getSkillDisplayInfo,
+  getSkillElementInfo,
+} from '@/lib/utils/effectDisplay';
 import { Skill } from '@/types/cultivator'; // Assuming Skill type exists
 import { getElementInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -108,10 +111,11 @@ export default function SkillCreationPage() {
 
   const createdSkillRender = (createdSkill: Skill) => {
     if (!createdSkill) return null;
+    const typeInfo = getSkillElementInfo(createdSkill);
     const skillTypeInfo = {
-      label: 'todo',
-      icon: 'todo',
-      description: 'todo',
+      label: typeInfo.typeName,
+      icon: typeInfo.icon,
+      description: createdSkill.description || '',
     };
     const elementInfo = getElementInfo(createdSkill.element);
     const displayInfo = getSkillDisplayInfo(createdSkill);
