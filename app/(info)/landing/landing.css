@@ -1,5 +1,7 @@
 /* Landing Page Styles - 古籍水墨风格宣传页 */
 
+/* --- 基础动画与背景 --- */
+
 /* 灵气粒子动画容器 */
 .spirit-particles {
   position: absolute;
@@ -68,11 +70,13 @@
   height: 200px;
   background: linear-gradient(
     to top,
-    rgba(255, 247, 225, 1) 0%,
+    var(--color-paper) 0%,
     transparent 100%
   );
   pointer-events: none;
 }
+
+/* --- 文本效果 --- */
 
 /* 标题光晕效果 */
 .title-glow {
@@ -80,151 +84,6 @@
     0 0 20px rgba(239, 191, 4, 0.3),
     0 0 40px rgba(239, 191, 4, 0.2),
     0 0 60px rgba(239, 191, 4, 0.1);
-}
-
-/* 滚动提示动画 */
-.scroll-hint {
-  animation: bounce-down 2s ease-in-out infinite;
-}
-
-@keyframes bounce-down {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(10px);
-  }
-}
-
-/* 特性卡片悬浮效果 */
-.feature-card {
-  position: relative;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 40px rgba(44, 24, 16, 0.15);
-}
-
-/* 截图卡片样式 */
-.screenshot-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(44, 24, 16, 0.1);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.screenshot-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 30px rgba(44, 24, 16, 0.2);
-}
-
-.screenshot-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 2px solid rgba(44, 24, 16, 0.1);
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-/* 渐入动画改进 */
-.fade-in-up {
-  opacity: 0;
-  transform: translateY(30px);
-  animation: fadeInUp 0.8s ease forwards;
-}
-
-@keyframes fadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 延迟动画类 */
-.delay-100 {
-  animation-delay: 0.1s;
-}
-.delay-200 {
-  animation-delay: 0.2s;
-}
-.delay-300 {
-  animation-delay: 0.3s;
-}
-.delay-400 {
-  animation-delay: 0.4s;
-}
-.delay-500 {
-  animation-delay: 0.5s;
-}
-.delay-600 {
-  animation-delay: 0.6s;
-}
-
-/* 古籍边框装饰 - "文武框"风格 */
-.ancient-border {
-  position: relative;
-  /* 外框：稍粗的墨色 */
-  border: 2px solid rgba(44, 24, 16, 0.6);
-  background-color: rgba(255, 255, 255, 0.6);
-  /* 内框：通过 box-shadow 实现，模拟线装书"版框" */
-  box-shadow:
-    inset 0 0 0 4px var(--color-paper),
-    /* 留白 */ inset 0 0 0 5px rgba(44, 24, 16, 0.3); /* 内细线 */
-  transition: all 0.3s ease;
-}
-
-/* 精致的角落装饰 */
-.ancient-border::before,
-.ancient-border::after {
-  content: '';
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--color-crimson); /* 朱砂红点缀 */
-  opacity: 0.6;
-  transition: all 0.3s ease;
-}
-
-/* 左上角装饰 */
-.ancient-border::before {
-  top: 8px;
-  left: 8px;
-  border-right: none;
-  border-bottom: none;
-}
-
-/* 右下角装饰 */
-.ancient-border::after {
-  bottom: 8px;
-  right: 8px;
-  border-left: none;
-  border-top: none;
-}
-
-.ancient-border:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: var(--color-ink);
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 0 0 4px var(--color-paper),
-    inset 0 0 0 5px var(--color-crimson),
-    /* 悬浮时内框变红 */ 0 4px 12px rgba(44, 24, 16, 0.1);
-}
-
-.ancient-border:hover::before,
-.ancient-border:hover::after {
-  opacity: 1;
-  border-color: var(--color-crimson);
-  /* 仅加深颜色，不再改变尺寸 */
 }
 
 /* Section 标题装饰线 */
@@ -239,13 +98,14 @@
   position: absolute;
   top: 50%;
   width: 60px;
-  height: 1px;
+  height: 2px; /* 加粗一点 */
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(44, 24, 16, 0.3),
+    rgba(44, 24, 16, 0.5),
     transparent
   );
+  border-radius: 50%; /* 模拟笔触圆头 */
 }
 
 .section-title-decorated::before {
@@ -258,10 +118,54 @@
   margin-left: 20px;
 }
 
+/* --- 交互组件 --- */
+
+/* 导航栏玻璃态 */
+.nav-glass {
+  background: rgba(248, 243, 230, 0.85); /* var(--color-paper) alpha */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(44, 24, 16, 0.05);
+  transition: all 0.3s ease;
+}
+
+.nav-link {
+  position: relative;
+  color: var(--color-ink);
+  font-family: var(--font-ma-shan-zheng);
+  font-size: 1.1rem;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  opacity: 1;
+  color: var(--color-crimson);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 100%;
+  height: 2px;
+  background-color: var(--color-crimson);
+  transition: transform 0.3s ease;
+  border-radius: 2px;
+}
+
+.nav-link:hover::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
 /* CTA 按钮增强 */
 .cta-button {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px 40px;
   font-size: 1.25rem;
   color: var(--color-paper);
@@ -271,6 +175,8 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(193, 18, 31, 0.3);
+  font-family: var(--font-ma-shan-zheng);
+  letter-spacing: 0.1em;
 }
 
 .cta-button:hover {
@@ -281,14 +187,17 @@
 .cta-button::before {
   content: '';
   position: absolute;
-  inset: -2px;
-  border: 1px solid rgba(239, 191, 4, 0.3);
+  inset: -3px;
+  border: 1px solid rgba(193, 18, 31, 0.3);
   border-radius: 6px;
   pointer-events: none;
 }
 
 /* 次要按钮 */
 .cta-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 14px 36px;
   font-size: 1.125rem;
   color: var(--color-ink);
@@ -297,6 +206,8 @@
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-family: var(--font-ma-shan-zheng);
+  letter-spacing: 0.1em;
 }
 
 .cta-button-secondary:hover {
@@ -305,28 +216,184 @@
   background: rgba(193, 18, 31, 0.05);
 }
 
+/* 滚动提示动画 */
+.scroll-hint {
+  animation: bounce-down 2s ease-in-out infinite;
+}
+
+@keyframes bounce-down {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* --- 卡片与布局 --- */
+
+/* 特性卡片 */
+.feature-card {
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(44, 24, 16, 0.15);
+}
+
+/* 截图卡片 */
+.screenshot-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(44, 24, 16, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: #FDFBF7;
+}
+
+.screenshot-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px rgba(44, 24, 16, 0.2);
+}
+
+.screenshot-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(44, 24, 16, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* 古籍边框装饰 - "文武框"风格 */
+.ancient-border {
+  position: relative;
+  border: 2px solid rgba(44, 24, 16, 0.6);
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 0 0 4px var(--color-paper),
+    inset 0 0 0 5px rgba(44, 24, 16, 0.3);
+  transition: all 0.3s ease;
+}
+
+/* 边角装饰 */
+.ancient-border::before,
+.ancient-border::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.ancient-border::before {
+  top: -2px; left: -2px;
+  border-top-color: var(--color-ink);
+  border-left-color: var(--color-ink);
+}
+
+.ancient-border::after {
+  bottom: -2px; right: -2px;
+  border-bottom-color: var(--color-ink);
+  border-right-color: var(--color-ink);
+}
+
+.ancient-border:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--color-ink);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 4px var(--color-paper),
+    inset 0 0 0 5px var(--color-crimson),
+    0 10px 30px rgba(44, 24, 16, 0.1);
+}
+
+.ancient-border:hover::before,
+.ancient-border:hover::after {
+  border-color: var(--color-crimson);
+}
+
+/* --- 公告/更新日志时间轴 --- */
+.timeline-item {
+  position: relative;
+  padding-left: 2rem;
+  border-left: 2px solid rgba(44, 24, 16, 0.1);
+  padding-bottom: 2rem;
+}
+
+.timeline-item:last-child {
+  border-left-color: transparent;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -5px; /* (2px border / 2) - (8px dot / 2) ≈ -3px, 调整为视觉居中 */
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-ink-secondary);
+  border: 2px solid var(--color-paper);
+  box-shadow: 0 0 0 2px rgba(44, 24, 16, 0.2);
+  transition: all 0.3s ease;
+}
+
+.timeline-item:hover .timeline-dot {
+  background-color: var(--color-crimson);
+  transform: scale(1.2);
+}
+
+.timeline-date {
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+  margin-bottom: 0.25rem;
+}
+
+/* --- 笔触分割线 --- */
+.ink-divider {
+  width: 100%;
+  height: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 50 20 100 10' stroke='rgba(44,24,16,0.1)' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.6;
+  margin: 2rem 0;
+}
+
+/* --- 动画工具类 --- */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .section-title-decorated::before,
   .section-title-decorated::after {
     width: 30px;
   }
-
-  .section-title-decorated::before {
-    margin-right: 10px;
-  }
-
-  .section-title-decorated::after {
-    margin-left: 10px;
-  }
-
+  .section-title-decorated::before { margin-right: 10px; }
+  .section-title-decorated::after { margin-left: 10px; }
+  
   .cta-button {
     padding: 14px 32px;
     font-size: 1.125rem;
   }
 }
 
-/* PC端横向特性布局 */
 @media (min-width: 768px) {
   .features-grid {
     display: grid;

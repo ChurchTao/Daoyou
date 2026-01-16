@@ -45,8 +45,8 @@
   --color-background: var(--color-paper);
   --color-foreground: var(--color-ink);
   --font-sans: var(--font-lxgwwenkai);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: 'Ma Shan Zheng', cursive;
+  --font-mono: var(--font-lxgwwenkai);
+  --font-heading: 'Ma Shan Zheng';
 }
 
 :root {
