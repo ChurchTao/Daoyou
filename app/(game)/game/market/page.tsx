@@ -116,7 +116,7 @@ export default function MarketPage() {
       currentPath={pathname}
       footer={
         <InkActionGroup>
-          <InkButton href="/inventory">查看储物袋</InkButton>
+          <InkButton href="/game/inventory">查看储物袋</InkButton>
         </InkActionGroup>
       }
     >

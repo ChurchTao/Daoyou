@@ -272,7 +272,7 @@ export default function LandingPage() {
               <span className="relative z-10">觉醒灵根</span>
               <div className="absolute inset-0 bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 rounded" />
             </Link>
-            <Link href="/login" className="cta-button-secondary group">
+            <Link href="/create" className="cta-button-secondary group">
               <span>继续仙途</span>
             </Link>
           </div>

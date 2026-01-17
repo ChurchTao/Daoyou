@@ -163,7 +163,7 @@ export default function SkillCreationPage() {
     <InkPageShell
       title="【神通推演】"
       subtitle="神念所至，万法皆生"
-      backHref="/enlightenment"
+      backHref="/game/enlightenment"
       note={note}
       currentPath={pathname}
       footer={

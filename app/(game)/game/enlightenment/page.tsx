@@ -18,7 +18,7 @@ export default function EnlightenmentPage() {
       currentPath={pathname}
       footer={
         <InkActionGroup>
-          <InkButton href="/skills">查看神通</InkButton>
+          <InkButton href="/game/skills">查看神通</InkButton>
           <InkButton href="/game">返回主界</InkButton>
         </InkActionGroup>
       }
@@ -35,7 +35,7 @@ export default function EnlightenmentPage() {
               <br />
               需消耗大量灵感与神念。
             </p>
-            <InkButton href="/enlightenment/skill" variant="primary">
+            <InkButton href="/game/enlightenment/skill" variant="primary">
               开始推演
             </InkButton>
           </InkCard>

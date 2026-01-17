@@ -127,7 +127,7 @@ export function HomeView() {
             </InkNotice>
             <InkNotice>
               曾在此修炼？
-              <InkButton href="/login" variant="primary">
+              <InkButton href="/create" variant="primary">
                 召回真身
               </InkButton>
             </InkNotice>
