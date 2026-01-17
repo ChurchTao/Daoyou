@@ -1,13 +1,7 @@
 'use client';
 
-import {
-  InkBadge,
-  InkList,
-  InkListItem,
-  InkNotice,
-} from '@/components/ui';
-import { InkPageShell, InkSection } from '@/components/layout';
-import { InkModal } from '@/components/layout';
+import { InkModal, InkPageShell, InkSection } from '@/components/layout';
+import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
 import { changelogs, type ChangelogItem } from '@/data/changelog';
 import { useState } from 'react';
 
@@ -20,7 +14,7 @@ export default function ChangelogPage() {
     <InkPageShell
       title="版本志"
       subtitle="记载天地间每一次瞬息万变"
-      backHref="/"
+      backHref="/game"
     >
       <InkSection title="【历史记录】">
         <InkList>

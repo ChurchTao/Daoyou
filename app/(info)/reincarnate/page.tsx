@@ -1,7 +1,7 @@
 'use client';
 
-import { InkButton, InkNotice } from '@/components/ui';
 import { InkPageShell, InkSection } from '@/components/layout';
+import { InkButton, InkNotice } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -62,7 +62,7 @@ export default function ReincarnatePage() {
     <InkPageShell
       title="转世重修"
       subtitle="身死道不灭，握紧前世余荫再闯仙途"
-      backHref="/"
+      backHref="/game"
     >
       <InkSection title="【前世余音】">
         {context?.story ? (
@@ -87,7 +87,7 @@ export default function ReincarnatePage() {
           <InkButton variant="primary" href="/create">
             以新身入道 →
           </InkButton>
-          <InkButton onClick={() => router.push('/')}>返回主界 →</InkButton>
+          <InkButton onClick={() => router.push('/game')}>返回主界 →</InkButton>
         </div>
       </InkSection>
     </InkPageShell>

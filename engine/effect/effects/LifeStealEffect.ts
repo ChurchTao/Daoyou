@@ -1,7 +1,7 @@
-import { isBattleEntity } from '../types';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type EffectContext,
   type LifeStealParams,
 } from '../types';
@@ -47,7 +47,9 @@ export class LifeStealEffect extends BaseEffect {
     const actualHeal = ctx.source.applyHealing(healAmount);
 
     if (actualHeal > 0) {
-      ctx.logCollector?.addLog(`${ctx.source.name} 吸取了 ${actualHeal} 点气血`);
+      ctx.logCollector?.addLog(
+        `${ctx.source.name} 吸取了 ${actualHeal} 点气血`,
+      );
     }
   }
 

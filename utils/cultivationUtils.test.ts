@@ -1,15 +1,15 @@
-import { describe, expect, it } from '@jest/globals';
 import type { Cultivator } from '@/types/cultivator';
 import {
-  calculateExpCap,
   calculateCultivationExp,
-  calculateExpProgress,
-  isBottleneckReached,
-  canAttemptBreakthrough,
-  getBreakthroughType,
+  calculateExpCap,
   calculateExpLossOnFailure,
+  calculateExpProgress,
+  canAttemptBreakthrough,
   createDefaultCultivationProgress,
+  getBreakthroughType,
+  isBottleneckReached,
 } from '@/utils/cultivationUtils';
+import { describe, expect, it } from '@jest/globals';
 
 describe('CultivationUtils', () => {
   describe('calculateExpCap', () => {

@@ -1,7 +1,7 @@
 'use client';
 
-import { InkBadge } from '@/components/ui';
 import { InkModal } from '@/components/layout';
+import { InkBadge } from '@/components/ui';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
 import type { FinalAttributesResult } from '@/utils/cultivatorUtils';

@@ -1,8 +1,8 @@
 'use client';
 
-import { InkButton, InkInput, InkNotice } from '@/components/ui';
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
+import { InkButton, InkInput, InkNotice } from '@/components/ui';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -36,7 +36,7 @@ function LoginPageContent() {
   useEffect(() => {
     if (!isLoading && user && !user.is_anonymous) {
       pushToast({ message: '真身已召回成功' });
-      router.push('/');
+      router.push('/game');
     }
   }, [user, isLoading, router, pushToast]);
 
@@ -127,7 +127,7 @@ function LoginPageContent() {
     <InkPageShell
       title="【召回真身】"
       subtitle="已有真身，重归修仙之路"
-      backHref="/"
+      backHref="/game"
       currentPath="/login"
     >
       <div className="space-y-6">

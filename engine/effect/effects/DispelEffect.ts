@@ -1,6 +1,10 @@
-import { isBattleEntity } from '../types';
 import { BaseEffect } from '../BaseEffect';
-import { EffectTrigger, type DispelParams, type EffectContext } from '../types';
+import {
+  EffectTrigger,
+  isBattleEntity,
+  type DispelParams,
+  type EffectContext,
+} from '../types';
 
 /**
  * 驱散效果
@@ -77,7 +81,9 @@ export class DispelEffect extends BaseEffect {
           : '状态';
 
     // 记录日志
-    ctx.logCollector?.addLog(`${dispelTarget.name} 被驱散了 ${dispelledIds.length} 个${typeText}`);
+    ctx.logCollector?.addLog(
+      `${dispelTarget.name} 被驱散了 ${dispelledIds.length} 个${typeText}`,
+    );
   }
 
   displayInfo() {

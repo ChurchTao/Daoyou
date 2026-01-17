@@ -1,7 +1,7 @@
-import { isBattleEntity } from '../types';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type EffectContext,
   type ManaDrainParams,
 } from '../types';
@@ -75,12 +75,16 @@ export class ManaDrainEffect extends BaseEffect {
     if (this.restoreToSelf && isBattleEntity(ctx.source)) {
       const actualRestored = ctx.source.restoreMp(actualDrained);
       if (actualRestored > 0) {
-        ctx.logCollector?.addLog(`${ctx.source.name} 回复了 ${actualRestored} 点法力`);
+        ctx.logCollector?.addLog(
+          `${ctx.source.name} 回复了 ${actualRestored} 点法力`,
+        );
       }
     }
 
     // 记录吸取日志
-    ctx.logCollector?.addLog(`${ctx.target.name} 被吸取了 ${actualDrained} 点法力`);
+    ctx.logCollector?.addLog(
+      `${ctx.target.name} 被吸取了 ${actualDrained} 点法力`,
+    );
   }
 
   displayInfo() {

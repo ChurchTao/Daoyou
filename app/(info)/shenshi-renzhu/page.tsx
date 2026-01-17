@@ -1,8 +1,8 @@
 'use client';
 
-import { InkButton, InkInput, InkNotice } from '@/components/ui';
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
+import { InkButton, InkInput, InkNotice } from '@/components/ui';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -36,7 +36,7 @@ function ShenShiRenZhuContent() {
   useEffect(() => {
     if (!isLoading && user && !user.is_anonymous) {
       pushToast({ message: '你的真身已与神识绑定成功' });
-      router.push('/');
+      router.push('/game');
     }
   }, [user, isLoading, router, pushToast]);
 
@@ -103,11 +103,11 @@ function ShenShiRenZhuContent() {
     <InkPageShell
       title="【神识认主】"
       subtitle="绑定飞鸽传书，永存真身"
-      backHref="/"
+      backHref="/game"
       currentPath="/shenshi-renzhu"
       footer={
         <div className="flex justify-between">
-          <InkButton href="/">返回</InkButton>
+          <InkButton href="/game">返回</InkButton>
         </div>
       }
     >

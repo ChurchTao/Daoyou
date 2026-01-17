@@ -9,13 +9,13 @@
 import type { EffectConfig } from '@/engine/effect/types';
 import type { Quality, RealmType } from '@/types/constants';
 import { FATE_AFFIX_POOLS } from './affixes/fateAffixes';
-import type { AffixWeight, MaterializationContext } from './types';
 import {
-  validateFateAffixSelection,
-  materializeAffixesById,
-  filterAffixPool,
   buildAffixTable,
+  filterAffixPool,
+  materializeAffixesById,
+  validateFateAffixSelection,
 } from './AffixUtils';
+import type { AffixWeight, MaterializationContext } from './types';
 
 /**
  * 命格品质对应的效果数量

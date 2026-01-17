@@ -45,8 +45,8 @@ export function BattleReplayViewer({
   const maxPlayerMp = first?.player.mp || 1;
   const maxOpponentMp = first?.opponent.mp || 1;
 
-  const renderBuffList = (buffs: string[]) =>
-    buffs.length ? buffs.join('、') : '无';
+  const renderBuffList = (buffs: string[] | undefined) =>
+    buffs?.length ? buffs.join('、') : '无';
 
   return (
     <div>

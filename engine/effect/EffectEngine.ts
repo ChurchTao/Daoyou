@@ -1,11 +1,11 @@
 import type { BaseEffect } from './BaseEffect';
-import { EffectLogCollector } from './types';
 import type {
   EffectContext,
   EffectTrigger,
   Entity,
   IBaseEffect,
 } from './types';
+import { EffectLogCollector } from './types';
 
 /**
  * 效果引擎执行结果

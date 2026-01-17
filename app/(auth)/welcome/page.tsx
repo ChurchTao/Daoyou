@@ -16,7 +16,7 @@ export default function WelcomePage() {
   // 如果用户选择跳过，直接跳转到主页
   useEffect(() => {
     if (!isLoading && skipWelcome) {
-      router.replace('/');
+      router.replace('/game');
     }
   }, [skipWelcome, isLoading, router]);
 

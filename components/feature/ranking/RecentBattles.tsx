@@ -50,7 +50,7 @@ export function RecentBattles() {
         <Zhanji key={r.id} record={r} currentCultivatorId={cultivator?.id} />
       ))}
 
-      <InkButton href="/battle/history">查看全部战绩 →</InkButton>
+      <InkButton href="/game/battle/history">查看全部战绩 →</InkButton>
     </InkList>
   );
 }

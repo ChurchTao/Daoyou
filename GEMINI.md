@@ -63,10 +63,10 @@
 ### Environment Setup
 
 Requires a `.env.local` file with configuration for:
+
 - OpenAI / DeepSeek API keys.
 - Supabase (PostgreSQL) URL and Anon Key.
-- Upstash Redis credentials.
-*Refer to `ENV_SETUP.md` for details.*
+- Upstash Redis credentials. _Refer to `ENV_SETUP.md` for details._
 
 ## Development Conventions
 
@@ -82,6 +82,7 @@ Requires a `.env.local` file with configuration for:
 ## Documentation
 
 Detailed internal documentation is located in `.qoder/repowiki`, covering:
+
 - Battle System
 - Character System
 - Database Schema

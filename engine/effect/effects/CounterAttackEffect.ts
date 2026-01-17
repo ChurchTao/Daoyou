@@ -1,8 +1,8 @@
 import type { ElementType } from '@/types/constants';
-import { isBattleEntity } from '../types';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type CounterAttackParams,
   type EffectContext,
 } from '../types';
@@ -58,7 +58,9 @@ export class CounterAttackEffect extends BaseEffect {
 
     // 检查攻击者是否为 BattleEntity
     if (!isBattleEntity(ctx.source)) {
-      console.warn('[CounterAttackEffect] source (attacker) is not a BattleEntity');
+      console.warn(
+        '[CounterAttackEffect] source (attacker) is not a BattleEntity',
+      );
       return;
     }
 
@@ -72,7 +74,9 @@ export class CounterAttackEffect extends BaseEffect {
       // 确定元素文本
       let elementText = '';
       if (this.element === 'INHERIT') {
-        const inheritedElement = ctx.metadata?.element as ElementType | undefined;
+        const inheritedElement = ctx.metadata?.element as
+          | ElementType
+          | undefined;
         if (inheritedElement) {
           elementText = `（${inheritedElement}属性）`;
         }
@@ -80,7 +84,9 @@ export class CounterAttackEffect extends BaseEffect {
         elementText = `（${this.element}属性）`;
       }
 
-      ctx.logCollector?.addLog(`${ctx.target.name} 反击了${elementText}，造成 ${actualDamage} 点伤害！`);
+      ctx.logCollector?.addLog(
+        `${ctx.target.name} 反击了${elementText}，造成 ${actualDamage} 点伤害！`,
+      );
     }
   }
 

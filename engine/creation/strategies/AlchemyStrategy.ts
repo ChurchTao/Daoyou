@@ -10,6 +10,13 @@ import type { Quality, RealmType } from '@/types/constants';
 import { QUALITY_VALUES } from '@/types/constants';
 import type { Consumable } from '@/types/cultivator';
 import { calculateSingleElixirScore } from '@/utils/rankingUtils';
+import { CONSUMABLE_AFFIX_POOL } from '../affixes/consumableAffixes';
+import {
+  buildAffixTable,
+  filterAffixPool,
+  materializeAffixesById,
+  validateConsumableAffixSelection,
+} from '../AffixUtils';
 import { QUANTITY_HINT_MAP } from '../creationConfig';
 import {
   CreationContext,
@@ -21,13 +28,6 @@ import {
   ConsumableBlueprintSchema,
   MaterializationContext,
 } from '../types';
-import { CONSUMABLE_AFFIX_POOL } from '../affixes/consumableAffixes';
-import {
-  buildAffixTable,
-  filterAffixPool,
-  validateConsumableAffixSelection,
-  materializeAffixesById,
-} from '../AffixUtils';
 
 export class AlchemyStrategy implements CreationStrategy<
   ConsumableBlueprint,
@@ -37,8 +37,7 @@ export class AlchemyStrategy implements CreationStrategy<
 
   readonly schemaName = '丹药蓝图';
 
-  readonly schemaDescription =
-    '描述丹药的名称、描述，并从词条池中选择效果';
+  readonly schemaDescription = '描述丹药的名称、描述，并从词条池中选择效果';
 
   readonly schema = ConsumableBlueprintSchema;
 
@@ -79,9 +78,10 @@ export class AlchemyStrategy implements CreationStrategy<
 
     // 构建词条表格
     const primaryTable = buildAffixTable(filteredPrimary, { showSlots: false });
-    const secondaryTable = filteredSecondary.length > 0
-      ? buildAffixTable(filteredSecondary, { showSlots: false })
-      : '（当前品质无可用副词条）';
+    const secondaryTable =
+      filteredSecondary.length > 0
+        ? buildAffixTable(filteredSecondary, { showSlots: false })
+        : '（当前品质无可用副词条）';
 
     const systemPrompt = `
 # Role: 修仙界丹道宗师 - 丹药蓝图设计

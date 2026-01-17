@@ -199,7 +199,7 @@ export default function CreatePage() {
       // 保存成功，跳转到首页
       pushToast({ message: '道友真形已落地，速回主界。', tone: 'success' });
       await refresh();
-      router.push('/');
+      router.push('/game');
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';
@@ -281,7 +281,7 @@ export default function CreatePage() {
       <InkPageShell
         title="【凝气篇】"
         subtitle="以心念唤道，凝气成形"
-        backHref="/"
+        backHref="/game"
         currentPath={pathname}
         showBottomNav={false}
       >
@@ -295,14 +295,14 @@ export default function CreatePage() {
       <InkPageShell
         title="【凝气篇】"
         subtitle="每位修士仅限一具真身"
-        backHref="/"
+        backHref="/game"
         currentPath={pathname}
         showBottomNav={false}
       >
         <InkNotice tone="warning">
           您已拥有道身，若想重修需先完成转世。
           <div className="mt-3">
-            <InkButton href="/">返回道身</InkButton>
+            <InkButton href="/game">返回道身</InkButton>
           </div>
         </InkNotice>
       </InkPageShell>
@@ -313,7 +313,7 @@ export default function CreatePage() {
     <InkPageShell
       title="【凝气篇】"
       subtitle="以心念唤道，凝气成形"
-      backHref="/"
+      backHref="/game"
       currentPath={pathname}
       showBottomNav={false}
     >

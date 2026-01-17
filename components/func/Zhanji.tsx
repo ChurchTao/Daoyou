@@ -45,7 +45,7 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
 
   return (
     <Link
-      href={`/battle/${record.id}`}
+      href={`/game/battle/${record.id}`}
       className="block border border-ink/10 bg-white/60 px-3 py-2 text-sm text-ink/80 hover:border-crimson/40 hover:text-ink transition"
     >
       <div className="flex justify-between">
@@ -63,7 +63,7 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
           <span className="ml-1">{typeLabel}</span>
         </div>
         {record.createdAt && (
-          <span className="text-ink/50 text-xs text-right ml-2 min-w-[80px]">
+          <span className="text-ink/50 text-xs text-right ml-2 min-w-20">
             {/* Added simple styling for date alignment if needed, but keeping generally close to original */}
             {new Date(record.createdAt).toLocaleString()}
           </span>

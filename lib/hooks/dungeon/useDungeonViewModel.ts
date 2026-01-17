@@ -1,4 +1,4 @@
-import { BattleCallbackData } from '@/app/(main)/game/dungeon/components/DungeonBattle';
+import { BattleCallbackData } from '@/app/(game)/game/dungeon/components/DungeonBattle';
 import {
   DungeonOption,
   DungeonRound,
@@ -19,7 +19,11 @@ export type DungeonViewState =
   | {
       type: 'map_selection';
       preSelectedNodeId: string | null;
-      limitInfo?: { remaining: number; used: number; dailyLimit: number } | null;
+      limitInfo?: {
+        remaining: number;
+        used: number;
+        dailyLimit: number;
+      } | null;
       limitLoading?: boolean;
     }
   | { type: 'exploring'; state: DungeonState; lastRound: DungeonRound }
