@@ -8,6 +8,7 @@ import { sanitizePrompt } from '@/utils/prompts';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { CreationStrategy } from './CreationStrategy';
 import { AlchemyStrategy } from './strategies/AlchemyStrategy';
+import { GongFaCreationStrategy } from './strategies/GongFaCreationStrategy';
 import { RefiningStrategy } from './strategies/RefiningStrategy';
 import { SkillCreationStrategy } from './strategies/SkillCreationStrategy';
 
@@ -21,6 +22,7 @@ export class CreationEngine {
     this.registerStrategy(new RefiningStrategy());
     this.registerStrategy(new AlchemyStrategy());
     this.registerStrategy(new SkillCreationStrategy());
+    this.registerStrategy(new GongFaCreationStrategy());
   }
 
   private registerStrategy(strategy: SupportedStrategies) {

@@ -459,6 +459,14 @@ export const MATERIAL_TYPE_DISPLAY_MAP: Record<
     label: '特殊辅料',
     icon: '💧',
   },
+  manual: {
+    label: '功法典籍',
+    icon: '📖',
+  },
+  consumable: {
+    label: '消耗品',
+    icon: '🍶',
+  },
 };
 
 export function getMaterialTypeLabel(type: MaterialType): string {

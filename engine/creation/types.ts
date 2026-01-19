@@ -510,3 +510,27 @@ export const FateBlueprintSchema = z.object({
 });
 
 export type FateBlueprint = z.infer<typeof FateBlueprintSchema>;
+
+// ============ 功法蓝图 Schema ============
+
+/**
+ * 功法词条选择 Schema
+ */
+export const GongFaAffixSelectionSchema = z.object({
+  primary: z.string().describe('主效果词条ID（必选1个）'),
+  secondary: z.string().optional().describe('副效果词条ID（可选）'),
+});
+
+export type GongFaAffixSelection = z.infer<typeof GongFaAffixSelectionSchema>;
+
+/**
+ * 功法蓝图 Schema
+ */
+export const GongFaBlueprintSchema = z.object({
+  name: z.string().min(2).max(8).describe('功法名称（2-8字，古风）'),
+  grade_hint: z.enum(GRADE_HINT_VALUES).describe('品阶提示'),
+  description: z.string().max(100).describe('功法描述'),
+  selected_affixes: GongFaAffixSelectionSchema.describe('AI选择的词条ID'),
+});
+
+export type GongFaBlueprint = z.infer<typeof GongFaBlueprintSchema>;

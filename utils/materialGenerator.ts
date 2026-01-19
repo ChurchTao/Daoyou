@@ -2,23 +2,26 @@ import { z } from 'zod';
 import {
   ELEMENT_VALUES,
   MATERIAL_TYPE_VALUES,
+  MaterialType,
   Quality,
   QUALITY_VALUES,
 } from '../types/constants';
 import { objectArray } from './aiClient';
 
-// Schema used by the AI generation result
+// Schema used by the AI generation result (Price is removed, calculated in code)
 const MaterialSchema = z.object({
   name: z.string().min(2).describe('材料名称'),
   type: z.enum(MATERIAL_TYPE_VALUES).describe('材料类型'),
   rank: z.enum(QUALITY_VALUES).describe('材料品质'),
   element: z.enum(ELEMENT_VALUES).describe('材料属性'),
   description: z.string().min(10).max(100).describe('材料描述'),
-  price: z.number().int().positive().describe('材料价格'),
   quantity: z.number().int().min(1).max(10).describe('材料数量'),
 });
 
-export type GeneratedMaterial = z.infer<typeof MaterialSchema>;
+// Final type includes price
+export type GeneratedMaterial = z.infer<typeof MaterialSchema> & {
+  price: number;
+};
 
 /**
  * 每个品质出现的概率
@@ -34,10 +37,31 @@ const QUALITY_CHANCE_MAP: Record<Quality, number> = {
   神品: 0.01,
 };
 
+// Base price for each quality
+const BASE_PRICES: Record<Quality, number> = {
+  凡品: 50,
+  灵品: 300,
+  玄品: 1000,
+  真品: 3000,
+  地品: 10000,
+  天品: 50000,
+  仙品: 200000,
+  神品: 1000000,
+};
+
+// Price multipliers by type
+const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
+  herb: 1.0,
+  ore: 1.0,
+  monster: 1.2,
+  tcdb: 2.5, // 天材地宝 very expensive
+  aux: 1.5,
+  manual: 3.0, // 典籍 very expensive
+  consumable: 1.5,
+};
+
 /**
  * Randomly determine the distribution of qualities for a given count.
- * This ensures the generation strictly follows probabilities via code logic,
- * rather than relying on the LLM to understand percentages.
  */
 function getRandomQualityDistribution(count: number): Record<Quality, number> {
   const distribution: Record<Quality, number> = {
@@ -77,6 +101,28 @@ function getRandomQualityDistribution(count: number): Record<Quality, number> {
 }
 
 /**
+ * Calculate price based on rank, type, and random variation.
+ */
+function calculatePrice(rank: Quality, type: MaterialType): number {
+  const base = BASE_PRICES[rank];
+  const multiplier = TYPE_MULTIPLIERS[type] || 1.0;
+
+  // Random variation +/- 20%
+  const variation = 0.8 + Math.random() * 0.4;
+
+  let price = Math.floor(base * multiplier * variation);
+
+  // Round to nice numbers
+  if (price > 1000) {
+    price = Math.floor(price / 100) * 100;
+  } else if (price > 100) {
+    price = Math.floor(price / 10) * 10;
+  }
+
+  return Math.max(1, price);
+}
+
+/**
  * Generate a batch of random materials using AI (Structured Output).
  * Useful for market listings, loot drops, etc.
  *
@@ -102,17 +148,17 @@ export async function generateRandomMaterials(
 
 1. **名称（name）**
   - 长度：2–8 个汉字。
-  - 风格：古朴玄奥，贴合《凡人修仙传》小说世界观（如“赤炎藤”、“玄冥骨砂”）。
-  - 禁止：现代词、西幻词、重复常见模板（如“千年灵芝”“万年雪莲”需具体化）。
+  - 风格：古朴玄奥，贴合《凡人修仙传》小说世界观（如“赤炎藤”、“玄冥骨砂”、“离火真经残页”）。
+  - 禁止：现代词、西幻词、重复常见模板。
 
 2. **类型（type）** —— 必须从以下值中选择其一：
-  - 药材(herb)
-  - 矿石(ore)
-  - 妖兽材料(monster)
-  - 天材地宝(tcdb)
-  - 特殊辅料(aux)
-  
-  > 注：**天材地宝** 与 **特殊辅料** 仅可用于 **玄品及以上** 品质
+  - 药材(herb): 用于炼丹。
+  - 矿石(ore): 用于炼器。
+  - 妖兽材料(monster): 妖丹、兽骨等。
+  - 天材地宝(tcdb): 稀世珍宝，仅限**玄品及以上**。
+  - 特殊辅料(aux): 辅助材料。
+  - 功法典籍(manual): 功法残页、神通秘籍、玉简等，用于参悟功法神通。**极其稀有**。
+  - 消耗品(consumable): 悟道茶、顿悟丹等，用于辅助参悟。
 
 3. **品质（rank）** —— 必须从以下值中选择其一：
   - 凡品
@@ -123,34 +169,16 @@ export async function generateRandomMaterials(
   - 天品
   - 仙品
   - 神品
-  
-  > 注：**品质** 影响材料的稀有度，不要直接把品质放到名称里。
 
 4. **五行属性（element）** —— 必须从以下值中选择其一：
-  - 金
-  - 木
-  - 水
-  - 火
-  - 土
-  - 风
-  - 雷
-  - 冰
+  - 金、木、水、火、土、风、雷、冰
 
 5. **描述（description）**
   - 字数：60–100 字。
-  - 内容：说明外形、产地（如“生于极北冰渊裂缝”）、用途（如“可炼制筑基丹”）或风险（如“触之寒毒入髓”）。
-  - 风格：沧桑、克制、略带危险感，符合“凡人流”现实修仙基调。
+  - 内容：说明外形、产地、用途或风险。
+  - 风格：沧桑、克制、略带危险感。
 
-6. **价格（price）**
-  - 凡品：10–100
-  - 灵品：100–500
-  - 玄品：500–2000
-  - 真品：2000–5000
-  - 地品：5000–20000
-  - 天品：20000–100000
-  - 仙品/神品：100000+
-
-7. **数量（quantity）**
+6. **数量（quantity）**
   - 凡品：2–5
   - 灵品：1–3
   - 玄品及以上：1（神品、仙品、天品、地品必须为 1）
@@ -170,6 +198,11 @@ export async function generateRandomMaterials(
   **必须严格按照以下品质分布生成：**
   ${distributionDesc}
   
+  **类型分布建议（仅参考，可随机）：**
+  - 大部分应为 herb/ore/monster。
+  - 少量 aux/consumable。
+  - 极少量 tcdb/manual。
+  
   请直接输出符合规则和 Schema 的 JSON。
 `;
 
@@ -184,7 +217,15 @@ export async function generateRandomMaterials(
       false, // use fast model
     );
 
-    return aiResponse.object;
+    // Add calculated prices
+    const materialsWithPrice: GeneratedMaterial[] = aiResponse.object.map(
+      (mat) => ({
+        ...mat,
+        price: calculatePrice(mat.rank, mat.type),
+      }),
+    );
+
+    return materialsWithPrice;
   } catch (error) {
     console.error('Material Generation Failed:', error);
     throw new Error('天道暂隐，材料生成失败');

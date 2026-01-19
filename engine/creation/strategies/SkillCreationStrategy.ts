@@ -18,9 +18,9 @@ import {
   QUALITY_VALUES,
   SKILL_TYPE_VALUES,
 } from '@/types/constants';
-import type { Skill, SpiritualRoot } from '@/types/cultivator';
-import { CultivatorUnit } from '../../cultivator';
+import type { Material, Skill, SpiritualRoot } from '@/types/cultivator';
 import { calculateSingleSkillScore } from '@/utils/rankingUtils';
+import { CultivatorUnit } from '../../cultivator';
 import { getSkillAffixPool } from '../affixes/skillAffixes';
 import {
   buildAffixTable,
@@ -84,10 +84,16 @@ export class SkillCreationStrategy implements CreationStrategy<
     if (context.cultivator.skills.length >= max_skills) {
       throw new Error(`道友神通已经很多了，如需再创，需要遗忘一些神通。`);
     }
+
+    // New validation: Require at least one 'manual'
+    const hasManual = context.materials.some((m) => m.type === 'manual');
+    if (!hasManual) {
+      throw new Error('参悟神通需消耗功法典籍或残页(type=manual)');
+    }
   }
 
   constructPrompt(context: CreationContext): PromptData {
-    const { cultivator, userPrompt } = context;
+    const { cultivator, userPrompt, materials } = context;
 
     // 构建灵根信息
     const spiritualRootsDesc = cultivator.spiritual_roots
@@ -112,8 +118,14 @@ export class SkillCreationStrategy implements CreationStrategy<
     const wisdom = finalAttributes.wisdom;
     const realm = cultivator.realm as RealmType;
 
+    // 计算基于材料的品质
+    const materialQuality = this.calculateMaterialQuality(materials);
     // 估计可能的品质范围（用于词条过滤）
-    const estimatedQuality = this.estimateQuality(realm, wisdom);
+    const estimatedQuality = this.estimateQuality(
+      realm,
+      wisdom,
+      materialQuality,
+    );
 
     // 为每种技能类型构建词条提示
     const skillTypePrompts = this.buildSkillTypeAffixPrompts(estimatedQuality);
@@ -121,12 +133,17 @@ export class SkillCreationStrategy implements CreationStrategy<
     const systemPrompt = `
 # Role: 修仙界传功长老 - 神通蓝图设计
 
-你是一位隐世传功长老，负责为修士推演神通蓝图。**你负责创意设计和选择词条，具体数值由天道法则（程序）决定。**
+你是一位隐世传功长老，负责为修士推演神通蓝图。
+
+## 核心指令
+**必须完全基于用户提供的【核心材料】（功法残页/典籍）来设计神通。**
+神通的类型、元素、描述应参考材料。
+例如：使用了“玄冰诀残页”，神通应当是冰系、控制或攻击类型。
 
 ## 重要约束
 
 > ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
-> 数值由修士境界、悟性、五行契合度决定，你只需选择合适的词条。
+> 数值由修士境界、悟性、五行契合度及**材料品质**决定，你只需选择合适的词条。
 
 ## 输出格式（严格遵守）
 
@@ -142,6 +159,7 @@ export class SkillCreationStrategy implements CreationStrategy<
 
 - **境界**: ${realm}
 - **悟性**: ${wisdom}
+- **核心材料品质**: ${materialQuality}
 - **预估品质**: ${estimatedQuality}
 
 ## 五行契合度评估规则
@@ -155,6 +173,7 @@ export class SkillCreationStrategy implements CreationStrategy<
 - 筑基/金丹 → 最高 medium（玄阶）
 - 元婴/化神 → 最高 high（地阶）
 - 炼虚及以上 → 可达 extreme（天阶）
+*注：若使用高阶材料，可适当放宽判定，选择更高的 grade_hint。*
 
 ${skillTypePrompts}
 
@@ -166,8 +185,8 @@ ${skillTypePrompts}
 4. 根据修士灵根评估五行契合度
 
 ## 命名与描述
-- 名称：2-8字，贴合修仙风格
-- 描述：描述施法过程、视觉效果
+- 名称：2-8字，必须源自材料描述。
+- 描述：描述施法过程、视觉效果。
 - 若五行相克，描述应体现别扭的感觉
 
 ## 输出示例
@@ -176,7 +195,7 @@ ${skillTypePrompts}
   "name": "烈焰斩",
   "type": "attack",
   "element": "火",
-  "description": "凝聚火焰于剑上，一斩而出...",
+  "description": "基于烈火残页领悟，凝聚火焰于剑上，一斩而出...",
   "grade_hint": "medium",
   "element_match_assessment": "partial_match",
   "selected_affixes": {
@@ -197,8 +216,15 @@ ${skillTypePrompts}
   <fates>${fatesDesc}</fates>
 </cultivator>
 
+<materials_used>
+${context.materials
+  .filter((m) => m.type === 'manual')
+  .map((m) => `- ${m.name}(${m.rank}): ${m.description || '无描述'}`)
+  .join('\n')}
+</materials_used>
+
 <user_intent>
-${userPrompt || '无（自由发挥）'}
+${userPrompt || '无（自由发挥，但必须基于材料）'}
 </user_intent>
 
 请根据修士特性和用户意图，选择合适的技能类型和词条组合。
@@ -233,7 +259,13 @@ ${userPrompt || '无（自由发挥）'}
     );
 
     // 2. 确定品阶
-    const grade = this.calculateGrade(blueprint.grade_hint, realm, wisdom);
+    const materialQuality = this.calculateMaterialQuality(context.materials);
+    const grade = this.calculateGrade(
+      blueprint.grade_hint,
+      realm,
+      wisdom,
+      materialQuality,
+    );
 
     // 3. 获取对应技能类型的词条池
     const affixPool = getSkillAffixPool(blueprint.type);
@@ -318,10 +350,29 @@ ${userPrompt || '无（自由发挥）'}
 
   // ============ 辅助方法 ============
 
+  private calculateMaterialQuality(materials: Material[]): Quality {
+    const manuals = materials.filter((m) => m.type === 'manual');
+    if (manuals.length === 0) return '凡品';
+
+    // 取最高品质
+    let maxIndex = 0;
+    for (const mat of manuals) {
+      const index = QUALITY_VALUES.indexOf(mat.rank);
+      if (index > maxIndex) {
+        maxIndex = index;
+      }
+    }
+    return QUALITY_VALUES[maxIndex];
+  }
+
   /**
    * 根据境界和悟性估计品质
    */
-  private estimateQuality(realm: RealmType, wisdom: number): Quality {
+  private estimateQuality(
+    realm: RealmType,
+    wisdom: number,
+    materialQuality: Quality,
+  ): Quality {
     const realmIndex = [
       '炼气',
       '筑基',
@@ -333,10 +384,15 @@ ${userPrompt || '无（自由发挥）'}
       '大乘',
       '渡劫',
     ].indexOf(realm);
-    const baseQualityIndex = Math.min(
-      realmIndex + 1,
-      QUALITY_VALUES.length - 1,
-    );
+
+    let baseQualityIndex = Math.min(realmIndex + 1, QUALITY_VALUES.length - 1);
+
+    // 材料品质修正
+    const matIndex = QUALITY_VALUES.indexOf(materialQuality);
+    if (matIndex > baseQualityIndex) {
+      baseQualityIndex = Math.floor((baseQualityIndex + matIndex) / 2);
+    }
+
     const wisdomBonus = wisdom > 200 ? 1 : 0;
     return QUALITY_VALUES[
       Math.min(baseQualityIndex + wisdomBonus, QUALITY_VALUES.length - 1)
@@ -452,13 +508,33 @@ ${userPrompt || '无（自由发挥）'}
     gradeHint: GradeHint,
     realm: RealmType,
     wisdom: number,
+    materialQuality: Quality,
   ): SkillGrade {
     // 获取品阶候选列表
     const candidates =
       GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
 
     // 根据悟性选择品阶
-    const wisdomRatio = wisdomToPowerRatio(wisdom);
+    let wisdomRatio = wisdomToPowerRatio(wisdom);
+
+    // 材料修正
+    const matIndex = QUALITY_VALUES.indexOf(materialQuality);
+    const realmIndex = [
+      '炼气',
+      '筑基',
+      '金丹',
+      '元婴',
+      '化神',
+      '炼虚',
+      '合体',
+      '大乘',
+      '渡劫',
+    ].indexOf(realm);
+
+    if (matIndex > realmIndex) {
+      wisdomRatio += 0.2;
+    }
+
     const index = Math.min(
       candidates.length - 1,
       Math.floor(wisdomRatio * candidates.length),
