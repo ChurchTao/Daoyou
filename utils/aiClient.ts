@@ -1,5 +1,5 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { generateObject, generateText, streamText, ToolSet } from 'ai';
+import { generateText, Output, streamText, ToolSet } from 'ai';
 import z from 'zod';
 
 /**
@@ -104,13 +104,15 @@ export async function object<T>(
   thinking: boolean = false,
 ) {
   const model = getModel(fast);
-  const res = await generateObject({
+  const res = await generateText({
     model,
     system: prompt,
     prompt: userInput,
-    schema: options.schema,
-    schemaName: options.schemaName,
-    schemaDescription: options.schemaDescription,
+    output: Output.object({
+      schema: options.schema,
+      name: options.schemaName,
+      description: options.schemaDescription,
+    }),
     maxRetries: 3,
     providerOptions: {
       deepseek: {
@@ -120,11 +122,14 @@ export async function object<T>(
       },
     },
   });
-  return res;
+  return {
+    ...res,
+    object: res.output,
+  };
 }
 
 /**
- * 通用生成 Structured Data
+ * 通用生成 Structured Data Array
  */
 export async function objectArray<T>(
   prompt: string,
@@ -138,13 +143,15 @@ export async function objectArray<T>(
   thinking: boolean = false,
 ) {
   const model = getModel(fast);
-  const res = await generateObject({
+  const res = await generateText({
     model,
     system: prompt,
     prompt: userInput,
-    schema: options.schema,
-    schemaName: options.schemaName,
-    schemaDescription: options.schemaDescription,
+    output: Output.array({
+      element: options.schema,
+      name: options.schemaName,
+      description: options.schemaDescription,
+    }),
     maxRetries: 3,
     providerOptions: {
       deepseek: {
@@ -153,9 +160,11 @@ export async function objectArray<T>(
         },
       },
     },
-    output: 'array',
   });
-  return res;
+  return {
+    ...res,
+    object: res.output,
+  };
 }
 
 /**
