@@ -4,13 +4,11 @@ import { InkModal } from '@/components/layout';
 import { InkBadge } from '@/components/ui';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
-import type { FinalAttributesResult } from '@/utils/cultivatorUtils';
 import { GongFaMini, LingGenMini, ShenTongMini } from './';
 
 export type ProbeResultData = {
   cultivator: Cultivator;
   finalAttributes: Attributes;
-  attributeBreakdown: FinalAttributesResult['breakdown'];
 };
 
 interface ProbeResultModalProps {

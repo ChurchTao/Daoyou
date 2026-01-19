@@ -14,28 +14,19 @@ import {
 } from '@/engine/effect/types';
 import type { StatusEffect } from '@/types/constants';
 import type { Attributes, Cultivator, Skill } from '@/types/cultivator';
-import { calculateFinalAttributes as calcFinalAttrs } from '@/utils/cultivatorUtils';
-import {
-  CriticalEffect,
-  DamageReductionEffect,
-  effectEngine,
-  EffectFactory,
-} from '../effect';
+import { BaseUnit } from '../cultivator/BaseUnit';
+import { CriticalEffect, DamageReductionEffect, effectEngine } from '../effect';
 import type { UnitId } from './types';
 
 /**
  * 战斗单元
- * 实现 BattleEntity 接口，属性计算完全通过 EffectEngine
+ * 继承 BaseUnit，实现 BattleEntity 接口
+ * 属性计算完全通过 EffectEngine
  * 提供战斗操作方法供 Effect 直接调用
  */
-export class BattleUnit implements BattleEntity {
-  // ===== Entity 接口属性 =====
-  readonly id: string;
-  readonly name: string;
-
+export class BattleUnit extends BaseUnit implements BattleEntity {
   // ===== 基础标识 =====
   readonly unitId: UnitId;
-  readonly cultivatorData: Cultivator;
 
   // ===== 动态战斗属性 =====
   currentHp: number;
@@ -70,19 +61,17 @@ export class BattleUnit implements BattleEntity {
     mpLossPercent?: number,
     initialBuffs?: BuffInstanceState[],
   ) {
+    super(unitId, cultivatorData);
     this.unitId = unitId;
-    this.id = unitId;
-    this.name = cultivatorData.name;
-    this.cultivatorData = cultivatorData;
     this.isDefending = false;
 
     // 初始化 BuffManager
     this.buffManager = new BuffManager(this);
 
-    // 计算基础最大 HP/MP
-    const baseAttrs = calcFinalAttrs(cultivatorData);
-    this.baseMaxHp = baseAttrs.maxHp;
-    this.baseMaxMp = baseAttrs.maxMp;
+    // 计算基础最大 HP/MP（使用最终属性）
+    const finalAttrs = this.getFinalAttributes();
+    this.baseMaxHp = 100 + finalAttrs.vitality * 10;
+    this.baseMaxMp = 100 + finalAttrs.spirit * 5;
     this.maxHp = this.baseMaxHp;
     this.maxMp = this.baseMaxMp;
 
@@ -121,10 +110,9 @@ export class BattleUnit implements BattleEntity {
     return (attrs as unknown as Record<string, number>)[key] ?? 0;
   }
 
-  setAttribute(_key: string, _value: number): void {
-    // 战斗中属性由 Buff 系统管理
-  }
-
+  /**
+   * 重写 collectAllEffects，添加战斗相关的基础效果
+   */
   collectAllEffects(): IBaseEffect[] {
     const effects: IBaseEffect[] = [];
 
@@ -132,19 +120,26 @@ export class BattleUnit implements BattleEntity {
     effects.push(this.getBaseCritEffect());
     effects.push(this.getBaseDamageReductionEffect());
 
+    // 1. 调用基类的效果收集（装备、功法、命格 + 子类扩展）
+    effects.push(...super.collectAllEffects());
+
+    return effects;
+  }
+
+  // ============================================================
+  // 子类扩展点实现
+  // ============================================================
+
+  /**
+   * 返回 Buff 效果 + 临时技能效果
+   */
+  protected collectExtraEffects(): IBaseEffect[] {
+    const effects: IBaseEffect[] = [];
+
     // 1. Buff 效果
     effects.push(...this.buffManager.getAllEffects());
 
-    // 2. 装备效果
-    effects.push(...this.getEquipmentEffects());
-
-    // 3. 功法效果
-    effects.push(...this.getCultivationEffects());
-
-    // 4. 命格效果
-    effects.push(...this.getFateEffects());
-
-    // 5. 临时技能效果（如 CounterAttackEffect）
+    // 2. 临时技能效果（如 CounterAttackEffect）
     effects.push(...this.temporarySkillEffects);
 
     return effects;
@@ -169,88 +164,6 @@ export class BattleUnit implements BattleEntity {
       percentReduction: 0,
       maxReduction: 0.75,
     });
-  }
-
-  /**
-   * 获取装备提供的效果
-   */
-  private getEquipmentEffects(): IBaseEffect[] {
-    const effects: IBaseEffect[] = [];
-    const { equipped, inventory } = this.cultivatorData;
-
-    // 获取已装备的法宝 ID 列表
-    const equippedIds = [
-      equipped.weapon,
-      equipped.armor,
-      equipped.accessory,
-    ].filter(Boolean) as string[];
-
-    // 创建法宝 ID -> 法宝对象的映射
-    const artifactsById = new Map(inventory.artifacts.map((a) => [a.id!, a]));
-
-    // 遍历已装备的法宝，收集效果
-    for (const id of equippedIds) {
-      const artifact = artifactsById.get(id);
-      if (!artifact?.effects) continue;
-
-      // 使用 EffectFactory 创建效果实例
-      for (const effectConfig of artifact.effects) {
-        try {
-          const effect = EffectFactory.create(effectConfig);
-          effects.push(effect);
-        } catch (err) {
-          console.warn(`[BattleUnit] 加载装备效果失败: ${artifact.name}`, err);
-        }
-      }
-    }
-
-    return effects;
-  }
-
-  /**
-   * 获取功法提供的效果
-   */
-  private getCultivationEffects(): IBaseEffect[] {
-    const effects: IBaseEffect[] = [];
-    const { cultivations } = this.cultivatorData;
-
-    for (const technique of cultivations) {
-      if (!technique.effects) continue;
-
-      for (const effectConfig of technique.effects) {
-        try {
-          const effect = EffectFactory.create(effectConfig);
-          effects.push(effect);
-        } catch (err) {
-          console.warn(`[BattleUnit] 加载功法效果失败: ${technique.name}`, err);
-        }
-      }
-    }
-
-    return effects;
-  }
-
-  /**
-   * 获取命格提供的效果
-   * 将 attribute_mod 转换为 StatModifierEffect
-   */
-  private getFateEffects(): IBaseEffect[] {
-    const effects: IBaseEffect[] = [];
-    const { pre_heaven_fates } = this.cultivatorData;
-
-    for (const fate of pre_heaven_fates) {
-      if (!fate.effects) continue;
-      for (const effectConfig of fate.effects) {
-        try {
-          const effect = EffectFactory.create(effectConfig);
-          effects.push(effect);
-        } catch (err) {
-          console.warn(`[BattleUnit] 加载命格效果失败: ${fate.name}`, err);
-        }
-      }
-    }
-
-    return effects;
   }
 
   // ============================================================

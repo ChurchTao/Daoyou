@@ -1,11 +1,11 @@
 import { BattleEngineResult } from '@/engine/battle';
 import type { BuffInstanceState } from '@/engine/buff/types';
+import { CultivatorUnit } from '@/engine/cultivator';
 import { enemyGenerator } from '@/engine/enemyGenerator';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@/engine/resource/types';
 import { REALM_VALUES, RealmType } from '@/types/constants';
 import { object } from '@/utils/aiClient'; // AI client helper
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { randomUUID } from 'crypto';
 import { db } from '../drizzle/db';
 import { dungeonHistories } from '../drizzle/schema';
@@ -769,7 +769,8 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
     if (!cultivatorBundle || !cultivatorBundle.cultivator)
       throw new Error('未找到名为该道友的记录');
     const cultivator = cultivatorBundle.cultivator;
-    const finalAttributes = calculateFinalAttributes(cultivator);
+    const unit = new CultivatorUnit(cultivator);
+    const finalAttributes = unit.getFinalAttributes();
     const inventory = await getInventory(
       cultivatorBundle.userId,
       cultivator.id!,
@@ -782,7 +783,7 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
       age: cultivator.age,
       lifespan: cultivator.lifespan,
       personality: cultivator.personality || '普通',
-      attributes: { ...finalAttributes.final },
+      attributes: { ...finalAttributes },
       spiritual_roots: cultivator.spiritual_roots.map(
         (root) => `${root.element}(${root.grade})`,
       ),

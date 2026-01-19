@@ -19,7 +19,7 @@ import {
   SKILL_TYPE_VALUES,
 } from '@/types/constants';
 import type { Skill, SpiritualRoot } from '@/types/cultivator';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
+import { CultivatorUnit } from '../../cultivator';
 import { calculateSingleSkillScore } from '@/utils/rankingUtils';
 import { getSkillAffixPool } from '../affixes/skillAffixes';
 import {
@@ -107,8 +107,9 @@ export class SkillCreationStrategy implements CreationStrategy<
     const fatesDesc =
       cultivator.pre_heaven_fates?.map((f) => `${f.name}`).join('、') || '无';
 
-    const finalAttributes = calculateFinalAttributes(cultivator);
-    const wisdom = finalAttributes.final.wisdom;
+    const unit = new CultivatorUnit(cultivator);
+    const finalAttributes = unit.getFinalAttributes();
+    const wisdom = finalAttributes.wisdom;
     const realm = cultivator.realm as RealmType;
 
     // 估计可能的品质范围（用于词条过滤）
@@ -213,8 +214,9 @@ ${userPrompt || '无（自由发挥）'}
    * 将蓝图转化为实际技能
    */
   materialize(blueprint: SkillBlueprint, context: CreationContext): Skill {
-    const finalAttributes = calculateFinalAttributes(context.cultivator);
-    const wisdom = finalAttributes.final.wisdom;
+    const unit = new CultivatorUnit(context.cultivator);
+    const finalAttributes = unit.getFinalAttributes();
+    const wisdom = finalAttributes.wisdom;
     const realm = context.cultivator.realm as RealmType;
 
     // 获取武器元素

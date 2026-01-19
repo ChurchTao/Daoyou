@@ -15,11 +15,11 @@ import {
   InkStatRow,
   InkStatusBar,
 } from '@/components/ui';
+import { CultivatorUnit } from '@/engine/cultivator';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -80,11 +80,10 @@ export default function CultivatorPage() {
   }
 
   // 计算最终属性
-  const finalAttrsResult = calculateFinalAttributes(cultivator);
-  const finalAttrs = finalAttrsResult.final;
-  const breakdown = finalAttrsResult.breakdown;
-  const maxHp = finalAttrsResult.maxHp;
-  const maxMp = finalAttrsResult.maxMp;
+  const unit = new CultivatorUnit(cultivator);
+  const finalAttrs = unit.getFinalAttributes();
+  const maxHp = unit.getMaxHp();
+  const maxMp = unit.getMaxMp();
 
   const equippedItems = inventory.artifacts.filter(
     (item) =>
@@ -212,21 +211,6 @@ export default function CultivatorPage() {
           const attrKey = key as keyof Attributes;
           const attrInfo = getAttributeInfo(attrKey);
           const finalValue = finalAttrs[attrKey];
-          const fateMod = breakdown.fromFates[attrKey];
-          const cultMod = breakdown.fromCultivations[attrKey];
-          const equipMod = breakdown.fromEquipment[attrKey];
-
-          const detailParts = [
-            fateMod !== 0
-              ? `命格 ${fateMod > 0 ? '+' : ''}${fateMod}`
-              : undefined,
-            cultMod !== 0
-              ? `功法 ${cultMod > 0 ? '+' : ''}${cultMod}`
-              : undefined,
-            equipMod !== 0
-              ? `法宝 ${equipMod > 0 ? '+' : ''}${equipMod}`
-              : undefined,
-          ].filter(Boolean);
 
           return (
             <div
@@ -245,14 +229,12 @@ export default function CultivatorPage() {
                 label={`${attrInfo.icon} ${attrInfo.label}`}
                 base={baseValue}
                 final={finalValue}
-                detail={detailParts.length ? detailParts.join('｜') : undefined}
               />
             </div>
           );
         })}
         <p className="mt-2 text-xs text-ink-secondary">
-          境界上限：{breakdown.cap}（当前境界：{cultivator.realm}
-          ）(点击属性可查看详情)
+          当前境界：{cultivator.realm}（点击属性可查看详情）
         </p>
       </InkSection>
 

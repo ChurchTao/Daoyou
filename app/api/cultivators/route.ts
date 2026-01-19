@@ -1,3 +1,4 @@
+import { CultivatorUnit } from '@/engine/cultivator';
 import { withAuth } from '@/lib/api/withAuth';
 import {
   deleteCultivator,
@@ -5,7 +6,6 @@ import {
   getCultivatorsByUserId,
   hasDeadCultivator,
 } from '@/lib/repositories/cultivatorRepository';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -26,14 +26,14 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
     }
 
     // 计算最终属性
-    const finalAttrs = calculateFinalAttributes(cultivator);
+    const unit = new CultivatorUnit(cultivator);
+    const finalAttrs = unit.getFinalAttributes();
 
     return NextResponse.json({
       success: true,
       data: {
         ...cultivator,
-        finalAttributes: finalAttrs.final,
-        attributeBreakdown: finalAttrs.breakdown,
+        finalAttributes: finalAttrs,
       },
     });
   } else {
@@ -43,11 +43,11 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
 
     // 为每个角色计算最终属性
     const cultivatorsWithFinalAttrs = cultivators.map((c) => {
-      const finalAttrs = calculateFinalAttributes(c);
+      const unit = new CultivatorUnit(c);
+      const finalAttrs = unit.getFinalAttributes();
       return {
         ...c,
-        finalAttributes: finalAttrs.final,
-        attributeBreakdown: finalAttrs.breakdown,
+        finalAttributes: finalAttrs,
       };
     });
 

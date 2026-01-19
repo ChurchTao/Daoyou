@@ -15,11 +15,11 @@ import {
   InkStatusBar,
   InkTag,
 } from '@/components/ui';
+import { CultivatorUnit } from '@/engine/cultivator';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getAttributeInfo } from '@/types/dictionaries';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -262,15 +262,12 @@ export default function CreatePage() {
   const finalAttrsMemo = useMemo(() => {
     if (!player) return null;
     // 计算最终属性
-    const finalAttrsResult = calculateFinalAttributes(player);
-    const finalAttrs = finalAttrsResult.final;
-    const breakdown = finalAttrsResult.breakdown;
-    const maxHp = finalAttrsResult.maxHp;
-    const maxMp = finalAttrsResult.maxMp;
+    const unit = new CultivatorUnit(player);
+    const finalAttrs = unit.getFinalAttributes();
+    const maxHp = unit.getMaxHp();
+    const maxMp = unit.getMaxMp();
     return {
-      finalAttrsResult,
       finalAttrs,
-      breakdown,
       maxHp,
       maxMp,
     };
@@ -404,22 +401,6 @@ export default function CreatePage() {
               const attrKey = key as keyof Attributes;
               const attrInfo = getAttributeInfo(attrKey);
               const finalValue = finalAttrsMemo?.finalAttrs[attrKey];
-              const fateMod = finalAttrsMemo?.breakdown.fromFates[attrKey];
-              const cultMod =
-                finalAttrsMemo?.breakdown.fromCultivations[attrKey];
-              const equipMod = finalAttrsMemo?.breakdown.fromEquipment[attrKey];
-
-              const detailParts = [
-                fateMod !== 0
-                  ? `命格 ${fateMod && fateMod > 0 ? '+' : ''}${fateMod}`
-                  : undefined,
-                cultMod !== 0
-                  ? `功法 ${cultMod && cultMod > 0 ? '+' : ''}${cultMod}`
-                  : undefined,
-                equipMod !== 0
-                  ? `法宝 ${equipMod && equipMod > 0 ? '+' : ''}${equipMod}`
-                  : undefined,
-              ].filter(Boolean);
 
               return (
                 <InkStatRow
@@ -427,15 +408,11 @@ export default function CreatePage() {
                   label={`${attrInfo.icon} ${attrInfo.label}`}
                   base={baseValue}
                   final={finalValue}
-                  detail={
-                    detailParts.length ? detailParts.join('｜') : undefined
-                  }
                 />
               );
             })}
             <p className="mt-2 text-xs text-ink-secondary">
-              境界上限：{finalAttrsMemo?.breakdown.cap}（当前境界：
-              {player.realm}）
+              当前境界：{player.realm}
             </p>
           </InkSection>
 

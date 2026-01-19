@@ -30,7 +30,7 @@ export default function EnlightenmentPage() {
             <h3 className="text-xl font-bold text-ink-primary mb-2">
               【神通推演】
             </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-[40px]">
+            <p className="text-sm text-ink-secondary mb-4 min-h-10">
               感天地造化，推演攻伐妙术。
               <br />
               需消耗大量灵感与神念。
@@ -45,7 +45,7 @@ export default function EnlightenmentPage() {
             <h3 className="text-xl font-bold text-ink-primary mb-2">
               【功法参悟】
             </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-[40px]">
+            <p className="text-sm text-ink-secondary mb-4 min-h-10">
               参悟大道法则，创造修炼功法。
               <br />
               (暂未开放)

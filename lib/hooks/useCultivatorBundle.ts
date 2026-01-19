@@ -1,16 +1,14 @@
 'use client';
 
+import { CultivatorUnit } from '@/engine/cultivator';
 import { useAuth } from '@/lib/auth/AuthContext';
 import type {
+  Attributes,
   Cultivator,
   EquippedItems,
   Inventory,
   Skill,
 } from '@/types/cultivator';
-import {
-  calculateFinalAttributes,
-  FinalAttributesResult,
-} from '@/utils/cultivatorUtils';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -18,9 +16,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // 类型定义
 // ============================================================
 
+type FinalAttributesState = {
+  final: Attributes;
+  maxHp: number;
+  maxMp: number;
+};
+
 type FetchState = {
   cultivator: Cultivator | null;
-  finalAttributes: FinalAttributesResult | null;
+  finalAttributes: FinalAttributesState | null;
   inventory: Inventory;
   skills: Skill[];
   equipped: EquippedItems;
@@ -217,10 +221,18 @@ export function useCultivatorBundle() {
         equipped: cultivator.equipped || defaultEquipped,
       };
 
-      // 4. 设置完整状态
+      // 4. 计算最终属性
+      const unit = new CultivatorUnit(fullCultivator);
+      const finalAttrs = unit.getFinalAttributes();
+
+      // 5. 设置完整状态
       const newState: FetchState = {
         cultivator: fullCultivator,
-        finalAttributes: calculateFinalAttributes(fullCultivator),
+        finalAttributes: {
+          final: finalAttrs,
+          maxHp: unit.getMaxHp(),
+          maxMp: unit.getMaxMp(),
+        },
         inventory,
         skills: fullCultivator.skills || [],
         equipped: fullCultivator.equipped || defaultEquipped,

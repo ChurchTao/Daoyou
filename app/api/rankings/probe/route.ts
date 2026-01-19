@@ -1,9 +1,9 @@
+import { CultivatorUnit } from '@/engine/cultivator';
 import {
   getCultivatorById,
   getCultivatorByIdUnsafe,
 } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
-import { calculateFinalAttributes } from '@/utils/cultivatorUtils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -55,11 +55,13 @@ export async function POST(request: NextRequest) {
     const targetCultivator = targetRecord.cultivator;
 
     // 神识对比（使用最终属性中的意志/神识）
-    const selfFinal = calculateFinalAttributes(selfCultivator).final;
-    const targetFinal = calculateFinalAttributes(targetCultivator);
+    const selfUnit = new CultivatorUnit(selfCultivator);
+    const targetUnit = new CultivatorUnit(targetCultivator);
+    const _selfFinal = selfUnit.getFinalAttributes(); // 保留供将来神识对比使用
+    const targetFinal = targetUnit.getFinalAttributes();
 
     // todo 神识查探先关闭
-    // if (selfFinal.willpower <= targetFinal.final.willpower) {
+    // if (_selfFinal.willpower <= targetFinal.willpower) {
     //   return NextResponse.json(
     //     { error: '你的神识不足，未能窥破对方底细' },
     //     { status: 403 },
@@ -70,8 +72,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         cultivator: targetCultivator,
-        finalAttributes: targetFinal.final,
-        attributeBreakdown: targetFinal.breakdown,
+        finalAttributes: targetFinal,
       },
     });
   } catch (error) {
