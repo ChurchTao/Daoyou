@@ -159,6 +159,7 @@ export interface TalismanBuffMetadata {
   usesRemaining?: number;
   expiresAt: number;
   drawType?: 'gongfa' | 'skill';
+  [key: string]: unknown;
 }
 
 export interface Inventory {

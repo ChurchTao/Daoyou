@@ -1,5 +1,7 @@
 export { AddBuffEffect } from './AddBuffEffect';
 export { BonusDamageEffect } from './BonusDamageEffect';
+export { ConsumeAddBuffEffect } from './ConsumeAddBuffEffect';
+export { ConsumeStatModifierEffect } from './ConsumeStatModifierEffect';
 export { CriticalEffect } from './CriticalEffect';
 export { DamageEffect } from './DamageEffect';
 export { DamageReductionEffect } from './DamageReductionEffect';

@@ -49,7 +49,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久体魄提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_VITALITY,
-    effectType: EffectType.StatModifier,
+    effectType: EffectType.ConsumeAddBuff,
     trigger: EffectTrigger.ON_CONSUME, // 特殊触发器：服用时触发，永久生效
     paramsTemplate: {
       stat: 'vitality',
@@ -64,7 +64,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久灵力提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_SPIRIT,
-    effectType: EffectType.StatModifier,
+    effectType: EffectType.ConsumeAddBuff,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'spirit',
@@ -79,7 +79,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久悟性提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_WISDOM,
-    effectType: EffectType.StatModifier,
+    effectType: EffectType.ConsumeAddBuff,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'wisdom',
@@ -95,7 +95,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久速度提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_SPEED,
-    effectType: EffectType.StatModifier,
+    effectType: EffectType.ConsumeAddBuff,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'speed',
@@ -110,7 +110,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久神识提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_WILLPOWER,
-    effectType: EffectType.StatModifier,
+    effectType: EffectType.ConsumeAddBuff,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'willpower',
@@ -302,7 +302,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
   // 药性剧烈，损耗寿元（概念性，需要特殊处理）
   {
     id: CONSUMABLE_AFFIX_IDS.CURSE_VIOLENT,
-    effectType: EffectType.StatModifier,
+    effectType: EffectType.ConsumeAddBuff,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'vitality',

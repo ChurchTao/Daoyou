@@ -1,6 +1,8 @@
 import { BaseEffect } from './BaseEffect';
 import {
   AddBuffEffect,
+  ConsumeAddBuffEffect,
+  ConsumeStatModifierEffect,
   CriticalEffect,
   DamageEffect,
   DamageReductionEffect,
@@ -27,6 +29,8 @@ import {
   StatModifierType,
   type AddBuffParams,
   type BonusDamageParams,
+  type ConsumeAddBuffParams,
+  type ConsumeStatModifierParams,
   type CounterAttackParams,
   type CriticalParams,
   type DamageParams,
@@ -144,6 +148,17 @@ export class EffectFactory {
       case EffectType.CounterAttack:
         return new CounterAttackEffect(
           config.params as unknown as CounterAttackParams,
+        );
+
+      // === 消耗品效果 ===
+      case EffectType.ConsumeStatModifier:
+        return new ConsumeStatModifierEffect(
+          config.params as unknown as ConsumeStatModifierParams,
+        );
+
+      case EffectType.ConsumeAddBuff:
+        return new ConsumeAddBuffEffect(
+          config.params as unknown as ConsumeAddBuffParams,
         );
 
       case EffectType.NoOp:

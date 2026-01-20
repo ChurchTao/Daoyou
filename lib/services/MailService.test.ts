@@ -1,5 +1,6 @@
-import { Consumable, Material } from '@/types/cultivator';
+import { Material } from '@/types/cultivator';
 import { db } from '../drizzle/db';
+import { SPECIAL_TALISMAN_CONFIG } from '../repositories/talismanRepository';
 import { MailAttachment, MailAttachmentType, MailService } from './MailService';
 
 test('test 邮件发送', async () => {
@@ -74,48 +75,19 @@ test('test 发送符箓邮件', async () => {
       type: 'consumable' as MailAttachmentType,
       name: '天机逆命符',
       quantity: 1,
-      data: {
-        name: '天机逆命符',
-        type: '符箓',
-        quantity: 1,
-        quality: '天品',
-        description:
-          '以此符遮蔽天机，逆转先天之数。三日内可获三次推演命格之机，择优而栖。',
-        effects: [],
-        details: {
-          buffId: 'reshape_fate_talisman',
-          expiryDays: 3,
-          maxUses: 3,
-        },
-      } as Consumable,
+      data: SPECIAL_TALISMAN_CONFIG.天机逆命符,
     },
     {
       type: 'consumable' as MailAttachmentType,
       name: '悟道演法符',
       quantity: 1,
-      data: {
-        name: '悟道演法符',
-        type: '符箓',
-        quality: '天品',
-        quantity: 1,
-        description:
-          '燃此符可神游太虚，感悟天地至理。三日内可得一次机缘，从虚空中领悟一部玄品以上功法典籍。',
-        effects: [],
-      } as Consumable,
+      data: SPECIAL_TALISMAN_CONFIG.悟道演法符,
     },
     {
       type: 'consumable' as MailAttachmentType,
       name: '神通衍化符',
       quantity: 1,
-      data: {
-        name: '神通衍化符',
-        type: '符箓',
-        quality: '天品',
-        quantity: 1,
-        description:
-          '此符蕴含天地法则碎片。三日内可得一次机缘，衍化出一门玄品以上神通秘术。',
-        effects: [],
-      } as Consumable,
+      data: SPECIAL_TALISMAN_CONFIG.神通衍化符,
     },
   ];
 

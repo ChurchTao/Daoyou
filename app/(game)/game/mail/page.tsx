@@ -3,12 +3,14 @@
 import { InkPageShell, InkSection } from '@/components/layout';
 import { MailDetailModal } from '@/components/mail/MailDetailModal';
 import { Mail, MailList } from '@/components/mail/MailList';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function MailPage() {
   const [mails, setMails] = useState<Mail[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
+  const { refreshInventory } = useCultivator();
 
   const fetchMails = useCallback(async () => {
     try {
@@ -52,11 +54,8 @@ export default function MailPage() {
 
   const handleUpdate = () => {
     fetchMails();
-    // If updating from modal (e.g. claim), we might want to update selectedMail too if it's open,
-    // but typically we close modal after claim?
-    // If modal stays open, we might need to refresh `selectedMail` state.
-    // Current modal implementation closes on success.
-    // If we just claimed, the list is refreshed.
+    // 刷新储物袋数据（用于领取附件后更新物品列表）
+    refreshInventory();
   };
 
   return (

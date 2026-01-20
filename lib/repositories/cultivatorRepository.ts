@@ -12,15 +12,12 @@ import {
 } from '@/types/constants';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, eq, inArray } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
 import type {
   BreakthroughHistoryEntry,
   Consumable,
   CultivationProgress,
   Cultivator,
   RetreatRecord,
-  TalismanBuffMetadata,
-  TalismanConfig,
 } from '../../types/cultivator';
 import { db, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
@@ -1097,6 +1094,7 @@ export async function getSkills(
 
 /**
  * 使用消耗品（类型分发入口）
+ * 使用效果引擎统一处理所有消耗品效果
  */
 export async function consumeItem(
   userId: string,
@@ -1122,122 +1120,103 @@ export async function consumeItem(
   const cultivator = await getCultivatorById(userId, cultivatorId);
   if (!cultivator) throw new Error('道友状态异常');
 
-  // 根据类型分发
-  const itemType = item.type as ConsumableType;
-
-  if (itemType === '丹药') {
-    return await consumePill(cultivator, item, userId, cultivatorId);
-  } else if (itemType === '符箓') {
-    return await consumeTalisman(cultivator, item, userId, cultivatorId);
-  }
-
-  throw new Error('未知的消耗品类型');
-}
-
-/**
- * 使用丹药
- */
-async function consumePill(
-  cultivator: Cultivator,
-  item: typeof schema.consumables.$inferSelect,
-  userId: string,
-  cultivatorId: string,
-): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
-  // 应用效果
-  const effects = (item.effects as EffectConfig[]) || [];
+  // 读取效果配置
+  const effects = (item.effects ?? []) as EffectConfig[];
 
   if (effects.length === 0) {
     // 即使无效也消耗掉
     await handleConsumeItem(item.id, item.quantity);
     return {
       success: false,
-      message: '此丹药灵气尽失，服用后毫无反应。',
+      message: '此消耗品灵气尽失，使用后毫无反应。',
       cultivator: (await getCultivatorById(userId, cultivatorId))!,
     };
   }
 
-  const newStats = { ...cultivator.attributes };
+  // 使用事务处理效果应用和数量扣减
+  let finalMessage = `使用了【${item.name}】`;
 
-  // 4. 执行事务：消耗丹药 + 更新属性
   await db.transaction(async (tx) => {
-    // 消耗丹药
-    await handleConsumeItemTx(tx, item.id, item.quantity);
+    // 创建效果实例
+    const { EffectFactory } = await import('@/engine/effect/EffectFactory');
+    const { EffectTrigger } = await import('@/engine/effect/types');
+    const { CultivatorAdapter } = await import('@/engine/effect/CultivatorAdapter');
+    const { EffectLogCollector } = await import('@/engine/effect/types');
 
-    // 更新角色属性
+    // 创建适配器
+    const adapter = new CultivatorAdapter(cultivator);
+
+    // 创建日志收集器
+    const logCollector = new EffectLogCollector();
+
+    // 获取当前的持久状态
+    const currentStatuses = (cultivator.persistent_statuses || []) as BuffInstanceState[];
+
+    // 创建效果实例数组
+    const effectInstances = effects.map((config) => EffectFactory.create(config));
+
+    // 构建效果上下文
+    const ctx = {
+      source: adapter,
+      target: adapter,
+      trigger: EffectTrigger.ON_CONSUME,
+      value: 0,
+      metadata: {
+        tx,
+        consumableName: item.name,
+        persistent_statuses: currentStatuses,
+        newBuffs: [] as BuffInstanceState[],
+      },
+      logCollector,
+    };
+
+    // 依次执行每个效果
+    for (const effect of effectInstances) {
+      // 检查触发时机
+      if (effect.trigger !== EffectTrigger.ON_CONSUME) {
+        console.warn(`[consumeItem] 效果触发时机不匹配: ${effect.trigger}`);
+        continue;
+      }
+
+      effect.apply(ctx);
+    }
+
+    // 收集日志
+    const logs = logCollector.getLogMessages();
+    if (logs.length > 0) {
+      finalMessage = logs.join('，');
+    }
+
+    // 获取更新后的数据
+    const updatedCultivator = adapter.getData();
+
+    // 处理新添加的持久 Buff
+    const newBuffs = (ctx.metadata?.newBuffs as BuffInstanceState[]) || [];
+    let updatedStatuses = currentStatuses;
+    if (newBuffs.length > 0) {
+      updatedStatuses = [...currentStatuses, ...newBuffs];
+    }
+
+    // 持久化所有变更
     await tx
       .update(schema.cultivators)
       .set({
-        vitality: newStats.vitality,
-        spirit: newStats.spirit,
-        wisdom: newStats.wisdom,
-        speed: newStats.speed,
-        willpower: newStats.willpower,
+        vitality: updatedCultivator.attributes.vitality,
+        spirit: updatedCultivator.attributes.spirit,
+        wisdom: updatedCultivator.attributes.wisdom,
+        speed: updatedCultivator.attributes.speed,
+        willpower: updatedCultivator.attributes.willpower,
+        persistent_statuses: updatedStatuses,
       })
       .where(eq(schema.cultivators.id, cultivatorId));
-  });
 
-  const updatedCultivator = await getCultivatorById(userId, cultivatorId);
-  if (!updatedCultivator) throw new Error('更新后无法获取数据');
-
-  return { success: true, message: '', cultivator: updatedCultivator };
-}
-
-/**
- * 使用符箓
- */
-async function consumeTalisman(
-  cultivator: Cultivator,
-  item: typeof schema.consumables.$inferSelect,
-  userId: string,
-  cultivatorId: string,
-): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
-  const talismanConfig = item.details as TalismanConfig;
-  if (!talismanConfig?.buffId) {
-    throw new Error('符箓配置异常');
-  }
-
-  // 检查是否已有同类Buff
-  const currentStatuses = (cultivator.persistent_statuses ||
-    []) as BuffInstanceState[];
-  const hasExisting = currentStatuses.some(
-    (s) => s.configId === talismanConfig.buffId,
-  );
-  if (hasExisting) {
-    return {
-      success: false,
-      message: '已激活同类符箓效果',
-      cultivator,
-    };
-  }
-
-  // 创建Buff实例
-  const buffInstance = {
-    instanceId: randomUUID(),
-    configId: talismanConfig.buffId,
-    currentStacks: 1,
-    remainingTurns: -1,
-    createdAt: Date.now(),
-    metadata: {
-      expiresAt: Date.now() + talismanConfig.expiryDays * 24 * 60 * 60 * 1000,
-      usesRemaining: talismanConfig.maxUses ?? 1,
-      drawType: talismanConfig.drawType,
-    } as TalismanBuffMetadata,
-  };
-
-  const updatedStatuses = [...currentStatuses, buffInstance];
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(schema.cultivators)
-      .set({ persistent_statuses: updatedStatuses })
-      .where(eq(schema.cultivators.id, cultivatorId));
-
+    // 消耗数量
     await handleConsumeItemTx(tx, item.id, item.quantity);
   });
 
   return {
     success: true,
-    message: `使用了【${item.name}】`,
+    message: finalMessage,
     cultivator: (await getCultivatorById(userId, cultivatorId))!,
   };
 }

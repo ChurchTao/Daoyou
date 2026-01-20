@@ -353,6 +353,10 @@ export enum EffectType {
   TrueDamage = 'TrueDamage', // 真实伤害
   CounterAttack = 'CounterAttack', // 反击效果
   BonusDamage = 'BonusDamage', // 额外伤害（造成伤害后附加伤害）
+
+  // === 消耗品效果 ===
+  ConsumeStatModifier = 'ConsumeStatModifier', // 消耗品永久属性修正
+  ConsumeAddBuff = 'ConsumeAddBuff', // 消耗品添加持久 Buff
 }
 
 type EffectConfigParam =
@@ -373,7 +377,9 @@ type EffectConfigParam =
   | HealAmplifyParams
   | ManaRegenParams
   | ManaDrainParams
-  | DispelParams;
+  | DispelParams
+  | ConsumeStatModifierParams
+  | ConsumeAddBuffParams;
 
 // ============================================================
 // 属性修正效果参数
@@ -630,4 +636,36 @@ export interface CounterAttackParams {
   damageMultiplier: number;
   /** 元素类型 ('INHERIT' = 继承攻击者元素) */
   element?: ElementType | 'INHERIT';
+}
+
+// ============================================================
+// 消耗品效果参数
+// ============================================================
+
+/**
+ * 消耗品永久属性修正参数
+ */
+export interface ConsumeStatModifierParams {
+  /** 要修改的属性名 */
+  stat: 'vitality' | 'spirit' | 'wisdom' | 'speed' | 'willpower';
+  /** 修正值 (固定值时为具体数值，百分比时为小数如0.1表示10%) */
+  value: number;
+  /** 修正类型 */
+  modType: 'fixed' | 'percent';
+}
+
+/**
+ * 消耗品添加持久 Buff 参数
+ */
+export interface ConsumeAddBuffParams {
+  /** Buff 配置 ID */
+  buffId: string;
+  /** 过期时间（分钟） */
+  expiryMinutes?: number;
+  /** 最大使用次数 */
+  maxUses?: number;
+  /** 初始层数 */
+  initialStacks?: number;
+  /** 符箓类型（可选，用于元数据） */
+  drawType?: 'gongfa' | 'skill';
 }
