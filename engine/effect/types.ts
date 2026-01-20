@@ -352,11 +352,13 @@ export enum EffectType {
   ExecuteDamage = 'ExecuteDamage', // 斩杀伤害
   TrueDamage = 'TrueDamage', // 真实伤害
   CounterAttack = 'CounterAttack', // 反击效果
+  BonusDamage = 'BonusDamage', // 额外伤害（造成伤害后附加伤害）
 }
 
 type EffectConfigParam =
   | StatModifierParams
   | DamageParams
+  | BonusDamageParams
   | HealParams
   | AddBuffParams
   | DotDamageParams
@@ -407,6 +409,20 @@ export interface DamageParams {
   ignoreDefense?: boolean;
   /** 是否无视护盾 */
   ignoreShield?: boolean;
+}
+
+// ============================================================
+// 额外伤害效果参数（BonusDamage）
+// 用于在造成伤害后附加额外伤害
+// ============================================================
+
+export interface BonusDamageParams {
+  /** 伤害倍率 (基于攻击力) */
+  multiplier: number;
+  /** 元素类型 ('INHERIT' = 继承技能元素) */
+  element?: ElementType | 'INHERIT';
+  /** 是否可暴击 */
+  canCrit?: boolean;
 }
 
 // ============================================================

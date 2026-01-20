@@ -13,6 +13,7 @@ import {
   ShieldEffect,
   StatModifierEffect,
 } from './effects';
+import { BonusDamageEffect } from './effects/BonusDamageEffect';
 import { CounterAttackEffect } from './effects/CounterAttackEffect';
 import { DispelEffect } from './effects/DispelEffect';
 import { ElementDamageBonusEffect } from './effects/ElementDamageBonusEffect';
@@ -25,6 +26,7 @@ import {
   EffectType,
   StatModifierType,
   type AddBuffParams,
+  type BonusDamageParams,
   type CounterAttackParams,
   type CriticalParams,
   type DamageParams,
@@ -64,6 +66,9 @@ export class EffectFactory {
 
       case EffectType.Damage:
         return new DamageEffect(config.params as unknown as DamageParams);
+
+      case EffectType.BonusDamage:
+        return new BonusDamageEffect(config.params as unknown as BonusDamageParams);
 
       case EffectType.Heal:
         return new HealEffect(config.params as unknown as HealParams);

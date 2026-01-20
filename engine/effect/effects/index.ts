@@ -1,4 +1,5 @@
 export { AddBuffEffect } from './AddBuffEffect';
+export { BonusDamageEffect } from './BonusDamageEffect';
 export { CriticalEffect } from './CriticalEffect';
 export { DamageEffect } from './DamageEffect';
 export { DamageReductionEffect } from './DamageReductionEffect';
