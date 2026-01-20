@@ -95,19 +95,60 @@ export const SKILL_ELEMENT_CONFLICT: Record<string, string[]> = {
   风: ['土'],
 };
 
-// ============ 悟性 → 品阶内威力位置 ============
+// ============ 威力位置计算（基于境界、材料、灵根） ============
 
 /**
- * 根据悟性计算威力在品阶范围内的位置
- * 悟性越高，威力越接近上限
+ * 计算威力在品阶范围内的位置
+ * 综合考虑修士境界、材料品质、灵根属性和强度
  *
- * @param wisdom 悟性值 (0-500)
+ * @param realm 修士境界
+ * @param materialQuality 材料品质
+ * @param spiritualRootStrength 灵根强度 (0-100)
+ * @param hasMatchingElement 是否有匹配的灵根属性
  * @returns 0-1 之间的系数
  */
-export function wisdomToPowerRatio(wisdom: number): number {
-  // 悟性 0-500 映射到 0.3-1.0
-  const clamped = Math.max(0, Math.min(500, wisdom));
-  return 0.3 + (clamped / 500) * 0.7;
+export function calculatePowerRatio(
+  realm: RealmType,
+  materialQuality: string,
+  spiritualRootStrength: number,
+  hasMatchingElement: boolean,
+): number {
+  // 1. 境界加成 (炼气~渡劫 = 0~0.4)
+  const realmIndex = [
+    '炼气',
+    '筑基',
+    '金丹',
+    '元婴',
+    '化神',
+    '炼虚',
+    '合体',
+    '大乘',
+    '渡劫',
+  ].indexOf(realm);
+  const realmBonus = (realmIndex / 8) * 0.4;
+
+  // 2. 材料品质加成 (0~0.3)
+  const qualityIndex = [
+    '凡品',
+    '灵品',
+    '玄品',
+    '真品',
+    '地品',
+    '天品',
+    '仙品',
+    '神品',
+  ].indexOf(materialQuality);
+  const qualityBonus = (qualityIndex / 7) * 0.3;
+
+  // 3. 灵根强度加成 (0~0.2)
+  const rootBonus = (spiritualRootStrength / 100) * 0.2;
+
+  // 4. 元素匹配加成 (0~0.1)
+  const elementBonus = hasMatchingElement ? 0.1 : 0;
+
+  // 基础系数 + 各项加成，上限 1.0
+  const ratio = 0.3 + realmBonus + qualityBonus + rootBonus + elementBonus;
+  return Math.min(1.0, Math.max(0.3, ratio));
 }
 
 // ============ 冷却计算 ============

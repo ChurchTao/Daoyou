@@ -244,10 +244,14 @@ export class EffectMaterializer {
       case 'quality':
         multiplier = QUALITY_VALUE_MULTIPLIERS[context.quality] ?? 1;
         break;
-      case 'wisdom':
-        // 悟性缩放：悟性 0-500 映射到 0.5-2.0
-        const wisdom = context.wisdom ?? 100;
-        multiplier = 0.5 + (Math.min(500, wisdom) / 500) * 1.5;
+      case 'root':
+        // 灵根强度缩放：灵根强度 0-100 映射到 0.5-2.0
+        const rootStrength = context.spiritualRootStrength ?? 50;
+        multiplier = 0.5 + (Math.min(100, rootStrength) / 100) * 1.5;
+        // 元素匹配额外加成
+        if (context.hasMatchingElement) {
+          multiplier *= 1.2;
+        }
         break;
       case 'none':
       default:
@@ -266,7 +270,7 @@ export class EffectMaterializer {
     }
 
     // 技能品阶缩放（如果有）
-    if (context.skillGrade && scale === 'wisdom') {
+    if (context.skillGrade && scale === 'root') {
       const gradeMultiplier =
         SKILL_GRADE_MULTIPLIERS[context.skillGrade as SkillGrade] ?? 1;
       multiplier *= gradeMultiplier;
