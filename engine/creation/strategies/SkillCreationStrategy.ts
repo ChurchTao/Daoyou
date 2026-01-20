@@ -20,7 +20,6 @@ import {
 } from '@/types/constants';
 import type { Material, Skill, SpiritualRoot } from '@/types/cultivator';
 import { calculateSingleSkillScore } from '@/utils/rankingUtils';
-import { CultivatorUnit } from '../../cultivator';
 import { getSkillAffixPool } from '../affixes/skillAffixes';
 import {
   buildAffixTable,
@@ -38,7 +37,11 @@ import {
   GRADE_HINT_TO_GRADES,
   REALM_GRADE_LIMIT,
   SKILL_ELEMENT_CONFLICT,
-  wisdomToPowerRatio,
+  calculatePowerRatio,
+  ELEMENT_MATCH_MODIFIER,
+  SKILL_TYPE_MODIFIERS,
+  calculateCooldown,
+  calculateBaseCost,
 } from '../skillConfig';
 import {
   ELEMENT_MATCH_VALUES,
@@ -113,9 +116,6 @@ export class SkillCreationStrategy implements CreationStrategy<
     const fatesDesc =
       cultivator.pre_heaven_fates?.map((f) => `${f.name}`).join('、') || '无';
 
-    const unit = new CultivatorUnit(cultivator);
-    const finalAttributes = unit.getFinalAttributes();
-    const wisdom = finalAttributes.wisdom;
     const realm = cultivator.realm as RealmType;
 
     // 计算基于材料的品质
@@ -123,7 +123,6 @@ export class SkillCreationStrategy implements CreationStrategy<
     // 估计可能的品质范围（用于词条过滤）
     const estimatedQuality = this.estimateQuality(
       realm,
-      wisdom,
       materialQuality,
     );
 
@@ -143,7 +142,7 @@ export class SkillCreationStrategy implements CreationStrategy<
 ## 重要约束
 
 > ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
-> 数值由修士境界、悟性、五行契合度及**材料品质**决定，你只需选择合适的词条。
+> 数值由修士境界、灵根属性和强度、五行契合度及**材料品质**决定，你只需选择合适的词条。
 
 ## 输出格式（严格遵守）
 
@@ -158,7 +157,7 @@ export class SkillCreationStrategy implements CreationStrategy<
 ## 当前修士条件
 
 - **境界**: ${realm}
-- **悟性**: ${wisdom}
+- **灵根**: ${spiritualRootsDesc}
 - **核心材料品质**: ${materialQuality}
 - **预估品质**: ${estimatedQuality}
 
@@ -210,7 +209,6 @@ ${skillTypePrompts}
 
 <cultivator>
   <realm>${cultivator.realm} ${cultivator.realm_stage}</realm>
-  <wisdom>${wisdom}</wisdom>
   <spiritual_roots>${spiritualRootsDesc}</spiritual_roots>
   <weapon>${weaponDesc}</weapon>
   <fates>${fatesDesc}</fates>
@@ -240,9 +238,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
    * 将蓝图转化为实际技能
    */
   materialize(blueprint: SkillBlueprint, context: CreationContext): Skill {
-    const unit = new CultivatorUnit(context.cultivator);
-    const finalAttributes = unit.getFinalAttributes();
-    const wisdom = finalAttributes.wisdom;
     const realm = context.cultivator.realm as RealmType;
 
     // 获取武器元素
@@ -263,7 +258,8 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     const grade = this.calculateGrade(
       blueprint.grade_hint,
       realm,
-      wisdom,
+      blueprint.element,
+      context.cultivator.spiritual_roots,
       materialQuality,
     );
 
@@ -285,11 +281,16 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     }
 
     // 5. 构建数值化上下文
+    // 获取匹配灵根的强度
+    const matchingRoot = context.cultivator.spiritual_roots.find(
+      (r) => r.element === blueprint.element,
+    );
     const matContext: MaterializationContext = {
       realm,
       quality,
       element: blueprint.element,
-      wisdom,
+      spiritualRootStrength: matchingRoot?.strength || 0,
+      hasMatchingElement: !!matchingRoot,
       skillGrade: grade,
       elementMatch,
     };
@@ -315,12 +316,54 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     // 7. 确定目标
     const target_self = ['heal', 'buff'].includes(blueprint.type);
 
+    // 8. 计算技能威力（用于计算 cost 和 cooldown）
+    // 获取技能类型修正系数
+    const typeModifier = SKILL_TYPE_MODIFIERS[blueprint.type] || SKILL_TYPE_MODIFIERS.attack;
+
+    // 计算基础威力：从 Damage/Heal 效果中提取数值
+    let basePower = 100; // 默认基础威力
+    for (const effect of effects) {
+      if (effect.type === 'Damage' && effect.params) {
+        // Damage 类型有 multiplier 属性
+        const params = effect.params as { multiplier?: number };
+        if (params.multiplier) {
+          basePower = Math.max(basePower, params.multiplier * 100);
+        }
+      } else if (effect.type === 'Heal' && effect.params) {
+        // Heal 类型有 multiplier 属性
+        const params = effect.params as { multiplier?: number };
+        if (params.multiplier) {
+          basePower = Math.max(basePower, params.multiplier * 80); // 治疗威力稍低
+        }
+      } else if (effect.type === 'TrueDamage' && effect.params) {
+        // TrueDamage 类型有 baseDamage 属性
+        const params = effect.params as { baseDamage?: number };
+        if (params.baseDamage) {
+          basePower = Math.max(basePower, params.baseDamage * 0.8);
+        }
+      }
+    }
+
+    // 应用技能类型修正
+    const typeAdjustedPower = basePower * typeModifier.power_mult;
+
+    // 应用五行契合度修正
+    const elementModifier = ELEMENT_MATCH_MODIFIER[elementMatch];
+    const finalPower = typeAdjustedPower * elementModifier.power;
+
+    // 计算消耗（五行契合度影响消耗）
+    const baseCost = calculateBaseCost(finalPower);
+    const cost = Math.floor(baseCost * elementModifier.cost);
+
+    // 计算冷却
+    const cooldown = calculateCooldown(finalPower);
+
     return {
       name: blueprint.name,
       element: blueprint.element,
       grade,
-      cost: 0,
-      cooldown: 0,
+      cost,
+      cooldown,
       target_self,
       description: blueprint.description,
       effects,
@@ -366,11 +409,10 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
   }
 
   /**
-   * 根据境界和悟性估计品质
+   * 根据境界和材料品质估计品质
    */
   private estimateQuality(
     realm: RealmType,
-    wisdom: number,
     materialQuality: Quality,
   ): Quality {
     const realmIndex = [
@@ -393,10 +435,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
       baseQualityIndex = Math.floor((baseQualityIndex + matIndex) / 2);
     }
 
-    const wisdomBonus = wisdom > 200 ? 1 : 0;
-    return QUALITY_VALUES[
-      Math.min(baseQualityIndex + wisdomBonus, QUALITY_VALUES.length - 1)
-    ];
+    return QUALITY_VALUES[baseQualityIndex];
   }
 
   /**
@@ -507,37 +546,30 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
   private calculateGrade(
     gradeHint: GradeHint,
     realm: RealmType,
-    wisdom: number,
+    element: ElementType,
+    spiritualRoots: SpiritualRoot[],
     materialQuality: Quality,
   ): SkillGrade {
     // 获取品阶候选列表
     const candidates =
       GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
 
-    // 根据悟性选择品阶
-    let wisdomRatio = wisdomToPowerRatio(wisdom);
+    // 获取匹配灵根的强度
+    const matchingRoot = spiritualRoots.find((r) => r.element === element);
+    const rootStrength = matchingRoot?.strength || 0;
+    const hasMatching = !!matchingRoot;
 
-    // 材料修正
-    const matIndex = QUALITY_VALUES.indexOf(materialQuality);
-    const realmIndex = [
-      '炼气',
-      '筑基',
-      '金丹',
-      '元婴',
-      '化神',
-      '炼虚',
-      '合体',
-      '大乘',
-      '渡劫',
-    ].indexOf(realm);
-
-    if (matIndex > realmIndex) {
-      wisdomRatio += 0.2;
-    }
+    // 根据境界、材料、灵根计算威力系数
+    const powerRatio = calculatePowerRatio(
+      realm,
+      materialQuality,
+      rootStrength,
+      hasMatching,
+    );
 
     const index = Math.min(
       candidates.length - 1,
-      Math.floor(wisdomRatio * candidates.length),
+      Math.floor(powerRatio * candidates.length),
     );
     let selectedGrade = candidates[index];
 

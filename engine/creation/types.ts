@@ -212,8 +212,6 @@ export interface SkillContext {
   realm: RealmType;
   /** 修士境界阶段 */
   realmStage: string;
-  /** 修士悟性 */
-  wisdom: number;
   /** 修士灵根 */
   spiritualRoots: SpiritualRoot[];
   /** 装备的武器元素 */
@@ -368,7 +366,7 @@ export interface ScalableValue {
   /** 基础值 */
   base: number;
   /** 缩放类型 */
-  scale: 'quality' | 'realm' | 'wisdom' | 'none';
+  scale: 'quality' | 'realm' | 'root' | 'none';
   /** 可选的缩放系数 */
   coefficient?: number;
 }
@@ -456,8 +454,10 @@ export interface MaterializationContext {
   quality: Quality;
   /** 物品元素 */
   element?: ElementType;
-  /** 悟性（影响技能威力） */
-  wisdom?: number;
+  /** 灵根强度（影响技能威力） */
+  spiritualRootStrength?: number;
+  /** 是否有匹配的灵根属性 */
+  hasMatchingElement?: boolean;
   /** 五行契合度（技能专用） */
   elementMatch?: ElementMatch;
   /** 技能品阶（技能专用） */

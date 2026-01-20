@@ -44,7 +44,6 @@ export const ARTIFACT_AFFIX_IDS = {
   SECONDARY_COUNTER_ATTACK: 'artifact_s_counter_attack',
   SECONDARY_EXECUTE_DAMAGE: 'artifact_s_execute_damage',
   SECONDARY_TRUE_DAMAGE: 'artifact_s_true_damage',
-  SECONDARY_KILL_HEAL: 'artifact_s_kill_heal',
   SECONDARY_MANA_REGEN: 'artifact_s_mana_regen',
   SECONDARY_HOT: 'artifact_s_hot',
   SECONDARY_HEAL_AMPLIFY: 'artifact_s_heal_amplify',
@@ -432,23 +431,6 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'offensive', 'burst', 'true_damage'],
     displayName: '雷霆震怒',
     displayDescription: '暴击时造成无视防御的真实伤害',
-  },
-
-  // 击杀回复 - 武器专属
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_KILL_HEAL,
-    effectType: EffectType.Heal,
-    trigger: EffectTrigger.ON_KILL,
-    paramsTemplate: {
-      flatHeal: { base: 0.15, scale: 'quality', coefficient: 0.05 },
-      targetSelf: true,
-    },
-    weight: 30,
-    slots: ['weapon'],
-    minQuality: '地品',
-    tags: ['secondary', 'sustain', 'lifesteal'],
-    displayName: '噬魂饮血',
-    displayDescription: '击杀敌人时恢复自身生命',
   },
 
   // 法力回复 - 饰品专属

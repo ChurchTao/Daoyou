@@ -9,7 +9,6 @@ import { cultivationTechniques } from '@/lib/drizzle/schema';
 import type { Quality, RealmType, SkillGrade } from '@/types/constants';
 import { QUALITY_VALUES } from '@/types/constants';
 import type { CultivationTechnique, Material } from '@/types/cultivator';
-import { CultivatorUnit } from '../../cultivator';
 import { getGongFaAffixPool } from '../affixes/gongfaAffixes';
 import {
   buildAffixTable,
@@ -26,7 +25,7 @@ import {
   clampGrade,
   GRADE_HINT_TO_GRADES,
   REALM_GRADE_LIMIT,
-  wisdomToPowerRatio,
+  calculatePowerRatio,
 } from '../skillConfig';
 import {
   GongFaBlueprint,
@@ -80,16 +79,22 @@ export class GongFaCreationStrategy implements CreationStrategy<
   constructPrompt(context: CreationContext): PromptData {
     const { cultivator, userPrompt, materials } = context;
 
-    const unit = new CultivatorUnit(cultivator);
-    const finalAttributes = unit.getFinalAttributes();
-    const wisdom = finalAttributes.wisdom;
+    // 构建灵根信息
+    const spiritualRootsDesc = cultivator.spiritual_roots
+      .map((r) => `${r.element}(强度${r.strength})`)
+      .join('、');
+
+    // 计算最高灵根强度
+    const maxRootStrength = cultivator.spiritual_roots.length > 0
+      ? Math.max(...cultivator.spiritual_roots.map(r => r.strength))
+      : 0;
+
     const realm = cultivator.realm as RealmType;
 
     // 计算基于材料的品质基准
     const materialQuality = this.calculateMaterialQuality(materials);
     const estimatedQuality = this.estimateQuality(
       realm,
-      wisdom,
       materialQuality,
     );
     const affixPrompts = this.buildAffixPrompts(estimatedQuality);
@@ -102,12 +107,13 @@ export class GongFaCreationStrategy implements CreationStrategy<
 ## 核心指令
 **必须完全基于用户提供的【核心材料】（功法残页/典籍）来设计功法。**
 功法的名称、描述、特性应与材料描述紧密相关。
-例如：使用了“烈火残页”，功法应当与火系、燃烧相关。
+例如：使用了"烈火残页"，功法应当与火系、燃烧相关。
 
 ## 重要约束
 
 > ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
 > 功法主要提供被动属性加成（如增加体魄、灵力、暴击率等）。
+> 数值由修士境界、灵根强度及**材料品质**决定，你只需选择合适的词条。
 
 ## 输出格式（严格遵守）
 
@@ -119,13 +125,14 @@ export class GongFaCreationStrategy implements CreationStrategy<
 ## 当前推演条件
 - **核心材料品质**: ${materialQuality} (影响最终品阶下限)
 - **修士境界**: ${realm}
-- **悟性**: ${wisdom}
+- **灵根**: ${spiritualRootsDesc}
+- **最高灵根强度**: ${maxRootStrength}
 - **预估品质**: ${estimatedQuality}
 
 ${affixPrompts}
 
 ## 命名与描述
-- 名称：2-8字，必须源自材料描述，古风，如“长春功”、“九转金身诀”。
+- 名称：2-8字，必须源自材料描述，古风，如"长春功"、"九转金身诀"。
 - 描述：简述功法来历或修炼效果，必须体现材料的特性。
 
 ## 输出示例
@@ -145,7 +152,7 @@ ${affixPrompts}
 
 <cultivator>
   <realm>${cultivator.realm}</realm>
-  <wisdom>${wisdom}</wisdom>
+  <spiritual_roots>${spiritualRootsDesc}</spiritual_roots>
 </cultivator>
 
 <materials_used>
@@ -170,10 +177,12 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     blueprint: GongFaBlueprint,
     context: CreationContext,
   ): CultivationTechnique {
-    const unit = new CultivatorUnit(context.cultivator);
-    const finalAttributes = unit.getFinalAttributes();
-    const wisdom = finalAttributes.wisdom;
     const realm = context.cultivator.realm as RealmType;
+
+    // 计算最高灵根强度
+    const maxRootStrength = context.cultivator.spiritual_roots.length > 0
+      ? Math.max(...context.cultivator.spiritual_roots.map(r => r.strength))
+      : 0;
 
     // 1. 确定品阶
     // 引入材料品质影响
@@ -181,8 +190,8 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     const grade = this.calculateGrade(
       blueprint.grade_hint,
       realm,
-      wisdom,
       materialQuality,
+      maxRootStrength,
     );
     const quality = GRADE_TO_QUALITY[grade] || '玄品';
 
@@ -206,7 +215,8 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     const matContext: MaterializationContext = {
       realm,
       quality,
-      wisdom,
+      spiritualRootStrength: maxRootStrength,
+      hasMatchingElement: true, // 功法不依赖特定元素
       skillGrade: grade,
     };
 
@@ -268,7 +278,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
 
   private estimateQuality(
     realm: RealmType,
-    wisdom: number,
     materialQuality: Quality,
   ): Quality {
     const realmIndex = [
@@ -292,10 +301,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
       baseIndex = Math.floor((baseIndex + matIndex) / 2); // 取折中
     }
 
-    const wisdomBonus = wisdom > 200 ? 1 : 0;
-    return QUALITY_VALUES[
-      Math.min(baseIndex + wisdomBonus, QUALITY_VALUES.length - 1)
-    ];
+    return QUALITY_VALUES[baseIndex];
   }
 
   private buildAffixPrompts(quality: Quality): string {
@@ -322,33 +328,20 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
   private calculateGrade(
     gradeHint: GradeHint,
     realm: RealmType,
-    wisdom: number,
     materialQuality: Quality,
+    spiritualRootStrength: number,
   ): SkillGrade {
     const candidates =
       GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
 
-    // 1. 基础系数：悟性
-    let ratio = wisdomToPowerRatio(wisdom);
-
-    // 2. 材料修正：如果材料品质极高，保底提升
-    const matIndex = QUALITY_VALUES.indexOf(materialQuality);
-    const realmIndex = [
-      '炼气',
-      '筑基',
-      '金丹',
-      '元婴',
-      '化神',
-      '炼虚',
-      '合体',
-      '大乘',
-      '渡劫',
-    ].indexOf(realm);
-
-    // 简单的逻辑：材料越好，ratio越高
-    if (matIndex > realmIndex) {
-      ratio += 0.2; // 强力加成
-    }
+    // 使用新的计算函数，考虑境界、材料、灵根强度
+    // 功法没有元素匹配，所以 hasMatchingElement 传 true
+    const ratio = calculatePowerRatio(
+      realm,
+      materialQuality,
+      spiritualRootStrength,
+      true, // 功法不依赖特定元素，视为匹配
+    );
 
     const index = Math.min(
       candidates.length - 1,
@@ -356,7 +349,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     );
     let selectedGrade = candidates[index];
 
-    // 3. 境界限制（依然存在，但可能由于材料好而触达当前境界的上限）
+    // 境界限制（依然存在，但可能由于材料好而触达当前境界的上限）
     const realmLimit = REALM_GRADE_LIMIT[realm];
     selectedGrade = clampGrade(selectedGrade, realmLimit);
 
