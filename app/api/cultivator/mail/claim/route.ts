@@ -1,15 +1,11 @@
+import { resourceEngine } from '@/engine/resource/ResourceEngine';
+import { ResourceOperation } from '@/engine/resource/types';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
-import {
-  artifacts,
-  consumables,
-  cultivators,
-  mails,
-  materials,
-} from '@/lib/drizzle/schema';
+import { mails } from '@/lib/drizzle/schema';
 import { MailAttachment } from '@/lib/services/MailService';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -22,7 +18,7 @@ const ClaimMailSchema = z.object({
  * 领取邮件附件
  */
 export const POST = withActiveCultivator(
-  async (request: NextRequest, { cultivator }) => {
+  async (request: NextRequest, { user, cultivator }) => {
     const body = await request.json();
     const { mailId } = ClaimMailSchema.parse(body);
 
@@ -45,102 +41,66 @@ export const POST = withActiveCultivator(
       return NextResponse.json({ message: 'No attachments' });
     }
 
-    await db.transaction(async (tx) => {
-      for (const item of attachments) {
-        if (item.type === 'spirit_stones') {
-          await tx
-            .update(cultivators)
-            .set({
-              spirit_stones: sql`${cultivators.spirit_stones} + ${item.quantity}`,
-            })
-            .where(eq(cultivators.id, cultivator.id));
-        } else if (item.type === 'material') {
-          const material = item.data as Material;
-          // Check if exists
-          const existing = await tx
-            .select()
-            .from(materials)
-            .where(
-              and(
-                eq(materials.cultivatorId, cultivator.id),
-                eq(materials.name, material.name),
-                eq(materials.rank, material.rank || '凡品'),
-              ),
-            )
-            .limit(1);
+    // Convert attachments to resource operations
+    const gains: ResourceOperation[] = [];
 
-          if (existing.length > 0) {
-            await tx
-              .update(materials)
-              .set({
-                quantity: sql`${materials.quantity} + ${item.quantity}`,
-              })
-              .where(eq(materials.id, existing[0].id));
-          } else {
-            await tx.insert(materials).values({
-              cultivatorId: cultivator.id,
-              name: material.name,
-              quantity: item.quantity,
-              type: material.type || 'other',
-              rank: material.rank || '凡品',
-              element: material.element || '无',
-              description: material.description || '',
-              details: material.details || {},
-            });
-          }
-        } else if (item.type === 'consumable') {
-          const consumable = item.data as Consumable;
-          const existing = await tx
-            .select()
-            .from(consumables)
-            .where(
-              and(
-                eq(consumables.cultivatorId, cultivator.id),
-                eq(consumables.name, consumable.name),
-                eq(consumables.quality, consumable.quality || '凡品'),
-              ),
-            )
-            .limit(1);
-
-          if (existing.length > 0) {
-            await tx
-              .update(consumables)
-              .set({
-                quantity: sql`${consumables.quantity} + ${item.quantity}`,
-              })
-              .where(eq(consumables.id, existing[0].id));
-          } else {
-            await tx.insert(consumables).values({
-              cultivatorId: cultivator.id,
-              name: consumable.name,
-              quantity: item.quantity,
-              type: consumable.type || '丹药',
-              quality: consumable.quality || '凡品',
-              effects: consumable.effects || [],
-              description: consumable.description || '',
-            });
-          }
-        } else if (item.type === 'artifact') {
-          // Artifacts don't stack, just insert
-          const artifact = item.data as Artifact;
-          await tx.insert(artifacts).values({
-            cultivatorId: cultivator.id,
-            name: artifact.name,
-            quality: artifact.quality || '凡品',
-            slot: artifact.slot || 'weapon',
-            element: artifact.element || '无',
-            description: artifact.description || '',
-            effects: artifact.effects ?? [],
+    for (const item of attachments) {
+      switch (item.type) {
+        case 'spirit_stones':
+          gains.push({
+            type: 'spirit_stones',
+            value: item.quantity,
           });
-        }
+          break;
+        case 'material':
+          gains.push({
+            type: 'material',
+            value: item.quantity,
+            data: item.data as Material,
+          });
+          break;
+        case 'consumable':
+          gains.push({
+            type: 'consumable',
+            value: item.quantity,
+            data: item.data as Consumable,
+          });
+          break;
+        case 'artifact':
+          // Artifacts are typically 1 per attachment, but handle quantity just in case
+          // ResourceEngine.gain() treats artifact value as 1 implicitly (no loop), so we add multiple ops if needed
+          const qty = item.quantity || 1;
+          for (let i = 0; i < qty; i++) {
+            gains.push({
+              type: 'artifact',
+              value: 1,
+              data: item.data as Artifact,
+            });
+          }
+          break;
       }
+    }
 
-      // Mark as claimed
-      await tx
-        .update(mails)
-        .set({ isClaimed: true, isRead: true })
-        .where(eq(mails.id, mailId));
-    });
+    // Use ResourceEngine to handle gains transactionally
+    const result = await resourceEngine.gain(
+      user.id,
+      cultivator.id,
+      gains,
+      async () => {
+        // Mark as claimed
+        await db
+          .update(mails)
+          .set({ isClaimed: true, isRead: true })
+          .where(eq(mails.id, mailId));
+      },
+    );
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.errors?.[0] || '领取失败' },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ success: true });
   },
