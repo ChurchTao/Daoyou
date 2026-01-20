@@ -3,7 +3,7 @@
 import { InkModal } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkBadge, InkButton, InkNotice } from '@/components/ui';
-import { Material } from '@/types/cultivator';
+import { Artifact, Consumable, Material } from '@/types/cultivator';
 import { useState } from 'react';
 import { Mail } from './MailList';
 
@@ -81,6 +81,16 @@ export function MailDetailModal({
                   )}
                   {item.type === 'material' && (
                     <InkBadge tier={(item.data as Material)?.rank} hideTierText>
+                      {item.name}
+                    </InkBadge>
+                  )}
+                  {item.type === 'consumable' && (
+                    <InkBadge tier={(item.data as Consumable)?.quality} hideTierText>
+                      {item.name}
+                    </InkBadge>
+                  )}
+                  {item.type === 'artifact' && (
+                    <InkBadge tier={(item.data as Artifact)?.quality} hideTierText>
                       {item.name}
                     </InkBadge>
                   )}

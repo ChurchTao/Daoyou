@@ -1,6 +1,6 @@
-import { Material } from '@/types/cultivator';
+import { Consumable, Material } from '@/types/cultivator';
 import { db } from '../drizzle/db';
-import { MailAttachmentType, MailService } from './MailService';
+import { MailAttachment, MailAttachmentType, MailService } from './MailService';
 
 test('test 邮件发送', async () => {
   const cultivatorId = '786160f5-cdb2-4df6-a8fb-c2b63ead212c';
@@ -61,4 +61,63 @@ test('test 邮件发送', async () => {
 
     await MailService.sendMail(cultivatorId, title, content, attachments);
   });
+});
+
+test('test 发送符箓邮件', async () => {
+  const cultivatorId = '786160f5-cdb2-4df6-a8fb-c2b63ead212c';
+  const title = '天道赐福：灵符降世';
+  const content =
+    '道友仙缘深厚，天道特赐下三枚灵符，助道友窥探天机，演化神通。';
+
+  const attachments: MailAttachment[] = [
+    {
+      type: 'consumable' as MailAttachmentType,
+      name: '天机逆命符',
+      quantity: 1,
+      data: {
+        name: '天机逆命符',
+        type: '符箓',
+        quantity: 1,
+        quality: '天品',
+        description:
+          '以此符遮蔽天机，逆转先天之数。三日内可获三次推演命格之机，择优而栖。',
+        effects: [],
+        details: {
+          buffId: 'reshape_fate_talisman',
+          expiryDays: 3,
+          maxUses: 3,
+        },
+      } as Consumable,
+    },
+    {
+      type: 'consumable' as MailAttachmentType,
+      name: '悟道演法符',
+      quantity: 1,
+      data: {
+        name: '悟道演法符',
+        type: '符箓',
+        quality: '天品',
+        quantity: 1,
+        description:
+          '燃此符可神游太虚，感悟天地至理。三日内可得一次机缘，从虚空中领悟一部玄品以上功法典籍。',
+        effects: [],
+      } as Consumable,
+    },
+    {
+      type: 'consumable' as MailAttachmentType,
+      name: '神通衍化符',
+      quantity: 1,
+      data: {
+        name: '神通衍化符',
+        type: '符箓',
+        quality: '天品',
+        quantity: 1,
+        description:
+          '此符蕴含天地法则碎片。三日内可得一次机缘，衍化出一门玄品以上神通秘术。',
+        effects: [],
+      } as Consumable,
+    },
+  ];
+
+  await MailService.sendMail(cultivatorId, title, content, attachments);
 });

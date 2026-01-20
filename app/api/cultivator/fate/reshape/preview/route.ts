@@ -58,7 +58,7 @@ export const GET = withActiveCultivator(
 
     // 存入Redis暂存，防止篡改
     await redis.set(`fate_reshape_pending:${cultivator.id}`, fates, {
-      ex: 3600,
+      ex: 86400, // 24小时
     });
 
     // 扣除1次机会
