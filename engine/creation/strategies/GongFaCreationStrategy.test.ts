@@ -1,22 +1,6 @@
+import { object } from '@/utils/aiClient';
 import { CreationContext } from '../CreationStrategy';
 import { GongFaCreationStrategy } from './GongFaCreationStrategy';
-
-// Mock the AI client
-jest.mock('../../../utils/aiClient', () => ({
-  object: jest.fn().mockResolvedValue({
-    object: {
-      name: '测试功法',
-      grade_hint: 'medium',
-      description: '基于典籍的测试功法。',
-      selected_affixes: {
-        primary: 'gongfa_spirit',
-        secondary: 'gongfa_crit_rate',
-      },
-    },
-  }),
-}));
-
-import { object } from '../../../utils/aiClient';
 
 test('GongFaCreationStrategy test', async () => {
   const strategy = new GongFaCreationStrategy();
@@ -85,6 +69,5 @@ test('GongFaCreationStrategy test', async () => {
   console.log(JSON.stringify(resultItem, null, 2));
 
   // Basic Assertions to ensure it worked
-  expect(resultItem.name).toBe('测试功法');
   expect(resultItem.effects!.length).toBeGreaterThan(0);
 });

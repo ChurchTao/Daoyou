@@ -464,17 +464,25 @@ export default function CreatePage() {
                     >
                       <button
                         type="button"
+                        className="w-full text-left"
                         onClick={() => toggleFateSelection(idx)}
                       >
                         <InkListItem
                           title={
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold">{fate.name}</span>
                               {fate.quality && (
-                                <InkBadge tier={fate.quality}>气运</InkBadge>
+                                <InkBadge tier={fate.quality}>
+                                  {fate.quality}
+                                </InkBadge>
                               )}
                             </div>
                           }
-                          meta={formatEffectsText(fate.effects)}
+                          meta={
+                            <div className="text-sm">
+                              {formatEffectsText(fate.effects)}
+                            </div>
+                          }
                           description={fate.description}
                           actions={
                             isSelected ? (

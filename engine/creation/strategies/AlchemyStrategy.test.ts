@@ -1,22 +1,6 @@
+import { object } from '@/utils/aiClient';
 import { CreationContext } from '../CreationStrategy';
 import { AlchemyStrategy } from './AlchemyStrategy';
-
-// Mock the AI client
-jest.mock('../../../utils/aiClient', () => ({
-  object: jest.fn().mockResolvedValue({
-    object: {
-      name: '测试丹药',
-      description: '一颗治疗丹药。',
-      quantity_hint: 'medium',
-      selected_affixes: {
-        primary: 'consumable_p_vitality', // Assuming valid affix ID
-        secondary: 'consumable_s_heal', // Assuming valid affix ID
-      },
-    },
-  }),
-}));
-
-import { object } from '../../../utils/aiClient';
 
 test('AlchemyStrategy test', async () => {
   const strategy = new AlchemyStrategy();

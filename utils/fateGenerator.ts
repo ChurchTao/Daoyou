@@ -2,12 +2,16 @@
  * 命格蓝图 Schema 和生成器（AIGC 架构重构）
  *
  * 采用"AI蓝图 + 程序数值化"架构：
- * - AI 生成蓝图（名称、描述、方向标签）
- * - 程序控制品质分布和效果数值
+ * - AI 根据品质选择合适的词条ID
+ * - 程序验证并生成数值
  */
 
-import { FateAffixGenerator } from '@/engine/creation/FateAffixGenerator';
-import { type DirectionTag } from '@/engine/creation/types';
+import { buildAffixTable } from '@/engine/creation/AffixUtils';
+import { FATE_AFFIXES } from '@/engine/creation/affixes/fateAffixes';
+import {
+  FateAffixGenerator,
+  QUALITY_TO_EFFECT_COUNT,
+} from '@/engine/creation/FateAffixGenerator';
 import { Quality, QUALITY_VALUES, type RealmType } from '@/types/constants';
 import type { PreHeavenFate } from '@/types/cultivator';
 import { z } from 'zod';
@@ -18,41 +22,19 @@ import { objectArray } from './aiClient';
 // ============================================================
 
 /**
- * 命格蓝图方向标签（AI 可选择的标签）
- */
-const FATE_DIRECTION_TAGS = [
-  // 属性方向
-  'increase_vitality',
-  'increase_spirit',
-  'increase_wisdom',
-  'increase_speed',
-  'increase_willpower',
-  // 战斗机制
-  'offensive',
-  'defensive',
-  'critical_boost',
-  'lifesteal',
-  'sustain',
-  'burst',
-] as const;
-
-/**
  * AI 输出的命格蓝图 Schema
  * 注意：不包含任何具体数值，数值由程序生成
  */
 const FateBlueprintSchema = z.object({
   name: z.string().min(2).max(6).describe('命格名称，2-6字，古风有韵味'),
-  type: z.enum(['吉', '凶']).describe('命格类型'),
   description: z
     .string()
     .min(20)
     .max(120)
     .describe('命格描述，神秘古雅，富有宿命感'),
-  direction_tags: z
-    .array(z.enum(FATE_DIRECTION_TAGS))
-    .min(1)
-    .max(3)
-    .describe('效果方向标签，决定效果倾向'),
+  affix_ids: z
+    .array(z.string())
+    .describe('选择的词条ID列表，必须符合品质和类型限制'),
 });
 
 type FateBlueprint = z.infer<typeof FateBlueprintSchema>;
@@ -107,62 +89,56 @@ function getRandomQualityDistribution(count: number): Quality[] {
 
 /**
  * 调用 AI 生成命格蓝图
+ * @param qualities 为每个生成的命格预分配的品质
  */
-async function generateFateBlueprints(count: number): Promise<FateBlueprint[]> {
+async function generateFateBlueprints(
+  qualities: Quality[],
+): Promise<FateBlueprint[]> {
+  const count = qualities.length;
+  const affixTable = buildAffixTable(FATE_AFFIXES, {
+    showSlots: false,
+    showQuality: true,
+  });
+
+  const qualityRules = Object.entries(QUALITY_TO_EFFECT_COUNT)
+    .map(([q, c]) => `- ${q}: 选择 ${c} 个词条`)
+    .join('\n');
+
   const systemPrompt = `
 # Role: 修仙界命格设计师 - 蓝图生成
 
 你是一位精通东方玄幻修真体系的大能，负责设计「先天命格」蓝图。
-**你只负责创意设计，具体数值效果由天道法则（程序）决定。**
 
-## 重要约束
-
-> ⚠️ **你的输出不包含任何具体数值！**
-> 程序会根据品质自动生成所有效果数值。
-
-## 输出格式（严格遵守）
-
-只输出符合 JSON Schema 的纯 JSON 对象，不得包含任何额外文字。
-
-### 枚举值限制
-- **type**: 吉、凶
-- **direction_tags**: ${FATE_DIRECTION_TAGS.join(', ')}
+## 任务目标
+根据输入的品质列表，为每一个命格生成蓝图。
+你需要从提供的词条库中选择合适的词条ID（affix_ids）。
 
 ## 核心规则
 
-### 1. 命格类型
-- **吉相**：纯正面效果（如"九阳圣体"、"剑骨天成"）
-- **凶相**：双刃剑效果，高风险高收益（如"天煞孤星"、"嗜血魔体"）
+### 1. 词条选择
+- **品质限制**：选择的词条要求的最低品质（minQuality）不能高于命格当前的品质。
+  - 例如：【地品】命格可以选择【凡品】、【灵品】、【玄品】、【真品】、【地品】要求的词条。
+  - 但不能选择【天品】要求的词条。
 
-### 2. 方向标签选择（关键！）
-根据命格名称和类型选择 1-3 个方向标签：
-- 体质强健类（如"铜皮铁骨"） → increase_vitality, defensive
-- 灵力天赋类（如"紫府圣胎"） → increase_spirit, offensive
-- 悟性卓越类（如"天生道体"） → increase_wisdom
-- 剑道天赋类（如"剑骨天成"） → critical_boost, burst
-- 续航体质类（如"木灵体质"） → sustain, lifesteal
-- 凶相攻击类（如"天煞孤星"） → offensive, burst
+### 2. 词条数量规则
+根据命格品质，必须选择指定数量的词条：
+${qualityRules}
 
-### 3. 命名与描述
-- 名称：2-6字，古朴典雅，带有仙侠韵味
-- 描述：20-120字，描述来源、表现或宿命感
-- **不得描述具体数值效果**
+## 词条库
+${affixTable}
 
-## 禁止行为
-- ❌ 不得输出任何数值（+15、增加10%等）
-- ❌ 不得自定义枚举值
-- ❌ 不得描述具体效果强度
+## 输出要求
+- 只输出符合 JSON Schema 的纯 JSON 对象
+- **affix_ids** 必须是词条库中真实存在的 ID
+- 严格遵守品质和数量限制
 `;
 
   const userPrompt = `
-请设计 ${count} 个先天命格蓝图。
+请生成 ${count} 个先天命格蓝图。
+预分配的品质如下：
+${qualities.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
-要求：
-- 吉凶比例约 7:3
-- 名称不重复，风格多样
-- 每个命格都要有独特的方向标签组合
-
-请直接输出符合 Schema 的 JSON。
+请严格按顺序生成，确保每个命格的词条选择符合其品质限制。
 `;
 
   try {
@@ -171,9 +147,9 @@ async function generateFateBlueprints(count: number): Promise<FateBlueprint[]> {
       userPrompt,
       {
         schema: FateBlueprintSchema,
-        schemaName: '命格蓝图',
+        schemaName: '命格蓝图列表',
       },
-      false,
+      false, // 不强制 json 模式，使用 function calling 模式可能更准，或者 keep false
     );
     return result.object;
   } catch (error) {
@@ -194,23 +170,36 @@ function materializeFate(
   quality: Quality,
   realm: RealmType = '炼气',
 ): PreHeavenFate {
-  // 使用 FateAffixGenerator 生成效果
-  const directionTags = blueprint.direction_tags.map(
-    (tag) => tag as DirectionTag,
-  );
-  const effects = FateAffixGenerator.generate(
-    blueprint.type,
-    quality,
-    realm,
-    directionTags,
-  );
+  try {
+    const effects = FateAffixGenerator.generate(
+      quality,
+      realm,
+      blueprint.affix_ids,
+    );
 
-  return {
-    name: blueprint.name,
-    quality,
-    effects,
-    description: blueprint.description,
-  };
+    return {
+      name: blueprint.name,
+      quality,
+      effects,
+      description: blueprint.description,
+    };
+  } catch (error) {
+    console.warn(
+      `[FateGenerator] 命格 ${blueprint.name} 生成失败，尝试降级处理:`,
+      error,
+    );
+    // 降级处理：生成随机词条
+    const fallbackEffects = FateAffixGenerator.generateRandom(
+      quality,
+      realm,
+    );
+    return {
+      name: blueprint.name,
+      quality,
+      effects: fallbackEffects,
+      description: blueprint.description + ' (天道修正)',
+    };
+  }
 }
 
 // ============================================================
@@ -239,15 +228,26 @@ export async function generatePreHeavenFates(
   );
   console.log('[FateGenerator] 品质分布:', qualitySummary);
 
-  // 2. 调用 AI 生成蓝图
-  const blueprints = await generateFateBlueprints(count);
+  // 2. 调用 AI 生成蓝图 (传入品质列表)
+  const blueprints = await generateFateBlueprints(qualities);
   console.log(`[FateGenerator] 获取到 ${blueprints.length} 个蓝图`);
 
   // 3. 将蓝图数值化为完整命格
-  const fates = blueprints.map((blueprint, index) => {
-    const quality = qualities[index] || '凡品';
-    return materializeFate(blueprint, quality, realm);
-  });
+  // 注意：需要确保 blueprints 和 qualities 一一对应
+  // 如果 AI 返回数量不对，这里可能会错位，但 objectArray 通常会尽量满足数量
+  const fates: PreHeavenFate[] = [];
+
+  for (let i = 0; i < qualities.length; i++) {
+    const quality = qualities[i];
+    const blueprint = blueprints[i];
+
+    if (!blueprint) {
+      console.warn(`[FateGenerator] 缺少第 ${i + 1} 个蓝图，跳过`);
+      continue;
+    }
+
+    fates.push(materializeFate(blueprint, quality, realm));
+  }
 
   return fates;
 }
@@ -257,18 +257,12 @@ export async function generatePreHeavenFates(
  */
 export function materializeFateFromBlueprint(
   name: string,
-  type: '吉' | '凶',
   quality: Quality,
-  directionTags: DirectionTag[],
+  affixIds: string[],
   description: string,
   realm: RealmType = '炼气',
 ): PreHeavenFate {
-  const effects = FateAffixGenerator.generate(
-    type,
-    quality,
-    realm,
-    directionTags,
-  );
+  const effects = FateAffixGenerator.generate(quality, realm, affixIds);
 
   return {
     name,

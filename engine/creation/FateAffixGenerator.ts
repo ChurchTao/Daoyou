@@ -8,7 +8,7 @@
 
 import type { EffectConfig } from '@/engine/effect/types';
 import type { Quality, RealmType } from '@/types/constants';
-import { FATE_AFFIX_POOLS } from './affixes/fateAffixes';
+import { FATE_AFFIXES } from './affixes/fateAffixes';
 import {
   buildAffixTable,
   filterAffixPool,
@@ -36,15 +36,10 @@ export const QUALITY_TO_EFFECT_COUNT: Record<Quality, number> = {
  */
 export class FateAffixGenerator {
   /**
-   * 根据命格类型和品质获取可用词条池
+   * 根据品质获取可用词条池
    */
-  static getAffixPool(fateType: '吉' | '凶', quality: Quality): AffixWeight[] {
-    const pool =
-      fateType === '吉'
-        ? FATE_AFFIX_POOLS.auspicious
-        : FATE_AFFIX_POOLS.inauspicious;
-
-    return filterAffixPool(pool, quality);
+  static getAffixPool(quality: Quality): AffixWeight[] {
+    return filterAffixPool(FATE_AFFIXES, quality);
   }
 
   /**
@@ -57,13 +52,12 @@ export class FateAffixGenerator {
   /**
    * 构建词条选择提示词
    */
-  static buildSelectionPrompt(fateType: '吉' | '凶', quality: Quality): string {
-    const pool = this.getAffixPool(fateType, quality);
+  static buildSelectionPrompt(quality: Quality): string {
+    const pool = this.getAffixPool(quality);
     const effectCount = this.getEffectCount(quality);
-    const fateTypeLabel = fateType === '吉' ? '吉相' : '凶相';
 
     const parts: string[] = [
-      `## ${fateTypeLabel}命格词条 (选择1-${effectCount}个)\n`,
+      `## 命格词条 (选择1-${effectCount}个)\n`,
       buildAffixTable(pool, { showSlots: false, showQuality: true }),
     ];
 
@@ -73,7 +67,6 @@ export class FateAffixGenerator {
   /**
    * 根据AI选择的词条ID生成效果
    *
-   * @param fateType 命格类型（吉/凶）
    * @param quality 品质
    * @param realm 境界（用于数值缩放）
    * @param selectedAffixIds AI选择的词条ID数组
@@ -81,16 +74,12 @@ export class FateAffixGenerator {
    * @throws 如果词条选择无效
    */
   static generate(
-    fateType: '吉' | '凶',
     quality: Quality,
     realm: RealmType,
     selectedAffixIds: string[],
   ): EffectConfig[] {
     // 1. 获取词条池
-    const pool =
-      fateType === '吉'
-        ? FATE_AFFIX_POOLS.auspicious
-        : FATE_AFFIX_POOLS.inauspicious;
+    const pool = FATE_AFFIXES;
 
     // 2. 获取期望的效果数量
     const expectedCount = this.getEffectCount(quality);
@@ -122,18 +111,17 @@ export class FateAffixGenerator {
    * 保留原有的权重随机选取逻辑
    */
   static generateRandom(
-    fateType: '吉' | '凶',
     quality: Quality,
     realm: RealmType,
   ): EffectConfig[] {
-    const pool = this.getAffixPool(fateType, quality);
+    const pool = this.getAffixPool(quality);
     const effectCount = this.getEffectCount(quality);
 
     // 权重随机选取
     const selectedAffixes = this.selectWeightedRandom(pool, effectCount);
     const selectedIds = selectedAffixes.map((a) => a.id);
 
-    return this.generate(fateType, quality, realm, selectedIds);
+    return this.generate(quality, realm, selectedIds);
   }
 
   /**

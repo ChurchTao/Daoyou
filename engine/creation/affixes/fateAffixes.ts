@@ -2,8 +2,7 @@
  * 命格效果词条池配置
  *
  * 命格效果分为：
- * - 吉相命格：正面效果（属性增强、战斗增益）
- * - 凶相命格：双刃剑效果（有得有失）
+ * - 命格：包含属性增强、战斗增益以及特殊机制效果
  *
  * 与其他系统不同，命格效果是永久被动的
  */
@@ -20,175 +19,74 @@ import type { AffixWeight } from '../types';
 // ============================================================
 
 export const FATE_AFFIX_IDS = {
-  // 吉相词条
-  AUSPICIOUS_WISDOM: 'fate_a_wisdom',
-  AUSPICIOUS_CRIT: 'fate_a_crit',
-  AUSPICIOUS_DAMAGE_REDUCTION: 'fate_a_damage_reduction',
-  AUSPICIOUS_SPIRIT: 'fate_a_spirit',
-  AUSPICIOUS_SPEED: 'fate_a_speed',
-  AUSPICIOUS_VITALITY: 'fate_a_vitality',
-  AUSPICIOUS_LIFESTEAL: 'fate_a_lifesteal',
-  AUSPICIOUS_MANA_REGEN: 'fate_a_mana_regen',
-  AUSPICIOUS_HEAL_AMPLIFY: 'fate_a_heal_amplify',
-  // 凶相词条
-  INAUSPICIOUS_ATTACK_BOOST: 'fate_i_attack_boost',
-  INAUSPICIOUS_DEFENSE_PENALTY: 'fate_i_defense_penalty',
-  INAUSPICIOUS_LIFESTEAL: 'fate_i_lifesteal',
-  INAUSPICIOUS_CRIT_DAMAGE: 'fate_i_crit_damage',
-  INAUSPICIOUS_SPEED_BOOST: 'fate_i_speed_boost',
+  // === 基础属性类 ===
+  FATE_WISDOM: 'fate_stat_wisdom', // 天生道体
+  FATE_VITALITY: 'fate_stat_vitality', // 荒古圣体
+  FATE_SPIRIT: 'fate_stat_spirit', // 先天灵体
+  FATE_SPEED: 'fate_stat_speed', // 风神腿
+  FATE_WILLPOWER: 'fate_stat_willpower', // 强大神识
+  FATE_CRIT: 'fate_stat_crit', // 鹰眼
+
+  // === 战斗流派类 ===
+  FATE_LIFESTEAL: 'fate_combat_lifesteal', // 嗜血
+  FATE_THORNS: 'fate_combat_thorns', // 荆棘
+  FATE_EXECUTE: 'fate_combat_execute', // 斩杀
+  FATE_TANK: 'fate_combat_tank', // 不动如山
+  FATE_ASSASSIN: 'fate_combat_assassin', // 刺客信条
+  FATE_MANA_BATTERY: 'fate_combat_mana_battery', // 灵力源泉
+  FATE_HEALER: 'fate_combat_healer', // 医圣转世
+  FATE_MANA_DRAIN: 'fate_combat_mana_drain', // 噬灵
+  FATE_DODGE: 'fate_combat_dodge', // 凌波微步
+
+  // === 元素亲和类 ===
+  FATE_FIRE_AFFINITY: 'fate_element_fire', // 火灵之体
+  FATE_WATER_AFFINITY: 'fate_element_water', // 水灵之体
+  FATE_WOOD_AFFINITY: 'fate_element_wood', // 木灵之体
+  FATE_METAL_AFFINITY: 'fate_element_metal', // 金灵之体
+  FATE_EARTH_AFFINITY: 'fate_element_earth', // 土灵之体
+  FATE_WIND_AFFINITY: 'fate_element_wind', // 风灵之体
+  FATE_THUNDER_AFFINITY: 'fate_element_thunder', // 雷灵之体
+  FATE_ICE_AFFINITY: 'fate_element_ice', // 冰灵之体
 } as const;
 
 // ============================================================
-// 吉相词条池 - 纯正面效果
+// 命格词条池
 // ============================================================
 
-export const AUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
-  // === 属性增强类 ===
-  // 天生道体 - 悟性增幅
+export const FATE_AFFIXES: AffixWeight[] = [
+  // ========================================================
+  // 1. 基础属性类 (Fundamental Paths)
+  // ========================================================
   {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_WISDOM,
+    id: FATE_AFFIX_IDS.FATE_WISDOM,
     effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
     },
     weight: 100,
-    tags: ['primary', 'utility'],
+    tags: ['primary', 'stat', 'wisdom'],
     displayName: '天生道体',
-    displayDescription: '百分比提升悟性，增强领悟能力',
+    displayDescription: '悟性超群，大幅提升领悟能力与修炼速度',
   },
-  // 剑骨天成 - 暴击增强
   {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_CRIT,
-    effectType: EffectType.Critical,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.03 },
-      critDamageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
-    },
-    weight: 80,
-    minQuality: '真品',
-    tags: ['primary', 'offensive', 'burst'],
-    displayName: '剑骨天成',
-    displayDescription: '提升暴击率和暴击伤害',
-  },
-  // 金刚不灭 - 减伤体质
-  {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_DAMAGE_REDUCTION,
-    effectType: EffectType.DamageReduction,
-    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
-    paramsTemplate: {
-      percentReduction: { base: 0.08, scale: 'quality', coefficient: 0.03 },
-      maxReduction: 0.6,
-    },
-    weight: 80,
-    minQuality: '真品',
-    tags: ['primary', 'defensive'],
-    displayName: '金刚不灭',
-    displayDescription: '减少受到的伤害',
-  },
-  // 紫府圣胎 - 法力增强
-  {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_SPIRIT,
-    effectType: EffectType.StatModifier,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      stat: 'spirit',
-      modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
-    },
-    weight: 90,
-    tags: ['primary', 'offensive'],
-    displayName: '紫府圣胎',
-    displayDescription: '百分比提升灵力',
-  },
-  // 天赐速身 - 速度增强
-  {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_SPEED,
-    effectType: EffectType.StatModifier,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      stat: 'speed',
-      modType: StatModifierType.PERCENT,
-      value: { base: 0.08, scale: 'quality', coefficient: 0.04 },
-    },
-    weight: 70,
-    tags: ['primary', 'utility'],
-    displayName: '天赐速身',
-    displayDescription: '百分比提升速度',
-  },
-  // 铜皮铁骨 - 体魄增强
-  {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_VITALITY,
+    id: FATE_AFFIX_IDS.FATE_VITALITY,
     effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
     },
-    weight: 90,
-    tags: ['primary', 'defensive'],
-    displayName: '铜皮铁骨',
-    displayDescription: '百分比提升体魄',
+    weight: 100,
+    tags: ['primary', 'stat', 'vitality'],
+    displayName: '荒古圣体',
+    displayDescription: '体魄强健，气血雄厚，生存能力极强',
   },
-
-  // === 战斗增益类 ===
-  // 天生吸血 - 攻击吸血
   {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_LIFESTEAL,
-    effectType: EffectType.LifeSteal,
-    trigger: EffectTrigger.ON_AFTER_DAMAGE,
-    paramsTemplate: {
-      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.5 },
-    },
-    weight: 50,
-    minQuality: '地品',
-    tags: ['secondary', 'sustain', 'lifesteal'],
-    displayName: '天生吸血',
-    displayDescription: '攻击时按伤害比例吸取生命',
-  },
-  // 回法体质 - 法力回复
-  {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_MANA_REGEN,
-    effectType: EffectType.ManaRegen,
-    trigger: EffectTrigger.ON_TURN_END,
-    paramsTemplate: {
-      percentOfMax: { base: 0.02, scale: 'quality', coefficient: 0.01 },
-    },
-    weight: 60,
-    minQuality: '真品',
-    tags: ['secondary', 'sustain', 'mana_regen'],
-    displayName: '回法体质',
-    displayDescription: '每回合恢复法力',
-  },
-  // 木灵体质 - 治疗增幅
-  {
-    id: FATE_AFFIX_IDS.AUSPICIOUS_HEAL_AMPLIFY,
-    effectType: EffectType.HealAmplify,
-    trigger: EffectTrigger.ON_HEAL,
-    paramsTemplate: {
-      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
-      affectOutgoing: false,
-    },
-    weight: 40,
-    minQuality: '地品',
-    tags: ['secondary', 'healing_boost'],
-    displayName: '木灵体质',
-    displayDescription: '增强受到的治疗效果',
-  },
-];
-
-// ============================================================
-// 凶相词条池 - 双刃剑效果（有得有失）
-// ============================================================
-
-export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
-  // 天煞孤星 - 攻强防弱
-  {
-    id: FATE_AFFIX_IDS.INAUSPICIOUS_ATTACK_BOOST,
+    id: FATE_AFFIX_IDS.FATE_SPIRIT,
     effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
@@ -197,75 +95,274 @@ export const INAUSPICIOUS_FATE_AFFIXES: AffixWeight[] = [
       value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
     },
     weight: 100,
-    tags: ['primary', 'offensive'],
-    displayName: '天煞孤星(攻)',
-    displayDescription: '大幅提升灵力，但会降低防御',
+    tags: ['primary', 'stat', 'spirit'],
+    displayName: '先天灵体',
+    displayDescription: '亲和灵力，法术威力和灵力上限大幅提升',
   },
-  // 天煞孤星(代价) - 防御降低
   {
-    id: FATE_AFFIX_IDS.INAUSPICIOUS_DEFENSE_PENALTY,
-    effectType: EffectType.StatModifier,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      stat: 'vitality',
-      modType: StatModifierType.PERCENT,
-      value: { base: -0.1, scale: 'quality', coefficient: -0.03 },
-    },
-    weight: 100,
-    tags: ['primary', 'defensive'],
-    displayName: '天煞孤星(防)',
-    displayDescription: '降低体魄作为代价',
-  },
-  // 嗜血魔体 - 吸血但自损
-  {
-    id: FATE_AFFIX_IDS.INAUSPICIOUS_LIFESTEAL,
-    effectType: EffectType.LifeSteal,
-    trigger: EffectTrigger.ON_AFTER_DAMAGE,
-    paramsTemplate: {
-      stealPercent: { base: 0.1, scale: 'quality', coefficient: 0.03 },
-    },
-    weight: 80,
-    minQuality: '真品',
-    tags: ['primary', 'lifesteal'],
-    displayName: '嗜血魔体(吸)',
-    displayDescription: '高额吸血效果，但会有代价',
-  },
-  // 雷劫缠身 - 暴击高但暴击自伤
-  {
-    id: FATE_AFFIX_IDS.INAUSPICIOUS_CRIT_DAMAGE,
-    effectType: EffectType.Critical,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      critDamageBonus: { base: 0.3, scale: 'quality', coefficient: 0.1 },
-    },
-    weight: 60,
-    minQuality: '地品',
-    tags: ['primary', 'burst'],
-    displayName: '雷劫缠身',
-    displayDescription: '大幅提升暴击伤害',
-  },
-  // 速而脆 - 速度高但体魄低
-  {
-    id: FATE_AFFIX_IDS.INAUSPICIOUS_SPEED_BOOST,
+    id: FATE_AFFIX_IDS.FATE_SPEED,
     effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.2, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+    },
+    weight: 80,
+    tags: ['primary', 'stat', 'speed'],
+    displayName: '风神腿',
+    displayDescription: '身法超绝，出手速度极快',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_WILLPOWER,
+    effectType: EffectType.StatModifier,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      stat: 'willpower',
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+    },
+    weight: 80,
+    tags: ['primary', 'stat', 'willpower'],
+    displayName: '神识入微',
+    displayDescription: '神识强大，能洞察先机，抵抗精神攻击',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_CRIT,
+    effectType: EffectType.Critical,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.03 },
+      critDamageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
     },
     weight: 70,
-    tags: ['primary', 'utility'],
-    displayName: '疾风体质(速)',
-    displayDescription: '大幅提升速度，但防御较弱',
+    minQuality: '真品',
+    tags: ['secondary', 'offensive', 'crit'],
+    displayName: '天生鹰眼',
+    displayDescription: '目光如炬，更容易击中要害造成暴击',
+  },
+
+  // ========================================================
+  // 2. 战斗流派类 (Combat Styles)
+  // ========================================================
+  {
+    id: FATE_AFFIX_IDS.FATE_LIFESTEAL,
+    effectType: EffectType.LifeSteal,
+    trigger: EffectTrigger.ON_AFTER_DAMAGE,
+    paramsTemplate: {
+      stealPercent: { base: 0.08, scale: 'quality', coefficient: 0.04 },
+    },
+    weight: 60,
+    minQuality: '地品',
+    tags: ['secondary', 'combat', 'lifesteal'],
+    displayName: '血魔转世',
+    displayDescription: '攻击时汲取对方气血反哺自身',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_THORNS,
+    effectType: EffectType.ReflectDamage,
+    trigger: EffectTrigger.ON_AFTER_DAMAGE,
+    paramsTemplate: {
+      reflectPercent: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+    },
+    weight: 60,
+    minQuality: '玄品',
+    tags: ['secondary', 'combat', 'reflect'],
+    displayName: '荆棘护体',
+    displayDescription: '受击时反弹部分伤害给攻击者',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_EXECUTE,
+    effectType: EffectType.ExecuteDamage,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      thresholdPercent: 0.3,
+      bonusDamage: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 50,
+    minQuality: '地品',
+    tags: ['secondary', 'combat', 'execute'],
+    displayName: '修罗杀道',
+    displayDescription: '对重伤敌人（生命<30%）造成毁灭性打击',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_TANK,
+    effectType: EffectType.DamageReduction,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      percentReduction: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      maxReduction: 0.5,
+    },
+    weight: 70,
+    minQuality: '真品',
+    tags: ['secondary', 'combat', 'defense'],
+    displayName: '不动明王',
+    displayDescription: '肉身成圣，大幅减免受到的伤害',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_MANA_BATTERY,
+    effectType: EffectType.ManaRegen,
+    trigger: EffectTrigger.ON_TURN_END,
+    paramsTemplate: {
+      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+    },
+    weight: 70,
+    minQuality: '玄品',
+    tags: ['secondary', 'combat', 'mana'],
+    displayName: '灵力源泉',
+    displayDescription: '体内灵力生生不息，每回合自动回复',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_HEALER,
+    effectType: EffectType.HealAmplify,
+    trigger: EffectTrigger.ON_HEAL,
+    paramsTemplate: {
+      amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      affectOutgoing: true,
+    },
+    weight: 50,
+    minQuality: '真品',
+    tags: ['secondary', 'combat', 'heal'],
+    displayName: '医圣转世',
+    displayDescription: '悬壶济世，施展的治疗效果大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_MANA_DRAIN,
+    effectType: EffectType.ManaDrain,
+    trigger: EffectTrigger.ON_SKILL_HIT,
+    paramsTemplate: {
+      drainPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      restoreToSelf: true,
+    },
+    weight: 40,
+    minQuality: '地品',
+    tags: ['secondary', 'combat', 'drain'],
+    displayName: '噬灵邪体',
+    displayDescription: '攻击时吞噬对方灵力，化为己用',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_DODGE,
+    effectType: EffectType.ModifyHitRate,
+    trigger: EffectTrigger.ON_CALC_HIT_RATE,
+    paramsTemplate: {
+      hitRateBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      affectsTarget: true, // 增加自身闪避（即减少对方命中）
+    },
+    weight: 60,
+    minQuality: '真品',
+    tags: ['secondary', 'combat', 'dodge'],
+    displayName: '凌波微步',
+    displayDescription: '身形飘忽不定，大幅提升闪避率',
+  },
+
+  // ========================================================
+  // 3. 元素亲和类 (Elemental Affinities)
+  // ========================================================
+  {
+    id: FATE_AFFIX_IDS.FATE_FIRE_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '火',
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 40,
+    tags: ['secondary', 'element', 'fire'],
+    displayName: '火灵之体',
+    displayDescription: '天生亲和火元素，火系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_WATER_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '水',
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 40,
+    tags: ['secondary', 'element', 'water'],
+    displayName: '水灵之体',
+    displayDescription: '天生亲和水元素，水系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_WOOD_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '木',
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 40,
+    tags: ['secondary', 'element', 'wood'],
+    displayName: '木灵之体',
+    displayDescription: '天生亲和木元素，木系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_METAL_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '金',
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 40,
+    tags: ['secondary', 'element', 'metal'],
+    displayName: '金灵之体',
+    displayDescription: '天生亲和金元素，金系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_EARTH_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '土',
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 40,
+    tags: ['secondary', 'element', 'earth'],
+    displayName: '土灵之体',
+    displayDescription: '天生亲和土元素，土系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_WIND_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '风',
+      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 30,
+    minQuality: '真品',
+    tags: ['secondary', 'element', 'wind'],
+    displayName: '风灵之体',
+    displayDescription: '天生亲和风元素，风系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_THUNDER_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '雷',
+      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 30,
+    minQuality: '真品',
+    tags: ['secondary', 'element', 'thunder'],
+    displayName: '雷灵之体',
+    displayDescription: '天生亲和雷元素，雷系伤害大幅提升',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_ICE_AFFINITY,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
+    paramsTemplate: {
+      element: '冰',
+      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.1 },
+    },
+    weight: 30,
+    minQuality: '真品',
+    tags: ['secondary', 'element', 'ice'],
+    displayName: '冰灵之体',
+    displayDescription: '天生亲和冰元素，冰系伤害大幅提升',
   },
 ];
-
-// ============================================================
-// 导出词条池
-// ============================================================
-
-export const FATE_AFFIX_POOLS = {
-  auspicious: AUSPICIOUS_FATE_AFFIXES,
-  inauspicious: INAUSPICIOUS_FATE_AFFIXES,
-};

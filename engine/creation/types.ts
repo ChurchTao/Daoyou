@@ -354,6 +354,10 @@ export interface AffixParamsTemplate {
 
   /** CounterAttack 专用 */
   damageMultiplier?: number | ScalableValue;
+
+  /** ModifyHitRate 专用 */
+  hitRateBonus?: number | ScalableValue;
+  affectsTarget?: boolean;
 }
 
 /**
@@ -402,7 +406,32 @@ export type AffixTag =
   | 'earth_affinity' // 土属性
   | 'thunder_affinity' // 雷属性
   | 'ice_affinity' // 冰属性
-  | 'wind_affinity'; // 风属性
+  | 'wind_affinity' // 风属性
+  // Fate 新增标签
+  | 'stat' // 属性类
+  | 'wisdom' // 悟性
+  | 'vitality' // 体魄
+  | 'spirit' // 灵力
+  | 'speed' // 身法
+  | 'willpower' // 神识
+  | 'crit' // 暴击
+  | 'reflect' // 反伤
+  | 'defense' // 防御
+  | 'mana' // 法力
+  | 'heal' // 治疗
+  | 'drain' // 吸取
+  | 'dodge' // 闪避
+  | 'element' // 元素类
+  | 'fire' // 火
+  | 'water' // 水
+  | 'wood' // 木
+  | 'metal' // 金
+  | 'earth' // 土
+  | 'wind' // 风
+  | 'thunder' // 雷
+  | 'ice' // 冰
+  | 'special' // 特殊类
+  | 'combat'; // 战斗类
 
 /**
  * 词条池配置

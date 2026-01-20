@@ -1,25 +1,6 @@
+import { object } from '@/utils/aiClient';
 import { CreationContext } from '../CreationStrategy';
 import { SkillCreationStrategy } from './SkillCreationStrategy';
-
-// Mock the AI client
-jest.mock('../../../utils/aiClient', () => ({
-  object: jest.fn().mockResolvedValue({
-    object: {
-      name: '测试神通',
-      type: 'attack',
-      element: '火',
-      grade_hint: 'high',
-      element_match_assessment: 'perfect_match',
-      description: '强大的火系攻击。',
-      selected_affixes: {
-        primary: 'skill_attack_base_damage',
-        secondary: 'skill_attack_crit', // Assuming this affix exists or similar
-      },
-    },
-  }),
-}));
-
-import { object } from '../../../utils/aiClient';
 
 test('SkillCreationStrategy test', async () => {
   const strategy = new SkillCreationStrategy();
@@ -95,6 +76,5 @@ test('SkillCreationStrategy test', async () => {
   console.log('--- Materialized Result ---');
   console.log(JSON.stringify(resultItem, null, 2));
 
-  expect(resultItem.name).toBe('测试神通');
   expect(resultItem.element).toBe('火');
 });
