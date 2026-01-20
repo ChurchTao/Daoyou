@@ -74,7 +74,7 @@ export function InventoryView() {
         items={[
           { label: '法宝', value: 'artifacts' },
           { label: '材料', value: 'materials' },
-          { label: '丹药', value: 'consumables' },
+          { label: '消耗品', value: 'consumables' },
         ]}
       />
 

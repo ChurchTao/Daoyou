@@ -1,9 +1,9 @@
-import { withActiveCultivator } from '@/lib/api/withAuth';
-import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator';
-import { QUALITY_VALUES, Quality } from '@/types/constants';
-import { eq, and, sql } from 'drizzle-orm';
-import { cultivators, materials } from '@/lib/drizzle/schema';
 import type { BuffInstanceState } from '@/engine/buff/types';
+import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator';
+import { withActiveCultivator } from '@/lib/api/withAuth';
+import { cultivators, materials } from '@/lib/drizzle/schema';
+import { QUALITY_VALUES, Quality } from '@/types/constants';
+import { and, eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -11,16 +11,30 @@ import { NextRequest, NextResponse } from 'next/server';
  * 抽取功法/神通典籍
  */
 export const POST = withActiveCultivator(
-  async (_request: NextRequest, { cultivator, db: tx }) => {
+  async (request: NextRequest, { cultivator, db: tx }) => {
+    const url = new URL(request.url);
+    const drawType = url.searchParams.get('type'); // 'gongfa' | 'skill'
+
     // 查找抽取Buff
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
-    const drawBuff = persistentStatuses.find((s) =>
-      ['draw_gongfa_talisman', 'draw_skill_talisman'].includes(s.configId),
-    );
+
+    let targetBuffId: string | undefined;
+    if (drawType === 'gongfa') targetBuffId = 'draw_gongfa_talisman';
+    else if (drawType === 'skill') targetBuffId = 'draw_skill_talisman';
+
+    const drawBuff = persistentStatuses.find((s) => {
+      if (targetBuffId) return s.configId === targetBuffId;
+      return ['draw_gongfa_talisman', 'draw_skill_talisman'].includes(
+        s.configId,
+      );
+    });
 
     if (!drawBuff) {
-      return NextResponse.json({ error: '未激活抽取符' }, { status: 400 });
+      return NextResponse.json(
+        { error: targetBuffId ? '未激活对应的抽取符' : '未激活抽取符' },
+        { status: 400 },
+      );
     }
 
     const expiresAt = drawBuff.metadata?.expiresAt as number | undefined;

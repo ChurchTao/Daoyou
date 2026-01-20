@@ -5,16 +5,11 @@ import { cultivators, preHeavenFates } from '@/lib/drizzle/schema';
 import type { BuffInstanceState } from '@/engine/buff/types';
 import type { EffectConfig } from '@/engine/effect/types';
 import { NextRequest, NextResponse } from 'next/server';
+import { redis } from '@/lib/redis';
+import type { GeneratedFate } from '@/engine/fate/creation/types';
 
 const CommitSchema = z.object({
-  newFates: z.array(
-    z.object({
-      name: z.string(),
-      quality: z.string(),
-      effects: z.array(z.any()), // EffectConfig
-      description: z.string(),
-    }),
-  ),
+  selectedIndices: z.array(z.number()), // 用户选择的预览命格索引
   replaceIndices: z
     .array(z.number())
     .optional(), // 要替换的旧命格索引，不传表示不替换
@@ -40,7 +35,31 @@ export const POST = withActiveCultivator(
     }
 
     const body = await request.json();
-    const { newFates, replaceIndices } = CommitSchema.parse(body);
+    const { selectedIndices, replaceIndices } = CommitSchema.parse(body);
+
+    // 从Redis获取暂存的命格
+    const cachedFates = await redis.get<GeneratedFate[]>(
+      `fate_reshape_pending:${cultivator.id}`,
+    );
+
+    if (!cachedFates) {
+      return NextResponse.json(
+        { error: '预览已过期或未进行预览，请重新预览' },
+        { status: 400 },
+      );
+    }
+
+    // 验证并获取选中的新命格
+    const newFates = selectedIndices
+      .map((idx) => cachedFates[idx])
+      .filter(Boolean);
+
+    if (newFates.length !== selectedIndices.length) {
+      return NextResponse.json(
+        { error: '选择的命格索引无效' },
+        { status: 400 },
+      );
+    }
 
     // 如果指定了替换索引
     if (replaceIndices && replaceIndices.length > 0) {
@@ -71,6 +90,9 @@ export const POST = withActiveCultivator(
         });
       }
     }
+
+    // 移除Redis缓存
+    await redis.del(`fate_reshape_pending:${cultivator.id}`);
 
     // 移除Buff（无论是否替换，提交后Buff都会消失）
     const updatedStatuses = persistentStatuses.filter(

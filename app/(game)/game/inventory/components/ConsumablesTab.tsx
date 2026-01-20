@@ -19,7 +19,7 @@ interface ConsumablesTabProps {
 }
 
 /**
- * 丹药 Tab 组件
+ * 消耗品 Tab 组件
  */
 export function ConsumablesTab({
   consumables,
@@ -29,14 +29,22 @@ export function ConsumablesTab({
   onDiscard,
 }: ConsumablesTabProps) {
   if (!consumables || consumables.length === 0) {
-    return <InkNotice>暂无丹药储备。</InkNotice>;
+    return <InkNotice>暂无消耗品。</InkNotice>;
   }
+
+  // 按类型排序：符箓在前，丹药在后
+  const sortedItems = [...consumables].sort((a, b) => {
+    if (a.type === '符箓' && b.type !== '符箓') return -1;
+    if (a.type !== '符箓' && b.type === '符箓') return 1;
+    return 0;
+  });
 
   return (
     <InkList>
-      {consumables.map((item, idx) => {
-        // 解析药效用于展示
+      {sortedItems.map((item, idx) => {
+        // 解析效果用于展示
         const effectDescriptions = formatEffectsText(item.effects);
+        const isTalisman = item.type === '符箓';
 
         return (
           <InkListItem
@@ -47,7 +55,7 @@ export function ConsumablesTab({
                 {item.name}
                 {item.quality && (
                   <InkBadge tier={item.quality} className="ml-2">
-                    {item.type}
+                    {isTalisman ? '符箓' : '丹药'}
                   </InkBadge>
                 )}
                 <span className="ml-2 text-sm text-ink-secondary">
@@ -55,7 +63,12 @@ export function ConsumablesTab({
                 </span>
               </>
             }
-            description={effectDescriptions}
+            description={
+              <div className="space-y-1">
+                {isTalisman && <div className="text-xs text-ink-primary">【使用后获得特殊增益】</div>}
+                <div>{effectDescriptions}</div>
+              </div>
+            }
             actions={
               <div className="flex gap-2">
                 <InkButton
@@ -69,7 +82,7 @@ export function ConsumablesTab({
                   onClick={() => onConsume(item)}
                   variant="primary"
                 >
-                  {pendingId === item.id ? '服用中…' : '服用'}
+                  {pendingId === item.id ? '使用中…' : '使用'}
                 </InkButton>
                 <InkButton variant="primary" onClick={() => onDiscard(item)}>
                   丢弃

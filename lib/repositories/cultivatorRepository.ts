@@ -1,3 +1,4 @@
+import { BuffInstanceState } from '@/engine/buff/types';
 import { EffectConfig } from '@/engine/effect/types';
 import {
   ConsumableType,
@@ -21,7 +22,6 @@ import type {
   TalismanBuffMetadata,
   TalismanConfig,
 } from '../../types/cultivator';
-import { getRealmStageAttributeCap } from '../../utils/cultivatorUtils';
 import { db, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
@@ -1197,7 +1197,8 @@ async function consumeTalisman(
   }
 
   // 检查是否已有同类Buff
-  const currentStatuses = (cultivator.persistent_statuses || []) as any[];
+  const currentStatuses = (cultivator.persistent_statuses ||
+    []) as BuffInstanceState[];
   const hasExisting = currentStatuses.some(
     (s) => s.configId === talismanConfig.buffId,
   );
@@ -1217,8 +1218,7 @@ async function consumeTalisman(
     remainingTurns: -1,
     createdAt: Date.now(),
     metadata: {
-      expiresAt:
-        Date.now() + talismanConfig.expiryDays * 24 * 60 * 60 * 1000,
+      expiresAt: Date.now() + talismanConfig.expiryDays * 24 * 60 * 60 * 1000,
       usesRemaining: talismanConfig.maxUses ?? 1,
       drawType: talismanConfig.drawType,
     } as TalismanBuffMetadata,
@@ -1256,7 +1256,9 @@ async function handleConsumeItemTx(
       .set({ quantity: quantity - 1 })
       .where(eq(schema.consumables.id, itemId));
   } else {
-    await tx.delete(schema.consumables).where(eq(schema.consumables.id, itemId));
+    await tx
+      .delete(schema.consumables)
+      .where(eq(schema.consumables.id, itemId));
   }
 }
 

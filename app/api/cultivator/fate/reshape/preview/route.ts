@@ -3,6 +3,7 @@ import { FateGenerator } from '@/engine/fate/creation/FateGenerator';
 import { eq } from 'drizzle-orm';
 import { cultivators } from '@/lib/drizzle/schema';
 import type { BuffInstanceState } from '@/engine/buff/types';
+import { redis } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -54,6 +55,11 @@ export const GET = withActiveCultivator(
 
     // 生成3个随机命格
     const fates = await FateGenerator.generate({ count: 3 });
+
+    // 存入Redis暂存，防止篡改
+    await redis.set(`fate_reshape_pending:${cultivator.id}`, fates, {
+      ex: 3600,
+    });
 
     // 扣除1次机会
     const updatedStatuses = persistentStatuses.map((s) => {

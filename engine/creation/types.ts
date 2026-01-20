@@ -366,7 +366,7 @@ export interface ScalableValue {
   /** 基础值 */
   base: number;
   /** 缩放类型 */
-  scale: 'quality' | 'realm' | 'root' | 'none';
+  scale: 'quality' | 'realm' | 'root' | 'wisdom' | 'none';
   /** 可选的缩放系数 */
   coefficient?: number;
 }
@@ -462,6 +462,8 @@ export interface MaterializationContext {
   elementMatch?: ElementMatch;
   /** 技能品阶（技能专用） */
   skillGrade?: SkillGrade;
+  /** 悟性（影响部分词条缩放） */
+  wisdom?: number;
 }
 
 /**

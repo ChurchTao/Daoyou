@@ -19,6 +19,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 import { useHomeViewModel } from '../hooks/useHomeViewModel';
+import { ActiveTalismans } from './ActiveTalismans';
 import { QuickActionsGrid } from './QuickActionsGrid';
 import { TitleEditorModal } from './TitleEditorModal';
 
@@ -73,6 +74,9 @@ export function HomeView() {
       currentPath={pathname}
       footer={<DivineFortune />}
     >
+      {/* 激活的符箓状态 */}
+      <ActiveTalismans />
+
       {/* 历练收益卡片 */}
       {cultivator && (
         <YieldCard cultivator={cultivator} onOk={() => refresh()} />
