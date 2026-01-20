@@ -4,9 +4,8 @@ import { InkPageShell } from '@/components/layout';
 import { InkButton, InkCard, InkNotice, InkDialog, type InkDialogState } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Material } from '@/types/cultivator';
-import type { BuffInstanceState } from '@/engine/buff/types';
 
 export function ManualDrawContent() {
   const searchParams = useSearchParams();
@@ -16,6 +15,8 @@ export function ManualDrawContent() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Material | null>(null);
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
+  const [hasBuff, setHasBuff] = useState(false);
+  const [checkingBuff, setCheckingBuff] = useState(false);
 
   const isSkill = type === 'skill';
   const typeName = isSkill ? '神通' : '功法';
@@ -23,10 +24,34 @@ export function ManualDrawContent() {
   const buffId = isSkill ? 'draw_skill_talisman' : 'draw_gongfa_talisman';
   const talismanName = isSkill ? '神通衍化符' : '悟道演法符';
 
-  const persistentStatuses = (cultivator?.persistent_statuses || []) as BuffInstanceState[];
-  const hasBuff = persistentStatuses.some(
-    (s) => s.configId === buffId
-  );
+  // 从 API 获取当前 buff 状态
+  const checkBuffStatus = useCallback(async () => {
+    setCheckingBuff(true);
+    try {
+      const res = await fetch('/api/cultivator/talismans');
+      const data = await res.json();
+      if (data.talismans) {
+        const buff = data.talismans.some((t: { id: string }) => t.id === buffId);
+        setHasBuff(buff);
+        return buff;
+      }
+      setHasBuff(false);
+      return false;
+    } catch (e) {
+      console.error('获取符箓状态失败:', e);
+      setHasBuff(false);
+      return false;
+    } finally {
+      setCheckingBuff(false);
+    }
+  }, [buffId]);
+
+  // 初始化时检查 buff 状态
+  useEffect(() => {
+    if (cultivator) {
+      checkBuffStatus();
+    }
+  }, [cultivator, checkBuffStatus]);
 
   const handleDraw = async () => {
     setLoading(true);
@@ -87,10 +112,10 @@ export function ManualDrawContent() {
               <InkButton
                 variant="primary"
                 onClick={handleDraw}
-                disabled={loading}
+                disabled={loading || checkingBuff}
                 className="w-48"
               >
-                {loading ? '感应天机中...' : (isSkill ? '衍化神通' : '感悟天道')}
+                {loading ? '感应天机中...' : checkingBuff ? '检查道韵中...' : (isSkill ? '衍化神通' : '感悟天道')}
               </InkButton>
             ) : (
               <InkNotice className="text-amber-600 border-amber-600/30 bg-amber-600/10">

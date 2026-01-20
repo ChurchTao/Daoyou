@@ -5,7 +5,7 @@ import { InkActionGroup, InkBadge, InkButton, InkList, InkListItem, InkNotice, I
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
 import type { PreHeavenFate } from '@/types/cultivator';
 import type { BuffInstanceState } from '@/engine/buff/types';
@@ -15,36 +15,56 @@ export default function FateReshapePage() {
   const { cultivator, refresh } = useCultivator();
   const [loading, setLoading] = useState(false);
   const [previewFates, setPreviewFates] = useState<GeneratedFate[] | null>(null);
-  const [usesRemaining, setUsesRemaining] = useState<number | null>(null);
-  
+  const [currentUses, setCurrentUses] = useState<number>(0);
+  const [checkingBuff, setCheckingBuff] = useState(false);
+
   // Selection states
   const [selectedOldIndices, setSelectedOldIndices] = useState<number[]>([]);
   const [selectedNewIndices, setSelectedNewIndices] = useState<number[]>([]);
 
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
 
-  // Get current talisman status
-  const persistentStatuses = (cultivator?.persistent_statuses || []) as BuffInstanceState[];
-  const reshapeBuff = persistentStatuses.find(
-    (s) => s.configId === 'reshape_fate_talisman'
-  );
-  
-  const currentUses = usesRemaining !== null 
-    ? usesRemaining 
-    : ((reshapeBuff?.metadata?.usesRemaining as number) ?? 0);
+  // 从 API 获取当前 buff 状态
+  const checkBuffStatus = useCallback(async () => {
+    setCheckingBuff(true);
+    try {
+      const res = await fetch('/api/cultivator/talismans');
+      const data = await res.json();
+      if (data.talismans) {
+        const reshapeBuff = data.talismans.find((t: { id: string }) => t.id === 'reshape_fate_talisman');
+        setCurrentUses(reshapeBuff?.usesRemaining ?? 0);
+        return reshapeBuff;
+      }
+      setCurrentUses(0);
+      return null;
+    } catch (e) {
+      console.error('获取符箓状态失败:', e);
+      setCurrentUses(0);
+      return null;
+    } finally {
+      setCheckingBuff(false);
+    }
+  }, []);
+
+  // 初始化时检查 buff 状态
+  useEffect(() => {
+    if (cultivator) {
+      checkBuffStatus();
+    }
+  }, [cultivator, checkBuffStatus]);
 
   const handlePreview = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/cultivator/fate/reshape/preview');
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || '推演失败');
       }
 
       setPreviewFates(data.fates);
-      setUsesRemaining(data.usesRemaining);
+      setCurrentUses(data.usesRemaining);
       // Reset selections
       setSelectedOldIndices([]);
       setSelectedNewIndices([]);
@@ -129,12 +149,12 @@ export default function FateReshapePage() {
             燃烧一次天机逆命符之力，可窥探三条未来命数。<br/>
             道友可从中择选合意者，替换现有命格，以此逆天改命。
           </p>
-          <InkButton 
-            variant="primary" 
+          <InkButton
+            variant="primary"
             onClick={handlePreview}
-            disabled={loading || currentUses <= 0}
+            disabled={loading || checkingBuff || currentUses <= 0}
           >
-            {loading ? '推演天机中...' : '燃符推演'}
+            {loading ? '推演天机中...' : checkingBuff ? '检查道韵中...' : '燃符推演'}
           </InkButton>
           {currentUses <= 0 && (
              <InkNotice>符箓之力已尽，请重新使用。</InkNotice>
