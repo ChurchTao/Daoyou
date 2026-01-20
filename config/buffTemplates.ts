@@ -529,8 +529,8 @@ export const persistentBuffTemplates: BuffTemplate[] = [
 export const talismanBuffTemplates: BuffTemplate[] = [
   {
     id: 'reshape_fate_talisman',
-    name: '重塑先天命格符',
-    descriptionTemplate: '可在有效期内重塑先天命格，剩余{remainingDays}天',
+    name: '天机逆命符',
+    descriptionTemplate: '天机遮蔽中，可逆转命数。道韵尚存{remainingDays}日',
     maxStacks: 1,
     duration: -1,
     stackType: BuffStackType.REFRESH,
@@ -539,8 +539,8 @@ export const talismanBuffTemplates: BuffTemplate[] = [
   },
   {
     id: 'draw_gongfa_talisman',
-    name: '功法抽取符',
-    descriptionTemplate: '可在有效期内抽取功法典籍，剩余{remainingDays}天',
+    name: '悟道演法符',
+    descriptionTemplate: '神游太虚中，可感悟功法。道韵尚存{remainingDays}日',
     maxStacks: 1,
     duration: -1,
     stackType: BuffStackType.REFRESH,
@@ -549,8 +549,8 @@ export const talismanBuffTemplates: BuffTemplate[] = [
   },
   {
     id: 'draw_skill_talisman',
-    name: '神通抽取符',
-    descriptionTemplate: '可在有效期内抽取神通典籍，剩余{remainingDays}天',
+    name: '神通衍化符',
+    descriptionTemplate: '法则加身中，可衍化神通。道韵尚存{remainingDays}日',
     maxStacks: 1,
     duration: -1,
     stackType: BuffStackType.REFRESH,

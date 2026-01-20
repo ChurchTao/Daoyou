@@ -82,10 +82,12 @@ export function ConsumablesTab({
                   onClick={() => onConsume(item)}
                   variant="primary"
                 >
-                  {pendingId === item.id ? '使用中…' : '使用'}
+                  {pendingId === item.id 
+                    ? (isTalisman ? '祭炼中…' : '服用中…') 
+                    : (isTalisman ? '祭炼' : '服用')}
                 </InkButton>
                 <InkButton variant="primary" onClick={() => onDiscard(item)}>
-                  丢弃
+                  销毁
                 </InkButton>
               </div>
             }

@@ -27,9 +27,9 @@ export const GET = withActiveCultivator(
         );
 
         const names: Record<string, string> = {
-          reshape_fate_talisman: '重塑先天命格符',
-          draw_gongfa_talisman: '功法抽取符',
-          draw_skill_talisman: '神通抽取符',
+          reshape_fate_talisman: '天机逆命符',
+          draw_gongfa_talisman: '悟道演法符',
+          draw_skill_talisman: '神通衍化符',
         };
 
         return {

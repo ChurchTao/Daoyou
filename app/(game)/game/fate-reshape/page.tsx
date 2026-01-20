@@ -40,7 +40,7 @@ export default function FateReshapePage() {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.error || '预览失败');
+        throw new Error(data.error || '推演失败');
       }
 
       setPreviewFates(data.fates);
@@ -52,7 +52,7 @@ export default function FateReshapePage() {
       const msg = error instanceof Error ? error.message : '未知错误';
       setDialog({
         id: 'preview-error',
-        title: '预览失败',
+        title: '推演受阻',
         content: <p>{msg}</p>,
       });
     } finally {
@@ -85,13 +85,13 @@ export default function FateReshapePage() {
           refresh();
           router.push('/game');
         },
-        confirmLabel: '确定'
+        confirmLabel: '善哉'
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '未知错误';
       setDialog({
         id: 'commit-error',
-        title: '操作失败',
+        title: '逆天失败',
         content: <p>{msg}</p>,
       });
       setLoading(false);
@@ -119,34 +119,35 @@ export default function FateReshapePage() {
   return (
     <InkPageShell
       title="逆天改命"
-      subtitle={`剩余次数：${currentUses}`}
+      subtitle={`天机推演次数：${currentUses}`}
       backHref="/game"
     >
       {!previewFates ? (
         <div className="flex flex-col items-center justify-center py-12 space-y-4">
           <div className="text-6xl mb-4">🔮</div>
           <p className="text-lg opacity-80 text-center max-w-xs">
-            消耗一次重塑机会，可窥探三天机，<br/>从中择选命格以替换旧命。
+            燃烧一次天机逆命符之力，可窥探三条未来命数。<br/>
+            道友可从中择选合意者，替换现有命格，以此逆天改命。
           </p>
           <InkButton 
             variant="primary" 
             onClick={handlePreview}
             disabled={loading || currentUses <= 0}
           >
-            {loading ? '推演中...' : '开始推演'}
+            {loading ? '推演天机中...' : '燃符推演'}
           </InkButton>
           {currentUses <= 0 && (
-             <InkNotice>重塑次数已用尽，请重新使用符箓。</InkNotice>
+             <InkNotice>符箓之力已尽，请重新使用。</InkNotice>
           )}
         </div>
       ) : (
         <div className="space-y-6">
           <InkNotice>
-            请勾选需要<b>移除的旧命格</b>和需要<b>接纳的新命格</b>。<br/>
-            确认后，未勾选的新命格将消散，未勾选的旧命格将保留。
+            请勾选需要<b>舍弃的旧命数</b>和需要<b>承接的新机缘</b>。<br/>
+            确认后，未选之新命将消散归于虚无，未选之旧命将固守道身。
           </InkNotice>
 
-          <InkSection title="【当前命格】（勾选以移除）">
+          <InkSection title="【现有命数】（勾选以舍弃）">
             <InkList>
               {cultivator.pre_heaven_fates.map((fate: PreHeavenFate, idx: number) => (
                 <InkListItem
@@ -164,7 +165,7 @@ export default function FateReshapePage() {
                       className={selectedOldIndices.includes(idx) ? 'bg-red-800 hover:bg-red-700' : ''}
                       onClick={() => toggleOldSelection(idx)}
                     >
-                      {selectedOldIndices.includes(idx) ? '将移除' : '保留'}
+                      {selectedOldIndices.includes(idx) ? '将舍弃' : '固守'}
                     </InkButton>
                   }
                 />
@@ -172,7 +173,7 @@ export default function FateReshapePage() {
             </InkList>
           </InkSection>
 
-          <InkSection title="【新命格预览】（勾选以接纳）">
+          <InkSection title="【推演结果】（勾选以承接）">
             <InkList>
               {previewFates.map((fate, idx) => (
                 <InkListItem
@@ -190,7 +191,7 @@ export default function FateReshapePage() {
                       variant={selectedNewIndices.includes(idx) ? 'primary' : 'outline'}
                       onClick={() => toggleNewSelection(idx)}
                     >
-                      {selectedNewIndices.includes(idx) ? '已选' : '选择'}
+                      {selectedNewIndices.includes(idx) ? '已定' : '契合'}
                     </InkButton>
                   }
                 />
@@ -207,14 +208,14 @@ export default function FateReshapePage() {
                   setSelectedOldIndices([]);
               }}
             >
-              放弃本次
+              道心未定
             </InkButton>
             <InkButton 
               variant="primary" 
               onClick={handleCommit}
               disabled={loading}
             >
-              {loading ? '逆天改命中...' : '确认改命'}
+              {loading ? '逆天改命中...' : '逆转乾坤'}
             </InkButton>
           </InkActionGroup>
         </div>

@@ -46,11 +46,11 @@ export function ActiveTalismans() {
           <div>
             <span className="font-bold text-ink-primary">{talisman.name}</span>
             <span className="mx-2 text-sm opacity-70">
-              剩余 {talisman.remainingDays} 天
+              道韵尚存 {talisman.remainingDays} 日
             </span>
              {talisman.usesRemaining > 0 && (
                  <span className="text-sm opacity-70">
-                   (剩余次数: {talisman.usesRemaining})
+                   （剩余推演次数：{talisman.usesRemaining}）
                  </span>
              )}
           </div>
@@ -66,7 +66,7 @@ export function ActiveTalismans() {
                  }
              }}
           >
-            使用
+            祭出
           </InkButton>
         </InkNotice>
       ))}

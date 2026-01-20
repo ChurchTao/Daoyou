@@ -63,22 +63,25 @@ export async function createTalismans(
 // 预定义符箓模板
 export const TALISMAN_TEMPLATES = {
   reshapeFate: {
-    name: '重塑先天命格符',
+    name: '天机逆命符',
     buffId: 'reshape_fate_talisman',
     expiryDays: 3,
     maxUses: 3,
-    description: '使用后可在3天内重塑先天命格，最多随机3次',
+    description:
+      '以此符遮蔽天机，逆转先天之数。三日内可获三次推演命格之机，择优而栖。',
   },
   drawGongfa: {
-    name: '功法抽取符',
+    name: '悟道演法符',
     buffId: 'draw_gongfa_talisman',
     expiryDays: 3,
-    description: '使用后可在3天内抽取一本功法典籍（玄品及以上）',
+    description:
+      '燃此符可神游太虚，感悟天地至理。三日内可得一次机缘，从虚空中领悟一部玄品以上功法典籍。',
   },
   drawSkill: {
-    name: '神通抽取符',
+    name: '神通衍化符',
     buffId: 'draw_skill_talisman',
     expiryDays: 3,
-    description: '使用后可在3天内抽取一本神通典籍（玄品及以上）',
+    description:
+      '此符蕴含天地法则碎片。三日内可得一次机缘，衍化出一门玄品以上神通秘术。',
   },
 } as const;

@@ -17,8 +17,11 @@ export default function ManualDrawPage() {
   const [result, setResult] = useState<Material | null>(null);
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
 
-  const typeName = type === 'skill' ? '神通' : '功法';
-  const buffId = type === 'skill' ? 'draw_skill_talisman' : 'draw_gongfa_talisman';
+  const isSkill = type === 'skill';
+  const typeName = isSkill ? '神通' : '功法';
+  const pageTitle = isSkill ? '神通衍化' : '悟道演法';
+  const buffId = isSkill ? 'draw_skill_talisman' : 'draw_gongfa_talisman';
+  const talismanName = isSkill ? '神通衍化符' : '悟道演法符';
 
   const persistentStatuses = (cultivator?.persistent_statuses || []) as BuffInstanceState[];
   const hasBuff = persistentStatuses.some(
@@ -34,7 +37,7 @@ export default function ManualDrawPage() {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.error || '抽取失败');
+        throw new Error(data.error || '感悟失败');
       }
 
       setResult(data.manual);
@@ -43,7 +46,7 @@ export default function ManualDrawPage() {
       const msg = error instanceof Error ? error.message : '未知错误';
       setDialog({
         id: 'draw-error',
-        title: '提示',
+        title: '道心不稳',
         content: <p>{msg}</p>,
       });
     } finally {
@@ -59,7 +62,7 @@ export default function ManualDrawPage() {
 
   return (
     <InkPageShell
-      title={`${typeName}抽取`}
+      title={pageTitle}
       subtitle="天道垂青，机缘所至"
       backHref="/game"
     >
@@ -67,16 +70,16 @@ export default function ManualDrawPage() {
         {!result ? (
           <>
             <div className="text-8xl animate-pulse opacity-80">
-              {type === 'skill' ? '⚡' : '📜'}
+              {isSkill ? '⚡' : '📜'}
             </div>
             
             <div className="text-center space-y-2 max-w-xs">
               <p className="text-lg font-bold">
-                消耗{typeName}抽取符
+                燃烧【{talismanName}】
               </p>
               <p className="opacity-70 text-sm">
-                可随机获得一本玄品及以上品质的{typeName}典籍。<br/>
-                如果不满意，那是天意。
+                神游太虚，感应天地法则。<br/>
+                可获天道赐福，得一部玄品以上{typeName}典籍。
               </p>
             </div>
 
@@ -87,18 +90,18 @@ export default function ManualDrawPage() {
                 disabled={loading}
                 className="w-48"
               >
-                {loading ? '感应天机中...' : '立即抽取'}
+                {loading ? '感应天机中...' : (isSkill ? '衍化神通' : '感悟天道')}
               </InkButton>
             ) : (
               <InkNotice className="text-amber-600 border-amber-600/30 bg-amber-600/10">
-                你当前未拥有{typeName}抽取符，无法抽取。
+                你当前未拥有{talismanName}，无法{isSkill ? '衍化' : '感悟'}。
               </InkNotice>
             )}
           </>
         ) : (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
             <InkNotice className="text-center text-emerald-600 border-emerald-600/30 bg-emerald-600/10">
-              恭喜获得新的机缘！
+              福至心灵，机缘已至！
             </InkNotice>
             
             <InkCard>
@@ -126,7 +129,7 @@ export default function ManualDrawPage() {
               className="w-full"
               onClick={handleClose}
             >
-              收入囊中（返回）
+              收纳于心（返回）
             </InkButton>
           </div>
         )}
