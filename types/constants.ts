@@ -154,7 +154,6 @@ export const MATERIAL_TYPE_VALUES = [
   'tcdb',
   'aux',
   'manual',
-  'consumable',
 ] as const;
 export type MaterialType = (typeof MATERIAL_TYPE_VALUES)[number];
 
