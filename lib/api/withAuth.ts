@@ -111,7 +111,7 @@ export function withActiveCultivator<
       }
 
       const resolvedParams = context?.params ? await context.params : ({} as T);
-      return handler(request, { user, cultivator }, resolvedParams);
+      return handler(request, { user, cultivator, db }, resolvedParams);
     } catch (error) {
       console.error('API Error:', error);
       return errorResponse(

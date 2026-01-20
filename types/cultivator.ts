@@ -145,6 +145,22 @@ export interface Material {
   quantity: number;
 }
 
+// 符箓配置（用于消耗品的details字段）
+export interface TalismanConfig {
+  buffId: string;
+  expiryDays: number;
+  maxUses?: number;
+  fatesPerUse?: number;
+  drawType?: 'gongfa' | 'skill';
+}
+
+// 符箓Buff元数据（用于BuffInstance的metadata字段）
+export interface TalismanBuffMetadata {
+  usesRemaining?: number;
+  expiresAt: number;
+  drawType?: 'gongfa' | 'skill';
+}
+
 export interface Inventory {
   artifacts: Artifact[];
   consumables: Consumable[];

@@ -11,12 +11,15 @@ import {
 } from '@/types/constants';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, eq, inArray } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import type {
   BreakthroughHistoryEntry,
   Consumable,
   CultivationProgress,
   Cultivator,
   RetreatRecord,
+  TalismanBuffMetadata,
+  TalismanConfig,
 } from '../../types/cultivator';
 import { getRealmStageAttributeCap } from '../../utils/cultivatorUtils';
 import { db, type DbTransaction } from '../drizzle/db';
@@ -1093,35 +1096,54 @@ export async function getSkills(
 // ===== 装备相关操作 =====
 
 /**
- * 服用丹药
- * todo 使用效果系统重构
+ * 使用消耗品（类型分发入口）
  */
 export async function consumeItem(
   userId: string,
   cultivatorId: string,
   consumableId: string,
 ): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
-  // 1. 验证归属
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  // 2. 查找丹药
   const consumableRows = await db
     .select()
     .from(schema.consumables)
     .where(eq(schema.consumables.id, consumableId));
 
   if (consumableRows.length === 0) {
-    throw new Error('丹药不存在或已消耗');
+    throw new Error('消耗品不存在或已使用');
   }
+
   const item = consumableRows[0];
   if (item.cultivatorId !== cultivatorId) {
-    throw new Error('丹药不属于该道友');
+    throw new Error('消耗品不属于该道友');
   }
 
   const cultivator = await getCultivatorById(userId, cultivatorId);
   if (!cultivator) throw new Error('道友状态异常');
 
-  // 3. 应用效果
+  // 根据类型分发
+  const itemType = item.type as ConsumableType;
+
+  if (itemType === '丹药') {
+    return await consumePill(cultivator, item, userId, cultivatorId);
+  } else if (itemType === '符箓') {
+    return await consumeTalisman(cultivator, item, userId, cultivatorId);
+  }
+
+  throw new Error('未知的消耗品类型');
+}
+
+/**
+ * 使用丹药
+ */
+async function consumePill(
+  cultivator: Cultivator,
+  item: typeof schema.consumables.$inferSelect,
+  userId: string,
+  cultivatorId: string,
+): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
+  // 应用效果
   const effects = (item.effects as EffectConfig[]) || [];
 
   if (effects.length === 0) {
@@ -1135,98 +1157,11 @@ export async function consumeItem(
   }
 
   const newStats = { ...cultivator.attributes };
-  // let message = `服用了【${item.name}】，`;
-  const changes: string[] = [];
-
-  // 获取当前境界属性上限
-  const attrCap = getRealmStageAttributeCap(
-    cultivator.realm,
-    cultivator.realm_stage,
-  );
-
-  // let isFullyCapped = true;
-
-  // // 预检：检查是否所有属性都已达到上限
-  // for (const effect of effects) {
-  //   const bonus = effect.bonus || 0;
-  //   if (bonus > 0) {
-  //     if (effect.effect_type === '永久提升体魄' && newStats.vitality < attrCap)
-  //       isFullyCapped = false;
-  //     if (effect.effect_type === '永久提升灵力' && newStats.spirit < attrCap)
-  //       isFullyCapped = false;
-  //     if (effect.effect_type === '永久提升悟性' && newStats.wisdom < attrCap)
-  //       isFullyCapped = false;
-  //     if (effect.effect_type === '永久提升身法' && newStats.speed < attrCap)
-  //       isFullyCapped = false;
-  //     if (effect.effect_type === '永久提升神识' && newStats.willpower < attrCap)
-  //       isFullyCapped = false;
-  //   }
-  // }
-
-  // if (isFullyCapped && effects.some((e) => e.bonus > 0)) {
-  //   return {
-  //     success: false,
-  //     message: '道友当前境界已臻圆满，无法再吸收药力。请先尝试突破瓶颈。',
-  //     cultivator,
-  //   };
-  // }
-
-  // for (const effect of effects) {
-  //   const bonus = effect.bonus || 0;
-  //   if (bonus > 0) {
-  //     let realGain = 0;
-  //     let targetAttr = '';
-
-  //     if (effect.effect_type === '永久提升体魄') {
-  //       targetAttr = '体魄';
-  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.vitality));
-  //       newStats.vitality += realGain;
-  //     } else if (effect.effect_type === '永久提升灵力') {
-  //       targetAttr = '灵力';
-  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.spirit));
-  //       newStats.spirit += realGain;
-  //     } else if (effect.effect_type === '永久提升悟性') {
-  //       targetAttr = '悟性';
-  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.wisdom));
-  //       newStats.wisdom += realGain;
-  //     } else if (effect.effect_type === '永久提升身法') {
-  //       targetAttr = '身法';
-  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.speed));
-  //       newStats.speed += realGain;
-  //     } else if (effect.effect_type === '永久提升神识') {
-  //       targetAttr = '神识';
-  //       realGain = Math.min(bonus, Math.max(0, attrCap - newStats.willpower));
-  //       newStats.willpower += realGain;
-  //     }
-
-  //     if (realGain > 0) {
-  //       changes.push(`${targetAttr}+${realGain}`);
-  //     } else if (bonus > 0) {
-  //       // 尝试提升但被阻断
-  //       changes.push(`${targetAttr}已至上限`);
-  //     }
-  //   }
-  // }
-
-  // if (changes.length === 0) {
-  //   message += '感觉身体热了一下，除此之外并无变化。';
-  // } else {
-  //   message += '顿感灵台清明，' + changes.join('，') + '。';
-  // }
 
   // 4. 执行事务：消耗丹药 + 更新属性
   await db.transaction(async (tx) => {
     // 消耗丹药
-    if (item.quantity > 1) {
-      await tx
-        .update(schema.consumables)
-        .set({ quantity: item.quantity - 1 })
-        .where(eq(schema.consumables.id, consumableId));
-    } else {
-      await tx
-        .delete(schema.consumables)
-        .where(eq(schema.consumables.id, consumableId));
-    }
+    await handleConsumeItemTx(tx, item.id, item.quantity);
 
     // 更新角色属性
     await tx
@@ -1247,14 +1182,97 @@ export async function consumeItem(
   return { success: true, message: '', cultivator: updatedCultivator };
 }
 
-async function handleConsumeItem(itemId: string, currentQuantity: number) {
+/**
+ * 使用符箓
+ */
+async function consumeTalisman(
+  cultivator: Cultivator,
+  item: typeof schema.consumables.$inferSelect,
+  userId: string,
+  cultivatorId: string,
+): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
+  const talismanConfig = item.details as TalismanConfig;
+  if (!talismanConfig?.buffId) {
+    throw new Error('符箓配置异常');
+  }
+
+  // 检查是否已有同类Buff
+  const currentStatuses = (cultivator.persistent_statuses || []) as any[];
+  const hasExisting = currentStatuses.some(
+    (s) => s.configId === talismanConfig.buffId,
+  );
+  if (hasExisting) {
+    return {
+      success: false,
+      message: '已激活同类符箓效果',
+      cultivator,
+    };
+  }
+
+  // 创建Buff实例
+  const buffInstance = {
+    instanceId: randomUUID(),
+    configId: talismanConfig.buffId,
+    currentStacks: 1,
+    remainingTurns: -1,
+    createdAt: Date.now(),
+    metadata: {
+      expiresAt:
+        Date.now() + talismanConfig.expiryDays * 24 * 60 * 60 * 1000,
+      usesRemaining: talismanConfig.maxUses ?? 1,
+      drawType: talismanConfig.drawType,
+    } as TalismanBuffMetadata,
+  };
+
+  const updatedStatuses = [...currentStatuses, buffInstance];
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.cultivators)
+      .set({ persistent_statuses: updatedStatuses })
+      .where(eq(schema.cultivators.id, cultivatorId));
+
+    await handleConsumeItemTx(tx, item.id, item.quantity);
+  });
+
+  return {
+    success: true,
+    message: `使用了【${item.name}】`,
+    cultivator: (await getCultivatorById(userId, cultivatorId))!,
+  };
+}
+
+/**
+ * 处理消耗品消耗（事务版本）
+ */
+async function handleConsumeItemTx(
+  tx: DbTransaction,
+  itemId: string,
+  quantity: number,
+) {
+  if (quantity > 1) {
+    await tx
+      .update(schema.consumables)
+      .set({ quantity: quantity - 1 })
+      .where(eq(schema.consumables.id, itemId));
+  } else {
+    await tx.delete(schema.consumables).where(eq(schema.consumables.id, itemId));
+  }
+}
+
+async function handleConsumeItem(
+  itemId: string,
+  currentQuantity: number,
+  tx?: DbTransaction,
+) {
+  const dbInstance = tx || db;
   if (currentQuantity > 1) {
-    await db
+    await dbInstance
       .update(schema.consumables)
       .set({ quantity: currentQuantity - 1 })
       .where(eq(schema.consumables.id, itemId));
   } else {
-    await db
+    await dbInstance
       .delete(schema.consumables)
       .where(eq(schema.consumables.id, itemId));
   }

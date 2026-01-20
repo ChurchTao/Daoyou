@@ -94,6 +94,8 @@ export interface BuffInstanceState {
   createdAt: number;
   /** 施法者快照 (用于 DOT 伤害计算) */
   casterSnapshot?: CasterSnapshot;
+  /** 元数据 (用于符箓等特殊Buff的额外数据) */
+  metadata?: Record<string, unknown>;
 }
 
 /**

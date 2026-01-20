@@ -520,6 +520,46 @@ export const persistentBuffTemplates: BuffTemplate[] = [
 ];
 
 // ============================================================
+// 符箓 Buff 模板
+// ============================================================
+
+/**
+ * 符箓消耗品对应的持久Buff模板
+ */
+export const talismanBuffTemplates: BuffTemplate[] = [
+  {
+    id: 'reshape_fate_talisman',
+    name: '重塑先天命格符',
+    descriptionTemplate: '可在有效期内重塑先天命格，剩余{remainingDays}天',
+    maxStacks: 1,
+    duration: -1,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.PERSISTENT, BuffTag.BUFF, BuffTag.UNPURGEABLE],
+    effectTemplates: [],
+  },
+  {
+    id: 'draw_gongfa_talisman',
+    name: '功法抽取符',
+    descriptionTemplate: '可在有效期内抽取功法典籍，剩余{remainingDays}天',
+    maxStacks: 1,
+    duration: -1,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.PERSISTENT, BuffTag.BUFF, BuffTag.UNPURGEABLE],
+    effectTemplates: [],
+  },
+  {
+    id: 'draw_skill_talisman',
+    name: '神通抽取符',
+    descriptionTemplate: '可在有效期内抽取神通典籍，剩余{remainingDays}天',
+    maxStacks: 1,
+    duration: -1,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.PERSISTENT, BuffTag.BUFF, BuffTag.UNPURGEABLE],
+    effectTemplates: [],
+  },
+];
+
+// ============================================================
 // 新增动态 Buff 模板
 // ============================================================
 
@@ -786,5 +826,6 @@ export const advancedBuffTemplates: BuffTemplate[] = [
 export const allBuffTemplates: BuffTemplate[] = [
   ...buffTemplates,
   ...persistentBuffTemplates,
+  ...talismanBuffTemplates,
   ...advancedBuffTemplates,
 ];

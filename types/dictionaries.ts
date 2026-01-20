@@ -422,6 +422,10 @@ export const CONSUMABLE_TYPE_DISPLAY_MAP: Record<
     label: '丹药',
     icon: '🌕',
   },
+  符箓: {
+    label: '符箓',
+    icon: '📜',
+  },
 };
 
 export function getConsumableTypeLabel(type: ConsumableType): string {
@@ -462,10 +466,6 @@ export const MATERIAL_TYPE_DISPLAY_MAP: Record<
   manual: {
     label: '功法典籍',
     icon: '📖',
-  },
-  consumable: {
-    label: '消耗品',
-    icon: '🍶',
   },
 };
 

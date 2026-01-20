@@ -65,7 +65,7 @@ export const EQUIPMENT_SLOT_VALUES = ['weapon', 'armor', 'accessory'] as const;
 export type EquipmentSlot = (typeof EQUIPMENT_SLOT_VALUES)[number];
 
 // 消耗品类型
-export const CONSUMABLE_TYPE_VALUES = ['丹药'] as const;
+export const CONSUMABLE_TYPE_VALUES = ['丹药', '符箓'] as const;
 export type ConsumableType = (typeof CONSUMABLE_TYPE_VALUES)[number];
 
 // 性别

@@ -162,13 +162,14 @@ export const consumables = pgTable('wanjiedaoyou_consumables', {
     .references(() => cultivators.id, { onDelete: 'cascade' })
     .notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 20 }).notNull(), // 丹药
+  type: varchar('type', { length: 20 }).notNull(), // 丹药 | 符箓
   prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
   quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
   effects: jsonb('effects').default([]), // EffectConfig[]
   quantity: integer('quantity').notNull().default(1),
   description: text('description'),
   score: integer('score').notNull().default(0), // 评分
+  details: jsonb('details'), // 符箓配置等额外数据
   createdAt: timestamp('created_at').defaultNow(),
 });
 
