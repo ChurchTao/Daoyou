@@ -173,9 +173,73 @@ async function assembleCultivator(
       cultivatorRecord.realm as Cultivator['realm'],
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
+    // 持久化状态（如符箓效果）
+    persistent_statuses: (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) || [],
   };
 
   return cultivator;
+}
+
+/**
+ * 从数据库记录创建最小化的 Cultivator 对象
+ * 仅包含效果引擎需要的核心字段，避免查询关联表
+ * 用于需要快速访问角色基础信息和属性的场景
+ *
+ * @param cultivatorRecord - 数据库中的 cultivators 表记录
+ * @returns 最小化的 Cultivator 对象
+ */
+export function createMinimalCultivator(
+  cultivatorRecord: typeof schema.cultivators.$inferSelect,
+): Cultivator {
+  return {
+    id: cultivatorRecord.id,
+    name: cultivatorRecord.name,
+    gender: cultivatorRecord.gender as Cultivator['gender'] || undefined,
+    origin: cultivatorRecord.origin || undefined,
+    personality: cultivatorRecord.personality || undefined,
+    background: cultivatorRecord.background || undefined,
+    title: cultivatorRecord.title || undefined,
+    prompt: cultivatorRecord.prompt,
+    realm: cultivatorRecord.realm as Cultivator['realm'],
+    realm_stage: cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+    age: cultivatorRecord.age,
+    lifespan: cultivatorRecord.lifespan,
+    status: (cultivatorRecord.status as Cultivator['status']) ?? 'active',
+    closed_door_years_total: cultivatorRecord.closedDoorYearsTotal ?? undefined,
+    retreat_records: undefined,
+    breakthrough_history: undefined,
+    attributes: {
+      vitality: cultivatorRecord.vitality,
+      spirit: cultivatorRecord.spirit,
+      wisdom: cultivatorRecord.wisdom,
+      speed: cultivatorRecord.speed,
+      willpower: cultivatorRecord.willpower,
+    },
+    spiritual_roots: [],
+    pre_heaven_fates: [],
+    cultivations: [],
+    skills: [],
+    inventory: {
+      artifacts: [],
+      consumables: [],
+      materials: [],
+    },
+    equipped: {
+      weapon: null,
+      armor: null,
+      accessory: null,
+    },
+    max_skills: cultivatorRecord.max_skills,
+    spirit_stones: cultivatorRecord.spirit_stones,
+    last_yield_at: cultivatorRecord.last_yield_at || new Date(),
+    balance_notes: cultivatorRecord.balance_notes || undefined,
+    cultivation_progress: getOrInitCultivationProgress(
+      cultivatorRecord.cultivation_progress as CultivationProgress,
+      cultivatorRecord.realm as Cultivator['realm'],
+      cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+    ),
+    persistent_statuses: (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) || [],
+  };
 }
 
 /**
@@ -1117,8 +1181,21 @@ export async function consumeItem(
     throw new Error('消耗品不属于该道友');
   }
 
-  const cultivator = await getCultivatorById(userId, cultivatorId);
-  if (!cultivator) throw new Error('道友状态异常');
+  // 只查询角色主表，避免关联表查询
+  const cultivatorRows = await db
+    .select()
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId))
+    .limit(1);
+
+  if (cultivatorRows.length === 0) {
+    throw new Error('道友不存在');
+  }
+
+  const cultivatorRecord = cultivatorRows[0];
+
+  // 创建最小化的 Cultivator 对象，仅包含效果引擎需要的字段
+  const cultivator = createMinimalCultivator(cultivatorRecord);
 
   // 读取效果配置
   const effects = (item.effects ?? []) as EffectConfig[];
@@ -1214,6 +1291,7 @@ export async function consumeItem(
     await handleConsumeItemTx(tx, item.id, item.quantity);
   });
 
+  // 只在最后查询一次完整数据用于返回
   return {
     success: true,
     message: finalMessage,

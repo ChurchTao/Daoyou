@@ -61,7 +61,7 @@ export const POST = withActiveCultivator(
       );
     }
 
-    // 如果指定了替换索引
+    // 删除旧命格（如果指定了替换索引）
     if (replaceIndices && replaceIndices.length > 0) {
       // 从数据库查询当前命格
       const currentFates = await tx
@@ -78,17 +78,17 @@ export const POST = withActiveCultivator(
             .where(eq(preHeavenFates.id, oldFate.id));
         }
       }
+    }
 
-      // 添加新命格
-      for (const fate of newFates) {
-        await tx.insert(preHeavenFates).values({
-          cultivatorId: cultivator.id!,
-          name: fate.name,
-          quality: fate.quality,
-          effects: fate.effects as EffectConfig[],
-          description: fate.description,
-        });
-      }
+    // 添加新命格（独立于删除操作）
+    for (const fate of newFates) {
+      await tx.insert(preHeavenFates).values({
+        cultivatorId: cultivator.id!,
+        name: fate.name,
+        quality: fate.quality,
+        effects: fate.effects as EffectConfig[],
+        description: fate.description,
+      });
     }
 
     // 移除Redis缓存
@@ -104,11 +104,16 @@ export const POST = withActiveCultivator(
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));
 
+    const deleteCount = replaceIndices?.length ?? 0;
+    const addCount = newFates.length;
+
     return NextResponse.json({
       success: true,
-      message: replaceIndices?.length
-        ? `成功重塑 ${replaceIndices.length} 个先天命格`
-        : '已放弃重塑',
+      message: deleteCount > 0
+        ? `成功重塑 ${deleteCount} 个先天命格（新增 ${addCount} 个）`
+        : addCount > 0
+          ? `成功获得 ${addCount} 个新命格`
+          : '已放弃重塑',
     });
   },
 );

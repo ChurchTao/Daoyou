@@ -74,7 +74,7 @@ test('test 发送符箓邮件', async () => {
     {
       type: 'consumable' as MailAttachmentType,
       name: '天机逆命符',
-      quantity: 1,
+      quantity: 3,
       data: SPECIAL_TALISMAN_CONFIG.天机逆命符,
     },
     {
