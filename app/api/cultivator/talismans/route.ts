@@ -1,5 +1,5 @@
-import { withActiveCultivator } from '@/lib/api/withAuth';
 import type { BuffInstanceState } from '@/engine/buff/types';
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -27,9 +27,9 @@ export const GET = withActiveCultivator(
         );
 
         const names: Record<string, string> = {
-          reshape_fate_talisman: '天机逆命符',
-          draw_gongfa_talisman: '悟道演法符',
-          draw_skill_talisman: '神通衍化符',
+          reshape_fate_talisman: '逆天改命',
+          draw_gongfa_talisman: '神游太虚',
+          draw_skill_talisman: '法则加身',
         };
 
         return {
@@ -37,7 +37,8 @@ export const GET = withActiveCultivator(
           instanceId: buff.instanceId,
           name: names[buff.configId] || buff.configId,
           remainingDays,
-          usesRemaining: (buff.metadata?.usesRemaining as number | undefined) ?? 0,
+          usesRemaining:
+            (buff.metadata?.usesRemaining as number | undefined) ?? 0,
           expiresAt,
         };
       });

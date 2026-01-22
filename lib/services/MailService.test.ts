@@ -80,13 +80,13 @@ test('test 发送符箓邮件', async () => {
     {
       type: 'consumable' as MailAttachmentType,
       name: '悟道演法符',
-      quantity: 1,
+      quantity: 3,
       data: SPECIAL_TALISMAN_CONFIG.悟道演法符,
     },
     {
       type: 'consumable' as MailAttachmentType,
       name: '神通衍化符',
-      quantity: 1,
+      quantity: 3,
       data: SPECIAL_TALISMAN_CONFIG.神通衍化符,
     },
   ];

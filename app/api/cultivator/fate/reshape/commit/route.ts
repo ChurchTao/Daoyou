@@ -37,6 +37,22 @@ export const POST = withActiveCultivator(
     const body = await request.json();
     const { selectedIndices, replaceIndices } = CommitSchema.parse(body);
 
+    // 校验：无修改不允许提交
+    if ((!replaceIndices || replaceIndices.length === 0) && selectedIndices.length === 0) {
+      return NextResponse.json(
+        { error: '未作任何更改，无法逆转乾坤' },
+        { status: 400 },
+      );
+    }
+
+    // 校验：一次最多舍弃3个旧命数
+    if (replaceIndices && replaceIndices.length > 3) {
+      return NextResponse.json(
+        { error: `一次最多舍弃3个命数，当前已选${replaceIndices.length}个` },
+        { status: 400 },
+      );
+    }
+
     // 从Redis获取暂存的命格
     const cachedFates = await redis.get<GeneratedFate[]>(
       `fate_reshape_pending:${cultivator.id}`,
@@ -61,14 +77,14 @@ export const POST = withActiveCultivator(
       );
     }
 
+    // 从数据库查询当前命格
+    const currentFates = await tx
+      .select()
+      .from(preHeavenFates)
+      .where(eq(preHeavenFates.cultivatorId, cultivator.id!));
+
     // 删除旧命格（如果指定了替换索引）
     if (replaceIndices && replaceIndices.length > 0) {
-      // 从数据库查询当前命格
-      const currentFates = await tx
-        .select()
-        .from(preHeavenFates)
-        .where(eq(preHeavenFates.cultivatorId, cultivator.id!));
-
       // 删除旧命格（根据索引）
       for (const index of replaceIndices) {
         if (index >= 0 && index < currentFates.length) {
@@ -78,6 +94,18 @@ export const POST = withActiveCultivator(
             .where(eq(preHeavenFates.id, oldFate.id));
         }
       }
+    }
+
+    // 检查命格总数不能超过3个
+    const deleteCount = replaceIndices?.length ?? 0;
+    const finalFateCount = currentFates.length - deleteCount + newFates.length;
+    if (finalFateCount > 3) {
+      return NextResponse.json(
+        {
+          error: `先天命格总数不能超过3个。当前${currentFates.length}个，删除${deleteCount}个，新增${newFates.length}个，最终${finalFateCount}个`,
+        },
+        { status: 400 },
+      );
     }
 
     // 添加新命格（独立于删除操作）
@@ -104,7 +132,6 @@ export const POST = withActiveCultivator(
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));
 
-    const deleteCount = replaceIndices?.length ?? 0;
     const addCount = newFates.length;
 
     return NextResponse.json({

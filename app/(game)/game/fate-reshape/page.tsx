@@ -1,5 +1,6 @@
 'use client';
 
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkPageShell, InkSection } from '@/components/layout';
 import {
   InkActionGroup,
@@ -21,6 +22,7 @@ import { useCallback, useEffect, useState } from 'react';
 export default function FateReshapePage() {
   const router = useRouter();
   const { cultivator, refresh } = useCultivator();
+  const { pushToast, openDialog } = useInkUI();
   const [loading, setLoading] = useState(false);
   const [previewFates, setPreviewFates] = useState<GeneratedFate[] | null>(
     null,
@@ -82,8 +84,7 @@ export default function FateReshapePage() {
       setSelectedNewIndices([]);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '未知错误';
-      setDialog({
-        id: 'preview-error',
+      openDialog({
         title: '推演受阻',
         content: <p>{msg}</p>,
       });
@@ -93,6 +94,26 @@ export default function FateReshapePage() {
   };
 
   const handleCommit = async () => {
+    // 校验提示
+    const hasNoChanges =
+      selectedOldIndices.length === 0 && selectedNewIndices.length === 0;
+    if (hasNoChanges) {
+      pushToast({
+        message: '未作任何更改，无法逆转乾坤',
+        tone: 'warning',
+      });
+      return;
+    }
+
+    const tooManyOld = selectedOldIndices.length > 3;
+    if (tooManyOld) {
+      pushToast({
+        message: `一次最多舍弃3个命数，当前已选${selectedOldIndices.length}个`,
+        tone: 'warning',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/cultivator/fate/reshape/commit', {
@@ -121,8 +142,7 @@ export default function FateReshapePage() {
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '未知错误';
-      setDialog({
-        id: 'commit-error',
+      openDialog({
         title: '逆天失败',
         content: <p>{msg}</p>,
       });
@@ -155,9 +175,9 @@ export default function FateReshapePage() {
       backHref="/game"
     >
       {!previewFates ? (
-        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <div className="text-6xl mb-4">🔮</div>
-          <p className="text-lg opacity-80 text-center max-w-xs">
+        <div className="flex flex-col items-center justify-center space-y-4 py-12">
+          <div className="mb-4 text-6xl">🔮</div>
+          <p className="max-w-xs text-center text-lg opacity-80">
             燃烧一次天机逆命符之力，可窥探三条未来命数。
             <br />
             道友可从中择选合意者，替换现有命格，以此逆天改命。
@@ -191,20 +211,13 @@ export default function FateReshapePage() {
                   <InkListItem
                     key={idx}
                     title={
-                      <span
-                        className={
-                          selectedOldIndices.includes(idx)
-                            ? 'line-through opacity-50'
-                            : ''
-                        }
-                      >
-                        {fate.name}
-                      </span>
+                      <div className="flex items-center">
+                        <span className="text-ink-secondary">{fate.name}</span>
+                        {fate.quality && <InkBadge tier={fate.quality} />}
+                      </div>
                     }
-                    meta={
-                      <InkBadge tier={fate.quality}>{fate.quality}</InkBadge>
-                    }
-                    description={formatEffectsText(fate.effects)}
+                    meta={formatEffectsText(fate.effects)}
+                    description={fate.description}
                     actions={
                       <InkButton
                         variant={
@@ -233,16 +246,14 @@ export default function FateReshapePage() {
               {previewFates.map((fate, idx) => (
                 <InkListItem
                   key={idx}
-                  title={fate.name}
-                  meta={<InkBadge tier={fate.quality}>{fate.quality}</InkBadge>}
-                  description={
-                    <div className="space-y-1">
-                      <div>{fate.description}</div>
-                      <div className="text-xs opacity-70">
-                        {formatEffectsText(fate.effects)}
-                      </div>
+                  title={
+                    <div className="flex items-center">
+                      <span className="text-ink-secondary">{fate.name}</span>
+                      {fate.quality && <InkBadge tier={fate.quality} />}
                     </div>
                   }
+                  meta={formatEffectsText(fate.effects)}
+                  description={fate.description}
                   actions={
                     <InkButton
                       variant={
@@ -261,13 +272,14 @@ export default function FateReshapePage() {
           <InkActionGroup>
             <InkButton
               variant="secondary"
-              onClick={() => {
-                setPreviewFates(null);
+              onClick={async () => {
                 setSelectedNewIndices([]);
                 setSelectedOldIndices([]);
+                await handlePreview();
               }}
+              disabled={loading || currentUses < 1}
             >
-              道心未定
+              {loading ? '推演天机中...' : `重新推演（剩余${currentUses}次）`}
             </InkButton>
             <InkButton
               variant="primary"

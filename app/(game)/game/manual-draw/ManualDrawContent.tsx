@@ -1,13 +1,12 @@
 'use client';
 
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkPageShell } from '@/components/layout';
 import {
   InkBadge,
   InkButton,
   InkCard,
-  InkDialog,
   InkNotice,
-  type InkDialogState,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Material } from '@/types/cultivator';
@@ -19,9 +18,9 @@ export function ManualDrawContent() {
   const type = searchParams.get('type');
   const router = useRouter();
   const { cultivator, refresh } = useCultivator();
+  const { pushToast, openDialog } = useInkUI();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Material | null>(null);
-  const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [hasBuff, setHasBuff] = useState(false);
   const [checkingBuff, setCheckingBuff] = useState(false);
 
@@ -76,10 +75,13 @@ export function ManualDrawContent() {
 
       setResult(data.manual);
       refresh();
+      pushToast({
+        message: '福至心灵，机缘已至！',
+        tone: 'success',
+      });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '未知错误';
-      setDialog({
-        id: 'draw-error',
+      openDialog({
         title: '道心不稳',
         content: <p>{msg}</p>,
       });
@@ -139,10 +141,6 @@ export function ManualDrawContent() {
           </>
         ) : (
           <div className="animate-in fade-in zoom-in w-full max-w-md space-y-6 duration-500">
-            <InkNotice className="bg-emerald-600/10 text-emerald-600">
-              福至心灵，机缘已至！
-            </InkNotice>
-
             <InkCard>
               <div className="flex flex-col items-center space-y-4 p-6">
                 <div className="text-6xl">📚</div>
@@ -173,8 +171,6 @@ export function ManualDrawContent() {
           </div>
         )}
       </div>
-
-      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>
   );
 }
