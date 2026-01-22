@@ -1,9 +1,7 @@
 import { Attributes } from '@/types/cultivator';
+import { getAttributeInfo, getAttributeLabel } from '@/types/dictionaries';
 import { BaseEffect } from '../BaseEffect';
-import {
-  EffectTrigger,
-  type EffectContext,
-} from '../types';
+import { EffectTrigger, type EffectContext } from '../types';
 
 /**
  * 消耗品属性修正参数
@@ -72,7 +70,7 @@ export class ConsumeStatModifierEffect extends BaseEffect {
     // 记录日志
     const addOrMinus = this.value > 0 ? '增加' : '减少';
     const value = Math.abs(this.value);
-    const stateText = this.renderState(this.stat);
+    const stateText = getAttributeLabel(this.stat);
     const unit = this.modType === 'percent' ? '%' : '点';
 
     ctx.logCollector?.addLog(
@@ -83,29 +81,13 @@ export class ConsumeStatModifierEffect extends BaseEffect {
   displayInfo() {
     const addOrMinus = this.value > 0 ? '增加' : '减少';
     const value = Math.abs(this.value);
-    const stateText = this.renderState(this.stat);
+    const info = getAttributeInfo(this.stat);
+    const stateText = info.label;
 
     return {
       label: '永久属性修正',
-      icon: '',
+      icon: info.icon,
       description: `使用后${addOrMinus}${stateText}${value}${this.modType === 'percent' ? '%' : '点'}`,
     };
-  }
-
-  private renderState(state: keyof Attributes): string {
-    switch (state) {
-      case 'vitality':
-        return '体魄';
-      case 'spirit':
-        return '灵力';
-      case 'wisdom':
-        return '悟性';
-      case 'speed':
-        return '速度';
-      case 'willpower':
-        return '神识';
-      default:
-        return state;
-    }
   }
 }

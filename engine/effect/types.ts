@@ -387,7 +387,7 @@ type EffectConfigParam =
 
 export interface StatModifierParams {
   /** 要修改的属性名 */
-  stat: string;
+  stat: keyof Attributes;
   /** 修正类型 */
   modType: StatModifierType;
   /** 修正值 (固定值时为具体数值，百分比时为小数如0.1表示10%) */
@@ -452,6 +452,7 @@ import type {
   BuffMaterializationContext,
   BuffParamsOverride,
 } from '@/engine/buff/types';
+import { Attributes } from '@/types/cultivator';
 
 export interface AddBuffParams {
   /** Buff 配置 ID */

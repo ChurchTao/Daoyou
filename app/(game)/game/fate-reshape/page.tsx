@@ -1,7 +1,7 @@
 'use client';
 
-import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkPageShell, InkSection } from '@/components/layout';
+import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
@@ -12,9 +12,10 @@ import {
   InkNotice,
   type InkDialogState,
 } from '@/components/ui';
+import { EffectConfig } from '@/engine/effect';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { formatEffectsText } from '@/lib/utils/effectDisplay';
+import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import type { PreHeavenFate } from '@/types/cultivator';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -104,11 +105,16 @@ export default function FateReshapePage() {
       });
       return;
     }
+    // 校验命格数量限制：最多3个
+    const currentFatesCount = cultivator?.pre_heaven_fates.length || 3;
+    const newFatesCount = selectedNewIndices.length;
+    const discardFatesCount = selectedOldIndices.length;
+    const finalFatesCount =
+      currentFatesCount + newFatesCount - discardFatesCount;
 
-    const tooManyOld = selectedOldIndices.length > 3;
-    if (tooManyOld) {
+    if (finalFatesCount > 3) {
       pushToast({
-        message: `一次最多舍弃3个命数，当前已选${selectedOldIndices.length}个`,
+        message: `命数过多，肉身难承其重，至多可持三道先天命格（将拥有${finalFatesCount}道）`,
         tone: 'warning',
       });
       return;
@@ -166,6 +172,20 @@ export default function FateReshapePage() {
     }
   };
 
+  const renderEffectsList = (effects: EffectConfig[]) => {
+    if (!effects || effects.length === 0) return null;
+    const infos = formatAllEffects(effects);
+    return (
+      <ul className="list-inside list-disc space-y-1">
+        {infos.map((e, i) => (
+          <li key={i}>
+            {e.icon} {e.description}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   if (!cultivator) return null;
 
   return (
@@ -216,7 +236,7 @@ export default function FateReshapePage() {
                         {fate.quality && <InkBadge tier={fate.quality} />}
                       </div>
                     }
-                    meta={formatEffectsText(fate.effects)}
+                    meta={renderEffectsList(fate.effects || [])}
                     description={fate.description}
                     actions={
                       <InkButton
@@ -224,11 +244,6 @@ export default function FateReshapePage() {
                           selectedOldIndices.includes(idx)
                             ? 'primary'
                             : 'secondary'
-                        }
-                        className={
-                          selectedOldIndices.includes(idx)
-                            ? 'bg-red-800 hover:bg-red-700'
-                            : ''
                         }
                         onClick={() => toggleOldSelection(idx)}
                       >
@@ -252,7 +267,7 @@ export default function FateReshapePage() {
                       {fate.quality && <InkBadge tier={fate.quality} />}
                     </div>
                   }
-                  meta={formatEffectsText(fate.effects)}
+                  meta={renderEffectsList(fate.effects)}
                   description={fate.description}
                   actions={
                     <InkButton

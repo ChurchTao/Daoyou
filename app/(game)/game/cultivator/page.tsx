@@ -16,8 +16,9 @@ import {
   InkStatusBar,
 } from '@/components/ui';
 import { CultivatorUnit } from '@/engine/cultivator';
+import { EffectConfig } from '@/engine/effect';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { formatEffectsText } from '@/lib/utils/effectDisplay';
+import { formatAllEffects, formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
@@ -93,9 +94,18 @@ export default function CultivatorPage() {
         equipped.accessory === item.id),
   );
 
-  // 获取命格属性加成说明
-  const getFateModText = (fate: (typeof cultivator.pre_heaven_fates)[0]) => {
-    return formatEffectsText(fate.effects);
+  const renderEffectsList = (effects: EffectConfig[]) => {
+    if (!effects || effects.length === 0) return null;
+    const infos = formatAllEffects(effects);
+    return (
+      <ul className="list-inside list-disc space-y-1">
+        {infos.map((e, i) => (
+          <li key={i}>
+            {e.icon} {e.description}
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   return (
@@ -197,7 +207,7 @@ export default function CultivatorPage() {
                     {fate.quality && <InkBadge tier={fate.quality} />}
                   </div>
                 }
-                meta={`加成：${getFateModText(fate)}`}
+                meta={renderEffectsList(fate?.effects || [])}
                 description={fate.description}
               />
             ))}

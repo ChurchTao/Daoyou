@@ -86,7 +86,7 @@ export class ManaRegenEffect extends BaseEffect {
     return {
       label: '法力回复',
       icon: '🔮',
-      description: `每回合回复${parts.join(' + ')}法力`,
+      description: `每回合回复${parts.join(' + ')}`,
     };
   }
 }
