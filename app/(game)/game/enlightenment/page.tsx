@@ -40,7 +40,7 @@ export default function EnlightenmentPage() {
             </InkButton>
           </InkCard>
 
-          <InkCard className="p-4 flex flex-col items-center text-center opacity-60">
+          <InkCard className="p-4 flex flex-col items-center text-center">
             <div className="text-4xl mb-2">📖</div>
             <h3 className="text-xl font-bold text-ink-primary mb-2">
               【功法参悟】
@@ -48,10 +48,10 @@ export default function EnlightenmentPage() {
             <p className="text-sm text-ink-secondary mb-4 min-h-10">
               参悟大道法则，创造修炼功法。
               <br />
-              (暂未开放)
+              需消耗功法典籍。
             </p>
-            <InkButton disabled variant="secondary">
-              暂未开放
+            <InkButton href="/game/enlightenment/gongfa" variant="primary">
+              开始参悟
             </InkButton>
           </InkCard>
         </div>
@@ -63,10 +63,14 @@ export default function EnlightenmentPage() {
           <p>
             • <strong>神通推演</strong>
             ：基于自身灵根、悟性与法宝，创造独特的主动技能。
+            <br />
+            需消耗功法典籍作为灵感来源。
           </p>
           <p>
             • <strong>功法参悟</strong>
-            ：创造被动功法，提升基础属性与修炼速度（暂未开放）。
+            ：创造被动功法，提升基础属性与修炼速度。
+            <br />
+            需消耗功法典籍作为参悟基础。
           </p>
         </div>
       </InkSection>

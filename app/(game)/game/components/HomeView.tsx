@@ -51,7 +51,7 @@ export function HomeView() {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">正在推演天机……</p>
       </div>
     );
@@ -99,7 +99,7 @@ export function HomeView() {
                 <div className="flex items-center">
                   🏅 称号：
                   {cultivator.title ? (
-                    <span className="font-bold text-ink">
+                    <span className="text-ink font-bold">
                       「{cultivator.title}」
                     </span>
                   ) : (
@@ -110,7 +110,7 @@ export function HomeView() {
               }
               description={
                 <InkStatusBar
-                  className="grid! grid-cols-3! gap-2 mt-3"
+                  className="mt-3 grid! grid-cols-3! gap-2"
                   items={statusItems}
                 />
               }
@@ -131,7 +131,7 @@ export function HomeView() {
             </InkNotice>
             <InkNotice>
               曾在此修炼？
-              <InkButton href="/create" variant="primary">
+              <InkButton href="/login" variant="primary">
                 召回真身
               </InkButton>
             </InkNotice>

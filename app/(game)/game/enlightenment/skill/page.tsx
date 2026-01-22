@@ -16,20 +16,40 @@ import {
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
-import { Skill } from '@/types/cultivator'; // Assuming Skill type exists
+import { Material, Skill } from '@/types/cultivator';
 import { getElementInfo } from '@/types/dictionaries';
+import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+const MAX_MATERIALS = 5;
+
 export default function SkillCreationPage() {
-  const { cultivator, finalAttributes, refresh, note, isLoading } =
-    useCultivator();
+  const { cultivator, refreshInventory, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
-  const [createdSkill, setCreatedSkill] = useState<Skill | null>(null); // State for modal
+  const [createdSkill, setCreatedSkill] = useState<Skill | null>(null);
+  const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
   const { pushToast } = useInkUI();
   const pathname = usePathname();
+
+  const toggleMaterial = (id: string) => {
+    setSelectedMaterialIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((mid) => mid !== id);
+      }
+      if (prev.length >= MAX_MATERIALS) {
+        pushToast({
+          message: `悟道精力有限，最多参悟 ${MAX_MATERIALS} 种典籍`,
+          tone: 'warning',
+        });
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
 
   const handleSubmit = async () => {
     if (!cultivator) {
@@ -40,6 +60,26 @@ export default function SkillCreationPage() {
     if (!prompt.trim()) {
       pushToast({
         message: '请注入神念，描述神通法门。',
+        tone: 'warning',
+      });
+      return;
+    }
+
+    if (selectedMaterialIds.length === 0) {
+      pushToast({ message: '请选择要参悟的功法典籍。', tone: 'warning' });
+      return;
+    }
+
+    // 检查是否包含典籍
+    const hasManual = selectedMaterialIds.some((id) =>
+      cultivator.inventory?.materials.find(
+        (m) => m.id === id && m.type === 'manual',
+      ),
+    );
+
+    if (!hasManual) {
+      pushToast({
+        message: '参悟必须以功法典籍(manual)为核心。',
         tone: 'warning',
       });
       return;
@@ -56,7 +96,7 @@ export default function SkillCreationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          materialIds: [], // Skills use no materials
+          materialIds: selectedMaterialIds,
           prompt: prompt,
           craftType: 'create_skill',
         }),
@@ -68,13 +108,14 @@ export default function SkillCreationPage() {
       }
 
       const skill = result.data;
-      setCreatedSkill(skill); // Open modal with result
+      setCreatedSkill(skill);
 
       const successMessage = `神通【${skill.name}】推演成功！`;
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
-      refresh();
+      setSelectedMaterialIds([]);
+      await refreshInventory();
     } catch (error) {
       const failMessage =
         error instanceof Error
@@ -95,19 +136,10 @@ export default function SkillCreationPage() {
     );
   }
 
-  // Calculate Context for Display
-  const roots =
-    cultivator?.spiritual_roots
-      .map((r) => `${r.element}(${r.strength})`)
-      .join(', ') || '无';
-
-  const equippedWeaponId = cultivator?.equipped.weapon;
-  const equippedWeapon = cultivator?.inventory.artifacts.find(
-    (a) => a.id === equippedWeaponId,
-  );
-  const weaponDisplayName = equippedWeapon
-    ? `${equippedWeapon.name} [${equippedWeapon.element}]`
-    : '赤手空拳';
+  // Filter materials to only show manual type
+  const validMaterials = cultivator?.inventory?.materials.filter(
+    (m) => m.type === 'manual',
+  ) || [];
 
   const createdSkillRender = (createdSkill: Skill) => {
     if (!createdSkill) return null;
@@ -170,37 +202,76 @@ export default function SkillCreationPage() {
         <InkActionGroup align="between">
           <InkButton href="/game/enlightenment">返回</InkButton>
           <span className="text-ink-secondary text-xs">
-            推演消耗大量心力，请慎重。
+            {selectedMaterialIds.length > 0
+              ? `已选 ${selectedMaterialIds.length} 种典籍`
+              : '请选择典籍开始参悟'}
           </span>
         </InkActionGroup>
       }
     >
-      <InkSection title="1. 自身底蕴">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <InkList dense>
-            <InkListItem
-              title="当前境界"
-              description={`${cultivator?.realm} ${cultivator?.realm_stage}`}
-            />
-            <InkListItem
-              title="悟性"
-              description={`${finalAttributes?.final?.wisdom} （决定神通品阶上限）`}
-            />
-          </InkList>
-          <InkList dense>
-            <InkListItem
-              title="灵根属性"
-              description={`${roots} （决定元素亲和）`}
-            />
-            <InkListItem
-              title="手持兵刃"
-              description={`${weaponDisplayName} （决定施法形态）`}
-            />
-          </InkList>
-        </div>
-        <InkNotice tone="info">
-          提示：创造的神通若与灵根、武器不匹配，威力将大打折扣，甚至推演失败。
-        </InkNotice>
+      <InkSection title="1. 甄选典籍">
+        {validMaterials.length > 0 ? (
+          <div className="max-h-60 overflow-y-auto border border-ink-border rounded p-2">
+            <InkList dense>
+              {validMaterials.map((m) => {
+                const typeInfo = getMaterialTypeInfo(m.type);
+                const isSelected = selectedMaterialIds.includes(m.id!);
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => !isSubmitting && toggleMaterial(m.id!)}
+                    className={`cursor-pointer border-b border-ink-border/30 last:border-0 p-2 transition-colors ${
+                      isSelected ? 'bg-orange-900/10' : 'hover:bg-ink-primary/5'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          readOnly
+                          className="accent-ink-primary"
+                        />
+                        <span className="font-bold">
+                          {typeInfo.icon} {m.name}
+                        </span>
+                        <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-ink-secondary">
+                          x{m.quantity}
+                        </span>
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <InkButton
+                            variant="secondary"
+                            className="text-xs leading-none"
+                            onClick={() => {
+                              setViewingMaterial(m);
+                            }}
+                          >
+                            详情
+                          </InkButton>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-ink-secondary ml-6 mt-1 truncate">
+                      {m.description || '无描述'}
+                    </div>
+                  </div>
+                );
+              })}
+            </InkList>
+          </div>
+        ) : (
+          <InkNotice>囊中羞涩，暂无典籍。</InkNotice>
+        )}
+        <p className="text-right text-xs text-ink-secondary mt-1">
+          {selectedMaterialIds.length}/{MAX_MATERIALS}
+        </p>
       </InkSection>
 
       <InkSection title="2. 注入神念">
@@ -232,6 +303,7 @@ export default function SkillCreationPage() {
             onClick={() => {
               setPrompt('');
               setStatus('');
+              setSelectedMaterialIds([]);
             }}
             disabled={isSubmitting}
           >
@@ -240,7 +312,9 @@ export default function SkillCreationPage() {
           <InkButton
             variant="primary"
             onClick={handleSubmit}
-            disabled={isSubmitting || !prompt.trim()}
+            disabled={
+              isSubmitting || !prompt.trim() || selectedMaterialIds.length === 0
+            }
           >
             {isSubmitting ? '推演中……' : '开始推演'}
           </InkButton>
@@ -256,6 +330,39 @@ export default function SkillCreationPage() {
       {/* Result Modal */}
       <InkModal isOpen={!!createdSkill} onClose={() => setCreatedSkill(null)}>
         {createdSkill && createdSkillRender(createdSkill)}
+      </InkModal>
+
+      {/* Material Detail Modal */}
+      <InkModal
+        isOpen={!!viewingMaterial}
+        onClose={() => setViewingMaterial(null)}
+      >
+        {viewingMaterial && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="text-4xl p-2 bg-ink/5 rounded-lg border border-ink/10">
+                {getMaterialTypeInfo(viewingMaterial.type).icon}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold ">{viewingMaterial.name}</h3>
+                  <InkBadge tier={viewingMaterial.rank}>
+                    {`${getMaterialTypeInfo(viewingMaterial.type).label} · ${viewingMaterial.element}`}
+                  </InkBadge>
+                </div>
+                <p className="text-sm text-ink-secondary">
+                  拥有数量：{viewingMaterial.quantity}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-ink/5 p-3 rounded-lg border border-ink/10">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {viewingMaterial.description || '此物灵韵内敛，暂无详细记载。'}
+              </p>
+            </div>
+          </div>
+        )}
       </InkModal>
     </InkPageShell>
   );

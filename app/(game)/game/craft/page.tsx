@@ -54,21 +54,6 @@ export default function CraftPage() {
               前往炼丹房
             </InkButton>
           </InkCard>
-
-          <InkCard className="p-4 flex flex-col items-center text-center">
-            <div className="text-4xl mb-2">📖</div>
-            <h3 className="text-xl font-bold text-ink-primary mb-2">
-              【参悟之道】
-            </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-10">
-              研习功法典籍，参悟神通妙法。
-              <br />
-              需消耗功法残页或典籍。
-            </p>
-            <InkButton href="/game/craft/enlighten" variant="primary">
-              前往悟道室
-            </InkButton>
-          </InkCard>
         </div>
       </InkSection>
 
