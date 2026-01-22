@@ -1,18 +1,14 @@
-import { z } from 'zod';
-import type { Quality, RealmType } from '@/types/constants';
 import type { EffectConfig } from '@/engine/effect/types';
+import type { Quality, RealmType } from '@/types/constants';
+import { z } from 'zod';
 
 /**
  * AI 输出的命格蓝图 Schema
  * 注意：不包含任何具体数值，数值由程序生成
  */
 export const FateBlueprintSchema = z.object({
-  name: z.string().min(2).max(6).describe('命格名称，2-6字，古风有韵味'),
-  description: z
-    .string()
-    .min(20)
-    .max(120)
-    .describe('命格描述，神秘古雅，富有宿命感'),
+  name: z.string().min(2).max(10).describe('命格名称'),
+  description: z.string().min(20).max(120).describe('命格描述'),
   affix_ids: z
     .array(z.string())
     .describe('选择的词条ID列表，必须符合品质和类型限制'),

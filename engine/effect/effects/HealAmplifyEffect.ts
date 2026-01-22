@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -62,14 +63,13 @@ export class HealAmplifyEffect extends BaseEffect {
   }
 
   displayInfo() {
-    const percent = Math.round(this.amplifyPercent * 100);
     const direction = this.affectOutgoing ? '施放的' : '受到的';
-    const effect =
-      percent >= 0 ? `提升 ${percent}%` : `降低 ${Math.abs(percent)}%`;
+    const percent = format('.0%')(this.amplifyPercent);
+    const effect = this.amplifyPercent >= 0 ? `提升 ${percent}` : `降低 ${percent}`;
 
     return {
       label: '治疗增幅',
-      icon: percent >= 0 ? '💚' : '💔',
+      icon: this.amplifyPercent >= 0 ? '💚' : '💔',
       description: `${direction}治疗效果${effect}`,
     };
   }

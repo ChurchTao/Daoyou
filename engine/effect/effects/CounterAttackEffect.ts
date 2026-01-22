@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import type { ElementType } from '@/types/constants';
 import { BaseEffect } from '../BaseEffect';
 import {
@@ -91,13 +92,13 @@ export class CounterAttackEffect extends BaseEffect {
   }
 
   displayInfo() {
-    const chancePercent = Math.round(this.chance * 100);
-    const damagePercent = Math.round(this.damageMultiplier * 100);
+    const chancePercent = format('.0%')(this.chance);
+    const damagePercent = format('.0%')(this.damageMultiplier);
 
     return {
       label: '反击',
       icon: '🔄',
-      description: `被攻击时有 ${chancePercent}% 几率反击，造成受到伤害的 ${damagePercent}%`,
+      description: `被攻击时有 ${chancePercent} 几率反击，造成受到伤害的 ${damagePercent}`,
     };
   }
 }

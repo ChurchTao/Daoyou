@@ -6,11 +6,9 @@ import {
   InkActionGroup,
   InkBadge,
   InkButton,
-  InkDialog,
   InkList,
   InkListItem,
   InkNotice,
-  type InkDialogState,
 } from '@/components/ui';
 import { EffectConfig } from '@/engine/effect';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
@@ -25,17 +23,17 @@ export default function FateReshapePage() {
   const { cultivator, refresh } = useCultivator();
   const { pushToast, openDialog } = useInkUI();
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [previewFates, setPreviewFates] = useState<GeneratedFate[] | null>(
     null,
   );
   const [currentUses, setCurrentUses] = useState<number>(0);
   const [checkingBuff, setCheckingBuff] = useState(false);
+  const [hasBuff, setHasBuff] = useState(false);
 
   // Selection states
   const [selectedOldIndices, setSelectedOldIndices] = useState<number[]>([]);
   const [selectedNewIndices, setSelectedNewIndices] = useState<number[]>([]);
-
-  const [dialog, setDialog] = useState<InkDialogState | null>(null);
 
   // 从 API 获取当前 buff 状态
   const checkBuffStatus = useCallback(async () => {
@@ -61,12 +59,49 @@ export default function FateReshapePage() {
     }
   }, []);
 
-  // 初始化时检查 buff 状态
+  // 获取重塑状态并恢复缓存的数据
+  const fetchReshapeStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cultivator/fate/reshape/status');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setInitializing(false);
+        return;
+      }
+
+      setHasBuff(data.hasBuff);
+      setCurrentUses(data.usesRemaining ?? 0);
+
+      // 如果有缓存的命格，恢复显示
+      if (data.hasPendingFates && data.fates) {
+        setPreviewFates(data.fates);
+        // 恢复时清空选择状态，让用户重新选择
+        setSelectedOldIndices([]);
+        setSelectedNewIndices([]);
+      }
+
+      // 如果Buff已过期，提示用户
+      if (data.buffExpired) {
+        pushToast({
+          message: '逆天改命符箓已过期',
+          tone: 'warning',
+        });
+      }
+    } catch (e) {
+      console.error('获取重塑状态失败:', e);
+    } finally {
+      setInitializing(false);
+    }
+  }, [pushToast]);
+
+  // 初始化时检查 buff 状态和缓存的命格
   useEffect(() => {
     if (cultivator) {
       checkBuffStatus();
+      fetchReshapeStatus();
     }
-  }, [cultivator, checkBuffStatus]);
+  }, [cultivator, checkBuffStatus, fetchReshapeStatus]);
 
   const handlePreview = async () => {
     setLoading(true);
@@ -136,8 +171,7 @@ export default function FateReshapePage() {
         throw new Error(data.error || '重塑失败');
       }
 
-      setDialog({
-        id: 'commit-success',
+      openDialog({
         title: '逆天改命成功',
         content: <p>{data.message}</p>,
         onConfirm: async () => {
@@ -146,10 +180,37 @@ export default function FateReshapePage() {
         },
         confirmLabel: '善哉',
       });
+      setLoading(false);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : '未知错误';
       openDialog({
         title: '逆天失败',
+        content: <p>{msg}</p>,
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleAbandon = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/cultivator/fate/reshape/abandon', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || '放弃失败');
+      }
+      pushToast({
+        message: data.message,
+        tone: 'success',
+      });
+      fetchReshapeStatus();
+      setLoading(false);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '未知错误';
+      openDialog({
+        title: '放弃失败',
         content: <p>{msg}</p>,
       });
       setLoading(false);
@@ -186,7 +247,7 @@ export default function FateReshapePage() {
     );
   };
 
-  if (!cultivator) return null;
+  if (!cultivator || initializing) return null;
 
   return (
     <InkPageShell
@@ -205,7 +266,7 @@ export default function FateReshapePage() {
           <InkButton
             variant="primary"
             onClick={handlePreview}
-            disabled={loading || checkingBuff || currentUses <= 0}
+            disabled={loading || checkingBuff || currentUses <= 0 || !hasBuff}
           >
             {loading
               ? '推演天机中...'
@@ -213,9 +274,11 @@ export default function FateReshapePage() {
                 ? '检查道韵中...'
                 : '燃符推演'}
           </InkButton>
-          {currentUses <= 0 && (
-            <InkNotice>符箓之力已尽，请重新使用。</InkNotice>
-          )}
+          {!hasBuff ? (
+            <InkNotice>未激活逆天改命符箓</InkNotice>
+          ) : currentUses <= 0 ? (
+            <InkNotice>符箓之力已尽，请提交替换或放弃。</InkNotice>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-6">
@@ -285,17 +348,42 @@ export default function FateReshapePage() {
           </InkSection>
 
           <InkActionGroup>
-            <InkButton
-              variant="secondary"
-              onClick={async () => {
-                setSelectedNewIndices([]);
-                setSelectedOldIndices([]);
-                await handlePreview();
-              }}
-              disabled={loading || currentUses < 1}
-            >
-              {loading ? '推演天机中...' : `重新推演（剩余${currentUses}次）`}
-            </InkButton>
+            {currentUses > 0 && (
+              <InkButton
+                variant="secondary"
+                onClick={async () => {
+                  setSelectedNewIndices([]);
+                  setSelectedOldIndices([]);
+                  await handlePreview();
+                }}
+                disabled={loading || currentUses < 1}
+              >
+                {loading ? '推演天机中...' : `重新推演（剩余${currentUses}次）`}
+              </InkButton>
+            )}
+            {currentUses <= 0 && (
+              <InkButton
+                variant="outline"
+                onClick={() => {
+                  openDialog({
+                    title: '确认放弃',
+                    content: (
+                      <p>
+                        道友当真要放弃此次逆天改命之机？
+                        <br />
+                        一旦放弃，符箓之力将消散，已推演的命数亦将归于虚无。
+                      </p>
+                    ),
+                    onConfirm: handleAbandon,
+                    confirmLabel: '确认放弃',
+                    cancelLabel: '再想想',
+                  });
+                }}
+                disabled={loading}
+              >
+                放弃改命
+              </InkButton>
+            )}
             <InkButton
               variant="primary"
               onClick={handleCommit}
@@ -306,8 +394,6 @@ export default function FateReshapePage() {
           </InkActionGroup>
         </div>
       )}
-
-      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>
   );
 }

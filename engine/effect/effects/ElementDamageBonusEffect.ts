@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -70,12 +71,12 @@ export class ElementDamageBonusEffect extends BaseEffect {
 
   displayInfo() {
     const elementName = this.element === 'INHERIT' ? '同属性' : this.element;
-    const bonusPercent = Math.round(this.damageBonus * 100);
+    const bonusPercent = format('.0%')(this.damageBonus);
 
     return {
       label: '元素亲和',
       icon: '🔥',
-      description: `${elementName}伤害提升 ${bonusPercent}%`,
+      description: `${elementName}伤害提升 ${bonusPercent}`,
     };
   }
 }

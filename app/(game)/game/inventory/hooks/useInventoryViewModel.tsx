@@ -139,10 +139,10 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         id: 'discard-confirm',
         title: '丢弃确认',
         content: (
-          <p className="text-center py-4">
+          <p className="py-4 text-center">
             确定要丢弃 <span className="font-bold">{item.name}</span> 吗？
             <br />
-            <span className="text-xs text-ink-secondary">
+            <span className="text-ink-secondary text-xs">
               丢弃后将无法找回。
             </span>
           </p>
@@ -217,17 +217,14 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
         const result = await response.json();
         if (!response.ok || !result.success) {
-          throw new Error(result.error || '服用失败');
+          throw new Error(result.error || '使用失败');
         }
 
         pushToast({ message: result.data.message, tone: 'success' });
         await refresh();
       } catch (error) {
         pushToast({
-          message:
-            error instanceof Error
-              ? `药力冲突：${error.message}`
-              : '服用失败，请稍后重试。',
+          message: error instanceof Error ? error.message : '使用失败',
           tone: 'danger',
         });
       } finally {

@@ -167,7 +167,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Heal,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      multiplier: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      multiplier: { base: 0.2, scale: 'quality', coefficient: 1.5 },
       targetSelf: true,
     },
     weight: 60,
@@ -217,7 +217,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      percentOfMax: { base: 0.4, scale: 'quality', coefficient: 0.15 },
+      percentOfMax: { base: 0.4, scale: 'quality', coefficient: 0.38 },
     },
     weight: 45,
     minQuality: '玄品',
@@ -283,7 +283,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.HealAmplify,
     trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
-      amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.38 },
       affectOutgoing: false,
     },
     weight: 25,

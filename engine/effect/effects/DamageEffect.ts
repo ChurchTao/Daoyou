@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import type { ElementType } from '@/types/constants';
 import { BaseEffect } from '../BaseEffect';
 import { EffectTrigger, type DamageParams, type EffectContext } from '../types';
@@ -87,16 +88,16 @@ export class DamageEffect extends BaseEffect {
     const elementText = this.element ? `${this.element}属性` : '';
     const multiplierText =
       this.multiplier !== 1.0
-        ? `，伤害倍率：自身灵力*${this.multiplier * 100}%`
+        ? `，伤害倍率：自身灵力*${format('.0%')(this.multiplier)}`
         : '';
     const flatDamageText = this.flatDamage
       ? `，固定伤害：${this.flatDamage}点`
       : '';
     const critRateBonusText = this.critRateBonus
-      ? `额外暴击率：${this.critRateBonus * 100}%`
+      ? `额外暴击率：${format('.0%')(this.critRateBonus)}`
       : '';
     const critDamageMultiplierText = this.critDamageBonus
-      ? `额外暴击伤害：${this.critDamageBonus * 100}%`
+      ? `额外暴击伤害：${format('.0%')(this.critDamageBonus)}`
       : '';
     const critRate = this.canCrit
       ? `${['「允许暴击」', critRateBonusText, critDamageMultiplierText].filter(Boolean).join('，')}`

@@ -72,7 +72,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 100,
     tags: ['primary', 'defensive'],
@@ -86,7 +86,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 100,
     tags: ['primary', 'offensive'],
@@ -100,7 +100,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 80,
     tags: ['primary', 'utility'],
@@ -114,7 +114,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.08, scale: 'quality', coefficient: 0.04 },
+      value: { base: 0.08, scale: 'quality', coefficient: 0.47 },
     },
     weight: 80,
     tags: ['primary', 'utility'],
@@ -128,7 +128,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 80,
     tags: ['primary', 'defensive'],
@@ -142,7 +142,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.75 },
       critDamageBonus: 0,
     },
     weight: 60,
@@ -156,7 +156,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.DamageReduction,
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
-      percentReduction: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      percentReduction: { base: 0.05, scale: 'quality', coefficient: 0.75 },
       maxReduction: 0.5,
     },
     weight: 60,
@@ -172,7 +172,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      percentOfMax: { base: 0.01, scale: 'quality', coefficient: 0.01 },
+      percentOfMax: { base: 0.01, scale: 'quality', coefficient: 0.75 },
     },
     weight: 40,
     minQuality: '真品',
@@ -251,7 +251,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ReflectDamage,
     trigger: EffectTrigger.ON_BEING_HIT,
     paramsTemplate: {
-      reflectPercent: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      reflectPercent: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 35,
     minQuality: '地品',
@@ -266,7 +266,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.75 },
     },
     weight: 45,
     minQuality: '真品',
@@ -279,7 +279,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaDrain,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.03 },
+      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.47 },
       restoreToSelf: true,
     },
     weight: 40,
@@ -295,7 +295,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.75 },
     },
     weight: 50,
     minQuality: '玄品',
@@ -326,7 +326,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       element: '火',
-      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 45,
     minQuality: '玄品',
@@ -340,7 +340,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       element: '雷',
-      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 45,
     minQuality: '玄品',
@@ -418,7 +418,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
     weight: 25,
     minQuality: '地品',

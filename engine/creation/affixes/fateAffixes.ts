@@ -64,7 +64,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
     weight: 100,
     tags: ['primary', 'stat', 'wisdom'],
@@ -78,7 +78,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
     weight: 100,
     tags: ['primary', 'stat', 'vitality'],
@@ -92,7 +92,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
     weight: 100,
     tags: ['primary', 'stat', 'spirit'],
@@ -106,7 +106,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+      value: { base: 0.12, scale: 'quality', coefficient: 0.42 },
     },
     weight: 80,
     tags: ['primary', 'stat', 'speed'],
@@ -120,7 +120,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      value: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
     weight: 80,
     tags: ['primary', 'stat', 'willpower'],
@@ -132,8 +132,8 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.03 },
-      critDamageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.25 },
+      critDamageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 70,
     minQuality: '真品',
@@ -150,7 +150,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
-      stealPercent: { base: 0.08, scale: 'quality', coefficient: 0.04 },
+      stealPercent: { base: 0.08, scale: 'quality', coefficient: 0.94 },
     },
     weight: 60,
     minQuality: '地品',
@@ -163,7 +163,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ReflectDamage,
     trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
-      reflectPercent: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      reflectPercent: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
     weight: 60,
     minQuality: '玄品',
@@ -177,7 +177,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       thresholdPercent: 0.3,
-      bonusDamage: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      bonusDamage: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 50,
     minQuality: '地品',
@@ -190,7 +190,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.DamageReduction,
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
-      percentReduction: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      percentReduction: { base: 0.1, scale: 'quality', coefficient: 0.75 },
       maxReduction: 0.5,
     },
     weight: 70,
@@ -204,7 +204,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 2.5 },
     },
     weight: 70,
     minQuality: '玄品',
@@ -217,7 +217,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.HealAmplify,
     trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
-      amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      amplifyPercent: { base: 0.2, scale: 'quality', coefficient: 0.38 },
       affectOutgoing: true,
     },
     weight: 50,
@@ -231,7 +231,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaDrain,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      drainPercent: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      drainPercent: { base: 0.05, scale: 'quality', coefficient: 1.5 },
       restoreToSelf: true,
     },
     weight: 40,
@@ -245,7 +245,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ModifyHitRate,
     trigger: EffectTrigger.ON_CALC_HIT_RATE,
     paramsTemplate: {
-      hitRateBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      hitRateBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
       affectsTarget: true, // 增加自身闪避（即减少对方命中）
     },
     weight: 60,
@@ -264,7 +264,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '火',
-      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 40,
     tags: ['secondary', 'element', 'fire'],
@@ -277,7 +277,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '水',
-      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 40,
     tags: ['secondary', 'element', 'water'],
@@ -290,7 +290,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '木',
-      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 40,
     tags: ['secondary', 'element', 'wood'],
@@ -303,7 +303,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '金',
-      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 40,
     tags: ['secondary', 'element', 'metal'],
@@ -316,7 +316,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '土',
-      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
     },
     weight: 40,
     tags: ['secondary', 'element', 'earth'],
@@ -329,7 +329,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '风',
-      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.3 },
     },
     weight: 30,
     minQuality: '真品',
@@ -343,7 +343,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '雷',
-      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.3 },
     },
     weight: 30,
     minQuality: '真品',
@@ -357,7 +357,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: '冰',
-      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.1 },
+      damageBonus: { base: 0.25, scale: 'quality', coefficient: 0.3 },
     },
     weight: 30,
     minQuality: '真品',

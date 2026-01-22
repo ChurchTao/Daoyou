@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -81,18 +82,18 @@ export class ExecuteDamageEffect extends BaseEffect {
 
     // 添加日志反馈
     ctx.logCollector?.addLog(
-      `${ctx.target.name} 到达斩杀线(${Math.round((currentHp / maxHp) * 100)}%)，触发斩杀效果，额外造成 ${Math.floor(bonusDamage)} 点伤害！`,
+      `${ctx.target.name} 到达斩杀线(${format('.0%')(currentHp / maxHp)})，触发斩杀效果，额外造成 ${Math.floor(bonusDamage)} 点伤害！`,
     );
   }
 
   displayInfo() {
-    const thresholdPercent = Math.round(this.thresholdPercent * 100);
-    const bonusPercent = Math.round(this.bonusDamage * 100);
+    const thresholdPercent = format('.0%')(this.thresholdPercent);
+    const bonusPercent = format('.0%')(this.bonusDamage);
 
     return {
       label: '斩杀',
       icon: '💀',
-      description: `对生命低于 ${thresholdPercent}% 的目标造成额外 ${bonusPercent}%+ 伤害（生命越低伤害越高）`,
+      description: `对生命低于 ${thresholdPercent} 的目标造成额外 ${bonusPercent}+ 伤害（生命越低伤害越高）`,
     };
   }
 }

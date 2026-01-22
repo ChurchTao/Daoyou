@@ -201,7 +201,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
       multiplier: { base: 1.2, scale: 'root', coefficient: 0.6 },
       element: 'INHERIT',
       canCrit: true,
-      critRateBonus: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      critRateBonus: { base: 0.15, scale: 'quality', coefficient: 0.38 },
     },
     weight: 40,
     minQuality: '真品',
@@ -283,7 +283,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
       multiplier: { base: 1.3, scale: 'root', coefficient: 0.7 },
       element: 'INHERIT',
       canCrit: true,
-      critDamageBonus: { base: 0.3, scale: 'quality', coefficient: 0.1 },
+      critDamageBonus: { base: 0.3, scale: 'quality', coefficient: 0.38 },
     },
     weight: 30,
     minQuality: '地品',
@@ -329,7 +329,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      stealPercent: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      stealPercent: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 35,
     minQuality: '真品',
@@ -343,7 +343,7 @@ const ATTACK_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      stealPercent: { base: 0.2, scale: 'quality', coefficient: 0.05 },
+      stealPercent: { base: 0.2, scale: 'quality', coefficient: 0.75 },
     },
     weight: 20,
     minQuality: '天品',
@@ -442,7 +442,7 @@ const ATTACK_SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       element: 'INHERIT',
-      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
     weight: 40,
     minQuality: '玄品',
@@ -456,8 +456,8 @@ const ATTACK_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.02 },
-      critDamageBonus: { base: 0.15, scale: 'quality', coefficient: 0.05 },
+      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.38 },
+      critDamageBonus: { base: 0.15, scale: 'quality', coefficient: 0.38 },
     },
     weight: 35,
     minQuality: '真品',
@@ -488,7 +488,7 @@ const ATTACK_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaDrain,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.75 },
       restoreToSelf: true,
     },
     weight: 30,
@@ -728,7 +728,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.HealAmplify,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.75 },
       affectOutgoing: true,
     },
     weight: 35,
@@ -773,7 +773,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.75 },
     },
     weight: 35,
     minQuality: '真品',
@@ -998,7 +998,7 @@ const CONTROL_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaDrain,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      drainPercent: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      drainPercent: { base: 0.1, scale: 'quality', coefficient: 0.75 },
       restoreToSelf: true,
     },
     weight: 25,
@@ -1047,7 +1047,7 @@ const CONTROL_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaDrain,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      drainPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      drainPercent: { base: 0.1, scale: 'quality', coefficient: 0.75 },
       restoreToSelf: true,
     },
     weight: 35,
@@ -1320,7 +1320,7 @@ const DEBUFF_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaDrain,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.75 },
       restoreToSelf: true,
     },
     weight: 30,
@@ -1642,8 +1642,8 @@ const BUFF_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_TURN_START,
     paramsTemplate: {
-      critRateBonus: { base: 0.2, scale: 'quality', coefficient: 0.05 },
-      critDamageBonus: { base: 0.3, scale: 'quality', coefficient: 0.1 },
+      critRateBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
+      critDamageBonus: { base: 0.3, scale: 'quality', coefficient: 0.38 },
     },
     weight: 25,
     minQuality: '天品',
@@ -1783,7 +1783,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      percentOfMax: { base: 0.05, scale: 'quality', coefficient: 0.75 },
     },
     weight: 35,
     minQuality: '真品',
@@ -1843,7 +1843,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      percentOfMax: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+      percentOfMax: { base: 0.08, scale: 'quality', coefficient: 0.75 },
     },
     weight: 30,
     minQuality: '真品',
@@ -1857,7 +1857,7 @@ const BUFF_SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ReflectDamage,
     trigger: EffectTrigger.ON_BEING_HIT,
     paramsTemplate: {
-      reflectPercent: { base: 0.15, scale: 'quality', coefficient: 0.03 },
+      reflectPercent: { base: 0.15, scale: 'quality', coefficient: 0.75 },
     },
     weight: 25,
     minQuality: '地品',

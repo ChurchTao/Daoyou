@@ -1,5 +1,6 @@
 import { Attributes } from '@/types/cultivator';
 import { getAttributeInfo } from '@/types/dictionaries';
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -72,11 +73,15 @@ export class StatModifierEffect extends BaseEffect {
     const value = Math.abs(this.value);
     const info = getAttributeInfo(this.stat);
     const stateText = info.label;
+    const valueText =
+      this.modType == StatModifierType.PERCENT
+        ? `${format('.2%')(value)}`
+        : `${value}`;
 
     return {
       label: '基础属性修正',
       icon: info.icon,
-      description: `${addOrMinus}${stateText}${value}${this.modType == StatModifierType.PERCENT ? '%' : ''}`,
+      description: `${addOrMinus}${stateText}${valueText}`,
     };
   }
 }

@@ -16,11 +16,17 @@ export const POST = withActiveCultivator(
     const body = await request.json();
     const { consumableId } = ConsumeSchema.parse(body);
 
-    const result = await consumeItem(user.id, cultivator.id, consumableId);
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
+    try {
+      const result = await consumeItem(user.id, cultivator.id, consumableId);
+      return NextResponse.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : error },
+        { status: 400 },
+      );
+    }
   },
 );

@@ -3,10 +3,7 @@ import type { BuffInstanceState } from '@/engine/buff/types';
 import type { TalismanBuffMetadata } from '@/types/cultivator';
 import { randomUUID } from 'node:crypto';
 import { BaseEffect } from '../BaseEffect';
-import {
-  EffectTrigger,
-  type EffectContext,
-} from '../types';
+import { EffectTrigger, type EffectContext } from '../types';
 
 /**
  * 消耗品添加持久 Buff 参数
@@ -73,20 +70,19 @@ export class ConsumeAddBuffEffect extends BaseEffect {
     // 获取 Buff 配置
     const template = buffTemplateRegistry.get(this.buffId);
     if (!template) {
-      console.warn(`[ConsumeAddBuffEffect] Buff 模板未找到: ${this.buffId}`);
-      return;
+      throw new Error(`[ConsumeAddBuffEffect] Buff 模板未找到: ${this.buffId}`);
     }
 
     // 检查是否已存在同类 Buff（通过 target 的 persistent_statuses）
     // 注意：这里需要从外部传入 persistent_statuses，或通过 metadata 获取
-    const existingStatuses = (ctx.metadata?.persistent_statuses as BuffInstanceState[]) || [];
+    const existingStatuses =
+      (ctx.metadata?.persistent_statuses as BuffInstanceState[]) || [];
     const hasExisting = existingStatuses.some(
       (s) => s.configId === this.buffId,
     );
 
     if (hasExisting) {
-      ctx.logCollector?.addLog(`已激活同类符箓效果`);
-      return;
+      throw new Error(`已激活同类符箓效果`);
     }
 
     // 创建持久 Buff 实例
@@ -111,9 +107,7 @@ export class ConsumeAddBuffEffect extends BaseEffect {
     }
     (ctx.metadata!.newBuffs as BuffInstanceState[]).push(buffInstance);
 
-    ctx.logCollector?.addLog(
-      `${target.name} 获得「${template.name}」状态`,
-    );
+    ctx.logCollector?.addLog(`${target.name} 获得「${template.name}」状态`);
   }
 
   displayInfo() {

@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -93,7 +94,7 @@ export class ManaDrainEffect extends BaseEffect {
       parts.push(`${this.drainAmount}点`);
     }
     if (this.drainPercent > 0) {
-      parts.push(`${Math.round(this.drainPercent * 100)}%当前法力`);
+      parts.push(`${format('.0%')(this.drainPercent)}当前法力`);
     }
 
     return {

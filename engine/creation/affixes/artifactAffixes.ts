@@ -142,7 +142,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      value: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 30,
     slots: ['armor'],
@@ -158,7 +158,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.PERCENT,
-      value: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      value: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 30,
     slots: ['weapon'],
@@ -180,7 +180,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 60,
     slots: ['weapon', 'accessory'],
@@ -194,7 +194,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Critical,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critDamageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      critDamageBonus: { base: 0.1, scale: 'quality', coefficient: 1.5 },
     },
     weight: 50,
     slots: ['weapon'],
@@ -209,7 +209,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.LifeSteal,
     trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
-      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      stealPercent: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 40,
     slots: ['weapon'],
@@ -224,7 +224,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.DamageReduction,
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
-      percentReduction: { base: 0.05, scale: 'quality', coefficient: 0.5 },
+      percentReduction: { base: 0.05, scale: 'quality', coefficient: 1.5 },
       maxReduction: 0.5,
     },
     weight: 50,
@@ -253,7 +253,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ReflectDamage,
     trigger: EffectTrigger.ON_AFTER_DAMAGE,
     paramsTemplate: {
-      reflectPercent: { base: 0.05, scale: 'quality', coefficient: 0.03 },
+      reflectPercent: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 30,
     slots: ['armor'],
@@ -335,7 +335,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'hitRate',
       modType: StatModifierType.FIXED,
-      value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      value: { base: 0.03, scale: 'quality', coefficient: 1.5 },
     },
     weight: 40,
     slots: ['weapon', 'accessory'],
@@ -350,7 +350,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'dodgeRate',
       modType: StatModifierType.FIXED,
-      value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      value: { base: 0.03, scale: 'quality', coefficient: 1.5 },
     },
     weight: 40,
     slots: ['armor', 'accessory'],
@@ -370,7 +370,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: 'INHERIT', // 继承法宝元素
-      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 1.5 },
     },
     weight: 50,
     slots: ['weapon'],
@@ -439,7 +439,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ManaRegen,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 1.5 },
     },
     weight: 45,
     slots: ['accessory'],
@@ -455,7 +455,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Heal,
     trigger: EffectTrigger.ON_TURN_END,
     paramsTemplate: {
-      flatHeal: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      flatHeal: { base: 0.03, scale: 'quality', coefficient: 1.5 },
       targetSelf: true,
     },
     weight: 35,
@@ -472,7 +472,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.HealAmplify,
     trigger: EffectTrigger.ON_HEAL,
     paramsTemplate: {
-      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.05 },
+      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 1.5 },
       affectOutgoing: false,
     },
     weight: 30,

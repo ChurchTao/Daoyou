@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -80,7 +81,7 @@ export class ManaRegenEffect extends BaseEffect {
       parts.push(`${this.amount}点`);
     }
     if (this.percentOfMax > 0) {
-      parts.push(`${Math.round(this.percentOfMax * 100)}%最大法力`);
+      parts.push(`${format('.0%')(this.percentOfMax)}最大法力`);
     }
 
     return {

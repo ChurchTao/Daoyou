@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -65,7 +66,7 @@ export class ReflectDamageEffect extends BaseEffect {
     return {
       label: '反伤',
       icon: '💥',
-      description: `反弹${this.reflectPercent * 100}%的伤害给攻击者`,
+      description: `反弹${format('.0%')(this.reflectPercent)}的伤害给攻击者`,
     };
   }
 }

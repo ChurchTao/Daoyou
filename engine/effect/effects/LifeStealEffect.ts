@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -57,7 +58,7 @@ export class LifeStealEffect extends BaseEffect {
     return {
       label: '吸血效果',
       icon: '',
-      description: `神通命中后，吸取气血，比例为造成伤害的${this.stealPercent * 100}%`,
+      description: `神通命中后，吸取气血，比例为造成伤害的${format('.0%')(this.stealPercent)}`,
     };
   }
 }

@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import { EffectTrigger, type EffectContext, type HealParams } from '../types';
 
@@ -53,7 +54,7 @@ export class HealEffect extends BaseEffect {
     return {
       label: '治疗效果',
       icon: '',
-      description: `治疗效果，治疗${this.multiplier * 100}%灵力+${this.flatHeal}`,
+      description: `治疗效果，治疗${format('.0%')(this.multiplier)}灵力+${this.flatHeal}`,
     };
   }
 }

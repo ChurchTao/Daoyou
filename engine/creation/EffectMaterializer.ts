@@ -11,6 +11,7 @@ import {
   type EffectConfig,
 } from '@/engine/effect/types';
 import type { Quality, RealmType, SkillGrade } from '@/types/constants';
+import { Attributes } from '@/types/cultivator';
 import { QUALITY_MULTIPLIER } from './creationConfig';
 import { MATERIALIZATION_CONFIG } from './materializationConfig';
 import type {
@@ -434,7 +435,7 @@ export class EffectMaterializer {
    * 用于不需要走词条池的简单场景
    */
   static createStatModifier(
-    stat: string,
+    stat: keyof Attributes,
     value: number,
     isPercent: boolean = false,
     context: MaterializationContext,

@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import { EffectTrigger, type EffectContext } from '../types';
 
@@ -54,8 +55,8 @@ export class ModifyHitRateEffect extends BaseEffect {
   displayInfo() {
     return {
       label: '命中修正',
-      icon: '',
-      description: `${this.affectsTarget ? '增加闪避' : '增加命中'}${this.hitRateBonus * 100}%`,
+      icon: '🎯',
+      description: `${this.affectsTarget ? '增加闪避' : '增加命中'}${format('.2%')(this.hitRateBonus)}`,
     };
   }
 }

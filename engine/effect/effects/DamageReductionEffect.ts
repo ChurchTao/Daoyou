@@ -1,3 +1,4 @@
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
@@ -94,7 +95,7 @@ export class DamageReductionEffect extends BaseEffect {
     return {
       label: '减伤效果',
       icon: '🛡️',
-      description: `额外固定减伤${this.flatReduction}，额外百分比减伤${this.percentReduction * 100}%`,
+      description: `额外固定减伤${this.flatReduction}，额外百分比减伤${format('.0%')(this.percentReduction)}`,
     };
   }
 }
