@@ -1,5 +1,6 @@
 'use client';
 
+import { format } from 'd3-format';
 import { InkModal } from '@/components/layout';
 import { InkBadge, InkButton } from '@/components/ui';
 import type { Cultivator } from '@/types/cultivator';
@@ -118,7 +119,7 @@ export function CultivatorStatusCard({
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-ink-secondary">修为进度</span>
             <span className="text-sm text-ink">
-              {statusData.expPercent.toFixed(2)}%
+              {format('.2f')(statusData.expPercent)}%
             </span>
           </div>
           <div className="relative w-full h-2 bg-ink/10 rounded-full overflow-hidden">
@@ -183,8 +184,7 @@ export function CultivatorStatusCard({
                   </span>
                   {statusData.breakthroughChance > 0 && (
                     <span className="text-xs opacity-70">
-                      (成功率{(statusData.breakthroughChance * 100).toFixed(1)}
-                      %)
+                      (成功率{format('.1%')(statusData.breakthroughChance)})
                     </span>
                   )}
                 </div>

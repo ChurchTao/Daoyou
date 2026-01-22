@@ -74,7 +74,7 @@ export class DotDamageEffect extends BaseEffect {
   displayInfo() {
     return {
       label: '造成持续伤害',
-      icon: '',
+      icon: '🔥',
       description: `造成持续伤害，伤害${this.baseDamage}+灵力*10%`,
     };
   }

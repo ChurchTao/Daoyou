@@ -53,7 +53,7 @@ export class HealEffect extends BaseEffect {
   displayInfo() {
     return {
       label: '治疗效果',
-      icon: '',
+      icon: '💚',
       description: `治疗效果，治疗${format('.0%')(this.multiplier)}灵力+${this.flatHeal}`,
     };
   }

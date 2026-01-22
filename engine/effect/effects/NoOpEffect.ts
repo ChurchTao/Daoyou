@@ -30,7 +30,7 @@ export class NoOpEffect extends BaseEffect {
   displayInfo() {
     return {
       label: '空操作',
-      icon: '',
+      icon: '⭕',
       description: '空操作',
     };
   }

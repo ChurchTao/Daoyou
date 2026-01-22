@@ -5,6 +5,7 @@
  * 取代原 breakthroughEngine.ts 中的 calculateBreakthroughChance
  */
 
+import { format } from 'd3-format';
 import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
@@ -378,15 +379,15 @@ export function getBreakthroughChanceExplanation(
 
   return `
 【突破类型】${typeLabels[breakthroughType]}
-【最终成功率】${(modifiers.finalChance * 100).toFixed(1)}%
+【最终成功率】${format('.1%')(modifiers.finalChance)}
 
 【各项系数】
-• 基础成功率：${(modifiers.baseChance * 100).toFixed(0)}%
-• 境界难度：×${modifiers.realmDifficulty.toFixed(2)}
-• 修为进度：×${modifiers.progressMultiplier.toFixed(2)}
-• 感悟加成：×${modifiers.insightMultiplier.toFixed(2)}
-• 悟性加成：×${modifiers.wisdomMultiplier.toFixed(2)}
-${modifiers.demonPenalty < 1.0 ? `• 心魔惩罚：×${modifiers.demonPenalty.toFixed(2)}\n` : ''}
+• 基础成功率：${format('.0%')(modifiers.baseChance)}
+• 境界难度：×${format('.2f')(modifiers.realmDifficulty)}
+• 修为进度：×${format('.2f')(modifiers.progressMultiplier)}
+• 感悟加成：×${format('.2f')(modifiers.insightMultiplier)}
+• 悟性加成：×${format('.2f')(modifiers.wisdomMultiplier)}
+${modifiers.demonPenalty < 1.0 ? `• 心魔惩罚：×${format('.2f')(modifiers.demonPenalty)}\n` : ''}
 【建议】${result.recommendation}
   `.trim();
 }

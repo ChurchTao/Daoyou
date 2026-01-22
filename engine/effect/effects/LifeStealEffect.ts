@@ -57,7 +57,7 @@ export class LifeStealEffect extends BaseEffect {
   displayInfo() {
     return {
       label: '吸血效果',
-      icon: '',
+      icon: '🩸',
       description: `神通命中后，吸取气血，比例为造成伤害的${format('.0%')(this.stealPercent)}`,
     };
   }

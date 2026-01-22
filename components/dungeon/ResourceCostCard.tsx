@@ -1,5 +1,6 @@
 'use client';
 
+import { format } from 'd3-format';
 import { InkCard } from '@/components/ui';
 import type { DungeonOptionCost } from '@/lib/dungeon/types';
 import {
@@ -48,7 +49,7 @@ export function ResourceCostCard({
                   <span>{getResourceDisplayName('hp_loss')}</span>
                 </span>
                 <span className="font-bold text-crimson">
-                  {(hpLossPercent * 100).toFixed(0)}%
+                  {format('.0%')(hpLossPercent)}
                 </span>
               </div>
             )}
@@ -59,7 +60,7 @@ export function ResourceCostCard({
                   <span>{getResourceDisplayName('mp_loss')}</span>
                 </span>
                 <span className="font-bold text-crimson">
-                  {(mpLossPercent * 100).toFixed(0)}%
+                  {format('.0%')(mpLossPercent)}
                 </span>
               </div>
             )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { format } from 'd3-format';
 import { InkSection } from '@/components/layout';
 import { InkButton } from '@/components/ui';
 import type {
@@ -47,7 +48,7 @@ function CultivationResultContent({
       <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
         <p className="font-medium">🌱 修炼有成</p>
         <p>修为增长：+{Number(summary.exp_gained)}</p>
-        <p>当前进度：{summary.progress.toFixed(2)}%</p>
+        <p>当前进度：{format('.2f')(summary.progress)}%</p>
 
         {summary.insight_gained > 0 && (
           <p>感悟提升：+{summary.insight_gained}</p>
@@ -112,7 +113,7 @@ function BreakthroughResultContent({
           {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
         </p>
 
-        <p>成功率 {`${Math.min(summary.chance * 100, 100).toFixed(1)}%`}</p>
+        <p>成功率 {format('.1%')(Math.min(summary.chance, 1))}</p>
 
         {attributeGrowthText && <p>属性收获：{attributeGrowthText}</p>}
 
