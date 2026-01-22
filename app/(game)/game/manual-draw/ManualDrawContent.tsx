@@ -1,11 +1,17 @@
 'use client';
 
 import { InkPageShell } from '@/components/layout';
-import { InkButton, InkCard, InkNotice, InkDialog, type InkDialogState } from '@/components/ui';
+import {
+  InkButton,
+  InkCard,
+  InkDialog,
+  InkNotice,
+  type InkDialogState,
+} from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
 import type { Material } from '@/types/cultivator';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 export function ManualDrawContent() {
   const searchParams = useSearchParams();
@@ -31,7 +37,9 @@ export function ManualDrawContent() {
       const res = await fetch('/api/cultivator/talismans');
       const data = await res.json();
       if (data.talismans) {
-        const buff = data.talismans.some((t: { id: string }) => t.id === buffId);
+        const buff = data.talismans.some(
+          (t: { id: string }) => t.id === buffId,
+        );
         setHasBuff(buff);
         return buff;
       }
@@ -99,11 +107,10 @@ export function ManualDrawContent() {
             </div>
 
             <div className="text-center space-y-2 max-w-xs">
-              <p className="text-lg font-bold">
-                燃烧【{talismanName}】
-              </p>
+              <p className="text-lg font-bold">燃烧【{talismanName}】</p>
               <p className="opacity-70 text-sm">
-                神游太虚，感应天地法则。<br/>
+                神游太虚，感应天地法则。
+                <br />
                 可获天道赐福，得一部玄品以上{typeName}典籍。
               </p>
             </div>
@@ -115,7 +122,13 @@ export function ManualDrawContent() {
                 disabled={loading || checkingBuff}
                 className="w-48"
               >
-                {loading ? '感应天机中...' : checkingBuff ? '检查道韵中...' : (isSkill ? '衍化神通' : '感悟天道')}
+                {loading
+                  ? '感应天机中...'
+                  : checkingBuff
+                    ? '检查道韵中...'
+                    : isSkill
+                      ? '衍化神通'
+                      : '感悟天道'}
               </InkButton>
             ) : (
               <InkNotice className="text-amber-600 border-amber-600/30 bg-amber-600/10">
@@ -132,7 +145,7 @@ export function ManualDrawContent() {
             <InkCard>
               <div className="flex flex-col items-center p-6 space-y-4">
                 <div className="text-6xl">📚</div>
-                <div className="text-2xl font-bold font-serif text-ink-primary">
+                <div className="text-2xl font-bold  text-ink-primary">
                   {result.name}
                 </div>
                 <div className="flex gap-2">
@@ -160,10 +173,7 @@ export function ManualDrawContent() {
         )}
       </div>
 
-      <InkDialog
-        dialog={dialog}
-        onClose={() => setDialog(null)}
-      />
+      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>
   );
 }

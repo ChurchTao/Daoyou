@@ -44,3 +44,5 @@ next-env.d.ts
 .gemini/
 .shared/
 */**/CLAUDE.md
+
+.serena/
