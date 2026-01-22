@@ -54,7 +54,7 @@ export default function CultivatorPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">道友真形尚在凝聚……</p>
       </div>
     );
@@ -114,7 +114,7 @@ export default function CultivatorPage() {
                 title: '轮回重修',
                 content: (
                   <div className="space-y-2">
-                    <p className="font-bold text-lg text-crimson">
+                    <p className="text-crimson text-lg font-bold">
                       道友当真要轮回重修？
                     </p>
                     <p>
@@ -193,9 +193,8 @@ export default function CultivatorPage() {
                 key={fate.name + idx}
                 title={
                   <div className="flex items-center">
-                    {fate.quality && (
-                      <InkBadge tier={fate.quality}>气运</InkBadge>
-                    )}
+                    <span className="text-ink-secondary">{fate.name}</span>
+                    {fate.quality && <InkBadge tier={fate.quality} />}
                   </div>
                 }
                 meta={`加成：${getFateModText(fate)}`}
@@ -223,7 +222,7 @@ export default function CultivatorPage() {
                   confirmLabel: '明悟',
                 })
               }
-              className="cursor-pointer hover:bg-ink/5 rounded px-2 -mx-2 transition-colors"
+              className="hover:bg-ink/5 -mx-2 cursor-pointer rounded px-2 transition-colors"
             >
               <InkStatRow
                 label={`${attrInfo.icon} ${attrInfo.label}`}
@@ -233,7 +232,7 @@ export default function CultivatorPage() {
             </div>
           );
         })}
-        <p className="mt-2 text-xs text-ink-secondary">
+        <p className="text-ink-secondary mt-2 text-xs">
           当前境界：{cultivator.realm}（点击属性可查看详情）
         </p>
       </InkSection>

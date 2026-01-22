@@ -2,6 +2,7 @@
 
 import { InkPageShell } from '@/components/layout';
 import {
+  InkBadge,
   InkButton,
   InkCard,
   InkDialog,
@@ -99,16 +100,16 @@ export function ManualDrawContent() {
       subtitle="天道垂青，机缘所至"
       backHref="/game"
     >
-      <div className="flex flex-col items-center py-12 space-y-8">
+      <div className="flex flex-col items-center space-y-8 py-12">
         {!result ? (
           <>
-            <div className="text-8xl animate-pulse opacity-80">
+            <div className="animate-pulse text-8xl opacity-80">
               {isSkill ? '⚡' : '📜'}
             </div>
 
-            <div className="text-center space-y-2 max-w-xs">
+            <div className="max-w-xs space-y-2 text-center">
               <p className="text-lg font-bold">燃烧【{talismanName}】</p>
-              <p className="opacity-70 text-sm">
+              <p className="text-sm opacity-70">
                 神游太虚，感应天地法则。
                 <br />
                 可获天道赐福，得一部玄品以上{typeName}典籍。
@@ -131,32 +132,32 @@ export function ManualDrawContent() {
                       : '感悟天道'}
               </InkButton>
             ) : (
-              <InkNotice className="text-amber-600 border-amber-600/30 bg-amber-600/10">
+              <InkNotice className="border-amber-600/30 bg-amber-600/10 text-amber-600">
                 你当前未拥有{talismanName}，无法{isSkill ? '衍化' : '感悟'}。
               </InkNotice>
             )}
           </>
         ) : (
-          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
-            <InkNotice className="text-center text-emerald-600 border-emerald-600/30 bg-emerald-600/10">
+          <div className="animate-in fade-in zoom-in w-full max-w-md space-y-6 duration-500">
+            <InkNotice className="bg-emerald-600/10 text-emerald-600">
               福至心灵，机缘已至！
             </InkNotice>
 
             <InkCard>
-              <div className="flex flex-col items-center p-6 space-y-4">
+              <div className="flex flex-col items-center space-y-4 p-6">
                 <div className="text-6xl">📚</div>
-                <div className="text-2xl font-bold  text-ink-primary">
+                <div className="text-ink-primary text-2xl font-bold">
                   {result.name}
                 </div>
                 <div className="flex gap-2">
-                  <span className="bg-ink/10 px-2 py-0.5 rounded text-sm">
-                    {result.rank}
+                  <span className="bg-ink/10 rounded px-2 py-0.5 text-sm">
+                    <InkBadge tier={result.rank} />
                   </span>
-                  <span className="bg-ink/10 px-2 py-0.5 rounded text-sm">
+                  <span className="bg-ink/10 rounded px-2 py-0.5 text-sm">
                     {result.element}
                   </span>
                 </div>
-                <p className="text-center opacity-80 leading-relaxed">
+                <p className="text-center leading-relaxed opacity-80">
                   {result.description}
                 </p>
               </div>

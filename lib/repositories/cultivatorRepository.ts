@@ -1515,7 +1515,7 @@ export async function addMaterialToInventory(
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = tx || db;
-  // 检查是否已经有相同的材料
+  // 检查是否已经有相同的材料（名称和品质都必须一致）
   const existing = await dbInstance
     .select()
     .from(schema.materials)
@@ -1523,6 +1523,7 @@ export async function addMaterialToInventory(
       and(
         eq(schema.materials.cultivatorId, cultivatorId),
         eq(schema.materials.name, material.name),
+        eq(schema.materials.rank, material.rank),
       ),
     );
 
@@ -1633,7 +1634,8 @@ export async function addConsumableToInventory(
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = tx || db;
-  // 检查是否已经有相同的消耗品
+  // 检查是否已经有相同的消耗品（名称和品质都必须一致）
+  const quality = consumable.quality || '凡品';
   const existing = await dbInstance
     .select()
     .from(schema.consumables)
@@ -1641,6 +1643,7 @@ export async function addConsumableToInventory(
       and(
         eq(schema.consumables.cultivatorId, cultivatorId),
         eq(schema.consumables.name, consumable.name),
+        eq(schema.consumables.quality, quality),
       ),
     );
 
@@ -1657,7 +1660,7 @@ export async function addConsumableToInventory(
       name: consumable.name,
       type: consumable.type,
       prompt: '', // 默认空提示词
-      quality: consumable.quality || '凡品',
+      quality: quality,
       effects: consumable.effects || [],
       quantity: consumable.quantity,
       description: consumable.description || null,
