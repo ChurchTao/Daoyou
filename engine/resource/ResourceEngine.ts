@@ -301,10 +301,13 @@ export class ResourceEngine {
 
             case 'material':
               if (gain.data && 'name' in gain.data) {
+                // Ensure the material's quantity matches the operation value
+                const material = { ...gain.data } as Material;
+                material.quantity = gain.value;
                 await addMaterialToInventory(
                   userId,
                   cultivatorId,
-                  gain.data as Material,
+                  material,
                   tx,
                 );
               } else {
@@ -327,10 +330,13 @@ export class ResourceEngine {
 
             case 'consumable':
               if (gain.data && 'name' in gain.data) {
+                // Ensure the consumable's quantity matches the operation value
+                const consumable = { ...gain.data } as Consumable;
+                consumable.quantity = gain.value;
                 await addConsumableToInventory(
                   userId,
                   cultivatorId,
-                  gain.data as Consumable,
+                  consumable,
                   tx,
                 );
               } else {
