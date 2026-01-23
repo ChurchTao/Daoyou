@@ -23,6 +23,17 @@ import { ActiveTalismans } from './ActiveTalismans';
 import { QuickActionsGrid } from './QuickActionsGrid';
 import { TitleEditorModal } from './TitleEditorModal';
 
+// 提升静态 JSX 到组件外部，避免每次渲染重新创建
+const HERO_IMAGE = (
+  <Image
+    src="/assets/daoyou_logo.png"
+    alt="万界道友_logo"
+    width={108}
+    height={108}
+    className="object-contain drop-shadow-lg"
+  />
+);
+
 /**
  * 首页主视图组件
  */
@@ -59,15 +70,7 @@ export function HomeView() {
 
   return (
     <InkPageShell
-      hero={
-        <Image
-          src="/assets/daoyou_logo.png"
-          alt="万界道友_logo"
-          width={108}
-          height={108}
-          className="object-contain drop-shadow-lg"
-        />
-      }
+      hero={HERO_IMAGE}
       title="万界道友"
       subtitle="灵根歪了，但不影响我菜得理直气壮"
       note={note}

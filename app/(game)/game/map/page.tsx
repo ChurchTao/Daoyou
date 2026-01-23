@@ -1,7 +1,7 @@
 'use client';
 
 import { MapNode, MapNodeDetail, MapSatellite } from '@/components/feature/map';
-import { InkButton } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
 import {
   getAllMapNodes,
   getAllSatelliteNodes,

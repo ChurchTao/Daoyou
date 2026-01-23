@@ -1,6 +1,6 @@
 'use client';
 
-import { InkButton } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
 import { quickActionsConfig } from '../hooks/useHomeViewModel';
 
 interface QuickActionsGridProps {

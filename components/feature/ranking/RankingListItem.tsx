@@ -1,6 +1,8 @@
 'use client';
 
-import { InkBadge, InkButton, Tier } from '@/components/ui';
+import { memo } from 'react';
+import { InkBadge, type Tier } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
 import {
   BattleRankingItem,
   ItemRankingEntry,
@@ -20,7 +22,7 @@ interface RankingListItemProps {
   isItem?: boolean;
 }
 
-export function RankingListItem({
+function RankingListItemComponent({
   item,
   isSelf,
   canChallenge,
@@ -116,3 +118,6 @@ export function RankingListItem({
     </div>
   );
 }
+
+// 使用 React.memo 优化，仅在 props 变化时重新渲染
+export const RankingListItem = memo(RankingListItemComponent);

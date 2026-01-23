@@ -1,6 +1,8 @@
 import { DungeonProgressCard } from '@/components/dungeon/DungeonProgressCard';
 import { InkPageShell, InkSection } from '@/components/layout';
-import { InkButton, InkCard, InkTag } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkCard } from '@/components/ui/InkCard';
+import { InkTag } from '@/components/ui/InkTag';
 import { DungeonOption, DungeonRound, DungeonState } from '@/lib/dungeon/types';
 import { useState } from 'react';
 

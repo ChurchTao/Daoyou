@@ -1,7 +1,8 @@
 'use client';
 
 import { InkModal } from '@/components/layout';
-import { InkBadge, InkButton } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
 import {
   formatAllEffects,
   getArtifactDisplayInfo,

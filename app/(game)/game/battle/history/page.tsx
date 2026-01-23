@@ -1,7 +1,7 @@
 'use client';
 
 import Zhanji from '@/components/func/Zhanji';
-import { InkTabs } from '@/components/ui';
+import { InkTabs } from '@/components/ui/InkTabs';
 import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import Link from 'next/link';

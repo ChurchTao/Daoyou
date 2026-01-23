@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { cn } from '@/lib/cn';
 import { cva, type VariantProps } from 'class-variance-authority';
 
@@ -59,7 +60,7 @@ export interface MapNodeProps extends VariantProps<typeof mapNodeVariants> {
 /**
  * 地图主节点组件
  */
-export function MapNode({
+function MapNodeComponent({
   id,
   name,
   x,
@@ -89,3 +90,6 @@ export function MapNode({
     </div>
   );
 }
+
+// 使用 React.memo 优化，仅在 props 变化时重新渲染
+export const MapNode = memo(MapNodeComponent);

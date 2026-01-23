@@ -1,7 +1,7 @@
 'use client';
 
 import { InkModal } from '@/components/layout';
-import { InkButton } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
 
 interface BreakthroughConfirmModalProps {
   isOpen: boolean;

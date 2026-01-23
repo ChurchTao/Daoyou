@@ -3,7 +3,7 @@
 import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { BattleReportViewer } from '@/components/feature/battle/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimelineViewer';
-import { InkButton } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
 import type { BattleEngineResult } from '@/engine/battle';
 import type { Cultivator } from '@/types/cultivator';
 import { useRouter, useSearchParams } from 'next/navigation';

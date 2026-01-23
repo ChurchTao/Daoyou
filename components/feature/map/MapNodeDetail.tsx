@@ -1,6 +1,7 @@
 'use client';
 
-import { InkButton, InkTag } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkTag } from '@/components/ui/InkTag';
 import type { MapNode } from '@/lib/game/mapSystem';
 
 export interface MapNodeDetailProps {

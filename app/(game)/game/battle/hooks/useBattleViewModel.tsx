@@ -4,7 +4,7 @@ import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Cultivator } from '@/types/cultivator';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * 敌人数据类型（简化版）
@@ -55,11 +55,25 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
   const [loading, setLoading] = useState(false);
   const [battleEnd, setBattleEnd] = useState(false);
 
-  // 执行战斗
+  // 使用 ref 来跟踪最新的 player 和 opponent，避免依赖变化
+  const playerRef = useRef(player);
+  const opponentRef = useRef(opponent);
+
+  // 同步 ref 值
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
+  useEffect(() => {
+    opponentRef.current = opponent;
+  }, [opponent]);
+
+  // 执行战斗 - 使用 ref 延迟读取，依赖为空数组
   const handleBattle = useCallback(
     async (pId?: string, oId?: string) => {
-      const currentPid = pId || player?.id;
-      const currentOid = oId || opponent?.id;
+      // 延迟读取 ref 中的最新值
+      const currentPid = pId || playerRef.current?.id;
+      const currentOid = oId || opponentRef.current?.id;
 
       if (!currentPid || !currentOid) return;
 
@@ -149,7 +163,7 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
         setLoading(false);
       }
     },
-    [player?.id, opponent?.id],
+    [], // 空依赖数组，使用 ref 延迟读取
   );
 
   // 初始化 & 自动开始战斗

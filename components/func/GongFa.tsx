@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { InkModal, InkSection } from '@/components/layout';
-import { InkBadge, InkButton, InkList, InkListItem, InkNotice } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkList, InkListItem } from '@/components/ui/InkList';
+import { InkNotice } from '@/components/ui/InkNotice';
 import { formatAllEffects, formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { CultivationTechnique } from '@/types/cultivator';
 

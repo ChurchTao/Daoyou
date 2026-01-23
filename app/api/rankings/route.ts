@@ -1,5 +1,11 @@
+import { cache } from 'react';
 import { getRankingList } from '@/lib/redis/rankings';
 import { NextResponse } from 'next/server';
+
+// 使用 React.cache() 进行请求内去重
+const getCachedRankingList = cache(async () => {
+  return await getRankingList();
+});
 
 /**
  * GET /api/rankings
@@ -8,7 +14,7 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const rankings = await getRankingList();
+    const rankings = await getCachedRankingList();
 
     return NextResponse.json({
       success: true,

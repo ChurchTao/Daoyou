@@ -2,7 +2,8 @@
 
 import { InkModal } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import { InkBadge, InkButton } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
 import type { Cultivator } from '@/types/cultivator';
 import { GeneratedMaterial } from '@/utils/materialGenerator';
 import { useEffect, useState } from 'react';

@@ -1,5 +1,7 @@
 import { InkPageShell } from '@/components/layout';
-import { InkButton, InkCard, InkList, InkListItem } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkCard } from '@/components/ui/InkCard';
+import { InkList, InkListItem } from '@/components/ui/InkList';
 import { DungeonSettlement as DungeonSettlementType } from '@/lib/dungeon/types';
 
 interface DungeonSettlementProps {

@@ -1,7 +1,10 @@
 'use client';
 
 import { InkPageShell } from '@/components/layout';
-import { InkActionGroup, InkButton, InkDialog, InkTabs } from '@/components/ui';
+import { InkActionGroup } from '@/components/ui/InkActionGroup';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkDialog } from '@/components/ui/InkDialog';
+import { InkTabs } from '@/components/ui/InkTabs';
 import { usePathname } from 'next/navigation';
 
 import {

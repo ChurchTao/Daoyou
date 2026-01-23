@@ -1,7 +1,7 @@
 'use client';
 
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import type { InkDialogState } from '@/components/ui';
+import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { StatusEffect } from '@/types/constants';
 import type { Skill } from '@/types/cultivator';

@@ -2,7 +2,8 @@
 
 import { format } from 'd3-format';
 import { InkModal } from '@/components/layout';
-import { InkBadge, InkButton } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
 import type { Cultivator } from '@/types/cultivator';
 import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { calculateExpProgress } from '@/utils/cultivationUtils';

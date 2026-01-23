@@ -1,7 +1,7 @@
 'use client';
 
 import { InkModal } from '@/components/layout';
-import { InkBadge } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
 import { GongFaMini, LingGenMini, ShenTongMini } from './';

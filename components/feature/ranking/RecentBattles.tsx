@@ -1,7 +1,9 @@
 'use client';
 
 import Zhanji from '@/components/func/Zhanji';
-import { InkButton, InkList, InkNotice } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkList } from '@/components/ui/InkList';
+import { InkNotice } from '@/components/ui/InkNotice';
 import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
 import { useEffect, useState } from 'react';

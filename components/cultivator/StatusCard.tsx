@@ -1,6 +1,6 @@
 'use client';
 
-import { InkCard } from '@/components/ui';
+import { InkCard } from '@/components/ui/InkCard';
 import { buffRegistry } from '@/engine/buff';
 import type { BuffInstanceState } from '@/engine/buff/types';
 

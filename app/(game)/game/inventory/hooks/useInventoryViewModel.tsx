@@ -1,7 +1,7 @@
 'use client';
 
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import type { InkDialogState } from '@/components/ui';
+import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { useCallback, useState } from 'react';

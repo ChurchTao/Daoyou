@@ -1,7 +1,7 @@
 'use client';
 
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import type { InkDialogState } from '@/components/ui';
+import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useCallback, useMemo, useState } from 'react';
@@ -82,24 +82,40 @@ export function useHomeViewModel(): UseHomeViewModelReturn {
   const maxHp = finalAttributes?.maxHp ?? 100;
   const maxSpirit = finalAttributes?.maxMp ?? 100;
 
-  const statusItems = useMemo(() => {
+  // 使用派生状态而非对象数组，减少重渲染
+  const gender = cultivator?.gender ?? '未知';
+  const age = cultivator?.age ?? 0;
+  const lifespan = cultivator?.lifespan ?? 0;
+  const genderIcon = gender === '男' ? '♂' : gender === '女' ? '♀' : '❓';
+
+  // 将对象构建逻辑移到渲染层或使用稳定的 key
+  const statusItemKeys = useMemo(() => {
     if (!cultivator) return [];
-    return [
-      { label: '气血：', value: maxHp, icon: '❤️' },
-      { label: '灵力：', value: maxSpirit, icon: '⚡️' },
-      {
-        label: '性别：',
-        value: cultivator.gender,
-        icon: cultivator.gender === '男' ? '♂' : '♀',
-      },
-      {
-        label: '年龄：',
-        value: cultivator.age,
-        icon: '⌛',
-      },
-      { label: '寿元：', value: cultivator.lifespan, icon: '🔮' },
-    ];
-  }, [cultivator, maxHp, maxSpirit]);
+    return ['气血', '灵力', '性别', '年龄', '寿元'];
+  }, [cultivator]);
+
+  // 提供稳定的 getter 函数而非对象数组
+  const getStatusItemValue = useCallback((key: string) => {
+    switch (key) {
+      case '气血':
+        return { label: '气血：', value: maxHp, icon: '❤️' };
+      case '灵力':
+        return { label: '灵力：', value: maxSpirit, icon: '⚡️' };
+      case '性别':
+        return { label: '性别：', value: gender, icon: genderIcon };
+      case '年龄':
+        return { label: '年龄：', value: age, icon: '⌛' };
+      case '寿元':
+        return { label: '寿元：', value: lifespan, icon: '🔮' };
+      default:
+        return { label: '', value: '', icon: '' };
+    }
+  }, [maxHp, maxSpirit, gender, genderIcon, age, lifespan]);
+
+  // 保留原有的 statusItems 用于兼容性，但标记为 deprecated
+  const statusItems = useMemo(() => {
+    return statusItemKeys.map(getStatusItemValue);
+  }, [statusItemKeys, getStatusItemValue]);
 
   // 关闭 Dialog
   const closeDialog = useCallback(() => {

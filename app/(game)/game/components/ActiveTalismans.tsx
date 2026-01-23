@@ -1,6 +1,7 @@
 'use client';
 
-import { InkButton, InkListItem } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkListItem } from '@/components/ui/InkList';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';

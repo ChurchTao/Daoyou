@@ -2,7 +2,9 @@
 
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import { InkButton, InkInput, InkNotice } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkInput } from '@/components/ui/InkInput';
+import { InkNotice } from '@/components/ui/InkNotice';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';

@@ -1,6 +1,7 @@
 'use client';
 
-import { InkBadge, InkListItem } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkListItem } from '@/components/ui/InkList';
 import { useEffect, useState } from 'react';
 
 interface LifespanStatus {

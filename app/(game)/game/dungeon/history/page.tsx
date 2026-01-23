@@ -1,7 +1,9 @@
 'use client';
 
 import { InkPageShell, InkSection } from '@/components/layout';
-import { InkButton, InkCard, InkList, InkListItem } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkCard } from '@/components/ui/InkCard';
+import { InkList, InkListItem } from '@/components/ui/InkList';
 import { useCallback, useEffect, useState } from 'react';
 
 /**

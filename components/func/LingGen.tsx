@@ -1,7 +1,9 @@
 'use client';
 
 import { InkSection } from '@/components/layout';
-import { InkBadge, InkButton, InkList, InkListItem } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkList, InkListItem } from '@/components/ui/InkList';
 import { ELEMENT_VALUES } from '@/types/constants';
 import type { SpiritualRoot } from '@/types/cultivator';
 import { getElementInfo } from '@/types/dictionaries';

@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'd3-format';
-import { InkCard } from '@/components/ui';
+import { InkCard } from '@/components/ui/InkCard';
 import type { DungeonOptionCost } from '@/lib/dungeon/types';
 import {
   getResourceDisplayName,

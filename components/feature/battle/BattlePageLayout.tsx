@@ -1,4 +1,4 @@
-import { InkButton } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
 import { BattleEngineResult } from '@/engine/battle';
 import Link from 'next/link';
 import type { ReactNode } from 'react';

@@ -2,7 +2,9 @@
 
 import { InkModal } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import { InkBadge, InkButton, InkNotice } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkNotice } from '@/components/ui/InkNotice';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
 import { useState } from 'react';
 import { Mail } from './MailList';

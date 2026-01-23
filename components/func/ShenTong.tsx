@@ -1,7 +1,9 @@
 'use client';
 
 import { InkSection } from '@/components/layout';
-import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkList, InkListItem } from '@/components/ui/InkList';
+import { InkNotice } from '@/components/ui/InkNotice';
 import {
   formatAllEffects,
   getSkillDisplayInfo,

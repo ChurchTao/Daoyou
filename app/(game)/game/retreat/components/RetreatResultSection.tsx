@@ -2,7 +2,7 @@
 
 import { format } from 'd3-format';
 import { InkSection } from '@/components/layout';
-import { InkButton } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
 import type {
   BreakthroughResult,
   CultivationResult,

@@ -1,7 +1,8 @@
 'use client';
 
 import { InkModal } from '@/components/layout';
-import { InkButton, InkInput } from '@/components/ui';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkInput } from '@/components/ui/InkInput';
 
 interface TitleEditorModalProps {
   isOpen: boolean;

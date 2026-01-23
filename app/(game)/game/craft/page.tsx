@@ -1,7 +1,9 @@
 'use client';
 
 import { InkPageShell, InkSection } from '@/components/layout';
-import { InkActionGroup, InkButton, InkCard } from '@/components/ui';
+import { InkActionGroup } from '@/components/ui/InkActionGroup';
+import { InkButton } from '@/components/ui/InkButton';
+import { InkCard } from '@/components/ui/InkCard';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { usePathname } from 'next/navigation';
 

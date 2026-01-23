@@ -1,7 +1,9 @@
 'use client';
 
 import { InkModal, InkPageShell, InkSection } from '@/components/layout';
-import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
+import { InkBadge } from '@/components/ui/InkBadge';
+import { InkList, InkListItem } from '@/components/ui/InkList';
+import { InkNotice } from '@/components/ui/InkNotice';
 import { changelogs, type ChangelogItem } from '@/data/changelog';
 import { useState } from 'react';
 
