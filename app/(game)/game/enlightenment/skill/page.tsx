@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import {
+  formatAllEffects,
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
@@ -151,6 +152,7 @@ export default function SkillCreationPage() {
     };
     const elementInfo = getElementInfo(createdSkill.element);
     const displayInfo = getSkillDisplayInfo(createdSkill);
+    const effectsList = formatAllEffects(createdSkill.effects);
 
     return (
       <div className="space-y-4 p-2">
@@ -167,18 +169,30 @@ export default function SkillCreationPage() {
             元素：{elementInfo.icon}
             {elementInfo.label}
           </div>
-          <div>威力：{displayInfo.power}</div>
+          <div>
+            目标：{createdSkill.target_self ? '自身' : '敌方'}
+          </div>
+          <div>威力：{displayInfo.power}%</div>
+          {displayInfo.healPercent !== undefined && displayInfo.healPercent > 0 && (
+            <div>治疗：{displayInfo.healPercent}%</div>
+          )}
           <div>消耗：{createdSkill.cost || 0}灵力</div>
           <div>冷却：{createdSkill.cooldown || 0} 回合</div>
-          {displayInfo.buffName && (
-            <div>
-              附加效果：{displayInfo.buffName}
-              {displayInfo.buffDuration
-                ? `（${displayInfo.buffDuration}回合）`
-                : ''}
-            </div>
-          )}
         </div>
+
+        {effectsList.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-sm font-bold text-ink-primary">效果列表</div>
+            <div className="bg-ink/5 p-3 rounded-lg border border-ink/10 space-y-1">
+              {effectsList.map((effect, index) => (
+                <div key={index} className="text-sm text-ink-secondary">
+                  {effect.icon && <span className="mr-1">{effect.icon}</span>}
+                  <span>{effect.description}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-ink/5 p-3 rounded-lg border border-ink/10 text-sm leading-relaxed whitespace-pre-wrap">
           {createdSkill.description || '此神通玄妙异常，无法言喻。'}
