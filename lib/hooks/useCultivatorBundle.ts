@@ -278,6 +278,12 @@ export function useCultivatorBundle() {
     });
   }, [state.cultivator?.id, updateState]);
 
+  // 新增完整刷新函数
+  const refreshCultivator = useCallback(async () => {
+    if (!userId) return;
+    await loadFromServer();
+  }, [userId, loadFromServer]);
+
   // ========== 初始化逻辑 ==========
   useEffect(() => {
     // 无用户时重置
@@ -332,5 +338,6 @@ export function useCultivatorBundle() {
     ...state,
     refresh: loadFromServer,
     refreshInventory,
+    refreshCultivator,
   };
 }
