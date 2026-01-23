@@ -3,6 +3,7 @@
 import { InkModal } from '@/components/layout';
 import { InkBadge, InkButton } from '@/components/ui';
 import {
+  formatAllEffects,
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
@@ -29,6 +30,7 @@ export function SkillDetailModal({
 
   const displayInfo = getSkillDisplayInfo(skill);
   const { icon: skillIcon, typeName } = getSkillElementInfo(skill);
+  const effectsList = formatAllEffects(skill.effects);
 
   return (
     <InkModal isOpen={isOpen} onClose={onClose}>
@@ -62,6 +64,22 @@ export function SkillDetailModal({
               </div>
             </div>
           </div>
+
+          {/* Effects List */}
+          {effectsList.length > 0 && (
+            <div className="pt-2">
+              <span className="block opacity-70 mb-1 font-bold text-ink">
+                神通效果
+              </span>
+              <ul className="list-disc list-inside space-y-1">
+                {effectsList.map((effect, i) => (
+                  <li key={i}>
+                    {effect.icon} {effect.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {displayInfo.buffName && (
             <div className="pt-2">
