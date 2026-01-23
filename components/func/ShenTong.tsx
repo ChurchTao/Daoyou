@@ -3,6 +3,7 @@
 import { InkSection } from '@/components/layout';
 import { InkBadge, InkList, InkListItem, InkNotice } from '@/components/ui';
 import {
+  formatAllEffects,
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
@@ -56,6 +57,7 @@ export function ShenTong({
         const { icon: typeIcon, typeName } = getSkillElementInfo(skill);
         const isLast = index === skills.length - 1;
         const displayInfo = getSkillDisplayInfo(skill);
+        const effectsList = formatAllEffects(skill.effects);
 
         return (
           <InkListItem
@@ -72,12 +74,8 @@ export function ShenTong({
             description={`威力：${displayInfo.power}｜冷却：${skill.cooldown}回合${
               skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
             }${
-              displayInfo.buffName
-                ? `｜效果：${displayInfo.buffName}${
-                    displayInfo.buffDuration
-                      ? `（${displayInfo.buffDuration}回合）`
-                      : ''
-                  }`
+              effectsList.length > 0
+                ? `｜效果：${effectsList.map((e) => e.description).join('、')}`
                 : ''
             }`}
             highlight={highlightLast && isLast}
