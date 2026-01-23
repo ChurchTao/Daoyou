@@ -169,6 +169,13 @@
       "when": 1768905484634,
       "tag": "0023_broad_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1769141739656,
+      "tag": "0024_wooden_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

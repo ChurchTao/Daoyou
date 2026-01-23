@@ -241,6 +241,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
       name: blueprint.name,
       grade,
       required_realm: realm, // 默认当前境界可学
+      description: blueprint.description,
       effects,
     };
   }
@@ -255,6 +256,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
       name: resultItem.name,
       grade: resultItem.grade,
       required_realm: resultItem.required_realm,
+      description: resultItem.description,
       effects: resultItem.effects ?? [],
     });
   }

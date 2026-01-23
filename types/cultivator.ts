@@ -96,6 +96,7 @@ export interface CultivationTechnique {
   name: string;
   grade?: SkillGrade;
   required_realm: RealmType;
+  description?: string;
   effects?: EffectConfig[]; // 替代 bonus
 }
 

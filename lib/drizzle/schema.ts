@@ -95,6 +95,7 @@ export const cultivationTechniques = pgTable(
     name: varchar('name', { length: 100 }).notNull(),
     grade: varchar('grade', { length: 20 }),
     required_realm: varchar('required_realm', { length: 20 }).notNull(),
+    description: text('description'),
     effects: jsonb('effects').default([]), // EffectConfig[]
     createdAt: timestamp('created_at').defaultNow(),
   },

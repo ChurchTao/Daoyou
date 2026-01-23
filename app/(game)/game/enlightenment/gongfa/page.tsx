@@ -168,6 +168,10 @@ export default function GongfaCreationPage() {
           </div>
         )}
 
+        <div className="bg-ink/5 p-3 rounded-lg border border-ink/10 text-sm leading-relaxed whitespace-pre-wrap">
+          {gongfa.description || '此功法玄妙异常，无法言喻。'}
+        </div>
+
         <div className="flex justify-end">
           <InkButton onClick={() => setCreatedGongfa(null)}>了然于胸</InkButton>
         </div>
