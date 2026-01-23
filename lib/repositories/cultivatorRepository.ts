@@ -1668,3 +1668,20 @@ export async function addConsumableToInventory(
     });
   }
 }
+
+/**
+ * 更新角色上次领取收益时间
+ */
+export async function updateLastYieldAt(
+  userId: string,
+  cultivatorId: string,
+  tx?: DbTransaction,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const dbInstance = tx || db;
+  await dbInstance
+    .update(schema.cultivators)
+    .set({ last_yield_at: new Date() })
+    .where(eq(schema.cultivators.id, cultivatorId));
+}

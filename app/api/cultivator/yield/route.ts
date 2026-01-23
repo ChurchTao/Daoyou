@@ -1,23 +1,23 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
-import * as schema from '@/lib/drizzle/schema';
-import { cultivators } from '@/lib/drizzle/schema';
+import { resourceEngine } from '@/engine/resource/ResourceEngine';
+import { YieldCalculator } from '@/engine/yield/YieldCalculator';
 import { redis } from '@/lib/redis';
-import { REALM_YIELD_RATES, RealmType } from '@/types/constants';
+import { updateLastYieldAt } from '@/lib/repositories/cultivatorRepository';
+import { RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';
 import {
-  GeneratedMaterial,
+  type GeneratedMaterial,
   generateRandomMaterials,
 } from '@/utils/materialGenerator';
-import { eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 /**
  * POST /api/cultivator/yield
- * 领取在外历练收益（灵石+材料）
+ * 领取在外历练收益（灵石+修为+感悟值+材料）
  */
 export const POST = withActiveCultivator(
   async (_req, { cultivator: activeCultivator }) => {
+    const userId = activeCultivator.userId;
     const cultivatorId = activeCultivator.id;
 
     // Prevent concurrent claims with Redis lock
@@ -32,82 +32,82 @@ export const POST = withActiveCultivator(
     }
 
     try {
-      // Wrap in transaction to ensure atomicity
-      const result = await db.transaction(async (tx) => {
-        // 1. Fetch Cultivator (fresh data)
-        const [cultivator] = await tx
-          .select()
-          .from(cultivators)
-          .where(eq(cultivators.id, cultivatorId))
-          .limit(1);
+      // 1. 计算奖励
+      const realm = activeCultivator.realm as RealmType;
+      const lastYieldAt = activeCultivator.last_yield_at
+        ? new Date(activeCultivator.last_yield_at)
+        : new Date(activeCultivator.createdAt || Date.now());
+      const now = new Date();
+      const diffMs = now.getTime() - lastYieldAt.getTime();
+      const hoursElapsed = Math.min(diffMs / (1000 * 60 * 60), 24); // Cap at 24 hours
 
-        if (!cultivator) {
-          throw new Error('三界之中未寻得此道友踪迹。');
+      if (hoursElapsed < 1) {
+        await redis.del(lockKey);
+        return NextResponse.json(
+          { success: false, error: '历练时日尚短（不足一小时），难有机缘。' },
+          { status: 400 },
+        );
+      }
+
+      // 2. 使用 YieldCalculator 计算奖励
+      const operations = YieldCalculator.calculateYield(realm, hoursElapsed);
+
+      // 3. 生成材料
+      const materialCount = YieldCalculator.calculateMaterialCount(hoursElapsed);
+      let gainedMaterials: GeneratedMaterial[] = [];
+
+      if (materialCount > 0) {
+        gainedMaterials = await generateRandomMaterials(materialCount);
+
+        for (const m of gainedMaterials) {
+          operations.push({
+            type: 'material',
+            value: m.quantity,
+            name: m.name,
+            data: m,
+          });
         }
+      }
 
-        // 2. Calculate time elapsed
-        const lastYieldAt = cultivator.last_yield_at
-          ? new Date(cultivator.last_yield_at)
-          : new Date(cultivator.createdAt || Date.now());
-        const now = new Date();
-        const diffMs = now.getTime() - lastYieldAt.getTime();
-        const hoursElapsed = Math.min(diffMs / (1000 * 60 * 60), 24); // Cap at 24 hours
+      // 4. 使用 ResourceEngine 发放奖励，并在 action 中更新 last_yield_at
+      const resourceResult = await resourceEngine.gain(
+        userId,
+        cultivatorId,
+        operations,
+        async () => {
+          // action: 更新 last_yield_at 时间
+          await updateLastYieldAt(userId, cultivatorId);
+        },
+        false, // 非干运行
+      );
 
-        if (hoursElapsed < 1) {
-          throw new Error('历练时日尚短（不足一小时），难有机缘。');
-        }
+      if (!resourceResult.success) {
+        await redis.del(lockKey);
+        return NextResponse.json(
+          {
+            success: false,
+            error: resourceResult.errors?.join(', ') || '发放奖励失败',
+          },
+          { status: 500 },
+        );
+      }
 
-        // 3. Calculate Yield
-        const realm = cultivator.realm as RealmType;
-        const baseRate = REALM_YIELD_RATES[realm] || 10;
-        const randomMultiplier = 0.8 + Math.random() * (2 - 0.8); // 0.8 ~ 2.0
-        const amount = Math.floor(baseRate * hoursElapsed * randomMultiplier);
+      // 5. 计算结果（用于前端显示和AI提示词）
+      const spiritStonesGain = operations.find(op => op.type === 'spirit_stones')?.value || 0;
+      const expGain = operations.find(op => op.type === 'cultivation_exp')?.value || 0;
+      const insightGain = operations.find(op => op.type === 'comprehension_insight')?.value || 0;
 
-        // 4. Calculate Material Drops
-        const materialCount = Math.floor(hoursElapsed / 3);
-        let gainedMaterials: GeneratedMaterial[] = [];
+      const result = {
+        cultivatorName: activeCultivator.name,
+        cultivatorRealm: activeCultivator.realm,
+        amount: spiritStonesGain,
+        expGain,
+        insightGain,
+        materials: gainedMaterials,
+        hours: hoursElapsed,
+      };
 
-        if (materialCount > 0) {
-          gainedMaterials = await generateRandomMaterials(materialCount);
-
-          if (gainedMaterials.length > 0) {
-            await tx.insert(schema.materials).values(
-              gainedMaterials.map((m) => ({
-                id: crypto.randomUUID(),
-                cultivatorId: cultivatorId,
-                name: m.name,
-                type: m.type,
-                rank: m.rank,
-                description: m.description,
-                element: m.element,
-                quantity: m.quantity,
-                price: m.price,
-              })),
-            );
-          }
-        }
-
-        // 5. Update DB
-        await tx
-          .update(cultivators)
-          .set({
-            spirit_stones: sql`${cultivators.spirit_stones} + ${amount}`,
-            last_yield_at: now,
-          })
-          .where(eq(cultivators.id, cultivatorId));
-
-        return {
-          cultivatorName: cultivator.name,
-          cultivatorRealm: cultivator.realm,
-          amount,
-          materials: gainedMaterials,
-          hours: hoursElapsed,
-          prevBalance: cultivator.spirit_stones,
-          newBalance: cultivator.spirit_stones + amount,
-        };
-      });
-
-      // 6. Generate Flavor Text via SSE
+      // 6. 生成 SSE 流式响应
       const encoder = new TextEncoder();
       const customStream = new ReadableStream({
         async start(controller) {
@@ -115,9 +115,7 @@ export const POST = withActiveCultivator(
             // First send the calculation result
             const initialData = JSON.stringify({
               type: 'result',
-              data: {
-                ...result,
-              },
+              data: result,
             });
             controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
@@ -126,19 +124,18 @@ export const POST = withActiveCultivator(
             const userPrompt = `
                 请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
                 修士在历练中花费了【${result.hours.toFixed(1)}】小时。
-                
+
                 收获如下：
                 1. 灵石：【${result.amount}】枚。
-                ${
-                  result.materials.length > 0
-                    ? `2. 获得材料：${result.materials.map((m) => `【${m.rank}】${m.name}`).join('、')}。`
-                    : ''
-                }
-                
+                ${result.expGain ? `2. 修为精进：【${result.expGain}】点。` : ''}
+                ${result.insightGain ? (result.expGain ? '3.' : '2.') + ` 天道感悟：【${result.insightGain}】点。` : ''}
+                ${result.materials?.length ? (result.expGain || result.insightGain ? '4.' : '2.') + ` 获得材料：${result.materials.map((m) => `【${m.rank}】${m.name}`).join('、')}` : ''}
+
                 要求：
-                1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石和材料的过程融入故事中。
+                1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石、修为、感悟值和材料的过程融入故事中。
                 2. 必须符合修仙世界观，文风古风，有代入感。
-                3. 若获得了稀有材料（玄品以上），请着重描写其获取的不易或机缘巧合。
+                3. 若获得了稀有材料（玄品以上）或功法典籍，请着重描写其获取的不易或机缘巧合。
+                4. 若获得了感悟值，请描述为修士在历练中参悟天地法则、突破瓶颈的过程。
               `;
 
             // Stream AI generation

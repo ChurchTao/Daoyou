@@ -20,6 +20,8 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
     hours: number;
     story: string;
     materials?: GeneratedMaterial[];
+    expGain?: number;
+    insightGain?: number;
   } | null>(null);
 
   const [claiming, setClaiming] = useState(false);
@@ -172,12 +174,30 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
           {yieldResult?.story}
         </div>
 
-        <div className="flex justify-center items-center gap-2 mb-6">
+        <div className="flex justify-center items-center gap-2 mb-4">
           <span className="text-ink-secondary">获得灵石：</span>
           <span className="text-2xl font-bold text-yellow-500 flex items-center gap-1">
             💎 {yieldResult?.amount}
           </span>
         </div>
+
+        {yieldResult?.expGain && (
+          <div className="flex justify-center items-center gap-2 mb-4">
+            <span className="text-ink-secondary">修为精进：</span>
+            <span className="text-2xl font-bold text-blue-500">
+              ✨ {yieldResult.expGain}
+            </span>
+          </div>
+        )}
+
+        {yieldResult?.insightGain && (
+          <div className="flex justify-center items-center gap-2 mb-4">
+            <span className="text-ink-secondary">天道感悟：</span>
+            <span className="text-2xl font-bold text-purple-500">
+              💡 {yieldResult.insightGain}
+            </span>
+          </div>
+        )}
 
         {yieldResult?.materials && yieldResult.materials.length > 0 && (
           <div className="mb-6">

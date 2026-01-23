@@ -14,12 +14,12 @@ export const QUALITY_CHANCE_MAP: Record<Quality, number> = {
 
 // 随机生成时各类型出现的权重 (非固定生成时使用)
 export const TYPE_CHANCE_MAP: Record<MaterialType, number> = {
-  herb: 0.3,
-  ore: 0.3,
-  monster: 0.25,
-  aux: 0.1,
-  tcdb: 0, // 默认随机不产出，需指定生成
-  manual: 0, // 默认随机不产出，需指定生成
+  herb: 0.35,   // 35% 灵药
+  ore: 0.28,    // 28% 矿石
+  monster: 0.22, // 22% 妖兽材料
+  tcdb: 0.07,   // 7% 天材地宝
+  aux: 0.05,    // 5% 特殊辅料
+  manual: 0.03, // 3% 功法典籍（稀有）
 };
 
 // 品质基础价格
