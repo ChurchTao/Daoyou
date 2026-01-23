@@ -49,12 +49,12 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久体魄提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_VITALITY,
-    effectType: EffectType.ConsumeAddBuff,
+    effectType: EffectType.ConsumeStatModifier,
     trigger: EffectTrigger.ON_CONSUME, // 特殊触发器：服用时触发，永久生效
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.FIXED,
-      value: { base: 3, scale: 'realm', coefficient: 0.5 },
+      value: { base: 3, scale: 'quality', coefficient: 0.5 },
     },
     weight: 100,
     tags: ['primary', 'defensive'],
@@ -64,12 +64,12 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久灵力提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_SPIRIT,
-    effectType: EffectType.ConsumeAddBuff,
+    effectType: EffectType.ConsumeStatModifier,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.FIXED,
-      value: { base: 3, scale: 'realm', coefficient: 0.5 },
+      value: { base: 3, scale: 'quality', coefficient: 0.5 },
     },
     weight: 100,
     tags: ['primary', 'offensive'],
@@ -79,12 +79,12 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久悟性提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_WISDOM,
-    effectType: EffectType.ConsumeAddBuff,
+    effectType: EffectType.ConsumeStatModifier,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.FIXED,
-      value: { base: 2, scale: 'realm', coefficient: 0.3 },
+      value: { base: 2, scale: 'quality', coefficient: 0.3 },
     },
     weight: 70,
     minQuality: '玄品',
@@ -95,12 +95,12 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久速度提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_SPEED,
-    effectType: EffectType.ConsumeAddBuff,
+    effectType: EffectType.ConsumeStatModifier,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.FIXED,
-      value: { base: 2, scale: 'realm', coefficient: 0.3 },
+      value: { base: 2, scale: 'quality', coefficient: 0.3 },
     },
     weight: 80,
     tags: ['primary', 'utility'],
@@ -110,12 +110,12 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
   // 永久神识提升
   {
     id: CONSUMABLE_AFFIX_IDS.PRIMARY_WILLPOWER,
-    effectType: EffectType.ConsumeAddBuff,
+    effectType: EffectType.ConsumeStatModifier,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.FIXED,
-      value: { base: 2, scale: 'realm', coefficient: 0.3 },
+      value: { base: 2, scale: 'quality', coefficient: 0.3 },
     },
     weight: 80,
     tags: ['primary', 'defensive'],
@@ -181,7 +181,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Shield,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      amount: { base: 100, scale: 'realm', coefficient: 5 },
+      amount: { base: 100, scale: 'quality', coefficient: 5 },
       duration: 3,
     },
     weight: 40,

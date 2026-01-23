@@ -1,5 +1,5 @@
-import { format } from 'd3-format';
 import type { ElementType } from '@/types/constants';
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import { EffectTrigger, type DamageParams, type EffectContext } from '../types';
 
@@ -106,7 +106,7 @@ export class DamageEffect extends BaseEffect {
     return {
       label: '造成伤害',
       icon: '💥',
-      description: `造成${elementText}伤害，${[multiplierText, flatDamageText].filter(Boolean).join('+')}，${critRate}${ignoreDefenseText}`,
+      description: `造成${elementText}伤害${[multiplierText, flatDamageText].filter(Boolean).join('+')}，${critRate}${ignoreDefenseText}`,
     };
   }
 }
