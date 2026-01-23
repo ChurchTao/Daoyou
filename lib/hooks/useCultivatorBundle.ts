@@ -278,10 +278,20 @@ export function useCultivatorBundle() {
     });
   }, [state.cultivator?.id, updateState]);
 
-  // 新增完整刷新函数
+  /**
+   * 完整刷新角色数据（包括功法、神通、背包等所有数据）
+   *
+   * 使用场景：
+   * - 创建新功法/神通后需要重新加载完整角色数据
+   * - 需要同步最新状态时
+   *
+   * 对比 refreshInventory：
+   * - refreshCultivator: 重新加载所有角色数据
+   * - refreshInventory: 仅刷新背包数据（消耗品、材料、法宝）
+   */
   const refreshCultivator = useCallback(async () => {
     if (!userId) return;
-    await loadFromServer();
+    return await loadFromServer();
   }, [userId, loadFromServer]);
 
   // ========== 初始化逻辑 ==========
