@@ -25,7 +25,7 @@ import { useState } from 'react';
 const MAX_MATERIALS = 5;
 
 export default function SkillCreationPage() {
-  const { cultivator, refreshInventory, note, isLoading } = useCultivator();
+  const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [status, setStatus] = useState<string>('');
@@ -115,7 +115,7 @@ export default function SkillCreationPage() {
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
       setSelectedMaterialIds([]);
-      await refreshInventory();
+      await refreshCultivator();
     } catch (error) {
       const failMessage =
         error instanceof Error
