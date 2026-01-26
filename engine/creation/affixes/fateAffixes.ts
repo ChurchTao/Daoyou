@@ -35,7 +35,7 @@ export const FATE_AFFIX_IDS = {
   FATE_ASSASSIN: 'fate_combat_assassin', // 刺客信条
   FATE_MANA_BATTERY: 'fate_combat_mana_battery', // 灵力源泉
   FATE_HEALER: 'fate_combat_healer', // 医圣转世
-  FATE_MANA_DRAIN: 'fate_combat_mana_drain', // 噬灵
+  // FATE_MANA_DRAIN removed - uses ON_SKILL_HIT, not appropriate for passive fates
   FATE_DODGE: 'fate_combat_dodge', // 凌波微步
 
   // === 元素亲和类 ===
@@ -226,20 +226,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
     displayName: '医圣转世',
     displayDescription: '悬壶济世，施展的治疗效果大幅提升',
   },
-  {
-    id: FATE_AFFIX_IDS.FATE_MANA_DRAIN,
-    effectType: EffectType.ManaDrain,
-    trigger: EffectTrigger.ON_SKILL_HIT,
-    paramsTemplate: {
-      drainPercent: { base: 0.05, scale: 'quality', coefficient: 1.5 },
-      restoreToSelf: true,
-    },
-    weight: 40,
-    minQuality: '地品',
-    tags: ['secondary', 'combat', 'drain'],
-    displayName: '噬灵邪体',
-    displayDescription: '攻击时吞噬对方灵力，化为己用',
-  },
+  // FATE_MANA_DRAIN removed - uses ON_SKILL_HIT, not appropriate for passive fates
   {
     id: FATE_AFFIX_IDS.FATE_DODGE,
     effectType: EffectType.ModifyHitRate,

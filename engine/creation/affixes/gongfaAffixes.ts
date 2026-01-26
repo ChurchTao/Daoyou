@@ -41,12 +41,9 @@ export const GONGFA_AFFIX_IDS = {
   COUNTER_STANCE: 'gongfa_counter_stance',
   MIRROR_ART: 'gongfa_mirror_art',
 
-  // 新增：吸血系
-  BLOOD_THIRST: 'gongfa_blood_thirst',
-  MANA_DRAIN: 'gongfa_mana_drain',
+  // 新增：吸血系 (removed - using ON_SKILL_HIT, not appropriate for passive gongfa)
 
-  // 新增：法力系
-  MANA_FOCUS: 'gongfa_mana_focus',
+  // 新增：法力系 (removed MANA_FOCUS - using ON_CONSUME, not appropriate for gongfa)
   BREAKTHROUGH_MANA: 'gongfa_breakthrough_mana',
 
   // 新增：元素系
@@ -260,49 +257,9 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     displayDescription: '被攻击时反弹伤害',
   },
 
-  // === 新增：吸血系 ===
-  {
-    id: GONGFA_AFFIX_IDS.BLOOD_THIRST,
-    effectType: EffectType.LifeSteal,
-    trigger: EffectTrigger.ON_SKILL_HIT,
-    paramsTemplate: {
-      stealPercent: { base: 0.05, scale: 'quality', coefficient: 0.75 },
-    },
-    weight: 45,
-    minQuality: '真品',
-    tags: ['secondary', 'lifesteal', 'sustain'],
-    displayName: '嗜血术',
-    displayDescription: '技能命中时回复生命值',
-  },
-  {
-    id: GONGFA_AFFIX_IDS.MANA_DRAIN,
-    effectType: EffectType.ManaDrain,
-    trigger: EffectTrigger.ON_SKILL_HIT,
-    paramsTemplate: {
-      drainPercent: { base: 0.08, scale: 'quality', coefficient: 0.47 },
-      restoreToSelf: true,
-    },
-    weight: 40,
-    minQuality: '真品',
-    tags: ['secondary', 'sustain'],
-    displayName: '夺元功',
-    displayDescription: '技能命中时吸取法力值',
-  },
+  // === 新增：吸血系 (removed - using ON_SKILL_HIT, not appropriate for passive gongfa) ===
 
   // === 新增：法力系 ===
-  {
-    id: GONGFA_AFFIX_IDS.MANA_FOCUS,
-    effectType: EffectType.ManaRegen,
-    trigger: EffectTrigger.ON_CONSUME,
-    paramsTemplate: {
-      percentOfMax: { base: 0.03, scale: 'quality', coefficient: 0.75 },
-    },
-    weight: 50,
-    minQuality: '玄品',
-    tags: ['secondary', 'sustain'],
-    displayName: '聚灵诀',
-    displayDescription: '消耗法力时回复法力值',
-  },
   {
     id: GONGFA_AFFIX_IDS.BREAKTHROUGH_MANA,
     effectType: EffectType.AddBuff,

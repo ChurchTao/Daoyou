@@ -12,7 +12,6 @@
 import {
   EffectTrigger,
   EffectType,
-  StatModifierType,
 } from '@/engine/effect/types';
 import type { SkillType } from '@/types/constants';
 import type { AffixWeight } from '../types';
@@ -42,8 +41,8 @@ export const SKILL_AFFIX_IDS = {
   ATTACK_THUNDER_BOLT: 'skill_attack_thunder_bolt',
   ATTACK_ICE: 'skill_attack_ice',
   // 攻击型副词条（新增）
-  ATTACK_S_ELEMENT_BONUS: 'skill_attack_s_element_bonus',
-  ATTACK_S_CRITICAL: 'skill_attack_s_critical',
+  // ATTACK_S_ELEMENT_BONUS removed - uses ON_STAT_CALC, not appropriate for active skills
+  // ATTACK_S_CRITICAL removed - uses ON_STAT_CALC, not appropriate for active skills
   ATTACK_S_PENETRATE: 'skill_attack_s_penetrate',
   ATTACK_S_MANA_DRAIN: 'skill_attack_s_mana_drain',
 
@@ -65,7 +64,7 @@ export const SKILL_AFFIX_IDS = {
   HEAL_S_DISPEL: 'skill_heal_s_dispel',
   HEAL_S_AMPLIFY: 'skill_heal_s_amplify',
   // 治疗型副词条（新增）
-  HEAL_S_AMPLIFY_PASSIVE: 'skill_heal_s_amplify_passive',
+  // HEAL_S_AMPLIFY_PASSIVE removed - uses ON_STAT_CALC, not appropriate for active skills
   HEAL_S_RECOVERY: 'skill_heal_s_recovery',
   HEAL_S_EMERGENCY: 'skill_heal_s_emergency',
   HEAL_S_MANA_REGEN: 'skill_heal_s_mana_regen',
@@ -139,7 +138,7 @@ export const SKILL_AFFIX_IDS = {
   BUFF_ENLIGHTENMENT: 'skill_buff_enlightenment',
   BUFF_ELEMENT_SHIELD: 'skill_buff_element_shield',
   BUFF_COUNTER_STANCE: 'skill_buff_counter_stance',
-  BUFF_MANA_BODY: 'skill_buff_mana_body',
+  // BUFF_MANA_BODY removed - uses ON_CONSUME, not appropriate for active skills
   BUFF_DIVINE_DESCENT: 'skill_buff_divine_descent',
   BUFF_GOD_SPEED: 'skill_buff_god_speed',
   // 增益型副词条
@@ -435,36 +434,8 @@ const ATTACK_AFFIXES: AffixWeight[] = [
 
 // 攻击型副词条
 const ATTACK_SECONDARY_AFFIXES: AffixWeight[] = [
-  // 元素亲和
-  {
-    id: SKILL_AFFIX_IDS.ATTACK_S_ELEMENT_BONUS,
-    effectType: EffectType.ElementDamageBonus,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      element: 'INHERIT',
-      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
-    },
-    weight: 40,
-    minQuality: '玄品',
-    tags: ['secondary', 'offensive'],
-    displayName: '元素亲和',
-    displayDescription: '提升对应元素技能的伤害',
-  },
-  // 暴击要害
-  {
-    id: SKILL_AFFIX_IDS.ATTACK_S_CRITICAL,
-    effectType: EffectType.Critical,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.38 },
-      critDamageBonus: { base: 0.15, scale: 'quality', coefficient: 0.38 },
-    },
-    weight: 35,
-    minQuality: '真品',
-    tags: ['secondary', 'burst'],
-    displayName: '暴击要害',
-    displayDescription: '提升暴击率和暴击伤害',
-  },
+  // 元素亲和 (removed - uses ON_STAT_CALC, not appropriate for active skills)
+  // 暴击要害 (removed - uses ON_STAT_CALC, not appropriate for active skills)
   // 穿透攻击
   {
     id: SKILL_AFFIX_IDS.ATTACK_S_PENETRATE,
@@ -722,21 +693,7 @@ const HEAL_SECONDARY_AFFIXES: AffixWeight[] = [
     displayDescription: '增强治疗效果',
   },
   // === 新增治疗型副词条 ===
-  // 治疗增幅被动
-  {
-    id: SKILL_AFFIX_IDS.HEAL_S_AMPLIFY_PASSIVE,
-    effectType: EffectType.HealAmplify,
-    trigger: EffectTrigger.ON_STAT_CALC,
-    paramsTemplate: {
-      amplifyPercent: { base: 0.1, scale: 'quality', coefficient: 0.75 },
-      affectOutgoing: true,
-    },
-    weight: 35,
-    minQuality: '真品',
-    tags: ['secondary', 'healing_boost'],
-    displayName: '治疗增幅',
-    displayDescription: '提升治疗效果',
-  },
+  // 治疗增幅被动 (removed - uses ON_STAT_CALC, not appropriate for active skills)
   // 复苏之风
   {
     id: SKILL_AFFIX_IDS.HEAL_S_RECOVERY,
@@ -1698,22 +1655,7 @@ const BUFF_AFFIXES: AffixWeight[] = [
     displayName: '元素护盾',
     displayDescription: '特定元素护盾',
   },
-  // 灵气护体
-  {
-    id: SKILL_AFFIX_IDS.BUFF_MANA_BODY,
-    effectType: EffectType.StatModifier,
-    trigger: EffectTrigger.ON_CONSUME,
-    paramsTemplate: {
-      stat: 'manaCost',
-      modType: StatModifierType.PERCENT,
-      value: -0.1,
-    },
-    weight: 30,
-    minQuality: '地品',
-    tags: ['primary', 'buff', 'sustain'],
-    displayName: '灵气护体',
-    displayDescription: '减少法力消耗',
-  },
+  // 灵气护体 (removed - uses ON_CONSUME, not appropriate for active skills)
   // 天神下凡
   {
     id: SKILL_AFFIX_IDS.BUFF_DIVINE_DESCENT,

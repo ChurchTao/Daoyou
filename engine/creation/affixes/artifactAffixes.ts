@@ -34,9 +34,9 @@ export const ARTIFACT_AFFIX_IDS = {
   SECONDARY_DAMAGE_REDUCTION: 'artifact_s_damage_reduction',
   SECONDARY_FLAT_REDUCTION: 'artifact_s_flat_reduction',
   SECONDARY_REFLECT_DAMAGE: 'artifact_s_reflect_damage',
-  SECONDARY_BURN_ON_HIT: 'artifact_s_burn_on_hit',
-  SECONDARY_POISON_ON_HIT: 'artifact_s_poison_on_hit',
-  SECONDARY_FREEZE_ON_HIT: 'artifact_s_freeze_on_hit',
+  // SECONDARY_BURN_ON_HIT removed - uses ON_SKILL_HIT, not appropriate for passive artifacts
+  // SECONDARY_POISON_ON_HIT removed - uses ON_SKILL_HIT, not appropriate for passive artifacts
+  // SECONDARY_FREEZE_ON_HIT removed - uses ON_SKILL_HIT, not appropriate for passive artifacts
   SECONDARY_SHIELD: 'artifact_s_shield',
   SECONDARY_HIT_RATE: 'artifact_s_hit_rate',
   SECONDARY_DODGE_RATE: 'artifact_s_dodge_rate',
@@ -262,55 +262,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     displayName: '伤害反射',
     displayDescription: '将部分受到的伤害反弹给攻击者',
   },
-  // 命中附加状态
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_BURN_ON_HIT,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_SKILL_HIT,
-    paramsTemplate: {
-      buffId: 'burn',
-      chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
-      durationOverride: 2,
-    },
-    weight: 40,
-    slots: ['weapon'],
-    minQuality: '玄品',
-    tags: ['secondary', 'offensive', 'dot'],
-    displayName: '灼烧附加',
-    displayDescription: '攻击有几率使敌人陷入灼烧状态',
-  },
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_POISON_ON_HIT,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_SKILL_HIT,
-    paramsTemplate: {
-      buffId: 'poison',
-      chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
-      durationOverride: 3,
-    },
-    weight: 35,
-    slots: ['weapon'],
-    minQuality: '玄品',
-    tags: ['secondary', 'offensive', 'dot'],
-    displayName: '中毒附加',
-    displayDescription: '攻击有几率使敌人陷入中毒状态',
-  },
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_FREEZE_ON_HIT,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_SKILL_HIT,
-    paramsTemplate: {
-      buffId: 'freeze',
-      chance: { base: 0.08, scale: 'quality', coefficient: 0.03 },
-      durationOverride: 1,
-    },
-    weight: 25,
-    slots: ['weapon'],
-    minQuality: '地品',
-    tags: ['secondary', 'offensive', 'control'],
-    displayName: '冰冻附加',
-    displayDescription: '攻击有几率冰冻敌人',
-  },
+  // 命中附加状态 (removed - uses ON_SKILL_HIT, not appropriate for passive artifacts)
   // 护盾
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_SHIELD,
