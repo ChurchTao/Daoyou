@@ -1,14 +1,10 @@
 'use client';
 
-import { InkModal } from '@/components/layout';
+import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { InkBadge } from '@/components/ui/InkBadge';
-import { InkButton } from '@/components/ui/InkButton';
-import {
-  formatAllEffects,
-  getArtifactDisplayInfo,
-} from '@/lib/utils/effectDisplay';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import {
+  CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
@@ -21,6 +17,16 @@ interface ItemDetailModalProps {
   item: InventoryItem | null;
 }
 
+// 持有数量信息组件
+function QuantityInfo({ quantity }: { quantity: number }) {
+  return (
+    <div className="flex justify-between border-b border-border/50 pb-2">
+      <span className="opacity-70">持有数量</span>
+      <span className="font-bold">{quantity}</span>
+    </div>
+  );
+}
+
 /**
  * 物品详情弹窗
  */
@@ -29,163 +35,80 @@ export function ItemDetailModal({
   onClose,
   item,
 }: ItemDetailModalProps) {
-  if (!item) return null;
+  if (!item || !isOpen) return null;
 
-  return (
-    <InkModal isOpen={isOpen} onClose={onClose} title="物品详情">
-      <ItemDetailContent item={item} />
-      <div className="pt-4 flex justify-end">
-        <InkButton onClick={onClose} className="w-full">
-          关闭
-        </InkButton>
-      </div>
-    </InkModal>
-  );
-}
-
-function ItemDetailContent({ item }: { item: InventoryItem }) {
   // 法宝（有 slot 属性）
   if ('slot' in item) {
-    return <ArtifactDetail item={item as Artifact} />;
+    const slotInfo = getEquipmentSlotInfo(item.slot);
+    const extraInfo = item.required_realm ? (
+      <div className="flex justify-between border-b border-ink/50 pb-2">
+        <span className="opacity-70">境界要求</span>
+        <span>{item.required_realm}</span>
+      </div>
+    ) : null;
+
+    return (
+      <EffectDetailModal
+        isOpen
+        onClose={onClose}
+        icon={slotInfo.icon}
+        name={item.name}
+        badges={[
+          item.quality && <InkBadge key="q" tier={item.quality}>{item.quality}</InkBadge>,
+          <InkBadge key="s" tone="default">{slotInfo.label}</InkBadge>,
+          <InkBadge key="e" tone="default">{item.element}</InkBadge>,
+        ].filter(Boolean)}
+        extraInfo={extraInfo}
+        effects={item.effects}
+        description={item.description}
+        effectTitle="法宝效果"
+        descriptionTitle="法宝说明"
+      />
+    );
   }
 
-  // 丹药（有 effects 数组但无 slot）
-  if ('effects' in item && 'quantity' in item) {
-    return <ConsumableDetail item={item as Consumable} />;
+  // 丹药/符箓（有 effects 数组但无 slot）
+  if ('effects' in item) {
+    const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
+    return (
+      <EffectDetailModal
+        isOpen
+        onClose={onClose}
+        icon={typeInfo.icon}
+        name={item.name}
+        badges={[
+          item.quality && <InkBadge key="q" tier={item.quality}>{item.quality}</InkBadge>,
+          <InkBadge key="t" tone="default">{typeInfo.label}</InkBadge>,
+        ].filter(Boolean)}
+        extraInfo={<QuantityInfo quantity={item.quantity} />}
+        effects={item.effects}
+        description={item.description}
+        effectTitle="药效"
+        descriptionTitle="丹药详述"
+      />
+    );
   }
 
   // 材料
-  return <MaterialDetail item={item as Material} />;
-}
-
-function ArtifactDetail({ item }: { item: Artifact }) {
-  const slotInfo = getEquipmentSlotInfo(item.slot);
-  const displayInfo = getArtifactDisplayInfo(item);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
-        <div className="text-4xl mb-2">{slotInfo.icon}</div>
-        <h4 className="text-lg font-bold">{item.name}</h4>
-        <div className="flex gap-2 mt-2">
-          <InkBadge tier={item.quality}>{slotInfo.label}</InkBadge>
-          <InkBadge tone="default">{item.element}</InkBadge>
-        </div>
-      </div>
-
-      <div className="space-y-2 text-sm">
-        {item.required_realm && (
-          <div className="flex justify-between border-b border-ink/50 pb-2">
-            <span className="opacity-70">境界要求</span>
-            <span>{item.required_realm}</span>
-          </div>
-        )}
-
-        {/* 效果列表 */}
-        {displayInfo.effects.length > 0 && (
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1 font-bold text-ink">
-              法宝效果
-            </span>
-            <ul className="list-disc list-inside space-y-1">
-              {displayInfo.effects.map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {item.description && (
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1">法宝说明</span>
-            <p className="indent-4 leading-relaxed opacity-90">
-              {item.description}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ConsumableDetail({ item }: { item: Consumable }) {
-  const effects = formatAllEffects(item.effects);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
-        <div className="text-4xl mb-2">🌕</div>
-        <h4 className="text-lg font-bold">{item.name}</h4>
-        <div className="flex gap-2 mt-2">
-          {item.quality && <InkBadge tier={item.quality}>{item.type}</InkBadge>}
-        </div>
-      </div>
-
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between border-b border-border/50 pb-2">
-          <span className="opacity-70">持有数量</span>
-          <span className="font-bold">{item.quantity}</span>
-        </div>
-
-        {item.description && (
-          <div>
-            <span className="block opacity-70 mb-1 font-bold text-ink">
-              丹药详述
-            </span>
-            <p className="indent-4 leading-relaxed opacity-90">
-              {item.description}
-            </p>
-          </div>
-        )}
-
-        {effects.length > 0 && (
-          <div>
-            <span className="block opacity-70 mb-1 font-bold text-ink">
-              药效
-            </span>
-            <ul className="list-disc list-inside space-y-1">
-              {effects.map((e, i) => (
-                <li key={i}>
-                  {e.icon} {e.description}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MaterialDetail({ item }: { item: Material }) {
   const typeInfo = getMaterialTypeInfo(item.type);
+  const badges = [
+    <InkBadge key="r" tier={item.rank}>{item.rank}</InkBadge>,
+    <InkBadge key="t" tone="default">{typeInfo.label}</InkBadge>,
+  ];
+  if (item.element) {
+    badges.push(<InkBadge key="e" tone="default">{item.element}</InkBadge>);
+  }
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
-        <div className="text-4xl mb-2">{typeInfo.icon}</div>
-        <h4 className="text-lg font-bold">{item.name}</h4>
-        <div className="flex gap-2 mt-2">
-          <InkBadge tier={item.rank}>{typeInfo.label}</InkBadge>
-          {item.element && <InkBadge tone="default">{item.element}</InkBadge>}
-        </div>
-      </div>
-
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between border-b border-border/50 pb-2">
-          <span className="opacity-70">持有数量</span>
-          <span className="font-bold">{item.quantity}</span>
-        </div>
-
-        {item.description && (
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1">物品说明</span>
-            <p className="indent-4 leading-relaxed opacity-90">
-              {item.description}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+    <EffectDetailModal
+      isOpen
+      onClose={onClose}
+      icon={typeInfo.icon}
+      name={item.name}
+      badges={badges}
+      extraInfo={<QuantityInfo quantity={item.quantity} />}
+      description={item.description}
+      descriptionTitle="物品说明"
+    />
   );
 }

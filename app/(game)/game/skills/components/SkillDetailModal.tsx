@@ -1,13 +1,8 @@
 'use client';
 
-import { InkModal } from '@/components/layout';
+import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { InkBadge } from '@/components/ui/InkBadge';
-import { InkButton } from '@/components/ui/InkButton';
-import {
-  formatAllEffects,
-  getSkillDisplayInfo,
-  getSkillElementInfo,
-} from '@/lib/utils/effectDisplay';
+import { getSkillDisplayInfo, getSkillElementInfo } from '@/lib/utils/effectDisplay';
 import { StatusEffect } from '@/types/constants';
 import type { Skill } from '@/types/cultivator';
 
@@ -30,93 +25,66 @@ export function SkillDetailModal({
   if (!skill) return null;
 
   const displayInfo = getSkillDisplayInfo(skill);
-  const { icon: skillIcon, typeName } = getSkillElementInfo(skill);
-  const effectsList = formatAllEffects(skill.effects);
+  const { icon: skillIcon } = getSkillElementInfo(skill);
 
-  return (
-    <InkModal isOpen={isOpen} onClose={onClose}>
-      <div className="space-y-2">
-        {/* Header */}
-        <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
-          <div className="text-4xl mb-2">{skillIcon}</div>
-          <h4 className="text-lg font-bold">{skill.name}</h4>
-          <div className="flex gap-2 mt-2">
-            <InkBadge tier={skill.grade}>{typeName}</InkBadge>
-            <InkBadge tone="default">{skill.element}</InkBadge>
-          </div>
+  // 神通威能信息
+  const extraInfo = (
+    <div className="pt-2">
+      <span className="block opacity-70 mb-1">神通威能</span>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="px-2 py-1 bg-ink/5 rounded">
+          威力：{displayInfo.power}
         </div>
-
-        {/* Details */}
-        <div className="space-y-2 text-sm">
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1">神通威能</span>
-            <div className="grid grid-cols-2! gap-2">
-              <div className="px-2 py-1 bg-ink/5 rounded">
-                威力：{displayInfo.power}
-              </div>
-              <div className="px-2 py-1 bg-ink/5 rounded">
-                冷却：{skill.cooldown} 回合
-              </div>
-              <div className="px-2 py-1 bg-ink/5 rounded">
-                消耗：{skill.cost || 0} 灵力
-              </div>
-              <div className="px-2 py-1 bg-ink/5 rounded">
-                目标：{skill.target_self ? '自身' : '敌方'}
-              </div>
-            </div>
-          </div>
-
-          {/* Effects List */}
-          {effectsList.length > 0 && (
-            <div className="pt-2">
-              <span className="block opacity-70 mb-1 font-bold text-ink">
-                神通效果
-              </span>
-              <ul className="list-disc list-inside space-y-1">
-                {effectsList.map((effect, i) => (
-                  <li key={i}>
-                    {effect.icon} {effect.description}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {displayInfo.buffName && (
-            <div className="pt-2">
-              <span className="block opacity-70 mb-1 font-bold text-ink-primary">
-                特殊效果 (点击可了解详情)
-              </span>
-              <div
-                className="flex items-center gap-2 bg-paper-2 p-2 rounded cursor-pointer"
-                onClick={() =>
-                  onShowEffectHelp?.(displayInfo.buffId! as StatusEffect)
-                }
-              >
-                <span className="font-bold">{displayInfo.buffName}</span>
-                {displayInfo.buffDuration && (
-                  <span className="text-xs text-ink-secondary">
-                    （持续 {displayInfo.buffDuration} 回合）
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="pt-2">
-            <span className="block opacity-70 mb-1">神通说明</span>
-            <p className="indent-4 leading-relaxed opacity-90 p-2 bg-ink/5 rounded-lg border border-ink/10">
-              {skill.description || '此神通玄妙异常，无可奉告。'}
-            </p>
-          </div>
+        <div className="px-2 py-1 bg-ink/5 rounded">
+          冷却：{skill.cooldown} 回合
         </div>
-
-        <div className="pt-4 flex justify-end">
-          <InkButton onClick={onClose} className="w-full">
-            关闭
-          </InkButton>
+        <div className="px-2 py-1 bg-ink/5 rounded">
+          消耗：{skill.cost || 0} 灵力
+        </div>
+        <div className="px-2 py-1 bg-ink/5 rounded">
+          目标：{skill.target_self ? '自身' : '敌方'}
         </div>
       </div>
-    </InkModal>
+
+      {/* 特殊效果 (Buff，可点击) */}
+      {displayInfo.buffName && (
+        <div className="pt-2">
+          <span className="block opacity-70 mb-1 font-bold text-ink-primary">
+            特殊效果 (点击可了解详情)
+          </span>
+          <div
+            className="flex items-center gap-2 bg-paper-2 p-2 rounded cursor-pointer"
+            onClick={() =>
+              onShowEffectHelp?.(displayInfo.buffId! as StatusEffect)
+            }
+          >
+            <span className="font-bold">{displayInfo.buffName}</span>
+            {displayInfo.buffDuration && (
+              <span className="text-xs text-ink-secondary">
+                （持续 {displayInfo.buffDuration} 回合）
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <EffectDetailModal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon={skillIcon}
+      name={skill.name}
+      badges={[
+        skill.grade && <InkBadge key="grade" tier={skill.grade}>{skill.grade}</InkBadge>,
+        <InkBadge key="element" tone="default">{skill.element}</InkBadge>,
+      ].filter(Boolean)}
+      extraInfo={extraInfo}
+      effects={skill.effects}
+      description={skill.description}
+      effectTitle="神通效果"
+      descriptionTitle="神通说明"
+    />
   );
 }

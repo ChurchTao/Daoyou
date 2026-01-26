@@ -9,6 +9,8 @@ export {
   type InkDialogState,
 } from './InkDialog';
 export { InkDivider, type InkDividerProps } from './InkDivider';
+export { EffectCard, type EffectCardProps } from './EffectCard';
+export { EffectDetailModal, type EffectDetailModalProps } from './EffectDetailModal';
 export { InkInput, type InkInputProps } from './InkInput';
 export { InkLink, type InkLinkProps } from './InkLink';
 export {
