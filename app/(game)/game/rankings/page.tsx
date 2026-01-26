@@ -1,13 +1,14 @@
 'use client';
 
 import { RankingListItem } from '@/components/feature/ranking/RankingListItem';
-import { ProbeResultModal } from '@/components/func';
-import type { ProbeResultData } from '@/components/func/ProbeResult';
+import { formatProbeResultContent, type ProbeResultData } from '@/components/func/ProbeResult';
 import { InkModal, InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkButton,
+  InkDialog,
+  type InkDialogState,
   InkList,
   InkListItem,
   InkNotice,
@@ -42,7 +43,7 @@ export default function RankingsPage() {
   const [challenging, setChallenging] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
   const [probing, setProbing] = useState<string | null>(null);
-  const [probeResult, setProbeResult] = useState<ProbeResultData | null>(null);
+  const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [showRules, setShowRules] = useState(false);
   const pathname = usePathname();
 
@@ -131,12 +132,18 @@ export default function RankingsPage() {
       if (!response.ok || !result.success) {
         throw new Error(result.error || '神识查探失败');
       }
-      setProbeResult(result.data);
+
+      // 设置对话框
+      setDialog({
+        id: 'probe-result',
+        title: `神识查探：${result.data.cultivator.name}`,
+        content: formatProbeResultContent(result.data),
+        confirmLabel: '关闭',
+      });
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '神识查探失败，请稍后重试';
       pushToast({ message: errorMessage, tone: 'danger' });
-      setProbeResult(null);
     } finally {
       setProbing(null);
     }
@@ -359,10 +366,7 @@ export default function RankingsPage() {
         )}
       </InkPageShell>
 
-      <ProbeResultModal
-        probeResult={probeResult}
-        onClose={() => setProbeResult(null)}
-      />
+      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
 
       <InkModal
         isOpen={showRules}

@@ -29,6 +29,7 @@ export interface EffectCardProps {
   // 状态
   highlight?: boolean;
   newMark?: boolean;
+  layout?: 'row' | 'col'; // 布局方式：row=横向（内容与操作并排），col=纵向（内容与操作堆叠）
 }
 
 // ============================================================
@@ -54,6 +55,7 @@ export function EffectCard({
   actions,
   highlight = false,
   newMark = false,
+  layout = 'row',
 }: EffectCardProps) {
   // 渲染效果列表
   const effectsList = effects && effects.length > 0 ? formatAllEffects(effects) : [];
@@ -95,6 +97,7 @@ export function EffectCard({
       actions={actions}
       highlight={highlight}
       newMark={newMark}
+      layout={layout}
     />
   );
 }

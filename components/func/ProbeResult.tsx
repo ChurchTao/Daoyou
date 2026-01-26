@@ -1,28 +1,16 @@
-'use client';
-
-import { InkModal } from '@/components/layout';
-import { InkBadge } from '@/components/ui/InkBadge';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
-import { GongFaMini, LingGenMini, ShenTongMini } from './';
+import type { Artifact } from '@/types/cultivator';
 
 export type ProbeResultData = {
   cultivator: Cultivator;
   finalAttributes: Attributes;
 };
 
-interface ProbeResultModalProps {
-  probeResult: ProbeResultData | null;
-  onClose: () => void;
-}
-
 /**
- * 神识查探结果弹窗组件
+ * 格式化查探结果为InkDialog内容
  */
-export function ProbeResultModal({
-  probeResult,
-  onClose,
-}: ProbeResultModalProps) {
+export function formatProbeResultContent(probeResult: ProbeResultData) {
   if (!probeResult) return null;
 
   const target = probeResult.cultivator;
@@ -49,18 +37,14 @@ export function ProbeResultModal({
     );
   };
 
-  const getEquippedArtifact = (id: string | null) => {
+  const getEquippedArtifact = (id: string | null): Artifact | null => {
     if (!id || !target.inventory?.artifacts) return null;
-    return target.inventory.artifacts.find((a) => a.id === id);
+    return target.inventory.artifacts.find((a) => a.id === id) ?? null;
   };
-
-  const weapon = getEquippedArtifact(target.equipped.weapon);
-  const armor = getEquippedArtifact(target.equipped.armor);
-  const accessory = getEquippedArtifact(target.equipped.accessory);
 
   const renderEquipmentItem = (
     type: 'weapon' | 'armor' | 'accessory',
-    item: ReturnType<typeof getEquippedArtifact>,
+    item: Artifact | null,
   ) => {
     const slotInfo = getEquipmentSlotInfo(type);
     if (!item) {
@@ -74,106 +58,130 @@ export function ProbeResultModal({
     return (
       <div className="flex items-center gap-1 text-sm bg-ink/5 rounded px-2 py-1 border border-ink/10">
         <span className="w-4">{slotInfo.icon}</span>
-        <InkBadge tier={item.quality}>{item.name}</InkBadge>
+        <span className="font-medium">{item.name}</span>
+        <span className="text-xs text-ink-secondary">
+          {item.element} · {slotInfo.label}
+        </span>
       </div>
     );
   };
 
+  const weapon = getEquippedArtifact(target.equipped.weapon);
+  const armor = getEquippedArtifact(target.equipped.armor);
+  const accessory = getEquippedArtifact(target.equipped.accessory);
+
   return (
-    <InkModal
-      isOpen={!!probeResult}
-      onClose={onClose}
-      title={
-        <div className="flex items-center gap-2">
-          <span>神识查探：{target.name}</span>
-          <InkBadge tier={target.realm}>{target.realm_stage}</InkBadge>
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+      {/* 属性面板 */}
+      <div>
+        <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
+          基础属性
         </div>
-      }
-    >
-      <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2 mt-4">
-        {/* 属性面板 */}
-        <div>
-          <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
-            基础属性
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {formatAttr(
-              '体魄',
-              target.attributes.vitality,
-              finalAttrs.vitality,
-            )}
-            {formatAttr('灵力', target.attributes.spirit, finalAttrs.spirit)}
-            {formatAttr('悟性', target.attributes.wisdom, finalAttrs.wisdom)}
-            {formatAttr('速度', target.attributes.speed, finalAttrs.speed)}
-            {formatAttr(
-              '神识',
-              target.attributes.willpower,
-              finalAttrs.willpower,
-            )}
-          </div>
-        </div>
-
-        {/* 装备 */}
-        <div>
-          <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
-            佩戴法宝
-          </div>
-          <div className="space-y-1">
-            {renderEquipmentItem('weapon', weapon)}
-            {renderEquipmentItem('armor', armor)}
-            {renderEquipmentItem('accessory', accessory)}
-          </div>
-        </div>
-
-        {/* 灵根与命格 */}
-        <div className="grid gap-4 md:grid-cols-1">
-          <div className="space-y-2">
-            <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
-              灵根天赋
-            </div>
-            <LingGenMini
-              spiritualRoots={target.spiritual_roots || []}
-              title=""
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
-              先天命格
-            </div>
-            {target.pre_heaven_fates && target.pre_heaven_fates.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {target.pre_heaven_fates.map((fate, idx) => (
-                  <div
-                    key={fate.name + idx}
-                    className="bg-ink/5 rounded border border-ink/10"
-                  >
-                    <InkBadge tier={fate.quality}>{fate.name}</InkBadge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <span className="text-xs text-ink-secondary">无命格信息</span>
-            )}
-          </div>
-        </div>
-
-        {/* 功法与神通 */}
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
-              所修神通
-            </h4>
-            <ShenTongMini skills={target.skills || []} title="" />
-          </div>
-          <div>
-            <h4 className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
-              修炼功法
-            </h4>
-            <GongFaMini cultivations={target.cultivations || []} />
-          </div>
+        <div className="grid grid-cols-2 gap-2">
+          {formatAttr(
+            '体魄',
+            target.attributes.vitality,
+            finalAttrs.vitality,
+          )}
+          {formatAttr('灵力', target.attributes.spirit, finalAttrs.spirit)}
+          {formatAttr('悟性', target.attributes.wisdom, finalAttrs.wisdom)}
+          {formatAttr('速度', target.attributes.speed, finalAttrs.speed)}
+          {formatAttr(
+            '神识',
+            target.attributes.willpower,
+            finalAttrs.willpower,
+          )}
         </div>
       </div>
-    </InkModal>
+
+      {/* 装备 */}
+      <div>
+        <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
+          佩戴法宝
+        </div>
+        <div className="space-y-1">
+          {renderEquipmentItem('weapon', weapon)}
+          {renderEquipmentItem('armor', armor)}
+          {renderEquipmentItem('accessory', accessory)}
+        </div>
+      </div>
+
+      {/* 灵根 */}
+      {target.spiritual_roots && target.spiritual_roots.length > 0 && (
+        <div>
+          <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
+            灵根天赋
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {target.spiritual_roots.map((root, idx) => (
+              <span
+                key={`${root.element}-${idx}`}
+                className="text-sm bg-ink/5 rounded px-2 py-1 border border-ink/10"
+              >
+                {root.element} · {root.strength}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 先天命格 */}
+      {target.pre_heaven_fates && target.pre_heaven_fates.length > 0 && (
+        <div>
+          <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
+            先天命格
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {target.pre_heaven_fates.map((fate, idx) => (
+              <span
+                key={fate.name + idx}
+                className="text-sm bg-ink/5 rounded px-2 py-1 border border-ink/10"
+              >
+                {fate.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 功法与神通 */}
+      <div className="space-y-3">
+        {target.skills && target.skills.length > 0 && (
+          <div>
+            <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
+              所修神通
+            </div>
+            <div className="space-y-1">
+              {target.skills.map((skill, idx) => (
+                <div
+                  key={skill.id || skill.name + idx}
+                  className="text-sm bg-ink/5 rounded px-2 py-1 border border-ink/10"
+                >
+                  {skill.name} · {skill.element}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {target.cultivations && target.cultivations.length > 0 && (
+          <div>
+            <div className="text-xs font-bold opacity-50 mb-2 uppercase tracking-wider">
+              修炼功法
+            </div>
+            <div className="space-y-1">
+              {target.cultivations.map((cult, idx) => (
+                <div
+                  key={cult.name + idx}
+                  className="text-sm bg-ink/5 rounded px-2 py-1 border border-ink/10"
+                >
+                  {cult.name}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

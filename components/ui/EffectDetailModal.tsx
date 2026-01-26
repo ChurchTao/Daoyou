@@ -2,8 +2,8 @@
 
 import { InkModal } from '@/components/layout';
 import { InkButton } from '@/components/ui/InkButton';
-import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import type { EffectConfig } from '@/engine/effect/types';
+import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import { ReactNode } from 'react';
 
 export interface EffectDetailModalProps {
@@ -51,11 +51,11 @@ export function EffectDetailModal({
     <InkModal isOpen={isOpen} onClose={onClose}>
       <div className="space-y-2">
         {/* Header */}
-        <div className="flex flex-col items-center p-4 bg-muted/20 rounded-lg">
-          <div className="text-4xl mb-2">{icon}</div>
+        <div className="bg-muted/20 flex flex-col items-center rounded-lg p-4">
+          <div className="mb-2 text-4xl">{icon}</div>
           <h4 className="text-lg font-bold">{name}</h4>
           {badges.length > 0 && (
-            <div className="flex gap-2 mt-2 flex-wrap justify-center">
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
               {badges.map((badge, index) => (
                 <div key={index}>{badge}</div>
               ))}
@@ -71,10 +71,10 @@ export function EffectDetailModal({
           {/* Effects List */}
           {effectsList.length > 0 && (
             <div className="pt-2">
-              <span className="block opacity-70 mb-1 font-bold text-ink">
+              <span className="text-ink mb-1 block font-bold opacity-70">
                 {effectTitle}
               </span>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-inside list-disc space-y-1">
                 {effectsList.map((effect, i) => (
                   <li key={i}>
                     {effect.icon} {effect.description}
@@ -87,8 +87,8 @@ export function EffectDetailModal({
           {/* Description */}
           {description && (
             <div className="pt-2">
-              <span className="block opacity-70 mb-1">{descriptionTitle}</span>
-              <p className="indent-4 leading-relaxed opacity-90 p-2 bg-ink/5 rounded-lg border border-ink/10">
+              <span className="mb-1 block opacity-70">{descriptionTitle}</span>
+              <p className="bg-ink/5 border-ink/10 rounded-lg border p-2 indent-4 leading-relaxed opacity-90">
                 {description}
               </p>
             </div>
@@ -96,7 +96,7 @@ export function EffectDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="pt-4 flex justify-end">
+        <div className="flex justify-end pt-4">
           {footer || (
             <InkButton onClick={onClose} className="w-full">
               关闭

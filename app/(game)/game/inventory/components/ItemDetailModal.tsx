@@ -56,12 +56,9 @@ export function ItemDetailModal({
         badges={[
           item.quality && (
             <InkBadge key="q" tier={item.quality}>
-              {item.quality}
+              {slotInfo.label}
             </InkBadge>
           ),
-          <InkBadge key="s" tone="default">
-            {slotInfo.label}
-          </InkBadge>,
           <InkBadge key="e" tone="default">
             {item.element}
           </InkBadge>,
@@ -87,12 +84,9 @@ export function ItemDetailModal({
         badges={[
           item.quality && (
             <InkBadge key="q" tier={item.quality}>
-              {item.quality}
+              {typeInfo.label}
             </InkBadge>
           ),
-          <InkBadge key="t" tone="default">
-            {typeInfo.label}
-          </InkBadge>,
         ].filter(Boolean)}
         extraInfo={<QuantityInfo quantity={item.quantity} />}
         effects={item.effects}
@@ -108,9 +102,6 @@ export function ItemDetailModal({
   const typeInfo = getMaterialTypeInfo(material.type);
   const badges = [
     <InkBadge key="r" tier={material.rank}>
-      {material.rank}
-    </InkBadge>,
-    <InkBadge key="t" tone="default">
       {typeInfo.label}
     </InkBadge>,
   ];

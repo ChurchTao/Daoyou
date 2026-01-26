@@ -1,10 +1,10 @@
 'use client';
 
 import { InkSection } from '@/components/layout';
+import { EffectCard } from '@/components/ui/EffectCard';
 import { InkBadge } from '@/components/ui/InkBadge';
 import { InkList } from '@/components/ui/InkList';
 import { InkNotice } from '@/components/ui/InkNotice';
-import { EffectCard } from '@/components/ui/EffectCard';
 import {
   getSkillDisplayInfo,
   getSkillElementInfo,
@@ -64,7 +64,7 @@ export function ShenTong({
           <EffectCard
             key={skill.id || skill.name}
             icon={typeIcon}
-            name={`${skill.name}·${skill.element}`}
+            name={`${skill.name}`}
             quality={skill.grade}
             badgeExtra={<InkBadge>{typeName}</InkBadge>}
             effects={skill.effects}
@@ -80,6 +80,7 @@ export function ShenTong({
             }
             highlight={highlightLast && isLast}
             newMark={markLastAsNew && isLast}
+            layout={showActions ? 'col' : 'row'}
           />
         );
       })}
@@ -124,7 +125,7 @@ export function ShenTongMini({
                   {typeIcon} {skill.name}·{skill.element}
                 </span>
                 <InkBadge tier={skill.grade}>{typeName}</InkBadge>
-                <span className="text-xs text-ink-secondary">
+                <span className="text-ink-secondary text-xs">
                   威力{displayInfo.power} 冷却{skill.cooldown}
                 </span>
               </div>
@@ -132,7 +133,7 @@ export function ShenTongMini({
           })}
         </div>
       ) : (
-        <span className="text-xs text-ink-secondary">暂无神通</span>
+        <span className="text-ink-secondary text-xs">暂无神通</span>
       )}
     </div>
   );

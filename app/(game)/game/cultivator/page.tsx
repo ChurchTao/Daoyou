@@ -15,10 +15,11 @@ import {
   InkStatRow,
   InkStatusBar,
 } from '@/components/ui';
+import { EffectCard } from '@/components/ui/EffectCard';
 import { CultivatorUnit } from '@/engine/cultivator';
 import { EffectConfig } from '@/engine/effect';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { formatAllEffects, formatEffectsText } from '@/lib/utils/effectDisplay';
+import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import type { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
@@ -252,20 +253,18 @@ export default function CultivatorPage() {
           <InkList>
             {equippedItems.map((item) => {
               const slotInfo = getEquipmentSlotInfo(item.slot);
-              const effectText = formatEffectsText(item.effects);
 
               return (
-                <InkListItem
+                <EffectCard
                   key={item.id}
-                  title={
-                    <div>
-                      <span>{`${slotInfo.icon} ${item.name}`}</span>
-                      <InkBadge
-                        tier={item.quality}
-                      >{`${item.element} · ${slotInfo.label}`}</InkBadge>
-                    </div>
+                  icon={slotInfo.icon}
+                  name={item.name}
+                  quality={item.quality}
+                  badgeExtra={
+                    <InkBadge tone="default">{`${item.element} · ${slotInfo.label}`}</InkBadge>
                   }
-                  description={effectText}
+                  effects={item.effects}
+                  description={item.description}
                 />
               );
             })}
