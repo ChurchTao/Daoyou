@@ -20,7 +20,7 @@ interface ItemDetailModalProps {
 // 持有数量信息组件
 function QuantityInfo({ quantity }: { quantity: number }) {
   return (
-    <div className="flex justify-between border-b border-border/50 pb-2">
+    <div className="border-border/50 flex justify-between border-b pb-2">
       <span className="opacity-70">持有数量</span>
       <span className="font-bold">{quantity}</span>
     </div>
@@ -41,7 +41,7 @@ export function ItemDetailModal({
   if ('slot' in item) {
     const slotInfo = getEquipmentSlotInfo(item.slot);
     const extraInfo = item.required_realm ? (
-      <div className="flex justify-between border-b border-ink/50 pb-2">
+      <div className="border-ink/50 flex justify-between border-b pb-2">
         <span className="opacity-70">境界要求</span>
         <span>{item.required_realm}</span>
       </div>
@@ -54,9 +54,17 @@ export function ItemDetailModal({
         icon={slotInfo.icon}
         name={item.name}
         badges={[
-          item.quality && <InkBadge key="q" tier={item.quality}>{item.quality}</InkBadge>,
-          <InkBadge key="s" tone="default">{slotInfo.label}</InkBadge>,
-          <InkBadge key="e" tone="default">{item.element}</InkBadge>,
+          item.quality && (
+            <InkBadge key="q" tier={item.quality}>
+              {item.quality}
+            </InkBadge>
+          ),
+          <InkBadge key="s" tone="default">
+            {slotInfo.label}
+          </InkBadge>,
+          <InkBadge key="e" tone="default">
+            {item.element}
+          </InkBadge>,
         ].filter(Boolean)}
         extraInfo={extraInfo}
         effects={item.effects}
@@ -77,8 +85,14 @@ export function ItemDetailModal({
         icon={typeInfo.icon}
         name={item.name}
         badges={[
-          item.quality && <InkBadge key="q" tier={item.quality}>{item.quality}</InkBadge>,
-          <InkBadge key="t" tone="default">{typeInfo.label}</InkBadge>,
+          item.quality && (
+            <InkBadge key="q" tier={item.quality}>
+              {item.quality}
+            </InkBadge>
+          ),
+          <InkBadge key="t" tone="default">
+            {typeInfo.label}
+          </InkBadge>,
         ].filter(Boolean)}
         extraInfo={<QuantityInfo quantity={item.quantity} />}
         effects={item.effects}
@@ -90,13 +104,22 @@ export function ItemDetailModal({
   }
 
   // 材料
-  const typeInfo = getMaterialTypeInfo(item.type);
+  const material = item as Material;
+  const typeInfo = getMaterialTypeInfo(material.type);
   const badges = [
-    <InkBadge key="r" tier={item.rank}>{item.rank}</InkBadge>,
-    <InkBadge key="t" tone="default">{typeInfo.label}</InkBadge>,
+    <InkBadge key="r" tier={material.rank}>
+      {material.rank}
+    </InkBadge>,
+    <InkBadge key="t" tone="default">
+      {typeInfo.label}
+    </InkBadge>,
   ];
-  if (item.element) {
-    badges.push(<InkBadge key="e" tone="default">{item.element}</InkBadge>);
+  if (material.element) {
+    badges.push(
+      <InkBadge key="e" tone="default">
+        {material.element}
+      </InkBadge>,
+    );
   }
 
   return (
@@ -104,10 +127,10 @@ export function ItemDetailModal({
       isOpen
       onClose={onClose}
       icon={typeInfo.icon}
-      name={item.name}
+      name={material.name}
       badges={badges}
-      extraInfo={<QuantityInfo quantity={item.quantity} />}
-      description={item.description}
+      extraInfo={<QuantityInfo quantity={material.quantity} />}
+      description={material.description}
       descriptionTitle="物品说明"
     />
   );
