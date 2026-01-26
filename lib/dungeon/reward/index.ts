@@ -6,11 +6,9 @@ export {
   QUALITY_HINT_OFFSET,
   REALM_REWARD_CONFIG,
   TIER_MULTIPLIER,
-  TIER_REWARD_COUNT,
 } from './rewardConfig';
 export { RewardFactory } from './RewardFactory';
 export type {
-  DirectionTag,
   QualityHint,
   RewardBlueprint,
   RewardRangeConfig,

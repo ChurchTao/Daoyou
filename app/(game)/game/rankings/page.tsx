@@ -1,7 +1,7 @@
 'use client';
 
 import { RankingListItem } from '@/components/feature/ranking/RankingListItem';
-import { formatProbeResultContent, type ProbeResultData } from '@/components/func/ProbeResult';
+import { formatProbeResultContent } from '@/components/func/ProbeResult';
 import { InkModal, InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
@@ -235,7 +235,7 @@ export default function RankingsPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">万界金榜刷新中……</p>
       </div>
     );
@@ -289,7 +289,7 @@ export default function RankingsPage() {
         {!cultivator ? (
           <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
         ) : loadingRankings ? (
-          <div className="py-12 text-center text-muted opacity-80 animate-pulse">
+          <div className="text-muted animate-pulse py-12 text-center opacity-80">
             <div>正在推演金榜天机...</div>
           </div>
         ) : isEmpty && myRank === null && activeTab === 'battle' ? (

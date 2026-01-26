@@ -2,6 +2,7 @@ import { BattleEngineResult } from '@/engine/battle';
 import type { BuffInstanceState } from '@/engine/buff/types';
 import { CultivatorUnit } from '@/engine/cultivator';
 import { enemyGenerator } from '@/engine/enemyGenerator';
+import { TYPE_DESCRIPTIONS } from '@/engine/material/creation/config';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@/engine/resource/types';
 import { REALM_VALUES, RealmType } from '@/types/constants';
@@ -587,71 +588,66 @@ ${realmGuidance}
     isFinished: boolean;
     realGains: ResourceOperation[];
   }> {
+    // 动态生成材料类型描述表格（从 config.ts 统一获取）
+    const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
+      .map(([key, desc]) => `| ${key} | ${desc} |`)
+      .join('\n');
+
     const settlementPrompt = `
 # Role: 《凡人修仙传》天道平衡者 - 结算与奖励鉴定
 
 ## 核心职责
-你需要根据玩家的【付出】与【危险】给出最终评价，并**创造性地设计奖励物品**。
+你需要根据玩家的【付出】与【危险】给出最终评价，并**创造性地设计材料奖励**。
 ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤退，评价应为D级，奖励极少。' : ''}
 
-## ⚠️ 重要：奖励蓝图规范
+## ⚠️ 重要：奖励生成规则
 
-你只负责设计奖励的**创意内容**（名称、描述、方向性标签），具体数值由程序根据地图门槛自动计算。
+**灵石、修为、感悟值由程序自动计算**，你只需要设计材料奖励。
 
-### 奖励类型说明
-| 类型 | 说明 | 适用场景 |
+### 你需要生成的奖励类型
+
+| 类型 | 说明 | 需要填写 |
 |------|------|----------|
-| spirit_stones | 灵石 | 通用奖励，任何评级都可 |
-| material | 材料 | 炼丹/炼器材料，需有特色名称 |
-| artifact | 法宝 | A/S级专属，需设计独特效果方向 |
-| consumable | 丹药/消耗品 | 提升属性或恢复类 |
-| cultivation_exp | 修为 | 直接提升修为值 |
-| comprehension_insight | 感悟 | 提升感悟值 |
+| material | 材料 | **必须**填写：name, description, material_type, element, quality_hint |
 
-### 方向性标签使用指南
-标签用于指示物品的效果方向，程序会据此分配具体数值：
+### 材料类型（material_type字段）
 
-**属性方向**（法宝/丹药常用）：
-- increase_vitality: 增加体魄
-- increase_spirit: 增加灵力  
-- increase_wisdom: 增加悟性
-- increase_speed: 增加身法
-- increase_willpower: 增加神识
+| 值 | 说明 |
+|---|------|
+${materialTypeTable}
 
-**元素亲和**（法宝/材料常用）：
-- fire_affinity, water_affinity, wood_affinity, metal_affinity, earth_affinity, thunder_affinity, ice_affinity, wind_affinity
+### 元素（element字段）
 
-**特殊效果**：
-- critical_boost: 暴击相关
-- defense_boost: 防御相关
-- healing_boost: 治疗相关
-- lifespan_boost: 寿元相关
-- cultivation_boost: 修炼速度相关
+**必须从以下8个元素中选1个**：
+- 金、木、水、火、土、风、雷、冰
 
-### 品质提示
-- lower: 下品（相对偏低）
-- medium: 中品（标准品质）
-- upper: 上品（稀有高品质）
+### 品质提示（quality_hint字段）
+
+- lower: 下品（D/C级奖励用）
+- medium: 中品（B级奖励用）
+- upper: 上品（A/S级奖励用）
 
 ## 评价等级定义
 
-| 等级 | 条件 | 奖励数量 | 奖励品质 |
-|------|------|----------|----------|
-| S | 2次+战斗/损失高价值法宝/危险分>80 | 3-5件 | 可含artifact(upper) |
-| A | 明显资源损耗且顺利通关 | 2-4件 | 可含artifact(medium) |
-| B | 损耗一般，有少量付出 | 2-3件 | material为主 |
-| C | 以稳健为主，损耗较少 | 1-2件 | spirit_stones + material |
-| D | 初期放弃/未遭遇危险 | 1件 | 仅spirit_stones |
+| 等级 | 材料奖励数量 | 材料品质要求 | 自动附加奖励 |
+|------|-------------|-------------|-------------|
+| S | 2-3个材料 | quality_hint="upper" | 大量灵石+修为+感悟 |
+| A | 1-2个材料 | quality_hint="medium"或"upper" | 中等灵石+修为 |
+| B | 1-2个材料 | quality_hint="medium"或"lower" | 少量灵石+修为 |
+| C | 0-1个材料 | quality_hint="lower" | 少量灵石 |
+| D | 无材料 | - | 少量灵石 |
+
+**程序会自动添加**：根据评级 S/A/B/C/D 自动附加不同数量的灵石、修为、感悟值，你不需要手动添加这些类型。
 
 ## 核心准则：等价交换
-1. **惨烈补偿**：若玩家损失了法宝、消耗大量寿元或多次陷入死斗（参考 summary_of_sacrifice），结算等级严禁低于 B
-2. **风险对冲**：危险分越高，奖励品质越高
+1. **惨烈补偿**：若玩家损失了法宝、消耗大量寿元或多次陷入死斗，结算等级严禁低于 B
+2. **风险对冲**：危险分(danger_score)越高，材料品质越高
 3. **凡人逻辑**：严禁出现"付出巨大却毫无所获"的结局
 
-## 奖励设计原则
-1. **风格契合**: 物品名称和描述要符合修仙世界观
-2. **场景关联**: 奖励应与副本场景/历程有关联（参考 location）
-3. **差异化**: 每个物品的名称和描述都应独特
+## 材料设计原则
+1. **场景关联**：材料必须与副本场景/剧情/历程强关联
+2. **剧情呼应**：如果副本中有特定经历，奖励应该反映这些经历
+3. **自然合理**：不要给玩家突兀的感觉，材料获取应该有逻辑支撑
     `;
 
     const settlementContext = {
@@ -686,6 +682,7 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
       settlement.settlement.reward_blueprints as RewardBlueprint[],
       settlement.settlement.reward_tier,
       mapRealm,
+      state.dangerScore, // 传递危险分数用于奖励计算
     );
 
     // 获取 userId
@@ -818,8 +815,9 @@ ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤�
     blueprints: RewardBlueprint[],
     tier: string,
     mapRealm: RealmType,
+    dangerScore: number,
   ): ResourceOperation[] {
-    return RewardFactory.materialize(blueprints, mapRealm, tier);
+    return RewardFactory.materialize(blueprints, mapRealm, tier, dangerScore);
   }
 
   async archiveDungeon(

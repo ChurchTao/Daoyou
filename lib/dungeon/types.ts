@@ -81,43 +81,25 @@ export const DungeonRoundSchema = z.object({
 
 // 奖励蓝图 Schema - AI 只生成创意内容，数值由程序计算
 export const RewardBlueprintSchema = z.object({
-  type: z
-    .enum([
-      'spirit_stones',
-      'material',
-      'artifact',
-      'consumable',
-      'cultivation_exp',
-      'comprehension_insight',
-    ])
-    .describe('奖励类型'),
-  name: z.string().describe('物品名称（发挥创意，符合修仙世界观）'),
-  description: z.string().describe('物品描述（50字以内）'),
-  direction_tags: z
-    .array(
-      z.enum([
-        'increase_vitality',
-        'increase_spirit',
-        'increase_wisdom',
-        'increase_speed',
-        'increase_willpower',
-        'fire_affinity',
-        'water_affinity',
-        'wood_affinity',
-        'metal_affinity',
-        'earth_affinity',
-        'thunder_affinity',
-        'ice_affinity',
-        'wind_affinity',
-        'critical_boost',
-        'defense_boost',
-        'healing_boost',
-        'lifespan_boost',
-        'cultivation_boost',
-      ]),
-    )
-    .describe('方向性标签（1-3个）'),
-  quality_hint: z.enum(['lower', 'medium', 'upper']).describe('品质提示'),
+  // material 类型专用字段
+  name: z.string().optional().describe('物品名称（material类型必填）'),
+  description: z.string().optional().describe('物品描述（material类型必填）'),
+  // 材料类型 - 仅 material 类型需要
+  material_type: z
+    .enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'manual'])
+    .optional()
+    .describe(
+      '材料类型：herb=草药, ore=矿石, monster=妖兽材料, tcdb=天材地宝, aux=辅助, manual=功法/神通',
+    ),
+  // 元素 - 仅 material 类型需要
+  element: z
+    .enum(['金', '木', '水', '火', '土', '风', '雷', '冰'])
+    .optional()
+    .describe('元素'),
+  quality_hint: z
+    .enum(['lower', 'medium', 'upper'])
+    .optional()
+    .describe('品质提示：lower=下品, medium=中品, upper=上品'),
 });
 
 // Settlement info from AI
