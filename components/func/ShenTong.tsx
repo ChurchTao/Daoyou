@@ -2,10 +2,10 @@
 
 import { InkSection } from '@/components/layout';
 import { InkBadge } from '@/components/ui/InkBadge';
-import { InkList, InkListItem } from '@/components/ui/InkList';
+import { InkList } from '@/components/ui/InkList';
 import { InkNotice } from '@/components/ui/InkNotice';
+import { EffectCard } from '@/components/ui/EffectCard';
 import {
-  formatAllEffects,
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
@@ -59,29 +59,18 @@ export function ShenTong({
         const { icon: typeIcon, typeName } = getSkillElementInfo(skill);
         const isLast = index === skills.length - 1;
         const displayInfo = getSkillDisplayInfo(skill);
-        const effectsList = formatAllEffects(skill.effects);
 
         return (
-          <InkListItem
+          <EffectCard
             key={skill.id || skill.name}
-            layout="col"
-            title={
-              <div className="flex items-center">
-                <span>
-                  {typeIcon} {skill.name}·{skill.element}
-                </span>
-                <InkBadge tier={skill.grade}>{typeName}</InkBadge>
-              </div>
-            }
-            description={`威力：${displayInfo.power}｜冷却：${skill.cooldown}回合${
+            icon={typeIcon}
+            name={`${skill.name}·${skill.element}`}
+            quality={skill.grade}
+            badgeExtra={<InkBadge>{typeName}</InkBadge>}
+            effects={skill.effects}
+            meta={`威力：${displayInfo.power}｜冷却：${skill.cooldown}回合${
               skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
-            }${
-              effectsList.length > 0
-                ? `｜效果：${effectsList.map((e) => e.description).join('、')}`
-                : ''
             }`}
-            highlight={highlightLast && isLast}
-            newMark={markLastAsNew && isLast}
             actions={
               showActions
                 ? renderAction
@@ -89,6 +78,8 @@ export function ShenTong({
                   : undefined
                 : undefined
             }
+            highlight={highlightLast && isLast}
+            newMark={markLastAsNew && isLast}
           />
         );
       })}
