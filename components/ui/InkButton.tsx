@@ -41,6 +41,7 @@ export interface InkButtonProps extends VariantProps<typeof inkButtonVariants> {
 
 /**
  * 文字化按钮组件 - 使用方括号样式 [按钮文字]
+ * 注：根据规范，按钮禁止使用 text-xs，最小建议使用 text-sm。
  */
 export function InkButton({
   children,

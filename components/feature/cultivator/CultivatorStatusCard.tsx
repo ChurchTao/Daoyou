@@ -107,7 +107,7 @@ export function CultivatorStatusCard({
               <InkButton
                 variant="secondary"
                 onClick={() => setShowExplanation(true)}
-                className="text-xs"
+                className="text-sm"
               >
                 💡说明
               </InkButton>
@@ -184,13 +184,13 @@ export function CultivatorStatusCard({
                     {breakthroughLabel.text}
                   </span>
                   {statusData.breakthroughChance > 0 && (
-                    <span className="text-xs opacity-70">
+                    <span className="text-sm opacity-70">
                       (成功率{format('.1%')(statusData.breakthroughChance)})
                     </span>
                   )}
                 </div>
                 {statusData.breakthroughRecommendation && (
-                  <div className="px-2 py-1 text-xs text-ink-secondary">
+                  <div className="px-2 py-1 text-sm text-ink-secondary">
                     💡 {statusData.breakthroughRecommendation}
                   </div>
                 )}
@@ -200,7 +200,7 @@ export function CultivatorStatusCard({
             {/* 瓶颈期说明 */}
             {statusData.bottleneck_state && (
               <div className="p-2 bg-orange-500/5 rounded border border-orange-500/30">
-                <p className="text-xs text-ink">
+                <p className="text-sm text-ink">
                   ⚠️
                   已入瓶颈期，闭关修为获取效率降低50%。建议通过副本、战斗等方式积累感悟后再突破。
                 </p>
@@ -210,7 +210,7 @@ export function CultivatorStatusCard({
             {/* 心魔说明 */}
             {statusData.inner_demon && (
               <div className="p-2 bg-crimson/5 rounded border border-crimson/30">
-                <p className="text-xs text-crimson">
+                <p className="text-sm text-crimson">
                   🔥 心魔缠身，突破成功率-5%。连续失败{' '}
                   {statusData.breakthrough_failures} 次，需静心调息。
                 </p>
@@ -220,7 +220,7 @@ export function CultivatorStatusCard({
             {/* 顿悟buff */}
             {statusData.epiphany_buff_expires_at && (
               <div className="p-2 bg-yellow-600/5 rounded border border-yellow-600/30">
-                <p className="text-xs text-yellow-600">
+                <p className="text-sm text-yellow-600">
                   ✨ 顿悟状态，修为获取翻倍！
                 </p>
               </div>
@@ -266,26 +266,26 @@ export function CultivatorStatusCard({
             <h3 className="font-bold text-ink mb-2">⚔️ 突破类型</h3>
             <div className="space-y-2">
               <div className="p-2 bg-orange-500/10 rounded">
-                <p className="font-bold text-orange-500 text-xs mb-1">
+                <p className="font-bold text-orange-500 text-sm mb-1">
                   强行突破（60%-79%）
                 </p>
-                <p className="text-xs text-ink-secondary">
+                <p className="text-sm text-ink-secondary">
                   成功率×0.5，失败损失50%-70%修为
                 </p>
               </div>
               <div className="p-2 bg-blue-500/10 rounded">
-                <p className="font-bold text-blue-500 text-xs mb-1">
+                <p className="font-bold text-blue-500 text-sm mb-1">
                   常规突破（80%-99%）
                 </p>
-                <p className="text-xs text-ink-secondary">
+                <p className="text-sm text-ink-secondary">
                   成功率×0.75-1.05，失败损失30%-50%修为
                 </p>
               </div>
               <div className="p-2 bg-gold/10 rounded">
-                <p className="font-bold text-gold text-xs mb-1">
+                <p className="font-bold text-gold text-sm mb-1">
                   圆满突破（100%+50感悟）
                 </p>
-                <p className="text-xs text-ink-secondary">
+                <p className="text-sm text-ink-secondary">
                   成功率×1.2，失败损失20%-30%修为，属性成长+20%
                 </p>
               </div>
@@ -299,7 +299,7 @@ export function CultivatorStatusCard({
                 <span className="text-orange-500">⚠️</span>
                 <div>
                   <strong className="text-ink">瓶颈期：</strong>
-                  <p className="text-xs text-ink-secondary">
+                  <p className="text-sm text-ink-secondary">
                     修为达90%后触发，闭关效率降低50%。需通过副本、战斗等多元化方式积累感悟。
                   </p>
                 </div>
@@ -308,7 +308,7 @@ export function CultivatorStatusCard({
                 <span className="text-crimson">🔥</span>
                 <div>
                   <strong className="text-ink">心魔：</strong>
-                  <p className="text-xs text-ink-secondary">
+                  <p className="text-sm text-ink-secondary">
                     连续突破失败3次触发，突破成功率-5%。成功突破后自动消除。
                   </p>
                 </div>
@@ -317,7 +317,7 @@ export function CultivatorStatusCard({
                 <span className="text-gold">✨</span>
                 <div>
                   <strong className="text-ink">顿悟：</strong>
-                  <p className="text-xs text-ink-secondary">
+                  <p className="text-sm text-ink-secondary">
                     低概率触发（受悟性影响），修为获取翻倍，持续3天。
                   </p>
                 </div>

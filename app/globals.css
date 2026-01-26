@@ -109,6 +109,14 @@ h6,
   text-align: left;
 }
 
+/* 
+ * 字体大小规范 (Typography Standards)
+ * - h1 ~ h6: 标题字体 (Ma Shan Zheng)
+ * - text-base (1rem/16px): 主要正文、标准按钮、输入框
+ * - text-sm (0.875rem/14px): 次要信息、小按钮、标签
+ * - text-xs (0.75rem/12px): 极少数提示、元数据、微型标注。禁止用于按钮。
+ */
+
 .battle-report turn {
   color: var(--color-crimson);
   font-weight: bold;
