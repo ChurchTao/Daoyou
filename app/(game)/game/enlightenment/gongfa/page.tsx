@@ -236,7 +236,7 @@ export default function GongfaCreationPage() {
                         >
                           <InkButton
                             variant="secondary"
-                            className="text-xs leading-none"
+                            className="text-sm leading-none"
                             onClick={() => {
                               setViewingMaterial(m);
                             }}

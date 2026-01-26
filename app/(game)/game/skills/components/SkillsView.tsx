@@ -73,13 +73,13 @@ export function SkillsView() {
               <div className="flex gap-2">
                 <InkButton
                   variant="secondary"
-                  className="text-xs"
+                  className="text-sm"
                   onClick={() => openSkillDetail(skill)}
                 >
                   详情
                 </InkButton>
                 <InkButton
-                  className="text-xs px-2"
+                  className="text-sm px-2"
                   onClick={() => openForgetConfirm(skill)}
                 >
                   遗忘

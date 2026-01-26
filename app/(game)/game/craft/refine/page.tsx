@@ -168,7 +168,7 @@ export default function RefinePage() {
                           </span>
                           <InkButton
                             variant="secondary"
-                            className="text-xs leading-none"
+                            className="text-sm leading-none"
                             onClick={() => {
                               setViewingMaterial(m);
                             }}
