@@ -5,7 +5,6 @@ import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
 import { redis } from '@/lib/redis';
 import {
-  addMaterialToInventory,
   getCultivatorById,
   updateCultivationExp,
   updateLastYieldAt,
@@ -167,28 +166,11 @@ export const POST = withActiveCultivator(
             );
 
             // 生成材料
-            const materials = await MaterialGenerator.generateRandom(materialCount);
+            const materials =
+              await MaterialGenerator.generateRandom(materialCount);
             console.log(
               `[Yield] 材料生成完成: ${materials.map((m) => `${m.rank}${m.name}`).join(', ')}`,
             );
-
-            // 存入数据库
-            await db.transaction(async (tx) => {
-              for (const m of materials) {
-                const material = {
-                  ...m,
-                  quantity: m.quantity,
-                } as import('@/types/cultivator').Material;
-                await addMaterialToInventory(
-                  userId,
-                  cultivatorId,
-                  material,
-                  tx,
-                );
-              }
-            });
-            console.log(`[Yield] 材料已存入数据库`);
-
             // 发送邮件通知
             const attachments = materials.map((m) => ({
               type: 'material' as const,
@@ -227,20 +209,16 @@ export const POST = withActiveCultivator(
             const systemPrompt =
               '你是一个修仙世界的记录者，负责记录修士外出历练的经历。';
             const userPrompt = `
-                请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【100-200字】的历练经历。
-                修士在历练中花费了【${result.hours.toFixed(1)}】小时。
+                请为一位【${result.cultivatorRealm}】境界的修士【${result.cultivatorName}】生成一段【50-100字】的历练经历。
 
                 收获如下：
                 1. 灵石：【${result.amount}】枚。
                 ${result.expGain ? `2. 修为精进：【${result.expGain}】点。` : ''}
-                ${result.insightGain ? (result.expGain ? '3.' : '2.') + ` 天道感悟：【${result.insightGain}】点。` : ''}
-                ${result.materials?.length ? (result.expGain || result.insightGain ? '4.' : '2.') + ` 获得材料：${result.materials.map((m) => `【${m.rank}】${m.name}`).join('、')}` : ''}
+                ${result.insightGain ? (result.expGain ? '3.' : '2.') + ` 道心感悟：【${result.insightGain}】点。` : ''}
 
                 要求：
-                1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石、修为、感悟值和材料的过程融入故事中。
-                2. 必须符合修仙世界观，文风古风，有代入感。
-                3. 若获得了稀有材料（玄品以上）或功法典籍，请着重描写其获取的不易或机缘巧合。
-                4. 若获得了感悟值，请描述为修士在历练中参悟天地法则、突破瓶颈的过程。
+                1. 描述修士在历练中遇到的具体事件（如探索遗迹、斩杀妖兽、奇遇等），并巧妙地将获得灵石、修为、感悟值融入故事中。
+                2. 必须符合《凡人修仙传》小说世界观，文风古风，有代入感。
               `;
 
             // Stream AI generation

@@ -1,7 +1,7 @@
-import { calculateCultivationExp } from '@/utils/cultivationUtils';
+import type { ResourceOperation } from '@/engine/resource/types';
 import { REALM_YIELD_RATES, RealmType } from '@/types/constants';
 import type { Cultivator } from '@/types/cultivator';
-import type { ResourceOperation } from '@/engine/resource/types';
+import { calculateCultivationExp } from '@/utils/cultivationUtils';
 
 /**
  * 历练收益计算器
@@ -44,7 +44,9 @@ export class YieldCalculator {
       }
 
       // 感悟值：1小时随机1-2点
-      const insightGain = Math.floor(1 + Math.random() * 2) * hoursElapsed;
+      const insightGain = Math.floor(
+        Math.floor(1 + Math.random() * 2) * hoursElapsed,
+      );
       if (insightGain > 0) {
         operations.push({
           type: 'comprehension_insight',

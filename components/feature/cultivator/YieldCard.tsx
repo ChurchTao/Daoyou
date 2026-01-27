@@ -197,7 +197,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
 
         {yieldResult?.insightGain && (
           <div className="mb-4 flex items-center justify-center gap-2">
-            <span className="text-ink-secondary">天道感悟：</span>
+            <span className="text-ink-secondary">道心感悟：</span>
             <span className="text-2xl font-bold text-purple-500">
               💡 {yieldResult.insightGain}
             </span>
@@ -220,14 +220,19 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
         )}
 
         {/* 材料异步生成提示 */}
-        {yieldResult?.materialCount && yieldResult.materialCount > 0 && (!yieldResult.materials || yieldResult.materials.length === 0) && (
-          <div className="bg-primary/10 border-primary/30 mb-6 rounded-lg border p-3 text-center">
-            <p className="text-ink-secondary text-sm">
-              另有 <span className="text-primary font-bold">{yieldResult.materialCount}</span> 份天材地宝正在运送中，
-              稍后将通过传音玉简（邮件）送达。
-            </p>
-          </div>
-        )}
+        {yieldResult?.materialCount &&
+          yieldResult.materialCount > 0 &&
+          (!yieldResult.materials || yieldResult.materials.length === 0) && (
+            <div className="bg-primary/10 border-primary/30 mb-6 rounded-lg border p-3 text-center">
+              <p className="text-ink-secondary text-sm">
+                另有{' '}
+                <span className="text-primary font-bold">
+                  {yieldResult.materialCount}
+                </span>{' '}
+                份天材地宝正在运送中， 稍后将通过传音玉简（邮件）送达。
+              </p>
+            </div>
+          )}
       </InkModal>
     </div>
   );
