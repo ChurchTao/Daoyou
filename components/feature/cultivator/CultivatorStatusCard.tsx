@@ -1,12 +1,12 @@
 'use client';
 
-import { format } from 'd3-format';
 import { InkModal } from '@/components/layout';
 import { InkBadge } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
 import type { Cultivator } from '@/types/cultivator';
 import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { calculateExpProgress } from '@/utils/cultivationUtils';
+import { format } from 'd3-format';
 import { useMemo, useState } from 'react';
 
 interface CultivatorStatusCardProps {
@@ -88,11 +88,11 @@ export function CultivatorStatusCard({
 
   return (
     <>
-      <div className="px-4 py-3 border border-ink/20 rounded-lg bg-ink/5 shadow-sm relative overflow-hidden">
+      <div className="border-ink/20 bg-ink/5 relative overflow-hidden rounded-lg border px-4 py-3 shadow-sm">
         {/* 顶部标题 */}
         {showTitle && (
-          <div className="flex justify-between items-center mb-4">
-            <div className="font-bold text-lg text-ink flex items-center gap-2">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-ink flex items-center gap-2 text-lg font-bold">
               <span>⚡️ 修炼状态</span>
               <span>
                 {statusData.bottleneck_state && (
@@ -117,13 +117,13 @@ export function CultivatorStatusCard({
 
         {/* 修为进度条 */}
         <div className="mb-2">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-ink-secondary">修为进度</span>
-            <span className="text-sm text-ink">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-ink-secondary text-sm">修为进度</span>
+            <span className="text-ink text-sm">
               {format('.2f')(statusData.expPercent)}%
             </span>
           </div>
-          <div className="relative w-full h-2 bg-ink/10 rounded-full overflow-hidden">
+          <div className="bg-ink/10 relative h-2 w-full overflow-hidden rounded-full">
             {/* 进度条 */}
             <div
               className={`h-full transition-all duration-500 ${
@@ -131,7 +131,7 @@ export function CultivatorStatusCard({
                   ? 'bg-crimson'
                   : statusData.expPercent >= 90
                     ? 'bg-linear-to-r from-blue-500 to-cyan-500'
-                    : 'bg-linear-to-r from-ink to-[#16a951]'
+                    : 'from-ink to-tier-ling bg-linear-to-r'
               }`}
               style={{ width: `${Math.min(statusData.expPercent, 100)}%` }}
             />
@@ -143,7 +143,7 @@ export function CultivatorStatusCard({
               />
             )}
           </div>
-          <div className="text-xs text-ink-secondary mt-1 text-right">
+          <div className="text-ink-secondary mt-1 text-right text-xs">
             {statusData.cultivation_exp.toLocaleString()} /{' '}
             {statusData.exp_cap.toLocaleString()}
           </div>
@@ -151,10 +151,10 @@ export function CultivatorStatusCard({
 
         {/* 感悟值 */}
         <div className="mb-2">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-ink-secondary">道心感悟</span>
-            <span className="text-sm text-ink">
-              {statusData.comprehension_insight} / 100
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-ink-secondary text-sm">道心感悟</span>
+            <span className="text-ink text-sm">
+              {format('.2f')(statusData.comprehension_insight)} / 100
             </span>
           </div>
           <div className="flex gap-1">
@@ -163,8 +163,8 @@ export function CultivatorStatusCard({
               return (
                 <div
                   key={i}
-                  className={`flex-1 h-2 rounded-sm transition-colors ${
-                    filled ? 'bg-[#003472]' : 'border-ink/20 border'
+                  className={`h-2 flex-1 rounded-sm transition-colors ${
+                    filled ? 'bg-tier-di' : 'border-ink/20 border'
                   }`}
                 />
               );
@@ -178,7 +178,7 @@ export function CultivatorStatusCard({
             {/* 突破可用性 */}
             {statusData.canBreakthrough && breakthroughLabel && (
               <div className="space-y-1">
-                <div className="flex items-center gap-2 px-2 py-1 bg-ink/5 rounded">
+                <div className="bg-ink/5 flex items-center gap-2 rounded px-2 py-1">
                   <span className="text-ink-secondary">可尝试：</span>
                   <span className={`font-bold ${breakthroughLabel.color}`}>
                     {breakthroughLabel.text}
@@ -190,7 +190,7 @@ export function CultivatorStatusCard({
                   )}
                 </div>
                 {statusData.breakthroughRecommendation && (
-                  <div className="px-2 py-1 text-sm text-ink-secondary">
+                  <div className="text-ink-secondary px-2 py-1 text-sm">
                     💡 {statusData.breakthroughRecommendation}
                   </div>
                 )}
@@ -199,8 +199,8 @@ export function CultivatorStatusCard({
 
             {/* 瓶颈期说明 */}
             {statusData.bottleneck_state && (
-              <div className="p-2 bg-orange-500/5 rounded border border-orange-500/30">
-                <p className="text-sm text-ink">
+              <div className="rounded border border-orange-500/30 bg-orange-500/5 p-2">
+                <p className="text-ink text-sm">
                   ⚠️
                   已入瓶颈期，闭关修为获取效率降低50%。建议通过副本、战斗等方式积累感悟后再突破。
                 </p>
@@ -209,8 +209,8 @@ export function CultivatorStatusCard({
 
             {/* 心魔说明 */}
             {statusData.inner_demon && (
-              <div className="p-2 bg-crimson/5 rounded border border-crimson/30">
-                <p className="text-sm text-crimson">
+              <div className="bg-crimson/5 border-crimson/30 rounded border p-2">
+                <p className="text-crimson text-sm">
                   🔥 心魔缠身，突破成功率-5%。连续失败{' '}
                   {statusData.breakthrough_failures} 次，需静心调息。
                 </p>
@@ -219,7 +219,7 @@ export function CultivatorStatusCard({
 
             {/* 顿悟buff */}
             {statusData.epiphany_buff_expires_at && (
-              <div className="p-2 bg-yellow-600/5 rounded border border-yellow-600/30">
+              <div className="rounded border border-yellow-600/30 bg-yellow-600/5 p-2">
                 <p className="text-sm text-yellow-600">
                   ✨ 顿悟状态，修为获取翻倍！
                 </p>
@@ -237,11 +237,11 @@ export function CultivatorStatusCard({
       >
         <div className="space-y-4 text-sm leading-relaxed">
           <section>
-            <h3 className="font-bold text-ink mb-2">📊 修为进度</h3>
+            <h3 className="text-ink mb-2 font-bold">📊 修为进度</h3>
             <p className="text-ink-secondary mb-2">
               修为是突破境界的前置条件。每个境界阶段都有修为上限，需通过闭关、战斗、副本等方式积累。
             </p>
-            <ul className="list-disc list-inside text-ink-secondary space-y-1 ml-2">
+            <ul className="text-ink-secondary ml-2 list-inside list-disc space-y-1">
               <li>修为达到60%时可尝试突破（但成功率较低）</li>
               <li>修为达到90%时进入瓶颈期</li>
               <li>修为达到100%且感悟≥50时为圆满突破</li>
@@ -249,12 +249,12 @@ export function CultivatorStatusCard({
           </section>
 
           <section>
-            <h3 className="font-bold text-ink mb-2">🌸 道心感悟</h3>
+            <h3 className="text-ink mb-2 font-bold">🌸 道心感悟</h3>
             <p className="text-ink-secondary mb-2">
               感悟值影响突破成功率和失败保护。可通过副本奇遇、战斗领悟、顿悟事件等获得。
             </p>
-            <div className="bg-ink/5 p-3 rounded border border-ink/10">
-              <p className="text-xs text-ink-secondary">
+            <div className="bg-ink/5 border-ink/10 rounded border p-3">
+              <p className="text-ink-secondary text-xs">
                 <strong>公式：</strong>成功率加成 = 1.0 + (感悟值 / 100) × 0.25
                 <br />
                 <strong>示例：</strong>100感悟 → 1.25倍加成
@@ -263,29 +263,29 @@ export function CultivatorStatusCard({
           </section>
 
           <section>
-            <h3 className="font-bold text-ink mb-2">⚔️ 突破类型</h3>
+            <h3 className="text-ink mb-2 font-bold">⚔️ 突破类型</h3>
             <div className="space-y-2">
-              <div className="p-2 bg-orange-500/10 rounded">
-                <p className="font-bold text-orange-500 text-sm mb-1">
+              <div className="rounded bg-orange-500/10 p-2">
+                <p className="mb-1 text-sm font-bold text-orange-500">
                   强行突破（60%-79%）
                 </p>
-                <p className="text-sm text-ink-secondary">
+                <p className="text-ink-secondary text-sm">
                   成功率×0.5，失败损失50%-70%修为
                 </p>
               </div>
-              <div className="p-2 bg-blue-500/10 rounded">
-                <p className="font-bold text-blue-500 text-sm mb-1">
+              <div className="rounded bg-blue-500/10 p-2">
+                <p className="mb-1 text-sm font-bold text-blue-500">
                   常规突破（80%-99%）
                 </p>
-                <p className="text-sm text-ink-secondary">
+                <p className="text-ink-secondary text-sm">
                   成功率×0.75-1.05，失败损失30%-50%修为
                 </p>
               </div>
-              <div className="p-2 bg-gold/10 rounded">
-                <p className="font-bold text-gold text-sm mb-1">
+              <div className="bg-gold/10 rounded p-2">
+                <p className="text-gold mb-1 text-sm font-bold">
                   圆满突破（100%+50感悟）
                 </p>
-                <p className="text-sm text-ink-secondary">
+                <p className="text-ink-secondary text-sm">
                   成功率×1.2，失败损失20%-30%修为，属性成长+20%
                 </p>
               </div>
@@ -293,13 +293,13 @@ export function CultivatorStatusCard({
           </section>
 
           <section>
-            <h3 className="font-bold text-ink mb-2">🚧 特殊状态</h3>
+            <h3 className="text-ink mb-2 font-bold">🚧 特殊状态</h3>
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
                 <span className="text-orange-500">⚠️</span>
                 <div>
                   <strong className="text-ink">瓶颈期：</strong>
-                  <p className="text-sm text-ink-secondary">
+                  <p className="text-ink-secondary text-sm">
                     修为达90%后触发，闭关效率降低50%。需通过副本、战斗等多元化方式积累感悟。
                   </p>
                 </div>
@@ -308,7 +308,7 @@ export function CultivatorStatusCard({
                 <span className="text-crimson">🔥</span>
                 <div>
                   <strong className="text-ink">心魔：</strong>
-                  <p className="text-sm text-ink-secondary">
+                  <p className="text-ink-secondary text-sm">
                     连续突破失败3次触发，突破成功率-5%。成功突破后自动消除。
                   </p>
                 </div>
@@ -317,7 +317,7 @@ export function CultivatorStatusCard({
                 <span className="text-gold">✨</span>
                 <div>
                   <strong className="text-ink">顿悟：</strong>
-                  <p className="text-sm text-ink-secondary">
+                  <p className="text-ink-secondary text-sm">
                     低概率触发（受悟性影响），修为获取翻倍，持续3天。
                   </p>
                 </div>
@@ -325,7 +325,7 @@ export function CultivatorStatusCard({
             </ul>
           </section>
 
-          <div className="pt-4 border-t border-ink/10">
+          <div className="border-ink/10 border-t pt-4">
             <InkButton
               variant="primary"
               className="w-full"
