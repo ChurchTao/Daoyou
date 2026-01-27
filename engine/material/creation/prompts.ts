@@ -67,7 +67,7 @@ export function getMaterialGenerationPrompt(): string {
   - 神品：神魔镇狱劲、鸿蒙造化经、混沌开天诀
 
 ### 3. 描述规范
-- 长度：30-60 字
+- 长度：40-90 字
 - 内容：简述外形、产地、用途或来历
 - 风格：略带神秘感和修仙氛围
 
