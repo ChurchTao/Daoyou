@@ -29,7 +29,6 @@ export async function GET(req: Request) {
   const offset = (page - 1) * pageSize;
   const type = searchParams.get('type'); // 'challenge' | 'challenged' | null (全部)
   const cultivatorId = await getUserAliveCultivatorId(user.id);
-  console.log('cultivatorId', cultivatorId);
 
   if (!cultivatorId) {
     return NextResponse.json(

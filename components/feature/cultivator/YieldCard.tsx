@@ -4,8 +4,8 @@ import { InkModal } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkBadge } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
+import { GeneratedMaterial } from '@/engine/material/creation/types';
 import type { Cultivator } from '@/types/cultivator';
-import { GeneratedMaterial } from '@/utils/materialGenerator';
 import { useEffect, useState } from 'react';
 
 interface YieldCardProps {
@@ -126,22 +126,22 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
   const yieldProgress = Math.min((timeSinceYield / 24) * 100, 100);
 
   return (
-    <div className="mb-6 p-4 border border-ink/20 rounded-lg bg-ink/5 shadow-sm relative overflow-hidden">
+    <div className="border-ink/20 bg-ink/5 relative mb-6 overflow-hidden rounded-lg border p-4 shadow-sm">
       {/* 进度条背景 */}
       <div
-        className="absolute bottom-0 left-0 h-1 bg-primary/40 transition-all duration-1000"
+        className="bg-primary/40 absolute bottom-0 left-0 h-1 transition-all duration-1000"
         style={{ width: `${yieldProgress}%` }}
       />
 
-      <div className="flex justify-between items-center relative z-10">
+      <div className="relative z-10 flex items-center justify-between">
         <div>
-          <div className="font-bold text-lg text-ink-primary flex items-center gap-2">
+          <div className="text-ink-primary flex items-center gap-2 text-lg font-bold">
             <span>🗺️ 历练收益</span>
             {timeSinceYield >= 24 && <InkBadge tone="danger">已满</InkBadge>}
           </div>
-          <div className="text-sm text-ink-secondary mt-1">
+          <div className="text-ink-secondary mt-1 text-sm">
             已历练{' '}
-            <span className="font-bold text-ink-primary">{timeSinceYield}</span>{' '}
+            <span className="text-ink-primary font-bold">{timeSinceYield}</span>{' '}
             小时
             <span className="opacity-60"> (上限24h)</span>
           </div>
@@ -171,19 +171,19 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
           </InkButton>
         }
       >
-        <div className="prose prose-sm prose-invert max-w-none mb-6 text-foreground/90 leading-relaxed bg-ink/5 p-4 rounded-lg border border-ink/10">
+        <div className="prose prose-sm prose-invert text-foreground/90 bg-ink/5 border-ink/10 mb-6 max-w-none rounded-lg border p-4 leading-relaxed">
           {yieldResult?.story}
         </div>
 
-        <div className="flex justify-center items-center gap-2 mb-4">
+        <div className="mb-4 flex items-center justify-center gap-2">
           <span className="text-ink-secondary">获得灵石：</span>
-          <span className="text-2xl font-bold text-yellow-500 flex items-center gap-1">
+          <span className="flex items-center gap-1 text-2xl font-bold text-yellow-500">
             💎 {yieldResult?.amount}
           </span>
         </div>
 
         {yieldResult?.expGain && (
-          <div className="flex justify-center items-center gap-2 mb-4">
+          <div className="mb-4 flex items-center justify-center gap-2">
             <span className="text-ink-secondary">修为精进：</span>
             <span className="text-2xl font-bold text-blue-500">
               ✨ {yieldResult.expGain}
@@ -192,7 +192,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
         )}
 
         {yieldResult?.insightGain && (
-          <div className="flex justify-center items-center gap-2 mb-4">
+          <div className="mb-4 flex items-center justify-center gap-2">
             <span className="text-ink-secondary">天道感悟：</span>
             <span className="text-2xl font-bold text-purple-500">
               💡 {yieldResult.insightGain}
@@ -202,7 +202,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
 
         {yieldResult?.materials && yieldResult.materials.length > 0 && (
           <div className="mb-6">
-            <p className="text-sm font-bold text-ink mb-2">天材地宝：</p>
+            <p className="text-ink mb-2 text-sm font-bold">天材地宝：</p>
             <div className="flex flex-wrap gap-2">
               {yieldResult.materials.map(
                 (m: GeneratedMaterial, idx: number) => (

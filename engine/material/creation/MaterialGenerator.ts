@@ -61,7 +61,6 @@ export class MaterialGenerator {
     if (skeletons.length === 0) return [];
 
     const prompt = getMaterialGenerationPrompt();
-    console.log('Material Generation Prompt:', prompt);
     const userPrompt = getMaterialGenerationUserPrompt(skeletons);
 
     try {
