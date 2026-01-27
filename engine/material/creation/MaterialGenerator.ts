@@ -60,8 +60,9 @@ export class MaterialGenerator {
   ): Promise<GeneratedMaterial[]> {
     if (skeletons.length === 0) return [];
 
-    const prompt = getMaterialGenerationPrompt(skeletons);
-    const userPrompt = getMaterialGenerationUserPrompt();
+    const prompt = getMaterialGenerationPrompt();
+    console.log('Material Generation Prompt:', prompt);
+    const userPrompt = getMaterialGenerationUserPrompt(skeletons);
 
     try {
       const aiResponse = await objectArray(

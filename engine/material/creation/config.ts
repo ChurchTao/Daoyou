@@ -65,3 +65,27 @@ export const QUANTITY_RANGE_MAP: Record<Quality, [number, number]> = {
   仙品: [1, 1],
   神品: [1, 1],
 };
+
+// 品质到数字等级的映射
+export const QUALITY_TO_RANK: Record<Quality, number> = {
+  凡品: 1,
+  灵品: 2,
+  玄品: 3,
+  真品: 4,
+  地品: 5,
+  天品: 6,
+  仙品: 7,
+  神品: 8,
+};
+
+// 数字等级到品质的映射
+export const RANK_TO_QUALITY: Record<number, Quality> = {
+  1: '凡品',
+  2: '灵品',
+  3: '玄品',
+  4: '真品',
+  5: '地品',
+  6: '天品',
+  7: '仙品',
+  8: '神品',
+};

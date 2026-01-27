@@ -1,14 +1,12 @@
-import { withActiveCultivator } from '@/lib/api/withAuth';
+import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator';
+import { GeneratedMaterial } from '@/engine/material/creation/types';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import { YieldCalculator } from '@/engine/yield/YieldCalculator';
+import { withActiveCultivator } from '@/lib/api/withAuth';
 import { redis } from '@/lib/redis';
 import { updateLastYieldAt } from '@/lib/repositories/cultivatorRepository';
 import { RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';
-import {
-  type GeneratedMaterial,
-  generateRandomMaterials,
-} from '@/utils/materialGenerator';
 import { NextResponse } from 'next/server';
 
 /**
@@ -53,11 +51,12 @@ export const POST = withActiveCultivator(
       const operations = YieldCalculator.calculateYield(realm, hoursElapsed);
 
       // 3. 生成材料
-      const materialCount = YieldCalculator.calculateMaterialCount(hoursElapsed);
+      const materialCount =
+        YieldCalculator.calculateMaterialCount(hoursElapsed);
       let gainedMaterials: GeneratedMaterial[] = [];
 
       if (materialCount > 0) {
-        gainedMaterials = await generateRandomMaterials(materialCount);
+        gainedMaterials = await MaterialGenerator.generateRandom(materialCount);
 
         for (const m of gainedMaterials) {
           operations.push({
@@ -93,9 +92,13 @@ export const POST = withActiveCultivator(
       }
 
       // 5. 计算结果（用于前端显示和AI提示词）
-      const spiritStonesGain = operations.find(op => op.type === 'spirit_stones')?.value || 0;
-      const expGain = operations.find(op => op.type === 'cultivation_exp')?.value || 0;
-      const insightGain = operations.find(op => op.type === 'comprehension_insight')?.value || 0;
+      const spiritStonesGain =
+        operations.find((op) => op.type === 'spirit_stones')?.value || 0;
+      const expGain =
+        operations.find((op) => op.type === 'cultivation_exp')?.value || 0;
+      const insightGain =
+        operations.find((op) => op.type === 'comprehension_insight')?.value ||
+        0;
 
       const result = {
         cultivatorName: activeCultivator.name,

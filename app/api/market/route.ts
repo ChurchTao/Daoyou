@@ -1,11 +1,9 @@
-import { cache } from 'react';
+import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator';
+import { GeneratedMaterial } from '@/engine/material/creation/types';
 import { redis } from '@/lib/redis';
 import { shuffle } from '@/lib/utils';
-import {
-  GeneratedMaterial,
-  generateRandomMaterials,
-} from '@/utils/materialGenerator';
 import { NextResponse } from 'next/server';
+import { cache } from 'react';
 
 const MARKET_CACHE_KEY = 'market:listings';
 const MARKET_LOCK_KEY = 'market:generating';
@@ -55,7 +53,7 @@ const getCachedMarketListings = cache(async () => {
   }
 
   try {
-    const items = await generateRandomMaterials(15);
+    const items = await MaterialGenerator.generateRandom(15);
 
     // Add IDs to items
     const itemsWithIds = items.map((item) => ({
@@ -90,7 +88,10 @@ export async function GET() {
     console.error('Market API Error:', error);
 
     // 判断是否为特定的错误类型
-    if (error instanceof Error && error.message === '坊市正在进货中，请稍后再试') {
+    if (
+      error instanceof Error &&
+      error.message === '坊市正在进货中，请稍后再试'
+    ) {
       return NextResponse.json(
         { error: '坊市正在进货中，请稍后再试' },
         { status: 503 },
