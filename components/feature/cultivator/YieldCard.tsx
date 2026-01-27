@@ -23,6 +23,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
     materials?: GeneratedMaterial[];
     expGain?: number;
     insightGain?: number;
+    materialCount?: number; // 材料生成数量（异步）
   } | null>(null);
 
   const [claiming, setClaiming] = useState(false);
@@ -79,6 +80,9 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
                   amount: data.data.amount,
                   hours: data.data.hours,
                   materials: data.data.materials,
+                  expGain: data.data.expGain,
+                  insightGain: data.data.insightGain,
+                  materialCount: data.data.materialCount,
                   story: currentStory || '',
                 }));
               } else if (data.type === 'chunk') {
@@ -212,6 +216,16 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
                 ),
               )}
             </div>
+          </div>
+        )}
+
+        {/* 材料异步生成提示 */}
+        {yieldResult?.materialCount && yieldResult.materialCount > 0 && (!yieldResult.materials || yieldResult.materials.length === 0) && (
+          <div className="bg-primary/10 border-primary/30 mb-6 rounded-lg border p-3 text-center">
+            <p className="text-ink-secondary text-sm">
+              另有 <span className="text-primary font-bold">{yieldResult.materialCount}</span> 份天材地宝正在运送中，
+              稍后将通过传音玉简（邮件）送达。
+            </p>
           </div>
         )}
       </InkModal>

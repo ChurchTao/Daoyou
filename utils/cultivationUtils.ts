@@ -216,11 +216,13 @@ export function calculateWisdomMultiplier(wisdom: number): number {
 
 /**
  * 计算年限系数
- * 公式：0.15 + log10(闭关年限)
+ * 公式：0.7 + sqrt(log10(闭关年限 + 1))
+ * 使用 sqrt(log10) 复合函数，让短期收益更合理
+ * years=1 → ~1.25, years=10 → ~1.72, years=100 → ~2.12
  */
 export function calculateYearsMultiplier(years: number): number {
   if (years <= 0) return 1.0;
-  return 0.15 + Math.log10(years);
+  return 0.7 + Math.sqrt(Math.log10(years + 1));
 }
 
 /**

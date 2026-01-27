@@ -1,10 +1,17 @@
 import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator';
 import { GeneratedMaterial } from '@/engine/material/creation/types';
-import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import { YieldCalculator } from '@/engine/yield/YieldCalculator';
 import { withActiveCultivator } from '@/lib/api/withAuth';
+import { db } from '@/lib/drizzle/db';
 import { redis } from '@/lib/redis';
-import { updateLastYieldAt } from '@/lib/repositories/cultivatorRepository';
+import {
+  addMaterialToInventory,
+  getCultivatorById,
+  updateCultivationExp,
+  updateLastYieldAt,
+  updateSpiritStones,
+} from '@/lib/repositories/cultivatorRepository';
+import { MailService } from '@/lib/services/MailService';
 import { RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';
 import { NextResponse } from 'next/server';
@@ -14,8 +21,8 @@ import { NextResponse } from 'next/server';
  * 领取在外历练收益（灵石+修为+感悟值+材料）
  */
 export const POST = withActiveCultivator(
-  async (_req, { cultivator: activeCultivator }) => {
-    const userId = activeCultivator.userId;
+  async (_req, { cultivator: activeCultivator, user }) => {
+    const userId = user.id;
     const cultivatorId = activeCultivator.id;
 
     // Prevent concurrent claims with Redis lock
@@ -30,11 +37,21 @@ export const POST = withActiveCultivator(
     }
 
     try {
+      // 获取完整角色信息（包含灵根、功法等）
+      const fullCultivator = await getCultivatorById(userId, cultivatorId);
+      if (!fullCultivator) {
+        await redis.del(lockKey);
+        return NextResponse.json(
+          { success: false, error: '未找到角色信息' },
+          { status: 404 },
+        );
+      }
+
       // 1. 计算奖励
-      const realm = activeCultivator.realm as RealmType;
-      const lastYieldAt = activeCultivator.last_yield_at
-        ? new Date(activeCultivator.last_yield_at)
-        : new Date(activeCultivator.createdAt || Date.now());
+      const realm = fullCultivator.realm as RealmType;
+      const lastYieldAt = fullCultivator.last_yield_at
+        ? new Date(fullCultivator.last_yield_at)
+        : new Date(Date.now()); // 如果没有上次领取时间，使用当前时间
       const now = new Date();
       const diffMs = now.getTime() - lastYieldAt.getTime();
       const hoursElapsed = Math.min(diffMs / (1000 * 60 * 60), 24); // Cap at 24 hours
@@ -47,45 +64,74 @@ export const POST = withActiveCultivator(
         );
       }
 
-      // 2. 使用 YieldCalculator 计算奖励
-      const operations = YieldCalculator.calculateYield(realm, hoursElapsed);
-
-      // 3. 生成材料
-      const materialCount =
-        YieldCalculator.calculateMaterialCount(hoursElapsed);
-      let gainedMaterials: GeneratedMaterial[] = [];
-
-      if (materialCount > 0) {
-        gainedMaterials = await MaterialGenerator.generateRandom(materialCount);
-
-        for (const m of gainedMaterials) {
-          operations.push({
-            type: 'material',
-            value: m.quantity,
-            name: m.name,
-            data: m,
-          });
-        }
-      }
-
-      // 4. 使用 ResourceEngine 发放奖励，并在 action 中更新 last_yield_at
-      const resourceResult = await resourceEngine.gain(
-        userId,
-        cultivatorId,
-        operations,
-        async () => {
-          // action: 更新 last_yield_at 时间
-          await updateLastYieldAt(userId, cultivatorId);
-        },
-        false, // 非干运行
+      // 2. 使用 YieldCalculator 计算基础奖励（不包含材料）
+      const operations = YieldCalculator.calculateYield(
+        realm,
+        hoursElapsed,
+        fullCultivator,
       );
 
-      if (!resourceResult.success) {
+      // 3. 计算材料数量（但不立即生成）
+      const materialCount =
+        YieldCalculator.calculateMaterialCount(hoursElapsed);
+
+      // 4. 使用事务发放基础奖励（灵石、修为、感悟值），并更新 last_yield_at
+      let success = true;
+      let error: string | undefined;
+
+      try {
+        await db.transaction(async (tx) => {
+          // 发放基础奖励（不包含材料）
+          for (const gain of operations) {
+            switch (gain.type) {
+              case 'spirit_stones':
+                await updateSpiritStones(userId, cultivatorId, gain.value, tx);
+                break;
+
+              case 'cultivation_exp':
+                await updateCultivationExp(
+                  userId,
+                  cultivatorId,
+                  gain.value,
+                  undefined,
+                  tx,
+                );
+                break;
+
+              case 'comprehension_insight':
+                // 只修改感悟值，修为变化为0
+                await updateCultivationExp(
+                  userId,
+                  cultivatorId,
+                  0,
+                  gain.value,
+                  tx,
+                );
+                break;
+
+              default:
+                // 跳过材料类型，稍后异步处理
+                if (gain.type !== 'material') {
+                  throw new Error(`未知的资源类型: ${gain.type}`);
+                }
+                break;
+            }
+          }
+
+          // 更新 last_yield_at 时间（在同一个事务中）
+          await updateLastYieldAt(userId, cultivatorId, tx);
+        });
+      } catch (e) {
+        success = false;
+        error = e instanceof Error ? e.message : String(e);
+      }
+
+      if (!success) {
         await redis.del(lockKey);
         return NextResponse.json(
           {
             success: false,
-            error: resourceResult.errors?.join(', ') || '发放奖励失败',
+            error: error || '发放奖励失败',
           },
           { status: 500 },
         );
@@ -101,14 +147,70 @@ export const POST = withActiveCultivator(
         0;
 
       const result = {
-        cultivatorName: activeCultivator.name,
-        cultivatorRealm: activeCultivator.realm,
+        cultivatorName: fullCultivator.name,
+        cultivatorRealm: fullCultivator.realm,
         amount: spiritStonesGain,
         expGain,
         insightGain,
-        materials: gainedMaterials,
+        materials: [] as GeneratedMaterial[], // 初始为空，材料稍后通过邮件发送
         hours: hoursElapsed,
+        materialCount, // 告诉前端有多少材料正在生成中
       };
+
+      // 6. 异步生成材料并通过邮件发送（不阻塞SSE响应）
+      if (materialCount > 0) {
+        // 使用 Promise.resolve().then() 实现异步执行，不阻塞主流程
+        Promise.resolve().then(async () => {
+          try {
+            console.log(
+              `[Yield] 开始异步生成材料: cultivatorId=${cultivatorId}, count=${materialCount}`,
+            );
+
+            // 生成材料
+            const materials = await MaterialGenerator.generateRandom(materialCount);
+            console.log(
+              `[Yield] 材料生成完成: ${materials.map((m) => `${m.rank}${m.name}`).join(', ')}`,
+            );
+
+            // 存入数据库
+            await db.transaction(async (tx) => {
+              for (const m of materials) {
+                const material = {
+                  ...m,
+                  quantity: m.quantity,
+                } as import('@/types/cultivator').Material;
+                await addMaterialToInventory(
+                  userId,
+                  cultivatorId,
+                  material,
+                  tx,
+                );
+              }
+            });
+            console.log(`[Yield] 材料已存入数据库`);
+
+            // 发送邮件通知
+            const attachments = materials.map((m) => ({
+              type: 'material' as const,
+              name: m.name,
+              quantity: m.quantity,
+              data: m,
+            }));
+
+            await MailService.sendMail(
+              cultivatorId,
+              '历练机缘',
+              '道友历练途中，偶得天材地宝，特以此传音玉简送达。',
+              attachments,
+              'reward',
+            );
+            console.log(`[Yield] 材料奖励邮件已发送`);
+          } catch (err) {
+            console.error('[Yield] 材料异步处理失败:', err);
+            // 失败不影响主要奖励，仅记录日志
+          }
+        });
+      }
 
       // 6. 生成 SSE 流式响应
       const encoder = new TextEncoder();

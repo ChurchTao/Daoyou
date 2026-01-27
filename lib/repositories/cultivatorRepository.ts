@@ -1670,17 +1670,37 @@ export async function addConsumableToInventory(
 }
 
 /**
- * 更新角色上次领取收益时间
+ * 更新角色上次领取收益时间（内部版本，用于事务中）
+ * 跳过权限检查，由调用方保证权限
+ */
+async function updateLastYieldAtTx(
+  cultivatorId: string,
+  tx: DbTransaction,
+): Promise<void> {
+  await tx
+    .update(schema.cultivators)
+    .set({ last_yield_at: new Date() })
+    .where(eq(schema.cultivators.id, cultivatorId));
+}
+
+/**
+ * 更新角色上次领取收益时间（公开版本）
+ * 包含权限检查
  */
 export async function updateLastYieldAt(
   userId: string,
   cultivatorId: string,
   tx?: DbTransaction,
 ): Promise<void> {
-  await assertCultivatorOwnership(userId, cultivatorId);
+  // 如果传入了事务，使用内部版本跳过权限检查
+  if (tx) {
+    await updateLastYieldAtTx(cultivatorId, tx);
+    return;
+  }
 
-  const dbInstance = tx || db;
-  await dbInstance
+  // 否则进行完整的权限检查
+  await assertCultivatorOwnership(userId, cultivatorId);
+  await db
     .update(schema.cultivators)
     .set({ last_yield_at: new Date() })
     .where(eq(schema.cultivators.id, cultivatorId));
