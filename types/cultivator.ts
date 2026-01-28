@@ -93,6 +93,7 @@ export interface PreHeavenFate {
 
 // 功法（被动）
 export interface CultivationTechnique {
+  id?: string;
   name: string;
   grade?: SkillGrade;
   required_realm: RealmType;

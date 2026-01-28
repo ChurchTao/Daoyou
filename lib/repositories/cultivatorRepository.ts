@@ -82,6 +82,7 @@ async function assembleCultivator(
 
   // 组装功法
   const cultivations = cultivationsResult.map((c) => ({
+    id: c.id,
     name: c.name,
     grade: c.grade as Cultivator['cultivations'][0]['grade'] | undefined,
     required_realm:
