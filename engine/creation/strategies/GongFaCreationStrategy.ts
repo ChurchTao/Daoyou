@@ -29,9 +29,13 @@ import {
 } from '../prompts';
 import {
   calculatePowerRatio,
+  calculateRealmDiscount,
+  applyGradeDiscount,
   clampGrade,
   GRADE_HINT_TO_GRADES,
   GRADE_TO_RANK,
+  QUALITY_TO_BASE_GRADE,
+  RANK_TO_GRADE,
   REALM_GRADE_LIMIT,
 } from '../skillConfig';
 import {
@@ -337,61 +341,28 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     materialQuality: Quality,
     spiritualRootStrength: number,
   ): SkillGrade {
-    let candidates =
-      GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
+    // 步骤1: 获取材料基准品阶
+    const materialGrade = QUALITY_TO_BASE_GRADE[materialQuality] || '黄阶下品';
 
-    // ⚠️ 重要：根据材料品质限制候选品阶
-    candidates = this.limitCandidatesByMaterialQuality(candidates, materialQuality);
+    // 步骤2: 计算境界折扣系数
+    const realmDiscount = calculateRealmDiscount(materialGrade, realm);
 
-    // 使用新的计算函数，考虑境界、材料、灵根强度
-    // 功法没有元素匹配，所以 hasMatchingElement 传 true
-    const ratio = calculatePowerRatio(
-      realm,
-      materialQuality,
-      spiritualRootStrength,
-      true, // 功法不依赖特定元素，视为匹配
-    );
+    // 步骤3: 应用折扣
+    let finalGrade = applyGradeDiscount(materialGrade, realmDiscount);
 
-    const index = Math.min(
-      candidates.length - 1,
-      Math.floor(ratio * candidates.length),
-    );
-    let selectedGrade = candidates[index];
+    // 步骤4: 灵根强度微调
+    if (spiritualRootStrength >= 80) {
+      // 高灵根强度：提升1个小阶位
+      const currentRank = GRADE_TO_RANK[finalGrade];
+      if (currentRank < 12) {
+        finalGrade = RANK_TO_GRADE[currentRank + 1];
+      }
+    }
 
-    // 境界限制（依然存在，但可能由于材料好而触达当前境界的上限）
+    // 步骤5: 应用境界绝对上限
     const realmLimit = REALM_GRADE_LIMIT[realm];
-    selectedGrade = clampGrade(selectedGrade, realmLimit);
+    finalGrade = clampGrade(finalGrade, realmLimit);
 
-    return selectedGrade;
-  }
-
-  /**
-   * 根据材料品质限制候选品阶列表
-   *
-   * 确保即使 AI 选择了高阶的 grade_hint，也不会生成超出材料品质的品阶
-   */
-  private limitCandidatesByMaterialQuality(
-    candidates: SkillGrade[],
-    materialQuality: Quality,
-  ): SkillGrade[] {
-    // 定义每种材料品质允许达到的最高品阶等级（1-12）
-    const maxRankByQuality: Record<Quality, number> = {
-      '凡品': 3,  // 黄阶上品
-      '灵品': 3,  // 黄阶上品
-      '玄品': 6,  // 玄阶上品
-      '真品': 6,  // 玄阶上品
-      '地品': 9,  // 地阶上品
-      '天品': 9,  // 地阶上品
-      '仙品': 12, // 天阶上品
-      '神品': 12, // 天阶上品
-    };
-
-    const maxRank = maxRankByQuality[materialQuality];
-
-    // 过滤出不超过材料品质限制的品阶
-    return candidates.filter((grade) => {
-      const gradeRank = GRADE_TO_RANK[grade];
-      return gradeRank <= maxRank;
-    });
+    return finalGrade;
   }
 }
