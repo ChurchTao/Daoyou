@@ -187,15 +187,11 @@ export const SkillBlueprintSchema = z.object({
   element: z.enum(ELEMENT_VALUES).describe('技能元素'),
   description: z.string().max(180).describe('技能描述（施法表现、视觉效果）'),
 
-  // AI 给出品阶方向提示，后端最终决定
-  grade_hint: z
-    .enum(GRADE_HINT_VALUES)
-    .describe('品阶方向提示：low=1-3级(黄阶), medium=4-6级(玄阶), high=7-9级(地阶), extreme=10-12级(天阶)'),
-
-  // AI 对五行匹配的评估（后端会重新验证）
+  // AI 对五行匹配的评估（可选，用于调试）
   element_match_assessment: z
     .enum(ELEMENT_MATCH_VALUES)
-    .describe('AI 对五行契合度的评估'),
+    .optional()
+    .describe('AI 对五行契合度的评估（可选）'),
 
   // AI选择的词条ID
   selected_affixes: SkillAffixSelectionSchema.describe('AI选择的词条ID'),
@@ -560,7 +556,6 @@ export type GongFaAffixSelection = z.infer<typeof GongFaAffixSelectionSchema>;
  */
 export const GongFaBlueprintSchema = z.object({
   name: z.string().min(2).max(8).describe('功法名称（2-8字，古风）'),
-  grade_hint: z.enum(GRADE_HINT_VALUES).describe('品阶方向提示：low=1-3级(黄阶), medium=4-6级(玄阶), high=7-9级(地阶), extreme=10-12级(天阶)'),
   description: z.string().max(100).describe('功法描述'),
   selected_affixes: GongFaAffixSelectionSchema.describe('AI选择的词条ID'),
 });
