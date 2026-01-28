@@ -44,10 +44,15 @@ import {
   calculateBaseCost,
   calculateCooldown,
   calculatePowerRatio,
+  calculateRealmDiscount,
+  applyGradeDiscount,
   clampGrade,
   ELEMENT_MATCH_MODIFIER,
   GRADE_HINT_TO_GRADES,
   GRADE_TO_RANK,
+  QUALITY_TO_BASE_GRADE,
+  QUALITY_TO_NUMERIC_LEVEL,
+  RANK_TO_GRADE,
   REALM_GRADE_LIMIT,
   SKILL_ELEMENT_CONFLICT,
   SKILL_TYPE_MODIFIERS,
@@ -525,7 +530,10 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
   }
 
   /**
-   * 计算最终品阶
+   * 计算最终品阶（重构版）
+   * - 材料品质决定基准品阶（70%权重）
+   * - 境界差距带来折扣
+   * - 灵根契合度微调（±1个小阶位）
    */
   private calculateGrade(
     gradeHint: GradeHint,
@@ -534,66 +542,29 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     spiritualRoots: SpiritualRoot[],
     materialQuality: Quality,
   ): SkillGrade {
-    // 获取品阶候选列表
-    let candidates = GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
+    // 步骤1: 获取材料基准品阶
+    const materialGrade = QUALITY_TO_BASE_GRADE[materialQuality] || '黄阶下品';
 
-    // ⚠️ 重要：根据材料品质限制候选品阶
-    // 材料品质决定了能够达到的最高品阶
-    candidates = this.limitCandidatesByMaterialQuality(candidates, materialQuality);
+    // 步骤2: 计算境界折扣系数
+    const realmDiscount = calculateRealmDiscount(materialGrade, realm);
 
-    // 获取匹配灵根的强度
+    // 步骤3: 应用折扣
+    let finalGrade = applyGradeDiscount(materialGrade, realmDiscount);
+
+    // 步骤4: 灵根契合度微调
     const matchingRoot = spiritualRoots.find((r) => r.element === element);
-    const rootStrength = matchingRoot?.strength || 0;
-    const hasMatching = !!matchingRoot;
+    if (matchingRoot && matchingRoot.strength >= 70) {
+      // 高契合度：提升1个小阶位（如"玄阶下品"→"玄阶中品"）
+      const currentRank = GRADE_TO_RANK[finalGrade];
+      if (currentRank < 12) {
+        finalGrade = RANK_TO_GRADE[currentRank + 1];
+      }
+    }
 
-    // 根据境界、材料、灵根计算威力系数
-    const powerRatio = calculatePowerRatio(
-      realm,
-      materialQuality,
-      rootStrength,
-      hasMatching,
-    );
-
-    const index = Math.min(
-      candidates.length - 1,
-      Math.floor(powerRatio * candidates.length),
-    );
-    let selectedGrade = candidates[index];
-
-    // 应用境界限制
+    // 步骤5: 应用境界绝对上限（不被突破）
     const realmLimit = REALM_GRADE_LIMIT[realm];
-    selectedGrade = clampGrade(selectedGrade, realmLimit);
+    finalGrade = clampGrade(finalGrade, realmLimit);
 
-    return selectedGrade;
-  }
-
-  /**
-   * 根据材料品质限制候选品阶列表
-   *
-   * 确保即使 AI 选择了高阶的 grade_hint，也不会生成超出材料品质的品阶
-   */
-  private limitCandidatesByMaterialQuality(
-    candidates: SkillGrade[],
-    materialQuality: Quality,
-  ): SkillGrade[] {
-    // 定义每种材料品质允许达到的最高品阶等级（1-12）
-    const maxRankByQuality: Record<Quality, number> = {
-      '凡品': 3,  // 黄阶上品
-      '灵品': 3,  // 黄阶上品
-      '玄品': 6,  // 玄阶上品
-      '真品': 6,  // 玄阶上品
-      '地品': 9,  // 地阶上品
-      '天品': 9,  // 地阶上品
-      '仙品': 12, // 天阶上品
-      '神品': 12, // 天阶上品
-    };
-
-    const maxRank = maxRankByQuality[materialQuality];
-
-    // 过滤出不超过材料品质限制的品阶
-    return candidates.filter((grade) => {
-      const gradeRank = GRADE_TO_RANK[grade];
-      return gradeRank <= maxRank;
-    });
+    return finalGrade;
   }
 }
