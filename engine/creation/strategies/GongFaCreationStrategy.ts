@@ -23,8 +23,8 @@ import {
 } from '../CreationStrategy';
 // 从 prompts 导入的函数已移除（不再需要）
 import {
-  calculateRealmDiscount,
   applyGradeDiscount,
+  calculateRealmDiscount,
   clampGrade,
   GRADE_TO_RANK,
   QUALITY_TO_BASE_GRADE,
@@ -35,7 +35,6 @@ import {
 import {
   GongFaBlueprint,
   GongFaBlueprintSchema,
-  GradeHint,
   MaterializationContext,
 } from '../types';
 
@@ -87,7 +86,7 @@ export class GongFaCreationStrategy implements CreationStrategy<
     // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
     const estimatedQuality = this.estimateQuality(
-      (context.cultivator.realm as RealmType),
+      context.cultivator.realm as RealmType,
       materialQuality,
     );
     const affixPrompts = this.buildAffixPrompts(estimatedQuality);
@@ -170,12 +169,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
 
     // 1. 确定品阶（由材料品质决定）
     const materialQuality = this.calculateMaterialQuality(context.materials);
-    const grade = this.calculateGrade(
-      null, // 不再使用 grade_hint
-      realm,
-      materialQuality,
-      maxRootStrength,
-    );
+    const grade = this.calculateGrade(realm, materialQuality, maxRootStrength);
     const quality = GRADE_TO_QUALITY[grade] || '玄品';
 
     // 2. 获取词条池
@@ -320,7 +314,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
   }
 
   private calculateGrade(
-    _gradeHint: GradeHint | null,
     realm: RealmType,
     materialQuality: Quality,
     spiritualRootStrength: number,

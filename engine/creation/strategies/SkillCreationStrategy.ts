@@ -33,10 +33,10 @@ import {
   PromptData,
 } from '../CreationStrategy';
 import {
+  applyGradeDiscount,
   calculateBaseCost,
   calculateCooldown,
   calculateRealmDiscount,
-  applyGradeDiscount,
   clampGrade,
   ELEMENT_MATCH_MODIFIER,
   GRADE_TO_RANK,
@@ -49,7 +49,6 @@ import {
 } from '../skillConfig';
 import {
   ElementMatch,
-  GradeHint,
   MaterializationContext,
   SkillBlueprint,
   SkillBlueprintSchema,
@@ -103,7 +102,7 @@ export class SkillCreationStrategy implements CreationStrategy<
     // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
     const estimatedQuality = this.estimateQuality(
-      (context.cultivator.realm as RealmType),
+      context.cultivator.realm as RealmType,
       materialQuality,
     );
 
@@ -219,7 +218,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
     // 2. 确定品阶（不再使用 grade_hint，由材料品质决定）
     const materialQuality = this.calculateMaterialQuality(context.materials);
     const grade = this.calculateGrade(
-      null, // 不再使用 grade_hint
       realm,
       blueprint.element,
       context.cultivator.spiritual_roots,
@@ -521,7 +519,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
    * - 灵根契合度微调（±1个小阶位）
    */
   private calculateGrade(
-    _gradeHint: GradeHint | null,
     realm: RealmType,
     element: ElementType,
     spiritualRoots: SpiritualRoot[],
