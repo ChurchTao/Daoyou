@@ -5,7 +5,7 @@
  * 所有数值由此文件控制，AI 无法突破
  */
 
-import type { RealmType, SkillGrade, SkillType } from '@/types/constants';
+import type { Quality, RealmType, SkillGrade, SkillType } from '@/types/constants';
 import type { ElementMatch } from './types';
 
 // ============ 品阶数值化配置 ============
@@ -46,6 +46,96 @@ export const RANK_TO_GRADE: Record<number, SkillGrade> = {
   11: '天阶中品',
   12: '天阶上品',
 };
+
+// ============ 材料品质 → 品阶基准映射 ============
+
+/**
+ * 材料品质数值化等级（用于让AI理解品质水准）
+ */
+export const QUALITY_TO_NUMERIC_LEVEL: Record<Quality, number> = {
+  '凡品': 10,
+  '灵品': 25,
+  '玄品': 40,
+  '真品': 55,
+  '地品': 70,
+  '天品': 85,
+  '仙品': 100,
+  '神品': 120,
+};
+
+/**
+ * 材料品质直接对应品阶基准
+ * 材料决定70%的品阶权重
+ */
+export const QUALITY_TO_BASE_GRADE: Record<Quality, SkillGrade> = {
+  '凡品': '黄阶下品',
+  '灵品': '黄阶中品',
+  '玄品': '玄阶下品',
+  '真品': '玄阶中品',
+  '地品': '地阶下品',
+  '天品': '地阶中品',
+  '仙品': '天阶下品',
+  '神品': '天阶中品',
+};
+
+// ============ 境界折扣率配置 ============
+
+/**
+ * 境界等级映射（用于计算折扣）
+ */
+export const REALM_TO_RANK: Record<RealmType, number> = {
+  '炼气': 1,
+  '筑基': 2,
+  '金丹': 3,
+  '元婴': 4,
+  '化神': 5,
+  '炼虚': 6,
+  '合体': 7,
+  '大乘': 8,
+  '渡劫': 9,
+};
+
+/**
+ * 计算境界折扣系数
+ * 材料品阶 > 当前境界 → 折扣（模拟"只能学皮毛"）
+ */
+export function calculateRealmDiscount(
+  materialGrade: SkillGrade,
+  realm: RealmType,
+): number {
+  const materialRank = GRADE_TO_RANK[materialGrade];
+  const realmRank = REALM_TO_RANK[realm];
+
+  // 计算境界允许的最高品阶等级
+  const realmMaxRank = realmRank * 3 + 3;
+
+  // 如果材料品阶不超过境界允许范围，无折扣
+  if (materialRank <= realmMaxRank) {
+    return 1.0;
+  }
+
+  // 计算差距，每超出3级折扣10%
+  const gap = materialRank - realmMaxRank;
+  const discount = 1.0 - Math.floor(gap / 3) * 0.1;
+
+  return Math.max(0.3, discount);
+}
+
+/**
+ * 应用折扣系数到品阶
+ */
+export function applyGradeDiscount(
+  baseGrade: SkillGrade,
+  discount: number,
+): SkillGrade {
+  if (discount >= 1.0) return baseGrade;
+
+  const baseRank = GRADE_TO_RANK[baseGrade];
+  const discountedRank = Math.floor(baseRank * discount);
+
+  // 确保不低于黄阶下品
+  return RANK_TO_GRADE[Math.max(1, discountedRank)] || '黄阶下品';
+}
 
 // ============ 境界 → 品阶上限 ============
 
