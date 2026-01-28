@@ -21,20 +21,15 @@ import {
   CreationStrategy,
   PromptData,
 } from '../CreationStrategy';
+// 从 prompts 导入的函数已移除（不再需要）
 import {
-  buildGradeLevelTable,
-  buildGradeSelectionPrompt,
-  buildNamingRules,
-  buildRealmGradeLimitTable,
-} from '../prompts';
-import {
-  calculatePowerRatio,
   calculateRealmDiscount,
   applyGradeDiscount,
   clampGrade,
   GRADE_HINT_TO_GRADES,
   GRADE_TO_RANK,
   QUALITY_TO_BASE_GRADE,
+  QUALITY_TO_NUMERIC_LEVEL,
   RANK_TO_GRADE,
   REALM_GRADE_LIMIT,
 } from '../skillConfig';
@@ -88,24 +83,14 @@ export class GongFaCreationStrategy implements CreationStrategy<
   }
 
   constructPrompt(context: CreationContext): PromptData {
-    const { cultivator, userPrompt, materials } = context;
+    const { userPrompt, materials } = context;
 
-    // 构建灵根信息
-    const spiritualRootsDesc = cultivator.spiritual_roots
-      .map((r) => `${r.element}(强度${r.strength})`)
-      .join('、');
-
-    // 计算最高灵根强度
-    const maxRootStrength =
-      cultivator.spiritual_roots.length > 0
-        ? Math.max(...cultivator.spiritual_roots.map((r) => r.strength))
-        : 0;
-
-    const realm = cultivator.realm as RealmType;
-
-    // 计算基于材料的品质基准
+    // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
-    const estimatedQuality = this.estimateQuality(realm, materialQuality);
+    const estimatedQuality = this.estimateQuality(
+      (context.cultivator.realm as RealmType),
+      materialQuality,
+    );
     const affixPrompts = this.buildAffixPrompts(estimatedQuality);
 
     const systemPrompt = `
@@ -114,41 +99,48 @@ export class GongFaCreationStrategy implements CreationStrategy<
 你是一位博览群书的藏经阁长老，负责根据提供的残页或典籍复原或推演功法。
 
 ## 核心指令
-**必须完全基于用户提供的【核心材料】（功法残页/典籍）来设计功法。**
-功法的名称、描述、特性应与材料描述紧密相关。
-例如：使用了"烈火残页"，功法应当与火系、燃烧相关。
+**功法的词条选择完全由【核心材料】的特性决定。**
+- 分析材料描述，选择最能体现材料特性的词条
+- 不要考虑使用者的灵根、境界等因素
 
-${buildGradeLevelTable()}
-${buildRealmGradeLimitTable(realm)}
-${buildGradeSelectionPrompt(realm, materialQuality)}
+## 材料特性判断规则
+根据材料的**名称意境**和**描述内容**推断其特性：
 
-${buildNamingRules('gongfa')}
+### 属性方向判断
+| 名称/描述意境 | 属性 | 词条倾向 |
+|--------------|------|---------|
+| 体/身/血/骨/肉 | 体魄 | 增加体魄类词条 |
+| 气/灵/元/神 | 灵力 | 增加灵力类词条 |
+| 悟/觉/慧/明 | 悟性 | 增加悟性类词条 |
+| 速/疾/闪/影 | 身法 | 增加速度类词条 |
+| 识/神/念 | 神识 | 增加神识类词条 |
+| 暴/破/烈 | 暴击 | 增加暴击类词条 |
+| 御/守/甲 | 防御 | 增加防御类词条 |
 
-## 重要约束
+### 判断逻辑
+1. 从名称中提取核心关键字
+2. 根据关键字判断属性倾向
+3. 从词条池中选择最匹配的词条ID
 
-> ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
-> 功法主要提供被动属性加成（如增加体魄、灵力、暴击率等）。
-
-## 输出格式（严格遵守）
-
+## 输出格式
 只输出一个符合 JSON Schema 的纯 JSON 对象。
 
-### 词条选择
-请根据功法名称和描述，从下方词条池中选择最合适的主词条（必选）和副词条（可选）。
-
-## 当前推演条件
-- **核心材料品质**: ${materialQuality} (影响最终品阶下限)
-- **修士境界**: ${realm}
-- **灵根**: ${spiritualRootsDesc}
-- **最高灵根强度**: ${maxRootStrength}
-- **预估品质**: ${estimatedQuality}
+## 核心材料
+<core_materials>
+${materials
+  .filter((m) => m.type === 'manual')
+  .map((m) => this.buildMaterialPrompt(m))
+  .join('\n\n')}
+</core_materials>
 
 ${affixPrompts}
+
+## 用户意图
+${userPrompt || '无（自由发挥，但必须基于材料特性）'}
 
 ## 输出示例
 {
   "name": "烈火诀",
-  "grade_hint": "medium",
   "description": "基于烈火残页推演而出，采地火之气修炼，可大幅增强灵力。",
   "selected_affixes": {
     "primary": "gongfa_spirit",
@@ -157,25 +149,7 @@ ${affixPrompts}
 }
 `;
 
-    const userPromptText = `
-请为以下修士推演功法蓝图：
-
-<cultivator>
-  <realm>${cultivator.realm}</realm>
-  <spiritual_roots>${spiritualRootsDesc}</spiritual_roots>
-</cultivator>
-
-<materials_used>
-${context.materials
-  .filter((m) => m.type === 'manual')
-  .map((m) => `- ${m.name}(${m.rank}): ${m.description || '无描述'}`)
-  .join('\n')}
-</materials_used>
-
-<user_intent>
-${userPrompt || '无（自由发挥，但必须基于材料）'}
-</user_intent>
-`;
+    const userPromptText = '请根据上述材料特性，推演功法蓝图。';
 
     return {
       system: systemPrompt,
@@ -332,6 +306,18 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     }
 
     return parts.join('\n');
+  }
+
+  /**
+   * 构建材料提示信息
+   */
+  private buildMaterialPrompt(material: Material): string {
+    const qualityLevel = QUALITY_TO_NUMERIC_LEVEL[material.rank];
+    return `
+- 名称：${material.name}
+- 品质等级：${material.rank}（${qualityLevel}级）
+- 描述：${material.description || '无描述'}
+  `.trim();
   }
 
   private calculateGrade(
