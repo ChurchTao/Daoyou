@@ -26,7 +26,6 @@ import {
   calculateRealmDiscount,
   applyGradeDiscount,
   clampGrade,
-  GRADE_HINT_TO_GRADES,
   GRADE_TO_RANK,
   QUALITY_TO_BASE_GRADE,
   QUALITY_TO_NUMERIC_LEVEL,
@@ -321,7 +320,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
   }
 
   private calculateGrade(
-    gradeHint: GradeHint | null,
+    _gradeHint: GradeHint | null,
     realm: RealmType,
     materialQuality: Quality,
     spiritualRootStrength: number,

@@ -32,16 +32,13 @@ import {
   CreationStrategy,
   PromptData,
 } from '../CreationStrategy';
-// 从 prompts 导入的函数已移除（不再需要）
 import {
   calculateBaseCost,
   calculateCooldown,
-  calculatePowerRatio,
   calculateRealmDiscount,
   applyGradeDiscount,
   clampGrade,
   ELEMENT_MATCH_MODIFIER,
-  GRADE_HINT_TO_GRADES,
   GRADE_TO_RANK,
   QUALITY_TO_BASE_GRADE,
   QUALITY_TO_NUMERIC_LEVEL,
@@ -51,9 +48,7 @@ import {
   SKILL_TYPE_MODIFIERS,
 } from '../skillConfig';
 import {
-  ELEMENT_MATCH_VALUES,
   ElementMatch,
-  GRADE_HINT_VALUES,
   GradeHint,
   MaterializationContext,
   SkillBlueprint,
@@ -526,7 +521,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
    * - 灵根契合度微调（±1个小阶位）
    */
   private calculateGrade(
-    gradeHint: GradeHint | null,
+    _gradeHint: GradeHint | null,
     realm: RealmType,
     element: ElementType,
     spiritualRoots: SpiritualRoot[],
