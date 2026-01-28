@@ -32,14 +32,7 @@ import {
   CreationStrategy,
   PromptData,
 } from '../CreationStrategy';
-import {
-  buildAttackSkillAffixRules,
-  buildElementMatchRules,
-  buildGradeLevelTable,
-  buildGradeSelectionPrompt,
-  buildNamingRules,
-  buildRealmGradeLimitTable,
-} from '../prompts';
+// 从 prompts 导入的函数已移除（不再需要）
 import {
   calculateBaseCost,
   calculateCooldown,
@@ -110,114 +103,98 @@ export class SkillCreationStrategy implements CreationStrategy<
   }
 
   constructPrompt(context: CreationContext): PromptData {
-    const { cultivator, userPrompt, materials } = context;
-
-    // 构建灵根信息
-    const spiritualRootsDesc = cultivator.spiritual_roots
-      .map((r) => `${r.element}(强度${r.strength})`)
-      .join('、');
-
-    // 获取武器信息
-    const weaponId = cultivator.equipped.weapon;
-    const weapon = cultivator.inventory.artifacts.find(
-      (a) => a.id === weaponId,
-    );
-    const weaponDesc = weapon
-      ? `${weapon.name}（${weapon.element}属性）`
-      : '无（赤手空拳）';
-
-    // 获取命格信息
-    const fatesDesc =
-      cultivator.pre_heaven_fates?.map((f) => `${f.name}`).join('、') || '无';
-
-    const realm = cultivator.realm as RealmType;
+    const { userPrompt, materials } = context;
 
     // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
-    // 估计可能的品质范围（用于词条过滤）
-    const estimatedQuality = this.estimateQuality(realm, materialQuality);
+    const estimatedQuality = this.estimateQuality(
+      (context.cultivator.realm as RealmType),
+      materialQuality,
+    );
 
     // 为每种技能类型构建词条提示
     const skillTypePrompts = this.buildSkillTypeAffixPrompts(estimatedQuality);
 
     const systemPrompt = `
-# Role: 修仙界传功长老 - 神通蓝图设计
+# Role: 传功长老 - 神通蓝图设计
 
 你是一位隐世传功长老，负责为修士推演神通蓝图。
 
 ## 核心指令
-**必须完全基于用户提供的【核心材料】（功法残页/典籍）来设计神通。**
-神通的类型、元素、描述应参考材料。
-例如：使用了"玄冰诀残页"，神通应当是冰系、控制或攻击类型。
+**神通的词条选择完全由【核心材料】的特性决定。**
+- 分析材料描述，选择最能体现材料特性的词条
+- 不要考虑使用者的灵根、境界、武器等因素
 
-${buildGradeLevelTable()}
-${buildRealmGradeLimitTable(realm)}
-${buildGradeSelectionPrompt(realm, materialQuality)}
+## 材料特性判断规则
+根据材料的**名称意境**和**描述内容**推断其特性：
 
-${buildElementMatchRules()}
+### 元素属性判断
+| 名称/描述意境 | 元素 | 词条倾向 |
+|--------------|------|---------|
+| 烈/焚/灼/阳/日/赤/朱雀 | 火 | 火系攻击、燃烧伤害 |
+| 寒/冰/霜/雪/冥/玄武 | 冰 | 冰系控制、冻结伤害 |
+| 雷/电/霹雳/紫霄/青雷 | 雷 | 雷系爆发、高额伤害 |
+| 风/岚/飓/巽/青鸾 | 风 | 闪避、速度、连续攻击 |
+| 剑/锋/斩/破/金 | 金 | 物理爆发、破甲、斩杀 |
+| 毒/蚀/煞/幽/冥 | 毒/暗 | 持续伤害、削弱 |
+| 御/守/甲/罡/盾 | 土/防御 | 护盾、防御力提升 |
+| 生/愈/泉/春/青木 | 木/生命 | 治疗、生命恢复 |
 
-${buildAttackSkillAffixRules()}
+### 功能类型判断
+| 名称/描述意境 | 类型 | 词条选择 |
+|--------------|------|---------|
+| 斩/决/杀/破/灭 | 攻击型 | 伤害类主词条 |
+| 御/守/护/体/罡 | 增益型 | 防御/属性提升 |
+| 封/困/锁/禁 | 控制型 | 控制效果 |
+| 疗/愈/生/回 | 治疗型 | 治疗效果 |
+| 蚀/衰/弱/煞 | 减益型 | 削弱效果 |
 
-${buildNamingRules('skill')}
+### 判断逻辑
+1. 先从名称中提取**核心字**（通常是2-3个关键字）
+2. 根据核心字判断**元素属性**和**功能倾向**
+3. 从对应类型的词条池中选择最匹配的词条ID
+4. 如果描述中有更具体的说明（如"凝聚火焰"），以描述为准
 
-## 输出格式（严格遵守）
-
+## 输出格式
 只输出一个符合 JSON Schema 的纯 JSON 对象，不得包含任何额外文字。
 
 ### 枚举值限制
 - **type**: ${SKILL_TYPE_VALUES.join(', ')}
 - **element**: ${ELEMENT_VALUES.join(', ')}
-- **grade_hint**: ${GRADE_HINT_VALUES.join(', ')}
-- **element_match_assessment**: ${ELEMENT_MATCH_VALUES.join(', ')}
 
 ${skillTypePrompts}
 
-## 选择规则
+## 核心材料
+<core_materials>
+${materials
+  .filter((m) => m.type === 'manual')
+  .map((m) => this.buildMaterialPrompt(m))
+  .join('\n\n')}
+</core_materials>
 
-1. 先选择技能类型（type），然后从对应类型的词条池中选择
-2. **主词条**: 必选1个（攻击型必须选择直接伤害类）
-3. **副词条**: 可选0-1个（部分类型无副词条）
-4. 根据修士灵根评估五行契合度
+## 用户意图
+${userPrompt || '无（自由发挥，但必须基于材料特性）'}
+
+## 选择规则
+1. 先分析材料的核心特性（攻击/控制/治疗/辅助）
+2. 从对应类型的词条池中选择最匹配的词条ID
+3. 主词条必须体现材料的核心特性
+4. 副词条可选0-1个，也应与材料相关
 
 ## 输出示例
-
 {
   "name": "烈焰斩",
   "type": "attack",
   "element": "火",
-  "description": "基于烈火残页领悟，凝聚火焰于剑上，一斩而出...",
-  "grade_hint": "medium",
-  "element_match_assessment": "partial_match",
+  "description": "基于【烈火残页】领悟，凝聚火焰于剑上，一斩而出...",
   "selected_affixes": {
-    "primary": "skill_attack_base_damage",
+    "primary": "skill_attack_fire_damage",
     "secondary": "skill_attack_execute"
   }
 }
 `;
 
-    const userPromptText = `
-请为以下修士推演神通蓝图：
-
-<cultivator>
-  <realm>${cultivator.realm} ${cultivator.realm_stage}</realm>
-  <spiritual_roots>${spiritualRootsDesc}</spiritual_roots>
-  <weapon>${weaponDesc}</weapon>
-  <fates>${fatesDesc}</fates>
-</cultivator>
-
-<materials_used>
-${context.materials
-  .filter((m) => m.type === 'manual')
-  .map((m) => `- ${m.name}(${m.rank}): ${m.description || '无描述'}`)
-  .join('\n')}
-</materials_used>
-
-<user_intent>
-${userPrompt || '无（自由发挥，但必须基于材料）'}
-</user_intent>
-
-请根据修士特性和用户意图，选择合适的技能类型和词条组合。
-`;
+    const userPromptText = '请根据上述材料特性，推演神通蓝图。';
 
     return {
       system: systemPrompt,
@@ -456,6 +433,19 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     }
 
     return parts.join('\n');
+  }
+
+  /**
+   * 构建材料提示信息
+   * 将材料信息格式化为AI可理解的格式
+   */
+  private buildMaterialPrompt(material: Material): string {
+    const qualityLevel = QUALITY_TO_NUMERIC_LEVEL[material.rank];
+    return `
+- 名称：${material.name}
+- 品质等级：${material.rank}（${qualityLevel}级）
+- 描述：${material.description || '无描述'}
+  `.trim();
   }
 
   /**
