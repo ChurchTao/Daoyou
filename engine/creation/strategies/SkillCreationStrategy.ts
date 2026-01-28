@@ -33,15 +33,24 @@ import {
   PromptData,
 } from '../CreationStrategy';
 import {
+  buildAttackSkillAffixRules,
+  buildElementMatchRules,
+  buildGradeLevelTable,
+  buildGradeSelectionPrompt,
+  buildNamingRules,
+  buildRealmGradeLimitTable,
+} from '../prompts';
+import {
+  calculateBaseCost,
+  calculateCooldown,
+  calculatePowerRatio,
   clampGrade,
+  ELEMENT_MATCH_MODIFIER,
   GRADE_HINT_TO_GRADES,
+  GRADE_TO_RANK,
   REALM_GRADE_LIMIT,
   SKILL_ELEMENT_CONFLICT,
-  calculatePowerRatio,
-  ELEMENT_MATCH_MODIFIER,
   SKILL_TYPE_MODIFIERS,
-  calculateCooldown,
-  calculateBaseCost,
 } from '../skillConfig';
 import {
   ELEMENT_MATCH_VALUES,
@@ -121,10 +130,7 @@ export class SkillCreationStrategy implements CreationStrategy<
     // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
     // 估计可能的品质范围（用于词条过滤）
-    const estimatedQuality = this.estimateQuality(
-      realm,
-      materialQuality,
-    );
+    const estimatedQuality = this.estimateQuality(realm, materialQuality);
 
     // 为每种技能类型构建词条提示
     const skillTypePrompts = this.buildSkillTypeAffixPrompts(estimatedQuality);
@@ -137,12 +143,17 @@ export class SkillCreationStrategy implements CreationStrategy<
 ## 核心指令
 **必须完全基于用户提供的【核心材料】（功法残页/典籍）来设计神通。**
 神通的类型、元素、描述应参考材料。
-例如：使用了“玄冰诀残页”，神通应当是冰系、控制或攻击类型。
+例如：使用了"玄冰诀残页"，神通应当是冰系、控制或攻击类型。
 
-## 重要约束
+${buildGradeLevelTable()}
+${buildRealmGradeLimitTable(realm)}
+${buildGradeSelectionPrompt(realm, materialQuality)}
 
-> ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
-> 数值由修士境界、灵根属性和强度、五行契合度及**材料品质**决定，你只需选择合适的词条。
+${buildElementMatchRules()}
+
+${buildAttackSkillAffixRules()}
+
+${buildNamingRules('skill')}
 
 ## 输出格式（严格遵守）
 
@@ -151,42 +162,17 @@ export class SkillCreationStrategy implements CreationStrategy<
 ### 枚举值限制
 - **type**: ${SKILL_TYPE_VALUES.join(', ')}
 - **element**: ${ELEMENT_VALUES.join(', ')}
-- **grade_hint**: ${GRADE_HINT_VALUES.join(', ')}（low=黄阶, medium=玄阶, high=地阶, extreme=天阶）
+- **grade_hint**: ${GRADE_HINT_VALUES.join(', ')}
 - **element_match_assessment**: ${ELEMENT_MATCH_VALUES.join(', ')}
-
-## 当前修士条件
-
-- **境界**: ${realm}
-- **灵根**: ${spiritualRootsDesc}
-- **核心材料品质**: ${materialQuality}
-- **预估品质**: ${estimatedQuality}
-
-## 五行契合度评估规则
-- **perfect_match**：灵根强度 >= 70 且武器元素匹配
-- **partial_match**：有对应灵根且强度 >= 50
-- **no_match**：无对应灵根
-- **conflict**：灵根与技能元素相克
-
-## 品阶提示判定
-- 炼气期 → 最高 low（黄阶）
-- 筑基/金丹 → 最高 medium（玄阶）
-- 元婴/化神 → 最高 high（地阶）
-- 炼虚及以上 → 可达 extreme（天阶）
-*注：若使用高阶材料，可适当放宽判定，选择更高的 grade_hint。*
 
 ${skillTypePrompts}
 
 ## 选择规则
 
 1. 先选择技能类型（type），然后从对应类型的词条池中选择
-2. **主词条**: 必选1个
+2. **主词条**: 必选1个（攻击型必须选择直接伤害类）
 3. **副词条**: 可选0-1个（部分类型无副词条）
 4. 根据修士灵根评估五行契合度
-
-## 命名与描述
-- 名称：2-8字，必须源自材料描述。
-- 描述：描述施法过程、视觉效果。
-- 若五行相克，描述应体现别扭的感觉
 
 ## 输出示例
 
@@ -318,7 +304,8 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
 
     // 8. 计算技能威力（用于计算 cost 和 cooldown）
     // 获取技能类型修正系数
-    const typeModifier = SKILL_TYPE_MODIFIERS[blueprint.type] || SKILL_TYPE_MODIFIERS.attack;
+    const typeModifier =
+      SKILL_TYPE_MODIFIERS[blueprint.type] || SKILL_TYPE_MODIFIERS.attack;
 
     // 计算基础威力：从 Damage/Heal 效果中提取数值
     let basePower = 100; // 默认基础威力
@@ -411,10 +398,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
   /**
    * 根据境界和材料品质估计品质
    */
-  private estimateQuality(
-    realm: RealmType,
-    materialQuality: Quality,
-  ): Quality {
+  private estimateQuality(realm: RealmType, materialQuality: Quality): Quality {
     const realmIndex = [
       '炼气',
       '筑基',
@@ -551,8 +535,11 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     materialQuality: Quality,
   ): SkillGrade {
     // 获取品阶候选列表
-    const candidates =
-      GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
+    let candidates = GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
+
+    // ⚠️ 重要：根据材料品质限制候选品阶
+    // 材料品质决定了能够达到的最高品阶
+    candidates = this.limitCandidatesByMaterialQuality(candidates, materialQuality);
 
     // 获取匹配灵根的强度
     const matchingRoot = spiritualRoots.find((r) => r.element === element);
@@ -578,5 +565,35 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     selectedGrade = clampGrade(selectedGrade, realmLimit);
 
     return selectedGrade;
+  }
+
+  /**
+   * 根据材料品质限制候选品阶列表
+   *
+   * 确保即使 AI 选择了高阶的 grade_hint，也不会生成超出材料品质的品阶
+   */
+  private limitCandidatesByMaterialQuality(
+    candidates: SkillGrade[],
+    materialQuality: Quality,
+  ): SkillGrade[] {
+    // 定义每种材料品质允许达到的最高品阶等级（1-12）
+    const maxRankByQuality: Record<Quality, number> = {
+      '凡品': 3,  // 黄阶上品
+      '灵品': 3,  // 黄阶上品
+      '玄品': 6,  // 玄阶上品
+      '真品': 6,  // 玄阶上品
+      '地品': 9,  // 地阶上品
+      '天品': 9,  // 地阶上品
+      '仙品': 12, // 天阶上品
+      '神品': 12, // 天阶上品
+    };
+
+    const maxRank = maxRankByQuality[materialQuality];
+
+    // 过滤出不超过材料品质限制的品阶
+    return candidates.filter((grade) => {
+      const gradeRank = GRADE_TO_RANK[grade];
+      return gradeRank <= maxRank;
+    });
   }
 }

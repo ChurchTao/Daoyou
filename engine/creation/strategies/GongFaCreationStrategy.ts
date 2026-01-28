@@ -22,10 +22,17 @@ import {
   PromptData,
 } from '../CreationStrategy';
 import {
+  buildGradeLevelTable,
+  buildGradeSelectionPrompt,
+  buildNamingRules,
+  buildRealmGradeLimitTable,
+} from '../prompts';
+import {
+  calculatePowerRatio,
   clampGrade,
   GRADE_HINT_TO_GRADES,
+  GRADE_TO_RANK,
   REALM_GRADE_LIMIT,
-  calculatePowerRatio,
 } from '../skillConfig';
 import {
   GongFaBlueprint,
@@ -85,18 +92,16 @@ export class GongFaCreationStrategy implements CreationStrategy<
       .join('、');
 
     // 计算最高灵根强度
-    const maxRootStrength = cultivator.spiritual_roots.length > 0
-      ? Math.max(...cultivator.spiritual_roots.map(r => r.strength))
-      : 0;
+    const maxRootStrength =
+      cultivator.spiritual_roots.length > 0
+        ? Math.max(...cultivator.spiritual_roots.map((r) => r.strength))
+        : 0;
 
     const realm = cultivator.realm as RealmType;
 
     // 计算基于材料的品质基准
     const materialQuality = this.calculateMaterialQuality(materials);
-    const estimatedQuality = this.estimateQuality(
-      realm,
-      materialQuality,
-    );
+    const estimatedQuality = this.estimateQuality(realm, materialQuality);
     const affixPrompts = this.buildAffixPrompts(estimatedQuality);
 
     const systemPrompt = `
@@ -109,11 +114,16 @@ export class GongFaCreationStrategy implements CreationStrategy<
 功法的名称、描述、特性应与材料描述紧密相关。
 例如：使用了"烈火残页"，功法应当与火系、燃烧相关。
 
+${buildGradeLevelTable()}
+${buildRealmGradeLimitTable(realm)}
+${buildGradeSelectionPrompt(realm, materialQuality)}
+
+${buildNamingRules('gongfa')}
+
 ## 重要约束
 
 > ⚠️ **你需要从词条池中选择词条ID，程序会自动计算数值！**
 > 功法主要提供被动属性加成（如增加体魄、灵力、暴击率等）。
-> 数值由修士境界、灵根强度及**材料品质**决定，你只需选择合适的词条。
 
 ## 输出格式（严格遵守）
 
@@ -130,10 +140,6 @@ export class GongFaCreationStrategy implements CreationStrategy<
 - **预估品质**: ${estimatedQuality}
 
 ${affixPrompts}
-
-## 命名与描述
-- 名称：2-8字，必须源自材料描述，古风，如"长春功"、"九转金身诀"。
-- 描述：简述功法来历或修炼效果，必须体现材料的特性。
 
 ## 输出示例
 {
@@ -180,9 +186,10 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     const realm = context.cultivator.realm as RealmType;
 
     // 计算最高灵根强度
-    const maxRootStrength = context.cultivator.spiritual_roots.length > 0
-      ? Math.max(...context.cultivator.spiritual_roots.map(r => r.strength))
-      : 0;
+    const maxRootStrength =
+      context.cultivator.spiritual_roots.length > 0
+        ? Math.max(...context.cultivator.spiritual_roots.map((r) => r.strength))
+        : 0;
 
     // 1. 确定品阶
     // 引入材料品质影响
@@ -278,10 +285,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     return QUALITY_VALUES[maxIndex];
   }
 
-  private estimateQuality(
-    realm: RealmType,
-    materialQuality: Quality,
-  ): Quality {
+  private estimateQuality(realm: RealmType, materialQuality: Quality): Quality {
     const realmIndex = [
       '炼气',
       '筑基',
@@ -333,8 +337,11 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     materialQuality: Quality,
     spiritualRootStrength: number,
   ): SkillGrade {
-    const candidates =
+    let candidates =
       GRADE_HINT_TO_GRADES[gradeHint] || GRADE_HINT_TO_GRADES['low'];
+
+    // ⚠️ 重要：根据材料品质限制候选品阶
+    candidates = this.limitCandidatesByMaterialQuality(candidates, materialQuality);
 
     // 使用新的计算函数，考虑境界、材料、灵根强度
     // 功法没有元素匹配，所以 hasMatchingElement 传 true
@@ -356,5 +363,35 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
     selectedGrade = clampGrade(selectedGrade, realmLimit);
 
     return selectedGrade;
+  }
+
+  /**
+   * 根据材料品质限制候选品阶列表
+   *
+   * 确保即使 AI 选择了高阶的 grade_hint，也不会生成超出材料品质的品阶
+   */
+  private limitCandidatesByMaterialQuality(
+    candidates: SkillGrade[],
+    materialQuality: Quality,
+  ): SkillGrade[] {
+    // 定义每种材料品质允许达到的最高品阶等级（1-12）
+    const maxRankByQuality: Record<Quality, number> = {
+      '凡品': 3,  // 黄阶上品
+      '灵品': 3,  // 黄阶上品
+      '玄品': 6,  // 玄阶上品
+      '真品': 6,  // 玄阶上品
+      '地品': 9,  // 地阶上品
+      '天品': 9,  // 地阶上品
+      '仙品': 12, // 天阶上品
+      '神品': 12, // 天阶上品
+    };
+
+    const maxRank = maxRankByQuality[materialQuality];
+
+    // 过滤出不超过材料品质限制的品阶
+    return candidates.filter((grade) => {
+      const gradeRank = GRADE_TO_RANK[grade];
+      return gradeRank <= maxRank;
+    });
   }
 }
