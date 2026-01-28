@@ -244,10 +244,10 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
       weapon?.element,
     );
 
-    // 2. 确定品阶
+    // 2. 确定品阶（不再使用 grade_hint，由材料品质决定）
     const materialQuality = this.calculateMaterialQuality(context.materials);
     const grade = this.calculateGrade(
-      blueprint.grade_hint,
+      null, // 不再使用 grade_hint
       realm,
       blueprint.element,
       context.cultivator.spiritual_roots,
@@ -536,7 +536,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
    * - 灵根契合度微调（±1个小阶位）
    */
   private calculateGrade(
-    gradeHint: GradeHint,
+    gradeHint: GradeHint | null,
     realm: RealmType,
     element: ElementType,
     spiritualRoots: SpiritualRoot[],

@@ -195,11 +195,10 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
         ? Math.max(...context.cultivator.spiritual_roots.map((r) => r.strength))
         : 0;
 
-    // 1. 确定品阶
-    // 引入材料品质影响
+    // 1. 确定品阶（由材料品质决定）
     const materialQuality = this.calculateMaterialQuality(context.materials);
     const grade = this.calculateGrade(
-      blueprint.grade_hint,
+      null, // 不再使用 grade_hint
       realm,
       materialQuality,
       maxRootStrength,
@@ -336,7 +335,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料）'}
   }
 
   private calculateGrade(
-    gradeHint: GradeHint,
+    gradeHint: GradeHint | null,
     realm: RealmType,
     materialQuality: Quality,
     spiritualRootStrength: number,
