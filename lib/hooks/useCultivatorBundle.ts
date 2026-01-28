@@ -217,6 +217,7 @@ export function useCultivatorBundle() {
       const fullCultivator: Cultivator = {
         ...cultivator,
         inventory,
+        cultivations: cultivator.cultivations || [],
         skills: cultivator.skills || [],
         equipped: cultivator.equipped || defaultEquipped,
       };
