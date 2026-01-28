@@ -41,6 +41,7 @@ export interface UseHomeViewModelReturn {
 const quickActionsConfig = [
   { label: '🧘 洞府', href: '/game/retreat' },
   { label: '🎒 储物袋', href: '/game/inventory' },
+  { label: '📘 所修功法', href: '/game/techniques' },
   { label: '📖 所修神通', href: '/game/skills' },
   { label: '📚 藏经阁', href: '/game/enlightenment' },
   { label: '🛖 修仙坊市', href: '/game/market' },

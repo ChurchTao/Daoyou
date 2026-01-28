@@ -13,6 +13,13 @@ interface GongFaProps {
   showSection?: boolean;
   /** 自定义标题，默认 "【所修功法】" */
   title?: string;
+  /** 是否显示操作按钮，默认 false */
+  showActions?: boolean;
+  /** 自定义渲染每个功法项的操作按钮 */
+  renderAction?: (
+    cultivation: CultivationTechnique,
+    index: number,
+  ) => React.ReactNode;
 }
 
 /**
@@ -22,6 +29,8 @@ export function GongFa({
   cultivations,
   showSection = true,
   title = '【所修功法】',
+  showActions = false,
+  renderAction,
 }: GongFaProps) {
   if (!cultivations || cultivations.length === 0) {
     if (showSection) {
@@ -38,13 +47,21 @@ export function GongFa({
     <InkList>
       {cultivations.map((cult, index) => (
         <EffectCard
-          key={cult.name + index}
+          key={cult.id || cult.name + index}
           icon="📜"
           name={cult.name}
           quality={cult.grade}
           badgeExtra={<InkBadge tone="default">{cult.required_realm}</InkBadge>}
           effects={cult.effects}
           description={cult.description}
+          actions={
+            showActions
+              ? renderAction
+                ? renderAction?.(cult, index)
+                : undefined
+              : undefined
+          }
+          layout={showActions ? 'col' : 'row'}
         />
       ))}
     </InkList>
