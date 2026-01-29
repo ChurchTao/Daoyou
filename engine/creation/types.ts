@@ -258,10 +258,6 @@ export interface AffixWeight {
   displayDescription: string;
 }
 
-/**
- * 词条参数模板
- * 固定值直接填写，需要根据品质/境界缩放的值使用特殊标记
- */
 export interface AffixParamsTemplate {
   /** StatModifier 专用 */
   stat?: string;
@@ -311,9 +307,6 @@ export interface AffixParamsTemplate {
   percentReduction?: number | ScalableValue;
   maxReduction?: number;
 
-  /** Critical 专用 */
-  // critRateBonus 和 critDamageBonus 已在 Damage 中定义
-
   // ============================================================
   // P0/P1 新增效果类型参数
   // ============================================================
@@ -357,11 +350,6 @@ export interface AffixParamsTemplate {
   // ============================================================
   // 新增效果类型参数
   // ============================================================
-
-  /** ConsumeGainCultivationExp/ConsumeGainComprehension/ConsumeGainLifespan 专用 */
-  base?: number;
-  scale?: 'quality' | 'realm';
-  coefficient?: number;
 
   /** ConsumeAddBuff 专用 */
   expiryMinutes?: number;

@@ -131,9 +131,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ConsumeGainCultivationExp,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      base: 50,
-      scale: 'realm',
-      coefficient: 30,
+      value: { base: 50, scale: 'quality', coefficient: 30 },
     },
     weight: 100,
     tags: ['resource', 'cultivation', 'secondary'],
@@ -147,9 +145,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ConsumeGainComprehension,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      base: 2,
-      scale: 'quality',
-      coefficient: 3,
+      value: { base: 2, scale: 'quality', coefficient: 3 },
     },
     weight: 80,
     minQuality: '灵品',
@@ -164,9 +160,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ConsumeGainLifespan,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      base: 5,
-      scale: 'quality',
-      coefficient: 2,
+      value: { base: 5, scale: 'quality', coefficient: 2 },
     },
     weight: 60,
     minQuality: '玄品',

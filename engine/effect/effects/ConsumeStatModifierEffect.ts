@@ -1,19 +1,12 @@
 import { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getAttributeLabel } from '@/types/dictionaries';
 import { BaseEffect } from '../BaseEffect';
-import { EffectTrigger, StatModifierType, type EffectContext } from '../types';
-
-/**
- * 消耗品属性修正参数
- */
-export interface ConsumeStatModifierParams {
-  /** 要修改的属性名 */
-  stat: keyof Attributes;
-  /** 修正值 (固定值时为具体数值，百分比时为小数如0.1表示10%) */
-  value: number;
-  /** 修正类型 */
-  modType: StatModifierType;
-}
+import {
+  EffectTrigger,
+  StatModifierType,
+  type ConsumeStatModifierParams,
+  type EffectContext,
+} from '../types';
 
 /**
  * 消耗品属性修正效果

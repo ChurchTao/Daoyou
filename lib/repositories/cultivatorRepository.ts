@@ -1275,6 +1275,35 @@ export async function consumeItem(
       updatedStatuses = [...currentStatuses, ...newBuffs];
     }
 
+    // 获取待处理的修为、感悟、寿元值
+    const metadata = ctx.metadata as Record<string, unknown>;
+    const pendingCultivationExp = (metadata.pendingCultivationExp as number) || 0;
+    const pendingComprehension = (metadata.pendingComprehension as number) || 0;
+    const pendingLifespan = (metadata.pendingLifespan as number) || 0;
+
+    // 更新 cultivation_progress（修为和感悟）
+    let finalCultivationProgress = updatedCultivator.cultivation_progress;
+    if (pendingCultivationExp > 0 || pendingComprehension > 0) {
+      const progress = getOrInitCultivationProgress(
+        (updatedCultivator.cultivation_progress as CultivationProgress | null) ||
+          ({} as CultivationProgress),
+        cultivator.realm as RealmType,
+        cultivator.realm_stage as RealmStage,
+      );
+
+      // 更新修为和感悟
+      progress.cultivation_exp += pendingCultivationExp;
+      progress.comprehension_insight += pendingComprehension;
+
+      finalCultivationProgress = progress;
+    }
+
+    // 更新寿元
+    let finalLifespan = updatedCultivator.lifespan || 0;
+    if (pendingLifespan > 0) {
+      finalLifespan = finalLifespan + pendingLifespan;
+    }
+
     // 持久化所有变更
     await tx
       .update(schema.cultivators)
@@ -1284,6 +1313,8 @@ export async function consumeItem(
         wisdom: updatedCultivator.attributes.wisdom,
         speed: updatedCultivator.attributes.speed,
         willpower: updatedCultivator.attributes.willpower,
+        cultivation_progress: finalCultivationProgress,
+        lifespan: finalLifespan,
         persistent_statuses: updatedStatuses,
       })
       .where(eq(schema.cultivators.id, cultivatorId));

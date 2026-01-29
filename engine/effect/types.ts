@@ -369,7 +369,7 @@ export enum EffectType {
   BreakthroughChanceBonus = 'BreakthroughChanceBonus', // 突破成功率加成
 }
 
-type EffectConfigParam =
+export type EffectConfigParam =
   | StatModifierParams
   | DamageParams
   | BonusDamageParams
@@ -668,7 +668,7 @@ export interface ConsumeStatModifierParams {
   /** 修正值 (固定值时为具体数值，百分比时为小数如0.1表示10%) */
   value: number;
   /** 修正类型 */
-  modType: 'fixed' | 'percent';
+  modType: StatModifierType;
 }
 
 /**
@@ -695,36 +695,24 @@ export interface ConsumeAddBuffParams {
  * 消耗品获得修为参数
  */
 export interface ConsumeGainCultivationExpParams {
-  /** 基础修为值 */
-  base: number;
-  /** 缩放依据 (quality | realm) */
-  scale?: 'quality' | 'realm';
-  /** 缩放系数 */
-  coefficient?: number;
+  /** 预计算好的修为值（通过 ScalableValue 在创建时计算） */
+  value: number;
 }
 
 /**
  * 消耗品获得感悟参数
  */
 export interface ConsumeGainComprehensionParams {
-  /** 基础感悟值 */
-  base: number;
-  /** 缩放依据 (quality | realm) */
-  scale?: 'quality' | 'realm';
-  /** 缩放系数 */
-  coefficient?: number;
+  /** 预计算好的感悟值（通过 ScalableValue 在创建时计算） */
+  value: number;
 }
 
 /**
  * 消耗品增加寿元参数
  */
 export interface ConsumeGainLifespanParams {
-  /** 基础寿元值（年） */
-  base: number;
-  /** 缩放依据 (quality | realm) */
-  scale?: 'quality' | 'realm';
-  /** 缩放系数 */
-  coefficient?: number;
+  /** 预计算好的寿元值（年）（通过 ScalableValue 在创建时计算） */
+  value: number;
 }
 
 // ============================================================
