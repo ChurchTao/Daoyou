@@ -26,6 +26,7 @@ export const FATE_AFFIX_IDS = {
   FATE_SPEED: 'fate_stat_speed', // 风神腿
   FATE_WILLPOWER: 'fate_stat_willpower', // 强大神识
   FATE_CRIT: 'fate_stat_crit', // 鹰眼
+  FATE_CRITICAL_DAMAGE: 'fate_stat_critical_damage', // 暴击伤害
 
   // === 战斗流派类 ===
   FATE_LIFESTEAL: 'fate_combat_lifesteal', // 嗜血
@@ -129,17 +130,33 @@ export const FATE_AFFIXES: AffixWeight[] = [
   },
   {
     id: FATE_AFFIX_IDS.FATE_CRIT,
-    effectType: EffectType.Critical,
+    effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.08, scale: 'quality', coefficient: 0.25 },
-      critDamageBonus: { base: 0.2, scale: 'quality', coefficient: 0.38 },
+      stat: 'critRate',
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.1, scale: 'quality', coefficient: 0.38 },
     },
     weight: 70,
     minQuality: '真品',
     tags: ['secondary', 'offensive', 'crit'],
     displayName: '天生鹰眼',
     displayDescription: '目光如炬，更容易击中要害造成暴击',
+  },
+  {
+    id: FATE_AFFIX_IDS.FATE_CRITICAL_DAMAGE,
+    effectType: EffectType.StatModifier,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      stat: 'critDamage',
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.2, scale: 'quality', coefficient: 0.38 },
+    },
+    weight: 70,
+    minQuality: '真品',
+    tags: ['secondary', 'offensive', 'crit'],
+    displayName: '暴击伤害',
+    displayDescription: '暴击时造成暴击伤害提升',
   },
 
   // ========================================================

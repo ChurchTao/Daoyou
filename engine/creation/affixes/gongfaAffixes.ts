@@ -46,9 +46,14 @@ export const GONGFA_AFFIX_IDS = {
   // 新增：法力系 (removed MANA_FOCUS - using ON_CONSUME, not appropriate for gongfa)
   BREAKTHROUGH_MANA: 'gongfa_breakthrough_mana',
 
-  // 新增：元素系
+  // 新增：元素系(金、木、水、火、雷、风、土、冰)
   FIRE_ESSENCE: 'gongfa_fire_essence',
   THUNDER_ESSENCE: 'gongfa_thunder_essence',
+  ICE_ESSENCE: 'gongfa_ice_essence',
+  WIND_ESSENCE: 'gongfa_wind_essence',
+  EARTH_ESSENCE: 'gongfa_earth_essence',
+  METAL_ESSENCE: 'gongfa_metal_essence',
+  WOOD_ESSENCE: 'gongfa_wood_essence',
 
   // 新增：境界相关
   BREAKTHROUGH_INSIGHT: 'gongfa_breakthrough_insight',
@@ -136,17 +141,33 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
   // === 战斗属性 ===
   {
     id: GONGFA_AFFIX_IDS.CRIT_RATE_BOOST,
-    effectType: EffectType.Critical,
+    effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 0.75 },
-      critDamageBonus: 0,
+      stat: 'critRate',
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.2, scale: 'quality', coefficient: 0.5 },
     },
     weight: 60,
     minQuality: '玄品',
     tags: ['secondary', 'offensive'],
     displayName: '凝元功',
     displayDescription: '提升暴击率',
+  },
+  {
+    id: GONGFA_AFFIX_IDS.CRIT_DMG_BOOST,
+    effectType: EffectType.StatModifier,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      stat: 'critDamage',
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.3, scale: 'quality', coefficient: 0.5 },
+    },
+    weight: 60,
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive'],
+    displayName: '暴击伤害',
+    displayDescription: '提升暴击伤害',
   },
   {
     id: GONGFA_AFFIX_IDS.DMG_REDUCTION,
@@ -199,7 +220,7 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
   {
     id: GONGFA_AFFIX_IDS.UNDYING_BODY,
     effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_TURN_END,
+    trigger: EffectTrigger.ON_BATTLE_START,
     paramsTemplate: {
       buffId: 'regeneration',
       durationOverride: 3,
@@ -210,38 +231,6 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'defensive'],
     displayName: '不灭体',
     displayDescription: '每回合结束时获得持续回复',
-  },
-  {
-    id: GONGFA_AFFIX_IDS.TURTLE_BREATH,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_BEFORE_DAMAGE,
-    paramsTemplate: {
-      buffId: 'turtle_defense',
-      durationOverride: 1,
-      targetSelf: true,
-    },
-    weight: 35,
-    minQuality: '地品',
-    tags: ['secondary', 'defensive'],
-    displayName: '龟息功',
-    displayDescription: '受到攻击时进入龟息状态',
-  },
-
-  // === 新增：反击系 ===
-  {
-    id: GONGFA_AFFIX_IDS.COUNTER_STANCE,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_BATTLE_START,
-    paramsTemplate: {
-      buffId: 'counter_stance',
-      durationOverride: -1,
-      targetSelf: true,
-    },
-    weight: 40,
-    minQuality: '真品',
-    tags: ['secondary', 'counter', 'defensive'],
-    displayName: '反击姿态',
-    displayDescription: '战斗开始时获得反击能力',
   },
   {
     id: GONGFA_AFFIX_IDS.MIRROR_ART,
@@ -255,25 +244,6 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'defensive'],
     displayName: '镜像诀',
     displayDescription: '被攻击时反弹伤害',
-  },
-
-  // === 新增：吸血系 (removed - using ON_SKILL_HIT, not appropriate for passive gongfa) ===
-
-  // === 新增：法力系 ===
-  {
-    id: GONGFA_AFFIX_IDS.BREAKTHROUGH_MANA,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_BREAKTHROUGH,
-    paramsTemplate: {
-      buffId: 'regeneration',
-      durationOverride: 5,
-      targetSelf: true,
-    },
-    weight: 35,
-    minQuality: '地品',
-    tags: ['secondary', 'sustain'],
-    displayName: '灵枢法',
-    displayDescription: '境界突破后获得持续回复',
   },
 
   // === 新增：元素系 ===
@@ -305,83 +275,75 @@ export const GONGFA_AFFIXES: AffixWeight[] = [
     displayName: '雷神诀',
     displayDescription: '提升雷属性技能伤害',
   },
-
-  // === 新增：境界相关 ===
   {
-    id: GONGFA_AFFIX_IDS.BREAKTHROUGH_INSIGHT,
-    effectType: EffectType.StatModifier,
-    trigger: EffectTrigger.ON_BREAKTHROUGH,
-    paramsTemplate: {
-      stat: 'allStats',
-      modType: StatModifierType.PERCENT,
-      value: { base: 0.03, scale: 'realm', coefficient: 0.01 },
-    },
-    weight: 50,
-    minQuality: '真品',
-    tags: ['secondary', 'utility'],
-    displayName: '突破感悟',
-    displayDescription: '境界突破时永久提升全属性',
-  },
-  {
-    id: GONGFA_AFFIX_IDS.BREAKTHROUGH_SHIELD,
-    effectType: EffectType.Shield,
-    trigger: EffectTrigger.ON_BREAKTHROUGH,
-    paramsTemplate: {
-      amount: { base: 100, scale: 'realm', coefficient: 50 },
-      duration: 3,
-    },
-    weight: 40,
-    minQuality: '地品',
-    tags: ['secondary', 'defensive'],
-    displayName: '境界稳固',
-    displayDescription: '境界突破后获得护盾',
-  },
-  {
-    id: GONGFA_AFFIX_IDS.UNITY,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_BREAKTHROUGH,
-    paramsTemplate: {
-      buffId: 'all_stats_up',
-      durationOverride: 5,
-      targetSelf: true,
-    },
-    weight: 35,
-    minQuality: '地品',
-    tags: ['secondary', 'burst'],
-    displayName: '天人合一',
-    displayDescription: '境界突破后获得全属性提升',
-  },
-
-  // === 新增：风险收益类 ===
-  {
-    id: GONGFA_AFFIX_IDS.BERSERK_MODE,
-    effectType: EffectType.AddBuff,
-    trigger: EffectTrigger.ON_BATTLE_START,
-    paramsTemplate: {
-      buffId: 'berserk',
-      durationOverride: -1,
-      targetSelf: true,
-    },
-    weight: 30,
-    minQuality: '真品',
-    tags: ['primary', 'burst', 'offensive'],
-    displayName: '狂战法',
-    displayDescription: '战斗开始时获得狂暴状态（攻增防减）',
-  },
-  {
-    id: GONGFA_AFFIX_IDS.SACRIFICE,
-    effectType: EffectType.StatModifier,
+    id: GONGFA_AFFIX_IDS.ICE_ESSENCE,
+    effectType: EffectType.ElementDamageBonus,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      stat: 'spirit',
-      modType: StatModifierType.PERCENT,
-      value: { base: 0.15, scale: 'quality', coefficient: 0.5 },
+      element: '冰',
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
     },
-    weight: 25,
-    minQuality: '地品',
-    tags: ['secondary', 'burst', 'offensive'],
-    displayName: '献祭术',
-    displayDescription: '大幅提升灵力但降低体魄',
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive'],
+    displayName: '冰魄诀',
+    displayDescription: '提升冰属性技能伤害',
+  },
+  {
+    id: GONGFA_AFFIX_IDS.WIND_ESSENCE,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      element: '风',
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
+    },
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive'],
+    displayName: '风之精髓',
+    displayDescription: '提升风属性技能伤害',
+  },
+  {
+    id: GONGFA_AFFIX_IDS.EARTH_ESSENCE,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      element: '土',
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
+    },
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive'],
+    displayName: '地之精髓',
+    displayDescription: '提升土属性技能伤害',
+  },
+  {
+    id: GONGFA_AFFIX_IDS.METAL_ESSENCE,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      element: '金',
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
+    },
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive'],
+    displayName: '金之精髓',
+    displayDescription: '提升金属性技能伤害',
+  },
+  {
+    id: GONGFA_AFFIX_IDS.WOOD_ESSENCE,
+    effectType: EffectType.ElementDamageBonus,
+    trigger: EffectTrigger.ON_STAT_CALC,
+    paramsTemplate: {
+      element: '木',
+      damageBonus: { base: 0.1, scale: 'quality', coefficient: 0.75 },
+    },
+    weight: 45,
+    minQuality: '玄品',
+    tags: ['secondary', 'offensive'],
+    displayName: '木之精髓',
+    displayDescription: '提升木属性技能伤害',
   },
 ];
 

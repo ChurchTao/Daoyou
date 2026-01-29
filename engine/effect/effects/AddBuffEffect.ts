@@ -53,6 +53,16 @@ export class AddBuffEffect extends BaseEffect {
     this.materializationContext = params.materializationContext;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    if (
+      ctx.trigger === this.trigger ||
+      ctx.trigger === EffectTrigger.ON_BATTLE_START
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   /**
    * 应用 Buff 效果
    */
@@ -178,6 +188,9 @@ export class AddBuffEffect extends BaseEffect {
 
   displayInfo() {
     const buffConfig = this.getDisplayConfig();
+    /** 时机描述 */
+    const triggerText =
+      this.trigger === EffectTrigger.ON_SKILL_HIT ? '技能命中时' : '为自身';
     /** 最大叠加层数 */
     const stackText =
       buffConfig?.stackType == BuffStackType.STACK
@@ -204,7 +217,7 @@ export class AddBuffEffect extends BaseEffect {
     return {
       label: '附加状态',
       icon: buffConfig?.icon,
-      description: `${!this.targetSelf ? '技能命中目标时，' : '为自身'}施加${buffConfig?.name}状态，${stackTypeText}${durationText}${effectText}`,
+      description: `${triggerText}施加${buffConfig?.name}状态，${stackTypeText}${durationText}${effectText}`,
     };
   }
 }
