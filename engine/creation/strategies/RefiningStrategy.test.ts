@@ -2,24 +2,129 @@ import { object } from '@/utils/aiClient';
 import { CreationContext } from '../CreationStrategy';
 import { RefiningStrategy } from './RefiningStrategy';
 
-test('RefiningStrategy test', async () => {
-  const strategy = new RefiningStrategy();
-  const context: CreationContext = {
-    cultivator: {
-      realm: '元婴',
-      realm_stage: '初期',
-      name: '测试修士',
-      gender: '男',
-      age: 0,
-      lifespan: 0,
-      attributes: {
-        vitality: 0,
-        spirit: 0,
-        wisdom: 0,
-        speed: 0,
-        willpower: 0,
+describe('RefiningStrategy', () => {
+  test('should reject manual type materials', async () => {
+    const strategy = new RefiningStrategy();
+    const context: CreationContext = {
+      cultivator: {
+        id: 'test-cultivator',
+        realm: '元婴',
+        realm_stage: '初期',
+        name: '测试修士',
+        gender: '男',
+        age: 20,
+        lifespan: 100,
+        attributes: {
+          vitality: 100,
+          spirit: 100,
+          wisdom: 100,
+          speed: 10,
+          willpower: 100,
+        },
+        spiritual_roots: [],
+        pre_heaven_fates: [],
+        cultivations: [],
+        skills: [],
+        inventory: {
+          artifacts: [],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: null,
+          armor: null,
+          accessory: null,
+        },
+        max_skills: 5,
+        spirit_stones: 0,
       },
-      spiritual_roots: [],
+      materials: [
+        {
+          id: 'm1',
+          name: '太上忘情录',
+          type: 'manual',
+          rank: '仙品',
+          quantity: 1,
+          description: '上古功法典籍，记载着无上大道。',
+        },
+      ],
+      userPrompt: '炼制一件法宝',
+    };
+
+    await expect(strategy.validate(context)).rejects.toThrow(
+      '不宜投入炼器炉',
+    );
+  });
+
+  test('should reject herb type materials', async () => {
+    const strategy = new RefiningStrategy();
+    const context: CreationContext = {
+      cultivator: {
+        id: 'test-cultivator',
+        realm: '元婴',
+        realm_stage: '初期',
+        name: '测试修士',
+        gender: '男',
+        age: 20,
+        lifespan: 100,
+        attributes: {
+          vitality: 100,
+          spirit: 100,
+          wisdom: 100,
+          speed: 10,
+          willpower: 100,
+        },
+        spiritual_roots: [],
+        pre_heaven_fates: [],
+        cultivations: [],
+        skills: [],
+        inventory: {
+          artifacts: [],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: null,
+          armor: null,
+          accessory: null,
+        },
+        max_skills: 5,
+        spirit_stones: 0,
+      },
+      materials: [
+        {
+          id: 'm1',
+          name: '灵草',
+          type: 'herb',
+          rank: '凡品',
+          quantity: 1,
+          description: '一株普通的草药。',
+        },
+      ],
+      userPrompt: '炼制一件法宝',
+    };
+
+    await expect(strategy.validate(context)).rejects.toThrow('不适合炼器');
+  });
+
+  test('RefiningStrategy test', async () => {
+    const strategy = new RefiningStrategy();
+    const context: CreationContext = {
+      cultivator: {
+        realm: '元婴',
+        realm_stage: '初期',
+        name: '测试修士',
+        gender: '男',
+        age: 0,
+        lifespan: 0,
+        attributes: {
+          vitality: 0,
+          spirit: 0,
+          wisdom: 0,
+          speed: 0,
+          willpower: 0,
+        },
+        spiritual_roots: [],
       pre_heaven_fates: [],
       cultivations: [],
       skills: [],
@@ -59,16 +164,17 @@ test('RefiningStrategy test', async () => {
     ],
     userPrompt: `炼制一件护甲`,
   };
-  await strategy.validate(context);
-  const result = strategy.constructPrompt(context);
-  console.log(JSON.stringify(result));
-  const aiResponse = await object(result.system, result.user, {
-    schema: strategy.schema,
-    schemaName: strategy.schemaName,
-    schemaDescription: strategy.schemaDescription,
-  });
-  console.log(aiResponse.object);
+    await strategy.validate(context);
+    const result = strategy.constructPrompt(context);
+    console.log(JSON.stringify(result));
+    const aiResponse = await object(result.system, result.user, {
+      schema: strategy.schema,
+      schemaName: strategy.schemaName,
+      schemaDescription: strategy.schemaDescription,
+    });
+    console.log(aiResponse.object);
 
-  const resultItem = strategy.materialize(aiResponse.object, context);
-  console.log(JSON.stringify(resultItem));
+    const resultItem = strategy.materialize(aiResponse.object, context);
+    console.log(JSON.stringify(resultItem));
+  });
 });

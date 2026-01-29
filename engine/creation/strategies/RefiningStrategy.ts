@@ -65,6 +65,10 @@ export class RefiningStrategy implements CreationStrategy<
       const herb = context.materials.find((m) => m.type === 'herb');
       throw new Error(`道友慎重，${herb?.name}不适合炼器`);
     }
+    if (context.materials.some((m) => m.type === 'manual')) {
+      const manual = context.materials.find((m) => m.type === 'manual');
+      throw new Error(`道友慎重，${manual?.name}是功法典籍，不宜投入炼器炉`);
+    }
   }
 
   constructPrompt(context: CreationContext): PromptData {

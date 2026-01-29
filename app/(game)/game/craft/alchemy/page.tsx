@@ -135,7 +135,7 @@ export default function AlchemyPage() {
           <div className="max-h-60 overflow-y-auto border border-ink-border rounded p-2">
             <InkList dense>
               {inventory.materials
-                .filter((m) => m.type != 'ore')
+                .filter((m) => m.type != 'ore' && m.type != 'manual')
                 .map((m) => {
                   const typeInfo = getMaterialTypeInfo(m.type);
                   const isSelected = selectedMaterialIds.includes(m.id!);

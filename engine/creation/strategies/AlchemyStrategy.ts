@@ -52,6 +52,10 @@ export class AlchemyStrategy implements CreationStrategy<
       const ore = context.materials.find((m) => m.type === 'ore');
       throw new Error(`道友慎重，${ore?.name}不适合炼丹`);
     }
+    if (context.materials.some((m) => m.type === 'manual')) {
+      const manual = context.materials.find((m) => m.type === 'manual');
+      throw new Error(`道友慎重，${manual?.name}是功法典籍，不宜投入丹炉`);
+    }
   }
 
   constructPrompt(context: CreationContext): PromptData {
