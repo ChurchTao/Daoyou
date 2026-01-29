@@ -38,7 +38,7 @@ import {
   calculateCooldown,
   calculateRealmDiscount,
   clampGrade,
-  ELEMENT_MATCH_MODIFIER,
+  GRADE_TO_QUALITY,
   GRADE_TO_RANK,
   QUALITY_TO_BASE_GRADE,
   QUALITY_TO_NUMERIC_LEVEL,
@@ -53,22 +53,6 @@ import {
   SkillBlueprint,
   SkillBlueprintSchema,
 } from '../types';
-
-// 技能品阶到品质的映射（用于词条过滤）
-const GRADE_TO_QUALITY: Record<string, Quality> = {
-  黄阶下品: '灵品',
-  黄阶中品: '灵品',
-  黄阶上品: '玄品',
-  玄阶下品: '玄品',
-  玄阶中品: '真品',
-  玄阶上品: '真品',
-  地阶下品: '地品',
-  地阶中品: '地品',
-  地阶上品: '天品',
-  天阶下品: '天品',
-  天阶中品: '仙品',
-  天阶上品: '神品',
-};
 
 export class SkillCreationStrategy implements CreationStrategy<
   SkillBlueprint,
@@ -101,13 +85,9 @@ export class SkillCreationStrategy implements CreationStrategy<
 
     // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
-    const estimatedQuality = this.estimateQuality(
-      context.cultivator.realm as RealmType,
-      materialQuality,
-    );
 
     // 为每种技能类型构建词条提示
-    const skillTypePrompts = this.buildSkillTypeAffixPrompts(estimatedQuality);
+    const skillTypePrompts = this.buildSkillTypeAffixPrompts(materialQuality);
 
     const systemPrompt = `
 # Role: 传功长老 - 神通蓝图设计
@@ -202,19 +182,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
   materialize(blueprint: SkillBlueprint, context: CreationContext): Skill {
     const realm = context.cultivator.realm as RealmType;
 
-    // 获取武器元素
-    const weaponId = context.cultivator.equipped.weapon;
-    const weapon = context.cultivator.inventory.artifacts.find(
-      (a) => a.id === weaponId,
-    );
-
-    // 1. 计算五行契合度（后端验证）
-    const elementMatch = this.calculateElementMatch(
-      blueprint.element,
-      context.cultivator.spiritual_roots,
-      weapon?.element,
-    );
-
     // 2. 确定品阶（不再使用 grade_hint，由材料品质决定）
     const materialQuality = this.calculateMaterialQuality(context.materials);
     const grade = this.calculateGrade(
@@ -253,7 +220,6 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
       spiritualRootStrength: matchingRoot?.strength || 0,
       hasMatchingElement: !!matchingRoot,
       skillGrade: grade,
-      elementMatch,
     };
 
     // 6. 数值化选中的词条
@@ -309,16 +275,13 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
     // 应用技能类型修正
     const typeAdjustedPower = basePower * typeModifier.power_mult;
 
-    // 应用五行契合度修正
-    const elementModifier = ELEMENT_MATCH_MODIFIER[elementMatch];
-    const finalPower = typeAdjustedPower * elementModifier.power;
+    const power = typeAdjustedPower;
 
     // 计算消耗（五行契合度影响消耗）
-    const baseCost = calculateBaseCost(finalPower);
-    const cost = Math.floor(baseCost * elementModifier.cost);
+    const cost = calculateBaseCost(power);
 
     // 计算冷却
-    const cooldown = calculateCooldown(finalPower);
+    const cooldown = calculateCooldown(power);
 
     return {
       name: blueprint.name,

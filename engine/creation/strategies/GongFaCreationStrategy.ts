@@ -26,6 +26,7 @@ import {
   applyGradeDiscount,
   calculateRealmDiscount,
   clampGrade,
+  GRADE_TO_QUALITY,
   GRADE_TO_RANK,
   QUALITY_TO_BASE_GRADE,
   QUALITY_TO_NUMERIC_LEVEL,
@@ -37,22 +38,6 @@ import {
   GongFaBlueprintSchema,
   MaterializationContext,
 } from '../types';
-
-// 品阶到品质的映射
-const GRADE_TO_QUALITY: Record<string, Quality> = {
-  黄阶下品: '灵品',
-  黄阶中品: '灵品',
-  黄阶上品: '玄品',
-  玄阶下品: '玄品',
-  玄阶中品: '真品',
-  玄阶上品: '真品',
-  地阶下品: '地品',
-  地阶中品: '地品',
-  地阶上品: '天品',
-  天阶下品: '天品',
-  天阶中品: '仙品',
-  天阶上品: '神品',
-};
 
 export class GongFaCreationStrategy implements CreationStrategy<
   GongFaBlueprint,
@@ -85,11 +70,7 @@ export class GongFaCreationStrategy implements CreationStrategy<
 
     // 计算基于材料的品质
     const materialQuality = this.calculateMaterialQuality(materials);
-    const estimatedQuality = this.estimateQuality(
-      context.cultivator.realm as RealmType,
-      materialQuality,
-    );
-    const affixPrompts = this.buildAffixPrompts(estimatedQuality);
+    const affixPrompts = this.buildAffixPrompts(materialQuality);
 
     const systemPrompt = `
 # Role: 藏经阁长老 - 功法蓝图设计

@@ -11,7 +11,9 @@ const customJestConfig = {
   setupFilesAfterEnv: [],
   testEnvironment: 'node',
   testTimeout: 10000, // 全局默认 10 秒
-  // if you use aliases like @/components in your code, next/jest handles this automatically from tsconfig
+  moduleNameMapper: {
+    '^d3-(.+)$': '<rootDir>/node_modules/d3-$1/dist/d3-$1.js',
+  },
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

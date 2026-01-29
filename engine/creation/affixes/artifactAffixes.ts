@@ -367,24 +367,6 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     displayDescription: '对低生命值敌人造成额外伤害',
   },
 
-  // 真实伤害 - 武器专属
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_TRUE_DAMAGE,
-    effectType: EffectType.TrueDamage,
-    trigger: EffectTrigger.ON_CRITICAL_HIT,
-    paramsTemplate: {
-      baseDamage: { base: 30, scale: 'quality', coefficient: 10 },
-      ignoreShield: true,
-      ignoreReduction: true,
-    },
-    weight: 20,
-    slots: ['weapon'],
-    minQuality: '地品',
-    tags: ['secondary', 'offensive', 'burst', 'true_damage'],
-    displayName: '雷霆震怒',
-    displayDescription: '暴击时造成无视防御的真实伤害',
-  },
-
   // 法力回复 - 饰品专属
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_MANA_REGEN,

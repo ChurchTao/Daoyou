@@ -271,7 +271,7 @@ export class EffectMaterializer {
     }
 
     // 技能品阶缩放（如果有）
-    if (context.skillGrade && scale === 'root') {
+    if (context.skillGrade) {
       const gradeMultiplier =
         SKILL_GRADE_MULTIPLIERS[context.skillGrade as SkillGrade] ?? 1;
       multiplier *= gradeMultiplier;

@@ -146,10 +146,10 @@ import { SKILL_TYPE_VALUES } from '@/types/constants';
  * 数值化：low=1-3级(黄阶), medium=4-6级(玄阶), high=7-9级(地阶), extreme=10-12级(天阶)
  */
 export const GRADE_HINT_VALUES = [
-  'low',      // 等级 1-3 (黄阶)
-  'medium',   // 等级 4-6 (玄阶)
-  'high',     // 等级 7-9 (地阶)
-  'extreme',  // 等级 10-12 (天阶)
+  'low', // 等级 1-3 (黄阶)
+  'medium', // 等级 4-6 (玄阶)
+  'high', // 等级 7-9 (地阶)
+  'extreme', // 等级 10-12 (天阶)
 ] as const;
 
 export type GradeHint = (typeof GRADE_HINT_VALUES)[number];
@@ -455,8 +455,6 @@ export interface MaterializationContext {
   spiritualRootStrength?: number;
   /** 是否有匹配的灵根属性 */
   hasMatchingElement?: boolean;
-  /** 五行契合度（技能专用） */
-  elementMatch?: ElementMatch;
   /** 技能品阶（技能专用） */
   skillGrade?: SkillGrade;
   /** 悟性（影响部分词条缩放） */

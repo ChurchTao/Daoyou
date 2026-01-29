@@ -5,8 +5,12 @@
  * 所有数值由此文件控制，AI 无法突破
  */
 
-import type { Quality, RealmType, SkillGrade, SkillType } from '@/types/constants';
-import type { ElementMatch } from './types';
+import type {
+  Quality,
+  RealmType,
+  SkillGrade,
+  SkillType,
+} from '@/types/constants';
 
 // ============ 品阶数值化配置 ============
 
@@ -53,14 +57,14 @@ export const RANK_TO_GRADE: Record<number, SkillGrade> = {
  * 材料品质数值化等级（用于让AI理解品质水准）
  */
 export const QUALITY_TO_NUMERIC_LEVEL: Record<Quality, number> = {
-  '凡品': 10,
-  '灵品': 25,
-  '玄品': 40,
-  '真品': 55,
-  '地品': 70,
-  '天品': 85,
-  '仙品': 100,
-  '神品': 120,
+  凡品: 10,
+  灵品: 25,
+  玄品: 40,
+  真品: 55,
+  地品: 70,
+  天品: 85,
+  仙品: 100,
+  神品: 120,
 };
 
 /**
@@ -68,14 +72,30 @@ export const QUALITY_TO_NUMERIC_LEVEL: Record<Quality, number> = {
  * 材料决定70%的品阶权重
  */
 export const QUALITY_TO_BASE_GRADE: Record<Quality, SkillGrade> = {
-  '凡品': '黄阶下品',
-  '灵品': '黄阶中品',
-  '玄品': '玄阶下品',
-  '真品': '玄阶中品',
-  '地品': '地阶下品',
-  '天品': '地阶中品',
-  '仙品': '天阶下品',
-  '神品': '天阶中品',
+  凡品: '黄阶下品',
+  灵品: '黄阶中品',
+  玄品: '玄阶下品',
+  真品: '玄阶中品',
+  地品: '地阶下品',
+  天品: '地阶中品',
+  仙品: '天阶下品',
+  神品: '天阶中品',
+};
+
+// 技能品阶到品质的映射（用于词条过滤）
+export const GRADE_TO_QUALITY: Record<string, Quality> = {
+  黄阶下品: '灵品',
+  黄阶中品: '灵品',
+  黄阶上品: '玄品',
+  玄阶下品: '玄品',
+  玄阶中品: '真品',
+  玄阶上品: '真品',
+  地阶下品: '地品',
+  地阶中品: '地品',
+  地阶上品: '天品',
+  天阶下品: '天品',
+  天阶中品: '仙品',
+  天阶上品: '神品',
 };
 
 // ============ 境界折扣率配置 ============
@@ -84,15 +104,15 @@ export const QUALITY_TO_BASE_GRADE: Record<Quality, SkillGrade> = {
  * 境界等级映射（用于计算折扣）
  */
 export const REALM_TO_RANK: Record<RealmType, number> = {
-  '炼气': 1,
-  '筑基': 2,
-  '金丹': 3,
-  '元婴': 4,
-  '化神': 5,
-  '炼虚': 6,
-  '合体': 7,
-  '大乘': 8,
-  '渡劫': 9,
+  炼气: 1,
+  筑基: 2,
+  金丹: 3,
+  元婴: 4,
+  化神: 5,
+  炼虚: 6,
+  合体: 7,
+  大乘: 8,
+  渡劫: 9,
 };
 
 /**
@@ -166,21 +186,6 @@ export const GRADE_HINT_TO_GRADES: Record<string, SkillGrade[]> = {
   medium: ['玄阶下品', '玄阶中品', '玄阶上品'],
   high: ['地阶下品', '地阶中品', '地阶上品'],
   extreme: ['天阶下品', '天阶中品', '天阶上品'],
-};
-
-// ============ 五行契合度 → 数值修正 ============
-
-/**
- * 五行契合度对威力和消耗的影响
- */
-export const ELEMENT_MATCH_MODIFIER: Record<
-  ElementMatch,
-  { power: number; cost: number }
-> = {
-  perfect_match: { power: 1.3, cost: 0.7 }, // 30%威力加成，30%消耗减少
-  partial_match: { power: 1.1, cost: 0.9 }, // 10%威力加成，10%消耗减少
-  no_match: { power: 0.8, cost: 1.2 }, // 20%威力惩罚，20%消耗增加
-  conflict: { power: 0.5, cost: 1.5 }, // 50%威力惩罚，50%消耗增加
 };
 
 // ============ 技能类型 → 特殊规则 ============

@@ -25,15 +25,7 @@ test('SkillCreationStrategy test', async () => {
       cultivations: [],
       skills: [],
       inventory: {
-        artifacts: [
-          {
-            id: 'w1',
-            name: '火剑',
-            slot: 'weapon',
-            element: '火',
-            effects: [],
-          },
-        ],
+        artifacts: [],
         consumables: [],
         materials: [],
       },
