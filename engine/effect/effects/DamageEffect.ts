@@ -86,10 +86,7 @@ export class DamageEffect extends BaseEffect {
 
   displayInfo() {
     const elementText = this.element ? `${this.element}属性` : '';
-    const multiplierText =
-      this.multiplier !== 1.0
-        ? `，伤害倍率：自身灵力*${format('.0%')(this.multiplier)}`
-        : '';
+    const multiplierText = `，伤害倍率：自身灵力*${format('.0%')(this.multiplier || 1)}`;
     const flatDamageText = this.flatDamage
       ? `，固定伤害：${this.flatDamage}点`
       : '';
@@ -103,10 +100,11 @@ export class DamageEffect extends BaseEffect {
       ? `${['「允许暴击」', critRateBonusText, critDamageMultiplierText].filter(Boolean).join('，')}`
       : '「不可暴击」';
     const ignoreDefenseText = this.ignoreDefense ? '「无视防御」' : '';
+    const ignoreShieldText = this.ignoreShield ? '「无视护盾」' : '';
     return {
       label: '造成伤害',
       icon: '💥',
-      description: `造成${elementText}伤害${[multiplierText, flatDamageText].filter(Boolean).join('+')}，${critRate}${ignoreDefenseText}`,
+      description: `造成${elementText}伤害${[multiplierText, flatDamageText].filter(Boolean).join('+')}，${critRate}${ignoreDefenseText}${ignoreShieldText}`,
     };
   }
 }

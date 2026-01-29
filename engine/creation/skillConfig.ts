@@ -295,7 +295,7 @@ export function calculatePowerRatio(
  * @returns 冷却回合数 (0-5)
  */
 export function calculateCooldown(power: number): number {
-  if (power <= 50) return 0;
+  if (power <= 50) return 1;
   if (power <= 80) return 1;
   if (power <= 120) return 2;
   if (power <= 180) return 3;

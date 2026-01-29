@@ -178,10 +178,10 @@ const ATTACK_AFFIXES: AffixWeight[] = [
     effectType: EffectType.Damage,
     trigger: EffectTrigger.ON_SKILL_HIT,
     paramsTemplate: {
-      baseDamage: { base: 1, scale: 'root', coefficient: 0.35 },
+      multiplier: { base: 1, scale: 'root', coefficient: 0.35 },
       ignoreShield: true,
       canCrit: false,
-      ignoreReduction: true,
+      ignoreDefense: true,
     },
     weight: 15,
     minQuality: '天品',

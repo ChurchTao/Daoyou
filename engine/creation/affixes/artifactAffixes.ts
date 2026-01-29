@@ -181,12 +181,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'critRate',
-      modType: StatModifierType.FIXED,
-      value: { base: 0.05, scale: 'quality', coefficient: 1.5 },
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.05, scale: 'quality', coefficient: 1.2 },
     },
-    weight: 60,
+    weight: 50,
     slots: ['weapon', 'accessory'],
-    minQuality: '玄品',
+    minQuality: '真品',
     tags: ['secondary', 'offensive'],
     displayName: '暴击率提升',
     displayDescription: '提升暴击几率，数值随品质提升',
@@ -197,8 +197,8 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'critDamage',
-      modType: StatModifierType.FIXED,
-      value: { base: 0.1, scale: 'quality', coefficient: 1.5 },
+      modType: StatModifierType.PERCENT,
+      value: { base: 0.1, scale: 'quality', coefficient: 1.2 },
     },
     weight: 50,
     slots: ['weapon'],
@@ -309,7 +309,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
       element: 'INHERIT', // 继承法宝元素
-      damageBonus: { base: 0.1, scale: 'quality', coefficient: 1.5 },
+      damageBonus: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 50,
     slots: ['weapon'],

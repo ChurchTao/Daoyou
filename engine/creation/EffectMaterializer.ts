@@ -198,8 +198,13 @@ export class EffectMaterializer {
       }
 
       if (this.isScalableValue(value)) {
+        const { value: scaledValue, isPerfect } =
+          this.calculateScaledValueWithMetadata(value, context);
         // 处理可缩放值
-        result[key] = this.calculateScaledValue(value, context);
+        result[key] = scaledValue;
+        if (isPerfect) {
+          result.isPerfect = true;
+        }
       } else if (typeof value === 'object' && !Array.isArray(value)) {
         // 递归处理嵌套对象
         result[key] = this.materializeParams(
@@ -300,20 +305,10 @@ export class EffectMaterializer {
     if (Math.abs(base) < 1) {
       roundedValue = Math.round(finalValue * 1000) / 1000; // 保留3位小数
     } else {
-      roundedValue = Math.floor(finalValue);
+      roundedValue = Math.floor(finalValue * 100) / 100;
     }
 
     return { value: roundedValue, variance, isPerfect };
-  }
-
-  /**
-   * 计算缩放后的数值（向后兼容，仅返回数值）
-   */
-  private static calculateScaledValue(
-    scalable: ScalableValue,
-    context: MaterializationContext,
-  ): number {
-    return this.calculateScaledValueWithMetadata(scalable, context).value;
   }
 
   /**

@@ -70,7 +70,7 @@ export class ElementDamageBonusEffect extends BaseEffect {
   }
 
   displayInfo() {
-    const elementName = this.element === 'INHERIT' ? '同属性' : this.element;
+    const elementName = this.element === 'INHERIT' ? '所有属性' : this.element;
     const bonusPercent = format('.0%')(this.damageBonus);
 
     return {
