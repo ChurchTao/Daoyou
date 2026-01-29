@@ -1,7 +1,7 @@
 import { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getAttributeLabel } from '@/types/dictionaries';
 import { BaseEffect } from '../BaseEffect';
-import { EffectTrigger, type EffectContext } from '../types';
+import { EffectTrigger, StatModifierType, type EffectContext } from '../types';
 
 /**
  * 消耗品属性修正参数
@@ -12,7 +12,7 @@ export interface ConsumeStatModifierParams {
   /** 修正值 (固定值时为具体数值，百分比时为小数如0.1表示10%) */
   value: number;
   /** 修正类型 */
-  modType: 'fixed' | 'percent';
+  modType: StatModifierType;
 }
 
 /**
@@ -29,7 +29,7 @@ export class ConsumeStatModifierEffect extends BaseEffect {
   /** 要修改的属性名 */
   private stat: keyof Attributes;
   /** 修正类型 */
-  private modType: 'fixed' | 'percent';
+  private modType: StatModifierType;
   /** 修正值 */
   private value: number;
 
@@ -58,7 +58,7 @@ export class ConsumeStatModifierEffect extends BaseEffect {
     const currentValue = target.getAttribute(this.stat);
 
     let newValue: number;
-    if (this.modType === 'fixed') {
+    if (this.modType === StatModifierType.FIXED) {
       newValue = currentValue + this.value;
     } else {
       newValue = Math.round(currentValue * (1 + this.value));
@@ -71,7 +71,7 @@ export class ConsumeStatModifierEffect extends BaseEffect {
     const addOrMinus = this.value > 0 ? '增加' : '减少';
     const value = Math.abs(this.value);
     const stateText = getAttributeLabel(this.stat);
-    const unit = this.modType === 'percent' ? '%' : '点';
+    const unit = this.modType === StatModifierType.PERCENT ? '%' : '点';
 
     ctx.logCollector?.addLog(
       `${target.name} 的${stateText}${addOrMinus} ${value}${unit}`,
@@ -87,7 +87,7 @@ export class ConsumeStatModifierEffect extends BaseEffect {
     return {
       label: '永久属性修正',
       icon: info.icon,
-      description: `使用后${addOrMinus}${stateText}${value}${this.modType === 'percent' ? '%' : '点'}`,
+      description: `使用后${addOrMinus}${stateText}${value}${this.modType === StatModifierType.PERCENT ? '%' : '点'}`,
     };
   }
 }
