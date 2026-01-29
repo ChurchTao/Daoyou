@@ -66,7 +66,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.FIXED,
-      value: { base: 10, scale: 'realm', coefficient: 1.5 },
+      value: { base: 10, scale: 'quality', coefficient: 1.5 },
     },
     weight: 100,
     slots: ['weapon', 'armor', 'accessory'],
@@ -81,7 +81,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.FIXED,
-      value: { base: 10, scale: 'realm', coefficient: 1.5 },
+      value: { base: 10, scale: 'quality', coefficient: 1.5 },
     },
     weight: 100,
     slots: ['weapon', 'armor', 'accessory'],
@@ -96,7 +96,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.FIXED,
-      value: { base: 8, scale: 'realm', coefficient: 1.2 },
+      value: { base: 8, scale: 'quality', coefficient: 1.2 },
     },
     weight: 80,
     slots: ['accessory'],
@@ -111,7 +111,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.FIXED,
-      value: { base: 8, scale: 'realm', coefficient: 1.2 },
+      value: { base: 8, scale: 'quality', coefficient: 1.2 },
     },
     weight: 80,
     slots: ['weapon', 'armor'],
@@ -126,7 +126,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.FIXED,
-      value: { base: 8, scale: 'realm', coefficient: 1.2 },
+      value: { base: 8, scale: 'quality', coefficient: 1.2 },
     },
     weight: 80,
     slots: ['armor', 'accessory'],
@@ -177,10 +177,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   // 暴击相关
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_CRIT_RATE,
-    effectType: EffectType.Critical,
+    effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critRateBonus: { base: 0.05, scale: 'quality', coefficient: 1.5 },
+      stat: 'critRate',
+      modType: StatModifierType.FIXED,
+      value: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },
     weight: 60,
     slots: ['weapon', 'accessory'],
@@ -191,10 +193,12 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   },
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_CRIT_DAMAGE,
-    effectType: EffectType.Critical,
+    effectType: EffectType.StatModifier,
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
-      critDamageBonus: { base: 0.1, scale: 'quality', coefficient: 1.5 },
+      stat: 'critDamage',
+      modType: StatModifierType.FIXED,
+      value: { base: 0.1, scale: 'quality', coefficient: 1.5 },
     },
     weight: 50,
     slots: ['weapon'],
@@ -239,7 +243,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.DamageReduction,
     trigger: EffectTrigger.ON_BEFORE_DAMAGE,
     paramsTemplate: {
-      flatReduction: { base: 10, scale: 'realm', coefficient: 2 },
+      flatReduction: { base: 10, scale: 'quality', coefficient: 2 },
     },
     weight: 60,
     slots: ['armor'],
@@ -261,23 +265,6 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'defensive'],
     displayName: '伤害反射',
     displayDescription: '将部分受到的伤害反弹给攻击者',
-  },
-  // 命中附加状态 (removed - uses ON_SKILL_HIT, not appropriate for passive artifacts)
-  // 护盾
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_SHIELD,
-    effectType: EffectType.Shield,
-    trigger: EffectTrigger.ON_TURN_START,
-    paramsTemplate: {
-      amount: { base: 50, scale: 'realm', coefficient: 3 },
-      duration: 1,
-    },
-    weight: 30,
-    slots: ['armor', 'accessory'],
-    minQuality: '地品',
-    tags: ['secondary', 'defensive'],
-    displayName: '回合护盾',
-    displayDescription: '每回合开始获得护盾',
   },
   // 命中率/闪避率
   {
@@ -330,24 +317,6 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     tags: ['secondary', 'offensive', 'fire_affinity', 'thunder_affinity'],
     displayName: '元素亲和',
     displayDescription: '增加对应元素的伤害加成',
-  },
-
-  // 反击 - 护甲专属
-  {
-    id: ARTIFACT_AFFIX_IDS.SECONDARY_COUNTER_ATTACK,
-    effectType: EffectType.CounterAttack,
-    trigger: EffectTrigger.ON_BEING_HIT,
-    paramsTemplate: {
-      chance: { base: 0.1, scale: 'quality', coefficient: 0.05 },
-      damageMultiplier: { base: 0.3, scale: 'quality', coefficient: 0.1 },
-      element: 'INHERIT',
-    },
-    weight: 35,
-    slots: ['armor'],
-    minQuality: '地品',
-    tags: ['secondary', 'defensive', 'counter'],
-    displayName: '以彼之道',
-    displayDescription: '被攻击时有几率反击敌人',
   },
 
   // 斩杀伤害 - 武器专属
@@ -429,7 +398,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
     effectType: EffectType.DotDamage,
     trigger: EffectTrigger.ON_TURN_START,
     paramsTemplate: {
-      baseDamage: { base: 5, scale: 'realm', coefficient: 1 },
+      baseDamage: { base: 5, scale: 'quality', coefficient: 1 },
       usesCasterStats: false,
     },
     weight: 100,
@@ -450,7 +419,7 @@ const CURSE_AFFIXES: AffixWeight[] = [
     weight: 80,
     tags: ['curse'],
     displayName: '灵力削减',
-    displayDescription: '降低5%灵力',
+    displayDescription: '降低灵力',
   },
   {
     id: ARTIFACT_AFFIX_IDS.CURSE_VITALITY_REDUCTION,
@@ -477,21 +446,3 @@ export const ARTIFACT_AFFIX_POOL: AffixPool = {
   secondary: SECONDARY_AFFIXES,
   curse: CURSE_AFFIXES,
 };
-
-/**
- * 根据方向标签获取推荐的主词条
- */
-export function getRecommendedPrimaryAffix(
-  directionTag: string,
-): string | undefined {
-  const tagToStat: Record<string, string> = {
-    increase_vitality: 'vitality',
-    increase_spirit: 'spirit',
-    increase_wisdom: 'wisdom',
-    increase_speed: 'speed',
-    increase_willpower: 'willpower',
-    defense_boost: 'vitality',
-    critical_boost: 'critRate',
-  };
-  return tagToStat[directionTag];
-}

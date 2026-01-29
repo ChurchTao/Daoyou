@@ -1,7 +1,11 @@
 import { BaseEffect } from './BaseEffect';
 import {
   AddBuffEffect,
+  BreakthroughChanceBonusEffect,
   ConsumeAddBuffEffect,
+  ConsumeGainComprehensionEffect,
+  ConsumeGainCultivationExpEffect,
+  ConsumeGainLifespanEffect,
   ConsumeStatModifierEffect,
   CriticalEffect,
   DamageEffect,
@@ -12,6 +16,8 @@ import {
   ModifyHitRateEffect,
   NoOpEffect,
   ReflectDamageEffect,
+  RetreatComprehensionBonusEffect,
+  RetreatCultivationBonusEffect,
   ShieldEffect,
   StatModifierEffect,
 } from './effects';
@@ -25,7 +31,13 @@ import { ManaDrainEffect } from './effects/ManaDrainEffect';
 import { ManaRegenEffect } from './effects/ManaRegenEffect';
 import type { ModifyHitRateParams } from './effects/ModifyHitRateEffect';
 import {
+  BreakthroughChanceBonusParams,
+  ConsumeGainComprehensionParams,
+  ConsumeGainCultivationExpParams,
+  ConsumeGainLifespanParams,
   EffectType,
+  RetreatComprehensionBonusParams,
+  RetreatCultivationBonusParams,
   StatModifierType,
   type AddBuffParams,
   type BonusDamageParams,
@@ -159,6 +171,37 @@ export class EffectFactory {
       case EffectType.ConsumeAddBuff:
         return new ConsumeAddBuffEffect(
           config.params as unknown as ConsumeAddBuffParams,
+        );
+
+      case EffectType.ConsumeGainCultivationExp:
+        return new ConsumeGainCultivationExpEffect(
+          config.params as unknown as ConsumeGainCultivationExpParams,
+        );
+
+      case EffectType.ConsumeGainComprehension:
+        return new ConsumeGainComprehensionEffect(
+          config.params as unknown as ConsumeGainComprehensionParams,
+        );
+
+      case EffectType.ConsumeGainLifespan:
+        return new ConsumeGainLifespanEffect(
+          config.params as unknown as ConsumeGainLifespanParams,
+        );
+
+      // === 持久化 Buff 效果 ===
+      case EffectType.RetreatCultivationBonus:
+        return new RetreatCultivationBonusEffect(
+          config.params as unknown as RetreatCultivationBonusParams,
+        );
+
+      case EffectType.RetreatComprehensionBonus:
+        return new RetreatComprehensionBonusEffect(
+          config.params as unknown as RetreatComprehensionBonusParams,
+        );
+
+      case EffectType.BreakthroughChanceBonus:
+        return new BreakthroughChanceBonusEffect(
+          config.params as unknown as BreakthroughChanceBonusParams,
         );
 
       case EffectType.NoOp:

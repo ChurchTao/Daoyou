@@ -27,6 +27,11 @@ import {
   getCultivationProgress,
   isBottleneckReached,
 } from '@/utils/cultivationUtils';
+import {
+  applyBreakthroughChanceBonus,
+  applyRetreatComprehensionBonus,
+  applyRetreatCultivationBonus,
+} from './retreatEffectIntegration';
 
 /**
  * 闭关修炼结果
@@ -95,17 +100,29 @@ export function performCultivation(
   // 计算修为获取
   const expResult = calculateCultivationExp(cultivator, years, rng);
 
+  // 应用持久化 Buff 的修为加成
+  const finalExpGain = applyRetreatCultivationBonus(
+    cultivator,
+    expResult.exp_gained,
+  );
+
   // 更新修为
   progress.cultivation_exp = Math.min(
-    exp_before + expResult.exp_gained,
+    exp_before + finalExpGain,
     progress.exp_cap,
   );
 
   // 更新感悟值
   if (expResult.epiphany_triggered) {
+    // 应用持久化 Buff 的感悟加成
+    const finalInsightGain = applyRetreatComprehensionBonus(
+      cultivator,
+      expResult.insight_gained,
+    );
+
     progress.comprehension_insight = Math.min(
       100,
-      progress.comprehension_insight + expResult.insight_gained,
+      progress.comprehension_insight + finalInsightGain,
     );
 
     // 应用顿悟buff
@@ -140,20 +157,24 @@ export function performCultivation(
       years: 0,
       failureStreak: 0,
     },
-    exp_gained: expResult.exp_gained,
+    exp_gained: finalExpGain,
     exp_before,
     exp_after: progress.cultivation_exp,
-    insight_gained: expResult.insight_gained,
+    insight_gained: expResult.epiphany_triggered
+      ? applyRetreatComprehensionBonus(cultivator, expResult.insight_gained)
+      : expResult.insight_gained,
     epiphany_triggered: expResult.epiphany_triggered,
   };
 
   return {
     cultivator,
     summary: {
-      exp_gained: expResult.exp_gained,
+      exp_gained: finalExpGain,
       exp_before,
       exp_after: progress.cultivation_exp,
-      insight_gained: expResult.insight_gained,
+      insight_gained: expResult.epiphany_triggered
+        ? applyRetreatComprehensionBonus(cultivator, expResult.insight_gained)
+        : expResult.insight_gained,
       epiphany_triggered: expResult.epiphany_triggered,
       bottleneck_entered,
       can_breakthrough: canAttemptBreakthrough(progress),
@@ -200,7 +221,11 @@ export function attemptBreakthrough(
     throw new Error(breakthroughResult.recommendation);
   }
 
-  const finalChance = breakthroughResult.chance;
+  // 应用持久化 Buff 的突破成功率加成
+  const finalChance = applyBreakthroughChanceBonus(
+    cultivator,
+    breakthroughResult.chance,
+  );
   const modifiers = breakthroughResult.modifiers;
 
   // roll突破

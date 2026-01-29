@@ -1,6 +1,10 @@
 export { AddBuffEffect } from './AddBuffEffect';
 export { BonusDamageEffect } from './BonusDamageEffect';
+export { BreakthroughChanceBonusEffect } from './BreakthroughChanceBonusEffect';
 export { ConsumeAddBuffEffect } from './ConsumeAddBuffEffect';
+export { ConsumeGainComprehensionEffect } from './ConsumeGainComprehensionEffect';
+export { ConsumeGainCultivationExpEffect } from './ConsumeGainCultivationExpEffect';
+export { ConsumeGainLifespanEffect } from './ConsumeGainLifespanEffect';
 export { ConsumeStatModifierEffect } from './ConsumeStatModifierEffect';
 export { CriticalEffect } from './CriticalEffect';
 export { DamageEffect } from './DamageEffect';
@@ -11,5 +15,7 @@ export { LifeStealEffect } from './LifeStealEffect';
 export { ModifyHitRateEffect } from './ModifyHitRateEffect';
 export { NoOpEffect } from './NoOpEffect';
 export { ReflectDamageEffect } from './ReflectDamageEffect';
+export { RetreatComprehensionBonusEffect } from './RetreatComprehensionBonusEffect';
+export { RetreatCultivationBonusEffect } from './RetreatCultivationBonusEffect';
 export { ShieldEffect } from './ShieldEffect';
 export { StatModifierEffect } from './StatModifierEffect';

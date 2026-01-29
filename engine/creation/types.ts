@@ -353,6 +353,24 @@ export interface AffixParamsTemplate {
   /** ModifyHitRate 专用 */
   hitRateBonus?: number | ScalableValue;
   affectsTarget?: boolean;
+
+  // ============================================================
+  // 新增效果类型参数
+  // ============================================================
+
+  /** ConsumeGainCultivationExp/ConsumeGainComprehension/ConsumeGainLifespan 专用 */
+  base?: number;
+  scale?: 'quality' | 'realm';
+  coefficient?: number;
+
+  /** ConsumeAddBuff 专用 */
+  expiryMinutes?: number;
+  maxUses?: number;
+  drawType?: 'gongfa' | 'skill';
+
+  /** RetreatCultivationBonus/RetreatComprehensionBonus/BreakthroughChanceBonus 专用 */
+  bonusPercent?: number;
+  maxBonus?: number;
 }
 
 /**
@@ -426,7 +444,14 @@ export type AffixTag =
   | 'thunder' // 雷
   | 'ice' // 冰
   | 'special' // 特殊类
-  | 'combat'; // 战斗类
+  | 'combat' // 战斗类
+  // 新增资源类标签
+  | 'resource' // 资源类（修为、感悟、寿命）
+  | 'cultivation' // 修为相关
+  | 'comprehension' // 感悟相关
+  | 'lifespan' // 寿命相关
+  | 'retreat' // 闭关相关
+  | 'breakthrough'; // 突破相关
 
 /**
  * 词条池配置
@@ -435,9 +460,11 @@ export interface AffixPool {
   /** 主词条池 */
   primary: AffixWeight[];
   /** 副词条池 */
-  secondary: AffixWeight[];
+  secondary?: AffixWeight[];
   /** 诅咒词条池（可选，用于负面效果） */
   curse?: AffixWeight[];
+  /** 持久化 Buff 池（可选，用于消耗品添加持久化状态） */
+  buff?: AffixWeight[];
 }
 
 /**

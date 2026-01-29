@@ -32,6 +32,8 @@ export enum EffectTrigger {
   ON_BREAKTHROUGH = 'ON_BREAKTHROUGH',
   ON_HEAL = 'ON_HEAL',
   ON_CONSUME = 'ON_CONSUME',
+  ON_RETREAT = 'ON_RETREAT', // 闭关时触发
+  ON_BREAKTHROUGH_CHECK = 'ON_BREAKTHROUGH_CHECK', // 突破判定时触发
 }
 
 // ============================================================
@@ -357,6 +359,14 @@ export enum EffectType {
   // === 消耗品效果 ===
   ConsumeStatModifier = 'ConsumeStatModifier', // 消耗品永久属性修正
   ConsumeAddBuff = 'ConsumeAddBuff', // 消耗品添加持久 Buff
+  ConsumeGainCultivationExp = 'ConsumeGainCultivationExp', // 消耗品获得修为
+  ConsumeGainComprehension = 'ConsumeGainComprehension', // 消耗品获得感悟
+  ConsumeGainLifespan = 'ConsumeGainLifespan', // 消耗品增加寿元
+
+  // === 持久化 Buff 效果 ===
+  RetreatCultivationBonus = 'RetreatCultivationBonus', // 闭关修为加成
+  RetreatComprehensionBonus = 'RetreatComprehensionBonus', // 闭关感悟加成
+  BreakthroughChanceBonus = 'BreakthroughChanceBonus', // 突破成功率加成
 }
 
 type EffectConfigParam =
@@ -379,7 +389,13 @@ type EffectConfigParam =
   | ManaDrainParams
   | DispelParams
   | ConsumeStatModifierParams
-  | ConsumeAddBuffParams;
+  | ConsumeAddBuffParams
+  | ConsumeGainCultivationExpParams
+  | ConsumeGainComprehensionParams
+  | ConsumeGainLifespanParams
+  | RetreatCultivationBonusParams
+  | RetreatComprehensionBonusParams
+  | BreakthroughChanceBonusParams;
 
 // ============================================================
 // 属性修正效果参数
@@ -669,4 +685,74 @@ export interface ConsumeAddBuffParams {
   initialStacks?: number;
   /** 符箓类型（可选，用于元数据） */
   drawType?: 'gongfa' | 'skill';
+}
+
+// ============================================================
+// 消耗品资源增益效果参数
+// ============================================================
+
+/**
+ * 消耗品获得修为参数
+ */
+export interface ConsumeGainCultivationExpParams {
+  /** 基础修为值 */
+  base: number;
+  /** 缩放依据 (quality | realm) */
+  scale?: 'quality' | 'realm';
+  /** 缩放系数 */
+  coefficient?: number;
+}
+
+/**
+ * 消耗品获得感悟参数
+ */
+export interface ConsumeGainComprehensionParams {
+  /** 基础感悟值 */
+  base: number;
+  /** 缩放依据 (quality | realm) */
+  scale?: 'quality' | 'realm';
+  /** 缩放系数 */
+  coefficient?: number;
+}
+
+/**
+ * 消耗品增加寿元参数
+ */
+export interface ConsumeGainLifespanParams {
+  /** 基础寿元值（年） */
+  base: number;
+  /** 缩放依据 (quality | realm) */
+  scale?: 'quality' | 'realm';
+  /** 缩放系数 */
+  coefficient?: number;
+}
+
+// ============================================================
+// 持久化 Buff 加成效果参数
+// ============================================================
+
+/**
+ * 闭关修为加成参数
+ */
+export interface RetreatCultivationBonusParams {
+  /** 修为收益加成百分比 (0.1 = 10%) */
+  bonusPercent: number;
+}
+
+/**
+ * 闭关感悟加成参数
+ */
+export interface RetreatComprehensionBonusParams {
+  /** 感悟收益加成百分比 (0.1 = 10%) */
+  bonusPercent: number;
+}
+
+/**
+ * 突破成功率加成参数
+ */
+export interface BreakthroughChanceBonusParams {
+  /** 突破成功率加成 (0.1 = +10%) */
+  bonusPercent: number;
+  /** 最大加成上限（可选，防止溢出） */
+  maxBonus?: number;
 }

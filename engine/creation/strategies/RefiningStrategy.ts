@@ -89,7 +89,7 @@ export class RefiningStrategy implements CreationStrategy<
       quality,
     );
     const filteredSecondary = filterAffixPool(
-      ARTIFACT_AFFIX_POOL.secondary,
+      ARTIFACT_AFFIX_POOL.secondary || [],
       quality,
     );
 
@@ -200,7 +200,7 @@ ${userPrompt || '无'}
       blueprint.selected_affixes.primary,
       blueprint.selected_affixes.secondary,
       ARTIFACT_AFFIX_POOL.primary,
-      ARTIFACT_AFFIX_POOL.secondary,
+      ARTIFACT_AFFIX_POOL.secondary || [],
       quality,
       slot,
       realm,
@@ -226,7 +226,7 @@ ${userPrompt || '无'}
     );
     const secondaryEffects = materializeAffixesById(
       blueprint.selected_affixes.secondary,
-      ARTIFACT_AFFIX_POOL.secondary,
+      ARTIFACT_AFFIX_POOL.secondary || [],
       matContext,
     );
 

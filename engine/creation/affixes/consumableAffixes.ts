@@ -1,10 +1,10 @@
 /**
  * 丹药词条池配置
  *
- * 根据当前效果系统实现，丹药只能提供永久属性提升（通过 EffectType.ConsumeStatModifier 实现）。
- *
  * 词条类型：
  * - 主词条：永久属性提升（体魄、灵力、悟性、速度、神识）
+ * - 资源增益词条：修为、感悟、寿元
+ * - 持久化 Buff 词条：闭关加成、突破加成
  */
 
 import {
@@ -25,6 +25,16 @@ export const CONSUMABLE_AFFIX_IDS = {
   PRIMARY_WISDOM: 'consumable_p_wisdom',
   PRIMARY_SPEED: 'consumable_p_speed',
   PRIMARY_WILLPOWER: 'consumable_p_willpower',
+
+  // 资源增益类
+  CULTIVATION_EXP: 'consumable_cultivation_exp',
+  COMPREHENSION: 'consumable_comprehension',
+  LIFESPAN: 'consumable_lifespan',
+
+  // 持久化 Buff 类
+  BUFF_RETREAT_CULTIVATION: 'consumable_buff_retreat_cultivation',
+  BUFF_RETREAT_COMPREHENSION: 'consumable_buff_retreat_comprehension',
+  BUFF_BREAKTHROUGH_CHANCE: 'consumable_buff_breakthrough_chance',
 } as const;
 
 // ============================================================
@@ -111,12 +121,60 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
 ];
 
 // ============================================================
-// 副词条池 - 临时增益/特殊效果
+// 副词条池 - 资源增益类
 // ============================================================
-// 已移除：根据当前效果系统实现，丹药只能提供永久属性提升（通过 EffectType.ConsumeStatModifier 实现）
-// 临时效果（回血、回蓝、Buff等）不再用于丹药
 
-const SECONDARY_AFFIXES: AffixWeight[] = [];
+const SECONDARY_AFFIXES: AffixWeight[] = [
+  // 修为丹
+  {
+    id: CONSUMABLE_AFFIX_IDS.CULTIVATION_EXP,
+    effectType: EffectType.ConsumeGainCultivationExp,
+    trigger: EffectTrigger.ON_CONSUME,
+    paramsTemplate: {
+      base: 50,
+      scale: 'realm',
+      coefficient: 30,
+    },
+    weight: 100,
+    tags: ['resource', 'cultivation', 'secondary'],
+    displayName: '获得修为',
+    displayDescription: '服用后获得修为，数值随境界提升',
+  },
+
+  // 悟性丹
+  {
+    id: CONSUMABLE_AFFIX_IDS.COMPREHENSION,
+    effectType: EffectType.ConsumeGainComprehension,
+    trigger: EffectTrigger.ON_CONSUME,
+    paramsTemplate: {
+      base: 2,
+      scale: 'quality',
+      coefficient: 3,
+    },
+    weight: 80,
+    minQuality: '灵品',
+    tags: ['resource', 'comprehension', 'secondary'],
+    displayName: '获得感悟',
+    displayDescription: '服用后获得道心感悟，数值随品质提升',
+  },
+
+  // 寿元丹
+  {
+    id: CONSUMABLE_AFFIX_IDS.LIFESPAN,
+    effectType: EffectType.ConsumeGainLifespan,
+    trigger: EffectTrigger.ON_CONSUME,
+    paramsTemplate: {
+      base: 5,
+      scale: 'quality',
+      coefficient: 2,
+    },
+    weight: 60,
+    minQuality: '玄品',
+    tags: ['resource', 'lifespan', 'secondary'],
+    displayName: '增加寿元',
+    displayDescription: '服用后增加寿元，数值随品质提升',
+  },
+];
 
 // ============================================================
 // 诅咒词条池 - 负面效果（低品质或炼制失败）
@@ -126,6 +184,63 @@ const SECONDARY_AFFIXES: AffixWeight[] = [];
 const CURSE_AFFIXES: AffixWeight[] = [];
 
 // ============================================================
+// 持久化 Buff 词条池 - 闭关/突破加成
+// ============================================================
+
+const BUFF_AFFIXES: AffixWeight[] = [
+  // 闭关修为加成
+  {
+    id: CONSUMABLE_AFFIX_IDS.BUFF_RETREAT_CULTIVATION,
+    effectType: EffectType.ConsumeAddBuff,
+    trigger: EffectTrigger.ON_CONSUME,
+    paramsTemplate: {
+      buffId: 'pill_enlightenment_state',
+      expiryMinutes: 360, // 6 小时（游戏内时间）
+      initialStacks: 1,
+    },
+    weight: 50,
+    minQuality: '真品',
+    tags: ['buff', 'retreat', 'cultivation'],
+    displayName: '闭关修为加成',
+    displayDescription: '服用后一段时间内闭关修为获取效率提升',
+  },
+
+  // 闭关感悟加成
+  {
+    id: CONSUMABLE_AFFIX_IDS.BUFF_RETREAT_COMPREHENSION,
+    effectType: EffectType.ConsumeAddBuff,
+    trigger: EffectTrigger.ON_CONSUME,
+    paramsTemplate: {
+      buffId: 'pill_insight_state',
+      expiryMinutes: 360, // 6 小时
+      initialStacks: 1,
+    },
+    weight: 50,
+    minQuality: '真品',
+    tags: ['buff', 'retreat', 'comprehension'],
+    displayName: '闭关感悟加成',
+    displayDescription: '服用后一段时间内闭关感悟获取效率提升',
+  },
+
+  // 突破成功率加成
+  {
+    id: CONSUMABLE_AFFIX_IDS.BUFF_BREAKTHROUGH_CHANCE,
+    effectType: EffectType.ConsumeAddBuff,
+    trigger: EffectTrigger.ON_CONSUME,
+    paramsTemplate: {
+      buffId: 'breakthrough_luck',
+      expiryMinutes: 360, // 6 小时
+      initialStacks: 1,
+    },
+    weight: 40,
+    minQuality: '真品',
+    tags: ['buff', 'breakthrough'],
+    displayName: '突破成功率加成',
+    displayDescription: '服用后一段时间内突破成功率提升',
+  },
+];
+
+// ============================================================
 // 导出词条池
 // ============================================================
 
@@ -133,4 +248,5 @@ export const CONSUMABLE_AFFIX_POOL: AffixPool = {
   primary: PRIMARY_AFFIXES,
   secondary: SECONDARY_AFFIXES,
   curse: CURSE_AFFIXES,
+  buff: BUFF_AFFIXES,
 };

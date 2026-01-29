@@ -146,6 +146,31 @@ export const QUALITY_VALUES = [
 ] as const;
 export type Quality = (typeof QUALITY_VALUES)[number];
 
+// 品质等级映射（用于缩放计算）
+export const QUALITY_ORDER: Record<Quality, number> = {
+  凡品: 0,
+  灵品: 1,
+  玄品: 2,
+  真品: 3,
+  地品: 4,
+  天品: 5,
+  仙品: 6,
+  神品: 7,
+};
+
+// 境界等级映射（用于缩放计算）
+export const REALM_ORDER: Record<RealmType, number> = {
+  炼气: 0,
+  筑基: 1,
+  金丹: 2,
+  元婴: 3,
+  化神: 4,
+  炼虚: 5,
+  合体: 6,
+  大乘: 7,
+  渡劫: 8,
+};
+
 // 材料类型
 export const MATERIAL_TYPE_VALUES = [
   'herb',

@@ -72,7 +72,7 @@ export class AlchemyStrategy implements CreationStrategy<
       quality,
     );
     const filteredSecondary = filterAffixPool(
-      CONSUMABLE_AFFIX_POOL.secondary,
+      CONSUMABLE_AFFIX_POOL.secondary || [] || [],
       quality,
     );
 
@@ -179,7 +179,7 @@ ${userPrompt || '无'}
       blueprint.selected_affixes.primary,
       blueprint.selected_affixes.secondary,
       CONSUMABLE_AFFIX_POOL.primary,
-      CONSUMABLE_AFFIX_POOL.secondary,
+      CONSUMABLE_AFFIX_POOL.secondary || [],
       quality,
     );
 
@@ -203,7 +203,7 @@ ${userPrompt || '无'}
     const secondaryEffects = blueprint.selected_affixes.secondary
       ? materializeAffixesById(
           [blueprint.selected_affixes.secondary],
-          CONSUMABLE_AFFIX_POOL.secondary,
+          CONSUMABLE_AFFIX_POOL.secondary || [],
           matContext,
         )
       : [];

@@ -23,7 +23,11 @@ export class HealEffect extends BaseEffect {
   }
 
   shouldTrigger(ctx: EffectContext): boolean {
-    return ctx.trigger === EffectTrigger.ON_SKILL_HIT;
+    return (
+      ctx.trigger === EffectTrigger.ON_SKILL_HIT ||
+      ctx.trigger === EffectTrigger.ON_TURN_START ||
+      ctx.trigger === EffectTrigger.ON_TURN_END
+    );
   }
 
   /**

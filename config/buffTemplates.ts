@@ -560,6 +560,78 @@ export const talismanBuffTemplates: BuffTemplate[] = [
 ];
 
 // ============================================================
+// 丹药 Buff 模板
+// ============================================================
+
+/**
+ * 丹药消耗品对应的持久Buff模板
+ * 用于闭关加成、突破加成等效果
+ */
+export const pillBuffTemplates: BuffTemplate[] = [
+  {
+    id: 'pill_enlightenment_state',
+    name: '丹悟',
+    descriptionTemplate: '服用丹药后心明眼亮，闭关修为获取效率 +{percent}',
+    maxStacks: 1,
+    duration: -1,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.PERSISTENT, BuffTag.BUFF, BuffTag.UNPURGEABLE],
+    effectTemplates: [
+      {
+        type: EffectType.RetreatCultivationBonus,
+        trigger: EffectTrigger.ON_RETREAT,
+        paramsTemplate: {
+          bonusPercent: 0.2, // +20% 修为收益
+          // 【重要】用于占位符替换的百分比参数
+          percentValue: 0.2,
+        },
+      },
+    ],
+  },
+  {
+    id: 'pill_insight_state',
+    name: '丹悟',
+    descriptionTemplate: '服用丹药后灵感迸发，闭关感悟获取效率 +{percent}',
+    maxStacks: 1,
+    duration: -1,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.PERSISTENT, BuffTag.BUFF, BuffTag.UNPURGEABLE],
+    effectTemplates: [
+      {
+        type: EffectType.RetreatComprehensionBonus,
+        trigger: EffectTrigger.ON_RETREAT,
+        paramsTemplate: {
+          bonusPercent: 0.2, // +20% 感悟收益
+          // 【重要】用于占位符替换的百分比参数
+          percentValue: 0.2,
+        },
+      },
+    ],
+  },
+  {
+    id: 'breakthrough_luck',
+    name: '突破吉兆',
+    descriptionTemplate: '服用丹药后机缘深厚，突破成功率 +{percent}',
+    maxStacks: 1,
+    duration: -1,
+    stackType: BuffStackType.REFRESH,
+    tags: [BuffTag.PERSISTENT, BuffTag.BUFF, BuffTag.UNPURGEABLE],
+    effectTemplates: [
+      {
+        type: EffectType.BreakthroughChanceBonus,
+        trigger: EffectTrigger.ON_BREAKTHROUGH_CHECK,
+        paramsTemplate: {
+          bonusPercent: 0.15, // +15% 突破成功率
+          maxBonus: 0.3, // 最多 30%
+          // 【重要】用于占位符替换的百分比参数
+          percentValue: 0.15,
+        },
+      },
+    ],
+  },
+];
+
+// ============================================================
 // 新增动态 Buff 模板
 // ============================================================
 
@@ -827,5 +899,6 @@ export const allBuffTemplates: BuffTemplate[] = [
   ...buffTemplates,
   ...persistentBuffTemplates,
   ...talismanBuffTemplates,
+  ...pillBuffTemplates,
   ...advancedBuffTemplates,
 ];
