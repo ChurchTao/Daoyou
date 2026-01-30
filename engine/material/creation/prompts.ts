@@ -21,7 +21,7 @@ export function getMaterialGenerationPrompt(): string {
 | 等级 | 品质 | 特点 | 常用境界 |
 |------|------|------|------|
 | 1 | 凡品 | 普通常见，产量丰富 | 凡人、炼气 |
-| 2 | 灵品 | 含有灵气，可入药炼器 | 炼气、筑基 |
+| 2 | 灵品 | 含有灵气，不难寻觅 | 炼气、筑基 |
 | 3 | 玄品 | 灵气充盈，颇为珍贵 | 筑基、结丹 |
 | 4 | 真品 | 灵材上品，修士珍视 | 结丹、元婴 |
 | 5 | 地品 | 地脉所钟，可遇不可求 | 元婴、化神 |
@@ -107,7 +107,6 @@ export function getMaterialGenerationUserPrompt(
     })
     .join('\n');
 
-  console.log(reqList);
   return `请为以下材料骨架生成名称、描述和五行属性：
 
 【待生成列表】

@@ -13,6 +13,12 @@ function getDeepSeekProvider() {
       apiKey: process.env.ARK_API_KEY,
     });
   }
+  if (process.env.PROVIDER_CHOOSE === 'kimi') {
+    return createDeepSeek({
+      apiKey: process.env.KIMI_API_KEY,
+      baseURL: process.env.KIMI_BASE_URL,
+    });
+  }
   return createDeepSeek({
     apiKey: process.env.OPENAI_API_KEY,
     baseURL: process.env.OPENAI_BASE_URL,
@@ -29,6 +35,12 @@ export function getModel(fast: boolean = false) {
     const model = fast
       ? process.env.ARK_MODEL_FAST_USE
       : process.env.ARK_MODEL_USE;
+    return provider(model!);
+  }
+  if (process.env.PROVIDER_CHOOSE === 'kimi') {
+    const model = fast
+      ? process.env.KIMI_MODEL_FAST_USE
+      : process.env.KIMI_MODEL_USE;
     return provider(model!);
   } else {
     const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;

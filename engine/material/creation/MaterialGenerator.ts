@@ -62,7 +62,7 @@ export class MaterialGenerator {
 
     const prompt = getMaterialGenerationPrompt();
     const userPrompt = getMaterialGenerationUserPrompt(skeletons);
-
+    console.log('User Prompt:', userPrompt);
     try {
       const aiResponse = await objectArray(
         prompt,
