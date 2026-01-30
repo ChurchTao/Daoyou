@@ -26,6 +26,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'shield',
     name: '护盾',
+    icon: '🛡️',
     descriptionTemplate: '获得 {shield} 点护盾',
     maxStacks: 1,
     duration: 3,
@@ -44,6 +45,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'armor_up',
     name: '护体',
+    icon: '💪',
     descriptionTemplate: '体魄提升 {percent}',
     maxStacks: 1,
     duration: 2,
@@ -67,6 +69,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'speed_up',
     name: '疾行',
+    icon: '💨',
     descriptionTemplate: '速度提升 {value} 点',
     maxStacks: 1,
     duration: 2,
@@ -87,6 +90,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'crit_rate_up',
     name: '锋锐',
+    icon: '⚔️',
     descriptionTemplate: '暴击率提升 {percent}',
     maxStacks: 1,
     duration: 2,
@@ -110,6 +114,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'spirit_boost',
     name: '灵力激增',
+    icon: '🔮',
     descriptionTemplate: '灵力提升 {percent}',
     maxStacks: 1,
     duration: 3,
@@ -132,6 +137,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'vitality_boost',
     name: '体魄强化',
+    icon: '❤️‍🔥',
     descriptionTemplate: '体魄提升 {percent}',
     maxStacks: 1,
     duration: 3,
@@ -154,6 +160,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'crit_boost',
     name: '暴击增幅',
+    icon: '💥',
     descriptionTemplate: '暴击率提升 {percent}，暴击伤害提升',
     maxStacks: 1,
     duration: 3,
@@ -177,6 +184,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'armor_down',
     name: '破防',
+    icon: '💔',
     descriptionTemplate: '体魄降低 {percent}',
     maxStacks: 1,
     duration: 2,
@@ -200,6 +208,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'crit_rate_down',
     name: '暴击压制',
+    icon: '📉',
     descriptionTemplate: '暴击率降低 {percent}',
     maxStacks: 1,
     duration: 2,
@@ -223,6 +232,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'slow',
     name: '迟缓',
+    icon: '🐌',
     descriptionTemplate: '速度降低 {percent}',
     maxStacks: 1,
     duration: 2,
@@ -247,6 +257,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'stun',
     name: '眩晕',
+    icon: '💫',
     descriptionTemplate: '无法行动',
     maxStacks: 1,
     duration: 1,
@@ -257,6 +268,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'silence',
     name: '沉默',
+    icon: '🤐',
     descriptionTemplate: '无法使用技能',
     maxStacks: 1,
     duration: 2,
@@ -267,6 +279,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'root',
     name: '定身',
+    icon: '⛓️',
     descriptionTemplate: '无法闪避',
     maxStacks: 1,
     duration: 2,
@@ -277,6 +290,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'freeze',
     name: '冰冻',
+    icon: '❄️',
     descriptionTemplate: '无法行动，防御提升 {percent}',
     maxStacks: 1,
     duration: 1,
@@ -300,6 +314,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'burn',
     name: '灼烧',
+    icon: '🔥',
     descriptionTemplate: '每回合受到 {damage} 点火焰伤害',
     maxStacks: 3,
     duration: 3,
@@ -320,6 +335,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'bleed',
     name: '流血',
+    icon: '🩸',
     descriptionTemplate: '每回合受到 {damage} 点物理伤害',
     maxStacks: 3,
     duration: 3,
@@ -340,6 +356,7 @@ export const buffTemplates: BuffTemplate[] = [
   {
     id: 'poison',
     name: '中毒',
+    icon: '☠️',
     descriptionTemplate: '每回合受到 {damage} 点毒素伤害',
     maxStacks: 5,
     duration: 3,
@@ -370,6 +387,7 @@ export const persistentBuffTemplates: BuffTemplate[] = [
   {
     id: 'weakness',
     name: '虚弱',
+    icon: '🤒',
     descriptionTemplate: '全属性降低 {percent}',
     maxStacks: 1,
     duration: -1, // 永久
@@ -423,6 +441,7 @@ export const persistentBuffTemplates: BuffTemplate[] = [
   {
     id: 'minor_wound',
     name: '轻伤',
+    icon: '🩹',
     descriptionTemplate: '最大气血降低 10%',
     maxStacks: 1,
     duration: -1,
@@ -442,6 +461,7 @@ export const persistentBuffTemplates: BuffTemplate[] = [
   {
     id: 'major_wound',
     name: '重伤',
+    icon: '🚑',
     descriptionTemplate: '最大气血大幅降低 30%',
     maxStacks: 1,
     duration: -1,
@@ -461,6 +481,7 @@ export const persistentBuffTemplates: BuffTemplate[] = [
   {
     id: 'near_death',
     name: '濒死',
+    icon: '💀',
     descriptionTemplate: '全属性与气血大幅降低 50%',
     maxStacks: 1,
     duration: -1,
@@ -530,6 +551,7 @@ export const talismanBuffTemplates: BuffTemplate[] = [
   {
     id: 'reshape_fate_talisman',
     name: '逆天改命',
+    icon: '🌟',
     descriptionTemplate: '天机遮蔽中，可逆转命数。道韵尚存{remainingDays}日',
     maxStacks: 1,
     duration: -1,
@@ -540,6 +562,7 @@ export const talismanBuffTemplates: BuffTemplate[] = [
   {
     id: 'draw_gongfa_talisman',
     name: '神游太虚',
+    icon: '📖',
     descriptionTemplate: '神游太虚中，可感悟功法。道韵尚存{remainingDays}日',
     maxStacks: 1,
     duration: -1,
@@ -550,6 +573,7 @@ export const talismanBuffTemplates: BuffTemplate[] = [
   {
     id: 'draw_skill_talisman',
     name: '法则加身',
+    icon: '✨',
     descriptionTemplate: '法则加身中，可衍化神通。道韵尚存{remainingDays}日',
     maxStacks: 1,
     duration: -1,
@@ -571,6 +595,7 @@ export const pillBuffTemplates: BuffTemplate[] = [
   {
     id: 'pill_enlightenment_state',
     name: '丹悟',
+    icon: '💊',
     descriptionTemplate: '服用丹药后心明眼亮，闭关修为获取效率 +{percent}',
     maxStacks: 1,
     duration: -1,
@@ -591,6 +616,7 @@ export const pillBuffTemplates: BuffTemplate[] = [
   {
     id: 'pill_insight_state',
     name: '丹悟',
+    icon: '🧪',
     descriptionTemplate: '服用丹药后灵感迸发，闭关感悟获取效率 +{percent}',
     maxStacks: 1,
     duration: -1,
@@ -611,6 +637,7 @@ export const pillBuffTemplates: BuffTemplate[] = [
   {
     id: 'breakthrough_luck',
     name: '突破吉兆',
+    icon: '🍀',
     descriptionTemplate: '服用丹药后机缘深厚，突破成功率 +{percent}',
     maxStacks: 1,
     duration: -1,
@@ -643,6 +670,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'berserk',
     name: '狂暴',
+    icon: '😤',
     descriptionTemplate: '灵力提升 {percent}，但防御降低',
     maxStacks: 1,
     duration: 3,
@@ -676,6 +704,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'turtle_defense',
     name: '龟息',
+    icon: '🛡️',
     descriptionTemplate: '减伤提升 {percent}，但无法攻击',
     maxStacks: 1,
     duration: 2,
@@ -699,6 +728,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'epiphany',
     name: '顿悟',
+    icon: '💡',
     descriptionTemplate: '暴击率提升 {percent}，暴击伤害大幅提升',
     maxStacks: 1,
     duration: -1, // 战斗内永久
@@ -722,6 +752,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'regeneration',
     name: '再生',
+    icon: '🌿',
     descriptionTemplate: '每回合恢复 {percent} 最大生命',
     maxStacks: 1,
     duration: 4,
@@ -747,6 +778,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'all_stats_up',
     name: '万法归一',
+    icon: '🌟',
     descriptionTemplate: '全属性提升 {percent}',
     maxStacks: 1,
     duration: 3,
@@ -802,6 +834,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'heal_reduction',
     name: '创伤',
+    icon: '🩸',
     descriptionTemplate: '受到的治疗效果降低 {percent}',
     maxStacks: 1,
     duration: 3,
@@ -826,6 +859,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'counter_stance',
     name: '反击态势',
+    icon: '⚡',
     descriptionTemplate: '被攻击时有几率反击',
     maxStacks: 1,
     duration: 3,
@@ -849,6 +883,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'damage_reduction',
     name: '铁壁',
+    icon: '🏰',
     descriptionTemplate: '承受伤害降低 {percent}',
     maxStacks: 1,
     duration: 3,
@@ -872,6 +907,7 @@ export const advancedBuffTemplates: BuffTemplate[] = [
   {
     id: 'dodge_up',
     name: '迅影',
+    icon: '💨',
     descriptionTemplate: '闪避率提升 {percent}',
     maxStacks: 1,
     duration: 3,
