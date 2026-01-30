@@ -66,7 +66,7 @@ export class ReflectDamageEffect extends BaseEffect {
     return {
       label: '反伤',
       icon: '💥',
-      description: `反弹${format('.0%')(this.reflectPercent)}的伤害给攻击者`,
+      description: `在受到伤害后，反弹${format('.0%')(this.reflectPercent)}的伤害给攻击者`,
     };
   }
 }

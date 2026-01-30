@@ -92,10 +92,17 @@ export class DamageReductionEffect extends BaseEffect {
   }
 
   displayInfo() {
+    const flatReductionText = this.flatReduction
+      ? `固定降低受到的伤害${format('.0f')(this.flatReduction)}`
+      : '';
+    const percentReductionText = this.percentReduction
+      ? `降低受到的伤害${format('.0%')(this.percentReduction)}`
+      : '';
+
     return {
       label: '减伤效果',
       icon: '🛡️',
-      description: `额外固定减伤${this.flatReduction}，额外百分比减伤${format('.0%')(this.percentReduction)}`,
+      description: `${[flatReductionText, percentReductionText].filter(Boolean).join('、')}`,
     };
   }
 }

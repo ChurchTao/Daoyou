@@ -1,5 +1,6 @@
 import { buffRegistry } from '@/engine/buff';
 import { EffectConfig, EffectFactory } from '@/engine/effect';
+import { ElementType } from '@/types/constants';
 import type { Artifact, CultivationTechnique, Skill } from '@/types/cultivator';
 
 // ============================================================
@@ -101,13 +102,24 @@ export function getSkillDisplayInfo(skill: Skill): SkillDisplayInfo {
 /**
  * 元素图标映射
  */
-const elementInfoMap: Record<string, { icon: string; name: string }> = {
+const elementInfoMap: Record<ElementType, { icon: string; name: string }> = {
   火: { icon: '🔥', name: '火系' },
   水: { icon: '💧', name: '水系' },
   木: { icon: '🌿', name: '木系' },
   金: { icon: '⚔️', name: '金系' },
   土: { icon: '🪨', name: '土系' },
-  无: { icon: '☯️', name: '无属性' },
+  风: {
+    icon: '💨',
+    name: '风系',
+  },
+  雷: {
+    icon: '⚡',
+    name: '雷系',
+  },
+  冰: {
+    icon: '❄️',
+    name: '冰系',
+  },
 };
 
 /**

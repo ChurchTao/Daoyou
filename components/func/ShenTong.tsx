@@ -56,7 +56,7 @@ export function ShenTong({
   const content = (
     <InkList>
       {skills.map((skill, index) => {
-        const { icon: typeIcon, typeName } = getSkillElementInfo(skill);
+        const { icon: typeIcon } = getSkillElementInfo(skill);
         const isLast = index === skills.length - 1;
         const displayInfo = getSkillDisplayInfo(skill);
 
@@ -66,7 +66,6 @@ export function ShenTong({
             icon={typeIcon}
             name={`${skill.name}`}
             quality={skill.grade}
-            badgeExtra={<InkBadge>{typeName}</InkBadge>}
             effects={skill.effects}
             meta={`威力：${displayInfo.power}｜冷却：${skill.cooldown}回合${
               skill.cost ? `｜消耗：${skill.cost} 灵力` : ''
