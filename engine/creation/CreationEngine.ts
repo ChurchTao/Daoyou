@@ -1,11 +1,17 @@
 import { db, DbTransaction } from '@/lib/drizzle/db';
-import { materials } from '@/lib/drizzle/schema';
+import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
 import { Material } from '@/types/cultivator';
+import { Quality } from '@/types/constants';
 import { object } from '@/utils/aiClient';
 import { sanitizePrompt } from '@/utils/prompts';
 import { eq, inArray, sql } from 'drizzle-orm';
+import {
+  calculateCraftCost,
+  calculateMaxQuality,
+  getCostDescription,
+} from './CraftCostCalculator';
 import { CreationStrategy } from './CreationStrategy';
 import { AlchemyStrategy } from './strategies/AlchemyStrategy';
 import { GongFaCreationStrategy } from './strategies/GongFaCreationStrategy';
@@ -95,6 +101,12 @@ export class CreationEngine {
       };
       await strategy.validate(context);
 
+      // 4.5. Resource Cost Calculation & Validation
+      const maxMaterialQuality = calculateMaxQuality(
+        selectedMaterials as unknown as Array<{ rank: Quality }>,
+      );
+      const costDescription = getCostDescription(maxMaterialQuality, craftType);
+
       // 5. Construct Prompt & Call AI (获取蓝图)
       const { system, user } = strategy.constructPrompt(context);
 
@@ -112,7 +124,10 @@ export class CreationEngine {
 
       // 7. Transaction: Consumption & Persistence
       await db.transaction(async (tx) => {
-        // 7.1 Consume Materials
+        // 7.1 Consume Resources (灵石/感悟)
+        await this.consumeResources(tx, cultivator, costDescription);
+
+        // 7.2 Consume Materials
         for (const mat of selectedMaterials) {
           if (mat.quantity > 1) {
             await tx
@@ -124,7 +139,7 @@ export class CreationEngine {
           }
         }
 
-        // 7.2 Persist Result (Delegated to Strategy)
+        // 7.3 Persist Result (Delegated to Strategy)
         await strategy.persistResult(
           tx as unknown as DbTransaction,
           context,
@@ -135,6 +150,61 @@ export class CreationEngine {
       return resultItem;
     } finally {
       await redis.del(lockKey);
+    }
+  }
+
+  /**
+   * 消耗资源（在事务中）
+   * @param tx 数据库事务
+   * @param cultivator 角色
+   * @param cost 资源消耗描述
+   */
+  private async consumeResources(
+    tx: DbTransaction,
+    cultivator: {
+      id?: string;
+      spirit_stones?: number;
+      cultivation_progress?: { comprehension_insight?: number } | null;
+    },
+    cost: { spiritStones?: number; comprehension?: number },
+  ): Promise<void> {
+    // 检查灵石
+    if (cost.spiritStones && (cultivator.spirit_stones || 0) < cost.spiritStones) {
+      throw new Error(`灵石不足，需要 ${cost.spiritStones} 枚`);
+    }
+
+    // 检查感悟
+    if (cost.comprehension) {
+      const currentInsight =
+        cultivator.cultivation_progress?.comprehension_insight || 0;
+      if (currentInsight < cost.comprehension) {
+        throw new Error(`道心感悟不足，需要 ${cost.comprehension} 点`);
+      }
+    }
+
+    // 扣除灵石
+    if (cost.spiritStones) {
+      await tx
+        .update(cultivators)
+        .set({
+          spirit_stones: sql`${cultivators.spirit_stones} - ${cost.spiritStones}`,
+        })
+        .where(eq(cultivators.id, cultivator.id!));
+    }
+
+    // 扣除感悟
+    if (cost.comprehension) {
+      // JSONB 更新 comprehension_insight
+      await tx
+        .update(cultivators)
+        .set({
+          cultivation_progress: sql`jsonb_set(
+            coalesce(cultivation_progress, '{}'::jsonb),
+            '{comprehension_insight}',
+            to_jsonb(coalesce((cultivation_progress->>'comprehension_insight')::int, 0) - ${cost.comprehension})
+          )`,
+        })
+        .where(eq(cultivators.id, cultivator.id!));
     }
   }
 }

@@ -18,9 +18,22 @@ import {
 import { Material, CultivationTechnique } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const MAX_MATERIALS = 5;
+
+type CostEstimate = {
+  spiritStones?: number;
+  comprehension?: number;
+};
+
+type CostResponse = {
+  success: boolean;
+  data?: {
+    cost: CostEstimate;
+    canAfford: boolean;
+  };
+};
 
 export default function GongfaCreationPage() {
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
@@ -30,8 +43,39 @@ export default function GongfaCreationPage() {
   const [isSubmitting, setSubmitting] = useState(false);
   const [createdGongfa, setCreatedGongfa] = useState<CultivationTechnique | null>(null);
   const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
+  const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
+  const [canAfford, setCanAfford] = useState(true);
   const { pushToast } = useInkUI();
   const pathname = usePathname();
+
+  // Fetch cost estimate when materials change
+  useEffect(() => {
+    if (selectedMaterialIds.length > 0) {
+      fetchCostEstimate('create_gongfa', selectedMaterialIds);
+    } else {
+      setEstimatedCost(null);
+      setCanAfford(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMaterialIds]);
+
+  const fetchCostEstimate = async (
+    craftType: string,
+    materialIds: string[],
+  ) => {
+    try {
+      const response = await fetch(
+        `/api/craft?craftType=${craftType}&materialIds=${materialIds.join(',')}`,
+      );
+      const result: CostResponse = await response.json();
+      if (result.success && result.data) {
+        setEstimatedCost(result.data.cost);
+        setCanAfford(result.data.canAfford);
+      }
+    } catch (error) {
+      console.error('Failed to fetch cost estimate:', error);
+    }
+  };
 
   const toggleMaterial = (id: string) => {
     setSelectedMaterialIds((prev) => {
@@ -262,6 +306,27 @@ export default function GongfaCreationPage() {
         </p>
       </InkSection>
 
+      <InkSection title="预计消耗">
+        {estimatedCost ? (
+          <div className="flex items-center justify-between p-3 bg-ink/5 rounded-lg border border-ink/10">
+            <span className="text-sm">
+              道心感悟：
+              <span className="font-bold text-purple-600">
+                {estimatedCost.comprehension}
+              </span>{' '}
+              点
+            </span>
+            <span
+              className={`text-xs ${canAfford ? 'text-emerald-600' : 'text-red-600'}`}
+            >
+              {canAfford ? '✓ 感悟充足' : '✗ 感悟不足'}
+            </span>
+          </div>
+        ) : (
+          <InkNotice>请先选择典籍以查看消耗</InkNotice>
+        )}
+      </InkSection>
+
       <InkSection title="2. 注入感悟">
         <div className="mb-4">
           <InkList dense>
@@ -301,7 +366,10 @@ export default function GongfaCreationPage() {
             variant="primary"
             onClick={handleSubmit}
             disabled={
-              isSubmitting || !prompt.trim() || selectedMaterialIds.length === 0
+              isSubmitting ||
+              !prompt.trim() ||
+              selectedMaterialIds.length === 0 ||
+              !canAfford
             }
           >
             {isSubmitting ? '参悟中……' : '开始参悟'}
