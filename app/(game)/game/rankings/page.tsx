@@ -136,7 +136,6 @@ export default function RankingsPage() {
       // 设置对话框
       setDialog({
         id: 'probe-result',
-        title: `神识查探：${result.data.cultivator.name}`,
         content: formatProbeResultContent(result.data),
         confirmLabel: '关闭',
       });
