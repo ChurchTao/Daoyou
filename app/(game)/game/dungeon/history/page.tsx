@@ -4,6 +4,7 @@ import { InkPageShell, InkSection } from '@/components/layout';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkCard } from '@/components/ui/InkCard';
 import { InkList, InkListItem } from '@/components/ui/InkList';
+import { getResourceTypeLabel } from '@/types/dictionaries';
 import { useCallback, useEffect, useState } from 'react';
 
 /**
@@ -206,7 +207,7 @@ export default function DungeonHistoryPage() {
                         {record.realGains.map((gain, idx) => (
                           <InkListItem
                             key={idx}
-                            title={gain.name || gain.type}
+                            title={gain.name || getResourceTypeLabel(gain.type)}
                             meta={gain.value ? `×${gain.value}` : undefined}
                           />
                         ))}

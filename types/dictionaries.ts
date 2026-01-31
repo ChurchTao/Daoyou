@@ -483,3 +483,39 @@ export function getMaterialTypeInfo(
     }
   );
 }
+
+// ===== 资源与副本代价类型 =====
+
+export interface ResourceTypeDisplayInfo {
+  label: string;
+  icon: string;
+}
+
+export const RESOURCE_TYPE_DISPLAY_MAP: Record<string, ResourceTypeDisplayInfo> =
+  {
+    spirit_stones: { label: '灵石', icon: '💎' },
+    lifespan: { label: '寿元', icon: '🕯️' },
+    cultivation_exp: { label: '修为', icon: '🧘' },
+    comprehension_insight: { label: '感悟', icon: '💡' },
+    material: { label: '材料', icon: '📦' },
+    artifact: { label: '法宝', icon: '⚔️' },
+    consumable: { label: '消耗品', icon: '💊' },
+    hp_loss: { label: '气血', icon: '🩸' },
+    mp_loss: { label: '灵力', icon: '💧' },
+    weak: { label: '虚弱', icon: '😰' },
+    battle: { label: '战斗', icon: '⚔️' },
+    artifact_damage: { label: '法宝受损', icon: '💔' },
+  };
+
+export function getResourceTypeLabel(type: string): string {
+  return RESOURCE_TYPE_DISPLAY_MAP[type]?.label ?? type;
+}
+
+export function getResourceTypeInfo(type: string): ResourceTypeDisplayInfo {
+  return (
+    RESOURCE_TYPE_DISPLAY_MAP[type] ?? {
+      label: type,
+      icon: '',
+    }
+  );
+}
