@@ -39,10 +39,10 @@ export default function FateReshapePage() {
   const checkBuffStatus = useCallback(async () => {
     setCheckingBuff(true);
     try {
-      const res = await fetch('/api/cultivator/talismans');
+      const res = await fetch('/api/cultivator/persistent-buffs');
       const data = await res.json();
-      if (data.talismans) {
-        const reshapeBuff = data.talismans.find(
+      if (data.buffs) {
+        const reshapeBuff = data.buffs.find(
           (t: { id: string }) => t.id === 'reshape_fate_talisman',
         );
         setCurrentUses(reshapeBuff?.usesRemaining ?? 0);

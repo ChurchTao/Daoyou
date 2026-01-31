@@ -5,6 +5,7 @@
  * 与 BuffRegistry 配合使用，提供向后兼容
  */
 
+import { allBuffTemplates } from '@/config/buffTemplates';
 import { BuffMaterializer } from './BuffMaterializer';
 import type {
   BuffConfig,
@@ -91,3 +92,6 @@ class BuffTemplateRegistry {
 
 // 创建全局单例
 export const buffTemplateRegistry = new BuffTemplateRegistry();
+
+// 先初始化模板注册表
+buffTemplateRegistry.registerAll(allBuffTemplates);

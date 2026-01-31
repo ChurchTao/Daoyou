@@ -8,7 +8,7 @@ export { BuffInstance } from './BuffInstance';
 export { BuffManager } from './BuffManager';
 
 // 注册表
-export { buffRegistry, initializeBuffRegistry } from './BuffRegistry';
+export { buffRegistry } from './BuffRegistry';
 
 // 模板系统
 export { BuffMaterializer } from './BuffMaterializer';

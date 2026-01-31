@@ -34,10 +34,10 @@ export function ManualDrawContent() {
   const checkBuffStatus = useCallback(async () => {
     setCheckingBuff(true);
     try {
-      const res = await fetch('/api/cultivator/talismans');
+      const res = await fetch('/api/cultivator/persistent-buffs');
       const data = await res.json();
-      if (data.talismans) {
-        const buff = data.talismans.some(
+      if (data.buffs) {
+        const buff = data.buffs.some(
           (t: { id: string }) => t.id === buffId,
         );
         setHasBuff(buff);

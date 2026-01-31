@@ -1,5 +1,5 @@
-import type { BuffInstanceState } from '@/engine/buff/types';
 import { buffTemplateRegistry } from '@/engine/buff/BuffTemplateRegistry';
+import type { BuffInstanceState } from '@/engine/buff/types';
 import { BuffTag } from '@/engine/buff/types';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,7 +13,6 @@ export const GET = withActiveCultivator(
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
 
-    // Get all persistent buff template IDs
     const persistentBuffIds = buffTemplateRegistry
       .getByTag(BuffTag.PERSISTENT)
       .map((template) => template.id);
