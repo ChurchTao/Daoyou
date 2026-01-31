@@ -1308,11 +1308,11 @@ export async function consumeItem(
     await tx
       .update(schema.cultivators)
       .set({
-        vitality: updatedCultivator.attributes.vitality,
-        spirit: updatedCultivator.attributes.spirit,
-        wisdom: updatedCultivator.attributes.wisdom,
-        speed: updatedCultivator.attributes.speed,
-        willpower: updatedCultivator.attributes.willpower,
+        vitality: Math.round(updatedCultivator.attributes.vitality),
+        spirit: Math.round(updatedCultivator.attributes.spirit),
+        wisdom: Math.round(updatedCultivator.attributes.wisdom),
+        speed: Math.round(updatedCultivator.attributes.speed),
+        willpower: Math.round(updatedCultivator.attributes.willpower),
         cultivation_progress: finalCultivationProgress,
         lifespan: finalLifespan,
         persistent_statuses: updatedStatuses,

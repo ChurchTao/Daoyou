@@ -182,7 +182,7 @@ export default function RankingsPage() {
       }
 
       // 验证通过，跳转到挑战战斗页面
-      router.push(`/battle/challenge?targetId=${targetId}`);
+      router.push(`/game/battle/challenge?targetId=${targetId}`);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '挑战验证失败，请稍后重试';
