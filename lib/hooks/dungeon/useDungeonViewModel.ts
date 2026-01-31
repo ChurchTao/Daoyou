@@ -171,7 +171,20 @@ export function useDungeonViewModel(
   const handlePerformAction = async (option: DungeonOption) => {
     const data = await performAction(option);
     if (!data) return;
-    setState(data.state);
+
+    if (data.isFinished) {
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              isFinished: true,
+              settlement: data.settlement,
+            }
+          : null,
+      );
+    } else {
+      setState(data.state);
+    }
   };
 
   /**
