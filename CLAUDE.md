@@ -29,7 +29,7 @@ npx drizzle-kit push # 推送 schema 到数据库
 
 ## 技术栈
 
-- **前端**: Next.js 16.1.3 (App Router), React 19.2.3, TypeScript 5
+- **前端**: Next.js 16.1.4 (App Router), React 19.2.3, TypeScript 5
 - **样式**: Tailwind CSS 4
 - **数据库**: PostgreSQL (Supabase), Drizzle ORM
 - **缓存**: Upstash Redis
@@ -65,7 +65,7 @@ npx drizzle-kit push # 推送 schema 到数据库
 ### 关键设计原则
 
 1. **引擎层纯逻辑**: `engine/` 目录完全独立于 UI 和框架，可直接在 Node 环境运行和测试
-2. **效果系统驱动**: 游戏中大部分机制通过 Effect 系统实现，包含 17 个触发时机和 20 种效果类型
+2. **效果系统驱动**: 游戏中大部分机制通过 Effect 系统实现，包含 19 个触发时机和 20 种效果类型
 3. **AI 与规则结合**: AI 负责内容生成（战报、背景、描述），引擎负责数值计算
 
 ## 核心目录结构
@@ -157,12 +157,12 @@ npx drizzle-kit push # 推送 schema 到数据库
 **文件**: `engine/effect/types.ts`
 
 ### 触发时机 (EffectTrigger)
-17 个触发时机，包括：
+19 个触发时机，包括：
 - 属性计算：ON_STAT_CALC
 - 战斗流程：ON_TURN_START, ON_TURN_END, ON_BATTLE_START, ON_BATTLE_END
 - 命中相关：ON_CALC_HIT_RATE, ON_DODGE, ON_CRITICAL_HIT, ON_BEING_HIT
 - 伤害相关：ON_BEFORE_DAMAGE, ON_AFTER_DAMAGE, ON_SKILL_HIT, ON_KILL
-- 系统事件：ON_BREAKTHROUGH, ON_HEAL, ON_CONSUME
+- 系统事件：ON_BREAKTHROUGH, ON_HEAL, ON_CONSUME, ON_RETREAT, ON_BREAKTHROUGH_CHECK
 
 ### 效果类型 (EffectType)
 20 种效果类型，包括：
@@ -177,6 +177,9 @@ npx drizzle-kit push # 推送 schema 到数据库
 3. PERCENT（百分比加成）
 4. FINAL（最终修正）
 
+### 效果日志系统
+- **EffectLogCollector**: 统一收集 Effect 执行过程中的日志，用于生成战报和调试
+
 ## Buff 系统
 
 **文件**: `engine/buff/`, `config/buffTemplates.ts`
@@ -184,7 +187,7 @@ npx drizzle-kit push # 推送 schema 到数据库
 - **BuffManager**: Buff 管理器，处理添加/移除/触发
 - **BuffMaterializer**: Buff 实体化器，将模板转为可执行的 Buff
 - **BuffTemplateRegistry**: Buff 模板注册表
-- **20+ Buff 模板**: 包括属性加成、状态效果、特殊机制等
+- **20+ Buff 模板**: 包括属性加成、状态效果、特殊机制等（带 emoji 图标）
 
 ## 战斗引擎
 
@@ -207,6 +210,7 @@ npx drizzle-kit push # 推送 schema 到数据库
 - **GongFaCreationStrategy**: 功法创建策略
 - **RefiningStrategy**: 炼器策略
 - **AlchemyStrategy**: 炼丹策略
+- **CraftCostCalculator**: 资源消耗计算器（灵石/道心感悟）
 
 ## AI 集成
 
@@ -215,6 +219,7 @@ npx drizzle-kit push # 推送 schema 到数据库
 支持的 Provider：
 - DeepSeek
 - 火山引擎 ARK
+- Kimi
 
 主要函数：
 - `text()`: 直接生成文本
@@ -266,6 +271,9 @@ AI 应用场景：
 - `engine/effect/CLAUDE.md`: 效果系统详解
 - `config/CLAUDE.md`: 配置系统详解
 - `types/CLAUDE.md`: 类型定义详解
+- `lib/repositories/CLAUDE.md`: 数据仓储层详解
+- `lib/utils/CLAUDE.md`: 工具函数详解
+- `lib/drizzle/CLAUDE.md`: 数据库 Schema 详解
 
 ## 环境变量
 
@@ -273,10 +281,18 @@ AI 应用场景：
 
 ```bash
 # AI 配置
-PROVIDER_CHOOSE=ark|deepseek
+PROVIDER_CHOOSE=ark|deepseek|kimi
 OPENAI_API_KEY=
 OPENAI_BASE_URL=
 OPENAI_MODEL=
+ARK_API_KEY=
+ARK_BASE_URL=
+ARK_MODEL_USE=
+ARK_MODEL_FAST_USE=
+KIMI_API_KEY=
+KIMI_BASE_URL=
+KIMI_MODEL_USE=
+KIMI_MODEL_FAST_USE=
 
 # Supabase 配置
 NEXT_PUBLIC_SUPABASE_URL=
