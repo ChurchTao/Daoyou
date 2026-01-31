@@ -88,6 +88,7 @@ async function assembleCultivator(
     required_realm:
       c.required_realm as Cultivator['cultivations'][0]['required_realm'],
     effects: (c.effects ?? []) as Cultivator['cultivations'][0]['effects'],
+    description: c.description || undefined,
   }));
 
   // 组装技能（使用数据库 UUID 作为 id）
