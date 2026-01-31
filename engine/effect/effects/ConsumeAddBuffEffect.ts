@@ -118,10 +118,12 @@ export class ConsumeAddBuffEffect extends BaseEffect {
       : '';
     const usesText = this.maxUses ? `，使用 ${this.maxUses} 次` : '';
 
+    const desc = buffConfig ? `（${buffConfig.description}）` : '';
+
     return {
       label: '添加持久状态',
       icon: buffConfig?.icon,
-      description: `使用后获得「${buffConfig?.name || this.buffId}」状态${expiryText}${usesText}`,
+      description: `使用后获得「${buffConfig?.name || this.buffId}」状态${desc}${expiryText}${usesText}`,
     };
   }
 }
