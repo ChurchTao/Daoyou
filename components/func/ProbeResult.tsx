@@ -124,6 +124,42 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
 
   return (
     <div className="scrollbar-hide max-h-[70vh] space-y-10 overflow-y-auto px-1 pb-6">
+      {/* 身份摘要 */}
+      <section className="bg-ink/3 relative overflow-hidden rounded-2xl p-6">
+        {/* 背景大字装饰 */}
+        <div className="pointer-events-none absolute -top-4 -right-2 text-8xl font-black opacity-[0.03] select-none">
+          {target.realm}
+        </div>
+
+        <div className="relative flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-ink-primary text-2xl font-bold tracking-tight">
+              {target.name}
+            </h3>
+            {target.title && (
+              <span className="bg-ink/5 text-ink-secondary border-ink/5 rounded-full border px-2.5 py-1 text-xs">
+                {target.title}
+              </span>
+            )}
+          </div>
+
+          <div className="text-ink-secondary flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="opacity-50">性别</span>
+              <span className="text-ink-primary">{target.gender}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="opacity-50">境界</span>
+              <span
+                className={cn('font-bold', tierColorMap[target.realm as Tier])}
+              >
+                {target.realm} · {target.realm_stage}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 属性面板 */}
       <section>
         <SectionHeader icon="📊" title="根基底蕴" />
