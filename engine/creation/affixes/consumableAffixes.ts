@@ -50,7 +50,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'vitality',
       modType: StatModifierType.FIXED,
-      value: { base: 3, scale: 'quality', coefficient: 0.5 },
+      value: { base: 5, scale: 'quality', coefficient: 1, round: true },
     },
     weight: 100,
     tags: ['primary', 'defensive'],
@@ -65,7 +65,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'spirit',
       modType: StatModifierType.FIXED,
-      value: { base: 3, scale: 'quality', coefficient: 0.5 },
+      value: { base: 5, scale: 'quality', coefficient: 1, round: true },
     },
     weight: 100,
     tags: ['primary', 'offensive'],
@@ -80,7 +80,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'wisdom',
       modType: StatModifierType.FIXED,
-      value: { base: 2, scale: 'quality', coefficient: 0.3 },
+      value: { base: 5, scale: 'quality', coefficient: 1, round: true },
     },
     weight: 70,
     minQuality: '玄品',
@@ -96,7 +96,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'speed',
       modType: StatModifierType.FIXED,
-      value: { base: 2, scale: 'quality', coefficient: 0.3 },
+      value: { base: 5, scale: 'quality', coefficient: 1, round: true },
     },
     weight: 80,
     tags: ['primary', 'utility'],
@@ -111,7 +111,7 @@ const PRIMARY_AFFIXES: AffixWeight[] = [
     paramsTemplate: {
       stat: 'willpower',
       modType: StatModifierType.FIXED,
-      value: { base: 2, scale: 'quality', coefficient: 0.3 },
+      value: { base: 5, scale: 'quality', coefficient: 1, round: true },
     },
     weight: 80,
     tags: ['primary', 'defensive'],
@@ -131,7 +131,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ConsumeGainCultivationExp,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      value: { base: 50, scale: 'quality', coefficient: 30 },
+      value: { base: 50, scale: 'realm', coefficient: 30, round: true },
     },
     weight: 100,
     tags: ['resource', 'cultivation', 'secondary'],
@@ -145,7 +145,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ConsumeGainComprehension,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      value: { base: 2, scale: 'quality', coefficient: 3 },
+      value: { base: 2, scale: 'quality', coefficient: 3, round: true },
     },
     weight: 80,
     minQuality: '灵品',
@@ -160,7 +160,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     effectType: EffectType.ConsumeGainLifespan,
     trigger: EffectTrigger.ON_CONSUME,
     paramsTemplate: {
-      value: { base: 5, scale: 'quality', coefficient: 2 },
+      value: { base: 5, scale: 'quality', coefficient: 2, round: true },
     },
     weight: 60,
     minQuality: '玄品',
@@ -240,7 +240,6 @@ const BUFF_AFFIXES: AffixWeight[] = [
 
 export const CONSUMABLE_AFFIX_POOL: AffixPool = {
   primary: PRIMARY_AFFIXES,
-  secondary: SECONDARY_AFFIXES,
+  secondary: [...SECONDARY_AFFIXES, ...BUFF_AFFIXES],
   curse: CURSE_AFFIXES,
-  buff: BUFF_AFFIXES,
 };

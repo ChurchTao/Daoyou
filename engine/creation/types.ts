@@ -372,6 +372,8 @@ export interface ScalableValue {
   scale: 'quality' | 'realm' | 'root' | 'wisdom' | 'none';
   /** 可选的缩放系数 */
   coefficient?: number;
+  /** 结果保留整数？ */
+  round?: boolean;
 }
 
 /**
@@ -451,8 +453,6 @@ export interface AffixPool {
   secondary?: AffixWeight[];
   /** 诅咒词条池（可选，用于负面效果） */
   curse?: AffixWeight[];
-  /** 持久化 Buff 池（可选，用于消耗品添加持久化状态） */
-  buff?: AffixWeight[];
 }
 
 /**

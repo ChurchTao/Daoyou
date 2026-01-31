@@ -302,10 +302,10 @@ export class EffectMaterializer {
     // 根据数值类型决定是否取整
     // 小于 1 的值（百分比）保留小数，大于 1 的值（固定值）取整
     let roundedValue: number;
-    if (Math.abs(base) < 1) {
-      roundedValue = Math.round(finalValue * 1000) / 1000; // 保留3位小数
+    if (scalable.round === true) {
+      roundedValue = Math.round(finalValue);
     } else {
-      roundedValue = Math.floor(finalValue * 100) / 100;
+      roundedValue = Math.round(finalValue * 100) / 100; // 保留3位小数
     }
 
     return { value: roundedValue, variance, isPerfect };
