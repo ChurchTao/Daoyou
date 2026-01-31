@@ -16,7 +16,7 @@ export type Tier = Quality | SpiritualRootGrade | SkillGrade | RealmType;
 /**
  * 品阶到 Tailwind 颜色类的映射
  */
-const tierColorMap: Record<Tier, string> = {
+export const tierColorMap: Record<Tier, string> = {
   // 品质
   凡品: 'text-tier-fan',
   灵品: 'text-tier-ling',
