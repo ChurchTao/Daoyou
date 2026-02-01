@@ -1,4 +1,5 @@
 import { EffectTrigger, type IBaseEffect } from '@/engine/effect/types';
+import type { BuffInstanceState } from '@/engine/buff/types';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { effectEngine } from '../effect';
 import { BaseUnit } from './BaseUnit';
@@ -137,5 +138,63 @@ export class CultivatorUnit extends BaseUnit {
     this.attributesDirty = true;
     this.cachedMaxHp = undefined;
     this.cachedMaxMp = undefined;
+  }
+
+  // ============================================================
+  // 持久化状态管理
+  // ============================================================
+
+  /**
+   * 检查单个持久化状态是否有效
+   * @param metadata - Buff 元数据
+   * @returns 是否有效
+   */
+  private isPersistentStatusValid(metadata?: {
+    expiresAt?: number;
+    usesRemaining?: number;
+  }): boolean {
+    if (!metadata) return true;
+
+    // 检查过期时间（expiresAt = 0 表示永久）
+    if (metadata.expiresAt && metadata.expiresAt > 0) {
+      if (Date.now() > metadata.expiresAt) return false;
+    }
+
+    // 检查使用次数
+    if (metadata.usesRemaining !== undefined && metadata.usesRemaining <= 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 获取清理后的有效持久化状态列表
+   * @returns 有效的持久化状态
+   */
+  getValidPersistentStatuses(): BuffInstanceState[] {
+    const statuses = (this.cultivatorData.persistent_statuses ||
+      []) as BuffInstanceState[];
+
+    return statuses.filter((status) => {
+      const metadata = status.metadata as {
+        expiresAt?: number;
+        usesRemaining?: number;
+      } | undefined;
+      return this.isPersistentStatusValid(metadata);
+    });
+  }
+
+  /**
+   * 检查是否有需要清理的过期状态
+   * @returns 是否存在过期的持久化状态
+   */
+  hasDirtyPersistentStatuses(): boolean {
+    const originalStatuses = this.cultivatorData.persistent_statuses as
+      | BuffInstanceState[]
+      | undefined;
+    const originalCount = originalStatuses?.length ?? 0;
+    const validCount = this.getValidPersistentStatuses().length;
+    return originalCount > validCount;
   }
 }

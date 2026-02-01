@@ -1,24 +1,43 @@
 import { buffTemplateRegistry } from '@/engine/buff/BuffTemplateRegistry';
-import type { BuffInstanceState } from '@/engine/buff/types';
+import { CultivatorUnit } from '@/engine/cultivator/CultivatorUnit';
 import { BuffTag } from '@/engine/buff/types';
+import { createMinimalCultivator } from '@/lib/repositories/cultivatorRepository';
+import { cultivators } from '@/lib/drizzle/schema';
 import { withActiveCultivator } from '@/lib/api/withAuth';
+import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/cultivator/persistent-buffs
  * 获取当前激活的持久Buff列表（包括符箓、丹药、伤势等）
+ *
+ * 优化：自动清理过期的持久化状态
  */
 export const GET = withActiveCultivator(
-  async (_request: NextRequest, { cultivator }) => {
-    const persistentStatuses = (cultivator.persistent_statuses ||
-      []) as BuffInstanceState[];
+  async (_request: NextRequest, { cultivator, db: tx }) => {
+    // 将数据库记录转换为 Cultivator 对象
+    const cultivatorData = createMinimalCultivator(cultivator);
+
+    // 使用 CultivatorUnit 统一管理持久化状态
+    const unit = new CultivatorUnit(cultivatorData);
+
+    // 获取清理后的有效状态
+    const validStatuses = unit.getValidPersistentStatuses();
+
+    // 如果有过期状态需要清理，更新数据库
+    if (unit.hasDirtyPersistentStatuses()) {
+      await tx
+        .update(cultivators)
+        .set({ persistent_statuses: validStatuses })
+        .where(eq(cultivators.id, cultivator.id!));
+    }
 
     const persistentBuffIds = buffTemplateRegistry
       .getByTag(BuffTag.PERSISTENT)
       .map((template) => template.id);
 
     // Filter and enrich buff instances with template info
-    const persistentBuffs = persistentStatuses
+    const persistentBuffs = validStatuses
       .filter((s) => persistentBuffIds.includes(s.configId))
       .map((buff) => {
         const template = buffTemplateRegistry.get(buff.configId);
