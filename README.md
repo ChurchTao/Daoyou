@@ -154,7 +154,7 @@
 - **缓存/队列**: [Upstash Redis](https://upstash.com/)
 - **AI 服务**: [Vercel AI SDK 6.0.44](https://sdk.vercel.ai/) + DeepSeek / 火山引擎 ARK / Kimi
 - **部署**: Vercel
-- **包管理器**: npm 10.28.1
+- **包管理器**: npm
 
 ## 架构概览
 
