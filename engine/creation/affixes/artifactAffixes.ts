@@ -255,7 +255,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
   {
     id: ARTIFACT_AFFIX_IDS.SECONDARY_REFLECT_DAMAGE,
     effectType: EffectType.ReflectDamage,
-    trigger: EffectTrigger.ON_AFTER_DAMAGE,
+    trigger: EffectTrigger.ON_BEING_HIT,
     paramsTemplate: {
       reflectPercent: { base: 0.05, scale: 'quality', coefficient: 1.5 },
     },

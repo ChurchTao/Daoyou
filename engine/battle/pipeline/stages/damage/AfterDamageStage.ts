@@ -9,8 +9,8 @@ import {
 /**
  * 伤害后处理阶段
  * 调用 EffectEngine 处理后续效果：
- * - ON_AFTER_DAMAGE: 吸血、反伤等（技能/装备）
- * - ON_BEING_HIT: 被击反击等
+ * - ON_AFTER_DAMAGE: 吸血等（技能/装备）
+ * - ON_BEING_HIT: 被击反击、反伤等（从被攻击者角度）
  */
 export class AfterDamageStage implements PipelineStage<DamagePipelineContext> {
   readonly name = 'AfterDamageStage';
@@ -36,7 +36,7 @@ export class AfterDamageStage implements PipelineStage<DamagePipelineContext> {
         return effect;
       });
 
-    // ON_AFTER_DAMAGE: 吸血、反伤等（从攻击者角度）
+    // ON_AFTER_DAMAGE: 吸血等（从攻击者角度）
     // skillEffects 作为 extraEffects 与装备/Buff 效果一起处理
     const afterDamageResult = effectEngine.processWithContext(
       EffectTrigger.ON_AFTER_DAMAGE,
@@ -53,7 +53,7 @@ export class AfterDamageStage implements PipelineStage<DamagePipelineContext> {
     );
     ctx.logs.push(...afterDamageResult.logs);
 
-    // ON_BEING_HIT: 被击反击等（从目标角度）
+    // ON_BEING_HIT: 被击反击、反伤等（从被攻击者角度）
     const beingHitResult = effectEngine.processWithContext(
       EffectTrigger.ON_BEING_HIT,
       target,

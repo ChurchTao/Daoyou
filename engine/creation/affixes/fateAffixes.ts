@@ -178,7 +178,7 @@ export const FATE_AFFIXES: AffixWeight[] = [
   {
     id: FATE_AFFIX_IDS.FATE_THORNS,
     effectType: EffectType.ReflectDamage,
-    trigger: EffectTrigger.ON_AFTER_DAMAGE,
+    trigger: EffectTrigger.ON_BEING_HIT,
     paramsTemplate: {
       reflectPercent: { base: 0.15, scale: 'quality', coefficient: 0.5 },
     },
