@@ -1,13 +1,14 @@
-import { CreationEngine } from '@/engine/creation/CreationEngine';
 import {
   calculateMaxQuality,
   getCostDescription,
 } from '@/engine/creation/CraftCostCalculator';
-import { materials } from '@/lib/drizzle/schema';
+import { CreationEngine } from '@/engine/creation/CreationEngine';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { materials } from '@/lib/drizzle/schema';
+import { Quality } from '@/types/constants';
 import { inArray } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const creationEngine = new CreationEngine();
@@ -29,10 +30,7 @@ export const GET = withActiveCultivator(
     const craftType = searchParams.get('craftType');
 
     if (!craftType) {
-      return NextResponse.json(
-        { error: '请指定造物类型' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: '请指定造物类型' }, { status: 400 });
     }
 
     if (
@@ -55,7 +53,8 @@ export const GET = withActiveCultivator(
       const progress = cultivator.cultivation_progress as {
         comprehension_insight?: number;
       } | null;
-      canAfford = (progress?.comprehension_insight || 0) >= (cost.comprehension || 0);
+      canAfford =
+        (progress?.comprehension_insight || 0) >= (cost.comprehension || 0);
     } else {
       // 炼丹/炼器需要根据材料计算
       const materialIds = materialIdsParam!.split(',');
@@ -65,14 +64,11 @@ export const GET = withActiveCultivator(
         .where(inArray(materials.id, materialIds));
 
       if (materialsData.length === 0) {
-        return NextResponse.json(
-          { error: '未找到有效材料' },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: '未找到有效材料' }, { status: 400 });
       }
 
       const maxQuality = calculateMaxQuality(
-        materialsData as Array<{ rank: any }>,
+        materialsData as Array<{ rank: Quality }>,
       );
       cost = getCostDescription(maxQuality, craftType);
 
@@ -83,7 +79,8 @@ export const GET = withActiveCultivator(
         const progress = cultivator.cultivation_progress as {
           comprehension_insight?: number;
         } | null;
-        canAfford = (progress?.comprehension_insight || 0) >= cost.comprehension;
+        canAfford =
+          (progress?.comprehension_insight || 0) >= cost.comprehension;
       }
     }
 
