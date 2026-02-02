@@ -53,7 +53,6 @@ export default function AlchemyPage() {
       setEstimatedCost(null);
       setCanAfford(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMaterialIds]);
 
   const fetchCostEstimate = async (
@@ -150,7 +149,7 @@ export default function AlchemyPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">丹火温养中……</p>
       </div>
     );
@@ -176,7 +175,7 @@ export default function AlchemyPage() {
     >
       <InkSection title="1. 甄选灵草">
         {inventory.materials && inventory.materials.length > 0 ? (
-          <div className="max-h-60 overflow-y-auto border border-ink-border rounded p-2">
+          <div className="border-ink-border max-h-60 overflow-y-auto rounded border p-2">
             <InkList dense>
               {inventory.materials
                 .filter((m) => m.type != 'ore' && m.type != 'manual')
@@ -187,13 +186,13 @@ export default function AlchemyPage() {
                     <div
                       key={m.id}
                       onClick={() => !isSubmitting && toggleMaterial(m.id!)}
-                      className={`cursor-pointer border-b border-ink-border/30 last:border-0 p-2 transition-colors ${
+                      className={`border-ink-border/30 cursor-pointer border-b p-2 transition-colors last:border-0 ${
                         isSelected
                           ? 'bg-emerald-900/10'
                           : 'hover:bg-ink-primary/5'
                       }`}
                     >
-                      <div className="flex justify-between items-center">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -207,7 +206,7 @@ export default function AlchemyPage() {
                           <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-ink-secondary">
+                          <span className="text-ink-secondary text-xs">
                             x{m.quantity}
                           </span>
                           <InkButton
@@ -221,7 +220,7 @@ export default function AlchemyPage() {
                           </InkButton>
                         </div>
                       </div>
-                      <div className="text-xs text-ink-secondary ml-6 mt-1 truncate">
+                      <div className="text-ink-secondary mt-1 ml-6 truncate text-xs">
                         {m.description || '无描述'}
                       </div>
                     </div>
@@ -232,14 +231,14 @@ export default function AlchemyPage() {
         ) : (
           <InkNotice>囊中羞涩，暂无灵草。</InkNotice>
         )}
-        <p className="text-right text-xs text-ink-secondary mt-1">
+        <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
       </InkSection>
 
       <InkSection title="预计消耗">
         {estimatedCost ? (
-          <div className="flex items-center justify-between p-3 bg-ink/5 rounded-lg border border-ink/10">
+          <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
             <span className="text-sm">
               灵石：
               <span className="font-bold text-amber-600">
@@ -322,23 +321,23 @@ export default function AlchemyPage() {
         {viewingMaterial && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="text-4xl p-2 bg-ink/5 rounded-lg border border-ink/10">
+              <div className="bg-ink/5 border-ink/10 rounded-lg border p-2 text-4xl">
                 {getMaterialTypeInfo(viewingMaterial.type).icon}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold ">{viewingMaterial.name}</h3>
+                  <h3 className="text-lg font-bold">{viewingMaterial.name}</h3>
                   <InkBadge tier={viewingMaterial.rank}>
                     {`${getMaterialTypeInfo(viewingMaterial.type).label} · ${viewingMaterial.element}`}
                   </InkBadge>
                 </div>
-                <p className="text-sm text-ink-secondary">
+                <p className="text-ink-secondary text-sm">
                   拥有数量：{viewingMaterial.quantity}
                 </p>
               </div>
             </div>
 
-            <div className="bg-ink/5 p-3 rounded-lg border border-ink/10">
+            <div className="bg-ink/5 border-ink/10 rounded-lg border p-3">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {viewingMaterial.description || '此物灵韵内敛，暂无详细记载。'}
               </p>
