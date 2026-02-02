@@ -31,6 +31,64 @@ import type {
  */
 export class RewardFactory {
   /**
+   * 根据评级生成基础奖励（灵石、修为、感悟值）
+   *
+   * S: 大量灵石+修为+感悟
+   * A: 中等灵石+修为
+   * B: 少量灵石+修为
+   * C: 少量灵石
+   * D: 少量灵石
+   *
+   * @param mapRealm 地图境界门槛
+   * @param tier 副本评级 (S/A/B/C/D)
+   * @param dangerScore 危险系数 (0-100)
+   * @returns 基础奖励操作数组
+   */
+  static generateBaseRewards(
+    mapRealm: RealmType,
+    tier: string,
+    dangerScore: number,
+  ): ResourceOperation[] {
+    const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
+    const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
+    const dangerBonus = this.getDangerBonus(dangerScore);
+
+    const rewards: ResourceOperation[] = [];
+
+    // 所有评级都有灵石奖励
+    rewards.push({
+      type: 'spirit_stones',
+      value: this.randomInRange(config.spirit_stones, multiplier, dangerBonus),
+    });
+
+    // S/A/B 评级有修为奖励
+    if (['S', 'A', 'B'].includes(tier)) {
+      rewards.push({
+        type: 'cultivation_exp',
+        value: this.randomInRange(
+          config.cultivation_exp,
+          multiplier,
+          dangerBonus,
+        ),
+      });
+    }
+
+    // 仅 S 评级有感悟值奖励
+    if (tier === 'S') {
+      rewards.push({
+        type: 'comprehension_insight',
+        value: this.randomInRange(
+          config.comprehension_insight,
+          multiplier,
+          dangerBonus,
+        ),
+      });
+    }
+
+    return rewards;
+  }
+
+  /**
    * 将 AI 蓝图数组转化为实际的 ResourceOperation 数组
    */
   static materialize(
@@ -42,6 +100,31 @@ export class RewardFactory {
     return blueprints.map((bp) =>
       this.materializeOne(bp, mapRealm, tier, dangerScore),
     );
+  }
+
+  /**
+   * 生成完整奖励：基础奖励 + 材料奖励
+   *
+   * @param blueprints AI 生成的奖励蓝图数组
+   * @param mapRealm 地图境界门槛
+   * @param tier 副本评级 (S/A/B/C/D)
+   * @param dangerScore 危险系数 (0-100)
+   * @returns 完整的资源操作数组
+   */
+  static generateAllRewards(
+    blueprints: RewardBlueprint[],
+    mapRealm: RealmType,
+    tier: string,
+    dangerScore: number,
+  ): ResourceOperation[] {
+    // 生成基础奖励（灵石、修为、感悟值）
+    const baseRewards = this.generateBaseRewards(mapRealm, tier, dangerScore);
+
+    // 实体化材料奖励
+    const materialRewards = this.materialize(blueprints, mapRealm, tier, dangerScore);
+
+    // 合并返回
+    return [...baseRewards, ...materialRewards];
   }
 
   /**

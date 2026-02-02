@@ -678,10 +678,10 @@ ${materialTypeTable}
         ? (mapNode as SatelliteNode).realm_requirement
         : ('筑基' as RealmType);
 
-    const realGains = this.generateRealRewards(
+    const realGains = RewardFactory.generateAllRewards(
       settlement.settlement.reward_blueprints as RewardBlueprint[],
-      settlement.settlement.reward_tier,
       mapRealm,
+      settlement.settlement.reward_tier,
       state.dangerScore, // 传递危险分数用于奖励计算
     );
 
@@ -809,7 +809,7 @@ ${materialTypeTable}
   }
 
   /**
-   * 使用 RewardFactory 将 AI 蓝图转化为真实奖励
+   * 使用 RewardFactory 生成完整奖励（基础奖励 + 材料奖励）
    */
   generateRealRewards(
     blueprints: RewardBlueprint[],
@@ -817,7 +817,12 @@ ${materialTypeTable}
     mapRealm: RealmType,
     dangerScore: number,
   ): ResourceOperation[] {
-    return RewardFactory.materialize(blueprints, mapRealm, tier, dangerScore);
+    return RewardFactory.generateAllRewards(
+      blueprints,
+      mapRealm,
+      tier,
+      dangerScore,
+    );
   }
 
   async archiveDungeon(
