@@ -30,9 +30,6 @@ export type QualityHint = 'lower' | 'medium' | 'upper';
  * AI生成的奖励蓝图 - 只包含创意内容，不包含数值
  */
 export interface RewardBlueprint {
-  /** 奖励类型 - 限定为资源引擎支持的类型 */
-  type: RewardType;
-
   /** 物品名称 (AI创意) - 仅 material 需要 */
   name?: string;
 

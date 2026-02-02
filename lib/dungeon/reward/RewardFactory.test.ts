@@ -9,16 +9,15 @@
  * - 分布统计特性
  */
 
+import { QUALITY_VALUES } from '@/types/constants';
 import { RewardFactory } from './RewardFactory';
 import type { RewardBlueprint } from './types';
-import { QUALITY_VALUES } from '@/types/constants';
 
 // 辅助函数：创建材料蓝图
 function createMaterialBlueprint(
   quality_hint: 'lower' | 'medium' | 'upper' = 'medium',
 ): RewardBlueprint {
   return {
-    type: 'material',
     name: '测试材料',
     description: '用于测试的材料',
     quality_hint,
@@ -29,7 +28,16 @@ function createMaterialBlueprint(
 
 // 辅助函数：批量生成材料并统计品质分布
 function generateQualityDistribution(
-  realm: '炼气' | '筑基' | '金丹' | '元婴' | '化神' | '炼虚' | '合体' | '大乘' | '渡劫',
+  realm:
+    | '炼气'
+    | '筑基'
+    | '金丹'
+    | '元婴'
+    | '化神'
+    | '炼虚'
+    | '合体'
+    | '大乘'
+    | '渡劫',
   tier: 'S' | 'A' | 'B' | 'C' | 'D',
   dangerScore: number,
   quality_hint: 'lower' | 'medium' | 'upper' = 'medium',
@@ -43,7 +51,12 @@ function generateQualityDistribution(
 
   // 批量生成
   for (let i = 0; i < sampleSize; i++) {
-    const results = RewardFactory.materialize([blueprint], realm, tier, dangerScore);
+    const results = RewardFactory.materialize(
+      [blueprint],
+      realm,
+      tier,
+      dangerScore,
+    );
     const material = results[0].data as { rank: string };
     const quality = material.rank;
     distribution[quality]++;
@@ -79,7 +92,9 @@ function printDistributionTable(
   QUALITY_VALUES.forEach((quality) => {
     const count = distribution[quality] || 0;
     const percentage = ((count / sampleSize) * 100).toFixed(2);
-    console.log(`│ ${quality.padEnd(8)} │ ${count.toString().padStart(8)} │ ${percentage.padStart(7)}% │`);
+    console.log(
+      `│ ${quality.padEnd(8)} │ ${count.toString().padStart(8)} │ ${percentage.padStart(7)}% │`,
+    );
   });
 
   console.log('└──────────┴──────────┴──────────┘');
@@ -108,7 +123,6 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
     test('应该正确设置材料属性', () => {
       const blueprint: RewardBlueprint = {
-        type: 'material',
         name: '火灵芝',
         description: '火焰属性的灵芝',
         quality_hint: 'upper',
@@ -135,7 +149,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
   describe('地图境界影响测试', () => {
     test('炼气副本：品质应集中在低等级（凡品、灵品）', () => {
-      const distribution = generateQualityDistribution('炼气', 'C', 0, 'medium', 5000);
+      const distribution = generateQualityDistribution(
+        '炼气',
+        'C',
+        0,
+        'medium',
+        5000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 5000);
 
       console.log('\n=== 炼气副本 (C级, 危险0) ===');
@@ -151,7 +171,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('筑基副本：品质应集中在中等等级（灵品、玄品）', () => {
-      const distribution = generateQualityDistribution('筑基', 'C', 0, 'medium', 5000);
+      const distribution = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'medium',
+        5000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 5000);
 
       console.log('\n=== 筑基副本 (C级, 危险0) ===');
@@ -167,7 +193,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('金丹副本：品质应集中在中高等级（玄品、真品）', () => {
-      const distribution = generateQualityDistribution('金丹', 'C', 0, 'medium', 5000);
+      const distribution = generateQualityDistribution(
+        '金丹',
+        'C',
+        0,
+        'medium',
+        5000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 5000);
 
       console.log('\n=== 金丹副本 (C级, 危险0) ===');
@@ -179,7 +211,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('元婴副本：品质应集中在高等级（真品、地品）', () => {
-      const distribution = generateQualityDistribution('元婴', 'C', 0, 'medium', 5000);
+      const distribution = generateQualityDistribution(
+        '元婴',
+        'C',
+        0,
+        'medium',
+        5000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 5000);
 
       console.log('\n=== 元婴副本 (C级, 危险0) ===');
@@ -280,7 +318,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
   describe('危险系数影响测试', () => {
     test('高危险系数应显著提高品质', () => {
-      const distHigh = generateQualityDistribution('筑基', 'C', 100, 'medium', 5000);
+      const distHigh = generateQualityDistribution(
+        '筑基',
+        'C',
+        100,
+        'medium',
+        5000,
+      );
       const avgIndexHigh = calculateAverageQualityIndex(distHigh, 5000);
 
       console.log('\n=== 筑基副本 C级评分 (危险100) ===');
@@ -292,7 +336,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('低危险系数应略微提高品质', () => {
-      const distLow = generateQualityDistribution('筑基', 'C', 20, 'medium', 5000);
+      const distLow = generateQualityDistribution(
+        '筑基',
+        'C',
+        20,
+        'medium',
+        5000,
+      );
       const avgIndexLow = calculateAverageQualityIndex(distLow, 5000);
 
       console.log('\n=== 筑基副本 C级评分 (危险20) ===');
@@ -304,8 +354,20 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('危险系数影响：100 > 50 > 0', () => {
-      const dist100 = generateQualityDistribution('筑基', 'C', 100, 'medium', 2000);
-      const dist50 = generateQualityDistribution('筑基', 'C', 50, 'medium', 2000);
+      const dist100 = generateQualityDistribution(
+        '筑基',
+        'C',
+        100,
+        'medium',
+        2000,
+      );
+      const dist50 = generateQualityDistribution(
+        '筑基',
+        'C',
+        50,
+        'medium',
+        2000,
+      );
       const dist0 = generateQualityDistribution('筑基', 'C', 0, 'medium', 2000);
 
       const avgIndex100 = calculateAverageQualityIndex(dist100, 2000);
@@ -324,7 +386,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
   describe('AI提示影响测试', () => {
     test('upper提示应提高品质', () => {
-      const distUpper = generateQualityDistribution('筑基', 'C', 0, 'upper', 5000);
+      const distUpper = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'upper',
+        5000,
+      );
       const avgIndexUpper = calculateAverageQualityIndex(distUpper, 5000);
 
       console.log('\n=== 筑基副本 C级评分 (upper提示, 危险0) ===');
@@ -335,7 +403,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('lower提示应降低品质', () => {
-      const distLower = generateQualityDistribution('筑基', 'C', 0, 'lower', 5000);
+      const distLower = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'lower',
+        5000,
+      );
       const avgIndexLower = calculateAverageQualityIndex(distLower, 5000);
 
       console.log('\n=== 筑基副本 C级评分 (lower提示, 危险0) ===');
@@ -346,7 +420,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('medium提示为基准', () => {
-      const distMedium = generateQualityDistribution('筑基', 'C', 0, 'medium', 5000);
+      const distMedium = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'medium',
+        5000,
+      );
       const avgIndexMedium = calculateAverageQualityIndex(distMedium, 5000);
 
       console.log('\n=== 筑基副本 C级评分 (medium提示, 危险0) ===');
@@ -358,9 +438,27 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('AI提示影响：upper > medium > lower', () => {
-      const distUpper = generateQualityDistribution('筑基', 'C', 0, 'upper', 2000);
-      const distMedium = generateQualityDistribution('筑基', 'C', 0, 'medium', 2000);
-      const distLower = generateQualityDistribution('筑基', 'C', 0, 'lower', 2000);
+      const distUpper = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'upper',
+        2000,
+      );
+      const distMedium = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'medium',
+        2000,
+      );
+      const distLower = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'lower',
+        2000,
+      );
 
       const avgIndexUpper = calculateAverageQualityIndex(distUpper, 2000);
       const avgIndexMedium = calculateAverageQualityIndex(distMedium, 2000);
@@ -378,7 +476,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
   describe('边界情况测试', () => {
     test('最低配置：炼气 + D级 + 危险0 + lower提示', () => {
-      const distribution = generateQualityDistribution('炼气', 'D', 0, 'lower', 5000);
+      const distribution = generateQualityDistribution(
+        '炼气',
+        'D',
+        0,
+        'lower',
+        5000,
+      );
 
       console.log('\n=== 最低配置测试 ===');
       printDistributionTable(distribution, 5000);
@@ -388,7 +492,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('最高配置：渡劫 + S级 + 危险100 + upper提示', () => {
-      const distribution = generateQualityDistribution('渡劫', 'S', 100, 'upper', 5000);
+      const distribution = generateQualityDistribution(
+        '渡劫',
+        'S',
+        100,
+        'upper',
+        5000,
+      );
 
       console.log('\n=== 最高配置测试 ===');
       printDistributionTable(distribution, 5000);
@@ -421,7 +531,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
   describe('综合场景测试', () => {
     test('最佳场景：高境界 + S级 + 高危险 + upper提示', () => {
-      const distribution = generateQualityDistribution('元婴', 'S', 90, 'upper', 3000);
+      const distribution = generateQualityDistribution(
+        '元婴',
+        'S',
+        90,
+        'upper',
+        3000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 3000);
 
       console.log('\n=== 最佳场景：元婴 + S级 + 危险90 + upper ===');
@@ -432,7 +548,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('最差场景：低境界 + D级 + 低危险 + lower提示', () => {
-      const distribution = generateQualityDistribution('炼气', 'D', 10, 'lower', 3000);
+      const distribution = generateQualityDistribution(
+        '炼气',
+        'D',
+        10,
+        'lower',
+        3000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 3000);
 
       console.log('\n=== 最差场景：炼气 + D级 + 危险10 + lower ===');
@@ -443,7 +565,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
     });
 
     test('中等场景：中等境界 + B级 + 中等危险 + medium提示', () => {
-      const distribution = generateQualityDistribution('金丹', 'B', 50, 'medium', 3000);
+      const distribution = generateQualityDistribution(
+        '金丹',
+        'B',
+        50,
+        'medium',
+        3000,
+      );
       const avgIndex = calculateAverageQualityIndex(distribution, 3000);
 
       console.log('\n=== 中等场景：金丹 + B级 + 危险50 + medium ===');
@@ -457,7 +585,13 @@ describe('RewardFactory - 材料品质生成测试', () => {
 
   describe('正态分布特性测试', () => {
     test('品质应呈现正态分布（钟形曲线）', () => {
-      const distribution = generateQualityDistribution('筑基', 'C', 0, 'medium', 10000);
+      const distribution = generateQualityDistribution(
+        '筑基',
+        'C',
+        0,
+        'medium',
+        10000,
+      );
 
       console.log('\n=== 正态分布测试 (样本10000) ===');
       printDistributionTable(distribution, 10000);

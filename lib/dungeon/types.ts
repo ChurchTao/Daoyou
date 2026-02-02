@@ -80,51 +80,27 @@ export const DungeonRoundSchema = z.object({
 });
 
 // 奖励蓝图 Schema - AI 只生成创意内容，数值由程序计算
-export const RewardBlueprintSchema = z
-  .object({
-    // 奖励类型 - 必须明确指定
-    type: z
-      .enum(['spirit_stones', 'material', 'cultivation_exp', 'comprehension_insight'])
-      .describe('奖励类型（必须）'),
-    // material 类型专用字段
-    name: z.string().optional().describe('物品名称（material类型必填）'),
-    description: z.string().optional().describe('物品描述（material类型必填）'),
-    // 材料类型 - 仅 material 类型需要
-    material_type: z
-      .enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'manual'])
-      .optional()
-      .describe(
-        '材料类型：herb=草药, ore=矿石, monster=妖兽材料, tcdb=天材地宝, aux=辅助, manual=功法/神通',
-      ),
-    // 元素 - 仅 material 类型需要
-    element: z
-      .enum(['金', '木', '水', '火', '土', '风', '雷', '冰'])
-      .optional()
-      .describe('元素'),
-    quality_hint: z
-      .enum(['lower', 'medium', 'upper'])
-      .optional()
-      .describe('品质提示：lower=下品, medium=中品, upper=上品'),
-  })
-  .refine(
-    (data) => {
-      // 当 type 为 material 时，必须有完整字段
-      if (data.type === 'material') {
-        return !!(
-          data.name &&
-          data.description &&
-          data.material_type &&
-          data.element &&
-          data.quality_hint
-        );
-      }
-      return true;
-    },
-    {
-      message:
-        'material 类型必须包含：name, description, material_type, element, quality_hint',
-    },
-  );
+export const RewardBlueprintSchema = z.object({
+  // material 类型专用字段
+  name: z.string().optional().describe('物品名称（material类型必填）'),
+  description: z.string().optional().describe('物品描述（material类型必填）'),
+  // 材料类型 - 仅 material 类型需要
+  material_type: z
+    .enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'manual'])
+    .optional()
+    .describe(
+      '材料类型：herb=草药, ore=矿石, monster=妖兽材料, tcdb=天材地宝, aux=辅助, manual=功法/神通',
+    ),
+  // 元素 - 仅 material 类型需要
+  element: z
+    .enum(['金', '木', '水', '火', '土', '风', '雷', '冰'])
+    .optional()
+    .describe('元素'),
+  quality_hint: z
+    .enum(['lower', 'medium', 'upper'])
+    .optional()
+    .describe('品质提示：lower=下品, medium=中品, upper=上品'),
+});
 
 // Settlement info from AI
 export const DungeonSettlementSchema = z

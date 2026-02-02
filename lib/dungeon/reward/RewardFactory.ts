@@ -11,7 +11,7 @@
  */
 
 import type { ResourceOperation } from '@/engine/resource/types';
-import type { Quality, RealmType, ElementType } from '@/types/constants';
+import type { ElementType, Quality, RealmType } from '@/types/constants';
 import { QUALITY_VALUES, REALM_VALUES } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import {
@@ -121,7 +121,12 @@ export class RewardFactory {
     const baseRewards = this.generateBaseRewards(mapRealm, tier, dangerScore);
 
     // 实体化材料奖励
-    const materialRewards = this.materialize(blueprints, mapRealm, tier, dangerScore);
+    const materialRewards = this.materialize(
+      blueprints,
+      mapRealm,
+      tier,
+      dangerScore,
+    );
 
     // 合并返回
     return [...baseRewards, ...materialRewards];
@@ -139,62 +144,14 @@ export class RewardFactory {
     const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
     const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
     const dangerBonus = this.getDangerBonus(dangerScore);
-
-    switch (blueprint.type) {
-      case 'spirit_stones':
-        return {
-          type: 'spirit_stones',
-          value: this.randomInRange(
-            config.spirit_stones,
-            multiplier,
-            dangerBonus,
-          ),
-        };
-
-      case 'material':
-        return this.createMaterial(
-          blueprint,
-          config,
-          multiplier,
-          dangerBonus,
-          mapRealm,
-          tier,
-        );
-
-      case 'cultivation_exp':
-        return {
-          type: 'cultivation_exp',
-          value: this.randomInRange(
-            config.cultivation_exp,
-            multiplier,
-            dangerBonus,
-          ),
-        };
-
-      case 'comprehension_insight':
-        return {
-          type: 'comprehension_insight',
-          value: this.randomInRange(
-            config.comprehension_insight,
-            multiplier,
-            dangerBonus,
-          ),
-        };
-
-      default:
-        // Fallback: 返回灵石
-        console.warn(
-          `[RewardFactory] Unknown reward type: ${blueprint.type}, using spirit_stones as fallback`,
-        );
-        return {
-          type: 'spirit_stones',
-          value: this.randomInRange(
-            config.spirit_stones,
-            multiplier,
-            dangerBonus,
-          ),
-        };
-    }
+    return this.createMaterial(
+      blueprint,
+      config,
+      multiplier,
+      dangerBonus,
+      mapRealm,
+      tier,
+    );
   }
 
   // ============ 具体奖励创建方法 ============
@@ -229,7 +186,8 @@ export class RewardFactory {
     );
 
     // 推断材料类型
-    const materialType = bp.material_type || this.inferMaterialType(bp.description || '');
+    const materialType =
+      bp.material_type || this.inferMaterialType(bp.description || '');
 
     const material: Material = {
       name: bp.name || '未知材料',
@@ -279,13 +237,32 @@ export class RewardFactory {
   private static inferElement(description: string): ElementType {
     const lowerDesc = description.toLowerCase();
     const elementMap: Record<string, ElementType> = {
-      '火': '火', '焰': '火', '炎': '火', '焚': '火',
-      '水': '水', '冰': '冰', '寒': '冰', '霜': '冰',
-      '木': '木', '草': '木', '藤': '木', '林': '木', '花': '木',
-      '铁': '金', '剑': '金', '锐': '金',
-      '土': '土', '石': '土', '岩': '土', '山': '土',
-      '雷': '雷', '电': '雷', '霆': '雷',
-      '风': '风', '气': '风', '云': '风',
+      火: '火',
+      焰: '火',
+      炎: '火',
+      焚: '火',
+      水: '水',
+      冰: '冰',
+      寒: '冰',
+      霜: '冰',
+      木: '木',
+      草: '木',
+      藤: '木',
+      林: '木',
+      花: '木',
+      铁: '金',
+      剑: '金',
+      锐: '金',
+      土: '土',
+      石: '土',
+      岩: '土',
+      山: '土',
+      雷: '雷',
+      电: '雷',
+      霆: '雷',
+      风: '风',
+      气: '风',
+      云: '风',
     };
 
     for (const [keyword, element] of Object.entries(elementMap)) {
@@ -345,10 +322,14 @@ export class RewardFactory {
     const randomOffset = this.generateGaussianRandom() * 1.0;
 
     // 6. 计算最终品质索引
-    let finalIndex = baseIndex + tierOffset + dangerOffset + hintOffset + randomOffset;
+    let finalIndex =
+      baseIndex + tierOffset + dangerOffset + hintOffset + randomOffset;
 
     // 7. 边界限制：确保在有效范围内
-    finalIndex = Math.max(0, Math.min(Math.floor(finalIndex), QUALITY_VALUES.length - 1));
+    finalIndex = Math.max(
+      0,
+      Math.min(Math.floor(finalIndex), QUALITY_VALUES.length - 1),
+    );
 
     return QUALITY_VALUES[finalIndex];
   }

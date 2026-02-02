@@ -808,23 +808,6 @@ ${materialTypeTable}
     return mapNode;
   }
 
-  /**
-   * 使用 RewardFactory 生成完整奖励（基础奖励 + 材料奖励）
-   */
-  generateRealRewards(
-    blueprints: RewardBlueprint[],
-    tier: string,
-    mapRealm: RealmType,
-    dangerScore: number,
-  ): ResourceOperation[] {
-    return RewardFactory.generateAllRewards(
-      blueprints,
-      mapRealm,
-      tier,
-      dangerScore,
-    );
-  }
-
   async archiveDungeon(
     state: DungeonState,
     settlement: DungeonSettlement,
