@@ -1,10 +1,10 @@
 import { changelogs } from '@/data/changelog';
-import { screenshots as screenshotGroups } from '@/data/screenshot';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from './Navbar';
 import { ScrollHint } from './ScrollHint';
 import { SpiritParticles } from './SpiritParticles';
+import { ScreenshotGallery } from './components/ScreenshotGallery';
 import './landing.css';
 
 // --- Icons (Inline SVG) ---
@@ -254,52 +254,15 @@ export default function LandingPage() {
         className="ink-wash-bg scroll-mt-20 px-4 py-20 md:py-28"
       >
         <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
+          <div className="mb-12 text-center">
             <h2 className="font-heading text-ink section-title-decorated text-3xl md:text-4xl">
               游戏一览
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
-            <div className="space-y-12 md:space-y-16 md:col-span-3">
-              {screenshotGroups.map((group) => (
-                <div key={group.title} className="space-y-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="font-heading text-ink text-2xl md:text-3xl">
-                      {group.title}
-                    </h3>
-                    <span className="text-ink-muted text-xs tracking-[0.3em]">
-                      {String(group.screenshots.length).padStart(2, '0')} 张
-                    </span>
-                  </div>
+          <ScreenshotGallery />
 
-                  <div className="screenshot-grid">
-                    {group.screenshots.map((shot) => (
-                      <figure
-                        key={shot.url}
-                        className="screenshot-card group cursor-default shadow-lg"
-                      >
-                        <div className="relative aspect-[4/3] w-full overflow-hidden">
-                          <Image
-                            src={shot.url}
-                            alt={shot.alt}
-                            fill
-                            sizes="(min-width: 1024px) 30vw, (min-width: 768px) 45vw, 90vw"
-                            className="screenshot-image object-cover"
-                          />
-                        </div>
-                        <figcaption className="screenshot-caption">
-                          {shot.alt}
-                        </figcaption>
-                      </figure>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-12 text-center">
+          <div className="mt-16 text-center">
             <Link
               href="/create"
               className="text-crimson hover:text-ink font-heading border-crimson/30 hover:border-ink inline-flex items-center gap-2 border-b pb-0.5 text-lg transition-colors"

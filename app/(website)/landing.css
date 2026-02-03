@@ -242,55 +242,6 @@
   box-shadow: 0 10px 40px rgba(44, 24, 16, 0.15);
 }
 
-/* 截图卡片 */
-.screenshot-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(44, 24, 16, 0.1);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-  background: #fdfbf7;
-}
-
-.screenshot-grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.screenshot-image {
-  transition: transform 0.5s ease;
-}
-
-.screenshot-card:hover .screenshot-image {
-  transform: scale(1.03);
-}
-
-.screenshot-caption {
-  display: block;
-  padding: 10px 12px;
-  font-size: 0.85rem;
-  color: var(--color-ink-secondary);
-  border-top: 1px solid rgba(44, 24, 16, 0.08);
-  background: rgba(248, 243, 230, 0.8);
-}
-
-.screenshot-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 30px rgba(44, 24, 16, 0.2);
-}
-
-.screenshot-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(44, 24, 16, 0.1);
-  border-radius: 8px;
-  pointer-events: none;
-}
-
 /* 古籍边框装饰 - "文武框"风格 */
 .ancient-border {
   position: relative;
@@ -442,19 +393,171 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
-
-  .screenshot-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
-  }
 }
 
 @media (min-width: 1024px) {
   .features-grid {
     grid-template-columns: repeat(4, 1fr);
   }
+}
 
-  .screenshot-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+/* --- Screenshot Gallery --- */
+
+/* Category Tabs */
+.category-tabs-container {
+  position: relative;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .category-tabs {
+    justify-content: center;
+    flex-wrap: wrap;
   }
+}
+
+.category-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(248, 243, 230, 0.8);
+  border: 2px solid rgba(44, 24, 16, 0.2);
+  border-radius: 4px;
+  font-family: var(--font-ma-shan-zheng);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+.category-tab:hover {
+  border-color: var(--color-crimson);
+  background: rgba(248, 243, 230, 1);
+  transform: translateY(-1px);
+}
+
+.category-tab:active {
+  transform: translateY(0);
+}
+
+.category-tab-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.category-tab-label {
+  font-weight: 500;
+}
+
+.category-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(44, 24, 16, 0.1);
+  border-radius: 10px;
+  color: var(--color-ink-secondary);
+}
+
+.category-tab-active {
+  background: var(--color-crimson);
+  border-color: var(--color-crimson);
+  color: var(--color-paper);
+}
+
+.category-tab-active .category-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--color-paper);
+}
+
+/* Screenshot Masonry Grid */
+.screenshot-masonry {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-flow: dense;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .screenshot-masonry {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .screenshot-masonry {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Enhanced Screenshot Card */
+.screenshot-card-enhanced {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-paper);
+  box-shadow: 0 4px 16px rgba(44, 24, 16, 0.1);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.screenshot-card-enhanced:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(44, 24, 16, 0.18);
+}
+
+.screenshot-image-enhanced {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.screenshot-card-enhanced:hover .screenshot-image-enhanced {
+  transform: scale(1.05);
+}
+
+/* Hover overlay */
+.screenshot-hover-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(44, 24, 16, 0.3) 0%,
+    rgba(44, 24, 16, 0.5) 100%
+  );
+}
+
+.screenshot-card-enhanced:hover .screenshot-hover-overlay {
+  opacity: 1;
+}
+
+.screenshot-caption-enhanced {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(44, 24, 16, 0.08);
+  background: rgba(248, 243, 230, 0.9);
+}
+
+/* Screenshot Gallery container */
+.screenshot-gallery {
+  opacity: 0;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
