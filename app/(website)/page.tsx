@@ -1,4 +1,5 @@
 import { changelogs } from '@/data/changelog';
+import { screenshots as screenshotGroups } from '@/data/screenshot';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from './Navbar';
@@ -94,99 +95,6 @@ function IconWorld({ className }: { className?: string }) {
   );
 }
 
-// --- Mockup Component ---
-
-function ScreenshotMockup({ type, title }: { type: string; title: string }) {
-  return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded bg-[#FDFBF7] select-none">
-      {/* Fake Toolbar */}
-      <div className="flex h-6 items-center gap-1.5 border-b border-[#D8CFC0] bg-[#EBE4D5] px-2">
-        <div className="h-2 w-2 rounded-full bg-[#C1121F] opacity-40"></div>
-        <div className="h-2 w-2 rounded-full bg-[#8B4513] opacity-40"></div>
-        <div className="h-2 w-2 rounded-full bg-[#4A7C59] opacity-40"></div>
-      </div>
-
-      {/* Content Area */}
-      <div className="relative flex flex-1 flex-col gap-2 overflow-hidden p-3">
-        {/* Decorative Watermark */}
-        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5">
-          <span className="font-heading text-ink text-6xl">道</span>
-        </div>
-
-        {/* Dynamic Mockup Content based on type */}
-        {type === 'create' && (
-          <>
-            <div className="flex gap-2">
-              <div className="bg-ink/10 border-ink/20 h-12 w-12 rounded border"></div>
-              <div className="flex-1 space-y-1">
-                <div className="bg-ink/10 h-3 w-1/3 rounded"></div>
-                <div className="bg-ink/5 h-2 w-1/2 rounded"></div>
-              </div>
-            </div>
-            <div className="mt-1 space-y-1">
-              <div className="bg-ink/5 h-2 w-full rounded"></div>
-              <div className="bg-ink/5 h-2 w-5/6 rounded"></div>
-              <div className="bg-ink/5 h-2 w-4/6 rounded"></div>
-            </div>
-            <div className="mt-auto flex justify-end">
-              <div className="bg-crimson/80 h-6 w-16 rounded"></div>
-            </div>
-          </>
-        )}
-
-        {type === 'battle' && (
-          <>
-            <div className="mb-1 flex items-center justify-between">
-              <div className="bg-crimson/20 h-2 w-16 rounded"></div>
-              <div className="bg-teal/20 h-2 w-16 rounded"></div>
-            </div>
-            <div className="text-ink/40 space-y-1.5 font-mono text-[8px] leading-relaxed">
-              <div className="flex items-center gap-1">
-                <span className="bg-crimson h-1 w-1 rounded-full"></span>
-                <div className="bg-ink/10 h-1.5 w-3/4 rounded"></div>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="bg-teal h-1 w-1 rounded-full"></span>
-                <div className="bg-ink/10 h-1.5 w-1/2 rounded"></div>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="bg-ink/30 h-1 w-1 rounded-full"></span>
-                <div className="bg-ink/10 h-1.5 w-2/3 rounded"></div>
-              </div>
-            </div>
-            <div className="mt-auto grid grid-cols-3 gap-1">
-              <div className="bg-ink/5 border-ink/10 h-5 rounded border"></div>
-              <div className="bg-ink/5 border-ink/10 h-5 rounded border"></div>
-              <div className="bg-ink/5 border-ink/10 h-5 rounded border"></div>
-            </div>
-          </>
-        )}
-
-        {type === 'world' && (
-          <div className="grid h-full grid-cols-3 gap-2">
-            <div className="bg-ink/5 border-ink/10 col-span-1 flex flex-col gap-1 rounded border p-1">
-              <div className="bg-ink/10 h-2 w-8 rounded"></div>
-              <div className="bg-ink/5 h-1.5 w-full rounded"></div>
-              <div className="bg-ink/5 h-1.5 w-full rounded"></div>
-            </div>
-            <div className="col-span-2 space-y-2">
-              <div className="bg-ink/5 border-ink/10 flex h-16 items-center justify-center rounded border">
-                <div className="border-ink/20 h-6 w-6 rounded-full border-2"></div>
-              </div>
-              <div className="bg-ink/10 mx-auto h-2 w-1/2 rounded"></div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Fake Caption */}
-      <div className="text-ink/50 border-t border-[#D8CFC0] bg-[#F0EBE0] px-2 py-1 text-center text-[10px]">
-        {title}
-      </div>
-    </div>
-  );
-}
-
 // --- Data ---
 
 const features = [
@@ -214,12 +122,6 @@ const features = [
     description:
       '广袤的修仙世界，秘境副本、天机奇遇，等你探索未知的机缘与危险。',
   },
-];
-
-const screenshots = [
-  { type: 'create', title: '觉醒灵根，踏入仙途' },
-  { type: 'battle', title: '斗法天骄，争锋修仙界' },
-  { type: 'world', title: '探索秘境，寻觅机缘' },
 ];
 
 // --- Main Page Component (Server Component) ---
@@ -359,17 +261,42 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
-            {screenshots.map((screenshot, index) => (
-              <div
-                key={index}
-                className="screenshot-card group aspect-4/3 cursor-default shadow-lg"
-              >
-                <ScreenshotMockup
-                  type={screenshot.type}
-                  title={screenshot.title}
-                />
-              </div>
-            ))}
+            <div className="space-y-12 md:space-y-16 md:col-span-3">
+              {screenshotGroups.map((group) => (
+                <div key={group.title} className="space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="font-heading text-ink text-2xl md:text-3xl">
+                      {group.title}
+                    </h3>
+                    <span className="text-ink-muted text-xs tracking-[0.3em]">
+                      {String(group.screenshots.length).padStart(2, '0')} 张
+                    </span>
+                  </div>
+
+                  <div className="screenshot-grid">
+                    {group.screenshots.map((shot) => (
+                      <figure
+                        key={shot.url}
+                        className="screenshot-card group cursor-default shadow-lg"
+                      >
+                        <div className="relative aspect-[4/3] w-full overflow-hidden">
+                          <Image
+                            src={shot.url}
+                            alt={shot.alt}
+                            fill
+                            sizes="(min-width: 1024px) 30vw, (min-width: 768px) 45vw, 90vw"
+                            className="screenshot-image object-cover"
+                          />
+                        </div>
+                        <figcaption className="screenshot-caption">
+                          {shot.alt}
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="mt-12 text-center">

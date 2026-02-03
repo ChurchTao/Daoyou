@@ -37,6 +37,26 @@
 - 📱 **水墨风 UI**：基于 `Ink` 组件库（21 个组件）打造的纯文字 UI，简洁优雅，沉浸感强。
 - 🛠️ **开发者友好**：清晰的分层架构（Engine/Service/API），TypeScript 全栈开发，易于扩展与二创。
 
+## 游戏画面
+
+<p align="center">
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a24f22a.webp" alt="游戏主界面" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a5b175b.webp" alt="游戏主界面下方" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a173b4.webp" alt="修仙界大地图" width="260" />
+</p>
+
+<p align="center">
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c999ec03a.webp" alt="造物仙炉 炼器、炼丹" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a4ba0b.webp" alt="藏经阁 创造功法、神通" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a80520.webp" alt="云游坊市 随机市场" width="260" />
+</p>
+
+<p align="center">
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a227b8e.webp" alt="储物袋" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c89e2e5c7.webp" alt="道具展示" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981ca32c8604.webp" alt="副本选择页" width="260" />
+</p>
+
 ## 项目状态
 
 **当前版本**: v0.1.0 (开发中)
