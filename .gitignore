@@ -46,3 +46,6 @@ next-env.d.ts
 */**/CLAUDE.md
 
 .serena/
+
+# git worktrees
+/worktrees
