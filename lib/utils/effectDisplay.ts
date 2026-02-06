@@ -11,6 +11,7 @@ export interface EffectDisplayInfo {
   label: string;
   icon?: string;
   description: string;
+  isPerfect?: boolean;
 }
 
 // ============================================================
@@ -22,12 +23,17 @@ export interface EffectDisplayInfo {
  */
 export function getEffectDisplayInfo(effect: EffectConfig): EffectDisplayInfo {
   try {
-    return EffectFactory.create(effect).displayInfo();
+    const info = EffectFactory.create(effect).displayInfo();
+    return {
+      ...info,
+      isPerfect: effect.isPerfect === true,
+    };
   } catch {
     return {
       label: '未知效果',
       icon: '❓',
       description: `${effect.type}`,
+      isPerfect: effect.isPerfect === true,
     };
   }
 }
@@ -48,7 +54,11 @@ export function formatAllEffects(
 export function formatEffectsText(effects: EffectConfig[] | undefined): string {
   const infos = formatAllEffects(effects);
   if (infos.length === 0) return '无特殊效果';
-  return infos.map((info) => info.description).join('，');
+  return infos
+    .map((info) =>
+      info.isPerfect ? `${info.description}（闪光）` : info.description,
+    )
+    .join('，');
 }
 
 // ============================================================

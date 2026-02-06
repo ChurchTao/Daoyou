@@ -158,7 +158,10 @@ export class EffectMaterializer {
     context: MaterializationContext,
   ): EffectConfig {
     // 1. 处理参数模板，将 ScalableValue 转换为具体数值
-    const params = this.materializeParams(affix.paramsTemplate, context);
+    const { params, isPerfect } = this.materializeParams(
+      affix.paramsTemplate,
+      context,
+    );
 
     // 2. 处理元素继承
     if (params.element === 'INHERIT' && context.element) {
@@ -170,6 +173,7 @@ export class EffectMaterializer {
       type: affix.effectType,
       trigger: affix.trigger as EffectTrigger | undefined,
       params,
+      isPerfect,
     };
   }
 
@@ -189,8 +193,9 @@ export class EffectMaterializer {
   private static materializeParams(
     template: AffixParamsTemplate,
     context: MaterializationContext,
-  ): Record<string, unknown> {
+  ): { params: Record<string, unknown>; isPerfect: boolean } {
     const result: Record<string, unknown> = {};
+    let isPerfect = false;
 
     for (const [key, value] of Object.entries(template)) {
       if (value === undefined || value === null) {
@@ -198,26 +203,26 @@ export class EffectMaterializer {
       }
 
       if (this.isScalableValue(value)) {
-        const { value: scaledValue, isPerfect } =
-          this.calculateScaledValueWithMetadata(value, context);
-        // 处理可缩放值
-        result[key] = scaledValue;
-        if (isPerfect) {
-          result.isPerfect = true;
+        const scaled = this.calculateScaledValueWithMetadata(value, context);
+        result[key] = scaled.value;
+        if (scaled.isPerfect) {
+          isPerfect = true;
         }
       } else if (typeof value === 'object' && !Array.isArray(value)) {
-        // 递归处理嵌套对象
-        result[key] = this.materializeParams(
+        const nested = this.materializeParams(
           value as AffixParamsTemplate,
           context,
         );
+        result[key] = nested.params;
+        if (nested.isPerfect) {
+          isPerfect = true;
+        }
       } else {
-        // 直接复制固定值
         result[key] = value;
       }
     }
 
-    return result;
+    return { params: result, isPerfect };
   }
 
   /**
@@ -391,6 +396,7 @@ export class EffectMaterializer {
         type: affix.effectType,
         trigger: affix.trigger as EffectTrigger | undefined,
         params,
+        isPerfect,
       },
       isPerfect,
       rollQuality,

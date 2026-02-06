@@ -1,11 +1,11 @@
 'use client';
 
-import { InkBadge } from './InkBadge';
-import { InkListItem } from './InkList';
 import type { EffectConfig } from '@/engine/effect';
 import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import type { Quality, SkillGrade } from '@/types/constants';
 import type { ReactNode } from 'react';
+import { InkBadge } from './InkBadge';
+import { InkListItem } from './InkList';
 
 // ============================================================
 // 类型定义
@@ -58,7 +58,8 @@ export function EffectCard({
   layout = 'row',
 }: EffectCardProps) {
   // 渲染效果列表
-  const effectsList = effects && effects.length > 0 ? formatAllEffects(effects) : [];
+  const effectsList =
+    effects && effects.length > 0 ? formatAllEffects(effects) : [];
 
   const renderEffects = () => {
     if (effectsList.length === 0) return null;
@@ -67,6 +68,11 @@ export function EffectCard({
         {effectsList.map((e, i) => (
           <li key={i}>
             {e.icon} {e.description}
+            {e.isPerfect && (
+              <span className="border-tier-tian/30 text-tier-tian/80 ml-1 inline-flex items-center rounded-sm border px-1 text-[0.7rem]">
+                闪光
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -76,7 +82,7 @@ export function EffectCard({
   return (
     <InkListItem
       title={
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex flex-wrap items-center gap-1">
           {icon && <span>{icon}</span>}
           <span className="text-ink-secondary">{name}</span>
           {quality && <InkBadge tier={quality} />}
@@ -88,7 +94,7 @@ export function EffectCard({
         <>
           {meta && <div className="mb-1">{meta}</div>}
           {description && (
-            <div className="text-sm text-ink-secondary opacity-80">
+            <div className="text-ink-secondary text-sm opacity-80">
               {description}
             </div>
           )}

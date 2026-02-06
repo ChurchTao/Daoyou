@@ -78,6 +78,11 @@ export function EffectDetailModal({
                 {effectsList.map((effect, i) => (
                   <li key={i}>
                     {effect.icon} {effect.description}
+                    {effect.isPerfect && (
+                      <span className="border-tier-tian/30 text-tier-tian/80 ml-1 inline-flex items-center rounded-sm border px-1 text-[0.7rem]">
+                        闪光
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

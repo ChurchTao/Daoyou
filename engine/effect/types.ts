@@ -315,6 +315,8 @@ export interface EffectConfig {
   trigger?: EffectTrigger | string;
   /** 效果参数 */
   params?: EffectConfigParam;
+  /** 是否为闪光（完美）词条 */
+  isPerfect?: boolean;
 }
 
 /**
