@@ -4,16 +4,13 @@ import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
-  InkBadge,
   InkButton,
   InkList,
-  InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { EffectConfig } from '@/engine/effect';
+import { EffectCard } from '@/components/ui/EffectCard';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import type { PreHeavenFate } from '@/types/cultivator';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -233,20 +230,6 @@ export default function FateReshapePage() {
     }
   };
 
-  const renderEffectsList = (effects: EffectConfig[]) => {
-    if (!effects || effects.length === 0) return null;
-    const infos = formatAllEffects(effects);
-    return (
-      <ul className="list-inside list-disc space-y-1">
-        {infos.map((e, i) => (
-          <li key={i}>
-            {e.icon} {e.description}
-          </li>
-        ))}
-      </ul>
-    );
-  };
-
   if (!cultivator || initializing) return null;
 
   return (
@@ -291,15 +274,11 @@ export default function FateReshapePage() {
             <InkList>
               {cultivator.pre_heaven_fates.map(
                 (fate: PreHeavenFate, idx: number) => (
-                  <InkListItem
+                  <EffectCard
                     key={idx}
-                    title={
-                      <div className="flex items-center">
-                        <span className="text-ink-secondary">{fate.name}</span>
-                        {fate.quality && <InkBadge tier={fate.quality} />}
-                      </div>
-                    }
-                    meta={renderEffectsList(fate.effects || [])}
+                    name={fate.name}
+                    quality={fate.quality}
+                    effects={fate.effects}
                     description={fate.description}
                     actions={
                       <InkButton
@@ -313,6 +292,7 @@ export default function FateReshapePage() {
                         {selectedOldIndices.includes(idx) ? '将舍弃' : '固守'}
                       </InkButton>
                     }
+                    layout="col"
                   />
                 ),
               )}
@@ -322,15 +302,11 @@ export default function FateReshapePage() {
           <InkSection title="【推演结果】（勾选以承接）">
             <InkList>
               {previewFates.map((fate, idx) => (
-                <InkListItem
+                <EffectCard
                   key={idx}
-                  title={
-                    <div className="flex items-center">
-                      <span className="text-ink-secondary">{fate.name}</span>
-                      {fate.quality && <InkBadge tier={fate.quality} />}
-                    </div>
-                  }
-                  meta={renderEffectsList(fate.effects)}
+                  name={fate.name}
+                  quality={fate.quality}
+                  effects={fate.effects}
                   description={fate.description}
                   actions={
                     <InkButton
@@ -342,6 +318,7 @@ export default function FateReshapePage() {
                       {selectedNewIndices.includes(idx) ? '已定' : '契合'}
                     </InkButton>
                   }
+                  layout="col"
                 />
               ))}
             </InkList>

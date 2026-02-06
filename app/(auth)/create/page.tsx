@@ -15,9 +15,9 @@ import {
   InkStatusBar,
   InkTag,
 } from '@/components/ui';
+import { EffectCard } from '@/components/ui/EffectCard';
 import { CultivatorUnit } from '@/engine/cultivator';
 import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
-import { formatEffectsText } from '@/lib/utils/effectDisplay';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getAttributeInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
@@ -467,28 +467,17 @@ export default function CreatePage() {
                         className="w-full text-left"
                         onClick={() => toggleFateSelection(idx)}
                       >
-                        <InkListItem
-                          title={
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">{fate.name}</span>
-                              {fate.quality && (
-                                <InkBadge tier={fate.quality}>
-                                  {fate.quality}
-                                </InkBadge>
-                              )}
-                            </div>
-                          }
-                          meta={
-                            <div className="text-sm">
-                              {formatEffectsText(fate.effects)}
-                            </div>
-                          }
+                        <EffectCard
+                          name={fate.name}
+                          quality={fate.quality}
+                          effects={fate.effects}
                           description={fate.description}
                           actions={
                             isSelected ? (
                               <InkTag tone="good">已取</InkTag>
                             ) : null
                           }
+                          layout="col"
                         />
                       </button>
                     </div>

@@ -11,9 +11,9 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
+import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import {
-  formatAllEffects,
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
@@ -186,64 +186,39 @@ export default function SkillCreationPage() {
     (m) => m.type === 'manual',
   ) || [];
 
-  const createdSkillRender = (createdSkill: Skill) => {
-    if (!createdSkill) return null;
-    const typeInfo = getSkillElementInfo(createdSkill);
-    const skillTypeInfo = {
-      label: typeInfo.typeName,
-      icon: typeInfo.icon,
-      description: createdSkill.description || '',
-    };
-    const elementInfo = getElementInfo(createdSkill.element);
-    const displayInfo = getSkillDisplayInfo(createdSkill);
-    const effectsList = formatAllEffects(createdSkill.effects);
+  const renderSkillExtraInfo = (skill: Skill) => {
+    const elementInfo = getElementInfo(skill.element);
+    const displayInfo = getSkillDisplayInfo(skill);
 
     return (
-      <div className="space-y-4 p-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-ink-primary">
-            {skillTypeInfo.icon}
-            {createdSkill.name}
-          </h3>
-          <InkBadge tier={createdSkill.grade}>{skillTypeInfo.label}</InkBadge>
+      <div className="space-y-1 text-sm">
+        <div className="border-ink/50 flex justify-between border-b pb-1">
+          <span className="opacity-70">元素</span>
+          <span>
+            {elementInfo.icon} {elementInfo.label}
+          </span>
         </div>
-
-        <div className="grid grid-cols-2 gap-2 text-sm text-ink-secondary">
-          <div>
-            元素：{elementInfo.icon}
-            {elementInfo.label}
-          </div>
-          <div>
-            目标：{createdSkill.target_self ? '自身' : '敌方'}
-          </div>
-          <div>威力：{displayInfo.power}%</div>
-          {displayInfo.healPercent !== undefined && displayInfo.healPercent > 0 && (
-            <div>治疗：{displayInfo.healPercent}%</div>
-          )}
-          <div>消耗：{createdSkill.cost || 0}灵力</div>
-          <div>冷却：{createdSkill.cooldown || 0} 回合</div>
+        <div className="border-ink/50 flex justify-between border-b pb-1">
+          <span className="opacity-70">目标</span>
+          <span>{skill.target_self ? '自身' : '敌方'}</span>
         </div>
-
-        {effectsList.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-sm font-bold text-ink-primary">效果列表</div>
-            <div className="bg-ink/5 p-3 rounded-lg border border-ink/10 space-y-1">
-              {effectsList.map((effect, index) => (
-                <div key={index} className="text-sm text-ink-secondary">
-                  {effect.icon && <span className="mr-1">{effect.icon}</span>}
-                  <span>{effect.description}</span>
-                </div>
-              ))}
-            </div>
+        <div className="border-ink/50 flex justify-between border-b pb-1">
+          <span className="opacity-70">威力</span>
+          <span>{displayInfo.power}%</span>
+        </div>
+        {displayInfo.healPercent !== undefined && displayInfo.healPercent > 0 && (
+          <div className="border-ink/50 flex justify-between border-b pb-1">
+            <span className="opacity-70">治疗</span>
+            <span>{displayInfo.healPercent}%</span>
           </div>
         )}
-
-        <div className="bg-ink/5 p-3 rounded-lg border border-ink/10 text-sm leading-relaxed whitespace-pre-wrap">
-          {createdSkill.description || '此神通玄妙异常，无法言喻。'}
+        <div className="border-ink/50 flex justify-between border-b pb-1">
+          <span className="opacity-70">消耗</span>
+          <span>{skill.cost || 0} 灵力</span>
         </div>
-
-        <div className="flex justify-end">
-          <InkButton onClick={() => setCreatedSkill(null)}>了然于胸</InkButton>
+        <div className="flex justify-between">
+          <span className="opacity-70">冷却</span>
+          <span>{skill.cooldown || 0} 回合</span>
         </div>
       </div>
     );
@@ -410,9 +385,34 @@ export default function SkillCreationPage() {
       )}
 
       {/* Result Modal */}
-      <InkModal isOpen={!!createdSkill} onClose={() => setCreatedSkill(null)}>
-        {createdSkill && createdSkillRender(createdSkill)}
-      </InkModal>
+      {createdSkill && (
+        <EffectDetailModal
+          isOpen={!!createdSkill}
+          onClose={() => setCreatedSkill(null)}
+          icon={getSkillElementInfo(createdSkill).icon}
+          name={createdSkill.name}
+          badges={[
+            createdSkill.grade && (
+              <InkBadge key="g" tier={createdSkill.grade}>
+                {getSkillElementInfo(createdSkill).typeName}
+              </InkBadge>
+            ),
+            <InkBadge key="e" tone="default">
+              {getElementInfo(createdSkill.element).label}
+            </InkBadge>,
+          ].filter(Boolean)}
+          extraInfo={renderSkillExtraInfo(createdSkill)}
+          effects={createdSkill.effects}
+          description={createdSkill.description}
+          effectTitle="神通效果"
+          descriptionTitle="神通描述"
+          footer={
+            <InkButton onClick={() => setCreatedSkill(null)} className="w-full">
+              了然于胸
+            </InkButton>
+          }
+        />
+      )}
 
       {/* Material Detail Modal */}
       <InkModal

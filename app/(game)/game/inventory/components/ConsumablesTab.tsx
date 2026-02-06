@@ -4,10 +4,9 @@ import {
   InkBadge,
   InkButton,
   InkList,
-  InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { formatEffectsText } from '@/lib/utils/effectDisplay';
+import { EffectCard } from '@/components/ui/EffectCard';
 import type { Consumable } from '@/types/cultivator';
 
 interface ConsumablesTabProps {
@@ -42,33 +41,33 @@ export function ConsumablesTab({
   return (
     <InkList>
       {sortedItems.map((item, idx) => {
-        // 解析效果用于展示
-        const effectDescriptions = formatEffectsText(item.effects);
         const isTalisman = item.type === '符箓';
 
         return (
-          <InkListItem
+          <EffectCard
             key={item.id || idx}
             layout="col"
-            title={
+            name={item.name}
+            quality={item.quality}
+            badgeExtra={
               <>
-                {item.name}
-                {item.quality && (
-                  <InkBadge tier={item.quality} className="ml-2">
-                    {isTalisman ? '符箓' : '丹药'}
-                  </InkBadge>
-                )}
-                <span className="ml-2 text-sm text-ink-secondary">
+                <InkBadge tone="default">
+                  {isTalisman ? '符箓' : '丹药'}
+                </InkBadge>
+                <span className="text-sm text-ink-secondary">
                   x{item.quantity}
                 </span>
               </>
             }
-            description={
-              <div className="space-y-1">
-                {isTalisman && <div className="text-xs text-ink-primary">【使用后获得特殊增益】</div>}
-                <div>{effectDescriptions}</div>
-              </div>
+            meta={
+              isTalisman ? (
+                <div className="text-xs text-ink-primary">
+                  【使用后获得特殊增益】
+                </div>
+              ) : null
             }
+            effects={item.effects}
+            description={item.description}
             actions={
               <div className="flex gap-2">
                 <InkButton
@@ -82,9 +81,13 @@ export function ConsumablesTab({
                   onClick={() => onConsume(item)}
                   variant="primary"
                 >
-                  {pendingId === item.id 
-                    ? (isTalisman ? '祭炼中…' : '服用中…') 
-                    : (isTalisman ? '祭炼' : '服用')}
+                  {pendingId === item.id
+                    ? isTalisman
+                      ? '祭炼中…'
+                      : '服用中…'
+                    : isTalisman
+                      ? '祭炼'
+                      : '服用'}
                 </InkButton>
                 <InkButton variant="primary" onClick={() => onDiscard(item)}>
                   销毁

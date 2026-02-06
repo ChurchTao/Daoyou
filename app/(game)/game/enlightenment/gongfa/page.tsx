@@ -11,10 +11,8 @@ import {
   InkListItem,
   InkNotice,
 } from '@/components/ui';
+import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import {
-  getCultivationDisplayInfo,
-} from '@/lib/utils/effectDisplay';
 import { Material, CultivationTechnique } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -183,45 +181,14 @@ export default function GongfaCreationPage() {
     (m) => m.type === 'manual',
   ) || [];
 
-  const createdGongfaRender = (gongfa: CultivationTechnique) => {
-    if (!gongfa) return null;
-    const displayInfo = getCultivationDisplayInfo(gongfa);
-
-    return (
-      <div className="space-y-4 p-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-ink-primary">
-            📖
-            {gongfa.name}
-          </h3>
-          <InkBadge tier={gongfa.grade}>{gongfa.grade || '凡阶'}</InkBadge>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-sm text-ink-secondary">
-          <div>需求境界：{gongfa.required_realm}</div>
-        </div>
-
-        {displayInfo.effects.length > 0 && (
-          <div className="bg-ink/5 p-3 rounded-lg border border-ink/10">
-            <div className="text-sm font-bold mb-2">修炼效果</div>
-            <div className="text-sm leading-relaxed space-y-1">
-              {displayInfo.effects.map((effect, idx) => (
-                <div key={idx}>• {effect}</div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="bg-ink/5 p-3 rounded-lg border border-ink/10 text-sm leading-relaxed whitespace-pre-wrap">
-          {gongfa.description || '此功法玄妙异常，无法言喻。'}
-        </div>
-
-        <div className="flex justify-end">
-          <InkButton onClick={() => setCreatedGongfa(null)}>了然于胸</InkButton>
-        </div>
+  const renderGongfaExtraInfo = (gongfa: CultivationTechnique) => (
+    <div className="space-y-1 text-sm">
+      <div className="border-ink/50 flex justify-between border-b pb-1">
+        <span className="opacity-70">需求境界</span>
+        <span>{gongfa.required_realm}</span>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
     <InkPageShell
@@ -384,9 +351,31 @@ export default function GongfaCreationPage() {
       )}
 
       {/* Result Modal */}
-      <InkModal isOpen={!!createdGongfa} onClose={() => setCreatedGongfa(null)}>
-        {createdGongfa && createdGongfaRender(createdGongfa)}
-      </InkModal>
+      {createdGongfa && (
+        <EffectDetailModal
+          isOpen={!!createdGongfa}
+          onClose={() => setCreatedGongfa(null)}
+          icon="📖"
+          name={createdGongfa.name}
+          badges={[
+            createdGongfa.grade && (
+              <InkBadge key="g" tier={createdGongfa.grade}>
+                {createdGongfa.grade}
+              </InkBadge>
+            ),
+          ].filter(Boolean)}
+          extraInfo={renderGongfaExtraInfo(createdGongfa)}
+          effects={createdGongfa.effects}
+          description={createdGongfa.description}
+          effectTitle="功法效果"
+          descriptionTitle="功法详述"
+          footer={
+            <InkButton onClick={() => setCreatedGongfa(null)} className="w-full">
+              了然于胸
+            </InkButton>
+          }
+        />
+      )}
 
       {/* Material Detail Modal */}
       <InkModal

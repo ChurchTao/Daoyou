@@ -17,9 +17,7 @@ import {
 } from '@/components/ui';
 import { EffectCard } from '@/components/ui/EffectCard';
 import { CultivatorUnit } from '@/engine/cultivator';
-import { EffectConfig } from '@/engine/effect';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import type { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
@@ -94,20 +92,6 @@ export default function CultivatorPage() {
         equipped.armor === item.id ||
         equipped.accessory === item.id),
   );
-
-  const renderEffectsList = (effects: EffectConfig[]) => {
-    if (!effects || effects.length === 0) return null;
-    const infos = formatAllEffects(effects);
-    return (
-      <ul className="list-inside list-disc space-y-1">
-        {infos.map((e, i) => (
-          <li key={i}>
-            {e.icon} {e.description}
-          </li>
-        ))}
-      </ul>
-    );
-  };
 
   return (
     <InkPageShell
@@ -200,15 +184,11 @@ export default function CultivatorPage() {
         <InkSection title="【先天命格】">
           <InkList>
             {cultivator.pre_heaven_fates.map((fate, idx) => (
-              <InkListItem
+              <EffectCard
                 key={fate.name + idx}
-                title={
-                  <div className="flex items-center">
-                    <span className="text-ink-secondary">{fate.name}</span>
-                    {fate.quality && <InkBadge tier={fate.quality} />}
-                  </div>
-                }
-                meta={renderEffectsList(fate?.effects || [])}
+                name={fate.name}
+                quality={fate.quality}
+                effects={fate.effects}
                 description={fate.description}
               />
             ))}

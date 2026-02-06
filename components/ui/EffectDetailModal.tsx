@@ -3,6 +3,7 @@
 import { InkModal } from '@/components/layout';
 import { InkButton } from '@/components/ui/InkButton';
 import type { EffectConfig } from '@/engine/effect/types';
+import { cn } from '@/lib/cn';
 import { formatAllEffects } from '@/lib/utils/effectDisplay';
 import { ReactNode } from 'react';
 
@@ -77,12 +78,24 @@ export function EffectDetailModal({
               <ul className="list-inside list-disc space-y-1">
                 {effectsList.map((effect, i) => (
                   <li key={i}>
-                    {effect.icon} {effect.description}
                     {effect.isPerfect && (
-                      <span className="border-tier-tian/30 text-tier-tian/80 ml-1 inline-flex items-center rounded-sm border px-1 text-[0.7rem]">
-                        闪光
+                      <span
+                        className={cn(
+                          'mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border text-xs',
+                          'border-tier-shen/70 bg-tier-shen/10 text-tier-shen',
+                        )}
+                      >
+                        极
                       </span>
                     )}
+                    <span
+                      className={cn(
+                        'rounded-xs px-1 py-px',
+                        effect.isPerfect && 'bg-tier-shen/10',
+                      )}
+                    >
+                      {effect.icon} {effect.description}
+                    </span>
                   </li>
                 ))}
               </ul>
