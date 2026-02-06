@@ -2,7 +2,10 @@ import {
   calculateMaxQuality,
   getCostDescription,
 } from '@/engine/creation/CraftCostCalculator';
-import { CreationEngine } from '@/engine/creation/CreationEngine';
+import {
+  CreationEngine,
+  CreationEngineError,
+} from '@/engine/creation/CreationEngine';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { db } from '@/lib/drizzle/db';
 import { materials } from '@/lib/drizzle/schema';
@@ -100,41 +103,71 @@ export const GET = withActiveCultivator(
  */
 export const POST = withActiveCultivator(
   async (request: NextRequest, { user, cultivator }) => {
-    const body = await request.json();
-    const { materialIds, prompt, craftType } = CraftSchema.parse(body);
+    try {
+      const body = await request.json();
+      const parsed = CraftSchema.safeParse(body);
 
-    if (craftType === 'create_skill') {
-      if (!prompt) {
+      if (!parsed.success) {
         return NextResponse.json(
-          { error: '请注入神念，描述神通法门。' },
+          { error: parsed.error.issues[0]?.message || '请求参数格式错误' },
           { status: 400 },
         );
       }
-      if (prompt.trim().length < 5 || prompt.trim().length > 200) {
+
+      const { materialIds, prompt, craftType } = parsed.data;
+
+      if (craftType === 'create_skill') {
+        if (!prompt) {
+          return NextResponse.json(
+            { error: '请注入神念，描述神通法门。' },
+            { status: 400 },
+          );
+        }
+        if (prompt.trim().length < 5 || prompt.trim().length > 200) {
+          return NextResponse.json(
+            { error: '神念长度应在5-200字之间。' },
+            { status: 400 },
+          );
+        }
+      } else if (
+        !materialIds ||
+        !Array.isArray(materialIds) ||
+        materialIds.length === 0
+      ) {
         return NextResponse.json(
-          { error: '神念长度应在5-200字之间。' },
+          { error: '参数缺失，无法开炉' },
           { status: 400 },
         );
       }
-    } else if (
-      !materialIds ||
-      !Array.isArray(materialIds) ||
-      materialIds.length === 0
-    ) {
+
+      const result = await creationEngine.processRequest(
+        user.id,
+        cultivator.id,
+        materialIds || [],
+        prompt || '',
+        craftType,
+      );
+
+      return NextResponse.json({ success: true, data: result });
+    } catch (error) {
+      if (error instanceof CreationEngineError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
+
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: error.issues[0]?.message || '请求参数格式错误' },
+          { status: 400 },
+        );
+      }
+
       return NextResponse.json(
-        { error: '参数缺失，无法开炉' },
-        { status: 400 },
+        { error: '造物失败，请稍后再试。' },
+        { status: 500 },
       );
     }
-
-    const result = await creationEngine.processRequest(
-      user.id,
-      cultivator.id,
-      materialIds || [],
-      prompt || '',
-      craftType,
-    );
-
-    return NextResponse.json({ success: true, data: result });
   },
 );

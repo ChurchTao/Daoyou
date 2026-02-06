@@ -8,7 +8,6 @@ import { object } from '@/utils/aiClient';
 import { sanitizePrompt } from '@/utils/prompts';
 import { eq, inArray, sql } from 'drizzle-orm';
 import {
-  calculateCraftCost,
   calculateMaxQuality,
   getCostDescription,
 } from './CraftCostCalculator';
@@ -20,6 +19,16 @@ import { SkillCreationStrategy } from './strategies/SkillCreationStrategy';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SupportedStrategies = CreationStrategy<any, any>;
+
+export class CreationEngineError extends Error {
+  constructor(
+    message: string,
+    public readonly status = 400,
+  ) {
+    super(message);
+    this.name = 'CreationEngineError';
+  }
+}
 
 export class CreationEngine {
   private strategies: Map<string, SupportedStrategies> = new Map();
@@ -59,7 +68,7 @@ export class CreationEngine {
     });
 
     if (!acquiredLock) {
-      throw new Error('炉火正旺，道友莫急');
+      throw new CreationEngineError('炉火正旺，道友莫急', 429);
     }
 
     try {
@@ -71,12 +80,12 @@ export class CreationEngine {
         .where(inArray(materials.id, materialIds));
 
       if (selectedMaterials.length !== materialIds.length) {
-        throw new Error('部分材料已耗尽或不存在');
+        throw new CreationEngineError('部分材料已耗尽或不存在');
       }
 
       for (const mat of selectedMaterials) {
         if (mat.cultivatorId !== cultivatorId) {
-          throw new Error('非本人材料，不可动用');
+          throw new CreationEngineError('非本人材料，不可动用', 403);
         }
       }
 
@@ -84,13 +93,13 @@ export class CreationEngine {
       const cultivator = await getCultivatorById(userId, cultivatorId);
 
       if (!cultivator) {
-        throw new Error('道友查无此人');
+        throw new CreationEngineError('道友查无此人', 404);
       }
 
       // 3. Select Strategy
       const strategy = this.strategies.get(craftType);
       if (!strategy) {
-        throw new Error(`未知的造物类型: ${craftType}`);
+        throw new CreationEngineError(`未知的造物类型: ${craftType}`);
       }
 
       // 4. Strategy Validation
@@ -99,7 +108,17 @@ export class CreationEngine {
         materials: selectedMaterials as unknown as Material[],
         userPrompt: sanitizePrompt(prompt),
       };
-      await strategy.validate(context);
+      try {
+        await strategy.validate(context);
+      } catch (error) {
+        if (error instanceof CreationEngineError) {
+          throw error;
+        }
+        if (error instanceof Error) {
+          throw new CreationEngineError(error.message);
+        }
+        throw error;
+      }
 
       // 4.5. Resource Cost Calculation & Validation
       const maxMaterialQuality = calculateMaxQuality(
@@ -170,7 +189,7 @@ export class CreationEngine {
   ): Promise<void> {
     // 检查灵石
     if (cost.spiritStones && (cultivator.spirit_stones || 0) < cost.spiritStones) {
-      throw new Error(`灵石不足，需要 ${cost.spiritStones} 枚`);
+      throw new CreationEngineError(`灵石不足，需要 ${cost.spiritStones} 枚`);
     }
 
     // 检查感悟
@@ -178,7 +197,9 @@ export class CreationEngine {
       const currentInsight =
         cultivator.cultivation_progress?.comprehension_insight || 0;
       if (currentInsight < cost.comprehension) {
-        throw new Error(`道心感悟不足，需要 ${cost.comprehension} 点`);
+        throw new CreationEngineError(
+          `道心感悟不足，需要 ${cost.comprehension} 点`,
+        );
       }
     }
 
