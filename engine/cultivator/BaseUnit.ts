@@ -83,6 +83,7 @@ export abstract class BaseUnit implements Entity {
       for (const effectConfig of artifact.effects) {
         try {
           const effect = EffectFactory.create(effectConfig);
+          effect.setOwner(this.id);
           effects.push(effect);
         } catch (err) {
           console.warn(`[BaseUnit] 加载装备效果失败: ${artifact.name}`, err);
@@ -106,6 +107,7 @@ export abstract class BaseUnit implements Entity {
       for (const effectConfig of technique.effects) {
         try {
           const effect = EffectFactory.create(effectConfig);
+          effect.setOwner(this.id);
           effects.push(effect);
         } catch (err) {
           console.warn(`[BaseUnit] 加载功法效果失败: ${technique.name}`, err);
@@ -128,6 +130,7 @@ export abstract class BaseUnit implements Entity {
       for (const effectConfig of fate.effects) {
         try {
           const effect = EffectFactory.create(effectConfig);
+          effect.setOwner(this.id);
           effects.push(effect);
         } catch (err) {
           console.warn(`[BaseUnit] 加载命格效果失败: ${fate.name}`, err);

@@ -42,7 +42,8 @@ export class ElementDamageBonusEffect extends BaseEffect {
     if (this.ownerId && ctx.source?.id !== this.ownerId) return false;
 
     // 检查伤害元素是否匹配
-    const damageElement = ctx.metadata?.element as string | undefined;
+    const damageElement = (ctx.metadata?.skillElement ||
+      ctx.metadata?.element) as string | undefined;
     if (!damageElement) return false;
 
     // INHERIT 表示匹配任意元素

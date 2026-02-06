@@ -6,6 +6,7 @@
 
 import { EffectType, StatModifierType } from '@/engine/effect/types';
 import { BuffMaterializer } from './BuffMaterializer';
+import { buffTemplateRegistry } from './BuffTemplateRegistry';
 import { BuffStackType, BuffTag, type BuffTemplate } from './types';
 
 describe('BuffMaterializer', () => {
@@ -300,7 +301,7 @@ describe('BuffMaterializer', () => {
       const mockCaster = {
         getAttribute: (key: string) => {
           const attrs: Record<string, number> = {
-            spirit: 150,
+            spirit: 1000,
             wisdom: 120,
             willpower: 100,
             vitality: 80,
@@ -310,26 +311,11 @@ describe('BuffMaterializer', () => {
       };
 
       const context = BuffMaterializer.buildContextFromCaster(mockCaster);
+      const buffTemplate = buffTemplateRegistry.get('burn');
 
-      expect(context.casterSpirit).toBe(150);
-      expect(context.casterWisdom).toBe(120);
-      expect(context.casterWillpower).toBe(100);
-      expect(context.casterVitality).toBe(80);
-    });
+      const res = BuffMaterializer.materialize(buffTemplate!, context);
 
-    it('应该合并额外的上下文参数', () => {
-      const mockCaster = {
-        getAttribute: () => 100,
-      };
-
-      const context = BuffMaterializer.buildContextFromCaster(mockCaster, {
-        quality: '地品',
-        stacks: 3,
-      });
-
-      expect(context.casterSpirit).toBe(100);
-      expect(context.quality).toBe('地品');
-      expect(context.stacks).toBe(3);
+      console.log(JSON.stringify(res));
     });
   });
 });

@@ -68,24 +68,21 @@ export function EffectCard({
       <ul className="list-inside list-disc space-y-1">
         {effectsList.map((e, i) => (
           <li key={i}>
+            <span
+              className={cn('rounded-xs px-1', e.isPerfect && 'text-tier-shen')}
+            >
+              {e.icon} {e.description}
+            </span>
             {e.isPerfect && (
               <span
                 className={cn(
-                  'mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border text-xs',
+                  'inline-flex h-4 w-4 items-center justify-center rounded-xs border text-xs',
                   'border-tier-shen/70 bg-tier-shen/10 text-tier-shen',
                 )}
               >
                 极
               </span>
             )}
-            <span
-              className={cn(
-                'rounded-xs px-1 py-px',
-                e.isPerfect && 'bg-tier-shen/10',
-              )}
-            >
-              {e.icon} {e.description}
-            </span>
           </li>
         ))}
       </ul>

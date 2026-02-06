@@ -41,7 +41,7 @@ export class CounterAttackEffect extends BaseEffect {
     if (ctx.trigger !== EffectTrigger.ON_BEING_HIT) return false;
 
     // 被攻击者是持有者
-    if (this.ownerId && ctx.target?.id !== this.ownerId) return false;
+    if (this.ownerId && ctx.source?.id !== this.ownerId) return false;
 
     // 概率判定
     return Math.random() < this.chance;
@@ -58,9 +58,9 @@ export class CounterAttackEffect extends BaseEffect {
     if (damageTaken <= 0) return;
 
     // 检查攻击者是否为 BattleEntity
-    if (!isBattleEntity(ctx.source)) {
+    if (!isBattleEntity(ctx.target)) {
       console.warn(
-        '[CounterAttackEffect] source (attacker) is not a BattleEntity',
+        '[CounterAttackEffect] target (attacker) is not a BattleEntity',
       );
       return;
     }
@@ -69,7 +69,7 @@ export class CounterAttackEffect extends BaseEffect {
     const counterDamage = Math.floor(damageTaken * this.damageMultiplier);
 
     // 直接对攻击者造成反击伤害
-    const actualDamage = ctx.source.applyDamage(counterDamage);
+    const actualDamage = ctx.target.applyDamage(counterDamage);
 
     if (actualDamage > 0) {
       // 确定元素文本
@@ -86,7 +86,7 @@ export class CounterAttackEffect extends BaseEffect {
       }
 
       ctx.logCollector?.addLog(
-        `${ctx.target.name} 反击了${elementText}，造成 ${actualDamage} 点伤害！`,
+        `${ctx.source.name} 反击了${elementText}，造成 ${actualDamage} 点伤害！`,
       );
     }
   }

@@ -18,6 +18,7 @@ import {
 export class ExecuteDamageEffect extends BaseEffect {
   readonly id = 'ExecuteDamage';
   readonly trigger = EffectTrigger.ON_BEFORE_DAMAGE;
+  readonly priority = 1200;
 
   /** 生命阈值百分比 */
   private thresholdPercent: number;

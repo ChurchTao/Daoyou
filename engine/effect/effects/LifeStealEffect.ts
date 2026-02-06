@@ -23,6 +23,13 @@ export class LifeStealEffect extends BaseEffect {
     this.stealPercent = params.stealPercent ?? 0.1;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    if (ctx.trigger !== EffectTrigger.ON_AFTER_DAMAGE) return false;
+    // 只有持有者是造成伤害的一方时才触发
+    if (this.ownerId && ctx.source?.id !== this.ownerId) return false;
+    return true;
+  }
+
   /**
    * 应用吸血效果
    * 在 ON_AFTER_DAMAGE 时机，ctx.value 是造成的伤害值

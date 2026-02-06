@@ -24,6 +24,14 @@ export class ReflectDamageEffect extends BaseEffect {
     this.reflectPercent = params.reflectPercent ?? 0.2;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    if (ctx.trigger !== EffectTrigger.ON_BEING_HIT) return false;
+    if (!isBattleEntity(ctx.source)) return false;
+    // 如果有持有者ID，则检查是否匹配
+    if (this.ownerId && ctx.source?.id !== this.ownerId) return false;
+    return true;
+  }
+
   /**
    * 应用反伤效果
    * 注意：在 ON_BEING_HIT 时机，ctx.source 是被攻击者（反伤甲持有者），ctx.target 是攻击者
@@ -33,11 +41,6 @@ export class ReflectDamageEffect extends BaseEffect {
     const damageTaken = ctx.value ?? 0;
 
     if (damageTaken <= 0) return;
-
-    // 【修复】检查持有者：只有被攻击者（source）是持有者时才触发
-    if (this.ownerId && ctx.source?.id !== this.ownerId) {
-      return;
-    }
 
     // 计算反伤值
     const reflectDamage = Math.floor(damageTaken * this.reflectPercent);

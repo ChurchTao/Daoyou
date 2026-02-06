@@ -2,6 +2,7 @@ import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,
+  isBattleEntity,
   type EffectContext,
   type DamageReductionParams as TypesDamageReductionParams,
 } from '../types';
@@ -38,6 +39,14 @@ export class DamageReductionEffect extends BaseEffect {
     this.maxReduction = params.maxReduction ?? 0.75;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    if (ctx.trigger !== EffectTrigger.ON_BEFORE_DAMAGE) return false;
+    // 伤害前减伤应由被攻击者触发
+    if (ctx.target && !isBattleEntity(ctx.target)) return false;
+    if (this.ownerId && ctx.target?.id !== this.ownerId) return false;
+    return true;
+  }
+
   /**
    * 应用减伤效果
    * 减少 ctx.value（即入站伤害）
@@ -49,8 +58,8 @@ export class DamageReductionEffect extends BaseEffect {
     const incomingDamage = ctx.value ?? 0;
     if (incomingDamage <= 0) return;
 
-    const ignoreDefense = Boolean(ctx.metadata?.ignoreDefense || true);
-    if (!ignoreDefense) return;
+    const ignoreDefense = Boolean(ctx.metadata?.ignoreDefense);
+    if (ignoreDefense) return;
 
     // 1. 先应用固定减伤（效果自身 + 属性加成）
     const attrFlatReduction = ctx.target.getAttribute('flatDamageReduction');

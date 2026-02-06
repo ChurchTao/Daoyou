@@ -1,3 +1,4 @@
+import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
 import type { Cultivator } from '@/types/cultivator';
 import {
   AddBuffParams,
@@ -1122,5 +1123,19 @@ describe('BattleEngineV2', () => {
       expect(result.winner).toBeDefined();
       expect(result.log.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('真实角色模拟战斗', () => {
+  it('应该能够正确模拟真实角色的战斗', async () => {
+    const cultivatorId1 = '786160f5-cdb2-4df6-a8fb-c2b63ead212c';
+    const cultivatorId2 = '877899c9-1814-47aa-812d-252489d70261';
+    const cultivator1 = await getCultivatorByIdUnsafe(cultivatorId1);
+    const cultivator2 = await getCultivatorByIdUnsafe(cultivatorId2);
+    const result = simulateBattle(
+      cultivator1!.cultivator,
+      cultivator2!.cultivator,
+    );
+    console.log(result.log);
   });
 });

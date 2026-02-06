@@ -26,6 +26,13 @@ export class BonusDamageEffect extends BaseEffect {
     this.canCrit = params.canCrit ?? false;
   }
 
+  shouldTrigger(ctx: EffectContext): boolean {
+    if (ctx.trigger !== EffectTrigger.ON_AFTER_DAMAGE) return false;
+    // 只有持有者是造成伤害的一方时才触发
+    if (this.ownerId && ctx.source?.id !== this.ownerId) return false;
+    return true;
+  }
+
   /**
    * 应用额外伤害效果
    * 在造成伤害后直接对目标造成额外伤害

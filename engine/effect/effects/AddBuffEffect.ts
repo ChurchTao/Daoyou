@@ -151,7 +151,7 @@ export class AddBuffEffect extends BaseEffect {
       casterWisdom: ctx.source?.getAttribute('wisdom'),
       casterWillpower: ctx.source?.getAttribute('willpower'),
       casterVitality: ctx.source?.getAttribute('vitality'),
-      casterRealm: (ctx.metadata?.casterRealm as RealmType) ?? '炖气',
+      casterRealm: (ctx.metadata?.casterRealm as RealmType) ?? '炼气',
       // 【修复】默认使用玄品（倍率 1.0）而不是凡品（倍率 0.5）
       quality: (ctx.metadata?.quality as Quality) ?? '玄品',
       stacks: this.initialStacks,

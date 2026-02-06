@@ -52,15 +52,7 @@ export class DamageEffect extends BaseEffect {
     const sourceAtk = ctx.source.getAttribute('spirit');
 
     // 计算基础伤害
-    let damage = sourceAtk * this.multiplier + this.flatDamage;
-
-    // 如果有元素亲和加成
-    if (this.element) {
-      const elementMastery = ctx.source.getAttribute(`${this.element}_MASTERY`);
-      if (elementMastery > 0) {
-        damage *= 1 + elementMastery / 100;
-      }
-    }
+    const damage = sourceAtk * this.multiplier + this.flatDamage;
 
     // 写入上下文
     ctx.value = (ctx.value ?? 0) + damage;
