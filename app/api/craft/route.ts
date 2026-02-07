@@ -50,17 +50,8 @@ export const GET = withActiveCultivator(
     let cost: { spiritStones?: number; comprehension?: number };
     let canAfford = true;
 
-    if (craftType === 'create_skill' || craftType === 'create_gongfa') {
-      // 神通/功法不依赖材料，使用最低品质计算基础消耗
-      cost = { comprehension: 10 }; // 凡品基础消耗
-      const progress = cultivator.cultivation_progress as {
-        comprehension_insight?: number;
-      } | null;
-      canAfford =
-        (progress?.comprehension_insight || 0) >= (cost.comprehension || 0);
-    } else {
-      // 炼丹/炼器需要根据材料计算
-      const materialIds = materialIdsParam!.split(',');
+    if (materialIdsParam && materialIdsParam.length > 0) {
+      const materialIds = materialIdsParam.split(',');
       const materialsData = await db
         .select()
         .from(materials)
@@ -74,17 +65,19 @@ export const GET = withActiveCultivator(
         materialsData as Array<{ rank: Quality }>,
       );
       cost = getCostDescription(maxQuality, craftType);
+    } else {
+      // 神通/功法在无选材预览时，回退到凡品基础消耗。
+      cost = getCostDescription('凡品', craftType);
+    }
 
-      // 检查是否负担得起
-      if (cost.spiritStones !== undefined) {
-        canAfford = (cultivator.spirit_stones || 0) >= cost.spiritStones;
-      } else if (cost.comprehension !== undefined) {
-        const progress = cultivator.cultivation_progress as {
-          comprehension_insight?: number;
-        } | null;
-        canAfford =
-          (progress?.comprehension_insight || 0) >= cost.comprehension;
-      }
+    // 检查是否负担得起
+    if (cost.spiritStones !== undefined) {
+      canAfford = (cultivator.spirit_stones || 0) >= cost.spiritStones;
+    } else if (cost.comprehension !== undefined) {
+      const progress = cultivator.cultivation_progress as {
+        comprehension_insight?: number;
+      } | null;
+      canAfford = (progress?.comprehension_insight || 0) >= cost.comprehension;
     }
 
     return NextResponse.json({
