@@ -2,12 +2,7 @@
 
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import {
-  InkActionGroup,
-  InkButton,
-  InkList,
-  InkNotice,
-} from '@/components/ui';
+import { InkActionGroup, InkButton, InkList, InkNotice } from '@/components/ui';
 import { EffectCard } from '@/components/ui/EffectCard';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
@@ -138,7 +133,7 @@ export default function FateReshapePage() {
       return;
     }
     // 校验命格数量限制：最多3个
-    const currentFatesCount = cultivator?.pre_heaven_fates.length || 3;
+    const currentFatesCount = cultivator?.pre_heaven_fates?.length || 0;
     const newFatesCount = selectedNewIndices.length;
     const discardFatesCount = selectedOldIndices.length;
     const finalFatesCount =
