@@ -40,4 +40,29 @@ describe('generateSpiritualRoots', () => {
       }
     });
   });
+
+  it('applies strength caps by root count and mutation bonus', () => {
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.999);
+    try {
+      const oneRoot = generateSpiritualRoots(100, ['火']);
+      const twoRoots = generateSpiritualRoots(100, ['金', '木']);
+      const threeRoots = generateSpiritualRoots(100, ['金', '木', '水']);
+      const fourRoots = generateSpiritualRoots(100, ['金', '木', '水', '火']);
+      const mixedMutation = generateSpiritualRoots(100, ['雷', '木']);
+
+      expect(oneRoot[0].strength).toBeLessThanOrEqual(95);
+      expect(twoRoots.every((root) => root.strength <= 80)).toBe(true);
+      expect(threeRoots.every((root) => root.strength <= 65)).toBe(true);
+      expect(fourRoots.every((root) => root.strength <= 55)).toBe(true);
+
+      expect(
+        mixedMutation.find((root) => root.element === '雷')?.strength,
+      ).toBeLessThanOrEqual(90);
+      expect(
+        mixedMutation.find((root) => root.element === '木')?.strength,
+      ).toBeLessThanOrEqual(80);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
 });

@@ -30,28 +30,40 @@ export function generateSpiritualRoots(
     strength: 0, // to be calculated
   }));
 
-  // 基础强度
-  const baseStrength = 20;
-
   roots.forEach((root) => {
-    // 随机波动
-    let val = baseStrength + Math.floor(Math.random() * 20);
-    // 分数加成
-    val += Math.floor(score / 2);
-
-    // 灵根越少，单项强度越高（天道补偿）
-    if (rootCount === 1) val += 30;
-    if (rootCount === 2) val += 15;
-
-    // 封顶 95
-    if (val > 95) val = 95;
-    if (val < 10) val = 10;
-
-    root.strength = val;
     root.grade = resolveSpiritualRootGrade(rootCount, root.element);
+    root.strength = calculateSpiritualRootStrength(score, rootCount, root.grade);
   });
 
   return roots;
+}
+
+function calculateSpiritualRootStrength(
+  score: number,
+  rootCount: number,
+  grade: SpiritualRoot['grade'],
+): number {
+  const normalizedScore = Math.max(0, Math.min(100, score));
+  const baseCap = getBaseStrengthCap(rootCount);
+  const cap = grade === '变异灵根' ? Math.min(100, baseCap + 10) : baseCap;
+
+  // 分数越高，目标值越接近上限；仍保留随机波动
+  const scoreRatio = normalizedScore / 100;
+  const target = Math.floor(cap * (0.45 + 0.5 * scoreRatio));
+
+  // 波动区间跟随上限变化，确保低分也有一定随机性
+  const amplitude = Math.max(5, Math.floor(cap * 0.15));
+  const delta = Math.floor((Math.random() * 2 - 1) * amplitude);
+  const minStrength = Math.max(10, Math.floor(cap * 0.25));
+
+  return Math.max(minStrength, Math.min(cap, target + delta));
+}
+
+function getBaseStrengthCap(rootCount: number): number {
+  if (rootCount <= 1) return 95;
+  if (rootCount === 2) return 80;
+  if (rootCount === 3) return 65;
+  return 55;
 }
 
 function normalizeElementPreferences(
