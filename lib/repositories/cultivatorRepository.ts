@@ -4,21 +4,24 @@ import {
   ConsumableType,
   ElementType,
   EquipmentSlot,
+  GenderType,
   MaterialType,
   Quality,
   RealmStage,
   RealmType,
   SkillGrade,
+  SpiritualRootGrade,
 } from '@/types/constants';
-import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
-import { and, eq, inArray } from 'drizzle-orm';
 import type {
   BreakthroughHistoryEntry,
   Consumable,
   CultivationProgress,
   Cultivator,
+  Material,
   RetreatRecord,
-} from '../../types/cultivator';
+} from '@/types/cultivator';
+import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
@@ -66,11 +69,17 @@ async function assembleCultivator(
   ]);
 
   // 组装灵根
-  const spiritual_roots = spiritualRootsResult.map((r) => ({
-    element: r.element as Cultivator['spiritual_roots'][0]['element'],
-    strength: r.strength,
-    grade: r.grade as Cultivator['spiritual_roots'][0]['grade'] | undefined,
-  }));
+  const spiritualRootCount = spiritualRootsResult.length;
+  const spiritual_roots = spiritualRootsResult.map((r) => {
+    const element = r.element as ElementType;
+    return {
+      element,
+      strength: r.strength,
+      grade:
+        (r.grade as SpiritualRootGrade) ??
+        resolveSpiritualRootGrade(spiritualRootCount, element),
+    };
+  });
 
   // 组装先天命格
   const pre_heaven_fates = preHeavenFatesResult.map((f) => ({
@@ -84,10 +93,9 @@ async function assembleCultivator(
   const cultivations = cultivationsResult.map((c) => ({
     id: c.id,
     name: c.name,
-    grade: c.grade as Cultivator['cultivations'][0]['grade'] | undefined,
-    required_realm:
-      c.required_realm as Cultivator['cultivations'][0]['required_realm'],
-    effects: (c.effects ?? []) as Cultivator['cultivations'][0]['effects'],
+    grade: c.grade as SkillGrade | undefined,
+    required_realm: c.required_realm as RealmType,
+    effects: (c.effects ?? []) as EffectConfig[],
     description: c.description || undefined,
   }));
 
@@ -95,27 +103,27 @@ async function assembleCultivator(
   const skills = skillsResult.map((s) => ({
     id: s.id,
     name: s.name,
-    element: s.element as Cultivator['skills'][0]['element'],
-    grade: s.grade as Cultivator['skills'][0]['grade'] | undefined,
+    element: s.element as ElementType,
+    grade: s.grade as SkillGrade | undefined,
     cost: s.cost || undefined,
     cooldown: s.cooldown,
     target_self: s.target_self === 1 ? true : undefined,
     description: s.description || undefined,
-    effects: (s.effects ?? []) as Cultivator['skills'][0]['effects'],
+    effects: (s.effects ?? []) as EffectConfig[],
   }));
 
   // 组装法宝 - 延迟加载
   const artifacts = await getCultivatorArtifacts(userId, cultivatorId);
 
   // 组装消耗品 - 延迟加载
-  const consumables: Cultivator['inventory']['consumables'] = [];
+  const consumables: Consumable[] = [];
 
   // 组装材料 - 延迟加载
-  const materials: Cultivator['inventory']['materials'] = [];
+  const materials: Material[] = [];
 
-  const retreat_records: Cultivator['retreat_records'] = undefined;
+  const retreat_records: RetreatRecord[] = [];
 
-  const breakthrough_history: Cultivator['breakthrough_history'] = undefined;
+  const breakthrough_history: BreakthroughHistoryEntry[] = [];
 
   // 组装装备状态（将 UUID 转换为字符串）
   const equipped: Cultivator['equipped'] = {
@@ -135,13 +143,13 @@ async function assembleCultivator(
     id: cultivatorRecord.id,
     name: cultivatorRecord.name,
     title: cultivatorRecord.title || undefined,
-    gender: (cultivatorRecord.gender as Cultivator['gender']) || undefined,
+    gender: (cultivatorRecord.gender as GenderType) || undefined,
     origin: cultivatorRecord.origin || undefined,
     personality: cultivatorRecord.personality || undefined,
     background: cultivatorRecord.background || undefined,
     prompt: cultivatorRecord.prompt,
-    realm: cultivatorRecord.realm as Cultivator['realm'],
-    realm_stage: cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+    realm: cultivatorRecord.realm as RealmType,
+    realm_stage: cultivatorRecord.realm_stage as RealmStage,
     age: cultivatorRecord.age,
     lifespan: cultivatorRecord.lifespan,
     status: (cultivatorRecord.status as Cultivator['status']) ?? 'active',
@@ -176,7 +184,9 @@ async function assembleCultivator(
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
     // 持久化状态（如符箓效果）
-    persistent_statuses: (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) || [],
+    persistent_statuses:
+      (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) ||
+      [],
   };
 
   return cultivator;
@@ -196,7 +206,7 @@ export function createMinimalCultivator(
   return {
     id: cultivatorRecord.id,
     name: cultivatorRecord.name,
-    gender: cultivatorRecord.gender as Cultivator['gender'] || undefined,
+    gender: (cultivatorRecord.gender as Cultivator['gender']) || undefined,
     origin: cultivatorRecord.origin || undefined,
     personality: cultivatorRecord.personality || undefined,
     background: cultivatorRecord.background || undefined,
@@ -240,7 +250,9 @@ export function createMinimalCultivator(
       cultivatorRecord.realm as Cultivator['realm'],
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
-    persistent_statuses: (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) || [],
+    persistent_statuses:
+      (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) ||
+      [],
   };
 }
 
@@ -283,12 +295,15 @@ export async function createCultivator(
 
     // 2. 创建灵根
     if (cultivator.spiritual_roots.length > 0) {
+      const spiritualRootCount = cultivator.spiritual_roots.length;
       await tx.insert(schema.spiritualRoots).values(
         cultivator.spiritual_roots.map((root) => ({
           cultivatorId,
           element: root.element,
           strength: root.strength,
-          grade: root.grade || null,
+          grade:
+            root.grade ??
+            resolveSpiritualRootGrade(spiritualRootCount, root.element),
         })),
       );
     }
@@ -355,6 +370,24 @@ export async function createCultivator(
     throw new Error('创建角色后无法组装完整数据');
   }
   return fullCultivator;
+}
+
+function resolveSpiritualRootGrade(
+  rootCount: number,
+  element: Cultivator['spiritual_roots'][0]['element'],
+): NonNullable<Cultivator['spiritual_roots'][0]['grade']> {
+  if (rootCount === 1) {
+    if (element === '风' || element === '雷' || element === '冰') {
+      return '变异灵根';
+    }
+    return '天灵根';
+  }
+
+  if (rootCount <= 3) {
+    return '真灵根';
+  }
+
+  return '伪灵根';
 }
 
 export async function getUserAliveCultivatorId(
@@ -1219,7 +1252,8 @@ export async function consumeItem(
     // 创建效果实例
     const { EffectFactory } = await import('@/engine/effect/EffectFactory');
     const { EffectTrigger } = await import('@/engine/effect/types');
-    const { CultivatorAdapter } = await import('@/engine/effect/CultivatorAdapter');
+    const { CultivatorAdapter } =
+      await import('@/engine/effect/CultivatorAdapter');
     const { EffectLogCollector } = await import('@/engine/effect/types');
 
     // 创建适配器
@@ -1229,10 +1263,13 @@ export async function consumeItem(
     const logCollector = new EffectLogCollector();
 
     // 获取当前的持久状态
-    const currentStatuses = (cultivator.persistent_statuses || []) as BuffInstanceState[];
+    const currentStatuses = (cultivator.persistent_statuses ||
+      []) as BuffInstanceState[];
 
     // 创建效果实例数组
-    const effectInstances = effects.map((config) => EffectFactory.create(config));
+    const effectInstances = effects.map((config) =>
+      EffectFactory.create(config),
+    );
 
     // 构建效果上下文
     const ctx = {
@@ -1278,7 +1315,8 @@ export async function consumeItem(
 
     // 获取待处理的修为、感悟、寿元值
     const metadata = ctx.metadata as Record<string, unknown>;
-    const pendingCultivationExp = (metadata.pendingCultivationExp as number) || 0;
+    const pendingCultivationExp =
+      (metadata.pendingCultivationExp as number) || 0;
     const pendingComprehension = (metadata.pendingComprehension as number) || 0;
     const pendingLifespan = (metadata.pendingLifespan as number) || 0;
 
