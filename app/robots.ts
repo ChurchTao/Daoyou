@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         '/login', // 登录页无需索引
         '/welcome', // 欢迎页
         '/reincarnate', // 死亡/转世逻辑页
+        '/admin', // 管理员页面
       ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
