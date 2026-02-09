@@ -87,10 +87,11 @@ function resolveSpiritualRootGrade(
   rootCount: number,
   element: ElementType,
 ): SpiritualRoot['grade'] {
+  if (element === '风' || element === '雷' || element === '冰') {
+    return '变异灵根';
+  }
+
   if (rootCount === 1) {
-    if (element === '风' || element === '雷' || element === '冰') {
-      return '变异灵根';
-    }
     return '天灵根';
   }
 

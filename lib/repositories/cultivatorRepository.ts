@@ -376,10 +376,11 @@ function resolveSpiritualRootGrade(
   rootCount: number,
   element: Cultivator['spiritual_roots'][0]['element'],
 ): NonNullable<Cultivator['spiritual_roots'][0]['grade']> {
+  if (element === '风' || element === '雷' || element === '冰') {
+    return '变异灵根';
+  }
+
   if (rootCount === 1) {
-    if (element === '风' || element === '雷' || element === '冰') {
-      return '变异灵根';
-    }
     return '天灵根';
   }
 

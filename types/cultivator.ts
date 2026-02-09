@@ -34,7 +34,7 @@ export interface Attributes {
 export interface SpiritualRoot {
   element: ElementType;
   strength: number; // 0-100
-  grade?: SpiritualRootGrade; // 天灵根 | 真灵根 | 伪灵根
+  grade?: SpiritualRootGrade; // 天灵根 | 真灵根 | 伪灵根 | 变异灵根
 }
 
 export interface RetreatRecordModifiers {

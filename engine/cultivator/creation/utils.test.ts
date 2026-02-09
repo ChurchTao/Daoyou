@@ -14,11 +14,15 @@ describe('generateSpiritualRoots', () => {
   it('assigns spiritual root grade by rules', () => {
     const tian = generateSpiritualRoots(95, ['火']);
     const bianyi = generateSpiritualRoots(95, ['雷']);
+    const mixedWithMutation = generateSpiritualRoots(85, ['雷', '木']);
     const zhen = generateSpiritualRoots(80, ['金', '木', '水']);
     const wei = generateSpiritualRoots(40, ['金', '木', '水', '火']);
 
     expect(tian[0].grade).toBe('天灵根');
     expect(bianyi[0].grade).toBe('变异灵根');
+    expect(mixedWithMutation.find((root) => root.element === '雷')?.grade).toBe(
+      '变异灵根',
+    );
     expect(zhen.every((root) => root.grade === '真灵根')).toBe(true);
     expect(wei.every((root) => root.grade === '伪灵根')).toBe(true);
   });
@@ -29,7 +33,11 @@ describe('generateSpiritualRoots', () => {
     expect(roots).toHaveLength(4);
     roots.forEach((root) => {
       expect(ELEMENT_VALUES).toContain(root.element);
-      expect(root.grade).toBe('伪灵根');
+      if (root.element === '风' || root.element === '雷' || root.element === '冰') {
+        expect(root.grade).toBe('变异灵根');
+      } else {
+        expect(root.grade).toBe('伪灵根');
+      }
     });
   });
 });

@@ -67,7 +67,7 @@ export const spiritualRoots = pgTable('wanjiedaoyou_spiritual_roots', {
     .notNull(),
   element: varchar('element', { length: 10 }).notNull(), // 金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无
   strength: integer('strength').notNull(), // 0-100
-  grade: varchar('grade', { length: 20 }), // 天灵根 | 真灵根 | 伪灵根
+  grade: varchar('grade', { length: 20 }), // 天灵根 | 真灵根 | 伪灵根 | 变异灵根
   createdAt: timestamp('created_at').defaultNow(),
 });
 
