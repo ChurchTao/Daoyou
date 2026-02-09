@@ -1,4 +1,5 @@
 import { changelogs } from '@/data/changelog';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from './Navbar';
@@ -124,7 +125,11 @@ const features = [
   },
 ];
 
-// --- Main Page Component (Server Component) ---
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default function LandingPage() {
   const latestUpdates = changelogs.slice(0, 3);
