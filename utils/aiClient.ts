@@ -2,6 +2,17 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 import { generateText, Output, streamText, ToolSet } from 'ai';
 import z from 'zod';
 
+const DISABLE_MARKDOWN_SYSTEM_INJECTION = `
+你必须只输出一个合法的 JSON 对象（Content-Type: application/json）。
+不要输出任何 Markdown（包括 \`\`\`）、不要输出解释、不要输出多余文字。
+输出必须能被 JSON.parse 直接解析。`;
+const DISABLE_MARKDOWN_USER_INJECTION = `再次强调：禁止输出 Markdown、解释文本或多余字段。只输出 JSON。`;
+
+const injectSystem = (system: string) =>
+  `${system}${DISABLE_MARKDOWN_SYSTEM_INJECTION}`;
+const injectUser = (user: string) =>
+  `${user}${DISABLE_MARKDOWN_USER_INJECTION}`;
+
 /**
  * 获取 DeepSeek Provider
  * @returns DeepSeek Provider
@@ -118,8 +129,8 @@ export async function object<T>(
   const model = getModel(fast);
   const res = await generateText({
     model,
-    system: prompt,
-    prompt: userInput,
+    system: injectSystem(prompt),
+    prompt: injectUser(userInput),
     output: Output.object({
       schema: options.schema,
       name: options.schemaName,
@@ -157,8 +168,8 @@ export async function objectArray<T>(
   const model = getModel(fast);
   const res = await generateText({
     model,
-    system: prompt,
-    prompt: userInput,
+    system: injectSystem(prompt),
+    prompt: injectUser(userInput),
     output: Output.array({
       element: options.schema,
       name: options.schemaName,
@@ -204,28 +215,4 @@ export async function tool(
   });
   console.debug('AI生成Text by tool：totalUsage', res.totalUsage);
   return res;
-}
-
-/**
- * 解析 AI 返回的 JSON（处理可能的格式问题）
- * @param jsonString AI 返回的 JSON 字符串
- * @returns 解析后的对象
- */
-export function parseAIResponse(jsonString: string): Record<string, unknown> {
-  try {
-    // 尝试直接解析
-    return JSON.parse(jsonString) as Record<string, unknown>;
-  } catch {
-    // 如果失败，尝试提取 JSON 部分（AI 可能返回了额外的文字）
-    const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-      } catch (e) {
-        console.error('提取 JSON 后仍无法解析:', e);
-        throw new Error('无法解析 AI 返回的 JSON 格式');
-      }
-    }
-    throw new Error('无法解析 AI 响应：未找到有效的 JSON 内容');
-  }
 }
