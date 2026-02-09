@@ -176,6 +176,13 @@
       "when": 1769141739656,
       "tag": "0024_wooden_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1770618421976,
+      "tag": "0025_ambiguous_cyclops",
+      "breakpoints": true
     }
   ]
 }

@@ -1,93 +1,40 @@
+import { resolveEmailRecipients } from '@/lib/admin/recipient-resolver';
+import { normalizeTemplatePayload, renderTemplate } from '@/lib/admin/template';
+import { sendViaSmtp } from '@/lib/admin/smtp';
 import { withAdminAuth } from '@/lib/api/adminAuth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { db } from '@/lib/drizzle/db';
+import { adminMessageTemplates } from '@/lib/drizzle/schema';
+import { REALM_VALUES } from '@/types/constants';
+import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { z } from 'zod';
 
-const EmailBroadcastSchema = z.object({
-  subject: z.string().trim().min(1).max(200),
-  content: z.string().trim().min(1).max(10000),
-  dryRun: z.boolean().optional().default(false),
-});
-
-async function listConfirmedEmails(): Promise<string[]> {
-  const admin = createAdminClient();
-  const emails: string[] = [];
-  const perPage = 200;
-
-  for (let page = 1; page <= 1000; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({
-      page,
-      perPage,
-    });
-
-    if (error) {
-      throw new Error(`Supabase listUsers failed: ${error.message}`);
+const EmailBroadcastSchema = z
+  .object({
+    templateId: z.string().uuid().optional(),
+    subject: z.string().trim().min(1).max(200).optional(),
+    content: z.string().trim().min(1).max(10000).optional(),
+    payload: z.record(z.string(), z.union([z.string(), z.number()])).default({}),
+    filters: z
+      .object({
+        registeredFrom: z.string().optional(),
+        registeredTo: z.string().optional(),
+        hasActiveCultivator: z.boolean().optional(),
+        realmMin: z.enum(REALM_VALUES).optional(),
+        realmMax: z.enum(REALM_VALUES).optional(),
+      })
+      .default({}),
+    dryRun: z.boolean().optional().default(false),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.templateId && (!value.subject || !value.content)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['subject'],
+        message: '未使用模板时，subject/content 必填',
+      });
     }
-
-    const users = data?.users ?? [];
-    if (users.length === 0) {
-      break;
-    }
-
-    for (const user of users) {
-      if (user.email && user.email_confirmed_at) {
-        emails.push(user.email.toLowerCase());
-      }
-    }
-
-    if (users.length < perPage) {
-      break;
-    }
-  }
-
-  return [...new Set(emails)];
-}
-
-function createSmtpTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? 465);
-  const secure =
-    process.env.SMTP_SECURE !== undefined
-      ? process.env.SMTP_SECURE === 'true'
-      : port === 465;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.MAIL_FROM;
-
-  if (!host || !port || !user || !pass || !from) {
-    throw new Error(
-      'Missing SMTP config: SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/MAIL_FROM',
-    );
-  }
-
-  return {
-    transporter: nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-    }),
-    from,
-  };
-}
-
-async function sendViaSmtp(email: string, subject: string, content: string) {
-  const { transporter, from } = createSmtpTransporter();
-
-  const html = content
-    .split('\n')
-    .map((line) => line.trim())
-    .join('<br />');
-
-  await transporter.sendMail({
-    from,
-    to: email,
-    subject,
-    text: content,
-    html,
   });
-}
 
 export const POST = withAdminAuth(async (request: NextRequest) => {
   const body = await request.json();
@@ -99,25 +46,57 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
     );
   }
 
-  const { subject, content, dryRun } = parsed.data;
+  const { templateId, payload, filters, dryRun } = parsed.data;
+  const resolvedRecipients = await resolveEmailRecipients(filters);
 
-  const recipients = await listConfirmedEmails();
   if (dryRun) {
     return NextResponse.json({
       dryRun: true,
-      totalRecipients: recipients.length,
+      totalRecipients: resolvedRecipients.totalCount,
+      sampleRecipients: resolvedRecipients.sampleRecipients,
     });
   }
+
+  let finalSubject = parsed.data.subject ?? '';
+  let finalContent = parsed.data.content ?? '';
+
+  if (templateId) {
+    const template = await db.query.adminMessageTemplates.findFirst({
+      where: eq(adminMessageTemplates.id, templateId),
+    });
+
+    if (!template) {
+      return NextResponse.json({ error: '模板不存在' }, { status: 404 });
+    }
+    if (template.channel !== 'email') {
+      return NextResponse.json({ error: '模板频道不匹配' }, { status: 400 });
+    }
+    if (template.status !== 'active') {
+      return NextResponse.json({ error: '模板已停用' }, { status: 400 });
+    }
+    if (!template.subjectTemplate) {
+      return NextResponse.json(
+        { error: 'email 模板缺少 subjectTemplate' },
+        { status: 400 },
+      );
+    }
+
+    const mergedPayload = normalizeTemplatePayload(template.defaultPayload, payload);
+    finalSubject = renderTemplate(template.subjectTemplate, mergedPayload);
+    finalContent = renderTemplate(template.contentTemplate, mergedPayload);
+  }
+
+  const recipients = resolvedRecipients.recipients.map((item) => item.recipientKey);
+  const batchSize = Number(process.env.ADMIN_BROADCAST_BATCH_SIZE ?? 20);
 
   let sent = 0;
   let failed = 0;
   const errors: string[] = [];
-  const batchSize = 10;
 
   for (let i = 0; i < recipients.length; i += batchSize) {
     const batch = recipients.slice(i, i + batchSize);
     const results = await Promise.allSettled(
-      batch.map((email) => sendViaSmtp(email, subject, content)),
+      batch.map((email) => sendViaSmtp(email, finalSubject, finalContent)),
     );
 
     results.forEach((result, index) => {
@@ -125,10 +104,8 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
         sent += 1;
       } else {
         failed += 1;
-        if (errors.length < 10) {
-          errors.push(
-            `${batch[index]}: ${result.reason?.message ?? 'unknown'}`,
-          );
+        if (errors.length < 20) {
+          errors.push(`${batch[index]}: ${result.reason?.message ?? 'unknown'}`);
         }
       }
     });

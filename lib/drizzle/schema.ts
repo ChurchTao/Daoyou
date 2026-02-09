@@ -270,6 +270,24 @@ export const mails = pgTable('wanjiedaoyou_mails', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// 运营模板表
+export const adminMessageTemplates = pgTable('wanjiedaoyou_admin_message_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  channel: varchar('channel', { length: 20 }).notNull(), // email | game_mail
+  name: varchar('name', { length: 120 }).notNull(),
+  subjectTemplate: varchar('subject_template', { length: 300 }),
+  contentTemplate: text('content_template').notNull(),
+  defaultPayload: jsonb('default_payload').notNull().default({}),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active | disabled
+  createdBy: uuid('created_by').notNull(),
+  updatedBy: uuid('updated_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 // 单人副本历史记录表
 export const dungeonHistories = pgTable('wanjiedaoyou_dungeon_histories', {
   id: uuid('id').primaryKey().defaultRandom(),

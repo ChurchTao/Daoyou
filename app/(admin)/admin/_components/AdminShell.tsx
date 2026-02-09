@@ -13,6 +13,12 @@ interface AdminShellProps {
 
 export function AdminShell({ adminEmail, children }: AdminShellProps) {
   const pathname = usePathname();
+  const isNavItemActive = (href: string) => {
+    if (href === '/admin') {
+      return pathname === href;
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-paper">
@@ -29,8 +35,7 @@ export function AdminShell({ adminEmail, children }: AdminShellProps) {
 
           <nav className="space-y-2">
             {adminNavItems.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active = isNavItemActive(item.href);
 
               return (
                 <Link

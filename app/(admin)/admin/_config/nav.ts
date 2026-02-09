@@ -20,4 +20,9 @@ export const adminNavItems: AdminNavItem[] = [
     description: '公告与奖励批量发放',
     href: '/admin/broadcast/game-mail',
   },
+  {
+    title: '模板中心',
+    description: '运营文案模板管理',
+    href: '/admin/templates',
+  },
 ];
