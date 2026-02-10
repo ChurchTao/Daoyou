@@ -101,8 +101,8 @@ export const buffTemplates: BuffTemplate[] = [
       {
         type: EffectType.StatModifier,
         paramsTemplate: {
-          stat: 'crit_rate',
-          modType: StatModifierType.FIXED,
+          stat: 'critRate',
+          modType: StatModifierType.PERCENT,
           // 基础 10% + 品质加成
           value: { base: 0.1, scale: 'quality', coefficient: 0.05 },
           // 【重要】用于占位符替换的百分比参数
@@ -219,8 +219,8 @@ export const buffTemplates: BuffTemplate[] = [
       {
         type: EffectType.StatModifier,
         paramsTemplate: {
-          stat: 'crit_rate',
-          modType: StatModifierType.FIXED,
+          stat: 'critRate',
+          modType: StatModifierType.PERCENT,
           // 基础 -10% - 品质加成
           value: { base: -0.1, scale: 'quality', coefficient: -0.05 },
           // 【重要】用于占位符替换的百分比参数（取绝对值）
