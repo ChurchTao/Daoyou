@@ -97,7 +97,7 @@ describe('MailService', () => {
   });
 
   it('should send a mail with attachments to a specific cultivator', async () => {
-    const cultivatorId = '786160f5-cdb2-4df6-a8fb-c2b63ead212c';
+    const cultivatorId = '0a545715-80ad-42d0-9f31-cf80c239a79c';
     const title = '天道赐福：灵符降世';
     const content =
       '道友仙缘深厚，天道特赐下三枚灵符，助道友窥探天机，演化神通。';
