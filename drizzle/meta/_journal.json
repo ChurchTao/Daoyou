@@ -183,6 +183,13 @@
       "when": 1770618421976,
       "tag": "0025_ambiguous_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1770705071780,
+      "tag": "0026_bitter_clint_barton",
+      "breakpoints": true
     }
   ]
 }

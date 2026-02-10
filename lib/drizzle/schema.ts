@@ -1,6 +1,7 @@
 import {
   boolean,
   doublePrecision,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -271,22 +272,25 @@ export const mails = pgTable('wanjiedaoyou_mails', {
 });
 
 // 运营模板表
-export const adminMessageTemplates = pgTable('wanjiedaoyou_admin_message_templates', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  channel: varchar('channel', { length: 20 }).notNull(), // email | game_mail
-  name: varchar('name', { length: 120 }).notNull(),
-  subjectTemplate: varchar('subject_template', { length: 300 }),
-  contentTemplate: text('content_template').notNull(),
-  defaultPayload: jsonb('default_payload').notNull().default({}),
-  status: varchar('status', { length: 20 }).notNull().default('active'), // active | disabled
-  createdBy: uuid('created_by').notNull(),
-  updatedBy: uuid('updated_by').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+export const adminMessageTemplates = pgTable(
+  'wanjiedaoyou_admin_message_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    channel: varchar('channel', { length: 20 }).notNull(), // email | game_mail
+    name: varchar('name', { length: 120 }).notNull(),
+    subjectTemplate: varchar('subject_template', { length: 300 }),
+    contentTemplate: text('content_template').notNull(),
+    defaultPayload: jsonb('default_payload').notNull().default({}),
+    status: varchar('status', { length: 20 }).notNull().default('active'), // active | disabled
+    createdBy: uuid('created_by').notNull(),
+    updatedBy: uuid('updated_by').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+);
 
 // 单人副本历史记录表
 export const dungeonHistories = pgTable('wanjiedaoyou_dungeon_histories', {
@@ -300,3 +304,47 @@ export const dungeonHistories = pgTable('wanjiedaoyou_dungeon_histories', {
   realGains: jsonb('real_gains'), // 实际发放的奖励 ResourceOperation[]
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// 拍卖行表
+export const auctionListings = pgTable(
+  'wanjiedaoyou_auction_listings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // 卖家信息
+    sellerId: uuid('seller_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    sellerName: varchar('seller_name', { length: 100 }).notNull(), // 冗余存储，方便展示
+
+    // 物品信息
+    itemType: varchar('item_type', { length: 20 }).notNull(), // material | artifact | consumable
+    itemId: uuid('item_id').notNull(), // 原物品ID（引用），售出后可清理
+
+    // 物品快照（完整数据，保证下架后仍能展示）
+    itemSnapshot: jsonb('item_snapshot').notNull(),
+
+    // 价格与状态
+    price: integer('price').notNull(), // 一口价（灵石）
+    status: varchar('status', { length: 20 }).notNull().default('active'), // active | sold | expired | cancelled
+
+    // 时间戳
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at').notNull(), // 上架时间 + 48小时
+    soldAt: timestamp('sold_at'), // 售出时间
+  },
+  (table) => ({
+    // 复合索引：用于 Cron 扫描过期物品
+    statusExpiresIdx: index('auction_status_expires_idx').on(
+      table.status,
+      table.expiresAt,
+    ),
+    // 复合索引：用于校验寄售位数量
+    sellerStatusIdx: index('auction_seller_status_idx').on(
+      table.sellerId,
+      table.status,
+    ),
+    // 单列索引：用于物品类型筛选
+    itemTypeIdx: index('auction_item_type_idx').on(table.itemType),
+  }),
+);
