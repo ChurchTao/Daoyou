@@ -29,15 +29,15 @@ function validateEmailSubject(
 
 export const GET = withAdminAuth<{ id: string }>(
   async (_request: NextRequest, _ctx, params) => {
-  const template = await db.query.adminMessageTemplates.findFirst({
-    where: eq(adminMessageTemplates.id, params.id),
-  });
+    const template = await db.query.adminMessageTemplates.findFirst({
+      where: eq(adminMessageTemplates.id, params.id),
+    });
 
-  if (!template) {
-    return NextResponse.json({ error: '模板不存在' }, { status: 404 });
-  }
+    if (!template) {
+      return NextResponse.json({ error: '模板不存在' }, { status: 404 });
+    }
 
-  return NextResponse.json({ template });
+    return NextResponse.json({ template });
   },
 );
 
@@ -60,7 +60,8 @@ export const PATCH = withAdminAuth<{ id: string }>(
       );
     }
 
-    const nextChannel = (parsed.data.channel ?? template.channel) as AdminChannel;
+    const nextChannel = (parsed.data.channel ??
+      template.channel) as AdminChannel;
     const nextSubjectTemplate =
       parsed.data.subjectTemplate ?? template.subjectTemplate;
 

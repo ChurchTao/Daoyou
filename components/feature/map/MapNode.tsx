@@ -1,8 +1,8 @@
 'use client';
 
-import { memo } from 'react';
 import { cn } from '@/lib/cn';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { memo } from 'react';
 
 /**
  * MapNode 变体定义

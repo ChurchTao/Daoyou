@@ -5,9 +5,7 @@ import type { CultivationTechnique, Skill } from '@/types/cultivator';
 // 基础五行功法配置 (提供基础属性加成)
 export const BASIC_TECHNIQUES: Record<
   ElementType,
-  (
-    grade: '黄阶下品' | '黄阶中品' | '黄阶上品',
-  ) => CultivationTechnique
+  (grade: '黄阶下品' | '黄阶中品' | '黄阶上品') => CultivationTechnique
 > = {
   金: (grade) => ({
     name: '金锐功',

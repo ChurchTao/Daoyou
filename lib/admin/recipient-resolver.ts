@@ -7,8 +7,8 @@ import {
   GameMailAudienceFilter,
   RecipientResolveResult,
 } from '@/types/admin-broadcast';
-import { and, eq, gte, lte } from 'drizzle-orm';
 import { RealmType } from '@/types/constants';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { isRealmInRange, toRealmType } from './realm';
 
 function toStartOfDay(dateString?: string): Date | null {
@@ -91,7 +91,11 @@ export async function resolveEmailRecipients(
         if (filters.realmMin || filters.realmMax) {
           if (!activeCultivator) continue;
           if (
-            !isRealmInRange(activeCultivator.realm, filters.realmMin, filters.realmMax)
+            !isRealmInRange(
+              activeCultivator.realm,
+              filters.realmMin,
+              filters.realmMax,
+            )
           ) {
             continue;
           }
@@ -148,12 +152,12 @@ export async function resolveGameMailRecipients(
 
     recipients.push({
       recipientType: 'cultivator',
-        recipientKey: row.id,
-        metadata: {
-          realm,
-          createdAt: row.createdAt?.toISOString(),
-        },
-      });
+      recipientKey: row.id,
+      metadata: {
+        realm,
+        createdAt: row.createdAt?.toISOString(),
+      },
+    });
   }
 
   return buildResolveResult(recipients);

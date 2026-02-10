@@ -1,7 +1,7 @@
 import { BaseEffect } from '../BaseEffect';
 import {
-  type ConsumeGainCultivationExpParams,
   EffectTrigger,
+  type ConsumeGainCultivationExpParams,
   type EffectContext,
 } from '../types';
 
@@ -39,7 +39,8 @@ export class ConsumeGainCultivationExpEffect extends BaseEffect {
     if (!ctx.metadata) {
       ctx.metadata = {};
     }
-    (ctx.metadata as Record<string, unknown>).pendingCultivationExp = this.value;
+    (ctx.metadata as Record<string, unknown>).pendingCultivationExp =
+      this.value;
 
     // 记录日志
     ctx.logCollector?.addLog(`${target.name} 获得 ${this.value} 点修为`);

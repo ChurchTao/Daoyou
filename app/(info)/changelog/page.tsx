@@ -24,12 +24,12 @@ export default function ChangelogPage() {
             <div
               key={log.version}
               onClick={() => setSelectedVersion(log)}
-              className="cursor-pointer hover:bg-ink/5 transition-colors rounded-lg"
+              className="hover:bg-ink/5 cursor-pointer rounded-lg transition-colors"
             >
               <InkListItem
                 title={
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-ink">{log.version}</span>
+                    <span className="text-ink font-bold">{log.version}</span>
                     {log.type === 'major' && (
                       <InkBadge tone="danger">重大更新</InkBadge>
                     )}
@@ -61,12 +61,12 @@ export default function ChangelogPage() {
         title={selectedVersion ? `${selectedVersion.version} 更新详情` : ''}
       >
         {selectedVersion && (
-          <div className="space-y-4 mt-2">
-            <div className="flex items-center justify-between opacity-60 text-sm border-b border-ink/10 pb-2">
+          <div className="mt-2 space-y-4">
+            <div className="border-ink/10 flex items-center justify-between border-b pb-2 text-sm opacity-60">
               <span>{selectedVersion.date}</span>
               <span>{selectedVersion.title}</span>
             </div>
-            <ul className="space-y-2 list-disc list-inside text-ink/90">
+            <ul className="text-ink/90 list-inside list-disc space-y-2">
               {selectedVersion.changes.map((change, index) => (
                 <li key={index}>{change}</li>
               ))}

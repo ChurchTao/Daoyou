@@ -26,7 +26,7 @@ export function TitleEditorModal({
 }: TitleEditorModalProps) {
   return (
     <InkModal isOpen={isOpen} onClose={onClose} title="定制名号">
-      <div className="space-y-4 mt-4">
+      <div className="mt-4 space-y-4">
         <div className="text-sm opacity-80">
           行走江湖，岂能无号？
           <br />
@@ -38,7 +38,7 @@ export function TitleEditorModal({
           placeholder="在此输入名号..."
           hint="限2-8字"
         />
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="mt-4 flex justify-end gap-2">
           <InkButton onClick={onClose}>取消</InkButton>
           <InkButton variant="primary" onClick={onSave} disabled={isSaving}>
             {isSaving ? '镌刻中...' : '确认修改'}

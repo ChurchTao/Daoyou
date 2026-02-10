@@ -1,4 +1,9 @@
 // 基础 UI 组件统一导出
+export { EffectCard, type EffectCardProps } from './EffectCard';
+export {
+  EffectDetailModal,
+  type EffectDetailModalProps,
+} from './EffectDetailModal';
 export { InkActionGroup, type InkActionGroupProps } from './InkActionGroup';
 export { InkBadge, type InkBadgeProps, type Tier } from './InkBadge';
 export { InkButton, type InkButtonProps } from './InkButton';
@@ -9,8 +14,6 @@ export {
   type InkDialogState,
 } from './InkDialog';
 export { InkDivider, type InkDividerProps } from './InkDivider';
-export { EffectCard, type EffectCardProps } from './EffectCard';
-export { EffectDetailModal, type EffectDetailModalProps } from './EffectDetailModal';
 export { InkInput, type InkInputProps } from './InkInput';
 export { InkLink, type InkLinkProps } from './InkLink';
 export {

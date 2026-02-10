@@ -115,7 +115,7 @@ export function DungeonViewRenderer({
     const renderLimitHint = () => {
       if (viewState.limitLoading) {
         return (
-          <p className="text-center text-xs text-ink-secondary mt-2">
+          <p className="text-ink-secondary mt-2 text-center text-xs">
             查询中...
           </p>
         );
@@ -131,7 +131,7 @@ export function DungeonViewRenderer({
       // 根据剩余次数决定样式和文案
       if (remaining === 0) {
         return (
-          <p className="text-center text-sm text-crimson mt-2">
+          <p className="text-crimson mt-2 text-center text-sm">
             今日探索次数已用尽，明日再来
           </p>
         );
@@ -148,9 +148,9 @@ export function DungeonViewRenderer({
 
     return (
       <InkPageShell title="云游探秘" backHref="/game" subtitle="寻找上古机缘">
-        <InkCard className="p-6 mb-6">
-          <div className="text-center space-y-4">
-            <div className="text-6xl my-4">🏔️</div>
+        <InkCard className="mb-6 p-6">
+          <div className="space-y-4 text-center">
+            <div className="my-4 text-6xl">🏔️</div>
             <p>
               修仙界广袄无垠，机缘与危机并存。
               <br />
@@ -166,7 +166,7 @@ export function DungeonViewRenderer({
           />
         </InkSection>
         {renderLimitHint()}
-        <div className="text-center mt-4">
+        <div className="mt-4 text-center">
           <InkButton href="/game/dungeon/history" variant="ghost">
             📖 查看历史记录
           </InkButton>

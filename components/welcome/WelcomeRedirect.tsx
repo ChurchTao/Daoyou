@@ -22,7 +22,7 @@ export function WelcomeRedirect({ children }: { children: React.ReactNode }) {
   // 加载中或即将跳转时显示加载状态
   if (isLoading || (isFirstVisit && !skipWelcome)) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">正在推演天机……</p>
       </div>
     );

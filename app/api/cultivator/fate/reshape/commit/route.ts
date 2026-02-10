@@ -1,18 +1,16 @@
-import { withActiveCultivator } from '@/lib/api/withAuth';
-import { z } from 'zod';
-import { eq } from 'drizzle-orm';
-import { cultivators, preHeavenFates } from '@/lib/drizzle/schema';
 import type { BuffInstanceState } from '@/engine/buff/types';
 import type { EffectConfig } from '@/engine/effect/types';
-import { NextRequest, NextResponse } from 'next/server';
-import { redis } from '@/lib/redis';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
+import { withActiveCultivator } from '@/lib/api/withAuth';
+import { cultivators, preHeavenFates } from '@/lib/drizzle/schema';
+import { redis } from '@/lib/redis';
+import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const CommitSchema = z.object({
   selectedIndices: z.array(z.number()), // 用户选择的预览命格索引
-  replaceIndices: z
-    .array(z.number())
-    .optional(), // 要替换的旧命格索引，不传表示不替换
+  replaceIndices: z.array(z.number()).optional(), // 要替换的旧命格索引，不传表示不替换
 });
 
 /**
@@ -38,7 +36,10 @@ export const POST = withActiveCultivator(
     const { selectedIndices, replaceIndices } = CommitSchema.parse(body);
 
     // 校验：无修改不允许提交
-    if ((!replaceIndices || replaceIndices.length === 0) && selectedIndices.length === 0) {
+    if (
+      (!replaceIndices || replaceIndices.length === 0) &&
+      selectedIndices.length === 0
+    ) {
       return NextResponse.json(
         { error: '未作任何更改，无法逆转乾坤' },
         { status: 400 },
@@ -136,11 +137,12 @@ export const POST = withActiveCultivator(
 
     return NextResponse.json({
       success: true,
-      message: deleteCount > 0
-        ? `成功重塑 ${deleteCount} 个先天命格（新增 ${addCount} 个）`
-        : addCount > 0
-          ? `成功获得 ${addCount} 个新命格`
-          : '已放弃重塑',
+      message:
+        deleteCount > 0
+          ? `成功重塑 ${deleteCount} 个先天命格（新增 ${addCount} 个）`
+          : addCount > 0
+            ? `成功获得 ${addCount} 个新命格`
+            : '已放弃重塑',
     });
   },
 );

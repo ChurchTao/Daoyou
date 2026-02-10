@@ -25,7 +25,7 @@ export function MailList({ mails, onSelect }: MailListProps) {
   if (!mails || mails.length === 0) {
     return (
       <InkNotice tone="muted">
-        <div className="text-center py-8 opacity-60">暂无传音符诏</div>
+        <div className="py-8 text-center opacity-60">暂无传音符诏</div>
       </InkNotice>
     );
   }
@@ -36,11 +36,7 @@ export function MailList({ mails, onSelect }: MailListProps) {
         <div
           key={mail.id}
           onClick={() => onSelect(mail)}
-          className={`
-                cursor-pointer transition-colors rounded-lg overflow-hidden
-                ${mail.isRead ? 'opacity-80' : 'bg-paper-2'}
-                hover:bg-ink/5
-            `}
+          className={`cursor-pointer overflow-hidden rounded-lg transition-colors ${mail.isRead ? 'opacity-80' : 'bg-paper-2'} hover:bg-ink/5`}
         >
           <InkListItem
             title={
@@ -53,7 +49,7 @@ export function MailList({ mails, onSelect }: MailListProps) {
                 )}
                 {mail.type === 'system' && <span className="text-lg">📢</span>}
                 {!mail.isRead && (
-                  <span className="w-2 h-2 rounded-full bg-crimson inline-block" />
+                  <span className="bg-crimson inline-block h-2 w-2 rounded-full" />
                 )}
 
                 <span
@@ -69,7 +65,7 @@ export function MailList({ mails, onSelect }: MailListProps) {
               </span>
             }
             description={
-              <div className="text-sm opacity-60 line-clamp-1">
+              <div className="line-clamp-1 text-sm opacity-60">
                 {mail.content}
               </div>
             }

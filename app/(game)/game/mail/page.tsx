@@ -66,7 +66,7 @@ export default function MailPage() {
     >
       <InkSection title="【收件箱】">
         {loading ? (
-          <div className="text-center py-8 opacity-50 text-sm">
+          <div className="py-8 text-center text-sm opacity-50">
             正在接收灵讯...
           </div>
         ) : (

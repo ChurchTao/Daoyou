@@ -1,7 +1,7 @@
-import { FateGenerator } from '@/engine/fate/creation/FateGenerator';
 import { FateAffixGenerator } from '@/engine/creation/FateAffixGenerator';
-import type { PreHeavenFate } from '@/types/cultivator';
+import { FateGenerator } from '@/engine/fate/creation/FateGenerator';
 import type { Quality, RealmType } from '@/types/constants';
+import type { PreHeavenFate } from '@/types/cultivator';
 
 /**
  * 先天命格生成器（AIGC 架构）

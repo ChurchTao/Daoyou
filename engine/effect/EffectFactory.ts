@@ -84,7 +84,9 @@ export class EffectFactory {
         return new DamageEffect(config.params as unknown as DamageParams);
 
       case EffectType.BonusDamage:
-        return new BonusDamageEffect(config.params as unknown as BonusDamageParams);
+        return new BonusDamageEffect(
+          config.params as unknown as BonusDamageParams,
+        );
 
       case EffectType.Heal:
         return new HealEffect(config.params as unknown as HealParams);

@@ -29,7 +29,7 @@ export function InkStatRow({
   return (
     <div
       className={cn(
-        'py-2 border-b border-dashed border-ink/15 text-[0.95rem]',
+        'border-ink/15 border-b border-dashed py-2 text-[0.95rem]',
         emphasize && 'font-semibold',
       )}
     >
@@ -37,12 +37,12 @@ export function InkStatRow({
       <div className="flex items-baseline gap-1">
         <span>{label}</span>
         {code && (
-          <span className="text-[0.8rem] text-ink-secondary">（{code}）</span>
+          <span className="text-ink-secondary text-[0.8rem]">（{code}）</span>
         )}
       </div>
 
       {/* 数值行 */}
-      <div className="flex gap-1 items-center mt-1">
+      <div className="mt-1 flex items-center gap-1">
         <span>{base}</span>
         {changed && (
           <span className="text-crimson font-semibold"> → {final}</span>
@@ -51,7 +51,7 @@ export function InkStatRow({
 
       {/* 详情 */}
       {detail && (
-        <div className="mt-1 text-[0.8rem] text-ink-secondary">{detail}</div>
+        <div className="text-ink-secondary mt-1 text-[0.8rem]">{detail}</div>
       )}
     </div>
   );

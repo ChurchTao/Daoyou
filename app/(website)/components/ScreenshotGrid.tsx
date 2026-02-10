@@ -1,5 +1,5 @@
-import { ScreenshotCard } from './ScreenshotCard';
 import type { Screenshot } from '@/data/screenshot';
+import { ScreenshotCard } from './ScreenshotCard';
 
 interface ScreenshotGridProps {
   screenshots: Screenshot[];

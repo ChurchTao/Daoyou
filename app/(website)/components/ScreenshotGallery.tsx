@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import {
-  screenshots as screenshotGroups,
   screenshotCategories,
+  screenshots as screenshotGroups,
   type Screenshot,
 } from '@/data/screenshot';
+import { useMemo, useState } from 'react';
 import { CategoryTabs } from './CategoryTabs';
 import { ScreenshotGrid } from './ScreenshotGrid';
 
@@ -33,8 +33,9 @@ export function ScreenshotGallery() {
 
     screenshotCategories.forEach((cat) => {
       if (cat.id !== 'all') {
-        counts[cat.id] = allScreenshots.filter((s) => s.category === cat.id)
-          .length;
+        counts[cat.id] = allScreenshots.filter(
+          (s) => s.category === cat.id,
+        ).length;
       }
     });
 

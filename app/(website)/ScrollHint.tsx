@@ -3,18 +3,18 @@
 export function ScrollHint() {
   return (
     <div
-      className="absolute bottom-8 left-1/2 transform -translate-x-1/2 scroll-hint cursor-pointer"
+      className="scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 transform cursor-pointer"
       onClick={() =>
         document
           .getElementById('features')
           ?.scrollIntoView({ behavior: 'smooth' })
       }
     >
-      <p className="text-ink-muted text-xs md:text-sm mb-2 opacity-60">
+      <p className="text-ink-muted mb-2 text-xs opacity-60 md:text-sm">
         向下探索
       </p>
       <svg
-        className="w-6 h-6 text-ink-secondary mx-auto opacity-60"
+        className="text-ink-secondary mx-auto h-6 w-6 opacity-60"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

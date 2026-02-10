@@ -110,10 +110,7 @@ export class FateAffixGenerator {
    * 生成随机命格效果（用于NPC或测试）
    * 保留原有的权重随机选取逻辑
    */
-  static generateRandom(
-    quality: Quality,
-    realm: RealmType,
-  ): EffectConfig[] {
+  static generateRandom(quality: Quality, realm: RealmType): EffectConfig[] {
     const pool = this.getAffixPool(quality);
     const effectCount = this.getEffectCount(quality);
 

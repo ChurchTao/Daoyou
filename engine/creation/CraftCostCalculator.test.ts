@@ -1,10 +1,10 @@
+import { Quality } from '@/types/constants';
 import { describe, expect, it } from '@jest/globals';
 import {
   calculateCraftCost,
-  getCostDescription,
   calculateMaxQuality,
+  getCostDescription,
 } from './CraftCostCalculator';
-import { Quality } from '@/types/constants';
 
 describe('CraftCostCalculator', () => {
   describe('calculateCraftCost', () => {

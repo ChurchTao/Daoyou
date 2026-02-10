@@ -4,9 +4,9 @@
  * 测试持久化状态清理功能
  */
 
-import { CultivatorUnit } from './CultivatorUnit';
-import type { BuffInstanceState } from '../buff/types';
 import type { Cultivator } from '@/types/cultivator';
+import type { BuffInstanceState } from '../buff/types';
+import { CultivatorUnit } from './CultivatorUnit';
 
 describe('CultivatorUnit - 持久化状态清理', () => {
   // 辅助函数：创建最小化 Cultivator 对象

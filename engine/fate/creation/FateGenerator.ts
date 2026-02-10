@@ -1,10 +1,17 @@
-import { objectArray } from '@/utils/aiClient';
-import { QUALITY_VALUES, type Quality, type RealmType } from '@/types/constants';
-import { buildAffixTable } from '@/engine/creation/AffixUtils';
 import { FATE_AFFIXES } from '@/engine/creation/affixes/fateAffixes';
+import { buildAffixTable } from '@/engine/creation/AffixUtils';
 import { FateAffixGenerator } from '@/engine/creation/FateAffixGenerator';
+import {
+  QUALITY_VALUES,
+  type Quality,
+  type RealmType,
+} from '@/types/constants';
+import { objectArray } from '@/utils/aiClient';
 import { FATE_QUALITY_CHANCE_MAP } from './config';
-import { getFateGenerationPrompt, getFateGenerationUserPrompt } from './prompts';
+import {
+  getFateGenerationPrompt,
+  getFateGenerationUserPrompt,
+} from './prompts';
 import {
   FateBlueprintSchema,
   type FateBlueprint,
@@ -24,7 +31,8 @@ export class FateGenerator {
     const realm = options.realm || '炼气';
 
     // 1. 确定品质分布
-    const qualities = options.guaranteedQualities || this.getRandomQualities(count);
+    const qualities =
+      options.guaranteedQualities || this.getRandomQualities(count);
 
     // 2. 生成蓝图 (AI)
     const blueprints = await this.generateBlueprints(qualities);
@@ -96,7 +104,7 @@ export class FateGenerator {
   ): GeneratedFate[] {
     return qualities.map((quality, index) => {
       const blueprint = blueprints[index];
-      
+
       // 如果 AI 返回数量不对或缺失，提供降级处理
       if (!blueprint) {
         return {
@@ -120,7 +128,10 @@ export class FateGenerator {
           description: blueprint.description,
         };
       } catch (error) {
-        console.warn(`[FateGenerator] Materialization failed for ${blueprint.name}:`, error);
+        console.warn(
+          `[FateGenerator] Materialization failed for ${blueprint.name}:`,
+          error,
+        );
         return {
           name: blueprint.name,
           quality,

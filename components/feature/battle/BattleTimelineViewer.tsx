@@ -64,7 +64,7 @@ export function BattleTimelineViewer({
   return (
     <div className="mb-8 p-4">
       {/* 顶部：回合信息 + 播放控制 */}
-      <div className="mb-2 flex items-center justify-between text-sm text-ink/80">
+      <div className="text-ink/80 mb-2 flex items-center justify-between text-sm">
         <span className="tracking-wide">
           {snap.turn === 0
             ? '[战前状态]'
@@ -102,15 +102,15 @@ export function BattleTimelineViewer({
       </div>
 
       {/* 中部：左右文字排版展示双方数值与状态 */}
-      <div className="mt-2 border-t border-dashed border-ink/20 pt-3 text-sm">
+      <div className="border-ink/20 mt-2 border-t border-dashed pt-3 text-sm">
         <div className="flex items-start justify-between gap-4">
           {/* 左侧：玩家 */}
           <div className="flex-1 leading-relaxed">
-            <div className="mb-1 font-semibold text-ink">{playerName}</div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink mb-1 font-semibold">{playerName}</div>
+            <div className="text-ink/80 mb-0.5">
               气血：{snap.player.hp}/{maxPlayerHp}
             </div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink/80 mb-0.5">
               灵力：{snap.player.mp}/{maxPlayerMp}
             </div>
             <div className="text-ink/70">
@@ -120,11 +120,11 @@ export function BattleTimelineViewer({
 
           {/* 右侧：对手 */}
           <div className="flex-1 text-right leading-relaxed">
-            <div className="mb-1 font-semibold text-ink">{opponentName}</div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink mb-1 font-semibold">{opponentName}</div>
+            <div className="text-ink/80 mb-0.5">
               气血：{snap.opponent.hp}/{maxOpponentHp}
             </div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink/80 mb-0.5">
               灵力：{snap.opponent.mp}/{maxOpponentMp}
             </div>
             <div className="text-ink/70">

@@ -2,7 +2,6 @@
 
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { InkBadge } from '@/components/ui/InkBadge';
-import { StatusEffect } from '@/types/constants';
 import type { CultivationTechnique } from '@/types/cultivator';
 
 interface TechniqueDetailModalProps {

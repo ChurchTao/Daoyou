@@ -1,5 +1,5 @@
-import { EffectTrigger, type IBaseEffect } from '@/engine/effect/types';
 import type { BuffInstanceState } from '@/engine/buff/types';
+import { EffectTrigger, type IBaseEffect } from '@/engine/effect/types';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { effectEngine } from '../effect';
 import { BaseUnit } from './BaseUnit';
@@ -177,10 +177,12 @@ export class CultivatorUnit extends BaseUnit {
       []) as BuffInstanceState[];
 
     return statuses.filter((status) => {
-      const metadata = status.metadata as {
-        expiresAt?: number;
-        usesRemaining?: number;
-      } | undefined;
+      const metadata = status.metadata as
+        | {
+            expiresAt?: number;
+            usesRemaining?: number;
+          }
+        | undefined;
       return this.isPersistentStatusValid(metadata);
     });
   }

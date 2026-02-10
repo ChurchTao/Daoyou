@@ -1,13 +1,8 @@
 'use client';
 
-import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkPageShell } from '@/components/layout';
-import {
-  InkBadge,
-  InkButton,
-  InkCard,
-  InkNotice,
-} from '@/components/ui';
+import { useInkUI } from '@/components/providers/InkUIProvider';
+import { InkBadge, InkButton, InkCard, InkNotice } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Material } from '@/types/cultivator';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -37,9 +32,7 @@ export function ManualDrawContent() {
       const res = await fetch('/api/cultivator/persistent-buffs');
       const data = await res.json();
       if (data.buffs) {
-        const buff = data.buffs.some(
-          (t: { id: string }) => t.id === buffId,
-        );
+        const buff = data.buffs.some((t: { id: string }) => t.id === buffId);
         setHasBuff(buff);
         return buff;
       }

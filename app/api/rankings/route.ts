@@ -1,6 +1,6 @@
-import { cache } from 'react';
 import { getRankingList } from '@/lib/redis/rankings';
 import { NextResponse } from 'next/server';
+import { cache } from 'react';
 
 // 使用 React.cache() 进行请求内去重
 const getCachedRankingList = cache(async () => {

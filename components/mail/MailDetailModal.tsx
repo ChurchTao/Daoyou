@@ -58,25 +58,25 @@ export function MailDetailModal({
 
   return (
     <InkModal isOpen={!!mail} onClose={onClose} title={mail.title}>
-      <div className="space-y-4 mt-2">
+      <div className="mt-2 space-y-4">
         <div className="text-sm opacity-60">
           {new Date(mail.createdAt).toLocaleString()}
         </div>
 
-        <div className="whitespace-pre-wrap text-ink leading-relaxed bg-paper p-3 rounded border border-ink/5 min-h-[100px]">
+        <div className="text-ink bg-paper border-ink/5 min-h-[100px] rounded border p-3 leading-relaxed whitespace-pre-wrap">
           {mail.content}
         </div>
 
         {hasAttachments && (
           <div className="space-y-2 pt-2">
-            <h4 className="font-bold text-sm text-ink-secondary">
+            <h4 className="text-ink-secondary text-sm font-bold">
               🎁 附赠物品
             </h4>
             <div className="grid grid-cols-2 gap-2">
               {mail.attachments?.map((item, idx) => (
                 <div
                   key={idx}
-                  className="bg-paper-2 p-2 rounded flex items-center justify-between text-sm"
+                  className="bg-paper-2 flex items-center justify-between rounded p-2 text-sm"
                 >
                   {item.type === 'spirit_stones' && (
                     <span className="text-ink">{item.name}</span>
@@ -87,12 +87,18 @@ export function MailDetailModal({
                     </InkBadge>
                   )}
                   {item.type === 'consumable' && (
-                    <InkBadge tier={(item.data as Consumable)?.quality} hideTierText>
+                    <InkBadge
+                      tier={(item.data as Consumable)?.quality}
+                      hideTierText
+                    >
                       {item.name}
                     </InkBadge>
                   )}
                   {item.type === 'artifact' && (
-                    <InkBadge tier={(item.data as Artifact)?.quality} hideTierText>
+                    <InkBadge
+                      tier={(item.data as Artifact)?.quality}
+                      hideTierText
+                    >
                       {item.name}
                     </InkBadge>
                   )}

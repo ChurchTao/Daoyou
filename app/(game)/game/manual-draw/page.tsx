@@ -5,7 +5,13 @@ import { ManualDrawContent } from './ManualDrawContent';
 
 export default function ManualDrawPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">加载中...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          加载中...
+        </div>
+      }
+    >
       <ManualDrawContent />
     </Suspense>
   );

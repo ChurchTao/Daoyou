@@ -9,5 +9,5 @@ export default function AdminRouteGroupLayout({
 }: {
   children: ReactNode;
 }) {
-  return <div className="min-h-screen bg-paper">{children}</div>;
+  return <div className="bg-paper min-h-screen">{children}</div>;
 }

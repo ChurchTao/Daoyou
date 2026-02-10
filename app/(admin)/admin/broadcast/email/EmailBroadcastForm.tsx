@@ -39,7 +39,9 @@ export function EmailBroadcastForm() {
   useEffect(() => {
     const loadTemplates = async () => {
       try {
-        const res = await fetch('/api/admin/templates?channel=email&status=active');
+        const res = await fetch(
+          '/api/admin/templates?channel=email&status=active',
+        );
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? '加载模板失败');
         setTemplates(
@@ -122,7 +124,7 @@ export function EmailBroadcastForm() {
       <label className="flex flex-col gap-1">
         <span className="font-semibold tracking-wide">模板（可选）</span>
         <select
-          className="border border-ink/20 bg-transparent px-3 py-2"
+          className="border-ink/20 border bg-transparent px-3 py-2"
           value={templateId}
           onChange={(e) => setTemplateId(e.target.value)}
           disabled={loading}
@@ -167,7 +169,7 @@ export function EmailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">注册时间起</span>
           <input
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             type="date"
             value={registeredFrom}
             onChange={(e) => setRegisteredFrom(e.target.value)}
@@ -177,7 +179,7 @@ export function EmailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">注册时间止</span>
           <input
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             type="date"
             value={registeredTo}
             onChange={(e) => setRegisteredTo(e.target.value)}
@@ -190,7 +192,7 @@ export function EmailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">活跃角色</span>
           <select
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             value={hasActiveCultivator}
             onChange={(e) => setHasActiveCultivator(e.target.value)}
             disabled={loading}
@@ -203,7 +205,7 @@ export function EmailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">境界下限</span>
           <select
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             value={realmMin}
             onChange={(e) => setRealmMin(e.target.value)}
             disabled={loading}
@@ -219,7 +221,7 @@ export function EmailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">境界上限</span>
           <select
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             value={realmMax}
             onChange={(e) => setRealmMax(e.target.value)}
             disabled={loading}
@@ -242,13 +244,17 @@ export function EmailBroadcastForm() {
         >
           预览发送人数
         </InkButton>
-        <InkButton variant="primary" onClick={() => submit(false)} disabled={loading}>
+        <InkButton
+          variant="primary"
+          onClick={() => submit(false)}
+          disabled={loading}
+        >
           {loading ? '执行中...' : '确认同步群发邮件'}
         </InkButton>
       </div>
 
       {result && (
-        <pre className="overflow-x-auto rounded-lg border border-ink/15 bg-paper/60 p-3 text-xs leading-5">
+        <pre className="border-ink/15 bg-paper/60 overflow-x-auto rounded-lg border p-3 text-xs leading-5">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}

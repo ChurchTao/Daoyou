@@ -42,14 +42,14 @@ export function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'py-2 nav-glass' : 'py-4 bg-transparent'
+      className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
+        scrolled ? 'nav-glass py-2' : 'bg-transparent py-4'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4">
         {/* Logo Text */}
-        <Link href="/" className="flex items-center gap-2 group no-underline">
-          <div className="relative w-8 h-8 md:w-10 md:h-10 transition-transform group-hover:rotate-12">
+        <Link href="/" className="group flex items-center gap-2 no-underline">
+          <div className="relative h-8 w-8 transition-transform group-hover:rotate-12 md:h-10 md:w-10">
             <Image
               src="/assets/daoyou_logo.png"
               alt="Logo"
@@ -58,7 +58,7 @@ export function Navbar() {
             />
           </div>
           <span
-            className={`font-heading text-xl md:text-2xl text-ink transition-opacity ${
+            className={`font-heading text-ink text-xl transition-opacity md:text-2xl ${
               scrolled ? 'opacity-100' : 'opacity-80'
             }`}
           >
@@ -67,7 +67,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
             <a
               key={link.name}
@@ -80,7 +80,7 @@ export function Navbar() {
           ))}
           <Link
             href="/create"
-            className="px-4 py-1.5 border border-ink text-ink rounded hover:bg-ink hover:text-paper transition-colors text-sm"
+            className="border-ink text-ink hover:bg-ink hover:text-paper rounded border px-4 py-1.5 text-sm transition-colors"
           >
             开启修行
           </Link>
@@ -88,22 +88,22 @@ export function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-2 text-ink"
+          className="text-ink p-2 md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
-          <IconMenu className="w-6 h-6" />
+          <IconMenu className="h-6 w-6" />
         </button>
       </div>
 
       {/* Mobile Menu Dropdown */}
       {menuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-paper/95 backdrop-blur-md border-b border-ink/10 p-4 shadow-lg flex flex-col gap-4 animate-in slide-in-from-top-2">
+        <div className="bg-paper/95 border-ink/10 animate-in slide-in-from-top-2 absolute top-full right-0 left-0 flex flex-col gap-4 border-b p-4 shadow-lg backdrop-blur-md md:hidden">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
-              className="text-lg font-heading text-ink text-center py-2"
+              className="font-heading text-ink py-2 text-center text-lg"
               onClick={() => setMenuOpen(false)}
             >
               {link.name}
@@ -112,7 +112,7 @@ export function Navbar() {
           <Link
             href="/create"
             onClick={() => setMenuOpen(false)}
-            className="block text-center py-3 bg-ink text-paper rounded"
+            className="bg-ink text-paper block rounded py-3 text-center"
           >
             开启修行
           </Link>

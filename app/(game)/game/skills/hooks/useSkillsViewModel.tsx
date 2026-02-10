@@ -111,13 +111,13 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         id: 'forget-confirm',
         title: '遗忘神通',
         content: (
-          <div className="text-center py-4 space-y-2">
+          <div className="space-y-2 py-4 text-center">
             <p>
               确定要自废{' '}
-              <span className="font-bold text-ink-primary">{skill.name}</span>{' '}
+              <span className="text-ink-primary font-bold">{skill.name}</span>{' '}
               吗？
             </p>
-            <p className="text-xs text-ink-secondary">
+            <p className="text-ink-secondary text-xs">
               此乃逆天之举，遗忘后将无法找回该神通的感悟。
             </p>
           </div>
@@ -137,7 +137,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
       openDialog({
         title: '神通效果说明',
         content: (
-          <div className="text-center py-4 space-y-2">
+          <div className="space-y-2 py-4 text-center">
             <p>{getStatusEffectInfo(effect).description}</p>
           </div>
         ),

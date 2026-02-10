@@ -26,13 +26,13 @@ export default function EnlightenmentPage() {
       }
     >
       <InkSection title="感悟之道">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InkCard className="p-4 flex flex-col items-center text-center">
-            <div className="text-4xl mb-2">⚡</div>
-            <h3 className="text-xl font-bold text-ink-primary mb-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <InkCard className="flex flex-col items-center p-4 text-center">
+            <div className="mb-2 text-4xl">⚡</div>
+            <h3 className="text-ink-primary mb-2 text-xl font-bold">
               【神通推演】
             </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-10">
+            <p className="text-ink-secondary mb-4 min-h-10 text-sm">
               感天地造化，推演攻伐妙术。
               <br />
               需消耗大量灵感与神念。
@@ -42,12 +42,12 @@ export default function EnlightenmentPage() {
             </InkButton>
           </InkCard>
 
-          <InkCard className="p-4 flex flex-col items-center text-center">
-            <div className="text-4xl mb-2">📖</div>
-            <h3 className="text-xl font-bold text-ink-primary mb-2">
+          <InkCard className="flex flex-col items-center p-4 text-center">
+            <div className="mb-2 text-4xl">📖</div>
+            <h3 className="text-ink-primary mb-2 text-xl font-bold">
               【功法参悟】
             </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-10">
+            <p className="text-ink-secondary mb-4 min-h-10 text-sm">
               参悟大道法则，创造修炼功法。
               <br />
               需消耗功法典籍。
@@ -60,7 +60,7 @@ export default function EnlightenmentPage() {
       </InkSection>
 
       <InkSection title="关于藏经阁">
-        <div className="text-sm text-ink-secondary space-y-2">
+        <div className="text-ink-secondary space-y-2 text-sm">
           <p>• 此处是修仙者感悟天地、创造法门之地。</p>
           <p>
             • <strong>神通推演</strong>

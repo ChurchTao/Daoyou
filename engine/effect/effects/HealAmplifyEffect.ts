@@ -65,7 +65,8 @@ export class HealAmplifyEffect extends BaseEffect {
   displayInfo() {
     const direction = this.affectOutgoing ? '施放的' : '受到的';
     const percent = format('.0%')(this.amplifyPercent);
-    const effect = this.amplifyPercent >= 0 ? `提升 ${percent}` : `降低 ${percent}`;
+    const effect =
+      this.amplifyPercent >= 0 ? `提升 ${percent}` : `降低 ${percent}`;
 
     return {
       label: '治疗增幅',

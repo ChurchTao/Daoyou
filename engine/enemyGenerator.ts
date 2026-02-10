@@ -1,21 +1,23 @@
+import { buildAffixTable } from '@/engine/creation/AffixUtils';
+import { EffectMaterializer } from '@/engine/creation/EffectMaterializer';
+import { getSkillAffixPool } from '@/engine/creation/affixes/skillAffixes';
+import type { MaterializationContext } from '@/engine/creation/types';
 import {
   ElementType,
   GenderType,
+  QUALITY_VALUES,
   REALM_STAGE_CAPS,
   RealmStage,
   RealmType,
   SkillType,
-  QUALITY_VALUES,
 } from '@/types/constants';
 import { Cultivator } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';
 import { randomUUID } from 'crypto';
-import { EffectMaterializer } from '@/engine/creation/EffectMaterializer';
-import type { MaterializationContext } from '@/engine/creation/types';
-import { buildAffixTable } from '@/engine/creation/AffixUtils';
-import { getSkillAffixPool } from '@/engine/creation/affixes/skillAffixes';
-import type { AffixWeight } from '@/engine/creation/types';
-import { EnemyBlueprintSchema, type EnemyBlueprint } from './enemyGenerator/schemas';
+import {
+  EnemyBlueprintSchema,
+  type EnemyBlueprint,
+} from './enemyGenerator/schemas';
 
 // ============================================================
 // Helper: Build Skill Affix Selection Prompt for AI
@@ -29,7 +31,13 @@ function buildSkillAffixPrompt(): string {
   const lines: string[] = [];
 
   // Get all skill types and their affix pools
-  const skillTypes: SkillType[] = ['attack', 'heal', 'control', 'debuff', 'buff'];
+  const skillTypes: SkillType[] = [
+    'attack',
+    'heal',
+    'control',
+    'debuff',
+    'buff',
+  ];
 
   for (const skillType of skillTypes) {
     const pool = getSkillAffixPool(skillType);
@@ -39,14 +47,19 @@ function buildSkillAffixPrompt(): string {
 
     lines.push('**Primary Affixes (Select exactly 1 per skill):**');
     lines.push('');
-    lines.push(buildAffixTable(pool.primary, { showSlots: false, showQuality: true }));
+    lines.push(
+      buildAffixTable(pool.primary, { showSlots: false, showQuality: true }),
+    );
     lines.push('');
 
     if (pool.secondary.length > 0) {
       lines.push('**Secondary Affixes (Select 0-2 per skill):**');
       lines.push('');
       lines.push(
-        buildAffixTable(pool.secondary, { showSlots: false, showQuality: true }),
+        buildAffixTable(pool.secondary, {
+          showSlots: false,
+          showQuality: true,
+        }),
       );
       lines.push('');
     }
@@ -102,7 +115,9 @@ export class EnemyGenerator {
   /**
    * Get quality based on difficulty
    */
-  private getQualityByDifficulty(difficulty: number): (typeof QUALITY_VALUES)[number] {
+  private getQualityByDifficulty(
+    difficulty: number,
+  ): (typeof QUALITY_VALUES)[number] {
     // Map difficulty 1-10 to quality
     if (difficulty <= 3) return '凡品';
     if (difficulty <= 5) return '灵品';
@@ -128,7 +143,13 @@ export class EnemyGenerator {
    */
   private calculateCost(skillType: SkillType, difficulty: number): number {
     // Higher difficulty = more mana cost
-    const baseCost = { attack: 10, heal: 15, control: 20, debuff: 15, buff: 20 }[skillType];
+    const baseCost = {
+      attack: 10,
+      heal: 15,
+      control: 20,
+      debuff: 15,
+      buff: 20,
+    }[skillType];
     return baseCost + difficulty * 5;
   }
 
@@ -215,10 +236,14 @@ ${buildSkillAffixPrompt()}
 
     console.log('[EnemyGenerator] Generating enemy blueprint with AI');
 
-    const result = await object(prompt, JSON.stringify({ difficulty, realmRequirement, metadata }), {
-      schema: EnemyBlueprintSchema,
-      schemaName: 'EnemyBlueprint',
-    });
+    const result = await object(
+      prompt,
+      JSON.stringify({ difficulty, realmRequirement, metadata }),
+      {
+        schema: EnemyBlueprintSchema,
+        schemaName: 'EnemyBlueprint',
+      },
+    );
 
     return result.object;
   }
@@ -235,7 +260,11 @@ ${buildSkillAffixPrompt()}
     realmRequirement: RealmType,
   ): Promise<Cultivator> {
     // 1. AI generates blueprint (only selects affix IDs, no numerical values)
-    const blueprint = await this.generateBlueprint(difficulty, realmRequirement, metadata);
+    const blueprint = await this.generateBlueprint(
+      difficulty,
+      realmRequirement,
+      metadata,
+    );
 
     // 2. Calculate attributes using algorithm
     const stage = this.getEnemyStageByDifficulty(difficulty);
@@ -254,9 +283,13 @@ ${buildSkillAffixPrompt()}
       const affixPool = getSkillAffixPool(bp.type as SkillType);
 
       // Validate and get primary affix
-      const primaryAffix = affixPool.primary.find((a) => a.id === bp.primary_affix_id);
+      const primaryAffix = affixPool.primary.find(
+        (a) => a.id === bp.primary_affix_id,
+      );
       if (!primaryAffix) {
-        console.warn(`[EnemyGenerator] Primary affix not found: ${bp.primary_affix_id}, using default`);
+        console.warn(
+          `[EnemyGenerator] Primary affix not found: ${bp.primary_affix_id}, using default`,
+        );
         // Fallback to first primary affix
         const fallback = affixPool.primary[0];
         return {
@@ -272,7 +305,9 @@ ${buildSkillAffixPrompt()}
       // Get secondary affixes
       const secondaryAffixes = (bp.secondary_affix_ids || [])
         .map((id) => affixPool.secondary.find((a) => a.id === id))
-        .filter((affix): affix is NonNullable<typeof affix> => affix !== undefined);
+        .filter(
+          (affix): affix is NonNullable<typeof affix> => affix !== undefined,
+        );
 
       // Materialize all affixes into effects
       const effects = EffectMaterializer.materializeAll(
@@ -303,7 +338,10 @@ ${buildSkillAffixPrompt()}
       attributes: attributes,
       spiritual_roots: blueprint.spiritual_roots.map((r) => ({
         element: r.element as ElementType,
-        strength: this.calculateSpiritualRootStrength(realmRequirement, difficulty),
+        strength: this.calculateSpiritualRootStrength(
+          realmRequirement,
+          difficulty,
+        ),
       })),
       pre_heaven_fates: [],
       cultivations: [],

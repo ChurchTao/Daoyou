@@ -1,8 +1,8 @@
 import { BaseEffect } from '../BaseEffect';
 import {
-  type RetreatCultivationBonusParams,
   EffectTrigger,
   type EffectContext,
+  type RetreatCultivationBonusParams,
 } from '../types';
 
 /**

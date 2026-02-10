@@ -23,12 +23,12 @@ export function InkSection({
   return (
     <section className="mb-6">
       {title && (
-        <h2 className="text-lg font-semibold text-ink mb-3 font-heading">
+        <h2 className="text-ink font-heading mb-3 text-lg font-semibold">
           {title}
         </h2>
       )}
       <div className={cn(subdued && 'opacity-75')}>{children}</div>
-      {hint && <p className="mt-2 text-sm text-ink-secondary">{hint}</p>}
+      {hint && <p className="text-ink-secondary mt-2 text-sm">{hint}</p>}
     </section>
   );
 }

@@ -63,9 +63,6 @@ export async function GET(request: NextRequest) {
     }
 
     console.error('Auction Listings API Error:', error);
-    return NextResponse.json(
-      { error: '获取拍卖列表失败' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: '获取拍卖列表失败' }, { status: 500 });
   }
 }

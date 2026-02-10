@@ -39,7 +39,7 @@ export function InkToast({
     <div
       className={cn(
         'bg-paper/95 border p-2 shadow-[0_4px_10px_rgba(0,0,0,0.1)]',
-        'flex justify-between gap-2 items-center text-[0.9rem]',
+        'flex items-center justify-between gap-2 text-[0.9rem]',
         toastBorderColors[tone],
       )}
     >
@@ -49,7 +49,7 @@ export function InkToast({
           <button
             type="button"
             onClick={onAction}
-            className="text-crimson cursor-pointer bg-transparent border-none"
+            className="text-crimson cursor-pointer border-none bg-transparent"
           >
             [{actionLabel}]
           </button>
@@ -57,7 +57,7 @@ export function InkToast({
         <button
           type="button"
           onClick={() => onDismiss(id)}
-          className="text-crimson cursor-pointer bg-transparent border-none"
+          className="text-crimson cursor-pointer border-none bg-transparent"
         >
           [撤去]
         </button>
@@ -81,8 +81,8 @@ export function InkToastHost({ toasts, onDismiss }: InkToastHostProps) {
   return (
     <div
       className={cn(
-        'fixed bottom-20 left-1/2 -translate-x-1/2 z-200',
-        'flex flex-col gap-2 w-[min(90vw,420px)]',
+        'fixed bottom-20 left-1/2 z-200 -translate-x-1/2',
+        'flex w-[min(90vw,420px)] flex-col gap-2',
       )}
     >
       {toasts.map((toast) => (

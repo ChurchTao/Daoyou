@@ -1,5 +1,5 @@
+import { db } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
-import { db, type DbTransaction } from '@/lib/drizzle/db';
 import { User } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 

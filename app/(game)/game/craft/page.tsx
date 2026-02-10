@@ -26,13 +26,13 @@ export default function CraftPage() {
       }
     >
       <InkSection title="选择造物之道">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InkCard className="p-4 flex flex-col items-center text-center">
-            <div className="text-4xl mb-2">🔥</div>
-            <h3 className="text-xl font-bold text-ink-primary mb-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <InkCard className="flex flex-col items-center p-4 text-center">
+            <div className="mb-2 text-4xl">🔥</div>
+            <h3 className="text-ink-primary mb-2 text-xl font-bold">
               【炼器之道】
             </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-10">
+            <p className="text-ink-secondary mb-4 min-h-10 text-sm">
               引地火之威，锻造法宝神兵。
               <br />
               需消耗金石矿材。
@@ -42,12 +42,12 @@ export default function CraftPage() {
             </InkButton>
           </InkCard>
 
-          <InkCard className="p-4 flex flex-col items-center text-center">
-            <div className="text-4xl mb-2">🌕</div>
-            <h3 className="text-xl font-bold text-ink-primary mb-2">
+          <InkCard className="flex flex-col items-center p-4 text-center">
+            <div className="mb-2 text-4xl">🌕</div>
+            <h3 className="text-ink-primary mb-2 text-xl font-bold">
               【炼丹之道】
             </h3>
-            <p className="text-sm text-ink-secondary mb-4 min-h-10">
+            <p className="text-ink-secondary mb-4 min-h-10 text-sm">
               调阴阳之气，炼制灵丹妙药。
               <br />
               需消耗灵草灵果。
@@ -60,7 +60,7 @@ export default function CraftPage() {
       </InkSection>
 
       <InkSection title="关于造物">
-        <div className="text-sm text-ink-secondary space-y-2">
+        <div className="text-ink-secondary space-y-2 text-sm">
           <p>
             • 造物需消耗对应的灵材，材料的<strong>品阶</strong>与
             <strong>五行属性</strong>将直接影响成品的品质。

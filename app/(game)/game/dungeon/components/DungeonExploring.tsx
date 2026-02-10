@@ -34,8 +34,8 @@ export function DungeonExploring({
   return (
     <InkPageShell title={state.theme} backHref="/game">
       {/* 场景描述 */}
-      <InkCard className="mb-6 min-h-[200px] flex flex-col justify-center">
-        <p className="leading-relaxed text-ink">
+      <InkCard className="mb-6 flex min-h-[200px] flex-col justify-center">
+        <p className="text-ink leading-relaxed">
           {lastRound.scene_description}
         </p>
       </InkCard>
@@ -53,18 +53,15 @@ export function DungeonExploring({
                 key={opt.id}
                 disabled={processing}
                 onClick={() => setSelectedOptionId(opt.id)}
-                className={`w-full text-left p-4 rounded border transition-all 
-                  ${
-                    isSelected
-                      ? 'border-crimson bg-crimson/5 ring-1 ring-crimson'
-                      : 'border-ink/20 bg-paper hover:border-crimson hover:bg-paper-dark'
-                  }
-                  ${processing ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
+                className={`w-full rounded border p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-crimson bg-crimson/5 ring-crimson ring-1'
+                    : 'border-ink/20 bg-paper hover:border-crimson hover:bg-paper-dark'
+                } ${processing ? 'cursor-not-allowed opacity-50' : ''} `}
               >
-                <div className="flex justify-between items-start gap-3 mb-2">
+                <div className="mb-2 flex items-start justify-between gap-3">
                   <span
-                    className={`font-bold flex-1 leading-tight ${isSelected ? 'text-crimson' : ''}`}
+                    className={`flex-1 leading-tight font-bold ${isSelected ? 'text-crimson' : ''}`}
                   >
                     {opt.text}
                   </span>
@@ -77,7 +74,7 @@ export function DungeonExploring({
                           : 'good'
                     }
                     variant="outline"
-                    className="text-xs shrink-0"
+                    className="shrink-0 text-xs"
                   >
                     {opt.risk_level === 'high'
                       ? '凶险'
@@ -87,12 +84,12 @@ export function DungeonExploring({
                   </InkTag>
                 </div>
                 {opt.requirement && (
-                  <div className="text-sm text-crimson mt-2">
+                  <div className="text-crimson mt-2 text-sm">
                     需: {opt.requirement}
                   </div>
                 )}
                 {opt.potential_cost && (
-                  <div className="text-sm text-ink-secondary mt-1">
+                  <div className="text-ink-secondary mt-1 text-sm">
                     代价: {opt.potential_cost}
                   </div>
                 )}
@@ -103,7 +100,7 @@ export function DungeonExploring({
 
         <InkButton
           variant="primary"
-          className="mt-4 mx-auto block!"
+          className="mx-auto mt-4 block!"
           disabled={!selectedOptionId || processing}
           onClick={async () => {
             const opt = lastRound.interaction.options.find(
@@ -120,9 +117,9 @@ export function DungeonExploring({
       {/* 历史记录 */}
       {state.history.length > 0 && (
         <InkSection title="回顾前路" subdued>
-          <div className="text-sm space-y-2 text-ink-secondary max-h-40 overflow-y-auto px-2">
+          <div className="text-ink-secondary max-h-40 space-y-2 overflow-y-auto px-2 text-sm">
             {state.history.map((h, i) => (
-              <div key={i} className="border-l-2 border-ink/10 pl-2">
+              <div key={i} className="border-ink/10 border-l-2 pl-2">
                 <div className="font-bold">第{h.round}回</div>
                 <div>{h.scene.substring(0, 50)}...</div>
                 {h.choice && <div className="text-crimson">➜ {h.choice}</div>}

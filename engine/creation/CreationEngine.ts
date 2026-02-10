@@ -2,15 +2,12 @@ import { db, DbTransaction } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
-import { Material } from '@/types/cultivator';
 import { Quality } from '@/types/constants';
+import { Material } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';
 import { sanitizePrompt } from '@/utils/prompts';
 import { eq, inArray, sql } from 'drizzle-orm';
-import {
-  calculateMaxQuality,
-  getCostDescription,
-} from './CraftCostCalculator';
+import { calculateMaxQuality, getCostDescription } from './CraftCostCalculator';
 import { CreationStrategy } from './CreationStrategy';
 import { AlchemyStrategy } from './strategies/AlchemyStrategy';
 import { GongFaCreationStrategy } from './strategies/GongFaCreationStrategy';
@@ -188,7 +185,10 @@ export class CreationEngine {
     cost: { spiritStones?: number; comprehension?: number },
   ): Promise<void> {
     // 检查灵石
-    if (cost.spiritStones && (cultivator.spirit_stones || 0) < cost.spiritStones) {
+    if (
+      cost.spiritStones &&
+      (cultivator.spirit_stones || 0) < cost.spiritStones
+    ) {
       throw new CreationEngineError(`灵石不足，需要 ${cost.spiritStones} 枚`);
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { InkPageShell, InkSection } from '@/components/layout';
 import { ListItemModal } from '@/components/auction/ListItemModal';
+import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -201,7 +201,11 @@ export default function AuctionPage() {
         const qualityInfo = getQualityInfo(artifact.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={artifact.quality || '凡品'}>{qualityInfo.label}</InkBadge>,
+          badge: (
+            <InkBadge tier={artifact.quality || '凡品'}>
+              {qualityInfo.label}
+            </InkBadge>
+          ),
           meta: (
             <>
               <span>
@@ -217,12 +221,14 @@ export default function AuctionPage() {
         const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={consumable.quality || '凡品'}>{rankInfo.label}</InkBadge>,
+          badge: (
+            <InkBadge tier={consumable.quality || '凡品'}>
+              {rankInfo.label}
+            </InkBadge>
+          ),
           meta: (
             <>
-              <span>
-                💊 · {consumable.type}
-              </span>
+              <span>💊 · {consumable.type}</span>
             </>
           ),
         };
@@ -247,10 +253,7 @@ export default function AuctionPage() {
         <InkActionGroup>
           <InkButton href="/game/inventory">查看储物袋</InkButton>
           {cultivator && activeTab === 'my' && (
-            <InkButton
-              onClick={() => setShowListModal(true)}
-              variant="primary"
-            >
+            <InkButton onClick={() => setShowListModal(true)} variant="primary">
               上架物品
             </InkButton>
           )}
@@ -262,7 +265,7 @@ export default function AuctionPage() {
       {activeTab === 'browse' ? (
         <InkSection title="道友寄售">
           {isLoadingBrowse ? (
-            <div className="text-center py-10">正在获取拍卖列表...</div>
+            <div className="py-10 text-center">正在获取拍卖列表...</div>
           ) : browseListings.length > 0 ? (
             <InkList>
               {browseListings.map((listing) => {
@@ -273,16 +276,16 @@ export default function AuctionPage() {
                     title={
                       <>
                         {display.name}
-                        <span className="ml-2 text-sm text-ink-secondary">
+                        <span className="text-ink-secondary ml-2 text-sm">
                           卖家: {listing.sellerName}
                         </span>
                         <div className="ml-auto">{display.badge}</div>
                       </>
                     }
                     meta={
-                      <div className="flex justify-between items-center w-full">
+                      <div className="flex w-full items-center justify-between">
                         {display.meta}
-                        <span className="text-xs text-ink-secondary">
+                        <span className="text-ink-secondary text-xs">
                           剩余 {formatTime(listing.expiresAt)}
                         </span>
                       </div>
@@ -290,7 +293,7 @@ export default function AuctionPage() {
                     description={
                       <div>
                         <p>{display.description}</p>
-                        <p className="text-lg font-bold text-yellow-600 mt-1">
+                        <p className="mt-1 text-lg font-bold text-yellow-600">
                           💰 {listing.price} 灵石
                         </p>
                       </div>
@@ -322,7 +325,7 @@ export default function AuctionPage() {
       ) : (
         <InkSection title={`我的寄售 (${myListings.length}/5)`}>
           {isLoadingMy ? (
-            <div className="text-center py-10">正在获取寄售记录...</div>
+            <div className="py-10 text-center">正在获取寄售记录...</div>
           ) : myListings.length > 0 ? (
             <InkList>
               {myListings.map((listing) => {
@@ -337,9 +340,9 @@ export default function AuctionPage() {
                       </>
                     }
                     meta={
-                      <div className="flex justify-between items-center w-full">
+                      <div className="flex w-full items-center justify-between">
                         {display.meta}
-                        <span className="text-xs text-ink-secondary">
+                        <span className="text-ink-secondary text-xs">
                           剩余 {formatTime(listing.expiresAt)}
                         </span>
                       </div>
@@ -347,10 +350,10 @@ export default function AuctionPage() {
                     description={
                       <div>
                         <p>{display.description}</p>
-                        <p className="text-lg font-bold text-yellow-600 mt-1">
+                        <p className="mt-1 text-lg font-bold text-yellow-600">
                           💰 {listing.price} 灵石
                         </p>
-                        <p className="text-xs text-ink-secondary mt-1">
+                        <p className="text-ink-secondary mt-1 text-xs">
                           预计收入: {Math.floor(listing.price * 0.9)} 灵石
                           (10%手续费)
                         </p>

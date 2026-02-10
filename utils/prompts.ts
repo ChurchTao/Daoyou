@@ -24,15 +24,15 @@ export function getBattleReportPrompt({
     const roots = cultivator.spiritual_roots
       .map((root) => `${root.element}`)
       .join('，');
-    const skills = 
+    const skills =
       cultivator.skills
         ?.map((skill) => `${skill.name}(${skill.element}/todo(待填充))`)
         .join('，') ?? '无';
-    const cultivations = 
+    const cultivations =
       cultivator.cultivations
         ?.map((cultivation) => `${cultivation.name}`)
         .join('，') ?? '无';
-    const fates = 
+    const fates =
       cultivator.pre_heaven_fates?.map((fate) => `${fate.name}`).join('，') ??
       '无';
     return `姓名：${cultivator.name}
@@ -77,8 +77,8 @@ ${battleLog}
 【战斗结论】
 胜者：${winner.name}
 回合数：${battleResult.turns ?? battleResult.log.length}
-双方剩余气血：${player.name} ${ 
-    battleResult.playerHp ?? '未知' 
+双方剩余气血：${player.name} ${
+    battleResult.playerHp ?? '未知'
   } / ${opponent.name} ${battleResult.opponentHp ?? '未知'}
 
 请写一段完整的战斗描写。`;
@@ -126,7 +126,7 @@ export function getBreakthroughStoryPrompt({
           `${root.element}${root.grade ? `(${root.grade}/${root.strength})` : ''}`,
       )
       .join('，') ?? '未知';
-  const cultivations = 
+  const cultivations =
     cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
   const fates =
     cultivator.pre_heaven_fates
@@ -142,8 +142,8 @@ export function getBreakthroughStoryPrompt({
 年龄：${cultivator.age}，寿元：${cultivator.lifespan}
 
 【闭关】本次闭关 ${summary.yearsSpent} 年。
-【突破】从 ${summary.fromRealm}${summary.fromStage} → ${targetRealm}${targetStage}，${ 
-    summary.isMajor ? '大境界突破' : '小境界精进' 
+【突破】从 ${summary.fromRealm}${summary.fromStage} → ${targetRealm}${targetStage}，${
+    summary.isMajor ? '大境界突破' : '小境界精进'
   }，寿元提升 ${summary.lifespanGained} 年。
 【收获】基础属性增幅：${attributeGain}。
 
@@ -200,8 +200,8 @@ export function getLifespanExhaustedStoryPrompt({
 气运：${fates}
 年龄：${cultivator.age}，寿元上限：${cultivator.lifespan}
 
-【闭关】本次闭关 ${summary.yearsSpent} 年，突破方向：${summary.fromRealm}${summary.fromStage} → ${ 
-    summary.toRealm ?? summary.fromRealm 
+【闭关】本次闭关 ${summary.yearsSpent} 年，突破方向：${summary.fromRealm}${summary.fromStage} → ${
+    summary.toRealm ?? summary.fromRealm
   }${summary.toStage ?? summary.fromStage}。
 寿元耗尽，突破失败。
 
@@ -307,9 +307,7 @@ export function sanitizePrompt(input: string): string {
 
   // 构建正则：全局、不区分大小写、匹配任意关键词
   const keywordPattern = new RegExp(
-    cheatKeywords
-      .map((k) => k.replace(/[.*+?^${}()|[\\]/g, '\\$&'))
-      .join('|'),
+    cheatKeywords.map((k) => k.replace(/[.*+?^${}()|[\\]/g, '\\$&')).join('|'),
     'gi',
   );
 

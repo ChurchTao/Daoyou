@@ -56,14 +56,14 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
       <div
         className={cn(
           'bg-paper w-[min(90vw,420px)] p-4',
-          'border border-ink/20 shadow-[0_10px_25px_rgba(0,0,0,0.2)]',
+          'border-ink/20 border shadow-[0_10px_25px_rgba(0,0,0,0.2)]',
         )}
       >
         {/* 标题 */}
-        {title && <h3 className="text-[1.25rem] mb-2 font-heading">{title}</h3>}
+        {title && <h3 className="font-heading mb-2 text-[1.25rem]">{title}</h3>}
 
         {/* 内容 */}
-        <div className="mb-3 text-ink">{content}</div>
+        <div className="text-ink mb-3">{content}</div>
 
         {/* 操作按钮 */}
         <div className="flex justify-end gap-2">

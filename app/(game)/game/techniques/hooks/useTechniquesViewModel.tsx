@@ -92,7 +92,10 @@ export function useTechniquesViewModel(): UseTechniquesViewModelReturn {
           throw new Error(result.error || '遗忘失败');
         }
 
-        pushToast({ message: `已将【${technique.name}】遗忘`, tone: 'default' });
+        pushToast({
+          message: `已将【${technique.name}】遗忘`,
+          tone: 'default',
+        });
         // 功法属于核心数据，需要完整刷新
         await refreshCultivator();
       } catch (error) {
@@ -117,15 +120,15 @@ export function useTechniquesViewModel(): UseTechniquesViewModelReturn {
         id: 'forget-confirm',
         title: '遗忘功法',
         content: (
-          <div className="text-center py-4 space-y-2">
+          <div className="space-y-2 py-4 text-center">
             <p>
               确定要废除{' '}
-              <span className="font-bold text-ink-primary">
+              <span className="text-ink-primary font-bold">
                 {technique.name}
               </span>{' '}
               吗？
             </p>
-            <p className="text-xs text-ink-secondary">
+            <p className="text-ink-secondary text-xs">
               自废功法乃大忌，需谨慎行事。
             </p>
           </div>
@@ -145,7 +148,7 @@ export function useTechniquesViewModel(): UseTechniquesViewModelReturn {
       openDialog({
         title: '效果说明',
         content: (
-          <div className="text-center py-4 space-y-2">
+          <div className="space-y-2 py-4 text-center">
             <p>{getStatusEffectInfo(effect).description}</p>
           </div>
         ),

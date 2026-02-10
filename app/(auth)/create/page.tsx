@@ -411,7 +411,7 @@ export default function CreatePage() {
                 />
               );
             })}
-            <p className="mt-2 text-xs text-ink-secondary">
+            <p className="text-ink-secondary mt-2 text-xs">
               当前境界：{player.realm}
             </p>
           </InkSection>
@@ -433,7 +433,7 @@ export default function CreatePage() {
 
           <InkSection title="【先天气运】">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-ink-secondary">{`已选 ${selectedFateIndices.length}/3`}</span>
+              <span className="text-ink-secondary text-sm">{`已选 ${selectedFateIndices.length}/3`}</span>
               {tempCultivatorId && (
                 <InkButton
                   variant="secondary"
@@ -448,7 +448,7 @@ export default function CreatePage() {
             </div>
 
             {isGeneratingFates ? (
-              <div className="py-8 text-center text-ink-secondary">
+              <div className="text-ink-secondary py-8 text-center">
                 <p>正在推演天机...</p>
               </div>
             ) : availableFates.length > 0 ? (
@@ -485,7 +485,7 @@ export default function CreatePage() {
                 })}
               </InkList>
             ) : (
-              <div className="py-4 text-center text-ink-secondary">
+              <div className="text-ink-secondary py-4 text-center">
                 <p>暂无气运，请尝试逆天改命</p>
               </div>
             )}
@@ -500,7 +500,7 @@ export default function CreatePage() {
               推演战力：{getCombatRating(player)}（以基础属性估算）
             </InkNotice>
             {player.background && (
-              <p className="mt-2 text-ink-secondary italic">
+              <p className="text-ink-secondary mt-2 italic">
                 「{player.background}」
               </p>
             )}

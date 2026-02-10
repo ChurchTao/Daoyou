@@ -25,7 +25,11 @@ export class CultivatorAdapter implements Entity {
   getAttribute(key: string): number {
     // 支持基础属性
     if (key in this.cultivator.attributes) {
-      return this.cultivator.attributes[key as keyof typeof this.cultivator.attributes] || 0;
+      return (
+        this.cultivator.attributes[
+          key as keyof typeof this.cultivator.attributes
+        ] || 0
+      );
     }
     // 支持其他属性（如 maxHp, maxMp 等）
     return 0;
@@ -34,7 +38,9 @@ export class CultivatorAdapter implements Entity {
   setAttribute(key: string, value: number): void {
     // 只支持修改基础属性
     if (key in this.cultivator.attributes) {
-      this.cultivator.attributes[key as keyof typeof this.cultivator.attributes] = value;
+      this.cultivator.attributes[
+        key as keyof typeof this.cultivator.attributes
+      ] = value;
     }
   }
 

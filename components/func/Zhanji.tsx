@@ -46,7 +46,7 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
   return (
     <Link
       href={`/game/battle/${record.id}`}
-      className="block border border-ink/10 bg-white/60 px-3 py-2 text-sm text-ink/80 hover:border-crimson/40 hover:text-ink transition"
+      className="border-ink/10 text-ink/80 hover:border-crimson/40 hover:text-ink block border bg-white/60 px-3 py-2 text-sm transition"
     >
       <div className="flex justify-between">
         <div>
@@ -63,14 +63,14 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
           <span className="ml-1">{typeLabel}</span>
         </div>
         {record.createdAt && (
-          <span className="text-ink/50 text-xs text-right ml-2 min-w-20">
+          <span className="text-ink/50 ml-2 min-w-20 text-right text-xs">
             {/* Added simple styling for date alignment if needed, but keeping generally close to original */}
             {new Date(record.createdAt).toLocaleString()}
           </span>
         )}
       </div>
       {turns > 0 && (
-        <div className="mt-1 text-xs text-ink/60">
+        <div className="text-ink/60 mt-1 text-xs">
           共 {turns} 回合 · 点击查看战报回放
         </div>
       )}

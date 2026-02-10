@@ -348,3 +348,29 @@ export const auctionListings = pgTable(
     itemTypeIdx: index('auction_item_type_idx').on(table.itemType),
   }),
 );
+
+// 用户反馈表
+export const feedbacks = pgTable(
+  'wanjiedaoyou_feedbacks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    cultivatorId: uuid('cultivator_id').references(() => cultivators.id, {
+      onDelete: 'set null',
+    }),
+    type: varchar('type', { length: 20 }).notNull(), // bug | feature | balance | other
+    content: text('content').notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // pending | processing | resolved | closed
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index('feedback_user_id_idx').on(table.userId),
+    statusIdx: index('feedback_status_idx').on(table.status),
+    typeIdx: index('feedback_type_idx').on(table.type),
+    createdAtIdx: index('feedback_created_at_idx').on(table.createdAt),
+  }),
+);

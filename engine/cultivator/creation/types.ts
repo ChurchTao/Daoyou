@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { ELEMENT_VALUES, GENDER_VALUES } from '@/types/constants';
+import { z } from 'zod';
 
 // AI 只负责生成文本设定、灵根偏好和资质评分
 export const CultivatorAISchema = z.object({

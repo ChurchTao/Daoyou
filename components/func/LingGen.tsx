@@ -38,7 +38,7 @@ export function LingGen({
     openDialog({
       title: '灵根说明',
       content: (
-        <div className="flex flex-col gap-2 text-ink-secondary text-sm">
+        <div className="text-ink-secondary flex flex-col gap-2 text-sm">
           <p>灵根是修仙者感应天地灵气的根本。</p>
           <p>
             <span className="text-ink font-bold">属性：</span>
@@ -115,7 +115,7 @@ export function LingGenMini({
             </InkBadge>
           ))
         ) : (
-          <span className="text-xs text-ink-secondary">无灵根信息</span>
+          <span className="text-ink-secondary text-xs">无灵根信息</span>
         )}
       </div>
     </div>

@@ -63,25 +63,25 @@ export function BattlePreparation({
 
   return (
     <InkPageShell title="遭遇战" backHref="#">
-      <InkCard className="p-6 space-y-6">
+      <InkCard className="space-y-6 p-6">
         {/* 顶部：敌人信息 */}
-        <div className="text-center space-y-4">
-          <div className="text-6xl animate-bounce">⚔️</div>
+        <div className="space-y-4 text-center">
+          <div className="animate-bounce text-6xl">⚔️</div>
           <div>
-            <h2 className="text-2xl font-bold text-crimson mb-2">遭遇强敌</h2>
+            <h2 className="text-crimson mb-2 text-2xl font-bold">遭遇强敌</h2>
             {enemy ? (
-              <p className="text-lg text-ink">
+              <p className="text-ink text-lg">
                 前方发现了{' '}
                 <span className="font-bold">
                   {enemy.title ? `${enemy.title}·${enemy.name}` : enemy.name}
                 </span>
               </p>
             ) : (
-              <p className="text-lg text-ink animate-pulse">
+              <p className="text-ink animate-pulse text-lg">
                 正在感知敌人气息...
               </p>
             )}
-            <p className="text-sm text-ink-secondary mt-2">
+            <p className="text-ink-secondary mt-2 text-sm">
               此战避无可避，当速决断！
             </p>
           </div>
@@ -89,12 +89,12 @@ export function BattlePreparation({
 
         {/* 中部：敌人详情（查探后显示） */}
         {showDetails && enemy && (
-          <InkCard className="bg-paper-dark p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-ink/10 pb-2">
-              <h3 className="font-bold text-crimson">
+          <InkCard className="bg-paper-dark space-y-3 p-4">
+            <div className="border-ink/10 flex items-center justify-between border-b pb-2">
+              <h3 className="text-crimson font-bold">
                 {enemy.name}
                 {enemy.title && (
-                  <span className="text-sm text-ink-secondary ml-2">
+                  <span className="text-ink-secondary ml-2 text-sm">
                     ({enemy.title})
                   </span>
                 )}
@@ -137,7 +137,7 @@ export function BattlePreparation({
 
             {/* 描述 */}
             {enemy.background && (
-              <p className="text-xs text-ink-secondary italic leading-relaxed">
+              <p className="text-ink-secondary text-xs leading-relaxed italic">
                 {enemy.background}
               </p>
             )}
@@ -170,7 +170,7 @@ export function BattlePreparation({
           {/* 放弃战斗按钮 */}
           <InkButton
             variant="ghost"
-            className="w-full py-2 text-ink-secondary hover:text-crimson"
+            className="text-ink-secondary hover:text-crimson w-full py-2"
             onClick={handleAbandon}
           >
             🏃 放弃战斗（撤退）

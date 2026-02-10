@@ -1,9 +1,9 @@
-import { object } from '@/utils/aiClient';
 import type {
   CultivationTechnique,
   Cultivator,
   Skill,
 } from '@/types/cultivator';
+import { object } from '@/utils/aiClient';
 import { BASIC_SKILLS, BASIC_TECHNIQUES } from './config';
 import {
   getCharacterGenerationPrompt,
@@ -60,9 +60,7 @@ export class CharacterGenerator {
     const age = 14 + Math.floor(Math.random() * 6); // 14-20岁
     // 寿元：炼气期基础100，分数高加成
     const lifespan =
-      80 +
-      Math.floor(Math.random() * 20) +
-      (data.aptitude_score > 80 ? 20 : 0);
+      80 + Math.floor(Math.random() * 20) + (data.aptitude_score > 80 ? 20 : 0);
 
     // 构造完整的 Cultivator 对象
     const cultivator: Cultivator = {

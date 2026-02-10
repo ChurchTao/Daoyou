@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  InkBadge,
-  InkButton,
-  InkList,
-  InkNotice,
-} from '@/components/ui';
+import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
 import { EffectCard } from '@/components/ui/EffectCard';
 import type { Artifact } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
@@ -62,7 +57,7 @@ export function ArtifactsTab({
               </>
             }
             meta={
-              <div className="flex flex-wrap gap-2 text-xs text-ink-secondary">
+              <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
                 {item.required_realm && (
                   <span>境界要求：{item.required_realm}</span>
                 )}

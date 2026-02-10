@@ -114,7 +114,7 @@ export function LifespanStatusCard({
 
   if (loading && !status) {
     return (
-      <div className={`text-sm opacity-60 text-center py-2 ${className}`}>
+      <div className={`py-2 text-center text-sm opacity-60 ${className}`}>
         正在查询寿元状态...
       </div>
     );
@@ -122,7 +122,7 @@ export function LifespanStatusCard({
 
   if (error && !status) {
     return (
-      <div className={`text-sm text-crimson text-center py-2 ${className}`}>
+      <div className={`text-crimson py-2 text-center text-sm ${className}`}>
         {error}
       </div>
     );
@@ -163,7 +163,7 @@ export function LifespanStatusCard({
           </div>
 
           {/* 进度条 */}
-          <div className="w-full h-2 bg-ink/10 rounded-full overflow-hidden">
+          <div className="bg-ink/10 h-2 w-full overflow-hidden rounded-full">
             <div
               className={`h-full transition-all duration-300 ${progressColor}`}
               style={{
@@ -173,7 +173,7 @@ export function LifespanStatusCard({
           </div>
 
           {/* 提示文本 */}
-          <div className="text-xs opacity-60 text-center">
+          <div className="text-center text-xs opacity-60">
             每日上限：{status.dailyLimit}年（每日凌晨重置）
           </div>
         </div>

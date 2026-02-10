@@ -49,9 +49,9 @@ export default function BattleReplayPage() {
 
   if (!record && !loading) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="mb-4 text-ink">未找到该战斗记录</p>
+          <p className="text-ink mb-4">未找到该战斗记录</p>
           <Link href="/game" className="text-ink hover:text-crimson">
             [返回主页]
           </Link>
@@ -70,17 +70,17 @@ export default function BattleReplayPage() {
 
   return (
     <div className="bg-paper min-h-screen">
-      <div className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16 main-content">
-        <Link href="/game" className="mb-4 text-ink hover:text-crimson">
+      <div className="main-content mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16">
+        <Link href="/game" className="text-ink hover:text-crimson mb-4">
           [← 返回]
         </Link>
 
         <div className="mb-6 text-center">
-          <h1 className="font-ma-shan-zheng text-2xl text-ink">
+          <h1 className="font-ma-shan-zheng text-ink text-2xl">
             【战报回放 · {playerName} vs {opponentName}】
           </h1>
           {record?.createdAt && (
-            <p className="mt-1 text-xs text-ink/60">
+            <p className="text-ink/60 mt-1 text-xs">
               {new Date(record.createdAt).toLocaleString()}
             </p>
           )}

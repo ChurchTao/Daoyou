@@ -33,7 +33,11 @@ describe('generateSpiritualRoots', () => {
     expect(roots).toHaveLength(4);
     roots.forEach((root) => {
       expect(ELEMENT_VALUES).toContain(root.element);
-      if (root.element === '风' || root.element === '雷' || root.element === '冰') {
+      if (
+        root.element === '风' ||
+        root.element === '雷' ||
+        root.element === '冰'
+      ) {
         expect(root.grade).toBe('变异灵根');
       } else {
         expect(root.grade).toBe('伪灵根');

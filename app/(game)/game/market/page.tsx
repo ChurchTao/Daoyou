@@ -122,7 +122,7 @@ export default function MarketPage() {
     >
       <InkSection title={`下批好货刷新倒计时：${timeLeft}`}>
         {isLoadingMarket ? (
-          <div className="text-center py-10">坊市掌柜正在盘货...</div>
+          <div className="py-10 text-center">坊市掌柜正在盘货...</div>
         ) : listings.length > 0 ? (
           <InkList>
             {listings.map((item) => {
@@ -140,7 +140,7 @@ export default function MarketPage() {
                     </>
                   }
                   meta={
-                    <div className="flex justify-between items-center w-full">
+                    <div className="flex w-full items-center justify-between">
                       <span>
                         {typeInfo.icon} · {item.element || '无属性'}
                       </span>
@@ -152,7 +152,7 @@ export default function MarketPage() {
                   description={
                     <div>
                       <p>{item.description}</p>
-                      <p className="text-xs text-ink-secondary mt-1">
+                      <p className="text-ink-secondary mt-1 text-xs">
                         库存: {item.quantity}
                       </p>
                     </div>

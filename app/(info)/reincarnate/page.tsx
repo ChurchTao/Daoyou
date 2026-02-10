@@ -67,14 +67,14 @@ export default function ReincarnatePage() {
     >
       <InkSection title="【前世余音】">
         {context?.story ? (
-          <div className="whitespace-pre-line rounded border border-ink-border bg-paper/80 p-4 text-sm leading-7">
+          <div className="border-ink-border bg-paper/80 rounded border p-4 text-sm leading-7 whitespace-pre-line">
             {context.story}
           </div>
         ) : (
           <InkNotice>尚无前世故事，可直接返回主界面或重新创建角色。</InkNotice>
         )}
         {context?.name && (
-          <p className="mt-3 text-sm text-ink-secondary">
+          <p className="text-ink-secondary mt-3 text-sm">
             前世：{context.name}（{context.realm}
             {context.realm_stage}）
           </p>

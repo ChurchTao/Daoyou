@@ -5,7 +5,6 @@
  * 取代原 breakthroughEngine.ts 中的 calculateBreakthroughChance
  */
 
-import { format } from 'd3-format';
 import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
@@ -17,6 +16,7 @@ import type {
   CultivationProgress,
   Cultivator,
 } from '@/types/cultivator';
+import { format } from 'd3-format';
 import { calculateExpProgress, getBreakthroughType } from './cultivationUtils';
 import { getRealmStageAttributeCap } from './cultivatorUtils';
 

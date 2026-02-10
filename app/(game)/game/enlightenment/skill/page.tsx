@@ -18,8 +18,7 @@ import {
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
 import { Material, Skill } from '@/types/cultivator';
-import { getElementInfo } from '@/types/dictionaries';
-import { getMaterialTypeInfo } from '@/types/dictionaries';
+import { getElementInfo, getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -175,16 +174,15 @@ export default function SkillCreationPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">入定冥想中……</p>
       </div>
     );
   }
 
   // Filter materials to only show manual type
-  const validMaterials = cultivator?.inventory?.materials.filter(
-    (m) => m.type === 'manual',
-  ) || [];
+  const validMaterials =
+    cultivator?.inventory?.materials.filter((m) => m.type === 'manual') || [];
 
   const renderSkillExtraInfo = (skill: Skill) => {
     const elementInfo = getElementInfo(skill.element);
@@ -206,12 +204,13 @@ export default function SkillCreationPage() {
           <span className="opacity-70">威力</span>
           <span>{displayInfo.power}%</span>
         </div>
-        {displayInfo.healPercent !== undefined && displayInfo.healPercent > 0 && (
-          <div className="border-ink/50 flex justify-between border-b pb-1">
-            <span className="opacity-70">治疗</span>
-            <span>{displayInfo.healPercent}%</span>
-          </div>
-        )}
+        {displayInfo.healPercent !== undefined &&
+          displayInfo.healPercent > 0 && (
+            <div className="border-ink/50 flex justify-between border-b pb-1">
+              <span className="opacity-70">治疗</span>
+              <span>{displayInfo.healPercent}%</span>
+            </div>
+          )}
         <div className="border-ink/50 flex justify-between border-b pb-1">
           <span className="opacity-70">消耗</span>
           <span>{skill.cost || 0} 灵力</span>
@@ -244,7 +243,7 @@ export default function SkillCreationPage() {
     >
       <InkSection title="1. 甄选典籍">
         {validMaterials.length > 0 ? (
-          <div className="max-h-60 overflow-y-auto border border-ink-border rounded p-2">
+          <div className="border-ink-border max-h-60 overflow-y-auto rounded border p-2">
             <InkList dense>
               {validMaterials.map((m) => {
                 const typeInfo = getMaterialTypeInfo(m.type);
@@ -253,11 +252,11 @@ export default function SkillCreationPage() {
                   <div
                     key={m.id}
                     onClick={() => !isSubmitting && toggleMaterial(m.id!)}
-                    className={`cursor-pointer border-b border-ink-border/30 last:border-0 p-2 transition-colors ${
+                    className={`border-ink-border/30 cursor-pointer border-b p-2 transition-colors last:border-0 ${
                       isSelected ? 'bg-orange-900/10' : 'hover:bg-ink-primary/5'
                     }`}
                   >
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -271,7 +270,7 @@ export default function SkillCreationPage() {
                         <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-ink-secondary">
+                        <span className="text-ink-secondary text-xs">
                           x{m.quantity}
                         </span>
                         <div
@@ -291,7 +290,7 @@ export default function SkillCreationPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs text-ink-secondary ml-6 mt-1 truncate">
+                    <div className="text-ink-secondary mt-1 ml-6 truncate text-xs">
                       {m.description || '无描述'}
                     </div>
                   </div>
@@ -302,14 +301,14 @@ export default function SkillCreationPage() {
         ) : (
           <InkNotice>囊中羞涩，暂无典籍。</InkNotice>
         )}
-        <p className="text-right text-xs text-ink-secondary mt-1">
+        <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
       </InkSection>
 
       <InkSection title="预计消耗">
         {estimatedCost ? (
-          <div className="flex items-center justify-between p-3 bg-ink/5 rounded-lg border border-ink/10">
+          <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
             <span className="text-sm">
               道心感悟：
               <span className="font-bold text-purple-600">
@@ -422,23 +421,23 @@ export default function SkillCreationPage() {
         {viewingMaterial && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="text-4xl p-2 bg-ink/5 rounded-lg border border-ink/10">
+              <div className="bg-ink/5 border-ink/10 rounded-lg border p-2 text-4xl">
                 {getMaterialTypeInfo(viewingMaterial.type).icon}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold ">{viewingMaterial.name}</h3>
+                  <h3 className="text-lg font-bold">{viewingMaterial.name}</h3>
                   <InkBadge tier={viewingMaterial.rank}>
                     {`${getMaterialTypeInfo(viewingMaterial.type).label} · ${viewingMaterial.element}`}
                   </InkBadge>
                 </div>
-                <p className="text-sm text-ink-secondary">
+                <p className="text-ink-secondary text-sm">
                   拥有数量：{viewingMaterial.quantity}
                 </p>
               </div>
             </div>
 
-            <div className="bg-ink/5 p-3 rounded-lg border border-ink/10">
+            <div className="bg-ink/5 border-ink/10 rounded-lg border p-3">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {viewingMaterial.description || '此物灵韵内敛，暂无详细记载。'}
               </p>

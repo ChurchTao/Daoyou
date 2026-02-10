@@ -15,7 +15,9 @@ const GameMailBroadcastSchema = z
     title: z.string().trim().min(1).max(200).optional(),
     content: z.string().trim().min(1).max(10000).optional(),
     rewardSpiritStones: z.number().int().min(0).max(100000000).optional(),
-    payload: z.record(z.string(), z.union([z.string(), z.number()])).default({}),
+    payload: z
+      .record(z.string(), z.union([z.string(), z.number()]))
+      .default({}),
     filters: z
       .object({
         cultivatorCreatedFrom: z.string().optional(),
@@ -76,7 +78,10 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
       return NextResponse.json({ error: '模板已停用' }, { status: 400 });
     }
 
-    const mergedPayload = normalizeTemplatePayload(template.defaultPayload, payload);
+    const mergedPayload = normalizeTemplatePayload(
+      template.defaultPayload,
+      payload,
+    );
     finalContent = renderTemplate(template.contentTemplate, mergedPayload);
 
     if (template.subjectTemplate) {

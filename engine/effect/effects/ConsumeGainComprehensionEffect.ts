@@ -1,7 +1,7 @@
 import { BaseEffect } from '../BaseEffect';
 import {
-  type ConsumeGainComprehensionParams,
   EffectTrigger,
+  type ConsumeGainComprehensionParams,
   type EffectContext,
 } from '../types';
 

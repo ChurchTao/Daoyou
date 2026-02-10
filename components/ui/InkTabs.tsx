@@ -24,7 +24,7 @@ export function InkTabs({
   className = '',
 }: InkTabsProps) {
   return (
-    <div className={cn('flex gap-2 border-b border-ink/10', className)}>
+    <div className={cn('border-ink/10 flex gap-2 border-b', className)}>
       {items.map((item) => {
         const isActive = activeValue === item.value;
         return (
@@ -34,7 +34,7 @@ export function InkTabs({
             className={cn(
               'px-4 py-2 text-base transition-colors',
               isActive
-                ? 'border-b-2 border-crimson text-crimson'
+                ? 'border-crimson text-crimson border-b-2'
                 : 'text-ink/60 hover:text-ink',
             )}
           >

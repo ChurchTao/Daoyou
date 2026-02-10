@@ -65,7 +65,10 @@ export function GameMailBroadcastForm() {
 
     const reward = Number(rewardSpiritStones || '0');
     if (!Number.isFinite(reward) || reward < 0) {
-      pushToast({ message: '灵石奖励必须是大于等于 0 的数字', tone: 'warning' });
+      pushToast({
+        message: '灵石奖励必须是大于等于 0 的数字',
+        tone: 'warning',
+      });
       return;
     }
 
@@ -127,7 +130,7 @@ export function GameMailBroadcastForm() {
       <label className="flex flex-col gap-1">
         <span className="font-semibold tracking-wide">模板（可选）</span>
         <select
-          className="border border-ink/20 bg-transparent px-3 py-2"
+          className="border-ink/20 border bg-transparent px-3 py-2"
           value={templateId}
           onChange={(e) => setTemplateId(e.target.value)}
           disabled={loading}
@@ -180,7 +183,7 @@ export function GameMailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">角色创建时间起</span>
           <input
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             type="date"
             value={createdFrom}
             onChange={(e) => setCreatedFrom(e.target.value)}
@@ -190,7 +193,7 @@ export function GameMailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">角色创建时间止</span>
           <input
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             type="date"
             value={createdTo}
             onChange={(e) => setCreatedTo(e.target.value)}
@@ -203,7 +206,7 @@ export function GameMailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">境界下限</span>
           <select
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             value={realmMin}
             onChange={(e) => setRealmMin(e.target.value)}
             disabled={loading}
@@ -219,7 +222,7 @@ export function GameMailBroadcastForm() {
         <label className="flex flex-col gap-1">
           <span className="font-semibold tracking-wide">境界上限</span>
           <select
-            className="border border-ink/20 bg-transparent px-3 py-2"
+            className="border-ink/20 border bg-transparent px-3 py-2"
             value={realmMax}
             onChange={(e) => setRealmMax(e.target.value)}
             disabled={loading}
@@ -242,13 +245,17 @@ export function GameMailBroadcastForm() {
         >
           预览发送人数
         </InkButton>
-        <InkButton variant="primary" onClick={() => submit(false)} disabled={loading}>
+        <InkButton
+          variant="primary"
+          onClick={() => submit(false)}
+          disabled={loading}
+        >
           {loading ? '执行中...' : '确认同步群发游戏邮件'}
         </InkButton>
       </div>
 
       {result && (
-        <pre className="overflow-x-auto rounded-lg border border-ink/15 bg-paper/60 p-3 text-xs leading-5">
+        <pre className="border-ink/15 bg-paper/60 overflow-x-auto rounded-lg border p-3 text-xs leading-5">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}

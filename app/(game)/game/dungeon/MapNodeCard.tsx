@@ -4,14 +4,14 @@ import { MapNodeInfo } from '@/lib/game/mapSystem';
 export function MapNodeCard({ node }: { node: MapNodeInfo }) {
   return (
     <div
-      className={`border rounded transition-all duration-300 border-crimson bg-crimson/5 ring-crimson`}
+      className={`border-crimson bg-crimson/5 ring-crimson rounded border transition-all duration-300`}
     >
-      <div className="p-3 cursor-pointer">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className={`font-bold text-crimson`}>{node.name}</h3>
+      <div className="cursor-pointer p-3">
+        <div className="mb-1 flex items-start justify-between">
+          <h3 className={`text-crimson font-bold`}>{node.name}</h3>
           <span className="text-crimson text-xs">● 已选择</span>
         </div>
-        <p className="text-xs text-ink-secondary line-clamp-2 mb-2">
+        <p className="text-ink-secondary mb-2 line-clamp-2 text-xs">
           {node.description}
         </p>
         <div className="flex flex-wrap gap-1">
@@ -20,7 +20,7 @@ export function MapNodeCard({ node }: { node: MapNodeInfo }) {
               key={t}
               variant="outline"
               tone="neutral"
-              className="text-[10px] py-0"
+              className="py-0 text-[10px]"
             >
               {t}
             </InkTag>

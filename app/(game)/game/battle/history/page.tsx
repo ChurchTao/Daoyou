@@ -61,12 +61,12 @@ export default function BattleHistoryPage() {
       <div className="main-content mx-auto max-w-xl px-4 pt-8 pb-16">
         <Link
           href="/game"
-          className="mb-4 inline-block text-ink hover:text-crimson"
+          className="text-ink hover:text-crimson mb-4 inline-block"
         >
           [← 返回]
         </Link>
 
-        <h1 className="mb-4 font-ma-shan-zheng text-2xl text-ink">
+        <h1 className="font-ma-shan-zheng text-ink mb-4 text-2xl">
           【全部战绩】
         </h1>
 

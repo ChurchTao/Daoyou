@@ -20,12 +20,12 @@ export function QuickActionsGrid({
   return (
     <div className="flex flex-wrap gap-3">
       {/* 传音玉简（邮件）- 特殊处理未读提示 */}
-      <InkButton href="/game/mail" className="text-sm relative">
+      <InkButton href="/game/mail" className="relative text-sm">
         🔔 传音玉简
         {unreadMailCount > 0 && (
           <span className="absolute -top-0.5 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-crimson" />
+            <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+            <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
           </span>
         )}
       </InkButton>

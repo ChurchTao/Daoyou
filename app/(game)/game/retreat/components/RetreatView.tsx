@@ -41,7 +41,7 @@ export function RetreatView() {
   // 加载状态
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">洞府封闭中，稍候片刻……</p>
       </div>
     );
@@ -82,7 +82,7 @@ export function RetreatView() {
       <InkSection title="【悟道修行】">
         <div className="space-y-3 text-sm leading-6">
           {/* 当前状态概览 */}
-          <div className="p-3 border border-ink/20 rounded-lg bg-ink/5 shadow-sm">
+          <div className="border-ink/20 bg-ink/5 rounded-lg border p-3 shadow-sm">
             <p className="text-ink-secondary mb-2">
               当前境界：
               <InkBadge tier={cultivator.realm}>
@@ -92,7 +92,7 @@ export function RetreatView() {
             <p className="text-ink-secondary">
               剩余寿元：
               <span className="text-ink font-bold">{remainingLifespan}</span> 年
-              <span className="opacity-60 ml-4">
+              <span className="ml-4 opacity-60">
                 累计闭关 {cultivator.closed_door_years_total ?? 0} 年
               </span>
             </p>

@@ -113,8 +113,8 @@ export function buildGradeSelectionPrompt(
 /**
  * 导入品质常量
  */
-import { QUALITY_VALUES } from '@/types/constants';
 import type { Quality } from '@/types/constants';
+import { QUALITY_VALUES } from '@/types/constants';
 
 /**
  * 根据材料品质等级获取允许选择的最高 grade_hint
@@ -130,10 +130,10 @@ function getMaterialMaxGradeHint(materialRank: number): string {
   // 仙品(6) -> extreme
   // 神品(7) -> extreme
 
-  if (materialRank <= 1) return 'low';      // 凡品、灵品
-  if (materialRank <= 3) return 'medium';   // 玄品、真品
-  if (materialRank <= 5) return 'high';     // 地品、天品
-  return 'extreme';                          // 仙品、神品
+  if (materialRank <= 1) return 'low'; // 凡品、灵品
+  if (materialRank <= 3) return 'medium'; // 玄品、真品
+  if (materialRank <= 5) return 'high'; // 地品、天品
+  return 'extreme'; // 仙品、神品
 }
 
 // ============================================================

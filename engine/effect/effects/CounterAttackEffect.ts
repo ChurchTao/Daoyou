@@ -1,5 +1,5 @@
-import { format } from 'd3-format';
 import type { ElementType } from '@/types/constants';
+import { format } from 'd3-format';
 import { BaseEffect } from '../BaseEffect';
 import {
   EffectTrigger,

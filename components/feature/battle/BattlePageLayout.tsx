@@ -45,22 +45,22 @@ export function BattlePageLayout({
 }: BattlePageLayoutProps) {
   return (
     <div className="bg-paper min-h-screen">
-      <div className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16 main-content">
+      <div className="main-content mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16">
         {/* 返回按钮 */}
         <Link
           href={backHref}
-          className="mb-4 text-ink transition hover:text-crimson"
+          className="text-ink hover:text-crimson mb-4 transition"
         >
           [← {backLabel}]
         </Link>
 
         {/* 标题 */}
         <div className="mb-6 text-center">
-          <h1 className="font-ma-shan-zheng text-2xl text-ink">{title}</h1>
+          <h1 className="font-ma-shan-zheng text-ink text-2xl">{title}</h1>
         </div>
 
         {/* 错误提示 */}
-        {error && <p className="mb-6 text-center text-crimson">{error}</p>}
+        {error && <p className="text-crimson mb-6 text-center">{error}</p>}
 
         {/* 内容 */}
         {children}

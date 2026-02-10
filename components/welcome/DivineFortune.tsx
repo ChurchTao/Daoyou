@@ -25,8 +25,8 @@ export function DivineFortune({
 
   if (isLoading) {
     return (
-      <div className={cn('text-center py-8', className)}>
-        <p className="text-amber-800/60 text-lg animate-pulse">
+      <div className={cn('py-8 text-center', className)}>
+        <p className="animate-pulse text-lg text-amber-800/60">
           正在推演天机……
         </p>
       </div>
@@ -38,9 +38,9 @@ export function DivineFortune({
   }
 
   return (
-    <div className={cn('divine-fortune text-center space-y-3', className)}>
+    <div className={cn('divine-fortune space-y-3 text-center', className)}>
       {/* 标题 */}
-      <div className="text-amber-900/70 text-sm tracking-widest mb-4">
+      <div className="mb-4 text-sm tracking-widest text-amber-900/70">
         ◆ 今日天机 ◆
       </div>
 
@@ -68,7 +68,7 @@ export function DivineFortune({
       {/* 装饰性分隔线 */}
       <div className="flex items-center justify-center gap-3 pt-2">
         <div className="h-px w-12 bg-linear-to-r from-transparent to-amber-900/30" />
-        <div className="text-amber-900/40 text-xs">☯</div>
+        <div className="text-xs text-amber-900/40">☯</div>
         <div className="h-px w-12 bg-linear-to-l from-transparent to-amber-900/30" />
       </div>
     </div>

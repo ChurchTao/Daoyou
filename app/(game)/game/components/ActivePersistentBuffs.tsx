@@ -2,10 +2,13 @@
 
 import { InkButton } from '@/components/ui/InkButton';
 import { InkListItem } from '@/components/ui/InkList';
-import { buffHasAction, getBuffDisplayConfig } from '@/lib/config/persistentBuffDisplay';
+import {
+  buffHasAction,
+  getBuffDisplayConfig,
+} from '@/lib/config/persistentBuffDisplay';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useCultivator } from '@/lib/contexts/CultivatorContext';
 
 interface PersistentBuffStatus {
   id: string;
@@ -75,7 +78,7 @@ export function ActivePersistentBuffs() {
       <InkListItem
         title="✨ 激活道韵"
         description={
-          <div className="text-sm opacity-60 text-center py-2">
+          <div className="py-2 text-center text-sm opacity-60">
             正在探查道韵...
           </div>
         }
@@ -102,12 +105,12 @@ export function ActivePersistentBuffs() {
             return (
               <div
                 key={buff.instanceId}
-                className="flex items-center justify-between p-2 bg-ink/5 rounded hover:bg-ink/10 transition-colors"
+                className="bg-ink/5 hover:bg-ink/10 flex items-center justify-between rounded p-2 transition-colors"
               >
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-1 items-center gap-2">
                   <span className="text-xl">{buff.icon}</span>
                   <div className="flex flex-col">
-                    <span className="font-medium text-sm">{buff.name}</span>
+                    <span className="text-sm font-medium">{buff.name}</span>
                     <span className="text-xs opacity-60">
                       {config?.shortDesc || buff.description}
                     </span>
@@ -119,7 +122,7 @@ export function ActivePersistentBuffs() {
                     buff.expiresAt !== undefined && (
                       <div className="text-right">
                         <div className="opacity-60">剩余</div>
-                        <div className="font-bold text-ink-primary">
+                        <div className="text-ink-primary font-bold">
                           {formatRemainingTime(buff.expiresAt)}
                         </div>
                       </div>
@@ -130,7 +133,7 @@ export function ActivePersistentBuffs() {
                     buff.usesRemaining > 0 && (
                       <div className="text-right">
                         <div className="opacity-60">机缘</div>
-                        <div className="font-bold text-ink-primary">
+                        <div className="text-ink-primary font-bold">
                           {buff.usesRemaining}次
                         </div>
                       </div>

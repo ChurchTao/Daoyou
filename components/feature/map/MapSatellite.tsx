@@ -70,7 +70,7 @@ export function MapSatellite({
 
       {/* Label appears on select */}
       {selected && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] bg-crimson text-paper px-1 rounded z-40">
+        <div className="bg-crimson text-paper absolute top-4 left-1/2 z-40 -translate-x-1/2 rounded px-1 text-[10px] whitespace-nowrap">
           {name}
         </div>
       )}

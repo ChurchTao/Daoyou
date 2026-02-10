@@ -70,15 +70,15 @@ export function InkModal({
       {/* 模态框内容 */}
       <div
         className={cn(
-          'bg-paper max-w-md w-full rounded-xl shadow-2xl',
-          'border border-ink/30 p-6 relative z-10',
+          'bg-paper w-full max-w-md rounded-xl shadow-2xl',
+          'border-ink/30 relative z-10 border p-6',
           className,
         )}
         role="dialog"
         aria-modal="true"
       >
         {title && (
-          <h3 className="text-xl font-bold text-center text-ink font-heading">
+          <h3 className="text-ink font-heading text-center text-xl font-bold">
             {title}
           </h3>
         )}

@@ -1,7 +1,7 @@
 import { BaseEffect } from '../BaseEffect';
 import {
-  type BreakthroughChanceBonusParams,
   EffectTrigger,
+  type BreakthroughChanceBonusParams,
   type EffectContext,
 } from '../types';
 

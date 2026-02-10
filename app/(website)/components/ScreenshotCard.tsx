@@ -1,21 +1,18 @@
-import Image from 'next/image';
 import type { Screenshot } from '@/data/screenshot';
+import Image from 'next/image';
 
 interface ScreenshotCardProps {
   screenshot: Screenshot;
   index: number;
 }
 
-export function ScreenshotCard({
-  screenshot,
-  index,
-}: ScreenshotCardProps) {
+export function ScreenshotCard({ screenshot, index }: ScreenshotCardProps) {
   return (
     <figure
       className="screenshot-card-enhanced ancient-border group"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <div className="relative aspect-[9/16] w-full overflow-hidden bg-ink/5">
+      <div className="bg-ink/5 relative aspect-[9/16] w-full overflow-hidden">
         <Image
           src={screenshot.url}
           alt={screenshot.alt}
@@ -28,7 +25,7 @@ export function ScreenshotCard({
         {/* Hover Overlay */}
         <div className="screenshot-hover-overlay absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300">
           <svg
-            className="h-12 w-12 text-paper"
+            className="text-paper h-12 w-12"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -51,7 +48,7 @@ export function ScreenshotCard({
       </div>
       {(screenshot.alt || screenshot.description) && (
         <figcaption className="screenshot-caption-enhanced">
-          <span className="font-medium text-ink">{screenshot.alt}</span>
+          <span className="text-ink font-medium">{screenshot.alt}</span>
           {screenshot.description && (
             <span className="text-ink-muted mt-1 block text-xs">
               {screenshot.description}

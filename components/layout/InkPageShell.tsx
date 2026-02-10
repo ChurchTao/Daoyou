@@ -51,12 +51,12 @@ export function InkPageShell({
 
   return (
     <div className="bg-paper min-h-screen">
-      <div className="mx-auto flex max-w-xl flex-col px-4 pb-24 pt-8">
+      <div className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-24">
         {/* 返回链接 */}
         {backHref && (
           <Link
             href={backHref}
-            className="mb-4 text-ink transition hover:text-crimson no-underline"
+            className="text-ink hover:text-crimson mb-4 no-underline transition"
           >
             [← 返回]
           </Link>
@@ -65,12 +65,12 @@ export function InkPageShell({
         {/* 页面头部 */}
         <header className="mb-6 text-center">
           {hero && <div className="mb-3 flex justify-center">{hero}</div>}
-          <h1 className="text-3xl text-ink font-heading">{title}</h1>
+          <h1 className="text-ink font-heading text-3xl">{title}</h1>
           {subtitle && (
-            <p className="mt-1 text-base text-ink-secondary">{subtitle}</p>
+            <p className="text-ink-secondary mt-1 text-base">{subtitle}</p>
           )}
-          {lead && <p className="mt-3 text-lg text-ink">{lead}</p>}
-          {note && <p className="mt-2 text-sm text-crimson/80">{note}</p>}
+          {lead && <p className="text-ink mt-3 text-lg">{lead}</p>}
+          {note && <p className="text-crimson/80 mt-2 text-sm">{note}</p>}
           {actions && (
             <div className="mt-4 flex flex-wrap justify-center gap-3">
               {actions}
@@ -93,8 +93,8 @@ export function InkPageShell({
       {showBottomNav && (
         <div
           className={cn(
-            'fixed bottom-0 left-0 right-0 z-100',
-            'bg-paper border-t border-ink/10 shadow',
+            'fixed right-0 bottom-0 left-0 z-100',
+            'bg-paper border-ink/10 border-t shadow',
           )}
         >
           <InkNav items={baseNav} currentPath={currentPath} />

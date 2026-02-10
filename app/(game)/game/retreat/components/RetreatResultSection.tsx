@@ -1,6 +1,5 @@
 'use client';
 
-import { format } from 'd3-format';
 import { InkSection } from '@/components/layout';
 import { InkButton } from '@/components/ui/InkButton';
 import type {
@@ -8,6 +7,7 @@ import type {
   CultivationResult,
 } from '@/engine/cultivation/CultivationEngine';
 import type { Attributes } from '@/types/cultivator';
+import { format } from 'd3-format';
 import { useMemo } from 'react';
 import type { RetreatResultData } from '../hooks/useRetreatViewModel';
 
@@ -45,7 +45,7 @@ function CultivationResultContent({
 
   return (
     <InkSection title="【修炼成果】">
-      <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
+      <div className="border-ink-border space-y-3 rounded border p-3 text-sm leading-6">
         <p className="font-medium">🌱 修炼有成</p>
         <p>修为增长：+{Number(summary.exp_gained)}</p>
         <p>当前进度：{format('.2f')(summary.progress)}%</p>
@@ -65,7 +65,7 @@ function CultivationResultContent({
         )}
 
         {retreatResult.story && (
-          <div className="whitespace-pre-line rounded p-3 text-sm leading-6">
+          <div className="rounded p-3 text-sm leading-6 whitespace-pre-line">
             {retreatResult.story}
           </div>
         )}
@@ -108,7 +108,7 @@ function BreakthroughResultContent({
 
   return (
     <InkSection title="【突破结果】">
-      <div className="space-y-3 rounded border border-ink-border p-3 text-sm leading-6">
+      <div className="border-ink-border space-y-3 rounded border p-3 text-sm leading-6">
         <p className="font-medium">
           {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
         </p>
@@ -123,15 +123,15 @@ function BreakthroughResultContent({
 
         {/* 失败时显示损失信息 */}
         {!summary.success && (
-          <div className="mt-3 p-3 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
-            <p className="text-orange-800 font-medium">
+          <div className="mt-3 space-y-2 rounded-lg border border-orange-200 bg-orange-50/50 p-3">
+            <p className="font-medium text-orange-800">
               【道途坎坷，受创不轻】
             </p>
 
             {summary.exp_lost && (
               <p className="text-orange-700">
                 修为损失：-{summary.exp_lost} 点
-                <span className="text-xs ml-1 opacity-80">
+                <span className="ml-1 text-xs opacity-80">
                   （冲关失败，真元涣散）
                 </span>
               </p>
@@ -140,16 +140,16 @@ function BreakthroughResultContent({
             {summary.insight_change && summary.insight_change < 0 && (
               <p className="text-orange-700">
                 道行感悟：{summary.insight_change}
-                <span className="text-xs ml-1 opacity-80">
+                <span className="ml-1 text-xs opacity-80">
                   （未能破关，心生迷惘）
                 </span>
               </p>
             )}
 
             {summary.inner_demon_triggered && (
-              <p className="text-red-600 font-medium">
+              <p className="font-medium text-red-600">
                 ⚠️ 屡战屡败，已生心魔！下次突破成功率将降低
-                <span className="text-xs ml-1 opacity-80">
+                <span className="ml-1 text-xs opacity-80">
                   （可通过副本、战斗等历练消除）
                 </span>
               </p>
@@ -158,7 +158,7 @@ function BreakthroughResultContent({
         )}
 
         {retreatResult.story && (
-          <div className="whitespace-pre-line rounded p-3 text-sm leading-6">
+          <div className="rounded p-3 text-sm leading-6 whitespace-pre-line">
             {retreatResult.story}
           </div>
         )}

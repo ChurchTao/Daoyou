@@ -86,12 +86,12 @@ export function WelcomeFlow() {
           <BookPage pageNumber={1} showPageNumber>
             <div className="space-y-12">
               {/* 卷首语 */}
-              <div className="text-center space-y-6">
-                <h2 className="text-xl md:text-2xl font-ma-shan-zheng text-amber-900/70 tracking-widest mb-8">
+              <div className="space-y-6 text-center">
+                <h2 className="font-ma-shan-zheng mb-8 text-xl tracking-widest text-amber-900/70 md:text-2xl">
                   《万界道友录·序》
                 </h2>
 
-                <div className="space-y-4 text-lg md:text-xl text-amber-900 leading-loose">
+                <div className="space-y-4 text-lg leading-loose text-amber-900 md:text-xl">
                   <TypewriterText
                     text="自盘古开天，三千大世界并立"
                     speed={80}
@@ -112,7 +112,7 @@ export function WelcomeFlow() {
                   />
                 </div>
 
-                <div className="pt-6 space-y-4 text-lg md:text-xl text-amber-800/90 leading-loose">
+                <div className="space-y-4 pt-6 text-lg leading-loose text-amber-800/90 md:text-xl">
                   <TypewriterText
                     text="你，便是那冥冥中的有缘人"
                     speed={80}
@@ -131,11 +131,11 @@ export function WelcomeFlow() {
 
               {/* 继续按钮 */}
               {page1Complete && (
-                <div className="text-center pt-8 animate-fade-in">
+                <div className="animate-fade-in pt-8 text-center">
                   <InkButton
                     onClick={goToNextStep}
                     variant="primary"
-                    className="text-lg px-8 py-3"
+                    className="px-8 py-3 text-lg"
                   >
                     继 续
                   </InkButton>
@@ -151,18 +151,18 @@ export function WelcomeFlow() {
           <BookPage pageNumber={2} showPageNumber>
             <div className="space-y-12 text-center">
               {cultivatorLoading ? (
-                <p className="text-amber-800/60 text-lg animate-pulse">
+                <p className="animate-pulse text-lg text-amber-800/60">
                   正在查验道身……
                 </p>
               ) : hasCultivator ? (
                 // 有角色 - 欢迎回归
                 <>
                   <div className="space-y-6">
-                    <h2 className="text-2xl text-amber-900/70 tracking-widest">
+                    <h2 className="text-2xl tracking-widest text-amber-900/70">
                       道友归来
                     </h2>
 
-                    <div className="space-y-4 text-lg text-amber-900 ">
+                    <div className="space-y-4 text-lg text-amber-900">
                       <TypewriterText
                         text={`道友【${cultivator.name}】`}
                         speed={80}
@@ -188,16 +188,16 @@ export function WelcomeFlow() {
                         text="道心可还稳固？"
                         speed={100}
                         startDelay={3800}
-                        className="block text-lg text-amber-800/80 "
+                        className="block text-lg text-amber-800/80"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-8 space-y-4">
+                  <div className="space-y-4 pt-8">
                     <InkButton
                       onClick={handleContinue}
                       variant="primary"
-                      className="text-lg px-8 py-3"
+                      className="px-8 py-3 text-lg"
                     >
                       继续修行
                     </InkButton>
@@ -207,11 +207,11 @@ export function WelcomeFlow() {
                 // 无角色 - 引导创建
                 <>
                   <div className="space-y-6">
-                    <h2 className="text-xl md:text-2xl  text-amber-900/70 tracking-widest">
+                    <h2 className="text-xl tracking-widest text-amber-900/70 md:text-2xl">
                       初入仙途
                     </h2>
 
-                    <div className="space-y-4 text-lg text-amber-900  leading-loose">
+                    <div className="space-y-4 text-lg leading-loose text-amber-900">
                       <TypewriterText
                         text="道友尚未凝聚道身"
                         speed={80}
@@ -237,7 +237,7 @@ export function WelcomeFlow() {
                     <InkButton
                       onClick={handleCreate}
                       variant="primary"
-                      className="text-lg px-8 py-3"
+                      className="px-8 py-3 text-lg"
                     >
                       开启修行
                     </InkButton>
@@ -275,7 +275,7 @@ export function WelcomeFlow() {
       {/* 全局跳过按钮 (始终显示顶层) */}
       <button
         onClick={handleSkip}
-        className="fixed top-4 right-4 text-amber-800/40 hover:text-amber-800/70 text-sm transition-colors z-50"
+        className="fixed top-4 right-4 z-50 text-sm text-amber-800/40 transition-colors hover:text-amber-800/70"
       >
         跳过开场 →
       </button>

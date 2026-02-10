@@ -9,12 +9,14 @@ export default async function EditTemplatePage({
 
   return (
     <div className="space-y-5">
-      <header className="rounded-xl border border-ink/15 bg-paper/90 p-6">
-        <p className="text-xs tracking-[0.2em] text-ink-secondary">EDIT TEMPLATE</p>
-        <h2 className="mt-2 font-heading text-4xl text-ink">编辑模板</h2>
+      <header className="border-ink/15 bg-paper/90 rounded-xl border p-6">
+        <p className="text-ink-secondary text-xs tracking-[0.2em]">
+          EDIT TEMPLATE
+        </p>
+        <h2 className="font-heading text-ink mt-2 text-4xl">编辑模板</h2>
       </header>
 
-      <section className="rounded-xl border border-ink/15 bg-paper/90 p-6">
+      <section className="border-ink/15 bg-paper/90 rounded-xl border p-6">
         <EditTemplateClient id={id} />
       </section>
     </div>

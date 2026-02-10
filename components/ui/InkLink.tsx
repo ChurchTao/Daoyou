@@ -21,7 +21,7 @@ export function InkLink({
     <Link
       href={href}
       className={cn(
-        'text-ink no-underline px-2 py-2 transition-colors inline-block',
+        'text-ink inline-block px-2 py-2 no-underline transition-colors',
         'hover:text-crimson',
         active && 'text-crimson font-semibold',
         className,

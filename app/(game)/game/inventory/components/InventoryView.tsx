@@ -44,7 +44,7 @@ export function InventoryView() {
   // 加载状态
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">储物袋开启中……</p>
       </div>
     );

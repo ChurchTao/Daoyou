@@ -1,9 +1,7 @@
-import { withActiveCultivator } from '@/lib/api/withAuth';
-import { eq } from 'drizzle-orm';
-import { cultivators } from '@/lib/drizzle/schema';
 import type { BuffInstanceState } from '@/engine/buff/types';
-import { redis } from '@/lib/redis';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
+import { withActiveCultivator } from '@/lib/api/withAuth';
+import { redis } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

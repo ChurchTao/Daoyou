@@ -93,7 +93,7 @@ function ShenShiRenZhuContent() {
 
   if (isLoading || processing) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">
           {processing ? '验证天机印中……' : '神识感应中……'}
         </p>
@@ -120,7 +120,7 @@ function ShenShiRenZhuContent() {
 
             <div className="space-y-4">
               <div>
-                <label className="block mb-2 text-sm opacity-70">
+                <label className="mb-2 block text-sm opacity-70">
                   飞鸽传书地址（邮箱）
                 </label>
                 <InkInput
@@ -182,7 +182,7 @@ export default function ShenShiRenZhuPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-paper min-h-screen flex items-center justify-center">
+        <div className="bg-paper flex min-h-screen items-center justify-center">
           <p className="loading-tip">神识感应中……</p>
         </div>
       }

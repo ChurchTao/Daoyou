@@ -36,7 +36,7 @@ export function TechniquesView() {
   // 加载状态
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">功法卷轴徐徐展开……</p>
       </div>
     );
@@ -76,7 +76,7 @@ export function TechniquesView() {
                   详情
                 </InkButton>
                 <InkButton
-                  className="text-sm px-2"
+                  className="px-2 text-sm"
                   onClick={() => openForgetConfirm(technique)}
                 >
                   遗忘

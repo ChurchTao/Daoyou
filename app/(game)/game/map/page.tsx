@@ -40,26 +40,26 @@ export default function MapPage() {
   };
 
   return (
-    <div className="fixed inset-0 bg-paper overflow-hidden flex flex-col">
+    <div className="bg-paper fixed inset-0 flex flex-col overflow-hidden">
       {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start pointer-events-none">
+      <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 flex items-start justify-between p-4">
         <div className="pointer-events-auto flex gap-2">
           <InkButton
             onClick={() => router.back()}
             variant="outline"
-            className="px-2 text-sm shadow bg-background!"
+            className="bg-background! px-2 text-sm shadow"
           >
             关闭
           </InkButton>
         </div>
-        <div className="pointer-events-auto px-4 py-2 rounded border border-ink/10 shadow bg-background">
-          <div className="font-bold text-ink">修仙界</div>
-          <div className="text-xs text-ink-secondary">人界·全图</div>
+        <div className="border-ink/10 bg-background pointer-events-auto rounded border px-4 py-2 shadow">
+          <div className="text-ink font-bold">修仙界</div>
+          <div className="text-ink-secondary text-xs">人界·全图</div>
         </div>
       </div>
 
       {/* Map Canvas */}
-      <div className="flex-1 w-full h-full relative cursor-grab active:cursor-grabbing">
+      <div className="relative h-full w-full flex-1 cursor-grab active:cursor-grabbing">
         <TransformWrapper
           initialScale={1}
           minScale={0.5}
@@ -81,24 +81,24 @@ export default function MapPage() {
               }}
             >
               {/* Grid Lines for style */}
-              <div className="absolute inset-0 opacity-80 bgi-map shadow ring-10 ring-ink/50" />
+              <div className="bgi-map ring-ink/50 absolute inset-0 opacity-80 shadow ring-10" />
 
               {/* Region Labels (Background) */}
-              <div className="absolute top-[65%] right-[35%] text-6xl text-ink/40 pointer-events-none select-none tracking-widest rotate-6">
+              <div className="text-ink/40 pointer-events-none absolute top-[65%] right-[35%] rotate-6 text-6xl tracking-widest select-none">
                 乱星海
               </div>
-              <div className="absolute top-[48%] left-[33%] text-6xl text-ink/40 pointer-events-none select-none tracking-widest rotate-6">
+              <div className="text-ink/40 pointer-events-none absolute top-[48%] left-[33%] rotate-6 text-6xl tracking-widest select-none">
                 无边海
               </div>
-              <div className="absolute bottom-[4%] right-[15%] text-6xl text-ink/40 pointer-events-none select-none tracking-widest">
+              <div className="text-ink/40 pointer-events-none absolute right-[15%] bottom-[4%] text-6xl tracking-widest select-none">
                 天南
               </div>
-              <div className="absolute top-[30%] left-[44%] text-6xl text-ink/40 pointer-events-none select-none tracking-widest writing-vertical">
+              <div className="text-ink/40 writing-vertical pointer-events-none absolute top-[30%] left-[44%] text-6xl tracking-widest select-none">
                 大晋
               </div>
 
               {/* Connections (Edges) */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              <svg className="pointer-events-none absolute inset-0 h-full w-full">
                 {allNodes.flatMap((node) =>
                   node.connections.map((targetId) => {
                     const target = getMapNode(targetId) as MapNodeType;

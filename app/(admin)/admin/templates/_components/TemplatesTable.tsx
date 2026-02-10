@@ -71,7 +71,7 @@ export function TemplatesTable() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <select
-          className="border border-ink/20 bg-transparent px-3 py-2"
+          className="border-ink/20 border bg-transparent px-3 py-2"
           value={channel}
           onChange={(e) =>
             setChannel(e.target.value as 'all' | 'email' | 'game_mail')
@@ -82,9 +82,11 @@ export function TemplatesTable() {
           <option value="game_mail">game_mail</option>
         </select>
         <select
-          className="border border-ink/20 bg-transparent px-3 py-2"
+          className="border-ink/20 border bg-transparent px-3 py-2"
           value={status}
-          onChange={(e) => setStatus(e.target.value as 'all' | 'active' | 'disabled')}
+          onChange={(e) =>
+            setStatus(e.target.value as 'all' | 'active' | 'disabled')
+          }
         >
           <option value="all">全部状态</option>
           <option value="active">active</option>
@@ -95,9 +97,9 @@ export function TemplatesTable() {
         </InkButton>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-ink/15 bg-paper/80">
+      <div className="border-ink/15 bg-paper/80 overflow-x-auto rounded-xl border">
         <table className="w-full min-w-[720px] text-sm">
-          <thead className="border-b border-ink/10 text-left text-ink-secondary">
+          <thead className="border-ink/10 text-ink-secondary border-b text-left">
             <tr>
               <th className="px-3 py-2">名称</th>
               <th className="px-3 py-2">频道</th>
@@ -110,20 +112,20 @@ export function TemplatesTable() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-3 py-4 text-ink-secondary" colSpan={6}>
+                <td className="text-ink-secondary px-3 py-4" colSpan={6}>
                   加载中...
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td className="px-3 py-4 text-ink-secondary" colSpan={6}>
+                <td className="text-ink-secondary px-3 py-4" colSpan={6}>
                   暂无模板
                 </td>
               </tr>
             ) : (
               items.map((item) => (
-                <tr key={item.id} className="border-b border-ink/8">
-                  <td className="px-3 py-2 text-ink">{item.name}</td>
+                <tr key={item.id} className="border-ink/8 border-b">
+                  <td className="text-ink px-3 py-2">{item.name}</td>
                   <td className="px-3 py-2">{item.channel}</td>
                   <td className="px-3 py-2">{item.status}</td>
                   <td className="max-w-[260px] truncate px-3 py-2">
@@ -136,13 +138,13 @@ export function TemplatesTable() {
                     <div className="flex gap-2">
                       <Link
                         href={`/admin/templates/${item.id}`}
-                        className="text-ink no-underline hover:text-crimson"
+                        className="text-ink hover:text-crimson no-underline"
                       >
                         [编辑]
                       </Link>
                       <button
                         onClick={() => toggleStatus(item.id)}
-                        className="cursor-pointer text-ink-secondary hover:text-crimson"
+                        className="text-ink-secondary hover:text-crimson cursor-pointer"
                         type="button"
                       >
                         [{item.status === 'active' ? '停用' : '启用'}]

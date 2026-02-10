@@ -37,7 +37,7 @@ export function SkillsView() {
   // 加载状态
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">神通卷轴徐徐展开……</p>
       </div>
     );
@@ -79,7 +79,7 @@ export function SkillsView() {
                   详情
                 </InkButton>
                 <InkButton
-                  className="text-sm px-2"
+                  className="px-2 text-sm"
                   onClick={() => openForgetConfirm(skill)}
                 >
                   遗忘

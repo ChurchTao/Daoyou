@@ -166,9 +166,9 @@ function ChallengeBattlePageContent() {
 
   if (error) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="mb-4 text-crimson">{error}</p>
+          <p className="text-crimson mb-4">{error}</p>
           <InkButton onClick={() => router.push('/rankings')}>
             返回排行榜
           </InkButton>
@@ -179,12 +179,12 @@ function ChallengeBattlePageContent() {
 
   if (directEntry) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="mb-4 font-ma-shan-zheng text-2xl text-ink">
+          <h1 className="font-ma-shan-zheng text-ink mb-4 text-2xl">
             成功上榜！
           </h1>
-          <p className="mb-6 text-ink">
+          <p className="text-ink mb-6">
             你已占据万界金榜第 {directEntry.rank} 名
           </p>
           <InkButton onClick={() => router.push('/rankings')} variant="primary">
@@ -244,7 +244,7 @@ export default function ChallengeBattlePage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-paper min-h-screen flex items-center justify-center">
+        <div className="bg-paper flex min-h-screen items-center justify-center">
           <div className="text-center">
             <p className="text-ink">加载中...</p>
           </div>

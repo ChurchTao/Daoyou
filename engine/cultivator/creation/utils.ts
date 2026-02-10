@@ -32,7 +32,11 @@ export function generateSpiritualRoots(
 
   roots.forEach((root) => {
     root.grade = resolveSpiritualRootGrade(rootCount, root.element);
-    root.strength = calculateSpiritualRootStrength(score, rootCount, root.grade);
+    root.strength = calculateSpiritualRootStrength(
+      score,
+      rootCount,
+      root.grade,
+    );
   });
 
   return roots;

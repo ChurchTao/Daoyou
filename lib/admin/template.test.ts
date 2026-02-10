@@ -11,7 +11,9 @@ describe('admin template utils', () => {
   });
 
   it('renders template with variables', () => {
-    const text = renderTemplate('版本 {{version}} 已上线', { version: 'v1.2.3' });
+    const text = renderTemplate('版本 {{version}} 已上线', {
+      version: 'v1.2.3',
+    });
     expect(text).toBe('版本 v1.2.3 已上线');
   });
 

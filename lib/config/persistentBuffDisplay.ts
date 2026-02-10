@@ -94,7 +94,9 @@ const PERSISTENT_BUFF_DISPLAY_CONFIG: Record<string, BuffDisplayConfig> = {
  * @param buffId - The buff template ID
  * @returns Display configuration, or undefined for default behavior
  */
-export function getBuffDisplayConfig(buffId: string): BuffDisplayConfig | undefined {
+export function getBuffDisplayConfig(
+  buffId: string,
+): BuffDisplayConfig | undefined {
   return PERSISTENT_BUFF_DISPLAY_CONFIG[buffId];
 }
 

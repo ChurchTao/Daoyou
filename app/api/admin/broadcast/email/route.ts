@@ -1,6 +1,6 @@
 import { resolveEmailRecipients } from '@/lib/admin/recipient-resolver';
-import { normalizeTemplatePayload, renderTemplate } from '@/lib/admin/template';
 import { sendViaSmtp } from '@/lib/admin/smtp';
+import { normalizeTemplatePayload, renderTemplate } from '@/lib/admin/template';
 import { withAdminAuth } from '@/lib/api/adminAuth';
 import { db } from '@/lib/drizzle/db';
 import { adminMessageTemplates } from '@/lib/drizzle/schema';
@@ -14,7 +14,9 @@ const EmailBroadcastSchema = z
     templateId: z.string().uuid().optional(),
     subject: z.string().trim().min(1).max(200).optional(),
     content: z.string().trim().min(1).max(10000).optional(),
-    payload: z.record(z.string(), z.union([z.string(), z.number()])).default({}),
+    payload: z
+      .record(z.string(), z.union([z.string(), z.number()]))
+      .default({}),
     filters: z
       .object({
         registeredFrom: z.string().optional(),
@@ -81,12 +83,17 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
       );
     }
 
-    const mergedPayload = normalizeTemplatePayload(template.defaultPayload, payload);
+    const mergedPayload = normalizeTemplatePayload(
+      template.defaultPayload,
+      payload,
+    );
     finalSubject = renderTemplate(template.subjectTemplate, mergedPayload);
     finalContent = renderTemplate(template.contentTemplate, mergedPayload);
   }
 
-  const recipients = resolvedRecipients.recipients.map((item) => item.recipientKey);
+  const recipients = resolvedRecipients.recipients.map(
+    (item) => item.recipientKey,
+  );
   const batchSize = Number(process.env.ADMIN_BROADCAST_BATCH_SIZE ?? 20);
 
   let sent = 0;
@@ -105,7 +112,9 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
       } else {
         failed += 1;
         if (errors.length < 20) {
-          errors.push(`${batch[index]}: ${result.reason?.message ?? 'unknown'}`);
+          errors.push(
+            `${batch[index]}: ${result.reason?.message ?? 'unknown'}`,
+          );
         }
       }
     });

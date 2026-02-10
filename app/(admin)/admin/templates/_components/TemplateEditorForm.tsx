@@ -83,7 +83,9 @@ export function TemplateEditorForm({
     setLoading(true);
     try {
       const url =
-        mode === 'create' ? '/api/admin/templates' : `/api/admin/templates/${templateId}`;
+        mode === 'create'
+          ? '/api/admin/templates'
+          : `/api/admin/templates/${templateId}`;
       const method = mode === 'create' ? 'POST' : 'PATCH';
       const response = await fetch(url, {
         method,
@@ -124,7 +126,7 @@ export function TemplateEditorForm({
       <label className="flex flex-col gap-1">
         <span className="font-semibold tracking-wide">模板频道</span>
         <select
-          className="border border-ink/20 bg-transparent px-3 py-2"
+          className="border-ink/20 border bg-transparent px-3 py-2"
           value={channel}
           onChange={(e) => setChannel(e.target.value as TemplateChannel)}
           disabled={loading || mode === 'edit'}
@@ -146,7 +148,9 @@ export function TemplateEditorForm({
         label={isEmail ? '主题模板（支持 {{var}}）' : '标题模板（可选）'}
         value={subjectTemplate}
         onChange={(value) => setSubjectTemplate(value)}
-        placeholder={isEmail ? '例如：{{version}} 版本更新通知' : '例如：{{eventName}}'}
+        placeholder={
+          isEmail ? '例如：{{version}} 版本更新通知' : '例如：{{eventName}}'
+        }
         disabled={loading}
       />
 
@@ -172,7 +176,7 @@ export function TemplateEditorForm({
       <label className="flex flex-col gap-1">
         <span className="font-semibold tracking-wide">状态</span>
         <select
-          className="border border-ink/20 bg-transparent px-3 py-2"
+          className="border-ink/20 border bg-transparent px-3 py-2"
           value={status}
           onChange={(e) => setStatus(e.target.value as TemplateStatus)}
           disabled={loading}

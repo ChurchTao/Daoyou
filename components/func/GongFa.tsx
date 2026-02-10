@@ -1,10 +1,10 @@
 'use client';
 
 import { InkSection } from '@/components/layout';
+import { EffectCard } from '@/components/ui/EffectCard';
 import { InkBadge } from '@/components/ui/InkBadge';
 import { InkList } from '@/components/ui/InkList';
 import { InkNotice } from '@/components/ui/InkNotice';
-import { EffectCard } from '@/components/ui/EffectCard';
 import type { CultivationTechnique } from '@/types/cultivator';
 
 interface GongFaProps {
@@ -87,14 +87,14 @@ export function GongFaMini({
             <div key={cult.name + index} className="flex items-center gap-2">
               <span>📜 {cult.name}</span>
               {cult.grade && <InkBadge tier={cult.grade} />}
-              <span className="text-xs text-ink-secondary">
+              <span className="text-ink-secondary text-xs">
                 需求：{cult.required_realm}
               </span>
             </div>
           ))}
         </div>
       ) : (
-        <span className="text-xs text-ink-secondary">暂无功法</span>
+        <span className="text-ink-secondary text-xs">暂无功法</span>
       )}
     </div>
   );

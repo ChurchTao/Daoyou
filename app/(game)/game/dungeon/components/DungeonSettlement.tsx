@@ -28,17 +28,17 @@ export function DungeonSettlement({
 
   return (
     <InkPageShell title="探索结束" backHref="/game">
-      <InkCard className="p-4 space-y-4">
+      <InkCard className="space-y-4 p-4">
         <p className="text-ink/80 leading-relaxed">
           {settlement?.ending_narrative}
         </p>
 
-        <div className="bg-paper-dark p-4 rounded text-center">
-          <div className="text-base text-ink-secondary">评价</div>
-          <div className="text-4xl text-crimson my-2">
+        <div className="bg-paper-dark rounded p-4 text-center">
+          <div className="text-ink-secondary text-base">评价</div>
+          <div className="text-crimson my-2 text-4xl">
             {settlement?.settlement?.reward_tier}
           </div>
-          <div className="text-base text-ink-secondary">获得机缘</div>
+          <div className="text-ink-secondary text-base">获得机缘</div>
         </div>
 
         {settlement?.settlement &&
@@ -59,7 +59,7 @@ export function DungeonSettlement({
         <InkButton
           onClick={handleConfirm}
           variant="primary"
-          className="w-full text-center block mt-4"
+          className="mt-4 block w-full text-center"
         >
           收入囊中
         </InkButton>

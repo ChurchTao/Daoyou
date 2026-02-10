@@ -117,7 +117,7 @@ function LoginPageContent() {
 
   if (isLoading || processing) {
     return (
-      <div className="bg-paper min-h-screen flex items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="loading-tip">
           {processing ? '召回真身中……' : '神识感应中……'}
         </p>
@@ -143,7 +143,7 @@ function LoginPageContent() {
 
             <div className="space-y-4">
               <div>
-                <label className="block mb-2 text-sm opacity-70">
+                <label className="mb-2 block text-sm opacity-70">
                   飞鸽传书地址（邮箱）
                 </label>
                 <InkInput
@@ -174,7 +174,7 @@ function LoginPageContent() {
 
             <div className="space-y-4">
               <div>
-                <label className="block mb-2 text-sm opacity-70">
+                <label className="mb-2 block text-sm opacity-70">
                   召唤符（验证码）
                 </label>
                 <InkInput
@@ -194,17 +194,17 @@ function LoginPageContent() {
                 {loading ? '验证中…' : '口令认证'}
               </InkButton>
 
-              <div className="flex justify-between items-center pt-2">
+              <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={() => setStep('email')}
-                  className="text-sm opacity-60 hover:opacity-100 transition-opacity"
+                  className="text-sm opacity-60 transition-opacity hover:opacity-100"
                   disabled={loading}
                 >
                   ← 修改地址
                 </button>
                 <button
                   onClick={handleSendOtp}
-                  className="text-sm opacity-60 hover:opacity-100 transition-opacity"
+                  className="text-sm opacity-60 transition-opacity hover:opacity-100"
                   disabled={loading}
                 >
                   重发口令
@@ -229,7 +229,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-paper min-h-screen flex items-center justify-center">
+        <div className="bg-paper flex min-h-screen items-center justify-center">
           <p className="loading-tip">神识感应中……</p>
         </div>
       }

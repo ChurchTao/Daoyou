@@ -51,9 +51,7 @@ describe('AlchemyStrategy', () => {
       userPrompt: '炼制一颗丹药',
     };
 
-    await expect(strategy.validate(context)).rejects.toThrow(
-      '不宜投入丹炉',
-    );
+    await expect(strategy.validate(context)).rejects.toThrow('不宜投入丹炉');
   });
 
   test('should reject ore type materials', async () => {

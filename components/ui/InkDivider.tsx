@@ -22,7 +22,7 @@ export function InkDivider({
     return (
       <div
         className={cn(
-          'text-center my-4 text-ink/60 text-[1.2rem] tracking-widest',
+          'text-ink/60 my-4 text-center text-[1.2rem] tracking-widest',
           className,
         )}
       >
@@ -32,7 +32,7 @@ export function InkDivider({
   }
 
   return (
-    <div className={cn('text-center my-4 text-ink/60 font-mono', className)}>
+    <div className={cn('text-ink/60 my-4 text-center font-mono', className)}>
       ──────────────────────────────
     </div>
   );

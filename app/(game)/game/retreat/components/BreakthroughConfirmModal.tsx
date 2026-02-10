@@ -23,7 +23,7 @@ export function BreakthroughConfirmModal({
       onClose={onClose}
       title="【突破确认】"
       footer={
-        <div className="flex gap-3 mt-4">
+        <div className="mt-4 flex gap-3">
           <InkButton onClick={onClose} className="flex-1">
             再做准备
           </InkButton>
@@ -38,20 +38,20 @@ export function BreakthroughConfirmModal({
           道友确定要尝试突破吗？此举关乎道途，不可不慎重。
         </p>
 
-        <div className="p-3 bg-amber-50/50 border border-amber-200 rounded-lg space-y-2">
-          <p className="text-amber-900 font-medium">【突破风险】</p>
-          <p className="text-amber-800 text-xs">
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+          <p className="font-medium text-amber-900">【突破风险】</p>
+          <p className="text-xs text-amber-800">
             • 若冲关失败，修为将有所损耗，真元涣散
           </p>
-          <p className="text-amber-800 text-xs">
+          <p className="text-xs text-amber-800">
             • 道行感悟将有所降低，心生迷惘
           </p>
-          <p className="text-amber-800 text-xs">
+          <p className="text-xs text-amber-800">
             • 连续失败三次将生心魔，影响后续突破
           </p>
         </div>
 
-        <p className="text-ink-secondary text-xs text-center opacity-80">
+        <p className="text-ink-secondary text-center text-xs opacity-80">
           修行之路，本就充满坎坷。机缘造化，在此一举。
         </p>
       </div>

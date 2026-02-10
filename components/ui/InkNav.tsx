@@ -9,7 +9,7 @@ export interface InkNavProps {
 
 export function InkNav({ items, currentPath }: InkNavProps) {
   return (
-    <nav className="flex justify-around items-center px-4 py-3 max-w-xl mx-auto">
+    <nav className="mx-auto flex max-w-xl items-center justify-around px-4 py-3">
       {items.map((item) => {
         const isActive = currentPath === item.href;
         return (

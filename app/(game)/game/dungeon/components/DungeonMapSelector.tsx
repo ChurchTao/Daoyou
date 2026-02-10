@@ -32,7 +32,7 @@ export function DungeonMapSelector({
   return (
     <div className="space-y-4">
       <MapNodeCard node={selectedNode} />
-      <div className="flex gap-4 justify-center">
+      <div className="flex justify-center gap-4">
         <InkButton href="/game/map" disabled={isStarting}>
           重新选择
         </InkButton>

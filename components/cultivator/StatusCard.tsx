@@ -34,14 +34,14 @@ export function StatusCard({
   if (displayInfos.length === 0) {
     return compact ? null : (
       <InkCard className="p-4">
-        <p className="text-ink-secondary text-sm text-center">{emptyMessage}</p>
+        <p className="text-ink-secondary text-center text-sm">{emptyMessage}</p>
       </InkCard>
     );
   }
 
   return (
     <InkCard className={compact ? 'p-3' : 'p-4'}>
-      {!compact && <h3 className="font-bold mb-3">{title}</h3>}
+      {!compact && <h3 className="mb-3 font-bold">{title}</h3>}
       <div className="space-y-2">
         {displayInfos.map((info) => (
           <div key={info.key} className="flex items-start gap-2 text-sm">

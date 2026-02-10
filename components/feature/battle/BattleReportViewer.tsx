@@ -32,7 +32,7 @@ export function BattleReportViewer({
   }
 
   return (
-    <div className="battle-report mt-2 mb-8 animate-fade-in">
+    <div className="battle-report animate-fade-in mt-2 mb-8">
       {/* 播报内容 */}
       <div className="text-ink leading-relaxed">
         {displayReport
@@ -46,7 +46,7 @@ export function BattleReportViewer({
                   displayReport.split('\n').filter((l) => l.trim() !== '')
                     .length -
                     1 && (
-                  <span className="inline-block ml-1 animate-pulse text-crimson">
+                  <span className="text-crimson ml-1 inline-block animate-pulse">
                     ▊
                   </span>
                 )}
@@ -60,7 +60,7 @@ export function BattleReportViewer({
           {/* 普通战斗的胜利标记 */}
           {isWin && !rankingUpdate && (
             <div className="mt-4 text-center">
-              <p className="text-lg font-semibold text-crimson">
+              <p className="text-crimson text-lg font-semibold">
                 最终，{player?.name} 获胜！
               </p>
             </div>
@@ -71,28 +71,28 @@ export function BattleReportViewer({
             <div className="mt-4 text-center">
               {isWin ? (
                 <>
-                  <p className="mb-2 text-lg font-semibold text-crimson">
+                  <p className="text-crimson mb-2 text-lg font-semibold">
                     最终，{player?.name} 获胜！
                   </p>
                   {rankingUpdate.challengerRank !== null && (
-                    <p className="text-sm text-ink/80">
+                    <p className="text-ink/80 text-sm">
                       你的排名已更新为第 {rankingUpdate.challengerRank} 名
                     </p>
                   )}
                   {rankingUpdate.remainingChallenges !== undefined && (
-                    <p className="mt-1 text-xs text-ink/60">
+                    <p className="text-ink/60 mt-1 text-xs">
                       今日剩余挑战次数：{rankingUpdate.remainingChallenges}/10
                     </p>
                   )}
                 </>
               ) : (
                 <>
-                  <p className="mb-2 text-lg font-semibold text-ink/80">
+                  <p className="text-ink/80 mb-2 text-lg font-semibold">
                     挑战失败
                   </p>
-                  <p className="text-sm text-ink/60">排名未变化，继续努力！</p>
+                  <p className="text-ink/60 text-sm">排名未变化，继续努力！</p>
                   {rankingUpdate.remainingChallenges !== undefined && (
-                    <p className="mt-1 text-xs text-ink/60">
+                    <p className="text-ink/60 mt-1 text-xs">
                       今日剩余挑战次数：{rankingUpdate.remainingChallenges}/10
                     </p>
                   )}

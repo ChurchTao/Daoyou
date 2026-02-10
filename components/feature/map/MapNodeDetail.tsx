@@ -15,20 +15,20 @@ export interface MapNodeDetailProps {
  */
 export function MapNodeDetail({ node, onClose, onSelect }: MapNodeDetailProps) {
   return (
-    <div className="absolute bottom-16 left-4 right-4 z-40 md:w-96 md:left-auto md:right-8 bg-background">
-      <div className="shadow-xl animate-in slide-in-from-bottom duration-300 border-ink/20 p-3">
-        <div className="flex justify-between items-start mb-2">
+    <div className="bg-background absolute right-4 bottom-16 left-4 z-40 md:right-8 md:left-auto md:w-96">
+      <div className="animate-in slide-in-from-bottom border-ink/20 p-3 shadow-xl duration-300">
+        <div className="mb-2 flex items-start justify-between">
           <h2 className="text-xl font-bold">{node.name}</h2>
           <InkButton variant="ghost" className="p-0!" onClick={onClose}>
             ×
           </InkButton>
         </div>
 
-        <p className="text-sm text-ink-secondary leading-relaxed mb-4">
+        <p className="text-ink-secondary mb-4 text-sm leading-relaxed">
           {node.description}
         </p>
 
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
           {node.tags.map((tag) => (
             <InkTag
               key={tag}

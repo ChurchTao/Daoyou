@@ -13,7 +13,7 @@ export default function HomePage() {
     <WelcomeRedirect>
       <Suspense
         fallback={
-          <div className="bg-paper min-h-screen flex items-center justify-center">
+          <div className="bg-paper flex min-h-screen items-center justify-center">
             <p className="loading-tip">正在推演天机……</p>
           </div>
         }

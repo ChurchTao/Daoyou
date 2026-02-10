@@ -23,8 +23,8 @@ export default function WelcomePage() {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-amber-50">
-        <p className="text-amber-800/60 text-lg animate-pulse">
+      <div className="flex min-h-screen items-center justify-center bg-amber-50">
+        <p className="animate-pulse text-lg text-amber-800/60">
           正在推演天机……
         </p>
       </div>

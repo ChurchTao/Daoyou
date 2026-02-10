@@ -30,17 +30,17 @@ export function BookPage({
       )}
     >
       {/* 页面内容 */}
-      <div className="relative z-10 max-w-2xl mx-auto">{children}</div>
+      <div className="relative z-10 mx-auto max-w-2xl">{children}</div>
 
       {/* 页码 */}
       {showPageNumber && pageNumber !== undefined && (
-        <div className="absolute bottom-8 right-8 text-amber-900/40 text-sm">
+        <div className="absolute right-8 bottom-8 text-sm text-amber-900/40">
           第{pageNumber}页
         </div>
       )}
 
       {/* 纸张边缘阴影 */}
-      <div className="absolute inset-0 pointer-events-none shadow-inner border border-amber-900/5" />
+      <div className="pointer-events-none absolute inset-0 border border-amber-900/5 shadow-inner" />
     </div>
   );
 }

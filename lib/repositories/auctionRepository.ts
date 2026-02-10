@@ -162,7 +162,9 @@ export async function updateStatus(
 /**
  * 查询过期但状态仍为 active 的拍卖记录
  */
-export async function findExpiredListings(limit = 1000): Promise<AuctionListing[]> {
+export async function findExpiredListings(
+  limit = 1000,
+): Promise<AuctionListing[]> {
   return db
     .select()
     .from(schema.auctionListings)

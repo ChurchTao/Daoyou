@@ -51,9 +51,7 @@ describe('RefiningStrategy', () => {
       userPrompt: '炼制一件法宝',
     };
 
-    await expect(strategy.validate(context)).rejects.toThrow(
-      '不宜投入炼器炉',
-    );
+    await expect(strategy.validate(context)).rejects.toThrow('不宜投入炼器炉');
   });
 
   test('should reject herb type materials', async () => {
@@ -125,45 +123,45 @@ describe('RefiningStrategy', () => {
           willpower: 0,
         },
         spiritual_roots: [],
-      pre_heaven_fates: [],
-      cultivations: [],
-      skills: [],
-      inventory: {
-        artifacts: [],
-        consumables: [],
-        materials: [],
+        pre_heaven_fates: [],
+        cultivations: [],
+        skills: [],
+        inventory: {
+          artifacts: [],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: null,
+          armor: null,
+          accessory: null,
+        },
+        max_skills: 0,
+        spirit_stones: 0,
       },
-      equipped: {
-        weapon: null,
-        armor: null,
-        accessory: null,
-      },
-      max_skills: 0,
-      spirit_stones: 0,
-    },
-    materials: [
-      {
-        name: '赤阳玉髓',
-        type: 'tcdb',
-        rank: '天品',
-        element: '火',
-        description:
-          '藏于火山深处熔岩缝隙，呈赤红琉璃状，内蕴精纯火灵力，可助元婴修士突破瓶颈，炼制火属性法宝时加入能提升其威力。',
-        price: 80000,
-        quantity: 1,
-      },
-      {
-        name: '赤铁矿',
-        type: 'ore',
-        rank: '凡品',
-        element: '土',
-        description: '赤铁矿，普通炼器材料',
-        price: 500000,
-        quantity: 1,
-      },
-    ],
-    userPrompt: `炼制一件护甲`,
-  };
+      materials: [
+        {
+          name: '赤阳玉髓',
+          type: 'tcdb',
+          rank: '天品',
+          element: '火',
+          description:
+            '藏于火山深处熔岩缝隙，呈赤红琉璃状，内蕴精纯火灵力，可助元婴修士突破瓶颈，炼制火属性法宝时加入能提升其威力。',
+          price: 80000,
+          quantity: 1,
+        },
+        {
+          name: '赤铁矿',
+          type: 'ore',
+          rank: '凡品',
+          element: '土',
+          description: '赤铁矿，普通炼器材料',
+          price: 500000,
+          quantity: 1,
+        },
+      ],
+      userPrompt: `炼制一件护甲`,
+    };
     await strategy.validate(context);
     const result = strategy.constructPrompt(context);
     console.log(JSON.stringify(result));

@@ -178,7 +178,7 @@ export default function DungeonHistoryPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">{record.theme}</h3>
-                    <p className="text-xs text-ink-secondary">
+                    <p className="text-ink-secondary text-xs">
                       {formatDate(record.createdAt)}
                     </p>
                   </div>
@@ -191,7 +191,7 @@ export default function DungeonHistoryPage() {
               </div>
 
               {expandedId === record.id && (
-                <div className="mt-4 pt-4 border-t border-ink/10 space-y-4">
+                <div className="border-ink/10 mt-4 space-y-4 border-t pt-4">
                   {record.result.ending_narrative && (
                     <p className="text-ink/80 text-sm leading-relaxed">
                       {record.result.ending_narrative}
@@ -200,7 +200,7 @@ export default function DungeonHistoryPage() {
 
                   {record.realGains && record.realGains.length > 0 && (
                     <div>
-                      <p className="text-xs text-ink-secondary mb-2">
+                      <p className="text-ink-secondary mb-2 text-xs">
                         获得物品:
                       </p>
                       <InkList dense>
@@ -226,7 +226,7 @@ export default function DungeonHistoryPage() {
                         if (entries.length === 0) {
                           // 降级处理：解析失败时显示原始日志
                           return (
-                            <pre className="p-2 bg-paper-dark rounded whitespace-pre-wrap text-ink/70 text-xs">
+                            <pre className="bg-paper-dark text-ink/70 rounded p-2 text-xs whitespace-pre-wrap">
                               {record.log || '暂无详细记录'}
                             </pre>
                           );
@@ -236,16 +236,16 @@ export default function DungeonHistoryPage() {
                         return entries.map((entry) => (
                           <div
                             key={entry.round}
-                            className="border-l-2 border-ink/10 pl-3"
+                            className="border-ink/10 border-l-2 pl-3"
                           >
-                            <div className="font-bold text-ink/90 mb-1">
+                            <div className="text-ink/90 mb-1 font-bold">
                               第 {entry.round} 回
                             </div>
-                            <p className="text-sm text-ink/70 leading-relaxed mb-2">
+                            <p className="text-ink/70 mb-2 text-sm leading-relaxed">
                               {entry.scene}
                             </p>
                             {entry.choice && (
-                              <div className="text-sm text-crimson">
+                              <div className="text-crimson text-sm">
                                 ➜ {entry.choice}
                               </div>
                             )}
@@ -262,7 +262,7 @@ export default function DungeonHistoryPage() {
 
         {/* 分页控制 */}
         {pagination.totalPages > 1 && (
-          <div className="flex justify-center gap-4 mt-6">
+          <div className="mt-6 flex justify-center gap-4">
             <InkButton
               variant="ghost"
               disabled={pagination.page <= 1 || loading}

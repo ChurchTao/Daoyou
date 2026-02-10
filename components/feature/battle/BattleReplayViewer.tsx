@@ -25,10 +25,10 @@ export function BattleReplayViewer({
 
   if (!timeline.length) {
     return (
-      <div className="text-sm text-ink-secondary">
+      <div className="text-ink-secondary text-sm">
         暂无详细数值时间线，仅可查看战报文本。
         {battleReport && (
-          <div className="mt-4 whitespace-pre-line text-ink">
+          <div className="text-ink mt-4 whitespace-pre-line">
             {battleReport}
           </div>
         )}
@@ -51,7 +51,7 @@ export function BattleReplayViewer({
   return (
     <div>
       {/* 回合信息与控制 */}
-      <div className="mb-3 flex items-center justify-between text-sm text-ink/80">
+      <div className="text-ink/80 mb-3 flex items-center justify-between text-sm">
         <span>
           {snap.turn === 0
             ? '[战前状态]'
@@ -78,14 +78,14 @@ export function BattleReplayViewer({
       </div>
 
       {/* 数值状态展示 */}
-      <div className="mb-6 border-t border-dashed border-ink/20 pt-3 text-sm">
+      <div className="border-ink/20 mb-6 border-t border-dashed pt-3 text-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 leading-relaxed">
-            <div className="mb-1 font-semibold text-ink">{playerName}</div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink mb-1 font-semibold">{playerName}</div>
+            <div className="text-ink/80 mb-0.5">
               气血：{snap.player.hp}/{maxPlayerHp}
             </div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink/80 mb-0.5">
               灵力：{snap.player.mp}/{maxPlayerMp}
             </div>
             <div className="text-ink/70">
@@ -94,11 +94,11 @@ export function BattleReplayViewer({
           </div>
 
           <div className="flex-1 text-right leading-relaxed">
-            <div className="mb-1 font-semibold text-ink">{opponentName}</div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink mb-1 font-semibold">{opponentName}</div>
+            <div className="text-ink/80 mb-0.5">
               气血：{snap.opponent.hp}/{maxOpponentHp}
             </div>
-            <div className="mb-0.5 text-ink/80">
+            <div className="text-ink/80 mb-0.5">
               灵力：{snap.opponent.mp}/{maxOpponentMp}
             </div>
             <div className="text-ink/70">
@@ -115,7 +115,7 @@ export function BattleReplayViewer({
             .split('\n')
             .filter((line) => line.trim() !== '')
             .map((line, idx) => (
-              <p key={idx} className="mb-3 whitespace-pre-line text-ink">
+              <p key={idx} className="text-ink mb-3 whitespace-pre-line">
                 <span dangerouslySetInnerHTML={{ __html: line }} />
               </p>
             ))}

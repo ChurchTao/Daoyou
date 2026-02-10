@@ -49,6 +49,7 @@ const quickActionsConfig = [
   { label: '⚗️ 造物仙炉', href: '/game/craft' },
   { label: '🏔️ 云游探秘', href: '/game/dungeon' },
   { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
+  { label: '📝 意见反馈', href: '/game/settings/feedback' },
   { label: '📜 版本日志', href: '/changelog' },
   { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
 ];
@@ -97,22 +98,25 @@ export function useHomeViewModel(): UseHomeViewModelReturn {
   }, [cultivator]);
 
   // 提供稳定的 getter 函数而非对象数组
-  const getStatusItemValue = useCallback((key: string) => {
-    switch (key) {
-      case '气血':
-        return { label: '气血：', value: maxHp, icon: '❤️' };
-      case '灵力':
-        return { label: '灵力：', value: maxSpirit, icon: '⚡️' };
-      case '性别':
-        return { label: '性别：', value: gender, icon: genderIcon };
-      case '年龄':
-        return { label: '年龄：', value: age, icon: '⌛' };
-      case '寿元':
-        return { label: '寿元：', value: lifespan, icon: '🔮' };
-      default:
-        return { label: '', value: '', icon: '' };
-    }
-  }, [maxHp, maxSpirit, gender, genderIcon, age, lifespan]);
+  const getStatusItemValue = useCallback(
+    (key: string) => {
+      switch (key) {
+        case '气血':
+          return { label: '气血：', value: maxHp, icon: '❤️' };
+        case '灵力':
+          return { label: '灵力：', value: maxSpirit, icon: '⚡️' };
+        case '性别':
+          return { label: '性别：', value: gender, icon: genderIcon };
+        case '年龄':
+          return { label: '年龄：', value: age, icon: '⌛' };
+        case '寿元':
+          return { label: '寿元：', value: lifespan, icon: '🔮' };
+        default:
+          return { label: '', value: '', icon: '' };
+      }
+    },
+    [maxHp, maxSpirit, gender, genderIcon, age, lifespan],
+  );
 
   // 保留原有的 statusItems 用于兼容性，但标记为 deprecated
   const statusItems = useMemo(() => {

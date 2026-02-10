@@ -42,11 +42,11 @@ export function EditTemplateClient({ id }: EditTemplateClientProps) {
   }, [id, pushToast]);
 
   if (loading) {
-    return <div className="text-sm text-ink-secondary">加载模板中...</div>;
+    return <div className="text-ink-secondary text-sm">加载模板中...</div>;
   }
 
   if (!template) {
-    return <div className="text-sm text-crimson">模板不存在或无权限访问</div>;
+    return <div className="text-crimson text-sm">模板不存在或无权限访问</div>;
   }
 
   return (

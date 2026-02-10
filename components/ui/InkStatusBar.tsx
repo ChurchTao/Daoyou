@@ -33,12 +33,12 @@ export function InkStatusBar({
       )}
     >
       {items.map((item) => (
-        <div key={item.label} className="text-[0.9rem] text-ink">
+        <div key={item.label} className="text-ink text-[0.9rem]">
           {item.icon && <span className="mr-1">{item.icon}</span>}
           <span>{item.label}</span>
           <span>{item.value}</span>
           {item.hint && (
-            <span className="text-ink-secondary text-[0.8rem] ml-1">
+            <span className="text-ink-secondary ml-1 text-[0.8rem]">
               · {item.hint}
             </span>
           )}

@@ -42,7 +42,7 @@ export function MaterialsTab({
                 <InkBadge tier={item.rank} className="ml-2">
                   {typeInfo.label}
                 </InkBadge>
-                <span className="ml-2 text-sm text-ink-secondary">
+                <span className="text-ink-secondary ml-2 text-sm">
                   x{item.quantity}
                 </span>
               </>

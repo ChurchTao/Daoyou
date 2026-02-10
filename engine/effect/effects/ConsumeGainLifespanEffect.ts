@@ -1,7 +1,7 @@
 import { BaseEffect } from '../BaseEffect';
 import {
-  type ConsumeGainLifespanParams,
   EffectTrigger,
+  type ConsumeGainLifespanParams,
   type EffectContext,
 } from '../types';
 

@@ -11,6 +11,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin',
   },
   {
+    title: '用户反馈',
+    description: '查看和管理用户反馈',
+    href: '/admin/feedback',
+  },
+  {
     title: '邮箱群发',
     description: '面向已验证邮箱用户',
     href: '/admin/broadcast/email',

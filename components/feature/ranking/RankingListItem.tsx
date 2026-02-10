@@ -1,6 +1,5 @@
 'use client';
 
-import { memo } from 'react';
 import { InkBadge, type Tier } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
 import {
@@ -8,6 +7,7 @@ import {
   ItemRankingEntry,
   RankingsDisplayItem,
 } from '@/types/rankings';
+import { memo } from 'react';
 
 interface RankingListItemProps {
   item: RankingsDisplayItem;
@@ -48,11 +48,11 @@ function RankingListItemComponent({
 
   return (
     <div
-      className={`py-3 border-b border-dashed border-ink/20 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
+      className={`border-ink/20 border-b border-dashed py-3 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
     >
       {/* 第一行：排名、姓名、性别、标题/品质、标记 */}
-      <div className="flex items-baseline gap-2 mb-1">
-        <span className="font-bold text-lg min-w-8">{item.rank}.</span>
+      <div className="mb-1 flex items-baseline gap-2">
+        <span className="min-w-8 text-lg font-bold">{item.rank}.</span>
         <span className="font-bold">
           {genderSymbol} {item.name}{' '}
           {!isItem && item.title ? `「${item.title}」` : ''}
@@ -67,7 +67,7 @@ function RankingListItemComponent({
       </div>
 
       {/* 第二行：信息展示 (Battle: Realm/Age, Item: Subtitle/Meta) */}
-      <div className="flex gap-2 mb-2 ml-10 flex-wrap">
+      <div className="mb-2 ml-10 flex flex-wrap gap-2">
         {!isItem && battleItem ? (
           <>
             <InkBadge tier={battleItem.realm as Tier}>
@@ -88,7 +88,7 @@ function RankingListItemComponent({
       </div>
 
       {/* 来源 / 描述 */}
-      <p className="ml-10 text-sm opacity-70 mb-2">
+      <p className="mb-2 ml-10 text-sm opacity-70">
         {!isItem && battleItem
           ? (battleItem.origin ?? '散修')
           : rankItem?.description || '暂无描述'}
@@ -96,7 +96,7 @@ function RankingListItemComponent({
 
       {/* 第三行：操作按钮（仅非自己时显示，且仅Battle榜显示） */}
       {!isSelf && !isItem && (
-        <div className="flex justify-end gap-2 ml-10">
+        <div className="ml-10 flex justify-end gap-2">
           {canChallenge && (
             <InkButton
               onClick={() => onChallenge(item.id)}

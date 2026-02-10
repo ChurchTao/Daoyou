@@ -102,9 +102,9 @@ export function InkInput({
         />
       )}
       {hint && !error && (
-        <span className="text-[0.8rem] text-ink-secondary">{hint}</span>
+        <span className="text-ink-secondary text-[0.8rem]">{hint}</span>
       )}
-      {error && <span className="text-[0.8rem] text-crimson">{error}</span>}
+      {error && <span className="text-crimson text-[0.8rem]">{error}</span>}
     </label>
   );
 }

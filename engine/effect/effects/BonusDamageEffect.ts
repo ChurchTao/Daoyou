@@ -1,6 +1,11 @@
 import type { ElementType } from '@/types/constants';
 import { BaseEffect } from '../BaseEffect';
-import { EffectTrigger, type BonusDamageParams, type EffectContext, isBattleEntity } from '../types';
+import {
+  EffectTrigger,
+  isBattleEntity,
+  type BonusDamageParams,
+  type EffectContext,
+} from '../types';
 
 /**
  * 额外伤害效果
@@ -72,12 +77,13 @@ export class BonusDamageEffect extends BaseEffect {
     let isCrit = false;
     if (this.canCrit) {
       const baseCritRate = source.getAttribute('critRate');
-      const critThreshold = baseCritRate + (ctx.metadata?.critRateBonus as number ?? 0);
+      const critThreshold =
+        baseCritRate + ((ctx.metadata?.critRateBonus as number) ?? 0);
 
       if (Math.random() < critThreshold) {
         isCrit = true;
         const baseCritDmg = source.getAttribute('critDamage');
-        const critBonus = ctx.metadata?.critDamageMultiplier as number ?? 0;
+        const critBonus = (ctx.metadata?.critDamageMultiplier as number) ?? 0;
         damage *= baseCritDmg + critBonus;
       }
     }

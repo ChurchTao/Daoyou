@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  InkBadge,
-  InkButton,
-  InkList,
-  InkNotice,
-} from '@/components/ui';
+import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
 import { EffectCard } from '@/components/ui/EffectCard';
 import type { Consumable } from '@/types/cultivator';
 
@@ -54,14 +49,14 @@ export function ConsumablesTab({
                 <InkBadge tone="default">
                   {isTalisman ? '符箓' : '丹药'}
                 </InkBadge>
-                <span className="text-sm text-ink-secondary">
+                <span className="text-ink-secondary text-sm">
                   x{item.quantity}
                 </span>
               </>
             }
             meta={
               isTalisman ? (
-                <div className="text-xs text-ink-primary">
+                <div className="text-ink-primary text-xs">
                   【使用后获得特殊增益】
                 </div>
               ) : null

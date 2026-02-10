@@ -55,31 +55,31 @@ export function InkListItem({
   return (
     <div
       className={cn(
-        'flex gap-2 py-2 border-b border-dashed border-ink/10',
+        'border-ink/10 flex gap-2 border-b border-dashed py-2',
         highlight && 'border-b-crimson/50',
         isColumn ? 'flex-col items-stretch' : 'justify-between',
       )}
     >
       {/* 主内容区 */}
-      <div className={cn('flex-1 min-w-0', isColumn && 'w-full')}>
+      <div className={cn('min-w-0 flex-1', isColumn && 'w-full')}>
         {/* 标题行 */}
-        <div className="font-semibold flex items-center gap-1 flex-wrap">
+        <div className="flex flex-wrap items-center gap-1 font-semibold">
           <span>{title}</span>
           {newMark && (
-            <span className="text-crimson font-semibold text-[0.875rem] ml-2">
+            <span className="text-crimson ml-2 text-[0.875rem] font-semibold">
               ← 新悟
             </span>
           )}
         </div>
         {/* 元信息 */}
         {meta && (
-          <div className="text-[0.85rem] text-ink-secondary mt-1 whitespace-pre-line">
+          <div className="text-ink-secondary mt-1 text-[0.85rem] whitespace-pre-line">
             {meta}
           </div>
         )}
         {/* 描述 */}
         {description && (
-          <div className="text-[0.85rem] text-ink-secondary mt-1 whitespace-pre-line">
+          <div className="text-ink-secondary mt-1 text-[0.85rem] whitespace-pre-line">
             {description}
           </div>
         )}
@@ -90,7 +90,7 @@ export function InkListItem({
         <div
           className={cn(
             'flex items-center gap-1',
-            isColumn && 'w-full justify-end pt-1 mt-1 flex-wrap',
+            isColumn && 'mt-1 w-full flex-wrap justify-end pt-1',
           )}
         >
           {actions}
