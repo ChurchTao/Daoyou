@@ -10,7 +10,12 @@ import {
   InkNotice,
   InkTabs,
 } from '@/components/ui';
-import type { Artifact, Consumable, Cultivator, Material } from '@/types/cultivator';
+import type {
+  Artifact,
+  Consumable,
+  Cultivator,
+  Material,
+} from '@/types/cultivator';
 import {
   getConsumableRankInfo,
   getMaterialTypeInfo,
@@ -25,9 +30,15 @@ interface ListItemModalProps {
 }
 
 type ItemType = 'material' | 'artifact' | 'consumable';
-type SelectableItem = (Material | Artifact | Consumable) & { itemType: ItemType };
+type SelectableItem = (Material | Artifact | Consumable) & {
+  itemType: ItemType;
+};
 
-export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalProps) {
+export function ListItemModal({
+  onClose,
+  onSuccess,
+  cultivator,
+}: ListItemModalProps) {
   const [step, setStep] = useState<'select' | 'price'>('select');
   const [activeType, setActiveType] = useState<ItemType>('material');
   const [selectedItem, setSelectedItem] = useState<SelectableItem | null>(null);
@@ -36,9 +47,15 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
   const [error, setError] = useState('');
 
   // 从 cultivator.inventory 获取背包物品数据
-  const materials: SelectableItem[] = (cultivator?.inventory?.materials || []).map((m) => ({ ...m, itemType: 'material' as ItemType }));
-  const artifacts: SelectableItem[] = (cultivator?.inventory?.artifacts || []).map((a) => ({ ...a, itemType: 'artifact' as ItemType }));
-  const consumables: SelectableItem[] = (cultivator?.inventory?.consumables || []).map((c) => ({ ...c, itemType: 'consumable' as ItemType }));
+  const materials: SelectableItem[] = (
+    cultivator?.inventory?.materials || []
+  ).map((m) => ({ ...m, itemType: 'material' as ItemType }));
+  const artifacts: SelectableItem[] = (
+    cultivator?.inventory?.artifacts || []
+  ).map((a) => ({ ...a, itemType: 'artifact' as ItemType }));
+  const consumables: SelectableItem[] = (
+    cultivator?.inventory?.consumables || []
+  ).map((c) => ({ ...c, itemType: 'consumable' as ItemType }));
 
   const handleSelectItem = (item: SelectableItem) => {
     setSelectedItem(item);
@@ -107,31 +124,27 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
         const qualityInfo = getQualityInfo(artifact.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={artifact.quality || '凡品'}>{qualityInfo.label}</InkBadge>,
+          badge: (
+            <InkBadge tier={artifact.quality || '凡品'}>
+              {qualityInfo.label}
+            </InkBadge>
+          ),
           meta: `⚔️ · ${artifact.element} · ${artifact.slot}`,
         };
       }
       case 'consumable': {
         const consumable = item as Consumable;
-        const qualityInfo = getQualityInfo(consumable.quality || '凡品');
         const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={consumable.quality || '凡品'}>{rankInfo.label}</InkBadge>,
+          badge: (
+            <InkBadge tier={consumable.quality || '凡品'}>
+              {rankInfo.label}
+            </InkBadge>
+          ),
           meta: `💊 · ${consumable.type}`,
         };
       }
-    }
-  };
-
-  const getTypeLabel = (type: ItemType) => {
-    switch (type) {
-      case 'material':
-        return '材料';
-      case 'artifact':
-        return '法宝';
-      case 'consumable':
-        return '消耗品';
     }
   };
 
@@ -158,9 +171,13 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
       onClose={onClose}
       title={step === 'select' ? '选择要寄售的物品' : '设置价格'}
       footer={
-        <div className="flex gap-2 mt-4">
+        <div className="mt-4 flex gap-2">
           {step === 'price' && (
-            <InkButton onClick={handleBack} variant="secondary" className="flex-1">
+            <InkButton
+              onClick={handleBack}
+              variant="secondary"
+              className="flex-1"
+            >
               返回
             </InkButton>
           )}
@@ -228,7 +245,7 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
       ) : (
         <div className="space-y-4">
           {selectedItem && (
-            <div className="p-4 bg-ink/5 rounded-lg border border-ink/20">
+            <div className="bg-ink/5 border-ink/20 rounded-lg border p-4">
               <div className="flex items-center gap-2">
                 <span className="font-bold">{selectedItem.name}</span>
                 {(() => {
@@ -236,14 +253,14 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
                   return display.badge;
                 })()}
               </div>
-              <p className="text-sm text-ink-secondary mt-1">
+              <p className="text-ink-secondary mt-1 text-sm">
                 {selectedItem.description}
               </p>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="mb-2 block text-sm font-medium">
               设置价格（灵石）
             </label>
             <InkInput
@@ -252,17 +269,15 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
               placeholder="请输入价格"
             />
             {price && !isNaN(parseInt(price)) && parseInt(price) >= 1 && (
-              <p className="text-sm text-ink-secondary mt-2">
+              <p className="text-ink-secondary mt-2 text-sm">
                 预计收入: {Math.floor(parseInt(price) * 0.9)} 灵石 (10%手续费)
               </p>
             )}
           </div>
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
-          <div className="text-xs text-ink-secondary">
+          <div className="text-ink-secondary text-xs">
             <p>· 寄售后物品将从储物袋中扣除</p>
             <p>· 寄售时限为 48 小时</p>
             <p>· 交易成功后扣除 10% 手续费</p>

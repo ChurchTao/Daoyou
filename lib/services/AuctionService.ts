@@ -1,10 +1,10 @@
 import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
-import { MailService, type MailAttachment } from './MailService';
+import { MailService } from './MailService';
 
 // ============================================================================
 // Constants
@@ -134,65 +134,6 @@ async function deleteItem(
 }
 
 /**
- * 添加物品到背包
- */
-async function addItem(
-  tx: DbTransaction,
-  itemType: string,
-  cultivatorId: string,
-  itemSnapshot: Material | Artifact | Consumable,
-): Promise<void> {
-  switch (itemType) {
-    case 'material': {
-      const material = itemSnapshot as Material;
-      await tx.insert(schema.materials).values({
-        cultivatorId,
-        name: material.name,
-        type: material.type,
-        rank: material.rank,
-        element: material.element,
-        description: material.description,
-        details: material.details || {},
-        quantity: material.quantity || 1,
-      });
-      break;
-    }
-    case 'artifact': {
-      const artifact = itemSnapshot as Artifact;
-      await tx.insert(schema.artifacts).values({
-        cultivatorId,
-        name: artifact.name,
-        prompt: artifact.prompt || '',
-        quality: artifact.quality,
-        required_realm: artifact.required_realm,
-        slot: artifact.slot,
-        element: artifact.element,
-        description: artifact.description,
-        score: artifact.score || 0,
-        effects: artifact.effects || [],
-      });
-      break;
-    }
-    case 'consumable': {
-      const consumable = itemSnapshot as Consumable;
-      await tx.insert(schema.consumables).values({
-        cultivatorId,
-        name: consumable.name,
-        type: consumable.type,
-        prompt: consumable.prompt || '',
-        quality: consumable.quality,
-        effects: consumable.effects || [],
-        quantity: consumable.quantity || 1,
-        description: consumable.description,
-        score: consumable.score || 0,
-        details: consumable.details,
-      });
-      break;
-    }
-  }
-}
-
-/**
  * 清除拍卖列表缓存
  */
 async function clearAuctionListingsCache(): Promise<void> {
@@ -247,9 +188,8 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
 
   try {
     // 4. 校验寄售位数量
-    const activeCount = await auctionRepository.countActiveBySeller(
-      cultivatorId,
-    );
+    const activeCount =
+      await auctionRepository.countActiveBySeller(cultivatorId);
     if (activeCount >= MAX_ACTIVE_LISTINGS_PER_SELLER) {
       throw new AuctionServiceError(
         AuctionError.MAX_LISTINGS,
@@ -315,7 +255,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
  * 购买物品
  */
 export async function buyItem(input: BuyItemInput): Promise<void> {
-  const { listingId, buyerCultivatorId, buyerCultivatorName } = input;
+  const { listingId, buyerCultivatorId } = input;
 
   // 1. 获取分布式锁
   const lockKey = `${BUY_LOCK_PREFIX}${listingId}`;
@@ -412,8 +352,12 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
       await auctionRepository.updateStatus(tx, listingId, 'sold', new Date());
 
       // 5.4 发送邮件给买家（物品）
-      const itemSnapshot = listing.itemSnapshot as Material | Artifact | Consumable;
-      const itemQuantity = 'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
+      const itemSnapshot = listing.itemSnapshot as
+        | Material
+        | Artifact
+        | Consumable;
+      const itemQuantity =
+        'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
       await MailService.sendMail(
         buyerCultivatorId,
         '拍卖行交易成功',
@@ -462,18 +406,12 @@ export async function cancelListing(
   // 1. 查询拍卖记录
   const listing = await auctionRepository.findById(listingId);
   if (!listing) {
-    throw new AuctionServiceError(
-      AuctionError.LISTING_NOT_FOUND,
-      '拍卖不存在',
-    );
+    throw new AuctionServiceError(AuctionError.LISTING_NOT_FOUND, '拍卖不存在');
   }
 
   // 2. 校验所有权
   if (listing.sellerId !== cultivatorId) {
-    throw new AuctionServiceError(
-      AuctionError.NOT_OWNER,
-      '无权操作他人的拍卖',
-    );
+    throw new AuctionServiceError(AuctionError.NOT_OWNER, '无权操作他人的拍卖');
   }
 
   // 3. 校验状态
@@ -489,8 +427,12 @@ export async function cancelListing(
     await auctionRepository.updateStatus(tx, listingId, 'cancelled');
 
     // 发送邮件返还物品
-    const itemSnapshot = listing.itemSnapshot as Material | Artifact | Consumable;
-    const itemQuantity = 'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
+    const itemSnapshot = listing.itemSnapshot as
+      | Material
+      | Artifact
+      | Consumable;
+    const itemQuantity =
+      'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
     await MailService.sendMail(
       cultivatorId,
       '拍卖行物品返还',
@@ -533,8 +475,12 @@ export async function expireListings(): Promise<number> {
 
     // 逐个发送邮件
     for (const listing of expiredListings) {
-      const itemSnapshot = listing.itemSnapshot as Material | Artifact | Consumable;
-      const itemQuantity = 'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
+      const itemSnapshot = listing.itemSnapshot as
+        | Material
+        | Artifact
+        | Consumable;
+      const itemQuantity =
+        'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
       await MailService.sendMail(
         listing.sellerId,
         '拍卖行物品过期',

@@ -8,6 +8,20 @@ export interface ChangelogItem {
 
 export const changelogs: ChangelogItem[] = [
   {
+    version: 'v0.7.0',
+    date: '2026-02-10',
+    title: '拍卖行系统',
+    type: 'minor',
+    changes: [
+      '✨ 新增拍卖行系统，玩家可寄售材料、装备、消耗品',
+      '✨ 支持一口价交易模式',
+      '✨ 交易成功后通过邮件发放物品和灵石',
+      '✨ 48小时寄售时限，过期物品邮件返还',
+      '✨ 每玩家最多5个同时寄售位',
+      '✨ 10%交易手续费',
+    ],
+  },
+  {
     version: 'v0.6.0',
     date: '2026-02-02',
     title: '副本奖励系统优化',
