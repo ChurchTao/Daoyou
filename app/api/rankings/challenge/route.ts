@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const ChallengeSchema = z.object({
-  targetId: z.string().optional(),
+  targetId: z.string().optional().nullable(),
 });
 
 /**

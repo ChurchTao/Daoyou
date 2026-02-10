@@ -45,6 +45,7 @@ const quickActionsConfig = [
   { label: '📖 所修神通', href: '/game/skills' },
   { label: '📚 藏经阁', href: '/game/enlightenment' },
   { label: '🛖 修仙坊市', href: '/game/market' },
+  { label: '🔨 拍卖行', href: '/game/auction' },
   { label: '⚗️ 造物仙炉', href: '/game/craft' },
   { label: '🏔️ 云游探秘', href: '/game/dungeon' },
   { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
