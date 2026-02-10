@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // 处理 Zod 验证错误
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '参数错误', details: error.errors },
+        { error: '参数错误', details: error.issues },
         { status: 400 },
       );
     }

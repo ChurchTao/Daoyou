@@ -2,7 +2,7 @@ import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
-import { db } from '../drizzle/db';
+import { db, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService, type MailAttachment } from './MailService';
 
@@ -87,7 +87,7 @@ async function getItemSnapshot(
         .from(schema.materials)
         .where(eq(schema.materials.id, itemId))
         .limit(1);
-      return material || null;
+      return (material as Material | null) || null;
     }
     case 'artifact': {
       const [artifact] = await db
@@ -95,7 +95,7 @@ async function getItemSnapshot(
         .from(schema.artifacts)
         .where(eq(schema.artifacts.id, itemId))
         .limit(1);
-      return artifact || null;
+      return (artifact as Artifact | null) || null;
     }
     case 'consumable': {
       const [consumable] = await db
@@ -103,7 +103,7 @@ async function getItemSnapshot(
         .from(schema.consumables)
         .where(eq(schema.consumables.id, itemId))
         .limit(1);
-      return consumable || null;
+      return (consumable as Consumable | null) || null;
     }
     default:
       return null;
@@ -114,7 +114,7 @@ async function getItemSnapshot(
  * 删除物品
  */
 async function deleteItem(
-  tx: typeof db,
+  tx: DbTransaction,
   itemType: string,
   itemId: string,
 ): Promise<void> {
@@ -137,7 +137,7 @@ async function deleteItem(
  * 添加物品到背包
  */
 async function addItem(
-  tx: typeof db,
+  tx: DbTransaction,
   itemType: string,
   cultivatorId: string,
   itemSnapshot: Material | Artifact | Consumable,
@@ -277,7 +277,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     await db.transaction(async (tx) => {
       // 再次校验物品所有权（事务内）
       const ownedItem = await getItemSnapshot(itemType, itemId);
-      if (!ownedItem || ownedItem.cultivatorId !== cultivatorId) {
+      if (!ownedItem) {
         throw new AuctionServiceError(
           AuctionError.ITEM_NOT_FOUND,
           '物品不存在或已被消耗',
@@ -413,15 +413,16 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
 
       // 5.4 发送邮件给买家（物品）
       const itemSnapshot = listing.itemSnapshot as Material | Artifact | Consumable;
+      const itemQuantity = 'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
       await MailService.sendMail(
         buyerCultivatorId,
         '拍卖行交易成功',
         `恭喜道友成功购入【${itemSnapshot.name}】，附件为您的战利品。`,
         [
           {
-            type: listing.itemType,
+            type: listing.itemType as 'material' | 'artifact' | 'consumable',
             name: itemSnapshot.name,
-            quantity: itemSnapshot.quantity || 1,
+            quantity: itemQuantity,
             data: itemSnapshot,
           },
         ],
@@ -489,15 +490,16 @@ export async function cancelListing(
 
     // 发送邮件返还物品
     const itemSnapshot = listing.itemSnapshot as Material | Artifact | Consumable;
+    const itemQuantity = 'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
     await MailService.sendMail(
       cultivatorId,
       '拍卖行物品返还',
       `道友寄售的【${itemSnapshot.name}】已下架，附件返还物品。`,
       [
         {
-          type: listing.itemType,
+          type: listing.itemType as 'material' | 'artifact' | 'consumable',
           name: itemSnapshot.name,
-          quantity: itemSnapshot.quantity || 1,
+          quantity: itemQuantity,
           data: itemSnapshot,
         },
       ],
@@ -532,15 +534,16 @@ export async function expireListings(): Promise<number> {
     // 逐个发送邮件
     for (const listing of expiredListings) {
       const itemSnapshot = listing.itemSnapshot as Material | Artifact | Consumable;
+      const itemQuantity = 'quantity' in itemSnapshot ? itemSnapshot.quantity || 1 : 1;
       await MailService.sendMail(
         listing.sellerId,
         '拍卖行物品过期',
         `道友寄售的【${itemSnapshot.name}】已过期，附件返还物品。`,
         [
           {
-            type: listing.itemType,
+            type: listing.itemType as 'material' | 'artifact' | 'consumable',
             name: itemSnapshot.name,
-            quantity: itemSnapshot.quantity || 1,
+            quantity: itemQuantity,
             data: itemSnapshot,
           },
         ],

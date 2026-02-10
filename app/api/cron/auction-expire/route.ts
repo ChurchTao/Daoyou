@@ -1,4 +1,4 @@
-import { AuctionService } from '@/lib/services/AuctionService';
+import { expireListings } from '@/lib/services/AuctionService';
 import { NextResponse } from 'next/server';
 
 /**
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const processed = await AuctionService.expireListings();
+    const processed = await expireListings();
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,4 @@
-import { AuctionService, AuctionServiceError } from '@/lib/services/AuctionService';
+import { cancelListing, AuctionServiceError } from '@/lib/services/AuctionService';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -7,11 +7,11 @@ import { NextRequest, NextResponse } from 'next/server';
  * 下架拍卖物品
  */
 export const DELETE = withActiveCultivator(
-  async (request: NextRequest, { cultivator }, context: { params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, { cultivator }, params) => {
     try {
-      const { id } = await context.params;
+      const { id } = params;
 
-      await AuctionService.cancelListing(id, cultivator.id);
+      await cancelListing(id, cultivator.id);
 
       return NextResponse.json({
         success: true,

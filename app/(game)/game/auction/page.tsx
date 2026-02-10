@@ -198,10 +198,10 @@ export default function AuctionPage() {
       }
       case 'artifact': {
         const artifact = item as Artifact;
-        const qualityInfo = getQualityInfo(artifact.quality);
+        const qualityInfo = getQualityInfo(artifact.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={artifact.quality}>{qualityInfo.label}</InkBadge>,
+          badge: <InkBadge tier={artifact.quality || '凡品'}>{qualityInfo.label}</InkBadge>,
           meta: (
             <>
               <span>
@@ -213,11 +213,11 @@ export default function AuctionPage() {
       }
       case 'consumable': {
         const consumable = item as Consumable;
-        const qualityInfo = getQualityInfo(consumable.quality);
-        const rankInfo = getConsumableRankInfo(consumable.quality);
+        const qualityInfo = getQualityInfo(consumable.quality || '凡品');
+        const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={consumable.quality}>{rankInfo.label}</InkBadge>,
+          badge: <InkBadge tier={consumable.quality || '凡品'}>{rankInfo.label}</InkBadge>,
           meta: (
             <>
               <span>

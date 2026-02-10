@@ -123,6 +123,8 @@ export interface Artifact {
   required_realm?: RealmType;
   description?: string;
   effects?: EffectConfig[]; // 替代 bonus/special_effects/curses
+  prompt?: string; // 炼器提示词
+  score?: number; // 评分
 }
 
 export interface Consumable {
@@ -133,6 +135,9 @@ export interface Consumable {
   effects?: EffectConfig[];
   quantity: number;
   description?: string;
+  prompt?: string; // 炼丹提示词
+  score?: number; // 评分
+  details?: Record<string, unknown>; // 符箓配置等额外数据
 }
 
 export interface Material {

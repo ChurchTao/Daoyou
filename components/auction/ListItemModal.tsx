@@ -35,10 +35,10 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // 模拟背包物品数据（实际应从 cultivator 获取）
-  const materials: SelectableItem[] = (cultivator?.materials || []).map(m => ({ ...m, itemType: 'material' as ItemType }));
-  const artifacts: SelectableItem[] = (cultivator?.artifacts || []).map(a => ({ ...a, itemType: 'artifact' as ItemType }));
-  const consumables: SelectableItem[] = (cultivator?.consumables || []).map(c => ({ ...c, itemType: 'consumable' as ItemType }));
+  // 从 cultivator.inventory 获取背包物品数据
+  const materials: SelectableItem[] = (cultivator?.inventory?.materials || []).map((m) => ({ ...m, itemType: 'material' as ItemType }));
+  const artifacts: SelectableItem[] = (cultivator?.inventory?.artifacts || []).map((a) => ({ ...a, itemType: 'artifact' as ItemType }));
+  const consumables: SelectableItem[] = (cultivator?.inventory?.consumables || []).map((c) => ({ ...c, itemType: 'consumable' as ItemType }));
 
   const handleSelectItem = (item: SelectableItem) => {
     setSelectedItem(item);
@@ -104,20 +104,20 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
       }
       case 'artifact': {
         const artifact = item as Artifact;
-        const qualityInfo = getQualityInfo(artifact.quality);
+        const qualityInfo = getQualityInfo(artifact.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={artifact.quality}>{qualityInfo.label}</InkBadge>,
+          badge: <InkBadge tier={artifact.quality || '凡品'}>{qualityInfo.label}</InkBadge>,
           meta: `⚔️ · ${artifact.element} · ${artifact.slot}`,
         };
       }
       case 'consumable': {
         const consumable = item as Consumable;
-        const qualityInfo = getQualityInfo(consumable.quality);
-        const rankInfo = getConsumableRankInfo(consumable.quality);
+        const qualityInfo = getQualityInfo(consumable.quality || '凡品');
+        const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
         return {
           ...baseInfo,
-          badge: <InkBadge tier={consumable.quality}>{rankInfo.label}</InkBadge>,
+          badge: <InkBadge tier={consumable.quality || '凡品'}>{rankInfo.label}</InkBadge>,
           meta: `💊 · ${consumable.type}`,
         };
       }
@@ -247,12 +247,9 @@ export function ListItemModal({ onClose, onSuccess, cultivator }: ListItemModalP
               设置价格（灵石）
             </label>
             <InkInput
-              type="number"
-              min="1"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              onChange={(v) => setPrice(v)}
               placeholder="请输入价格"
-              autoFocus
             />
             {price && !isNaN(parseInt(price)) && parseInt(price) >= 1 && (
               <p className="text-sm text-ink-secondary mt-2">

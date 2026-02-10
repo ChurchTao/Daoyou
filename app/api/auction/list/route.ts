@@ -1,4 +1,4 @@
-import { AuctionService, AuctionServiceError } from '@/lib/services/AuctionService';
+import { listItem, AuctionServiceError } from '@/lib/services/AuctionService';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ export const POST = withActiveCultivator(
       const body = await request.json();
       const { itemType, itemId, price } = ListSchema.parse(body);
 
-      const result = await AuctionService.listItem({
+      const result = await listItem({
         cultivatorId: cultivator.id,
         cultivatorName: cultivator.name,
         itemType,
@@ -35,7 +35,7 @@ export const POST = withActiveCultivator(
       // 处理 Zod 验证错误
       if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { error: '参数错误', details: error.errors },
+          { error: '参数错误', details: error.issues },
           { status: 400 },
         );
       }
