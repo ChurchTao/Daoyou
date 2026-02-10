@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/auction-expire",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
