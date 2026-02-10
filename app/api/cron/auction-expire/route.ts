@@ -34,9 +34,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-// Vercel Cron 配置
-export const config = {
-  runtime: 'edge' as const,
-  cron: '0 * * * *', // 每小时执行
-};
