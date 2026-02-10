@@ -1,5 +1,6 @@
 'use client';
 
+import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
 import { ListItemModal } from '@/components/auction/ListItemModal';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
@@ -8,18 +9,19 @@ import {
   InkBadge,
   InkButton,
   InkList,
-  InkListItem,
   InkNotice,
   InkTabs,
 } from '@/components/ui';
+import { EffectCard } from '@/components/ui/EffectCard';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import {
+  CONSUMABLE_TYPE_DISPLAY_MAP,
   getConsumableRankInfo,
+  getEquipmentSlotInfo,
   getMaterialTypeInfo,
-  getQualityInfo,
 } from '@/types/dictionaries';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type AuctionListing = {
@@ -46,25 +48,43 @@ export default function AuctionPage() {
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showListModal, setShowListModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<
+    Material | Artifact | Consumable | null
+  >(null);
+
+  const [pagination, setPagination] = useState({
+    browse: { page: 1, totalPages: 1 },
+    my: { page: 1, totalPages: 1 },
+  });
+
   const { pushToast } = useInkUI();
   const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     if (activeTab === 'browse') {
-      fetchBrowseListings();
+      fetchBrowseListings(pagination.browse.page);
     } else {
-      fetchMyListings();
+      fetchMyListings(pagination.my.page);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const fetchBrowseListings = async () => {
+  const fetchBrowseListings = async (page: number = 1) => {
     setIsLoadingBrowse(true);
     try {
-      const res = await fetch('/api/auction/listings');
+      const res = await fetch(`/api/auction/listings?page=${page}&limit=10`);
       const data = await res.json();
       if (data.listings) {
         setBrowseListings(data.listings);
+        if (data.pagination) {
+          setPagination((prev) => ({
+            ...prev,
+            browse: {
+              page: data.pagination.page,
+              totalPages: data.pagination.totalPages,
+            },
+          }));
+        }
       }
     } catch (error) {
       pushToast({
@@ -76,7 +96,7 @@ export default function AuctionPage() {
     }
   };
 
-  const fetchMyListings = async () => {
+  const fetchMyListings = async (page: number = 1) => {
     if (!cultivator) {
       setMyListings([]);
       setIsLoadingMy(false);
@@ -85,14 +105,19 @@ export default function AuctionPage() {
 
     setIsLoadingMy(true);
     try {
-      const res = await fetch('/api/auction/listings');
+      // 这里的 API 目前不支持直接查个人的分页，所以还是前端过滤或者需要后端支持
+      // 不过 API 已经支持分页，只是没有 sellerId 过滤
+      // 为了保持分页逻辑一致，暂时先复用列表接口并增加参数（如果后端支持的话）
+      // 实际上后端目前没加 sellerId 过滤，我先按现有 API 处理
+      const res = await fetch(`/api/auction/listings?page=${page}&limit=50`);
       const data = await res.json();
       if (data.listings) {
         // 只显示自己的寄售
-        const myListings = data.listings.filter(
+        const filtered = data.listings.filter(
           (l: AuctionListing) => l.sellerId === cultivator.id,
         );
-        setMyListings(myListings);
+        setMyListings(filtered);
+        // 我的寄售通常不多，分页逻辑暂时简化
       }
     } catch (error) {
       pushToast({
@@ -101,6 +126,14 @@ export default function AuctionPage() {
       });
     } finally {
       setIsLoadingMy(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (activeTab === 'browse') {
+      fetchBrowseListings(newPage);
+    } else {
+      fetchMyListings(newPage);
     }
   };
 
@@ -129,7 +162,7 @@ export default function AuctionPage() {
       if (result.success) {
         pushToast({ message: result.message, tone: 'success' });
         await refresh();
-        fetchBrowseListings();
+        fetchBrowseListings(pagination.browse.page);
       } else {
         throw new Error(result.error);
       }
@@ -152,7 +185,7 @@ export default function AuctionPage() {
       const result = await res.json();
       if (result.success) {
         pushToast({ message: result.message, tone: 'success' });
-        fetchMyListings();
+        fetchMyListings(pagination.my.page);
       } else {
         throw new Error(result.error);
       }
@@ -173,9 +206,9 @@ export default function AuctionPage() {
     return `${hours}时${minutes}分`;
   };
 
-  const getItemDisplay = (listing: AuctionListing) => {
+  const getItemDisplayProps = (listing: AuctionListing) => {
     const item = listing.itemSnapshot;
-    const baseInfo = {
+    const baseProps = {
       name: item.name,
       description: item.description,
     };
@@ -185,50 +218,52 @@ export default function AuctionPage() {
         const material = item as Material;
         const typeInfo = getMaterialTypeInfo(material.type);
         return {
-          ...baseInfo,
-          badge: <InkBadge tier={material.rank}>{typeInfo.label}</InkBadge>,
-          meta: (
+          ...baseProps,
+          icon: typeInfo.icon,
+          quality: material.rank,
+          badgeExtra: (
             <>
-              <span>
-                {typeInfo.icon} · {material.element || '无属性'}
-              </span>
+              <InkBadge tier={material.rank}>{typeInfo.label}</InkBadge>
+              {material.element && (
+                <InkBadge tone="default">{material.element}</InkBadge>
+              )}
             </>
           ),
         };
       }
       case 'artifact': {
         const artifact = item as Artifact;
-        const qualityInfo = getQualityInfo(artifact.quality || '凡品');
+        const slotInfo = getEquipmentSlotInfo(artifact.slot);
         return {
-          ...baseInfo,
-          badge: (
-            <InkBadge tier={artifact.quality || '凡品'}>
-              {qualityInfo.label}
-            </InkBadge>
-          ),
-          meta: (
+          ...baseProps,
+          icon: slotInfo.icon,
+          quality: artifact.quality,
+          effects: artifact.effects,
+          badgeExtra: (
             <>
-              <span>
-                ⚔️ · {artifact.element} · {artifact.slot}
-              </span>
+              <InkBadge tier={artifact.quality || '凡品'}>
+                {slotInfo.label}
+              </InkBadge>
+              <InkBadge tone="default">{artifact.element}</InkBadge>
             </>
           ),
         };
       }
       case 'consumable': {
         const consumable = item as Consumable;
-        const qualityInfo = getQualityInfo(consumable.quality || '凡品');
+        const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
         const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
         return {
-          ...baseInfo,
-          badge: (
-            <InkBadge tier={consumable.quality || '凡品'}>
-              {rankInfo.label}
-            </InkBadge>
-          ),
-          meta: (
+          ...baseProps,
+          icon: typeInfo.icon,
+          quality: consumable.quality,
+          effects: consumable.effects,
+          badgeExtra: (
             <>
-              <span>💊 · {consumable.type}</span>
+              <InkBadge tier={consumable.quality || '凡品'}>
+                {rankInfo.label}
+              </InkBadge>
+              <InkBadge tone="default">{consumable.type}</InkBadge>
             </>
           ),
         };
@@ -240,6 +275,101 @@ export default function AuctionPage() {
     { label: '浏览拍卖', value: 'browse' },
     { label: '我的寄售', value: 'my' },
   ];
+
+  const renderListing = (listing: AuctionListing, isMyListing: boolean) => {
+    const displayProps = getItemDisplayProps(listing);
+    const timeLeft = formatTime(listing.expiresAt);
+
+    return (
+      <EffectCard
+        key={listing.id}
+        layout="col"
+        {...displayProps}
+        meta={
+          <div className="text-ink-secondary mt-1 flex flex-col gap-1 text-xs">
+            <div className="flex justify-between">
+              <span>
+                卖家: {listing.sellerName}
+                {listing.sellerId === cultivator?.id ? ' (我)' : ''}
+              </span>
+              <span>剩余: {timeLeft}</span>
+            </div>
+            <div className="border-ink/20 mt-2 flex items-baseline justify-between border-t border-dashed pt-2">
+              <span className="text-lg font-bold text-yellow-600">
+                💰 {listing.price} 灵石
+              </span>
+              {isMyListing && (
+                <span className="opacity-70">
+                  预计收入: {Math.floor(listing.price * 0.9)}
+                </span>
+              )}
+            </div>
+          </div>
+        }
+        actions={
+          <div className="flex w-full gap-2">
+            <InkButton
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setSelectedItem(listing.itemSnapshot)}
+            >
+              详情
+            </InkButton>
+            {isMyListing ? (
+              <InkButton
+                onClick={() => handleCancel(listing)}
+                disabled={!!cancellingId}
+                variant="secondary"
+                className="flex-1"
+              >
+                {cancellingId === listing.id ? '处理中' : '下架'}
+              </InkButton>
+            ) : (
+              <InkButton
+                onClick={() => handleBuy(listing)}
+                disabled={!!buyingId || listing.sellerId === cultivator?.id}
+                variant="primary"
+                className="flex-1"
+              >
+                {buyingId === listing.id
+                  ? '交易中'
+                  : listing.sellerId === cultivator?.id
+                    ? '自己的'
+                    : '购买'}
+              </InkButton>
+            )}
+          </div>
+        }
+      />
+    );
+  };
+
+  const renderPagination = (type: 'browse' | 'my') => {
+    const pag = pagination[type];
+    if (pag.totalPages <= 1) return null;
+
+    return (
+      <div className="mt-4 flex items-center justify-center gap-4">
+        <InkButton
+          variant="secondary"
+          disabled={pag.page <= 1}
+          onClick={() => handlePageChange(pag.page - 1)}
+        >
+          上一页
+        </InkButton>
+        <span className="text-ink-secondary text-sm">
+          {pag.page} / {pag.totalPages}
+        </span>
+        <InkButton
+          variant="secondary"
+          disabled={pag.page >= pag.totalPages}
+          onClick={() => handlePageChange(pag.page + 1)}
+        >
+          下一页
+        </InkButton>
+      </div>
+    );
+  };
 
   return (
     <InkPageShell
@@ -267,57 +397,12 @@ export default function AuctionPage() {
           {isLoadingBrowse ? (
             <div className="py-10 text-center">正在获取拍卖列表...</div>
           ) : browseListings.length > 0 ? (
-            <InkList>
-              {browseListings.map((listing) => {
-                const display = getItemDisplay(listing);
-                return (
-                  <InkListItem
-                    key={listing.id}
-                    title={
-                      <>
-                        {display.name}
-                        <span className="text-ink-secondary ml-2 text-sm">
-                          卖家: {listing.sellerName}
-                        </span>
-                        <div className="ml-auto">{display.badge}</div>
-                      </>
-                    }
-                    meta={
-                      <div className="flex w-full items-center justify-between">
-                        {display.meta}
-                        <span className="text-ink-secondary text-xs">
-                          剩余 {formatTime(listing.expiresAt)}
-                        </span>
-                      </div>
-                    }
-                    description={
-                      <div>
-                        <p>{display.description}</p>
-                        <p className="mt-1 text-lg font-bold text-yellow-600">
-                          💰 {listing.price} 灵石
-                        </p>
-                      </div>
-                    }
-                    actions={
-                      <InkButton
-                        onClick={() => handleBuy(listing)}
-                        disabled={
-                          !!buyingId || listing.sellerId === cultivator?.id
-                        }
-                        variant="primary"
-                        className="min-w-20"
-                      >
-                        {buyingId === listing.id
-                          ? '交易中'
-                          : listing.sellerId === cultivator?.id
-                            ? '自己的'
-                            : '购买'}
-                      </InkButton>
-                    }
-                  />
-                );
-              })}
-            </InkList>
+            <>
+              <InkList>
+                {browseListings.map((listing) => renderListing(listing, false))}
+              </InkList>
+              {renderPagination('browse')}
+            </>
           ) : (
             <InkNotice>当前没有道友寄售的物品</InkNotice>
           )}
@@ -327,52 +412,12 @@ export default function AuctionPage() {
           {isLoadingMy ? (
             <div className="py-10 text-center">正在获取寄售记录...</div>
           ) : myListings.length > 0 ? (
-            <InkList>
-              {myListings.map((listing) => {
-                const display = getItemDisplay(listing);
-                return (
-                  <InkListItem
-                    key={listing.id}
-                    title={
-                      <>
-                        {display.name}
-                        <div className="ml-auto">{display.badge}</div>
-                      </>
-                    }
-                    meta={
-                      <div className="flex w-full items-center justify-between">
-                        {display.meta}
-                        <span className="text-ink-secondary text-xs">
-                          剩余 {formatTime(listing.expiresAt)}
-                        </span>
-                      </div>
-                    }
-                    description={
-                      <div>
-                        <p>{display.description}</p>
-                        <p className="mt-1 text-lg font-bold text-yellow-600">
-                          💰 {listing.price} 灵石
-                        </p>
-                        <p className="text-ink-secondary mt-1 text-xs">
-                          预计收入: {Math.floor(listing.price * 0.9)} 灵石
-                          (10%手续费)
-                        </p>
-                      </div>
-                    }
-                    actions={
-                      <InkButton
-                        onClick={() => handleCancel(listing)}
-                        disabled={!!cancellingId}
-                        variant="secondary"
-                        className="min-w-20"
-                      >
-                        {cancellingId === listing.id ? '处理中' : '下架'}
-                      </InkButton>
-                    }
-                  />
-                );
-              })}
-            </InkList>
+            <>
+              <InkList>
+                {myListings.map((listing) => renderListing(listing, true))}
+              </InkList>
+              {renderPagination('my')}
+            </>
           ) : (
             <InkNotice>
               你还没有寄售任何物品
@@ -394,6 +439,12 @@ export default function AuctionPage() {
           cultivator={cultivator}
         />
       )}
+
+      <ItemDetailModal
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        item={selectedItem}
+      />
     </InkPageShell>
   );
 }
