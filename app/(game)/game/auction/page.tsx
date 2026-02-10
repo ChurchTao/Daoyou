@@ -223,7 +223,7 @@ export default function AuctionPage() {
           quality: material.rank,
           badgeExtra: (
             <>
-              <InkBadge tier={material.rank}>{typeInfo.label}</InkBadge>
+              <InkBadge tone="default">{typeInfo.label}</InkBadge>
               {material.element && (
                 <InkBadge tone="default">{material.element}</InkBadge>
               )}
@@ -241,10 +241,8 @@ export default function AuctionPage() {
           effects: artifact.effects,
           badgeExtra: (
             <>
-              <InkBadge tier={artifact.quality || '凡品'}>
-                {slotInfo.label}
-              </InkBadge>
               <InkBadge tone="default">{artifact.element}</InkBadge>
+              <InkBadge tone="default">{slotInfo.label}</InkBadge>
             </>
           ),
         };
@@ -260,9 +258,7 @@ export default function AuctionPage() {
           effects: consumable.effects,
           badgeExtra: (
             <>
-              <InkBadge tier={consumable.quality || '凡品'}>
-                {rankInfo.label}
-              </InkBadge>
+              <InkBadge tone="default">{rankInfo.label}</InkBadge>
               <InkBadge tone="default">{consumable.type}</InkBadge>
             </>
           ),
@@ -307,10 +303,9 @@ export default function AuctionPage() {
           </div>
         }
         actions={
-          <div className="flex w-full gap-2">
+          <div className="flex gap-2">
             <InkButton
               variant="secondary"
-              className="flex-1"
               onClick={() => setSelectedItem(listing.itemSnapshot)}
             >
               详情
@@ -320,7 +315,6 @@ export default function AuctionPage() {
                 onClick={() => handleCancel(listing)}
                 disabled={!!cancellingId}
                 variant="secondary"
-                className="flex-1"
               >
                 {cancellingId === listing.id ? '处理中' : '下架'}
               </InkButton>
@@ -329,7 +323,6 @@ export default function AuctionPage() {
                 onClick={() => handleBuy(listing)}
                 disabled={!!buyingId || listing.sellerId === cultivator?.id}
                 variant="primary"
-                className="flex-1"
               >
                 {buyingId === listing.id
                   ? '交易中'
