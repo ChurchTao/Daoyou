@@ -56,7 +56,7 @@
    * https://developers.cloudflare.com/workers/configuration/secrets/
    */
   "limits": {
-    "cpu_ms": 120,
+    "cpu_ms": 300,
   },
   "keep_vars": true,
 }
