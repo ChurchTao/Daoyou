@@ -55,7 +55,7 @@ export async function GET(req: Request) {
   }
 
   // 总数用于分页信息
-  const [countRow] = await db
+  const [countRow] = await db()
     .select({ count: sql<number>`count(*)` })
     .from(battleRecords)
     .where(whereCondition);
@@ -63,7 +63,7 @@ export async function GET(req: Request) {
   const total = Number(countRow?.count ?? 0);
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
 
-  const records = await db
+  const records = await db()
     .select()
     .from(battleRecords)
     .where(whereCondition)

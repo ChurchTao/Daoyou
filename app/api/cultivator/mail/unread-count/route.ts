@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
  * 获取当前活跃角色的未读邮件数量
  */
 export const GET = withActiveCultivator(async (_req, { cultivator }) => {
-  const result = await db
+  const result = await db()
     .select({ count: sql<number>`count(*)` })
     .from(mails)
     .where(and(eq(mails.cultivatorId, cultivator.id), eq(mails.isRead, false)));

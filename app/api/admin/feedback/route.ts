@@ -56,7 +56,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
 
       // 获取角色信息
       if (feedback.cultivatorId) {
-        const cultivator = await db.query.cultivators.findFirst({
+        const cultivator = await db().query.cultivators.findFirst({
           where: eq(cultivators.id, feedback.cultivatorId),
           columns: { name: true, realm: true },
         });

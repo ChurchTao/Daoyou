@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 预览随机命格（消耗1次机会）
  */
 export const GET = withActiveCultivator(
-  async (_request: NextRequest, { cultivator, db: tx }) => {
+  async (_request: NextRequest, { cultivator, db }) => {
     // 查找重塑命格Buff
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
@@ -34,7 +34,7 @@ export const GET = withActiveCultivator(
         (s) => s.instanceId !== reshapeBuff.instanceId,
       );
 
-      await tx
+      await db()
         .update(cultivators)
         .set({ persistent_statuses: updatedStatuses })
         .where(eq(cultivators.id, cultivator.id!));
@@ -75,7 +75,7 @@ export const GET = withActiveCultivator(
       return s;
     });
 
-    await tx
+    await db()
       .update(cultivators)
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));

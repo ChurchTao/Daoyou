@@ -63,7 +63,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
   let finalContent = parsed.data.content ?? '';
 
   if (templateId) {
-    const template = await db.query.adminMessageTemplates.findFirst({
+    const template = await db().query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, templateId),
     });
 

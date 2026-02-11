@@ -18,7 +18,7 @@ export const POST = withActiveCultivator(
     const body = await request.json();
     const { skillId } = ForgetSkillSchema.parse(body);
 
-    const deleted = await db
+    const deleted = await db()
       .delete(skills)
       .where(
         and(eq(skills.id, skillId), eq(skills.cultivatorId, cultivator.id)),

@@ -19,7 +19,7 @@ export async function createListing(data: {
   price: number;
   expiresAt: Date;
 }): Promise<AuctionListing> {
-  const [listing] = await db
+  const [listing] = await db()
     .insert(schema.auctionListings)
     .values({
       sellerId: data.sellerId,
@@ -39,7 +39,7 @@ export async function createListing(data: {
  * 查询单个拍卖记录
  */
 export async function findById(id: string): Promise<AuctionListing | null> {
-  const [listing] = await db
+  const [listing] = await db()
     .select()
     .from(schema.auctionListings)
     .where(eq(schema.auctionListings.id, id))
@@ -106,14 +106,14 @@ export async function findActiveListings(
 
   // 并行执行查询和计数
   const [listingsResult, countResult] = await Promise.all([
-    db
+    db()
       .select()
       .from(schema.auctionListings)
       .where(whereClause)
       .orderBy(orderByClause)
       .limit(limit)
       .offset((page - 1) * limit),
-    db
+    db()
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.auctionListings)
       .where(whereClause),
@@ -129,7 +129,7 @@ export async function findActiveListings(
  * 统计卖家进行中的拍卖数量
  */
 export async function countActiveBySeller(sellerId: string): Promise<number> {
-  const result = await db
+  const result = await db()
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.auctionListings)
     .where(
@@ -165,7 +165,7 @@ export async function updateStatus(
 export async function findExpiredListings(
   limit = 1000,
 ): Promise<AuctionListing[]> {
-  return db
+  return db()
     .select()
     .from(schema.auctionListings)
     .where(

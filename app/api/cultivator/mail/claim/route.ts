@@ -23,7 +23,7 @@ export const POST = withActiveCultivator(
     const { mailId } = ClaimMailSchema.parse(body);
 
     // Verify mail belongs to this cultivator
-    const mail = await db.query.mails.findFirst({
+    const mail = await db().query.mails.findFirst({
       where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)),
     });
 
@@ -88,7 +88,7 @@ export const POST = withActiveCultivator(
       gains,
       async () => {
         // Mark as claimed
-        await db
+        await db()
           .update(mails)
           .set({ isClaimed: true, isRead: true })
           .where(eq(mails.id, mailId));

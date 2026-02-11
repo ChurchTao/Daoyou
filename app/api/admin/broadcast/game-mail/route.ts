@@ -64,7 +64,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
   let finalReward = parsed.data.rewardSpiritStones ?? 0;
 
   if (templateId) {
-    const template = await db.query.adminMessageTemplates.findFirst({
+    const template = await db().query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, templateId),
     });
 
@@ -125,7 +125,9 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
 
   const batchSize = Number(process.env.ADMIN_BROADCAST_BATCH_SIZE ?? 500);
   for (let i = 0; i < rows.length; i += batchSize) {
-    await db.insert(mails).values(rows.slice(i, i + batchSize));
+    await db()
+      .insert(mails)
+      .values(rows.slice(i, i + batchSize));
   }
 
   return NextResponse.json({

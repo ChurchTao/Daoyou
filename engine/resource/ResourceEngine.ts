@@ -162,7 +162,7 @@ export class ResourceEngine {
     const errors: string[] = [];
 
     try {
-      await db.transaction(async (tx) => {
+      await db().transaction(async (tx) => {
         // 1. 扣除资源
         for (const cost of costs) {
           switch (cost.type) {
@@ -266,7 +266,7 @@ export class ResourceEngine {
     const errors: string[] = [];
 
     try {
-      await db.transaction(async (tx) => {
+      await db().transaction(async (tx) => {
         // 1. 获取资源
         for (const gain of gains) {
           switch (gain.type) {

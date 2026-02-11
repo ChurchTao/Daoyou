@@ -29,7 +29,7 @@ function validateEmailSubject(
 
 export const GET = withAdminAuth<{ id: string }>(
   async (_request: NextRequest, _ctx, params) => {
-    const template = await db.query.adminMessageTemplates.findFirst({
+    const template = await db().query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, params.id),
     });
 
@@ -43,7 +43,7 @@ export const GET = withAdminAuth<{ id: string }>(
 
 export const PATCH = withAdminAuth<{ id: string }>(
   async (request: NextRequest, { user }, params) => {
-    const template = await db.query.adminMessageTemplates.findFirst({
+    const template = await db().query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, params.id),
     });
 
@@ -95,7 +95,7 @@ export const PATCH = withAdminAuth<{ id: string }>(
     }
     if (parsed.data.status !== undefined) patch.status = parsed.data.status;
 
-    const [updated] = await db
+    const [updated] = await db()
       .update(adminMessageTemplates)
       .set(patch)
       .where(eq(adminMessageTemplates.id, params.id))

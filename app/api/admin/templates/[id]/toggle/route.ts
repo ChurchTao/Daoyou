@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const POST = withAdminAuth<{ id: string }>(
   async (_request: NextRequest, { user }, params) => {
-    const template = await db.query.adminMessageTemplates.findFirst({
+    const template = await db().query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, params.id),
     });
 
@@ -16,7 +16,7 @@ export const POST = withAdminAuth<{ id: string }>(
 
     const nextStatus = template.status === 'active' ? 'disabled' : 'active';
 
-    const [updated] = await db
+    const [updated] = await db()
       .update(adminMessageTemplates)
       .set({
         status: nextStatus,

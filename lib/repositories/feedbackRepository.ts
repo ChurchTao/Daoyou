@@ -26,7 +26,7 @@ export async function createFeedback(data: {
   type: FeedbackType;
   content: string;
 }): Promise<Feedback> {
-  const [feedback] = await db
+  const [feedback] = await db()
     .insert(schema.feedbacks)
     .values({
       userId: data.userId,
@@ -43,7 +43,7 @@ export async function createFeedback(data: {
  * 查询单个反馈记录
  */
 export async function findFeedbackById(id: string): Promise<Feedback | null> {
-  const [feedback] = await db
+  const [feedback] = await db()
     .select()
     .from(schema.feedbacks)
     .where(eq(schema.feedbacks.id, id))
@@ -63,14 +63,14 @@ export async function findFeedbacksByUserId(
   const whereClause = eq(schema.feedbacks.userId, userId);
 
   const [feedbacksResult, countResult] = await Promise.all([
-    db
+    db()
       .select()
       .from(schema.feedbacks)
       .where(whereClause)
       .orderBy(desc(schema.feedbacks.createdAt))
       .limit(limit)
       .offset((page - 1) * limit),
-    db
+    db()
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.feedbacks)
       .where(whereClause),
@@ -114,14 +114,14 @@ export async function findFeedbacks(
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [feedbacksResult, countResult] = await Promise.all([
-    db
+    db()
       .select()
       .from(schema.feedbacks)
       .where(whereClause)
       .orderBy(desc(schema.feedbacks.createdAt))
       .limit(limit)
       .offset((page - 1) * limit),
-    db
+    db()
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.feedbacks)
       .where(whereClause),
@@ -140,7 +140,7 @@ export async function updateFeedbackStatus(
   id: string,
   status: FeedbackStatus,
 ): Promise<Feedback | null> {
-  const [feedback] = await db
+  const [feedback] = await db()
     .update(schema.feedbacks)
     .set({ status })
     .where(eq(schema.feedbacks.id, id))

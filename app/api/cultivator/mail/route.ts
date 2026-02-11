@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
  * 获取当前活跃角色的邮件列表
  */
 export const GET = withActiveCultivator(async (_req, { cultivator }) => {
-  const userMails = await db.query.mails.findMany({
+  const userMails = await db().query.mails.findMany({
     where: eq(mails.cultivatorId, cultivator.id),
     orderBy: [desc(mails.createdAt)],
   });

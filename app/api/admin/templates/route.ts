@@ -40,7 +40,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
     whereConditions.push(eq(adminMessageTemplates.status, status));
   }
 
-  const templates = await db.query.adminMessageTemplates.findMany({
+  const templates = await db().query.adminMessageTemplates.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
     orderBy: [desc(adminMessageTemplates.createdAt)],
   });
@@ -66,7 +66,7 @@ export const POST = withAdminAuth(async (request: NextRequest, { user }) => {
     return NextResponse.json({ error: subjectError }, { status: 400 });
   }
 
-  const [template] = await db
+  const [template] = await db()
     .insert(adminMessageTemplates)
     .values({
       channel: parsed.data.channel,

@@ -14,7 +14,7 @@ export const POST = withActiveCultivator(async (_req, { cultivator }) => {
   }
 
   // Perform Reincarnation Logic
-  await db.transaction(async (tx) => {
+  await db().transaction(async (tx) => {
     // 1. Mark as dead
     await tx
       .update(cultivators)

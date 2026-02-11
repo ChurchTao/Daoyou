@@ -82,7 +82,7 @@ async function getItemSnapshot(
 ): Promise<Material | Artifact | Consumable | null> {
   switch (itemType) {
     case 'material': {
-      const [material] = await db
+      const [material] = await db()
         .select()
         .from(schema.materials)
         .where(eq(schema.materials.id, itemId))
@@ -90,7 +90,7 @@ async function getItemSnapshot(
       return (material as Material | null) || null;
     }
     case 'artifact': {
-      const [artifact] = await db
+      const [artifact] = await db()
         .select()
         .from(schema.artifacts)
         .where(eq(schema.artifacts.id, itemId))
@@ -98,7 +98,7 @@ async function getItemSnapshot(
       return (artifact as Artifact | null) || null;
     }
     case 'consumable': {
-      const [consumable] = await db
+      const [consumable] = await db()
         .select()
         .from(schema.consumables)
         .where(eq(schema.consumables.id, itemId))
@@ -214,7 +214,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + LISTING_DURATION_HOURS);
 
-    await db.transaction(async (tx) => {
+    await db().transaction(async (tx) => {
       // 再次校验物品所有权（事务内）
       const ownedItem = await getItemSnapshot(itemType, itemId);
       if (!ownedItem) {
@@ -308,7 +308,7 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
     const sellerAmount = price - feeAmount;
 
     // 5. 事务：扣除买家灵石 + 更新拍卖状态 + 发送邮件
-    await db.transaction(async (tx) => {
+    await db().transaction(async (tx) => {
       // 5.1 扣除买家灵石（原子操作）
       const [updatedBuyer] = await tx
         .update(schema.cultivators)
@@ -423,7 +423,7 @@ export async function cancelListing(
   }
 
   // 4. 事务：更新状态 + 发送邮件
-  await db.transaction(async (tx) => {
+  await db().transaction(async (tx) => {
     await auctionRepository.updateStatus(tx, listingId, 'cancelled');
 
     // 发送邮件返还物品
@@ -467,7 +467,7 @@ export async function expireListings(): Promise<number> {
   // 2. 批量更新状态并发送邮件
   let processed = 0;
 
-  await db.transaction(async (tx) => {
+  await db().transaction(async (tx) => {
     const expiredIds = expiredListings.map((l) => l.id);
 
     // 批量更新状态

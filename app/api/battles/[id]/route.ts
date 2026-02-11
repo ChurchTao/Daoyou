@@ -24,7 +24,7 @@ export async function GET(req: Request, ctx: Params) {
 
   const { id } = await ctx.params;
 
-  const rows = await db
+  const rows = await db()
     .select()
     .from(battleRecords)
     .where(eq(battleRecords.id, id))

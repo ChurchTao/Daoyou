@@ -19,7 +19,7 @@ export const POST = withActiveCultivator(
     const { mailId } = ReadMailSchema.parse(body);
 
     // Verify mail belongs to this cultivator
-    const mail = await db.query.mails.findFirst({
+    const mail = await db().query.mails.findFirst({
       where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)),
     });
 
@@ -27,7 +27,7 @@ export const POST = withActiveCultivator(
       return NextResponse.json({ error: 'Mail not found' }, { status: 404 });
     }
 
-    await db.update(mails).set({ isRead: true }).where(eq(mails.id, mailId));
+    await db().update(mails).set({ isRead: true }).where(eq(mails.id, mailId));
 
     return NextResponse.json({ success: true });
   },

@@ -99,7 +99,7 @@ export function withActiveCultivator<
       }
 
       // 自动获取当前用户的活跃角色
-      const cultivator = await db.query.cultivators.findFirst({
+      const cultivator = await db().query.cultivators.findFirst({
         where: and(
           eq(cultivators.userId, user.id),
           eq(cultivators.status, 'active'),

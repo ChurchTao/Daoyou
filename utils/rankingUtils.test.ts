@@ -11,14 +11,14 @@ import {
 
 test('test 分数计算', async () => {
   //   遍历左右的法宝、神通、丹药，计算分数
-  const artifactsAll = await db.select().from(artifacts);
-  const skillsAll = await db.select().from(skills);
-  const consumablesAll = await db.select().from(consumables);
+  const artifactsAll = await db().select().from(artifacts);
+  const skillsAll = await db().select().from(skills);
+  const consumablesAll = await db().select().from(consumables);
 
   artifactsAll.forEach(async (artifact) => {
     const score = calculateSingleArtifactScore(artifact as Artifact);
     console.log('artifact', artifact.id, artifact.name, score);
-    const update = await db
+    const update = await db()
       .update(artifacts)
       .set({ score })
       .where(eq(artifacts.id, artifact.id));
@@ -27,7 +27,7 @@ test('test 分数计算', async () => {
 
   skillsAll.forEach(async (skill) => {
     const score = calculateSingleSkillScore(skill as unknown as Skill);
-    const update = await db
+    const update = await db()
       .update(skills)
       .set({ score })
       .where(eq(skills.id, skill.id));
@@ -36,7 +36,7 @@ test('test 分数计算', async () => {
 
   consumablesAll.forEach(async (consumable) => {
     const score = calculateSingleElixirScore(consumable as Consumable);
-    const update = await db
+    const update = await db()
       .update(consumables)
       .set({ score })
       .where(eq(consumables.id, consumable.id));

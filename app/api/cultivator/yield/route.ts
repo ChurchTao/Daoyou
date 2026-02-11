@@ -79,7 +79,7 @@ export const POST = withActiveCultivator(
       let error: string | undefined;
 
       try {
-        await db.transaction(async (tx) => {
+        await db().transaction(async (tx) => {
           // 发放基础奖励（不包含材料）
           for (const gain of operations) {
             switch (gain.type) {

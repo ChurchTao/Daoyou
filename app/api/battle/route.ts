@@ -78,7 +78,7 @@ export const POST = withActiveCultivator(
 
           // 6. 将本次战斗结果以快照方式写入数据库
           try {
-            await db.insert(battleRecords).values({
+            await db().insert(battleRecords).values({
               userId: user.id,
               cultivatorId: cultivator.id,
               battleResult,

@@ -49,3 +49,14 @@ next-env.d.ts
 
 # git worktrees
 /worktrees
+
+
+# OpenNext
+/.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+
+
+!.dev.vars.example

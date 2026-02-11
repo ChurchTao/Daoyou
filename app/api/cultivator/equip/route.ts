@@ -16,7 +16,7 @@ const EquipSchema = z.object({
  */
 export const GET = withActiveCultivator(async (_req, { cultivator }) => {
   // 获取装备状态
-  const equippedItems = await db
+  const equippedItems = await db()
     .select()
     .from(schema.equippedItems)
     .where(eq(schema.equippedItems.cultivatorId, cultivator.id));

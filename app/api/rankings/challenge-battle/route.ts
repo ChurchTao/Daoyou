@@ -172,7 +172,7 @@ export const POST = withActiveCultivator(
 
           // 13. 记录战斗结果
           // 为挑战者记录挑战记录
-          await db.insert(battleRecords).values({
+          await db().insert(battleRecords).values({
             userId: user.id,
             cultivatorId,
             challengeType: 'challenge',

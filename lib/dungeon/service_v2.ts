@@ -814,15 +814,17 @@ ${materialTypeTable}
     realGains?: ResourceOperation[],
   ) {
     // Archive to DB
-    await db.insert(dungeonHistories).values({
-      cultivatorId: state.cultivatorId,
-      theme: state.theme,
-      result: settlement,
-      log: state.history
-        .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
-        .join('\n'),
-      realGains: realGains ?? null,
-    });
+    await db()
+      .insert(dungeonHistories)
+      .values({
+        cultivatorId: state.cultivatorId,
+        theme: state.theme,
+        result: settlement,
+        log: state.history
+          .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
+          .join('\n'),
+        realGains: realGains ?? null,
+      });
 
     // Clear Redis
     await redis.del(getDungeonKey(state.cultivatorId));
@@ -836,20 +838,24 @@ ${materialTypeTable}
 
     const state = await redis.get<DungeonState>(key);
     if (state) {
-      await db.insert(dungeonHistories).values({
-        cultivatorId: state.cultivatorId,
-        theme: state.theme,
-        result: {
-          settlement: {
-            reward_tier: '放弃',
-            ending_narrative: '道友中途放弃了探索。',
+      await db()
+        .insert(dungeonHistories)
+        .values({
+          cultivatorId: state.cultivatorId,
+          theme: state.theme,
+          result: {
+            settlement: {
+              reward_tier: '放弃',
+              ending_narrative: '道友中途放弃了探索。',
+            },
           },
-        },
-        log:
-          state.history
-            .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
-            .join('\n') + '\n[ABANDONED]',
-      });
+          log:
+            state.history
+              .map(
+                (h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`,
+              )
+              .join('\n') + '\n[ABANDONED]',
+        });
     }
 
     await redis.del(key);

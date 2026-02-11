@@ -881,7 +881,7 @@ import { calculateExpCap } from '@/utils/cultivationUtils';
 import { sql } from 'drizzle-orm';
 
 async function migrateCultivationProgress() {
-  const allCultivators = await db.select().from(cultivators);
+  const allCultivators = await db().select().from(cultivators);
   
   for (const cultivator of allCultivators) {
     // 跳过已有修为数据的角色
@@ -902,7 +902,7 @@ async function migrateCultivationProgress() {
       deviation_risk: 0,
     };
     
-    await db.update(cultivators)
+    await db().update(cultivators)
       .set({ cultivation_progress })
       .where(sql`id = ${cultivator.id}`);
   }

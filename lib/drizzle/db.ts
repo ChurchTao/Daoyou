@@ -1,12 +1,19 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { cache } from 'react';
 import * as schema from './schema';
 
 const connectionString = process.env.DATABASE_URL;
 
-// Disable prefetch as it is not supported for "Transaction" pool mode
-const client = postgres(connectionString!, { prepare: false });
+export const db = cache(() => {
+  const pool = new Pool({
+    connectionString: connectionString,
+    // You don't want to reuse the same connection for multiple requests
+    maxUses: 1,
+  });
+  return drizzle({ client: pool, schema });
+});
 
-// 创建drizzle实例
-export const db = drizzle(client, { schema });
-export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbTransaction = Parameters<
+  Parameters<ReturnType<typeof db>['transaction']>[0]
+>[0];

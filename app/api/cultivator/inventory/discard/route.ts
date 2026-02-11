@@ -22,7 +22,7 @@ export const POST = withActiveCultivator(
     // Delete item based on type
     let deleted = false;
     if (itemType === 'artifact') {
-      const result = await db
+      const result = await db()
         .delete(schema.artifacts)
         .where(
           and(
@@ -33,7 +33,7 @@ export const POST = withActiveCultivator(
         .returning();
       deleted = result.length > 0;
     } else if (itemType === 'consumable') {
-      const result = await db
+      const result = await db()
         .delete(schema.consumables)
         .where(
           and(
@@ -44,7 +44,7 @@ export const POST = withActiveCultivator(
         .returning();
       deleted = result.length > 0;
     } else if (itemType === 'material') {
-      const result = await db
+      const result = await db()
         .delete(schema.materials)
         .where(
           and(

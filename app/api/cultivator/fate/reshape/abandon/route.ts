@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 放弃当前重塑（清除缓存和Buff）
  */
 export const POST = withActiveCultivator(
-  async (_request: NextRequest, { cultivator, db: tx }) => {
+  async (_request: NextRequest, { cultivator, db }) => {
     // 查找重塑命格Buff
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
@@ -33,7 +33,7 @@ export const POST = withActiveCultivator(
       (s) => s.instanceId !== reshapeBuff.instanceId,
     );
 
-    await tx
+    await db()
       .update(cultivators)
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));

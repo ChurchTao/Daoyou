@@ -28,7 +28,7 @@ const attachments: MailAttachment[] = [
 describe('MailService', () => {
   // it('should send a system mail', async () => {
   //   // 查询所有 title 不是null的角色
-  //   const cultivators = await db.query.cultivators.findMany({
+  //   const cultivators = await db().query.cultivators.findMany({
   //     where: (cultivators, { isNotNull }) => isNotNull(cultivators.title),
   //   });
   //   cultivators.forEach(async (cultivator) => {
@@ -82,7 +82,7 @@ describe('MailService', () => {
 
   it('给2026年创建的角色发放灵符奖励', async () => {
     const date = new Date('2026-01-01');
-    const items = await db
+    const items = await db()
       .select()
       .from(cultivators)
       .where(or(gte(cultivators.createdAt, date), isNotNull(cultivators.title)))

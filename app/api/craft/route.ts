@@ -52,7 +52,7 @@ export const GET = withActiveCultivator(
 
     if (materialIdsParam && materialIdsParam.length > 0) {
       const materialIds = materialIdsParam.split(',');
-      const materialsData = await db
+      const materialsData = await db()
         .select()
         .from(materials)
         .where(inArray(materials.id, materialIds));

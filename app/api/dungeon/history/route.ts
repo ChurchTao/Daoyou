@@ -24,7 +24,7 @@ export const GET = withActiveCultivator(
     const offset = (page - 1) * pageSize;
 
     // 查询历史记录总数
-    const countResult = await db
+    const countResult = await db()
       .select({ count: sql<number>`count(*)` })
       .from(dungeonHistories)
       .where(eq(dungeonHistories.cultivatorId, cultivator.id));
@@ -33,7 +33,7 @@ export const GET = withActiveCultivator(
     const totalPages = Math.ceil(total / pageSize);
 
     // 查询历史记录
-    const records = await db
+    const records = await db()
       .select({
         id: dungeonHistories.id,
         theme: dungeonHistories.theme,

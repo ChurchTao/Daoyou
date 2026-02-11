@@ -18,7 +18,7 @@ export const POST = withActiveCultivator(
     const body = await request.json();
     const { techniqueId } = ForgetTechniqueSchema.parse(body);
 
-    const deleted = await db
+    const deleted = await db()
       .delete(cultivationTechniques)
       .where(
         and(

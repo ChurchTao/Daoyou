@@ -43,7 +43,7 @@ export const POST = withAuth(async (req, { user }) => {
     }
 
     // 获取用户当前活跃角色（如果有）
-    const activeCultivator = await db.query.cultivators.findFirst({
+    const activeCultivator = await db().query.cultivators.findFirst({
       where: and(
         eq(cultivators.userId, user.id),
         eq(cultivators.status, 'active'),

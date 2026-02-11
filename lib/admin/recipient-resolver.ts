@@ -50,7 +50,7 @@ export async function resolveEmailRecipients(
 
   const activeCultivatorMap = new Map<string, { realm: RealmType }>();
   if (needCultivatorFilter) {
-    const activeCultivators = await db
+    const activeCultivators = await db()
       .select({
         userId: cultivators.userId,
         realm: cultivators.realm,
@@ -132,7 +132,7 @@ export async function resolveGameMailRecipients(
     whereConditions.push(lte(cultivators.createdAt, createdTo));
   }
 
-  const rows = await db
+  const rows = await db()
     .select({
       id: cultivators.id,
       realm: cultivators.realm,

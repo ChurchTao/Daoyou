@@ -18,7 +18,7 @@ const CommitSchema = z.object({
  * 提交命格替换
  */
 export const POST = withActiveCultivator(
-  async (request: NextRequest, { cultivator, db: tx }) => {
+  async (request: NextRequest, { cultivator, db }) => {
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
     const reshapeBuff = persistentStatuses.find(
@@ -79,7 +79,7 @@ export const POST = withActiveCultivator(
     }
 
     // 从数据库查询当前命格
-    const currentFates = await tx
+    const currentFates = await db()
       .select()
       .from(preHeavenFates)
       .where(eq(preHeavenFates.cultivatorId, cultivator.id!));
@@ -90,7 +90,7 @@ export const POST = withActiveCultivator(
       for (const index of replaceIndices) {
         if (index >= 0 && index < currentFates.length) {
           const oldFate = currentFates[index];
-          await tx
+          await db()
             .delete(preHeavenFates)
             .where(eq(preHeavenFates.id, oldFate.id));
         }
@@ -111,13 +111,15 @@ export const POST = withActiveCultivator(
 
     // 添加新命格（独立于删除操作）
     for (const fate of newFates) {
-      await tx.insert(preHeavenFates).values({
-        cultivatorId: cultivator.id!,
-        name: fate.name,
-        quality: fate.quality,
-        effects: fate.effects as EffectConfig[],
-        description: fate.description,
-      });
+      await db()
+        .insert(preHeavenFates)
+        .values({
+          cultivatorId: cultivator.id!,
+          name: fate.name,
+          quality: fate.quality,
+          effects: fate.effects as EffectConfig[],
+          description: fate.description,
+        });
     }
 
     // 移除Redis缓存
@@ -128,7 +130,7 @@ export const POST = withActiveCultivator(
       (s) => s.instanceId !== reshapeBuff.instanceId,
     );
 
-    await tx
+    await db()
       .update(cultivators)
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));

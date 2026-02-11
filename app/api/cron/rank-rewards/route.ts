@@ -13,7 +13,7 @@ export async function GET() {
   try {
     // 1. Fetch Top 100 Cultivators
     // Simple ranking by realm/stage/attributes for now
-    const topCultivators = await db
+    const topCultivators = await db()
       .select({ id: cultivators.id })
       .from(cultivators)
       .limit(100)
@@ -44,7 +44,7 @@ export async function GET() {
       else if (rank <= 50) reward = RANKING_REWARDS['11-50'];
       else reward = RANKING_REWARDS['51-100'];
 
-      await db
+      await db()
         .update(cultivators)
         .set({ spirit_stones: sql`${cultivators.spirit_stones} + ${reward}` })
         .where(eq(cultivators.id, topCultivators[i].id));

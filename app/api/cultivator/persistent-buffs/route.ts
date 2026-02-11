@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 优化：自动清理过期的持久化状态
  */
 export const GET = withActiveCultivator(
-  async (_request: NextRequest, { cultivator, db: tx }) => {
+  async (_request: NextRequest, { cultivator, db }) => {
     // 将数据库记录转换为 Cultivator 对象
     const cultivatorData = createMinimalCultivator(cultivator);
 
@@ -26,7 +26,7 @@ export const GET = withActiveCultivator(
 
     // 如果有过期状态需要清理，更新数据库
     if (unit.hasDirtyPersistentStatuses()) {
-      await tx
+      await db()
         .update(cultivators)
         .set({ persistent_statuses: validStatuses })
         .where(eq(cultivators.id, cultivator.id!));
