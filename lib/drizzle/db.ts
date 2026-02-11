@@ -4,9 +4,14 @@ import { cache } from 'react';
 import * as schema from './schema';
 
 const connectionString = process.env.DATABASE_URL;
-const client = postgres(connectionString, { prepare: false });
 
 export const db = cache(() => {
+  const client = postgres(connectionString, {
+    prepare: false,
+    max: 1,
+    connect_timeout: 8,
+    idle_timeout: 20,
+  });
   return drizzle(client, { schema });
 });
 
