@@ -5,6 +5,7 @@
   "license": "GPL-3.0",
   "scripts": {
     "build": "next build",
+    "build:cf": "opennextjs-cloudflare build",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "dev": "next dev",
