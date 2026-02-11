@@ -1,17 +1,13 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { cache } from 'react';
 import * as schema from './schema';
 
 const connectionString = process.env.DATABASE_URL;
+const client = postgres(connectionString, { prepare: false });
 
 export const db = cache(() => {
-  const pool = new Pool({
-    connectionString: connectionString,
-    // You don't want to reuse the same connection for multiple requests
-    maxUses: 1,
-  });
-  return drizzle({ client: pool, schema });
+  return drizzle(client, { schema });
 });
 
 export type DbTransaction = Parameters<
