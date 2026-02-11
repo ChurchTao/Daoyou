@@ -18,14 +18,21 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
+    captchaToken?: string,
   ) => Promise<{ error: AuthError | null }>;
   signIn: (
     email: string,
     password: string,
+    captchaToken?: string,
   ) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
-  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-  createAnonymousUser: () => Promise<{ error: AuthError | null }>;
+  resetPassword: (
+    email: string,
+    captchaToken?: string,
+  ) => Promise<{ error: AuthError | null }>;
+  createAnonymousUser: (
+    captchaToken?: string,
+  ) => Promise<{ error: AuthError | null }>;
   linkAnonymousUser: (
     email: string,
     password: string,
@@ -67,16 +74,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, [supabase.auth]);
 
   // 注册
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signUp = async (
+    email: string,
+    password: string,
+    captchaToken?: string,
+  ) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        captchaToken,
+      },
+    });
     return { error };
   };
 
   // 登录
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (
+    email: string,
+    password: string,
+    captchaToken?: string,
+  ) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        captchaToken,
+      },
     });
     return { error };
   };
@@ -88,14 +112,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   // 重置密码
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const resetPassword = async (email: string, captchaToken?: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      captchaToken,
+    });
     return { error };
   };
 
   // 创建匿名用户
-  const createAnonymousUser = async () => {
-    const { error } = await supabase.auth.signInAnonymously();
+  const createAnonymousUser = async (captchaToken?: string) => {
+    const { error } = await supabase.auth.signInAnonymously({
+      options: {
+        captchaToken,
+      },
+    });
     return { error };
   };
 

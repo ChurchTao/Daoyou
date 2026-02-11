@@ -79,7 +79,7 @@ export function Navbar() {
             </a>
           ))}
           <Link
-            href="/create"
+            href="/game/create"
             className="border-ink text-ink hover:bg-ink hover:text-paper rounded border px-4 py-1.5 text-sm transition-colors"
           >
             开启修行
@@ -110,7 +110,7 @@ export function Navbar() {
             </a>
           ))}
           <Link
-            href="/create"
+            href="/game/create"
             onClick={() => setMenuOpen(false)}
             className="bg-ink text-paper block rounded py-3 text-center"
           >

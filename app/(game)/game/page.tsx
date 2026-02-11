@@ -1,6 +1,5 @@
 'use client';
 
-import { WelcomeRedirect } from '@/components/welcome/WelcomeRedirect';
 import { Suspense } from 'react';
 import { HomeView } from './components/HomeView';
 
@@ -10,16 +9,14 @@ import { HomeView } from './components/HomeView';
  */
 export default function HomePage() {
   return (
-    <WelcomeRedirect>
-      <Suspense
-        fallback={
-          <div className="bg-paper flex min-h-screen items-center justify-center">
-            <p className="loading-tip">正在推演天机……</p>
-          </div>
-        }
-      >
-        <HomeView />
-      </Suspense>
-    </WelcomeRedirect>
+    <Suspense
+      fallback={
+        <div className="bg-paper flex min-h-screen items-center justify-center">
+          <p className="loading-tip">正在推演天机……</p>
+        </div>
+      }
+    >
+      <HomeView />
+    </Suspense>
   );
 }

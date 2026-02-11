@@ -14,7 +14,7 @@ import {
   InkNotice,
   InkStatusBar,
 } from '@/components/ui';
-import { DivineFortune } from '@/components/welcome/DivineFortune';
+import { DivineFortune } from '@/components/feature/home/DivineFortune';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
@@ -128,7 +128,7 @@ export function HomeView() {
           <>
             <InkNotice>
               道友尚未觉醒灵根，
-              <InkButton href="/create" variant="primary">
+              <InkButton href="/game/create" variant="primary">
                 速去觉醒
               </InkButton>
             </InkNotice>

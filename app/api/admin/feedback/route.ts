@@ -1,5 +1,6 @@
 import { withAdminAuth } from '@/lib/api/adminAuth';
 import { db } from '@/lib/drizzle/db';
+import { cultivators } from '@/lib/drizzle/schema';
 import {
   findFeedbacks,
   type FeedbackStatus,
@@ -56,10 +57,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
       // 获取角色信息
       if (feedback.cultivatorId) {
         const cultivator = await db.query.cultivators.findFirst({
-          where: eq(
-            require('@/lib/drizzle/schema').cultivators.id,
-            feedback.cultivatorId,
-          ),
+          where: eq(cultivators.id, feedback.cultivatorId),
           columns: { name: true, realm: true },
         });
         if (cultivator) {

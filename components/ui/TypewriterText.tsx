@@ -36,7 +36,7 @@ export function TypewriterText({
     <span
       className={cn(
         'inline-block whitespace-pre-wrap',
-        vertical && 'writing-mode-vertical',
+        vertical && '[writing-mode:vertical-rl] [text-orientation:upright]',
         className,
       )}
     >

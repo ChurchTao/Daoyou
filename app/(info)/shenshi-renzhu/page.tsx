@@ -1,5 +1,8 @@
 'use client';
 
+import TurnstileCaptcha, {
+  type TurnstileCaptchaHandle,
+} from '@/components/auth/TurnstileCaptcha';
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkButton } from '@/components/ui/InkButton';
@@ -8,19 +11,22 @@ import { InkNotice } from '@/components/ui/InkNotice';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 function ShenShiRenZhuContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pushToast } = useInkUI();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, createAnonymousUser } = useAuth();
   const supabase = createClient();
 
   const [email, setEmail] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileCaptchaHandle | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   // Check if user came back from email confirmation link
   useEffect(() => {
@@ -54,9 +60,28 @@ function ShenShiRenZhuContent() {
       pushToast({ message: '飞鸽传书地址格式有误', tone: 'warning' });
       return;
     }
+    if (!turnstileSiteKey) {
+      pushToast({
+        message: '未配置验证码站点密钥，请联系管理员',
+        tone: 'danger',
+      });
+      return;
+    }
+    if (!captchaToken) {
+      pushToast({ message: '请先完成人机验证', tone: 'warning' });
+      return;
+    }
 
     setSendingEmail(true);
     try {
+      // 全局 CAPTCHA 开启后，匿名会话必须带 token 创建。
+      if (!user) {
+        const { error: createError } = await createAnonymousUser(captchaToken);
+        if (createError) {
+          throw createError;
+        }
+      }
+
       // Use updateUser to send email confirmation
       // This will send an email with a confirmation link
       const { error } = await supabase.auth.updateUser(
@@ -87,6 +112,7 @@ function ShenShiRenZhuContent() {
         error instanceof Error ? error.message : '发送失败，请稍后重试';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
+      turnstileRef.current?.reset();
       setSendingEmail(false);
     }
   };
@@ -139,6 +165,11 @@ function ShenShiRenZhuContent() {
               >
                 {sendingEmail ? '发送中…' : '发送天机印'}
               </InkButton>
+
+              <TurnstileCaptcha
+                ref={turnstileRef}
+                onTokenChange={setCaptchaToken}
+              />
             </div>
           </>
         ) : (

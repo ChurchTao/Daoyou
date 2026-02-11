@@ -58,7 +58,7 @@ export function RetreatView() {
       >
         <InkNotice>
           尚未觉醒灵根，无法入驻洞府。
-          <InkButton href="/create" variant="primary" className="ml-2">
+          <InkButton href="/game/create" variant="primary" className="ml-2">
             前往觉醒 →
           </InkButton>
         </InkNotice>

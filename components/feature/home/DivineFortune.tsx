@@ -2,7 +2,7 @@
 
 import { useDivineFortune } from '@/lib/hooks/useDivineFortune';
 import { cn } from '@/lib/utils';
-import { TypewriterText } from './TypewriterText';
+import { TypewriterText } from '@/components/ui/TypewriterText';
 
 interface DivineFortuneProps {
   className?: string;

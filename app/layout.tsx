@@ -1,8 +1,6 @@
 import { InkUIProvider } from '@/components/providers/InkUIProvider';
-import '@/components/welcome/welcome.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import AnonymousUserManager from '../components/AnonymousUserManager';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import './globals.css';
 
@@ -22,7 +20,6 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased">
         <AuthProvider>
-          <AnonymousUserManager />
           <InkUIProvider>{children}</InkUIProvider>
         </AuthProvider>
       </body>

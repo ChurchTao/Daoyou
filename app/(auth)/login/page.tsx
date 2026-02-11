@@ -1,5 +1,8 @@
 'use client';
 
+import TurnstileCaptcha, {
+  type TurnstileCaptchaHandle,
+} from '@/components/auth/TurnstileCaptcha';
 import { InkPageShell } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkButton } from '@/components/ui/InkButton';
@@ -8,7 +11,7 @@ import { InkNotice } from '@/components/ui/InkNotice';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 function LoginPageContent() {
   const router = useRouter();
@@ -22,6 +25,9 @@ function LoginPageContent() {
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileCaptchaHandle | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   // Check if user came back from magic link (keeping as fallback)
   useEffect(() => {
@@ -54,6 +60,17 @@ function LoginPageContent() {
       pushToast({ message: '飞鸽传书地址格式有误', tone: 'warning' });
       return;
     }
+    if (!turnstileSiteKey) {
+      pushToast({
+        message: '未配置验证码站点密钥，请联系管理员',
+        tone: 'danger',
+      });
+      return;
+    }
+    if (!captchaToken) {
+      pushToast({ message: '请先完成人机验证', tone: 'warning' });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -61,6 +78,7 @@ function LoginPageContent() {
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: false,
+          captchaToken,
         },
       });
 
@@ -84,6 +102,7 @@ function LoginPageContent() {
         error instanceof Error ? error.message : '发送失败，请稍后重试';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
+      turnstileRef.current?.reset();
       setLoading(false);
     }
   };
@@ -111,6 +130,7 @@ function LoginPageContent() {
     } catch (error) {
       console.error(error);
       pushToast({ message: '召唤符有误或已失效', tone: 'danger' });
+    } finally {
       setLoading(false);
     }
   };
@@ -162,6 +182,11 @@ function LoginPageContent() {
               >
                 {loading ? '发送中…' : '发送召唤符'}
               </InkButton>
+
+              <TurnstileCaptcha
+                ref={turnstileRef}
+                onTokenChange={setCaptchaToken}
+              />
             </div>
           </>
         ) : (

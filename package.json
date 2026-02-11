@@ -15,6 +15,7 @@
     "@ai-sdk/deepseek": "^2.0.8",
     "@ai-sdk/openai": "^3.0.14",
     "@ai-sdk/react": "^3.0.46",
+    "@marsidev/react-turnstile": "^1.4.2",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",

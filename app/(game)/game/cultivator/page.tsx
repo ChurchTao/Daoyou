@@ -67,7 +67,7 @@ export default function CultivatorPage() {
         subtitle="需先觉醒方可照鉴真形"
         backHref="/game"
         actions={
-          <InkButton href="/create" variant="primary">
+          <InkButton href="/game/create" variant="primary">
             觉醒灵根
           </InkButton>
         }

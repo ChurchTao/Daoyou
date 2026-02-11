@@ -175,12 +175,12 @@ export default function LandingPage() {
           </div>
 
           <div className="fade-in-up flex flex-col items-center justify-center gap-5 delay-400 sm:flex-row">
-            <Link href="/create" className="cta-button group">
-              <span className="relative z-10">觉醒灵根</span>
+            <Link href="/enter" className="cta-button group">
+              <span className="relative z-10">进入道界</span>
               <div className="absolute inset-0 origin-left scale-x-0 rounded bg-white/20 transition-transform duration-300 group-hover:scale-x-100" />
             </Link>
-            <Link href="/game" className="cta-button-secondary group">
-              <span>继续仙途</span>
+            <Link href="/login" className="cta-button-secondary group">
+              <span>召回真身</span>
             </Link>
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function LandingPage() {
 
           <div className="mt-16 text-center">
             <Link
-              href="/create"
+              href="/game/create"
               className="text-crimson hover:text-ink font-heading border-crimson/30 hover:border-ink inline-flex items-center gap-2 border-b pb-0.5 text-lg transition-colors"
             >
               <span>查看更多玩法说明</span>
@@ -360,7 +360,7 @@ export default function LandingPage() {
             你的修仙传说，从此刻开始书写。
           </p>
           <Link
-            href="/create"
+            href="/game/create"
             className="cta-button px-12 py-4 text-xl shadow-xl hover:-translate-y-1 hover:shadow-2xl"
           >
             立即开始

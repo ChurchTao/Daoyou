@@ -85,7 +85,7 @@ export default function ReincarnatePage() {
           轮回之门已开，点击下方按钮可携前世记忆（故事文案）重新创建角色。
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <InkButton variant="primary" href="/create">
+          <InkButton variant="primary" href="/game/create">
             以新身入道 →
           </InkButton>
           <InkButton onClick={() => router.push('/game')}>返回主界 →</InkButton>
