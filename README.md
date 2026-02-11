@@ -9,14 +9,21 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL v3"></a>
-  <a href="#项目愿景">项目愿景</a> •
-  <a href="#核心特色">核心特色</a> •
-  <a href="#已实现功能">功能状态</a> •
-  <a href="#技术栈">技术栈</a> •
-  <a href="#快速开始">快速开始</a> •
-  <a href="#文档导航">文档导航</a> •
-  <a href="#贡献指南">贡献指南</a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL v3" /></a>
+  <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-149eca" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178c6" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Deploy-Vercel%20%7C%20Cloudflare-orange" alt="Deploy Targets" />
+</p>
+
+<p align="center">
+  <a href="#-项目亮点">项目亮点</a> •
+  <a href="#-快速开始">快速开始</a> •
+  <a href="#-部署指南">部署指南</a> •
+  <a href="#-功能矩阵">功能矩阵</a> •
+  <a href="#-架构总览">架构总览</a> •
+  <a href="#-roadmap">Roadmap</a> •
+  <a href="#-贡献指南">贡献指南</a>
 </p>
 
 ---
@@ -37,318 +44,212 @@
 - 📱 **水墨风 UI**：基于 `Ink` 组件库（21 个组件）打造的纯文字 UI，简洁优雅，沉浸感强。
 - 🛠️ **开发者友好**：清晰的分层架构（Engine/Service/API），TypeScript 全栈开发，易于扩展与二创。
 
-## 游戏画面
+## 🖼 游戏画面
 
 <p align="center">
   <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a24f22a.webp" alt="游戏主界面" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a5b175b.webp" alt="游戏主界面下方" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a5b175b.webp" alt="主界面下方信息" width="260" />
   <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a173b4.webp" alt="修仙界大地图" width="260" />
 </p>
 
 <p align="center">
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c999ec03a.webp" alt="造物仙炉 炼器、炼丹" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a4ba0b.webp" alt="藏经阁 创造功法、神通" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a80520.webp" alt="云游坊市 随机市场" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c999ec03a.webp" alt="造物仙炉" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a4ba0b.webp" alt="藏经阁" width="260" />
+  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a80520.webp" alt="云游坊市" width="260" />
 </p>
 
-<p align="center">
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a227b8e.webp" alt="储物袋" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c89e2e5c7.webp" alt="道具展示" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981ca32c8604.webp" alt="副本选择页" width="260" />
-</p>
+## 🚀 快速开始
 
-## 项目状态
+### 1. 环境要求
 
-**当前版本**: v0.1.0 (开发中)
+- Node.js 18+
+- npm 10+
+- PostgreSQL（推荐 Supabase）
+- Redis（推荐 Upstash）
 
-**核心系统完成度**:
-
-- 战斗引擎: ✅ 完成
-- 效果系统: ✅ 完成 (28 种效果类型)
-- Buff 系统: ✅ 完成 (20+ 模板)
-- 创建系统: ✅ 完成 (技能/功法/炼器/炼丹)
-- 角色系统: ✅ 基础完成
-- AI 集成: ✅ 完成 (多 Provider 支持)
-- UI 组件库: ✅ 完成 (21 个组件)
-
-**待实现功能**:
-
-- 轮回转世系统
-- 宗门系统
-- 更多奇遇类型
-- 移动端适配优化
-
-## 已实现功能
-
-### 🧘 角色系统
-
-- ✅ **AI 塑形**：通过一句话描述生成完整的角色设定（性格、出身、初始属性）
-- ✅ **属性管理**：体魄、灵力、悟性、速度、神识五维属性，结合灵根与命格决定成长上限
-- ✅ **灵根系统**：8 种元素（金木水火土风雷冰），支持变异灵根
-- ✅ **境界系统**：9 个境界（炼气至渡劫），每境界 4 个阶段（初期/中期/后期/圆满）
-- 🔄 **轮回转世**：规划中
-
-### ⚔️ 战斗系统
-
-- ✅ **战斗引擎**：基于时间轴的回合制战斗（`BattleEngine.v2.ts`）
-- ✅ **技能执行**：完整的技能执行器（`SkillExecutor`）
-- ✅ **伤害管道**：多阶段伤害计算与修正
-- ✅ **SSE 流式输出**：实时推送战斗过程
-- ✅ **AI 战报**：将战斗日志转化为修仙小说片段
-- ✅ **PVE 战斗**：副本挑战、妖兽战斗
-- ✅ **PVP 战斗**：天骄榜挑战
-
-### 💫 效果系统
-
-- ✅ **19 个触发时机**：属性计算、战斗流程、命中相关、伤害相关、系统事件
-- ✅ **28 种效果类型**：包括伤害、治疗、护盾、吸血、反伤、元素加成、斩杀、真实伤害等
-- ✅ **4 个属性修正阶段**：BASE → FIXED → PERCENT → FINAL
-- ✅ **效果日志收集器**：统一收集执行日志用于战报生成
-
-### 🎭 Buff 系统
-
-- ✅ **BuffManager**：Buff 管理器，处理添加/移除/触发
-- ✅ **BuffMaterializer**：Buff 实体化器，将模板转为可执行的 Buff
-- ✅ **20+ Buff 模板**：属性加成、状态效果、特殊机制（带 emoji 图标）
-- ✅ **24 种状态效果**：战斗状态、持久状态、环境状态
-
-### 🔮 创建系统
-
-- ✅ **CreationEngine**：创建引擎主控（策略模式）
-- ✅ **EffectMaterializer**：效果实体化器
-- ✅ **技能创建策略**（`SkillCreationStrategy`）
-- ✅ **功法创建策略**（`GongFaCreationStrategy`）
-- ✅ **炼器策略**（`RefiningStrategy`）
-- ✅ **炼丹策略**（`AlchemyStrategy`）
-- ✅ **资源消耗计算器**（`CraftCostCalculator`）：灵石/道心感悟
-
-### 🎒 物品与装备
-
-- ✅ **储物袋**：分类管理法宝、丹药、材料、符箓
-- ✅ **炼器/炼丹**：AI 与规则双重校验，炼制独一无二的法宝与丹药
-- ✅ **装备系统**：武器、防具、饰品三槽位
-- ✅ **消耗品系统**：丹药、符箓（符箓类型已定义）
-
-### 🗺️ 探索与副本
-
-- ✅ **大地图**：基于拓扑结构的世界地图
-- ✅ **副本机制**：五轮制探索，AI 动态生成场景与选项
-- ✅ **奇遇系统**：随机触发的神签、机缘
-
-### 🏆 社交与排行
-
-- ✅ **天骄榜**：实时更新的战力排行
-- ✅ **传音玉简**：邮件系统
-- ✅ **坊市**：随机刷新的交易市场
-- ✅ **排行榜奖励**：每日结算奖励
-
-### 🧘 修炼系统
-
-- ✅ **闭关修炼**：获得修为与道心感悟
-- ✅ **突破系统**：境界突破判定与成功率计算
-- ✅ **突破故事**：AI 生成突破剧情
-- ✅ **命格重塑**：先天命格重塑功能
-
-### 🎨 UI 组件库（Ink）
-
-- ✅ **21 个基础组件**：InkButton, InkCard, InkDialog, InkInput, InkList, InkNav, InkNotice, InkStatRow, InkStatusBar, InkTabs, InkTag, InkToast 等
-- ✅ **特效组件**：EffectCard, EffectDetailModal
-- ✅ **水墨风格**：Tailwind CSS 4 定制样式
-
-### 🛠️ 开发者工具
-
-- ✅ **10+ 测试文件**：覆盖战斗、效果、创建系统
-- ✅ **类型安全**：全 TypeScript 类型定义
-- ✅ **代码规范**：ESLint + Prettier 配置
-
-## 技术栈
-
-本项目采用现代化的全栈技术架构：
-
-- **前端框架**: [Next.js 16.1.4](https://nextjs.org/) (App Router)
-- **UI 框架**: [React 19.2.3](https://react.dev/)
-- **语言**: [TypeScript 5](https://www.typescriptlang.org/)
-- **样式**: [Tailwind CSS 4](https://tailwindcss.com/) + PostCSS
-- **数据库**: [Supabase](https://supabase.com/) (PostgreSQL)
-- **ORM**: [Drizzle ORM 0.45.1](https://orm.drizzle.team/)
-- **缓存/队列**: [Upstash Redis](https://upstash.com/)
-- **AI 服务**: [Vercel AI SDK 6.0.44](https://sdk.vercel.ai/) + DeepSeek / 火山引擎 ARK / Kimi
-- **部署**: Vercel
-- **包管理器**: npm
-
-## 架构概览
-
-```mermaid
-graph TB
-subgraph "前端 (Next.js App Router)"
-Pages["页面 (Pages)
-- website: 落地页
-- game: 游戏主界面
-- auth: 创建/登录
-- info: 游戏介绍"]
-Components["组件库
-- ui: Ink 组件库 (21个)
-- feature: 功能组件
-- layout: 布局组件"]
-end
-
-subgraph "后端 (API Routes)"
-API["REST API
-- battle: 战斗接口
-- craft: 炼器炼丹
-- dungeon: 副本
-- cultivator: 角色管理
-- rankings: 排行榜
-- market: 坊市
-- cron: 定时任务"]
-SSE["SSE 流式接口"]
-end
-
-subgraph "核心引擎 (Engine)"
-BattleEng["战斗引擎
-- BattleEngine.v2
-- SkillExecutor
-- DamagePipeline"]
-EffectEng["效果系统
-- 28种效果类型
-- 19个触发时机
-- EffectLogCollector"]
-BuffSys["Buff系统
-- BuffManager
-- 20+ Buff模板
-- BuffMaterializer"]
-CreationEng["创建系统
-- 技能/功法/炼器/炼丹策略
-- CraftCostCalculator"]
-CharEng["角色引擎
-- CultivatorEngine
-- 属性计算
-- 突破判定"]
-end
-
-subgraph "服务与数据 (Lib)"
-Services["业务服务
-- MailService
-- Repository层"]
-Redis["Redis 缓存
-- 排行榜
-- 坊市刷新
-- 会话管理"]
-DB["PostgreSQL
-- Drizzle ORM"]
-end
-
-subgraph "AI 层"
-AIClient["AI 客户端
-- text/stream_text
-- object/tool
-- 多Provider支持"]
-Prompts["提示词工程
-- 角色背景
-- 战斗播报
-- 突破故事
-- 奇遇场景"]
-end
-
-Pages --> API
-API --> Services
-Services --> Repo
-Services --> AIClient
-Services --> BattleEng
-Services --> EffectEng
-Services --> CreationEng
-Repo --> DB
-Repo --> Redis
-AIClient --> Prompts
-```
-
-## 快速开始
-
-### 1. 环境准备
-
-- Node.js v18+
-- npm 10+（推荐）或 npm/yarn
-- Git
-
-### 2. 克隆项目
+### 2. 克隆与安装
 
 ```bash
-git clone https://github.com/your-username/wanjiedaoyou.git
-cd wanjiedaoyou
-```
-
-### 3. 安装依赖
-
-```bash
+git clone https://github.com/ChurchTao/Daoyou.git
+cd Daoyou
 npm install
 ```
 
-### 4. 环境变量配置
-
-创建 `.env.local` 文件并填入配置：
+### 3. 配置环境变量
 
 ```bash
-# AI Provider 选择 (ark|deepseek|kimi)
-PROVIDER_CHOOSE=deepseek
-
-# DeepSeek 配置
-OPENAI_API_KEY=sk-xxxx
-OPENAI_BASE_URL=https://api.deepseek.com/v1
-OPENAI_MODEL=deepseek-chat
-
-# 或使用火山引擎 ARK
-ARK_API_KEY=xxxx
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_MODEL_USE=xxxx
-ARK_MODEL_FAST_USE=xxxx
-
-# Supabase 配置
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-DATABASE_URL=postgres://...
-
-# Redis 配置 (Upstash)
-UPSTASH_REDIS_REST_URL=...
-UPSTASH_REDIS_REST_TOKEN=...
-
-# Cron 任务密钥
-CRON_SECRET=your-secret-key
+cp .env.example .env.local
 ```
 
-### 5. 数据库初始化
+最低必填（本地可运行）示例：
 
 ```bash
-# 推送 Schema 到数据库
+PROVIDER_CHOOSE=ark
+OPENAI_API_KEY=
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+DATABASE_URL=
+
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+CRON_SECRET=
+```
+
+### 4. 初始化数据库并启动
+
+```bash
 npx drizzle-kit push
-```
-
-### 6. 启动开发服务器
-
-```bash
 npm run dev
 ```
 
-访问 `http://localhost:3000` 开始修仙之旅。
+访问：`http://localhost:3000`
 
-### 核心概念
+## 📦 部署指南
 
-**效果系统**
+### 方案对比
 
-- 19 个触发时机：从属性计算到系统事件的全生命周期覆盖
-- 28 种效果类型：从基础伤害/治疗到高级斩杀/真实伤害
-- 4 个属性修正阶段：确保属性计算的顺序正确性
+| 方案 | 适用场景 | 构建命令 | 部署命令 |
+| --- | --- | --- | --- |
+| Vercel | 常规 Next.js 托管 | `npm run build` | Vercel 平台自动部署 |
+| Cloudflare Workers | 全球边缘节点 / OpenNext | `npm run build:cf` | `npm run deploy:cf` |
 
-**Buff 系统**
+### Vercel 部署
 
-- BuffManager：统一管理 Buff 的生命周期
-- BuffMaterializer：将配置模板转换为可执行实体
-- 20+ Buff 模板：覆盖属性加成、状态效果、特殊机制
+1. 将仓库导入 Vercel。
+2. Build Command: `npm run build`。
+3. 在项目设置中填入 `.env.example` 对应变量。
+4. 确认定时任务路径（`vercel.json`）：`/api/cron/auction-expire`。
 
-**创建系统**
+本地验证：
 
-- 策略模式：技能/功法/炼器/炼丹各有独立的创建策略
-- AI 辅助：结合 AI 生成与规则校验
-- 资源消耗：灵石与道心感悟的双重消耗模型
+```bash
+npm run build
+npm run start
+```
+
+### Cloudflare Workers 部署（OpenNext）
+
+仓库已集成 `@opennextjs/cloudflare`，可直接使用：
+
+- `npm run build:cf`
+- `npm run deploy:cf`
+- `npm run deploy`（构建 + 部署）
+- `npm run preview`
+
+部署步骤：
+
+1. 登录 Cloudflare
+
+```bash
+npx wrangler login
+```
+
+2. 根据 `wrangler.jsonc` 准备资源
+
+- Worker 名：`daoyou`
+- R2 Bucket：`daoyou`（绑定 `NEXT_INC_CACHE_R2_BUCKET`）
+- 绑定：`ASSETS`、`IMAGES`、`WORKER_SELF_REFERENCE`
+
+3. 配置 Secrets（示例）
+
+```bash
+npx wrangler secret put OPENAI_API_KEY
+npx wrangler secret put DATABASE_URL
+npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
+npx wrangler secret put CRON_SECRET
+```
+
+4. 构建与部署
+
+```bash
+npm run build:cf
+npm run deploy:cf
+```
+
+## 🧩 功能矩阵
+
+| 模块      | 状态 | 说明                                     |
+| --------- | ---- | ---------------------------------------- |
+| 战斗引擎  | ✅   | 时间轴回合制、技能执行、伤害管道         |
+| 效果系统  | ✅   | 19 触发时机、28 效果类型、多阶段属性修正 |
+| Buff 系统 | ✅   | BuffManager、模板实体化、状态编排        |
+| 创建系统  | ✅   | 技能 / 功法 / 炼器 / 炼丹策略模式        |
+| AI 集成   | ✅   | DeepSeek / ARK / Kimi 多 Provider        |
+| UI 组件库 | ✅   | Ink 风格组件体系                         |
+| 轮回转世  | 🚧   | 规划中                                   |
+| 宗门系统  | 🚧   | 规划中                                   |
+
+## 🧱 技术栈
+
+| 层级     | 技术                                            |
+| -------- | ----------------------------------------------- |
+| 应用框架 | Next.js 16 (App Router), React 19, TypeScript 5 |
+| 样式系统 | Tailwind CSS 4                                  |
+| 数据层   | Supabase PostgreSQL, Drizzle ORM                |
+| 缓存层   | Upstash Redis                                   |
+| AI 能力  | Vercel AI SDK + 多 Provider                     |
+| 部署平台 | Vercel / Cloudflare Workers (OpenNext)          |
+
+## 🏗 架构总览
+
+```mermaid
+graph TB
+subgraph "Frontend"
+Pages["Next.js App Router"]
+UI["Ink Components"]
+end
+
+subgraph "Backend"
+API["API Routes + SSE"]
+end
+
+subgraph "Engine"
+Battle["BattleEngine"]
+Effect["Effect System"]
+Buff["Buff System"]
+Creation["Creation Engine"]
+end
+
+subgraph "Infra"
+Svc["Services / Repository"]
+PG["PostgreSQL"]
+Redis["Redis"]
+AI["AI Providers"]
+end
+
+Pages --> API
+UI --> API
+API --> Svc
+Svc --> Battle
+Svc --> Effect
+Svc --> Buff
+Svc --> Creation
+Svc --> PG
+Svc --> Redis
+Svc --> AI
+```
+
+## 🛠 常用命令
+
+```bash
+npm run dev       # 本地开发
+npm run lint      # 代码检查
+npm test          # 单元测试
+npm run build     # Next.js 生产构建
+npm run build:cf  # OpenNext Cloudflare 构建
+npm run deploy:cf # Cloudflare 部署
+npm run preview   # Cloudflare 本地预览
+```
+
+## 🗺 Roadmap
+
+- [ ] 轮回转世系统
+- [ ] 宗门系统
+- [ ] 更多奇遇模板与事件编排
+- [ ] 移动端交互体验优化
+- [ ] 更完整的 PVE / PVP 赛季机制
 
 ## 贡献指南
 
