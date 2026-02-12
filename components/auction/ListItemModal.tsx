@@ -6,10 +6,10 @@ import {
   InkButton,
   InkInput,
   InkList,
-  InkListItem,
   InkNotice,
   InkTabs,
 } from '@/components/ui';
+import { EffectCard } from '@/components/ui/EffectCard';
 import type {
   Artifact,
   Consumable,
@@ -17,9 +17,9 @@ import type {
   Material,
 } from '@/types/cultivator';
 import {
-  getConsumableRankInfo,
+  CONSUMABLE_TYPE_DISPLAY_MAP,
+  getEquipmentSlotInfo,
   getMaterialTypeInfo,
-  getQualityInfo,
 } from '@/types/dictionaries';
 import { useState } from 'react';
 
@@ -34,6 +34,12 @@ type SelectableItem = (Material | Artifact | Consumable) & {
   itemType: ItemType;
 };
 
+function isStackableItem(
+  item: SelectableItem,
+): item is (Material | Consumable) & { itemType: 'material' | 'consumable' } {
+  return item.itemType !== 'artifact';
+}
+
 export function ListItemModal({
   onClose,
   onSuccess,
@@ -43,6 +49,7 @@ export function ListItemModal({
   const [activeType, setActiveType] = useState<ItemType>('material');
   const [selectedItem, setSelectedItem] = useState<SelectableItem | null>(null);
   const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,6 +66,7 @@ export function ListItemModal({
 
   const handleSelectItem = (item: SelectableItem) => {
     setSelectedItem(item);
+    setQuantity('1');
     setStep('price');
   };
 
@@ -66,13 +74,32 @@ export function ListItemModal({
     setStep('select');
     setSelectedItem(null);
     setPrice('');
+    setQuantity('1');
     setError('');
   };
 
   const handleSubmitPrice = async () => {
+    if (!selectedItem) return;
+    if (!selectedItem.id) {
+      setError('物品ID无效，请刷新后重试');
+      return;
+    }
+
     const priceNum = parseInt(price);
     if (isNaN(priceNum) || priceNum < 1) {
       setError('价格必须至少为 1 灵石');
+      return;
+    }
+
+    const isStackable = isStackableItem(selectedItem);
+    const quantityNum = isStackable ? parseInt(quantity) : 1;
+    if (
+      isStackable &&
+      (isNaN(quantityNum) ||
+        quantityNum < 1 ||
+        quantityNum > selectedItem.quantity)
+    ) {
+      setError(`数量范围为 1 ~ ${selectedItem.quantity}`);
       return;
     }
 
@@ -84,9 +111,10 @@ export function ListItemModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          itemType: selectedItem!.itemType,
-          itemId: selectedItem!.id,
+          itemType: selectedItem.itemType,
+          itemId: selectedItem.id,
           price: priceNum,
+          quantity: quantityNum,
         }),
       });
 
@@ -103,7 +131,7 @@ export function ListItemModal({
     }
   };
 
-  const getItemDisplay = (item: SelectableItem) => {
+  const getItemDisplayProps = (item: SelectableItem) => {
     const baseInfo = {
       name: item.name,
       description: item.description,
@@ -115,34 +143,47 @@ export function ListItemModal({
         const typeInfo = getMaterialTypeInfo(material.type);
         return {
           ...baseInfo,
-          badge: <InkBadge tier={material.rank}>{typeInfo.label}</InkBadge>,
-          meta: `${typeInfo.icon} · ${material.element || '无属性'}`,
+          icon: typeInfo.icon,
+          quality: material.rank,
+          badgeExtra: (
+            <>
+              <InkBadge tone="default">{typeInfo.label}</InkBadge>
+              {material.element && (
+                <InkBadge tone="default">{material.element}</InkBadge>
+              )}
+            </>
+          ),
         };
       }
       case 'artifact': {
         const artifact = item as Artifact;
-        const qualityInfo = getQualityInfo(artifact.quality || '凡品');
+        const slotInfo = getEquipmentSlotInfo(artifact.slot);
         return {
           ...baseInfo,
-          badge: (
-            <InkBadge tier={artifact.quality || '凡品'}>
-              {qualityInfo.label}
-            </InkBadge>
+          icon: slotInfo.icon,
+          quality: artifact.quality,
+          effects: artifact.effects,
+          badgeExtra: (
+            <>
+              <InkBadge tone="default">{artifact.element}</InkBadge>
+              <InkBadge tone="default">{slotInfo.label}</InkBadge>
+            </>
           ),
-          meta: `⚔️ · ${artifact.element} · ${artifact.slot}`,
         };
       }
       case 'consumable': {
         const consumable = item as Consumable;
-        const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
+        const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
         return {
           ...baseInfo,
-          badge: (
-            <InkBadge tier={consumable.quality || '凡品'}>
-              {rankInfo.label}
-            </InkBadge>
+          icon: typeInfo.icon,
+          quality: consumable.quality,
+          effects: consumable.effects,
+          badgeExtra: (
+            <>
+              <InkBadge tone="default">{consumable.type}</InkBadge>
+            </>
           ),
-          meta: `💊 · ${consumable.type}`,
         };
       }
     }
@@ -187,7 +228,11 @@ export function ListItemModal({
           {step === 'price' && (
             <InkButton
               onClick={handleSubmitPrice}
-              disabled={isSubmitting || !price}
+              disabled={
+                isSubmitting ||
+                !price ||
+                (selectedItem?.itemType !== 'artifact' && !quantity)
+              }
               variant="primary"
               className="flex-1"
             >
@@ -208,26 +253,27 @@ export function ListItemModal({
             {getCurrentItems().length > 0 ? (
               <InkList>
                 {getCurrentItems().map((item) => {
-                  const display = getItemDisplay(item);
+                  const displayProps = getItemDisplayProps(item);
                   return (
-                    <InkListItem
+                    <EffectCard
                       key={item.id}
-                      title={
-                        <>
-                          {display.name}
-                          <div className="ml-auto">{display.badge}</div>
-                        </>
+                      layout="col"
+                      {...displayProps}
+                      meta={
+                        <div className="text-ink-secondary mt-1 text-xs">
+                          数量: x{isStackableItem(item) ? item.quantity : 1}
+                        </div>
                       }
-                      meta={display.meta}
-                      description={display.description}
                       actions={
-                        <InkButton
-                          onClick={() => handleSelectItem(item)}
-                          variant="primary"
-                          className="min-w-16"
-                        >
-                          选择
-                        </InkButton>
+                        <div className="flex w-full justify-end">
+                          <InkButton
+                            onClick={() => handleSelectItem(item)}
+                            variant="primary"
+                            className="min-w-16"
+                          >
+                            选择
+                          </InkButton>
+                        </div>
                       }
                     />
                   );
@@ -249,13 +295,34 @@ export function ListItemModal({
               <div className="flex items-center gap-2">
                 <span className="font-bold">{selectedItem.name}</span>
                 {(() => {
-                  const display = getItemDisplay(selectedItem);
-                  return display.badge;
+                  const displayProps = getItemDisplayProps(selectedItem);
+                  return displayProps.badgeExtra;
                 })()}
               </div>
               <p className="text-ink-secondary mt-1 text-sm">
                 {selectedItem.description}
               </p>
+              {selectedItem.itemType !== 'artifact' && (
+                <p className="text-ink-secondary mt-2 text-sm">
+                  当前拥有: x
+                  {isStackableItem(selectedItem) ? selectedItem.quantity : 1}
+                </p>
+              )}
+            </div>
+          )}
+
+          {selectedItem?.itemType !== 'artifact' && (
+            <div>
+              <label className="mb-2 block text-sm font-medium">上架数量</label>
+              <InkInput
+                value={quantity}
+                onChange={(v) => setQuantity(v)}
+                placeholder={`请输入数量（最多 ${
+                  selectedItem && isStackableItem(selectedItem)
+                    ? selectedItem.quantity
+                    : 0
+                }）`}
+              />
             </div>
           )}
 

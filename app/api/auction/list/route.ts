@@ -7,6 +7,7 @@ const ListSchema = z.object({
   itemType: z.enum(['material', 'artifact', 'consumable']),
   itemId: z.string().uuid(),
   price: z.number().int().min(1),
+  quantity: z.number().int().min(1).default(1),
 });
 
 /**
@@ -17,7 +18,7 @@ export const POST = withActiveCultivator(
   async (request: NextRequest, { cultivator }) => {
     try {
       const body = await request.json();
-      const { itemType, itemId, price } = ListSchema.parse(body);
+      const { itemType, itemId, price, quantity } = ListSchema.parse(body);
 
       const result = await listItem({
         cultivatorId: cultivator.id,
@@ -25,6 +26,7 @@ export const POST = withActiveCultivator(
         itemType,
         itemId,
         price,
+        quantity,
       });
 
       return NextResponse.json({
@@ -52,6 +54,7 @@ export const POST = withActiveCultivator(
           CONCURRENT_PURCHASE: 429,
           INVALID_ITEM_TYPE: 400,
           INVALID_PRICE: 400,
+          INVALID_QUANTITY: 400,
         };
 
         const status = statusMap[error.code] || 400;

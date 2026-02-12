@@ -1,11 +1,10 @@
 import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import {
   getExecutor,
   type DbExecutor,
-  type DbTransaction,
 } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
@@ -36,6 +35,7 @@ export const AuctionError = {
   CONCURRENT_PURCHASE: 'CONCURRENT_PURCHASE',
   INVALID_ITEM_TYPE: 'INVALID_ITEM_TYPE',
   INVALID_PRICE: 'INVALID_PRICE',
+  INVALID_QUANTITY: 'INVALID_QUANTITY',
 } as const;
 
 export type AuctionErrorCode = (typeof AuctionError)[keyof typeof AuctionError];
@@ -60,6 +60,7 @@ export interface ListItemInput {
   itemType: 'material' | 'artifact' | 'consumable';
   itemId: string;
   price: number;
+  quantity: number;
 }
 
 export interface ListItemResult {
@@ -81,8 +82,9 @@ export interface BuyItemInput {
  * 获取物品快照（完整数据）
  */
 async function getItemSnapshot(
-  itemType: string,
+  itemType: 'material' | 'artifact' | 'consumable',
   itemId: string,
+  cultivatorId: string,
   executor?: DbExecutor,
 ): Promise<Material | Artifact | Consumable | null> {
   const q = executor ?? getExecutor();
@@ -91,7 +93,12 @@ async function getItemSnapshot(
       const [material] = await q
         .select()
         .from(schema.materials)
-        .where(eq(schema.materials.id, itemId))
+        .where(
+          and(
+            eq(schema.materials.id, itemId),
+            eq(schema.materials.cultivatorId, cultivatorId),
+          ),
+        )
         .limit(1);
       return (material as Material | null) || null;
     }
@@ -99,7 +106,12 @@ async function getItemSnapshot(
       const [artifact] = await q
         .select()
         .from(schema.artifacts)
-        .where(eq(schema.artifacts.id, itemId))
+        .where(
+          and(
+            eq(schema.artifacts.id, itemId),
+            eq(schema.artifacts.cultivatorId, cultivatorId),
+          ),
+        )
         .limit(1);
       return (artifact as Artifact | null) || null;
     }
@@ -107,35 +119,17 @@ async function getItemSnapshot(
       const [consumable] = await q
         .select()
         .from(schema.consumables)
-        .where(eq(schema.consumables.id, itemId))
+        .where(
+          and(
+            eq(schema.consumables.id, itemId),
+            eq(schema.consumables.cultivatorId, cultivatorId),
+          ),
+        )
         .limit(1);
       return (consumable as Consumable | null) || null;
     }
     default:
       return null;
-  }
-}
-
-/**
- * 删除物品
- */
-async function deleteItem(
-  tx: DbTransaction,
-  itemType: string,
-  itemId: string,
-): Promise<void> {
-  switch (itemType) {
-    case 'material':
-      await tx.delete(schema.materials).where(eq(schema.materials.id, itemId));
-      break;
-    case 'artifact':
-      await tx.delete(schema.artifacts).where(eq(schema.artifacts.id, itemId));
-      break;
-    case 'consumable':
-      await tx
-        .delete(schema.consumables)
-        .where(eq(schema.consumables.id, itemId));
-      break;
   }
 }
 
@@ -161,7 +155,8 @@ async function clearAuctionListingsCache(): Promise<void> {
  */
 export async function listItem(input: ListItemInput): Promise<ListItemResult> {
   const q = getExecutor();
-  const { cultivatorId, cultivatorName, itemType, itemId, price } = input;
+  const { cultivatorId, cultivatorName, itemType, itemId, price, quantity } =
+    input;
 
   // 1. 校验价格
   if (price < 1) {
@@ -171,7 +166,15 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     );
   }
 
-  // 2. 校验物品类型
+  // 2. 校验数量
+  if (quantity < 1) {
+    throw new AuctionServiceError(
+      AuctionError.INVALID_QUANTITY,
+      '上架数量必须至少为 1',
+    );
+  }
+
+  // 3. 校验物品类型
   if (!['material', 'artifact', 'consumable'].includes(itemType)) {
     throw new AuctionServiceError(
       AuctionError.INVALID_ITEM_TYPE,
@@ -179,7 +182,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     );
   }
 
-  // 3. 获取分布式锁，防止并发上架
+  // 4. 获取分布式锁，防止并发上架
   const lockKey = `${LIST_LOCK_PREFIX}${cultivatorId}`;
   const acquiredLock = await redis.set(lockKey, 'locked', {
     nx: true,
@@ -194,7 +197,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
   }
 
   try {
-    // 4. 校验寄售位数量
+    // 5. 校验寄售位数量
     const activeCount =
       await auctionRepository.countActiveBySeller(cultivatorId);
     if (activeCount >= MAX_ACTIVE_LISTINGS_PER_SELLER) {
@@ -204,8 +207,8 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
       );
     }
 
-    // 5. 获取物品快照并校验所有权
-    const itemSnapshot = await getItemSnapshot(itemType, itemId);
+    // 6. 获取物品快照并校验所有权
+    const itemSnapshot = await getItemSnapshot(itemType, itemId, cultivatorId);
     if (!itemSnapshot) {
       throw new AuctionServiceError(
         AuctionError.ITEM_NOT_FOUND,
@@ -213,17 +216,32 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
       );
     }
 
-    // 校验所有权（通过 cultivatorId）
-    // 注意：itemSnapshot 是直接查询的结果，但我们需要确保它属于当前用户
-    // 在实际查询时，WHERE 条件已包含 cultivatorId
+    const availableQuantity =
+      itemType === 'artifact'
+        ? 1
+        : 'quantity' in itemSnapshot
+          ? itemSnapshot.quantity
+          : 0;
+    if (itemType === 'artifact' && quantity !== 1) {
+      throw new AuctionServiceError(
+        AuctionError.INVALID_QUANTITY,
+        '法宝每次只能上架 1 件',
+      );
+    }
+    if (itemType !== 'artifact' && quantity > availableQuantity) {
+      throw new AuctionServiceError(
+        AuctionError.INVALID_QUANTITY,
+        `上架数量不足，当前仅有 ${availableQuantity}`,
+      );
+    }
 
-    // 6. 在事务中：删除物品 + 创建拍卖记录
+    // 7. 在事务中：扣减/删除物品 + 创建拍卖记录
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + LISTING_DURATION_HOURS);
 
     await q.transaction(async (tx) => {
-      // 再次校验物品所有权（事务内）
-      const ownedItem = await getItemSnapshot(itemType, itemId, tx);
+      // 事务内二次校验并按数量扣减
+      const ownedItem = await getItemSnapshot(itemType, itemId, cultivatorId, tx);
       if (!ownedItem) {
         throw new AuctionServiceError(
           AuctionError.ITEM_NOT_FOUND,
@@ -231,8 +249,79 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         );
       }
 
-      // 删除物品
-      await deleteItem(tx, itemType, itemId);
+      const listingSnapshot =
+        itemType === 'artifact'
+          ? ownedItem
+          : ({ ...ownedItem, quantity } as Material | Consumable);
+
+      if (itemType === 'artifact') {
+        await tx
+          .delete(schema.artifacts)
+          .where(
+            and(
+              eq(schema.artifacts.id, itemId),
+              eq(schema.artifacts.cultivatorId, cultivatorId),
+            ),
+          );
+      } else if (itemType === 'material') {
+        const current = ownedItem as Material;
+        if (quantity > current.quantity) {
+          throw new AuctionServiceError(
+            AuctionError.INVALID_QUANTITY,
+            `上架数量不足，当前仅有 ${current.quantity}`,
+          );
+        }
+
+        if (quantity === current.quantity) {
+          await tx
+            .delete(schema.materials)
+            .where(
+              and(
+                eq(schema.materials.id, itemId),
+                eq(schema.materials.cultivatorId, cultivatorId),
+              ),
+            );
+        } else {
+          await tx
+            .update(schema.materials)
+            .set({ quantity: current.quantity - quantity })
+            .where(
+              and(
+                eq(schema.materials.id, itemId),
+                eq(schema.materials.cultivatorId, cultivatorId),
+              ),
+            );
+        }
+      } else {
+        const current = ownedItem as Consumable;
+        if (quantity > current.quantity) {
+          throw new AuctionServiceError(
+            AuctionError.INVALID_QUANTITY,
+            `上架数量不足，当前仅有 ${current.quantity}`,
+          );
+        }
+
+        if (quantity === current.quantity) {
+          await tx
+            .delete(schema.consumables)
+            .where(
+              and(
+                eq(schema.consumables.id, itemId),
+                eq(schema.consumables.cultivatorId, cultivatorId),
+              ),
+            );
+        } else {
+          await tx
+            .update(schema.consumables)
+            .set({ quantity: current.quantity - quantity })
+            .where(
+              and(
+                eq(schema.consumables.id, itemId),
+                eq(schema.consumables.cultivatorId, cultivatorId),
+              ),
+            );
+        }
+      }
 
       // 创建拍卖记录
       await auctionRepository.createListing({
@@ -240,14 +329,14 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         sellerName: cultivatorName,
         itemType,
         itemId,
-        itemSnapshot,
+        itemSnapshot: listingSnapshot,
         price,
         expiresAt,
         tx,
       });
     });
 
-    // 7. 清除缓存
+    // 8. 清除缓存
     await clearAuctionListingsCache();
 
     return {

@@ -33,6 +33,7 @@ export const DELETE = withActiveCultivator(
           CONCURRENT_PURCHASE: 429,
           INVALID_ITEM_TYPE: 400,
           INVALID_PRICE: 400,
+          INVALID_QUANTITY: 400,
         };
 
         const status = statusMap[error.code] || 400;

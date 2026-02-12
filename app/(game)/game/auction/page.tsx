@@ -281,6 +281,8 @@ export default function AuctionPage() {
   const renderListing = (listing: AuctionListing, isMyListing: boolean) => {
     const displayProps = getItemDisplayProps(listing);
     const timeLeft = formatTime(listing.expiresAt);
+    const listedQuantity =
+      'quantity' in listing.itemSnapshot ? listing.itemSnapshot.quantity : 1;
 
     return (
       <EffectCard
@@ -295,6 +297,7 @@ export default function AuctionPage() {
                   卖家: {listing.sellerName}
                   {listing.sellerId === cultivator?.id ? ' (我)' : ''}
                 </span>
+                <span>数量: x{listedQuantity}</span>
                 <span className="text-sm font-semibold text-yellow-700">
                   💰 {listing.price} 灵石
                 </span>
