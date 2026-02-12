@@ -10,9 +10,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverExternalPackages: ['postgres', 'pg'],
 };
-
-export default nextConfig;
 
 // Enable calling `getCloudflareContext()` in `next dev`.
 // See https://opennext.js.org/cloudflare/bindings#local-access-to-bindings.
@@ -23,3 +22,5 @@ if (process.env.NODE_ENV === 'development') {
     },
   );
 }
+
+export default nextConfig;
