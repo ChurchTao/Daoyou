@@ -11,13 +11,13 @@ import { NextResponse } from 'next/server';
  *   cron: '0 * * * *', // 每小时执行
  * }
  */
-export async function GET(request: Request) {
+export async function GET() {
   // 验证 Cron Secret
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get('Authorization');
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
+  // const cronSecret = process.env.CRON_SECRET;
+  // const authHeader = request.headers.get('Authorization');
+  // if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  //   return new NextResponse('Unauthorized', { status: 401 });
+  // }
 
   try {
     const processed = await expireListings();

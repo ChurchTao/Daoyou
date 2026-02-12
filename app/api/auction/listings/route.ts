@@ -1,5 +1,4 @@
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
-import { expireListings } from '@/lib/services/AuctionService';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -18,13 +17,6 @@ const ListingsSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    // 兜底：若 cron 未及时执行，在读取列表时补处理过期拍卖并返还邮件
-    try {
-      await expireListings();
-    } catch (error) {
-      console.error('Expire listings fallback failed:', error);
-    }
-
     const { searchParams } = new URL(request.url);
 
     // 解析查询参数
