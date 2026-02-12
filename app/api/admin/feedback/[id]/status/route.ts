@@ -7,7 +7,12 @@ import {
   type FeedbackStatus,
   type FeedbackType,
 } from '@/lib/repositories/feedbackRepository';
-import { MailService } from '@/lib/services/MailService';
+import { SPECIAL_TALISMAN_CONFIG } from '@/lib/repositories/talismanRepository';
+import {
+  MailAttachment,
+  MailAttachmentType,
+  MailService,
+} from '@/lib/services/MailService';
 import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -31,6 +36,21 @@ const TYPE_LABELS: Record<FeedbackType, string> = {
   balance: '游戏平衡',
   other: '其他意见',
 };
+
+const attachments: MailAttachment[] = [
+  {
+    type: 'consumable' as MailAttachmentType,
+    name: '悟道演法符',
+    quantity: 1,
+    data: SPECIAL_TALISMAN_CONFIG.悟道演法符,
+  },
+  {
+    type: 'consumable' as MailAttachmentType,
+    name: '神通衍化符',
+    quantity: 1,
+    data: SPECIAL_TALISMAN_CONFIG.神通衍化符,
+  },
+];
 
 function buildFeedbackStatusMailContent(params: {
   feedbackType: FeedbackType;
@@ -129,7 +149,7 @@ export const PATCH = withAdminAuth<{ id: string }>(
           existing.cultivatorId ?? fallbackCultivator?.id;
 
         if (recipientCultivatorId) {
-          await MailService.sendSystemMail(
+          await MailService.sendMail(
             recipientCultivatorId,
             '反馈工单状态更新',
             buildFeedbackStatusMailContent({
@@ -138,6 +158,7 @@ export const PATCH = withAdminAuth<{ id: string }>(
               adminMessage,
               feedbackContent: existing.content,
             }),
+            attachments,
           );
           notifiedUser = true;
         } else {
