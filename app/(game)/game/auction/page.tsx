@@ -272,6 +272,12 @@ export default function AuctionPage() {
     { label: '我的寄售', value: 'my' },
   ];
 
+  const subtitle = cultivator
+    ? activeTab === 'my'
+      ? `灵石余额：${cultivator.spirit_stones} ｜ 我的寄售：${myListings.length}/5`
+      : `灵石余额：${cultivator.spirit_stones}`
+    : '路人止步';
+
   const renderListing = (listing: AuctionListing, isMyListing: boolean) => {
     const displayProps = getItemDisplayProps(listing);
     const timeLeft = formatTime(listing.expiresAt);
@@ -282,28 +288,30 @@ export default function AuctionPage() {
         layout="col"
         {...displayProps}
         meta={
-          <div className="text-ink-secondary mt-1 flex flex-col gap-1 text-xs">
-            <div className="flex justify-between">
-              <span>
-                卖家: {listing.sellerName}
-                {listing.sellerId === cultivator?.id ? ' (我)' : ''}
-              </span>
-              <span>剩余: {timeLeft}</span>
+          <div className="text-ink-secondary mt-1 space-y-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>
+                  卖家: {listing.sellerName}
+                  {listing.sellerId === cultivator?.id ? ' (我)' : ''}
+                </span>
+                <span className="text-sm font-semibold text-yellow-700">
+                  💰 {listing.price} 灵石
+                </span>
+              </div>
+              <span className="whitespace-nowrap">剩余: {timeLeft}</span>
             </div>
-            <div className="border-ink/20 mt-2 flex items-baseline justify-between border-t border-dashed pt-2">
-              <span className="text-lg font-bold text-yellow-600">
-                💰 {listing.price} 灵石
-              </span>
+            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
               {isMyListing && (
-                <span className="opacity-70">
-                  预计收入: {Math.floor(listing.price * 0.9)}
+                <span className="text-ink-secondary text-[0.75rem] opacity-75">
+                  预计到手: {Math.floor(listing.price * 0.9)} 灵石
                 </span>
               )}
             </div>
           </div>
         }
         actions={
-          <div className="flex gap-2">
+          <div className="flex w-full justify-end gap-2">
             <InkButton
               variant="secondary"
               onClick={() => setSelectedItem(listing.itemSnapshot)}
@@ -367,9 +375,7 @@ export default function AuctionPage() {
   return (
     <InkPageShell
       title="【拍卖行】"
-      subtitle={
-        cultivator ? `灵石余额：${cultivator.spirit_stones}` : '路人止步'
-      }
+      subtitle={subtitle}
       backHref="/game"
       currentPath={pathname}
       footer={
@@ -386,7 +392,7 @@ export default function AuctionPage() {
       <InkTabs items={tabs} activeValue={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'browse' ? (
-        <InkSection title="道友寄售">
+        <InkSection title="">
           {isLoadingBrowse ? (
             <div className="py-10 text-center">正在获取拍卖列表...</div>
           ) : browseListings.length > 0 ? (
@@ -401,7 +407,7 @@ export default function AuctionPage() {
           )}
         </InkSection>
       ) : (
-        <InkSection title={`我的寄售 (${myListings.length}/5)`}>
+        <InkSection title="">
           {isLoadingMy ? (
             <div className="py-10 text-center">正在获取寄售记录...</div>
           ) : myListings.length > 0 ? (

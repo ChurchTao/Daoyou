@@ -14,7 +14,7 @@ import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type MarketListing = Material & { price: number };
 
@@ -26,29 +26,54 @@ export default function MarketPage() {
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const { pushToast } = useInkUI();
   const pathname = usePathname();
+  const isFetchingRef = useRef(false);
+  const nextRetryAtRef = useRef(0);
+
+  const fetchMarket = useCallback(
+    async ({
+      silent = false,
+      showLoading = false,
+    }: {
+      silent?: boolean;
+      showLoading?: boolean;
+    } = {}) => {
+      if (isFetchingRef.current) return;
+
+      isFetchingRef.current = true;
+      if (showLoading) setIsLoadingMarket(true);
+
+      try {
+        const res = await fetch('/api/market', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || '坊市暂未开启');
+        }
+
+        if (data.listings) {
+          setListings(data.listings);
+          setNextRefresh(data.nextRefresh);
+          nextRetryAtRef.current = 0;
+        }
+      } catch (error) {
+        nextRetryAtRef.current = Date.now() + 5000;
+        if (!silent) {
+          pushToast({
+            message: error instanceof Error ? error.message : '坊市暂未开启',
+            tone: 'warning',
+          });
+        }
+      } finally {
+        if (showLoading) setIsLoadingMarket(false);
+        isFetchingRef.current = false;
+      }
+    },
+    [pushToast],
+  );
 
   useEffect(() => {
-    fetchMarket();
-  }, []);
-
-  const fetchMarket = async () => {
-    setIsLoadingMarket(true);
-    try {
-      const res = await fetch('/api/market');
-      const data = await res.json();
-      if (data.listings) {
-        setListings(data.listings);
-        setNextRefresh(data.nextRefresh);
-      }
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '坊市暂未开启',
-        tone: 'warning',
-      });
-    } finally {
-      setIsLoadingMarket(false);
-    }
-  };
+    void fetchMarket({ showLoading: true });
+  }, [fetchMarket]);
 
   const handleBuy = async (item: MarketListing) => {
     if (!cultivator) return;
@@ -73,7 +98,7 @@ export default function MarketPage() {
         // Refresh cultivator to update spirit stones and inventory
         await refresh();
         // Refresh market list (update quantity)
-        fetchMarket();
+        void fetchMarket({ showLoading: false });
       } else {
         throw new Error(result.error);
       }
@@ -95,16 +120,20 @@ export default function MarketPage() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const diff = nextRefresh - Date.now();
+      const now = Date.now();
+      const diff = nextRefresh - now;
       if (diff <= 0) {
         setTimeLeft('即将刷新');
-        if (diff < -5000) fetchMarket(); // Refresh if outdated by 5s
+        if (now >= nextRetryAtRef.current) {
+          nextRetryAtRef.current = now + 5000;
+          void fetchMarket({ silent: true, showLoading: false });
+        }
       } else {
         setTimeLeft(formatTime(diff));
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [nextRefresh]);
+  }, [fetchMarket, nextRefresh]);
 
   return (
     <InkPageShell

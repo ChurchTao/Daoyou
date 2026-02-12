@@ -8,6 +8,7 @@ import { cache } from 'react';
 const MARKET_CACHE_KEY = 'market:listings';
 const MARKET_LOCK_KEY = 'market:generating';
 const MARKET_CACHE_TTL = 7200; // 2 hours
+const MARKET_STALE_RETRY_MS = 15000;
 
 // 使用 React.cache() 进行请求内去重
 const getCachedMarketListings = cache(async () => {
@@ -44,7 +45,7 @@ const getCachedMarketListings = cache(async () => {
     if (cachedData) {
       return {
         listings: cachedData.listings,
-        nextRefresh: Date.now() + 5000,
+        nextRefresh: Date.now() + MARKET_STALE_RETRY_MS,
       };
     }
 
@@ -70,10 +71,7 @@ const getCachedMarketListings = cache(async () => {
     // 4. Save to Redis (No TTL, or very long TTL to allow serving stale)
     await redis.set(MARKET_CACHE_KEY, newData);
 
-    return {
-      listings: itemsWithIds,
-      nextRefresh,
-    };
+    return newData;
   } finally {
     // Release lock
     await redis.del(MARKET_LOCK_KEY);
