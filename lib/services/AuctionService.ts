@@ -560,23 +560,16 @@ export async function cancelListing(
  */
 export async function expireListings(): Promise<number> {
   const q = getExecutor();
-  // 1. 查询过期的 active 拍卖
-  const expiredListings = await auctionRepository.findExpiredListings(1000);
-
-  if (expiredListings.length === 0) {
-    return 0;
-  }
-
-  // 2. 批量更新状态并发送邮件
+  // 1. 原子更新过期状态并发送邮件
   let processed = 0;
 
   await q.transaction(async (tx) => {
-    const expiredIds = expiredListings.map((l) => l.id);
+    const expiredListings = await auctionRepository.markExpiredListings(tx);
+    if (expiredListings.length === 0) {
+      return;
+    }
 
-    // 批量更新状态
-    await auctionRepository.batchUpdateExpiredStatus(tx, expiredIds);
-
-    // 逐个发送邮件
+    // 逐个发送返还邮件
     for (const listing of expiredListings) {
       const itemSnapshot = listing.itemSnapshot as
         | Material
@@ -603,7 +596,7 @@ export async function expireListings(): Promise<number> {
     }
   });
 
-  // 3. 清除缓存
+  // 2. 清除缓存
   await clearAuctionListingsCache();
 
   return processed;

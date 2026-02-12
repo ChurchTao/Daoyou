@@ -194,3 +194,22 @@ export async function batchUpdateExpiredStatus(
     .set({ status: 'expired' })
     .where(sql`id = ANY(${ids})`);
 }
+
+/**
+ * 原子标记过期拍卖并返回被更新的记录
+ * 用于避免并发任务下重复处理/重复发邮件
+ */
+export async function markExpiredListings(
+  tx: DbTransaction,
+): Promise<AuctionListing[]> {
+  return tx
+    .update(schema.auctionListings)
+    .set({ status: 'expired' })
+    .where(
+      and(
+        eq(schema.auctionListings.status, 'active'),
+        sql`${schema.auctionListings.expiresAt} < NOW()`,
+      ),
+    )
+    .returning();
+}
