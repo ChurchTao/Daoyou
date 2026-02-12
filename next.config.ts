@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['postgres', 'pg'],
 };
 
 // Enable calling `getCloudflareContext()` in `next dev`.
