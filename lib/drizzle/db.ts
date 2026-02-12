@@ -1,19 +1,32 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { cache } from 'react';
 import * as schema from './schema';
 
 export type DbRuntime = 'node' | 'worker';
 
+const getRunTime = (): DbRuntime => {
+  return process.env.DB_RUNTIME === 'worker' ? 'worker' : 'node';
+};
+
+const getConnectionString = (): string => {
+  const runtime: DbRuntime = getRunTime();
+  if (runtime === 'node') {
+    return process.env.DATABASE_URL;
+  }
+  const { env } = getCloudflareContext();
+  return env.HYPERDRIVE.connectionString;
+};
+
 export const db = cache(() => {
-  const runtime: DbRuntime =
-    process.env.DB_RUNTIME === 'worker' ? 'worker' : 'node';
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    // You don't want to reuse the same connection for multiple requests
-    maxUses: runtime === 'worker' ? 1 : undefined,
+  const runtime: DbRuntime = getRunTime();
+  const connectionString = getConnectionString();
+  const client = postgres(connectionString, {
+    prepare: false,
+    max: runtime === 'worker' ? 1 : undefined,
   });
-  return drizzle({ client: pool, schema });
+  return drizzle(client, { schema });
 });
 
 export type DbClient = ReturnType<typeof db>;

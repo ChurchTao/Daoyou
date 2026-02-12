@@ -38,6 +38,12 @@
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
     },
   ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "da88ec08ced4422c9ee75130be78418b",
+    },
+  ],
   /**
    * Smart Placement
    * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
