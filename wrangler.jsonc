@@ -63,7 +63,7 @@
    * https://developers.cloudflare.com/workers/configuration/secrets/
    */
   "limits": {
-    "cpu_ms": 150,
+    "cpu_ms": 100,
   },
   "vars": {
     "DB_RUNTIME": "worker",

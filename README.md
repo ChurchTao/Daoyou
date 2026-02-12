@@ -140,6 +140,12 @@ npm run start
 - `npm run deploy`（构建 + 部署）
 - `npm run preview`
 
+部署注意事项（重要）：
+
+1. **必须使用 Hyperdrive 连接数据库**，不要直接使用普通公网 `DATABASE_URL` 直连。
+2. **不要使用全局单例的 `db` 实例**。Cloudflare Worker 场景下请按官方示例按请求初始化连接，参考：<https://opennext.js.org/cloudflare/howtos/db>。
+3. **连接池 `max` 必须设置为 `1`**，避免 Worker 并发复用导致连接行为异常。
+
 部署步骤：
 
 1. 登录 Cloudflare

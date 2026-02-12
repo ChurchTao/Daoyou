@@ -25,6 +25,8 @@ export const db = cache(() => {
   const client = postgres(connectionString, {
     prepare: false,
     max: runtime === 'worker' ? 1 : undefined,
+    idle_timeout: 20,
+    max_lifetime: 60 * 30,
   });
   return drizzle(client, { schema });
 });
