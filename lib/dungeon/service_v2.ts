@@ -308,16 +308,12 @@ ${realmGuidance}
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('副本已失效');
 
-    // 1. 校验并处理消耗（成本校验前置）
+    // 1. 校验并预处理成本
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
-    if (chosenOption?.costs) {
-      // 防御性编程：如果 AI 违规生成了 battle + hp_loss/mp_loss 组合，过滤掉冲突项
-      const hasBattle = chosenOption.costs.some((c) => c.type === 'battle');
-      if (hasBattle) {
-        chosenOption.costs = chosenOption.costs.filter(
-          (c) => c.type !== 'hp_loss' && c.type !== 'mp_loss',
-        );
-      }
+    let actionCosts = chosenOption?.costs ?? [];
+
+    const consumeActionCostsOrThrow = async () => {
+      if (actionCosts.length === 0) return;
 
       // 获取 userId
       const userId = await getCultivatorOwnerId(cultivatorId);
@@ -330,11 +326,22 @@ ${realmGuidance}
       const result = await resourceEngine.consume(
         userId,
         cultivatorId,
-        chosenOption.costs as ResourceOperation[],
+        actionCosts as ResourceOperation[],
       );
 
       if (!result.success) {
         throw new Error(result.errors?.join('; ') || '资源消耗失败');
+      }
+    };
+
+    if (chosenOption?.costs) {
+      // 防御性编程：如果 AI 违规生成了 battle + hp_loss/mp_loss 组合，过滤掉冲突项
+      const hasBattle = chosenOption.costs.some((c) => c.type === 'battle');
+      if (hasBattle) {
+        chosenOption.costs = chosenOption.costs.filter(
+          (c) => c.type !== 'hp_loss' && c.type !== 'mp_loss',
+        );
+        actionCosts = chosenOption.costs;
       }
 
       state.summary_of_sacrifice?.push(...chosenOption.costs);
@@ -379,6 +386,9 @@ ${realmGuidance}
       // 1.3 Battle Interception
       const battleCost = chosenOption.costs.find((c) => c.type === 'battle');
       if (battleCost) {
+        // 战斗分支没有 LLM 步骤，先扣除真实资源再进入战斗
+        await consumeActionCostsOrThrow();
+
         state.history[state.history.length - 1].choice = chosenOption.text;
         state.status = 'IN_BATTLE';
 
@@ -408,6 +418,8 @@ ${realmGuidance}
       chosenOption?.potential_cost;
 
     if (state.currentRound >= state.maxRounds) {
+      // 最后一轮直接结算，不走 LLM；此处仍需先扣资源
+      await consumeActionCostsOrThrow();
       return this.settleDungeon(state);
     }
 
@@ -415,6 +427,9 @@ ${realmGuidance}
 
     // 3. AI 生成下一轮
     const roundData = await this.callAI(state);
+
+    // LLM 成功后再扣资源，避免“生成失败但资源已扣除”
+    await consumeActionCostsOrThrow();
 
     // 4. 更新状态
     state.history.push({

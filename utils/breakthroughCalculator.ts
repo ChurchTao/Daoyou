@@ -441,11 +441,15 @@ export function applyAttributeGrowth(
   const growth: Partial<Attributes> = {};
 
   ATTRIBUTE_KEYS.forEach((key) => {
-    const delta = randomInt(range.min, range.max, rng);
-    const current = Math.min(updated[key]!, cap);
-    if (current !== updated[key]) {
-      updated[key] = current;
+    const current = updated[key]!;
+    // 如果属性已达到或超过新境界上限，不给予成长，但保留原有属性（包括丹药加成）
+    if (current >= cap) {
+      growth[key] = 0;
+      // updated[key] 保持原值不变
+      return;
     }
+    // 正常情况：给予成长，但不超过上限
+    const delta = randomInt(range.min, range.max, rng);
     const boosted = Math.min(current + delta, cap);
     growth[key] = boosted - current;
     updated[key] = boosted;
