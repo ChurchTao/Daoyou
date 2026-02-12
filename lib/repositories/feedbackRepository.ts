@@ -62,19 +62,17 @@ export async function findFeedbacksByUserId(
 
   const whereClause = eq(schema.feedbacks.userId, userId);
 
-  const [feedbacksResult, countResult] = await Promise.all([
-    db()
-      .select()
-      .from(schema.feedbacks)
-      .where(whereClause)
-      .orderBy(desc(schema.feedbacks.createdAt))
-      .limit(limit)
-      .offset((page - 1) * limit),
-    db()
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.feedbacks)
-      .where(whereClause),
-  ]);
+  const feedbacksResult = await db()
+    .select()
+    .from(schema.feedbacks)
+    .where(whereClause)
+    .orderBy(desc(schema.feedbacks.createdAt))
+    .limit(limit)
+    .offset((page - 1) * limit);
+  const countResult = await db()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.feedbacks)
+    .where(whereClause);
 
   return {
     feedbacks: feedbacksResult,
@@ -113,19 +111,17 @@ export async function findFeedbacks(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const [feedbacksResult, countResult] = await Promise.all([
-    db()
-      .select()
-      .from(schema.feedbacks)
-      .where(whereClause)
-      .orderBy(desc(schema.feedbacks.createdAt))
-      .limit(limit)
-      .offset((page - 1) * limit),
-    db()
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.feedbacks)
-      .where(whereClause),
-  ]);
+  const feedbacksResult = await db()
+    .select()
+    .from(schema.feedbacks)
+    .where(whereClause)
+    .orderBy(desc(schema.feedbacks.createdAt))
+    .limit(limit)
+    .offset((page - 1) * limit);
+  const countResult = await db()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.feedbacks)
+    .where(whereClause);
 
   return {
     feedbacks: feedbacksResult,

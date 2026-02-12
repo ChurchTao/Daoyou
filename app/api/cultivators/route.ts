@@ -37,11 +37,9 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       },
     });
   } else {
-    // 获取所有存活角色（并行执行）
-    const [cultivators, deadExists] = await Promise.all([
-      getCultivatorsByUserId(user.id),
-      hasDeadCultivator(user.id),
-    ]);
+    // 获取所有存活角色（串行执行，避免并发数据库查询）
+    const cultivators = await getCultivatorsByUserId(user.id);
+    const deadExists = await hasDeadCultivator(user.id);
 
     // 为每个角色计算最终属性
     const cultivatorsWithFinalAttrs = cultivators.map((c) => {

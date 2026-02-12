@@ -48,7 +48,6 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25",
     "@types/nodemailer": "^7.0.9",
-    "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.9",

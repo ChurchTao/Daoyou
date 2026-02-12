@@ -104,20 +104,18 @@ export async function findActiveListings(
       break;
   }
 
-  // 并行执行查询和计数
-  const [listingsResult, countResult] = await Promise.all([
-    db()
-      .select()
-      .from(schema.auctionListings)
-      .where(whereClause)
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset((page - 1) * limit),
-    db()
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.auctionListings)
-      .where(whereClause),
-  ]);
+  // 串行执行查询和计数，避免并发数据库查询
+  const listingsResult = await db()
+    .select()
+    .from(schema.auctionListings)
+    .where(whereClause)
+    .orderBy(orderByClause)
+    .limit(limit)
+    .offset((page - 1) * limit);
+  const countResult = await db()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.auctionListings)
+    .where(whereClause);
 
   return {
     listings: listingsResult,

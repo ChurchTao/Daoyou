@@ -11,11 +11,9 @@ import { NextResponse } from 'next/server';
  * 获取当前活跃角色的背包数据
  */
 export const GET = withActiveCultivator(async (_req, { user, cultivator }) => {
-  const [consumables, materials, artifacts] = await Promise.all([
-    getCultivatorConsumables(user.id, cultivator.id),
-    getCultivatorMaterials(user.id, cultivator.id),
-    getCultivatorArtifacts(user.id, cultivator.id),
-  ]);
+  const consumables = await getCultivatorConsumables(user.id, cultivator.id);
+  const materials = await getCultivatorMaterials(user.id, cultivator.id);
+  const artifacts = await getCultivatorArtifacts(user.id, cultivator.id);
 
   return NextResponse.json({
     success: true,

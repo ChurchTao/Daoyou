@@ -38,35 +38,27 @@ async function assembleCultivator(
 
   const cultivatorId = cultivatorRecord.id;
 
-  // 并行获取所有关联数据 (仅核心数据)
-  const [
-    spiritualRootsResult,
-    preHeavenFatesResult,
-    cultivationsResult,
-    skillsResult,
-    equippedResult,
-  ] = await Promise.all([
-    db()
-      .select()
-      .from(schema.spiritualRoots)
-      .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId)),
-    db()
-      .select()
-      .from(schema.preHeavenFates)
-      .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId)),
-    db()
-      .select()
-      .from(schema.cultivationTechniques)
-      .where(eq(schema.cultivationTechniques.cultivatorId, cultivatorId)),
-    db()
-      .select()
-      .from(schema.skills)
-      .where(eq(schema.skills.cultivatorId, cultivatorId)),
-    db()
-      .select()
-      .from(schema.equippedItems)
-      .where(eq(schema.equippedItems.cultivatorId, cultivatorId)),
-  ]);
+  // 串行获取所有关联数据，避免并发数据库查询
+  const spiritualRootsResult = await db()
+    .select()
+    .from(schema.spiritualRoots)
+    .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
+  const preHeavenFatesResult = await db()
+    .select()
+    .from(schema.preHeavenFates)
+    .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId));
+  const cultivationsResult = await db()
+    .select()
+    .from(schema.cultivationTechniques)
+    .where(eq(schema.cultivationTechniques.cultivatorId, cultivatorId));
+  const skillsResult = await db()
+    .select()
+    .from(schema.skills)
+    .where(eq(schema.skills.cultivatorId, cultivatorId));
+  const equippedResult = await db()
+    .select()
+    .from(schema.equippedItems)
+    .where(eq(schema.equippedItems.cultivatorId, cultivatorId));
 
   // 组装灵根
   const spiritualRootCount = spiritualRootsResult.length;
@@ -456,9 +448,11 @@ export async function getCultivatorsByUserId(
       ),
     );
 
-  const cultivators = await Promise.all(
-    cultivatorRecords.map((record) => assembleCultivator(record, userId)),
-  );
+  const cultivators: Array<Cultivator | null> = [];
+  for (const record of cultivatorRecords) {
+    const cultivator = await assembleCultivator(record, userId);
+    cultivators.push(cultivator);
+  }
 
   return cultivators.filter((c): c is Cultivator => c !== null);
 }
@@ -573,17 +567,19 @@ export async function getCultivatorsByIdsUnsafe(
       ),
     );
 
-  const assembled = await Promise.all(
-    records.map(async (record): Promise<CultivatorWithOwner | null> => {
-      const full = await assembleCultivator(record, record.userId);
-      if (!full) return null;
-      return {
-        cultivator: full,
-        userId: record.userId,
-        updatedAt: record.updatedAt,
-      };
-    }),
-  );
+  const assembled: Array<CultivatorWithOwner | null> = [];
+  for (const record of records) {
+    const full = await assembleCultivator(record, record.userId);
+    if (!full) {
+      assembled.push(null);
+      continue;
+    }
+    assembled.push({
+      cultivator: full,
+      userId: record.userId,
+      updatedAt: record.updatedAt,
+    });
+  }
 
   return assembled.filter((item): item is CultivatorWithOwner => item !== null);
 }
@@ -1012,22 +1008,19 @@ export async function getInventory(
     throw new Error('角色不存在或无权限操作');
   }
 
-  // 获取法宝、消耗品和材料
-  const [artifactsResult, consumablesResult, materialsResult] =
-    await Promise.all([
-      db()
-        .select()
-        .from(schema.artifacts)
-        .where(eq(schema.artifacts.cultivatorId, cultivatorId)),
-      db()
-        .select()
-        .from(schema.consumables)
-        .where(eq(schema.consumables.cultivatorId, cultivatorId)),
-      db()
-        .select()
-        .from(schema.materials)
-        .where(eq(schema.materials.cultivatorId, cultivatorId)),
-    ]);
+  // 获取法宝、消耗品和材料（串行）
+  const artifactsResult = await db()
+    .select()
+    .from(schema.artifacts)
+    .where(eq(schema.artifacts.cultivatorId, cultivatorId));
+  const consumablesResult = await db()
+    .select()
+    .from(schema.consumables)
+    .where(eq(schema.consumables.cultivatorId, cultivatorId));
+  const materialsResult = await db()
+    .select()
+    .from(schema.materials)
+    .where(eq(schema.materials.cultivatorId, cultivatorId));
 
   return {
     artifacts: artifactsResult.map((a) => ({
@@ -1400,14 +1393,14 @@ async function handleConsumeItem(
   currentQuantity: number,
   tx?: DbTransaction,
 ) {
-  const dbInstance = tx || db;
+  const dbInstance = tx || db();
   if (currentQuantity > 1) {
-    await db()
+    await dbInstance
       .update(schema.consumables)
       .set({ quantity: currentQuantity - 1 })
       .where(eq(schema.consumables.id, itemId));
   } else {
-    await db()
+    await dbInstance
       .delete(schema.consumables)
       .where(eq(schema.consumables.id, itemId));
   }
@@ -1426,8 +1419,8 @@ export async function updateSpiritStones(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
-  const cultivator = await db()
+  const dbInstance = tx || db();
+  const cultivator = await dbInstance
     .select({ spirit_stones: schema.cultivators.spirit_stones })
     .from(schema.cultivators)
     .where(eq(schema.cultivators.id, cultivatorId))
@@ -1444,7 +1437,7 @@ export async function updateSpiritStones(
     );
   }
 
-  await db()
+  await dbInstance
     .update(schema.cultivators)
     .set({ spirit_stones: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -1461,8 +1454,8 @@ export async function updateLifespan(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
-  const cultivator = await db()
+  const dbInstance = tx || db();
+  const cultivator = await dbInstance
     .select({ lifespan: schema.cultivators.lifespan })
     .from(schema.cultivators)
     .where(eq(schema.cultivators.id, cultivatorId))
@@ -1479,7 +1472,7 @@ export async function updateLifespan(
     );
   }
 
-  await db()
+  await dbInstance
     .update(schema.cultivators)
     .set({ lifespan: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -1499,8 +1492,8 @@ export async function updateCultivationExp(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
-  const cultivatorData = await db()
+  const dbInstance = tx || db();
+  const cultivatorData = await dbInstance
     .select({
       cultivation_progress: schema.cultivators.cultivation_progress,
       realm: schema.cultivators.realm,
@@ -1545,7 +1538,7 @@ export async function updateCultivationExp(
     comprehension_insight: newComprehensionInsight,
   };
 
-  await db()
+  await dbInstance
     .update(schema.cultivators)
     .set({ cultivation_progress: updatedProgress })
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -1590,9 +1583,9 @@ export async function addMaterialToInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
+  const dbInstance = tx || db();
   // 检查是否已经有相同的材料（名称和品质都必须一致）
-  const existing = await db()
+  const existing = await dbInstance
     .select()
     .from(schema.materials)
     .where(
@@ -1605,24 +1598,22 @@ export async function addMaterialToInventory(
 
   if (existing.length > 0) {
     // 增加数量
-    await db()
+    await dbInstance
       .update(schema.materials)
       .set({ quantity: existing[0].quantity + material.quantity })
       .where(eq(schema.materials.id, existing[0].id));
   } else {
     // 添加新材料
-    await db()
-      .insert(schema.materials)
-      .values({
-        cultivatorId,
-        name: material.name,
-        type: material.type,
-        rank: material.rank,
-        element: material.element || null,
-        description: material.description || null,
-        details: (material.details as Record<string, unknown>) || null,
-        quantity: material.quantity,
-      });
+    await dbInstance.insert(schema.materials).values({
+      cultivatorId,
+      name: material.name,
+      type: material.type,
+      rank: material.rank,
+      element: material.element || null,
+      description: material.description || null,
+      details: (material.details as Record<string, unknown>) || null,
+      quantity: material.quantity,
+    });
   }
 }
 
@@ -1638,8 +1629,8 @@ export async function removeMaterialFromInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
-  const materials = await db()
+  const dbInstance = tx || db();
+  const materials = await dbInstance
     .select()
     .from(schema.materials)
     .where(
@@ -1662,12 +1653,12 @@ export async function removeMaterialFromInventory(
 
   if (material.quantity === quantity) {
     // 删除材料
-    await db()
+    await dbInstance
       .delete(schema.materials)
       .where(eq(schema.materials.id, material.id));
   } else {
     // 减少数量
-    await db()
+    await dbInstance
       .update(schema.materials)
       .set({ quantity: material.quantity - quantity })
       .where(eq(schema.materials.id, material.id));
@@ -1685,21 +1676,19 @@ export async function addArtifactToInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
-  await db()
-    .insert(schema.artifacts)
-    .values({
-      cultivatorId,
-      name: artifact.name,
-      slot: artifact.slot,
-      element: artifact.element,
-      prompt: '', // 默认空提示词
-      quality: artifact.quality || '凡品',
-      required_realm: artifact.required_realm || '炼气',
-      description: artifact.description || null,
-      score: 0, // 默认评分
-      effects: artifact.effects || [],
-    });
+  const dbInstance = tx || db();
+  await dbInstance.insert(schema.artifacts).values({
+    cultivatorId,
+    name: artifact.name,
+    slot: artifact.slot,
+    element: artifact.element,
+    prompt: '', // 默认空提示词
+    quality: artifact.quality || '凡品',
+    required_realm: artifact.required_realm || '炼气',
+    description: artifact.description || null,
+    score: 0, // 默认评分
+    effects: artifact.effects || [],
+  });
 }
 
 /**
@@ -1713,10 +1702,10 @@ export async function addConsumableToInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db;
+  const dbInstance = tx || db();
   // 检查是否已经有相同的消耗品（名称和品质都必须一致）
   const quality = consumable.quality || '凡品';
-  const existing = await db()
+  const existing = await dbInstance
     .select()
     .from(schema.consumables)
     .where(
@@ -1729,25 +1718,23 @@ export async function addConsumableToInventory(
 
   if (existing.length > 0) {
     // 增加数量
-    await db()
+    await dbInstance
       .update(schema.consumables)
       .set({ quantity: existing[0].quantity + consumable.quantity })
       .where(eq(schema.consumables.id, existing[0].id));
   } else {
     // 添加新消耗品
-    await db()
-      .insert(schema.consumables)
-      .values({
-        cultivatorId,
-        name: consumable.name,
-        type: consumable.type,
-        prompt: '', // 默认空提示词
-        quality: quality,
-        effects: consumable.effects || [],
-        quantity: consumable.quantity,
-        description: consumable.description || null,
-        score: 0, // 默认评分
-      });
+    await dbInstance.insert(schema.consumables).values({
+      cultivatorId,
+      name: consumable.name,
+      type: consumable.type,
+      prompt: '', // 默认空提示词
+      quality: quality,
+      effects: consumable.effects || [],
+      quantity: consumable.quantity,
+      description: consumable.description || null,
+      score: 0, // 默认评分
+    });
   }
 }
 

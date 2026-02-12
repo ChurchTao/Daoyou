@@ -38,42 +38,48 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
   });
 
   // 获取关联的用户和角色信息
-  const enrichFeedbacks = await Promise.all(
-    feedbacks.map(async (feedback) => {
-      let userEmail: string | null = null;
-      let cultivatorName: string | null = null;
-      let cultivatorRealm: string | null = null;
+  const enrichFeedbacks: Array<
+    (typeof feedbacks)[number] & {
+      userEmail: string | null;
+      cultivatorName: string | null;
+      cultivatorRealm: string | null;
+    }
+  > = [];
 
-      // 获取用户邮箱
-      try {
-        const { createClient } = await import('@/lib/supabase/server');
-        const supabase = await createClient();
-        const { data } = await supabase.auth.admin.getUserById(feedback.userId);
-        userEmail = data.user?.email || null;
-      } catch {
-        // ignore
+  for (const feedback of feedbacks) {
+    let userEmail: string | null = null;
+    let cultivatorName: string | null = null;
+    let cultivatorRealm: string | null = null;
+
+    // 获取用户邮箱
+    try {
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
+      const { data } = await supabase.auth.admin.getUserById(feedback.userId);
+      userEmail = data.user?.email || null;
+    } catch {
+      // ignore
+    }
+
+    // 获取角色信息
+    if (feedback.cultivatorId) {
+      const cultivator = await db().query.cultivators.findFirst({
+        where: eq(cultivators.id, feedback.cultivatorId),
+        columns: { name: true, realm: true },
+      });
+      if (cultivator) {
+        cultivatorName = cultivator.name;
+        cultivatorRealm = cultivator.realm;
       }
+    }
 
-      // 获取角色信息
-      if (feedback.cultivatorId) {
-        const cultivator = await db().query.cultivators.findFirst({
-          where: eq(cultivators.id, feedback.cultivatorId),
-          columns: { name: true, realm: true },
-        });
-        if (cultivator) {
-          cultivatorName = cultivator.name;
-          cultivatorRealm = cultivator.realm;
-        }
-      }
-
-      return {
-        ...feedback,
-        userEmail,
-        cultivatorName,
-        cultivatorRealm,
-      };
-    }),
-  );
+    enrichFeedbacks.push({
+      ...feedback,
+      userEmail,
+      cultivatorName,
+      cultivatorRealm,
+    });
+  }
 
   return NextResponse.json({
     feedbacks: enrichFeedbacks,
