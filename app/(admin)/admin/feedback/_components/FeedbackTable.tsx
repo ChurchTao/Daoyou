@@ -48,6 +48,8 @@ export function FeedbackTable() {
   const [search, setSearch] = useState('');
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [adminMessages, setAdminMessages] = useState<Record<string, string>>({});
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 20;
@@ -89,20 +91,31 @@ export function FeedbackTable() {
 
   const updateStatus = async (id: string, newStatus: FeedbackStatus) => {
     try {
+      setUpdatingId(id);
+      const adminMessage = adminMessages[id]?.trim();
       const res = await fetch(`/api/admin/feedback/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: newStatus,
+          adminMessage: adminMessage || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? '更新状态失败');
-      pushToast({ message: '状态已更新', tone: 'success' });
+      const message =
+        data.statusChanged && !data.notifiedUser
+          ? '状态已更新，但未找到用户角色，站内信未发送'
+          : '状态已更新并通知用户';
+      pushToast({ message, tone: 'success' });
       fetchFeedbacks();
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '更新状态失败',
         tone: 'danger',
       });
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -247,6 +260,27 @@ export function FeedbackTable() {
                               </span>
                             )}
                           </div>
+                          <div>
+                            <label
+                              htmlFor={`feedback-admin-message-${item.id}`}
+                              className="text-ink-secondary text-sm"
+                            >
+                              管理员留言（会附在站内信中）
+                            </label>
+                            <textarea
+                              id={`feedback-admin-message-${item.id}`}
+                              className="border-ink/20 mt-1 min-h-[80px] w-full border bg-transparent px-3 py-2"
+                              placeholder="可选：填写给用户的说明、处理结果或补偿原因"
+                              value={adminMessages[item.id] ?? ''}
+                              onChange={(e) =>
+                                setAdminMessages((prev) => ({
+                                  ...prev,
+                                  [item.id]: e.target.value,
+                                }))
+                              }
+                              maxLength={1000}
+                            />
+                          </div>
                           <div className="flex gap-2">
                             <span className="text-ink-secondary text-sm">
                               状态：
@@ -262,8 +296,9 @@ export function FeedbackTable() {
                               <button
                                 key={s}
                                 type="button"
+                                disabled={updatingId === item.id}
                                 onClick={() => updateStatus(item.id, s)}
-                                className={`border px-2 py-1 text-xs transition-colors ${
+                                className={`border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                                   item.status === s
                                     ? 'border-crimson text-crimson bg-crimson/5'
                                     : 'border-ink/20 text-ink-secondary hover:border-ink/40'
