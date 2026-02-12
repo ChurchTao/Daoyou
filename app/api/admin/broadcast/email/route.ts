@@ -2,7 +2,7 @@ import { resolveEmailRecipients } from '@/lib/admin/recipient-resolver';
 import { sendViaSmtp } from '@/lib/admin/smtp';
 import { normalizeTemplatePayload, renderTemplate } from '@/lib/admin/template';
 import { withAdminAuth } from '@/lib/api/adminAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { adminMessageTemplates } from '@/lib/drizzle/schema';
 import { REALM_VALUES } from '@/types/constants';
 import { eq } from 'drizzle-orm';
@@ -39,6 +39,7 @@ const EmailBroadcastSchema = z
   });
 
 export const POST = withAdminAuth(async (request: NextRequest) => {
+  const q = getExecutor();
   const body = await request.json();
   const parsed = EmailBroadcastSchema.safeParse(body);
   if (!parsed.success) {
@@ -63,7 +64,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
   let finalContent = parsed.data.content ?? '';
 
   if (templateId) {
-    const template = await db().query.adminMessageTemplates.findFirst({
+    const template = await q.query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, templateId),
     });
 

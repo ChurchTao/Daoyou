@@ -2,6 +2,7 @@ import type { BuffInstanceState } from '@/engine/buff/types';
 import type { EffectConfig } from '@/engine/effect/types';
 import type { GeneratedFate } from '@/engine/fate/creation/types';
 import { withActiveCultivator } from '@/lib/api/withAuth';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators, preHeavenFates } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { eq } from 'drizzle-orm';
@@ -18,7 +19,7 @@ const CommitSchema = z.object({
  * 提交命格替换
  */
 export const POST = withActiveCultivator(
-  async (request: NextRequest, { cultivator, db }) => {
+  async (request: NextRequest, { cultivator }) => {
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
     const reshapeBuff = persistentStatuses.find(
@@ -79,7 +80,7 @@ export const POST = withActiveCultivator(
     }
 
     // 从数据库查询当前命格
-    const currentFates = await db()
+    const currentFates = await getExecutor()
       .select()
       .from(preHeavenFates)
       .where(eq(preHeavenFates.cultivatorId, cultivator.id!));
@@ -90,7 +91,7 @@ export const POST = withActiveCultivator(
       for (const index of replaceIndices) {
         if (index >= 0 && index < currentFates.length) {
           const oldFate = currentFates[index];
-          await db()
+          await getExecutor()
             .delete(preHeavenFates)
             .where(eq(preHeavenFates.id, oldFate.id));
         }
@@ -111,7 +112,7 @@ export const POST = withActiveCultivator(
 
     // 添加新命格（独立于删除操作）
     for (const fate of newFates) {
-      await db()
+      await getExecutor()
         .insert(preHeavenFates)
         .values({
           cultivatorId: cultivator.id!,
@@ -130,7 +131,7 @@ export const POST = withActiveCultivator(
       (s) => s.instanceId !== reshapeBuff.instanceId,
     );
 
-    await db()
+    await getExecutor()
       .update(cultivators)
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));

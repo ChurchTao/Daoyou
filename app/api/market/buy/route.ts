@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { Material } from '@/types/cultivator';
@@ -85,7 +85,7 @@ export const POST = withActiveCultivator(
       const totalPrice = (item.price || 0) * quantity;
 
       // 5. Transaction: Deduct Money & Add Material
-      await db().transaction(async (tx) => {
+      await getExecutor().transaction(async (tx) => {
         // 5.1 Check & Deduct Funds (Atomic check via WHERE clause)
         // 这种写法防止先读后写的并发竞态条件，只有余额足够时才会更新成功
         const [updatedCultivator] = await tx

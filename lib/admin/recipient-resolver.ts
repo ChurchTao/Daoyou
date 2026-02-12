@@ -1,4 +1,4 @@
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
@@ -50,7 +50,7 @@ export async function resolveEmailRecipients(
 
   const activeCultivatorMap = new Map<string, { realm: RealmType }>();
   if (needCultivatorFilter) {
-    const activeCultivators = await db()
+    const activeCultivators = await getExecutor()
       .select({
         userId: cultivators.userId,
         realm: cultivators.realm,
@@ -132,7 +132,7 @@ export async function resolveGameMailRecipients(
     whereConditions.push(lte(cultivators.createdAt, createdTo));
   }
 
-  const rows = await db()
+  const rows = await getExecutor()
     .select({
       id: cultivators.id,
       realm: cultivators.realm,

@@ -1,5 +1,5 @@
 import { withAdminAuth } from '@/lib/api/adminAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { adminMessageTemplates } from '@/lib/drizzle/schema';
 import { AdminChannel, TemplateStatus } from '@/types/admin-broadcast';
 import { eq } from 'drizzle-orm';
@@ -29,7 +29,8 @@ function validateEmailSubject(
 
 export const GET = withAdminAuth<{ id: string }>(
   async (_request: NextRequest, _ctx, params) => {
-    const template = await db().query.adminMessageTemplates.findFirst({
+    const q = getExecutor();
+    const template = await q.query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, params.id),
     });
 
@@ -43,7 +44,8 @@ export const GET = withAdminAuth<{ id: string }>(
 
 export const PATCH = withAdminAuth<{ id: string }>(
   async (request: NextRequest, { user }, params) => {
-    const template = await db().query.adminMessageTemplates.findFirst({
+    const q = getExecutor();
+    const template = await q.query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, params.id),
     });
 
@@ -95,7 +97,7 @@ export const PATCH = withAdminAuth<{ id: string }>(
     }
     if (parsed.data.status !== undefined) patch.status = parsed.data.status;
 
-    const [updated] = await db()
+    const [updated] = await q
       .update(adminMessageTemplates)
       .set(patch)
       .where(eq(adminMessageTemplates.id, params.id))

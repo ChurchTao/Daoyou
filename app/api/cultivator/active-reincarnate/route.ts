@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { breakthroughHistory, cultivators } from '@/lib/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -14,7 +14,7 @@ export const POST = withActiveCultivator(async (_req, { cultivator }) => {
   }
 
   // Perform Reincarnation Logic
-  await db().transaction(async (tx) => {
+  await getExecutor().transaction(async (tx) => {
     // 1. Mark as dead
     await tx
       .update(cultivators)

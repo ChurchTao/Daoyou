@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { skills } from '@/lib/drizzle/schema';
 import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,7 +18,7 @@ export const POST = withActiveCultivator(
     const body = await request.json();
     const { skillId } = ForgetSkillSchema.parse(body);
 
-    const deleted = await db()
+    const deleted = await getExecutor()
       .delete(skills)
       .where(
         and(eq(skills.id, skillId), eq(skills.cultivatorId, cultivator.id)),

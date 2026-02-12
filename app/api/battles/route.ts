@@ -1,5 +1,5 @@
 import type { BattleEngineResult } from '@/engine/battle';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getUserAliveCultivatorId } from '@/lib/repositories/cultivatorRepository';
 import { createClient } from '@/lib/supabase/server';
@@ -55,7 +55,7 @@ export async function GET(req: Request) {
   }
 
   // 总数用于分页信息
-  const [countRow] = await db()
+  const [countRow] = await getExecutor()
     .select({ count: sql<number>`count(*)` })
     .from(battleRecords)
     .where(whereCondition);
@@ -63,7 +63,7 @@ export async function GET(req: Request) {
   const total = Number(countRow?.count ?? 0);
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
 
-  const records = await db()
+  const records = await getExecutor()
     .select()
     .from(battleRecords)
     .where(whereCondition)

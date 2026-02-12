@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
 import { equipEquipment } from '@/lib/repositories/cultivatorRepository';
 import { eq } from 'drizzle-orm';
@@ -16,7 +16,7 @@ const EquipSchema = z.object({
  */
 export const GET = withActiveCultivator(async (_req, { cultivator }) => {
   // 获取装备状态
-  const equippedItems = await db()
+  const equippedItems = await getExecutor()
     .select()
     .from(schema.equippedItems)
     .where(eq(schema.equippedItems.cultivatorId, cultivator.id));

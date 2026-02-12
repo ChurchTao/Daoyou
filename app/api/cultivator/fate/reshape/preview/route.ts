@@ -1,6 +1,7 @@
 import type { BuffInstanceState } from '@/engine/buff/types';
 import { FateGenerator } from '@/engine/fate/creation/FateGenerator';
 import { withActiveCultivator } from '@/lib/api/withAuth';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { eq } from 'drizzle-orm';
@@ -11,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 预览随机命格（消耗1次机会）
  */
 export const GET = withActiveCultivator(
-  async (_request: NextRequest, { cultivator, db }) => {
+  async (_request: NextRequest, { cultivator }) => {
     // 查找重塑命格Buff
     const persistentStatuses = (cultivator.persistent_statuses ||
       []) as BuffInstanceState[];
@@ -34,7 +35,7 @@ export const GET = withActiveCultivator(
         (s) => s.instanceId !== reshapeBuff.instanceId,
       );
 
-      await db()
+      await getExecutor()
         .update(cultivators)
         .set({ persistent_statuses: updatedStatuses })
         .where(eq(cultivators.id, cultivator.id!));
@@ -75,7 +76,7 @@ export const GET = withActiveCultivator(
       return s;
     });
 
-    await db()
+    await getExecutor()
       .update(cultivators)
       .set({ persistent_statuses: updatedStatuses })
       .where(eq(cultivators.id, cultivator.id!));

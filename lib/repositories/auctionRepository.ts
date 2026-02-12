@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
-import { db, type DbTransaction } from '../drizzle/db';
+import { getExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
 /**
@@ -19,7 +19,8 @@ export async function createListing(data: {
   price: number;
   expiresAt: Date;
 }): Promise<AuctionListing> {
-  const [listing] = await db()
+  const q = getExecutor();
+  const [listing] = await q
     .insert(schema.auctionListings)
     .values({
       sellerId: data.sellerId,
@@ -39,7 +40,8 @@ export async function createListing(data: {
  * 查询单个拍卖记录
  */
 export async function findById(id: string): Promise<AuctionListing | null> {
-  const [listing] = await db()
+  const q = getExecutor();
+  const [listing] = await q
     .select()
     .from(schema.auctionListings)
     .where(eq(schema.auctionListings.id, id))
@@ -62,6 +64,7 @@ export interface FindActiveListingsOptions {
 export async function findActiveListings(
   options: FindActiveListingsOptions = {},
 ): Promise<{ listings: AuctionListing[]; total: number }> {
+  const q = getExecutor();
   const {
     itemType,
     minPrice,
@@ -105,14 +108,14 @@ export async function findActiveListings(
   }
 
   // 串行执行查询和计数，避免并发数据库查询
-  const listingsResult = await db()
+  const listingsResult = await q
     .select()
     .from(schema.auctionListings)
     .where(whereClause)
     .orderBy(orderByClause)
     .limit(limit)
     .offset((page - 1) * limit);
-  const countResult = await db()
+  const countResult = await q
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.auctionListings)
     .where(whereClause);
@@ -127,7 +130,8 @@ export async function findActiveListings(
  * 统计卖家进行中的拍卖数量
  */
 export async function countActiveBySeller(sellerId: string): Promise<number> {
-  const result = await db()
+  const q = getExecutor();
+  const result = await q
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.auctionListings)
     .where(
@@ -163,7 +167,8 @@ export async function updateStatus(
 export async function findExpiredListings(
   limit = 1000,
 ): Promise<AuctionListing[]> {
-  return db()
+  const q = getExecutor();
+  return q
     .select()
     .from(schema.auctionListings)
     .where(

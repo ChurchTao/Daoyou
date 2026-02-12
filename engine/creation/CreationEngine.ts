@@ -1,4 +1,4 @@
-import { DbTransaction, db } from '@/lib/drizzle/db';
+import { DbTransaction, getExecutor } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
@@ -71,7 +71,7 @@ export class CreationEngine {
     try {
       // 2. Load Data & Validate Ownership
       // 2.1 Materials
-      const selectedMaterials = await db()
+      const selectedMaterials = await getExecutor()
         .select()
         .from(materials)
         .where(inArray(materials.id, materialIds));
@@ -139,7 +139,7 @@ export class CreationEngine {
       const resultItem = strategy.materialize(blueprint, context);
 
       // 7. Transaction: Consumption & Persistence
-      await db().transaction(async (tx) => {
+      await getExecutor().transaction(async (tx) => {
         // 7.1 Consume Resources (灵石/感悟)
         await this.consumeResources(tx, cultivator, costDescription);
 

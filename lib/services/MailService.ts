@@ -1,4 +1,4 @@
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { mails } from '@/lib/drizzle/schema';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
 import { eq } from 'drizzle-orm';
@@ -30,7 +30,8 @@ export class MailService {
     // If there are attachments, force type to reward
     const mailType = attachments.length > 0 ? 'reward' : type;
 
-    await db().insert(mails).values({
+    const q = getExecutor();
+    await q.insert(mails).values({
       cultivatorId,
       title,
       content,
@@ -56,7 +57,8 @@ export class MailService {
    * Get mails for a cultivator
    */
   static async getMails(cultivatorId: string) {
-    return await db().query.mails.findMany({
+    const q = getExecutor();
+    return await q.query.mails.findMany({
       where: eq(mails.cultivatorId, cultivatorId),
       orderBy: (mails, { desc }) => [desc(mails.createdAt)],
     });

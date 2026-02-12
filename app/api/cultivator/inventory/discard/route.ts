@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
 import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -22,7 +22,7 @@ export const POST = withActiveCultivator(
     // Delete item based on type
     let deleted = false;
     if (itemType === 'artifact') {
-      const result = await db()
+      const result = await getExecutor()
         .delete(schema.artifacts)
         .where(
           and(
@@ -33,7 +33,7 @@ export const POST = withActiveCultivator(
         .returning();
       deleted = result.length > 0;
     } else if (itemType === 'consumable') {
-      const result = await db()
+      const result = await getExecutor()
         .delete(schema.consumables)
         .where(
           and(
@@ -44,7 +44,7 @@ export const POST = withActiveCultivator(
         .returning();
       deleted = result.length > 0;
     } else if (itemType === 'material') {
-      const result = await db()
+      const result = await getExecutor()
         .delete(schema.materials)
         .where(
           and(

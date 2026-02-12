@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import {
   createFeedback,
@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
  */
 export const POST = withAuth(async (req, { user }) => {
   try {
+    const q = getExecutor();
     const body = await req.json();
     const { type, content } = body;
 
@@ -43,7 +44,7 @@ export const POST = withAuth(async (req, { user }) => {
     }
 
     // 获取用户当前活跃角色（如果有）
-    const activeCultivator = await db().query.cultivators.findFirst({
+    const activeCultivator = await q.query.cultivators.findFirst({
       where: and(
         eq(cultivators.userId, user.id),
         eq(cultivators.status, 'active'),

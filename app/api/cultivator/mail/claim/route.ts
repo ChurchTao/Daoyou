@@ -1,7 +1,7 @@
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import { ResourceOperation } from '@/engine/resource/types';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { mails } from '@/lib/drizzle/schema';
 import { MailAttachment } from '@/lib/services/MailService';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
@@ -19,11 +19,12 @@ const ClaimMailSchema = z.object({
  */
 export const POST = withActiveCultivator(
   async (request: NextRequest, { user, cultivator }) => {
+    const q = getExecutor();
     const body = await request.json();
     const { mailId } = ClaimMailSchema.parse(body);
 
     // Verify mail belongs to this cultivator
-    const mail = await db().query.mails.findFirst({
+    const mail = await q.query.mails.findFirst({
       where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)),
     });
 
@@ -88,7 +89,7 @@ export const POST = withActiveCultivator(
       gains,
       async () => {
         // Mark as claimed
-        await db()
+        await q
           .update(mails)
           .set({ isClaimed: true, isRead: true })
           .where(eq(mails.id, mailId));

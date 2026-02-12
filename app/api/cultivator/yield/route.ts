@@ -2,7 +2,7 @@ import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator'
 import { GeneratedMaterial } from '@/engine/material/creation/types';
 import { YieldCalculator } from '@/engine/yield/YieldCalculator';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { redis } from '@/lib/redis';
 import {
   getCultivatorById,
@@ -79,7 +79,7 @@ export const POST = withActiveCultivator(
       let error: string | undefined;
 
       try {
-        await db().transaction(async (tx) => {
+        await getExecutor().transaction(async (tx) => {
           // 发放基础奖励（不包含材料）
           for (const gain of operations) {
             switch (gain.type) {

@@ -22,47 +22,155 @@ import type {
 } from '@/types/cultivator';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, eq, inArray } from 'drizzle-orm';
-import { db, type DbTransaction } from '../drizzle/db';
+import {
+  getExecutor,
+  getQueryConcurrency,
+  type DbExecutor,
+  type DbTransaction,
+} from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
-/**
- * 将数据库记录组装成完整的 Cultivator 对象
- */
-async function assembleCultivator(
-  cultivatorRecord: typeof schema.cultivators.$inferSelect,
-  userId: string,
-): Promise<Cultivator | null> {
-  if (cultivatorRecord.userId !== userId) {
-    return null; // 权限检查
+type CultivatorRecord = typeof schema.cultivators.$inferSelect;
+type SpiritualRootRecord = typeof schema.spiritualRoots.$inferSelect;
+type PreHeavenFateRecord = typeof schema.preHeavenFates.$inferSelect;
+type CultivationTechniqueRecord = typeof schema.cultivationTechniques.$inferSelect;
+type SkillRecord = typeof schema.skills.$inferSelect;
+type EquippedItemRecord = typeof schema.equippedItems.$inferSelect;
+type ArtifactRecord = typeof schema.artifacts.$inferSelect;
+
+interface CultivatorRelations {
+  spiritualRoots: SpiritualRootRecord[];
+  preHeavenFates: PreHeavenFateRecord[];
+  cultivations: CultivationTechniqueRecord[];
+  skills: SkillRecord[];
+  equippedItems: EquippedItemRecord[];
+  artifacts: ArtifactRecord[];
+}
+
+type CultivatorRelationBuckets = Record<string, CultivatorRelations>;
+
+function shouldUseBatchAssembly(): boolean {
+  return process.env.DB_BATCH_ASSEMBLY !== '0';
+}
+
+function createEmptyRelations(): CultivatorRelations {
+  return {
+    spiritualRoots: [],
+    preHeavenFates: [],
+    cultivations: [],
+    skills: [],
+    equippedItems: [],
+    artifacts: [],
+  };
+}
+
+function buildRelationBuckets(cultivatorIds: string[]): CultivatorRelationBuckets {
+  const buckets: CultivatorRelationBuckets = {};
+  for (const id of cultivatorIds) {
+    buckets[id] = createEmptyRelations();
+  }
+  return buckets;
+}
+
+async function runWithConcurrency(
+  tasks: Array<() => Promise<void>>,
+  concurrency: number,
+): Promise<void> {
+  if (tasks.length === 0) {
+    return;
   }
 
-  const cultivatorId = cultivatorRecord.id;
+  const maxWorkers = Math.max(1, Math.min(concurrency, tasks.length));
+  let cursor = 0;
 
-  // 串行获取所有关联数据，避免并发数据库查询
-  const spiritualRootsResult = await db()
-    .select()
-    .from(schema.spiritualRoots)
-    .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
-  const preHeavenFatesResult = await db()
-    .select()
-    .from(schema.preHeavenFates)
-    .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId));
-  const cultivationsResult = await db()
-    .select()
-    .from(schema.cultivationTechniques)
-    .where(eq(schema.cultivationTechniques.cultivatorId, cultivatorId));
-  const skillsResult = await db()
-    .select()
-    .from(schema.skills)
-    .where(eq(schema.skills.cultivatorId, cultivatorId));
-  const equippedResult = await db()
-    .select()
-    .from(schema.equippedItems)
-    .where(eq(schema.equippedItems.cultivatorId, cultivatorId));
+  const worker = async () => {
+    while (cursor < tasks.length) {
+      const task = tasks[cursor];
+      cursor += 1;
+      await task();
+    }
+  };
 
-  // 组装灵根
-  const spiritualRootCount = spiritualRootsResult.length;
-  const spiritual_roots = spiritualRootsResult.map((r) => {
+  await Promise.all(Array.from({ length: maxWorkers }, () => worker()));
+}
+
+async function loadCultivatorRelationsBatch(
+  q: DbExecutor,
+  cultivatorIds: string[],
+): Promise<CultivatorRelationBuckets> {
+  const buckets = buildRelationBuckets(cultivatorIds);
+  if (cultivatorIds.length === 0) {
+    return buckets;
+  }
+
+  const concurrency = getQueryConcurrency();
+  const tasks: Array<() => Promise<void>> = [
+    async () => {
+      const roots = await q
+        .select()
+        .from(schema.spiritualRoots)
+        .where(inArray(schema.spiritualRoots.cultivatorId, cultivatorIds));
+      for (const root of roots) {
+        buckets[root.cultivatorId]?.spiritualRoots.push(root);
+      }
+    },
+    async () => {
+      const fates = await q
+        .select()
+        .from(schema.preHeavenFates)
+        .where(inArray(schema.preHeavenFates.cultivatorId, cultivatorIds));
+      for (const fate of fates) {
+        buckets[fate.cultivatorId]?.preHeavenFates.push(fate);
+      }
+    },
+    async () => {
+      const cultivations = await q
+        .select()
+        .from(schema.cultivationTechniques)
+        .where(inArray(schema.cultivationTechniques.cultivatorId, cultivatorIds));
+      for (const cultivation of cultivations) {
+        buckets[cultivation.cultivatorId]?.cultivations.push(cultivation);
+      }
+    },
+    async () => {
+      const skills = await q
+        .select()
+        .from(schema.skills)
+        .where(inArray(schema.skills.cultivatorId, cultivatorIds));
+      for (const skill of skills) {
+        buckets[skill.cultivatorId]?.skills.push(skill);
+      }
+    },
+    async () => {
+      const equipped = await q
+        .select()
+        .from(schema.equippedItems)
+        .where(inArray(schema.equippedItems.cultivatorId, cultivatorIds));
+      for (const row of equipped) {
+        buckets[row.cultivatorId]?.equippedItems.push(row);
+      }
+    },
+    async () => {
+      const artifacts = await q
+        .select()
+        .from(schema.artifacts)
+        .where(inArray(schema.artifacts.cultivatorId, cultivatorIds));
+      for (const artifact of artifacts) {
+        buckets[artifact.cultivatorId]?.artifacts.push(artifact);
+      }
+    },
+  ];
+
+  await runWithConcurrency(tasks, concurrency);
+  return buckets;
+}
+
+async function assembleCultivatorFromRelations(
+  cultivatorRecord: CultivatorRecord,
+  relations: CultivatorRelations,
+): Promise<Cultivator> {
+  const spiritualRootCount = relations.spiritualRoots.length;
+  const spiritual_roots = relations.spiritualRoots.map((r) => {
     const element = r.element as ElementType;
     return {
       element,
@@ -73,16 +181,14 @@ async function assembleCultivator(
     };
   });
 
-  // 组装先天命格
-  const pre_heaven_fates = preHeavenFatesResult.map((f) => ({
+  const pre_heaven_fates = relations.preHeavenFates.map((f) => ({
     name: f.name,
     quality: f.quality as Quality,
     effects: (f.effects ?? []) as EffectConfig[],
     description: f.description || undefined,
   }));
 
-  // 组装功法
-  const cultivations = cultivationsResult.map((c) => ({
+  const cultivations = relations.cultivations.map((c) => ({
     id: c.id,
     name: c.name,
     grade: c.grade as SkillGrade | undefined,
@@ -91,8 +197,7 @@ async function assembleCultivator(
     description: c.description || undefined,
   }));
 
-  // 组装技能（使用数据库 UUID 作为 id）
-  const skills = skillsResult.map((s) => ({
+  const skills = relations.skills.map((s) => ({
     id: s.id,
     name: s.name,
     element: s.element as ElementType,
@@ -104,34 +209,35 @@ async function assembleCultivator(
     effects: (s.effects ?? []) as EffectConfig[],
   }));
 
-  // 组装法宝 - 延迟加载
-  const artifacts = await getCultivatorArtifacts(userId, cultivatorId);
+  const artifacts = relations.artifacts.map((a) => ({
+    id: a.id,
+    name: a.name,
+    slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
+    element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
+    quality: a.quality as
+      | Cultivator['inventory']['artifacts'][0]['quality']
+      | undefined,
+    required_realm: a.required_realm as
+      | Cultivator['inventory']['artifacts'][0]['required_realm']
+      | undefined,
+    description: a.description || '',
+    effects: (a.effects ??
+      []) as Cultivator['inventory']['artifacts'][0]['effects'],
+  }));
 
-  // 组装消耗品 - 延迟加载
-  const consumables: Consumable[] = [];
-
-  // 组装材料 - 延迟加载
-  const materials: Material[] = [];
-
-  const retreat_records: RetreatRecord[] = [];
-
-  const breakthrough_history: BreakthroughHistoryEntry[] = [];
-
-  // 组装装备状态（将 UUID 转换为字符串）
+  const equippedRow = relations.equippedItems[0];
   const equipped: Cultivator['equipped'] = {
-    weapon: equippedResult[0]?.weapon_id
-      ? String(equippedResult[0].weapon_id)
-      : null,
-    armor: equippedResult[0]?.armor_id
-      ? String(equippedResult[0].armor_id)
-      : null,
-    accessory: equippedResult[0]?.accessory_id
-      ? String(equippedResult[0].accessory_id)
-      : null,
+    weapon: equippedRow?.weapon_id ? String(equippedRow.weapon_id) : null,
+    armor: equippedRow?.armor_id ? String(equippedRow.armor_id) : null,
+    accessory: equippedRow?.accessory_id ? String(equippedRow.accessory_id) : null,
   };
 
-  // 组装完整的 Cultivator 对象
-  const cultivator: Cultivator = {
+  const consumables: Consumable[] = [];
+  const materials: Material[] = [];
+  const retreat_records: RetreatRecord[] = [];
+  const breakthrough_history: BreakthroughHistoryEntry[] = [];
+
+  return {
     id: cultivatorRecord.id,
     name: cultivatorRecord.name,
     title: cultivatorRecord.title || undefined,
@@ -169,19 +275,40 @@ async function assembleCultivator(
     spirit_stones: cultivatorRecord.spirit_stones,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
-    // 修为系统：如果数据库有值则使用，否则初始化
     cultivation_progress: getOrInitCultivationProgress(
       cultivatorRecord.cultivation_progress as CultivationProgress,
       cultivatorRecord.realm as Cultivator['realm'],
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
-    // 持久化状态（如符箓效果）
     persistent_statuses:
       (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) ||
       [],
   };
+}
 
-  return cultivator;
+/**
+ * 将数据库记录组装成完整的 Cultivator 对象
+ */
+async function assembleCultivator(
+  cultivatorRecord: CultivatorRecord,
+  userId: string,
+  executor?: DbExecutor,
+  prefetchedRelations?: CultivatorRelations,
+): Promise<Cultivator | null> {
+  if (cultivatorRecord.userId !== userId) {
+    return null; // 权限检查
+  }
+
+  if (prefetchedRelations) {
+    return assembleCultivatorFromRelations(cultivatorRecord, prefetchedRelations);
+  }
+
+  const q = executor ?? getExecutor();
+  const relationBuckets = await loadCultivatorRelationsBatch(q, [cultivatorRecord.id]);
+  return assembleCultivatorFromRelations(
+    cultivatorRecord,
+    relationBuckets[cultivatorRecord.id] ?? createEmptyRelations(),
+  );
 }
 
 /**
@@ -255,7 +382,8 @@ export async function createCultivator(
   userId: string,
   cultivator: Cultivator,
 ): Promise<Cultivator> {
-  const result = await db().transaction(async (tx) => {
+  const q = getExecutor();
+  const result = await q.transaction(async (tx) => {
     // 1. 创建角色主表记录
     const cultivatorResult = await tx
       .insert(schema.cultivators)
@@ -357,7 +485,7 @@ export async function createCultivator(
   });
 
   // 返回完整的 Cultivator 对象
-  const fullCultivator = await assembleCultivator(result, userId);
+  const fullCultivator = await assembleCultivator(result, userId, q);
   if (!fullCultivator) {
     throw new Error('创建角色后无法组装完整数据');
   }
@@ -386,7 +514,8 @@ function resolveSpiritualRootGrade(
 export async function getUserAliveCultivatorId(
   userId: string,
 ): Promise<string | null> {
-  const record = await db()
+  const q = getExecutor();
+  const record = await q
     .select({
       id: schema.cultivators.id,
     })
@@ -413,7 +542,8 @@ export async function getCultivatorById(
   userId: string,
   cultivatorId: string,
 ): Promise<Cultivator | null> {
-  const cultivatorRecord = await db()
+  const q = getExecutor();
+  const cultivatorRecord = await q
     .select()
     .from(schema.cultivators)
     .where(
@@ -429,7 +559,7 @@ export async function getCultivatorById(
     return null;
   }
 
-  return assembleCultivator(cultivatorRecord[0], userId);
+  return assembleCultivator(cultivatorRecord[0], userId, q);
 }
 
 /**
@@ -438,7 +568,8 @@ export async function getCultivatorById(
 export async function getCultivatorsByUserId(
   userId: string,
 ): Promise<Cultivator[]> {
-  const cultivatorRecords = await db()
+  const q = getExecutor();
+  const cultivatorRecords = await q
     .select()
     .from(schema.cultivators)
     .where(
@@ -448,9 +579,23 @@ export async function getCultivatorsByUserId(
       ),
     );
 
+  const relationBuckets = shouldUseBatchAssembly()
+    ? await loadCultivatorRelationsBatch(
+        q,
+        cultivatorRecords.map((record) => record.id),
+      )
+    : undefined;
+
   const cultivators: Array<Cultivator | null> = [];
   for (const record of cultivatorRecords) {
-    const cultivator = await assembleCultivator(record, userId);
+    const cultivator = await assembleCultivator(
+      record,
+      userId,
+      q,
+      relationBuckets
+        ? relationBuckets[record.id] ?? createEmptyRelations()
+        : undefined,
+    );
     cultivators.push(cultivator);
   }
 
@@ -458,7 +603,8 @@ export async function getCultivatorsByUserId(
 }
 
 export async function hasDeadCultivator(userId: string): Promise<boolean> {
-  const rows = await db()
+  const q = getExecutor();
+  const rows = await q
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(
@@ -498,7 +644,8 @@ export interface CultivatorBasic {
 export async function getCultivatorOwnerId(
   cultivatorId: string,
 ): Promise<string | null> {
-  const record = await db()
+  const q = getExecutor();
+  const record = await q
     .select({
       userId: schema.cultivators.userId,
       status: schema.cultivators.status,
@@ -520,7 +667,8 @@ export async function getCultivatorOwnerId(
 export async function getCultivatorByIdUnsafe(
   cultivatorId: string,
 ): Promise<CultivatorWithOwner | null> {
-  const record = await db()
+  const q = getExecutor();
+  const record = await q
     .select()
     .from(schema.cultivators)
     .where(
@@ -535,7 +683,7 @@ export async function getCultivatorByIdUnsafe(
     return null;
   }
 
-  const full = await assembleCultivator(record[0], record[0].userId);
+  const full = await assembleCultivator(record[0], record[0].userId, q);
   if (!full) {
     return null;
   }
@@ -557,7 +705,8 @@ export async function getCultivatorsByIdsUnsafe(
     return [];
   }
 
-  const records = await db()
+  const q = getExecutor();
+  const records = await q
     .select()
     .from(schema.cultivators)
     .where(
@@ -567,9 +716,23 @@ export async function getCultivatorsByIdsUnsafe(
       ),
     );
 
+  const relationBuckets = shouldUseBatchAssembly()
+    ? await loadCultivatorRelationsBatch(
+        q,
+        records.map((record) => record.id),
+      )
+    : undefined;
+
   const assembled: Array<CultivatorWithOwner | null> = [];
   for (const record of records) {
-    const full = await assembleCultivator(record, record.userId);
+    const full = await assembleCultivator(
+      record,
+      record.userId,
+      q,
+      relationBuckets
+        ? relationBuckets[record.id] ?? createEmptyRelations()
+        : undefined,
+    );
     if (!full) {
       assembled.push(null);
       continue;
@@ -587,7 +750,8 @@ export async function getCultivatorsByIdsUnsafe(
 export async function getCultivatorBasicsByIdUnsafe(
   cultivatorId: string,
 ): Promise<CultivatorBasic | null> {
-  const record = await db()
+  const q = getExecutor();
+  const record = await q
     .select()
     .from(schema.cultivators)
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -621,7 +785,8 @@ export async function getCultivatorBasicsByIdsUnsafe(
     return [];
   }
 
-  const rows = await db()
+  const q = getExecutor();
+  const rows = await q
     .select({
       id: schema.cultivators.id,
       name: schema.cultivators.name,
@@ -668,7 +833,7 @@ export async function getLastDeadCultivatorSummary(userId: string): Promise<{
   realm_stage: Cultivator['realm_stage'];
   story?: string;
 } | null> {
-  const rows = await db()
+  const rows = await getExecutor()
     .select()
     .from(schema.cultivators)
     .where(
@@ -683,7 +848,7 @@ export async function getLastDeadCultivatorSummary(userId: string): Promise<{
   if (rows.length === 0) return null;
 
   const record = rows[0];
-  const history = await db()
+  const history = await getExecutor()
     .select()
     .from(schema.breakthroughHistory)
     .where(eq(schema.breakthroughHistory.cultivatorId, record.id))
@@ -727,7 +892,7 @@ export async function updateCultivator(
   >,
 ): Promise<Cultivator | null> {
   // 权限验证
-  const existing = await db()
+  const existing = await getExecutor()
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(and(eq(schema.cultivators.id, cultivatorId)));
@@ -764,7 +929,7 @@ export async function updateCultivator(
   if (updates.cultivation_progress !== undefined)
     updateData.cultivation_progress = updates.cultivation_progress;
 
-  await db()
+  await getExecutor()
     .update(schema.cultivators)
     .set(updateData)
     .where(eq(schema.cultivators.id, cultivatorId));
@@ -776,7 +941,7 @@ async function assertCultivatorOwnership(
   userId: string,
   cultivatorId: string,
 ): Promise<void> {
-  const existing = await db()
+  const existing = await getExecutor()
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(
@@ -798,7 +963,7 @@ export async function addRetreatRecord(
   record: RetreatRecord,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
-  await db()
+  await getExecutor()
     .insert(schema.retreatRecords)
     .values({
       cultivatorId,
@@ -819,7 +984,7 @@ export async function addBreakthroughHistoryEntry(
   entry: BreakthroughHistoryEntry,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
-  await db()
+  await getExecutor()
     .insert(schema.breakthroughHistory)
     .values({
       cultivatorId,
@@ -841,7 +1006,7 @@ export async function deleteCultivator(
   cultivatorId: string,
 ): Promise<boolean> {
   // 权限验证
-  const existing = await db()
+  const existing = await getExecutor()
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(
@@ -856,7 +1021,7 @@ export async function deleteCultivator(
   }
 
   // 由于设置了 onDelete: 'cascade'，删除主表记录会自动删除所有关联记录
-  await db()
+  await getExecutor()
     .delete(schema.cultivators)
     .where(
       and(
@@ -874,7 +1039,7 @@ export async function getCultivatorConsumables(
   userId: string,
   cultivatorId: string,
 ): Promise<Cultivator['inventory']['consumables']> {
-  const result = await db()
+  const result = await getExecutor()
     .select()
     .from(schema.consumables)
     .where(eq(schema.consumables.cultivatorId, cultivatorId));
@@ -894,7 +1059,7 @@ export async function getCultivatorMaterials(
   userId: string,
   cultivatorId: string,
 ): Promise<Cultivator['inventory']['materials']> {
-  const result = await db()
+  const result = await getExecutor()
     .select()
     .from(schema.materials)
     .where(eq(schema.materials.cultivatorId, cultivatorId));
@@ -915,7 +1080,7 @@ export async function getCultivatorRetreatRecords(
   userId: string,
   cultivatorId: string,
 ): Promise<Cultivator['retreat_records']> {
-  const result = await db()
+  const result = await getExecutor()
     .select()
     .from(schema.retreatRecords)
     .where(eq(schema.retreatRecords.cultivatorId, cultivatorId))
@@ -939,7 +1104,7 @@ export async function getCultivatorBreakthroughHistory(
   userId: string,
   cultivatorId: string,
 ): Promise<Cultivator['breakthrough_history']> {
-  const result = await db()
+  const result = await getExecutor()
     .select()
     .from(schema.breakthroughHistory)
     .where(eq(schema.breakthroughHistory.cultivatorId, cultivatorId))
@@ -959,8 +1124,10 @@ export async function getCultivatorBreakthroughHistory(
 export async function getCultivatorArtifacts(
   userId: string,
   cultivatorId: string,
+  tx?: DbTransaction,
 ): Promise<Cultivator['inventory']['artifacts']> {
-  const result = await db()
+  const q = getExecutor(tx);
+  const result = await q
     .select()
     .from(schema.artifacts)
     .where(eq(schema.artifacts.cultivatorId, cultivatorId));
@@ -994,7 +1161,7 @@ export async function getInventory(
   cultivatorId: string,
 ): Promise<import('../../types/cultivator').Inventory> {
   // 权限验证
-  const existing = await db()
+  const existing = await getExecutor()
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(
@@ -1009,15 +1176,15 @@ export async function getInventory(
   }
 
   // 获取法宝、消耗品和材料（串行）
-  const artifactsResult = await db()
+  const artifactsResult = await getExecutor()
     .select()
     .from(schema.artifacts)
     .where(eq(schema.artifacts.cultivatorId, cultivatorId));
-  const consumablesResult = await db()
+  const consumablesResult = await getExecutor()
     .select()
     .from(schema.consumables)
     .where(eq(schema.consumables.cultivatorId, cultivatorId));
-  const materialsResult = await db()
+  const materialsResult = await getExecutor()
     .select()
     .from(schema.materials)
     .where(eq(schema.materials.cultivatorId, cultivatorId));
@@ -1062,7 +1229,7 @@ export async function equipEquipment(
   artifactId: string,
 ): Promise<import('../../types/cultivator').EquippedItems> {
   // 权限验证
-  const existing = await db()
+  const existing = await getExecutor()
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(
@@ -1077,7 +1244,7 @@ export async function equipEquipment(
   }
 
   // 获取装备信息
-  const artifact = await db()
+  const artifact = await getExecutor()
     .select()
     .from(schema.artifacts)
     .where(
@@ -1095,7 +1262,7 @@ export async function equipEquipment(
   const slot = artifactItem.slot;
 
   // 获取当前装备状态
-  const equippedItems = await db()
+  const equippedItems = await getExecutor()
     .select()
     .from(schema.equippedItems)
     .where(eq(schema.equippedItems.cultivatorId, cultivatorId));
@@ -1103,7 +1270,7 @@ export async function equipEquipment(
   let equippedItem;
   if (equippedItems.length === 0) {
     // 如果没有装备状态记录，创建一个
-    const newEquipped = await db()
+    const newEquipped = await getExecutor()
       .insert(schema.equippedItems)
       .values({
         cultivatorId,
@@ -1131,7 +1298,7 @@ export async function equipEquipment(
   }
 
   // 更新装备状态
-  const updated = await db()
+  const updated = await getExecutor()
     .update(schema.equippedItems)
     .set(updateData)
     .where(eq(schema.equippedItems.id, equippedItem.id))
@@ -1154,7 +1321,7 @@ export async function getSkills(
   cultivatorId: string,
 ): Promise<import('../../types/cultivator').Skill[]> {
   // 权限验证
-  const existing = await db()
+  const existing = await getExecutor()
     .select({ id: schema.cultivators.id })
     .from(schema.cultivators)
     .where(
@@ -1169,7 +1336,7 @@ export async function getSkills(
   }
 
   // 获取技能列表
-  const skillsResult = await db()
+  const skillsResult = await getExecutor()
     .select()
     .from(schema.skills)
     .where(eq(schema.skills.cultivatorId, cultivatorId));
@@ -1200,7 +1367,7 @@ export async function consumeItem(
 ): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const consumableRows = await db()
+  const consumableRows = await getExecutor()
     .select()
     .from(schema.consumables)
     .where(eq(schema.consumables.id, consumableId));
@@ -1215,7 +1382,7 @@ export async function consumeItem(
   }
 
   // 只查询角色主表，避免关联表查询
-  const cultivatorRows = await db()
+  const cultivatorRows = await getExecutor()
     .select()
     .from(schema.cultivators)
     .where(eq(schema.cultivators.id, cultivatorId))
@@ -1246,7 +1413,7 @@ export async function consumeItem(
   // 使用事务处理效果应用和数量扣减
   let finalMessage = `使用了【${item.name}】`;
 
-  await db().transaction(async (tx) => {
+  await getExecutor().transaction(async (tx) => {
     // 创建效果实例
     const { EffectFactory } = await import('@/engine/effect/EffectFactory');
     const { EffectTrigger } = await import('@/engine/effect/types');
@@ -1393,7 +1560,7 @@ async function handleConsumeItem(
   currentQuantity: number,
   tx?: DbTransaction,
 ) {
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   if (currentQuantity > 1) {
     await dbInstance
       .update(schema.consumables)
@@ -1419,7 +1586,7 @@ export async function updateSpiritStones(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   const cultivator = await dbInstance
     .select({ spirit_stones: schema.cultivators.spirit_stones })
     .from(schema.cultivators)
@@ -1454,7 +1621,7 @@ export async function updateLifespan(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   const cultivator = await dbInstance
     .select({ lifespan: schema.cultivators.lifespan })
     .from(schema.cultivators)
@@ -1492,7 +1659,7 @@ export async function updateCultivationExp(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   const cultivatorData = await dbInstance
     .select({
       cultivation_progress: schema.cultivators.cultivation_progress,
@@ -1555,7 +1722,7 @@ export async function hasMaterial(
 ): Promise<boolean> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const materials = await db()
+  const materials = await getExecutor()
     .select()
     .from(schema.materials)
     .where(
@@ -1583,7 +1750,7 @@ export async function addMaterialToInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   // 检查是否已经有相同的材料（名称和品质都必须一致）
   const existing = await dbInstance
     .select()
@@ -1629,7 +1796,7 @@ export async function removeMaterialFromInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   const materials = await dbInstance
     .select()
     .from(schema.materials)
@@ -1676,7 +1843,7 @@ export async function addArtifactToInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   await dbInstance.insert(schema.artifacts).values({
     cultivatorId,
     name: artifact.name,
@@ -1702,7 +1869,7 @@ export async function addConsumableToInventory(
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const dbInstance = tx || db();
+  const dbInstance = getExecutor(tx);
   // 检查是否已经有相同的消耗品（名称和品质都必须一致）
   const quality = consumable.quality || '凡品';
   const existing = await dbInstance
@@ -1769,7 +1936,7 @@ export async function updateLastYieldAt(
 
   // 否则进行完整的权限检查
   await assertCultivatorOwnership(userId, cultivatorId);
-  await db()
+  await getExecutor()
     .update(schema.cultivators)
     .set({ last_yield_at: new Date() })
     .where(eq(schema.cultivators.id, cultivatorId));

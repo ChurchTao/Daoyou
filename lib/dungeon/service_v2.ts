@@ -8,7 +8,7 @@ import type { ResourceOperation } from '@/engine/resource/types';
 import { REALM_VALUES, RealmType } from '@/types/constants';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { randomUUID } from 'crypto';
-import { db } from '../drizzle/db';
+import { getExecutor } from '../drizzle/db';
 import { dungeonHistories } from '../drizzle/schema';
 import { getMapNode, SatelliteNode } from '../game/mapSystem';
 import { redis } from '../redis';
@@ -814,7 +814,7 @@ ${materialTypeTable}
     realGains?: ResourceOperation[],
   ) {
     // Archive to DB
-    await db()
+    await getExecutor()
       .insert(dungeonHistories)
       .values({
         cultivatorId: state.cultivatorId,
@@ -838,7 +838,7 @@ ${materialTypeTable}
 
     const state = await redis.get<DungeonState>(key);
     if (state) {
-      await db()
+      await getExecutor()
         .insert(dungeonHistories)
         .values({
           cultivatorId: state.cultivatorId,

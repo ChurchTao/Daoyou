@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,7 +19,7 @@ export const POST = withActiveCultivator(
     const { title } = TitleSchema.parse(body);
 
     // Update title
-    const updated = await db()
+    const updated = await getExecutor()
       .update(cultivators)
       .set({ title: title || null }) // Allow clearing title by sending empty string or null
       .where(eq(cultivators.id, cultivator.id))

@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { dungeonHistories } from '@/lib/drizzle/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,7 +24,7 @@ export const GET = withActiveCultivator(
     const offset = (page - 1) * pageSize;
 
     // 查询历史记录总数
-    const countResult = await db()
+    const countResult = await getExecutor()
       .select({ count: sql<number>`count(*)` })
       .from(dungeonHistories)
       .where(eq(dungeonHistories.cultivatorId, cultivator.id));
@@ -33,7 +33,7 @@ export const GET = withActiveCultivator(
     const totalPages = Math.ceil(total / pageSize);
 
     // 查询历史记录
-    const records = await db()
+    const records = await getExecutor()
       .select({
         id: dungeonHistories.id,
         theme: dungeonHistories.theme,

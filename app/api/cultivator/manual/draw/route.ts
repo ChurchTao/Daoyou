@@ -1,6 +1,7 @@
 import type { BuffInstanceState } from '@/engine/buff/types';
 import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator';
 import { withActiveCultivator } from '@/lib/api/withAuth';
+import { getExecutor, type DbTransaction } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { QUALITY_VALUES, Quality } from '@/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
@@ -11,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 抽取功法/神通典籍
  */
 export const POST = withActiveCultivator(
-  async (request: NextRequest, { cultivator, db }) => {
+  async (request: NextRequest, { cultivator }) => {
     const url = new URL(request.url);
     const drawType = url.searchParams.get('type'); // 'gongfa' | 'skill'
 
@@ -44,7 +45,7 @@ export const POST = withActiveCultivator(
         (s) => s.instanceId !== drawBuff.instanceId,
       );
 
-      await db()
+      await getExecutor()
         .update(cultivators)
         .set({ persistent_statuses: updatedStatuses })
         .where(eq(cultivators.id, cultivator.id!));
@@ -92,7 +93,7 @@ export const POST = withActiveCultivator(
     const manual = generated[0];
 
     // 添加到背包并移除Buff
-    await db().transaction(async (transaction) => {
+    await getExecutor().transaction(async (transaction: DbTransaction) => {
       const existing = await transaction
         .select()
         .from(materials)

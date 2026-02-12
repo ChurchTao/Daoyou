@@ -7,7 +7,7 @@ import {
   CreationEngineError,
 } from '@/engine/creation/CreationEngine';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { materials } from '@/lib/drizzle/schema';
 import { Quality } from '@/types/constants';
 import { inArray } from 'drizzle-orm';
@@ -52,7 +52,7 @@ export const GET = withActiveCultivator(
 
     if (materialIdsParam && materialIdsParam.length > 0) {
       const materialIds = materialIdsParam.split(',');
-      const materialsData = await db()
+      const materialsData = await getExecutor()
         .select()
         .from(materials)
         .where(inArray(materials.id, materialIds));

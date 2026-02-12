@@ -2,6 +2,7 @@ import { buffTemplateRegistry } from '@/engine/buff/BuffTemplateRegistry';
 import { BuffTag } from '@/engine/buff/types';
 import { CultivatorUnit } from '@/engine/cultivator/CultivatorUnit';
 import { withActiveCultivator } from '@/lib/api/withAuth';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import { createMinimalCultivator } from '@/lib/repositories/cultivatorRepository';
 import { eq } from 'drizzle-orm';
@@ -14,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 优化：自动清理过期的持久化状态
  */
 export const GET = withActiveCultivator(
-  async (_request: NextRequest, { cultivator, db }) => {
+  async (_request: NextRequest, { cultivator }) => {
     // 将数据库记录转换为 Cultivator 对象
     const cultivatorData = createMinimalCultivator(cultivator);
 
@@ -26,7 +27,7 @@ export const GET = withActiveCultivator(
 
     // 如果有过期状态需要清理，更新数据库
     if (unit.hasDirtyPersistentStatuses()) {
-      await db()
+      await getExecutor()
         .update(cultivators)
         .set({ persistent_statuses: validStatuses })
         .where(eq(cultivators.id, cultivator.id!));

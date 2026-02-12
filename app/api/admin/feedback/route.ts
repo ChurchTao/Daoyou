@@ -1,5 +1,5 @@
 import { withAdminAuth } from '@/lib/api/adminAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import {
   findFeedbacks,
@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * 获取反馈列表（分页 + 筛选）
  */
 export const GET = withAdminAuth(async (request: NextRequest) => {
+  const q = getExecutor();
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '20', 10);
@@ -63,7 +64,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
 
     // 获取角色信息
     if (feedback.cultivatorId) {
-      const cultivator = await db().query.cultivators.findFirst({
+      const cultivator = await q.query.cultivators.findFirst({
         where: eq(cultivators.id, feedback.cultivatorId),
         columns: { name: true, realm: true },
       });

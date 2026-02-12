@@ -1,6 +1,6 @@
 import { simulateBattle } from '@/engine/battle';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import {
   acquireChallengeLock,
@@ -172,7 +172,7 @@ export const POST = withActiveCultivator(
 
           // 13. 记录战斗结果
           // 为挑战者记录挑战记录
-          await db().insert(battleRecords).values({
+          await getExecutor().insert(battleRecords).values({
             userId: user.id,
             cultivatorId,
             challengeType: 'challenge',

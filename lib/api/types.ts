@@ -1,4 +1,4 @@
-import { db } from '@/lib/drizzle/db';
+import type { DbClient } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import { User } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
@@ -22,7 +22,7 @@ export interface AuthContext {
  */
 export interface CultivatorContext extends AuthContext {
   cultivator: Cultivator;
-  db: typeof db;
+  executor: DbClient;
 }
 
 /**

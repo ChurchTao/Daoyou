@@ -1,6 +1,6 @@
 import { simulateBattle } from '@/engine/battle';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
 import { stream_text } from '@/utils/aiClient';
@@ -78,7 +78,7 @@ export const POST = withActiveCultivator(
 
           // 6. 将本次战斗结果以快照方式写入数据库
           try {
-            await db().insert(battleRecords).values({
+            await getExecutor().insert(battleRecords).values({
               userId: user.id,
               cultivatorId: cultivator.id,
               battleResult,

@@ -58,5 +58,8 @@
   "limits": {
     "cpu_ms": 150,
   },
+  "vars": {
+    "DB_RUNTIME": "worker",
+  },
   "keep_vars": true,
 }

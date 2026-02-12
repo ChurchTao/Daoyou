@@ -1,7 +1,7 @@
 import { resolveGameMailRecipients } from '@/lib/admin/recipient-resolver';
 import { normalizeTemplatePayload, renderTemplate } from '@/lib/admin/template';
 import { withAdminAuth } from '@/lib/api/adminAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { adminMessageTemplates, mails } from '@/lib/drizzle/schema';
 import { MailAttachment } from '@/lib/services/MailService';
 import { REALM_VALUES } from '@/types/constants';
@@ -39,6 +39,7 @@ const GameMailBroadcastSchema = z
   });
 
 export const POST = withAdminAuth(async (request: NextRequest) => {
+  const q = getExecutor();
   const body = await request.json();
   const parsed = GameMailBroadcastSchema.safeParse(body);
   if (!parsed.success) {
@@ -64,7 +65,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
   let finalReward = parsed.data.rewardSpiritStones ?? 0;
 
   if (templateId) {
-    const template = await db().query.adminMessageTemplates.findFirst({
+    const template = await q.query.adminMessageTemplates.findFirst({
       where: eq(adminMessageTemplates.id, templateId),
     });
 
@@ -125,7 +126,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
 
   const batchSize = Number(process.env.ADMIN_BROADCAST_BATCH_SIZE ?? 500);
   for (let i = 0; i < rows.length; i += batchSize) {
-    await db()
+    await q
       .insert(mails)
       .values(rows.slice(i, i + batchSize));
   }

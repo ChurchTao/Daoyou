@@ -1,4 +1,4 @@
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import {
   artifacts,
   consumables,
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const LIMIT = 100;
 
     if (type === 'artifact') {
-      const rows = await db()
+      const rows = await getExecutor()
         .select({
           item: artifacts,
           owner: cultivators,
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         title: item.quality, // Use quality as subtitle/title
       }));
     } else if (type === 'skill') {
-      const rows = await db()
+      const rows = await getExecutor()
         .select({
           item: skills,
           owner: cultivators,
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
         title: item.grade || '未知品阶',
       }));
     } else if (type === 'elixir') {
-      const rows = await db()
+      const rows = await getExecutor()
         .select({
           item: consumables,
           owner: cultivators,

@@ -2,7 +2,11 @@ import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { eq, sql } from 'drizzle-orm';
-import { db, type DbTransaction } from '../drizzle/db';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
 
@@ -79,10 +83,12 @@ export interface BuyItemInput {
 async function getItemSnapshot(
   itemType: string,
   itemId: string,
+  executor?: DbExecutor,
 ): Promise<Material | Artifact | Consumable | null> {
+  const q = executor ?? getExecutor();
   switch (itemType) {
     case 'material': {
-      const [material] = await db()
+      const [material] = await q
         .select()
         .from(schema.materials)
         .where(eq(schema.materials.id, itemId))
@@ -90,7 +96,7 @@ async function getItemSnapshot(
       return (material as Material | null) || null;
     }
     case 'artifact': {
-      const [artifact] = await db()
+      const [artifact] = await q
         .select()
         .from(schema.artifacts)
         .where(eq(schema.artifacts.id, itemId))
@@ -98,7 +104,7 @@ async function getItemSnapshot(
       return (artifact as Artifact | null) || null;
     }
     case 'consumable': {
-      const [consumable] = await db()
+      const [consumable] = await q
         .select()
         .from(schema.consumables)
         .where(eq(schema.consumables.id, itemId))
@@ -154,6 +160,7 @@ async function clearAuctionListingsCache(): Promise<void> {
  * 上架物品
  */
 export async function listItem(input: ListItemInput): Promise<ListItemResult> {
+  const q = getExecutor();
   const { cultivatorId, cultivatorName, itemType, itemId, price } = input;
 
   // 1. 校验价格
@@ -214,9 +221,9 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + LISTING_DURATION_HOURS);
 
-    await db().transaction(async (tx) => {
+    await q.transaction(async (tx) => {
       // 再次校验物品所有权（事务内）
-      const ownedItem = await getItemSnapshot(itemType, itemId);
+      const ownedItem = await getItemSnapshot(itemType, itemId, tx);
       if (!ownedItem) {
         throw new AuctionServiceError(
           AuctionError.ITEM_NOT_FOUND,
@@ -255,6 +262,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
  * 购买物品
  */
 export async function buyItem(input: BuyItemInput): Promise<void> {
+  const q = getExecutor();
   const { listingId, buyerCultivatorId } = input;
 
   // 1. 获取分布式锁
@@ -308,7 +316,7 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
     const sellerAmount = price - feeAmount;
 
     // 5. 事务：扣除买家灵石 + 更新拍卖状态 + 发送邮件
-    await db().transaction(async (tx) => {
+    await q.transaction(async (tx) => {
       // 5.1 扣除买家灵石（原子操作）
       const [updatedBuyer] = await tx
         .update(schema.cultivators)
@@ -403,6 +411,7 @@ export async function cancelListing(
   listingId: string,
   cultivatorId: string,
 ): Promise<void> {
+  const q = getExecutor();
   // 1. 查询拍卖记录
   const listing = await auctionRepository.findById(listingId);
   if (!listing) {
@@ -423,7 +432,7 @@ export async function cancelListing(
   }
 
   // 4. 事务：更新状态 + 发送邮件
-  await db().transaction(async (tx) => {
+  await q.transaction(async (tx) => {
     await auctionRepository.updateStatus(tx, listingId, 'cancelled');
 
     // 发送邮件返还物品
@@ -457,6 +466,7 @@ export async function cancelListing(
  * 批量处理过期拍卖
  */
 export async function expireListings(): Promise<number> {
+  const q = getExecutor();
   // 1. 查询过期的 active 拍卖
   const expiredListings = await auctionRepository.findExpiredListings(1000);
 
@@ -467,7 +477,7 @@ export async function expireListings(): Promise<number> {
   // 2. 批量更新状态并发送邮件
   let processed = 0;
 
-  await db().transaction(async (tx) => {
+  await q.transaction(async (tx) => {
     const expiredIds = expiredListings.map((l) => l.id);
 
     // 批量更新状态

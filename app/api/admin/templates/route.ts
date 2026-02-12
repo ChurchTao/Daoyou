@@ -1,5 +1,5 @@
 import { withAdminAuth } from '@/lib/api/adminAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { adminMessageTemplates } from '@/lib/drizzle/schema';
 import { AdminChannel, TemplateStatus } from '@/types/admin-broadcast';
 import { and, desc, eq } from 'drizzle-orm';
@@ -28,6 +28,7 @@ function validateEmailSubject(
 }
 
 export const GET = withAdminAuth(async (request: NextRequest) => {
+  const q = getExecutor();
   const { searchParams } = new URL(request.url);
   const channel = searchParams.get('channel') as AdminChannel | null;
   const status = searchParams.get('status') as TemplateStatus | null;
@@ -40,7 +41,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
     whereConditions.push(eq(adminMessageTemplates.status, status));
   }
 
-  const templates = await db().query.adminMessageTemplates.findMany({
+  const templates = await q.query.adminMessageTemplates.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
     orderBy: [desc(adminMessageTemplates.createdAt)],
   });
@@ -49,6 +50,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
 });
 
 export const POST = withAdminAuth(async (request: NextRequest, { user }) => {
+  const q = getExecutor();
   const body = await request.json();
   const parsed = CreateTemplateSchema.safeParse(body);
   if (!parsed.success) {
@@ -66,7 +68,7 @@ export const POST = withAdminAuth(async (request: NextRequest, { user }) => {
     return NextResponse.json({ error: subjectError }, { status: 400 });
   }
 
-  const [template] = await db()
+  const [template] = await q
     .insert(adminMessageTemplates)
     .values({
       channel: parsed.data.channel,

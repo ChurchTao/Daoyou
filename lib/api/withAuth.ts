@@ -1,4 +1,4 @@
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
 import { createClient } from '@/lib/supabase/server';
 import { and, eq } from 'drizzle-orm';
@@ -99,7 +99,8 @@ export function withActiveCultivator<
       }
 
       // 自动获取当前用户的活跃角色
-      const cultivator = await db().query.cultivators.findFirst({
+      const q = getExecutor();
+      const cultivator = await q.query.cultivators.findFirst({
         where: and(
           eq(cultivators.userId, user.id),
           eq(cultivators.status, 'active'),
@@ -111,7 +112,7 @@ export function withActiveCultivator<
       }
 
       const resolvedParams = context?.params ? await context.params : ({} as T);
-      return handler(request, { user, cultivator, db }, resolvedParams);
+      return handler(request, { user, cultivator, executor: q }, resolvedParams);
     } catch (error) {
       console.error('API Error:', error);
       return errorResponse(

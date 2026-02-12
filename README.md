@@ -90,6 +90,7 @@ OPENAI_API_KEY=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 DATABASE_URL=
+DB_RUNTIME=node
 
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
@@ -120,6 +121,7 @@ npm run dev
 1. 将仓库导入 Vercel。
 2. Build Command: `npm run build`。
 3. 在项目设置中填入 `.env.example` 对应变量。
+   - 建议显式设置 `DB_RUNTIME=node`（默认 Node 侧池化配置）。
 4. 确认定时任务路径（`vercel.json`）：`/api/cron/auction-expire`。
 
 本地验证：
@@ -159,6 +161,20 @@ npx wrangler secret put OPENAI_API_KEY
 npx wrangler secret put DATABASE_URL
 npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
 npx wrangler secret put CRON_SECRET
+```
+
+并在 `wrangler.jsonc` 或 Cloudflare 环境变量中设置：
+
+```jsonc
+"vars": {
+  "DB_RUNTIME": "worker"
+}
+```
+
+可选回滚开关（默认批量组装开启）：
+
+```bash
+DB_BATCH_ASSEMBLY=1
 ```
 
 4. 构建与部署

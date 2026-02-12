@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { mails } from '@/lib/drizzle/schema';
 import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -15,11 +15,12 @@ const ReadMailSchema = z.object({
  */
 export const POST = withActiveCultivator(
   async (request: NextRequest, { cultivator }) => {
+    const q = getExecutor();
     const body = await request.json();
     const { mailId } = ReadMailSchema.parse(body);
 
     // Verify mail belongs to this cultivator
-    const mail = await db().query.mails.findFirst({
+    const mail = await q.query.mails.findFirst({
       where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)),
     });
 
@@ -27,7 +28,7 @@ export const POST = withActiveCultivator(
       return NextResponse.json({ error: 'Mail not found' }, { status: 404 });
     }
 
-    await db().update(mails).set({ isRead: true }).where(eq(mails.id, mailId));
+    await q.update(mails).set({ isRead: true }).where(eq(mails.id, mailId));
 
     return NextResponse.json({ success: true });
   },

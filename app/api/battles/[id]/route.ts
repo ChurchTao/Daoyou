@@ -1,4 +1,4 @@
-import { db } from '@/lib/drizzle/db';
+import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { createClient } from '@/lib/supabase/server';
 import { eq } from 'drizzle-orm';
@@ -24,7 +24,7 @@ export async function GET(req: Request, ctx: Params) {
 
   const { id } = await ctx.params;
 
-  const rows = await db()
+  const rows = await getExecutor()
     .select()
     .from(battleRecords)
     .where(eq(battleRecords.id, id))
