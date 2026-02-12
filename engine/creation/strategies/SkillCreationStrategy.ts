@@ -6,6 +6,7 @@
 
 import { DbTransaction } from '@/lib/drizzle/db';
 import { skills } from '@/lib/drizzle/schema';
+import { isSkillManual } from '@/engine/material/materialTypeUtils';
 import type {
   ElementType,
   Quality,
@@ -73,10 +74,14 @@ export class SkillCreationStrategy implements CreationStrategy<
       throw new Error(`道友神通已经很多了，如需再创，需要遗忘一些神通。`);
     }
 
-    // New validation: Require at least one 'manual'
-    const hasManual = context.materials.some((m) => m.type === 'manual');
-    if (!hasManual) {
-      throw new Error('参悟神通需消耗功法典籍或残页(type=manual)');
+    // Require at least one skill manual (compatible with legacy manual)
+    const hasSkillManual = context.materials.some((m) =>
+      isSkillManual(m.type),
+    );
+    if (!hasSkillManual) {
+      throw new Error(
+        '参悟神通需消耗神通秘术(type=skill_manual，兼容 legacy manual)',
+      );
     }
   }
 
@@ -98,6 +103,12 @@ export class SkillCreationStrategy implements CreationStrategy<
 **神通的词条选择完全由【核心材料】的特性决定。**
 - 分析材料描述，选择最能体现材料特性的词条
 - 不要考虑使用者的灵根、境界、武器等因素
+
+## 神通定位（必须遵守）
+- 神通是**主动施展术式**，强调战斗中的瞬时释放、攻伐变化、控制或治疗手段
+- 名称应偏“术/法/式/秘卷/禁章”等术式风格，不要写成修炼心法名
+- 描述应体现施放动作、命中效果或战斗场景，不要写成长线被动修行逻辑
+- **禁止**把神通写成纯被动功法（如“周天温养”“长期提升根基”“常驻增幅心法”）
 
 ## 材料特性判断规则
 根据材料的**名称意境**和**描述内容**推断其特性：
@@ -141,7 +152,7 @@ ${skillTypePrompts}
 ## 核心材料
 <core_materials>
 ${materials
-  .filter((m) => m.type === 'manual')
+  .filter((m) => isSkillManual(m.type))
   .map((m) => this.buildMaterialPrompt(m))
   .join('\n\n')}
 </core_materials>
@@ -160,7 +171,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
   "name": "烈焰斩",
   "type": "attack",
   "element": "火",
-  "description": "基于【烈火残页】领悟，凝聚火焰于剑上，一斩而出...",
+  "description": "基于【烈火残页】领悟，掐诀聚焰于刃，瞬息斩出炽焰锋芒灼烧敌身...",
   "selected_affixes": {
     "primary": "skill_attack_fire_damage",
     "secondary": "skill_attack_execute"
@@ -319,7 +330,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
   // ============ 辅助方法 ============
 
   private calculateMaterialQuality(materials: Material[]): Quality {
-    const manuals = materials.filter((m) => m.type === 'manual');
+    const manuals = materials.filter((m) => isSkillManual(m.type));
     if (manuals.length === 0) return '凡品';
 
     // 取最高品质

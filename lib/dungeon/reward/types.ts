@@ -43,7 +43,14 @@ export interface RewardBlueprint {
   element?: ElementType;
 
   /** 材料类型 - 仅 material 需要 */
-  material_type?: 'herb' | 'ore' | 'monster' | 'tcdb' | 'aux' | 'manual';
+  material_type?:
+    | 'herb'
+    | 'ore'
+    | 'monster'
+    | 'tcdb'
+    | 'aux'
+    | 'gongfa_manual'
+    | 'skill_manual';
 }
 
 /**

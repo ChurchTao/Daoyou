@@ -3,7 +3,7 @@ import { MaterialGenerator } from '@/engine/material/creation/MaterialGenerator'
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getExecutor, type DbTransaction } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
-import { QUALITY_VALUES, Quality } from '@/types/constants';
+import { MaterialType, QUALITY_VALUES, Quality } from '@/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -77,9 +77,18 @@ export const POST = withActiveCultivator(
       }
     }
 
-    // 生成典籍
+    // 生成典籍（按场景定向产出新类型，兼容 legacy 无 type 场景）
+    const manualType: MaterialType =
+      drawType === 'skill'
+        ? 'skill_manual'
+        : drawType === 'gongfa'
+          ? 'gongfa_manual'
+          : targetBuffId === 'draw_skill_talisman'
+            ? 'skill_manual'
+            : 'gongfa_manual';
+
     const skeletons = [
-      { type: 'manual' as const, rank: selectedQuality, quantity: 1 },
+      { type: manualType, rank: selectedQuality, quantity: 1 },
     ];
     const generated = await MaterialGenerator.generateFromSkeletons(skeletons);
 

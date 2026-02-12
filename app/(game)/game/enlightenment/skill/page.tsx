@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { isSkillManual } from '@/engine/material/materialTypeUtils';
 import {
   getSkillDisplayInfo,
   getSkillElementInfo,
@@ -117,13 +118,13 @@ export default function SkillCreationPage() {
     // 检查是否包含典籍
     const hasManual = selectedMaterialIds.some((id) =>
       cultivator.inventory?.materials.find(
-        (m) => m.id === id && m.type === 'manual',
+        (m) => m.id === id && isSkillManual(m.type),
       ),
     );
 
     if (!hasManual) {
       pushToast({
-        message: '参悟必须以功法典籍(manual)为核心。',
+        message: '参悟必须以神通秘术(skill_manual)为核心。',
         tone: 'warning',
       });
       return;
@@ -182,7 +183,8 @@ export default function SkillCreationPage() {
 
   // Filter materials to only show manual type
   const validMaterials =
-    cultivator?.inventory?.materials.filter((m) => m.type === 'manual') || [];
+    cultivator?.inventory?.materials.filter((m) => isSkillManual(m.type)) ||
+    [];
 
   const renderSkillExtraInfo = (skill: Skill) => {
     const elementInfo = getElementInfo(skill.element);

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { isGongFaManual } from '@/engine/material/materialTypeUtils';
 import { CultivationTechnique, Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -113,13 +114,13 @@ export default function GongfaCreationPage() {
     // 检查是否包含典籍
     const hasManual = selectedMaterialIds.some((id) =>
       cultivator.inventory?.materials.find(
-        (m) => m.id === id && m.type === 'manual',
+        (m) => m.id === id && isGongFaManual(m.type),
       ),
     );
 
     if (!hasManual) {
       pushToast({
-        message: '参悟必须以功法典籍(manual)为核心。',
+        message: '参悟必须以功法典籍(gongfa_manual)为核心。',
         tone: 'warning',
       });
       return;
@@ -178,7 +179,8 @@ export default function GongfaCreationPage() {
 
   // Filter materials to only show manual type
   const validMaterials =
-    cultivator?.inventory?.materials.filter((m) => m.type === 'manual') || [];
+    cultivator?.inventory?.materials.filter((m) => isGongFaManual(m.type)) ||
+    [];
 
   const renderGongfaExtraInfo = (gongfa: CultivationTechnique) => (
     <div className="space-y-1 text-sm">

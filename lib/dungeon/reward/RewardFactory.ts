@@ -186,8 +186,10 @@ export class RewardFactory {
     );
 
     // 推断材料类型
-    const materialType =
-      bp.material_type || this.inferMaterialType(bp.description || '');
+    const materialType = this.resolveGeneratedMaterialType(
+      bp.material_type,
+      bp.description || '',
+    );
 
     const material: Material = {
       name: bp.name || '未知材料',
@@ -354,20 +356,39 @@ export class RewardFactory {
    */
   private static inferMaterialType(
     description: string,
-  ): 'herb' | 'ore' | 'monster' | 'tcdb' | 'aux' | 'manual' {
+  ):
+    | 'herb'
+    | 'ore'
+    | 'monster'
+    | 'tcdb'
+    | 'aux'
+    | 'gongfa_manual'
+    | 'skill_manual' {
     const lowerDesc = description.toLowerCase();
-    // 功法/神通典籍优先判断
+    // 先区分神通秘术（主动术式）
+    if (
+      lowerDesc.includes('神通') ||
+      lowerDesc.includes('秘术') ||
+      lowerDesc.includes('术法') ||
+      lowerDesc.includes('法门')
+    ) {
+      return 'skill_manual';
+    }
+
+    // 功法典籍（被动修行体系）与泛典籍词
     if (
       lowerDesc.includes('功法') ||
-      lowerDesc.includes('神通') ||
-      lowerDesc.includes('秘籍') ||
+      lowerDesc.includes('心法') ||
+      lowerDesc.includes('经') ||
+      lowerDesc.includes('诀') ||
+      lowerDesc.includes('录') ||
       lowerDesc.includes('典籍') ||
       lowerDesc.includes('残页') ||
       lowerDesc.includes('经书') ||
       lowerDesc.includes('图谱') ||
       lowerDesc.includes('玉简')
     ) {
-      return 'manual';
+      return 'gongfa_manual';
     }
     if (
       lowerDesc.includes('草') ||
@@ -414,5 +435,29 @@ export class RewardFactory {
     }
     // 默认为辅助材料
     return 'aux';
+  }
+
+  private static resolveGeneratedMaterialType(
+    materialType: RewardBlueprint['material_type'] | 'manual' | undefined,
+    description: string,
+  ):
+    | 'herb'
+    | 'ore'
+    | 'monster'
+    | 'tcdb'
+    | 'aux'
+    | 'gongfa_manual'
+    | 'skill_manual' {
+    if (!materialType) {
+      return this.inferMaterialType(description);
+    }
+
+    // Defensive normalization: never output legacy `manual`.
+    if (materialType === 'manual') {
+      const inferred = this.inferMaterialType(description);
+      return inferred === 'skill_manual' ? 'skill_manual' : 'gongfa_manual';
+    }
+
+    return materialType;
   }
 }

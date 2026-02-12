@@ -178,6 +178,9 @@ export const MATERIAL_TYPE_VALUES = [
   'monster',
   'tcdb',
   'aux',
+  'gongfa_manual',
+  'skill_manual',
+  // deprecated: legacy type, kept for backward compatibility
   'manual',
 ] as const;
 export type MaterialType = (typeof MATERIAL_TYPE_VALUES)[number];

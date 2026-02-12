@@ -86,10 +86,18 @@ export const RewardBlueprintSchema = z.object({
   description: z.string().optional().describe('物品描述（material类型必填）'),
   // 材料类型 - 仅 material 类型需要
   material_type: z
-    .enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'manual'])
+    .enum([
+      'herb',
+      'ore',
+      'monster',
+      'tcdb',
+      'aux',
+      'gongfa_manual',
+      'skill_manual',
+    ])
     .optional()
     .describe(
-      '材料类型：herb=草药, ore=矿石, monster=妖兽材料, tcdb=天材地宝, aux=辅助, manual=功法/神通',
+      '材料类型：herb=草药, ore=矿石, monster=妖兽材料, tcdb=天材地宝, aux=辅助, gongfa_manual=功法典籍, skill_manual=神通秘术',
     ),
   // 元素 - 仅 material 类型需要
   element: z

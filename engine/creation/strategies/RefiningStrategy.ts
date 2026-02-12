@@ -6,6 +6,7 @@
 
 import { DbTransaction } from '@/lib/drizzle/db';
 import { artifacts } from '@/lib/drizzle/schema';
+import { isAnyManual } from '@/engine/material/materialTypeUtils';
 import type {
   ElementType,
   EquipmentSlot,
@@ -65,9 +66,9 @@ export class RefiningStrategy implements CreationStrategy<
       const herb = context.materials.find((m) => m.type === 'herb');
       throw new Error(`道友慎重，${herb?.name}不适合炼器`);
     }
-    if (context.materials.some((m) => m.type === 'manual')) {
-      const manual = context.materials.find((m) => m.type === 'manual');
-      throw new Error(`道友慎重，${manual?.name}是功法典籍，不宜投入炼器炉`);
+    if (context.materials.some((m) => isAnyManual(m.type))) {
+      const manual = context.materials.find((m) => isAnyManual(m.type));
+      throw new Error(`道友慎重，${manual?.name}是典籍秘卷，不宜投入炼器炉`);
     }
   }
 

@@ -12,6 +12,7 @@ import {
   InkNotice,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { isAnyManual } from '@/engine/material/materialTypeUtils';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -179,7 +180,7 @@ export default function RefinePage() {
           <div className="border-ink-border max-h-60 overflow-y-auto rounded border p-2">
             <InkList dense>
               {inventory.materials
-                .filter((m) => m.type != 'herb' && m.type != 'manual')
+                .filter((m) => m.type != 'herb' && !isAnyManual(m.type))
                 .map((m) => {
                   const typeInfo = getMaterialTypeInfo(m.type);
                   const isSelected = selectedMaterialIds.includes(m.id!);

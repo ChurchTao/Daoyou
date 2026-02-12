@@ -590,6 +590,7 @@ ${realmGuidance}
   }> {
     // 动态生成材料类型描述表格（从 config.ts 统一获取）
     const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
+      .filter(([key]) => key !== 'manual')
       .map(([key, desc]) => `| ${key} | ${desc} |`)
       .join('\n');
 

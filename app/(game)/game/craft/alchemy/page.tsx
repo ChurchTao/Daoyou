@@ -12,6 +12,7 @@ import {
   InkNotice,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { isAnyManual } from '@/engine/material/materialTypeUtils';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
@@ -178,7 +179,7 @@ export default function AlchemyPage() {
           <div className="border-ink-border max-h-60 overflow-y-auto rounded border p-2">
             <InkList dense>
               {inventory.materials
-                .filter((m) => m.type != 'ore' && m.type != 'manual')
+                .filter((m) => m.type != 'ore' && !isAnyManual(m.type))
                 .map((m) => {
                   const typeInfo = getMaterialTypeInfo(m.type);
                   const isSelected = selectedMaterialIds.includes(m.id!);

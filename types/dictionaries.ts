@@ -464,8 +464,16 @@ export const MATERIAL_TYPE_DISPLAY_MAP: Record<
     label: '特殊辅料',
     icon: '💧',
   },
-  manual: {
+  gongfa_manual: {
     label: '功法典籍',
+    icon: '📖',
+  },
+  skill_manual: {
+    label: '神通秘术',
+    icon: '📜',
+  },
+  manual: {
+    label: '古旧典籍',
     icon: '📖',
   },
 };

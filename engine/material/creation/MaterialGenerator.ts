@@ -4,6 +4,7 @@ import {
   type MaterialType,
   type Quality,
 } from '@/types/constants';
+import { normalizeGeneratedManualType } from '@/engine/material/materialTypeUtils';
 import { objectArray } from '@/utils/aiClient';
 import {
   BASE_PRICES,
@@ -60,8 +61,13 @@ export class MaterialGenerator {
   ): Promise<GeneratedMaterial[]> {
     if (skeletons.length === 0) return [];
 
+    const normalizedSkeletons = skeletons.map((skeleton) => ({
+      ...skeleton,
+      type: normalizeGeneratedManualType(skeleton.type),
+    }));
+
     const prompt = getMaterialGenerationPrompt();
-    const userPrompt = getMaterialGenerationUserPrompt(skeletons);
+    const userPrompt = getMaterialGenerationUserPrompt(normalizedSkeletons);
     console.log('User Prompt:', userPrompt);
     try {
       const aiResponse = await objectArray(
@@ -75,7 +81,7 @@ export class MaterialGenerator {
       );
 
       // 组合结果
-      return skeletons.map((skeleton, index) => {
+      return normalizedSkeletons.map((skeleton, index) => {
         const aiData = aiResponse.object[index] || {
           name: '未知材料',
           description: '天道感应模糊...',
@@ -115,7 +121,9 @@ export class MaterialGenerator {
       const rank = options.guaranteedRank || this.randomQuality();
 
       // 2. 确定类型
-      const type = options.specifiedType || this.randomType();
+      const type = normalizeGeneratedManualType(
+        options.specifiedType || this.randomType(),
+      );
 
       // 3. 确定数量
       const [min, max] = QUANTITY_RANGE_MAP[rank] || [1, 1];

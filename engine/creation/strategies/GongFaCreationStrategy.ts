@@ -6,6 +6,7 @@
 
 import { DbTransaction } from '@/lib/drizzle/db';
 import { cultivationTechniques } from '@/lib/drizzle/schema';
+import { isGongFaManual } from '@/engine/material/materialTypeUtils';
 import type { Quality, RealmType, SkillGrade } from '@/types/constants';
 import { QUALITY_VALUES } from '@/types/constants';
 import type { CultivationTechnique, Material } from '@/types/cultivator';
@@ -58,10 +59,14 @@ export class GongFaCreationStrategy implements CreationStrategy<
       throw new Error('道友所学功法已达上限，贪多嚼不烂。');
     }
 
-    // 必须包含 manual 类型材料
-    const hasManual = context.materials.some((m) => m.type === 'manual');
-    if (!hasManual) {
-      throw new Error('参悟功法需消耗功法典籍或残页(type=manual)');
+    // 必须包含功法典籍（兼容 legacy manual）
+    const hasGongFaManual = context.materials.some((m) =>
+      isGongFaManual(m.type),
+    );
+    if (!hasGongFaManual) {
+      throw new Error(
+        '参悟功法需消耗功法典籍(type=gongfa_manual，兼容 legacy manual)',
+      );
     }
   }
 
@@ -81,6 +86,12 @@ export class GongFaCreationStrategy implements CreationStrategy<
 **功法的词条选择完全由【核心材料】的特性决定。**
 - 分析材料描述，选择最能体现材料特性的词条
 - 不要考虑使用者的灵根、境界等因素
+
+## 功法定位（必须遵守）
+- 功法是**被动修行体系**，强调长期温养、周天运转、根基夯实、悟道提升
+- 名称应偏“经/诀/典/录/心法/功”等典籍风格，不要像招式名
+- 描述应体现修炼原理与长期收益，不要描写一次性施法动作
+- **禁止**把功法写成主动战斗术式（如“挥出一斩”“抬手引雷”“瞬发爆发”）
 
 ## 材料特性判断规则
 根据材料的**名称意境**和**描述内容**推断其特性：
@@ -107,7 +118,7 @@ export class GongFaCreationStrategy implements CreationStrategy<
 ## 核心材料
 <core_materials>
 ${materials
-  .filter((m) => m.type === 'manual')
+  .filter((m) => isGongFaManual(m.type))
   .map((m) => this.buildMaterialPrompt(m))
   .join('\n\n')}
 </core_materials>
@@ -120,7 +131,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
 ## 输出示例
 {
   "name": "烈火诀",
-  "description": "基于烈火残页推演而出，采地火之气修炼，可大幅增强灵力。",
+  "description": "基于烈火残页推演而出，采地火之气行周天温养灵脉，久修可稳步增强灵力根基。",
   "selected_affixes": {
     "primary": "gongfa_spirit",
     "secondary": "gongfa_crit_rate"
@@ -222,7 +233,7 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
   // ============ 辅助方法 ============
 
   private calculateMaterialQuality(materials: Material[]): Quality {
-    const manuals = materials.filter((m) => m.type === 'manual');
+    const manuals = materials.filter((m) => isGongFaManual(m.type));
     if (manuals.length === 0) return '凡品';
 
     // 取最高品质

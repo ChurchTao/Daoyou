@@ -19,7 +19,9 @@ export const TYPE_CHANCE_MAP: Record<MaterialType, number> = {
   monster: 0.22, // 22% 妖兽材料
   tcdb: 0.07, // 7% 天材地宝
   aux: 0.05, // 5% 特殊辅料
-  manual: 0.03, // 3% 功法典籍（稀有）
+  gongfa_manual: 0.015, // 1.5% 功法典籍（稀有）
+  skill_manual: 0.015, // 1.5% 神通秘术（稀有）
+  manual: 0, // deprecated: blocked from new generation
 };
 
 // 品质基础价格
@@ -41,7 +43,9 @@ export const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
   monster: 1.2,
   tcdb: 2.5, // 天材地宝
   aux: 1.5,
-  manual: 3.0, // 典籍
+  gongfa_manual: 3.0, // 功法典籍
+  skill_manual: 3.0, // 神通秘术
+  manual: 3.0, // deprecated input compatibility only
 };
 
 // 类型中文描述与解释（用于 Prompt）
@@ -51,7 +55,9 @@ export const TYPE_DESCRIPTIONS: Record<MaterialType, string> = {
   monster: '妖兽材料 (妖丹、骨骼、皮毛等)',
   tcdb: '天材地宝 (稀世奇珍，蕴含天地法则)',
   aux: '辅料 (炼丹/炼器的辅助材料，如灵液、粉尘)',
-  manual: '功法典籍 (玉简、残页，记载功法神通)',
+  gongfa_manual: '功法典籍',
+  skill_manual: '神通秘术',
+  manual: '古旧典籍(兼容，仅历史数据，不再新产出)',
 };
 
 // 各品质的堆叠数量配置 [min, max]
