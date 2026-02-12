@@ -1,7 +1,8 @@
 'use client';
 
 import { BattleReplayViewer } from '@/components/feature/battle/BattleReplayViewer';
-import type { BattleEngineResult } from '@/engine/battle';
+import type { BattleEngineResult, TurnSnapshot } from '@/engine/battle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -21,6 +22,7 @@ type BattleRecordResponse = {
 export default function BattleReplayPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const { cultivator } = useCultivator();
 
   const [record, setRecord] = useState<BattleRecord | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,13 +62,48 @@ export default function BattleReplayPage() {
     );
   }
 
-  const playerName = record?.battleResult.winner?.name ?? '道友';
-  const opponentName = record?.battleResult.loser?.name ?? '对手';
-  const timeline = record?.battleResult.timeline ?? [];
-  const turns = record?.battleResult.turns;
+  const battleResult = record?.battleResult;
+  const currentCultivatorId = cultivator?.id;
 
-  // 这里用 winner 是否存在来简单判断胜负（真实逻辑可按需要调整）
-  const isWin = !!record?.battleResult.winner?.name;
+  const selfIsOpponent =
+    !!battleResult &&
+    !!currentCultivatorId &&
+    battleResult.opponent === currentCultivatorId;
+
+  const getCultivatorNameById = (
+    result: BattleEngineResult,
+    cultivatorId: string,
+  ) => {
+    if (result.winner?.id === cultivatorId) return result.winner.name;
+    if (result.loser?.id === cultivatorId) return result.loser.name;
+    return cultivatorId === currentCultivatorId ? '道友' : '对手';
+  };
+
+  const playerName = battleResult
+    ? selfIsOpponent
+      ? getCultivatorNameById(battleResult, battleResult.opponent)
+      : getCultivatorNameById(battleResult, battleResult.player)
+    : '道友';
+  const opponentName = battleResult
+    ? selfIsOpponent
+      ? getCultivatorNameById(battleResult, battleResult.player)
+      : getCultivatorNameById(battleResult, battleResult.opponent)
+    : '对手';
+
+  let timeline: TurnSnapshot[] = battleResult?.timeline ?? [];
+  if (selfIsOpponent && battleResult?.timeline?.length) {
+    // 回放组件固定以 player/opponent 渲染，这里按“当前角色视角”交换左右两侧。
+    timeline = battleResult.timeline.map((snap) => ({
+      ...snap,
+      player: snap.opponent,
+      opponent: snap.player,
+    }));
+  }
+
+  const turns = record?.battleResult.turns;
+  const isWin = currentCultivatorId
+    ? record?.battleResult.winner?.id === currentCultivatorId
+    : !!record?.battleResult.winner?.name;
 
   return (
     <div className="bg-paper min-h-screen">

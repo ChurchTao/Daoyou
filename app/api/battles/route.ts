@@ -37,20 +37,23 @@ export async function GET(req: Request) {
     );
   }
 
-  // 构建查询条件
-  let whereCondition = or(
+  // 基础条件：我参与的战斗
+  const participantCondition = or(
     eq(battleRecords.cultivatorId, cultivatorId),
     eq(battleRecords.opponentCultivatorId, cultivatorId),
   );
+
+  // 按“当前角色视角”筛选挑战类型
+  let whereCondition = participantCondition;
   if (type === 'challenge') {
     whereCondition = and(
+      participantCondition,
       eq(battleRecords.cultivatorId, cultivatorId),
-      eq(battleRecords.challengeType, 'challenge'),
     )!;
   } else if (type === 'challenged') {
     whereCondition = and(
+      participantCondition,
       eq(battleRecords.opponentCultivatorId, cultivatorId),
-      eq(battleRecords.challengeType, 'challenged'),
     )!;
   }
 
@@ -74,13 +77,22 @@ export async function GET(req: Request) {
   // 仅返回列表页需要的精简数据
   const data = records.map((r) => {
     const result = r.battleResult as BattleEngineResult;
+    const isChallenger = r.cultivatorId === cultivatorId;
+    const hasOpponent = !!r.opponentCultivatorId;
+
+    const challengeType = hasOpponent
+      ? isChallenger
+        ? 'challenge'
+        : 'challenged'
+      : 'normal';
+
     return {
       id: r.id,
       createdAt: r.createdAt,
       winner: result.winner,
       loser: result.loser,
       turns: result.turns,
-      challengeType: r.challengeType || 'normal',
+      challengeType,
       opponentCultivatorId: r.opponentCultivatorId,
     };
   });
