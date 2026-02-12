@@ -38,6 +38,10 @@ function getDungeonKey(cultivatorId: string) {
   return `dungeon:active:${cultivatorId}`;
 }
 
+function getDungeonStartLockKey(cultivatorId: string) {
+  return `dungeon:starting:${cultivatorId}`;
+}
+
 export class DungeonService {
   /**
    * 计算境界差距
@@ -203,77 +207,98 @@ ${realmGuidance}
    * 初始化副本
    */
   async startDungeon(cultivatorId: string, mapNodeId: string) {
-    // 0. 检查每日次数限制
-    const limit = await checkDungeonLimit(cultivatorId);
-    if (!limit.allowed) {
-      throw new Error('今日探索次数已用尽（每日限 2 次）');
-    }
-
     const activeKey = getDungeonKey(cultivatorId);
-    const existingSession = await redis.get(activeKey);
-    if (existingSession) {
-      throw new Error('当前已有正在进行的副本，请先完成或放弃');
+    const startLockKey = getDungeonStartLockKey(cultivatorId);
+
+    // 防并发：避免重复点击导致并行启动时重复扣次数
+    const lockAcquired = await redis.set(startLockKey, '1', {
+      nx: true,
+      ex: 30,
+    });
+    if (!lockAcquired) {
+      throw new Error('副本正在启动中，请稍后重试');
     }
 
-    // 消耗次数（开始即消耗）
-    await consumeDungeonLimit(cultivatorId);
+    try {
+      // 0. 检查每日次数限制
+      const limit = await checkDungeonLimit(cultivatorId);
+      if (!limit.allowed) {
+        throw new Error('今日探索次数已用尽（每日限 2 次）');
+      }
 
-    // 1. 获取玩家与地图数据 (逻辑同你之前)
-    const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
+      const existingSession = await redis.get(activeKey);
+      if (existingSession) {
+        throw new Error('当前已有正在进行的副本，请先完成或放弃');
+      }
 
-    // 2. 加载持久状态和环境状态
-    const cultivator = await getCultivatorByIdUnsafe(cultivatorId);
-    if (!cultivator || !cultivator.cultivator) {
-      throw new Error('未找到修真者数据');
+      // 1. 获取玩家与地图数据 (逻辑同你之前)
+      const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
+
+      // 2. 加载持久状态和环境状态
+      const cultivator = await getCultivatorByIdUnsafe(cultivatorId);
+      if (!cultivator || !cultivator.cultivator) {
+        throw new Error('未找到修真者数据');
+      }
+
+      // 从数据库加载持久状态（转换为 BuffInstanceState 格式）
+      const rawStatuses = Array.isArray(cultivator.cultivator.persistent_statuses)
+        ? cultivator.cultivator.persistent_statuses
+        : [];
+      const persistentBuffs: BuffInstanceState[] = rawStatuses.map(
+        (s: {
+          statusKey?: string;
+          configId?: string;
+          potency?: number;
+          currentStacks?: number;
+          createdAt?: number;
+        }) => ({
+          instanceId: '',
+          configId: s.statusKey || s.configId || '',
+          currentStacks: s.potency || s.currentStacks || 1,
+          remainingTurns: -1,
+          createdAt: s.createdAt || Date.now(),
+        }),
+      );
+
+      // 3. 初始状态
+      const state: DungeonState = {
+        ...context,
+        mapNodeId, // 保存地图节点ID
+        currentRound: 1,
+        maxRounds: 5, // 建议固定或根据地图设定
+        history: [],
+        dangerScore: 10,
+        isFinished: false,
+        cultivatorId: context.playerInfo.id!,
+        theme: context.location.location,
+        summary_of_sacrifice: [],
+        status: 'EXPLORING',
+        persistentBuffs,
+        accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
+        accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
+      };
+
+      // 4. 首次 AI 调用
+      const roundData = await this.callAI(state);
+
+      // 5. 更新历史并存入 Redis
+      state.history.push({ round: 1, scene: roundData.scene_description });
+      state.currentOptions = roundData.interaction.options;
+      await this.saveState(cultivatorId, state);
+
+      // 6. 仅在副本已成功初始化后再扣除次数
+      try {
+        await consumeDungeonLimit(cultivatorId);
+      } catch (error) {
+        // 扣次数失败时回滚活跃副本，避免“启动失败但次数异常”
+        await redis.del(activeKey);
+        throw error;
+      }
+
+      return { state, roundData };
+    } finally {
+      await redis.del(startLockKey);
     }
-
-    // 从数据库加载持久状态（转换为 BuffInstanceState 格式）
-    const rawStatuses = Array.isArray(cultivator.cultivator.persistent_statuses)
-      ? cultivator.cultivator.persistent_statuses
-      : [];
-    const persistentBuffs: BuffInstanceState[] = rawStatuses.map(
-      (s: {
-        statusKey?: string;
-        configId?: string;
-        potency?: number;
-        currentStacks?: number;
-        createdAt?: number;
-      }) => ({
-        instanceId: '',
-        configId: s.statusKey || s.configId || '',
-        currentStacks: s.potency || s.currentStacks || 1,
-        remainingTurns: -1,
-        createdAt: s.createdAt || Date.now(),
-      }),
-    );
-
-    // 3. 初始状态
-    const state: DungeonState = {
-      ...context,
-      mapNodeId, // 保存地图节点ID
-      currentRound: 1,
-      maxRounds: 5, // 建议固定或根据地图设定
-      history: [],
-      dangerScore: 10,
-      isFinished: false,
-      cultivatorId: context.playerInfo.id!,
-      theme: context.location.location,
-      summary_of_sacrifice: [],
-      status: 'EXPLORING',
-      persistentBuffs,
-      accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
-      accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
-    };
-
-    // 4. 首次 AI 调用
-    const roundData = await this.callAI(state);
-
-    // 5. 更新历史并存入 Redis
-    state.history.push({ round: 1, scene: roundData.scene_description });
-    state.currentOptions = roundData.interaction.options;
-    await this.saveState(cultivatorId, state);
-
-    return { state, roundData };
   }
 
   /**
