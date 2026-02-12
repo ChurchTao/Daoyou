@@ -243,6 +243,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         itemSnapshot,
         price,
         expiresAt,
+        tx,
       });
     });
 
@@ -379,6 +380,7 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
           },
         ],
         'reward',
+        tx,
       );
 
       // 5.5 发送邮件给卖家（灵石）
@@ -394,6 +396,7 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
           },
         ],
         'reward',
+        tx,
       );
     });
 
@@ -455,6 +458,7 @@ export async function cancelListing(
         },
       ],
       'reward',
+      tx,
     );
   });
 
@@ -504,6 +508,7 @@ export async function expireListings(): Promise<number> {
           },
         ],
         'reward',
+        tx,
       );
       processed++;
     }

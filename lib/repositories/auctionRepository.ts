@@ -18,8 +18,9 @@ export async function createListing(data: {
   itemSnapshot: unknown;
   price: number;
   expiresAt: Date;
+  tx?: DbTransaction;
 }): Promise<AuctionListing> {
-  const q = getExecutor();
+  const q = getExecutor(data.tx);
   const [listing] = await q
     .insert(schema.auctionListings)
     .values({

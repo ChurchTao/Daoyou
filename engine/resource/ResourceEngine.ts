@@ -17,6 +17,7 @@ import type {
   ResourceTransactionOptions,
   ResourceValidationResult,
 } from './types';
+import type { DbTransaction } from '@/lib/drizzle/db';
 
 /**
  * 资源管理引擎
@@ -137,7 +138,7 @@ export class ResourceEngine {
     userId: string,
     cultivatorId: string,
     costs: ResourceOperation[],
-    action?: () => Promise<void>,
+    action?: (tx: DbTransaction) => Promise<void>,
     dryRun = false,
   ): Promise<ResourceOperationResult> {
     // 先校验资源是否充足
@@ -224,7 +225,7 @@ export class ResourceEngine {
         // 2. 如果提供了action，执行它
         // 如果action失败，会抛出异常，导致事务回滚
         if (action) {
-          await action();
+          await action(tx);
         }
       });
 
@@ -252,7 +253,7 @@ export class ResourceEngine {
     userId: string,
     cultivatorId: string,
     gains: ResourceOperation[],
-    action?: () => Promise<void>,
+    action?: (tx: DbTransaction) => Promise<void>,
     dryRun = false,
   ): Promise<ResourceOperationResult> {
     // 如果是干运行模式，直接返回成功
@@ -352,7 +353,7 @@ export class ResourceEngine {
         // 2. 如果提供了 action，执行它
         // 如果 action 失败，会抛出异常，导致事务回滚
         if (action) {
-          await action();
+          await action(tx);
         }
       });
 

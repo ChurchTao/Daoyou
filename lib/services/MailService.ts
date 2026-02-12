@@ -2,6 +2,7 @@ import { getExecutor } from '@/lib/drizzle/db';
 import { mails } from '@/lib/drizzle/schema';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
 import { eq } from 'drizzle-orm';
+import type { DbTransaction } from '../drizzle/db';
 
 export type MailAttachmentType =
   | 'material'
@@ -26,11 +27,12 @@ export class MailService {
     content: string,
     attachments: MailAttachment[] = [],
     type: 'system' | 'reward' = 'system',
+    tx?: DbTransaction,
   ) {
     // If there are attachments, force type to reward
     const mailType = attachments.length > 0 ? 'reward' : type;
 
-    const q = getExecutor();
+    const q = getExecutor(tx);
     await q.insert(mails).values({
       cultivatorId,
       title,
@@ -49,8 +51,9 @@ export class MailService {
     cultivatorId: string,
     title: string,
     content: string,
+    tx?: DbTransaction,
   ) {
-    await this.sendMail(cultivatorId, title, content, [], 'system');
+    await this.sendMail(cultivatorId, title, content, [], 'system', tx);
   }
 
   /**

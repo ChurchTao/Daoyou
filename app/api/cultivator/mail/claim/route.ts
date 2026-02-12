@@ -1,7 +1,7 @@
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import { ResourceOperation } from '@/engine/resource/types';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { getExecutor } from '@/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@/lib/drizzle/db';
 import { mails } from '@/lib/drizzle/schema';
 import { MailAttachment } from '@/lib/services/MailService';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
@@ -87,9 +87,9 @@ export const POST = withActiveCultivator(
       user.id,
       cultivator.id,
       gains,
-      async () => {
+      async (tx: DbTransaction) => {
         // Mark as claimed
-        await q
+        await tx
           .update(mails)
           .set({ isClaimed: true, isRead: true })
           .where(eq(mails.id, mailId));
