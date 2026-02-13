@@ -21,7 +21,7 @@ import {
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ListItemModalProps {
   onClose: () => void;
@@ -32,6 +32,40 @@ interface ListItemModalProps {
 type ItemType = 'material' | 'artifact' | 'consumable';
 type SelectableItem = (Material | Artifact | Consumable) & {
   itemType: ItemType;
+};
+
+type InventoryApiType = 'materials' | 'artifacts' | 'consumables';
+
+interface InventoryPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+interface InventoryApiPayload {
+  success: boolean;
+  data?: {
+    items?: Array<Material | Artifact | Consumable>;
+    pagination?: InventoryPagination;
+  };
+  error?: string;
+}
+
+const PAGE_SIZE = 20;
+const defaultPagination: InventoryPagination = {
+  page: 1,
+  pageSize: PAGE_SIZE,
+  total: 0,
+  totalPages: 0,
+  hasMore: false,
+};
+
+const itemTypeToApiTypeMap: Record<ItemType, InventoryApiType> = {
+  material: 'materials',
+  artifact: 'artifacts',
+  consumable: 'consumables',
 };
 
 function isStackableItem(
@@ -52,17 +86,82 @@ export function ListItemModal({
   const [quantity, setQuantity] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [listError, setListError] = useState('');
+  const [isItemsLoading, setIsItemsLoading] = useState(false);
+  const [itemsByType, setItemsByType] = useState<Record<ItemType, SelectableItem[]>>(
+    {
+      material: [],
+      artifact: [],
+      consumable: [],
+    },
+  );
+  const [paginationByType, setPaginationByType] = useState<
+    Record<ItemType, InventoryPagination>
+  >({
+    material: defaultPagination,
+    artifact: defaultPagination,
+    consumable: defaultPagination,
+  });
+  const [loadedByType, setLoadedByType] = useState<Record<ItemType, boolean>>({
+    material: false,
+    artifact: false,
+    consumable: false,
+  });
+  const requestIdRef = useRef(0);
 
-  // 从 cultivator.inventory 获取背包物品数据
-  const materials: SelectableItem[] = (
-    cultivator?.inventory?.materials || []
-  ).map((m) => ({ ...m, itemType: 'material' as ItemType }));
-  const artifacts: SelectableItem[] = (
-    cultivator?.inventory?.artifacts || []
-  ).map((a) => ({ ...a, itemType: 'artifact' as ItemType }));
-  const consumables: SelectableItem[] = (
-    cultivator?.inventory?.consumables || []
-  ).map((c) => ({ ...c, itemType: 'consumable' as ItemType }));
+  const fetchItemPage = useCallback(
+    async (itemType: ItemType, page: number) => {
+      if (!cultivator?.id) return;
+
+      const requestId = ++requestIdRef.current;
+      setIsItemsLoading(true);
+      setListError('');
+
+      try {
+        const apiType = itemTypeToApiTypeMap[itemType];
+        const res = await fetch(
+          `/api/cultivator/inventory?type=${apiType}&page=${Math.max(1, page)}&pageSize=${PAGE_SIZE}`,
+        );
+        const result = (await res.json()) as InventoryApiPayload;
+        if (!res.ok || !result.success) {
+          throw new Error(result.error || '读取背包失败');
+        }
+
+        if (requestId !== requestIdRef.current) return;
+
+        const mappedItems = (result.data?.items || []).map((item) => ({
+          ...item,
+          itemType,
+        })) as SelectableItem[];
+
+        setItemsByType((prev) => ({
+          ...prev,
+          [itemType]: mappedItems,
+        }));
+        setPaginationByType((prev) => ({
+          ...prev,
+          [itemType]:
+            result.data?.pagination || { ...defaultPagination, pageSize: PAGE_SIZE },
+        }));
+        setLoadedByType((prev) => ({
+          ...prev,
+          [itemType]: true,
+        }));
+      } catch (e) {
+        if (requestId !== requestIdRef.current) return;
+        setListError(e instanceof Error ? e.message : '读取背包失败');
+      } finally {
+        if (requestId !== requestIdRef.current) return;
+        setIsItemsLoading(false);
+      }
+    },
+    [cultivator?.id],
+  );
+
+  useEffect(() => {
+    if (!cultivator?.id || loadedByType[activeType]) return;
+    void fetchItemPage(activeType, 1);
+  }, [activeType, cultivator?.id, fetchItemPage, loadedByType]);
 
   const handleSelectItem = (item: SelectableItem) => {
     setSelectedItem(item);
@@ -190,20 +289,15 @@ export function ListItemModal({
   };
 
   const getCurrentItems = () => {
-    switch (activeType) {
-      case 'material':
-        return materials;
-      case 'artifact':
-        return artifacts;
-      case 'consumable':
-        return consumables;
-    }
+    return itemsByType[activeType];
   };
 
+  const currentPagination = paginationByType[activeType];
+
   const tabs = [
-    { label: `材料 (${materials.length})`, value: 'material' },
-    { label: `法宝 (${artifacts.length})`, value: 'artifact' },
-    { label: `消耗品 (${consumables.length})`, value: 'consumable' },
+    { label: '材料', value: 'material' },
+    { label: '法宝', value: 'artifact' },
+    { label: '消耗品', value: 'consumable' },
   ];
 
   return (
@@ -247,10 +341,19 @@ export function ListItemModal({
           <InkTabs
             items={tabs}
             activeValue={activeType}
-            onChange={(v) => setActiveType(v as ItemType)}
+            onChange={(v) => {
+              setActiveType(v as ItemType);
+              setListError('');
+            }}
           />
           <div className="mt-4">
-            {getCurrentItems().length > 0 ? (
+            {!cultivator?.id ? (
+              <InkNotice>请先登录后再上架物品</InkNotice>
+            ) : isItemsLoading && getCurrentItems().length === 0 ? (
+              <div className="py-8 text-center">正在读取背包物品...</div>
+            ) : listError ? (
+              <InkNotice>{listError}</InkNotice>
+            ) : getCurrentItems().length > 0 ? (
               <InkList>
                 {getCurrentItems().map((item) => {
                   const displayProps = getItemDisplayProps(item);
@@ -287,6 +390,30 @@ export function ListItemModal({
               </InkNotice>
             )}
           </div>
+          {currentPagination.totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <InkButton
+                variant="secondary"
+                disabled={isItemsLoading || currentPagination.page <= 1}
+                onClick={() => void fetchItemPage(activeType, currentPagination.page - 1)}
+              >
+                上一页
+              </InkButton>
+              <span className="text-ink-secondary text-sm">
+                {currentPagination.page} / {currentPagination.totalPages}
+              </span>
+              <InkButton
+                variant="secondary"
+                disabled={
+                  isItemsLoading ||
+                  currentPagination.page >= currentPagination.totalPages
+                }
+                onClick={() => void fetchItemPage(activeType, currentPagination.page + 1)}
+              >
+                下一页
+              </InkButton>
+            </div>
+          )}
         </>
       ) : (
         <div className="space-y-4">
