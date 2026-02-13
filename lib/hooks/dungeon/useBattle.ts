@@ -9,7 +9,7 @@ import { useState } from 'react';
 interface BattleCallbackData {
   isFinished: boolean;
   settlement?: DungeonSettlement;
-  state?: DungeonState;
+  dungeonState?: DungeonState;
   roundData?: DungeonRound;
 }
 
@@ -27,6 +27,9 @@ export function useBattle() {
    * 执行战斗（SSE流式请求）
    */
   const executeBattle = async (battleId: string) => {
+    let result: BattleEngineResult | undefined;
+    let callbackData: BattleCallbackData | null = null;
+
     try {
       setIsStreaming(true);
       setBattleEnd(false);
@@ -47,8 +50,6 @@ export function useBattle() {
       }
 
       let fullReport = '';
-      let result: BattleEngineResult | undefined;
-      let callbackData: BattleCallbackData | null = null;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -59,25 +60,27 @@ export function useBattle() {
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            let data: Record<string, unknown>;
             try {
-              const data = JSON.parse(line.slice(6));
-
-              if (data.type === 'battle_result') {
-                result = data.data;
-                setBattleResult(data.data);
-              } else if (data.type === 'chunk') {
-                fullReport += data.content;
-                setStreamingReport(fullReport);
-              } else if (data.type === 'done') {
-                setIsStreaming(false);
-                setStreamingReport(fullReport);
-                setBattleEnd(true);
-                callbackData = data;
-              } else if (data.type === 'error') {
-                throw new Error(data.error);
-              }
-            } catch (e) {
+              data = JSON.parse(line.slice(6));
+            } catch {
               // Ignore JSON parse errors for incomplete chunks
+              continue;
+            }
+
+            if (data.type === 'battle_result') {
+              result = data.data as BattleEngineResult;
+              setBattleResult(result);
+            } else if (data.type === 'chunk') {
+              fullReport += String(data.content ?? '');
+              setStreamingReport(fullReport);
+            } else if (data.type === 'done') {
+              setIsStreaming(false);
+              setStreamingReport(fullReport);
+              setBattleEnd(true);
+              callbackData = data as unknown as BattleCallbackData;
+            } else if (data.type === 'error') {
+              throw new Error(String(data.error ?? '战斗流程异常中断'));
             }
           }
         }
@@ -87,7 +90,9 @@ export function useBattle() {
     } catch (error) {
       console.error('[useBattle] Error:', error);
       setIsStreaming(false);
-      throw error;
+      // 保持可点击“继续探险”，让上层通过 refresh 做恢复
+      setBattleEnd(true);
+      return { battleResult: result, callbackData };
     }
   };
 

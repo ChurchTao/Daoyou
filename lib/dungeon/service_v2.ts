@@ -241,7 +241,9 @@ ${realmGuidance}
       }
 
       // 从数据库加载持久状态（转换为 BuffInstanceState 格式）
-      const rawStatuses = Array.isArray(cultivator.cultivator.persistent_statuses)
+      const rawStatuses = Array.isArray(
+        cultivator.cultivator.persistent_statuses,
+      )
         ? cultivator.cultivator.persistent_statuses
         : [];
       const persistentBuffs: BuffInstanceState[] = rawStatuses.map(
@@ -601,7 +603,18 @@ ${realmGuidance}
     }
 
     // Resume AI
-    const roundData = await this.callAI(state);
+    let roundData: DungeonRound;
+    try {
+      roundData = await this.callAI(state);
+    } catch (error) {
+      console.error('[DungeonService] 战斗后生成下一轮失败，使用兜底回合:', {
+        cultivatorId,
+        currentRound: state.currentRound,
+        error,
+      });
+      roundData = this.buildFallbackRoundAfterBattle(state, enemyName);
+    }
+
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
@@ -611,6 +624,143 @@ ${realmGuidance}
 
     await this.saveState(cultivatorId, state);
     return { state, roundData, isFinished: false };
+  }
+
+  /**
+   * 战斗回调失败时的强恢复路径（不依赖 LLM）
+   * 目标：确保不会卡在 IN_BATTLE，且玩家可继续流程
+   */
+  async recoverAfterBattleCallbackFailure(
+    cultivatorId: string,
+    battleResult: BattleEngineResult,
+    reason?: string,
+  ): Promise<{
+    state?: DungeonState;
+    roundData?: DungeonRound;
+    isFinished: boolean;
+    settlement?: DungeonSettlement;
+    realGains?: ResourceOperation[];
+  }> {
+    const state = await this.getState(cultivatorId);
+    if (!state) {
+      throw new Error('Dungeon state not found during recovery');
+    }
+
+    state.status = 'EXPLORING';
+    delete state.activeBattleId;
+
+    const enemyName =
+      battleResult.loser.name === state.playerInfo.name
+        ? battleResult.winner.name
+        : battleResult.loser.name;
+    const isWin = battleResult.winner.name === state.playerInfo.name;
+    const lastHistory = state.history[state.history.length - 1];
+
+    if (!isWin) {
+      if (lastHistory) {
+        lastHistory.outcome = `你不敌 ${enemyName}，被迫退出秘境。${reason ? `（天机紊乱：${reason}）` : ''}`;
+      }
+
+      const fallbackSettlement: DungeonSettlement = {
+        ending_narrative:
+          '你在鏖战后力竭遁走，虽保住性命，却再无余力继续探查。',
+        settlement: {
+          reward_tier: 'D',
+          reward_blueprints: [],
+          performance_tags: ['鏖战失利', '仓皇遁走'],
+        },
+      };
+
+      await this.archiveDungeon(state, fallbackSettlement, []);
+      return {
+        isFinished: true,
+        settlement: fallbackSettlement,
+        realGains: [],
+      };
+    }
+
+    if (lastHistory) {
+      lastHistory.outcome = `你击败了 ${enemyName}，但天机推演一时失序，只得先稳住心神再继续前行。`;
+    }
+
+    state.currentRound++;
+    if (state.currentRound > state.maxRounds) {
+      const fallbackSettlement: DungeonSettlement = {
+        ending_narrative: '你在最终一战后收束气机，带着有限收获离开秘境。',
+        settlement: {
+          reward_tier: 'C',
+          reward_blueprints: [],
+          performance_tags: ['惊险收官', '勉强保全'],
+        },
+      };
+      await this.archiveDungeon(state, fallbackSettlement, []);
+      return {
+        isFinished: true,
+        settlement: fallbackSettlement,
+        realGains: [],
+      };
+    }
+
+    const roundData = this.buildFallbackRoundAfterBattle(state, enemyName);
+    state.history.push({
+      round: state.currentRound,
+      scene: roundData.scene_description,
+    });
+    state.currentOptions = roundData.interaction.options;
+    state.dangerScore = roundData.status_update.internal_danger_score;
+
+    await this.saveState(cultivatorId, state);
+    return { state, roundData, isFinished: false };
+  }
+
+  /**
+   * 战斗后兜底回合（用于 LLM 失败时避免副本卡死）
+   */
+  private buildFallbackRoundAfterBattle(
+    state: DungeonState,
+    enemyName: string,
+  ): DungeonRound {
+    const nextIsFinal = state.currentRound >= state.maxRounds;
+    const danger = Math.min(100, Math.max(0, state.dangerScore + 5));
+
+    return {
+      scene_description: `你击退了${enemyName}，却因灵机紊乱一时难以推演天机。四周杀机暂缓，你得以短暂整顿气息，再作抉择。`,
+      interaction: {
+        options: [
+          {
+            id: 1,
+            text: '就地调息，稳住道基后继续探查',
+            risk_level: 'low',
+            potential_cost: '进度放缓，但更稳妥',
+            costs: [],
+          },
+          {
+            id: 2,
+            text: '强行追索残留气机，尝试抢先一步',
+            risk_level: 'medium',
+            potential_cost: '灵力额外消耗',
+            costs: [
+              {
+                type: 'cultivation_exp',
+                value: 20,
+                desc: '强行推演天机导致修为损耗',
+              },
+            ],
+          },
+          {
+            id: 3,
+            text: nextIsFinal ? '见好就收，立即撤离结算' : '暂避锋芒，改道徐行',
+            risk_level: 'low',
+            potential_cost: '收获可能减少',
+            costs: [],
+          },
+        ],
+      },
+      status_update: {
+        is_final_round: nextIsFinal,
+        internal_danger_score: danger,
+      },
+    };
   }
 
   /**

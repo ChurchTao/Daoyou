@@ -99,7 +99,23 @@ export const POST = withActiveCultivator(
           }
 
           // Await the state update after streaming is done
-          const callbackResult = await stateUpdatePromise;
+          let callbackResult;
+          try {
+            callbackResult = await stateUpdatePromise;
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : '战斗回调失败';
+            console.error('[dungeon/battle/execute] state update failed:', {
+              cultivatorId,
+              battleId,
+              error,
+            });
+            callbackResult = await dungeonService.recoverAfterBattleCallbackFailure(
+              cultivatorId,
+              result,
+              errorMessage,
+            );
+          }
 
           if (callbackResult.isFinished) {
             const finished = callbackResult;
@@ -136,6 +152,9 @@ export const POST = withActiveCultivator(
             ),
           );
           controller.close();
+        } finally {
+          // 战斗流无论成功/失败都清理会话，避免 stale session 干扰恢复
+          await redis.del(`dungeon:battle:${battleId}`);
         }
       },
     });
