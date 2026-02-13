@@ -17,7 +17,7 @@ import {
 } from '@/components/ui';
 import { EffectCard } from '@/components/ui/EffectCard';
 import { CultivatorUnit } from '@/engine/cultivator';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getAttributeInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
@@ -38,7 +38,7 @@ export default function CreatePage() {
   const router = useRouter();
   const pathname = usePathname();
   const { pushToast, openDialog } = useInkUI();
-  const { hasActiveCultivator, refresh } = useCultivatorBundle();
+  const { hasActiveCultivator, refresh } = useCultivator();
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

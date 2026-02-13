@@ -2,6 +2,7 @@
 
 import { InkBadge } from '@/components/ui/InkBadge';
 import { InkListItem } from '@/components/ui/InkList';
+import { fetchJsonCached } from '@/lib/client/requestCache';
 import { useEffect, useState } from 'react';
 
 interface LifespanStatus {
@@ -67,8 +68,14 @@ export function LifespanStatusCard({
     setError(null);
 
     try {
-      const res = await fetch(`/api/cultivator/lifespan-status`);
-      const result = await res.json();
+      const result = await fetchJsonCached<{
+        success: boolean;
+        data?: LifespanStatus;
+        error?: string;
+      }>(`/api/cultivator/lifespan-status`, {
+        key: `home:lifespan-status:${cultivatorId}`,
+        ttlMs: autoRefresh ? Math.min(refreshInterval, 5000) : 30 * 1000,
+      });
 
       if (result.success && result.data) {
         setStatus(result.data);

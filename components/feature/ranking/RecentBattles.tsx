@@ -5,7 +5,8 @@ import { InkButton } from '@/components/ui/InkButton';
 import { InkList } from '@/components/ui/InkList';
 import { InkNotice } from '@/components/ui/InkNotice';
 import type { BattleEngineResult } from '@/engine/battle';
-import { useCultivatorBundle } from '@/lib/hooks/useCultivatorBundle';
+import { fetchJsonCached } from '@/lib/client/requestCache';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useEffect, useState } from 'react';
 
 type BattleSummary = {
@@ -16,26 +17,40 @@ type BattleSummary = {
 export function RecentBattles() {
   const [records, setRecords] = useState<BattleSummary[]>([]);
   const [loading, setLoading] = useState(false);
-  const { cultivator } = useCultivatorBundle();
+  const { cultivator } = useCultivator();
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRecords = async () => {
       setLoading(true);
       try {
         // 列表接口已改为分页，这里只取第一页前 5 条
-        const res = await fetch('/api/battles?page=1&pageSize=3');
-        const data = await res.json();
+        const data = await fetchJsonCached<{
+          success: boolean;
+          data?: BattleSummary[];
+        }>('/api/battles?page=1&pageSize=3', {
+          key: 'home:recent-battles:page=1&pageSize=3',
+          ttlMs: 30 * 1000,
+        });
+        if (cancelled) return;
         if (data.success && Array.isArray(data.data)) {
           setRecords(data.data);
         }
       } catch (e) {
+        if (cancelled) return;
         console.error('获取近期战绩失败:', e);
       } finally {
+        if (cancelled) return;
         setLoading(false);
       }
     };
 
     fetchRecords();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {

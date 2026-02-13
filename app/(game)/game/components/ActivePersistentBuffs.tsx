@@ -7,6 +7,7 @@ import {
   getBuffDisplayConfig,
 } from '@/lib/config/persistentBuffDisplay';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { fetchJsonCached } from '@/lib/client/requestCache';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -53,24 +54,38 @@ export function ActivePersistentBuffs() {
   const { cultivator } = useCultivator();
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchBuffs = async () => {
       if (!cultivator) return;
 
       setLoading(true);
       try {
-        const res = await fetch('/api/cultivator/persistent-buffs');
-        const data = await res.json();
+        const data = await fetchJsonCached<{ buffs?: PersistentBuffStatus[] }>(
+          '/api/cultivator/persistent-buffs',
+          {
+            key: `home:persistent-buffs:${cultivator.id}`,
+            ttlMs: 30 * 1000,
+          },
+        );
+        if (cancelled) return;
         if (data.buffs) {
           setBuffs(data.buffs);
         }
       } catch (e) {
+        if (cancelled) return;
         console.error(e);
       } finally {
+        if (cancelled) return;
         setLoading(false);
       }
     };
 
     fetchBuffs();
+
+    return () => {
+      cancelled = true;
+    };
   }, [cultivator]);
 
   if (loading && buffs.length === 0) {
