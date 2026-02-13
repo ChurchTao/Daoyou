@@ -171,6 +171,14 @@ export const POST = withActiveCultivator(
             console.log(
               `[Yield] 材料生成完成: ${materials.map((m) => `${m.rank}${m.name}`).join(', ')}`,
             );
+
+            if (materials.length === 0) {
+              console.error(
+                `[Yield] 材料生成结果为空，跳过空奖励邮件: cultivatorId=${cultivatorId}, expected=${materialCount}`,
+              );
+              return;
+            }
+
             // 发送邮件通知
             const attachments = materials.map((m) => ({
               type: 'material' as const,

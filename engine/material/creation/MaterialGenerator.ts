@@ -1,10 +1,10 @@
+import { normalizeGeneratedManualType } from '@/engine/material/materialTypeUtils';
 import {
   MATERIAL_TYPE_VALUES,
   QUALITY_VALUES,
   type MaterialType,
   type Quality,
 } from '@/types/constants';
-import { normalizeGeneratedManualType } from '@/engine/material/materialTypeUtils';
 import { objectArray } from '@/utils/aiClient';
 import {
   BASE_PRICES,
@@ -13,6 +13,7 @@ import {
   TYPE_CHANCE_MAP,
   TYPE_MULTIPLIERS,
 } from './config';
+import { getFallbackMaterialPreset } from './fallbackPresets';
 import {
   getMaterialGenerationPrompt,
   getMaterialGenerationUserPrompt,
@@ -85,7 +86,7 @@ export class MaterialGenerator {
         const aiData = aiResponse.object[index] || {
           name: '未知材料',
           description: '天道感应模糊...',
-          element: skeleton.forcedElement || '无',
+          element: skeleton.forcedElement || '金',
         };
 
         // 最终元素：优先使用骨架强制指定的，否则使用 AI 生成的
@@ -106,8 +107,26 @@ export class MaterialGenerator {
       });
     } catch (error) {
       console.error('Material Generation Failed:', error);
-      return [];
+      // AI 失败时仍返回可发放的材料，避免奖励邮件出现空附件
+      return this.buildFallbackMaterials(normalizedSkeletons);
     }
+  }
+
+  private static buildFallbackMaterials(
+    skeletons: MaterialSkeleton[],
+  ): GeneratedMaterial[] {
+    return skeletons.map((skeleton) => {
+      const preset = getFallbackMaterialPreset(skeleton.type, skeleton.rank);
+      return {
+        name: preset.name,
+        type: skeleton.type,
+        rank: skeleton.rank,
+        element: skeleton.forcedElement || preset.element,
+        description: preset.description,
+        quantity: skeleton.quantity,
+        price: this.calculatePrice(skeleton.rank, skeleton.type),
+      };
+    });
   }
 
   private static generateRandomSkeletons(
