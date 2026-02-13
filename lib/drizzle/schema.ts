@@ -15,75 +15,94 @@ import {
 // 基于 basic.md 中的新 Cultivator 模型设计
 
 // 角色主表
-export const cultivators = pgTable('wanjiedaoyou_cultivators', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  title: varchar('title', { length: 50 }),
-  gender: varchar('gender', { length: 10 }), // 男 | 女 | 无
-  origin: varchar('origin', { length: 100 }),
-  personality: text('personality'),
-  background: text('background'),
-  prompt: text('prompt').notNull(), // 用户原始输入
+export const cultivators = pgTable(
+  'wanjiedaoyou_cultivators',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    title: varchar('title', { length: 50 }),
+    gender: varchar('gender', { length: 10 }), // 男 | 女 | 无
+    origin: varchar('origin', { length: 100 }),
+    personality: text('personality'),
+    background: text('background'),
+    prompt: text('prompt').notNull(), // 用户原始输入
 
-  // 境界相关
-  realm: varchar('realm', { length: 20 }).notNull(), // 炼气 | 筑基 | 金丹 | ...
-  realm_stage: varchar('realm_stage', { length: 10 }).notNull(), // 初期 | 中期 | 后期 | 圆满
-  age: integer('age').notNull().default(18),
-  lifespan: integer('lifespan').notNull().default(100),
-  closedDoorYearsTotal: integer('closed_door_years_total').default(0),
-  status: varchar('status', { length: 20 }).notNull().default('active'),
-  diedAt: timestamp('died_at'),
+    // 境界相关
+    realm: varchar('realm', { length: 20 }).notNull(), // 炼气 | 筑基 | 金丹 | ...
+    realm_stage: varchar('realm_stage', { length: 10 }).notNull(), // 初期 | 中期 | 后期 | 圆满
+    age: integer('age').notNull().default(18),
+    lifespan: integer('lifespan').notNull().default(100),
+    closedDoorYearsTotal: integer('closed_door_years_total').default(0),
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    diedAt: timestamp('died_at'),
 
-  // 基础属性
-  vitality: integer('vitality').notNull(),
-  spirit: integer('spirit').notNull(),
-  wisdom: integer('wisdom').notNull(),
-  speed: integer('speed').notNull(),
-  willpower: integer('willpower').notNull(),
+    // 基础属性
+    vitality: integer('vitality').notNull(),
+    spirit: integer('spirit').notNull(),
+    wisdom: integer('wisdom').notNull(),
+    speed: integer('speed').notNull(),
+    willpower: integer('willpower').notNull(),
 
-  spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
-  last_yield_at: timestamp('last_yield_at').defaultNow(),
+    spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
+    last_yield_at: timestamp('last_yield_at').defaultNow(),
 
-  max_skills: integer('max_skills').notNull().default(4),
-  balance_notes: text('balance_notes'),
+    max_skills: integer('max_skills').notNull().default(4),
+    balance_notes: text('balance_notes'),
 
-  // 持久状态（用于存储战斗/副本中产生的持久状态）
-  persistent_statuses: jsonb('persistent_statuses').default([]),
+    // 持久状态（用于存储战斗/副本中产生的持久状态）
+    persistent_statuses: jsonb('persistent_statuses').default([]),
 
-  // 修为进度系统
-  cultivation_progress: jsonb('cultivation_progress').default({}),
+    // 修为进度系统
+    cultivation_progress: jsonb('cultivation_progress').default({}),
 
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('cultivators_user_status_updated_idx').on(
+      table.userId,
+      table.status,
+      table.updatedAt,
+    ),
+    index('cultivators_status_created_idx').on(table.status, table.createdAt),
+  ],
+);
 
 // 灵根表（1对多）
-export const spiritualRoots = pgTable('wanjiedaoyou_spiritual_roots', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  element: varchar('element', { length: 10 }).notNull(), // 金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无
-  strength: integer('strength').notNull(), // 0-100
-  grade: varchar('grade', { length: 20 }), // 天灵根 | 真灵根 | 伪灵根 | 变异灵根
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const spiritualRoots = pgTable(
+  'wanjiedaoyou_spiritual_roots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    element: varchar('element', { length: 10 }).notNull(), // 金 | 木 | 水 | 火 | 土 | 风 | 雷 | 冰 | 无
+    strength: integer('strength').notNull(), // 0-100
+    grade: varchar('grade', { length: 20 }), // 天灵根 | 真灵根 | 伪灵根 | 变异灵根
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [index('spiritual_roots_cultivator_idx').on(table.cultivatorId)],
+);
 
 // 先天命格表（1对多）
-export const preHeavenFates = pgTable('wanjiedaoyou_pre_heaven_fates', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  quality: varchar('quality', { length: 10 }), // 凡品 | 灵品 | 玄品 | 真品
-  effects: jsonb('effects').default([]),
-  description: text('description'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const preHeavenFates = pgTable(
+  'wanjiedaoyou_pre_heaven_fates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    quality: varchar('quality', { length: 10 }), // 凡品 | 灵品 | 玄品 | 真品
+    effects: jsonb('effects').default([]),
+    description: text('description'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [index('pre_heaven_fates_cultivator_idx').on(table.cultivatorId)],
+);
 
 // 功法表（1对多）
 export const cultivationTechniques = pgTable(
@@ -100,95 +119,145 @@ export const cultivationTechniques = pgTable(
     effects: jsonb('effects').default([]), // EffectConfig[]
     createdAt: timestamp('created_at').defaultNow(),
   },
+  (table) => [
+    index('cultivation_techniques_cultivator_idx').on(table.cultivatorId),
+  ],
 );
 
 // 技能表（1对多）
-export const skills = pgTable('wanjiedaoyou_skills', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  prompt: text('prompt').notNull().default(''),
-  element: varchar('element', { length: 10 }).notNull(),
-  grade: varchar('grade', { length: 20 }),
-  cost: integer('cost').default(0),
-  cooldown: integer('cooldown').notNull().default(0),
-  target_self: integer('target_self').default(0),
-  description: text('description'),
-  score: integer('score').notNull().default(0),
-  effects: jsonb('effects').default([]), // EffectConfig[]
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const skills = pgTable(
+  'wanjiedaoyou_skills',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    prompt: text('prompt').notNull().default(''),
+    element: varchar('element', { length: 10 }).notNull(),
+    grade: varchar('grade', { length: 20 }),
+    cost: integer('cost').default(0),
+    cooldown: integer('cooldown').notNull().default(0),
+    target_self: integer('target_self').default(0),
+    description: text('description'),
+    score: integer('score').notNull().default(0),
+    effects: jsonb('effects').default([]), // EffectConfig[]
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('skills_cultivator_idx').on(table.cultivatorId),
+    index('skills_score_idx').on(table.score),
+  ],
+);
 
 // 材料表（1对多）
-export const materials = pgTable('wanjiedaoyou_materials', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 20 }).notNull(), // herb | ore | monster | other
-  rank: varchar('rank', { length: 20 }).notNull(), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
-  element: varchar('element', { length: 10 }),
-  description: text('description'),
-  details: jsonb('details').default({}), // 额外属性
-  quantity: integer('quantity').notNull().default(1),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const materials = pgTable(
+  'wanjiedaoyou_materials',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // herb | ore | monster | other
+    rank: varchar('rank', { length: 20 }).notNull(), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
+    element: varchar('element', { length: 10 }),
+    description: text('description'),
+    details: jsonb('details').default({}), // 额外属性
+    quantity: integer('quantity').notNull().default(1),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('materials_cultivator_idx').on(table.cultivatorId),
+    index('materials_cultivator_name_idx').on(table.cultivatorId, table.name),
+    index('materials_cultivator_name_rank_idx').on(
+      table.cultivatorId,
+      table.name,
+      table.rank,
+    ),
+  ],
+);
 
 // 法宝表（1对多）
-export const artifacts = pgTable('wanjiedaoyou_artifacts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  prompt: varchar('prompt', { length: 200 }).notNull().default(''),
-  quality: varchar('quality', { length: 20 }).notNull().default('凡品'),
-  required_realm: varchar('required_realm', { length: 20 })
-    .notNull()
-    .default('练气'),
-  slot: varchar('slot', { length: 20 }).notNull(), // weapon | armor | accessory
-  element: varchar('element', { length: 10 }).notNull(),
-  description: text('description'),
-  score: integer('score').notNull().default(0),
-  effects: jsonb('effects').default([]), // EffectConfig[]
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const artifacts = pgTable(
+  'wanjiedaoyou_artifacts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    prompt: varchar('prompt', { length: 200 }).notNull().default(''),
+    quality: varchar('quality', { length: 20 }).notNull().default('凡品'),
+    required_realm: varchar('required_realm', { length: 20 })
+      .notNull()
+      .default('练气'),
+    slot: varchar('slot', { length: 20 }).notNull(), // weapon | armor | accessory
+    element: varchar('element', { length: 10 }).notNull(),
+    description: text('description'),
+    score: integer('score').notNull().default(0),
+    effects: jsonb('effects').default([]), // EffectConfig[]
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('artifacts_cultivator_idx').on(table.cultivatorId),
+    index('artifacts_score_idx').on(table.score),
+  ],
+);
 
 // 消耗品表（1对多，不在创建时生成，由用户后续添加）
-export const consumables = pgTable('wanjiedaoyou_consumables', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: varchar('name', { length: 100 }).notNull(),
-  type: varchar('type', { length: 20 }).notNull(), // 丹药 | 符箓
-  prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
-  quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
-  effects: jsonb('effects').default([]), // EffectConfig[]
-  quantity: integer('quantity').notNull().default(1),
-  description: text('description'),
-  score: integer('score').notNull().default(0), // 评分
-  details: jsonb('details'), // 符箓配置等额外数据
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const consumables = pgTable(
+  'wanjiedaoyou_consumables',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // 丹药 | 符箓
+    prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
+    quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
+    effects: jsonb('effects').default([]), // EffectConfig[]
+    quantity: integer('quantity').notNull().default(1),
+    description: text('description'),
+    score: integer('score').notNull().default(0), // 评分
+    details: jsonb('details'), // 符箓配置等额外数据
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    index('consumables_cultivator_idx').on(table.cultivatorId),
+    index('consumables_cultivator_name_quality_idx').on(
+      table.cultivatorId,
+      table.name,
+      table.quality,
+    ),
+    index('consumables_score_idx').on(table.score),
+  ],
+);
 
-export const retreatRecords = pgTable('wanjiedaoyou_retreat_records', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  realm: varchar('realm', { length: 20 }).notNull(),
-  realm_stage: varchar('realm_stage', { length: 10 }).notNull(),
-  years: integer('years').notNull(),
-  success: boolean('success').notNull().default(false),
-  chance: doublePrecision('chance').notNull(),
-  roll: doublePrecision('roll').notNull(),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
-  modifiers: jsonb('modifiers').notNull(),
-});
+export const retreatRecords = pgTable(
+  'wanjiedaoyou_retreat_records',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    realm: varchar('realm', { length: 20 }).notNull(),
+    realm_stage: varchar('realm_stage', { length: 10 }).notNull(),
+    years: integer('years').notNull(),
+    success: boolean('success').notNull().default(false),
+    chance: doublePrecision('chance').notNull(),
+    roll: doublePrecision('roll').notNull(),
+    timestamp: timestamp('timestamp').defaultNow().notNull(),
+    modifiers: jsonb('modifiers').notNull(),
+  },
+  (table) => [
+    index('retreat_records_cultivator_timestamp_idx').on(
+      table.cultivatorId,
+      table.timestamp,
+    ),
+  ],
+);
 
 export const breakthroughHistory = pgTable(
   'wanjiedaoyou_breakthrough_history',
@@ -206,6 +275,12 @@ export const breakthroughHistory = pgTable(
     story: text('story'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
+  (table) => [
+    index('breakthrough_history_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+  ],
 );
 
 // 装备状态表（1对1）
@@ -231,45 +306,72 @@ export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {
 });
 
 // 战斗记录表 - 存放每场战斗的完整结果快照与战报
-export const battleRecords = pgTable('wanjiedaoyou_battle_records', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const battleRecords = pgTable(
+  'wanjiedaoyou_battle_records',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
 
-  // 关联用户和正式角色
-  userId: uuid('user_id').notNull(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
+    // 关联用户和正式角色
+    userId: uuid('user_id').notNull(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
 
-  // 挑战相关字段
-  challengeType: varchar('challenge_type', { length: 20 }), // 'challenge' | 'challenged' | 'normal'
-  opponentCultivatorId: uuid('opponent_cultivator_id').references(
-    () => cultivators.id,
-    { onDelete: 'set null' },
-  ), // 对手角色ID（用于被挑战记录）
+    // 挑战相关字段
+    challengeType: varchar('challenge_type', { length: 20 }), // 'challenge' | 'challenged' | 'normal'
+    opponentCultivatorId: uuid('opponent_cultivator_id').references(
+      () => cultivators.id,
+      { onDelete: 'set null' },
+    ), // 对手角色ID（用于被挑战记录）
 
-  // 战斗结果快照（完整 BattleEngineResult 或其扩展）
-  battleResult: jsonb('battle_result').notNull(),
+    // 战斗结果快照（完整 BattleEngineResult 或其扩展）
+    battleResult: jsonb('battle_result').notNull(),
 
-  // AIGC 生成的战斗播报完整文本
-  battleReport: text('battle_report'),
+    // AIGC 生成的战斗播报完整文本
+    battleReport: text('battle_report'),
 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('battle_records_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+    index('battle_records_opponent_created_idx').on(
+      table.opponentCultivatorId,
+      table.createdAt,
+    ),
+  ],
+);
 
 // 邮件/传音玉简表
-export const mails = pgTable('wanjiedaoyou_mails', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  title: varchar('title', { length: 200 }).notNull(),
-  content: text('content').notNull(),
-  type: varchar('type', { length: 20 }).notNull().default('system'), // system | reward
-  attachments: jsonb('attachments'), // Array of { type, id?, name, quantity, data? }
-  isRead: boolean('is_read').notNull().default(false),
-  isClaimed: boolean('is_claimed').notNull().default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const mails = pgTable(
+  'wanjiedaoyou_mails',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    title: varchar('title', { length: 200 }).notNull(),
+    content: text('content').notNull(),
+    type: varchar('type', { length: 20 }).notNull().default('system'), // system | reward
+    attachments: jsonb('attachments'), // Array of { type, id?, name, quantity, data? }
+    isRead: boolean('is_read').notNull().default(false),
+    isClaimed: boolean('is_claimed').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('mails_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+    index('mails_cultivator_is_read_created_idx').on(
+      table.cultivatorId,
+      table.isRead,
+      table.createdAt,
+    ),
+  ],
+);
 
 // 运营模板表
 export const adminMessageTemplates = pgTable(
@@ -290,20 +392,36 @@ export const adminMessageTemplates = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
+  (table) => [
+    index('admin_templates_channel_status_created_idx').on(
+      table.channel,
+      table.status,
+      table.createdAt,
+    ),
+  ],
 );
 
 // 单人副本历史记录表
-export const dungeonHistories = pgTable('wanjiedaoyou_dungeon_histories', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull(),
-  theme: varchar('theme', { length: 100 }).notNull(), // 副本主题
-  result: jsonb('result').notNull(), // 副本结算结果 { ending_narrative, settlement: { reward_tier, potential_items, resource_loss } }
-  log: text('log').notNull(), // 完整交互日志
-  realGains: jsonb('real_gains'), // 实际发放的奖励 ResourceOperation[]
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const dungeonHistories = pgTable(
+  'wanjiedaoyou_dungeon_histories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    theme: varchar('theme', { length: 100 }).notNull(), // 副本主题
+    result: jsonb('result').notNull(), // 副本结算结果 { ending_narrative, settlement: { reward_tier, potential_items, resource_loss } }
+    log: text('log').notNull(), // 完整交互日志
+    realGains: jsonb('real_gains'), // 实际发放的奖励 ResourceOperation[]
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('dungeon_histories_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+  ],
+);
 
 // 拍卖行表
 export const auctionListings = pgTable(
@@ -333,20 +451,28 @@ export const auctionListings = pgTable(
     expiresAt: timestamp('expires_at').notNull(), // 上架时间 + 48小时
     soldAt: timestamp('sold_at'), // 售出时间
   },
-  (table) => ({
-    // 复合索引：用于 Cron 扫描过期物品
-    statusExpiresIdx: index('auction_status_expires_idx').on(
+  (table) => [
+    // 复合索引：用于筛选 active 并处理过期扫描
+    index('auction_status_expires_created_idx').on(
       table.status,
       table.expiresAt,
+      table.createdAt,
     ),
     // 复合索引：用于校验寄售位数量
-    sellerStatusIdx: index('auction_seller_status_idx').on(
-      table.sellerId,
+    index('auction_seller_status_idx').on(table.sellerId, table.status),
+    // 复合索引：用于 active 列表按价格排序/过滤
+    index('auction_status_expires_price_idx').on(
       table.status,
+      table.expiresAt,
+      table.price,
     ),
-    // 单列索引：用于物品类型筛选
-    itemTypeIdx: index('auction_item_type_idx').on(table.itemType),
-  }),
+    // 复合索引：用于 active 列表按类型筛选
+    index('auction_status_expires_item_type_idx').on(
+      table.status,
+      table.expiresAt,
+      table.itemType,
+    ),
+  ],
 );
 
 // 用户反馈表
@@ -367,10 +493,12 @@ export const feedbacks = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => ({
-    userIdIdx: index('feedback_user_id_idx').on(table.userId),
-    statusIdx: index('feedback_status_idx').on(table.status),
-    typeIdx: index('feedback_type_idx').on(table.type),
-    createdAtIdx: index('feedback_created_at_idx').on(table.createdAt),
-  }),
+  (table) => [
+    index('feedback_user_created_at_idx').on(table.userId, table.createdAt),
+    index('feedback_status_type_created_at_idx').on(
+      table.status,
+      table.type,
+      table.createdAt,
+    ),
+  ],
 );
