@@ -1,6 +1,6 @@
 import { CultivatorUnit } from '@/engine/cultivator';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
+import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

@@ -1,4 +1,4 @@
-import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
+import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import type { Cultivator } from '@/types/cultivator';
 import {
   AddBuffParams,

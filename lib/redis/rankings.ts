@@ -1,7 +1,7 @@
 import {
   CultivatorBasic,
   getCultivatorBasicsByIdsUnsafe,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import { redis } from './index';
 
 const RANKING_LIST_KEY = 'golden_rank:list';

@@ -2,7 +2,7 @@ import { withAuth } from '@/lib/api/withAuth';
 import {
   createCultivator,
   hasActiveCultivator,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import {
   deleteTempData,
   getTempCharacter,

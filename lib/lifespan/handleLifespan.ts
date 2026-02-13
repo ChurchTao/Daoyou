@@ -1,7 +1,7 @@
 import {
   getCultivatorBasicsByIdUnsafe,
   updateCultivator,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import { RealmStage, RealmType } from '@/types/constants';
 import type { Cultivator } from '@/types/cultivator';
 import type { BreakthroughModifiers } from '@/utils/breakthroughCalculator';

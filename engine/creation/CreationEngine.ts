@@ -1,7 +1,7 @@
 import { DbTransaction, getExecutor } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
-import { getCultivatorById } from '@/lib/repositories/cultivatorRepository';
+import { getCultivatorById } from '@/lib/services/cultivatorService';
 import { Quality } from '@/types/constants';
 import { Material } from '@/types/cultivator';
 import { object } from '@/utils/aiClient';

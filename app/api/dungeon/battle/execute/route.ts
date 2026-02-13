@@ -3,7 +3,7 @@ import { withActiveCultivator } from '@/lib/api/withAuth';
 import { dungeonService } from '@/lib/dungeon/service_v2';
 import { BattleSession } from '@/lib/dungeon/types';
 import { redis } from '@/lib/redis';
-import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
+import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import { Cultivator } from '@/types/cultivator';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';

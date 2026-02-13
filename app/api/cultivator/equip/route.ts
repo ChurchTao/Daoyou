@@ -1,7 +1,7 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getExecutor } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
-import { equipEquipment } from '@/lib/repositories/cultivatorRepository';
+import { equipEquipment } from '@/lib/services/cultivatorService';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';

@@ -4,7 +4,7 @@ import { CultivatorUnit } from '@/engine/cultivator/CultivatorUnit';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
-import { createMinimalCultivator } from '@/lib/repositories/cultivatorRepository';
+import { createMinimalCultivator } from '@/lib/services/cultivatorService';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 

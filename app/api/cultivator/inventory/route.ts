@@ -3,7 +3,7 @@ import {
   getCultivatorArtifacts,
   getCultivatorConsumables,
   getCultivatorMaterials,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import { NextResponse } from 'next/server';
 
 /**

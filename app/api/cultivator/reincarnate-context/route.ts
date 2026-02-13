@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/api/withAuth';
-import { getLastDeadCultivatorSummary } from '@/lib/repositories/cultivatorRepository';
+import { getLastDeadCultivatorSummary } from '@/lib/services/cultivatorService';
 import { NextResponse } from 'next/server';
 
 /**

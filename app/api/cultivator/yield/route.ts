@@ -9,7 +9,7 @@ import {
   updateCultivationExp,
   updateLastYieldAt,
   updateSpiritStones,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import { MailService } from '@/lib/services/MailService';
 import { RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';

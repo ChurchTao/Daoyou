@@ -10,7 +10,7 @@ import {
   addRetreatRecord,
   getCultivatorById,
   updateCultivator,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import { createBreakthroughStory } from '@/utils/storyService';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';

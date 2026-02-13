@@ -16,7 +16,7 @@ import {
   getCultivatorByIdUnsafe,
   getCultivatorOwnerId,
   getInventory,
-} from '../repositories/cultivatorRepository';
+} from '../services/cultivatorService';
 import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
 import { RewardFactory } from './reward';

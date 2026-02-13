@@ -2,7 +2,7 @@ import { simulateBattle } from '@/engine/battle';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
-import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
+import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';

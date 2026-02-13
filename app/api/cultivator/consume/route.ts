@@ -1,5 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { consumeItem } from '@/lib/repositories/cultivatorRepository';
+import { consumeItem } from '@/lib/services/cultivatorService';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 

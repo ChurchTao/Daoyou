@@ -1,4 +1,4 @@
-import { getLastDeadCultivatorSummary } from '@/lib/repositories/cultivatorRepository';
+import { getLastDeadCultivatorSummary } from '@/lib/services/cultivatorService';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 

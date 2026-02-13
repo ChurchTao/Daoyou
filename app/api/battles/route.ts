@@ -1,7 +1,7 @@
 import type { BattleEngineResult } from '@/engine/battle';
 import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
-import { getUserAliveCultivatorId } from '@/lib/repositories/cultivatorRepository';
+import { getUserAliveCultivatorId } from '@/lib/services/cultivatorService';
 import { createClient } from '@/lib/supabase/server';
 import { and, desc, eq, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

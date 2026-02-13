@@ -4,7 +4,7 @@ import {
   getCultivatorById,
   getCultivatorsByUserId,
   hasDeadCultivator,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

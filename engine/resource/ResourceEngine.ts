@@ -9,7 +9,7 @@ import {
   updateCultivationExp,
   updateLifespan,
   updateSpiritStones,
-} from '@/lib/repositories/cultivatorRepository';
+} from '@/lib/services/cultivatorService';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import type {
   ResourceOperation,

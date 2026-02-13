@@ -13,7 +13,7 @@ import {
   releaseChallengeLock,
   updateRanking,
 } from '@/lib/redis/rankings';
-import { getCultivatorByIdUnsafe } from '@/lib/repositories/cultivatorRepository';
+import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';
