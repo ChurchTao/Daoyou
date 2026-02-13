@@ -26,9 +26,13 @@ export function InventoryView() {
     inventory,
     equipped,
     isLoading,
+    isTabLoading,
     note,
     activeTab,
     setActiveTab,
+    pagination,
+    goPrevPage,
+    goNextPage,
     selectedItem,
     isModalOpen,
     openItemDetail,
@@ -85,6 +89,7 @@ export function InventoryView() {
       {activeTab === 'artifacts' && (
         <ArtifactsTab
           artifacts={inventory.artifacts}
+          isLoading={isTabLoading && inventory.artifacts.length === 0}
           equipped={equipped}
           pendingId={pendingId}
           onShowDetails={openItemDetail}
@@ -95,6 +100,7 @@ export function InventoryView() {
       {activeTab === 'materials' && (
         <MaterialsTab
           materials={inventory.materials}
+          isLoading={isTabLoading && inventory.materials.length === 0}
           onShowDetails={openItemDetail}
           onDiscard={(item) => openDiscardConfirm(item, 'material')}
         />
@@ -102,11 +108,32 @@ export function InventoryView() {
       {activeTab === 'consumables' && (
         <ConsumablesTab
           consumables={inventory.consumables}
+          isLoading={isTabLoading && inventory.consumables.length === 0}
           pendingId={pendingId}
           onShowDetails={openItemDetail}
           onConsume={handleConsume}
           onDiscard={(item) => openDiscardConfirm(item, 'consumable')}
         />
+      )}
+
+      {pagination.totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <InkButton
+            disabled={pagination.page <= 1 || isTabLoading}
+            onClick={goPrevPage}
+          >
+            上一页
+          </InkButton>
+          <span className="text-ink-secondary text-sm">
+            {pagination.page} / {pagination.totalPages}
+          </span>
+          <InkButton
+            disabled={pagination.page >= pagination.totalPages || isTabLoading}
+            onClick={goNextPage}
+          >
+            下一页
+          </InkButton>
+        </div>
       )}
 
       {/* 物品详情弹窗 */}

@@ -4,22 +4,75 @@ import { useInkUI } from '@/components/providers/InkUIProvider';
 import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
 
+interface InventoryPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+type InventoryByTab = {
+  artifacts: Artifact[];
+  materials: Material[];
+  consumables: Consumable[];
+};
+
+interface InventoryApiPayload {
+  success: boolean;
+  data?: {
+    items?: InventoryByTab[InventoryTab];
+    pagination?: InventoryPagination;
+  };
+  error?: string;
+}
+
+const inFlightInventoryRequestMap = new Map<
+  string,
+  Promise<InventoryApiPayload>
+>();
+
+async function fetchInventoryWithDedupe(
+  url: string,
+): Promise<InventoryApiPayload> {
+  const inFlight = inFlightInventoryRequestMap.get(url);
+  if (inFlight) return inFlight;
+
+  const requestPromise = (async () => {
+    const res = await fetch(url);
+    const json = (await res.json()) as InventoryApiPayload;
+    if (!res.ok || !json.success) {
+      throw new Error(json.error || '背包加载失败');
+    }
+    return json;
+  })().finally(() => {
+    inFlightInventoryRequestMap.delete(url);
+  });
+
+  inFlightInventoryRequestMap.set(url, requestPromise);
+  return requestPromise;
+}
+
 export interface UseInventoryViewModelReturn {
   // 数据
   cultivator: ReturnType<typeof useCultivator>['cultivator'];
-  inventory: ReturnType<typeof useCultivator>['inventory'];
+  inventory: InventoryByTab;
   equipped: ReturnType<typeof useCultivator>['equipped'];
   isLoading: boolean;
+  isTabLoading: boolean;
   note: string | undefined;
+  pagination: InventoryPagination;
 
   // Tab 状态
   activeTab: InventoryTab;
   setActiveTab: (tab: InventoryTab) => void;
+  goPrevPage: () => void;
+  goNextPage: () => void;
 
   // Modal 状态
   selectedItem: InventoryItem | null;
@@ -48,9 +101,10 @@ export interface UseInventoryViewModelReturn {
  * 封装所有业务逻辑和状态管理
  */
 export function useInventoryViewModel(): UseInventoryViewModelReturn {
+  const PAGE_SIZE = 20;
+
   const {
     cultivator,
-    inventory,
     equipped,
     isLoading,
     refresh,
@@ -62,6 +116,37 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
   // Tab 状态
   const [activeTab, setActiveTab] = useState<InventoryTab>('artifacts');
+  const [isTabLoading, setIsTabLoading] = useState(false);
+  const [inventoryByTab, setInventoryByTab] = useState<InventoryByTab>({
+    artifacts: [],
+    materials: [],
+    consumables: [],
+  });
+  const [paginationByTab, setPaginationByTab] = useState<
+    Record<InventoryTab, InventoryPagination>
+  >({
+    artifacts: {
+      page: 1,
+      pageSize: PAGE_SIZE,
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
+    },
+    materials: {
+      page: 1,
+      pageSize: PAGE_SIZE,
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
+    },
+    consumables: {
+      page: 1,
+      pageSize: PAGE_SIZE,
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
+    },
+  });
 
   // Modal 状态
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -72,6 +157,47 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
   // 操作状态
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  // 拉取分页数据（按类型）
+  const fetchTabPage = useCallback(
+    async (tab: InventoryTab, page: number) => {
+      if (!cultivator?.id) return;
+
+      setIsTabLoading(true);
+      try {
+        const requestUrl = `/api/cultivator/inventory?type=${tab}&page=${page}&pageSize=${PAGE_SIZE}`;
+        const json = await fetchInventoryWithDedupe(requestUrl);
+
+        const data = (json.data || {}) as {
+          items: InventoryByTab[InventoryTab];
+          pagination: InventoryPagination;
+        };
+
+        setInventoryByTab((prev) => ({
+          ...prev,
+          [tab]: data.items,
+        }));
+        setPaginationByTab((prev) => ({
+          ...prev,
+          [tab]: data.pagination,
+        }));
+      } catch (error) {
+        pushToast({
+          message:
+            error instanceof Error ? `加载失败：${error.message}` : '加载失败',
+          tone: 'danger',
+        });
+      } finally {
+        setIsTabLoading(false);
+      }
+    },
+    [cultivator?.id, pushToast],
+  );
+
+  useEffect(() => {
+    if (!cultivator?.id) return;
+    void fetchTabPage(activeTab, 1);
+  }, [activeTab, cultivator?.id, fetchTabPage]);
 
   // 打开物品详情
   const openItemDetail = useCallback((item: InventoryItem) => {
@@ -115,7 +241,8 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         }
 
         pushToast({ message: '物品已丢弃', tone: 'success' });
-        await refreshInventory();
+        await refreshInventory([activeTab]);
+        await fetchTabPage(activeTab, paginationByTab[activeTab].page);
       } catch (error) {
         pushToast({
           message:
@@ -129,7 +256,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         }));
       }
     },
-    [cultivator, pushToast, refreshInventory],
+    [activeTab, cultivator, fetchTabPage, paginationByTab, pushToast, refreshInventory],
   );
 
   // 打开丢弃确认
@@ -181,6 +308,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
         pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
         await refresh();
+        await fetchTabPage('artifacts', paginationByTab.artifacts.page);
       } catch (error) {
         pushToast({
           message:
@@ -193,7 +321,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, pushToast, refresh],
+    [cultivator, fetchTabPage, paginationByTab.artifacts.page, pushToast, refresh],
   );
 
   // 服用丹药
@@ -222,6 +350,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
         pushToast({ message: result.data.message, tone: 'success' });
         await refresh();
+        await fetchTabPage('consumables', paginationByTab.consumables.page);
       } catch (error) {
         pushToast({
           message: error instanceof Error ? error.message : '使用失败',
@@ -231,7 +360,30 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, pushToast, refresh],
+    [cultivator, fetchTabPage, paginationByTab.consumables.page, pushToast, refresh],
+  );
+
+  const pagination = paginationByTab[activeTab];
+
+  const goPrevPage = useCallback(() => {
+    const current = paginationByTab[activeTab];
+    if (current.page <= 1 || isTabLoading) return;
+    void fetchTabPage(activeTab, current.page - 1);
+  }, [activeTab, fetchTabPage, isTabLoading, paginationByTab]);
+
+  const goNextPage = useCallback(() => {
+    const current = paginationByTab[activeTab];
+    if (current.page >= current.totalPages || isTabLoading) return;
+    void fetchTabPage(activeTab, current.page + 1);
+  }, [activeTab, fetchTabPage, isTabLoading, paginationByTab]);
+
+  const inventory = useMemo(
+    () => ({
+      artifacts: inventoryByTab.artifacts,
+      materials: inventoryByTab.materials,
+      consumables: inventoryByTab.consumables,
+    }),
+    [inventoryByTab],
   );
 
   return {
@@ -240,11 +392,15 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     inventory,
     equipped,
     isLoading,
+    isTabLoading,
     note,
+    pagination,
 
     // Tab 状态
     activeTab,
     setActiveTab,
+    goPrevPage,
+    goNextPage,
 
     // Modal 状态
     selectedItem,

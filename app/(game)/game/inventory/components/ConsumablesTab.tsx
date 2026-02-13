@@ -6,6 +6,7 @@ import type { Consumable } from '@/types/cultivator';
 
 interface ConsumablesTabProps {
   consumables: Consumable[];
+  isLoading?: boolean;
   pendingId: string | null;
   onShowDetails: (item: Consumable) => void;
   onConsume: (item: Consumable) => void;
@@ -17,11 +18,16 @@ interface ConsumablesTabProps {
  */
 export function ConsumablesTab({
   consumables,
+  isLoading = false,
   pendingId,
   onShowDetails,
   onConsume,
   onDiscard,
 }: ConsumablesTabProps) {
+  if (isLoading) {
+    return <InkNotice>正在检索消耗品记录，请稍候……</InkNotice>;
+  }
+
   if (!consumables || consumables.length === 0) {
     return <InkNotice>暂无消耗品。</InkNotice>;
   }

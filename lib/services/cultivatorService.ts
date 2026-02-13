@@ -13,6 +13,7 @@ import {
   SpiritualRootGrade,
 } from '@/types/constants';
 import type {
+  Artifact,
   BreakthroughHistoryEntry,
   Consumable,
   CultivationProgress,
@@ -21,7 +22,7 @@ import type {
   RetreatRecord,
 } from '@/types/cultivator';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
   existsCultivatorById,
   findActiveCultivatorIdByUserId,
@@ -757,6 +758,74 @@ export async function deleteCultivator(
 
 // ===== 单独获取数据的接口 =====
 
+type InventoryType = 'artifacts' | 'consumables' | 'materials';
+
+type InventoryItemByType = {
+  artifacts: Cultivator['inventory']['artifacts'][number];
+  consumables: Cultivator['inventory']['consumables'][number];
+  materials: Cultivator['inventory']['materials'][number];
+};
+
+interface InventoryPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+export interface PaginatedInventoryResult<T extends InventoryType> {
+  type: T;
+  items: InventoryItemByType[T][];
+  pagination: InventoryPagination;
+}
+
+function mapArtifactRow(
+  a: typeof schema.artifacts.$inferSelect,
+): Cultivator['inventory']['artifacts'][number] {
+  return {
+    id: a.id,
+    name: a.name,
+    slot: a.slot as Artifact['slot'],
+    element: a.element as Artifact['element'],
+    quality: a.quality as Artifact['quality'],
+    required_realm: a.required_realm as Artifact['required_realm'],
+    description: a.description || '',
+    effects: (a.effects ?? []) as Artifact['effects'],
+  };
+}
+
+function mapConsumableRow(
+  c: typeof schema.consumables.$inferSelect,
+): Cultivator['inventory']['consumables'][number] {
+  return {
+    id: c.id,
+    name: c.name,
+    quality: c.quality as Quality,
+    type: c.type as ConsumableType,
+    effects: (Array.isArray(c.effects)
+      ? c.effects
+      : [c.effects].filter(Boolean)) as EffectConfig[],
+    quantity: c.quantity,
+    description: c.description || '',
+  };
+}
+
+function mapMaterialRow(
+  m: typeof schema.materials.$inferSelect,
+): Cultivator['inventory']['materials'][number] {
+  return {
+    id: m.id,
+    name: m.name,
+    type: m.type as MaterialType,
+    rank: m.rank as Quality,
+    element: m.element as ElementType | undefined,
+    description: m.description || '',
+    details: (m.details as Record<string, unknown>) || undefined,
+    quantity: m.quantity,
+  };
+}
+
 export async function getCultivatorConsumables(
   userId: string,
   cultivatorId: string,
@@ -766,15 +835,7 @@ export async function getCultivatorConsumables(
     .from(schema.consumables)
     .where(eq(schema.consumables.cultivatorId, cultivatorId));
 
-  return result.map((c) => ({
-    id: c.id,
-    name: c.name,
-    quality: c.quality as Quality,
-    type: c.type as ConsumableType,
-    effects: c.effects as EffectConfig[],
-    quantity: c.quantity,
-    description: c.description || '',
-  }));
+  return result.map(mapConsumableRow);
 }
 
 export async function getCultivatorMaterials(
@@ -786,16 +847,7 @@ export async function getCultivatorMaterials(
     .from(schema.materials)
     .where(eq(schema.materials.cultivatorId, cultivatorId));
 
-  return result.map((m) => ({
-    id: m.id,
-    name: m.name,
-    type: m.type as MaterialType,
-    rank: m.rank as Quality,
-    element: m.element as ElementType | undefined,
-    description: m.description || '',
-    details: (m.details as Record<string, unknown>) || undefined,
-    quantity: m.quantity,
-  }));
+  return result.map(mapMaterialRow);
 }
 
 export async function getCultivatorArtifacts(
@@ -809,21 +861,131 @@ export async function getCultivatorArtifacts(
     .from(schema.artifacts)
     .where(eq(schema.artifacts.cultivatorId, cultivatorId));
 
-  return result.map((a) => ({
-    id: a.id,
-    name: a.name,
-    slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
-    element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
-    quality: a.quality as
-      | Cultivator['inventory']['artifacts'][0]['quality']
-      | undefined,
-    required_realm: a.required_realm as
-      | Cultivator['inventory']['artifacts'][0]['required_realm']
-      | undefined,
-    description: a.description || '',
-    effects: (a.effects ??
-      []) as Cultivator['inventory']['artifacts'][0]['effects'],
-  }));
+  return result.map(mapArtifactRow);
+}
+
+export async function getPaginatedInventoryByType<T extends InventoryType>(
+  userId: string,
+  cultivatorId: string,
+  options: {
+    type: T;
+    page?: number;
+    pageSize?: number;
+    materialTypes?: MaterialType[];
+    excludeMaterialTypes?: MaterialType[];
+  },
+): Promise<PaginatedInventoryResult<T>> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const page = Math.max(1, options.page || 1);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize || 20));
+  const offset = (page - 1) * pageSize;
+
+  if (options.type === 'artifacts') {
+    const countResult = await getExecutor()
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.artifacts)
+      .where(eq(schema.artifacts.cultivatorId, cultivatorId));
+    const total = Number(countResult[0]?.count || 0);
+
+    const rows = await getExecutor()
+      .select()
+      .from(schema.artifacts)
+      .where(eq(schema.artifacts.cultivatorId, cultivatorId))
+      .orderBy(desc(schema.artifacts.createdAt), desc(schema.artifacts.id))
+      .limit(pageSize)
+      .offset(offset);
+
+    const totalPages = Math.ceil(total / pageSize);
+    return {
+      type: options.type,
+      items: rows.map(mapArtifactRow) as InventoryItemByType[T][],
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasMore: page < totalPages,
+      },
+    };
+  }
+
+  if (options.type === 'consumables') {
+    const countResult = await getExecutor()
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.consumables)
+      .where(eq(schema.consumables.cultivatorId, cultivatorId));
+    const total = Number(countResult[0]?.count || 0);
+
+    const rows = await getExecutor()
+      .select()
+      .from(schema.consumables)
+      .where(eq(schema.consumables.cultivatorId, cultivatorId))
+      .orderBy(desc(schema.consumables.createdAt), desc(schema.consumables.id))
+      .limit(pageSize)
+      .offset(offset);
+
+    const totalPages = Math.ceil(total / pageSize);
+    return {
+      type: options.type,
+      items: rows.map(mapConsumableRow) as InventoryItemByType[T][],
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasMore: page < totalPages,
+      },
+    };
+  }
+
+  const materialConditions: SQL[] = [
+    eq(schema.materials.cultivatorId, cultivatorId) as unknown as SQL,
+  ];
+  if (options.materialTypes && options.materialTypes.length > 0) {
+    materialConditions.push(
+      inArray(schema.materials.type, options.materialTypes) as unknown as SQL,
+    );
+  }
+  if (options.excludeMaterialTypes && options.excludeMaterialTypes.length > 0) {
+    materialConditions.push(
+      notInArray(
+        schema.materials.type,
+        options.excludeMaterialTypes,
+      ) as unknown as SQL,
+    );
+  }
+  const materialWhere =
+    materialConditions.length === 1
+      ? materialConditions[0]
+      : and(...materialConditions)!;
+
+  const countResult = await getExecutor()
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.materials)
+    .where(materialWhere);
+  const total = Number(countResult[0]?.count || 0);
+
+  const rows = await getExecutor()
+    .select()
+    .from(schema.materials)
+    .where(materialWhere)
+    .orderBy(desc(schema.materials.createdAt), desc(schema.materials.id))
+    .limit(pageSize)
+    .offset(offset);
+
+  const totalPages = Math.ceil(total / pageSize);
+  return {
+    type: options.type,
+    items: rows.map(mapMaterialRow) as InventoryItemByType[T][],
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasMore: page < totalPages,
+    },
+  };
 }
 
 // ===== 临时角色相关操作 =====

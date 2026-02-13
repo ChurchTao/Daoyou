@@ -12,6 +12,7 @@ import { getMaterialTypeInfo } from '@/types/dictionaries';
 
 interface MaterialsTabProps {
   materials: Material[];
+  isLoading?: boolean;
   onShowDetails: (item: Material) => void;
   onDiscard: (item: Material) => void;
 }
@@ -21,9 +22,14 @@ interface MaterialsTabProps {
  */
 export function MaterialsTab({
   materials,
+  isLoading = false,
   onShowDetails,
   onDiscard,
 }: MaterialsTabProps) {
+  if (isLoading) {
+    return <InkNotice>正在检索材料记录，请稍候……</InkNotice>;
+  }
+
   if (!materials || materials.length === 0) {
     return <InkNotice>暂无修炼材料。</InkNotice>;
   }

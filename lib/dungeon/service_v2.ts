@@ -15,7 +15,7 @@ import { redis } from '../redis';
 import {
   getCultivatorByIdUnsafe,
   getCultivatorOwnerId,
-  getInventory,
+  getPaginatedInventoryByType,
 } from '../services/cultivatorService';
 import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
@@ -32,6 +32,7 @@ import {
 } from './types';
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
+const DUNGEON_CONTEXT_INVENTORY_LIMIT = 100;
 
 // Helper to generate Redis key
 function getDungeonKey(cultivatorId: string) {
@@ -959,10 +960,37 @@ ${materialTypeTable}
     const cultivator = cultivatorBundle.cultivator;
     const unit = new CultivatorUnit(cultivator);
     const finalAttributes = unit.getFinalAttributes();
-    const inventory = await getInventory(
-      cultivatorBundle.userId,
-      cultivator.id!,
-    );
+    const [artifactsPage, materialsPage] = await Promise.all([
+      getPaginatedInventoryByType(cultivatorBundle.userId, cultivator.id!, {
+        type: 'artifacts',
+        page: 1,
+        pageSize: DUNGEON_CONTEXT_INVENTORY_LIMIT,
+      }),
+      getPaginatedInventoryByType(cultivatorBundle.userId, cultivator.id!, {
+        type: 'materials',
+        page: 1,
+        pageSize: DUNGEON_CONTEXT_INVENTORY_LIMIT,
+      }),
+    ]);
+
+    const artifactNames = artifactsPage.items.map((artifact) => artifact.name);
+    if (artifactsPage.pagination.total > artifactsPage.items.length) {
+      artifactNames.push(
+        `……其余${artifactsPage.pagination.total - artifactsPage.items.length}件法宝未展开`,
+      );
+    }
+
+    const materials = materialsPage.items.map((material) => ({
+      name: material.name,
+      count: material.quantity,
+    }));
+    if (materialsPage.pagination.total > materialsPage.items.length) {
+      materials.push({
+        name: '更多材料（未展开）',
+        count: materialsPage.pagination.total - materialsPage.items.length,
+      });
+    }
+
     return {
       id: cultivator.id,
       name: cultivator.name,
@@ -982,13 +1010,8 @@ ${materialTypeTable}
       spirit_stones: cultivator.spirit_stones,
       background: cultivator.background || '',
       inventory: {
-        artifacts: inventory.artifacts.map((artifact) => artifact.name),
-        materials: inventory.materials.map((material) => {
-          return {
-            name: material.name,
-            count: material.quantity,
-          };
-        }),
+        artifacts: artifactNames,
+        materials,
       },
     };
   }

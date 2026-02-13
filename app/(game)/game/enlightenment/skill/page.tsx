@@ -1,6 +1,7 @@
 'use client';
 
-import { InkModal, InkPageShell, InkSection } from '@/components/layout';
+import { MaterialSelector } from '@/app/(game)/game/components/MaterialSelector';
+import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -13,13 +14,12 @@ import {
 } from '@/components/ui';
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { isSkillManual } from '@/engine/material/materialTypeUtils';
 import {
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
-import { Material, Skill } from '@/types/cultivator';
-import { getElementInfo, getMaterialTypeInfo } from '@/types/dictionaries';
+import { Skill } from '@/types/cultivator';
+import { getElementInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -45,7 +45,7 @@ export default function SkillCreationPage() {
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
   const [createdSkill, setCreatedSkill] = useState<Skill | null>(null);
-  const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
+  const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast } = useInkUI();
@@ -59,7 +59,6 @@ export default function SkillCreationPage() {
       setEstimatedCost(null);
       setCanAfford(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMaterialIds]);
 
   const fetchCostEstimate = async (
@@ -115,21 +114,6 @@ export default function SkillCreationPage() {
       return;
     }
 
-    // 检查是否包含典籍
-    const hasManual = selectedMaterialIds.some((id) =>
-      cultivator.inventory?.materials.find(
-        (m) => m.id === id && isSkillManual(m.type),
-      ),
-    );
-
-    if (!hasManual) {
-      pushToast({
-        message: '参悟必须以神通秘术(skill_manual)为核心。',
-        tone: 'warning',
-      });
-      return;
-    }
-
     setSubmitting(true);
     setStatus('感悟天地，推演法则……');
     setCreatedSkill(null);
@@ -161,6 +145,7 @@ export default function SkillCreationPage() {
       setPrompt('');
       setSelectedMaterialIds([]);
       await refreshCultivator();
+      setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
       const failMessage =
         error instanceof Error
@@ -180,11 +165,6 @@ export default function SkillCreationPage() {
       </div>
     );
   }
-
-  // Filter materials to only show manual type
-  const validMaterials =
-    cultivator?.inventory?.materials.filter((m) => isSkillManual(m.type)) ||
-    [];
 
   const renderSkillExtraInfo = (skill: Skill) => {
     const elementInfo = getElementInfo(skill.element);
@@ -244,65 +224,18 @@ export default function SkillCreationPage() {
       }
     >
       <InkSection title="1. 甄选典籍">
-        {validMaterials.length > 0 ? (
-          <div className="border-ink-border max-h-60 overflow-y-auto rounded border p-2">
-            <InkList dense>
-              {validMaterials.map((m) => {
-                const typeInfo = getMaterialTypeInfo(m.type);
-                const isSelected = selectedMaterialIds.includes(m.id!);
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => !isSubmitting && toggleMaterial(m.id!)}
-                    className={`border-ink-border/30 cursor-pointer border-b p-2 transition-colors last:border-0 ${
-                      isSelected ? 'bg-orange-900/10' : 'hover:bg-ink-primary/5'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          readOnly
-                          className="accent-ink-primary"
-                        />
-                        <span className="font-bold">
-                          {typeInfo.icon} {m.name}
-                        </span>
-                        <InkBadge tier={m.rank}>{typeInfo.label}</InkBadge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-ink-secondary text-xs">
-                          x{m.quantity}
-                        </span>
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <InkButton
-                            variant="secondary"
-                            className="text-sm leading-none"
-                            onClick={() => {
-                              setViewingMaterial(m);
-                            }}
-                          >
-                            详情
-                          </InkButton>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-ink-secondary mt-1 ml-6 truncate text-xs">
-                      {m.description || '无描述'}
-                    </div>
-                  </div>
-                );
-              })}
-            </InkList>
-          </div>
-        ) : (
-          <InkNotice>囊中羞涩，暂无典籍。</InkNotice>
-        )}
+        <MaterialSelector
+          cultivatorId={cultivator?.id}
+          selectedMaterialIds={selectedMaterialIds}
+          onToggleMaterial={toggleMaterial}
+          isSubmitting={isSubmitting}
+          pageSize={20}
+          includeMaterialTypes={['skill_manual', 'manual']}
+          refreshKey={materialsRefreshKey}
+          loadingText="正在检索可参悟典籍，请稍候……"
+          emptyNoticeText="暂无可用于推演神通的典籍。"
+          totalText={(total) => `共 ${total} 部可参悟典籍`}
+        />
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
@@ -414,39 +347,6 @@ export default function SkillCreationPage() {
           }
         />
       )}
-
-      {/* Material Detail Modal */}
-      <InkModal
-        isOpen={!!viewingMaterial}
-        onClose={() => setViewingMaterial(null)}
-      >
-        {viewingMaterial && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-ink/5 border-ink/10 rounded-lg border p-2 text-4xl">
-                {getMaterialTypeInfo(viewingMaterial.type).icon}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold">{viewingMaterial.name}</h3>
-                  <InkBadge tier={viewingMaterial.rank}>
-                    {`${getMaterialTypeInfo(viewingMaterial.type).label} · ${viewingMaterial.element}`}
-                  </InkBadge>
-                </div>
-                <p className="text-ink-secondary text-sm">
-                  拥有数量：{viewingMaterial.quantity}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-ink/5 border-ink/10 rounded-lg border p-3">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {viewingMaterial.description || '此物灵韵内敛，暂无详细记载。'}
-              </p>
-            </div>
-          </div>
-        )}
-      </InkModal>
     </InkPageShell>
   );
 }

@@ -7,6 +7,7 @@ import { getEquipmentSlotInfo } from '@/types/dictionaries';
 
 interface ArtifactsTabProps {
   artifacts: Artifact[];
+  isLoading?: boolean;
   equipped: {
     weapon?: string | null;
     armor?: string | null;
@@ -23,12 +24,17 @@ interface ArtifactsTabProps {
  */
 export function ArtifactsTab({
   artifacts,
+  isLoading = false,
   equipped,
   pendingId,
   onShowDetails,
   onEquipToggle,
   onDiscard,
 }: ArtifactsTabProps) {
+  if (isLoading) {
+    return <InkNotice>正在检索法宝记录，请稍候……</InkNotice>;
+  }
+
   if (artifacts.length === 0) {
     return <InkNotice>空空如也，道友快去寻宝吧！</InkNotice>;
   }

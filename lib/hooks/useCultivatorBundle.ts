@@ -22,10 +22,13 @@ type FinalAttributesState = {
   maxMp: number;
 };
 
+type InventoryType = 'artifacts' | 'consumables' | 'materials';
+
 type FetchState = {
   cultivator: Cultivator | null;
   finalAttributes: FinalAttributesState | null;
   inventory: Inventory;
+  inventoryLoaded: Record<InventoryType, boolean>;
   skills: Skill[];
   equipped: EquippedItems;
   isLoading: boolean;
@@ -47,10 +50,17 @@ const defaultEquipped: EquippedItems = {
   accessory: null,
 };
 
+const BUNDLE_INVENTORY_PAGE_SIZE = 50;
+
 const initialState: FetchState = {
   cultivator: null,
   finalAttributes: null,
   inventory: defaultInventory,
+  inventoryLoaded: {
+    artifacts: false,
+    materials: false,
+    consumables: false,
+  },
   skills: [],
   equipped: defaultEquipped,
   isLoading: false,
@@ -108,17 +118,20 @@ async function fetchCultivatorData(): Promise<{
   };
 }
 
-async function fetchInventoryData(): Promise<{
-  consumables: [];
-  materials: [];
-  artifacts: [];
-} | null> {
+async function fetchInventoryByType(
+  type: InventoryType,
+): Promise<Inventory[InventoryType] | null> {
   try {
-    const res = await fetch('/api/cultivator/inventory');
+    const res = await fetch(
+      `/api/cultivator/inventory?type=${type}&page=1&pageSize=${BUNDLE_INVENTORY_PAGE_SIZE}`,
+    );
     const json = await res.json();
-    return json.success ? json.data : null;
+    if (!res.ok || !json.success) {
+      return null;
+    }
+    return (json.data?.items || []) as Inventory[InventoryType];
   } catch (e) {
-    console.error('获取背包失败', e);
+    console.error(`获取背包类型 ${type} 失败`, e);
     return null;
   }
 }
@@ -201,17 +214,24 @@ export function useCultivatorBundle() {
         return;
       }
 
-      // 2. 并行获取附属数据
-      const [inventoryData, unreadCount] = await Promise.all([
-        fetchInventoryData(),
-        fetchUnreadCount(),
-      ]);
+      // 2. 仅获取轻量附属数据（首屏不拉取背包，避免全局初始化开销）
+      const unreadCount = await fetchUnreadCount();
 
       // 3. 组装完整数据
+      // 背包数据改为按需加载：
+      // - 角色主数据接口仅包含 artifacts（由 relations 提供）
+      // - materials/consumables 复用缓存，避免 refresh 时闪断
+      const cachedInventory = getCachedState(userId)?.inventory;
+      const cachedLoaded = getCachedState(userId)?.inventoryLoaded;
       const inventory: Inventory = {
-        artifacts: inventoryData?.artifacts || [],
-        consumables: inventoryData?.consumables || [],
-        materials: inventoryData?.materials || [],
+        artifacts: cultivator.inventory?.artifacts || cachedInventory?.artifacts || [],
+        consumables: cachedInventory?.consumables || [],
+        materials: cachedInventory?.materials || [],
+      };
+      const inventoryLoaded: Record<InventoryType, boolean> = {
+        artifacts: true, // 角色主数据中会包含 artifacts
+        materials: cachedLoaded?.materials || false,
+        consumables: cachedLoaded?.consumables || false,
       };
 
       const fullCultivator: Cultivator = {
@@ -235,6 +255,7 @@ export function useCultivatorBundle() {
           maxMp: unit.getMaxMp(),
         },
         inventory,
+        inventoryLoaded,
         skills: fullCultivator.skills || [],
         equipped: fullCultivator.equipped || defaultEquipped,
         isLoading: false,
@@ -255,29 +276,65 @@ export function useCultivatorBundle() {
   }, [userId]);
 
   // ========== 细粒度刷新函数 ==========
-  const refreshInventory = useCallback(async () => {
+  const refreshInventory = useCallback(
+    async (types: InventoryType[] = ['artifacts', 'materials', 'consumables']) => {
     if (!state.cultivator?.id) return;
 
-    const data = await fetchInventoryData();
-    if (!data) return;
+      const uniqueTypes = Array.from(new Set(types));
+      const entries = await Promise.all(
+        uniqueTypes.map(async (type) => {
+          const items = await fetchInventoryByType(type);
+          return [type, items] as const;
+        }),
+      );
 
-    updateState((prev) => {
-      if (!prev.cultivator) return prev;
+      const patch: Partial<Inventory> = {};
+      for (const [type, items] of entries) {
+        if (items) {
+          if (type === 'artifacts') patch.artifacts = items as Inventory['artifacts'];
+          if (type === 'materials') patch.materials = items as Inventory['materials'];
+          if (type === 'consumables')
+            patch.consumables = items as Inventory['consumables'];
+        }
+      }
 
-      const newInventory: Inventory = {
-        ...prev.inventory,
-        consumables: data.consumables,
-        materials: data.materials,
-        artifacts: data.artifacts,
-      };
+      if (Object.keys(patch).length === 0) return;
 
-      return {
-        ...prev,
-        cultivator: { ...prev.cultivator, inventory: newInventory },
-        inventory: newInventory,
-      };
-    });
-  }, [state.cultivator?.id, updateState]);
+      updateState((prev) => {
+        if (!prev.cultivator) return prev;
+
+        const newInventory: Inventory = {
+          ...prev.inventory,
+          ...patch,
+        };
+
+        return {
+          ...prev,
+          cultivator: { ...prev.cultivator, inventory: newInventory },
+          inventory: newInventory,
+          inventoryLoaded: uniqueTypes.reduce(
+            (acc, type) => {
+              acc[type] = true;
+              return acc;
+            },
+            { ...prev.inventoryLoaded },
+          ),
+        };
+      });
+    },
+    [state.cultivator?.id, updateState],
+  );
+
+  const ensureInventoryLoaded = useCallback(
+    async (types: InventoryType[]) => {
+      const missingTypes = Array.from(new Set(types)).filter(
+        (type) => !state.inventoryLoaded[type],
+      );
+      if (missingTypes.length === 0) return;
+      await refreshInventory(missingTypes);
+    },
+    [refreshInventory, state.inventoryLoaded],
+  );
 
   /**
    * 完整刷新角色数据（包括功法、神通、背包等所有数据）
@@ -349,6 +406,7 @@ export function useCultivatorBundle() {
     ...state,
     refresh: loadFromServer,
     refreshInventory,
+    ensureInventoryLoaded,
     refreshCultivator,
   };
 }
