@@ -1,7 +1,7 @@
 import { withAuth } from '@/lib/api/withAuth';
 import {
   createCultivator,
-  getCultivatorsByUserId,
+  hasActiveCultivator,
 } from '@/lib/repositories/cultivatorRepository';
 import {
   deleteTempData,
@@ -27,8 +27,7 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
     SaveCharacterSchema.parse(body);
 
   // 检查用户是否已有角色
-  const existingCultivators = await getCultivatorsByUserId(user.id);
-  if (existingCultivators.length > 0) {
+  if (await hasActiveCultivator(user.id)) {
     return NextResponse.json(
       { error: '您已经拥有一位道身，无法创建新的道身' },
       { status: 400 },

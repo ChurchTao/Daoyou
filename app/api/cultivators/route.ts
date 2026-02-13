@@ -1,4 +1,3 @@
-import { CultivatorUnit } from '@/engine/cultivator';
 import { withAuth } from '@/lib/api/withAuth';
 import {
   deleteCultivator,
@@ -25,37 +24,20 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
       return NextResponse.json({ error: '角色不存在' }, { status: 404 });
     }
 
-    // 计算最终属性
-    const unit = new CultivatorUnit(cultivator);
-    const finalAttrs = unit.getFinalAttributes();
-
     return NextResponse.json({
       success: true,
-      data: {
-        ...cultivator,
-        finalAttributes: finalAttrs,
-      },
+      data: cultivator,
     });
   } else {
-    // 获取所有存活角色（串行执行，避免并发数据库查询）
+    // 当前设计下仅允许单活跃角色；保持数组结构兼容前端
     const cultivators = await getCultivatorsByUserId(user.id);
     const deadExists = await hasDeadCultivator(user.id);
 
-    // 为每个角色计算最终属性
-    const cultivatorsWithFinalAttrs = cultivators.map((c) => {
-      const unit = new CultivatorUnit(c);
-      const finalAttrs = unit.getFinalAttributes();
-      return {
-        ...c,
-        finalAttributes: finalAttrs,
-      };
-    });
-
     return NextResponse.json({
       success: true,
-      data: cultivatorsWithFinalAttrs,
+      data: cultivators,
       meta: {
-        hasActive: cultivatorsWithFinalAttrs.length > 0,
+        hasActive: cultivators.length > 0,
         hasDead: deadExists,
       },
     });
