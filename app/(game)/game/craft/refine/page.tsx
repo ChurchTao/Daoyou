@@ -12,6 +12,7 @@ import {
   InkNotice,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import type { Material } from '@/types/cultivator';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -32,6 +33,9 @@ export default function RefinePage() {
   const { cultivator, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
+  const [selectedMaterialMap, setSelectedMaterialMap] = useState<
+    Record<string, Material>
+  >({});
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
@@ -70,9 +74,14 @@ export default function RefinePage() {
     }
   };
 
-  const toggleMaterial = (id: string) => {
+  const toggleMaterial = (id: string, material?: Material) => {
     setSelectedMaterialIds((prev) => {
       if (prev.includes(id)) {
+        setSelectedMaterialMap((map) => {
+          const next = { ...map };
+          delete next[id];
+          return next;
+        });
         return prev.filter((mid) => mid !== id);
       }
       if (prev.length >= MAX_MATERIALS) {
@@ -81,6 +90,12 @@ export default function RefinePage() {
           tone: 'warning',
         });
         return prev;
+      }
+      if (material) {
+        setSelectedMaterialMap((map) => ({
+          ...map,
+          [id]: material,
+        }));
       }
       return [...prev, id];
     });
@@ -131,6 +146,7 @@ export default function RefinePage() {
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
       setSelectedMaterialIds([]);
+      setSelectedMaterialMap({});
       setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
       const failMessage =
@@ -175,6 +191,7 @@ export default function RefinePage() {
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
           onToggleMaterial={toggleMaterial}
+          selectedMaterialMap={selectedMaterialMap}
           isSubmitting={isSubmitting}
           pageSize={20}
           excludeMaterialTypes={[
@@ -184,6 +201,7 @@ export default function RefinePage() {
             'manual',
           ]}
           refreshKey={materialsRefreshKey}
+          showSelectedMaterialsPanel
           loadingText="正在检索储物袋中的灵材，请稍候……"
           emptyNoticeText="暂无可用于炼器的灵材。"
           totalText={(total) => `共 ${total} 条灵材记录`}
@@ -244,6 +262,7 @@ export default function RefinePage() {
               setPrompt('');
               setStatus('');
               setSelectedMaterialIds([]);
+              setSelectedMaterialMap({});
             }}
             disabled={isSubmitting}
           >

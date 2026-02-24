@@ -1,6 +1,6 @@
 'use client';
 
-import type { MaterialType } from '@/types/constants';
+import type { ElementType, MaterialType, Quality } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -17,6 +17,10 @@ interface UsePaginatedInventoryMaterialsOptions {
   pageSize?: number;
   includeMaterialTypes?: MaterialType[];
   excludeMaterialTypes?: MaterialType[];
+  materialRanks?: Quality[];
+  materialElements?: ElementType[];
+  materialSortBy?: 'createdAt' | 'rank' | 'type' | 'element' | 'quantity' | 'name';
+  materialSortOrder?: 'asc' | 'desc';
 }
 
 interface InventoryMaterialsApiPayload {
@@ -72,6 +76,10 @@ export function usePaginatedInventoryMaterials(
     pageSize = 20,
     includeMaterialTypes = [],
     excludeMaterialTypes = [],
+    materialRanks = [],
+    materialElements = [],
+    materialSortBy = 'createdAt',
+    materialSortOrder = 'desc',
   } = options;
 
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -87,7 +95,9 @@ export function usePaginatedInventoryMaterials(
 
   const includeTypesKey = [...includeMaterialTypes].sort().join(',');
   const excludeTypesKey = [...excludeMaterialTypes].sort().join(',');
-  const filterKey = `${includeTypesKey}|${excludeTypesKey}|${pageSize}`;
+  const materialRanksKey = [...materialRanks].sort().join(',');
+  const materialElementsKey = [...materialElements].sort().join(',');
+  const filterKey = `${includeTypesKey}|${excludeTypesKey}|${materialRanksKey}|${materialElementsKey}|${materialSortBy}|${materialSortOrder}|${pageSize}`;
 
   const fetchPage = useCallback(
     async (targetPage: number, refresh = false) => {
@@ -114,6 +124,14 @@ export function usePaginatedInventoryMaterials(
         if (excludeTypesKey.length > 0) {
           params.set('excludeMaterialTypes', excludeTypesKey);
         }
+        if (materialRanksKey.length > 0) {
+          params.set('materialRanks', materialRanksKey);
+        }
+        if (materialElementsKey.length > 0) {
+          params.set('materialElements', materialElementsKey);
+        }
+        params.set('materialSortBy', materialSortBy);
+        params.set('materialSortOrder', materialSortOrder);
 
         const requestUrl = `/api/cultivator/inventory?${params.toString()}`;
         const json = await fetchMaterialsWithDedupe(requestUrl);
@@ -137,7 +155,16 @@ export function usePaginatedInventoryMaterials(
         setIsInitialized(true);
       }
     },
-    [cultivatorId, excludeTypesKey, includeTypesKey, pageSize],
+    [
+      cultivatorId,
+      excludeTypesKey,
+      includeTypesKey,
+      materialElementsKey,
+      materialRanksKey,
+      materialSortBy,
+      materialSortOrder,
+      pageSize,
+    ],
   );
 
   const refreshPage = useCallback(async () => {

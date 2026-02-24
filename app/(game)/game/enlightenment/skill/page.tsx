@@ -18,7 +18,7 @@ import {
   getSkillDisplayInfo,
   getSkillElementInfo,
 } from '@/lib/utils/effectDisplay';
-import { Skill } from '@/types/cultivator';
+import type { Material, Skill } from '@/types/cultivator';
 import { getElementInfo } from '@/types/dictionaries';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -42,6 +42,9 @@ export default function SkillCreationPage() {
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
+  const [selectedMaterialMap, setSelectedMaterialMap] = useState<
+    Record<string, Material>
+  >({});
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
   const [createdSkill, setCreatedSkill] = useState<Skill | null>(null);
@@ -79,9 +82,14 @@ export default function SkillCreationPage() {
     }
   };
 
-  const toggleMaterial = (id: string) => {
+  const toggleMaterial = (id: string, material?: Material) => {
     setSelectedMaterialIds((prev) => {
       if (prev.includes(id)) {
+        setSelectedMaterialMap((map) => {
+          const next = { ...map };
+          delete next[id];
+          return next;
+        });
         return prev.filter((mid) => mid !== id);
       }
       if (prev.length >= MAX_MATERIALS) {
@@ -90,6 +98,12 @@ export default function SkillCreationPage() {
           tone: 'warning',
         });
         return prev;
+      }
+      if (material) {
+        setSelectedMaterialMap((map) => ({
+          ...map,
+          [id]: material,
+        }));
       }
       return [...prev, id];
     });
@@ -144,6 +158,7 @@ export default function SkillCreationPage() {
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
       setSelectedMaterialIds([]);
+      setSelectedMaterialMap({});
       await refreshCultivator();
       setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
@@ -228,10 +243,12 @@ export default function SkillCreationPage() {
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
           onToggleMaterial={toggleMaterial}
+          selectedMaterialMap={selectedMaterialMap}
           isSubmitting={isSubmitting}
           pageSize={20}
           includeMaterialTypes={['skill_manual', 'manual']}
           refreshKey={materialsRefreshKey}
+          showSelectedMaterialsPanel
           loadingText="正在检索可参悟典籍，请稍候……"
           emptyNoticeText="暂无可用于推演神通的典籍。"
           totalText={(total) => `共 ${total} 部可参悟典籍`}
@@ -292,6 +309,7 @@ export default function SkillCreationPage() {
               setPrompt('');
               setStatus('');
               setSelectedMaterialIds([]);
+              setSelectedMaterialMap({});
             }}
             disabled={isSubmitting}
           >

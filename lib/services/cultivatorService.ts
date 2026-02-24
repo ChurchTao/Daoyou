@@ -7,6 +7,7 @@ import {
   GenderType,
   MaterialType,
   Quality,
+  QUALITY_ORDER,
   RealmStage,
   RealmType,
   SkillGrade,
@@ -780,6 +781,16 @@ export interface PaginatedInventoryResult<T extends InventoryType> {
   pagination: InventoryPagination;
 }
 
+export type MaterialInventorySortBy =
+  | 'createdAt'
+  | 'rank'
+  | 'type'
+  | 'element'
+  | 'quantity'
+  | 'name';
+
+export type MaterialInventorySortOrder = 'asc' | 'desc';
+
 function mapArtifactRow(
   a: typeof schema.artifacts.$inferSelect,
 ): Cultivator['inventory']['artifacts'][number] {
@@ -873,6 +884,10 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
     pageSize?: number;
     materialTypes?: MaterialType[];
     excludeMaterialTypes?: MaterialType[];
+    materialRanks?: Quality[];
+    materialElements?: ElementType[];
+    materialSortBy?: MaterialInventorySortBy;
+    materialSortOrder?: MaterialInventorySortOrder;
   },
 ): Promise<PaginatedInventoryResult<T>> {
   await assertCultivatorOwnership(userId, cultivatorId);
@@ -955,29 +970,80 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
       ) as unknown as SQL,
     );
   }
+  if (options.materialRanks && options.materialRanks.length > 0) {
+    materialConditions.push(
+      inArray(schema.materials.rank, options.materialRanks) as unknown as SQL,
+    );
+  }
+  if (options.materialElements && options.materialElements.length > 0) {
+    materialConditions.push(
+      inArray(
+        schema.materials.element,
+        options.materialElements,
+      ) as unknown as SQL,
+    );
+  }
   const materialWhere =
     materialConditions.length === 1
       ? materialConditions[0]
       : and(...materialConditions)!;
 
-  const countResult = await getExecutor()
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.materials)
-    .where(materialWhere);
-  const total = Number(countResult[0]?.count || 0);
-
-  const rows = await getExecutor()
+  const materialRows = await getExecutor()
     .select()
     .from(schema.materials)
-    .where(materialWhere)
-    .orderBy(desc(schema.materials.createdAt), desc(schema.materials.id))
-    .limit(pageSize)
-    .offset(offset);
+    .where(materialWhere);
+
+  const sortBy = options.materialSortBy ?? 'createdAt';
+  const sortOrder = options.materialSortOrder ?? 'desc';
+  const multiplier = sortOrder === 'asc' ? 1 : -1;
+
+  const sortedMaterialRows = [...materialRows].sort((a, b) => {
+    let result = 0;
+    switch (sortBy) {
+      case 'rank': {
+        result =
+          (QUALITY_ORDER[a.rank as Quality] ?? -1) -
+          (QUALITY_ORDER[b.rank as Quality] ?? -1);
+        break;
+      }
+      case 'type': {
+        result = a.type.localeCompare(b.type, 'zh-CN');
+        break;
+      }
+      case 'element': {
+        result = (a.element || '').localeCompare(b.element || '', 'zh-CN');
+        break;
+      }
+      case 'quantity': {
+        result = a.quantity - b.quantity;
+        break;
+      }
+      case 'name': {
+        result = a.name.localeCompare(b.name, 'zh-CN');
+        break;
+      }
+      case 'createdAt':
+      default: {
+        result =
+          (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+        break;
+      }
+    }
+
+    if (result === 0) {
+      result = a.id.localeCompare(b.id);
+    }
+
+    return result * multiplier;
+  });
+
+  const total = sortedMaterialRows.length;
+  const pagedRows = sortedMaterialRows.slice(offset, offset + pageSize);
 
   const totalPages = Math.ceil(total / pageSize);
   return {
     type: options.type,
-    items: rows.map(mapMaterialRow) as InventoryItemByType[T][],
+    items: pagedRows.map(mapMaterialRow) as InventoryItemByType[T][],
     pagination: {
       page,
       pageSize,

@@ -3,6 +3,11 @@
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import {
+  type ElementType,
+  type MaterialType,
+  type Quality,
+} from '@/types/constants';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -22,6 +27,14 @@ type InventoryByTab = {
   materials: Material[];
   consumables: Consumable[];
 };
+
+export interface MaterialFilters {
+  rank: Quality | 'all';
+  type: MaterialType | 'all';
+  element: ElementType | 'all';
+  sortBy: 'createdAt' | 'rank' | 'type' | 'element' | 'quantity' | 'name';
+  sortOrder: 'asc' | 'desc';
+}
 
 interface InventoryApiPayload {
   success: boolean;
@@ -73,6 +86,15 @@ export interface UseInventoryViewModelReturn {
   setActiveTab: (tab: InventoryTab) => void;
   goPrevPage: () => void;
   goNextPage: () => void;
+  materialFilters: MaterialFilters;
+  setMaterialRankFilter: (rank: Quality | 'all') => void;
+  setMaterialTypeFilter: (type: MaterialType | 'all') => void;
+  setMaterialElementFilter: (element: ElementType | 'all') => void;
+  setMaterialSort: (
+    sortBy: MaterialFilters['sortBy'],
+    sortOrder: MaterialFilters['sortOrder'],
+  ) => void;
+  resetMaterialFilters: () => void;
 
   // Modal 状态
   selectedItem: InventoryItem | null;
@@ -147,6 +169,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       hasMore: false,
     },
   });
+  const [materialFilters, setMaterialFilters] = useState<MaterialFilters>({
+    rank: 'all',
+    type: 'all',
+    element: 'all',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  });
 
   // Modal 状态
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -165,7 +194,25 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
       setIsTabLoading(true);
       try {
-        const requestUrl = `/api/cultivator/inventory?type=${tab}&page=${page}&pageSize=${PAGE_SIZE}`;
+        const params = new URLSearchParams({
+          type: tab,
+          page: String(page),
+          pageSize: String(PAGE_SIZE),
+        });
+        if (tab === 'materials') {
+          if (materialFilters.rank !== 'all') {
+            params.set('materialRanks', materialFilters.rank);
+          }
+          if (materialFilters.type !== 'all') {
+            params.set('materialTypes', materialFilters.type);
+          }
+          if (materialFilters.element !== 'all') {
+            params.set('materialElements', materialFilters.element);
+          }
+          params.set('materialSortBy', materialFilters.sortBy);
+          params.set('materialSortOrder', materialFilters.sortOrder);
+        }
+        const requestUrl = `/api/cultivator/inventory?${params.toString()}`;
         const json = await fetchInventoryWithDedupe(requestUrl);
 
         const data = (json.data || {}) as {
@@ -191,7 +238,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setIsTabLoading(false);
       }
     },
-    [cultivator?.id, pushToast],
+    [cultivator?.id, materialFilters, pushToast],
   );
 
   useEffect(() => {
@@ -401,6 +448,23 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     setActiveTab,
     goPrevPage,
     goNextPage,
+    materialFilters,
+    setMaterialRankFilter: (rank) =>
+      setMaterialFilters((prev) => ({ ...prev, rank })),
+    setMaterialTypeFilter: (type) =>
+      setMaterialFilters((prev) => ({ ...prev, type })),
+    setMaterialElementFilter: (element) =>
+      setMaterialFilters((prev) => ({ ...prev, element })),
+    setMaterialSort: (sortBy, sortOrder) =>
+      setMaterialFilters((prev) => ({ ...prev, sortBy, sortOrder })),
+    resetMaterialFilters: () =>
+      setMaterialFilters({
+        rank: 'all',
+        type: 'all',
+        element: 'all',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      }),
 
     // Modal 状态
     selectedItem,

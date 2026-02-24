@@ -14,7 +14,7 @@ import {
 } from '@/components/ui';
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { CultivationTechnique } from '@/types/cultivator';
+import type { CultivationTechnique, Material } from '@/types/cultivator';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -37,6 +37,9 @@ export default function GongfaCreationPage() {
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
+  const [selectedMaterialMap, setSelectedMaterialMap] = useState<
+    Record<string, Material>
+  >({});
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
   const [createdGongfa, setCreatedGongfa] =
@@ -75,9 +78,14 @@ export default function GongfaCreationPage() {
     }
   };
 
-  const toggleMaterial = (id: string) => {
+  const toggleMaterial = (id: string, material?: Material) => {
     setSelectedMaterialIds((prev) => {
       if (prev.includes(id)) {
+        setSelectedMaterialMap((map) => {
+          const next = { ...map };
+          delete next[id];
+          return next;
+        });
         return prev.filter((mid) => mid !== id);
       }
       if (prev.length >= MAX_MATERIALS) {
@@ -86,6 +94,12 @@ export default function GongfaCreationPage() {
           tone: 'warning',
         });
         return prev;
+      }
+      if (material) {
+        setSelectedMaterialMap((map) => ({
+          ...map,
+          [id]: material,
+        }));
       }
       return [...prev, id];
     });
@@ -140,6 +154,7 @@ export default function GongfaCreationPage() {
       pushToast({ message: successMessage, tone: 'success' });
       setPrompt('');
       setSelectedMaterialIds([]);
+      setSelectedMaterialMap({});
       await refreshCultivator();
       setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
@@ -194,10 +209,12 @@ export default function GongfaCreationPage() {
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
           onToggleMaterial={toggleMaterial}
+          selectedMaterialMap={selectedMaterialMap}
           isSubmitting={isSubmitting}
           pageSize={20}
           includeMaterialTypes={['gongfa_manual', 'manual']}
           refreshKey={materialsRefreshKey}
+          showSelectedMaterialsPanel
           loadingText="正在检索可参悟典籍，请稍候……"
           emptyNoticeText="暂无可用于参悟功法的典籍。"
           totalText={(total) => `共 ${total} 部可参悟典籍`}
@@ -258,6 +275,7 @@ export default function GongfaCreationPage() {
               setPrompt('');
               setStatus('');
               setSelectedMaterialIds([]);
+              setSelectedMaterialMap({});
             }}
             disabled={isSubmitting}
           >

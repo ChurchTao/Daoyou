@@ -33,6 +33,12 @@ export function InventoryView() {
     pagination,
     goPrevPage,
     goNextPage,
+    materialFilters,
+    setMaterialRankFilter,
+    setMaterialTypeFilter,
+    setMaterialElementFilter,
+    setMaterialSort,
+    resetMaterialFilters,
     selectedItem,
     isModalOpen,
     openItemDetail,
@@ -101,6 +107,12 @@ export function InventoryView() {
         <MaterialsTab
           materials={inventory.materials}
           isLoading={isTabLoading && inventory.materials.length === 0}
+          filters={materialFilters}
+          onRankFilterChange={setMaterialRankFilter}
+          onTypeFilterChange={setMaterialTypeFilter}
+          onElementFilterChange={setMaterialElementFilter}
+          onSortChange={setMaterialSort}
+          onResetFilters={resetMaterialFilters}
           onShowDetails={openItemDetail}
           onDiscard={(item) => openDiscardConfirm(item, 'material')}
         />
