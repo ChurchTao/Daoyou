@@ -9,12 +9,22 @@ import { redis } from '../redis';
 
 const DAILY_DUNGEON_LIMIT = 2;
 const KEY_TTL_SECONDS = 86400; // 24 小时
+const RESET_TIMEZONE = 'Asia/Shanghai';
+
+function getDateInResetTimezone(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: RESET_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
 
 /**
  * 生成每日限制的 Redis key
  */
 function getDailyLimitKey(cultivatorId: string): string {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const today = getDateInResetTimezone(); // YYYY-MM-DD
   return `dungeon:daily:${cultivatorId}:${today}`;
 }
 
@@ -26,7 +36,8 @@ export async function checkDungeonLimit(
 ): Promise<{ allowed: boolean; remaining: number; used: number }> {
   const key = getDailyLimitKey(cultivatorId);
   const countStr = await redis.get(key);
-  const used = countStr ? parseInt(countStr as string, 10) : 0;
+  const parsed = countStr ? parseInt(String(countStr), 10) : 0;
+  const used = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   const remaining = Math.max(0, DAILY_DUNGEON_LIMIT - used);
 
   return {
@@ -41,8 +52,16 @@ export async function checkDungeonLimit(
  */
 export async function consumeDungeonLimit(cultivatorId: string): Promise<void> {
   const key = getDailyLimitKey(cultivatorId);
-  await redis.incr(key);
-  await redis.expire(key, KEY_TTL_SECONDS);
+  const used = await redis.incr(key);
+  if (used === 1) {
+    await redis.expire(key, KEY_TTL_SECONDS);
+  }
+
+  if (used > DAILY_DUNGEON_LIMIT) {
+    // 防并发超扣：超过上限时回滚并抛错
+    await redis.decr(key);
+    throw new Error('今日探索次数已用尽（每日限 2 次）');
+  }
 }
 
 /**

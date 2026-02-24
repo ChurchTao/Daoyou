@@ -33,6 +33,7 @@ import {
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const DUNGEON_CONTEXT_INVENTORY_LIMIT = 100;
+const START_LOCK_TTL_SECONDS = 180;
 
 // Helper to generate Redis key
 function getDungeonKey(cultivatorId: string) {
@@ -214,7 +215,7 @@ ${realmGuidance}
     // 防并发：避免重复点击导致并行启动时重复扣次数
     const lockAcquired = await redis.set(startLockKey, '1', {
       nx: true,
-      ex: 30,
+      ex: START_LOCK_TTL_SECONDS,
     });
     if (!lockAcquired) {
       throw new Error('副本正在启动中，请稍后重试');
