@@ -288,6 +288,14 @@ npm run preview   # Cloudflare 本地预览
   - 业务逻辑放在 Service 层
   - 数据访问使用 Repository 模式
 
+## 💬 交流群
+
+欢迎加入《万界道友》交流群，与其他道友共同探讨修仙大计：
+
+<p align="center">
+  <img src="https://free.picui.cn/free/2026/02/24/699d3f0b15dd6.jpg" alt="交流群二维码" width="200" />
+</p>
+
 ## 开源协议
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 协议开源。
