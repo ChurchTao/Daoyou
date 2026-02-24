@@ -1,26 +1,25 @@
 import { expireListings } from '@/lib/services/AuctionService';
 import { NextResponse } from 'next/server';
 
+function isAuthorizedCronRequest(request: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return true;
+  const authHeader = request.headers.get('authorization');
+  return authHeader === `Bearer ${cronSecret}`;
+}
+
 /**
  * Cron Job: 处理过期的拍卖物品
  * 执行频率：每小时
- *
- * Vercel Cron 配置：
- * export const config = {
- *   runtime: 'edge',
- *   cron: '0 * * * *', // 每小时执行
- * }
  */
-export async function GET() {
-  // 验证 Cron Secret
-  // const cronSecret = process.env.CRON_SECRET;
-  // const authHeader = request.headers.get('Authorization');
-  // if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-  //   return new NextResponse('Unauthorized', { status: 401 });
-  // }
+export async function GET(request: Request) {
+  if (!isAuthorizedCronRequest(request)) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
 
   try {
     const processed = await expireListings();
+    console.log(`Processed ${processed} expired auctions`);
 
     return NextResponse.json({
       success: true,

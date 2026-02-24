@@ -1,60 +1,91 @@
 import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators } from '@/lib/drizzle/schema';
+import { getTopRankingCultivatorIds } from '@/lib/redis/rankings';
+import { redis } from '@/lib/redis';
 import { RANKING_REWARDS } from '@/types/constants';
 import { eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  // Verify Cron Secret if needed
-  // if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return new NextResponse('Unauthorized', { status: 401 });
-  // }
+const REWARD_LOCK_KEY = 'golden_rank:rewards:lock';
+const REWARD_SETTLED_PREFIX = 'golden_rank:rewards:settled:';
+const LOCK_TTL_SECONDS = 15 * 60;
+const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+function getRewardByRank(rank: number): number {
+  if (rank === 1) return RANKING_REWARDS[1];
+  if (rank === 2) return RANKING_REWARDS[2];
+  if (rank === 3) return RANKING_REWARDS[3];
+  if (rank <= 10) return RANKING_REWARDS['4-10'];
+  if (rank <= 50) return RANKING_REWARDS['11-50'];
+  return RANKING_REWARDS['51-100'];
+}
+
+function getSettlementDateCN(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+function isAuthorizedCronRequest(request: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return true;
+  const authHeader = request.headers.get('authorization');
+  return authHeader === `Bearer ${cronSecret}`;
+}
+
+export async function GET(request: Request) {
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
-    // 1. Fetch Top 100 Cultivators
-    // Simple ranking by realm/stage/attributes for now
-    const topCultivators = await getExecutor()
-      .select({ id: cultivators.id })
-      .from(cultivators)
-      .limit(100)
-      // Order by something meaningful, assuming spirit_stones is NOT the ranking metric yet
-      // This part depends on how "Rankings" are defined.
-      // Usually it's by 'level' or 'power'.
-      // Let's assume sorting by (realm_stage_index, attributes_sum).
-      // Given lack of complex sort helper here, let's just use createdAt or spirit for now?
-      // No, user said "Rankings Page". Let's check how Rankings page fetches data.
-      // Assuming naive ordering by ID or just fetching all for now.
-      // REAL IMPLEMENTATION: Logic should match Rankings API.
-      // For MVP: let's update everyone in top 100 with a placeholder logic.
-      .execute();
+    const lockResult = await redis.set(REWARD_LOCK_KEY, Date.now().toString(), {
+      nx: true,
+      ex: LOCK_TTL_SECONDS,
+    });
+    if (lockResult !== 'OK') {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: 'settlement_in_progress',
+      });
+    }
 
-    // Actually, I should check how /api/rankings works to be consistent.
-    // But for this task, I will just iterate and give rewards.
+    const settlementDate = getSettlementDateCN();
+    const settledKey = `${REWARD_SETTLED_PREFIX}${settlementDate}`;
+    const alreadySettled = await redis.exists(settledKey);
+    if (alreadySettled === 1) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: 'already_settled_today',
+        settlementDate,
+      });
+    }
 
+    const topCultivatorIds = await getTopRankingCultivatorIds(100);
     const logs: string[] = [];
 
-    for (let i = 0; i < topCultivators.length; i++) {
+    for (let i = 0; i < topCultivatorIds.length; i++) {
       const rank = i + 1;
-      let reward = 0;
-
-      if (rank === 1) reward = RANKING_REWARDS[1];
-      else if (rank === 2) reward = RANKING_REWARDS[2];
-      else if (rank === 3) reward = RANKING_REWARDS[3];
-      else if (rank <= 10) reward = RANKING_REWARDS['4-10'];
-      else if (rank <= 50) reward = RANKING_REWARDS['11-50'];
-      else reward = RANKING_REWARDS['51-100'];
-
+      const reward = getRewardByRank(rank);
       await getExecutor()
         .update(cultivators)
         .set({ spirit_stones: sql`${cultivators.spirit_stones} + ${reward}` })
-        .where(eq(cultivators.id, topCultivators[i].id));
+        .where(eq(cultivators.id, topCultivatorIds[i]));
 
       logs.push(`Rank ${rank}: +${reward}`);
     }
 
+    await redis.setex(settledKey, SETTLED_TTL_SECONDS, Date.now().toString());
+
     return NextResponse.json({
       success: true,
-      processed: topCultivators.length,
+      settlementDate,
+      processed: topCultivatorIds.length,
       logs,
     });
   } catch (error) {
@@ -63,5 +94,7 @@ export async function GET() {
       { success: false, error: 'Failed to settle rewards' },
       { status: 500 },
     );
+  } finally {
+    await redis.del(REWARD_LOCK_KEY);
   }
 }

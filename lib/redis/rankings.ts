@@ -70,6 +70,17 @@ async function getRankingOrder(): Promise<
 }
 
 /**
+ * 获取排行榜前 N 名 ID（按名次升序）
+ */
+export async function getTopRankingCultivatorIds(
+  limit = MAX_RANKING_SIZE,
+): Promise<string[]> {
+  const safeLimit = Math.max(0, Math.min(limit, MAX_RANKING_SIZE));
+  if (safeLimit === 0) return [];
+  return (await redis.zrange(RANKING_LIST_KEY, 0, safeLimit - 1)) as string[];
+}
+
+/**
  * 获取排行榜列表（回表查询最新数据）
  */
 export async function getRankingList(): Promise<RankingItem[]> {
@@ -210,9 +221,11 @@ export async function updateRanking(
       member: challengerId,
     });
     // 将被挑战者及其下方所有角色排名+1
+    // 注意：zrange 的 start 是 0-based 索引，需要从 targetRank 开始，
+    // 否则会漏掉被挑战者，导致与挑战者同分并出现顺序异常
     const members = (await redis.zrange(
       RANKING_LIST_KEY,
-      targetRank1Based,
+      targetRank,
       -1,
     )) as string[];
     for (let i = 0; i < members.length; i++) {

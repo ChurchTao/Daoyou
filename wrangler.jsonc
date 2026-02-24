@@ -9,9 +9,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "daoyou",
-  "main": ".open-next/worker.js",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-02-11",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "triggers": {
+    "crons": [
+      "0 * * * *", // 每小时：处理过期拍卖
+      "0 16 * * *", // 每日北京时间 00:00：天骄榜发奖（UTC 16:00）
+    ],
+  },
   "assets": {
     "binding": "ASSETS",
     "directory": ".open-next/assets",
