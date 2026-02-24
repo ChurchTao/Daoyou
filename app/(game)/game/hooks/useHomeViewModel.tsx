@@ -75,6 +75,7 @@ const quickActionGroups: QuickActionGroup[] = [
     key: 'service',
     title: '道友服务',
     actions: [
+      { label: '👥 玩家交流群', href: '/game/community' },
       { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
       { label: '📝 意见反馈', href: '/game/settings/feedback' },
       { label: '📜 版本日志', href: '/changelog' },
