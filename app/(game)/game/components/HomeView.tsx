@@ -3,6 +3,7 @@
 import { CultivatorStatusCard } from '@/components/feature/cultivator/CultivatorStatusCard';
 import { LifespanStatusCard } from '@/components/feature/cultivator/LifespanStatusCard';
 import { YieldCard } from '@/components/feature/cultivator/YieldCard';
+import { DivineFortune } from '@/components/feature/home/DivineFortune';
 import { RecentBattles } from '@/components/feature/ranking/RecentBattles';
 import { InkPageShell, InkSection } from '@/components/layout';
 import {
@@ -14,7 +15,6 @@ import {
   InkNotice,
   InkStatusBar,
 } from '@/components/ui';
-import { DivineFortune } from '@/components/feature/home/DivineFortune';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 

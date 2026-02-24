@@ -38,23 +38,52 @@ export interface UseHomeViewModelReturn {
   refresh: () => void;
 }
 
-const quickActionsConfig = [
-  { label: '🧘 洞府', href: '/game/retreat' },
-  { label: '🎒 储物袋', href: '/game/inventory' },
-  { label: '📘 所修功法', href: '/game/techniques' },
-  { label: '📖 所修神通', href: '/game/skills' },
-  { label: '📚 藏经阁', href: '/game/enlightenment' },
-  { label: '🛖 修仙坊市', href: '/game/market' },
-  { label: '🔨 拍卖行', href: '/game/auction' },
-  { label: '⚗️ 造物仙炉', href: '/game/craft' },
-  { label: '🏔️ 云游探秘', href: '/game/dungeon' },
-  { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
-  { label: '📝 意见反馈', href: '/game/settings/feedback' },
-  { label: '📜 版本日志', href: '/changelog' },
-  { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
+export interface QuickActionItem {
+  label: string;
+  href: string;
+  anonymousOnly?: boolean;
+}
+
+export interface QuickActionGroup {
+  key: string;
+  title: string;
+  actions: QuickActionItem[];
+}
+
+const quickActionGroups: QuickActionGroup[] = [
+  {
+    key: 'game',
+    title: '修仙门径',
+    actions: [
+      { label: '🧘 洞府', href: '/game/retreat' },
+      { label: '📚 藏经阁', href: '/game/enlightenment' },
+      { label: '⚗️ 造物仙炉', href: '/game/craft' },
+      { label: '🏔️ 云游探秘', href: '/game/dungeon' },
+      { label: '📘 所修功法', href: '/game/techniques' },
+      { label: '📖 所修神通', href: '/game/skills' },
+    ],
+  },
+  {
+    key: 'sell',
+    title: '交易市场',
+    actions: [
+      { label: '🛖 修仙坊市', href: '/game/market' },
+      { label: '🔨 拍卖行', href: '/game/auction' },
+    ],
+  },
+  {
+    key: 'service',
+    title: '道友服务',
+    actions: [
+      { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
+      { label: '📝 意见反馈', href: '/game/settings/feedback' },
+      { label: '📜 版本日志', href: '/changelog' },
+      { label: '🔐 神识认主', href: '/shenshi-renzhu', anonymousOnly: true },
+    ],
+  },
 ];
 
-export { quickActionsConfig };
+export { quickActionGroups };
 
 /**
  * 首页 ViewModel

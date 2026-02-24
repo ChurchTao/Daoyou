@@ -273,7 +273,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'hitRate',
-      modType: StatModifierType.FIXED,
+      modType: StatModifierType.PERCENT,
       value: { base: 0.03, scale: 'quality', coefficient: 1.5 },
     },
     weight: 40,
@@ -288,7 +288,7 @@ const SECONDARY_AFFIXES: AffixWeight[] = [
     trigger: EffectTrigger.ON_STAT_CALC,
     paramsTemplate: {
       stat: 'dodgeRate',
-      modType: StatModifierType.FIXED,
+      modType: StatModifierType.PERCENT,
       value: { base: 0.03, scale: 'quality', coefficient: 1.5 },
     },
     weight: 40,
