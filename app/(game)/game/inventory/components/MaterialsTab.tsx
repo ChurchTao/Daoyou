@@ -52,9 +52,6 @@ export function MaterialsTab({
   onDiscard,
 }: MaterialsTabProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const activeMaterialTypes = MATERIAL_TYPE_VALUES.filter(
-    (type) => !['gongfa_manual', 'skill_manual', 'manual'].includes(type),
-  );
 
   return (
     <div className="space-y-3">
@@ -105,7 +102,7 @@ export function MaterialsTab({
                   }
                 >
                   <option value="all">全部种类</option>
-                  {activeMaterialTypes.map((type) => (
+                  {MATERIAL_TYPE_VALUES.map((type) => (
                     <option key={type} value={type}>
                       {getMaterialTypeInfo(type).label}
                     </option>
