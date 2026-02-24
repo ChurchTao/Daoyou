@@ -3,32 +3,51 @@
 import { InkPageShell, InkSection } from '@/components/layout';
 import { MailDetailModal } from '@/components/mail/MailDetailModal';
 import { Mail, MailList } from '@/components/mail/MailList';
+import { InkButton } from '@/components/ui/InkButton';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useCallback, useEffect, useState } from 'react';
+
+const PAGE_SIZE = 20;
 
 export default function MailPage() {
   const [mails, setMails] = useState<Mail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
   const { refreshInventory } = useCultivator();
 
-  const fetchMails = useCallback(async () => {
+  const fetchMails = useCallback(async (targetPage: number, append: boolean) => {
     try {
-      setLoading(true);
-      const res = await fetch('/api/cultivator/mail');
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      const res = await fetch(
+        `/api/cultivator/mail?page=${targetPage}&pageSize=${PAGE_SIZE}`,
+      );
       const data = await res.json();
       if (res.ok) {
-        setMails(data.mails || []);
+        const nextMails = (data.mails || []) as Mail[];
+        setMails((prev) => (append ? [...prev, ...nextMails] : nextMails));
+        setHasMore(Boolean(data.pagination?.hasMore));
+        setPage(targetPage);
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    fetchMails();
+    fetchMails(1, false);
   }, [fetchMails]);
 
   const handleSelectMail = async (mail: Mail) => {
@@ -52,9 +71,16 @@ export default function MailPage() {
     }
   };
 
-  const handleUpdate = () => {
-    fetchMails();
-    // 刷新储物袋数据（用于领取附件后更新物品列表）
+  const handleLoadMore = () => {
+    if (!hasMore || loadingMore) return;
+    fetchMails(page + 1, true);
+  };
+
+  const handleUpdate = (mailId: string) => {
+    // 领取后就地更新，避免重新拉取已加载页
+    setMails((prev) =>
+      prev.map((mail) => (mail.id === mailId ? { ...mail, isClaimed: true } : mail)),
+    );
     refreshInventory();
   };
 
@@ -70,7 +96,16 @@ export default function MailPage() {
             正在接收灵讯...
           </div>
         ) : (
-          <MailList mails={mails} onSelect={handleSelectMail} />
+          <div className="space-y-4">
+            <MailList mails={mails} onSelect={handleSelectMail} />
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <InkButton onClick={handleLoadMore} disabled={loadingMore}>
+                  {loadingMore ? '接收中...' : '加载更多'}
+                </InkButton>
+              </div>
+            )}
+          </div>
         )}
       </InkSection>
 

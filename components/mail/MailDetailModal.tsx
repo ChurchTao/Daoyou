@@ -12,7 +12,7 @@ import { Mail } from './MailList';
 interface MailDetailModalProps {
   mail: Mail | null;
   onClose: () => void;
-  onUpdate: () => void; // Refresh list after claim/read
+  onUpdate: (mailId: string) => void; // Update list after claim
 }
 
 export function MailDetailModal({
@@ -41,7 +41,7 @@ export function MailDetailModal({
       if (!res.ok) throw new Error(data.error || 'Claim failed');
 
       pushToast({ message: '领取成功！', tone: 'success' });
-      onUpdate();
+      onUpdate(mail.id);
       onClose();
     } catch (error) {
       console.error('Claim failed', error);
