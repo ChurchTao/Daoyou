@@ -1,9 +1,7 @@
-import { getExecutor } from '@/lib/drizzle/db';
-import { cultivators } from '@/lib/drizzle/schema';
 import { getTopRankingCultivatorIds } from '@/lib/redis/rankings';
 import { redis } from '@/lib/redis';
+import { MailService } from '@/lib/services/MailService';
 import { RANKING_REWARDS } from '@/types/constants';
-import { eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 const REWARD_LOCK_KEY = 'golden_rank:rewards:lock';
@@ -72,10 +70,14 @@ export async function GET(request: Request) {
     for (let i = 0; i < topCultivatorIds.length; i++) {
       const rank = i + 1;
       const reward = getRewardByRank(rank);
-      await getExecutor()
-        .update(cultivators)
-        .set({ spirit_stones: sql`${cultivators.spirit_stones} + ${reward}` })
-        .where(eq(cultivators.id, topCultivatorIds[i]));
+
+      await MailService.sendMail(
+        topCultivatorIds[i],
+        '万界金榜结算奖励',
+        `恭喜你在本期万界金榜中位列第${rank}名，奖励已随邮件发放，请及时领取。`,
+        [{ type: 'spirit_stones', name: '灵石', quantity: reward }],
+        'reward',
+      );
 
       logs.push(`Rank ${rank}: +${reward}`);
     }
