@@ -6,7 +6,7 @@ import {
   type FeedbackStatus,
   type FeedbackType,
 } from '@/lib/repositories/feedbackRepository';
-import { eq } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -38,49 +38,54 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
     limit,
   });
 
-  // 获取关联的用户和角色信息
+  // 批量获取关联角色信息，避免循环单次查询
+  const cultivatorIds = Array.from(
+    new Set(
+      feedbacks
+        .map((feedback) => feedback.cultivatorId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  const cultivatorMap = new Map<
+    string,
+    { name: string | null; realm: string | null }
+  >();
+
+  if (cultivatorIds.length > 0) {
+    const cultivatorRows = await q
+      .select({
+        id: cultivators.id,
+        name: cultivators.name,
+        realm: cultivators.realm,
+      })
+      .from(cultivators)
+      .where(inArray(cultivators.id, cultivatorIds));
+
+    for (const row of cultivatorRows) {
+      cultivatorMap.set(row.id, {
+        name: row.name,
+        realm: row.realm,
+      });
+    }
+  }
+
   const enrichFeedbacks: Array<
     (typeof feedbacks)[number] & {
-      userEmail: string | null;
       cultivatorName: string | null;
       cultivatorRealm: string | null;
     }
-  > = [];
+  > = feedbacks.map((feedback) => {
+    const cultivator = feedback.cultivatorId
+      ? cultivatorMap.get(feedback.cultivatorId)
+      : null;
 
-  for (const feedback of feedbacks) {
-    let userEmail: string | null = null;
-    let cultivatorName: string | null = null;
-    let cultivatorRealm: string | null = null;
-
-    // 获取用户邮箱
-    try {
-      const { createClient } = await import('@/lib/supabase/server');
-      const supabase = await createClient();
-      const { data } = await supabase.auth.admin.getUserById(feedback.userId);
-      userEmail = data.user?.email || null;
-    } catch {
-      // ignore
-    }
-
-    // 获取角色信息
-    if (feedback.cultivatorId) {
-      const cultivator = await q.query.cultivators.findFirst({
-        where: eq(cultivators.id, feedback.cultivatorId),
-        columns: { name: true, realm: true },
-      });
-      if (cultivator) {
-        cultivatorName = cultivator.name;
-        cultivatorRealm = cultivator.realm;
-      }
-    }
-
-    enrichFeedbacks.push({
+    return {
       ...feedback,
-      userEmail,
-      cultivatorName,
-      cultivatorRealm,
-    });
-  }
+      cultivatorName: cultivator?.name ?? null,
+      cultivatorRealm: cultivator?.realm ?? null,
+    };
+  });
 
   return NextResponse.json({
     feedbacks: enrichFeedbacks,

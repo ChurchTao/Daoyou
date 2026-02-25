@@ -13,7 +13,6 @@ interface FeedbackItem {
   status: FeedbackStatus;
   userId: string;
   cultivatorId: string | null;
-  userEmail: string | null;
   cultivatorName: string | null;
   cultivatorRealm: string | null;
   createdAt: string;
@@ -48,7 +47,9 @@ export function FeedbackTable() {
   const [search, setSearch] = useState('');
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [adminMessages, setAdminMessages] = useState<Record<string, string>>({});
+  const [adminMessages, setAdminMessages] = useState<Record<string, string>>(
+    {},
+  );
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -251,7 +252,7 @@ export function FeedbackTable() {
                             </p>
                           </div>
                           <div className="text-ink-secondary flex gap-6 text-sm">
-                            <span>用户：{item.userEmail || item.userId}</span>
+                            <span>用户：{item.userId}</span>
                             {item.cultivatorName && (
                               <span>
                                 角色：{item.cultivatorName}
@@ -269,7 +270,7 @@ export function FeedbackTable() {
                             </label>
                             <textarea
                               id={`feedback-admin-message-${item.id}`}
-                              className="border-ink/20 mt-1 min-h-[80px] w-full border bg-transparent px-3 py-2"
+                              className="border-ink/20 mt-1 min-h-20 w-full border bg-transparent px-3 py-2"
                               placeholder="可选：填写给用户的说明、处理结果或补偿原因"
                               value={adminMessages[item.id] ?? ''}
                               onChange={(e) =>
