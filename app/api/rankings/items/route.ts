@@ -5,10 +5,14 @@ import {
   cultivators,
   skills,
 } from '@/lib/drizzle/schema';
-import { EquipmentSlot } from '@/types/constants';
+import {
+  EquipmentSlot,
+  QUALITY_VALUES,
+  SKILL_GRADE_VALUES,
+} from '@/types/constants';
 import { getEquipmentSlotLabel } from '@/types/dictionaries';
 import { ItemRankingEntry } from '@/types/rankings';
-import { desc, eq, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +29,12 @@ export async function GET(request: NextRequest) {
     let items: ItemRankingEntry[] = [];
     const LIMIT = 100;
 
+    // Filter logic: Only Xuan (玄) grade or higher
+    // For artifacts/elixirs: QUALITY_VALUES index >= 2
+    const validQualities = QUALITY_VALUES.slice(2);
+    // For skills: SKILL_GRADE_VALUES index <= 8
+    const validSkillGrades = SKILL_GRADE_VALUES.slice(0, 9);
+
     if (type === 'artifact') {
       const rows = await getExecutor()
         .select({
@@ -33,7 +43,12 @@ export async function GET(request: NextRequest) {
         })
         .from(artifacts)
         .leftJoin(cultivators, eq(artifacts.cultivatorId, cultivators.id))
-        .where(isNotNull(artifacts.cultivatorId)) // ensure has owner
+        .where(
+          and(
+            isNotNull(artifacts.cultivatorId),
+            inArray(artifacts.quality, validQualities as string[]),
+          ),
+        ) // ensure has owner and high quality
         .orderBy(desc(artifacts.score))
         .limit(LIMIT);
 
@@ -56,7 +71,12 @@ export async function GET(request: NextRequest) {
         })
         .from(skills)
         .leftJoin(cultivators, eq(skills.cultivatorId, cultivators.id))
-        .where(isNotNull(skills.cultivatorId))
+        .where(
+          and(
+            isNotNull(skills.cultivatorId),
+            inArray(skills.grade, validSkillGrades as string[]),
+          ),
+        )
         .orderBy(desc(skills.score))
         .limit(LIMIT);
 
@@ -79,7 +99,12 @@ export async function GET(request: NextRequest) {
         })
         .from(consumables)
         .leftJoin(cultivators, eq(consumables.cultivatorId, cultivators.id))
-        .where(isNotNull(consumables.cultivatorId))
+        .where(
+          and(
+            isNotNull(consumables.cultivatorId),
+            inArray(consumables.quality, validQualities as string[]),
+          ),
+        )
         .orderBy(desc(consumables.score))
         .limit(LIMIT);
 

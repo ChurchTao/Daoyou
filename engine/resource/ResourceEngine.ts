@@ -11,6 +11,10 @@ import {
   updateSpiritStones,
 } from '@/lib/services/cultivatorService';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
+import {
+  calculateSingleArtifactScore,
+  calculateSingleElixirScore,
+} from '@/utils/rankingUtils';
 import type {
   ResourceOperation,
   ResourceOperationResult,
@@ -318,10 +322,12 @@ export class ResourceEngine {
 
             case 'artifact':
               if (gain.data && 'name' in gain.data) {
+                const artifact = { ...gain.data } as Artifact;
+                artifact.score = calculateSingleArtifactScore(artifact);
                 await addArtifactToInventory(
                   userId,
                   cultivatorId,
-                  gain.data as Artifact,
+                  artifact,
                   tx,
                 );
               } else {
@@ -334,6 +340,7 @@ export class ResourceEngine {
                 // Ensure the consumable's quantity matches the operation value
                 const consumable = { ...gain.data } as Consumable;
                 consumable.quantity = gain.value;
+                consumable.score = calculateSingleElixirScore(consumable);
                 await addConsumableToInventory(
                   userId,
                   cultivatorId,

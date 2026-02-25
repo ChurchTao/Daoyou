@@ -22,6 +22,10 @@ import type {
   Material,
   RetreatRecord,
 } from '@/types/cultivator';
+import {
+  calculateSingleArtifactScore,
+  calculateSingleElixirScore,
+} from '@/utils/rankingUtils';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
@@ -1708,6 +1712,7 @@ export async function addArtifactToInventory(
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = getExecutor(tx);
+  const score = calculateSingleArtifactScore(artifact);
   await dbInstance.insert(schema.artifacts).values({
     cultivatorId,
     name: artifact.name,
@@ -1717,7 +1722,7 @@ export async function addArtifactToInventory(
     quality: artifact.quality || '凡品',
     required_realm: artifact.required_realm || '炼气',
     description: artifact.description || null,
-    score: 0, // 默认评分
+    score,
     effects: artifact.effects || [],
   });
 }
@@ -1734,6 +1739,7 @@ export async function addConsumableToInventory(
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = getExecutor(tx);
+  const score = calculateSingleElixirScore(consumable);
   // 检查是否已经有相同的消耗品（名称和品质都必须一致）
   const quality = consumable.quality || '凡品';
   const existing = await dbInstance
@@ -1751,7 +1757,11 @@ export async function addConsumableToInventory(
     // 增加数量
     await dbInstance
       .update(schema.consumables)
-      .set({ quantity: existing[0].quantity + consumable.quantity })
+      .set({
+        quantity: existing[0].quantity + consumable.quantity,
+        // 兼容旧数据可能存在的 0 分，合并时取更高评分
+        score: Math.max(existing[0].score || 0, score),
+      })
       .where(eq(schema.consumables.id, existing[0].id));
   } else {
     // 添加新消耗品
@@ -1764,7 +1774,7 @@ export async function addConsumableToInventory(
       effects: consumable.effects || [],
       quantity: consumable.quantity,
       description: consumable.description || null,
-      score: 0, // 默认评分
+      score,
     });
   }
 }
