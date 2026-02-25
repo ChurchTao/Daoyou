@@ -37,6 +37,10 @@
   ],
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "invocation_logs": false,
+    },
   },
   "r2_buckets": [
     {
@@ -69,7 +73,7 @@
    * https://developers.cloudflare.com/workers/configuration/secrets/
    */
   "limits": {
-    "cpu_ms": 100,
+    "cpu_ms": 50,
   },
   "vars": {
     "DB_RUNTIME": "worker",
