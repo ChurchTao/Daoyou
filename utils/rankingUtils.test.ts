@@ -1,4 +1,3 @@
-// src/lib/utils.test.ts
 import { db } from '@/lib/drizzle/db';
 import { artifacts, consumables, skills } from '@/lib/drizzle/schema';
 import { Artifact, Consumable, Skill } from '@/types/cultivator';
@@ -9,37 +8,40 @@ import {
   calculateSingleSkillScore,
 } from './rankingUtils';
 
-test('test 分数计算', async () => {
-  //   遍历左右的法宝、神通、丹药，计算分数
+test('backfill: 刷新数据库中所有道具评分', async () => {
   const artifactsAll = await db().select().from(artifacts);
   const skillsAll = await db().select().from(skills);
   const consumablesAll = await db().select().from(consumables);
 
-  artifactsAll.forEach(async (artifact) => {
+  let artifactUpdated = 0;
+  let skillUpdated = 0;
+  let consumableUpdated = 0;
+
+  for (const artifact of artifactsAll) {
     const score = calculateSingleArtifactScore(artifact as Artifact);
-    console.log('artifact', artifact.id, artifact.name, score);
-    const update = await db()
+    await db()
       .update(artifacts)
       .set({ score })
       .where(eq(artifacts.id, artifact.id));
-    console.log('artifact', update);
-  });
+    artifactUpdated += 1;
+  }
 
-  skillsAll.forEach(async (skill) => {
+  for (const skill of skillsAll) {
     const score = calculateSingleSkillScore(skill as unknown as Skill);
-    const update = await db()
-      .update(skills)
-      .set({ score })
-      .where(eq(skills.id, skill.id));
-    console.log('skill', skill.id, skill.name, score, update);
-  });
+    await db().update(skills).set({ score }).where(eq(skills.id, skill.id));
+    skillUpdated += 1;
+  }
 
-  consumablesAll.forEach(async (consumable) => {
+  for (const consumable of consumablesAll) {
     const score = calculateSingleElixirScore(consumable as Consumable);
-    const update = await db()
+    await db()
       .update(consumables)
       .set({ score })
       .where(eq(consumables.id, consumable.id));
-    console.log('consumable', consumable.id, consumable.name, score, update);
-  });
+    consumableUpdated += 1;
+  }
+
+  console.log(
+    `backfill done: artifacts=${artifactUpdated}, skills=${skillUpdated}, consumables=${consumableUpdated}`,
+  );
 });

@@ -1,7 +1,13 @@
 'use client';
 
+import { EffectCard } from '@/components/ui/EffectCard';
 import { InkBadge, type Tier } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
+import type { Quality, SkillGrade } from '@/types/constants';
+import {
+  CONSUMABLE_TYPE_DISPLAY_MAP,
+  getEquipmentSlotInfo,
+} from '@/types/dictionaries';
 import {
   BattleRankingItem,
   ItemRankingEntry,
@@ -20,6 +26,7 @@ interface RankingListItemProps {
   customSubtitle?: string;
   customMeta?: string;
   isItem?: boolean;
+  onViewDetails?: (item: ItemRankingEntry) => void;
 }
 
 function RankingListItemComponent({
@@ -33,6 +40,7 @@ function RankingListItemComponent({
   customSubtitle,
   customMeta,
   isItem = false,
+  onViewDetails,
 }: RankingListItemProps) {
   // Type guards/assertions for convenience
   const battleItem = !isItem ? (item as BattleRankingItem) : null;
@@ -45,6 +53,67 @@ function RankingListItemComponent({
         ? '☯'
         : '🌸'
       : '';
+
+  if (isItem && rankItem) {
+    const icon =
+      rankItem.itemType === 'artifact'
+        ? getEquipmentSlotInfo(
+            (rankItem.slot as 'weapon' | 'armor' | 'accessory') || 'weapon',
+          ).icon
+        : rankItem.itemType === 'elixir'
+          ? CONSUMABLE_TYPE_DISPLAY_MAP[
+              (rankItem.type as '丹药' | '符箓') || '丹药'
+            ].icon
+          : '📜';
+    const rankClass =
+      rankItem.rank <= 3 ? 'text-crimson font-semibold' : 'text-ink-secondary';
+
+    return (
+      <div className="pb-2">
+        <div className="mb-1 flex items-center justify-between font-semibold">
+          <span className={rankClass}>第 {rankItem.rank} 名</span>
+          <span className="text-yellow-700">评分 {rankItem.score}</span>
+        </div>
+        <EffectCard
+          layout="col"
+          icon={icon}
+          name={rankItem.name}
+          quality={
+            (rankItem.quality || rankItem.grade) as
+              | Quality
+              | SkillGrade
+              | undefined
+          }
+          effects={rankItem.effects}
+          description={rankItem.description}
+          badgeExtra={
+            <>
+              {rankItem.type && (
+                <InkBadge tone="default">{rankItem.type}</InkBadge>
+              )}
+              {rankItem.element && (
+                <InkBadge tone="default">{rankItem.element}</InkBadge>
+              )}
+            </>
+          }
+          meta={
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              持有者: {rankItem.ownerName}
+            </div>
+          }
+          actions={
+            <InkButton
+              variant="secondary"
+              onClick={() => onViewDetails?.(rankItem)}
+              className="px-3 py-1 text-sm"
+            >
+              瞻仰一二
+            </InkButton>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div

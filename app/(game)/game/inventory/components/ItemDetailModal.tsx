@@ -2,7 +2,7 @@
 
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { InkBadge } from '@/components/ui/InkBadge';
-import type { Artifact, Consumable, Material } from '@/types/cultivator';
+import type { Artifact, Consumable, Material, Skill } from '@/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
@@ -10,11 +10,12 @@ import {
 } from '@/types/dictionaries';
 
 type InventoryItem = Artifact | Consumable | Material;
+type DetailItem = InventoryItem | Skill;
 
 interface ItemDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: InventoryItem | null;
+  item: DetailItem | null;
 }
 
 // 持有数量信息组件
@@ -72,8 +73,47 @@ export function ItemDetailModal({
     );
   }
 
-  // 丹药/符箓（有 effects 数组但无 slot）
-  if ('effects' in item) {
+  // 神通（有 cost、cooldown 和 element）
+  if ('cooldown' in item && 'element' in item && !('type' in item)) {
+    const skill = item as Skill;
+    return (
+      <EffectDetailModal
+        isOpen
+        onClose={onClose}
+        icon="📜"
+        name={skill.name}
+        badges={[
+          skill.grade && (
+            <InkBadge key="g" tier={skill.grade}>
+              神通
+            </InkBadge>
+          ),
+          <InkBadge key="e" tone="default">
+            {skill.element}
+          </InkBadge>,
+        ].filter(Boolean)}
+        extraInfo={
+          <div className="space-y-2">
+            <div className="border-border/50 flex justify-between border-b pb-2">
+              <span className="opacity-70">灵力消耗</span>
+              <span>{skill.cost ?? 0}</span>
+            </div>
+            <div className="border-border/50 flex justify-between border-b pb-2">
+              <span className="opacity-70">冷却回合</span>
+              <span>{skill.cooldown}</span>
+            </div>
+          </div>
+        }
+        effects={skill.effects}
+        description={skill.description}
+        effectTitle="神通效果"
+        descriptionTitle="神通详述"
+      />
+    );
+  }
+
+  // 丹药/符箓（有 quality + effects）
+  if ('quality' in item && 'effects' in item) {
     const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
     return (
       <EffectDetailModal

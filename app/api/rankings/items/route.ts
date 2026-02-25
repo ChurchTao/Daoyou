@@ -12,10 +12,15 @@ import {
 } from '@/types/constants';
 import { getEquipmentSlotLabel } from '@/types/dictionaries';
 import { ItemRankingEntry } from '@/types/rankings';
+import type { EffectConfig } from '@/engine/effect';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+function normalizeEffects(value: unknown): EffectConfig[] {
+  return Array.isArray(value) ? (value as EffectConfig[]) : [];
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,12 +61,17 @@ export async function GET(request: NextRequest) {
         id: item.id,
         rank: index + 1,
         name: item.name,
+        itemType: 'artifact',
         type: getEquipmentSlotLabel(item.slot as EquipmentSlot),
         quality: item.quality,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
         description: item.description || '',
         title: item.quality, // Use quality as subtitle/title
+        element: item.element,
+        slot: item.slot,
+        requiredRealm: item.required_realm,
+        effects: normalizeEffects(item.effects),
       }));
     } else if (type === 'skill') {
       const rows = await getExecutor()
@@ -84,12 +94,17 @@ export async function GET(request: NextRequest) {
         id: item.id,
         rank: index + 1,
         name: item.name,
+        itemType: 'skill',
         type: item.element ? `${item.element}系神通` : '神通',
         grade: item.grade || undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
         description: item.description || '',
         title: item.grade || '未知品阶',
+        element: item.element,
+        cooldown: item.cooldown,
+        cost: item.cost || 0,
+        effects: normalizeEffects(item.effects),
       }));
     } else if (type === 'elixir') {
       const rows = await getExecutor()
@@ -102,6 +117,7 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             isNotNull(consumables.cultivatorId),
+            eq(consumables.type, '丹药'),
             inArray(consumables.quality, validQualities as string[]),
           ),
         )
@@ -112,12 +128,15 @@ export async function GET(request: NextRequest) {
         id: item.id,
         rank: index + 1,
         name: item.name,
+        itemType: 'elixir',
         type: '丹药',
         quality: item.quality,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
         description: item.description || '',
         title: item.quality,
+        quantity: item.quantity,
+        effects: normalizeEffects(item.effects),
       }));
     }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
 import { RankingListItem } from '@/components/feature/ranking/RankingListItem';
 import { formatProbeResultContent } from '@/components/func/ProbeResult';
 import { InkModal, InkPageShell } from '@/components/layout';
@@ -15,11 +16,11 @@ import {
   InkTabs,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import type { Artifact, Consumable, Skill } from '@/types/cultivator';
 import { RANKING_REWARDS } from '@/types/constants';
 import { ItemRankingEntry, RankingsDisplayItem } from '@/types/rankings';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-
 type MyRankInfo = {
   rank: number | null;
   remainingChallenges: number;
@@ -29,6 +30,46 @@ type MyRankInfo = {
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
 type RankingTab = 'battle' | 'artifact' | 'skill' | 'elixir';
+
+function toDetailItem(item: ItemRankingEntry): Artifact | Consumable | Skill {
+  if (item.itemType === 'artifact') {
+    return {
+      id: item.id,
+      name: item.name,
+      slot: (item.slot as Artifact['slot']) || 'weapon',
+      element: (item.element as Artifact['element']) || '金',
+      quality: item.quality as Artifact['quality'],
+      required_realm: item.requiredRealm as Artifact['required_realm'],
+      description: item.description,
+      effects: item.effects,
+      score: item.score,
+    };
+  }
+
+  if (item.itemType === 'skill') {
+    return {
+      id: item.id,
+      name: item.name,
+      element: (item.element as Skill['element']) || '金',
+      grade: item.grade as Skill['grade'],
+      cost: item.cost || 0,
+      cooldown: item.cooldown || 0,
+      description: item.description,
+      effects: item.effects,
+    };
+  }
+
+  return {
+    id: item.id,
+    name: item.name,
+    type: '丹药',
+    quality: item.quality as Consumable['quality'],
+    quantity: item.quantity || 1,
+    description: item.description,
+    effects: item.effects,
+    score: item.score,
+  };
+}
 
 export default function RankingsPage() {
   const router = useRouter();
@@ -45,6 +86,8 @@ export default function RankingsPage() {
   const [probing, setProbing] = useState<string | null>(null);
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [showRules, setShowRules] = useState(false);
+  const [selectedItemDetail, setSelectedItemDetail] =
+    useState<ItemRankingEntry | null>(null);
   const pathname = usePathname();
 
   const loadRankings = useCallback(
@@ -357,6 +400,11 @@ export default function RankingsPage() {
                         : undefined
                     }
                     isItem={!isBattle}
+                    onViewDetails={
+                      !isBattle
+                        ? (selectedItem) => setSelectedItemDetail(selectedItem)
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -366,6 +414,11 @@ export default function RankingsPage() {
       </InkPageShell>
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
+      <ItemDetailModal
+        item={selectedItemDetail ? toDetailItem(selectedItemDetail) : null}
+        isOpen={Boolean(selectedItemDetail)}
+        onClose={() => setSelectedItemDetail(null)}
+      />
 
       <InkModal
         isOpen={showRules}
