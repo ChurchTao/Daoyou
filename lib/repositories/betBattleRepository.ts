@@ -3,6 +3,22 @@ import { getExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
 export type BetBattleRecord = typeof schema.betBattles.$inferSelect;
+export type BetBattleListingRecord = BetBattleRecord & {
+  creatorRealm: string;
+  creatorRealmStage: string;
+};
+
+function toListingRecord(row: {
+  battle: BetBattleRecord;
+  creatorRealm: string;
+  creatorRealmStage: string;
+}): BetBattleListingRecord {
+  return {
+    ...row.battle,
+    creatorRealm: row.creatorRealm,
+    creatorRealmStage: row.creatorRealmStage,
+  };
+}
 
 export interface FindPendingBetBattlesOptions {
   page?: number;
@@ -55,7 +71,7 @@ export async function countPendingByCreator(
 
 export async function findPendingBetBattles(
   options: FindPendingBetBattlesOptions = {},
-): Promise<{ listings: BetBattleRecord[]; total: number }> {
+): Promise<{ listings: BetBattleListingRecord[]; total: number }> {
   const q = getExecutor();
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
@@ -65,9 +81,17 @@ export async function findPendingBetBattles(
     gte(schema.betBattles.expiresAt, new Date()),
   );
 
-  const listings = await q
-    .select()
+  const rows = await q
+    .select({
+      battle: schema.betBattles,
+      creatorRealm: schema.cultivators.realm,
+      creatorRealmStage: schema.cultivators.realm_stage,
+    })
     .from(schema.betBattles)
+    .innerJoin(
+      schema.cultivators,
+      eq(schema.betBattles.creatorId, schema.cultivators.id),
+    )
     .where(whereClause)
     .orderBy(desc(schema.betBattles.createdAt))
     .limit(limit)
@@ -79,7 +103,7 @@ export async function findPendingBetBattles(
     .where(whereClause);
 
   return {
-    listings,
+    listings: rows.map(toListingRecord),
     total: countRow?.count || 0,
   };
 }
@@ -87,16 +111,24 @@ export async function findPendingBetBattles(
 export async function findMyBetBattles(
   cultivatorId: string,
   options: FindPendingBetBattlesOptions = {},
-): Promise<{ listings: BetBattleRecord[]; total: number }> {
+): Promise<{ listings: BetBattleListingRecord[]; total: number }> {
   const q = getExecutor();
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;
 
   const whereClause = sql`${schema.betBattles.creatorId} = ${cultivatorId} OR ${schema.betBattles.challengerId} = ${cultivatorId}`;
 
-  const listings = await q
-    .select()
+  const rows = await q
+    .select({
+      battle: schema.betBattles,
+      creatorRealm: schema.cultivators.realm,
+      creatorRealmStage: schema.cultivators.realm_stage,
+    })
     .from(schema.betBattles)
+    .innerJoin(
+      schema.cultivators,
+      eq(schema.betBattles.creatorId, schema.cultivators.id),
+    )
     .where(whereClause)
     .orderBy(desc(schema.betBattles.createdAt))
     .limit(limit)
@@ -108,7 +140,7 @@ export async function findMyBetBattles(
     .where(whereClause);
 
   return {
-    listings,
+    listings: rows.map(toListingRecord),
     total: countRow?.count || 0,
   };
 }

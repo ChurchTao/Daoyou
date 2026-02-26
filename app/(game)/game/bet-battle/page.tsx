@@ -57,6 +57,8 @@ type BetBattleListing = {
   id: string;
   creatorId: string;
   creatorName: string;
+  creatorRealm?: string;
+  creatorRealmStage?: string;
   taunt?: string | null;
   status: 'pending' | 'matched' | 'cancelled' | 'expired' | 'settled';
   minRealm: RealmType;
@@ -527,22 +529,27 @@ export default function BetBattlePage() {
     return (
       <div key={item.id} className="border-ink/20 border-b border-dashed py-3">
         <div className="text-ink-secondary space-y-2 text-xs">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-base">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="text-ink font-semibold">
               发起人: {item.creatorName}
               {isCreator ? ' (我)' : ''}
             </span>
-            <span>
-              境界: {item.minRealm}-{item.maxRealm}
-            </span>
+            {item.creatorRealm && (
+              <InkBadge tier={item.creatorRealm as Tier}>
+                {item.creatorRealmStage}
+              </InkBadge>
+            )}
             <InkBadge tone={statusMeta.tone}>{statusMeta.label}</InkBadge>
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-ink font-medium">押注物品:</span>
             <span>{stakeSummary}</span>
-            {item.taunt && (
-              <span className="text-ink-secondary">狠话：「{item.taunt}」</span>
-            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-ink font-medium">狠话:</span>
+            <span className="text-ink-secondary">
+              「{item.taunt?.trim() || '暂无'}」
+            </span>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span>
@@ -708,7 +715,9 @@ function BetBattleCreateModal({
   const currentPagination = paginationByType[activeType];
   const spiritStoneValue = Math.max(0, Number(spiritStones) || 0);
   const canProceedToRuleStep =
-    selectedStakeType === 'spirit_stones' ? spiritStoneValue > 0 : !!selectedItem;
+    selectedStakeType === 'spirit_stones'
+      ? spiritStoneValue > 0
+      : !!selectedItem;
 
   useEffect(() => {
     if (selectedStakeType === 'spirit_stones') return;
