@@ -6,7 +6,7 @@ import type { WorldChatMessageDTO } from '@/types/world-chat';
 import { useEffect, useState } from 'react';
 import { WorldChatMessageItem } from './WorldChatMessageItem';
 
-const PREVIEW_LIMIT = 5;
+const PREVIEW_LIMIT = 3;
 const POLL_INTERVAL_MS = 20 * 1000;
 
 export function WorldChatPreview() {
