@@ -5,6 +5,7 @@ import { LifespanStatusCard } from '@/components/feature/cultivator/LifespanStat
 import { YieldCard } from '@/components/feature/cultivator/YieldCard';
 import { DivineFortune } from '@/components/feature/home/DivineFortune';
 import { RecentBattles } from '@/components/feature/ranking/RecentBattles';
+import { WorldChatPreview } from '@/components/feature/world-chat/WorldChatPreview';
 import { InkPageShell, InkSection } from '@/components/layout';
 import {
   InkBadge,
@@ -157,6 +158,13 @@ export function HomeView() {
             unreadMailCount={unreadMailCount}
             onLogout={handleLogout}
           />
+        </InkSection>
+      )}
+
+      {/* 世界传音 */}
+      {cultivator && (
+        <InkSection title="【世界传音】">
+          <WorldChatPreview />
         </InkSection>
       )}
 
