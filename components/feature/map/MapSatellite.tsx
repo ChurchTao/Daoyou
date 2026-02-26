@@ -38,6 +38,7 @@ export interface MapSatelliteProps extends VariantProps<
 > {
   id: string;
   name: string;
+  realmRequirement: string;
   x: number;
   y: number;
   onClick?: (id: string) => void;
@@ -49,6 +50,7 @@ export interface MapSatelliteProps extends VariantProps<
 export function MapSatellite({
   id,
   name,
+  realmRequirement,
   x,
   y,
   selected = false,
@@ -71,7 +73,7 @@ export function MapSatellite({
       {/* Label appears on select */}
       {selected && (
         <div className="bg-crimson text-paper absolute top-4 left-1/2 z-40 -translate-x-1/2 rounded px-1 text-[10px] whitespace-nowrap">
-          {name}
+          {name} · {realmRequirement}
         </div>
       )}
     </div>

@@ -52,6 +52,7 @@ const labelVariants = cva(
 export interface MapNodeProps extends VariantProps<typeof mapNodeVariants> {
   id: string;
   name: string;
+  realmRequirement: string;
   x: number;
   y: number;
   onClick?: (id: string) => void;
@@ -63,6 +64,7 @@ export interface MapNodeProps extends VariantProps<typeof mapNodeVariants> {
 function MapNodeComponent({
   id,
   name,
+  realmRequirement,
   x,
   y,
   selected = false,
@@ -86,7 +88,9 @@ function MapNodeComponent({
       {/* Marker Icon */}
       <div className={cn(markerVariants({ selected }))} />
       {/* Label */}
-      <div className={cn(labelVariants({ selected }))}>{displayName}</div>
+      <div className={cn(labelVariants({ selected }))}>
+        {displayName} · {realmRequirement}
+      </div>
     </div>
   );
 }

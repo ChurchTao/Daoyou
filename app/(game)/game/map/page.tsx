@@ -6,7 +6,7 @@ import {
   getAllMapNodes,
   getAllSatelliteNodes,
   getMapNode,
-  MapNode as MapNodeType,
+  MapNodeInfo,
 } from '@/lib/game/mapSystem';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -26,8 +26,8 @@ export default function MapPage() {
 
   const allNodes = getAllMapNodes();
   const allSatellites = getAllSatelliteNodes();
-  const selectedNode = selectedNodeId
-    ? (getMapNode(selectedNodeId) as MapNodeType)
+  const selectedNode: MapNodeInfo | null = selectedNodeId
+    ? (getMapNode(selectedNodeId) ?? null)
     : null;
 
   const handleNodeClick = (id: string) => {
@@ -101,7 +101,7 @@ export default function MapPage() {
               <svg className="pointer-events-none absolute inset-0 h-full w-full">
                 {allNodes.flatMap((node) =>
                   node.connections.map((targetId) => {
-                    const target = getMapNode(targetId) as MapNodeType;
+                    const target = getMapNode(targetId);
                     if (!target) return null;
                     if (node.id > targetId) return null;
 
@@ -128,6 +128,7 @@ export default function MapPage() {
                   key={node.id}
                   id={node.id}
                   name={node.name}
+                  realmRequirement={node.realm_requirement}
                   x={node.x}
                   y={node.y}
                   selected={selectedNodeId === node.id}
@@ -141,6 +142,7 @@ export default function MapPage() {
                   key={sat.id}
                   id={sat.id}
                   name={sat.name}
+                  realmRequirement={sat.realm_requirement}
                   x={sat.x}
                   y={sat.y}
                   selected={selectedNodeId === sat.id}

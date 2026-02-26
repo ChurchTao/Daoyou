@@ -5,6 +5,7 @@ export interface MapNode {
   id: string;
   name: string;
   region: string;
+  realm_requirement: RealmType;
   tags: string[];
   description: string;
   connections: string[];

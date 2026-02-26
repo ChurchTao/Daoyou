@@ -2,10 +2,10 @@
 
 import { InkButton } from '@/components/ui/InkButton';
 import { InkTag } from '@/components/ui/InkTag';
-import type { MapNode } from '@/lib/game/mapSystem';
+import type { MapNodeInfo } from '@/lib/game/mapSystem';
 
 export interface MapNodeDetailProps {
-  node: MapNode;
+  node: MapNodeInfo;
   onClose: () => void;
   onSelect: () => void;
 }
@@ -27,6 +27,10 @@ export function MapNodeDetail({ node, onClose, onSelect }: MapNodeDetailProps) {
         <p className="text-ink-secondary mb-4 text-sm leading-relaxed">
           {node.description}
         </p>
+
+        <div className="text-ink-secondary mb-3 text-xs">
+          推荐境界：<span className="text-ink font-semibold">{node.realm_requirement}</span>
+        </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
           {node.tags.map((tag) => (

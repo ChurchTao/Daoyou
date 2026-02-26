@@ -14,6 +14,9 @@ export function MapNodeCard({ node }: { node: MapNodeInfo }) {
         <p className="text-ink-secondary mb-2 line-clamp-2 text-xs">
           {node.description}
         </p>
+        <div className="text-ink-secondary mb-2 text-xs">
+          推荐境界：<span className="text-ink font-semibold">{node.realm_requirement}</span>
+        </div>
         <div className="flex flex-wrap gap-1">
           {node.tags.slice(0, 3).map((t) => (
             <InkTag
