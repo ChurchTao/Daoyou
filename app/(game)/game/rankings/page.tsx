@@ -16,7 +16,12 @@ import {
   InkTabs,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import type { Artifact, Consumable, Skill } from '@/types/cultivator';
+import type {
+  Artifact,
+  Consumable,
+  CultivationTechnique,
+  Skill,
+} from '@/types/cultivator';
 import { RANKING_REWARDS } from '@/types/constants';
 import { ItemRankingEntry, RankingsDisplayItem } from '@/types/rankings';
 import { usePathname, useRouter } from 'next/navigation';
@@ -29,9 +34,11 @@ type MyRankInfo = {
 
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
-type RankingTab = 'battle' | 'artifact' | 'skill' | 'elixir';
+type RankingTab = 'battle' | 'artifact' | 'technique' | 'skill' | 'elixir';
 
-function toDetailItem(item: ItemRankingEntry): Artifact | Consumable | Skill {
+function toDetailItem(
+  item: ItemRankingEntry,
+): Artifact | Consumable | Skill | CultivationTechnique {
   if (item.itemType === 'artifact') {
     return {
       id: item.id,
@@ -54,6 +61,18 @@ function toDetailItem(item: ItemRankingEntry): Artifact | Consumable | Skill {
       grade: item.grade as Skill['grade'],
       cost: item.cost || 0,
       cooldown: item.cooldown || 0,
+      description: item.description,
+      effects: item.effects,
+    };
+  }
+
+  if (item.itemType === 'technique') {
+    return {
+      id: item.id,
+      name: item.name,
+      grade: item.grade as CultivationTechnique['grade'],
+      required_realm:
+        (item.requiredRealm as CultivationTechnique['required_realm']) || '炼气',
       description: item.description,
       effects: item.effects,
     };
@@ -323,6 +342,7 @@ export default function RankingsPage() {
           items={[
             { label: '天骄榜', value: 'battle' },
             { label: '法宝榜', value: 'artifact' },
+            { label: '功法榜', value: 'technique' },
             { label: '神通榜', value: 'skill' },
             { label: '丹药榜', value: 'elixir' },
           ]}

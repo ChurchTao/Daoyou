@@ -3,7 +3,7 @@ import type { EffectConfig } from '@/engine/effect';
 
 export type BattleRankingItem = RankingItem;
 
-export type RankingItemType = 'artifact' | 'skill' | 'elixir';
+export type RankingItemType = 'artifact' | 'skill' | 'elixir' | 'technique';
 
 export interface ItemRankingEntry {
   id: string; // itemId

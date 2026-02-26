@@ -2,7 +2,13 @@
 
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { InkBadge } from '@/components/ui/InkBadge';
-import type { Artifact, Consumable, Material, Skill } from '@/types/cultivator';
+import type {
+  Artifact,
+  Consumable,
+  CultivationTechnique,
+  Material,
+  Skill,
+} from '@/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
@@ -10,7 +16,7 @@ import {
 } from '@/types/dictionaries';
 
 type InventoryItem = Artifact | Consumable | Material;
-type DetailItem = InventoryItem | Skill;
+type DetailItem = InventoryItem | Skill | CultivationTechnique;
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -69,6 +75,36 @@ export function ItemDetailModal({
         description={item.description}
         effectTitle="法宝效果"
         descriptionTitle="法宝说明"
+      />
+    );
+  }
+
+  // 功法（有 required_realm，无 slot）
+  if ('required_realm' in item && !('slot' in item)) {
+    const technique = item as CultivationTechnique;
+    return (
+      <EffectDetailModal
+        isOpen
+        onClose={onClose}
+        icon="📘"
+        name={technique.name}
+        badges={[
+          technique.grade && (
+            <InkBadge key="g" tier={technique.grade}>
+              功法
+            </InkBadge>
+          ),
+        ].filter(Boolean)}
+        extraInfo={
+          <div className="border-border/50 flex justify-between border-b pb-2">
+            <span className="opacity-70">境界要求</span>
+            <span>{technique.required_realm}</span>
+          </div>
+        }
+        effects={technique.effects}
+        description={technique.description}
+        effectTitle="功法效果"
+        descriptionTitle="功法详述"
       />
     );
   }

@@ -2,6 +2,7 @@ import { getExecutor } from '@/lib/drizzle/db';
 import {
   artifacts,
   consumables,
+  cultivationTechniques,
   cultivators,
   skills,
 } from '@/lib/drizzle/schema';
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
 
-    if (!type || !['artifact', 'skill', 'elixir'].includes(type)) {
+    if (!type || !['artifact', 'skill', 'elixir', 'technique'].includes(type)) {
       return NextResponse.json({ success: false, error: '无效的榜单类型' });
     }
 
@@ -136,6 +137,40 @@ export async function GET(request: NextRequest) {
         description: item.description || '',
         title: item.quality,
         quantity: item.quantity,
+        effects: normalizeEffects(item.effects),
+      }));
+    } else if (type === 'technique') {
+      const rows = await getExecutor()
+        .select({
+          item: cultivationTechniques,
+          owner: cultivators,
+        })
+        .from(cultivationTechniques)
+        .leftJoin(
+          cultivators,
+          eq(cultivationTechniques.cultivatorId, cultivators.id),
+        )
+        .where(
+          and(
+            isNotNull(cultivationTechniques.cultivatorId),
+            inArray(cultivationTechniques.grade, validSkillGrades as string[]),
+          ),
+        )
+        .orderBy(desc(cultivationTechniques.score))
+        .limit(LIMIT);
+
+      items = rows.map(({ item, owner }, index) => ({
+        id: item.id,
+        rank: index + 1,
+        name: item.name,
+        itemType: 'technique',
+        type: '功法',
+        grade: item.grade || undefined,
+        ownerName: owner?.name || '未知',
+        score: item.score || 0,
+        description: item.description || '',
+        title: item.grade || '未知品阶',
+        requiredRealm: item.required_realm,
         effects: normalizeEffects(item.effects),
       }));
     }

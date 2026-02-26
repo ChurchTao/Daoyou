@@ -1,9 +1,15 @@
 import { EffectType, StatModifierType } from '@/engine/effect/types';
-import { Artifact, Consumable, Skill } from '@/types/cultivator';
+import {
+  Artifact,
+  Consumable,
+  CultivationTechnique,
+  Skill,
+} from '@/types/cultivator';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
   calculateSingleSkillScore,
+  calculateSingleTechniqueScore,
 } from './rankingUtils';
 
 describe('rankingUtils scoring model', () => {
@@ -124,6 +130,41 @@ describe('rankingUtils scoring model', () => {
 
     expect(calculateSingleElixirScore(advancedPill)).toBeGreaterThan(
       calculateSingleElixirScore(plainPill),
+    );
+  });
+
+  it('technique score should reward higher grade and richer passive effects', () => {
+    const basicTechnique: CultivationTechnique = {
+      name: '养气诀',
+      grade: '黄阶下品',
+      required_realm: '炼气',
+      effects: [],
+    };
+
+    const advancedTechnique: CultivationTechnique = {
+      ...basicTechnique,
+      name: '玄天归元经',
+      grade: '地阶上品',
+      effects: [
+        {
+          type: EffectType.StatModifier,
+          params: {
+            stat: 'spirit',
+            modType: StatModifierType.PERCENT,
+            value: 0.24,
+          },
+        },
+        {
+          type: EffectType.ManaRegen,
+          params: {
+            amount: 80,
+          },
+        },
+      ],
+    };
+
+    expect(calculateSingleTechniqueScore(advancedTechnique)).toBeGreaterThan(
+      calculateSingleTechniqueScore(basicTechnique),
     );
   });
 });

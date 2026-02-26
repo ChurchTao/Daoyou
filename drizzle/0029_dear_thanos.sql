@@ -1,0 +1,2 @@
+ALTER TABLE "wanjiedaoyou_cultivation_techniques" ADD COLUMN "score" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX "cultivation_techniques_score_idx" ON "wanjiedaoyou_cultivation_techniques" USING btree ("score");

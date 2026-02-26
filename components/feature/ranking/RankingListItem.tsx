@@ -64,6 +64,8 @@ function RankingListItemComponent({
           ? CONSUMABLE_TYPE_DISPLAY_MAP[
               (rankItem.type as '丹药' | '符箓') || '丹药'
             ].icon
+          : rankItem.itemType === 'technique'
+            ? '📘'
           : '📜';
     const rankClass =
       rankItem.rank <= 3 ? 'text-crimson font-semibold' : 'text-ink-secondary';

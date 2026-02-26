@@ -7,6 +7,7 @@
 import { DbTransaction } from '@/lib/drizzle/db';
 import { cultivationTechniques } from '@/lib/drizzle/schema';
 import { isGongFaManual } from '@/engine/material/materialTypeUtils';
+import { calculateSingleTechniqueScore } from '@/utils/rankingUtils';
 import type { Quality, RealmType, SkillGrade } from '@/types/constants';
 import { QUALITY_VALUES } from '@/types/constants';
 import type { CultivationTechnique, Material } from '@/types/cultivator';
@@ -220,12 +221,14 @@ ${userPrompt || '无（自由发挥，但必须基于材料特性）'}
     context: CreationContext,
     resultItem: CultivationTechnique,
   ): Promise<void> {
+    const score = calculateSingleTechniqueScore(resultItem);
     await tx.insert(cultivationTechniques).values({
       cultivatorId: context.cultivator.id!,
       name: resultItem.name,
       grade: resultItem.grade,
       required_realm: resultItem.required_realm,
       description: resultItem.description,
+      score,
       effects: resultItem.effects ?? [],
     });
   }

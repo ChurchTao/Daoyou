@@ -167,3 +167,13 @@ h6,
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
+
+/* 隐藏横向滚动条（用于 Tabs） */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

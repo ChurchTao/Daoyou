@@ -17,6 +17,7 @@ import type {
   Artifact,
   BreakthroughHistoryEntry,
   Consumable,
+  CultivationTechnique,
   CultivationProgress,
   Cultivator,
   Material,
@@ -25,6 +26,7 @@ import type {
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
+  calculateSingleTechniqueScore,
 } from '@/utils/rankingUtils';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
@@ -76,6 +78,7 @@ async function assembleCultivatorFromRelations(
     name: c.name,
     grade: c.grade as SkillGrade | undefined,
     required_realm: c.required_realm as RealmType,
+    score: c.score || 0,
     effects: (c.effects ?? []) as EffectConfig[],
     description: c.description || undefined,
   }));
@@ -332,6 +335,7 @@ export async function createCultivator(
           name: cult.name,
           grade: cult.grade || null,
           required_realm: cult.required_realm,
+          score: calculateSingleTechniqueScore(cult as CultivationTechnique),
           effects: cult.effects ?? [],
         })),
       );

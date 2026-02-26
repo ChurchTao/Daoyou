@@ -1,5 +1,7 @@
 import { getExecutor, type DbExecutor } from '@/lib/drizzle/db';
 import * as schema from '@/lib/drizzle/schema';
+import { calculateSingleTechniqueScore } from '@/utils/rankingUtils';
+import { CultivationTechnique } from '@/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 
 export type CultivatorRecord = typeof schema.cultivators.$inferSelect;
@@ -36,6 +38,28 @@ export async function loadCultivatorRelations(
     .select()
     .from(schema.cultivationTechniques)
     .where(eq(schema.cultivationTechniques.cultivatorId, cultivatorId));
+  const pendingScoreUpdates = cultivations.filter((item) => (item.score || 0) <= 0);
+  if (pendingScoreUpdates.length > 0) {
+    await Promise.all(
+      pendingScoreUpdates.map(async (item) => {
+        const score = calculateSingleTechniqueScore({
+          id: item.id,
+          name: item.name,
+          grade: item.grade as CultivationTechnique['grade'],
+          required_realm: item.required_realm as CultivationTechnique['required_realm'],
+          description: item.description || undefined,
+          effects: (item.effects ?? []) as CultivationTechnique['effects'],
+        });
+
+        await q
+          .update(schema.cultivationTechniques)
+          .set({ score })
+          .where(eq(schema.cultivationTechniques.id, item.id));
+
+        item.score = score;
+      }),
+    );
+  }
   const skills = await q
     .select()
     .from(schema.skills)

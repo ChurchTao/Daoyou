@@ -116,11 +116,13 @@ export const cultivationTechniques = pgTable(
     grade: varchar('grade', { length: 20 }),
     required_realm: varchar('required_realm', { length: 20 }).notNull(),
     description: text('description'),
+    score: integer('score').notNull().default(0),
     effects: jsonb('effects').default([]), // EffectConfig[]
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [
     index('cultivation_techniques_cultivator_idx').on(table.cultivatorId),
+    index('cultivation_techniques_score_idx').on(table.score),
   ],
 );
 

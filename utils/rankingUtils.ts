@@ -1,6 +1,11 @@
 import { EffectConfig, StatModifierType } from '@/engine/effect/types';
 import { Quality } from '@/types/constants';
-import { Artifact, Consumable, Skill } from '@/types/cultivator';
+import {
+  Artifact,
+  Consumable,
+  CultivationTechnique,
+  Skill,
+} from '@/types/cultivator';
 
 const QUALITY_SCORE_MAP: Record<Quality, number> = {
   凡品: 80,
@@ -322,5 +327,18 @@ export function calculateSingleElixirScore(consumable: Consumable): number {
     : 0;
 
   const score = base * 0.72 + effectsScore * 1.35 + utilityBoost;
+  return Math.floor(Math.max(1, score));
+}
+
+/**
+ * 计算单个功法评分
+ */
+export function calculateSingleTechniqueScore(
+  technique: CultivationTechnique,
+): number {
+  const base = SKILL_GRADE_SCORE_MAP[technique.grade || '黄阶下品'] || 240;
+  const effects = technique.effects ?? [];
+  const effectsScore = getEffectsTotalScore(effects);
+  const score = base * 0.9 + effectsScore * 1.15 + effects.length * 28;
   return Math.floor(Math.max(1, score));
 }

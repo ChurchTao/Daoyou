@@ -1,19 +1,32 @@
 import { db } from '@/lib/drizzle/db';
-import { artifacts, consumables, skills } from '@/lib/drizzle/schema';
-import { Artifact, Consumable, Skill } from '@/types/cultivator';
+import {
+  artifacts,
+  consumables,
+  cultivationTechniques,
+  skills,
+} from '@/lib/drizzle/schema';
+import {
+  Artifact,
+  Consumable,
+  CultivationTechnique,
+  Skill,
+} from '@/types/cultivator';
 import { eq } from 'drizzle-orm';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
   calculateSingleSkillScore,
+  calculateSingleTechniqueScore,
 } from './rankingUtils';
 
 test('backfill: 刷新数据库中所有道具评分', async () => {
   const artifactsAll = await db().select().from(artifacts);
+  const techniquesAll = await db().select().from(cultivationTechniques);
   const skillsAll = await db().select().from(skills);
   const consumablesAll = await db().select().from(consumables);
 
   let artifactUpdated = 0;
+  let techniqueUpdated = 0;
   let skillUpdated = 0;
   let consumableUpdated = 0;
 
@@ -32,6 +45,17 @@ test('backfill: 刷新数据库中所有道具评分', async () => {
     skillUpdated += 1;
   }
 
+  for (const technique of techniquesAll) {
+    const score = calculateSingleTechniqueScore(
+      technique as unknown as CultivationTechnique,
+    );
+    await db()
+      .update(cultivationTechniques)
+      .set({ score })
+      .where(eq(cultivationTechniques.id, technique.id));
+    techniqueUpdated += 1;
+  }
+
   for (const consumable of consumablesAll) {
     const score = calculateSingleElixirScore(consumable as Consumable);
     await db()
@@ -42,6 +66,6 @@ test('backfill: 刷新数据库中所有道具评分', async () => {
   }
 
   console.log(
-    `backfill done: artifacts=${artifactUpdated}, skills=${skillUpdated}, consumables=${consumableUpdated}`,
+    `backfill done: artifacts=${artifactUpdated}, techniques=${techniqueUpdated}, skills=${skillUpdated}, consumables=${consumableUpdated}`,
   );
 });
