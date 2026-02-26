@@ -1,3 +1,5 @@
+import type { Artifact, Consumable, Material } from './cultivator';
+
 export type WorldChatChannel = 'world';
 
 export type WorldChatMessageType = 'text' | 'duel_invite' | 'item_showcase';
@@ -14,10 +16,38 @@ export interface WorldChatDuelInvitePayload {
   expiresAt?: string;
 }
 
+export type WorldChatShowcaseItemType = 'artifact' | 'material' | 'consumable';
+
+export type ItemShowcaseSnapshotMap = {
+  artifact: Pick<
+    Artifact,
+    | 'id'
+    | 'name'
+    | 'slot'
+    | 'element'
+    | 'quality'
+    | 'required_realm'
+    | 'description'
+    | 'effects'
+  >;
+  material: Pick<
+    Material,
+    'id' | 'name' | 'type' | 'rank' | 'element' | 'description' | 'quantity'
+  >;
+  consumable: Pick<
+    Consumable,
+    'id' | 'name' | 'type' | 'quality' | 'effects' | 'quantity' | 'description'
+  >;
+};
+
+export type ItemShowcaseSnapshot =
+  ItemShowcaseSnapshotMap[WorldChatShowcaseItemType];
+
 export interface WorldChatItemShowcasePayload {
-  itemType: 'artifact' | 'consumable' | 'skill' | 'technique';
+  itemType: WorldChatShowcaseItemType;
   itemId: string;
-  snapshot?: Record<string, unknown>;
+  snapshot: ItemShowcaseSnapshot;
+  text?: string;
 }
 
 export interface WorldChatPayloadMap {

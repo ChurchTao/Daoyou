@@ -1,12 +1,22 @@
 'use client';
 
+import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
 import type { Tier } from '@/components/ui/InkBadge';
-import { InkBadge } from '@/components/ui/InkBadge';
-import type { WorldChatMessageDTO } from '@/types/world-chat';
+import { InkBadge, tierColorMap } from '@/components/ui/InkBadge';
+import { cn } from '@/lib/cn';
+import type { Artifact, Consumable, Material } from '@/types/cultivator';
+import type {
+  ItemShowcaseSnapshotMap,
+  WorldChatItemShowcasePayload,
+  WorldChatMessageDTO,
+} from '@/types/world-chat';
+import { useMemo, useState } from 'react';
 
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', {
   numeric: 'auto',
 });
+
+type WorldChatDetailItem = Artifact | Consumable | Material;
 
 function formatRelativeTime(isoString: string): string {
   const time = new Date(isoString).getTime();
@@ -29,21 +39,115 @@ function formatRelativeTime(isoString: string): string {
   return relativeTimeFormatter.format(-Math.floor(diffSeconds / 86400), 'day');
 }
 
-function renderMessageContent(message: WorldChatMessageDTO): string {
-  if (message.messageType === 'text') {
-    const payloadText =
-      typeof message.payload === 'object' &&
-      message.payload &&
-      'text' in message.payload &&
-      typeof message.payload.text === 'string'
-        ? message.payload.text
-        : '';
-    return message.textContent || payloadText;
+function renderTextMessage(message: WorldChatMessageDTO): string {
+  const payloadText =
+    typeof message.payload === 'object' &&
+    message.payload &&
+    'text' in message.payload &&
+    typeof message.payload.text === 'string'
+      ? message.payload.text
+      : '';
+  return message.textContent || payloadText;
+}
+
+function isItemShowcasePayload(
+  payload: WorldChatMessageDTO['payload'],
+): payload is WorldChatItemShowcasePayload {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'itemType' in payload &&
+    'itemId' in payload &&
+    'snapshot' in payload &&
+    typeof payload.itemType === 'string' &&
+    typeof payload.itemId === 'string'
+  );
+}
+
+function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
+  name: string;
+  tier?: Tier;
+  text?: string;
+  detailItem: WorldChatDetailItem;
+} | null {
+  if (!payload.snapshot || typeof payload.snapshot !== 'object') {
+    return null;
   }
-  if (message.messageType === 'duel_invite') {
-    return '【赌斗邀请】该类型消息暂未开放展示';
+
+  if (payload.itemType === 'artifact') {
+    const item = payload.snapshot as ItemShowcaseSnapshotMap['artifact'];
+    if (
+      typeof item.name !== 'string' ||
+      typeof item.slot !== 'string' ||
+      typeof item.element !== 'string'
+    ) {
+      return null;
+    }
+    return {
+      name: item.name,
+      tier: item.quality as Tier | undefined,
+      text: payload.text,
+      detailItem: {
+        id: item.id || payload.itemId,
+        name: item.name,
+        slot: item.slot,
+        element: item.element,
+        quality: item.quality,
+        required_realm: item.required_realm,
+        description: item.description,
+        effects: item.effects,
+      },
+    };
   }
-  return '【道具展示】该类型消息暂未开放展示';
+
+  if (payload.itemType === 'material') {
+    const item = payload.snapshot as ItemShowcaseSnapshotMap['material'];
+    if (
+      typeof item.name !== 'string' ||
+      typeof item.type !== 'string' ||
+      typeof item.rank !== 'string' ||
+      typeof item.quantity !== 'number'
+    ) {
+      return null;
+    }
+    return {
+      name: item.name,
+      tier: item.rank as Tier,
+      text: payload.text,
+      detailItem: {
+        id: item.id || payload.itemId,
+        name: item.name,
+        type: item.type,
+        rank: item.rank,
+        element: item.element,
+        description: item.description,
+        quantity: item.quantity,
+      },
+    };
+  }
+
+  const item = payload.snapshot as ItemShowcaseSnapshotMap['consumable'];
+  if (
+    typeof item.name !== 'string' ||
+    typeof item.type !== 'string' ||
+    typeof item.quantity !== 'number'
+  ) {
+    return null;
+  }
+  return {
+    name: item.name,
+    tier: item.quality as Tier | undefined,
+    text: payload.text,
+    detailItem: {
+      id: item.id || payload.itemId,
+      name: item.name,
+      type: item.type,
+      quality: item.quality,
+      effects: item.effects,
+      quantity: item.quantity,
+      description: item.description,
+    },
+  };
 }
 
 interface WorldChatMessageItemProps {
@@ -52,20 +156,64 @@ interface WorldChatMessageItemProps {
 }
 
 export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
+  const [detailItem, setDetailItem] = useState<WorldChatDetailItem | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const showcaseData = useMemo(() => {
+    if (message.messageType !== 'item_showcase') return null;
+    if (!isItemShowcasePayload(message.payload)) return null;
+    return parseShowcaseItem(message.payload);
+  }, [message]);
+
+  const content =
+    message.messageType === 'text'
+      ? renderTextMessage(message)
+      : message.messageType === 'duel_invite'
+        ? '【赌斗邀请】该类型消息暂未开放展示'
+        : showcaseData
+          ? showcaseData
+          : '【道具展示】';
+
   return (
-    <div className="border-ink/10 border-b border-dashed py-2">
-      <div className="mb-1 flex items-center gap-2">
-        <span className="font-semibold">{message.senderName}</span>
-        <InkBadge tier={message.senderRealm as Tier}>
-          {message.senderRealmStage}
-        </InkBadge>
-        <span className="text-ink-secondary ml-auto text-xs">
-          {formatRelativeTime(message.createdAt)}
-        </span>
+    <>
+      <div className="border-ink/10 border-b border-dashed py-2">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="font-semibold">{message.senderName}</span>
+          <InkBadge tier={message.senderRealm as Tier}>
+            {message.senderRealmStage}
+          </InkBadge>
+          <span className="text-ink-secondary ml-auto text-xs">
+            {formatRelativeTime(message.createdAt)}
+          </span>
+        </div>
+        <div className="text-sm leading-6 break-all">
+          {typeof content === 'string' ? (
+            content
+          ) : (
+            <span>
+              <button
+                type="button"
+                className={cn(
+                  'cursor-pointer font-semibold underline-offset-2 hover:underline',
+                  content.tier ? tierColorMap[content.tier] : 'text-ink',
+                )}
+                onClick={() => {
+                  setDetailItem(content.detailItem);
+                  setDetailOpen(true);
+                }}
+              >
+                ［{content.name}］
+              </button>
+              {content.text ? ` ${content.text}` : ''}
+            </span>
+          )}
+        </div>
       </div>
-      <p className="text-sm leading-6 break-all">
-        {renderMessageContent(message)}
-      </p>
-    </div>
+      <ItemDetailModal
+        isOpen={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        item={detailItem}
+      />
+    </>
   );
 }
