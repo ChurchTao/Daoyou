@@ -34,7 +34,7 @@ function DungeonContent() {
   // 结算确认回调：刷新库存后跳转首页
   const handleSettlementConfirm = useCallback(async () => {
     await refresh();
-    router.push('/');
+    router.push('/game');
   }, [refresh, router]);
 
   // 修正加载状态：ViewModel 内部已经处理了副本状态的加载
