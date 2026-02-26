@@ -1,9 +1,7 @@
 'use client';
 
-import { EffectCard } from '@/components/ui/EffectCard';
 import { InkBadge, type Tier } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
-import type { Quality, SkillGrade } from '@/types/constants';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
@@ -71,48 +69,35 @@ function RankingListItemComponent({
       rankItem.rank <= 3 ? 'text-crimson font-semibold' : 'text-ink-secondary';
 
     return (
-      <div className="pb-2">
-        <div className="mb-1 flex items-center justify-between font-semibold">
-          <span className={rankClass}>第 {rankItem.rank} 名</span>
+      <div className="border-ink/20 border-b border-dashed py-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className={`min-w-16 text-sm ${rankClass}`}>
+              第 {rankItem.rank} 名
+            </span>
+            <span>{icon}</span>
+            <span className="truncate font-semibold">{rankItem.name}</span>
+          </div>
           <span className="text-yellow-700">评分 {rankItem.score}</span>
         </div>
-        <EffectCard
-          layout="col"
-          icon={icon}
-          name={rankItem.name}
-          quality={
-            (rankItem.quality || rankItem.grade) as
-              | Quality
-              | SkillGrade
-              | undefined
-          }
-          effects={rankItem.effects}
-          description={rankItem.description}
-          badgeExtra={
-            <>
-              {rankItem.type && (
-                <InkBadge tone="default">{rankItem.type}</InkBadge>
-              )}
-              {rankItem.element && (
-                <InkBadge tone="default">{rankItem.element}</InkBadge>
-              )}
-            </>
-          }
-          meta={
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-              持有者: {rankItem.ownerName}
-            </div>
-          }
-          actions={
-            <InkButton
-              variant="secondary"
-              onClick={() => onViewDetails?.(rankItem)}
-              className="px-3 py-1 text-sm"
-            >
-              瞻仰一二
-            </InkButton>
-          }
-        />
+        <div className="ml-16 flex flex-wrap items-center gap-2 pb-2">
+          {(rankItem.quality || rankItem.grade) && (
+            <InkBadge tier={(rankItem.quality || rankItem.grade) as Tier}>
+              {rankItem.type || '品质'}
+            </InkBadge>
+          )}
+          {rankItem.element && <InkBadge tone="default">{rankItem.element}</InkBadge>}
+          <span className="text-sm opacity-80">持有者: {rankItem.ownerName}</span>
+        </div>
+        <div className="ml-16 flex justify-end">
+          <InkButton
+            variant="secondary"
+            onClick={() => onViewDetails?.(rankItem)}
+            className="px-3 py-1 text-sm"
+          >
+            瞻仰一二
+          </InkButton>
+        </div>
       </div>
     );
   }
