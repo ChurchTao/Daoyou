@@ -211,6 +211,20 @@
       "when": 1772035520176,
       "tag": "0029_dear_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1772095592829,
+      "tag": "0030_remarkable_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1772101800613,
+      "tag": "0031_bright_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

@@ -57,7 +57,7 @@ function parseStoredMessage(raw: unknown): WorldChatMessageDTO | null {
 
 export async function createMessage(data: {
   senderUserId: string;
-  senderCultivatorId: string;
+  senderCultivatorId: string | null;
   senderName: string;
   senderRealm: string;
   senderRealmStage: string;

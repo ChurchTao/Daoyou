@@ -9,7 +9,10 @@ export interface WorldChatTextPayload {
 }
 
 export interface WorldChatDuelInvitePayload {
+  battleId?: string;
+  routePath?: string;
   targetCultivatorId?: string;
+  taunt?: string;
   wager?: {
     spiritStones?: number;
   };

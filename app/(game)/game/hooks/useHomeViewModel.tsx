@@ -69,6 +69,7 @@ const quickActionGroups: QuickActionGroup[] = [
     actions: [
       { label: '🛖 修仙坊市', href: '/game/market' },
       { label: '🔨 拍卖行', href: '/game/auction' },
+      { label: '⚔️ 赌战台', href: '/game/bet-battle' },
     ],
   },
   {

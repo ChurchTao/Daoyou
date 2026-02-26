@@ -55,8 +55,8 @@ export function InkListItem({
   return (
     <div
       className={cn(
-        'border-ink/10 flex gap-2 border-b border-dashed py-2',
-        highlight && 'border-b-crimson/50',
+        'border-ink/10 flex gap-2 border-b border-dashed p-1',
+        highlight && 'border-b-crimson/50 bg-crimson/5',
         isColumn ? 'flex-col items-stretch' : 'justify-between',
       )}
     >

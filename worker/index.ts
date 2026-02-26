@@ -4,7 +4,7 @@ import { default as handler } from '../.open-next/worker.js';
 const INTERNAL_BASE_URL = 'https://internal.daoyou';
 const CRON_ROUTES: Record<string, string[]> = {
   // 每小时处理过期拍卖
-  '0 * * * *': ['/api/cron/auction-expire'],
+  '0 * * * *': ['/api/cron/auction-expire', '/api/cron/bet-battle-expire'],
   // 每日 00:00（北京时间，UTC+8）结算天骄榜奖励 Cloudflare Cron 使用 UTC，对应表达式为 16:00 UTC
   '0 16 * * *': ['/api/cron/rank-rewards'],
 };

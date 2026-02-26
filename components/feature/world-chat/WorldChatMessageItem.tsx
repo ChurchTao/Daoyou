@@ -3,10 +3,12 @@
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
 import type { Tier } from '@/components/ui/InkBadge';
 import { InkBadge, tierColorMap } from '@/components/ui/InkBadge';
+import { InkButton } from '@/components/ui/InkButton';
 import { cn } from '@/lib/cn';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import type {
   ItemShowcaseSnapshotMap,
+  WorldChatDuelInvitePayload,
   WorldChatItemShowcasePayload,
   WorldChatMessageDTO,
 } from '@/types/world-chat';
@@ -62,6 +64,12 @@ function isItemShowcasePayload(
     typeof payload.itemType === 'string' &&
     typeof payload.itemId === 'string'
   );
+}
+
+function isDuelInvitePayload(
+  payload: WorldChatMessageDTO['payload'],
+): payload is WorldChatDuelInvitePayload {
+  return typeof payload === 'object' && payload !== null;
 }
 
 function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
@@ -156,8 +164,13 @@ interface WorldChatMessageItemProps {
 }
 
 export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
-  const [detailItem, setDetailItem] = useState<WorldChatDetailItem | null>(null);
+  const [detailItem, setDetailItem] = useState<WorldChatDetailItem | null>(
+    null,
+  );
   const [detailOpen, setDetailOpen] = useState(false);
+  const isSystemRumor =
+    message.messageType === 'duel_invite' &&
+    message.senderCultivatorId === null;
 
   const showcaseData = useMemo(() => {
     if (message.messageType !== 'item_showcase') return null;
@@ -165,47 +178,70 @@ export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
     return parseShowcaseItem(message.payload);
   }, [message]);
 
-  const content =
-    message.messageType === 'text'
-      ? renderTextMessage(message)
-      : message.messageType === 'duel_invite'
-        ? '【赌斗邀请】该类型消息暂未开放展示'
-        : showcaseData
-          ? showcaseData
-          : '【道具展示】';
+  const duelInvitePath =
+    message.messageType === 'duel_invite' &&
+    isDuelInvitePayload(message.payload)
+      ? (message.payload.routePath ?? '/game/bet-battle')
+      : '/game/bet-battle';
 
   return (
     <>
       <div className="border-ink/10 border-b border-dashed py-2">
         <div className="mb-1 flex items-center gap-2">
-          <span className="font-semibold">{message.senderName}</span>
-          <InkBadge tier={message.senderRealm as Tier}>
-            {message.senderRealmStage}
-          </InkBadge>
+          {isSystemRumor ? (
+            <>
+              <span className="font-semibold text-amber-700">
+                {message.senderName}
+              </span>
+              <InkBadge tone="warning">「天道」</InkBadge>
+            </>
+          ) : (
+            <>
+              <span className="font-semibold">{message.senderName}</span>
+              <InkBadge tier={message.senderRealm as Tier}>
+                {message.senderRealmStage}
+              </InkBadge>
+            </>
+          )}
           <span className="text-ink-secondary ml-auto text-xs">
             {formatRelativeTime(message.createdAt)}
           </span>
         </div>
         <div className="text-sm leading-6 break-all">
-          {typeof content === 'string' ? (
-            content
-          ) : (
+          {message.messageType === 'duel_invite' ? (
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <span>{message.textContent || '赌战台有新战帖'}</span>
+              <InkButton
+                href={duelInvitePath}
+                variant="secondary"
+                className="px-2 py-0.5 text-xs"
+              >
+                前往应战
+              </InkButton>
+            </span>
+          ) : message.messageType === 'item_showcase' && showcaseData ? (
             <span>
               <button
                 type="button"
                 className={cn(
                   'cursor-pointer font-semibold underline-offset-2 hover:underline',
-                  content.tier ? tierColorMap[content.tier] : 'text-ink',
+                  showcaseData.tier
+                    ? tierColorMap[showcaseData.tier]
+                    : 'text-ink',
                 )}
                 onClick={() => {
-                  setDetailItem(content.detailItem);
+                  setDetailItem(showcaseData.detailItem);
                   setDetailOpen(true);
                 }}
               >
-                ［{content.name}］
+                ［{showcaseData.name}］
               </button>
-              {content.text ? ` ${content.text}` : ''}
+              {showcaseData.text ? ` ${showcaseData.text}` : ''}
             </span>
+          ) : message.messageType === 'item_showcase' ? (
+            '【道具展示】'
+          ) : (
+            renderTextMessage(message)
           )}
         </div>
       </div>

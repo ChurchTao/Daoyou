@@ -477,6 +477,60 @@ export const auctionListings = pgTable(
   ],
 );
 
+// 赌战表
+export const betBattles = pgTable(
+  'wanjiedaoyou_bet_battles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // 发起者
+    creatorId: uuid('creator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    creatorName: varchar('creator_name', { length: 100 }).notNull(),
+
+    // 状态
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // pending | matched | cancelled | expired | settled
+
+    // 可应战境界范围
+    minRealm: varchar('min_realm', { length: 20 }).notNull(),
+    maxRealm: varchar('max_realm', { length: 20 }).notNull(),
+    taunt: varchar('taunt', { length: 20 }),
+
+    // 押注快照
+    creatorStakeSnapshot: jsonb('creator_stake_snapshot').notNull(),
+    challengerStakeSnapshot: jsonb('challenger_stake_snapshot'),
+
+    // 应战者
+    challengerId: uuid('challenger_id').references(() => cultivators.id, {
+      onDelete: 'set null',
+    }),
+    challengerName: varchar('challenger_name', { length: 100 }),
+
+    // 结算结果
+    winnerCultivatorId: uuid('winner_cultivator_id').references(
+      () => cultivators.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
+    battleRecordId: uuid('battle_record_id').references(() => battleRecords.id, {
+      onDelete: 'set null',
+    }),
+
+    // 时间
+    expiresAt: timestamp('expires_at').notNull(),
+    matchedAt: timestamp('matched_at'),
+    settledAt: timestamp('settled_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('bet_battles_status_expires_idx').on(table.status, table.expiresAt),
+    index('bet_battles_creator_status_idx').on(table.creatorId, table.status),
+    index('bet_battles_status_created_idx').on(table.status, table.createdAt),
+  ],
+);
+
 // 用户反馈表
 export const feedbacks = pgTable(
   'wanjiedaoyou_feedbacks',
