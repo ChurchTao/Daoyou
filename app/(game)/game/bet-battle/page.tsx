@@ -706,6 +706,9 @@ function BetBattleCreateModal({
 
   const currentItems = itemsByType[activeType];
   const currentPagination = paginationByType[activeType];
+  const spiritStoneValue = Math.max(0, Number(spiritStones) || 0);
+  const canProceedToRuleStep =
+    selectedStakeType === 'spirit_stones' ? spiritStoneValue > 0 : !!selectedItem;
 
   useEffect(() => {
     if (selectedStakeType === 'spirit_stones') return;
@@ -733,7 +736,6 @@ function BetBattleCreateModal({
   };
 
   const handleSubmit = async () => {
-    const spiritStoneValue = Math.max(0, Number(spiritStones) || 0);
     const isStoneMode = selectedStakeType === 'spirit_stones';
     const normalizedTaunt = taunt.trim();
 
@@ -797,7 +799,23 @@ function BetBattleCreateModal({
             </InkButton>
           )}
           {step === 1 ? (
-            <InkButton variant="primary" onClick={() => setStep(2)}>
+            <InkButton
+              variant="primary"
+              onClick={() => {
+                if (!canProceedToRuleStep) {
+                  pushToast({
+                    message:
+                      selectedStakeType === 'spirit_stones'
+                        ? '灵石押注需大于0'
+                        : '请先选择押注道具',
+                    tone: 'warning',
+                  });
+                  return;
+                }
+                setStep(2);
+              }}
+              disabled={!canProceedToRuleStep}
+            >
               下一步
             </InkButton>
           ) : (
