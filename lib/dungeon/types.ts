@@ -1,4 +1,5 @@
 import type { BuffInstanceState } from '@/engine/buff/types';
+import type { ResourceOperation } from '@/engine/resource/types';
 import { z } from 'zod';
 
 // === AI Interaction Schemas ===
@@ -215,6 +216,7 @@ export interface DungeonState {
     location_description: string;
   };
   summary_of_sacrifice?: DungeonOptionCost[];
+  realGains?: ResourceOperation[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
   /** 持久 Buff 状态（使用新格式） */

@@ -4,7 +4,7 @@
  * 定义每个境界的奖励数值范围和评级倍率
  */
 
-import type { RealmType } from '@/types/constants';
+import type { Quality, RealmType } from '@/types/constants';
 import type { RewardRangeConfig, ValueRange } from './types';
 
 /**
@@ -87,4 +87,22 @@ export const QUALITY_HINT_OFFSET: Record<string, number> = {
   lower: -1,
   medium: 0,
   upper: 1,
+};
+
+/**
+ * 境界 → 材料品质上限
+ *
+ * 规则：副本评分和危险系数可以提升品质，但不能突破该境界上限。
+ * 目的：避免低境界副本高评分直接产出仙/神品的越级掉落。
+ */
+export const REALM_QUALITY_CAP: Record<RealmType, Quality> = {
+  炼气: '玄品',
+  筑基: '真品',
+  金丹: '地品',
+  元婴: '天品',
+  化神: '仙品',
+  炼虚: '神品',
+  合体: '神品',
+  大乘: '神品',
+  渡劫: '神品',
 };

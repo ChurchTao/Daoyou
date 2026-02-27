@@ -11,6 +11,7 @@
 
 import { QUALITY_VALUES } from '@/types/constants';
 import { RewardFactory } from './RewardFactory';
+import { REALM_QUALITY_CAP } from './rewardConfig';
 import type { RewardBlueprint } from './types';
 
 // 辅助函数：创建材料蓝图
@@ -250,7 +251,7 @@ describe('RewardFactory - 材料品质生成测试', () => {
       printDistributionTable(distA, 5000);
 
       // A级加成+1，基础1，期望索引2左右（玄品级别）
-      expect(avgIndexA).toBeGreaterThan(1.5);
+      expect(avgIndexA).toBeGreaterThan(1.4);
       expect(avgIndexA).toBeLessThan(4);
     });
 
@@ -331,7 +332,7 @@ describe('RewardFactory - 材料品质生成测试', () => {
       printDistributionTable(distHigh, 5000);
 
       // 基础1 + C级0 + 危险1.5 = 2.5，加上随机
-      expect(avgIndexHigh).toBeGreaterThan(2);
+      expect(avgIndexHigh).toBeGreaterThan(1.8);
       expect(avgIndexHigh).toBeLessThan(5);
     });
 
@@ -399,7 +400,7 @@ describe('RewardFactory - 材料品质生成测试', () => {
       printDistributionTable(distUpper, 5000);
 
       // 基础1 + C级0 + upper(+1) = 2
-      expect(avgIndexUpper).toBeGreaterThan(1.5);
+      expect(avgIndexUpper).toBeGreaterThan(1.4);
     });
 
     test('lower提示应降低品质', () => {
@@ -475,6 +476,40 @@ describe('RewardFactory - 材料品质生成测试', () => {
   });
 
   describe('边界情况测试', () => {
+    test('境界品质上限：筑基副本不应产出仙品或神品', () => {
+      const distribution = generateQualityDistribution(
+        '筑基',
+        'S',
+        100,
+        'upper',
+        5000,
+      );
+
+      expect(distribution['仙品']).toBe(0);
+      expect(distribution['神品']).toBe(0);
+    });
+
+    test('境界品质上限：各境界都不应超过对应上限', () => {
+      const realms: Array<
+        '炼气' | '筑基' | '金丹' | '元婴' | '化神' | '炼虚' | '合体' | '大乘' | '渡劫'
+      > = ['炼气', '筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘', '渡劫'];
+
+      for (const realm of realms) {
+        const distribution = generateQualityDistribution(
+          realm,
+          'S',
+          100,
+          'upper',
+          2000,
+        );
+        const capIndex = QUALITY_VALUES.indexOf(REALM_QUALITY_CAP[realm]);
+
+        for (let i = capIndex + 1; i < QUALITY_VALUES.length; i++) {
+          expect(distribution[QUALITY_VALUES[i]]).toBe(0);
+        }
+      }
+    });
+
     test('最低配置：炼气 + D级 + 危险0 + lower提示', () => {
       const distribution = generateQualityDistribution(
         '炼气',
@@ -543,8 +578,10 @@ describe('RewardFactory - 材料品质生成测试', () => {
       console.log('\n=== 最佳场景：元婴 + S级 + 危险90 + upper ===');
       printDistributionTable(distribution, 3000);
 
-      // 基础3 + S级2 + 危险1.35 + upper1 = 7.35，上限7（神品）
-      expect(avgIndex).toBeGreaterThan(5);
+      // 元婴副本受境界上限限制（天品），不会继续越级到仙/神品
+      expect(avgIndex).toBeGreaterThan(4);
+      expect(distribution['仙品']).toBe(0);
+      expect(distribution['神品']).toBe(0);
     });
 
     test('最差场景：低境界 + D级 + 低危险 + lower提示', () => {

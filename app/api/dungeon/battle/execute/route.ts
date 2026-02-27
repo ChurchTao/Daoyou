@@ -125,6 +125,7 @@ export const POST = withActiveCultivator(
                   type: 'done',
                   isFinished: true,
                   settlement: finished.settlement,
+                  realGains: finished.realGains,
                 })}\n\n`,
               ),
             );

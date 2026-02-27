@@ -87,6 +87,7 @@ export function DungeonViewRenderer({
     return (
       <DungeonSettlement
         settlement={viewState.settlement}
+        realGains={viewState.realGains}
         onConfirm={onSettlementConfirm}
       />
     );

@@ -1,4 +1,5 @@
 import { BattleCallbackData } from '@/app/(game)/game/dungeon/components/DungeonBattle';
+import type { ResourceOperation } from '@/engine/resource/types';
 import {
   DungeonOption,
   DungeonRound,
@@ -34,7 +35,11 @@ export type DungeonViewState =
       opponentName: string;
       state: DungeonState;
     }
-  | { type: 'settlement'; settlement?: DungeonSettlement };
+  | {
+      type: 'settlement';
+      settlement?: DungeonSettlement;
+      realGains?: ResourceOperation[];
+    };
 
 /**
  * 副本视图模型 Hook
@@ -126,7 +131,11 @@ export function useDungeonViewModel(
 
     // 结算
     if (state?.isFinished) {
-      return { type: 'settlement', settlement: state.settlement };
+      return {
+        type: 'settlement',
+        settlement: state.settlement,
+        realGains: state.realGains,
+      };
     }
 
     // 探索中
@@ -179,6 +188,7 @@ export function useDungeonViewModel(
               ...prev,
               isFinished: true,
               settlement: data.settlement,
+              realGains: data.realGains,
             }
           : null,
       );
@@ -227,6 +237,7 @@ export function useDungeonViewModel(
               ...prev,
               isFinished: true,
               settlement: data.settlement,
+              realGains: data.realGains,
             }
           : null,
       );

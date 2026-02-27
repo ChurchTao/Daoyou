@@ -1,4 +1,5 @@
 import { BattleEngineResult } from '@/engine/battle';
+import type { ResourceOperation } from '@/engine/resource/types';
 import {
   DungeonRound,
   DungeonSettlement,
@@ -9,6 +10,7 @@ import { useState } from 'react';
 interface BattleCallbackData {
   isFinished: boolean;
   settlement?: DungeonSettlement;
+  realGains?: ResourceOperation[];
   dungeonState?: DungeonState;
   roundData?: DungeonRound;
 }

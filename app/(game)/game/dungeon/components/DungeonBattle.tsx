@@ -2,6 +2,7 @@ import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { BattleReportViewer } from '@/components/feature/battle/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimelineViewer';
 import { BattleEngineResult } from '@/engine/battle';
+import type { ResourceOperation } from '@/engine/resource/types';
 import {
   DungeonRound,
   DungeonSettlement,
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 export interface BattleCallbackData {
   isFinished: boolean;
   settlement?: DungeonSettlement;
+  realGains?: ResourceOperation[];
   dungeonState?: DungeonState;
   roundData?: DungeonRound;
 }
@@ -55,6 +57,7 @@ export function DungeonBattle({
           setBattleSettlement({
             isFinished: true,
             settlement: result.callbackData.settlement,
+            realGains: result.callbackData.realGains,
           });
         } else {
           setBattleSettlement(result.callbackData);

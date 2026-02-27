@@ -16,6 +16,7 @@ import { QUALITY_VALUES, REALM_VALUES } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import {
   QUALITY_HINT_OFFSET,
+  REALM_QUALITY_CAP,
   REALM_REWARD_CONFIG,
   TIER_MULTIPLIER,
 } from './rewardConfig';
@@ -298,6 +299,8 @@ export class RewardFactory {
     qualityHint: QualityHint,
   ): Quality {
     const realmIndex = REALM_VALUES.indexOf(mapRealm);
+    const capQuality = REALM_QUALITY_CAP[mapRealm] || '真品';
+    const capIndex = QUALITY_VALUES.indexOf(capQuality);
 
     // 1. 基础品质索引：地图境界
     const baseIndex = Math.min(realmIndex, QUALITY_VALUES.length - 1);
@@ -330,7 +333,10 @@ export class RewardFactory {
     // 7. 边界限制：确保在有效范围内
     finalIndex = Math.max(
       0,
-      Math.min(Math.floor(finalIndex), QUALITY_VALUES.length - 1),
+      Math.min(
+        Math.floor(finalIndex),
+        Math.min(capIndex, QUALITY_VALUES.length - 1),
+      ),
     );
 
     return QUALITY_VALUES[finalIndex];
