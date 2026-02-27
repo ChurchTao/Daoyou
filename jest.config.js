@@ -12,6 +12,7 @@ const customJestConfig = {
   testEnvironment: 'node',
   testTimeout: 10000, // 全局默认 10 秒
   moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
     '^d3-(.+)$': '<rootDir>/node_modules/d3-$1/dist/d3-$1.js',
   },
 };

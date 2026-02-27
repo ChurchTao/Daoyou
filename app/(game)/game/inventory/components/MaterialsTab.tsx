@@ -197,7 +197,7 @@ export function MaterialsTab({
                       详情
                     </InkButton>
                     <InkButton
-                      variant="primary"
+                      variant="secondary"
                       onClick={() => onDiscard(item)}
                     >
                       丢弃
@@ -209,6 +209,14 @@ export function MaterialsTab({
           })}
         </InkList>
       )}
+      <div className="bg-ink/5 border-ink/10 flex items-center justify-between border p-2">
+        <span className="text-ink-secondary text-sm">
+          材料收购功能已迁至坊市鉴宝司，需由鉴定师主持交易。
+        </span>
+        <InkButton href="/game/market/recycle" variant="primary">
+          前往鉴宝司
+        </InkButton>
+      </div>
     </div>
   );
 }
