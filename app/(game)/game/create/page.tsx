@@ -23,6 +23,11 @@ import { getAttributeInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+const MIN_PROMPT_LENGTH = 2;
+const MAX_PROMPT_LENGTH = 200;
+
+const countChars = (input: string): number => Array.from(input).length;
+
 const getCombatRating = (cultivator: Cultivator | null): string => {
   if (!cultivator?.attributes) return '--';
   const { vitality, spirit, wisdom, speed, willpower } = cultivator.attributes;
@@ -54,6 +59,17 @@ export default function CreatePage() {
 
   const [remainingRerolls, setRemainingRerolls] = useState<number>(0);
   const [isGeneratingFates, setIsGeneratingFates] = useState(false);
+  const trimmedPrompt = userPrompt.trim();
+  const promptLength = countChars(trimmedPrompt);
+  const promptTooLong = promptLength > MAX_PROMPT_LENGTH;
+  const promptTooShort =
+    trimmedPrompt.length > 0 && promptLength < MIN_PROMPT_LENGTH;
+  const promptHint = `已输入 ${promptLength}/${MAX_PROMPT_LENGTH} 字 · Cmd/Ctrl + Enter 可快速提交`;
+  const promptError = promptTooLong
+    ? `角色描述过长（当前 ${promptLength} 字，最多 ${MAX_PROMPT_LENGTH} 字）。`
+    : promptTooShort
+      ? `角色描述至少需要 ${MIN_PROMPT_LENGTH} 个字。`
+      : undefined;
 
   useEffect(() => {
     setCheckingExisting(false);
@@ -102,8 +118,24 @@ export default function CreatePage() {
 
   // 生成角色
   const handleGenerateCharacter = async () => {
-    if (!userPrompt.trim()) {
+    if (!trimmedPrompt) {
       pushToast({ message: '请输入角色描述', tone: 'warning' });
+      return;
+    }
+
+    if (promptLength < MIN_PROMPT_LENGTH) {
+      pushToast({
+        message: `角色描述至少需要 ${MIN_PROMPT_LENGTH} 个字。`,
+        tone: 'warning',
+      });
+      return;
+    }
+
+    if (promptLength > MAX_PROMPT_LENGTH) {
+      pushToast({
+        message: `角色描述过长（当前 ${promptLength} 字，最多 ${MAX_PROMPT_LENGTH} 字）。`,
+        tone: 'warning',
+      });
       return;
     }
 
@@ -321,7 +353,8 @@ export default function CreatePage() {
           value={userPrompt}
           onChange={(value) => setUserPrompt(value)}
           placeholder="例：我想成为一位靠炼丹逆袭的废柴少主……"
-          hint="💡 Cmd/Ctrl + Enter 可快速提交"
+          hint={promptHint}
+          error={promptError}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
               event.preventDefault();
@@ -334,7 +367,12 @@ export default function CreatePage() {
             <InkButton
               variant="primary"
               onClick={handleGenerateCharacter}
-              disabled={isGenerating || !userPrompt.trim()}
+              disabled={
+                isGenerating ||
+                !trimmedPrompt ||
+                promptTooLong ||
+                promptTooShort
+              }
             >
               {isGenerating ? '灵气汇聚中…' : '凝气成形'}
             </InkButton>
