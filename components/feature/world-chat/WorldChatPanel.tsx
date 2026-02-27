@@ -362,20 +362,19 @@ export function WorldChatPanel() {
             <InkNotice>暂时无人发言，快来抢占第一条。</InkNotice>
           ) : (
             <div>
+              {hasMore && (
+                <div className="mb-2 flex justify-center">
+                  <InkButton onClick={handleLoadMore} disabled={loadingMore}>
+                    {loadingMore ? '加载中...' : '加载更早消息'}
+                  </InkButton>
+                </div>
+              )}
               {displayMessages.map((message) => (
                 <WorldChatMessageItem key={message.id} message={message} />
               ))}
             </div>
           )}
         </div>
-
-        {hasMore && !loading && (
-          <div className="flex justify-center">
-            <InkButton onClick={handleLoadMore} disabled={loadingMore}>
-              {loadingMore ? '加载中...' : '加载更多'}
-            </InkButton>
-          </div>
-        )}
 
         <div className="space-y-2 pt-3">
           <InkInput
