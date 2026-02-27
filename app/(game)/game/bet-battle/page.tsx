@@ -26,7 +26,7 @@ import {
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   useCallback,
   useEffect,
@@ -664,10 +664,6 @@ export default function BetBattlePage() {
         <BetBattleChallengeModal
           battle={challengeTarget}
           onClose={() => setChallengeTarget(null)}
-          onSuccess={async () => {
-            setChallengeTarget(null);
-            await Promise.all([loadHall(), loadMine(), refresh()]);
-          }}
         />
       )}
 
@@ -1026,13 +1022,12 @@ function BetBattleCreateModal({
 function BetBattleChallengeModal({
   battle,
   onClose,
-  onSuccess,
 }: {
   battle: BetBattleListing;
   onClose: () => void;
-  onSuccess: () => Promise<void>;
 }) {
   const { pushToast } = useInkUI();
+  const router = useRouter();
   const creatorStake = battle.creatorStakeSnapshot;
   const [selectedItem, setSelectedItem] = useState<SelectedStake | null>(null);
   const [spiritStones, setSpiritStones] = useState(
@@ -1087,34 +1082,33 @@ function BetBattleChallengeModal({
   };
 
   const handleSubmit = async () => {
-    setSubmitting(true);
     try {
+      if (!isProbablyMatched) {
+        pushToast({ message: '押注尚未匹配，请先调整', tone: 'warning' });
+        return;
+      }
+
       const isStone = creatorStake.stakeType === 'spirit_stones';
-      const res = await fetch(`/api/bet-battles/${battle.id}/challenge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stakeType: creatorStake.stakeType,
-          spiritStones: isStone ? Math.max(0, Number(spiritStones) || 0) : 0,
-          stakeItem:
-            !isStone && selectedItem
-              ? {
-                  itemType: selectedItem.itemType,
-                  itemId: selectedItem.itemId,
-                  quantity: selectedItem.quantity,
-                }
-              : null,
-        }),
-      });
+      const params = new URLSearchParams();
+      params.set('battleId', battle.id);
+      params.set('stakeType', creatorStake.stakeType);
+      params.set(
+        'spiritStones',
+        String(isStone ? Math.max(0, Number(spiritStones) || 0) : 0),
+      );
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '应战失败');
+      if (!isStone && selectedItem) {
+        params.set('itemType', selectedItem.itemType);
+        params.set('itemId', selectedItem.itemId);
+        params.set('quantity', String(selectedItem.quantity));
+      }
 
-      pushToast({ message: data.message || '应战成功', tone: 'success' });
-      await onSuccess();
+      setSubmitting(true);
+      onClose();
+      router.push(`/game/bet-battle/challenge?${params.toString()}`);
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : '应战失败',
+        message: error instanceof Error ? error.message : '进入应战战报失败',
         tone: 'danger',
       });
     } finally {

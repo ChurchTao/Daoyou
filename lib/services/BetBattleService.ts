@@ -1,6 +1,9 @@
+import type { BattleEngineResult } from '@/engine/battle';
 import { simulateBattle } from '@/engine/battle';
 import { redis } from '@/lib/redis';
 import * as betBattleRepository from '@/lib/repositories/betBattleRepository';
+import { createMessage } from '@/lib/repositories/worldChatRepository';
+import type { Cultivator } from '@/types/cultivator';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealmInRange, toRealmType } from '../admin/realm';
@@ -58,6 +61,23 @@ export interface ChallengeBetBattleInput {
   stakeItem?: BetStakeInputItem | null;
 }
 
+export interface ChallengeBetBattleResult {
+  battleId: string;
+  winnerId: string;
+  battleRecordId: string;
+  battleResult: BattleEngineResult;
+  challenger: {
+    id: string;
+    name: string;
+    cultivator: Cultivator;
+  };
+  creator: {
+    id: string;
+    name: string;
+    cultivator: Cultivator;
+  };
+}
+
 export const BetBattleError = {
   INVALID_STAKE: 'INVALID_STAKE',
   INVALID_REALM_RANGE: 'INVALID_REALM_RANGE',
@@ -75,7 +95,8 @@ export const BetBattleError = {
   CONCURRENT_OPERATION: 'CONCURRENT_OPERATION',
 } as const;
 
-export type BetBattleErrorCode = (typeof BetBattleError)[keyof typeof BetBattleError];
+export type BetBattleErrorCode =
+  (typeof BetBattleError)[keyof typeof BetBattleError];
 
 export class BetBattleServiceError extends Error {
   constructor(
@@ -125,10 +146,16 @@ function validateExclusiveStake(
     );
   }
   if (!stakeItem) {
-    throw new BetBattleServiceError(BetBattleError.INVALID_STAKE, '请选择一个押注道具');
+    throw new BetBattleServiceError(
+      BetBattleError.INVALID_STAKE,
+      '请选择一个押注道具',
+    );
   }
   if (stakeItem.quantity < 1) {
-    throw new BetBattleServiceError(BetBattleError.INVALID_QUANTITY, '押注数量至少为1');
+    throw new BetBattleServiceError(
+      BetBattleError.INVALID_QUANTITY,
+      '押注数量至少为1',
+    );
   }
 }
 
@@ -271,7 +298,8 @@ async function deductStakeItem(
     };
   }
 
-  const currentQuantity = 'quantity' in ownedItem ? (ownedItem.quantity ?? 0) : 0;
+  const currentQuantity =
+    'quantity' in ownedItem ? (ownedItem.quantity ?? 0) : 0;
 
   if (stakeItem.quantity > currentQuantity) {
     throw new BetBattleServiceError(
@@ -287,14 +315,20 @@ async function deductStakeItem(
     await tx
       .delete(table)
       .where(
-        and(eq(table.id, stakeItem.itemId), eq(table.cultivatorId, cultivatorId)),
+        and(
+          eq(table.id, stakeItem.itemId),
+          eq(table.cultivatorId, cultivatorId),
+        ),
       );
   } else {
     await tx
       .update(table)
       .set({ quantity: currentQuantity - stakeItem.quantity })
       .where(
-        and(eq(table.id, stakeItem.itemId), eq(table.cultivatorId, cultivatorId)),
+        and(
+          eq(table.id, stakeItem.itemId),
+          eq(table.cultivatorId, cultivatorId),
+        ),
       );
   }
 
@@ -304,7 +338,9 @@ async function deductStakeItem(
     name: ownedItem.name,
     quantity: stakeItem.quantity,
     quality,
-    data: { ...ownedItem, quantity: stakeItem.quantity } as Material | Consumable,
+    data: { ...ownedItem, quantity: stakeItem.quantity } as
+      | Material
+      | Consumable,
   };
 }
 
@@ -338,7 +374,10 @@ function normalizeStakeSnapshot(raw: unknown): BetStakeSnapshot {
   };
 }
 
-function assertStakeMatch(creatorStake: BetStakeSnapshot, challengerStake: BetStakeSnapshot): void {
+function assertStakeMatch(
+  creatorStake: BetStakeSnapshot,
+  challengerStake: BetStakeSnapshot,
+): void {
   if (creatorStake.stakeType !== challengerStake.stakeType) {
     throw new BetBattleServiceError(
       BetBattleError.CHALLENGER_STAKE_MISMATCH,
@@ -399,6 +438,15 @@ function buildRewardAttachments(stake: BetStakeSnapshot): MailAttachment[] {
   ];
 }
 
+function buildRumorStakeSummary(stake: BetStakeSnapshot): string {
+  if (stake.stakeType === 'spirit_stones') {
+    return `${stake.spiritStones * 2}枚灵石`;
+  }
+
+  if (!stake.item) return '赌注';
+  return `${stake.item.quality}${stake.item.name} x${stake.item.quantity * 2}`;
+}
+
 async function lockAndDeductStake(
   cultivatorId: string,
   stakeType: BetStakeType,
@@ -416,7 +464,10 @@ async function lockAndDeductStake(
   }
 
   if (!stakeItem) {
-    throw new BetBattleServiceError(BetBattleError.INVALID_STAKE, '请选择押注道具');
+    throw new BetBattleServiceError(
+      BetBattleError.INVALID_STAKE,
+      '请选择押注道具',
+    );
   }
 
   const item = await deductStakeItem(cultivatorId, stakeItem, tx);
@@ -446,7 +497,9 @@ export async function createBetBattle(
   }
 
   try {
-    const pendingCount = await betBattleRepository.countPendingByCreator(input.creatorId);
+    const pendingCount = await betBattleRepository.countPendingByCreator(
+      input.creatorId,
+    );
     if (pendingCount >= 1) {
       throw new BetBattleServiceError(
         BetBattleError.MAX_ACTIVE_BATTLE,
@@ -489,7 +542,7 @@ export async function createBetBattle(
 
 export async function challengeBetBattle(
   input: ChallengeBetBattleInput,
-): Promise<{ battleId: string; winnerId: string }> {
+): Promise<ChallengeBetBattleResult> {
   const spiritStones = input.spiritStones ?? 0;
   const stakeItem = input.stakeItem ?? null;
 
@@ -507,7 +560,10 @@ export async function challengeBetBattle(
   try {
     const betBattle = await betBattleRepository.findById(input.battleId);
     if (!betBattle) {
-      throw new BetBattleServiceError(BetBattleError.BATTLE_NOT_FOUND, '赌战不存在');
+      throw new BetBattleServiceError(
+        BetBattleError.BATTLE_NOT_FOUND,
+        '赌战不存在',
+      );
     }
 
     if (betBattle.status !== 'pending') {
@@ -518,16 +574,25 @@ export async function challengeBetBattle(
     }
 
     if (new Date() > betBattle.expiresAt) {
-      throw new BetBattleServiceError(BetBattleError.BATTLE_EXPIRED, '赌战已过期');
+      throw new BetBattleServiceError(
+        BetBattleError.BATTLE_EXPIRED,
+        '赌战已过期',
+      );
     }
 
     if (betBattle.creatorId === input.challengerId) {
-      throw new BetBattleServiceError(BetBattleError.CHALLENGE_SELF, '不可应战自己发起的赌战');
+      throw new BetBattleServiceError(
+        BetBattleError.CHALLENGE_SELF,
+        '不可应战自己发起的赌战',
+      );
     }
 
     const challengerBundle = await getCultivatorByIdUnsafe(input.challengerId);
     if (!challengerBundle?.cultivator) {
-      throw new BetBattleServiceError(BetBattleError.BATTLE_NOT_FOUND, '应战角色不存在');
+      throw new BetBattleServiceError(
+        BetBattleError.BATTLE_NOT_FOUND,
+        '应战角色不存在',
+      );
     }
 
     const challengerRealm = toRealmType(challengerBundle.cultivator.realm);
@@ -535,7 +600,10 @@ export async function challengeBetBattle(
     const maxRealm = toRealmType(betBattle.maxRealm);
 
     if (!challengerRealm || !minRealm || !maxRealm) {
-      throw new BetBattleServiceError(BetBattleError.INVALID_REALM_RANGE, '赌战境界配置异常');
+      throw new BetBattleServiceError(
+        BetBattleError.INVALID_REALM_RANGE,
+        '赌战境界配置异常',
+      );
     }
 
     if (!isRealmInRange(challengerRealm, minRealm, maxRealm)) {
@@ -547,17 +615,24 @@ export async function challengeBetBattle(
 
     const creatorBundle = await getCultivatorByIdUnsafe(betBattle.creatorId);
     if (!creatorBundle?.cultivator) {
-      throw new BetBattleServiceError(BetBattleError.BATTLE_NOT_FOUND, '发起者角色不存在');
+      throw new BetBattleServiceError(
+        BetBattleError.BATTLE_NOT_FOUND,
+        '发起者角色不存在',
+      );
     }
 
     const creatorStake = normalizeStakeSnapshot(betBattle.creatorStakeSnapshot);
-    const battleResult = simulateBattle(challengerBundle.cultivator, creatorBundle.cultivator);
+    const battleResult = simulateBattle(
+      challengerBundle.cultivator,
+      creatorBundle.cultivator,
+    );
     const winnerId =
       battleResult.winner.id === input.challengerId
         ? input.challengerId
         : betBattle.creatorId;
 
     const q = getExecutor();
+    let battleRecordId = '';
     await q.transaction(async (tx) => {
       const current = await tx
         .select()
@@ -566,7 +641,10 @@ export async function challengeBetBattle(
         .limit(1);
 
       if (!current[0]) {
-        throw new BetBattleServiceError(BetBattleError.BATTLE_NOT_FOUND, '赌战不存在');
+        throw new BetBattleServiceError(
+          BetBattleError.BATTLE_NOT_FOUND,
+          '赌战不存在',
+        );
       }
 
       if (current[0].status !== 'pending') {
@@ -597,6 +675,7 @@ export async function challengeBetBattle(
           battleReport: null,
         })
         .returning({ id: schema.battleRecords.id });
+      battleRecordId = battleRecord.id;
 
       const attachments: MailAttachment[] = [
         ...buildRewardAttachments(creatorStake),
@@ -624,9 +703,50 @@ export async function challengeBetBattle(
       });
     });
 
+    const winnerName =
+      winnerId === input.challengerId
+        ? challengerBundle.cultivator.name
+        : creatorBundle.cultivator.name;
+    const loserName =
+      winnerId === input.challengerId
+        ? creatorBundle.cultivator.name
+        : challengerBundle.cultivator.name;
+    const rumor = `赌战台风云再起，${winnerName}力克${loserName}，夺得${buildRumorStakeSummary(
+      creatorStake,
+    )}！`;
+    try {
+      await createMessage({
+        senderUserId: input.challengerUserId,
+        senderCultivatorId: null,
+        senderName: '修仙界传闻',
+        senderRealm: '炼气',
+        senderRealmStage: '系统',
+        messageType: 'text',
+        textContent: rumor,
+        payload: { text: rumor },
+      });
+    } catch (chatError) {
+      console.error(
+        'Bet battle settled but world chat broadcast failed:',
+        chatError,
+      );
+    }
+
     return {
       battleId: input.battleId,
       winnerId,
+      battleRecordId,
+      battleResult,
+      challenger: {
+        id: challengerBundle.cultivator.id!,
+        name: challengerBundle.cultivator.name,
+        cultivator: challengerBundle.cultivator,
+      },
+      creator: {
+        id: creatorBundle.cultivator.id!,
+        name: creatorBundle.cultivator.name,
+        cultivator: creatorBundle.cultivator,
+      },
     };
   } finally {
     await redis.del(lockKey);
@@ -639,11 +759,17 @@ export async function cancelBetBattle(
 ): Promise<void> {
   const battle = await betBattleRepository.findById(battleId);
   if (!battle) {
-    throw new BetBattleServiceError(BetBattleError.BATTLE_NOT_FOUND, '赌战不存在');
+    throw new BetBattleServiceError(
+      BetBattleError.BATTLE_NOT_FOUND,
+      '赌战不存在',
+    );
   }
 
   if (battle.creatorId !== creatorId) {
-    throw new BetBattleServiceError(BetBattleError.NOT_CREATOR, '仅发起者可以取消赌战');
+    throw new BetBattleServiceError(
+      BetBattleError.NOT_CREATOR,
+      '仅发起者可以取消赌战',
+    );
   }
 
   if (battle.status !== 'pending') {

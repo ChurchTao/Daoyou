@@ -13,7 +13,7 @@ import {
 import { MailService } from '@/lib/services/MailService';
 import { RealmType } from '@/types/constants';
 import { stream_text } from '@/utils/aiClient';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 
 /**
  * POST /api/cultivator/yield
@@ -158,8 +158,7 @@ export const POST = withActiveCultivator(
 
       // 6. 异步生成材料并通过邮件发送（不阻塞SSE响应）
       if (materialCount > 0) {
-        // 使用 Promise.resolve().then() 实现异步执行，不阻塞主流程
-        Promise.resolve().then(async () => {
+        after(async () => {
           try {
             console.log(
               `[Yield] 开始异步生成材料: cultivatorId=${cultivatorId}, count=${materialCount}`,
