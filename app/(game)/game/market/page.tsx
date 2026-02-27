@@ -22,6 +22,7 @@ export default function MarketPage() {
   const { cultivator, refresh } = useCultivator();
   const [listings, setListings] = useState<MarketListing[]>([]);
   const [nextRefresh, setNextRefresh] = useState<number>(0);
+  const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const { pushToast } = useInkUI();
@@ -53,6 +54,10 @@ export default function MarketPage() {
         if (data.listings) {
           setListings(data.listings);
           setNextRefresh(data.nextRefresh);
+          const isShortRetryWindow =
+            typeof data.nextRefresh === 'number' &&
+            data.nextRefresh - Date.now() <= 20000;
+          setIsRefreshingMarket(data.listings.length === 0 && isShortRetryWindow);
           nextRetryAtRef.current = 0;
         }
       } catch (error) {
@@ -204,6 +209,8 @@ export default function MarketPage() {
               );
             })}
           </InkList>
+        ) : isRefreshingMarket ? (
+          <InkNotice>坊市掌柜正在盘货，请稍候片刻再来。</InkNotice>
         ) : (
           <InkNotice>今日货物已售罄，请稍后再来。</InkNotice>
         )}
