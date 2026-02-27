@@ -11,6 +11,7 @@
  */
 
 import type { ResourceOperation } from '@/engine/resource/types';
+import { YieldCalculator } from '@/engine/yield/YieldCalculator';
 import type { ElementType, Quality, RealmType } from '@/types/constants';
 import { QUALITY_VALUES, REALM_VALUES } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
@@ -51,31 +52,33 @@ export class RewardFactory {
     dangerScore: number,
   ): ResourceOperation[] {
     const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
-    const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
     const dangerBonus = this.getDangerBonus(dangerScore);
-
+    const rewardHours = this.rollRewardHoursByTier(tier);
+    const yieldOps = YieldCalculator.calculateYield(mapRealm, rewardHours);
     const rewards: ResourceOperation[] = [];
 
-    // 所有评级都有灵石奖励
-    rewards.push({
-      type: 'spirit_stones',
-      value: this.randomInRange(config.spirit_stones, multiplier, dangerBonus),
-    });
+    // 复用挂机收益体系：灵石 + 修为，随评级映射的“等效历练时长”增长
+    const spiritStones =
+      yieldOps.find((op) => op.type === 'spirit_stones')?.value ?? 0;
+    if (spiritStones > 0) {
+      rewards.push({
+        type: 'spirit_stones',
+        value: Math.floor(spiritStones * (1 + dangerBonus * 0.35)),
+      });
+    }
 
-    // S/A/B 评级有修为奖励
-    if (['S', 'A', 'B'].includes(tier)) {
+    const cultivationExp =
+      yieldOps.find((op) => op.type === 'cultivation_exp')?.value ?? 0;
+    if (cultivationExp > 0) {
       rewards.push({
         type: 'cultivation_exp',
-        value: this.randomInRange(
-          config.cultivation_exp,
-          multiplier,
-          dangerBonus,
-        ),
+        value: Math.floor(cultivationExp * (1 + dangerBonus * 0.2)),
       });
     }
 
     // 仅 S 评级有感悟值奖励
     if (tier === 'S') {
+      const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
       rewards.push({
         type: 'comprehension_insight',
         value: this.randomInRange(
@@ -87,6 +90,24 @@ export class RewardFactory {
     }
 
     return rewards;
+  }
+
+  /**
+   * 评级映射的“等效挂机时长”
+   *
+   * D/C/B/A/S -> 3/4-5/6-7/8-10/11-12 小时
+   */
+  private static rollRewardHoursByTier(tier: string): number {
+    const hourRangeByTier: Record<string, { min: number; max: number }> = {
+      D: { min: 3, max: 3 },
+      C: { min: 4, max: 5 },
+      B: { min: 6, max: 7 },
+      A: { min: 8, max: 10 },
+      S: { min: 11, max: 12 },
+    };
+
+    const range = hourRangeByTier[tier] || hourRangeByTier.C;
+    return Math.floor(range.min + Math.random() * (range.max - range.min + 1));
   }
 
   /**
