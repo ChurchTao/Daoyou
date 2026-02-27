@@ -17,6 +17,44 @@ type SettlementState = {
   resultMessage: string;
 };
 
+function isBattleResultPayload(
+  data: unknown,
+): data is { type: 'battle_result'; data: BattleEngineResult } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    data.type === 'battle_result' &&
+    'data' in data
+  );
+}
+
+function isSettlementPayload(
+  data: unknown,
+): data is { type: 'bet_battle_settlement' } & SettlementState {
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    !('type' in data) ||
+    data.type !== 'bet_battle_settlement'
+  ) {
+    return false;
+  }
+
+  return (
+    'isWin' in data &&
+    typeof data.isWin === 'boolean' &&
+    'winnerId' in data &&
+    typeof data.winnerId === 'string' &&
+    'battleId' in data &&
+    typeof data.battleId === 'string' &&
+    'battleRecordId' in data &&
+    typeof data.battleRecordId === 'string' &&
+    'resultMessage' in data &&
+    typeof data.resultMessage === 'string'
+  );
+}
+
 function BetBattleChallengePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -139,8 +177,8 @@ function BetBattleChallengePageContent() {
             continue;
           }
 
-          if (data.type === 'battle_result') {
-            const result = (data as { data: BattleEngineResult }).data;
+          if (isBattleResultPayload(data)) {
+            const result = data.data;
             setBattleResult({
               winner: result.winner,
               loser: result.loser,
@@ -164,8 +202,14 @@ function BetBattleChallengePageContent() {
               fullReport += chunk;
               setStreamingReport(fullReport);
             }
-          } else if (data.type === 'bet_battle_settlement') {
-            setSettlement(data as SettlementState);
+          } else if (isSettlementPayload(data)) {
+            setSettlement({
+              isWin: data.isWin,
+              winnerId: data.winnerId,
+              battleId: data.battleId,
+              battleRecordId: data.battleRecordId,
+              resultMessage: data.resultMessage,
+            });
           } else if (data.type === 'done') {
             setIsStreaming(false);
             setStreamingReport(fullReport);
