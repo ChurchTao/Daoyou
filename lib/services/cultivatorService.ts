@@ -811,6 +811,7 @@ function mapArtifactRow(
     required_realm: a.required_realm as Artifact['required_realm'],
     description: a.description || '',
     effects: (a.effects ?? []) as Artifact['effects'],
+    score: a.score,
   };
 }
 

@@ -53,3 +53,21 @@ export const APPRAISAL_KEYWORD_BONUS_MIN = -0.08;
 export const APPRAISAL_KEYWORD_BONUS_MAX = 0.12;
 
 export const APPRAISAL_SESSION_TTL_SEC = 180;
+
+// 法宝回收锚定：以“同品质材料基础价格”作为锚点
+export const ARTIFACT_MATERIAL_ANCHOR_FACTOR: Record<Quality, number> = {
+  凡品: 0.6,
+  灵品: 0.58,
+  玄品: 0.56,
+  真品: 0.54,
+  地品: 0.52,
+  天品: 0.5,
+  仙品: 0.48,
+  神品: 0.46,
+};
+
+export const ARTIFACT_SLOT_FACTOR: Record<'weapon' | 'armor' | 'accessory', number> = {
+  weapon: 1.05,
+  armor: 1,
+  accessory: 0.98,
+};

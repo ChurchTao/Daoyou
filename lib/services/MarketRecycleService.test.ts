@@ -12,8 +12,11 @@ jest.mock('@/utils/aiClient', () => ({
   object: jest.fn(),
 }));
 
+import { EffectType } from '@/engine/effect/types';
 import {
+  buildArtifactHighTierAppraisal,
   buildFallbackAppraisal,
+  calculateArtifactUnitPrice,
   calculateHighTierUnitPrice,
   calculateKeywordBonus,
   calculateLowTierUnitPrice,
@@ -65,5 +68,70 @@ describe('MarketRecycleService pricing helpers', () => {
     expect(fallback.rating).toBe('C');
     expect(fallback.comment.length).toBeGreaterThanOrEqual(40);
     expect(Array.isArray(fallback.keywords)).toBe(true);
+  });
+
+  it('calculates artifact recycle price with quality-score-effects factors', () => {
+    const low = calculateArtifactUnitPrice({
+      quality: '玄品',
+      score: 600,
+      slot: 'accessory',
+      effects: [
+        {
+          type: EffectType.StatModifier,
+          params: { stat: 'spirit', value: 10 },
+        },
+      ],
+    });
+    const high = calculateArtifactUnitPrice({
+      quality: '天品',
+      score: 2600,
+      slot: 'weapon',
+      effects: [
+        {
+          type: EffectType.StatModifier,
+          params: { stat: 'spirit', value: 35 },
+        },
+        {
+          type: EffectType.ElementDamageBonus,
+          params: { element: '火', bonusPercent: 18 },
+        },
+        { type: EffectType.HealAmplify, params: { bonusPercent: 12 } },
+      ],
+    });
+    expect(high).toBeGreaterThan(low);
+  });
+
+  it('anchors artifact price to same-quality material base price', () => {
+    const tianPin = calculateArtifactUnitPrice({
+      quality: '天品',
+      score: 1800,
+      slot: 'weapon',
+      effects: [],
+    });
+    const xuanPin = calculateArtifactUnitPrice({
+      quality: '玄品',
+      score: 1800,
+      slot: 'weapon',
+      effects: [],
+    });
+    expect(tianPin).toBeGreaterThan(xuanPin * 10);
+  });
+
+  it('builds deterministic artifact high-tier appraisal', () => {
+    const appraisal = buildArtifactHighTierAppraisal({
+      name: '九曜离火剑',
+      quality: '天品',
+      score: 2200,
+      slot: 'weapon',
+      effects: [
+        {
+          type: EffectType.StatModifier,
+          params: { stat: 'spirit', value: 10 },
+        },
+      ],
+    });
+    expect(['S', 'A', 'B', 'C']).toContain(appraisal.rating);
+    expect(appraisal.comment.length).toBeGreaterThanOrEqual(40);
+    expect(appraisal.keywords.length).toBeGreaterThan(0);
   });
 });

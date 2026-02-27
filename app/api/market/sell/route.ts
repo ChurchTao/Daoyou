@@ -7,10 +7,30 @@ import {
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const PreviewSchema = z.object({
-  phase: z.literal('preview'),
-  materialIds: z.array(z.string()).min(1),
-});
+const PreviewSchema = z
+  .object({
+    phase: z.literal('preview'),
+    itemType: z.enum(['material', 'artifact']).optional(),
+    itemIds: z.array(z.string()).min(1).optional(),
+    materialIds: z.array(z.string()).min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasItemIds = Array.isArray(value.itemIds) && value.itemIds.length > 0;
+    const hasMaterialIds =
+      Array.isArray(value.materialIds) && value.materialIds.length > 0;
+    if (!hasItemIds && !hasMaterialIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '请至少选择一件物品',
+      });
+    }
+    if (value.itemType === 'artifact' && hasMaterialIds && !hasItemIds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '法宝回收请使用 itemIds 参数',
+      });
+    }
+  });
 
 const ConfirmSchema = z.object({
   phase: z.literal('confirm'),
@@ -26,11 +46,14 @@ export const POST = withActiveCultivator(
       const parsed = SellSchema.parse(body);
 
       if (parsed.phase === 'preview') {
+        const itemType = parsed.itemType || 'material';
+        const itemIds = parsed.itemIds || parsed.materialIds || [];
         const result = await previewSell(
           {
             id: cultivator.id,
           },
-          parsed.materialIds,
+          itemIds,
+          itemType,
         );
         return NextResponse.json(result);
       }
