@@ -3,6 +3,7 @@
 import { InkModal } from '@/components/layout';
 import { InkBadge } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
+import { applyBreakthroughChanceBonus } from '@/engine/cultivation/retreatEffectIntegration';
 import type { Cultivator } from '@/types/cultivator';
 import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { calculateExpProgress } from '@/utils/cultivationUtils';
@@ -39,9 +40,11 @@ export function CultivatorStatusCard({
     if (canBreakthrough) {
       try {
         const result = calculateBreakthroughChance(cultivator);
-        console.log('Breakthrough Chance Calculation Result:', result);
         breakthroughType = result.breakthroughType;
-        breakthroughChance = result.chance;
+        breakthroughChance = applyBreakthroughChanceBonus(
+          cultivator,
+          result.chance,
+        );
         breakthroughRecommendation = result.recommendation;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {

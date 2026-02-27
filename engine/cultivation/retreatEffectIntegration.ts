@@ -7,6 +7,7 @@ import { buffTemplateRegistry } from '@/engine/buff/BuffTemplateRegistry';
 import type { BuffInstanceState } from '@/engine/buff/types';
 import { CultivatorAdapter } from '@/engine/effect/CultivatorAdapter';
 import { effectEngine } from '@/engine/effect/EffectEngine';
+import { EffectFactory } from '@/engine/effect/EffectFactory';
 import { EffectTrigger, type IBaseEffect } from '@/engine/effect/types';
 import type { Cultivator } from '@/types/cultivator';
 
@@ -25,6 +26,14 @@ export function loadPersistentBuffEffects(
   }
 
   const effects: IBaseEffect[] = [];
+  const materializationContext = {
+    casterSpirit: cultivator.attributes.spirit,
+    casterWisdom: cultivator.attributes.wisdom,
+    casterWillpower: cultivator.attributes.willpower,
+    casterVitality: cultivator.attributes.vitality,
+    casterRealm: cultivator.realm,
+    stacks: 1,
+  };
 
   for (const buffState of persistentStatuses) {
     // 检查 Buff 是否过期
@@ -40,25 +49,21 @@ export function loadPersistentBuffEffects(
       continue; // 跳过使用次数耗尽的 Buff
     }
 
-    // 获取 Buff 模板
-    const template = buffTemplateRegistry.get(buffState.configId);
-    if (!template) {
+    // 获取 Buff 的数值化配置
+    const config = buffTemplateRegistry.getMaterializedConfig(
+      buffState.configId,
+      materializationContext,
+    );
+    if (!config) {
       console.warn(
         `[loadPersistentBuffEffects] 未找到 Buff 模板: ${buffState.configId}`,
       );
       continue;
     }
 
-    // 获取 Buff 的所有效果
-    for (const effectTemplate of template.effectTemplates) {
-      const effect = {
-        ...effectTemplate,
-        // 为效果设置必要的属性
-        setOwner: () => effectTemplate,
-        setParentBuff: () => effectTemplate,
-      } as unknown as IBaseEffect;
-
-      effects.push(effect);
+    // 创建真实 Effect 实例，确保具备 shouldTrigger/apply 等方法
+    for (const effect of EffectFactory.createAll(config.effects)) {
+      effects.push(effect.setOwner(cultivator.id!).setParentBuff(config.id));
     }
   }
 

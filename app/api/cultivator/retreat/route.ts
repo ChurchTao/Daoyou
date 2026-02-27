@@ -5,6 +5,7 @@ import {
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { consumeLifespanAndHandleDepletion } from '@/lib/lifespan/handleLifespan';
 import { getLifespanLimiter } from '@/lib/redis/lifespanLimiter';
+import { createMessage } from '@/lib/repositories/worldChatRepository';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
@@ -19,6 +20,22 @@ const RetreatSchema = z.object({
   years: z.number().optional(),
   action: z.enum(['cultivate', 'breakthrough']).default('cultivate'),
 });
+
+function buildMajorBreakthroughRumor(
+  cultivatorName: string,
+  toRealm?: string,
+  toStage?: string,
+): string {
+  const target = `${toRealm ?? '未知境界'}${toStage ?? ''}`;
+  const templates = [
+    `${cultivatorName}闭关洞府霞光冲霄，竟一举破境，踏入「${target}」！`,
+    `有修士夜观天象见异光东来，传闻${cultivatorName}已至「${target}」！`,
+    `${cultivatorName}冲关成功，道音震荡八方，自此迈入「${target}」！`,
+    `灵潮翻涌，雷声隐隐，${cultivatorName}于万众传闻中晋升「${target}」！`,
+    `${cultivatorName}破开桎梏，境界再上一重楼，正式踏入「${target}」！`,
+  ];
+  return templates[Math.floor(Math.random() * templates.length)];
+}
 
 /**
  * POST /api/cultivator/retreat
@@ -174,6 +191,31 @@ export const POST = withActiveCultivator(
             }
           } catch (storyError) {
             console.warn('生成突破故事失败：', storyError);
+          }
+
+          const isMajorBreakthrough =
+            result.summary.toRealm &&
+            result.summary.toRealm !== result.summary.fromRealm;
+          if (isMajorBreakthrough) {
+            const rumor = buildMajorBreakthroughRumor(
+              result.cultivator.name,
+              result.summary.toRealm,
+              result.summary.toStage,
+            );
+            try {
+              await createMessage({
+                senderUserId: user.id,
+                senderCultivatorId: null,
+                senderName: '修仙界传闻',
+                senderRealm: '炼气',
+                senderRealmStage: '系统',
+                messageType: 'text',
+                textContent: rumor,
+                payload: { text: rumor },
+              });
+            } catch (chatError) {
+              console.error('突破传闻发送失败:', chatError);
+            }
           }
         }
 

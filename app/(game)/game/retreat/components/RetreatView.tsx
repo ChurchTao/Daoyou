@@ -26,6 +26,7 @@ export function RetreatView() {
     note,
     remainingLifespan,
     cultivationProgress,
+    breakthroughPreview,
     retreatYears,
     handleRetreatYearsChange,
     retreatLoading,
@@ -146,6 +147,7 @@ export function RetreatView() {
         isOpen={showBreakthroughConfirm}
         onClose={closeBreakthroughConfirm}
         onConfirm={handleBreakthrough}
+        chancePreview={breakthroughPreview}
       />
 
       {/* 修炼/突破结果 */}

@@ -39,13 +39,14 @@ export class BreakthroughChanceBonusEffect extends BaseEffect {
     if (ctx.value === undefined) return;
 
     const baseChance = ctx.value;
-    const finalChance = Math.min(baseChance + this.bonusPercent, this.maxBonus);
+    const appliedBonus = Math.min(this.bonusPercent, this.maxBonus);
+    const finalChance = Math.min(baseChance + appliedBonus, 1.0);
 
     // 将加成后的值存回 ctx.value
     ctx.value = finalChance;
 
     // 记录日志
-    const bonusPercent = Math.round(this.bonusPercent * 100);
+    const bonusPercent = Math.round(appliedBonus * 100);
     if (finalChance > baseChance) {
       ctx.logCollector?.addLog(
         `突破成功率 +${bonusPercent}%（${(baseChance * 100).toFixed(1)}% → ${(finalChance * 100).toFixed(1)}%）`,

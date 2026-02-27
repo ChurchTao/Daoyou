@@ -5,7 +5,9 @@ import type {
   BreakthroughResult,
   CultivationResult,
 } from '@/engine/cultivation/CultivationEngine';
+import { applyBreakthroughChanceBonus } from '@/engine/cultivation/retreatEffectIntegration';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -26,6 +28,13 @@ export interface CultivationProgressData {
   breakthroughType: 'forced' | 'normal' | 'perfect' | null;
 }
 
+export interface BreakthroughChancePreviewData {
+  baseChance: number;
+  finalChance: number;
+  buffBonus: number;
+  recommendation: string;
+}
+
 export interface UseRetreatViewModelReturn {
   // 数据
   cultivator: ReturnType<typeof useCultivator>['cultivator'];
@@ -33,6 +42,7 @@ export interface UseRetreatViewModelReturn {
   note: string | undefined;
   remainingLifespan: number;
   cultivationProgress: CultivationProgressData | null;
+  breakthroughPreview: BreakthroughChancePreviewData | null;
 
   // 表单状态
   retreatYears: string;
@@ -109,6 +119,27 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       breakthroughType,
     };
   }, [cultivator]);
+
+  const breakthroughPreview = useMemo((): BreakthroughChancePreviewData | null => {
+    if (!cultivator || !cultivationProgress?.canBreakthrough) {
+      return null;
+    }
+
+    try {
+      const result = calculateBreakthroughChance(cultivator);
+      const baseChance = result.chance;
+      const finalChance = applyBreakthroughChanceBonus(cultivator, baseChance);
+
+      return {
+        baseChance,
+        finalChance,
+        buffBonus: Math.max(0, finalChance - baseChance),
+        recommendation: result.recommendation,
+      };
+    } catch {
+      return null;
+    }
+  }, [cultivator, cultivationProgress?.canBreakthrough]);
 
   // 处理闭关年限输入
   const handleRetreatYearsChange = useCallback((value: string) => {
@@ -230,6 +261,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     note,
     remainingLifespan,
     cultivationProgress,
+    breakthroughPreview,
 
     // 表单状态
     retreatYears,

@@ -169,8 +169,7 @@ export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
   );
   const [detailOpen, setDetailOpen] = useState(false);
   const isSystemRumor =
-    message.messageType === 'duel_invite' &&
-    message.senderCultivatorId === null;
+    message.senderCultivatorId === null && message.senderName === '修仙界传闻';
 
   const showcaseData = useMemo(() => {
     if (message.messageType !== 'item_showcase') return null;

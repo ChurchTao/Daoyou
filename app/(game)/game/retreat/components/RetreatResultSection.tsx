@@ -86,6 +86,8 @@ function BreakthroughResultContent({
   retreatResult: RetreatResultData;
 }) {
   const summary = retreatResult.summary as BreakthroughResult['summary'];
+  const baseChance = summary.modifiers?.finalChance ?? summary.chance;
+  const buffBonus = Math.max(0, summary.chance - baseChance);
 
   const attributeGrowthText = useMemo(() => {
     if (!summary.attributeGrowth) return '';
@@ -114,6 +116,13 @@ function BreakthroughResultContent({
         </p>
 
         <p>成功率 {format('.1%')(Math.min(summary.chance, 1))}</p>
+        {buffBonus > 0 && (
+          <p className="text-emerald-700">
+            机缘加成：+{format('.1%')(buffBonus)}（
+            {format('.1%')(Math.min(baseChance, 1))} →{' '}
+            {format('.1%')(Math.min(summary.chance, 1))}）
+          </p>
+        )}
 
         {attributeGrowthText && <p>属性收获：{attributeGrowthText}</p>}
 
