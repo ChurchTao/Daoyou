@@ -13,6 +13,7 @@ export default function EnterPage() {
   const router = useRouter();
   const { user, isLoading, createAnonymousUser } = useAuth();
   const turnstileRef = useRef<TurnstileCaptchaHandle | null>(null);
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   const [started, setStarted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function EnterPage() {
   }, [isLoading, user, router]);
 
   const handleEnter = async () => {
-    if (!captchaToken) {
+    if (turnstileEnabled && !captchaToken) {
       setErrorMessage('请先完成人机验证');
       return;
     }
@@ -34,7 +35,9 @@ export default function EnterPage() {
     setSubmitting(true);
     setErrorMessage(null);
 
-    const { error } = await createAnonymousUser(captchaToken);
+    const { error } = await createAnonymousUser(
+      turnstileEnabled ? captchaToken ?? undefined : undefined,
+    );
 
     if (error) {
       setErrorMessage('创建会话失败，请重试');
@@ -54,13 +57,18 @@ export default function EnterPage() {
     );
   }
 
-  const steps = [
-    { id: 1, label: '唤醒界门' },
-    { id: 2, label: '人机验证' },
-    { id: 3, label: '进入道界' },
-  ] as const;
+  const steps = turnstileEnabled
+    ? ([
+        { id: 1, label: '唤醒界门' },
+        { id: 2, label: '人机验证' },
+        { id: 3, label: '进入道界' },
+      ] as const)
+    : ([
+        { id: 1, label: '唤醒界门' },
+        { id: 2, label: '进入道界' },
+      ] as const);
 
-  const currentStep = !started ? 1 : captchaToken ? 3 : 2;
+  const currentStep = !started ? 1 : turnstileEnabled ? (captchaToken ? 3 : 2) : 2;
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-black/10 bg-[#f8f3e6]/95 p-6 shadow-[0_10px_40px_rgba(44,24,16,0.12)]">
@@ -80,7 +88,11 @@ export default function EnterPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div
+          className={`grid gap-2 ${
+            steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'
+          }`}
+        >
           {steps.map((step) => {
             const done = step.id < currentStep;
             const active = step.id === currentStep;
@@ -102,9 +114,11 @@ export default function EnterPage() {
           })}
         </div>
 
-        <InkNotice className="my-0 text-sm">
-          此步骤仅用于防止脚本滥用，不会收集你的隐私数据。
-        </InkNotice>
+        {turnstileEnabled ? (
+          <InkNotice className="my-0 text-sm">
+            此步骤仅用于防止脚本滥用，不会收集你的隐私数据。
+          </InkNotice>
+        ) : null}
 
         {!started ? (
           <div className="space-y-3">
@@ -121,10 +135,12 @@ export default function EnterPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <TurnstileCaptcha
-              ref={turnstileRef}
-              onTokenChange={setCaptchaToken}
-            />
+            {turnstileEnabled ? (
+              <TurnstileCaptcha
+                ref={turnstileRef}
+                onTokenChange={setCaptchaToken}
+              />
+            ) : null}
 
             <InkButton
               onClick={handleEnter}

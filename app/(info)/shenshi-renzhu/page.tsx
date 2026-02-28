@@ -26,7 +26,7 @@ function ShenShiRenZhuContent() {
   const [processing, setProcessing] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileCaptchaHandle | null>(null);
-  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   // Check if user came back from email confirmation link
   useEffect(() => {
@@ -60,14 +60,7 @@ function ShenShiRenZhuContent() {
       pushToast({ message: '飞鸽传书地址格式有误', tone: 'warning' });
       return;
     }
-    if (!turnstileSiteKey) {
-      pushToast({
-        message: '未配置验证码站点密钥，请联系管理员',
-        tone: 'danger',
-      });
-      return;
-    }
-    if (!captchaToken) {
+    if (turnstileEnabled && !captchaToken) {
       pushToast({ message: '请先完成人机验证', tone: 'warning' });
       return;
     }
@@ -76,7 +69,9 @@ function ShenShiRenZhuContent() {
     try {
       // 全局 CAPTCHA 开启后，匿名会话必须带 token 创建。
       if (!user) {
-        const { error: createError } = await createAnonymousUser(captchaToken);
+        const { error: createError } = await createAnonymousUser(
+          turnstileEnabled ? captchaToken ?? undefined : undefined,
+        );
         if (createError) {
           throw createError;
         }
@@ -166,10 +161,12 @@ function ShenShiRenZhuContent() {
                 {sendingEmail ? '发送中…' : '发送天机印'}
               </InkButton>
 
-              <TurnstileCaptcha
-                ref={turnstileRef}
-                onTokenChange={setCaptchaToken}
-              />
+              {turnstileEnabled ? (
+                <TurnstileCaptcha
+                  ref={turnstileRef}
+                  onTokenChange={setCaptchaToken}
+                />
+              ) : null}
             </div>
           </>
         ) : (

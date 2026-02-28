@@ -36,18 +36,7 @@ const TurnstileCaptcha = forwardRef<TurnstileCaptchaHandle, TurnstileCaptchaProp
       [onTokenChange],
     );
 
-    if (!siteKey) {
-      return (
-        <div
-          className={className}
-          {...rest}
-        >
-          <p className="text-sm text-red-600/80">
-            缺少 NEXT_PUBLIC_TURNSTILE_SITE_KEY，无法加载人机验证。
-          </p>
-        </div>
-      );
-    }
+    if (!siteKey) return null;
 
     return (
       <div

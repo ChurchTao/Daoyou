@@ -27,7 +27,7 @@ function LoginPageContent() {
   const [processing, setProcessing] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileCaptchaHandle | null>(null);
-  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   // Check if user came back from magic link (keeping as fallback)
   useEffect(() => {
@@ -60,14 +60,7 @@ function LoginPageContent() {
       pushToast({ message: '飞鸽传书地址格式有误', tone: 'warning' });
       return;
     }
-    if (!turnstileSiteKey) {
-      pushToast({
-        message: '未配置验证码站点密钥，请联系管理员',
-        tone: 'danger',
-      });
-      return;
-    }
-    if (!captchaToken) {
+    if (turnstileEnabled && !captchaToken) {
       pushToast({ message: '请先完成人机验证', tone: 'warning' });
       return;
     }
@@ -78,7 +71,7 @@ function LoginPageContent() {
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: false,
-          captchaToken,
+          captchaToken: turnstileEnabled ? captchaToken ?? undefined : undefined,
         },
       });
 
@@ -183,10 +176,12 @@ function LoginPageContent() {
                 {loading ? '发送中…' : '发送召唤符'}
               </InkButton>
 
-              <TurnstileCaptcha
-                ref={turnstileRef}
-                onTokenChange={setCaptchaToken}
-              />
+              {turnstileEnabled ? (
+                <TurnstileCaptcha
+                  ref={turnstileRef}
+                  onTokenChange={setCaptchaToken}
+                />
+              ) : null}
             </div>
           </>
         ) : (
