@@ -10,6 +10,17 @@ import {
   InkTabs,
 } from '@/components/ui';
 import { EffectCard } from '@/components/ui/EffectCard';
+import {
+  CONSUMABLE_TYPE_VALUES,
+  ELEMENT_VALUES,
+  MATERIAL_TYPE_VALUES,
+  QUALITY_ORDER,
+  QUALITY_VALUES,
+  type ConsumableType,
+  type ElementType,
+  type MaterialType,
+  type Quality,
+} from '@/types/constants';
 import type {
   Artifact,
   Consumable,
@@ -21,7 +32,7 @@ import {
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface ListItemModalProps {
   onClose: () => void;
@@ -53,7 +64,29 @@ interface InventoryApiPayload {
   error?: string;
 }
 
+interface MaterialListFilters {
+  rank: Quality | 'all';
+  type: MaterialType | 'all';
+  element: ElementType | 'all';
+  sortBy: 'createdAt' | 'rank' | 'type' | 'element' | 'quantity' | 'name';
+  sortOrder: 'asc' | 'desc';
+}
+
+interface ArtifactListFilters {
+  quality: Quality | 'all';
+  sortBy: 'quality' | 'name';
+  sortOrder: 'asc' | 'desc';
+}
+
+interface ConsumableListFilters {
+  quality: Quality | 'all';
+  type: ConsumableType | 'all';
+  sortBy: 'quality' | 'quantity' | 'name';
+  sortOrder: 'asc' | 'desc';
+}
+
 const PAGE_SIZE = 20;
+const AUCTION_MIN_QUALITY: Quality = '玄品';
 const defaultPagination: InventoryPagination = {
   page: 1,
   pageSize: PAGE_SIZE,
@@ -68,10 +101,49 @@ const itemTypeToApiTypeMap: Record<ItemType, InventoryApiType> = {
   consumable: 'consumables',
 };
 
+const AUCTION_ALLOWED_QUALITIES = QUALITY_VALUES.filter(
+  (q) => QUALITY_ORDER[q] >= QUALITY_ORDER[AUCTION_MIN_QUALITY],
+);
+
+const defaultMaterialFilters: MaterialListFilters = {
+  rank: 'all',
+  type: 'all',
+  element: 'all',
+  sortBy: 'createdAt',
+  sortOrder: 'desc',
+};
+
+const defaultArtifactFilters: ArtifactListFilters = {
+  quality: 'all',
+  sortBy: 'quality',
+  sortOrder: 'desc',
+};
+
+const defaultConsumableFilters: ConsumableListFilters = {
+  quality: 'all',
+  type: 'all',
+  sortBy: 'quality',
+  sortOrder: 'desc',
+};
+
 function isStackableItem(
   item: SelectableItem,
 ): item is (Material | Consumable) & { itemType: 'material' | 'consumable' } {
   return item.itemType !== 'artifact';
+}
+
+function getItemQuality(item: SelectableItem): Quality {
+  if (item.itemType === 'material') {
+    return (item as Material).rank;
+  }
+
+  const quality = (item as Artifact | Consumable).quality || '凡品';
+  return quality in QUALITY_ORDER ? quality : '凡品';
+}
+
+function isAuctionListableItem(item: SelectableItem): boolean {
+  const quality = getItemQuality(item);
+  return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
 }
 
 export function ListItemModal({
@@ -88,24 +160,28 @@ export function ListItemModal({
   const [error, setError] = useState('');
   const [listError, setListError] = useState('');
   const [isItemsLoading, setIsItemsLoading] = useState(false);
-  const [itemsByType, setItemsByType] = useState<Record<ItemType, SelectableItem[]>>(
-    {
-      material: [],
-      artifact: [],
-      consumable: [],
-    },
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [itemsByType, setItemsByType] = useState<
+    Record<ItemType, SelectableItem[]>
+  >({
+    material: [],
+    artifact: [],
+    consumable: [],
+  });
+  const [materialFilters, setMaterialFilters] = useState<MaterialListFilters>(
+    defaultMaterialFilters,
   );
+  const [artifactFilters, setArtifactFilters] = useState<ArtifactListFilters>(
+    defaultArtifactFilters,
+  );
+  const [consumableFilters, setConsumableFilters] =
+    useState<ConsumableListFilters>(defaultConsumableFilters);
   const [paginationByType, setPaginationByType] = useState<
     Record<ItemType, InventoryPagination>
   >({
     material: defaultPagination,
     artifact: defaultPagination,
     consumable: defaultPagination,
-  });
-  const [loadedByType, setLoadedByType] = useState<Record<ItemType, boolean>>({
-    material: false,
-    artifact: false,
-    consumable: false,
   });
   const requestIdRef = useRef(0);
 
@@ -119,8 +195,31 @@ export function ListItemModal({
 
       try {
         const apiType = itemTypeToApiTypeMap[itemType];
+        const params = new URLSearchParams({
+          type: apiType,
+          page: String(Math.max(1, page)),
+          pageSize: String(PAGE_SIZE),
+        });
+
+        if (itemType === 'material') {
+          params.set(
+            'materialRanks',
+            materialFilters.rank === 'all'
+              ? AUCTION_ALLOWED_QUALITIES.join(',')
+              : materialFilters.rank,
+          );
+          if (materialFilters.type !== 'all') {
+            params.set('materialTypes', materialFilters.type);
+          }
+          if (materialFilters.element !== 'all') {
+            params.set('materialElements', materialFilters.element);
+          }
+          params.set('materialSortBy', materialFilters.sortBy);
+          params.set('materialSortOrder', materialFilters.sortOrder);
+        }
+
         const res = await fetch(
-          `/api/cultivator/inventory?type=${apiType}&page=${Math.max(1, page)}&pageSize=${PAGE_SIZE}`,
+          `/api/cultivator/inventory?${params.toString()}`,
         );
         const result = (await res.json()) as InventoryApiPayload;
         if (!res.ok || !result.success) {
@@ -140,12 +239,10 @@ export function ListItemModal({
         }));
         setPaginationByType((prev) => ({
           ...prev,
-          [itemType]:
-            result.data?.pagination || { ...defaultPagination, pageSize: PAGE_SIZE },
-        }));
-        setLoadedByType((prev) => ({
-          ...prev,
-          [itemType]: true,
+          [itemType]: result.data?.pagination || {
+            ...defaultPagination,
+            pageSize: PAGE_SIZE,
+          },
         }));
       } catch (e) {
         if (requestId !== requestIdRef.current) return;
@@ -155,15 +252,20 @@ export function ListItemModal({
         setIsItemsLoading(false);
       }
     },
-    [cultivator?.id],
+    [cultivator?.id, materialFilters],
   );
 
   useEffect(() => {
-    if (!cultivator?.id || loadedByType[activeType]) return;
+    if (!cultivator?.id) return;
     void fetchItemPage(activeType, 1);
-  }, [activeType, cultivator?.id, fetchItemPage, loadedByType]);
+  }, [activeType, cultivator?.id, fetchItemPage]);
 
   const handleSelectItem = (item: SelectableItem) => {
+    if (!isAuctionListableItem(item)) {
+      setListError(`仅玄品及以上物品可寄售，当前为${getItemQuality(item)}`);
+      return;
+    }
+
     setSelectedItem(item);
     setQuantity('1');
     setStep('price');
@@ -181,6 +283,11 @@ export function ListItemModal({
     if (!selectedItem) return;
     if (!selectedItem.id) {
       setError('物品ID无效，请刷新后重试');
+      return;
+    }
+
+    if (!isAuctionListableItem(selectedItem)) {
+      setError(`仅玄品及以上物品可寄售，当前为${getItemQuality(selectedItem)}`);
       return;
     }
 
@@ -288,11 +395,87 @@ export function ListItemModal({
     }
   };
 
-  const getCurrentItems = () => {
-    return itemsByType[activeType];
-  };
-
   const currentPagination = paginationByType[activeType];
+
+  const currentItems = useMemo(() => {
+    const baseItems = itemsByType[activeType].filter(isAuctionListableItem);
+
+    if (activeType === 'artifact') {
+      const filtered = baseItems.filter((item) => {
+        const quality = getItemQuality(item);
+        if (
+          artifactFilters.quality !== 'all' &&
+          quality !== artifactFilters.quality
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      return filtered.sort((a, b) => {
+        const multiplier = artifactFilters.sortOrder === 'asc' ? 1 : -1;
+        const result =
+          artifactFilters.sortBy === 'name'
+            ? a.name.localeCompare(b.name, 'zh-CN')
+            : (QUALITY_ORDER[getItemQuality(a)] ?? -1) -
+              (QUALITY_ORDER[getItemQuality(b)] ?? -1);
+        return result * multiplier;
+      });
+    }
+
+    if (activeType === 'consumable') {
+      const filtered = baseItems.filter((item) => {
+        const consumable = item as Consumable;
+        const quality = getItemQuality(item);
+        if (
+          consumableFilters.quality !== 'all' &&
+          quality !== consumableFilters.quality
+        ) {
+          return false;
+        }
+        if (
+          consumableFilters.type !== 'all' &&
+          consumable.type !== consumableFilters.type
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      return filtered.sort((a, b) => {
+        const multiplier = consumableFilters.sortOrder === 'asc' ? 1 : -1;
+        let result = 0;
+
+        if (consumableFilters.sortBy === 'name') {
+          result = a.name.localeCompare(b.name, 'zh-CN');
+        } else if (consumableFilters.sortBy === 'quantity') {
+          const qa = isStackableItem(a) ? a.quantity : 1;
+          const qb = isStackableItem(b) ? b.quantity : 1;
+          result = qa - qb;
+        } else {
+          result =
+            (QUALITY_ORDER[getItemQuality(a)] ?? -1) -
+            (QUALITY_ORDER[getItemQuality(b)] ?? -1);
+        }
+
+        return result * multiplier;
+      });
+    }
+
+    return baseItems;
+  }, [
+    activeType,
+    artifactFilters.quality,
+    artifactFilters.sortBy,
+    artifactFilters.sortOrder,
+    consumableFilters.quality,
+    consumableFilters.sortBy,
+    consumableFilters.sortOrder,
+    consumableFilters.type,
+    itemsByType,
+  ]);
+
+  const hasAnyLoadedItems = itemsByType[activeType].length > 0;
 
   const tabs = [
     { label: '材料', value: 'material' },
@@ -344,18 +527,301 @@ export function ListItemModal({
             onChange={(v) => {
               setActiveType(v as ItemType);
               setListError('');
+              setIsFilterOpen(false);
             }}
           />
+
+          <div className="bg-ink/5 border-ink/10 mt-4 border p-2">
+            <div className="flex items-center justify-between">
+              <span className="text-ink-secondary text-sm leading-6">
+                筛选与排序
+              </span>
+              <InkButton
+                variant="secondary"
+                className="text-sm leading-6"
+                onClick={() => setIsFilterOpen((prev) => !prev)}
+                disabled={isItemsLoading}
+              >
+                {isFilterOpen ? '收起筛选' : '展开筛选'}
+              </InkButton>
+            </div>
+
+            {isFilterOpen && (
+              <div className="mt-2 space-y-2">
+                {activeType === 'material' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      <label className="text-ink-secondary text-xs">
+                        品级
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={materialFilters.rank}
+                          onChange={(event) =>
+                            setMaterialFilters((prev) => ({
+                              ...prev,
+                              rank: event.target.value as Quality | 'all',
+                            }))
+                          }
+                          disabled={isItemsLoading}
+                        >
+                          <option value="all">全部可上架品级</option>
+                          {AUCTION_ALLOWED_QUALITIES.map((rank) => (
+                            <option key={rank} value={rank}>
+                              {rank}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-ink-secondary text-xs">
+                        种类
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={materialFilters.type}
+                          onChange={(event) =>
+                            setMaterialFilters((prev) => ({
+                              ...prev,
+                              type: event.target.value as MaterialType | 'all',
+                            }))
+                          }
+                          disabled={isItemsLoading}
+                        >
+                          <option value="all">全部种类</option>
+                          {MATERIAL_TYPE_VALUES.map((type) => (
+                            <option key={type} value={type}>
+                              {getMaterialTypeInfo(type).label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-ink-secondary text-xs">
+                        属性
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={materialFilters.element}
+                          onChange={(event) =>
+                            setMaterialFilters((prev) => ({
+                              ...prev,
+                              element: event.target.value as
+                                | ElementType
+                                | 'all',
+                            }))
+                          }
+                          disabled={isItemsLoading}
+                        >
+                          <option value="all">全部属性</option>
+                          {ELEMENT_VALUES.map((element) => (
+                            <option key={element} value={element}>
+                              {element}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-ink-secondary text-xs">
+                        排序
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={`${materialFilters.sortBy}:${materialFilters.sortOrder}`}
+                          onChange={(event) => {
+                            const [sortBy, sortOrder] =
+                              event.target.value.split(':');
+                            setMaterialFilters((prev) => ({
+                              ...prev,
+                              sortBy: sortBy as MaterialListFilters['sortBy'],
+                              sortOrder:
+                                sortOrder as MaterialListFilters['sortOrder'],
+                            }));
+                          }}
+                          disabled={isItemsLoading}
+                        >
+                          <option value="createdAt:desc">最新获得</option>
+                          <option value="createdAt:asc">最早获得</option>
+                          <option value="rank:desc">品级从高到低</option>
+                          <option value="rank:asc">品级从低到高</option>
+                          <option value="quantity:desc">数量从多到少</option>
+                          <option value="quantity:asc">数量从少到多</option>
+                          <option value="name:asc">名称 A-Z</option>
+                          <option value="name:desc">名称 Z-A</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="flex justify-end">
+                      <InkButton
+                        variant="secondary"
+                        onClick={() =>
+                          setMaterialFilters(defaultMaterialFilters)
+                        }
+                        disabled={isItemsLoading}
+                      >
+                        重置筛选
+                      </InkButton>
+                    </div>
+                  </>
+                ) : activeType === 'artifact' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                      <label className="text-ink-secondary text-xs">
+                        品级
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={artifactFilters.quality}
+                          onChange={(event) =>
+                            setArtifactFilters((prev) => ({
+                              ...prev,
+                              quality: event.target.value as Quality | 'all',
+                            }))
+                          }
+                          disabled={isItemsLoading}
+                        >
+                          <option value="all">全部可上架品级</option>
+                          {AUCTION_ALLOWED_QUALITIES.map((rank) => (
+                            <option key={rank} value={rank}>
+                              {rank}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-ink-secondary text-xs">
+                        排序
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={`${artifactFilters.sortBy}:${artifactFilters.sortOrder}`}
+                          onChange={(event) => {
+                            const [sortBy, sortOrder] =
+                              event.target.value.split(':');
+                            setArtifactFilters((prev) => ({
+                              ...prev,
+                              sortBy: sortBy as ArtifactListFilters['sortBy'],
+                              sortOrder:
+                                sortOrder as ArtifactListFilters['sortOrder'],
+                            }));
+                          }}
+                          disabled={isItemsLoading}
+                        >
+                          <option value="quality:desc">品级从高到低</option>
+                          <option value="quality:asc">品级从低到高</option>
+                          <option value="name:asc">名称 A-Z</option>
+                          <option value="name:desc">名称 Z-A</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="flex justify-end">
+                      <InkButton
+                        variant="secondary"
+                        onClick={() =>
+                          setArtifactFilters(defaultArtifactFilters)
+                        }
+                        disabled={isItemsLoading}
+                      >
+                        重置筛选
+                      </InkButton>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      <label className="text-ink-secondary text-xs">
+                        品级
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={consumableFilters.quality}
+                          onChange={(event) =>
+                            setConsumableFilters((prev) => ({
+                              ...prev,
+                              quality: event.target.value as Quality | 'all',
+                            }))
+                          }
+                          disabled={isItemsLoading}
+                        >
+                          <option value="all">全部可上架品级</option>
+                          {AUCTION_ALLOWED_QUALITIES.map((rank) => (
+                            <option key={rank} value={rank}>
+                              {rank}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-ink-secondary text-xs">
+                        种类
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={consumableFilters.type}
+                          onChange={(event) =>
+                            setConsumableFilters((prev) => ({
+                              ...prev,
+                              type: event.target.value as
+                                | ConsumableType
+                                | 'all',
+                            }))
+                          }
+                          disabled={isItemsLoading}
+                        >
+                          <option value="all">全部种类</option>
+                          {CONSUMABLE_TYPE_VALUES.map((type) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="text-ink-secondary text-xs">
+                        排序
+                        <select
+                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          value={`${consumableFilters.sortBy}:${consumableFilters.sortOrder}`}
+                          onChange={(event) => {
+                            const [sortBy, sortOrder] =
+                              event.target.value.split(':');
+                            setConsumableFilters((prev) => ({
+                              ...prev,
+                              sortBy: sortBy as ConsumableListFilters['sortBy'],
+                              sortOrder:
+                                sortOrder as ConsumableListFilters['sortOrder'],
+                            }));
+                          }}
+                          disabled={isItemsLoading}
+                        >
+                          <option value="quality:desc">品级从高到低</option>
+                          <option value="quality:asc">品级从低到高</option>
+                          <option value="quantity:desc">数量从多到少</option>
+                          <option value="quantity:asc">数量从少到多</option>
+                          <option value="name:asc">名称 A-Z</option>
+                          <option value="name:desc">名称 Z-A</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="flex justify-end">
+                      <InkButton
+                        variant="secondary"
+                        onClick={() =>
+                          setConsumableFilters(defaultConsumableFilters)
+                        }
+                        disabled={isItemsLoading}
+                      >
+                        重置筛选
+                      </InkButton>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="mt-4">
             {!cultivator?.id ? (
               <InkNotice>请先登录后再上架物品</InkNotice>
-            ) : isItemsLoading && getCurrentItems().length === 0 ? (
+            ) : isItemsLoading && currentItems.length === 0 ? (
               <div className="py-8 text-center">正在读取背包物品...</div>
             ) : listError ? (
               <InkNotice>{listError}</InkNotice>
-            ) : getCurrentItems().length > 0 ? (
+            ) : currentItems.length > 0 ? (
               <InkList>
-                {getCurrentItems().map((item) => {
+                {currentItems.map((item) => {
                   const displayProps = getItemDisplayProps(item);
                   return (
                     <EffectCard
@@ -384,9 +850,13 @@ export function ListItemModal({
               </InkList>
             ) : (
               <InkNotice>
-                {activeType === 'material' && '储物袋中没有材料'}
-                {activeType === 'artifact' && '储物袋中没有法宝'}
-                {activeType === 'consumable' && '储物袋中没有消耗品'}
+                {hasAnyLoadedItems
+                  ? '暂无符合筛选条件的可寄售物品（仅限玄品及以上）。'
+                  : activeType === 'material'
+                    ? '储物袋中没有可寄售材料（仅限玄品及以上）。'
+                    : activeType === 'artifact'
+                      ? '储物袋中没有可寄售法宝（仅限玄品及以上）。'
+                      : '储物袋中没有可寄售消耗品（仅限玄品及以上）。'}
               </InkNotice>
             )}
           </div>
@@ -395,7 +865,9 @@ export function ListItemModal({
               <InkButton
                 variant="secondary"
                 disabled={isItemsLoading || currentPagination.page <= 1}
-                onClick={() => void fetchItemPage(activeType, currentPagination.page - 1)}
+                onClick={() =>
+                  void fetchItemPage(activeType, currentPagination.page - 1)
+                }
               >
                 上一页
               </InkButton>
@@ -408,7 +880,9 @@ export function ListItemModal({
                   isItemsLoading ||
                   currentPagination.page >= currentPagination.totalPages
                 }
-                onClick={() => void fetchItemPage(activeType, currentPagination.page + 1)}
+                onClick={() =>
+                  void fetchItemPage(activeType, currentPagination.page + 1)
+                }
               >
                 下一页
               </InkButton>
@@ -472,6 +946,7 @@ export function ListItemModal({
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="text-ink-secondary text-xs">
+            <p>· 仅玄品及以上物品可寄售</p>
             <p>· 寄售后物品将从储物袋中扣除</p>
             <p>· 寄售时限为 48 小时</p>
             <p>· 交易成功后扣除 10% 手续费</p>

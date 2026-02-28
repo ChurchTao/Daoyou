@@ -1,11 +1,9 @@
 import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
+import { QUALITY_ORDER, type Quality } from '@/types/constants';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
-import {
-  getExecutor,
-  type DbExecutor,
-} from '../drizzle/db';
+import { getExecutor, type DbExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
 
@@ -20,6 +18,7 @@ const LIST_LOCK_PREFIX = 'auction:list:lock:';
 const MAX_ACTIVE_LISTINGS_PER_SELLER = 5;
 const LISTING_DURATION_HOURS = 48;
 const FEE_RATE = 0.1; // 10% 手续费
+const AUCTION_MIN_QUALITY: Quality = '玄品';
 
 // ============================================================================
 // Error Codes
@@ -36,6 +35,7 @@ export const AuctionError = {
   INVALID_ITEM_TYPE: 'INVALID_ITEM_TYPE',
   INVALID_PRICE: 'INVALID_PRICE',
   INVALID_QUANTITY: 'INVALID_QUANTITY',
+  INVALID_ITEM_QUALITY: 'INVALID_ITEM_QUALITY',
 } as const;
 
 export type AuctionErrorCode = (typeof AuctionError)[keyof typeof AuctionError];
@@ -146,6 +146,22 @@ async function clearAuctionListingsCache(): Promise<void> {
   }
 }
 
+function normalizeItemQuality(
+  itemType: 'material' | 'artifact' | 'consumable',
+  item: Material | Artifact | Consumable,
+): Quality {
+  if (itemType === 'material') {
+    return (item as Material).rank;
+  }
+
+  const quality = (item as Artifact | Consumable).quality || '凡品';
+  return quality in QUALITY_ORDER ? quality : '凡品';
+}
+
+function isAuctionListableQuality(quality: Quality): boolean {
+  return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
+}
+
 // ============================================================================
 // Main Service Methods
 // ============================================================================
@@ -215,6 +231,13 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         '物品不存在或已消耗',
       );
     }
+    const itemQuality = normalizeItemQuality(itemType, itemSnapshot);
+    if (!isAuctionListableQuality(itemQuality)) {
+      throw new AuctionServiceError(
+        AuctionError.INVALID_ITEM_QUALITY,
+        `仅玄品及以上物品可寄售，当前为${itemQuality}`,
+      );
+    }
 
     const availableQuantity =
       itemType === 'artifact'
@@ -241,7 +264,12 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
 
     await q.transaction(async (tx) => {
       // 事务内二次校验并按数量扣减
-      const ownedItem = await getItemSnapshot(itemType, itemId, cultivatorId, tx);
+      const ownedItem = await getItemSnapshot(
+        itemType,
+        itemId,
+        cultivatorId,
+        tx,
+      );
       if (!ownedItem) {
         throw new AuctionServiceError(
           AuctionError.ITEM_NOT_FOUND,

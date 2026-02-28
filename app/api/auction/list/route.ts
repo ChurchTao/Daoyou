@@ -55,6 +55,7 @@ export const POST = withActiveCultivator(
           INVALID_ITEM_TYPE: 400,
           INVALID_PRICE: 400,
           INVALID_QUANTITY: 400,
+          INVALID_ITEM_QUALITY: 400,
         };
 
         const status = statusMap[error.code] || 400;
