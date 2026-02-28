@@ -1,5 +1,12 @@
 import { RealmType } from '@/types/constants';
+import { MarketLayer, RegionProfileKey } from '@/types/market';
 import mapData from '../../data/map.json';
+
+export interface NodeMarketConfig {
+  enabled: boolean;
+  allowed_layers: MarketLayer[];
+  region_profile: RegionProfileKey;
+}
 
 export interface MapNode {
   id: string;
@@ -11,6 +18,7 @@ export interface MapNode {
   connections: string[];
   x: number;
   y: number;
+  market_config?: NodeMarketConfig;
 }
 
 export interface SatelliteNode {
@@ -64,4 +72,8 @@ export function getNodesByRegion(region: string): MapNode[] {
 
 export function getSatellitesForNode(parentId: string): SatelliteNode[] {
   return worldData.satellite_nodes.filter((n) => n.parent_id === parentId);
+}
+
+export function getMarketEnabledNodes(): MapNode[] {
+  return worldData.map_nodes.filter((node) => node.market_config?.enabled);
 }

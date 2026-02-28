@@ -1,15 +1,20 @@
 'use client';
 
-import { MapNode, MapNodeDetail, MapSatellite } from '@/components/feature/map';
+import {
+  MapNode,
+  MapNodeDetail,
+  type MapNodeDetailAction,
+  MapSatellite,
+} from '@/components/feature/map';
 import { InkButton } from '@/components/ui/InkButton';
 import {
   getAllMapNodes,
   getAllSatelliteNodes,
   getMapNode,
-  MapNodeInfo,
+  type MapNodeInfo,
 } from '@/lib/game/mapSystem';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 const getInitPosition = () => {
@@ -19,10 +24,61 @@ const getInitPosition = () => {
     : { x: -1318, y: -1262 };
 };
 
+type MapIntent = 'market' | 'dungeon';
+
+type NodeActionContext = {
+  selectedNodeId: string;
+  isMainNode: boolean;
+  marketEnabled: boolean;
+};
+
+function buildNodeActions(
+  intent: MapIntent,
+  ctx: NodeActionContext,
+  navigate: (path: string) => void,
+): MapNodeDetailAction[] {
+  const builders: Record<MapIntent, (input: NodeActionContext) => MapNodeDetailAction[]> = {
+    dungeon: ({ selectedNodeId: id }) => [
+      {
+        key: 'enter-dungeon',
+        label: '前往历练',
+        variant: 'primary',
+        onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
+      },
+    ],
+    market: ({ selectedNodeId: id, isMainNode, marketEnabled }) => {
+      const actions: MapNodeDetailAction[] = [
+        {
+          key: 'enter-dungeon',
+          label: '前往历练',
+          variant: 'secondary',
+          onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
+        },
+      ];
+
+      // 需求约束：只有主节点且已开放坊市时才展示按钮
+      if (isMainNode && marketEnabled) {
+        actions.unshift({
+          key: 'enter-market',
+          label: '进入坊市',
+          variant: 'primary',
+          onClick: () => navigate(`/game/market?nodeId=${id}&layer=common`),
+        });
+      }
+      return actions;
+    },
+  };
+
+  return builders[intent](ctx);
+}
+
 export default function MapPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const initPosition = getInitPosition();
+  const intent: MapIntent =
+    searchParams.get('intent') === 'market' ? 'market' : 'dungeon';
 
   const allNodes = getAllMapNodes();
   const allSatellites = getAllSatelliteNodes();
@@ -34,14 +90,41 @@ export default function MapPage() {
     setSelectedNodeId(id);
   };
 
-  const handleSelectNode = () => {
-    if (!selectedNodeId) return;
-    router.push(`/game/dungeon?nodeId=${selectedNodeId}`);
-  };
+  const nodeContext = useMemo(() => {
+    if (!selectedNode || !selectedNodeId) {
+      return {
+        isMainNode: false,
+        marketEnabled: false,
+      };
+    }
+    const isMainNode = 'region' in selectedNode;
+    return {
+      isMainNode,
+      marketEnabled: isMainNode && Boolean(selectedNode.market_config?.enabled),
+    };
+  }, [selectedNode, selectedNodeId]);
+
+  const nodeActions = useMemo(() => {
+    if (!selectedNodeId) return [];
+    return buildNodeActions(
+      intent,
+      {
+        selectedNodeId,
+        isMainNode: nodeContext.isMainNode,
+        marketEnabled: nodeContext.marketEnabled,
+      },
+      (path) => router.push(path),
+    );
+  }, [
+    intent,
+    nodeContext.isMainNode,
+    nodeContext.marketEnabled,
+    router,
+    selectedNodeId,
+  ]);
 
   return (
     <div className="bg-paper fixed inset-0 flex flex-col overflow-hidden">
-      {/* Header Overlay */}
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 flex items-start justify-between p-4">
         <div className="pointer-events-auto flex gap-2">
           <InkButton
@@ -54,11 +137,12 @@ export default function MapPage() {
         </div>
         <div className="border-ink/10 bg-background pointer-events-auto rounded border px-4 py-2 shadow">
           <div className="text-ink font-bold">修仙界</div>
-          <div className="text-ink-secondary text-xs">人界·全图</div>
+          <div className="text-ink-secondary text-xs">
+            人界·全图 · {intent === 'market' ? '坊市选址' : '历练选址'}
+          </div>
         </div>
       </div>
 
-      {/* Map Canvas */}
       <div className="relative h-full w-full flex-1 cursor-grab active:cursor-grabbing">
         <TransformWrapper
           initialScale={1}
@@ -72,7 +156,6 @@ export default function MapPage() {
             wrapperClass="w-full h-full"
             contentClass="w-full h-full"
           >
-            {/* The Map Container */}
             <div
               className="relative"
               style={{
@@ -80,10 +163,8 @@ export default function MapPage() {
                 height: '2143px',
               }}
             >
-              {/* Grid Lines for style */}
               <div className="bgi-map ring-ink/50 absolute inset-0 opacity-80 shadow ring-10" />
 
-              {/* Region Labels (Background) */}
               <div className="text-ink/40 pointer-events-none absolute top-[65%] right-[35%] rotate-6 text-6xl tracking-widest select-none">
                 乱星海
               </div>
@@ -97,7 +178,6 @@ export default function MapPage() {
                 大晋
               </div>
 
-              {/* Connections (Edges) */}
               <svg className="pointer-events-none absolute inset-0 h-full w-full">
                 {allNodes.flatMap((node) =>
                   node.connections.map((targetId) => {
@@ -122,7 +202,6 @@ export default function MapPage() {
                 )}
               </svg>
 
-              {/* Main Nodes */}
               {allNodes.map((node) => (
                 <MapNode
                   key={node.id}
@@ -131,12 +210,12 @@ export default function MapPage() {
                   realmRequirement={node.realm_requirement}
                   x={node.x}
                   y={node.y}
+                  marketEnabled={Boolean(node.market_config?.enabled)}
                   selected={selectedNodeId === node.id}
                   onClick={handleNodeClick}
                 />
               ))}
 
-              {/* Satellite Nodes */}
               {allSatellites.map((sat) => (
                 <MapSatellite
                   key={sat.id}
@@ -154,12 +233,11 @@ export default function MapPage() {
         </TransformWrapper>
       </div>
 
-      {/* Selected Node Details Panel */}
       {selectedNode && (
         <MapNodeDetail
           node={selectedNode}
           onClose={() => setSelectedNodeId(null)}
-          onSelect={handleSelectNode}
+          actions={nodeActions}
         />
       )}
     </div>

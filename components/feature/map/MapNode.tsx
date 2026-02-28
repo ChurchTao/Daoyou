@@ -55,6 +55,7 @@ export interface MapNodeProps extends VariantProps<typeof mapNodeVariants> {
   realmRequirement: string;
   x: number;
   y: number;
+  marketEnabled?: boolean;
   onClick?: (id: string) => void;
 }
 
@@ -67,6 +68,7 @@ function MapNodeComponent({
   realmRequirement,
   x,
   y,
+  marketEnabled = false,
   selected = false,
   onClick,
 }: MapNodeProps) {
@@ -86,7 +88,17 @@ function MapNodeComponent({
       onClick={handleClick}
     >
       {/* Marker Icon */}
-      <div className={cn(markerVariants({ selected }))} />
+      <div
+        className={cn(
+          markerVariants({ selected }),
+          marketEnabled && 'ring-2 ring-emerald-500/35',
+        )}
+      />
+      {marketEnabled && (
+        <div className="bg-emerald-600 text-paper absolute -top-2 -right-2 rounded px-1 text-[9px] leading-4 shadow">
+          市
+        </div>
+      )}
       {/* Label */}
       <div className={cn(labelVariants({ selected }))}>
         {displayName} · {realmRequirement}

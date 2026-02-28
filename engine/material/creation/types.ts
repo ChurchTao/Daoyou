@@ -42,4 +42,11 @@ export interface MaterialRandomOptions {
   guaranteedRank?: Quality; // 指定保底品质（可选）
   specifiedType?: MaterialType; // 指定类型（可选）
   specifiedElement?: ElementType; // 指定元素（可选）
+  regionTags?: string[]; // 区域标签（用于加权）
+  rankRange?: {
+    min: Quality;
+    max: Quality;
+  }; // 限定品质区间
+  allowMystery?: boolean; // 预留：黑市神秘物品
+  mysteryChance?: number; // 预留：神秘物品概率
 }

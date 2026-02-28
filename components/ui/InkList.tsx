@@ -47,7 +47,6 @@ export function InkListItem({
   description,
   actions,
   highlight = false,
-  newMark = false,
   layout = 'row',
 }: InkListItemProps) {
   const isColumn = layout === 'col';
@@ -63,14 +62,7 @@ export function InkListItem({
       {/* 主内容区 */}
       <div className={cn('min-w-0 flex-1', isColumn && 'w-full')}>
         {/* 标题行 */}
-        <div className="flex flex-wrap items-center gap-1 font-semibold">
-          <span>{title}</span>
-          {newMark && (
-            <span className="text-crimson ml-2 text-[0.875rem] font-semibold">
-              ← 新悟
-            </span>
-          )}
-        </div>
+        <div className="font-semibold">{title}</div>
         {/* 元信息 */}
         {meta && (
           <div className="text-ink-secondary mt-1 text-[0.85rem] whitespace-pre-line">

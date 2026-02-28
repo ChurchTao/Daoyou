@@ -509,7 +509,7 @@ export default function MarketRecyclePage() {
       footer={
         <InkActionGroup align="between">
           <InkButton href="/game">返回主界</InkButton>
-          <InkButton href="/game/market">前往坊市</InkButton>
+          <InkButton href="/game/map?intent=market">前往坊市</InkButton>
           <InkButton href="/game/inventory" variant="secondary">
             查看储物袋
           </InkButton>

@@ -9,26 +9,73 @@ import {
   InkList,
   InkListItem,
   InkNotice,
+  InkTabs,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { getMapNode } from '@/lib/game/mapSystem';
 import { Material } from '@/types/cultivator';
 import { getMaterialTypeInfo } from '@/types/dictionaries';
-import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { MarketLayer } from '@/types/market';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-type MarketListing = Material & { price: number };
+type MarketListing = Material & {
+  price: number;
+  id: string;
+  nodeId: string;
+  layer: MarketLayer;
+  isMystery?: boolean;
+  mysteryMask?: {
+    badge: '?';
+    disguisedName: string;
+  };
+};
+
+const DEFAULT_NODE_ID = 'TN_YUE_01';
+
+const LAYER_OPTIONS: Array<{ label: string; value: MarketLayer }> = [
+  { label: '凡市', value: 'common' },
+  { label: '珍宝阁', value: 'treasure' },
+  { label: '天宝殿', value: 'heaven' },
+  { label: '黑市', value: 'black' },
+];
 
 export default function MarketPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { cultivator, refresh } = useCultivator();
+  const { pushToast } = useInkUI();
+
+  const nodeId = searchParams.get('nodeId') || DEFAULT_NODE_ID;
+  const layer = (searchParams.get('layer') as MarketLayer | null) || 'common';
+  const activeLayer = useMemo<MarketLayer>(
+    () =>
+      ['common', 'treasure', 'heaven', 'black'].includes(layer)
+        ? layer
+        : 'common',
+    [layer],
+  );
+
   const [listings, setListings] = useState<MarketListing[]>([]);
   const [nextRefresh, setNextRefresh] = useState<number>(0);
   const [isRefreshingMarket, setIsRefreshingMarket] = useState(false);
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
   const [buyingId, setBuyingId] = useState<string | null>(null);
-  const { pushToast } = useInkUI();
-  const pathname = usePathname();
+  const [access, setAccess] = useState<{
+    allowed: boolean;
+    reason?: string;
+    entryFee?: number;
+  }>({ allowed: true });
+  const [marketFlavor, setMarketFlavor] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+
   const isFetchingRef = useRef(false);
   const nextRetryAtRef = useRef(0);
+
+  const selectedNode = getMapNode(nodeId);
 
   const fetchMarket = useCallback(
     async ({
@@ -44,22 +91,26 @@ export default function MarketPage() {
       if (showLoading) setIsLoadingMarket(true);
 
       try {
-        const res = await fetch('/api/market', { cache: 'no-store' });
+        const res = await fetch(`/api/market/${nodeId}?layer=${activeLayer}`, {
+          cache: 'no-store',
+        });
         const data = await res.json();
 
         if (!res.ok) {
           throw new Error(data?.error || '坊市暂未开启');
         }
 
-        if (data.listings) {
-          setListings(data.listings);
-          setNextRefresh(data.nextRefresh);
-          const isShortRetryWindow =
-            typeof data.nextRefresh === 'number' &&
-            data.nextRefresh - Date.now() <= 20000;
-          setIsRefreshingMarket(data.listings.length === 0 && isShortRetryWindow);
-          nextRetryAtRef.current = 0;
-        }
+        setListings(data.listings || []);
+        setNextRefresh(data.nextRefresh || Date.now() + 5000);
+        setAccess(data.access || { allowed: true });
+        setMarketFlavor(data.marketFlavor || null);
+        const isShortRetryWindow =
+          typeof data.nextRefresh === 'number' &&
+          data.nextRefresh - Date.now() <= 20000;
+        setIsRefreshingMarket(
+          (data.listings || []).length === 0 && isShortRetryWindow,
+        );
+        nextRetryAtRef.current = 0;
       } catch (error) {
         nextRetryAtRef.current = Date.now() + 5000;
         if (!silent) {
@@ -73,36 +124,49 @@ export default function MarketPage() {
         isFetchingRef.current = false;
       }
     },
-    [pushToast],
+    [activeLayer, nodeId, pushToast],
   );
 
   useEffect(() => {
+    if (!searchParams.get('nodeId')) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.set('nodeId', DEFAULT_NODE_ID);
+      if (!next.get('layer')) next.set('layer', 'common');
+      router.replace(`${pathname}?${next.toString()}`);
+      return;
+    }
     void fetchMarket({ showLoading: true });
-  }, [fetchMarket]);
+  }, [fetchMarket, pathname, router, searchParams]);
 
   const handleBuy = async (item: MarketListing) => {
     if (!cultivator) return;
+    if (!access.allowed) {
+      pushToast({
+        message: access.reason || '当前层不可进入',
+        tone: 'warning',
+      });
+      return;
+    }
     if (cultivator.spirit_stones < item.price) {
       pushToast({ message: '囊中羞涩，灵石不足', tone: 'warning' });
       return;
     }
 
-    setBuyingId(item.id!);
+    setBuyingId(item.id);
     try {
-      const res = await fetch('/api/market/buy', {
+      const res = await fetch(`/api/market/${nodeId}/buy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          itemId: item.id,
+          listingId: item.id,
           quantity: 1,
+          layer: activeLayer,
         }),
       });
       const result = await res.json();
       if (result.success) {
         pushToast({ message: `成功购入 ${item.name}`, tone: 'success' });
-        // Refresh cultivator to update spirit stones and inventory
         await refresh();
-        // Refresh market list (update quantity)
         void fetchMarket({ showLoading: false });
       } else {
         throw new Error(result.error);
@@ -140,20 +204,43 @@ export default function MarketPage() {
     return () => clearInterval(timer);
   }, [fetchMarket, nextRefresh]);
 
+  const handleLayerChange = (nextLayer: string) => {
+    const target = nextLayer as MarketLayer;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('nodeId', nodeId);
+    next.set('layer', target);
+    router.replace(`${pathname}?${next.toString()}`);
+  };
+
   return (
     <InkPageShell
-      title="【云游坊市】"
+      title={`【${marketFlavor?.title || '云游坊市'}】`}
       subtitle={
-        cultivator ? `灵石余额：${cultivator.spirit_stones}` : '路人止步'
+        cultivator
+          ? `灵石余额：${cultivator.spirit_stones} · 当前节点：${selectedNode?.name || nodeId}`
+          : '路人止步'
       }
       backHref="/game"
       currentPath={pathname}
       footer={
         <InkActionGroup>
+          <InkButton href="/game/map?intent=market">地图择城</InkButton>
           <InkButton href="/game/inventory">查看储物袋</InkButton>
         </InkActionGroup>
       }
     >
+      <InkSection title={marketFlavor?.description || '四方云集，价高者得'}>
+        <InkTabs
+          className="mb-4"
+          activeValue={activeLayer}
+          onChange={handleLayerChange}
+          items={LAYER_OPTIONS}
+        />
+        {!access.allowed && (
+          <InkNotice>{access.reason || '当前层不可进入'}</InkNotice>
+        )}
+      </InkSection>
+
       <InkSection title={`下批好货刷新倒计时：${timeLeft}`}>
         {isLoadingMarket ? (
           <div className="py-10 text-center">坊市掌柜正在盘货...</div>
@@ -166,12 +253,17 @@ export default function MarketPage() {
                 <InkListItem
                   key={item.id}
                   title={
-                    <>
-                      {item.name}
-                      <InkBadge tier={item.rank} className="ml-2">
-                        {typeInfo.label}
-                      </InkBadge>
-                    </>
+                    <div className="flex items-center">
+                      <div className="flex items-center">
+                        {item.isMystery && (
+                          <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border px-px text-xs">
+                            疑
+                          </span>
+                        )}
+                        {item.name}
+                      </div>
+                      <InkBadge tier={item.rank}>{typeInfo.label}</InkBadge>
+                    </div>
                   }
                   meta={
                     <div className="flex w-full items-center justify-between">
@@ -194,7 +286,9 @@ export default function MarketPage() {
                   actions={
                     <InkButton
                       onClick={() => handleBuy(item)}
-                      disabled={!!buyingId || item.quantity <= 0}
+                      disabled={
+                        !!buyingId || item.quantity <= 0 || !access.allowed
+                      }
                       variant="primary"
                       className="min-w-20"
                     >

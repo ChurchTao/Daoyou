@@ -112,6 +112,7 @@ export interface UseInventoryViewModelReturn {
   // 业务操作
   handleEquipToggle: (item: Artifact) => Promise<void>;
   handleConsume: (item: Consumable) => Promise<void>;
+  handleIdentifyMaterial: (item: Material) => Promise<void>;
   openDiscardConfirm: (
     item: InventoryItem,
     type: 'artifact' | 'consumable' | 'material',
@@ -125,14 +126,8 @@ export interface UseInventoryViewModelReturn {
 export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const PAGE_SIZE = 20;
 
-  const {
-    cultivator,
-    equipped,
-    isLoading,
-    refresh,
-    refreshInventory,
-    note,
-  } = useCultivator();
+  const { cultivator, equipped, isLoading, refresh, refreshInventory, note } =
+    useCultivator();
 
   const { pushToast } = useInkUI();
 
@@ -303,7 +298,14 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         }));
       }
     },
-    [activeTab, cultivator, fetchTabPage, paginationByTab, pushToast, refreshInventory],
+    [
+      activeTab,
+      cultivator,
+      fetchTabPage,
+      paginationByTab,
+      pushToast,
+      refreshInventory,
+    ],
   );
 
   // 打开丢弃确认
@@ -368,7 +370,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, fetchTabPage, paginationByTab.artifacts.page, pushToast, refresh],
+    [
+      cultivator,
+      fetchTabPage,
+      paginationByTab.artifacts.page,
+      pushToast,
+      refresh,
+    ],
   );
 
   // 服用丹药
@@ -407,7 +415,56 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, fetchTabPage, paginationByTab.consumables.page, pushToast, refresh],
+    [
+      cultivator,
+      fetchTabPage,
+      paginationByTab.consumables.page,
+      pushToast,
+      refresh,
+    ],
+  );
+
+  // 鉴定神秘材料
+  const handleIdentifyMaterial = useCallback(
+    async (item: Material) => {
+      if (!cultivator || !item.id) {
+        pushToast({
+          message: '此物暂无有效 ID，无法鉴定。',
+          tone: 'warning',
+        });
+        return;
+      }
+
+      setPendingId(item.id);
+      try {
+        const response = await fetch('/api/cultivator/inventory/identify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ materialId: item.id }),
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || '鉴定失败');
+        }
+
+        pushToast({
+          message: `鉴定完成：${result.revealedItem?.name || '未知宝物'}`,
+          tone: 'success',
+        });
+
+        await fetchTabPage('materials', paginationByTab.materials.page);
+      } catch (error) {
+        pushToast({
+          message:
+            error instanceof Error ? `鉴定失败：${error.message}` : '鉴定失败',
+          tone: 'danger',
+        });
+      } finally {
+        setPendingId(null);
+      }
+    },
+    [cultivator, fetchTabPage, paginationByTab.materials.page, pushToast],
   );
 
   const pagination = paginationByTab[activeTab];
@@ -482,6 +539,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     // 业务操作
     handleEquipToggle,
     handleConsume,
+    handleIdentifyMaterial,
     openDiscardConfirm,
   };
 }

@@ -3,17 +3,31 @@
 import { InkButton } from '@/components/ui/InkButton';
 import { InkTag } from '@/components/ui/InkTag';
 import type { MapNodeInfo } from '@/lib/game/mapSystem';
+import type { ComponentProps } from 'react';
+
+type InkButtonVariant = ComponentProps<typeof InkButton>['variant'];
+
+export interface MapNodeDetailAction {
+  key: string;
+  label: string;
+  onClick: () => void;
+  variant?: InkButtonVariant;
+}
 
 export interface MapNodeDetailProps {
   node: MapNodeInfo;
   onClose: () => void;
-  onSelect: () => void;
+  actions: MapNodeDetailAction[];
 }
 
 /**
  * 地图节点详情面板组件
  */
-export function MapNodeDetail({ node, onClose, onSelect }: MapNodeDetailProps) {
+export function MapNodeDetail({
+  node,
+  onClose,
+  actions,
+}: MapNodeDetailProps) {
   return (
     <div className="bg-background absolute right-4 bottom-16 left-4 z-40 md:right-8 md:left-auto md:w-96">
       <div className="animate-in slide-in-from-bottom border-ink/20 p-3 shadow-xl duration-300">
@@ -45,13 +59,20 @@ export function MapNodeDetail({ node, onClose, onSelect }: MapNodeDetailProps) {
           ))}
         </div>
 
-        <InkButton
-          variant="primary"
-          className="w-full justify-center"
-          onClick={onSelect}
-        >
-          选择此地
-        </InkButton>
+        {actions.length > 0 && (
+          <div className="flex gap-2">
+            {actions.map((action) => (
+              <InkButton
+                key={action.key}
+                variant={action.variant || 'secondary'}
+                className="w-full justify-center"
+                onClick={action.onClick}
+              >
+                {action.label}
+              </InkButton>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

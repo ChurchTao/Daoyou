@@ -48,6 +48,7 @@ export function InventoryView() {
     pendingId,
     handleEquipToggle,
     handleConsume,
+    handleIdentifyMaterial,
     openDiscardConfirm,
   } = useInventoryViewModel();
 
@@ -70,7 +71,7 @@ export function InventoryView() {
       footer={
         <InkActionGroup align="between">
           <InkButton href="/game">返回主界</InkButton>
-          <InkButton href="/game/market" variant="primary">
+          <InkButton href="/game/map?intent=market" variant="primary">
             前往坊市
           </InkButton>
           <InkButton href="/game/craft" variant="secondary">
@@ -114,6 +115,8 @@ export function InventoryView() {
           onSortChange={setMaterialSort}
           onResetFilters={resetMaterialFilters}
           onShowDetails={openItemDetail}
+          pendingId={pendingId}
+          onIdentify={handleIdentifyMaterial}
           onDiscard={(item) => openDiscardConfirm(item, 'material')}
         />
       )}

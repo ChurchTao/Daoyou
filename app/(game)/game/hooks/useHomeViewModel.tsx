@@ -67,7 +67,7 @@ const quickActionGroups: QuickActionGroup[] = [
     key: 'sell',
     title: '交易市场',
     actions: [
-      { label: '🛖 修仙坊市', href: '/game/market' },
+      { label: '🛖 修仙坊市', href: '/game/map?intent=market' },
       { label: '🧾 坊市鉴宝', href: '/game/market/recycle' },
       { label: '🔨 拍卖行', href: '/game/auction' },
       { label: '⚔️ 赌战台', href: '/game/bet-battle' },

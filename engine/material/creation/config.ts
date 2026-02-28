@@ -14,13 +14,13 @@ export const QUALITY_CHANCE_MAP: Record<Quality, number> = {
 
 // 随机生成时各类型出现的权重 (非固定生成时使用)
 export const TYPE_CHANCE_MAP: Record<MaterialType, number> = {
-  herb: 0.35, // 35% 灵药
+  herb: 0.3, // 30% 灵药
   ore: 0.28, // 28% 矿石
   monster: 0.22, // 22% 妖兽材料
-  tcdb: 0.07, // 7% 天材地宝
+  tcdb: 0.05, // 5% 天材地宝
   aux: 0.05, // 5% 特殊辅料
-  gongfa_manual: 0.015, // 1.5% 功法典籍（稀有）
-  skill_manual: 0.015, // 1.5% 神通秘术（稀有）
+  gongfa_manual: 0.05, // 5% 功法典籍（稀有）
+  skill_manual: 0.05, // 5% 神通秘术（稀有）
   manual: 0, // deprecated: blocked from new generation
 };
 

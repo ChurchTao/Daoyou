@@ -33,6 +33,8 @@ interface MaterialsTabProps {
   ) => void;
   onResetFilters: () => void;
   onShowDetails: (item: Material) => void;
+  pendingId?: string | null;
+  onIdentify: (item: Material) => void;
   onDiscard: (item: Material) => void;
 }
 
@@ -49,6 +51,8 @@ export function MaterialsTab({
   onSortChange,
   onResetFilters,
   onShowDetails,
+  pendingId,
+  onIdentify,
   onDiscard,
 }: MaterialsTabProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -171,16 +175,33 @@ export function MaterialsTab({
         <InkList>
           {materials.map((item, idx) => {
             const typeInfo = getMaterialTypeInfo(item.type);
+            const isMystery = Boolean(
+              item.details &&
+              typeof item.details === 'object' &&
+              'mystery' in item.details,
+            );
             return (
               <InkListItem
                 key={item.id || idx}
                 layout="col"
                 title={
                   <>
-                    {typeInfo.icon} {item.name}
+                    <span className="inline-flex items-center">
+                      {isMystery && (
+                        <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border px-px text-xs">
+                          疑
+                        </span>
+                      )}
+                      {typeInfo.icon} {item.name}
+                    </span>
                     <InkBadge tier={item.rank} className="ml-2">
                       {typeInfo.label}
                     </InkBadge>
+                    {isMystery && (
+                      <InkBadge tone="warning" className="ml-2">
+                        待鉴定
+                      </InkBadge>
+                    )}
                     <span className="text-ink-secondary ml-2 text-sm">
                       x{item.quantity}
                     </span>
@@ -196,6 +217,15 @@ export function MaterialsTab({
                     >
                       详情
                     </InkButton>
+                    {isMystery && (
+                      <InkButton
+                        variant="primary"
+                        disabled={pendingId === item.id}
+                        onClick={() => onIdentify(item)}
+                      >
+                        {pendingId === item.id ? '鉴定中…' : '鉴定'}
+                      </InkButton>
+                    )}
                     <InkButton
                       variant="secondary"
                       onClick={() => onDiscard(item)}

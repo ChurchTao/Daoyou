@@ -6,6 +6,11 @@
       "name": "越国·太岳山脉",
       "region": "天南",
       "realm_requirement": "炼气",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven", "black"],
+        "region_profile": "tiannan"
+      },
       "tags": ["黄枫谷", "灵气中等", "新手区"],
       "description": "越国七大派割据之地，黄枫谷所在地，山势雄奇。",
       "connections": ["TN_YUE_02", "TN_YW_01", "TN_XI_01", "TN_BORDER_01"],
@@ -28,6 +33,11 @@
       "name": "元武国",
       "region": "天南",
       "realm_requirement": "炼气",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven", "black"],
+        "region_profile": "tiannan"
+      },
       "tags": ["天星宗", "阵法交易", "齐云霄"],
       "description": "阵法之道极其发达，许多珍稀阵盘均产自此地。",
       "connections": ["TN_YUE_01", "TN_WE_01"],
@@ -39,6 +49,11 @@
       "name": "溪国·云梦山脉",
       "region": "天南",
       "realm_requirement": "筑基",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven", "black"],
+        "region_profile": "tiannan"
+      },
       "tags": ["落云宗", "古剑门", "百巧院"],
       "description": "天南灵气最浓郁的三个地点之一，三派共治。",
       "connections": ["TN_YUE_01", "TN_ZMG_01"],
@@ -83,6 +98,11 @@
       "name": "乱星海·天星城",
       "region": "乱星海",
       "realm_requirement": "筑基",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven", "black"],
+        "region_profile": "luanxinghai"
+      },
       "tags": ["枢纽", "星宫", "圣山", "修仙圣地"],
       "description": "乱星海核心，围绕巨型灵脉建立的城市，严禁私斗。",
       "connections": ["TN_BORDER_01", "LX_INNER_02", "LX_OUTER_01"],
@@ -105,6 +125,11 @@
       "name": "外星海·奇渊岛",
       "region": "乱星海",
       "realm_requirement": "金丹",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven", "black"],
+        "region_profile": "luanxinghai"
+      },
       "tags": ["高阶妖兽", "猎妖营地", "黑市"],
       "description": "深入妖兽腹地的孤岛，是猎取高阶妖丹的绝佳去处。",
       "connections": ["LX_INNER_01", "LX_VOID_01"],
@@ -127,6 +152,11 @@
       "name": "大晋·晋京",
       "region": "大晋",
       "realm_requirement": "筑基",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure", "heaven", "black"],
+        "region_profile": "dajin"
+      },
       "tags": ["人界巅峰", "顶级拍卖会", "皇权"],
       "description": "大晋帝都，商贸发达，元婴修士多如牛毛。",
       "connections": ["ML_PLAINS_01", "DJ_SOUTH_01", "DJ_NORTH_01", "DJ_KW_01"],
