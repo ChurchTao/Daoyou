@@ -17,8 +17,10 @@ import {
   getMarketAppraisalPrompt,
   getMarketAppraisalUserPrompt,
 } from '@/engine/market/appraisal/prompts';
-import { HighTierAppraisalSchema } from '@/engine/market/appraisal/types';
-import { BASE_PRICES, TYPE_MULTIPLIERS } from '@/engine/material/creation/config';
+import {
+  BASE_PRICES,
+  TYPE_MULTIPLIERS,
+} from '@/engine/material/creation/config';
 import { getExecutor } from '@/lib/drizzle/db';
 import {
   artifacts,
@@ -37,7 +39,7 @@ import type {
   SellPreviewItem,
   SellPreviewResponse,
 } from '@/types/market';
-import { object } from '@/utils/aiClient';
+import { text } from '@/utils/aiClient';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 const SELL_SESSION_PREFIX = 'market:sell:session:';
@@ -137,7 +139,10 @@ export function calculateLowTierUnitPrice(
       : material.rank === '灵品'
         ? LOW_TIER_ANCHOR_FACTOR.灵品
         : LOW_TIER_ANCHOR_FACTOR.玄品;
-  const recycleFactor = Math.min(RECYCLE_PRICE_FACTOR_CAP, Math.max(0.22, rankFactor));
+  const recycleFactor = Math.min(
+    RECYCLE_PRICE_FACTOR_CAP,
+    Math.max(0.22, rankFactor),
+  );
   return Math.max(1, Math.floor(basePrice * typeMultiplier * recycleFactor));
 }
 
@@ -164,7 +169,9 @@ export function calculateHighTierUnitPrice(
   if (factor >= PRODUCE_PRICE_FACTOR_MIN) {
     return Math.max(
       1,
-      Math.floor(basePrice * typeMultiplier * (PRODUCE_PRICE_FACTOR_MIN - 0.01)),
+      Math.floor(
+        basePrice * typeMultiplier * (PRODUCE_PRICE_FACTOR_MIN - 0.01),
+      ),
     );
   }
   return Math.max(1, Math.floor(basePrice * typeMultiplier * factor));
@@ -184,7 +191,9 @@ export function calculateArtifactUnitPrice(
 
   const score = Math.max(0, artifact.score || 0);
   const scoreMultiplier = clamp(0.92 + score / 3000, 0.92, 1.5);
-  const effectCount = Array.isArray(artifact.effects) ? artifact.effects.length : 0;
+  const effectCount = Array.isArray(artifact.effects)
+    ? artifact.effects.length
+    : 0;
   const effectMultiplier = 1 + Math.min(0.22, effectCount * 0.05);
   const slotMultiplier = ARTIFACT_SLOT_FACTOR[artifact.slot] ?? 1;
 
@@ -206,9 +215,12 @@ function getArtifactAppraisalRating(
   const quality = getArtifactQuality(artifact);
   const qualityScore = QUALITY_ORDER[quality] ?? 0;
   const score = Math.max(0, artifact.score || 0);
-  const effectCount = Array.isArray(artifact.effects) ? artifact.effects.length : 0;
+  const effectCount = Array.isArray(artifact.effects)
+    ? artifact.effects.length
+    : 0;
 
-  const total = qualityScore * 12 + Math.min(18, Math.floor(score / 220)) + effectCount * 3;
+  const total =
+    qualityScore * 12 + Math.min(18, Math.floor(score / 220)) + effectCount * 3;
   if (total >= 88) return 'S';
   if (total >= 70) return 'A';
   if (total >= 54) return 'B';
@@ -220,7 +232,9 @@ export function buildArtifactHighTierAppraisal(
 ): HighTierAppraisal {
   const quality = getArtifactQuality(artifact);
   const score = Math.max(0, artifact.score || 0);
-  const effectCount = Array.isArray(artifact.effects) ? artifact.effects.length : 0;
+  const effectCount = Array.isArray(artifact.effects)
+    ? artifact.effects.length
+    : 0;
 
   const rating = getArtifactAppraisalRating(artifact);
   const slotText =
@@ -265,19 +279,16 @@ export function buildFallbackAppraisal(material: Material): HighTierAppraisal {
   };
 }
 
-async function appraiseHighTierMaterial(material: Material): Promise<HighTierAppraisal> {
+async function appraiseHighTierMaterial(
+  material: Material,
+): Promise<HighTierAppraisal> {
   try {
-    const result = await object(
+    const result = await text(
       getMarketAppraisalPrompt(),
       getMarketAppraisalUserPrompt(material),
-      {
-        schema: HighTierAppraisalSchema,
-        schemaName: 'HighTierAppraisal',
-      },
       true,
-      false,
     );
-    return result.object;
+    return JSON.parse(result.text) as HighTierAppraisal;
   } catch (error) {
     console.warn('high-tier material appraisal failed, fallback used:', error);
     return buildFallbackAppraisal(material);
@@ -299,7 +310,12 @@ async function loadOwnedMaterials(
   const rows = await getExecutor()
     .select()
     .from(materials)
-    .where(and(eq(materials.cultivatorId, cultivatorId), inArray(materials.id, materialIds)));
+    .where(
+      and(
+        eq(materials.cultivatorId, cultivatorId),
+        inArray(materials.id, materialIds),
+      ),
+    );
 
   if (rows.length !== materialIds.length) {
     throw new MarketRecycleError(400, '部分材料不存在或不属于当前角色');
@@ -317,7 +333,12 @@ async function loadOwnedArtifacts(
   const rows = await getExecutor()
     .select()
     .from(artifacts)
-    .where(and(eq(artifacts.cultivatorId, cultivatorId), inArray(artifacts.id, artifactIds)));
+    .where(
+      and(
+        eq(artifacts.cultivatorId, cultivatorId),
+        inArray(artifacts.id, artifactIds),
+      ),
+    );
 
   if (rows.length !== artifactIds.length) {
     throw new MarketRecycleError(400, '部分法宝不存在或不属于当前角色');
@@ -362,7 +383,9 @@ function ensureArtifactsNotEquipped(
   }
 }
 
-function buildMaterialSessionSnapshot(items: SellPreviewItem[]): Record<string, MaterialSnapshot> {
+function buildMaterialSessionSnapshot(
+  items: SellPreviewItem[],
+): Record<string, MaterialSnapshot> {
   const snapshot: Record<string, MaterialSnapshot> = {};
   for (const item of items) {
     snapshot[item.id] = {
@@ -374,7 +397,9 @@ function buildMaterialSessionSnapshot(items: SellPreviewItem[]): Record<string, 
   return snapshot;
 }
 
-function buildArtifactSessionSnapshot(items: Artifact[]): Record<string, ArtifactSnapshot> {
+function buildArtifactSessionSnapshot(
+  items: Artifact[],
+): Record<string, ArtifactSnapshot> {
   const snapshot: Record<string, ArtifactSnapshot> = {};
   for (const item of items) {
     if (!item.id) continue;
@@ -444,7 +469,10 @@ async function previewMaterialSell(
     throw new MarketRecycleError(400, '未找到可回收材料');
   }
 
-  const totalSpiritStones = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const totalSpiritStones = items.reduce(
+    (sum, item) => sum + item.totalPrice,
+    0,
+  );
   const sessionId = crypto.randomUUID();
   const createdAt = Date.now();
   const expiresAt = createdAt + APPRAISAL_SESSION_TTL_SEC * 1000;
@@ -490,8 +518,12 @@ async function previewArtifactSell(
   const equippedIds = await getEquippedArtifactIds(cultivator.id);
   ensureArtifactsNotEquipped(ids, equippedIds, '已装备法宝不可回收，请先卸下');
 
-  const lowTier = ownedArtifacts.filter((item) => isLowTier(getArtifactQuality(item)));
-  const highTier = ownedArtifacts.filter((item) => isHighTier(getArtifactQuality(item)));
+  const lowTier = ownedArtifacts.filter((item) =>
+    isLowTier(getArtifactQuality(item)),
+  );
+  const highTier = ownedArtifacts.filter((item) =>
+    isHighTier(getArtifactQuality(item)),
+  );
 
   if (lowTier.length > 0 && highTier.length > 0) {
     throw new MarketRecycleError(400, '不可混合回收低品与高品法宝');
@@ -532,7 +564,10 @@ async function previewArtifactSell(
     };
   });
 
-  const totalSpiritStones = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const totalSpiritStones = items.reduce(
+    (sum, item) => sum + item.totalPrice,
+    0,
+  );
   const sessionId = crypto.randomUUID();
   const createdAt = Date.now();
   const expiresAt = createdAt + APPRAISAL_SESSION_TTL_SEC * 1000;
@@ -581,7 +616,9 @@ export async function previewSell(
 }
 
 async function readSession(sessionId: string): Promise<RecycleSession> {
-  const raw = (await redis.get(buildSessionKey(sessionId))) as SessionStore | null;
+  const raw = (await redis.get(
+    buildSessionKey(sessionId),
+  )) as SessionStore | null;
   if (!raw) {
     throw new MarketRecycleError(410, '回收确认已过期，请重新鉴定');
   }
@@ -605,16 +642,24 @@ async function confirmMaterialSell(
   cultivatorId: string,
   session: RecycleSession,
 ): Promise<SellConfirmResponse> {
-  const ownedMaterials = await loadOwnedMaterials(cultivatorId, session.itemIds);
+  const ownedMaterials = await loadOwnedMaterials(
+    cultivatorId,
+    session.itemIds,
+  );
   const snapshot = new Map(ownedMaterials.map((item) => [item.id, item]));
 
   for (const quoted of session.quotedItems) {
     const current = snapshot.get(quoted.id);
-    const expected = session.snapshot[quoted.id] as MaterialSnapshot | undefined;
+    const expected = session.snapshot[quoted.id] as
+      | MaterialSnapshot
+      | undefined;
     if (!current || !expected) {
       throw new MarketRecycleError(409, '材料已发生变化，请重新预览');
     }
-    if (current.quantity !== expected.quantity || current.rank !== expected.rank) {
+    if (
+      current.quantity !== expected.quantity ||
+      current.rank !== expected.rank
+    ) {
       throw new MarketRecycleError(409, '材料已发生变化，请重新预览');
     }
   }
@@ -622,7 +667,12 @@ async function confirmMaterialSell(
   const txResult = await getExecutor().transaction(async (tx) => {
     const deleted = await tx
       .delete(materials)
-      .where(and(eq(materials.cultivatorId, cultivatorId), inArray(materials.id, session.itemIds)))
+      .where(
+        and(
+          eq(materials.cultivatorId, cultivatorId),
+          inArray(materials.id, session.itemIds),
+        ),
+      )
       .returning({ id: materials.id });
 
     if (deleted.length !== session.itemIds.length) {
@@ -671,7 +721,12 @@ async function confirmArtifactSell(
     const rows = await tx
       .select()
       .from(artifacts)
-      .where(and(eq(artifacts.cultivatorId, cultivatorId), inArray(artifacts.id, session.itemIds)));
+      .where(
+        and(
+          eq(artifacts.cultivatorId, cultivatorId),
+          inArray(artifacts.id, session.itemIds),
+        ),
+      );
 
     if (rows.length !== session.itemIds.length) {
       throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
@@ -689,7 +744,9 @@ async function confirmArtifactSell(
 
     if (equippedRow) {
       const equippedSet = new Set(
-        [equippedRow.weapon, equippedRow.armor, equippedRow.accessory].filter(Boolean),
+        [equippedRow.weapon, equippedRow.armor, equippedRow.accessory].filter(
+          Boolean,
+        ),
       );
       if (session.itemIds.some((id) => equippedSet.has(id))) {
         throw new MarketRecycleError(409, '法宝已装备，无法回收，请先卸下');
@@ -703,7 +760,9 @@ async function confirmArtifactSell(
       if (!current || !expected) {
         throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
       }
-      const currentQuality = getArtifactQuality({ quality: current.quality as Quality });
+      const currentQuality = getArtifactQuality({
+        quality: current.quality as Quality,
+      });
       const currentScore = current.score || 0;
       const currentSlot = current.slot as Artifact['slot'];
       const currentEffectsHash = getEffectsHash(current.effects);
@@ -719,7 +778,12 @@ async function confirmArtifactSell(
 
     const deleted = await tx
       .delete(artifacts)
-      .where(and(eq(artifacts.cultivatorId, cultivatorId), inArray(artifacts.id, session.itemIds)))
+      .where(
+        and(
+          eq(artifacts.cultivatorId, cultivatorId),
+          inArray(artifacts.id, session.itemIds),
+        ),
+      )
       .returning({ id: artifacts.id });
 
     if (deleted.length !== session.itemIds.length) {

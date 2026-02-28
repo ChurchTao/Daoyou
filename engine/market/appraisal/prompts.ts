@@ -13,7 +13,13 @@ export function getMarketAppraisalPrompt(): string {
 - 字段必须完整：
   - rating: S | A | B | C
   - comment: 40~160 字仙侠风评语
-  - keywords: 0~8 个关键词
+  - keywords: 0~4 个关键词
+- 例如：
+{
+  "rating": "S",
+  "comment": "此乃仙界至宝，非同凡响。",
+  "keywords": ["绝世奇珍", "仙界至宝"]
+}
 
 ## 评级参考
 - S：绝世奇珍，明显具备高阶价值与稀缺性
