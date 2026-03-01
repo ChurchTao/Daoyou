@@ -588,7 +588,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
         .where(eq(cultivators.id, cultivatorId))
         .limit(1);
       if (sender) {
-        const rumorText = `【系统消息】鉴宝司金光冲霄，${sender.name}鉴出${payload.material.rank}「${payload.material.name}」，天降异象，诸界皆闻。`;
+        const rumorText = `鉴宝司金光冲霄，${sender.name}鉴出${payload.material.rank}「${payload.material.name}」，天降异象，诸界皆闻。`;
         try {
           await createMessage({
             senderUserId: sender.userId,
