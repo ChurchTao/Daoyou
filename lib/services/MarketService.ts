@@ -14,6 +14,7 @@ import {
   validateLayerAccess,
 } from '@/lib/game/marketConfig';
 import { redis } from '@/lib/redis';
+import { createMessage } from '@/lib/repositories/worldChatRepository';
 import { MaterialType, QUALITY_ORDER, RealmType } from '@/types/constants';
 import {
   MarketAccessState,
@@ -519,6 +520,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
         rollIdentifyCost(target.rank as keyof typeof QUALITY_ORDER),
     );
 
+    let revealedMaterialId = materialId;
     await getExecutor().transaction(async (tx) => {
       const [updatedCultivator] = await tx
         .update(cultivators)
@@ -542,16 +544,20 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
         await tx.delete(materials).where(eq(materials.id, materialId));
       }
 
-      await tx.insert(materials).values({
-        cultivatorId,
-        name: payload.material.name,
-        type: payload.material.type,
-        rank: payload.material.rank,
-        element: payload.material.element,
-        description: payload.material.description,
-        quantity: 1,
-        details: payload.material.details || {},
-      });
+      const [insertedMaterial] = await tx
+        .insert(materials)
+        .values({
+          cultivatorId,
+          name: payload.material.name,
+          type: payload.material.type,
+          rank: payload.material.rank,
+          element: payload.material.element,
+          description: payload.material.description,
+          quantity: 1,
+          details: payload.material.details || {},
+        })
+        .returning({ id: materials.id });
+      revealedMaterialId = insertedMaterial.id;
     });
 
     await redis.del(mysteryKey);
@@ -570,10 +576,56 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
           : delta <= -2
             ? 'big_loss'
             : 'normal';
+    const isHeavenOrAbove = realOrder >= QUALITY_ORDER['天品'];
+
+    if (isHeavenOrAbove) {
+      const [sender] = await getExecutor()
+        .select({
+          userId: cultivators.userId,
+          name: cultivators.name,
+        })
+        .from(cultivators)
+        .where(eq(cultivators.id, cultivatorId))
+        .limit(1);
+      if (sender) {
+        const rumorText = `【系统消息】鉴宝司金光冲霄，${sender.name}鉴出${payload.material.rank}「${payload.material.name}」，天降异象，诸界皆闻。`;
+        try {
+          await createMessage({
+            senderUserId: sender.userId,
+            senderCultivatorId: null,
+            senderName: '修仙界传闻',
+            senderRealm: '炼气',
+            senderRealmStage: '系统',
+            messageType: 'item_showcase',
+            textContent: rumorText,
+            payload: {
+              itemType: 'material',
+              itemId: revealedMaterialId,
+              snapshot: {
+                id: revealedMaterialId,
+                name: payload.material.name,
+                type: payload.material.type,
+                rank: payload.material.rank,
+                element: payload.material.element,
+                description: payload.material.description,
+                quantity: 1,
+              },
+              text: rumorText,
+            },
+          });
+        } catch (chatError) {
+          console.error('鉴定传闻发送失败:', chatError);
+        }
+      }
+    }
 
     return {
       success: true,
-      revealedItem: payload.material,
+      revealedItem: {
+        id: revealedMaterialId,
+        ...payload.material,
+        quantity: 1,
+      },
       cost,
       jackpotLevel,
       revealEffect:

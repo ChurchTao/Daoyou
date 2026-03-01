@@ -4,12 +4,13 @@ import { useInkUI } from '@/components/providers/InkUIProvider';
 import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import {
+  QUALITY_ORDER,
   type ElementType,
   type MaterialType,
   type Quality,
 } from '@/types/constants';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
@@ -43,6 +44,21 @@ interface InventoryApiPayload {
     pagination?: InventoryPagination;
   };
   error?: string;
+}
+
+interface IdentifyApiResult {
+  success: boolean;
+  revealedItem?: Material;
+  revealEffect?: string;
+  jackpotLevel?: 'legendary_win' | 'win' | 'big_loss' | 'normal';
+  error?: string;
+}
+
+interface IdentifyCelebrationState {
+  title: string;
+  subtitle: string;
+  effect: string;
+  itemName: string;
 }
 
 const inFlightInventoryRequestMap = new Map<
@@ -108,6 +124,7 @@ export interface UseInventoryViewModelReturn {
 
   // 操作状态
   pendingId: string | null;
+  identifyCelebration: IdentifyCelebrationState | null;
 
   // 业务操作
   handleEquipToggle: (item: Artifact) => Promise<void>;
@@ -181,6 +198,17 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
   // 操作状态
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [identifyCelebration, setIdentifyCelebration] =
+    useState<IdentifyCelebrationState | null>(null);
+  const identifyFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (identifyFxTimerRef.current) {
+        clearTimeout(identifyFxTimerRef.current);
+      }
+    };
+  }, []);
 
   // 拉取分页数据（按类型）
   const fetchTabPage = useCallback(
@@ -442,16 +470,47 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ materialId: item.id }),
         });
-        const result = await response.json();
+        const result = (await response.json()) as IdentifyApiResult;
 
         if (!response.ok || !result.success) {
           throw new Error(result.error || '鉴定失败');
         }
 
+        const revealed = result.revealedItem
+          ? {
+              ...result.revealedItem,
+              quantity: result.revealedItem.quantity || 1,
+            }
+          : null;
+
         pushToast({
           message: `鉴定完成：${result.revealedItem?.name || '未知宝物'}`,
           tone: 'success',
         });
+
+        if (revealed) {
+          setSelectedItem(revealed);
+          setIsModalOpen(true);
+        }
+
+        const isHeavenOrAbove =
+          revealed &&
+          QUALITY_ORDER[revealed.rank] >= QUALITY_ORDER['天品'];
+
+        if (isHeavenOrAbove) {
+          setIdentifyCelebration({
+            title: '金光闪现',
+            subtitle: '天降异象',
+            effect: result.revealEffect || '金光冲霄',
+            itemName: revealed.name,
+          });
+          if (identifyFxTimerRef.current) {
+            clearTimeout(identifyFxTimerRef.current);
+          }
+          identifyFxTimerRef.current = setTimeout(() => {
+            setIdentifyCelebration(null);
+          }, 2600);
+        }
 
         await fetchTabPage('materials', paginationByTab.materials.page);
       } catch (error) {
@@ -535,6 +594,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
     // 操作状态
     pendingId,
+    identifyCelebration,
 
     // 业务操作
     handleEquipToggle,

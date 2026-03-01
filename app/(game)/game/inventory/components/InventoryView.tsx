@@ -46,6 +46,7 @@ export function InventoryView() {
     dialog,
     closeDialog,
     pendingId,
+    identifyCelebration,
     handleEquipToggle,
     handleConsume,
     handleIdentifyMaterial,
@@ -157,6 +158,27 @@ export function InventoryView() {
         onClose={closeItemDetail}
         item={selectedItem}
       />
+
+      {identifyCelebration && (
+        <div
+          className="identify-heavenly-omen"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="border-tier-tian/45 bg-paper/92 relative z-10 w-[min(92vw,460px)] border px-6 py-5 text-center shadow-[0_0_45px_rgba(239,191,4,0.42)]">
+            <p className="text-tier-tian text-lg font-bold">
+              {identifyCelebration.title}
+            </p>
+            <p className="mt-1 text-sm">{identifyCelebration.subtitle}</p>
+            <p className="mt-2 text-sm text-amber-700">
+              {identifyCelebration.effect}
+            </p>
+            <p className="mt-3 text-base font-semibold">
+              「{identifyCelebration.itemName}」
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 确认对话框 */}
       <InkDialog dialog={dialog} onClose={closeDialog} />
