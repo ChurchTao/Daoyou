@@ -4,6 +4,7 @@ import { InkPageShell } from '@/components/layout';
 import { InkActionGroup } from '@/components/ui/InkActionGroup';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkDialog } from '@/components/ui/InkDialog';
+import { InkIdentifyCelebration } from '@/components/ui/InkIdentifyCelebration';
 import { InkTabs } from '@/components/ui/InkTabs';
 import { usePathname } from 'next/navigation';
 
@@ -47,6 +48,7 @@ export function InventoryView() {
     closeDialog,
     pendingId,
     identifyCelebration,
+    clearIdentifyCelebration,
     handleEquipToggle,
     handleConsume,
     handleIdentifyMaterial,
@@ -159,25 +161,12 @@ export function InventoryView() {
         item={selectedItem}
       />
 
+      {/* 鉴定庆祝特效 */}
       {identifyCelebration && (
-        <div
-          className="identify-heavenly-omen"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="border-tier-tian/45 bg-paper/92 relative z-10 w-[min(92vw,460px)] border px-6 py-5 text-center shadow-[0_0_45px_rgba(239,191,4,0.42)]">
-            <p className="text-tier-tian text-lg font-bold">
-              {identifyCelebration.title}
-            </p>
-            <p className="mt-1 text-sm">{identifyCelebration.subtitle}</p>
-            <p className="mt-2 text-sm text-amber-700">
-              {identifyCelebration.effect}
-            </p>
-            <p className="mt-3 text-base font-semibold">
-              「{identifyCelebration.itemName}」
-            </p>
-          </div>
-        </div>
+        <InkIdentifyCelebration
+          {...identifyCelebration}
+          onComplete={clearIdentifyCelebration}
+        />
       )}
 
       {/* 确认对话框 */}

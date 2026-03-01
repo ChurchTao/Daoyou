@@ -39,3 +39,7 @@ export {
   type InkToastHostProps,
   type InkToastTone,
 } from './InkToast';
+export {
+  InkIdentifyCelebration,
+  type IdentifyCelebrationData,
+} from './InkIdentifyCelebration';

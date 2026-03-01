@@ -10,7 +10,7 @@ import {
   type Quality,
 } from '@/types/constants';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
@@ -55,10 +55,7 @@ interface IdentifyApiResult {
 }
 
 interface IdentifyCelebrationState {
-  title: string;
-  subtitle: string;
-  effect: string;
-  itemName: string;
+  rank?: string;
 }
 
 const inFlightInventoryRequestMap = new Map<
@@ -125,6 +122,7 @@ export interface UseInventoryViewModelReturn {
   // 操作状态
   pendingId: string | null;
   identifyCelebration: IdentifyCelebrationState | null;
+  clearIdentifyCelebration: () => void;
 
   // 业务操作
   handleEquipToggle: (item: Artifact) => Promise<void>;
@@ -200,14 +198,9 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [identifyCelebration, setIdentifyCelebration] =
     useState<IdentifyCelebrationState | null>(null);
-  const identifyFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (identifyFxTimerRef.current) {
-        clearTimeout(identifyFxTimerRef.current);
-      }
-    };
+  const clearIdentifyCelebration = useCallback(() => {
+    setIdentifyCelebration(null);
   }, []);
 
   // 拉取分页数据（按类型）
@@ -499,17 +492,8 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
         if (isHeavenOrAbove) {
           setIdentifyCelebration({
-            title: '金光闪现',
-            subtitle: '天降异象',
-            effect: result.revealEffect || '金光冲霄',
-            itemName: revealed.name,
+            rank: revealed.rank,
           });
-          if (identifyFxTimerRef.current) {
-            clearTimeout(identifyFxTimerRef.current);
-          }
-          identifyFxTimerRef.current = setTimeout(() => {
-            setIdentifyCelebration(null);
-          }, 2600);
         }
 
         await fetchTabPage('materials', paginationByTab.materials.page);
@@ -595,6 +579,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     // 操作状态
     pendingId,
     identifyCelebration,
+    clearIdentifyCelebration,
 
     // 业务操作
     handleEquipToggle,
