@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -372,6 +373,62 @@ export const mails = pgTable(
       table.isRead,
       table.createdAt,
     ),
+  ],
+);
+
+// 兑换码表
+export const redeemCodes = pgTable(
+  'wanjiedaoyou_redeem_codes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    code: varchar('code', { length: 64 }).notNull(),
+    rewardPresetId: varchar('reward_preset_id', { length: 100 }).notNull(),
+    mailTitle: varchar('mail_title', { length: 200 }).notNull(),
+    mailContent: text('mail_content').notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('active'), // active | disabled
+    totalLimit: integer('total_limit'),
+    claimedCount: integer('claimed_count').notNull().default(0),
+    startsAt: timestamp('starts_at'),
+    endsAt: timestamp('ends_at'),
+    createdBy: uuid('created_by').notNull(),
+    updatedBy: uuid('updated_by').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('redeem_codes_code_unique').on(table.code),
+    index('redeem_codes_status_created_idx').on(table.status, table.createdAt),
+    index('redeem_codes_created_idx').on(table.createdAt),
+  ],
+);
+
+// 兑换记录表
+export const redeemCodeClaims = pgTable(
+  'wanjiedaoyou_redeem_code_claims',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    redeemCodeId: uuid('redeem_code_id')
+      .references(() => redeemCodes.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id').notNull(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    mailId: uuid('mail_id')
+      .references(() => mails.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('redeem_code_claims_code_user_unique').on(
+      table.redeemCodeId,
+      table.userId,
+    ),
+    index('redeem_code_claims_user_idx').on(table.userId),
+    index('redeem_code_claims_code_idx').on(table.redeemCodeId),
   ],
 );
 

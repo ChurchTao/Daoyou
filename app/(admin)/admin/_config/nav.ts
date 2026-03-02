@@ -30,4 +30,9 @@ export const adminNavItems: AdminNavItem[] = [
     description: '运营文案模板管理',
     href: '/admin/templates',
   },
+  {
+    title: '兑换码管理',
+    description: '活动兑换码创建与停用',
+    href: '/admin/redeem-codes',
+  },
 ];

@@ -225,6 +225,13 @@
       "when": 1772101800613,
       "tag": "0031_bright_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1772420716186,
+      "tag": "0032_minor_violations",
+      "breakpoints": true
     }
   ]
 }

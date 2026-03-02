@@ -8,6 +8,7 @@ export interface IdentifyCelebrationData {
 }
 
 interface IdentifyCelebrationProps extends IdentifyCelebrationData {
+  variant?: 'identify' | 'basic';
   onComplete?: () => void;
 }
 
@@ -17,9 +18,23 @@ interface IdentifyCelebrationProps extends IdentifyCelebrationData {
  */
 export function InkIdentifyCelebration({
   rank,
+  variant = 'identify',
   onComplete,
 }: IdentifyCelebrationProps) {
   useEffect(() => {
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (motionQuery.matches) {
+      onComplete?.();
+      return;
+    }
+
+    if (variant === 'basic') {
+      const rafId = runBasicConfetti(onComplete);
+      return () => {
+        cancelAnimationFrame(rafId);
+      };
+    }
+
     const rootStyle = getComputedStyle(document.documentElement);
     const tierVar = rank?.includes('神')
       ? '--color-tier-shen'
@@ -28,12 +43,6 @@ export function InkIdentifyCelebration({
         : '--color-tier-tian';
     const tierColor = rootStyle.getPropertyValue(tierVar).trim() || '#efbf04';
     const colors = makeVariantColors(tierColor);
-
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (motionQuery.matches) {
-      onComplete?.();
-      return;
-    }
 
     const end = Date.now() + 3 * 1000;
     let rafId = 0;
@@ -84,9 +93,37 @@ export function InkIdentifyCelebration({
       stopped = true;
       cancelAnimationFrame(rafId);
     };
-  }, [rank, onComplete]);
+  }, [rank, variant, onComplete]);
 
   return null;
+}
+
+function runBasicConfetti(onComplete?: () => void): number {
+  const duration = 1400;
+  const end = Date.now() + duration;
+  let rafId = 0;
+
+  const frame = () => {
+    const remaining = end - Date.now();
+    if (remaining <= 0) {
+      onComplete?.();
+      return;
+    }
+
+    const particleCount = Math.max(10, Math.floor((remaining / duration) * 28));
+    confetti({
+      particleCount,
+      spread: 68,
+      startVelocity: 42,
+      zIndex: 260,
+      origin: { x: Math.random(), y: 0.22 + Math.random() * 0.2 },
+    });
+
+    rafId = requestAnimationFrame(frame);
+  };
+
+  frame();
+  return rafId;
 }
 
 function makeVariantColors(baseHex: string): string[] {

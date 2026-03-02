@@ -3,3 +3,7 @@
  */
 
 export { buffTemplates } from './buffTemplates';
+export {
+  getRedeemPresetById,
+  getRedeemPresetOptions,
+} from './redeemRewardPresets';

@@ -33,7 +33,9 @@ export class MailService {
     const mailType = attachments.length > 0 ? 'reward' : type;
 
     const q = getExecutor(tx);
-    await q.insert(mails).values({
+    const [mail] = await q
+      .insert(mails)
+      .values({
       cultivatorId,
       title,
       content,
@@ -41,7 +43,10 @@ export class MailService {
       attachments,
       isRead: false,
       isClaimed: false,
-    });
+      })
+      .returning({ id: mails.id });
+
+    return mail;
   }
 
   /**

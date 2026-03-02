@@ -78,6 +78,7 @@ const quickActionGroups: QuickActionGroup[] = [
     title: '道友服务',
     actions: [
       { label: '💬 世界传音', href: '/game/world-chat' },
+      { label: '🎁 兑换码', href: '/game/redeem' },
       { label: '👥 玩家交流群', href: '/game/community' },
       { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
       { label: '📝 意见反馈', href: '/game/settings/feedback' },

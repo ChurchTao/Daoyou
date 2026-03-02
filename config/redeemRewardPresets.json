@@ -1,0 +1,102 @@
+{
+  "welcome_stones": {
+    "name": "新友见面礼",
+    "description": "基础灵石补给，适合新道友启程。",
+    "attachments": [
+      {
+        "type": "spirit_stones",
+        "name": "灵石",
+        "quantity": 5000
+      }
+    ]
+  },
+  "talisman_reshape_fate": {
+    "name": "天机逆命符",
+    "description": "可获三次推演命格之机，择优而栖。",
+    "attachments": [
+      {
+        "type": "consumable",
+        "name": "天机逆命符",
+        "quantity": 3,
+        "data": {
+          "name": "天机逆命符",
+          "type": "符箓",
+          "quality": "仙品",
+          "quantity": 1,
+          "description": "以此符遮蔽天机，逆转先天之数。可获三次推演命格之机，择优而栖。",
+          "effects": [
+            {
+              "type": "ConsumeAddBuff",
+              "trigger": "ON_CONSUME",
+              "params": {
+                "buffId": "reshape_fate_talisman",
+                "expiryMinutes": 3600,
+                "maxUses": 3
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "talisman_draw_gongfa": {
+    "name": "悟道演法符",
+    "description": "三日内可得一次机缘，领悟一部玄品以上功法典籍。",
+    "attachments": [
+      {
+        "type": "consumable",
+        "name": "悟道演法符",
+        "quantity": 1,
+        "data": {
+          "name": "悟道演法符",
+          "type": "符箓",
+          "quality": "仙品",
+          "quantity": 1,
+          "description": "燃此符可神游太虚，感悟天地至理。三日内可得一次机缘，从虚空中领悟一部玄品以上功法典籍。",
+          "effects": [
+            {
+              "type": "ConsumeAddBuff",
+              "trigger": "ON_CONSUME",
+              "params": {
+                "buffId": "draw_gongfa_talisman",
+                "expiryMinutes": 3600,
+                "maxUses": 1,
+                "drawType": "gongfa"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "talisman_draw_skill": {
+    "name": "神通衍化符",
+    "description": "三日内可得一次机缘，衍化出一门玄品以上神通秘术。",
+    "attachments": [
+      {
+        "type": "consumable",
+        "name": "神通衍化符",
+        "quantity": 1,
+        "data": {
+          "name": "神通衍化符",
+          "type": "符箓",
+          "quality": "仙品",
+          "quantity": 1,
+          "description": "此符蕴含天地法则碎片。三日内可得一次机缘，衍化出一门玄品以上神通秘术。",
+          "effects": [
+            {
+              "type": "ConsumeAddBuff",
+              "trigger": "ON_CONSUME",
+              "params": {
+                "buffId": "draw_skill_talisman",
+                "expiryMinutes": 3600,
+                "maxUses": 1,
+                "drawType": "skill"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
