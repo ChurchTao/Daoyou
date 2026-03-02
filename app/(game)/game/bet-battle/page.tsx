@@ -1,6 +1,10 @@
 'use client';
 
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
+import {
+  TEMP_DISABLED_MESSAGES,
+  temporaryRestrictions,
+} from '@/config/temporaryRestrictions';
 import { formatProbeResultContent } from '@/components/func/ProbeResult';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { InkModal } from '@/components/layout/InkModal';
@@ -487,11 +491,16 @@ export default function BetBattlePage() {
 
   const renderItem = (item: BetBattleListing, mine = false) => {
     const isCreator = item.creatorId === cultivator?.id;
+    const isConsumableStakeDisabled =
+      temporaryRestrictions.disableConsumableBetBattle &&
+      item.creatorStakeSnapshot.stakeType === 'item' &&
+      item.creatorStakeSnapshot.item?.itemType === 'consumable';
     const canChallenge =
       !!cultivator &&
       !isCreator &&
       item.status === 'pending' &&
-      new Date(item.expiresAt).getTime() > Date.now();
+      new Date(item.expiresAt).getTime() > Date.now() &&
+      !isConsumableStakeDisabled;
     const statusMeta = getStatusMeta(item.status);
     const remainText = formatRemainTime(item.expiresAt);
     const isEndingSoon =
@@ -580,6 +589,11 @@ export default function BetBattlePage() {
                 应战
               </InkButton>
             )}
+            {!isCreator && isConsumableStakeDisabled && item.status === 'pending' && (
+              <InkButton variant="secondary" disabled={true}>
+                暂不可应战
+              </InkButton>
+            )}
             {mine &&
               isCreator &&
               item.status === 'pending' &&
@@ -625,6 +639,9 @@ export default function BetBattlePage() {
         activeValue={activeTab}
         onChange={(value) => setActiveTab(value as 'hall' | 'mine')}
       />
+      {temporaryRestrictions.disableConsumableBetBattle && (
+        <InkNotice>{TEMP_DISABLED_MESSAGES.consumableBetBattle}</InkNotice>
+      )}
 
       {activeTab === 'hall' ? (
         <InkSection title="">
@@ -687,7 +704,7 @@ function BetBattleCreateModal({
 }) {
   const { pushToast } = useInkUI();
   const [selectedStakeType, setSelectedStakeType] = useState<
-    'spirit_stones' | 'material' | 'artifact' | 'consumable'
+    'spirit_stones' | 'material' | 'artifact'
   >('spirit_stones');
   const [selectedItem, setSelectedItem] = useState<SelectedStake | null>(null);
   const [spiritStones, setSpiritStones] = useState('');
@@ -845,21 +862,19 @@ function BetBattleCreateModal({
               { label: '灵石', value: 'spirit_stones' },
               { label: '材料', value: 'material' },
               { label: '法宝', value: 'artifact' },
-              { label: '消耗品', value: 'consumable' },
             ]}
             activeValue={selectedStakeType}
             onChange={(value) => {
               setSelectedStakeType(
-                value as
-                  | 'spirit_stones'
-                  | 'material'
-                  | 'artifact'
-                  | 'consumable',
+                value as 'spirit_stones' | 'material' | 'artifact',
               );
               setListError('');
               setSelectedItem(null);
             }}
           />
+          {temporaryRestrictions.disableConsumableBetBattle && (
+            <InkNotice>{TEMP_DISABLED_MESSAGES.consumableBetBattle}</InkNotice>
+          )}
 
           {selectedStakeType === 'spirit_stones' ? (
             <InkInput
@@ -1046,6 +1061,10 @@ function BetBattleChallengeModal({
   } = useInventorySelector();
 
   const requiredItem = creatorStake.item;
+  const isConsumableStakeDisabled =
+    temporaryRestrictions.disableConsumableBetBattle &&
+    creatorStake.stakeType === 'item' &&
+    requiredItem?.itemType === 'consumable';
 
   useEffect(() => {
     if (creatorStake.stakeType === 'item' && requiredItem) {
@@ -1083,6 +1102,14 @@ function BetBattleChallengeModal({
 
   const handleSubmit = async () => {
     try {
+      if (isConsumableStakeDisabled) {
+        pushToast({
+          message: TEMP_DISABLED_MESSAGES.consumableBetBattle,
+          tone: 'warning',
+        });
+        return;
+      }
+
       if (!isProbablyMatched) {
         pushToast({ message: '押注尚未匹配，请先调整', tone: 'warning' });
         return;
@@ -1119,6 +1146,8 @@ function BetBattleChallengeModal({
   const isProbablyMatched =
     creatorStake.stakeType === 'spirit_stones'
       ? Number(spiritStones) === creatorStake.spiritStones
+      : isConsumableStakeDisabled
+        ? false
       : !!selectedItem &&
         !!requiredItem &&
         selectedItem.itemType === requiredItem.itemType &&
@@ -1135,7 +1164,7 @@ function BetBattleChallengeModal({
           <InkButton
             variant="primary"
             onClick={() => void handleSubmit()}
-            disabled={submitting}
+            disabled={submitting || isConsumableStakeDisabled}
           >
             {submitting ? '应战中' : '确认应战'}
           </InkButton>
@@ -1160,13 +1189,14 @@ function BetBattleChallengeModal({
             value={spiritStones}
             onChange={(value) => setSpiritStones(value)}
           />
+        ) : isConsumableStakeDisabled ? (
+          <InkNotice>{TEMP_DISABLED_MESSAGES.consumableBetBattle}</InkNotice>
         ) : (
           <>
             <InkTabs
               items={[
                 { label: '材料', value: 'material' },
                 { label: '法宝', value: 'artifact' },
-                { label: '消耗品', value: 'consumable' },
               ]}
               activeValue={activeType}
               onChange={(value) => {

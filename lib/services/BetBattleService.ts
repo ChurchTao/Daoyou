@@ -1,5 +1,9 @@
 import type { BattleEngineResult } from '@/engine/battle';
 import { simulateBattle } from '@/engine/battle';
+import {
+  TEMP_DISABLED_MESSAGES,
+  temporaryRestrictions,
+} from '@/config/temporaryRestrictions';
 import { redis } from '@/lib/redis';
 import * as betBattleRepository from '@/lib/repositories/betBattleRepository';
 import { createMessage } from '@/lib/repositories/worldChatRepository';
@@ -93,6 +97,7 @@ export const BetBattleError = {
   INVALID_QUANTITY: 'INVALID_QUANTITY',
   INSUFFICIENT_SPIRIT_STONES: 'INSUFFICIENT_SPIRIT_STONES',
   CONCURRENT_OPERATION: 'CONCURRENT_OPERATION',
+  CONSUMABLE_STAKE_DISABLED: 'CONSUMABLE_STAKE_DISABLED',
 } as const;
 
 export type BetBattleErrorCode =
@@ -157,6 +162,27 @@ function validateExclusiveStake(
       '押注数量至少为1',
     );
   }
+}
+
+function assertConsumableStakeAllowed(stakeItem: BetStakeInputItem | null): void {
+  if (!temporaryRestrictions.disableConsumableBetBattle) return;
+  if (stakeItem?.itemType !== 'consumable') return;
+
+  throw new BetBattleServiceError(
+    BetBattleError.CONSUMABLE_STAKE_DISABLED,
+    TEMP_DISABLED_MESSAGES.consumableBetBattle,
+  );
+}
+
+function assertBattleSnapshotStakeAllowed(rawStake: unknown): void {
+  if (!temporaryRestrictions.disableConsumableBetBattle) return;
+  const snapshot = normalizeStakeSnapshot(rawStake);
+  if (snapshot.item?.itemType !== 'consumable') return;
+
+  throw new BetBattleServiceError(
+    BetBattleError.CONSUMABLE_STAKE_DISABLED,
+    TEMP_DISABLED_MESSAGES.consumableBetBattle,
+  );
 }
 
 function validateRealmRange(minRealm: string, maxRealm: string): void {
@@ -485,6 +511,7 @@ export async function createBetBattle(
   const stakeItem = input.stakeItem ?? null;
 
   validateExclusiveStake(input.stakeType, spiritStones, stakeItem);
+  assertConsumableStakeAllowed(stakeItem);
   validateRealmRange(input.minRealm, input.maxRealm);
 
   const lockKey = `${CREATE_LOCK_PREFIX}${input.creatorId}`;
@@ -547,6 +574,7 @@ export async function challengeBetBattle(
   const stakeItem = input.stakeItem ?? null;
 
   validateExclusiveStake(input.stakeType, spiritStones, stakeItem);
+  assertConsumableStakeAllowed(stakeItem);
 
   const lockKey = `${CHALLENGE_LOCK_PREFIX}${input.battleId}`;
   const acquired = await redis.set(lockKey, 'locked', { nx: true, ex: 10 });
@@ -620,6 +648,8 @@ export async function challengeBetBattle(
         '发起者角色不存在',
       );
     }
+
+    assertBattleSnapshotStakeAllowed(betBattle.creatorStakeSnapshot);
 
     const creatorStake = normalizeStakeSnapshot(betBattle.creatorStakeSnapshot);
     const battleResult = simulateBattle(

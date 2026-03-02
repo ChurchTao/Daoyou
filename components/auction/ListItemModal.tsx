@@ -2,6 +2,10 @@
 
 import { InkModal } from '@/components/layout/InkModal';
 import {
+  TEMP_DISABLED_MESSAGES,
+  temporaryRestrictions,
+} from '@/config/temporaryRestrictions';
+import {
   InkBadge,
   InkButton,
   InkInput,
@@ -261,6 +265,14 @@ export function ListItemModal({
   }, [activeType, cultivator?.id, fetchItemPage]);
 
   const handleSelectItem = (item: SelectableItem) => {
+    if (
+      temporaryRestrictions.disableConsumableAuctionListing &&
+      item.itemType === 'consumable'
+    ) {
+      setListError(TEMP_DISABLED_MESSAGES.consumableAuctionListing);
+      return;
+    }
+
     if (!isAuctionListableItem(item)) {
       setListError(`仅玄品及以上物品可寄售，当前为${getItemQuality(item)}`);
       return;
@@ -288,6 +300,13 @@ export function ListItemModal({
 
     if (!isAuctionListableItem(selectedItem)) {
       setError(`仅玄品及以上物品可寄售，当前为${getItemQuality(selectedItem)}`);
+      return;
+    }
+    if (
+      temporaryRestrictions.disableConsumableAuctionListing &&
+      selectedItem.itemType === 'consumable'
+    ) {
+      setError(TEMP_DISABLED_MESSAGES.consumableAuctionListing);
       return;
     }
 
@@ -480,7 +499,6 @@ export function ListItemModal({
   const tabs = [
     { label: '材料', value: 'material' },
     { label: '法宝', value: 'artifact' },
-    { label: '消耗品', value: 'consumable' },
   ];
 
   return (
@@ -530,6 +548,13 @@ export function ListItemModal({
               setIsFilterOpen(false);
             }}
           />
+          {temporaryRestrictions.disableConsumableAuctionListing && (
+            <div className="mt-3">
+              <InkNotice>
+                {TEMP_DISABLED_MESSAGES.consumableAuctionListing}
+              </InkNotice>
+            </div>
+          )}
 
           <div className="bg-ink/5 border-ink/10 mt-4 border p-2">
             <div className="flex items-center justify-between">

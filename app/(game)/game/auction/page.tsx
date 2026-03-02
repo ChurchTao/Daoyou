@@ -1,6 +1,10 @@
 'use client';
 
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
+import {
+  TEMP_DISABLED_MESSAGES,
+  temporaryRestrictions,
+} from '@/config/temporaryRestrictions';
 import { ListItemModal } from '@/components/auction/ListItemModal';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
@@ -393,6 +397,9 @@ export default function AuctionPage() {
       }
     >
       <InkTabs items={tabs} activeValue={activeTab} onChange={setActiveTab} />
+      {temporaryRestrictions.disableConsumableAuctionListing && (
+        <InkNotice>{TEMP_DISABLED_MESSAGES.consumableAuctionListing}</InkNotice>
+      )}
 
       {activeTab === 'browse' ? (
         <InkSection title="">

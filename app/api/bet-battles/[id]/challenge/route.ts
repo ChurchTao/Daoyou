@@ -39,6 +39,7 @@ const statusMap: Record<string, number> = {
   INVALID_QUANTITY: 400,
   INSUFFICIENT_SPIRIT_STONES: 400,
   CONCURRENT_OPERATION: 429,
+  CONSUMABLE_STAKE_DISABLED: 400,
 };
 
 export const POST = withActiveCultivator(

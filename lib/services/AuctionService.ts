@@ -1,5 +1,9 @@
 import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
+import {
+  TEMP_DISABLED_MESSAGES,
+  temporaryRestrictions,
+} from '@/config/temporaryRestrictions';
 import { QUALITY_ORDER, type Quality } from '@/types/constants';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
@@ -36,6 +40,7 @@ export const AuctionError = {
   INVALID_PRICE: 'INVALID_PRICE',
   INVALID_QUANTITY: 'INVALID_QUANTITY',
   INVALID_ITEM_QUALITY: 'INVALID_ITEM_QUALITY',
+  CONSUMABLE_LISTING_DISABLED: 'CONSUMABLE_LISTING_DISABLED',
 } as const;
 
 export type AuctionErrorCode = (typeof AuctionError)[keyof typeof AuctionError];
@@ -195,6 +200,16 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     throw new AuctionServiceError(
       AuctionError.INVALID_ITEM_TYPE,
       '无效的物品类型',
+    );
+  }
+
+  if (
+    temporaryRestrictions.disableConsumableAuctionListing &&
+    itemType === 'consumable'
+  ) {
+    throw new AuctionServiceError(
+      AuctionError.CONSUMABLE_LISTING_DISABLED,
+      TEMP_DISABLED_MESSAGES.consumableAuctionListing,
     );
   }
 
