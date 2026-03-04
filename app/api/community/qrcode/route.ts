@@ -1,5 +1,5 @@
 const COMMUNITY_QR_CODE_SOURCE =
-  'https://free.picui.cn/free/2026/02/24/699d3f0b15dd6.jpg';
+  'https://free.picui.cn/free/2026/03/04/69a828a05b19e.jpg';
 
 /**
  * 代理 README 中的群二维码，避免跨域下载受限。
