@@ -21,10 +21,7 @@ const mockPlayer: PlayerInfo = {
   skills: [],
   spirit_stones: 100,
   background: '测试背景',
-  inventory: {
-    artifacts: [],
-    materials: [],
-  },
+  inventory_summary: 'mock inventory',
 };
 
 test('test 敌人生成器', async () => {

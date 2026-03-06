@@ -23,7 +23,9 @@ export const DungeonCostSchema = z.object({
     'artifact_damage',
   ]),
   value: z.number().describe('数量或强度'),
-  name: z.string().optional().describe('材料名称（material 类型需要）'),
+  name: z.string().optional().describe('材料名称（material 类型需要，如果未知可省略留给系统匹配）'),
+  required_quality: z.enum(['凡品', '灵品', '玄品', '真品', '地品', '天品', '仙品']).optional().describe('模糊要求时：最低品质'),
+  required_type: z.enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'gongfa_manual', 'skill_manual']).optional().describe('模糊要求时：材料类型'),
   desc: z.string().optional().describe('描述信息'),
   metadata: z
     .object({
@@ -64,22 +66,6 @@ export const DungeonOptionSchema = z.object({
   costs: z.array(DungeonCostSchema).optional().describe('成本(结构化成本)'),
 });
 
-// Response from AI for each round
-export const DungeonRoundSchema = z.object({
-  scene_description: z.string().describe('场景描述'),
-  interaction: z
-    .object({
-      options: z.array(DungeonOptionSchema).describe('交互选项'),
-    })
-    .describe('交互'),
-  status_update: z
-    .object({
-      is_final_round: z.boolean(),
-      internal_danger_score: z.number(),
-    })
-    .describe('状态更新'),
-});
-
 // 奖励蓝图 Schema - AI 只生成创意内容，数值由程序计算
 export const RewardBlueprintSchema = z.object({
   // material 类型专用字段
@@ -111,6 +97,25 @@ export const RewardBlueprintSchema = z.object({
     .describe('品质提示：lower=下品, medium=中品, upper=上品'),
 });
 
+export type RewardBlueprint = z.infer<typeof RewardBlueprintSchema>;
+
+// Response from AI for each round
+export const DungeonRoundSchema = z.object({
+  scene_description: z.string().describe('场景描述'),
+  interaction: z
+    .object({
+      options: z.array(DungeonOptionSchema).describe('交互选项'),
+    })
+    .describe('交互'),
+  acquired_items: z.array(RewardBlueprintSchema).optional().describe('当前轮次探索或战斗获得的战利品（仅在合理情况下发放，勿滥发）'),
+  status_update: z
+    .object({
+      is_final_round: z.boolean(),
+      internal_danger_score: z.number(),
+    })
+    .describe('状态更新'),
+});
+
 // Settlement info from AI
 export const DungeonSettlementSchema = z
   .object({
@@ -121,7 +126,7 @@ export const DungeonSettlementSchema = z
         .array(RewardBlueprintSchema)
         .min(1)
         .max(5)
-        .describe('奖励蓝图列表（根据评级1-5个）'),
+        .describe('奖励蓝图列表（需包含之前获取的物品，根据评级1-5个）'),
       performance_tags: z
         .array(z.string())
         .describe('评价标签（如：收获颇丰、险象环生、九死一生、空手而归）'),
@@ -148,15 +153,7 @@ export const PlayerInfoSchema = z.object({
   skills: z.array(z.string()),
   spirit_stones: z.number(),
   background: z.string(),
-  inventory: z.object({
-    artifacts: z.array(z.string()),
-    materials: z.array(
-      z.object({
-        name: z.string(),
-        count: z.number(),
-      }),
-    ),
-  }),
+  inventory_summary: z.string().optional(),
 });
 
 export type PlayerInfo = z.infer<typeof PlayerInfoSchema>;
@@ -171,6 +168,7 @@ export interface History {
   scene: string;
   choice?: string;
   outcome?: string;
+  gained_items?: string[];
 }
 
 export interface BattleSession {
@@ -217,6 +215,7 @@ export interface DungeonState {
   };
   summary_of_sacrifice?: DungeonOptionCost[];
   realGains?: ResourceOperation[];
+  accumulatedRewards: RewardBlueprint[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
   /** 持久 Buff 状态（使用新格式） */

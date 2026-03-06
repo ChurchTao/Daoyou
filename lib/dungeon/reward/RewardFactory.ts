@@ -14,7 +14,9 @@ import type { ResourceOperation } from '@/engine/resource/types';
 import { YieldCalculator } from '@/engine/yield/YieldCalculator';
 import type { ElementType, Quality, RealmType } from '@/types/constants';
 import { QUALITY_VALUES, REALM_VALUES } from '@/types/constants';
-import type { Material } from '@/types/cultivator';
+import type { Cultivator, Material } from '@/types/cultivator';
+import { calculateCultivationExp } from '@/utils/cultivationUtils';
+import type { PlayerInfo } from '../types';
 import {
   QUALITY_HINT_OFFSET,
   REALM_QUALITY_CAP,
@@ -44,20 +46,22 @@ export class RewardFactory {
    * @param mapRealm 地图境界门槛
    * @param tier 副本评级 (S/A/B/C/D)
    * @param dangerScore 危险系数 (0-100)
+   * @param playerInfo 玩家信息
    * @returns 基础奖励操作数组
    */
   static generateBaseRewards(
     mapRealm: RealmType,
     tier: string,
     dangerScore: number,
+    playerInfo: PlayerInfo,
   ): ResourceOperation[] {
     const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
     const dangerBonus = this.getDangerBonus(dangerScore);
-    const rewardHours = this.rollRewardHoursByTier(tier);
-    const yieldOps = YieldCalculator.calculateYield(mapRealm, rewardHours);
     const rewards: ResourceOperation[] = [];
 
-    // 复用挂机收益体系：灵石 + 修为，随评级映射的“等效历练时长”增长
+    // 1. 灵石奖励 (基于挂机收益)
+    const rewardHours = this.rollRewardHoursByTier(tier);
+    const yieldOps = YieldCalculator.calculateYield(mapRealm, rewardHours);
     const spiritStones =
       yieldOps.find((op) => op.type === 'spirit_stones')?.value ?? 0;
     if (spiritStones > 0) {
@@ -67,8 +71,34 @@ export class RewardFactory {
       });
     }
 
-    const cultivationExp =
-      yieldOps.find((op) => op.type === 'cultivation_exp')?.value ?? 0;
+    // 2. 修为奖励 (基于闭关引擎等效年限)
+    const tierYears: Record<string, number> = {
+      S: 20,
+      A: 10,
+      B: 5,
+      C: 2,
+      D: 1,
+    };
+    const equivalentYears = tierYears[tier] || 1;
+
+    // 构造一个模拟的 Cultivator 对象以复用修为计算公式
+    const mockCultivator = {
+      realm: playerInfo.realm.split(' ')[0] as RealmType,
+      spiritual_roots: playerInfo.spiritual_roots.map((r) => {
+        const match = r.match(/(.*?)\((\d+)\)/);
+        return {
+          element: match ? match[1] : '金',
+          strength: match ? parseInt(match[2], 10) : 50,
+        };
+      }),
+      cultivations: [], // 无法获取功法品级，使用默认系数
+      attributes: playerInfo.attributes,
+      cultivation_progress: { bottleneck_state: false },
+    } as unknown as Cultivator;
+
+    const expResult = calculateCultivationExp(mockCultivator, equivalentYears);
+    const cultivationExp = expResult.exp_gained;
+
     if (cultivationExp > 0) {
       rewards.push({
         type: 'cultivation_exp',
@@ -76,7 +106,7 @@ export class RewardFactory {
       });
     }
 
-    // 仅 S 评级有感悟值奖励
+    // 3. 感悟奖励 (仅 S 评级有)
     if (tier === 'S') {
       const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
       rewards.push({
@@ -131,6 +161,7 @@ export class RewardFactory {
    * @param mapRealm 地图境界门槛
    * @param tier 副本评级 (S/A/B/C/D)
    * @param dangerScore 危险系数 (0-100)
+   * @param playerInfo 玩家信息
    * @returns 完整的资源操作数组
    */
   static generateAllRewards(
@@ -138,9 +169,10 @@ export class RewardFactory {
     mapRealm: RealmType,
     tier: string,
     dangerScore: number,
+    playerInfo: PlayerInfo,
   ): ResourceOperation[] {
     // 生成基础奖励（灵石、修为、感悟值）
-    const baseRewards = this.generateBaseRewards(mapRealm, tier, dangerScore);
+    const baseRewards = this.generateBaseRewards(mapRealm, tier, dangerScore, playerInfo);
 
     // 实体化材料奖励
     const materialRewards = this.materialize(
