@@ -571,9 +571,12 @@ export const betBattles = pgTable(
         onDelete: 'set null',
       },
     ),
-    battleRecordId: uuid('battle_record_id').references(() => battleRecords.id, {
-      onDelete: 'set null',
-    }),
+    battleRecordId: uuid('battle_record_id').references(
+      () => battleRecords.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
 
     // 时间
     expiresAt: timestamp('expires_at').notNull(),

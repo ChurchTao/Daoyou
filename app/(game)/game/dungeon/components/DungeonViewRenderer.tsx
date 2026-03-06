@@ -11,6 +11,7 @@ import { BattleCallbackData, DungeonBattle } from './DungeonBattle';
 import { DungeonExploring } from './DungeonExploring';
 import { DungeonMapSelector } from './DungeonMapSelector';
 import { DungeonSettlement } from './DungeonSettlement';
+import { DungeonLooting } from './DungeonLooting';
 
 interface DungeonViewRendererProps {
   viewState: DungeonViewState;
@@ -20,6 +21,8 @@ interface DungeonViewRendererProps {
     startDungeon: (nodeId: string) => Promise<void>;
     performAction: (option: DungeonOption) => Promise<void>;
     quitDungeon: () => Promise<boolean>;
+    continueLooting: () => Promise<void>;
+    escapeLooting: () => Promise<void>;
     startBattle: (enemyName: string) => void;
     abandonBattle: () => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
@@ -29,9 +32,6 @@ interface DungeonViewRendererProps {
 
 /**
  * 副本视图渲染器
- *
- * 职责：
- * 根据 viewState 渲染对应的视图组件
  */
 export function DungeonViewRenderer({
   viewState,
@@ -93,6 +93,18 @@ export function DungeonViewRenderer({
     );
   }
 
+  // 战后休整
+  if (viewState.type === 'looting') {
+    return (
+      <DungeonLooting
+        state={viewState.state}
+        onContinue={actions.continueLooting}
+        onEscape={actions.escapeLooting}
+        processing={processing}
+      />
+    );
+  }
+
   // 探索中
   if (viewState.type === 'exploring') {
     return (
@@ -112,39 +124,15 @@ export function DungeonViewRenderer({
       ? getMapNode(viewState.preSelectedNodeId)
       : null;
 
-    // 渲染次数提示
     const renderLimitHint = () => {
       if (viewState.limitLoading) {
-        return (
-          <p className="text-ink-secondary mt-2 text-center text-xs">
-            查询中...
-          </p>
-        );
+        return <p className="text-ink-secondary mt-2 text-center text-xs">查询中...</p>;
       }
-
-      if (!viewState.limitInfo) {
-        // 错误或未登录，不显示次数信息
-        return null;
-      }
-
+      if (!viewState.limitInfo) return null;
       const { remaining, dailyLimit } = viewState.limitInfo;
-
-      // 根据剩余次数决定样式和文案
-      if (remaining === 0) {
-        return (
-          <p className="text-crimson mt-2 text-center text-sm">
-            今日探索次数已用尽，明日再来
-          </p>
-        );
-      }
-
+      if (remaining === 0) return <p className="text-crimson mt-2 text-center text-sm">今日探索次数已用尽，明日再来</p>;
       const textColor = remaining === 1 ? 'text-amber-600' : 'text-ink';
-
-      return (
-        <p className={`text-center text-xs ${textColor} mt-2`}>
-          今日剩余探索次数：{remaining}/{dailyLimit}
-        </p>
-      );
+      return <p className={`text-center text-xs ${textColor} mt-2`}>今日剩余探索次数：{remaining}/{dailyLimit}</p>;
     };
 
     return (
@@ -152,11 +140,7 @@ export function DungeonViewRenderer({
         <InkCard className="mb-6 p-6">
           <div className="space-y-4 text-center">
             <div className="my-4 text-6xl">🏔️</div>
-            <p>
-              修仙界广袄无垠，机缘与危机并存。
-              <br />
-              道友可愿前往，体悟一段未知的旅程？
-            </p>
+            <p>修仙界广袄无垠，机缘与危机并存。<br />道友可愿前往，体悟一段未知的旅程？</p>
           </div>
         </InkCard>
         <InkSection title="选择秘境">
@@ -168,14 +152,11 @@ export function DungeonViewRenderer({
         </InkSection>
         {renderLimitHint()}
         <div className="mt-4 text-center">
-          <InkButton href="/game/dungeon/history" variant="ghost">
-            📖 查看历史记录
-          </InkButton>
+          <InkButton href="/game/dungeon/history" variant="ghost">📖 查看历史记录</InkButton>
         </div>
       </InkPageShell>
     );
   }
 
-  // 不应该到达这里
   return null;
 }

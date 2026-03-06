@@ -35,6 +35,7 @@ export type DungeonViewState =
       opponentName: string;
       state: DungeonState;
     }
+  | { type: 'looting'; state: DungeonState }
   | {
       type: 'settlement';
       settlement?: DungeonSettlement;
@@ -43,11 +44,6 @@ export type DungeonViewState =
 
 /**
  * 副本视图模型 Hook
- *
- * 职责：
- * 1. 统一管理副本的所有视图状态
- * 2. 提供清晰的状态转换接口
- * 3. 封装业务逻辑，简化组件复杂度
  */
 export function useDungeonViewModel(
   hasCultivator: boolean,
@@ -60,7 +56,7 @@ export function useDungeonViewModel(
     loading: stateLoading,
     refresh,
   } = useDungeonState(hasCultivator);
-  const { startDungeon, performAction, quitDungeon, processing } =
+  const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, processing } =
     useDungeonActions();
 
   // 副本次数限制
@@ -121,7 +117,7 @@ export function useDungeonViewModel(
     // 战斗准备
     const shouldShowBattlePrep =
       !activeBattleId &&
-      state?.status === 'IN_BATTLE' &&
+      state?.status === 'WAITING_BATTLE' &&
       state.activeBattleId &&
       !state.isFinished;
 
@@ -136,6 +132,11 @@ export function useDungeonViewModel(
         settlement: state.settlement,
         realGains: state.realGains,
       };
+    }
+
+    // 战后休整
+    if (state?.status === 'LOOTING') {
+      return { type: 'looting', state };
     }
 
     // 探索中
@@ -197,6 +198,40 @@ export function useDungeonViewModel(
     }
   };
 
+  const handleContinueLooting = async () => {
+    const data = await continueLooting();
+    if (data?.state) {
+      setState(data.state);
+    } else if (data?.isFinished) {
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              isFinished: true,
+              settlement: data.settlement,
+              realGains: data.realGains,
+            }
+          : null,
+      );
+    }
+  };
+
+  const handleEscapeLooting = async () => {
+    const data = await escapeLooting();
+    if (data?.isFinished) {
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              isFinished: true,
+              settlement: data.settlement,
+              realGains: data.realGains,
+            }
+          : null,
+      );
+    }
+  };
+
   /**
    * 操作：退出副本
    */
@@ -255,6 +290,8 @@ export function useDungeonViewModel(
       startDungeon: handleStartDungeon,
       performAction: handlePerformAction,
       quitDungeon: handleQuitDungeon,
+      continueLooting: handleContinueLooting,
+      escapeLooting: handleEscapeLooting,
       startBattle: handleStartBattle,
       abandonBattle: handleAbandonBattle,
       completeBattle: handleBattleComplete,

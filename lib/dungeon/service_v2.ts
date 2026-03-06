@@ -387,14 +387,14 @@ ${realmGuidance}
         }
       }
 
-      // 1.3 Battle Interception
+      // 1.3 Battle Interception (FIX: Prevent immediate AI call before battle)
       const battleCost = chosenOption.costs.find((c) => c.type === 'battle');
       if (battleCost) {
         // 战斗分支没有 LLM 步骤，先扣除真实资源再进入战斗
         await consumeActionCostsOrThrow();
 
         state.history[state.history.length - 1].choice = chosenOption.text;
-        state.status = 'IN_BATTLE';
+        state.status = 'WAITING_BATTLE'; // Use intermediary state
 
         const session = await this.createBattleSession(
           cultivatorId,
@@ -598,23 +598,32 @@ ${realmGuidance}
       state.persistentBuffs = battleResult.playerPersistentBuffs;
     }
 
+    // FIX: Instead of calling AI immediately, enter LOOTING state
+    state.status = 'LOOTING';
+    await this.saveState(cultivatorId, state);
+    return { state, isFinished: false };
+  }
+
+  /**
+   * 休整后继续探索 (触发 AI 生成下一轮)
+   */
+  async continueFromLooting(cultivatorId: string) {
+    const state = await this.getState(cultivatorId);
+    if (!state || state.status !== 'LOOTING') throw new Error('Dungeon state invalid or not in looting');
+
+    state.status = 'EXPLORING';
     state.currentRound++;
 
     if (state.currentRound > state.maxRounds) {
       return this.settleDungeon(state);
     }
 
-    // Resume AI
     let roundData: DungeonRound;
     try {
       roundData = await this.callAI(state);
     } catch (error) {
-      console.error('[DungeonService] 战斗后生成下一轮失败，使用兜底回合:', {
-        cultivatorId,
-        currentRound: state.currentRound,
-        error,
-      });
-      roundData = this.buildFallbackRoundAfterBattle(state, enemyName);
+      console.error('[DungeonService] 战后生成失败:', error);
+      roundData = this.buildFallbackRoundAfterBattle(state, "先前强敌");
     }
 
     state.history.push({
@@ -626,6 +635,15 @@ ${realmGuidance}
 
     await this.saveState(cultivatorId, state);
     return { state, roundData, isFinished: false };
+  }
+
+  /**
+   * 战后见好就收
+   */
+  async escapeFromLooting(cultivatorId: string) {
+    const state = await this.getState(cultivatorId);
+    if (!state) throw new Error('Dungeon state not found');
+    return this.settleDungeon(state, { abandonedBattle: true });
   }
 
   /**
@@ -648,7 +666,6 @@ ${realmGuidance}
       throw new Error('Dungeon state not found during recovery');
     }
 
-    state.status = 'EXPLORING';
     delete state.activeBattleId;
 
     const enemyName =
@@ -681,38 +698,13 @@ ${realmGuidance}
       };
     }
 
+    // 胜利但回调失败，强制进入 LOOTING 状态进行自我修复
+    state.status = 'LOOTING';
     if (lastHistory) {
-      lastHistory.outcome = `你击败了 ${enemyName}，但天机推演一时失序，只得先稳住心神再继续前行。`;
+      lastHistory.outcome = `你击败了 ${enemyName}，但天机推演一时失序，需稳住心神。`;
     }
-
-    state.currentRound++;
-    if (state.currentRound > state.maxRounds) {
-      const fallbackSettlement: DungeonSettlement = {
-        ending_narrative: '你在最终一战后收束气机，带着有限收获离开秘境。',
-        settlement: {
-          reward_tier: 'C',
-          reward_blueprints: [],
-          performance_tags: ['惊险收官', '勉强保全'],
-        },
-      };
-      await this.archiveDungeon(state, fallbackSettlement, []);
-      return {
-        isFinished: true,
-        settlement: fallbackSettlement,
-        realGains: [],
-      };
-    }
-
-    const roundData = this.buildFallbackRoundAfterBattle(state, enemyName);
-    state.history.push({
-      round: state.currentRound,
-      scene: roundData.scene_description,
-    });
-    state.currentOptions = roundData.interaction.options;
-    state.dangerScore = roundData.status_update.internal_danger_score;
-
     await this.saveState(cultivatorId, state);
-    return { state, roundData, isFinished: false };
+    return { state, isFinished: false };
   }
 
   /**

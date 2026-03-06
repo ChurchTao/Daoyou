@@ -204,7 +204,7 @@ export interface DungeonState {
   currentRound: number;
   maxRounds: number;
   history: History[];
-  status: 'EXPLORING' | 'IN_BATTLE' | 'FINISHED';
+  status: 'EXPLORING' | 'WAITING_BATTLE' | 'IN_BATTLE' | 'LOOTING' | 'FINISHED';
   activeBattleId?: string;
   dangerScore: number;
   isFinished: boolean;

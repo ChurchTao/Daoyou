@@ -232,6 +232,20 @@
       "when": 1772420716186,
       "tag": "0032_minor_violations",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1772717293649,
+      "tag": "0033_furry_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1772781202870,
+      "tag": "0034_exotic_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

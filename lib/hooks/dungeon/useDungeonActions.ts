@@ -112,9 +112,47 @@ export function useDungeonActions() {
     });
   };
 
+  /**
+   * 战后休整：继续探索
+   */
+  const continueLooting = async () => {
+    try {
+      setProcessing(true);
+      const res = await fetch('/api/dungeon/looting/continue', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      return data;
+    } catch (e) {
+      pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
+      return null;
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  /**
+   * 战后休整：离开秘境
+   */
+  const escapeLooting = async () => {
+    try {
+      setProcessing(true);
+      const res = await fetch('/api/dungeon/looting/escape', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      return data;
+    } catch (e) {
+      pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
+      return null;
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return {
     startDungeon,
     performAction,
+    continueLooting,
+    escapeLooting,
     quitDungeon,
     processing,
   };
