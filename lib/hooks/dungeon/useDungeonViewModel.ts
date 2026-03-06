@@ -83,6 +83,7 @@ export function useDungeonViewModel(
       interaction: {
         options: state.currentOptions || [],
       },
+      acquired_items: state.currentRoundItems || [],
       status_update: {
         is_final_round: state.currentRound >= state.maxRounds,
         internal_danger_score: state.dangerScore,

@@ -1,3 +1,4 @@
+import { DungeonProgressCard } from '@/components/dungeon/DungeonProgressCard';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkCard } from '@/components/ui/InkCard';
@@ -7,6 +8,7 @@ interface DungeonLootingProps {
   state: DungeonState;
   onContinue: () => Promise<void>;
   onEscape: () => Promise<void>;
+  onQuit: () => Promise<boolean>;
   processing: boolean;
 }
 
@@ -14,6 +16,7 @@ export function DungeonLooting({
   state,
   onContinue,
   onEscape,
+  onQuit,
   processing,
 }: DungeonLootingProps) {
   return (
@@ -26,6 +29,9 @@ export function DungeonLooting({
           目前位于副本第 {state.currentRound} 轮。前方气息变幻，你可以选择继续深入，或就此离去。
         </p>
       </InkCard>
+
+      {/* 副本状态和进度（包含已获机缘展示） */}
+      <DungeonProgressCard state={state} onQuit={onQuit} />
 
       <InkSection title="下一步抉择">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

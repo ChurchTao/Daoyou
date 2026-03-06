@@ -5,7 +5,13 @@ import { enemyGenerator } from '@/engine/enemyGenerator';
 import { TYPE_DESCRIPTIONS } from '@/engine/material/creation/config';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@/engine/resource/types';
-import { REALM_VALUES, RealmType, QUALITY_VALUES, Quality, MaterialType } from '@/types/constants';
+import {
+  MaterialType,
+  Quality,
+  QUALITY_VALUES,
+  REALM_VALUES,
+  RealmType,
+} from '@/types/constants';
 import { object } from '@/utils/aiClient'; // AI client helper
 import { randomUUID } from 'crypto';
 import { getExecutor } from '../drizzle/db';
@@ -139,6 +145,12 @@ export class DungeonService {
       realmGap,
     );
 
+    // 动态生成材料类型描述表格（从 config.ts 统一获取）
+    const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
+      .filter(([key]) => key !== 'manual')
+      .map(([key, desc]) => `| ${key} | ${desc} |`)
+      .join('\n');
+
     return `
 # Role: 《凡人修仙传》副本演化天道 (Dungeon Engine)
 
@@ -152,56 +164,67 @@ ${realmGuidance}
 
 ## 2. 凡人流叙事准则
 - **文风**：简练、冰冷、充满古意。
-- **性格契合**：若玩家性格【谨慎】，选项1应有额外加成描述；若玩家【狂傲】，选项2成功率降低但收益提高。
-- **因果律**：必须参考 history。若前一轮玩家损坏了法宝，本轮描述中应体现该法宝无法使用的窘境。
+- **因果律**：参考历史，确保逻辑自洽。若前轮损坏法宝，本轮应体现。
 
-## 3. 强制选项模板 (必须生成3个选项)
-- **选项 A (求稳)**：低风险、低收益。通常体现"韩立式谨慎"（如：布下匿踪阵观察、绕路而行）。
-- **选项 B (弄险)**：高风险、高收益。体现"富贵险中求"。
-- **选项 C (奇招/随机)**：
-  - **60%概率**：需要特定道具/功法/命格（检索 player_info 中的 skills/fates/inventory_summary）
-  - **40%概率**：通用选项（不依赖玩家特定资源）
-  
-**重要约束**：
-- **至少1个选项应该是玩家当前无法满足或不适用的**（如需要特定的材料，或不符合玩家性格的选择）
-- 材料需求应该有一定的随机性，不总是玩家恰好拥有的。如果需要消耗材料，设置 \`type="material"\` 并通过 \`required_type\` 和 \`required_quality\` 模糊指定。
+## 3. 奖励类型规范 (acquired_items)
+在生成奖励时，你必须根据物品性质严格分类，**严禁**将所有珍贵物品都归类为 \`tcdb\`：
+${materialTypeTable}
 
-## 4. 输出约束
-- 必须使用 JSON 输出。
-- internal_danger_score: 0-100。本轮若选择危险路径，分值应上升；若选择稳健路径，分值微降或不变。
-- internal_danger_score 的数值含义：
-  - 0-30：相对安全，以寻宝、破禁为主，收获一般。
-  - 31-70：很有挑战，如遭遇傀儡、妖兽，或者发现其他修士的踪迹，收获尚可。
-  - 71-100：必死之局或绝境，必须通过极大的代价（燃血、自爆法宝）才能生还，但往往有丰厚的收获。
-- costs: 必须严格使用规定的类型：spirit_stones(灵石), lifespan(寿元), cultivation_exp(修为), comprehension_insight(感悟值), material(材料), hp_loss(气血损耗), mp_loss(灵力损耗), weak(虚弱), battle(战斗), artifact_damage(法宝损坏)，禁止自定义类型
-- costs类型规定（分为资源消耗类和副本特有类）:
-  
-  **资源消耗类**（会真实扣除玩家资源）:
-  - type为spirit_stones: 灵石消耗，value为消耗数量(1-10000)，desc为消耗原因
-  - type为lifespan: 寿元消耗，value为消耗年数(1-100)，desc为消耗原因，例如："强行催动法宝"
-  - type为cultivation_exp: 修为消耗，value为消耗点数(1-1000)，desc为消耗原因，例如："逆转禁制"
-  - type为material: 材料消耗，**强烈建议使用模糊匹配**，即省略 name，提供 \`required_type\` (如 herb, ore) 和 \`required_quality\` (如 玄品)。例如：\`{"type": "material", "required_type": "ore", "required_quality": "玄品", "value": 1, "desc": "需要高阶矿石布阵"}\`
-  
-  **副本特有类**（虚拟损耗，不直接扣除资源，但会影响副本内状态和结算）:
-  - type为battle: 遭遇战斗，value为战斗难度系数(1-10)，desc为敌人名称及特征，例如："二级顶阶傀儡，速度极快"，metadata必须包含(enemy_name, is_boss)
-  - type为hp_loss: 气血损耗，value为损耗程度(1-10，每1点=10%最大气血)，desc为损耗原因，影响副本内战斗状态
-  - type为mp_loss: 灵力损耗，value为损耗程度(1-10，每1点=10%最大灵力)，desc为损耗原因，影响副本内战斗状态
-  - type为weak: 陷入虚弱，value为虚弱程度(1-10)，desc为虚弱原因，会累加到角色的weakness状态，结算后持久化
-  - type为artifact_damage: 法宝损坏，value为损坏程度(1-10)，desc为法宝名称及损坏原因（注意：当前版本仅作记录，不真实处理）
+**分类准则：**
+- **功法/秘籍** (如：玉简、残卷、古书、拓片)：必须使用 \`gongfa_manual\` 类型。
+- **神通/法术** (如：秘术咒语、斗法心得)：必须使用 \`skill_manual\` 类型。
+- **天材地宝** (如：万年石乳、九曲灵参、天地奇珍)：必须使用 \`tcdb\` 类型。
+- **普通资源** (如：灵草、矿石、妖兽肢体)：根据性质选择 \`herb\`, \`ore\`, \`monster\`。
 
-**【严禁组合】**:
-- 若选项包含 'battle' 类型代价，则**绝对禁止**同时包含 'hp_loss' 或 'mp_loss'
-- 战斗代价自身已包含足够风险，额外扣血是不合理的惩罚
-- 违反此规则将导致玩家进入战斗即死亡的灾难性 bug
+## 4. 强制选项模板 (必须生成3个对象组成的数组)
+- **选项 1 (求稳)**：低风险。
+- **选项 2 (弄险)**：高风险。
+- **选项 3 (变数)**：依赖玩家资源或环境随机。
 
-- acquired_items: 如果当前轮次玩家在探索中发现或战斗后理应获得了战利品，请在 acquired_items 数组中生成材料蓝图，**切勿滥发**。
+## 5. 输出约束 (核心：严禁 Markdown)
+你必须直接输出原始 JSON 字符串。
+- **严禁** 使用 \`\`\`json 等 Markdown 代码块包裹。
+- **严禁** 输出任何解释文字或前言后语。
+- **必须** 确保输出是一个单一的、合法的 JSON 对象。
 
-## 5. 当前上下文摘要
-- 地点：读取 location
+### 结构规范与字段要求：
+- **scene_description**: 字符串。
+- **status_update**: 对象。
+  - **internal_danger_score**: 0-100 整数。
+  - **is_final_round**: 布尔值。若当前轮次(${state.currentRound}) == ${state.maxRounds}，则为 true。
+- **interaction**: 对象。
+  - **options**: 数组，固定包含3个对象，每个对象必须包含 [id, text, risk_level, costs] 字段。
+- **acquired_items**: 可选数组，元素为奖励对象。**奖励应在玩家获得阶段发放（如击败敌人后或探索成功后进入的新场景中）。**
+
+### 完整示例 (直接输出此类结构的原始 JSON):
+{
+  "scene_description": "描述文本...",
+  "status_update": {
+    "internal_danger_score": 30,
+    "is_final_round": false
+  },
+  "interaction": {
+    "options": [
+      { "id": 1, "text": "...", "risk_level": "low", "costs": [] },
+      { "id": 2, "text": "...", "risk_level": "medium", "costs": [{ "type": "hp_loss", "value": 0.2, "desc": "气血受损" }] },
+      { "id": 3, "text": "...", "risk_level": "high", "costs": [{ "type": "material", "required_type": "herb", "required_quality": "灵品", "value": 1, "desc": "消耗灵草破阵" }] }
+    ]
+  },
+  "acquired_items": []
+}
+
+### 成本(costs)规范:
+- **必须使用指定类型**: spirit_stones, lifespan, cultivation_exp, comprehension_insight, material, hp_loss, mp_loss, weak, battle, artifact_damage。
+- **数值范围**: hp_loss, mp_loss 必须是 0-1 之间的小数；其他类型为正整数。
+- **材料(material)**: 禁止指定 name，必须提供 required_type 和 required_quality。
+- **冲突禁止**: 若有 'battle'，严禁同时出现 'hp_loss' 或 'mp_loss'。
+
+## 6. 当前上下文摘要
+- 地点：${state.location.location}
 - 地图境界要求：${mapRealm}
-- 玩家境界：读取 playerInfo.realm
+- 玩家境界：${state.playerInfo.realm}
 - 境界差距：${realmGap > 0 ? `玩家高出${realmGap}个大境界` : realmGap < 0 ? `玩家低${Math.abs(realmGap)}个大境界` : '实力相当'}
-- 玩家状态：读取 playerInfo
+- 历史参考：${JSON.stringify(state.history.slice(-2))}
 `;
   }
 
@@ -287,8 +310,20 @@ ${realmGuidance}
       const roundData = await this.callAI(state);
 
       // 5. 更新历史并存入 Redis
-      state.history.push({ round: 1, scene: roundData.scene_description });
+      const gainedNames = roundData.acquired_items?.map(
+        (i) => i.name || '未知物品',
+      );
+      state.history.push({
+        round: 1,
+        scene: roundData.scene_description,
+        gained_items: gainedNames,
+      });
       state.currentOptions = roundData.interaction.options;
+      state.currentRoundItems = roundData.acquired_items || [];
+      if (roundData.acquired_items?.length) {
+        if (!state.accumulatedRewards) state.accumulatedRewards = [];
+        state.accumulatedRewards.push(...roundData.acquired_items);
+      }
       await this.saveState(cultivatorId, state);
 
       // 6. 仅在副本已成功初始化后再扣除次数
@@ -313,9 +348,13 @@ ${realmGuidance}
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('副本已失效');
 
-    // 1. 校验并预处理成本
+    // 1. 校验选项
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
-    let actionCosts = chosenOption?.costs ?? [];
+    if (!chosenOption) {
+      throw new Error(`无效的交互选项: ${choiceId}`);
+    }
+
+    let actionCosts = chosenOption.costs ?? [];
 
     const consumeActionCostsOrThrow = async () => {
       if (actionCosts.length === 0) return;
@@ -335,20 +374,29 @@ ${realmGuidance}
           const requiredIndex = QUALITY_VALUES.indexOf(reqQual || '凡品');
           const validRanks = QUALITY_VALUES.slice(Math.max(0, requiredIndex));
 
-          const matchPage = await getPaginatedInventoryByType(userId, cultivatorId, {
-            type: 'materials',
-            page: 1,
-            pageSize: 10, // 获取前10个符合条件的材料
-            materialTypes: reqType ? [reqType] : undefined,
-            materialRanks: validRanks.length > 0 ? (validRanks as Quality[]) : undefined,
-          });
+          const matchPage = await getPaginatedInventoryByType(
+            userId,
+            cultivatorId,
+            {
+              type: 'materials',
+              page: 1,
+              pageSize: 10, // 获取前10个符合条件的材料
+              materialTypes: reqType ? [reqType] : undefined,
+              materialRanks:
+                validRanks.length > 0 ? (validRanks as Quality[]) : undefined,
+            },
+          );
 
           if (matchPage.items.length === 0) {
-            const typeStr = reqType ? TYPE_DESCRIPTIONS[reqType] || reqType : '材料';
+            const typeStr = reqType
+              ? TYPE_DESCRIPTIONS[reqType] || reqType
+              : '材料';
             const qualStr = reqQual ? reqQual + '以上的' : '';
-            throw new Error(`储物袋中没有符合条件的材料（需要：${qualStr}${typeStr}），请重新选择或退出副本。`);
+            throw new Error(
+              `储物袋中没有符合条件的材料（需要：${qualStr}${typeStr}），请重新选择或退出副本。`,
+            );
           }
-          
+
           // 选择第一个符合条件的材料
           cost.name = matchPage.items[0].name;
         }
@@ -382,16 +430,16 @@ ${realmGuidance}
       // 1.1 累加 HP/MP 损失百分比
       for (const cost of chosenOption.costs) {
         if (cost.type === 'hp_loss') {
-          // 每个 value 点转换为 10% HP 损失
+          // 直接累加百分比小数
           state.accumulatedHpLoss = Math.min(
             1,
-            state.accumulatedHpLoss + cost.value * 0.1,
+            state.accumulatedHpLoss + cost.value,
           );
         } else if (cost.type === 'mp_loss') {
-          // 每个 value 点转换为 10% MP 损失
+          // 直接累加百分比小数
           state.accumulatedMpLoss = Math.min(
             1,
-            state.accumulatedMpLoss + cost.value * 0.1,
+            state.accumulatedMpLoss + cost.value,
           );
         } else if (cost.type === 'weak') {
           // 1.2 weak 成本映射为 weakness 状态
@@ -465,20 +513,20 @@ ${realmGuidance}
     await consumeActionCostsOrThrow();
 
     // 记录过程战利品
-    if (roundData.acquired_items && roundData.acquired_items.length > 0) {
+    const gainedNames = roundData.acquired_items?.map(
+      (i) => i.name || '未知物品',
+    );
+    state.currentRoundItems = roundData.acquired_items || [];
+    if (roundData.acquired_items?.length) {
       if (!state.accumulatedRewards) state.accumulatedRewards = [];
       state.accumulatedRewards.push(...roundData.acquired_items);
-      const gainedNames = roundData.acquired_items.map((i) => i.name || '未知物品');
-      const lastHistory = state.history[state.history.length - 1];
-      if (lastHistory) {
-        lastHistory.gained_items = gainedNames;
-      }
     }
 
     // 4. 更新状态
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
+      gained_items: gainedNames,
     });
     state.currentOptions = roundData.interaction.options;
     state.dangerScore = roundData.status_update.internal_danger_score;
@@ -649,7 +697,8 @@ ${realmGuidance}
    */
   async continueFromLooting(cultivatorId: string) {
     const state = await this.getState(cultivatorId);
-    if (!state || state.status !== 'LOOTING') throw new Error('Dungeon state invalid or not in looting');
+    if (!state || state.status !== 'LOOTING')
+      throw new Error('Dungeon state invalid or not in looting');
 
     state.status = 'EXPLORING';
     state.currentRound++;
@@ -663,12 +712,22 @@ ${realmGuidance}
       roundData = await this.callAI(state);
     } catch (error) {
       console.error('[DungeonService] 战后生成失败:', error);
-      roundData = this.buildFallbackRoundAfterBattle(state, "先前强敌");
+      roundData = this.buildFallbackRoundAfterBattle(state, '先前强敌');
+    }
+
+    const gainedNames = roundData.acquired_items?.map(
+      (i) => i.name || '未知物品',
+    );
+    state.currentRoundItems = roundData.acquired_items || [];
+    if (roundData.acquired_items?.length) {
+      if (!state.accumulatedRewards) state.accumulatedRewards = [];
+      state.accumulatedRewards.push(...roundData.acquired_items);
     }
 
     state.history.push({
       round: state.currentRound,
       scene: roundData.scene_description,
+      gained_items: gainedNames,
     });
     state.currentOptions = roundData.interaction.options;
     state.dangerScore = roundData.status_update.internal_danger_score;
@@ -818,62 +877,64 @@ ${realmGuidance}
       .map(([key, desc]) => `| ${key} | ${desc} |`)
       .join('\n');
 
+    // --- 核心优化：使用 RewardFactory 将 AI 蓝图转化为真实奖励 ---
+    // 获取地图境界门槛
+    const mapNode = getMapNode(state.mapNodeId);
+    const mapRealm =
+      mapNode && 'realm_requirement' in mapNode
+        ? (mapNode as SatelliteNode).realm_requirement
+        : ('筑基' as RealmType);
+
     const settlementPrompt = `
 # Role: 《凡人修仙传》天道平衡者 - 结算与奖励鉴定
 
 ## 核心职责
-你需要根据玩家的【付出】与【危险】给出最终评价，并**创造性地设计材料奖励**。
+根据道友的付出、历程与最终危险分给出评价，并设计材料奖励。
 ${options?.abandonedBattle ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤退，评价应为D级，奖励极少。' : ''}
 
-## ⚠️ 重要：奖励生成规则
+## ⚠️ 奖励生成规则
+- **因果律**：材料必须与剧情强关联。
+- **强制继承**：玩家在副本过程中已获物品（已获蓝图）**必须全部包含**在 \`reward_blueprints\` 中！
+- **珍稀度**：使用 \`reward_score\` (0-100) 衡量在当前境界下的珍稀度。
 
-**灵石、修为、感悟值由程序自动计算**，你只需要设计材料奖励。
-**玩家在副本过程中已经获得了一些战利品，你必须将它们包含在 \`reward_blueprints\` 列表中！你可以提升它们的品质或润色描述，但绝不能遗漏。**
-
-### 你需要生成的奖励类型
-
-| 类型 | 说明 | 需要填写 |
-|------|------|----------|
-| material | 材料 | **必须**填写：name, description, material_type, element, quality_hint |
-
-### 材料类型（material_type字段）
-
-| 值 | 说明 |
-|---|------|
+## 材料类型 (Material Type)
 ${materialTypeTable}
 
-### 元素（element字段）
+**分类准则：**
+- **功法/秘籍** (如：玉简、残卷、古书、拓片)：必须使用 \`gongfa_manual\` 类型。
+- **神通/法术** (如：秘术咒语、斗法心得)：必须使用 \`skill_manual\` 类型。
+- **天材地宝** (如：万年石乳、九曲灵参、天地奇珍)：必须使用 \`tcdb\` 类型。
+- **普通资源** (如：灵草、矿石、妖兽肢体)：根据性质选择 \`herb\`, \`ore\`, \`monster\`。
 
-**必须从以下8个元素中选1个**：
-- 金、木、水、火、土、风、雷、冰
+## 评价等级 (Reward Tier)
+| 等级 | 材料数量限制 | 逻辑 |
+|------|-------------|------|
+| S | 已获物品 + 2-3个额外材料 | 历经九死一生，或达成圆满。 |
+| A | 已获物品 + 1-2个额外材料 | 表现出色，获取核心资源。 |
+| B | 已获物品 + 1个额外材料 | 平稳探索，中规中矩。 |
+| C | 仅已获物品 | 表现平庸，或中途被迫撤离。 |
+| D | 仅已获物品 | 仓皇逃窜，一无所获。 |
 
-### 品质提示（quality_hint字段）
+## 输出约束 (核心：严禁 Markdown)
+直接输出原始 JSON，不含 \`\`\`json 标签，不含解释。
 
-- lower: 下品（D/C级奖励用）
-- medium: 中品（B级奖励用）
-- upper: 上品（A/S级奖励用）
+### 结构示例:
+{
+  "ending_narrative": "结局描述...",
+  "settlement": {
+    "reward_tier": "B",
+    "reward_blueprints": [
+      { "name": "...", "description": "...", "material_type": "ore", "element": "金", "reward_score": 50 }
+    ],
+    "performance_tags": ["收获颇丰"]
+  }
+}
 
-## 评价等级定义
-
-| 等级 | 材料奖励数量 | 材料品质要求 | 自动附加奖励 |
-|------|-------------|-------------|-------------|
-| S | 已获物品 + 2-3个额外材料 | quality_hint="upper" | 大量灵石+修为+感悟 |
-| A | 已获物品 + 1-2个额外材料 | quality_hint="medium"或"upper" | 中等灵石+修为 |
-| B | 已获物品 + 1个额外材料 | quality_hint="medium"或"lower" | 少量灵石+修为 |
-| C | 仅已获物品 | quality_hint="lower" | 少量灵石 |
-| D | 仅已获物品 | - | 少量灵石 |
-
-**程序会自动添加**：根据评级 S/A/B/C/D 自动附加不同数量的灵石、修为、感悟值，你不需要手动添加这些类型。
-
-## 核心准则：等价交换
-1. **惨烈补偿**：若玩家损失了法宝、消耗大量寿元或多次陷入死斗，结算等级严禁低于 B
-2. **风险对冲**：危险分(danger_score)越高，材料品质越高
-3. **凡人逻辑**：严禁出现"付出巨大却毫无所获"的结局
-
-## 材料设计原则
-1. **首要原则：包含已获物品**：必须将 \`accumulatedRewards\` 中的物品加入 \`reward_blueprints\`
-2. **场景关联**：新增材料必须与副本场景/剧情/历程强关联
-3. **自然合理**：不要给玩家突兀的感觉，材料获取应该有逻辑支撑
+## 结算数据参考
+- 最终危险分: ${state.dangerScore}
+- 牺牲/付出: ${JSON.stringify(state.summary_of_sacrifice)}
+- 已获蓝图: ${JSON.stringify(state.accumulatedRewards)}
+- 地图/玩家境界: ${mapRealm} / ${state.playerInfo.realm}
     `;
 
     const settlementContext = {
@@ -896,14 +957,6 @@ ${materialTypeTable}
     );
 
     const settlement = aiRes.object;
-
-    // --- 核心优化：使用 RewardFactory 将 AI 蓝图转化为真实奖励 ---
-    // 获取地图境界门槛
-    const mapNode = getMapNode(state.mapNodeId);
-    const mapRealm =
-      mapNode && 'realm_requirement' in mapNode
-        ? (mapNode as SatelliteNode).realm_requirement
-        : ('筑基' as RealmType);
 
     const realGains = RewardFactory.generateAllRewards(
       settlement.settlement.reward_blueprints as RewardBlueprint[],
@@ -1015,7 +1068,8 @@ ${materialTypeTable}
       skills: cultivator.cultivations.map((skill) => skill.name),
       spirit_stones: cultivator.spirit_stones,
       background: cultivator.background || '',
-      inventory_summary: '玩家拥有储物袋。如有需要特定材料的操作，请使用模糊类型与品质要求。',
+      inventory_summary:
+        '玩家拥有储物袋。如有需要特定材料的操作，请使用模糊类型与品质要求。',
     };
   }
 

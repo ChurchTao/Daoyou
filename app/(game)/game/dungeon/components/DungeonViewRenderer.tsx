@@ -100,6 +100,7 @@ export function DungeonViewRenderer({
         state={viewState.state}
         onContinue={actions.continueLooting}
         onEscape={actions.escapeLooting}
+        onQuit={actions.quitDungeon}
         processing={processing}
       />
     );

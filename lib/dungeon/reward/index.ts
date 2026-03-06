@@ -9,7 +9,6 @@ export {
 } from './rewardConfig';
 export { RewardFactory } from './RewardFactory';
 export type {
-  QualityHint,
   RewardBlueprint,
   RewardRangeConfig,
   RewardType,

@@ -59,7 +59,6 @@ export const DungeonGainSchema = z.object({
 export const DungeonOptionSchema = z.object({
   id: z.number(),
   text: z.string().describe('选项文本'),
-  content: z.string().optional().describe('选项内容'),
   risk_level: z.enum(['low', 'medium', 'high']).describe('风险等级'),
   requirement: z.string().optional().describe('选项要求'),
   potential_cost: z.string().optional().describe('潜在成本(文本描述)'),
@@ -91,10 +90,15 @@ export const RewardBlueprintSchema = z.object({
     .enum(['金', '木', '水', '火', '土', '风', '雷', '冰'])
     .optional()
     .describe('元素'),
-  quality_hint: z
-    .enum(['lower', 'medium', 'upper'])
+  quality_hint: z.any().optional().describe('已废弃，请使用 reward_score'), // 保持向后兼容性或作为过渡
+  reward_score: z
+    .number()
+    .min(0)
+    .max(100)
     .optional()
-    .describe('品质提示：lower=下品, medium=中品, upper=上品'),
+    .describe(
+      '稀有评分 (0-100)：衡量该材料在当前副本境界下的珍稀程度。0=寻常路货, 50=正品标配, 100=天大造化/极品。',
+    ),
 });
 
 export type RewardBlueprint = z.infer<typeof RewardBlueprintSchema>;
@@ -216,6 +220,8 @@ export interface DungeonState {
   summary_of_sacrifice?: DungeonOptionCost[];
   realGains?: ResourceOperation[];
   accumulatedRewards: RewardBlueprint[];
+  /** 当前轮次获得的物品 */
+  currentRoundItems?: RewardBlueprint[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
   /** 持久 Buff 状态（使用新格式） */

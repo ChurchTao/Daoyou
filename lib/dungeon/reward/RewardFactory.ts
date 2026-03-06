@@ -12,23 +12,22 @@
 
 import type { ResourceOperation } from '@/engine/resource/types';
 import { YieldCalculator } from '@/engine/yield/YieldCalculator';
-import type { ElementType, Quality, RealmType } from '@/types/constants';
+import type {
+  ElementType,
+  MaterialType,
+  Quality,
+  RealmType,
+} from '@/types/constants';
 import { QUALITY_VALUES, REALM_VALUES } from '@/types/constants';
 import type { Cultivator, Material } from '@/types/cultivator';
 import { calculateCultivationExp } from '@/utils/cultivationUtils';
 import type { PlayerInfo } from '../types';
 import {
-  QUALITY_HINT_OFFSET,
   REALM_QUALITY_CAP,
   REALM_REWARD_CONFIG,
   TIER_MULTIPLIER,
 } from './rewardConfig';
-import type {
-  QualityHint,
-  RewardBlueprint,
-  RewardRangeConfig,
-  ValueRange,
-} from './types';
+import type { RewardBlueprint, RewardRangeConfig, ValueRange } from './types';
 
 /**
  * 奖励工厂 - 将 AI 蓝图转化为实际物品
@@ -172,7 +171,12 @@ export class RewardFactory {
     playerInfo: PlayerInfo,
   ): ResourceOperation[] {
     // 生成基础奖励（灵石、修为、感悟值）
-    const baseRewards = this.generateBaseRewards(mapRealm, tier, dangerScore, playerInfo);
+    const baseRewards = this.generateBaseRewards(
+      mapRealm,
+      tier,
+      dangerScore,
+      playerInfo,
+    );
 
     // 实体化材料奖励
     const materialRewards = this.materialize(
@@ -224,12 +228,12 @@ export class RewardFactory {
     // 获取或推断元素
     const element = bp.element || this.inferElement(bp.description || '');
 
-    // 计算品质（使用新的随机公式）
+    // 计算品质（使用新的评分公式）
     const quality = this.rollMaterialQuality(
       mapRealm,
       tier,
       dangerBonus * 200, // 转换回 0-100 的危险分数
-      bp.quality_hint || 'medium',
+      bp.reward_score,
     );
 
     // 计算价格（带危险分数加成）
@@ -239,8 +243,8 @@ export class RewardFactory {
       dangerBonus,
     );
 
-    // 推断材料类型
-    const materialType = this.resolveGeneratedMaterialType(
+    // 推断并解析材料类型
+    const materialType = this.resolveMaterialType(
       bp.material_type,
       bp.description || '',
     );
@@ -333,190 +337,146 @@ export class RewardFactory {
   /**
    * 随机生成材料品质
    *
-   * 基于概率分布的随机公式，综合考虑以下因素：
-   * - 地图境界（基础品质锚点）
-   * - 副本评分（S/A/B/C/D）
-   * - 危险系数（0-100）
-   * - AI品质提示（lower/medium/upper）
+   * 采用线性分布逻辑：
+   * 最终品级 = 地图境界索引 + 副本评分加成 + 危险分数加成 + 材料评分加成 + 随机微调
    *
-   * @param mapRealm 地图境界
+   * @param mapRealm 地图境界 (如：筑基)
    * @param tier 副本评分 (S/A/B/C/D)
    * @param dangerScore 危险系数 (0-100)
-   * @param qualityHint AI品质提示
+   * @param rewardScore 材料个体评分 (0-100)
    * @returns 随机生成的材料品质
    */
   private static rollMaterialQuality(
     mapRealm: RealmType,
     tier: string,
     dangerScore: number,
-    qualityHint: QualityHint,
+    rewardScore: number = 50,
   ): Quality {
     const realmIndex = REALM_VALUES.indexOf(mapRealm);
-    const capQuality = REALM_QUALITY_CAP[mapRealm] || '真品';
+    const capQuality = REALM_QUALITY_CAP[mapRealm] || '神品';
     const capIndex = QUALITY_VALUES.indexOf(capQuality);
 
-    // 1. 基础品质索引：地图境界
+    // 1. 基础品质索引 (Base Index)
+    // 炼气:0(凡品), 筑基:1(灵品), ...
     const baseIndex = Math.min(realmIndex, QUALITY_VALUES.length - 1);
 
-    // 2. 副本评分加成
-    const tierBonus: Record<string, number> = {
-      S: 2.0,
-      A: 1.0,
-      B: 0.5,
-      C: 0,
-      D: -0.5,
+    // 2. 副本评分权重 (Tier Weight)
+    // S: +0.6, A: +0.2, B: 0, C: -0.4, D: -0.8
+    const tierWeightMap: Record<string, number> = {
+      S: 0.6,
+      A: 0.2,
+      B: 0,
+      C: -0.4,
+      D: -0.8,
     };
-    const tierOffset = tierBonus[tier] || 0;
+    const tierWeight = tierWeightMap[tier] || 0;
 
-    // 3. 危险系数加成 (0-100 -> 0-1.5)
-    // 危险分数越高，品质加成越大
-    const dangerOffset = (dangerScore / 100) * 1.5;
+    // 3. 危险分数权重 (Danger Weight): 0-100 -> 0 to 0.4
+    const dangerWeight = (dangerScore / 100) * 0.4;
 
-    // 4. AI品质提示偏移
-    const hintOffset = QUALITY_HINT_OFFSET[qualityHint] || 0;
+    // 4. 材料评分权重 (Reward Score Weight): 0-100 -> -0.5 to 0.7
+    // 0 -> -0.5 (大跌), 50 -> 0 (正常), 100 -> 0.7 (极品)
+    const scoreWeight = ((rewardScore - 50) / 50) * 0.6;
 
-    // 5. 随机偏移（使用 Box-Muller 变换生成正态分布）
-    // 标准差为 1.0，表示有约 68% 的概率在期望值的 ±1 范围内
-    const randomOffset = this.generateGaussianRandom() * 1.0;
+    // 5. 随机微调 (Random Offset): [-0.3, 0.3]
+    const randomOffset = (Math.random() - 0.5) * 0.6;
 
-    // 6. 计算最终品质索引
-    let finalIndex =
-      baseIndex + tierOffset + dangerOffset + hintOffset + randomOffset;
+    // 6. 计算最终索引
+    const finalIndex =
+      baseIndex + tierWeight + dangerWeight + scoreWeight + randomOffset;
 
-    // 7. 边界限制：确保在有效范围内
-    finalIndex = Math.max(
-      0,
+    // 7. 境界上限控制与边界锁定
+    // 规则：通常产出为境界品质，但在评分和危险系数全满时，允许最高跨越 2 个大阶位 (如筑基副本产出真品)
+    const maxAllowedIndex = Math.min(capIndex, baseIndex + 2);
+    const minAllowedIndex = Math.max(0, baseIndex - 2);
+
+    const lockedIndex = Math.max(
+      minAllowedIndex,
       Math.min(
-        Math.floor(finalIndex),
-        Math.min(capIndex, QUALITY_VALUES.length - 1),
+        Math.round(finalIndex),
+        maxAllowedIndex,
+        QUALITY_VALUES.length - 1,
       ),
     );
 
-    return QUALITY_VALUES[finalIndex];
+    return QUALITY_VALUES[lockedIndex];
   }
 
   /**
-   * 生成标准正态分布随机数（均值=0，标准差=1）
-   * 使用 Box-Muller 变换
+   * 推断并解析材料类型
    */
-  private static generateGaussianRandom(): number {
-    let u = 0;
-    let v = 0;
-
-    // 使用拒绝采样法确保在 (0, 1] 范围内
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
-
-    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-  }
-
-  /**
-   * 推断材料类型
-   */
-  private static inferMaterialType(
+  private static resolveMaterialType(
+    materialType: RewardBlueprint['material_type'] | 'manual' | undefined,
     description: string,
-  ):
-    | 'herb'
-    | 'ore'
-    | 'monster'
-    | 'tcdb'
-    | 'aux'
-    | 'gongfa_manual'
-    | 'skill_manual' {
+  ): MaterialType {
+    // 1. 如果已提供类型且非 deprecated 类型，直接使用
+    if (materialType && materialType !== 'manual') {
+      return materialType as MaterialType;
+    }
+
+    // 2. 否则基于描述进行模糊匹配
     const lowerDesc = description.toLowerCase();
-    // 先区分神通秘术（主动术式）
+
+    // 神通秘术
     if (
       lowerDesc.includes('神通') ||
       lowerDesc.includes('秘术') ||
-      lowerDesc.includes('术法') ||
-      lowerDesc.includes('法门')
+      lowerDesc.includes('术法')
     ) {
       return 'skill_manual';
     }
 
-    // 功法典籍（被动修行体系）与泛典籍词
+    // 功法典籍
     if (
       lowerDesc.includes('功法') ||
       lowerDesc.includes('心法') ||
       lowerDesc.includes('经') ||
-      lowerDesc.includes('诀') ||
-      lowerDesc.includes('录') ||
-      lowerDesc.includes('典籍') ||
-      lowerDesc.includes('残页') ||
-      lowerDesc.includes('经书') ||
-      lowerDesc.includes('图谱') ||
-      lowerDesc.includes('玉简')
+      lowerDesc.includes('诀')
     ) {
       return 'gongfa_manual';
     }
+
+    // 草药
     if (
       lowerDesc.includes('草') ||
-      lowerDesc.includes('花') ||
-      lowerDesc.includes('藤') ||
-      lowerDesc.includes('叶') ||
-      lowerDesc.includes('根') ||
       lowerDesc.includes('药') ||
       lowerDesc.includes('灵芝') ||
       lowerDesc.includes('参')
     ) {
       return 'herb';
     }
+
+    // 矿石
     if (
       lowerDesc.includes('石') ||
       lowerDesc.includes('矿') ||
       lowerDesc.includes('晶') ||
-      lowerDesc.includes('铁') ||
-      lowerDesc.includes('玉') ||
-      lowerDesc.includes('金') ||
-      lowerDesc.includes('铜')
+      lowerDesc.includes('铁')
     ) {
       return 'ore';
     }
+
+    // 妖兽
     if (
       lowerDesc.includes('兽') ||
       lowerDesc.includes('妖') ||
       lowerDesc.includes('血') ||
-      lowerDesc.includes('骨') ||
-      lowerDesc.includes('皮') ||
-      lowerDesc.includes('牙') ||
-      lowerDesc.includes('角')
+      lowerDesc.includes('骨')
     ) {
       return 'monster';
     }
+
+    // 天材地宝
     if (
       lowerDesc.includes('果') ||
       lowerDesc.includes('宝') ||
       lowerDesc.includes('珠') ||
-      lowerDesc.includes('露') ||
-      lowerDesc.includes('丹')
+      lowerDesc.includes('露')
     ) {
       return 'tcdb';
     }
-    // 默认为辅助材料
+
+    // 默认
     return 'aux';
-  }
-
-  private static resolveGeneratedMaterialType(
-    materialType: RewardBlueprint['material_type'] | 'manual' | undefined,
-    description: string,
-  ):
-    | 'herb'
-    | 'ore'
-    | 'monster'
-    | 'tcdb'
-    | 'aux'
-    | 'gongfa_manual'
-    | 'skill_manual' {
-    if (!materialType) {
-      return this.inferMaterialType(description);
-    }
-
-    // Defensive normalization: never output legacy `manual`.
-    if (materialType === 'manual') {
-      const inferred = this.inferMaterialType(description);
-      return inferred === 'skill_manual' ? 'skill_manual' : 'gongfa_manual';
-    }
-
-    return materialType;
   }
 }

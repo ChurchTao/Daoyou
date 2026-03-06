@@ -49,6 +49,20 @@ export function DungeonProgressCard({
           mpLossPercent={state.accumulatedMpLoss}
           compact
         />
+
+        {/* 累计收获 */}
+        {state.accumulatedRewards && state.accumulatedRewards.length > 0 && (
+          <div className="mt-2 border-t border-ink/5 pt-2">
+            <div className="text-xs font-bold text-ink-secondary mb-1">机缘收获:</div>
+            <div className="flex flex-wrap gap-1">
+              {state.accumulatedRewards.map((r, i) => (
+                <span key={i} className="text-[10px] bg-ink/5 px-1.5 py-0.5 rounded text-ink border border-ink/10" title={r.description}>
+                  {r.name || '神秘机缘'}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </InkSection>
   );

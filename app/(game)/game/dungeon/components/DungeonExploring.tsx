@@ -123,6 +123,11 @@ export function DungeonExploring({
                 <div className="font-bold">第{h.round}回</div>
                 <div>{h.scene.substring(0, 50)}...</div>
                 {h.choice && <div className="text-crimson">➜ {h.choice}</div>}
+                {h.gained_items && h.gained_items.length > 0 && (
+                  <div className="mt-0.5 text-xs text-amber-600">
+                    获得: {h.gained_items.join(', ')}
+                  </div>
+                )}
               </div>
             ))}
           </div>

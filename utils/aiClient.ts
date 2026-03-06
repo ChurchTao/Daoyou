@@ -3,10 +3,12 @@ import { generateText, Output, streamText, ToolSet } from 'ai';
 import z from 'zod';
 
 const DISABLE_MARKDOWN_SYSTEM_INJECTION = `
-你必须只输出一个合法的 JSON 对象（Content-Type: application/json）。
-不要输出任何 Markdown（包括 \`\`\`）、不要输出解释、不要输出多余文字。
-输出必须能被 JSON.parse 直接解析。`;
-const DISABLE_MARKDOWN_USER_INJECTION = `再次强调：禁止输出 Markdown、解释文本或多余字段。只输出 JSON。`;
+[重要约束] 
+1. 必须只输出一个合法的 JSON 对象。
+2. 严禁包含 Markdown 格式（如 \`\`\`json）。
+3. 严禁输出任何前言、解释或多余的尾随文字。
+4. 必须能被标准 JSON 解析器直接解析。`;
+const DISABLE_MARKDOWN_USER_INJECTION = `[再次强调] 只输出单一 JSON 对象，严禁 Markdown，严禁多余字段或解释。`;
 
 const injectSystem = (system: string) =>
   `${system}${DISABLE_MARKDOWN_SYSTEM_INJECTION}`;

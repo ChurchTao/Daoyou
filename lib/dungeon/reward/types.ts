@@ -22,11 +22,6 @@ export type RewardType =
   | 'comprehension_insight';
 
 /**
- * 品质提示
- */
-export type QualityHint = 'lower' | 'medium' | 'upper';
-
-/**
  * AI生成的奖励蓝图 - 只包含创意内容，不包含数值
  */
 export interface RewardBlueprint {
@@ -36,8 +31,8 @@ export interface RewardBlueprint {
   /** 物品描述 (AI创意) - 仅 material 需要 */
   description?: string;
 
-  /** 品质等级提示 - 仅 material 需要 */
-  quality_hint?: QualityHint;
+  /** 稀有评分 (0-100) - 仅 material 需要 */
+  reward_score?: number;
 
   /** 元素标签 - 仅 material 需要 */
   element?: ElementType;
