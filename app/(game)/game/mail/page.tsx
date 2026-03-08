@@ -19,7 +19,7 @@ export default function MailPage() {
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
   const [batchClaiming, setBatchClaiming] = useState(false);
   const [batchReading, setBatchReading] = useState(false);
-  const { refreshInventory } = useCultivator();
+  const { refreshInventory, refreshUnreadMailCount } = useCultivator();
   const { pushToast } = useInkUI();
 
   const fetchMails = useCallback(async (targetPage: number, append: boolean) => {
@@ -69,6 +69,8 @@ export default function MailPage() {
         setMails((prev) =>
           prev.map((m) => (m.id === mail.id ? { ...m, isRead: true } : m)),
         );
+        // 刷新全局状态以更新红点
+        refreshUnreadMailCount();
       } catch (e) {
         console.error('Failed to mark read', e);
       }
@@ -91,6 +93,7 @@ export default function MailPage() {
       prev && prev.id === mailId ? { ...prev, isClaimed: true, isRead: true } : prev,
     );
     refreshInventory();
+    refreshUnreadMailCount();
   };
 
   const handleClaimAll = async () => {
@@ -119,6 +122,7 @@ export default function MailPage() {
             : prev,
         );
         await refreshInventory();
+        refreshUnreadMailCount();
       }
 
       pushToast({
@@ -150,6 +154,8 @@ export default function MailPage() {
       const updatedCount = Number(data.updatedCount || 0);
       setMails((prev) => prev.map((mail) => ({ ...mail, isRead: true })));
       setSelectedMail((prev) => (prev ? { ...prev, isRead: true } : prev));
+
+      refreshUnreadMailCount();
 
       pushToast({
         message: updatedCount > 0 ? `已标记 ${updatedCount} 封为已读` : '没有未读邮件',

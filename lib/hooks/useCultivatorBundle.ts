@@ -352,6 +352,12 @@ export function useCultivatorBundle() {
     return await loadFromServer();
   }, [userId, loadFromServer]);
 
+  const refreshUnreadMailCount = useCallback(async () => {
+    if (!userId) return;
+    const count = await fetchUnreadCount();
+    updateState((prev) => ({ ...prev, unreadMailCount: count }));
+  }, [userId, updateState]);
+
   // ========== 初始化逻辑 ==========
   useEffect(() => {
     // 无用户时重置
@@ -408,5 +414,6 @@ export function useCultivatorBundle() {
     refreshInventory,
     ensureInventoryLoaded,
     refreshCultivator,
+    refreshUnreadMailCount,
   };
 }
