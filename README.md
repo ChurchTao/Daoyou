@@ -47,15 +47,15 @@
 ## 🖼 游戏画面
 
 <p align="center">
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a24f22a.webp" alt="游戏主界面" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c8a5b175b.webp" alt="主界面下方信息" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a173b4.webp" alt="修仙界大地图" width="260" />
+  <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_18-45-05.png" alt="游戏主界面" width="260" />
+  <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_18-50-45.png" alt="主界面下方信息" width="260" />
+  <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_19-03-00.png" alt="修仙界大地图" width="260" />
 </p>
 
 <p align="center">
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c999ec03a.webp" alt="造物仙炉" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a4ba0b.webp" alt="藏经阁" width="260" />
-  <img src="https://youke.xn--y7xa690gmna.cn/s1/2026/02/03/6981c99a80520.webp" alt="云游坊市" width="260" />
+  <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_19-01-06.png" alt="造物仙炉" width="260" />
+  <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_19-01-32.png" alt="藏经阁" width="260" />
+  <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_19-02-21.png" alt="云游坊市" width="260" />
 </p>
 
 ## 🚀 快速开始
