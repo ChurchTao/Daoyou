@@ -1,5 +1,6 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import {
+  batchBuyMarketItems,
   buyMarketItem,
   MarketServiceError,
   resolveLayer,
@@ -14,6 +15,14 @@ const BuySchema = z.object({
   itemId: z.string().optional(),
   quantity: z.number().min(1).default(1),
   layer: z.enum(['common', 'treasure', 'heaven', 'black']).optional(),
+  items: z
+    .array(
+      z.object({
+        listingId: z.string(),
+        quantity: z.number().min(1),
+      }),
+    )
+    .optional(),
 });
 
 export const POST = withActiveCultivator(
@@ -21,15 +30,29 @@ export const POST = withActiveCultivator(
     try {
       const body = await request.json();
       const parsed = BuySchema.parse(body);
-      const listingId = parsed.listingId || parsed.itemId;
-      if (!listingId) {
-        return NextResponse.json({ error: '缺少 listingId' }, { status: 400 });
-      }
 
       const { nodeId: rawNodeId } = await params;
       const nodeId = resolveNodeId(rawNodeId);
       const layer =
         parsed.layer || resolveLayer(request.nextUrl.searchParams.get('layer'));
+
+      // 优先处理批量购买
+      if (parsed.items && parsed.items.length > 0) {
+        const result = await batchBuyMarketItems({
+          nodeId,
+          layer,
+          items: parsed.items,
+          cultivatorId: cultivator.id,
+          cultivatorRealm: cultivator.realm as RealmType,
+        });
+        return NextResponse.json(result);
+      }
+
+      // 单点购买逻辑
+      const listingId = parsed.listingId || parsed.itemId;
+      if (!listingId) {
+        return NextResponse.json({ error: '缺少 listingId' }, { status: 400 });
+      }
 
       const result = await buyMarketItem({
         nodeId,

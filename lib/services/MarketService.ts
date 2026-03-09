@@ -48,6 +48,14 @@ type BuyInput = {
   cultivatorRealm: RealmType;
 };
 
+export type BatchBuyInput = {
+  nodeId: string;
+  layer: MarketLayer;
+  items: { listingId: string; quantity: number }[];
+  cultivatorId: string;
+  cultivatorRealm: RealmType;
+};
+
 type IdentifyInput = {
   materialId: string;
   cultivatorId: string;
@@ -468,6 +476,151 @@ export async function buyMarketItem(input: BuyInput) {
     };
   } finally {
     await redis.del(lockKey);
+  }
+}
+
+export async function batchBuyMarketItems(input: BatchBuyInput) {
+  const { nodeId, layer, items, cultivatorId, cultivatorRealm } = input;
+  if (items.length === 0) {
+    throw new MarketServiceError(400, '购买列表不能为空');
+  }
+
+  // 校验数量
+  for (const buyItem of items) {
+    if (buyItem.quantity < 1) {
+      throw new MarketServiceError(400, '购买数量必须大于 0');
+    }
+  }
+
+  const access = getMarketAccess(nodeId, layer, cultivatorRealm);
+  if (!access.allowed) {
+    throw new MarketServiceError(403, access.reason || '当前层不可进入');
+  }
+
+  // 为避免死锁且兼容单点购买，对 ID 排序后逐一加锁
+  const sortedRequestItems = [...items].sort((a, b) =>
+    a.listingId.localeCompare(b.listingId),
+  );
+  const lockKeys = sortedRequestItems.map((i) =>
+    getBuyLockKey(nodeId, layer, i.listingId),
+  );
+  const acquiredLocks: string[] = [];
+
+  try {
+    for (const key of lockKeys) {
+      const gotLock = await redis.set(key, '1', { nx: true, ex: 15 });
+      if (!gotLock) {
+        throw new MarketServiceError(429, '部分宝物正被其他道友争夺，请稍后再试');
+      }
+      acquiredLocks.push(key);
+    }
+
+    const cacheKey = getCacheKey(nodeId, layer);
+    const cachedData = parseCachedData(await redis.get(cacheKey));
+    if (!cachedData) {
+      throw new MarketServiceError(404, '坊市正在进货中，暂未开启');
+    }
+
+    let totalCost = 0;
+    const processItems: {
+      item: InternalMarketListing;
+      quantity: number;
+      index: number;
+    }[] = [];
+
+    for (const buyReq of items) {
+      const idx = cachedData.listings.findIndex((l) => l.id === buyReq.listingId);
+      if (idx < 0) {
+        throw new MarketServiceError(
+          404,
+          `物品 ${buyReq.listingId} 已不在坊市之中`,
+        );
+      }
+      const item = cachedData.listings[idx];
+      if (item.quantity < buyReq.quantity) {
+        throw new MarketServiceError(400, `坊市库存不足: ${item.name}`);
+      }
+      totalCost += item.price * buyReq.quantity;
+      processItems.push({ item, quantity: buyReq.quantity, index: idx });
+    }
+
+    await getExecutor().transaction(async (tx) => {
+      const [updatedCultivator] = await tx
+        .update(cultivators)
+        .set({
+          spirit_stones: sql`${cultivators.spirit_stones} - ${totalCost}`,
+        })
+        .where(
+          sql`${cultivators.id} = ${cultivatorId} AND ${cultivators.spirit_stones} >= ${totalCost}`,
+        )
+        .returning({ id: cultivators.id });
+
+      if (!updatedCultivator) {
+        throw new MarketServiceError(400, '囊中羞涩，灵石不足');
+      }
+
+      for (const { item, quantity } of processItems) {
+        if (item.isMystery && item.mysteryPayload) {
+          const mysteryId = crypto.randomUUID();
+          const mysteryKey = getMysteryKey(cultivatorId, mysteryId);
+          await redis.set(mysteryKey, item.mysteryPayload, {
+            ex: MYSTERY_MAPPING_TTL_SEC,
+          });
+
+          await tx.insert(materials).values({
+            cultivatorId,
+            name: item.mysteryMask?.disguisedName || item.name,
+            type: item.type,
+            rank: item.rank,
+            element: item.element,
+            description: item.description,
+            quantity,
+            details: {
+              mystery: {
+                mysteryId,
+                identifyCost: rollIdentifyCost(item.rank),
+                disguiseTier: item.rank,
+                purchasedAt: Date.now(),
+              },
+            },
+          });
+        } else {
+          await tx.insert(materials).values({
+            cultivatorId,
+            name: item.name,
+            type: item.type,
+            rank: item.rank,
+            element: item.element,
+            description: item.description,
+            quantity,
+            details: item.details || {},
+          });
+        }
+      }
+    });
+
+    // 从大到小更新索引，避免 splice 导致的偏移问题
+    const sortedIndices = [...processItems].sort((a, b) => b.index - a.index);
+    for (const { quantity, index } of sortedIndices) {
+      const item = cachedData.listings[index];
+      item.quantity -= quantity;
+      if (item.quantity <= 0) {
+        cachedData.listings.splice(index, 1);
+      } else {
+        cachedData.listings[index] = item;
+      }
+    }
+
+    await redis.set(cacheKey, cachedData, { keepTtl: true });
+    return {
+      success: true,
+      message: `成功批量购入 ${processItems.length} 种物品`,
+      totalCost,
+    };
+  } finally {
+    for (const key of acquiredLocks) {
+      await redis.del(key);
+    }
   }
 }
 
