@@ -497,24 +497,14 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
     throw new MarketServiceError(403, access.reason || '当前层不可进入');
   }
 
-  // 为避免死锁且兼容单点购买，对 ID 排序后逐一加锁
-  const sortedRequestItems = [...items].sort((a, b) =>
-    a.listingId.localeCompare(b.listingId),
-  );
-  const lockKeys = sortedRequestItems.map((i) =>
-    getBuyLockKey(nodeId, layer, i.listingId),
-  );
-  const acquiredLocks: string[] = [];
+  // 获取层级全局锁，防止并发购买导致的缓存竞争
+  const globalLockKey = `market:lock:${nodeId}:${layer}`;
+  const gotGlobalLock = await redis.set(globalLockKey, '1', { nx: true, ex: 30 });
+  if (!gotGlobalLock) {
+    throw new MarketServiceError(429, '坊市人声鼎沸，请稍后再往');
+  }
 
   try {
-    for (const key of lockKeys) {
-      const gotLock = await redis.set(key, '1', { nx: true, ex: 15 });
-      if (!gotLock) {
-        throw new MarketServiceError(429, '部分宝物正被其他道友争夺，请稍后再试');
-      }
-      acquiredLocks.push(key);
-    }
-
     const cacheKey = getCacheKey(nodeId, layer);
     const cachedData = parseCachedData(await redis.get(cacheKey));
     if (!cachedData) {
@@ -533,7 +523,7 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       if (idx < 0) {
         throw new MarketServiceError(
           404,
-          `物品 ${buyReq.listingId} 已不在坊市之中`,
+          `物品已售罄或下架`,
         );
       }
       const item = cachedData.listings[idx];
@@ -585,16 +575,48 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
             },
           });
         } else {
-          await tx.insert(materials).values({
-            cultivatorId,
-            name: item.name,
-            type: item.type,
-            rank: item.rank,
-            element: item.element,
-            description: item.description,
-            quantity,
-            details: item.details || {},
-          });
+          // 尝试寻找可堆叠的物品
+          const existing = await tx
+            .select()
+            .from(materials)
+            .where(
+              and(
+                eq(materials.cultivatorId, cultivatorId),
+                eq(materials.name, item.name),
+                eq(materials.type, item.type),
+                eq(materials.rank, item.rank),
+                item.element
+                  ? eq(materials.element, item.element)
+                  : sql`${materials.element} IS NULL`,
+              ),
+            )
+            .limit(1);
+
+          const target = existing[0];
+          // 只有在 details 也完全一致的情况下才堆叠 (简单判断：JSON 字符串相等)
+          const isSameDetails =
+            JSON.stringify(target?.details || {}) ===
+            JSON.stringify(item.details || {});
+
+          if (target && isSameDetails) {
+            await tx
+              .update(materials)
+              .set({
+                quantity: sql`${materials.quantity} + ${quantity}`,
+              })
+              .where(eq(materials.id, target.id));
+          } else {
+            await tx.insert(materials).values({
+              cultivatorId,
+              name: item.name,
+              type: item.type,
+              rank: item.rank,
+              element: item.element,
+              description: item.description,
+              quantity,
+              details: item.details || {},
+            });
+          }
         }
       }
     });
@@ -611,16 +633,16 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       }
     }
 
+    // 强制写入更新后的缓存
     await redis.set(cacheKey, cachedData, { keepTtl: true });
+
     return {
       success: true,
       message: `成功批量购入 ${processItems.length} 种物品`,
       totalCost,
     };
   } finally {
-    for (const key of acquiredLocks) {
-      await redis.del(key);
-    }
+    await redis.del(globalLockKey);
   }
 }
 

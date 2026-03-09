@@ -54,9 +54,12 @@ describe('MarketService batchBuyMarketItems', () => {
     (redis.set as jest.Mock).mockResolvedValue('OK');
 
     const mockTx = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]), // 默认返回空，即不堆叠
       update: jest.fn().mockReturnThis(),
       set: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
       returning: jest.fn().mockResolvedValue([{ id: mockCultivatorId }]),
       insert: jest.fn().mockReturnThis(),
       values: jest.fn().mockResolvedValue([{ id: 'new-mat-1' }]),
