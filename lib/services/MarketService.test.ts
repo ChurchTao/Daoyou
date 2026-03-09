@@ -1,7 +1,7 @@
 import { getExecutor } from '@/lib/drizzle/db';
 import { redis } from '@/lib/redis';
 import { RealmType } from '@/types/constants';
-import { MarketServiceError, batchBuyMarketItems } from './MarketService';
+import { batchBuyMarketItems } from './MarketService';
 
 jest.mock('@/lib/drizzle/db', () => ({
   getExecutor: jest.fn(),

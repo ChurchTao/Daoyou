@@ -2,6 +2,6 @@ export {};
 
 declare global {
   interface Body {
-    json<T = any>(): Promise<T>;
+    json<T = unknown>(): Promise<T>;
   }
 }

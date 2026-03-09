@@ -6,6 +6,8 @@ import {
   InkActionGroup,
   InkBadge,
   InkButton,
+  InkDialog,
+  InkDialogState,
   InkList,
   InkListItem,
   InkNotice,
@@ -71,6 +73,13 @@ export default function MarketPage() {
     title: string;
     description: string;
   } | null>(null);
+
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchBuying, setIsBatchBuying] = useState(false);
+  const [batchBuyDialog, setBatchBuyDialog] = useState<InkDialogState | null>(
+    null,
+  );
 
   const isFetchingRef = useRef(false);
   const nextRetryAtRef = useRef(0);
@@ -179,6 +188,79 @@ export default function MarketPage() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBatchBuy = async () => {
+    if (!cultivator || selectedIds.size === 0) return;
+
+    const selectedItems = listings.filter((l) => selectedIds.has(l.id));
+    const totalCost = selectedItems.reduce((acc, curr) => acc + curr.price, 0);
+
+    if (cultivator.spirit_stones < totalCost) {
+      pushToast({ message: '囊中羞涩，灵石不足', tone: 'warning' });
+      return;
+    }
+
+    setBatchBuyDialog({
+      id: 'batch-buy',
+      title: '批量确认',
+      content: (
+        <div className="space-y-2">
+          <p>确定购入以下 {selectedIds.size} 件物品吗？</p>
+          <div className="text-ink-secondary text-sm">
+            {selectedItems.map((i) => i.name).join('、')}
+          </div>
+          <p className="font-bold text-yellow-600">共计：💰 {totalCost} 灵石</p>
+        </div>
+      ),
+      confirmLabel: '购入',
+      cancelLabel: '罢',
+      onConfirm: async () => {
+        setIsBatchBuying(true);
+        try {
+          const res = await fetch(`/api/market/${nodeId}/buy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: selectedItems.map((i) => ({
+                listingId: i.id,
+                quantity: 1,
+              })),
+              layer: activeLayer,
+            }),
+          });
+          const result = await res.json();
+          if (result.success) {
+            pushToast({
+              message: `成功批量购入 ${selectedIds.size} 件物品`,
+              tone: 'success',
+            });
+            setSelectedIds(new Set());
+            setIsBatchMode(false);
+            await refresh();
+            void fetchMarket({ showLoading: false });
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (e: unknown) {
+          pushToast({
+            message: e instanceof Error ? e.message : '批量购买失败',
+            tone: 'danger',
+          });
+        } finally {
+          setIsBatchBuying(false);
+        }
+      },
+    });
+  };
+
   const formatTime = (ms: number) => {
     const minutes = Math.floor((ms / 1000 / 60) % 60);
     const seconds = Math.floor((ms / 1000) % 60);
@@ -236,6 +318,28 @@ export default function MarketPage() {
           onChange={handleLayerChange}
           items={LAYER_OPTIONS}
         />
+        <div className="mb-4 flex items-center justify-between">
+          <InkButton
+            onClick={() => {
+              setIsBatchMode(!isBatchMode);
+              setSelectedIds(new Set());
+            }}
+            variant={isBatchMode ? 'primary' : 'default'}
+            size="sm"
+          >
+            {isBatchMode ? '退出批量' : '批量模式'}
+          </InkButton>
+          {isBatchMode && selectedIds.size > 0 && (
+            <InkButton
+              variant="primary"
+              size="sm"
+              onClick={handleBatchBuy}
+              disabled={isBatchBuying}
+            >
+              购入已选 ({selectedIds.size}件)
+            </InkButton>
+          )}
+        </div>
         {!access.allowed && (
           <InkNotice>{access.reason || '当前层不可进入'}</InkNotice>
         )}
@@ -248,12 +352,26 @@ export default function MarketPage() {
           <InkList>
             {listings.map((item) => {
               const typeInfo = getMaterialTypeInfo(item.type);
+              const isSelected = selectedIds.has(item.id);
 
               return (
                 <InkListItem
                   key={item.id}
+                  highlight={isBatchMode && isSelected}
                   title={
-                    <div className="flex items-center">
+                    <div
+                      className="flex cursor-pointer items-center"
+                      onClick={() => isBatchMode && toggleSelect(item.id)}
+                    >
+                      {isBatchMode && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(item.id)}
+                          className="mr-2 h-4 w-4"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                       <div className="flex items-center">
                         {item.isMystery && (
                           <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border px-px text-xs">
@@ -284,20 +402,22 @@ export default function MarketPage() {
                     </div>
                   }
                   actions={
-                    <InkButton
-                      onClick={() => handleBuy(item)}
-                      disabled={
-                        !!buyingId || item.quantity <= 0 || !access.allowed
-                      }
-                      variant="primary"
-                      className="min-w-20"
-                    >
-                      {buyingId === item.id
-                        ? '交易中'
-                        : item.quantity <= 0
-                          ? '售罄'
-                          : '购买'}
-                    </InkButton>
+                    !isBatchMode && (
+                      <InkButton
+                        onClick={() => handleBuy(item)}
+                        disabled={
+                          !!buyingId || item.quantity <= 0 || !access.allowed
+                        }
+                        variant="primary"
+                        className="min-w-20"
+                      >
+                        {buyingId === item.id
+                          ? '交易中'
+                          : item.quantity <= 0
+                            ? '售罄'
+                            : '购买'}
+                      </InkButton>
+                    )
                   }
                 />
               );
@@ -309,6 +429,10 @@ export default function MarketPage() {
           <InkNotice>今日货物已售罄，请稍后再来。</InkNotice>
         )}
       </InkSection>
+      <InkDialog
+        dialog={batchBuyDialog}
+        onClose={() => setBatchBuyDialog(null)}
+      />
     </InkPageShell>
   );
 }

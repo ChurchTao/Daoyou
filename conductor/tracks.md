@@ -4,5 +4,5 @@
 
 ---
 
-- [ ] **Track: 坊市购买东西支持多选一起购买 (Batch Purchase in Market)**
+- [x] **Track: 坊市购买东西支持多选一起购买 (Batch Purchase in Market)**
   *链接: [./tracks/batch_purchase_20260309/](./tracks/batch_purchase_20260309/)*
