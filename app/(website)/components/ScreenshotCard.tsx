@@ -1,5 +1,4 @@
 import type { Screenshot } from '@/data/screenshot';
-import Image from 'next/image';
 
 interface ScreenshotCardProps {
   screenshot: Screenshot;
@@ -13,13 +12,10 @@ export function ScreenshotCard({ screenshot, index }: ScreenshotCardProps) {
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="bg-ink/5 relative aspect-[9/16] w-full overflow-hidden">
-        <Image
+        <img
           src={screenshot.url}
           alt={screenshot.alt}
-          fill
-          unoptimized
-          sizes="(min-width: 1024px) 400px, (min-width: 768px) 350px, 100vw"
-          className="screenshot-image-enhanced object-contain"
+          className="screenshot-image-enhanced absolute inset-0 h-full w-full object-contain"
           loading="lazy"
         />
         {/* Hover Overlay */}

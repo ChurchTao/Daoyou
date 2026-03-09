@@ -16,7 +16,6 @@ import {
   InkNotice,
   InkStatusBar,
 } from '@/components/ui';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 import { useHomeViewModel } from '../hooks/useHomeViewModel';
@@ -26,7 +25,7 @@ import { TitleEditorModal } from './TitleEditorModal';
 
 // 提升静态 JSX 到组件外部，避免每次渲染重新创建
 const HERO_IMAGE = (
-  <Image
+  <img
     src="/assets/daoyou_logo.png"
     alt="万界道友_logo"
     width={108}

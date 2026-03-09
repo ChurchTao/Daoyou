@@ -3,7 +3,6 @@
 import { InkPageShell, InkSection } from '@/components/layout';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkNotice } from '@/components/ui/InkNotice';
-import Image from 'next/image';
 
 const QR_CODE_PATH = '/api/community/qrcode';
 const QR_CODE_DOWNLOAD_PATH = '/api/community/qrcode?download=1';
@@ -17,7 +16,7 @@ export default function CommunityPage() {
     >
       <InkSection title="【群二维码】">
         <div className="border-ink/20 bg-paper mx-auto max-w-sm rounded-sm border border-dashed p-4">
-          <Image
+          <img
             src={QR_CODE_PATH}
             alt="万界道友玩家交流群二维码"
             width={560}

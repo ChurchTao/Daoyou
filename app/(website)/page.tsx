@@ -1,6 +1,5 @@
 import { changelogs } from '@/data/changelog';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from './Navbar';
 import { ScrollHint } from './ScrollHint';
@@ -146,12 +145,10 @@ export default function LandingPage() {
           {/* Logo */}
           <div className="fade-in-up mb-8">
             <div className="relative mx-auto h-32 w-32 drop-shadow-2xl transition-transform duration-700 ease-in-out hover:scale-105 md:h-48 md:w-48">
-              <Image
+              <img
                 src="/assets/daoyou_logo.png"
                 alt="万界道友 Logo"
-                fill
-                className="object-contain"
-                priority
+                className="absolute inset-0 h-full w-full object-contain"
               />
             </div>
           </div>
@@ -373,7 +370,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
           <div className="text-center md:text-left">
             <div className="mb-2 flex items-center justify-center gap-2 md:justify-start">
-              <Image
+              <img
                 src="/assets/daoyou_logo.png"
                 alt="Logo"
                 width={24}

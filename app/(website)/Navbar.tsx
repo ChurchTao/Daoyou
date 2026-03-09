@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -50,11 +49,10 @@ export function Navbar() {
         {/* Logo Text */}
         <Link href="/" className="group flex items-center gap-2 no-underline">
           <div className="relative h-8 w-8 transition-transform group-hover:rotate-12 md:h-10 md:w-10">
-            <Image
+            <img
               src="/assets/daoyou_logo.png"
               alt="Logo"
-              fill
-              className="object-contain"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           </div>
           <span

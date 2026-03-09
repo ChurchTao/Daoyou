@@ -4,5 +4,5 @@
 
 ---
 
-- [ ] **Track: 把所有的next/image都改为普通的img来处理，无需进行优化。使用中文交流**
+- [~] **Track: 把所有的next/image都改为普通的img来处理，无需进行优化。使用中文交流**
 *Link: [./tracks/img_conversion_20260309/](./tracks/img_conversion_20260309/)*
