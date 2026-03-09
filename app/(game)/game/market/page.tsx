@@ -224,6 +224,8 @@ export default function MarketPage() {
       cancelLabel: '罢',
       onConfirm: async () => {
         setIsBatchBuying(true);
+        // 更新对话框显示 loading
+        setBatchBuyDialog((prev) => (prev ? { ...prev, loading: true } : null));
         try {
           const res = await fetch(`/api/market/${nodeId}/buy`, {
             method: 'POST',
