@@ -327,14 +327,12 @@ export default function MarketPage() {
               setSelectedIds(new Set());
             }}
             variant={isBatchMode ? 'primary' : 'default'}
-            size="sm"
           >
             {isBatchMode ? '退出批量' : '批量模式'}
           </InkButton>
           {isBatchMode && selectedIds.size > 0 && (
             <InkButton
               variant="primary"
-              size="sm"
               onClick={handleBatchBuy}
               disabled={isBatchBuying}
             >

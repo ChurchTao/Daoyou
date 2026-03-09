@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export {};
 
 declare global {
   interface Body {
-    json<T = unknown>(): Promise<T>;
+    json<T = any>(): Promise<T>;
   }
 }
