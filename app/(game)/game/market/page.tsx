@@ -336,7 +336,11 @@ export default function MarketPage() {
               onClick={handleBatchBuy}
               disabled={isBatchBuying}
             >
-              购入已选 ({selectedIds.size}件)
+              购入已选 ({selectedIds.size}件 - 💰{' '}
+              {listings
+                .filter((l) => selectedIds.has(l.id))
+                .reduce((acc, curr) => acc + curr.price, 0)}
+              )
             </InkButton>
           )}
         </div>
