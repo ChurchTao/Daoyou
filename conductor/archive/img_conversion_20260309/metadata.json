@@ -1,0 +1,8 @@
+{
+  "track_id": "img_conversion_20260309",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-03-09T12:00:00Z",
+  "updated_at": "2026-03-09T12:00:00Z",
+  "description": "把所有的next/image都改为普通的img来处理，无需进行优化。使用中文交流"
+}
