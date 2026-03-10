@@ -62,8 +62,9 @@ export class StatModifierEffect extends BaseEffect {
         ctx.value = (ctx.value ?? 0) + addValue;
         break;
       case StatModifierType.PERCENT:
-        // 乘算
-        ctx.value = (ctx.value ?? 0) * (1 + addValue);
+        // 属性加算：基于基础值计算增量，然后加到当前值上
+        // Formula: Value = Value + BaseValue * addValue
+        ctx.value = (ctx.value ?? 0) + (ctx.baseValue ?? 0) * addValue;
         break;
     }
   }

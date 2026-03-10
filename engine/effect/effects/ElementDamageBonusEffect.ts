@@ -57,14 +57,17 @@ export class ElementDamageBonusEffect extends BaseEffect {
    * 增幅伤害值
    */
   apply(ctx: EffectContext): void {
-    const baseDamage = ctx.value ?? 0;
-    if (baseDamage <= 0) return;
+    const currentDamage = ctx.value ?? 0;
+    if (currentDamage <= 0) return;
 
-    // 计算增幅后的伤害
+    // 获取基准伤害（通常是流水线开始时的初始伤害）
+    const baseDamage = ctx.baseValue ?? currentDamage;
+
+    // 计算加成：基于基准伤害计算增量，然后加到当前值上
     const bonusDamage = baseDamage * this.damageBonus;
-    ctx.value = baseDamage + bonusDamage;
+    ctx.value = currentDamage + bonusDamage;
 
-    // 记录日志
+    // 记录元数据
     ctx.metadata = ctx.metadata ?? {};
     ctx.metadata.elementDamageBonus =
       ((ctx.metadata.elementDamageBonus as number) || 0) + bonusDamage;

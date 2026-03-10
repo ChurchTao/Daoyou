@@ -138,7 +138,17 @@ describe('BattleUnit Attribute Calculation', () => {
         {
           name: 'Strong Body',
           description: 'Vitality +20',
-          effects: [],
+          effects: [
+            {
+              type: EffectType.StatModifier,
+              trigger: EffectTrigger.ON_STAT_CALC,
+              params: {
+                stat: 'vitality',
+                value: 20,
+                modType: StatModifierType.FIXED,
+              },
+            },
+          ],
         },
       ],
     });
@@ -226,7 +236,17 @@ describe('BattleUnit Attribute Calculation', () => {
         {
           name: 'Fate Mod',
           description: '',
-          effects: [],
+          effects: [
+            {
+              type: EffectType.StatModifier,
+              trigger: EffectTrigger.ON_STAT_CALC,
+              params: {
+                stat: 'vitality',
+                value: 20,
+                modType: StatModifierType.FIXED,
+              },
+            },
+          ],
         },
       ],
       inventory: {
@@ -282,9 +302,9 @@ describe('BattleUnit Attribute Calculation', () => {
     // Calculation:
     // Base: 100
     // Fixed: +20 (Fate) + 30 (Weapon) = +50
-    // Subtotal: 150
-    // Percent: +50% of 150 = +75
-    // Final: 225
-    expect(finalAttrs.vitality).toBe(225);
+    // Subtotal: 150 (Previous multiplicative logic)
+    // Percent: +50% of Base(100) = +50
+    // Final: 100 (base) + 50 (fixed) + 50 (percent) = 200
+    expect(finalAttrs.vitality).toBe(200);
   });
 });

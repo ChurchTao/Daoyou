@@ -50,16 +50,20 @@ export class HealAmplifyEffect extends BaseEffect {
    * 修改治疗量
    */
   apply(ctx: EffectContext): void {
-    const baseHeal = ctx.value ?? 0;
-    if (baseHeal <= 0) return;
+    const currentHeal = ctx.value ?? 0;
+    if (currentHeal <= 0) return;
 
-    // 计算增幅后的治疗
-    const amplifiedHeal = baseHeal * (1 + this.amplifyPercent);
-    ctx.value = Math.max(0, amplifiedHeal);
+    // 获取基准治疗量
+    const baseHeal = ctx.baseValue ?? currentHeal;
 
-    // 记录日志
+    // 计算加成：基于基准治疗量计算增量，然后加到当前值上
+    const bonusHeal = baseHeal * this.amplifyPercent;
+    ctx.value = Math.max(0, currentHeal + bonusHeal);
+
+    // 记录元数据
     ctx.metadata = ctx.metadata ?? {};
-    ctx.metadata.healAmplify = this.amplifyPercent;
+    ctx.metadata.healAmplify =
+      ((ctx.metadata.healAmplify as number) || 0) + this.amplifyPercent;
   }
 
   displayInfo() {

@@ -63,13 +63,15 @@ export class BonusDamageEffect extends BaseEffect {
     }
 
     // 计算基础伤害
-    let damage = sourceAtk * this.multiplier;
+    const baseDamage = sourceAtk * this.multiplier;
+    let damage = baseDamage;
 
     // 如果有元素亲和加成
     if (element) {
       const elementMastery = source.getAttribute(`${element}_MASTERY`);
       if (elementMastery > 0) {
-        damage *= 1 + elementMastery / 100;
+        // 基于基础伤害计算加成，杜绝连乘
+        damage += baseDamage * (elementMastery / 100);
       }
     }
 

@@ -44,6 +44,7 @@ class EffectEngine {
       target,
       trigger,
       value: initialValue,
+      baseValue: initialValue,
       metadata,
     };
 
@@ -85,6 +86,7 @@ class EffectEngine {
       target,
       trigger,
       value: initialValue,
+      baseValue: initialValue,
       metadata,
       logCollector,
     };

@@ -66,6 +66,8 @@ export interface EffectContext {
   trigger: EffectTrigger;
   /** 动态数据：用于管道传递，比如当前攻击力或初始伤害 */
   value?: number;
+  /** 属性计算的基准值，用于百分比加算 (Base * (1 + Sum(Modifier))) */
+  baseValue?: number;
   /** 额外参数，如技能ID、元素类型、突破等级等 */
   metadata?: Record<string, unknown>;
   /** 日志收集器（可选，用于需要生成日志的效果） */
