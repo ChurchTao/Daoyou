@@ -52,8 +52,36 @@ export default function SkillCreationPage() {
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [canAfford, setCanAfford] = useState(true);
-  const { pushToast } = useInkUI();
+  const { pushToast, openDialog } = useInkUI();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const checkPending = async () => {
+      if (!cultivator) return;
+      try {
+        const res = await fetch('/api/craft/pending?type=create_skill');
+        const data = await res.json();
+        if (data.success && data.hasPending) {
+          openDialog({
+            title: '感应天机',
+            content: (
+              <p className="py-2">
+                系统感应到道友先前推演了一门神通，但尚未将其纳入道基。是否立即前往处理？
+              </p>
+            ),
+            confirmLabel: '继续推演',
+            cancelLabel: '暂不处理',
+            onConfirm: () => {
+              router.push('/game/enlightenment/replace?type=create_skill');
+            },
+          });
+        }
+      } catch (e) {
+        console.error('检查待定失败:', e);
+      }
+    };
+    checkPending();
+  }, [cultivator, openDialog, router]);
 
   // Fetch cost estimate when materials change
   useEffect(() => {
