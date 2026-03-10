@@ -3,7 +3,9 @@ import { EffectTrigger, EffectType, StatModifierType } from '../effect/types';
 import { BattleUnit } from './BattleUnit';
 
 describe('Issue #23 Reproduction: Multiplicative Stat Bloat', () => {
-  const createBaseCultivator = (overrides: Partial<Cultivator> = {}): Cultivator => ({
+  const createBaseCultivator = (
+    overrides: Partial<Cultivator> = {},
+  ): Cultivator => ({
     id: 'test_cultivator',
     name: 'TestCultivator',
     gender: '男',
@@ -99,7 +101,7 @@ describe('Issue #23 Reproduction: Multiplicative Stat Bloat', () => {
 
     // EXPECTED (Additive): 100 * (1 + 0.5 + 0.5) = 200
     // ACTUAL (Multiplicative): 100 * 1.5 * 1.5 = 225
-    
+
     expect(finalAttrs.spirit).toBe(200);
   });
 
@@ -111,10 +113,14 @@ describe('Issue #23 Reproduction: Multiplicative Stat Bloat', () => {
     // Final = 100 (base) + 50 (fixed) + 100 (percent) = 250.
     // Note: If Fixed was treated as part of base for percentage calc, it would be (100+50) * 2 = 300.
     // But per spec, it should be based on Base Value.
-    
+
     const cultivator = createBaseCultivator({
       attributes: {
         vitality: 100,
+        spirit: 0,
+        wisdom: 0,
+        speed: 0,
+        willpower: 0,
       },
       inventory: {
         artifacts: [
@@ -170,6 +176,8 @@ describe('Issue #23 Reproduction: Multiplicative Stat Bloat', () => {
             ],
           },
         ],
+        consumables: [],
+        materials: [],
       },
       equipped: {
         weapon: 'mod_1',
