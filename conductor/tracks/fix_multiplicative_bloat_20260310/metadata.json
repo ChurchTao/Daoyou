@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_multiplicative_bloat_20260310",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-03-10T00:00:00Z",
+  "updated_at": "2026-03-10T00:00:00Z",
+  "description": "修复上述的Issue #23 摘要：Bug - 百分比属性叠加算法导致数值异常膨胀"
+}
