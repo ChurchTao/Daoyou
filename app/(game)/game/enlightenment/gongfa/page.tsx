@@ -15,7 +15,7 @@ import {
 import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { CultivationTechnique, Material } from '@/types/cultivator';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const MAX_MATERIALS = 5;
@@ -34,6 +34,7 @@ type CostResponse = {
 };
 
 export default function GongfaCreationPage() {
+  const router = useRouter();
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
@@ -147,6 +148,17 @@ export default function GongfaCreationPage() {
       }
 
       const gongfa = result.data;
+
+      // 检查是否需要替换
+      if (gongfa.needs_replace) {
+        pushToast({
+          message: '功法已达上限，请选择一个进行替换',
+          tone: 'default',
+        });
+        router.push('/game/enlightenment/replace?type=create_gongfa');
+        return;
+      }
+
       setCreatedGongfa(gongfa);
 
       const successMessage = `功法【${gongfa.name}】参悟成功！`;
@@ -334,3 +346,4 @@ export default function GongfaCreationPage() {
     </InkPageShell>
   );
 }
+

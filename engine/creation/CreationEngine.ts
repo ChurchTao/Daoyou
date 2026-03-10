@@ -155,12 +155,40 @@ export class CreationEngine {
           }
         }
 
-        // 7.3 Persist Result (Delegated to Strategy)
-        await strategy.persistResult(
-          tx as unknown as DbTransaction,
-          context,
-          resultItem,
-        );
+        // 7.3 Handle Persistence or Pending Replacement
+        let needsReplace = false;
+        let currentCount = 0;
+        let maxCount = 0;
+
+        if (craftType === 'create_skill') {
+          currentCount = cultivator.skills.length;
+          maxCount = cultivator.max_skills || 3;
+          if (currentCount >= maxCount) needsReplace = true;
+        } else if (craftType === 'create_gongfa') {
+          currentCount = cultivator.cultivations.length;
+          maxCount = 5; // 默认功法上限为5
+          if (currentCount >= maxCount) needsReplace = true;
+        }
+
+        if (needsReplace) {
+          // 超出上限，暂存 Redis 待用户确认替换
+          const pendingKey = `creation_pending:${cultivatorId}:${craftType}`;
+          await redis.set(pendingKey, JSON.stringify(resultItem), { ex: 3600 }); // 1小时有效期
+          // 注入标识用于前端识别
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (resultItem as any).needs_replace = true;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (resultItem as any).currentCount = currentCount;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (resultItem as any).maxCount = maxCount;
+        } else {
+          // 未达上限，直接持久化
+          await strategy.persistResult(
+            tx as unknown as DbTransaction,
+            context,
+            resultItem,
+          );
+        }
       });
 
       return resultItem;

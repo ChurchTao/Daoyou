@@ -55,10 +55,6 @@ export class GongFaCreationStrategy implements CreationStrategy<
 
   async validate(context: CreationContext): Promise<void> {
     // 检查是否已有同名功法（可选，暂不强限制，反正名字可以重复）
-    // 检查功法数量上限？目前模型似乎没强限制功法数量，但可以限制一下
-    if (context.cultivator.cultivations.length >= 10) {
-      throw new Error('道友所学功法已达上限，贪多嚼不烂。');
-    }
 
     // 必须包含功法典籍（兼容 legacy manual）
     const hasGongFaManual = context.materials.some((m) =>

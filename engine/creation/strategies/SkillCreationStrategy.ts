@@ -69,11 +69,6 @@ export class SkillCreationStrategy implements CreationStrategy<
   readonly schema = SkillBlueprintSchema;
 
   async validate(context: CreationContext): Promise<void> {
-    const max_skills = context.cultivator.max_skills || 3;
-    if (context.cultivator.skills.length >= max_skills) {
-      throw new Error(`道友神通已经很多了，如需再创，需要遗忘一些神通。`);
-    }
-
     // Require at least one skill manual (compatible with legacy manual)
     const hasSkillManual = context.materials.some((m) =>
       isSkillManual(m.type),

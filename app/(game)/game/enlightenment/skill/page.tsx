@@ -20,7 +20,7 @@ import {
 } from '@/lib/utils/effectDisplay';
 import type { Material, Skill } from '@/types/cultivator';
 import { getElementInfo } from '@/types/dictionaries';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const MAX_MATERIALS = 5;
@@ -39,6 +39,7 @@ type CostResponse = {
 };
 
 export default function SkillCreationPage() {
+  const router = useRouter();
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
   const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
@@ -151,6 +152,17 @@ export default function SkillCreationPage() {
       }
 
       const skill = result.data;
+
+      // 检查是否需要替换
+      if (skill.needs_replace) {
+        pushToast({
+          message: '神通已达上限，请选择一个进行替换',
+          tone: 'default',
+        });
+        router.push('/game/enlightenment/replace?type=create_skill');
+        return;
+      }
+
       setCreatedSkill(skill);
 
       const successMessage = `神通【${skill.name}】推演成功！`;
@@ -368,3 +380,4 @@ export default function SkillCreationPage() {
     </InkPageShell>
   );
 }
+
