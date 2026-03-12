@@ -296,6 +296,12 @@ npm run preview   # Cloudflare 本地预览
   <img src="https://free.picui.cn/free/2026/02/24/699d3f0b15dd6.jpg" alt="交流群二维码" width="200" />
 </p>
 
+## 🤝 致谢
+
+特别鸣谢以下贡献者：
+
+- [tpoisonooo](https://github.com/tpoisonooo)：在 [Issue #25](https://github.com/ChurchTao/Daoyou/issues/25) 中提供了宝贵的 LLM 优化思路与方法论，极大地提升了游戏的 AIGC 体验。
+
 ## 开源协议
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 协议开源。
