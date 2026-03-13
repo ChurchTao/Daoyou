@@ -9,11 +9,11 @@ describe('MaterialGenerator', () => {
 
   it('test 材料生成器2', async () => {
     const materialSkeletons: MaterialSkeleton[] = [
-      { type: 'manual', rank: '凡品', quantity: 1 },
-      { type: 'manual', rank: '灵品', quantity: 1 },
-      { type: 'manual', rank: '天品', quantity: 1 },
-      { type: 'manual', rank: '仙品', quantity: 1 },
-      { type: 'manual', rank: '神品', quantity: 1 },
+      { type: 'skill_manual', rank: '凡品', quantity: 1 },
+      { type: 'gongfa_manual', rank: '灵品', quantity: 1 },
+      { type: 'skill_manual', rank: '天品', quantity: 1 },
+      { type: 'gongfa_manual', rank: '仙品', quantity: 1 },
+      { type: 'skill_manual', rank: '神品', quantity: 1 },
     ];
     const materials =
       await MaterialGenerator.generateFromSkeletons(materialSkeletons);

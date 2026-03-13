@@ -1,5 +1,4 @@
 import { InkUIProvider } from '@/components/providers/InkUIProvider';
-import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { AuthProvider } from '../lib/auth/AuthContext';
 import './globals.css';
@@ -23,7 +22,6 @@ export default function RootLayout({
           <InkUIProvider>{children}</InkUIProvider>
         </AuthProvider>
       </body>
-      <Analytics />
     </html>
   );
 }

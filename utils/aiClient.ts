@@ -1,3 +1,4 @@
+import { AlibabaLanguageModelOptions, createAlibaba } from '@ai-sdk/alibaba';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { generateText, Output, streamText, ToolSet } from 'ai';
 import z from 'zod';
@@ -49,12 +50,20 @@ export function getModel(fast: boolean = false) {
       ? process.env.ARK_MODEL_FAST_USE
       : process.env.ARK_MODEL_USE;
     return provider(model!);
-  }
-  if (process.env.PROVIDER_CHOOSE === 'kimi') {
+  } else if (process.env.PROVIDER_CHOOSE === 'kimi') {
     const model = fast
       ? process.env.KIMI_MODEL_FAST_USE
       : process.env.KIMI_MODEL_USE;
     return provider(model!);
+  } else if (process.env.PROVIDER_CHOOSE === 'alibaba') {
+    const model = fast
+      ? process.env.ALIBABA_MODEL_FAST_USE
+      : process.env.ALIBABA_MODEL_USE;
+    const provider = createAlibaba({
+      apiKey: process.env.ALIBABA_API_KEY,
+      baseURL: process.env.ALIBABA_BASE_URL,
+    });
+    return provider.chatModel(model!);
   } else {
     const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
     return provider(model!);
@@ -80,6 +89,10 @@ export async function text(
           type: 'disabled',
         },
       },
+      alibaba: {
+        enableThinking: false,
+        thinkingBudget: 2048,
+      } satisfies AlibabaLanguageModelOptions,
     },
   });
   console.debug('通用AI生成Text：totalUsage', res.totalUsage);
@@ -109,6 +122,10 @@ export function stream_text(
           type: thinking ? 'auto' : 'disabled',
         },
       },
+      alibaba: {
+        enableThinking: false,
+        thinkingBudget: 2048,
+      } satisfies AlibabaLanguageModelOptions,
     },
   });
   return stream;
@@ -145,6 +162,10 @@ export async function object<T>(
           type: thinking ? 'auto' : 'disabled',
         },
       },
+      alibaba: {
+        enableThinking: false,
+        thinkingBudget: 2048,
+      } satisfies AlibabaLanguageModelOptions,
     },
   });
   return {
@@ -184,6 +205,10 @@ export async function objectArray<T>(
           type: thinking ? 'auto' : 'disabled',
         },
       },
+      alibaba: {
+        enableThinking: false,
+        thinkingBudget: 2048,
+      } satisfies AlibabaLanguageModelOptions,
     },
   });
   return {
@@ -213,6 +238,10 @@ export async function tool(
           type: thinking ? 'auto' : 'disabled',
         },
       },
+      alibaba: {
+        enableThinking: false,
+        thinkingBudget: 2048,
+      } satisfies AlibabaLanguageModelOptions,
     },
   });
   console.debug('AI生成Text by tool：totalUsage', res.totalUsage);
