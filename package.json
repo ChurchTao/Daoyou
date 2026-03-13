@@ -32,6 +32,7 @@
     "clsx": "^2.1.1",
     "d3-format": "^3.1.2",
     "drizzle-orm": "^0.45.1",
+    "jsonrepair": "^3.13.3",
     "next": "16.1.6",
     "nodemailer": "^8.0.2",
     "postgres": "^3.4.8",

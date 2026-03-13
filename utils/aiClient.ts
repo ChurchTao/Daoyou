@@ -1,30 +1,42 @@
 import { AlibabaLanguageModelOptions, createAlibaba } from '@ai-sdk/alibaba';
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { generateText, Output, streamText, ToolSet } from 'ai';
+import { generateText, streamText, ToolSet } from 'ai';
+import { jsonrepair } from 'jsonrepair';
 import z from 'zod';
 
-const DISABLE_MARKDOWN_SYSTEM_INJECTION = `
-[重要约束] 
-1. 必须只输出一个合法的 JSON 对象。
-2. 严禁包含 Markdown 格式（如 \`\`\`json）。
-3. 严禁输出任何前言、解释或多余的尾随文字。
-4. 必须能被标准 JSON 解析器直接解析。`;
-const DISABLE_MARKDOWN_USER_INJECTION = `[再次强调] 只输出单一 JSON 对象，严禁 Markdown，严禁多余字段或解释。`;
+/**
+ * 注入 Schema 到 System Prompt
+ */
+const injectSystemWithSchema = (system: string, schema: z.ZodType<unknown>) => {
+  const jsonSchema = schema.toJSONSchema();
+  return `${system}
 
-const injectSystem = (system: string) =>
-  `${system}${DISABLE_MARKDOWN_SYSTEM_INJECTION}`;
-const injectUser = (user: string) =>
-  `${user}${DISABLE_MARKDOWN_USER_INJECTION}`;
+[输出 JSON 格式要求]
+你必须遵循以下 JSON Schema 进行输出：
+${JSON.stringify(jsonSchema, null, 2)}`;
+};
 
 /**
  * 获取 DeepSeek Provider
- * @returns DeepSeek Provider
  */
 function getDeepSeekProvider() {
   if (process.env.PROVIDER_CHOOSE === 'ark') {
     return createDeepSeek({
       baseURL: process.env.ARK_BASE_URL,
       apiKey: process.env.ARK_API_KEY,
+      // fetch: async (url, init) => {
+      //   console.log('==== LLM REQUEST ====');
+      //   console.log('URL:', url);
+      //   console.log('HEADERS:', init?.headers);
+      //   console.log('BODY:', init?.body);
+
+      //   const res = await fetch(url, init);
+
+      //   const clone = res.clone();
+      //   console.log('==== LLM RESPONSE ====');
+      //   console.log(await clone.text());
+      //   return res;
+      // },
     });
   }
   if (process.env.PROVIDER_CHOOSE === 'kimi') {
@@ -40,8 +52,7 @@ function getDeepSeekProvider() {
 }
 
 /**
- * 获取 DeepSeek Model
- * @returns DeepSeek Model
+ * 获取 Model 实例
  */
 export function getModel(fast: boolean = false) {
   const provider = getDeepSeekProvider();
@@ -59,11 +70,11 @@ export function getModel(fast: boolean = false) {
     const model = fast
       ? process.env.ALIBABA_MODEL_FAST_USE
       : process.env.ALIBABA_MODEL_USE;
-    const provider = createAlibaba({
+    const alibabaProvider = createAlibaba({
       apiKey: process.env.ALIBABA_API_KEY,
       baseURL: process.env.ALIBABA_BASE_URL,
     });
-    return provider.chatModel(model!);
+    return alibabaProvider.languageModel(model!);
   } else {
     const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
     return provider(model!);
@@ -71,7 +82,7 @@ export function getModel(fast: boolean = false) {
 }
 
 /**
- * 通用直接生成Text
+ * 通用直接生成 Text
  */
 export async function text(
   prompt: string,
@@ -84,23 +95,18 @@ export async function text(
     system: prompt,
     prompt: userInput,
     providerOptions: {
-      deepseek: {
-        thinking: {
-          type: 'disabled',
-        },
-      },
+      deepseek: { thinking: { type: 'disabled' } },
       alibaba: {
         enableThinking: false,
         thinkingBudget: 2048,
       } satisfies AlibabaLanguageModelOptions,
     },
   });
-  console.debug('通用AI生成Text：totalUsage', res.totalUsage);
   return res;
 }
 
 /**
- * 通用Stream生成Text
+ * 通用 Stream 生成 Text
  */
 export function stream_text(
   prompt: string,
@@ -109,30 +115,91 @@ export function stream_text(
   thinking: boolean = false,
 ) {
   const model = getModel(fast);
-  const stream = streamText({
+  return streamText({
     model,
     system: prompt,
     prompt: userInput,
     onFinish: (res) => {
-      console.debug('通用AI生成Text Stream：totalUsage', res.totalUsage);
+      console.debug('AI生成Text Stream：usage', res.usage);
     },
     providerOptions: {
-      deepseek: {
-        thinking: {
-          type: thinking ? 'auto' : 'disabled',
-        },
-      },
+      deepseek: { thinking: { type: thinking ? 'auto' : 'disabled' } },
       alibaba: {
-        enableThinking: false,
+        enableThinking: thinking,
         thinkingBudget: 2048,
       } satisfies AlibabaLanguageModelOptions,
     },
   });
-  return stream;
 }
 
 /**
- * 通用生成 Structured Data
+ * 核心逻辑：生成结构化数据并进行手动校验与重试
+ */
+async function generateStructuredData<T>(
+  prompt: string,
+  userInput: string,
+  options: {
+    schema: z.ZodType<T>;
+    schemaName?: string;
+    schemaDescription?: string;
+  },
+  fast: boolean = false,
+  thinking: boolean = false,
+) {
+  const maxRetries = 3;
+  let lastError: z.ZodError<T> | undefined = undefined;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // 每次重试降低温度：1.0 -> 0.7 -> 0.4 (更加稳定)
+    const temperature = Math.max(0, 1 - attempt * 0.3);
+    const model = getModel(fast);
+    const res = await generateText({
+      model,
+      temperature,
+      system: injectSystemWithSchema(prompt, options.schema),
+      prompt: userInput,
+      // output: Output.json(),
+      providerOptions: {
+        deepseek: { thinking: { type: thinking ? 'auto' : 'disabled' } },
+        alibaba: {
+          enableThinking: thinking,
+          thinkingBudget: 2048,
+        } satisfies AlibabaLanguageModelOptions,
+      },
+    });
+    let json;
+    try {
+      json = JSON.parse(res.output);
+    } catch (error) {
+      console.warn(`AI生成的JSON解析失败，尝试修复：${error}`);
+      const repaired = jsonrepair(res.output);
+      json = JSON.parse(repaired);
+    }
+    const parsed = options.schema.safeParse(json);
+    if (parsed.success) {
+      if (attempt > 0) {
+        console.info(`结构化数据在第 ${attempt + 1} 次尝试成功。`);
+      }
+      return {
+        ...res,
+        object: parsed.data,
+      };
+    }
+
+    console.warn(
+      `第 ${attempt + 1} 次尝试结构化校验失败:`,
+      z.treeifyError(parsed.error),
+    );
+    lastError = parsed.error;
+  }
+
+  throw new Error(
+    `无法生成符合要求的结构化数据。尝试：${maxRetries}次。最后错误：${lastError?.message || '未知错误'}`,
+  );
+}
+
+/**
+ * 生成单一结构化对象
  */
 export async function object<T>(
   prompt: string,
@@ -145,37 +212,11 @@ export async function object<T>(
   fast: boolean = false,
   thinking: boolean = false,
 ) {
-  const model = getModel(fast);
-  const res = await generateText({
-    model,
-    system: injectSystem(prompt),
-    prompt: injectUser(userInput),
-    output: Output.object({
-      schema: options.schema,
-      name: options.schemaName,
-      description: options.schemaDescription,
-    }),
-    maxRetries: 3,
-    providerOptions: {
-      deepseek: {
-        thinking: {
-          type: thinking ? 'auto' : 'disabled',
-        },
-      },
-      alibaba: {
-        enableThinking: false,
-        thinkingBudget: 2048,
-      } satisfies AlibabaLanguageModelOptions,
-    },
-  });
-  return {
-    ...res,
-    object: res.output,
-  };
+  return generateStructuredData(prompt, userInput, options, fast, thinking);
 }
 
 /**
- * 通用生成 Structured Data Array
+ * 生成结构化对象数组
  */
 export async function objectArray<T>(
   prompt: string,
@@ -188,37 +229,12 @@ export async function objectArray<T>(
   fast: boolean = false,
   thinking: boolean = false,
 ) {
-  const model = getModel(fast);
-  const res = await generateText({
-    model,
-    system: injectSystem(prompt),
-    prompt: injectUser(userInput),
-    output: Output.array({
-      element: options.schema,
-      name: options.schemaName,
-      description: options.schemaDescription,
-    }),
-    maxRetries: 3,
-    providerOptions: {
-      deepseek: {
-        thinking: {
-          type: thinking ? 'auto' : 'disabled',
-        },
-      },
-      alibaba: {
-        enableThinking: false,
-        thinkingBudget: 2048,
-      } satisfies AlibabaLanguageModelOptions,
-    },
-  });
-  return {
-    ...res,
-    object: res.output,
-  };
+  // 注意：options.schema 预期是一个数组类型的 Zod Schema (z.array(...))
+  return generateStructuredData(prompt, userInput, options, fast, thinking);
 }
 
 /**
- * tool 生成器
+ * Tool 调用生成器
  */
 export async function tool(
   prompt: string,
@@ -233,17 +249,13 @@ export async function tool(
     prompt: userInput,
     tools,
     providerOptions: {
-      deepseek: {
-        thinking: {
-          type: thinking ? 'auto' : 'disabled',
-        },
-      },
+      deepseek: { thinking: { type: thinking ? 'auto' : 'disabled' } },
       alibaba: {
-        enableThinking: false,
+        enableThinking: thinking,
         thinkingBudget: 2048,
       } satisfies AlibabaLanguageModelOptions,
     },
   });
-  console.debug('AI生成Text by tool：totalUsage', res.totalUsage);
+  console.debug('AI工具调用完成：usage', res.usage);
   return res;
 }

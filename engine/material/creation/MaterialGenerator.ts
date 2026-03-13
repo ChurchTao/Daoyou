@@ -6,14 +6,15 @@ import {
   type Quality,
 } from '@/types/constants';
 import { objectArray } from '@/utils/aiClient';
+import z from 'zod';
 import {
   BASE_PRICES,
   QUALITY_CHANCE_MAP,
+  QUALITY_TO_RANK,
   QUANTITY_RANGE_MAP,
   RANK_TO_QUALITY,
   TYPE_CHANCE_MAP,
   TYPE_MULTIPLIERS,
-  QUALITY_TO_RANK,
 } from './config';
 import { getFallbackMaterialPreset } from './fallbackPresets';
 import {
@@ -77,7 +78,7 @@ export class MaterialGenerator {
         prompt,
         userPrompt,
         {
-          schema: MaterialAISchema,
+          schema: z.array(MaterialAISchema),
           schemaName: 'MaterialTextList',
         },
         false, // use fast model
@@ -233,9 +234,7 @@ export class MaterialGenerator {
     if (
       normalizedTags.some(
         (tag) =>
-          tag.includes('溪国') ||
-          tag.includes('云梦') ||
-          tag.includes('山脉'),
+          tag.includes('溪国') || tag.includes('云梦') || tag.includes('山脉'),
       )
     ) {
       boost('herb', 1.35);

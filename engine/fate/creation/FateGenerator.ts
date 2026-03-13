@@ -7,6 +7,7 @@ import {
   type RealmType,
 } from '@/types/constants';
 import { objectArray } from '@/utils/aiClient';
+import z from 'zod';
 import { FATE_QUALITY_CHANCE_MAP } from './config';
 import {
   getFateGenerationPrompt,
@@ -82,7 +83,7 @@ export class FateGenerator {
         prompt,
         userPrompt,
         {
-          schema: FateBlueprintSchema,
+          schema: z.array(FateBlueprintSchema),
           schemaName: 'FateBlueprintList',
         },
         false,
