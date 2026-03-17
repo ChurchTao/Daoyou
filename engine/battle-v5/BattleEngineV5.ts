@@ -1,7 +1,7 @@
 import { Unit } from './units/Unit';
 import { CombatStateMachine, CombatContext } from './core/CombatStateMachine';
 import { EventBus } from './core/EventBus';
-import { CombatPhase } from './core/types';
+import { CombatPhase, AttributeType } from './core/types';
 import { CombatLogSystem } from './systems/CombatLogSystem';
 import { VictorySystem } from './systems/VictorySystem';
 import { DamageSystem } from './systems/DamageSystem';
@@ -168,8 +168,8 @@ export class BattleEngineV5 {
   private getSortedUnits(): Unit[] {
     const units = [this._player, this._opponent];
     return units.sort((a, b) => {
-      const speedA = a.attributes.getValue('agility' as any);
-      const speedB = b.attributes.getValue('agility' as any);
+      const speedA = a.attributes.getValue(AttributeType.AGILITY);
+      const speedB = b.attributes.getValue(AttributeType.AGILITY);
       return speedB - speedA;
     });
   }

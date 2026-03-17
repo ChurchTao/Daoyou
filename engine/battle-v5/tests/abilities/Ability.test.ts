@@ -68,7 +68,7 @@ describe('Ability', () => {
   describe('触发条件检查', () => {
     it('默认情况下总是可以触发', () => {
       const ability = new Ability('test_ability', '测试能力', AbilityType.ACTIVE_SKILL);
-      expect(ability.canTrigger(undefined as any)).toBe(true);
+      expect(ability.canTrigger(undefined)).toBe(true);
     });
   });
 

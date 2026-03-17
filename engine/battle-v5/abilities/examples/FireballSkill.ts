@@ -1,5 +1,5 @@
 import { ActiveSkill } from '../ActiveSkill';
-import { AbilityId } from '../../core/types';
+import { AbilityId, AttributeType } from '../../core/types';
 import { Unit } from '../../units/Unit';
 
 /**
@@ -13,7 +13,7 @@ export class FireballSkill extends ActiveSkill {
 
   protected executeSkill(caster: Unit, target: Unit): void {
     // 基础伤害: 灵力 × 2
-    const spirit = caster.attributes.getValue('spirit' as any);
+    const spirit = caster.attributes.getValue(AttributeType.SPIRIT);
     const baseDamage = spirit * 2;
 
     // 造成伤害
