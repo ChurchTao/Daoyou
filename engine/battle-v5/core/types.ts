@@ -43,12 +43,12 @@ export enum ModifierType {
   OVERRIDE = 'override',
 }
 
-export interface AttributeModifier {
+export interface AttributeModifier<TSource = unknown> {
   readonly id: string;
   readonly attrType: AttributeType;
   readonly type: ModifierType;
   readonly value: number;
-  readonly source: object;
+  readonly source: TSource;
 }
 
 // ===== 能力类型 =====
