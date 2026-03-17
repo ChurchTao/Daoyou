@@ -11,10 +11,20 @@ interface CombatState {
 export interface CombatContext {
   turn: number;
   maxTurns: number;
-  units: Map<string, any>;
+  units: Map<string, unknown>;
   battleEnded: boolean;
   winner: string | null;
 }
+
+const EVENT_PRIORITY = {
+  BATTLE_LIFECYCLE: 100,
+  ROUND_START: 90,
+  ROUND_PRE: 85,
+  TURN_ORDER: 80,
+  ACTION: 70,
+  ROUND_POST: 60,
+  VICTORY_CHECK: 50,
+} as const;
 
 export class CombatStateMachine {
   private _currentState: CombatState | null = null;
@@ -31,10 +41,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.INIT, {
       phase: CombatPhase.INIT,
       onEnter: () => {
-        console.log('[状态] 战斗初始化');
         EventBus.instance.publish({
           type: 'BattleInitEvent',
-          priority: 100,
+          priority: EVENT_PRIORITY.BATTLE_LIFECYCLE,
           timestamp: Date.now(),
         });
       },
@@ -46,10 +55,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.DESTINY_AWAKEN, {
       phase: CombatPhase.DESTINY_AWAKEN,
       onEnter: () => {
-        console.log('[状态] 命格觉醒阶段');
         EventBus.instance.publish({
           type: 'DestinyAwakenEvent',
-          priority: 100,
+          priority: EVENT_PRIORITY.BATTLE_LIFECYCLE,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -62,10 +70,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ROUND_START, {
       phase: CombatPhase.ROUND_START,
       onEnter: () => {
-        console.log('[状态] 回合开始');
         EventBus.instance.publish({
           type: 'RoundStartEvent',
-          priority: 90,
+          priority: EVENT_PRIORITY.ROUND_START,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -78,10 +85,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ROUND_PRE, {
       phase: CombatPhase.ROUND_PRE,
       onEnter: () => {
-        console.log('[状态] 回合前置结算');
         EventBus.instance.publish({
           type: 'RoundPreEvent',
-          priority: 85,
+          priority: EVENT_PRIORITY.ROUND_PRE,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -94,10 +100,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.TURN_ORDER, {
       phase: CombatPhase.TURN_ORDER,
       onEnter: () => {
-        console.log('[状态] 出手顺序判定');
         EventBus.instance.publish({
           type: 'TurnOrderEvent',
-          priority: 80,
+          priority: EVENT_PRIORITY.TURN_ORDER,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -110,10 +115,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ACTION, {
       phase: CombatPhase.ACTION,
       onEnter: () => {
-        console.log('[状态] 出手行动');
         EventBus.instance.publish({
           type: 'ActionEvent',
-          priority: 70,
+          priority: EVENT_PRIORITY.ACTION,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -126,10 +130,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.ROUND_POST, {
       phase: CombatPhase.ROUND_POST,
       onEnter: () => {
-        console.log('[状态] 回合后置结算');
         EventBus.instance.publish({
           type: 'RoundPostEvent',
-          priority: 60,
+          priority: EVENT_PRIORITY.ROUND_POST,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -142,10 +145,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.VICTORY_CHECK, {
       phase: CombatPhase.VICTORY_CHECK,
       onEnter: () => {
-        console.log('[状态] 胜负判定');
         EventBus.instance.publish({
           type: 'VictoryCheckEvent',
-          priority: 50,
+          priority: EVENT_PRIORITY.VICTORY_CHECK,
           timestamp: Date.now(),
           data: { turn: this._context.turn },
         });
@@ -171,10 +173,9 @@ export class CombatStateMachine {
     this._states.set(CombatPhase.END, {
       phase: CombatPhase.END,
       onEnter: () => {
-        console.log('[状态] 战斗结束');
         EventBus.instance.publish({
           type: 'BattleEndEvent',
-          priority: 100,
+          priority: EVENT_PRIORITY.BATTLE_LIFECYCLE,
           timestamp: Date.now(),
           data: {
             winner: this._context.winner,
@@ -188,16 +189,18 @@ export class CombatStateMachine {
   }
 
   private _switchTo(phase: CombatPhase): void {
+    const nextState = this._states.get(phase);
+    if (!nextState) {
+      throw new Error(`Invalid phase: ${phase}`);
+    }
+
     if (this._currentState) {
       this._currentState.onExit();
     }
 
-    this._currentState = this._states.get(phase) || null;
-
-    if (this._currentState) {
-      this._currentState.onEnter();
-      this._currentState.onUpdate();
-    }
+    this._currentState = nextState;
+    this._currentState.onEnter();
+    this._currentState.onUpdate();
   }
 
   public start(): void {
