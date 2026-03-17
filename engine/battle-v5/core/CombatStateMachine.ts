@@ -1,0 +1,215 @@
+import { CombatPhase } from './types';
+import { EventBus } from './EventBus';
+
+interface CombatState {
+  phase: CombatPhase;
+  onEnter(): void;
+  onUpdate(): void;
+  onExit(): void;
+}
+
+export interface CombatContext {
+  turn: number;
+  maxTurns: number;
+  units: Map<string, any>;
+  battleEnded: boolean;
+  winner: string | null;
+}
+
+export class CombatStateMachine {
+  private _currentState: CombatState | null = null;
+  private _states = new Map<CombatPhase, CombatState>();
+  private _context: CombatContext;
+
+  constructor(context: CombatContext) {
+    this._context = context;
+    this._initStates();
+  }
+
+  private _initStates(): void {
+    // INIT 状态
+    this._states.set(CombatPhase.INIT, {
+      phase: CombatPhase.INIT,
+      onEnter: () => {
+        console.log('[状态] 战斗初始化');
+        EventBus.instance.publish({
+          type: 'BattleInitEvent',
+          priority: 100,
+          timestamp: Date.now(),
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.DESTINY_AWAKEN),
+      onExit: () => {},
+    });
+
+    // DESTINY_AWAKEN 状态
+    this._states.set(CombatPhase.DESTINY_AWAKEN, {
+      phase: CombatPhase.DESTINY_AWAKEN,
+      onEnter: () => {
+        console.log('[状态] 命格觉醒阶段');
+        EventBus.instance.publish({
+          type: 'DestinyAwakenEvent',
+          priority: 100,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.ROUND_START),
+      onExit: () => {},
+    });
+
+    // ROUND_START 状态
+    this._states.set(CombatPhase.ROUND_START, {
+      phase: CombatPhase.ROUND_START,
+      onEnter: () => {
+        console.log('[状态] 回合开始');
+        EventBus.instance.publish({
+          type: 'RoundStartEvent',
+          priority: 90,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.ROUND_PRE),
+      onExit: () => {},
+    });
+
+    // ROUND_PRE 状态
+    this._states.set(CombatPhase.ROUND_PRE, {
+      phase: CombatPhase.ROUND_PRE,
+      onEnter: () => {
+        console.log('[状态] 回合前置结算');
+        EventBus.instance.publish({
+          type: 'RoundPreEvent',
+          priority: 85,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.TURN_ORDER),
+      onExit: () => {},
+    });
+
+    // TURN_ORDER 状态
+    this._states.set(CombatPhase.TURN_ORDER, {
+      phase: CombatPhase.TURN_ORDER,
+      onEnter: () => {
+        console.log('[状态] 出手顺序判定');
+        EventBus.instance.publish({
+          type: 'TurnOrderEvent',
+          priority: 80,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.ACTION),
+      onExit: () => {},
+    });
+
+    // ACTION 状态
+    this._states.set(CombatPhase.ACTION, {
+      phase: CombatPhase.ACTION,
+      onEnter: () => {
+        console.log('[状态] 出手行动');
+        EventBus.instance.publish({
+          type: 'ActionEvent',
+          priority: 70,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.ROUND_POST),
+      onExit: () => {},
+    });
+
+    // ROUND_POST 状态
+    this._states.set(CombatPhase.ROUND_POST, {
+      phase: CombatPhase.ROUND_POST,
+      onEnter: () => {
+        console.log('[状态] 回合后置结算');
+        EventBus.instance.publish({
+          type: 'RoundPostEvent',
+          priority: 60,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => this._switchTo(CombatPhase.VICTORY_CHECK),
+      onExit: () => {},
+    });
+
+    // VICTORY_CHECK 状态
+    this._states.set(CombatPhase.VICTORY_CHECK, {
+      phase: CombatPhase.VICTORY_CHECK,
+      onEnter: () => {
+        console.log('[状态] 胜负判定');
+        EventBus.instance.publish({
+          type: 'VictoryCheckEvent',
+          priority: 50,
+          timestamp: Date.now(),
+          data: { turn: this._context.turn },
+        });
+      },
+      onUpdate: () => {
+        if (this._context.battleEnded) {
+          this._switchTo(CombatPhase.END);
+        } else {
+          this._context.turn++;
+          // 检查是否达到最大回合数
+          if (this._context.turn > this._context.maxTurns) {
+            this._switchTo(CombatPhase.END);
+          } else {
+            // 跳过命格觉醒（仅第1回合）
+            this._switchTo(CombatPhase.ROUND_START);
+          }
+        }
+      },
+      onExit: () => {},
+    });
+
+    // END 状态
+    this._states.set(CombatPhase.END, {
+      phase: CombatPhase.END,
+      onEnter: () => {
+        console.log('[状态] 战斗结束');
+        EventBus.instance.publish({
+          type: 'BattleEndEvent',
+          priority: 100,
+          timestamp: Date.now(),
+          data: {
+            winner: this._context.winner,
+            turns: this._context.turn,
+          },
+        });
+      },
+      onUpdate: () => {}, // 终态，不转换
+      onExit: () => {},
+    });
+  }
+
+  private _switchTo(phase: CombatPhase): void {
+    if (this._currentState) {
+      this._currentState.onExit();
+    }
+
+    this._currentState = this._states.get(phase) || null;
+
+    if (this._currentState) {
+      this._currentState.onEnter();
+      this._currentState.onUpdate();
+    }
+  }
+
+  public start(): void {
+    this._switchTo(CombatPhase.INIT);
+  }
+
+  public getCurrentPhase(): CombatPhase | null {
+    return this._currentState?.phase || null;
+  }
+
+  public endBattle(winner: string): void {
+    this._context.battleEnded = true;
+    this._context.winner = winner;
+  }
+}
