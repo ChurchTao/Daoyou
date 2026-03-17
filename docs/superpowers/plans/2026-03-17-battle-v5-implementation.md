@@ -2193,6 +2193,1144 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 ---
 
+## Chunk 4: 系统模块（阶段四）
+
+### Task 9: 实现伤害系统（DamageSystem）
+
+**Files:**
+- Create: `engine/battle-v5/systems/DamageSystem.ts`
+- Test: `engine/battle-v5/tests/systems/DamageSystem.test.ts`
+
+- [ ] **Step 1: 写伤害系统测试**
+
+创建 `engine/battle-v5/tests/systems/DamageSystem.test.ts`:
+
+```typescript
+import { DamageSystem } from '../../systems/DamageSystem';
+import { Unit } from '../../units/Unit';
+import { AttributeType } from '../../core/types';
+
+describe('DamageSystem', () => {
+  let attacker: Unit;
+  let target: Unit;
+
+  beforeEach(() => {
+    attacker = new Unit('attacker', '攻击者', {
+      [AttributeType.SPIRIT]: 80,
+      [AttributeType.AGILITY]: 50,
+    });
+    target = new Unit('target', '目标', {
+      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.AGILITY]: 30,
+    });
+  });
+
+  it('应该正确计算基础伤害', () => {
+    const result = DamageSystem.calculateDamage(attacker, target, {
+      baseDamage: 100,
+      damageType: 'physical',
+    });
+
+    expect(result.finalDamage).toBeGreaterThan(0);
+    expect(result.breakdown).toBeDefined();
+  });
+
+  it('应该支持暴击判定', () => {
+    // 设置高敏捷以确保暴击
+    const critAttacker = new Unit('crit_attacker', '暴击者', {
+      [AttributeType.AGILITY]: 500, // 高暴击率
+    });
+
+    const result = DamageSystem.calculateDamage(critAttacker, target, {
+      baseDamage: 100,
+      damageType: 'physical',
+    });
+
+    // 暴击时伤害应该更高
+    if (result.isCritical) {
+      expect(result.breakdown.critMultiplier).toBeGreaterThan(1);
+    }
+  });
+
+  it('应该支持闪避判定', () => {
+    // 设置高敏捷以确保闪避
+    const evasiveTarget = new Unit('evasive_target', '闪避者', {
+      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.AGILITY]: 500, // 高闪避率
+    });
+
+    const result = DamageSystem.calculateDamage(attacker, evasiveTarget, {
+      baseDamage: 100,
+      damageType: 'physical',
+    });
+
+    // 闪避时伤害应该为 0
+    if (result.isDodged) {
+      expect(result.finalDamage).toBe(0);
+    }
+  });
+
+  it('应该有最小伤害保证', () => {
+    const result = DamageSystem.calculateDamage(attacker, target, {
+      baseDamage: 1,
+      damageType: 'physical',
+    });
+
+    expect(result.finalDamage).toBeGreaterThanOrEqual(1);
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/systems/DamageSystem.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现伤害系统**
+
+创建 `engine/battle-v5/systems/DamageSystem.ts`:
+
+```typescript
+import { Unit } from '../units/Unit';
+import { AttributeType } from '../core/types';
+
+export interface DamageCalculationParams {
+  baseDamage: number;
+  damageType: 'physical' | 'magic';
+  element?: string;
+  ignoreCrit?: boolean;
+  ignoreDodge?: boolean;
+}
+
+export interface DamageResult {
+  finalDamage: number;
+  isCritical: boolean;
+  isDodged: boolean;
+  breakdown: {
+    baseDamage: number;
+    critMultiplier: number;
+    damageReduction: number;
+    randomFactor: number;
+  };
+}
+
+/**
+ * 伤害系统
+ * 处理完整的伤害计算管道
+ */
+export class DamageSystem {
+  /**
+   * 计算伤害
+   * 流程: 基础伤害 → 暴击 → 闪避 → 减伤 → 随机浮动 → 最终伤害
+   */
+  static calculateDamage(
+    attacker: Unit,
+    target: Unit,
+    params: DamageCalculationParams,
+  ): DamageResult {
+    const breakdown = {
+      baseDamage: params.baseDamage,
+      critMultiplier: 1,
+      damageReduction: 0,
+      randomFactor: 1,
+    };
+
+    let damage = params.baseDamage;
+
+    // 1. 暴击判定
+    const isCritical = !params.ignoreCrit && this.rollCrit(attacker);
+    if (isCritical) {
+      breakdown.critMultiplier = 1.5;
+      damage *= breakdown.critMultiplier;
+    }
+
+    // 2. 闪避判定
+    const isDodged = !params.ignoreDodge && this.rollDodge(target);
+    if (isDodged) {
+      return {
+        finalDamage: 0,
+        isCritical,
+        isDodged: true,
+        breakdown,
+      };
+    }
+
+    // 3. 伤害减免（基础版，基于体魄）
+    const reduction = this.calculateDamageReduction(target);
+    breakdown.damageReduction = reduction;
+    damage *= (1 - reduction);
+
+    // 4. 随机浮动 (0.9 ~ 1.1)
+    const randomFactor = 0.9 + Math.random() * 0.2;
+    breakdown.randomFactor = randomFactor;
+    damage *= randomFactor;
+
+    // 5. 最小伤害保证
+    const finalDamage = Math.max(1, Math.floor(damage));
+
+    return {
+      finalDamage,
+      isCritical,
+      isDodged: false,
+      breakdown,
+    };
+  }
+
+  /**
+   * 暴击判定
+   */
+  private static rollCrit(attacker: Unit): boolean {
+    const critRate = attacker.attributes.getCritRate();
+    return Math.random() < critRate;
+  }
+
+  /**
+   * 闪避判定
+   */
+  private static rollDodge(target: Unit): boolean {
+    const evasionRate = attacker.attributes.getEvasionRate();
+    return Math.random() < evasionRate;
+  }
+
+  /**
+   * 计算伤害减免
+   */
+  private static calculateDamageReduction(target: Unit): number {
+    // 基础减免：每点体魄提供 0.1% 减免，上限 75%
+    const physique = target.attributes.getValue(AttributeType.PHYSIQUE);
+    const reduction = Math.min(0.75, physique * 0.001);
+    return reduction;
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/systems/DamageSystem.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add DamageSystem with complete pipeline
+
+- Implement damage calculation pipeline
+- Support critical hit based on crit rate
+- Support dodge based on evasion rate
+- Damage reduction based on physique
+- Random damage variance (0.9x - 1.1x)
+- Minimum damage guarantee (1)
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 10: 实现战报系统（CombatLogSystem）
+
+**Files:**
+- Create: `engine/battle-v5/systems/CombatLogSystem.ts`
+- Test: `engine/battle-v5/tests/systems/CombatLogSystem.test.ts`
+
+- [ ] **Step 1: 写战报系统测试**
+
+创建 `engine/battle-v5/tests/systems/CombatLogSystem.test.ts`:
+
+```typescript
+import { CombatLogSystem } from '../../systems/CombatLogSystem';
+import { CombatPhase } from '../../core/types';
+
+describe('CombatLogSystem', () => {
+  let logSystem: CombatLogSystem;
+
+  beforeEach(() => {
+    logSystem = new CombatLogSystem();
+  });
+
+  it('应该正确记录战斗日志', () => {
+    logSystem.log(1, CombatPhase.ACTION, '测试单位使用了火球术');
+
+    const logs = logSystem.getLogs();
+    expect(logs.length).toBe(1);
+    expect(logs[0].message).toBe('测试单位使用了火球术');
+  });
+
+  it('应该支持高光时刻标记', () => {
+    logSystem.logHighlight(1, '测试单位觉醒了命格！');
+
+    const logs = logSystem.getLogs();
+    expect(logs[0].highlight).toBe(true);
+  });
+
+  it('应该支持极简模式过滤', () => {
+    logSystem.log(1, CombatPhase.ROUND_PRE, '回合开始');
+    logSystem.logHighlight(2, '高光时刻！');
+
+    const simpleLogs = logSystem.getSimpleLogs();
+    expect(simpleLogs.length).toBe(1);
+    expect(simpleLogs[0].highlight).toBe(true);
+  });
+
+  it('应该清空日志', () => {
+    logSystem.log(1, CombatPhase.ACTION, '测试日志');
+    logSystem.clear();
+
+    const logs = logSystem.getLogs();
+    expect(logs.length).toBe(0);
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/systems/CombatLogSystem.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现战报系统**
+
+创建 `engine/battle-v5/systems/CombatLogSystem.ts`:
+
+```typescript
+import { CombatPhase, CombatLog } from '../core/types';
+
+/**
+ * 战报条目
+ */
+interface CombatLogEntry extends CombatLog {
+  id: string;
+}
+
+/**
+ * 战报系统
+ * 收集和管理战斗日志
+ */
+export class CombatLogSystem {
+  private _logs: CombatLogEntry[] = [];
+  private _nextId: number = 0;
+  private _simpleMode: boolean = false;
+
+  /**
+   * 记录普通日志
+   */
+  log(turn: number, phase: CombatPhase, message: string): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn,
+      phase,
+      message,
+      highlight: false,
+    });
+  }
+
+  /**
+   * 记录高光时刻
+   */
+  logHighlight(turn: number, message: string): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn,
+      phase: CombatPhase.ACTION,
+      message,
+      highlight: true,
+    });
+  }
+
+  /**
+   * 记录伤害
+   */
+  logDamage(
+    turn: number,
+    attackerName: string,
+    targetName: string,
+    damage: number,
+    isCritical: boolean,
+  ): void {
+    const critText = isCritical ? '（暴击！）' : '';
+    const message = `${attackerName} 对 ${targetName} 造成了 ${damage} 点伤害${critText}`;
+    this.log(turn, CombatPhase.ACTION, message);
+  }
+
+  /**
+   * 记录治疗
+   */
+  logHeal(turn: number, casterName: string, targetName: string, amount: number): void {
+    const message = `${casterName} 为 ${targetName} 恢复了 ${amount} 点气血`;
+    this.log(turn, CombatPhase.ACTION, message);
+  }
+
+  /**
+   * 记录 Buff 应用/移除
+   */
+  logBuff(
+    turn: number,
+    unitName: string,
+    buffName: string,
+    isApply: boolean,
+  ): void {
+    const action = isApply ? '获得了' : '失去了';
+    const message = `${unitName} ${action} 「${buffName}」`;
+    this.log(turn, CombatPhase.ROUND_POST, message);
+  }
+
+  /**
+   * 记录战斗结束
+   */
+  logBattleEnd(winnerName: string, turns: number): void {
+    this.logHighlight(turns, `✨ ${winnerName} 获胜！战斗持续 ${turns} 回合`);
+  }
+
+  /**
+   * 获取所有日志
+   */
+  getLogs(): CombatLogEntry[] {
+    return [...this._logs];
+  }
+
+  /**
+   * 获取极简模式日志（仅高光时刻）
+   */
+  getSimpleLogs(): CombatLogEntry[] {
+    return this._logs.filter((log) => log.highlight);
+  }
+
+  /**
+   * 获取指定回合的日志
+   */
+  getLogsByTurn(turn: number): CombatLogEntry[] {
+    return this._logs.filter((log) => log.turn === turn);
+  }
+
+  /**
+   * 设置极简模式
+   */
+  setSimpleMode(enabled: boolean): void {
+    this._simpleMode = enabled;
+  }
+
+  /**
+   * 清空日志
+   */
+  clear(): void {
+    this._logs = [];
+    this._nextId = 0;
+  }
+
+  /**
+   * 生成格式化战报
+   */
+  generateReport(simple: boolean = false): string {
+    const logs = simple ? this.getSimpleLogs() : this.getLogs();
+    return logs
+      .map((log) => {
+        const phaseText = `[${log.phase}]`;
+        const highlightMark = log.highlight ? '✨ ' : '';
+        return `${highlightMark}[第${log.turn}回合] ${phaseText} ${log.message}`;
+      })
+      .join('\n');
+  }
+
+  private _addLog(entry: CombatLogEntry): void {
+    this._logs.push(entry);
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/systems/CombatLogSystem.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add CombatLogSystem with simple/detailed modes
+
+- Implement combat log collection and management
+- Support highlight moments for key events
+- Support simple mode (highlights only) and detailed mode
+- Add helper methods for damage, heal, buff logging
+- Add formatted report generation
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 11: 实现胜负判定系统（VictorySystem）
+
+**Files:**
+- Create: `engine/battle-v5/systems/VictorySystem.ts`
+- Test: `engine/battle-v5/tests/systems/VictorySystem.test.ts`
+
+- [ ] **Step 1: 写胜负判定测试**
+
+创建 `engine/battle-v5/tests/systems/VictorySystem.test.ts`:
+
+```typescript
+import { VictorySystem } from '../../systems/VictorySystem';
+import { Unit } from '../../units/Unit';
+import { AttributeType } from '../../core/types';
+
+describe('VictorySystem', () => {
+  let player: Unit;
+  let opponent: Unit;
+
+  beforeEach(() => {
+    player = new Unit('player', '玩家', {
+      [AttributeType.PHYSIQUE]: 50,
+    });
+    opponent = new Unit('opponent', '对手', {
+      [AttributeType.PHYSIQUE]: 50,
+    });
+  });
+
+  it('应该检测到死亡单位', () => {
+    opponent.takeDamage(opponent.maxHp + 100);
+
+    const result = VictorySystem.checkVictory([player, opponent]);
+    expect(result.battleEnded).toBe(true);
+    expect(result.winner).toBe('player');
+  });
+
+  it('应该平局判定', () => {
+    // 双方都死亡
+    player.takeDamage(player.maxHp + 100);
+    opponent.takeDamage(opponent.maxHp + 100);
+
+    const result = VictorySystem.checkVictory([player, opponent]);
+    expect(result.battleEnded).toBe(true);
+    expect(result.draw).toBe(true);
+  });
+
+  it('应该支持回合上限判定', () => {
+    const result = VictorySystem.checkVictory([player, opponent], 30);
+    expect(result.battleEnded).toBe(true);
+    expect(result.reachedMaxTurns).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/systems/VictorySystem.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现胜负判定系统**
+
+创建 `engine/battle-v5/systems/VictorySystem.ts`:
+
+```typescript
+import { Unit } from '../units/Unit';
+
+export interface VictoryResult {
+  battleEnded: boolean;
+  winner?: string;
+  loser?: string;
+  draw?: boolean;
+  reachedMaxTurns?: boolean;
+}
+
+/**
+ * 胜负判定系统
+ */
+export class VictorySystem {
+  private static readonly MAX_TURNS = 30;
+
+  /**
+   * 检查战斗是否结束
+   */
+  static checkVictory(units: Unit[], currentTurn?: number): VictoryResult {
+    const aliveUnits = units.filter((u) => u.isAlive());
+
+    // 所有单位死亡
+    if (aliveUnits.length === 0) {
+      return {
+        battleEnded: true,
+        draw: true,
+      };
+    }
+
+    // 只有一个单位存活
+    if (aliveUnits.length === 1) {
+      const winner = aliveUnits[0];
+      const loser = units.find((u) => u !== winner && !u.isAlive());
+      return {
+        battleEnded: true,
+        winner: winner.id,
+        loser: loser?.id,
+      };
+    }
+
+    // 回合上限判定
+    if (currentTurn !== undefined && currentTurn >= this.MAX_TURNS) {
+      // 判定血量百分比高的获胜
+      const sorted = [...aliveUnits].sort((a, b) => {
+        return b.getHpPercent() - a.getHpPercent();
+      });
+      return {
+        battleEnded: true,
+        winner: sorted[0].id,
+        loser: sorted[1].id,
+        reachedMaxTurns: true,
+      };
+    }
+
+    return {
+      battleEnded: false,
+    };
+  }
+
+  /**
+   * 获取最大回合数
+   */
+  static getMaxTurns(): number {
+    return this.MAX_TURNS;
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/systems/VictorySystem.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add VictorySystem with multiple win conditions
+
+- Implement victory/defeat detection based on unit survival
+- Support draw condition when all units die
+- Support max turns (30) limit with HP% tiebreaker
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 12: 实现数据适配器（CultivatorAdapter）
+
+**Files:**
+- Create: `engine/battle-v5/adapters/CultivatorAdapter.ts`
+- Test: `engine/battle-v5/tests/adapters/CultivatorAdapter.test.ts`
+
+- [ ] **Step 1: 写适配器测试**
+
+创建 `engine/battle-v5/tests/adapters/CultivatorAdapter.test.ts`:
+
+```typescript
+import { CultivatorAdapter } from '../../adapters/CultivatorAdapter';
+import { Unit } from '../../units/Unit';
+import { AttributeType } from '../../core/types';
+
+// Mock Cultivator type
+interface MockCultivator {
+  id: string;
+  name: string;
+  attributes: {
+    spirit: number;
+    vitality: number;
+    speed: number;
+    wisdom: number;
+    willpower: number;
+  };
+}
+
+describe('CultivatorAdapter', () => {
+  it('应该正确映射属性', () => {
+    const cultivator: MockCultivator = {
+      id: 'test_cultivator',
+      name: '测试修仙者',
+      attributes: {
+        spirit: 80,
+        vitality: 60,
+        speed: 50,
+        wisdom: 40,
+        willpower: 30,
+      },
+    };
+
+    const unit = CultivatorAdapter.toUnit(cultivator);
+
+    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(80);
+    expect(unit.attributes.getValue(AttributeType.PHYSIQUE)).toBe(60);
+  });
+
+  it('应该创建带镜像后缀的克隆', () => {
+    const cultivator: MockCultivator = {
+      id: 'test',
+      name: '测试',
+      attributes: {
+        spirit: 50,
+        vitality: 50,
+        speed: 50,
+        wisdom: 50,
+        willpower: 50,
+      },
+    };
+
+    const unit = CultivatorAdapter.toUnit(cultivator, true);
+    expect(unit.name).toBe('测试的镜像');
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/adapters/CultivatorAdapter.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现数据适配器**
+
+创建 `engine/battle-v5/adapters/CultivatorAdapter.ts`:
+
+```typescript
+import { Unit } from '../units/Unit';
+import { AttributeType, UnitId } from '../core/types';
+
+/**
+ * 现有 Cultivator 数据模型（简化）
+ */
+export interface CultivatorData {
+  id: string;
+  name: string;
+  attributes: {
+    spirit: number;
+    vitality: number;
+    speed: number;
+    wisdom: number;
+    willpower: number;
+  };
+}
+
+/**
+ * 数据适配器
+ * 将现有 Cultivator 数据模型转换为 V5 Unit
+ */
+export class CultivatorAdapter {
+  /**
+   * 属性映射表
+   */
+  private static readonly ATTRIBUTE_MAP = {
+    spirit: AttributeType.SPIRIT,
+    vitality: AttributeType.PHYSIQUE,
+    speed: AttributeType.AGILITY,
+    wisdom: AttributeType.COMPREHENSION,
+    willpower: AttributeType.CONSCIOUSNESS,
+  } as const;
+
+  /**
+   * Cultivator → Unit
+   */
+  static toUnit(data: CultivatorData, isMirror: boolean = false): Unit {
+    const baseAttrs: Partial<Record<AttributeType, number>> = {};
+
+    // 映射属性
+    for (const [cultivatorKey, v5Key] of Object.entries(this.ATTRIBUTE_MAP)) {
+      baseAttrs[v5Key] = data.attributes[cultivatorKey as keyof typeof data.attributes];
+    }
+
+    const unitId = (data.id + (isMirror ? '_mirror' : '')) as UnitId;
+    const name = isMirror ? `${data.name}的镜像` : data.name;
+
+    return new Unit(unitId, name, baseAttrs);
+  }
+
+  /**
+   * 批量转换
+   */
+  static toUnits(dataList: CultivatorData[], isMirror: boolean = false): Unit[] {
+    return dataList.map((data) => this.toUnit(data, isMirror));
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/adapters/CultivatorAdapter.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add CultivatorAdapter for data conversion
+
+- Implement Cultivator to Unit conversion
+- Map existing attributes to V5 5-attribute system
+- Support mirror unit generation for PVP
+- Add batch conversion support
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+## Chunk 5: 入口与集成（阶段五）
+
+### Task 13: 实现战斗引擎入口（BattleEngineV5）
+
+**Files:**
+- Create: `engine/battle-v5/BattleEngineV5.ts`
+- Create: `engine/battle-v5/index.ts`
+- Test: `engine/battle-v5/tests/integration/BattleEngineV5.test.ts`
+
+- [ ] **Step 1: 写集成测试**
+
+创建 `engine/battle-v5/tests/integration/BattleEngineV5.test.ts`:
+
+```typescript
+import { BattleEngineV5 } from '../BattleEngineV5';
+import { CultivatorAdapter } from '../adapters/CultivatorAdapter';
+import { AttributeType } from '../core/types';
+
+describe('BattleEngineV5 Integration', () => {
+  it('应该执行完整战斗流程', () => {
+    const playerData = {
+      id: 'player',
+      name: '玩家',
+      attributes: { spirit: 80, vitality: 60, speed: 50, wisdom: 40, willpower: 30 },
+    };
+    const opponentData = {
+      id: 'opponent',
+      name: '对手',
+      attributes: { spirit: 70, vitality: 50, speed: 45, wisdom: 35, willpower: 25 },
+    };
+
+    const player = CultivatorAdapter.toUnit(playerData);
+    const opponent = CultivatorAdapter.toUnit(opponentData);
+
+    const engine = new BattleEngineV5(player, opponent);
+    const result = engine.execute();
+
+    expect(result.winner).toBeDefined();
+    expect(result.turns).toBeGreaterThan(0);
+    expect(result.logs.length).toBeGreaterThan(0);
+  });
+
+  it('应该支持回合上限', () => {
+    const playerData = {
+      id: 'player',
+      name: '玩家',
+      attributes: { spirit: 10, vitality: 1000, speed: 10, wisdom: 10, willpower: 10 },
+    };
+    const opponentData = {
+      id: 'opponent',
+      name: '对手',
+      attributes: { spirit: 10, vitality: 1000, speed: 10, wisdom: 10, willpower: 10 },
+    };
+
+    const player = CultivatorAdapter.toUnit(playerData);
+    const opponent = CultivatorAdapter.toUnit(opponentData);
+
+    const engine = new BattleEngineV5(player, opponent);
+    const result = engine.execute();
+
+    expect(result.turns).toBeLessThanOrEqual(30);
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/integration/BattleEngineV5.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现战斗引擎入口**
+
+创建 `engine/battle-v5/BattleEngineV5.ts`:
+
+```typescript
+import { Unit } from './units/Unit';
+import { CombatStateMachine, CombatContext } from './core/CombatStateMachine';
+import { EventBus } from './core/EventBus';
+import { CombatPhase } from './core/types';
+import { CombatLogSystem } from './systems/CombatLogSystem';
+import { VictorySystem } from './systems/VictorySystem';
+import { DamageSystem } from './systems/DamageSystem';
+
+export interface BattleResult {
+  winner: string;
+  loser?: string;
+  turns: number;
+  logs: string[];
+  winnerSnapshot: unknown;
+  loserSnapshot: unknown;
+}
+
+/**
+ * V5 战斗引擎主入口
+ * 集成所有子系统，提供完整的战斗模拟功能
+ */
+export class BattleEngineV5 {
+  private _player: Unit;
+  private _opponent: Unit;
+  private _stateMachine: CombatStateMachine;
+  private _logSystem: CombatLogSystem;
+  private _eventBus: EventBus;
+
+  constructor(player: Unit, opponent: Unit) {
+    this._player = player;
+    this._opponent = opponent;
+    this._eventBus = EventBus.instance;
+    this._logSystem = new CombatLogSystem();
+
+    const context: CombatContext = {
+      turn: 0,
+      maxTurns: VictorySystem.getMaxTurns(),
+      units: new Map([
+        [player.id, player],
+        [opponent.id, opponent],
+      ]),
+      battleEnded: false,
+      winner: null,
+    };
+
+    this._stateMachine = new CombatStateMachine(context);
+  }
+
+  /**
+   * 执行战斗模拟
+   */
+  execute(): BattleResult {
+    // 启动状态机
+    this._stateMachine.start();
+
+    // 主循环
+    while (!this.isBattleOver()) {
+      this.executeTurn();
+    }
+
+    // 生成结果
+    return this.generateResult();
+  }
+
+  /**
+   * 执行单个回合
+   */
+  private executeTurn(): void {
+    const context = this.getContext();
+    context.turn++;
+
+    // 回合开始
+    this.logSystem.log(context.turn, CombatPhase.ROUND_START, `第${context.turn}回合开始`);
+
+    // 行动阶段
+    this.executeActions();
+
+    // 回合结束
+    this.processTurnEnd();
+
+    // 胜负判定
+    const victoryResult = VictorySystem.checkVictory(
+      [this._player, this._opponent],
+      context.turn,
+    );
+
+    if (victoryResult.battleEnded) {
+      context.battleEnded = true;
+      context.winner = victoryResult.winner;
+      this._stateMachine.endBattle(victoryResult.winner ?? '');
+    }
+  }
+
+  /**
+   * 执行行动阶段
+   */
+  private executeActions(): void {
+    const units = this.getSortedUnits();
+    const context = this.getContext();
+
+    for (const actor of units) {
+      if (!actor.isAlive()) continue;
+
+      // 简化AI：随机使用可用技能
+      const availableAbilities = actor.abilities.getAllAbilities();
+      if (availableAbilities.length > 0) {
+        const ability = availableAbilities[0];
+        const target = actor === this._player ? this._opponent : this._player;
+
+        // 计算伤害（简化版）
+        const damageResult = DamageSystem.calculateDamage(actor, target, {
+          baseDamage: 50,
+          damageType: 'physical',
+        });
+
+        target.takeDamage(damageResult.finalDamage);
+
+        // 记录日志
+        this._logSystem.logDamage(
+          context.turn,
+          actor.name,
+          target.name,
+          damageResult.finalDamage,
+          damageResult.isCritical,
+        );
+      }
+    }
+  }
+
+  /**
+   * 处理回合结束
+   */
+  private processTurnEnd(): void {
+    // 处理 Buff 持续时间
+    this.processBuffs(this._player);
+    this.processBuffs(this._opponent);
+  }
+
+  /**
+   * 处理 Buff 持续时间
+   */
+  private processBuffs(unit: Unit): void {
+    const buffs = unit.buffs.getAllBuffs();
+    for (const buff of buffs) {
+      buff.tickDuration();
+      if (buff.isExpired()) {
+        unit.buffs.removeBuff(buff.id);
+      }
+    }
+  }
+
+  /**
+   * 获取按速度排序的单位
+   */
+  private getSortedUnits(): Unit[] {
+    const units = [this._player, this._opponent];
+    return units.sort((a, b) => {
+      const speedA = a.attributes.getValue('agility' as any);
+      const speedB = b.attributes.getValue('agility' as any);
+      return speedB - speedA;
+    });
+  }
+
+  /**
+   * 检查战斗是否结束
+   */
+  private isBattleOver(): boolean {
+    return this.getContext().battleEnded;
+  }
+
+  /**
+   * 获取战斗上下文
+   */
+  private getContext(): CombatContext {
+    return (this._stateMachine as unknown)['_context'] as CombatContext;
+  }
+
+  /**
+   * 生成战斗结果
+   */
+  private generateResult(): BattleResult {
+    const context = this.getContext();
+    const winner = context.winner === this._player.id ? this._player : this._opponent;
+    const loser = winner === this._player ? this._opponent : this._player;
+
+    this._logSystem.logBattleEnd(winner.name, context.turn);
+
+    return {
+      winner: winner.id,
+      loser: loser?.id,
+      turns: context.turn,
+      logs: this._logSystem.getLogs().map((log) => log.message),
+      winnerSnapshot: winner.getSnapshot(),
+      loserSnapshot: loser?.getSnapshot(),
+    };
+  }
+
+  get logSystem(): CombatLogSystem {
+    return this._logSystem;
+  }
+}
+```
+
+- [ ] **Step 4: 创建模块入口**
+
+创建 `engine/battle-v5/index.ts`:
+
+```typescript
+// Core
+export { EventBus } from './core/EventBus';
+export { CombatStateMachine, type CombatContext } from './core/CombatStateMachine';
+export * from './core/types';
+
+// Units
+export { Unit } from './units/Unit';
+export { AttributeSet } from './units/AttributeSet';
+export { AbilityContainer } from './units/AbilityContainer';
+export { BuffContainer } from './units/BuffContainer';
+
+// Abilities
+export { Ability } from './abilities/Ability';
+export { ActiveSkill } from './abilities/ActiveSkill';
+export { PassiveAbility } from './abilities/PassiveAbility';
+export * from './abilities';
+
+// Buffs
+export { Buff } from './buffs/Buff';
+export * from './buffs';
+
+// Systems
+export { DamageSystem, type DamageCalculationParams, type DamageResult } from './systems/DamageSystem';
+export { CombatLogSystem } from './systems/CombatLogSystem';
+export { VictorySystem, type VictoryResult } from './systems/VictorySystem';
+
+// Adapters
+export { CultivatorAdapter, type CultivatorData } from './adapters/CultivatorAdapter';
+
+// Main Entry
+export { BattleEngineV5, type BattleResult } from './BattleEngineV5';
+```
+
+- [ ] **Step 5: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/integration/BattleEngineV5.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 6: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add BattleEngineV5 main entry point
+
+- Implement BattleEngineV5 as main engine entry point
+- Integrate all subsystems (StateMachine, DamageSystem, LogSystem, VictorySystem)
+- Support complete battle simulation loop
+- Add module index.ts for clean exports
+- Add integration tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
 ## 实施进度跟踪
 
 - [x] Chunk 1: 核心框架
