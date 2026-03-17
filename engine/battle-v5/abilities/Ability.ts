@@ -1,14 +1,28 @@
-import { AbilityId, AbilityType } from '../core/types';
+import { AbilityId, AbilityType, CombatEvent } from '../core/types';
+
+export type { AbilityId };
+import { Unit } from '../units/Unit';
+import { EventBus } from '../core/EventBus';
+
+type EventHandler = (event: CombatEvent) => void;
 
 /**
- * Base Ability interface - stub for Task 4
- * Full implementation will come in later tasks
+ * 能力基类
+ * 所有技能、命格、被动能力的基类
  */
 export class Ability {
   readonly id: AbilityId;
   readonly name: string;
   readonly type: AbilityType;
   private _active: boolean = false;
+  private _owner: Unit | null = null;
+  private _cooldown: number = 0;
+  private _maxCooldown: number = 0;
+  private _eventHandlers: Map<string, EventHandler> = new Map();
+
+  // Public hooks for testing
+  public onActivate: () => void = () => {};
+  public onDeactivate: () => void = () => {};
 
   constructor(id: AbilityId, name: string, type: AbilityType) {
     this.id = id;
@@ -16,11 +30,105 @@ export class Ability {
     this.type = type;
   }
 
+  setOwner(owner: Unit): void {
+    this._owner = owner;
+  }
+
+  getOwner(): Unit | null {
+    return this._owner;
+  }
+
   setActive(active: boolean): void {
+    if (this._active === active) return;
+
     this._active = active;
+
+    if (active) {
+      this.protectedOnActivate();
+    } else {
+      this.protectedOnDeactivate();
+    }
   }
 
   isActive(): boolean {
     return this._active;
+  }
+
+  /**
+   * 能力激活时调用
+   * 子类可以订阅事件
+   */
+  protected protectedOnActivate(): void {
+    this.onActivate();
+  }
+
+  /**
+   * 能力停用时调用
+   * 子类应该取消订阅事件
+   */
+  protected protectedOnDeactivate(): void {
+    // 取消所有事件订阅
+    const eventTypes = Array.from(this._eventHandlers.keys());
+    for (const eventType of eventTypes) {
+      const handler = this._eventHandlers.get(eventType);
+      if (handler) {
+        EventBus.instance.unsubscribe(eventType, handler);
+      }
+    }
+    this._eventHandlers.clear();
+    this.onDeactivate();
+  }
+
+  /**
+   * 订阅事件（辅助方法）
+   */
+  protected subscribeEvent(eventType: string, handler: EventHandler, priority?: number): void {
+    EventBus.instance.subscribe(eventType, handler, priority);
+    this._eventHandlers.set(eventType, handler);
+  }
+
+  /**
+   * 检查是否可以触发
+   * 子类可以重写此方法实现自定义条件
+   */
+  canTrigger(context: unknown): boolean {
+    return true;
+  }
+
+  /**
+   * 执行能力效果
+   * 子类必须实现此方法
+   */
+  execute(context: unknown): void {
+    // 子类实现
+  }
+
+  /**
+   * 冷却管理
+   */
+  setCooldown(cooldown: number): void {
+    this._maxCooldown = cooldown;
+  }
+
+  startCooldown(): void {
+    this._cooldown = this._maxCooldown;
+  }
+
+  getCurrentCooldown(): number {
+    return this._cooldown;
+  }
+
+  tickCooldown(): void {
+    if (this._cooldown > 0) {
+      this._cooldown--;
+    }
+  }
+
+  isReady(): boolean {
+    return this._cooldown === 0;
+  }
+
+  resetCooldown(): void {
+    this._cooldown = 0;
   }
 }
