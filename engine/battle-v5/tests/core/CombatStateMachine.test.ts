@@ -35,17 +35,16 @@ describe('CombatStateMachine', () => {
   it('应该按照正确顺序转换状态', () => {
     stateMachine.start();
 
-    // 验证初始状态转换
+    // 验证初始状态转换（只到 INIT，不再自动转换）
     expect(phases).toContain(CombatPhase.INIT);
-    expect(phases).toContain(CombatPhase.DESTINY_AWAKEN);
-    expect(phases).toContain(CombatPhase.ROUND_START);
-    expect(phases).toContain(CombatPhase.ROUND_PRE);
+    expect(phases).not.toContain(CombatPhase.DESTINY_AWAKEN);
   });
 
   it('第1回合应该包含命格觉醒阶段', () => {
     stateMachine.start();
 
-    expect(phases).toContain(CombatPhase.DESTINY_AWAKEN);
+    // 不再自动转换，需要手动驱动
+    expect(phases).not.toContain(CombatPhase.DESTINY_AWAKEN);
   });
 
   it('战斗结束后应该停止转换', () => {
@@ -55,8 +54,9 @@ describe('CombatStateMachine', () => {
 
     stateMachine.start();
 
-    expect(phases).toContain(CombatPhase.END);
-    expect(stateMachine.getCurrentPhase()).toBe(CombatPhase.END);
+    // 只触发 INIT，不再自动转换到 END
+    expect(phases).toContain(CombatPhase.INIT);
+    expect(phases).not.toContain(CombatPhase.END);
   });
 
   it('getCurrentPhase 应该返回当前状态', () => {
@@ -64,7 +64,7 @@ describe('CombatStateMachine', () => {
 
     stateMachine.start();
 
-    // 最终状态应该是 END（因为 battleEnded 默认为 false，会继续循环）
-    expect(stateMachine.getCurrentPhase()).not.toBeNull();
+    // 应该停留在 INIT 状态
+    expect(stateMachine.getCurrentPhase()).toBe(CombatPhase.INIT);
   });
 });

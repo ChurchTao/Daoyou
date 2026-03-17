@@ -47,7 +47,7 @@ export class CombatStateMachine {
           timestamp: Date.now(),
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.DESTINY_AWAKEN),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -62,7 +62,7 @@ export class CombatStateMachine {
           data: { turn: this._context.turn },
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.ROUND_START),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -77,7 +77,7 @@ export class CombatStateMachine {
           data: { turn: this._context.turn },
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.ROUND_PRE),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -92,7 +92,7 @@ export class CombatStateMachine {
           data: { turn: this._context.turn },
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.TURN_ORDER),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -107,7 +107,7 @@ export class CombatStateMachine {
           data: { turn: this._context.turn },
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.ACTION),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -122,7 +122,7 @@ export class CombatStateMachine {
           data: { turn: this._context.turn },
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.ROUND_POST),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -137,7 +137,7 @@ export class CombatStateMachine {
           data: { turn: this._context.turn },
         });
       },
-      onUpdate: () => this._switchTo(CombatPhase.VICTORY_CHECK),
+      onUpdate: () => {}, // No auto-transition
       onExit: () => {},
     });
 
@@ -153,18 +153,8 @@ export class CombatStateMachine {
         });
       },
       onUpdate: () => {
-        if (this._context.battleEnded) {
-          this._switchTo(CombatPhase.END);
-        } else {
-          this._context.turn++;
-          // 检查是否达到最大回合数
-          if (this._context.turn > this._context.maxTurns) {
-            this._switchTo(CombatPhase.END);
-          } else {
-            // 跳过命格觉醒（仅第1回合）
-            this._switchTo(CombatPhase.ROUND_START);
-          }
-        }
+        // VICTORY_CHECK is a terminal state in each turn cycle
+        // BattleEngineV5 will decide whether to continue or end
       },
       onExit: () => {},
     });
@@ -209,6 +199,10 @@ export class CombatStateMachine {
 
   public getCurrentPhase(): CombatPhase | null {
     return this._currentState?.phase || null;
+  }
+
+  public getContext(): CombatContext {
+    return this._context;
   }
 
   public endBattle(winner: string): void {
