@@ -1331,18 +1331,884 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 ---
 
+## Chunk 3: 能力与BUFF系统（阶段三）
+
+### Task 5: 实现 Ability 基类和 ActiveSkill/PassiveAbility
+
+**Files:**
+- Modify: `engine/battle-v5/abilities/Ability.ts`
+- Create: `engine/battle-v5/abilities/ActiveSkill.ts`
+- Create: `engine/battle-v5/abilities/PassiveAbility.ts`
+- Test: `engine/battle-v5/tests/abilities/Ability.test.ts`
+
+- [ ] **Step 1: 写 Ability 测试**
+
+创建 `engine/battle-v5/tests/abilities/Ability.test.ts`:
+
+```typescript
+import { Ability } from '../../abilities/Ability';
+import { AbilityType } from '../../core/types';
+import { Unit } from '../../units/Unit';
+import { AttributeType } from '../../core/types';
+import { EventBus } from '../../core/EventBus';
+
+describe('Ability', () => {
+  let unit: Unit;
+  let eventBus: EventBus;
+
+  beforeEach(() => {
+    eventBus = EventBus.instance;
+    eventBus.reset();
+    unit = new Unit('test_unit', '测试单位', {
+      [AttributeType.SPIRIT]: 50,
+    });
+  });
+
+  describe('基础功能', () => {
+    it('应该正确初始化能力', () => {
+      const ability = new Ability('test_ability', '测试能力', AbilityType.ACTIVE_SKILL);
+      expect(ability.id).toBe('test_ability');
+      expect(ability.name).toBe('测试能力');
+      expect(ability.type).toBe(AbilityType.ACTIVE_SKILL);
+      expect(ability.isActive()).toBe(false);
+    });
+
+    it('应该支持激活和停用', () => {
+      const ability = new Ability('test_ability', '测试能力', AbilityType.ACTIVE_SKILL);
+      ability.setOwner(unit);
+      ability.setActive(true);
+      expect(ability.isActive()).toBe(true);
+
+      ability.setActive(false);
+      expect(ability.isActive()).toBe(false);
+    });
+  });
+
+  describe('事件订阅', () => {
+    it('激活时应该订阅事件', () => {
+      const ability = new Ability('test_ability', '测试能力', AbilityType.PASSIVE_SKILL);
+      ability.setOwner(unit);
+
+      let eventReceived = false;
+      ability.onActivate = () => {
+        eventReceived = true;
+      };
+
+      ability.setActive(true);
+      expect(eventReceived).toBe(true);
+    });
+
+    it('停用时应该取消订阅事件', () => {
+      const ability = new Ability('test_ability', '测试能力', AbilityType.PASSIVE_SKILL);
+      ability.setOwner(unit);
+
+      let deactivated = false;
+      ability.onDeactivate = () => {
+        deactivated = true;
+      };
+
+      ability.setActive(true);
+      ability.setActive(false);
+      expect(deactivated).toBe(true);
+    });
+  });
+
+  describe('触发条件检查', () => {
+    it('默认情况下总是可以触发', () => {
+      const ability = new Ability('test_ability', '测试能力', AbilityType.ACTIVE_SKILL);
+      expect(ability.canTrigger(undefined as any)).toBe(true);
+    });
+  });
+
+  describe('冷却管理', () => {
+    it('应该支持冷却时间', () => {
+      const ability = new Ability('test_ability', '测试能力', AbilityType.ACTIVE_SKILL);
+      ability.setCooldown(3);
+      expect(ability.getCurrentCooldown()).toBe(0);
+
+      ability.startCooldown();
+      expect(ability.getCurrentCooldown()).toBe(3);
+
+      ability.tickCooldown();
+      expect(ability.getCurrentCooldown()).toBe(2);
+
+      ability.tickCooldown();
+      ability.tickCooldown();
+      expect(ability.getCurrentCooldown()).toBe(0);
+      expect(ability.isReady()).toBe(true);
+    });
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/abilities/Ability.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现 Ability 基类**
+
+修改 `engine/battle-v5/abilities/Ability.ts`:
+
+```typescript
+import { AbilityId, AbilityType, CombatEvent } from '../core/types';
+import { Unit } from '../units/Unit';
+import { EventBus } from '../core/EventBus';
+
+type EventHandler = (event: CombatEvent) => void;
+
+/**
+ * 能力基类
+ * 所有技能、命格、被动能力的基类
+ */
+export class Ability {
+  readonly id: AbilityId;
+  readonly name: string;
+  readonly type: AbilityType;
+  private _active: boolean = false;
+  private _owner: Unit | null = null;
+  private _cooldown: number = 0;
+  private _maxCooldown: number = 0;
+  private _eventHandlers: Map<string, EventHandler> = new Map();
+
+  constructor(id: AbilityId, name: string, type: AbilityType) {
+    this.id = id;
+    this.name = name;
+    this.type = type;
+  }
+
+  setOwner(owner: Unit): void {
+    this._owner = owner;
+  }
+
+  getOwner(): Unit | null {
+    return this._owner;
+  }
+
+  setActive(active: boolean): void {
+    if (this._active === active) return;
+
+    this._active = active;
+
+    if (active) {
+      this.onActivate();
+    } else {
+      this.onDeactivate();
+    }
+  }
+
+  isActive(): boolean {
+    return this._active;
+  }
+
+  /**
+   * 能力激活时调用
+   * 子类可以订阅事件
+   */
+  protected onActivate(): void {
+    // 子类实现
+  }
+
+  /**
+   * 能力停用时调用
+   * 子类应该取消订阅事件
+   */
+  protected onDeactivate(): void {
+    // 取消所有事件订阅
+    for (const [eventType, handler] of this._eventHandlers) {
+      EventBus.instance.unsubscribe(eventType, handler);
+    }
+    this._eventHandlers.clear();
+  }
+
+  /**
+   * 订阅事件（辅助方法）
+   */
+  protected subscribeEvent(eventType: string, handler: EventHandler, priority?: number): void {
+    EventBus.instance.subscribe(eventType, handler, priority);
+    this._eventHandlers.set(eventType, handler);
+  }
+
+  /**
+   * 检查是否可以触发
+   * 子类可以重写此方法实现自定义条件
+   */
+  canTrigger(context: unknown): boolean {
+    return true;
+  }
+
+  /**
+   * 执行能力效果
+   * 子类必须实现此方法
+   */
+  execute(context: unknown): void {
+    // 子类实现
+  }
+
+  /**
+   * 冷却管理
+   */
+  setCooldown(cooldown: number): void {
+    this._maxCooldown = cooldown;
+  }
+
+  startCooldown(): void {
+    this._cooldown = this._maxCooldown;
+  }
+
+  getCurrentCooldown(): number {
+    return this._cooldown;
+  }
+
+  tickCooldown(): void {
+    if (this._cooldown > 0) {
+      this._cooldown--;
+    }
+  }
+
+  isReady(): boolean {
+    return this._cooldown === 0;
+  }
+
+  resetCooldown(): void {
+    this._cooldown = 0;
+  }
+}
+```
+
+- [ ] **Step 4: 实现 ActiveSkill 基类**
+
+创建 `engine/battle-v5/abilities/ActiveSkill.ts`:
+
+```typescript
+import { Ability, AbilityId } from './Ability';
+import { AbilityType } from '../core/types';
+import { Unit } from '../units/Unit';
+
+/**
+ * 主动技能基类
+ * 有MP消耗、冷却时间、触发条件
+ */
+export abstract class ActiveSkill extends Ability {
+  protected _mpCost: number;
+  protected _cooldown: number;
+
+  constructor(id: AbilityId, name: string, mpCost: number = 0, cooldown: number = 0) {
+    super(id, name, AbilityType.ACTIVE_SKILL);
+    this._mpCost = mpCost;
+    this._cooldown = cooldown;
+    this.setCooldown(cooldown);
+  }
+
+  canExecute(unit: Unit): boolean {
+    // 检查冷却
+    if (!this.isReady()) return false;
+
+    // 检查MP
+    if (unit.currentMp < this._mpCost) return false;
+
+    // 检查自定义条件
+    return this.canTrigger({ unit });
+  }
+
+  execute(unit: Unit, target: Unit): void {
+    if (!this.canExecute(unit)) {
+      return;
+    }
+
+    // 消耗MP
+    unit.consumeMp(this._mpCost);
+
+    // 开始冷却
+    this.startCooldown();
+
+    // 执行技能效果
+    this.executeSkill(unit, target);
+  }
+
+  /**
+   * 子类实现具体技能效果
+   */
+  protected abstract executeSkill(caster: Unit, target: Unit): void;
+
+  getMpCost(): number {
+    return this._mpCost;
+  }
+
+  getCooldown(): number {
+    return this._cooldown;
+  }
+}
+```
+
+- [ ] **Step 5: 实现 PassiveAbility 基类**
+
+创建 `engine/battle-v5/abilities/PassiveAbility.ts`:
+
+```typescript
+import { Ability, AbilityId } from './Ability';
+import { AbilityType, CombatEvent } from '../core/types';
+import { Unit } from '../units/Unit';
+
+/**
+ * 被动能力基类
+ * 通过事件触发，包括被动技能和命格
+ */
+export abstract class PassiveAbility extends Ability {
+  constructor(id: AbilityId, name: string) {
+    super(id, name, AbilityType.PASSIVE_SKILL);
+  }
+
+  protected onActivate(): void {
+    // 子类订阅事件
+    this.setupEventListeners();
+  }
+
+  /**
+   * 子类实现，设置事件监听
+   */
+  protected abstract setupEventListeners(): void;
+
+  /**
+   * 通用事件处理包装器
+   */
+  protected createEventHandler(handler: (event: CombatEvent) => void): (event: CombatEvent) => void {
+    return (event: CombatEvent) => {
+      const owner = this.getOwner();
+      if (!owner || !owner.isAlive()) return;
+
+      handler(event);
+    };
+  }
+}
+```
+
+- [ ] **Step 6: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/abilities/Ability.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 7: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add Ability system with ActiveSkill and PassiveAbility
+
+- Implement Ability base class with event subscription
+- Add ActiveSkill base class for MP-cost skills with cooldown
+- Add PassiveAbility base class for event-triggered abilities
+- Support cooldown management and ready state checking
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 6: 实现 Buff 基类和生命周期
+
+**Files:**
+- Modify: `engine/battle-v5/buffs/Buff.ts`
+- Test: `engine/battle-v5/tests/buffs/Buff.test.ts`
+
+- [ ] **Step 1: 写 Buff 测试**
+
+创建 `engine/battle-v5/tests/buffs/Buff.test.ts`:
+
+```typescript
+import { Buff } from '../../buffs/Buff';
+import { BuffType, BuffId } from '../../core/types';
+import { Unit } from '../../units/Unit';
+import { AttributeType, ModifierType } from '../../core/types';
+import { EventBus } from '../../core/EventBus';
+
+describe('Buff', () => {
+  let unit: Unit;
+  let eventBus: EventBus;
+
+  beforeEach(() => {
+    eventBus = EventBus.instance;
+    eventBus.reset();
+    unit = new Unit('test_unit', '测试单位', {
+      [AttributeType.SPIRIT]: 50,
+      [AttributeType.PHYSIQUE]: 50,
+    });
+  });
+
+  describe('基础功能', () => {
+    it('应该正确初始化 Buff', () => {
+      const buff = new Buff('test_buff', '测试Buff', BuffType.BUFF, 3);
+      expect(buff.id).toBe('test_buff');
+      expect(buff.name).toBe('测试Buff');
+      expect(buff.type).toBe(BuffType.BUFF);
+      expect(buff.getDuration()).toBe(3);
+    });
+
+    it('应该支持永久 Buff', () => {
+      const buff = new Buff('perm_buff', '永久Buff', BuffType.BUFF, -1);
+      expect(buff.isPermanent()).toBe(true);
+    });
+
+    it('应该正确计算持续时间', () => {
+      const buff = new Buff('temp_buff', '临时Buff', BuffType.BUFF, 3);
+      expect(buff.isExpired()).toBe(false);
+
+      buff.tickDuration();
+      expect(buff.getDuration()).toBe(2);
+
+      buff.tickDuration();
+      buff.tickDuration();
+      expect(buff.isExpired()).toBe(true);
+    });
+  });
+
+  describe('生命周期钩子', () => {
+    it('应用时应该调用 onApply', () => {
+      const buff = new Buff('test_buff', '测试Buff', BuffType.BUFF, 3);
+      let applied = false;
+      buff.onApply = (u) => {
+        applied = true;
+        expect(u).toBe(unit);
+      };
+      buff.onApply(unit);
+      expect(applied).toBe(true);
+    });
+
+    it('移除时应该调用 onRemove', () => {
+      const buff = new Buff('test_buff', '测试Buff', BuffType.BUFF, 3);
+      let removed = false;
+      buff.onRemove = (u) => {
+        removed = true;
+        expect(u).toBe(unit);
+      };
+      buff.onRemove(unit);
+      expect(removed).toBe(true);
+    });
+
+    it('刷新时应该重置持续时间', () => {
+      const buff = new Buff('test_buff', '测试Buff', BuffType.BUFF, 3);
+      buff.tickDuration();
+      buff.tickDuration();
+      expect(buff.getDuration()).toBe(1);
+
+      buff.refreshDuration();
+      expect(buff.getDuration()).toBe(3);
+    });
+  });
+
+  describe('回合钩子', () => {
+    it('应该支持回合开始钩子', () => {
+      const buff = new Buff('test_buff', '测试Buff', BuffType.BUFF, 3);
+      let called = false;
+      buff.onTurnStart = (u) => {
+        called = true;
+      };
+      buff.onTurnStart(unit);
+      expect(called).toBe(true);
+    });
+
+    it('应该支持回合结束钩子', () => {
+      const buff = new Buff('test_buff', '测试Buff', BuffType.BUFF, 3);
+      let called = false;
+      buff.onTurnEnd = (u) => {
+        called = true;
+      };
+      buff.onTurnEnd(unit);
+      expect(called).toBe(true);
+    });
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/buffs/Buff.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现 Buff 基类**
+
+修改 `engine/battle-v5/buffs/Buff.ts`:
+
+```typescript
+import { BuffId, BuffType } from '../core/types';
+import { Unit } from '../units/Unit';
+
+/**
+ * BUFF 基类
+ * 支持完整生命周期和持续时间管理
+ */
+export class Buff {
+  readonly id: BuffId;
+  readonly name: string;
+  readonly type: BuffType;
+  private _duration: number;
+  private _maxDuration: number;
+
+  // 生命周期钩子（可被子类重写）
+  onApply: (unit: Unit) => void = () => {};
+  onRemove: (unit: Unit) => void = () => {};
+  onTurnStart: (unit: Unit) => void = () => {};
+  onTurnEnd: (unit: Unit) => void = () => {};
+  onBeforeAct: (unit: Unit) => void = () => {};
+  onAfterAct: (unit: Unit) => void = () => {};
+  onBattleStart: (unit: Unit) => void = () => {};
+  onBattleEnd: (unit: Unit) => void = () => {};
+
+  constructor(id: BuffId, name: string, type: BuffType, duration: number) {
+    this.id = id;
+    this.name = name;
+    this.type = type;
+    this._maxDuration = duration;
+    this._duration = duration;
+  }
+
+  /**
+   * 持续时间管理
+   */
+  getDuration(): number {
+    return this._duration;
+  }
+
+  tickDuration(): void {
+    if (!this.isPermanent()) {
+      this._duration = Math.max(0, this._duration - 1);
+    }
+  }
+
+  refreshDuration(): void {
+    this._duration = this._maxDuration;
+  }
+
+  isPermanent(): boolean {
+    return this._maxDuration === -1;
+  }
+
+  isExpired(): boolean {
+    return !this.isPermanent() && this._duration <= 0;
+  }
+
+  /**
+   * 属性修改器（可被子类重写）
+   */
+  getAttributeModifiers(): [] {
+    return [];
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/buffs/Buff.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add Buff system with lifecycle hooks
+
+- Implement Buff base class with duration management
+- Support permanent buffs with duration -1
+- Add lifecycle hooks: onApply, onRemove, onTurnStart, onTurnEnd, etc.
+- Add duration tick and refresh functionality
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 7: 实现示例技能（火球术）
+
+**Files:**
+- Create: `engine/battle-v5/abilities/examples/FireballSkill.ts`
+- Test: `engine/battle-v5/tests/abilities/examples/FireballSkill.test.ts`
+
+- [x] **Step 1: 写火球术测试**
+
+创建 `engine/battle-v5/tests/abilities/examples/FireballSkill.test.ts`:
+
+```typescript
+import { FireballSkill } from '../../../abilities/examples/FireballSkill';
+import { Unit } from '../../../units/Unit';
+import { AttributeType } from '../../../core/types';
+
+describe('FireballSkill', () => {
+  let caster: Unit;
+  let target: Unit;
+
+  beforeEach(() => {
+    caster = new Unit('caster', '施法者', {
+      [AttributeType.SPIRIT]: 80,
+    });
+    target = new Unit('target', '目标', {
+      [AttributeType.PHYSIQUE]: 50,
+    });
+  });
+
+  it('应该正确初始化火球术', () => {
+    const skill = new FireballSkill();
+    expect(skill.id).toBe('fireball');
+    expect(skill.name).toBe('火球术');
+    expect(skill.getMpCost()).toBe(30);
+    expect(skill.getCooldown()).toBe(3);
+  });
+
+  it('应该消耗 MP 并造成伤害', () => {
+    const skill = new FireballSkill();
+    const initialMp = caster.currentMp;
+    const initialHp = target.currentHp;
+
+    skill.execute(caster, target);
+
+    expect(caster.currentMp).toBe(initialMp - 30);
+    expect(target.currentHp).toBeLessThan(initialHp);
+  });
+
+  it('MP 不足时无法施放', () => {
+    const skill = new FireballSkill();
+    caster.consumeMp(caster.currentMp); // 清空 MP
+
+    const initialHp = target.currentHp;
+    skill.execute(caster, target);
+
+    expect(target.currentHp).toBe(initialHp);
+  });
+
+  it('冷却中无法施放', () => {
+    const skill = new FireballSkill();
+    skill.execute(caster, target);
+
+    // 尝试再次施放
+    const initialHp = target.currentHp;
+    skill.execute(caster, target);
+
+    expect(target.currentHp).toBe(initialHp);
+  });
+});
+```
+
+- [x] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/abilities/examples/FireballSkill.test.ts
+```
+Expected: FAIL
+
+- [x] **Step 3: 实现火球术**
+
+创建 `engine/battle-v5/abilities/examples/FireballSkill.ts`:
+
+```typescript
+import { ActiveSkill } from '../ActiveSkill';
+import { AbilityId } from '../../core/types';
+import { Unit } from '../../units/Unit';
+
+/**
+ * 火球术 - 示例主动技能
+ * 消耗 30 MP，造成基于灵力的魔法伤害
+ */
+export class FireballSkill extends ActiveSkill {
+  constructor() {
+    super('fireball' as AbilityId, '火球术', 30, 3);
+  }
+
+  protected executeSkill(caster: Unit, target: Unit): void {
+    // 基础伤害: 灵力 × 2
+    const spirit = caster.attributes.getValue('spirit' as any);
+    const baseDamage = spirit * 2;
+
+    // 造成伤害
+    target.takeDamage(baseDamage);
+  }
+}
+```
+
+- [x] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/abilities/examples/FireballSkill.test.ts
+```
+Expected: PASS
+
+- [x] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add FireballSkill example
+
+- Implement FireballSkill as example active skill
+- Damage based on spirit attribute (spirit × 2)
+- MP cost: 30, Cooldown: 3 turns
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 8: 实现示例 Buff（力量提升）
+
+**Files:**
+- Create: `engine/battle-v5/buffs/examples/StrengthBuff.ts`
+- Test: `engine/battle-v5/tests/buffs/examples/StrengthBuff.test.ts`
+
+- [ ] **Step 1: 写力量 Buff 测试**
+
+创建 `engine/battle-v5/tests/buffs/examples/StrengthBuff.test.ts`:
+
+```typescript
+import { StrengthBuff } from '../../../buffs/examples/StrengthBuff';
+import { Unit } from '../../../units/Unit';
+import { AttributeType, ModifierType } from '../../../core/types';
+
+describe('StrengthBuff', () => {
+  let unit: Unit;
+
+  beforeEach(() => {
+    unit = new Unit('test_unit', '测试单位', {
+      [AttributeType.PHYSIQUE]: 50,
+    });
+  });
+
+  it('应该正确初始化力量 Buff', () => {
+    const buff = new StrengthBuff();
+    expect(buff.id).toBe('strength_buff');
+    expect(buff.name).toBe('力量提升');
+    expect(buff.getDuration()).toBe(3);
+  });
+
+  it('应用时应该增加体魄属性', () => {
+    const buff = new StrengthBuff();
+    const originalPhysique = unit.attributes.getValue(AttributeType.PHYSIQUE);
+
+    buff.onApply(unit);
+    unit.updateDerivedStats();
+
+    const newPhysique = unit.attributes.getValue(AttributeType.PHYSIQUE);
+    expect(newPhysique).toBe(originalPhysique + 10);
+  });
+
+  it('移除时应该恢复体魄属性', () => {
+    const buff = new StrengthBuff();
+    buff.onApply(unit);
+    unit.updateDerivedStats();
+
+    const boostedPhysique = unit.attributes.getValue(AttributeType.PHYSIQUE);
+
+    buff.onRemove(unit);
+    unit.updateDerivedStats();
+
+    const finalPhysique = unit.attributes.getValue(AttributeType.PHYSIQUE);
+    expect(finalPhysique).toBeLessThan(boostedPhysique);
+  });
+
+  it('刷新时应该重置持续时间', () => {
+    const buff = new StrengthBuff();
+    buff.tickDuration();
+    buff.tickDuration();
+    expect(buff.getDuration()).toBe(1);
+
+    buff.refreshDuration();
+    expect(buff.getDuration()).toBe(3);
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+```bash
+npm test -- engine/battle-v5/tests/buffs/examples/StrengthBuff.test.ts
+```
+Expected: FAIL
+
+- [ ] **Step 3: 实现力量 Buff**
+
+创建 `engine/battle-v5/buffs/examples/StrengthBuff.ts`:
+
+```typescript
+import { Buff } from '../Buff';
+import { BuffId, BuffType, AttributeType, ModifierType, AttributeModifier } from '../../core/types';
+import { Unit } from '../../units/Unit';
+
+/**
+ * 力量提升 - 示例 Buff
+ * 增加 10 点体魄，持续 3 回合
+ */
+export class StrengthBuff extends Buff {
+  private modifierId: string = 'strength_buff_modifier';
+
+  constructor() {
+    super('strength_buff' as BuffId, '力量提升', BuffType.BUFF, 3);
+  }
+
+  onApply(unit: Unit): void {
+    // 添加属性修改器
+    const modifier: AttributeModifier = {
+      id: this.modifierId,
+      attrType: AttributeType.PHYSIQUE,
+      type: ModifierType.FIXED,
+      value: 10,
+      source: this,
+    };
+    unit.attributes.addModifier(modifier);
+  }
+
+  onRemove(unit: Unit): void {
+    // 移除属性修改器
+    unit.attributes.removeModifier(this.modifierId);
+  }
+}
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+```bash
+npm test -- engine/battle-v5/tests/buffs/examples/StrengthBuff.test.ts
+```
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add engine/battle-v5/
+git commit -m "feat(battle-v5): add StrengthBuff example
+
+- Implement StrengthBuff as example buff
+- Adds +10 physique attribute modifier
+- Duration: 3 turns
+- Modifier removed on buff expire
+- Add comprehensive unit tests
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
 ## 实施进度跟踪
 
-- [ ] Chunk 1: 核心框架
-  - [ ] Task 1: EventBus + 核心类型
-  - [ ] Task 2: CombatStateMachine
-- [ ] Chunk 2: 属性与单元
-  - [ ] Task 3: AttributeSet
-  - [ ] Task 4: Unit + 容器
+- [x] Chunk 1: 核心框架
+  - [x] Task 1: EventBus + 核心类型
+  - [x] Task 2: CombatStateMachine
+- [x] Chunk 2: 属性与单元
+  - [x] Task 3: AttributeSet
+  - [x] Task 4: Unit + 容器
 - [ ] Chunk 3: 能力与BUFF系统
+  - [ ] Task 5: Ability 基类和 ActiveSkill/PassiveAbility
+  - [ ] Task 6: Buff 基类和生命周期
+  - [x] Task 7: 示例技能（火球术）
+  - [ ] Task 8: 示例 Buff（力量提升）
 - [ ] Chunk 4: 系统模块
 - [ ] Chunk 5: 入口与集成
 
 ---
 
-**下一步:** 完成 Chunk 1 和 Chunk 2 后，继续编写 Chunk 3-5 的详细任务。
+**下一步:** 完成 Chunk 3 后，继续编写 Chunk 4-5 的详细任务。
