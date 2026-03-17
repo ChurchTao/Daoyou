@@ -101,6 +101,8 @@ export interface UnitSnapshot {
   maxMp: number;
   buffs: BuffId[];
   isAlive: boolean;
+  hpPercent: number;
+  mpPercent: number;
 }
 
 // ===== 战报日志 =====

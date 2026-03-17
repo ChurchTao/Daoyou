@@ -1,4 +1,4 @@
-import { UnitId } from '../core/types';
+import { UnitId, UnitSnapshot } from '../core/types';
 import { AttributeSet } from './AttributeSet';
 import { AbilityContainer } from './AbilityContainer';
 import { BuffContainer } from './BuffContainer';
@@ -23,13 +23,18 @@ export class Unit {
     id: UnitId,
     name: string,
     baseAttrs: Partial<Record<AttributeType, number>>,
+    options?: {
+      attributes?: AttributeSet;
+      abilities?: AbilityContainer;
+      buffs?: BuffContainer;
+    },
   ) {
     this.id = id;
     this.name = name;
 
-    this.attributes = new AttributeSet(baseAttrs);
-    this.abilities = new AbilityContainer(this);
-    this.buffs = new BuffContainer(this);
+    this.attributes = options?.attributes ?? new AttributeSet(baseAttrs);
+    this.abilities = options?.abilities ?? new AbilityContainer(this);
+    this.buffs = options?.buffs ?? new BuffContainer(this);
 
     this.maxHp = this.attributes.getMaxHp();
     this.maxMp = this.attributes.getMaxMp();
@@ -45,6 +50,10 @@ export class Unit {
   }
 
   takeDamage(damage: number): void {
+    if (damage < 0) {
+      console.warn(`Unit.takeDamage: 负数输入 ${damage}，应使用 heal() 方法`);
+      damage = 0;
+    }
     this.currentHp = Math.max(0, this.currentHp - damage);
   }
 
@@ -53,6 +62,10 @@ export class Unit {
   }
 
   consumeMp(amount: number): boolean {
+    if (amount < 0) {
+      console.warn(`Unit.consumeMp: 负数输入 ${amount}，应使用 restoreMp() 方法`);
+      amount = 0;
+    }
     if (this.currentMp < amount) return false;
     this.currentMp -= amount;
     return true;
@@ -75,15 +88,29 @@ export class Unit {
   }
 
   clone(): Unit {
-    const clone = new Unit(
+    // Create a minimal unit first to get a valid Unit reference
+    const tempUnit = new Unit(
       this.id + '_mirror',
       this.name + '的镜像',
       this.attributes.getAllValues(),
     );
 
-    (clone as any).attributes = this.attributes.clone();
-    (clone as any).abilities = this.abilities.clone(clone);
-    (clone as any).buffs = this.buffs.clone(clone);
+    // Clone containers with the temp unit as owner
+    const clonedAttributes = this.attributes.clone();
+    const clonedAbilities = this.abilities.clone(tempUnit);
+    const clonedBuffs = this.buffs.clone(tempUnit);
+
+    // Now create the final unit with the cloned containers
+    const clone = new Unit(
+      this.id + '_mirror',
+      this.name + '的镜像',
+      this.attributes.getAllValues(),
+      {
+        attributes: clonedAttributes,
+        abilities: clonedAbilities,
+        buffs: clonedBuffs,
+      },
+    );
 
     clone.currentHp = this.currentHp;
     clone.currentMp = this.currentMp;
@@ -93,7 +120,7 @@ export class Unit {
     return clone;
   }
 
-  getSnapshot(): object {
+  getSnapshot(): UnitSnapshot {
     return {
       unitId: this.id,
       name: this.name,

@@ -40,14 +40,21 @@ export class BuffContainer {
   }
 
   clear(): void {
-    for (const id of this._buffs.keys()) {
-      this.removeBuff(id);
+    const buffIds = Array.from(this._buffs.keys());
+    for (const id of buffIds) {
+      const buff = this._buffs.get(id);
+      if (buff) {
+        buff.onRemove(this._owner);
+      }
     }
+    this._buffs.clear();
+    this._owner.updateDerivedStats();
   }
 
   clone(owner: Unit): BuffContainer {
     const clone = new BuffContainer(owner);
-    // Deep copy will be implemented when Buff system is ready
+    // TODO: 实现深拷贝：遍历 this._buffs，复制每个 Buff 实例并添加到 clone
+    // 当前返回空容器，适用于 Buff 系统未完成时的占位实现
     return clone;
   }
 }

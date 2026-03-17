@@ -32,7 +32,8 @@ export class AbilityContainer {
 
   clone(owner: Unit): AbilityContainer {
     const clone = new AbilityContainer(owner);
-    // Deep copy will be implemented when Ability system is ready
+    // TODO: 实现深拷贝：遍历 this._abilities，复制每个 Ability 实例并添加到 clone
+    // 当前返回空容器，适用于 Ability 系统未完成时的占位实现
     return clone;
   }
 }
