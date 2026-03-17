@@ -142,7 +142,7 @@ export enum AttributeType {
 
 ### 4.3 属性修改器类型
 
-V5 引擎采用 **4 阶段属性修正**（与现有 Effect 系统一致）：
+V5 引擎采用 **6 阶段属性修正**（与现有 Effect 系统一致）：
 
 ```typescript
 export enum ModifierType {
@@ -272,6 +272,7 @@ EventBus.instance.publish({
 | `onRoundPost()` | - | 回合后置结算 |
 | `onHit()` | ON_HIT | 命中目标 |
 | `onBeingHit()` | ON_BEING_HIT | 被命中 |
+| `onDeath()` | - | 角色死亡时 |
 | `onApply()` | - | BUFF 应用时 |
 | `onRemove()` | - | BUFF 移除时 |
 
@@ -296,7 +297,8 @@ EventBus.instance.publish({
 3. **闪避判定**：基于闪避率判定是否闪避，闪避则伤害为 0
 4. **伤害减免**：基于体魄、减伤BUFF计算最终减免比例
 5. **元素克制**：应用元素克制关系（参考 `ELEMENT_WEAKNESS`）
-6. **最终伤害**：`Math.max(1, floor(基础伤害 × 暴击 × (1 - 减伤) × 元素系数))`
+6. **最终伤害**：`Math.max(1, floor(基础伤害 × 暴击 × (1 - 减伤) × 元素系数 × 随机浮动))`
+   - 随机浮动：0.9 ~ 1.1 之间（±10%伤害浮动）
 
 **伤害事件结构：**
 ```typescript
@@ -399,7 +401,7 @@ class CultivatorAdapter {
 | attributes | AttributeSet.attributes | 属性映射 |
 | skills | AbilityContainer.abilities | EffectConfig → Ability |
 | preHeavenFates | AbilityContainer.destinies | EffectConfig → Destiny |
-| equipped.weapon/equipment | AttributeModifiers | 固定值修改器 |
+| equipped.weapon/equipment | AttributeModifiers | 固定值修改器（按槽位优先级应用） |
 | realm | 境界系数 | 派生属性计算 |
 | spiritualRoots | 元素亲和 | 元素伤害加成 |
 
@@ -480,6 +482,7 @@ class CultivatorAdapter {
 
 ### 阶段三：能力与BUFF（预计 7-10 天）
 
+**阶段三A：基础能力/BUFF系统（5-6天）**
 1. **能力系统**
    - 实现 Ability 基类
    - 实现 ActiveSkill（MP消耗、冷却、触发条件）
@@ -491,13 +494,15 @@ class CultivatorAdapter {
    - 实现持续时间管理
    - 示例 BUFF（力量提升）
 
-3. **效果转换**
-   - EffectConfig → Ability 转换器
-   - BuffConfig → Buff 转换器
-
-4. **单元测试**
+3. **单元测试**
    - Ability 测试（触发条件、执行效果）
    - Buff 测试（生命周期、持续时间）
+
+**阶段三B：效果转换器与集成（2-4天）**
+4. **效果转换**
+   - EffectConfig → Ability 转换器
+   - BuffConfig → Buff 转换器
+   - 配置兼容性测试
 
 ### 阶段四：系统模块（预计 5-7 天）
 
@@ -633,13 +638,8 @@ class CultivatorAdapter {
 
 ---
 
-**文档版本**: 1.1
+**文档版本**: 1.2
 **最后更新**: 2026-03-17
 **更新内容**：
-- 修正属性映射（使用实际属性名）
-- 扩展属性修改器为4阶段（BASE/FIXED/ADD/MULTIPLY/FINAL/OVERRIDE）
-- 补充完整伤害计算流程
-- 扩展BUFF生命周期钩子（12个钩子）
-- 补充适配器详细设计
-- 调整实施计划时间估算（25-36天）
-- 补充完整风险分析和缓解措施
+- v1.1: 修正属性映射、扩展修改器、补充伤害/BUFF/适配器设计、调整时间、补充风险分析
+- v1.2: 修正细节问题（6阶段术语、伤害随机浮动、onDeath钩子、装备叠加顺序、细化阶段三）
