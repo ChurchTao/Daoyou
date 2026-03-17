@@ -3,10 +3,15 @@ import { CombatEvent, EventPriority } from './types';
 type EventHandler<T extends CombatEvent> = (event: T) => void;
 
 interface EventSubscriber {
-  handler: EventHandler<any>;
+  wrappedHandler: (event: CombatEvent) => void;
   priority: EventPriority;
 }
 
+/**
+ * Event Bus for combat event management
+ * Uses priority queue for event processing
+ * Singleton pattern for global access
+ */
 export class EventBus {
   private static _instance: EventBus;
   private static readonly DEFAULT_MAX_HISTORY_SIZE = 1000;
@@ -39,7 +44,10 @@ export class EventBus {
     }
 
     const subscribers = this._subscribers.get(eventType)!;
-    subscribers.push({ handler, priority });
+    // Wrap handler to accept CombatEvent base type
+    const wrappedHandler: (event: CombatEvent) => void = handler as EventHandler<CombatEvent>;
+
+    subscribers.push({ wrappedHandler, priority });
 
     subscribers.sort((a, b) => b.priority - a.priority);
   }
@@ -54,9 +62,11 @@ export class EventBus {
     const subscribers = this._subscribers.get(eventType);
     if (!subscribers) return;
 
+    // Filter by comparing wrapped handlers
+    const wrappedHandler = handler as EventHandler<CombatEvent>;
     this._subscribers.set(
       eventType,
-      subscribers.filter((s) => s.handler !== handler),
+      subscribers.filter((s) => s.wrappedHandler !== wrappedHandler),
     );
   }
 
@@ -79,7 +89,7 @@ export class EventBus {
     if (!subscribers) return;
 
     for (const subscriber of subscribers) {
-      subscriber.handler(eventWithTimestamp);
+      subscriber.wrappedHandler(eventWithTimestamp);
     }
   }
 
