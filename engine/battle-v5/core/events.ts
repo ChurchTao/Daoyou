@@ -2,6 +2,8 @@
 import { CombatEvent, EventPriority } from './types';
 import { Unit } from '../units/Unit';
 import { Ability } from '../abilities/Ability';
+import { Buff } from '../buffs/Buff';
+import { TagPath } from './types';
 
 // ===== 事件优先级枚举 =====
 export enum EventPriorityLevel {
@@ -12,6 +14,8 @@ export enum EventPriorityLevel {
   DAMAGE_CALC = 60,        // 伤害计算
   DAMAGE_APPLY = 55,       // 伤害应用
   DAMAGE_TAKEN = 50,       // 受击事件（触发被动/反伤）
+  BUFF_INTERCEPT = 40,     // BUFF 拦截（高于 POST_SETTLE）
+  TAG_CHANGE = 35,         // 标签变更
   POST_SETTLE = 30,        // 后置结算
   COMBAT_LOG = 10,         // 战报输出（最低）
 }
@@ -99,4 +103,28 @@ export interface UnitDeadEvent extends CombatEvent {
   type: 'UnitDeadEvent';
   unit: Unit;
   killer: Unit;
+}
+
+// ===== 标签添加事件 =====
+export interface TagAddedEvent extends CombatEvent {
+  type: 'TagAddedEvent';
+  target: Unit;
+  tag: TagPath;
+  source?: unknown;
+}
+
+// ===== 标签移除事件 =====
+export interface TagRemovedEvent extends CombatEvent {
+  type: 'TagRemovedEvent';
+  target: Unit;
+  tag: TagPath;
+  source?: unknown;
+}
+
+// ===== BUFF 添加拦截事件 =====
+export interface BuffAddEvent extends CombatEvent {
+  type: 'BuffAddEvent';
+  target: Unit;
+  buff: Buff;
+  isCancelled?: boolean;
 }
