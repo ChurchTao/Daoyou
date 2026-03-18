@@ -1,6 +1,7 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { BasicAttack } from '../../abilities/BasicAttack';
 import { EventBus } from '../../core/EventBus';
+import { GameplayTags } from '../../core/GameplayTags';
 import {
   DamageCalculateEvent,
   DamageEvent,
@@ -37,7 +38,7 @@ describe('DamageSystem - EventDriven', () => {
     skill = new BasicAttack();
     skill.setDamageCoefficient(1.5);
     skill.setBaseDamage(50);
-    skill.setIsMagicAbility(true);
+    skill.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
 
     // Create DamageSystem after resetting EventBus and setting up all dependencies
     system = new DamageSystem();
@@ -146,7 +147,7 @@ describe('DamageSystem - EventDriven', () => {
     const physicalSkill = new BasicAttack();
     physicalSkill.setDamageCoefficient(1.0);
     physicalSkill.setBaseDamage(20);
-    physicalSkill.setIsPhysicalAbility(true);
+    physicalSkill.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
 
     const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
       expect(event.baseDamage).toBeGreaterThan(0);

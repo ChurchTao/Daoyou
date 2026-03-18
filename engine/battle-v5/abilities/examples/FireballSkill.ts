@@ -1,6 +1,7 @@
 import { ActiveSkill } from '../ActiveSkill';
 import { AbilityId, AttributeType } from '../../core/types';
 import { Unit } from '../../units/Unit';
+import { GameplayTags } from '../../core/GameplayTags';
 
 /**
  * 火球术 - 示例主动技能
@@ -9,6 +10,14 @@ import { Unit } from '../../units/Unit';
 export class FireballSkill extends ActiveSkill {
   constructor() {
     super('fireball' as AbilityId, '火球术', 30, 3);
+
+    // 设置标签
+    this.tags.addTags([
+      GameplayTags.ABILITY.TYPE_DAMAGE,
+      GameplayTags.ABILITY.TYPE_MAGIC,
+      GameplayTags.ABILITY.ELEMENT_FIRE,
+      GameplayTags.ABILITY.TARGET_SINGLE,
+    ]);
   }
 
   protected executeSkill(caster: Unit, target: Unit): void {

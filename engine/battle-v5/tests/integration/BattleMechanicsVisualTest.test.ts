@@ -13,6 +13,7 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { EventBus } from '../../core/EventBus';
+import { GameplayTags } from '../../core/GameplayTags';
 import { AttributeType } from '../../core/types';
 import { Unit } from '../../units/Unit';
 
@@ -24,7 +25,7 @@ class UltimateSkill extends ActiveSkill {
     super('ultimate', '必杀技', 0, 0);
     this.setDamageCoefficient(5.0);
     this.setBaseDamage(200);
-    this.setIsMagicAbility(true);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
     this.setManaCost(0);
     this.setPriority(100);
   }
@@ -38,8 +39,8 @@ class ControlSkill extends ActiveSkill {
     super('control_skill', '禁锢术', 20, 2);
     this.setDamageCoefficient(0.5);
     this.setBaseDamage(10);
-    this.setIsMagicAbility(true);
-    this.setIsDebuffAbility(true);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_CONTROL]);
     this.setManaCost(20);
     this.setPriority(50);
   }
@@ -53,7 +54,7 @@ class NormalAttackSkill extends ActiveSkill {
     super('normal_attack', '攻击', 0, 0);
     this.setDamageCoefficient(1.0);
     this.setBaseDamage(30);
-    this.setIsPhysicalAbility(true);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
     this.setManaCost(0);
     this.setPriority(10);
   }

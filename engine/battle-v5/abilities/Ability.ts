@@ -3,6 +3,7 @@ import { AbilityId, AbilityType, CombatEvent } from '../core/types';
 export type { AbilityId };
 import { Unit } from '../units/Unit';
 import { EventBus } from '../core/EventBus';
+import { GameplayTagContainer } from '../core/GameplayTags';
 
 type EventHandler = (event: CombatEvent) => void;
 
@@ -23,11 +24,11 @@ export class Ability {
   // Extended properties for damage and trigger validation
   private _damageCoefficient: number = 1.0;
   private _baseDamage: number = 0;
-  private _isMagicAbility: boolean = false;
-  private _isPhysicalAbility: boolean = true;
-  private _isDebuffAbility: boolean = false;
   private _priority: number = 0;
   private _manaCost: number = 0;
+
+  // 标签容器
+  readonly tags: GameplayTagContainer;
 
   // Public hooks for testing
   public onActivate: () => void = () => {};
@@ -37,6 +38,9 @@ export class Ability {
     this.id = id;
     this.name = name;
     this.type = type;
+
+    // 初始化标签容器
+    this.tags = new GameplayTagContainer();
   }
 
   setOwner(owner: Unit): void {
@@ -165,30 +169,6 @@ export class Ability {
 
   setBaseDamage(value: number): void {
     this._baseDamage = value;
-  }
-
-  get isMagicAbility(): boolean {
-    return this._isMagicAbility;
-  }
-
-  setIsMagicAbility(value: boolean): void {
-    this._isMagicAbility = value;
-  }
-
-  get isPhysicalAbility(): boolean {
-    return this._isPhysicalAbility;
-  }
-
-  setIsPhysicalAbility(value: boolean): void {
-    this._isPhysicalAbility = value;
-  }
-
-  get isDebuffAbility(): boolean {
-    return this._isDebuffAbility;
-  }
-
-  setIsDebuffAbility(value: boolean): void {
-    this._isDebuffAbility = value;
   }
 
   get priority(): number {

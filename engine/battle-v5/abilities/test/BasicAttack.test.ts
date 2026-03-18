@@ -2,6 +2,7 @@
 import { BasicAttack } from '../BasicAttack';
 import { Unit } from '../../units/Unit';
 import { AbilityType } from '../../core/types';
+import { GameplayTags } from '../../core/GameplayTags';
 
 describe('BasicAttack', () => {
   let basicAttack: BasicAttack;
@@ -38,8 +39,8 @@ describe('BasicAttack', () => {
     });
 
     it('should be physical ability', () => {
-      expect(basicAttack.isPhysicalAbility).toBe(true);
-      expect(basicAttack.isMagicAbility).toBe(false);
+      expect(basicAttack.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)).toBe(true);
+      expect(basicAttack.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)).toBe(false);
     });
 
     it('should have zero priority', () => {

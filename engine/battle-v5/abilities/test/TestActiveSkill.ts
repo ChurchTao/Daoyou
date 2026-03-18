@@ -1,5 +1,6 @@
 import { ActiveSkill } from '../ActiveSkill';
 import { AbilityType } from '../../core/types';
+import { GameplayTags } from '../../core/GameplayTags';
 import { Unit } from '../../units/Unit';
 
 /**
@@ -11,7 +12,7 @@ export class TestActiveSkill extends ActiveSkill {
     super(id, name, 0, 0); // mpCost, cooldown
     this.setDamageCoefficient(1.5);
     this.setBaseDamage(30);
-    this.setIsMagicAbility(true);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
     this.setManaCost(10);
     this.setPriority(10);
   }

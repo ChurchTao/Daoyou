@@ -1,4 +1,5 @@
 import { EventBus } from '../core/EventBus';
+import { GameplayTags } from '../core/GameplayTags';
 import {
   DamageCalculateEvent,
   DamageEvent,
@@ -65,7 +66,7 @@ export class DamageSystem {
     }
 
     // 2. 神识抵抗判定（仅控制/减益类技能）
-    if (ability.isDebuffAbility && hitCheckEvent.isHit) {
+    if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) && hitCheckEvent.isHit) {
       const casterConsciousness = caster.attributes.getValue(
         AttributeType.CONSCIOUSNESS,
       );
@@ -107,11 +108,11 @@ export class DamageSystem {
     // 1. 计算基础伤害（根据技能类型和对应属性）
     let baseDamage = ability.baseDamage;
 
-    if (ability.isMagicAbility) {
+    if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
       // 法术伤害：灵力 * 技能系数 + 固定值
       const spirit = caster.attributes.getValue(AttributeType.SPIRIT);
       baseDamage = spirit * ability.damageCoefficient + ability.baseDamage;
-    } else if (ability.isPhysicalAbility) {
+    } else if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
       // 体术伤害：体魄 * 技能系数 + 固定值
       const physique = caster.attributes.getValue(AttributeType.PHYSIQUE);
       baseDamage = physique * ability.damageCoefficient + ability.baseDamage;

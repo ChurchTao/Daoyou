@@ -3,6 +3,7 @@ import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
 import { Unit } from '../../units/Unit';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { AbilityType } from '../../core/types';
+import { GameplayTags } from '../../core/GameplayTags';
 import { EventBus } from '../../core/EventBus';
 import { SkillPreCastEvent, SkillCastEvent, SkillInterruptEvent } from '../../core/events';
 
@@ -47,7 +48,7 @@ describe('ActionExecutionSystem', () => {
     skill = new TestActiveSkill('fireball', '火球术', 10, 0);
     skill.setDamageCoefficient(1.5);
     skill.setBaseDamage(50);
-    skill.setIsMagicAbility(true);
+    skill.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
   });
 
   afterEach(() => {

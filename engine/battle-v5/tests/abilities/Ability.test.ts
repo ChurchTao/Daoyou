@@ -3,6 +3,8 @@ import { AbilityType } from '../../core/types';
 import { Unit } from '../../units/Unit';
 import { AttributeType } from '../../core/types';
 import { EventBus } from '../../core/EventBus';
+import { GameplayTags } from '../../core/GameplayTags';
+import { FireballSkill } from '../../abilities/examples/FireballSkill';
 
 describe('Ability', () => {
   let unit: Unit;
@@ -100,17 +102,6 @@ describe('Ability', () => {
       expect(ability.damageCoefficient).toBe(1.5);
     });
 
-    it('should support ability type flags', () => {
-      const ability = new Ability('test', '测试', AbilityType.ACTIVE_SKILL);
-      ability.setIsMagicAbility(true);
-      ability.setIsPhysicalAbility(false);
-      ability.setIsDebuffAbility(false);
-
-      expect(ability.isMagicAbility).toBe(true);
-      expect(ability.isPhysicalAbility).toBe(false);
-      expect(ability.isDebuffAbility).toBe(false);
-    });
-
     it('should support base damage property', () => {
       const ability = new Ability('test', '测试', AbilityType.ACTIVE_SKILL);
       ability.setBaseDamage(100);
@@ -179,6 +170,30 @@ describe('Ability', () => {
 
       ability.setOwner(unit);
       expect(ability.canTrigger(context)).toBe(true);
+    });
+  });
+
+  describe('Ability 标签系统', () => {
+    it('新建 Ability 应有空的标签容器', () => {
+      const ability = new Ability('test', '测试', AbilityType.ACTIVE_SKILL);
+
+      expect(ability.tags).toBeDefined();
+      expect(ability.tags.getTags()).toEqual([]);
+    });
+
+    it('应支持设置自定义标签', () => {
+      const ability = new Ability('test', '测试', AbilityType.ACTIVE_SKILL);
+      ability.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
+
+      expect(ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)).toBe(true);
+    });
+
+    it('FireballSkill 应正确设置火属性标签', () => {
+      const skill = new FireballSkill();
+
+      expect(skill.tags.hasTag(GameplayTags.ABILITY.ELEMENT_FIRE)).toBe(true);
+      expect(skill.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)).toBe(true);
+      expect(skill.tags.hasTag(GameplayTags.ABILITY.TYPE_DAMAGE)).toBe(true);
     });
   });
 });

@@ -2,6 +2,7 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { EventBus } from '../../core/EventBus';
+import { GameplayTags } from '../../core/GameplayTags';
 import { AttributeType } from '../../core/types';
 import { Unit } from '../../units/Unit';
 
@@ -13,7 +14,7 @@ class HighDamageSkill extends ActiveSkill {
     super(id, name, 0, 0); // mpCost, cooldown
     this.setDamageCoefficient(5.0);
     this.setBaseDamage(100);
-    this.setIsMagicAbility(true);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
     this.setManaCost(0);
     this.setPriority(10);
   }

@@ -3,6 +3,7 @@ import { AbilityContainer } from '../../units/AbilityContainer';
 import { Unit } from '../../units/Unit';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { AbilityType } from '../../core/types';
+import { GameplayTags } from '../../core/GameplayTags';
 import { EventBus } from '../../core/EventBus';
 import { ActionEvent } from '../../core/events';
 
@@ -28,7 +29,7 @@ describe('AbilityContainer', () => {
       skill.setPriority(10);
       skill.setManaCost(10);
       skill.setDamageCoefficient(1.5);
-      skill.setIsMagicAbility(true);
+      skill.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
 
       owner.currentMp = 50;
       container.addAbility(skill);

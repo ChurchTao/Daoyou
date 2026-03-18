@@ -1,5 +1,6 @@
 // engine/battle-v5/abilities/BasicAttack.ts
 import { AbilityId } from '../core/types';
+import { GameplayTags } from '../core/GameplayTags';
 import { ActiveSkill } from './ActiveSkill';
 
 /**
@@ -11,7 +12,7 @@ export class BasicAttack extends ActiveSkill {
     super('basic_attack' as AbilityId, '普攻');
     this.setDamageCoefficient(1.0);
     this.setBaseDamage(20);
-    this.setIsPhysicalAbility(true);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
     this.setManaCost(0);
     this.setPriority(0);
   }
