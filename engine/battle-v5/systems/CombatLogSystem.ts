@@ -101,12 +101,15 @@ export class CombatLogSystem {
   private _onDamageTaken(event: DamageTakenEvent): void {
     const critText = event.isCritical ? '（暴击！）' : '';
     const highlight = event.isCritical || false;
+    // 格式化数字为整数
+    const damage = Math.round(event.damageTaken);
+    const remainHp = Math.round(event.remainHealth);
 
     this._addLog({
       id: `log_${this._nextId++}`,
       turn: 0, // TODO: 从上下文获取当前回合
       phase: CombatPhase.ACTION,
-      message: `【伤害】${event.caster.name}使用【${event.ability.name}】对${event.target.name}造成${event.damageTaken}点伤害${critText}，剩余气血${event.remainHealth}！`,
+      message: `【伤害】${event.caster.name}使用【${event.ability.name}】对${event.target.name}造成${damage}点伤害${critText}，剩余气血${remainHp}！`,
       highlight,
     });
 
@@ -168,7 +171,8 @@ export class CombatLogSystem {
     isCritical: boolean,
   ): void {
     const critText = isCritical ? '（暴击！）' : '';
-    const message = `${attackerName} 对 ${targetName} 造成了 ${damage} 点伤害${critText}`;
+    const formattedDamage = Math.round(damage);
+    const message = `${attackerName} 对 ${targetName} 造成了 ${formattedDamage} 点伤害${critText}`;
     this.log(turn, CombatPhase.ACTION, message);
   }
 
@@ -176,7 +180,8 @@ export class CombatLogSystem {
    * 记录治疗
    */
   logHeal(turn: number, casterName: string, targetName: string, amount: number): void {
-    const message = `${casterName} 为 ${targetName} 恢复了 ${amount} 点气血`;
+    const formattedAmount = Math.round(amount);
+    const message = `${casterName} 为 ${targetName} 恢复了 ${formattedAmount} 点气血`;
     this.log(turn, CombatPhase.ACTION, message);
   }
 

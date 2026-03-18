@@ -163,8 +163,8 @@ export class DamageSystem {
     const randomFactor = 0.9 + Math.random() * 0.2;
     calcEvent.finalDamage = calcEvent.finalDamage * randomFactor;
 
-    // 6. 最小伤害保证（避免0伤害）
-    calcEvent.finalDamage = Math.max(1, calcEvent.finalDamage);
+    // 6. 最小伤害保证（避免0伤害）并四舍五入
+    calcEvent.finalDamage = Math.max(1, Math.round(calcEvent.finalDamage));
 
     // 7. 进入伤害应用环节
     this._applyDamage(calcEvent);
