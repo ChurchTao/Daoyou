@@ -1,4 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventBus } from '../../core/EventBus';
+import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
+import { DamageSystem } from '../../systems/DamageSystem';
+import { CombatLogSystem } from '../../systems/CombatLogSystem';
+import { Unit } from '../../units/Unit';
 
 describe('EventBus', () => {
   let eventBus: EventBus;
@@ -100,6 +105,107 @@ describe('EventBus', () => {
 
       const history = eventBus.getEventHistory();
       expect(history.length).toBeLessThanOrEqual(1000);
+    });
+  });
+
+  describe('EventBus 清理', () => {
+    it('ActionExecutionSystem 应该正确取消订阅', () => {
+      const system = new ActionExecutionSystem();
+      const subscribers = (eventBus as any)._subscribers;
+
+      // Verify subscription exists
+      expect(subscribers.has('SkillPreCastEvent')).toBe(true);
+
+      // Destroy system
+      system.destroy();
+
+      // Either the key should be removed or the array should be empty
+      const afterSubscribers = subscribers.get('SkillPreCastEvent');
+      const hasKey = subscribers.has('SkillPreCastEvent');
+      const count = afterSubscribers ? afterSubscribers.length : 0;
+      expect(hasKey && count > 0).toBe(false);
+    });
+
+    it('DamageSystem 应该正确取消订阅', () => {
+      const system = new DamageSystem();
+      const subscribers = (eventBus as any)._subscribers;
+
+      // Verify subscription exists
+      expect(subscribers.has('SkillCastEvent')).toBe(true);
+
+      // Destroy system
+      system.destroy();
+
+      // Either the key should be removed or the array should be empty
+      const afterSubscribers = subscribers.get('SkillCastEvent');
+      const hasKey = subscribers.has('SkillCastEvent');
+      const count = afterSubscribers ? afterSubscribers.length : 0;
+      expect(hasKey && count > 0).toBe(false);
+    });
+
+    it('CombatLogSystem 应该正确取消订阅所有事件', () => {
+      const system = new CombatLogSystem();
+      const subscribers = (eventBus as any)._subscribers;
+
+      // Verify all subscriptions exist
+      expect(subscribers.has('SkillInterruptEvent')).toBe(true);
+      expect(subscribers.has('HitCheckEvent')).toBe(true);
+      expect(subscribers.has('DamageTakenEvent')).toBe(true);
+      expect(subscribers.has('UnitDeadEvent')).toBe(true);
+
+      // Destroy system
+      system.destroy();
+
+      // Verify all subscriptions are removed or empty
+      for (const eventType of ['SkillInterruptEvent', 'HitCheckEvent', 'DamageTakenEvent', 'UnitDeadEvent']) {
+        const afterSubscribers = subscribers.get(eventType);
+        const hasKey = subscribers.has(eventType);
+        const count = afterSubscribers ? afterSubscribers.length : 0;
+        expect(hasKey && count > 0).toBe(false);
+      }
+    });
+
+    it('AbilityContainer 应该正确取消订阅', () => {
+      const unit = new Unit('test-unit', 'Test Unit', {});
+      const subscribers = (eventBus as any)._subscribers;
+
+      // Verify subscription exists
+      expect(subscribers.has('ActionEvent')).toBe(true);
+
+      // Destroy container
+      unit.abilities.destroy();
+
+      // Either the key should be removed or the array should be empty
+      const afterSubscribers = subscribers.get('ActionEvent');
+      const hasKey = subscribers.has('ActionEvent');
+      const count = afterSubscribers ? afterSubscribers.length : 0;
+      expect(hasKey && count > 0).toBe(false);
+    });
+
+    it('多次销毁不应该抛出错误', () => {
+      const system = new ActionExecutionSystem();
+
+      // Should not throw
+      expect(() => {
+        system.destroy();
+        system.destroy();
+      }).not.toThrow();
+    });
+
+    it('销毁后 handlers Map 应该为空', () => {
+      const actionSystem = new ActionExecutionSystem();
+      const damageSystem = new DamageSystem();
+      const logSystem = new CombatLogSystem();
+
+      // Destroy all systems
+      actionSystem.destroy();
+      damageSystem.destroy();
+      logSystem.destroy();
+
+      // Verify handlers are cleared
+      expect((actionSystem as any)._handlers.size).toBe(0);
+      expect((damageSystem as any)._handlers.size).toBe(0);
+      expect((logSystem as any)._handlers.size).toBe(0);
     });
   });
 });

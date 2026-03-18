@@ -222,4 +222,15 @@ export class BattleEngineV5 {
   get logSystem(): CombatLogSystem {
     return this._logSystem;
   }
+
+  /**
+   * 销毁引擎，清理系统资源
+   */
+  destroy(): void {
+    this._actionSystem.destroy();
+    this._damageSystem.destroy();
+    this._logSystem.clear();
+    // Note: 不重置 EventBus 单例，因为其他系统可能仍在使用
+    // Note: AbilityContainer 的销毁由 Unit 负责
+  }
 }

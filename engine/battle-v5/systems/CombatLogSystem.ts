@@ -23,6 +23,8 @@ export class CombatLogSystem {
   private _logs: CombatLogEntry[] = [];
   private _nextId: number = 0;
   private _simpleMode: boolean = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _handlers: Map<string, (event: any) => void> = new Map();
 
   constructor() {
     this._subscribeToEvents();
@@ -30,32 +32,40 @@ export class CombatLogSystem {
 
   private _subscribeToEvents(): void {
     // 技能打断事件
+    const interruptHandler = (e: SkillInterruptEvent) => this._onSkillInterrupt(e);
     EventBus.instance.subscribe<SkillInterruptEvent>(
       'SkillInterruptEvent',
-      (e) => this._onSkillInterrupt(e),
+      interruptHandler,
       EventPriorityLevel.COMBAT_LOG,
     );
+    this._handlers.set('SkillInterruptEvent', interruptHandler);
 
     // 命中判定事件（闪避/抵抗）
+    const hitCheckHandler = (e: HitCheckEvent) => this._onHitCheck(e);
     EventBus.instance.subscribe<HitCheckEvent>(
       'HitCheckEvent',
-      (e) => this._onHitCheck(e),
+      hitCheckHandler,
       EventPriorityLevel.COMBAT_LOG,
     );
+    this._handlers.set('HitCheckEvent', hitCheckHandler);
 
     // 受击事件
+    const damageTakenHandler = (e: DamageTakenEvent) => this._onDamageTaken(e);
     EventBus.instance.subscribe<DamageTakenEvent>(
       'DamageTakenEvent',
-      (e) => this._onDamageTaken(e),
+      damageTakenHandler,
       EventPriorityLevel.COMBAT_LOG,
     );
+    this._handlers.set('DamageTakenEvent', damageTakenHandler);
 
     // 单元死亡事件
+    const unitDeadHandler = (e: UnitDeadEvent) => this._onUnitDead(e);
     EventBus.instance.subscribe<UnitDeadEvent>(
       'UnitDeadEvent',
-      (e) => this._onUnitDead(e),
+      unitDeadHandler,
       EventPriorityLevel.COMBAT_LOG,
     );
+    this._handlers.set('UnitDeadEvent', unitDeadHandler);
   }
 
   private _onSkillInterrupt(event: SkillInterruptEvent): void {
@@ -222,6 +232,16 @@ export class CombatLogSystem {
   clear(): void {
     this._logs = [];
     this._nextId = 0;
+  }
+
+  /**
+   * 销毁系统，取消订阅
+   */
+  destroy(): void {
+    for (const [eventType, handler] of this._handlers) {
+      EventBus.instance.unsubscribe(eventType, handler);
+    }
+    this._handlers.clear();
   }
 
   /**

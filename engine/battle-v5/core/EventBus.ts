@@ -33,12 +33,13 @@ export class EventBus {
    * Subscribe to an event type with handler and optional priority
    * Higher priority handlers execute first
    * Same priority handlers execute in insertion order
+   * Returns the wrapped handler for use with unsubscribe
    */
   public subscribe<T extends CombatEvent>(
     eventType: string,
     handler: EventHandler<T>,
     priority: EventPriority = 0,
-  ): void {
+  ): EventHandler<T> {
     if (!this._subscribers.has(eventType)) {
       this._subscribers.set(eventType, []);
     }
@@ -50,6 +51,9 @@ export class EventBus {
     subscribers.push({ wrappedHandler, priority });
 
     subscribers.sort((a, b) => b.priority - a.priority);
+
+    // Return the original handler for convenience
+    return handler;
   }
 
   /**
@@ -62,12 +66,16 @@ export class EventBus {
     const subscribers = this._subscribers.get(eventType);
     if (!subscribers) return;
 
-    // Filter by comparing wrapped handlers
+    // Filter by comparing wrapped handlers using reference equality
     const wrappedHandler = handler as EventHandler<CombatEvent>;
-    this._subscribers.set(
-      eventType,
-      subscribers.filter((s) => s.wrappedHandler !== wrappedHandler),
-    );
+    const filtered = subscribers.filter((s) => s.wrappedHandler !== wrappedHandler);
+
+    if (filtered.length === 0) {
+      // Remove the event type entirely if no subscribers left
+      this._subscribers.delete(eventType);
+    } else {
+      this._subscribers.set(eventType, filtered);
+    }
   }
 
   /**

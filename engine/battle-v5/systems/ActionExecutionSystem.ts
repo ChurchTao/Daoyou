@@ -7,16 +7,20 @@ import { SkillPreCastEvent, SkillCastEvent, SkillInterruptEvent, EventPriorityLe
  * 负责处理施法前摇到技能释放的流程
  */
 export class ActionExecutionSystem {
+  private _handlers: Map<string, (event: SkillPreCastEvent) => void> = new Map();
+
   constructor() {
     this._subscribeToEvents();
   }
 
   private _subscribeToEvents(): void {
+    const preCastHandler = (event: SkillPreCastEvent) => this._onSkillPreCast(event);
     EventBus.instance.subscribe<SkillPreCastEvent>(
       'SkillPreCastEvent',
-      (event) => this._onSkillPreCast(event),
+      preCastHandler,
       EventPriorityLevel.SKILL_PRE_CAST,
     );
+    this._handlers.set('SkillPreCastEvent', preCastHandler);
   }
 
   /**
@@ -57,6 +61,9 @@ export class ActionExecutionSystem {
    * 销毁系统，取消订阅
    */
   destroy(): void {
-    // TODO: 实现取消订阅逻辑
+    for (const [eventType, handler] of this._handlers) {
+      EventBus.instance.unsubscribe(eventType, handler);
+    }
+    this._handlers.clear();
   }
 }

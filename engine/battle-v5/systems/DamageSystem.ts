@@ -36,17 +36,21 @@ export interface DamageResult {
  * 基于事件驱动的完整伤害管道
  */
 export class DamageSystem {
+  private _handlers: Map<string, (event: SkillCastEvent) => void> = new Map();
+
   constructor() {
     this._subscribeToEvents();
   }
 
   private _subscribeToEvents(): void {
     // 订阅技能释放事件，开始命中判定
+    const skillCastHandler = (event: SkillCastEvent) => this._onSkillCast(event);
     EventBus.instance.subscribe<SkillCastEvent>(
       'SkillCastEvent',
-      (event) => this._onSkillCast(event),
+      skillCastHandler,
       EventPriorityLevel.HIT_CHECK,
     );
+    this._handlers.set('SkillCastEvent', skillCastHandler);
   }
 
   /**
@@ -216,7 +220,10 @@ export class DamageSystem {
    * 销毁系统，取消订阅
    */
   destroy(): void {
-    // TODO: 实现取消订阅逻辑
+    for (const [eventType, handler] of this._handlers) {
+      EventBus.instance.unsubscribe(eventType, handler);
+    }
+    this._handlers.clear();
   }
 
   // ===== 保留静态方法用于测试兼容性 =====

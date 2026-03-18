@@ -10,6 +10,8 @@ export class AbilityContainer {
   private _owner: Unit;
   private _defaultTarget: Unit | null = null;
   private _defaultAttack: Ability | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _handlers: Map<string, (event: any) => void> = new Map();
 
   constructor(owner: Unit) {
     this._owner = owner;
@@ -17,11 +19,13 @@ export class AbilityContainer {
   }
 
   private _subscribeToEvents(): void {
+    const actionEventHandler = (event: ActionEvent) => this._onActionTrigger(event);
     EventBus.instance.subscribe<ActionEvent>(
       'ActionEvent',
-      (event) => this._onActionTrigger(event),
+      actionEventHandler,
       EventPriorityLevel.ACTION_TRIGGER,
     );
+    this._handlers.set('ActionEvent', actionEventHandler);
   }
 
   /**
@@ -148,5 +152,15 @@ export class AbilityContainer {
     // TODO: 实现深拷贝：遍历 this._abilities，复制每个 Ability 实例并添加到 clone
     // 当前返回空容器，适用于 Ability 系统未完成时的占位实现
     return clone;
+  }
+
+  /**
+   * 销毁容器，取消订阅
+   */
+  destroy(): void {
+    for (const [eventType, handler] of this._handlers) {
+      EventBus.instance.unsubscribe(eventType, handler);
+    }
+    this._handlers.clear();
   }
 }

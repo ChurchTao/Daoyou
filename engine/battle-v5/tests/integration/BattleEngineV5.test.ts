@@ -102,4 +102,35 @@ describe('BattleEngineV5 - Integration', () => {
     expect(result.winner).toBe('player');
     expect(result.logs.some(log => log.includes('获胜'))).toBe(true);
   });
+
+  it('应该正确清理资源', () => {
+    const player = new Unit('player', '玩家', {
+      [AttributeType.SPIRIT]: 100,
+      [AttributeType.PHYSIQUE]: 100,
+      [AttributeType.AGILITY]: 100,
+      [AttributeType.CONSCIOUSNESS]: 100,
+      [AttributeType.COMPREHENSION]: 100,
+    });
+
+    const opponent = new Unit('opponent', '对手', {
+      [AttributeType.SPIRIT]: 10,
+      [AttributeType.PHYSIQUE]: 10,
+      [AttributeType.AGILITY]: 10,
+      [AttributeType.CONSCIOUSNESS]: 10,
+      [AttributeType.COMPREHENSION]: 10,
+    });
+
+    const engine = new BattleEngineV5(player, opponent);
+
+    // Should not throw
+    expect(() => {
+      engine.destroy();
+    }).not.toThrow();
+
+    // Multiple destroys should be safe
+    expect(() => {
+      engine.destroy();
+      engine.destroy();
+    }).not.toThrow();
+  });
 });
