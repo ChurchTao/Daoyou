@@ -1,6 +1,7 @@
-import { Buff } from '../Buff';
+import { Buff, StackRule } from '../Buff';
 import { BuffId, BuffType, AttributeType, ModifierType, AttributeModifier } from '../../core/types';
 import { Unit } from '../../units/Unit';
+import { GameplayTags } from '../../core/GameplayTags';
 
 /**
  * 力量提升 - 示例 Buff
@@ -10,7 +11,18 @@ export class StrengthBuff extends Buff {
   private modifierId: string = 'strength_buff_modifier';
 
   constructor() {
-    super('strength_buff' as BuffId, '力量提升', BuffType.BUFF, 3);
+    super(
+      'strength_buff' as BuffId,
+      '力量提升',
+      BuffType.BUFF,
+      3,
+      StackRule.REFRESH_DURATION  // 使用导入的 StackRule
+    );
+
+    // 设置标签
+    this.tags.addTags([
+      GameplayTags.BUFF.TYPE_BUFF,
+    ]);
 
     // 设置生命周期钩子
     this.onApply = (unit: Unit) => {

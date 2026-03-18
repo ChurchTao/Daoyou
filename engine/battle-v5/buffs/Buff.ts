@@ -1,5 +1,17 @@
 import { BuffId, BuffType } from '../core/types';
 import { Unit } from '../units/Unit';
+import { GameplayTagContainer } from '../core/GameplayTags';
+
+// 堆叠规则枚举
+export const StackRule = {
+  STACK_LAYER: 'stack_layer',
+  REFRESH_DURATION: 'refresh_duration',
+  OVERRIDE: 'override',
+  IGNORE: 'ignore',
+} as const;
+
+// 堆叠规则类型
+export type StackRule = typeof StackRule[keyof typeof StackRule];
 
 /**
  * BUFF 基类
@@ -12,6 +24,10 @@ export class Buff {
   private _duration: number;
   private _maxDuration: number;
 
+  // 新增：标签和堆叠规则
+  tags: GameplayTagContainer;
+  readonly stackRule: StackRule;
+
   // 生命周期钩子（可被子类重写）
   onApply: (unit: Unit) => void = () => {};
   onRemove: (unit: Unit) => void = () => {};
@@ -22,12 +38,22 @@ export class Buff {
   onBattleStart: (unit: Unit) => void = () => {};
   onBattleEnd: (unit: Unit) => void = () => {};
 
-  constructor(id: BuffId, name: string, type: BuffType, duration: number) {
+  constructor(
+    id: BuffId,
+    name: string,
+    type: BuffType,
+    duration: number,
+    stackRule: StackRule = StackRule.REFRESH_DURATION
+  ) {
     this.id = id;
     this.name = name;
     this.type = type;
     this._maxDuration = duration;
     this._duration = duration;
+    this.stackRule = stackRule;
+
+    // 初始化标签容器
+    this.tags = new GameplayTagContainer();
   }
 
   /**
@@ -79,8 +105,15 @@ export class Buff {
    * 注意：生命周期钩子不会被复制，需要重新绑定
    */
   clone(): Buff {
-    const cloned = new Buff(this.id, this.name, this.type, this._maxDuration);
+    const cloned = new Buff(
+      this.id,
+      this.name,
+      this.type,
+      this._maxDuration,
+      this.stackRule
+    );
     cloned.setDuration(this._duration);
+    cloned.tags = this.tags.clone();
     // 生命周期钩子由子类在激活时重新设置
     return cloned;
   }

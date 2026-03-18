@@ -1,8 +1,9 @@
-import { Buff } from '../../buffs/Buff';
+import { Buff, StackRule } from '../../buffs/Buff';
 import { BuffType, BuffId } from '../../core/types';
 import { Unit } from '../../units/Unit';
 import { AttributeType, ModifierType } from '../../core/types';
 import { EventBus } from '../../core/EventBus';
+import { GameplayTags } from '../../core/GameplayTags';
 
 describe('Buff', () => {
   let unit: Unit;
@@ -97,6 +98,43 @@ describe('Buff', () => {
       };
       buff.onTurnEnd(unit);
       expect(called).toBe(true);
+    });
+  });
+
+  describe('Buff 标签系统', () => {
+    it('新建 Buff 应有空的标签容器', () => {
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
+
+      expect(buff.tags).toBeDefined();
+    });
+
+    it('应支持设置自定义标签', () => {
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      expect(buff.tags.hasTag(GameplayTags.BUFF.TYPE_BUFF)).toBe(true);
+    });
+
+    it('默认堆叠规则应为 REFRESH_DURATION', () => {
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
+
+      expect(buff.stackRule).toBe(StackRule.REFRESH_DURATION);
+    });
+
+    it('应支持自定义堆叠规则', () => {
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3, StackRule.STACK_LAYER);
+
+      expect(buff.stackRule).toBe(StackRule.STACK_LAYER);
+    });
+
+    it('Buff 克隆应保留标签和堆叠规则', () => {
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3, StackRule.OVERRIDE);
+      buff.tags.addTags([GameplayTags.BUFF.DOT_POISON]);
+
+      const cloned = buff.clone();
+
+      expect(cloned.tags.hasTag(GameplayTags.BUFF.DOT_POISON)).toBe(true);
+      expect(cloned.stackRule).toBe(StackRule.OVERRIDE);
     });
   });
 });
