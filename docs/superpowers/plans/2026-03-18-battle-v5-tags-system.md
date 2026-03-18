@@ -1007,27 +1007,165 @@ git commit -m "feat(tags): integrate tags and stack rule into Buff"
 
 **Files:**
 - Modify: `engine/battle-v5/units/BuffContainer.ts`
-- Test: `engine/battle-v5/tests/units/BuffContainer.test.ts`
+- Test: `engine/battle-v5/tests/integration/TagSystemIntegration.test.ts`
 
-- [ ] **Step 1: 添加导入和免疫检查方法**
+- [ ] **Step 1: 编写集成测试（TDD - 先写测试）**
+
+创建 `tests/integration/TagSystemIntegration.test.ts`:
+
+```typescript
+import { Unit } from '../../units/Unit';
+import { Buff, StackRule } from '../../buffs/Buff';
+import { BuffType } from '../../core/types';
+import { GameplayTags } from '../../core/GameplayTags';
+import { BuffAddEvent } from '../../core/events';
+import { EventBus } from '../../core/EventBus';
+import { EventPriorityLevel } from '../../core/events';
+
+describe('标签系统集成测试', () => {
+  describe('BUFF 免疫系统', () => {
+    it('免疫标签应拦截 DEBUFF 添加', () => {
+      const unit = new Unit('test', '测试', {});
+      unit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
+
+      const debuff = new Buff('poison' as any, '中毒', BuffType.DEBUFF, 3);
+      debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
+
+      const container = unit.buffs;
+      container.addBuff(debuff);
+
+      expect(container.getAllBuffIds()).not.toContain('poison');
+    });
+
+    it('免疫标签应不影响 BUFF 添加', () => {
+      const unit = new Unit('test', '测试', {});
+      unit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
+
+      const buff = new Buff('strength' as any, '力量', BuffType.BUFF, 3);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      const container = unit.buffs;
+      container.addBuff(buff);
+
+      expect(container.getAllBuffIds()).toContain('strength');
+    });
+
+    it('父标签 Immune 应拦截所有 DEBUFF', () => {
+      const unit = new Unit('test', '测试', {});
+      unit.tags.addTags([GameplayTags.STATUS.IMMUNE]);
+
+      const debuff = new Buff('poison' as any, '中毒', BuffType.DEBUFF, 3);
+      debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
+
+      const container = unit.buffs;
+      container.addBuff(debuff);
+
+      expect(container.getAllBuffIds()).not.toContain('poison');
+    });
+  });
+
+  describe('BUFF 拦截事件', () => {
+    it('应发布 BuffAddEvent', () => {
+      const unit = new Unit('test', '测试', {});
+      const buff = new Buff('test' as any, '测试', BuffType.BUFF, 3);
+
+      let eventReceived = false;
+      const handler = () => { eventReceived = true; };
+      EventBus.instance.subscribe('BuffAddEvent', handler, EventPriorityLevel.BUFF_INTERCEPT);
+
+      unit.buffs.addBuff(buff);
+
+      expect(eventReceived).toBe(true);
+      EventBus.instance.unsubscribe('BuffAddEvent', handler);
+    });
+
+    it('取消 BuffAddEvent 应阻止 BUFF 添加', () => {
+      const unit = new Unit('test', '测试', {});
+      const buff = new Buff('test' as any, '测试', BuffType.BUFF, 3);
+
+      const handler = (e: BuffAddEvent) => { e.isCancelled = true; };
+      EventBus.instance.subscribe('BuffAddEvent', handler, EventPriorityLevel.BUFF_INTERCEPT);
+
+      unit.buffs.addBuff(buff);
+
+      expect(unit.buffs.getAllBuffIds()).not.toContain('test');
+      EventBus.instance.unsubscribe('BuffAddEvent', handler);
+    });
+  });
+
+  describe('BUFF 堆叠规则', () => {
+    it('REFRESH_DURATION 应刷新持续时间', () => {
+      const unit = new Unit('test', '测试', {});
+      const buff1 = new Buff('test' as any, '测试', BuffType.BUFF, 3, StackRule.REFRESH_DURATION);
+      buff1.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      unit.buffs.addBuff(buff1);
+      buff1.tickDuration();
+      expect(buff1.getDuration()).toBe(2);
+
+      const buff2 = new Buff('test' as any, '测试', BuffType.BUFF, 5, StackRule.REFRESH_DURATION);
+      buff2.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      unit.buffs.addBuff(buff2);
+      expect(buff1.getDuration()).toBe(5);
+    });
+
+    it('IGNORE 应忽略新 BUFF', () => {
+      const unit = new Unit('test', '测试', {});
+      const buff1 = new Buff('test' as any, '测试', BuffType.BUFF, 3, StackRule.IGNORE);
+      buff1.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      unit.buffs.addBuff(buff1);
+      expect(buff1.getDuration()).toBe(3);
+
+      const buff2 = new Buff('test' as any, '测试', BuffType.BUFF, 5, StackRule.IGNORE);
+      buff2.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      unit.buffs.addBuff(buff2);
+      expect(buff1.getDuration()).toBe(3);
+    });
+  });
+
+  describe('BuffContainer.clone', () => {
+    it('克隆应保留所有 BUFF 和标签', () => {
+      const unit = new Unit('test', '测试', {});
+      const buff = new Buff('test' as any, '测试', BuffType.BUFF, 3);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      unit.buffs.addBuff(buff);
+
+      const clonedContainer = unit.buffs.clone(unit);
+
+      expect(clonedContainer.getAllBuffIds()).toContain('test');
+    });
+  });
+});
+```
+
+- [ ] **Step 2: 运行测试（预期失败）**
+
+```bash
+npm test -- tests/integration/TagSystemIntegration.test.ts
+```
+
+预期：测试失败，因为功能尚未实现
+
+- [ ] **Step 3: 添加导入和免疫检查方法**
+
+修改 `units/BuffContainer.ts`，添加导入：
 
 ```typescript
 import { Unit } from './Unit';
 import { BuffId } from '../core/types';
-import { Buff } from '../buffs/Buff';
+import { Buff, StackRule } from '../buffs/Buff';
 import { BuffAddEvent } from '../core/events';
 import { EventBus } from '../core/EventBus';
 import { EventPriorityLevel } from '../core/events';
 import { GameplayTags } from '../core/GameplayTags';
+```
 
-export class BuffContainer {
-  private _buffs = new Map<BuffId, Buff>();
-  private _owner: Unit;
+添加免疫检查方法：
 
-  constructor(owner: Unit) {
-    this._owner = owner;
-  }
-
+```typescript
   private _checkImmune(buff: Buff): boolean {
     const isDebuff = buff.tags.hasTag(GameplayTags.BUFF.TYPE_DEBUFF);
     if (!isDebuff) return false;
@@ -1039,7 +1177,7 @@ export class BuffContainer {
   }
 ```
 
-- [ ] **Step 2: 重构 addBuff 方法**
+- [ ] **Step 4: 重构 addBuff 方法**
 
 ```typescript
   addBuff(buff: Buff): void {
@@ -1071,22 +1209,22 @@ export class BuffContainer {
   }
 ```
 
-- [ ] **Step 3: 添加堆叠规则应用方法**
+- [ ] **Step 5: 添加堆叠规则应用方法**
 
 ```typescript
   private _applyStackRule(existing: Buff, newBuff: Buff): void {
     switch (newBuff.stackRule) {
-      case Buff.StackRule.STACK_LAYER:
+      case StackRule.STACK_LAYER:
         if ('addLayer' in existing && typeof existing.addLayer === 'function') {
           (existing as any).addLayer(1);
         }
         break;
 
-      case Buff.StackRule.REFRESH_DURATION:
+      case StackRule.REFRESH_DURATION:
         existing.refreshDuration();
         break;
 
-      case Buff.StackRule.OVERRIDE:
+      case StackRule.OVERRIDE:
         this.removeBuff(existing.id);
         this.addBuff(newBuff);
         break;
