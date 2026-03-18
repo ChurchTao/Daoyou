@@ -3,6 +3,7 @@ import { AttributeSet } from './AttributeSet';
 import { AbilityContainer } from './AbilityContainer';
 import { BuffContainer } from './BuffContainer';
 import { AttributeType } from '../core/types';
+import { GameplayTagContainer, GameplayTags } from '../core/GameplayTags';
 
 export class Unit {
   readonly id: UnitId;
@@ -10,6 +11,7 @@ export class Unit {
   readonly attributes: AttributeSet;
   readonly abilities: AbilityContainer;
   readonly buffs: BuffContainer;
+  readonly tags: GameplayTagContainer;
 
   currentHp: number;
   currentMp: number;
@@ -35,6 +37,10 @@ export class Unit {
     this.attributes = options?.attributes ?? new AttributeSet(baseAttrs);
     this.abilities = options?.abilities ?? new AbilityContainer(this);
     this.buffs = options?.buffs ?? new BuffContainer(this);
+
+    // Initialize tag container
+    this.tags = new GameplayTagContainer();
+    this.tags.addTags([GameplayTags.UNIT.COMBATANT]);
 
     this.maxHp = this.attributes.getMaxHp();
     this.maxMp = this.attributes.getMaxMp();
@@ -116,6 +122,10 @@ export class Unit {
     clone.currentMp = this.currentMp;
     clone.maxHp = this.maxHp;
     clone.maxMp = this.maxMp;
+
+    // Clone tags (clear default tags from constructor, then copy all tags from original)
+    clone.tags.clear();
+    clone.tags.addTags(this.tags.getTags());
 
     return clone;
   }

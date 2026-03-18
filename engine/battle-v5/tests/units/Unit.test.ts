@@ -1,5 +1,6 @@
 import { Unit } from '../../units/Unit';
 import { AttributeType } from '../../core/types';
+import { GameplayTags } from '../../core/GameplayTags';
 
 describe('Unit', () => {
   it('应该正确初始化战斗单元', () => {
@@ -155,5 +156,32 @@ describe('Unit', () => {
 
     expect(unit.maxHp).toBeGreaterThan(originalMaxHp);
     expect(unit.maxMp).toBeGreaterThan(originalMaxMp);
+  });
+
+  describe('Unit 标签系统', () => {
+    it('新建单位应带有 COMBATANT 标签', () => {
+      const unit = new Unit('test', '测试', {});
+
+      expect(unit.tags.hasTag(GameplayTags.UNIT.COMBATANT)).toBe(true);
+    });
+
+    it('Unit 克隆应保留标签状态', () => {
+      const unit = new Unit('test', '测试', {});
+      unit.tags.addTags([GameplayTags.STATUS.IMMUNE_FIRE]);
+
+      const cloned = unit.clone();
+
+      expect(cloned.tags.hasTag(GameplayTags.STATUS.IMMUNE_FIRE)).toBe(true);
+    });
+
+    it('克隆的标签容器应独立', () => {
+      const unit = new Unit('test', '测试', {});
+      const cloned = unit.clone();
+
+      cloned.tags.addTags([GameplayTags.STATUS.IMMUNE]);
+
+      expect(unit.tags.hasTag(GameplayTags.STATUS.IMMUNE)).toBe(false);
+      expect(cloned.tags.hasTag(GameplayTags.STATUS.IMMUNE)).toBe(true);
+    });
   });
 });
