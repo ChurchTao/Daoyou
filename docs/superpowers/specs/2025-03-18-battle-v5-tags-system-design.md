@@ -1,6 +1,6 @@
 # Battle V5 Tags 系统重构设计
 
-**日期**: 2025-03-18
+**日期**: 2026-03-18
 **作者**: Claude Code
 **状态**: 设计阶段
 
@@ -523,26 +523,6 @@ if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
 } else if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
   elementBonus = 1.0;
 }
-```
-
-### 7.3 API 变更示例
-
-```typescript
-// 旧方式
-if (ability.isMagicAbility) { ... }
-if (ability.isPhysicalAbility) { ... }
-
-// 新方式
-if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) { ... }
-if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) { ... }
-```
-
-```typescript
-// 旧方式
-new Buff(id, name, type, duration)
-
-// 新方式（stackRule 有默认值，向后兼容）
-new Buff(id, name, type, duration, Buff.StackRule.REFRESH_DURATION)
 ```
 
 ---
