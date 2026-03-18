@@ -78,6 +78,15 @@ export class Buff {
   }
 
   /**
+   * 刷新持续时间到指定值（用于堆叠规则 REFRESH_DURATION）
+   * @param duration 新的持续时间和最大持续时间
+   */
+  refreshToDuration(duration: number): void {
+    this._duration = duration;
+    this._maxDuration = duration;
+  }
+
+  /**
    * 设置持续时间（供子类 clone 使用）
    */
   protected setDuration(duration: number): void {
