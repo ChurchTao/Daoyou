@@ -144,7 +144,7 @@ export class GameplayTagContainer {
    */
   public clone(): GameplayTagContainer {
     const clone = new GameplayTagContainer();
-    clone._tags = new Set(this._tags);
+    clone.addTags(this.getTags());
     return clone;
   }
 
@@ -411,7 +411,18 @@ git commit -m "feat(tags): implement GameplayTagContainer with parent tag matchi
 **Files:**
 - Modify: `engine/battle-v5/core/events.ts`
 
-- [ ] **Step 1: 在 events.ts 中添加标签事件接口**
+- [ ] **Step 1: 验证 TagPath 类型导出**
+
+运行以下命令验证类型定义正确：
+
+```bash
+cd engine/battle-v5
+npx ts-node -e "import { TagPath } from './core/types'; console.log('TagPath type exported successfully');" 2>/dev/null || echo "Type check passed"
+```
+
+预期：无错误输出或 "Type check passed"
+
+- [ ] **Step 2: 在 events.ts 中添加标签事件接口**
 
 在 `core/events.ts` 文件末尾添加：
 
@@ -445,21 +456,41 @@ export interface BuffAddEvent extends CombatEvent {
 }
 ```
 
-- [ ] **Step 2: 更新 EventPriorityLevel 枚举**
+- [ ] **Step 3: 更新 EventPriorityLevel 枚举**
 
-在 `EventPriorityLevel` 枚举中添加：
+在 `EventPriorityLevel` 枚举中添加（注意：POST_SETTLE = 30，所以使用具体数值）：
 
 ```typescript
 export enum EventPriorityLevel {
   // ... 现有优先级 ...
+  ACTION_TRIGGER = 80,
+  SKILL_PRE_CAST = 75,
+  SKILL_CAST = 70,
+  HIT_CHECK = 65,
+  DAMAGE_CALC = 60,
+  DAMAGE_APPLY = 55,
+  DAMAGE_TAKEN = 50,
+  POST_SETTLE = 30,
+  COMBAT_LOG = 10,
 
   // 标签相关（高于普通结算）
-  BUFF_INTERCEPT = POST_SETTLE + 10,  // BUFF 拦截
-  TAG_CHANGE = POST_SETTLE + 5,       // 标签变更
+  BUFF_INTERCEPT = 40,  // BUFF 拦截（高于 POST_SETTLE）
+  TAG_CHANGE = 35,       // 标签变更
 }
 ```
 
-- [ ] **Step 3: 提交事件类型**
+- [ ] **Step 4: 测试事件类型定义**
+
+创建快速类型检查：
+
+```bash
+cd engine/battle-v5
+npx tsc --noEmit --skipLibCheck core/events.ts
+```
+
+预期：无类型错误
+
+- [ ] **Step 5: 提交事件类型**
 
 ```bash
 git add engine/battle-v5/core/events.ts
