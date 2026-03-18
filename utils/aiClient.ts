@@ -51,15 +51,18 @@ function getDeepSeekProvider() {
   });
 }
 
+const getArkRandomModel = () => {
+  const models = process.env.ARK_MODEL_USE!.split(',');
+  return models[Math.floor(Math.random() * models.length)];
+};
+
 /**
  * 获取 Model 实例
  */
 export function getModel(fast: boolean = false) {
   const provider = getDeepSeekProvider();
   if (process.env.PROVIDER_CHOOSE === 'ark') {
-    const model = fast
-      ? process.env.ARK_MODEL_FAST_USE
-      : process.env.ARK_MODEL_USE;
+    const model = fast ? process.env.ARK_MODEL_FAST_USE : getArkRandomModel();
     return provider(model!);
   } else if (process.env.PROVIDER_CHOOSE === 'kimi') {
     const model = fast
