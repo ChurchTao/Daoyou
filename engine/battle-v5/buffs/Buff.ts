@@ -37,6 +37,10 @@ export class Buff {
     return this._duration;
   }
 
+  getMaxDuration(): number {
+    return this._maxDuration;
+  }
+
   tickDuration(): void {
     if (!this.isPermanent()) {
       this._duration = Math.max(0, this._duration - 1);
@@ -45,6 +49,13 @@ export class Buff {
 
   refreshDuration(): void {
     this._duration = this._maxDuration;
+  }
+
+  /**
+   * 设置持续时间（供子类 clone 使用）
+   */
+  protected setDuration(duration: number): void {
+    this._duration = duration;
   }
 
   isPermanent(): boolean {
@@ -60,5 +71,17 @@ export class Buff {
    */
   getAttributeModifiers(): [] {
     return [];
+  }
+
+  /**
+   * 克隆 Buff 实例
+   * 子类可以重写此方法以实现更复杂的克隆逻辑
+   * 注意：生命周期钩子不会被复制，需要重新绑定
+   */
+  clone(): Buff {
+    const cloned = new Buff(this.id, this.name, this.type, this._maxDuration);
+    cloned.setDuration(this._duration);
+    // 生命周期钩子由子类在激活时重新设置
+    return cloned;
   }
 }

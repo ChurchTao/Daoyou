@@ -30,4 +30,24 @@ export class StrengthBuff extends Buff {
       unit.attributes.removeModifier(this.modifierId);
     };
   }
+
+  /**
+   * 克隆 Buff，保留当前持续时间状态
+   * 生命周期钩子会在 Buff 添加到 Unit 时重新设置
+   */
+  clone(): StrengthBuff {
+    const currentDuration = this.getDuration();
+    const maxDuration = this.getMaxDuration();
+
+    const cloned = new StrengthBuff();
+
+    // 调整持续时间到当前状态
+    // 需要从最大持续时间 tick 到当前持续时间
+    const ticksNeeded = maxDuration - currentDuration;
+    for (let i = 0; i < ticksNeeded; i++) {
+      cloned.tickDuration();
+    }
+
+    return cloned;
+  }
 }

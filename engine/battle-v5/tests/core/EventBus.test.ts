@@ -1,5 +1,4 @@
 import { EventBus } from '../../core/EventBus';
-import { CombatEvent } from '../../core/types';
 
 describe('EventBus', () => {
   let eventBus: EventBus;
@@ -20,10 +19,16 @@ describe('EventBus', () => {
   describe('订阅和发布', () => {
     it('应该能够订阅和发布事件', () => {
       let received = false;
-      const handler = () => { received = true; };
+      const handler = () => {
+        received = true;
+      };
 
       eventBus.subscribe('TestEvent', handler);
-      eventBus.publish({ type: 'TestEvent', priority: 50, timestamp: Date.now() });
+      eventBus.publish({
+        type: 'TestEvent',
+        priority: 50,
+        timestamp: Date.now(),
+      });
 
       expect(received).toBe(true);
     });
@@ -38,7 +43,11 @@ describe('EventBus', () => {
       eventBus.subscribe('TestEvent', handler2, 30);
       eventBus.subscribe('TestEvent', handler3, 20);
 
-      eventBus.publish({ type: 'TestEvent', priority: 0, timestamp: Date.now() });
+      eventBus.publish({
+        type: 'TestEvent',
+        priority: 0,
+        timestamp: Date.now(),
+      });
 
       expect(order).toEqual([2, 3, 1]);
     });
@@ -47,14 +56,24 @@ describe('EventBus', () => {
   describe('取消订阅', () => {
     it('应该能够取消订阅', () => {
       let count = 0;
-      const handler = () => { count++; };
+      const handler = () => {
+        count++;
+      };
 
       eventBus.subscribe('TestEvent', handler);
-      eventBus.publish({ type: 'TestEvent', priority: 0, timestamp: Date.now() });
+      eventBus.publish({
+        type: 'TestEvent',
+        priority: 0,
+        timestamp: Date.now(),
+      });
       expect(count).toBe(1);
 
       eventBus.unsubscribe('TestEvent', handler);
-      eventBus.publish({ type: 'TestEvent', priority: 0, timestamp: Date.now() });
+      eventBus.publish({
+        type: 'TestEvent',
+        priority: 0,
+        timestamp: Date.now(),
+      });
       expect(count).toBe(1);
     });
   });
@@ -72,7 +91,11 @@ describe('EventBus', () => {
 
     it('应该限制历史大小', () => {
       for (let i = 0; i < 1500; i++) {
-        eventBus.publish({ type: `Event${i}`, priority: 0, timestamp: Date.now() });
+        eventBus.publish({
+          type: `Event${i}`,
+          priority: 0,
+          timestamp: Date.now(),
+        });
       }
 
       const history = eventBus.getEventHistory();
