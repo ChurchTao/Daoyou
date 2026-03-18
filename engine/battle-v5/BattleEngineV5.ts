@@ -155,9 +155,23 @@ export class BattleEngineV5 {
    * 处理回合结束
    */
   private processTurnEnd(): void {
+    // 处理技能冷却递减
+    this.processAbilityCooldowns(this._player);
+    this.processAbilityCooldowns(this._opponent);
+
     // 处理 Buff 持续时间
     this.processBuffs(this._player);
     this.processBuffs(this._opponent);
+  }
+
+  /**
+   * 处理技能冷却递减
+   */
+  private processAbilityCooldowns(unit: Unit): void {
+    const abilities = unit.abilities.getAllAbilities();
+    for (const ability of abilities) {
+      ability.tickCooldown();
+    }
   }
 
   /**

@@ -21,7 +21,7 @@ import { Unit } from '../../units/Unit';
 /** 必杀技 - 高伤害法术 */
 class UltimateSkill extends ActiveSkill {
   constructor() {
-    super('ultimate' as any, '必杀技', 0, 0);
+    super('ultimate', '必杀技', 0, 0);
     this.setDamageCoefficient(5.0);
     this.setBaseDamage(200);
     this.setIsMagicAbility(true);
@@ -35,7 +35,7 @@ class UltimateSkill extends ActiveSkill {
 /** 控制技能 - 消耗 MP，可被抵抗 */
 class ControlSkill extends ActiveSkill {
   constructor() {
-    super('control_skill' as any, '禁锢术', 20, 2);
+    super('control_skill', '禁锢术', 20, 2);
     this.setDamageCoefficient(0.5);
     this.setBaseDamage(10);
     this.setIsMagicAbility(true);
@@ -50,7 +50,7 @@ class ControlSkill extends ActiveSkill {
 /** 普通攻击 */
 class NormalAttackSkill extends ActiveSkill {
   constructor() {
-    super('normal_attack' as any, '攻击', 0, 0);
+    super('normal_attack', '攻击', 0, 0);
     this.setDamageCoefficient(1.0);
     this.setBaseDamage(30);
     this.setIsPhysicalAbility(true);
@@ -80,9 +80,15 @@ describe('战斗机制可视化测试', () => {
    * 验证：伤害计算、回合流程、胜负判定
    */
   it('场景1: 基础战斗 - 均衡属性对决', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景1: 基础战斗 - 均衡属性对决                    ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景1: 基础战斗 - 均衡属性对决                    ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const player = new Unit('player', '玩家', {
       [AttributeType.SPIRIT]: 100,
@@ -106,8 +112,12 @@ describe('战斗机制可视化测试', () => {
     opponent.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`玩家 - 灵${player.attributes.getValue(AttributeType.SPIRIT)} 体${player.attributes.getValue(AttributeType.PHYSIQUE)} 身${player.attributes.getValue(AttributeType.AGILITY)} 神${player.attributes.getValue(AttributeType.CONSCIOUSNESS)} 悟${player.attributes.getValue(AttributeType.COMPREHENSION)}`);
-    console.log(`对手 - 灵${opponent.attributes.getValue(AttributeType.SPIRIT)} 体${opponent.attributes.getValue(AttributeType.PHYSIQUE)} 身${opponent.attributes.getValue(AttributeType.AGILITY)} 神${opponent.attributes.getValue(AttributeType.CONSCIOUSNESS)} 悟${opponent.attributes.getValue(AttributeType.COMPREHENSION)}`);
+    console.log(
+      `玩家 - 灵${player.attributes.getValue(AttributeType.SPIRIT)} 体${player.attributes.getValue(AttributeType.PHYSIQUE)} 身${player.attributes.getValue(AttributeType.AGILITY)} 神${player.attributes.getValue(AttributeType.CONSCIOUSNESS)} 悟${player.attributes.getValue(AttributeType.COMPREHENSION)}`,
+    );
+    console.log(
+      `对手 - 灵${opponent.attributes.getValue(AttributeType.SPIRIT)} 体${opponent.attributes.getValue(AttributeType.PHYSIQUE)} 身${opponent.attributes.getValue(AttributeType.AGILITY)} 神${opponent.attributes.getValue(AttributeType.CONSCIOUSNESS)} 悟${opponent.attributes.getValue(AttributeType.COMPREHENSION)}`,
+    );
     console.log();
 
     const engine = new BattleEngineV5(player, opponent);
@@ -127,9 +137,15 @@ describe('战斗机制可视化测试', () => {
    * 验证：高身法单位触发闪避
    */
   it('场景2: 闪避机制 - 极致身法对决', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景2: 闪避机制 - 极致身法对决                    ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景2: 闪避机制 - 极致身法对决                    ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const lowAgility = new Unit('low_agi', '笨重战士', {
       [AttributeType.SPIRIT]: 100,
@@ -153,8 +169,12 @@ describe('战斗机制可视化测试', () => {
     highAgility.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`笨重战士 - 身法${lowAgility.attributes.getValue(AttributeType.AGILITY)} (闪避率${(lowAgility.attributes.getEvasionRate() * 100).toFixed(1)}%)`);
-    console.log(`飘逸刺客 - 身法${highAgility.attributes.getValue(AttributeType.AGILITY)} (闪避率${(highAgility.attributes.getEvasionRate() * 100).toFixed(1)}%)`);
+    console.log(
+      `笨重战士 - 身法${lowAgility.attributes.getValue(AttributeType.AGILITY)} (闪避率${(lowAgility.attributes.getEvasionRate() * 100).toFixed(1)}%)`,
+    );
+    console.log(
+      `飘逸刺客 - 身法${highAgility.attributes.getValue(AttributeType.AGILITY)} (闪避率${(highAgility.attributes.getEvasionRate() * 100).toFixed(1)}%)`,
+    );
     console.log();
 
     const engine = new BattleEngineV5(lowAgility, highAgility);
@@ -174,9 +194,15 @@ describe('战斗机制可视化测试', () => {
    * 验证：高神识单位抵抗控制技能
    */
   it('场景3: 控制抵抗 - 神识对抗', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景3: 控制抵抗 - 神识对抗                         ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景3: 控制抵抗 - 神识对抗                         ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const weakMind = new Unit('weak_mind', '低神识术士', {
       [AttributeType.SPIRIT]: 100,
@@ -200,8 +226,12 @@ describe('战斗机制可视化测试', () => {
     strongMind.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`低神识术士 - 神识${weakMind.attributes.getValue(AttributeType.CONSCIOUSNESS)}`);
-    console.log(`高神识尊者 - 神识${strongMind.attributes.getValue(AttributeType.CONSCIOUSNESS)}`);
+    console.log(
+      `低神识术士 - 神识${weakMind.attributes.getValue(AttributeType.CONSCIOUSNESS)}`,
+    );
+    console.log(
+      `高神识尊者 - 神识${strongMind.attributes.getValue(AttributeType.CONSCIOUSNESS)}`,
+    );
     console.log();
 
     const engine = new BattleEngineV5(weakMind, strongMind);
@@ -221,9 +251,15 @@ describe('战斗机制可视化测试', () => {
    * 验证：高伤害技能秒杀低血量单位
    */
   it('场景4: 击杀场景 - 必杀技秒杀', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景4: 击杀场景 - 必杀技秒杀                       ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景4: 击杀场景 - 必杀技秒杀                       ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const powerhouse = new Unit('powerhouse', '法术大师', {
       [AttributeType.SPIRIT]: 200,
@@ -247,8 +283,12 @@ describe('战斗机制可视化测试', () => {
     glassCannon.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`法术大师 - 灵${powerhouse.attributes.getValue(AttributeType.SPIRIT)} (HP ${powerhouse.maxHp})`);
-    console.log(`脆皮目标 - 灵${glassCannon.attributes.getValue(AttributeType.SPIRIT)} (HP ${glassCannon.maxHp})`);
+    console.log(
+      `法术大师 - 灵${powerhouse.attributes.getValue(AttributeType.SPIRIT)} (HP ${powerhouse.maxHp})`,
+    );
+    console.log(
+      `脆皮目标 - 灵${glassCannon.attributes.getValue(AttributeType.SPIRIT)} (HP ${glassCannon.maxHp})`,
+    );
     console.log();
 
     const engine = new BattleEngineV5(powerhouse, glassCannon);
@@ -267,9 +307,15 @@ describe('战斗机制可视化测试', () => {
    * 场景5: 流派对抗 - 法修 vs 体修
    */
   it('场景5: 流派对抗 - 法修 vs 体修', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景5: 流派对抗 - 法修 vs 体修                     ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景5: 流派对抗 - 法修 vs 体修                     ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const mage = new Unit('mage', '法修', {
       [AttributeType.SPIRIT]: 200, // 高灵力
@@ -293,8 +339,12 @@ describe('战斗机制可视化测试', () => {
     warrior.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`法修 - 灵${mage.attributes.getValue(AttributeType.SPIRIT)} 体${mage.attributes.getValue(AttributeType.PHYSIQUE)} (HP ${mage.maxHp})`);
-    console.log(`体修 - 灵${warrior.attributes.getValue(AttributeType.SPIRIT)} 体${warrior.attributes.getValue(AttributeType.PHYSIQUE)} (HP ${warrior.maxHp})`);
+    console.log(
+      `法修 - 灵${mage.attributes.getValue(AttributeType.SPIRIT)} 体${mage.attributes.getValue(AttributeType.PHYSIQUE)} (HP ${mage.maxHp})`,
+    );
+    console.log(
+      `体修 - 灵${warrior.attributes.getValue(AttributeType.SPIRIT)} 体${warrior.attributes.getValue(AttributeType.PHYSIQUE)} (HP ${warrior.maxHp})`,
+    );
     console.log('【设计预期】法修的高灵力法术应该克制体修的低体魄减伤');
     console.log();
 
@@ -313,9 +363,15 @@ describe('战斗机制可视化测试', () => {
    * 场景6: 流派对抗 - 敏修 vs 控修
    */
   it('场景6: 流派对抗 - 敏修 vs 控修', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景6: 流派对抗 - 敏修 vs 控修                     ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景6: 流派对抗 - 敏修 vs 控修                     ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const assassin = new Unit('assassin', '敏修', {
       [AttributeType.SPIRIT]: 80,
@@ -339,8 +395,12 @@ describe('战斗机制可视化测试', () => {
     controller.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`敏修 - 身法${assassin.attributes.getValue(AttributeType.AGILITY)} (闪避${(assassin.attributes.getEvasionRate() * 100).toFixed(1)}% 暴击${(assassin.attributes.getCritRate() * 100).toFixed(1)}%)`);
-    console.log(`控修 - 神识${controller.attributes.getValue(AttributeType.CONSCIOUSNESS)}`);
+    console.log(
+      `敏修 - 身法${assassin.attributes.getValue(AttributeType.AGILITY)} (闪避${(assassin.attributes.getEvasionRate() * 100).toFixed(1)}% 暴击${(assassin.attributes.getCritRate() * 100).toFixed(1)}%)`,
+    );
+    console.log(
+      `控修 - 神识${controller.attributes.getValue(AttributeType.CONSCIOUSNESS)}`,
+    );
     console.log('【设计预期】敏修身法高能闪避，但控修神识高可能抵抗控制');
     console.log();
 
@@ -359,9 +419,15 @@ describe('战斗机制可视化测试', () => {
    * 场景7: 综合属性 - 完美五修
    */
   it('场景7: 综合属性 - 完美五修对决', () => {
-    console.log('\n╔══════════════════════════════════════════════════════════════╗');
-    console.log('║           场景7: 综合属性 - 完美五修对决                     ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝\n');
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景7: 综合属性 - 完美五修对决                     ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
 
     const perfect1 = new Unit('perfect1', '完美修士1', {
       [AttributeType.SPIRIT]: 150,
@@ -385,8 +451,12 @@ describe('战斗机制可视化测试', () => {
     perfect2.currentMp = 100;
 
     console.log('【角色属性】');
-    console.log(`完美修士1 - 全属性150 (HP ${perfect1.maxHp}, MP ${perfect1.maxMp})`);
-    console.log(`完美修士2 - 全属性150 (HP ${perfect2.maxHp}, MP ${perfect2.maxMp})`);
+    console.log(
+      `完美修士1 - 全属性150 (HP ${perfect1.maxHp}, MP ${perfect1.maxMp})`,
+    );
+    console.log(
+      `完美修士2 - 全属性150 (HP ${perfect2.maxHp}, MP ${perfect2.maxMp})`,
+    );
     console.log();
 
     const engine = new BattleEngineV5(perfect1, perfect2);

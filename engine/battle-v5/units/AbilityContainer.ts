@@ -72,6 +72,9 @@ export class AbilityContainer {
       this._owner.consumeMp(ability.manaCost);
     }
 
+    // 启动冷却（必须在技能确认释放时调用）
+    ability.startCooldown();
+
     // 发布施法前摇事件
     EventBus.instance.publish<SkillPreCastEvent>({
       type: 'SkillPreCastEvent',
