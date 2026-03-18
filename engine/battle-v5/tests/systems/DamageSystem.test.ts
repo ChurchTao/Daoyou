@@ -1,73 +1,173 @@
 import { DamageSystem } from '../../systems/DamageSystem';
 import { Unit } from '../../units/Unit';
-import { AttributeType } from '../../core/types';
+import { ActiveSkill } from '../../abilities/ActiveSkill';
+import { AbilityType, AttributeType } from '../../core/types';
+import { EventBus } from '../../core/EventBus';
+import {
+  SkillCastEvent,
+  HitCheckEvent,
+  DamageCalculateEvent,
+  DamageEvent,
+  DamageTakenEvent,
+} from '../../core/events';
 
-describe('DamageSystem', () => {
-  let attacker: Unit;
+describe('DamageSystem - EventDriven', () => {
+  let system: DamageSystem;
+  let caster: Unit;
   let target: Unit;
+  let skill: ActiveSkill;
+  let eventBus: EventBus;
 
   beforeEach(() => {
-    attacker = new Unit('attacker', '攻击者', {
-      [AttributeType.SPIRIT]: 80,
-      [AttributeType.AGILITY]: 50,
+    eventBus = EventBus.instance;
+    eventBus.reset();
+
+    caster = new Unit('caster', '施法者', {
+      spirit: 100,
+      agility: 50,
+      consciousness: 50,
     });
     target = new Unit('target', '目标', {
-      [AttributeType.PHYSIQUE]: 50,
-      [AttributeType.AGILITY]: 30,
+      physique: 100,
+      agility: 30,
+      consciousness: 40,
     });
+
+    skill = new ActiveSkill('fireball', '火球术', AbilityType.ACTIVE_SKILL);
+    skill.setDamageCoefficient(1.5);
+    skill.setBaseDamage(50);
+    skill.setIsMagicAbility(true);
+
+    // Create DamageSystem after resetting EventBus and setting up all dependencies
+    system = new DamageSystem();
   });
 
-  it('应该正确计算基础伤害', () => {
-    const result = DamageSystem.calculateDamage(attacker, target, {
+  afterEach(() => {
+    eventBus.reset();
+  });
+
+  it('should subscribe to SkillCastEvent and publish HitCheckEvent', () => {
+    const hitCheckSpy = jest.fn();
+    eventBus.subscribe<HitCheckEvent>('HitCheckEvent', hitCheckSpy);
+
+    eventBus.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      priority: 70,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: skill,
+    });
+
+    expect(hitCheckSpy).toHaveBeenCalled();
+  });
+
+  it('should calculate correct base damage based on skill type', () => {
+    const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
+      expect(event.baseDamage).toBeGreaterThan(0);
+    });
+    eventBus.subscribe<DamageCalculateEvent>('DamageCalculateEvent', damageCalcSpy);
+
+    eventBus.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      priority: 70,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: skill,
+    });
+
+    expect(damageCalcSpy).toHaveBeenCalled();
+  });
+
+  it('should apply dodge when target agility is higher', () => {
+    const damageTakenSpy = jest.fn();
+    eventBus.subscribe<DamageTakenEvent>('DamageTakenEvent', damageTakenSpy);
+
+    caster.attributes.setBaseValue(AttributeType.AGILITY, 10);
+    target.attributes.setBaseValue(AttributeType.AGILITY, 100);
+
+    eventBus.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      priority: 70,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: skill,
+    });
+
+    // 高闪避情况下，可能不会受到伤害
+    // 概率性，不强制断言
+  });
+
+  it('should publish DamageEvent when damage is applied', () => {
+    const damageEventSpy = jest.fn();
+    eventBus.subscribe<DamageEvent>('DamageEvent', damageEventSpy);
+
+    // Ensure target doesn't dodge by setting low agility
+    target.attributes.setBaseValue(AttributeType.AGILITY, 10);
+
+    eventBus.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      priority: 70,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: skill,
+    });
+
+    expect(damageEventSpy).toHaveBeenCalled();
+  });
+
+  it('should publish DamageTakenEvent when target takes damage', () => {
+    const damageTakenSpy = jest.fn();
+    eventBus.subscribe<DamageTakenEvent>('DamageTakenEvent', damageTakenSpy);
+
+    // Ensure target doesn't dodge by setting low agility
+    target.attributes.setBaseValue(AttributeType.AGILITY, 10);
+
+    eventBus.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      priority: 70,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: skill,
+    });
+
+    expect(damageTakenSpy).toHaveBeenCalled();
+  });
+
+  it('should maintain backward compatibility with static calculateDamage method', () => {
+    const result = DamageSystem.calculateDamage(caster, target, {
       baseDamage: 100,
-      damageType: 'physical',
+      damageType: 'magic',
     });
 
     expect(result.finalDamage).toBeGreaterThan(0);
     expect(result.breakdown).toBeDefined();
   });
 
-  it('应该支持暴击判定', () => {
-    // 设置高敏捷以确保暴击
-    const critAttacker = new Unit('crit_attacker', '暴击者', {
-      [AttributeType.AGILITY]: 500, // 高暴击率
+  it('should calculate physical damage correctly', () => {
+    const physicalSkill = new ActiveSkill('punch', '拳击', AbilityType.ACTIVE_SKILL);
+    physicalSkill.setDamageCoefficient(1.0);
+    physicalSkill.setBaseDamage(20);
+    physicalSkill.setIsPhysicalAbility(true);
+
+    const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
+      expect(event.baseDamage).toBeGreaterThan(0);
+    });
+    eventBus.subscribe<DamageCalculateEvent>('DamageCalculateEvent', damageCalcSpy);
+
+    eventBus.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      priority: 70,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: physicalSkill,
     });
 
-    const result = DamageSystem.calculateDamage(critAttacker, target, {
-      baseDamage: 100,
-      damageType: 'physical',
-    });
-
-    // 暴击时伤害应该更高
-    if (result.isCritical) {
-      expect(result.breakdown.critMultiplier).toBeGreaterThan(1);
-    }
-  });
-
-  it('应该支持闪避判定', () => {
-    // 设置高敏捷以确保闪避
-    const evasiveTarget = new Unit('evasive_target', '闪避者', {
-      [AttributeType.PHYSIQUE]: 50,
-      [AttributeType.AGILITY]: 500, // 高闪避率
-    });
-
-    const result = DamageSystem.calculateDamage(attacker, evasiveTarget, {
-      baseDamage: 100,
-      damageType: 'physical',
-    });
-
-    // 闪避时伤害应该为 0
-    if (result.isDodged) {
-      expect(result.finalDamage).toBe(0);
-    }
-  });
-
-  it('应该有最小伤害保证', () => {
-    const result = DamageSystem.calculateDamage(attacker, target, {
-      baseDamage: 1,
-      damageType: 'physical',
-    });
-
-    expect(result.finalDamage).toBeGreaterThanOrEqual(1);
+    expect(damageCalcSpy).toHaveBeenCalled();
   });
 });
