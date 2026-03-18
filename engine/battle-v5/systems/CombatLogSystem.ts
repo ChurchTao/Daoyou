@@ -1,4 +1,12 @@
 import { CombatPhase, CombatLog } from '../core/types';
+import { EventBus } from '../core/EventBus';
+import {
+  SkillInterruptEvent,
+  HitCheckEvent,
+  DamageTakenEvent,
+  UnitDeadEvent,
+  EventPriorityLevel,
+} from '../core/events';
 
 /**
  * 战报条目
@@ -15,6 +23,100 @@ export class CombatLogSystem {
   private _logs: CombatLogEntry[] = [];
   private _nextId: number = 0;
   private _simpleMode: boolean = false;
+
+  constructor() {
+    this._subscribeToEvents();
+  }
+
+  private _subscribeToEvents(): void {
+    // 技能打断事件
+    EventBus.instance.subscribe<SkillInterruptEvent>(
+      'SkillInterruptEvent',
+      (e) => this._onSkillInterrupt(e),
+      EventPriorityLevel.COMBAT_LOG,
+    );
+
+    // 命中判定事件（闪避/抵抗）
+    EventBus.instance.subscribe<HitCheckEvent>(
+      'HitCheckEvent',
+      (e) => this._onHitCheck(e),
+      EventPriorityLevel.COMBAT_LOG,
+    );
+
+    // 受击事件
+    EventBus.instance.subscribe<DamageTakenEvent>(
+      'DamageTakenEvent',
+      (e) => this._onDamageTaken(e),
+      EventPriorityLevel.COMBAT_LOG,
+    );
+
+    // 单元死亡事件
+    EventBus.instance.subscribe<UnitDeadEvent>(
+      'UnitDeadEvent',
+      (e) => this._onUnitDead(e),
+      EventPriorityLevel.COMBAT_LOG,
+    );
+  }
+
+  private _onSkillInterrupt(event: SkillInterruptEvent): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0, // TODO: 从上下文获取当前回合
+      phase: CombatPhase.ACTION,
+      message: `【打断】${event.caster.name}的【${event.ability.name}】被打断！`,
+      highlight: true,
+    });
+  }
+
+  private _onHitCheck(event: HitCheckEvent): void {
+    if (event.isDodged) {
+      this._addLog({
+        id: `log_${this._nextId++}`,
+        turn: 0,
+        phase: CombatPhase.ACTION,
+        message: `【闪避】${event.target.name}身法灵动，躲开了${event.caster.name}的【${event.ability.name}】！`,
+        highlight: false,
+      });
+    } else if (event.isResisted) {
+      this._addLog({
+        id: `log_${this._nextId++}`,
+        turn: 0,
+        phase: CombatPhase.ACTION,
+        message: `【抵抗】${event.target.name}神识稳固，抵抗了${event.caster.name}的【${event.ability.name}】！`,
+        highlight: false,
+      });
+    }
+  }
+
+  private _onDamageTaken(event: DamageTakenEvent): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【伤害】${event.caster.name}对${event.target.name}造成${event.damageTaken}点伤害，剩余气血${event.remainHealth}！`,
+      highlight: false,
+    });
+
+    if (event.isLethal) {
+      this._addLog({
+        id: `log_${this._nextId++}`,
+        turn: 0,
+        phase: CombatPhase.ACTION,
+        message: `【击杀】${event.target.name}气血耗尽，被击败！`,
+        highlight: true,
+      });
+    }
+  }
+
+  private _onUnitDead(event: UnitDeadEvent): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【阵亡】${event.unit.name}已被${event.killer.name}击败！`,
+      highlight: true,
+    });
+  }
 
   /**
    * 记录普通日志
