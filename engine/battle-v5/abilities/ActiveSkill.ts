@@ -15,6 +15,8 @@ export abstract class ActiveSkill extends Ability {
     this._mpCost = mpCost;
     this._skillCooldown = cooldown;
     this.setCooldown(cooldown);
+    // Synchronize with base class manaCost property
+    this.setManaCost(mpCost);
   }
 
   canExecute(unit: Unit): boolean {
@@ -47,7 +49,10 @@ export abstract class ActiveSkill extends Ability {
    * ActiveSkill overrides canTrigger to not require owner
    * since it receives the unit as a parameter
    */
-  canTrigger(_context: { caster: Unit; target: Unit }): boolean {
+  canTrigger(context: { caster: Unit; target: Unit }): boolean {
+    // Check if caster has enough MP (using the base class manaCost property)
+    if (context.caster.currentMp < this.manaCost) return false;
+
     // Base implementation allows trigger, subclasses can override
     return true;
   }
