@@ -1,9 +1,9 @@
 // engine/battle-v5/tests/integration/FullBattleFlowTest.test.ts
-import { BattleEngineV5 } from '../../BattleEngineV5';
-import { Unit } from '../../units/Unit';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
-import { AbilityType, AttributeType } from '../../core/types';
+import { BattleEngineV5 } from '../../BattleEngineV5';
 import { EventBus } from '../../core/EventBus';
+import { AttributeType } from '../../core/types';
+import { Unit } from '../../units/Unit';
 
 /**
  * High damage skill for testing lethal damage scenarios
@@ -113,6 +113,7 @@ describe('Full Battle Flow - EventDriven', () => {
 
     // 验证击杀相关日志
     const allLogs = result.logs.join('\n');
+    console.log('=== 完整战报 ===', allLogs);
     expect(allLogs).toMatch(/击杀|阵亡|击败|耗尽/);
   });
 });

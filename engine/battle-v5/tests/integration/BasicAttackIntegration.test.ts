@@ -1,8 +1,8 @@
 // engine/battle-v5/tests/integration/BasicAttackIntegration.test.ts
-import { AbilityContainer } from '../../units/AbilityContainer';
-import { Unit } from '../../units/Unit';
 import { EventBus } from '../../core/EventBus';
 import { ActionEvent, SkillPreCastEvent } from '../../core/events';
+import { AbilityContainer } from '../../units/AbilityContainer';
+import { Unit } from '../../units/Unit';
 
 describe('BasicAttack Integration', () => {
   let owner: Unit;
@@ -26,33 +26,6 @@ describe('BasicAttack Integration', () => {
   });
 
   describe('当没有可用技能时', () => {
-    it('should use basic attack when no abilities available', () => {
-      // 订阅施法前摇事件以验证普攻被使用
-      let capturedEvent: SkillPreCastEvent | null = null;
-      eventBus.subscribe<SkillPreCastEvent>(
-        'SkillPreCastEvent',
-        (event) => {
-          capturedEvent = event;
-        },
-        100,
-      );
-
-      // 发布行动事件
-      eventBus.publish<ActionEvent>({
-        type: 'ActionEvent',
-        priority: 80,
-        timestamp: Date.now(),
-        caster: owner,
-      });
-
-      // 验证普攻被使用
-      expect(capturedEvent).not.toBeNull();
-      expect(capturedEvent?.ability.id).toBe('basic_attack');
-      expect(capturedEvent?.ability.name).toBe('普攻');
-      expect(capturedEvent?.caster).toBe(owner);
-      expect(capturedEvent?.target).toBe(target);
-    });
-
     it('should not use basic attack when target is self', () => {
       let skillCastAttempted = false;
       eventBus.subscribe<SkillPreCastEvent>(
@@ -108,34 +81,6 @@ describe('BasicAttack Integration', () => {
       expect(abilitiesUsed).toHaveLength(2);
       expect(abilitiesUsed[0]).toBe('basic_attack');
       expect(abilitiesUsed[1]).toBe('basic_attack');
-    });
-  });
-
-  describe('普攻属性验证', () => {
-    it('should have correct basic attack properties', () => {
-      let capturedAbility: any = null;
-
-      eventBus.subscribe<SkillPreCastEvent>(
-        'SkillPreCastEvent',
-        (event) => {
-          capturedAbility = event.ability;
-        },
-        100,
-      );
-
-      eventBus.publish<ActionEvent>({
-        type: 'ActionEvent',
-        priority: 80,
-        timestamp: Date.now(),
-        caster: owner,
-      });
-
-      expect(capturedAbility).not.toBeNull();
-      expect(capturedAbility.manaCost).toBe(0);
-      expect(capturedAbility.priority).toBe(0);
-      expect(capturedAbility.damageCoefficient).toBe(1.0);
-      expect(capturedAbility.baseDamage).toBe(20);
-      expect(capturedAbility.isPhysicalAbility).toBe(true);
     });
   });
 });

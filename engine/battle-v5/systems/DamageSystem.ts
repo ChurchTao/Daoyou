@@ -1,15 +1,15 @@
-import { Unit } from '../units/Unit';
-import { AttributeType } from '../core/types';
 import { EventBus } from '../core/EventBus';
 import {
-  SkillCastEvent,
-  HitCheckEvent,
   DamageCalculateEvent,
   DamageEvent,
   DamageTakenEvent,
-  UnitDeadEvent,
   EventPriorityLevel,
+  HitCheckEvent,
+  SkillCastEvent,
+  UnitDeadEvent,
 } from '../core/events';
+import { AttributeType } from '../core/types';
+import { Unit } from '../units/Unit';
 
 export interface DamageCalculationParams {
   baseDamage: number;
@@ -44,7 +44,8 @@ export class DamageSystem {
 
   private _subscribeToEvents(): void {
     // 订阅技能释放事件，开始命中判定
-    const skillCastHandler = (event: SkillCastEvent) => this._onSkillCast(event);
+    const skillCastHandler = (event: SkillCastEvent) =>
+      this._onSkillCast(event);
     EventBus.instance.subscribe<SkillCastEvent>(
       'SkillCastEvent',
       skillCastHandler,
@@ -86,11 +87,16 @@ export class DamageSystem {
 
     // 2. 神识抵抗判定（仅控制/减益类技能）
     if (ability.isDebuffAbility && hitCheckEvent.isHit) {
-      const casterConsciousness = caster.attributes.getValue(AttributeType.CONSCIOUSNESS);
-      const targetConsciousness = target.attributes.getValue(AttributeType.CONSCIOUSNESS);
+      const casterConsciousness = caster.attributes.getValue(
+        AttributeType.CONSCIOUSNESS,
+      );
+      const targetConsciousness = target.attributes.getValue(
+        AttributeType.CONSCIOUSNESS,
+      );
       const resistChance = Math.max(
         0,
-        ((targetConsciousness - casterConsciousness) / casterConsciousness) * 100,
+        ((targetConsciousness - casterConsciousness) / casterConsciousness) *
+          100,
       );
 
       if (Math.random() * 100 < resistChance) {
@@ -112,7 +118,10 @@ export class DamageSystem {
   /**
    * 计算伤害
    */
-  private _calculateDamage(castEvent: SkillCastEvent, hitEvent: HitCheckEvent): void {
+  private _calculateDamage(
+    castEvent: SkillCastEvent,
+    hitEvent: HitCheckEvent,
+  ): void {
     const { caster, target, ability } = castEvent;
 
     // 1. 计算基础伤害
@@ -144,8 +153,14 @@ export class DamageSystem {
 
     // 3. 修正最终伤害：计算目标减伤，最低为1点伤害
     const targetPhysique = target.attributes.getValue(AttributeType.PHYSIQUE);
-    const damageReduction = Math.min(0.7, targetPhysique / (targetPhysique + 1000));
-    calcEvent.finalDamage = Math.max(1, calcEvent.finalDamage * (1 - damageReduction));
+    const damageReduction = Math.min(
+      0.7,
+      targetPhysique / (targetPhysique + 1000),
+    );
+    calcEvent.finalDamage = Math.max(
+      1,
+      calcEvent.finalDamage * (1 - damageReduction),
+    );
 
     // 4. 进入伤害应用环节
     this._applyDamage(calcEvent);
@@ -266,7 +281,7 @@ export class DamageSystem {
     // 3. 伤害减免（基础版，基于体魄）
     const reduction = DamageSystem['calculateDamageReduction'](target);
     breakdown.damageReduction = reduction;
-    damage *= (1 - reduction);
+    damage *= 1 - reduction;
 
     // 4. 随机浮动 (0.9 ~ 1.1)
     const randomFactor = 0.9 + Math.random() * 0.2;

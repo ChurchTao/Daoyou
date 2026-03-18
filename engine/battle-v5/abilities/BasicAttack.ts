@@ -1,6 +1,6 @@
 // engine/battle-v5/abilities/BasicAttack.ts
+import { AbilityId } from '../core/types';
 import { ActiveSkill } from './ActiveSkill';
-import { AbilityType, AbilityId } from '../core/types';
 
 /**
  * 普攻技能
@@ -8,11 +8,7 @@ import { AbilityType, AbilityId } from '../core/types';
  */
 export class BasicAttack extends ActiveSkill {
   constructor() {
-    super(
-      'basic_attack' as AbilityId,
-      '普攻',
-      AbilityType.ACTIVE_SKILL,
-    );
+    super('basic_attack' as AbilityId, '普攻');
     this.setDamageCoefficient(1.0);
     this.setBaseDamage(20);
     this.setIsPhysicalAbility(true);

@@ -1,15 +1,16 @@
-import { DamageSystem } from '../../systems/DamageSystem';
-import { Unit } from '../../units/Unit';
 import { ActiveSkill } from '../../abilities/ActiveSkill';
-import { AbilityType, AttributeType } from '../../core/types';
+import { BasicAttack } from '../../abilities/BasicAttack';
 import { EventBus } from '../../core/EventBus';
 import {
-  SkillCastEvent,
-  HitCheckEvent,
   DamageCalculateEvent,
   DamageEvent,
   DamageTakenEvent,
+  HitCheckEvent,
+  SkillCastEvent,
 } from '../../core/events';
+import { AttributeType } from '../../core/types';
+import { DamageSystem } from '../../systems/DamageSystem';
+import { Unit } from '../../units/Unit';
 
 describe('DamageSystem - EventDriven', () => {
   let system: DamageSystem;
@@ -33,7 +34,7 @@ describe('DamageSystem - EventDriven', () => {
       consciousness: 40,
     });
 
-    skill = new ActiveSkill('fireball', '火球术', AbilityType.ACTIVE_SKILL);
+    skill = new BasicAttack();
     skill.setDamageCoefficient(1.5);
     skill.setBaseDamage(50);
     skill.setIsMagicAbility(true);
@@ -66,7 +67,10 @@ describe('DamageSystem - EventDriven', () => {
     const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
       expect(event.baseDamage).toBeGreaterThan(0);
     });
-    eventBus.subscribe<DamageCalculateEvent>('DamageCalculateEvent', damageCalcSpy);
+    eventBus.subscribe<DamageCalculateEvent>(
+      'DamageCalculateEvent',
+      damageCalcSpy,
+    );
 
     eventBus.publish<SkillCastEvent>({
       type: 'SkillCastEvent',
@@ -149,7 +153,7 @@ describe('DamageSystem - EventDriven', () => {
   });
 
   it('should calculate physical damage correctly', () => {
-    const physicalSkill = new ActiveSkill('punch', '拳击', AbilityType.ACTIVE_SKILL);
+    const physicalSkill = new BasicAttack();
     physicalSkill.setDamageCoefficient(1.0);
     physicalSkill.setBaseDamage(20);
     physicalSkill.setIsPhysicalAbility(true);
@@ -157,7 +161,10 @@ describe('DamageSystem - EventDriven', () => {
     const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
       expect(event.baseDamage).toBeGreaterThan(0);
     });
-    eventBus.subscribe<DamageCalculateEvent>('DamageCalculateEvent', damageCalcSpy);
+    eventBus.subscribe<DamageCalculateEvent>(
+      'DamageCalculateEvent',
+      damageCalcSpy,
+    );
 
     eventBus.publish<SkillCastEvent>({
       type: 'SkillCastEvent',

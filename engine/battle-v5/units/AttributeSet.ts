@@ -1,4 +1,4 @@
-import { AttributeType, AttributeModifier, ModifierType } from '../core/types';
+import { AttributeModifier, AttributeType, ModifierType } from '../core/types';
 
 /**
  * Represents a single attribute with base value and modifiers.
@@ -32,7 +32,7 @@ class Attribute {
     const addBonus = this._modifiers
       .filter((m) => m.type === ModifierType.ADD)
       .reduce((sum, m) => sum + m.value, 0);
-    final *= (1 + addBonus);
+    final *= 1 + addBonus;
 
     // MULTIPLY: 乘法叠加
     const multBonus = this._modifiers
@@ -47,7 +47,9 @@ class Attribute {
     }
 
     // OVERRIDE: 覆盖
-    const override = this._modifiers.find((m) => m.type === ModifierType.OVERRIDE);
+    const override = this._modifiers.find(
+      (m) => m.type === ModifierType.OVERRIDE,
+    );
     if (override) {
       final = override.value;
     }
@@ -271,7 +273,7 @@ export class AttributeSet {
       cloned.setBaseValue(type, attr.getBaseValue());
       // Copy modifiers by re-adding them to the cloned attribute
       const modifiers = attr.getModifiers();
-      modifiers.forEach(mod => {
+      modifiers.forEach((mod) => {
         cloned.addModifier({ ...mod });
       });
     });
