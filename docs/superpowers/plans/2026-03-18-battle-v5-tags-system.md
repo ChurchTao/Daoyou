@@ -548,43 +548,29 @@ export class Unit {
 
 - [ ] **Step 2: 更新 Unit.clone() 方法**
 
-修改 `clone()` 方法以克隆标签：
+在 `Unit.ts` 的 `clone()` 方法中，找到 `return clone;` 之前，添加标签克隆逻辑：
 
 ```typescript
-  clone(): Unit {
-    // Create a minimal unit first
-    const tempUnit = new Unit(
-      this.id + '_mirror',
-      this.name + '的镜像',
-      this.attributes.getAllValues(),
-    );
-
-    const clonedAttributes = this.attributes.clone();
-    const clonedAbilities = this.abilities.clone(tempUnit);
-    const clonedBuffs = this.buffs.clone(tempUnit);
-
-    const clone = new Unit(
-      this.id + '_mirror',
-      this.name + '的镜像',
-      this.attributes.getAllValues(),
-      {
-        attributes: clonedAttributes,
-        abilities: clonedAbilities,
-        buffs: clonedBuffs,
-      },
-    );
-
-    clone.currentHp = this.currentHp;
-    clone.currentMp = this.currentMp;
-    clone.maxHp = this.maxHp;
-    clone.maxMp = this.maxMp;
-
-    // 克隆标签
-    clone.tags = this.tags.clone();
+    // 克隆标签（清除构造函数初始化的默认标签，复制原单位的所有标签）
+    clone.tags.clear();
+    clone.tags.addTags(this.tags.getTags());
 
     return clone;
   }
 ```
+
+- [ ] **Step 2.5: 验证测试文件存在**
+
+```bash
+# 检查测试文件是否存在
+ls tests/units/Unit.test.ts || echo "Warning: Unit.test.ts not found"
+```
+
+- [ ] **Step 3: 添加 Unit 标签集成测试**
+
+在 `tests/units/Unit.test.ts` 中添加（如果文件不存在则创建）：
+
+```typescript
 
 - [ ] **Step 3: 添加 Unit 标签集成测试**
 
@@ -624,6 +610,15 @@ describe('Unit 标签系统', () => {
 ```bash
 npm test -- tests/units/Unit.test.ts
 ```
+
+- [ ] **Step 4.5: 运行现有 Unit 测试确保无破坏性变更**
+
+```bash
+# 运行所有 units 相关测试
+npm test -- tests/units/ --testNamePattern="Unit"
+```
+
+预期：所有现有测试通过
 
 - [ ] **Step 5: 提交**
 
@@ -770,6 +765,15 @@ npm test -- tests/abilities/Ability.test.ts
 npm test -- tests/abilities/examples/FireballSkill.test.ts
 ```
 
+- [ ] **Step 5.5: 运行现有 Ability 测试确保无破坏性变更**
+
+```bash
+# 运行所有 abilities 相关测试
+npm test -- tests/abilities/ --testNamePattern="Ability"
+```
+
+预期：所有现有测试通过
+
 - [ ] **Step 6: 提交**
 
 ```bash
@@ -788,13 +792,30 @@ git commit -m "feat(tags): integrate tags into Ability, remove legacy properties
 - Modify: `engine/battle-v5/buffs/examples/StrengthBuff.ts`
 - Test: `engine/battle-v5/tests/buffs/Buff.test.ts`
 
-- [ ] **Step 1: 在 Buff.ts 中添加 tags 和 stackRule**
+- [ ] **Step 1: 在 Buff.ts 文件顶部添加 StackRule 类型定义**
+
+在 `import` 语句之后，`export class Buff` 之前添加：
 
 ```typescript
 import { BuffId, BuffType } from '../core/types';
 import { Unit } from '../units/Unit';
 import { GameplayTagContainer } from '../core/GameplayTags';
 
+// 堆叠规则枚举
+export const StackRule = {
+  STACK_LAYER: 'stack_layer',
+  REFRESH_DURATION: 'refresh_duration',
+  OVERRIDE: 'override',
+  IGNORE: 'ignore',
+} as const;
+
+// 堆叠规则类型
+export type StackRule = typeof StackRule[keyof typeof StackRule];
+```
+
+- [ ] **Step 2: 在 Buff 类中添加 tags 和 stackRule 属性**
+
+```typescript
 export class Buff {
   readonly id: BuffId;
   readonly name: string;
@@ -805,17 +826,6 @@ export class Buff {
   // 新增：标签和堆叠规则
   readonly tags: GameplayTagContainer;
   readonly stackRule: StackRule;
-
-  // 堆叠规则枚举
-  static readonly StackRule = {
-    STACK_LAYER: 'stack_layer',
-    REFRESH_DURATION: 'refresh_duration',
-    OVERRIDE: 'override',
-    IGNORE: 'ignore',
-  } as const;
-
-  // 堆叠规则类型
-  export type StackRule = typeof Buff.StackRule[keyof typeof Buff.StackRule];
 
   onApply: (unit: Unit) => void = () => {};
   onRemove: (unit: Unit) => void = () => {};
@@ -867,7 +877,7 @@ export class Buff {
 修改 `buffs/examples/StrengthBuff.ts`:
 
 ```typescript
-import { Buff } from '../Buff';
+import { Buff, StackRule } from '../Buff';  // 添加 StackRule 导入
 import { BuffId, BuffType, AttributeType, ModifierType, AttributeModifier } from '../../core/types';
 import { Unit } from '../../units/Unit';
 import { GameplayTags } from '../../core/GameplayTags';
@@ -881,7 +891,7 @@ export class StrengthBuff extends Buff {
       '力量提升',
       BuffType.BUFF,
       3,
-      Buff.StackRule.REFRESH_DURATION
+      StackRule.REFRESH_DURATION  // 使用导入的 StackRule
     );
 
     // 设置标签
@@ -943,23 +953,23 @@ describe('Buff 标签系统', () => {
   it('默认堆叠规则应为 REFRESH_DURATION', () => {
     const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
 
-    expect(buff.stackRule).toBe(Buff.StackRule.REFRESH_DURATION);
+    expect(buff.stackRule).toBe(StackRule.REFRESH_DURATION);
   });
 
   it('应支持自定义堆叠规则', () => {
-    const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3, Buff.StackRule.STACK_LAYER);
+    const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3, StackRule.STACK_LAYER);
 
-    expect(buff.stackRule).toBe(Buff.StackRule.STACK_LAYER);
+    expect(buff.stackRule).toBe(StackRule.STACK_LAYER);
   });
 
   it('Buff 克隆应保留标签和堆叠规则', () => {
-    const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3, Buff.StackRule.OVERRIDE);
+    const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3, StackRule.OVERRIDE);
     buff.tags.addTags([GameplayTags.BUFF.DOT_POISON]);
 
     const cloned = buff.clone();
 
     expect(cloned.tags.hasTag(GameplayTags.BUFF.DOT_POISON)).toBe(true);
-    expect(cloned.stackRule).toBe(Buff.StackRule.OVERRIDE);
+    expect(cloned.stackRule).toBe(StackRule.OVERRIDE);
   });
 });
 ```
@@ -970,6 +980,15 @@ describe('Buff 标签系统', () => {
 npm test -- tests/buffs/Buff.test.ts
 npm test -- tests/buffs/examples/StrengthBuff.test.ts
 ```
+
+- [ ] **Step 5.5: 运行现有 Buff 测试确保无破坏性变更**
+
+```bash
+# 运行所有 buffs 相关测试
+npm test -- tests/buffs/ --testNamePattern="Buff"
+```
+
+预期：所有现有测试通过
 
 - [ ] **Step 6: 提交**
 
