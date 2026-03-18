@@ -4,7 +4,9 @@ import { EventBus } from './core/EventBus';
 import { CombatPhase, AttributeType } from './core/types';
 import { CombatLogSystem } from './systems/CombatLogSystem';
 import { VictorySystem } from './systems/VictorySystem';
+import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
 import { DamageSystem } from './systems/DamageSystem';
+import { ActionEvent } from './core/events';
 
 export interface BattleResult {
   winner: string;
@@ -25,12 +27,22 @@ export class BattleEngineV5 {
   private _stateMachine: CombatStateMachine;
   private _logSystem: CombatLogSystem;
   private _eventBus: EventBus;
+  private _actionSystem: ActionExecutionSystem;
+  private _damageSystem: DamageSystem;
 
   constructor(player: Unit, opponent: Unit) {
     this._player = player;
     this._opponent = opponent;
     this._eventBus = EventBus.instance;
+
+    // Note: We don't reset the EventBus here because AbilityContainer
+    // and other systems have already subscribed in their constructors
+    // this._eventBus.reset();
     this._logSystem = new CombatLogSystem();
+
+    // Initialize event-driven systems
+    this._actionSystem = new ActionExecutionSystem();
+    this._damageSystem = new DamageSystem();
 
     const context: CombatContext = {
       turn: 0,
@@ -86,8 +98,8 @@ export class BattleEngineV5 {
     // 回合开始
     this._logSystem.log(context.turn, CombatPhase.ROUND_START, `第${context.turn}回合开始`);
 
-    // 行动阶段
-    this.executeActions();
+    // 执行行动阶段（新的事件驱动流程）
+    this.executeActionPhase();
 
     // 回合结束
     this.processTurnEnd();
@@ -106,38 +118,36 @@ export class BattleEngineV5 {
   }
 
   /**
-   * 执行行动阶段
+   * 执行行动阶段（事件驱动）
    */
-  private executeActions(): void {
+  private executeActionPhase(): void {
     const units = this.getSortedUnits();
-    const context = this.getContext();
 
     for (const actor of units) {
       if (!actor.isAlive()) continue;
 
-      // 简化AI：随机使用可用技能
-      const availableAbilities = actor.abilities.getAllAbilities();
-      if (availableAbilities.length > 0) {
-        const ability = availableAbilities[0];
-        const target = actor === this._player ? this._opponent : this._player;
+      // 设置当前出手单位
+      this._stateMachine.setCurrentCaster(actor);
 
-        // 计算伤害（简化版）
-        const damageResult = DamageSystem.calculateDamage(actor, target, {
-          baseDamage: 50,
-          damageType: 'physical',
-        });
-
-        target.takeDamage(damageResult.finalDamage);
-
-        // 记录日志
-        this._logSystem.logDamage(
-          context.turn,
-          actor.name,
-          target.name,
-          damageResult.finalDamage,
-          damageResult.isCritical,
-        );
+      // 设置默认目标（敌方单位）
+      const target = actor === this._player ? this._opponent : this._player;
+      if (target.isAlive()) {
+        actor.abilities.setDefaultTarget(target);
       }
+
+      // 发布行动事件，触发整个技能流程
+      this._eventBus.publish<ActionEvent>({
+        type: 'ActionEvent',
+        priority: 80,
+        timestamp: Date.now(),
+        caster: actor,
+      });
+
+      // 清除默认目标
+      actor.abilities.clearDefaultTarget();
+
+      // 清除当前出手单位
+      this._stateMachine.clearCurrentCaster();
     }
   }
 

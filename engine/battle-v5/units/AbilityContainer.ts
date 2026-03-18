@@ -7,6 +7,7 @@ import { ActiveSkill } from '../abilities/ActiveSkill';
 export class AbilityContainer {
   private _abilities = new Map<string, Ability>();
   private _owner: Unit;
+  private _defaultTarget: Unit | null = null;
 
   constructor(owner: Unit) {
     this._owner = owner;
@@ -74,11 +75,29 @@ export class AbilityContainer {
   }
 
   /**
+   * 设置默认目标（敌方单位）
+   */
+  setDefaultTarget(target: Unit): void {
+    this._defaultTarget = target;
+  }
+
+  /**
+   * 清除默认目标
+   */
+  clearDefaultTarget(): void {
+    this._defaultTarget = null;
+  }
+
+  /**
    * 获取默认目标
    * 注意：这个方法需要从战斗上下文获取敌方单位
    * 当前实现返回占位符，后续任务会完善
    */
   private _getDefaultTarget(): Unit {
+    // Use the set default target if available
+    if (this._defaultTarget) {
+      return this._defaultTarget;
+    }
     // TODO: 从战斗上下文获取敌方单位
     // 当前返回自身作为占位符
     return this._owner;
