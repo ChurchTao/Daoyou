@@ -20,6 +20,15 @@ export class Ability {
   private _maxCooldown: number = 0;
   private _eventHandlers: Map<string, EventHandler> = new Map();
 
+  // Extended properties for damage and trigger validation
+  private _damageCoefficient: number = 1.0;
+  private _baseDamage: number = 0;
+  private _isMagicAbility: boolean = false;
+  private _isPhysicalAbility: boolean = true;
+  private _isDebuffAbility: boolean = false;
+  private _priority: number = 0;
+  private _manaCost: number = 0;
+
   // Public hooks for testing
   public onActivate: () => void = () => {};
   public onDeactivate: () => void = () => {};
@@ -91,7 +100,15 @@ export class Ability {
    * 检查是否可以触发
    * 子类可以重写此方法实现自定义条件
    */
-  canTrigger(context: unknown): boolean {
+  canTrigger(context: { caster: Unit; target: Unit }): boolean {
+    if (!this.isReady()) return false;
+
+    const caster = this._owner;
+    if (!caster) return false;
+
+    // Check if caster has enough mana
+    if (caster.currentMp < this._manaCost) return false;
+
     return true;
   }
 
@@ -99,7 +116,7 @@ export class Ability {
    * 执行能力效果
    * 子类必须实现此方法
    */
-  execute(context: unknown): void {
+  execute(context: { caster: Unit; target: Unit }): void {
     // 子类实现
   }
 
@@ -130,5 +147,63 @@ export class Ability {
 
   resetCooldown(): void {
     this._cooldown = 0;
+  }
+
+  // Extended property getters and setters
+
+  get damageCoefficient(): number {
+    return this._damageCoefficient;
+  }
+
+  setDamageCoefficient(value: number): void {
+    this._damageCoefficient = value;
+  }
+
+  get baseDamage(): number {
+    return this._baseDamage;
+  }
+
+  setBaseDamage(value: number): void {
+    this._baseDamage = value;
+  }
+
+  get isMagicAbility(): boolean {
+    return this._isMagicAbility;
+  }
+
+  setIsMagicAbility(value: boolean): void {
+    this._isMagicAbility = value;
+  }
+
+  get isPhysicalAbility(): boolean {
+    return this._isPhysicalAbility;
+  }
+
+  setIsPhysicalAbility(value: boolean): void {
+    this._isPhysicalAbility = value;
+  }
+
+  get isDebuffAbility(): boolean {
+    return this._isDebuffAbility;
+  }
+
+  setIsDebuffAbility(value: boolean): void {
+    this._isDebuffAbility = value;
+  }
+
+  get priority(): number {
+    return this._priority;
+  }
+
+  setPriority(value: number): void {
+    this._priority = value;
+  }
+
+  get manaCost(): number {
+    return this._manaCost;
+  }
+
+  setManaCost(value: number): void {
+    this._manaCost = value;
   }
 }

@@ -24,8 +24,8 @@ export abstract class ActiveSkill extends Ability {
     // 检查MP
     if (unit.currentMp < this._mpCost) return false;
 
-    // 检查自定义条件
-    return this.canTrigger({ unit });
+    // 检查自定义条件 (pass unit as both caster and target for self-cast skills)
+    return this.canTrigger({ caster: unit, target: unit });
   }
 
   executeWithTarget(unit: Unit, target: Unit): void {
@@ -41,6 +41,15 @@ export abstract class ActiveSkill extends Ability {
 
     // 执行技能效果
     this.executeSkill(unit, target);
+  }
+
+  /**
+   * ActiveSkill overrides canTrigger to not require owner
+   * since it receives the unit as a parameter
+   */
+  canTrigger(_context: { caster: Unit; target: Unit }): boolean {
+    // Base implementation allows trigger, subclasses can override
+    return true;
   }
 
   /**
