@@ -38,8 +38,8 @@
 ```
 engine/battle-v5/
 ├── core/
-│   ├── GameplayTags.ts       # [新建] 标签系统核心
-│   ├── types.ts              # [修改] 添加 TagPath 类型
+│   ├── GameplayTags.ts       # [新建] 标签系统核心（包含 GamepalyTagContainer + 常量）
+│   ├── types.ts              # [修改] 添加 TagPath 类型导出
 │   └── events.ts             # [修改] 添加标签事件
 ├── units/
 │   ├── Unit.ts               # [修改] 添加 tags 属性
@@ -53,8 +53,26 @@ engine/battle-v5/
     │   └── GameplayTags.test.ts      # [新建]
     ├── integration/
     │   └── TagSystemIntegration.test.ts  # [新建]
-    └── examples/
-        └── TaggedSkills.test.ts       # [新建]
+    ├── examples/
+    │   └── TaggedSkills.test.ts       # [新建]
+    └── performance/
+        └── TagPerformance.test.ts    # [新建]
+```
+
+### 2.2 类型定义位置
+
+**`TagPath` 类型** 定义在 `core/types.ts` 中统一管理：
+
+```typescript
+// core/types.ts
+export type TagPath = string;
+```
+
+**`core/GameplayTags.ts`** 重新导出该类型以方便使用：
+
+```typescript
+// core/GameplayTags.ts
+export type { TagPath } from './types';
 ```
 
 ### 2.2 依赖关系
@@ -103,6 +121,7 @@ export class GameplayTagContainer {
 - 查询 `Ability.Element.Fire` 时，如有 `Ability.Element` 则返回 `true`
 
 **实现要点**:
+
 ```typescript
 private _getParentTags(tag: TagPath): TagPath[] {
   const parts = tag.split('.');
@@ -112,6 +131,26 @@ private _getParentTags(tag: TagPath): TagPath[] {
   }
   return parents;
 }
+```
+
+**事件发布机制**:
+
+`GameplayTagContainer` 负责自动发布标签变更事件。但为了避免依赖 `Unit` 和 `EventBus`，事件发布由调用方（如 `Unit.tags.addTags()` 后）负责，保持容器独立。
+
+**使用方式**:
+
+```typescript
+// Unit 中使用示例
+unit.tags.addTags([GameplayTags.STATUS.IMMUNE_FIRE]);
+// 由 Unit 负责发布事件（如需要）
+EventBus.instance.publish<TagAddedEvent>({
+  type: 'TagAddedEvent',
+  priority: EventPriorityLevel.TAG_CHANGE,
+  timestamp: Date.now(),
+  target: unit,
+  tag: GameplayTags.STATUS.IMMUNE_FIRE,
+  source: buff,
+});
 ```
 
 ### 3.2 GameplayTags 常量对象
@@ -297,6 +336,9 @@ export class Buff {
     IGNORE: 'ignore',
   } as const;
 
+  // 堆叠规则类型定义
+  export type StackRule = typeof Buff.StackRule[keyof typeof Buff.StackRule];
+
   constructor(
     id: BuffId,
     name: string,
@@ -313,6 +355,26 @@ export class Buff {
     const cloned = /* ... */;
     cloned.tags = this.tags.clone();
     return cloned;
+  }
+}
+```
+
+### 5.4 Ability 初始化时的标签设置
+
+**方案**：在子类构造函数中设置标签
+
+```typescript
+export class FireballSkill extends ActiveSkill {
+  constructor() {
+    super('fireball' as AbilityId, '火球术', 30, 3);
+
+    // 设置标签
+    this.tags.addTags([
+      GameplayTags.ABILITY.TYPE_DAMAGE,
+      GameplayTags.ABILITY.TYPE_MAGIC,
+      GameplayTags.ABILITY.ELEMENT_FIRE,
+      GameplayTags.ABILITY.TARGET_SINGLE,
+    ]);
   }
 }
 ```
@@ -387,6 +449,16 @@ export class BuffContainer {
         break;
     }
   }
+
+  clone(owner: Unit): BuffContainer {
+    const clone = new BuffContainer(owner);
+    for (const buff of this._buffs.values()) {
+      const clonedBuff = buff.clone();
+      clone._buffs.set(clonedBuff.id, clonedBuff);
+      clonedBuff.onApply(owner);
+    }
+    return clone;
+  }
 }
 ```
 
@@ -409,6 +481,51 @@ export class BuffContainer {
 | `buffs/examples/StrengthBuff.ts` | 添加标签 + 堆叠规则 | 无 |
 
 ### 7.2 API 变更示例
+
+#### Ability 属性迁移对照表
+
+| 旧 API | 新 API | 说明 |
+|--------|--------|------|
+| `ability.isMagicAbility` | `ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)` | 精确匹配 |
+| `ability.isPhysicalAbility` | `ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)` | 精确匹配 |
+| `ability.isDebuffAbility` | `ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL)` 或组合标签 | 控制类技能 |
+| `ability.setIsMagicAbility(true)` | `ability.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC])` | 设置标签 |
+
+#### DamageSystem 迁移示例
+
+**现有代码** (`systems/DamageSystem.ts` 第 68 行):
+```typescript
+if (ability.isDebuffAbility && hitCheckEvent.isHit) {
+  // ...
+}
+```
+
+**迁移后**:
+```typescript
+if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) && hitCheckEvent.isHit) {
+  // ...
+}
+```
+
+**现有代码** (`systems/DamageSystem.ts` 第 110-114 行):
+```typescript
+if (ability.isMagicAbility) {
+  elementBonus = 1.2;
+} else if (ability.isPhysicalAbility) {
+  elementBonus = 1.0;
+}
+```
+
+**迁移后**:
+```typescript
+if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
+  elementBonus = 1.2;
+} else if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
+  elementBonus = 1.0;
+}
+```
+
+### 7.3 API 变更示例
 
 ```typescript
 // 旧方式
@@ -457,6 +574,66 @@ new Buff(id, name, type, duration, Buff.StackRule.REFRESH_DURATION)
 - 火球术带有火属性标签
 - 力量 BUFF 正确设置标签
 - 免疫标签拦截 DEBUFF
+
+### 8.4 性能测试
+
+**文件**: `tests/performance/TagPerformance.test.ts`
+
+```typescript
+describe('标签系统性能测试', () => {
+  it('父标签匹配应在 1ms 内完成', () => {
+    const container = new GameplayTagContainer();
+    container.addTags(['A.B.C.D.E.F']);
+
+    const start = performance.now();
+    container.hasTag('A.B.C.D.E.F');
+    const end = performance.now();
+
+    expect(end - start).toBeLessThan(1);
+  });
+
+  it('大量标签查询不应有明显性能衰减', () => {
+    const container = new GameplayTagContainer();
+    for (let i = 0; i < 100; i++) {
+      container.addTags([`Tag.${i}.A.B.C`]);
+    }
+
+    const start = performance.now();
+    for (let i = 0; i < 1000; i++) {
+      container.hasTag(`Tag.${Math.floor(Math.random() * 100)}.A`);
+    }
+    const end = performance.now();
+
+    expect(end - start).toBeLessThan(10); // 10ms 内完成 1000 次查询
+  });
+});
+```
+
+### 8.5 边界情况测试
+
+**文件**: `tests/core/GameplayTags.test.ts`
+
+```typescript
+describe('标签系统边界测试', () => {
+  it('应处理空标签路径', () => {
+    const container = new GameplayTagContainer();
+    expect(container.hasTag('')).toBe(false);
+  });
+
+  it('应忽略重复添加的标签', () => {
+    const container = new GameplayTagContainer();
+    container.addTags(['A.B']);
+    container.addTags(['A.B']);
+    expect(container.getTags()).toEqual(['A.B']);
+  });
+
+  it('应处理格式错误的标签路径', () => {
+    const container = new GameplayTagContainer();
+    container.addTags(['A..B']); // 可能是错误格式
+    expect(container.hasTag('A..B')).toBe(true); // 容错处理
+  });
+});
+```
 
 ---
 
