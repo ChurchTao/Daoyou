@@ -142,16 +142,6 @@ describe('DamageSystem - EventDriven', () => {
     expect(damageTakenSpy).toHaveBeenCalled();
   });
 
-  it('should maintain backward compatibility with static calculateDamage method', () => {
-    const result = DamageSystem.calculateDamage(caster, target, {
-      baseDamage: 100,
-      damageType: 'magic',
-    });
-
-    expect(result.finalDamage).toBeGreaterThan(0);
-    expect(result.breakdown).toBeDefined();
-  });
-
   it('should calculate physical damage correctly', () => {
     const physicalSkill = new BasicAttack();
     physicalSkill.setDamageCoefficient(1.0);

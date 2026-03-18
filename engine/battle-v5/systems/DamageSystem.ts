@@ -9,27 +9,6 @@ import {
   UnitDeadEvent,
 } from '../core/events';
 import { AttributeType } from '../core/types';
-import { Unit } from '../units/Unit';
-
-export interface DamageCalculationParams {
-  baseDamage: number;
-  damageType: 'physical' | 'magic';
-  element?: string;
-  ignoreCrit?: boolean;
-  ignoreDodge?: boolean;
-}
-
-export interface DamageResult {
-  finalDamage: number;
-  isCritical: boolean;
-  isDodged: boolean;
-  breakdown: {
-    baseDamage: number;
-    critMultiplier: number;
-    damageReduction: number;
-    randomFactor: number;
-  };
-}
 
 /**
  * 伤害系统
@@ -117,6 +96,7 @@ export class DamageSystem {
 
   /**
    * 计算伤害
+   * 流程: 基础伤害 → 暴击判定 → 伤害修正事件 → 减伤 → 随机浮动 → 最终伤害
    */
   private _calculateDamage(
     castEvent: SkillCastEvent,
@@ -124,7 +104,7 @@ export class DamageSystem {
   ): void {
     const { caster, target, ability } = castEvent;
 
-    // 1. 计算基础伤害
+    // 1. 计算基础伤害（根据技能类型和对应属性）
     let baseDamage = ability.baseDamage;
 
     if (ability.isMagicAbility) {
@@ -137,7 +117,24 @@ export class DamageSystem {
       baseDamage = physique * ability.damageCoefficient + ability.baseDamage;
     }
 
-    // 2. 发布伤害计算事件，供被动/命格/BUFF修正伤害
+    // 2. 暴击判定（身法属性核心价值：暴击率）
+    const casterAgility = caster.attributes.getValue(AttributeType.AGILITY);
+    const targetConsciousness = target.attributes.getValue(
+      AttributeType.CONSCIOUSNESS,
+    );
+
+    // 暴击率公式：身法/100 + 基础5%，最高60%，被神识抗性降低
+    let critRate = Math.min(60, casterAgility / 100 + 5);
+    // 目标神识高于施法者时，降低暴击率
+    if (targetConsciousness > casterAgility) {
+      critRate *= 0.7;
+    }
+    const isCritical = Math.random() * 100 < critRate;
+    const critMultiplier = isCritical ? 1.5 + casterAgility / 1000 : 1; // 暴击倍率：基础1.5倍 + 身法加成
+
+    // 3. 发布伤害计算事件，供被动/命格/BUFF修正伤害（增伤/减伤效果在此订阅）
+    const currentDamage = baseDamage * critMultiplier;
+
     const calcEvent: DamageCalculateEvent = {
       type: 'DamageCalculateEvent',
       priority: EventPriorityLevel.DAMAGE_CALC,
@@ -146,23 +143,30 @@ export class DamageSystem {
       target,
       ability,
       baseDamage,
-      finalDamage: baseDamage,
+      finalDamage: currentDamage,
+      isCritical,
+      critMultiplier,
     };
 
     EventBus.instance.publish(calcEvent);
 
-    // 3. 修正最终伤害：计算目标减伤，最低为1点伤害
+    // 4. 修正最终伤害：计算目标减伤（体魄属性核心价值：减伤）
     const targetPhysique = target.attributes.getValue(AttributeType.PHYSIQUE);
     const damageReduction = Math.min(
       0.7,
       targetPhysique / (targetPhysique + 1000),
     );
-    calcEvent.finalDamage = Math.max(
-      1,
-      calcEvent.finalDamage * (1 - damageReduction),
-    );
 
-    // 4. 进入伤害应用环节
+    calcEvent.finalDamage = calcEvent.finalDamage * (1 - damageReduction);
+
+    // 5. 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性)
+    const randomFactor = 0.9 + Math.random() * 0.2;
+    calcEvent.finalDamage = calcEvent.finalDamage * randomFactor;
+
+    // 6. 最小伤害保证（避免0伤害）
+    calcEvent.finalDamage = Math.max(1, calcEvent.finalDamage);
+
+    // 7. 进入伤害应用环节
     this._applyDamage(calcEvent);
   }
 
@@ -170,7 +174,7 @@ export class DamageSystem {
    * 应用伤害
    */
   private _applyDamage(calcEvent: DamageCalculateEvent): void {
-    const { caster, target, ability, finalDamage } = calcEvent;
+    const { caster, target, ability, finalDamage, isCritical, critMultiplier } = calcEvent;
 
     // 1. 发布伤害事件，供护盾/无敌/伤害免疫类效果响应
     const damageEvent: DamageEvent = {
@@ -181,6 +185,8 @@ export class DamageSystem {
       target,
       ability,
       finalDamage,
+      isCritical,
+      critMultiplier,
     };
 
     EventBus.instance.publish(damageEvent);
@@ -196,7 +202,7 @@ export class DamageSystem {
    * 更新目标气血
    */
   private _updateTargetHealth(damageEvent: DamageEvent): void {
-    const { target, finalDamage, caster } = damageEvent;
+    const { target, finalDamage, caster, ability, isCritical, critMultiplier } = damageEvent;
 
     // 获取当前气血
     const beforeHealth = target.currentHp;
@@ -207,16 +213,19 @@ export class DamageSystem {
     const actualDamage = beforeHealth - target.currentHp;
     const isLethal = target.currentHp <= 0;
 
-    // 发布受击事件
+    // 发布受击事件（包含技能和暴击信息）
     EventBus.instance.publish<DamageTakenEvent>({
       type: 'DamageTakenEvent',
       priority: EventPriorityLevel.DAMAGE_TAKEN,
       timestamp: Date.now(),
       caster,
       target,
+      ability,
       damageTaken: actualDamage,
       remainHealth: target.currentHp,
       isLethal,
+      isCritical,
+      critMultiplier,
     });
 
     // 击杀判定
@@ -239,89 +248,5 @@ export class DamageSystem {
       EventBus.instance.unsubscribe(eventType, handler);
     }
     this._handlers.clear();
-  }
-
-  // ===== 保留静态方法用于测试兼容性 =====
-  /**
-   * 计算伤害
-   * 流程: 基础伤害 → 暴击 → 闪避 → 减伤 → 随机浮动 → 最终伤害
-   */
-  static calculateDamage(
-    attacker: Unit,
-    target: Unit,
-    params: DamageCalculationParams,
-  ): DamageResult {
-    const breakdown = {
-      baseDamage: params.baseDamage,
-      critMultiplier: 1,
-      damageReduction: 0,
-      randomFactor: 1,
-    };
-
-    let damage = params.baseDamage;
-
-    // 1. 暴击判定
-    const isCritical = !params.ignoreCrit && DamageSystem['rollCrit'](attacker);
-    if (isCritical) {
-      breakdown.critMultiplier = 1.5;
-      damage *= breakdown.critMultiplier;
-    }
-
-    // 2. 闪避判定
-    const isDodged = !params.ignoreDodge && DamageSystem['rollDodge'](target);
-    if (isDodged) {
-      return {
-        finalDamage: 0,
-        isCritical,
-        isDodged: true,
-        breakdown,
-      };
-    }
-
-    // 3. 伤害减免（基础版，基于体魄）
-    const reduction = DamageSystem['calculateDamageReduction'](target);
-    breakdown.damageReduction = reduction;
-    damage *= 1 - reduction;
-
-    // 4. 随机浮动 (0.9 ~ 1.1)
-    const randomFactor = 0.9 + Math.random() * 0.2;
-    breakdown.randomFactor = randomFactor;
-    damage *= randomFactor;
-
-    // 5. 最小伤害保证
-    const finalDamage = Math.max(1, Math.floor(damage));
-
-    return {
-      finalDamage,
-      isCritical,
-      isDodged: false,
-      breakdown,
-    };
-  }
-
-  /**
-   * 暴击判定
-   */
-  private static rollCrit(attacker: Unit): boolean {
-    const critRate = attacker.attributes.getCritRate();
-    return Math.random() < critRate;
-  }
-
-  /**
-   * 闪避判定
-   */
-  private static rollDodge(target: Unit): boolean {
-    const evasionRate = target.attributes.getEvasionRate();
-    return Math.random() < evasionRate;
-  }
-
-  /**
-   * 计算伤害减免
-   */
-  private static calculateDamageReduction(target: Unit): number {
-    // 基础减免：每点体魄提供 0.1% 减免，上限 75%
-    const physique = target.attributes.getValue(AttributeType.PHYSIQUE);
-    const reduction = Math.min(0.75, physique * 0.001);
-    return reduction;
   }
 }

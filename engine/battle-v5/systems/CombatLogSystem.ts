@@ -99,12 +99,15 @@ export class CombatLogSystem {
   }
 
   private _onDamageTaken(event: DamageTakenEvent): void {
+    const critText = event.isCritical ? '（暴击！）' : '';
+    const highlight = event.isCritical || false;
+
     this._addLog({
       id: `log_${this._nextId++}`,
-      turn: 0,
+      turn: 0, // TODO: 从上下文获取当前回合
       phase: CombatPhase.ACTION,
-      message: `【伤害】${event.caster.name}对${event.target.name}造成${event.damageTaken}点伤害，剩余气血${event.remainHealth}！`,
-      highlight: false,
+      message: `【伤害】${event.caster.name}使用【${event.ability.name}】对${event.target.name}造成${event.damageTaken}点伤害${critText}，剩余气血${event.remainHealth}！`,
+      highlight,
     });
 
     if (event.isLethal) {

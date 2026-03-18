@@ -66,6 +66,8 @@ export interface DamageCalculateEvent extends CombatEvent {
   ability: Ability;
   baseDamage: number;
   finalDamage: number;
+  isCritical?: boolean;      // 是否暴击
+  critMultiplier?: number;   // 暴击倍率
 }
 
 // ===== 伤害应用事件 =====
@@ -75,6 +77,8 @@ export interface DamageEvent extends CombatEvent {
   target: Unit;
   ability: Ability;
   finalDamage: number;
+  isCritical?: boolean;      // 是否暴击
+  critMultiplier?: number;   // 暴击倍率
 }
 
 // ===== 受击事件 =====
@@ -82,9 +86,12 @@ export interface DamageTakenEvent extends CombatEvent {
   type: 'DamageTakenEvent';
   caster: Unit;
   target: Unit;
+  ability: Ability;          // 造成伤害的技能
   damageTaken: number;
   remainHealth: number;
   isLethal: boolean;
+  isCritical?: boolean;      // 是否暴击
+  critMultiplier?: number;   // 暴击倍率
 }
 
 // ===== 单元死亡事件 =====
