@@ -3,11 +3,13 @@ import { Ability } from '../abilities/Ability';
 import { EventBus } from '../core/EventBus';
 import { ActionEvent, SkillPreCastEvent, EventPriorityLevel } from '../core/events';
 import { ActiveSkill } from '../abilities/ActiveSkill';
+import { BasicAttack } from '../abilities/BasicAttack';
 
 export class AbilityContainer {
   private _abilities = new Map<string, Ability>();
   private _owner: Unit;
   private _defaultTarget: Unit | null = null;
+  private _defaultAttack: Ability | null = null;
 
   constructor(owner: Unit) {
     this._owner = owner;
@@ -33,7 +35,11 @@ export class AbilityContainer {
     const availableAbilities = this.getAvailableAbilities();
 
     if (availableAbilities.length === 0) {
-      // 无可用技能时暂不处理，后续任务会实现普攻
+      // 无可用技能，使用普攻
+      const target = this._getDefaultTarget();
+      if (target && target.id !== this._owner.id) {
+        this._prepareCast(this._getDefaultAttack(), target);
+      }
       return;
     }
 
@@ -101,6 +107,18 @@ export class AbilityContainer {
     // TODO: 从战斗上下文获取敌方单位
     // 当前返回自身作为占位符
     return this._owner;
+  }
+
+  /**
+   * 获取默认攻击（普攻）
+   */
+  private _getDefaultAttack(): Ability {
+    if (!this._defaultAttack) {
+      this._defaultAttack = new BasicAttack();
+      this._defaultAttack.setOwner(this._owner);
+      this._defaultAttack.setActive(true);
+    }
+    return this._defaultAttack;
   }
 
   addAbility(ability: Ability): void {
