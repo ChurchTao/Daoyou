@@ -2,6 +2,23 @@ import { CombatStateMachine, CombatContext } from '../../core/CombatStateMachine
 import { CombatPhase } from '../../core/types';
 import { EventBus } from '../../core/EventBus';
 
+// Helper function to create mock context
+function createMockContext(): CombatContext {
+  return {
+    turn: 1,
+    maxTurns: 10,
+    units: new Map(),
+    battleEnded: false,
+    winner: null,
+    currentCaster: null,
+  };
+}
+
+// Helper function to create mock unit
+function createMockUnit(id: string, name: string): { id: string; name: string } {
+  return { id, name };
+}
+
 describe('CombatStateMachine', () => {
   let stateMachine: CombatStateMachine;
   let context: CombatContext;
@@ -15,6 +32,7 @@ describe('CombatStateMachine', () => {
       units: new Map(),
       battleEnded: false,
       winner: null,
+      currentCaster: null,
     };
 
     // 订阅所有状态事件来记录转换顺序
@@ -66,5 +84,29 @@ describe('CombatStateMachine', () => {
 
     // 应该停留在 INIT 状态
     expect(stateMachine.getCurrentPhase()).toBe(CombatPhase.INIT);
+  });
+});
+
+describe('CombatStateMachine - CurrentCaster', () => {
+  it('should track current caster during action phase', () => {
+    const context = createMockContext();
+    const sm = new CombatStateMachine(context);
+    const mockUnit = createMockUnit('unit1', '测试单位');
+
+    sm.start();
+
+    // 设置当前出手单位
+    sm.setCurrentCaster(mockUnit);
+    expect(sm.getCurrentCaster()).toBe(mockUnit);
+  });
+
+  it('should clear current caster after action phase', () => {
+    const context = createMockContext();
+    const sm = new CombatStateMachine(context);
+    const mockUnit = createMockUnit('unit1', '测试单位');
+
+    sm.setCurrentCaster(mockUnit);
+    sm.clearCurrentCaster();
+    expect(sm.getCurrentCaster()).toBeNull();
   });
 });

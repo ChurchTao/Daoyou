@@ -41,6 +41,7 @@ export class BattleEngineV5 {
       ]),
       battleEnded: false,
       winner: null,
+      currentCaster: null,
     };
 
     this._stateMachine = new CombatStateMachine(context);

@@ -14,6 +14,7 @@ export interface CombatContext {
   units: Map<string, unknown>;
   battleEnded: boolean;
   winner: string | null;
+  currentCaster: unknown | null;
 }
 
 const EVENT_PRIORITY = {
@@ -208,5 +209,17 @@ export class CombatStateMachine {
   public endBattle(winner: string): void {
     this._context.battleEnded = true;
     this._context.winner = winner;
+  }
+
+  public setCurrentCaster(unit: unknown): void {
+    this._context.currentCaster = unit;
+  }
+
+  public getCurrentCaster(): unknown | null {
+    return this._context.currentCaster;
+  }
+
+  public clearCurrentCaster(): void {
+    this._context.currentCaster = null;
   }
 }
