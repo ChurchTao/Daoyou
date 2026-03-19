@@ -12,9 +12,15 @@
 
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { BattleEngineV5 } from '../../BattleEngineV5';
+import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
 import { GameplayTags } from '../../core/GameplayTags';
-import { AttributeType } from '../../core/types';
+import {
+  AttributeModifier,
+  AttributeType,
+  BuffType,
+  ModifierType,
+} from '../../core/types';
 import { Unit } from '../../units/Unit';
 
 // ===== 测试技能定义 =====
@@ -60,6 +66,96 @@ class NormalAttackSkill extends ActiveSkill {
   }
 
   protected executeSkill(_caster: Unit, _target: Unit): void {}
+}
+
+/** 毒术技能 - 添加DEBUFF */
+class PoisonSkill extends ActiveSkill {
+  constructor() {
+    super('poison_skill', '腐蚀毒术', 15, 2);
+    this.setDamageCoefficient(0.8);
+    this.setBaseDamage(20);
+    this.tags.addTags([
+      GameplayTags.ABILITY.TYPE_MAGIC,
+      GameplayTags.ABILITY.TYPE_DAMAGE,
+    ]);
+    this.setManaCost(15);
+    this.setPriority(40);
+  }
+
+  protected executeSkill(_caster: Unit, target: Unit): void {
+    // 创建中毒DEBUFF
+    const poisonDebuff = new Buff(
+      'poison',
+      '中毒',
+      BuffType.DEBUFF,
+      3,
+      StackRule.REFRESH_DURATION,
+    );
+    poisonDebuff.tags.addTags([
+      GameplayTags.BUFF.TYPE_DEBUFF,
+      GameplayTags.BUFF.DOT_POISON,
+    ]);
+
+    // DEBUFF效果：减少体魄
+    poisonDebuff.onApply = (unit: Unit) => {
+      const modifier: AttributeModifier = {
+        id: 'poison_physique_penalty',
+        attrType: AttributeType.PHYSIQUE,
+        type: ModifierType.MULTIPLY,
+        value: 0.9, // 90%体魄（减少10%）
+        source: poisonDebuff,
+      };
+      unit.attributes.addModifier(modifier);
+    };
+
+    poisonDebuff.onRemove = (unit: Unit) => {
+      unit.attributes.removeModifier('poison_physique_penalty');
+    };
+
+    target.buffs.addBuff(poisonDebuff);
+  }
+}
+
+/** 护盾技能 - 添加BUFF */
+class ShieldBuffSkill extends ActiveSkill {
+  constructor() {
+    super('shield_buff', '护体真元', 25, 3);
+    this.setDamageCoefficient(0.5);
+    this.setBaseDamage(15);
+    this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
+    this.setManaCost(25);
+    this.setPriority(30);
+  }
+
+  protected executeSkill(_caster: Unit, target: Unit): void {
+    // 创建护盾BUFF
+    const shieldBuff = new Buff(
+      'shield',
+      '护体真元',
+      BuffType.BUFF,
+      4,
+      StackRule.REFRESH_DURATION,
+    );
+    shieldBuff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+    // BUFF效果：增加灵力
+    shieldBuff.onApply = (unit: Unit) => {
+      const modifier: AttributeModifier = {
+        id: 'shield_spirit_bonus',
+        attrType: AttributeType.SPIRIT,
+        type: ModifierType.MULTIPLY,
+        value: 1.2, // 120%灵力（增加20%）
+        source: shieldBuff,
+      };
+      unit.attributes.addModifier(modifier);
+    };
+
+    shieldBuff.onRemove = (unit: Unit) => {
+      unit.attributes.removeModifier('shield_spirit_bonus');
+    };
+
+    target.buffs.addBuff(shieldBuff);
+  }
 }
 
 // ===== 测试场景 =====
@@ -469,6 +565,138 @@ describe('战斗机制可视化测试', () => {
     console.log('\n【完整战报】');
     result.logs.forEach((log, i) => console.log(`  ${i + 1}. ${log}`));
     console.log('\n【预期】均衡属性下战斗回合较多，胜负可能取决于随机因素');
+    console.log('');
+  });
+
+  /**
+   * 场景8: BUFF/DEBUFF 机制演示
+   * 验证：护盾BUFF提升伤害，毒术DEBUFF削弱对手
+   */
+  it('场景8: BUFF/DEBUFF 机制 - 辅助vs毒术对决', () => {
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景8: BUFF/DEBUFF 机制 - 辅助vs毒术对决         ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
+
+    // 辅助修士：有护盾技能提升灵力
+    const support = new Unit('support', '辅助修士', {
+      [AttributeType.SPIRIT]: 80,
+      [AttributeType.PHYSIQUE]: 60,
+      [AttributeType.AGILITY]: 50,
+      [AttributeType.CONSCIOUSNESS]: 60,
+      [AttributeType.COMPREHENSION]: 70,
+    });
+
+    // 毒术修士：有毒术技能削弱对手
+    const poisoner = new Unit('poisoner', '毒术修士', {
+      [AttributeType.SPIRIT]: 70,
+      [AttributeType.PHYSIQUE]: 70,
+      [AttributeType.AGILITY]: 50,
+      [AttributeType.CONSCIOUSNESS]: 60,
+      [AttributeType.COMPREHENSION]: 60,
+    });
+
+    support.abilities.addAbility(new ShieldBuffSkill());
+    support.abilities.addAbility(new NormalAttackSkill());
+    poisoner.abilities.addAbility(new PoisonSkill());
+    poisoner.abilities.addAbility(new NormalAttackSkill());
+    support.currentMp = 100;
+    poisoner.currentMp = 100;
+
+    console.log('【角色属性】');
+    console.log(
+      `辅助修士 - 灵${support.attributes.getValue(AttributeType.SPIRIT)} (拥有护体真元BUFF技能)`,
+    );
+    console.log(
+      `毒术修士 - 灵${poisoner.attributes.getValue(AttributeType.SPIRIT)} (拥有腐蚀毒术DEBUFF技能)`,
+    );
+    console.log('【设计预期】');
+    console.log('  - 辅助修士使用护体真元后，灵力提升20%，法术伤害增加');
+    console.log('  - 毒术修士使用腐蚀毒术后，对手体魄降低10%，伤害减少');
+    console.log('  - BUFF/DEBUFF持续期间，属性变化会显著影响战斗结果');
+    console.log();
+
+    const engine = new BattleEngineV5(support, poisoner);
+    const result = engine.execute();
+
+    console.log('\n【战斗结果】');
+    console.log(`胜利者: ${result.winner}`);
+    console.log(`持续回合: ${result.turns}`);
+    console.log('\n【完整战报】');
+    result.logs.forEach((log, i) => console.log(`  ${i + 1}. ${log}`));
+    console.log('\n【观察要点】');
+    console.log('  - 查找"护体真元"BUFF应用日志');
+    console.log('  - 查找"腐蚀毒术"DEBUFF应用日志');
+    console.log('  - 观察BUFF/DEBUFF生效后的属性变化和伤害差异');
+    console.log('');
+  });
+
+  /**
+   * 场景9: 标签免疫机制
+   * 验证：免疫标签可阻止DEBUFF
+   */
+  it('场景9: 标签免疫机制 - 免疫体 vs 毒术', () => {
+    console.log(
+      '\n╔══════════════════════════════════════════════════════════════╗',
+    );
+    console.log(
+      '║           场景9: 标签免疫机制 - 免疫体 vs 毒术               ║',
+    );
+    console.log(
+      '╚══════════════════════════════════════════════════════════════╝\n',
+    );
+
+    // 免疫体：拥有免疫DEBUFF标签
+    const immuneUnit = new Unit('immune', '免疫修士', {
+      [AttributeType.SPIRIT]: 70,
+      [AttributeType.PHYSIQUE]: 70,
+      [AttributeType.AGILITY]: 50,
+      [AttributeType.CONSCIOUSNESS]: 60,
+      [AttributeType.COMPREHENSION]: 60,
+    });
+    immuneUnit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
+
+    // 毒术修士
+    const poisoner = new Unit('poisoner2', '毒术大师', {
+      [AttributeType.SPIRIT]: 80,
+      [AttributeType.PHYSIQUE]: 60,
+      [AttributeType.AGILITY]: 50,
+      [AttributeType.CONSCIOUSNESS]: 60,
+      [AttributeType.COMPREHENSION]: 60,
+    });
+
+    immuneUnit.abilities.addAbility(new NormalAttackSkill());
+    poisoner.abilities.addAbility(new PoisonSkill());
+    poisoner.abilities.addAbility(new NormalAttackSkill());
+    immuneUnit.currentMp = 100;
+    poisoner.currentMp = 100;
+
+    console.log('【角色属性】');
+    console.log(`免疫修士 - 拥有IMMUNE_DEBUFF标签（免疫所有DEBUFF）`);
+    console.log(`毒术大师 - 擅长使用腐蚀毒术（3回合DEBUFF）`);
+    console.log('【设计预期】');
+    console.log('  - 毒术大师的腐蚀毒术会被免疫标签拦截');
+    console.log('  - 免疫修士不会受到中毒DEBUFF的影响');
+    console.log('  - 战报中应显示"免疫阻止了DEBUFF添加"');
+    console.log();
+
+    const engine = new BattleEngineV5(immuneUnit, poisoner);
+    const result = engine.execute();
+
+    console.log('\n【战斗结果】');
+    console.log(`胜利者: ${result.winner}`);
+    console.log(`持续回合: ${result.turns}`);
+    console.log('\n【完整战报】');
+    result.logs.forEach((log, i) => console.log(`  ${i + 1}. ${log}`));
+    console.log('\n【观察要点】');
+    console.log('  - 毒术大师释放毒术时，DEBUFF应被免疫标签拦截');
+    console.log('  - 免疫修士的体魄应保持不变');
+    console.log('  - 这展示了标签系统在技能交互中的强大能力');
     console.log('');
   });
 });
