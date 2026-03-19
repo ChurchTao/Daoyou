@@ -1,9 +1,20 @@
-import { Buff, StackRule } from '../Buff';
-import { BuffId, BuffType, AttributeType, ModifierType, AttributeModifier } from '../../core/types';
-import { Unit } from '../../units/Unit';
-import { GameplayTags } from '../../core/GameplayTags';
 import { EventBus } from '../../core/EventBus';
-import { RoundPreEvent, TagAddedEvent, TagRemovedEvent, DamageEvent, EventPriorityLevel } from '../../core/events';
+import {
+  DamageRequestEvent,
+  EventPriorityLevel,
+  RoundPreEvent,
+  TagAddedEvent,
+  TagRemovedEvent,
+} from '../../core/events';
+import { GameplayTags } from '../../core/GameplayTags';
+import {
+  AttributeModifier,
+  AttributeType,
+  BuffId,
+  BuffType,
+  ModifierType,
+} from '../../core/types';
+import { Buff, StackRule } from '../Buff';
 
 /**
  * PoisonDotBuff - 中毒持续伤害 Buff
@@ -25,7 +36,7 @@ export class PoisonDotBuff extends Buff {
       '中毒',
       BuffType.DEBUFF,
       3, // 持续 3 回合
-      StackRule.STACK_LAYER // 可叠加层数
+      StackRule.STACK_LAYER, // 可叠加层数
     );
 
     // 设置初始层数
@@ -74,31 +85,42 @@ export class PoisonDotBuff extends Buff {
     this._owner.attributes.addModifier(modifier);
 
     // 4. 订阅回合前置事件，触发 DOT 伤害
-    this._subscribeEvent<RoundPreEvent>('RoundPreEvent', (event) => {
-      this._onRoundPre(event);
-    }, EventPriorityLevel.ROUND_PRE);
+    this._subscribeEvent<RoundPreEvent>(
+      'RoundPreEvent',
+      (event) => {
+        this._onRoundPre(event);
+      },
+      EventPriorityLevel.ROUND_PRE,
+    );
   }
 
   /**
    * 处理回合前置事件
-   * - 造成体魄 * 5 * 层数的伤害
+   * - 发布 DamageRequestEvent，进入统一伤害计算管道
+   *
+   * 事件流程（符合 GAS+EDA 架构）：
+   * RoundPreEvent → DamageRequestEvent → [增伤/减伤修正] → DamageEvent → DamageTakenEvent
    */
   private _onRoundPre(_event: RoundPreEvent): void {
     if (!this._owner || !this._owner.isAlive()) return;
 
-    // 计算伤害：体魄 * 5 * 层数
+    // 计算基础伤害：体魄 * 5 * 层数
     const physique = this._owner.attributes.getValue(AttributeType.PHYSIQUE);
-    const damage = Math.floor(physique * 5 * this._layer);
+    const baseDamage = Math.floor(physique * 5 * this._layer);
 
-    // 发布伤害事件，携带 source 信息
-    EventBus.instance.publish<DamageEvent>({
-      type: 'DamageEvent',
-      priority: EventPriorityLevel.DAMAGE_APPLY,
+    // 发布伤害请求事件，进入统一伤害计算管道
+    // 其他系统（如「毒术精通」命格）可订阅此事件进行增伤修正
+    EventBus.instance.publish<DamageRequestEvent>({
+      type: 'DamageRequestEvent',
+      priority: EventPriorityLevel.DAMAGE_REQUEST,
       timestamp: Date.now(),
-      caster: this._source, // DOT 来源（施毒者）
+      caster: this._source, // DOT 来源（施毒者），可能为 null
       target: this._owner,
       ability: null, // DOT 非技能来源
-      finalDamage: damage,
+      baseDamage,
+      finalDamage: baseDamage, // 初始等于基础伤害，后续由 DamageSystem 修正
+      isCritical: false, // DOT 不暴击
+      critMultiplier: 1,
     });
   }
 

@@ -7,15 +7,16 @@
  * - 系统间通过发布/订阅事件进行通信
  * - 事件优先级决定执行顺序
  *
- * 事件流程（按优先级从高到低）：
- * 1. ActionEvent → 触发单位行动
- * 2. SkillPreCastEvent → 施法前摇（可被打断）
- * 3. SkillCastEvent → 技能正式释放
- * 4. HitCheckEvent → 命中判定（闪避/抵抗）
- * 5. DamageCalculateEvent → 伤害计算（可被修正）
- * 6. DamageEvent → 伤害应用
- * 7. DamageTakenEvent → 受击事件（触发被动）
- * 8. RoundPreEvent → 回合前置结算（DOT触发）
+ * 统一伤害管道：
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageRequestEvent     │
+ * │  DOT伤害:  RoundPreEvent ─────────────────→ DamageRequestEvent     │
+ * │  反伤等:   其他来源 ──────────────────────→ DamageRequestEvent     │
+ * └─────────────────────────────────────────────────────────────────────┘
+ *                              ↓
+ *         DamageRequestEvent → [增伤修正] → [减伤/随机] → DamageEvent
+ *                              ↓
+ *         DamageEvent → [护盾/无敌响应] → 气血更新 → DamageTakenEvent
  */
 import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
@@ -29,8 +30,8 @@ export enum EventPriorityLevel {
   SKILL_PRE_CAST = 75, // 施法前摇&打断判定
   SKILL_CAST = 70, // 技能正式释放
   HIT_CHECK = 65, // 命中判定
-  DAMAGE_CALC = 60, // 伤害计算
-  DAMAGE_APPLY = 55, // 伤害应用
+  DAMAGE_REQUEST = 60, // 伤害请求（增伤修正）
+  DAMAGE_APPLY = 55, // 伤害应用（护盾/无敌响应）
   DAMAGE_TAKEN = 50, // 受击事件（触发被动/反伤）
   ROUND_PRE = 45, // 回合前置结算（DOT、BUFF结算等）
   BUFF_INTERCEPT = 40, // BUFF 拦截（高于 POST_SETTLE）
@@ -87,19 +88,25 @@ export interface HitCheckEvent extends CombatEvent {
   isResisted: boolean;
 }
 
-// ===== 伤害计算事件 =====
-export interface DamageCalculateEvent extends CombatEvent {
-  type: 'DamageCalculateEvent';
-  caster: Unit;
+// ===== 伤害请求事件 =====
+// 语义：请求造成伤害，进入统一伤害计算管道
+// 用途：增伤效果（如「毒术精通」）订阅此事件修正 finalDamage
+// 来源：技能伤害、DOT 伤害、反伤等所有伤害来源
+export interface DamageRequestEvent extends CombatEvent {
+  type: 'DamageRequestEvent';
+  caster: Unit | null; // null 表示 DOT 伤害或环境伤害
   target: Unit;
-  ability: Ability;
-  baseDamage: number;
-  finalDamage: number;
+  ability: Ability | null; // null 表示非技能来源的伤害
+  baseDamage: number; // 基础伤害（未修正）
+  finalDamage: number; // 最终伤害（可被增伤修正）
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
 }
 
 // ===== 伤害应用事件 =====
+// 语义：伤害即将应用到目标身上
+// 用途：护盾/无敌/伤害免疫效果订阅此事件拦截伤害
+// 注意：此事件由 DamageSystem 发布，不再由 DamageSystem 订阅
 export interface DamageEvent extends CombatEvent {
   type: 'DamageEvent';
   caster: Unit | null; // null 表示 DOT 伤害或环境伤害
@@ -177,7 +184,6 @@ export interface BuffImmuneEvent extends CombatEvent {
   buff: Buff;
   immuneTag: TagPath; // 触发免疫的标签
 }
-
 
 // ===== 战斗初始化事件 =====
 export interface BattleInitEvent extends CombatEvent {

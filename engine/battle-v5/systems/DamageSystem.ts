@@ -2,8 +2,8 @@ import { ActiveSkill } from '../abilities/ActiveSkill';
 import { EventBus } from '../core/EventBus';
 import { GameplayTags } from '../core/GameplayTags';
 import {
-  DamageCalculateEvent,
   DamageEvent,
+  DamageRequestEvent,
   DamageTakenEvent,
   EventPriorityLevel,
   HitCheckEvent,
@@ -16,18 +16,21 @@ import { AttributeType } from '../core/types';
  * DamageSystem - 伤害系统
  *
  * EDA 架构设计：
- * - 订阅 SkillCastEvent 事件，执行命中判定和伤害计算
- * - 发布 HitCheckEvent、DamageCalculateEvent、DamageEvent 等事件
- * - 其他系统（被动、命格、Buff）可订阅这些事件进行干预
+ * - 订阅 SkillCastEvent，执行命中判定，发布 DamageRequestEvent
+ * - 订阅 DamageRequestEvent，执行减伤计算，发布 DamageEvent 并直接应用伤害
+ * - 不订阅 DamageEvent（避免循环），由 _onDamageRequest 直接调用 _updateTargetHealth
  *
- * 伤害计算流程：
- * 1. 命中判定（闪避/抵抗）
- * 2. 基础伤害计算（灵力/体魄 × 技能系数）
- * 3. 暴击判定（身法属性）
- * 4. 伤害修正事件（增伤/减伤效果）
- * 5. 减伤计算（体魄属性）
- * 6. 随机浮动
- * 7. 伤害应用和受击事件
+ * 统一伤害管道：
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageRequestEvent     │
+ * │  DOT伤害:  RoundPreEvent ─────────────────→ DamageRequestEvent     │
+ * │  反伤等:   其他来源 ──────────────────────→ DamageRequestEvent     │
+ * └─────────────────────────────────────────────────────────────────────┘
+ *                              ↓
+ *         DamageRequestEvent → [增伤修正] → [减伤/随机] → DamageEvent
+ *                              ↓
+ *         DamageEvent → [护盾/免疫响应] → 气血更新 → DamageTakenEvent
+ *                    （其他系统订阅）      （本系统直接调用）
  */
 export class DamageSystem {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,7 +41,7 @@ export class DamageSystem {
   }
 
   private _subscribeToEvents(): void {
-    // 订阅技能释放事件，开始命中判定
+    // 1. 订阅技能释放事件，执行命中判定
     const skillCastHandler = (event: SkillCastEvent) =>
       this._onSkillCast(event);
     EventBus.instance.subscribe<SkillCastEvent>(
@@ -48,27 +51,23 @@ export class DamageSystem {
     );
     this._handlers.set('SkillCastEvent', skillCastHandler);
 
-    // 订阅伤害应用事件（处理 DOT、反伤等外部直接伤害）
-    const damageHandler = (event: DamageEvent) => this._onDamageEvent(event);
-    EventBus.instance.subscribe<DamageEvent>(
-      'DamageEvent',
-      damageHandler,
-      EventPriorityLevel.DAMAGE_APPLY,
+    // 2. 订阅伤害请求事件，执行减伤、随机浮动和伤害应用
+    // 注意：不再订阅 DamageEvent，避免循环
+    const damageRequestHandler = (event: DamageRequestEvent) =>
+      this._onDamageRequest(event);
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      damageRequestHandler,
+      EventPriorityLevel.DAMAGE_REQUEST,
     );
-    this._handlers.set('DamageEvent', damageHandler);
+    this._handlers.set('DamageRequestEvent', damageRequestHandler);
   }
 
-  /**
-   * 响应直接伤害事件（DOT、反伤等）
-   * 统一通过 _updateTargetHealth 完成气血更新和战报记录
-   */
-  private _onDamageEvent(event: DamageEvent): void {
-    this._updateTargetHealth(event);
-  }
+  // ==================== 技能伤害流程 ====================
 
   /**
    * 响应技能释放事件，执行命中判定
-   * EDA 模式：通过订阅 SkillCastEvent 被动触发
+   * 流程：SkillCastEvent → HitCheckEvent → DamageRequestEvent
    */
   private _onSkillCast(event: SkillCastEvent): void {
     const { caster, target, ability } = event;
@@ -127,17 +126,18 @@ export class DamageSystem {
     // 未命中，直接终止流程
     if (!hitCheckEvent.isHit) return;
 
-    // 命中成功，进入伤害计算
-    this._calculateDamage(event, hitCheckEvent);
+    // 命中成功，计算基础伤害并发布 DamageRequestEvent
+    this._publishDamageRequestEvent(event, hitCheckEvent);
   }
 
   /**
-   * 计算伤害
-   * 流程: 基础伤害 → 暴击判定 → 伤害修正事件 → 减伤 → 随机浮动 → 最终伤害
+   * 计算技能基础伤害，发布 DamageRequestEvent
+   * 注意：此处只计算基础伤害和暴击，不计算减伤
+   * 减伤和随机浮动由 _onDamageRequest 统一处理
    */
-  private _calculateDamage(
+  private _publishDamageRequestEvent(
     castEvent: SkillCastEvent,
-    _hitEvent: HitCheckEvent, // 预留参数，供未来扩展（如根据命中类型调整伤害）
+    _hitEvent: HitCheckEvent,
   ): void {
     const { caster, target, ability } = castEvent;
 
@@ -172,14 +172,16 @@ export class DamageSystem {
       critRate *= 0.7;
     }
     const isCritical = Math.random() * 100 < critRate;
-    const critMultiplier = isCritical ? 1.5 + casterAgility / 1000 : 1; // 暴击倍率：基础1.5倍 + 身法加成
+    const critMultiplier = isCritical ? 1.5 + casterAgility / 1000 : 1;
 
-    // 3. 发布伤害计算事件，供被动/命格/BUFF修正伤害（增伤/减伤效果在此订阅）
+    // 3. 计算当前伤害（基础 × 暴击倍率）
     const currentDamage = baseDamage * critMultiplier;
 
-    const calcEvent: DamageCalculateEvent = {
-      type: 'DamageCalculateEvent',
-      priority: EventPriorityLevel.DAMAGE_CALC,
+    // 4. 发布伤害请求事件
+    // 其他系统（被动、命格、Buff）可订阅此事件修正伤害（增伤效果）
+    const requestEvent: DamageRequestEvent = {
+      type: 'DamageRequestEvent',
+      priority: EventPriorityLevel.DAMAGE_REQUEST,
       timestamp: Date.now(),
       caster,
       target,
@@ -190,57 +192,60 @@ export class DamageSystem {
       critMultiplier,
     };
 
-    EventBus.instance.publish(calcEvent);
+    EventBus.instance.publish(requestEvent);
+  }
 
-    // 4. 修正最终伤害：计算目标减伤（体魄属性核心价值：减伤）
+  // ==================== 统一伤害计算管道 ====================
+
+  /**
+   * 响应伤害请求事件，执行减伤、随机浮动和伤害应用
+   * 所有伤害来源（技能、DOT、反伤）都走此管道
+   *
+   * 流程：DamageRequestEvent → [减伤/随机浮动] → DamageEvent → _updateTargetHealth
+   */
+  private _onDamageRequest(event: DamageRequestEvent): void {
+    const { target, finalDamage } = event;
+
+    // 1. 计算目标减伤（体魄属性核心价值：减伤）
     const targetPhysique = target.attributes.getValue(AttributeType.PHYSIQUE);
     const damageReduction = Math.min(
       0.7,
       targetPhysique / (targetPhysique + 1000),
     );
 
-    calcEvent.finalDamage = calcEvent.finalDamage * (1 - damageReduction);
+    event.finalDamage = finalDamage * (1 - damageReduction);
 
-    // 5. 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性)
+    // 2. 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性)
     const randomFactor = 0.9 + Math.random() * 0.2;
-    calcEvent.finalDamage = calcEvent.finalDamage * randomFactor;
+    event.finalDamage = event.finalDamage * randomFactor;
 
-    // 6. 最小伤害保证（避免0伤害）并四舍五入
-    calcEvent.finalDamage = Math.max(1, Math.round(calcEvent.finalDamage));
+    // 3. 最小伤害保证（避免0伤害）并四舍五入
+    event.finalDamage = Math.max(1, Math.round(event.finalDamage));
 
-    // 7. 进入伤害应用环节
-    this._applyDamage(calcEvent);
-  }
-
-  /**
-   * 应用伤害
-   */
-  private _applyDamage(calcEvent: DamageCalculateEvent): void {
-    const { caster, target, ability, finalDamage, isCritical, critMultiplier } =
-      calcEvent;
-
-    // 1. 发布伤害事件，供护盾/无敌/伤害免疫类效果响应
+    // 4. 发布伤害应用事件（供护盾/无敌效果订阅）
     const damageEvent: DamageEvent = {
       type: 'DamageEvent',
       priority: EventPriorityLevel.DAMAGE_APPLY,
       timestamp: Date.now(),
-      caster,
-      target,
-      ability,
-      finalDamage,
-      isCritical,
-      critMultiplier,
+      caster: event.caster,
+      target: event.target,
+      ability: event.ability,
+      finalDamage: event.finalDamage,
+      isCritical: event.isCritical,
+      critMultiplier: event.critMultiplier,
     };
 
     EventBus.instance.publish(damageEvent);
 
-    // 2. 注意：以前在这里直接调用 _updateTargetHealth。
-    // 现在我们统一通过订阅 DamageEvent 的 _onDamageEvent 来调用 _updateTargetHealth。
-    // 这确保了无论是技能产生的伤害，还是外部（DOT、反伤）发布的伤害，都走统一的处理和日志路径。
+    // 5. 直接应用伤害（不再通过订阅 DamageEvent）
+    // 这避免了 DamageSystem 既发布又订阅同一事件的循环
+    this._updateTargetHealth(damageEvent);
   }
 
+  // ==================== 伤害应用 ====================
+
   /**
-   * 更新目标气血
+   * 更新目标气血，发布受击事件
    */
   private _updateTargetHealth(damageEvent: DamageEvent): void {
     const { target, finalDamage, caster, ability, isCritical, critMultiplier } =

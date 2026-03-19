@@ -14,6 +14,7 @@ import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
 import {
   DamageEvent,
+  DamageRequestEvent,
   EventPriorityLevel,
   RoundPreEvent,
   TagAddedEvent,
@@ -21,6 +22,7 @@ import {
 } from '../../core/events';
 import { GameplayTags } from '../../core/GameplayTags';
 import { AttributeType, BuffType, ModifierType } from '../../core/types';
+import { DamageSystem } from '../../systems/DamageSystem';
 import { Unit } from '../../units/Unit';
 
 // 测试用 DOT Buff 实现（简化版，用于验证架构能力）
@@ -76,24 +78,24 @@ class TestPoisonDotBuff extends Buff {
   private _onRoundPre(_event: RoundPreEvent): void {
     if (!this._owner || !this._owner.isAlive()) return;
 
-    // 造成体魄 * 5 * 层数的伤害
+    // 计算基础伤害：体魄 * 5 * 层数
     const physique = this._owner.attributes.getValue(AttributeType.PHYSIQUE);
-    const damage = Math.floor(physique * 5 * this._layer);
+    const baseDamage = Math.floor(physique * 5 * this._layer);
 
-    EventBus.instance.publish<DamageEvent>({
-      type: 'DamageEvent',
-      priority: EventPriorityLevel.DAMAGE_APPLY,
+    // 发布 DamageRequestEvent，进入统一伤害计算管道
+    // 符合 GAS+EDA 架构：所有伤害走统一管道
+    EventBus.instance.publish<DamageRequestEvent>({
+      type: 'DamageRequestEvent',
+      priority: EventPriorityLevel.DAMAGE_REQUEST,
       timestamp: Date.now(),
       caster: null,
       target: this._owner,
       ability: null,
-      finalDamage: damage,
+      baseDamage,
+      finalDamage: baseDamage,
     });
 
-    this.tickDuration();
-    if (this.isExpired() && this._owner) {
-      this._owner.buffs.removeBuffExpired(this.id);
-    }
+    // 注意：不再自行管理持续时间，由 BattleEngineV5 统一管理
   }
 
   override onDeactivate(): void {
@@ -127,11 +129,15 @@ class TestPoisonDotBuff extends Buff {
 describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
   let eventBus: EventBus;
   let events: { type: string; data: unknown }[];
+  let damageSystem: DamageSystem;
 
   beforeEach(() => {
     eventBus = EventBus.instance;
     eventBus.reset();
     events = [];
+
+    // 创建 DamageSystem 实例，订阅伤害相关事件
+    damageSystem = new DamageSystem();
 
     // 记录所有事件
     eventBus.subscribe(
@@ -142,6 +148,11 @@ describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
     eventBus.subscribe(
       'TagRemovedEvent',
       (e) => events.push({ type: 'TagRemovedEvent', data: e }),
+      0,
+    );
+    eventBus.subscribe(
+      'DamageRequestEvent',
+      (e) => events.push({ type: 'DamageRequestEvent', data: e }),
       0,
     );
     eventBus.subscribe(
@@ -162,6 +173,7 @@ describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
   });
 
   afterEach(() => {
+    damageSystem.destroy();
     eventBus.reset();
   });
 
@@ -227,14 +239,26 @@ describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
         turn: 1,
       });
 
-      // 验证伤害事件被发布
+      // 验证伤害请求事件被发布（DOT 进入统一伤害管道）
+      const requestEvents = events.filter(
+        (e) => e.type === 'DamageRequestEvent',
+      );
+      expect(requestEvents.length).toBe(1);
+
+      // 验证基础伤害值：体魄 100 * 5 * 1层 = 500
+      const requestEvent = requestEvents[0].data as DamageRequestEvent;
+      expect(requestEvent.baseDamage).toBe(500);
+      expect(requestEvent.target.id).toBe('test');
+
+      // 验证最终伤害事件被发布（经过减伤和随机浮动）
       const damageEvents = events.filter((e) => e.type === 'DamageEvent');
       expect(damageEvents.length).toBe(1);
 
-      // 验证伤害值：体魄 100 * 5 * 1层 = 500
+      // 最终伤害应该被减伤修正（体魄 100，减伤约 9%）
+      // 加上随机浮动 0.9~1.1，最终伤害范围约 410~500
       const damageEvent = damageEvents[0].data as DamageEvent;
-      expect(damageEvent.finalDamage).toBe(500);
-      expect(damageEvent.target.id).toBe('test');
+      expect(damageEvent.finalDamage).toBeGreaterThan(400);
+      expect(damageEvent.finalDamage).toBeLessThan(600);
     });
 
     it('DOT 伤害应该受层数影响', () => {
@@ -256,11 +280,19 @@ describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
         turn: 1,
       });
 
+      const requestEvents = events.filter(
+        (e) => e.type === 'DamageRequestEvent',
+      );
+      const requestEvent = requestEvents[0].data as DamageRequestEvent;
+
+      // 基础伤害：体魄 100 * 5 * 3层 = 1500
+      expect(requestEvent.baseDamage).toBe(1500);
+
+      // 最终伤害经过减伤修正
       const damageEvents = events.filter((e) => e.type === 'DamageEvent');
       const damageEvent = damageEvents[0].data as DamageEvent;
-
-      // 伤害：体魄 100 * 5 * 3层 = 1500
-      expect(damageEvent.finalDamage).toBe(1500);
+      expect(damageEvent.finalDamage).toBeGreaterThan(1200);
+      expect(damageEvent.finalDamage).toBeLessThan(1700);
     });
   });
 
@@ -362,7 +394,7 @@ describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
       const buff = new TestPoisonDotBuff(1);
       unit.buffs.addBuff(buff);
 
-      // 模拟 3 个回合
+      // 模拟 3 个回合（RoundPreEvent → DOT 伤害 → 回合结束 → tickDuration）
       for (let turn = 1; turn <= 3; turn++) {
         eventBus.publish<RoundPreEvent>({
           type: 'RoundPreEvent',
@@ -370,6 +402,15 @@ describe('PoisonDotBuff - GAS+EDA 架构能力验证', () => {
           timestamp: Date.now(),
           turn,
         });
+
+        // 模拟 BattleEngineV5 的 Buff 生命周期管理
+        const allBuffs = unit.buffs.getAllBuffs();
+        for (const b of allBuffs) {
+          b.tickDuration();
+          if (b.isExpired()) {
+            unit.buffs.removeBuffExpired(b.id);
+          }
+        }
       }
 
       // Buff 应该已过期移除

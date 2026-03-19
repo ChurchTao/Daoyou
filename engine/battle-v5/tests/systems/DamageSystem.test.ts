@@ -3,8 +3,8 @@ import { BasicAttack } from '../../abilities/BasicAttack';
 import { EventBus } from '../../core/EventBus';
 import { GameplayTags } from '../../core/GameplayTags';
 import {
-  DamageCalculateEvent,
   DamageEvent,
+  DamageRequestEvent,
   DamageTakenEvent,
   HitCheckEvent,
   SkillCastEvent,
@@ -65,11 +65,11 @@ describe('DamageSystem - EventDriven', () => {
   });
 
   it('should calculate correct base damage based on skill type', () => {
-    const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
+    const damageCalcSpy = jest.fn((event: DamageRequestEvent) => {
       expect(event.baseDamage).toBeGreaterThan(0);
     });
-    eventBus.subscribe<DamageCalculateEvent>(
-      'DamageCalculateEvent',
+    eventBus.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
       damageCalcSpy,
     );
 
@@ -149,11 +149,11 @@ describe('DamageSystem - EventDriven', () => {
     physicalSkill.setBaseDamage(20);
     physicalSkill.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
 
-    const damageCalcSpy = jest.fn((event: DamageCalculateEvent) => {
+    const damageCalcSpy = jest.fn((event: DamageRequestEvent) => {
       expect(event.baseDamage).toBeGreaterThan(0);
     });
-    eventBus.subscribe<DamageCalculateEvent>(
-      'DamageCalculateEvent',
+    eventBus.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
       damageCalcSpy,
     );
 
