@@ -1,10 +1,9 @@
-import { Unit } from '../../units/Unit';
 import { Buff, StackRule } from '../../buffs/Buff';
-import { BuffType } from '../../core/types';
-import { GameplayTags } from '../../core/GameplayTags';
-import { BuffAddEvent } from '../../core/events';
 import { EventBus } from '../../core/EventBus';
-import { EventPriorityLevel } from '../../core/events';
+import { GameplayTags } from '../../core/GameplayTags';
+import { BuffAddEvent, EventPriorityLevel } from '../../core/events';
+import { BuffId, BuffType } from '../../core/types';
+import { Unit } from '../../units/Unit';
 
 describe('标签系统集成测试', () => {
   beforeEach(() => {
@@ -16,7 +15,7 @@ describe('标签系统集成测试', () => {
       const unit = new Unit('test', '测试', {});
       unit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
 
-      const debuff = new Buff('poison' as any, '中毒', BuffType.DEBUFF, 3);
+      const debuff = new Buff('poison' as BuffId, '中毒', BuffType.DEBUFF, 3);
       debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
 
       const container = unit.buffs;
@@ -29,7 +28,7 @@ describe('标签系统集成测试', () => {
       const unit = new Unit('test', '测试', {});
       unit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
 
-      const buff = new Buff('strength' as any, '力量', BuffType.BUFF, 3);
+      const buff = new Buff('strength' as BuffId, '力量', BuffType.BUFF, 3);
       buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
 
       const container = unit.buffs;
@@ -42,7 +41,7 @@ describe('标签系统集成测试', () => {
       const unit = new Unit('test', '测试', {});
       unit.tags.addTags([GameplayTags.STATUS.IMMUNE]);
 
-      const debuff = new Buff('poison' as any, '中毒', BuffType.DEBUFF, 3);
+      const debuff = new Buff('poison' as BuffId, '中毒', BuffType.DEBUFF, 3);
       debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
 
       const container = unit.buffs;
@@ -55,11 +54,17 @@ describe('标签系统集成测试', () => {
   describe('BUFF 拦截事件', () => {
     it('应发布 BuffAddEvent', () => {
       const unit = new Unit('test', '测试', {});
-      const buff = new Buff('test' as any, '测试', BuffType.BUFF, 3);
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
 
       let eventReceived = false;
-      const handler = () => { eventReceived = true; };
-      EventBus.instance.subscribe('BuffAddEvent', handler, EventPriorityLevel.BUFF_INTERCEPT);
+      const handler = () => {
+        eventReceived = true;
+      };
+      EventBus.instance.subscribe(
+        'BuffAddEvent',
+        handler,
+        EventPriorityLevel.BUFF_INTERCEPT,
+      );
 
       unit.buffs.addBuff(buff);
 
@@ -69,10 +74,16 @@ describe('标签系统集成测试', () => {
 
     it('取消 BuffAddEvent 应阻止 BUFF 添加', () => {
       const unit = new Unit('test', '测试', {});
-      const buff = new Buff('test' as any, '测试', BuffType.BUFF, 3);
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
 
-      const handler = (e: BuffAddEvent) => { e.isCancelled = true; };
-      EventBus.instance.subscribe('BuffAddEvent', handler, EventPriorityLevel.BUFF_INTERCEPT);
+      const handler = (e: BuffAddEvent) => {
+        e.isCancelled = true;
+      };
+      EventBus.instance.subscribe(
+        'BuffAddEvent',
+        handler,
+        EventPriorityLevel.BUFF_INTERCEPT,
+      );
 
       unit.buffs.addBuff(buff);
 
@@ -84,14 +95,26 @@ describe('标签系统集成测试', () => {
   describe('BUFF 堆叠规则', () => {
     it('REFRESH_DURATION 应刷新持续时间', () => {
       const unit = new Unit('test', '测试', {});
-      const buff1 = new Buff('test' as any, '测试', BuffType.BUFF, 3, StackRule.REFRESH_DURATION);
+      const buff1 = new Buff(
+        'test' as BuffId,
+        '测试',
+        BuffType.BUFF,
+        3,
+        StackRule.REFRESH_DURATION,
+      );
       buff1.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
 
       unit.buffs.addBuff(buff1);
       buff1.tickDuration();
       expect(buff1.getDuration()).toBe(2);
 
-      const buff2 = new Buff('test' as any, '测试', BuffType.BUFF, 5, StackRule.REFRESH_DURATION);
+      const buff2 = new Buff(
+        'test' as BuffId,
+        '测试',
+        BuffType.BUFF,
+        5,
+        StackRule.REFRESH_DURATION,
+      );
       buff2.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
 
       unit.buffs.addBuff(buff2);
@@ -100,13 +123,25 @@ describe('标签系统集成测试', () => {
 
     it('IGNORE 应忽略新 BUFF', () => {
       const unit = new Unit('test', '测试', {});
-      const buff1 = new Buff('test' as any, '测试', BuffType.BUFF, 3, StackRule.IGNORE);
+      const buff1 = new Buff(
+        'test' as BuffId,
+        '测试',
+        BuffType.BUFF,
+        3,
+        StackRule.IGNORE,
+      );
       buff1.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
 
       unit.buffs.addBuff(buff1);
       expect(buff1.getDuration()).toBe(3);
 
-      const buff2 = new Buff('test' as any, '测试', BuffType.BUFF, 5, StackRule.IGNORE);
+      const buff2 = new Buff(
+        'test' as BuffId,
+        '测试',
+        BuffType.BUFF,
+        5,
+        StackRule.IGNORE,
+      );
       buff2.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
 
       unit.buffs.addBuff(buff2);
@@ -117,7 +152,7 @@ describe('标签系统集成测试', () => {
   describe('BuffContainer.clone', () => {
     it('克隆应保留所有 BUFF 和标签', () => {
       const unit = new Unit('test', '测试', {});
-      const buff = new Buff('test' as any, '测试', BuffType.BUFF, 3);
+      const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
       buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
       unit.buffs.addBuff(buff);
 

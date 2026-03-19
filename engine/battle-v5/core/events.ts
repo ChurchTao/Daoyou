@@ -1,23 +1,22 @@
 // engine/battle-v5/core/events.ts
-import { CombatEvent, EventPriority } from './types';
-import { Unit } from '../units/Unit';
 import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
-import { TagPath } from './types';
+import { Unit } from '../units/Unit';
+import { CombatEvent, TagPath } from './types';
 
 // ===== 事件优先级枚举 =====
 export enum EventPriorityLevel {
-  ACTION_TRIGGER = 80,     // 行动阶段触发（最高）
-  SKILL_PRE_CAST = 75,     // 施法前摇&打断判定
-  SKILL_CAST = 70,         // 技能正式释放
-  HIT_CHECK = 65,          // 命中判定
-  DAMAGE_CALC = 60,        // 伤害计算
-  DAMAGE_APPLY = 55,       // 伤害应用
-  DAMAGE_TAKEN = 50,       // 受击事件（触发被动/反伤）
-  BUFF_INTERCEPT = 40,     // BUFF 拦截（高于 POST_SETTLE）
-  TAG_CHANGE = 35,         // 标签变更
-  POST_SETTLE = 30,        // 后置结算
-  COMBAT_LOG = 10,         // 战报输出（最低）
+  ACTION_TRIGGER = 80, // 行动阶段触发（最高）
+  SKILL_PRE_CAST = 75, // 施法前摇&打断判定
+  SKILL_CAST = 70, // 技能正式释放
+  HIT_CHECK = 65, // 命中判定
+  DAMAGE_CALC = 60, // 伤害计算
+  DAMAGE_APPLY = 55, // 伤害应用
+  DAMAGE_TAKEN = 50, // 受击事件（触发被动/反伤）
+  BUFF_INTERCEPT = 40, // BUFF 拦截（高于 POST_SETTLE）
+  TAG_CHANGE = 35, // 标签变更
+  POST_SETTLE = 30, // 后置结算
+  COMBAT_LOG = 10, // 战报输出（最低）
 }
 
 // ===== 行动阶段触发事件 =====
@@ -70,8 +69,8 @@ export interface DamageCalculateEvent extends CombatEvent {
   ability: Ability;
   baseDamage: number;
   finalDamage: number;
-  isCritical?: boolean;      // 是否暴击
-  critMultiplier?: number;   // 暴击倍率
+  isCritical?: boolean; // 是否暴击
+  critMultiplier?: number; // 暴击倍率
 }
 
 // ===== 伤害应用事件 =====
@@ -81,8 +80,8 @@ export interface DamageEvent extends CombatEvent {
   target: Unit;
   ability: Ability;
   finalDamage: number;
-  isCritical?: boolean;      // 是否暴击
-  critMultiplier?: number;   // 暴击倍率
+  isCritical?: boolean; // 是否暴击
+  critMultiplier?: number; // 暴击倍率
 }
 
 // ===== 受击事件 =====
@@ -90,12 +89,12 @@ export interface DamageTakenEvent extends CombatEvent {
   type: 'DamageTakenEvent';
   caster: Unit;
   target: Unit;
-  ability: Ability;          // 造成伤害的技能
+  ability: Ability; // 造成伤害的技能
   damageTaken: number;
   remainHealth: number;
   isLethal: boolean;
-  isCritical?: boolean;      // 是否暴击
-  critMultiplier?: number;   // 暴击倍率
+  isCritical?: boolean; // 是否暴击
+  critMultiplier?: number; // 暴击倍率
 }
 
 // ===== 单元死亡事件 =====

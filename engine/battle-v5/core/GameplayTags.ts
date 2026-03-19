@@ -97,25 +97,37 @@ export class GameplayTagContainer {
 export const GameplayTags = {
   // ===== 单位类型标签 =====
   UNIT: {
+    // 单位类型
     TYPE: 'Unit.Type',
+    // 玩家
     PLAYER: 'Unit.Type.Player',
+    // 敌人
     ENEMY: 'Unit.Type.Enemy',
+    // 战斗单位
     COMBATANT: 'Unit.Type.Combatant',
   },
 
   // ===== 状态标签 =====
   STATUS: {
+    // 免疫
     IMMUNE: 'Status.Immune',
+    // 免疫控制
     IMMUNE_CONTROL: 'Status.Immune.Control',
+    // 免疫 debuff
     IMMUNE_DEBUFF: 'Status.Immune.Debuff',
+    // 免疫火焰
     IMMUNE_FIRE: 'Status.Immune.Fire',
+    // 免疫眩晕
     STUNNED: 'Status.Stunned',
+    // 免疫中毒
     POISONED: 'Status.Poisoned',
   },
 
   // ===== 技能标签 =====
   ABILITY: {
+    // 技能类型
     TYPE: 'Ability.Type',
+    // 技能类型：伤害、控制、治疗、魔法、物理
     TYPE_DAMAGE: 'Ability.Type.Damage',
     TYPE_CONTROL: 'Ability.Type.Control',
     TYPE_HEAL: 'Ability.Type.Heal',
@@ -133,6 +145,7 @@ export const GameplayTags = {
     ELEMENT_ICE: 'Ability.Element.Ice',
     ELEMENT_THUNDER: 'Ability.Element.Thunder',
 
+    // 技能目标
     TARGET: 'Ability.Target',
     TARGET_SINGLE: 'Ability.Target.Single',
     TARGET_AOE: 'Ability.Target.AoE',
@@ -140,7 +153,9 @@ export const GameplayTags = {
 
   // ===== BUFF 标签 =====
   BUFF: {
+    // BUFF 类型
     TYPE: 'Buff.Type',
+    // BUFF 类型：增益、减益、控制
     TYPE_BUFF: 'Buff.Type.Buff',
     TYPE_DEBUFF: 'Buff.Type.Debuff',
     TYPE_CONTROL: 'Buff.Type.Control',
