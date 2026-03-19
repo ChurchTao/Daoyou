@@ -60,9 +60,10 @@ describe('BasicAttack', () => {
     });
 
     it('should have empty executeSkill implementation', () => {
+      // executeSkill is protected, but we can test through execute()
       // This should not throw any errors
       expect(() => {
-        basicAttack.executeSkill(owner, owner);
+        basicAttack.execute({ caster: owner, target: owner });
       }).not.toThrow();
     });
   });

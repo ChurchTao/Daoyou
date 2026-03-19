@@ -9,7 +9,10 @@ import { GameplayTags } from '../../core/GameplayTags';
  */
 export class FireballSkill extends ActiveSkill {
   constructor() {
-    super('fireball' as AbilityId, '火球术', 30, 3);
+    super('fireball' as AbilityId, '火球术', {
+      mpCost: 30,
+      cooldown: 3,
+    });
 
     // 设置标签
     this.tags.addTags([

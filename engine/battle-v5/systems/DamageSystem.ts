@@ -1,3 +1,4 @@
+import { ActiveSkill } from '../abilities/ActiveSkill';
 import { EventBus } from '../core/EventBus';
 import { GameplayTags } from '../core/GameplayTags';
 import {
@@ -122,17 +123,20 @@ export class DamageSystem {
   ): void {
     const { caster, target, ability } = castEvent;
 
+    // 只处理 ActiveSkill 类型的能力（有伤害属性）
+    const skill = ability instanceof ActiveSkill ? ability : null;
+
     // 1. 计算基础伤害（根据技能类型和对应属性）
-    let baseDamage = ability.baseDamage;
+    let baseDamage = skill?.baseDamage ?? 0;
 
     if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
       // 法术伤害：灵力 * 技能系数 + 固定值
       const spirit = caster.attributes.getValue(AttributeType.SPIRIT);
-      baseDamage = spirit * ability.damageCoefficient + ability.baseDamage;
+      baseDamage = spirit * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
     } else if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
       // 体术伤害：体魄 * 技能系数 + 固定值
       const physique = caster.attributes.getValue(AttributeType.PHYSIQUE);
-      baseDamage = physique * ability.damageCoefficient + ability.baseDamage;
+      baseDamage = physique * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
     }
 
     // 2. 暴击判定（身法属性核心价值：暴击率）

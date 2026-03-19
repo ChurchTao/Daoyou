@@ -53,30 +53,36 @@ describe('Ability', () => {
 
   describe('事件订阅', () => {
     it('激活时应该订阅事件', () => {
-      const ability = new Ability('test_ability', '测试能力', AbilityType.PASSIVE_SKILL);
+      // Create a subclass to access protected method
+      class TestAbility extends Ability {
+        onActivateCalled = false;
+
+        protected override onActivate(): void {
+          this.onActivateCalled = true;
+        }
+      }
+
+      const ability = new TestAbility('test_ability', '测试能力', AbilityType.PASSIVE_SKILL);
       ability.setOwner(unit);
-
-      let eventReceived = false;
-      ability.onActivate = () => {
-        eventReceived = true;
-      };
-
       ability.setActive(true);
-      expect(eventReceived).toBe(true);
+      expect(ability['onActivateCalled']).toBe(true);
     });
 
     it('停用时应该取消订阅事件', () => {
-      const ability = new Ability('test_ability', '测试能力', AbilityType.PASSIVE_SKILL);
+      // Create a subclass to access protected method
+      class TestAbility2 extends Ability {
+        onDeactivateCalled = false;
+
+        protected override onDeactivate(): void {
+          this.onDeactivateCalled = true;
+        }
+      }
+
+      const ability = new TestAbility2('test_ability', '测试能力', AbilityType.PASSIVE_SKILL);
       ability.setOwner(unit);
-
-      let deactivated = false;
-      ability.onDeactivate = () => {
-        deactivated = true;
-      };
-
       ability.setActive(true);
       ability.setActive(false);
-      expect(deactivated).toBe(true);
+      expect(ability['onDeactivateCalled']).toBe(true);
     });
   });
 
