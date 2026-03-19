@@ -27,7 +27,12 @@ export class BuffContainer {
     this._owner = owner;
   }
 
-  addBuff(buff: Buff): void {
+  /**
+   * 添加 Buff
+   * @param buff 要添加的 Buff
+   * @param source Buff 来源（通常是施法者），用于 DOT 伤害归属等
+   */
+  addBuff(buff: Buff, source?: Unit): void {
     // 1. 发布拦截事件
     const event: BuffAddEvent = {
       type: 'BuffAddEvent',
@@ -46,7 +51,7 @@ export class BuffContainer {
     // 3. 堆叠规则处理
     const existing = this._buffs.get(buff.id);
     if (existing) {
-      this._applyStackRule(existing, buff);
+      this._applyStackRule(existing, buff, source);
       return;
     }
 
@@ -56,10 +61,15 @@ export class BuffContainer {
     // 4.1 设置 owner 引用（关键：必须在 onActivate 之前）
     buff.setOwner(this._owner);
 
-    // 4.2 调用激活方法（子类在此订阅事件、添加标签等）
+    // 4.2 设置 source 引用（如果提供）
+    if (source) {
+      buff.setSource(source);
+    }
+
+    // 4.3 调用激活方法（子类在此订阅事件、添加标签等）
     buff.onActivate();
 
-    // 4.3 更新派生属性
+    // 4.4 更新派生属性
     this._owner.updateDerivedStats();
 
     // 5. 发布应用成功事件
@@ -69,6 +79,7 @@ export class BuffContainer {
       timestamp: Date.now(),
       target: this._owner,
       buff,
+      source,
     };
     EventBus.instance.publish(appliedEvent);
   }
@@ -158,16 +169,23 @@ export class BuffContainer {
     return false;
   }
 
-  private _applyStackRule(existing: Buff, newBuff: Buff): void {
+  private _applyStackRule(existing: Buff, newBuff: Buff, source?: Unit): void {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
         // 层数叠加：增加一层
         existing.addLayer(1);
+        // 如果提供了新的 source，更新现有 Buff 的 source
+        if (source) {
+          existing.setSource(source);
+        }
         break;
 
       case StackRule.REFRESH_DURATION:
         // 刷新持续时间：更新为新 Buff 的持续时间
         existing.refreshToDuration(newBuff.getMaxDuration());
+        if (source) {
+          existing.setSource(source);
+        }
         break;
 
       case StackRule.OVERRIDE:
@@ -175,6 +193,9 @@ export class BuffContainer {
         existing.onDeactivate();
         this._buffs.set(existing.id, newBuff);
         newBuff.setOwner(this._owner);
+        if (source) {
+          newBuff.setSource(source);
+        }
         newBuff.onActivate();
         this._owner.updateDerivedStats();
         break;

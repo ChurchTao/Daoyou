@@ -82,7 +82,6 @@ export class PoisonDotBuff extends Buff {
   /**
    * 处理回合前置事件
    * - 造成体魄 * 5 * 层数的伤害
-   * - 持续时间减 1，为 0 时移除
    */
   private _onRoundPre(_event: RoundPreEvent): void {
     if (!this._owner || !this._owner.isAlive()) return;
@@ -91,14 +90,14 @@ export class PoisonDotBuff extends Buff {
     const physique = this._owner.attributes.getValue(AttributeType.PHYSIQUE);
     const damage = Math.floor(physique * 5 * this._layer);
 
-    // 发布伤害事件
+    // 发布伤害事件，携带 source 信息
     EventBus.instance.publish<DamageEvent>({
       type: 'DamageEvent',
       priority: EventPriorityLevel.DAMAGE_APPLY,
       timestamp: Date.now(),
-      caster: null, // DOT 伤害无施法者
+      caster: this._source, // DOT 来源（施毒者）
       target: this._owner,
-      ability: null, // 无技能来源
+      ability: null, // DOT 非技能来源
       finalDamage: damage,
     });
   }

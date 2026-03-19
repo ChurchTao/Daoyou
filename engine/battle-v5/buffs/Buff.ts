@@ -41,6 +41,9 @@ export class Buff {
   // GAS 核心：owner 引用，用于事件订阅
   protected _owner: Unit | null = null;
 
+  // GAS 核心：source 引用，记录 Buff 来源（施法者/技能）
+  protected _source: Unit | null = null;
+
   // 层数机制（大多数 Buff 都有层数概念）
   protected _layer: number = 1;
 
@@ -78,6 +81,21 @@ export class Buff {
    */
   getOwner(): Unit | null {
     return this._owner;
+  }
+
+  /**
+   * 设置 source 引用（Buff 来源，通常是施法者）
+   * 用于 DOT 伤害归属、伤害加成计算等
+   */
+  setSource(source: Unit | null): void {
+    this._source = source;
+  }
+
+  /**
+   * 获取 source（Buff 来源）
+   */
+  getSource(): Unit | null {
+    return this._source;
   }
 
   /**
@@ -214,7 +232,7 @@ export class Buff {
    * 克隆 Buff 实例
    * 子类可以重写此方法以实现更复杂的克隆逻辑
    * 注意：
-   * - owner 不会被复制，需要通过 setOwner 设置
+   * - owner 和 source 不会被复制，需要通过 setOwner/setSource 设置
    * - 层数会被复制
    */
   clone(): Buff {
@@ -228,7 +246,7 @@ export class Buff {
     cloned.setDuration(this._duration);
     cloned.tags = this.tags.clone();
     cloned._layer = this._layer;
-    // 注意：不复制 owner 和事件订阅，这些需要在 addBuff 时重新设置
+    // 注意：不复制 owner、source 和事件订阅，这些需要在 addBuff 时重新设置
     return cloned;
   }
 }

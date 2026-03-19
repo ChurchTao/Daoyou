@@ -30,7 +30,8 @@ import { AttributeType } from '../core/types';
  * 7. 伤害应用和受击事件
  */
 export class DamageSystem {
-  private _handlers: Map<string, (event: SkillCastEvent) => void> = new Map();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _handlers: Map<string, (event: any) => void> = new Map();
 
   constructor() {
     this._subscribeToEvents();
@@ -59,23 +60,9 @@ export class DamageSystem {
 
   /**
    * 响应直接伤害事件（DOT、反伤等）
+   * 统一通过 _updateTargetHealth 完成气血更新和战报记录
    */
   private _onDamageEvent(event: DamageEvent): void {
-    // 如果已经结算（比如由 _applyDamage 触发的），则不再重复结算
-    // 这里我们可以根据 timestamp 或某种标记来防止循环，
-    // 但更简单的逻辑是：_applyDamage 负责发布，而 _updateTargetHealth 负责更新。
-    // 如果是外部发布的 DamageEvent，则需要通过 _updateTargetHealth 完成最后一步。
-    
-    // 我们检查这个 DamageEvent 是否已经应用过。
-    // 在本系统中，_applyDamage 发布 DamageEvent 后直接调用 _updateTargetHealth。
-    // 所以如果是外部发布的，我们需要捕获并调用 _updateTargetHealth。
-    
-    // 为了防止重入，我们检查当前事件是否来自于本系统的 _applyDamage 调用。
-    // 这里简单地通过判断目标血量是否已经在当前回合变动可能不准确。
-    // 更好的做法是：_applyDamage 内部调用 _updateTargetHealth 时，不走事件订阅。
-    // 或者，让 _applyDamage 只发布事件，由 _onDamageEvent 统一处理。
-    
-    // 方案：统一由 _onDamageEvent 处理 DamageEvent。
     this._updateTargetHealth(event);
   }
 
@@ -163,11 +150,13 @@ export class DamageSystem {
     if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
       // 法术伤害：灵力 * 技能系数 + 固定值
       const spirit = caster.attributes.getValue(AttributeType.SPIRIT);
-      baseDamage = spirit * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
+      baseDamage =
+        spirit * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
     } else if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
       // 体术伤害：体魄 * 技能系数 + 固定值
       const physique = caster.attributes.getValue(AttributeType.PHYSIQUE);
-      baseDamage = physique * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
+      baseDamage =
+        physique * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
     }
 
     // 2. 暴击判定（身法属性核心价值：暴击率）
