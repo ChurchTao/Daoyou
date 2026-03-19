@@ -8,40 +8,57 @@ import { GameplayTagContainer } from '../core/GameplayTags';
 type EventHandler = (event: CombatEvent) => void;
 
 /**
- * 能力基类
- * 所有技能、命格、被动能力的基类
+ * 能力上下文 - 传递给 canTrigger 和 execute 的参数
+ */
+export interface AbilityContext {
+  caster: Unit;
+  target: Unit;
+}
+
+/**
+ * Ability 基类 - 遵循 GAS 设计原则
+ *
+ * 职责：
+ * - 定义能力的核心接口（canTrigger, execute）
+ * - 管理标签系统（用于条件判断和解耦）
+ * - 提供事件订阅辅助方法
+ *
+ * 生命周期：
+ * 1. 创建 → constructor()
+ * 2. 绑定所有者 → setOwner()
+ * 3. 激活 → setActive(true) → 调用 onActivate()
+ * 4. 执行 → canTrigger() 检查 → execute() 执行
+ * 5. 停用 → setActive(false) → 调用 onDeactivate()
+ * 6. 销毁 → destroy()
+ *
+ * 子类职责：
+ * - ActiveSkill: 添加冷却、消耗、目标策略
+ * - PassiveAbility: 订阅事件，响应触发
  */
 export class Ability {
   readonly id: AbilityId;
   readonly name: string;
   readonly type: AbilityType;
-  private _active: boolean = false;
-  private _owner: Unit | null = null;
-  private _cooldown: number = 0;
-  private _maxCooldown: number = 0;
-  private _eventHandlers: Map<string, EventHandler> = new Map();
 
-  // Extended properties for damage and trigger validation
-  private _damageCoefficient: number = 1.0;
-  private _baseDamage: number = 0;
-  private _priority: number = 0;
-  private _manaCost: number = 0;
+  // 核心属性
+  private _owner: Unit | null = null;
+  private _active: boolean = false;
+  private _priority: number = 0;  // 执行优先级（数值越大越优先）
 
   // 标签容器
   readonly tags: GameplayTagContainer;
 
-  // Public hooks for testing
-  public onActivate: () => void = () => {};
-  public onDeactivate: () => void = () => {};
+  // 事件订阅管理
+  private _eventSubscriptions: Map<string, EventHandler> = new Map();
 
   constructor(id: AbilityId, name: string, type: AbilityType) {
     this.id = id;
     this.name = name;
     this.type = type;
-
-    // 初始化标签容器
     this.tags = new GameplayTagContainer();
   }
+
+  // ===== 所有者管理 =====
 
   setOwner(owner: Unit): void {
     this._owner = owner;
@@ -51,15 +68,17 @@ export class Ability {
     return this._owner;
   }
 
+  // ===== 激活状态管理 =====
+
   setActive(active: boolean): void {
     if (this._active === active) return;
 
     this._active = active;
 
     if (active) {
-      this.protectedOnActivate();
+      this.onActivate();
     } else {
-      this.protectedOnDeactivate();
+      this.onDeactivate();
     }
   }
 
@@ -67,110 +86,65 @@ export class Ability {
     return this._active;
   }
 
+  // ===== 生命周期钩子（子类可重写） =====
+
   /**
-   * 能力激活时调用
-   * 子类可以订阅事件
+   * 激活时调用
+   * 子类可重写此方法进行初始化（如订阅事件）
    */
-  protected protectedOnActivate(): void {
-    this.onActivate();
+  protected onActivate(): void {
+    // 默认空实现，子类可重写
   }
 
   /**
-   * 能力停用时调用
-   * 子类应该取消订阅事件
+   * 停用时调用
+   * 子类可重写此方法进行清理（如取消订阅）
+   * 注意：基类会自动取消所有通过 subscribeEvent 订阅的事件
    */
-  protected protectedOnDeactivate(): void {
-    // 取消所有事件订阅
-    const eventTypes = Array.from(this._eventHandlers.keys());
-    for (const eventType of eventTypes) {
-      const handler = this._eventHandlers.get(eventType);
-      if (handler) {
-        EventBus.instance.unsubscribe(eventType, handler);
-      }
+  protected onDeactivate(): void {
+    // 自动取消所有事件订阅
+    for (const [eventType, handler] of this._eventSubscriptions) {
+      EventBus.instance.unsubscribe(eventType, handler);
     }
-    this._eventHandlers.clear();
-    this.onDeactivate();
+    this._eventSubscriptions.clear();
   }
 
+  // ===== 事件订阅辅助 =====
+
   /**
-   * 订阅事件（辅助方法）
+   * 订阅事件（会在停用时自动取消）
    */
-  protected subscribeEvent(eventType: string, handler: EventHandler, priority?: number): void {
+  protected subscribeEvent(
+    eventType: string,
+    handler: EventHandler,
+    priority?: number
+  ): void {
     EventBus.instance.subscribe(eventType, handler, priority);
-    this._eventHandlers.set(eventType, handler);
+    this._eventSubscriptions.set(eventType, handler);
   }
+
+  // ===== 核心方法（子类必须实现或重写） =====
 
   /**
    * 检查是否可以触发
-   * 子类可以重写此方法实现自定义条件
+   * @param context 包含 caster 和 target 的上下文
+   * @returns 是否可以执行
    */
-  canTrigger(context: { caster: Unit; target: Unit }): boolean {
-    if (!this.isReady()) return false;
-
-    // 优先使用绑定的 owner，如果没有则使用 context.caster（支持测试场景）
-    const caster = this._owner ?? context.caster;
-    if (!caster) return false;
-
-    // Check if caster has enough mana
-    if (caster.currentMp < this._manaCost) return false;
-
+  canTrigger(context: AbilityContext): boolean {
+    const owner = this._owner ?? context.caster;
+    if (!owner) return false;
     return true;
   }
 
   /**
    * 执行能力效果
-   * 子类必须实现此方法
+   * @param context 包含 caster 和 target 的上下文
    */
-  execute(context: { caster: Unit; target: Unit }): void {
-    // 子类实现
+  execute(context: AbilityContext): void {
+    // 基类空实现，子类重写
   }
 
-  /**
-   * 冷却管理
-   */
-  setCooldown(cooldown: number): void {
-    this._maxCooldown = cooldown;
-  }
-
-  startCooldown(): void {
-    this._cooldown = this._maxCooldown;
-  }
-
-  getCurrentCooldown(): number {
-    return this._cooldown;
-  }
-
-  tickCooldown(): void {
-    if (this._cooldown > 0) {
-      this._cooldown--;
-    }
-  }
-
-  isReady(): boolean {
-    return this._cooldown === 0;
-  }
-
-  resetCooldown(): void {
-    this._cooldown = 0;
-  }
-
-  // Extended property getters and setters
-
-  get damageCoefficient(): number {
-    return this._damageCoefficient;
-  }
-
-  setDamageCoefficient(value: number): void {
-    this._damageCoefficient = value;
-  }
-
-  get baseDamage(): number {
-    return this._baseDamage;
-  }
-
-  setBaseDamage(value: number): void {
-    this._baseDamage = value;
-  }
+  // ===== 优先级 =====
 
   get priority(): number {
     return this._priority;
@@ -180,30 +154,26 @@ export class Ability {
     this._priority = value;
   }
 
-  get manaCost(): number {
-    return this._manaCost;
-  }
-
-  setManaCost(value: number): void {
-    this._manaCost = value;
-  }
+  // ===== 克隆 =====
 
   /**
    * 克隆能力实例
-   * 子类可以重写此方法以实现更复杂的克隆逻辑
+   * 注意：不复制 owner 和 active 状态
    */
   clone(): Ability {
     const cloned = new Ability(this.id, this.name, this.type);
-    cloned._cooldown = this._cooldown;
-    cloned._maxCooldown = this._maxCooldown;
-    cloned._damageCoefficient = this._damageCoefficient;
-    cloned._baseDamage = this._baseDamage;
     cloned._priority = this._priority;
-    cloned._manaCost = this._manaCost;
-    // 复制标签
-    cloned.tags.clear();
     cloned.tags.addTags(this.tags.getTags());
-    // 注意：不复制 owner 和 active 状态，这些需要在新容器中重新设置
     return cloned;
+  }
+
+  // ===== 销毁 =====
+
+  /**
+   * 销毁能力，释放资源
+   */
+  destroy(): void {
+    this.setActive(false);
+    this._owner = null;
   }
 }

@@ -118,3 +118,9 @@ export type TagPath = string;
 
 // 导出事件类型定义
 export * from './events';
+
+// ===== 能力上下文 =====
+export interface AbilityContext {
+  caster: import('../units/Unit').Unit;
+  target: import('../units/Unit').Unit;
+}
