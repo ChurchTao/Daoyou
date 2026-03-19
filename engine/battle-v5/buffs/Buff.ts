@@ -42,14 +42,24 @@ export class Buff {
   // 事件订阅存储（用于取消订阅）
   protected _subscribedHandlers: Map<string, (event: unknown) => void> = new Map();
 
-  // 生命周期钩子（可被子类重写，保持向后兼容）
+  // ===== 生命周期钩子（向后兼容的遗留接口）=====
+  // 注意：推荐使用 onActivate/onDeactivate 配合 _subscribeEvent 订阅事件
+  // 这些钩子保留是为了向后兼容旧的 Buff 实现
+  /** @deprecated 使用 onActivate 替代，或在 onActivate 中订阅事件 */
   onApply: (unit: Unit) => void = () => {};
+  /** @deprecated 使用 onDeactivate 替代，或在 onDeactivate 中取消订阅 */
   onRemove: (unit: Unit) => void = () => {};
+  /** @deprecated 订阅 TurnStartEvent 事件替代 */
   onTurnStart: (unit: Unit) => void = () => {};
+  /** @deprecated 订阅 TurnEndEvent 事件替代 */
   onTurnEnd: (unit: Unit) => void = () => {};
+  /** @deprecated 订阅 ActionEvent 事件替代 */
   onBeforeAct: (unit: Unit) => void = () => {};
+  /** @deprecated 订阅 ActionEvent 事件替代 */
   onAfterAct: (unit: Unit) => void = () => {};
+  /** @deprecated 订阅 BattleInitEvent 事件替代 */
   onBattleStart: (unit: Unit) => void = () => {};
+  /** @deprecated 订阅 BattleEndEvent 事件替代 */
   onBattleEnd: (unit: Unit) => void = () => {};
 
   constructor(

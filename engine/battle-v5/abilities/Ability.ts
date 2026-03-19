@@ -187,4 +187,23 @@ export class Ability {
   setManaCost(value: number): void {
     this._manaCost = value;
   }
+
+  /**
+   * 克隆能力实例
+   * 子类可以重写此方法以实现更复杂的克隆逻辑
+   */
+  clone(): Ability {
+    const cloned = new Ability(this.id, this.name, this.type);
+    cloned._cooldown = this._cooldown;
+    cloned._maxCooldown = this._maxCooldown;
+    cloned._damageCoefficient = this._damageCoefficient;
+    cloned._baseDamage = this._baseDamage;
+    cloned._priority = this._priority;
+    cloned._manaCost = this._manaCost;
+    // 复制标签
+    cloned.tags.clear();
+    cloned.tags.addTags(this.tags.getTags());
+    // 注意：不复制 owner 和 active 状态，这些需要在新容器中重新设置
+    return cloned;
+  }
 }

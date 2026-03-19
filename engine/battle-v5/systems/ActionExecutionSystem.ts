@@ -3,8 +3,18 @@ import { EventBus } from '../core/EventBus';
 import { SkillPreCastEvent, SkillCastEvent, SkillInterruptEvent, EventPriorityLevel } from '../core/events';
 
 /**
- * 行动执行系统
- * 负责处理施法前摇到技能释放的流程
+ * ActionExecutionSystem - 行动执行系统
+ *
+ * EDA 架构设计：
+ * - 订阅 SkillPreCastEvent（施法前摇事件）
+ * - 检查施法是否被打断
+ * - 发布 SkillCastEvent（技能正式释放事件）
+ * - 调用 Ability.execute() 执行技能效果
+ *
+ * 职责边界：
+ * - 此系统负责：施法流程控制、打断判定、技能执行
+ * - AbilityContainer 负责：技能筛选、发布前摇事件
+ * - ActiveSkill.execute 负责：MP消耗、冷却启动、技能效果
  */
 export class ActionExecutionSystem {
   private _handlers: Map<string, (event: SkillPreCastEvent) => void> = new Map();
@@ -25,6 +35,7 @@ export class ActionExecutionSystem {
 
   /**
    * 处理施法前摇事件
+   * EDA 模式：通过订阅 SkillPreCastEvent 被动触发
    */
   private _onSkillPreCast(event: SkillPreCastEvent): void {
     // 检查是否被打断

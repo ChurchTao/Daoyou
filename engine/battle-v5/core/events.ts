@@ -1,10 +1,29 @@
 // engine/battle-v5/core/events.ts
+/**
+ * 战斗事件系统 - EDA 架构核心
+ *
+ * 事件驱动架构 (EDA) 设计原则：
+ * - 所有战斗行为都通过事件触发
+ * - 系统间通过发布/订阅事件进行通信
+ * - 事件优先级决定执行顺序
+ *
+ * 事件流程（按优先级从高到低）：
+ * 1. ActionEvent → 触发单位行动
+ * 2. SkillPreCastEvent → 施法前摇（可被打断）
+ * 3. SkillCastEvent → 技能正式释放
+ * 4. HitCheckEvent → 命中判定（闪避/抵抗）
+ * 5. DamageCalculateEvent → 伤害计算（可被修正）
+ * 6. DamageEvent → 伤害应用
+ * 7. DamageTakenEvent → 受击事件（触发被动）
+ * 8. RoundPreEvent → 回合前置结算（DOT触发）
+ */
 import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
 import { Unit } from '../units/Unit';
 import { CombatEvent, TagPath } from './types';
 
 // ===== 事件优先级枚举 =====
+// 数值越大优先级越高，越先执行
 export enum EventPriorityLevel {
   ACTION_TRIGGER = 80, // 行动阶段触发（最高）
   SKILL_PRE_CAST = 75, // 施法前摇&打断判定
@@ -108,7 +127,7 @@ export interface DamageTakenEvent extends CombatEvent {
 export interface UnitDeadEvent extends CombatEvent {
   type: 'UnitDeadEvent';
   unit: Unit;
-  killer: Unit;
+  killer: Unit | null;
 }
 
 // ===== 标签添加事件 =====

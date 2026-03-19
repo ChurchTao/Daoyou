@@ -12,8 +12,21 @@ import {
 import { AttributeType } from '../core/types';
 
 /**
- * 伤害系统
- * 基于事件驱动的完整伤害管道
+ * DamageSystem - 伤害系统
+ *
+ * EDA 架构设计：
+ * - 订阅 SkillCastEvent 事件，执行命中判定和伤害计算
+ * - 发布 HitCheckEvent、DamageCalculateEvent、DamageEvent 等事件
+ * - 其他系统（被动、命格、Buff）可订阅这些事件进行干预
+ *
+ * 伤害计算流程：
+ * 1. 命中判定（闪避/抵抗）
+ * 2. 基础伤害计算（灵力/体魄 × 技能系数）
+ * 3. 暴击判定（身法属性）
+ * 4. 伤害修正事件（增伤/减伤效果）
+ * 5. 减伤计算（体魄属性）
+ * 6. 随机浮动
+ * 7. 伤害应用和受击事件
  */
 export class DamageSystem {
   private _handlers: Map<string, (event: SkillCastEvent) => void> = new Map();
@@ -36,6 +49,7 @@ export class DamageSystem {
 
   /**
    * 响应技能释放事件，执行命中判定
+   * EDA 模式：通过订阅 SkillCastEvent 被动触发
    */
   private _onSkillCast(event: SkillCastEvent): void {
     const { caster, target, ability } = event;
@@ -66,7 +80,10 @@ export class DamageSystem {
     }
 
     // 2. 神识抵抗判定（仅控制/减益类技能）
-    if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) && hitCheckEvent.isHit) {
+    if (
+      ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) &&
+      hitCheckEvent.isHit
+    ) {
       const casterConsciousness = caster.attributes.getValue(
         AttributeType.CONSCIOUSNESS,
       );
@@ -101,7 +118,7 @@ export class DamageSystem {
    */
   private _calculateDamage(
     castEvent: SkillCastEvent,
-    hitEvent: HitCheckEvent,
+    _hitEvent: HitCheckEvent, // 预留参数，供未来扩展（如根据命中类型调整伤害）
   ): void {
     const { caster, target, ability } = castEvent;
 
@@ -175,7 +192,8 @@ export class DamageSystem {
    * 应用伤害
    */
   private _applyDamage(calcEvent: DamageCalculateEvent): void {
-    const { caster, target, ability, finalDamage, isCritical, critMultiplier } = calcEvent;
+    const { caster, target, ability, finalDamage, isCritical, critMultiplier } =
+      calcEvent;
 
     // 1. 发布伤害事件，供护盾/无敌/伤害免疫类效果响应
     const damageEvent: DamageEvent = {
@@ -203,7 +221,8 @@ export class DamageSystem {
    * 更新目标气血
    */
   private _updateTargetHealth(damageEvent: DamageEvent): void {
-    const { target, finalDamage, caster, ability, isCritical, critMultiplier } = damageEvent;
+    const { target, finalDamage, caster, ability, isCritical, critMultiplier } =
+      damageEvent;
 
     // 获取当前气血
     const beforeHealth = target.currentHp;

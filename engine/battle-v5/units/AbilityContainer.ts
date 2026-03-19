@@ -5,6 +5,19 @@ import { ActionEvent, SkillPreCastEvent, EventPriorityLevel } from '../core/even
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { BasicAttack } from '../abilities/BasicAttack';
 
+/**
+ * AbilityContainer - 技能容器
+ *
+ * GAS+EDA 架构设计：
+ * - 管理单位的所有技能（主动、被动、命格）
+ * - 响应 ActionEvent 事件进行技能筛选
+ * - 发布 SkillPreCastEvent 事件进入施法流程
+ *
+ * 职责边界：
+ * - 此类负责：技能筛选、目标选择、发布施法前摇事件
+ * - ActionExecutionSystem 负责：处理施法前摇、执行技能
+ * - ActiveSkill.execute 负责：MP消耗、冷却启动、技能效果
+ */
 export class AbilityContainer {
   private _abilities = new Map<string, Ability>();
   private _owner: Unit;
@@ -30,6 +43,7 @@ export class AbilityContainer {
 
   /**
    * 响应行动触发事件，执行技能筛选
+   * EDA 模式：通过订阅 ActionEvent 被动触发
    */
   private _onActionTrigger(event: ActionEvent): void {
     // 仅当前出手单位是自己时，才执行筛选
@@ -64,17 +78,12 @@ export class AbilityContainer {
   }
 
   /**
-   * 准备施法：进入前摇阶段
+   * 准备施法：发布施法前摇事件
+   *
+   * 注意：此方法只负责发布事件，不消耗资源
+   * MP消耗和冷却启动由 ActiveSkill.execute() 统一处理
    */
   private _prepareCast(ability: Ability, target: Unit): void {
-    // 消耗蓝量
-    if (ability.manaCost > 0) {
-      this._owner.consumeMp(ability.manaCost);
-    }
-
-    // 启动冷却（必须在技能确认释放时调用）
-    ability.startCooldown();
-
     // 发布施法前摇事件
     EventBus.instance.publish<SkillPreCastEvent>({
       type: 'SkillPreCastEvent',
@@ -150,11 +159,23 @@ export class AbilityContainer {
     return Array.from(this._abilities.values());
   }
 
+  /**
+   * 克隆技能容器
+   * @param owner 新容器的所有者
+   * @returns 克隆后的容器
+   */
   clone(owner: Unit): AbilityContainer {
-    const clone = new AbilityContainer(owner);
-    // TODO: 实现深拷贝：遍历 this._abilities，复制每个 Ability 实例并添加到 clone
-    // 当前返回空容器，适用于 Ability 系统未完成时的占位实现
-    return clone;
+    const clonedContainer = new AbilityContainer(owner);
+
+    // 克隆所有技能
+    for (const ability of this._abilities.values()) {
+      const clonedAbility = ability.clone();
+      clonedContainer._abilities.set(clonedAbility.id, clonedAbility);
+      clonedAbility.setOwner(owner);
+      clonedAbility.setActive(true);
+    }
+
+    return clonedContainer;
   }
 
   /**

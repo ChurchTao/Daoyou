@@ -1,8 +1,15 @@
 import { AttributeModifier, AttributeType, ModifierType } from '../core/types';
 
 /**
- * Represents a single attribute with base value and modifiers.
- * Modifiers are applied in 6 stages: BASE → FIXED → ADD → MULTIPLY → FINAL → OVERRIDE
+ * 属性类 - 管理单个属性的基础值和修改器
+ *
+ * 修改器计算流程（5阶段）：
+ * 1. BASE: 基础值（_baseValue）
+ * 2. FIXED: 固定值加成（累加）
+ * 3. ADD: 百分比加成（累乘）
+ * 4. MULTIPLY: 乘法叠加（累乘）
+ * 5. FINAL: 最终修正（取首个）
+ * 6. OVERRIDE: 完全覆盖（取首个，跳过前面所有计算）
  */
 class Attribute {
   readonly type: AttributeType;
@@ -15,43 +22,41 @@ class Attribute {
   }
 
   /**
-   * Calculate the final value after applying all modifiers.
-   * Modifiers are applied in 6 stages: BASE → FIXED → ADD → MULTIPLY → FINAL → OVERRIDE
-   * @returns The final attribute value (non-negative)
+   * 计算最终属性值
+   * 流程：基础值 → 固定加成 → 百分比加成 → 乘法叠加 → 最终修正 → 覆盖检查
+   * @returns 最终属性值（非负整数）
    */
   getFinalValue(): number {
-    // 6阶段计算: BASE → FIXED → ADD → MULTIPLY → FINAL → OVERRIDE
+    // 如果存在 OVERRIDE 修改器，直接返回其值
+    const override = this._modifiers.find((m) => m.type === ModifierType.OVERRIDE);
+    if (override) {
+      return Math.max(0, Math.floor(override.value));
+    }
+
+    // 从基础值开始
     let final = this._baseValue;
 
-    // FIXED: 固定值加成
+    // FIXED: 固定值加成（累加）
     final += this._modifiers
       .filter((m) => m.type === ModifierType.FIXED)
       .reduce((sum, m) => sum + m.value, 0);
 
-    // ADD: 百分比加成
+    // ADD: 百分比加成（累加后乘）
     const addBonus = this._modifiers
       .filter((m) => m.type === ModifierType.ADD)
       .reduce((sum, m) => sum + m.value, 0);
     final *= 1 + addBonus;
 
-    // MULTIPLY: 乘法叠加
+    // MULTIPLY: 乘法叠加（累乘）
     const multBonus = this._modifiers
       .filter((m) => m.type === ModifierType.MULTIPLY)
       .reduce((product, m) => product * m.value, 1);
     final *= multBonus;
 
-    // FINAL: 最终修正
+    // FINAL: 最终修正（取首个）
     const finalMod = this._modifiers.find((m) => m.type === ModifierType.FINAL);
     if (finalMod) {
       final += finalMod.value;
-    }
-
-    // OVERRIDE: 覆盖
-    const override = this._modifiers.find(
-      (m) => m.type === ModifierType.OVERRIDE,
-    );
-    if (override) {
-      final = override.value;
     }
 
     return Math.max(0, Math.floor(final));

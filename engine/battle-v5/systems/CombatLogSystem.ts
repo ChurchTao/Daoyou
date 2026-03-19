@@ -1,17 +1,17 @@
-import { CombatPhase, CombatLog } from '../core/types';
 import { EventBus } from '../core/EventBus';
 import {
-  SkillInterruptEvent,
-  HitCheckEvent,
-  DamageTakenEvent,
-  UnitDeadEvent,
   BuffAppliedEvent,
-  BuffRemovedEvent,
   BuffImmuneEvent,
-  TurnStartEvent,
-  TurnEndEvent,
+  BuffRemovedEvent,
+  DamageTakenEvent,
   EventPriorityLevel,
+  HitCheckEvent,
+  SkillInterruptEvent,
+  TurnEndEvent,
+  TurnStartEvent,
+  UnitDeadEvent,
 } from '../core/events';
+import { CombatLog, CombatPhase } from '../core/types';
 
 /**
  * 战报条目
@@ -37,7 +37,8 @@ export class CombatLogSystem {
 
   private _subscribeToEvents(): void {
     // 技能打断事件
-    const interruptHandler = (e: SkillInterruptEvent) => this._onSkillInterrupt(e);
+    const interruptHandler = (e: SkillInterruptEvent) =>
+      this._onSkillInterrupt(e);
     EventBus.instance.subscribe<SkillInterruptEvent>(
       'SkillInterruptEvent',
       interruptHandler,
@@ -121,7 +122,7 @@ export class CombatLogSystem {
   private _onSkillInterrupt(event: SkillInterruptEvent): void {
     this._addLog({
       id: `log_${this._nextId++}`,
-      turn: 0, // TODO: 从上下文获取当前回合
+      turn: 0, // 回合信息由外部日志调用时设置
       phase: CombatPhase.ACTION,
       message: `【打断】${event.caster.name}的【${event.ability.name}】被打断！`,
       highlight: true,
@@ -161,7 +162,7 @@ export class CombatLogSystem {
 
     this._addLog({
       id: `log_${this._nextId++}`,
-      turn: 0, // TODO: 从上下文获取当前回合
+      turn: 0, // 回合信息由外部日志调用时设置
       phase: CombatPhase.ACTION,
       message: `【伤害】${casterName}使用【${abilityName}】对${event.target.name}造成${damage}点伤害${critText}，剩余气血${remainHp}！`,
       highlight,
@@ -183,14 +184,19 @@ export class CombatLogSystem {
       id: `log_${this._nextId++}`,
       turn: 0,
       phase: CombatPhase.ACTION,
-      message: `【阵亡】${event.unit.name}已被${event.killer.name}击败！`,
+      message: `【阵亡】${event.unit.name}已被${event.killer?.name}击败！`,
       highlight: true,
     });
   }
 
   private _onBuffApplied(event: BuffAppliedEvent): void {
     const buffType = event.buff.type;
-    const typeLabel = buffType === 'buff' ? '【增益】' : buffType === 'debuff' ? '【减益】' : '【效果】';
+    const typeLabel =
+      buffType === 'buff'
+        ? '【增益】'
+        : buffType === 'debuff'
+          ? '【减益】'
+          : '【效果】';
     const duration = event.buff.getMaxDuration();
     const durationText = duration > 0 ? `（${duration}回合）` : '';
 
@@ -205,7 +211,12 @@ export class CombatLogSystem {
 
   private _onBuffRemoved(event: BuffRemovedEvent): void {
     const buffType = event.buff.type;
-    const typeLabel = buffType === 'buff' ? '【增益消散】' : buffType === 'debuff' ? '【减益解除】' : '【效果消失】';
+    const typeLabel =
+      buffType === 'buff'
+        ? '【增益消散】'
+        : buffType === 'debuff'
+          ? '【减益解除】'
+          : '【效果消失】';
 
     this._addLog({
       id: `log_${this._nextId++}`,
@@ -241,7 +252,9 @@ export class CombatLogSystem {
     // 回合结束日志（可选，目前不输出）
   }
 
-  private _getRemoveReasonText(reason: 'manual' | 'expired' | 'dispel' | 'replace'): string {
+  private _getRemoveReasonText(
+    reason: 'manual' | 'expired' | 'dispel' | 'replace',
+  ): string {
     const reasonMap = {
       manual: '被移除',
       expired: '时效已过',
@@ -296,7 +309,12 @@ export class CombatLogSystem {
   /**
    * 记录治疗
    */
-  logHeal(turn: number, casterName: string, targetName: string, amount: number): void {
+  logHeal(
+    turn: number,
+    casterName: string,
+    targetName: string,
+    amount: number,
+  ): void {
     const formattedAmount = Math.round(amount);
     const message = `${casterName} 为 ${targetName} 恢复了 ${formattedAmount} 点气血`;
     this.log(turn, CombatPhase.ACTION, message);

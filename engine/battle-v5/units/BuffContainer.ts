@@ -161,17 +161,17 @@ export class BuffContainer {
   private _applyStackRule(existing: Buff, newBuff: Buff): void {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
-        // 使用基类的 addLayer 方法
+        // 层数叠加：增加一层
         existing.addLayer(1);
         break;
 
       case StackRule.REFRESH_DURATION:
-        // Refresh to the new buff's duration, not the existing buff's max duration
+        // 刷新持续时间：更新为新 Buff 的持续时间
         existing.refreshToDuration(newBuff.getMaxDuration());
         break;
 
       case StackRule.OVERRIDE:
-        // 原子替换：停用旧 Buff，激活新 Buff
+        // 覆盖替换：停用旧 Buff，激活新 Buff
         existing.onDeactivate();
         this._buffs.set(existing.id, newBuff);
         newBuff.setOwner(this._owner);
@@ -180,7 +180,7 @@ export class BuffContainer {
         break;
 
       case StackRule.IGNORE:
-        // Do nothing
+        // 忽略：不做任何处理
         break;
     }
   }
