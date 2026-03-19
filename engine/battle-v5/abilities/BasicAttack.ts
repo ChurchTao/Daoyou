@@ -2,6 +2,7 @@
 import { AbilityId } from '../core/types';
 import { GameplayTags } from '../core/GameplayTags';
 import { ActiveSkill } from './ActiveSkill';
+import { Unit } from '../units/Unit';
 
 /**
  * 普攻技能
@@ -9,18 +10,20 @@ import { ActiveSkill } from './ActiveSkill';
  */
 export class BasicAttack extends ActiveSkill {
   constructor() {
-    super('basic_attack' as AbilityId, '普攻');
+    super('basic_attack' as AbilityId, '普攻', {
+      mpCost: 0,
+      cooldown: 0,
+      priority: 0,
+    });
     this.setDamageCoefficient(1.0);
     this.setBaseDamage(20);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
-    this.setManaCost(0);
-    this.setPriority(0);
   }
 
   /**
    * 普攻没有额外效果
    */
-  executeSkill(caster: unknown, target: unknown): void {
+  protected executeSkill(_caster: Unit, _target: Unit): void {
     // 普攻的伤害计算由 DamageSystem 通过事件处理
     // 这里不需要额外逻辑
   }
