@@ -29,12 +29,14 @@ import { Unit } from '../../units/Unit';
 /** 必杀技 - 高伤害法术 */
 class UltimateSkill extends ActiveSkill {
   constructor() {
-    super('ultimate', '必杀技', 0, 0);
-    this.setDamageCoefficient(5.0);
-    this.setBaseDamage(200);
+    super('ultimate', '必杀技', {
+      mpCost: 0,
+      cooldown: 0,
+      priority: 100,
+      baseDamage: 200,
+      damageCoefficient: 5.0,
+    });
     this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
-    this.setManaCost(0);
-    this.setPriority(100);
   }
 
   protected executeSkill(_caster: Unit, _target: Unit): void {}
@@ -43,12 +45,14 @@ class UltimateSkill extends ActiveSkill {
 /** 控制技能 - 消耗 MP，可被抵抗 */
 class ControlSkill extends ActiveSkill {
   constructor() {
-    super('control_skill', '禁锢术', 20, 2);
+    super('control_skill', '禁锢术', {
+      mpCost: 20,
+      cooldown: 2,
+    });
     this.setDamageCoefficient(0.5);
     this.setBaseDamage(10);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_CONTROL]);
-    this.setManaCost(20);
     this.setPriority(50);
   }
 
@@ -58,11 +62,13 @@ class ControlSkill extends ActiveSkill {
 /** 普通攻击 */
 class NormalAttackSkill extends ActiveSkill {
   constructor() {
-    super('normal_attack', '攻击', 0, 0);
+    super('normal_attack', '攻击', {
+      mpCost: 0,
+      cooldown: 0,
+    });
     this.setDamageCoefficient(1.0);
     this.setBaseDamage(30);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
-    this.setManaCost(0);
     this.setPriority(10);
   }
 
@@ -72,14 +78,16 @@ class NormalAttackSkill extends ActiveSkill {
 /** 毒术技能 - 添加DEBUFF（使用 GAS+EDA 模式的 PoisonDotBuff） */
 class PoisonSkill extends ActiveSkill {
   constructor() {
-    super('poison_skill', '腐蚀毒术', 15, 2);
+    super('poison_skill', '腐蚀毒术', {
+      mpCost: 15,
+      cooldown: 2,
+    });
     this.setDamageCoefficient(0.8);
     this.setBaseDamage(20);
     this.tags.addTags([
       GameplayTags.ABILITY.TYPE_MAGIC,
       GameplayTags.ABILITY.TYPE_DAMAGE,
     ]);
-    this.setManaCost(15);
     this.setPriority(40);
   }
 
@@ -119,11 +127,13 @@ class ShieldBuff extends Buff {
 /** 护盾技能 - 添加BUFF */
 class ShieldBuffSkill extends ActiveSkill {
   constructor() {
-    super('shield_buff', '护体真元', 25, 3);
+    super('shield_buff', '护体真元', {
+      mpCost: 25,
+      cooldown: 3,
+    });
     this.setDamageCoefficient(0.5);
     this.setBaseDamage(15);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
-    this.setManaCost(25);
     this.setPriority(30);
   }
 

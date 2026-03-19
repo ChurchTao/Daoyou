@@ -12,7 +12,7 @@ class TestActiveSkill extends ActiveSkill {
   private executeCallback?: (caster: Unit, target: Unit) => void;
 
   constructor(id: string, name: string, mpCost: number = 0, cooldown: number = 0) {
-    super(id, name, mpCost, cooldown);
+    super(id, name, { mpCost, cooldown });
   }
 
   setExecuteCallback(callback: (caster: Unit, target: Unit) => void): void {
