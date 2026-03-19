@@ -1,5 +1,3 @@
-import { Unit } from '../units/Unit';
-
 /**
  * 目标类型
  */
@@ -14,13 +12,13 @@ export type TargetScope = 'single' | 'aoe' | 'random';
  * 目标过滤器
  */
 export type TargetFilter =
-  | 'lowest_hp'      // 血量最低
-  | 'highest_hp'     // 血量最高
-  | 'lowest_mp'      // 蓝量最低
-  | 'fastest'        // 速度最快
-  | 'slowest'        // 速度最慢
-  | 'nearest'        // 距离最近
-  | 'furthest';      // 距离最远
+  | 'lowest_hp' // 血量最低
+  | 'highest_hp' // 血量最高
+  | 'lowest_mp' // 蓝量最低
+  | 'fastest' // 速度最快
+  | 'slowest' // 速度最慢
+  | 'nearest' // 距离最近
+  | 'furthest'; // 距离最远
 
 /**
  * 目标策略配置
@@ -29,7 +27,7 @@ export interface TargetPolicyConfig {
   team: TargetTeam;
   scope: TargetScope;
   filters?: TargetFilter[];
-  maxTargets?: number;  // AOE 时最多目标数
+  maxTargets?: number; // AOE 时最多目标数
 }
 
 /**

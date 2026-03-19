@@ -101,14 +101,6 @@ export class PoisonDotBuff extends Buff {
       ability: null, // 无技能来源
       finalDamage: damage,
     });
-
-    // 持续时间减 1
-    this.tickDuration();
-
-    // 持续时间归零时移除
-    if (this.isExpired() && this._owner) {
-      this._owner.buffs.removeBuffExpired(this.id);
-    }
   }
 
   /**

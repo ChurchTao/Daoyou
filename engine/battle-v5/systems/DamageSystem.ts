@@ -46,6 +46,37 @@ export class DamageSystem {
       EventPriorityLevel.HIT_CHECK,
     );
     this._handlers.set('SkillCastEvent', skillCastHandler);
+
+    // 订阅伤害应用事件（处理 DOT、反伤等外部直接伤害）
+    const damageHandler = (event: DamageEvent) => this._onDamageEvent(event);
+    EventBus.instance.subscribe<DamageEvent>(
+      'DamageEvent',
+      damageHandler,
+      EventPriorityLevel.DAMAGE_APPLY,
+    );
+    this._handlers.set('DamageEvent', damageHandler);
+  }
+
+  /**
+   * 响应直接伤害事件（DOT、反伤等）
+   */
+  private _onDamageEvent(event: DamageEvent): void {
+    // 如果已经结算（比如由 _applyDamage 触发的），则不再重复结算
+    // 这里我们可以根据 timestamp 或某种标记来防止循环，
+    // 但更简单的逻辑是：_applyDamage 负责发布，而 _updateTargetHealth 负责更新。
+    // 如果是外部发布的 DamageEvent，则需要通过 _updateTargetHealth 完成最后一步。
+    
+    // 我们检查这个 DamageEvent 是否已经应用过。
+    // 在本系统中，_applyDamage 发布 DamageEvent 后直接调用 _updateTargetHealth。
+    // 所以如果是外部发布的，我们需要捕获并调用 _updateTargetHealth。
+    
+    // 为了防止重入，我们检查当前事件是否来自于本系统的 _applyDamage 调用。
+    // 这里简单地通过判断目标血量是否已经在当前回合变动可能不准确。
+    // 更好的做法是：_applyDamage 内部调用 _updateTargetHealth 时，不走事件订阅。
+    // 或者，让 _applyDamage 只发布事件，由 _onDamageEvent 统一处理。
+    
+    // 方案：统一由 _onDamageEvent 处理 DamageEvent。
+    this._updateTargetHealth(event);
   }
 
   /**
@@ -214,11 +245,9 @@ export class DamageSystem {
 
     EventBus.instance.publish(damageEvent);
 
-    // 2. 校验伤害是否被免疫/抵消
-    if (damageEvent.finalDamage <= 0) return;
-
-    // 3. 进入最终属性更新环节
-    this._updateTargetHealth(damageEvent);
+    // 2. 注意：以前在这里直接调用 _updateTargetHealth。
+    // 现在我们统一通过订阅 DamageEvent 的 _onDamageEvent 来调用 _updateTargetHealth。
+    // 这确保了无论是技能产生的伤害，还是外部（DOT、反伤）发布的伤害，都走统一的处理和日志路径。
   }
 
   /**

@@ -139,7 +139,7 @@ class ShieldBuffSkill extends ActiveSkill {
 
   protected executeSkill(_caster: Unit, target: Unit): void {
     const shieldBuff = new ShieldBuff();
-    target.buffs.addBuff(shieldBuff);
+    _caster.buffs.addBuff(shieldBuff);
   }
 }
 
