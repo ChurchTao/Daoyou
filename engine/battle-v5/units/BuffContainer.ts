@@ -98,8 +98,12 @@ export class BuffContainer {
         break;
 
       case StackRule.OVERRIDE:
-        this.removeBuff(existing.id);
-        this.addBuff(newBuff);
+        // Atomic replacement: remove old effects, replace buff, apply new effects
+        // This avoids double event publishing and immune checking
+        existing.onRemove(this._owner);
+        this._buffs.set(existing.id, newBuff);
+        newBuff.onApply(this._owner);
+        this._owner.updateDerivedStats();
         break;
 
       case StackRule.IGNORE:
