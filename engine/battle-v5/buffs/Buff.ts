@@ -21,6 +21,11 @@ export type StackRule = typeof StackRule[keyof typeof StackRule];
  * - Buff 持有 owner 引用，可主动订阅事件
  * - 支持层数机制（大多数 Buff 都有层数概念）
  * - 生命周期：setOwner() → onActivate() → [事件响应] → onDeactivate()
+ *
+ * 实现方式：
+ * - 子类重写 onActivate() 订阅事件、添加属性修改器
+ * - 子类重写 onDeactivate() 取消订阅、移除属性修改器
+ * - 使用 _subscribeEvent() 辅助方法订阅事件（自动存储引用便于取消）
  */
 export class Buff {
   readonly id: BuffId;
@@ -41,26 +46,6 @@ export class Buff {
 
   // 事件订阅存储（用于取消订阅）
   protected _subscribedHandlers: Map<string, (event: unknown) => void> = new Map();
-
-  // ===== 生命周期钩子（向后兼容的遗留接口）=====
-  // 注意：推荐使用 onActivate/onDeactivate 配合 _subscribeEvent 订阅事件
-  // 这些钩子保留是为了向后兼容旧的 Buff 实现
-  /** @deprecated 使用 onActivate 替代，或在 onActivate 中订阅事件 */
-  onApply: (unit: Unit) => void = () => {};
-  /** @deprecated 使用 onDeactivate 替代，或在 onDeactivate 中取消订阅 */
-  onRemove: (unit: Unit) => void = () => {};
-  /** @deprecated 订阅 TurnStartEvent 事件替代 */
-  onTurnStart: (unit: Unit) => void = () => {};
-  /** @deprecated 订阅 TurnEndEvent 事件替代 */
-  onTurnEnd: (unit: Unit) => void = () => {};
-  /** @deprecated 订阅 ActionEvent 事件替代 */
-  onBeforeAct: (unit: Unit) => void = () => {};
-  /** @deprecated 订阅 ActionEvent 事件替代 */
-  onAfterAct: (unit: Unit) => void = () => {};
-  /** @deprecated 订阅 BattleInitEvent 事件替代 */
-  onBattleStart: (unit: Unit) => void = () => {};
-  /** @deprecated 订阅 BattleEndEvent 事件替代 */
-  onBattleEnd: (unit: Unit) => void = () => {};
 
   constructor(
     id: BuffId,
@@ -119,29 +104,23 @@ export class Buff {
 
   /**
    * Buff 激活时的初始化（GAS 模式）
-   * 子类重写此方法来订阅事件、添加标签等
+   * 子类重写此方法来订阅事件、添加标签、添加属性修改器等
    *
    * 注意：此方法在 setOwner() 之后调用，此时 this._owner 已可用
    */
   onActivate(): void {
-    // 基类默认行为：调用 onApply 钩子（向后兼容）
-    if (this._owner) {
-      this.onApply(this._owner);
-    }
+    // 基类默认行为：无操作
+    // 子类应重写此方法实现具体逻辑
   }
 
   /**
    * Buff 移除时的清理（GAS 模式）
-   * 子类重写此方法来取消订阅、移除标签等
+   * 子类重写此方法来取消订阅、移除标签、移除属性修改器等
    */
   onDeactivate(): void {
     // 取消所有事件订阅
     this._unsubscribeAll();
-
-    // 基类默认行为：调用 onRemove 钩子（向后兼容）
-    if (this._owner) {
-      this.onRemove(this._owner);
-    }
+    // 子类应重写此方法实现具体清理逻辑
   }
 
   /**
@@ -235,7 +214,6 @@ export class Buff {
    * 克隆 Buff 实例
    * 子类可以重写此方法以实现更复杂的克隆逻辑
    * 注意：
-   * - 生命周期钩子不会被复制，需要重新绑定
    * - owner 不会被复制，需要通过 setOwner 设置
    * - 层数会被复制
    */

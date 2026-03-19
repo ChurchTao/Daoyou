@@ -1,6 +1,6 @@
-import { Ability } from './Ability';
 import { AbilityId, AbilityType } from '../core/types';
 import { Unit } from '../units/Unit';
+import { Ability } from './Ability';
 
 /**
  * 主动技能基类
@@ -9,7 +9,12 @@ import { Unit } from '../units/Unit';
 export abstract class ActiveSkill extends Ability {
   private readonly _skillCooldown: number;
 
-  constructor(id: AbilityId, name: string, mpCost: number = 0, cooldown: number = 0) {
+  constructor(
+    id: AbilityId,
+    name: string,
+    mpCost: number = 0,
+    cooldown: number = 0,
+  ) {
     super(id, name, AbilityType.ACTIVE_SKILL);
     this._skillCooldown = cooldown;
     this.setCooldown(cooldown);
@@ -39,27 +44,6 @@ export abstract class ActiveSkill extends Ability {
 
     // 执行技能效果
     this.executeSkill(context.caster, context.target);
-  }
-
-  /**
-   * 直接执行技能（用于测试）
-   * 注意：战斗系统通过事件系统执行技能，不使用此方法
-   * 此方法会检查 MP 和冷却，如果不满足条件则不执行
-   */
-  executeWithTarget(unit: Unit, target: Unit): void {
-    // 检查是否可以触发（MP、冷却等）
-    if (!this.canTrigger({ caster: unit, target })) {
-      return;
-    }
-
-    // 消耗MP
-    unit.consumeMp(this.manaCost);
-
-    // 开始冷却
-    this.startCooldown();
-
-    // 执行技能效果
-    this.executeSkill(unit, target);
   }
 
   /**

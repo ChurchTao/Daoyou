@@ -1,7 +1,12 @@
-import { Buff, StackRule } from '../Buff';
-import { BuffId, BuffType, AttributeType, ModifierType, AttributeModifier } from '../../core/types';
-import { Unit } from '../../units/Unit';
 import { GameplayTags } from '../../core/GameplayTags';
+import {
+  AttributeModifier,
+  AttributeType,
+  BuffId,
+  BuffType,
+  ModifierType,
+} from '../../core/types';
+import { Buff, StackRule } from '../Buff';
 
 /**
  * 力量提升 - 示例 Buff
@@ -16,31 +21,28 @@ export class StrengthBuff extends Buff {
       '力量提升',
       BuffType.BUFF,
       3,
-      StackRule.REFRESH_DURATION  // 使用导入的 StackRule
+      StackRule.REFRESH_DURATION, // 使用导入的 StackRule
     );
 
     // 设置标签
-    this.tags.addTags([
-      GameplayTags.BUFF.TYPE_BUFF,
-    ]);
+    this.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+  }
 
-    // 设置生命周期钩子
-    this.onApply = (unit: Unit) => {
-      // 添加属性修改器
-      const modifier: AttributeModifier = {
-        id: this.modifierId,
-        attrType: AttributeType.PHYSIQUE,
-        type: ModifierType.FIXED,
-        value: 10,
-        source: this,
-      };
-      unit.attributes.addModifier(modifier);
+  onActivate(): void {
+    // 添加属性修改器
+    const modifier: AttributeModifier = {
+      id: this.modifierId,
+      attrType: AttributeType.PHYSIQUE,
+      type: ModifierType.FIXED,
+      value: 10,
+      source: this,
     };
+    this._owner?.attributes.addModifier(modifier);
+  }
 
-    this.onRemove = (unit: Unit) => {
-      // 移除属性修改器
-      unit.attributes.removeModifier(this.modifierId);
-    };
+  onDeactivate(): void {
+    // 移除属性修改器
+    this._owner?.attributes.removeModifier(this.modifierId);
   }
 
   /**

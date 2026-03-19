@@ -92,6 +92,30 @@ class PoisonSkill extends ActiveSkill {
   }
 }
 
+class ShieldBuff extends Buff {
+  constructor() {
+    super('shield', '护盾', BuffType.BUFF, 4, StackRule.REFRESH_DURATION);
+    this.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+  }
+
+  onActivate(): void {
+    // 添加属性修改器
+    const modifier: AttributeModifier = {
+      id: 'shield_spirit_bonus',
+      attrType: AttributeType.SPIRIT,
+      type: ModifierType.MULTIPLY,
+      value: 1.2, // 120%灵力（增加20%）
+      source: this,
+    };
+    this._owner?.attributes.addModifier(modifier);
+  }
+
+  onDeactivate(): void {
+    // 移除属性修改器
+    this._owner?.attributes.removeModifier('shield_spirit_bonus');
+  }
+}
+
 /** 护盾技能 - 添加BUFF */
 class ShieldBuffSkill extends ActiveSkill {
   constructor() {
@@ -104,32 +128,7 @@ class ShieldBuffSkill extends ActiveSkill {
   }
 
   protected executeSkill(_caster: Unit, target: Unit): void {
-    // 创建护盾BUFF
-    const shieldBuff = new Buff(
-      'shield',
-      '护体真元',
-      BuffType.BUFF,
-      4,
-      StackRule.REFRESH_DURATION,
-    );
-    shieldBuff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
-
-    // BUFF效果：增加灵力
-    shieldBuff.onApply = (unit: Unit) => {
-      const modifier: AttributeModifier = {
-        id: 'shield_spirit_bonus',
-        attrType: AttributeType.SPIRIT,
-        type: ModifierType.MULTIPLY,
-        value: 1.2, // 120%灵力（增加20%）
-        source: shieldBuff,
-      };
-      unit.attributes.addModifier(modifier);
-    };
-
-    shieldBuff.onRemove = (unit: Unit) => {
-      unit.attributes.removeModifier('shield_spirit_bonus');
-    };
-
+    const shieldBuff = new ShieldBuff();
     target.buffs.addBuff(shieldBuff);
   }
 }

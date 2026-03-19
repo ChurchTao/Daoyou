@@ -3,7 +3,6 @@ import { EventBus } from './core/EventBus';
 import {
   ActionEvent,
   EventPriorityLevel,
-  RoundPreEvent,
   TurnEndEvent,
   TurnStartEvent,
 } from './core/events';
@@ -24,8 +23,17 @@ export interface BattleResult {
 }
 
 /**
- * V5 战斗引擎主入口
- * 集成所有子系统，提供完整的战斗模拟功能
+ * BattleEngineV5 - V5 战斗引擎主入口
+ *
+ * GAS+EDA 架构设计：
+ * - 通过状态机驱动战斗流程
+ * - 每个阶段转换自动发布对应事件
+ * - 子系统（DamageSystem、Buff等）通过订阅事件响应
+ *
+ * 战斗流程（状态机驱动）：
+ * INIT → ROUND_START → ROUND_PRE → TURN_ORDER → ACTION → ROUND_POST → VICTORY_CHECK
+ *                                                          ↑                    |
+ *                                                          └────────────────────┘
  */
 export class BattleEngineV5 {
   private _player: Unit;
@@ -41,15 +49,13 @@ export class BattleEngineV5 {
     this._opponent = opponent;
     this._eventBus = EventBus.instance;
 
-    // Note: We don't reset the EventBus here because AbilityContainer
-    // and other systems have already subscribed in their constructors
-    // this._eventBus.reset();
     this._logSystem = new CombatLogSystem();
 
-    // Initialize event-driven systems
+    // 初始化事件驱动系统
     this._actionSystem = new ActionExecutionSystem();
     this._damageSystem = new DamageSystem();
 
+    // 初始化战斗上下文
     const context: CombatContext = {
       turn: 0,
       maxTurns: VictorySystem.getMaxTurns(),
@@ -69,7 +75,7 @@ export class BattleEngineV5 {
    * 执行战斗模拟
    */
   execute(): BattleResult {
-    // 启动状态机
+    // 启动状态机（进入 INIT 状态）
     this._stateMachine.start();
 
     // 主循环
@@ -77,12 +83,15 @@ export class BattleEngineV5 {
       this.executeTurn();
     }
 
+    // 进入结束状态
+    this._stateMachine.switchTo(CombatPhase.END);
+
     // 生成结果
     return this.generateResult();
   }
 
   /**
-   * 执行单个回合
+   * 执行单个回合（状态机驱动）
    */
   private executeTurn(): void {
     const context = this.getContext();
@@ -91,7 +100,6 @@ export class BattleEngineV5 {
     // 检查回合上限
     if (context.turn > context.maxTurns) {
       context.battleEnded = true;
-      // 胜负判定：血量百分比高的获胜
       const victoryResult = VictorySystem.checkVictory(
         [this._player, this._opponent],
         context.turn,
@@ -108,21 +116,28 @@ export class BattleEngineV5 {
       `第${context.turn}回合开始`,
     );
 
-    // ===== 回合前置结算阶段（DOT、持续效果触发）=====
-    this._eventBus.publish<RoundPreEvent>({
-      type: 'RoundPreEvent',
-      priority: EventPriorityLevel.ROUND_PRE,
-      timestamp: Date.now(),
-      turn: context.turn,
-    });
+    // ===== 状态机驱动战斗流程 =====
 
-    // 执行行动阶段（每个 actor 独立的事件）
+    // ROUND_START 阶段
+    this._stateMachine.switchTo(CombatPhase.ROUND_START);
+
+    // ROUND_PRE 阶段（DOT、持续效果触发）
+    this._stateMachine.switchTo(CombatPhase.ROUND_PRE);
+
+    // TURN_ORDER 阶段（行动顺序确定）
+    this._stateMachine.switchTo(CombatPhase.TURN_ORDER);
+
+    // ACTION 阶段（执行行动）
     this.executeActionPhase();
 
-    // 回合结束（处理 BUFF 过期等）
-    this.processTurnEnd();
+    // ROUND_POST 阶段（回合后置结算）
+    this._stateMachine.switchTo(CombatPhase.ROUND_POST);
 
-    // 胜负判定
+    // 处理 Buff 过期
+    this.processBuffs(this._player);
+    this.processBuffs(this._opponent);
+
+    // VICTORY_CHECK 阶段（胜负判定）
     const victoryResult = VictorySystem.checkVictory(
       [this._player, this._opponent],
       context.turn,
@@ -133,6 +148,8 @@ export class BattleEngineV5 {
       context.winner = victoryResult.winner ?? null;
       this._stateMachine.endBattle(victoryResult.winner ?? '');
     }
+
+    this._stateMachine.switchTo(CombatPhase.VICTORY_CHECK);
   }
 
   /**
@@ -189,29 +206,6 @@ export class BattleEngineV5 {
   }
 
   /**
-   * 处理回合结束
-   */
-  private processTurnEnd(): void {
-    // 处理技能冷却递减
-    this.processAbilityCooldowns(this._player);
-    this.processAbilityCooldowns(this._opponent);
-
-    // 处理 Buff 持续时间
-    this.processBuffs(this._player);
-    this.processBuffs(this._opponent);
-  }
-
-  /**
-   * 处理技能冷却递减
-   */
-  private processAbilityCooldowns(unit: Unit): void {
-    const abilities = unit.abilities.getAllAbilities();
-    for (const ability of abilities) {
-      ability.tickCooldown();
-    }
-  }
-
-  /**
    * 处理 Buff 持续时间
    */
   private processBuffs(unit: Unit): void {
@@ -219,7 +213,6 @@ export class BattleEngineV5 {
     for (const buff of buffs) {
       buff.tickDuration();
       if (buff.isExpired()) {
-        // 使用过期移除方法（会发布正确的事件）
         unit.buffs.removeBuffExpired(buff.id);
       }
     }
@@ -229,12 +222,13 @@ export class BattleEngineV5 {
    * 获取按速度排序的单位
    */
   private getSortedUnits(): Unit[] {
-    const units = [this._player, this._opponent];
-    return units.sort((a, b) => {
-      const speedA = a.attributes.getValue(AttributeType.AGILITY);
-      const speedB = b.attributes.getValue(AttributeType.AGILITY);
-      return speedB - speedA;
-    });
+    return [this._player, this._opponent]
+      .filter(u => u.isAlive())
+      .sort((a, b) => {
+        const speedA = a.attributes.getValue(AttributeType.AGILITY);
+        const speedB = b.attributes.getValue(AttributeType.AGILITY);
+        return speedB - speedA;
+      });
   }
 
   /**
@@ -283,7 +277,5 @@ export class BattleEngineV5 {
     this._actionSystem.destroy();
     this._damageSystem.destroy();
     this._logSystem.clear();
-    // Note: 不重置 EventBus 单例，因为其他系统可能仍在使用
-    // Note: AbilityContainer 的销毁由 Unit 负责
   }
 }

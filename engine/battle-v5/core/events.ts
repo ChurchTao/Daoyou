@@ -191,3 +191,50 @@ export interface TurnEndEvent extends CombatEvent {
   turn: number;
   activeUnit: Unit;
 }
+
+// ===== 战斗初始化事件 =====
+export interface BattleInitEvent extends CombatEvent {
+  type: 'BattleInitEvent';
+  player: Unit;
+  opponent: Unit;
+}
+
+// ===== 命格觉醒事件 =====
+export interface DestinyAwakenEvent extends CombatEvent {
+  type: 'DestinyAwakenEvent';
+  turn: number;
+}
+
+// ===== 回合开始事件（状态机驱动） =====
+export interface RoundStartEvent extends CombatEvent {
+  type: 'RoundStartEvent';
+  turn: number;
+}
+
+// ===== 行动顺序确定事件 =====
+export interface TurnOrderEvent extends CombatEvent {
+  type: 'TurnOrderEvent';
+  turn: number;
+  units: Unit[]; // 按速度排序后的行动顺序
+}
+
+// ===== 回合后置结算事件 =====
+export interface RoundPostEvent extends CombatEvent {
+  type: 'RoundPostEvent';
+  turn: number;
+}
+
+// ===== 胜负判定事件 =====
+export interface VictoryCheckEvent extends CombatEvent {
+  type: 'VictoryCheckEvent';
+  turn: number;
+  battleEnded: boolean;
+  winner: string | null;
+}
+
+// ===== 战斗结束事件 =====
+export interface BattleEndEvent extends CombatEvent {
+  type: 'BattleEndEvent';
+  winner: string | null;
+  turns: number;
+}
