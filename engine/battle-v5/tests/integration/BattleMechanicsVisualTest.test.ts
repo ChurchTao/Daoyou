@@ -13,6 +13,7 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { Buff, StackRule } from '../../buffs/Buff';
+import { PoisonDotBuff } from '../../buffs/examples/PoisonDotBuff';
 import { EventBus } from '../../core/EventBus';
 import { GameplayTags } from '../../core/GameplayTags';
 import {
@@ -68,7 +69,7 @@ class NormalAttackSkill extends ActiveSkill {
   protected executeSkill(_caster: Unit, _target: Unit): void {}
 }
 
-/** 毒术技能 - 添加DEBUFF */
+/** 毒术技能 - 添加DEBUFF（使用 GAS+EDA 模式的 PoisonDotBuff） */
 class PoisonSkill extends ActiveSkill {
   constructor() {
     super('poison_skill', '腐蚀毒术', 15, 2);
@@ -83,36 +84,11 @@ class PoisonSkill extends ActiveSkill {
   }
 
   protected executeSkill(_caster: Unit, target: Unit): void {
-    // 创建中毒DEBUFF
-    const poisonDebuff = new Buff(
-      'poison',
-      '中毒',
-      BuffType.DEBUFF,
-      3,
-      StackRule.REFRESH_DURATION,
-    );
-    poisonDebuff.tags.addTags([
-      GameplayTags.BUFF.TYPE_DEBUFF,
-      GameplayTags.BUFF.DOT_POISON,
-    ]);
-
-    // DEBUFF效果：减少体魄
-    poisonDebuff.onApply = (unit: Unit) => {
-      const modifier: AttributeModifier = {
-        id: 'poison_physique_penalty',
-        attrType: AttributeType.PHYSIQUE,
-        type: ModifierType.MULTIPLY,
-        value: 0.9, // 90%体魄（减少10%）
-        source: poisonDebuff,
-      };
-      unit.attributes.addModifier(modifier);
-    };
-
-    poisonDebuff.onRemove = (unit: Unit) => {
-      unit.attributes.removeModifier('poison_physique_penalty');
-    };
-
-    target.buffs.addBuff(poisonDebuff);
+    // 使用新的 PoisonDotBuff（GAS+EDA 模式）
+    // 订阅 RoundPreEvent，每回合造成体魄*5*层数的伤害
+    // 降低身法 20%，持续 3 回合
+    const poisonDotBuff = new PoisonDotBuff(1);
+    target.buffs.addBuff(poisonDotBuff);
   }
 }
 

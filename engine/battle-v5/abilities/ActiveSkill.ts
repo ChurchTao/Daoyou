@@ -44,8 +44,14 @@ export abstract class ActiveSkill extends Ability {
   /**
    * 直接执行技能（用于测试）
    * 注意：战斗系统通过事件系统执行技能，不使用此方法
+   * 此方法会检查 MP 和冷却，如果不满足条件则不执行
    */
   executeWithTarget(unit: Unit, target: Unit): void {
+    // 检查是否可以触发（MP、冷却等）
+    if (!this.canTrigger({ caster: unit, target })) {
+      return;
+    }
+
     // 消耗MP
     unit.consumeMp(this.manaCost);
 

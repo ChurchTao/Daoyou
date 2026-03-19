@@ -157,7 +157,7 @@ describe('Ability', () => {
       expect(ability.canTrigger(context)).toBe(true);
     });
 
-    it('canTrigger should check owner is set', () => {
+    it('canTrigger should use owner or context.caster', () => {
       const ability = new Ability('test', '测试', AbilityType.ACTIVE_SKILL);
 
       const context = {
@@ -165,11 +165,17 @@ describe('Ability', () => {
         target: unit,
       };
 
-      // No owner set
-      expect(ability.canTrigger(context)).toBe(false);
-
-      ability.setOwner(unit);
+      // No owner set, but context.caster is available (new behavior)
       expect(ability.canTrigger(context)).toBe(true);
+
+      // Without context.caster, should return false
+      const emptyContext = { caster: null as unknown as Unit, target: unit };
+      expect(ability.canTrigger(emptyContext)).toBe(false);
+
+      // With owner set, should work regardless of context.caster
+      const ability2 = new Ability('test2', '测试2', AbilityType.ACTIVE_SKILL);
+      ability2.setOwner(unit);
+      expect(ability2.canTrigger(context)).toBe(true);
     });
   });
 

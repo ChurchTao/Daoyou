@@ -11,6 +11,14 @@ import { EventBus } from '../core/EventBus';
 import { EventPriorityLevel } from '../core/events';
 import { GameplayTags } from '../core/GameplayTags';
 
+/**
+ * BuffContainer - Buff 容器
+ *
+ * GAS+EDA 架构设计：
+ * - 管理 Unit 身上的所有 Buff
+ * - 负责调用 Buff 的生命周期方法（setOwner → onActivate → onDeactivate）
+ * - 处理标签免疫检查和堆叠规则
+ */
 export class BuffContainer {
   private _buffs = new Map<BuffId, Buff>();
   private _owner: Unit;
@@ -42,9 +50,16 @@ export class BuffContainer {
       return;
     }
 
-    // 4. 添加新 BUFF
+    // 4. 添加新 BUFF（GAS 模式）
     this._buffs.set(buff.id, buff);
-    buff.onApply(this._owner);
+
+    // 4.1 设置 owner 引用（关键：必须在 onActivate 之前）
+    buff.setOwner(this._owner);
+
+    // 4.2 调用激活方法（子类在此订阅事件、添加标签等）
+    buff.onActivate();
+
+    // 4.3 更新派生属性
     this._owner.updateDerivedStats();
 
     // 5. 发布应用成功事件
@@ -76,7 +91,9 @@ export class BuffContainer {
     const buff = this._buffs.get(buffId);
     if (!buff) return;
 
-    buff.onRemove(this._owner);
+    // GAS 模式：调用 onDeactivate（取消订阅、移除标签等）
+    buff.onDeactivate();
+
     this._buffs.delete(buffId);
     this._owner.updateDerivedStats();
 
@@ -105,7 +122,7 @@ export class BuffContainer {
     for (const id of buffIds) {
       const buff = this._buffs.get(id);
       if (buff) {
-        buff.onRemove(this._owner);
+        buff.onDeactivate();
       }
     }
     this._buffs.clear();
@@ -144,11 +161,8 @@ export class BuffContainer {
   private _applyStackRule(existing: Buff, newBuff: Buff): void {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
-        // Check if buff has addLayer method (for layered buffs)
-        const layeredBuff = existing as unknown as { addLayer?: (layers: number) => void };
-        if (layeredBuff.addLayer && typeof layeredBuff.addLayer === 'function') {
-          layeredBuff.addLayer(1);
-        }
+        // 使用基类的 addLayer 方法
+        existing.addLayer(1);
         break;
 
       case StackRule.REFRESH_DURATION:
@@ -157,11 +171,11 @@ export class BuffContainer {
         break;
 
       case StackRule.OVERRIDE:
-        // Atomic replacement: remove old effects, replace buff, apply new effects
-        // This avoids double event publishing and immune checking
-        existing.onRemove(this._owner);
+        // 原子替换：停用旧 Buff，激活新 Buff
+        existing.onDeactivate();
         this._buffs.set(existing.id, newBuff);
-        newBuff.onApply(this._owner);
+        newBuff.setOwner(this._owner);
+        newBuff.onActivate();
         this._owner.updateDerivedStats();
         break;
 
@@ -176,7 +190,9 @@ export class BuffContainer {
     for (const buff of this._buffs.values()) {
       const clonedBuff = buff.clone();
       clone._buffs.set(clonedBuff.id, clonedBuff);
-      clonedBuff.onApply(owner);
+      // 使用新的生命周期方法
+      clonedBuff.setOwner(owner);
+      clonedBuff.onActivate();
     }
     return clone;
   }

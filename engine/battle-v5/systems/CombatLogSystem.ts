@@ -155,11 +155,15 @@ export class CombatLogSystem {
     const damage = Math.round(event.damageTaken);
     const remainHp = Math.round(event.remainHealth);
 
+    // 处理可能的 null 值（DOT 伤害等情况）
+    const casterName = event.caster?.name ?? '持续伤害';
+    const abilityName = event.ability?.name ?? '持续效果';
+
     this._addLog({
       id: `log_${this._nextId++}`,
       turn: 0, // TODO: 从上下文获取当前回合
       phase: CombatPhase.ACTION,
-      message: `【伤害】${event.caster.name}使用【${event.ability.name}】对${event.target.name}造成${damage}点伤害${critText}，剩余气血${remainHp}！`,
+      message: `【伤害】${casterName}使用【${abilityName}】对${event.target.name}造成${damage}点伤害${critText}，剩余气血${remainHp}！`,
       highlight,
     });
 

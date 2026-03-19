@@ -167,5 +167,17 @@ export const GameplayTags = {
     DOT_BURN: 'Buff.Dot.Burn',
     DOT_FREEZE: 'Buff.Dot.Freeze',
     DOT_BLEED: 'Buff.Dot.Bleed',
+
+    // 元素标签（用于元素免疫和克制）
+    ELEMENT: 'Buff.Element',
+    ELEMENT_FIRE: 'Buff.Element.Fire',
+    ELEMENT_WATER: 'Buff.Element.Water',
+    ELEMENT_WOOD: 'Buff.Element.Wood',
+    ELEMENT_EARTH: 'Buff.Element.Earth',
+    ELEMENT_METAL: 'Buff.Element.Metal',
+    ELEMENT_WIND: 'Buff.Element.Wind',
+    ELEMENT_ICE: 'Buff.Element.Ice',
+    ELEMENT_THUNDER: 'Buff.Element.Thunder',
+    ELEMENT_POISON: 'Buff.Element.Poison',
   },
 } as const;

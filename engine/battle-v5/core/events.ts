@@ -13,10 +13,17 @@ export enum EventPriorityLevel {
   DAMAGE_CALC = 60, // 伤害计算
   DAMAGE_APPLY = 55, // 伤害应用
   DAMAGE_TAKEN = 50, // 受击事件（触发被动/反伤）
+  ROUND_PRE = 45, // 回合前置结算（DOT、BUFF结算等）
   BUFF_INTERCEPT = 40, // BUFF 拦截（高于 POST_SETTLE）
   TAG_CHANGE = 35, // 标签变更
   POST_SETTLE = 30, // 后置结算
   COMBAT_LOG = 10, // 战报输出（最低）
+}
+
+// ===== 回合前置结算事件（DOT、持续效果触发） =====
+export interface RoundPreEvent extends CombatEvent {
+  type: 'RoundPreEvent';
+  turn: number;
 }
 
 // ===== 行动阶段触发事件 =====
@@ -76,9 +83,9 @@ export interface DamageCalculateEvent extends CombatEvent {
 // ===== 伤害应用事件 =====
 export interface DamageEvent extends CombatEvent {
   type: 'DamageEvent';
-  caster: Unit;
+  caster: Unit | null; // null 表示 DOT 伤害或环境伤害
   target: Unit;
-  ability: Ability;
+  ability: Ability | null; // null 表示非技能来源的伤害
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
@@ -87,9 +94,9 @@ export interface DamageEvent extends CombatEvent {
 // ===== 受击事件 =====
 export interface DamageTakenEvent extends CombatEvent {
   type: 'DamageTakenEvent';
-  caster: Unit;
+  caster: Unit | null; // null 表示 DOT 伤害或环境伤害
   target: Unit;
-  ability: Ability; // 造成伤害的技能
+  ability: Ability | null; // null 表示非技能来源的伤害
   damageTaken: number;
   remainHealth: number;
   isLethal: boolean;

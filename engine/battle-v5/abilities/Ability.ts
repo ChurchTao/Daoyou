@@ -107,7 +107,8 @@ export class Ability {
   canTrigger(context: { caster: Unit; target: Unit }): boolean {
     if (!this.isReady()) return false;
 
-    const caster = this._owner;
+    // 优先使用绑定的 owner，如果没有则使用 context.caster（支持测试场景）
+    const caster = this._owner ?? context.caster;
     if (!caster) return false;
 
     // Check if caster has enough mana

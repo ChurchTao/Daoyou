@@ -3,6 +3,7 @@ import { EventBus } from './core/EventBus';
 import {
   ActionEvent,
   EventPriorityLevel,
+  RoundPreEvent,
   TurnEndEvent,
   TurnStartEvent,
 } from './core/events';
@@ -106,6 +107,14 @@ export class BattleEngineV5 {
       CombatPhase.ROUND_START,
       `第${context.turn}回合开始`,
     );
+
+    // ===== 回合前置结算阶段（DOT、持续效果触发）=====
+    this._eventBus.publish<RoundPreEvent>({
+      type: 'RoundPreEvent',
+      priority: EventPriorityLevel.ROUND_PRE,
+      timestamp: Date.now(),
+      turn: context.turn,
+    });
 
     // 执行行动阶段（每个 actor 独立的事件）
     this.executeActionPhase();
