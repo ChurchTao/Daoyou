@@ -1,11 +1,6 @@
 import { CombatContext, CombatStateMachine } from './core/CombatStateMachine';
 import { EventBus } from './core/EventBus';
-import {
-  ActionEvent,
-  EventPriorityLevel,
-  TurnEndEvent,
-  TurnStartEvent,
-} from './core/events';
+import { ActionEvent, EventPriorityLevel } from './core/events';
 import { AttributeType, CombatPhase } from './core/types';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
 import { CombatLogSystem } from './systems/CombatLogSystem';
@@ -156,20 +151,10 @@ export class BattleEngineV5 {
    * 执行行动阶段（事件驱动）
    */
   private executeActionPhase(): void {
-    const context = this.getContext();
     const units = this.getSortedUnits();
 
     for (const actor of units) {
       if (!actor.isAlive()) continue;
-
-      // 发布 Actor 回合开始事件
-      this._eventBus.publish<TurnStartEvent>({
-        type: 'TurnStartEvent',
-        priority: EventPriorityLevel.ACTION_TRIGGER,
-        timestamp: Date.now(),
-        turn: context.turn,
-        activeUnit: actor,
-      });
 
       // 设置当前出手单位
       this._stateMachine.setCurrentCaster(actor);
@@ -193,15 +178,6 @@ export class BattleEngineV5 {
 
       // 清除当前出手单位
       this._stateMachine.clearCurrentCaster();
-
-      // 发布 Actor 回合结束事件
-      this._eventBus.publish<TurnEndEvent>({
-        type: 'TurnEndEvent',
-        priority: EventPriorityLevel.ACTION_TRIGGER,
-        timestamp: Date.now(),
-        turn: context.turn,
-        activeUnit: actor,
-      });
     }
   }
 

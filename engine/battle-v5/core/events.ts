@@ -178,19 +178,6 @@ export interface BuffImmuneEvent extends CombatEvent {
   immuneTag: TagPath; // 触发免疫的标签
 }
 
-// ===== 回合开始事件（用于 DOT 处理） =====
-export interface TurnStartEvent extends CombatEvent {
-  type: 'TurnStartEvent';
-  turn: number;
-  activeUnit: Unit;
-}
-
-// ===== 回合结束事件 =====
-export interface TurnEndEvent extends CombatEvent {
-  type: 'TurnEndEvent';
-  turn: number;
-  activeUnit: Unit;
-}
 
 // ===== 战斗初始化事件 =====
 export interface BattleInitEvent extends CombatEvent {

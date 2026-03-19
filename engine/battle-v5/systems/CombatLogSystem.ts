@@ -7,8 +7,6 @@ import {
   EventPriorityLevel,
   HitCheckEvent,
   SkillInterruptEvent,
-  TurnEndEvent,
-  TurnStartEvent,
   UnitDeadEvent,
 } from '../core/events';
 import { CombatLog, CombatPhase } from '../core/types';
@@ -99,24 +97,6 @@ export class CombatLogSystem {
       EventPriorityLevel.COMBAT_LOG,
     );
     this._handlers.set('BuffImmuneEvent', buffImmuneHandler);
-
-    // 回合开始事件
-    const turnStartHandler = (e: TurnStartEvent) => this._onTurnStart(e);
-    EventBus.instance.subscribe<TurnStartEvent>(
-      'TurnStartEvent',
-      turnStartHandler,
-      EventPriorityLevel.COMBAT_LOG,
-    );
-    this._handlers.set('TurnStartEvent', turnStartHandler);
-
-    // 回合结束事件
-    const turnEndHandler = (e: TurnEndEvent) => this._onTurnEnd(e);
-    EventBus.instance.subscribe<TurnEndEvent>(
-      'TurnEndEvent',
-      turnEndHandler,
-      EventPriorityLevel.COMBAT_LOG,
-    );
-    this._handlers.set('TurnEndEvent', turnEndHandler);
   }
 
   private _onSkillInterrupt(event: SkillInterruptEvent): void {
@@ -235,21 +215,6 @@ export class CombatLogSystem {
       message: `【免疫】${event.target.name} 拥有免疫能力，抵抗了「${event.buff.name}」！`,
       highlight: true,
     });
-  }
-
-  private _onTurnStart(event: TurnStartEvent): void {
-    this._addLog({
-      id: `log_${this._nextId++}`,
-      turn: event.turn,
-      phase: CombatPhase.ROUND_PRE,
-      message: `━━━ 第${event.turn}回合 ${event.activeUnit.name}行动 ━━━`,
-      highlight: false,
-    });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private _onTurnEnd(_event: TurnEndEvent): void {
-    // 回合结束日志（可选，目前不输出）
   }
 
   private _getRemoveReasonText(
