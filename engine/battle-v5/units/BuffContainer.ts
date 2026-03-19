@@ -1,7 +1,12 @@
 import { Unit } from './Unit';
 import { BuffId } from '../core/types';
 import { Buff, StackRule } from '../buffs/Buff';
-import { BuffAddEvent } from '../core/events';
+import {
+  BuffAddEvent,
+  BuffAppliedEvent,
+  BuffRemovedEvent,
+  BuffImmuneEvent,
+} from '../core/events';
 import { EventBus } from '../core/EventBus';
 import { EventPriorityLevel } from '../core/events';
 import { GameplayTags } from '../core/GameplayTags';
@@ -41,15 +46,50 @@ export class BuffContainer {
     this._buffs.set(buff.id, buff);
     buff.onApply(this._owner);
     this._owner.updateDerivedStats();
+
+    // 5. 发布应用成功事件
+    const appliedEvent: BuffAppliedEvent = {
+      type: 'BuffAppliedEvent',
+      priority: EventPriorityLevel.TAG_CHANGE,
+      timestamp: Date.now(),
+      target: this._owner,
+      buff,
+    };
+    EventBus.instance.publish(appliedEvent);
   }
 
+  /**
+   * 移除 BUFF（手动移除，如驱散）
+   */
   removeBuff(buffId: BuffId): void {
+    this._removeBuffWithReason(buffId, 'manual');
+  }
+
+  /**
+   * 移除 BUFF（过期）
+   */
+  removeBuffExpired(buffId: BuffId): void {
+    this._removeBuffWithReason(buffId, 'expired');
+  }
+
+  private _removeBuffWithReason(buffId: BuffId, reason: 'manual' | 'expired' | 'dispel' | 'replace'): void {
     const buff = this._buffs.get(buffId);
     if (!buff) return;
 
     buff.onRemove(this._owner);
     this._buffs.delete(buffId);
     this._owner.updateDerivedStats();
+
+    // 发布移除事件
+    const removedEvent: BuffRemovedEvent = {
+      type: 'BuffRemovedEvent',
+      priority: EventPriorityLevel.TAG_CHANGE,
+      timestamp: Date.now(),
+      target: this._owner,
+      buff,
+      reason,
+    };
+    EventBus.instance.publish(removedEvent);
   }
 
   getAllBuffs(): Buff[] {
@@ -76,10 +116,29 @@ export class BuffContainer {
     const isDebuff = buff.tags.hasTag(GameplayTags.BUFF.TYPE_DEBUFF);
     if (!isDebuff) return false;
 
-    return this._owner.tags.hasAnyTag([
+    // 检查免疫标签
+    const immuneTags = [
       GameplayTags.STATUS.IMMUNE_DEBUFF,
       GameplayTags.STATUS.IMMUNE,
-    ]);
+    ];
+
+    for (const immuneTag of immuneTags) {
+      if (this._owner.tags.hasTag(immuneTag)) {
+        // 发布免疫拦截事件
+        const immuneEvent: BuffImmuneEvent = {
+          type: 'BuffImmuneEvent',
+          priority: EventPriorityLevel.TAG_CHANGE,
+          timestamp: Date.now(),
+          target: this._owner,
+          buff,
+          immuneTag,
+        };
+        EventBus.instance.publish(immuneEvent);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private _applyStackRule(existing: Buff, newBuff: Buff): void {

@@ -5,6 +5,11 @@ import {
   HitCheckEvent,
   DamageTakenEvent,
   UnitDeadEvent,
+  BuffAppliedEvent,
+  BuffRemovedEvent,
+  BuffImmuneEvent,
+  TurnStartEvent,
+  TurnEndEvent,
   EventPriorityLevel,
 } from '../core/events';
 
@@ -66,6 +71,51 @@ export class CombatLogSystem {
       EventPriorityLevel.COMBAT_LOG,
     );
     this._handlers.set('UnitDeadEvent', unitDeadHandler);
+
+    // BUFF 应用事件
+    const buffAppliedHandler = (e: BuffAppliedEvent) => this._onBuffApplied(e);
+    EventBus.instance.subscribe<BuffAppliedEvent>(
+      'BuffAppliedEvent',
+      buffAppliedHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('BuffAppliedEvent', buffAppliedHandler);
+
+    // BUFF 移除事件
+    const buffRemovedHandler = (e: BuffRemovedEvent) => this._onBuffRemoved(e);
+    EventBus.instance.subscribe<BuffRemovedEvent>(
+      'BuffRemovedEvent',
+      buffRemovedHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('BuffRemovedEvent', buffRemovedHandler);
+
+    // BUFF 免疫拦截事件
+    const buffImmuneHandler = (e: BuffImmuneEvent) => this._onBuffImmune(e);
+    EventBus.instance.subscribe<BuffImmuneEvent>(
+      'BuffImmuneEvent',
+      buffImmuneHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('BuffImmuneEvent', buffImmuneHandler);
+
+    // 回合开始事件
+    const turnStartHandler = (e: TurnStartEvent) => this._onTurnStart(e);
+    EventBus.instance.subscribe<TurnStartEvent>(
+      'TurnStartEvent',
+      turnStartHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('TurnStartEvent', turnStartHandler);
+
+    // 回合结束事件
+    const turnEndHandler = (e: TurnEndEvent) => this._onTurnEnd(e);
+    EventBus.instance.subscribe<TurnEndEvent>(
+      'TurnEndEvent',
+      turnEndHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('TurnEndEvent', turnEndHandler);
   }
 
   private _onSkillInterrupt(event: SkillInterruptEvent): void {
@@ -132,6 +182,69 @@ export class CombatLogSystem {
       message: `【阵亡】${event.unit.name}已被${event.killer.name}击败！`,
       highlight: true,
     });
+  }
+
+  private _onBuffApplied(event: BuffAppliedEvent): void {
+    const buffType = event.buff.type;
+    const typeLabel = buffType === 'buff' ? '【增益】' : buffType === 'debuff' ? '【减益】' : '【效果】';
+    const duration = event.buff.getMaxDuration();
+    const durationText = duration > 0 ? `（${duration}回合）` : '';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ROUND_POST,
+      message: `${typeLabel}${event.target.name} 获得「${event.buff.name}」${durationText}`,
+      highlight: buffType === 'buff',
+    });
+  }
+
+  private _onBuffRemoved(event: BuffRemovedEvent): void {
+    const buffType = event.buff.type;
+    const typeLabel = buffType === 'buff' ? '【增益消散】' : buffType === 'debuff' ? '【减益解除】' : '【效果消失】';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ROUND_POST,
+      message: `${typeLabel}${event.target.name} 的「${event.buff.name}」已${this._getRemoveReasonText(event.reason)}`,
+      highlight: false,
+    });
+  }
+
+  private _onBuffImmune(event: BuffImmuneEvent): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【免疫】${event.target.name} 拥有免疫能力，抵抗了「${event.buff.name}」！`,
+      highlight: true,
+    });
+  }
+
+  private _onTurnStart(event: TurnStartEvent): void {
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: event.turn,
+      phase: CombatPhase.ROUND_PRE,
+      message: `━━━ 第${event.turn}回合 ${event.activeUnit.name}行动 ━━━`,
+      highlight: false,
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private _onTurnEnd(_event: TurnEndEvent): void {
+    // 回合结束日志（可选，目前不输出）
+  }
+
+  private _getRemoveReasonText(reason: 'manual' | 'expired' | 'dispel' | 'replace'): string {
+    const reasonMap = {
+      manual: '被移除',
+      expired: '时效已过',
+      dispel: '被驱散',
+      replace: '被覆盖',
+    };
+    return reasonMap[reason];
   }
 
   /**

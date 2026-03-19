@@ -127,3 +127,41 @@ export interface BuffAddEvent extends CombatEvent {
   buff: Buff;
   isCancelled?: boolean;
 }
+
+// ===== BUFF 成功应用事件 =====
+export interface BuffAppliedEvent extends CombatEvent {
+  type: 'BuffAppliedEvent';
+  target: Unit;
+  buff: Buff;
+  source?: Unit | Ability | unknown; // 来源（施法者/技能）
+}
+
+// ===== BUFF 移除事件 =====
+export interface BuffRemovedEvent extends CombatEvent {
+  type: 'BuffRemovedEvent';
+  target: Unit;
+  buff: Buff;
+  reason: 'manual' | 'expired' | 'dispel' | 'replace'; // 移除原因
+}
+
+// ===== BUFF 免疫拦截事件 =====
+export interface BuffImmuneEvent extends CombatEvent {
+  type: 'BuffImmuneEvent';
+  target: Unit;
+  buff: Buff;
+  immuneTag: TagPath; // 触发免疫的标签
+}
+
+// ===== 回合开始事件（用于 DOT 处理） =====
+export interface TurnStartEvent extends CombatEvent {
+  type: 'TurnStartEvent';
+  turn: number;
+  activeUnit: Unit;
+}
+
+// ===== 回合结束事件 =====
+export interface TurnEndEvent extends CombatEvent {
+  type: 'TurnEndEvent';
+  turn: number;
+  activeUnit: Unit;
+}

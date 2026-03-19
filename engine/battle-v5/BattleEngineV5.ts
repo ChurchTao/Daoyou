@@ -1,12 +1,17 @@
-import { Unit } from './units/Unit';
-import { CombatStateMachine, CombatContext } from './core/CombatStateMachine';
+import { CombatContext, CombatStateMachine } from './core/CombatStateMachine';
 import { EventBus } from './core/EventBus';
-import { CombatPhase, AttributeType } from './core/types';
-import { CombatLogSystem } from './systems/CombatLogSystem';
-import { VictorySystem } from './systems/VictorySystem';
+import {
+  ActionEvent,
+  EventPriorityLevel,
+  TurnEndEvent,
+  TurnStartEvent,
+} from './core/events';
+import { AttributeType, CombatPhase } from './core/types';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
+import { CombatLogSystem } from './systems/CombatLogSystem';
 import { DamageSystem } from './systems/DamageSystem';
-import { ActionEvent } from './core/events';
+import { VictorySystem } from './systems/VictorySystem';
+import { Unit } from './units/Unit';
 
 export interface BattleResult {
   winner: string;
@@ -95,13 +100,17 @@ export class BattleEngineV5 {
       return;
     }
 
-    // 回合开始
-    this._logSystem.log(context.turn, CombatPhase.ROUND_START, `第${context.turn}回合开始`);
+    // 回合开始（日志）
+    this._logSystem.log(
+      context.turn,
+      CombatPhase.ROUND_START,
+      `第${context.turn}回合开始`,
+    );
 
-    // 执行行动阶段（新的事件驱动流程）
+    // 执行行动阶段（每个 actor 独立的事件）
     this.executeActionPhase();
 
-    // 回合结束
+    // 回合结束（处理 BUFF 过期等）
     this.processTurnEnd();
 
     // 胜负判定
@@ -121,10 +130,20 @@ export class BattleEngineV5 {
    * 执行行动阶段（事件驱动）
    */
   private executeActionPhase(): void {
+    const context = this.getContext();
     const units = this.getSortedUnits();
 
     for (const actor of units) {
       if (!actor.isAlive()) continue;
+
+      // 发布 Actor 回合开始事件
+      this._eventBus.publish<TurnStartEvent>({
+        type: 'TurnStartEvent',
+        priority: EventPriorityLevel.ACTION_TRIGGER,
+        timestamp: Date.now(),
+        turn: context.turn,
+        activeUnit: actor,
+      });
 
       // 设置当前出手单位
       this._stateMachine.setCurrentCaster(actor);
@@ -138,7 +157,7 @@ export class BattleEngineV5 {
       // 发布行动事件，触发整个技能流程
       this._eventBus.publish<ActionEvent>({
         type: 'ActionEvent',
-        priority: 80,
+        priority: EventPriorityLevel.ACTION_TRIGGER,
         timestamp: Date.now(),
         caster: actor,
       });
@@ -148,6 +167,15 @@ export class BattleEngineV5 {
 
       // 清除当前出手单位
       this._stateMachine.clearCurrentCaster();
+
+      // 发布 Actor 回合结束事件
+      this._eventBus.publish<TurnEndEvent>({
+        type: 'TurnEndEvent',
+        priority: EventPriorityLevel.ACTION_TRIGGER,
+        timestamp: Date.now(),
+        turn: context.turn,
+        activeUnit: actor,
+      });
     }
   }
 
@@ -182,7 +210,8 @@ export class BattleEngineV5 {
     for (const buff of buffs) {
       buff.tickDuration();
       if (buff.isExpired()) {
-        unit.buffs.removeBuff(buff.id);
+        // 使用过期移除方法（会发布正确的事件）
+        unit.buffs.removeBuffExpired(buff.id);
       }
     }
   }
@@ -218,7 +247,8 @@ export class BattleEngineV5 {
    */
   private generateResult(): BattleResult {
     const context = this.getContext();
-    const winner = context.winner === this._player.id ? this._player : this._opponent;
+    const winner =
+      context.winner === this._player.id ? this._player : this._opponent;
     const loser = winner === this._player ? this._opponent : this._player;
 
     this._logSystem.logBattleEnd(winner.name, context.turn);

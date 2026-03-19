@@ -28,6 +28,20 @@ export abstract class ActiveSkill extends Ability {
   }
 
   /**
+   * 重写执行方法，整合技能效果执行
+   */
+  override execute(context: { caster: Unit; target: Unit }): void {
+    // 消耗MP
+    context.caster.consumeMp(this.manaCost);
+
+    // 开始冷却
+    this.startCooldown();
+
+    // 执行技能效果
+    this.executeSkill(context.caster, context.target);
+  }
+
+  /**
    * 直接执行技能（用于测试）
    * 注意：战斗系统通过事件系统执行技能，不使用此方法
    */
