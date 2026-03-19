@@ -106,7 +106,7 @@ export class PoisonDotBuff extends Buff {
 
     // 计算基础伤害：体魄 * 5 * 层数
     const physique = this._owner.attributes.getValue(AttributeType.PHYSIQUE);
-    const baseDamage = Math.floor(physique * 5 * this._layer);
+    const baseDamage = Math.floor(physique * 0.5 * this._layer);
 
     // 发布伤害请求事件，进入统一伤害计算管道
     // 其他系统（如「毒术精通」命格）可订阅此事件进行增伤修正

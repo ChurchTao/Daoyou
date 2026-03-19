@@ -128,10 +128,6 @@ export class BattleEngineV5 {
     // ROUND_POST 阶段（回合后置结算）
     this._stateMachine.switchTo(CombatPhase.ROUND_POST);
 
-    // 处理 Buff 过期
-    this.processBuffs(this._player);
-    this.processBuffs(this._opponent);
-
     // VICTORY_CHECK 阶段（胜负判定）
     const victoryResult = VictorySystem.checkVictory(
       [this._player, this._opponent],
@@ -178,6 +174,9 @@ export class BattleEngineV5 {
 
       // 清除当前出手单位
       this._stateMachine.clearCurrentCaster();
+
+      // 处理 Buff 过期
+      this.processBuffs(actor);
     }
   }
 
@@ -199,7 +198,7 @@ export class BattleEngineV5 {
    */
   private getSortedUnits(): Unit[] {
     return [this._player, this._opponent]
-      .filter(u => u.isAlive())
+      .filter((u) => u.isAlive())
       .sort((a, b) => {
         const speedA = a.attributes.getValue(AttributeType.AGILITY);
         const speedB = b.attributes.getValue(AttributeType.AGILITY);
