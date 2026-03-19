@@ -15,14 +15,14 @@ export class GameplayTagContainer {
    * 添加标签（支持批量）
    */
   public addTags(tags: TagPath[]): void {
-    tags.forEach(tag => this._tags.add(tag));
+    tags.forEach((tag) => this._tags.add(tag));
   }
 
   /**
    * 移除标签（支持批量）
    */
   public removeTags(tags: TagPath[]): void {
-    tags.forEach(tag => this._tags.delete(tag));
+    tags.forEach((tag) => this._tags.delete(tag));
   }
 
   /**
@@ -35,21 +35,21 @@ export class GameplayTagContainer {
 
     // 父标签匹配
     const parentTags = this._getParentTags(tag);
-    return parentTags.some(parent => this._tags.has(parent));
+    return parentTags.some((parent) => this._tags.has(parent));
   }
 
   /**
    * 检查是否有任意一个标签
    */
   public hasAnyTag(tags: TagPath[]): boolean {
-    return tags.some(tag => this.hasTag(tag));
+    return tags.some((tag) => this.hasTag(tag));
   }
 
   /**
    * 检查是否有所有标签
    */
   public hasAllTags(tags: TagPath[]): boolean {
-    return tags.every(tag => this.hasTag(tag));
+    return tags.every((tag) => this.hasTag(tag));
   }
 
   /**
@@ -123,9 +123,15 @@ export const GameplayTags = {
     TYPE_PHYSICAL: 'Ability.Type.Physical',
 
     ELEMENT: 'Ability.Element',
+    // 元素: 火水木土金风冰雷
     ELEMENT_FIRE: 'Ability.Element.Fire',
     ELEMENT_WATER: 'Ability.Element.Water',
-    ELEMENT_POISON: 'Ability.Element.Poison',
+    ELEMENT_WOOD: 'Ability.Element.Wood',
+    ELEMENT_EARTH: 'Ability.Element.Earth',
+    ELEMENT_METAL: 'Ability.Element.Metal',
+    ELEMENT_WIND: 'Ability.Element.Wind',
+    ELEMENT_ICE: 'Ability.Element.Ice',
+    ELEMENT_THUNDER: 'Ability.Element.Thunder',
 
     TARGET: 'Ability.Target',
     TARGET_SINGLE: 'Ability.Target.Single',
@@ -139,8 +145,12 @@ export const GameplayTags = {
     TYPE_DEBUFF: 'Buff.Type.Debuff',
     TYPE_CONTROL: 'Buff.Type.Control',
 
+    // 持续伤害
     DOT: 'Buff.Dot',
+    // 中毒、烧伤、冻结、出血
     DOT_POISON: 'Buff.Dot.Poison',
     DOT_BURN: 'Buff.Dot.Burn',
+    DOT_FREEZE: 'Buff.Dot.Freeze',
+    DOT_BLEED: 'Buff.Dot.Bleed',
   },
 } as const;
