@@ -618,3 +618,28 @@ export const feedbacks = pgTable(
     ),
   ],
 );
+
+// 技能模板表 (Ability System V5)
+export const abilityTemplates = pgTable(
+  'wanjiedaoyou_ability_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: varchar('slug', { length: 100 }).unique().notNull(), // 唯一标识符，如 "fireball_v5"
+    name: varchar('name', { length: 100 }).notNull(),
+    description: text('description'),
+    type: varchar('type', { length: 20 }).notNull(), // active_skill | passive_ability
+    
+    // 核心配置：存储整个技能的效果链、消耗、冷却等 GAS 配置
+    config: jsonb('config').notNull(), 
+    
+    // 附加信息：如元素、等级、评分、AI Prompt 等
+    metadata: jsonb('metadata').default({}), 
+    
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('ability_templates_slug_idx').on(table.slug),
+    index('ability_templates_type_idx').on(table.type),
+  ],
+);

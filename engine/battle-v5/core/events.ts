@@ -94,9 +94,9 @@ export interface HitCheckEvent extends CombatEvent {
 // 来源：技能伤害、DOT 伤害、反伤等所有伤害来源
 export interface DamageRequestEvent extends CombatEvent {
   type: 'DamageRequestEvent';
-  caster: Unit | null; // null 表示 DOT 伤害或环境伤害
+  caster?: Unit; // null 表示 DOT 伤害或环境伤害
   target: Unit;
-  ability: Ability | null; // null 表示非技能来源的伤害
+  ability?: Ability; // null 表示非技能来源的伤害
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   isCritical?: boolean; // 是否暴击
@@ -109,9 +109,9 @@ export interface DamageRequestEvent extends CombatEvent {
 // 注意：此事件由 DamageSystem 发布，不再由 DamageSystem 订阅
 export interface DamageEvent extends CombatEvent {
   type: 'DamageEvent';
-  caster: Unit | null; // null 表示 DOT 伤害或环境伤害
+  caster?: Unit; // null 表示 DOT 伤害或环境伤害
   target: Unit;
-  ability: Ability | null; // null 表示非技能来源的伤害
+  ability?: Ability; // null 表示非技能来源的伤害
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
@@ -120,9 +120,9 @@ export interface DamageEvent extends CombatEvent {
 // ===== 受击事件 =====
 export interface DamageTakenEvent extends CombatEvent {
   type: 'DamageTakenEvent';
-  caster: Unit | null; // null 表示 DOT 伤害或环境伤害
+  caster?: Unit; // null 表示 DOT 伤害或环境伤害
   target: Unit;
-  ability: Ability | null; // null 表示非技能来源的伤害
+  ability?: Ability; // null 表示非技能来源的伤害
   damageTaken: number;
   remainHealth: number;
   isLethal: boolean;
@@ -134,7 +134,7 @@ export interface DamageTakenEvent extends CombatEvent {
 export interface UnitDeadEvent extends CombatEvent {
   type: 'UnitDeadEvent';
   unit: Unit;
-  killer: Unit | null;
+  killer?: Unit;
 }
 
 // ===== 标签添加事件 =====

@@ -32,5 +32,12 @@ export {
   type CultivatorData,
 } from './adapters/CultivatorAdapter';
 
+// Data-Driven System
+export { DataDrivenActiveSkill } from './abilities/DataDrivenActiveSkill';
+export { DataDrivenBuff } from './buffs/DataDrivenBuff';
+export { AbilityFactory } from './factories/AbilityFactory';
+export { BuffFactory } from './factories/BuffFactory';
+export { AbilityDataLoader } from './loaders/AbilityDataLoader';
+
 // Main Entry
 export { BattleEngineV5, type BattleResult } from './BattleEngineV5';

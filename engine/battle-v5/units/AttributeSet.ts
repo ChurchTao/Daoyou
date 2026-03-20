@@ -203,6 +203,17 @@ export class AttributeSet {
   }
 
   /**
+   * 按来源移除修改器
+   * @param source 来源对象
+   */
+  removeModifierBySource(source: any): void {
+    this._attributes.forEach((attr) => {
+      const modifiers = attr.getModifiers().filter((m) => m.source !== source);
+      attr.setModifiers(modifiers);
+    });
+  }
+
+  /**
    * Clear all modifiers from all attributes.
    */
   clearModifiers(): void {

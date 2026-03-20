@@ -49,8 +49,6 @@ class ControlSkill extends ActiveSkill {
       mpCost: 20,
       cooldown: 2,
     });
-    this.setDamageCoefficient(0.5);
-    this.setBaseDamage(10);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_CONTROL]);
     this.setPriority(50);
@@ -66,8 +64,6 @@ class NormalAttackSkill extends ActiveSkill {
       mpCost: 0,
       cooldown: 0,
     });
-    this.setDamageCoefficient(1.0);
-    this.setBaseDamage(30);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
     this.setPriority(10);
   }
@@ -82,8 +78,6 @@ class PoisonSkill extends ActiveSkill {
       mpCost: 15,
       cooldown: 2,
     });
-    this.setDamageCoefficient(0.8);
-    this.setBaseDamage(20);
     this.tags.addTags([
       GameplayTags.ABILITY.TYPE_MAGIC,
       GameplayTags.ABILITY.TYPE_DAMAGE,
@@ -131,8 +125,6 @@ class ShieldBuffSkill extends ActiveSkill {
       mpCost: 25,
       cooldown: 3,
     });
-    this.setDamageCoefficient(0.5);
-    this.setBaseDamage(15);
     this.tags.addTags([GameplayTags.ABILITY.TYPE_MAGIC]);
     this.setPriority(30);
   }

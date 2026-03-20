@@ -123,76 +123,8 @@ export class DamageSystem {
     // 发布命中判定事件
     EventBus.instance.publish(hitCheckEvent);
 
-    // 未命中，直接终止流程
-    if (!hitCheckEvent.isHit) return;
-
-    // 命中成功，计算基础伤害并发布 DamageRequestEvent
-    this._publishDamageRequestEvent(event, hitCheckEvent);
-  }
-
-  /**
-   * 计算技能基础伤害，发布 DamageRequestEvent
-   * 注意：此处只计算基础伤害和暴击，不计算减伤
-   * 减伤和随机浮动由 _onDamageRequest 统一处理
-   */
-  private _publishDamageRequestEvent(
-    castEvent: SkillCastEvent,
-    _hitEvent: HitCheckEvent,
-  ): void {
-    const { caster, target, ability } = castEvent;
-
-    // 只处理 ActiveSkill 类型的能力（有伤害属性）
-    const skill = ability instanceof ActiveSkill ? ability : null;
-
-    // 1. 计算基础伤害（根据技能类型和对应属性）
-    let baseDamage = skill?.baseDamage ?? 0;
-
-    if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
-      // 法术伤害：灵力 * 技能系数 + 固定值
-      const spirit = caster.attributes.getValue(AttributeType.SPIRIT);
-      baseDamage =
-        spirit * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
-    } else if (ability.tags.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
-      // 体术伤害：体魄 * 技能系数 + 固定值
-      const physique = caster.attributes.getValue(AttributeType.PHYSIQUE);
-      baseDamage =
-        physique * (skill?.damageCoefficient ?? 1.0) + (skill?.baseDamage ?? 0);
-    }
-
-    // 2. 暴击判定（身法属性核心价值：暴击率）
-    const casterAgility = caster.attributes.getValue(AttributeType.AGILITY);
-    const targetConsciousness = target.attributes.getValue(
-      AttributeType.CONSCIOUSNESS,
-    );
-
-    // 暴击率公式：身法/100 + 基础5%，最高60%，被神识抗性降低
-    let critRate = Math.min(60, casterAgility / 100 + 5);
-    // 目标神识高于施法者时，降低暴击率
-    if (targetConsciousness > casterAgility) {
-      critRate *= 0.7;
-    }
-    const isCritical = Math.random() * 100 < critRate;
-    const critMultiplier = isCritical ? 1.5 + casterAgility / 1000 : 1;
-
-    // 3. 计算当前伤害（基础 × 暴击倍率）
-    const currentDamage = baseDamage * critMultiplier;
-
-    // 4. 发布伤害请求事件
-    // 其他系统（被动、命格、Buff）可订阅此事件修正伤害（增伤效果）
-    const requestEvent: DamageRequestEvent = {
-      type: 'DamageRequestEvent',
-      priority: EventPriorityLevel.DAMAGE_REQUEST,
-      timestamp: Date.now(),
-      caster,
-      target,
-      ability,
-      baseDamage,
-      finalDamage: currentDamage,
-      isCritical,
-      critMultiplier,
-    };
-
-    EventBus.instance.publish(requestEvent);
+    // 命中判定逻辑结束。不再此处自动发布 DamageRequestEvent。
+    // 具体的伤害效果由 Ability 的效果链 (GameplayEffect) 主动发布。
   }
 
   // ==================== 统一伤害计算管道 ====================

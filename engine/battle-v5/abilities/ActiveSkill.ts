@@ -31,7 +31,6 @@ export interface ActiveSkillConfig {
  * - 管理冷却时间
  * - 管理资源消耗
  * - 定义目标策略
- * - 提供伤害计算基础属性
  */
 export abstract class ActiveSkill extends Ability {
   // 冷却管理
@@ -40,10 +39,6 @@ export abstract class ActiveSkill extends Ability {
 
   // 资源消耗
   private _resourceCosts: ResourceCost[] = [];
-
-  // 伤害属性
-  private _baseDamage: number = 0;
-  private _damageCoefficient: number = 1.0;
 
   // 目标策略
   readonly targetPolicy: TargetPolicy;
@@ -73,14 +68,6 @@ export abstract class ActiveSkill extends Ability {
 
     // 初始化目标策略
     this.targetPolicy = config.targetPolicy ?? TargetPolicy.default();
-
-    // 初始化伤害属性
-    if (config.baseDamage !== undefined) {
-      this._baseDamage = config.baseDamage;
-    }
-    if (config.damageCoefficient !== undefined) {
-      this._damageCoefficient = config.damageCoefficient;
-    }
   }
 
   // ===== 冷却管理 =====
@@ -185,24 +172,6 @@ export abstract class ActiveSkill extends Ability {
     }
   }
 
-  // ===== 伤害属性 =====
-
-  get baseDamage(): number {
-    return this._baseDamage;
-  }
-
-  setBaseDamage(value: number): void {
-    this._baseDamage = value;
-  }
-
-  get damageCoefficient(): number {
-    return this._damageCoefficient;
-  }
-
-  setDamageCoefficient(value: number): void {
-    this._damageCoefficient = value;
-  }
-
   // ===== 核心方法重写 =====
 
   /**
@@ -248,8 +217,6 @@ export abstract class ActiveSkill extends Ability {
   override clone(): ActiveSkill {
     const cloned = super.clone() as ActiveSkill;
     cloned._maxCooldown = this._maxCooldown;
-    cloned._baseDamage = this._baseDamage;
-    cloned._damageCoefficient = this._damageCoefficient;
     cloned._resourceCosts = [...this._resourceCosts];
     return cloned;
   }

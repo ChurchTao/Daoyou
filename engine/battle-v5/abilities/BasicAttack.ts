@@ -3,28 +3,41 @@ import { AbilityId } from '../core/types';
 import { GameplayTags } from '../core/GameplayTags';
 import { ActiveSkill } from './ActiveSkill';
 import { Unit } from '../units/Unit';
+import { DamageEffect } from '../effects/DamageEffect';
+import { AttributeType } from '../core/types';
 
 /**
  * 普攻技能
  * 当没有可用技能时使用
  */
 export class BasicAttack extends ActiveSkill {
+  private _damageEffect: DamageEffect;
+
   constructor() {
     super('basic_attack' as AbilityId, '普攻', {
       mpCost: 0,
       cooldown: 0,
       priority: 0,
     });
-    this.setDamageCoefficient(1.0);
-    this.setBaseDamage(20);
+    
+    // 普攻效果：1.0 倍体魄伤害 + 20 基础伤害
+    this._damageEffect = new DamageEffect({
+      attribute: AttributeType.PHYSIQUE,
+      coefficient: 1.0,
+      baseDamage: 20,
+    });
+
     this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
   }
 
   /**
-   * 普攻没有额外效果
+   * 执行普攻
    */
-  protected executeSkill(_caster: Unit, _target: Unit): void {
-    // 普攻的伤害计算由 DamageSystem 通过事件处理
-    // 这里不需要额外逻辑
+  protected executeSkill(caster: Unit, target: Unit): void {
+    this._damageEffect.execute({
+      caster,
+      target,
+      ability: this,
+    });
   }
 }

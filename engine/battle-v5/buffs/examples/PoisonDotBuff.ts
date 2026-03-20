@@ -114,9 +114,9 @@ export class PoisonDotBuff extends Buff {
       type: 'DamageRequestEvent',
       priority: EventPriorityLevel.DAMAGE_REQUEST,
       timestamp: Date.now(),
-      caster: this._source, // DOT 来源（施毒者），可能为 null
+      caster: this._source || undefined, // DOT 来源（施毒者），可能为 null
       target: this._owner,
-      ability: null, // DOT 非技能来源
+      ability: undefined, // DOT 非技能来源
       baseDamage,
       finalDamage: baseDamage, // 初始等于基础伤害，后续由 DamageSystem 修正
       isCritical: false, // DOT 不暴击
