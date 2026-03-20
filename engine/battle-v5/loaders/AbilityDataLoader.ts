@@ -1,12 +1,13 @@
+import { eq } from 'drizzle-orm';
 import { db } from '../../../lib/drizzle/db';
 import { abilityTemplates } from '../../../lib/drizzle/schema';
-import { eq } from 'drizzle-orm';
-import { AbilityFactory } from '../factories/AbilityFactory';
 import { Ability } from '../abilities/Ability';
+import { AbilityConfig } from '../core/configs';
+import { AbilityFactory } from '../factories/AbilityFactory';
 
 /**
  * 技能数据加载器
- * 
+ *
  * 职责：
  * - 封装 Drizzle 查询逻辑
  * - 从数据库获取技能模板配置
@@ -19,7 +20,7 @@ export class AbilityDataLoader {
    */
   static async loadBySlug(slug: string): Promise<Ability | null> {
     const database = db();
-    
+
     // 1. 从数据库获取配置
     const result = await database.query.abilityTemplates.findFirst({
       where: eq(abilityTemplates.slug, slug),
@@ -33,7 +34,7 @@ export class AbilityDataLoader {
     // 2. 将结果中的 config 部分交给工厂实例化
     // 注入 slug 作为 ID 保证唯一性或可追踪性
     const config = {
-      ...(result.config as any),
+      ...(result.config as AbilityConfig),
       id: result.slug,
       name: result.name,
       description: result.description,
@@ -48,14 +49,14 @@ export class AbilityDataLoader {
    */
   static async loadManyBySlugs(slugs: string[]): Promise<Ability[]> {
     const abilities: Ability[] = [];
-    
+
     for (const slug of slugs) {
       const ability = await this.loadBySlug(slug);
       if (ability) {
         abilities.push(ability);
       }
     }
-    
+
     return abilities;
   }
 
