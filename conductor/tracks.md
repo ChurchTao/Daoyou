@@ -4,6 +4,6 @@
 
 ---
 
-- [ ] **Track: 练功房功能 (Training Room Feature)**
+- [x] **Track: 练功房功能 (Training Room Feature)**
 *Link: [./tracks/training_room_20260320/](./tracks/training_room_20260320/)*
 
