@@ -122,6 +122,12 @@ export class DamageSystem {
     // 发布命中判定事件
     EventBus.instance.publish(hitCheckEvent);
 
+    // 关键演进：将结果写回 SkillCastEvent 契约对象
+    // 这允许 ActionExecutionSystem 决定是否拦截后续效果链
+    event.isHit = hitCheckEvent.isHit;
+    event.isDodged = hitCheckEvent.isDodged;
+    event.isResisted = hitCheckEvent.isResisted;
+
     // 命中判定逻辑结束。不再此处自动发布 DamageRequestEvent。
     // 具体的伤害效果由 Ability 的效果链 (GameplayEffect) 主动发布。
   }

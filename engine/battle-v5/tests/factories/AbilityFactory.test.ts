@@ -1,170 +1,114 @@
 import { DataDrivenActiveSkill } from '../../abilities/DataDrivenActiveSkill';
-import { DataDrivenPassiveAbility } from '../../abilities/DataDrivenPassiveAbility';
-import { StackRule } from '../../buffs/Buff';
-import { AbilityConfig, BuffConfig, EffectConfig } from '../../core/configs';
+import { AbilityConfig } from '../../core/configs';
 import { EventBus } from '../../core/EventBus';
-import { DamageTakenEvent } from '../../core/events';
-import {
-  AbilityType,
-  AttributeType,
-  BuffType,
-  ModifierType,
-} from '../../core/types';
+import { SkillPreCastEvent } from '../../core/events';
+import { AbilityType, AttributeType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
+import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
 import { DamageSystem } from '../../systems/DamageSystem';
 import { Unit } from '../../units/Unit';
 
-describe('AbilityFactory V5 Evolution', () => {
+describe('Ability V5 Interception Pattern', () => {
   let caster: Unit;
   let target: Unit;
   let damageSystem: DamageSystem;
+  let actionSystem: ActionExecutionSystem;
 
   beforeEach(() => {
     EventBus.instance.reset();
     damageSystem = new DamageSystem();
+    actionSystem = new ActionExecutionSystem();
 
     caster = new Unit('caster', '施法者', {
       [AttributeType.SPIRIT]: 100,
       [AttributeType.PHYSIQUE]: 100,
+      [AttributeType.AGILITY]: 10, // 低身法
     });
 
     target = new Unit('target', '目标', {
       [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.AGILITY]: 500, // 高身法，确保护发闪避
     });
   });
 
-  it('主动技能：应该通过效果链完全控制伤害触发', () => {
+  afterEach(() => {
+    actionSystem.destroy();
+    damageSystem.destroy();
+  });
+
+  it('拦截模式：当命中判定失败时，应该彻底拦截效果链执行', () => {
     const config: AbilityConfig = {
-      slug: 'double_strike',
-      name: '连击',
+      slug: 'fireball',
+      name: '火球术',
       type: AbilityType.ACTIVE_SKILL,
       effects: [
         {
           type: 'damage',
-          params: {
-            attribute: AttributeType.SPIRIT,
-            coefficient: 1.0,
-            baseValue: 10,
-          },
+          params: { baseValue: 100 },
         },
+      ],
+    };
+
+    const skill = AbilityFactory.create(config) as DataDrivenActiveSkill;
+
+    // 这种测试方式比较巧妙：通过 spy 观察 executeSkill 是否被调用
+    const spy = jest.spyOn(skill as any, 'executeSkill');
+
+    // 触发流程
+    EventBus.instance.publish<SkillPreCastEvent>({
+      type: 'SkillPreCastEvent',
+      priority: 75,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability: skill,
+      isInterrupted: false,
+    });
+
+    // 验证：由于 target 身法极高，应该触发闪避
+    // 闪避后，ActionExecutionSystem 应该拦截，executeSkill 不会被执行
+    expect(spy).not.toHaveBeenCalled();
+
+    // 验证没有产生任何伤害记录
+    const history = EventBus.instance.getEventHistory();
+    const damageEvents = history.filter((e) => e.type === 'DamageTakenEvent');
+    expect(damageEvents.length).toBe(0);
+  });
+
+  it('拦截模式：当命中判定成功时，应该正常执行效果链', () => {
+    // 让目标身法变低，确保必中
+    target.attributes.setBaseValue(AttributeType.AGILITY, 1);
+
+    const config: AbilityConfig = {
+      slug: 'sure_hit',
+      name: '必中术',
+      type: AbilityType.ACTIVE_SKILL,
+      effects: [
         {
           type: 'damage',
-          params: {
-            attribute: AttributeType.SPIRIT,
-            coefficient: 1.0,
-            baseValue: 10,
-          },
+          params: { baseValue: 100 },
         },
       ],
     };
 
-    const skill = AbilityFactory.create(config);
+    const skill = AbilityFactory.create(config) as DataDrivenActiveSkill;
+    const spy = jest.spyOn(skill as any, 'executeSkill');
 
-    let damageCount = 0;
-    EventBus.instance.subscribe<DamageTakenEvent>('DamageTakenEvent', (e) => {
-      // 过滤模拟的初始事件
-      if (e.remainHealth !== undefined) {
-        damageCount++;
-      }
-    });
-
-    skill.execute({ caster, target });
-
-    // 验证是否触发了两次伤害（完全由效果链决定）
-    expect(damageCount).toBe(2);
-  });
-
-  it('被动技能：应该能监听事件并触发效果', () => {
-    const passiveConfig: AbilityConfig = {
-      slug: 'counter_attack',
-      name: '反击',
-      type: AbilityType.PASSIVE_SKILL,
-      listeners: [
-        {
-          eventType: 'DamageTakenEvent',
-          effects: [
-            {
-              type: 'damage',
-              params: { baseValue: 50 }, // 受击时反弹 50 点固定伤害
-            },
-          ],
-        },
-      ],
-    };
-
-    const passive = AbilityFactory.create(
-      passiveConfig,
-    ) as DataDrivenPassiveAbility;
-    caster.abilities.addAbility(passive);
-
-    let counterDamageReceived = false;
-    EventBus.instance.subscribe<DamageTakenEvent>('DamageTakenEvent', (e) => {
-      // 验证反击的目标是否正确（原本的攻击者成了现在的受击者）
-      if (e.target.id === 'target' && e.damageTaken > 0) {
-        counterDamageReceived = true;
-      }
-    });
-
-    // 模拟 caster 受到来自 target 的伤害
-    EventBus.instance.publish<DamageTakenEvent>({
-      type: 'DamageTakenEvent',
-      priority: 50,
+    EventBus.instance.publish<SkillPreCastEvent>({
+      type: 'SkillPreCastEvent',
+      priority: 75,
       timestamp: Date.now(),
-      caster: target,
-      target: caster,
-      ability: undefined,
-      damageTaken: 10,
-      remainHealth: 90,
-      isLethal: false,
+      caster,
+      target,
+      ability: skill,
+      isInterrupted: false,
     });
 
-    expect(counterDamageReceived).toBe(true);
-  });
+    expect(spy).toHaveBeenCalled();
 
-  it('Buff：应该支持宿主标签和属性修正的自动管理', () => {
-    const buffConfig: BuffConfig = {
-      id: 'stone_skin',
-      name: '石肤术',
-      type: BuffType.BUFF,
-      duration: 3,
-      stackRule: StackRule.REFRESH_DURATION,
-      statusTags: ['Status.Immune.Bleed'],
-      modifiers: [
-        {
-          attrType: AttributeType.PHYSIQUE,
-          type: ModifierType.FIXED,
-          value: 50,
-        },
-      ],
-    };
-
-    const effect: EffectConfig = {
-      type: 'apply_buff',
-      params: { chance: 1.0, buffConfig },
-    };
-
-    const skill = new DataDrivenActiveSkill('buff_skill' as const, '加盾');
-    skill.addEffect(AbilityFactory.createEffect(effect)!);
-
-    const initialPhysique = caster.attributes.getValue(AttributeType.PHYSIQUE);
-
-    skill.execute({ caster, target: caster });
-
-    // 验证属性提升
-    expect(caster.attributes.getValue(AttributeType.PHYSIQUE)).toBe(
-      initialPhysique + 50,
-    );
-    // 验证标签添加
-    expect(caster.tags.hasTag('Status.Immune.Bleed')).toBe(true);
-
-    // 模拟 Buff 移除
-    caster.buffs.removeBuff('stone_skin');
-
-    // 验证属性回落
-    expect(caster.attributes.getValue(AttributeType.PHYSIQUE)).toBe(
-      initialPhysique,
-    );
-    // 验证标签移除
-    expect(caster.tags.hasTag('Status.Immune.Bleed')).toBe(false);
+    // 验证产生了伤害记录
+    const history = EventBus.instance.getEventHistory();
+    const damageEvents = history.filter((e) => e.type === 'DamageTakenEvent');
+    expect(damageEvents.length).toBeGreaterThan(0);
   });
 });

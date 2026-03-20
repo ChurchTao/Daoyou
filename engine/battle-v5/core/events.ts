@@ -75,6 +75,10 @@ export interface SkillCastEvent extends CombatEvent {
   caster: Unit;
   target: Unit;
   ability: Ability;
+  // 控制字段：由 DamageSystem 等系统在事件流转中填充
+  isHit?: boolean;    // 是否命中
+  isDodged?: boolean; // 是否被闪避
+  isResisted?: boolean; // 是否被抵抗
 }
 
 // ===== 命中判定事件 =====

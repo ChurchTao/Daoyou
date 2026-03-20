@@ -79,7 +79,6 @@ export class DataDrivenBuff extends Buff {
     const context: EffectContext = {
       caster,
       target,
-      event,
     };
 
     for (const effect of effects) {

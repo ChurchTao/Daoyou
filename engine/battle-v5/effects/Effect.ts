@@ -1,5 +1,4 @@
 import { Ability } from '../abilities/Ability';
-import { CombatEvent } from '../core';
 import { Unit } from '../units/Unit';
 
 /**
@@ -9,7 +8,6 @@ export interface EffectContext {
   caster: Unit;
   target: Unit;
   ability?: Ability;
-  event?: CombatEvent;
 }
 
 /**

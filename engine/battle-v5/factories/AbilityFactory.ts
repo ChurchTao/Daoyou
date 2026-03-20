@@ -1,18 +1,17 @@
+import { Ability } from '../abilities/Ability';
 import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
-import { Ability } from '../abilities/Ability';
-import { AbilityId, AbilityType } from '../core/types';
 import { TargetPolicy } from '../abilities/TargetPolicy';
-import { DamageEffect } from '../effects/DamageEffect';
-import { HealEffect } from '../effects/HealEffect';
-import { ApplyBuffEffect } from '../effects/ApplyBuffEffect';
-import { GameplayEffect } from '../effects/Effect';
 import { AbilityConfig, EffectConfig } from '../core/configs';
-import { BuffFactory } from './BuffFactory';
+import { AbilityId, AbilityType } from '../core/types';
+import { ApplyBuffEffect } from '../effects/ApplyBuffEffect';
+import { DamageEffect } from '../effects/DamageEffect';
+import { GameplayEffect } from '../effects/Effect';
+import { HealEffect } from '../effects/HealEffect';
 
 /**
  * 技能工厂
- * 
+ *
  * 职责：
  * - 解析强类型的 AbilityConfig
  * - 实例化 DataDrivenActiveSkill 或 DataDrivenPassiveAbility
@@ -33,7 +32,9 @@ export class AbilityFactory {
         hpCost: config.hpCost ?? 0,
         cooldown: config.cooldown ?? 0,
         priority: config.priority ?? 0,
-        targetPolicy: config.targetPolicy ? new TargetPolicy(config.targetPolicy) : TargetPolicy.default(),
+        targetPolicy: config.targetPolicy
+          ? new TargetPolicy(config.targetPolicy)
+          : TargetPolicy.default(),
       });
 
       if (config.tags) skill.tags.addTags(config.tags);
@@ -52,13 +53,15 @@ export class AbilityFactory {
     // 2. 处理被动技能
     if (config.type === AbilityType.PASSIVE_SKILL) {
       const ability = new DataDrivenPassiveAbility(id, name);
-      
+
       if (config.tags) ability.tags.addTags(config.tags);
 
       // 装配被动监听器
       if (config.listeners) {
         config.listeners.forEach((listener) => {
-          const effects = listener.effects.map(eff => this.createEffect(eff)).filter(e => e !== null) as GameplayEffect[];
+          const effects = listener.effects
+            .map((eff) => this.createEffect(eff))
+            .filter((e) => e !== null) as GameplayEffect[];
           ability.addInstantiatedListener(listener.eventType, effects);
         });
       }
