@@ -26,10 +26,15 @@ export enum CombatPhase {
 
 // ===== 5维属性类型 =====
 export enum AttributeType {
+  // 灵力
   SPIRIT = 'spirit',
+  // 体魄
   PHYSIQUE = 'physique',
+  // 身法
   AGILITY = 'agility',
+  // 神识
   CONSCIOUSNESS = 'consciousness',
+  // 悟性
   COMPREHENSION = 'comprehension',
 }
 
@@ -118,9 +123,3 @@ export type TagPath = string;
 
 // 导出事件类型定义
 export * from './events';
-
-// ===== 能力上下文 =====
-export interface AbilityContext {
-  caster: import('../units/Unit').Unit;
-  target: import('../units/Unit').Unit;
-}
