@@ -4,6 +4,3 @@
 
 ---
 
-- [x] **Track: 练功房 Bug 修复与 UI 优化 (Training Room Fix & UI Optimization)**
-*Link: [./tracks/training_room_fix_20260320/](./tracks/training_room_fix_20260320/)*
-
