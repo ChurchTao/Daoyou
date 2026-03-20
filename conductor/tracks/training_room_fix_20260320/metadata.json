@@ -1,0 +1,8 @@
+{
+  "track_id": "training_room_fix_20260320",
+  "type": "bug_fix",
+  "status": "new",
+  "created_at": "2026-03-20T11:00:00Z",
+  "updated_at": "2026-03-20T11:00:00Z",
+  "description": "修复练功房对战在单回合后异常停止的问题，优化木桩生命值为100亿，并重构页面 UI 增加实时双血条，对齐标准战斗页面风格。"
+}
