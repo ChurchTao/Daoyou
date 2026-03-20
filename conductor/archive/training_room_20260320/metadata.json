@@ -1,0 +1,8 @@
+{
+  "track_id": "training_room_20260320",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-20T10:00:00Z",
+  "description": "在游戏主页新增一个木桩功能（练功房），玩家可以前去与木桩对战测试伤害，与木桩对战时不会调用llm生成战报，输出原始的战斗日志"
+}
