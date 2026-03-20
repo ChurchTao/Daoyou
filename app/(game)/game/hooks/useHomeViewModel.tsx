@@ -61,6 +61,7 @@ const quickActionGroups: QuickActionGroup[] = [
       { label: '🏔️ 云游探秘', href: '/game/dungeon' },
       { label: '📘 所修功法', href: '/game/techniques' },
       { label: '📖 所修神通', href: '/game/skills' },
+      { label: '⚔️ 练功房', href: '/game/training-room' },
     ],
   },
   {
@@ -144,7 +145,11 @@ export function useHomeViewModel(): UseHomeViewModelReturn {
         case '年龄':
           return { label: '年龄：', value: age, icon: '⌛' };
         case '寿元':
-          return { label: '寿元：', value: lifespan, icon: '🔮' };
+          return {
+            label: '剩余寿元：',
+            value: Math.max(lifespan - age, 0),
+            icon: '🔮',
+          };
         default:
           return { label: '', value: '', icon: '' };
       }

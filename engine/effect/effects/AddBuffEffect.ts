@@ -97,12 +97,12 @@ export class AddBuffEffect extends BaseEffect {
     );
 
     // 1. 基础概率判定
-    if (Math.random() > this.chance) {
-      ctx.logCollector?.addLog(
-        `${buffTarget.name} 神识强大，抵抗了「${buffConfig.name}」效果！`,
-      );
-      return;
-    }
+    // if (Math.random() > this.chance) {
+    //   ctx.logCollector?.addLog(
+    //     `${buffTarget.name} 神识强大，抵抗了「${buffConfig.name}」效果！`,
+    //   );
+    //   return;
+    // }
 
     // 2. 控制效果抵抗判定（非自身目标时）
     const isControlBuff = buffConfig?.tags?.includes(BuffTag.CONTROL);

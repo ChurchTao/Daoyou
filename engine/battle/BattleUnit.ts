@@ -51,8 +51,8 @@ export class BattleUnit extends BaseUnit implements BattleEntity {
   private attributesDirty: boolean = true;
 
   // ===== 基础 maxHp/maxMp =====
-  private baseMaxHp: number;
-  private baseMaxMp: number;
+  baseMaxHp: number;
+  baseMaxMp: number;
 
   constructor(
     unitId: UnitId,

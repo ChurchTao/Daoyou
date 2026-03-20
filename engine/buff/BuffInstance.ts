@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { uuid } from 'zod';
 import type { BaseEffect } from '../effect/BaseEffect';
 import { EffectFactory } from '../effect/EffectFactory';
 import type { Entity } from '../effect/types';
@@ -39,7 +39,7 @@ export class BuffInstance {
     /** 持续时间覆盖 */
     durationOverride?: number,
   ) {
-    this.instanceId = randomUUID();
+    this.instanceId = uuid().toString();
     this.currentStacks = Math.min(initialStacks, config.maxStacks);
     this.remainingTurns = durationOverride ?? config.duration;
     this.createdAt = Date.now();

@@ -21,6 +21,7 @@ interface BattleState {
   log: string[];
   timeline: TurnSnapshot[];
   maxTurns: number;
+  isTraining: boolean;
 }
 
 /**
@@ -59,19 +60,34 @@ export class BattleEngineV2 {
     opponent: Cultivator,
     initialPlayerState?: InitialUnitState,
   ): BattleState {
+    const isTraining = !!initialPlayerState?.isTraining;
+
+    const playerUnit = new BattleUnit(
+      'player',
+      player,
+      initialPlayerState?.hpLossPercent,
+      initialPlayerState?.mpLossPercent,
+      initialPlayerState?.persistentBuffs,
+    );
+
+    const opponentUnit = new BattleUnit('opponent', opponent);
+
+    // 练功房模式：支持覆盖木桩血量
+    if (isTraining && initialPlayerState?.opponentMaxHpOverride) {
+      const overrideHp = initialPlayerState.opponentMaxHpOverride;
+      opponentUnit.baseMaxHp = overrideHp;
+      opponentUnit.maxHp = overrideHp;
+      opponentUnit.currentHp = overrideHp;
+    }
+
     return {
-      player: new BattleUnit(
-        'player',
-        player,
-        initialPlayerState?.hpLossPercent,
-        initialPlayerState?.mpLossPercent,
-        initialPlayerState?.persistentBuffs,
-      ),
-      opponent: new BattleUnit('opponent', opponent),
+      player: playerUnit,
+      opponent: opponentUnit,
       turn: 0,
       log: [],
       timeline: [],
-      maxTurns: 30,
+      maxTurns: isTraining ? 10 : 30,
+      isTraining,
     };
   }
 
@@ -111,6 +127,14 @@ export class BattleEngineV2 {
       }
 
       const target = actor.unitId === 'player' ? state.opponent : state.player;
+
+      // 练功房模式：木桩不进行攻击
+      if (state.isTraining && actor.unitId === 'opponent') {
+        state.log.push(`木桩静立不动，任由你施展手段。`);
+        this.processActorTurnEnd(actor, state);
+        continue;
+      }
+
       const skill = this.chooseSkill(actor, target);
 
       if (!skill) {
@@ -505,12 +529,20 @@ export class BattleEngineV2 {
     const loserUnit =
       winnerUnit.unitId === 'player' ? state.opponent : state.player;
 
-    state.log.push(
-      `✨ ${winnerUnit.getName()} 获胜！剩余气血：${winnerUnit.currentHp}，对手剩余气血：${loserUnit.currentHp}`,
-    );
+    if (state.isTraining) {
+      state.log.push(
+        `✨ 演武结束！本次共对战 ${state.turn} 回合。你对木桩造成了巨大的破坏，总伤害已记录。`,
+      );
+    } else {
+      state.log.push(
+        `✨ ${winnerUnit.getName()} 获胜！剩余气血：${winnerUnit.currentHp}，对手剩余气血：${loserUnit.currentHp}`,
+      );
+    }
 
     // 伤势处理
-    this.applyBattleInjuries(loserUnit, state);
+    if (!state.isTraining) {
+      this.applyBattleInjuries(loserUnit, state);
+    }
 
     // 清除临时 Buff
     state.player.clearTemporaryBuffs();

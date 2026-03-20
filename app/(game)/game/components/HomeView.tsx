@@ -113,7 +113,7 @@ export function HomeView() {
               }
               description={
                 <InkStatusBar
-                  className="mt-3 grid! grid-cols-3! gap-2"
+                  className="mt-3 grid! grid-cols-2! gap-2"
                   items={statusItems}
                 />
               }

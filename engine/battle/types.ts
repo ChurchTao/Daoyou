@@ -24,6 +24,10 @@ export interface InitialUnitState {
   mpLossPercent?: number;
   /** 持久 Buff 状态 */
   persistentBuffs?: BuffInstanceState[];
+  /** 是否为练功房模式 */
+  isTraining?: boolean;
+  /** 木桩最大血量覆盖（仅练功房有效） */
+  opponentMaxHpOverride?: number;
 }
 
 /**
