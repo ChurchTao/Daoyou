@@ -191,8 +191,11 @@ export class DamageSystem {
     // 获取当前气血
     const beforeHealth = target.currentHp;
 
-    // 应用伤害
-    target.takeDamage(finalDamage);
+    // 1. 优先使用护盾吸收伤害
+    const remainingDamage = target.absorbDamage(finalDamage);
+
+    // 2. 应用剩余伤害到气血
+    target.takeDamage(remainingDamage);
 
     const actualDamage = beforeHealth - target.currentHp;
     const isLethal = target.currentHp <= 0;

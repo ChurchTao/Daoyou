@@ -1,27 +1,140 @@
 import { StackRule } from '../buffs/Buff';
 import { AbilityType, AttributeType, BuffType, ModifierType } from './types';
 
+import { ScalableValue } from './ValueCalculator';
+
 /**
- * 原子效果配置
+ * 效果执行条件配置
  */
-export interface EffectConfig {
-  type: 'damage' | 'heal' | 'apply_buff' | 'attribute_mod' | 'hit_check';
+export interface ConditionConfig {
+  type: 'has_tag' | 'has_not_tag' | 'hp_above' | 'hp_below' | 'chance';
   params: {
-    // 伤害/治疗参数
-    attribute?: AttributeType;
-    coefficient?: number;
-    baseValue?: number;
-
-    // 添加 Buff 参数
-    chance?: number;
-    buffConfig?: BuffConfig;
-
-    // 属性修改参数 (Buff 内部使用)
-    attrType?: AttributeType;
-    modType?: ModifierType;
+    tag?: string;
     value?: number;
   };
 }
+
+/**
+ * 原子效果基础配置
+ */
+export interface BaseEffectConfig {
+  conditions?: ConditionConfig[];
+}
+
+/**
+ * 各类 GE 参数定义 (辨识联合类型的基础)
+ */
+
+/**
+ * 伤害参数定义
+ */
+export interface DamageParams {
+  value: ScalableValue;
+}
+
+/**
+ * 治疗参数定义
+ */
+export interface HealParams {
+  value: ScalableValue;
+}
+
+/**
+ * 施加BUFF参数定义
+ */
+export interface ApplyBuffParams {
+  buffConfig: BuffConfig;
+  chance?: number;
+}
+
+/**
+ * 属性修改参数定义
+ */
+export interface AttributeModParams {
+  attrType: AttributeType;
+  modType: ModifierType;
+  value: number;
+  isPermanent?: boolean;
+}
+
+/**
+ * 资源消耗参数定义
+ */
+export interface ResourceDrainParams {
+  sourceType: 'hp' | 'mp';
+  targetType: 'hp' | 'mp';
+  ratio: number;
+}
+
+/**
+ * 解除DEBUFF参数定义
+ */
+export interface DispelParams {
+  targetTag?: string;
+  maxCount?: number;
+}
+
+/**
+ * 屏蔽参数定义
+ */
+export interface ShieldParams {
+  value: ScalableValue;
+}
+
+/**
+ * 反射参数定义
+ */
+export interface ReflectParams {
+  ratio: number;
+}
+
+/**
+ * 灵魂之burn参数定义
+ */
+export interface ManaBurnParams {
+  value: ScalableValue;
+}
+
+/**
+ * 冷却修改参数定义
+ */
+export interface CooldownModifyParams {
+  cdModifyValue: number;
+  abilitySlug?: string;
+}
+
+/**
+ * 标签触发参数定义
+ */
+export interface TagTriggerParams {
+  triggerTag: string;
+  damageRatio?: number;
+  removeOnTrigger?: boolean;
+}
+
+/**
+ * 防死参数定义
+ */
+export type DeathPreventParams = object;
+
+/**
+ * 重构后的辨识联合类型原子效果配置
+ */
+export type EffectConfig = BaseEffectConfig &
+  (
+    | { type: 'damage'; params: DamageParams }
+    | { type: 'heal'; params: HealParams }
+    | { type: 'apply_buff'; params: ApplyBuffParams }
+    | { type: 'attribute_mod'; params: AttributeModParams }
+    | { type: 'resource_drain'; params: ResourceDrainParams }
+    | { type: 'dispel'; params: DispelParams }
+    | { type: 'shield'; params: ShieldParams }
+    | { type: 'reflect'; params: ReflectParams }
+    | { type: 'mana_burn'; params: ManaBurnParams }
+    | { type: 'cooldown_modify'; params: CooldownModifyParams }
+    | { type: 'tag_trigger'; params: TagTriggerParams }
+    | { type: 'death_prevent'; params: DeathPreventParams }
+  );
 
 /**
  * 事件监听器配置 (用于 Buff 和被动技能)

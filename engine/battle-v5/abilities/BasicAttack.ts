@@ -1,10 +1,9 @@
 // engine/battle-v5/abilities/BasicAttack.ts
-import { AbilityId } from '../core/types';
 import { GameplayTags } from '../core/GameplayTags';
-import { ActiveSkill } from './ActiveSkill';
-import { Unit } from '../units/Unit';
+import { AbilityId, AttributeType } from '../core/types';
 import { DamageEffect } from '../effects/DamageEffect';
-import { AttributeType } from '../core/types';
+import { Unit } from '../units/Unit';
+import { ActiveSkill } from './ActiveSkill';
 
 /**
  * 普攻技能
@@ -19,12 +18,14 @@ export class BasicAttack extends ActiveSkill {
       cooldown: 0,
       priority: 0,
     });
-    
+
     // 普攻效果：1.0 倍体魄伤害 + 20 基础伤害
     this._damageEffect = new DamageEffect({
-      attribute: AttributeType.PHYSIQUE,
-      coefficient: 1.0,
-      baseDamage: 20,
+      value: {
+        attribute: AttributeType.PHYSIQUE,
+        coefficient: 1.0,
+        base: 20,
+      },
     });
 
     this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);

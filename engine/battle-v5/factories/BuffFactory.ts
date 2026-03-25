@@ -1,9 +1,8 @@
 import { DataDrivenBuff } from '../buffs/DataDrivenBuff';
 import { Buff } from '../buffs/Buff';
 import { BuffConfig, EffectConfig } from '../core/configs';
-import { DamageEffect } from '../effects/DamageEffect';
-import { HealEffect } from '../effects/HealEffect';
 import { GameplayEffect } from '../effects/Effect';
+import { AbilityFactory } from './AbilityFactory';
 
 /**
  * BUFF 工厂
@@ -37,24 +36,9 @@ export class BuffFactory {
 
   /**
    * 创建效果执行器
+   * 委托给 AbilityFactory 以保持逻辑统一
    */
   static createEffect(cfg: EffectConfig): GameplayEffect | null {
-    switch (cfg.type) {
-      case 'damage':
-        return new DamageEffect({
-          attribute: cfg.params.attribute,
-          coefficient: cfg.params.coefficient,
-          baseDamage: cfg.params.baseValue,
-        });
-      case 'heal':
-        return new HealEffect({
-          attribute: cfg.params.attribute,
-          coefficient: cfg.params.coefficient,
-          baseHeal: cfg.params.baseValue,
-        });
-      // 注意：这里需要解决循环依赖问题，ApplyBuffEffect 在 AbilityFactory 中处理
-      default:
-        return null;
-    }
+    return AbilityFactory.createEffect(cfg);
   }
 }

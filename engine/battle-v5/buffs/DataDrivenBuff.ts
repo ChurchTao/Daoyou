@@ -79,6 +79,7 @@ export class DataDrivenBuff extends Buff {
     const context: EffectContext = {
       caster,
       target,
+      triggerEvent: event, // 关键：注入触发事件
     };
 
     for (const effect of effects) {

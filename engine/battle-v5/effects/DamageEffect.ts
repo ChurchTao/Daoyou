@@ -1,39 +1,26 @@
 import { GameplayEffect, EffectContext } from './Effect';
 import { EventBus } from '../core/EventBus';
 import { DamageRequestEvent, EventPriorityLevel } from '../core/events';
-import { AttributeType } from '../core/types';
-
-/**
- * 伤害效果参数
- */
-export interface DamageEffectParams {
-  attribute?: AttributeType; // 依赖属性，不传则使用固定值
-  coefficient?: number;      // 属性系数
-  baseDamage?: number;       // 基础固定伤害
-}
+import { ValueCalculator } from '../core/ValueCalculator';
+import { EffectRegistry } from '../factories/EffectRegistry';
+import { DamageParams } from '../core/configs';
 
 /**
  * 伤害原子效果
- * 发布 DamageRequestEvent 接入统一伤害计算管道
+ * 职责：计算伤害并发布 DamageRequestEvent
  */
 export class DamageEffect extends GameplayEffect {
-  constructor(private params: DamageEffectParams) {
+  constructor(private params: DamageParams) {
     super();
   }
 
   execute(context: EffectContext): void {
     const { caster, target, ability } = context;
 
-    let damage = this.params.baseDamage ?? 0;
+    // 使用统一计算器计算基础伤害
+    const damage = ValueCalculator.calculate(this.params.value, caster);
 
-    // 如果指定了属性，则根据属性计算额外伤害
-    if (this.params.attribute && this.params.coefficient) {
-      const attrValue = caster.attributes.getValue(this.params.attribute);
-      damage += attrValue * this.params.coefficient;
-    }
-
-    // 四舍五入
-    damage = Math.round(damage);
+    if (damage <= 0) return;
 
     // 发布伤害请求事件
     EventBus.instance.publish<DamageRequestEvent>({
@@ -44,7 +31,10 @@ export class DamageEffect extends GameplayEffect {
       target,
       ability,
       baseDamage: damage,
-      finalDamage: damage, // 初始最终伤害等于基础伤害，后续由 DamageSystem 修正
+      finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
     });
   }
 }
+
+// 注册到效果注册表
+EffectRegistry.getInstance().register('damage', (params) => new DamageEffect(params));

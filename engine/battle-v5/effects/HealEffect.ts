@@ -1,39 +1,28 @@
 import { GameplayEffect, EffectContext } from './Effect';
-import { AttributeType } from '../core/types';
-
-/**
- * 治疗效果参数
- */
-export interface HealEffectParams {
-  attribute?: AttributeType; // 依赖属性，不传则使用固定值
-  coefficient?: number;      // 属性系数
-  baseHeal?: number;         // 基础固定治疗量
-}
+import { ValueCalculator } from '../core/ValueCalculator';
+import { EffectRegistry } from '../factories/EffectRegistry';
+import { HealParams } from '../core/configs';
 
 /**
  * 治疗原子效果
  */
 export class HealEffect extends GameplayEffect {
-  constructor(private params: HealEffectParams) {
+  constructor(private params: HealParams) {
     super();
   }
 
   execute(context: EffectContext): void {
     const { caster, target } = context;
 
-    let healAmount = this.params.baseHeal ?? 0;
+    // 使用统一计算器计算基础治疗值
+    const healAmount = ValueCalculator.calculate(this.params.value, caster);
 
-    if (this.params.attribute && this.params.coefficient) {
-      const attrValue = caster.attributes.getValue(this.params.attribute);
-      healAmount += attrValue * this.params.coefficient;
-    }
+    if (healAmount <= 0) return;
 
-    // 四舍五入
-    healAmount = Math.round(healAmount);
-
-    // 应用治疗
-    if (healAmount > 0) {
-      target.heal(healAmount);
-    }
+    // 执行治疗逻辑
+    target.heal(healAmount);
   }
 }
+
+// 注册
+EffectRegistry.getInstance().register('heal', (params) => new HealEffect(params));

@@ -17,6 +17,7 @@ export class Unit {
   currentMp: number;
   maxHp: number;
   maxMp: number;
+  currentShield: number = 0; // 当前护盾值
 
   isDefending: boolean = false;
   isControlled: boolean = false;
@@ -46,6 +47,7 @@ export class Unit {
     this.maxMp = this.attributes.getMaxMp();
     this.currentHp = this.maxHp;
     this.currentMp = this.maxMp;
+    this.currentShield = 0;
   }
 
   updateDerivedStats(): void {
@@ -53,6 +55,31 @@ export class Unit {
     this.maxMp = this.attributes.getMaxMp();
     this.currentHp = Math.min(this.currentHp, this.maxHp);
     this.currentMp = Math.min(this.currentMp, this.maxMp);
+  }
+
+  /**
+   * 增加护盾
+   */
+  addShield(amount: number): void {
+    if (amount <= 0) return;
+    this.currentShield += Math.round(amount);
+  }
+
+  /**
+   * 扣除护盾
+   * @returns 剩余未被护盾抵扣的伤害
+   */
+  absorbDamage(damage: number): number {
+    if (this.currentShield <= 0) return damage;
+
+    if (this.currentShield >= damage) {
+      this.currentShield -= damage;
+      return 0;
+    } else {
+      const remainingDamage = damage - this.currentShield;
+      this.currentShield = 0;
+      return remainingDamage;
+    }
   }
 
   takeDamage(damage: number): void {

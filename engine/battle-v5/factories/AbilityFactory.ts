@@ -4,10 +4,11 @@ import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility'
 import { TargetPolicy } from '../abilities/TargetPolicy';
 import { AbilityConfig, EffectConfig } from '../core/configs';
 import { AbilityId, AbilityType } from '../core/types';
-import { ApplyBuffEffect } from '../effects/ApplyBuffEffect';
-import { DamageEffect } from '../effects/DamageEffect';
 import { GameplayEffect } from '../effects/Effect';
-import { HealEffect } from '../effects/HealEffect';
+import { EffectRegistry } from './EffectRegistry';
+
+// 统一加载所有效果以触发它们的自我注册 (Side-effects loading)
+import '../effects';
 
 /**
  * 技能工厂
@@ -73,30 +74,9 @@ export class AbilityFactory {
   }
 
   /**
-   * 统一的效果实例化方法 (解决循环依赖)
+   * 统一的效果实例化方法
    */
   static createEffect(cfg: EffectConfig): GameplayEffect | null {
-    switch (cfg.type) {
-      case 'damage':
-        return new DamageEffect({
-          attribute: cfg.params.attribute,
-          coefficient: cfg.params.coefficient,
-          baseDamage: cfg.params.baseValue,
-        });
-      case 'heal':
-        return new HealEffect({
-          attribute: cfg.params.attribute,
-          coefficient: cfg.params.coefficient,
-          baseHeal: cfg.params.baseValue,
-        });
-      case 'apply_buff':
-        if (!cfg.params.buffConfig) return null;
-        return new ApplyBuffEffect({
-          chance: cfg.params.chance,
-          buffConfig: cfg.params.buffConfig,
-        });
-      default:
-        return null;
-    }
+    return EffectRegistry.getInstance().create(cfg);
   }
 }

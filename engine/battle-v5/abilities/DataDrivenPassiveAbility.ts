@@ -70,6 +70,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
       caster,
       target,
       ability: this,
+      triggerEvent: event, // 关键：注入触发事件
     };
 
     for (const effect of effects) {

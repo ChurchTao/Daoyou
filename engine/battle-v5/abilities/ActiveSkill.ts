@@ -104,6 +104,14 @@ export abstract class ActiveSkill extends Ability {
     }
   }
 
+  /**
+   * 修改当前冷却时间
+   * @param delta 变化量，正数为增加，负数为减少
+   */
+  modifyCooldown(delta: number): void {
+    this._cooldown = Math.max(0, this._cooldown + delta);
+  }
+
   resetCooldown(): void {
     this._cooldown = 0;
   }
