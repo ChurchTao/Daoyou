@@ -16,7 +16,7 @@ export class CombatLogSystem {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get _handlers(): Map<string, (event: any) => void> {
-      return (this._subscriber as any)._handlers;
+      return this._subscriber.handlers;
   }
 
   constructor() {
@@ -65,35 +65,42 @@ export class CombatLogSystem {
   getLogs(): CombatLog[] {
     const logs: CombatLog[] = [];
     for (const span of this._aggregator.getSpans()) {
-      let phase: CombatPhase;
-      switch (span.type) {
-        case 'battle_init':
-          phase = CombatPhase.INIT;
-          break;
-        case 'round_start':
-          phase = CombatPhase.ROUND_START;
-          break;
-        case 'action_pre':
-          phase = CombatPhase.ROUND_PRE;
-          break;
-        case 'action':
-          phase = CombatPhase.ACTION;
-          break;
-        case 'battle_end':
-          phase = CombatPhase.END;
-          break;
-        default:
-          phase = CombatPhase.ROUND_PRE;
+      // 核心改进：过滤掉没有内容的非核心 Span (如没有 DOT 触发的 action_pre)
+      if (
+        span.entries.length === 0 &&
+        !['battle_init', 'round_start', 'battle_end'].includes(span.type)
+      ) {
+        continue;
       }
+
+      const message = this._formatter.formatSpan(span);
+      if (!message) continue;
 
       logs.push({
         turn: span.turn,
-        phase,
-        message: this._formatter.formatSpan(span),
+        phase: this._mapSpanTypeToPhase(span.type),
+        message,
         highlight: span.entries.some((e) => e.highlight),
       });
     }
     return logs;
+  }
+
+  private _mapSpanTypeToPhase(type: string): CombatPhase {
+    switch (type) {
+      case 'battle_init':
+        return CombatPhase.INIT;
+      case 'round_start':
+        return CombatPhase.ROUND_START;
+      case 'action_pre':
+        return CombatPhase.ROUND_PRE;
+      case 'action':
+        return CombatPhase.ACTION;
+      case 'battle_end':
+        return CombatPhase.END;
+      default:
+        return CombatPhase.ROUND_PRE;
+    }
   }
 
   getSimpleLogs(): CombatLog[] {

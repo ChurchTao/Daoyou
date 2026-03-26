@@ -1,7 +1,9 @@
 import { EventBus } from '../../core/EventBus';
 import {
-  ActionPreEvent,
   ActionEvent,
+  ActionPreEvent,
+  BattleEndEvent,
+  BattleInitEvent,
   BuffAppliedEvent,
   BuffImmuneEvent,
   BuffRemovedEvent,
@@ -15,17 +17,14 @@ import {
   ManaBurnEvent,
   ReflectEvent,
   ResourceDrainEvent,
+  RoundStartEvent,
   ShieldEvent,
   SkillCastEvent,
   SkillInterruptEvent,
   TagTriggerEvent,
   UnitDeadEvent,
-  RoundStartEvent,
-  BattleInitEvent,
-  BattleEndEvent,
 } from '../../core/events';
 import { LogAggregator } from './LogAggregator';
-import { LogEntry } from './types';
 
 /**
  * LogSubscriber 职责：监听 EventBus 事件，转换为 LogEntry，并路由到正确的 Span。
@@ -34,6 +33,10 @@ export class LogSubscriber {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _handlers: Map<string, (event: any) => void> = new Map();
   private _nextEntryId: number = 0;
+
+  get handlers() {
+    return this._handlers;
+  }
 
   constructor(private _aggregator: LogAggregator) {}
 
@@ -44,51 +47,90 @@ export class LogSubscriber {
     const highPriority = EventPriorityLevel.ACTION_TRIGGER + 1;
 
     // Span 管理类事件 - 高优先级，确保在所有效果事件之前开启 Span
-    this._addSubscriber(eventBus, 'BattleInitEvent', (e: BattleInitEvent) => {
-      this._aggregator.beginBattleInitSpan(e.player, e.opponent);
-    }, highPriority);
+    this._addSubscriber(
+      eventBus,
+      'BattleInitEvent',
+      (e: BattleInitEvent) => {
+        this._aggregator.beginBattleInitSpan(e.player, e.opponent);
+      },
+      highPriority,
+    );
 
-    this._addSubscriber(eventBus, 'RoundStartEvent', (e: RoundStartEvent) => {
-      this._aggregator.beginRoundStartSpan(e.turn);
-    }, highPriority);
+    this._addSubscriber(
+      eventBus,
+      'RoundStartEvent',
+      (e: RoundStartEvent) => {
+        this._aggregator.beginRoundStartSpan(e.turn);
+      },
+      highPriority,
+    );
 
-    this._addSubscriber(eventBus, 'ActionPreEvent', (e: ActionPreEvent) => {
-      this._aggregator.beginActionPreSpan(e.caster);
-    }, highPriority);
+    this._addSubscriber(
+      eventBus,
+      'ActionPreEvent',
+      (e: ActionPreEvent) => {
+        this._aggregator.beginActionPreSpan(e.caster);
+      },
+      highPriority,
+    );
 
     this._addSubscriber(eventBus, 'ActionEvent', (e: ActionEvent) => {
-      // ActionEvent 作为行动开始的兜底（主要用于普攻，因为普攻可能没有 SkillCastEvent）
-      this._aggregator.beginActionSpan(e.caster, { id: 'basic_attack', name: '攻击' } as any);
+      // ActionEvent 仅作为标记，目前由 SkillCastEvent 统一开启 Span 以避免重复
     });
 
-    this._addSubscriber(eventBus, 'SkillCastEvent', (e: SkillCastEvent) => {
-      this._aggregator.beginActionSpan(e.caster, e.ability);
-      this._onSkillCast(e);
-    }, highPriority);
+    this._addSubscriber(
+      eventBus,
+      'SkillCastEvent',
+      (e: SkillCastEvent) => {
+        this._aggregator.beginActionSpan(e.caster, e.ability);
+        this._onSkillCast(e);
+      },
+      highPriority,
+    );
 
     this._addSubscriber(eventBus, 'BattleEndEvent', (e: BattleEndEvent) => {
-        // TODO: winner name to MinimalUnit
-        const winnerObj = e.winner ? { id: e.winner, name: e.winner } : { id: 'draw', name: '平局' };
-        this._aggregator.beginBattleEndSpan(winnerObj, e.turns);
+      // TODO: winner name to MinimalUnit
+      const winnerObj = e.winner
+        ? { id: e.winner, name: e.winner }
+        : { id: 'draw', name: '平局' };
+      this._aggregator.beginBattleEndSpan(winnerObj, e.turns);
     });
 
     // 日志条目类事件 - 默认 COMBAT_LOG 优先级
-    this._addSubscriber(eventBus, 'DamageTakenEvent', (e) => this._onDamageTaken(e));
+    this._addSubscriber(eventBus, 'DamageTakenEvent', (e) =>
+      this._onDamageTaken(e),
+    );
     this._addSubscriber(eventBus, 'HealEvent', (e) => this._onHeal(e));
     this._addSubscriber(eventBus, 'ShieldEvent', (e) => this._onShield(e));
-    this._addSubscriber(eventBus, 'BuffAppliedEvent', (e) => this._onBuffApplied(e));
-    this._addSubscriber(eventBus, 'BuffRemovedEvent', (e) => this._onBuffRemoved(e));
-    this._addSubscriber(eventBus, 'BuffImmuneEvent', (e) => this._onBuffImmune(e));
+    this._addSubscriber(eventBus, 'BuffAppliedEvent', (e) =>
+      this._onBuffApplied(e),
+    );
+    this._addSubscriber(eventBus, 'BuffRemovedEvent', (e) =>
+      this._onBuffRemoved(e),
+    );
+    this._addSubscriber(eventBus, 'BuffImmuneEvent', (e) =>
+      this._onBuffImmune(e),
+    );
     this._addSubscriber(eventBus, 'HitCheckEvent', (e) => this._onHitCheck(e));
-    this._addSubscriber(eventBus, 'SkillInterruptEvent', (e) => this._onSkillInterrupt(e));
+    this._addSubscriber(eventBus, 'SkillInterruptEvent', (e) =>
+      this._onSkillInterrupt(e),
+    );
     this._addSubscriber(eventBus, 'UnitDeadEvent', (e) => this._onUnitDead(e));
     this._addSubscriber(eventBus, 'ManaBurnEvent', (e) => this._onManaBurn(e));
-    this._addSubscriber(eventBus, 'CooldownModifyEvent', (e) => this._onCooldownModify(e));
-    this._addSubscriber(eventBus, 'ResourceDrainEvent', (e) => this._onResourceDrain(e));
+    this._addSubscriber(eventBus, 'CooldownModifyEvent', (e) =>
+      this._onCooldownModify(e),
+    );
+    this._addSubscriber(eventBus, 'ResourceDrainEvent', (e) =>
+      this._onResourceDrain(e),
+    );
     this._addSubscriber(eventBus, 'ReflectEvent', (e) => this._onReflect(e));
     this._addSubscriber(eventBus, 'DispelEvent', (e) => this._onDispel(e));
-    this._addSubscriber(eventBus, 'TagTriggerEvent', (e) => this._onTagTrigger(e));
-    this._addSubscriber(eventBus, 'DeathPreventEvent', (e) => this._onDeathPrevent(e));
+    this._addSubscriber(eventBus, 'TagTriggerEvent', (e) =>
+      this._onTagTrigger(e),
+    );
+    this._addSubscriber(eventBus, 'DeathPreventEvent', (e) =>
+      this._onDeathPrevent(e),
+    );
   }
 
   /**
@@ -107,7 +149,7 @@ export class LogSubscriber {
     eventBus: EventBus,
     type: string,
     handler: (e: any) => void,
-    priority: number = EventPriorityLevel.COMBAT_LOG
+    priority: number = EventPriorityLevel.COMBAT_LOG,
   ): void {
     eventBus.subscribe(type, handler, priority);
     this._handlers.set(type, handler);
@@ -117,7 +159,7 @@ export class LogSubscriber {
     const damage = Math.round(event.damageTaken);
     const remainHp = Math.round(event.remainHealth);
     const critText = event.isCritical ? '（暴击！）' : '';
-    
+
     let shieldText = '';
     if (event.shieldAbsorbed && event.shieldAbsorbed > 0) {
       const absorbed = Math.round(event.shieldAbsorbed);
@@ -150,7 +192,6 @@ export class LogSubscriber {
       highlight: event.isCritical || event.isLethal,
     });
 
-
     if (event.isLethal) {
       this._aggregator.addEntry({
         id: this._generateId(),
@@ -177,7 +218,12 @@ export class LogSubscriber {
     const buff = event.buff;
     const duration = buff.getMaxDuration();
     const durationText = duration > 0 ? `（${duration}回合）` : '';
-    const typeLabel = buff.type === 'buff' ? '【增益】' : buff.type === 'debuff' ? '【减益】' : '【效果】';
+    const typeLabel =
+      buff.type === 'buff'
+        ? '【增益】'
+        : buff.type === 'debuff'
+          ? '【减益】'
+          : '【效果】';
 
     this._aggregator.addEntry({
       id: this._generateId(),
