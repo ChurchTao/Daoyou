@@ -1,6 +1,6 @@
 import { CombatContext, CombatStateMachine } from './core/CombatStateMachine';
 import { EventBus } from './core/EventBus';
-import { ActionEvent, EventPriorityLevel } from './core/events';
+import { ActionEvent, ActionPreEvent, EventPriorityLevel } from './core/events';
 import { AttributeType, CombatPhase } from './core/types';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
 import { CombatLogSystem } from './systems/CombatLogSystem';
@@ -159,6 +159,14 @@ export class BattleEngineV5 {
     const units = this.getSortedUnits();
 
     for (const actor of units) {
+      // 发布行动事件，触发整个技能流程
+      this._eventBus.publish<ActionPreEvent>({
+        type: 'ActionPreEvent',
+        priority: EventPriorityLevel.ACTION_TRIGGER,
+        timestamp: Date.now(),
+        caster: actor,
+      });
+
       if (!actor.isAlive()) continue;
 
       // 设置当前出手单位

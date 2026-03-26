@@ -40,10 +40,16 @@ export enum EventPriorityLevel {
   COMBAT_LOG = 10, // 战报输出（最低）
 }
 
-// ===== 回合前置结算事件（DOT、持续效果触发） =====
+// ===== 回合前置事件 =====
 export interface RoundPreEvent extends CombatEvent {
   type: 'RoundPreEvent';
   turn: number;
+}
+
+// ===== 行动阶段前置触发事件 =====
+export interface ActionPreEvent extends CombatEvent {
+  type: 'ActionPreEvent';
+  caster: Unit;
 }
 
 // ===== 行动阶段触发事件 =====

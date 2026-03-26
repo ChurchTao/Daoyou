@@ -14,6 +14,7 @@ import {
   ReflectEvent,
   ResourceDrainEvent,
   ShieldEvent,
+  SkillCastEvent,
   SkillInterruptEvent,
   TagTriggerEvent,
   UnitDeadEvent,

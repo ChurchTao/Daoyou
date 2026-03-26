@@ -39,10 +39,14 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
       type: BuffType.DEBUFF,
       duration: 3,
       stackRule: 'stack_layer',
-      tags: [GameplayTags.BUFF.TYPE_DEBUFF, 'Status.Poison'],
+      tags: [
+        GameplayTags.BUFF.TYPE_DEBUFF,
+        GameplayTags.STATUS.POISONED,
+        GameplayTags.BUFF.DOT,
+      ],
       listeners: [
         {
-          eventType: 'RoundPreEvent',
+          eventType: 'ActionPreEvent',
           effects: [{ type: 'damage', params: { value: { base: 100 } } }],
         },
       ],
@@ -71,7 +75,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         effects: [
           {
             type: 'dispel',
-            params: { targetTag: 'Status.Poison', maxCount: 1 },
+            params: { targetTag: GameplayTags.STATUS.POISONED, maxCount: 1 },
           },
         ],
       }),
