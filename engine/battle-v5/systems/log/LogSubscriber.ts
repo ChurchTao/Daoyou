@@ -57,12 +57,11 @@ export class LogSubscriber {
     });
 
     this._addSubscriber(eventBus, 'ActionEvent', (e: ActionEvent) => {
-      // 如果没有施法动作，则可能是普攻触发的 Action
-      this._aggregator.beginActionSpan(e.caster, { id: 'basic_attack', name: '普攻' });
+      // ActionEvent 仅作为行动开始的兜底，不直接开启 Span
+      // 真正的 Span 由 SkillCastEvent (主动) 或 ActionPreEvent (被动) 开启
     });
 
     this._addSubscriber(eventBus, 'SkillCastEvent', (e: SkillCastEvent) => {
-      if (e.ability.id === 'basic_attack') return;
       this._aggregator.beginActionSpan(e.caster, e.ability);
       this._onSkillCast(e);
     });
@@ -224,6 +223,7 @@ export class LogSubscriber {
   }
 
   private _onSkillCast(event: SkillCastEvent): void {
+    if (event.ability.id === 'basic_attack') return;
     this._aggregator.addEntry({
       id: this._generateId(),
       type: 'skill_cast',

@@ -106,14 +106,7 @@ export class BattleEngineV5 {
       return;
     }
 
-    // 回合开始（日志）
-    this._logSystem.log(
-      context.turn,
-      CombatPhase.ROUND_START,
-      `第${context.turn}回合开始`,
-    );
-
-    // 如果是在dev模式下，打印当前回合信息
+    // 回合开始（控制台调试）
     console.log(`Turn ${context.turn} starting...`);
     console.log(
       `Player: ${this._player.name}, HP: ${(this._player.getHpPercent() * 100).toFixed(2)}%, MP: ${(this._player.getMpPercent() * 100).toFixed(2)}%`,
@@ -250,8 +243,6 @@ export class BattleEngineV5 {
     const winner =
       context.winner === this._player.id ? this._player : this._opponent;
     const loser = winner === this._player ? this._opponent : this._player;
-
-    this._logSystem.logBattleEnd(winner.name, context.turn);
 
     return {
       winner: winner.id,

@@ -63,19 +63,30 @@ export class CombatLogSystem {
   }
 
   getLogs(): CombatLog[] {
-      // 将所有 Span 的条目展平
-      const logs: CombatLog[] = [];
-      for (const span of this._aggregator.getSpans()) {
-          for (const entry of span.entries) {
-              logs.push({
-                  turn: span.turn,
-                  phase: span.type === 'action' ? CombatPhase.ACTION : CombatPhase.ROUND_PRE,
-                  message: entry.message,
-                  highlight: entry.highlight
-              });
-          }
+    // 将所有 Span 的条目展平，并插入 Span 标题作为分界线
+    const logs: CombatLog[] = [];
+    for (const span of this._aggregator.getSpans()) {
+      // 插入 Span 标题条目
+      logs.push({
+        turn: span.turn,
+        phase: CombatPhase.ROUND_START, // 系统阶段
+        message: `>>> ${span.title}`,
+        highlight: false,
+      });
+
+      for (const entry of span.entries) {
+        logs.push({
+          turn: span.turn,
+          phase:
+            span.type === 'action'
+              ? CombatPhase.ACTION
+              : CombatPhase.ROUND_PRE,
+          message: entry.message,
+          highlight: entry.highlight,
+        });
       }
-      return logs;
+    }
+    return logs;
   }
 
   getSimpleLogs(): CombatLog[] {
