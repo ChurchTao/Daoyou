@@ -93,7 +93,7 @@ export interface DamageEntryData {
   value: number;
   remainHp: number;
   isCritical: boolean;
-  isLethal: boolean;
+  // 注意：移除 isLethal，因为 death 是单独的 entry type
   targetName: string;
   sourceBuff?: string;
   shieldAbsorbed?: number;
@@ -104,6 +104,7 @@ export interface HealEntryData {
   value: number;
   remainHp: number;
   targetName: string;
+  sourceBuff?: string; // 新增：HOT 来源
 }
 
 export interface ShieldEntryData {
@@ -318,7 +319,7 @@ export class LogCollector {
           value: Math.round(e.damageTaken),
           remainHp: Math.round(e.remainHealth),
           isCritical: e.isCritical ?? false,
-          isLethal: e.isLethal,
+          // 注意：isLethal 已移除，death 是单独的 entry
           targetName: e.target.name,
           sourceBuff: e.buff?.name,
           shieldAbsorbed: e.shieldAbsorbed,
@@ -327,6 +328,7 @@ export class LogCollector {
         timestamp: Date.now(),
       });
 
+      // 死亡作为单独的 entry
       if (e.isLethal) {
         this._aggregator.addEntry({
           id: generateId(),
@@ -819,7 +821,9 @@ export class LogPresenter {
         result += `（抵扣护盾 ${Math.round(damage.data.shieldAbsorbed)} 点）`;
       }
 
-      if (damage.data.isLethal) {
+      // 检查是否有 death entry（由 LogCollector 在 isLethal 时创建）
+      const death = this.findEntry(span.entries, 'death');
+      if (death && death.data.targetName === actor) {
         result += `，${actor}被击败！`;
       }
 
