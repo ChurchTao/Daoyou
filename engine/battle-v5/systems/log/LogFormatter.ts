@@ -39,7 +39,11 @@ export class TextFormatter implements LogFormatter {
     if (span.type === 'action_pre') {
       const damageEntry = span.entries.find(e => e.type === 'damage');
       if (damageEntry && damageEntry.data.sourceBuff) {
-        return `由于「${damageEntry.data.sourceBuff}」发作，${span.source?.name || '未知单位'} 受到 ${damageEntry.data.value} 点伤害`;
+        let shieldSuffix = '';
+        if (damageEntry.data.shieldAbsorbed > 0) {
+          shieldSuffix = `（抵扣护盾 ${Math.round(damageEntry.data.shieldAbsorbed)} 点${damageEntry.data.remainShield <= 0 ? '，护盾已破碎' : ''}）`;
+        }
+        return `由于「${damageEntry.data.sourceBuff}」发作，${span.source?.name || '未知单位'} 受到 ${damageEntry.data.value} 点伤害${shieldSuffix}`;
       }
     }
 
@@ -48,13 +52,18 @@ export class TextFormatter implements LogFormatter {
       const damageEntry = span.entries.find(e => e.type === 'damage');
       const buffEntry = span.entries.find(e => e.type === 'buff_apply');
 
+      let shieldSuffix = '';
+      if (damageEntry && damageEntry.data.shieldAbsorbed > 0) {
+        shieldSuffix = `（抵扣护盾 ${Math.round(damageEntry.data.shieldAbsorbed)} 点${damageEntry.data.remainShield <= 0 ? '，护盾已破碎' : ''}）`;
+      }
+
       if (damageEntry && buffEntry && damageEntry.data.targetName === buffEntry.data.targetName) {
-        return `对 ${damageEntry.data.targetName} 造成 ${damageEntry.data.value} 点伤害并施加「${buffEntry.data.buffName}」`;
+        return `对 ${damageEntry.data.targetName} 造成 ${damageEntry.data.value} 点伤害${shieldSuffix}并施加「${buffEntry.data.buffName}」`;
       }
 
       // 情况 3: 只有伤害
       if (damageEntry && damageEntry.data.targetName) {
-        return `对 ${damageEntry.data.targetName} 造成 ${damageEntry.data.value} 点伤害`;
+        return `对 ${damageEntry.data.targetName} 造成 ${damageEntry.data.value} 点伤害${shieldSuffix}`;
       }
 
       // 情况 4: 只有 Buff (例如施毒术等扣益技能)

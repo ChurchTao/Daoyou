@@ -15,7 +15,7 @@ describe('CombatLogSystem.getLogs()', () => {
   it('should return aggregated logs for each span', () => {
     // Setup a span with multiple entries
     aggregator.beginRoundStartSpan(1);
-    aggregator.beginActionSpan({ id: 'player', name: '林轩' }, { id: 'skill', name: '普攻' });
+    aggregator.beginActionSpan({ id: 'player', name: '林轩' }, { id: 'basic_attack', name: '普攻' });
     aggregator.addEntry({
       id: '1',
       type: 'damage',

@@ -142,11 +142,14 @@ export class LogSubscriber {
         remainHp,
         isCritical: event.isCritical,
         targetName: event.target.name,
-        ...(event.buff ? { sourceBuff: event.buff.name } : {}),
+        sourceBuff: event.buff?.name,
+        shieldAbsorbed: event.shieldAbsorbed,
+        remainShield: event.remainShield,
       },
       message,
       highlight: event.isCritical || event.isLethal,
     });
+
 
     if (event.isLethal) {
       this._aggregator.addEntry({
