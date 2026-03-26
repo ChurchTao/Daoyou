@@ -2,7 +2,7 @@
 import { EventBus } from '../../core/EventBus';
 import { ActionExecutionSystem } from '../../systems/ActionExecutionSystem';
 import { DamageSystem } from '../../systems/DamageSystem';
-import { CombatLogSystem } from '../../systems/CombatLogSystem';
+import { CombatLogSystem } from '../../systems/log/CombatLogSystem';
 import { Unit } from '../../units/Unit';
 
 describe('EventBus', () => {
@@ -145,6 +145,7 @@ describe('EventBus', () => {
 
     it('CombatLogSystem 应该正确取消订阅所有事件', () => {
       const system = new CombatLogSystem();
+      system.subscribe(eventBus); // 新增：显式订阅
       const subscribers = (eventBus as any)._subscribers;
 
       // Verify all subscriptions exist
@@ -196,6 +197,7 @@ describe('EventBus', () => {
       const actionSystem = new ActionExecutionSystem();
       const damageSystem = new DamageSystem();
       const logSystem = new CombatLogSystem();
+      logSystem.subscribe(eventBus); // 新增：显式订阅
 
       // Destroy all systems
       actionSystem.destroy();

@@ -14,6 +14,11 @@ export class CombatLogSystem {
   private _subscriber: LogSubscriber;
   private _formatter: LogFormatter;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get _handlers(): Map<string, (event: any) => void> {
+      return (this._subscriber as any)._handlers;
+  }
+
   constructor() {
     this._aggregator = new LogAggregator();
     this._subscriber = new LogSubscriber(this._aggregator);
@@ -131,9 +136,16 @@ export class CombatLogSystem {
   }
 
   /**
+   * 设置极简模式
+   */
+  setSimpleMode(enabled: boolean): void {
+      // TODO: 实现极简模式过滤逻辑
+  }
+
+  /**
    * 销毁系统
    */
   destroy(): void {
-    // Subscriber 取消订阅由外部显式调用 unsubscribe
+    this._subscriber.unsubscribe(EventBus.instance);
   }
 }

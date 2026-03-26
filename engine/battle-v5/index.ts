@@ -22,7 +22,7 @@ export { PassiveAbility } from './abilities/PassiveAbility';
 export { Buff } from './buffs/Buff';
 
 // Systems
-export { CombatLogSystem } from './systems/CombatLogSystem';
+export { CombatLogSystem } from './systems/log/CombatLogSystem';
 export { DamageSystem } from './systems/DamageSystem';
 export { VictorySystem, type VictoryResult } from './systems/VictorySystem';
 
