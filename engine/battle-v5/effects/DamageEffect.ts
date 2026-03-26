@@ -27,7 +27,7 @@ export class DamageEffect extends GameplayEffect {
       const e = triggerEvent as ActionPreEvent;
       if (
         buff?.tags.hasTag(GameplayTags.BUFF.DOT) &&
-        e.caster.id !== buff.getOwner()?.id
+        e.caster.id !== target?.id
       ) {
         // 如果不是自己的DOT，则不处理
         return;
