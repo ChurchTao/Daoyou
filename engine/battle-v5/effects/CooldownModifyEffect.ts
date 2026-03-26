@@ -21,7 +21,10 @@ export class CooldownModifyEffect extends GameplayEffect {
     for (const skill of abilities) {
       if (skill instanceof ActiveSkill && ability?.id != skill.id) {
         // 如果指定了技能标识符
-        if (this.params.tags && skill.tags.hasAnyTag(this.params.tags)) {
+        if (
+          !this.params.tags ||
+          (this.params.tags && skill.tags.hasAnyTag(this.params.tags))
+        ) {
           // 调用 ActiveSkill 提供的标准化方法修改冷却
           skill.modifyCooldown(this.params.cdModifyValue);
 

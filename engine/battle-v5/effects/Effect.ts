@@ -1,6 +1,7 @@
 import { Ability } from '../abilities/Ability';
-import { Unit } from '../units/Unit';
+import { Buff } from '../buffs/Buff';
 import { CombatEvent } from '../core/types';
+import { Unit } from '../units/Unit';
 
 /**
  * 效果执行上下文
@@ -9,6 +10,7 @@ export interface EffectContext {
   caster: Unit;
   target: Unit;
   ability?: Ability;
+  buff?: Buff;
   /**
    * 触发此效果的事件（可选）
    * 用于支持吸血、反伤、根据受击伤害触发的效果等

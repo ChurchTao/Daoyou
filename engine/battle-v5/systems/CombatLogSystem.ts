@@ -43,6 +43,15 @@ export class CombatLogSystem {
   }
 
   private _subscribeToEvents(): void {
+    // 技能释放事件（用于记录施法动作）
+    const skillCastHandler = (e: SkillCastEvent) => this._onSkillCast(e);
+    EventBus.instance.subscribe<SkillCastEvent>(
+      'SkillCastEvent',
+      skillCastHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('SkillCastEvent', skillCastHandler);
+
     // 技能打断事件
     const interruptHandler = (e: SkillInterruptEvent) =>
       this._onSkillInterrupt(e);
@@ -317,6 +326,21 @@ export class CombatLogSystem {
     });
   }
 
+  private _onSkillCast(event: SkillCastEvent): void {
+    // 如果是普攻，暂时不在此记录，由 HitCheck 或 DamageTaken 记录更完整的信息
+    if (event.ability.id === 'basic_attack') return;
+
+    // 记录主动技能的释放动作（如果后续有伤害/效果，日志会追加）
+    // 为了避免重复，我们只记录基础动作动作
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【施法】${event.caster.name}运转周身灵力，使出了【${event.ability.name}】！`,
+      highlight: false,
+    });
+  }
+
   private _onSkillInterrupt(event: SkillInterruptEvent): void {
     this._addLog({
       id: `log_${this._nextId++}`,
@@ -333,7 +357,7 @@ export class CombatLogSystem {
         id: `log_${this._nextId++}`,
         turn: 0,
         phase: CombatPhase.ACTION,
-        message: `【闪避】${event.target.name}身法灵动，躲开了${event.caster.name}的【${event.ability.name}】！`,
+        message: `【闪避】${event.target.name}身法灵动，轻松躲开了${event.caster.name}的【${event.ability.name}】！`,
         highlight: false,
       });
     } else if (event.isResisted) {
@@ -341,7 +365,7 @@ export class CombatLogSystem {
         id: `log_${this._nextId++}`,
         turn: 0,
         phase: CombatPhase.ACTION,
-        message: `【抵抗】${event.target.name}神识稳固，抵抗了${event.caster.name}的【${event.ability.name}】！`,
+        message: `【抵抗】${event.target.name}神识稳固，硬生生抵抗了${event.caster.name}的【${event.ability.name}】！`,
         highlight: false,
       });
     }
@@ -364,15 +388,22 @@ export class CombatLogSystem {
       shieldText = `（-${shieldAbsorbed}点护盾${breakText}）`;
     }
 
-    // 处理可能的 null 值（DOT 伤害等情况）
-    const casterName = event.caster?.name ?? '持续伤害';
-    const abilityName = event.ability?.name ?? '持续效果';
+    // --- 优化伤害日志逻辑 ---
+    let message = '';
+    if (event.buff) {
+      // DOT 伤害：不显示施法者，突出 Buff 名称
+      message = `【持续伤害】${event.target.name}身上的「${event.buff.name}」发作，造成${damage}点伤害${shieldText}，剩余气血${remainHp}！`;
+    } else {
+      const casterName = event.caster?.name ?? '神秘力量';
+      const abilityName = event.ability?.name ?? '攻击';
+      message = `【伤害】${casterName}使用【${abilityName}】对${event.target.name}造成${damage}点伤害${shieldText}${critText}，剩余气血${remainHp}！`;
+    }
 
     this._addLog({
       id: `log_${this._nextId++}`,
       turn: 0, // 回合信息由外部日志调用时设置
       phase: CombatPhase.ACTION,
-      message: `【伤害】${casterName}使用【${abilityName}】对${event.target.name}造成${damage}点伤害${shieldText}${critText}，剩余气血${remainHp}！`,
+      message,
       highlight,
     });
 

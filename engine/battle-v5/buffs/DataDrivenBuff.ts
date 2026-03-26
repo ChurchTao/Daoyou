@@ -70,7 +70,7 @@ export class DataDrivenBuff extends Buff {
   }
 
   private _executeEffects(effects: GameplayEffect[], event: CombatEvent): void {
-    if (!this._owner || !this._owner.isAlive()) return;
+    if (!this._owner) return; // 仅检查是否存在，不检查存活，以便处理免死逻辑
 
     // 构建上下文：如果是受击事件，伤害归属者由事件决定
     const caster = this._source || this._owner;
@@ -80,6 +80,7 @@ export class DataDrivenBuff extends Buff {
       caster,
       target,
       triggerEvent: event, // 关键：注入触发事件
+      buff: this,
     };
 
     for (const effect of effects) {

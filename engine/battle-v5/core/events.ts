@@ -76,7 +76,7 @@ export interface SkillCastEvent extends CombatEvent {
   target: Unit;
   ability: Ability;
   // 控制字段：由 DamageSystem 等系统在事件流转中填充
-  isHit?: boolean;    // 是否命中
+  isHit?: boolean; // 是否命中
   isDodged?: boolean; // 是否被闪避
   isResisted?: boolean; // 是否被抵抗
 }
@@ -101,6 +101,7 @@ export interface DamageRequestEvent extends CombatEvent {
   caster?: Unit; // null 表示 DOT 伤害或环境伤害
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
+  buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   isCritical?: boolean; // 是否暴击
@@ -116,6 +117,7 @@ export interface DamageEvent extends CombatEvent {
   caster?: Unit; // null 表示 DOT 伤害或环境伤害
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
+  buff?: Buff; // 新增：记录来源 Buff
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
@@ -208,6 +210,7 @@ export interface DamageTakenEvent extends CombatEvent {
   caster?: Unit; // null 表示 DOT 伤害或环境伤害
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
+  buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageTaken: number;
   remainHealth: number;
   shieldAbsorbed?: number; // 护盾抵扣值

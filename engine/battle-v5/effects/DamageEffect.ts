@@ -1,9 +1,9 @@
-import { GameplayEffect, EffectContext } from './Effect';
+import { DamageParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
 import { DamageRequestEvent, EventPriorityLevel } from '../core/events';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
-import { DamageParams } from '../core/configs';
+import { EffectContext, GameplayEffect } from './Effect';
 
 /**
  * 伤害原子效果
@@ -15,7 +15,7 @@ export class DamageEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { caster, target, ability } = context;
+    const { caster, target, ability, buff } = context;
 
     // 使用统一计算器计算基础伤害
     const damage = ValueCalculator.calculate(this.params.value, caster);
@@ -30,6 +30,7 @@ export class DamageEffect extends GameplayEffect {
       caster,
       target,
       ability,
+      buff, // 传递 buff
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
     });
@@ -37,4 +38,7 @@ export class DamageEffect extends GameplayEffect {
 }
 
 // 注册到效果注册表
-EffectRegistry.getInstance().register('damage', (params) => new DamageEffect(params));
+EffectRegistry.getInstance().register(
+  'damage',
+  (params) => new DamageEffect(params),
+);

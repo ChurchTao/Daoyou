@@ -90,11 +90,11 @@ export class DamageSystem {
       // 1. 身法闪避判定
       const casterAgility = caster.attributes.getValue(AttributeType.AGILITY);
       const targetAgility = target.attributes.getValue(AttributeType.AGILITY);
+      // 允许闪避率降为 0，不再强制 5% 底限
       const dodgeChance = Math.max(
-        5,
+        0,
         Math.min(80, ((targetAgility - casterAgility) / casterAgility) * 100),
       );
-
       if (Math.random() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
@@ -172,6 +172,7 @@ export class DamageSystem {
       caster: event.caster,
       target: event.target,
       ability: event.ability,
+      buff: event.buff, // 传递 buff
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
       critMultiplier: event.critMultiplier,
@@ -190,7 +191,7 @@ export class DamageSystem {
    * 更新目标气血，发布受击事件
    */
   private _updateTargetHealth(damageEvent: DamageEvent): void {
-    const { target, finalDamage, caster, ability, isCritical, critMultiplier } =
+    const { target, finalDamage, caster, ability, buff, isCritical, critMultiplier } =
       damageEvent;
 
     // 获取当前状态
@@ -205,9 +206,9 @@ export class DamageSystem {
     target.takeDamage(remainingDamage);
 
     const actualDamage = beforeHealth - target.currentHp;
-    const isLethal = target.currentHp <= 0;
 
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）
+    // 注意：在这里发布事件，允许监听器（如免死效果）修改单位状态
     EventBus.instance.publish<DamageTakenEvent>({
       type: 'DamageTakenEvent',
       priority: EventPriorityLevel.DAMAGE_TAKEN,
@@ -215,17 +216,19 @@ export class DamageSystem {
       caster,
       target,
       ability,
+      buff, // 传递 buff
       damageTaken: actualDamage,
-      remainHealth: target.currentHp,
+      remainHealth: target.currentHp, // 此时可能为 0
       shieldAbsorbed: absorbedAmount,
       remainShield: target.currentShield,
-      isLethal,
+      isLethal: target.currentHp <= 0,
       isCritical,
       critMultiplier,
     });
 
-    // 击杀判定
-    if (isLethal) {
+    // 最终判定：在所有 DamageTakenEvent 监听器执行完后，重新检查存活状态
+    // 如果免死效果生效，target.currentHp 会变为 1，从而跳过此处的阵亡发布
+    if (target.currentHp <= 0) {
       EventBus.instance.publish<UnitDeadEvent>({
         type: 'UnitDeadEvent',
         priority: EventPriorityLevel.DAMAGE_TAKEN,

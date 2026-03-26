@@ -4,6 +4,7 @@ import { EventBus } from '../core/EventBus';
 import { ActionEvent, SkillPreCastEvent, EventPriorityLevel } from '../core/events';
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { BasicAttack } from '../abilities/BasicAttack';
+import { AbilityType } from '../core/types';
 
 /**
  * AbilityContainer - 技能容器
@@ -44,42 +45,49 @@ export class AbilityContainer {
    */
   private _onActionTrigger(event: ActionEvent): void {
     // 仅当前出手单位是自己时，才执行筛选
-    if (event.caster.id !== this._owner.id) return;
+    // 使用对象引用检查，在内存中最为稳固
+    if (event.caster !== this._owner) {
+      return;
+    }
 
     const opponent = this._getDefaultTarget();
     const abilitiesToCast: Array<{ ability: ActiveSkill; target: Unit }> = [];
 
     // 遍历所有主动技能，根据策略寻找目标并检查可用性
     for (const ability of this._abilities.values()) {
-      if (!(ability instanceof ActiveSkill)) continue;
+      // 使用类型字符串检查，防御枚举实例不一致问题
+      if (ability.type !== AbilityType.ACTIVE_SKILL) {
+        continue;
+      }
+      
+      const activeSkill = ability as ActiveSkill;
 
       // 1. 根据策略确定目标 (1v1 简化逻辑)
       let resolvedTarget: Unit | null = null;
-      const policy = ability.targetPolicy;
+      const policy = activeSkill.targetPolicy;
 
       if (policy.team === 'self' || policy.team === 'ally') {
         resolvedTarget = this._owner;
       } else {
-        // enemy 或 any 默认指向对手
         resolvedTarget = opponent;
       }
 
-      // 2. 检查目标有效性
-      if (!resolvedTarget || !resolvedTarget.isAlive()) continue;
+      if (!resolvedTarget || !resolvedTarget.isAlive()) {
+        continue;
+      }
 
-      // 3. 检查技能是否可触发
+      // 2. 检查技能是否可触发
       const context: AbilityContext = {
         caster: this._owner,
         target: resolvedTarget,
       };
 
-      if (ability.canTrigger(context)) {
-        abilitiesToCast.push({ ability, target: resolvedTarget });
+      if (activeSkill.canTrigger(context)) {
+        abilitiesToCast.push({ ability: activeSkill, target: resolvedTarget });
       }
     }
 
     if (abilitiesToCast.length === 0) {
-      // 无可用技能，尝试普攻（普攻目标必须是对手，不能是自己）
       if (opponent && opponent.id !== this._owner.id && opponent.isAlive()) {
         this._prepareCast(this._getDefaultAttack(), opponent);
       }
@@ -87,10 +95,8 @@ export class AbilityContainer {
     }
 
     // 按优先级排序，选择最高优先级技能
-    const bestChoice = abilitiesToCast.reduce((best, current) =>
-      current.ability.priority > best.ability.priority ? current : best,
-    );
-
+    // 稳定性改进：使用 sort 并取首位
+    const bestChoice = abilitiesToCast.sort((a, b) => b.ability.priority - a.ability.priority)[0];
     this._prepareCast(bestChoice.ability, bestChoice.target);
   }
 
