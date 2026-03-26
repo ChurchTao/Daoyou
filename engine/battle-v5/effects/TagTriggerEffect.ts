@@ -3,6 +3,8 @@ import { TagTriggerParams } from '../core/configs';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { DamageEffect } from './DamageEffect';
 import { EffectContext, GameplayEffect } from './Effect';
+import { EventBus } from '../core/EventBus';
+import { EventPriorityLevel, TagTriggerEvent } from '../core/events';
 
 /**
  * 标签触发原子效果
@@ -14,12 +16,23 @@ export class TagTriggerEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { target } = context;
+    const { target, caster, ability } = context;
 
     // 1. 检查目标是否拥有该标签
     if (!target.tags.hasTag(this.params.triggerTag)) {
       return;
     }
+
+    // 发布标签触发事件
+    EventBus.instance.publish<TagTriggerEvent>({
+      type: 'TagTriggerEvent',
+      priority: EventPriorityLevel.POST_SETTLE,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability,
+      tag: this.params.triggerTag,
+    });
 
     // 2. 如果拥有，则触发逻辑
     const damageEffect = new DamageEffect({

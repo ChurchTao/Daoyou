@@ -1,13 +1,14 @@
 import { GameplayEffect, EffectContext } from './Effect';
-import { DamageTakenEvent } from '../core/events';
+import { DamageTakenEvent, DeathPreventEvent, EventPriorityLevel } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
+import { EventBus } from '../core/EventBus';
 
 /**
  * 免死原子效果
  */
 export class DeathPreventEffect extends GameplayEffect {
   execute(context: EffectContext): void {
-    const { target, triggerEvent } = context;
+    const { target, triggerEvent, ability } = context;
 
     if (!triggerEvent || triggerEvent.type !== 'DamageTakenEvent') {
       return;
@@ -17,6 +18,15 @@ export class DeathPreventEffect extends GameplayEffect {
 
     if (damageTakenEvent.isLethal) {
       target.currentHp = 1;
+
+      // 发布免死事件
+      EventBus.instance.publish<DeathPreventEvent>({
+        type: 'DeathPreventEvent',
+        priority: EventPriorityLevel.POST_SETTLE,
+        timestamp: Date.now(),
+        target,
+        ability,
+      });
     }
   }
 }

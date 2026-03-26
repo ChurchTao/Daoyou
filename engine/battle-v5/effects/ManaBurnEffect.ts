@@ -1,7 +1,9 @@
-import { GameplayEffect, EffectContext } from './Effect';
+import { ManaBurnParams } from '../core/configs';
+import { EventBus } from '../core/EventBus';
+import { EventPriorityLevel, ManaBurnEvent } from '../core/events';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
-import { ManaBurnParams } from '../core/configs';
+import { EffectContext, GameplayEffect } from './Effect';
 
 /**
  * 焚元原子效果
@@ -13,7 +15,7 @@ export class ManaBurnEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { caster, target } = context;
+    const { caster, target, ability } = context;
 
     // 使用统一计算器计算削减量
     const burnAmount = ValueCalculator.calculate(this.params.value, caster);
@@ -21,9 +23,23 @@ export class ManaBurnEffect extends GameplayEffect {
     if (burnAmount <= 0) return;
 
     // 执行 MP 削减
-    target.consumeMp(burnAmount);
+    target.takeMp(burnAmount);
+
+    // 发布焚元事件
+    EventBus.instance.publish<ManaBurnEvent>({
+      type: 'ManaBurnEvent',
+      priority: EventPriorityLevel.POST_SETTLE,
+      timestamp: Date.now(),
+      caster,
+      target,
+      ability,
+      burnAmount,
+    });
   }
 }
 
 // 注册
-EffectRegistry.getInstance().register('mana_burn', (params) => new ManaBurnEffect(params));
+EffectRegistry.getInstance().register(
+  'mana_burn',
+  (params) => new ManaBurnEffect(params),
+);

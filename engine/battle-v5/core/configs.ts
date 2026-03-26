@@ -100,7 +100,7 @@ export interface ManaBurnParams {
  */
 export interface CooldownModifyParams {
   cdModifyValue: number;
-  abilitySlug?: string;
+  tags?: string[];
 }
 
 /**

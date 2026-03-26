@@ -1,9 +1,8 @@
-import { UnitId, UnitSnapshot } from '../core/types';
-import { AttributeSet } from './AttributeSet';
-import { AbilityContainer } from './AbilityContainer';
-import { BuffContainer } from './BuffContainer';
-import { AttributeType } from '../core/types';
 import { GameplayTagContainer, GameplayTags } from '../core/GameplayTags';
+import { AttributeType, UnitId, UnitSnapshot } from '../core/types';
+import { AbilityContainer } from './AbilityContainer';
+import { AttributeSet } from './AttributeSet';
+import { BuffContainer } from './BuffContainer';
 
 export class Unit {
   readonly id: UnitId;
@@ -96,12 +95,22 @@ export class Unit {
 
   consumeMp(amount: number): boolean {
     if (amount < 0) {
-      console.warn(`Unit.consumeMp: 负数输入 ${amount}，应使用 restoreMp() 方法`);
+      console.warn(
+        `Unit.consumeMp: 负数输入 ${amount}，应使用 restoreMp() 方法`,
+      );
       amount = 0;
     }
     if (this.currentMp < amount) return false;
     this.currentMp -= amount;
     return true;
+  }
+
+  takeMp(amount: number): void {
+    if (amount < 0) {
+      console.warn(`Unit.takeMp: 负数输入 ${amount}，应使用 restoreMp() 方法`);
+      amount = 0;
+    }
+    this.currentMp = Math.max(0, this.currentMp - amount);
   }
 
   restoreMp(amount: number): void {

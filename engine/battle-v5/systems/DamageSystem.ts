@@ -83,39 +83,44 @@ export class DamageSystem {
       isResisted: false,
     };
 
-    // 1. 身法闪避判定
-    const casterAgility = caster.attributes.getValue(AttributeType.AGILITY);
-    const targetAgility = target.attributes.getValue(AttributeType.AGILITY);
-    const dodgeChance = Math.max(
-      5,
-      Math.min(80, ((targetAgility - casterAgility) / casterAgility) * 100),
-    );
-
-    if (Math.random() * 100 < dodgeChance) {
-      hitCheckEvent.isDodged = true;
-      hitCheckEvent.isHit = false;
-    }
-
-    // 2. 神识抵抗判定（仅控制/减益类技能）
-    if (
-      ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) &&
-      hitCheckEvent.isHit
-    ) {
-      const casterConsciousness = caster.attributes.getValue(
-        AttributeType.CONSCIOUSNESS,
-      );
-      const targetConsciousness = target.attributes.getValue(
-        AttributeType.CONSCIOUSNESS,
-      );
-      const resistChance = Math.max(
-        0,
-        ((targetConsciousness - casterConsciousness) / casterConsciousness) *
-          100,
+    // 关键修正：如果目标是自己，则跳过命中/闪避判定，直接命中
+    if (caster.id === target.id) {
+      hitCheckEvent.isHit = true;
+    } else {
+      // 1. 身法闪避判定
+      const casterAgility = caster.attributes.getValue(AttributeType.AGILITY);
+      const targetAgility = target.attributes.getValue(AttributeType.AGILITY);
+      const dodgeChance = Math.max(
+        5,
+        Math.min(80, ((targetAgility - casterAgility) / casterAgility) * 100),
       );
 
-      if (Math.random() * 100 < resistChance) {
-        hitCheckEvent.isResisted = true;
+      if (Math.random() * 100 < dodgeChance) {
+        hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
+      }
+
+      // 2. 神识抵抗判定（仅控制/减益类技能）
+      if (
+        ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) &&
+        hitCheckEvent.isHit
+      ) {
+        const casterConsciousness = caster.attributes.getValue(
+          AttributeType.CONSCIOUSNESS,
+        );
+        const targetConsciousness = target.attributes.getValue(
+          AttributeType.CONSCIOUSNESS,
+        );
+        const resistChance = Math.max(
+          0,
+          ((targetConsciousness - casterConsciousness) / casterConsciousness) *
+            100,
+        );
+
+        if (Math.random() * 100 < resistChance) {
+          hitCheckEvent.isResisted = true;
+          hitCheckEvent.isHit = false;
+        }
       }
     }
 
@@ -188,11 +193,13 @@ export class DamageSystem {
     const { target, finalDamage, caster, ability, isCritical, critMultiplier } =
       damageEvent;
 
-    // 获取当前气血
+    // 获取当前状态
     const beforeHealth = target.currentHp;
+    const beforeShield = target.currentShield;
 
     // 1. 优先使用护盾吸收伤害
     const remainingDamage = target.absorbDamage(finalDamage);
+    const absorbedAmount = beforeShield - target.currentShield;
 
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
@@ -200,7 +207,7 @@ export class DamageSystem {
     const actualDamage = beforeHealth - target.currentHp;
     const isLethal = target.currentHp <= 0;
 
-    // 发布受击事件（包含技能和暴击信息）
+    // 发布受击事件（包含护盾抵扣和技能/暴击信息）
     EventBus.instance.publish<DamageTakenEvent>({
       type: 'DamageTakenEvent',
       priority: EventPriorityLevel.DAMAGE_TAKEN,
@@ -210,6 +217,8 @@ export class DamageSystem {
       ability,
       damageTaken: actualDamage,
       remainHealth: target.currentHp,
+      shieldAbsorbed: absorbedAmount,
+      remainShield: target.currentShield,
       isLethal,
       isCritical,
       critMultiplier,

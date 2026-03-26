@@ -121,6 +121,87 @@ export interface DamageEvent extends CombatEvent {
   critMultiplier?: number; // 暴击倍率
 }
 
+// ===== 治疗应用事件 =====
+export interface HealEvent extends CombatEvent {
+  type: 'HealEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  healAmount: number;
+}
+
+// ===== 焚元应用事件 =====
+export interface ManaBurnEvent extends CombatEvent {
+  type: 'ManaBurnEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  burnAmount: number;
+}
+
+// ===== 护盾应用事件 =====
+export interface ShieldEvent extends CombatEvent {
+  type: 'ShieldEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  shieldAmount: number;
+}
+
+// ===== 冷却修改事件 =====
+export interface CooldownModifyEvent extends CombatEvent {
+  type: 'CooldownModifyEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  cdModifyValue: number;
+  affectedAbilityName: string;
+}
+
+// ===== 资源夺取事件 =====
+export interface ResourceDrainEvent extends CombatEvent {
+  type: 'ResourceDrainEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  drainType: 'hp' | 'mp';
+  amount: number;
+}
+
+// ===== 反伤应用事件 =====
+export interface ReflectEvent extends CombatEvent {
+  type: 'ReflectEvent';
+  caster: Unit; // 实际上是反伤的施加者（原受击者）
+  target: Unit; // 实际上是反伤的目标（原攻击者）
+  ability?: Ability;
+  reflectAmount: number;
+}
+
+// ===== 驱散应用事件 =====
+export interface DispelEvent extends CombatEvent {
+  type: 'DispelEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  removedBuffNames: string[];
+}
+
+// ===== 标签触发事件 =====
+export interface TagTriggerEvent extends CombatEvent {
+  type: 'TagTriggerEvent';
+  caster: Unit;
+  target: Unit;
+  ability?: Ability;
+  tag: string;
+}
+
+// ===== 免死触发事件 =====
+export interface DeathPreventEvent extends CombatEvent {
+  type: 'DeathPreventEvent';
+  target: Unit;
+  ability?: Ability;
+}
+
 // ===== 受击事件 =====
 export interface DamageTakenEvent extends CombatEvent {
   type: 'DamageTakenEvent';
@@ -129,6 +210,8 @@ export interface DamageTakenEvent extends CombatEvent {
   ability?: Ability; // null 表示非技能来源的伤害
   damageTaken: number;
   remainHealth: number;
+  shieldAbsorbed?: number; // 护盾抵扣值
+  remainShield?: number; // 剩余护盾值
   isLethal: boolean;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率

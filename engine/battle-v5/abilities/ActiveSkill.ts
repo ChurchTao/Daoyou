@@ -43,11 +43,7 @@ export abstract class ActiveSkill extends Ability {
   // 目标策略
   readonly targetPolicy: TargetPolicy;
 
-  constructor(
-    id: AbilityId,
-    name: string,
-    config: ActiveSkillConfig = {}
-  ) {
+  constructor(id: AbilityId, name: string, config: ActiveSkillConfig = {}) {
     super(id, name, AbilityType.ACTIVE_SKILL);
 
     // 初始化冷却
@@ -129,13 +125,13 @@ export abstract class ActiveSkill extends Ability {
 
   // 兼容旧 API - 获取 MP 消耗
   get manaCost(): number {
-    const mpCost = this._resourceCosts.find(c => c.type === 'mp');
+    const mpCost = this._resourceCosts.find((c) => c.type === 'mp');
     return mpCost?.amount ?? 0;
   }
 
   // 兼容旧 API - 设置 MP 消耗
   setManaCost(value: number): void {
-    const existingIndex = this._resourceCosts.findIndex(c => c.type === 'mp');
+    const existingIndex = this._resourceCosts.findIndex((c) => c.type === 'mp');
     if (existingIndex >= 0) {
       if (value === 0) {
         this._resourceCosts.splice(existingIndex, 1);

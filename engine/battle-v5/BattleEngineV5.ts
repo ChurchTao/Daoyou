@@ -111,6 +111,15 @@ export class BattleEngineV5 {
       `第${context.turn}回合开始`,
     );
 
+    // 如果是在dev模式下，打印当前回合信息
+    console.log(`Turn ${context.turn} starting...`);
+    console.log(
+      `Player: ${this._player.name}, HP: ${(this._player.getHpPercent() * 100).toFixed(2)}%, MP: ${(this._player.getMpPercent() * 100).toFixed(2)}%`,
+    );
+    console.log(
+      `Opponent: ${this._opponent.name}, HP: ${(this._opponent.getHpPercent() * 100).toFixed(2)}%, MP: ${(this._opponent.getMpPercent() * 100).toFixed(2)}%`,
+    );
+
     // ===== 状态机驱动战斗流程 =====
 
     // ROUND_START 阶段
@@ -177,6 +186,9 @@ export class BattleEngineV5 {
 
       // 处理 Buff 过期
       this.processBuffs(actor);
+
+      // 更新技能冷却
+      actor.abilities.tickAbilitiesCooldown();
     }
   }
 

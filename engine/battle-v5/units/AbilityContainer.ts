@@ -46,40 +46,71 @@ export class AbilityContainer {
     // 仅当前出手单位是自己时，才执行筛选
     if (event.caster.id !== this._owner.id) return;
 
-    // 获取默认目标（由 BattleEngineV5 设置）
-    const target = this._getDefaultTarget();
-    // 无目标或目标为自身时，不执行技能
-    if (!target || target.id === this._owner.id) return;
+    const opponent = this._getDefaultTarget();
+    const abilitiesToCast: Array<{ ability: ActiveSkill; target: Unit }> = [];
 
-    // 获取可用技能
-    const availableAbilities = this.getAvailableAbilities(target);
+    // 遍历所有主动技能，根据策略寻找目标并检查可用性
+    for (const ability of this._abilities.values()) {
+      if (!(ability instanceof ActiveSkill)) continue;
 
-    if (availableAbilities.length === 0) {
-      // 无可用技能，使用普攻
-      this._prepareCast(this._getDefaultAttack(), target);
+      // 1. 根据策略确定目标 (1v1 简化逻辑)
+      let resolvedTarget: Unit | null = null;
+      const policy = ability.targetPolicy;
+
+      if (policy.team === 'self' || policy.team === 'ally') {
+        resolvedTarget = this._owner;
+      } else {
+        // enemy 或 any 默认指向对手
+        resolvedTarget = opponent;
+      }
+
+      // 2. 检查目标有效性
+      if (!resolvedTarget || !resolvedTarget.isAlive()) continue;
+
+      // 3. 检查技能是否可触发
+      const context: AbilityContext = {
+        caster: this._owner,
+        target: resolvedTarget,
+      };
+
+      if (ability.canTrigger(context)) {
+        abilitiesToCast.push({ ability, target: resolvedTarget });
+      }
+    }
+
+    if (abilitiesToCast.length === 0) {
+      // 无可用技能，尝试普攻（普攻目标必须是对手，不能是自己）
+      if (opponent && opponent.id !== this._owner.id && opponent.isAlive()) {
+        this._prepareCast(this._getDefaultAttack(), opponent);
+      }
       return;
     }
 
     // 按优先级排序，选择最高优先级技能
-    const selectedAbility = availableAbilities.reduce((best, current) =>
-      current.priority > best.priority ? current : best,
+    const bestChoice = abilitiesToCast.reduce((best, current) =>
+      current.ability.priority > best.ability.priority ? current : best,
     );
 
-    this._prepareCast(selectedAbility, target);
+    this._prepareCast(bestChoice.ability, bestChoice.target);
   }
 
   /**
-   * 获取所有可用技能（冷却完毕、资源足够）
+   * 获取所有可用技能（供外部查询使用，保留兼容性并优化逻辑）
    */
   getAvailableAbilities(target: Unit): Ability[] {
-    const context: AbilityContext = {
-      caster: this._owner,
-      target,
-    };
-
     return Array.from(this._abilities.values())
-      .filter(ability => ability instanceof ActiveSkill)
-      .filter(ability => ability.canTrigger(context));
+      .filter((ability): ability is ActiveSkill => ability instanceof ActiveSkill)
+      .filter(ability => {
+        // 简单校验：如果传入目标与策略不符，则认为不可用（在复杂 AI 中由外部控制）
+        const policy = ability.targetPolicy;
+        const isSelfTarget = policy.team === 'self' || policy.team === 'ally';
+        const actualTarget = isSelfTarget ? this._owner : target;
+        
+        return ability.canTrigger({
+          caster: this._owner,
+          target: actualTarget,
+        });
+      });
   }
 
   /**
@@ -118,6 +149,17 @@ export class AbilityContainer {
       this._defaultAttack.setActive(true);
     }
     return this._defaultAttack;
+  }
+
+  /**
+   * 更新所有技能的冷却时间
+   */
+  tickAbilitiesCooldown(): void {
+    for (const ability of this._abilities.values()) {
+      if (ability instanceof ActiveSkill) {
+        ability.tickCooldown();
+      }
+    }
   }
 
   // ===== 技能管理 =====

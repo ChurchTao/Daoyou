@@ -3,10 +3,19 @@ import {
   BuffAppliedEvent,
   BuffImmuneEvent,
   BuffRemovedEvent,
+  CooldownModifyEvent,
   DamageTakenEvent,
+  DeathPreventEvent,
+  DispelEvent,
   EventPriorityLevel,
+  HealEvent,
   HitCheckEvent,
+  ManaBurnEvent,
+  ReflectEvent,
+  ResourceDrainEvent,
+  ShieldEvent,
   SkillInterruptEvent,
+  TagTriggerEvent,
   UnitDeadEvent,
 } from '../core/events';
 import { CombatLog, CombatPhase } from '../core/types';
@@ -97,6 +106,215 @@ export class CombatLogSystem {
       EventPriorityLevel.COMBAT_LOG,
     );
     this._handlers.set('BuffImmuneEvent', buffImmuneHandler);
+
+    // 治疗事件
+    const healHandler = (e: HealEvent) => this._onHeal(e);
+    EventBus.instance.subscribe<HealEvent>(
+      'HealEvent',
+      healHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('HealEvent', healHandler);
+
+    // 焚元事件
+    const manaBurnHandler = (e: ManaBurnEvent) => this._onManaBurn(e);
+    EventBus.instance.subscribe<ManaBurnEvent>(
+      'ManaBurnEvent',
+      manaBurnHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('ManaBurnEvent', manaBurnHandler);
+
+    // 护盾事件
+    const shieldHandler = (e: ShieldEvent) => this._onShield(e);
+    EventBus.instance.subscribe<ShieldEvent>(
+      'ShieldEvent',
+      shieldHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('ShieldEvent', shieldHandler);
+
+    // 冷却修改事件
+    const cdHandler = (e: CooldownModifyEvent) => this._onCooldownModify(e);
+    EventBus.instance.subscribe<CooldownModifyEvent>(
+      'CooldownModifyEvent',
+      cdHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('CooldownModifyEvent', cdHandler);
+
+    // 资源夺取事件
+    const drainHandler = (e: ResourceDrainEvent) => this._onResourceDrain(e);
+    EventBus.instance.subscribe<ResourceDrainEvent>(
+      'ResourceDrainEvent',
+      drainHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('ResourceDrainEvent', drainHandler);
+
+    // 反伤事件
+    const reflectHandler = (e: ReflectEvent) => this._onReflect(e);
+    EventBus.instance.subscribe<ReflectEvent>(
+      'ReflectEvent',
+      reflectHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('ReflectEvent', reflectHandler);
+
+    // 驱散事件
+    const dispelHandler = (e: DispelEvent) => this._onDispel(e);
+    EventBus.instance.subscribe<DispelEvent>(
+      'DispelEvent',
+      dispelHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('DispelEvent', dispelHandler);
+
+    // 标签触发事件
+    const tagTriggerHandler = (e: TagTriggerEvent) => this._onTagTrigger(e);
+    EventBus.instance.subscribe<TagTriggerEvent>(
+      'TagTriggerEvent',
+      tagTriggerHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('TagTriggerEvent', tagTriggerHandler);
+
+    // 免死事件
+    const deathPreventHandler = (e: DeathPreventEvent) =>
+      this._onDeathPrevent(e);
+    EventBus.instance.subscribe<DeathPreventEvent>(
+      'DeathPreventEvent',
+      deathPreventHandler,
+      EventPriorityLevel.COMBAT_LOG,
+    );
+    this._handlers.set('DeathPreventEvent', deathPreventHandler);
+  }
+
+  private _onDeathPrevent(event: DeathPreventEvent): void {
+    const abilityName = event.ability?.name ?? '特殊效果';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【免死】${event.target.name}触发了【${abilityName}】，在致命一击下保住了性命！`,
+      highlight: true,
+    });
+  }
+
+  private _onTagTrigger(event: TagTriggerEvent): void {
+    const casterName = event.caster.name;
+    const targetName = event.target.name;
+    const abilityName = event.ability?.name ?? '触发效果';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【触发】${casterName}使用【${abilityName}】触发了${targetName}身上的「${event.tag}」标记！`,
+      highlight: true,
+    });
+  }
+
+  private _onDispel(event: DispelEvent): void {
+    const casterName = event.caster.name;
+    const targetName = event.target.name;
+    const abilityName = event.ability?.name ?? '净化效果';
+    const buffsText = event.removedBuffNames.map((n) => `「${n}」`).join('、');
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【驱散】${casterName}使用【${abilityName}】清除了${targetName}身上的${buffsText}！`,
+      highlight: true,
+    });
+  }
+
+  private _onReflect(event: ReflectEvent): void {
+    const casterName = event.caster.name;
+    const targetName = event.target.name;
+    const abilityName = event.ability?.name ?? '反伤效果';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【反伤】${casterName}使用【${abilityName}】将${Math.round(event.reflectAmount)}点伤害反弹给了${targetName}！`,
+      highlight: true,
+    });
+  }
+
+  private _onResourceDrain(event: ResourceDrainEvent): void {
+    const casterName = event.caster.name;
+    const targetName = event.target.name;
+    const abilityName = event.ability?.name ?? '掠夺效果';
+    const typeText = event.drainType === 'hp' ? '气血' : '真元';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【掠夺】${casterName}使用【${abilityName}】从${targetName}身上夺取了${Math.round(event.amount)}点${typeText}！`,
+      highlight: true,
+    });
+  }
+
+  private _onCooldownModify(event: CooldownModifyEvent): void {
+    const casterName = event.caster.name;
+    const abilityName = event.ability?.name ?? '时序效果';
+    const action = event.cdModifyValue > 0 ? '增加' : '减少';
+    const absValue = Math.abs(event.cdModifyValue);
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【时序】${casterName}使用【${abilityName}】使${event.target.name}的【${event.affectedAbilityName}】冷却${action}${absValue}回合！`,
+      highlight: true,
+    });
+  }
+
+  private _onShield(event: ShieldEvent): void {
+    const shieldAmount = Math.round(event.shieldAmount);
+    const casterName = event.caster.name;
+    const abilityName = event.ability?.name ?? '护盾效果';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【护盾】${casterName}使用【${abilityName}】为${event.target.name}施加了${shieldAmount}点护盾！`,
+      highlight: true,
+    });
+  }
+
+  private _onHeal(event: HealEvent): void {
+    const healAmount = Math.round(event.healAmount);
+    const casterName = event.caster.name;
+    const abilityName = event.ability?.name ?? '治疗效果';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【治疗】${casterName}使用【${abilityName}】为${event.target.name}恢复了${healAmount}点气血，剩余气血${Math.round(event.target.currentHp)}！`,
+      highlight: true,
+    });
+  }
+
+  private _onManaBurn(event: ManaBurnEvent): void {
+    const burnAmount = Math.round(event.burnAmount);
+    const casterName = event.caster.name;
+    const abilityName = event.ability?.name ?? '削减效果';
+
+    this._addLog({
+      id: `log_${this._nextId++}`,
+      turn: 0,
+      phase: CombatPhase.ACTION,
+      message: `【焚元】${casterName}使用【${abilityName}】削减了${event.target.name}${burnAmount}点真元！`,
+      highlight: true,
+    });
   }
 
   private _onSkillInterrupt(event: SkillInterruptEvent): void {
@@ -136,6 +354,16 @@ export class CombatLogSystem {
     const damage = Math.round(event.damageTaken);
     const remainHp = Math.round(event.remainHealth);
 
+    let shieldText = '';
+    // 处理护盾日志
+    if (event.shieldAbsorbed && event.shieldAbsorbed > 0) {
+      const shieldAbsorbed = Math.round(event.shieldAbsorbed);
+      const remainShield = Math.round(event.remainShield || 0);
+      const breakText =
+        remainShield <= 0 ? '，护盾已破碎' : `，护盾剩余${remainShield}`;
+      shieldText = `（-${shieldAbsorbed}点护盾${breakText}）`;
+    }
+
     // 处理可能的 null 值（DOT 伤害等情况）
     const casterName = event.caster?.name ?? '持续伤害';
     const abilityName = event.ability?.name ?? '持续效果';
@@ -144,7 +372,7 @@ export class CombatLogSystem {
       id: `log_${this._nextId++}`,
       turn: 0, // 回合信息由外部日志调用时设置
       phase: CombatPhase.ACTION,
-      message: `【伤害】${casterName}使用【${abilityName}】对${event.target.name}造成${damage}点伤害${critText}，剩余气血${remainHp}！`,
+      message: `【伤害】${casterName}使用【${abilityName}】对${event.target.name}造成${damage}点伤害${shieldText}${critText}，剩余气血${remainHp}！`,
       highlight,
     });
 

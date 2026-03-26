@@ -1,5 +1,5 @@
 import { GameplayEffect, EffectContext } from './Effect';
-import { DamageTakenEvent, EventPriorityLevel } from '../core/events';
+import { DamageTakenEvent, EventPriorityLevel, ReflectEvent } from '../core/events';
 import { EventBus } from '../core/EventBus';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { ReflectParams } from '../core/configs';
@@ -14,7 +14,7 @@ export class ReflectEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { triggerEvent, target } = context;
+    const { triggerEvent, target, ability } = context;
 
     // 需要感知受击伤害
     if (!triggerEvent || triggerEvent.type !== 'DamageTakenEvent') {
@@ -37,6 +37,17 @@ export class ReflectEffect extends GameplayEffect {
         target: attacker,
         baseDamage: damageToReflect,
         finalDamage: damageToReflect,
+      });
+
+      // 发布反伤事件
+      EventBus.instance.publish<ReflectEvent>({
+        type: 'ReflectEvent',
+        priority: EventPriorityLevel.POST_SETTLE,
+        timestamp: Date.now(),
+        caster: target,
+        target: attacker,
+        ability,
+        reflectAmount: damageToReflect,
       });
     }
   }
