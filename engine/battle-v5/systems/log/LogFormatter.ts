@@ -1,4 +1,4 @@
-import { CombatLogResult, LogSpan } from './types';
+import { CombatLogResult, LogSpan, LogEntry } from './types';
 
 /**
  * LogFormatter 职责：将 Span 或整场战斗结果格式化为不同输出。
@@ -18,12 +18,52 @@ export class TextFormatter implements LogFormatter {
     // Span 标题
     lines.push(span.title);
     
-    // 条目消息
-    for (const entry of span.entries) {
-      lines.push(`  ${entry.message}`);
+    // 尝试聚合条目
+    const aggregated = this.tryAggregate(span);
+    if (aggregated) {
+      lines.push(`  ${aggregated}`);
+    } else {
+      // 无法聚合时，按顺序输出条目消息
+      for (const entry of span.entries) {
+        lines.push(`  ${entry.message}`);
+      }
     }
     
     return lines.join('\n');
+  }
+
+  private tryAggregate(span: LogSpan): string | null {
+    if (span.entries.length === 0) return null;
+
+    // 情况 1: action_pre (持续效果)
+    if (span.type === 'action_pre') {
+      const damageEntry = span.entries.find(e => e.type === 'damage');
+      if (damageEntry && damageEntry.data.sourceBuff) {
+        return `由于「${damageEntry.data.sourceBuff}」发作，${span.source?.name || '未知单位'} 受到 ${damageEntry.data.value} 点伤害`;
+      }
+    }
+
+    // 情况 2: 复合行动 (施法 + 伤害 + Buff)
+    if (span.type === 'action') {
+      const damageEntry = span.entries.find(e => e.type === 'damage');
+      const buffEntry = span.entries.find(e => e.type === 'buff_apply');
+
+      if (damageEntry && buffEntry && damageEntry.data.targetName === buffEntry.data.targetName) {
+        return `对 ${damageEntry.data.targetName} 造成 ${damageEntry.data.value} 点伤害并施加「${buffEntry.data.buffName}」`;
+      }
+
+      // 情况 3: 只有伤害
+      if (damageEntry && damageEntry.data.targetName) {
+        return `对 ${damageEntry.data.targetName} 造成 ${damageEntry.data.value} 点伤害`;
+      }
+
+      // 情况 4: 只有 Buff (例如施毒术等扣益技能)
+      if (buffEntry && !damageEntry && buffEntry.data.targetName) {
+        return `对 ${buffEntry.data.targetName} 施加了「${buffEntry.data.buffName}」`;
+      }
+    }
+
+    return null;
   }
 
   formatResult(result: CombatLogResult): string {
