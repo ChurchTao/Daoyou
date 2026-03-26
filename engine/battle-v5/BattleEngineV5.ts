@@ -3,7 +3,7 @@ import { EventBus } from './core/EventBus';
 import { ActionEvent, ActionPreEvent, EventPriorityLevel } from './core/events';
 import { AttributeType, CombatPhase } from './core/types';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
-import { CombatLogSystem } from './systems/CombatLogSystem';
+import { CombatLogSystem } from './systems/log/CombatLogSystem';
 import { DamageSystem } from './systems/DamageSystem';
 import { VictorySystem } from './systems/VictorySystem';
 import { Unit } from './units/Unit';
@@ -13,6 +13,7 @@ export interface BattleResult {
   loser?: string;
   turns: number;
   logs: string[];
+  logSpans?: any[]; // 新增，支持结构化日志
   winnerSnapshot: unknown;
   loserSnapshot: unknown;
 }
@@ -45,6 +46,7 @@ export class BattleEngineV5 {
     this._eventBus = EventBus.instance;
 
     this._logSystem = new CombatLogSystem();
+    this._logSystem.subscribe(this._eventBus);
 
     // 初始化事件驱动系统
     this._actionSystem = new ActionExecutionSystem();
@@ -256,6 +258,7 @@ export class BattleEngineV5 {
       loser: loser?.id,
       turns: context.turn,
       logs: this._logSystem.getLogs().map((log) => log.message),
+      logSpans: this._logSystem.getSpans(), // 新增
       winnerSnapshot: winner.getSnapshot(),
       loserSnapshot: loser?.getSnapshot(),
     };
@@ -271,6 +274,7 @@ export class BattleEngineV5 {
   destroy(): void {
     this._actionSystem.destroy();
     this._damageSystem.destroy();
-    this._logSystem.clear();
+    this._logSystem.unsubscribe(this._eventBus);
+    this._logSystem.destroy();
   }
 }

@@ -1,6 +1,139 @@
+import { EventBus } from '../../core/EventBus';
+import { CombatLog, CombatPhase } from '../../core/types';
+import { LogAggregator } from './LogAggregator';
+import { LogSubscriber } from './LogSubscriber';
+import { LogFormatter, TextFormatter } from './LogFormatter';
+import { CombatLogResult, LogSpan } from './types';
+
 /**
  * CombatLogSystem Facade
+ * 门面类，保持与旧 API 的兼容性，同时提供新的 Span 基于的能力。
  */
 export class CombatLogSystem {
-  // Placeholder
+  private _aggregator: LogAggregator;
+  private _subscriber: LogSubscriber;
+  private _formatter: LogFormatter;
+
+  constructor() {
+    this._aggregator = new LogAggregator();
+    this._subscriber = new LogSubscriber(this._aggregator);
+    this._formatter = new TextFormatter();
+  }
+
+  /**
+   * 显式订阅事件总线
+   */
+  subscribe(eventBus: EventBus): void {
+    this._subscriber.subscribe(eventBus);
+  }
+
+  /**
+   * 取消订阅事件总线
+   */
+  unsubscribe(eventBus: EventBus): void {
+    this._subscriber.unsubscribe(eventBus);
+  }
+
+  // ===== 兼容现有 API =====
+
+  log(turn: number, phase: CombatPhase, message: string): void {
+      // 兼容方法：创建一个通用的 entry
+      this._aggregator.addEntry({
+          id: `legacy_${Date.now()}`,
+          type: 'damage', // 默认类型
+          data: {},
+          message,
+          highlight: false
+      });
+  }
+
+  logHighlight(turn: number, message: string): void {
+      this._aggregator.addEntry({
+          id: `legacy_h_${Date.now()}`,
+          type: 'damage',
+          data: {},
+          message,
+          highlight: true
+      });
+  }
+
+  getLogs(): CombatLog[] {
+      // 将所有 Span 的条目展平
+      const logs: CombatLog[] = [];
+      for (const span of this._aggregator.getSpans()) {
+          for (const entry of span.entries) {
+              logs.push({
+                  turn: span.turn,
+                  phase: span.type === 'action' ? CombatPhase.ACTION : CombatPhase.ROUND_PRE,
+                  message: entry.message,
+                  highlight: entry.highlight
+              });
+          }
+      }
+      return logs;
+  }
+
+  getSimpleLogs(): CombatLog[] {
+      return this.getLogs().filter(log => log.highlight);
+  }
+
+  generateReport(simple: boolean = false): string {
+      const result = this.getResult();
+      if (simple) {
+          // 这里可以后续优化 Simple 报告
+          return result.fullText;
+      }
+      return result.fullText;
+  }
+
+  // ===== 新增 API =====
+
+  getSpans(): LogSpan[] {
+    return this._aggregator.getSpans();
+  }
+
+  getResult(): CombatLogResult {
+    const spans = this._aggregator.getSpans();
+    
+    // 自动生成全文
+    const fullText = this._formatter.formatResult({
+        battleId: '',
+        spans,
+        fullText: '',
+        metadata: { winner: '', loser: '', turns: 0, duration: 0 }
+    });
+
+    return {
+      battleId: '',
+      spans,
+      fullText,
+      metadata: {
+        winner: '',
+        loser: '',
+        turns: spans.length > 0 ? spans[spans.length - 1].turn : 0,
+        duration: 0,
+      },
+    };
+  }
+
+  /**
+   * 记录战斗结束
+   */
+  logBattleEnd(winnerName: string, turns: number): void {
+      this._aggregator.beginBattleEndSpan({ id: winnerName, name: winnerName }, turns);
+  }
+
+  /**
+   * 清空日志
+   */
+  clear(): void {
+    this._aggregator.clear();
+  }
+
+  /**
+   * 销毁系统
+   */
+  destroy(): void {
+    // Subscriber 取消订阅由外部显式调用 unsubscribe
+  }
 }
