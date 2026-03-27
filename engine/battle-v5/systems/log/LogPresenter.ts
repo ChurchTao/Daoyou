@@ -121,7 +121,8 @@ export class LogPresenter {
 
       if (damage.data.shieldAbsorbed && damage.data.shieldAbsorbed > 0) {
         result += `（抵扣护盾 ${Math.round(damage.data.shieldAbsorbed)} 点`;
-        if (damage.data.remainShield && damage.data.remainShield <= 0) {
+        // remainShield 为 0 表示护盾完全消耗（破碎）
+        if (damage.data.remainShield === 0) {
           result += '，护盾已破碎';
         }
         result += '）';

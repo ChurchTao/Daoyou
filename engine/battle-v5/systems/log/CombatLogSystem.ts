@@ -14,6 +14,14 @@ export class CombatLogSystem {
   private _agg: LogAggregator;
   private _presenter: LogPresenter;
 
+  /**
+   * 内部 handlers（仅供测试使用）
+   * @internal
+   */
+  get handlers(): Map<string, (event: unknown) => void> {
+    return this._collector.handlers;
+  }
+
   constructor() {
     this._agg = new LogAggregator();
     this._collector = new LogCollector(this._agg);

@@ -57,9 +57,9 @@ describe('护盾 Buff 真实战斗验证', () => {
     result.logs.forEach((log) => console.log(log));
     console.log('------------------------');
 
-    // 验证护盾生成日志
+    // 验证护盾生成日志（新格式：施放【不动如山】，为 XXX 施加 XXX 点护盾）
     const hasShieldGenLog = result.logs.some(
-      (l) => l.includes('【护盾】') && l.includes('施加了300点护盾'),
+      (l) => l.includes('不动如山') && l.includes('施加') && l.includes('护盾'),
     );
     expect(hasShieldGenLog).toBe(true);
 
@@ -67,7 +67,7 @@ describe('护盾 Buff 真实战斗验证', () => {
     const hasAbsorbLog = result.logs.some((l) => l.includes('护盾'));
     expect(hasAbsorbLog).toBe(true);
 
-    // 验证护盾破碎或消散日志
+    // 验证护盾破碎日志（新格式：抵扣护盾 XXX 点，护盾已破碎）
     const hasShieldBreakLog = result.logs.some((l) => l.includes('护盾已破碎'));
 
     expect(hasShieldBreakLog).toBe(true);

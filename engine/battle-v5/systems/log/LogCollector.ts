@@ -34,6 +34,14 @@ export class LogCollector {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _handlers: Map<string, (event: any) => void> = new Map();
 
+  /**
+   * 获取事件处理器（供测试使用）
+   * @internal
+   */
+  get handlers(): Map<string, (event: unknown) => void> {
+    return this._handlers;
+  }
+
   constructor(aggregator: LogAggregator) {
     this._aggregator = aggregator;
   }

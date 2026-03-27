@@ -218,10 +218,11 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
     // 第二轮：焚元在CD（默认为0但executeTurn结束会tick），由于我们没设置CD，这里手动验证护盾
     // 为了稳妥，我们直接在测试中检查战报
+    // 新格式：削减了 护盾者 100 点真元（带空格）
     expect(
       engine.logSystem
         .getLogs()
-        .some((l) => l.message.includes('削减了护盾者100点真元')),
+        .some((l) => l.message.includes('削减了') && l.message.includes('100') && l.message.includes('真元')),
     ).toBe(true);
   });
 });

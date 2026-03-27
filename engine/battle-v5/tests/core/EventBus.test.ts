@@ -145,20 +145,20 @@ describe('EventBus', () => {
 
     it('CombatLogSystem 应该正确取消订阅所有事件', () => {
       const system = new CombatLogSystem();
-      system.subscribe(eventBus); // 新增：显式订阅
+      system.subscribe(eventBus); // 显式订阅
       const subscribers = (eventBus as any)._subscribers;
 
-      // Verify all subscriptions exist
-      expect(subscribers.has('SkillInterruptEvent')).toBe(true);
+      // Verify all subscriptions exist (新的日志系统订阅的事件)
+      expect(subscribers.has('SkillCastEvent')).toBe(true);
       expect(subscribers.has('HitCheckEvent')).toBe(true);
       expect(subscribers.has('DamageTakenEvent')).toBe(true);
-      expect(subscribers.has('UnitDeadEvent')).toBe(true);
+      expect(subscribers.has('HealEvent')).toBe(true);
 
       // Destroy system
       system.destroy();
 
       // Verify all subscriptions are removed or empty
-      for (const eventType of ['SkillInterruptEvent', 'HitCheckEvent', 'DamageTakenEvent', 'UnitDeadEvent']) {
+      for (const eventType of ['SkillCastEvent', 'HitCheckEvent', 'DamageTakenEvent', 'HealEvent']) {
         const afterSubscribers = subscribers.get(eventType);
         const hasKey = subscribers.has(eventType);
         const count = afterSubscribers ? afterSubscribers.length : 0;
@@ -207,7 +207,7 @@ describe('EventBus', () => {
       // Verify handlers are cleared
       expect((actionSystem as any)._handlers.size).toBe(0);
       expect((damageSystem as any)._handlers.size).toBe(0);
-      expect((logSystem as any)._handlers.size).toBe(0);
+      expect((logSystem as any).handlers.size).toBe(0);
     });
   });
 });
