@@ -1,137 +1,150 @@
 import { EventBus } from '../../core/EventBus';
-import { CombatLog, CombatPhase } from '../../core/types';
+import { CombatPhase, CombatLog } from '../../core/types';
+import { LogCollector } from './LogCollector';
 import { LogAggregator } from './LogAggregator';
-import { LogSubscriber } from './LogSubscriber';
-import { LogFormatter, TextFormatter } from './LogFormatter';
-import { CombatLogResult, LogSpan } from './types';
+import { LogPresenter } from './LogPresenter';
+import { LogSpan, LogSpanType, DamageEntryData } from './types';
 
 /**
  * CombatLogSystem Facade
- * 门面类，保持与旧 API 的兼容性，同时提供新的 Span 基于的能力。
+ * 门面类，协调 LogCollector、LogAggregator、LogPresenter。
  */
 export class CombatLogSystem {
-  private _aggregator: LogAggregator;
-  private _subscriber: LogSubscriber;
-  private _formatter: LogFormatter;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get _handlers(): Map<string, (event: any) => void> {
-      return this._subscriber.handlers;
-  }
+  private _collector: LogCollector;
+  private _agg: LogAggregator;
+  private _presenter: LogPresenter;
 
   constructor() {
-    this._aggregator = new LogAggregator();
-    this._subscriber = new LogSubscriber(this._aggregator);
-    this._formatter = new TextFormatter();
+    this._agg = new LogAggregator();
+    this._collector = new LogCollector(this._agg);
+    this._presenter = new LogPresenter();
   }
 
   /**
-   * 显式订阅事件总线
+   * 订阅事件总线
    */
   subscribe(eventBus: EventBus): void {
-    this._subscriber.subscribe(eventBus);
+    this._collector.subscribe(eventBus);
   }
 
   /**
    * 取消订阅事件总线
    */
   unsubscribe(eventBus: EventBus): void {
-    this._subscriber.unsubscribe(eventBus);
+    this._collector.unsubscribe(eventBus);
   }
 
-  // ===== 兼容现有 API =====
-
-  log(turn: number, phase: CombatPhase, message: string): void {
-      // 兼容方法：创建一个通用的 entry
-      this._aggregator.addEntry({
-          id: `legacy_${Date.now()}`,
-          type: 'damage', // 默认类型
-          data: {},
-          message,
-          highlight: false
-      });
+  /**
+   * 清空日志
+   */
+  clear(): void {
+    this._agg.clear();
   }
 
-  logHighlight(turn: number, message: string): void {
-      this._aggregator.addEntry({
-          id: `legacy_h_${Date.now()}`,
-          type: 'damage',
-          data: {},
-          message,
-          highlight: true
-      });
+  /**
+   * 销毁系统
+   */
+  destroy(): void {
+    this._collector.unsubscribe(EventBus.instance);
   }
 
+  // ===== 新 API =====
+
+  /**
+   * 获取玩家日志（聚合后单行输出）
+   */
+  getPlayerLogs(): string[] {
+    return this._presenter.getPlayerView(this._agg.getSpans());
+  }
+
+  /**
+   * 获取 AI 数据（结构化 + 描述）
+   */
+  getAIData() {
+    return this._presenter.getAIView(this._agg.getSpans());
+  }
+
+  /**
+   * 获取调试数据
+   */
+  getDebugData() {
+    return this._presenter.getDebugView(this._agg.getSpans());
+  }
+
+  /**
+   * 获取所有 Span
+   */
+  getSpans(): LogSpan[] {
+    return this._agg.getSpans();
+  }
+
+  // ===== 内部方法（供测试使用）=====
+
+  /**
+   * 获取内部 Aggregator（仅供测试使用）
+   * @internal
+   */
+  get aggregator(): LogAggregator {
+    return this._agg;
+  }
+
+  // ===== 兼容旧 API =====
+
+  /**
+   * @deprecated 使用 getPlayerLogs() 代替
+   */
   getLogs(): CombatLog[] {
     const logs: CombatLog[] = [];
-    for (const span of this._aggregator.getSpans()) {
-      // 核心改进：过滤掉没有内容的非核心 Span (如没有 DOT 触发的 action_pre)
-      if (
-        span.entries.length === 0 &&
-        !['battle_init', 'round_start', 'battle_end'].includes(span.type)
-      ) {
-        continue;
-      }
+    for (const span of this._agg.getSpans()) {
+      if (span.entries.length === 0 && !this._isStructuralSpan(span)) continue;
 
-      const message = this._formatter.formatSpan(span);
+      const message = this._presenter.formatSpan(span);
       if (!message) continue;
 
       logs.push({
         turn: span.turn,
         phase: this._mapSpanTypeToPhase(span.type),
         message,
-        highlight: span.entries.some((e) => e.highlight),
+        highlight: this._hasHighlightEntry(span),
       });
     }
     return logs;
   }
 
-  private _mapSpanTypeToPhase(type: string): CombatPhase {
-    switch (type) {
-      case 'battle_init':
-        return CombatPhase.INIT;
-      case 'round_start':
-        return CombatPhase.ROUND_START;
-      case 'action_pre':
-        return CombatPhase.ROUND_PRE;
-      case 'action':
-        return CombatPhase.ACTION;
-      case 'battle_end':
-        return CombatPhase.END;
-      default:
-        return CombatPhase.ROUND_PRE;
-    }
+  /**
+   * @deprecated 使用 getPlayerLogs().join('\n') 代替
+   */
+  generateReport(): string {
+    return this.getPlayerLogs().join('\n');
   }
 
+  /**
+   * @deprecated 使用 getPlayerLogs().filter(...) 代替
+   */
   getSimpleLogs(): CombatLog[] {
-      return this.getLogs().filter(log => log.highlight);
+    return this.getLogs().filter((log) => log.highlight);
   }
 
-  generateReport(simple: boolean = false): string {
-      const result = this.getResult();
-      if (simple) {
-          // 这里可以后续优化 Simple 报告
-          return result.fullText;
-      }
-      return result.fullText;
+  /**
+   * @deprecated 不再需要手动调用
+   */
+  log(_turn: number, _phase: CombatPhase, _message: string): void {
+    // 兼容方法：不再使用，参数保留用于签名兼容
   }
 
-  // ===== 新增 API =====
-
-  getSpans(): LogSpan[] {
-    return this._aggregator.getSpans();
+  /**
+   * @deprecated 不再需要手动调用
+   */
+  logHighlight(_turn: number, _message: string): void {
+    // 兼容方法：不再使用，参数保留用于签名兼容
   }
 
-  getResult(): CombatLogResult {
-    const spans = this._aggregator.getSpans();
-    
-    // 自动生成全文
-    const fullText = this._formatter.formatResult({
-        battleId: '',
-        spans,
-        fullText: '',
-        metadata: { winner: '', loser: '', turns: 0, duration: 0 }
-    });
+  /**
+   * @deprecated 使用 getAIData() 代替
+   */
+  getResult() {
+    const spans = this._agg.getSpans();
+    const fullText = this._presenter.getPlayerView(spans).join('\n');
 
     return {
       battleId: '',
@@ -147,30 +160,42 @@ export class CombatLogSystem {
   }
 
   /**
-   * 记录战斗结束
+   * @deprecated 使用 unsubscribe + clear 代替
    */
   logBattleEnd(winnerName: string, turns: number): void {
-      this._aggregator.beginBattleEndSpan({ id: winnerName, name: winnerName }, turns);
+    this._agg.beginSpan('battle_end', {
+      turn: turns,
+      actor: { id: winnerName, name: winnerName },
+    });
   }
 
   /**
-   * 清空日志
+   * @deprecated 不再支持
    */
-  clear(): void {
-    this._aggregator.clear();
+  setSimpleMode(_enabled: boolean): void {
+    // 不再支持，参数保留用于签名兼容
   }
 
-  /**
-   * 设置极简模式
-   */
-  setSimpleMode(enabled: boolean): void {
-      // TODO: 实现极简模式过滤逻辑
+  private _isStructuralSpan(span: LogSpan): boolean {
+    return ['battle_init', 'round_start', 'battle_end'].includes(span.type);
   }
 
-  /**
-   * 销毁系统
-   */
-  destroy(): void {
-    this._subscriber.unsubscribe(EventBus.instance);
+  private _mapSpanTypeToPhase(type: LogSpanType): CombatPhase {
+    const mapping: Record<LogSpanType, CombatPhase> = {
+      battle_init: CombatPhase.INIT,
+      round_start: CombatPhase.ROUND_START,
+      action_pre: CombatPhase.ROUND_PRE,
+      action: CombatPhase.ACTION,
+      battle_end: CombatPhase.END,
+    };
+    return mapping[type] ?? CombatPhase.ROUND_PRE;
+  }
+
+  private _hasHighlightEntry(span: LogSpan): boolean {
+    return span.entries.some(
+      (e) =>
+        ['death', 'death_prevent', 'skill_interrupt'].includes(e.type) ||
+        (e.type === 'damage' && (e.data as DamageEntryData).isCritical)
+    );
   }
 }

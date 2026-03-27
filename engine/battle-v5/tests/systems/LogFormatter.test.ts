@@ -1,131 +1,269 @@
-import { TextFormatter, JsonFormatter } from '../../systems/log/LogFormatter';
+import { LogPresenter } from '../../systems/log/LogPresenter';
 import { LogSpan } from '../../systems/log/types';
 
-describe('LogFormatter', () => {
-  const mockSpan: LogSpan = {
-    id: 's1',
-    type: 'action',
-    turn: 1,
-    source: { id: 'u1', name: '林轩' },
-    title: '林轩 施放【火球术】',
-    entries: [
-      {
-        id: 'e1',
-        type: 'damage',
-        data: { value: 100 },
-        message: '造成 100 点伤害',
-        highlight: false
-      }
-    ],
-    timestamp: Date.now()
-  };
+describe('LogPresenter', () => {
+  let presenter: LogPresenter;
 
-  describe('TextFormatter', () => {
-    let formatter: TextFormatter;
+  beforeEach(() => {
+    presenter = new LogPresenter();
+  });
 
-    beforeEach(() => {
-      formatter = new TextFormatter();
-    });
-
-    it('应该能格式化单个 Span', () => {
-      const output = formatter.formatSpan(mockSpan);
-      expect(output).toContain('林轩 施放【火球术】');
-      expect(output).toContain('造成 100 点伤害');
-    });
-
-    it('应该能聚合复合行动 (施法 + 伤害 + Buff)', () => {
+  describe('formatSpan - 伤害聚合', () => {
+    it('应该能格式化复合行动 (施法 + 伤害 + Buff)', () => {
       const complexSpan: LogSpan = {
         id: 's2',
         type: 'action',
         turn: 1,
-        source: { id: 'u1', name: '林轩' },
-        title: '林轩 施展【火球术】',
+        actor: { id: 'u1', name: '林轩' },
+        ability: { id: 'fireball', name: '火球术' },
         entries: [
           {
             id: 'e1',
-            type: 'skill_cast',
-            data: { skillName: '火球术' },
-            message: '施法: 火球术',
-            highlight: false
+            type: 'damage',
+            data: {
+              value: 100,
+              remainHp: 0,
+              isCritical: false,
+              targetName: '魔狼',
+            },
+            timestamp: Date.now(),
           },
           {
             id: 'e2',
-            type: 'damage',
-            data: { targetName: '魔狼', value: 100 },
-            message: '造成 100 点伤害',
-            highlight: false
-          },
-          {
-            id: 'e3',
             type: 'buff_apply',
-            data: { targetName: '魔狼', buffName: '灼烧' },
-            message: 'Buff应用: 灼烧',
-            highlight: false
-          }
+            data: {
+              buffName: '灼烧',
+              buffType: 'debuff',
+              targetName: '魔狼',
+              duration: 3,
+            },
+            timestamp: Date.now(),
+          },
         ],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      const output = formatter.formatSpan(complexSpan);
-      expect(output).toBe('林轩 施展【火球术】\n  对 魔狼 造成 100 点伤害并施加「灼烧」');
+      const output = presenter.formatSpan(complexSpan);
+      // 新格式：单行聚合
+      expect(output).toContain('林轩');
+      expect(output).toContain('火球术');
+      expect(output).toContain('100');
+      expect(output).toContain('灼烧');
     });
 
-    it('应该能聚合 action_pre Span (持续伤害)', () => {
+    it('应该能格式化 action_pre Span (持续伤害)', () => {
       const preSpan: LogSpan = {
         id: 's3',
         type: 'action_pre',
         turn: 1,
-        source: { id: 'u2', name: '蛇精' },
-        title: '蛇精 持续效果结算',
+        actor: { id: 'u2', name: '蛇精' },
         entries: [
           {
             id: 'e4',
             type: 'damage',
-            data: { sourceBuff: '中毒', value: 50 },
-            message: '受到 50 点伤害',
-            highlight: false
-          }
+            data: {
+              value: 50,
+              remainHp: 50,
+              isCritical: false,
+              targetName: '蛇精',
+              sourceBuff: '中毒',
+            },
+            timestamp: Date.now(),
+          },
         ],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      const output = formatter.formatSpan(preSpan);
-      expect(output).toBe('蛇精 持续效果结算\n  由于「中毒」发作，蛇精 受到 50 点伤害');
+      const output = presenter.formatSpan(preSpan);
+      // 新格式：【持续】蛇精身上的「中毒」发作，造成 50 点伤害
+      expect(output).toContain('【持续】');
+      expect(output).toContain('蛇精');
+      expect(output).toContain('中毒');
+      expect(output).toContain('50');
     });
 
-    it('应该在无法聚合时按顺序输出条目', () => {
+    it('应该在无法聚合时输出基本信息', () => {
       const simpleSpan: LogSpan = {
         id: 's4',
         type: 'action',
         turn: 1,
-        source: { id: 'u1', name: '林轩' },
-        title: '林轩 简单行动',
+        actor: { id: 'u1', name: '林轩' },
+        ability: { id: 'basic_attack', name: '普攻' },
         entries: [
           {
             id: 'e5',
             type: 'damage',
-            data: { value: 10 },
-            message: '造成 10 点伤害',
-            highlight: false
-          }
+            data: {
+              value: 10,
+              remainHp: 90,
+              isCritical: false,
+              targetName: '敌人',
+            },
+            timestamp: Date.now(),
+          },
         ],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      const output = formatter.formatSpan(simpleSpan);
-      expect(output).toContain('林轩 简单行动');
-      expect(output).toContain('  造成 10 点伤害');
+      const output = presenter.formatSpan(simpleSpan);
+      expect(output).toContain('林轩');
+      expect(output).toContain('10');
+    });
+
+    it('应该格式化闪避事件', () => {
+      const dodgeSpan: LogSpan = {
+        id: 's5',
+        type: 'action',
+        turn: 1,
+        actor: { id: 'u1', name: '林轩' },
+        ability: { id: 'fireball', name: '火球术' },
+        entries: [
+          {
+            id: 'e1',
+            type: 'dodge',
+            data: { targetName: '敌人' },
+            timestamp: Date.now(),
+          },
+        ],
+        timestamp: Date.now(),
+      };
+      const output = presenter.formatSpan(dodgeSpan);
+      expect(output).toContain('闪避');
+    });
+
+    it('应该格式化暴击伤害', () => {
+      const critSpan: LogSpan = {
+        id: 's6',
+        type: 'action',
+        turn: 1,
+        actor: { id: 'u1', name: '林轩' },
+        ability: { id: 'fireball', name: '火球术' },
+        entries: [
+          {
+            id: 'e1',
+            type: 'damage',
+            data: {
+              value: 200,
+              remainHp: 0,
+              isCritical: true,
+              targetName: '敌人',
+            },
+            timestamp: Date.now(),
+          },
+          {
+            id: 'e2',
+            type: 'death',
+            data: { targetName: '敌人', killerName: '林轩' },
+            timestamp: Date.now(),
+          },
+        ],
+        timestamp: Date.now(),
+      };
+      const output = presenter.formatSpan(critSpan);
+      expect(output).toContain('暴击');
+      expect(output).toContain('击败');
     });
   });
 
-  describe('JsonFormatter', () => {
-    let formatter: JsonFormatter;
-
-    beforeEach(() => {
-      formatter = new JsonFormatter();
+  describe('getPlayerView', () => {
+    it('应该过滤空 Span', () => {
+      const spans: LogSpan[] = [
+        {
+          id: 's1',
+          type: 'battle_init',
+          turn: 0,
+          entries: [],
+          timestamp: Date.now(),
+        },
+        {
+          id: 's2',
+          type: 'action_pre',
+          turn: 1,
+          actor: { id: 'u1', name: '测试' },
+          entries: [], // 空 entries
+          timestamp: Date.now(),
+        },
+        {
+          id: 's3',
+          type: 'action',
+          turn: 1,
+          actor: { id: 'u1', name: '林轩' },
+          entries: [
+            {
+              id: 'e1',
+              type: 'damage',
+              data: { value: 10, remainHp: 90, isCritical: false, targetName: '敌人' },
+              timestamp: Date.now(),
+            },
+          ],
+          timestamp: Date.now(),
+        },
+      ];
+      const view = presenter.getPlayerView(spans);
+      // battle_init 是结构性 Span，应该保留
+      // action_pre 空 Span 应该被过滤
+      // action 有内容，应该保留
+      expect(view.length).toBe(2);
     });
+  });
 
-    it('应该能格式化为 JSON', () => {
-      const output = formatter.formatSpan(mockSpan);
-      const parsed = JSON.parse(output);
-      expect(parsed.id).toBe('s1');
+  describe('getAIView', () => {
+    it('应该返回结构化数据和描述', () => {
+      const spans: LogSpan[] = [
+        {
+          id: 's1',
+          type: 'action',
+          turn: 1,
+          actor: { id: 'u1', name: '林轩' },
+          ability: { id: 'fireball', name: '火球术' },
+          entries: [
+            {
+              id: 'e1',
+              type: 'damage',
+              data: { value: 100, remainHp: 0, isCritical: false, targetName: '敌人' },
+              timestamp: Date.now(),
+            },
+          ],
+          timestamp: Date.now(),
+        },
+      ];
+
+      const aiView = presenter.getAIView(spans);
+      expect(aiView.spans).toHaveLength(1);
+      expect(aiView.spans[0].description).toBeDefined();
+      expect(aiView.summary.totalDamage).toBe(100);
+    });
+  });
+
+  describe('getDebugView', () => {
+    it('应该返回调试数据', () => {
+      const spans: LogSpan[] = [
+        {
+          id: 's1',
+          type: 'action',
+          turn: 1,
+          actor: { id: 'u1', name: '林轩' },
+          entries: [
+            {
+              id: 'e1',
+              type: 'damage',
+              data: { value: 100, remainHp: 0, isCritical: false, targetName: '敌人' },
+              timestamp: Date.now(),
+            },
+            {
+              id: 'e2',
+              type: 'death',
+              data: { targetName: '敌人' },
+              timestamp: Date.now(),
+            },
+          ],
+          timestamp: Date.now(),
+        },
+      ];
+
+      const debugView = presenter.getDebugView(spans) as {
+        spans: LogSpan[];
+        eventCount: number;
+      };
+      expect(debugView.spans).toHaveLength(1);
+      expect(debugView.eventCount).toBe(2);
     });
   });
 });
