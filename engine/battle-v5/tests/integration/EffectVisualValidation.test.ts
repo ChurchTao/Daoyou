@@ -177,7 +177,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         priority: 90,
         cooldown: 3,
         targetPolicy: { team: 'self', scope: 'single' },
-        effects: [{ type: 'shield', params: { value: { base: 300 } } }],
+        effects: [{ type: 'shield', params: { value: { base: 200 } } }],
       }),
     );
 

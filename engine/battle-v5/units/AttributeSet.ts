@@ -146,10 +146,10 @@ class Attribute {
 /**
  * 5维属性系统 (5-Attribute System):
  * - SPIRIT (灵力): 法系输出核心，影响法术伤害、MP、护盾
- * - PHYSIQUE (体魄): 生存核心，影响HP、减伤、抗性
- * - AGILITY (身法): 先手核心，影响出手顺序、暴击率、闪避
- * - CONSCIOUSNESS (神识): 控制核心，影响命中率、抗控率
- * - COMPREHENSION (悟性): 策略核心，影响技能条件、触发概率、伤害上限
+ * - VITALITY (体魄): 生存核心，影响HP、减伤、抗性
+ * - SPEED (身法): 先手核心，影响出手顺序、暴击率、闪避
+ * - WILLPOWER (神识): 控制核心，影响命中率、抗控率
+ * - WISDOM (悟性): 策略核心，影响技能条件、触发概率、伤害上限
  *
  * Note: CONSCIOUSNESS is defined but not used in derived attribute calculations.
  * It will be used in future systems (control mechanics, hit rate calculations, etc.)
