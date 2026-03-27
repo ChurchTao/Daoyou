@@ -143,7 +143,7 @@ export class CombatStateMachine {
         // 按速度排序单位
         const units = Array.from(this._context.units.values())
           .filter(u => u.isAlive())
-          .sort((a, b) => b.attributes.getValue(AttributeType.AGILITY) - a.attributes.getValue(AttributeType.AGILITY));
+          .sort((a, b) => b.attributes.getValue(AttributeType.SPEED) - a.attributes.getValue(AttributeType.SPEED));
         EventBus.instance.publish<TurnOrderEvent>({
           type: 'TurnOrderEvent',
           priority: EventPriorityLevel.ACTION_TRIGGER,

@@ -266,8 +266,8 @@ export class BattleEngineV5 {
     return [this._player, this._opponent]
       .filter((u) => u.isAlive())
       .sort((a, b) => {
-        const speedA = a.attributes.getValue(AttributeType.AGILITY);
-        const speedB = b.attributes.getValue(AttributeType.AGILITY);
+        const speedA = a.attributes.getValue(AttributeType.SPEED);
+        const speedB = b.attributes.getValue(AttributeType.SPEED);
         return speedB - speedA;
       });
   }

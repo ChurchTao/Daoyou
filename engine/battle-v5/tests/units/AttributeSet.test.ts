@@ -5,12 +5,12 @@ describe('AttributeSet', () => {
   it('应该正确初始化5维属性', () => {
     const attrs = new AttributeSet({
       [AttributeType.SPIRIT]: 80,
-      [AttributeType.PHYSIQUE]: 60,
+      [AttributeType.VITALITY]: 60,
     });
 
     expect(attrs.getValue(AttributeType.SPIRIT)).toBe(80);
-    expect(attrs.getValue(AttributeType.PHYSIQUE)).toBe(60);
-    expect(attrs.getValue(AttributeType.AGILITY)).toBe(10); // 默认值
+    expect(attrs.getValue(AttributeType.VITALITY)).toBe(60);
+    expect(attrs.getValue(AttributeType.SPEED)).toBe(10); // 默认值
   });
 
   it('应该按6阶段顺序计算修改器', () => {
@@ -52,7 +52,7 @@ describe('AttributeSet', () => {
 
   it('应该正确计算派生属性', () => {
     const attrs = new AttributeSet({
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
       [AttributeType.SPIRIT]: 30,
     });
 

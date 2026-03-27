@@ -88,8 +88,8 @@ export class DamageSystem {
       hitCheckEvent.isHit = true;
     } else {
       // 1. 身法闪避判定
-      const casterAgility = caster.attributes.getValue(AttributeType.AGILITY);
-      const targetAgility = target.attributes.getValue(AttributeType.AGILITY);
+      const casterAgility = caster.attributes.getValue(AttributeType.SPEED);
+      const targetAgility = target.attributes.getValue(AttributeType.SPEED);
       // 允许闪避率降为 0，不再强制 5% 底限
       const dodgeChance = Math.max(
         0,
@@ -106,10 +106,10 @@ export class DamageSystem {
         hitCheckEvent.isHit
       ) {
         const casterConsciousness = caster.attributes.getValue(
-          AttributeType.CONSCIOUSNESS,
+          AttributeType.WILLPOWER,
         );
         const targetConsciousness = target.attributes.getValue(
-          AttributeType.CONSCIOUSNESS,
+          AttributeType.WILLPOWER,
         );
         const resistChance = Math.max(
           0,
@@ -149,7 +149,7 @@ export class DamageSystem {
     const { target, finalDamage } = event;
 
     // 1. 计算目标减伤（体魄属性核心价值：减伤）
-    const targetPhysique = target.attributes.getValue(AttributeType.PHYSIQUE);
+    const targetPhysique = target.attributes.getValue(AttributeType.VITALITY);
     const damageReduction = Math.min(
       0.7,
       targetPhysique / (targetPhysique + 1000),

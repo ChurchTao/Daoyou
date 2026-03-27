@@ -26,10 +26,10 @@ export class CultivatorAdapter {
    */
   private static readonly ATTRIBUTE_MAP = {
     spirit: AttributeType.SPIRIT,
-    vitality: AttributeType.PHYSIQUE,
-    speed: AttributeType.AGILITY,
-    wisdom: AttributeType.COMPREHENSION,
-    willpower: AttributeType.CONSCIOUSNESS,
+    vitality: AttributeType.VITALITY,
+    speed: AttributeType.SPEED,
+    wisdom: AttributeType.WISDOM,
+    willpower: AttributeType.WILLPOWER,
   } as const;
 
   /**

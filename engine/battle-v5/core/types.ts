@@ -29,13 +29,13 @@ export enum AttributeType {
   // 灵力
   SPIRIT = 'spirit',
   // 体魄
-  PHYSIQUE = 'physique',
+  VITALITY = 'vitality',
   // 身法
-  AGILITY = 'agility',
+  SPEED = 'speed',
   // 神识
-  CONSCIOUSNESS = 'consciousness',
+  WILLPOWER = 'willpower',
   // 悟性
-  COMPREHENSION = 'comprehension',
+  WISDOM = 'wisdom',
 }
 
 // ===== 属性修改器类型（6阶段）=====

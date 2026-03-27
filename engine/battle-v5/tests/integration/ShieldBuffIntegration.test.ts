@@ -14,14 +14,14 @@ describe('护盾 Buff 真实战斗验证', () => {
     // 1. 创建角色
     const player = new Unit('player', '玄甲修士', {
       [AttributeType.SPIRIT]: 100, // 灵力影响护盾值
-      [AttributeType.PHYSIQUE]: 100,
-      [AttributeType.AGILITY]: 10, // 降低身法，减少闪避，让护盾被打
+      [AttributeType.VITALITY]: 100,
+      [AttributeType.SPEED]: 10, // 降低身法，减少闪避，让护盾被打
     });
 
     const opponent = new Unit('opponent', '进攻修士', {
       [AttributeType.SPIRIT]: 10,
-      [AttributeType.PHYSIQUE]: 200, // 增加攻击力，确保能打破盾
-      [AttributeType.AGILITY]: 50,
+      [AttributeType.VITALITY]: 200, // 增加攻击力，确保能打破盾
+      [AttributeType.SPEED]: 50,
     });
 
     // 2. 设计一个护盾 Buff 技能

@@ -32,7 +32,7 @@ describe('CultivatorAdapter', () => {
     const unit = CultivatorAdapter.toUnit(cultivator);
 
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(80);
-    expect(unit.attributes.getValue(AttributeType.PHYSIQUE)).toBe(60);
+    expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(60);
   });
 
   it('应该创建带镜像后缀的克隆', () => {
@@ -68,10 +68,10 @@ describe('CultivatorAdapter', () => {
     const unit = CultivatorAdapter.toUnit(cultivator);
 
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(100);
-    expect(unit.attributes.getValue(AttributeType.PHYSIQUE)).toBe(80);
-    expect(unit.attributes.getValue(AttributeType.AGILITY)).toBe(60);
-    expect(unit.attributes.getValue(AttributeType.COMPREHENSION)).toBe(40);
-    expect(unit.attributes.getValue(AttributeType.CONSCIOUSNESS)).toBe(20);
+    expect(unit.attributes.getValue(AttributeType.VITALITY)).toBe(80);
+    expect(unit.attributes.getValue(AttributeType.SPEED)).toBe(60);
+    expect(unit.attributes.getValue(AttributeType.WISDOM)).toBe(40);
+    expect(unit.attributes.getValue(AttributeType.WILLPOWER)).toBe(20);
   });
 
   it('应该支持批量转换', () => {

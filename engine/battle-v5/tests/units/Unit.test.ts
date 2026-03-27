@@ -6,7 +6,7 @@ describe('Unit', () => {
   it('应该正确初始化战斗单元', () => {
     const unit = new Unit('player', '修仙者', {
       [AttributeType.SPIRIT]: 80,
-      [AttributeType.PHYSIQUE]: 60,
+      [AttributeType.VITALITY]: 60,
     });
 
     expect(unit.id).toBe('player');
@@ -34,7 +34,7 @@ describe('Unit', () => {
 
   it('应该正确处理伤害和治疗', () => {
     const unit = new Unit('player', '修仙者', {
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
     });
 
     const maxHp = unit.maxHp;
@@ -66,7 +66,7 @@ describe('Unit', () => {
   it('应该正确计算HP和MP百分比', () => {
     const unit = new Unit('player', '修仙者', {
       [AttributeType.SPIRIT]: 50,
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
     });
 
     expect(unit.getHpPercent()).toBe(1);
@@ -82,7 +82,7 @@ describe('Unit', () => {
   it('应该正确生成快照', () => {
     const unit = new Unit('player', '修仙者', {
       [AttributeType.SPIRIT]: 80,
-      [AttributeType.PHYSIQUE]: 60,
+      [AttributeType.VITALITY]: 60,
     });
 
     const snapshot = unit.getSnapshot();
@@ -116,7 +116,7 @@ describe('Unit', () => {
 
   it('应该正确处理死亡状态', () => {
     const unit = new Unit('player', '修仙者', {
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
     });
 
     unit.takeDamage(unit.maxHp + 1000);
@@ -142,14 +142,14 @@ describe('Unit', () => {
   it('应该正确更新派生属性', () => {
     const unit = new Unit('player', '修仙者', {
       [AttributeType.SPIRIT]: 50,
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
     });
 
     const originalMaxHp = unit.maxHp;
     const originalMaxMp = unit.maxMp;
 
     // Modify base attributes
-    unit.attributes.setBaseValue(AttributeType.PHYSIQUE, 60);
+    unit.attributes.setBaseValue(AttributeType.VITALITY, 60);
     unit.attributes.setBaseValue(AttributeType.SPIRIT, 70);
 
     unit.updateDerivedStats();

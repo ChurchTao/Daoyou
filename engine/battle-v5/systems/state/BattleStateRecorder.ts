@@ -137,10 +137,10 @@ export class BattleStateRecorder {
     const a = unit.attributes;
     return {
       spirit: a.getValue(AttributeType.SPIRIT),
-      physique: a.getValue(AttributeType.PHYSIQUE),
-      agility: a.getValue(AttributeType.AGILITY),
-      consciousness: a.getValue(AttributeType.CONSCIOUSNESS),
-      comprehension: a.getValue(AttributeType.COMPREHENSION),
+      physique: a.getValue(AttributeType.VITALITY),
+      agility: a.getValue(AttributeType.SPEED),
+      consciousness: a.getValue(AttributeType.WILLPOWER),
+      comprehension: a.getValue(AttributeType.WISDOM),
       critRate: Math.round(a.getCritRate() * 10000) / 100,
       evasionRate: Math.round(a.getEvasionRate() * 10000) / 100,
       maxHp: a.getMaxHp(),

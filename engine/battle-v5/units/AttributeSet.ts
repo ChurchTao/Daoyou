@@ -240,7 +240,7 @@ export class AttributeSet {
    * @returns Maximum HP
    */
   getMaxHp(): number {
-    const physique = this.getValue(AttributeType.PHYSIQUE);
+    const physique = this.getValue(AttributeType.VITALITY);
     const spirit = this.getValue(AttributeType.SPIRIT);
     return 100 + physique * 10 + spirit * 2;
   }
@@ -252,7 +252,7 @@ export class AttributeSet {
    */
   getMaxMp(): number {
     const spirit = this.getValue(AttributeType.SPIRIT);
-    const comprehension = this.getValue(AttributeType.COMPREHENSION);
+    const comprehension = this.getValue(AttributeType.WISDOM);
     return 100 + spirit * 5 + comprehension * 3;
   }
 
@@ -262,8 +262,8 @@ export class AttributeSet {
    * @returns Critical hit rate (0-1)
    */
   getCritRate(): number {
-    const agility = this.getValue(AttributeType.AGILITY);
-    const comprehension = this.getValue(AttributeType.COMPREHENSION);
+    const agility = this.getValue(AttributeType.SPEED);
+    const comprehension = this.getValue(AttributeType.WISDOM);
     const baseRate = 0.05;
     const bonusRate = agility * 0.001 + comprehension * 0.0005;
     return Math.min(0.6, baseRate + bonusRate);
@@ -275,7 +275,7 @@ export class AttributeSet {
    * @returns Evasion rate (0-1)
    */
   getEvasionRate(): number {
-    const agility = this.getValue(AttributeType.AGILITY);
+    const agility = this.getValue(AttributeType.SPEED);
     return Math.min(0.3, agility * 0.0005);
   }
 

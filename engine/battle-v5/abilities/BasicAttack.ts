@@ -22,7 +22,7 @@ export class BasicAttack extends ActiveSkill {
     // 普攻效果：1.0 倍体魄伤害 + 20 基础伤害
     this._damageEffect = new DamageEffect({
       value: {
-        attribute: AttributeType.PHYSIQUE,
+        attribute: AttributeType.VITALITY,
         coefficient: 1.0,
         base: 20,
       },

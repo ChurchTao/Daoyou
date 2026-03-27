@@ -8,10 +8,10 @@ describe('VictorySystem', () => {
 
   beforeEach(() => {
     player = new Unit('player', '玩家', {
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
     });
     opponent = new Unit('opponent', '对手', {
-      [AttributeType.PHYSIQUE]: 50,
+      [AttributeType.VITALITY]: 50,
     });
   });
 

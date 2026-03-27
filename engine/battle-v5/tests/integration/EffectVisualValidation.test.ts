@@ -26,10 +26,10 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
   ) => {
     const unit = new Unit(id, name, {
       [AttributeType.SPIRIT]: 100,
-      [AttributeType.PHYSIQUE]: 100,
-      [AttributeType.AGILITY]: 100,
-      [AttributeType.CONSCIOUSNESS]: 100,
-      [AttributeType.COMPREHENSION]: 100,
+      [AttributeType.VITALITY]: 100,
+      [AttributeType.SPEED]: 100,
+      [AttributeType.WILLPOWER]: 100,
+      [AttributeType.WISDOM]: 100,
       ...attrs,
     });
     unit.restoreMp(1000);
@@ -38,10 +38,10 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
   it('1. 验证【剧毒与驱散】：锁定命中确保流程执行', () => {
     const player = createTestUnit('player', '法海', {
-      [AttributeType.AGILITY]: 1000,
+      [AttributeType.SPEED]: 1000,
     });
     const opponent = createTestUnit('opponent', '蛇精', {
-      [AttributeType.AGILITY]: 0,
+      [AttributeType.SPEED]: 0,
     });
 
     const poisonBuffCfg: BuffConfig = {
@@ -105,11 +105,11 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
   it('3. 验证【反伤与免死】：锁定 1 血存活', () => {
     const attacker = createTestUnit('attacker', '杀手', {
-      [AttributeType.PHYSIQUE]: 10000,
-      [AttributeType.AGILITY]: 1000,
+      [AttributeType.VITALITY]: 10000,
+      [AttributeType.SPEED]: 1000,
     });
     const defender = createTestUnit('defender', '不死者', {
-      [AttributeType.AGILITY]: 0,
+      [AttributeType.SPEED]: 0,
     });
 
     defender.buffs.addBuff(
@@ -151,10 +151,10 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
   it('4. 验证【护盾与焚元】：纯粹分步验证', () => {
     const attacker = createTestUnit('striker', '削减者', {
-      [AttributeType.AGILITY]: 0,
+      [AttributeType.SPEED]: 0,
     });
     const defender = createTestUnit('wall', '护盾者', {
-      [AttributeType.AGILITY]: 0,
+      [AttributeType.SPEED]: 0,
     });
 
     attacker.abilities.addAbility(

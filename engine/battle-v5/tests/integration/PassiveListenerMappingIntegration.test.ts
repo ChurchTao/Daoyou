@@ -18,10 +18,10 @@ describe('Passive Listener Mapping Integration', () => {
   function createUnit(id: string, name: string): Unit {
     return new Unit(id, name, {
       [AttributeType.SPIRIT]: 100,
-      [AttributeType.PHYSIQUE]: 100,
-      [AttributeType.AGILITY]: 100,
-      [AttributeType.CONSCIOUSNESS]: 100,
-      [AttributeType.COMPREHENSION]: 100,
+      [AttributeType.VITALITY]: 100,
+      [AttributeType.SPEED]: 100,
+      [AttributeType.WILLPOWER]: 100,
+      [AttributeType.WISDOM]: 100,
     });
   }
 
@@ -184,8 +184,8 @@ describe('Passive Listener Mapping Integration', () => {
     const attacker = createUnit('attacker_battle', '破阵者');
     const defender = createUnit('defender_battle', '守阵者');
 
-    attacker.attributes.setBaseValue(AttributeType.AGILITY, 1000);
-    defender.attributes.setBaseValue(AttributeType.AGILITY, 0);
+    attacker.attributes.setBaseValue(AttributeType.SPEED, 1000);
+    defender.attributes.setBaseValue(AttributeType.SPEED, 0);
     attacker.updateDerivedStats();
     defender.updateDerivedStats();
 
