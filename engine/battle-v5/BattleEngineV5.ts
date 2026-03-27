@@ -1,6 +1,6 @@
 import { CombatContext, CombatStateMachine } from './core/CombatStateMachine';
 import { EventBus } from './core/EventBus';
-import { ActionEvent, ActionPreEvent, EventPriorityLevel } from './core/events';
+import { ActionEvent, ActionPostEvent, ActionPreEvent, EventPriorityLevel } from './core/events';
 import { AttributeType, CombatPhase } from './core/types';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
 import { CombatLogSystem } from './systems/log/CombatLogSystem';
@@ -220,6 +220,14 @@ export class BattleEngineV5 {
 
       // 清除当前出手单位
       this._stateMachine.clearCurrentCaster();
+
+      // 发布行动后置事件（Buff 过期处理阶段开始）
+      this._eventBus.publish<ActionPostEvent>({
+        type: 'ActionPostEvent',
+        priority: EventPriorityLevel.ACTION_TRIGGER,
+        timestamp: Date.now(),
+        caster: actor,
+      });
 
       // 处理 Buff 过期
       this.processBuffs(actor);

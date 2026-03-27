@@ -58,6 +58,12 @@ export interface ActionEvent extends CombatEvent {
   caster: Unit;
 }
 
+// ===== 行动阶段后置事件（技能结算完毕，Buff 过期处理前触发）=====
+export interface ActionPostEvent extends CombatEvent {
+  type: 'ActionPostEvent';
+  caster: Unit;
+}
+
 // ===== 施法前摇事件 =====
 export interface SkillPreCastEvent extends CombatEvent {
   type: 'SkillPreCastEvent';

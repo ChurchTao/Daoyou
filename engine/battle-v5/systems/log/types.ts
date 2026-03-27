@@ -143,6 +143,7 @@ export interface LogEntry<T extends LogEntryType = LogEntryType> {
 export type LogSpanType =
   | 'action'
   | 'action_pre'
+  | 'action_after'
   | 'round_start'
   | 'battle_init'
   | 'battle_end';

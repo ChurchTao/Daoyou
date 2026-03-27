@@ -33,6 +33,8 @@ export class LogPresenter {
         return this.formatActionPre(span);
       case 'action':
         return this.formatAction(span);
+      case 'action_after':
+        return this.formatActionAfter(span);
       default:
         return '';
     }
@@ -47,6 +49,8 @@ export class LogPresenter {
         return `【战斗结束】${winner} 获胜！`;
       case 'round_start':
         return `【第 ${span.turn} 回合】`;
+      case 'action_after':
+        return '';
       default:
         return '';
     }
@@ -67,18 +71,33 @@ export class LogPresenter {
     const entries = span.entries;
 
     const targets = this.extractDisplayTargets(entries);
+    let mainOutput: string;
     if (targets.length === 1) {
-      return this.formatSingleTargetAction(
+      mainOutput = this.formatSingleTargetAction(
         span,
         actor,
         ability,
         this.getEntriesForTarget(entries, targets[0]),
       );
+    } else if (targets.length > 1) {
+      mainOutput = this.formatMultiTargetAction(span, actor, ability, targets);
+    } else {
+      mainOutput = this.formatSingleTargetAction(span, actor, ability, entries);
     }
-    if (targets.length > 1) {
-      return this.formatMultiTargetAction(span, actor, ability, targets);
-    }
-    return this.formatSingleTargetAction(span, actor, ability, entries);
+
+    return mainOutput;
+  }
+
+  private formatActionAfter(span: LogSpan): string {
+    const expiredEntries = this.findEntries(span.entries, 'buff_remove').filter(
+      (e) => e.data.reason === 'expired',
+    );
+    if (expiredEntries.length === 0) return '';
+
+    // processBuffs 只处理当前行动者的 buff，所有过期条目实质属于同一单位
+    const targetName = this.formatName(expiredEntries[0].data.targetName);
+    const buffNames = this.formatQuotedList(expiredEntries.map((e) => e.data.buffName));
+    return `【持续】${targetName}身上的${buffNames}时效已过`;
   }
 
   private formatSingleTargetAction(
@@ -354,7 +373,6 @@ export class LogPresenter {
 
     const damage = this.findEntry(entries, 'damage');
     const heal = this.findEntry(entries, 'heal');
-    const buffRemove = this.findEntry(entries, 'buff_remove');
 
     // DOT 伤害
     if (damage && damage.data.sourceBuff) {
@@ -375,11 +393,6 @@ export class LogPresenter {
     // HOT 治疗
     if (heal && heal.data.sourceBuff) {
       return `【持续】${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点气血`;
-    }
-
-    // Buff 过期
-    if (buffRemove && buffRemove.data.reason === 'expired') {
-      return `【持续】${actor}身上的「${buffRemove.data.buffName}」时效已过`;
     }
 
     return `${actor} 持续效果触发`;

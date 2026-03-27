@@ -1,6 +1,7 @@
 import { EventBus } from '../../core/EventBus';
 import {
   ActionPreEvent,
+  ActionPostEvent,
   BattleEndEvent,
   BattleInitEvent,
   BuffAppliedEvent,
@@ -82,6 +83,18 @@ export class LogCollector {
           turn: this._aggregator.currentTurn,
           actor: { id: e.caster.id, name: e.caster.name },
           ability: { id: e.ability.id, name: e.ability.name },
+        });
+      },
+      highPriority,
+    );
+
+    this._addHandler(
+      eventBus,
+      'ActionPostEvent',
+      (e: ActionPostEvent) => {
+        this._aggregator.beginSpan('action_after', {
+          turn: this._aggregator.currentTurn,
+          actor: { id: e.caster.id, name: e.caster.name },
         });
       },
       highPriority,
