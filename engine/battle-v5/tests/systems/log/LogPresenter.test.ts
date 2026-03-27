@@ -116,6 +116,53 @@ describe('LogPresenter 行动日志聚合', () => {
     );
   });
 
+  it('反伤应并入主目标行而不是拆成自伤目标行', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 38,
+        remainHp: 962,
+        isCritical: false,
+        targetName: '张三',
+        damageSource: 'reflect',
+        reflectSourceName: '李四',
+      }),
+      createEntry('damage', {
+        value: 1300,
+        remainHp: 1,
+        isCritical: false,
+        targetName: '李四',
+      }),
+      createEntry('death_prevent', {
+        targetName: '李四',
+      }),
+    ]);
+    span.ability = { id: 'basic_attack', name: '普攻' };
+
+    expect(presenter.formatSpan(span)).toBe(
+      '「张三」发起攻击，对「李四」造成 1,300 点伤害，「李四」触发免死效果，保住了性命！，反弹 38 点伤害给「张三」',
+    );
+  });
+
+  it('护盾完全吸收时也应输出0伤害和抵扣护盾', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 0,
+        remainHp: 1000,
+        isCritical: false,
+        targetName: '李四',
+        shieldAbsorbed: 114,
+        remainShield: 186,
+      }),
+    ]);
+    span.ability = { id: 'basic_attack', name: '普攻' };
+
+    expect(presenter.formatSpan(span)).toBe(
+      '「张三」发起攻击，对「李四」造成 0 点伤害（抵扣护盾 114 点）',
+    );
+  });
+
   it('多目标应每目标一行', () => {
     const presenter = new LogPresenter();
     const span = createActionSpan([

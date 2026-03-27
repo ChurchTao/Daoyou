@@ -8,12 +8,23 @@ import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
 
 describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () => {
+  let randomSpy: jest.SpyInstance<number, []>;
+
   beforeEach(() => {
     EventBus.instance.reset();
+    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
   });
 
-  const createTestUnit = (id: string, name: string, attrs: any = {}) => {
-    const unit = new Unit(id as any, name, {
+  afterEach(() => {
+    randomSpy.mockRestore();
+  });
+
+  const createTestUnit = (
+    id: string,
+    name: string,
+    attrs: Partial<Record<AttributeType, number>> = {},
+  ) => {
+    const unit = new Unit(id, name, {
       [AttributeType.SPIRIT]: 100,
       [AttributeType.PHYSIQUE]: 100,
       [AttributeType.AGILITY]: 100,
@@ -87,42 +98,6 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     console.log(result.logs);
   });
 
-  it('2. 验证【资源夺取】：修正时序（先挂 Buff 后伤害）', () => {
-    const player = createTestUnit('vampire', '吸血鬼', {
-      [AttributeType.AGILITY]: 1000,
-    });
-    const opponent = createTestUnit('victim', '血瓶', {
-      [AttributeType.AGILITY]: 0,
-      [AttributeType.PHYSIQUE]: 0,
-    });
-
-    player.takeDamage(500);
-
-    player.abilities.addAbility(
-      AbilityFactory.create({
-        slug: 'drain_hp',
-        name: '吸血',
-        type: AbilityType.ACTIVE_SKILL,
-        priority: 100,
-        effects: [
-          { type: 'damage', params: { value: { base: 500 } } }, // 放在 Buff 之后执行！
-          {
-            type: 'resource_drain',
-            params: {
-              sourceType: 'hp',
-              targetType: 'hp',
-              ratio: 0.5,
-            },
-          },
-        ],
-      }),
-    );
-
-    const engine = new BattleEngineV5(player, opponent);
-    const result = engine.execute();
-    console.log(result.logs);
-  });
-
   it('3. 验证【反伤与免死】：锁定 1 血存活', () => {
     const attacker = createTestUnit('attacker', '杀手', {
       [AttributeType.PHYSIQUE]: 10000,
@@ -137,8 +112,8 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         id: 'passive_immortal',
         name: '不灭',
         type: BuffType.BUFF,
-        duration: -1,
-        stackRule: 'ignore' as any,
+        duration: 3,
+        stackRule: 'override',
         listeners: [
           {
             eventType: 'DamageTakenEvent',
@@ -153,7 +128,13 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
     const engine = new BattleEngineV5(attacker, defender);
     const result = engine.execute();
+
     console.log(result.logs);
+
+    expect(result.logs[2]).toContain('对「不死者」造成');
+    expect(result.logs[2]).toContain('反弹');
+    expect(result.logs[2]).not.toContain('对「杀手」造成');
+    expect(result.logs[2]).not.toContain('\n');
   });
 
   it('4. 验证【护盾与焚元】：纯粹分步验证', () => {
@@ -191,5 +172,11 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     const engine = new BattleEngineV5(attacker, defender);
     const result = engine.execute();
     console.log(result.logs);
+
+    expect(
+      result.logs.some(
+        (log) => log.includes('对「护盾者」造成 0 点伤害') && log.includes('抵扣护盾'),
+      ),
+    ).toBe(true);
   });
 });

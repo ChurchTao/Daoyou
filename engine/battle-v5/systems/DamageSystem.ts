@@ -173,6 +173,7 @@ export class DamageSystem {
       target: event.target,
       ability: event.ability,
       buff: event.buff, // 传递 buff
+      damageSource: event.damageSource,
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
       critMultiplier: event.critMultiplier,
@@ -217,6 +218,9 @@ export class DamageSystem {
       target,
       ability,
       buff, // 传递 buff
+      damageSource: damageEvent.damageSource,
+      reflectSourceName:
+        damageEvent.damageSource === 'reflect' ? caster?.name : undefined,
       damageTaken: actualDamage,
       remainHealth: target.currentHp, // 此时可能为 0
       shieldAbsorbed: absorbedAmount,

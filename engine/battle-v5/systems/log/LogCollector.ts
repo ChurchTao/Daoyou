@@ -14,7 +14,6 @@ import {
   HealEvent,
   HitCheckEvent,
   ManaBurnEvent,
-  ReflectEvent,
   ResourceDrainEvent,
   RoundStartEvent,
   ShieldEvent,
@@ -117,6 +116,8 @@ export class LogCollector {
           isCritical: e.isCritical ?? false,
           targetName: e.target.name,
           sourceBuff: e.buff?.name,
+          damageSource: e.damageSource,
+          reflectSourceName: e.reflectSourceName,
           shieldAbsorbed: e.shieldAbsorbed,
           remainShield: e.remainShield,
         },
@@ -282,18 +283,6 @@ export class LogCollector {
         });
       },
     );
-
-    this._addHandler(eventBus, 'ReflectEvent', (e: ReflectEvent) => {
-      this._aggregator.addEntry({
-        id: this._generateId(),
-        type: 'reflect',
-        data: {
-          value: Math.round(e.reflectAmount),
-          targetName: e.target.name,
-        },
-        timestamp: Date.now(),
-      });
-    });
 
     this._addHandler(eventBus, 'DispelEvent', (e: DispelEvent) => {
       this._aggregator.addEntry({

@@ -12,7 +12,6 @@ export type LogEntryType =
   | 'mana_burn'
   | 'resource_drain'
   | 'dispel'
-  | 'reflect'
   | 'tag_trigger'
   | 'death_prevent'
   | 'skill_interrupt'
@@ -25,6 +24,8 @@ export interface DamageEntryData {
   isCritical: boolean;
   targetName: string;
   sourceBuff?: string;
+  damageSource?: 'direct' | 'reflect';
+  reflectSourceName?: string;
   shieldAbsorbed?: number;
   remainShield?: number;
 }
@@ -89,11 +90,6 @@ export interface DispelEntryData {
   targetName: string;
 }
 
-export interface ReflectEntryData {
-  value: number;
-  targetName: string;
-}
-
 export interface TagTriggerEntryData {
   tag: string;
   targetName: string;
@@ -129,7 +125,6 @@ export interface EntryDataMap {
   mana_burn: ManaBurnEntryData;
   resource_drain: ResourceDrainEntryData;
   dispel: DispelEntryData;
-  reflect: ReflectEntryData;
   tag_trigger: TagTriggerEntryData;
   death_prevent: DeathPreventEntryData;
   skill_interrupt: SkillInterruptEntryData;

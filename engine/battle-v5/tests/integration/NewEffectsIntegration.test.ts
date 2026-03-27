@@ -121,4 +121,30 @@ describe('V5 新增原子效果集成测试 (重构后)', () => {
     dispel?.execute({ caster: player, target: opponent });
     expect(opponent.buffs.getAllBuffIds()).not.toContain('poison');
   });
+
+  it('反伤效果 (ReflectEffect) 不应对 reflect 来源伤害继续反弹', () => {
+    const reflect = AbilityFactory.createEffect({
+      type: 'reflect',
+      params: { ratio: 1 },
+    });
+
+    reflect?.execute({
+      caster: opponent,
+      target: player,
+      triggerEvent: {
+        type: 'DamageTakenEvent',
+        priority: 0,
+        timestamp: Date.now(),
+        caster: opponent,
+        target: player,
+        damageSource: 'reflect',
+        damageTaken: 100,
+        remainHealth: player.currentHp,
+        isLethal: false,
+      } as DamageTakenEvent,
+    });
+
+    const history = EventBus.instance.getEventHistory();
+    expect(history.find((event) => event.type === 'DamageRequestEvent')).toBeUndefined();
+  });
 });

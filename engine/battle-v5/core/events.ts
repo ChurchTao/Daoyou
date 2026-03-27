@@ -109,6 +109,7 @@ export interface DamageRequestEvent extends CombatEvent {
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
+  damageSource?: 'direct' | 'reflect';
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   isCritical?: boolean; // 是否暴击
@@ -125,6 +126,7 @@ export interface DamageEvent extends CombatEvent {
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：记录来源 Buff
+  damageSource?: 'direct' | 'reflect';
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
@@ -178,15 +180,6 @@ export interface ResourceDrainEvent extends CombatEvent {
   amount: number;
 }
 
-// ===== 反伤应用事件 =====
-export interface ReflectEvent extends CombatEvent {
-  type: 'ReflectEvent';
-  caster: Unit; // 实际上是反伤的施加者（原受击者）
-  target: Unit; // 实际上是反伤的目标（原攻击者）
-  ability?: Ability;
-  reflectAmount: number;
-}
-
 // ===== 驱散应用事件 =====
 export interface DispelEvent extends CombatEvent {
   type: 'DispelEvent';
@@ -219,6 +212,8 @@ export interface DamageTakenEvent extends CombatEvent {
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
+  damageSource?: 'direct' | 'reflect';
+  reflectSourceName?: string;
   damageTaken: number;
   remainHealth: number;
   shieldAbsorbed?: number; // 护盾抵扣值

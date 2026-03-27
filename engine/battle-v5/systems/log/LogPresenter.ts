@@ -66,7 +66,7 @@ export class LogPresenter {
     const ability = span.ability;
     const entries = span.entries;
 
-    const targets = this.extractTargets(entries);
+    const targets = this.extractDisplayTargets(entries);
     if (targets.length === 1) {
       return this.formatSingleTargetAction(
         span,
@@ -88,6 +88,12 @@ export class LogPresenter {
     entries: LogEntry[],
   ): string {
     const damageEntries = this.findEntries(entries, 'damage');
+    const directDamageEntries = damageEntries.filter(
+      (entry) => entry.data.damageSource !== 'reflect',
+    );
+    const reflectDamageEntries = damageEntries.filter(
+      (entry) => entry.data.damageSource === 'reflect',
+    );
     const healEntries = this.findEntries(entries, 'heal');
     const shieldEntries = this.findEntries(entries, 'shield');
     const buffApplies = this.findEntries(entries, 'buff_apply');
@@ -97,7 +103,6 @@ export class LogPresenter {
     const dispels = this.findEntries(entries, 'dispel');
     const interrupt = this.findEntry(entries, 'skill_interrupt');
     const deathPrevent = this.findEntry(entries, 'death_prevent');
-    const reflects = this.findEntries(entries, 'reflect');
     const manaBurns = this.findEntries(entries, 'mana_burn');
     const resourceDrains = this.findEntries(entries, 'resource_drain');
     const cooldownModifies = this.findEntries(entries, 'cooldown_modify');
@@ -124,17 +129,20 @@ export class LogPresenter {
 
     const resultParts: string[] = [];
 
-    const damageTotal = damageEntries.reduce((sum, e) => sum + e.data.value, 0);
-    const totalShieldAbsorbed = damageEntries.reduce(
+    const damageTotal = directDamageEntries.reduce(
+      (sum, e) => sum + e.data.value,
+      0,
+    );
+    const totalShieldAbsorbed = directDamageEntries.reduce(
       (sum, e) => sum + (e.data.shieldAbsorbed ?? 0),
       0,
     );
-    const hasCritical = damageEntries.some((e) => e.data.isCritical);
-    const shieldBroken = damageEntries.some(
+    const hasCritical = directDamageEntries.some((e) => e.data.isCritical);
+    const shieldBroken = directDamageEntries.some(
       (e) => (e.data.shieldAbsorbed ?? 0) > 0 && e.data.remainShield === 0,
     );
     const primaryTarget =
-      damageEntries[0]?.data.targetName ??
+      directDamageEntries[0]?.data.targetName ??
       healEntries[0]?.data.targetName ??
       shieldEntries[0]?.data.targetName ??
       buffApplies[0]?.data.targetName ??
@@ -145,7 +153,7 @@ export class LogPresenter {
       tagTriggers[0]?.data.targetName;
 
     // 情况 3: 伤害 + Buff + 死亡
-    if (damageTotal > 0 && primaryTarget) {
+    if ((directDamageEntries.length > 0 || totalShieldAbsorbed > 0) && primaryTarget) {
       const formattedPrimaryTarget = this.formatName(primaryTarget);
       let damageText = `对${formattedPrimaryTarget}造成 ${this.formatNumber(damageTotal)} 点伤害`;
 
@@ -230,7 +238,7 @@ export class LogPresenter {
     }
 
     // 情况 9: 反伤
-    for (const reflect of reflects) {
+    for (const reflect of reflectDamageEntries) {
       resultParts.push(
         `反弹 ${this.formatNumber(reflect.data.value)} 点伤害给${this.formatName(reflect.data.targetName)}`,
       );
@@ -277,8 +285,9 @@ export class LogPresenter {
     return lines.join('\n');
   }
 
-  private extractTargets(entries: LogEntry[]): string[] {
+  private extractDisplayTargets(entries: LogEntry[]): string[] {
     const targets = new Set<string>();
+    const fallbackTargets = new Set<string>();
     const targetEntryTypes: LogEntryType[] = [
       'damage',
       'heal',
@@ -290,27 +299,50 @@ export class LogPresenter {
       'mana_burn',
       'resource_drain',
       'dispel',
-      'reflect',
       'tag_trigger',
       'death_prevent',
       'skill_interrupt',
       'cooldown_modify',
     ];
+
     for (const entry of entries) {
+      const data = entry.data as {
+        targetName?: string;
+        damageSource?: 'direct' | 'reflect';
+      };
+
+      if (!data.targetName) {
+        continue;
+      }
+
+      fallbackTargets.add(data.targetName);
+
       if (!targetEntryTypes.includes(entry.type)) {
         continue;
       }
-      const data = entry.data as { targetName?: string };
-      if (data.targetName) {
-        targets.add(data.targetName);
+
+      if (entry.type === 'damage' && data.damageSource === 'reflect') {
+        continue;
       }
+
+      targets.add(data.targetName);
     }
-    return Array.from(targets);
+
+    return targets.size > 0 ? Array.from(targets) : Array.from(fallbackTargets);
   }
 
   private getEntriesForTarget(entries: LogEntry[], target: string): LogEntry[] {
     return entries.filter((entry) => {
-      const data = entry.data as { targetName?: string };
+      const data = entry.data as {
+        targetName?: string;
+        damageSource?: 'direct' | 'reflect';
+        reflectSourceName?: string;
+      };
+
+      if (entry.type === 'damage' && data.damageSource === 'reflect') {
+        return data.reflectSourceName === target;
+      }
+
       return data.targetName === target;
     });
   }
