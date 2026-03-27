@@ -47,6 +47,13 @@ export class CombatLogSystem {
     this._collector.unsubscribe(EventBus.instance);
   }
 
+  /**
+   * 获取当前活跃 Span 的 ID（供 BattleStateRecorder 关联状态帧使用）
+   */
+  getActiveSpanId(): string | undefined {
+    return this._agg.getActiveSpanId();
+  }
+
   // ===== 核心 API =====
 
   /**

@@ -60,6 +60,14 @@ export class LogAggregator {
   }
 
   /**
+   * 获取当前活跃 Span 的 ID（用于状态帧关联）
+   * 如果没有活跃 Span，返回最近一个 Span 的 ID（若有）
+   */
+  getActiveSpanId(): string | undefined {
+    return this._activeSpan?.id ?? this._spans[this._spans.length - 1]?.id;
+  }
+
+  /**
    * 显式结束当前 Span
    */
   endSpan(): void {

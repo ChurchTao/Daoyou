@@ -8,6 +8,8 @@ import { DamageSystem } from './systems/DamageSystem';
 import { VictorySystem } from './systems/VictorySystem';
 import { Unit } from './units/Unit';
 import { LogSpan } from './systems/log';
+import { BattleStateRecorder } from './systems/state/BattleStateRecorder';
+import { BattleStateTimeline } from './systems/state/types';
 
 export interface BattleResult {
   winner: string;
@@ -15,6 +17,8 @@ export interface BattleResult {
   turns: number;
   logs: string[];
   logSpans?: LogSpan[]; // 新增，支持结构化日志
+  /** 状态时间线：每次行动前后的双方状态帧，含 delta */
+  stateTimeline?: BattleStateTimeline;
   winnerSnapshot: unknown;
   loserSnapshot: unknown;
 }
@@ -40,6 +44,7 @@ export class BattleEngineV5 {
   private _eventBus: EventBus;
   private _actionSystem: ActionExecutionSystem;
   private _damageSystem: DamageSystem;
+  private _stateRecorder: BattleStateRecorder;
 
   constructor(player: Unit, opponent: Unit) {
     this._player = player;
@@ -52,6 +57,7 @@ export class BattleEngineV5 {
     // 初始化事件驱动系统
     this._actionSystem = new ActionExecutionSystem();
     this._damageSystem = new DamageSystem();
+    this._stateRecorder = new BattleStateRecorder();
 
     // 初始化战斗上下文
     const context: CombatContext = {
@@ -76,6 +82,15 @@ export class BattleEngineV5 {
     // 启动状态机（进入 INIT 状态）
     this._stateMachine.start();
 
+    // 记录初始状态（基线快照）
+    this._stateRecorder.record(
+      'battle_init',
+      0,
+      [this._player, this._opponent],
+      undefined,
+      this._logSystem.getActiveSpanId(),
+    );
+
     // 主循环
     while (!this.isBattleOver()) {
       this.executeTurn();
@@ -83,6 +98,15 @@ export class BattleEngineV5 {
 
     // 进入结束状态
     this._stateMachine.switchTo(CombatPhase.END);
+
+    // 记录终态快照
+    this._stateRecorder.record(
+      'battle_end',
+      this.getContext().turn,
+      [this._player, this._opponent],
+      undefined,
+      this._logSystem.getActiveSpanId(),
+    );
 
     // 生成结果
     return this.generateResult();
@@ -155,13 +179,22 @@ export class BattleEngineV5 {
     const units = this.getSortedUnits();
 
     for (const actor of units) {
-      // 发布行动事件，触发整个技能流程
+      // 发布行动前事件（DOT / 持续效果在此触发）
       this._eventBus.publish<ActionPreEvent>({
         type: 'ActionPreEvent',
         priority: EventPriorityLevel.ACTION_TRIGGER,
         timestamp: Date.now(),
         caster: actor,
       });
+
+      // action_pre 帧：ActionPreEvent 处理完毕后（DOT 已结算）
+      this._stateRecorder.record(
+        'action_pre',
+        this.getContext().turn,
+        [this._player, this._opponent],
+        actor.id,
+        this._logSystem.getActiveSpanId(),
+      );
 
       if (!actor.isAlive()) continue;
 
@@ -193,6 +226,15 @@ export class BattleEngineV5 {
 
       // 更新技能冷却
       actor.abilities.tickAbilitiesCooldown();
+
+      // action_post 帧：技能执行 + Buff 过期 + CD 刷新全部完成后
+      this._stateRecorder.record(
+        'action_post',
+        this.getContext().turn,
+        [this._player, this._opponent],
+        actor.id,
+        this._logSystem.getActiveSpanId(),
+      );
     }
   }
 
@@ -250,7 +292,8 @@ export class BattleEngineV5 {
       loser: loser?.id,
       turns: context.turn,
       logs: this._logSystem.getPlayerLogs(),
-      logSpans: this._logSystem.getSpans(), // 新增
+      logSpans: this._logSystem.getSpans(),
+      stateTimeline: this._stateRecorder.getTimeline([this._player, this._opponent]),
       winnerSnapshot: winner.getSnapshot(),
       loserSnapshot: loser?.getSnapshot(),
     };
