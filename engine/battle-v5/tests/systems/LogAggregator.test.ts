@@ -1,76 +1,142 @@
 import { LogAggregator } from '../../systems/log/LogAggregator';
-import { LogSpan } from '../../systems/log/types';
+import { LogEntry } from '../../systems/log/types';
 
-describe('LogAggregator', () => {
+describe('LogAggregator Refactored', () => {
   let aggregator: LogAggregator;
 
   beforeEach(() => {
     aggregator = new LogAggregator();
   });
 
-  describe('Span 生命周期管理', () => {
-    it('应该能开启 action_pre Span', () => {
-      const unit = { id: 'u1', name: '测试单位' } as any;
-      aggregator.beginActionPreSpan(unit);
-      
+  describe('currentTurn', () => {
+    it('should return current turn', () => {
+      aggregator.beginSpan('battle_init', { turn: 0 });
+      expect(aggregator.currentTurn).toBe(0);
+
+      aggregator.beginSpan('round_start', { turn: 1 });
+      expect(aggregator.currentTurn).toBe(1);
+    });
+  });
+
+  describe('beginSpan with actor/ability', () => {
+    it('should create span with actor and ability', () => {
+      aggregator.beginSpan('action', {
+        turn: 1,
+        actor: { id: 'unit-1', name: '张三' },
+        ability: { id: 'skill-1', name: '火球术' },
+      });
+
       const spans = aggregator.getSpans();
       expect(spans).toHaveLength(1);
-      expect(spans[0].type).toBe('action_pre');
-      expect(spans[0].source?.id).toBe('u1');
+      expect(spans[0].actor).toEqual({ id: 'unit-1', name: '张三' });
+      expect(spans[0].ability).toEqual({ id: 'skill-1', name: '火球术' });
     });
 
-    it('开启新 Span 时应该自动结束旧 Span', () => {
-      const unit = { id: 'u1', name: '测试单位' } as any;
-      const ability = { id: 'a1', name: '测试技能' } as any;
-      
-      aggregator.beginActionPreSpan(unit);
-      aggregator.beginActionSpan(unit, ability);
-      
+    it('should create span with actor only (no ability)', () => {
+      aggregator.beginSpan('action_pre', {
+        turn: 1,
+        actor: { id: 'unit-1', name: '李四' },
+      });
+
+      const spans = aggregator.getSpans();
+      expect(spans).toHaveLength(1);
+      expect(spans[0].actor).toEqual({ id: 'unit-1', name: '李四' });
+      expect(spans[0].ability).toBeUndefined();
+    });
+  });
+
+  describe('addEntry', () => {
+    it('should add entry to active span', () => {
+      aggregator.beginSpan('action', {
+        turn: 1,
+        actor: { id: 'u1', name: '张三' },
+      });
+
+      const entry: LogEntry<'damage'> = {
+        id: 'entry-1',
+        type: 'damage',
+        data: {
+          value: 100,
+          remainHp: 50,
+          isCritical: false,
+          targetName: '李四',
+        },
+        timestamp: Date.now(),
+      };
+      aggregator.addEntry(entry);
+
+      const spans = aggregator.getSpans();
+      expect(spans[0].entries).toHaveLength(1);
+      expect(spans[0].entries[0].type).toBe('damage');
+    });
+
+    it('should ignore entry when no active span', () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      aggregator.addEntry({
+        id: 'entry-1',
+        type: 'damage',
+        data: {
+          value: 100,
+          remainHp: 50,
+          isCritical: false,
+          targetName: '李四',
+        },
+        timestamp: Date.now(),
+      });
+
+      expect(aggregator.getSpans()).toHaveLength(0);
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('span lifecycle', () => {
+    it('should auto-end previous span when starting new one', () => {
+      aggregator.beginSpan('action_pre', {
+        turn: 1,
+        actor: { id: 'u1', name: '张三' },
+      });
+      aggregator.beginSpan('action', {
+        turn: 1,
+        actor: { id: 'u1', name: '张三' },
+        ability: { id: 'skill-1', name: '火球术' },
+      });
+
       const spans = aggregator.getSpans();
       expect(spans).toHaveLength(2);
       expect(spans[0].type).toBe('action_pre');
       expect(spans[1].type).toBe('action');
     });
+  });
 
-    it('应该能添加 LogEntry 到当前活跃 Span', () => {
-      const unit = { id: 'u1', name: '测试单位' } as any;
-      aggregator.beginActionPreSpan(unit);
-      
-      aggregator.addEntry({
-        id: 'e1',
-        type: 'damage',
-        data: { value: 10 },
-        message: '造成 10 点伤害',
-        highlight: false
+  describe('getSpansByTurn', () => {
+    it('should filter spans by turn', () => {
+      aggregator.beginSpan('round_start', { turn: 1 });
+      aggregator.beginSpan('action', {
+        turn: 1,
+        actor: { id: 'u1', name: '张三' },
       });
-      
-      const spans = aggregator.getSpans();
-      expect(spans[0].entries).toHaveLength(1);
-      expect(spans[0].entries[0].id).toBe('e1');
-    });
+      aggregator.beginSpan('round_start', { turn: 2 });
 
-    it('如果没有活跃 Span，添加 Entry 应该报错或忽略（根据实现定，建议忽略或创建默认）', () => {
-        // 这里我们先验证不开启 Span 时添加 Entry 不会崩溃
-        aggregator.addEntry({
-          id: 'e1',
-          type: 'damage',
-          data: { value: 10 },
-          message: '造成 10 点伤害',
-          highlight: false
-        });
-        
-        expect(aggregator.getSpans()).toHaveLength(0);
+      expect(aggregator.getSpansByTurn(1)).toHaveLength(2);
+      expect(aggregator.getSpansByTurn(2)).toHaveLength(1);
     });
   });
 
-  describe('回合管理', () => {
-      it('应该能按回合过滤 Span', () => {
-          aggregator.beginRoundStartSpan(1);
-          aggregator.beginActionPreSpan({ id: 'u1', name: 'u1' } as any);
-          aggregator.beginRoundStartSpan(2);
-          
-          expect(aggregator.getSpansByTurn(1)).toHaveLength(2);
-          expect(aggregator.getSpansByTurn(2)).toHaveLength(1);
+  describe('clear', () => {
+    it('should clear all spans and reset state', () => {
+      aggregator.beginSpan('round_start', { turn: 1 });
+      aggregator.beginSpan('action', {
+        turn: 1,
+        actor: { id: 'u1', name: '张三' },
       });
+
+      aggregator.clear();
+
+      expect(aggregator.getSpans()).toHaveLength(0);
+      expect(aggregator.currentTurn).toBe(0);
+    });
   });
 });
