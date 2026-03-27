@@ -2,7 +2,8 @@ import { Ability } from '../abilities/Ability';
 import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
 import { TargetPolicy } from '../abilities/TargetPolicy';
-import { AbilityConfig, EffectConfig } from '../core/configs';
+import { AbilityConfig, EffectConfig, ListenerConfig } from '../core/configs';
+import { buildListenerRuntimeConfig } from '../core/listenerExecution';
 import { AbilityId, AbilityType } from '../core/types';
 import { GameplayEffect } from '../effects/Effect';
 import { EffectRegistry } from './EffectRegistry';
@@ -19,6 +20,14 @@ import '../effects';
  * - 递归装配效果链和监听器
  */
 export class AbilityFactory {
+  private static assertListenerContract(listener: ListenerConfig): void {
+    if (!listener.scope) {
+      throw new Error(
+        `Listener ${listener.eventType} is missing required field: scope`,
+      );
+    }
+  }
+
   /**
    * 根据配置创建技能实例
    */
@@ -60,10 +69,14 @@ export class AbilityFactory {
       // 装配被动监听器
       if (config.listeners) {
         config.listeners.forEach((listener) => {
+          this.assertListenerContract(listener);
           const effects = listener.effects
             .map((eff) => this.createEffect(eff))
             .filter((e) => e !== null) as GameplayEffect[];
-          ability.addInstantiatedListener(listener.eventType, effects);
+          ability.addInstantiatedListener(
+            buildListenerRuntimeConfig(listener),
+            effects,
+          );
         });
       }
 

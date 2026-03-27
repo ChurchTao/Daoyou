@@ -136,15 +136,81 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'death_prevent'; params: DeathPreventParams }
   );
 
+// ===== Listener Contract =====
+
+/**
+ * 监听器触发范围（owner 与事件参与者的关系）
+ */
+export type ListenerScope =
+  | 'owner_as_target'
+  | 'owner_as_caster'
+  | 'owner_as_actor'
+  | 'global';
+
+/**
+ * 上下文映射源
+ */
+export type ListenerContextSource =
+  | 'owner'
+  | 'event.caster'
+  | 'event.target'
+  | 'event.source';
+
+/**
+ * 监听器上下文映射
+ */
+export interface ListenerContextMapping {
+  caster: ListenerContextSource;
+  target: ListenerContextSource;
+}
+
+/**
+ * 监听器触发守卫配置
+ */
+export interface ListenerGuardConfig {
+  /**
+   * 是否要求 owner 存活（默认 true）
+   */
+  requireOwnerAlive?: boolean;
+  /**
+   * 是否允许濒死窗口触发（仅对 DamageTakenEvent 有意义）
+   */
+  allowLethalWindow?: boolean;
+  /**
+   * 是否跳过反伤来源（damageSource === 'reflect'）
+   */
+  skipReflectSource?: boolean;
+}
+
 /**
  * 事件监听器配置 (用于 Buff 和被动技能)
  */
 export interface ListenerConfig {
   /**
+   * 监听器唯一 ID，用于调试与追踪
+   */
+  id?: string;
+  /**
    * 对应 CombatEvent['type']
    * 例如：'RoundPreEvent' | 'DamageTakenEvent' | 'SkillCastEvent'
    */
   eventType: string;
+  /**
+   * 触发作用域（默认值由事件语义推导）
+   */
+  scope?: ListenerScope;
+  /**
+   * 订阅优先级（默认值由事件语义推导）
+   */
+  priority?: number;
+  /**
+   * 上下文映射（默认值由事件语义推导）
+   */
+  mapping?: ListenerContextMapping;
+  /**
+   * 执行守卫
+   */
+  guard?: ListenerGuardConfig;
   /**
    * 触发时执行的效果链
    */

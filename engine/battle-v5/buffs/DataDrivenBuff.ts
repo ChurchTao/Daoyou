@@ -1,6 +1,11 @@
 import { BuffConfig } from '../core/configs';
 import { BuffId, CombatEvent } from '../core/types';
 import { EffectContext, GameplayEffect } from '../effects/Effect';
+import {
+  ListenerRuntimeConfig,
+  resolveListenerContext,
+  shouldExecuteListener,
+} from '../core/listenerExecution';
 import { Buff } from './Buff';
 
 /**
@@ -14,7 +19,7 @@ import { Buff } from './Buff';
 export class DataDrivenBuff extends Buff {
   private _config: BuffConfig;
   private _instantiatedListeners: Array<{
-    eventType: string;
+    runtime: ListenerRuntimeConfig;
     effects: GameplayEffect[];
   }> = [];
 
@@ -29,8 +34,8 @@ export class DataDrivenBuff extends Buff {
     this._config = config;
   }
 
-  addInstantiatedListener(eventType: string, effects: GameplayEffect[]): void {
-    this._instantiatedListeners.push({ eventType, effects });
+  addInstantiatedListener(runtime: ListenerRuntimeConfig, effects: GameplayEffect[]): void {
+    this._instantiatedListeners.push({ runtime, effects });
   }
 
   override onActivate(): void {
@@ -62,23 +67,29 @@ export class DataDrivenBuff extends Buff {
   private _setupEventListeners(): void {
     for (const listener of this._instantiatedListeners) {
       this._subscribeEvent<CombatEvent>(
-        listener.eventType,
-        (event) => this._executeEffects(listener.effects, event),
-        45, // 默认使用 ROUND_PRE 优先级，后续可根据事件类型动态调整
+        listener.runtime.eventType,
+        (event) => this._executeEffects(listener.runtime, listener.effects, event),
+        listener.runtime.priority,
       );
     }
   }
 
-  private _executeEffects(effects: GameplayEffect[], event: CombatEvent): void {
+  private _executeEffects(
+    runtime: ListenerRuntimeConfig,
+    effects: GameplayEffect[],
+    event: CombatEvent,
+  ): void {
     if (!this._owner) return; // 仅检查是否存在，不检查存活，以便处理免死逻辑
 
-    // 构建上下文：如果是受击事件，伤害归属者由事件决定
-    const caster = this._source || this._owner;
-    const target = this._owner; // Buff 效果通常作用于宿主
+    if (!shouldExecuteListener(this._owner, event, runtime)) {
+      return;
+    }
+
+    const resolved = resolveListenerContext(this._owner, event, runtime.mapping);
 
     const context: EffectContext = {
-      caster,
-      target,
+      caster: resolved.caster,
+      target: resolved.target,
       triggerEvent: event, // 关键：注入触发事件
       buff: this,
     };
@@ -109,7 +120,14 @@ export class DataDrivenBuff extends Buff {
 
     // 复制已实例化的效果
     for (const listener of this._instantiatedListeners) {
-      cloned.addInstantiatedListener(listener.eventType, [...listener.effects]);
+      cloned.addInstantiatedListener(
+        {
+          ...listener.runtime,
+          mapping: { ...listener.runtime.mapping },
+          guard: { ...listener.runtime.guard },
+        },
+        [...listener.effects],
+      );
     }
 
     return cloned;

@@ -1,9 +1,11 @@
 import { PassiveAbility } from './PassiveAbility';
 import { AbilityId, CombatEvent } from '../core/types';
-import { AbilityContext } from './Ability';
 import { GameplayEffect, EffectContext } from '../effects/Effect';
-import { EventBus } from '../core/EventBus';
-import { ListenerConfig } from '../core/configs';
+import {
+  ListenerRuntimeConfig,
+  resolveListenerContext,
+  shouldExecuteListener,
+} from '../core/listenerExecution';
 
 /**
  * 数据驱动的被动能力 (Data-Driven Passive Ability)
@@ -17,7 +19,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
    * 为了支持工厂装配，我们内部持有已实例化的效果映射
    */
   private _instantiatedListeners: Array<{
-    eventType: string;
+    runtime: ListenerRuntimeConfig;
     effects: GameplayEffect[];
   }> = [];
 
@@ -25,8 +27,8 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     super(id, name);
   }
 
-  addInstantiatedListener(eventType: string, effects: GameplayEffect[]): void {
-    this._instantiatedListeners.push({ eventType, effects });
+  addInstantiatedListener(runtime: ListenerRuntimeConfig, effects: GameplayEffect[]): void {
+    this._instantiatedListeners.push({ runtime, effects });
   }
 
   /**
@@ -37,38 +39,32 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     for (const listener of this._instantiatedListeners) {
       // 订阅指定类型的事件
       this.subscribeEvent(
-        listener.eventType,
+        listener.runtime.eventType,
         this.createEventHandler((event: CombatEvent) => {
-          this._executeInstantiatedEffects(listener.effects, event);
-        })
+          this._executeInstantiatedEffects(listener.runtime, listener.effects, event);
+        }),
+        listener.runtime.priority,
       );
     }
   }
 
-  private _executeInstantiatedEffects(effects: GameplayEffect[], event: CombatEvent): void {
+  private _executeInstantiatedEffects(
+    runtime: ListenerRuntimeConfig,
+    effects: GameplayEffect[],
+    event: CombatEvent,
+  ): void {
     const owner = this.getOwner();
     if (!owner) return;
 
-    // --- 动态上下文转换逻辑 ---
-    // 被动技能的触发源和目标往往具有特殊语义
-    
-    let caster = owner; // 默认施法者是拥有被动技能的单位
-    let target = owner; // 默认目标是自己
-
-    // 特殊事件语义处理
-    if (event.type === 'DamageTakenEvent') {
-      const e = event as any;
-      // 如果我是受击者 (target)，那么我的反击目标应该是攻击者 (caster)
-      if (e.target?.id === owner.id) {
-        target = e.caster || owner;
-      }
-    } else if (event.type === 'RoundPreEvent' || event.type === 'RoundPostEvent') {
-      target = owner;
+    if (!shouldExecuteListener(owner, event, runtime)) {
+      return;
     }
 
+    const resolved = resolveListenerContext(owner, event, runtime.mapping);
+
     const context: EffectContext = {
-      caster,
-      target,
+      caster: resolved.caster,
+      target: resolved.target,
       ability: this,
       triggerEvent: event, // 关键：注入触发事件
     };
@@ -87,7 +83,14 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     const cloned = new DataDrivenPassiveAbility(this.id, this.name);
     // 复制实例化后的监听器
     for (const listener of this._instantiatedListeners) {
-      cloned.addInstantiatedListener(listener.eventType, [...listener.effects]);
+      cloned.addInstantiatedListener(
+        {
+          ...listener.runtime,
+          mapping: { ...listener.runtime.mapping },
+          guard: { ...listener.runtime.guard },
+        },
+        [...listener.effects],
+      );
     }
     return cloned;
   }

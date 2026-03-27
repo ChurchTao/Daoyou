@@ -49,7 +49,10 @@ export class Ability {
   readonly tags: GameplayTagContainer;
 
   // 事件订阅管理
-  private _eventSubscriptions: Map<string, EventHandler> = new Map();
+  private _eventSubscriptions: Array<{
+    eventType: string;
+    handler: EventHandler;
+  }> = [];
 
   constructor(id: AbilityId, name: string, type: AbilityType) {
     this.id = id;
@@ -103,10 +106,10 @@ export class Ability {
    */
   protected onDeactivate(): void {
     // 自动取消所有事件订阅
-    for (const [eventType, handler] of this._eventSubscriptions) {
-      EventBus.instance.unsubscribe(eventType, handler);
+    for (const subscription of this._eventSubscriptions) {
+      EventBus.instance.unsubscribe(subscription.eventType, subscription.handler);
     }
-    this._eventSubscriptions.clear();
+    this._eventSubscriptions = [];
   }
 
   // ===== 事件订阅辅助 =====
@@ -120,7 +123,7 @@ export class Ability {
     priority?: number
   ): void {
     EventBus.instance.subscribe(eventType, handler, priority);
-    this._eventSubscriptions.set(eventType, handler);
+    this._eventSubscriptions.push({ eventType, handler });
   }
 
   // ===== 核心方法（子类必须实现或重写） =====

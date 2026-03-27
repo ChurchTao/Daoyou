@@ -50,14 +50,15 @@ export abstract class PassiveAbility extends Ability {
 
   /**
    * 创建事件处理包装器
-   * 自动检查所有者是否存活
+   * 自动检查所有者是否存在
+   * 存活策略由 listener guard 控制
    */
   protected createEventHandler<T extends CombatEvent>(
     handler: (event: T) => void
   ): (event: T) => void {
     return (event: T) => {
       const owner = this.getOwner();
-      if (!owner || !owner.isAlive()) return;
+      if (!owner) return;
       handler(event);
     };
   }

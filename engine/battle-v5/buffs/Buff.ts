@@ -48,7 +48,10 @@ export class Buff {
   protected _layer: number = 1;
 
   // 事件订阅存储（用于取消订阅）
-  protected _subscribedHandlers: Map<string, (event: unknown) => void> = new Map();
+  protected _subscribedHandlers: Array<{
+    eventType: string;
+    handler: (event: unknown) => void;
+  }> = [];
 
   constructor(
     id: BuffId,
@@ -151,7 +154,10 @@ export class Buff {
   ): void {
     // 包装 handler 以便存储
     const wrappedHandler = handler as (event: unknown) => void;
-    this._subscribedHandlers.set(eventType, wrappedHandler);
+    this._subscribedHandlers.push({
+      eventType,
+      handler: wrappedHandler,
+    });
     EventBus.instance.subscribe(eventType, wrappedHandler, priority);
   }
 
@@ -159,21 +165,30 @@ export class Buff {
    * 取消订阅事件
    */
   protected _unsubscribeEvent(eventType: string): void {
-    const handler = this._subscribedHandlers.get(eventType);
-    if (handler) {
-      EventBus.instance.unsubscribe(eventType, handler);
-      this._subscribedHandlers.delete(eventType);
+    const remaining: Array<{
+      eventType: string;
+      handler: (event: unknown) => void;
+    }> = [];
+
+    for (const subscription of this._subscribedHandlers) {
+      if (subscription.eventType === eventType) {
+        EventBus.instance.unsubscribe(subscription.eventType, subscription.handler);
+      } else {
+        remaining.push(subscription);
+      }
     }
+
+    this._subscribedHandlers = remaining;
   }
 
   /**
    * 取消所有事件订阅
    */
   protected _unsubscribeAll(): void {
-    for (const [eventType, handler] of this._subscribedHandlers) {
-      EventBus.instance.unsubscribe(eventType, handler);
+    for (const subscription of this._subscribedHandlers) {
+      EventBus.instance.unsubscribe(subscription.eventType, subscription.handler);
     }
-    this._subscribedHandlers.clear();
+    this._subscribedHandlers = [];
   }
 
   /**

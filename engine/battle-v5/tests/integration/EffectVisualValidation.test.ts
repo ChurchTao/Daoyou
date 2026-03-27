@@ -58,6 +58,11 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
       listeners: [
         {
           eventType: 'ActionPreEvent',
+          scope: 'owner_as_actor',
+          priority: 45,
+          guard: {
+            requireOwnerAlive: true,
+          },
           effects: [{ type: 'damage', params: { value: { base: 100 } } }],
         },
       ],
@@ -117,6 +122,13 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         listeners: [
           {
             eventType: 'DamageTakenEvent',
+            scope: 'owner_as_target',
+            priority: 50,
+            guard: {
+              requireOwnerAlive: false,
+              allowLethalWindow: true,
+              skipReflectSource: true,
+            },
             effects: [
               { type: 'reflect', params: { ratio: 0.1 } },
               { type: 'death_prevent', params: {} },
