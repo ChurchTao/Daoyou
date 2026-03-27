@@ -109,18 +109,23 @@ export const GameplayTags = {
 
   // ===== 状态标签 =====
   STATUS: {
-    // 免疫
+    // 免疫系列
     IMMUNE: 'Status.Immune',
-    // 免疫控制
     IMMUNE_CONTROL: 'Status.Immune.Control',
-    // 免疫 debuff
     IMMUNE_DEBUFF: 'Status.Immune.Debuff',
-    // 免疫火焰
     IMMUNE_FIRE: 'Status.Immune.Fire',
-    // 免疫眩晕
-    STUNNED: 'Status.Stunned',
-    // 免疫中毒
+
+    // 负面状态
+    STUNNED: 'Status.Stunned',   // 眩晕（向后兼容，语义等同 NO_ACTION）
     POISONED: 'Status.Poisoned',
+
+    // ===== 控制三分法 =====
+    // 禁行动：单位本回合完全跳过出手（如眩晕、冰封、石化）
+    NO_ACTION: 'Status.Control.NoAction',
+    // 禁技：单位本回合只能使用普通攻击，不可使用主动技能（如封咒、禁灵）
+    NO_SKILL: 'Status.Control.NoSkill',
+    // 禁普攻：单位本回合只能使用技能，不可普通攻击（如折翅、束手）
+    NO_BASIC: 'Status.Control.NoBasic',
   },
 
   // ===== 技能标签 =====

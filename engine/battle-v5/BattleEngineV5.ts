@@ -1,7 +1,8 @@
 import { CombatContext, CombatStateMachine } from './core/CombatStateMachine';
 import { EventBus } from './core/EventBus';
-import { ActionEvent, ActionPostEvent, ActionPreEvent, EventPriorityLevel } from './core/events';
+import { ActionEvent, ActionPostEvent, ActionPreEvent, ControlledSkipEvent, EventPriorityLevel } from './core/events';
 import { AttributeType, CombatPhase } from './core/types';
+import { GameplayTags } from './core/GameplayTags';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
 import { CombatLogSystem } from './systems/log/CombatLogSystem';
 import { DamageSystem } from './systems/DamageSystem';
@@ -197,7 +198,23 @@ export class BattleEngineV5 {
       );
 
       if (!actor.isAlive()) continue;
-
+      // ===== 控制状态检查 =====
+      // 禁行动：包括紧傅标签（向后兼容）和新式 NO_ACTION 标签
+      const controlTag = actor.tags.hasTag(GameplayTags.STATUS.NO_ACTION)
+        ? GameplayTags.STATUS.NO_ACTION
+        : actor.tags.hasTag(GameplayTags.STATUS.STUNNED)
+          ? GameplayTags.STATUS.STUNNED
+          : null;
+      if (controlTag !== null) {
+        this._eventBus.publish<ControlledSkipEvent>({
+          type: 'ControlledSkipEvent',
+          priority: EventPriorityLevel.COMBAT_LOG,
+          timestamp: Date.now(),
+          unit: actor,
+          controlTag,
+        });
+        continue;
+      }
       // 设置当前出手单位
       this._stateMachine.setCurrentCaster(actor);
 

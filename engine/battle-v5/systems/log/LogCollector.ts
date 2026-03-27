@@ -7,6 +7,7 @@ import {
   BuffAppliedEvent,
   BuffImmuneEvent,
   BuffRemovedEvent,
+  ControlledSkipEvent,
   CooldownModifyEvent,
   DamageTakenEvent,
   DeathPreventEvent,
@@ -112,6 +113,23 @@ export class LogCollector {
           actor: e.winner
             ? { id: e.winner, name: winnerName ?? e.winner }
             : undefined,
+        });
+      },
+      highPriority,
+    );
+
+    this._addHandler(
+      eventBus,
+      'ControlledSkipEvent',
+      (e: ControlledSkipEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'control_skip',
+          data: {
+            unitName: e.unit.name,
+            controlTag: e.controlTag,
+          },
+          timestamp: Date.now(),
         });
       },
       highPriority,

@@ -5,6 +5,7 @@ import { ActionEvent, SkillPreCastEvent, EventPriorityLevel } from '../core/even
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { BasicAttack } from '../abilities/BasicAttack';
 import { AbilityType } from '../core/types';
+import { GameplayTags } from '../core/GameplayTags';
 
 /**
  * AbilityContainer - 技能容器
@@ -42,6 +43,7 @@ export class AbilityContainer {
 
   /**
    * 响应行动触发事件，执行技能筛选
+   * 支持控制三分法：NO_ACTION 由 BattleEngineV5 拦截，此处处理 NO_SKILL / NO_BASIC
    */
   private _onActionTrigger(event: ActionEvent): void {
     // 仅当前出手单位是自己时，才执行筛选
@@ -50,54 +52,68 @@ export class AbilityContainer {
       return;
     }
 
-    const opponent = this._getDefaultTarget();
-    const abilitiesToCast: Array<{ ability: ActiveSkill; target: Unit }> = [];
-
-    // 遍历所有主动技能，根据策略寻找目标并检查可用性
-    for (const ability of this._abilities.values()) {
-      // 使用类型字符串检查，防御枚举实例不一致问题
-      if (ability.type !== AbilityType.ACTIVE_SKILL) {
-        continue;
-      }
-      
-      const activeSkill = ability as ActiveSkill;
-
-      // 1. 根据策略确定目标 (1v1 简化逻辑)
-      let resolvedTarget: Unit | null = null;
-      const policy = activeSkill.targetPolicy;
-
-      if (policy.team === 'self' || policy.team === 'ally') {
-        resolvedTarget = this._owner;
-      } else {
-        resolvedTarget = opponent;
-      }
-
-      if (!resolvedTarget || !resolvedTarget.isAlive()) {
-        continue;
-      }
-
-      // 2. 检查技能是否可触发
-      const context: AbilityContext = {
-        caster: this._owner,
-        target: resolvedTarget,
-      };
-
-      if (activeSkill.canTrigger(context)) {
-        abilitiesToCast.push({ ability: activeSkill, target: resolvedTarget });
-      }
-    }
-
-    if (abilitiesToCast.length === 0) {
-      if (opponent && opponent.id !== this._owner.id && opponent.isAlive()) {
-        this._prepareCast(this._getDefaultAttack(), opponent);
-      }
+    // 控制三分法检查
+    // NO_ACTION 已在 BattleEngineV5.executeActionPhase 中拦截，此处做防御性检查
+    if (this._owner.tags.hasAnyTag([
+      GameplayTags.STATUS.NO_ACTION,
+      GameplayTags.STATUS.STUNNED,
+    ])) {
       return;
     }
 
-    // 按优先级排序，选择最高优先级技能
-    // 稳定性改进：使用 sort 并取首位
-    const bestChoice = abilitiesToCast.sort((a, b) => b.ability.priority - a.ability.priority)[0];
-    this._prepareCast(bestChoice.ability, bestChoice.target);
+    const isSkillBlocked = this._owner.tags.hasTag(GameplayTags.STATUS.NO_SKILL);
+    const isBasicBlocked = this._owner.tags.hasTag(GameplayTags.STATUS.NO_BASIC);
+
+    const opponent = this._getDefaultTarget();
+
+    // 禁技时跳过所有主动技能，直接尝试普攻
+    // 未禁技时优先匹配主动技能
+    if (!isSkillBlocked) {
+      const abilitiesToCast: Array<{ ability: ActiveSkill; target: Unit }> = [];
+
+      for (const ability of this._abilities.values()) {
+        if (ability.type !== AbilityType.ACTIVE_SKILL) {
+          continue;
+        }
+
+        const activeSkill = ability as ActiveSkill;
+
+        let resolvedTarget: Unit | null = null;
+        const policy = activeSkill.targetPolicy;
+
+        if (policy.team === 'self' || policy.team === 'ally') {
+          resolvedTarget = this._owner;
+        } else {
+          resolvedTarget = opponent;
+        }
+
+        if (!resolvedTarget || !resolvedTarget.isAlive()) {
+          continue;
+        }
+
+        const context: AbilityContext = {
+          caster: this._owner,
+          target: resolvedTarget,
+        };
+
+        if (activeSkill.canTrigger(context)) {
+          abilitiesToCast.push({ ability: activeSkill, target: resolvedTarget });
+        }
+      }
+
+      if (abilitiesToCast.length > 0) {
+        const bestChoice = abilitiesToCast.sort(
+          (a, b) => b.ability.priority - a.ability.priority,
+        )[0];
+        this._prepareCast(bestChoice.ability, bestChoice.target);
+        return;
+      }
+    }
+
+    // 无可用技能（或禁技状态）时回退到普攻，禁普攻则什么都不做
+    if (!isBasicBlocked && opponent && opponent.id !== this._owner.id && opponent.isAlive()) {
+      this._prepareCast(this._getDefaultAttack(), opponent);
+    }
   }
 
   /**

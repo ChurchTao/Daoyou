@@ -4,6 +4,7 @@ import { EffectRegistry } from '../factories/EffectRegistry';
 import { HealParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
 import { EventPriorityLevel, HealEvent } from '../core/events';
+import { AttributeType } from '../core/types';
 
 /**
  * 治疗原子效果
@@ -17,9 +18,13 @@ export class HealEffect extends GameplayEffect {
     const { caster, target, ability, buff } = context;
 
     // 使用统一计算器计算基础治疗值
-    const healAmount = ValueCalculator.calculate(this.params.value, caster);
+    const baseHeal = ValueCalculator.calculate(this.params.value, caster);
 
-    if (healAmount <= 0) return;
+    if (baseHeal <= 0) return;
+
+    // 治疗增强：施法者的 HEAL_AMPLIFY 属性成比放大治疗量
+    const healAmplify = caster?.attributes.getValue(AttributeType.HEAL_AMPLIFY) ?? 0;
+    const healAmount = Math.round(baseHeal * (1 + healAmplify));
 
     // 执行治疗逻辑
     target.heal(healAmount);

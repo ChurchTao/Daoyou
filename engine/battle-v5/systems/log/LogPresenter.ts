@@ -6,6 +6,20 @@ import {
   LogEntryType,
   LogSpan,
 } from './types';
+import { GameplayTags } from '../../core/GameplayTags';
+
+/**
+ * 控制标签 → 战报状态描述（基于行动完全被压制的场景）
+ * 仅处理 ControlledSkipEvent 可携带的标签（NO_ACTION / STUNNED）
+ */
+const CONTROL_TAG_DESC: Readonly<Record<string, string>> = {
+  [GameplayTags.STATUS.STUNNED]:   '陷入眩晕',
+  [GameplayTags.STATUS.NO_ACTION]: '失去行动力',
+};
+
+function getControlDesc(tag: string): string {
+  return CONTROL_TAG_DESC[tag] ?? '受控制效果压制';
+}
 
 /**
  * LogPresenter 职责：将 Span 聚合为人类可读的输出。
@@ -45,8 +59,7 @@ export class LogPresenter {
       case 'battle_init':
         return '【战斗开始】';
       case 'battle_end':
-        const winner = this.formatName(span.actor?.name ?? '未知');
-        return `【战斗结束】${winner} 获胜！`;
+        return `【战斗结束】${this.formatName(span.actor?.name ?? '未知')} 获胜！`;
       case 'round_start':
         return `【第 ${span.turn} 回合】`;
       case 'action_after':
@@ -373,9 +386,30 @@ export class LogPresenter {
 
     const damage = this.findEntry(entries, 'damage');
     const heal = this.findEntry(entries, 'heal');
+    const controlSkip = this.findEntry(entries, 'control_skip');
 
-    // DOT 伤害
-    if (damage && damage.data.sourceBuff) {
+    // 持续效果文本（DOT / HOT），可能与控制文本同帧出现
+    const dotHotText = this._buildDotHotText(actor, actorName, span, damage, heal);
+
+    // 控制跳过文本
+    if (controlSkip) {
+      const controlDesc = getControlDesc(controlSkip.data.controlTag);
+      const controlText = `${actor}${controlDesc}，本回合无法行动`;
+      // 若同回合有 DOT/HOT，先描述持续效果再描述控制结果
+      return dotHotText ? `${dotHotText}，随后${controlText}` : controlText;
+    }
+
+    return dotHotText ?? `${actor} 持续效果触发`;
+  }
+
+  private _buildDotHotText(
+    actor: string,
+    actorName: string,
+    span: LogSpan,
+    damage: LogEntry<'damage'> | undefined,
+    heal: LogEntry<'heal'> | undefined,
+  ): string | undefined {
+    if (damage?.data.sourceBuff) {
       let result = `【持续】${actor}身上的「${damage.data.sourceBuff}」发作`;
       result += `，造成 ${this.formatNumber(damage.data.value)} 点伤害`;
 
@@ -390,12 +424,11 @@ export class LogPresenter {
       return result;
     }
 
-    // HOT 治疗
-    if (heal && heal.data.sourceBuff) {
+    if (heal?.data.sourceBuff) {
       return `【持续】${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点气血`;
     }
 
-    return `${actor} 持续效果触发`;
+    return undefined;
   }
 
   private findEntry<T extends LogEntryType>(

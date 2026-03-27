@@ -87,33 +87,37 @@ export class DamageSystem {
     if (caster.id === target.id) {
       hitCheckEvent.isHit = true;
     } else {
-      // 1. 身法闪避判定
-      const casterAgility = caster.attributes.getValue(AttributeType.SPEED);
-      const targetAgility = target.attributes.getValue(AttributeType.SPEED);
-      // 允许闪避率降为 0，不再强制 5% 底限
+      // ===== ① 身法闪避判定（非线性公式）=====
+      // ln(目标速度/施法者速度) * 50%，受 EVASION_MULT 放大，受 ACCURACY 压制
+      const casterSpeed = caster.attributes.getValue(AttributeType.SPEED);
+      const targetSpeed = target.attributes.getValue(AttributeType.SPEED);
+      const speedRatio = targetSpeed / Math.max(1, casterSpeed);
+      const baseDodge = Math.log(Math.max(1, speedRatio)) * 50; // 0~50+%
+      const evasionMult = target.attributes.getValue(AttributeType.EVASION_MULT);
+      const accuracy = caster.attributes.getValue(AttributeType.ACCURACY);
       const dodgeChance = Math.max(
         0,
-        Math.min(80, ((targetAgility - casterAgility) / casterAgility) * 100),
+        Math.min(80, baseDodge * (1 + evasionMult) - accuracy * 100),
       );
       if (Math.random() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
       }
 
-      // 2. 神识抵抗判定（仅控制/减益类技能）
+      // ===== ② 神识抵抗判定（仅控制/减益类技能）=====
+      // 目标 RESILIENCE 属性将等效神识乘以 (1 + resilience)
       if (
         ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) &&
         hitCheckEvent.isHit
       ) {
-        const casterConsciousness = caster.attributes.getValue(
-          AttributeType.WILLPOWER,
-        );
-        const targetConsciousness = target.attributes.getValue(
-          AttributeType.WILLPOWER,
-        );
+        const casterConsciousness = caster.attributes.getValue(AttributeType.WILLPOWER);
+        const targetConsciousness = target.attributes.getValue(AttributeType.WILLPOWER);
+        const resilience = target.attributes.getValue(AttributeType.RESILIENCE);
+        const effectiveTargetConsciousness = targetConsciousness * (1 + resilience);
         const resistChance = Math.max(
           0,
-          ((targetConsciousness - casterConsciousness) / casterConsciousness) *
+          ((effectiveTargetConsciousness - casterConsciousness) /
+            Math.max(1, casterConsciousness)) *
             100,
         );
 
@@ -143,28 +147,52 @@ export class DamageSystem {
    * 响应伤害请求事件，执行减伤、随机浮动和伤害应用
    * 所有伤害来源（技能、DOT、反伤）都走此管道
    *
-   * 流程：DamageRequestEvent → [减伤/随机浮动] → DamageEvent → _updateTargetHealth
+   * 统一结算管道顺序：
+   * ① 暴击判定（施法者暴击率 - 目标暴击韧性）
+   * ② 破防 + 减伤强度修正 → 有效减伤率
+   * ③ 应用减伤
+   * ④ 随机浮动 (0.9~1.1)
+   * ⑤ 最小伤害保证 + 四舍五入
    */
   private _onDamageRequest(event: DamageRequestEvent): void {
-    const { target, finalDamage } = event;
+    const { target } = event;
 
-    // 1. 计算目标减伤（体魄属性核心价值：减伤）
+    // ===== ① 暴击判定 =====
+    // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
+    if (!event.isCritical && event.caster && event.damageSource !== 'reflect') {
+      const rawCritRate = event.caster.attributes.getCritRate();
+      const critResist = target.attributes.getValue(AttributeType.CRIT_RESIST);
+      const effectiveCritRate = Math.max(0, Math.min(0.95, rawCritRate - critResist));
+      if (Math.random() < effectiveCritRate) {
+        event.isCritical = true;
+        const baseCritMult = event.caster.attributes.getCritDamageMultiplier();
+        const critDmgReduction = target.attributes.getValue(AttributeType.CRIT_DAMAGE_REDUCTION);
+        event.critMultiplier = Math.max(1.0, baseCritMult - critDmgReduction);
+        event.finalDamage *= event.critMultiplier;
+      }
+    }
+
+    // ===== ② 破防 + 减伤强度修正 =====
     const targetPhysique = target.attributes.getValue(AttributeType.VITALITY);
-    const damageReduction = Math.min(
-      0.7,
-      targetPhysique / (targetPhysique + 1000),
-    );
+    const baseReduction = Math.min(0.70, targetPhysique / (targetPhysique + 1000));
+    // 施法者破防率直接扣减目标减伤
+    const armorPen = event.caster?.attributes.getValue(AttributeType.ARMOR_PENETRATION) ?? 0;
+    const penetratedReduction = Math.max(0, baseReduction - armorPen);
+    // 目标减伤强度放大减伤效果，硬上限 75%
+    const dmgReductStr = target.attributes.getValue(AttributeType.DAMAGE_REDUCTION_STR);
+    const effectiveReduction = Math.min(0.75, penetratedReduction * (1 + dmgReductStr));
 
-    event.finalDamage = finalDamage * (1 - damageReduction);
+    // ===== ③ 应用减伤 =====
+    event.finalDamage = event.finalDamage * (1 - effectiveReduction);
 
-    // 2. 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性)
+    // ===== ④ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
     const randomFactor = 0.9 + Math.random() * 0.2;
     event.finalDamage = event.finalDamage * randomFactor;
 
-    // 3. 最小伤害保证（避免0伤害）并四舍五入
+    // ===== ⑤ 最小伤害保证（避免0伤害）并四舍五入 =====
     event.finalDamage = Math.max(1, Math.round(event.finalDamage));
 
-    // 4. 发布伤害应用事件（供护盾/无敌效果订阅）
+    // 发布伤害应用事件（供护盾/无敌效果订阅）
     const damageEvent: DamageEvent = {
       type: 'DamageEvent',
       priority: EventPriorityLevel.DAMAGE_APPLY,
@@ -172,7 +200,7 @@ export class DamageSystem {
       caster: event.caster,
       target: event.target,
       ability: event.ability,
-      buff: event.buff, // 传递 buff
+      buff: event.buff,
       damageSource: event.damageSource,
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
@@ -181,8 +209,7 @@ export class DamageSystem {
 
     EventBus.instance.publish(damageEvent);
 
-    // 5. 直接应用伤害（不再通过订阅 DamageEvent）
-    // 这避免了 DamageSystem 既发布又订阅同一事件的循环
+    // 直接应用伤害（不再通过订阅 DamageEvent）
     this._updateTargetHealth(damageEvent);
   }
 

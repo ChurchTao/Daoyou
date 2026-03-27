@@ -26,16 +26,26 @@ export enum CombatPhase {
 
 // ===== 5维属性类型 =====
 export enum AttributeType {
-  // 灵力
-  SPIRIT = 'spirit',
-  // 体魄
-  VITALITY = 'vitality',
-  // 身法
-  SPEED = 'speed',
-  // 神识
-  WILLPOWER = 'willpower',
-  // 悟性
-  WISDOM = 'wisdom',
+  // 基础五维
+  SPIRIT = 'spirit',      // 灵力：法系输出、MP、护盾
+  VITALITY = 'vitality',  // 体魄：气血、减伤
+  SPEED = 'speed',        // 身法：先手、暴击率基础、闪避
+  WILLPOWER = 'willpower',// 神识：控制命中/抵抗
+  WISDOM = 'wisdom',      // 悟性：暴击率加成、MP上限
+
+  // 二级衍生属性（默认值 0，完全由装备/Buff/命格提供）
+  // 攻防相关
+  ARMOR_PENETRATION = 'armorPenetration',        // 破防率：降低对手减伤 (0~1)
+  CRIT_RESIST = 'critResist',                    // 暴击韧性：降低对手暴击率 (0~1)
+  CRIT_DAMAGE_REDUCTION = 'critDamageReduction', // 暴击伤害衰减：降低受到暴击的倍率 (0~0.5)
+  // 命中与闪避
+  ACCURACY = 'accuracy',                         // 精准度：提高命中、压制闪避 (0~0.5)
+  EVASION_MULT = 'evasionMult',                  // 闪避强度：放大自身闪避概率 (≥0)
+  // 控制与生存
+  RESILIENCE = 'resilience',                     // 矫健：降低控制命中率、缩短受控时间 (≥0)
+  DAMAGE_REDUCTION_STR = 'damageReductionStr',   // 减伤强度：强化自身减伤上限 (≥0)
+  // 辅助增益
+  HEAL_AMPLIFY = 'healAmplify',                  // 治疗增强：强化己方施放的治疗量 (≥0)
 }
 
 // ===== 属性修改器类型（6阶段）=====

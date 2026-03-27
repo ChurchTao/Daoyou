@@ -1,6 +1,20 @@
 import { AttributeModifier, AttributeType, ModifierType } from '../core/types';
 
 /**
+ * 二级衍生属性集合（默认基础值为 0，完全由装备/Buff/命格提供）
+ */
+const SECONDARY_ATTRIBUTE_DEFAULTS = new Set<AttributeType>([
+  AttributeType.ARMOR_PENETRATION,
+  AttributeType.CRIT_RESIST,
+  AttributeType.CRIT_DAMAGE_REDUCTION,
+  AttributeType.ACCURACY,
+  AttributeType.EVASION_MULT,
+  AttributeType.RESILIENCE,
+  AttributeType.DAMAGE_REDUCTION_STR,
+  AttributeType.HEAL_AMPLIFY,
+]);
+
+/**
  * 属性类 - 管理单个属性的基础值和修改器
  *
  * 修改器计算流程（5阶段）：
@@ -16,9 +30,16 @@ class Attribute {
   private _baseValue: number;
   private _modifiers: AttributeModifier[] = [];
 
-  constructor(type: AttributeType, baseValue: number) {
+  /**
+   * true → 二级衍生属性（浮点，保留小数）
+   * false → 主属性（整数，向下取整）
+   */
+  private _isFloat: boolean;
+
+  constructor(type: AttributeType, baseValue: number, isFloat = false) {
     this.type = type;
     this._baseValue = baseValue;
+    this._isFloat = isFloat;
   }
 
   /**
@@ -59,7 +80,7 @@ class Attribute {
       final += finalMod.value;
     }
 
-    return Math.max(0, Math.floor(final));
+    return this._isFloat ? Math.max(0, final) : Math.max(0, Math.floor(final));
   }
 
   /**
@@ -142,8 +163,10 @@ export class AttributeSet {
    */
   constructor(baseValues: Partial<Record<AttributeType, number>>) {
     Object.values(AttributeType).forEach((attrType) => {
-      const baseValue = baseValues[attrType] ?? 10;
-      this._attributes.set(attrType, new Attribute(attrType, baseValue));
+      const defaultValue = SECONDARY_ATTRIBUTE_DEFAULTS.has(attrType as AttributeType) ? 0 : 10;
+      const baseValue = baseValues[attrType] ?? defaultValue;
+      const isFloat = SECONDARY_ATTRIBUTE_DEFAULTS.has(attrType as AttributeType);
+      this._attributes.set(attrType, new Attribute(attrType, baseValue, isFloat));
     });
   }
 
@@ -259,7 +282,8 @@ export class AttributeSet {
   /**
    * Get the critical hit rate based on AGILITY and COMPREHENSION.
    * Formula: critRate = min(0.6, 0.05 + agility × 0.001 + comprehension × 0.0005)
-   * @returns Critical hit rate (0-1)
+   * Does NOT deduct target's CRIT_RESIST here; that is handled in DamageSystem.
+   * @returns Critical hit rate before target resistance (0-1)
    */
   getCritRate(): number {
     const agility = this.getValue(AttributeType.SPEED);
@@ -267,6 +291,16 @@ export class AttributeSet {
     const baseRate = 0.05;
     const bonusRate = agility * 0.001 + comprehension * 0.0005;
     return Math.min(0.6, baseRate + bonusRate);
+  }
+
+  /**
+   * Get the base crit damage multiplier.
+   * Formula: 1.5 (base) – clamped to [1.0, ∞)
+   * Target's CRIT_DAMAGE_REDUCTION is deducted in DamageSystem.
+   * @returns Base crit multiplier
+   */
+  getCritDamageMultiplier(): number {
+    return 1.5;
   }
 
   /**

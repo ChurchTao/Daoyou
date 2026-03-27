@@ -330,3 +330,11 @@ export interface BattleEndEvent extends CombatEvent {
   winner: string | null;
   turns: number;
 }
+
+// ===== 控制跳过事件（单位因受控而跳过本回合行动）=====
+export interface ControlledSkipEvent extends CombatEvent {
+  type: 'ControlledSkipEvent';
+  unit: Unit;
+  /** 触发跳过的控制标签路径 */
+  controlTag: string;
+}

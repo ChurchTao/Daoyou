@@ -15,7 +15,8 @@ export type LogEntryType =
   | 'tag_trigger'
   | 'death_prevent'
   | 'skill_interrupt'
-  | 'cooldown_modify';
+  | 'cooldown_modify'
+  | 'control_skip';
 
 // ===== Entry Data Interfaces =====
 export interface DamageEntryData {
@@ -111,6 +112,12 @@ export interface CooldownModifyEntryData {
   targetName: string;
 }
 
+export interface ControlSkipEntryData {
+  unitName: string;
+  /** 触发跳过的 GameplayTag 路径，如 'Status.Control.NoAction' / 'Status.Stunned' */
+  controlTag: string;
+}
+
 // ===== EntryDataMap =====
 export interface EntryDataMap {
   damage: DamageEntryData;
@@ -129,6 +136,7 @@ export interface EntryDataMap {
   death_prevent: DeathPreventEntryData;
   skill_interrupt: SkillInterruptEntryData;
   cooldown_modify: CooldownModifyEntryData;
+  control_skip: ControlSkipEntryData;
 }
 
 // ===== LogEntry =====
@@ -178,20 +186,4 @@ export interface CombatLogAIView {
     description: string;
   }>;
   summary: CombatLogSummary;
-}
-
-// ===== 兼容旧 API (将被移除) =====
-/**
- * @deprecated 使用新的 LogSpan 和 LogEntry
- */
-export interface CombatLogResult {
-  battleId: string;
-  spans: LogSpan[];
-  fullText: string;
-  metadata: {
-    winner: string;
-    loser: string;
-    turns: number;
-    duration: number;
-  };
 }
