@@ -1,5 +1,4 @@
 import { ListenerConfig, ListenerContextMapping, ListenerScope } from './configs';
-import { EventPriorityLevel } from './events';
 import { CombatEvent } from './types';
 import { Unit } from '../units/Unit';
 
@@ -51,22 +50,6 @@ function getDefaultScope(eventType: string): ListenerScope {
   }
 }
 
-function getDefaultPriority(eventType: string): number {
-  switch (eventType) {
-    case 'DamageTakenEvent':
-      return EventPriorityLevel.DAMAGE_TAKEN;
-    case 'DamageRequestEvent':
-      return EventPriorityLevel.DAMAGE_REQUEST;
-    case 'ActionPreEvent':
-    case 'RoundPreEvent':
-      return EventPriorityLevel.ROUND_PRE;
-    case 'SkillCastEvent':
-      return EventPriorityLevel.SKILL_CAST;
-    default:
-      return EventPriorityLevel.POST_SETTLE;
-  }
-}
-
 function getDefaultMapping(
   eventType: string,
   scope: ListenerScope,
@@ -106,7 +89,7 @@ export function buildListenerRuntimeConfig(config: ListenerConfig): ListenerRunt
     id: config.id ?? `${config.eventType}_${Math.random().toString(36).slice(2, 8)}`,
     eventType: config.eventType,
     scope,
-    priority: config.priority ?? getDefaultPriority(config.eventType),
+    priority: config.priority,
     mapping: config.mapping ?? getDefaultMapping(config.eventType, scope),
     guard: {
       requireOwnerAlive: config.guard?.requireOwnerAlive ?? true,

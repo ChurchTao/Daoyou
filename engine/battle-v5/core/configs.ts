@@ -198,11 +198,11 @@ export interface ListenerConfig {
   /**
    * 触发作用域（默认值由事件语义推导）
    */
-  scope?: ListenerScope;
+  scope: ListenerScope;
   /**
    * 订阅优先级（默认值由事件语义推导）
    */
-  priority?: number;
+  priority: number;
   /**
    * 上下文映射（默认值由事件语义推导）
    */
