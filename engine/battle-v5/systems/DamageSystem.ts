@@ -22,7 +22,7 @@ import { AttributeType } from '../core/types';
  * 统一伤害管道：
  * ┌─────────────────────────────────────────────────────────────────────┐
  * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageRequestEvent     │
- * │  DOT伤害:  RoundPreEvent ─────────────────→ DamageRequestEvent     │
+ * │  DOT伤害:  ActionPreEvent ─────────────────→ DamageRequestEvent     │
  * │  反伤等:   其他来源 ──────────────────────→ DamageRequestEvent     │
  * └─────────────────────────────────────────────────────────────────────┘
  *                              ↓

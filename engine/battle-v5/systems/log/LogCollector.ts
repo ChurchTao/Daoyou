@@ -2,7 +2,6 @@ import { EventBus } from '../../core/EventBus';
 import {
   ActionPreEvent,
   BattleEndEvent,
-  BattleInitEvent,
   BuffAppliedEvent,
   BuffImmuneEvent,
   BuffRemovedEvent,
@@ -23,7 +22,6 @@ import {
   TagTriggerEvent,
 } from '../../core/events';
 import { LogAggregator } from './LogAggregator';
-import { LogEntry } from './types';
 
 /**
  * LogCollector 职责：监听 EventBus 事件，转换为结构化 LogEntry。
@@ -33,14 +31,6 @@ export class LogCollector {
   private _aggregator: LogAggregator;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _handlers: Map<string, (event: any) => void> = new Map();
-
-  /**
-   * 获取事件处理器（供测试使用）
-   * @internal
-   */
-  get handlers(): Map<string, (event: unknown) => void> {
-    return this._handlers;
-  }
 
   constructor(aggregator: LogAggregator) {
     this._aggregator = aggregator;
@@ -57,7 +47,7 @@ export class LogCollector {
       () => {
         this._aggregator.beginSpan('battle_init', { turn: 0 });
       },
-      highPriority
+      highPriority,
     );
 
     this._addHandler(
@@ -66,7 +56,7 @@ export class LogCollector {
       (e: RoundStartEvent) => {
         this._aggregator.beginSpan('round_start', { turn: e.turn });
       },
-      highPriority
+      highPriority,
     );
 
     this._addHandler(
@@ -78,7 +68,7 @@ export class LogCollector {
           actor: { id: e.caster.id, name: e.caster.name },
         });
       },
-      highPriority
+      highPriority,
     );
 
     this._addHandler(
@@ -91,7 +81,7 @@ export class LogCollector {
           ability: { id: e.ability.id, name: e.ability.name },
         });
       },
-      highPriority
+      highPriority,
     );
 
     this._addHandler(
@@ -103,7 +93,7 @@ export class LogCollector {
           actor: e.winner ? { id: e.winner, name: e.winner } : undefined,
         });
       },
-      highPriority
+      highPriority,
     );
 
     // ===== 数据收集事件（默认 COMBAT_LOG 优先级） =====
@@ -145,6 +135,7 @@ export class LogCollector {
           value: Math.round(e.healAmount),
           remainHp: Math.round(e.target.currentHp),
           targetName: e.target.name,
+          sourceBuff: e.buff?.name,
         },
         timestamp: Date.now(),
       });
@@ -219,17 +210,21 @@ export class LogCollector {
       }
     });
 
-    this._addHandler(eventBus, 'SkillInterruptEvent', (e: SkillInterruptEvent) => {
-      this._aggregator.addEntry({
-        id: this._generateId(),
-        type: 'skill_interrupt',
-        data: {
-          skillName: e.ability.name,
-          reason: e.reason,
-        },
-        timestamp: Date.now(),
-      });
-    });
+    this._addHandler(
+      eventBus,
+      'SkillInterruptEvent',
+      (e: SkillInterruptEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'skill_interrupt',
+          data: {
+            skillName: e.ability.name,
+            reason: e.reason,
+          },
+          timestamp: Date.now(),
+        });
+      },
+    );
 
     this._addHandler(eventBus, 'ManaBurnEvent', (e: ManaBurnEvent) => {
       this._aggregator.addEntry({
@@ -243,31 +238,39 @@ export class LogCollector {
       });
     });
 
-    this._addHandler(eventBus, 'CooldownModifyEvent', (e: CooldownModifyEvent) => {
-      this._aggregator.addEntry({
-        id: this._generateId(),
-        type: 'cooldown_modify',
-        data: {
-          value: e.cdModifyValue,
-          affectedSkillName: e.affectedAbilityName,
-          targetName: e.target.name,
-        },
-        timestamp: Date.now(),
-      });
-    });
+    this._addHandler(
+      eventBus,
+      'CooldownModifyEvent',
+      (e: CooldownModifyEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'cooldown_modify',
+          data: {
+            value: e.cdModifyValue,
+            affectedSkillName: e.affectedAbilityName,
+            targetName: e.target.name,
+          },
+          timestamp: Date.now(),
+        });
+      },
+    );
 
-    this._addHandler(eventBus, 'ResourceDrainEvent', (e: ResourceDrainEvent) => {
-      this._aggregator.addEntry({
-        id: this._generateId(),
-        type: 'resource_drain',
-        data: {
-          value: Math.round(e.amount),
-          drainType: e.drainType,
-          targetName: e.target.name,
-        },
-        timestamp: Date.now(),
-      });
-    });
+    this._addHandler(
+      eventBus,
+      'ResourceDrainEvent',
+      (e: ResourceDrainEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'resource_drain',
+          data: {
+            value: Math.round(e.amount),
+            drainType: e.drainType,
+            targetName: e.target.name,
+          },
+          timestamp: Date.now(),
+        });
+      },
+    );
 
     this._addHandler(eventBus, 'ReflectEvent', (e: ReflectEvent) => {
       this._aggregator.addEntry({
@@ -327,7 +330,7 @@ export class LogCollector {
     eventType: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     handler: (event: any) => void,
-    priority: number = EventPriorityLevel.COMBAT_LOG
+    priority: number = EventPriorityLevel.COMBAT_LOG,
   ): void {
     eventBus.subscribe(eventType, handler, priority);
     this._handlers.set(eventType, handler);

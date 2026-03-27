@@ -15,7 +15,6 @@ export type LogEntryType =
   | 'reflect'
   | 'tag_trigger'
   | 'death_prevent'
-  | 'skill_cast'
   | 'skill_interrupt'
   | 'cooldown_modify';
 
@@ -44,7 +43,7 @@ export interface ShieldEntryData {
 
 export interface BuffApplyEntryData {
   buffName: string;
-  buffType: 'buff' | 'debuff' | 'neutral';
+  buffType: 'buff' | 'debuff' | 'control';
   targetName: string;
   duration: number;
 }
@@ -103,10 +102,6 @@ export interface DeathPreventEntryData {
   targetName: string;
 }
 
-export interface SkillCastEntryData {
-  skillName: string;
-}
-
 export interface SkillInterruptEntryData {
   skillName: string;
   reason: string;
@@ -135,7 +130,6 @@ export interface EntryDataMap {
   reflect: ReflectEntryData;
   tag_trigger: TagTriggerEntryData;
   death_prevent: DeathPreventEntryData;
-  skill_cast: SkillCastEntryData;
   skill_interrupt: SkillInterruptEntryData;
   cooldown_modify: CooldownModifyEntryData;
 }

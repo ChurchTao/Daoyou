@@ -10,7 +10,7 @@
  * 统一伤害管道：
  * ┌─────────────────────────────────────────────────────────────────────┐
  * │  技能伤害: SkillCastEvent → HitCheckEvent → DamageRequestEvent     │
- * │  DOT伤害:  RoundPreEvent ─────────────────→ DamageRequestEvent     │
+ * │  DOT伤害:  ActionPreEvent ─────────────────→ DamageRequestEvent     │
  * │  反伤等:   其他来源 ──────────────────────→ DamageRequestEvent     │
  * └─────────────────────────────────────────────────────────────────────┘
  *                              ↓
@@ -135,6 +135,7 @@ export interface HealEvent extends CombatEvent {
   caster: Unit;
   target: Unit;
   ability?: Ability;
+  buff?: Buff; // 如果是 Buff 造成的治疗（如 HOT），记录来源 Buff
   healAmount: number;
 }
 

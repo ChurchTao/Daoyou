@@ -7,13 +7,14 @@ import { CombatLogSystem } from './systems/log/CombatLogSystem';
 import { DamageSystem } from './systems/DamageSystem';
 import { VictorySystem } from './systems/VictorySystem';
 import { Unit } from './units/Unit';
+import { LogSpan } from './systems/log';
 
 export interface BattleResult {
   winner: string;
   loser?: string;
   turns: number;
   logs: string[];
-  logSpans?: any[]; // 新增，支持结构化日志
+  logSpans?: LogSpan[]; // 新增，支持结构化日志
   winnerSnapshot: unknown;
   loserSnapshot: unknown;
 }
@@ -248,7 +249,7 @@ export class BattleEngineV5 {
       winner: winner.id,
       loser: loser?.id,
       turns: context.turn,
-      logs: this._logSystem.getLogs().map((log) => log.message),
+      logs: this._logSystem.getPlayerLogs(),
       logSpans: this._logSystem.getSpans(), // 新增
       winnerSnapshot: winner.getSnapshot(),
       loserSnapshot: loser?.getSnapshot(),

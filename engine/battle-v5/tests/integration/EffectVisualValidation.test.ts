@@ -221,8 +221,8 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     // 新格式：削减了 护盾者 100 点真元（带空格）
     expect(
       engine.logSystem
-        .getLogs()
-        .some((l) => l.message.includes('削减了') && l.message.includes('100') && l.message.includes('真元')),
+        .getPlayerLogs()
+        .some((l) => l.includes('削减了') && l.includes('100') && l.includes('真元')),
     ).toBe(true);
   });
 });
