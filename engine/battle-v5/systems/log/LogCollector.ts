@@ -2,6 +2,7 @@ import { EventBus } from '../../core/EventBus';
 import {
   ActionPreEvent,
   BattleEndEvent,
+  BattleInitEvent,
   BuffAppliedEvent,
   BuffImmuneEvent,
   BuffRemovedEvent,
@@ -31,6 +32,7 @@ export class LogCollector {
   private _aggregator: LogAggregator;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _handlers: Map<string, (event: any) => void> = new Map();
+  private _unitNames = new Map<string, string>();
 
   constructor(aggregator: LogAggregator) {
     this._aggregator = aggregator;
@@ -44,8 +46,10 @@ export class LogCollector {
     this._addHandler(
       eventBus,
       'BattleInitEvent',
-      () => {
-        this._aggregator.beginSpan('battle_init', { turn: 0 });
+      (e: BattleInitEvent) => {
+        this._unitNames.set(e.player.id, e.player.name);
+        this._unitNames.set(e.opponent.id, e.opponent.name);
+        this._aggregator.beginSpan('battle_init', { turn: 0, actor: { id: e.player.id, name: e.player.name } });
       },
       highPriority,
     );
@@ -88,9 +92,14 @@ export class LogCollector {
       eventBus,
       'BattleEndEvent',
       (e: BattleEndEvent) => {
+        const winnerName = e.winner
+          ? this._unitNames.get(e.winner) ?? e.winner
+          : undefined;
         this._aggregator.beginSpan('battle_end', {
           turn: e.turns,
-          actor: e.winner ? { id: e.winner, name: e.winner } : undefined,
+          actor: e.winner
+            ? { id: e.winner, name: winnerName ?? e.winner }
+            : undefined,
         });
       },
       highPriority,
@@ -161,6 +170,7 @@ export class LogCollector {
           buffName: e.buff.name,
           buffType: e.buff.type,
           targetName: e.target.name,
+          layers: e.buff.getLayer(),
           duration: e.buff.getMaxDuration(),
         },
         timestamp: Date.now(),
@@ -219,6 +229,7 @@ export class LogCollector {
           type: 'skill_interrupt',
           data: {
             skillName: e.ability.name,
+            targetName: e.target.name,
             reason: e.reason,
           },
           timestamp: Date.now(),

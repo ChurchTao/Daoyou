@@ -46,6 +46,7 @@ export class ActionExecutionSystem {
         priority: EventPriorityLevel.COMBAT_LOG,
         timestamp: Date.now(),
         caster: event.caster,
+        target: event.target,
         ability: event.ability,
         reason: '施法被打断',
       });

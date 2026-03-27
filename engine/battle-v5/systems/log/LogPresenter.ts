@@ -1,11 +1,10 @@
 import {
-  LogSpan,
+  CombatLogAIView,
+  CombatLogSummary,
+  DamageEntryData,
   LogEntry,
   LogEntryType,
-  LogSpanType,
-  CombatLogSummary,
-  CombatLogAIView,
-  DamageEntryData,
+  LogSpan,
 } from './types';
 
 /**
@@ -13,6 +12,8 @@ import {
  * 核心改进：一次行动一行，信息完备。
  */
 export class LogPresenter {
+  private readonly _numberFormatter = new Intl.NumberFormat('en-US');
+
   /**
    * 格式化单个 Span 为单行输出
    */
@@ -23,7 +24,7 @@ export class LogPresenter {
 
     switch (span.type) {
       case 'battle_init':
-        return this.formatBattleInit(span);
+        return this.formatBattleInit();
       case 'battle_end':
         return this.formatBattleEnd(span);
       case 'round_start':
@@ -42,8 +43,8 @@ export class LogPresenter {
       case 'battle_init':
         return '【战斗开始】';
       case 'battle_end':
-        const winner = span.actor?.name ?? '未知';
-        return `【战斗结束】${winner} 获胜!`;
+        const winner = this.formatName(span.actor?.name ?? '未知');
+        return `【战斗结束】${winner} 获胜！`;
       case 'round_start':
         return `【第 ${span.turn} 回合】`;
       default:
@@ -51,21 +52,29 @@ export class LogPresenter {
     }
   }
 
-  private formatBattleInit(span: LogSpan): string {
+  private formatBattleInit(): string {
     return '【战斗开始】';
   }
 
   private formatBattleEnd(span: LogSpan): string {
-    const winner = span.actor?.name ?? '未知';
-    return `【战斗结束】${winner} 获胜!`;
+    const winner = this.formatName(span.actor?.name ?? '未知');
+    return `【战斗结束】${winner} 获胜！`;
   }
 
   private formatAction(span: LogSpan): string {
-    const actor = span.actor?.name ?? '未知';
+    const actor = this.formatName(span.actor?.name ?? '未知');
     const ability = span.ability;
     const entries = span.entries;
 
     const targets = this.extractTargets(entries);
+    if (targets.length === 1) {
+      return this.formatSingleTargetAction(
+        span,
+        actor,
+        ability,
+        this.getEntriesForTarget(entries, targets[0]),
+      );
+    }
     if (targets.length > 1) {
       return this.formatMultiTargetAction(span, actor, ability, targets);
     }
@@ -76,135 +85,221 @@ export class LogPresenter {
     span: LogSpan,
     actor: string,
     ability: { id: string; name: string } | undefined,
-    entries: LogEntry[]
+    entries: LogEntry[],
   ): string {
-    const damage = this.findEntry(entries, 'damage');
-    const heal = this.findEntry(entries, 'heal');
-    const shield = this.findEntry(entries, 'shield');
-    const buffApply = this.findEntry(entries, 'buff_apply');
+    const damageEntries = this.findEntries(entries, 'damage');
+    const healEntries = this.findEntries(entries, 'heal');
+    const shieldEntries = this.findEntries(entries, 'shield');
+    const buffApplies = this.findEntries(entries, 'buff_apply');
     const dodge = this.findEntry(entries, 'dodge');
     const resist = this.findEntry(entries, 'resist');
     const death = this.findEntry(entries, 'death');
-    const dispel = this.findEntry(entries, 'dispel');
+    const dispels = this.findEntries(entries, 'dispel');
     const interrupt = this.findEntry(entries, 'skill_interrupt');
     const deathPrevent = this.findEntry(entries, 'death_prevent');
-    const reflect = this.findEntry(entries, 'reflect');
-    const manaBurn = this.findEntry(entries, 'mana_burn');
-    const resourceDrain = this.findEntry(entries, 'resource_drain');
-    const cooldownModify = this.findEntry(entries, 'cooldown_modify');
-    const tagTrigger = this.findEntry(entries, 'tag_trigger');
+    const reflects = this.findEntries(entries, 'reflect');
+    const manaBurns = this.findEntries(entries, 'mana_burn');
+    const resourceDrains = this.findEntries(entries, 'resource_drain');
+    const cooldownModifies = this.findEntries(entries, 'cooldown_modify');
+    const tagTriggers = this.findEntries(entries, 'tag_trigger');
 
     const isBasicAttack = ability?.id === 'basic_attack';
-    const actionDesc = isBasicAttack ? '发起攻击' : `施放【${ability?.name}】`;
+    const actionDesc = isBasicAttack
+      ? '发起攻击'
+      : `施放${this.formatSkill(ability?.name ?? '未知技能')}`;
 
     // 情况 1: 闪避/抵抗
     if (dodge || resist) {
+      const targetName = this.formatName(
+        dodge?.data.targetName ?? resist?.data.targetName ?? '目标',
+      );
       const reason = dodge ? '闪避' : '抵抗';
-      return `${actor}${actionDesc}，被目标${reason}了！`;
+      return `${actor}${actionDesc}，被${targetName}${reason}了！`;
     }
 
     // 情况 2: 技能打断
     if (interrupt) {
-      return `${actor}${actionDesc}，打断了目标的【${interrupt.data.skillName}】：${interrupt.data.reason}！`;
+      return `${actor}${actionDesc}，打断了${this.formatName(interrupt.data.targetName)}的${this.formatSkill(interrupt.data.skillName)}！`;
     }
 
-    let result = `${actor}${actionDesc}`;
+    const resultParts: string[] = [];
+
+    const damageTotal = damageEntries.reduce((sum, e) => sum + e.data.value, 0);
+    const totalShieldAbsorbed = damageEntries.reduce(
+      (sum, e) => sum + (e.data.shieldAbsorbed ?? 0),
+      0,
+    );
+    const hasCritical = damageEntries.some((e) => e.data.isCritical);
+    const shieldBroken = damageEntries.some(
+      (e) => (e.data.shieldAbsorbed ?? 0) > 0 && e.data.remainShield === 0,
+    );
+    const primaryTarget =
+      damageEntries[0]?.data.targetName ??
+      healEntries[0]?.data.targetName ??
+      shieldEntries[0]?.data.targetName ??
+      buffApplies[0]?.data.targetName ??
+      dispels[0]?.data.targetName ??
+      manaBurns[0]?.data.targetName ??
+      resourceDrains[0]?.data.targetName ??
+      cooldownModifies[0]?.data.targetName ??
+      tagTriggers[0]?.data.targetName;
 
     // 情况 3: 伤害 + Buff + 死亡
-    if (damage) {
-      result += `，对 ${damage.data.targetName}`;
-      result += ` 造成 ${damage.data.value} 点伤害`;
+    if (damageTotal > 0 && primaryTarget) {
+      const formattedPrimaryTarget = this.formatName(primaryTarget);
+      let damageText = `对${formattedPrimaryTarget}造成 ${this.formatNumber(damageTotal)} 点伤害`;
 
-      if (damage.data.isCritical) {
-        result += '（暴击！）';
+      if (hasCritical) {
+        damageText += '（暴击）！';
       }
 
-      if (damage.data.shieldAbsorbed && damage.data.shieldAbsorbed > 0) {
-        result += `（抵扣护盾 ${Math.round(damage.data.shieldAbsorbed)} 点`;
-        // remainShield 为 0 表示护盾完全消耗（破碎）
-        if (damage.data.remainShield === 0) {
-          result += '，护盾已破碎';
+      if (totalShieldAbsorbed > 0) {
+        damageText += `（抵扣护盾 ${this.formatNumber(
+          Math.round(totalShieldAbsorbed),
+        )} 点`;
+        if (shieldBroken) {
+          damageText += '，护盾已破碎';
         }
-        result += '）';
+        damageText += '）';
       }
 
-      // 同时施加 Buff
-      if (buffApply && buffApply.data.targetName === damage.data.targetName) {
-        result += `并施加「${buffApply.data.buffName}」`;
+      const appliedOnPrimary = buffApplies.filter(
+        (e) => e.data.targetName === primaryTarget,
+      );
+      if (appliedOnPrimary.length > 0) {
+        damageText += `并施加${this.formatBuffApplyList(appliedOnPrimary)}`;
       }
 
-      // 死亡或免死
-      if (death) {
-        result += `，${death.data.targetName}被击败!`;
-      } else if (deathPrevent) {
-        result += `，${deathPrevent.data.targetName}触发免死效果保住了性命!`;
+      resultParts.push(damageText);
+
+      // 免死优先于击杀
+      if (deathPrevent) {
+        resultParts.push(
+          `${this.formatName(deathPrevent.data.targetName)}触发免死效果，保住了性命！`,
+        );
+      } else if (death) {
+        resultParts.push(`${this.formatName(death.data.targetName)}被击败！`);
       }
-    } else if (heal) {
+    } else {
+      const healTotal = healEntries.reduce((sum, e) => sum + e.data.value, 0);
+      const shieldTotal = shieldEntries.reduce((sum, e) => sum + e.data.value, 0);
+
       // 情况 4: 治疗
-      result += `，为 ${heal.data.targetName} 恢复 ${heal.data.value} 点气血`;
-    }
+      if (healTotal > 0 && healEntries[0]) {
+        resultParts.push(
+          `为${this.formatName(healEntries[0].data.targetName)}恢复 ${this.formatNumber(healTotal)} 点气血`,
+        );
+      }
 
-    // 情况 5: 护盾（无伤害时）
-    if (shield && !damage) {
-      result += `，为 ${shield.data.targetName} 施加 ${shield.data.value} 点护盾`;
+      // 情况 5: 护盾（无伤害时）
+      if (shieldTotal > 0 && shieldEntries[0]) {
+        resultParts.push(
+          `为${this.formatName(shieldEntries[0].data.targetName)}施加 ${this.formatNumber(shieldTotal)} 点护盾`,
+        );
+      }
+
+      // 情况 3.5: 纯 Buff
+      if (buffApplies.length > 0 && buffApplies[0]) {
+        resultParts.push(
+          `对${this.formatName(buffApplies[0].data.targetName)}施加${this.formatBuffApplyList(buffApplies)}`,
+        );
+      }
     }
 
     // 情况 6: 驱散
-    if (dispel) {
-      const buffsText = dispel.data.buffs.map((n) => `「${n}」`).join('、');
-      result += `，清除了 ${dispel.data.targetName} 身上的 ${buffsText}`;
+    for (const dispel of dispels) {
+      const buffsText = this.formatQuotedList(dispel.data.buffs);
+      resultParts.push(
+        `清除了${this.formatName(dispel.data.targetName)}身上的${buffsText}`,
+      );
     }
 
     // 情况 7: 焚元
-    if (manaBurn) {
-      result += `，削减了 ${manaBurn.data.targetName} ${manaBurn.data.value} 点真元`;
+    for (const manaBurn of manaBurns) {
+      resultParts.push(
+        `削减了${this.formatName(manaBurn.data.targetName)} ${this.formatNumber(manaBurn.data.value)} 点真元`,
+      );
     }
 
     // 情况 8: 掠夺
-    if (resourceDrain) {
+    for (const resourceDrain of resourceDrains) {
       const typeText = resourceDrain.data.drainType === 'hp' ? '气血' : '真元';
-      result += `，从 ${resourceDrain.data.targetName} 身上夺取了 ${resourceDrain.data.value} 点${typeText}`;
+      resultParts.push(
+        `从${this.formatName(resourceDrain.data.targetName)}身上夺取了 ${this.formatNumber(resourceDrain.data.value)} 点${typeText}`,
+      );
     }
 
     // 情况 9: 反伤
-    if (reflect) {
-      result += `，反弹 ${reflect.data.value} 点伤害给 ${reflect.data.targetName}`;
+    for (const reflect of reflects) {
+      resultParts.push(
+        `反弹 ${this.formatNumber(reflect.data.value)} 点伤害给${this.formatName(reflect.data.targetName)}`,
+      );
     }
 
     // 情况 10: 冷却修改
-    if (cooldownModify) {
+    for (const cooldownModify of cooldownModifies) {
       const action = cooldownModify.data.value > 0 ? '增加' : '减少';
-      result += `，使 ${cooldownModify.data.targetName} 的【${cooldownModify.data.affectedSkillName}】冷却${action}${Math.abs(cooldownModify.data.value)} 回合`;
+      resultParts.push(
+        `使${this.formatName(cooldownModify.data.targetName)}的${this.formatSkill(cooldownModify.data.affectedSkillName)}冷却${action}${this.formatNumber(Math.abs(cooldownModify.data.value))}回合`,
+      );
     }
 
     // 情况 11: 标签触发
-    if (tagTrigger) {
-      result += `，触发了 ${tagTrigger.data.targetName} 身上的「${tagTrigger.data.tag}」标记`;
+    for (const tagTrigger of tagTriggers) {
+      resultParts.push(
+        `触发了${this.formatName(tagTrigger.data.targetName)}身上的「${tagTrigger.data.tag}」标记`,
+      );
     }
 
-    return result;
+    if (resultParts.length === 0) {
+      return `${actor}${actionDesc}`;
+    }
+
+    return `${actor}${actionDesc}，${resultParts.join('，')}`;
   }
 
   private formatMultiTargetAction(
     span: LogSpan,
     actor: string,
     ability: { id: string; name: string } | undefined,
-    targets: string[]
+    targets: string[],
   ): string {
     const lines: string[] = [];
     for (const target of targets) {
-      const targetEntries = span.entries.filter((e) => {
-        const data = e.data as { targetName?: string };
-        return data.targetName === target;
-      });
-      lines.push(this.formatSingleTargetAction(span, actor, ability, targetEntries));
+      const targetEntries = this.getEntriesForTarget(span.entries, target);
+      if (targetEntries.length === 0) {
+        continue;
+      }
+      lines.push(
+        this.formatSingleTargetAction(span, actor, ability, targetEntries),
+      );
     }
     return lines.join('\n');
   }
 
   private extractTargets(entries: LogEntry[]): string[] {
     const targets = new Set<string>();
+    const targetEntryTypes: LogEntryType[] = [
+      'damage',
+      'heal',
+      'shield',
+      'buff_apply',
+      'dodge',
+      'resist',
+      'death',
+      'mana_burn',
+      'resource_drain',
+      'dispel',
+      'reflect',
+      'tag_trigger',
+      'death_prevent',
+      'skill_interrupt',
+      'cooldown_modify',
+    ];
     for (const entry of entries) {
+      if (!targetEntryTypes.includes(entry.type)) {
+        continue;
+      }
       const data = entry.data as { targetName?: string };
       if (data.targetName) {
         targets.add(data.targetName);
@@ -213,8 +308,16 @@ export class LogPresenter {
     return Array.from(targets);
   }
 
+  private getEntriesForTarget(entries: LogEntry[], target: string): LogEntry[] {
+    return entries.filter((entry) => {
+      const data = entry.data as { targetName?: string };
+      return data.targetName === target;
+    });
+  }
+
   private formatActionPre(span: LogSpan): string {
-    const actor = span.actor?.name ?? '未知';
+    const actorName = span.actor?.name ?? '未知';
+    const actor = this.formatName(actorName);
     const entries = span.entries;
 
     const damage = this.findEntry(entries, 'damage');
@@ -224,22 +327,22 @@ export class LogPresenter {
     // DOT 伤害
     if (damage && damage.data.sourceBuff) {
       let result = `【持续】${actor}身上的「${damage.data.sourceBuff}」发作`;
-      result += `，造成 ${damage.data.value} 点伤害`;
+      result += `，造成 ${this.formatNumber(damage.data.value)} 点伤害`;
 
       if (damage.data.shieldAbsorbed && damage.data.shieldAbsorbed > 0) {
-        result += `（抵扣护盾 ${Math.round(damage.data.shieldAbsorbed)} 点）`;
+        result += `（抵扣护盾 ${this.formatNumber(Math.round(damage.data.shieldAbsorbed))} 点）`;
       }
 
       const death = this.findEntry(span.entries, 'death');
-      if (death && death.data.targetName === actor) {
-        result += `，${actor}被击败!`;
+      if (death && death.data.targetName === actorName) {
+        result += `，${actor}被击败！`;
       }
       return result;
     }
 
     // HOT 治疗
     if (heal && heal.data.sourceBuff) {
-      return `【持续】${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${heal.data.value} 点气血`;
+      return `【持续】${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点气血`;
     }
 
     // Buff 过期
@@ -252,9 +355,58 @@ export class LogPresenter {
 
   private findEntry<T extends LogEntryType>(
     entries: LogEntry[],
-    type: T
+    type: T,
   ): LogEntry<T> | undefined {
     return entries.find((e) => e.type === type) as LogEntry<T> | undefined;
+  }
+
+  private findEntries<T extends LogEntryType>(
+    entries: LogEntry[],
+    type: T,
+  ): LogEntry<T>[] {
+    return entries.filter((e) => e.type === type) as LogEntry<T>[];
+  }
+
+  private formatBuffApplyList(
+    buffApplies: Array<LogEntry<'buff_apply'>>,
+  ): string {
+    return buffApplies
+      .map((entry) => {
+        const durationText = this.formatDuration(entry.data.duration);
+        const layerText = this.formatBuffLayer(entry.data.layers);
+        return `「${entry.data.buffName}」${layerText}${durationText}`;
+      })
+      .join('、');
+  }
+
+  private formatBuffLayer(layers?: number): string {
+    if (!layers || layers <= 1) {
+      return '';
+    }
+    return `×${this.formatNumber(layers)}`;
+  }
+
+  private formatDuration(duration: number): string {
+    if (duration < 0) {
+      return '（永久）';
+    }
+    return `（${duration} 回合）`;
+  }
+
+  private formatQuotedList(items: string[]): string {
+    return items.map((item) => `「${item}」`).join('、');
+  }
+
+  private formatName(name: string): string {
+    return `「${name}」`;
+  }
+
+  private formatSkill(name: string): string {
+    return `《${name}》`;
+  }
+
+  private formatNumber(value: number): string {
+    return this._numberFormatter.format(value);
   }
 
   /**

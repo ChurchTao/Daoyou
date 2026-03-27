@@ -71,6 +71,7 @@ export interface SkillPreCastEvent extends CombatEvent {
 export interface SkillInterruptEvent extends CombatEvent {
   type: 'SkillInterruptEvent';
   caster: Unit;
+  target: Unit;
   ability: Ability;
   reason: string;
 }

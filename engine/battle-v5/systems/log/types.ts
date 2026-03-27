@@ -45,6 +45,7 @@ export interface BuffApplyEntryData {
   buffName: string;
   buffType: 'buff' | 'debuff' | 'control';
   targetName: string;
+  layers?: number;
   duration: number;
 }
 
@@ -104,6 +105,7 @@ export interface DeathPreventEntryData {
 
 export interface SkillInterruptEntryData {
   skillName: string;
+  targetName: string;
   reason: string;
 }
 
