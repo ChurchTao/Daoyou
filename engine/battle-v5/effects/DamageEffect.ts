@@ -1,11 +1,6 @@
-import { GameplayTags } from '../core';
 import { DamageParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
-import {
-  ActionPreEvent,
-  DamageRequestEvent,
-  EventPriorityLevel,
-} from '../core/events';
+import { DamageRequestEvent, EventPriorityLevel } from '../core/events';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
@@ -20,19 +15,7 @@ export class DamageEffect extends GameplayEffect {
   }
 
   execute(context: EffectContext): void {
-    const { caster, target, ability, buff, triggerEvent } = context;
-
-    if (triggerEvent && triggerEvent.type === 'ActionPreEvent') {
-      // DOT 伤害，需要判断是否是自己的DOT
-      const e = triggerEvent as ActionPreEvent;
-      if (
-        buff?.tags.hasTag(GameplayTags.BUFF.DOT) &&
-        e.caster.id !== target?.id
-      ) {
-        // 如果不是自己的DOT，则不处理
-        return;
-      }
-    }
+    const { caster, target, ability, buff } = context;
 
     // 使用统一计算器计算基础伤害
     const damage = ValueCalculator.calculate(this.params.value, caster);

@@ -18,16 +18,17 @@ export class ValueCalculator {
   /**
    * 计算最终数值
    */
-  static calculate(value: ScalableValue | number, source: Unit): number {
+  static calculate(value: ScalableValue | number, caster: Unit): number {
+
     if (typeof value === 'number') {
       return value;
     }
 
-    let total = value.base ?? 100; // 默认基础值为 100
-    const coefficient = value.coefficient ?? 0.01; // 默认系数为 0.01
+    let total = value.base ?? 0; // 默认基础值为 0
+    const coefficient = value.coefficient ?? 1.0; // 默认系数为 1.0
     if (value.attribute) {
-      const attrValue = source.attributes.getValue(value.attribute);
-      total = total * (1 + attrValue * coefficient);
+      const attrValue = caster.attributes.getValue(value.attribute);
+      total = total + attrValue * coefficient;
     }
     return Math.round(total);
   }

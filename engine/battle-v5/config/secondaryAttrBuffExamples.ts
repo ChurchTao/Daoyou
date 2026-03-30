@@ -8,14 +8,18 @@
  *
  * 属性分类：
  * ── 派生型（FIXED modifier 在公式结算值基础上叠加）──
+ *   ATK                 物理攻击（线性）：+值提升物理伤害基线
+ *   DEF                 物理防御（线性）：+值降低物理伤害
+ *   MAGIC_ATK           法术攻击（线性）：+值提升法术伤害基线
+ *   MAGIC_DEF           法术防御（线性）：+值降低法术伤害
  *   CRIT_RATE           暴击率（0-0.60）：+值提升暴击概率
  *   CRIT_DAMAGE_MULT    暴击伤害（1.25-2.00）：+值提升暴击倍率
  *   EVASION_RATE        闪避率（0-0.50）：+值直接提升闪避概率
- *   DAMAGE_REDUCTION    减伤率（0-0.70）：+值提升减伤（受 ARMOR_PENETRATION 压制）
  *   CONTROL_HIT         控制命中（0-0.80）：+值提升控制成功率
  *   CONTROL_RESISTANCE  控制抗性（0-0.80）：+值降低被控概率和持续时间
  * ── 外部注入型（base=0，完全由 Buff/装备/命格提供）──
  *   ARMOR_PENETRATION      穿透（0-1）：降低目标有效减伤
+ *   MAGIC_PENETRATION      法穿（0-1）：降低目标有效法防
  *   CRIT_RESIST            抗暴（0-1）：降低攻击方暴击率
  *   CRIT_DAMAGE_REDUCTION  暴击减伤（0-0.5）：降低受到的暴击倍数
  *   ACCURACY               精准（0-0.5）：提高命中、抑制闪避
@@ -107,8 +111,8 @@ const divineStepAura: BuffConfig = {
 };
 
 /**
- * 金刚不坏（减伤型）
- * 效果：DAMAGE_REDUCTION +0.10（在公式基础上额外 +10% 减伤）
+ * 金刚不坏（防御型）
+ * 效果：DEF +120（线性提升物理减伤能力）
  */
 const diamondBody: BuffConfig = {
   id: 'diamond_body',
@@ -119,9 +123,9 @@ const diamondBody: BuffConfig = {
   tags: [GameplayTags.BUFF.TYPE_BUFF],
   modifiers: [
     {
-      attrType: AttributeType.DAMAGE_REDUCTION,
+      attrType: AttributeType.DEF,
       type: ModifierType.FIXED,
-      value: 0.1,
+      value: 120,
     },
   ],
 };

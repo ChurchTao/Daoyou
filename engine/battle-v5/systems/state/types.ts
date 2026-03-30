@@ -28,20 +28,23 @@ export interface AttrsStateView {
   willpower: number;
   wisdom: number;
   // 派生型二级属性（实际小数值，如 0.35 表示 35%）
+  atk: number;
+  def: number;
+  magicAtk: number;
+  magicDef: number;
   /** 暴击率 0-0.60 */
   critRate: number;
   /** 暴击伤害倍率 1.25-2.00 */
   critDamageMult: number;
   /** 闪避率 0-0.50 */
   evasionRate: number;
-  /** 减伤率 0-0.70 */
-  damageReduction: number;
   /** 控制命中 0-0.80 */
   controlHit: number;
   /** 控制抗性 0-0.80 */
   controlResistance: number;
   // 外部注入型二级属性
   armorPenetration: number;
+  magicPenetration: number;
   critResist: number;
   critDamageReduction: number;
   accuracy: number;

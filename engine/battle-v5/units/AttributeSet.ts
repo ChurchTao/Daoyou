@@ -5,6 +5,7 @@ import { AttributeModifier, AttributeType, ModifierType } from '../core/types';
  */
 const EXTERNAL_SECONDARY_ATTRS = new Set<AttributeType>([
   AttributeType.ARMOR_PENETRATION,
+  AttributeType.MAGIC_PENETRATION,
   AttributeType.CRIT_RESIST,
   AttributeType.CRIT_DAMAGE_REDUCTION,
   AttributeType.ACCURACY,
@@ -126,21 +127,24 @@ class Attribute {
  *
  * 主属性（5维，整数，默认 10）：
  * - SPIRIT    (灵力)    — 法系输出、MP、护盾
- * - VITALITY  (体魄)    — 气血上限、减伤率
+ * - VITALITY  (体魄)    — 气血上限、物攻、物防
  * - SPEED     (身法)    — 出手顺序、暴击率基础、闪避率
- * - WILLPOWER (神识)    — 控制命中、控制抗性
+ * - WILLPOWER (神识)    — 控制命中、控制抗性、法防
  * - WISDOM    (悟性)    — 暴击率加成、暴击伤害上限、MP上限
  *
  * 派生型二级属性（浮点，base=公式，modifier 可叠加）：
+ * - ATK                物理攻击   = VITALITY×5
+ * - DEF                物理防御   = VITALITY×3
+ * - MAGIC_ATK          法术攻击   = SPIRIT×5
+ * - MAGIC_DEF          法术防御   = WILLPOWER×3
  * - CRIT_RATE          暴击率     = min(0.60, 0.05 + SPEED×0.002 + WISDOM×0.001)
  * - CRIT_DAMAGE_MULT   暴击伤害   = min(2.00, 1.25 + WISDOM×0.005)
  * - EVASION_RATE       闪避率     = min(0.50, SPEED×0.003)
- * - DAMAGE_REDUCTION   减伤率     = min(0.70, VITALITY/(VITALITY+1000))
  * - CONTROL_HIT        控制命中   = min(0.80, WILLPOWER×0.003)
  * - CONTROL_RESISTANCE 控制抗性   = min(0.80, WILLPOWER×0.003)
  *
  * 外部注入型二级属性（浮点，base=0，由装备/Buff/命格提供）：
- * - ARMOR_PENETRATION、CRIT_RESIST、CRIT_DAMAGE_REDUCTION、ACCURACY、HEAL_AMPLIFY
+ * - ARMOR_PENETRATION、MAGIC_PENETRATION、CRIT_RESIST、CRIT_DAMAGE_REDUCTION、ACCURACY、HEAL_AMPLIFY
  */
 export class AttributeSet {
   private _attributes = new Map<AttributeType, Attribute>();
@@ -167,13 +171,41 @@ export class AttributeSet {
 
     // ── 派生型二级属性（base 由主属性公式推算）──
     this._attributes.set(
+      AttributeType.ATK,
+      new Attribute(AttributeType.ATK, 0, true, () =>
+        this.getValue(AttributeType.VITALITY) * 4 + this.getValue(AttributeType.SPEED) * 1,
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.DEF,
+      new Attribute(AttributeType.DEF, 0, true, () =>
+        this.getValue(AttributeType.VITALITY) * 2 + this.getValue(AttributeType.SPEED) * 1,
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.MAGIC_ATK,
+      new Attribute(AttributeType.MAGIC_ATK, 0, true, () =>
+        this.getValue(AttributeType.SPIRIT) * 4 + this.getValue(AttributeType.WILLPOWER) * 1,
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.MAGIC_DEF,
+      new Attribute(AttributeType.MAGIC_DEF, 0, true, () =>
+        this.getValue(AttributeType.SPIRIT) * 3 + this.getValue(AttributeType.WILLPOWER) * 1,
+      ),
+    );
+
+    this._attributes.set(
       AttributeType.CRIT_RATE,
       new Attribute(AttributeType.CRIT_RATE, 0, true, () =>
         Math.min(
           0.6,
           0.05 +
-            this.getValue(AttributeType.SPEED) * 0.002 +
-            this.getValue(AttributeType.WISDOM) * 0.001,
+            this.getValue(AttributeType.SPEED) * 0.0002 +
+            this.getValue(AttributeType.WISDOM) * 0.0001,
         ),
       ),
     );
@@ -181,36 +213,28 @@ export class AttributeSet {
     this._attributes.set(
       AttributeType.CRIT_DAMAGE_MULT,
       new Attribute(AttributeType.CRIT_DAMAGE_MULT, 0, true, () =>
-        Math.min(2.0, 1.25 + this.getValue(AttributeType.WISDOM) * 0.005),
+        Math.min(2.0, 1.25 + this.getValue(AttributeType.WISDOM) * 0.0005),
       ),
     );
 
     this._attributes.set(
       AttributeType.EVASION_RATE,
       new Attribute(AttributeType.EVASION_RATE, 0, true, () =>
-        Math.min(0.5, this.getValue(AttributeType.SPEED) * 0.003),
+        Math.min(0.5, this.getValue(AttributeType.SPEED) * 0.0003),
       ),
-    );
-
-    this._attributes.set(
-      AttributeType.DAMAGE_REDUCTION,
-      new Attribute(AttributeType.DAMAGE_REDUCTION, 0, true, () => {
-        const vit = this.getValue(AttributeType.VITALITY);
-        return Math.min(0.7, vit / (vit + 1000));
-      }),
     );
 
     this._attributes.set(
       AttributeType.CONTROL_HIT,
       new Attribute(AttributeType.CONTROL_HIT, 0, true, () =>
-        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.003),
+        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.0003),
       ),
     );
 
     this._attributes.set(
       AttributeType.CONTROL_RESISTANCE,
       new Attribute(AttributeType.CONTROL_RESISTANCE, 0, true, () =>
-        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.003),
+        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.0003),
       ),
     );
 
@@ -296,13 +320,13 @@ export class AttributeSet {
   }
 
   /**
-   * HP = 100 + VITALITY×10 + SPIRIT×2
+   * HP = 200 + VITALITY×12 + SPIRIT×4
    */
   getMaxHp(): number {
     return (
-      100 +
-      this.getValue(AttributeType.VITALITY) * 10 +
-      this.getValue(AttributeType.SPIRIT) * 2
+      200 +
+      this.getValue(AttributeType.VITALITY) * 12 +
+      this.getValue(AttributeType.SPIRIT) * 4
     );
   }
 

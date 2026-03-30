@@ -203,6 +203,7 @@ describe('二级属性最基础接线验证', () => {
   it('外部注入型二级属性默认值应为 0', () => {
     const unit = makeUnit('u1', '测试');
     expect(unit.attributes.getValue(AttributeType.ARMOR_PENETRATION)).toBe(0);
+    expect(unit.attributes.getValue(AttributeType.MAGIC_PENETRATION)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.CRIT_RESIST)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.CRIT_DAMAGE_REDUCTION)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.ACCURACY)).toBe(0);
@@ -211,14 +212,20 @@ describe('二级属性最基础接线验证', () => {
 
   it('派生型二级属性应根据主属性公式计算（SPEED=20, WILLPOWER=50, WISDOM=30, VITALITY=100）', () => {
     const unit = makeUnit('u1', '测试');
+    // ATK = 100×5 = 500
+    expect(unit.attributes.getValue(AttributeType.ATK)).toBe(500);
+    // DEF = 100×3 = 300
+    expect(unit.attributes.getValue(AttributeType.DEF)).toBe(300);
+    // MAGIC_ATK = 100×5 = 500（默认 SPIRIT=100）
+    expect(unit.attributes.getValue(AttributeType.MAGIC_ATK)).toBe(500);
+    // MAGIC_DEF = 50×3 = 150
+    expect(unit.attributes.getValue(AttributeType.MAGIC_DEF)).toBe(150);
     // CRIT_RATE = min(0.60, 0.05 + 20×0.002 + 30×0.001) = 0.05+0.04+0.03 = 0.12
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.12);
     // CRIT_DAMAGE_MULT = min(2.00, 1.25 + 30×0.005) = 1.40
     expect(unit.attributes.getValue(AttributeType.CRIT_DAMAGE_MULT)).toBeCloseTo(1.40);
     // EVASION_RATE = min(0.50, 20×0.003) = 0.06
     expect(unit.attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(0.06);
-    // DAMAGE_REDUCTION = min(0.70, 100/(100+1000)) ≈ 0.0909
-    expect(unit.attributes.getValue(AttributeType.DAMAGE_REDUCTION)).toBeCloseTo(100 / 1100);
     // CONTROL_HIT = min(0.80, 50×0.003) = 0.15
     expect(unit.attributes.getValue(AttributeType.CONTROL_HIT)).toBeCloseTo(0.15);
     // CONTROL_RESISTANCE = min(0.80, 50×0.003) = 0.15

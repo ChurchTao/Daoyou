@@ -54,13 +54,26 @@ describe('AttributeSet', () => {
     const attrs = new AttributeSet({
       [AttributeType.VITALITY]: 50,
       [AttributeType.SPIRIT]: 30,
+      [AttributeType.WILLPOWER]: 40,
     });
 
-    // HP = 100 + 50*10 + 30*2 = 100 + 500 + 60 = 660
-    expect(attrs.getMaxHp()).toBe(660);
+    // HP = 200 + 50*12 + 30*4 = 200 + 600 + 120 = 920
+    expect(attrs.getMaxHp()).toBe(920);
 
     // MP = 100 + 30*5 + 10*3 = 100 + 150 + 30 = 280
     expect(attrs.getMaxMp()).toBe(280);
+
+    // ATK = VITALITY*5 = 250
+    expect(attrs.getValue(AttributeType.ATK)).toBe(250);
+
+    // DEF = VITALITY*3 = 150
+    expect(attrs.getValue(AttributeType.DEF)).toBe(150);
+
+    // MAGIC_ATK = SPIRIT*5 = 150
+    expect(attrs.getValue(AttributeType.MAGIC_ATK)).toBe(150);
+
+    // MAGIC_DEF = WILLPOWER*3 = 120
+    expect(attrs.getValue(AttributeType.MAGIC_DEF)).toBe(120);
   });
 
   it('应该支持克隆', () => {

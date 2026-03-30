@@ -134,6 +134,7 @@ export const GameplayTags = {
     TYPE: 'Ability.Type',
     // 技能类型：伤害、控制、治疗、魔法、物理
     TYPE_DAMAGE: 'Ability.Type.Damage',
+    TYPE_TRUE_DAMAGE: 'Ability.Type.Damage.True',
     TYPE_CONTROL: 'Ability.Type.Control',
     TYPE_HEAL: 'Ability.Type.Heal',
     TYPE_MAGIC: 'Ability.Type.Magic',

@@ -19,11 +19,11 @@ export class BasicAttack extends ActiveSkill {
       priority: 0,
     });
 
-    // 普攻效果：1.0 倍体魄伤害 + 20 基础伤害
+    // 普攻效果：1.0 倍物理攻击
     this._damageEffect = new DamageEffect({
       value: {
-        attribute: AttributeType.VITALITY,
-        base: 100,
+        attribute: AttributeType.ATK,
+        coefficient: 1.0,
       },
     });
 

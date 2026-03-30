@@ -116,6 +116,7 @@ export interface DamageRequestEvent extends CombatEvent {
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
   damageSource?: 'direct' | 'reflect';
+  damageType?: 'physical' | 'magical' | 'true';
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   isCritical?: boolean; // 是否暴击
@@ -133,6 +134,7 @@ export interface DamageEvent extends CombatEvent {
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：记录来源 Buff
   damageSource?: 'direct' | 'reflect';
+  damageType?: 'physical' | 'magical' | 'true' | 'dot';
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率

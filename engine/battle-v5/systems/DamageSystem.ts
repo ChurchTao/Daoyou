@@ -134,16 +134,47 @@ export class DamageSystem {
    * 所有伤害来源（技能、DOT、反伤）都走此管道
    *
    * 统一结算管道顺序：
-   * ① 暴击判定（施法者暴击率 - 目标暴击韧性）
-   * ② 破防 + 减伤强度修正 → 有效减伤率
-   * ③ 应用减伤
+   * ① 按伤害类型计算有效防御（物理DEF/法术DEF/真伤）
+   * ② 应用减法防御（并保留10%保底穿透）
+   * ③ 暴击判定（减伤后乘算）
    * ④ 随机浮动 (0.9~1.1)
    * ⑤ 最小伤害保证 + 四舍五入
    */
   private _onDamageRequest(event: DamageRequestEvent): void {
     const { target } = event;
 
-    // ===== ① 暴击判定 =====
+    const damageType = this._resolveDamageType(event);
+
+    // ===== ① 按伤害类型计算有效防御 =====
+    let effectiveDef = 0;
+    if (damageType === 'physical') {
+      const baseDef = target.attributes.getValue(AttributeType.DEF);
+      const armorPen = Math.max(
+        0,
+        Math.min(
+          0.5,
+          event.caster?.attributes.getValue(AttributeType.ARMOR_PENETRATION) ?? 0,
+        ),
+      );
+      effectiveDef = baseDef * (1 - armorPen);
+    } else if (damageType === 'magical') {
+      const baseDef = target.attributes.getValue(AttributeType.MAGIC_DEF);
+      const magicPen = Math.max(
+        0,
+        Math.min(
+          0.5,
+          event.caster?.attributes.getValue(AttributeType.MAGIC_PENETRATION) ?? 0,
+        ),
+      );
+      effectiveDef = baseDef * (1 - magicPen);
+    }
+
+    // ===== ② 应用减法防御（10%保底伤害） =====
+    const preMitigationDamage = event.finalDamage;
+    const reducedDamage = preMitigationDamage - effectiveDef;
+    event.finalDamage = Math.max(preMitigationDamage * 0.1, reducedDamage);
+
+    // ===== ③ 暴击判定（减伤后） =====
     // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
     if (!event.isCritical && event.caster && event.damageSource !== 'reflect') {
       const rawCritRate = event.caster.attributes.getValue(AttributeType.CRIT_RATE);
@@ -157,16 +188,6 @@ export class DamageSystem {
         event.finalDamage *= event.critMultiplier;
       }
     }
-
-    // ===== ② 破防 + 减伤强度修正 =====
-    // 目标 DAMAGE_REDUCTION 由 AttributeSet 派生公式计算（VITALITY 双曲线，上限 70%）
-    const baseReduction = target.attributes.getValue(AttributeType.DAMAGE_REDUCTION);
-    // 施法者破防率直接扣减目标减伤
-    const armorPen = event.caster?.attributes.getValue(AttributeType.ARMOR_PENETRATION) ?? 0;
-    const effectiveReduction = Math.max(0, Math.min(0.75, baseReduction - armorPen));
-
-    // ===== ③ 应用减伤 =====
-    event.finalDamage = event.finalDamage * (1 - effectiveReduction);
 
     // ===== ④ 随机浮动 (0.9 ~ 1.1，降低纯数值比拼的确定性) =====
     const randomFactor = 0.9 + Math.random() * 0.2;
@@ -185,6 +206,7 @@ export class DamageSystem {
       ability: event.ability,
       buff: event.buff,
       damageSource: event.damageSource,
+      damageType,
       finalDamage: event.finalDamage,
       isCritical: event.isCritical,
       critMultiplier: event.critMultiplier,
@@ -194,6 +216,28 @@ export class DamageSystem {
 
     // 直接应用伤害（不再通过订阅 DamageEvent）
     this._updateTargetHealth(damageEvent);
+  }
+
+  private _resolveDamageType(
+    event: DamageRequestEvent,
+  ): 'physical' | 'magical' | 'true' | 'dot' {
+    if (event.damageType) return event.damageType;
+
+    const tags = event.ability?.tags || event.buff?.tags;
+    if (tags?.hasTag(GameplayTags.ABILITY.TYPE_TRUE_DAMAGE)) {
+      return 'true';
+    }
+    if (tags?.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
+      return 'magical';
+    }
+    if (tags?.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
+      return 'physical';
+    }
+    if (tags?.hasTag(GameplayTags.BUFF.DOT)) {
+      return 'dot';
+    }
+
+    return 'physical';
   }
 
   // ==================== 伤害应用 ====================

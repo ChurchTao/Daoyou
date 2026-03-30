@@ -8,15 +8,12 @@ import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
 
 describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () => {
-  let randomSpy: jest.SpyInstance<number, []>;
 
   beforeEach(() => {
     EventBus.instance.reset();
-    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
   });
 
   afterEach(() => {
-    randomSpy.mockRestore();
   });
 
   const createTestUnit = (
@@ -37,12 +34,8 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
   };
 
   it('1. 验证【剧毒与驱散】：锁定命中确保流程执行', () => {
-    const player = createTestUnit('player', '法海', {
-      [AttributeType.SPEED]: 1000,
-    });
-    const opponent = createTestUnit('opponent', '蛇精', {
-      [AttributeType.SPEED]: 0,
-    });
+    const player = createTestUnit('player', '法海');
+    const opponent = createTestUnit('opponent', '蛇精');
 
     const poisonBuffCfg: BuffConfig = {
       id: 'real_poison',
@@ -63,7 +56,18 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
           guard: {
             requireOwnerAlive: true,
           },
-          effects: [{ type: 'damage', params: { value: { base: 100 } } }],
+          effects: [
+            {
+              type: 'damage',
+              params: {
+                value: {
+                  base: 10,
+                  attribute: AttributeType.MAGIC_ATK,
+                  coefficient: 0.12,
+                },
+              },
+            },
+          ],
         },
       ],
     };
@@ -120,7 +124,12 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         priority: 100,
         cooldown: 3,
         targetPolicy: { team: 'enemy', scope: 'single' },
-        effects: [{ type: 'damage', params: { value: { base: 120, attribute: AttributeType.VITALITY } } }],
+        effects: [
+          {
+            type: 'damage',
+            params: { value: { base: 120, attribute: AttributeType.VITALITY } },
+          },
+        ],
       }),
     );
 
@@ -199,7 +208,10 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
     expect(
       result.logs.some(
-        (log) => log.includes('对「护盾者」造成 0 点伤害') && log.includes('抵扣护盾'),
+        (log) =>
+          log.includes('对「护盾者」造成') &&
+          log.includes('抵扣护盾') &&
+          log.includes('护盾已破碎'),
       ),
     ).toBe(true);
   });

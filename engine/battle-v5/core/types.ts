@@ -28,21 +28,25 @@ export enum CombatPhase {
 export enum AttributeType {
   // ── 主属性（5维）──
   SPIRIT = 'spirit',       // 灵力：法系输出、MP、护盾
-  VITALITY = 'vitality',   // 体魄：气血上限、减伤率
+  VITALITY = 'vitality',   // 体魄：气血上限、物攻/物防
   SPEED = 'speed',         // 身法：出手顺序、暴击率基础、闪避率
-  WILLPOWER = 'willpower', // 神识：控制命中、控制抗性
+  WILLPOWER = 'willpower', // 神识：控制命中、控制抗性、法防
   WISDOM = 'wisdom',       // 悟性：暴击率加成、暴击伤害上限、MP上限
 
   // ── 派生型二级属性（base 由主属性公式推算，modifier 可叠加）──
+  ATK = 'atk',                                 // 物理攻击：VITALITY×5
+  DEF = 'def',                                 // 物理防御：VITALITY×3
+  MAGIC_ATK = 'magicAtk',                      // 法术攻击：SPIRIT×5
+  MAGIC_DEF = 'magicDef',                      // 法术防御：WILLPOWER×3
   CRIT_RATE = 'critRate',                       // 暴击率 (0~0.60)：0.05 + SPEED×0.002 + WISDOM×0.001
   CRIT_DAMAGE_MULT = 'critDamageMult',          // 暴击伤害倍率 (1.25~2.00)：1.25 + WISDOM×0.005
   EVASION_RATE = 'evasionRate',                 // 闪避率 (0~0.50)：SPEED×0.003
-  DAMAGE_REDUCTION = 'damageReduction',         // 减伤率 (0~0.70)：VITALITY/(VITALITY+1000)
   CONTROL_HIT = 'controlHit',                   // 控制命中 (0~0.80)：WILLPOWER×0.003
   CONTROL_RESISTANCE = 'controlResistance',     // 控制抗性 (0~0.80)：WILLPOWER×0.003
 
   // ── 外部注入型二级属性（base=0，完全由装备/Buff/命格提供）──
   ARMOR_PENETRATION = 'armorPenetration',        // 破防：抵消目标减伤率 (0~1)
+  MAGIC_PENETRATION = 'magicPenetration',        // 法术穿透：削减目标法防 (0~1)
   CRIT_RESIST = 'critResist',                    // 暴击韧性：降低对手暴击率 (0~1)
   CRIT_DAMAGE_REDUCTION = 'critDamageReduction', // 暴击减伤：降低受到暴击倍率 (0~0.5)
   ACCURACY = 'accuracy',                         // 精准：抵消目标闪避率 (0~0.5)
