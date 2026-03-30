@@ -1,11 +1,16 @@
-import { Unit } from './Unit';
 import { Ability, AbilityContext } from '../abilities/Ability';
-import { EventBus } from '../core/EventBus';
-import { ActionEvent, SkillPreCastEvent, EventPriorityLevel } from '../core/events';
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { BasicAttack } from '../abilities/BasicAttack';
-import { AbilityType } from '../core/types';
+import { EventBus } from '../core/EventBus';
+import {
+  ActionEvent,
+  ControlledSkipEvent,
+  EventPriorityLevel,
+  SkillPreCastEvent,
+} from '../core/events';
 import { GameplayTags } from '../core/GameplayTags';
+import { AbilityType } from '../core/types';
+import { Unit } from './Unit';
 
 /**
  * AbilityContainer - 技能容器
@@ -32,7 +37,8 @@ export class AbilityContainer {
   }
 
   private _subscribeToEvents(): void {
-    const actionEventHandler = (event: unknown) => this._onActionTrigger(event as ActionEvent);
+    const actionEventHandler = (event: unknown) =>
+      this._onActionTrigger(event as ActionEvent);
     EventBus.instance.subscribe<ActionEvent>(
       'ActionEvent',
       actionEventHandler,
@@ -54,15 +60,21 @@ export class AbilityContainer {
 
     // 控制三分法检查
     // NO_ACTION 已在 BattleEngineV5.executeActionPhase 中拦截，此处做防御性检查
-    if (this._owner.tags.hasAnyTag([
-      GameplayTags.STATUS.NO_ACTION,
-      GameplayTags.STATUS.STUNNED,
-    ])) {
+    if (
+      this._owner.tags.hasAnyTag([
+        GameplayTags.STATUS.NO_ACTION,
+        GameplayTags.STATUS.STUNNED,
+      ])
+    ) {
       return;
     }
 
-    const isSkillBlocked = this._owner.tags.hasTag(GameplayTags.STATUS.NO_SKILL);
-    const isBasicBlocked = this._owner.tags.hasTag(GameplayTags.STATUS.NO_BASIC);
+    const isSkillBlocked = this._owner.tags.hasTag(
+      GameplayTags.STATUS.NO_SKILL,
+    );
+    const isBasicBlocked = this._owner.tags.hasTag(
+      GameplayTags.STATUS.NO_BASIC,
+    );
 
     const opponent = this._getDefaultTarget();
 
@@ -97,7 +109,10 @@ export class AbilityContainer {
         };
 
         if (activeSkill.canTrigger(context)) {
-          abilitiesToCast.push({ ability: activeSkill, target: resolvedTarget });
+          abilitiesToCast.push({
+            ability: activeSkill,
+            target: resolvedTarget,
+          });
         }
       }
 
@@ -111,8 +126,21 @@ export class AbilityContainer {
     }
 
     // 无可用技能（或禁技状态）时回退到普攻，禁普攻则什么都不做
-    if (!isBasicBlocked && opponent && opponent.id !== this._owner.id && opponent.isAlive()) {
+    if (
+      !isBasicBlocked &&
+      opponent &&
+      opponent.id !== this._owner.id &&
+      opponent.isAlive()
+    ) {
       this._prepareCast(this._getDefaultAttack(), opponent);
+    } else {
+      EventBus.instance.publish<ControlledSkipEvent>({
+        type: 'ControlledSkipEvent',
+        priority: EventPriorityLevel.COMBAT_LOG,
+        timestamp: Date.now(),
+        unit: this._owner,
+        controlTag: GameplayTags.STATUS.NO_ACTION,
+      });
     }
   }
 
@@ -121,13 +149,15 @@ export class AbilityContainer {
    */
   getAvailableAbilities(target: Unit): Ability[] {
     return Array.from(this._abilities.values())
-      .filter((ability): ability is ActiveSkill => ability instanceof ActiveSkill)
-      .filter(ability => {
+      .filter(
+        (ability): ability is ActiveSkill => ability instanceof ActiveSkill,
+      )
+      .filter((ability) => {
         // 简单校验：如果传入目标与策略不符，则认为不可用（在复杂 AI 中由外部控制）
         const policy = ability.targetPolicy;
         const isSelfTarget = policy.team === 'self' || policy.team === 'ally';
         const actualTarget = isSelfTarget ? this._owner : target;
-        
+
         return ability.canTrigger({
           caster: this._owner,
           target: actualTarget,

@@ -197,16 +197,17 @@ export class BattleEngineV5 {
       if (!actor.isAlive()) continue;
       // ===== 控制状态检查 =====
       // 禁行动：包括紧傅标签（向后兼容）和新式 NO_ACTION 标签
-      const controlTag = actor.tags.hasTag(GameplayTags.STATUS.CONTROL);
-      if (controlTag !== null) {
+      const hasControlTag = actor.tags.hasAnyTag([
+        GameplayTags.STATUS.NO_ACTION,
+        GameplayTags.STATUS.STUNNED,
+      ]);
+      if (hasControlTag) {
         this._eventBus.publish<ControlledSkipEvent>({
           type: 'ControlledSkipEvent',
           priority: EventPriorityLevel.COMBAT_LOG,
           timestamp: Date.now(),
           unit: actor,
-          controlTag:
-            actor.tags.getFirstMatchingTag(GameplayTags.STATUS.CONTROL) ??
-            GameplayTags.STATUS.NO_ACTION,
+          controlTag: GameplayTags.STATUS.NO_ACTION,
         });
         continue;
       }

@@ -137,11 +137,11 @@ class Attribute {
  * - DEF                物理防御   = VITALITY×3
  * - MAGIC_ATK          法术攻击   = SPIRIT×5
  * - MAGIC_DEF          法术防御   = WILLPOWER×3
- * - CRIT_RATE          暴击率     = min(0.60, 0.05 + SPEED×0.002 + WISDOM×0.001)
- * - CRIT_DAMAGE_MULT   暴击伤害   = min(2.00, 1.25 + WISDOM×0.005)
- * - EVASION_RATE       闪避率     = min(0.50, SPEED×0.003)
- * - CONTROL_HIT        控制命中   = min(0.80, WILLPOWER×0.003)
- * - CONTROL_RESISTANCE 控制抗性   = min(0.80, WILLPOWER×0.003)
+ * - CRIT_RATE          暴击率     = min(0.60, 0.05 + SPEED×0.0002 + WISDOM×0.0001)
+ * - CRIT_DAMAGE_MULT   暴击伤害   = min(2.00, 1.25 + WISDOM×0.0005)
+ * - EVASION_RATE       闪避率     = min(0.50, SPEED×0.0003)
+ * - CONTROL_HIT        控制命中   = min(0.80, WILLPOWER×0.0003)
+ * - CONTROL_RESISTANCE 控制抗性   = min(0.80, WILLPOWER×0.0003)
  *
  * 外部注入型二级属性（浮点，base=0，由装备/Buff/命格提供）：
  * - ARMOR_PENETRATION、MAGIC_PENETRATION、CRIT_RESIST、CRIT_DAMAGE_REDUCTION、ACCURACY、HEAL_AMPLIFY
@@ -325,8 +325,7 @@ export class AttributeSet {
   getMaxHp(): number {
     return (
       200 +
-      this.getValue(AttributeType.VITALITY) * 12 +
-      this.getValue(AttributeType.SPIRIT) * 4
+      this.getValue(AttributeType.VITALITY) * 16
     );
   }
 
@@ -337,7 +336,7 @@ export class AttributeSet {
     return (
       100 +
       this.getValue(AttributeType.SPIRIT) * 5 +
-      this.getValue(AttributeType.WISDOM) * 3
+      this.getValue(AttributeType.WILLPOWER) * 3
     );
   }
 

@@ -60,20 +60,6 @@ export class GameplayTagContainer {
   }
 
   /**
-   * 获取匹配的标签
-   */
-  public getFirstMatchingTag(tag: TagPath): TagPath | null {
-    const parentTags = this._getParentTags(tag);
-    
-    for (const t of this._tags) {
-      if (t === tag || parentTags.includes(t)) {
-        return t;
-      }
-    }
-    return null;
-  }
-
-  /**
    * 清空所有标签
    */
   public clear(): void {

@@ -37,6 +37,9 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     const player = createTestUnit('player', '法海');
     const opponent = createTestUnit('opponent', '蛇精');
 
+    console.log('--- 测试【剧毒与驱散】：锁定命中确保流程执行 ---');
+    console.log(player.getSnapshot());
+
     const poisonBuffCfg: BuffConfig = {
       id: 'real_poison',
       name: '万蚁噬心',
