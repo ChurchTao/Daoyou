@@ -23,12 +23,12 @@ export class ValueCalculator {
       return value;
     }
 
-    let total = value.base ?? 0;
-    if (value.attribute && value.coefficient) {
+    let total = value.base ?? 100; // 默认基础值为 100
+    const coefficient = value.coefficient ?? 0.01; // 默认系数为 0.01
+    if (value.attribute) {
       const attrValue = source.attributes.getValue(value.attribute);
-      total += attrValue * value.coefficient;
+      total = total * (1 + attrValue * coefficient);
     }
-
     return Math.round(total);
   }
 }

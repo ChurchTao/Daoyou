@@ -23,8 +23,7 @@ export class BasicAttack extends ActiveSkill {
     this._damageEffect = new DamageEffect({
       value: {
         attribute: AttributeType.VITALITY,
-        coefficient: 1.0,
-        base: 20,
+        base: 100,
       },
     });
 

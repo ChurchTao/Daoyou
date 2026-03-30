@@ -105,12 +105,24 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
 
   it('3. 验证【反伤与免死】：锁定 1 血存活', () => {
     const attacker = createTestUnit('attacker', '杀手', {
-      [AttributeType.VITALITY]: 10000,
+      [AttributeType.VITALITY]: 100,
       [AttributeType.SPEED]: 1000,
     });
     const defender = createTestUnit('defender', '不死者', {
       [AttributeType.SPEED]: 0,
     });
+
+    attacker.abilities.addAbility(
+      AbilityFactory.create({
+        slug: 'execute',
+        name: '斩杀',
+        type: AbilityType.ACTIVE_SKILL,
+        priority: 100,
+        cooldown: 3,
+        targetPolicy: { team: 'enemy', scope: 'single' },
+        effects: [{ type: 'damage', params: { value: { base: 120, attribute: AttributeType.VITALITY } } }],
+      }),
+    );
 
     defender.buffs.addBuff(
       BuffFactory.create({
