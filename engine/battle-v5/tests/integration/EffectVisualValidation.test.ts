@@ -175,12 +175,11 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
   });
 
   it('4. 验证【护盾与焚元】：纯粹分步验证', () => {
-    const attacker = createTestUnit('striker', '削减者', {
-      [AttributeType.SPEED]: 0,
-    });
-    const defender = createTestUnit('wall', '护盾者', {
-      [AttributeType.SPEED]: 0,
-    });
+    const attacker = createTestUnit('striker', '削减者');
+    const defender = createTestUnit('wall', '护盾者');
+
+    console.log('--- 测试【护盾与焚元】：纯粹分步验证 ---');
+    console.log(defender.getSnapshot());
 
     attacker.abilities.addAbility(
       AbilityFactory.create({
@@ -190,7 +189,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         priority: 100,
         cooldown: 3,
         targetPolicy: { team: 'enemy', scope: 'single' },
-        effects: [{ type: 'mana_burn', params: { value: { base: 100 } } }],
+        effects: [{ type: 'mana_burn', params: { value: { base: 600 } } }],
       }),
     );
 
@@ -199,6 +198,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'shield',
         name: '真元盾',
         type: AbilityType.ACTIVE_SKILL,
+        mpCost: 200,
         priority: 90,
         cooldown: 3,
         targetPolicy: { team: 'self', scope: 'single' },

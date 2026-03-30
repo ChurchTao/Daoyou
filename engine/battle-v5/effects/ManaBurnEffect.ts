@@ -23,7 +23,7 @@ export class ManaBurnEffect extends GameplayEffect {
     if (burnAmount <= 0) return;
 
     // 执行 MP 削减
-    target.takeMp(burnAmount);
+    const actualBurned = target.takeMp(burnAmount);
 
     // 发布焚元事件
     EventBus.instance.publish<ManaBurnEvent>({
@@ -33,7 +33,7 @@ export class ManaBurnEffect extends GameplayEffect {
       caster,
       target,
       ability,
-      burnAmount,
+      burnAmount: actualBurned,
     });
   }
 }

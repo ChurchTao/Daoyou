@@ -105,12 +105,18 @@ export class Unit {
     return true;
   }
 
-  takeMp(amount: number): void {
+  /**
+   * @param amount
+   * @returns 削减了多少 MP（如果 amount 大于当前 MP，则削减当前 MP 的全部）
+   */
+  takeMp(amount: number): number {
     if (amount < 0) {
       console.warn(`Unit.takeMp: 负数输入 ${amount}，应使用 restoreMp() 方法`);
       amount = 0;
     }
-    this.currentMp = Math.max(0, this.currentMp - amount);
+    const actualTaken = Math.min(this.currentMp, amount);
+    this.currentMp = Math.max(0, this.currentMp - actualTaken);
+    return actualTaken;
   }
 
   restoreMp(amount: number): void {
