@@ -174,7 +174,7 @@ export class LogCollector {
         type: 'heal',
         data: {
           value: Math.round(e.healAmount),
-          remainHp: Math.round(e.target.currentHp),
+          remainHp: Math.round(e.target.getCurrentHp()),
           targetName: e.target.name,
           sourceBuff: e.buff?.name,
         },
@@ -188,6 +188,7 @@ export class LogCollector {
         type: 'shield',
         data: {
           value: Math.round(e.shieldAmount),
+          remainShield: Math.round(e.target.getCurrentShield()),
           targetName: e.target.name,
         },
         timestamp: Date.now(),

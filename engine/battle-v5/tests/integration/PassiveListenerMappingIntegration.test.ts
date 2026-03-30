@@ -30,7 +30,7 @@ describe('Passive Listener Mapping Integration', () => {
     const enemy = createUnit('enemy', '木桩');
 
     owner.takeDamage(200);
-    const beforeHp = owner.currentHp;
+    const beforeHp = owner.getCurrentHp();
 
     owner.abilities.addAbility(
       AbilityFactory.create({
@@ -60,8 +60,8 @@ describe('Passive Listener Mapping Integration', () => {
       turn: 1,
     });
 
-    expect(owner.currentHp).toBe(beforeHp + 50);
-    expect(enemy.currentHp).toBe(enemy.maxHp);
+    expect(owner.getCurrentHp()).toBe(beforeHp + 50);
+    expect(enemy.getCurrentHp()).toBe(enemy.getMaxHp());
   });
 
   it('skill cast trigger should honor explicit owner->event.target mapping', () => {
@@ -172,7 +172,7 @@ describe('Passive Listener Mapping Integration', () => {
       caster: attacker,
       target: defender,
       damageTaken: 120,
-      remainHealth: defender.currentHp,
+      remainHealth: defender.getCurrentHp(),
       isLethal: false,
     });
 

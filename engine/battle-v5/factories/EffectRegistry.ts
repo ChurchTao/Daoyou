@@ -90,7 +90,7 @@ export class EffectRegistry {
       case 'has_not_tag':
         return cond.params.tag ? !target.tags.hasTag(cond.params.tag) : true;
       case 'hp_above':
-        return target.currentHp / target.maxHp > (cond.params.value ?? 0);
+        return target.getCurrentHp() / target.getMaxHp() > (cond.params.value ?? 0);
       case 'chance':
         return Math.random() < (cond.params.value ?? 1);
       default:

@@ -12,14 +12,13 @@ export class Unit {
   readonly buffs: BuffContainer;
   readonly tags: GameplayTagContainer;
 
-  currentHp: number;
-  currentMp: number;
-  maxHp: number;
-  maxMp: number;
-  currentShield: number = 0; // 当前护盾值
+  private currentHp: number;
+  private currentMp: number;
+  private maxHp: number;
+  private maxMp: number;
+  private currentShield: number = 0; // 当前护盾值
 
-  isDefending: boolean = false;
-  isControlled: boolean = false;
+  private isDefending: boolean = false;
 
   constructor(
     id: UnitId,
@@ -64,6 +63,10 @@ export class Unit {
     this.currentShield += Math.round(amount);
   }
 
+  setHp(amount: number): void {
+    this.currentHp = Math.max(0, Math.min(this.maxHp, amount));
+  }
+
   /**
    * 扣除护盾
    * @returns 剩余未被护盾抵扣的伤害
@@ -86,11 +89,11 @@ export class Unit {
       console.warn(`Unit.takeDamage: 负数输入 ${damage}，应使用 heal() 方法`);
       damage = 0;
     }
-    this.currentHp = Math.max(0, this.currentHp - damage);
+    this.setHp(this.currentHp - damage);
   }
 
   heal(amount: number): void {
-    this.currentHp = Math.min(this.maxHp, this.currentHp + amount);
+    this.setHp(this.currentHp + amount);
   }
 
   consumeMp(amount: number): boolean {
@@ -185,11 +188,31 @@ export class Unit {
       isAlive: this.isAlive(),
       hpPercent: this.getHpPercent(),
       mpPercent: this.getMpPercent(),
+      currentShield: this.currentShield,
     };
   }
 
   resetTurnState(): void {
     this.isDefending = false;
-    this.isControlled = false;
+  }
+
+  getCurrentShield(): number {
+    return this.currentShield;
+  }
+
+  getMaxHp(): number {
+    return this.maxHp;
+  }
+
+  getMaxMp(): number {
+    return this.maxMp;
+  }
+
+  getCurrentHp(): number {
+    return this.currentHp;
+  }
+
+  getCurrentMp(): number {
+    return this.currentMp;
   }
 }

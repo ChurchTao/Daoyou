@@ -1,4 +1,5 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
+import { GameplayTags } from '../../core';
 import { AttributeType, BuffType } from '../../core/types';
 import { Unit } from '../../units/Unit';
 import {
@@ -102,34 +103,37 @@ export class BattleStateRecorder {
   // ===== Private: Snapshot Building =====
 
   private _buildSnapshot(unit: Unit): UnitStateSnapshot {
+    const { currentHp, maxHp, currentMp, maxMp, currentShield } =
+      unit.getSnapshot();
     const hpPercent =
-      unit.maxHp > 0
-        ? Math.round((unit.currentHp / unit.maxHp) * 10000) / 100
-        : 0;
+      maxHp > 0 ? Math.round((currentHp / maxHp) * 10000) / 100 : 0;
     const mpPercent =
-      unit.maxMp > 0
-        ? Math.round((unit.currentMp / unit.maxMp) * 10000) / 100
-        : 0;
+      maxMp > 0 ? Math.round((currentMp / maxMp) * 10000) / 100 : 0;
 
     return {
       id: unit.id,
       name: unit.name,
       alive: unit.isAlive(),
       hp: {
-        current: Math.round(unit.currentHp),
-        max: unit.maxHp,
+        current: Math.round(currentHp),
+        max: maxHp,
         percent: hpPercent,
       },
       mp: {
-        current: Math.round(unit.currentMp),
-        max: unit.maxMp,
+        current: Math.round(currentMp),
+        max: maxMp,
         percent: mpPercent,
       },
-      shield: Math.round(unit.currentShield),
+      shield: Math.round(currentShield),
       attrs: this._buildAttrs(unit),
       buffs: this._buildBuffs(unit),
       cooldowns: this._buildCooldowns(unit),
-      canAct: unit.isAlive() && !unit.isControlled,
+      canAct:
+        unit.isAlive() &&
+        !unit.tags.hasAnyTag([
+          GameplayTags.STATUS.NO_ACTION,
+          GameplayTags.STATUS.STUNNED,
+        ]),
     };
   }
 
@@ -247,9 +251,7 @@ export class BattleStateRecorder {
           name: b.name,
           layerChange: p.layers !== b.layers ? b.layers - p.layers : undefined,
           remainingChange:
-            p.remaining !== b.remaining
-              ? b.remaining - p.remaining
-              : undefined,
+            p.remaining !== b.remaining ? b.remaining - p.remaining : undefined,
         };
       });
 

@@ -3,6 +3,7 @@
 import { EventBus } from '../core/EventBus';
 import { Unit } from '../units/Unit';
 import { TargetPolicy, TargetFilter } from '../abilities/TargetPolicy';
+import { AttributeType } from '../core';
 
 /**
  * TargetSelectionSystem - 目标选择系统
@@ -88,25 +89,25 @@ export class TargetSelectionSystem {
     switch (filter) {
       case 'lowest_hp':
         return [units.reduce((min, u) =>
-          u.currentHp < min.currentHp ? u : min
+          u.getCurrentHp() < min.getCurrentHp() ? u : min
         )];
       case 'highest_hp':
         return [units.reduce((max, u) =>
-          u.currentHp > max.currentHp ? u : max
+          u.getCurrentHp() > max.getCurrentHp() ? u : max
         )];
       case 'lowest_mp':
         return [units.reduce((min, u) =>
-          u.currentMp < min.currentMp ? u : min
+          u.getCurrentMp() < min.getCurrentMp() ? u : min
         )];
       case 'fastest':
         return [units.reduce((max, u) =>
-          u.attributes.getValue('agility' as any) >
-          max.attributes.getValue('agility' as any) ? u : max
+          u.attributes.getValue(AttributeType.SPEED) >
+          max.attributes.getValue(AttributeType.SPEED) ? u : max
         )];
       case 'slowest':
         return [units.reduce((min, u) =>
-          u.attributes.getValue('agility' as any) <
-          min.attributes.getValue('agility' as any) ? u : min
+          u.attributes.getValue(AttributeType.SPEED) <
+          min.attributes.getValue(AttributeType.SPEED) ? u : min
         )];
       default:
         return units;
@@ -136,7 +137,7 @@ export class TargetSelectionSystem {
    */
   destroy(): void {
     for (const [eventType, handler] of this._handlers) {
-      EventBus.instance.unsubscribe(eventType, handler as any);
+      EventBus.instance.unsubscribe(eventType, handler);
     }
     this._handlers.clear();
   }

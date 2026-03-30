@@ -137,6 +137,7 @@ export interface UnitSnapshot {
   isAlive: boolean;
   hpPercent: number;
   mpPercent: number;
+  currentShield: number;
 }
 
 // ===== 战报日志 =====

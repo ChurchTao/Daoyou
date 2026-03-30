@@ -280,19 +280,20 @@ export class DamageSystem {
       isCritical,
       critMultiplier,
     } = damageEvent;
+    
 
     // 获取当前状态
-    const beforeHealth = target.currentHp;
-    const beforeShield = target.currentShield;
+    const beforeHealth = target.getCurrentHp();
+    const beforeShield = target.getCurrentShield();
 
     // 1. 优先使用护盾吸收伤害
     const remainingDamage = target.absorbDamage(finalDamage);
-    const absorbedAmount = beforeShield - target.currentShield;
+    const absorbedAmount = beforeShield - target.getCurrentShield();
 
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
 
-    const actualDamage = beforeHealth - target.currentHp;
+    const actualDamage = beforeHealth - target.getCurrentHp();
 
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）
     // 注意：在这里发布事件，允许监听器（如免死效果）修改单位状态
@@ -309,17 +310,17 @@ export class DamageSystem {
       reflectSourceName:
         damageEvent.damageSource === 'reflect' ? caster?.name : undefined,
       damageTaken: actualDamage,
-      remainHealth: target.currentHp, // 此时可能为 0
+      remainHealth: target.getCurrentHp(), // 此时可能为 0
       shieldAbsorbed: absorbedAmount,
-      remainShield: target.currentShield,
-      isLethal: target.currentHp <= 0,
+      remainShield: target.getCurrentShield(),
+      isLethal: target.getCurrentHp() <= 0,
       isCritical,
       critMultiplier,
     });
 
     // 最终判定：在所有 DamageTakenEvent 监听器执行完后，重新检查存活状态
     // 如果免死效果生效，target.currentHp 会变为 1，从而跳过此处的阵亡发布
-    if (target.currentHp <= 0) {
+    if (target.getCurrentHp() <= 0) {
       EventBus.instance.publish<UnitDeadEvent>({
         type: 'UnitDeadEvent',
         priority: EventPriorityLevel.DAMAGE_TAKEN,

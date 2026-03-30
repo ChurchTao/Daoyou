@@ -17,7 +17,7 @@ export class DeathPreventEffect extends GameplayEffect {
     const damageTakenEvent = triggerEvent as DamageTakenEvent;
 
     if (damageTakenEvent.isLethal) {
-      target.currentHp = 1;
+      target.setHp(1); // 将 HP 设置为 1，避免死亡
 
       // 发布免死事件
       EventBus.instance.publish<DeathPreventEvent>({

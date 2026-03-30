@@ -150,10 +150,10 @@ export abstract class ActiveSkill extends Ability {
     for (const cost of this._resourceCosts) {
       switch (cost.type) {
         case 'mp':
-          if (caster.currentMp < cost.amount) return false;
+          if (caster.getCurrentMp() < cost.amount) return false;
           break;
         case 'hp':
-          if (caster.currentHp <= cost.amount) return false;
+          if (caster.getCurrentHp() <= cost.amount) return false;
           break;
       }
     }
