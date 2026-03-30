@@ -126,11 +126,12 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         type: AbilityType.ACTIVE_SKILL,
         priority: 100,
         cooldown: 3,
+        tags: [GameplayTags.ABILITY.TYPE_MAGIC],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
           {
             type: 'damage',
-            params: { value: { base: 120, attribute: AttributeType.VITALITY } },
+            params: { value: { attribute: AttributeType.ATK, coefficient: 2.0 } },
           },
         ],
       }),

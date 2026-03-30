@@ -21,7 +21,7 @@
 import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
 import { Unit } from '../units/Unit';
-import { CombatEvent, TagPath } from './types';
+import { CombatEvent, DamageSource, DamageType, TagPath } from './types';
 
 // ===== 事件优先级枚举 =====
 // 数值越大优先级越高，越先执行
@@ -115,8 +115,8 @@ export interface DamageRequestEvent extends CombatEvent {
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
-  damageSource?: 'direct' | 'reflect';
-  damageType?: 'physical' | 'magical' | 'true';
+  damageSource?: DamageSource;
+  damageType?: DamageType;
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
   isCritical?: boolean; // 是否暴击
@@ -133,8 +133,8 @@ export interface DamageEvent extends CombatEvent {
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：记录来源 Buff
-  damageSource?: 'direct' | 'reflect';
-  damageType?: 'physical' | 'magical' | 'true' | 'dot';
+  damageSource?: DamageSource;
+  damageType?: DamageType;
   finalDamage: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
@@ -220,7 +220,8 @@ export interface DamageTakenEvent extends CombatEvent {
   target: Unit;
   ability?: Ability; // null 表示非技能来源的伤害
   buff?: Buff; // 新增：如果是 Buff 造成的伤害，记录来源 Buff
-  damageSource?: 'direct' | 'reflect';
+  damageSource?: DamageSource;
+  damageType?: DamageType;
   reflectSourceName?: string;
   damageTaken: number;
   remainHealth: number;

@@ -88,6 +88,20 @@ export enum EffectType {
   STAT_MODIFIER = 'stat_modifier',
 }
 
+// ===== 伤害类型 =====
+export enum DamageType {
+  PHYSICAL = 'physical',
+  MAGICAL = 'magical',
+  TRUE = 'true',
+  DOT = 'dot',
+}
+
+// ===== 伤害来源 =====
+export enum DamageSource {
+  DIRECT = 'direct',
+  REFLECT = 'reflect',
+}
+
 // ===== BUFF类型 =====
 export enum BuffType {
   BUFF = 'buff',

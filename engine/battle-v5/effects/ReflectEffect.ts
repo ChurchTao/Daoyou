@@ -3,6 +3,7 @@ import { DamageRequestEvent, DamageTakenEvent, EventPriorityLevel } from '../cor
 import { EventBus } from '../core/EventBus';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { ReflectParams } from '../core/configs';
+import { DamageSource } from '../core';
 
 /**
  * 反伤原子效果
@@ -41,7 +42,8 @@ export class ReflectEffect extends GameplayEffect {
         timestamp: Date.now(),
         caster: target,
         target: attacker,
-        damageSource: 'reflect',
+        damageSource: DamageSource.REFLECT,
+        damageType: damageTakenEvent.damageType, // 反伤的伤害类型与原伤害相同
         baseDamage: damageToReflect,
         finalDamage: damageToReflect,
       });

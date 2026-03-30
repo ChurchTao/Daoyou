@@ -9,7 +9,7 @@ import {
   SkillCastEvent,
   UnitDeadEvent,
 } from '../core/events';
-import { AttributeType } from '../core/types';
+import { AttributeType, DamageSource, DamageType } from '../core/types';
 
 /**
  * DamageSystem - 伤害系统
@@ -89,9 +89,14 @@ export class DamageSystem {
     } else {
       // ===== ① 身法闪避判定（非线性公式）=====
       // 目标 EVASION_RATE（派生自 SPEED）减去施法者 ACCURACY，转为百分比
-      const evasionRate = target.attributes.getValue(AttributeType.EVASION_RATE);
+      const evasionRate = target.attributes.getValue(
+        AttributeType.EVASION_RATE,
+      );
       const accuracy = caster.attributes.getValue(AttributeType.ACCURACY);
-      const dodgeChance = Math.max(0, Math.min(80, (evasionRate - accuracy) * 100));
+      const dodgeChance = Math.max(
+        0,
+        Math.min(80, (evasionRate - accuracy) * 100),
+      );
       if (Math.random() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
@@ -103,9 +108,16 @@ export class DamageSystem {
         hitCheckEvent.isHit
       ) {
         // 目标 CONTROL_RESISTANCE 减去施法者 CONTROL_HIT，转为百分比
-        const controlResistance = target.attributes.getValue(AttributeType.CONTROL_RESISTANCE);
-        const controlHit = caster.attributes.getValue(AttributeType.CONTROL_HIT);
-        const resistChance = Math.max(0, (controlResistance - controlHit) * 100);
+        const controlResistance = target.attributes.getValue(
+          AttributeType.CONTROL_RESISTANCE,
+        );
+        const controlHit = caster.attributes.getValue(
+          AttributeType.CONTROL_HIT,
+        );
+        const resistChance = Math.max(
+          0,
+          (controlResistance - controlHit) * 100,
+        );
 
         if (Math.random() * 100 < resistChance) {
           hitCheckEvent.isResisted = true;
@@ -147,26 +159,32 @@ export class DamageSystem {
 
     // ===== ① 按伤害类型计算有效防御 =====
     let effectiveDef = 0;
-    if (damageType === 'physical') {
-      const baseDef = target.attributes.getValue(AttributeType.DEF);
-      const armorPen = Math.max(
-        0,
-        Math.min(
-          0.5,
-          event.caster?.attributes.getValue(AttributeType.ARMOR_PENETRATION) ?? 0,
-        ),
-      );
-      effectiveDef = baseDef * (1 - armorPen);
-    } else if (damageType === 'magical') {
-      const baseDef = target.attributes.getValue(AttributeType.MAGIC_DEF);
-      const magicPen = Math.max(
-        0,
-        Math.min(
-          0.5,
-          event.caster?.attributes.getValue(AttributeType.MAGIC_PENETRATION) ?? 0,
-        ),
-      );
-      effectiveDef = baseDef * (1 - magicPen);
+    if (event.damageSource === DamageSource.DIRECT) {
+      if (damageType === 'physical') {
+        const baseDef = target.attributes.getValue(AttributeType.DEF);
+        const armorPen = Math.max(
+          0,
+          Math.min(
+            0.5,
+            event.caster?.attributes.getValue(
+              AttributeType.ARMOR_PENETRATION,
+            ) ?? 0,
+          ),
+        );
+        effectiveDef = baseDef * (1 - armorPen);
+      } else if (damageType === 'magical') {
+        const baseDef = target.attributes.getValue(AttributeType.MAGIC_DEF);
+        const magicPen = Math.max(
+          0,
+          Math.min(
+            0.5,
+            event.caster?.attributes.getValue(
+              AttributeType.MAGIC_PENETRATION,
+            ) ?? 0,
+          ),
+        );
+        effectiveDef = baseDef * (1 - magicPen);
+      }
     }
 
     // ===== ② 应用减法防御（10%保底伤害） =====
@@ -177,13 +195,22 @@ export class DamageSystem {
     // ===== ③ 暴击判定（减伤后） =====
     // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
     if (!event.isCritical && event.caster && event.damageSource !== 'reflect') {
-      const rawCritRate = event.caster.attributes.getValue(AttributeType.CRIT_RATE);
+      const rawCritRate = event.caster.attributes.getValue(
+        AttributeType.CRIT_RATE,
+      );
       const critResist = target.attributes.getValue(AttributeType.CRIT_RESIST);
-      const effectiveCritRate = Math.max(0, Math.min(0.95, rawCritRate - critResist));
+      const effectiveCritRate = Math.max(
+        0,
+        Math.min(0.95, rawCritRate - critResist),
+      );
       if (Math.random() < effectiveCritRate) {
         event.isCritical = true;
-        const baseCritMult = event.caster.attributes.getValue(AttributeType.CRIT_DAMAGE_MULT);
-        const critDmgReduction = target.attributes.getValue(AttributeType.CRIT_DAMAGE_REDUCTION);
+        const baseCritMult = event.caster.attributes.getValue(
+          AttributeType.CRIT_DAMAGE_MULT,
+        );
+        const critDmgReduction = target.attributes.getValue(
+          AttributeType.CRIT_DAMAGE_REDUCTION,
+        );
         event.critMultiplier = Math.max(1.0, baseCritMult - critDmgReduction);
         event.finalDamage *= event.critMultiplier;
       }
@@ -218,26 +245,24 @@ export class DamageSystem {
     this._updateTargetHealth(damageEvent);
   }
 
-  private _resolveDamageType(
-    event: DamageRequestEvent,
-  ): 'physical' | 'magical' | 'true' | 'dot' {
+  private _resolveDamageType(event: DamageRequestEvent): DamageType {
     if (event.damageType) return event.damageType;
 
     const tags = event.ability?.tags || event.buff?.tags;
     if (tags?.hasTag(GameplayTags.ABILITY.TYPE_TRUE_DAMAGE)) {
-      return 'true';
+      return DamageType.TRUE;
     }
     if (tags?.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
-      return 'magical';
+      return DamageType.MAGICAL;
     }
     if (tags?.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
-      return 'physical';
+      return DamageType.PHYSICAL;
     }
     if (tags?.hasTag(GameplayTags.BUFF.DOT)) {
-      return 'dot';
+      return DamageType.DOT;
     }
 
-    return 'physical';
+    return DamageType.PHYSICAL; // 默认物理伤害
   }
 
   // ==================== 伤害应用 ====================
@@ -246,8 +271,15 @@ export class DamageSystem {
    * 更新目标气血，发布受击事件
    */
   private _updateTargetHealth(damageEvent: DamageEvent): void {
-    const { target, finalDamage, caster, ability, buff, isCritical, critMultiplier } =
-      damageEvent;
+    const {
+      target,
+      finalDamage,
+      caster,
+      ability,
+      buff,
+      isCritical,
+      critMultiplier,
+    } = damageEvent;
 
     // 获取当前状态
     const beforeHealth = target.currentHp;
@@ -273,6 +305,7 @@ export class DamageSystem {
       ability,
       buff, // 传递 buff
       damageSource: damageEvent.damageSource,
+      damageType: damageEvent.damageType,
       reflectSourceName:
         damageEvent.damageSource === 'reflect' ? caster?.name : undefined,
       damageTaken: actualDamage,
