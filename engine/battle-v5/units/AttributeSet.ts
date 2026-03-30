@@ -1,61 +1,62 @@
 import { AttributeModifier, AttributeType, ModifierType } from '../core/types';
 
 /**
- * 二级衍生属性集合（默认基础值为 0，完全由装备/Buff/命格提供）
+ * 外部注入型二级属性（base=0，isFloat=true，完全由装备/Buff/命格提供）
  */
-const SECONDARY_ATTRIBUTE_DEFAULTS = new Set<AttributeType>([
+const EXTERNAL_SECONDARY_ATTRS = new Set<AttributeType>([
   AttributeType.ARMOR_PENETRATION,
   AttributeType.CRIT_RESIST,
   AttributeType.CRIT_DAMAGE_REDUCTION,
   AttributeType.ACCURACY,
-  AttributeType.EVASION_MULT,
-  AttributeType.RESILIENCE,
-  AttributeType.DAMAGE_REDUCTION_STR,
   AttributeType.HEAL_AMPLIFY,
 ]);
 
 /**
  * 属性类 - 管理单个属性的基础值和修改器
  *
- * 修改器计算流程（5阶段）：
- * 1. BASE: 基础值（_baseValue）
- * 2. FIXED: 固定值加成（累加）
- * 3. ADD: 百分比加成（累乘）
- * 4. MULTIPLY: 乘法叠加（累乘）
- * 5. FINAL: 最终修正（取首个）
- * 6. OVERRIDE: 完全覆盖（取首个，跳过前面所有计算）
+ * 修改器计算流程（6阶段）：
+ * OVERRIDE（直接覆盖）> BASE(固定值或派生公式) → FIXED → ADD → MULTIPLY → FINAL
+ *
+ * 对于派生型属性（baseValueFn 存在），getBaseValue() 返回公式结算值，
+ * setBaseValue() 无效（公式由构造时绑定，不可外部覆写）。
  */
 class Attribute {
   readonly type: AttributeType;
   private _baseValue: number;
+  private _baseValueFn?: () => number;
   private _modifiers: AttributeModifier[] = [];
-
-  /**
-   * true → 二级衍生属性（浮点，保留小数）
-   * false → 主属性（整数，向下取整）
-   */
   private _isFloat: boolean;
 
-  constructor(type: AttributeType, baseValue: number, isFloat = false) {
+  constructor(
+    type: AttributeType,
+    baseValue: number,
+    isFloat = false,
+    baseValueFn?: () => number,
+  ) {
     this.type = type;
     this._baseValue = baseValue;
     this._isFloat = isFloat;
+    this._baseValueFn = baseValueFn;
   }
 
-  /**
-   * 计算最终属性值
-   * 流程：基础值 → 固定加成 → 百分比加成 → 乘法叠加 → 最终修正 → 覆盖检查
-   * @returns 最终属性值（非负整数）
-   */
+  /** 是否为派生型属性（base 由公式推算） */
+  isDerived(): boolean {
+    return !!this._baseValueFn;
+  }
+
+  private _computeBase(): number {
+    return this._baseValueFn ? this._baseValueFn() : this._baseValue;
+  }
+
   getFinalValue(): number {
-    // 如果存在 OVERRIDE 修改器，直接返回其值
     const override = this._modifiers.find((m) => m.type === ModifierType.OVERRIDE);
     if (override) {
-      return Math.max(0, Math.floor(override.value));
+      return this._isFloat
+        ? Math.max(0, override.value)
+        : Math.max(0, Math.floor(override.value));
     }
 
-    // 从基础值开始
-    let final = this._baseValue;
+    let final = this._computeBase();
 
     // FIXED: 固定值加成（累加）
     final += this._modifiers
@@ -76,132 +77,176 @@ class Attribute {
 
     // FINAL: 最终修正（取首个）
     const finalMod = this._modifiers.find((m) => m.type === ModifierType.FINAL);
-    if (finalMod) {
-      final += finalMod.value;
-    }
+    if (finalMod) final += finalMod.value;
 
     return this._isFloat ? Math.max(0, final) : Math.max(0, Math.floor(final));
   }
 
   /**
-   * Add a modifier to this attribute.
-   * @param modifier - The modifier to add
+   * 返回不含 modifier 的基础值。
+   * 派生属性返回公式结算值（即玩家面板的"底座"）。
    */
+  getBaseValue(): number {
+    return this._computeBase();
+  }
+
+  /**
+   * 设置存储的基础值。
+   * 派生属性（有 baseValueFn）调用此方法无效，其 base 由公式决定。
+   */
+  setBaseValue(value: number): void {
+    if (this._baseValueFn) return;
+    if (value < 0) throw new Error(`Base value cannot be negative: ${value}`);
+    this._baseValue = value;
+  }
+
   addModifier(modifier: AttributeModifier): void {
     this._modifiers.push(modifier);
   }
 
-  /**
-   * Remove a modifier by its ID.
-   * @param modifierId - The ID of the modifier to remove
-   */
   removeModifier(modifierId: string): void {
     this._modifiers = this._modifiers.filter((m) => m.id !== modifierId);
   }
 
-  /**
-   * Clear all modifiers from this attribute.
-   */
   clearModifiers(): void {
     this._modifiers = [];
   }
 
-  /**
-   * Get the base value without modifiers.
-   * @returns The base attribute value
-   */
-  getBaseValue(): number {
-    return this._baseValue;
-  }
-
-  /**
-   * Set the base value.
-   * @param value - The new base value (must be non-negative)
-   * @throws Error if value is negative
-   */
-  setBaseValue(value: number): void {
-    if (value < 0) {
-      throw new Error(`Base value cannot be negative: ${value}`);
-    }
-    this._baseValue = value;
-  }
-
-  /**
-   * Get all modifiers (returns a copy to prevent external modification).
-   * @returns Array of modifiers
-   */
   getModifiers(): AttributeModifier[] {
     return [...this._modifiers];
   }
 
-  /**
-   * Set all modifiers (replaces existing modifiers).
-   * @param modifiers - The new array of modifiers
-   */
   setModifiers(modifiers: AttributeModifier[]): void {
     this._modifiers = modifiers;
   }
 }
 
 /**
- * 5维属性系统 (5-Attribute System):
- * - SPIRIT (灵力): 法系输出核心，影响法术伤害、MP、护盾
- * - VITALITY (体魄): 生存核心，影响HP、减伤、抗性
- * - SPEED (身法): 先手核心，影响出手顺序、暴击率、闪避
- * - WILLPOWER (神识): 控制核心，影响命中率、抗控率
- * - WISDOM (悟性): 策略核心，影响技能条件、触发概率、伤害上限
+ * 5维属性系统 + 派生二级属性体系
  *
- * Note: CONSCIOUSNESS is defined but not used in derived attribute calculations.
- * It will be used in future systems (control mechanics, hit rate calculations, etc.)
+ * 主属性（5维，整数，默认 10）：
+ * - SPIRIT    (灵力)    — 法系输出、MP、护盾
+ * - VITALITY  (体魄)    — 气血上限、减伤率
+ * - SPEED     (身法)    — 出手顺序、暴击率基础、闪避率
+ * - WILLPOWER (神识)    — 控制命中、控制抗性
+ * - WISDOM    (悟性)    — 暴击率加成、暴击伤害上限、MP上限
+ *
+ * 派生型二级属性（浮点，base=公式，modifier 可叠加）：
+ * - CRIT_RATE          暴击率     = min(0.60, 0.05 + SPEED×0.002 + WISDOM×0.001)
+ * - CRIT_DAMAGE_MULT   暴击伤害   = min(2.00, 1.25 + WISDOM×0.005)
+ * - EVASION_RATE       闪避率     = min(0.50, SPEED×0.003)
+ * - DAMAGE_REDUCTION   减伤率     = min(0.70, VITALITY/(VITALITY+1000))
+ * - CONTROL_HIT        控制命中   = min(0.80, WILLPOWER×0.003)
+ * - CONTROL_RESISTANCE 控制抗性   = min(0.80, WILLPOWER×0.003)
+ *
+ * 外部注入型二级属性（浮点，base=0，由装备/Buff/命格提供）：
+ * - ARMOR_PENETRATION、CRIT_RESIST、CRIT_DAMAGE_REDUCTION、ACCURACY、HEAL_AMPLIFY
  */
 export class AttributeSet {
   private _attributes = new Map<AttributeType, Attribute>();
 
   /**
    * Create a new AttributeSet with optional base values.
-   * @param baseValues - Partial record of attribute base values (defaults to 10 if not specified)
+   * @param baseValues - Partial record of primary attribute base values
    */
   constructor(baseValues: Partial<Record<AttributeType, number>>) {
-    Object.values(AttributeType).forEach((attrType) => {
-      const defaultValue = SECONDARY_ATTRIBUTE_DEFAULTS.has(attrType as AttributeType) ? 0 : 10;
-      const baseValue = baseValues[attrType] ?? defaultValue;
-      const isFloat = SECONDARY_ATTRIBUTE_DEFAULTS.has(attrType as AttributeType);
-      this._attributes.set(attrType, new Attribute(attrType, baseValue, isFloat));
-    });
+    // ── 主属性（5维，整数，默认 10）──
+    const primaryAttrs = [
+      AttributeType.SPIRIT,
+      AttributeType.VITALITY,
+      AttributeType.SPEED,
+      AttributeType.WILLPOWER,
+      AttributeType.WISDOM,
+    ];
+    for (const attrType of primaryAttrs) {
+      this._attributes.set(
+        attrType,
+        new Attribute(attrType, baseValues[attrType] ?? 10, false),
+      );
+    }
+
+    // ── 派生型二级属性（base 由主属性公式推算）──
+    this._attributes.set(
+      AttributeType.CRIT_RATE,
+      new Attribute(AttributeType.CRIT_RATE, 0, true, () =>
+        Math.min(
+          0.6,
+          0.05 +
+            this.getValue(AttributeType.SPEED) * 0.002 +
+            this.getValue(AttributeType.WISDOM) * 0.001,
+        ),
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.CRIT_DAMAGE_MULT,
+      new Attribute(AttributeType.CRIT_DAMAGE_MULT, 0, true, () =>
+        Math.min(2.0, 1.25 + this.getValue(AttributeType.WISDOM) * 0.005),
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.EVASION_RATE,
+      new Attribute(AttributeType.EVASION_RATE, 0, true, () =>
+        Math.min(0.5, this.getValue(AttributeType.SPEED) * 0.003),
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.DAMAGE_REDUCTION,
+      new Attribute(AttributeType.DAMAGE_REDUCTION, 0, true, () => {
+        const vit = this.getValue(AttributeType.VITALITY);
+        return Math.min(0.7, vit / (vit + 1000));
+      }),
+    );
+
+    this._attributes.set(
+      AttributeType.CONTROL_HIT,
+      new Attribute(AttributeType.CONTROL_HIT, 0, true, () =>
+        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.003),
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.CONTROL_RESISTANCE,
+      new Attribute(AttributeType.CONTROL_RESISTANCE, 0, true, () =>
+        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.003),
+      ),
+    );
+
+    // ── 外部注入型二级属性（base=0）──
+    for (const attrType of EXTERNAL_SECONDARY_ATTRS) {
+      this._attributes.set(attrType, new Attribute(attrType, 0, true));
+    }
   }
 
   /**
    * Get the final value of an attribute after applying all modifiers.
-   * Modifiers are applied in 6 stages: BASE → FIXED → ADD → MULTIPLY → FINAL → OVERRIDE
    * @param attrType - The attribute type to query
    * @returns The final attribute value (0 if attribute doesn't exist)
    */
   getValue(attrType: AttributeType): number {
-    const attr = this._attributes.get(attrType);
-    return attr?.getFinalValue() ?? 0;
+    return this._attributes.get(attrType)?.getFinalValue() ?? 0;
   }
 
   /**
    * Get the base value of an attribute without modifiers.
+   * For derived attributes, returns the formula-computed base (panel floor value).
    * @param attrType - The attribute type to query
    * @returns The base attribute value (0 if attribute doesn't exist)
    */
   getBaseValue(attrType: AttributeType): number {
-    const attr = this._attributes.get(attrType);
-    return attr?.getBaseValue() ?? 0;
+    return this._attributes.get(attrType)?.getBaseValue() ?? 0;
   }
 
   /**
-   * Set the base value of an attribute.
+   * Set the base value of a primary attribute.
+   * Has no effect on derived attributes (their base is formula-driven).
    * @param attrType - The attribute type to modify
    * @param value - The new base value (must be non-negative)
-   * @throws Error if value is negative
    */
   setBaseValue(attrType: AttributeType, value: number): void {
-    const attr = this._attributes.get(attrType);
-    if (attr) {
-      attr.setBaseValue(value);
-    }
+    this._attributes.get(attrType)?.setBaseValue(value);
   }
 
   /**
@@ -209,10 +254,7 @@ export class AttributeSet {
    * @param modifier - The modifier to add
    */
   addModifier(modifier: AttributeModifier): void {
-    const attr = this._attributes.get(modifier.attrType);
-    if (attr) {
-      attr.addModifier(modifier);
-    }
+    this._attributes.get(modifier.attrType)?.addModifier(modifier);
   }
 
   /**
@@ -220,19 +262,17 @@ export class AttributeSet {
    * @param modifierId - The ID of the modifier to remove
    */
   removeModifier(modifierId: string): void {
-    this._attributes.forEach((attr) => {
-      attr.removeModifier(modifierId);
-    });
+    this._attributes.forEach((attr) => attr.removeModifier(modifierId));
   }
 
   /**
-   * 按来源移除修改器
-   * @param source 来源对象
+   * Remove modifiers by source object reference.
+   * @param source - The source object to match
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   removeModifierBySource(source: any): void {
     this._attributes.forEach((attr) => {
-      const modifiers = attr.getModifiers().filter((m) => m.source !== source);
-      attr.setModifiers(modifiers);
+      attr.setModifiers(attr.getModifiers().filter((m) => m.source !== source));
     });
   }
 
@@ -240,9 +280,7 @@ export class AttributeSet {
    * Clear all modifiers from all attributes.
    */
   clearModifiers(): void {
-    this._attributes.forEach((attr) => {
-      attr.clearModifiers();
-    });
+    this._attributes.forEach((attr) => attr.clearModifiers());
   }
 
   /**
@@ -258,74 +296,41 @@ export class AttributeSet {
   }
 
   /**
-   * Get the maximum HP based on PHYSIQUE and SPIRIT.
-   * Formula: HP = 100 + physique × 10 + spirit × 2
-   * @returns Maximum HP
+   * HP = 100 + VITALITY×10 + SPIRIT×2
    */
   getMaxHp(): number {
-    const physique = this.getValue(AttributeType.VITALITY);
-    const spirit = this.getValue(AttributeType.SPIRIT);
-    return 100 + physique * 10 + spirit * 2;
+    return (
+      100 +
+      this.getValue(AttributeType.VITALITY) * 10 +
+      this.getValue(AttributeType.SPIRIT) * 2
+    );
   }
 
   /**
-   * Get the maximum MP based on SPIRIT and COMPREHENSION.
-   * Formula: MP = 100 + spirit × 5 + comprehension × 3
-   * @returns Maximum MP
+   * MP = 100 + SPIRIT×5 + WISDOM×3
    */
   getMaxMp(): number {
-    const spirit = this.getValue(AttributeType.SPIRIT);
-    const comprehension = this.getValue(AttributeType.WISDOM);
-    return 100 + spirit * 5 + comprehension * 3;
-  }
-
-  /**
-   * Get the critical hit rate based on AGILITY and COMPREHENSION.
-   * Formula: critRate = min(0.6, 0.05 + agility × 0.001 + comprehension × 0.0005)
-   * Does NOT deduct target's CRIT_RESIST here; that is handled in DamageSystem.
-   * @returns Critical hit rate before target resistance (0-1)
-   */
-  getCritRate(): number {
-    const agility = this.getValue(AttributeType.SPEED);
-    const comprehension = this.getValue(AttributeType.WISDOM);
-    const baseRate = 0.05;
-    const bonusRate = agility * 0.001 + comprehension * 0.0005;
-    return Math.min(0.6, baseRate + bonusRate);
-  }
-
-  /**
-   * Get the base crit damage multiplier.
-   * Formula: 1.5 (base) – clamped to [1.0, ∞)
-   * Target's CRIT_DAMAGE_REDUCTION is deducted in DamageSystem.
-   * @returns Base crit multiplier
-   */
-  getCritDamageMultiplier(): number {
-    return 1.5;
-  }
-
-  /**
-   * Get the evasion rate based on AGILITY.
-   * Formula: evasion = min(0.3, agility × 0.0005)
-   * @returns Evasion rate (0-1)
-   */
-  getEvasionRate(): number {
-    const agility = this.getValue(AttributeType.SPEED);
-    return Math.min(0.3, agility * 0.0005);
+    return (
+      100 +
+      this.getValue(AttributeType.SPIRIT) * 5 +
+      this.getValue(AttributeType.WISDOM) * 3
+    );
   }
 
   /**
    * Create a deep clone of this AttributeSet.
-   * @returns A new AttributeSet with the same base values and modifiers
+   * Derived attribute formulas are re-bound automatically via constructor.
+   * Only primary attribute base values and all modifiers need to be copied.
    */
   clone(): AttributeSet {
     const cloned = new AttributeSet({});
     this._attributes.forEach((attr, type) => {
-      cloned.setBaseValue(type, attr.getBaseValue());
-      // Copy modifiers by re-adding them to the cloned attribute
-      const modifiers = attr.getModifiers();
-      modifiers.forEach((mod) => {
-        cloned.addModifier({ ...mod });
-      });
+      // Only copy base values for primary (non-derived) attributes
+      if (!attr.isDerived()) {
+        cloned.setBaseValue(type, attr.getBaseValue());
+      }
+      // Always copy all modifiers (Buff-applied modifiers affect any attribute)
+      attr.getModifiers().forEach((mod) => cloned.addModifier({ ...mod }));
     });
     return cloned;
   }

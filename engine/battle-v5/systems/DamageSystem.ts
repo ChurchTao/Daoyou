@@ -88,38 +88,24 @@ export class DamageSystem {
       hitCheckEvent.isHit = true;
     } else {
       // ===== ① 身法闪避判定（非线性公式）=====
-      // ln(目标速度/施法者速度) * 50%，受 EVASION_MULT 放大，受 ACCURACY 压制
-      const casterSpeed = caster.attributes.getValue(AttributeType.SPEED);
-      const targetSpeed = target.attributes.getValue(AttributeType.SPEED);
-      const speedRatio = targetSpeed / Math.max(1, casterSpeed);
-      const baseDodge = Math.log(Math.max(1, speedRatio)) * 50; // 0~50+%
-      const evasionMult = target.attributes.getValue(AttributeType.EVASION_MULT);
+      // 目标 EVASION_RATE（派生自 SPEED）减去施法者 ACCURACY，转为百分比
+      const evasionRate = target.attributes.getValue(AttributeType.EVASION_RATE);
       const accuracy = caster.attributes.getValue(AttributeType.ACCURACY);
-      const dodgeChance = Math.max(
-        0,
-        Math.min(80, baseDodge * (1 + evasionMult) - accuracy * 100),
-      );
+      const dodgeChance = Math.max(0, Math.min(80, (evasionRate - accuracy) * 100));
       if (Math.random() * 100 < dodgeChance) {
         hitCheckEvent.isDodged = true;
         hitCheckEvent.isHit = false;
       }
 
       // ===== ② 神识抵抗判定（仅控制/减益类技能）=====
-      // 目标 RESILIENCE 属性将等效神识乘以 (1 + resilience)
       if (
         ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) &&
         hitCheckEvent.isHit
       ) {
-        const casterConsciousness = caster.attributes.getValue(AttributeType.WILLPOWER);
-        const targetConsciousness = target.attributes.getValue(AttributeType.WILLPOWER);
-        const resilience = target.attributes.getValue(AttributeType.RESILIENCE);
-        const effectiveTargetConsciousness = targetConsciousness * (1 + resilience);
-        const resistChance = Math.max(
-          0,
-          ((effectiveTargetConsciousness - casterConsciousness) /
-            Math.max(1, casterConsciousness)) *
-            100,
-        );
+        // 目标 CONTROL_RESISTANCE 减去施法者 CONTROL_HIT，转为百分比
+        const controlResistance = target.attributes.getValue(AttributeType.CONTROL_RESISTANCE);
+        const controlHit = caster.attributes.getValue(AttributeType.CONTROL_HIT);
+        const resistChance = Math.max(0, (controlResistance - controlHit) * 100);
 
         if (Math.random() * 100 < resistChance) {
           hitCheckEvent.isResisted = true;
@@ -160,12 +146,12 @@ export class DamageSystem {
     // ===== ① 暴击判定 =====
     // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
     if (!event.isCritical && event.caster && event.damageSource !== 'reflect') {
-      const rawCritRate = event.caster.attributes.getCritRate();
+      const rawCritRate = event.caster.attributes.getValue(AttributeType.CRIT_RATE);
       const critResist = target.attributes.getValue(AttributeType.CRIT_RESIST);
       const effectiveCritRate = Math.max(0, Math.min(0.95, rawCritRate - critResist));
       if (Math.random() < effectiveCritRate) {
         event.isCritical = true;
-        const baseCritMult = event.caster.attributes.getCritDamageMultiplier();
+        const baseCritMult = event.caster.attributes.getValue(AttributeType.CRIT_DAMAGE_MULT);
         const critDmgReduction = target.attributes.getValue(AttributeType.CRIT_DAMAGE_REDUCTION);
         event.critMultiplier = Math.max(1.0, baseCritMult - critDmgReduction);
         event.finalDamage *= event.critMultiplier;
@@ -173,14 +159,11 @@ export class DamageSystem {
     }
 
     // ===== ② 破防 + 减伤强度修正 =====
-    const targetPhysique = target.attributes.getValue(AttributeType.VITALITY);
-    const baseReduction = Math.min(0.70, targetPhysique / (targetPhysique + 1000));
+    // 目标 DAMAGE_REDUCTION 由 AttributeSet 派生公式计算（VITALITY 双曲线，上限 70%）
+    const baseReduction = target.attributes.getValue(AttributeType.DAMAGE_REDUCTION);
     // 施法者破防率直接扣减目标减伤
     const armorPen = event.caster?.attributes.getValue(AttributeType.ARMOR_PENETRATION) ?? 0;
-    const penetratedReduction = Math.max(0, baseReduction - armorPen);
-    // 目标减伤强度放大减伤效果，硬上限 75%
-    const dmgReductStr = target.attributes.getValue(AttributeType.DAMAGE_REDUCTION_STR);
-    const effectiveReduction = Math.min(0.75, penetratedReduction * (1 + dmgReductStr));
+    const effectiveReduction = Math.max(0, Math.min(0.75, baseReduction - armorPen));
 
     // ===== ③ 应用减伤 =====
     event.finalDamage = event.finalDamage * (1 - effectiveReduction);

@@ -21,17 +21,32 @@ export interface CooldownStateView {
 
 // ===== 属性状态视图 =====
 export interface AttrsStateView {
-  // 5 维原始属性
+  // 5 维主属性
   spirit: number;
-  physique: number;
-  agility: number;
-  consciousness: number;
-  comprehension: number;
-  // 派生属性（百分比值，已乘以 100，保留 2 位小数）
-  /** 暴击率 0-100 */
+  vitality: number;
+  speed: number;
+  willpower: number;
+  wisdom: number;
+  // 派生型二级属性（实际小数值，如 0.35 表示 35%）
+  /** 暴击率 0-0.60 */
   critRate: number;
-  /** 闪避率 0-100 */
+  /** 暴击伤害倍率 1.25-2.00 */
+  critDamageMult: number;
+  /** 闪避率 0-0.50 */
   evasionRate: number;
+  /** 减伤率 0-0.70 */
+  damageReduction: number;
+  /** 控制命中 0-0.80 */
+  controlHit: number;
+  /** 控制抗性 0-0.80 */
+  controlResistance: number;
+  // 外部注入型二级属性
+  armorPenetration: number;
+  critResist: number;
+  critDamageReduction: number;
+  accuracy: number;
+  healAmplify: number;
+  // 资源上限
   /** 最大气血 */
   maxHp: number;
   /** 最大真元 */

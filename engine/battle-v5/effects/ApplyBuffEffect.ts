@@ -26,10 +26,13 @@ export class ApplyBuffEffect extends GameplayEffect {
     // 控制类 Buff：根据目标的矫健属性缩短持续时间
     // 矫健 = 0 表示无礦1，矫健 = 1.0 则持续时间半分。无限持续 (permanent) 不受影响。
     if (buff.type === BuffType.CONTROL && !buff.isPermanent()) {
-      const resilience = target.attributes.getValue(AttributeType.RESILIENCE);
-      if (resilience > 0) {
+      const controlResistance = target.attributes.getValue(AttributeType.CONTROL_RESISTANCE);
+      if (controlResistance > 0) {
         const currentDuration = buff.getDuration();
-        const adjustedDuration = Math.max(1, Math.round(currentDuration / (1 + resilience)));
+        const adjustedDuration = Math.max(
+          1,
+          Math.round(currentDuration / (1 + controlResistance)),
+        );
         buff.refreshToDuration(adjustedDuration);
       }
     }

@@ -1,18 +1,24 @@
 /**
+/**
  * V5 二级衍生属性 Buff 配置示例
  *
  * 展示两类用法：
  * A. modifiers 静态加成型 — 激活时直接修改属性值
  * B. listeners 事件驱动型 — 监听战斗事件后触发效果
  *
- * 涵盖的二级属性：
+ * 属性分类：
+ * ── 派生型（FIXED modifier 在公式结算值基础上叠加）──
+ *   CRIT_RATE           暴击率（0-0.60）：+值提升暴击概率
+ *   CRIT_DAMAGE_MULT    暴击伤害（1.25-2.00）：+值提升暴击倍率
+ *   EVASION_RATE        闪避率（0-0.50）：+值直接提升闪避概率
+ *   DAMAGE_REDUCTION    减伤率（0-0.70）：+值提升减伤（受 ARMOR_PENETRATION 压制）
+ *   CONTROL_HIT         控制命中（0-0.80）：+值提升控制成功率
+ *   CONTROL_RESISTANCE  控制抗性（0-0.80）：+值降低被控概率和持续时间
+ * ── 外部注入型（base=0，完全由 Buff/装备/命格提供）──
  *   ARMOR_PENETRATION      穿透（0-1）：降低目标有效减伤
  *   CRIT_RESIST            抗暴（0-1）：降低攻击方暴击率
  *   CRIT_DAMAGE_REDUCTION  暴击减伤（0-0.5）：降低受到的暴击倍数
  *   ACCURACY               精准（0-0.5）：提高命中、抑制闪避
- *   EVASION_MULT           闪避倍率（≥0）：放大自身闪避概率
- *   RESILIENCE             矫健（≥0）：降低控制命中率和持续时间
- *   DAMAGE_REDUCTION_STR   减伤强化（≥0）：放大自身减伤上限
  *   HEAL_AMPLIFY           治愈强化（≥0）：放大自身施放的治疗量
  *
  * @example
@@ -77,7 +83,7 @@ const vitalGuardIntent: BuffConfig = {
 
 /**
  * 神行步（身法型）
- * 效果：闪避倍率 +1.0（闪避概率翻倍）+ 精准 +0.1
+ * 效果：EVASION_RATE +0.15（在公式基础上额外 +15% 闪避）+ 精准 +0.1
  */
 const divineStepAura: BuffConfig = {
   id: 'divine_step_aura',
@@ -88,9 +94,9 @@ const divineStepAura: BuffConfig = {
   tags: [GameplayTags.BUFF.TYPE_BUFF],
   modifiers: [
     {
-      attrType: AttributeType.EVASION_MULT,
+      attrType: AttributeType.EVASION_RATE,
       type: ModifierType.FIXED,
-      value: 1.0,
+      value: 0.15,
     },
     {
       attrType: AttributeType.ACCURACY,
@@ -102,7 +108,7 @@ const divineStepAura: BuffConfig = {
 
 /**
  * 金刚不坏（减伤型）
- * 效果：减伤强化 +0.3（使减伤上限 75% × 1.3 ≈ 97.5%）
+ * 效果：DAMAGE_REDUCTION +0.10（在公式基础上额外 +10% 减伤）
  */
 const diamondBody: BuffConfig = {
   id: 'diamond_body',
@@ -113,16 +119,16 @@ const diamondBody: BuffConfig = {
   tags: [GameplayTags.BUFF.TYPE_BUFF],
   modifiers: [
     {
-      attrType: AttributeType.DAMAGE_REDUCTION_STR,
+      attrType: AttributeType.DAMAGE_REDUCTION,
       type: ModifierType.FIXED,
-      value: 0.3,
+      value: 0.1,
     },
   ],
 };
 
 /**
  * 矫健身法（抗控型）
- * 效果：RESILIENCE +1.0 → 控制命中率/持续时间减半
+ * 效果：CONTROL_RESISTANCE +0.20（在公式基础上额外 +20% 控制抗性）
  */
 const ironWillBody: BuffConfig = {
   id: 'iron_will_body',
@@ -133,9 +139,9 @@ const ironWillBody: BuffConfig = {
   tags: [GameplayTags.BUFF.TYPE_BUFF],
   modifiers: [
     {
-      attrType: AttributeType.RESILIENCE,
+      attrType: AttributeType.CONTROL_RESISTANCE,
       type: ModifierType.FIXED,
-      value: 1.0,
+      value: 0.2,
     },
   ],
 };
@@ -211,7 +217,7 @@ const battleFrenzy: BuffConfig = {
 /**
  * 魂破（命中响应型）
  * 机制：每次命中目标，对目标施加「破魂」Debuff（持续 3 回合，可叠加）。
- *       每层降低目标 RESILIENCE -0.1，使目标更容易被控制且控制持续更久。
+ *       每层降低目标 CONTROL_RESISTANCE -0.08，使目标更容易被控制。
  * 使用场景：与控制技配合的法系修士。
  */
 const soulCrush: BuffConfig = {
@@ -242,9 +248,9 @@ const soulCrush: BuffConfig = {
               modifiers: [
                 {
                   // 注意：减少属性需传负值
-                  attrType: AttributeType.RESILIENCE,
+                  attrType: AttributeType.CONTROL_RESISTANCE,
                   type: ModifierType.FIXED,
-                  value: -0.1,
+                  value: -0.08,
                 },
               ],
             },

@@ -8,7 +8,7 @@
  *
  * 同时验证：
  * - 控制效果由 BuffContainer 通过 statusTags 写入单位标签
- * - 矫健（RESILIENCE）属性可缩短控制持续时间
+ * - CONTROL_RESISTANCE 属性的 Buff modifier 可缩短控制持续时间
  */
 
 import { BattleEngineV5 } from '../../BattleEngineV5';
@@ -121,33 +121,47 @@ describe('控制 Buff statusTags 写入单位标签', () => {
 });
 
 // ===== 测试：矫健缩短控制时间 =====
-
-describe('RESILIENCE 矫健缩短控制持续时间', () => {
-  it('RESILIENCE=1.0 应将 4 回合控制缩减为 2 回合', () => {
-    const unit = makeUnit('u1', '矫健修士', {
-      [AttributeType.RESILIENCE]: 1.0, // resilience 1.0 → duration / (1+1) = 2
+describe('CONTROL_RESISTANCE 控制抗性缩短控制持续时间', () => {
+  it('CONTROL_RESISTANCE=1.0 应将 4 回合控制缩减为 2 回合', () => {
+    const unit = makeUnit('u1', '抗控修士');
+    // 通过 Buff modifier 为 CONTROL_RESISTANCE 附加 +1.0 固定值
+    const resistBuff = BuffFactory.create({
+      id: 'test_resist',
+      name: '测试抗控',
+      type: BuffType.BUFF,
+      duration: 99,
+      stackRule: StackRule.REFRESH_DURATION,
+      modifiers: [
+        { attrType: AttributeType.CONTROL_RESISTANCE, type: ModifierType.FIXED, value: 1.0 },
+      ],
     });
+    unit.buffs.addBuff(resistBuff);
 
     const stun = makeStunBuff(4); // 原始 4 回合
-
     // ApplyBuffEffect 逻辑在此处手动复现用于单元验证
-    const resilience = unit.attributes.getValue(AttributeType.RESILIENCE);
-    const adjustedDuration = Math.max(1, Math.round(stun.getDuration() / (1 + resilience)));
+    const controlResistance = unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE);
+    const adjustedDuration = Math.max(1, Math.round(stun.getDuration() / (1 + controlResistance)));
     stun.refreshToDuration(adjustedDuration);
 
     unit.buffs.addBuff(stun);
-    const buff = unit.buffs.getAllBuffs()[0];
+    const buff = unit.buffs.getAllBuffs().find((b) => b.id === 'stun')!;
     expect(buff.getDuration()).toBe(2);
   });
 
-  it('RESILIENCE=0 不影响控制时间', () => {
-    const unit = makeUnit('u1', '普通修士', {
-      [AttributeType.RESILIENCE]: 0,
-    });
+  it('CONTROL_RESISTANCE=0（无抗控 buff）不影响控制时间', () => {
+    const unit = makeUnit('u1', '普通修士');
+    // WILLPOWER=50 → formula 结果 ~0.15，但需要测试 modifier 为 0 时没有额外缩减
+    // 直接设置 WILLPOWER=0 使派生公式结果为 0
+    unit.attributes.setBaseValue(AttributeType.WILLPOWER, 0);
 
     const stun = makeStunBuff(3);
+    const controlResistance = unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE);
+    // controlResistance = 0, no reduction
+    const adjustedDuration = Math.max(1, Math.round(stun.getDuration() / (1 + controlResistance)));
+    stun.refreshToDuration(adjustedDuration);
+
     unit.buffs.addBuff(stun);
-    const buff = unit.buffs.getAllBuffs()[0];
+    const buff = unit.buffs.getAllBuffs().find((b) => b.id === 'stun')!;
     expect(buff.getDuration()).toBe(3);
   });
 });
@@ -186,16 +200,29 @@ describe('禁行动（NO_ACTION）战斗机制', () => {
 // ===== 测试：二级属性接线验证 =====
 
 describe('二级属性最基础接线验证', () => {
-  it('ARMOR_PENETRATION 和 CRIT_RESIST 应被正确读取（默认值为 0）', () => {
+  it('外部注入型二级属性默认值应为 0', () => {
     const unit = makeUnit('u1', '测试');
     expect(unit.attributes.getValue(AttributeType.ARMOR_PENETRATION)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.CRIT_RESIST)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.CRIT_DAMAGE_REDUCTION)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.ACCURACY)).toBe(0);
-    expect(unit.attributes.getValue(AttributeType.EVASION_MULT)).toBe(0);
-    expect(unit.attributes.getValue(AttributeType.RESILIENCE)).toBe(0);
-    expect(unit.attributes.getValue(AttributeType.DAMAGE_REDUCTION_STR)).toBe(0);
     expect(unit.attributes.getValue(AttributeType.HEAL_AMPLIFY)).toBe(0);
+  });
+
+  it('派生型二级属性应根据主属性公式计算（SPEED=20, WILLPOWER=50, WISDOM=30, VITALITY=100）', () => {
+    const unit = makeUnit('u1', '测试');
+    // CRIT_RATE = min(0.60, 0.05 + 20×0.002 + 30×0.001) = 0.05+0.04+0.03 = 0.12
+    expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.12);
+    // CRIT_DAMAGE_MULT = min(2.00, 1.25 + 30×0.005) = 1.40
+    expect(unit.attributes.getValue(AttributeType.CRIT_DAMAGE_MULT)).toBeCloseTo(1.40);
+    // EVASION_RATE = min(0.50, 20×0.003) = 0.06
+    expect(unit.attributes.getValue(AttributeType.EVASION_RATE)).toBeCloseTo(0.06);
+    // DAMAGE_REDUCTION = min(0.70, 100/(100+1000)) ≈ 0.0909
+    expect(unit.attributes.getValue(AttributeType.DAMAGE_REDUCTION)).toBeCloseTo(100 / 1100);
+    // CONTROL_HIT = min(0.80, 50×0.003) = 0.15
+    expect(unit.attributes.getValue(AttributeType.CONTROL_HIT)).toBeCloseTo(0.15);
+    // CONTROL_RESISTANCE = min(0.80, 50×0.003) = 0.15
+    expect(unit.attributes.getValue(AttributeType.CONTROL_RESISTANCE)).toBeCloseTo(0.15);
   });
 
   it('Buff 可以通过 modifiers 修改二级属性', () => {
