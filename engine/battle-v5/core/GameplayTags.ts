@@ -60,6 +60,20 @@ export class GameplayTagContainer {
   }
 
   /**
+   * 获取匹配的标签
+   */
+  public getFirstMatchingTag(tag: TagPath): TagPath | null {
+    const parentTags = this._getParentTags(tag);
+    
+    for (const t of this._tags) {
+      if (t === tag || parentTags.includes(t)) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  /**
    * 清空所有标签
    */
   public clear(): void {
@@ -116,10 +130,12 @@ export const GameplayTags = {
     IMMUNE_FIRE: 'Status.Immune.Fire',
 
     // 负面状态
-    STUNNED: 'Status.Stunned',   // 眩晕（向后兼容，语义等同 NO_ACTION）
     POISONED: 'Status.Poisoned',
 
     // ===== 控制三分法 =====
+    CONTROL: 'Status.Control',
+    // 眩晕（向后兼容，语义等同 NO_ACTION）
+    STUNNED: 'Status.Control.Stunned',
     // 禁行动：单位本回合完全跳过出手（如眩晕、冰封、石化）
     NO_ACTION: 'Status.Control.NoAction',
     // 禁技：单位本回合只能使用普通攻击，不可使用主动技能（如封咒、禁灵）
