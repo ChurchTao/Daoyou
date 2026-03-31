@@ -136,7 +136,6 @@ export class AbilityContainer {
     } else {
       EventBus.instance.publish<ControlledSkipEvent>({
         type: 'ControlledSkipEvent',
-        priority: EventPriorityLevel.COMBAT_LOG,
         timestamp: Date.now(),
         unit: this._owner,
         controlTag: GameplayTags.STATUS.NO_ACTION,
@@ -171,7 +170,6 @@ export class AbilityContainer {
   private _prepareCast(ability: Ability, target: Unit): void {
     EventBus.instance.publish<SkillPreCastEvent>({
       type: 'SkillPreCastEvent',
-      priority: EventPriorityLevel.SKILL_PRE_CAST,
       timestamp: Date.now(),
       caster: this._owner,
       target,

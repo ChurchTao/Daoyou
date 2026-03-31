@@ -73,7 +73,6 @@ export class DamageSystem {
 
     const hitCheckEvent: HitCheckEvent = {
       type: 'HitCheckEvent',
-      priority: EventPriorityLevel.HIT_CHECK,
       timestamp: Date.now(),
       caster,
       target,
@@ -160,7 +159,7 @@ export class DamageSystem {
     // ===== ① 按伤害类型计算有效防御 =====
     let effectiveDef = 0;
     if (event.damageSource === DamageSource.DIRECT) {
-      if (damageType === 'physical') {
+      if (damageType === DamageType.PHYSICAL) {
         const baseDef = target.attributes.getValue(AttributeType.DEF);
         const armorPen = Math.max(
           0,
@@ -172,7 +171,7 @@ export class DamageSystem {
           ),
         );
         effectiveDef = baseDef * (1 - armorPen);
-      } else if (damageType === 'magical') {
+      } else if (damageType === DamageType.MAGICAL) {
         const baseDef = target.attributes.getValue(AttributeType.MAGIC_DEF);
         const magicPen = Math.max(
           0,
@@ -192,9 +191,20 @@ export class DamageSystem {
     const reducedDamage = preMitigationDamage - effectiveDef;
     event.finalDamage = Math.max(preMitigationDamage * 0.1, reducedDamage);
 
+    // ===== ⓪ 同乘区加算（增伤/减伤） =====
+    // NOTE: 将百分比增减伤放在减防后、暴击判定前，保证增伤不会被减法防御无意削弱。
+    const increasePct = Math.max(0, event.damageIncreasePctBucket ?? 0);
+    const reductionPct = Math.max(0, event.damageReductionPctBucket ?? 0);
+    const damageMultiplier = Math.max(0, 1 + increasePct - reductionPct);
+    event.finalDamage *= damageMultiplier;
+
     // ===== ③ 暴击判定（减伤后） =====
     // 仅在非 DOT/反伤且有施法者时参与暴击；已由上层标记为暴击的不再重算
-    if (!event.isCritical && event.caster && event.damageSource !== 'reflect') {
+    if (
+      !event.isCritical &&
+      event.caster &&
+      event.damageSource !== DamageSource.REFLECT
+    ) {
       const rawCritRate = event.caster.attributes.getValue(
         AttributeType.CRIT_RATE,
       );
@@ -226,7 +236,6 @@ export class DamageSystem {
     // 发布伤害应用事件（供护盾/无敌效果订阅）
     const damageEvent: DamageEvent = {
       type: 'DamageEvent',
-      priority: EventPriorityLevel.DAMAGE_APPLY,
       timestamp: Date.now(),
       caster: event.caster,
       target: event.target,
@@ -283,7 +292,7 @@ export class DamageSystem {
     
 
     // 获取当前状态
-    const beforeHealth = target.getCurrentHp();
+    const beforeHp = target.getCurrentHp();
     const beforeShield = target.getCurrentShield();
 
     // 1. 优先使用护盾吸收伤害
@@ -293,13 +302,10 @@ export class DamageSystem {
     // 2. 应用剩余伤害到气血
     target.takeDamage(remainingDamage);
 
-    const actualDamage = beforeHealth - target.getCurrentHp();
-
     // 发布受击事件（包含护盾抵扣和技能/暴击信息）
     // 注意：在这里发布事件，允许监听器（如免死效果）修改单位状态
     EventBus.instance.publish<DamageTakenEvent>({
       type: 'DamageTakenEvent',
-      priority: EventPriorityLevel.DAMAGE_TAKEN,
       timestamp: Date.now(),
       caster,
       target,
@@ -308,9 +314,12 @@ export class DamageSystem {
       damageSource: damageEvent.damageSource,
       damageType: damageEvent.damageType,
       reflectSourceName:
-        damageEvent.damageSource === 'reflect' ? caster?.name : undefined,
-      damageTaken: actualDamage,
-      remainHealth: target.getCurrentHp(), // 此时可能为 0
+        damageEvent.damageSource === DamageSource.REFLECT
+          ? caster?.name
+          : undefined,
+      damageTaken: remainingDamage,
+      beforeHp,
+      remainHp: target.getCurrentHp(), // 此时可能为 0
       shieldAbsorbed: absorbedAmount,
       remainShield: target.getCurrentShield(),
       isLethal: target.getCurrentHp() <= 0,
@@ -323,7 +332,6 @@ export class DamageSystem {
     if (target.getCurrentHp() <= 0) {
       EventBus.instance.publish<UnitDeadEvent>({
         type: 'UnitDeadEvent',
-        priority: EventPriorityLevel.DAMAGE_TAKEN,
         timestamp: Date.now(),
         unit: target,
         killer: caster,

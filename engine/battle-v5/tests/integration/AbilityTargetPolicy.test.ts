@@ -61,7 +61,6 @@ describe('AbilityContainer TargetPolicy 目标选择测试', () => {
     // 触发行动
     eventBus.publish<ActionEvent>({
       type: 'ActionEvent',
-      priority: 80,
       timestamp: Date.now(),
       caster: owner,
     });
@@ -86,7 +85,6 @@ describe('AbilityContainer TargetPolicy 目标选择测试', () => {
     // 触发行动
     eventBus.publish<ActionEvent>({
       type: 'ActionEvent',
-      priority: 80,
       timestamp: Date.now(),
       caster: owner,
     });
@@ -109,7 +107,6 @@ describe('AbilityContainer TargetPolicy 目标选择测试', () => {
 
     eventBus.publish<ActionEvent>({
       type: 'ActionEvent',
-      priority: 80,
       timestamp: Date.now(),
       caster: owner,
     });

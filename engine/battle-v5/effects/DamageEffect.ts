@@ -25,7 +25,6 @@ export class DamageEffect extends GameplayEffect {
     // 发布伤害请求事件
     EventBus.instance.publish<DamageRequestEvent>({
       type: 'DamageRequestEvent',
-      priority: EventPriorityLevel.DAMAGE_REQUEST,
       timestamp: Date.now(),
       caster,
       target,

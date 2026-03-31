@@ -38,7 +38,6 @@ export class ReflectEffect extends GameplayEffect {
     if (attacker && attacker.isAlive()) {
       EventBus.instance.publish<DamageRequestEvent>({
         type: 'DamageRequestEvent',
-        priority: EventPriorityLevel.DAMAGE_REQUEST,
         timestamp: Date.now(),
         caster: target,
         target: attacker,

@@ -55,7 +55,6 @@ describe('Passive Listener Mapping Integration', () => {
 
     EventBus.instance.publish<RoundPreEvent>({
       type: 'RoundPreEvent',
-      priority: 45,
       timestamp: Date.now(),
       turn: 1,
     });
@@ -112,7 +111,6 @@ describe('Passive Listener Mapping Integration', () => {
 
     EventBus.instance.publish<SkillCastEvent>({
       type: 'SkillCastEvent',
-      priority: 70,
       timestamp: Date.now(),
       caster,
       target,
@@ -167,12 +165,11 @@ describe('Passive Listener Mapping Integration', () => {
 
     EventBus.instance.publish<DamageTakenEvent>({
       type: 'DamageTakenEvent',
-      priority: 50,
       timestamp: Date.now(),
       caster: attacker,
       target: defender,
       damageTaken: 120,
-      remainHealth: defender.getCurrentHp(),
+      remainHp: defender.getCurrentHp(),
       isLethal: false,
     });
 

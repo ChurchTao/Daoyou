@@ -27,7 +27,6 @@ export class ShieldEffect extends GameplayEffect {
     // 发布护盾事件
     EventBus.instance.publish<ShieldEvent>({
       type: 'ShieldEvent',
-      priority: EventPriorityLevel.POST_SETTLE,
       timestamp: Date.now(),
       caster,
       target,

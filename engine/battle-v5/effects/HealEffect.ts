@@ -32,7 +32,6 @@ export class HealEffect extends GameplayEffect {
     // 发布治疗事件用于日志和触发
     EventBus.instance.publish<HealEvent>({
       type: 'HealEvent',
-      priority: EventPriorityLevel.POST_SETTLE,
       timestamp: Date.now(),
       caster,
       target,

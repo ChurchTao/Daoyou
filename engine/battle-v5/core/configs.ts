@@ -1,5 +1,11 @@
 import { StackRule } from '../buffs/Buff';
-import { AbilityType, AttributeType, BuffType, ModifierType } from './types';
+import {
+  AbilityType,
+  AttributeType,
+  BuffType,
+  DamageType,
+  ModifierType,
+} from './types';
 
 import { ScalableValue } from './ValueCalculator';
 
@@ -7,10 +13,21 @@ import { ScalableValue } from './ValueCalculator';
  * 效果执行条件配置
  */
 export interface ConditionConfig {
-  type: 'has_tag' | 'has_not_tag' | 'hp_above' | 'hp_below' | 'chance';
+  type:
+    | 'has_tag'
+    | 'has_not_tag'
+    | 'has_tag_on'
+    | 'hp_above'
+    | 'hp_below'
+    | 'mp_above'
+    | 'mp_below'
+    | 'damage_type_is'
+    | 'chance';
   params: {
     tag?: string;
     value?: number;
+    scope?: 'caster' | 'target';
+    damageType?: DamageType;
   };
 }
 
@@ -113,6 +130,34 @@ export interface TagTriggerParams {
 }
 
 /**
+ * 百分比伤害修正参数（同乘区加算）
+ */
+export interface PercentDamageModifierParams {
+  mode: 'increase' | 'reduce';
+  value: number;
+  cap?: number;
+}
+
+/**
+ * 条件伤害修正参数（用于低血/高血/标签增伤等）
+ */
+export interface ConditionalDamageModifierParams {
+  value: number;
+  mode?: 'increase' | 'reduce';
+  cap?: number;
+  conditions?: ConditionConfig[];
+}
+
+/**
+ * 条件触发效果参数（满足条件后触发效果链）
+ */
+export interface ConditionalEffectTriggerParams {
+  conditions?: ConditionConfig[];
+  chance?: number;
+  effects: EffectConfig[];
+}
+
+/**
  * 防死参数定义
  */
 export type DeathPreventParams = object;
@@ -133,6 +178,15 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'mana_burn'; params: ManaBurnParams }
     | { type: 'cooldown_modify'; params: CooldownModifyParams }
     | { type: 'tag_trigger'; params: TagTriggerParams }
+    | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
+    | {
+        type: 'conditional_damage_modifier';
+        params: ConditionalDamageModifierParams;
+      }
+    | {
+        type: 'conditional_effect_trigger';
+        params: ConditionalEffectTriggerParams;
+      }
     | { type: 'death_prevent'; params: DeathPreventParams }
   );
 
@@ -142,10 +196,10 @@ export type EffectConfig = BaseEffectConfig &
  * 监听器触发范围（owner 与事件参与者的关系）
  */
 export type ListenerScope =
-  | 'owner_as_target'
-  | 'owner_as_caster'
-  | 'owner_as_actor'
-  | 'global';
+  | 'owner_as_target' // 监听器 owner 是事件目标
+  | 'owner_as_caster' // 监听器 owner 是事件施法者
+  | 'owner_as_actor' // 监听器 owner 是事件参与者（施法者或目标）
+  | 'global'; // 监听器不区分参与关系，事件发生时全局触发
 
 /**
  * 上下文映射源

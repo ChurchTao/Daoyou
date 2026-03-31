@@ -36,7 +36,6 @@ export class BuffContainer {
     // 1. 发布拦截事件
     const event: BuffAddEvent = {
       type: 'BuffAddEvent',
-      priority: EventPriorityLevel.BUFF_INTERCEPT,
       timestamp: Date.now(),
       target: this._owner,
       buff,
@@ -75,7 +74,6 @@ export class BuffContainer {
     // 5. 发布应用成功事件
     const appliedEvent: BuffAppliedEvent = {
       type: 'BuffAppliedEvent',
-      priority: EventPriorityLevel.TAG_CHANGE,
       timestamp: Date.now(),
       target: this._owner,
       buff,
@@ -111,7 +109,6 @@ export class BuffContainer {
     // 发布移除事件
     const removedEvent: BuffRemovedEvent = {
       type: 'BuffRemovedEvent',
-      priority: EventPriorityLevel.TAG_CHANGE,
       timestamp: Date.now(),
       target: this._owner,
       buff,
@@ -155,7 +152,6 @@ export class BuffContainer {
         // 发布免疫拦截事件
         const immuneEvent: BuffImmuneEvent = {
           type: 'BuffImmuneEvent',
-          priority: EventPriorityLevel.TAG_CHANGE,
           timestamp: Date.now(),
           target: this._owner,
           buff,

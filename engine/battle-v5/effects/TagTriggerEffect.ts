@@ -26,7 +26,6 @@ export class TagTriggerEffect extends GameplayEffect {
     // 发布标签触发事件
     EventBus.instance.publish<TagTriggerEvent>({
       type: 'TagTriggerEvent',
-      priority: EventPriorityLevel.POST_SETTLE,
       timestamp: Date.now(),
       caster,
       target,

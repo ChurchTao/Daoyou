@@ -11,3 +11,6 @@ export * from './ManaBurnEffect';
 export * from './CooldownModifyEffect';
 export * from './DeathPreventEffect';
 export * from './TagTriggerEffect';
+export * from './PercentDamageModifierEffect';
+export * from './ConditionalDamageModifierEffect';
+export * from './ConditionalEffectTriggerEffect';

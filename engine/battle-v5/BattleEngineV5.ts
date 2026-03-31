@@ -180,7 +180,6 @@ export class BattleEngineV5 {
       // 发布行动前事件（DOT / 持续效果在此触发）
       this._eventBus.publish<ActionPreEvent>({
         type: 'ActionPreEvent',
-        priority: EventPriorityLevel.ACTION_TRIGGER,
         timestamp: Date.now(),
         caster: actor,
       });
@@ -204,7 +203,6 @@ export class BattleEngineV5 {
       if (hasControlTag) {
         this._eventBus.publish<ControlledSkipEvent>({
           type: 'ControlledSkipEvent',
-          priority: EventPriorityLevel.COMBAT_LOG,
           timestamp: Date.now(),
           unit: actor,
           controlTag: GameplayTags.STATUS.NO_ACTION,
@@ -223,7 +221,6 @@ export class BattleEngineV5 {
       // 发布行动事件，触发整个技能流程
       this._eventBus.publish<ActionEvent>({
         type: 'ActionEvent',
-        priority: EventPriorityLevel.ACTION_TRIGGER,
         timestamp: Date.now(),
         caster: actor,
       });
@@ -237,7 +234,6 @@ export class BattleEngineV5 {
       // 发布行动后置事件（Buff 过期处理阶段开始）
       this._eventBus.publish<ActionPostEvent>({
         type: 'ActionPostEvent',
-        priority: EventPriorityLevel.ACTION_TRIGGER,
         timestamp: Date.now(),
         caster: actor,
       });

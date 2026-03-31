@@ -81,7 +81,6 @@ export class CombatStateMachine {
         const units = Array.from(this._context.units.values());
         EventBus.instance.publish<BattleInitEvent>({
           type: 'BattleInitEvent',
-          priority: EventPriorityLevel.ACTION_TRIGGER,
           timestamp: Date.now(),
           player: units[0],
           opponent: units[1],
@@ -97,7 +96,6 @@ export class CombatStateMachine {
       onEnter: () => {
         EventBus.instance.publish<DestinyAwakenEvent>({
           type: 'DestinyAwakenEvent',
-          priority: EventPriorityLevel.ACTION_TRIGGER,
           timestamp: Date.now(),
           turn: this._context.turn,
         });
@@ -112,7 +110,6 @@ export class CombatStateMachine {
       onEnter: () => {
         EventBus.instance.publish<RoundStartEvent>({
           type: 'RoundStartEvent',
-          priority: EventPriorityLevel.ACTION_TRIGGER,
           timestamp: Date.now(),
           turn: this._context.turn,
         });
@@ -127,7 +124,6 @@ export class CombatStateMachine {
       onEnter: () => {
         EventBus.instance.publish<RoundPreEvent>({
           type: 'RoundPreEvent',
-          priority: EventPriorityLevel.ROUND_PRE,
           timestamp: Date.now(),
           turn: this._context.turn,
         });
@@ -146,7 +142,6 @@ export class CombatStateMachine {
           .sort((a, b) => b.attributes.getValue(AttributeType.SPEED) - a.attributes.getValue(AttributeType.SPEED));
         EventBus.instance.publish<TurnOrderEvent>({
           type: 'TurnOrderEvent',
-          priority: EventPriorityLevel.ACTION_TRIGGER,
           timestamp: Date.now(),
           turn: this._context.turn,
           units,
@@ -173,7 +168,6 @@ export class CombatStateMachine {
       onEnter: () => {
         EventBus.instance.publish<RoundPostEvent>({
           type: 'RoundPostEvent',
-          priority: EventPriorityLevel.POST_SETTLE,
           timestamp: Date.now(),
           turn: this._context.turn,
         });
@@ -188,7 +182,6 @@ export class CombatStateMachine {
       onEnter: () => {
         EventBus.instance.publish<VictoryCheckEvent>({
           type: 'VictoryCheckEvent',
-          priority: EventPriorityLevel.POST_SETTLE,
           timestamp: Date.now(),
           turn: this._context.turn,
           battleEnded: this._context.battleEnded,
@@ -205,7 +198,6 @@ export class CombatStateMachine {
       onEnter: () => {
         EventBus.instance.publish<BattleEndEvent>({
           type: 'BattleEndEvent',
-          priority: EventPriorityLevel.ACTION_TRIGGER,
           timestamp: Date.now(),
           winner: this._context.winner,
           turns: this._context.turn,

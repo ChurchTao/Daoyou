@@ -7,7 +7,6 @@ export type EventPriority = number;
 // ===== 战斗事件基类 =====
 export interface CombatEvent {
   readonly type: string;
-  readonly priority: EventPriority;
   readonly timestamp: number;
 }
 

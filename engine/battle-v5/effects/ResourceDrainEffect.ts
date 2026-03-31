@@ -35,7 +35,6 @@ export class ResourceDrainEffect extends GameplayEffect {
     // 发布资源夺取事件
     EventBus.instance.publish<ResourceDrainEvent>({
       type: 'ResourceDrainEvent',
-      priority: EventPriorityLevel.POST_SETTLE,
       timestamp: Date.now(),
       caster,
       target,

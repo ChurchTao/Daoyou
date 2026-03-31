@@ -31,7 +31,6 @@ export class CooldownModifyEffect extends GameplayEffect {
           // 发布冷却修改事件
           EventBus.instance.publish<CooldownModifyEvent>({
             type: 'CooldownModifyEvent',
-            priority: EventPriorityLevel.POST_SETTLE,
             timestamp: Date.now(),
             caster,
             target,

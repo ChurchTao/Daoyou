@@ -143,7 +143,8 @@ export class LogCollector {
         type: 'damage',
         data: {
           value: Math.round(e.damageTaken),
-          remainHp: Math.round(e.remainHealth),
+          beforeHp: Math.round(e.beforeHp),
+          remainHp: Math.round(e.remainHp),
           isCritical: e.isCritical ?? false,
           targetName: e.target.name,
           sourceBuff: e.buff?.name,

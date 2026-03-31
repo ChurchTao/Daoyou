@@ -37,7 +37,6 @@ export class DispelEffect extends GameplayEffect {
     // 发布驱散事件
     EventBus.instance.publish<DispelEvent>({
       type: 'DispelEvent',
-      priority: EventPriorityLevel.POST_SETTLE,
       timestamp: Date.now(),
       caster,
       target,

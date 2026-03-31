@@ -28,7 +28,6 @@ export class ManaBurnEffect extends GameplayEffect {
     // 发布焚元事件
     EventBus.instance.publish<ManaBurnEvent>({
       type: 'ManaBurnEvent',
-      priority: EventPriorityLevel.POST_SETTLE,
       timestamp: Date.now(),
       caster,
       target,

@@ -119,6 +119,9 @@ export interface DamageRequestEvent extends CombatEvent {
   damageType?: DamageType;
   baseDamage: number; // 基础伤害（未修正）
   finalDamage: number; // 最终伤害（可被增伤修正）
+  // 同乘区加算桶：同一次伤害事件内累加，统一在 DamageSystem 中一次结算
+  damageIncreasePctBucket?: number;
+  damageReductionPctBucket?: number;
   isCritical?: boolean; // 是否暴击
   critMultiplier?: number; // 暴击倍率
 }
@@ -224,7 +227,8 @@ export interface DamageTakenEvent extends CombatEvent {
   damageType?: DamageType;
   reflectSourceName?: string;
   damageTaken: number;
-  remainHealth: number;
+  beforeHp: number;
+  remainHp: number;
   shieldAbsorbed?: number; // 护盾抵扣值
   remainShield?: number; // 剩余护盾值
   isLethal: boolean;

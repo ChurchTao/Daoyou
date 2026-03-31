@@ -21,6 +21,7 @@ export type LogEntryType =
 // ===== Entry Data Interfaces =====
 export interface DamageEntryData {
   value: number;
+  beforeHp: number;
   remainHp: number;
   isCritical: boolean;
   targetName: string;

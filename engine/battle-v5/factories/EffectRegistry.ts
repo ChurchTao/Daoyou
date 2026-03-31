@@ -1,9 +1,11 @@
+import { checkConditions } from '../core/conditionEvaluator';
 import { ConditionConfig, EffectConfig } from '../core/configs';
 import { EffectContext, GameplayEffect } from '../effects/Effect';
 
 /**
  * 效果构造器类型定义
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EffectConstructor = (params: any) => GameplayEffect;
 
 /**
@@ -73,28 +75,6 @@ export class EffectRegistry {
     context: EffectContext,
     conditions: ConditionConfig[],
   ): boolean {
-    for (const cond of conditions) {
-      if (!this.evaluateCondition(context, cond)) return false;
-    }
-    return true;
-  }
-
-  private evaluateCondition(
-    context: EffectContext,
-    cond: ConditionConfig,
-  ): boolean {
-    const { target } = context;
-    switch (cond.type) {
-      case 'has_tag':
-        return cond.params.tag ? target.tags.hasTag(cond.params.tag) : true;
-      case 'has_not_tag':
-        return cond.params.tag ? !target.tags.hasTag(cond.params.tag) : true;
-      case 'hp_above':
-        return target.getCurrentHp() / target.getMaxHp() > (cond.params.value ?? 0);
-      case 'chance':
-        return Math.random() < (cond.params.value ?? 1);
-      default:
-        return true;
-    }
+    return checkConditions(context, conditions);
   }
 }

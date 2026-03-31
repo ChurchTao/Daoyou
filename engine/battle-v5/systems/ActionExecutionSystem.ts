@@ -43,7 +43,6 @@ export class ActionExecutionSystem {
       // 发布被打断事件
       EventBus.instance.publish<SkillInterruptEvent>({
         type: 'SkillInterruptEvent',
-        priority: EventPriorityLevel.COMBAT_LOG,
         timestamp: Date.now(),
         caster: event.caster,
         target: event.target,
@@ -56,7 +55,6 @@ export class ActionExecutionSystem {
     // 未被打断，发布技能释放事件
     const castEvent: SkillCastEvent = {
       type: 'SkillCastEvent',
-      priority: EventPriorityLevel.SKILL_CAST,
       timestamp: Date.now(),
       caster: event.caster,
       target: event.target,
