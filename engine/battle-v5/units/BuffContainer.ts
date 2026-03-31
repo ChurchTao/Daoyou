@@ -5,11 +5,8 @@ import {
   BuffAddEvent,
   BuffAppliedEvent,
   BuffRemovedEvent,
-  BuffImmuneEvent,
 } from '../core/events';
 import { EventBus } from '../core/EventBus';
-import { EventPriorityLevel } from '../core/events';
-import { GameplayTags } from '../core/GameplayTags';
 
 /**
  * BuffContainer - Buff 容器
@@ -44,34 +41,31 @@ export class BuffContainer {
     EventBus.instance.publish(event);
     if (event.isCancelled) return;
 
-    // 2. 标签免疫检查
-    if (this._checkImmune(buff)) return;
-
-    // 3. 堆叠规则处理
+    // 2. 堆叠规则处理
     const existing = this._buffs.get(buff.id);
     if (existing) {
       this._applyStackRule(existing, buff, source);
       return;
     }
 
-    // 4. 添加新 BUFF（GAS 模式）
+    // 3. 添加新 BUFF（GAS 模式）
     this._buffs.set(buff.id, buff);
 
-    // 4.1 设置 owner 引用（关键：必须在 onActivate 之前）
+    // 3.1 设置 owner 引用（关键：必须在 onActivate 之前）
     buff.setOwner(this._owner);
 
-    // 4.2 设置 source 引用（如果提供）
+    // 3.2 设置 source 引用（如果提供）
     if (source) {
       buff.setSource(source);
     }
 
-    // 4.3 调用激活方法（子类在此订阅事件、添加标签等）
+    // 3.3 调用激活方法（子类在此订阅事件、添加标签等）
     buff.onActivate();
 
-    // 4.4 更新派生属性
+    // 3.4 更新派生属性
     this._owner.updateDerivedStats();
 
-    // 5. 发布应用成功事件
+    // 4. 发布应用成功事件
     const appliedEvent: BuffAppliedEvent = {
       type: 'BuffAppliedEvent',
       timestamp: Date.now(),
@@ -137,47 +131,16 @@ export class BuffContainer {
     this._owner.updateDerivedStats();
   }
 
-  private _checkImmune(buff: Buff): boolean {
-    const isDebuff = buff.tags.hasTag(GameplayTags.BUFF.TYPE_DEBUFF);
-    if (!isDebuff) return false;
-
-    // 检查免疫标签
-    const immuneTags = [
-      GameplayTags.STATUS.IMMUNE_DEBUFF,
-      GameplayTags.STATUS.IMMUNE,
-    ];
-
-    for (const immuneTag of immuneTags) {
-      if (this._owner.tags.hasTag(immuneTag)) {
-        // 发布免疫拦截事件
-        const immuneEvent: BuffImmuneEvent = {
-          type: 'BuffImmuneEvent',
-          timestamp: Date.now(),
-          target: this._owner,
-          buff,
-          immuneTag,
-        };
-        EventBus.instance.publish(immuneEvent);
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   private _applyStackRule(existing: Buff, newBuff: Buff, source?: Unit): void {
     switch (newBuff.stackRule) {
       case StackRule.STACK_LAYER:
-        // 层数叠加：增加一层
         existing.addLayer(1);
-        // 如果提供了新的 source，更新现有 Buff 的 source
         if (source) {
           existing.setSource(source);
         }
         break;
 
       case StackRule.REFRESH_DURATION:
-        // 刷新持续时间：更新为新 Buff 的持续时间
         existing.refreshToDuration(newBuff.getMaxDuration());
         if (source) {
           existing.setSource(source);
@@ -185,7 +148,6 @@ export class BuffContainer {
         break;
 
       case StackRule.OVERRIDE:
-        // 覆盖替换：停用旧 Buff，激活新 Buff
         existing.onDeactivate();
         this._buffs.set(existing.id, newBuff);
         newBuff.setOwner(this._owner);
@@ -197,7 +159,6 @@ export class BuffContainer {
         break;
 
       case StackRule.IGNORE:
-        // 忽略：不做任何处理
         break;
     }
   }

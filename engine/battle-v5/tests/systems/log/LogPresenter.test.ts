@@ -187,4 +187,57 @@ describe('LogPresenter 行动日志聚合', () => {
       ].join('\n'),
     );
   });
+
+  it('魔法盾吸收应在伤害文案后追加真元化解描述', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage', {
+        value: 2,
+        beforeHp: 1000,
+        remainHp: 998,
+        isCritical: false,
+        targetName: '李四',
+      }),
+      createEntry('mana_shield_absorb', {
+        targetName: '李四',
+        absorbedDamage: 98,
+        mpConsumed: 98,
+        remainDamage: 2,
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toBe(
+      '「张三」施放《火球术》，对「李四」造成 2 点伤害，「李四」以真元化解 98 点伤害（消耗 98 点真元）',
+    );
+  });
+
+  it('伤害免疫应输出免疫描述', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('damage_immune', {
+        targetName: '李四',
+        blockedDamage: 120,
+        matchedTag: 'Ability.Type.Magic',
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toBe(
+      '「张三」施放《火球术》，对「李四」造成 0 点伤害，「李四」免疫了此次伤害',
+    );
+  });
+
+  it('纯 Buff 免疫应输出被免疫文案', () => {
+    const presenter = new LogPresenter();
+    const span = createActionSpan([
+      createEntry('buff_immune', {
+        buffName: '灼烧',
+        targetName: '李四',
+        immuneTag: 'Buff.Type.Debuff',
+      }),
+    ]);
+
+    expect(presenter.formatSpan(span)).toBe(
+      '「张三」施放《火球术》，对「李四」施加的「灼烧」被免疫了',
+    );
+  });
 });

@@ -99,6 +99,13 @@ export interface ShieldParams {
 }
 
 /**
+ * 魔法盾参数定义
+ */
+export interface MagicShieldParams {
+  absorbRatio?: number;
+}
+
+/**
  * 反射参数定义
  */
 export interface ReflectParams {
@@ -163,6 +170,20 @@ export interface ConditionalEffectTriggerParams {
 export type DeathPreventParams = object;
 
 /**
+ * BUFF 免疫参数定义
+ */
+export interface BuffImmunityParams {
+  tags: string[];
+}
+
+/**
+ * 伤害免疫参数定义
+ */
+export interface DamageImmunityParams {
+  tags: string[];
+}
+
+/**
  * 重构后的辨识联合类型原子效果配置
  */
 export type EffectConfig = BaseEffectConfig &
@@ -174,6 +195,7 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'resource_drain'; params: ResourceDrainParams }
     | { type: 'dispel'; params: DispelParams }
     | { type: 'shield'; params: ShieldParams }
+    | { type: 'magic_shield'; params: MagicShieldParams }
     | { type: 'reflect'; params: ReflectParams }
     | { type: 'mana_burn'; params: ManaBurnParams }
     | { type: 'cooldown_modify'; params: CooldownModifyParams }
@@ -188,6 +210,8 @@ export type EffectConfig = BaseEffectConfig &
         params: ConditionalEffectTriggerParams;
       }
     | { type: 'death_prevent'; params: DeathPreventParams }
+    | { type: 'buff_immunity'; params: BuffImmunityParams }
+    | { type: 'damage_immunity'; params: DamageImmunityParams }
   );
 
 // ===== Listener Contract =====

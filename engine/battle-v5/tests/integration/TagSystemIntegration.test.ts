@@ -1,9 +1,28 @@
 import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
 import { GameplayTags } from '../../core/GameplayTags';
-import { BuffAddEvent, EventPriorityLevel } from '../../core/events';
-import { BuffId, BuffType } from '../../core/types';
+import { BuffAddEvent, BuffImmuneEvent, EventPriorityLevel } from '../../core/events';
+import { AbilityType, BuffId, BuffType } from '../../core/types';
+import { AbilityFactory } from '../../factories/AbilityFactory';
 import { Unit } from '../../units/Unit';
+
+function addBuffImmunityPassive(unit: Unit, tags: string[]): void {
+  unit.abilities.addAbility(
+    AbilityFactory.create({
+      slug: `buff_immunity_${tags.join('_')}`,
+      name: '万法不侵',
+      type: AbilityType.PASSIVE_SKILL,
+      listeners: [
+        {
+          eventType: 'BuffAddEvent',
+          scope: 'owner_as_target',
+          priority: EventPriorityLevel.BUFF_INTERCEPT,
+          effects: [{ type: 'buff_immunity', params: { tags } }],
+        },
+      ],
+    }),
+  );
+}
 
 describe('标签系统集成测试', () => {
   beforeEach(() => {
@@ -11,9 +30,9 @@ describe('标签系统集成测试', () => {
   });
 
   describe('BUFF 免疫系统', () => {
-    it('免疫标签应拦截 DEBUFF 添加', () => {
+    it('免疫效果应拦截命中标签的 DEBUFF 添加', () => {
       const unit = new Unit('test', '测试', {});
-      unit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
 
       const debuff = new Buff('poison' as BuffId, '中毒', BuffType.DEBUFF, 3);
       debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
@@ -24,9 +43,9 @@ describe('标签系统集成测试', () => {
       expect(container.getAllBuffIds()).not.toContain('poison');
     });
 
-    it('免疫标签应不影响 BUFF 添加', () => {
+    it('免疫效果不应影响未命中标签的 BUFF 添加', () => {
       const unit = new Unit('test', '测试', {});
-      unit.tags.addTags([GameplayTags.STATUS.IMMUNE_DEBUFF]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
 
       const buff = new Buff('strength' as BuffId, '力量', BuffType.BUFF, 3);
       buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
@@ -37,17 +56,26 @@ describe('标签系统集成测试', () => {
       expect(container.getAllBuffIds()).toContain('strength');
     });
 
-    it('父标签 Immune 应拦截所有 DEBUFF', () => {
+    it('拦截成功时应发布 BuffImmuneEvent', () => {
       const unit = new Unit('test', '测试', {});
-      unit.tags.addTags([GameplayTags.STATUS.IMMUNE]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
 
       const debuff = new Buff('poison' as BuffId, '中毒', BuffType.DEBUFF, 3);
       debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
+
+      let immuneTag: string | undefined;
+      const handler = (event: BuffImmuneEvent) => {
+        immuneTag = event.immuneTag;
+      };
+      EventBus.instance.subscribe<BuffImmuneEvent>('BuffImmuneEvent', handler, EventPriorityLevel.COMBAT_LOG);
 
       const container = unit.buffs;
       container.addBuff(debuff);
 
       expect(container.getAllBuffIds()).not.toContain('poison');
+      expect(immuneTag).toBe(GameplayTags.BUFF.TYPE_DEBUFF);
+
+      EventBus.instance.unsubscribe<BuffImmuneEvent>('BuffImmuneEvent', handler);
     });
   });
 
@@ -60,7 +88,7 @@ describe('标签系统集成测试', () => {
       const handler = () => {
         eventReceived = true;
       };
-      EventBus.instance.subscribe(
+      EventBus.instance.subscribe<BuffAddEvent>(
         'BuffAddEvent',
         handler,
         EventPriorityLevel.BUFF_INTERCEPT,
@@ -69,7 +97,7 @@ describe('标签系统集成测试', () => {
       unit.buffs.addBuff(buff);
 
       expect(eventReceived).toBe(true);
-      EventBus.instance.unsubscribe('BuffAddEvent', handler);
+      EventBus.instance.unsubscribe<BuffAddEvent>('BuffAddEvent', handler);
     });
 
     it('取消 BuffAddEvent 应阻止 BUFF 添加', () => {

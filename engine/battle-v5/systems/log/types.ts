@@ -3,9 +3,11 @@ export type LogEntryType =
   | 'damage'
   | 'heal'
   | 'shield'
+  | 'mana_shield_absorb'
   | 'buff_apply'
   | 'buff_remove'
   | 'buff_immune'
+  | 'damage_immune'
   | 'dodge'
   | 'resist'
   | 'death'
@@ -42,6 +44,14 @@ export interface HealEntryData {
 export interface ShieldEntryData {
   value: number;
   targetName: string;
+  remainShield?: number;
+}
+
+export interface ManaShieldAbsorbEntryData {
+  targetName: string;
+  absorbedDamage: number;
+  mpConsumed: number;
+  remainDamage: number;
 }
 
 export interface BuffApplyEntryData {
@@ -61,6 +71,13 @@ export interface BuffRemoveEntryData {
 export interface BuffImmuneEntryData {
   buffName: string;
   targetName: string;
+  immuneTag?: string;
+}
+
+export interface DamageImmuneEntryData {
+  targetName: string;
+  blockedDamage: number;
+  matchedTag: string;
 }
 
 export interface DodgeEntryData {
@@ -124,9 +141,11 @@ export interface EntryDataMap {
   damage: DamageEntryData;
   heal: HealEntryData;
   shield: ShieldEntryData;
+  mana_shield_absorb: ManaShieldAbsorbEntryData;
   buff_apply: BuffApplyEntryData;
   buff_remove: BuffRemoveEntryData;
   buff_immune: BuffImmuneEntryData;
+  damage_immune: DamageImmuneEntryData;
   dodge: DodgeEntryData;
   resist: ResistEntryData;
   death: DeathEntryData;

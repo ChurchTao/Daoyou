@@ -143,6 +143,29 @@ export interface DamageEvent extends CombatEvent {
   critMultiplier?: number; // 暴击倍率
 }
 
+// ===== 真元护盾抵扣事件 =====
+export interface ManaShieldAbsorbEvent extends CombatEvent {
+  type: 'ManaShieldAbsorbEvent';
+  caster?: Unit;
+  target: Unit;
+  ability?: Ability;
+  buff?: Buff;
+  absorbedDamage: number;
+  mpConsumed: number;
+  remainDamage: number;
+}
+
+// ===== 伤害免疫事件 =====
+export interface DamageImmuneEvent extends CombatEvent {
+  type: 'DamageImmuneEvent';
+  caster?: Unit;
+  target: Unit;
+  ability?: Ability;
+  buff?: Buff;
+  blockedDamage: number;
+  matchedTag: TagPath;
+}
+
 // ===== 治疗应用事件 =====
 export interface HealEvent extends CombatEvent {
   type: 'HealEvent';
@@ -265,6 +288,7 @@ export interface BuffAddEvent extends CombatEvent {
   target: Unit;
   buff: Buff;
   isCancelled?: boolean;
+  immuneTag?: TagPath;
 }
 
 // ===== BUFF 成功应用事件 =====

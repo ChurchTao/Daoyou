@@ -219,4 +219,90 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
       ),
     ).toBe(true);
   });
+
+  it('2. 验证【伤害免疫优先于魔法盾】：执行顺序与零伤害处理', () => {
+    const attacker = createTestUnit('attacker', '进攻者', {
+      [AttributeType.SPIRIT]: 300,
+      [AttributeType.VITALITY]: 200,
+    });
+    const defender = createTestUnit('defender', '防御者', {
+      [AttributeType.WISDOM]: 300,
+    });
+
+    console.log('--- 测试【伤害免疫优先于魔法盾】：实际战斗场景 ---');
+    console.log('攻击者 HP:', attacker.getCurrentHp(), 'MP:', attacker.getCurrentMp());
+    console.log('防御者 HP:', defender.getCurrentHp(), 'MP:', defender.getCurrentMp());
+
+    // 防御者同时具有 damage_immunity 和 magic_shield 被动
+    // damage_immunity 应该比 magic_shield 先执行，使伤害为 0
+    // DAMAGE_APPLY = 55，所以伤害免疫应该在 56 或更高的优先级
+    // magic_shield 在 DAMAGE_APPLY 优先级执行（55）
+    defender.abilities.addAbility(
+      AbilityFactory.create({
+        slug: 'passive_immunity_and_shield',
+        name: '防御法门',
+        type: AbilityType.PASSIVE_SKILL,
+        listeners: [
+          {
+            eventType: 'DamageEvent',
+            scope: 'owner_as_target',
+            priority: 56, // damage_immunity 优先级高于魔法盾
+            effects: [
+              {
+                type: 'damage_immunity',
+                params: { tags: [GameplayTags.ABILITY.TYPE_MAGIC] },
+              },
+            ],
+          },
+          {
+            eventType: 'DamageEvent',
+            scope: 'owner_as_target',
+            priority: 55, // magic_shield 在标准 DAMAGE_APPLY 优先级
+            effects: [
+              {
+                type: 'magic_shield',
+                params: {},
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    // 攻击者施放魔法伤害
+    attacker.abilities.addAbility(
+      AbilityFactory.create({
+        slug: 'fireball',
+        name: '火球术',
+        type: AbilityType.ACTIVE_SKILL,
+        priority: 100,
+        cooldown: 3,
+        tags: [GameplayTags.ABILITY.TYPE_MAGIC],
+        targetPolicy: { team: 'enemy', scope: 'single' },
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 200,
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: 1.0,
+              },
+            },
+          },
+        ],
+      }),
+    );
+
+    const engine = new BattleEngineV5(attacker, defender);
+    const result = engine.execute();
+
+    console.log('战斗日志：',result.logs);
+    console.log('攻击者 HP:', attacker.getCurrentHp(), 'MP:', attacker.getCurrentMp());
+    console.log('防御者 HP:', defender.getCurrentHp(), 'MP:', defender.getCurrentMp());
+    
+    // 验证：伤害应该被免疫为 0，因此魔法盾不应消耗 MP
+    expect(result.logs.some((log) => log.includes('免疫了此次伤害'))).toBe(true);
+    
+  });
 });

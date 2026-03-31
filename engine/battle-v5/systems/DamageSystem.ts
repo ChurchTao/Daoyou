@@ -289,7 +289,10 @@ export class DamageSystem {
       isCritical,
       critMultiplier,
     } = damageEvent;
-    
+
+    if (finalDamage <= 0) {
+      return;
+    }
 
     // 获取当前状态
     const beforeHp = target.getCurrentHp();

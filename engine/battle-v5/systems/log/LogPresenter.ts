@@ -128,7 +128,10 @@ export class LogPresenter {
     );
     const healEntries = this.findEntries(entries, 'heal');
     const shieldEntries = this.findEntries(entries, 'shield');
+    const manaShieldAbsorbs = this.findEntries(entries, 'mana_shield_absorb');
     const buffApplies = this.findEntries(entries, 'buff_apply');
+    const buffImmunes = this.findEntries(entries, 'buff_immune');
+    const damageImmunes = this.findEntries(entries, 'damage_immune');
     const dodge = this.findEntry(entries, 'dodge');
     const resist = this.findEntry(entries, 'resist');
     const death = this.findEntry(entries, 'death');
@@ -177,7 +180,10 @@ export class LogPresenter {
       directDamageEntries[0]?.data.targetName ??
       healEntries[0]?.data.targetName ??
       shieldEntries[0]?.data.targetName ??
+      manaShieldAbsorbs[0]?.data.targetName ??
       buffApplies[0]?.data.targetName ??
+      buffImmunes[0]?.data.targetName ??
+      damageImmunes[0]?.data.targetName ??
       dispels[0]?.data.targetName ??
       manaBurns[0]?.data.targetName ??
       resourceDrains[0]?.data.targetName ??
@@ -185,7 +191,15 @@ export class LogPresenter {
       tagTriggers[0]?.data.targetName;
 
     // 情况 3: 伤害 + Buff + 死亡
-    if ((directDamageEntries.length > 0 || totalShieldAbsorbed > 0) && primaryTarget) {
+    if (
+      (
+        directDamageEntries.length > 0 ||
+        totalShieldAbsorbed > 0 ||
+        manaShieldAbsorbs.length > 0 ||
+        damageImmunes.length > 0
+      ) &&
+      primaryTarget
+    ) {
       const formattedPrimaryTarget = this.formatName(primaryTarget);
       let damageText = `对${formattedPrimaryTarget}造成 ${this.formatNumber(damageTotal)} 点伤害`;
 
@@ -211,6 +225,37 @@ export class LogPresenter {
       }
 
       resultParts.push(damageText);
+
+      const manaShieldOnPrimary = manaShieldAbsorbs.filter(
+        (e) => e.data.targetName === primaryTarget,
+      );
+      if (manaShieldOnPrimary.length > 0) {
+        const absorbedDamage = manaShieldOnPrimary.reduce(
+          (sum, entry) => sum + entry.data.absorbedDamage,
+          0,
+        );
+        const mpConsumed = manaShieldOnPrimary.reduce(
+          (sum, entry) => sum + entry.data.mpConsumed,
+          0,
+        );
+        resultParts.push(
+          `${formattedPrimaryTarget}以真元化解 ${this.formatNumber(absorbedDamage)} 点伤害（消耗 ${this.formatNumber(mpConsumed)} 点真元）`,
+        );
+      }
+
+      if (damageImmunes.some((entry) => entry.data.targetName === primaryTarget)) {
+        resultParts.push(`${formattedPrimaryTarget}免疫了此次伤害`);
+      }
+
+      const buffImmuneOnPrimary = buffImmunes.filter(
+        (e) => e.data.targetName === primaryTarget,
+      );
+      if (buffImmuneOnPrimary.length > 0) {
+        const buffNames = this.formatQuotedList(
+          buffImmuneOnPrimary.map((entry) => entry.data.buffName),
+        );
+        resultParts.push(`${formattedPrimaryTarget}免疫了${buffNames}`);
+      }
 
       // 免死优先于击杀
       if (deathPrevent) {
@@ -243,6 +288,14 @@ export class LogPresenter {
         resultParts.push(
           `对${this.formatName(buffApplies[0].data.targetName)}施加${this.formatBuffApplyList(buffApplies)}`,
         );
+      }
+
+      if (buffImmunes.length > 0 && buffImmunes[0]) {
+        const targetName = this.formatName(buffImmunes[0].data.targetName);
+        const buffNames = this.formatQuotedList(
+          buffImmunes.map((entry) => entry.data.buffName),
+        );
+        resultParts.push(`对${targetName}施加的${buffNames}被免疫了`);
       }
     }
 
@@ -324,7 +377,10 @@ export class LogPresenter {
       'damage',
       'heal',
       'shield',
+      'mana_shield_absorb',
       'buff_apply',
+      'buff_immune',
+      'damage_immune',
       'dodge',
       'resist',
       'death',

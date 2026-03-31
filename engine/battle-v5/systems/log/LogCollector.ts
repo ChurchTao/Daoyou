@@ -9,12 +9,14 @@ import {
   BuffRemovedEvent,
   ControlledSkipEvent,
   CooldownModifyEvent,
+  DamageImmuneEvent,
   DamageTakenEvent,
   DeathPreventEvent,
   DispelEvent,
   EventPriorityLevel,
   HealEvent,
   HitCheckEvent,
+  ManaShieldAbsorbEvent,
   ManaBurnEvent,
   ResourceDrainEvent,
   RoundStartEvent,
@@ -196,6 +198,24 @@ export class LogCollector {
       });
     });
 
+    this._addHandler(
+      eventBus,
+      'ManaShieldAbsorbEvent',
+      (e: ManaShieldAbsorbEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'mana_shield_absorb',
+          data: {
+            targetName: e.target.name,
+            absorbedDamage: Math.round(e.absorbedDamage),
+            mpConsumed: Math.round(e.mpConsumed),
+            remainDamage: Math.round(e.remainDamage),
+          },
+          timestamp: Date.now(),
+        });
+      },
+    );
+
     this._addHandler(eventBus, 'BuffAppliedEvent', (e: BuffAppliedEvent) => {
       this._aggregator.addEntry({
         id: this._generateId(),
@@ -231,10 +251,28 @@ export class LogCollector {
         data: {
           buffName: e.buff.name,
           targetName: e.target.name,
+          immuneTag: e.immuneTag,
         },
         timestamp: Date.now(),
       });
     });
+
+    this._addHandler(
+      eventBus,
+      'DamageImmuneEvent',
+      (e: DamageImmuneEvent) => {
+        this._aggregator.addEntry({
+          id: this._generateId(),
+          type: 'damage_immune',
+          data: {
+            targetName: e.target.name,
+            blockedDamage: Math.round(e.blockedDamage),
+            matchedTag: e.matchedTag,
+          },
+          timestamp: Date.now(),
+        });
+      },
+    );
 
     this._addHandler(eventBus, 'HitCheckEvent', (e: HitCheckEvent) => {
       if (e.isDodged) {
