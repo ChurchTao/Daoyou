@@ -57,6 +57,19 @@ export class AbilityFactory {
         });
       }
 
+      if (config.listeners) {
+        config.listeners.forEach((listener) => {
+          this.assertListenerContract(listener);
+          const effects = listener.effects
+            .map((eff) => this.createEffect(eff))
+            .filter((e) => e !== null) as GameplayEffect[];
+          skill.addInstantiatedListener(
+            buildListenerRuntimeConfig(listener),
+            effects,
+          );
+        });
+      }
+
       return skill;
     }
 

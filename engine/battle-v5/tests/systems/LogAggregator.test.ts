@@ -60,6 +60,7 @@ describe('LogAggregator Refactored', () => {
           remainHp: 50,
           isCritical: false,
           targetName: '李四',
+          beforeHp: 0
         },
         timestamp: Date.now(),
       };

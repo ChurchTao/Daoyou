@@ -171,6 +171,7 @@ describe('Passive Listener Mapping Integration', () => {
       damageTaken: 120,
       remainHp: defender.getCurrentHp(),
       isLethal: false,
+      beforeHp: 0
     });
 
     expect(attacker.buffs.getAllBuffIds()).toContain('counter_mark');

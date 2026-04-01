@@ -30,6 +30,7 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 500,
         isCritical: false,
         targetName: '李四',
+        beforeHp: 0
       }),
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
@@ -47,6 +48,7 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 420,
         isCritical: false,
         targetName: '李四',
+        beforeHp: 0
       }),
       createEntry('buff_apply', {
         buffName: '灼烧',
