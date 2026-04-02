@@ -1,4 +1,3 @@
-import { GameplayTags } from '../../contracts/battle';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
@@ -30,7 +29,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: { base: 4, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-core-spirit',
@@ -50,7 +49,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: { base: 4, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-core-shield-on-hit',
@@ -76,7 +75,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         },
       },
     },
-    listenerSpec: { eventType: 'DamageTakenEvent', scope: 'owner_as_target', priority: CREATION_LISTENER_PRIORITIES.damageTaken },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET, priority: CREATION_LISTENER_PRIORITIES.damageTaken },
   },
 
   // ===== prefix 词缀（3 种）=====
@@ -97,7 +96,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-prefix-speed',
@@ -117,7 +116,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: { base: 2, scale: 'quality', coefficient: 1 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-prefix-evasion',
@@ -137,7 +136,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
 
   // ===== suffix 词缀（2 种）=====
@@ -161,8 +160,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: 'RoundPreEvent',
-      scope: 'global',
+      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -188,8 +187,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: 'DamageRequestEvent',
-      scope: 'owner_as_target',
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -214,7 +213,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-signature-spellward',
@@ -234,12 +233,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'damage_immunity',
       params: {
-        tags: [GameplayTags.ABILITY.TYPE_MAGIC],
+        tags: [CreationTags.BATTLE.ABILITY_TYPE_MAGIC],
       },
     },
     listenerSpec: {
-      eventType: 'DamageEvent',
-      scope: 'owner_as_target',
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
     },
   },
@@ -263,8 +262,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {},
     },
     listenerSpec: {
-      eventType: 'DamageTakenEvent',
-      scope: 'owner_as_target',
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         requireOwnerAlive: false,

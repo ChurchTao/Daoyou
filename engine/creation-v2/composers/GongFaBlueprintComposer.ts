@@ -1,107 +1,60 @@
-import {
-  AttributeType,
-  BuffType,
-  ModifierType,
-  StackRule,
-} from '../contracts/battle';
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
-import { CREATION_LISTENER_PRIORITIES } from '../config/CreationBalance';
-import { CreationTags } from '../core/GameplayTags';
 import { CreationSession } from '../CreationSession';
 import { GongFaProductModel, projectAbilityConfig } from '../models';
+import { GONGFA_POLICIES, GongFaDomainConfig } from '../models/types';
 import { CreationBlueprint } from '../types';
-import { buildGroupedListeners, getDominantQuality } from './shared';
+import { CompositionRuleSet } from '../rules/composition/CompositionRuleSet';
+import { CompositionFacts } from '../rules/contracts/CompositionFacts';
+import { PassiveProjectionPolicy } from '../rules/contracts/CompositionDecision';
+import { buildCompositionFacts } from './shared';
 import { buildAbilitySlug, ProductBlueprintComposer } from './types';
 
 /**
  * 功法蓝图 Composer
  * 领域层产出 gongfa，战斗层投影为 passive ability
- * core 词缀 → attribute_stat_buff 包装在 ActionPreEvent listener（priority=100）
- * prefix/suffix 词缀 → 依 listenerSpec 包装，相同 key 的词缀合并为一个 listener
+ * 已重构为使用 CompositionRuleSet，规则逻辑集中在 rules/composition/
  */
 export class GongFaBlueprintComposer implements ProductBlueprintComposer {
+  private readonly compositionRuleSet: CompositionRuleSet;
+
   constructor(
     private readonly registry: AffixRegistry,
-    private readonly translator: AffixEffectTranslator,
-  ) {}
+    translator: AffixEffectTranslator,
+  ) {
+    this.compositionRuleSet = new CompositionRuleSet(registry, translator);
+  }
 
   compose(session: CreationSession): CreationBlueprint {
-    const { intent, energyBudget, rolledAffixes, input } = session.state;
-    if (!intent) throw new Error('Cannot compose blueprint before resolving intent');
-    if (!energyBudget) throw new Error('Cannot compose blueprint before energy budgeting');
+    const { rolledAffixes, input } = session.state;
+    const facts: CompositionFacts = buildCompositionFacts(session, 'gongfa', 'gongfa', this.registry);
 
-    const quality = getDominantQuality(session.state.materialFingerprints);
-
-    const listeners = buildGroupedListeners({
-      registry: this.registry,
-      translator: this.translator,
-      rolledAffixes,
-      quality,
-      defaultListenerSpec: {
-        eventType: 'ActionPreEvent',
-        scope: 'owner_as_actor',
-        priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
-      },
-    });
-
-    // 保底：若无词缀，添加一个基础灵力属性提升
-    if (listeners.length === 0) {
-      listeners.push({
-        eventType: 'ActionPreEvent',
-        scope: 'owner_as_actor',
-        priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
-        effects: [
-          {
-            type: 'apply_buff',
-            params: {
-              buffConfig: {
-                id: 'gongfa-fallback-spirit',
-                name: '基础灵脉',
-                type: BuffType.BUFF,
-                duration: -1,
-                stackRule: StackRule.IGNORE,
-                modifiers: [
-                  {
-                    attrType: AttributeType.SPIRIT,
-                    type: ModifierType.FIXED,
-                    value: 3,
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      });
+    const decision = this.compositionRuleSet.evaluate(facts);
+    const policy = decision.projectionPolicy as PassiveProjectionPolicy | undefined;
+    if (!policy || policy.kind !== 'gongfa_passive') {
+      throw new Error('CompositionRuleSet did not produce a gongfa projection policy');
     }
 
-    const name = `${input.materials[0]?.name ?? ''}心法`;
+    const domainConfig: GongFaDomainConfig = {
+      equipPolicy: GONGFA_POLICIES.EQUIP,
+      persistencePolicy: GONGFA_POLICIES.PERSISTENCE,
+      progressionPolicy: GONGFA_POLICIES.PROGRESSION,
+    };
 
     const productModel: GongFaProductModel = {
       productType: 'gongfa',
       outcomeKind: 'gongfa',
-      slug: buildAbilitySlug(session.id, session.state.input.productType),
-      name,
-      description: `由${input.materials.map((m) => m.name).join('、')}炼制而成`,
-      tags: [
-        CreationTags.OUTCOME.PASSIVE_ABILITY,
-        CreationTags.OUTCOME.GONGFA,
-        ...intent.dominantTags,
-      ],
+      slug: buildAbilitySlug(session.id, input.productType),
+      name: decision.name,
+      description: decision.description,
+      tags: decision.tags,
       affixes: rolledAffixes,
-      abilityTags: ['GongFa'],
-      equipPolicy: 'single_manual',
-      persistencePolicy: 'inventory_bound',
-      progressionPolicy: 'comprehension',
-      gongfaConfig: {
-        equipPolicy: 'single_manual',
-        persistencePolicy: 'inventory_bound',
-        progressionPolicy: 'comprehension',
-      },
+      abilityTags: policy.abilityTags,
+      gongfaConfig: domainConfig,
       battleProjection: {
         projectionKind: 'gongfa_passive',
-        abilityTags: ['GongFa'],
-        listeners,
+        abilityTags: policy.abilityTags,
+        listeners: policy.listeners,
       },
     };
 
@@ -109,10 +62,6 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
       outcomeKind: productModel.outcomeKind,
       productModel,
       abilityConfig: projectAbilityConfig(productModel),
-      name: productModel.name,
-      description: productModel.description,
-      tags: productModel.tags,
-      affixes: productModel.affixes,
     };
   }
 }

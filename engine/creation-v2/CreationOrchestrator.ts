@@ -22,6 +22,7 @@ import { CreationAbilityAdapter } from './adapters/CreationAbilityAdapter';
 import { CreationOutcomeMaterializer } from './adapters/types';
 import { AsyncMaterialAnalyzer } from './analysis/AsyncMaterialAnalyzer';
 import { DefaultMaterialAnalyzer } from './analysis/DefaultMaterialAnalyzer';
+import type { MaterialSemanticEnrichmentReport } from './analysis/MaterialSemanticEnricher';
 import { DefaultEnergyBudgeter } from './budgeting/DefaultEnergyBudgeter';
 import { ProductComposerRegistry } from './composers/ProductComposerRegistry';
 import {
@@ -34,17 +35,17 @@ import {
   RecipeMatch,
   RolledAffix,
 } from './types';
+import { AffixPoolDecision, AffixSelectionDecision } from './rules/contracts';
 import { DefaultIntentResolver } from './resolvers/DefaultIntentResolver';
 import { DefaultRecipeValidator } from './rules/DefaultRecipeValidator';
 import { AffixPoolBuilder, AffixRegistry, AffixSelector, DEFAULT_AFFIX_REGISTRY } from './affixes';
 import { CreationPhaseHandlerRegistry } from './handlers/CreationPhaseHandlers';
+import { PhaseActionRegistry } from './handlers/PhaseActionRegistry';
+import { WorkflowVariantPolicy } from './handlers/WorkflowVariantPolicy';
 
 export class CreationOrchestrator {
   private readonly sessions = new Map<string, CreationSession>();
-  private readonly activeWorkflowOptions = new Map<
-    string,
-    Required<CreationWorkflowOptions>
-  >();
+  private readonly activeWorkflowPolicies = new Map<string, WorkflowVariantPolicy>();
   private readonly workflowCompletions = new Map<
     string,
     {
@@ -52,6 +53,8 @@ export class CreationOrchestrator {
       resolve: (session: CreationSession) => void;
     }
   >();
+
+  readonly phaseActionRegistry: PhaseActionRegistry;
 
   constructor(
     readonly eventBus = new CreationEventBus(),
@@ -66,48 +69,32 @@ export class CreationOrchestrator {
     private readonly affixSelector = new AffixSelector(),
     readonly affixRegistry: AffixRegistry = DEFAULT_AFFIX_REGISTRY,
   ) {
+    this.phaseActionRegistry = new PhaseActionRegistry();
+    this.phaseActionRegistry.registerDefaults({
+      analyzeSync: (session) => { this.analyzeMaterialsWithDefaults(session); },
+      analyzeAsync: async (session) => { await this.analyzeMaterialsWithDefaultsAsync(session); },
+      resolveIntent: (session) => { this.resolveIntentWithDefaults(session); },
+      validateRecipe: (session) => { this.validateRecipeWithDefaults(session); },
+      budgetEnergy: (session) => { this.budgetEnergyWithDefaults(session); },
+      buildAffixPool: (session) => { this.buildAffixPoolWithDefaults(session); },
+      rollAffixes: (session) => { this.rollAffixesWithDefaults(session); },
+      composeBlueprint: (session) => { this.composeBlueprintWithDefaults(session); },
+      materializeOrComplete: (session) => { this.materializeOutcome(session); },
+    });
+
     new CreationPhaseHandlerRegistry({
       getSession: (sessionId) => this.sessions.get(sessionId),
-      isWorkflowActive: (sessionId) => this.activeWorkflowOptions.has(sessionId),
-      shouldAutoMaterialize: (sessionId) =>
-        this.activeWorkflowOptions.get(sessionId)?.autoMaterialize ?? false,
-      shouldUseAsyncMaterialAnalysis: (sessionId) =>
-        this.activeWorkflowOptions.get(sessionId)?.materialAnalysisMode === 'async',
+      isWorkflowActive: (sessionId) => this.activeWorkflowPolicies.has(sessionId),
+      getVariantPolicy: (sessionId) => this.activeWorkflowPolicies.get(sessionId),
+      phaseActionRegistry: this.phaseActionRegistry,
       completeWorkflow: (sessionId) => {
         const session = this.sessions.get(sessionId);
         const completion = this.workflowCompletions.get(sessionId);
-        this.activeWorkflowOptions.delete(sessionId);
+        this.activeWorkflowPolicies.delete(sessionId);
         this.workflowCompletions.delete(sessionId);
         if (session && completion) {
           completion.resolve(session);
         }
-      },
-      analyzeMaterialsWithDefaults: (session) => {
-        this.analyzeMaterialsWithDefaults(session);
-      },
-      analyzeMaterialsWithDefaultsAsync: async (session) => {
-        await this.analyzeMaterialsWithDefaultsAsync(session);
-      },
-      resolveIntentWithDefaults: (session) => {
-        this.resolveIntentWithDefaults(session);
-      },
-      validateRecipeWithDefaults: (session) => {
-        this.validateRecipeWithDefaults(session);
-      },
-      budgetEnergyWithDefaults: (session) => {
-        this.budgetEnergyWithDefaults(session);
-      },
-      buildAffixPoolWithDefaults: (session) => {
-        this.buildAffixPoolWithDefaults(session);
-      },
-      rollAffixesWithDefaults: (session) => {
-        this.rollAffixesWithDefaults(session);
-      },
-      composeBlueprintWithDefaults: (session) => {
-        this.composeBlueprintWithDefaults(session);
-      },
-      materializeOutcome: (session) => {
-        this.materializeOutcome(session);
       },
       fail: (session, reason, details) => {
         this.fail(session, reason, details);
@@ -116,25 +103,43 @@ export class CreationOrchestrator {
   }
 
   createSession(input: CreationSessionInput): CreationSession {
+    if (this.sessions.has(input.sessionId)) {
+      throw new Error(
+        `CreationOrchestrator: sessionId '${input.sessionId}' is already in use. ` +
+          `Provide a unique sessionId or call clearSession() first.`,
+      );
+    }
     const session = new CreationSession(input);
     this.sessions.set(session.id, session);
     return session;
   }
 
+  /**
+   * 启动事件驱动造物工作流。
+   *
+   * @param options.autoMaterialize - 默认 true。
+   *   - true: 蓝图组合完成后自动实体化，session 最终 phase 为 OUTCOME_MATERIALIZED。
+   *   - false: workflow 在 BLUEPRINT_COMPOSED 阶段完成，调用方需手动调用
+   *     `materializeOutcome(session)` 或 `materializeOutcomeWith()` 进行实体化。
+   * @param options.materialAnalysisMode - 'sync'（默认）或 'async'（启用 LLM 语义分析）。
+   */
   runEventDrivenWorkflow(
     session: CreationSession,
     options: CreationWorkflowOptions = {},
   ): CreationSession {
     this.sessions.set(session.id, session);
     this.createWorkflowCompletion(session.id);
-    this.activeWorkflowOptions.set(session.id, {
-      autoMaterialize: options.autoMaterialize ?? true,
-      materialAnalysisMode: options.materialAnalysisMode ?? 'sync',
-    });
+    this.activeWorkflowPolicies.set(session.id, WorkflowVariantPolicy.fromOptions(options));
     this.submitMaterials(session);
     return session;
   }
 
+  /**
+   * 等待 workflow 完成并返回最终 session。
+   *
+   * 当 `autoMaterialize: false` 时，workflow 在 session.state.phase === BLUEPRINT_COMPOSED
+   * 时即完成（蓝图已就绪，尚未实体化）。调用方可通过检查 phase 判断是否需要手动实体化。
+   */
   waitForWorkflowCompletion(sessionId: string): Promise<CreationSession> {
     const existing = this.workflowCompletions.get(sessionId);
     if (existing) {
@@ -146,7 +151,7 @@ export class CreationOrchestrator {
       return Promise.reject(new Error(`Unknown workflow session: ${sessionId}`));
     }
 
-    if (!this.activeWorkflowOptions.has(sessionId)) {
+    if (!this.activeWorkflowPolicies.has(sessionId)) {
       return Promise.resolve(session);
     }
 
@@ -183,12 +188,20 @@ export class CreationOrchestrator {
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   analyzeMaterialsWithDefaults(session: CreationSession): MaterialFingerprint[] {
     const fingerprints = this.materialAnalyzer.analyze(session.state.input.materials);
     this.recordMaterialAnalysis(session, fingerprints);
     return fingerprints;
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用（异步版）。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   async analyzeMaterialsWithDefaultsAsync(
     session: CreationSession,
   ): Promise<MaterialFingerprint[]> {
@@ -229,6 +242,10 @@ export class CreationOrchestrator {
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   resolveIntentWithDefaults(session: CreationSession): CreationIntent {
     const intent = this.intentResolver.resolve(
       session.state.input,
@@ -251,6 +268,10 @@ export class CreationOrchestrator {
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   validateRecipeWithDefaults(session: CreationSession): RecipeMatch {
     if (!session.state.intent) {
       throw new Error('Cannot validate recipe before resolving intent');
@@ -285,6 +306,10 @@ export class CreationOrchestrator {
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   budgetEnergyWithDefaults(session: CreationSession): EnergyBudget {
     const budget = this.energyBudgeter.allocate(
       session.state.materialFingerprints,
@@ -294,8 +319,13 @@ export class CreationOrchestrator {
     return budget;
   }
 
-  buildAffixPool(session: CreationSession, affixPool: AffixCandidate[]): void {
+  buildAffixPool(
+    session: CreationSession,
+    affixPool: AffixCandidate[],
+    poolDecision?: AffixPoolDecision,
+  ): void {
     session.state.affixPool = affixPool;
+    if (poolDecision) session.state.affixPoolDecision = poolDecision;
     session.setPhase(CreationPhase.AFFIX_POOL_BUILT);
 
     this.eventBus.publish<AffixPoolBuiltEvent>({
@@ -303,16 +333,25 @@ export class CreationOrchestrator {
       sessionId: session.id,
       timestamp: Date.now(),
       affixPool,
+      poolDecision,
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   buildAffixPoolWithDefaults(session: CreationSession): AffixCandidate[] {
-    const pool = this.affixPoolBuilder.build(this.affixRegistry, session);
-    this.buildAffixPool(session, pool);
-    return pool;
+    const decision = this.affixPoolBuilder.buildDecision(this.affixRegistry, session);
+    this.buildAffixPool(session, decision.candidates, decision);
+    return decision.candidates;
   }
 
-  rollAffixes(session: CreationSession, affixes: RolledAffix[]): void {
+  rollAffixes(
+    session: CreationSession,
+    affixes: RolledAffix[],
+    selectionDecision?: AffixSelectionDecision,
+  ): void {
     session.state.rolledAffixes = affixes;
 
     if (session.state.energyBudget) {
@@ -329,9 +368,14 @@ export class CreationOrchestrator {
       sessionId: session.id,
       timestamp: Date.now(),
       affixes,
+      selectionDecision,
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   rollAffixesWithDefaults(session: CreationSession): RolledAffix[] {
     if (!session.state.intent) {
       throw new Error('Cannot roll affixes before resolving intent');
@@ -339,16 +383,17 @@ export class CreationOrchestrator {
     if (!session.state.energyBudget) {
       throw new Error('Cannot roll affixes before energy budgeting');
     }
-    const selection = this.affixSelector.select(
+    const { audit: selection, lastDecision } = this.affixSelector.selectWithDecision(
       session.state.affixPool,
       session.state.energyBudget,
       session.state.intent,
     );
+    if (lastDecision) session.state.affixSelectionDecision = lastDecision;
     session.state.energyBudget = this.energyBudgeter.applySelectionAudit(
       session.state.energyBudget,
       selection,
     );
-    this.rollAffixes(session, selection.affixes);
+    this.rollAffixes(session, selection.affixes, lastDecision);
     return selection.affixes;
   }
 
@@ -368,6 +413,10 @@ export class CreationOrchestrator {
     });
   }
 
+  /**
+   * @internal 供测试和工作流内部神调使用。
+   * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
+   */
   composeBlueprintWithDefaults(session: CreationSession): CreationBlueprint {
     const blueprint = this.blueprintComposer.compose(session);
     this.composeBlueprint(session, blueprint);
@@ -449,19 +498,21 @@ export class CreationOrchestrator {
     session.state.intent?.dominantTags.forEach((tag) => tags.add(tag));
     session.state.intent?.requestedTags.forEach((tag) => tags.add(tag));
     session.state.recipeMatch?.matchedTags.forEach((tag) => tags.add(tag));
-    session.state.blueprint?.tags.forEach((tag) => tags.add(tag));
+    session.state.blueprint?.productModel.tags.forEach((tag) => tags.add(tag));
 
     return Array.from(tags);
   }
 
+  /**
+   * Fire-and-forget: 将 LLM 语义分析结果作为观察性事件广播出去。
+   * 这些事件不推进任何 workflow phase（无 CreationPhaseHandler 订阅），
+   * 仅供外部消费者（如日志、调试面板、未来的重试策略）监听。
+   * workflow 主链路通过 recordMaterialAnalysis() 推进，与此方法解耦。
+   */
   private publishMaterialSemanticEnrichment(
     session: CreationSession,
     fingerprints: MaterialFingerprint[],
-    enrichment: {
-      status: 'disabled' | 'success' | 'fallback';
-      fallbackReason?: string;
-      failureDisposition?: 'retryable' | 'non_retryable';
-    },
+    enrichment: Pick<MaterialSemanticEnrichmentReport, 'status' | 'fallbackReason' | 'failureDisposition'>,
   ): void {
     const metadata = fingerprints
       .filter((fingerprint) => fingerprint.metadata?.llm)

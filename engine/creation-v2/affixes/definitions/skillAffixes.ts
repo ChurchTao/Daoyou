@@ -147,8 +147,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: 'DamageRequestEvent',
-      scope: 'owner_as_caster',
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -172,8 +172,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: 'SkillCastEvent',
-      scope: 'owner_as_caster',
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -201,8 +201,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: 'SkillCastEvent',
-      scope: 'owner_as_caster',
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -233,8 +233,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           tags: ['Status.Burn', 'Status.DOT'],
           listeners: [
             {
-              eventType: 'RoundPreEvent',
-              scope: 'owner_as_target',
+              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
               priority: 20,
               effects: [
                 {

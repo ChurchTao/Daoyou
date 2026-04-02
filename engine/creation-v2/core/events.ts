@@ -10,6 +10,7 @@ import {
   RecipeMatch,
   RolledAffix,
 } from '../types';
+import type { AffixPoolDecision, AffixSelectionDecision } from '../rules/contracts';
 import { CreationEvent, CreationPhase } from './types';
 
 export interface MaterialSubmittedEvent extends CreationEvent {
@@ -83,11 +84,13 @@ export interface EnergyBudgetedEvent extends CreationEvent {
 export interface AffixPoolBuiltEvent extends CreationEvent {
   type: 'AffixPoolBuiltEvent';
   affixPool: AffixCandidate[];
+  poolDecision?: AffixPoolDecision;
 }
 
 export interface AffixRolledEvent extends CreationEvent {
   type: 'AffixRolledEvent';
   affixes: RolledAffix[];
+  selectionDecision?: AffixSelectionDecision;
 }
 
 export interface BlueprintComposedEvent extends CreationEvent {

@@ -1,5 +1,3 @@
-import { isDeepStrictEqual } from 'node:util';
-
 import type { AbilityConfig } from '../contracts/battle';
 import type { CreationProductModel } from '../models/types';
 import type { CreationOutcomeMaterializer } from '../adapters/types';
@@ -22,11 +20,11 @@ export function snapshotCraftedOutcome(
   outcome: CraftedOutcome,
 ): CraftedOutcomeSnapshot {
   return {
-    productType: outcome.productType,
-    outcomeKind: outcome.outcomeKind,
+    productType: outcome.blueprint.productModel.productType,
+    outcomeKind: outcome.blueprint.outcomeKind,
     blueprint: outcome.blueprint,
-    productModel: outcome.productModel,
-    abilityConfig: outcome.abilityConfig,
+    productModel: outcome.blueprint.productModel,
+    abilityConfig: outcome.blueprint.abilityConfig,
   };
 }
 
@@ -54,12 +52,13 @@ export function restoreCraftedOutcome(
   );
 
   if (
-    restored.outcomeKind !== snapshot.outcomeKind ||
-    !isDeepStrictEqual(restored.productModel, snapshot.productModel) ||
-    !isDeepStrictEqual(restored.abilityConfig, snapshot.abilityConfig)
+    restored.blueprint.outcomeKind !== snapshot.outcomeKind ||
+    restored.blueprint.productModel.productType !== snapshot.productModel.productType ||
+    restored.blueprint.productModel.slug !== snapshot.productModel.slug ||
+    restored.blueprint.productModel.name !== snapshot.productModel.name
   ) {
     throw new Error(
-      'Persisted outcome snapshot no longer matches current projection contract',
+      'Persisted outcome snapshot identity fields do not match current projection contract',
     );
   }
 

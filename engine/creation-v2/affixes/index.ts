@@ -3,6 +3,8 @@ export { AffixEffectTranslator } from './AffixEffectTranslator';
 export { AffixRegistry } from './AffixRegistry';
 export { AffixPoolBuilder } from './AffixPoolBuilder';
 export { AffixSelector } from './AffixSelector';
+export type { AffixSelectionResult } from './AffixSelector';
+export { AffixPicker } from './AffixPicker';
 
 import { AffixRegistry } from './AffixRegistry';
 import { SKILL_AFFIXES } from './definitions/skillAffixes';

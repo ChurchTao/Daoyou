@@ -116,7 +116,16 @@ export class EventBus {
   }
 
   /**
-   * Reset all subscribers and event history
+   * Reset all subscribers and event history.
+   *
+   * @remarks
+   * After calling `reset()`, all registered handlers (including those registered
+   * by `Ability` instances via `AbilityFactory.fromAbilityConfig`) are removed.
+   * Callers must re-register handlers before publishing events — typically by
+   * re-creating Ability objects or calling their registration methods again.
+   *
+   * This method is intended for use in tests (`beforeEach`/`afterEach`) to
+   * ensure test isolation. Avoid calling it in production code.
    */
   public reset(): void {
     this._subscribers.clear();

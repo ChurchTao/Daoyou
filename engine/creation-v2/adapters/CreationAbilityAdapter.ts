@@ -19,7 +19,7 @@ export class CreationAbilityAdapter implements CreationOutcomeMaterializer {
   ) {}
 
   materialize(
-    productType: CreationProductType,
+    _productType: CreationProductType,
     blueprint: CreationBlueprint,
   ): CraftedOutcome {
     const abilityConfig = projectAbilityConfig(blueprint.productModel);
@@ -27,11 +27,7 @@ export class CreationAbilityAdapter implements CreationOutcomeMaterializer {
     const ability = this.abilityBuilder.build(abilityConfig);
 
     return {
-      productType,
-      outcomeKind: blueprint.outcomeKind,
       blueprint,
-      productModel: blueprint.productModel,
-      abilityConfig,
       ability,
     };
   }

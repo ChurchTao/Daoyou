@@ -65,8 +65,7 @@ export class DeepSeekMaterialSemanticEnricher
 
   constructor(options: DeepSeekMaterialSemanticEnricherOptions = {}) {
     this.enabled =
-      options.enabled ??
-      process.env.ENABLE_CREATION_LLM_SEMANTIC_ENRICHMENT === 'true';
+      options.enabled ?? false;
     this.timeoutMs = options.timeoutMs ?? 2500;
     this.fastModel = options.fastModel ?? true;
     this.providerName = options.providerName ?? 'deepseek-structured';

@@ -54,30 +54,18 @@ export interface GongFaBattleProjection {
 
 export interface SkillProductModel
   extends BaseProductModel<'skill', 'active_skill'> {
-  mpCost: number;
-  cooldown: number;
-  priority: number;
-  targetPolicy: NonNullable<AbilityConfig['targetPolicy']>;
-  effects: EffectConfig[];
-  listeners?: ListenerConfig[];
+  /** Battle projection is the single source of truth for all battle-facing fields. */
   battleProjection: ActiveSkillBattleProjection;
 }
 
 export interface ArtifactProductModel
   extends BaseProductModel<'artifact', 'artifact'> {
-  slot?: EquipmentSlot;
-  equipPolicy: 'single_slot';
-  persistencePolicy: 'inventory_bound';
-  progressionPolicy: 'reforgeable';
   artifactConfig: ArtifactDomainConfig;
   battleProjection: ArtifactBattleProjection;
 }
 
 export interface GongFaProductModel
   extends BaseProductModel<'gongfa', 'gongfa'> {
-  equipPolicy: 'single_manual';
-  persistencePolicy: 'inventory_bound';
-  progressionPolicy: 'comprehension';
   gongfaConfig: GongFaDomainConfig;
   battleProjection: GongFaBattleProjection;
 }
@@ -86,3 +74,25 @@ export type CreationProductModel =
   | SkillProductModel
   | ArtifactProductModel
   | GongFaProductModel;
+
+/** Artifact domain policy constants — match the literal types in ArtifactDomainConfig */
+export const ARTIFACT_POLICIES = {
+  EQUIP: 'single_slot',
+  PERSISTENCE: 'inventory_bound',
+  PROGRESSION: 'reforgeable',
+} as const satisfies {
+  EQUIP: ArtifactDomainConfig['equipPolicy'];
+  PERSISTENCE: ArtifactDomainConfig['persistencePolicy'];
+  PROGRESSION: ArtifactDomainConfig['progressionPolicy'];
+};
+
+/** GongFa domain policy constants — match the literal types in GongFaDomainConfig */
+export const GONGFA_POLICIES = {
+  EQUIP: 'single_manual',
+  PERSISTENCE: 'inventory_bound',
+  PROGRESSION: 'comprehension',
+} as const satisfies {
+  EQUIP: GongFaDomainConfig['equipPolicy'];
+  PERSISTENCE: GongFaDomainConfig['persistencePolicy'];
+  PROGRESSION: GongFaDomainConfig['progressionPolicy'];
+};

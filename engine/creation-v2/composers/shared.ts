@@ -3,7 +3,9 @@ import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
 import type { AffixListenerSpec } from '../affixes/types';
 import type { ListenerConfig } from '../contracts/battle';
-import type { MaterialFingerprint, RolledAffix } from '../types';
+import type { CreationOutcomeKind, CreationProductType, MaterialFingerprint } from '../types';
+import { CreationSession } from '../CreationSession';
+import { CompositionFacts } from '../rules/contracts/CompositionFacts';
 
 export function getDominantQuality(
   fingerprints: MaterialFingerprint[],
@@ -16,10 +18,10 @@ export function getDominantQuality(
   return QUALITY_VALUES[maxOrder];
 }
 
-interface BuildGroupedListenersInput {
+export interface BuildGroupedListenersInput {
   registry: AffixRegistry;
   translator: AffixEffectTranslator;
-  rolledAffixes: RolledAffix[];
+  affixIds: string[];
   quality: Quality;
   defaultListenerSpec: AffixListenerSpec;
 }
@@ -27,14 +29,14 @@ interface BuildGroupedListenersInput {
 export function buildGroupedListeners({
   registry,
   translator,
-  rolledAffixes,
+  affixIds,
   quality,
   defaultListenerSpec,
 }: BuildGroupedListenersInput): ListenerConfig[] {
   const listenerMap = new Map<string, ListenerConfig>();
 
-  for (const rolledAffix of rolledAffixes) {
-    const definition = registry.queryById(rolledAffix.id);
+  for (const affixId of affixIds) {
+    const definition = registry.queryById(affixId);
     if (!definition) {
       continue;
     }
@@ -58,4 +60,46 @@ export function buildGroupedListeners({
   }
 
   return Array.from(listenerMap.values());
+}
+
+/**
+ * Builds a CompositionFacts object from the current session state.
+ * Shared by all three Composer implementations to eliminate duplication.
+ *
+ * Pass an optional `registry` to populate `coreEffectType` from the core affix's effectTemplate.
+ */
+export function buildCompositionFacts(
+  session: CreationSession,
+  productType: CreationProductType,
+  outcomeKind: CreationOutcomeKind,
+  registry?: AffixRegistry,
+): CompositionFacts {
+  const { intent, energyBudget, rolledAffixes, input, materialFingerprints } = session.state;
+  if (!intent) throw new Error('Cannot compose blueprint before resolving intent');
+  if (!energyBudget) throw new Error('Cannot compose blueprint before energy budgeting');
+
+  const dominantQuality = getDominantQuality(materialFingerprints);
+
+  let coreEffectType: string | undefined;
+  if (registry) {
+    const coreAffix = rolledAffixes.find((a) => a.category === 'core');
+    if (coreAffix) {
+      const coreDef = registry.queryById(coreAffix.id);
+      coreEffectType = coreDef?.effectTemplate.type;
+    }
+  }
+
+  return {
+    productType,
+    outcomeKind,
+    intent,
+    recipeMatch: session.state.recipeMatch!,
+    energyBudget,
+    affixes: rolledAffixes,
+    sessionTags: session.state.tags,
+    materialFingerprints,
+    dominantQuality,
+    materialNames: input.materials.map((m) => m.name),
+    ...(coreEffectType !== undefined ? { coreEffectType } : {}),
+  };
 }

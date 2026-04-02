@@ -14,12 +14,26 @@ import { AffixCategory, CreationProductType } from '../types';
 
 // ===== 品质缩放值 =====
 
+/** ScalableValueV2 的 scale 字段取值 */
+export const SCALE_MODE = {
+  QUALITY: 'quality',
+  NONE: 'none',
+} as const;
+export type ScaleMode = (typeof SCALE_MODE)[keyof typeof SCALE_MODE];
+
+/** percent_damage_modifier 的 mode 字段取值 */
+export const PERCENT_MODIFIER_MODE = {
+  INCREASE: 'increase',
+  REDUCE: 'reduce',
+} as const;
+export type PercentModifierMode = (typeof PERCENT_MODIFIER_MODE)[keyof typeof PERCENT_MODIFIER_MODE];
+
 /**
  * V2 品质缩放值：resolved = base + qualityOrder * coefficient
  */
 export interface ScalableValueV2 {
   base: number;
-  scale: 'quality' | 'none';
+  scale: ScaleMode;
   coefficient: number;
 }
 
@@ -70,7 +84,7 @@ export type AffixEffectTemplate =
     }
   | {
       type: 'percent_damage_modifier';
-      params: { mode: 'increase' | 'reduce'; value: ScalableParam; cap?: number };
+      params: { mode: PercentModifierMode; value: ScalableParam; cap?: number };
     }
   | { type: 'death_prevent'; params: DeathPreventParams }
   | { type: 'buff_immunity'; params: BuffImmunityParams }
@@ -111,6 +125,8 @@ export interface AffixDefinition {
   energyCost: number;
   /** 进入候选池所需的最低材料品质 */
   minQuality?: Quality;
+  /** 允许进入候选池的最高材料品质（超出此品质的材料不能秗到此词缀） */
+  maxQuality?: Quality;
   /** 词缀效果模板（含品质缩放参数） */
   effectTemplate: AffixEffectTemplate;
   /** 被动能力词缀的监听器规格（artifact/gongfa 词缀必填） */

@@ -1,4 +1,5 @@
 import { EquipmentSlot } from '@/types/constants';
+import { MaterialFactsBuilder } from '../analysis/MaterialFactsBuilder';
 import { CreationIntent, CreationSessionInput, MaterialFingerprint } from '../types';
 
 export class DefaultIntentResolver {
@@ -8,7 +9,10 @@ export class DefaultIntentResolver {
   ): CreationIntent {
     const outcomeKind =
       input.productType === 'skill' ? 'active_skill' : input.productType;
-    const dominantTags = this.pickDominantTags(fingerprints, input.requestedTags ?? []);
+    const dominantTags = MaterialFactsBuilder.pickDominantTags(
+      fingerprints,
+      input.requestedTags ?? [],
+    );
 
     return {
       productType: input.productType,
@@ -18,26 +22,6 @@ export class DefaultIntentResolver {
       elementBias: this.pickElementBias(fingerprints, input.requestedElement),
       slotBias: input.requestedSlot ?? this.inferSlotBias(input.productType, fingerprints),
     };
-  }
-
-  private pickDominantTags(
-    fingerprints: MaterialFingerprint[],
-    requestedTags: string[],
-  ): string[] {
-    const scores = new Map<string, number>();
-
-    requestedTags.forEach((tag) => scores.set(tag, 100));
-
-    fingerprints.forEach((fingerprint) => {
-      [...fingerprint.semanticTags, ...fingerprint.recipeTags].forEach((tag) => {
-        scores.set(tag, (scores.get(tag) ?? 0) + 1);
-      });
-    });
-
-    return Array.from(scores.entries())
-      .sort((left, right) => right[1] - left[1])
-      .slice(0, 4)
-      .map(([tag]) => tag);
   }
 
   private pickElementBias(
@@ -63,6 +47,13 @@ export class DefaultIntentResolver {
       | undefined;
   }
 
+  /**
+   * Heuristic slot inference based on material name keywords.
+   * When no keyword matches, defaults to 'weapon' — this is intentionally a fallback.
+   *
+   * TODO(P1-4): This heuristic belongs in the rules layer (MaterialTagNormalizer or a dedicated
+   * SlotBiasRule), so it can produce proper RuleTrace entries. Move when adding slot-specific rules.
+   */
   private inferSlotBias(
     productType: CreationSessionInput['productType'],
     fingerprints: MaterialFingerprint[],
@@ -80,6 +71,9 @@ export class DefaultIntentResolver {
       return 'accessory';
     }
 
+    // No keyword matched — defaulting to weapon slot.
+    // TODO(P1-1): Move this heuristic to SlotBiasRule in the rules layer so the
+    // fallback decision is captured in RuleTrace rather than silently applied.
     return 'weapon';
   }
 }

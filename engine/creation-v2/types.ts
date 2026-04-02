@@ -3,10 +3,18 @@ import { EquipmentSlot, ElementType, Quality, RealmType } from '@/types/constant
 import { Material } from '@/types/cultivator';
 import { CreationPhase } from './core/types';
 import type { CreationProductModel } from './models/types';
+import type { AffixPoolDecision, AffixSelectionDecision } from './rules/contracts';
 
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
 export type CreationOutcomeKind = 'active_skill' | 'artifact' | 'gongfa';
 export type AffixCategory = 'prefix' | 'suffix' | 'core' | 'signature';
+
+export const AFFIX_CATEGORIES = {
+  PREFIX: 'prefix',
+  SUFFIX: 'suffix',
+  CORE: 'core',
+  SIGNATURE: 'signature',
+} as const satisfies Record<string, AffixCategory>;
 
 export const CREATION_PRODUCT_TYPES = ['skill', 'artifact', 'gongfa'] as const;
 
@@ -83,6 +91,30 @@ export type AffixSelectionStopReason =
   | 'pool_exhausted'
   | 'max_count_reached';
 
+export const AFFIX_STOP_REASONS = {
+  BUDGET_EXHAUSTED: 'budget_exhausted',
+  EXCLUSIVE_GROUP_CONFLICT: 'exclusive_group_conflict',
+  POOL_EXHAUSTED: 'pool_exhausted',
+  MAX_COUNT_REACHED: 'max_count_reached',
+} as const satisfies Record<string, AffixSelectionStopReason>;
+
+/** Rule evaluation phase identifiers — used in RuleContext metadata */
+export const CREATION_PHASES = {
+  MATERIAL_VALIDATION: 'material_validation',
+  RECIPE_VALIDATION: 'recipe_validation',
+  AFFIX_POOL_BUILD: 'affix_pool_build',
+  AFFIX_SELECTION: 'affix_selection',
+} as const;
+
+/** Factory helpers for well-known RecipeId patterns */
+export function defaultRecipeId(productType: CreationProductType): string {
+  return `${productType}-default`;
+}
+
+export function conflictedRecipeId(productType: CreationProductType): string {
+  return `${productType}-conflicted`;
+}
+
 export interface AffixAllocation {
   affixId: string;
   amount: number;
@@ -119,6 +151,11 @@ export interface EnergyBudget {
   }>;
 }
 
+/** Returns a zero-value EnergyBudget for cases where session budget is unavailable */
+export function createEmptyEnergyBudget(): EnergyBudget {
+  return { total: 0, reserved: 0, spent: 0, remaining: 0, allocations: [], sources: [] };
+}
+
 export interface AffixCandidate {
   id: string;
   name: string;
@@ -139,33 +176,47 @@ export interface CreationBlueprint {
   outcomeKind: CreationOutcomeKind;
   productModel: CreationProductModel;
   abilityConfig: AbilityConfig;
-  name: string;
-  description?: string;
-  tags: string[];
-  affixes: RolledAffix[];
+  // name, description, tags, affixes are accessible via blueprint.productModel.*
 }
 
 export interface CraftedOutcome {
-  productType: CreationProductType;
-  outcomeKind: CreationOutcomeKind;
   blueprint: CreationBlueprint;
-  productModel: CreationProductModel;
-  abilityConfig: AbilityConfig;
   ability: Ability;
 }
 
 export interface CreationSessionState {
+  // ── 会话元数据 ──────────────────────────────────────────────────────────────
   id: string;
   phase: CreationPhase;
   input: CreationSessionInput;
   tags: string[];
+
+  // ── 阶段 1：材料分析 ────────────────────────────────────────────────────────
   materialFingerprints: MaterialFingerprint[];
+
+  // ── 阶段 2：意图解析 ────────────────────────────────────────────────────────
   intent?: CreationIntent;
+
+  // ── 阶段 3：配方校验 ────────────────────────────────────────────────────────
   recipeMatch?: RecipeMatch;
+
+  // ── 阶段 4：能量预算 ────────────────────────────────────────────────────────
   energyBudget?: EnergyBudget;
+
+  // ── 阶段 5：词缀池构建 ──────────────────────────────────────────────────────
   affixPool: AffixCandidate[];
+  affixPoolDecision?: AffixPoolDecision;
+
+  // ── 阶段 6：词缀抽选 ────────────────────────────────────────────────────────
   rolledAffixes: RolledAffix[];
+  affixSelectionDecision?: AffixSelectionDecision;
+
+  // ── 阶段 7：蓝图组合 ────────────────────────────────────────────────────────
   blueprint?: CreationBlueprint;
+
+  // ── 阶段 8：产物实体化 ──────────────────────────────────────────────────────
   outcome?: CraftedOutcome;
+
+  // ── 错误状态 ────────────────────────────────────────────────────────────────
   failureReason?: string;
 }

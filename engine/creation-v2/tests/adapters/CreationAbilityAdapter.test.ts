@@ -16,24 +16,6 @@ function createSkillBlueprint(): CreationBlueprint {
       tags: ['Outcome.ActiveSkill', 'Ability.Element.Fire'],
       affixes: [],
       abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
-      mpCost: 18,
-      cooldown: 2,
-      priority: 12,
-      targetPolicy: {
-        team: 'enemy',
-        scope: 'single',
-      },
-      effects: [
-        {
-          type: 'damage',
-          params: {
-            value: {
-              base: 24,
-              coefficient: 0.8,
-            },
-          },
-        },
-      ],
       battleProjection: {
         projectionKind: 'active_skill',
         abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],

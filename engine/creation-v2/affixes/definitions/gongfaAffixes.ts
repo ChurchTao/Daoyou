@@ -1,4 +1,3 @@
-import { GameplayTags } from '../../contracts/battle';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { CreationTags } from '../../core/GameplayTags';
 import { AttributeType, ModifierType } from '../../contracts/battle';
@@ -31,7 +30,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         value: { base: 5, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-core-vitality',
@@ -51,7 +50,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         value: { base: 5, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-core-wisdom',
@@ -75,7 +74,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         value: { base: 4, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
 
   // ===== prefix 词缀（2 种）=====
@@ -96,7 +95,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-prefix-heal-amplify',
@@ -115,7 +114,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
 
   // ===== suffix 词缀（1 种）=====
@@ -143,8 +142,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: 'RoundPreEvent',
-      scope: 'global',
+      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -173,7 +172,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: { eventType: 'ActionPreEvent', scope: 'owner_as_actor', priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-signature-unbound-mind',
@@ -193,12 +192,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'buff_immunity',
       params: {
-        tags: [GameplayTags.BUFF.TYPE_CONTROL],
+        tags: [CreationTags.BATTLE.BUFF_TYPE_CONTROL],
       },
     },
     listenerSpec: {
-      eventType: 'BuffAddEvent',
-      scope: 'owner_as_target',
+      eventType: CreationTags.BATTLE_EVENT.BUFF_ADD,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
     },
   },

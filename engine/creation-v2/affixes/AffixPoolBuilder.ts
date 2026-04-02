@@ -1,6 +1,8 @@
 import { QUALITY_ORDER } from '@/types/constants';
 import { CreationSession } from '../CreationSession';
-import { AffixCandidate } from '../types';
+import { AffixCandidate, AFFIX_STOP_REASONS, createEmptyEnergyBudget } from '../types';
+import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
+import { AffixPoolRuleSet } from '../rules/affix/AffixPoolRuleSet';
 import { AffixDefinition } from './types';
 import { AffixRegistry } from './AffixRegistry';
 
@@ -10,33 +12,70 @@ import { AffixRegistry } from './AffixRegistry';
  * 从 AffixRegistry 查询并生成 AffixCandidate[]
  */
 export class AffixPoolBuilder {
-  build(registry: AffixRegistry, session: CreationSession): AffixCandidate[] {
-    const { tags, materialFingerprints, recipeMatch, input } = session.state;
-    if (!recipeMatch) return [];
+  constructor(private readonly ruleSet = new AffixPoolRuleSet()) {}
 
-    // 取所有材料中最高品质的 qualityOrder
+  build(registry: AffixRegistry, session: CreationSession): AffixCandidate[] {
+    return this.buildDecision(registry, session).candidates;
+  }
+
+  buildDecision(
+    registry: AffixRegistry,
+    session: CreationSession,
+  ): AffixPoolDecision {
+    const { tags, materialFingerprints, recipeMatch, input } = session.state;
+    if (!recipeMatch) {
+      return {
+        candidates: [],
+        rejectedCandidates: [],
+        exhaustionReason: AFFIX_STOP_REASONS.POOL_EXHAUSTED,
+        reasons: [],
+        warnings: [],
+        trace: [],
+      };
+    }
+
     const maxQualityOrder = materialFingerprints.reduce(
       (max, fp) => Math.max(max, QUALITY_ORDER[fp.rank]),
       0,
     );
 
-    const matching = registry.queryByTags(
-      tags,
-      recipeMatch.unlockedAffixCategories,
-      input.productType,
-    );
+    if (tags.length === 0) {
+      return {
+        candidates: [],
+        rejectedCandidates: [],
+        exhaustionReason: AFFIX_STOP_REASONS.POOL_EXHAUSTED,
+        reasons: [
+          {
+            code: 'affix_pool_empty_tags',
+            message: 'session.tags 为空，无法匹配任何词缀候选，词缀池为零',
+          },
+        ],
+        warnings: [],
+        trace: [
+          {
+            ruleId: 'affix.pool.builder',
+            outcome: 'blocked',
+            message: 'session.tags 为空，跳过词缀池构建',
+          },
+        ],
+      };
+    }
 
-    return matching
-      .filter((def) => {
-        if (
-          def.minQuality !== undefined &&
-          maxQualityOrder < QUALITY_ORDER[def.minQuality]
-        ) {
-          return false;
-        }
-        return true;
-      })
+    const matching = registry
+      .queryByTags(tags, recipeMatch.unlockedAffixCategories, input.productType)
       .map((def) => this.toCandidate(def));
+
+    const facts: AffixEligibilityFacts = {
+      productType: input.productType,
+      recipeMatch,
+      energyBudget: session.state.energyBudget ?? createEmptyEnergyBudget(),
+      candidatePool: matching,
+      allowedCategories: recipeMatch.unlockedAffixCategories,
+      sessionTags: tags,
+      maxQualityOrder,
+    };
+
+    return this.ruleSet.evaluate(facts);
   }
 
   private toCandidate(def: AffixDefinition): AffixCandidate {
@@ -49,6 +88,7 @@ export class AffixPoolBuilder {
       energyCost: def.energyCost,
       exclusiveGroup: def.exclusiveGroup,
       minQuality: def.minQuality,
+      maxQuality: def.maxQuality,
     };
   }
 }

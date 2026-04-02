@@ -14,6 +14,7 @@ import {
   AffixScalableValue,
   ScalableParam,
   ScalableValueV2,
+  SCALE_MODE,
 } from './types';
 
 // 属性永久 buff 名称展示
@@ -90,6 +91,8 @@ export class AffixEffectTranslator {
       case 'attribute_stat_buff': {
         const { attrType, modType, value, duration, stackRule } = template.params;
         const resolvedValue = this.resolveParam(value, qualityOrder);
+        // MULTIPLY modType: value 为乘数（e.g. 0.12 表示 ×1.12 需在战斗层做 base+value 解释，
+        // 或直接作为倍数传入；具体行为取决于 battle-v5 AttributeSet.getFinalValue 的 MULTIPLY 阶段）
         return {
           type: 'apply_buff',
           params: {
@@ -148,6 +151,11 @@ export class AffixEffectTranslator {
           type: 'dispel',
           params: { ...template.params },
         };
+
+      default: {
+        const _exhaustive: never = template;
+        throw new Error(`AffixEffectTranslator: 未支持的效果类型: ${(_exhaustive as AffixEffectTemplate).type}`);
+      }
     }
   }
 
@@ -165,6 +173,6 @@ export class AffixEffectTranslator {
   resolveParam(param: ScalableParam, qualityOrder: number): number {
     if (typeof param === 'number') return param;
     const sv = param as ScalableValueV2;
-    return sv.scale === 'none' ? sv.base : sv.base + qualityOrder * sv.coefficient;
+    return sv.scale === SCALE_MODE.NONE ? sv.base : sv.base + qualityOrder * sv.coefficient;
   }
 }

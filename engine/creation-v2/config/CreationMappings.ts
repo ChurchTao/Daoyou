@@ -1,7 +1,7 @@
 import { ElementType } from '@/types/constants';
 import { CreationTags } from '../core/GameplayTags';
 
-const ELEMENT_TAG_TOKENS: Record<ElementType, string> = {
+export const ELEMENT_TAG_TOKENS: Record<ElementType, string> = {
   金: 'Metal',
   木: 'Wood',
   水: 'Water',
@@ -35,4 +35,16 @@ export const ELEMENT_NAME_PREFIX: Record<ElementType, string> = {
   风: '岚影',
   雷: '惊霆',
   冰: '玄冰',
+};
+
+/**
+ * Maps a skill core affix's effectTemplate.type to the corresponding battle-side ability tag.
+ * Used by OutcomeTagRules and ProjectionRules to avoid hard-coding ABILITY_TYPE_DAMAGE for all skills.
+ *
+ * Default (missing coreType or unknown type) resolves to ABILITY_TYPE_DAMAGE.
+ */
+export const CORE_EFFECT_TYPE_TO_ABILITY_TAG: Record<string, string> = {
+  damage: CreationTags.BATTLE.ABILITY_TYPE_DAMAGE,
+  heal: CreationTags.BATTLE.ABILITY_TYPE_HEAL,
+  apply_buff: CreationTags.BATTLE.ABILITY_TYPE_CONTROL,
 };

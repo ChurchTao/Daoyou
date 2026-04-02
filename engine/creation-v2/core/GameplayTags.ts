@@ -125,4 +125,41 @@ export const CreationTags = {
     ARTIFACT: 'Outcome.Artifact',
     GONGFA: 'Outcome.GongFa',
   },
+  /** Battle-side tags referenced by creation-v2 composition rules */
+  BATTLE: {
+    ABILITY_TYPE_DAMAGE: 'Ability.Type.Damage',
+    ABILITY_TYPE_MAGIC: 'Ability.Type.Magic',
+    ABILITY_TYPE_HEAL: 'Ability.Type.Heal',
+    ABILITY_TYPE_CONTROL: 'Ability.Type.Control',
+    ABILITY_KIND_ARTIFACT: 'Artifact',
+    ABILITY_KIND_GONGFA: 'GongFa',
+    BUFF_TYPE_CONTROL: 'Buff.Type.Control',
+  },
+  /** Battle event types used in passive listener specs.
+   *
+   * These string values mirror battle-v5 CombatEvent.type literals.
+   * They are defined here (rather than imported directly from battle-v5 events)
+   * to keep affix definitions isolated from battle-v5 implementation details.
+   * If battle-v5 renames an event, update this map and recompile — TypeScript
+   * will surface every usage site automatically.
+   */
+  BATTLE_EVENT: {
+    ACTION_PRE: 'ActionPreEvent',
+    DAMAGE_TAKEN: 'DamageTakenEvent',
+    DAMAGE_REQUEST: 'DamageRequestEvent',
+    DAMAGE: 'DamageEvent',
+    ROUND_PRE: 'RoundPreEvent',
+    SKILL_CAST: 'SkillCastEvent',
+    BUFF_ADD: 'BuffAddEvent',
+  },
+  /** Listener scope values used in passive listener specs.
+   *
+   * Mirror of battle-v5 ListenerScope type values.
+   */
+  LISTENER_SCOPE: {
+    OWNER_AS_TARGET: 'owner_as_target',
+    OWNER_AS_ACTOR: 'owner_as_actor',
+    OWNER_AS_CASTER: 'owner_as_caster',
+    GLOBAL: 'global',
+  },
 } as const;

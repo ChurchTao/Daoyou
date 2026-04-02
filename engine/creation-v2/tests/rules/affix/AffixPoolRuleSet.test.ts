@@ -1,0 +1,148 @@
+import { AffixPoolRuleSet } from '@/engine/creation-v2/rules/affix/AffixPoolRuleSet';
+import { AffixEligibilityFacts } from '@/engine/creation-v2/rules/contracts';
+
+describe('AffixPoolRuleSet', () => {
+  const ruleSet = new AffixPoolRuleSet();
+
+  it('应过滤未达到 minQuality 的词缀', () => {
+    const facts: AffixEligibilityFacts = {
+      productType: 'gongfa',
+      recipeMatch: {
+        recipeId: 'gongfa-default',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['core', 'signature'],
+      },
+      energyBudget: {
+        total: 20,
+        reserved: 4,
+        spent: 0,
+        remaining: 16,
+        allocations: [],
+        sources: [],
+      },
+      candidatePool: [
+        {
+          id: 'eligible-core',
+          name: 'eligible-core',
+          category: 'core',
+          tags: [],
+          weight: 10,
+          energyCost: 6,
+        },
+        {
+          id: 'gated-signature',
+          name: 'gated-signature',
+          category: 'signature',
+          tags: [],
+          weight: 10,
+          energyCost: 8,
+          minQuality: '玄品',
+        },
+      ],
+      allowedCategories: ['core', 'signature'],
+      sessionTags: ['Material.Semantic.Spirit'],
+      maxQualityOrder: 0,
+    };
+
+    const decision = ruleSet.evaluate(facts);
+
+    expect(decision.candidates).toHaveLength(1);
+    expect(decision.candidates[0].id).toBe('eligible-core');
+    expect(decision.rejectedCandidates).toEqual([
+      expect.objectContaining({ affixId: 'gated-signature', reason: 'min_quality_unmet' }),
+    ]);
+  });
+
+  it('应过滤超出 maxQuality 上限的词缀', () => {
+    const facts: AffixEligibilityFacts = {
+      productType: 'gongfa',
+      recipeMatch: {
+        recipeId: 'gongfa-default',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['core', 'signature'],
+      },
+      energyBudget: {
+        total: 20,
+        reserved: 4,
+        spent: 0,
+        remaining: 16,
+        allocations: [],
+        sources: [],
+      },
+      candidatePool: [
+        {
+          id: 'eligible-core',
+          name: 'eligible-core',
+          category: 'core',
+          tags: [],
+          weight: 10,
+          energyCost: 6,
+        },
+        {
+          id: 'low-quality-only',
+          name: 'low-quality-only',
+          category: 'signature',
+          tags: [],
+          weight: 10,
+          energyCost: 8,
+          // 只允许出现在凡品材料（order=0）的创造物中
+          maxQuality: '凡品',
+        },
+      ],
+      allowedCategories: ['core', 'signature'],
+      sessionTags: ['Material.Semantic.Spirit'],
+      // 材料品质为玄品（order=2），超过 maxQuality 上限
+      maxQualityOrder: 2,
+    };
+
+    const decision = ruleSet.evaluate(facts);
+
+    expect(decision.candidates).toHaveLength(1);
+    expect(decision.candidates[0].id).toBe('eligible-core');
+    expect(decision.rejectedCandidates).toEqual([
+      expect.objectContaining({ affixId: 'low-quality-only', reason: 'max_quality_exceeded' }),
+    ]);
+  });
+
+  it('应过滤非正权重词缀', () => {
+    const facts: AffixEligibilityFacts = {
+      productType: 'skill',
+      recipeMatch: {
+        recipeId: 'skill-default',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['core'],
+      },
+      energyBudget: {
+        total: 12,
+        reserved: 4,
+        spent: 0,
+        remaining: 8,
+        allocations: [],
+        sources: [],
+      },
+      candidatePool: [
+        {
+          id: 'bad-weight',
+          name: 'bad-weight',
+          category: 'core',
+          tags: [],
+          weight: 0,
+          energyCost: 4,
+        },
+      ],
+      allowedCategories: ['core'],
+      sessionTags: [],
+      maxQualityOrder: 3,
+    };
+
+    const decision = ruleSet.evaluate(facts);
+
+    expect(decision.candidates).toEqual([]);
+    expect(decision.rejectedCandidates).toEqual([
+      expect.objectContaining({ affixId: 'bad-weight', reason: 'non_positive_weight' }),
+    ]);
+  });
+});

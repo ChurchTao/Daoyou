@@ -2,7 +2,8 @@ import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectT
 import { AffixPoolBuilder } from '@/engine/creation-v2/affixes/AffixPoolBuilder';
 import { AffixSelector } from '@/engine/creation-v2/affixes/AffixSelector';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
-import { AttributeType, GameplayTags, ModifierType } from '@/engine/creation-v2/contracts/battle';
+import { AttributeType, ModifierType } from '@/engine/creation-v2/contracts/battle';
+import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { AffixCandidate, EnergyBudget, CreationIntent } from '@/engine/creation-v2/types';
 
@@ -89,7 +90,7 @@ describe('AffixEffectTranslator', () => {
     const result = translator.translate(def, '真品');
     expect(result.type).toBe('damage_immunity');
     if (result.type === 'damage_immunity') {
-      expect(result.params.tags).toEqual([GameplayTags.ABILITY.TYPE_MAGIC]);
+      expect(result.params.tags).toEqual([CreationTags.BATTLE.ABILITY_TYPE_MAGIC]);
     }
   });
 
@@ -98,7 +99,31 @@ describe('AffixEffectTranslator', () => {
     const result = translator.translate(def, '玄品');
     expect(result.type).toBe('buff_immunity');
     if (result.type === 'buff_immunity') {
-      expect(result.params.tags).toEqual([GameplayTags.BUFF.TYPE_CONTROL]);
+      expect(result.params.tags).toEqual([CreationTags.BATTLE.BUFF_TYPE_CONTROL]);
+    }
+  });
+
+  it('translate: attribute_stat_buff MULTIPLY modType 生成乘数 modifier', () => {
+    // 使用 gongfa-signature-comprehension（WISDOM + MULTIPLY）
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-signature-comprehension')!;
+    expect(def).toBeDefined();
+
+    const resultXuan = translator.translate(def, '玄品');
+    expect(resultXuan.type).toBe('apply_buff');
+    if (resultXuan.type === 'apply_buff') {
+      const mod = resultXuan.params.buffConfig.modifiers![0];
+      expect(mod.attrType).toBe(AttributeType.WISDOM);
+      // MULTIPLY modType：value 为乘数（e.g. 0.12 + qualityOrder*0.02）
+      expect(mod.type).toBe(ModifierType.MULTIPLY);
+      // 玄品 qualityOrder=2 → 0.12 + 2*0.02 = 0.16
+      expect(mod.value).toBeCloseTo(0.16);
+    }
+
+    const resultTian = translator.translate(def, '天品');
+    if (resultTian.type === 'apply_buff') {
+      const mod = resultTian.params.buffConfig.modifiers![0];
+      // 天品 qualityOrder=5 → 0.12 + 5*0.02 = 0.22
+      expect(mod.value).toBeCloseTo(0.22);
     }
   });
 
@@ -186,6 +211,55 @@ describe('AffixSelector', () => {
 
   it('空候选池返回空数组', () => {
     expect(selector.select([], makeBudget(50), makeIntent()).affixes).toEqual([]);
+  });
+
+  it('加权选择应大致按权重比例分布（统计验证）', () => {
+    // 三个候选，权重比 4:2:1，在足够大的样本中各自命中次数应近似该比例
+    const pool = [
+      makeCandidate('heavy', 400, 5), // 期望选中概率 ≈ 57%
+      makeCandidate('medium', 200, 5), // 期望选中概率 ≈ 29%
+      makeCandidate('light', 100, 5), // 期望选中概率 ≈ 14%
+    ];
+    const N = 300;
+    const counts: Record<string, number> = { heavy: 0, medium: 0, light: 0 };
+
+    // 每次只让预算够选 1 个词缀（remaining=5 恰好等于 energyCost），
+    // 这样每轮独立地从三者中加权随机选一个
+    for (let i = 0; i < N; i++) {
+      const result = selector.select(pool, makeBudget(5), makeIntent(), 1);
+      result.affixes.forEach((a) => {
+        counts[a.id] = (counts[a.id] ?? 0) + 1;
+      });
+    }
+
+    const total = counts.heavy + counts.medium + counts.light;
+    // 确保所有候选都曾被选中（不存在永久饥饿）
+    expect(counts.heavy).toBeGreaterThan(0);
+    expect(counts.medium).toBeGreaterThan(0);
+    expect(counts.light).toBeGreaterThan(0);
+
+    // heavy 被选中占比应显著高于 light（权重 4:1，允许 2 倍误差余量）
+    const heavyRatio = counts.heavy / total;
+    const lightRatio = counts.light / total;
+    expect(heavyRatio).toBeGreaterThan(lightRatio * 2);
+  });
+
+  it('高权重候选在多次选择中始终主导低权重候选', () => {
+    // 使用极端权重差（100:1）验证极限情况
+    const pool = [
+      makeCandidate('dominant', 10000, 5),
+      makeCandidate('rare', 1, 5),
+    ];
+    const N = 200;
+    let dominantCount = 0;
+
+    for (let i = 0; i < N; i++) {
+      const result = selector.select(pool, makeBudget(5), makeIntent(), 1);
+      if (result.affixes.some((a) => a.id === 'dominant')) dominantCount++;
+    }
+
+    // dominant 权重是 rare 的 10000 倍，200 次中至少 190 次应命中 dominant
+    expect(dominantCount).toBeGreaterThanOrEqual(190);
   });
 });
 

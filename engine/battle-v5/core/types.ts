@@ -57,6 +57,18 @@ export enum ModifierType {
   BASE = 'base',
   FIXED = 'fixed',
   ADD = 'add',
+  /**
+   * 累乘修正：每个 MULTIPLY modifier 的 value 作为独立乘数，最终结果为所有 value 连乘。
+   *
+   * 计算公式（来自 AttributeSet.getFinalValue）：
+   *   `final *= modifiers.filter(MULTIPLY).reduce((p, m) => p * m.value, 1)`
+   *
+   * 用途示例：
+   * - value = 1.5 → 提升 50%（×1.5）
+   * - value = 0.7 → 降低 30%（×0.7）
+   *
+   * 与 ADD 的区别：ADD 是百分比加法（`final *= 1 + sum`），MULTIPLY 是独立乘法（累乘）。
+   */
   MULTIPLY = 'multiply',
   FINAL = 'final',
   OVERRIDE = 'override',

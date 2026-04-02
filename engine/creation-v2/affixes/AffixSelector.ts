@@ -1,10 +1,20 @@
 import {
+  AFFIX_STOP_REASONS,
   AffixCandidate,
   AffixSelectionAudit,
   CreationIntent,
   EnergyBudget,
   RolledAffix,
 } from '../types';
+import { AffixSelectionDecision, AffixSelectionFacts } from '../rules/contracts';
+import { AffixSelectionRuleSet } from '../rules/affix/AffixSelectionRuleSet';
+import { AffixPicker } from './AffixPicker';
+import { CREATION_PROJECTION_BALANCE } from '../config/CreationBalance';
+
+export interface AffixSelectionResult {
+  audit: AffixSelectionAudit;
+  lastDecision?: AffixSelectionDecision;
+}
 
 /**
  * 词缀抽签器
@@ -12,79 +22,77 @@ import {
  * 同一 exclusiveGroup 只能命中一个词缀
  */
 export class AffixSelector {
+  constructor(
+    private readonly ruleSet = new AffixSelectionRuleSet(),
+    private readonly picker = new AffixPicker(),
+  ) {}
+
   select(
     pool: AffixCandidate[],
     budget: EnergyBudget,
-    _intent: CreationIntent,
-    maxCount = 4,
+    intent: CreationIntent,
+    maxCount: number = CREATION_PROJECTION_BALANCE.defaultMaxAffixCount,
   ): AffixSelectionAudit {
+    return this.selectWithDecision(pool, budget, intent, maxCount).audit;
+  }
+
+  selectWithDecision(
+    pool: AffixCandidate[],
+    budget: EnergyBudget,
+    intent: CreationIntent,
+    maxCount: number = CREATION_PROJECTION_BALANCE.defaultMaxAffixCount,
+  ): AffixSelectionResult {
     const result: RolledAffix[] = [];
     const pickedGroups = new Set<string>();
     const allocations: AffixSelectionAudit['allocations'] = [];
     const rejections: AffixSelectionAudit['rejections'] = [];
     let remaining = budget.remaining;
     let available = [...pool];
+    const selectedAffixIds: string[] = [];
     let exhaustionReason: AffixSelectionAudit['exhaustionReason'];
+    let lastDecision: AffixSelectionDecision | undefined;
 
     while (available.length > 0 && result.length < maxCount) {
-      const budgetRejected = available.filter((c) => c.energyCost > remaining);
-      const groupRejected = available.filter(
-        (c) => c.exclusiveGroup && pickedGroups.has(c.exclusiveGroup),
-      );
+      const facts: AffixSelectionFacts = {
+        productType: intent.productType,
+        candidates: available,
+        remainingEnergy: remaining,
+        sessionTags: intent.dominantTags,
+        maxSelections: maxCount,
+        selectionCount: result.length,
+        selectedAffixIds,
+        selectedExclusiveGroups: Array.from(pickedGroups),
+      };
+      const decision = this.ruleSet.evaluate(facts);
+      lastDecision = decision;
 
-      const eligible = available.filter((c) => {
-        if (c.energyCost > remaining) return false;
-        if (c.exclusiveGroup && pickedGroups.has(c.exclusiveGroup)) return false;
-        return true;
-      });
+      rejections.push(...decision.rejections);
 
-      if (eligible.length === 0) {
-        rejections.push(
-          ...budgetRejected.map((candidate) => ({
-            affixId: candidate.id,
-            amount: candidate.energyCost,
-            reason: 'budget_exhausted' as const,
-            ...(candidate.exclusiveGroup
-              ? { exclusiveGroup: candidate.exclusiveGroup }
-              : {}),
-          })),
-          ...groupRejected.map((candidate) => ({
-            affixId: candidate.id,
-            amount: candidate.energyCost,
-            reason: 'exclusive_group_conflict' as const,
-            ...(candidate.exclusiveGroup
-              ? { exclusiveGroup: candidate.exclusiveGroup }
-              : {}),
-          })),
-        );
-        exhaustionReason = budgetRejected.length > 0
-          ? 'budget_exhausted'
-          : groupRejected.length > 0
-            ? 'exclusive_group_conflict'
-            : 'pool_exhausted';
+      if (decision.candidatePool.length === 0) {
+        exhaustionReason = decision.exhaustionReason;
         break;
       }
 
-      const totalWeight = eligible.reduce((s, c) => s + c.weight, 0);
-      const chosen = this.weightedPick(eligible, totalWeight);
+      const picked = this.picker.pick(decision.candidatePool);
+      const chosen = picked.candidate;
 
-      result.push({ ...chosen, rollScore: chosen.weight / totalWeight });
+      result.push({ ...chosen, rollScore: picked.rollScore });
       remaining -= chosen.energyCost;
       allocations.push({ affixId: chosen.id, amount: chosen.energyCost });
+      selectedAffixIds.push(chosen.id);
 
       if (chosen.exclusiveGroup) pickedGroups.add(chosen.exclusiveGroup);
 
-      // 从候选池移除已抽中的词缀
       available = available.filter((c) => c.id !== chosen.id);
     }
 
     if (result.length >= maxCount) {
-      exhaustionReason = 'max_count_reached';
+      exhaustionReason = AFFIX_STOP_REASONS.MAX_COUNT_REACHED;
     } else if (!exhaustionReason && available.length === 0) {
-      exhaustionReason = 'pool_exhausted';
+      exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
     }
 
-    return {
+    const audit: AffixSelectionAudit = {
       affixes: result,
       spent: allocations.reduce((sum, allocation) => sum + allocation.amount, 0),
       remaining,
@@ -92,14 +100,7 @@ export class AffixSelector {
       rejections,
       exhaustionReason,
     };
-  }
 
-  private weightedPick(pool: AffixCandidate[], total: number): AffixCandidate {
-    let rand = Math.random() * total;
-    for (const c of pool) {
-      rand -= c.weight;
-      if (rand <= 0) return c;
-    }
-    return pool[pool.length - 1];
+    return { audit, lastDecision };
   }
 }

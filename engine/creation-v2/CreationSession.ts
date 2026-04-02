@@ -16,7 +16,7 @@ export class CreationSession {
       throw new Error(`Unsupported creation product type: ${input.productType}`);
     }
 
-    this.id = input.sessionId ?? `creation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    this.id = input.sessionId ?? crypto.randomUUID();
     this.state = {
       id: this.id,
       phase: CreationPhase.INIT,

@@ -17,5 +17,28 @@ export * from './core/events';
 export * from './core/types';
 export { DefaultIntentResolver } from './resolvers/DefaultIntentResolver';
 export { DefaultRecipeValidator } from './rules/DefaultRecipeValidator';
-export * from './rules/MaterialConflictRules';
+export * from './rules/ruleExports';
+export { RuleDiagnostics, RuleSet } from './rules/core';
+export type {
+	Rule,
+	RuleContext,
+	RuleContextMetadata,
+	RuleDecisionMeta,
+	RuleDiagnosticsSnapshot,
+	RuleReason,
+	RuleTraceEntry,
+	RuleTraceOutcome,
+} from './rules/core';
+export type {
+	AffixEligibilityFacts,
+	AffixPoolDecision,
+	AffixSelectionDecision,
+	AffixSelectionFacts,
+	CompositionDecision,
+	CompositionFacts,
+	MaterialDecision,
+	MaterialFacts,
+	RecipeDecision,
+	RecipeFacts,
+} from './rules/contracts';
 export * from './types';

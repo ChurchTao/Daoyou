@@ -4,8 +4,8 @@ import {
   AbilityType,
   AttributeType,
   BuffType,
-  GameplayTags,
 } from '@/engine/creation-v2/contracts/battle';
+import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import {
   Buff,
   DamageEvent,
@@ -473,7 +473,7 @@ describe('Creation V2 battle integration', () => {
     ]);
 
     expect(outcome.ability.type).toBe(AbilityType.ACTIVE_SKILL);
-    expect(outcome.abilityConfig.listeners?.length).toBeGreaterThan(0);
+    expect(outcome.blueprint.abilityConfig.listeners?.length).toBeGreaterThan(0);
   });
 
   it('artifact damage immunity affix should nullify magic-tagged damage on DamageEvent', () => {
@@ -497,7 +497,7 @@ describe('Creation V2 battle integration', () => {
       slug: 'magic-burst',
       name: '真炎咒',
       type: AbilityType.ACTIVE_SKILL,
-      tags: [GameplayTags.ABILITY.TYPE_MAGIC],
+      tags: [CreationTags.BATTLE.ABILITY_TYPE_MAGIC],
       effects: [],
     });
 
@@ -532,7 +532,7 @@ describe('Creation V2 battle integration', () => {
     owner.abilities.addAbility(outcome.ability);
 
     const controlBuff = new Buff('frozen' as never, '冰封', BuffType.CONTROL, 1);
-    controlBuff.tags.addTags([GameplayTags.BUFF.TYPE_CONTROL]);
+    controlBuff.tags.addTags([CreationTags.BATTLE.BUFF_TYPE_CONTROL]);
 
     owner.buffs.addBuff(controlBuff);
 

@@ -42,3 +42,18 @@ export const CREATION_LISTENER_PRIORITIES = {
   roundPre: CREATION_EVENT_PRIORITY_LEVELS.ROUND_PRE,
   buffIntercept: CREATION_EVENT_PRIORITY_LEVELS.BUFF_INTERCEPT,
 } as const;
+
+export const CREATION_PROJECTION_BALANCE = {
+  /** Skill ability priority = base + number of affixes */
+  skillPriorityBase: 10,
+  /** Skill mp cost divisor: energyBudget.total / mpCostDivisor */
+  mpCostDivisor: 3,
+  /** Artifact fallback shield base divisor: energyBudget.remaining / shieldBaseDivisor */
+  artifactShieldBaseDivisor: 1.5,
+  /** GongFa fallback spirit buff base value */
+  gongfaSpiritBuffBase: 3,
+  /** Permanent buff duration sentinel: -1 means no expiry */
+  permanentBuffDuration: -1,
+  /** Default maximum number of affixes to select per item */
+  defaultMaxAffixCount: 4,
+} as const;

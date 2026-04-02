@@ -18,42 +18,30 @@ import {
   CreationPhaseHandler,
 } from '../core/types';
 import { CreationSession } from '../CreationSession';
+import { PhaseActionRegistry, WorkflowActionKey } from './PhaseActionRegistry';
+import { WorkflowVariantPolicy } from './WorkflowVariantPolicy';
 
 export interface CreationPhaseHandlerDeps {
   getSession(sessionId: string): CreationSession | undefined;
   isWorkflowActive(sessionId: string): boolean;
-  shouldAutoMaterialize(sessionId: string): boolean;
-  shouldUseAsyncMaterialAnalysis(sessionId: string): boolean;
   completeWorkflow(sessionId: string): void;
-  analyzeMaterialsWithDefaults(session: CreationSession): void;
-  analyzeMaterialsWithDefaultsAsync(session: CreationSession): Promise<void>;
-  resolveIntentWithDefaults(session: CreationSession): void;
-  validateRecipeWithDefaults(session: CreationSession): void;
-  budgetEnergyWithDefaults(session: CreationSession): void;
-  buildAffixPoolWithDefaults(session: CreationSession): void;
-  rollAffixesWithDefaults(session: CreationSession): void;
-  composeBlueprintWithDefaults(session: CreationSession): void;
-  materializeOutcome(session: CreationSession): void;
   fail(session: CreationSession, reason: string, details?: Record<string, unknown>): void;
+  /**
+   * 获取指定 session 的 WorkflowVariantPolicy
+   * 若不存在则返回 undefined（workflow 将静默忽略该 session）
+   */
+  getVariantPolicy(sessionId: string): WorkflowVariantPolicy | undefined;
+  /**
+   * 获取 PhaseActionRegistry，用于执行各阶段的具体动作
+   */
+  readonly phaseActionRegistry: PhaseActionRegistry;
 }
-
-type WorkflowActionKey =
-  | 'analyzeSync'
-  | 'analyzeAsync'
-  | 'resolveIntent'
-  | 'validateRecipe'
-  | 'budgetEnergy'
-  | 'buildAffixPool'
-  | 'rollAffixes'
-  | 'composeBlueprint'
-  | 'materializeOrComplete'
-  | 'completeWorkflow';
 
 interface WorkflowTransition<TEvent extends CreationEvent = CreationEvent> {
   eventType: TEvent['type'];
   priority: CreationEventPriorityLevel;
   expectedPhase?: CreationPhase;
-  resolveAction: (event: TEvent) => WorkflowActionKey | null;
+  resolveAction: (event: TEvent, policy: WorkflowVariantPolicy) => WorkflowActionKey | null;
 }
 
 export class CreationPhaseHandlerRegistry {
@@ -65,10 +53,7 @@ export class CreationPhaseHandlerRegistry {
         eventType: 'MaterialSubmittedEvent',
         priority: CreationEventPriorityLevel.INTENT_ANALYSIS,
         expectedPhase: CreationPhase.MATERIAL_SUBMITTED,
-        resolveAction: (event) =>
-          this.deps.shouldUseAsyncMaterialAnalysis(event.sessionId)
-            ? 'analyzeAsync'
-            : 'analyzeSync',
+        resolveAction: (_event, policy) => policy.resolveMaterialAnalysisAction(),
       },
       {
         eventType: 'MaterialAnalyzedEvent',
@@ -110,10 +95,7 @@ export class CreationPhaseHandlerRegistry {
         eventType: 'BlueprintComposedEvent',
         priority: CreationEventPriorityLevel.MATERIALIZATION,
         expectedPhase: CreationPhase.BLUEPRINT_COMPOSED,
-        resolveAction: (event) =>
-          this.deps.shouldAutoMaterialize(event.sessionId)
-            ? 'materializeOrComplete'
-            : 'completeWorkflow',
+        resolveAction: (_event, policy) => policy.resolveBlueprintComposedAction(),
       },
       {
         eventType: 'OutcomeMaterializedEvent',
@@ -144,7 +126,10 @@ export class CreationPhaseHandlerRegistry {
     event: CreationEvent,
     transition: WorkflowTransition,
   ): Promise<void> {
-    const action = transition.resolveAction(event);
+    const policy = this.deps.getVariantPolicy(event.sessionId);
+    if (!policy) return;
+
+    const action = transition.resolveAction(event, policy);
     if (!action) {
       return;
     }
@@ -172,40 +157,16 @@ export class CreationPhaseHandlerRegistry {
     action: Exclude<WorkflowActionKey, 'completeWorkflow'>,
   ): Promise<void> {
     try {
-      switch (action) {
-        case 'analyzeSync':
-          this.deps.analyzeMaterialsWithDefaults(session);
-          return;
-        case 'analyzeAsync':
-          await this.deps.analyzeMaterialsWithDefaultsAsync(session);
-          return;
-        case 'resolveIntent':
-          this.deps.resolveIntentWithDefaults(session);
-          return;
-        case 'validateRecipe':
-          this.deps.validateRecipeWithDefaults(session);
-          return;
-        case 'budgetEnergy':
-          this.deps.budgetEnergyWithDefaults(session);
-          return;
-        case 'buildAffixPool':
-          this.deps.buildAffixPoolWithDefaults(session);
-          return;
-        case 'rollAffixes':
-          this.deps.rollAffixesWithDefaults(session);
-          return;
-        case 'composeBlueprint':
-          this.deps.composeBlueprintWithDefaults(session);
-          return;
-        case 'materializeOrComplete':
-          this.deps.materializeOutcome(session);
-          return;
-      }
+      await this.deps.phaseActionRegistry.execute(action, session);
     } catch (error) {
-      this.deps.fail(session, action === 'analyzeAsync' ? '异步材料分析失败' : '造物工作流阶段执行失败', {
-        action,
-        cause: error instanceof Error ? error.message : String(error),
-      });
+      this.deps.fail(
+        session,
+        action === 'analyzeAsync' ? '异步材料分析失败' : '造物工作流阶段执行失败',
+        {
+          action,
+          cause: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
   }
 

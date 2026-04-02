@@ -3,6 +3,7 @@ import { projectAbilityConfig } from '../models';
 import { CreationOutcomeMaterializer } from '../adapters/types';
 import { CreationOrchestrator } from '../CreationOrchestrator';
 import { CraftFailedEvent } from '../core/events';
+import { CreationTags } from '../core/GameplayTags';
 import { CreationEventPriorityLevel } from '../core/types';
 import { CreationBlueprint, EnergyBudget, MaterialFingerprint, RecipeMatch } from '../types';
 
@@ -47,7 +48,7 @@ describe('CreationOrchestrator', () => {
     expect(recipeMatch.valid).toBe(true);
     expect(budget.total).toBeGreaterThan(0);
     expect(blueprint.abilityConfig.type).toBe(AbilityType.ACTIVE_SKILL);
-    expect(blueprint.tags).toContain('Ability.Type.Damage');
+    expect(blueprint.productModel.tags).toContain('Ability.Type.Damage');
   });
 
   it('应能将主动技能蓝图物化为 battle-v5 主动技能能力实例', () => {
@@ -135,24 +136,6 @@ describe('CreationOrchestrator', () => {
           },
         ],
         abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
-        mpCost: 18,
-        cooldown: 2,
-        priority: 12,
-        targetPolicy: {
-          team: 'enemy',
-          scope: 'single',
-        },
-        effects: [
-          {
-            type: 'damage',
-            params: {
-              value: {
-                base: 24,
-                coefficient: 0.8,
-              },
-            },
-          },
-        ],
         battleProjection: {
           projectionKind: 'active_skill',
           abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
@@ -176,20 +159,6 @@ describe('CreationOrchestrator', () => {
           ],
         },
       },
-      name: '焚岳诀',
-      description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
-      tags: ['Outcome.ActiveSkill', 'Ability.Element.Fire'],
-      affixes: [
-        {
-          id: 'core-flame-burst',
-          name: '炎爆核心',
-          category: 'core',
-          tags: ['offensive', 'fire'],
-          weight: 10,
-          energyCost: 8,
-          rollScore: 0.91,
-        },
-      ],
       abilityConfig: {
         slug: 'craft-skill-session-active',
         name: '焚岳诀',
@@ -228,8 +197,8 @@ describe('CreationOrchestrator', () => {
     });
     orchestrator.validateRecipe(session, recipeMatch);
     orchestrator.budgetEnergy(session, budget);
-    orchestrator.buildAffixPool(session, blueprint.affixes);
-    orchestrator.rollAffixes(session, blueprint.affixes);
+    orchestrator.buildAffixPool(session, blueprint.productModel.affixes);
+    orchestrator.rollAffixes(session, blueprint.productModel.affixes);
     orchestrator.composeBlueprint(session, blueprint);
 
     const outcome = orchestrator.materializeOutcome(session);
@@ -303,8 +272,8 @@ describe('CreationOrchestrator', () => {
           abilityTags: ['Ability.Element.Ice'],
           listeners: [
             {
-              eventType: 'DamageTakenEvent',
-              scope: 'owner_as_target',
+              eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
               priority: 50,
               effects: [
                 {
@@ -332,8 +301,8 @@ describe('CreationOrchestrator', () => {
         tags: ['Ability.Element.Ice'],
         listeners: [
           {
-            eventType: 'DamageTakenEvent',
-            scope: 'owner_as_target',
+            eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+            scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
             priority: 50,
             effects: [
               {
@@ -355,7 +324,7 @@ describe('CreationOrchestrator', () => {
 
     expect(outcome.ability.type).toBe(AbilityType.PASSIVE_SKILL);
     expect(outcome.ability.name).toBe('玄冰护心佩');
-    expect(outcome.productModel.productType).toBe('artifact');
+    expect(outcome.blueprint.productModel.productType).toBe('artifact');
   });
 
   it('应拒绝火冰材料混炉', () => {
@@ -566,23 +535,6 @@ describe('CreationOrchestrator', () => {
         tags: ['Outcome.ActiveSkill'],
         affixes: [],
         abilityTags: ['Ability.Type.Damage'],
-        mpCost: 10,
-        cooldown: 1,
-        priority: 10,
-        targetPolicy: {
-          team: 'enemy',
-          scope: 'single',
-        },
-        effects: [
-          {
-            type: 'damage',
-            params: {
-              value: {
-                base: 10,
-              },
-            },
-          },
-        ],
         battleProjection: {
           projectionKind: 'active_skill',
           abilityTags: ['Ability.Type.Damage'],
@@ -637,16 +589,12 @@ describe('CreationOrchestrator', () => {
     orchestrator.composeBlueprint(session, blueprint);
 
     const stubMaterializer: CreationOutcomeMaterializer = {
-      materialize(productType, inputBlueprint) {
+      materialize(_productType, inputBlueprint) {
         return {
-          productType,
-          outcomeKind: inputBlueprint.outcomeKind,
           blueprint: inputBlueprint,
-          productModel: inputBlueprint.productModel,
-          abilityConfig: inputBlueprint.abilityConfig,
           ability: {
             type: AbilityType.ACTIVE_SKILL,
-            name: inputBlueprint.name,
+            name: inputBlueprint.productModel.name,
           } as Ability,
         };
       },
@@ -654,7 +602,7 @@ describe('CreationOrchestrator', () => {
 
     const outcome = orchestrator.materializeOutcomeWith(session, stubMaterializer);
 
-    expect(outcome.productType).toBe('skill');
+    expect(outcome.blueprint.productModel.productType).toBe('skill');
     expect(outcome.ability.name).toBe('测试造物');
   });
 
