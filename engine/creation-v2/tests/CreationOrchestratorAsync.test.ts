@@ -6,7 +6,7 @@ import { DefaultIntentResolver } from '@/engine/creation-v2/resolvers/DefaultInt
 import { DefaultRecipeValidator } from '@/engine/creation-v2/rules/DefaultRecipeValidator';
 import { CreationEventBus } from '@/engine/creation-v2/core/EventBus';
 import { CreationEventPriorityLevel } from '@/engine/creation-v2/core/types';
-import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { AffixPoolBuilder, AffixSelector, DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import { ProductComposerRegistry } from '@/engine/creation-v2/composers/ProductComposerRegistry';
 import { MaterialFingerprint } from '@/engine/creation-v2/types';

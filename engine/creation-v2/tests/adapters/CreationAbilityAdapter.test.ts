@@ -39,34 +39,6 @@ function createSkillBlueprint(): CreationBlueprint {
         ],
       },
     },
-    abilityConfig: {
-      slug: 'craft-v2-skill-test',
-      name: '焚岳诀',
-      type: AbilityType.ACTIVE_SKILL,
-      tags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
-      mpCost: 18,
-      cooldown: 2,
-      priority: 12,
-      targetPolicy: {
-        team: 'enemy',
-        scope: 'single',
-      },
-      effects: [
-        {
-          type: 'damage',
-          params: {
-            value: {
-              base: 24,
-              coefficient: 0.8,
-            },
-          },
-        },
-      ],
-    },
-    name: '焚岳诀',
-    description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
-    tags: ['Outcome.ActiveSkill', 'Ability.Element.Fire'],
-    affixes: [],
   };
 }
 

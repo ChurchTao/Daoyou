@@ -1,3 +1,7 @@
+/*
+ * SkillBlueprintComposer: 将 rolledAffixes 与 composition decision 投影为技能（active_skill）的 CreationBlueprint。
+ * 使用 CompositionRuleSet 进行命名、能量换算与投影策略选择，产出可用于战斗层投影的 AbilityConfig。
+ */
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
 import { CreationSession } from '../CreationSession';
@@ -60,7 +64,6 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
     return {
       outcomeKind: productModel.outcomeKind,
       productModel,
-      abilityConfig: projectAbilityConfig(productModel),
     };
   }
 }

@@ -2,6 +2,9 @@ import { CREATION_RESERVED_ENERGY } from '../../config/CreationBalance';
 import { Rule } from '../core';
 import { RecipeDecision, RecipeFacts } from '../contracts';
 
+/*
+ * ReservedEnergyRules: 将 productType 的保留能量写入 decision.reservedEnergy（避免产物瞬间耗尽所有能量）。
+ */
 export class ReservedEnergyRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.reserved-energy';
 

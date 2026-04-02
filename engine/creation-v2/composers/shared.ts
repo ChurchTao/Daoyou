@@ -4,6 +4,10 @@ import { AffixRegistry } from '../affixes/AffixRegistry';
 import type { AffixListenerSpec } from '../affixes/types';
 import type { ListenerConfig } from '../contracts/battle';
 import type { CreationOutcomeKind, CreationProductType, MaterialFingerprint } from '../types';
+/*
+ * composers/shared.ts: Composer 公共工具。
+ * 包含根据材料品质聚合默认质量、构建分组 listener，以及通用的 slug 生成器委托等辅助函数。
+ */
 import { CreationSession } from '../CreationSession';
 import { CompositionFacts } from '../rules/contracts/CompositionFacts';
 
@@ -43,6 +47,11 @@ export function buildGroupedListeners({
 
     const effect = translator.translate(definition, quality);
     const spec = definition.listenerSpec ?? defaultListenerSpec;
+    // Key design: (eventType, scope, priority) is the merge unit for listeners.
+    // Affixes sharing the same triple are combined into a single ListenerConfig with
+    // multiple effects. Affixes with different priorities produce independent listeners,
+    // allowing different combat ordering. This is intentional — priority affects execution
+    // order, so different-priority affixes must not be silently merged.
     const key = `${spec.eventType}||${spec.scope}||${spec.priority}`;
 
     if (!listenerMap.has(key)) {

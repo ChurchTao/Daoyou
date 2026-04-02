@@ -1,3 +1,8 @@
+/*
+ * GameplayTags: 造物系统中的标签常量与容器实现。
+ * - CreationTagContainer 提供层级标签查询（支持父标签匹配）
+ * - CreationTags 为系统预定义标签集合（材料/意图/词缀/产物 等命名空间）
+ */
 import { CreationTagPath } from './types';
 
 export class CreationTagContainer {

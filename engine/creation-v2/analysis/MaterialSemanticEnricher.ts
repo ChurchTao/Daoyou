@@ -55,6 +55,13 @@ export interface DeepSeekMaterialSemanticEnricherOptions {
   providerName?: string;
 }
 
+/*
+ * DeepSeekMaterialSemanticEnricher: 使用 DeepSeek（结构化输出）为材料补充语义标签的实现。
+ * 特性：
+ *  - 可选启用（enabled），在未启用时返回 status='disabled'
+ *  - 将 LLM 输出的 additionalSemanticTags 经过白名单归一化并返回
+ *  - 在错误或超时情况下返回 fallback 报告，并标注是否可重试（failureDisposition）
+ */
 export class DeepSeekMaterialSemanticEnricher
   implements MaterialSemanticEnricher
 {

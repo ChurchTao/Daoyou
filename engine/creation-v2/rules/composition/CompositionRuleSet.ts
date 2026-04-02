@@ -16,6 +16,16 @@ import { ProjectionRules } from './ProjectionRules';
  * EnergyConversionRules 在 ProjectionRules 之前运行，填充 decision.energyConversion
  * ProjectionRules 优先读取该值，使换算策略可被替换
  */
+/*
+ * CompositionRuleSet: 组合/蓝图生成阶段的规则集合门面。
+ * 执行链：OutcomeTagRules -> NamingRules -> EnergyConversionRules -> ProjectionRules -> FallbackOutcomeRules
+ * 负责从 rolledAffixes 和 session facts 生成最终的 CompositionDecision（名称/描述/标签/投影策略等），
+ * 由 Composer 将 Decision 投影为 CreationProductModel 与 AbilityConfig。
+ */
+/*
+ * CompositionRuleSet: 组合校验规则集合门面。
+ * 责任：对 Composer 输出的中间决定（composition facts）进行验证（冲突/上限/互斥），并输出 compositionDecision。
+ */
 export class CompositionRuleSet {
   private readonly ruleSet: RuleSet<CompositionFacts, CompositionDecision>;
 

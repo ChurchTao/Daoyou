@@ -25,6 +25,10 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
  * 当词缀为空时，向 projectionPolicy 注入保底效果（damage / shield / apply_buff）
  * 仅在 projectionPolicy 已由 ProjectionRules 构建后生效
  */
+/*
+ * FallbackOutcomeRules: 在 CompositionRuleSet 中作为保险规则，
+ * 当上游规则未能生成有效 projectionPolicy 或 name 时提供合理默认，并记录 diagnostics。
+ */
 export class FallbackOutcomeRules
   implements Rule<CompositionFacts, CompositionDecision>
 {

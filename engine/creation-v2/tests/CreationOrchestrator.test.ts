@@ -1,7 +1,7 @@
 import { Ability, AbilityType } from '@/engine/creation-v2/contracts/battle';
 import { projectAbilityConfig } from '../models';
 import { CreationOutcomeMaterializer } from '../adapters/types';
-import { CreationOrchestrator } from '../CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from './helpers/TestableCreationOrchestrator';
 import { CraftFailedEvent } from '../core/events';
 import { CreationTags } from '../core/GameplayTags';
 import { CreationEventPriorityLevel } from '../core/types';
@@ -21,7 +21,7 @@ describe('CreationOrchestrator', () => {
           rank: '玄品',
           quantity: 2,
           element: '火',
-          description: '蕴含火行意象与锋锐之气',
+          description: '蕴含火行意象与锋锐之气'
         },
         {
           id: 'mat-b',
@@ -30,7 +30,7 @@ describe('CreationOrchestrator', () => {
           rank: '灵品',
           quantity: 1,
           element: '雷',
-          description: '碎晶中残留雷霆爆裂之意',
+          description: '碎晶中残留雷霆爆裂之意'
         },
       ],
       requestedTags: ['Material.Semantic.Flame'],
@@ -47,7 +47,7 @@ describe('CreationOrchestrator', () => {
     expect(intent.outcomeKind).toBe('active_skill');
     expect(recipeMatch.valid).toBe(true);
     expect(budget.total).toBeGreaterThan(0);
-    expect(blueprint.abilityConfig.type).toBe(AbilityType.ACTIVE_SKILL);
+    expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
     expect(blueprint.productModel.tags).toContain('Ability.Type.Damage');
   });
 
@@ -77,7 +77,7 @@ describe('CreationOrchestrator', () => {
           rank: '玄品',
           quantity: 2,
           element: '火',
-          description: '蕴含烈焰意象的矿石',
+          description: '蕴含烈焰意象的矿石'
         },
       ],
       requestedTags: ['Material.Semantic.Flame'],
@@ -95,7 +95,7 @@ describe('CreationOrchestrator', () => {
         recipeTags: ['Recipe.Crafter.Weapon'],
         energyValue: 24,
         rarityWeight: 2,
-        element: '火',
+        element: '火'
       },
     ];
     const recipeMatch: RecipeMatch = {
@@ -132,7 +132,7 @@ describe('CreationOrchestrator', () => {
             tags: ['offensive', 'fire'],
             weight: 10,
             energyCost: 8,
-            rollScore: 0.91,
+            rollScore: 0.91
           },
         ],
         abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
@@ -144,7 +144,7 @@ describe('CreationOrchestrator', () => {
           priority: 12,
           targetPolicy: {
             team: 'enemy',
-            scope: 'single',
+            scope: 'single'
           },
           effects: [
             {
@@ -152,39 +152,14 @@ describe('CreationOrchestrator', () => {
               params: {
                 value: {
                   base: 24,
-                  coefficient: 0.8,
-                },
-              },
+                  coefficient: 0.8
+                }
+              }
             },
-          ],
-        },
-      },
-      abilityConfig: {
-        slug: 'craft-skill-session-active',
-        name: '焚岳诀',
-        type: AbilityType.ACTIVE_SKILL,
-        tags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
-        mpCost: 18,
-        cooldown: 2,
-        priority: 12,
-        targetPolicy: {
-          team: 'enemy',
-          scope: 'single',
-        },
-        effects: [
-          {
-            type: 'damage',
-            params: {
-              value: {
-                base: 24,
-                coefficient: 0.8,
-              },
-            },
-          },
-        ],
+          ]
+        }
       },
     };
-    blueprint.abilityConfig = projectAbilityConfig(blueprint.productModel);
 
     orchestrator.submitMaterials(session);
     orchestrator.recordMaterialAnalysis(session, fingerprints);
@@ -221,7 +196,7 @@ describe('CreationOrchestrator', () => {
           type: 'ore',
           rank: '真品',
           quantity: 1,
-          element: '冰',
+          element: '冰'
         },
       ],
     });
@@ -238,7 +213,7 @@ describe('CreationOrchestrator', () => {
         recipeTags: ['Recipe.Crafter.Artifact'],
         energyValue: 30,
         rarityWeight: 3,
-        element: '冰',
+        element: '冰'
       },
     ]);
     orchestrator.resolveIntent(session, {
@@ -259,13 +234,10 @@ describe('CreationOrchestrator', () => {
         tags: ['Outcome.PassiveAbility', 'Ability.Element.Ice'],
         affixes: [],
         abilityTags: ['Ability.Element.Ice'],
-        equipPolicy: 'single_slot',
-        persistencePolicy: 'inventory_bound',
-        progressionPolicy: 'reforgeable',
         artifactConfig: {
           equipPolicy: 'single_slot',
           persistencePolicy: 'inventory_bound',
-          progressionPolicy: 'reforgeable',
+          progressionPolicy: 'reforgeable'
         },
         battleProjection: {
           projectionKind: 'artifact_passive',
@@ -281,42 +253,14 @@ describe('CreationOrchestrator', () => {
                   params: {
                     value: {
                       base: 12,
-                      coefficient: 0.4,
-                    },
-                  },
+                      coefficient: 0.4
+                    }
+                  }
                 },
-              ],
+              ]
             },
-          ],
-        },
-      },
-      name: '玄冰护心佩',
-      description: '寒意护体，遇袭时凝结冰盾。',
-      tags: ['Outcome.PassiveAbility', 'Ability.Element.Ice'],
-      affixes: [],
-      abilityConfig: {
-        slug: 'craft-passive-session-passive',
-        name: '玄冰护心佩',
-        type: AbilityType.PASSIVE_SKILL,
-        tags: ['Ability.Element.Ice'],
-        listeners: [
-          {
-            eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-            scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
-            priority: 50,
-            effects: [
-              {
-                type: 'shield',
-                params: {
-                  value: {
-                    base: 12,
-                    coefficient: 0.4,
-                  },
-                },
-              },
-            ],
-          },
-        ],
+          ]
+        }
       },
     });
 
@@ -339,7 +283,7 @@ describe('CreationOrchestrator', () => {
           type: 'ore',
           rank: '灵品',
           quantity: 1,
-          element: '火',
+          element: '火'
         },
         {
           id: 'mat-ice',
@@ -347,7 +291,7 @@ describe('CreationOrchestrator', () => {
           type: 'monster',
           rank: '灵品',
           quantity: 1,
-          element: '冰',
+          element: '冰'
         },
       ],
     });
@@ -491,7 +435,7 @@ describe('CreationOrchestrator', () => {
         tags: ['Material.Semantic.Blade'],
         weight: 80,
         energyCost: 8,
-        rollScore: 1,
+        rollScore: 1
       },
       {
         id: 'skill-prefix-crit-boost',
@@ -500,7 +444,7 @@ describe('CreationOrchestrator', () => {
         tags: ['Material.Semantic.Blade'],
         weight: 60,
         energyCost: 6,
-        rollScore: 0.75,
+        rollScore: 0.75
       },
     ]);
 
@@ -543,47 +487,20 @@ describe('CreationOrchestrator', () => {
           priority: 10,
           targetPolicy: {
             team: 'enemy',
-            scope: 'single',
+            scope: 'single'
           },
           effects: [
             {
               type: 'damage',
               params: {
                 value: {
-                  base: 10,
-                },
-              },
+                  base: 10
+                }
+              }
             },
-          ],
-        },
+          ]
+        }
       },
-      abilityConfig: {
-        slug: 'test-abstract-materializer',
-        name: '测试造物',
-        type: AbilityType.ACTIVE_SKILL,
-        tags: ['Ability.Type.Damage'],
-        mpCost: 10,
-        cooldown: 1,
-        priority: 10,
-        targetPolicy: {
-          team: 'enemy',
-          scope: 'single',
-        },
-        effects: [
-          {
-            type: 'damage',
-            params: {
-              value: {
-                base: 10,
-              },
-            },
-          },
-        ],
-      },
-      name: '测试造物',
-      description: '抽象物化器测试',
-      tags: ['Outcome.ActiveSkill'],
-      affixes: [],
     };
 
     orchestrator.composeBlueprint(session, blueprint);
@@ -635,7 +552,7 @@ describe('CreationOrchestrator', () => {
           rank: '玄品',
           quantity: 2,
           element: '火',
-          description: '蕴含火行意象与锋锐之气',
+          description: '蕴含火行意象与锋锐之气'
         },
         {
           id: 'mat-b',
@@ -644,7 +561,7 @@ describe('CreationOrchestrator', () => {
           rank: '灵品',
           quantity: 1,
           element: '雷',
-          description: '碎晶中残留雷霆爆裂之意',
+          description: '碎晶中残留雷霆爆裂之意'
         },
       ],
       requestedTags: ['Material.Semantic.Flame'],
@@ -692,7 +609,7 @@ describe('CreationOrchestrator', () => {
           type: 'ore',
           rank: '灵品',
           quantity: 1,
-          element: '火',
+          element: '火'
         },
         {
           id: 'mat-ice',
@@ -700,7 +617,7 @@ describe('CreationOrchestrator', () => {
           type: 'monster',
           rank: '灵品',
           quantity: 1,
-          element: '冰',
+          element: '冰'
         },
       ],
     });
@@ -730,7 +647,7 @@ describe('CreationOrchestrator', () => {
           rank: '玄品',
           quantity: 2,
           element: '火',
-          description: '蕴含火行意象与锋锐之气',
+          description: '蕴含火行意象与锋锐之气'
         },
       ],
     });

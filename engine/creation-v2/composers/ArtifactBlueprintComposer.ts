@@ -1,3 +1,7 @@
+/*
+ * ArtifactBlueprintComposer: 将 rolledAffixes 与 composition decision 投影为法宝（artifact）的 CreationBlueprint。
+ * 负责域模型组装并调用 projectAbilityConfig 生成战斗层 AbilityConfig 表示。
+ */
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
 import { CreationSession } from '../CreationSession';
@@ -63,7 +67,6 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
     return {
       outcomeKind: productModel.outcomeKind,
       productModel,
-      abilityConfig: projectAbilityConfig(productModel),
     };
   }
 }

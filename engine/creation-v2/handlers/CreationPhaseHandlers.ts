@@ -44,6 +44,12 @@ interface WorkflowTransition<TEvent extends CreationEvent = CreationEvent> {
   resolveAction: (event: TEvent, policy: WorkflowVariantPolicy) => WorkflowActionKey | null;
 }
 
+/*
+ * CreationPhaseHandlerRegistry: 将 CreationDomainEvent 映射到工作流阶段动作。
+ * 职责：注册事件处理器（subscribe），在事件触发时依据 WorkflowVariantPolicy 决定下一步 action，
+ * 并在期望的阶段（expectedPhase）与 session 状态匹配时执行 PhaseActionRegistry 中的动作。
+ * 同时处理 workflow 完成（completeWorkflow）与失败（CraftFailedEvent）逻辑。
+ */
 export class CreationPhaseHandlerRegistry {
   constructor(private readonly deps: CreationPhaseHandlerDeps) {}
 

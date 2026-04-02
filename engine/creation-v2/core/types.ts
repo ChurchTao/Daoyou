@@ -1,3 +1,8 @@
+/*
+ * core/types.ts: 核心类型与流程枚举
+ * 包含 CreationEvent、CreationPhase、CreationWorkflowOptions 等跨模块共享的基础类型。
+ */
+
 export type CreationTagPath = string;
 export type CreationEventPriority = number;
 

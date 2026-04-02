@@ -1,3 +1,8 @@
+/*
+ * DefaultIntentResolver: 基本的意图解析实现（启发式）。
+ * 将用户输入与材料指纹合并，推断 CreationIntent（产物类型、dominant tags、元素/槽位偏好等）。
+ * 注意：一些启发式逻辑（如槽位推断）应未来迁移到规则层以便审计。
+ */
 import { EquipmentSlot } from '@/types/constants';
 import { MaterialFactsBuilder } from '../analysis/MaterialFactsBuilder';
 import { CreationIntent, CreationSessionInput, MaterialFingerprint } from '../types';

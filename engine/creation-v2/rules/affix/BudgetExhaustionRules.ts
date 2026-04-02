@@ -2,6 +2,9 @@ import { AFFIX_STOP_REASONS } from '../../types';
 import { Rule } from '../core';
 import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 
+/*
+ * BudgetExhaustionRules: 基于剩余能量过滤候选词缀，记录因预算不足导致的 rejection。
+ */
 export class BudgetExhaustionRules
   implements Rule<AffixSelectionFacts, AffixSelectionDecision>
 {

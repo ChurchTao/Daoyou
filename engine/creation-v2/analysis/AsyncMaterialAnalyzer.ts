@@ -1,3 +1,7 @@
+/*
+ * AsyncMaterialAnalyzer: 异步材料分析器，基于 DefaultMaterialAnalyzer 并可调用 LLM 进行语义增强。
+ * 返回包含指纹与 LLM 增强报告的结果（用于观察性事件与后续规则判断）。
+ */
 import { Material } from '@/types/cultivator';
 import {
   MaterialFingerprint,

@@ -1,3 +1,7 @@
+/*
+ * MaterialTagNormalizer: 材料标签规范化工具。
+ * 责任：从原始 Material 文本与元数据中提取 explicit/semantic/recipe 标签，并计算能量值与稀有度权重。
+ */
 import { QUALITY_ORDER } from '@/types/constants';
 import { Material } from '@/types/cultivator';
 import { CREATION_MATERIAL_ENERGY } from '../config/CreationBalance';

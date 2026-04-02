@@ -7,6 +7,7 @@ import {
   CREATION_SKILL_NAMING,
 } from '../../config/CreationNamingPolicy';
 import { Rule } from '../core/Rule';
+import { RuleDiagnostics } from '../core/RuleDiagnostics';
 import { RuleContext } from '../core/RuleContext';
 import { CompositionDecision } from '../contracts/CompositionDecision';
 import { CompositionFacts } from '../contracts/CompositionFacts';
@@ -14,6 +15,9 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
 /**
  * NamingRules
  * 根据产物类型、元素偏向、材料名称决定命名策略
+ */
+/*
+ * NamingRules: 负责为产物生成/验证名称，处理命名冲突与名称格式化。
  */
 export class NamingRules implements Rule<CompositionFacts, CompositionDecision> {
   readonly id = 'composition.naming';
@@ -23,7 +27,7 @@ export class NamingRules implements Rule<CompositionFacts, CompositionDecision> 
     decision,
     diagnostics,
   }: RuleContext<CompositionFacts, CompositionDecision>): void {
-    decision.name = this.resolveName(facts);
+    decision.name = this.resolveName(facts, diagnostics);
     decision.description = this.resolveDescription(facts);
 
     diagnostics.addTrace({
@@ -33,7 +37,7 @@ export class NamingRules implements Rule<CompositionFacts, CompositionDecision> 
     });
   }
 
-  private resolveName(facts: CompositionFacts): string {
+  private resolveName(facts: CompositionFacts, diagnostics: RuleDiagnostics): string {
     const { productType, intent, materialNames } = facts;
     const elementBias = intent.elementBias;
 
@@ -56,8 +60,8 @@ export class NamingRules implements Rule<CompositionFacts, CompositionDecision> 
         if (!materialNames[0]) {
           diagnostics.addTrace({
             ruleId: this.id,
-            outcome: 'fallback',
-            message: `功法命名：materialNames[0] 为空，使用默认名称 ${CREATION_GONGFA_NAMING.defaultName}`,
+            outcome: 'applied',
+            message: `功法命名：materialNames[0] 为空，fallback 到默认名称 ${CREATION_GONGFA_NAMING.defaultName}`,
           });
           return CREATION_GONGFA_NAMING.defaultName;
         }

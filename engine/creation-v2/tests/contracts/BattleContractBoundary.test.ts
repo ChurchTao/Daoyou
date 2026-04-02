@@ -1,4 +1,5 @@
-import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
+import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import { AbilityType } from '@/engine/creation-v2/contracts/battle';
 import { EventBus } from '@/engine/creation-v2/contracts/battle-testkit';
 import type { ActiveSkillBattleProjection } from '@/engine/creation-v2/models';
@@ -81,17 +82,17 @@ describe('BattleContractBoundary — battle 契约验证', () => {
   describe('abilityConfig 结构符合 battle-v5 契约', () => {
     it('skill 蓝图 abilityConfig.type 应为 ACTIVE_SKILL', () => {
       const blueprint = createSkillBlueprint();
-      expect(blueprint.abilityConfig.type).toBe(AbilityType.ACTIVE_SKILL);
+      expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
     });
 
     it('artifact 蓝图 abilityConfig.type 应为 PASSIVE_SKILL', () => {
       const blueprint = createArtifactBlueprint();
-      expect(blueprint.abilityConfig.type).toBe(AbilityType.PASSIVE_SKILL);
+      expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.PASSIVE_SKILL);
     });
 
     it('skill abilityConfig 应包含 mpCost 和 cooldown', () => {
       const blueprint = createSkillBlueprint();
-      const config = blueprint.abilityConfig;
+      const config = projectAbilityConfig(blueprint.productModel);
 
       if (config.type === AbilityType.ACTIVE_SKILL) {
         expect(typeof config.mpCost).toBe('number');
@@ -103,7 +104,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
 
     it('skill abilityConfig 应包含 targetPolicy', () => {
       const blueprint = createSkillBlueprint();
-      const config = blueprint.abilityConfig;
+      const config = projectAbilityConfig(blueprint.productModel);
 
       if (config.type === AbilityType.ACTIVE_SKILL) {
         expect(config.targetPolicy).toBeDefined();
@@ -118,7 +119,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
       const blueprint = createSkillBlueprint();
       const model = blueprint.productModel as SkillProductModel;
 
-      expect(blueprint.abilityConfig.type).toBe(AbilityType.ACTIVE_SKILL);
+      expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
       expect(model.battleProjection.projectionKind).toBe('active_skill');
     });
 
@@ -126,7 +127,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
       const blueprint = createArtifactBlueprint();
       const model = blueprint.productModel as ArtifactProductModel;
 
-      expect(blueprint.abilityConfig.type).toBe(AbilityType.PASSIVE_SKILL);
+      expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.PASSIVE_SKILL);
       expect(model.battleProjection.projectionKind).toBe('artifact_passive');
     });
   });

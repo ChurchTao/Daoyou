@@ -1,10 +1,15 @@
+import { Material } from '@/types/cultivator';
 import { CreationTags } from '../../core/GameplayTags';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationProductType, MaterialFingerprint } from '../../types';
 import { Rule } from '../core';
 import { MaterialDecision, MaterialFacts } from '../contracts';
 
-const MANUAL_MATERIAL_TYPES = {
+// Using Material['type'] directly ensures this stays in sync with the canonical type.
+// If the type enum changes, TypeScript will report a compile error here.
+type ManualMaterialType = Extract<Material['type'], 'skill_manual' | 'gongfa_manual' | 'manual'>;
+
+const MANUAL_MATERIAL_TYPES: Record<string, ManualMaterialType> = {
   SKILL: 'skill_manual',
   GONGFA: 'gongfa_manual',
   LEGACY: 'manual',
@@ -32,6 +37,9 @@ function hasTag(fingerprints: MaterialFingerprint[], tag: string): boolean {
   );
 }
 
+/*
+ * MaterialConflictRules: 检测材料之间的冲突（如元素互斥、手工材料意图分裂等），并将冲突信息记录到 decision.notes/valid=false。
+ */
 export function detectMaterialConflicts(
   fingerprints: MaterialFingerprint[],
   productType: CreationProductType,

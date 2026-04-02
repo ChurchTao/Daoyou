@@ -25,6 +25,12 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
  * skill → SkillProjectionPolicy
  * artifact / gongfa → PassiveProjectionPolicy
  */
+/*
+ * ProjectionRules: 负责将领域词缀（affix）翻译为战斗层的投影策略（projectionPolicy）。
+ * - 对于技能（skill）构建 SkillProjectionPolicy（mp/cooldown/priority/effects/targetPolicy）
+ * - 对于法宝/功法构建 PassiveProjectionPolicy（listeners 与 abilityTags）
+ * 该规则使用 AffixEffectTranslator 进行 effect 的数值化（质量敏感），并记录诊断轨迹。
+ */
 export class ProjectionRules implements Rule<CompositionFacts, CompositionDecision> {
   readonly id = 'composition.projection';
 

@@ -175,8 +175,6 @@ export interface RolledAffix extends AffixCandidate {
 export interface CreationBlueprint {
   outcomeKind: CreationOutcomeKind;
   productModel: CreationProductModel;
-  abilityConfig: AbilityConfig;
-  // name, description, tags, affixes are accessible via blueprint.productModel.*
 }
 
 export interface CraftedOutcome {

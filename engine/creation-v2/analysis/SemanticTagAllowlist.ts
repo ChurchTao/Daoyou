@@ -1,3 +1,7 @@
+/*
+ * SemanticTagAllowlist: 造物系统允许的语义标签白名单与别名映射。
+ * 用于约束 LLM 输出，避免噪声标签进入规则判断链路。
+ */
 export const CREATION_SEMANTIC_TAG_ALLOWLIST = [
   'Material.Semantic.Flame',
   'Material.Semantic.Freeze',

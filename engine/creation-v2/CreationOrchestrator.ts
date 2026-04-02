@@ -43,6 +43,12 @@ import { CreationPhaseHandlerRegistry } from './handlers/CreationPhaseHandlers';
 import { PhaseActionRegistry } from './handlers/PhaseActionRegistry';
 import { WorkflowVariantPolicy } from './handlers/WorkflowVariantPolicy';
 
+/*
+ * CreationOrchestrator: 编排层主入口。
+ * 责任：管理 CreationSession 生命周期、注册与派发阶段动作（PhaseActionRegistry）、
+ * 驱动事件链（通过 CreationEventBus 发布 CreationDomainEvent）、管理 WorkflowVariantPolicy（变体策略），
+ * 提供高阶入口（craftSync / craftAsync / runEventDrivenWorkflow / waitForWorkflowCompletion）以及保持 session 状态。
+ */
 export class CreationOrchestrator {
   private readonly sessions = new Map<string, CreationSession>();
   private readonly activeWorkflowPolicies = new Map<string, WorkflowVariantPolicy>();
@@ -103,7 +109,7 @@ export class CreationOrchestrator {
   }
 
   createSession(input: CreationSessionInput): CreationSession {
-    if (this.sessions.has(input.sessionId)) {
+    if (input.sessionId && this.sessions.has(input.sessionId)) {
       throw new Error(
         `CreationOrchestrator: sessionId '${input.sessionId}' is already in use. ` +
           `Provide a unique sessionId or call clearSession() first.`,
@@ -162,6 +168,45 @@ export class CreationOrchestrator {
     return this.sessions.get(sessionId);
   }
 
+  /**
+   * 清理指定 sessionId 对应的 session 及相关工作流状态。
+   * 幂等操作：若 session 不存在则静默忽略。
+   * 典型用途：造物完成或失败后释放内存；或在重新造物前清理旧 session。
+   */
+  clearSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+    this.workflowCompletions.delete(sessionId);
+    this.activeWorkflowPolicies.delete(sessionId);
+  }
+
+  /**
+   * 高阶造物入口（同步材料分析模式）。
+   * 等价于 createSession + runEventDrivenWorkflow(materialAnalysisMode: 'sync') + waitForWorkflowCompletion。
+   * 返回完成后的 CreationSession，调用方通过 session.state.blueprint 读取产物。
+   */
+  craftSync(
+    input: CreationSessionInput,
+    options: Omit<CreationWorkflowOptions, 'materialAnalysisMode'> = {},
+  ): Promise<CreationSession> {
+    const session = this.createSession(input);
+    this.runEventDrivenWorkflow(session, { ...options, materialAnalysisMode: 'sync' });
+    return this.waitForWorkflowCompletion(session.id);
+  }
+
+  /**
+   * 高阶造物入口（异步 LLM 语义分析模式）。
+   * 等价于 createSession + runEventDrivenWorkflow(materialAnalysisMode: 'async') + waitForWorkflowCompletion。
+   * 返回完成后的 CreationSession，调用方通过 session.state.blueprint 读取产物。
+   */
+  craftAsync(
+    input: CreationSessionInput,
+    options: Omit<CreationWorkflowOptions, 'materialAnalysisMode'> = {},
+  ): Promise<CreationSession> {
+    const session = this.createSession(input);
+    this.runEventDrivenWorkflow(session, { ...options, materialAnalysisMode: 'async' });
+    return this.waitForWorkflowCompletion(session.id);
+  }
+
   private createWorkflowCompletion(sessionId: string) {
     const existing = this.workflowCompletions.get(sessionId);
     if (existing) {
@@ -192,7 +237,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  analyzeMaterialsWithDefaults(session: CreationSession): MaterialFingerprint[] {
+  protected analyzeMaterialsWithDefaults(session: CreationSession): MaterialFingerprint[] {
     const fingerprints = this.materialAnalyzer.analyze(session.state.input.materials);
     this.recordMaterialAnalysis(session, fingerprints);
     return fingerprints;
@@ -202,7 +247,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用（异步版）。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  async analyzeMaterialsWithDefaultsAsync(
+  protected async analyzeMaterialsWithDefaultsAsync(
     session: CreationSession,
   ): Promise<MaterialFingerprint[]> {
     const { fingerprints, enrichment } = await this.asyncMaterialAnalyzer.analyze(
@@ -246,7 +291,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  resolveIntentWithDefaults(session: CreationSession): CreationIntent {
+  protected resolveIntentWithDefaults(session: CreationSession): CreationIntent {
     const intent = this.intentResolver.resolve(
       session.state.input,
       session.state.materialFingerprints,
@@ -272,7 +317,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  validateRecipeWithDefaults(session: CreationSession): RecipeMatch {
+  protected validateRecipeWithDefaults(session: CreationSession): RecipeMatch {
     if (!session.state.intent) {
       throw new Error('Cannot validate recipe before resolving intent');
     }
@@ -310,7 +355,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  budgetEnergyWithDefaults(session: CreationSession): EnergyBudget {
+  protected budgetEnergyWithDefaults(session: CreationSession): EnergyBudget {
     const budget = this.energyBudgeter.allocate(
       session.state.materialFingerprints,
       session.state.recipeMatch,
@@ -341,7 +386,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  buildAffixPoolWithDefaults(session: CreationSession): AffixCandidate[] {
+  protected buildAffixPoolWithDefaults(session: CreationSession): AffixCandidate[] {
     const decision = this.affixPoolBuilder.buildDecision(this.affixRegistry, session);
     this.buildAffixPool(session, decision.candidates, decision);
     return decision.candidates;
@@ -376,7 +421,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  rollAffixesWithDefaults(session: CreationSession): RolledAffix[] {
+  protected rollAffixesWithDefaults(session: CreationSession): RolledAffix[] {
     if (!session.state.intent) {
       throw new Error('Cannot roll affixes before resolving intent');
     }
@@ -417,7 +462,7 @@ export class CreationOrchestrator {
    * @internal 供测试和工作流内部神调使用。
    * 生产调用方请改用 `createSession` + `craftSync/Async` 等高阶入口。
    */
-  composeBlueprintWithDefaults(session: CreationSession): CreationBlueprint {
+  protected composeBlueprintWithDefaults(session: CreationSession): CreationBlueprint {
     const blueprint = this.blueprintComposer.compose(session);
     this.composeBlueprint(session, blueprint);
     return blueprint;

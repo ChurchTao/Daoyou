@@ -1,5 +1,6 @@
-import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { AbilityType } from '@/engine/creation-v2/contracts/battle';
+import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import { Material } from '@/types/cultivator';
 
 /** 构造测试专用的 ore 材料 */
@@ -71,11 +72,11 @@ describe('SkillBlueprintComposer', () => {
     expect(outcome).not.toBeNull();
     expect(outcome!.blueprint.outcomeKind).toBe('active_skill');
     expect(outcome!.blueprint.productModel.productType).toBe('skill');
-    expect(outcome!.blueprint.abilityConfig.type).toBe(AbilityType.ACTIVE_SKILL);
-    expect(outcome!.blueprint.abilityConfig.slug).toBe(outcome!.blueprint.productModel.slug);
-    expect(outcome!.blueprint.abilityConfig.effects?.length).toBeGreaterThan(0);
+    expect(projectAbilityConfig(outcome!.blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
+    expect(projectAbilityConfig(outcome!.blueprint.productModel).slug).toBe(outcome!.blueprint.productModel.slug);
+    expect(projectAbilityConfig(outcome!.blueprint.productModel).effects?.length).toBeGreaterThan(0);
     // 第一个效果应是 damage 或 apply_buff 类型
-    const firstEffect = outcome!.blueprint.abilityConfig.effects![0];
+    const firstEffect = projectAbilityConfig(outcome!.blueprint.productModel).effects![0];
     expect(['damage', 'apply_buff', 'percent_damage_modifier']).toContain(firstEffect.type);
   });
 
@@ -83,7 +84,7 @@ describe('SkillBlueprintComposer', () => {
     const herbs: Material[] = [makeHerb('生息灵草'), makeHerb('愈合药草')];
     const outcome = runFullPipeline(herbs, 'skill');
     expect(outcome).not.toBeNull();
-    const effects = outcome!.blueprint.abilityConfig.effects ?? [];
+    const effects = projectAbilityConfig(outcome!.blueprint.productModel).effects ?? [];
     const hasHeal = effects.some((e) => e.type === 'heal');
     const hasDamage = effects.some((e) => e.type === 'damage');
     // 愈草材料应触发 heal core 或 damage core（取决于随机），至少有一个效果
@@ -95,7 +96,7 @@ describe('SkillBlueprintComposer', () => {
   it('技能蓝图有合法的 mpCost 和 cooldown', () => {
     const outcome = runFullPipeline([makeOre('铁矿'), makeOre('铁矿')], 'skill');
     if (!outcome) return; // 可能 conflict
-    const cfg = outcome.blueprint.abilityConfig;
+    const cfg = projectAbilityConfig(outcome.blueprint.productModel);
     expect(cfg.mpCost).toBeGreaterThanOrEqual(10);
     expect(cfg.cooldown).toBeGreaterThanOrEqual(1);
     expect(cfg.cooldown).toBeLessThanOrEqual(3);
@@ -110,8 +111,8 @@ describe('ArtifactBlueprintComposer', () => {
     expect(outcome).not.toBeNull();
     expect(outcome!.blueprint.outcomeKind).toBe('artifact');
     expect(outcome!.blueprint.productModel.productType).toBe('artifact');
-    expect(outcome!.blueprint.abilityConfig.type).toBe(AbilityType.PASSIVE_SKILL);
-    expect(outcome!.blueprint.abilityConfig.listeners?.length).toBeGreaterThan(0);
+    expect(projectAbilityConfig(outcome!.blueprint.productModel).type).toBe(AbilityType.PASSIVE_SKILL);
+    expect(projectAbilityConfig(outcome!.blueprint.productModel).listeners?.length).toBeGreaterThan(0);
     if (outcome!.blueprint.productModel.productType === 'artifact') {
       expect(outcome!.blueprint.productModel.artifactConfig.progressionPolicy).toBe('reforgeable');
     }
@@ -120,7 +121,7 @@ describe('ArtifactBlueprintComposer', () => {
   it('法宝 listener 每个至少含一个 effect', () => {
     const outcome = runFullPipeline([makeOre('玄铁矿'), makeOre('守护矿')], 'artifact');
     if (!outcome) return;
-    for (const listener of outcome.blueprint.abilityConfig.listeners ?? []) {
+    for (const listener of projectAbilityConfig(outcome.blueprint.productModel).listeners ?? []) {
       expect(listener.effects.length).toBeGreaterThan(0);
     }
   });
@@ -134,8 +135,8 @@ describe('GongFaBlueprintComposer', () => {
     expect(outcome).not.toBeNull();
     expect(outcome!.blueprint.outcomeKind).toBe('gongfa');
     expect(outcome!.blueprint.productModel.productType).toBe('gongfa');
-    expect(outcome!.blueprint.abilityConfig.type).toBe(AbilityType.PASSIVE_SKILL);
-    const listeners = outcome!.blueprint.abilityConfig.listeners ?? [];
+    expect(projectAbilityConfig(outcome!.blueprint.productModel).type).toBe(AbilityType.PASSIVE_SKILL);
+    const listeners = projectAbilityConfig(outcome!.blueprint.productModel).listeners ?? [];
     expect(listeners.length).toBeGreaterThan(0);
     // 至少一个 listener 的 effect 是 apply_buff
     const hasStatBuff = listeners.some((l) =>
@@ -150,7 +151,7 @@ describe('GongFaBlueprintComposer', () => {
   it('功法 listeners 全部含有 effects', () => {
     const outcome = runFullPipeline([makeGongfaManual('悟道心法'), makeHerb('灵草')], 'gongfa');
     if (!outcome) return;
-    for (const listener of outcome.blueprint.abilityConfig.listeners ?? []) {
+    for (const listener of projectAbilityConfig(outcome.blueprint.productModel).listeners ?? []) {
       expect(listener.effects.length).toBeGreaterThan(0);
     }
   });

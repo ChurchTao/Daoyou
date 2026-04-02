@@ -1,3 +1,7 @@
+/*
+ * AffixPicker: 词缀抽签器（加权随机）。
+ * 从候选池中根据权重随机选择一个词缀并返回 rollScore（用于审计/调试）。
+ */
 import { AffixCandidate } from '../types';
 
 export class AffixPicker {
@@ -6,6 +10,10 @@ export class AffixPicker {
     totalWeight: number;
     rollScore: number;
   } {
+    if (pool.length === 0) {
+      throw new Error('AffixPicker.pick(): cannot pick from empty pool');
+    }
+
     const totalWeight = pool.reduce((sum, candidate) => sum + candidate.weight, 0);
     let random = Math.random() * totalWeight;
 

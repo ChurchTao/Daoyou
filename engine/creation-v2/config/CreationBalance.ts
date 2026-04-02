@@ -44,16 +44,33 @@ export const CREATION_LISTENER_PRIORITIES = {
 } as const;
 
 export const CREATION_PROJECTION_BALANCE = {
-  /** Skill ability priority = base + number of affixes */
+  /**
+   * Skill ability priority = base + number of affixes.
+   * Base of 10 aligns with the battle engine's "normal skill" priority tier
+   * (0–9 = passive/reactives, 10+ = active skills). Each affix increments by 1,
+   * so skills never exceed 14 for the 4-affix cap.
+   */
   skillPriorityBase: 10,
-  /** Skill mp cost divisor: energyBudget.total / mpCostDivisor */
+  /**
+   * Skill mp cost = round(energyBudget.total / mpCostDivisor), min 10.
+   * Divisor of 3 means a 30-energy budget yields mp cost ~10 (minimum).
+   * A 60-energy budget yields ~20, matching mid-tier skill costs.
+   */
   mpCostDivisor: 3,
-  /** Artifact fallback shield base divisor: energyBudget.remaining / shieldBaseDivisor */
+  /**
+   * Artifact fallback shield base = energyBudget.remaining / shieldBaseDivisor.
+   * Divisor of 1.5 converts remaining energy to a shield value roughly equal
+   * to 2/3 of remaining energy, calibrated against average HP values ~100–200.
+   */
   artifactShieldBaseDivisor: 1.5,
-  /** GongFa fallback spirit buff base value */
-  gongfaSpiritBuffBase: 3,
+  /**
+   * Maximum number of affixes a single crafted item can have.
+   * Hard upper bound: 1 core + 1 prefix + 1 suffix + 1 signature = 4.
+   * Increasing this requires adding new affix unlock tiers in CREATION_AFFIX_UNLOCK_THRESHOLDS.
+   */
+  defaultMaxAffixCount: 4,
   /** Permanent buff duration sentinel: -1 means no expiry */
   permanentBuffDuration: -1,
-  /** Default maximum number of affixes to select per item */
-  defaultMaxAffixCount: 4,
+  /** GongFa fallback spirit buff base value */
+  gongfaSpiritBuffBase: 3,
 } as const;

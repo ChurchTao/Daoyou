@@ -1,3 +1,7 @@
+/*
+ * MaterialFactsBuilder: 将多个 MaterialFingerprint 聚合为 MaterialFacts，计算 dominantTags 与 totalEnergy 等汇总字段。
+ * 该类是 rules 层评估所需 Facts 的构造器，保证 rules 输入的一致性。
+ */
 import { MaterialFacts } from '../rules/contracts';
 import { CreationProductType, MaterialFingerprint } from '../types';
 

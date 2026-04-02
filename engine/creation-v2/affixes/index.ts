@@ -1,3 +1,7 @@
+/*
+ * affixes/index.ts: 词缀子系统对外导出入口。
+ * 导出类型、翻译器、注册表与默认注册数据，供 composer 与规则层使用。
+ */
 export type { AffixDefinition, AffixEffectTemplate, AffixListenerSpec, AffixScalableValue, ScalableParam, ScalableValueV2 } from './types';
 export { AffixEffectTranslator } from './AffixEffectTranslator';
 export { AffixRegistry } from './AffixRegistry';

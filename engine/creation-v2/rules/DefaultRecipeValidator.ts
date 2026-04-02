@@ -15,6 +15,11 @@ import {
 import { MaterialRuleSet } from './material/MaterialRuleSet';
 import { RecipeValidationRuleSet } from './recipe/RecipeValidationRuleSet';
 
+/*
+ * DefaultRecipeValidator: 配方校验门面。
+ * 逻辑：先将材料指纹聚合为 MaterialFacts，交由 MaterialRuleSet 校验材料有效性；
+ * 若材料不合法则返回 conflicted recipe；否则构建 RecipeFacts 并交由 RecipeValidationRuleSet 生成最终 RecipeMatch。
+ */
 export class DefaultRecipeValidator {
   constructor(
     private readonly materialFactsBuilder = new MaterialFactsBuilder(),

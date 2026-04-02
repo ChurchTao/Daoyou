@@ -1,3 +1,7 @@
+/*
+ * composers/types.ts: Composer 层接口定义。
+ * ProductBlueprintComposer 是所有蓝图 Composer 的统一接口，便于通过 ProductComposerRegistry 路由。
+ */
 import { CreationSession } from '../CreationSession';
 import { CreationBlueprint } from '../types';
 export { buildAbilitySlug } from '../services/SlugService';

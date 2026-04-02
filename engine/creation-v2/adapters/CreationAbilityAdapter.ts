@@ -1,6 +1,6 @@
 import type { Ability } from '../contracts/battle';
 import { projectAbilityConfig } from '../models';
-import { CraftedOutcome, CreationBlueprint, CreationProductType } from '../types';
+import type { CraftedOutcome, CreationBlueprint, CreationProductType } from '../types';
 import { BattleAbilityBuilder } from './BattleAbilityBuilder';
 import { CreationAbilityBuilder, CreationOutcomeMaterializer } from './types';
 
@@ -13,6 +13,11 @@ const OUTCOME_KIND_TO_ABILITY_TYPE = {
   gongfa: 'passive_skill',
 } as const;
 
+/*
+ * CreationAbilityAdapter: 将 CreationBlueprint 实体化为 CraftedOutcome 的适配器。
+ * 责任：校验 blueprint 形状、调用 BattleAbilityBuilder 将 abilityConfig 转换为战斗层 Ability 实例，
+ * 返回 CraftedOutcome（包含 blueprint 与 ability 实例）。
+ */
 export class CreationAbilityAdapter implements CreationOutcomeMaterializer {
   constructor(
     private readonly abilityBuilder: CreationAbilityBuilder = new BattleAbilityBuilder(),
@@ -22,8 +27,8 @@ export class CreationAbilityAdapter implements CreationOutcomeMaterializer {
     _productType: CreationProductType,
     blueprint: CreationBlueprint,
   ): CraftedOutcome {
+    this.assertBlueprintShape(blueprint);
     const abilityConfig = projectAbilityConfig(blueprint.productModel);
-    this.assertBlueprintShape(blueprint, abilityConfig.type);
     const ability = this.abilityBuilder.build(abilityConfig);
 
     return {
@@ -34,9 +39,9 @@ export class CreationAbilityAdapter implements CreationOutcomeMaterializer {
 
   private assertBlueprintShape(
     blueprint: CreationBlueprint,
-    projectedAbilityType: string,
   ): void {
     const expectedType = OUTCOME_KIND_TO_ABILITY_TYPE[blueprint.outcomeKind];
+    const projectedAbilityType = projectAbilityConfig(blueprint.productModel).type;
 
     if (projectedAbilityType !== expectedType) {
       throw new Error(

@@ -1,6 +1,14 @@
 import { Rule } from '../core';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../contracts';
 
+/*
+ * AffixWeightRules: 词缀候选池权重验证规则。
+ * 过滤掉非正权重并记录警告，保证后续抽签器只处理合法权重的候选项。
+ */
+/*
+ * AffixWeightRules: 计算候选词缀的权重（考虑 rarityWeight、category 优先级等），
+ * 为后续 Picker 的加权抽样提供权重表并记录 diagnostics。
+ */
 export class AffixWeightRules
   implements Rule<AffixEligibilityFacts, AffixPoolDecision>
 {

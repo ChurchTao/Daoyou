@@ -7,7 +7,14 @@ import { AffixUnlockRules } from './AffixUnlockRules';
 import { ProductSupportRules } from './ProductSupportRules';
 import { ReservedEnergyRules } from './ReservedEnergyRules';
 
+/*
+ * RecipeValidationRuleSet: 配方校验规则集合门面。
+ * 包含 ProductSupport / AffixUnlock / ReservedEnergy 等规则，负责输出 RecipeDecision（包括解锁词缀分类与保留能量）。
+ */
 export class RecipeValidationRuleSet {
+  // intentional: all rules run even when valid=false — callers may want to inspect
+  // unlocked affix categories and reserved energy even for invalid recipes (e.g., to
+  // display "what would happen if the recipe were valid" in the UI).
   private readonly ruleSet = new RuleSet<RecipeFacts, RecipeDecision>(
     [
       new ProductSupportRules(),

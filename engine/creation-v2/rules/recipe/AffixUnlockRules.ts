@@ -3,6 +3,9 @@ import { AFFIX_CATEGORIES } from '../../types';
 import { Rule } from '../core';
 import { RecipeDecision, RecipeFacts } from '../contracts';
 
+/*
+ * AffixUnlockRules: 根据材料总能量判断可解锁的词缀类别（prefix/suffix/signature）。
+ */
 export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.affix.unlock';
 

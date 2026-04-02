@@ -13,6 +13,10 @@ import {
 import type { AffixPoolDecision, AffixSelectionDecision } from '../rules/contracts';
 import { CreationEvent, CreationPhase } from './types';
 
+/*
+ * MaterialSubmittedEvent: 当调用方提交材料启动造物流程时发布的领域事件。
+ * 负载包含 CreationSessionInput（用户提交的材料列表、产物类型等）。
+ */
 export interface MaterialSubmittedEvent extends CreationEvent {
   type: 'MaterialSubmittedEvent';
   input: CreationSessionInput;

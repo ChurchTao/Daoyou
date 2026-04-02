@@ -104,7 +104,7 @@ describe('CreationWorkflowVariants — Stage 5 验收测试', () => {
       orchestrator.runEventDrivenWorkflow(session);
 
       expect(session.state.blueprint).toBeDefined();
-      expect(session.state.blueprint?.abilityConfig).toBeDefined();
+      expect(session.state.blueprint?.productModel).toBeDefined();
     });
   });
 
@@ -238,7 +238,7 @@ describe('CreationWorkflowVariants — Stage 5 验收测试', () => {
       orchestrator.runEventDrivenWorkflow(session);
 
       expect(session.state.phase).toBe('outcome_materialized');
-      expect(session.state.blueprint?.abilityConfig).toBeDefined();
+      expect(session.state.blueprint?.productModel).toBeDefined();
     });
 
     it('artifact event-driven workflow 应成功推进到 outcome_materialized', () => {

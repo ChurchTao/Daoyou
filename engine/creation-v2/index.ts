@@ -1,3 +1,7 @@
+/*
+ * engine/creation-v2 导出入口：对外暴露造物系统的主要构件（Orchestrator、Session、分析/规则/Composer/Adapter 等）。
+ * 目的：提供一个清晰的公共 API 以便服务层或测试套件直接引用造物系统的能力。
+ */
 export { CreationOrchestrator } from './CreationOrchestrator';
 export { CreationSession } from './CreationSession';
 export { BattleAbilityBuilder } from './adapters/BattleAbilityBuilder';

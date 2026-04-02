@@ -1,5 +1,10 @@
+/*
+ * OutcomeSnapshot: 序列化/反序列化 CraftedOutcome 的工具。
+ * 用于将产物快照写入数据库，并在恢复时通过 materializer 重新物化以保证可追溯性与一致性。
+ */
 import type { AbilityConfig } from '../contracts/battle';
 import type { CreationProductModel } from '../models/types';
+import { projectAbilityConfig } from '../models';
 import type { CreationOutcomeMaterializer } from '../adapters/types';
 import type {
   CraftedOutcome,
@@ -24,7 +29,7 @@ export function snapshotCraftedOutcome(
     outcomeKind: outcome.blueprint.outcomeKind,
     blueprint: outcome.blueprint,
     productModel: outcome.blueprint.productModel,
-    abilityConfig: outcome.blueprint.abilityConfig,
+    abilityConfig: projectAbilityConfig(outcome.blueprint.productModel),
   };
 }
 
@@ -65,7 +70,7 @@ export function restoreCraftedOutcome(
   return restored;
 }
 
-function assertSnapshotShape(
+export function assertSnapshotShape(
   snapshot: CraftedOutcomeSnapshot,
 ): asserts snapshot is CraftedOutcomeSnapshot {
   if (!snapshot || typeof snapshot !== 'object') {

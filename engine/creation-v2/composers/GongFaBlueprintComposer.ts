@@ -1,3 +1,7 @@
+/*
+ * GongFaBlueprintComposer: 将 rolledAffixes 与 composition decision 投影为功法（gongfa）的 CreationBlueprint。
+ * 产物为被动（passive）能力并携带 domain-specific 配置（如 equip/persistence/progression 策略）。
+ */
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
 import { CreationSession } from '../CreationSession';
@@ -61,7 +65,6 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
     return {
       outcomeKind: productModel.outcomeKind,
       productModel,
-      abilityConfig: projectAbilityConfig(productModel),
     };
   }
 }

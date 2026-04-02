@@ -5,6 +5,10 @@ import { BudgetExhaustionRules } from './BudgetExhaustionRules';
 import { ExclusiveGroupRules } from './ExclusiveGroupRules';
 import { FallbackAffixRules } from './FallbackAffixRules';
 
+/*
+ * AffixSelectionRuleSet: 词缀选择阶段的规则集合门面。
+ * 包含 ExclusiveGroupRules / BudgetExhaustionRules / FallbackAffixRules，负责根据 facts 输出可供抽签的 candidatePool 及审计信息。
+ */
 export class AffixSelectionRuleSet {
   private readonly ruleSet = new RuleSet<AffixSelectionFacts, AffixSelectionDecision>(
     [new ExclusiveGroupRules(), new BudgetExhaustionRules(), new FallbackAffixRules()],

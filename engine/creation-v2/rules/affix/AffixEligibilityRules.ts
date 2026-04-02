@@ -2,6 +2,9 @@ import { QUALITY_ORDER } from '@/types/constants';
 import { Rule } from '../core';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../contracts';
 
+/*
+ * AffixEligibilityRules: 对候选词缀进行品质/适用性判断，过滤不满足 minQuality/maxQuality 的词缀并记录 rejectedCandidates。
+ */
 export class AffixEligibilityRules
   implements Rule<AffixEligibilityFacts, AffixPoolDecision>
 {

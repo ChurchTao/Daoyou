@@ -1,4 +1,5 @@
-import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
+import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import {
   AbilityFactory,
   AbilityType,
@@ -473,7 +474,7 @@ describe('Creation V2 battle integration', () => {
     ]);
 
     expect(outcome.ability.type).toBe(AbilityType.ACTIVE_SKILL);
-    expect(outcome.blueprint.abilityConfig.listeners?.length).toBeGreaterThan(0);
+    expect(projectAbilityConfig(outcome.blueprint.productModel).listeners?.length).toBeGreaterThan(0);
   });
 
   it('artifact damage immunity affix should nullify magic-tagged damage on DamageEvent', () => {

@@ -1,3 +1,7 @@
+/*
+ * gongfaAffixes: 功法词缀定义集合（示例数据）。
+ * 功法词缀通常用于被动属性或战斗中触发的长期效果，通常会映射为 listenerSpec。
+ */
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { CreationTags } from '../../core/GameplayTags';
 import { AttributeType, ModifierType } from '../../contracts/battle';

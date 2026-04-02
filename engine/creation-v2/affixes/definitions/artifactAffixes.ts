@@ -1,3 +1,7 @@
+/*
+ * artifactAffixes: 法宝词缀定义集合（示例数据）。
+ * 说明见 skillAffixes 注释：法宝词缀一般包含 listenerSpec，用于被动能力的 listener 注册。
+ */
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';

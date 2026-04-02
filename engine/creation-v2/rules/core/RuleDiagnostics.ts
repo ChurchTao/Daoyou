@@ -1,5 +1,10 @@
 import { RuleDiagnosticsSnapshot, RuleReason, RuleTraceEntry } from './types';
 
+/*
+ * RuleDiagnostics: 规则执行期间用于收集 reasons/warnings/trace 的工具类。
+ * Rules 在上下文中调用 diagnostics.addReason/addWarning/addTrace 来记录决策依据与调试信息，
+ * 最终由 RuleSet 汇总并合并回 Decision，以便审计与测试。
+ */
 export class RuleDiagnostics {
   private readonly reasons: RuleReason[] = [];
   private readonly warnings: RuleReason[] = [];

@@ -102,6 +102,7 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 0,
         isCritical: false,
         targetName: '李四',
+        beforeHp: 0
       }),
       createEntry('death', {
         targetName: '李四',
@@ -128,12 +129,14 @@ describe('LogPresenter 行动日志聚合', () => {
         targetName: '张三',
         damageSource: 'reflect',
         reflectSourceName: '李四',
+        beforeHp: 0
       }),
       createEntry('damage', {
         value: 1300,
         remainHp: 1,
         isCritical: false,
         targetName: '李四',
+        beforeHp: 0
       }),
       createEntry('death_prevent', {
         targetName: '李四',
@@ -156,6 +159,7 @@ describe('LogPresenter 行动日志聚合', () => {
         targetName: '李四',
         shieldAbsorbed: 114,
         remainShield: 186,
+        beforeHp: 0
       }),
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
@@ -173,12 +177,14 @@ describe('LogPresenter 行动日志聚合', () => {
         remainHp: 300,
         isCritical: false,
         targetName: '李四',
+        beforeHp: 0
       }),
       createEntry('damage', {
         value: 120,
         remainHp: 280,
         isCritical: true,
         targetName: '王五',
+        beforeHp: 0
       }),
     ]);
 

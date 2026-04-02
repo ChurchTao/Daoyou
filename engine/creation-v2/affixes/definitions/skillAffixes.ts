@@ -1,3 +1,10 @@
+/*
+ * skillAffixes: 技能词缀定义集合（示例数据）。
+ * 说明：
+ * - applicableTo 字段限定词缀适用的产物类型
+ * - 无 listenerSpec 的词缀直接作为 active_skill 的 effects
+ * - 有 listenerSpec 的词缀会包装为技能的临时 listeners
+ */
 import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';

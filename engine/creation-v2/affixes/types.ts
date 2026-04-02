@@ -1,3 +1,7 @@
+/*
+ * affixes/types.ts: 词缀（Affix）相关类型定义与常量。
+ * 包含可缩放参数、词缀模板、监听器规格与 AffixDefinition 等。
+ */
 import { AttributeType, ModifierType } from '../contracts/battle';
 import {
   BuffImmunityParams,

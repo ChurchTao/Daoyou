@@ -1,4 +1,4 @@
-import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { AffixCandidate } from '@/engine/creation-v2/types';
 
 function createSkillSession() {

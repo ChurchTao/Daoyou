@@ -7,6 +7,15 @@ interface EventSubscriber {
   priority: CreationEventPriority;
 }
 
+/*
+ * CreationEventBus: 同步事件总线（轻量版）。
+ * 特性：
+ *  - 支持按事件类型订阅/退订（subscribe/unsubscribe）
+ *  - 支持订阅者优先级（priority），高优先级先执行
+ *  - 维护事件历史（eventHistory）与待处理事件队列（pendingEvents）
+ *  - 发布时防止递归/重入（isPublishing 标志）
+ * 用途：在编排层与各阶段处理器之间广播 CreationDomainEvent，作为工作流驱动的核心通信机制。
+ */
 export class CreationEventBus {
   private readonly subscribers = new Map<string, EventSubscriber[]>();
   private readonly eventHistory: CreationEvent[] = [];

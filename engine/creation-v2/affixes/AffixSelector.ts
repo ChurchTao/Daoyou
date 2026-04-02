@@ -21,6 +21,13 @@ export interface AffixSelectionResult {
  * 在能量预算约束下，对候选词缀进行加权随机抽取
  * 同一 exclusiveGroup 只能命中一个词缀
  */
+/*
+ * AffixSelector: 在预算与互斥组约束下迭代选择词缀的策略实现。
+ * 过程：
+ *  - 使用 AffixSelectionRuleSet 得到候选池
+ *  - 通过 AffixPicker 加权抽选
+ *  - 记录审计（allocations / rejections / spent / remaining / exhaustionReason）供外部记录与回溯
+ */
 export class AffixSelector {
   constructor(
     private readonly ruleSet = new AffixSelectionRuleSet(),

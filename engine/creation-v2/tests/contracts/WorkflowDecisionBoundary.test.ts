@@ -1,4 +1,5 @@
-import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
+import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
+import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import { CompositionRuleSet } from '@/engine/creation-v2/rules/composition/CompositionRuleSet';
 import type { CompositionFacts } from '@/engine/creation-v2/rules/contracts/CompositionFacts';
 import { CREATION_FALLBACK_MARKERS } from '@/engine/creation-v2/config/CreationFallbackPolicy';
@@ -169,7 +170,7 @@ describe('WorkflowDecisionBoundary — CompositionRuleSet 契约验证', () => {
       const blueprint = orchestrator.composeBlueprintWithDefaults(session);
 
       expect(blueprint).toBeDefined();
-      expect(blueprint.abilityConfig).toBeDefined();
+      expect(projectAbilityConfig(blueprint.productModel)).toBeDefined();
       expect(blueprint.productModel.tags.length).toBeGreaterThan(0);
     });
   });

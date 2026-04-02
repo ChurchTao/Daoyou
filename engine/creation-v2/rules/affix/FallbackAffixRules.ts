@@ -2,6 +2,9 @@ import { AFFIX_STOP_REASONS } from '../../types';
 import { Rule } from '../core';
 import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 
+/*
+ * FallbackAffixRules: 当候选池耗尽时确定停机原因（预算/互斥/数量/池耗尽）并写入 decision.exhaustionReason。
+ */
 export class FallbackAffixRules
   implements Rule<AffixSelectionFacts, AffixSelectionDecision>
 {

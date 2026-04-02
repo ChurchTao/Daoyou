@@ -1,3 +1,8 @@
+/*
+ * AbilityProjection: 将领域层的 CreationProductModel 投影为战斗层的 AbilityConfig。
+ * 责任：作为领域→战斗的单一转换边界，所有战斗相关字段（mpCost/cooldown/effects/listeners 等）
+ * 都应从 CreationProductModel 的 battleProjection 字段中读取，保证投影逻辑集中可审计。
+ */
 import { AbilityConfig, AbilityType } from '../contracts/battle';
 import { CreationProductModel } from './types';
 
