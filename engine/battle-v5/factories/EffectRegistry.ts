@@ -38,7 +38,11 @@ export class EffectRegistry {
   create(config: EffectConfig): GameplayEffect | null {
     const constructor = this.registry.get(config.type);
     if (!constructor) {
-      console.warn(`EffectRegistry: 未找到类型为 ${config.type} 的效果注册`);
+      const message = `EffectRegistry: 未找到类型为 ${config.type} 的效果注册`;
+      if (process.env.NODE_ENV !== 'production') {
+        throw new Error(message);
+      }
+      console.warn(message);
       return null;
     }
 

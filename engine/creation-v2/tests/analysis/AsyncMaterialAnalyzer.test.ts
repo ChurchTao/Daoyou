@@ -84,4 +84,27 @@ describe('AsyncMaterialAnalyzer', () => {
     expect(result.fingerprints[0].metadata?.llm?.status).toBe('fallback');
     expect(result.fingerprints[0].metadata?.llm?.reason).toBe('timeout');
   });
+
+  it('disabled 时应保留规则标签并标记 metadata.llm.status=disabled', async () => {
+    const analyzer = new AsyncMaterialAnalyzer(
+      undefined,
+      new StubSemanticEnricher({
+        status: 'disabled',
+        provider: 'mock',
+        materials: [
+          {
+            materialId: 'mat-fire',
+            materialName: '赤炎铁',
+            addedTags: [],
+            droppedTags: [],
+          },
+        ],
+      }),
+    );
+
+    const result = await analyzer.analyze(materials);
+    expect(result.fingerprints[0].semanticTags).toContain('Material.Semantic.Flame');
+    expect(result.fingerprints[0].metadata?.llm?.status).toBe('disabled');
+    expect(result.fingerprints[0].metadata?.llm?.addedTags).toEqual([]);
+  });
 });

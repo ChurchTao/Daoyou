@@ -30,12 +30,12 @@ class StubAsyncMaterialAnalyzer {
 }
 
 describe('CreationOrchestrator async material analysis', () => {
-  it('应发布 MaterialSemanticEnrichedEvent', async () => {
+  it('应在分析完成后发布 MaterialAnalyzedEvent 并保留 llm metadata', async () => {
     const eventBus = new CreationEventBus();
     const events: string[] = [];
     eventBus.subscribe(
-      'MaterialSemanticEnrichedEvent',
-      () => events.push('enriched'),
+      'MaterialAnalyzedEvent',
+      () => events.push('analyzed'),
       CreationEventPriorityLevel.INTENT_ANALYSIS,
     );
 
@@ -95,26 +95,14 @@ describe('CreationOrchestrator async material analysis', () => {
     });
 
     const fingerprints = await orchestrator.analyzeMaterialsWithDefaultsAsync(session);
-    expect(events).toEqual(['enriched']);
+    expect(events).toEqual(['analyzed']);
     expect(fingerprints[0].semanticTags).toContain('Material.Semantic.Burst');
+    expect(fingerprints[0].metadata?.llm?.status).toBe('success');
   });
 
-  it('应发布 MaterialSemanticEnrichmentFallbackEvent', async () => {
-    const eventBus = new CreationEventBus();
-    const events: string[] = [];
-    eventBus.subscribe(
-      'MaterialSemanticEnrichmentFallbackEvent',
-      () => events.push('fallback'),
-      CreationEventPriorityLevel.INTENT_ANALYSIS,
-    );
-    eventBus.subscribe(
-      'MaterialSemanticEnrichmentRetryableFallbackEvent',
-      () => events.push('retryable'),
-      CreationEventPriorityLevel.INTENT_ANALYSIS,
-    );
-
+  it('应在 retryable fallback 时保留 llm fallback metadata', async () => {
     const orchestrator = new CreationOrchestrator(
-      eventBus,
+      new CreationEventBus(),
       new CreationAbilityAdapter(),
       new DefaultMaterialAnalyzer(),
       new StubAsyncMaterialAnalyzer(
@@ -135,6 +123,7 @@ describe('CreationOrchestrator async material analysis', () => {
               description: '赤炎矿',
               llm: {
                 status: 'fallback',
+                failureDisposition: 'retryable',
                 addedTags: [],
                 droppedTags: [],
                 reason: 'timeout',
@@ -173,26 +162,15 @@ describe('CreationOrchestrator async material analysis', () => {
       ],
     });
 
-    await orchestrator.analyzeMaterialsWithDefaultsAsync(session);
-    expect(events).toEqual(['fallback', 'retryable']);
+    const fingerprints = await orchestrator.analyzeMaterialsWithDefaultsAsync(session);
+    expect(fingerprints[0].metadata?.llm?.status).toBe('fallback');
+    expect(fingerprints[0].metadata?.llm?.reason).toBe('timeout');
+    expect(fingerprints[0].metadata?.llm?.failureDisposition).toBe('retryable');
   });
 
-  it('应为不可重试 fallback 发布 terminal 事件', async () => {
-    const eventBus = new CreationEventBus();
-    const events: string[] = [];
-    eventBus.subscribe(
-      'MaterialSemanticEnrichmentFallbackEvent',
-      () => events.push('fallback'),
-      CreationEventPriorityLevel.INTENT_ANALYSIS,
-    );
-    eventBus.subscribe(
-      'MaterialSemanticEnrichmentTerminalFallbackEvent',
-      () => events.push('terminal'),
-      CreationEventPriorityLevel.INTENT_ANALYSIS,
-    );
-
+  it('应在 non-retryable fallback 时保留失败处置元数据', async () => {
     const orchestrator = new CreationOrchestrator(
-      eventBus,
+      new CreationEventBus(),
       new CreationAbilityAdapter(),
       new DefaultMaterialAnalyzer(),
       new StubAsyncMaterialAnalyzer(
@@ -248,8 +226,9 @@ describe('CreationOrchestrator async material analysis', () => {
       ],
     });
 
-    await orchestrator.analyzeMaterialsWithDefaultsAsync(session);
-    expect(events).toEqual(['fallback', 'terminal']);
+    const fingerprints = await orchestrator.analyzeMaterialsWithDefaultsAsync(session);
+    expect(fingerprints[0].metadata?.llm?.status).toBe('fallback');
+    expect(fingerprints[0].metadata?.llm?.failureDisposition).toBe('non_retryable');
   });
 
   it('应在 event-driven workflow 中使用 async 分析并自动推进到 materialized', async () => {
@@ -258,7 +237,6 @@ describe('CreationOrchestrator async material analysis', () => {
     [
       'MaterialSubmittedEvent',
       'MaterialAnalyzedEvent',
-      'MaterialSemanticEnrichedEvent',
       'IntentResolvedEvent',
       'RecipeValidatedEvent',
       'EnergyBudgetedEvent',
@@ -337,7 +315,6 @@ describe('CreationOrchestrator async material analysis', () => {
     );
     expect(order).toEqual([
       'MaterialSubmittedEvent',
-      'MaterialSemanticEnrichedEvent',
       'MaterialAnalyzedEvent',
       'IntentResolvedEvent',
       'RecipeValidatedEvent',
@@ -353,8 +330,7 @@ describe('CreationOrchestrator async material analysis', () => {
     const eventBus = new CreationEventBus();
     const events: string[] = [];
     [
-      'MaterialSemanticEnrichmentFallbackEvent',
-      'MaterialSemanticEnrichmentRetryableFallbackEvent',
+      'MaterialAnalyzedEvent',
       'IntentResolvedEvent',
       'OutcomeMaterializedEvent',
     ].forEach((eventType) => {
@@ -430,8 +406,7 @@ describe('CreationOrchestrator async material analysis', () => {
     expect(completed.state.phase).toBe('outcome_materialized');
     expect(completed.state.materialFingerprints[0].metadata?.llm?.status).toBe('fallback');
     expect(events).toEqual([
-      'MaterialSemanticEnrichmentFallbackEvent',
-      'MaterialSemanticEnrichmentRetryableFallbackEvent',
+      'MaterialAnalyzedEvent',
       'IntentResolvedEvent',
       'OutcomeMaterializedEvent',
     ]);

@@ -61,6 +61,7 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
         projectionKind: 'artifact_passive',
         abilityTags: policy.abilityTags,
         listeners: policy.listeners,
+        modifiers: policy.modifiers,
       },
     };
 

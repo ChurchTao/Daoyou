@@ -7,6 +7,7 @@ import { Material } from '@/types/cultivator';
 import { CREATION_MATERIAL_ENERGY } from '../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../config/CreationMappings';
 import { CreationTags } from '../core/GameplayTags';
+import { extractSemanticTagsFromText } from './SemanticTagAllowlist';
 
 const TYPE_TAGS: Record<Material['type'], string> = {
   herb: CreationTags.MATERIAL.TYPE_HERB,
@@ -18,19 +19,6 @@ const TYPE_TAGS: Record<Material['type'], string> = {
   skill_manual: CreationTags.MATERIAL.TYPE_MANUAL,
   manual: CreationTags.MATERIAL.TYPE_MANUAL,
 };
-
-const SEMANTIC_PATTERNS: Array<{ tag: string; pattern: RegExp }> = [
-  { tag: CreationTags.MATERIAL.SEMANTIC_FLAME, pattern: /火|炎|焰|灼|赤炎/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_FREEZE, pattern: /冰|寒|霜|冻/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_THUNDER, pattern: /雷|霆|电/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_WIND, pattern: /风|岚/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_BLADE, pattern: /锋|刃|剑|枪|铁/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_GUARD, pattern: /守|护|甲|盾/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_BURST, pattern: /爆|烈|怒|狂/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_SUSTAIN, pattern: /生|息|养|愈/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_MANUAL, pattern: /诀|经|录|卷/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_SPIRIT, pattern: /魂|魄|灵/u },
-];
 
 export class MaterialTagNormalizer {
   normalizeExplicitTags(material: Material): string[] {
@@ -48,10 +36,7 @@ export class MaterialTagNormalizer {
 
   normalizeSemanticTags(material: Material): string[] {
     const sourceText = `${material.name} ${material.description ?? ''}`;
-
-    return SEMANTIC_PATTERNS.filter(({ pattern }) => pattern.test(sourceText)).map(
-      ({ tag }) => tag,
-    );
+    return extractSemanticTagsFromText(sourceText);
   }
 
   normalizeRecipeTags(material: Material): string[] {
@@ -83,11 +68,6 @@ export class MaterialTagNormalizer {
         tags.add(CreationTags.RECIPE.PRODUCT_BIAS_UTILITY);
         break;
     }
-
-    if ((material.description ?? '').includes('护')) {
-      tags.add(CreationTags.RECIPE.INTENT_DEFENSIVE);
-    }
-
     return Array.from(tags);
   }
 

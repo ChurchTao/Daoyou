@@ -21,9 +21,7 @@ export function projectAbilityConfig(
         priority: model.battleProjection.priority,
         targetPolicy: model.battleProjection.targetPolicy,
         effects: model.battleProjection.effects,
-        ...(model.battleProjection.listeners
-          ? { listeners: model.battleProjection.listeners }
-          : {}),
+        listeners: model.battleProjection.listeners,
       };
 
     case 'artifact':
@@ -34,9 +32,7 @@ export function projectAbilityConfig(
         type: AbilityType.PASSIVE_SKILL,
         tags: model.battleProjection.abilityTags,
         listeners: model.battleProjection.listeners,
-        ...(model.battleProjection.modifiers && model.battleProjection.modifiers.length > 0
-          ? { modifiers: model.battleProjection.modifiers }
-          : {}),
+        modifiers: model.battleProjection.modifiers,
       };
   }
 }

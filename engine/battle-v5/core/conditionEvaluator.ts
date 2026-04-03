@@ -39,6 +39,7 @@ export function evaluateCondition(
   cond: ConditionConfig,
 ): boolean {
   const { target } = context;
+  const scopedUnit = getScopedUnit(context, cond.params.scope) ?? target;
   const threshold = cond.params.value ?? 0;
 
   switch (cond.type) {
@@ -52,13 +53,13 @@ export function evaluateCondition(
       return unit.tags.hasTag(cond.params.tag);
     }
     case 'hp_above':
-      return target.getCurrentHp() / target.getMaxHp() > threshold;
+      return scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() > threshold;
     case 'hp_below':
-      return target.getCurrentHp() / target.getMaxHp() < threshold;
+      return scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() < threshold;
     case 'mp_above':
-      return target.getCurrentMp() / target.getMaxMp() > threshold;
+      return scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
     case 'mp_below':
-      return target.getCurrentMp() / target.getMaxMp() < threshold;
+      return scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() < threshold;
     case 'damage_type_is': {
       const expected = cond.params.damageType;
       if (!expected) return false;

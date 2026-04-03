@@ -5,7 +5,6 @@ import {
   CreationIntent,
   CreationSessionInput,
   EnergyBudget,
-  MaterialFingerprintLLMMetadata,
   MaterialFingerprint,
   RecipeMatch,
   RolledAffix,
@@ -25,49 +24,6 @@ export interface MaterialSubmittedEvent extends CreationEvent {
 export interface MaterialAnalyzedEvent extends CreationEvent {
   type: 'MaterialAnalyzedEvent';
   fingerprints: MaterialFingerprint[];
-}
-
-export interface MaterialSemanticEnrichedEvent extends CreationEvent {
-  type: 'MaterialSemanticEnrichedEvent';
-  fingerprints: MaterialFingerprint[];
-  metadata: Array<{
-    materialId?: string;
-    materialName: string;
-    llm: MaterialFingerprintLLMMetadata;
-  }>;
-}
-
-export interface MaterialSemanticEnrichmentFallbackEvent extends CreationEvent {
-  type: 'MaterialSemanticEnrichmentFallbackEvent';
-  reason: string;
-  failureDisposition: 'retryable' | 'non_retryable';
-  metadata: Array<{
-    materialId?: string;
-    materialName: string;
-    llm: MaterialFingerprintLLMMetadata;
-  }>;
-}
-
-export interface MaterialSemanticEnrichmentRetryableFallbackEvent
-  extends CreationEvent {
-  type: 'MaterialSemanticEnrichmentRetryableFallbackEvent';
-  reason: string;
-  metadata: Array<{
-    materialId?: string;
-    materialName: string;
-    llm: MaterialFingerprintLLMMetadata;
-  }>;
-}
-
-export interface MaterialSemanticEnrichmentTerminalFallbackEvent
-  extends CreationEvent {
-  type: 'MaterialSemanticEnrichmentTerminalFallbackEvent';
-  reason: string;
-  metadata: Array<{
-    materialId?: string;
-    materialName: string;
-    llm: MaterialFingerprintLLMMetadata;
-  }>;
 }
 
 export interface IntentResolvedEvent extends CreationEvent {
@@ -122,10 +78,6 @@ export interface CraftFailedEvent extends CreationEvent {
 export type CreationDomainEvent =
   | MaterialSubmittedEvent
   | MaterialAnalyzedEvent
-  | MaterialSemanticEnrichedEvent
-  | MaterialSemanticEnrichmentFallbackEvent
-  | MaterialSemanticEnrichmentRetryableFallbackEvent
-  | MaterialSemanticEnrichmentTerminalFallbackEvent
   | IntentResolvedEvent
   | RecipeValidatedEvent
   | EnergyBudgetedEvent

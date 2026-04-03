@@ -6,6 +6,7 @@ export type {
   AttributeModifierConfig,
   BuffConfig,
   BuffImmunityParams,
+  ConditionConfig,
   DamageImmunityParams,
   DeathPreventParams,
   EffectConfig,

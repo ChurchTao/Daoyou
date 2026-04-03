@@ -26,6 +26,8 @@ export interface ConditionConfig {
   params: {
     tag?: string;
     value?: number;
+    // 条件作用域，默认 target。
+    // hp/mp 条件也可使用该字段在 caster/target 间切换。
     scope?: 'caster' | 'target';
     damageType?: DamageType;
   };
@@ -136,25 +138,6 @@ export interface PercentDamageModifierParams {
 }
 
 /**
- * 条件伤害修正参数（用于低血/高血/标签增伤等）
- */
-export interface ConditionalDamageModifierParams {
-  value: number;
-  mode?: 'increase' | 'reduce';
-  cap?: number;
-  conditions?: ConditionConfig[];
-}
-
-/**
- * 条件触发效果参数（满足条件后触发效果链）
- */
-export interface ConditionalEffectTriggerParams {
-  conditions?: ConditionConfig[];
-  chance?: number;
-  effects: EffectConfig[];
-}
-
-/**
  * 防死参数定义
  */
 export type DeathPreventParams = object;
@@ -190,14 +173,6 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'cooldown_modify'; params: CooldownModifyParams }
     | { type: 'tag_trigger'; params: TagTriggerParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
-    | {
-        type: 'conditional_damage_modifier';
-        params: ConditionalDamageModifierParams;
-      }
-    | {
-        type: 'conditional_effect_trigger';
-        params: ConditionalEffectTriggerParams;
-      }
     | { type: 'death_prevent'; params: DeathPreventParams }
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }

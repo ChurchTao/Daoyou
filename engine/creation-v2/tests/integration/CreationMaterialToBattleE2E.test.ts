@@ -78,9 +78,9 @@ describe('Creation material-to-outcome E2E observability', () => {
       materials: [
         {
           id: 'mat-fire-ore',
-          name: '赤炎精铁',
+          name: '万年寒铁',
           type: 'ore',
-          rank: '灵品',
+          rank: '天品',
           quantity: 2,
           element: '火',
           description: '蕴含火行意象与锋锐之气',

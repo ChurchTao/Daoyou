@@ -4,7 +4,10 @@ import { CREATION_EVENT_PRIORITY_LEVELS } from './CreationEventPriorities';
 export const CREATION_AFFIX_UNLOCK_THRESHOLDS = {
   prefix: 12,
   suffix: 20,
+  resonance: 26,
   signature: 32,
+  synergy: 38,
+  mythic: 46,
 } as const;
 
 export const CREATION_RESERVED_ENERGY: Record<CreationProductType, number> = {

@@ -1,24 +1,31 @@
-import type { AttributeModifierConfig, EffectConfig, ListenerConfig } from '../../contracts/battle';
-import {
-  CREATION_LISTENER_PRIORITIES,
-  CREATION_SKILL_DEFAULTS,
-} from '../../config/CreationBalance';
-import { CORE_EFFECT_TYPE_TO_ABILITY_TAG, ELEMENT_TO_ABILITY_TAG } from '../../config/CreationMappings';
+import { QUALITY_ORDER } from '@/types/constants';
 import { AffixEffectTranslator } from '../../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../../affixes/AffixRegistry';
 import type { AffixListenerSpec } from '../../affixes/types';
 import { buildGroupedListeners } from '../../composers/shared';
-import { QUALITY_ORDER } from '@/types/constants';
+import {
+  CREATION_LISTENER_PRIORITIES,
+  CREATION_SKILL_DEFAULTS,
+} from '../../config/CreationBalance';
+import {
+  CORE_EFFECT_TYPE_TO_ABILITY_TAG,
+  ELEMENT_TO_ABILITY_TAG,
+} from '../../config/CreationMappings';
+import type {
+  AttributeModifierConfig,
+  EffectConfig,
+  ListenerConfig,
+} from '../../contracts/battle';
 import { CreationTags } from '../../core/GameplayTags';
 import { AFFIX_CATEGORIES } from '../../types';
-import { Rule } from '../core/Rule';
-import { RuleContext } from '../core/RuleContext';
 import {
   CompositionDecision,
   PassiveProjectionPolicy,
   SkillProjectionPolicy,
 } from '../contracts/CompositionDecision';
 import { CompositionFacts } from '../contracts/CompositionFacts';
+import { Rule } from '../core/Rule';
+import { RuleContext } from '../core/RuleContext';
 
 /**
  * ProjectionRules
@@ -32,7 +39,10 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
  * - 对于法宝/功法构建 PassiveProjectionPolicy（listeners 与 abilityTags）
  * 该规则使用 AffixEffectTranslator 进行 effect 的数值化（质量敏感），并记录诊断轨迹。
  */
-export class ProjectionRules implements Rule<CompositionFacts, CompositionDecision> {
+export class ProjectionRules implements Rule<
+  CompositionFacts,
+  CompositionDecision
+> {
   readonly id = 'composition.projection';
 
   constructor(
@@ -48,7 +58,11 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
     const { productType } = facts;
 
     if (productType === 'skill') {
-      decision.projectionPolicy = this.buildSkillPolicy(facts, decision, diagnostics);
+      decision.projectionPolicy = this.buildSkillPolicy(
+        facts,
+        decision,
+        diagnostics,
+      );
     } else {
       decision.projectionPolicy = this.buildPassivePolicy(facts);
     }
@@ -63,9 +77,12 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
   private buildSkillPolicy(
     facts: CompositionFacts,
     decision: CompositionDecision,
-    diagnostics: RuleContext<CompositionFacts, CompositionDecision>['diagnostics'],
+    diagnostics: RuleContext<
+      CompositionFacts,
+      CompositionDecision
+    >['diagnostics'],
   ): SkillProjectionPolicy {
-    const { intent, energyBudget, affixes, dominantQuality } = facts;
+    const { intent, affixes, dominantQuality } = facts;
 
     const directEffects: EffectConfig[] = [];
     const extraListeners: ListenerConfig[] = [];
@@ -79,7 +96,9 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
           eventType: def.listenerSpec.eventType,
           scope: def.listenerSpec.scope,
           priority: def.listenerSpec.priority,
-          ...(def.listenerSpec.mapping ? { mapping: def.listenerSpec.mapping } : {}),
+          ...(def.listenerSpec.mapping
+            ? { mapping: def.listenerSpec.mapping }
+            : {}),
           ...(def.listenerSpec.guard ? { guard: def.listenerSpec.guard } : {}),
           effects: [effect],
         });
@@ -89,7 +108,9 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
     }
 
     const coreAffix = affixes.find((r) => r.category === AFFIX_CATEGORIES.CORE);
-    const coreDef = coreAffix ? this.registry.queryById(coreAffix.id) : undefined;
+    const coreDef = coreAffix
+      ? this.registry.queryById(coreAffix.id)
+      : undefined;
     const coreType = coreDef?.effectTemplate.type ?? 'damage';
     if (!coreDef) {
       diagnostics.addTrace({
@@ -133,10 +154,7 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
     const abilityTypeTag =
       CORE_EFFECT_TYPE_TO_ABILITY_TAG[facts.coreEffectType ?? coreType] ??
       CreationTags.BATTLE.ABILITY_TYPE_DAMAGE;
-    const abilityTags = [
-      abilityTypeTag,
-      ...(elementTag ? [elementTag] : []),
-    ];
+    const abilityTags = [abilityTypeTag, ...(elementTag ? [elementTag] : [])];
 
     return {
       kind: 'active_skill',
@@ -150,9 +168,7 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
     };
   }
 
-  private buildPassivePolicy(
-    facts: CompositionFacts,
-  ): PassiveProjectionPolicy {
+  private buildPassivePolicy(facts: CompositionFacts): PassiveProjectionPolicy {
     const { productType, intent, affixes, dominantQuality } = facts;
     const qualityOrder = QUALITY_ORDER[dominantQuality];
 
@@ -193,7 +209,10 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
 
     const abilityTags =
       productType === 'artifact'
-        ? [...(elementTag ? [elementTag] : []), CreationTags.BATTLE.ABILITY_KIND_ARTIFACT]
+        ? [
+            ...(elementTag ? [elementTag] : []),
+            CreationTags.BATTLE.ABILITY_KIND_ARTIFACT,
+          ]
         : [CreationTags.BATTLE.ABILITY_KIND_GONGFA];
 
     const projectionKind =

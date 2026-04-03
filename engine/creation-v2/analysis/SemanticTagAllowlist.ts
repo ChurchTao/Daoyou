@@ -2,17 +2,29 @@
  * SemanticTagAllowlist: 造物系统允许的语义标签白名单与别名映射。
  * 用于约束 LLM 输出，避免噪声标签进入规则判断链路。
  */
+import { CreationTags } from '../core/GameplayTags';
+
 export const CREATION_SEMANTIC_TAG_ALLOWLIST = [
-  'Material.Semantic.Flame',
-  'Material.Semantic.Freeze',
-  'Material.Semantic.Thunder',
-  'Material.Semantic.Wind',
-  'Material.Semantic.Blade',
-  'Material.Semantic.Guard',
-  'Material.Semantic.Burst',
-  'Material.Semantic.Sustain',
-  'Material.Semantic.Manual',
-  'Material.Semantic.Spirit',
+  CreationTags.MATERIAL.SEMANTIC_FLAME,
+  CreationTags.MATERIAL.SEMANTIC_FREEZE,
+  CreationTags.MATERIAL.SEMANTIC_THUNDER,
+  CreationTags.MATERIAL.SEMANTIC_WIND,
+  CreationTags.MATERIAL.SEMANTIC_BLADE,
+  CreationTags.MATERIAL.SEMANTIC_GUARD,
+  CreationTags.MATERIAL.SEMANTIC_BURST,
+  CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+  CreationTags.MATERIAL.SEMANTIC_MANUAL,
+  CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+  CreationTags.MATERIAL.SEMANTIC_EARTH,
+  CreationTags.MATERIAL.SEMANTIC_METAL,
+  CreationTags.MATERIAL.SEMANTIC_WATER,
+  CreationTags.MATERIAL.SEMANTIC_WOOD,
+  CreationTags.MATERIAL.SEMANTIC_POISON,
+  CreationTags.MATERIAL.SEMANTIC_DIVINE,
+  CreationTags.MATERIAL.SEMANTIC_CHAOS,
+  CreationTags.MATERIAL.SEMANTIC_SPACE,
+  CreationTags.MATERIAL.SEMANTIC_TIME,
+  CreationTags.MATERIAL.SEMANTIC_LIFE,
 ] as const;
 
 export type CreationSemanticTag =
@@ -66,11 +78,79 @@ const SEMANTIC_TAG_ALIAS_MAP: Record<string, CreationSemanticTag> = {
   psyche: 'Material.Semantic.Spirit',
   'material.semantic.spirit': 'Material.Semantic.Spirit',
   '灵': 'Material.Semantic.Spirit',
+  earth: 'Material.Semantic.Earth',
+  stone: 'Material.Semantic.Earth',
+  'material.semantic.earth': 'Material.Semantic.Earth',
+  '土': 'Material.Semantic.Earth',
+  metal: 'Material.Semantic.Metal',
+  steel: 'Material.Semantic.Metal',
+  'material.semantic.metal': 'Material.Semantic.Metal',
+  '金': 'Material.Semantic.Metal',
+  water: 'Material.Semantic.Water',
+  aqua: 'Material.Semantic.Water',
+  'material.semantic.water': 'Material.Semantic.Water',
+  '水': 'Material.Semantic.Water',
+  wood: 'Material.Semantic.Wood',
+  timber: 'Material.Semantic.Wood',
+  'material.semantic.wood': 'Material.Semantic.Wood',
+  '木': 'Material.Semantic.Wood',
+  poison: 'Material.Semantic.Poison',
+  toxic: 'Material.Semantic.Poison',
+  venom: 'Material.Semantic.Poison',
+  'material.semantic.poison': 'Material.Semantic.Poison',
+  '毒': 'Material.Semantic.Poison',
+  divine: 'Material.Semantic.Divine',
+  holy: 'Material.Semantic.Divine',
+  sacred: 'Material.Semantic.Divine',
+  'material.semantic.divine': 'Material.Semantic.Divine',
+  '圣': 'Material.Semantic.Divine',
+  chaos: 'Material.Semantic.Chaos',
+  chaotic: 'Material.Semantic.Chaos',
+  'material.semantic.chaos': 'Material.Semantic.Chaos',
+  '混': 'Material.Semantic.Chaos',
+  space: 'Material.Semantic.Space',
+  spatial: 'Material.Semantic.Space',
+  'material.semantic.space': 'Material.Semantic.Space',
+  '空': 'Material.Semantic.Space',
+  time: 'Material.Semantic.Time',
+  temporal: 'Material.Semantic.Time',
+  'material.semantic.time': 'Material.Semantic.Time',
+  '时': 'Material.Semantic.Time',
+  life: 'Material.Semantic.Life',
+  vitality: 'Material.Semantic.Life',
+  'material.semantic.life': 'Material.Semantic.Life',
+  '生': 'Material.Semantic.Life',
 };
 
 const SEMANTIC_TAG_ALLOWLIST = new Set<string>(
   CREATION_SEMANTIC_TAG_ALLOWLIST,
 );
+
+const SEMANTIC_TAG_TEXT_PATTERNS: Array<{
+  tag: CreationSemanticTag;
+  pattern: RegExp;
+}> = [
+  { tag: CreationTags.MATERIAL.SEMANTIC_FLAME, pattern: /火|炎|焰|灼|赤炎/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_FREEZE, pattern: /冰|寒|霜|冻/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_THUNDER, pattern: /雷|霆|电/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_WIND, pattern: /风|岚/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_BLADE, pattern: /锋|刃|剑|枪|铁/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_GUARD, pattern: /守|护|甲|盾/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_BURST, pattern: /爆|烈|怒|狂/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_SUSTAIN, pattern: /生|息|养|愈/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_MANUAL, pattern: /诀|经|录|卷/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_SPIRIT, pattern: /魂|魄|灵/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_EARTH, pattern: /土|石|岳|岩|坤/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_METAL, pattern: /金|钢|铁|锐|铸/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_WATER, pattern: /水|潮|泉|流|澜/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_WOOD, pattern: /木|林|枝|藤|根/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_POISON, pattern: /毒|蚀|腐|瘴|蛊/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_DIVINE, pattern: /圣|神|煌|祈|赐/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_CHAOS, pattern: /混|乱|狂|渊|裂/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_SPACE, pattern: /空|界|域|虚|折/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_TIME, pattern: /时|刻|岁|轮|瞬/u },
+  { tag: CreationTags.MATERIAL.SEMANTIC_LIFE, pattern: /生|命|苏|复|萌/u },
+];
 
 const MAX_ENRICHMENT_TAGS = 4;
 
@@ -128,6 +208,12 @@ export function normalizeSemanticTags(
   }
 
   return { tags, droppedTags };
+}
+
+export function extractSemanticTagsFromText(sourceText: string): CreationSemanticTag[] {
+  return SEMANTIC_TAG_TEXT_PATTERNS.filter(({ pattern }) => pattern.test(sourceText)).map(
+    ({ tag }) => tag,
+  );
 }
 
 export function getCreationSemanticTagAllowlist(): CreationSemanticTag[] {

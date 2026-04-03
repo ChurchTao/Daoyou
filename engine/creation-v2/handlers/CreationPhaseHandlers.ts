@@ -1,19 +1,7 @@
-import {
-  AffixPoolBuiltEvent,
-  AffixRolledEvent,
-  BlueprintComposedEvent,
-  CraftFailedEvent,
-  EnergyBudgetedEvent,
-  IntentResolvedEvent,
-  MaterialAnalyzedEvent,
-  MaterialSubmittedEvent,
-  OutcomeMaterializedEvent,
-  RecipeValidatedEvent,
-} from '../core/events';
 import { CreationEventBus } from '../core/EventBus';
 import {
-  CreationEventPriorityLevel,
   CreationEvent,
+  CreationEventPriorityLevel,
   CreationPhase,
   CreationPhaseHandler,
 } from '../core/types';
@@ -25,7 +13,11 @@ export interface CreationPhaseHandlerDeps {
   getSession(sessionId: string): CreationSession | undefined;
   isWorkflowActive(sessionId: string): boolean;
   completeWorkflow(sessionId: string): void;
-  fail(session: CreationSession, reason: string, details?: Record<string, unknown>): void;
+  fail(
+    session: CreationSession,
+    reason: string,
+    details?: Record<string, unknown>,
+  ): void;
   /**
    * 获取指定 session 的 WorkflowVariantPolicy
    * 若不存在则返回 undefined（workflow 将静默忽略该 session）
@@ -41,7 +33,10 @@ interface WorkflowTransition<TEvent extends CreationEvent = CreationEvent> {
   eventType: TEvent['type'];
   priority: CreationEventPriorityLevel;
   expectedPhase?: CreationPhase;
-  resolveAction: (event: TEvent, policy: WorkflowVariantPolicy) => WorkflowActionKey | null;
+  resolveAction: (
+    event: TEvent,
+    policy: WorkflowVariantPolicy,
+  ) => WorkflowActionKey | null;
 }
 
 /*
@@ -59,7 +54,8 @@ export class CreationPhaseHandlerRegistry {
         eventType: 'MaterialSubmittedEvent',
         priority: CreationEventPriorityLevel.INTENT_ANALYSIS,
         expectedPhase: CreationPhase.MATERIAL_SUBMITTED,
-        resolveAction: (_event, policy) => policy.resolveMaterialAnalysisAction(),
+        resolveAction: (_event, policy) =>
+          policy.resolveMaterialAnalysisAction(),
       },
       {
         eventType: 'MaterialAnalyzedEvent',
@@ -101,7 +97,8 @@ export class CreationPhaseHandlerRegistry {
         eventType: 'BlueprintComposedEvent',
         priority: CreationEventPriorityLevel.MATERIALIZATION,
         expectedPhase: CreationPhase.BLUEPRINT_COMPOSED,
-        resolveAction: (_event, policy) => policy.resolveBlueprintComposedAction(),
+        resolveAction: (_event, policy) =>
+          policy.resolveBlueprintComposedAction(),
       },
       {
         eventType: 'OutcomeMaterializedEvent',
@@ -124,7 +121,11 @@ export class CreationPhaseHandlerRegistry {
     }));
 
     handlers.forEach((handler) => {
-      eventBus.subscribe(handler.eventType, handler.handle, handler.priority ?? 0);
+      eventBus.subscribe(
+        handler.eventType,
+        handler.handle,
+        handler.priority ?? 0,
+      );
     });
   }
 
@@ -167,7 +168,9 @@ export class CreationPhaseHandlerRegistry {
     } catch (error) {
       this.deps.fail(
         session,
-        action === 'analyzeAsync' ? '异步材料分析失败' : '造物工作流阶段执行失败',
+        action === 'analyzeAsync'
+          ? '异步材料分析失败'
+          : '造物工作流阶段执行失败',
         {
           action,
           cause: error instanceof Error ? error.message : String(error),

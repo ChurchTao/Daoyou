@@ -4,7 +4,8 @@ import { Rule } from '../core';
 import { RecipeDecision, RecipeFacts } from '../contracts';
 
 /*
- * AffixUnlockRules: 根据材料总能量判断可解锁的词缀类别（prefix/suffix/signature）。
+ * AffixUnlockRules: 根据材料总能量判断可解锁的词缀类别
+ * （prefix/suffix/resonance/signature/synergy/mythic）。
  */
 export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.affix.unlock';
@@ -21,8 +22,20 @@ export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
       unlocked.add(AFFIX_CATEGORIES.SUFFIX);
     }
 
+    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance) {
+      unlocked.add(AFFIX_CATEGORIES.RESONANCE);
+    }
+
     if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.signature) {
       unlocked.add(AFFIX_CATEGORIES.SIGNATURE);
+    }
+
+    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy) {
+      unlocked.add(AFFIX_CATEGORIES.SYNERGY);
+    }
+
+    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.mythic) {
+      unlocked.add(AFFIX_CATEGORIES.MYTHIC);
     }
 
     decision.unlockedAffixCategories = Array.from(unlocked);

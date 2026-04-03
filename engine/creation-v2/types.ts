@@ -1,19 +1,37 @@
-import type { Ability, AbilityConfig } from './contracts/battle';
-import { EquipmentSlot, ElementType, Quality, RealmType } from '@/types/constants';
+import {
+  ElementType,
+  EquipmentSlot,
+  Quality,
+  RealmType,
+} from '@/types/constants';
 import { Material } from '@/types/cultivator';
+import type { Ability } from './contracts/battle';
 import { CreationPhase } from './core/types';
 import type { CreationProductModel } from './models/types';
-import type { AffixPoolDecision, AffixSelectionDecision } from './rules/contracts';
+import type {
+  AffixPoolDecision,
+  AffixSelectionDecision,
+} from './rules/contracts';
 
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
 export type CreationOutcomeKind = 'active_skill' | 'artifact' | 'gongfa';
-export type AffixCategory = 'prefix' | 'suffix' | 'core' | 'signature';
+export type AffixCategory =
+  | 'prefix'
+  | 'suffix'
+  | 'core'
+  | 'signature'
+  | 'resonance'
+  | 'synergy'
+  | 'mythic';
 
 export const AFFIX_CATEGORIES = {
   PREFIX: 'prefix',
   SUFFIX: 'suffix',
   CORE: 'core',
   SIGNATURE: 'signature',
+  RESONANCE: 'resonance',
+  SYNERGY: 'synergy',
+  MYTHIC: 'mythic',
 } as const satisfies Record<string, AffixCategory>;
 
 export const CREATION_PRODUCT_TYPES = ['skill', 'artifact', 'gongfa'] as const;
@@ -123,7 +141,10 @@ export interface AffixAllocation {
 export interface AffixRejection {
   affixId: string;
   amount: number;
-  reason: Exclude<AffixSelectionStopReason, 'pool_exhausted' | 'max_count_reached'>;
+  reason: Exclude<
+    AffixSelectionStopReason,
+    'pool_exhausted' | 'max_count_reached'
+  >;
   exclusiveGroup?: string;
 }
 
@@ -153,7 +174,14 @@ export interface EnergyBudget {
 
 /** Returns a zero-value EnergyBudget for cases where session budget is unavailable */
 export function createEmptyEnergyBudget(): EnergyBudget {
-  return { total: 0, reserved: 0, spent: 0, remaining: 0, allocations: [], sources: [] };
+  return {
+    total: 0,
+    reserved: 0,
+    spent: 0,
+    remaining: 0,
+    allocations: [],
+    sources: [],
+  };
 }
 
 export interface AffixCandidate {

@@ -158,13 +158,13 @@ describe('CreationWorkflowVariants — Stage 5 验收测试', () => {
   });
 
   describe('Variant 3: async materialAnalysisMode', () => {
-    it('async 模式应发出 MaterialSemanticEnrichedEvent', async () => {
+    it('async 模式应发出 MaterialAnalyzedEvent', async () => {
       const events: string[] = [];
       const eventBus = new CreationEventBus();
 
       eventBus.subscribe(
-        'MaterialSemanticEnrichedEvent',
-        () => events.push('MaterialSemanticEnrichedEvent'),
+        'MaterialAnalyzedEvent',
+        () => events.push('MaterialAnalyzedEvent'),
         CreationEventPriorityLevel.INTENT_ANALYSIS,
       );
 
@@ -188,7 +188,7 @@ describe('CreationWorkflowVariants — Stage 5 验收测试', () => {
       // 等待异步分析完成
       await orchestrator.waitForWorkflowCompletion(session.id);
 
-      expect(events).toContain('MaterialSemanticEnrichedEvent');
+      expect(events).toContain('MaterialAnalyzedEvent');
     });
 
     it('async 模式完成后 session 应达到 materialized 阶段', async () => {

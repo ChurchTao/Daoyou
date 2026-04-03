@@ -6,6 +6,7 @@ import { AttributeType, ModifierType } from '../contracts/battle';
 import {
   BuffImmunityParams,
   BuffConfig,
+  ConditionConfig,
   DamageImmunityParams,
   DeathPreventParams,
   ListenerContextMapping,
@@ -59,6 +60,13 @@ export interface AffixScalableValue {
 }
 
 /**
+ * 通用条件配置：透传到 battle-v5 EffectConfig.conditions
+ */
+export interface AffixEffectTemplateBase {
+  conditions?: ConditionConfig[];
+}
+
+/**
  * 词缀效果模板（镜像 battle-v5 EffectConfig，但数值允许 ScalableParam）
  *
  * - damage / heal / shield / mana_burn：params.value 是 AffixScalableValue
@@ -67,7 +75,8 @@ export interface AffixScalableValue {
  * - attribute_stat_buff：属性 buff，由翻译器包装为 apply_buff + BuffConfig.modifiers（可用于临时效果）
  * - percent_damage_modifier / dispel：简单参数
  */
-export type AffixEffectTemplate =
+export type AffixEffectTemplate = AffixEffectTemplateBase &
+  (
   | { type: 'damage'; params: { value: AffixScalableValue } }
   | { type: 'heal'; params: { value: AffixScalableValue } }
   | { type: 'shield'; params: { value: AffixScalableValue } }
@@ -128,7 +137,8 @@ export type AffixEffectTemplate =
   | { type: 'death_prevent'; params: DeathPreventParams }
   | { type: 'buff_immunity'; params: BuffImmunityParams }
   | { type: 'damage_immunity'; params: DamageImmunityParams }
-  | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } };
+  | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } }
+  );
 
 // ===== 词缀监听器规格 =====
 

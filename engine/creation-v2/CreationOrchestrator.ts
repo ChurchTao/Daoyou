@@ -6,10 +6,6 @@ import {
   EnergyBudgetedEvent,
   IntentResolvedEvent,
   MaterialAnalyzedEvent,
-  MaterialSemanticEnrichedEvent,
-  MaterialSemanticEnrichmentFallbackEvent,
-  MaterialSemanticEnrichmentRetryableFallbackEvent,
-  MaterialSemanticEnrichmentTerminalFallbackEvent,
   MaterialSubmittedEvent,
   OutcomeMaterializedEvent,
   OutcomePersistedEvent,
@@ -253,7 +249,7 @@ export class CreationOrchestrator {
     const { fingerprints, enrichment } = await this.asyncMaterialAnalyzer.analyze(
       session.state.input.materials,
     );
-    this.publishMaterialSemanticEnrichment(session, fingerprints, enrichment);
+    this.observeMaterialSemanticEnrichment(session, enrichment);
     this.recordMaterialAnalysis(session, fingerprints);
     return fingerprints;
   }
@@ -549,61 +545,34 @@ export class CreationOrchestrator {
   }
 
   /**
-   * Fire-and-forget: 将 LLM 语义分析结果作为观察性事件广播出去。
-   * 这些事件不推进任何 workflow phase（无 CreationPhaseHandler 订阅），
-   * 仅供外部消费者（如日志、调试面板、未来的重试策略）监听。
-   * workflow 主链路通过 recordMaterialAnalysis() 推进，与此方法解耦。
+   * 可观测钩子：记录 async LLM 语义增强结果，不参与 workflow phase 推进。
+   * 子类可覆盖该方法接入外部日志系统。
    */
-  private publishMaterialSemanticEnrichment(
+  protected observeMaterialSemanticEnrichment(
     session: CreationSession,
-    fingerprints: MaterialFingerprint[],
-    enrichment: Pick<MaterialSemanticEnrichmentReport, 'status' | 'fallbackReason' | 'failureDisposition'>,
+    enrichment: Pick<MaterialSemanticEnrichmentReport, 'status' | 'provider' | 'fallbackReason' | 'failureDisposition'>,
   ): void {
-    const metadata = fingerprints
-      .filter((fingerprint) => fingerprint.metadata?.llm)
-      .map((fingerprint) => ({
-        materialId: fingerprint.materialId,
-        materialName: fingerprint.materialName,
-        llm: fingerprint.metadata!.llm!,
-      }));
-
-    if (enrichment.status === 'success') {
-      this.eventBus.publish<MaterialSemanticEnrichedEvent>({
-        type: 'MaterialSemanticEnrichedEvent',
-        sessionId: session.id,
-        timestamp: Date.now(),
-        fingerprints,
-        metadata,
-      });
+    if (process.env.NODE_ENV === 'test') {
+      return;
     }
 
     if (enrichment.status === 'fallback') {
-      this.eventBus.publish<MaterialSemanticEnrichmentFallbackEvent>({
-        type: 'MaterialSemanticEnrichmentFallbackEvent',
-        sessionId: session.id,
-        timestamp: Date.now(),
-        reason: enrichment.fallbackReason ?? 'LLM semantic enrichment fallback',
-        failureDisposition: enrichment.failureDisposition ?? 'retryable',
-        metadata,
-      });
-
-      if (enrichment.failureDisposition === 'non_retryable') {
-        this.eventBus.publish<MaterialSemanticEnrichmentTerminalFallbackEvent>({
-          type: 'MaterialSemanticEnrichmentTerminalFallbackEvent',
+      console.warn(
+        '[creation-v2] material semantic enrichment fallback',
+        {
           sessionId: session.id,
-          timestamp: Date.now(),
-          reason: enrichment.fallbackReason ?? 'LLM semantic enrichment fallback',
-          metadata,
-        });
-      } else {
-        this.eventBus.publish<MaterialSemanticEnrichmentRetryableFallbackEvent>({
-          type: 'MaterialSemanticEnrichmentRetryableFallbackEvent',
-          sessionId: session.id,
-          timestamp: Date.now(),
-          reason: enrichment.fallbackReason ?? 'LLM semantic enrichment fallback',
-          metadata,
-        });
-      }
+          provider: enrichment.provider,
+          reason: enrichment.fallbackReason,
+          failureDisposition: enrichment.failureDisposition,
+        },
+      );
+      return;
     }
+
+    console.info('[creation-v2] material semantic enrichment', {
+      sessionId: session.id,
+      provider: enrichment.provider,
+      status: enrichment.status,
+    });
   }
 }

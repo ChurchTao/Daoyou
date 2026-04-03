@@ -59,6 +59,7 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
         projectionKind: 'gongfa_passive',
         abilityTags: policy.abilityTags,
         listeners: policy.listeners,
+        modifiers: policy.modifiers,
       },
     };
 
