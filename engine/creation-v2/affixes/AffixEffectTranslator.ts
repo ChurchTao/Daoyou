@@ -81,6 +81,70 @@ export class AffixEffectTranslator {
           params: { value: this.resolveScalableValue(template.params.value, qualityOrder) },
         };
 
+      case 'resource_drain':
+        return {
+          type: 'resource_drain',
+          params: {
+            sourceType: template.params.sourceType,
+            targetType: template.params.targetType,
+            ratio: this.resolveParam(template.params.ratio, qualityOrder),
+          },
+        };
+
+      case 'magic_shield':
+        return {
+          type: 'magic_shield',
+          params: {
+            ...(template.params.absorbRatio !== undefined
+              ? {
+                  absorbRatio: this.resolveParam(
+                    template.params.absorbRatio,
+                    qualityOrder,
+                  ),
+                }
+              : {}),
+          },
+        };
+
+      case 'reflect':
+        return {
+          type: 'reflect',
+          params: {
+            ratio: this.resolveParam(template.params.ratio, qualityOrder),
+          },
+        };
+
+      case 'cooldown_modify':
+        return {
+          type: 'cooldown_modify',
+          params: {
+            cdModifyValue: this.resolveParam(
+              template.params.cdModifyValue,
+              qualityOrder,
+            ),
+            ...(template.params.tags ? { tags: template.params.tags } : {}),
+          },
+        };
+
+      case 'tag_trigger':
+        return {
+          type: 'tag_trigger',
+          params: {
+            triggerTag: template.params.triggerTag,
+            ...(template.params.damageRatio !== undefined
+              ? {
+                  damageRatio: this.resolveParam(
+                    template.params.damageRatio,
+                    qualityOrder,
+                  ),
+                }
+              : {}),
+            ...(template.params.removeOnTrigger !== undefined
+              ? { removeOnTrigger: template.params.removeOnTrigger }
+              : {}),
+          },
+        };
+
       case 'apply_buff': {
         const params: ApplyBuffParams = {
           buffConfig: template.params.buffConfig,
@@ -92,6 +156,12 @@ export class AffixEffectTranslator {
           type: 'apply_buff',
           params,
         };
+      }
+
+      case 'attribute_modifier': {
+        throw new Error(
+          'AffixEffectTranslator: attribute_modifier must be projected to AbilityConfig.modifiers in passive policy',
+        );
       }
 
       case 'attribute_stat_buff': {

@@ -1,4 +1,4 @@
-import type { AbilityConfig, EffectConfig, ListenerConfig } from '../contracts/battle';
+import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../contracts/battle';
 import type { EquipmentSlot } from '@/types/constants';
 import type { CreationOutcomeKind, CreationProductType, RolledAffix } from '../types';
 
@@ -44,12 +44,14 @@ export interface ArtifactBattleProjection {
   projectionKind: 'artifact_passive';
   abilityTags: string[];
   listeners: ListenerConfig[];
+  modifiers?: AttributeModifierConfig[];
 }
 
 export interface GongFaBattleProjection {
   projectionKind: 'gongfa_passive';
   abilityTags: string[];
   listeners: ListenerConfig[];
+  modifiers?: AttributeModifierConfig[];
 }
 
 export interface SkillProductModel

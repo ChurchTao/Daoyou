@@ -6,6 +6,7 @@ import { AttributeType, ModifierType } from '@/engine/creation-v2/contracts/batt
 import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { AffixCandidate, EnergyBudget, CreationIntent } from '@/engine/creation-v2/types';
+import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
 
 // ─── AffixEffectTranslator ───────────────────────────────────────────────────
 
@@ -50,27 +51,27 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
-  it('translate: attribute_stat_buff 生成 apply_buff with modifiers', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-spirit')!;
+  it('translate: attribute_stat_buff 生成 apply_buff with modifiers（临时 buff）', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-prefix-spirit-boost')!;
     expect(def).toBeDefined();
 
     const result = translator.translate(def, '凡品');
     expect(result.type).toBe('apply_buff');
     if (result.type === 'apply_buff') {
       const { buffConfig } = result.params;
-      expect(buffConfig.duration).toBe(-1);
-      expect(buffConfig.stackRule).toBe('ignore');
+      expect(buffConfig.duration).toBe(1);
+      expect(buffConfig.stackRule).toBe('override');
       expect(buffConfig.modifiers).toHaveLength(1);
       expect(buffConfig.modifiers![0].attrType).toBe(AttributeType.SPIRIT);
       expect(buffConfig.modifiers![0].type).toBe(ModifierType.FIXED);
-      // 凡品 qualityOrder=0 → base=5 + 0*2=5
-      expect(buffConfig.modifiers![0].value).toBe(5);
+      // 凡品 qualityOrder=0 → base=3 + 0*1=3
+      expect(buffConfig.modifiers![0].value).toBe(3);
     }
 
     const resultZhen = translator.translate(def, '真品');
     if (resultZhen.type === 'apply_buff') {
-      // 真品 qualityOrder=3 → 5 + 3*2=11
-      expect(resultZhen.params.buffConfig.modifiers![0].value).toBe(11);
+      // 真品 qualityOrder=3 → 3 + 3*1=6
+      expect(resultZhen.params.buffConfig.modifiers![0].value).toBe(6);
     }
   });
 
@@ -104,27 +105,47 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: attribute_stat_buff MULTIPLY modType 生成乘数 modifier', () => {
-    // 使用 gongfa-signature-comprehension（WISDOM + MULTIPLY）
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-signature-comprehension')!;
-    expect(def).toBeDefined();
+    const def: AffixDefinition = {
+      id: 'test-multiply-buff',
+      displayName: 'test',
+      displayDescription: 'test',
+      category: 'prefix',
+      tagQuery: [],
+      weight: 1,
+      energyCost: 1,
+      applicableTo: ['skill'],
+      effectTemplate: {
+        type: 'attribute_stat_buff',
+        params: {
+          attrType: AttributeType.WISDOM,
+          modType: ModifierType.MULTIPLY,
+          value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
+          duration: 1,
+        },
+      },
+    };
 
     const resultXuan = translator.translate(def, '玄品');
     expect(resultXuan.type).toBe('apply_buff');
     if (resultXuan.type === 'apply_buff') {
       const mod = resultXuan.params.buffConfig.modifiers![0];
       expect(mod.attrType).toBe(AttributeType.WISDOM);
-      // MULTIPLY modType：value 为乘数（e.g. 0.12 + qualityOrder*0.02）
       expect(mod.type).toBe(ModifierType.MULTIPLY);
-      // 玄品 qualityOrder=2 → 0.12 + 2*0.02 = 0.16
       expect(mod.value).toBeCloseTo(0.16);
     }
 
     const resultTian = translator.translate(def, '天品');
     if (resultTian.type === 'apply_buff') {
       const mod = resultTian.params.buffConfig.modifiers![0];
-      // 天品 qualityOrder=5 → 0.12 + 5*0.02 = 0.22
       expect(mod.value).toBeCloseTo(0.22);
     }
+  });
+
+  it('translate: attribute_modifier 应在翻译阶段拒绝（由投影层处理）', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-spirit')!;
+    expect(() => translator.translate(def, '凡品')).toThrow(
+      'attribute_modifier must be projected to AbilityConfig.modifiers in passive policy',
+    );
   });
 
   it('translate: death_prevent 应生成原子免死效果', () => {

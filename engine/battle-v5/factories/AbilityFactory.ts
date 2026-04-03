@@ -93,6 +93,12 @@ export class AbilityFactory {
         });
       }
 
+      if (config.modifiers) {
+        config.modifiers.forEach((modifier) => {
+          ability.addModifier(modifier);
+        });
+      }
+
       return ability;
     }
 

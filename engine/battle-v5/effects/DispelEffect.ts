@@ -1,8 +1,8 @@
-import { GameplayEffect, EffectContext } from './Effect';
-import { EffectRegistry } from '../factories/EffectRegistry';
 import { DispelParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
-import { DispelEvent, EventPriorityLevel } from '../core/events';
+import { DispelEvent } from '../core/events';
+import { EffectRegistry } from '../factories/EffectRegistry';
+import { EffectContext, GameplayEffect } from './Effect';
 
 /**
  * 驱散原子效果
@@ -19,13 +19,16 @@ export class DispelEffect extends GameplayEffect {
 
     // 过滤匹配标签的 Buff
     const matchBuffs = this.params.targetTag
-      ? buffs.filter(b => b.tags.hasTag(this.params.targetTag!))
+      ? buffs.filter((b) => b.tags.hasTag(this.params.targetTag!))
       : buffs;
 
     if (matchBuffs.length === 0) return;
 
     // 确定移除数量
-    const countToRemove = Math.min(matchBuffs.length, this.params.maxCount || 1);
+    const countToRemove = Math.min(
+      matchBuffs.length,
+      this.params.maxCount || 1,
+    );
     const removedBuffNames: string[] = [];
 
     // 执行移除
@@ -47,4 +50,7 @@ export class DispelEffect extends GameplayEffect {
 }
 
 // 注册
-EffectRegistry.getInstance().register('dispel', (params) => new DispelEffect(params));
+EffectRegistry.getInstance().register(
+  'dispel',
+  (params) => new DispelEffect(params),
+);

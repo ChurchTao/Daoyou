@@ -1,4 +1,4 @@
-import type { AbilityConfig, EffectConfig, ListenerConfig } from '../../contracts/battle';
+import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../../contracts/battle';
 import { CreationOutcomeKind, RolledAffix } from '../../types';
 import { RuleDecisionMeta } from '../core';
 
@@ -22,6 +22,7 @@ export interface PassiveProjectionPolicy {
   kind: 'artifact_passive' | 'gongfa_passive';
   abilityTags: string[];
   listeners: ListenerConfig[];
+  modifiers?: AttributeModifierConfig[];
 }
 
 export type ProjectionPolicy = SkillProjectionPolicy | PassiveProjectionPolicy;

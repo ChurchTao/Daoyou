@@ -1,4 +1,5 @@
 import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
+import { ActiveSkill } from '@/engine/battle-v5/abilities/ActiveSkill';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import {
   AbilityFactory,
@@ -571,5 +572,247 @@ describe('Creation V2 battle integration', () => {
     EventBus.instance.publish(event);
 
     expect(owner.getCurrentHp()).toBe(1);
+  });
+
+  it('skill mana burn core affix should consume target mp on execute', () => {
+    const attacker = createUnit('attacker', '蚀元修士');
+    const defender = createUnit('defender', '受术者');
+    const outcome = createSkillOutcome([
+      {
+        id: 'skill-core-mana-burn',
+        name: '裂神蚀元',
+        category: 'core',
+        tags: ['Material.Semantic.Thunder'],
+        weight: 44,
+        energyCost: 10,
+        rollScore: 1,
+      },
+    ]);
+
+    attacker.abilities.addAbility(outcome.ability);
+    const beforeMp = defender.getCurrentMp();
+
+    outcome.ability.execute({
+      caster: attacker,
+      target: defender,
+    });
+
+    expect(defender.getCurrentMp()).toBeLessThan(beforeMp);
+  });
+
+  it('artifact magic shield affix should consume mp and reduce incoming damage', () => {
+    const attacker = createUnit('attacker', '进攻者');
+    const defender = createUnit('defender', '法幕护体者');
+    const outcome = createArtifactOutcome([
+      {
+        id: 'artifact-suffix-magic-shield',
+        name: '玄光法幕',
+        category: 'suffix',
+        tags: ['Material.Semantic.Spirit'],
+        weight: 44,
+        energyCost: 9,
+        rollScore: 1,
+      },
+    ]);
+
+    defender.abilities.addAbility(outcome.ability);
+    const beforeMp = defender.getCurrentMp();
+    const event: DamageEvent = {
+      type: 'DamageEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      ability: outcome.ability,
+      finalDamage: 100,
+    };
+
+    EventBus.instance.publish(event);
+
+    expect(event.finalDamage).toBeLessThan(100);
+    expect(defender.getCurrentMp()).toBeLessThan(beforeMp);
+  });
+
+  it('artifact reflect affix should publish reflected damage request to attacker', () => {
+    const attacker = createUnit('attacker', '进攻者');
+    const defender = createUnit('defender', '荆甲修士');
+    const outcome = createArtifactOutcome([
+      {
+        id: 'artifact-core-reflect-thorns',
+        name: '荆甲反噬',
+        category: 'core',
+        tags: ['Material.Semantic.Guard'],
+        weight: 52,
+        energyCost: 10,
+        rollScore: 1,
+      },
+    ]);
+
+    defender.abilities.addAbility(outcome.ability);
+
+    let reflectedEvent: DamageRequestEvent | undefined;
+    const handler = (event: DamageRequestEvent) => {
+      if (event.damageSource === 'reflect') {
+        reflectedEvent = event;
+      }
+    };
+    EventBus.instance.subscribe('DamageRequestEvent', handler);
+
+    EventBus.instance.publish<DamageTakenEvent>({
+      type: 'DamageTakenEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      ability: outcome.ability,
+      damageTaken: 100,
+      beforeHp: defender.getCurrentHp(),
+      remainHp: defender.getCurrentHp() - 100,
+      isLethal: false,
+    });
+
+    EventBus.instance.unsubscribe('DamageRequestEvent', handler);
+
+    expect(reflectedEvent).toBeDefined();
+    expect(reflectedEvent?.target).toBe(attacker);
+    expect(reflectedEvent?.finalDamage).toBeGreaterThan(0);
+  });
+
+  it('skill cooldown modify affix should increase target other skill cooldown', () => {
+    const attacker = createUnit('attacker', '封脉修士');
+    const defender = createUnit('defender', '受封者');
+    const outcome = createSkillOutcome([
+      {
+        id: 'skill-core-damage',
+        name: '斩击',
+        category: 'core',
+        tags: ['Material.Semantic.Blade'],
+        weight: 80,
+        energyCost: 8,
+        rollScore: 1,
+      },
+      {
+        id: 'skill-prefix-cooldown-shift',
+        name: '回环诀',
+        category: 'prefix',
+        tags: ['Material.Semantic.Manual'],
+        weight: 44,
+        energyCost: 7,
+        rollScore: 1,
+      },
+    ]);
+
+    const defenderSkill = AbilityFactory.create({
+      slug: 'defender-skill',
+      name: '守御术',
+      type: AbilityType.ACTIVE_SKILL,
+      targetPolicy: { team: 'enemy', scope: 'single' },
+      effects: [],
+    }) as ActiveSkill;
+
+    attacker.abilities.addAbility(outcome.ability);
+    defender.abilities.addAbility(defenderSkill);
+
+    EventBus.instance.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      ability: outcome.ability,
+    });
+
+    expect(defenderSkill.getCurrentCooldown()).toBeGreaterThan(0);
+  });
+
+  it('skill resource drain affix should heal caster after dealing damage', () => {
+    const attacker = createUnit('attacker', '噬生修士');
+    const defender = createUnit('defender', '受创木桩');
+    const outcome = createSkillOutcome([
+      {
+        id: 'skill-core-damage',
+        name: '斩击',
+        category: 'core',
+        tags: ['Material.Semantic.Blade'],
+        weight: 80,
+        energyCost: 8,
+        rollScore: 1,
+      },
+      {
+        id: 'skill-suffix-life-siphon',
+        name: '噬元回生',
+        category: 'suffix',
+        tags: ['Material.Semantic.Burst'],
+        weight: 50,
+        energyCost: 9,
+        rollScore: 1,
+      },
+    ]);
+
+    attacker.abilities.addAbility(outcome.ability);
+    attacker.takeDamage(120);
+    const beforeHp = attacker.getCurrentHp();
+
+    EventBus.instance.publish<DamageTakenEvent>({
+      type: 'DamageTakenEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      ability: outcome.ability,
+      damageTaken: 80,
+      beforeHp: defender.getCurrentHp(),
+      remainHp: Math.max(0, defender.getCurrentHp() - 80),
+      isLethal: false,
+    });
+
+    expect(attacker.getCurrentHp()).toBeGreaterThan(beforeHp);
+  });
+
+  it('skill tag trigger affix should publish extra damage request for burned target on cast', () => {
+    const attacker = createUnit('attacker', '引爆修士');
+    const defender = createUnit('defender', '灼痕目标');
+    const outcome = createSkillOutcome([
+      {
+        id: 'skill-core-damage',
+        name: '斩击',
+        category: 'core',
+        tags: ['Material.Semantic.Blade'],
+        weight: 80,
+        energyCost: 8,
+        rollScore: 1,
+      },
+      {
+        id: 'skill-suffix-burn-detonate',
+        name: '焰痕引爆',
+        category: 'suffix',
+        tags: ['Material.Semantic.Flame'],
+        weight: 38,
+        energyCost: 9,
+        rollScore: 1,
+      },
+    ]);
+
+    attacker.abilities.addAbility(outcome.ability);
+    const burnBuff = new Buff('burn-mark' as never, '灼痕', BuffType.DEBUFF, 2);
+    burnBuff.tags.addTags(['Status.Burn']);
+    defender.buffs.addBuff(burnBuff);
+    defender.tags.addTags(['Status.Burn']);
+    let triggeredDamageEvent: DamageRequestEvent | undefined;
+    const handler = (event: DamageRequestEvent) => {
+      if (event.ability?.id === outcome.ability.id && event.target === defender) {
+        triggeredDamageEvent = event;
+      }
+    };
+    EventBus.instance.subscribe('DamageRequestEvent', handler);
+
+    EventBus.instance.publish<SkillCastEvent>({
+      type: 'SkillCastEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      ability: outcome.ability,
+    });
+
+    EventBus.instance.unsubscribe('DamageRequestEvent', handler);
+
+    expect(triggeredDamageEvent).toBeDefined();
+    expect(triggeredDamageEvent?.finalDamage).toBeGreaterThan(0);
   });
 });

@@ -1,4 +1,4 @@
-import type { EffectConfig, ListenerConfig } from '../../contracts/battle';
+import type { AttributeModifierConfig, EffectConfig, ListenerConfig } from '../../contracts/battle';
 import {
   CREATION_LISTENER_PRIORITIES,
   CREATION_SKILL_DEFAULTS,
@@ -8,6 +8,7 @@ import { AffixEffectTranslator } from '../../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../../affixes/AffixRegistry';
 import type { AffixListenerSpec } from '../../affixes/types';
 import { buildGroupedListeners } from '../../composers/shared';
+import { QUALITY_ORDER } from '@/types/constants';
 import { CreationTags } from '../../core/GameplayTags';
 import { AFFIX_CATEGORIES } from '../../types';
 import { Rule } from '../core/Rule';
@@ -153,6 +154,27 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
     facts: CompositionFacts,
   ): PassiveProjectionPolicy {
     const { productType, intent, affixes, dominantQuality } = facts;
+    const qualityOrder = QUALITY_ORDER[dominantQuality];
+
+    // Partition affixes: attribute_modifier → direct AbilityConfig.modifiers
+    // everything else → listener-wrapped effects
+    const modifiers: AttributeModifierConfig[] = [];
+    const listenerAffixIds: string[] = [];
+
+    for (const rolled of affixes) {
+      const def = this.registry.queryById(rolled.id);
+      if (!def) continue;
+      if (def.effectTemplate.type === 'attribute_modifier') {
+        const { attrType, modType, value } = def.effectTemplate.params;
+        modifiers.push({
+          attrType,
+          type: modType,
+          value: this.translator.resolveParam(value, qualityOrder),
+        });
+      } else {
+        listenerAffixIds.push(rolled.id);
+      }
+    }
 
     const defaultListenerSpec = this.resolveDefaultListenerSpec(
       productType as 'artifact' | 'gongfa',
@@ -160,7 +182,7 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
     const listeners = buildGroupedListeners({
       registry: this.registry,
       translator: this.translator,
-      affixIds: affixes.map((a) => a.id),
+      affixIds: listenerAffixIds,
       quality: dominantQuality,
       defaultListenerSpec,
     });
@@ -181,6 +203,7 @@ export class ProjectionRules implements Rule<CompositionFacts, CompositionDecisi
       kind: projectionKind,
       abilityTags,
       listeners,
+      ...(modifiers.length > 0 ? { modifiers } : {}),
     } as PassiveProjectionPolicy;
   }
 

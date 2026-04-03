@@ -130,19 +130,17 @@ describe('ArtifactBlueprintComposer', () => {
 // ─── GongFaBlueprintComposer ─────────────────────────────────────────────────
 
 describe('GongFaBlueprintComposer', () => {
-  it('功法 golden case → gongfa outcome with attribute_stat_buff listener', () => {
+  it('功法 golden case → gongfa outcome with attribute modifiers', () => {
     const outcome = runFullPipeline([makeGongfaManual('灵魄心经'), makeHerb('灵草')], 'gongfa');
     expect(outcome).not.toBeNull();
     expect(outcome!.blueprint.outcomeKind).toBe('gongfa');
     expect(outcome!.blueprint.productModel.productType).toBe('gongfa');
     expect(projectAbilityConfig(outcome!.blueprint.productModel).type).toBe(AbilityType.PASSIVE_SKILL);
-    const listeners = projectAbilityConfig(outcome!.blueprint.productModel).listeners ?? [];
-    expect(listeners.length).toBeGreaterThan(0);
-    // 至少一个 listener 的 effect 是 apply_buff
-    const hasStatBuff = listeners.some((l) =>
-      l.effects.some((e) => e.type === 'apply_buff'),
-    );
-    expect(hasStatBuff).toBe(true);
+    const abilityCfg = projectAbilityConfig(outcome!.blueprint.productModel);
+    // attribute_modifier affixes 映射为 modifiers；其余词缀仍可走 listener + apply_buff
+    const hasModifiers = (abilityCfg.modifiers?.length ?? 0) > 0;
+    const hasListeners = (abilityCfg.listeners?.length ?? 0) > 0;
+    expect(hasModifiers || hasListeners).toBe(true);
     if (outcome!.blueprint.productModel.productType === 'gongfa') {
       expect(outcome!.blueprint.productModel.gongfaConfig.progressionPolicy).toBe('comprehension');
     }

@@ -2,7 +2,7 @@ import { EventBus } from '../../core/EventBus';
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { DamageTakenEvent } from '../../core/types';
 import { RoundPreEvent, SkillCastEvent } from '../../core/events';
-import { AbilityType, AttributeType, BuffType } from '../../core/types';
+import { AbilityType, AttributeType, BuffType, ModifierType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { Unit } from '../../units/Unit';
 
@@ -228,5 +228,37 @@ describe('Passive Listener Mapping Integration', () => {
     const targetLog = result.logs.find((log) => log.includes('术痕印记'));
     expect(targetLog).toBeDefined();
     expect(targetLog).not.toContain('\n');
+  });
+
+  it('passive modifiers should mount and recycle on activation lifecycle', () => {
+    const owner = createUnit('modifier_owner', '器修');
+
+    owner.abilities.addAbility(
+      AbilityFactory.create({
+        slug: 'passive_equipment_modifier',
+        name: '器纹加护',
+        type: AbilityType.PASSIVE_SKILL,
+        modifiers: [
+          {
+            attrType: AttributeType.ARMOR_PENETRATION,
+            type: ModifierType.FIXED,
+            value: 0.2,
+          },
+          {
+            attrType: AttributeType.DEF,
+            type: ModifierType.FIXED,
+            value: 80,
+          },
+        ],
+      }),
+    );
+
+    expect(owner.attributes.getValue(AttributeType.ARMOR_PENETRATION)).toBeCloseTo(0.2);
+    expect(owner.attributes.getValue(AttributeType.DEF)).toBeGreaterThan(owner.attributes.getBaseValue(AttributeType.DEF));
+
+    owner.abilities.removeAbility('passive_equipment_modifier');
+
+    expect(owner.attributes.getValue(AttributeType.ARMOR_PENETRATION)).toBeCloseTo(0);
+    expect(owner.attributes.getValue(AttributeType.DEF)).toBeCloseTo(owner.attributes.getBaseValue(AttributeType.DEF));
   });
 });

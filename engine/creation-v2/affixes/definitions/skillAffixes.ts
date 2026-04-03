@@ -109,6 +109,31 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
+    id: 'skill-core-mana-burn',
+    displayName: '裂神蚀元',
+    displayDescription: '施放时灼烧目标灵力',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'skill-core',
+    weight: 44,
+    energyCost: 10,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'mana_burn',
+      params: {
+        value: {
+          base: { base: 14, scale: 'quality', coefficient: 5 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.28,
+        },
+      },
+    },
+  },
+  {
     id: 'skill-core-control',
     displayName: '冻结',
     displayDescription: '施放时施加控制效果',
@@ -217,6 +242,60 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
   },
+  {
+    id: 'skill-prefix-cooldown-shift',
+    displayName: '回环诀',
+    displayDescription: '命中后扰动目标术法节律，延长其其余技能冷却',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+    ],
+    weight: 44,
+    energyCost: 7,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      params: {
+        cdModifyValue: { base: 1, scale: 'quality', coefficient: 0.25 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'event.target',
+      },
+    },
+  },
+  {
+    id: 'skill-prefix-self-haste',
+    displayName: '流光返息',
+    displayDescription: '施放后缩短自身其他技能冷却',
+    category: 'prefix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+    weight: 42,
+    energyCost: 7,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      params: {
+        cdModifyValue: { base: -1, scale: 'quality', coefficient: -0.2 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
+    },
+  },
 
   // ===== suffix 词缀（3 种） =====
   {
@@ -301,6 +380,155 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         },
         chance: { base: 0.65, scale: 'quality', coefficient: 0.04 },
       },
+    },
+  },
+  {
+    id: 'skill-suffix-life-siphon',
+    displayName: '噬元回生',
+    displayDescription: '造成伤害后将部分伤害转化为气血恢复',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+    weight: 50,
+    energyCost: 9,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  {
+    id: 'skill-suffix-mana-siphon',
+    displayName: '噬灵夺魄',
+    displayDescription: '造成伤害后恢复少量灵力',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST],
+    weight: 42,
+    energyCost: 8,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'mp',
+        ratio: { base: 0.1, scale: 'quality', coefficient: 0.025 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  {
+    id: 'skill-suffix-burn-detonate',
+    displayName: '焰痕引爆',
+    displayDescription: '若目标带有灼烧标记，则触发额外爆裂伤害',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_FLAME, CreationTags.MATERIAL.SEMANTIC_BURST],
+    weight: 38,
+    energyCost: 9,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'tag_trigger',
+      params: {
+        triggerTag: 'Status.Burn',
+        damageRatio: { base: 1.2, scale: 'quality', coefficient: 0.2 },
+        removeOnTrigger: false,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+    },
+  },
+
+  // ===== signature 词缀（3 种） =====
+  {
+    id: 'skill-signature-shatter-mind',
+    displayName: '裂神天鸣',
+    displayDescription: '技能命中时强力灼烧灵力并附带爆发伤害',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'skill-signature',
+    weight: 20,
+    energyCost: 13,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'mana_burn',
+      params: {
+        value: {
+          base: { base: 24, scale: 'quality', coefficient: 7 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.35,
+        },
+      },
+    },
+  },
+  {
+    id: 'skill-signature-time-lock',
+    displayName: '刹那封脉',
+    displayDescription: '命中后显著延长目标其余技能冷却',
+    category: 'signature',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_FREEZE],
+    exclusiveGroup: 'skill-signature',
+    weight: 18,
+    energyCost: 14,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      params: {
+        cdModifyValue: { base: 2, scale: 'quality', coefficient: 0.25 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'event.target',
+      },
+    },
+  },
+  {
+    id: 'skill-signature-blood-siphon',
+    displayName: '天渊噬生',
+    displayDescription: '造成伤害后大幅吸取生命，形成高压续战能力',
+    category: 'signature',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_GUARD],
+    exclusiveGroup: 'skill-signature',
+    weight: 16,
+    energyCost: 14,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.2, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
 ];

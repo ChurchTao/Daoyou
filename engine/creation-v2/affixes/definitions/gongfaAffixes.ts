@@ -10,8 +10,8 @@ import { AffixDefinition } from '../types';
 /**
  * 功法词缀池
  * applicableTo: ['gongfa']
- * 功法词缀均含 listenerSpec（领域产出 gongfa，战斗层投影为 passive ability）
- * core 词缀为属性永久提升（attribute_stat_buff via ActionPreEvent）
+ * 功法词缀可为 listener 触发型或静态属性型（attribute_modifier）
+ * core 词缀可包含属性静态提升（attribute_modifier）
  * prefix/suffix 为战斗触发或辅助属性
  */
 export const GONGFA_AFFIXES: AffixDefinition[] = [
@@ -27,14 +27,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.FIXED,
         value: { base: 5, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-core-vitality',
@@ -47,14 +46,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.VITALITY,
         modType: ModifierType.FIXED,
         value: { base: 5, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-core-wisdom',
@@ -71,14 +69,43 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.WISDOM,
         modType: ModifierType.FIXED,
         value: { base: 4, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+  },
+  {
+    id: 'gongfa-core-mana-burn-seal',
+    displayName: '蚀元印',
+    displayDescription: '持有者造成伤害时附带灵力灼烧',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'gongfa-core',
+    weight: 48,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'mana_burn',
+      params: {
+        value: {
+          base: { base: 12, scale: 'quality', coefficient: 4 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.22,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
   },
 
   // ===== prefix 词缀（2 种）=====
@@ -92,14 +119,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 6,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.CRIT_DAMAGE_MULT,
         modType: ModifierType.FIXED,
         value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-prefix-heal-amplify',
@@ -111,14 +137,58 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 6,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.HEAL_AMPLIFY,
         modType: ModifierType.FIXED,
         value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+  },
+  {
+    id: 'gongfa-prefix-reflect-skin',
+    displayName: '金蝉反震',
+    displayDescription: '受创后小幅反震伤害',
+    category: 'prefix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE],
+    weight: 44,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'reflect',
+      params: {
+        ratio: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: {
+        skipReflectSource: true,
+      },
+    },
+  },
+  {
+    id: 'gongfa-prefix-magic-shield',
+    displayName: '灵府护幕',
+    displayDescription: '受击时以灵力抵消部分伤害',
+    category: 'prefix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL],
+    weight: 42,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'magic_shield',
+      params: {
+        absorbRatio: { base: 0.72, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
+    },
   },
 
   // ===== suffix 词缀（1 种）=====
@@ -155,6 +225,54 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       },
     },
   },
+  {
+    id: 'gongfa-suffix-mp-siphon',
+    displayName: '归元汲气',
+    displayDescription: '造成伤害后恢复灵力，强化续航',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST],
+    weight: 46,
+    energyCost: 9,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'mp',
+        ratio: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  {
+    id: 'gongfa-suffix-self-haste',
+    displayName: '周天回转',
+    displayDescription: '施法后缩短自身其余技能冷却',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_WIND],
+    weight: 40,
+    energyCost: 9,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      params: {
+        cdModifyValue: { base: -1, scale: 'quality', coefficient: -0.2 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
+    },
+  },
 
   // ===== signature 词缀（1 种）=====
   {
@@ -169,14 +287,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.WISDOM,
         modType: ModifierType.MULTIPLY,
         value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'gongfa-signature-unbound-mind',
@@ -203,6 +320,66 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       eventType: CreationTags.BATTLE_EVENT.BUFF_ADD,
       scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+    },
+  },
+  {
+    id: 'gongfa-signature-celestial-aegis',
+    displayName: '太虚灵罡',
+    displayDescription: '构筑高阶灵罡护幕，显著削减直击伤害',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+    ],
+    exclusiveGroup: 'gongfa-signature',
+    weight: 14,
+    energyCost: 13,
+    minQuality: '真品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'magic_shield',
+      params: {
+        absorbRatio: { base: 0.88, scale: 'quality', coefficient: 0.02 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
+    },
+  },
+  {
+    id: 'gongfa-signature-burn-collapse',
+    displayName: '焚痕崩诀',
+    displayDescription: '施法命中灼烧目标时，引爆灼痕造成额外伤害',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+    ],
+    exclusiveGroup: 'gongfa-signature',
+    weight: 12,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'tag_trigger',
+      params: {
+        triggerTag: 'Status.Burn',
+        damageRatio: { base: 1.5, scale: 'quality', coefficient: 0.2 },
+        removeOnTrigger: false,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'event.target',
+      },
     },
   },
 ];

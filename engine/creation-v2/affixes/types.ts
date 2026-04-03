@@ -63,7 +63,8 @@ export interface AffixScalableValue {
  *
  * - damage / heal / shield / mana_burn：params.value 是 AffixScalableValue
  * - apply_buff：直接存储 BuffConfig（值不缩放，用于复杂 buff 模板）
- * - attribute_stat_buff：永久属性 buff，由翻译器包装为 apply_buff + BuffConfig.modifiers
+ * - attribute_modifier：静态属性修改器，投影为 AbilityConfig.modifiers
+ * - attribute_stat_buff：属性 buff，由翻译器包装为 apply_buff + BuffConfig.modifiers（可用于临时效果）
  * - percent_damage_modifier / dispel：简单参数
  */
 export type AffixEffectTemplate =
@@ -71,10 +72,44 @@ export type AffixEffectTemplate =
   | { type: 'heal'; params: { value: AffixScalableValue } }
   | { type: 'shield'; params: { value: AffixScalableValue } }
   | { type: 'mana_burn'; params: { value: AffixScalableValue } }
+  | {
+      type: 'resource_drain';
+      params: {
+        sourceType: 'hp' | 'mp';
+        targetType: 'hp' | 'mp';
+        ratio: ScalableParam;
+      };
+    }
+  | { type: 'magic_shield'; params: { absorbRatio?: ScalableParam } }
+  | { type: 'reflect'; params: { ratio: ScalableParam } }
+  | {
+      type: 'cooldown_modify';
+      params: { cdModifyValue: ScalableParam; tags?: string[] };
+    }
+  | {
+      type: 'tag_trigger';
+      params: {
+        triggerTag: string;
+        damageRatio?: ScalableParam;
+        removeOnTrigger?: boolean;
+      };
+    }
   | { type: 'apply_buff'; params: { buffConfig: BuffConfig; chance?: ScalableParam } }
   | {
       /**
-       * 永久属性强化 buff（专为 gongfa / artifact 静态词缀设计）
+       * 静态属性修改器（专为 gongfa / artifact 的常驻词缀设计）
+       * 由 ProjectionRules 投影为 AbilityConfig.modifiers
+       */
+      type: 'attribute_modifier';
+      params: {
+        attrType: AttributeType;
+        modType: ModifierType;
+        value: ScalableParam;
+      };
+    }
+  | {
+      /**
+       * 属性强化 buff（用于可持续时间/可堆叠的 buff 语义）
        * 翻译器会生成 apply_buff + stackRule=IGNORE + duration=-1 + modifiers[{ attrType, modType, value }]
        */
       type: 'attribute_stat_buff';

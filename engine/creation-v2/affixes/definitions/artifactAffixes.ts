@@ -11,7 +11,7 @@ import { AffixDefinition } from '../types';
 /**
  * 法宝词缀池
  * applicableTo: ['artifact']
- * 法宝词缀均含 listenerSpec（领域产出 artifact，战斗层投影为 passive ability）
+ * 法宝词缀可为 listener 触发型或静态属性型（attribute_modifier）
  */
 export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // ===== core 词缀（3 种）=====
@@ -26,14 +26,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.VITALITY,
         modType: ModifierType.FIXED,
         value: { base: 4, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-core-spirit',
@@ -46,14 +45,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.FIXED,
         value: { base: 4, scale: 'quality', coefficient: 2 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-core-shield-on-hit',
@@ -81,6 +79,31 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     listenerSpec: { eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET, priority: CREATION_LISTENER_PRIORITIES.damageTaken },
   },
+  {
+    id: 'artifact-core-reflect-thorns',
+    displayName: '荆甲反噬',
+    displayDescription: '受击后按比例反震伤害给攻击者',
+    category: 'core',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_BURST],
+    exclusiveGroup: 'artifact-core',
+    weight: 52,
+    energyCost: 10,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'reflect',
+      params: {
+        ratio: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: {
+        skipReflectSource: true,
+      },
+    },
+  },
 
   // ===== prefix 词缀（3 种）=====
   {
@@ -93,14 +116,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 6,
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.CRIT_RATE,
         modType: ModifierType.FIXED,
         value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-prefix-speed',
@@ -113,14 +135,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 6,
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.SPEED,
         modType: ModifierType.FIXED,
         value: { base: 2, scale: 'quality', coefficient: 1 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-prefix-evasion',
@@ -133,14 +154,38 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 6,
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.EVASION_RATE,
         modType: ModifierType.FIXED,
         value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
+  },
+  {
+    id: 'artifact-prefix-cooldown-seal',
+    displayName: '封窍镇息',
+    displayDescription: '当持有者施法命中时，延长目标其余技能冷却',
+    category: 'prefix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_GUARD],
+    weight: 46,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      params: {
+        cdModifyValue: { base: 1, scale: 'quality', coefficient: 0.2 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'event.target',
+      },
+    },
   },
 
   // ===== suffix 词缀（2 种）=====
@@ -196,6 +241,50 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
+  {
+    id: 'artifact-suffix-magic-shield',
+    displayName: '玄光法幕',
+    displayDescription: '受击时消耗灵力抵消部分伤害',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_GUARD],
+    weight: 44,
+    energyCost: 9,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'magic_shield',
+      params: {
+        absorbRatio: { base: 0.78, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
+    },
+  },
+  {
+    id: 'artifact-suffix-vampiric-core',
+    displayName: '噬生核心',
+    displayDescription: '持有者造成伤害后回复气血',
+    category: 'suffix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+    weight: 38,
+    energyCost: 9,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.1, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
 
   // ===== signature 词缀（1 种）=====
   {
@@ -210,14 +299,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'attribute_modifier',
       params: {
         attrType: AttributeType.DEF,
         modType: ModifierType.MULTIPLY,
         value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
       },
     },
-    listenerSpec: { eventType: CreationTags.BATTLE_EVENT.ACTION_PRE, scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR, priority: CREATION_LISTENER_PRIORITIES.actionPreBuff },
   },
   {
     id: 'artifact-signature-spellward',
@@ -257,7 +345,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.TYPE_MONSTER,
     ],
     exclusiveGroup: 'artifact-signature',
-    weight: 18,
+    weight: 14,
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
@@ -272,6 +360,63 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       guard: {
         requireOwnerAlive: false,
         allowLethalWindow: true,
+      },
+    },
+  },
+  {
+    id: 'artifact-signature-prismatic-aegis',
+    displayName: '万象法界',
+    displayDescription: '以灵力构筑高阶法幕，显著压低瞬时伤害',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+    ],
+    exclusiveGroup: 'artifact-signature',
+    weight: 18,
+    energyCost: 14,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'magic_shield',
+      params: {
+        absorbRatio: { base: 0.9, scale: 'quality', coefficient: 0.02 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
+    },
+  },
+  {
+    id: 'artifact-signature-thorn-dome',
+    displayName: '逆鳞返天阵',
+    displayDescription: '受创时大幅反震来敌，并阻断反伤连锁',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ],
+    exclusiveGroup: 'artifact-signature',
+    weight: 12,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'reflect',
+      params: {
+        ratio: { base: 0.22, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: {
+        skipReflectSource: true,
       },
     },
   },

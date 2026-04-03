@@ -3,6 +3,7 @@ export { StackRule } from '@/engine/battle-v5/buffs/Buff';
 export type {
   AbilityConfig,
   ApplyBuffParams,
+  AttributeModifierConfig,
   BuffConfig,
   BuffImmunityParams,
   DamageImmunityParams,

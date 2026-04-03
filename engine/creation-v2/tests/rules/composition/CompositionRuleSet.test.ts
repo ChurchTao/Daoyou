@@ -1,6 +1,7 @@
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixRegistry } from '@/engine/creation-v2/affixes/AffixRegistry';
 import { AffixDefinition } from '@/engine/creation-v2/affixes/types';
+import { AttributeType, ModifierType } from '@/engine/creation-v2/contracts/battle';
 import { CompositionRuleSet } from '@/engine/creation-v2/rules/composition/CompositionRuleSet';
 import { CompositionFacts } from '@/engine/creation-v2/rules/contracts/CompositionFacts';
 import {
@@ -104,6 +105,45 @@ const HEAL_AFFIX_DEF: AffixDefinition = {
   },
 };
 
+const ARTIFACT_STATIC_MODIFIER_AFFIX_DEF: AffixDefinition = {
+  id: 'artifact-static-modifier',
+  displayName: '玄铁铸体',
+  displayDescription: '法宝常驻体魄加成',
+  category: 'core',
+  applicableTo: ['artifact'],
+  tagQuery: ['Material.Semantic.Metal'],
+  weight: 10,
+  energyCost: 8,
+  effectTemplate: {
+    type: 'attribute_modifier',
+    params: {
+      attrType: AttributeType.VITALITY,
+      modType: ModifierType.FIXED,
+      value: { base: 6, scale: 'quality', coefficient: 2 },
+    },
+  },
+};
+
+const ARTIFACT_TEMP_STAT_BUFF_AFFIX_DEF: AffixDefinition = {
+  id: 'artifact-temp-stat-buff',
+  displayName: '灵光灌注',
+  displayDescription: '通过 buff 临时提升属性',
+  category: 'prefix',
+  applicableTo: ['artifact'],
+  tagQuery: ['Material.Semantic.Spirit'],
+  weight: 10,
+  energyCost: 6,
+  effectTemplate: {
+    type: 'attribute_stat_buff',
+    params: {
+      attrType: AttributeType.SPIRIT,
+      modType: ModifierType.FIXED,
+      value: { base: 3, scale: 'quality', coefficient: 1 },
+      duration: 1,
+    },
+  },
+};
+
 // ─── tests ──────────────────────────────────────────────────────────────────
 
 describe('CompositionRuleSet — 端到端集成', () => {
@@ -112,7 +152,12 @@ describe('CompositionRuleSet — 端到端集成', () => {
 
   beforeEach(() => {
     registry = new AffixRegistry();
-    registry.register([DAMAGE_AFFIX_DEF, HEAL_AFFIX_DEF]);
+    registry.register([
+      DAMAGE_AFFIX_DEF,
+      HEAL_AFFIX_DEF,
+      ARTIFACT_STATIC_MODIFIER_AFFIX_DEF,
+      ARTIFACT_TEMP_STAT_BUFF_AFFIX_DEF,
+    ]);
     ruleSet = new CompositionRuleSet(registry, new AffixEffectTranslator());
   });
 
@@ -205,6 +250,55 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const facts = makeFacts({ productType: 'artifact' });
       const decision = ruleSet.evaluate(facts);
       expect(decision.name.length).toBeGreaterThan(0);
+    });
+
+    it('attribute_modifier 应投影到 modifiers（静态属性修改）', () => {
+      const facts = makeFacts({
+        productType: 'artifact',
+        affixes: [
+          {
+            id: 'artifact-static-modifier',
+            name: '玄铁铸体',
+            category: 'core',
+            energyCost: 8,
+            rollScore: 1,
+            weight: 10,
+            tags: [],
+          },
+        ],
+      });
+      const decision = ruleSet.evaluate(facts);
+      const policy = decision.projectionPolicy as PassiveProjectionPolicy;
+
+      expect(policy.modifiers?.length ?? 0).toBeGreaterThan(0);
+      const mod = policy.modifiers![0];
+      expect(mod.attrType).toBe(AttributeType.VITALITY);
+      expect(mod.type).toBe(ModifierType.FIXED);
+    });
+
+    it('attribute_stat_buff 应保留为 listener + apply_buff（临时 buff 语义）', () => {
+      const facts = makeFacts({
+        productType: 'artifact',
+        affixes: [
+          {
+            id: 'artifact-temp-stat-buff',
+            name: '灵光灌注',
+            category: 'prefix',
+            energyCost: 6,
+            rollScore: 1,
+            weight: 10,
+            tags: [],
+          },
+        ],
+      });
+      const decision = ruleSet.evaluate(facts);
+      const policy = decision.projectionPolicy as PassiveProjectionPolicy;
+
+      expect((policy.modifiers?.length ?? 0) === 0).toBe(true);
+      expect(policy.listeners.length).toBeGreaterThan(0);
+      expect(policy.listeners.some((l) => l.effects.some((e) => e.type === 'apply_buff'))).toBe(
+        true,
+      );
     });
   });
 

@@ -2,7 +2,6 @@ export * from './Effect';
 export * from './DamageEffect';
 export * from './HealEffect';
 export * from './ApplyBuffEffect';
-export * from './AttributeModEffect';
 export * from './ResourceDrainEffect';
 export * from './DispelEffect';
 export * from './ShieldEffect';

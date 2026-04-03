@@ -1,5 +1,6 @@
 import { PassiveAbility } from './PassiveAbility';
-import { AbilityId, CombatEvent } from '../core/types';
+import { AbilityId, AttributeModifier, CombatEvent } from '../core/types';
+import { AttributeModifierConfig } from '../core/configs';
 import { GameplayEffect, EffectContext } from '../effects/Effect';
 import {
   ListenerRuntimeConfig,
@@ -22,6 +23,7 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
     runtime: ListenerRuntimeConfig;
     effects: GameplayEffect[];
   }> = [];
+  private _modifiers: AttributeModifierConfig[] = [];
 
   constructor(id: AbilityId, name: string) {
     super(id, name);
@@ -29,6 +31,40 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
 
   addInstantiatedListener(runtime: ListenerRuntimeConfig, effects: GameplayEffect[]): void {
     this._instantiatedListeners.push({ runtime, effects });
+  }
+
+  addModifier(config: AttributeModifierConfig): void {
+    this._modifiers.push(config);
+  }
+
+  protected override onActivate(): void {
+    const owner = this.getOwner();
+
+    if (owner) {
+      for (const modifier of this._modifiers) {
+        const mountedModifier: AttributeModifier = {
+          id: `${this.id}_${modifier.attrType}_${Math.random().toString(36).substr(2, 5)}`,
+          attrType: modifier.attrType,
+          type: modifier.type,
+          value: modifier.value,
+          source: this,
+        };
+        owner.attributes.addModifier(mountedModifier);
+      }
+      owner.updateDerivedStats();
+    }
+
+    super.onActivate();
+  }
+
+  protected override onDeactivate(): void {
+    const owner = this.getOwner();
+    if (owner) {
+      owner.attributes.removeModifierBySource(this);
+      owner.updateDerivedStats();
+    }
+
+    super.onDeactivate();
   }
 
   /**
@@ -91,6 +127,9 @@ export class DataDrivenPassiveAbility extends PassiveAbility {
         },
         [...listener.effects],
       );
+    }
+    for (const modifier of this._modifiers) {
+      cloned.addModifier({ ...modifier });
     }
     return cloned;
   }

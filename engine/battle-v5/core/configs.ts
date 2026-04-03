@@ -65,16 +65,6 @@ export interface ApplyBuffParams {
 }
 
 /**
- * 属性修改参数定义
- */
-export interface AttributeModParams {
-  attrType: AttributeType;
-  modType: ModifierType;
-  value: number;
-  isPermanent?: boolean;
-}
-
-/**
  * 资源消耗参数定义
  */
 export interface ResourceDrainParams {
@@ -191,7 +181,6 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'damage'; params: DamageParams }
     | { type: 'heal'; params: HealParams }
     | { type: 'apply_buff'; params: ApplyBuffParams }
-    | { type: 'attribute_mod'; params: AttributeModParams }
     | { type: 'resource_drain'; params: ResourceDrainParams }
     | { type: 'dispel'; params: DispelParams }
     | { type: 'shield'; params: ShieldParams }
@@ -295,6 +284,12 @@ export interface ListenerConfig {
   effects: EffectConfig[];
 }
 
+export interface AttributeModifierConfig {
+  attrType: AttributeType;
+  type: ModifierType;
+  value: number;
+}
+
 /**
  * BUFF 配置 (完全自包含)
  */
@@ -309,11 +304,7 @@ export interface BuffConfig {
   /**
    * 基础属性修改器链 (激活时自动添加，移除时自动清理)
    */
-  modifiers?: Array<{
-    attrType: AttributeType;
-    type: ModifierType;
-    value: number;
-  }>;
+  modifiers?: AttributeModifierConfig[];
   /**
    * 逻辑监听链 (EDA 核心)
    */
@@ -351,4 +342,9 @@ export interface AbilityConfig {
    * 被动监听链 (被动技能专用)
    */
   listeners?: ListenerConfig[];
+
+  /**
+   * 被动常驻属性修改器（激活时自动添加，停用时自动清理）
+   */
+  modifiers?: AttributeModifierConfig[];
 }

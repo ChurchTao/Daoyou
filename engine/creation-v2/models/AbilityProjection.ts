@@ -34,6 +34,9 @@ export function projectAbilityConfig(
         type: AbilityType.PASSIVE_SKILL,
         tags: model.battleProjection.abilityTags,
         listeners: model.battleProjection.listeners,
+        ...(model.battleProjection.modifiers && model.battleProjection.modifiers.length > 0
+          ? { modifiers: model.battleProjection.modifiers }
+          : {}),
       };
   }
 }
