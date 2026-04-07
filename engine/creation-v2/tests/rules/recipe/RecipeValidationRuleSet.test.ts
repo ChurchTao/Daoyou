@@ -14,7 +14,24 @@ describe('RecipeValidationRuleSet', () => {
         recipeTags: ['Recipe.ProductBias.Skill'],
         requestedTags: ['burst'],
         dominantTags: ['burst'],
-        totalEnergy: 24,
+        energyProfile: {
+          baseEnergy: 24,
+          diversityBonus: 0,
+          coherenceBonus: 0,
+          effectiveEnergy: 24,
+          unlockScore: 24,
+        },
+        qualityProfile: {
+          maxQuality: '凡品',
+          weightedAverageQuality: '凡品',
+          minQuality: '凡品',
+          maxQualityOrder: 0,
+          weightedAverageOrder: 0,
+          minQualityOrder: 0,
+          qualitySpread: 0,
+          totalQuantity: 0,
+        },
+        unlockScore: 24,
       },
       intent: {
         productType: 'skill',
@@ -37,7 +54,7 @@ describe('RecipeValidationRuleSet', () => {
       'prefix',
       'suffix',
     ]);
-    expect(decision.reservedEnergy).toBe(6);
+    expect(decision.reservedEnergy).toBe(3);
   });
 
   it('应在材料不支持目标产物时返回 invalid 但保留阈值结果', () => {
@@ -50,7 +67,24 @@ describe('RecipeValidationRuleSet', () => {
         recipeTags: ['Recipe.ProductBias.Skill'],
         requestedTags: [],
         dominantTags: [],
-        totalEnergy: 12,
+        energyProfile: {
+          baseEnergy: 12,
+          diversityBonus: 0,
+          coherenceBonus: 0,
+          effectiveEnergy: 12,
+          unlockScore: 12,
+        },
+        qualityProfile: {
+          maxQuality: '凡品',
+          weightedAverageQuality: '凡品',
+          minQuality: '凡品',
+          maxQualityOrder: 0,
+          weightedAverageOrder: 0,
+          minQualityOrder: 0,
+          qualitySpread: 0,
+          totalQuantity: 0,
+        },
+        unlockScore: 12,
       },
       intent: {
         productType: 'artifact',
@@ -64,7 +98,7 @@ describe('RecipeValidationRuleSet', () => {
 
     expect(decision.valid).toBe(false);
     expect(decision.notes).toContain('当前材料组合不足以支持 artifact 产物');
-    expect(decision.unlockedAffixCategories).toEqual(['core', 'prefix']);
-    expect(decision.reservedEnergy).toBe(4);
+    expect(decision.unlockedAffixCategories).toEqual(['core']);
+    expect(decision.reservedEnergy).toBe(2);
   });
 });

@@ -1,4 +1,9 @@
-import { CreationProductType, MaterialFingerprint } from '../../types';
+import {
+  CreationProductType,
+  MaterialEnergyProfile,
+  MaterialFingerprint,
+  MaterialQualityProfile,
+} from '../../types';
 
 export interface MaterialFacts {
   productType: CreationProductType;
@@ -7,5 +12,7 @@ export interface MaterialFacts {
   recipeTags: string[];
   requestedTags: string[];
   dominantTags: string[];
-  totalEnergy: number;
+  energyProfile: MaterialEnergyProfile;
+  qualityProfile: MaterialQualityProfile;
+  unlockScore: number;
 }

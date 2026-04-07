@@ -244,6 +244,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayDescription: '永久提升暴击率',
     category: 'prefix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER],
+    exclusiveGroup: 'artifact-prefix-crit-rate-tier',
     weight: 90,
     energyCost: 6,
     applicableTo: ['artifact'],
@@ -318,6 +319,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayDescription: '永久提升暴击伤害倍数',
     category: 'prefix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.TYPE_ORE],
+    exclusiveGroup: 'artifact-prefix-crit-dmg-tier',
     weight: 68,
     energyCost: 7,
     applicableTo: ['artifact'],
@@ -325,7 +327,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'attribute_modifier',
       params: {
         attrType: AttributeType.CRIT_DAMAGE_MULT,
-        modType: ModifierType.ADD,
+        modType: ModifierType.FIXED,
         value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
       },
     },
@@ -343,7 +345,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'attribute_modifier',
       params: {
         attrType: AttributeType.HEAL_AMPLIFY,
-        modType: ModifierType.ADD,
+        modType: ModifierType.FIXED,
         value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
       },
     },
@@ -483,6 +485,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayDescription: '每回合开始时恢复气血',
     category: 'suffix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB],
+    exclusiveGroup: 'artifact-suffix-round-heal-tier',
     weight: 75,
     energyCost: 8,
     applicableTo: ['artifact'],
@@ -1162,6 +1165,596 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         skipReflectSource: true,
+      },
+    },
+  },
+  // ========================
+  // ===== 强度分层扩充 T2 / T3 / T4 + 天品仙品专属
+  // ========================
+
+  // --- 核心体魄 T2（玄品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-vitality-t2',
+    displayName: '玄铁锻骨',
+    displayDescription: '玄铁炼体，体魄极大强化',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 50,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.VITALITY,
+        modType: ModifierType.FIXED,
+        value: { base: 7, scale: 'quality', coefficient: 3 },
+      },
+    },
+  },
+
+  // --- 核心体魄 T3（真品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-vitality-t3',
+    displayName: '万载玄晶体魄',
+    displayDescription: '真灵玄晶淬炼，体魄铸就超凡，难以撼动',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 20,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.VITALITY,
+        modType: ModifierType.FIXED,
+        value: { base: 12, scale: 'quality', coefficient: 5 },
+      },
+    },
+  },
+
+  // --- 核心体魄 T4（地品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-vitality-t4',
+    displayName: '地劫焚骨秘体',
+    displayDescription: '地阶材料铸就，体魄坚若大地，寻常伤害难撼分毫',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 6,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.VITALITY,
+        modType: ModifierType.FIXED,
+        value: { base: 20, scale: 'quality', coefficient: 8 },
+      },
+    },
+  },
+
+  // --- 核心灵力 T2（玄品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-spirit-t2',
+    displayName: '太初灵光汇聚',
+    displayDescription: '玄级灵力汇聚，法力大幅增强',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 48,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPIRIT,
+        modType: ModifierType.FIXED,
+        value: { base: 7, scale: 'quality', coefficient: 3 },
+      },
+    },
+  },
+
+  // --- 核心灵力 T3（真品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-spirit-t3',
+    displayName: '太一灵光',
+    displayDescription: '真灵聚顶，灵力跨越凡俗，直指大道',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 19,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPIRIT,
+        modType: ModifierType.FIXED,
+        value: { base: 12, scale: 'quality', coefficient: 5 },
+      },
+    },
+  },
+
+  // --- 核心法术攻击 T2（玄品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-magic-attack-t2',
+    displayName: '凌云法力汇聚',
+    displayDescription: '玄级法力凝聚，法术攻击大幅增强',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 45,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.MAGIC_ATK,
+        modType: ModifierType.FIXED,
+        value: { base: 7, scale: 'quality', coefficient: 3 },
+      },
+    },
+  },
+
+  // --- 核心法术攻击 T3（真品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-magic-attack-t3',
+    displayName: '太虚法力极境',
+    displayDescription: '真灵法力涌现，法术攻击达到极限',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 18,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.MAGIC_ATK,
+        modType: ModifierType.FIXED,
+        value: { base: 12, scale: 'quality', coefficient: 5 },
+      },
+    },
+  },
+
+  // --- 前缀暴击率 T2（玄品+，exclusiveGroup: artifact-prefix-crit-rate-tier）---
+  {
+    id: 'artifact-prefix-crit-rate-t2',
+    displayName: '凌锋极势',
+    displayDescription: '玄气凝聚锋芒，暴击率大幅提升',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ],
+    exclusiveGroup: 'artifact-prefix-crit-rate-tier',
+    weight: 48,
+    energyCost: 8,
+    minQuality: '玄品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_RATE,
+        modType: ModifierType.FIXED,
+        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+      },
+    },
+  },
+
+  // --- 前缀暴击率 T3（真品+，exclusiveGroup: artifact-prefix-crit-rate-tier）---
+  {
+    id: 'artifact-prefix-crit-rate-t3',
+    displayName: '绝杀锋芒',
+    displayDescription: '真灵极锋，主动暴击成为常态',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-prefix-crit-rate-tier',
+    weight: 18,
+    energyCost: 10,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_RATE,
+        modType: ModifierType.FIXED,
+        value: { base: 0.10, scale: 'quality', coefficient: 0.025 },
+      },
+    },
+  },
+
+  // --- 前缀暴击伤害 T2（玄品+，exclusiveGroup: artifact-prefix-crit-dmg-tier）---
+  {
+    id: 'artifact-prefix-crit-damage-t2',
+    displayName: '暴击极深化',
+    displayDescription: '玄级暴击强化，暴击伤害倍数大幅提升',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+    ],
+    exclusiveGroup: 'artifact-prefix-crit-dmg-tier',
+    weight: 45,
+    energyCost: 9,
+    minQuality: '玄品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_DAMAGE_MULT,
+        modType: ModifierType.FIXED,
+        value: { base: 0.18, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+  },
+
+  // --- 前缀暴击伤害 T3（真品+，exclusiveGroup: artifact-prefix-crit-dmg-tier）---
+  {
+    id: 'artifact-prefix-crit-damage-t3',
+    displayName: '神裂天击',
+    displayDescription: '真灵极域，每次暴击都能造成毁天灭地之力',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-prefix-crit-dmg-tier',
+    weight: 17,
+    energyCost: 11,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_DAMAGE_MULT,
+        modType: ModifierType.FIXED,
+        value: { base: 0.30, scale: 'quality', coefficient: 0.05 },
+      },
+    },
+  },
+
+  // --- 后缀每回合回血 T2（玄品+，exclusiveGroup: artifact-suffix-round-heal-tier）---
+  {
+    id: 'artifact-suffix-round-heal-t2',
+    displayName: '涌泉回生',
+    displayDescription: '玄灵泉水灌注，每回合大量恢复气血',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_HERB,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'artifact-suffix-round-heal-tier',
+    weight: 42,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 14, scale: 'quality', coefficient: 6 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.28,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
+    },
+  },
+
+  // --- 后缀每回合回血 T3（真品+，exclusiveGroup: artifact-suffix-round-heal-tier）---
+  {
+    id: 'artifact-suffix-round-heal-t3',
+    displayName: '生命轮回',
+    displayDescription: '真灵循环流转，每回合气血大量涌现',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-suffix-round-heal-tier',
+    weight: 15,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 22, scale: 'quality', coefficient: 9 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.44,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
+    },
+  },
+
+  // --- 天品专属：魂铠天筑（天品+）---
+  {
+    id: 'artifact-heaven-soul-fortress',
+    displayName: '魂铠天筑',
+    displayDescription: '天品法宝，受击时以灵魂之力凝结巨大护盾',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-heaven-tier',
+    weight: 3,
+    energyCost: 15,
+    minQuality: '天品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'shield',
+      params: {
+        value: {
+          base: { base: 28, scale: 'quality', coefficient: 10 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.55,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+
+  // --- 天品专属：天道轮回（天品+）---
+  {
+    id: 'artifact-heaven-rebirth',
+    displayName: '天道轮回',
+    displayDescription: '天品法宝，唤醒轮回之力，一战中可免死',
+    category: 'mythic',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-heaven-tier',
+    weight: 2,
+    energyCost: 16,
+    minQuality: '天品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'death_prevent',
+      params: {},
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      guard: {
+        requireOwnerAlive: false,
+        allowLethalWindow: true,
+      },
+    },
+  },
+
+  // --- 仙品专属：万古不灭意志（仙品+）---
+  {
+    id: 'artifact-immortal-undying-will',
+    displayName: '万古不灭意志',
+    displayDescription: '仙品法宝，持有者受到的所有伤害大幅削减，几近无敌',
+    category: 'mythic',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-immortal-tier',
+    weight: 1,
+    energyCost: 18,
+    minQuality: '仙品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      params: {
+        mode: 'reduce',
+        value: { base: 0.55, scale: 'quality', coefficient: 0.05 },
+        cap: 0.80,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  // --- 核心灵力 T4（地品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-spirit-t4',
+    displayName: '仙灵聚顶',
+    displayDescription: '地阶仙灵汇聚，灵力之强超越常识',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 6,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPIRIT,
+        modType: ModifierType.FIXED,
+        value: { base: 20, scale: 'quality', coefficient: 8 },
+      },
+    },
+  },
+
+  // --- 核心法术攻击 T4（地品+，exclusiveGroup: artifact-core-stat）---
+  {
+    id: 'artifact-core-magic-attack-t4',
+    displayName: '法力极境天门',
+    displayDescription: '地阶材料开启法力天门，法术攻击逼近道的极限',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-core-stat',
+    weight: 6,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.MAGIC_ATK,
+        modType: ModifierType.FIXED,
+        value: { base: 20, scale: 'quality', coefficient: 8 },
+      },
+    },
+  },
+
+  // --- 前缀暴击率 T4（地品+，exclusiveGroup: artifact-prefix-crit-rate-tier）---
+  {
+    id: 'artifact-prefix-crit-rate-t4',
+    displayName: '必杀锋极',
+    displayDescription: '地阶神兵，每一击几乎必然暴击',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-prefix-crit-rate-tier',
+    weight: 4,
+    energyCost: 12,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_RATE,
+        modType: ModifierType.FIXED,
+        value: { base: 0.16, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+  },
+
+  // --- 前缀暴击伤害 T4（地品+，exclusiveGroup: artifact-prefix-crit-dmg-tier）---
+  {
+    id: 'artifact-prefix-crit-damage-t4',
+    displayName: '天道轰杀',
+    displayDescription: '地阶天道之力，每次暴击有如天惩降临，伤害无限放大',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-prefix-crit-dmg-tier',
+    weight: 4,
+    energyCost: 13,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_DAMAGE_MULT,
+        modType: ModifierType.FIXED,
+        value: { base: 0.48, scale: 'quality', coefficient: 0.07 },
+      },
+    },
+  },
+
+  // --- 后缀每回合回血 T4（地品+，exclusiveGroup: artifact-suffix-round-heal-tier）---
+  {
+    id: 'artifact-suffix-round-heal-t4',
+    displayName: '万古生机',
+    displayDescription: '地阶生机之力，每回合恢复超量气血，犹如永生',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'artifact-suffix-round-heal-tier',
+    weight: 4,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 34, scale: 'quality', coefficient: 13 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.65,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
       },
     },
   },

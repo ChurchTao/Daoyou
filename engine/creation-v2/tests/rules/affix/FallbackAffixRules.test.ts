@@ -5,10 +5,6 @@ import { FallbackAffixRules } from '@/engine/creation-v2/rules/affix/FallbackAff
 describe('FallbackAffixRules', () => {
   const createDecision = (facts: AffixSelectionFacts): AffixSelectionDecision => ({
     candidatePool: [...facts.candidates],
-    affixes: [],
-    spent: 0,
-    remaining: facts.remainingEnergy,
-    allocations: [],
     rejections: [],
     exhaustionReason: undefined,
     reasons: [],
@@ -27,6 +23,10 @@ describe('FallbackAffixRules', () => {
       selectionCount: 0,
       selectedAffixIds: [],
       selectedExclusiveGroups: [],
+      selectedCategoryCounts: {},
+      selectionConstraints: {
+        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+      },
     });
 
     expect(decision.exhaustionReason).toBe('pool_exhausted');

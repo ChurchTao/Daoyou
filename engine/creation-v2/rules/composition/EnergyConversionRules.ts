@@ -25,10 +25,13 @@ export class EnergyConversionRules
   }: RuleContext<CompositionFacts, CompositionDecision>): void {
     if (facts.productType !== 'skill') return;
 
-    const { energyBudget, affixes } = facts;
+    const { energySummary, affixes } = facts;
     const mpCost = Math.max(
       CREATION_SKILL_DEFAULTS.minMpCost,
-      Math.round(energyBudget.total / CREATION_PROJECTION_BALANCE.mpCostDivisor),
+      Math.round(
+        energySummary.effectiveTotal /
+          CREATION_PROJECTION_BALANCE.mpCostDivisor,
+      ),
     );
     const priority =
       CREATION_PROJECTION_BALANCE.skillPriorityBase + affixes.length;

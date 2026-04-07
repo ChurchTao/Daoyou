@@ -95,13 +95,15 @@ export class FallbackOutcomeRules
   }
 
   private skillFallback(facts: CompositionFacts): EffectConfig {
+    const startingAffixEnergy = facts.energySummary.startingAffixEnergy;
+
     return {
       type: 'damage',
       params: {
         value: {
           base: Math.max(
             CREATION_SKILL_DEFAULTS.minDamageBase,
-            facts.energyBudget.remaining,
+            startingAffixEnergy,
           ),
         },
       },
@@ -109,13 +111,18 @@ export class FallbackOutcomeRules
   }
 
   private artifactFallback(facts: CompositionFacts): EffectConfig {
+    const startingAffixEnergy = facts.energySummary.startingAffixEnergy;
+
     return {
       type: 'shield',
       params: {
         value: {
           base: Math.max(
             CREATION_PASSIVE_DEFAULTS.minArtifactShieldBase,
-            Math.round(facts.energyBudget.remaining / CREATION_PROJECTION_BALANCE.artifactShieldBaseDivisor),
+            Math.round(
+              startingAffixEnergy /
+                CREATION_PROJECTION_BALANCE.artifactShieldBaseDivisor,
+            ),
           ),
         },
       },

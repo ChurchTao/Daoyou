@@ -1,5 +1,6 @@
 import {
   AffixCandidate,
+  AffixSelectionAudit,
   CraftedOutcome,
   CreationBlueprint,
   CreationIntent,
@@ -50,7 +51,8 @@ export interface AffixPoolBuiltEvent extends CreationEvent {
 export interface AffixRolledEvent extends CreationEvent {
   type: 'AffixRolledEvent';
   affixes: RolledAffix[];
-  selectionDecision?: AffixSelectionDecision;
+  selectionAudit?: AffixSelectionAudit;
+  finalSelectionDecision?: AffixSelectionDecision;
 }
 
 export interface BlueprintComposedEvent extends CreationEvent {

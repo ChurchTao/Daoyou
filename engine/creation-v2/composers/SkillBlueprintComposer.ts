@@ -4,8 +4,9 @@
  */
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
+import { estimateBalanceMetrics } from '../balancing/PBU';
 import { CreationSession } from '../CreationSession';
-import { projectAbilityConfig, SkillProductModel } from '../models';
+import { SkillProductModel } from '../models';
 import { CreationBlueprint } from '../types';
 import { CompositionRuleSet } from '../rules/composition/CompositionRuleSet';
 import { CompositionFacts } from '../rules/contracts/CompositionFacts';
@@ -47,6 +48,10 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
       tags: decision.tags,
       affixes: rolledAffixes,
       abilityTags: policy.abilityTags,
+      balanceMetrics: estimateBalanceMetrics(
+        rolledAffixes,
+        facts.materialQualityProfile.weightedAverageQuality,
+      ),
       battleProjection: {
         projectionKind: 'active_skill',
         abilityTags: policy.abilityTags,

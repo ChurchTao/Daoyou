@@ -1,4 +1,5 @@
 import { AttributeType, BuffType, ModifierType, StackRule } from '../contracts/battle';
+import { CreationProductType } from '../types';
 
 /**
  * CreationFallbackPolicy
@@ -24,3 +25,13 @@ export const CREATION_FALLBACK_MARKERS = {
   artifactShieldFallback: 'artifact_shield_fallback',
   gongfaSpiritFallback: 'gongfa_spirit_fallback',
 } as const;
+
+/**
+ * 词缀池保底 core（按产物类型）。
+ * 当标签匹配后 core 候选为空时，注入该 core 作为 deterministic fallback。
+ */
+export const CREATION_FALLBACK_CORE_AFFIX: Record<CreationProductType, string> = {
+  skill: 'skill-core-damage',
+  artifact: 'artifact-core-vitality',
+  gongfa: 'gongfa-core-spirit',
+};

@@ -40,4 +40,30 @@ describe('MaterialTagNormalizer semantic extraction', () => {
       CreationTags.MATERIAL.SEMANTIC_LIFE,
     ]);
   });
+
+  it('应按 V2 公式计算普通材料能量（品质权重 * sqrt(数量)）', () => {
+    const material: Material = {
+      id: 'mat-energy-v2-normal',
+      name: '试炼铁',
+      type: 'ore',
+      rank: '玄品',
+      quantity: 3,
+    };
+
+    // 玄品 qualityWeight=6, sqrt(3)=1.732... => round(10.392)=10
+    expect(normalizer.calculateEnergyValue(material)).toBe(10);
+  });
+
+  it('应为专属秘籍附加类型奖励', () => {
+    const material: Material = {
+      id: 'mat-energy-v2-manual',
+      name: '天阶秘卷',
+      type: 'skill_manual',
+      rank: '天品',
+      quantity: 1,
+    };
+
+    // 天品 qualityWeight=10, sqrt(1)=1, specialized bonus=3 => 13
+    expect(normalizer.calculateEnergyValue(material)).toBe(13);
+  });
 });

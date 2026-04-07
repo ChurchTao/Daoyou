@@ -107,7 +107,24 @@ describe('creation-v2 public exports', () => {
       recipeTags: ['Recipe.ProductBias.Skill'],
       requestedTags: ['burst'],
       dominantTags: ['Element.Fire'],
-      totalEnergy: 18,
+      energyProfile: {
+        baseEnergy: 18,
+        diversityBonus: 0,
+        coherenceBonus: 0,
+        effectiveEnergy: 18,
+        unlockScore: 16,
+      },
+      qualityProfile: {
+        maxQuality: '凡品',
+        weightedAverageQuality: '凡品',
+        minQuality: '凡品',
+        maxQualityOrder: 0,
+        weightedAverageOrder: 0,
+        minQualityOrder: 0,
+        qualitySpread: 0,
+        totalQuantity: 0,
+      },
+      unlockScore: 16,
     };
 
     const baseMeta: RuleDecisionMeta = {
@@ -135,7 +152,8 @@ describe('creation-v2 public exports', () => {
       defaultsApplied: ['damage_projection'],
     };
 
-    expect(materialFacts.totalEnergy).toBe(18);
+    expect(materialFacts.energyProfile.effectiveEnergy).toBe(18);
+    expect(materialFacts.unlockScore).toBe(16);
     expect(recipeDecision.valid).toBe(true);
     expect(compositionDecision.outcomeKind).toBe('active_skill');
   });

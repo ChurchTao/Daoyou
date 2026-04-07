@@ -1,8 +1,10 @@
-import { QUALITY_ORDER } from '@/types/constants';
 import { AffixEffectTranslator } from '../../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../../affixes/AffixRegistry';
 import type { AffixListenerSpec } from '../../affixes/types';
-import { buildGroupedListeners } from '../../composers/shared';
+import {
+  buildCreationListenerGuard,
+  buildGroupedListeners,
+} from '../../composers/shared';
 import {
   CREATION_LISTENER_PRIORITIES,
   CREATION_SKILL_DEFAULTS,
@@ -16,6 +18,7 @@ import type {
   EffectConfig,
   ListenerConfig,
 } from '../../contracts/battle';
+import { AttributeType } from '../../contracts/battle';
 import { CreationTags } from '../../core/GameplayTags';
 import { AFFIX_CATEGORIES } from '../../types';
 import {
@@ -82,7 +85,8 @@ export class ProjectionRules implements Rule<
       CompositionDecision
     >['diagnostics'],
   ): SkillProjectionPolicy {
-    const { intent, affixes, dominantQuality } = facts;
+    const { intent, affixes, materialQualityProfile } = facts;
+    const projectionQuality = materialQualityProfile.weightedAverageQuality;
 
     const directEffects: EffectConfig[] = [];
     const extraListeners: ListenerConfig[] = [];
@@ -90,8 +94,14 @@ export class ProjectionRules implements Rule<
     for (const rolled of affixes) {
       const def = this.registry.queryById(rolled.id);
       if (!def) continue;
-      const effect = this.translator.translate(def, dominantQuality);
+      const effect = this.translator.translate(def, projectionQuality);
       if (def.listenerSpec) {
+        const guard = buildCreationListenerGuard(
+          def.listenerSpec.eventType,
+          effect,
+          def.listenerSpec.guard,
+        );
+
         extraListeners.push({
           eventType: def.listenerSpec.eventType,
           scope: def.listenerSpec.scope,
@@ -99,7 +109,7 @@ export class ProjectionRules implements Rule<
           ...(def.listenerSpec.mapping
             ? { mapping: def.listenerSpec.mapping }
             : {}),
-          ...(def.listenerSpec.guard ? { guard: def.listenerSpec.guard } : {}),
+          ...(guard ? { guard } : {}),
           effects: [effect],
         });
       } else {
@@ -154,7 +164,25 @@ export class ProjectionRules implements Rule<
     const abilityTypeTag =
       CORE_EFFECT_TYPE_TO_ABILITY_TAG[facts.coreEffectType ?? coreType] ??
       CreationTags.BATTLE.ABILITY_TYPE_DAMAGE;
-    const abilityTags = [abilityTypeTag, ...(elementTag ? [elementTag] : [])];
+
+    // Infer magic/physical from the core damage affix's primary attribute scaling.
+    // battle-v5 DamageSystem resolves DamageType from ability tags; without an explicit
+    // magic/physical tag it defaults to PHYSICAL, which mis-routes MAGIC_ATK-scaled skills.
+    let physicsMagicTag: string | undefined;
+    if (coreType === 'damage' && coreDef?.effectTemplate.type === 'damage') {
+      const attr = coreDef.effectTemplate.params.value.attribute;
+      if (attr === AttributeType.MAGIC_ATK) {
+        physicsMagicTag = CreationTags.BATTLE.ABILITY_TYPE_MAGIC;
+      } else if (attr === AttributeType.ATK) {
+        physicsMagicTag = CreationTags.BATTLE.ABILITY_TYPE_PHYSICAL;
+      }
+    }
+
+    const abilityTags = [
+      abilityTypeTag,
+      ...(physicsMagicTag ? [physicsMagicTag] : []),
+      ...(elementTag ? [elementTag] : []),
+    ];
 
     return {
       kind: 'active_skill',
@@ -169,8 +197,9 @@ export class ProjectionRules implements Rule<
   }
 
   private buildPassivePolicy(facts: CompositionFacts): PassiveProjectionPolicy {
-    const { productType, intent, affixes, dominantQuality } = facts;
-    const qualityOrder = QUALITY_ORDER[dominantQuality];
+    const { productType, intent, affixes, materialQualityProfile } = facts;
+    const qualityOrder = materialQualityProfile.weightedAverageOrder;
+    const projectionQuality = materialQualityProfile.weightedAverageQuality;
 
     // Partition affixes: attribute_modifier → direct AbilityConfig.modifiers
     // everything else → listener-wrapped effects
@@ -199,7 +228,7 @@ export class ProjectionRules implements Rule<
       registry: this.registry,
       translator: this.translator,
       affixIds: listenerAffixIds,
-      quality: dominantQuality,
+      quality: projectionQuality,
       defaultListenerSpec,
     });
 

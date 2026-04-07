@@ -1,0 +1,141 @@
+import { QUALITY_ORDER, Quality } from '@/types/constants';
+import { AffixCategory, RolledAffix } from '../types';
+
+export interface PBUChannels {
+  damage: number;
+  sustain: number;
+  defense: number;
+  control: number;
+  resource: number;
+  utility: number;
+  modifier: number;
+}
+
+export interface BalanceMetrics {
+  pbu: number;
+  targetTtkBand: string;
+  channels: PBUChannels;
+}
+
+const CATEGORY_MULTIPLIER: Record<AffixCategory, number> = {
+  core: 1.3,
+  prefix: 1,
+  suffix: 1,
+  resonance: 1.15,
+  signature: 1.35,
+  synergy: 1.25,
+  mythic: 1.5,
+};
+
+const EFFECT_MULTIPLIER = {
+  damage: 1.2,
+  sustain: 1.05,
+  defense: 1.1,
+  control: 1.18,
+  resource: 0.95,
+  utility: 0.9,
+  modifier: 1,
+} as const;
+
+const EMPTY_CHANNELS: PBUChannels = {
+  damage: 0,
+  sustain: 0,
+  defense: 0,
+  control: 0,
+  resource: 0,
+  utility: 0,
+  modifier: 0,
+};
+
+export function estimateBalanceMetrics(
+  affixes: RolledAffix[],
+  quality: Quality,
+): BalanceMetrics {
+  const qualityMultiplier = 1 + QUALITY_ORDER[quality] * 0.12;
+  const rawChannels = affixes.reduce<PBUChannels>((channels, affix) => {
+    const weightedEnergy = affix.energyCost * CATEGORY_MULTIPLIER[affix.category];
+    const channel = inferChannel(affix);
+    channels[channel] += weightedEnergy * EFFECT_MULTIPLIER[channel];
+    return channels;
+  }, { ...EMPTY_CHANNELS });
+
+  const channelSum = Object.values(rawChannels).reduce((sum, value) => sum + value, 0);
+
+  const pbu = Math.max(1, Math.round(channelSum * qualityMultiplier));
+  const channels: PBUChannels = {
+    damage: Math.round(rawChannels.damage * qualityMultiplier),
+    sustain: Math.round(rawChannels.sustain * qualityMultiplier),
+    defense: Math.round(rawChannels.defense * qualityMultiplier),
+    control: Math.round(rawChannels.control * qualityMultiplier),
+    resource: Math.round(rawChannels.resource * qualityMultiplier),
+    utility: Math.round(rawChannels.utility * qualityMultiplier),
+    modifier: Math.round(rawChannels.modifier * qualityMultiplier),
+  };
+
+  return {
+    pbu,
+    targetTtkBand: classifyTtkBand(pbu),
+    channels,
+  };
+}
+
+function inferChannel(affix: RolledAffix): keyof PBUChannels {
+  const id = affix.id.toLowerCase();
+
+  if (
+    id.includes('damage') ||
+    id.includes('burn') ||
+    id.includes('execute') ||
+    id.includes('burst')
+  ) {
+    return 'damage';
+  }
+
+  if (id.includes('heal') || id.includes('life') || id.includes('regen')) {
+    return 'sustain';
+  }
+
+  if (
+    id.includes('shield') ||
+    id.includes('armor') ||
+    id.includes('guard') ||
+    id.includes('death-prevent') ||
+    id.includes('immunity')
+  ) {
+    return 'defense';
+  }
+
+  if (
+    id.includes('stun') ||
+    id.includes('freeze') ||
+    id.includes('control') ||
+    id.includes('seal')
+  ) {
+    return 'control';
+  }
+
+  if (id.includes('mana') || id.includes('drain') || id.includes('siphon')) {
+    return 'resource';
+  }
+
+  if (
+    id.includes('cooldown') ||
+    id.includes('trigger') ||
+    id.includes('dispel') ||
+    id.includes('crit')
+  ) {
+    return 'utility';
+  }
+
+  if (id.includes('core') || id.includes('prefix') || id.includes('suffix')) {
+    return 'modifier';
+  }
+
+  return 'utility';
+}
+
+function classifyTtkBand(pbu: number): string {
+  if (pbu >= 64) return '2-3';
+  if (pbu >= 38) return '3-5';
+  return '5-7';
+}

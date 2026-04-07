@@ -5,10 +5,6 @@ import { BudgetExhaustionRules } from '@/engine/creation-v2/rules/affix/BudgetEx
 describe('BudgetExhaustionRules', () => {
   const createDecision = (facts: AffixSelectionFacts): AffixSelectionDecision => ({
     candidatePool: [...facts.candidates],
-    affixes: [],
-    spent: 0,
-    remaining: facts.remainingEnergy,
-    allocations: [],
     rejections: [],
     exhaustionReason: undefined,
     reasons: [],
@@ -44,6 +40,10 @@ describe('BudgetExhaustionRules', () => {
       selectionCount: 0,
       selectedAffixIds: [],
       selectedExclusiveGroups: [],
+      selectedCategoryCounts: {},
+      selectionConstraints: {
+        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+      },
     });
 
     expect(decision.candidatePool).toEqual([

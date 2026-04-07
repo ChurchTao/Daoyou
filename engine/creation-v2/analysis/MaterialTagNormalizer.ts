@@ -72,7 +72,10 @@ export class MaterialTagNormalizer {
   }
 
   calculateEnergyValue(material: Material): number {
-    const qualityFactor = QUALITY_ORDER[material.rank] + 1;
+    const qualityOrder = QUALITY_ORDER[material.rank];
+    const qualityWeight =
+      CREATION_MATERIAL_ENERGY.qualityWeights[qualityOrder] ??
+      CREATION_MATERIAL_ENERGY.qualityWeights[0];
     const typeBonus =
       material.type === 'gongfa_manual' || material.type === 'skill_manual'
         ? CREATION_MATERIAL_ENERGY.specializedManualBonus
@@ -80,12 +83,8 @@ export class MaterialTagNormalizer {
           ? CREATION_MATERIAL_ENERGY.manualBonus
           : 0;
 
-    return (
-      qualityFactor *
-        material.quantity *
-        CREATION_MATERIAL_ENERGY.quantityFactor +
-      typeBonus
-    );
+    const quantityTerm = Math.sqrt(material.quantity);
+    return Math.round(qualityWeight * quantityTerm + typeBonus);
   }
 
   calculateRarityWeight(material: Material): number {

@@ -1,5 +1,6 @@
 import { Rule } from '../core';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../contracts';
+import { CREATION_AFFIX_POOL_SCORING } from '../../config/CreationBalance';
 
 /*
  * AffixWeightRules: 词缀候选池权重验证规则。
@@ -14,10 +15,18 @@ export class AffixWeightRules
 {
   readonly id = 'affix.pool.weight';
 
-  apply({ decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
+  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
+    const sessionTagSet = new Set(facts.sessionTags);
 
     for (const candidate of decision.candidates) {
+      const tagHitCount = candidate.tags.reduce(
+        (sum, tag) => sum + (sessionTagSet.has(tag) ? 1 : 0),
+        0,
+      );
+      const coverage =
+        candidate.tags.length > 0 ? tagHitCount / candidate.tags.length : 0;
+
       if (candidate.weight <= 0) {
         decision.rejectedCandidates.push({
           affixId: candidate.id,
@@ -35,7 +44,24 @@ export class AffixWeightRules
         continue;
       }
 
-      accepted.push(candidate);
+      const evaluationScore = candidate.evaluationScore ?? 1;
+
+      const weighted = Math.max(
+        1,
+        Math.round(
+          candidate.weight *
+            (0.5 + evaluationScore) *
+            (1 +
+              Math.max(0, tagHitCount - 1) *
+                CREATION_AFFIX_POOL_SCORING.tagHitBonus +
+              coverage * (CREATION_AFFIX_POOL_SCORING.coverageBonus / 2)),
+        ),
+      );
+
+      accepted.push({
+        ...candidate,
+        weight: weighted,
+      });
     }
 
     decision.candidates = accepted;

@@ -4,8 +4,9 @@
  */
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
+import { estimateBalanceMetrics } from '../balancing/PBU';
 import { CreationSession } from '../CreationSession';
-import { GongFaProductModel, projectAbilityConfig } from '../models';
+import { GongFaProductModel } from '../models';
 import { GONGFA_POLICIES, GongFaDomainConfig } from '../models/types';
 import { CreationBlueprint } from '../types';
 import { CompositionRuleSet } from '../rules/composition/CompositionRuleSet';
@@ -54,6 +55,10 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
       tags: decision.tags,
       affixes: rolledAffixes,
       abilityTags: policy.abilityTags,
+      balanceMetrics: estimateBalanceMetrics(
+        rolledAffixes,
+        facts.materialQualityProfile.weightedAverageQuality,
+      ),
       gongfaConfig: domainConfig,
       battleProjection: {
         projectionKind: 'gongfa_passive',

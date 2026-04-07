@@ -23,6 +23,7 @@ import { DefaultEnergyBudgeter } from './budgeting/DefaultEnergyBudgeter';
 import { ProductComposerRegistry } from './composers/ProductComposerRegistry';
 import {
   AffixCandidate,
+  AffixSelectionAudit,
   CreationBlueprint,
   CreationIntent,
   CreationSessionInput,
@@ -38,6 +39,8 @@ import { AffixPoolBuilder, AffixRegistry, AffixSelector, DEFAULT_AFFIX_REGISTRY 
 import { CreationPhaseHandlerRegistry } from './handlers/CreationPhaseHandlers';
 import { PhaseActionRegistry } from './handlers/PhaseActionRegistry';
 import { WorkflowVariantPolicy } from './handlers/WorkflowVariantPolicy';
+import { validateCreationInput } from './validation/CreationInputValidator';
+import { resolveAffixSlotCount } from './config/CreationBalance';
 
 /*
  * CreationOrchestrator: 编排层主入口。
@@ -131,6 +134,18 @@ export class CreationOrchestrator {
   ): CreationSession {
     this.sessions.set(session.id, session);
     this.createWorkflowCompletion(session.id);
+
+    const validation = validateCreationInput(session.state.input);
+    if (!validation.valid) {
+      this.fail(session, validation.reason ?? '输入校验失败');
+      const completion = this.workflowCompletions.get(session.id);
+      this.workflowCompletions.delete(session.id);
+      if (completion) {
+        completion.resolve(session);
+      }
+      return session;
+    }
+
     this.activeWorkflowPolicies.set(session.id, WorkflowVariantPolicy.fromOptions(options));
     this.submitMaterials(session);
     return session;
@@ -366,6 +381,9 @@ export class CreationOrchestrator {
     poolDecision?: AffixPoolDecision,
   ): void {
     session.state.affixPool = affixPool;
+    session.state.rolledAffixes = [];
+    session.state.affixSelectionAudit = undefined;
+    session.state.affixSelectionFinalDecision = undefined;
     if (poolDecision) session.state.affixPoolDecision = poolDecision;
     session.setPhase(CreationPhase.AFFIX_POOL_BUILT);
 
@@ -391,15 +409,28 @@ export class CreationOrchestrator {
   rollAffixes(
     session: CreationSession,
     affixes: RolledAffix[],
-    selectionDecision?: AffixSelectionDecision,
+    finalSelectionDecision?: AffixSelectionDecision,
   ): void {
     session.state.rolledAffixes = affixes;
+    const resolvedFinalSelectionDecision =
+      finalSelectionDecision ?? session.state.affixSelectionAudit?.finalDecision;
+    if (resolvedFinalSelectionDecision) {
+      session.state.affixSelectionFinalDecision = resolvedFinalSelectionDecision;
+    }
 
     if (session.state.energyBudget) {
-      session.state.energyBudget = this.energyBudgeter.reconcileRolledAffixes(
-        session.state.energyBudget,
-        affixes,
-      );
+      if (this.hasMatchingSelectionAudit(session.state.affixSelectionAudit, affixes)) {
+        session.state.energyBudget = this.energyBudgeter.finalizeSelection(
+          session.state.energyBudget,
+          session.state.affixSelectionAudit,
+        );
+      } else {
+        session.state.affixSelectionAudit = undefined;
+        session.state.energyBudget = this.energyBudgeter.reconcileRolledAffixes(
+          session.state.energyBudget,
+          affixes,
+        );
+      }
     }
 
     session.setPhase(CreationPhase.AFFIX_ROLLED);
@@ -409,7 +440,12 @@ export class CreationOrchestrator {
       sessionId: session.id,
       timestamp: Date.now(),
       affixes,
-      selectionDecision,
+      ...(session.state.affixSelectionAudit
+        ? { selectionAudit: session.state.affixSelectionAudit }
+        : {}),
+      ...(resolvedFinalSelectionDecision
+        ? { finalSelectionDecision: resolvedFinalSelectionDecision }
+        : {}),
     });
   }
 
@@ -424,17 +460,20 @@ export class CreationOrchestrator {
     if (!session.state.energyBudget) {
       throw new Error('Cannot roll affixes before energy budgeting');
     }
-    const { audit: selection, lastDecision } = this.affixSelector.selectWithDecision(
+    const { audit: selection } = this.affixSelector.selectWithDecision(
       session.state.affixPool,
       session.state.energyBudget,
       session.state.intent,
+      resolveAffixSlotCount(
+        session.state.energyBudget.initialRemaining ??
+          session.state.energyBudget.remaining,
+      ),
     );
-    if (lastDecision) session.state.affixSelectionDecision = lastDecision;
-    session.state.energyBudget = this.energyBudgeter.applySelectionAudit(
-      session.state.energyBudget,
-      selection,
-    );
-    this.rollAffixes(session, selection.affixes, lastDecision);
+      session.state.affixSelectionAudit = selection;
+      if (selection.finalDecision) {
+        session.state.affixSelectionFinalDecision = selection.finalDecision;
+      }
+      this.rollAffixes(session, selection.affixes, selection.finalDecision);
     return selection.affixes;
   }
 
@@ -573,6 +612,24 @@ export class CreationOrchestrator {
       sessionId: session.id,
       provider: enrichment.provider,
       status: enrichment.status,
+    });
+  }
+
+  private hasMatchingSelectionAudit(
+    audit: AffixSelectionAudit | undefined,
+    affixes: RolledAffix[],
+  ): audit is AffixSelectionAudit {
+    if (!audit || audit.affixes.length !== affixes.length) {
+      return false;
+    }
+
+    return audit.affixes.every((auditAffix, index) => {
+      const rolledAffix = affixes[index];
+      return (
+        rolledAffix !== undefined &&
+        auditAffix.id === rolledAffix.id &&
+        auditAffix.energyCost === rolledAffix.energyCost
+      );
     });
   }
 }

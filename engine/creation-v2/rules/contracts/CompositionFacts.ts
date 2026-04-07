@@ -2,23 +2,30 @@ import {
   CreationIntent,
   CreationOutcomeKind,
   CreationProductType,
-  EnergyBudget,
   MaterialFingerprint,
+  MaterialQualityProfile,
   RecipeMatch,
   RolledAffix,
 } from '../../types';
-import { Quality } from '@/types/constants';
+
+export interface CompositionEnergySummary {
+  effectiveTotal: number;
+  reserved: number;
+  startingAffixEnergy: number;
+  spentAffixEnergy: number;
+  remainingAffixEnergy: number;
+}
 
 export interface CompositionFacts {
   productType: CreationProductType;
   outcomeKind: CreationOutcomeKind;
   intent: CreationIntent;
   recipeMatch: RecipeMatch;
-  energyBudget: EnergyBudget;
+  energySummary: CompositionEnergySummary;
   affixes: RolledAffix[];
   sessionTags: string[];
   materialFingerprints: MaterialFingerprint[];
-  dominantQuality: Quality;
+  materialQualityProfile: MaterialQualityProfile;
   materialNames: string[];
   /**
    * effectTemplate.type of the core affix (e.g. 'damage', 'heal', 'apply_buff').

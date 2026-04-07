@@ -2,7 +2,7 @@ import { Ability, AbilityType } from '@/engine/creation-v2/contracts/battle';
 import { projectAbilityConfig } from '../models';
 import { CreationOutcomeMaterializer } from '../adapters/types';
 import { TestableCreationOrchestrator as CreationOrchestrator } from './helpers/TestableCreationOrchestrator';
-import { CraftFailedEvent } from '../core/events';
+import { AffixRolledEvent, CraftFailedEvent } from '../core/events';
 import { CreationTags } from '../core/GameplayTags';
 import { CreationEventPriorityLevel } from '../core/types';
 import { CreationBlueprint, EnergyBudget, MaterialFingerprint, RecipeMatch } from '../types';
@@ -18,8 +18,8 @@ describe('CreationOrchestrator', () => {
           id: 'mat-a',
           name: '赤炎精铁',
           type: 'ore',
-          rank: '玄品',
-          quantity: 2,
+          rank: '仙品',
+          quantity: 3,
           element: '火',
           description: '蕴含火行意象与锋锐之气'
         },
@@ -46,7 +46,7 @@ describe('CreationOrchestrator', () => {
     expect(fingerprints[0].semanticTags).toContain('Material.Semantic.Flame');
     expect(intent.outcomeKind).toBe('active_skill');
     expect(recipeMatch.valid).toBe(true);
-    expect(budget.total).toBeGreaterThan(0);
+    expect(budget.effectiveTotal).toBeGreaterThan(0);
     expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
     expect(blueprint.productModel.tags).toContain('Ability.Type.Damage');
   });
@@ -106,7 +106,8 @@ describe('CreationOrchestrator', () => {
       reservedEnergy: 8,
     };
     const budget: EnergyBudget = {
-      total: 24,
+      baseTotal: 24,
+      effectiveTotal: 24,
       reserved: 8,
       spent: 0,
       remaining: 16,
@@ -281,8 +282,8 @@ describe('CreationOrchestrator', () => {
           id: 'mat-fire',
           name: '离火砂',
           type: 'ore',
-          rank: '灵品',
-          quantity: 1,
+          rank: '玄品',
+          quantity: 2,
           element: '火'
         },
         {
@@ -382,6 +383,46 @@ describe('CreationOrchestrator', () => {
     );
   });
 
+  it('当抽取结果缺少 core 时应保持流程可继续（返回空词缀）', () => {
+    const orchestrator = new CreationOrchestrator();
+    const session = orchestrator.createSession({
+      sessionId: 'session-core-invariant',
+      productType: 'skill',
+      materials: [],
+    });
+
+    orchestrator.resolveIntent(session, {
+      productType: 'skill',
+      outcomeKind: 'active_skill',
+      dominantTags: ['Material.Semantic.Burst'],
+      requestedTags: [],
+    });
+    orchestrator.budgetEnergy(session, {
+      baseTotal: 20,
+      effectiveTotal: 20,
+      reserved: 4,
+      spent: 0,
+      remaining: 16,
+      initialRemaining: 16,
+      allocations: [],
+      rejections: [],
+      sources: [{ source: '测试材料', amount: 20 }],
+    });
+    orchestrator.buildAffixPool(session, [
+      {
+        id: 'skill-prefix-only',
+        name: 'only-prefix',
+        category: 'prefix',
+        tags: ['Material.Semantic.Burst'],
+        weight: 100,
+        energyCost: 6,
+      },
+    ]);
+
+    const affixes = orchestrator.rollAffixesWithDefaults(session);
+    expect(affixes).toEqual([]);
+  });
+
   it('应拒绝在蓝图生成前物化 outcome', () => {
     const orchestrator = new CreationOrchestrator();
     const session = orchestrator.createSession({
@@ -417,7 +458,8 @@ describe('CreationOrchestrator', () => {
     });
 
     orchestrator.budgetEnergy(session, {
-      total: 30,
+      baseTotal: 30,
+      effectiveTotal: 30,
       reserved: 6,
       spent: 0,
       remaining: 24,
@@ -449,7 +491,7 @@ describe('CreationOrchestrator', () => {
     ]);
 
     expect(session.state.energyBudget).toMatchObject({
-      total: 30,
+      effectiveTotal: 30,
       reserved: 6,
       spent: 14,
       remaining: 10,
@@ -586,6 +628,60 @@ describe('CreationOrchestrator', () => {
     expect(orchestrator.getSession(session.id)).toBe(session);
   });
 
+  it('AffixRolledEvent 应携带 selectionAudit 与 finalSelectionDecision 正式快照', () => {
+    const orchestrator = new CreationOrchestrator();
+    let affixRolledEvent: AffixRolledEvent | undefined;
+
+    orchestrator.eventBus.subscribe<AffixRolledEvent>(
+      'AffixRolledEvent',
+      (event) => {
+        affixRolledEvent = event;
+      },
+      CreationEventPriorityLevel.BLUEPRINT_COMPOSITION,
+    );
+
+    const session = orchestrator.createSession({
+      sessionId: 'session-affix-rolled-event-payload',
+      productType: 'skill',
+      materials: [
+        {
+          id: 'mat-a',
+          name: '赤炎精铁',
+          type: 'ore',
+          rank: '玄品',
+          quantity: 2,
+          element: '火',
+          description: '蕴含火行意象与锋锐之气',
+        },
+        {
+          id: 'mat-b',
+          name: '雷髓碎晶',
+          type: 'monster',
+          rank: '灵品',
+          quantity: 1,
+          element: '雷',
+          description: '碎晶中残留雷霆爆裂之意',
+        },
+      ],
+      requestedTags: ['Material.Semantic.Flame'],
+    });
+
+    orchestrator.runEventDrivenWorkflow(session, { autoMaterialize: false });
+
+    expect(affixRolledEvent).toBeDefined();
+    expect(affixRolledEvent?.selectionAudit).toBeDefined();
+    expect(affixRolledEvent?.finalSelectionDecision).toBeDefined();
+    expect(affixRolledEvent?.selectionAudit?.finalDecision).toBe(
+      affixRolledEvent?.finalSelectionDecision,
+    );
+    expect(affixRolledEvent?.finalSelectionDecision).toBe(
+      session.state.affixSelectionFinalDecision,
+    );
+    expect(
+      Object.prototype.hasOwnProperty.call(affixRolledEvent, 'selectionDecision'),
+    ).toBe(false);
+  });
+
   it('应在 event-driven workflow 失败时自动停止并发布 CraftFailedEvent', () => {
     const orchestrator = new CreationOrchestrator();
     const order: string[] = [];
@@ -634,7 +730,36 @@ describe('CreationOrchestrator', () => {
     expect(session.state.outcome).toBeUndefined();
   });
 
-  it('应允许 event-driven workflow 停在 blueprint 阶段而不自动物化', () => {
+  it('应在输入超出材料数量上限时直接失败并终止流程', () => {
+    const orchestrator = new CreationOrchestrator();
+    const order: string[] = [];
+
+    ['MaterialSubmittedEvent', 'CraftFailedEvent'].forEach((eventType) => {
+      orchestrator.eventBus.subscribe(eventType, () => order.push(eventType));
+    });
+
+    const session = orchestrator.createSession({
+      sessionId: 'session-event-driven-invalid-input',
+      productType: 'skill',
+      materials: [
+        { id: 'm1', name: '甲', type: 'ore', rank: '凡品', quantity: 1 },
+        { id: 'm2', name: '乙', type: 'ore', rank: '凡品', quantity: 1 },
+        { id: 'm3', name: '丙', type: 'ore', rank: '凡品', quantity: 1 },
+        { id: 'm4', name: '丁', type: 'ore', rank: '凡品', quantity: 1 },
+        { id: 'm5', name: '戊', type: 'ore', rank: '凡品', quantity: 1 },
+        { id: 'm6', name: '己', type: 'ore', rank: '凡品', quantity: 1 },
+        { id: 'm7', name: '庚', type: 'ore', rank: '凡品', quantity: 1 },
+      ],
+    });
+
+    orchestrator.runEventDrivenWorkflow(session);
+
+    expect(order).toEqual(['CraftFailedEvent']);
+    expect(session.state.phase).toBe('failed');
+    expect(session.state.failureReason).toContain('材料种类数量必须在');
+  });
+
+  it('应允许 event-driven workflow 停在 blueprint 阶段而不自动物化', async () => {
     const orchestrator = new CreationOrchestrator();
     const session = orchestrator.createSession({
       sessionId: 'session-event-driven-blueprint-only',
@@ -649,10 +774,20 @@ describe('CreationOrchestrator', () => {
           element: '火',
           description: '蕴含火行意象与锋锐之气'
         },
+        {
+          id: 'mat-b',
+          name: '雷髓碎晶',
+          type: 'monster',
+          rank: '灵品',
+          quantity: 1,
+          element: '雷',
+          description: '碎晶中残留雷霆爆裂之意'
+        },
       ],
     });
 
     orchestrator.runEventDrivenWorkflow(session, { autoMaterialize: false });
+    await orchestrator.waitForWorkflowCompletion(session.id);
 
     expect(session.state.phase).toBe('blueprint_composed');
     expect(session.state.blueprint).toBeDefined();

@@ -12,29 +12,29 @@ export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
 
   apply({ facts, decision, diagnostics }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
     const unlocked = new Set(decision.unlockedAffixCategories);
-    const totalEnergy = facts.material.totalEnergy;
+    const unlockScore = facts.material.unlockScore;
 
-    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.prefix) {
+    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.prefix) {
       unlocked.add(AFFIX_CATEGORIES.PREFIX);
     }
 
-    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.suffix) {
+    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.suffix) {
       unlocked.add(AFFIX_CATEGORIES.SUFFIX);
     }
 
-    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance) {
+    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance) {
       unlocked.add(AFFIX_CATEGORIES.RESONANCE);
     }
 
-    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.signature) {
+    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.signature) {
       unlocked.add(AFFIX_CATEGORIES.SIGNATURE);
     }
 
-    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy) {
+    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy) {
       unlocked.add(AFFIX_CATEGORIES.SYNERGY);
     }
 
-    if (totalEnergy >= CREATION_AFFIX_UNLOCK_THRESHOLDS.mythic) {
+    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.mythic) {
       unlocked.add(AFFIX_CATEGORIES.MYTHIC);
     }
 
@@ -42,9 +42,11 @@ export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
     diagnostics.addTrace({
       ruleId: this.id,
       outcome: 'applied',
-      message: '已根据能量阈值更新可解锁词缀分类',
+      message: '已根据 unlock score 更新可解锁词缀分类',
       details: {
-        totalEnergy,
+        baseEnergy: facts.material.energyProfile.baseEnergy,
+        effectiveEnergy: facts.material.energyProfile.effectiveEnergy,
+        unlockScore,
         unlockedAffixCategories: decision.unlockedAffixCategories,
       },
     });

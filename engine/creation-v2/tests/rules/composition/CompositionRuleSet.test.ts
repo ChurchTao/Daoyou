@@ -9,7 +9,7 @@ import {
   SkillProjectionPolicy,
 } from '@/engine/creation-v2/rules/contracts/CompositionDecision';
 import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
-import { EnergyBudget, MaterialFingerprint, RecipeMatch, RolledAffix } from '@/engine/creation-v2/types';
+import { MaterialFingerprint, RecipeMatch, RolledAffix } from '@/engine/creation-v2/types';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -20,13 +20,23 @@ const BASE_RECIPE_MATCH: RecipeMatch = {
   unlockedAffixCategories: ['core'],
 };
 
-const BASE_BUDGET: EnergyBudget = {
-  total: 20,
+const BASE_ENERGY_SUMMARY: CompositionFacts['energySummary'] = {
+  effectiveTotal: 20,
   reserved: 4,
-  spent: 0,
-  remaining: 16,
-  allocations: [],
-  sources: [],
+  startingAffixEnergy: 16,
+  spentAffixEnergy: 0,
+  remainingAffixEnergy: 16,
+};
+
+const BASE_QUALITY_PROFILE: CompositionFacts['materialQualityProfile'] = {
+  maxQuality: '灵品',
+  weightedAverageQuality: '灵品',
+  minQuality: '灵品',
+  maxQualityOrder: 1,
+  weightedAverageOrder: 1,
+  minQualityOrder: 1,
+  qualitySpread: 0,
+  totalQuantity: 1,
 };
 
 const BASE_FINGERPRINT: MaterialFingerprint = {
@@ -66,11 +76,12 @@ function makeFacts(
       requestedTags: [],
     },
     recipeMatch: override.recipeMatch ?? BASE_RECIPE_MATCH,
-    energyBudget: override.energyBudget ?? BASE_BUDGET,
+    energySummary: override.energySummary ?? BASE_ENERGY_SUMMARY,
     affixes: override.affixes ?? [],
     sessionTags: override.sessionTags ?? ['Material.Semantic.Metal'],
     materialFingerprints: override.materialFingerprints ?? [BASE_FINGERPRINT],
-    dominantQuality: override.dominantQuality ?? '灵品',
+    materialQualityProfile:
+      override.materialQualityProfile ?? BASE_QUALITY_PROFILE,
     materialNames: override.materialNames ?? ['锋铁'],
   };
 }
@@ -200,6 +211,31 @@ describe('CompositionRuleSet — 端到端集成', () => {
       expect(decision.defaultsApplied).not.toContain('skill_damage_fallback');
     });
 
+    it('直接伤害词缀应保留词缀定义的原始数值', () => {
+      const rolledAffix: RolledAffix = {
+        id: 'core-damage',
+        name: '锋刃',
+        category: 'core',
+        energyCost: 8,
+        rollScore: 1,
+        weight: 10,
+        tags: [],
+      };
+      const facts = makeFacts({
+        productType: 'skill',
+        affixes: [rolledAffix],
+      });
+      const decision = ruleSet.evaluate(facts);
+
+      const policy = decision.projectionPolicy as SkillProjectionPolicy;
+      const damageEffect = policy.effects.find((effect) => effect.type === 'damage');
+      expect(damageEffect).toBeDefined();
+
+      if (damageEffect?.type === 'damage') {
+        expect(damageEffect.params.value.base).toBe(100);
+      }
+    });
+
     it('elementBias 为火时：outcomeKind 应为 active_skill，name 包含元素前缀', () => {
       const facts = makeFacts({
         productType: 'skill',
@@ -274,6 +310,37 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const mod = policy.modifiers![0];
       expect(mod.attrType).toBe(AttributeType.VITALITY);
       expect(mod.type).toBe(ModifierType.FIXED);
+    });
+
+    it('attribute_modifier 的数值缩放应使用 weightedAverageQuality，而不是最高品质', () => {
+      const facts = makeFacts({
+        productType: 'artifact',
+        materialQualityProfile: {
+          maxQuality: '天品',
+          weightedAverageQuality: '灵品',
+          minQuality: '凡品',
+          maxQualityOrder: 5,
+          weightedAverageOrder: 1,
+          minQualityOrder: 0,
+          qualitySpread: 5,
+          totalQuantity: 4,
+        },
+        affixes: [
+          {
+            id: 'artifact-static-modifier',
+            name: '玄铁铸体',
+            category: 'core',
+            energyCost: 8,
+            rollScore: 1,
+            weight: 10,
+            tags: [],
+          },
+        ],
+      });
+      const decision = ruleSet.evaluate(facts);
+      const policy = decision.projectionPolicy as PassiveProjectionPolicy;
+
+      expect(policy.modifiers?.[0]?.value).toBe(8);
     });
 
     it('attribute_stat_buff 应保留为 listener + apply_buff（临时 buff 语义）', () => {

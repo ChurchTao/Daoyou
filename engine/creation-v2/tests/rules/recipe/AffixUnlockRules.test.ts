@@ -3,7 +3,10 @@ import { RecipeDecision, RecipeFacts } from '@/engine/creation-v2/rules/contract
 import { AffixUnlockRules } from '@/engine/creation-v2/rules/recipe/AffixUnlockRules';
 
 describe('AffixUnlockRules', () => {
-  const createFacts = (totalEnergy: number): RecipeFacts => ({
+  const createFacts = (
+    effectiveEnergy: number,
+    unlockScore: number = effectiveEnergy,
+  ): RecipeFacts => ({
     productType: 'skill',
     material: {
       productType: 'skill',
@@ -12,7 +15,24 @@ describe('AffixUnlockRules', () => {
       recipeTags: ['Recipe.ProductBias.Skill'],
       requestedTags: [],
       dominantTags: [],
-      totalEnergy,
+      energyProfile: {
+        baseEnergy: effectiveEnergy,
+        diversityBonus: 0,
+        coherenceBonus: 0,
+        effectiveEnergy,
+        unlockScore,
+      },
+      qualityProfile: {
+        maxQuality: '凡品',
+        weightedAverageQuality: '凡品',
+        minQuality: '凡品',
+        maxQualityOrder: 0,
+        weightedAverageOrder: 0,
+        minQualityOrder: 0,
+        qualitySpread: 0,
+        totalQuantity: 0,
+      },
+      unlockScore,
     },
     intent: {
       productType: 'skill',
@@ -37,21 +57,31 @@ describe('AffixUnlockRules', () => {
   it('应在不同能量阈值下解锁对应 affix 分类', () => {
     const ruleSet = new RuleSet([new AffixUnlockRules()], createDecision);
 
-    expect(ruleSet.evaluate(createFacts(8)).unlockedAffixCategories).toEqual(['core']);
-    expect(ruleSet.evaluate(createFacts(12)).unlockedAffixCategories).toEqual([
+    expect(ruleSet.evaluate(createFacts(12)).unlockedAffixCategories).toEqual(['core']);
+    expect(ruleSet.evaluate(createFacts(16)).unlockedAffixCategories).toEqual([
       'core',
       'prefix',
     ]);
-    expect(ruleSet.evaluate(createFacts(20)).unlockedAffixCategories).toEqual([
+    expect(ruleSet.evaluate(createFacts(24)).unlockedAffixCategories).toEqual([
       'core',
       'prefix',
       'suffix',
     ]);
-    expect(ruleSet.evaluate(createFacts(32)).unlockedAffixCategories).toEqual([
+    expect(ruleSet.evaluate(createFacts(42)).unlockedAffixCategories).toEqual([
       'core',
       'prefix',
       'suffix',
+      'resonance',
       'signature',
+    ]);
+  });
+
+  it('应显式使用 unlock score，而不是 spendable energy', () => {
+    const ruleSet = new RuleSet([new AffixUnlockRules()], createDecision);
+
+    expect(ruleSet.evaluate(createFacts(48, 16)).unlockedAffixCategories).toEqual([
+      'core',
+      'prefix',
     ]);
   });
 });

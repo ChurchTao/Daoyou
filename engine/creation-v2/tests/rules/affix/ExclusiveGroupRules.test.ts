@@ -5,10 +5,6 @@ import { ExclusiveGroupRules } from '@/engine/creation-v2/rules/affix/ExclusiveG
 describe('ExclusiveGroupRules', () => {
   const createDecision = (facts: AffixSelectionFacts): AffixSelectionDecision => ({
     candidatePool: [...facts.candidates],
-    affixes: [],
-    spent: 0,
-    remaining: facts.remainingEnergy,
-    allocations: [],
     rejections: [],
     exhaustionReason: undefined,
     reasons: [],
@@ -37,6 +33,10 @@ describe('ExclusiveGroupRules', () => {
       selectionCount: 1,
       selectedAffixIds: [],
       selectedExclusiveGroups: ['grp'],
+      selectedCategoryCounts: { core: 1 },
+      selectionConstraints: {
+        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+      },
     });
 
     expect(decision.candidatePool).toEqual([]);

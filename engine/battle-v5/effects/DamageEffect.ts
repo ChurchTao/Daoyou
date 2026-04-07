@@ -1,6 +1,7 @@
 import { DamageParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
-import { DamageRequestEvent, EventPriorityLevel } from '../core/events';
+import { DamageRequestEvent } from '../core/events';
+import { DamageSource } from '../core/types';
 import { ValueCalculator } from '../core/ValueCalculator';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
@@ -30,6 +31,10 @@ export class DamageEffect extends GameplayEffect {
       target,
       ability,
       buff, // 传递 buff
+      damageSource:
+        context.triggerEvent?.type === 'DamageTakenEvent'
+          ? DamageSource.REFLECT
+          : undefined,
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
     });

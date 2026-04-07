@@ -4,8 +4,9 @@
  */
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
+import { estimateBalanceMetrics } from '../balancing/PBU';
 import { CreationSession } from '../CreationSession';
-import { ArtifactProductModel, projectAbilityConfig } from '../models';
+import { ArtifactProductModel } from '../models';
 import { ARTIFACT_POLICIES, ArtifactDomainConfig } from '../models/types';
 import { CreationBlueprint } from '../types';
 import { CompositionRuleSet } from '../rules/composition/CompositionRuleSet';
@@ -56,6 +57,10 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
       tags: decision.tags,
       affixes: rolledAffixes,
       abilityTags: policy.abilityTags,
+      balanceMetrics: estimateBalanceMetrics(
+        rolledAffixes,
+        facts.materialQualityProfile.weightedAverageQuality,
+      ),
       artifactConfig: domainConfig,
       battleProjection: {
         projectionKind: 'artifact_passive',

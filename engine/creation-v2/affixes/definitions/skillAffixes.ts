@@ -36,9 +36,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 20, scale: 'quality', coefficient: 8 },
+          base: { base: 80, scale: 'quality', coefficient: 14 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.5,
+          coefficient: 0.9,
         },
       },
     },
@@ -57,9 +57,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 22, scale: 'quality', coefficient: 9 },
+          base: { base: 86, scale: 'quality', coefficient: 15 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.55,
+          coefficient: 0.92,
         },
       },
     },
@@ -78,9 +78,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 20, scale: 'quality', coefficient: 9 },
+          base: { base: 78, scale: 'quality', coefficient: 14 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.5,
+          coefficient: 0.86,
         },
       },
     },
@@ -103,9 +103,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 24, scale: 'quality', coefficient: 9 },
+          base: { base: 92, scale: 'quality', coefficient: 15 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.52,
+          coefficient: 0.94,
         },
       },
     },
@@ -124,9 +124,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 18, scale: 'quality', coefficient: 8 },
+          base: { base: 60, scale: 'quality', coefficient: 12 },
           attribute: AttributeType.ATK,
-          coefficient: 0.4,
+          coefficient: 0.72,
         },
       },
     },
@@ -217,9 +217,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 16, scale: 'quality', coefficient: 7 },
+          base: { base: 88, scale: 'quality', coefficient: 14 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.42,
+          coefficient: 0.9,
         },
       },
     },
@@ -244,9 +244,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
       params: {
         value: {
-          base: { base: 28, scale: 'quality', coefficient: 10 },
+          base: { base: 96, scale: 'quality', coefficient: 16 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.5,
+          coefficient: 1.02,
         },
       },
     },
@@ -261,6 +261,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '提升本次技能伤害',
     category: 'prefix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_ORE],
+    exclusiveGroup: 'skill-prefix-damage-boost-tier',
     weight: 95,
     energyCost: 6,
     applicableTo: ['skill'],
@@ -517,6 +518,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
       params: {
         mode: 'increase',
         value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
@@ -570,6 +572,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中时附加灼烧debuff，每回合造成伤害',
     category: 'suffix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']],
+    exclusiveGroup: 'skill-suffix-burn-tier',
     weight: 80,
     energyCost: 8,
     applicableTo: ['skill'],
@@ -660,6 +663,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成伤害时回复部分气血',
     category: 'suffix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+    exclusiveGroup: 'skill-suffix-lifesteal-tier',
     weight: 72,
     energyCost: 9,
     applicableTo: ['skill'],
@@ -879,6 +883,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
       params: {
         mode: 'increase',
         value: { base: 0.18, scale: 'quality', coefficient: 0.04 },
@@ -943,6 +948,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
         cap: 0.5,
       },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -1081,6 +1091,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         cap: 0.6,
       },
     },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
   },
 
   // ========================
@@ -1130,11 +1145,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [{ type: 'has_tag', params: { tag: 'Status.Control' } }],
       params: {
         mode: 'increase',
         value: { base: 0.25, scale: 'quality', coefficient: 0.05 },
         cap: 1.2,
       },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -1173,6 +1194,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: { base: 0.1, scale: 'quality', coefficient: 0.025 },
         cap: 0.7,
       },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -1216,6 +1242,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: { base: 0.22, scale: 'quality', coefficient: 0.04 },
         cap: 1,
       },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -1267,9 +1298,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'has_tag', params: { tag: 'Status.Burn' } }],
       params: {
         value: {
-          base: { base: 30, scale: 'quality', coefficient: 11 },
+          base: { base: 110, scale: 'quality', coefficient: 22 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.62,
+          coefficient: 1.04,
         },
       },
     },
@@ -1289,7 +1320,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.TYPE_SPECIAL,
     ],
     exclusiveGroup: 'skill-mythic-ultimate',
-    weight: 15,
+    weight: 5,
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['skill'],
@@ -1301,9 +1332,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         value: {
-          base: { base: 40, scale: 'quality', coefficient: 15 },
+          base: { base: 128, scale: 'quality', coefficient: 24 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.75,
+          coefficient: 1.12,
         },
       },
     },
@@ -1319,7 +1350,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.TYPE_SPECIAL,
     ],
     exclusiveGroup: 'skill-mythic-ultimate',
-    weight: 12,
+    weight: 4,
     energyCost: 15,
     minQuality: '真品',
     applicableTo: ['skill'],
@@ -1356,7 +1387,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.TYPE_SPECIAL,
     ],
     exclusiveGroup: 'skill-mythic-ultimate',
-    weight: 10,
+    weight: 3,
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
@@ -1369,6 +1400,604 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           coefficient: 0.5,
         },
       },
+    },
+  },
+  // ========================
+  // ===== 强度分层扩充 T2 / T3 / T4 + 天品仙品专属
+  // ========================
+
+  // --- 核心伤害 T2（玄品+，exclusiveGroup: skill-core-damage-type）---
+  {
+    id: 'skill-core-damage-t2',
+    displayName: '碎岳斩',
+    displayDescription: '玄气凝聚重斩，伤害大幅提升',
+    category: 'core',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BURST],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 50,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 86, scale: 'quality', coefficient: 18 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 1,
+        },
+      },
+    },
+  },
+
+  // --- 核心伤害 T3（真品+，exclusiveGroup: skill-core-damage-type）---
+  {
+    id: 'skill-core-damage-t3',
+    displayName: '诛仙斩',
+    displayDescription: '破空斩击，威力撼天摇地，令鬼神胆寒',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 20,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 100, scale: 'quality', coefficient: 20 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 1.02,
+        },
+      },
+    },
+  },
+
+  // --- 核心伤害 T4（地品+，exclusiveGroup: skill-core-damage-type）---
+  {
+    id: 'skill-core-damage-t4',
+    displayName: '万法殒灭',
+    displayDescription: '道法极境之斩，此击过后万物虚无',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 6,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 78, scale: 'quality', coefficient: 22 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 1.20,
+        },
+      },
+    },
+  },
+
+  // --- 核心治疗 T2（玄品+，exclusiveGroup: skill-core-damage-type）---
+  {
+    id: 'skill-core-heal-t2',
+    displayName: '洗髓归元',
+    displayDescription: '洗髓炼骨，深度恢复气血',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_HERB,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 42,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 28, scale: 'quality', coefficient: 10 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.55,
+        },
+      },
+    },
+  },
+
+  // --- 核心治疗 T3（真品+，exclusiveGroup: skill-core-damage-type）---
+  {
+    id: 'skill-core-heal-t3',
+    displayName: '起死回春',
+    displayDescription: '仙草灵气令垂死者重生，气血大量恢复',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 16,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 44, scale: 'quality', coefficient: 15 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.72,
+        },
+      },
+    },
+  },
+
+  // --- 前缀增伤 T2（玄品+，exclusiveGroup: skill-prefix-damage-boost-tier）---
+  {
+    id: 'skill-prefix-damage-boost-t2',
+    displayName: '凌厉之威',
+    displayDescription: '玄气凝聚提升技能伤害，威力大增',
+    category: 'prefix',
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BURST],
+    exclusiveGroup: 'skill-prefix-damage-boost-tier',
+    weight: 48,
+    energyCost: 8,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      params: {
+        mode: 'increase',
+        value: { base: 0.22, scale: 'quality', coefficient: 0.04 },
+        cap: 0.75,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 前缀增伤 T3（真品+，exclusiveGroup: skill-prefix-damage-boost-tier）---
+  {
+    id: 'skill-prefix-damage-boost-t3',
+    displayName: '破苍穹势',
+    displayDescription: '真灵之力绽放，技能伤害突破一切极限',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-prefix-damage-boost-tier',
+    weight: 18,
+    energyCost: 10,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      params: {
+        mode: 'increase',
+        value: { base: 0.36, scale: 'quality', coefficient: 0.05 },
+        cap: 0.95,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 前缀增伤 T4（地品+，exclusiveGroup: skill-prefix-damage-boost-tier）---
+  {
+    id: 'skill-prefix-damage-boost-t4',
+    displayName: '万界破灭印',
+    displayDescription: '地阶神印，每击皆如天道降临，杀意无穷',
+    category: 'prefix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-prefix-damage-boost-tier',
+    weight: 5,
+    energyCost: 12,
+    minQuality: '地品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      params: {
+        mode: 'increase',
+        value: { base: 0.56, scale: 'quality', coefficient: 0.07 },
+        cap: 1.30,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 后缀灼烧 DOT T2（玄品+，exclusiveGroup: skill-suffix-burn-tier）---
+  {
+    id: 'skill-suffix-burn-dot-t2',
+    displayName: '炽炎魂焚',
+    displayDescription: '玄火炼魂，灼烧更深更久，每回合伤害倍增',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ],
+    exclusiveGroup: 'skill-suffix-burn-tier',
+    weight: 45,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-burn-t2',
+          name: '玄焰灼魂',
+          type: BuffType.DEBUFF,
+          duration: 3,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: ['Status.Burn', 'Status.DOT'],
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              priority: 20,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: 16,
+                      attribute: AttributeType.MAGIC_ATK,
+                      coefficient: 0.28,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: { base: 0.75, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+  },
+
+  // --- 后缀灼烧 DOT T3（真品+，exclusiveGroup: skill-suffix-burn-tier）---
+  {
+    id: 'skill-suffix-burn-dot-t3',
+    displayName: '狱焰灼世',
+    displayDescription: '真火覆地，灼烧必定触发，每回合造成重创',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-suffix-burn-tier',
+    weight: 16,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-burn-t3',
+          name: '狱焰灼世',
+          type: BuffType.DEBUFF,
+          duration: 4,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: ['Status.Burn', 'Status.DOT'],
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              priority: 20,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: 26,
+                      attribute: AttributeType.MAGIC_ATK,
+                      coefficient: 0.46,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 后缀吸血 T2（玄品+，exclusiveGroup: skill-suffix-lifesteal-tier）---
+  {
+    id: 'skill-suffix-lifesteal-t2',
+    displayName: '魂噬吸元',
+    displayDescription: '玄级生命汲取，命中后大量回复己身气血',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ],
+    exclusiveGroup: 'skill-suffix-lifesteal-tier',
+    weight: 42,
+    energyCost: 11,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.22, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+
+  // --- 后缀吸血 T3（真品+，exclusiveGroup: skill-suffix-lifesteal-tier）---
+  {
+    id: 'skill-suffix-lifesteal-t3',
+    displayName: '轮回汲魂',
+    displayDescription: '真级逆天汲取，每次出手都能大量回复气血',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-suffix-lifesteal-tier',
+    weight: 16,
+    energyCost: 13,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.34, scale: 'quality', coefficient: 0.05 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+
+  // --- 天品专属：绝望诅咒（天品+）---
+  {
+    id: 'skill-heaven-annihilation',
+    displayName: '天罚湮灭',
+    displayDescription: '天道降罚，伤害后概率使目标进入绝望，大幅削弱全属性',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-heaven-tier',
+    weight: 3,
+    energyCost: 15,
+    minQuality: '天品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-despair',
+          name: '绝望',
+          type: BuffType.DEBUFF,
+          duration: 2,
+          stackRule: StackRule.IGNORE,
+          tags: ['Status.Debuff'],
+          modifiers: [
+            { attrType: AttributeType.ATK, type: ModifierType.ADD, value: -0.30 },
+            { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: -0.30 },
+            { attrType: AttributeType.DEF, type: ModifierType.ADD, value: -0.25 },
+          ],
+        },
+        chance: { base: 0.50, scale: 'quality', coefficient: 0.06 },
+      },
+    },
+  },
+
+  // --- 天品专属：虚空碎星（天品+）---
+  {
+    id: 'skill-heaven-void-shatter',
+    displayName: '虚空碎星',
+    displayDescription: '天品法术共鸣，造成极高伤害',
+    category: 'signature',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPACE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-heaven-tier',
+    weight: 2,
+    energyCost: 16,
+    minQuality: '天品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 90, scale: 'quality', coefficient: 25 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 1.40,
+        },
+      },
+    },
+  },
+
+  // --- 仙品专属：仙诀·涅槃（仙品+）---
+  {
+    id: 'skill-immortal-nirvana',
+    displayName: '仙诀·涅槃',
+    displayDescription: '仙道极意，技能造成伤害的同时为自身恢复等量气血',
+    category: 'mythic',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-immortal-tier',
+    weight: 1,
+    energyCost: 18,
+    minQuality: '仙品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.80, scale: 'quality', coefficient: 0.05 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  // --- 核心治疗 T4（地品+）---
+  {
+    id: 'skill-core-heal-t4',
+    displayName: '仙泉渡厄',
+    displayDescription: '地阶仙草凝聚，恢复量撼天动地，令垂死者瞬间满血',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 5,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 65, scale: 'quality', coefficient: 20 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 1.00,
+        },
+      },
+    },
+  },
+
+  // --- 后缀灼烧 DOT T4（地品+）---
+  {
+    id: 'skill-suffix-burn-dot-t4',
+    displayName: '冥火焚天',
+    displayDescription: '地阶冥火，灼烧持续整场战斗并造成极高伤害',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-suffix-burn-tier',
+    weight: 4,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-burn-t4',
+          name: '冥火焚天',
+          type: BuffType.DEBUFF,
+          duration: -1,
+          stackRule: StackRule.IGNORE,
+          tags: ['Status.Burn', 'Status.DOT'],
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              priority: 20,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: 38,
+                      attribute: AttributeType.MAGIC_ATK,
+                      coefficient: 0.65,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 后缀吸血 T4（地品+）---
+  {
+    id: 'skill-suffix-lifesteal-t4',
+    displayName: '乾坤汲魂',
+    displayDescription: '地阶功法极意，每次出手吸收目标大量气血',
+    category: 'suffix',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-suffix-lifesteal-tier',
+    weight: 4,
+    energyCost: 15,
+    minQuality: '地品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'resource_drain',
+      params: {
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.50, scale: 'quality', coefficient: 0.06 },
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
 ];

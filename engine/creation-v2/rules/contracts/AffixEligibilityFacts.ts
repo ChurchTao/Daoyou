@@ -13,5 +13,6 @@ export interface AffixEligibilityFacts {
   candidatePool: AffixCandidate[];
   allowedCategories: AffixCategory[];
   sessionTags: string[];
+  tagSignalScores: Record<string, number>;
   maxQualityOrder: number;
 }

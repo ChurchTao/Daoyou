@@ -30,21 +30,27 @@ function buildMinimalFacts(
       matchedTags: [],
       unlockedAffixCategories: [],
     },
+    energySummary: {
+      effectiveTotal: 30,
+      reserved: 6,
+      startingAffixEnergy: 24,
+      spentAffixEnergy: 8,
+      remainingAffixEnergy: 16,
+    },
     materialNames: ['测试材料'],
     affixes: [],
-    dominantQuality: '灵品',
+    materialQualityProfile: {
+      maxQuality: '灵品',
+      weightedAverageQuality: '灵品',
+      minQuality: '灵品',
+      maxQualityOrder: 1,
+      weightedAverageOrder: 1,
+      minQualityOrder: 1,
+      qualitySpread: 0,
+      totalQuantity: 1,
+    },
     sessionTags: [],
     materialFingerprints: [],
-    energyBudget: {
-      total: 30,
-      reserved: 6,
-      spent: 8,
-      remaining: 16,
-      initialRemaining: 24,
-      allocations: [],
-      rejections: [],
-      sources: [{ source: '测试', amount: 30 }],
-    },
   };
 }
 

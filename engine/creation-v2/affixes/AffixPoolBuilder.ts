@@ -1,5 +1,7 @@
-import { QUALITY_ORDER } from '@/types/constants';
 import { CreationSession } from '../CreationSession';
+import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile';
+import { CREATION_AFFIX_POOL_SCORING } from '../config/CreationBalance';
+import { CREATION_FALLBACK_CORE_AFFIX } from '../config/CreationFallbackPolicy';
 import { AffixCandidate, AFFIX_STOP_REASONS, createEmptyEnergyBudget } from '../types';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
 import { AffixPoolRuleSet } from '../rules/affix/AffixPoolRuleSet';
@@ -34,10 +36,9 @@ export class AffixPoolBuilder {
       };
     }
 
-    const maxQualityOrder = materialFingerprints.reduce(
-      (max, fp) => Math.max(max, QUALITY_ORDER[fp.rank]),
-      0,
-    );
+    const maxQualityOrder = buildMaterialQualityProfile(
+      materialFingerprints,
+    ).weightedAverageOrder;
 
     if (tags.length === 0) {
       return {
@@ -72,10 +73,48 @@ export class AffixPoolBuilder {
       candidatePool: matching,
       allowedCategories: recipeMatch.unlockedAffixCategories,
       sessionTags: tags,
+      tagSignalScores: this.buildTagSignalScores(session),
       maxQualityOrder,
     };
 
-    return this.ruleSet.evaluate(facts);
+    const decision = this.ruleSet.evaluate(facts);
+    return this.ensureCoreFallbackCandidate(registry, session, decision);
+  }
+
+  private ensureCoreFallbackCandidate(
+    registry: AffixRegistry,
+    session: CreationSession,
+    decision: AffixPoolDecision,
+  ): AffixPoolDecision {
+    const hasCoreCandidate = decision.candidates.some((c) => c.category === 'core');
+    if (hasCoreCandidate) {
+      return decision;
+    }
+
+    const fallbackId = CREATION_FALLBACK_CORE_AFFIX[session.state.input.productType];
+    const fallbackDef = registry.queryById(fallbackId);
+
+    if (!fallbackDef) {
+      return decision;
+    }
+
+    const fallbackCandidate = this.toCandidate(fallbackDef);
+
+    return {
+      ...decision,
+      candidates: [...decision.candidates, fallbackCandidate],
+      warnings: [
+        ...decision.warnings,
+        {
+          code: 'affix_core_fallback_injected',
+          message: '词缀池缺少 core，已注入保底 core 候选',
+          details: {
+            fallbackAffixId: fallbackId,
+            productType: session.state.input.productType,
+          },
+        },
+      ],
+    };
   }
 
   private toCandidate(def: AffixDefinition): AffixCandidate {
@@ -90,5 +129,28 @@ export class AffixPoolBuilder {
       minQuality: def.minQuality,
       maxQuality: def.maxQuality,
     };
+  }
+
+  private buildTagSignalScores(session: CreationSession): Record<string, number> {
+    const scores = new Map<string, number>();
+    const signalWeights = CREATION_AFFIX_POOL_SCORING.tagSignalWeights;
+    const maxSignalScore = CREATION_AFFIX_POOL_SCORING.maxSignalScorePerTag;
+    const accumulate = (tags: string[], weight: number) => {
+      for (const tag of new Set(tags)) {
+        scores.set(tag, Math.min(maxSignalScore, (scores.get(tag) ?? 0) + weight));
+      }
+    };
+
+    for (const fingerprint of session.state.materialFingerprints) {
+      accumulate(fingerprint.explicitTags, signalWeights.explicitMaterial);
+      accumulate(fingerprint.recipeTags, signalWeights.recipeMaterial);
+      accumulate(fingerprint.semanticTags, signalWeights.semanticMaterial);
+    }
+
+    accumulate(session.state.intent?.dominantTags ?? [], signalWeights.dominantIntent);
+    accumulate(session.state.intent?.requestedTags ?? [], signalWeights.requestedIntent);
+    accumulate(session.state.recipeMatch?.matchedTags ?? [], signalWeights.matchedRecipe);
+
+    return Object.fromEntries(scores.entries());
   }
 }

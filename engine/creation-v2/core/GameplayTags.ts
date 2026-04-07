@@ -209,6 +209,7 @@ export const CreationTags = {
   BATTLE: {
     ABILITY_TYPE_DAMAGE: 'Ability.Type.Damage', // 战斗能力标签：伤害类（用于 immunity/筛选）
     ABILITY_TYPE_MAGIC: 'Ability.Type.Magic', // 战斗能力标签：法术类
+    ABILITY_TYPE_PHYSICAL: 'Ability.Type.Physical', // 战斗能力标签：物理类
     ABILITY_TYPE_HEAL: 'Ability.Type.Heal', // 战斗能力标签：治疗类
     ABILITY_TYPE_CONTROL: 'Ability.Type.Control', // 战斗能力标签：控制类
     ABILITY_KIND_ARTIFACT: 'Artifact', // 能力来源：法宝

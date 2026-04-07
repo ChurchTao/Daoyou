@@ -39,15 +39,15 @@ describe('AffixEffectTranslator', () => {
     const resultFan = translator.translate(def, '凡品');
     expect(resultFan.type).toBe('damage');
     if (resultFan.type === 'damage') {
-      // base: { base:20, scale:quality, coefficient:8 } → 凡品 qualityOrder=0 → 20
-      expect(resultFan.params.value.base).toBe(20);
-      expect(resultFan.params.value.coefficient).toBe(0.5);
+      // base: { base:80, scale:quality, coefficient:14 } → 凡品 qualityOrder=0 → 80
+      expect(resultFan.params.value.base).toBe(80);
+      expect(resultFan.params.value.coefficient).toBe(0.9);
     }
 
     const resultZhen = translator.translate(def, '真品');
     if (resultZhen.type === 'damage') {
-      // 真品 qualityOrder=3 → 20 + 3*8 = 44
-      expect(resultZhen.params.value.base).toBe(44);
+      // 真品 qualityOrder=3 → 80 + 3*14 = 122
+      expect(resultZhen.params.value.base).toBe(122);
     }
   });
 
@@ -96,11 +96,11 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: buff_immunity 应保留 battle-v5 标签参数', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-signature-unbound-mind')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-buff-immunity')!;
     const result = translator.translate(def, '玄品');
     expect(result.type).toBe('buff_immunity');
     if (result.type === 'buff_immunity') {
-      expect(result.params.tags).toEqual([CreationTags.BATTLE.BUFF_TYPE_CONTROL]);
+      expect(result.params.tags).toEqual(['Status.Debuff']);
     }
   });
 
@@ -149,7 +149,7 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: death_prevent 应生成原子免死效果', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-signature-last-stand')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-core-death-prevent')!;
     const result = translator.translate(def, '地品');
     expect(result.type).toBe('death_prevent');
   });
@@ -165,10 +165,11 @@ describe('AffixSelector', () => {
     weight: number,
     energyCost: number,
     exclusiveGroup?: string,
+    category: AffixCandidate['category'] = 'core',
   ): AffixCandidate => ({
     id,
     name: id,
-    category: 'core',
+    category,
     tags: [],
     weight,
     energyCost,
@@ -183,7 +184,8 @@ describe('AffixSelector', () => {
   });
 
   const makeBudget = (remaining: number): EnergyBudget => ({
-    total: remaining + 4,
+    baseTotal: remaining + 4,
+    effectiveTotal: remaining + 4,
     reserved: 4,
     spent: 0,
     remaining,
@@ -200,14 +202,14 @@ describe('AffixSelector', () => {
     // remaining = 15, 每个 energyCost=10 → 最多选1个（选完还剩5，不够第二个）
     const result = selector.select(pool, makeBudget(15), makeIntent());
     expect(result.affixes).toHaveLength(1);
-    expect(result.exhaustionReason).toBe('budget_exhausted');
+    expect(result.exhaustionReason).toBe('pool_exhausted');
   });
 
   it('同 exclusiveGroup 只选一个', () => {
     const pool = [
-      makeCandidate('a', 100, 5, 'grp'),
-      makeCandidate('b', 100, 5, 'grp'),
-      makeCandidate('c', 100, 5), // 无 exclusiveGroup
+      makeCandidate('a', 100, 5, undefined, 'core'),
+      makeCandidate('b', 100, 5, 'grp', 'prefix'),
+      makeCandidate('c', 100, 5, 'grp', 'suffix'),
     ];
     // 三个都能选，但 grp 只能选一个，所以最多选 2 个
     const result = selector.select(pool, makeBudget(50), makeIntent());
@@ -221,6 +223,46 @@ describe('AffixSelector', () => {
     ).toBe(true);
   });
 
+  it('应保留逐轮审计，同时对汇总 rejection 去重', () => {
+    const pool = [
+      makeCandidate('core-main', 100, 5, 'grp', 'core'),
+      makeCandidate('locked-prefix', 100, 4, 'grp', 'prefix'),
+      makeCandidate('free-suffix', 100, 4, undefined, 'suffix'),
+    ];
+
+    const { audit } = selector.selectWithDecision(
+      pool,
+      makeBudget(12),
+      makeIntent(),
+      3,
+    );
+
+    expect(audit.rounds).toHaveLength(3);
+    expect(audit.rejections).toEqual([
+      expect.objectContaining({
+        affixId: 'locked-prefix',
+        reason: 'exclusive_group_conflict',
+      }),
+    ]);
+    expect(audit.rounds[1].decision.rejections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          affixId: 'locked-prefix',
+          reason: 'exclusive_group_conflict',
+        }),
+      ]),
+    );
+    expect(audit.rounds[2].decision.rejections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          affixId: 'locked-prefix',
+          reason: 'exclusive_group_conflict',
+        }),
+      ]),
+    );
+    expect(audit.finalDecision).toBeDefined();
+  });
+
   it('rollScore 等于 weight/totalWeight', () => {
     // 固定权重，确保 rollScore 计算正确
     const pool = [makeCandidate('only', 100, 5)];
@@ -232,6 +274,20 @@ describe('AffixSelector', () => {
 
   it('空候选池返回空数组', () => {
     expect(selector.select([], makeBudget(50), makeIntent()).affixes).toEqual([]);
+  });
+
+  it('分阶段抽取：应先锁定 core，再抽取非 core', () => {
+    const pool = [
+      makeCandidate('core-main', 1, 6, undefined, 'core'),
+      makeCandidate('prefix-heavy', 1000, 6, undefined, 'prefix'),
+      makeCandidate('suffix-heavy', 1000, 6, undefined, 'suffix'),
+    ];
+
+    const result = selector.select(pool, makeBudget(20), makeIntent(), 2);
+
+    expect(result.affixes.length).toBeGreaterThanOrEqual(1);
+    expect(result.affixes[0].category).toBe('core');
+    expect(result.affixes.some((affix) => affix.category === 'core')).toBe(true);
   });
 
   it('加权选择应大致按权重比例分布（统计验证）', () => {
@@ -316,10 +372,10 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       ['core', 'suffix'],
       'skill',
     );
-    // skill-core-damage-fire 和 skill-suffix-burn 均应命中
+    // skill-core-damage-fire 和一条燃烧后缀均应命中
     const ids = defs.map((d) => d.id);
     expect(ids).toContain('skill-core-damage-fire');
-    expect(ids).toContain('skill-suffix-burn');
+    expect(ids).toContain('skill-suffix-burn-dot');
   });
 
   it('未解锁类别的词缀不出现', () => {
@@ -330,6 +386,54 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     );
     const ids = defs.map((d) => d.id);
     expect(ids).not.toContain('gongfa-signature-comprehension');
+  });
+
+  it('当匹配候选缺少 core 时，应注入保底 core 候选', () => {
+    const builder = new AffixPoolBuilder();
+    const session = new CreationSession({
+      productType: 'skill',
+      materials: [
+        {
+          name: '杂质碎片',
+          type: 'aux',
+          rank: '凡品',
+          quantity: 1,
+          element: undefined,
+          description: '无明显语义特征',
+        },
+      ],
+    });
+
+    session.state.materialFingerprints = [
+      {
+        rank: '凡品',
+        energyValue: 8,
+        rarityWeight: 1,
+        explicitTags: [],
+        semanticTags: [],
+        recipeTags: [],
+        materialName: '杂质碎片',
+        materialType: 'aux',
+        quantity: 1,
+      },
+    ];
+    session.state.recipeMatch = {
+      recipeId: 'default',
+      valid: true,
+      matchedTags: [],
+      unlockedAffixCategories: ['core'],
+    };
+    session.state.tags = ['Unknown.Tag'];
+
+    const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
+    const ids = decision.candidates.map((candidate) => candidate.id);
+
+    expect(ids).toContain('skill-core-damage');
+    expect(
+      decision.warnings.some(
+        (warning) => warning.code === 'affix_core_fallback_injected',
+      ),
+    ).toBe(true);
   });
 
   it('minQuality 过滤：玄品以下不应出现 gongfa-signature-comprehension', () => {

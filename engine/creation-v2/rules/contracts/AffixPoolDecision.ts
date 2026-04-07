@@ -7,6 +7,8 @@ export interface AffixPoolDecision extends RuleDecisionMeta {
     affixId: string;
     reason: string;
     category?: AffixCategory;
+    score?: number;
+    threshold?: number;
   }>;
   exhaustionReason?: string;
 }

@@ -1,6 +1,7 @@
 import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../contracts/battle';
 import type { EquipmentSlot } from '@/types/constants';
 import type { CreationOutcomeKind, CreationProductType, RolledAffix } from '../types';
+import type { BalanceMetrics } from '../balancing/PBU';
 
 export interface ArtifactDomainConfig {
   slot?: EquipmentSlot;
@@ -27,6 +28,7 @@ interface BaseProductModel<
   tags: string[];
   affixes: RolledAffix[];
   abilityTags: string[];
+  balanceMetrics?: BalanceMetrics;
 }
 
 export interface ActiveSkillBattleProjection {

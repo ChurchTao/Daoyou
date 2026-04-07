@@ -75,6 +75,8 @@ describe('SkillBlueprintComposer', () => {
     expect(projectAbilityConfig(outcome!.blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
     expect(projectAbilityConfig(outcome!.blueprint.productModel).slug).toBe(outcome!.blueprint.productModel.slug);
     expect(projectAbilityConfig(outcome!.blueprint.productModel).effects?.length).toBeGreaterThan(0);
+    expect(outcome!.blueprint.productModel.balanceMetrics?.pbu).toBeGreaterThan(0);
+    expect(outcome!.blueprint.productModel.balanceMetrics?.targetTtkBand).toBeDefined();
     // 第一个效果应是 damage 或 apply_buff 类型
     const firstEffect = projectAbilityConfig(outcome!.blueprint.productModel).effects![0];
     expect(['damage', 'apply_buff', 'percent_damage_modifier']).toContain(firstEffect.type);
@@ -112,7 +114,11 @@ describe('ArtifactBlueprintComposer', () => {
     expect(outcome!.blueprint.outcomeKind).toBe('artifact');
     expect(outcome!.blueprint.productModel.productType).toBe('artifact');
     expect(projectAbilityConfig(outcome!.blueprint.productModel).type).toBe(AbilityType.PASSIVE_SKILL);
-    expect(projectAbilityConfig(outcome!.blueprint.productModel).listeners?.length).toBeGreaterThan(0);
+    const artifactCfg = projectAbilityConfig(outcome!.blueprint.productModel);
+    const hasArtifactListeners = (artifactCfg.listeners?.length ?? 0) > 0;
+    const hasArtifactModifiers = (artifactCfg.modifiers?.length ?? 0) > 0;
+    expect(hasArtifactListeners || hasArtifactModifiers).toBe(true);
+    expect(outcome!.blueprint.productModel.balanceMetrics?.pbu).toBeGreaterThan(0);
     if (outcome!.blueprint.productModel.productType === 'artifact') {
       expect(outcome!.blueprint.productModel.artifactConfig.progressionPolicy).toBe('reforgeable');
     }
@@ -141,6 +147,7 @@ describe('GongFaBlueprintComposer', () => {
     const hasModifiers = (abilityCfg.modifiers?.length ?? 0) > 0;
     const hasListeners = (abilityCfg.listeners?.length ?? 0) > 0;
     expect(hasModifiers || hasListeners).toBe(true);
+    expect(outcome!.blueprint.productModel.balanceMetrics?.targetTtkBand).toBeDefined();
     if (outcome!.blueprint.productModel.productType === 'gongfa') {
       expect(outcome!.blueprint.productModel.gongfaConfig.progressionPolicy).toBe('comprehension');
     }

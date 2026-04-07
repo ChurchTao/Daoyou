@@ -2,8 +2,10 @@ import { CREATION_PHASES } from '../../types';
 import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { BudgetExhaustionRules } from './BudgetExhaustionRules';
+import { CategoryQuotaRules } from './CategoryQuotaRules';
 import { ExclusiveGroupRules } from './ExclusiveGroupRules';
 import { FallbackAffixRules } from './FallbackAffixRules';
+import { HighTierBucketRules } from './HighTierBucketRules';
 
 /*
  * AffixSelectionRuleSet: 词缀选择阶段的规则集合门面。
@@ -11,13 +13,15 @@ import { FallbackAffixRules } from './FallbackAffixRules';
  */
 export class AffixSelectionRuleSet {
   private readonly ruleSet = new RuleSet<AffixSelectionFacts, AffixSelectionDecision>(
-    [new ExclusiveGroupRules(), new BudgetExhaustionRules(), new FallbackAffixRules()],
+    [
+      new ExclusiveGroupRules(),
+      new CategoryQuotaRules(),
+      new HighTierBucketRules(),
+      new BudgetExhaustionRules(),
+      new FallbackAffixRules(),
+    ],
     (facts) => ({
       candidatePool: [...facts.candidates],
-      affixes: [],
-      spent: 0,
-      remaining: facts.remainingEnergy,
-      allocations: [],
       rejections: [],
       exhaustionReason: undefined,
       reasons: [],

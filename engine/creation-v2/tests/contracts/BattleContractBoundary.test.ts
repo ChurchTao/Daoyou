@@ -1,9 +1,11 @@
 import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
+import { runCreationBattleDuel } from '@/engine/creation-v2/tests/helpers/BattleRegressionHarness';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import { AbilityType } from '@/engine/creation-v2/contracts/battle';
 import { EventBus } from '@/engine/creation-v2/contracts/battle-testkit';
 import type { ActiveSkillBattleProjection } from '@/engine/creation-v2/models';
 import type { SkillProductModel, ArtifactProductModel } from '@/engine/creation-v2/models';
+import type { Material } from '@/types/cultivator';
 
 /**
  * BattleContractBoundary
@@ -69,6 +71,49 @@ function createArtifactBlueprint(sessionId: string = 'battle-contract-artifact')
   orchestrator.rollAffixesWithDefaults(session);
   return orchestrator.composeBlueprintWithDefaults(session);
 }
+
+const BATTLE_SMOKE_MATERIALS: Record<'skill' | 'artifact' | 'gongfa', Material[]> = {
+  skill: [
+    {
+      id: 'battle-smoke-skill-ore',
+      name: '灼雷晶矿',
+      type: 'ore',
+      rank: '地品',
+      quantity: 2,
+      element: '火',
+      description: '蕴含炽火与雷暴之力',
+    },
+  ],
+  artifact: [
+    {
+      id: 'battle-smoke-artifact-ore',
+      name: '玄甲寒铁',
+      type: 'ore',
+      rank: '灵品',
+      quantity: 2,
+      element: '水',
+      description: '偏防御与护体的灵矿',
+    },
+  ],
+  gongfa: [
+    {
+      id: 'battle-smoke-gongfa-manual',
+      name: '归元残卷',
+      type: 'gongfa_manual',
+      rank: '玄品',
+      quantity: 1,
+      description: '记载吐纳与养气之法',
+    },
+    {
+      id: 'battle-smoke-gongfa-herb',
+      name: '回灵草',
+      type: 'herb',
+      rank: '灵品',
+      quantity: 2,
+      description: '提升续航与恢复能力',
+    },
+  ],
+};
 
 describe('BattleContractBoundary — battle 契约验证', () => {
   beforeEach(() => {
@@ -167,5 +212,29 @@ describe('BattleContractBoundary — battle 契约验证', () => {
       const blueprint = createArtifactBlueprint();
       expect(blueprint.productModel.tags.some((t) => t.includes('Artifact'))).toBe(true);
     });
+  });
+
+  describe('battle-v5 smoke execution', () => {
+    it.each([
+      ['skill', BATTLE_SMOKE_MATERIALS.skill],
+      ['artifact', BATTLE_SMOKE_MATERIALS.artifact],
+      ['gongfa', BATTLE_SMOKE_MATERIALS.gongfa],
+    ] as const)(
+      '%s 产物应可挂载到 Unit 并完成一次真实战斗执行',
+      (productType, materials) => {
+        const duel = runCreationBattleDuel({
+          productType,
+          materials,
+          seed: 20260403,
+        });
+
+        expect(duel).toBeDefined();
+        expect(duel!.battleResult.turns).toBeGreaterThan(0);
+        expect(duel!.battleResult.winner).toBeDefined();
+        expect(duel!.battleResult.logs.length).toBeGreaterThan(0);
+        expect(duel!.challenger.abilities.getAllAbilities().length).toBeGreaterThanOrEqual(2);
+        expect(duel!.defender.abilities.getAllAbilities().length).toBe(1);
+      },
+    );
   });
 });

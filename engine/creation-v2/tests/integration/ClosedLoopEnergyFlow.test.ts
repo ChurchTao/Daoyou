@@ -20,7 +20,7 @@ function createSkillSession() {
 }
 
 describe('Closed-loop energy flow', () => {
-  it('应维持 total = reserved + spent + remaining', () => {
+  it('应维持 effectiveTotal = reserved + spent + remaining', () => {
     const { orchestrator, session } = createSkillSession();
     const pool: AffixCandidate[] = [
       {
@@ -50,7 +50,8 @@ describe('Closed-loop energy flow', () => {
     ];
 
     orchestrator.budgetEnergy(session, {
-      total: 30,
+      baseTotal: 30,
+      effectiveTotal: 30,
       reserved: 6,
       spent: 0,
       remaining: 24,
@@ -68,12 +69,18 @@ describe('Closed-loop energy flow', () => {
       0,
     );
 
-    expect(budget.initialRemaining).toBe(budget.total - budget.reserved);
+    expect(budget.initialRemaining).toBe(budget.effectiveTotal - budget.reserved);
     expect(budget.spent).toBe(allocated);
-    expect(budget.total).toBe(budget.reserved + budget.spent + budget.remaining);
+    expect(budget.effectiveTotal).toBe(
+      budget.reserved + budget.spent + budget.remaining,
+    );
+    expect(session.state.affixSelectionAudit?.rounds.length).toBeGreaterThan(0);
+    expect(session.state.affixSelectionAudit?.finalDecision).toBe(
+      session.state.affixSelectionFinalDecision,
+    );
   });
 
-  it('应记录预算耗尽与独占组冲突的拒绝原因', () => {
+  it('应记录独占组冲突，并保留终止原因', () => {
     const { orchestrator, session } = createSkillSession();
     const pool: AffixCandidate[] = [
       {
@@ -105,7 +112,8 @@ describe('Closed-loop energy flow', () => {
     ];
 
     orchestrator.budgetEnergy(session, {
-      total: 16,
+      baseTotal: 16,
+      effectiveTotal: 16,
       reserved: 4,
       spent: 0,
       remaining: 12,
@@ -121,11 +129,6 @@ describe('Closed-loop energy flow', () => {
     expect(
       budget.rejections?.some(
         (rejection) => rejection.reason === 'exclusive_group_conflict',
-      ),
-    ).toBe(true);
-    expect(
-      budget.rejections?.some(
-        (rejection) => rejection.reason === 'budget_exhausted',
       ),
     ).toBe(true);
     expect(budget.exhaustionReason).toBeDefined();

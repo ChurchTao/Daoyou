@@ -85,6 +85,25 @@ export interface MaterialFingerprintMetadata extends Record<string, unknown> {
   llm?: MaterialFingerprintLLMMetadata;
 }
 
+export interface MaterialEnergyProfile {
+  baseEnergy: number;
+  diversityBonus: number;
+  coherenceBonus: number;
+  effectiveEnergy: number;
+  unlockScore: number;
+}
+
+export interface MaterialQualityProfile {
+  maxQuality: Quality;
+  weightedAverageQuality: Quality;
+  minQuality: Quality;
+  maxQualityOrder: number;
+  weightedAverageOrder: number;
+  minQualityOrder: number;
+  qualitySpread: number;
+  totalQuantity: number;
+}
+
 export interface CreationIntent {
   productType: CreationProductType;
   outcomeKind: CreationOutcomeKind;
@@ -106,12 +125,14 @@ export interface RecipeMatch {
 export type AffixSelectionStopReason =
   | 'budget_exhausted'
   | 'exclusive_group_conflict'
+  | 'category_quota_reached'
   | 'pool_exhausted'
   | 'max_count_reached';
 
 export const AFFIX_STOP_REASONS = {
   BUDGET_EXHAUSTED: 'budget_exhausted',
   EXCLUSIVE_GROUP_CONFLICT: 'exclusive_group_conflict',
+  CATEGORY_QUOTA_REACHED: 'category_quota_reached',
   POOL_EXHAUSTED: 'pool_exhausted',
   MAX_COUNT_REACHED: 'max_count_reached',
 } as const satisfies Record<string, AffixSelectionStopReason>;
@@ -148,34 +169,52 @@ export interface AffixRejection {
   exclusiveGroup?: string;
 }
 
+export interface AffixSelectionRoundAudit {
+  round: number;
+  remainingBefore: number;
+  remainingAfter: number;
+  inputCandidates: AffixCandidate[];
+  decision: AffixSelectionDecision;
+  pickedAffix?: RolledAffix;
+}
+
 export interface AffixSelectionAudit {
+  rounds: AffixSelectionRoundAudit[];
   affixes: RolledAffix[];
   spent: number;
   remaining: number;
   allocations: AffixAllocation[];
   rejections: AffixRejection[];
   exhaustionReason?: AffixSelectionStopReason;
+  finalDecision?: AffixSelectionDecision;
 }
 
-export interface EnergyBudget {
-  total: number;
+export interface EnergyBudgetAllocation {
+  baseTotal: number;
+  effectiveTotal: number;
   reserved: number;
-  spent: number;
-  remaining: number;
   initialRemaining?: number;
-  allocations: AffixAllocation[];
-  rejections?: AffixRejection[];
-  exhaustionReason?: AffixSelectionStopReason;
   sources: Array<{
     source: string;
     amount: number;
   }>;
 }
 
+export interface EnergyBudgetLedger {
+  spent: number;
+  remaining: number;
+  allocations: AffixAllocation[];
+  rejections?: AffixRejection[];
+  exhaustionReason?: AffixSelectionStopReason;
+}
+
+export interface EnergyBudget extends EnergyBudgetAllocation, EnergyBudgetLedger {}
+
 /** Returns a zero-value EnergyBudget for cases where session budget is unavailable */
 export function createEmptyEnergyBudget(): EnergyBudget {
   return {
-    total: 0,
+    baseTotal: 0,
+    effectiveTotal: 0,
     reserved: 0,
     spent: 0,
     remaining: 0,
@@ -191,6 +230,7 @@ export interface AffixCandidate {
   tags: string[];
   weight: number;
   energyCost: number;
+  evaluationScore?: number;
   exclusiveGroup?: string;
   minQuality?: Quality;
   maxQuality?: Quality;
@@ -235,7 +275,8 @@ export interface CreationSessionState {
 
   // ── 阶段 6：词缀抽选 ────────────────────────────────────────────────────────
   rolledAffixes: RolledAffix[];
-  affixSelectionDecision?: AffixSelectionDecision;
+  affixSelectionAudit?: AffixSelectionAudit;
+  affixSelectionFinalDecision?: AffixSelectionDecision;
 
   // ── 阶段 7：蓝图组合 ────────────────────────────────────────────────────────
   blueprint?: CreationBlueprint;

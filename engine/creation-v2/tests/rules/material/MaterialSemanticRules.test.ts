@@ -10,7 +10,24 @@ const createFacts = (fingerprints: MaterialFingerprint[]): MaterialFacts => ({
   recipeTags: [],
   requestedTags: [],
   dominantTags: [],
-  totalEnergy: 0,
+  energyProfile: {
+    baseEnergy: 0,
+    diversityBonus: 0,
+    coherenceBonus: 0,
+    effectiveEnergy: 0,
+    unlockScore: 0,
+  },
+  qualityProfile: {
+    maxQuality: '凡品',
+    weightedAverageQuality: '凡品',
+    minQuality: '凡品',
+    maxQualityOrder: 0,
+    weightedAverageOrder: 0,
+    minQualityOrder: 0,
+    qualitySpread: 0,
+    totalQuantity: fingerprints.reduce((sum, fingerprint) => sum + fingerprint.quantity, 0),
+  },
+  unlockScore: 0,
 });
 
 const createDecision = (): MaterialDecision => ({

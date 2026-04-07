@@ -1,26 +1,16 @@
-import { QUALITY_ORDER, QUALITY_VALUES, Quality } from '@/types/constants';
+import { Quality } from '@/types/constants';
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
 import type { AffixListenerSpec } from '../affixes/types';
-import type { ListenerConfig } from '../contracts/battle';
-import type { CreationOutcomeKind, CreationProductType, MaterialFingerprint } from '../types';
+import type { EffectConfig, ListenerConfig } from '../contracts/battle';
+import type { CreationOutcomeKind, CreationProductType } from '../types';
 /*
  * composers/shared.ts: Composer 公共工具。
  * 包含根据材料品质聚合默认质量、构建分组 listener，以及通用的 slug 生成器委托等辅助函数。
  */
+import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile';
 import { CreationSession } from '../CreationSession';
 import { CompositionFacts } from '../rules/contracts/CompositionFacts';
-
-export function getDominantQuality(
-  fingerprints: MaterialFingerprint[],
-): Quality {
-  const maxOrder = fingerprints.reduce(
-    (max, fingerprint) => Math.max(max, QUALITY_ORDER[fingerprint.rank]),
-    0,
-  );
-
-  return QUALITY_VALUES[maxOrder];
-}
 
 export interface BuildGroupedListenersInput {
   registry: AffixRegistry;
@@ -54,21 +44,44 @@ export function buildGroupedListeners({
     // order, so different-priority affixes must not be silently merged.
     const key = `${spec.eventType}||${spec.scope}||${spec.priority}`;
 
+    const guard = buildCreationListenerGuard(spec.eventType, effect, spec.guard);
+
     if (!listenerMap.has(key)) {
       listenerMap.set(key, {
         eventType: spec.eventType,
         scope: spec.scope,
         priority: spec.priority,
         ...(spec.mapping ? { mapping: spec.mapping } : {}),
-        ...(spec.guard ? { guard: spec.guard } : {}),
+        ...(guard ? { guard } : {}),
         effects: [],
       });
+    } else if (guard) {
+      const existing = listenerMap.get(key)!;
+      existing.guard = {
+        ...existing.guard,
+        ...guard,
+      };
     }
 
     listenerMap.get(key)!.effects.push(effect);
   }
 
   return Array.from(listenerMap.values());
+}
+
+export function buildCreationListenerGuard(
+  eventType: string,
+  effect: EffectConfig,
+  guard?: ListenerConfig['guard'],
+): ListenerConfig['guard'] | undefined {
+  if (eventType !== 'DamageTakenEvent' || effect.type !== 'damage') {
+    return guard;
+  }
+
+  return {
+    ...guard,
+    skipReflectSource: true,
+  };
 }
 
 /**
@@ -87,7 +100,7 @@ export function buildCompositionFacts(
   if (!intent) throw new Error('Cannot compose blueprint before resolving intent');
   if (!energyBudget) throw new Error('Cannot compose blueprint before energy budgeting');
 
-  const dominantQuality = getDominantQuality(materialFingerprints);
+  const materialQualityProfile = buildMaterialQualityProfile(materialFingerprints);
 
   let coreEffectType: string | undefined;
   if (registry) {
@@ -103,11 +116,19 @@ export function buildCompositionFacts(
     outcomeKind,
     intent,
     recipeMatch: session.state.recipeMatch!,
-    energyBudget,
+    energySummary: {
+      effectiveTotal: energyBudget.effectiveTotal,
+      reserved: energyBudget.reserved,
+      startingAffixEnergy:
+        energyBudget.initialRemaining ??
+        Math.max(0, energyBudget.effectiveTotal - energyBudget.reserved),
+      spentAffixEnergy: energyBudget.spent,
+      remainingAffixEnergy: energyBudget.remaining,
+    },
     affixes: rolledAffixes,
     sessionTags: session.state.tags,
     materialFingerprints,
-    dominantQuality,
+    materialQualityProfile,
     materialNames: input.materials.map((m) => m.name),
     ...(coreEffectType !== undefined ? { coreEffectType } : {}),
   };

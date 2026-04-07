@@ -1,0 +1,141 @@
+import { DefaultEnergyBudgeter } from '@/engine/creation-v2/budgeting/DefaultEnergyBudgeter';
+import { AffixSelectionRuleSet } from '@/engine/creation-v2/rules/affix/AffixSelectionRuleSet';
+import type { AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
+import { TestableCreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
+
+describe('BudgetLedger contract boundary', () => {
+  it('AffixSelectionDecision 应保持为单轮规则过滤结果，不承载结算字段', () => {
+    const ruleSet = new AffixSelectionRuleSet();
+    const decision = ruleSet.evaluate({
+      productType: 'skill',
+      candidates: [
+        {
+          id: 'core-a',
+          name: 'core-a',
+          category: 'core',
+          tags: [],
+          weight: 10,
+          energyCost: 6,
+        },
+      ],
+      remainingEnergy: 12,
+      sessionTags: [],
+      maxSelections: 3,
+      selectionCount: 0,
+      selectedAffixIds: [],
+      selectedExclusiveGroups: [],
+      selectedCategoryCounts: {},
+      selectionConstraints: {
+        categoryCaps: { core: 1, prefix: 1, suffix: 1 },
+      },
+    } satisfies AffixSelectionFacts);
+
+    expect('spent' in decision).toBe(false);
+    expect('remaining' in decision).toBe(false);
+    expect('allocations' in decision).toBe(false);
+    expect(decision.candidatePool).toHaveLength(1);
+  });
+
+  it('EnergyBudget 应遵循 allocation -> finalize 的两阶段边界', () => {
+    const budgeter = new DefaultEnergyBudgeter();
+    const allocated = budgeter.allocate(
+      [
+        {
+          materialName: '赤炎铁',
+          materialType: 'ore',
+          rank: '玄品',
+          quantity: 1,
+          explicitTags: [],
+          semanticTags: ['Material.Semantic.Flame'],
+          recipeTags: [],
+          energyValue: 8,
+          rarityWeight: 2,
+        },
+      ],
+      {
+        recipeId: 'skill-default',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['core'],
+        reservedEnergy: 3,
+      },
+    );
+
+    expect(allocated.spent).toBe(0);
+    expect(allocated.remaining).toBe(allocated.initialRemaining);
+
+    const finalized = budgeter.finalizeSelection(allocated, {
+      rounds: [],
+      affixes: [],
+      spent: 5,
+      remaining: (allocated.initialRemaining ?? 0) - 5,
+      allocations: [{ affixId: 'core-a', amount: 5 }],
+      rejections: [],
+    });
+
+    expect(finalized.spent).toBe(5);
+    expect(finalized.remaining).toBe((allocated.initialRemaining ?? 0) - 5);
+    expect(finalized.effectiveTotal).toBe(
+      finalized.reserved + finalized.spent + finalized.remaining,
+    );
+  });
+
+  it('手动 roll 路径在 audit 不匹配时应回退到显式 affix 结算', () => {
+    const orchestrator = new TestableCreationOrchestrator();
+    const session = orchestrator.createSession({
+      sessionId: 'manual-roll-contract',
+      productType: 'skill',
+      materials: [],
+    });
+
+    orchestrator.budgetEnergy(session, {
+      baseTotal: 20,
+      effectiveTotal: 20,
+      reserved: 4,
+      spent: 0,
+      remaining: 16,
+      initialRemaining: 16,
+      allocations: [],
+      rejections: [],
+      sources: [{ source: '测试材料', amount: 20 }],
+    });
+
+    session.state.affixSelectionAudit = {
+      rounds: [],
+      affixes: [
+        {
+          id: 'stale-core',
+          name: 'stale-core',
+          category: 'core',
+          tags: [],
+          weight: 10,
+          energyCost: 8,
+          rollScore: 1,
+        },
+      ],
+      spent: 8,
+      remaining: 8,
+      allocations: [{ affixId: 'stale-core', amount: 8 }],
+      rejections: [],
+    };
+
+    orchestrator.rollAffixes(session, [
+      {
+        id: 'manual-core',
+        name: 'manual-core',
+        category: 'core',
+        tags: [],
+        weight: 10,
+        energyCost: 6,
+        rollScore: 1,
+      },
+    ]);
+
+    expect(session.state.affixSelectionAudit).toBeUndefined();
+    expect(session.state.energyBudget).toMatchObject({
+      spent: 6,
+      remaining: 10,
+      allocations: [{ affixId: 'manual-core', amount: 6 }],
+    });
+  });
+});
