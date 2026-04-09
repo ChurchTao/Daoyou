@@ -91,7 +91,8 @@ export class ProjectionRules implements Rule<
     for (const rolled of affixes) {
       const def = this.registry.queryById(rolled.id);
       if (!def) continue;
-      const effect = this.translator.translate(def, projectionQuality);
+      // 核心改动：将整个 rolled 对象传递给 translator，应用 finalMultiplier
+      const effect = this.translator.translate(rolled, projectionQuality);
       if (def.listenerSpec) {
         const guard = buildCreationListenerGuard(
           def.listenerSpec.eventType,
@@ -201,7 +202,7 @@ export class ProjectionRules implements Rule<
     // Partition affixes: attribute_modifier → direct AbilityConfig.modifiers
     // everything else → listener-wrapped effects
     const modifiers: AttributeModifierConfig[] = [];
-    const listenerAffixIds: string[] = [];
+    const rolledListeners: RolledAffix[] = [];
 
     for (const rolled of affixes) {
       const def = this.registry.queryById(rolled.id);
@@ -219,17 +220,19 @@ export class ProjectionRules implements Rule<
               ];
 
         for (const modifierEntry of modifierEntries) {
+          const baseValue = this.translator.resolveParam(
+            modifierEntry.value,
+            qualityOrder,
+          );
+          // 核心改动：被动属性修正也应用随机倍率
           modifiers.push({
             attrType: modifierEntry.attrType,
             type: modifierEntry.modType,
-            value: this.translator.resolveParam(
-              modifierEntry.value,
-              qualityOrder,
-            ),
+            value: baseValue * rolled.finalMultiplier,
           });
         }
       } else {
-        listenerAffixIds.push(rolled.id);
+        rolledListeners.push(rolled);
       }
     }
 
@@ -239,7 +242,7 @@ export class ProjectionRules implements Rule<
     const listeners = buildGroupedListeners({
       registry: this.registry,
       translator: this.translator,
-      affixIds: listenerAffixIds,
+      rolledAffixes: rolledListeners,
       quality: projectionQuality,
       defaultListenerSpec,
     });

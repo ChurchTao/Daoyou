@@ -12,6 +12,7 @@ import {
   AffixDefinition,
   AffixEffectTemplate,
   AffixScalableValue,
+  RolledAffix,
   ScalableParam,
   ScalableValueV2,
   SCALE_MODE,
@@ -51,10 +52,14 @@ export class AffixEffectTranslator {
   /**
    * 翻译词缀定义 + 品质 → 具体 EffectConfig
    */
-  translate(def: AffixDefinition, quality: Quality): EffectConfig {
+  translate(affix: RolledAffix, quality: Quality): EffectConfig {
     return this.withConditions(
-      def,
-      this.resolveTemplate(def.effectTemplate, QUALITY_ORDER[quality]),
+      affix,
+      this.resolveTemplate(
+        affix.effectTemplate,
+        QUALITY_ORDER[quality],
+        affix.finalMultiplier,
+      ),
     );
   }
 
@@ -77,6 +82,7 @@ export class AffixEffectTranslator {
   private resolveTemplate(
     template: AffixEffectTemplate,
     qualityOrder: number,
+    multiplier: number,
   ): EffectConfig {
     switch (template.type) {
       case 'damage':
@@ -86,6 +92,7 @@ export class AffixEffectTranslator {
             value: this.resolveScalableValue(
               template.params.value,
               qualityOrder,
+              multiplier,
             ),
           },
         };
@@ -97,6 +104,7 @@ export class AffixEffectTranslator {
             value: this.resolveScalableValue(
               template.params.value,
               qualityOrder,
+              multiplier,
             ),
             ...(template.params.target
               ? { target: template.params.target }
@@ -111,6 +119,7 @@ export class AffixEffectTranslator {
             value: this.resolveScalableValue(
               template.params.value,
               qualityOrder,
+              multiplier,
             ),
           },
         };
@@ -122,6 +131,7 @@ export class AffixEffectTranslator {
             value: this.resolveScalableValue(
               template.params.value,
               qualityOrder,
+              multiplier,
             ),
           },
         };
@@ -132,7 +142,11 @@ export class AffixEffectTranslator {
           params: {
             sourceType: template.params.sourceType,
             targetType: template.params.targetType,
-            ratio: this.resolveParam(template.params.ratio, qualityOrder),
+            ratio: this.resolveParam(
+              template.params.ratio,
+              qualityOrder,
+              multiplier,
+            ),
           },
         };
 
@@ -145,6 +159,7 @@ export class AffixEffectTranslator {
                   absorbRatio: this.resolveParam(
                     template.params.absorbRatio,
                     qualityOrder,
+                    multiplier,
                   ),
                 }
               : {}),
@@ -155,7 +170,11 @@ export class AffixEffectTranslator {
         return {
           type: 'reflect',
           params: {
-            ratio: this.resolveParam(template.params.ratio, qualityOrder),
+            ratio: this.resolveParam(
+              template.params.ratio,
+              qualityOrder,
+              multiplier,
+            ),
           },
         };
 
@@ -166,6 +185,8 @@ export class AffixEffectTranslator {
             cdModifyValue: this.resolveParam(
               template.params.cdModifyValue,
               qualityOrder,
+              // CD 修改通常是整数且不建议受随机倍率影响
+              1.0,
             ),
             ...(template.params.tags ? { tags: template.params.tags } : {}),
           },
@@ -181,6 +202,7 @@ export class AffixEffectTranslator {
                   damageRatio: this.resolveParam(
                     template.params.damageRatio,
                     qualityOrder,
+                    multiplier,
                   ),
                 }
               : {}),
@@ -198,6 +220,7 @@ export class AffixEffectTranslator {
           params.chance = this.resolveParam(
             template.params.chance,
             qualityOrder,
+            multiplier,
           );
         }
         return {
@@ -215,9 +238,11 @@ export class AffixEffectTranslator {
       case 'attribute_stat_buff': {
         const { attrType, modType, value, duration, stackRule } =
           template.params;
-        const resolvedValue = this.resolveParam(value, qualityOrder);
-        // MULTIPLY modType: value 为乘数（e.g. 0.12 表示 ×1.12 需在战斗层做 base+value 解释，
-        // 或直接作为倍数传入；具体行为取决于 battle-v5 AttributeSet.getFinalValue 的 MULTIPLY 阶段）
+        const resolvedValue = this.resolveParam(
+          value,
+          qualityOrder,
+          multiplier,
+        );
         return {
           type: 'apply_buff',
           params: {
@@ -245,7 +270,11 @@ export class AffixEffectTranslator {
           type: 'percent_damage_modifier',
           params: {
             mode: template.params.mode,
-            value: this.resolveParam(template.params.value, qualityOrder),
+            value: this.resolveParam(
+              template.params.value,
+              qualityOrder,
+              multiplier,
+            ),
             ...(template.params.cap !== undefined
               ? { cap: template.params.cap }
               : {}),
@@ -289,19 +318,39 @@ export class AffixEffectTranslator {
   private resolveScalableValue(
     sv: AffixScalableValue,
     qualityOrder: number,
+    multiplier: number,
   ): { base?: number; attribute?: AttributeType; coefficient?: number } {
     return {
-      base: this.resolveParam(sv.base, qualityOrder),
+      base: this.resolveParam(sv.base, qualityOrder, multiplier),
       ...(sv.attribute !== undefined ? { attribute: sv.attribute } : {}),
-      ...(sv.coefficient !== undefined ? { coefficient: sv.coefficient } : {}),
+      ...(sv.coefficient !== undefined
+        ? {
+            coefficient: this.resolveParam(
+              sv.coefficient,
+              qualityOrder,
+              multiplier,
+            ),
+          }
+        : {}),
     };
   }
 
-  resolveParam(param: ScalableParam, qualityOrder: number): number {
-    if (typeof param === 'number') return param;
-    const sv = param as ScalableValueV2;
-    return sv.scale === SCALE_MODE.NONE
-      ? sv.base
-      : sv.base + qualityOrder * sv.coefficient;
+  resolveParam(
+    param: ScalableParam,
+    qualityOrder: number,
+    multiplier: number = 1.0,
+  ): number {
+    let baseValue = 0;
+    if (typeof param === 'number') {
+      baseValue = param;
+    } else {
+      const sv = param as ScalableValueV2;
+      baseValue =
+        sv.scale === SCALE_MODE.NONE
+          ? sv.base
+          : sv.base + qualityOrder * sv.coefficient;
+    }
+
+    return baseValue * multiplier;
   }
 }

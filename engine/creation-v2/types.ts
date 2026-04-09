@@ -247,6 +247,9 @@ export interface AffixCandidate {
 
 export interface RolledAffix extends AffixCandidate {
   rollScore: number;
+  rollEfficiency: number; // 0.0 - 1.0 之间的效率分
+  finalMultiplier: number; // 最终随到的数值倍率（如 1.12）
+  isPerfect: boolean; // 是否触发了“完美”标记
 }
 
 export interface CreationBlueprint {

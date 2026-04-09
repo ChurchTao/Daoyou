@@ -441,6 +441,26 @@ export const CREATION_ENERGY_SLOT_TIERS: ReadonlyArray<{
 ];
 
 /**
+ * 造物数值波动与完美度策略。
+ * 这里的配置是全局生效的，所有词缀在抽中后都会按此逻辑进行数值“洗炼”。
+ */
+export const CREATION_ROLL_POLICY = {
+  // 全局波动范围：0.85 表示最低随到基础值的 85%，1.15 表示最高 115%
+  globalVarianceRange: [0.85, 1.15] as [number, number],
+
+  // 完美标记阈值：当效率分 (rollEfficiency) 超过 0.96 时，赋予 Perfect 标记
+  perfectThreshold: 0.96,
+
+  // 能量对随机下限的修正系数：
+  // 逻辑：每多 1 点有效能量，随机下限提升 0.002 (即 0.2%)
+  // 这样投入高品质材料的玩家，下限更高，随出 Perfect 的机会也更大。
+  energyBiasFactor: 0.002,
+
+  // 随机分布模型：'normal' 为正态分布（大部分在中庸区间），'uniform' 为均匀随机
+  distribution: 'normal' as 'normal' | 'uniform',
+} as const;
+
+/**
  * 根据可支配词缀能量查找对应的词缀槽位数上限。
  * 参数 availableAffixEnergy 越高，可开放的 maxAffixCount 越大。
  */

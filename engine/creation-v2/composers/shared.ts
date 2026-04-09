@@ -1,7 +1,11 @@
 import { Quality } from '@/types/constants';
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
-import type { AffixListenerSpec } from '../affixes/types';
+import {
+  AffixDefinition,
+  AffixListenerSpec,
+  RolledAffix,
+} from '../affixes/types';
 import type { EffectConfig, ListenerConfig } from '../contracts/battle';
 import type { CreationOutcomeKind, CreationProductType } from '../types';
 /*
@@ -15,7 +19,7 @@ import { CompositionFacts } from '../rules/contracts/CompositionFacts';
 export interface BuildGroupedListenersInput {
   registry: AffixRegistry;
   translator: AffixEffectTranslator;
-  affixIds: string[];
+  rolledAffixes: RolledAffix[];
   quality: Quality;
   defaultListenerSpec: AffixListenerSpec;
 }
@@ -23,20 +27,21 @@ export interface BuildGroupedListenersInput {
 export function buildGroupedListeners({
   registry,
   translator,
-  affixIds,
+  rolledAffixes,
   quality,
   defaultListenerSpec,
 }: BuildGroupedListenersInput): ListenerConfig[] {
   const listenerMap = new Map<string, ListenerConfig>();
 
-  for (const affixId of affixIds) {
-    const definition = registry.queryById(affixId);
+  for (const rolled of rolledAffixes) {
+    const definition = registry.queryById(rolled.id);
     if (!definition) {
       continue;
     }
 
-    const effect = translator.translate(definition, quality);
+    const effect = translator.translate(rolled, quality);
     const spec = definition.listenerSpec ?? defaultListenerSpec;
+...
     // Key design: (eventType, scope, priority) is the merge unit for listeners.
     // Affixes sharing the same triple are combined into a single ListenerConfig with
     // multiple effects. Affixes with different priorities produce independent listeners,

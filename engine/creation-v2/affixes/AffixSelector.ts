@@ -10,6 +10,7 @@ import {
 import { AffixSelectionDecision, AffixSelectionFacts } from '../rules/contracts';
 import { AffixSelectionRuleSet } from '../rules/affix/AffixSelectionRuleSet';
 import { AffixPicker } from './AffixPicker';
+import { AffixRollEngine } from './AffixRollEngine';
 import { CREATION_PROJECTION_BALANCE } from '../config/CreationBalance';
 import { resolveAffixSelectionConstraints } from '../config/AffixSelectionConstraints';
 
@@ -27,12 +28,14 @@ export interface AffixSelectionResult {
  * 过程：
  *  - 使用 AffixSelectionRuleSet 得到候选池
  *  - 通过 AffixPicker 加权抽选
+ *  - 通过 AffixRollEngine 计算数值波动与 Perfect 标记
  *  - 记录审计（allocations / rejections / spent / remaining / exhaustionReason）供外部记录与回溯
  */
 export class AffixSelector {
   constructor(
     private readonly ruleSet = new AffixSelectionRuleSet(),
     private readonly picker = new AffixPicker(),
+    private readonly rollEngine = new AffixRollEngine(),
   ) {}
 
   select(
@@ -99,10 +102,13 @@ export class AffixSelector {
       }
 
       const picked = this.picker.pick(decision.candidatePool);
-      const chosen: RolledAffix = {
-        ...picked.candidate,
-        rollScore: picked.rollScore,
-      };
+      
+      // === 核心注入点：使用 RollEngine 为词缀注入数值灵魂 ===
+      const chosen = this.rollEngine.roll(
+        picked.candidate,
+        budget,
+        picked.rollScore,
+      );
 
       result.push(chosen);
       remaining -= chosen.energyCost;
