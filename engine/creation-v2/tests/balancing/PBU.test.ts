@@ -42,7 +42,21 @@ describe('PBU baseline', () => {
     ], '真品');
 
     expect(high.pbu).toBeGreaterThan(low.pbu);
-    expect(['2-3', '3-5']).toContain(high.targetTtkBand);
+    expect(low.targetTtkBand).toBe('20+');
+    expect(['4-10', '8-20']).toContain(high.targetTtkBand);
+  });
+
+  it('中档 PBU 应落入同级对战的 8-20 回合带', () => {
+    const mid = estimateBalanceMetrics(
+      [
+        affix('core-a', 'core', 10),
+        affix('signature-a', 'signature', 10),
+        affix('suffix-a', 'suffix', 9),
+      ],
+      '玄品',
+    );
+
+    expect(mid.targetTtkBand).toBe('8-20');
   });
 
   it('分项计分应能区分伤害与防御构成', () => {
@@ -56,7 +70,7 @@ describe('PBU baseline', () => {
     const defenseBuild = estimateBalanceMetrics(
       [
         affix('artifact-suffix-armor-passive', 'suffix', 8),
-        affix('artifact-core-death-prevent', 'core', 11),
+        affix('artifact-core-death-prevent', 'suffix', 11),
       ],
       '玄品',
     );

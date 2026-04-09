@@ -26,11 +26,14 @@ describe('battle baseline template regression', () => {
     const artifactGuard = summarize(runArtifactGuardBaselineBattle);
     const gongfaSustain = summarize(runGongfaSustainBaselineBattle);
 
+    expect(mirror.avgTurns).toBeGreaterThanOrEqual(8);
+    expect(mirror.avgTurns).toBeLessThanOrEqual(20);
+
     expect(artifactGuard.avgTurns).toBeGreaterThanOrEqual(mirror.avgTurns);
     expect(gongfaSustain.avgTurns).toBeGreaterThanOrEqual(mirror.avgTurns);
 
-    expect(artifactGuard.avgTurns).toBeLessThanOrEqual(mirror.avgTurns + 6);
-    expect(gongfaSustain.avgTurns).toBeLessThanOrEqual(mirror.avgTurns + 8);
+    expect(artifactGuard.avgTurns).toBeLessThanOrEqual(20);
+    expect(gongfaSustain.avgTurns).toBeLessThanOrEqual(20);
 
     expect(artifactGuard.stallRate).toBeLessThanOrEqual(0.2);
     expect(gongfaSustain.stallRate).toBeLessThanOrEqual(0.2);

@@ -95,6 +95,9 @@ export class AffixEffectTranslator {
               template.params.value,
               qualityOrder,
             ),
+            ...(template.params.target
+              ? { target: template.params.target }
+              : {}),
           },
         };
 

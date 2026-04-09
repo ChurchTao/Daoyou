@@ -1,4 +1,8 @@
-import type { EffectConfig } from '../../contracts/battle';
+import { EquipmentSlot } from '@/types/constants';
+import { AffixEffectTranslator } from '../../affixes/AffixEffectTranslator';
+import { AffixRegistry } from '../../affixes/AffixRegistry';
+import type { AffixAttributeModifierTemplate } from '../../affixes/types';
+import type { AttributeModifierConfig, EffectConfig } from '../../contracts/battle';
 import { CreationTags } from '../../core/GameplayTags';
 import { BuffType, StackRule } from '../../contracts/battle';
 import {
@@ -8,6 +12,8 @@ import {
   CREATION_SKILL_DEFAULTS,
 } from '../../config/CreationBalance';
 import {
+  CREATION_FALLBACK_ARTIFACT_CORE_AFFIX,
+  CREATION_FALLBACK_CORE_AFFIX,
   CREATION_FALLBACK_GONGFA_BUFF,
   CREATION_FALLBACK_MARKERS,
 } from '../../config/CreationFallbackPolicy';
@@ -34,6 +40,11 @@ export class FallbackOutcomeRules
 {
   readonly id = 'composition.fallback_outcome';
 
+  constructor(
+    private readonly registry: AffixRegistry,
+    private readonly translator: AffixEffectTranslator,
+  ) {}
+
   apply({
     facts,
     decision,
@@ -45,19 +56,38 @@ export class FallbackOutcomeRules
     const policy = decision.projectionPolicy;
 
     if (policy.kind === 'active_skill') {
-      const fallback = this.skillFallback(facts);
+      const fallback =
+        this.skillCoreFallback(facts) ?? this.skillFallback(facts);
       decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.skillDamageFallback);
       (decision.projectionPolicy as SkillProjectionPolicy).effects = [fallback];
       diagnostics.addTrace({
         ruleId: this.id,
         outcome: 'applied',
-        message: '注入技能保底伤害效果',
+        message: '注入技能保底 core effect',
       });
       return;
     }
 
     if (policy.kind === 'artifact_passive') {
-      const fallback = this.artifactFallback(facts);
+      const fallbackModifiers = this.artifactCoreFallback(facts);
+
+      if (fallbackModifiers.length > 0) {
+        decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.artifactCoreFallback);
+        (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [];
+        (decision.projectionPolicy as PassiveProjectionPolicy).modifiers = fallbackModifiers;
+        diagnostics.addTrace({
+          ruleId: this.id,
+          outcome: 'applied',
+          message: '注入法宝保底 core modifiers',
+          details: {
+            slotBias: facts.intent.slotBias ?? 'weapon',
+            modifierCount: fallbackModifiers.length,
+          },
+        });
+        return;
+      }
+
+      const fallback = this.artifactShieldFallback(facts);
       decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.artifactShieldFallback);
       (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [
         {
@@ -76,6 +106,23 @@ export class FallbackOutcomeRules
     }
 
     if (policy.kind === 'gongfa_passive') {
+      const fallbackModifiers = this.gongfaCoreFallback(facts);
+
+      if (fallbackModifiers.length > 0) {
+        decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.gongfaSpiritFallback);
+        (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [];
+        (decision.projectionPolicy as PassiveProjectionPolicy).modifiers = fallbackModifiers;
+        diagnostics.addTrace({
+          ruleId: this.id,
+          outcome: 'applied',
+          message: '注入功法保底 core modifiers',
+          details: {
+            modifierCount: fallbackModifiers.length,
+          },
+        });
+        return;
+      }
+
       const fallback = this.gongfaFallback();
       decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.gongfaSpiritFallback);
       (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [
@@ -94,6 +141,21 @@ export class FallbackOutcomeRules
     }
   }
 
+  private skillCoreFallback(facts: CompositionFacts): EffectConfig | undefined {
+    const fallbackDef = this.registry.queryById(
+      CREATION_FALLBACK_CORE_AFFIX.skill,
+    );
+
+    if (!fallbackDef || fallbackDef.effectTemplate.type === 'attribute_modifier') {
+      return undefined;
+    }
+
+    return this.translator.translate(
+      fallbackDef,
+      facts.materialQualityProfile.weightedAverageQuality,
+    );
+  }
+
   private skillFallback(facts: CompositionFacts): EffectConfig {
     const startingAffixEnergy = facts.energySummary.startingAffixEnergy;
 
@@ -110,7 +172,54 @@ export class FallbackOutcomeRules
     };
   }
 
-  private artifactFallback(facts: CompositionFacts): EffectConfig {
+  private artifactCoreFallback(
+    facts: CompositionFacts,
+  ): AttributeModifierConfig[] {
+    const slotBias: EquipmentSlot = facts.intent.slotBias ?? 'weapon';
+    const fallbackAffixId = CREATION_FALLBACK_ARTIFACT_CORE_AFFIX[slotBias];
+    const fallbackDef = this.registry.queryById(fallbackAffixId);
+
+    if (!fallbackDef || fallbackDef.effectTemplate.type !== 'attribute_modifier') {
+      return [];
+    }
+
+    const modifierEntries = this.normalizeAttributeModifierEntries(
+      fallbackDef.effectTemplate.params,
+    );
+
+    return modifierEntries.map((modifierEntry) => ({
+      attrType: modifierEntry.attrType,
+      type: modifierEntry.modType,
+      value: this.translator.resolveParam(
+        modifierEntry.value,
+        facts.materialQualityProfile.weightedAverageOrder,
+      ),
+    }));
+  }
+
+  private normalizeAttributeModifierEntries(
+    params: {
+      attrType: AffixAttributeModifierTemplate['attrType'];
+      modType: AffixAttributeModifierTemplate['modType'];
+      value: AffixAttributeModifierTemplate['value'];
+    } | {
+      modifiers: AffixAttributeModifierTemplate[];
+    },
+  ): AffixAttributeModifierTemplate[] {
+    if ('modifiers' in params) {
+      return params.modifiers;
+    }
+
+    return [
+      {
+        attrType: params.attrType,
+        modType: params.modType,
+        value: params.value,
+      },
+    ];
+  }
+
+  private artifactShieldFallback(facts: CompositionFacts): EffectConfig {
     const startingAffixEnergy = facts.energySummary.startingAffixEnergy;
 
     return {
@@ -127,6 +236,31 @@ export class FallbackOutcomeRules
         },
       },
     };
+  }
+
+  private gongfaCoreFallback(
+    facts: CompositionFacts,
+  ): AttributeModifierConfig[] {
+    const fallbackDef = this.registry.queryById(
+      CREATION_FALLBACK_CORE_AFFIX.gongfa,
+    );
+
+    if (!fallbackDef || fallbackDef.effectTemplate.type !== 'attribute_modifier') {
+      return [];
+    }
+
+    const modifierEntries = this.normalizeAttributeModifierEntries(
+      fallbackDef.effectTemplate.params,
+    );
+
+    return modifierEntries.map((modifierEntry) => ({
+      attrType: modifierEntry.attrType,
+      type: modifierEntry.modType,
+      value: this.translator.resolveParam(
+        modifierEntry.value,
+        facts.materialQualityProfile.weightedAverageOrder,
+      ),
+    }));
   }
 
   private gongfaFallback(): EffectConfig {

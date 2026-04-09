@@ -210,12 +210,27 @@ export class ProjectionRules implements Rule<
       const def = this.registry.queryById(rolled.id);
       if (!def) continue;
       if (def.effectTemplate.type === 'attribute_modifier') {
-        const { attrType, modType, value } = def.effectTemplate.params;
-        modifiers.push({
-          attrType,
-          type: modType,
-          value: this.translator.resolveParam(value, qualityOrder),
-        });
+        const modifierEntries =
+          'modifiers' in def.effectTemplate.params
+            ? def.effectTemplate.params.modifiers
+            : [
+                {
+                  attrType: def.effectTemplate.params.attrType,
+                  modType: def.effectTemplate.params.modType,
+                  value: def.effectTemplate.params.value,
+                },
+              ];
+
+        for (const modifierEntry of modifierEntries) {
+          modifiers.push({
+            attrType: modifierEntry.attrType,
+            type: modifierEntry.modType,
+            value: this.translator.resolveParam(
+              modifierEntry.value,
+              qualityOrder,
+            ),
+          });
+        }
       } else {
         listenerAffixIds.push(rolled.id);
       }

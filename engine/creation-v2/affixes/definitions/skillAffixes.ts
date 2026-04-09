@@ -9,14 +9,150 @@
  * - exclusive Groups 结构化，支持多个互斥集合
  */
 import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
-import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
+import {
+  CREATION_DURATION_POLICY,
+  CREATION_LISTENER_PRIORITIES,
+} from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
 import { AffixDefinition } from '../types';
 
+const POSITIVE_BUFF_TAGS = [CreationTags.BATTLE.BUFF_TYPE_BUFF];
+const NEGATIVE_BUFF_TAGS = [CreationTags.BATTLE.BUFF_TYPE_DEBUFF];
+const CONTROL_BUFF_TAGS = [
+  CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
+  CreationTags.BATTLE.BUFF_TYPE_CONTROL,
+];
+const BURN_DOT_BUFF_TAGS = [
+  CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
+  CreationTags.BATTLE.BUFF_DOT,
+  CreationTags.BATTLE.BUFF_DOT_BURN,
+];
+
+const STUN_CONTROL_STATUS_TAGS = [
+  CreationTags.BATTLE.STATUS_DEBUFF,
+  CreationTags.BATTLE.STATUS_CONTROL,
+  CreationTags.BATTLE.STATUS_STUNNED,
+  CreationTags.BATTLE.STATUS_NO_ACTION,
+];
+const BURN_DOT_STATUS_TAGS = [
+  CreationTags.BATTLE.STATUS_DEBUFF,
+  CreationTags.BATTLE.STATUS_BURN,
+  CreationTags.BATTLE.STATUS_DOT,
+];
+const CHILL_STATUS_TAGS = [
+  CreationTags.BATTLE.STATUS_DEBUFF,
+  CreationTags.BATTLE.STATUS_CHILL,
+];
+const GENERIC_BUFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_BUFF];
+const GENERIC_DEBUFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_DEBUFF];
+const DEF_DEBUFF_STATUS_TAGS = [
+  CreationTags.BATTLE.STATUS_DEBUFF,
+  CreationTags.BATTLE.STATUS_DEF_DEBUFF,
+];
+const COMBO_STATUS_TAGS = [CreationTags.BATTLE.STATUS_COMBO];
+const MANA_EFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_MANA_EFF];
+const MYTHIC_STATUS_TAGS = [CreationTags.BATTLE.STATUS_MYTHIC];
+
+const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
+  {
+    id: 'skill-core-control-stun-t2',
+    displayName: '镇魂雷缚',
+    displayDescription: '玄品控制核心，以雷意震魂并短暂封禁行动',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 26,
+    energyCost: 13,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-stun-t2',
+          name: '镇魂',
+          type: BuffType.CONTROL,
+          duration: CREATION_DURATION_POLICY.control.default,
+          stackRule: StackRule.IGNORE,
+          tags: CONTROL_BUFF_TAGS,
+          statusTags: STUN_CONTROL_STATUS_TAGS,
+        },
+        chance: 0.85,
+      },
+    },
+  },
+  {
+    id: 'skill-core-control-stun-t3',
+    displayName: '天心禁咒',
+    displayDescription: '真品控制核心，禁咒成形后可稳定夺走敌方回合',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 11,
+    energyCost: 14,
+    minQuality: '真品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-stun-t3',
+          name: '禁咒',
+          type: BuffType.CONTROL,
+          duration: CREATION_DURATION_POLICY.control.elite,
+          stackRule: StackRule.IGNORE,
+          tags: CONTROL_BUFF_TAGS,
+          statusTags: STUN_CONTROL_STATUS_TAGS,
+        },
+        chance: 0.9,
+      },
+    },
+  },
+  {
+    id: 'skill-core-control-stun-t4',
+    displayName: '太上绝识',
+    displayDescription: '地品控制核心，以绝识之法强压目标行动能力',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 4,
+    energyCost: 15,
+    minQuality: '地品',
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-stun-t4',
+          name: '绝识',
+          type: BuffType.CONTROL,
+          duration: CREATION_DURATION_POLICY.control.elite,
+          stackRule: StackRule.IGNORE,
+          tags: CONTROL_BUFF_TAGS,
+          statusTags: STUN_CONTROL_STATUS_TAGS,
+        },
+        chance: 0.95,
+      },
+    },
+  },
+];
+
 export const SKILL_AFFIXES: AffixDefinition[] = [
   // ========================
-  // ===== CORE 词缀 (10 种)
+  // ===== CORE 词缀 (9 种)
   // ========================
   {
     id: 'skill-core-damage',
@@ -153,31 +289,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'skill-core-mana-burn',
-    displayName: '裂神蚀元',
-    displayDescription: '灼烧目标灵力，高品质时造成额外爆发',
-    category: 'core',
-    tagQuery: [
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ],
-    exclusiveGroup: 'skill-core-damage-type',
-    weight: 68,
-    energyCost: 10,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'mana_burn',
-      params: {
-        value: {
-          base: { base: 14, scale: 'quality', coefficient: 5 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.28,
-        },
-      },
-    },
-  },
-  {
     id: 'skill-core-control-stun',
     displayName: '脑海震颤',
     displayDescription: '眩晕目标，使其无法思考',
@@ -195,9 +306,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-stun',
           name: '眩晕',
           type: BuffType.CONTROL,
-          duration: 1,
+          duration: CREATION_DURATION_POLICY.control.default,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Stun', 'Status.Control'],
+          tags: CONTROL_BUFF_TAGS,
+          statusTags: STUN_CONTROL_STATUS_TAGS,
         },
         chance: 0.8,
       },
@@ -294,7 +406,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.MAGIC_PENETRATION,
         modType: ModifierType.FIXED,
         value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
-        duration: 1,
+        duration: CREATION_DURATION_POLICY.buffDebuff.short,
         stackRule: StackRule.OVERRIDE,
       },
     },
@@ -323,7 +435,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.FIXED,
         value: { base: 3, scale: 'quality', coefficient: 1 },
-        duration: 1,
+        duration: CREATION_DURATION_POLICY.buffDebuff.short,
         stackRule: StackRule.OVERRIDE,
       },
     },
@@ -435,7 +547,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.HEAL_AMPLIFY,
         modType: ModifierType.ADD,
         value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        duration: 1,
+        duration: CREATION_DURATION_POLICY.buffDebuff.short,
         stackRule: StackRule.OVERRIDE,
       },
     },
@@ -464,7 +576,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.EVASION_RATE,
         modType: ModifierType.FIXED,
         value: { base: 0.04, scale: 'quality', coefficient: 0.01 },
-        duration: 1,
+        duration: CREATION_DURATION_POLICY.buffDebuff.short,
         stackRule: StackRule.OVERRIDE,
       },
     },
@@ -493,7 +605,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.CRIT_DAMAGE_MULT,
         modType: ModifierType.ADD,
         value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
-        duration: 1,
+        duration: CREATION_DURATION_POLICY.buffDebuff.short,
         stackRule: StackRule.OVERRIDE,
       },
     },
@@ -583,9 +695,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-burn',
           name: '灼烧',
           type: BuffType.DEBUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: ['Status.Burn', 'Status.DOT'],
+          tags: BURN_DOT_BUFF_TAGS,
+          statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
               eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
@@ -626,9 +739,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-chill',
           name: '冰缓',
           type: BuffType.DEBUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: ['Status.Chill'],
+          tags: NEGATIVE_BUFF_TAGS,
+          statusTags: CHILL_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.SPEED,
@@ -653,6 +767,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'dispel',
       params: {
+        targetTag: CreationTags.BATTLE.BUFF_TYPE_BUFF,
         maxCount: 1,
       },
     },
@@ -716,7 +831,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'tag_trigger',
       params: {
-        triggerTag: 'Status.Burn',
+        triggerTag: CreationTags.BATTLE.STATUS_BURN,
         damageRatio: { base: 1.2, scale: 'quality', coefficient: 0.2 },
         removeOnTrigger: false,
       },
@@ -739,7 +854,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'tag_trigger',
       params: {
-        triggerTag: 'Status.Chill',
+        triggerTag: CreationTags.BATTLE.STATUS_CHILL,
         damageRatio: { base: 0.8, scale: 'quality', coefficient: 0.15 },
         removeOnTrigger: false,
       },
@@ -795,9 +910,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-atk-buff',
           name: '力量强化',
           type: BuffType.BUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.MAGIC_ATK,
@@ -826,9 +942,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-def-debuff',
           name: '防御削弱',
           type: BuffType.DEBUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: ['Status.DefDebuff'],
+          tags: NEGATIVE_BUFF_TAGS,
+          statusTags: DEF_DEBUFF_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.DEF,
@@ -844,7 +961,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-suffix-crit-passive',
     displayName: '暴击之舞',
-    displayDescription: '命中时增加下一次暴击率',
+    displayDescription: '命中后短时间内增加暴击率',
     category: 'suffix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER],
     weight: 47,
@@ -857,9 +974,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-crit-buff',
           name: '暴击预兆',
           type: BuffType.BUFF,
-          duration: 1,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.STACK_LAYER,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.CRIT_RATE,
@@ -911,7 +1029,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'has_tag', params: { tag: 'Status.Burn' } }],
+      conditions: [
+        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_BURN } },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.16, scale: 'quality', coefficient: 0.03 },
@@ -971,9 +1091,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-combo-stack',
           name: '连击层数',
           type: BuffType.BUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.STACK_LAYER,
-          tags: ['Status.Combo'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: COMBO_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.MAGIC_ATK,
@@ -1002,9 +1123,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-mana-efficiency',
           name: '灵力高效',
           type: BuffType.BUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.STACK_LAYER,
-          tags: ['Status.ManaEff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: MANA_EFF_STATUS_TAGS,
         },
         chance: 1,
       },
@@ -1026,9 +1148,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-heal-shield',
           name: '治愈屏障',
           type: BuffType.BUFF,
-          duration: 1,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.OVERRIDE,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.DEF,
@@ -1061,9 +1184,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-control-precision',
           name: '控制精准',
           type: BuffType.BUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.OVERRIDE,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
         },
         chance: 1,
       },
@@ -1145,7 +1269,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'has_tag', params: { tag: 'Status.Control' } }],
+      conditions: [
+        {
+          type: 'has_tag',
+          params: { tag: CreationTags.BATTLE.STATUS_CONTROL },
+        },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.25, scale: 'quality', coefficient: 0.05 },
@@ -1295,7 +1424,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'damage',
-      conditions: [{ type: 'has_tag', params: { tag: 'Status.Burn' } }],
+      conditions: [
+        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_BURN } },
+      ],
       params: {
         value: {
           base: { base: 110, scale: 'quality', coefficient: 22 },
@@ -1361,14 +1492,15 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-eternal-echo',
           name: '永恒回声',
           type: BuffType.BUFF,
-          duration: -1,
+          duration: CREATION_DURATION_POLICY.buffDebuff.persistentException,
           stackRule: StackRule.STACK_LAYER,
-          tags: ['Status.Mythic'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: MYTHIC_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.MAGIC_ATK,
               type: ModifierType.ADD,
-              value: 0.05,
+              value: 0.01,
             },
           ],
         },
@@ -1541,6 +1673,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
   },
+  ...SKILL_CONTROL_CORE_TIER_AFFIXES,
 
   // --- 前缀增伤 T2（玄品+，exclusiveGroup: skill-prefix-damage-boost-tier）---
   {
@@ -1654,9 +1787,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-burn-t2',
           name: '玄焰灼魂',
           type: BuffType.DEBUFF,
-          duration: 3,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: ['Status.Burn', 'Status.DOT'],
+          tags: BURN_DOT_BUFF_TAGS,
+          statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
               eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
@@ -1706,9 +1840,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-burn-t3',
           name: '狱焰灼世',
           type: BuffType.DEBUFF,
-          duration: 4,
+          duration: CREATION_DURATION_POLICY.buffDebuff.long,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: ['Status.Burn', 'Status.DOT'],
+          tags: BURN_DOT_BUFF_TAGS,
+          statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
               eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
@@ -1819,9 +1954,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-despair',
           name: '绝望',
           type: BuffType.DEBUFF,
-          duration: 2,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Debuff'],
+          tags: NEGATIVE_BUFF_TAGS,
+          statusTags: GENERIC_DEBUFF_STATUS_TAGS,
           modifiers: [
             { attrType: AttributeType.ATK, type: ModifierType.ADD, value: -0.30 },
             { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: -0.30 },
@@ -1923,7 +2059,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-suffix-burn-dot-t4',
     displayName: '冥火焚天',
-    displayDescription: '地阶冥火，灼烧持续整场战斗并造成极高伤害',
+    displayDescription: '地阶冥火，长时间灼烧并造成极高伤害',
     category: 'suffix',
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FLAME,
@@ -1942,9 +2078,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           id: 'craft-burn-t4',
           name: '冥火焚天',
           type: BuffType.DEBUFF,
-          duration: -1,
+          duration: CREATION_DURATION_POLICY.buffDebuff.extended,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Burn', 'Status.DOT'],
+          tags: BURN_DOT_BUFF_TAGS,
+          statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
               eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,

@@ -1,3 +1,4 @@
+import { EquipmentSlot } from '@/types/constants';
 import { AttributeType, BuffType, ModifierType, StackRule } from '../contracts/battle';
 import { CreationProductType } from '../types';
 
@@ -22,6 +23,7 @@ export const CREATION_FALLBACK_GONGFA_BUFF = {
 /** decision.defaultsApplied 中注入的标记字符串 */
 export const CREATION_FALLBACK_MARKERS = {
   skillDamageFallback: 'skill_damage_fallback',
+  artifactCoreFallback: 'artifact_core_fallback',
   artifactShieldFallback: 'artifact_shield_fallback',
   gongfaSpiritFallback: 'gongfa_spirit_fallback',
 } as const;
@@ -32,6 +34,12 @@ export const CREATION_FALLBACK_MARKERS = {
  */
 export const CREATION_FALLBACK_CORE_AFFIX: Record<CreationProductType, string> = {
   skill: 'skill-core-damage',
-  artifact: 'artifact-core-vitality',
+  artifact: 'artifact-core-weapon-dual-edge',
   gongfa: 'gongfa-core-spirit',
+};
+
+export const CREATION_FALLBACK_ARTIFACT_CORE_AFFIX: Record<EquipmentSlot, string> = {
+  weapon: 'artifact-core-weapon-dual-edge',
+  armor: 'artifact-core-armor-dual-ward',
+  accessory: 'artifact-core-accessory-omen',
 };

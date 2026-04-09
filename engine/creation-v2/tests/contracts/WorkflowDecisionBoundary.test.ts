@@ -111,10 +111,10 @@ describe('WorkflowDecisionBoundary — CompositionRuleSet 契约验证', () => {
       );
     });
 
-    it('词缀为空的 artifact 应记录 artifact_shield_fallback 标记', () => {
+    it('词缀为空的 artifact 应记录 artifact_core_fallback 标记', () => {
       const decision = ruleSet.evaluate(buildMinimalFacts('artifact'));
       expect(decision.defaultsApplied).toContain(
-        CREATION_FALLBACK_MARKERS.artifactShieldFallback,
+        CREATION_FALLBACK_MARKERS.artifactCoreFallback,
       );
     });
 

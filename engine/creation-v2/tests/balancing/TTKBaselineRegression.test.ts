@@ -89,16 +89,22 @@ const BATTLE_THRESHOLDS: Record<
     baselineKind?: 'mirror' | 'artifact_guard' | 'gongfa_sustain';
   }
 > = {
-  skill: { minWinRate: 0.72, minAvgTurns: 3, maxAvgTurns: 12, maxStallRate: 0.15 },
+  skill: {
+    minWinRate: 0.72,
+    minAvgTurns: 4,
+    maxAvgTurns: 10,
+    maxStallRate: 0.15,
+    baselineKind: 'mirror',
+  },
   artifact: {
-    minAvgTurns: 3.5,
-    maxAvgTurns: 18,
+    minAvgTurns: 4,
+    maxAvgTurns: 10,
     maxStallRate: 0.4,
     baselineKind: 'artifact_guard',
   },
   gongfa: {
-    minAvgTurns: 3.8,
-    maxAvgTurns: 16,
+    minAvgTurns: 4,
+    maxAvgTurns: 10,
     maxStallRate: 0.3,
     baselineKind: 'gongfa_sustain',
   },

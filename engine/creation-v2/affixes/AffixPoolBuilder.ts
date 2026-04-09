@@ -1,10 +1,15 @@
 import { CreationSession } from '../CreationSession';
 import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile';
+import { AttributeType, BuffType, ModifierType } from '../contracts/battle';
 import { CREATION_AFFIX_POOL_SCORING } from '../config/CreationBalance';
-import { CREATION_FALLBACK_CORE_AFFIX } from '../config/CreationFallbackPolicy';
+import {
+  CREATION_FALLBACK_ARTIFACT_CORE_AFFIX,
+  CREATION_FALLBACK_CORE_AFFIX,
+} from '../config/CreationFallbackPolicy';
 import { AffixCandidate, AFFIX_STOP_REASONS, createEmptyEnergyBudget } from '../types';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
 import { AffixPoolRuleSet } from '../rules/affix/AffixPoolRuleSet';
+import type { AffixAttributeModifierTemplate } from './types';
 import { AffixDefinition } from './types';
 import { AffixRegistry } from './AffixRegistry';
 
@@ -62,8 +67,14 @@ export class AffixPoolBuilder {
       };
     }
 
-    const matching = registry
-      .queryByTags(tags, recipeMatch.unlockedAffixCategories, input.productType)
+    const matching = this.filterCandidatesForProductContext(
+      registry.queryByTags(
+        tags,
+        recipeMatch.unlockedAffixCategories,
+        input.productType,
+      ),
+      session,
+    )
       .map((def) => this.toCandidate(def));
 
     const facts: AffixEligibilityFacts = {
@@ -91,7 +102,7 @@ export class AffixPoolBuilder {
       return decision;
     }
 
-    const fallbackId = CREATION_FALLBACK_CORE_AFFIX[session.state.input.productType];
+    const fallbackId = this.resolveFallbackCoreAffixId(session);
     const fallbackDef = registry.queryById(fallbackId);
 
     if (!fallbackDef) {
@@ -115,6 +126,111 @@ export class AffixPoolBuilder {
         },
       ],
     };
+  }
+
+  private filterCandidatesForProductContext(
+    defs: AffixDefinition[],
+    session: CreationSession,
+  ): AffixDefinition[] {
+    return defs.filter((def) => {
+      if (def.category !== 'core') {
+        return true;
+      }
+
+      switch (session.state.input.productType) {
+        case 'artifact': {
+          const slotBias =
+            session.state.intent?.slotBias ?? session.state.input.requestedSlot;
+          if (!slotBias) {
+            return def.applicableArtifactSlots === undefined;
+          }
+
+          return def.applicableArtifactSlots?.includes(slotBias) ?? false;
+        }
+
+        case 'skill':
+          return this.isSkillCoreCandidate(def);
+
+        case 'gongfa':
+          return this.isGongfaCoreCandidate(def);
+
+        default:
+          return true;
+      }
+    });
+  }
+
+  private isSkillCoreCandidate(def: AffixDefinition): boolean {
+    if (def.effectTemplate.type === 'damage' || def.effectTemplate.type === 'heal') {
+      return true;
+    }
+
+    if (def.effectTemplate.type === 'apply_buff') {
+      return def.effectTemplate.params.buffConfig.type === BuffType.CONTROL;
+    }
+
+    return false;
+  }
+
+  private isGongfaCoreCandidate(def: AffixDefinition): boolean {
+    if (def.effectTemplate.type !== 'attribute_modifier') {
+      return false;
+    }
+
+    if ((def.effectTemplate.conditions?.length ?? 0) > 0) {
+      return false;
+    }
+
+    const allowedPrimaryAttributes = new Set<AttributeType>([
+      AttributeType.SPIRIT,
+      AttributeType.VITALITY,
+      AttributeType.SPEED,
+      AttributeType.WILLPOWER,
+      AttributeType.WISDOM,
+    ]);
+
+    const modifierEntries = this.extractAttributeModifierEntries(def);
+
+    return (
+      modifierEntries.length === 1 &&
+      modifierEntries.every(
+        (modifier) =>
+          modifier.modType === ModifierType.FIXED &&
+          allowedPrimaryAttributes.has(modifier.attrType),
+      )
+    );
+  }
+
+  private extractAttributeModifierEntries(
+    def: AffixDefinition,
+  ): AffixAttributeModifierTemplate[] {
+    if (def.effectTemplate.type !== 'attribute_modifier') {
+      return [];
+    }
+
+    if ('modifiers' in def.effectTemplate.params) {
+      return def.effectTemplate.params.modifiers;
+    }
+
+    return [
+      {
+        attrType: def.effectTemplate.params.attrType,
+        modType: def.effectTemplate.params.modType,
+        value: def.effectTemplate.params.value,
+      },
+    ];
+  }
+
+  private resolveFallbackCoreAffixId(session: CreationSession): string {
+    if (session.state.input.productType !== 'artifact') {
+      return CREATION_FALLBACK_CORE_AFFIX[session.state.input.productType];
+    }
+
+    const slotBias =
+      session.state.intent?.slotBias ??
+      session.state.input.requestedSlot ??
+      'weapon';
+    return CREATION_FALLBACK_ARTIFACT_CORE_AFFIX[slotBias];
   }
 
   private toCandidate(def: AffixDefinition): AffixCandidate {

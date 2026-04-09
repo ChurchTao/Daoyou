@@ -212,9 +212,26 @@ export const CreationTags = {
     ABILITY_TYPE_PHYSICAL: 'Ability.Type.Physical', // 战斗能力标签：物理类
     ABILITY_TYPE_HEAL: 'Ability.Type.Heal', // 战斗能力标签：治疗类
     ABILITY_TYPE_CONTROL: 'Ability.Type.Control', // 战斗能力标签：控制类
+    ABILITY_ELEMENT: 'Ability.Element', // 战斗能力标签：元素父标签（用于条件筛选）
     ABILITY_KIND_ARTIFACT: 'Artifact', // 能力来源：法宝
     ABILITY_KIND_GONGFA: 'GongFa', // 能力来源：功法
+    BUFF_TYPE_BUFF: 'Buff.Type.Buff', // Buff 标签：正面状态
+    BUFF_TYPE_DEBUFF: 'Buff.Type.Debuff', // Buff 标签：负面状态
     BUFF_TYPE_CONTROL: 'Buff.Type.Control', // Buff 标签：控制类（用于 buff 免疫/拦截）
+    BUFF_DOT: 'Buff.Dot', // Buff 标签：持续伤害
+    BUFF_DOT_BURN: 'Buff.Dot.Burn', // Buff 标签：灼烧 DOT
+    STATUS_CONTROL: 'Status.Control', // 宿主状态：控制父标签
+    STATUS_STUNNED: 'Status.Control.Stunned', // 宿主状态：眩晕
+    STATUS_NO_ACTION: 'Status.Control.NoAction', // 宿主状态：禁行动
+    STATUS_BURN: 'Status.Burn', // 宿主状态：灼烧
+    STATUS_DOT: 'Status.DOT', // 宿主状态：持续伤害
+    STATUS_CHILL: 'Status.Chill', // 宿主状态：冰缓
+    STATUS_BUFF: 'Status.Buff', // 宿主状态：泛增益
+    STATUS_DEBUFF: 'Status.Debuff', // 宿主状态：泛减益
+    STATUS_DEF_DEBUFF: 'Status.DefDebuff', // 宿主状态：防御削弱
+    STATUS_COMBO: 'Status.Combo', // 宿主状态：连击层数
+    STATUS_MANA_EFF: 'Status.ManaEff', // 宿主状态：减耗
+    STATUS_MYTHIC: 'Status.Mythic', // 宿主状态：神话级强化
   },
   /** Battle event types used in passive listener specs.
    *

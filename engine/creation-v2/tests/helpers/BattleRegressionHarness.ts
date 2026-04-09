@@ -5,18 +5,21 @@ import {
   AttributeType,
   ModifierType,
 } from '@/engine/battle-v5/core/types';
+import type { EntryDataMap, LogSpan } from '@/engine/battle-v5/systems/log/types';
+import type { BattleStateTimeline } from '@/engine/battle-v5/systems/state/types';
 import { AbilityFactory } from '@/engine/battle-v5/factories/AbilityFactory';
 import { Unit } from '@/engine/battle-v5/units/Unit';
 import type {
   CraftedOutcome,
   CreationProductType,
 } from '@/engine/creation-v2/types';
+import type { EquipmentSlot } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { TestableCreationOrchestrator } from './TestableCreationOrchestrator';
 
 const SPARRING_BASE_ATTRIBUTES: Partial<Record<AttributeType, number>> = {
   [AttributeType.SPIRIT]: 150,
-  [AttributeType.VITALITY]: 145,
+  [AttributeType.VITALITY]: 320,
   [AttributeType.SPEED]: 110,
   [AttributeType.WILLPOWER]: 125,
   [AttributeType.WISDOM]: 115,
@@ -61,6 +64,37 @@ interface CreationBattleDuelInput {
   productType: CreationProductType;
   materials: Material[];
   seed?: number;
+  requestedSlot?: EquipmentSlot;
+  baselineTemplate?: SparringBaselineTemplate;
+}
+
+export interface CreationBattleBenchmarkSummary {
+  samples: number;
+  minTurns: number;
+  maxTurns: number;
+  averageTurns: number;
+  medianTurns: number;
+  p90Turns: number;
+  averageDamagePerHit: number;
+  averageHealShare: number;
+  averageShieldShare: number;
+  averageControlSkipRate: number;
+  challengerWinRate: number;
+  maxTurnsReached: number;
+}
+
+export interface CreationBattleBenchmarkResult {
+  duels: CreationBattleDuelResult[];
+  summary: CreationBattleBenchmarkSummary;
+}
+
+interface DuelObservationMetrics {
+  totalDamage: number;
+  damageEvents: number;
+  totalHeal: number;
+  totalShieldGain: number;
+  controlSkipCount: number;
+  actionOpportunityCount: number;
 }
 
 function withDeterministicRandom<T>(seed: number, execute: () => T): T {
@@ -86,9 +120,14 @@ function withDeterministicRandom<T>(seed: number, execute: () => T): T {
 function runPipeline(
   productType: CreationProductType,
   materials: Material[],
+  requestedSlot?: EquipmentSlot,
 ): CraftedOutcome | undefined {
   const orchestrator = new TestableCreationOrchestrator();
-  const session = orchestrator.createSession({ productType, materials });
+  const session = orchestrator.createSession({
+    productType,
+    materials,
+    ...(requestedSlot ? { requestedSlot } : {}),
+  });
 
   orchestrator.submitMaterials(session);
   orchestrator.analyzeMaterialsWithDefaults(session);
@@ -308,6 +347,8 @@ export function runCreationBattleDuel({
   productType,
   materials,
   seed = 1,
+  requestedSlot,
+  baselineTemplate = 'mirror',
 }: CreationBattleDuelInput): CreationBattleDuelResult | undefined {
   return withDeterministicRandom(seed, () => {
     EventBus.instance.reset();
@@ -315,13 +356,17 @@ export function runCreationBattleDuel({
     let engine: BattleEngineV5 | undefined;
 
     try {
-      const outcome = runPipeline(productType, materials);
+      const outcome = runPipeline(productType, materials, requestedSlot);
       if (!outcome) {
         return undefined;
       }
 
-      const challenger = createSparringUnit('challenger', '试锋者');
-      const defender = createSparringUnit('defender', '守关人');
+      const challenger = createSparringUnit(
+        'challenger',
+        '试锋者',
+        baselineTemplate,
+      );
+      const defender = createSparringUnit('defender', '守关人', baselineTemplate);
 
       challenger.abilities.addAbility(outcome.ability);
 
@@ -341,4 +386,168 @@ export function runCreationBattleDuel({
       EventBus.instance.reset();
     }
   });
+}
+
+function percentile(sortedValues: number[], ratio: number): number {
+  if (sortedValues.length === 0) return 0;
+
+  const index = Math.min(
+    sortedValues.length - 1,
+    Math.max(0, Math.ceil(sortedValues.length * ratio) - 1),
+  );
+  return sortedValues[index];
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) return 0;
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function collectLogMetrics(logSpans: LogSpan[] | undefined) {
+  let totalDamage = 0;
+  let damageEvents = 0;
+  let totalHeal = 0;
+  let controlSkipCount = 0;
+
+  for (const span of logSpans ?? []) {
+    for (const entry of span.entries) {
+      switch (entry.type) {
+        case 'damage': {
+          const damageData = entry.data as EntryDataMap['damage'];
+          totalDamage += damageData.value;
+          damageEvents += 1;
+          break;
+        }
+        case 'heal': {
+          const healData = entry.data as EntryDataMap['heal'];
+          totalHeal += healData.value;
+          break;
+        }
+        case 'control_skip':
+          controlSkipCount += 1;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  return {
+    totalDamage,
+    damageEvents,
+    totalHeal,
+    controlSkipCount,
+  };
+}
+
+function collectStateMetrics(stateTimeline: BattleStateTimeline | undefined) {
+  let totalShieldGain = 0;
+  let actionOpportunityCount = 0;
+
+  for (const frame of stateTimeline?.frames ?? []) {
+    if (frame.phase === 'action_pre' && frame.actorId) {
+      actionOpportunityCount += 1;
+    }
+
+    for (const delta of Object.values(frame.deltas ?? {})) {
+      if (delta.shield && delta.shield.change > 0) {
+        totalShieldGain += delta.shield.change;
+      }
+    }
+  }
+
+  return {
+    totalShieldGain,
+    actionOpportunityCount,
+  };
+}
+
+function extractDuelObservationMetrics(
+  duel: CreationBattleDuelResult,
+): DuelObservationMetrics {
+  const logMetrics = collectLogMetrics(duel.battleResult.logSpans);
+  const stateMetrics = collectStateMetrics(duel.battleResult.stateTimeline);
+
+  return {
+    totalDamage: logMetrics.totalDamage,
+    damageEvents: logMetrics.damageEvents,
+    totalHeal: logMetrics.totalHeal,
+    totalShieldGain: stateMetrics.totalShieldGain,
+    controlSkipCount: logMetrics.controlSkipCount,
+    actionOpportunityCount:
+      stateMetrics.actionOpportunityCount > 0
+        ? stateMetrics.actionOpportunityCount
+        : Math.max(duel.battleResult.turns, 1),
+  };
+}
+
+export function summarizeBattleBenchmark(
+  duels: CreationBattleDuelResult[],
+): CreationBattleBenchmarkSummary {
+  const turns = duels
+    .map((duel) => duel.battleResult.turns)
+    .sort((left, right) => left - right);
+  const totalTurns = turns.reduce((sum, value) => sum + value, 0);
+  const challengerWins = duels.filter((duel) => duel.challengerWon).length;
+  const maxTurnsReached = duels.filter((duel) => duel.reachedMaxTurns).length;
+  const duelObservations = duels.map((duel) => extractDuelObservationMetrics(duel));
+  const averageDamagePerHit = average(
+    duelObservations.map((observation) =>
+      observation.damageEvents > 0
+        ? observation.totalDamage / observation.damageEvents
+        : 0,
+    ),
+  );
+  const averageHealShare = average(
+    duelObservations.map((observation) => {
+      const sustainTotal = observation.totalHeal + observation.totalShieldGain;
+      return sustainTotal > 0 ? observation.totalHeal / sustainTotal : 0;
+    }),
+  );
+  const averageShieldShare = average(
+    duelObservations.map((observation) => {
+      const sustainTotal = observation.totalHeal + observation.totalShieldGain;
+      return sustainTotal > 0 ? observation.totalShieldGain / sustainTotal : 0;
+    }),
+  );
+  const averageControlSkipRate = average(
+    duelObservations.map((observation) =>
+      observation.actionOpportunityCount > 0
+        ? observation.controlSkipCount / observation.actionOpportunityCount
+        : 0,
+    ),
+  );
+
+  return {
+    samples: duels.length,
+    minTurns: turns[0] ?? 0,
+    maxTurns: turns[turns.length - 1] ?? 0,
+    averageTurns: turns.length > 0 ? totalTurns / turns.length : 0,
+    medianTurns: percentile(turns, 0.5),
+    p90Turns: percentile(turns, 0.9),
+    averageDamagePerHit,
+    averageHealShare,
+    averageShieldShare,
+    averageControlSkipRate,
+    challengerWinRate: duels.length > 0 ? challengerWins / duels.length : 0,
+    maxTurnsReached,
+  };
+}
+
+export function runCreationBattleBenchmark(
+  input: Omit<CreationBattleDuelInput, 'seed'> & { seeds: number[] },
+): CreationBattleBenchmarkResult | undefined {
+  const duels = input.seeds
+    .map((battleSeed) => runCreationBattleDuel({ ...input, seed: battleSeed }))
+    .filter((duel): duel is CreationBattleDuelResult => !!duel);
+
+  if (duels.length === 0) {
+    return undefined;
+  }
+
+  return {
+    duels,
+    summary: summarizeBattleBenchmark(duels),
+  };
 }

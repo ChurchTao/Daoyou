@@ -6,14 +6,339 @@
  * - 映射为AbilityConfig.modifiers或listeners
  */
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
-import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
+import { ELEMENT_TO_ABILITY_TAG, ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
 import { AttributeType, ModifierType, BuffType, StackRule } from '../../contracts/battle';
 import { AffixDefinition } from '../types';
 
+const POSITIVE_BUFF_TAGS = [CreationTags.BATTLE.BUFF_TYPE_BUFF];
+const GENERIC_BUFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_BUFF];
+const MYTHIC_BUFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_MYTHIC];
+
+const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
+  {
+    id: 'gongfa-core-wisdom-t2',
+    displayName: '玄悟明台',
+    displayDescription: '玄品功法核心，悟性显著提升以强化法门理解',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 46,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WISDOM,
+        modType: ModifierType.FIXED,
+        value: { base: 7, scale: 'quality', coefficient: 3 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-wisdom-t3',
+    displayName: '天心悟道',
+    displayDescription: '真品功法核心，悟性进入高阶通明境界',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 18,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WISDOM,
+        modType: ModifierType.FIXED,
+        value: { base: 12, scale: 'quality', coefficient: 5 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-wisdom-t4',
+    displayName: '大衍通明',
+    displayDescription: '地品功法核心，悟性足以明显抬升技能质量天花板',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 6,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WISDOM,
+        modType: ModifierType.FIXED,
+        value: { base: 20, scale: 'quality', coefficient: 8 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-willpower-t2',
+    displayName: '玄心镇岳',
+    displayDescription: '玄品功法核心，意志力显著提升以稳定对抗节奏',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 44,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WILLPOWER,
+        modType: ModifierType.FIXED,
+        value: { base: 7, scale: 'quality', coefficient: 3 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-willpower-t3',
+    displayName: '天命不屈',
+    displayDescription: '真品功法核心，意志强度进入高阶压制区间',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 17,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WILLPOWER,
+        modType: ModifierType.FIXED,
+        value: { base: 12, scale: 'quality', coefficient: 5 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-willpower-t4',
+    displayName: '万劫不移',
+    displayDescription: '地品功法核心，意志属性形成显著韧性质变',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 6,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WILLPOWER,
+        modType: ModifierType.FIXED,
+        value: { base: 20, scale: 'quality', coefficient: 8 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-speed-mastery-t2',
+    displayName: '御风踏影',
+    displayDescription: '玄品功法核心，身法提升进入可感知机动档位',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 42,
+    energyCost: 10,
+    minQuality: '玄品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPEED,
+        modType: ModifierType.FIXED,
+        value: { base: 5, scale: 'quality', coefficient: 2 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-speed-mastery-t3',
+    displayName: '天行无迹',
+    displayDescription: '真品功法核心，身法提升足以明显改变出手节奏',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 16,
+    energyCost: 12,
+    minQuality: '真品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPEED,
+        modType: ModifierType.FIXED,
+        value: { base: 8, scale: 'quality', coefficient: 3 },
+      },
+    },
+  },
+  {
+    id: 'gongfa-core-speed-mastery-t4',
+    displayName: '遁空绝尘',
+    displayDescription: '地品功法核心，身法属性形成明显先手与节奏优势',
+    category: 'core',
+    tagQuery: [
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ],
+    exclusiveGroup: 'gongfa-core-stat',
+    weight: 5,
+    energyCost: 14,
+    minQuality: '地品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPEED,
+        modType: ModifierType.FIXED,
+        value: { base: 13, scale: 'quality', coefficient: 5 },
+      },
+    },
+  },
+];
+
+const GONGFA_ELEMENT_SPECIALIZATION_CONFIGS = [
+  {
+    id: 'gongfa-prefix-metal-specialization',
+    displayName: '庚金锐意',
+    displayDescription: '金系技能造成的伤害提升',
+    element: '金' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_METAL,
+    weight: 45,
+  },
+  {
+    id: 'gongfa-prefix-wood-specialization',
+    displayName: '青木生衍',
+    displayDescription: '木系技能造成的伤害提升',
+    element: '木' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_WOOD,
+    weight: 45,
+  },
+  {
+    id: 'gongfa-prefix-water-specialization',
+    displayName: '玄水归流',
+    displayDescription: '水系技能造成的伤害提升',
+    element: '水' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_WATER,
+    weight: 46,
+  },
+  {
+    id: 'gongfa-prefix-fire-specialization',
+    displayName: '赤炎焚脉',
+    displayDescription: '火系技能造成的伤害提升',
+    element: '火' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_FLAME,
+    weight: 48,
+  },
+  {
+    id: 'gongfa-prefix-earth-specialization',
+    displayName: '厚土镇元',
+    displayDescription: '土系技能造成的伤害提升',
+    element: '土' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_EARTH,
+    weight: 44,
+  },
+  {
+    id: 'gongfa-prefix-wind-specialization',
+    displayName: '岚息游龙',
+    displayDescription: '风系技能造成的伤害提升',
+    element: '风' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_WIND,
+    weight: 47,
+  },
+  {
+    id: 'gongfa-prefix-thunder-specialization',
+    displayName: '惊霆裂脉',
+    displayDescription: '雷系技能造成的伤害提升',
+    element: '雷' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_THUNDER,
+    weight: 47,
+  },
+  {
+    id: 'gongfa-prefix-ice-specialization',
+    displayName: '玄霜凝意',
+    displayDescription: '冰系技能造成的伤害提升',
+    element: '冰' as const,
+    semanticTag: CreationTags.MATERIAL.SEMANTIC_FREEZE,
+    weight: 46,
+  },
+] as const;
+
+const GONGFA_ELEMENT_SPECIALIZATION_AFFIXES: AffixDefinition[] =
+  GONGFA_ELEMENT_SPECIALIZATION_CONFIGS.map((config) => ({
+    id: config.id,
+    displayName: config.displayName,
+    displayDescription: config.displayDescription,
+    category: 'prefix',
+    tagQuery: [
+      config.semanticTag,
+      ELEMENT_TO_MATERIAL_TAG[config.element],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ],
+    weight: config.weight,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_ABILITY_TAG[config.element] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  }));
+
 export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
-  // ===== CORE 词缀 (10 种)
+  // ===== CORE 词缀 (5 种)
   // ========================
   {
     id: 'gongfa-core-spirit',
@@ -96,99 +421,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-core-magic-attack',
-    displayName: '法力凝聚',
-    displayDescription: '战斗中永久提升法术攻击力',
-    category: 'core',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST],
-    exclusiveGroup: 'gongfa-core-damage',
-    weight: 78,
-    energyCost: 9,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.MAGIC_ATK,
-        modType: ModifierType.FIXED,
-        value: { base: 4, scale: 'quality', coefficient: 2 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-mana-burn-seal',
-    displayName: '蚀元印',
-    displayDescription: '持有者造成伤害时附带灵力灼烧',
-    category: 'core',
-    tagQuery: [
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ],
-    exclusiveGroup: 'gongfa-core-damage',
-    weight: 65,
-    energyCost: 10,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'mana_burn',
-      params: {
-        value: {
-          base: { base: 12, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.22,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
-    id: 'gongfa-core-crit-rate-boost',
-    displayName: '暴击易触',
-    displayDescription: '战斗中永久提升暴击率',
-    category: 'core',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_ORE],
-    exclusiveGroup: 'gongfa-core-damage',
-    weight: 62,
-    energyCost: 9,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.CRIT_RATE,
-        modType: ModifierType.FIXED,
-        value: { base: 0.04, scale: 'quality', coefficient: 0.012 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-amp-dual-attribute',
-    displayName: '阴阳平衡',
-    displayDescription: '平衡身心，同时提升物防与法防',
-    category: 'core',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
-    exclusiveGroup: 'gongfa-core-defense',
-    weight: 58,
-    energyCost: 10,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.DEF,
-        modType: ModifierType.FIXED,
-        value: { base: 3, scale: 'quality', coefficient: 1.5 },
-      },
-    },
-  },
-  {
     id: 'gongfa-core-speed-mastery',
     displayName: '身法精进',
     displayDescription: '战斗中永久提升身法',
     category: 'core',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE],
-    exclusiveGroup: 'gongfa-core-defense',
+    exclusiveGroup: 'gongfa-core-stat',
     weight: 55,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -198,30 +436,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.SPEED,
         modType: ModifierType.FIXED,
         value: { base: 3, scale: 'quality', coefficient: 1.5 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-backwater-mind',
-    displayName: '背水明心',
-    displayDescription: '仅在低血时触发的意志强化',
-    category: 'core',
-    tagQuery: [
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.SCENARIO.CASTER_LOW_HP,
-    ],
-    exclusiveGroup: 'gongfa-core-defense',
-    weight: 42,
-    energyCost: 10,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.45 } }],
-      params: {
-        attrType: AttributeType.WILLPOWER,
-        modType: ModifierType.ADD,
-        value: { base: 0.14, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
@@ -366,7 +580,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
         },
         chance: 1,
       },
@@ -384,7 +599,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-prefix-cold-resistance',
     displayName: '冰心诀',
-    displayDescription: '减少冰冻效果伤害',
+    displayDescription: '减少冰系技能造成的伤害',
     category: 'prefix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_FREEZE, ELEMENT_TO_MATERIAL_TAG['冰']],
     weight: 48,
@@ -392,6 +607,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_ABILITY_TAG['冰'] },
+        },
+      ],
       params: {
         mode: 'reduce',
         value: { base: 0.12, scale: 'quality', coefficient: 0.025 },
@@ -407,7 +628,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-prefix-fire-resistance',
     displayName: '炎阳决',
-    displayDescription: '减少火焰效果伤害',
+    displayDescription: '减少火系技能造成的伤害',
     category: 'prefix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']],
     weight: 46,
@@ -415,6 +636,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_ABILITY_TAG['火'] },
+        },
+      ],
       params: {
         mode: 'reduce',
         value: { base: 0.12, scale: 'quality', coefficient: 0.025 },
@@ -430,7 +657,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-prefix-thunder-resistance',
     displayName: '雷心闭合',
-    displayDescription: '减少雷电效果伤害',
+    displayDescription: '减少雷系技能造成的伤害',
     category: 'prefix',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_THUNDER, ELEMENT_TO_MATERIAL_TAG['雷']],
     weight: 44,
@@ -438,6 +665,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_ABILITY_TAG['雷'] },
+        },
+      ],
       params: {
         mode: 'reduce',
         value: { base: 0.12, scale: 'quality', coefficient: 0.025 },
@@ -450,6 +683,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
+  ...GONGFA_ELEMENT_SPECIALIZATION_AFFIXES,
   {
     id: 'gongfa-prefix-chill-breaker',
     displayName: '寒痕破诀',
@@ -465,7 +699,9 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'has_tag', params: { tag: 'Status.Chill' } }],
+      conditions: [
+        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_CHILL } },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.14, scale: 'quality', coefficient: 0.03 },
@@ -652,7 +888,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'dispel',
       params: {
-        targetTag: 'Status.Debuff',
+        targetTag: CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
         maxCount: 1,
       },
     },
@@ -800,7 +1036,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
         },
         chance: 1,
       },
@@ -845,7 +1082,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-resonance-elemental-mastery',
     displayName: '五行掌控',
-    displayDescription: '多种元素伤害相互强化',
+    displayDescription: '元素技能造成的伤害相互强化',
     category: 'resonance',
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FLAME,
@@ -857,6 +1094,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: CreationTags.BATTLE.ABILITY_ELEMENT },
+        },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
@@ -1064,7 +1307,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       type: 'attribute_modifier',
       params: {
         attrType: AttributeType.WISDOM,
-        modType: ModifierType.MULTIPLY,
+        modType: ModifierType.ADD,
         value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
       },
     },
@@ -1089,7 +1332,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Mythic'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: MYTHIC_BUFF_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.SPEED,
@@ -1213,7 +1457,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: ['Status.Mythic'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: MYTHIC_BUFF_STATUS_TAGS,
           modifiers: [
             {
               attrType: AttributeType.WISDOM,
@@ -1371,58 +1616,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       },
     },
   },
-
-  // --- 核心法术攻击 T2（玄品+，exclusiveGroup: gongfa-core-damage）---
-  {
-    id: 'gongfa-core-magic-attack-t2',
-    displayName: '玄灵凝法',
-    displayDescription: '玄级法力凝聚，法术攻击大幅增强',
-    category: 'core',
-    tagQuery: [
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_MONSTER,
-    ],
-    exclusiveGroup: 'gongfa-core-damage',
-    weight: 48,
-    energyCost: 11,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.MAGIC_ATK,
-        modType: ModifierType.FIXED,
-        value: { base: 7, scale: 'quality', coefficient: 3 },
-      },
-    },
-  },
-
-  // --- 核心法术攻击 T3（真品+，exclusiveGroup: gongfa-core-damage）---
-  {
-    id: 'gongfa-core-magic-attack-t3',
-    displayName: '天人合一法力圆融',
-    displayDescription: '真灵法力圆通，法术之力超脱凡俗',
-    category: 'core',
-    tagQuery: [
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
-    exclusiveGroup: 'gongfa-core-damage',
-    weight: 19,
-    energyCost: 13,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.MAGIC_ATK,
-        modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
-      },
-    },
-  },
+  ...GONGFA_PRIMARY_STAT_TIER_AFFIXES,
 
   // --- 前缀暴击伤害 T2（玄品+，exclusiveGroup: gongfa-prefix-crit-dmg-tier）---
   {
@@ -1724,7 +1918,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.STACK_LAYER,
-          tags: ['Status.Buff'],
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
           modifiers: [
             { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: 0.10 },
             { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.10 },
@@ -1788,32 +1983,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         attrType: AttributeType.VITALITY,
         modType: ModifierType.FIXED,
         value: { base: 21, scale: 'quality', coefficient: 8 },
-      },
-    },
-  },
-
-  // --- 核心法术攻击 T4（地品+，exclusiveGroup: gongfa-core-damage）---
-  {
-    id: 'gongfa-core-magic-attack-t4',
-    displayName: '大道法力归一',
-    displayDescription: '地阶大道法力归一，法术威力逼近道的极限',
-    category: 'core',
-    tagQuery: [
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
-    exclusiveGroup: 'gongfa-core-damage',
-    weight: 6,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.MAGIC_ATK,
-        modType: ModifierType.FIXED,
-        value: { base: 20, scale: 'quality', coefficient: 8 },
       },
     },
   },

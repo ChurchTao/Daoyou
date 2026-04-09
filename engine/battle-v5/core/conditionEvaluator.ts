@@ -17,12 +17,33 @@ interface ConditionContext {
     getCurrentMp: () => number;
     getMaxMp: () => number;
   };
+  ability?: {
+    tags: { hasTag: (tag: string) => boolean };
+  };
   triggerEvent?: unknown;
 }
 
 function getScopedUnit(context: ConditionContext, scope?: 'caster' | 'target') {
   if (scope === 'caster') return context.caster;
   return context.target;
+}
+
+function getAbilityTagsFromTriggerEvent(triggerEvent: unknown) {
+  if (!triggerEvent || typeof triggerEvent !== 'object') {
+    return undefined;
+  }
+
+  const eventLike = triggerEvent as {
+    ability?: {
+      tags?: { hasTag: (tag: string) => boolean };
+    };
+  };
+
+  return eventLike.ability?.tags;
+}
+
+function getAbilityTags(context: ConditionContext) {
+  return getAbilityTagsFromTriggerEvent(context.triggerEvent) ?? context.ability?.tags;
 }
 
 function getDamageTypeFromTriggerEvent(triggerEvent: unknown): DamageType | undefined {
@@ -38,28 +59,40 @@ export function evaluateCondition(
   context: ConditionContext,
   cond: ConditionConfig,
 ): boolean {
-  const { target } = context;
-  const scopedUnit = getScopedUnit(context, cond.params.scope) ?? target;
+  const scopedUnit = getScopedUnit(context, cond.params.scope);
   const threshold = cond.params.value ?? 0;
 
   switch (cond.type) {
     case 'has_tag':
-      return cond.params.tag ? target.tags.hasTag(cond.params.tag) : true;
+      return cond.params.tag ? scopedUnit?.tags.hasTag(cond.params.tag) ?? false : true;
     case 'has_not_tag':
-      return cond.params.tag ? !target.tags.hasTag(cond.params.tag) : true;
+      return cond.params.tag
+        ? !(scopedUnit?.tags.hasTag(cond.params.tag) ?? false)
+        : true;
     case 'has_tag_on': {
       const unit = getScopedUnit(context, cond.params.scope);
       if (!unit || !cond.params.tag) return false;
       return unit.tags.hasTag(cond.params.tag);
     }
+    case 'ability_has_tag': {
+      const abilityTags = getAbilityTags(context);
+      if (!abilityTags || !cond.params.tag) return false;
+      return abilityTags.hasTag(cond.params.tag);
+    }
+    case 'ability_has_not_tag': {
+      const abilityTags = getAbilityTags(context);
+      if (!cond.params.tag) return true;
+      if (!abilityTags) return true;
+      return !abilityTags.hasTag(cond.params.tag);
+    }
     case 'hp_above':
-      return scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() > threshold;
+      return !!scopedUnit && scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() > threshold;
     case 'hp_below':
-      return scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() < threshold;
+      return !!scopedUnit && scopedUnit.getCurrentHp() / scopedUnit.getMaxHp() < threshold;
     case 'mp_above':
-      return scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
+      return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
     case 'mp_below':
-      return scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() < threshold;
+      return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() < threshold;
     case 'damage_type_is': {
       const expected = cond.params.damageType;
       if (!expected) return false;

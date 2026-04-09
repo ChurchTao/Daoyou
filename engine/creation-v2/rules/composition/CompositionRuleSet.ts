@@ -39,7 +39,7 @@ export class CompositionRuleSet {
         new NamingRules(),
         new EnergyConversionRules(),
         new ProjectionRules(registry, translator),
-        new FallbackOutcomeRules(),
+        new FallbackOutcomeRules(registry, translator),
       ],
       (facts) => ({
         outcomeKind: facts.outcomeKind,

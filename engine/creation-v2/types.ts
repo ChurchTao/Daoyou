@@ -12,6 +12,7 @@ import type {
   AffixPoolDecision,
   AffixSelectionDecision,
 } from './rules/contracts';
+import type { RuleTraceEntry } from './rules/core/types';
 
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
 export type CreationOutcomeKind = 'active_skill' | 'artifact' | 'gongfa';
@@ -111,7 +112,15 @@ export interface CreationIntent {
   requestedTags: string[];
   elementBias?: ElementType;
   slotBias?: EquipmentSlot;
+  slotBiasSource?: CreationIntentSlotBiasSource;
+  trace?: RuleTraceEntry[];
 }
+
+export type CreationIntentSlotBiasSource =
+  | 'requested'
+  | 'inferred_keyword_armor'
+  | 'inferred_keyword_accessory'
+  | 'default_weapon_fallback';
 
 export interface RecipeMatch {
   recipeId: string;

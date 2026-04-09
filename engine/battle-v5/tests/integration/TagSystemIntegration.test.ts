@@ -2,6 +2,7 @@ import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
 import { GameplayTags } from '../../core/GameplayTags';
 import { BuffAddEvent, BuffImmuneEvent, EventPriorityLevel } from '../../core/events';
+import { DispelEffect } from '../../effects/DispelEffect';
 import { AbilityType, BuffId, BuffType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { Unit } from '../../units/Unit';
@@ -76,6 +77,42 @@ describe('标签系统集成测试', () => {
       expect(immuneTag).toBe(GameplayTags.BUFF.TYPE_DEBUFF);
 
       EventBus.instance.unsubscribe<BuffImmuneEvent>('BuffImmuneEvent', handler);
+    });
+
+    it('通用 debuff 免疫应拦截带 control 标签的控制 buff', () => {
+      const unit = new Unit('test', '测试', {});
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
+
+      const controlBuff = new Buff('stun' as BuffId, '眩晕', BuffType.CONTROL, 2);
+      controlBuff.tags.addTags([
+        GameplayTags.BUFF.TYPE_DEBUFF,
+        GameplayTags.BUFF.TYPE_CONTROL,
+      ]);
+
+      unit.buffs.addBuff(controlBuff);
+
+      expect(unit.buffs.getAllBuffIds()).not.toContain('stun');
+    });
+  });
+
+  describe('BUFF 驱散系统', () => {
+    it('通用 debuff 驱散应移除带 control 标签的控制 buff', () => {
+      const unit = new Unit('test', '测试', {});
+      const controlBuff = new Buff('stun' as BuffId, '眩晕', BuffType.CONTROL, 2);
+      controlBuff.tags.addTags([
+        GameplayTags.BUFF.TYPE_DEBUFF,
+        GameplayTags.BUFF.TYPE_CONTROL,
+      ]);
+
+      unit.buffs.addBuff(controlBuff);
+      expect(unit.buffs.getAllBuffIds()).toContain('stun');
+
+      new DispelEffect({
+        targetTag: GameplayTags.BUFF.TYPE_DEBUFF,
+        maxCount: 1,
+      }).execute({ caster: unit, target: unit });
+
+      expect(unit.buffs.getAllBuffIds()).not.toContain('stun');
     });
   });
 

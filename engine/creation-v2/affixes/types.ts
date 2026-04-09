@@ -14,7 +14,7 @@ import {
   ListenerScope,
 } from '../contracts/battle';
 import { StackRule } from '../contracts/battle';
-import { Quality } from '@/types/constants';
+import { EquipmentSlot, Quality } from '@/types/constants';
 import { AffixCategory, CreationProductType } from '../types';
 
 // ===== 品质缩放值 =====
@@ -66,6 +66,12 @@ export interface AffixEffectTemplateBase {
   conditions?: ConditionConfig[];
 }
 
+export interface AffixAttributeModifierTemplate {
+  attrType: AttributeType;
+  modType: ModifierType;
+  value: ScalableParam;
+}
+
 /**
  * 词缀效果模板（镜像 battle-v5 EffectConfig，但数值允许 ScalableParam）
  *
@@ -78,7 +84,10 @@ export interface AffixEffectTemplateBase {
 export type AffixEffectTemplate = AffixEffectTemplateBase &
   (
   | { type: 'damage'; params: { value: AffixScalableValue } }
-  | { type: 'heal'; params: { value: AffixScalableValue } }
+  | {
+      type: 'heal';
+      params: { value: AffixScalableValue; target?: 'hp' | 'mp' };
+    }
   | { type: 'shield'; params: { value: AffixScalableValue } }
   | { type: 'mana_burn'; params: { value: AffixScalableValue } }
   | {
@@ -110,11 +119,15 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
        * 由 ProjectionRules 投影为 AbilityConfig.modifiers
        */
       type: 'attribute_modifier';
-      params: {
-        attrType: AttributeType;
-        modType: ModifierType;
-        value: ScalableParam;
-      };
+      params:
+        | {
+            modifiers: AffixAttributeModifierTemplate[];
+          }
+        | {
+            attrType: AttributeType;
+            modType: ModifierType;
+            value: ScalableParam;
+          };
     }
   | {
       /**
@@ -176,6 +189,8 @@ export interface AffixDefinition {
   minQuality?: Quality;
   /** 允许进入候选池的最高材料品质（超出此品质的材料不能秗到此词缀） */
   maxQuality?: Quality;
+  /** 法宝专用：限定可进入候选池的装备槽位 */
+  applicableArtifactSlots?: EquipmentSlot[];
   /** 词缀效果模板（含品质缩放参数） */
   effectTemplate: AffixEffectTemplate;
   /** 被动能力词缀的监听器规格（artifact/gongfa 词缀必填） */

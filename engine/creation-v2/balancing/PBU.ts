@@ -11,9 +11,11 @@ export interface PBUChannels {
   modifier: number;
 }
 
+export type TargetTtkBand = '4-10' | '8-20' | '20+';
+
 export interface BalanceMetrics {
   pbu: number;
-  targetTtkBand: string;
+  targetTtkBand: TargetTtkBand;
   channels: PBUChannels;
 }
 
@@ -134,8 +136,8 @@ function inferChannel(affix: RolledAffix): keyof PBUChannels {
   return 'utility';
 }
 
-function classifyTtkBand(pbu: number): string {
-  if (pbu >= 64) return '2-3';
-  if (pbu >= 38) return '3-5';
-  return '5-7';
+function classifyTtkBand(pbu: number): TargetTtkBand {
+  if (pbu >= 64) return '4-10';
+  if (pbu >= 38) return '8-20';
+  return '20+';
 }

@@ -66,6 +66,28 @@ export const CREATION_SKILL_DEFAULTS = {
 } as const;
 
 /**
+ * creation-v2 的统一持续时间策略。
+ *
+ * 约束来源于本轮平衡计划：
+ * - control 默认 2 回合，高阶特殊控制最多 3 回合
+ * - 非控制 buff / debuff 统一收敛到 3-6 回合
+ * - 仅允许极少数高成本、强语义的特例保留常驻
+ */
+export const CREATION_DURATION_POLICY = {
+  control: {
+    default: 2,
+    elite: 3,
+  },
+  buffDebuff: {
+    short: 3,
+    standard: 4,
+    long: 5,
+    extended: 6,
+    persistentException: -1,
+  },
+} as const;
+
+/**
  * 被动产物在缺少完整词缀时的默认投影参数。
  * 主要用于法宝、功法这类被动能力的兜底构造。
  */
@@ -338,8 +360,9 @@ export const CREATION_LISTENER_PRIORITIES = {
   actionPreBuff: CREATION_EVENT_PRIORITY_LEVELS.ACTION_TRIGGER,
   // 技能施放瞬间的监听优先级。
   skillCast: CREATION_EVENT_PRIORITY_LEVELS.SKILL_CAST,
-  // 伤害请求阶段的监听优先级，常用于增伤、减伤、改写伤害类型。
-  damageRequest: CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_REQUEST,
+  // 伤害请求阶段的监听优先级，必须早于 DamageSystem 本身，
+  // 否则增减伤桶会在结算后才写入，导致运行时失效。
+  damageRequest: CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_REQUEST + 1,
   // 伤害实际结算阶段的监听优先级。
   damageApply: CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_APPLY,
   // 免疫类效果在伤害结算阶段略后执行，确保能拦截最终伤害。

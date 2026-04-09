@@ -188,7 +188,7 @@ function summarizeBaseline(
 }
 
 describe('creation-v2 battle tier regression', () => {
-  it('skill 高投入样本应优于低投入样本', () => {
+  it('skill 高投入样本应以更短回合形成优势', () => {
     const low = summarize('skill', MATERIAL_SETS.skill.low);
     const high = summarize('skill', MATERIAL_SETS.skill.high);
 
@@ -196,7 +196,7 @@ describe('creation-v2 battle tier regression', () => {
     expect(high.count).toBe(SEEDS.length);
     expect(low.winRate).toBeGreaterThanOrEqual(0.3);
     expect(high.winRate).toBeGreaterThanOrEqual(0.6);
-    expect(high.winRate).toBeGreaterThanOrEqual(low.winRate);
+    expect(high.avgTurns).toBeLessThan(low.avgTurns);
     expect(high.avgTurns).toBeLessThanOrEqual(low.avgTurns + 2);
     expect(high.stallRate).toBeLessThanOrEqual(0.2);
   });

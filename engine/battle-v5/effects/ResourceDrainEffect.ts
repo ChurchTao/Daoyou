@@ -1,8 +1,8 @@
-import { GameplayEffect, EffectContext } from './Effect';
-import { DamageTakenEvent, EventPriorityLevel, ResourceDrainEvent } from '../core/events';
-import { EffectRegistry } from '../factories/EffectRegistry';
 import { ResourceDrainParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
+import { DamageTakenEvent, ResourceDrainEvent } from '../core/events';
+import { EffectRegistry } from '../factories/EffectRegistry';
+import { EffectContext, GameplayEffect } from './Effect';
 
 /**
  * 资源夺取原子效果 (吸血/吸蓝)
@@ -46,4 +46,7 @@ export class ResourceDrainEffect extends GameplayEffect {
 }
 
 // 注册
-EffectRegistry.getInstance().register('resource_drain', (params) => new ResourceDrainEffect(params));
+EffectRegistry.getInstance().register(
+  'resource_drain',
+  (params) => new ResourceDrainEffect(params),
+);

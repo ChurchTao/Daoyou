@@ -17,6 +17,8 @@ export interface ConditionConfig {
     | 'has_tag'
     | 'has_not_tag'
     | 'has_tag_on'
+    | 'ability_has_tag'
+    | 'ability_has_not_tag'
     | 'hp_above'
     | 'hp_below'
     | 'mp_above'
@@ -56,6 +58,7 @@ export interface DamageParams {
  */
 export interface HealParams {
   value: ScalableValue;
+  target?: 'hp' | 'mp';
 }
 
 /**

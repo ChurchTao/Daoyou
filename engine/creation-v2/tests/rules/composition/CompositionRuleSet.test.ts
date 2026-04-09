@@ -101,6 +101,27 @@ const DAMAGE_AFFIX_DEF: AffixDefinition = {
   },
 };
 
+const SKILL_FALLBACK_CORE_AFFIX_DEF: AffixDefinition = {
+  id: 'skill-core-damage',
+  displayName: '斩击',
+  displayDescription: '技能保底核心伤害',
+  category: 'core',
+  applicableTo: ['skill'],
+  tagQuery: ['Material.Semantic.Metal'],
+  weight: 10,
+  energyCost: 8,
+  effectTemplate: {
+    type: 'damage',
+    params: {
+      value: {
+        base: { base: 80, scale: 'quality', coefficient: 14 },
+        attribute: AttributeType.MAGIC_ATK,
+        coefficient: 0.9,
+      },
+    },
+  },
+};
+
 const HEAL_AFFIX_DEF: AffixDefinition = {
   id: 'core-heal',
   displayName: '愈元',
@@ -135,6 +156,93 @@ const ARTIFACT_STATIC_MODIFIER_AFFIX_DEF: AffixDefinition = {
   },
 };
 
+const ARTIFACT_BUNDLED_MODIFIER_AFFIX_DEF: AffixDefinition = {
+  id: 'artifact-bundled-modifier',
+  displayName: '双极灵核',
+  displayDescription: '法宝常驻双属性加成',
+  category: 'core',
+  applicableTo: ['artifact'],
+  applicableArtifactSlots: ['weapon'],
+  tagQuery: ['Material.Semantic.Metal'],
+  weight: 10,
+  energyCost: 8,
+  effectTemplate: {
+    type: 'attribute_modifier',
+    params: {
+      modifiers: [
+        {
+          attrType: AttributeType.ATK,
+          modType: ModifierType.FIXED,
+          value: { base: 6, scale: 'quality', coefficient: 2 },
+        },
+        {
+          attrType: AttributeType.MAGIC_ATK,
+          modType: ModifierType.FIXED,
+          value: { base: 6, scale: 'quality', coefficient: 2 },
+        },
+      ],
+    },
+  },
+};
+
+const ARTIFACT_WEAPON_FALLBACK_CORE_AFFIX_DEF: AffixDefinition = {
+  id: 'artifact-core-weapon-dual-edge',
+  displayName: '锋魂双极',
+  displayDescription: '法宝 weapon 槽位的保底双攻核心',
+  category: 'core',
+  applicableTo: ['artifact'],
+  applicableArtifactSlots: ['weapon'],
+  tagQuery: ['Material.Semantic.Metal'],
+  weight: 10,
+  energyCost: 8,
+  effectTemplate: {
+    type: 'attribute_modifier',
+    params: {
+      modifiers: [
+        {
+          attrType: AttributeType.ATK,
+          modType: ModifierType.FIXED,
+          value: { base: 6, scale: 'quality', coefficient: 2 },
+        },
+        {
+          attrType: AttributeType.MAGIC_ATK,
+          modType: ModifierType.FIXED,
+          value: { base: 6, scale: 'quality', coefficient: 2 },
+        },
+      ],
+    },
+  },
+};
+
+const ARTIFACT_ACCESSORY_FALLBACK_CORE_AFFIX_DEF: AffixDefinition = {
+  id: 'artifact-core-accessory-omen',
+  displayName: '星兆坠',
+  displayDescription: '法宝 accessory 槽位的保底双副属性核心',
+  category: 'core',
+  applicableTo: ['artifact'],
+  applicableArtifactSlots: ['accessory'],
+  tagQuery: ['Material.Semantic.Spirit'],
+  weight: 10,
+  energyCost: 8,
+  effectTemplate: {
+    type: 'attribute_modifier',
+    params: {
+      modifiers: [
+        {
+          attrType: AttributeType.CRIT_RATE,
+          modType: ModifierType.FIXED,
+          value: { base: 0.035, scale: 'quality', coefficient: 0.008 },
+        },
+        {
+          attrType: AttributeType.CRIT_DAMAGE_MULT,
+          modType: ModifierType.FIXED,
+          value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+        },
+      ],
+    },
+  },
+};
+
 const ARTIFACT_TEMP_STAT_BUFF_AFFIX_DEF: AffixDefinition = {
   id: 'artifact-temp-stat-buff',
   displayName: '灵光灌注',
@@ -155,6 +263,25 @@ const ARTIFACT_TEMP_STAT_BUFF_AFFIX_DEF: AffixDefinition = {
   },
 };
 
+const GONGFA_FALLBACK_CORE_AFFIX_DEF: AffixDefinition = {
+  id: 'gongfa-core-spirit',
+  displayName: '灵脉运转',
+  displayDescription: '功法保底灵力核心',
+  category: 'core',
+  applicableTo: ['gongfa'],
+  tagQuery: ['Material.Semantic.Spirit'],
+  weight: 10,
+  energyCost: 8,
+  effectTemplate: {
+    type: 'attribute_modifier',
+    params: {
+      attrType: AttributeType.SPIRIT,
+      modType: ModifierType.FIXED,
+      value: { base: 5, scale: 'quality', coefficient: 2 },
+    },
+  },
+};
+
 // ─── tests ──────────────────────────────────────────────────────────────────
 
 describe('CompositionRuleSet — 端到端集成', () => {
@@ -165,9 +292,14 @@ describe('CompositionRuleSet — 端到端集成', () => {
     registry = new AffixRegistry();
     registry.register([
       DAMAGE_AFFIX_DEF,
+      SKILL_FALLBACK_CORE_AFFIX_DEF,
       HEAL_AFFIX_DEF,
       ARTIFACT_STATIC_MODIFIER_AFFIX_DEF,
+      ARTIFACT_BUNDLED_MODIFIER_AFFIX_DEF,
+      ARTIFACT_WEAPON_FALLBACK_CORE_AFFIX_DEF,
+      ARTIFACT_ACCESSORY_FALLBACK_CORE_AFFIX_DEF,
       ARTIFACT_TEMP_STAT_BUFF_AFFIX_DEF,
+      GONGFA_FALLBACK_CORE_AFFIX_DEF,
     ]);
     ruleSet = new CompositionRuleSet(registry, new AffixEffectTranslator());
   });
@@ -269,7 +401,7 @@ describe('CompositionRuleSet — 端到端集成', () => {
   // ── artifact ───────────────────────────────────────────────────────────────
 
   describe('productType: artifact', () => {
-    it('无词缀时：应触发 fallback，产出 artifact_passive policy，含 DamageTakenEvent listener', () => {
+    it('无词缀时：应触发 fallback，产出 artifact_passive policy，并注入槽位 core modifiers', () => {
       const facts = makeFacts({ productType: 'artifact' });
       const decision = ruleSet.evaluate(facts);
 
@@ -277,9 +409,26 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const policy = decision.projectionPolicy as PassiveProjectionPolicy;
       expect(policy).toBeDefined();
       expect(policy.kind).toBe('artifact_passive');
-      expect(policy.listeners.length).toBeGreaterThan(0);
-      expect(policy.listeners[0].eventType).toBe(CreationTags.BATTLE_EVENT.DAMAGE_TAKEN);
-      expect(decision.defaultsApplied).toContain('artifact_shield_fallback');
+      expect(policy.listeners).toHaveLength(0);
+      expect(policy.modifiers?.length).toBe(2);
+      expect(decision.defaultsApplied).toContain('artifact_core_fallback');
+    });
+
+    it('artifact accessory 无词缀时：应注入 accessory core 的两个二级属性 modifiers', () => {
+      const facts = makeFacts({
+        productType: 'artifact',
+        intent: {
+          productType: 'artifact',
+          outcomeKind: 'artifact',
+          slotBias: 'accessory',
+          dominantTags: [],
+          requestedTags: [],
+        },
+      });
+      const decision = ruleSet.evaluate(facts);
+      const policy = decision.projectionPolicy as PassiveProjectionPolicy;
+
+      expect(policy.modifiers).toHaveLength(2);
     });
 
     it('decision.name 不应为空字符串', () => {
@@ -343,6 +492,46 @@ describe('CompositionRuleSet — 端到端集成', () => {
       expect(policy.modifiers?.[0]?.value).toBe(8);
     });
 
+    it('attribute_modifier 支持一次投影多个 modifiers（weapon core）', () => {
+      const facts = makeFacts({
+        productType: 'artifact',
+        intent: {
+          productType: 'artifact',
+          outcomeKind: 'artifact',
+          slotBias: 'weapon',
+          dominantTags: [],
+          requestedTags: [],
+        },
+        affixes: [
+          {
+            id: 'artifact-bundled-modifier',
+            name: '双极灵核',
+            category: 'core',
+            energyCost: 8,
+            rollScore: 1,
+            weight: 10,
+            tags: [],
+          },
+        ],
+      });
+      const decision = ruleSet.evaluate(facts);
+      const policy = decision.projectionPolicy as PassiveProjectionPolicy;
+
+      expect(policy.modifiers).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            attrType: AttributeType.ATK,
+            type: ModifierType.FIXED,
+          }),
+          expect.objectContaining({
+            attrType: AttributeType.MAGIC_ATK,
+            type: ModifierType.FIXED,
+          }),
+        ]),
+      );
+      expect(policy.modifiers).toHaveLength(2);
+    });
+
     it('attribute_stat_buff 应保留为 listener + apply_buff（临时 buff 语义）', () => {
       const facts = makeFacts({
         productType: 'artifact',
@@ -372,7 +561,7 @@ describe('CompositionRuleSet — 端到端集成', () => {
   // ── gongfa ─────────────────────────────────────────────────────────────────
 
   describe('productType: gongfa', () => {
-    it('无词缀时：应触发 fallback，产出 gongfa_passive policy，含 ActionPreEvent listener', () => {
+    it('无词缀时：应触发 fallback，产出 gongfa_passive policy，并注入永久属性 modifiers', () => {
       const facts = makeFacts({
         productType: 'gongfa',
         materialNames: ['玄铁'],
@@ -383,8 +572,8 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const policy = decision.projectionPolicy as PassiveProjectionPolicy;
       expect(policy).toBeDefined();
       expect(policy.kind).toBe('gongfa_passive');
-      expect(policy.listeners.length).toBeGreaterThan(0);
-      expect(policy.listeners[0].eventType).toBe(CreationTags.BATTLE_EVENT.ACTION_PRE);
+      expect(policy.listeners).toHaveLength(0);
+      expect(policy.modifiers?.length).toBeGreaterThan(0);
       expect(decision.defaultsApplied).toContain('gongfa_spirit_fallback');
     });
 

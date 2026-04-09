@@ -1,5 +1,6 @@
 import {
   CREATION_AFFIX_UNLOCK_THRESHOLDS,
+  CREATION_DURATION_POLICY,
   CREATION_LISTENER_PRIORITIES,
   CREATION_RESERVED_ENERGY,
 } from '@/engine/creation-v2/config/CreationBalance';
@@ -43,11 +44,21 @@ describe('Creation config consistency', () => {
       CREATION_EVENT_PRIORITY_LEVELS.SKILL_CAST,
     );
     expect(CREATION_LISTENER_PRIORITIES.damageRequest).toBe(
-      CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_REQUEST,
+      CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_REQUEST + 1,
     );
     expect(CREATION_LISTENER_PRIORITIES.damageTaken).toBe(
       CREATION_EVENT_PRIORITY_LEVELS.DAMAGE_TAKEN,
     );
+  });
+
+  it('应保证统一 duration policy 满足 control 2-3 / buff-debuff 3-6 的约束', () => {
+    expect(CREATION_DURATION_POLICY.control.default).toBe(2);
+    expect(CREATION_DURATION_POLICY.control.elite).toBe(3);
+    expect(CREATION_DURATION_POLICY.buffDebuff.short).toBe(3);
+    expect(CREATION_DURATION_POLICY.buffDebuff.standard).toBe(4);
+    expect(CREATION_DURATION_POLICY.buffDebuff.long).toBe(5);
+    expect(CREATION_DURATION_POLICY.buffDebuff.extended).toBe(6);
+    expect(CREATION_DURATION_POLICY.buffDebuff.persistentException).toBe(-1);
   });
 
   it('应保证 slug 前缀配置非空且彼此区分', () => {

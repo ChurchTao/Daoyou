@@ -5,7 +5,13 @@
  */
 import { EquipmentSlot } from '@/types/constants';
 import { MaterialFactsBuilder } from '../analysis/MaterialFactsBuilder';
-import { CreationIntent, CreationSessionInput, MaterialFingerprint } from '../types';
+import { RuleTraceEntry } from '../rules/core/types';
+import {
+  CreationIntent,
+  CreationIntentSlotBiasSource,
+  CreationSessionInput,
+  MaterialFingerprint,
+} from '../types';
 
 export class DefaultIntentResolver {
   resolve(
@@ -18,6 +24,7 @@ export class DefaultIntentResolver {
       fingerprints,
       input.requestedTags ?? [],
     );
+    const slotBiasResolution = this.resolveSlotBias(input, fingerprints);
 
     return {
       productType: input.productType,
@@ -25,7 +32,9 @@ export class DefaultIntentResolver {
       dominantTags,
       requestedTags: input.requestedTags ?? [],
       elementBias: this.pickElementBias(fingerprints, input.requestedElement),
-      slotBias: input.requestedSlot ?? this.inferSlotBias(input.productType, fingerprints),
+      slotBias: slotBiasResolution.slotBias,
+      slotBiasSource: slotBiasResolution.slotBiasSource,
+      trace: slotBiasResolution.trace,
     };
   }
 
@@ -59,6 +68,90 @@ export class DefaultIntentResolver {
    * TODO(P1-4): This heuristic belongs in the rules layer (MaterialTagNormalizer or a dedicated
    * SlotBiasRule), so it can produce proper RuleTrace entries. Move when adding slot-specific rules.
    */
+  private resolveSlotBias(
+    input: CreationSessionInput,
+    fingerprints: MaterialFingerprint[],
+  ): {
+    slotBias?: EquipmentSlot;
+    slotBiasSource?: CreationIntentSlotBiasSource;
+    trace: RuleTraceEntry[];
+  } {
+    if (input.productType !== 'artifact') {
+      return { slotBias: undefined, trace: [] };
+    }
+
+    if (input.requestedSlot) {
+      return {
+        slotBias: input.requestedSlot,
+        slotBiasSource: 'requested',
+        trace: [
+          {
+            ruleId: 'intent.slot_bias',
+            outcome: 'applied',
+            message: '使用调用方显式指定的 artifact 槽位',
+            details: {
+              slotBias: input.requestedSlot,
+              source: 'requested',
+            },
+          },
+        ],
+      };
+    }
+
+    const inferredSlotBias = this.inferSlotBias(input.productType, fingerprints);
+    if (inferredSlotBias === 'armor') {
+      return {
+        slotBias: inferredSlotBias,
+        slotBiasSource: 'inferred_keyword_armor',
+        trace: [
+          {
+            ruleId: 'intent.slot_bias',
+            outcome: 'applied',
+            message: '按材料关键词推断 artifact 槽位为 armor',
+            details: {
+              slotBias: inferredSlotBias,
+              source: 'inferred_keyword_armor',
+            },
+          },
+        ],
+      };
+    }
+
+    if (inferredSlotBias === 'accessory') {
+      return {
+        slotBias: inferredSlotBias,
+        slotBiasSource: 'inferred_keyword_accessory',
+        trace: [
+          {
+            ruleId: 'intent.slot_bias',
+            outcome: 'applied',
+            message: '按材料关键词推断 artifact 槽位为 accessory',
+            details: {
+              slotBias: inferredSlotBias,
+              source: 'inferred_keyword_accessory',
+            },
+          },
+        ],
+      };
+    }
+
+    return {
+      slotBias: 'weapon',
+      slotBiasSource: 'default_weapon_fallback',
+      trace: [
+        {
+          ruleId: 'intent.slot_bias',
+          outcome: 'applied',
+          message: '未匹配到 artifact 槽位关键词，回退为 weapon',
+          details: {
+            slotBias: 'weapon',
+            source: 'default_weapon_fallback',
+          },
+        },
+      ],
+    };
+  }
+
   private inferSlotBias(
     productType: CreationSessionInput['productType'],
     fingerprints: MaterialFingerprint[],
