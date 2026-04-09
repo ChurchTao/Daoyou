@@ -13,6 +13,7 @@ function addBuffImmunityPassive(unit: Unit, tags: string[]): void {
       slug: `buff_immunity_${tags.join('_')}`,
       name: '万法不侵',
       type: AbilityType.PASSIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND_PASSIVE],
       listeners: [
         {
           eventType: 'BuffAddEvent',
@@ -154,6 +155,43 @@ describe('标签系统集成测试', () => {
 
       expect(unit.buffs.getAllBuffIds()).not.toContain('test');
       EventBus.instance.unsubscribe('BuffAddEvent', handler);
+    });
+
+    it('buff_duration_modify 应延长命中标签的正面 buff 持续时间', () => {
+      const unit = new Unit('test', '测试', {});
+
+      unit.abilities.addAbility(
+        AbilityFactory.create({
+          slug: 'buff_duration_extend',
+          name: '状态持延',
+          type: AbilityType.PASSIVE_SKILL,
+          tags: [GameplayTags.ABILITY.KIND_PASSIVE],
+          listeners: [
+            {
+              eventType: 'BuffAddEvent',
+              scope: 'owner_as_target',
+              priority: EventPriorityLevel.BUFF_INTERCEPT,
+              effects: [
+                {
+                  type: 'buff_duration_modify',
+                  params: {
+                    rounds: 1,
+                    tags: [GameplayTags.BUFF.TYPE_BUFF],
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+
+      const buff = new Buff('focus' as BuffId, '凝神', BuffType.BUFF, 3);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+
+      unit.buffs.addBuff(buff);
+
+      expect(buff.getDuration()).toBe(4);
+      expect(buff.getMaxDuration()).toBe(4);
     });
   });
 

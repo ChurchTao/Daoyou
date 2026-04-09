@@ -9,10 +9,6 @@ import {
   CREATION_LISTENER_PRIORITIES,
   CREATION_SKILL_DEFAULTS,
 } from '../../config/CreationBalance';
-import {
-  CORE_EFFECT_TYPE_TO_ABILITY_TAG,
-  ELEMENT_TO_ABILITY_TAG,
-} from '../../config/CreationMappings';
 import type {
   AttributeModifierConfig,
   EffectConfig,
@@ -29,6 +25,7 @@ import {
 import { CompositionFacts } from '../contracts/CompositionFacts';
 import { Rule } from '../core/Rule';
 import { RuleContext } from '../core/RuleContext';
+import { assembleAbilityTags } from './AbilityTagAssembler';
 
 /**
  * ProjectionRules
@@ -157,32 +154,32 @@ export class ProjectionRules implements Rule<
         ? { team: 'self' as const, scope: 'single' as const }
         : { team: 'enemy' as const, scope: 'single' as const };
 
-    const elementTag = intent.elementBias
-      ? ELEMENT_TO_ABILITY_TAG[intent.elementBias]
-      : undefined;
-
-    const abilityTypeTag =
-      CORE_EFFECT_TYPE_TO_ABILITY_TAG[facts.coreEffectType ?? coreType] ??
-      CreationTags.BATTLE.ABILITY_TYPE_DAMAGE;
-
-    // Infer magic/physical from the core damage affix's primary attribute scaling.
-    // battle-v5 DamageSystem resolves DamageType from ability tags; without an explicit
-    // magic/physical tag it defaults to PHYSICAL, which mis-routes MAGIC_ATK-scaled skills.
-    let physicsMagicTag: string | undefined;
-    if (coreType === 'damage' && coreDef?.effectTemplate.type === 'damage') {
-      const attr = coreDef.effectTemplate.params.value.attribute;
-      if (attr === AttributeType.MAGIC_ATK) {
-        physicsMagicTag = CreationTags.BATTLE.ABILITY_TYPE_MAGIC;
-      } else if (attr === AttributeType.ATK) {
-        physicsMagicTag = CreationTags.BATTLE.ABILITY_TYPE_PHYSICAL;
-      }
-    }
-
-    const abilityTags = [
-      abilityTypeTag,
-      ...(physicsMagicTag ? [physicsMagicTag] : []),
-      ...(elementTag ? [elementTag] : []),
-    ];
+    const abilityTags =
+      directEffects.length === 0 &&
+      extraListeners.length === 0 &&
+      affixes.length === 0
+        ? assembleAbilityTags({
+            productType: 'skill',
+            effects: [
+              {
+                type: 'damage',
+                params: {
+                  value: {
+                    base: 0,
+                    attribute: AttributeType.MAGIC_ATK,
+                    coefficient: 0,
+                  },
+                },
+              },
+            ],
+            elementBias: intent.elementBias,
+          })
+        : assembleAbilityTags({
+            productType: 'skill',
+            effects: directEffects,
+            listeners: extraListeners,
+            elementBias: intent.elementBias,
+          });
 
     return {
       kind: 'active_skill',
@@ -247,17 +244,11 @@ export class ProjectionRules implements Rule<
       defaultListenerSpec,
     });
 
-    const elementTag = intent.elementBias
-      ? ELEMENT_TO_ABILITY_TAG[intent.elementBias]
-      : undefined;
-
-    const abilityTags =
-      productType === 'artifact'
-        ? [
-            ...(elementTag ? [elementTag] : []),
-            CreationTags.BATTLE.ABILITY_KIND_ARTIFACT,
-          ]
-        : [CreationTags.BATTLE.ABILITY_KIND_GONGFA];
+    const abilityTags = assembleAbilityTags({
+      productType,
+      listeners,
+      elementBias: intent.elementBias,
+    });
 
     const projectionKind =
       productType === 'artifact' ? 'artifact_passive' : 'gongfa_passive';

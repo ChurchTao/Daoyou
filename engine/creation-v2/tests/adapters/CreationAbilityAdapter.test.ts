@@ -1,5 +1,5 @@
 import type { Ability } from '@/engine/creation-v2/contracts/battle';
-import { AbilityType } from '@/engine/creation-v2/contracts/battle';
+import { AbilityType, AttributeType } from '@/engine/creation-v2/contracts/battle';
 import { CreationAbilityAdapter } from '@/engine/creation-v2/adapters/CreationAbilityAdapter';
 import type { CreationAbilityBuilder } from '@/engine/creation-v2/adapters/types';
 import type { CreationBlueprint } from '@/engine/creation-v2/types';
@@ -13,12 +13,15 @@ function createSkillBlueprint(): CreationBlueprint {
       slug: 'craft-v2-skill-test',
       name: '焚岳诀',
       description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
-      tags: ['Outcome.ActiveSkill', 'Ability.Element.Fire'],
+      tags: ['Outcome.ActiveSkill'],
       affixes: [],
-      abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
       battleProjection: {
         projectionKind: 'active_skill',
-        abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
+        abilityTags: [
+          'Ability.Type.Damage',
+          'Ability.Type.Magic',
+          'Ability.Element.Fire',
+        ],
         mpCost: 18,
         cooldown: 2,
         priority: 12,
@@ -32,6 +35,7 @@ function createSkillBlueprint(): CreationBlueprint {
             params: {
               value: {
                 base: 24,
+                attribute: AttributeType.MAGIC_ATK,
                 coefficient: 0.8,
               },
             },

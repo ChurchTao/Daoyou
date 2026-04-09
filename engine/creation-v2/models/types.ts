@@ -27,7 +27,6 @@ interface BaseProductModel<
   description?: string;
   tags: string[];
   affixes: RolledAffix[];
-  abilityTags: string[];
   balanceMetrics?: BalanceMetrics;
 }
 

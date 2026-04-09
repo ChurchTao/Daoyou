@@ -1,4 +1,4 @@
-import { Ability, AbilityType } from '@/engine/creation-v2/contracts/battle';
+import { Ability, AbilityType, AttributeType } from '@/engine/creation-v2/contracts/battle';
 import { projectAbilityConfig } from '../models';
 import { CreationOutcomeMaterializer } from '../adapters/types';
 import { TestableCreationOrchestrator as CreationOrchestrator } from './helpers/TestableCreationOrchestrator';
@@ -48,7 +48,9 @@ describe('CreationOrchestrator', () => {
     expect(recipeMatch.valid).toBe(true);
     expect(budget.effectiveTotal).toBeGreaterThan(0);
     expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
-    expect(blueprint.productModel.tags).toContain('Ability.Type.Damage');
+    expect(blueprint.productModel.battleProjection.abilityTags).toContain(
+      'Ability.Type.Damage',
+    );
   });
 
   it('应能将主动技能蓝图物化为 battle-v5 主动技能能力实例', () => {
@@ -124,7 +126,7 @@ describe('CreationOrchestrator', () => {
         slug: 'craft-skill-session-active',
         name: '焚岳诀',
         description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
-        tags: ['Outcome.ActiveSkill', 'Ability.Element.Fire'],
+        tags: ['Outcome.ActiveSkill'],
         affixes: [
           {
             id: 'core-flame-burst',
@@ -136,10 +138,13 @@ describe('CreationOrchestrator', () => {
             rollScore: 0.91
           },
         ],
-        abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
         battleProjection: {
           projectionKind: 'active_skill',
-          abilityTags: ['Ability.Type.Damage', 'Ability.Element.Fire'],
+          abilityTags: [
+            'Ability.Type.Damage',
+            'Ability.Type.Magic',
+            'Ability.Element.Fire',
+          ],
           mpCost: 18,
           cooldown: 2,
           priority: 12,
@@ -153,6 +158,7 @@ describe('CreationOrchestrator', () => {
               params: {
                 value: {
                   base: 24,
+                  attribute: AttributeType.MAGIC_ATK,
                   coefficient: 0.8
                 }
               }
@@ -232,9 +238,8 @@ describe('CreationOrchestrator', () => {
         slug: 'craft-passive-session-passive',
         name: '玄冰护心佩',
         description: '寒意护体，遇袭时凝结冰盾。',
-        tags: ['Outcome.PassiveAbility', 'Ability.Element.Ice'],
+        tags: ['Outcome.PassiveAbility', 'Outcome.Artifact'],
         affixes: [],
-        abilityTags: ['Ability.Element.Ice'],
         artifactConfig: {
           equipPolicy: 'single_slot',
           persistencePolicy: 'inventory_bound',
@@ -242,7 +247,7 @@ describe('CreationOrchestrator', () => {
         },
         battleProjection: {
           projectionKind: 'artifact_passive',
-          abilityTags: ['Ability.Element.Ice'],
+          abilityTags: ['Ability.Kind.Artifact', 'Ability.Element.Ice'],
           listeners: [
             {
               eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
@@ -254,6 +259,7 @@ describe('CreationOrchestrator', () => {
                   params: {
                     value: {
                       base: 12,
+                      attribute: AttributeType.SPIRIT,
                       coefficient: 0.4
                     }
                   }
@@ -520,10 +526,9 @@ describe('CreationOrchestrator', () => {
         description: '抽象物化器测试',
         tags: ['Outcome.ActiveSkill'],
         affixes: [],
-        abilityTags: ['Ability.Type.Damage'],
         battleProjection: {
           projectionKind: 'active_skill',
-          abilityTags: ['Ability.Type.Damage'],
+          abilityTags: ['Ability.Type.Damage', 'Ability.Type.Magic'],
           mpCost: 10,
           cooldown: 1,
           priority: 10,
@@ -536,7 +541,9 @@ describe('CreationOrchestrator', () => {
               type: 'damage',
               params: {
                 value: {
-                  base: 10
+                  base: 10,
+                  attribute: AttributeType.MAGIC_ATK,
+                  coefficient: 0,
                 }
               }
             },

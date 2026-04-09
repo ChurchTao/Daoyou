@@ -34,7 +34,7 @@ export class DamageEffect extends GameplayEffect {
       damageSource:
         context.triggerEvent?.type === 'DamageTakenEvent'
           ? DamageSource.REFLECT
-          : undefined,
+          : DamageSource.DIRECT,
       baseDamage: damage,
       finalDamage: damage, // 初始终伤等于基伤，由后续系统修正
     });

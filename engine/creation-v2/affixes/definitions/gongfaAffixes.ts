@@ -582,6 +582,22 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           stackRule: StackRule.IGNORE,
           tags: POSITIVE_BUFF_TAGS,
           statusTags: GENERIC_BUFF_STATUS_TAGS,
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.BUFF_ADD,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
+              effects: [
+                {
+                  type: 'buff_duration_modify',
+                  params: {
+                    rounds: 1,
+                    tags: [CreationTags.BATTLE.BUFF_TYPE_BUFF],
+                  },
+                },
+              ],
+            },
+          ],
         },
         chance: 1,
       },
@@ -692,7 +708,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.SCENARIO.TARGET_HAS_CHILL,
     ],
     weight: 40,
     energyCost: 8,
@@ -936,7 +951,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '绝杀意念',
     displayDescription: '对低血量目标造成额外伤害',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.SCENARIO.LOW_HP],
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST],
     weight: 50,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -963,7 +978,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.TARGET_HIGH_MP,
     ],
     weight: 39,
     energyCost: 10,
@@ -1038,6 +1052,30 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           stackRule: StackRule.IGNORE,
           tags: POSITIVE_BUFF_TAGS,
           statusTags: GENERIC_BUFF_STATUS_TAGS,
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+              scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+              priority: CREATION_LISTENER_PRIORITIES.roundPre,
+              mapping: {
+                caster: 'owner',
+                target: 'owner',
+              },
+              effects: [
+                {
+                  type: 'heal',
+                  params: {
+                    target: 'mp',
+                    value: {
+                      base: 10,
+                      attribute: AttributeType.SPIRIT,
+                      coefficient: 0.08,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
         },
         chance: 1,
       },
@@ -1120,7 +1158,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.SCENARIO.TARGET_HIGH_HP,
     ],
     weight: 37,
     energyCost: 11,
@@ -1234,14 +1271,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.SCENARIO.CASTER_LOW_HP,
     ],
     weight: 40,
     energyCost: 12,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'heal',
-      conditions: [{ type: 'hp_below', params: { value: 0.45 } }],
+      conditions: [{ type: 'hp_below', params: { value: 0.45, scope: 'caster' } }],
       params: {
         value: {
           base: { base: 10, scale: 'quality', coefficient: 3 },
@@ -1268,7 +1304,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.TARGET_LOW_MP,
     ],
     weight: 38,
     energyCost: 12,
@@ -1409,7 +1444,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-      CreationTags.SCENARIO.CASTER_LOW_HP,
     ],
     exclusiveGroup: 'gongfa-mythic-transcendent',
     weight: 7,

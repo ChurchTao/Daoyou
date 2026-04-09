@@ -63,14 +63,12 @@ export class ActionExecutionSystem {
 
     EventBus.instance.publish(castEvent);
 
-    // 关键拦截：检查 DamageSystem 写入的命中判定结果
-    if (castEvent.isHit === false) {
-      // 命中失败（闪避或抵抗），拦截后续逻辑，不执行 ability.execute()
-      return;
-    }
-
-    // 命中成功，正式执行技能的核心逻辑（效果链）
-    event.ability.execute({ caster: event.caster, target: event.target });
+    // 无论命中与否，技能都需要消耗资源并进入冷却；效果链是否执行由上下文决定。
+    event.ability.execute({
+      caster: event.caster,
+      target: event.target,
+      shouldApplyEffects: castEvent.isHit !== false,
+    });
   }
 
   /**

@@ -28,6 +28,7 @@ describe('免疫效果集成测试', () => {
         slug: `passive_${effects.map((effect) => effect.type).join('_')}`,
         name: '护体法门',
         type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
         listeners: [
           {
             eventType: 'DamageEvent',

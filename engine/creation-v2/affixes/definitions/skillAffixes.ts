@@ -344,7 +344,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.SCENARIO.TARGET_LOW_HP,
     ],
     exclusiveGroup: 'skill-core-damage-type',
     weight: 46,
@@ -654,7 +653,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.TARGET_HIGH_MP,
     ],
     weight: 40,
     energyCost: 7,
@@ -995,7 +993,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '危机爆发',
     displayDescription: '当目标低血量时造成额外伤害',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.SCENARIO.LOW_HP],
+    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST],
     weight: 45,
     energyCost: 9,
     applicableTo: ['skill'],
@@ -1021,7 +1019,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     category: 'suffix',
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FLAME,
-      CreationTags.SCENARIO.TARGET_HAS_BURN,
       CreationTags.MATERIAL.SEMANTIC_BURST,
     ],
     weight: 34,
@@ -1124,11 +1121,52 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           name: '灵力高效',
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
-          stackRule: StackRule.STACK_LAYER,
+          stackRule: StackRule.REFRESH_DURATION,
           tags: POSITIVE_BUFF_TAGS,
           statusTags: MANA_EFF_STATUS_TAGS,
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+              priority: CREATION_LISTENER_PRIORITIES.skillCast,
+              mapping: {
+                caster: 'owner',
+                target: 'owner',
+              },
+              effects: [
+                {
+                  type: 'heal',
+                  conditions: [
+                    {
+                      type: 'ability_has_tag',
+                      params: {
+                        tag: CreationTags.BATTLE.ABILITY_TYPE_MAGIC,
+                      },
+                    },
+                  ],
+                  params: {
+                    target: 'mp',
+                    value: {
+                      base: 10,
+                      attribute: AttributeType.SPIRIT,
+                      coefficient: 0.06,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
         },
         chance: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
       },
     },
   },
@@ -1172,13 +1210,18 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.EFFECT.CONTROL,
     ],
     weight: 44,
     energyCost: 10,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: CreationTags.BATTLE.ABILITY_TYPE_CONTROL },
+        },
+      ],
       params: {
         buffConfig: {
           id: 'craft-control-precision',
@@ -1188,8 +1231,24 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           stackRule: StackRule.OVERRIDE,
           tags: POSITIVE_BUFF_TAGS,
           statusTags: GENERIC_BUFF_STATUS_TAGS,
+          modifiers: [
+            {
+              attrType: AttributeType.CONTROL_HIT,
+              type: ModifierType.FIXED,
+              value: 0.08,
+            },
+          ],
         },
         chance: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
       },
     },
   },
@@ -1201,7 +1260,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.SCENARIO.TARGET_HIGH_HP,
     ],
     weight: 38,
     energyCost: 11,
@@ -1262,7 +1320,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.EFFECT.CONTROL,
     ],
     weight: 46,
     energyCost: 12,
@@ -1270,6 +1327,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: CreationTags.BATTLE.ABILITY_TYPE_CONTROL },
+        },
         {
           type: 'has_tag',
           params: { tag: CreationTags.BATTLE.STATUS_CONTROL },
@@ -1297,9 +1358,51 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
-      type: 'reflect',
+      type: 'apply_buff',
       params: {
-        ratio: { base: 0.15, scale: 'quality', coefficient: 0.03 },
+        buffConfig: {
+          id: 'craft-shield-retaliation',
+          name: '护盾反震',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.OVERRIDE,
+          tags: POSITIVE_BUFF_TAGS,
+          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          listeners: [
+            {
+              eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
+              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+              guard: {
+                skipReflectSource: true,
+              },
+              effects: [
+                {
+                  type: 'reflect',
+                  conditions: [
+                    {
+                      type: 'shield_absorbed_at_least',
+                      params: { value: 1 },
+                    },
+                  ],
+                  params: {
+                    ratio: 0.18,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
+      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
       },
     },
   },
@@ -1311,13 +1414,18 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_POISON,
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.SCENARIO.MANY_DEBUFFS,
     ],
     weight: 42,
     energyCost: 11,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'debuff_count_at_least',
+          params: { value: 2 },
+        },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.1, scale: 'quality', coefficient: 0.025 },
@@ -1358,7 +1466,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.SCENARIO.TARGET_LOW_HP,
     ],
     weight: 38,
     energyCost: 12,
@@ -1386,7 +1493,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.TARGET_LOW_MP,
     ],
     weight: 36,
     energyCost: 11,
@@ -1415,7 +1521,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FLAME,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.SCENARIO.TARGET_HAS_BURN,
     ],
     exclusiveGroup: 'skill-signature-ultimate',
     weight: 20,

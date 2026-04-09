@@ -97,7 +97,13 @@ const DAMAGE_AFFIX_DEF: AffixDefinition = {
   energyCost: 8,
   effectTemplate: {
     type: 'damage' as const,
-    params: { value: { base: 100 } },
+    params: {
+      value: {
+        base: 100,
+        attribute: AttributeType.MAGIC_ATK,
+        coefficient: 0,
+      },
+    },
   },
 };
 

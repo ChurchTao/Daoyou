@@ -6,7 +6,12 @@
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_ABILITY_TAG, ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
-import { AttributeType, ModifierType } from '../../contracts/battle';
+import {
+  AttributeType,
+  BuffType,
+  ModifierType,
+  StackRule,
+} from '../../contracts/battle';
 import { AffixDefinition } from '../types';
 
 const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
@@ -677,7 +682,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     category: 'core',
     tagQuery: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
     exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 14,
+    weight: 18,
     energyCost: 12,
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
@@ -1170,7 +1175,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.CASTER_LOW_HP,
     ],
     exclusiveGroup: 'artifact-core-defense',
     weight: 44,
@@ -1179,7 +1183,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'shield',
-      conditions: [{ type: 'hp_below', params: { value: 0.4 } }],
+      conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
       params: {
         value: {
           base: { base: 18, scale: 'quality', coefficient: 6 },
@@ -1415,7 +1419,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.SCENARIO.TARGET_HAS_CHILL,
     ],
     weight: 42,
     energyCost: 7,
@@ -1681,7 +1684,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.TARGET_HIGH_MP,
     ],
     weight: 38,
     energyCost: 9,
@@ -1844,7 +1846,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.SCENARIO.TARGET_HIGH_HP,
     ],
     weight: 36,
     energyCost: 11,
@@ -1952,26 +1953,50 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.SCENARIO.MANY_BUFFS,
     ],
     weight: 39,
     energyCost: 11,
     applicableTo: ['artifact'],
     effectTemplate: {
-      type: 'attribute_modifier',
+      type: 'apply_buff',
+      conditions: [
+        {
+          type: 'buff_count_at_least',
+          params: { value: 2, scope: 'caster' },
+        },
+      ],
       params: {
-        modifiers: [
-          {
-            attrType: AttributeType.WILLPOWER,
-            modType: ModifierType.ADD,
-            value: { base: 0.12, scale: 'quality', coefficient: 0.025 },
-          },
-          {
-            attrType: AttributeType.CONTROL_RESISTANCE,
-            modType: ModifierType.FIXED,
-            value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
-          },
-        ],
+        buffConfig: {
+          id: 'craft-control-immunity-window',
+          name: '坚志不渝',
+          type: BuffType.BUFF,
+          duration: 1,
+          stackRule: StackRule.OVERRIDE,
+          tags: [CreationTags.BATTLE.BUFF_TYPE_BUFF],
+          statusTags: [CreationTags.BATTLE.STATUS_BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.WILLPOWER,
+              type: ModifierType.ADD,
+              value: 0.12,
+            },
+            {
+              attrType: AttributeType.CONTROL_RESISTANCE,
+              type: ModifierType.FIXED,
+              value: 0.06,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
+      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      priority: CREATION_LISTENER_PRIORITIES.roundPre,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
       },
     },
   },
@@ -1983,14 +2008,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.SCENARIO.CASTER_LOW_HP,
     ],
     weight: 35,
     energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.4 } }],
+      conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
       params: {
         mode: 'reduce',
         value: { base: 0.2, scale: 'quality', coefficient: 0.03 },
@@ -2011,7 +2035,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     tagQuery: [
       CreationTags.MATERIAL.SEMANTIC_FLAME,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.SCENARIO.TARGET_HAS_BURN,
     ],
     weight: 34,
     energyCost: 12,
@@ -2158,8 +2181,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.TYPE_SPECIAL,
     ],
     exclusiveGroup: 'artifact-mythic-transcendent',
-    weight: 8,
-    energyCost: 18,
+    weight: 28,
+    energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['artifact'],
     effectTemplate: {

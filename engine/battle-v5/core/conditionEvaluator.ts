@@ -1,22 +1,27 @@
 import { ConditionConfig } from './configs';
 import { DamageEvent, DamageRequestEvent, DamageTakenEvent } from './events';
-import { DamageType } from './types';
+import { BuffType, DamageType } from './types';
+
+interface ConditionBuffLike {
+  type?: string;
+}
+
+interface ConditionBuffContainerLike {
+  getAllBuffs: () => ConditionBuffLike[];
+}
+
+interface ConditionUnitLike {
+  tags: { hasTag: (tag: string) => boolean };
+  getCurrentHp: () => number;
+  getMaxHp: () => number;
+  getCurrentMp: () => number;
+  getMaxMp: () => number;
+  buffs?: ConditionBuffContainerLike;
+}
 
 interface ConditionContext {
-  caster?: {
-    tags: { hasTag: (tag: string) => boolean };
-    getCurrentHp: () => number;
-    getMaxHp: () => number;
-    getCurrentMp: () => number;
-    getMaxMp: () => number;
-  };
-  target: {
-    tags: { hasTag: (tag: string) => boolean };
-    getCurrentHp: () => number;
-    getMaxHp: () => number;
-    getCurrentMp: () => number;
-    getMaxMp: () => number;
-  };
+  caster?: ConditionUnitLike;
+  target: ConditionUnitLike;
   ability?: {
     tags: { hasTag: (tag: string) => boolean };
   };
@@ -53,6 +58,26 @@ function getDamageTypeFromTriggerEvent(triggerEvent: unknown): DamageType | unde
     damageType?: DamageRequestEvent['damageType'] | DamageEvent['damageType'] | DamageTakenEvent['damageType'];
   };
   return eventLike.damageType;
+}
+
+function getShieldAbsorbedFromTriggerEvent(triggerEvent: unknown): number | undefined {
+  if (!triggerEvent || typeof triggerEvent !== 'object') return undefined;
+
+  const eventLike = triggerEvent as {
+    shieldAbsorbed?: number;
+  };
+  return eventLike.shieldAbsorbed;
+}
+
+function countBuffs(
+  unit: ConditionUnitLike | undefined,
+  predicate: (buff: ConditionBuffLike) => boolean,
+): number {
+  if (!unit?.buffs) {
+    return 0;
+  }
+
+  return unit.buffs.getAllBuffs().filter(predicate).length;
 }
 
 export function evaluateCondition(
@@ -93,11 +118,25 @@ export function evaluateCondition(
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
     case 'mp_below':
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() < threshold;
+    case 'buff_count_at_least':
+      return (
+        countBuffs(scopedUnit, (buff) => buff.type === BuffType.BUFF) >= threshold
+      );
+    case 'debuff_count_at_least':
+      return (
+        countBuffs(
+          scopedUnit,
+          (buff) =>
+            buff.type === BuffType.DEBUFF || buff.type === BuffType.CONTROL,
+        ) >= threshold
+      );
     case 'damage_type_is': {
       const expected = cond.params.damageType;
       if (!expected) return false;
       return getDamageTypeFromTriggerEvent(context.triggerEvent) === expected;
     }
+    case 'shield_absorbed_at_least':
+      return (getShieldAbsorbedFromTriggerEvent(context.triggerEvent) ?? 0) >= threshold;
     case 'chance':
       return Math.random() < threshold;
     default:

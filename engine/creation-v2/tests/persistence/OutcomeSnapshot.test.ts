@@ -1,4 +1,4 @@
-import { AbilityType } from '@/engine/creation-v2/contracts/battle';
+import { AbilityType, AttributeType } from '@/engine/creation-v2/contracts/battle';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import type { CreationOutcomeMaterializer } from '@/engine/creation-v2/adapters/types';
 import type { CraftedOutcome, CreationBlueprint } from '@/engine/creation-v2/types';
@@ -22,15 +22,25 @@ function createSkillBlueprint(): CreationBlueprint {
       description: '用于快照测试的技能。',
       tags: ['Outcome.ActiveSkill'],
       affixes: [],
-      abilityTags: ['Ability.Type.Damage'],
       battleProjection: {
         projectionKind: 'active_skill',
-        abilityTags: ['Ability.Type.Damage'],
+        abilityTags: ['Ability.Type.Damage', 'Ability.Type.Magic'],
         mpCost: 10,
         cooldown: 2,
         priority: 10,
         targetPolicy: { team: 'enemy', scope: 'single' },
-        effects: [{ type: 'damage', params: { value: { base: 15 } } }],
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 15,
+                attribute: AttributeType.MAGIC_ATK,
+                coefficient: 0,
+              },
+            },
+          },
+        ],
       },
     },
   };

@@ -53,21 +53,24 @@ export class AffixEffectTranslator {
    */
   translate(def: AffixDefinition, quality: Quality): EffectConfig {
     return this.withConditions(
-      def.effectTemplate,
+      def,
       this.resolveTemplate(def.effectTemplate, QUALITY_ORDER[quality]),
     );
   }
 
   private withConditions(
-    template: AffixEffectTemplate,
+    def: AffixDefinition,
     effect: EffectConfig,
   ): EffectConfig {
-    if (!template.conditions || template.conditions.length === 0) {
+    const conditions = def.effectTemplate.conditions;
+
+    if (!conditions || conditions.length === 0) {
       return effect;
     }
+
     return {
       ...effect,
-      conditions: template.conditions,
+      conditions,
     };
   }
 

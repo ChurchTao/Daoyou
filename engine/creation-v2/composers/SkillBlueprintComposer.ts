@@ -47,7 +47,6 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
       description: decision.description,
       tags: decision.tags,
       affixes: rolledAffixes,
-      abilityTags: policy.abilityTags,
       balanceMetrics: estimateBalanceMetrics(
         rolledAffixes,
         facts.materialQualityProfile.weightedAverageQuality,

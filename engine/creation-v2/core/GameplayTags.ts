@@ -213,8 +213,8 @@ export const CreationTags = {
     ABILITY_TYPE_HEAL: 'Ability.Type.Heal', // 战斗能力标签：治疗类
     ABILITY_TYPE_CONTROL: 'Ability.Type.Control', // 战斗能力标签：控制类
     ABILITY_ELEMENT: 'Ability.Element', // 战斗能力标签：元素父标签（用于条件筛选）
-    ABILITY_KIND_ARTIFACT: 'Artifact', // 能力来源：法宝
-    ABILITY_KIND_GONGFA: 'GongFa', // 能力来源：功法
+    ABILITY_KIND_ARTIFACT: 'Ability.Kind.Artifact', // 能力来源：法宝
+    ABILITY_KIND_GONGFA: 'Ability.Kind.GongFa', // 能力来源：功法
     BUFF_TYPE_BUFF: 'Buff.Type.Buff', // Buff 标签：正面状态
     BUFF_TYPE_DEBUFF: 'Buff.Type.Debuff', // Buff 标签：负面状态
     BUFF_TYPE_CONTROL: 'Buff.Type.Control', // Buff 标签：控制类（用于 buff 免疫/拦截）

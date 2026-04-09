@@ -343,12 +343,18 @@ describe('BattleContractBoundary — battle 契约验证', () => {
   describe('battle tags 契约', () => {
     it('skill 蓝图 tags 应包含 Ability.Type.Damage 标签', () => {
       const blueprint = createSkillBlueprint();
-      expect(blueprint.productModel.tags).toContain('Ability.Type.Damage');
+      expect(blueprint.productModel.battleProjection.abilityTags).toContain(
+        'Ability.Type.Damage',
+      );
     });
 
     it('artifact 蓝图 tags 应包含 Artifact 标签', () => {
       const blueprint = createArtifactBlueprint();
-      expect(blueprint.productModel.tags.some((t) => t.includes('Artifact'))).toBe(true);
+      expect(
+        blueprint.productModel.battleProjection.abilityTags.some((t) =>
+          t.includes('Artifact'),
+        ),
+      ).toBe(true);
     });
 
     it('weapon artifact 蓝图应投影双攻 core modifiers', () => {
@@ -498,6 +504,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
             slug: 'gongfa_fire_specialization_test',
             name: '离火专精',
             type: BattleAbilityType.PASSIVE_SKILL,
+            tags: [GameplayTags.ABILITY.KIND_GONGFA],
             listeners: [
               {
                 id: 'gongfa_fire_specialization_listener',
@@ -638,6 +645,11 @@ describe('BattleContractBoundary — battle 契约验证', () => {
             slug: 'artifact_counter_attack_test',
             name: '反制之舞',
             type: BattleAbilityType.PASSIVE_SKILL,
+            tags: [
+              GameplayTags.ABILITY.KIND_ARTIFACT,
+              GameplayTags.ABILITY.TYPE_DAMAGE,
+              GameplayTags.ABILITY.TYPE_PHYSICAL,
+            ],
             listeners: [
               {
                 id: 'artifact_counter_attack_listener',

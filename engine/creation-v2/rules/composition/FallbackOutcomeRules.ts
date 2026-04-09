@@ -3,6 +3,7 @@ import { AffixEffectTranslator } from '../../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../../affixes/AffixRegistry';
 import type { AffixAttributeModifierTemplate } from '../../affixes/types';
 import type { AttributeModifierConfig, EffectConfig } from '../../contracts/battle';
+import { AttributeType } from '../../contracts/battle';
 import { CreationTags } from '../../core/GameplayTags';
 import { BuffType, StackRule } from '../../contracts/battle';
 import {
@@ -167,6 +168,8 @@ export class FallbackOutcomeRules
             CREATION_SKILL_DEFAULTS.minDamageBase,
             startingAffixEnergy,
           ),
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0,
         },
       },
     };

@@ -23,7 +23,10 @@ export interface ConditionConfig {
     | 'hp_below'
     | 'mp_above'
     | 'mp_below'
+    | 'buff_count_at_least'
+    | 'debuff_count_at_least'
     | 'damage_type_is'
+    | 'shield_absorbed_at_least'
     | 'chance';
   params: {
     tag?: string;
@@ -122,6 +125,11 @@ export interface CooldownModifyParams {
   tags?: string[];
 }
 
+export interface BuffDurationModifyParams {
+  rounds: number;
+  tags?: string[];
+}
+
 /**
  * 标签触发参数定义
  */
@@ -174,6 +182,7 @@ export type EffectConfig = BaseEffectConfig &
     | { type: 'reflect'; params: ReflectParams }
     | { type: 'mana_burn'; params: ManaBurnParams }
     | { type: 'cooldown_modify'; params: CooldownModifyParams }
+    | { type: 'buff_duration_modify'; params: BuffDurationModifyParams }
     | { type: 'tag_trigger'; params: TagTriggerParams }
     | { type: 'percent_damage_modifier'; params: PercentDamageModifierParams }
     | { type: 'death_prevent'; params: DeathPreventParams }

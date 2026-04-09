@@ -1,5 +1,6 @@
 import { EventBus } from '../../core/EventBus';
 import { BattleEngineV5 } from '../../BattleEngineV5';
+import { GameplayTags } from '../../core/GameplayTags';
 import { DamageTakenEvent } from '../../core/types';
 import { RoundPreEvent, SkillCastEvent } from '../../core/events';
 import { AbilityType, AttributeType, BuffType, ModifierType } from '../../core/types';
@@ -37,6 +38,7 @@ describe('Passive Listener Mapping Integration', () => {
         slug: 'passive_round_heal',
         name: '回元息壤',
         type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.TYPE_HEAL],
         listeners: [
           {
             id: 'round_heal_owner_mapping',
@@ -72,6 +74,7 @@ describe('Passive Listener Mapping Integration', () => {
         slug: 'passive_apply_mark_on_cast',
         name: '术后留痕',
         type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
         listeners: [
           {
             id: 'cast_apply_mark',
@@ -105,8 +108,20 @@ describe('Passive Listener Mapping Integration', () => {
       slug: 'trigger_spell',
       name: '触发术',
       type: AbilityType.ACTIVE_SKILL,
+      tags: [GameplayTags.ABILITY.TYPE_DAMAGE, GameplayTags.ABILITY.TYPE_PHYSICAL],
       targetPolicy: { team: 'enemy', scope: 'single' },
-      effects: [{ type: 'damage', params: { value: { base: 1 } } }],
+      effects: [
+        {
+          type: 'damage',
+          params: {
+            value: {
+              base: 1,
+              attribute: AttributeType.ATK,
+              coefficient: 0,
+            },
+          },
+        },
+      ],
     });
 
     EventBus.instance.publish<SkillCastEvent>({
@@ -130,6 +145,7 @@ describe('Passive Listener Mapping Integration', () => {
         slug: 'passive_counter_mark',
         name: '受击标记',
         type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
         listeners: [
           {
             id: 'damage_taken_mark_attacker',
@@ -192,6 +208,7 @@ describe('Passive Listener Mapping Integration', () => {
         slug: 'passive_cast_mark_log',
         name: '术痕映射',
         type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
         listeners: [
           {
             id: 'cast_mark_log_listener',
@@ -238,6 +255,7 @@ describe('Passive Listener Mapping Integration', () => {
         slug: 'passive_equipment_modifier',
         name: '器纹加护',
         type: AbilityType.PASSIVE_SKILL,
+        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
         modifiers: [
           {
             attrType: AttributeType.ARMOR_PENETRATION,

@@ -785,24 +785,27 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     }
   });
 
-  it('artifact synergy control-immunity 应同时包含意志与控制抗性 modifiers', () => {
+  it('artifact synergy control-immunity 应改为基于 many buffs 触发的条件增益', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-synergy-control-immunity');
 
     expect(def).toBeDefined();
-    expect(def?.effectTemplate.type).toBe('attribute_modifier');
+    expect(def?.effectTemplate.type).toBe('apply_buff');
+    expect(def?.listenerSpec?.eventType).toBe(CreationTags.BATTLE_EVENT.ROUND_PRE);
 
-    if (def?.effectTemplate.type === 'attribute_modifier') {
-      expect('modifiers' in def.effectTemplate.params).toBe(true);
-
-      if ('modifiers' in def.effectTemplate.params) {
-        expect(def.effectTemplate.params.modifiers).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ attrType: AttributeType.WILLPOWER }),
-            expect.objectContaining({ attrType: AttributeType.CONTROL_RESISTANCE }),
-          ]),
-        );
-        expect(def.effectTemplate.params.modifiers).toHaveLength(2);
-      }
+    if (def?.effectTemplate.type === 'apply_buff') {
+      expect(def.effectTemplate.conditions).toEqual([
+        {
+          type: 'buff_count_at_least',
+          params: { value: 2, scope: 'caster' },
+        },
+      ]);
+      expect(def.effectTemplate.params.buffConfig.modifiers).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ attrType: AttributeType.WILLPOWER }),
+          expect.objectContaining({ attrType: AttributeType.CONTROL_RESISTANCE }),
+        ]),
+      );
+      expect(def.effectTemplate.params.buffConfig.modifiers).toHaveLength(2);
     }
   });
 

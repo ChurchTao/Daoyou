@@ -1,4 +1,3 @@
-import { CORE_EFFECT_TYPE_TO_ABILITY_TAG, ELEMENT_TO_ABILITY_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
 import { Rule } from '../core/Rule';
 import { RuleContext } from '../core/RuleContext';
@@ -18,22 +17,12 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
     diagnostics,
   }: RuleContext<CompositionFacts, CompositionDecision>): void {
     const { productType, intent } = facts;
-    const elementTag = intent.elementBias
-      ? ELEMENT_TO_ABILITY_TAG[intent.elementBias]
-      : undefined;
 
     switch (productType) {
       case 'skill': {
-        // facts.coreEffectType is populated by buildCompositionFacts when a registry is available.
-        // Falls back to 'damage' when absent (e.g. unit tests building CompositionFacts directly).
-        const abilityTypeTag =
-          CORE_EFFECT_TYPE_TO_ABILITY_TAG[facts.coreEffectType ?? 'damage'] ??
-          CreationTags.BATTLE.ABILITY_TYPE_DAMAGE;
         decision.outcomeKind = facts.outcomeKind;
         decision.tags = [
           CreationTags.OUTCOME.ACTIVE_SKILL,
-          abilityTypeTag,
-          ...(elementTag ? [elementTag] : []),
           ...intent.dominantTags,
         ];
         break;
@@ -43,7 +32,6 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
         decision.tags = [
           CreationTags.OUTCOME.PASSIVE_ABILITY,
           CreationTags.OUTCOME.ARTIFACT,
-          ...(elementTag ? [elementTag] : []),
           ...intent.dominantTags,
         ];
         break;

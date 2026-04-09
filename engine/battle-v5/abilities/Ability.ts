@@ -13,6 +13,7 @@ type EventHandler = (event: CombatEvent) => void;
 export interface AbilityContext {
   caster: Unit;
   target: Unit;
+  shouldApplyEffects?: boolean;
 }
 
 /**
@@ -143,7 +144,8 @@ export class Ability {
    * 执行能力效果
    * @param context 包含 caster 和 target 的上下文
    */
-  execute(context: AbilityContext): void {
+  execute(_context: AbilityContext): void {
+    void _context;
     // 基类空实现，子类重写
   }
 

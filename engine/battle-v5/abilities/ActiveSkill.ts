@@ -47,7 +47,7 @@ export abstract class ActiveSkill extends Ability {
     super(id, name, AbilityType.ACTIVE_SKILL);
 
     // 初始化冷却
-    this._maxCooldown = config.cooldown ?? 0;
+    this._maxCooldown = this.normalizeCooldownValue(config.cooldown ?? 0);
 
     // 初始化资源消耗
     if (config.mpCost) {
@@ -87,7 +87,7 @@ export abstract class ActiveSkill extends Ability {
   }
 
   isReady(): boolean {
-    return this._cooldown === 0;
+    return this._cooldown <= 0;
   }
 
   startCooldown(): void {
@@ -96,7 +96,7 @@ export abstract class ActiveSkill extends Ability {
 
   tickCooldown(): void {
     if (this._cooldown > 0) {
-      this._cooldown--;
+      this._cooldown = Math.max(0, this._cooldown - 1);
     }
   }
 
@@ -105,7 +105,10 @@ export abstract class ActiveSkill extends Ability {
    * @param delta 变化量，正数为增加，负数为减少
    */
   modifyCooldown(delta: number): void {
-    this._cooldown = Math.max(0, this._cooldown + delta);
+    this._cooldown = Math.max(
+      0,
+      this._cooldown + this.normalizeCooldownValue(delta),
+    );
   }
 
   resetCooldown(): void {
@@ -114,7 +117,7 @@ export abstract class ActiveSkill extends Ability {
 
   // 兼容旧 API - 设置最大冷却时间
   setCooldown(value: number): void {
-    this._maxCooldown = value;
+    this._maxCooldown = this.normalizeCooldownValue(value);
   }
 
   // ===== 资源消耗 =====
@@ -207,6 +210,10 @@ export abstract class ActiveSkill extends Ability {
     // 启动冷却
     this.startCooldown();
 
+    if (context.shouldApplyEffects === false) {
+      return;
+    }
+
     // 执行技能效果（子类实现）
     this.executeSkill(context.caster, context.target);
   }
@@ -215,6 +222,14 @@ export abstract class ActiveSkill extends Ability {
    * 子类实现具体技能效果
    */
   protected abstract executeSkill(caster: Unit, target: Unit): void;
+
+  private normalizeCooldownValue(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+
+    return Math.round(value);
+  }
 
   // ===== 克隆 =====
 

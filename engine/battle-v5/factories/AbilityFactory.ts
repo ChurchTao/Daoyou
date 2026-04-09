@@ -2,9 +2,10 @@ import { Ability } from '../abilities/Ability';
 import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
 import { TargetPolicy } from '../abilities/TargetPolicy';
+import { GameplayTags } from '../core/GameplayTags';
 import { AbilityConfig, EffectConfig, ListenerConfig } from '../core/configs';
 import { buildListenerRuntimeConfig } from '../core/listenerExecution';
-import { AbilityId, AbilityType } from '../core/types';
+import { AbilityId, AbilityType, AttributeType, BuffType } from '../core/types';
 import { GameplayEffect } from '../effects/Effect';
 import { EffectRegistry } from './EffectRegistry';
 
@@ -34,6 +35,7 @@ export class AbilityFactory {
   static create(config: AbilityConfig): Ability {
     const id = config.slug as AbilityId;
     const name = config.name;
+    const abilityTags = this.validateAbilityTags(config);
 
     // 1. 处理主动技能
     if (config.type === AbilityType.ACTIVE_SKILL) {
@@ -47,7 +49,7 @@ export class AbilityFactory {
           : TargetPolicy.default(),
       });
 
-      if (config.tags) skill.tags.addTags(config.tags);
+          skill.tags.addTags(abilityTags);
 
       // 装配主动效果链
       if (config.effects) {
@@ -77,7 +79,7 @@ export class AbilityFactory {
     if (config.type === AbilityType.PASSIVE_SKILL) {
       const ability = new DataDrivenPassiveAbility(id, name);
 
-      if (config.tags) ability.tags.addTags(config.tags);
+      ability.tags.addTags(abilityTags);
 
       // 装配被动监听器
       if (config.listeners) {
@@ -110,5 +112,128 @@ export class AbilityFactory {
    */
   static createEffect(cfg: EffectConfig): GameplayEffect | null {
     return EffectRegistry.getInstance().create(cfg);
+  }
+
+  private static validateAbilityTags(config: AbilityConfig): string[] {
+    const tags = config.tags ?? [];
+
+    if (tags.length === 0) {
+      throw new Error(
+        `[AbilityFactory] ability ${config.slug} is missing required tags`,
+      );
+    }
+
+    const tagSet = new Set(tags);
+    const capabilities = this.summarizeAbilityCapabilities(config);
+
+    if (
+      capabilities.hasDamage &&
+      !tagSet.has(GameplayTags.ABILITY.TYPE_DAMAGE)
+    ) {
+      throw new Error(
+        `[AbilityFactory] damage-capable ability ${config.slug} must include ${GameplayTags.ABILITY.TYPE_DAMAGE}`,
+      );
+    }
+
+    if (capabilities.damageChannel === 'magic') {
+      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_MAGIC);
+    } else if (capabilities.damageChannel === 'physical') {
+      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_PHYSICAL);
+    } else if (capabilities.damageChannel === 'true') {
+      this.assertTag(
+        tagSet,
+        config.slug,
+        GameplayTags.ABILITY.TYPE_TRUE_DAMAGE,
+      );
+    }
+
+    if (capabilities.hasHeal) {
+      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_HEAL);
+    }
+
+    if (capabilities.hasControl) {
+      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_CONTROL);
+    }
+
+    return tags;
+  }
+
+  private static assertTag(
+    tagSet: Set<string>,
+    abilitySlug: string,
+    tag: string,
+  ): void {
+    if (!tagSet.has(tag)) {
+      throw new Error(
+        `[AbilityFactory] ability ${abilitySlug} must include ${tag}`,
+      );
+    }
+  }
+
+  private static summarizeAbilityCapabilities(config: AbilityConfig): {
+    hasDamage: boolean;
+    hasHeal: boolean;
+    hasControl: boolean;
+    damageChannel?: 'magic' | 'physical' | 'true';
+  } {
+    const queue: EffectConfig[] = [
+      ...(config.effects ?? []),
+      ...(config.listeners?.flatMap((listener) => listener.effects) ?? []),
+    ];
+    const damageChannels = new Set<'magic' | 'physical' | 'true'>();
+    let hasDamage = false;
+    let hasHeal = false;
+    let hasControl = false;
+
+    for (const effect of queue) {
+      switch (effect.type) {
+        case 'damage': {
+          hasDamage = true;
+
+          const attribute = effect.params.value.attribute;
+          if (attribute === AttributeType.MAGIC_ATK) {
+            damageChannels.add('magic');
+          } else if (attribute === AttributeType.ATK) {
+            damageChannels.add('physical');
+          } else {
+            throw new Error(
+              `[AbilityFactory] damage effect on ${config.slug} is missing a supported damage attribute`,
+            );
+          }
+          break;
+        }
+
+        case 'tag_trigger':
+          hasDamage = true;
+          damageChannels.add('magic');
+          break;
+
+        case 'heal':
+          hasHeal = true;
+          break;
+
+        case 'apply_buff':
+          if (effect.params.buffConfig.type === BuffType.CONTROL) {
+            hasControl = true;
+          }
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    if (damageChannels.size > 1) {
+      throw new Error(
+        `[AbilityFactory] ability ${config.slug} mixes multiple damage channels`,
+      );
+    }
+
+    return {
+      hasDamage,
+      hasHeal,
+      hasControl,
+      damageChannel: damageChannels.values().next().value,
+    };
   }
 }

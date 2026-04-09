@@ -1,5 +1,6 @@
 import { BattleEngineV5, type BattleResult } from '@/engine/battle-v5/BattleEngineV5';
 import { EventBus } from '@/engine/battle-v5/core/EventBus';
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import {
   AbilityType,
   AttributeType,
@@ -151,6 +152,7 @@ function createBaselineStrike() {
     slug: 'sparring_spirit_strike',
     name: '试锋灵击',
     type: AbilityType.ACTIVE_SKILL,
+    tags: [GameplayTags.ABILITY.TYPE_DAMAGE, GameplayTags.ABILITY.TYPE_MAGIC],
     priority: 6,
     cooldown: 0,
     targetPolicy: { team: 'enemy', scope: 'single' },
@@ -174,6 +176,7 @@ function createArtifactGuardPassive() {
     slug: 'sparring_artifact_guard_shell',
     name: '守势灵甲',
     type: AbilityType.PASSIVE_SKILL,
+    tags: [GameplayTags.ABILITY.KIND_ARTIFACT],
     modifiers: [
       {
         attrType: AttributeType.VITALITY,
@@ -218,6 +221,7 @@ function createGongfaSustainPassive() {
     slug: 'sparring_gongfa_sustain_cycle',
     name: '归元吐纳',
     type: AbilityType.PASSIVE_SKILL,
+    tags: [GameplayTags.ABILITY.KIND_GONGFA, GameplayTags.ABILITY.TYPE_HEAL],
     modifiers: [
       {
         attrType: AttributeType.SPIRIT,

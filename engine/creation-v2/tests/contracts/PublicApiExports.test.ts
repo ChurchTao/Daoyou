@@ -1,6 +1,7 @@
 import * as creationV2 from '@/engine/creation-v2';
 import * as battleContract from '@/engine/creation-v2/contracts/battle';
 import * as battleTestkit from '@/engine/creation-v2/contracts/battle-testkit';
+import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import type {
   ActiveSkillBattleProjection,
@@ -32,7 +33,7 @@ describe('creation-v2 public exports', () => {
 
     const projection: ActiveSkillBattleProjection = {
       projectionKind: 'active_skill',
-      abilityTags: ['Ability.Type.Damage'],
+      abilityTags: ['Ability.Type.Damage', 'Ability.Type.Magic'],
       mpCost: 10,
       cooldown: 2,
       priority: 10,
@@ -50,7 +51,6 @@ describe('creation-v2 public exports', () => {
       name: '测试技能',
       tags: [],
       affixes: [],
-      abilityTags: projection.abilityTags,
       battleProjection: projection,
     };
 
@@ -61,7 +61,6 @@ describe('creation-v2 public exports', () => {
       name: '测试法宝',
       tags: [],
       affixes: [],
-      abilityTags: ['Artifact'],
       artifactConfig: {
         equipPolicy: 'single_slot',
         persistencePolicy: 'inventory_bound',
@@ -69,7 +68,7 @@ describe('creation-v2 public exports', () => {
       },
       battleProjection: {
         projectionKind: 'artifact_passive',
-        abilityTags: ['Artifact'],
+        abilityTags: [CreationTags.BATTLE.ABILITY_KIND_ARTIFACT],
         listeners: [],
       },
     };
@@ -81,7 +80,6 @@ describe('creation-v2 public exports', () => {
       name: '测试功法',
       tags: [],
       affixes: [],
-      abilityTags: ['GongFa'],
       gongfaConfig: {
         equipPolicy: 'single_manual',
         persistencePolicy: 'inventory_bound',
@@ -89,7 +87,7 @@ describe('creation-v2 public exports', () => {
       },
       battleProjection: {
         projectionKind: 'gongfa_passive',
-        abilityTags: ['GongFa'],
+        abilityTags: [CreationTags.BATTLE.ABILITY_KIND_GONGFA],
         listeners: [],
       },
     };

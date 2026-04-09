@@ -134,6 +134,7 @@ export const GameplayTags = {
   ABILITY: {
     // 技能类型
     TYPE: 'Ability.Type',
+    KIND: 'Ability.Kind',
     // 技能类型：伤害、控制、治疗、魔法、物理
     TYPE_DAMAGE: 'Ability.Type.Damage',
     TYPE_TRUE_DAMAGE: 'Ability.Type.Damage.True',
@@ -141,6 +142,10 @@ export const GameplayTags = {
     TYPE_HEAL: 'Ability.Type.Heal',
     TYPE_MAGIC: 'Ability.Type.Magic',
     TYPE_PHYSICAL: 'Ability.Type.Physical',
+    KIND_SKILL: 'Ability.Kind.Skill',
+    KIND_PASSIVE: 'Ability.Kind.Passive',
+    KIND_ARTIFACT: 'Ability.Kind.Artifact',
+    KIND_GONGFA: 'Ability.Kind.GongFa',
 
     ELEMENT: 'Ability.Element',
     // 元素: 火水木土金风冰雷

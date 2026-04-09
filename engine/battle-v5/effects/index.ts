@@ -9,6 +9,7 @@ export * from './MagicShieldEffect';
 export * from './ReflectEffect';
 export * from './ManaBurnEffect';
 export * from './CooldownModifyEffect';
+export * from './BuffDurationModifyEffect';
 export * from './DeathPreventEffect';
 export * from './BuffImmunityEffect';
 export * from './DamageImmunityEffect';

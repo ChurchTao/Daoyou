@@ -1,7 +1,7 @@
 import { checkConditions, evaluateCondition } from '@/engine/battle-v5/core/conditionEvaluator';
 import { GameplayTagContainer, GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import type { ConditionConfig } from '@/engine/battle-v5/core/configs';
-import { DamageType } from '@/engine/battle-v5/core/types';
+import { BuffType, DamageType } from '@/engine/battle-v5/core/types';
 
 function createTagContainer(tags: string[]): GameplayTagContainer {
   const container = new GameplayTagContainer();
@@ -9,14 +9,24 @@ function createTagContainer(tags: string[]): GameplayTagContainer {
   return container;
 }
 
-function createUnitStub(tags: string[] = []) {
+function createUnitStub(
+  tags: string[] = [],
+  options: {
+    hp?: number;
+    mp?: number;
+    buffs?: Array<{ type: BuffType }>;
+  } = {},
+) {
   const tagContainer = createTagContainer(tags);
   return {
     tags: tagContainer,
-    getCurrentHp: () => 80,
+    getCurrentHp: () => options.hp ?? 80,
     getMaxHp: () => 100,
-    getCurrentMp: () => 40,
+    getCurrentMp: () => options.mp ?? 40,
     getMaxMp: () => 100,
+    buffs: {
+      getAllBuffs: () => options.buffs ?? [],
+    },
   };
 }
 
@@ -168,6 +178,72 @@ describe('conditionEvaluator', () => {
         triggerEvent: {
           type: 'DamageRequestEvent',
           damageType: DamageType.MAGICAL,
+        },
+      },
+      condition,
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('buff_count_at_least 应统计正面 buff 数量', () => {
+    const condition: ConditionConfig = {
+      type: 'buff_count_at_least',
+      params: {
+        value: 2,
+        scope: 'caster',
+      },
+    };
+
+    const result = evaluateCondition(
+      {
+        caster: createUnitStub([], {
+          buffs: [{ type: BuffType.BUFF }, { type: BuffType.BUFF }],
+        }),
+        target: createUnitStub(),
+      },
+      condition,
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('debuff_count_at_least 应同时统计 debuff 与 control', () => {
+    const condition: ConditionConfig = {
+      type: 'debuff_count_at_least',
+      params: {
+        value: 2,
+      },
+    };
+
+    const result = evaluateCondition(
+      {
+        caster: createUnitStub(),
+        target: createUnitStub([], {
+          buffs: [{ type: BuffType.DEBUFF }, { type: BuffType.CONTROL }],
+        }),
+      },
+      condition,
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('shield_absorbed_at_least 应读取 DamageTakenEvent 的护盾吸收值', () => {
+    const condition: ConditionConfig = {
+      type: 'shield_absorbed_at_least',
+      params: {
+        value: 1,
+      },
+    };
+
+    const result = evaluateCondition(
+      {
+        caster: createUnitStub(),
+        target: createUnitStub(),
+        triggerEvent: {
+          type: 'DamageTakenEvent',
+          shieldAbsorbed: 12,
         },
       },
       condition,
