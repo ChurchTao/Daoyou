@@ -232,17 +232,21 @@ export function createEmptyEnergyBudget(): EnergyBudget {
   };
 }
 
+import type { AffixEffectTemplate } from './affixes/types';
+
 export interface AffixCandidate {
   id: string;
   name: string;
   category: AffixCategory;
   tags: string[];
+  inherentTags?: string[];
   weight: number;
   energyCost: number;
   evaluationScore?: number;
   exclusiveGroup?: string;
   minQuality?: Quality;
   maxQuality?: Quality;
+  effectTemplate: AffixEffectTemplate;
 }
 
 export interface RolledAffix extends AffixCandidate {

@@ -15,8 +15,8 @@ import type {
   ListenerConfig,
 } from '../../contracts/battle';
 import { AttributeType } from '../../contracts/battle';
-import { CreationTags } from '../../core/GameplayTags';
-import { AFFIX_CATEGORIES } from '../../types';
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import { AFFIX_CATEGORIES, RolledAffix } from '../../types';
 import {
   CompositionDecision,
   PassiveProjectionPolicy,
@@ -249,8 +249,10 @@ export class ProjectionRules implements Rule<
 
     const abilityTags = assembleAbilityTags({
       productType,
+      rolledAffixes: affixes,
       listeners,
       elementBias: intent.elementBias,
+      registry: this.registry,
     });
 
     const projectionKind =
@@ -269,14 +271,14 @@ export class ProjectionRules implements Rule<
   ): AffixListenerSpec {
     if (productType === 'artifact') {
       return {
-        eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-        scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+        eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+        scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
         priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       };
     }
     return {
-      eventType: CreationTags.BATTLE_EVENT.ACTION_PRE,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR,
+      eventType: GameplayTags.EVENT.ACTION_PRE,
+      scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
       priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
     };
   }

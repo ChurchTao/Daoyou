@@ -15,44 +15,45 @@ import {
 } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import { AffixDefinition } from '../types';
 
-const POSITIVE_BUFF_TAGS = [CreationTags.BATTLE.BUFF_TYPE_BUFF];
-const NEGATIVE_BUFF_TAGS = [CreationTags.BATTLE.BUFF_TYPE_DEBUFF];
+const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE_BUFF];
+const NEGATIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE_DEBUFF];
 const CONTROL_BUFF_TAGS = [
-  CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
-  CreationTags.BATTLE.BUFF_TYPE_CONTROL,
+  GameplayTags.BUFF.TYPE_DEBUFF,
+  GameplayTags.BUFF.TYPE_CONTROL,
 ];
 const BURN_DOT_BUFF_TAGS = [
-  CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
-  CreationTags.BATTLE.BUFF_DOT,
-  CreationTags.BATTLE.BUFF_DOT_BURN,
+  GameplayTags.BUFF.TYPE_DEBUFF,
+  GameplayTags.BUFF.DOT,
+  GameplayTags.BUFF.DOT_BURN,
 ];
 
 const STUN_CONTROL_STATUS_TAGS = [
-  CreationTags.BATTLE.STATUS_DEBUFF,
-  CreationTags.BATTLE.STATUS_CONTROL,
-  CreationTags.BATTLE.STATUS_STUNNED,
-  CreationTags.BATTLE.STATUS_NO_ACTION,
+  GameplayTags.STATUS.DEBUFF,
+  GameplayTags.STATUS.CONTROL,
+  GameplayTags.STATUS.STUNNED,
+  GameplayTags.STATUS.NO_ACTION,
 ];
 const BURN_DOT_STATUS_TAGS = [
-  CreationTags.BATTLE.STATUS_DEBUFF,
-  CreationTags.BATTLE.STATUS_BURN,
-  CreationTags.BATTLE.STATUS_DOT,
+  GameplayTags.STATUS.DEBUFF,
+  GameplayTags.STATUS.BURNED,
+  GameplayTags.STATUS.DOT,
 ];
 const CHILL_STATUS_TAGS = [
-  CreationTags.BATTLE.STATUS_DEBUFF,
-  CreationTags.BATTLE.STATUS_CHILL,
+  GameplayTags.STATUS.DEBUFF,
+  GameplayTags.STATUS.CHILLED,
 ];
-const GENERIC_BUFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_BUFF];
-const GENERIC_DEBUFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_DEBUFF];
+const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.BUFF];
+const GENERIC_DEBUFF_STATUS_TAGS = [GameplayTags.STATUS.DEBUFF];
 const DEF_DEBUFF_STATUS_TAGS = [
-  CreationTags.BATTLE.STATUS_DEBUFF,
-  CreationTags.BATTLE.STATUS_DEF_DEBUFF,
+  GameplayTags.STATUS.DEBUFF,
+  GameplayTags.STATUS.DEF_DEBUFF,
 ];
-const COMBO_STATUS_TAGS = [CreationTags.BATTLE.STATUS_COMBO];
-const MANA_EFF_STATUS_TAGS = [CreationTags.BATTLE.STATUS_MANA_EFF];
-const MYTHIC_STATUS_TAGS = [CreationTags.BATTLE.STATUS_MYTHIC];
+const COMBO_STATUS_TAGS = [GameplayTags.STATUS.COMBO];
+const MANA_EFF_STATUS_TAGS = [GameplayTags.STATUS.MANA_EFF];
+const MYTHIC_STATUS_TAGS = [GameplayTags.STATUS.MYTHIC];
 
 const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
   {
@@ -70,6 +71,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -101,6 +103,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -132,6 +135,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -168,6 +172,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 100,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -189,6 +194,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 85,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -210,6 +216,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -235,6 +242,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -256,6 +264,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 72,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -277,6 +286,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -299,6 +309,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -325,6 +336,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -350,6 +362,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
@@ -376,6 +389,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 95,
     energyCost: 6,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -385,8 +399,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -399,6 +413,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 6,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -410,8 +425,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -428,6 +443,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 6,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -439,8 +455,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -461,6 +477,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -468,8 +485,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -486,6 +503,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -493,8 +511,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -511,6 +529,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -522,8 +541,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -540,6 +559,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 6,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -551,8 +571,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -569,6 +589,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 6,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -580,8 +601,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -598,6 +619,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -609,8 +631,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -627,6 +649,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -637,8 +660,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
       guard: {
         requireOwnerAlive: true,
@@ -657,6 +680,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'mp_above', params: { value: 0.7 } }],
@@ -667,8 +691,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -686,6 +710,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -699,8 +724,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              eventType: GameplayTags.EVENT.ROUND_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: 20,
               effects: [
                 {
@@ -730,6 +755,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 78,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -762,10 +788,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 6,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'dispel',
       params: {
-        targetTag: CreationTags.BATTLE.BUFF_TYPE_BUFF,
+        targetTag: GameplayTags.BUFF.TYPE_BUFF,
         maxCount: 1,
       },
     },
@@ -780,6 +807,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 72,
     energyCost: 9,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -789,8 +817,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -803,6 +831,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -812,8 +841,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -826,17 +855,18 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 9,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'tag_trigger',
       params: {
-        triggerTag: CreationTags.BATTLE.STATUS_BURN,
+        triggerTag: GameplayTags.STATUS.BURNED,
         damageRatio: { base: 1.2, scale: 'quality', coefficient: 0.2 },
         removeOnTrigger: false,
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
     },
   },
@@ -849,17 +879,18 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 56,
     energyCost: 9,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'tag_trigger',
       params: {
-        triggerTag: CreationTags.BATTLE.STATUS_CHILL,
+        triggerTag: GameplayTags.STATUS.CHILLED,
         damageRatio: { base: 0.8, scale: 'quality', coefficient: 0.15 },
         removeOnTrigger: false,
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
     },
   },
@@ -872,6 +903,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 8,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -883,8 +915,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -901,6 +933,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -933,6 +966,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -965,6 +999,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 47,
     energyCost: 7,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -997,6 +1032,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 9,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1007,8 +1043,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1024,10 +1060,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 34,
     energyCost: 9,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
-        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_BURN } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.BURNED } },
       ],
       params: {
         mode: 'increase',
@@ -1036,8 +1073,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1058,6 +1095,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1067,8 +1105,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1081,6 +1119,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1113,6 +1152,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1126,8 +1166,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           statusTags: MANA_EFF_STATUS_TAGS,
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+              eventType: GameplayTags.EVENT.SKILL_CAST,
+              scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
               priority: CREATION_LISTENER_PRIORITIES.skillCast,
               mapping: {
                 caster: 'owner',
@@ -1140,7 +1180,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                     {
                       type: 'ability_has_tag',
                       params: {
-                        tag: CreationTags.BATTLE.ABILITY_TYPE_MAGIC,
+                        tag: GameplayTags.ABILITY.TYPE_MAGIC,
                       },
                     },
                   ],
@@ -1161,8 +1201,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -1179,6 +1219,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1214,12 +1255,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 10,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: CreationTags.BATTLE.ABILITY_TYPE_CONTROL },
+          params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
         },
       ],
       params: {
@@ -1243,8 +1285,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -1264,6 +1306,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_above', params: { value: 0.75 } }],
@@ -1274,8 +1317,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1292,6 +1335,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1303,8 +1347,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -1324,16 +1368,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 46,
     energyCost: 12,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: CreationTags.BATTLE.ABILITY_TYPE_CONTROL },
+          params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
         },
         {
           type: 'has_tag',
-          params: { tag: CreationTags.BATTLE.STATUS_CONTROL },
+          params: { tag: GameplayTags.STATUS.CONTROL },
         },
       ],
       params: {
@@ -1343,8 +1388,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1357,6 +1402,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 12,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1370,8 +1416,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           statusTags: GENERIC_BUFF_STATUS_TAGS,
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: CREATION_LISTENER_PRIORITIES.damageTaken,
               guard: {
                 skipReflectSource: true,
@@ -1397,8 +1443,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -1418,6 +1464,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1433,8 +1480,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1447,6 +1494,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 12,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1470,6 +1518,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 12,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1480,8 +1529,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1497,6 +1546,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 36,
     energyCost: 11,
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_below', params: { value: 0.4 } }],
@@ -1527,10 +1577,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       conditions: [
-        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_BURN } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.BURNED } },
       ],
       params: {
         value: {
@@ -1560,6 +1611,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       conditions: [
@@ -1590,6 +1642,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1628,6 +1681,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1655,6 +1709,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1683,6 +1738,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1711,6 +1767,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1739,6 +1796,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1767,6 +1825,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1792,6 +1851,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1801,8 +1861,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1823,6 +1883,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1832,8 +1893,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1854,6 +1915,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '地品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1863,8 +1925,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1885,6 +1947,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1898,8 +1961,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              eventType: GameplayTags.EVENT.ROUND_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: 20,
               effects: [
                 {
@@ -1938,6 +2001,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1951,8 +2015,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              eventType: GameplayTags.EVENT.ROUND_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: 20,
               effects: [
                 {
@@ -1990,6 +2054,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1999,8 +2064,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -2021,6 +2086,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '真品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2030,8 +2096,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -2052,6 +2118,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2090,6 +2157,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '天品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -2118,6 +2186,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '仙品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2127,8 +2196,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -2148,6 +2217,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2176,6 +2246,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2189,8 +2260,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           statusTags: BURN_DOT_STATUS_TAGS,
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              eventType: GameplayTags.EVENT.ROUND_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: 20,
               effects: [
                 {
@@ -2228,6 +2299,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['skill'],
+    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2237,8 +2309,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },

@@ -239,11 +239,13 @@ export class AffixPoolBuilder {
       name: def.displayName,
       category: def.category,
       tags: def.tagQuery,
+      inherentTags: def.inherentTags,
       weight: def.weight,
       energyCost: def.energyCost,
       exclusiveGroup: def.exclusiveGroup,
       minQuality: def.minQuality,
       maxQuality: def.maxQuality,
+      effectTemplate: def.effectTemplate,
     };
   }
 

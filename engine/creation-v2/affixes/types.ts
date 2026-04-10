@@ -197,4 +197,10 @@ export interface AffixDefinition {
   listenerSpec?: AffixListenerSpec;
   /** 适用产物类型 */
   applicableTo: CreationProductType[];
+  /**
+   * 固有标签：该词缀直接贡献给产物的战斗标签（GameplayTags）。
+   * 例如：[GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.ELEMENT_FIRE]
+   * 用于 AbilityTagAssembler 阶段的声明式聚合。
+   */
+  inherentTags?: string[];
 }

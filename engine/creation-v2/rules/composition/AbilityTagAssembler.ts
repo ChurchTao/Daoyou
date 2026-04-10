@@ -2,16 +2,19 @@ import type { ElementType } from '@/types/constants';
 import { ELEMENT_TO_ABILITY_TAG } from '../../config/CreationMappings';
 import type { EffectConfig, ListenerConfig } from '../../contracts/battle';
 import { AttributeType, BuffType } from '../../contracts/battle';
-import { CreationTags } from '../../core/GameplayTags';
-import type { CreationProductType } from '../../types';
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import type { CreationProductType, RolledAffix } from '../../types';
+import { AffixRegistry, DEFAULT_AFFIX_REGISTRY } from '../../affixes';
 
 type DamageChannel = 'magic' | 'physical' | 'true';
 
 export interface AbilityTagAssemblyInput {
   productType: CreationProductType;
+  rolledAffixes?: RolledAffix[]; // 新增：显式传入选中的词缀，用于聚合 inherentTags
   effects?: EffectConfig[];
   listeners?: ListenerConfig[];
   elementBias?: ElementType;
+  registry?: AffixRegistry; // 可选：用于查询词缀定义
 }
 
 interface AbilityCapabilitySummary {
@@ -21,64 +24,83 @@ interface AbilityCapabilitySummary {
   damageChannel?: DamageChannel;
 }
 
+/**
+ * AbilityTagAssembler: 声明式聚合产物的战斗标签。
+ * 
+ * 核心逻辑：
+ * 1. 优先从选中的词缀定义中提取 `inherentTags` (显式声明)。
+ * 2. 将造物时的 `elementBias` 映射为物理层的元素标签。
+ * 3. 作为保底，通过分析最终效果生成对应的功能标签（向后兼容）。
+ */
 export function assembleAbilityTags({
   productType,
+  rolledAffixes = [],
   effects = [],
   listeners = [],
   elementBias,
+  registry = DEFAULT_AFFIX_REGISTRY,
 }: AbilityTagAssemblyInput): string[] {
   const tags = new Set<string>();
+
+  // 1. 显式声明聚合 (Explicit Inherent Tags)
+  // 这是最准确的来源：词缀定义本身知道自己代表什么物理意义。
+  for (const rolled of rolledAffixes) {
+    const definition = registry.queryById(rolled.id);
+    if (definition?.inherentTags) {
+      definition.inherentTags.forEach((tag) => tags.add(tag));
+    }
+  }
+
+  // 2. 元素主张映射 (Element Bias)
+  if (elementBias) {
+    tags.add(ELEMENT_TO_ABILITY_TAG[elementBias]);
+  }
+
+  // 3. 产物分类标签 (Outcome Kind)
+  if (productType === 'artifact') {
+    tags.add(GameplayTags.ABILITY.KIND_ARTIFACT);
+  } else if (productType === 'gongfa') {
+    tags.add(GameplayTags.ABILITY.KIND_GONGFA);
+  }
+
+  // 4. 能力特征分析 (Capability Inference - Fallback)
+  // 仅当 tags 中尚不包含关键功能分类（Damage/Heal/Control）时，尝试通过效果分析进行补全。
   const capabilities = summarizeCapabilities([
     ...effects,
     ...listeners.flatMap((listener) => listener.effects),
   ]);
 
-  if (productType === 'artifact') {
-    tags.add(CreationTags.BATTLE.ABILITY_KIND_ARTIFACT);
+  if (capabilities.hasDamage && !tags.has(GameplayTags.ABILITY.TYPE_DAMAGE)) {
+    tags.add(GameplayTags.ABILITY.TYPE_DAMAGE);
   }
 
-  if (productType === 'gongfa') {
-    tags.add(CreationTags.BATTLE.ABILITY_KIND_GONGFA);
+  if (capabilities.hasHeal && !tags.has(GameplayTags.ABILITY.TYPE_HEAL)) {
+    tags.add(GameplayTags.ABILITY.TYPE_HEAL);
   }
 
-  if (capabilities.hasDamage) {
-    tags.add(CreationTags.BATTLE.ABILITY_TYPE_DAMAGE);
+  if (capabilities.hasControl && !tags.has(GameplayTags.ABILITY.TYPE_CONTROL)) {
+    tags.add(GameplayTags.ABILITY.TYPE_CONTROL);
   }
 
-  if (capabilities.hasHeal) {
-    tags.add(CreationTags.BATTLE.ABILITY_TYPE_HEAL);
+  // 5. 伤害频道锁定 (Damage Channel)
+  // 技能必须明确是法术、物理还是真伤（BEv5 计算公式强依赖此标签）
+  if (capabilities.damageChannel === 'magic' && !tags.has(GameplayTags.ABILITY.TYPE_MAGIC)) {
+    tags.add(GameplayTags.ABILITY.TYPE_MAGIC);
+  } else if (capabilities.damageChannel === 'physical' && !tags.has(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
+    tags.add(GameplayTags.ABILITY.TYPE_PHYSICAL);
+  } else if (capabilities.damageChannel === 'true' && !tags.has(GameplayTags.ABILITY.TYPE_TRUE_DAMAGE)) {
+    tags.add(GameplayTags.ABILITY.TYPE_TRUE_DAMAGE);
   }
 
-  if (capabilities.hasControl) {
-    tags.add(CreationTags.BATTLE.ABILITY_TYPE_CONTROL);
-  }
-
-  if (capabilities.damageChannel === 'magic') {
-    tags.add(CreationTags.BATTLE.ABILITY_TYPE_MAGIC);
-  } else if (capabilities.damageChannel === 'physical') {
-    tags.add(CreationTags.BATTLE.ABILITY_TYPE_PHYSICAL);
-  } else if (capabilities.damageChannel === 'true') {
-    tags.add(CreationTags.BATTLE.ABILITY_TYPE_TRUE_DAMAGE);
-  }
-
-  if (elementBias) {
-    tags.add(ELEMENT_TO_ABILITY_TAG[elementBias]);
-  }
-
+  // 6. 语义约束校验 (Validation)
   if (
     productType === 'skill' &&
-    !capabilities.hasDamage &&
-    !capabilities.hasHeal &&
-    !capabilities.hasControl
+    !tags.has(GameplayTags.ABILITY.TYPE_DAMAGE) &&
+    !tags.has(GameplayTags.ABILITY.TYPE_HEAL) &&
+    !tags.has(GameplayTags.ABILITY.TYPE_CONTROL)
   ) {
     throw new Error(
-      '[AbilityTagAssembler] skill projection must declare at least one primary ability role',
-    );
-  }
-
-  if (capabilities.hasDamage && !capabilities.damageChannel) {
-    throw new Error(
-      '[AbilityTagAssembler] damage-capable ability projection must declare exactly one damage channel',
+      `[AbilityTagAssembler] 技能产物必须声明至少一个核心功能标签（Damage/Heal/Control）。当前标签: ${Array.from(tags).join(', ')}`,
     );
   }
 
@@ -125,12 +147,6 @@ function summarizeCapabilities(
       default:
         break;
     }
-  }
-
-  if (damageChannels.size > 1) {
-    throw new Error(
-      '[AbilityTagAssembler] mixed damage channels are not supported within one ability projection',
-    );
   }
 
   return {

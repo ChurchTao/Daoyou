@@ -91,64 +91,66 @@ export class GameplayTagContainer {
   }
 }
 
-/**
- * 标签命名约定（建议使用常量避免拼写错误）
- */
 export const GameplayTags = {
-  // ===== 单位类型标签 =====
+  // ===== 单位标签 =====
   UNIT: {
-    // 单位类型
     TYPE: 'Unit.Type',
-    // 玩家
     PLAYER: 'Unit.Type.Player',
-    // 敌人
     ENEMY: 'Unit.Type.Enemy',
-    // 战斗单位
     COMBATANT: 'Unit.Type.Combatant',
   },
 
   // ===== 状态标签 =====
   STATUS: {
-    // 免疫系列
     IMMUNE: 'Status.Immune',
     IMMUNE_CONTROL: 'Status.Immune.Control',
     IMMUNE_DEBUFF: 'Status.Immune.Debuff',
     IMMUNE_FIRE: 'Status.Immune.Fire',
 
-    // 负面状态
     POISONED: 'Status.Poisoned',
+    BURNED: 'Status.Burned',
+    FROZEN: 'Status.Frozen',
+    BLEEDING: 'Status.Bleeding',
+    CHILLED: 'Status.Chilled',
 
-    // ===== 控制三分法 =====
+    // 通用状态分类（用于免疫检查）
+    BUFF: 'Status.Buff',
+    DEBUFF: 'Status.Debuff',
+    DOT: 'Status.DOT',
+    DEF_DEBUFF: 'Status.DefDebuff',
+    MYTHIC: 'Status.Mythic',
+    COMBO: 'Status.Combo',
+    MANA_EFF: 'Status.ManaEff',
+
+    // 控制三分法
     CONTROL: 'Status.Control',
-    // 眩晕（向后兼容，语义等同 NO_ACTION）
     STUNNED: 'Status.Control.Stunned',
-    // 禁行动：单位本回合完全跳过出手（如眩晕、冰封、石化）
     NO_ACTION: 'Status.Control.NoAction',
-    // 禁技：单位本回合只能使用普通攻击，不可使用主动技能（如封咒、禁灵）
     NO_SKILL: 'Status.Control.NoSkill',
-    // 禁普攻：单位本回合只能使用技能，不可普通攻击（如折翅、束手）
     NO_BASIC: 'Status.Control.NoBasic',
   },
 
-  // ===== 技能标签 =====
+  // ===== 能力标签 =====
   ABILITY: {
-    // 技能类型
     TYPE: 'Ability.Type',
     KIND: 'Ability.Kind',
-    // 技能类型：伤害、控制、治疗、魔法、物理
+
+    // 能力类型
     TYPE_DAMAGE: 'Ability.Type.Damage',
     TYPE_TRUE_DAMAGE: 'Ability.Type.Damage.True',
     TYPE_CONTROL: 'Ability.Type.Control',
     TYPE_HEAL: 'Ability.Type.Heal',
     TYPE_MAGIC: 'Ability.Type.Magic',
     TYPE_PHYSICAL: 'Ability.Type.Physical',
+
+    // 能力种类（来源）
     KIND_SKILL: 'Ability.Kind.Skill',
     KIND_PASSIVE: 'Ability.Kind.Passive',
     KIND_ARTIFACT: 'Ability.Kind.Artifact',
     KIND_GONGFA: 'Ability.Kind.GongFa',
 
+    // 元素属性
     ELEMENT: 'Ability.Element',
-    // 元素: 火水木土金风冰雷
     ELEMENT_FIRE: 'Ability.Element.Fire',
     ELEMENT_WATER: 'Ability.Element.Water',
     ELEMENT_WOOD: 'Ability.Element.Wood',
@@ -158,7 +160,7 @@ export const GameplayTags = {
     ELEMENT_ICE: 'Ability.Element.Ice',
     ELEMENT_THUNDER: 'Ability.Element.Thunder',
 
-    // 技能目标
+    // 目标范围
     TARGET: 'Ability.Target',
     TARGET_SINGLE: 'Ability.Target.Single',
     TARGET_AOE: 'Ability.Target.AoE',
@@ -166,22 +168,17 @@ export const GameplayTags = {
 
   // ===== BUFF 标签 =====
   BUFF: {
-    // BUFF 类型
     TYPE: 'Buff.Type',
-    // BUFF 类型：增益、减益、控制
     TYPE_BUFF: 'Buff.Type.Buff',
     TYPE_DEBUFF: 'Buff.Type.Debuff',
     TYPE_CONTROL: 'Buff.Type.Control',
 
-    // 持续伤害
     DOT: 'Buff.Dot',
-    // 中毒、烧伤、冻结、出血
     DOT_POISON: 'Buff.Dot.Poison',
     DOT_BURN: 'Buff.Dot.Burn',
     DOT_FREEZE: 'Buff.Dot.Freeze',
     DOT_BLEED: 'Buff.Dot.Bleed',
 
-    // 元素标签（用于元素免疫和克制）
     ELEMENT: 'Buff.Element',
     ELEMENT_FIRE: 'Buff.Element.Fire',
     ELEMENT_WATER: 'Buff.Element.Water',
@@ -193,4 +190,44 @@ export const GameplayTags = {
     ELEMENT_THUNDER: 'Buff.Element.Thunder',
     ELEMENT_POISON: 'Buff.Element.Poison',
   },
+
+  // ===== 战斗特性标签 (Traits) =====
+  TRAIT: {
+    EXECUTE: 'Trait.Execute',        // 斩杀
+    REFLECT: 'Trait.Reflect',        // 反伤
+    LIFESTEAL: 'Trait.Lifesteal',    // 吸血
+    MANA_THIEF: 'Trait.ManaThief',   // 吸蓝
+    SHIELD_MASTER: 'Trait.Shield',   // 护盾专精
+    BERSERKER: 'Trait.Berserker',    // 狂战
+    COOLDOWN: 'Trait.Cooldown',      // 冷却掌控
+  },
+
+  // ===== 战斗触发场景 (Scenarios/Conditions) =====
+  CONDITION: {
+    LOW_HP: 'Condition.LowHP',
+    HIGH_HP: 'Condition.HighHP',
+    CRIT_READY: 'Condition.CritReady',
+    TARGET_LOW_HP: 'Condition.Target.LowHP',
+    CASTER_LOW_HP: 'Condition.Caster.LowHP',
+  },
+
+  // ===== 战斗事件类型 (Events) - 对齐 CombatEvent.type =====
+  EVENT: {
+    ACTION_PRE: 'ActionPreEvent',
+    DAMAGE_TAKEN: 'DamageTakenEvent',
+    DAMAGE_REQUEST: 'DamageRequestEvent',
+    DAMAGE: 'DamageEvent',
+    ROUND_PRE: 'RoundPreEvent',
+    SKILL_CAST: 'SkillCastEvent',
+    BUFF_ADD: 'BuffAddEvent',
+  },
+
+  // ===== 监听器作用域 (Scopes) =====
+  SCOPE: {
+    OWNER_AS_TARGET: 'owner_as_target',
+    OWNER_AS_ACTOR: 'owner_as_actor',
+    OWNER_AS_CASTER: 'owner_as_caster',
+    GLOBAL: 'global',
+  },
 } as const;
+

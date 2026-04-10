@@ -1,11 +1,8 @@
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import { EquipmentSlot } from '@/types/constants';
 import { AffixEffectTranslator } from '../../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../../affixes/AffixRegistry';
 import type { AffixAttributeModifierTemplate } from '../../affixes/types';
-import type { AttributeModifierConfig, EffectConfig } from '../../contracts/battle';
-import { AttributeType } from '../../contracts/battle';
-import { CreationTags } from '../../core/GameplayTags';
-import { BuffType, StackRule } from '../../contracts/battle';
 import {
   CREATION_LISTENER_PRIORITIES,
   CREATION_PASSIVE_DEFAULTS,
@@ -18,14 +15,19 @@ import {
   CREATION_FALLBACK_GONGFA_BUFF,
   CREATION_FALLBACK_MARKERS,
 } from '../../config/CreationFallbackPolicy';
-import { Rule } from '../core/Rule';
-import { RuleContext } from '../core/RuleContext';
+import type {
+  AttributeModifierConfig,
+  EffectConfig,
+} from '../../contracts/battle';
+import { AttributeType, BuffType, StackRule } from '../../contracts/battle';
 import {
   CompositionDecision,
   PassiveProjectionPolicy,
   SkillProjectionPolicy,
 } from '../contracts/CompositionDecision';
 import { CompositionFacts } from '../contracts/CompositionFacts';
+import { Rule } from '../core/Rule';
+import { RuleContext } from '../core/RuleContext';
 
 /**
  * FallbackOutcomeRules
@@ -36,9 +38,10 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
  * FallbackOutcomeRules: 在 CompositionRuleSet 中作为保险规则，
  * 当上游规则未能生成有效 projectionPolicy 或 name 时提供合理默认，并记录 diagnostics。
  */
-export class FallbackOutcomeRules
-  implements Rule<CompositionFacts, CompositionDecision>
-{
+export class FallbackOutcomeRules implements Rule<
+  CompositionFacts,
+  CompositionDecision
+> {
   readonly id = 'composition.fallback_outcome';
 
   constructor(
@@ -59,7 +62,9 @@ export class FallbackOutcomeRules
     if (policy.kind === 'active_skill') {
       const fallback =
         this.skillCoreFallback(facts) ?? this.skillFallback(facts);
-      decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.skillDamageFallback);
+      decision.defaultsApplied.push(
+        CREATION_FALLBACK_MARKERS.skillDamageFallback,
+      );
       (decision.projectionPolicy as SkillProjectionPolicy).effects = [fallback];
       diagnostics.addTrace({
         ruleId: this.id,
@@ -73,9 +78,12 @@ export class FallbackOutcomeRules
       const fallbackModifiers = this.artifactCoreFallback(facts);
 
       if (fallbackModifiers.length > 0) {
-        decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.artifactCoreFallback);
+        decision.defaultsApplied.push(
+          CREATION_FALLBACK_MARKERS.artifactCoreFallback,
+        );
         (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [];
-        (decision.projectionPolicy as PassiveProjectionPolicy).modifiers = fallbackModifiers;
+        (decision.projectionPolicy as PassiveProjectionPolicy).modifiers =
+          fallbackModifiers;
         diagnostics.addTrace({
           ruleId: this.id,
           outcome: 'applied',
@@ -89,11 +97,13 @@ export class FallbackOutcomeRules
       }
 
       const fallback = this.artifactShieldFallback(facts);
-      decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.artifactShieldFallback);
+      decision.defaultsApplied.push(
+        CREATION_FALLBACK_MARKERS.artifactShieldFallback,
+      );
       (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [
         {
-          eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-          scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+          eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+          scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
           priority: CREATION_LISTENER_PRIORITIES.damageTaken,
           effects: [fallback],
         },
@@ -110,9 +120,12 @@ export class FallbackOutcomeRules
       const fallbackModifiers = this.gongfaCoreFallback(facts);
 
       if (fallbackModifiers.length > 0) {
-        decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.gongfaSpiritFallback);
+        decision.defaultsApplied.push(
+          CREATION_FALLBACK_MARKERS.gongfaSpiritFallback,
+        );
         (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [];
-        (decision.projectionPolicy as PassiveProjectionPolicy).modifiers = fallbackModifiers;
+        (decision.projectionPolicy as PassiveProjectionPolicy).modifiers =
+          fallbackModifiers;
         diagnostics.addTrace({
           ruleId: this.id,
           outcome: 'applied',
@@ -125,12 +138,14 @@ export class FallbackOutcomeRules
       }
 
       const fallback = this.gongfaFallback();
-      decision.defaultsApplied.push(CREATION_FALLBACK_MARKERS.gongfaSpiritFallback);
+      decision.defaultsApplied.push(
+        CREATION_FALLBACK_MARKERS.gongfaSpiritFallback,
+      );
       (decision.projectionPolicy as PassiveProjectionPolicy).listeners = [
         {
-          eventType: CreationTags.BATTLE_EVENT.ACTION_PRE,
-          scope: CreationTags.LISTENER_SCOPE.OWNER_AS_ACTOR,
-          priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
+          eventType: GameplayTags.EVENT.ACTION_PRE,
+          scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+          priority: CREATION_LISTENER_PRIORITIES.skillCast,
           effects: [fallback],
         },
       ];
@@ -147,7 +162,10 @@ export class FallbackOutcomeRules
       CREATION_FALLBACK_CORE_AFFIX.skill,
     );
 
-    if (!fallbackDef || fallbackDef.effectTemplate.type === 'attribute_modifier') {
+    if (
+      !fallbackDef ||
+      fallbackDef.effectTemplate.type === 'attribute_modifier'
+    ) {
       return undefined;
     }
 
@@ -182,7 +200,10 @@ export class FallbackOutcomeRules
     const fallbackAffixId = CREATION_FALLBACK_ARTIFACT_CORE_AFFIX[slotBias];
     const fallbackDef = this.registry.queryById(fallbackAffixId);
 
-    if (!fallbackDef || fallbackDef.effectTemplate.type !== 'attribute_modifier') {
+    if (
+      !fallbackDef ||
+      fallbackDef.effectTemplate.type !== 'attribute_modifier'
+    ) {
       return [];
     }
 
@@ -201,13 +222,15 @@ export class FallbackOutcomeRules
   }
 
   private normalizeAttributeModifierEntries(
-    params: {
-      attrType: AffixAttributeModifierTemplate['attrType'];
-      modType: AffixAttributeModifierTemplate['modType'];
-      value: AffixAttributeModifierTemplate['value'];
-    } | {
-      modifiers: AffixAttributeModifierTemplate[];
-    },
+    params:
+      | {
+          attrType: AffixAttributeModifierTemplate['attrType'];
+          modType: AffixAttributeModifierTemplate['modType'];
+          value: AffixAttributeModifierTemplate['value'];
+        }
+      | {
+          modifiers: AffixAttributeModifierTemplate[];
+        },
   ): AffixAttributeModifierTemplate[] {
     if ('modifiers' in params) {
       return params.modifiers;
@@ -248,7 +271,10 @@ export class FallbackOutcomeRules
       CREATION_FALLBACK_CORE_AFFIX.gongfa,
     );
 
-    if (!fallbackDef || fallbackDef.effectTemplate.type !== 'attribute_modifier') {
+    if (
+      !fallbackDef ||
+      fallbackDef.effectTemplate.type !== 'attribute_modifier'
+    ) {
       return [];
     }
 

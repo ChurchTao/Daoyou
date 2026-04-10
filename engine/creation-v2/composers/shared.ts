@@ -2,12 +2,10 @@ import { Quality } from '@/types/constants';
 import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
 import { AffixRegistry } from '../affixes/AffixRegistry';
 import {
-  AffixDefinition,
   AffixListenerSpec,
-  RolledAffix,
 } from '../affixes/types';
 import type { EffectConfig, ListenerConfig } from '../contracts/battle';
-import type { CreationOutcomeKind, CreationProductType } from '../types';
+import type { CreationOutcomeKind, CreationProductType, RolledAffix } from '../types';
 /*
  * composers/shared.ts: Composer 公共工具。
  * 包含根据材料品质聚合默认质量、构建分组 listener，以及通用的 slug 生成器委托等辅助函数。
@@ -41,7 +39,6 @@ export function buildGroupedListeners({
 
     const effect = translator.translate(rolled, quality);
     const spec = definition.listenerSpec ?? defaultListenerSpec;
-...
     // Key design: (eventType, scope, priority) is the merge unit for listeners.
     // Affixes sharing the same triple are combined into a single ListenerConfig with
     // multiple effects. Affixes with different priorities produce independent listeners,

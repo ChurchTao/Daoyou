@@ -6,6 +6,7 @@
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_ABILITY_TAG, ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags } from '../../core/GameplayTags';
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import {
   AttributeType,
   BuffType,
@@ -27,6 +28,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -57,6 +59,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -87,6 +90,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -117,6 +121,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -147,6 +152,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -177,6 +183,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -207,6 +214,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -237,6 +245,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -267,6 +276,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -297,6 +307,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -327,6 +338,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -357,6 +369,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -387,6 +400,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -417,6 +431,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -447,6 +462,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -477,6 +493,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -507,6 +524,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -537,6 +555,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -567,6 +586,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -597,6 +617,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -627,6 +648,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -657,6 +679,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -687,6 +710,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -717,6 +741,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -752,6 +777,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -781,6 +807,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -810,6 +837,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -839,6 +867,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -868,6 +897,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -897,6 +927,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -926,6 +957,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -955,6 +987,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -988,6 +1021,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 95,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1007,6 +1041,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 90,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1026,6 +1061,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 82,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1045,6 +1081,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1068,6 +1105,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 10,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1079,8 +1117,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -1094,6 +1132,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 10,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -1101,8 +1140,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         skipReflectSource: true,
@@ -1119,6 +1158,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 9,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1130,8 +1170,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -1153,13 +1193,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'death_prevent',
       params: {},
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         requireOwnerAlive: false,
@@ -1181,6 +1222,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '灵品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'shield',
       conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
@@ -1193,8 +1235,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -1212,6 +1254,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 90,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1231,6 +1274,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1250,6 +1294,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1268,6 +1313,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 7,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1287,6 +1333,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 7,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1305,6 +1352,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 7,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1323,6 +1371,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 7,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -1330,8 +1379,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.SKILL_CAST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       mapping: {
         caster: 'owner',
@@ -1348,6 +1397,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1366,6 +1416,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 56,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1384,6 +1435,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1402,6 +1454,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 6,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1423,10 +1476,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 7,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
-        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_CHILL } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.CHILLED } },
       ],
       params: {
         mode: 'increase',
@@ -1435,8 +1489,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1454,6 +1508,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1465,8 +1520,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -1483,6 +1538,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1492,8 +1548,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1506,6 +1562,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 9,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'magic_shield',
       params: {
@@ -1513,8 +1570,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
     },
   },
@@ -1527,6 +1584,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 9,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1536,8 +1594,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -1550,6 +1608,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1562,8 +1621,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -1580,6 +1639,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 9,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1591,8 +1651,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       mapping: {
         caster: 'owner',
@@ -1609,15 +1669,16 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 10,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'buff_immunity',
       params: {
-        tags: [CreationTags.BATTLE.BUFF_TYPE_DEBUFF],
+        tags: [GameplayTags.BUFF.TYPE_DEBUFF],
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.BUFF_ADD,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.BUFF_ADD,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
     },
   },
@@ -1630,6 +1691,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 9,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1645,8 +1707,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1659,16 +1721,17 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 8,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'dispel',
       params: {
-        targetTag: CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
+        targetTag: GameplayTags.BUFF.TYPE_DEBUFF,
         maxCount: 1,
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -1688,6 +1751,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 9,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_above', params: { value: 0.65 } }],
@@ -1700,8 +1764,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -1722,12 +1786,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: CreationTags.BATTLE.ABILITY_ELEMENT },
+          params: { tag: GameplayTags.ABILITY.ELEMENT },
         },
       ],
       params: {
@@ -1737,8 +1802,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1751,6 +1816,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 11,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1778,6 +1844,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 49,
     energyCost: 10,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1810,6 +1877,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 46,
     energyCost: 11,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1850,6 +1918,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 36,
     energyCost: 11,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_above', params: { value: 0.75 } }],
@@ -1860,8 +1929,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -1882,6 +1951,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 12,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1893,8 +1963,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -1907,6 +1977,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 12,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -1914,8 +1985,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         skipReflectSource: true,
@@ -1931,6 +2002,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 12,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1940,8 +2012,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_CASTER,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -1957,6 +2029,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 39,
     energyCost: 11,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'apply_buff',
       conditions: [
@@ -1972,8 +2045,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
           type: BuffType.BUFF,
           duration: 1,
           stackRule: StackRule.OVERRIDE,
-          tags: [CreationTags.BATTLE.BUFF_TYPE_BUFF],
-          statusTags: [CreationTags.BATTLE.STATUS_BUFF],
+          tags: [GameplayTags.BUFF.TYPE_BUFF],
+          statusTags: [GameplayTags.STATUS.BUFF],
           modifiers: [
             {
               attrType: AttributeType.WILLPOWER,
@@ -1991,8 +2064,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -2012,6 +2085,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 35,
     energyCost: 12,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
@@ -2022,8 +2096,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -2039,10 +2113,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 34,
     energyCost: 12,
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'reflect',
       conditions: [
-        { type: 'has_tag', params: { tag: CreationTags.BATTLE.STATUS_BURN } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.BURNED } },
         { type: 'chance', params: { value: 0.75 } },
       ],
       params: {
@@ -2050,8 +2125,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         skipReflectSource: true,
@@ -2073,6 +2148,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2097,15 +2173,16 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'damage_immunity',
       params: {
-        tags: [CreationTags.BATTLE.ABILITY_TYPE_MAGIC],
+        tags: [GameplayTags.ABILITY.TYPE_MAGIC],
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
     },
   },
@@ -2124,6 +2201,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'magic_shield',
       params: {
@@ -2131,8 +2209,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
     },
   },
@@ -2151,6 +2229,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.65, scope: 'caster' } }],
@@ -2161,8 +2240,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -2185,6 +2264,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'reflect',
       conditions: [{ type: 'chance', params: { value: 0.82 } }],
@@ -2193,8 +2273,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         skipReflectSource: true,
@@ -2221,6 +2301,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2247,6 +2328,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2273,6 +2355,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2299,6 +2382,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2324,6 +2408,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2350,6 +2435,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2376,6 +2462,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2402,6 +2489,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2427,6 +2515,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2453,6 +2542,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 9,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2478,6 +2568,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2504,6 +2595,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2515,8 +2607,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -2540,6 +2632,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2551,8 +2644,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
@@ -2577,6 +2670,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -2588,8 +2682,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
@@ -2610,13 +2704,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '天品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'death_prevent',
       params: {},
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
       guard: {
         requireOwnerAlive: false,
@@ -2641,6 +2736,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '仙品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -2650,8 +2746,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.DAMAGE_REQUEST,
-      scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
@@ -2670,6 +2766,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2696,6 +2793,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2721,6 +2819,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2746,6 +2845,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2771,6 +2871,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2782,8 +2883,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: CreationTags.BATTLE_EVENT.ROUND_PRE,
-      scope: CreationTags.LISTENER_SCOPE.GLOBAL,
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.GLOBAL,
       priority: CREATION_LISTENER_PRIORITIES.roundPre,
       mapping: {
         caster: 'owner',
