@@ -1,3 +1,4 @@
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { LogPresenter } from '../../../systems/log/LogPresenter';
 import { LogEntry, LogEntryType, LogSpan } from '../../../systems/log/types';
 
@@ -225,7 +226,7 @@ describe('LogPresenter 行动日志聚合', () => {
       createEntry('damage_immune', {
         targetName: '李四',
         blockedDamage: 120,
-        matchedTag: 'Ability.Type.Magic',
+        matchedTag: GameplayTags.ABILITY.CHANNEL.MAGIC,
       }),
     ]);
 

@@ -1,4 +1,4 @@
-import { CreationTags } from '../../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { ELEMENT_TAG_TOKENS } from '../../config/CreationMappings';
 import { AFFIX_CATEGORIES, CREATION_PHASES, defaultRecipeId } from '../../types';
 import { RecipeDecision, RecipeFacts } from '../contracts';

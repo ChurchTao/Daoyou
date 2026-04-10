@@ -6,7 +6,7 @@ import { QUALITY_ORDER } from '@/types/constants';
 import { Material } from '@/types/cultivator';
 import { CREATION_MATERIAL_ENERGY } from '../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../config/CreationMappings';
-import { CreationTags } from '../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { extractSemanticTagsFromText } from './SemanticTagAllowlist';
 
 const TYPE_TAGS: Record<Material['type'], string> = {

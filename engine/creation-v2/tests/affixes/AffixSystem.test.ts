@@ -1,4 +1,4 @@
-import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixPoolBuilder } from '@/engine/creation-v2/affixes/AffixPoolBuilder';
@@ -10,11 +10,10 @@ import { SKILL_AFFIXES } from '@/engine/creation-v2/affixes/definitions/skillAff
 import { CREATION_DURATION_POLICY } from '@/engine/creation-v2/config/CreationBalance';
 import { AttributeType, BuffType, ModifierType } from '@/engine/creation-v2/contracts/battle';
 import { ELEMENT_TO_ABILITY_TAG } from '@/engine/creation-v2/config/CreationMappings';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { AffixCandidate, EnergyBudget, CreationIntent, RolledAffix } from '@/engine/creation-v2/types';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
-import { Quality } from '@/types/constants';
 
 /** 辅助函数：将静态定义转换为运行态 RolledAffix 以满足接口契约 */
 function toRolledAffix(def: AffixDefinition): RolledAffix {
@@ -158,7 +157,7 @@ describe('AffixEffectTranslator', () => {
     const result = translator.translate(toRolledAffix(def), '真品');
     expect(result.type).toBe('damage_immunity');
     if (result.type === 'damage_immunity') {
-      expect(result.params.tags).toEqual([GameplayTags.ABILITY.TYPE_MAGIC]);
+      expect(result.params.tags).toEqual([GameplayTags.ABILITY.CHANNEL.MAGIC]);
     }
   });
 
@@ -167,7 +166,7 @@ describe('AffixEffectTranslator', () => {
     const result = translator.translate(toRolledAffix(def), '玄品');
     expect(result.type).toBe('buff_immunity');
     if (result.type === 'buff_immunity') {
-      expect(result.params.tags).toEqual([GameplayTags.BUFF.TYPE_DEBUFF]);
+      expect(result.params.tags).toEqual([GameplayTags.BUFF.TYPE.DEBUFF]);
     }
   });
 
@@ -188,7 +187,7 @@ describe('AffixEffectTranslator', () => {
 
     expect(result.type).toBe('dispel');
     if (result.type === 'dispel') {
-      expect(result.params.targetTag).toBe(GameplayTags.BUFF.TYPE_BUFF);
+      expect(result.params.targetTag).toBe(GameplayTags.BUFF.TYPE.BUFF);
     }
   });
 
@@ -198,7 +197,7 @@ describe('AffixEffectTranslator', () => {
 
     expect(result.type).toBe('dispel');
     if (result.type === 'dispel') {
-      expect(result.params.targetTag).toBe(GameplayTags.BUFF.TYPE_DEBUFF);
+      expect(result.params.targetTag).toBe(GameplayTags.BUFF.TYPE.DEBUFF);
     }
   });
 
@@ -210,15 +209,15 @@ describe('AffixEffectTranslator', () => {
     if (result.type === 'apply_buff') {
       expect(result.params.buffConfig.tags).toHaveLength(2);
       expect(result.params.buffConfig.tags).toEqual(expect.arrayContaining([
-        GameplayTags.BUFF.TYPE_DEBUFF,
-        GameplayTags.BUFF.TYPE_CONTROL,
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.TYPE.CONTROL,
       ]));
       expect(result.params.buffConfig.statusTags).toHaveLength(4);
       expect(result.params.buffConfig.statusTags).toEqual(expect.arrayContaining([
-        GameplayTags.STATUS.DEBUFF,
-        GameplayTags.STATUS.CONTROL,
-        GameplayTags.STATUS.STUNNED,
-        GameplayTags.STATUS.NO_ACTION,
+        GameplayTags.STATUS.CATEGORY.DEBUFF,
+        GameplayTags.STATUS.CONTROL.ROOT,
+        GameplayTags.STATUS.CONTROL.STUNNED,
+        GameplayTags.STATUS.CONTROL.NO_ACTION,
       ]));
     }
   });
@@ -231,15 +230,15 @@ describe('AffixEffectTranslator', () => {
     if (result.type === 'apply_buff') {
       expect(result.params.buffConfig.tags).toHaveLength(3);
       expect(result.params.buffConfig.tags).toEqual(expect.arrayContaining([
-        GameplayTags.BUFF.TYPE_DEBUFF,
-        GameplayTags.BUFF.DOT,
-        GameplayTags.BUFF.DOT_BURN,
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.DOT.ROOT,
+        GameplayTags.BUFF.DOT.BURN,
       ]));
       expect(result.params.buffConfig.statusTags).toHaveLength(3);
       expect(result.params.buffConfig.statusTags).toEqual(expect.arrayContaining([
-        GameplayTags.STATUS.DEBUFF,
-        GameplayTags.STATUS.DOT,
-        GameplayTags.STATUS.BURNED,
+        GameplayTags.STATUS.CATEGORY.DEBUFF,
+        GameplayTags.STATUS.CATEGORY.DOT,
+        GameplayTags.STATUS.STATE.BURNED,
       ]));
     }
   });
@@ -316,7 +315,15 @@ describe('AffixSelector', () => {
     weight,
     energyCost,
     exclusiveGroup,
-    effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: 10,
+          attribute: AttributeType.MAGIC_ATK,
+        },
+      },
+    },
   });
 
   const makeIntent = (): CreationIntent => ({
@@ -598,7 +605,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.tags = ['Unknown.Tag'];
+    session.state.inputTags = ['Unknown.Tag'];
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const ids = decision.candidates.map((candidate) => candidate.id);
@@ -620,7 +627,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     // 手动设置 session 状态
     session.state.materialFingerprints = [{ rank: '凡品', energyValue: 8, rarityWeight: 1, explicitTags: [], semanticTags: ['Material.Semantic.Spirit'], recipeTags: [], materialName: '凡品灵草', materialType: 'herb', quantity: 1 }];
     session.state.recipeMatch = { recipeId: 'default', valid: true, matchedTags: [], unlockedAffixCategories: ['core', 'prefix', 'suffix', 'signature'] };
-    session.state.tags = ['Material.Semantic.Spirit', 'Material.Semantic.Manual'];
+    session.state.inputTags = ['Material.Semantic.Spirit', 'Material.Semantic.Manual'];
     const pool = builder.build(DEFAULT_AFFIX_REGISTRY, session);
     const ids = pool.map((c: AffixCandidate) => c.id);
     expect(ids).not.toContain('gongfa-signature-comprehension');
@@ -670,7 +677,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.tags = [
+    session.state.inputTags = [
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
@@ -732,7 +739,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.tags = ['Unknown.Tag'];
+    session.state.inputTags = ['Unknown.Tag'];
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const coreIds = decision.candidates
@@ -920,7 +927,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.tags = [
+    session.state.inputTags = [
       CreationTags.RECIPE.PRODUCT_BIAS_SKILL,
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_BURST,
@@ -1015,7 +1022,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.tags = [
+    session.state.inputTags = [
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_WIND,
@@ -1026,7 +1033,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.TYPE_MANUAL,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-      GameplayTags.CONDITION.CASTER_LOW_HP,
+      GameplayTags.CONDITION.CASTER.LOW_HP,
     ];
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);

@@ -12,7 +12,7 @@ export interface AffixEligibilityFacts {
   energyBudget: EnergyBudget;
   candidatePool: AffixCandidate[];
   allowedCategories: AffixCategory[];
-  sessionTags: string[];
+  inputTags: string[];
   tagSignalScores: Record<string, number>;
   maxQualityOrder: number;
 }

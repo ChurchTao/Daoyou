@@ -1,8 +1,8 @@
-import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import * as creationV2 from '@/engine/creation-v2';
 import * as battleContract from '@/engine/creation-v2/contracts/battle';
 import * as battleTestkit from '@/engine/creation-v2/contracts/battle-testkit';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import type {
   ActiveSkillBattleProjection,
@@ -34,7 +34,10 @@ describe('creation-v2 public exports', () => {
 
     const projection: ActiveSkillBattleProjection = {
       projectionKind: 'active_skill',
-      abilityTags: ['Ability.Type.Damage', 'Ability.Type.Magic'],
+      abilityTags: [
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.MAGIC,
+      ],
       mpCost: 10,
       cooldown: 2,
       priority: 10,
@@ -50,7 +53,7 @@ describe('creation-v2 public exports', () => {
       outcomeKind: 'active_skill',
       slug: 'public-api-skill',
       name: '测试技能',
-      tags: [],
+      outcomeTags: [],
       affixes: [],
       battleProjection: projection,
     };
@@ -60,7 +63,7 @@ describe('creation-v2 public exports', () => {
       outcomeKind: 'artifact',
       slug: 'public-api-artifact',
       name: '测试法宝',
-      tags: [],
+      outcomeTags: [],
       affixes: [],
       artifactConfig: {
         equipPolicy: 'single_slot',
@@ -69,7 +72,7 @@ describe('creation-v2 public exports', () => {
       },
       battleProjection: {
         projectionKind: 'artifact_passive',
-        abilityTags: [GameplayTags.ABILITY.KIND_ARTIFACT],
+        abilityTags: [GameplayTags.ABILITY.KIND.ARTIFACT],
         listeners: [],
       },
     };
@@ -79,7 +82,7 @@ describe('creation-v2 public exports', () => {
       outcomeKind: 'gongfa',
       slug: 'public-api-gongfa',
       name: '测试功法',
-      tags: [],
+      outcomeTags: [],
       affixes: [],
       gongfaConfig: {
         equipPolicy: 'single_manual',
@@ -88,7 +91,7 @@ describe('creation-v2 public exports', () => {
       },
       battleProjection: {
         projectionKind: 'gongfa_passive',
-        abilityTags: [GameplayTags.ABILITY.KIND_GONGFA],
+        abilityTags: [GameplayTags.ABILITY.KIND.GONGFA],
         listeners: [],
       },
     };
@@ -146,7 +149,7 @@ describe('creation-v2 public exports', () => {
       ...baseMeta,
       outcomeKind: 'active_skill',
       name: '赤炎诀',
-      tags: ['Element.Fire'],
+      outcomeTags: ['Element.Fire'],
       affixes: [],
       defaultsApplied: ['damage_projection'],
     };

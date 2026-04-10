@@ -6,15 +6,15 @@ import {
   LogEntryType,
   LogSpan,
 } from './types';
-import { GameplayTags } from '../../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 
 /**
  * 控制标签 → 战报状态描述（基于行动完全被压制的场景）
  * 仅处理 ControlledSkipEvent 可携带的标签（NO_ACTION / STUNNED）
  */
 const CONTROL_TAG_DESC: Readonly<Record<string, string>> = {
-  [GameplayTags.STATUS.STUNNED]:   '陷入眩晕',
-  [GameplayTags.STATUS.NO_ACTION]: '失去行动力',
+  [GameplayTags.STATUS.CONTROL.STUNNED]:   '陷入眩晕',
+  [GameplayTags.STATUS.CONTROL.NO_ACTION]: '失去行动力',
 };
 
 function getControlDesc(tag: string): string {

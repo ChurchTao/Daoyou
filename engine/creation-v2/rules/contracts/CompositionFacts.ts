@@ -23,7 +23,7 @@ export interface CompositionFacts {
   recipeMatch: RecipeMatch;
   energySummary: CompositionEnergySummary;
   affixes: RolledAffix[];
-  sessionTags: string[];
+  inputTags: string[];
   materialFingerprints: MaterialFingerprint[];
   materialQualityProfile: MaterialQualityProfile;
   materialNames: string[];

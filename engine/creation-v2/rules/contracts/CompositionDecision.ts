@@ -31,7 +31,7 @@ export interface CompositionDecision extends RuleDecisionMeta {
   outcomeKind: CreationOutcomeKind;
   name: string;
   description?: string;
-  tags: string[];
+  outcomeTags: string[];
   affixes: RolledAffix[];
   defaultsApplied: string[];
   /** Populated by EnergyConversionRules before ProjectionRules runs */

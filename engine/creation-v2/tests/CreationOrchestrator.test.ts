@@ -3,8 +3,8 @@ import { projectAbilityConfig } from '../models';
 import { CreationOutcomeMaterializer } from '../adapters/types';
 import { TestableCreationOrchestrator as CreationOrchestrator } from './helpers/TestableCreationOrchestrator';
 import { AffixRolledEvent, CraftFailedEvent } from '../core/events';
-import { CreationTags } from '../core/GameplayTags';
-import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { CreationEventPriorityLevel } from '../core/types';
 import { CreationBlueprint, EnergyBudget, MaterialFingerprint, RecipeMatch } from '../types';
 
@@ -51,9 +51,18 @@ describe('CreationOrchestrator', () => {
     expect(recipeMatch.valid).toBe(true);
     expect(budget.effectiveTotal).toBeGreaterThan(0);
     expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
-    expect(blueprint.productModel.battleProjection.abilityTags).toContain(
-      'Ability.Type.Damage',
+    expect(blueprint.productModel.battleProjection.abilityTags).toEqual(
+      expect.arrayContaining([GameplayTags.ABILITY.ELEMENT.FIRE]),
     );
+    expect(
+      blueprint.productModel.battleProjection.abilityTags.some((tag) =>
+        [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.FUNCTION.HEAL,
+          GameplayTags.ABILITY.FUNCTION.CONTROL,
+        ].includes(tag),
+      ),
+    ).toBe(true);
   });
 
   it('应能将主动技能蓝图物化为 battle-v5 主动技能能力实例', () => {
@@ -129,7 +138,7 @@ describe('CreationOrchestrator', () => {
         slug: 'craft-skill-session-active',
         name: '焚岳诀',
         description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
-        tags: ['Outcome.ActiveSkill'],
+        outcomeTags: ['Outcome.ActiveSkill'],
         affixes: [
           {
             id: 'core-flame-burst',
@@ -148,9 +157,9 @@ describe('CreationOrchestrator', () => {
         battleProjection: {
           projectionKind: 'active_skill',
           abilityTags: [
-            'Ability.Type.Damage',
-            'Ability.Type.Magic',
-            'Ability.Element.Fire',
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+            GameplayTags.ABILITY.ELEMENT.FIRE,
           ],
           mpCost: 18,
           cooldown: 2,
@@ -195,7 +204,8 @@ describe('CreationOrchestrator', () => {
     expect(order).toEqual(['submitted', 'materialized']);
     expect(outcome.ability.type).toBe(AbilityType.ACTIVE_SKILL);
     expect(outcome.ability.name).toBe('焚岳诀');
-    expect(session.state.tags).toContain('Material.Semantic.Flame');
+    expect(session.state.inputTags).toContain('Material.Semantic.Flame');
+    expect(session.state.inputTags).not.toContain('Outcome.ActiveSkill');
   });
 
   it('应能将 artifact 蓝图物化为 battle-v5 被动能力实例', () => {
@@ -245,7 +255,7 @@ describe('CreationOrchestrator', () => {
         slug: 'craft-passive-session-passive',
         name: '玄冰护心佩',
         description: '寒意护体，遇袭时凝结冰盾。',
-        tags: ['Outcome.PassiveAbility', 'Outcome.Artifact'],
+        outcomeTags: ['Outcome.PassiveAbility', 'Outcome.Artifact'],
         affixes: [],
         artifactConfig: {
           equipPolicy: 'single_slot',
@@ -541,11 +551,14 @@ describe('CreationOrchestrator', () => {
         slug: 'test-abstract-materializer',
         name: '测试造物',
         description: '抽象物化器测试',
-        tags: ['Outcome.ActiveSkill'],
+        outcomeTags: ['Outcome.ActiveSkill'],
         affixes: [],
         battleProjection: {
           projectionKind: 'active_skill',
-          abilityTags: ['Ability.Type.Damage', 'Ability.Type.Magic'],
+          abilityTags: [
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+          ],
           mpCost: 10,
           cooldown: 1,
           priority: 10,

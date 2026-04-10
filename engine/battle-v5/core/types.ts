@@ -159,8 +159,5 @@ export interface CombatLog {
   highlight: boolean;
 }
 
-// ===== 标签系统类型 =====
-export type TagPath = string;
-
 // 导出事件类型定义
 export * from './events';

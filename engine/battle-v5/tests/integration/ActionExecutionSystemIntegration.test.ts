@@ -1,5 +1,5 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
-import { GameplayTags } from '../../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AbilityId, AbilityType, AttributeType, DamageSource, ModifierType } from '../../core/types';
 import { EventBus } from '../../core/EventBus';
 import { DamageRequestEvent, SkillCastEvent, SkillPreCastEvent } from '../../core/events';
@@ -150,8 +150,8 @@ describe('DamageSystem direct mitigation', () => {
       name: '明示灵击',
       type: AbilityType.ACTIVE_SKILL,
       tags: [
-        GameplayTags.ABILITY.TYPE_DAMAGE,
-        GameplayTags.ABILITY.TYPE_MAGIC,
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.MAGIC,
       ],
       targetPolicy: { team: 'enemy', scope: 'single' },
       effects: [
@@ -168,8 +168,10 @@ describe('DamageSystem direct mitigation', () => {
       ],
     });
 
-    expect(ability.tags.hasTag(GameplayTags.ABILITY.TYPE_DAMAGE)).toBe(true);
-    expect(ability.tags.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)).toBe(true);
+    expect(ability.tags.hasTag(GameplayTags.ABILITY.FUNCTION.DAMAGE)).toBe(
+      true,
+    );
+    expect(ability.tags.hasTag(GameplayTags.ABILITY.CHANNEL.MAGIC)).toBe(true);
   });
 
   it('AbilityFactory should reject damage abilities missing a damage channel tag', () => {
@@ -178,7 +180,7 @@ describe('DamageSystem direct mitigation', () => {
         slug: 'missing_damage_channel',
         name: '缺失通道标签',
         type: AbilityType.ACTIVE_SKILL,
-        tags: [GameplayTags.ABILITY.TYPE_DAMAGE],
+        tags: [GameplayTags.ABILITY.FUNCTION.DAMAGE],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
           {
@@ -194,7 +196,7 @@ describe('DamageSystem direct mitigation', () => {
         ],
       }),
     ).toThrow(
-      `[AbilityFactory] ability missing_damage_channel must include ${GameplayTags.ABILITY.TYPE_MAGIC}`,
+      `[AbilityFactory] ability missing_damage_channel must include ${GameplayTags.ABILITY.CHANNEL.MAGIC}`,
     );
   });
 
@@ -205,9 +207,9 @@ describe('DamageSystem direct mitigation', () => {
         name: '双通道冲突',
         type: AbilityType.ACTIVE_SKILL,
         tags: [
-          GameplayTags.ABILITY.TYPE_DAMAGE,
-          GameplayTags.ABILITY.TYPE_MAGIC,
-          GameplayTags.ABILITY.TYPE_PHYSICAL,
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+          GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [

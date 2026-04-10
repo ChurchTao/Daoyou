@@ -3,7 +3,6 @@
  * 包含 CreationEvent、CreationPhase、CreationWorkflowOptions 等跨模块共享的基础类型。
  */
 
-export type CreationTagPath = string;
 export type CreationEventPriority = number;
 
 export interface CreationEvent {

@@ -131,8 +131,8 @@ export class BattleStateRecorder {
       canAct:
         unit.isAlive() &&
         !unit.tags.hasAnyTag([
-          GameplayTags.STATUS.NO_ACTION,
-          GameplayTags.STATUS.STUNNED,
+          GameplayTags.STATUS.CONTROL.NO_ACTION,
+          GameplayTags.STATUS.CONTROL.STUNNED,
         ]),
     };
   }

@@ -1,4 +1,4 @@
-import { CreationTags } from '../../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { CreationProductType } from '../../types';
 import { Rule } from '../core';
 import { RecipeDecision, RecipeFacts } from '../contracts';

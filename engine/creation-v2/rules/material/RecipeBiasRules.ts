@@ -1,4 +1,4 @@
-import { CreationTags } from '../../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { Rule } from '../core';
 import { RuleContext } from '../core/RuleContext';
 import { MaterialDecision } from '../contracts/MaterialDecision';

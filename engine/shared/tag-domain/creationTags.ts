@@ -1,15 +1,12 @@
-/*
- * CreationTags: 造物系统私有语义标签。
- * 这里仅保留描述“造物过程”相关的标签（素材、意图、配方、能量、词缀分类）。
- * 所有的战斗特性、事件、状态标签均应直接引用 @/engine/battle-v5/core/GameplayTags。
- */
-import { GameplayTagContainer } from '@/engine/battle-v5/core/GameplayTags';
+import { GameplayTagContainer } from './GameplayTagContainer';
 
-// Alias 容器实现，确保底层逻辑统一
+/**
+ * CreationTags: 造物系统作者侧与过程侧标签词表。
+ * 这些标签只应参与输入、筛选与结果归类，不应直接作为战斗运行时标签消费。
+ */
 export class CreationTagContainer extends GameplayTagContainer {}
 
 export const CreationTags = {
-  // 材料标签：用于材料指纹抽取阶段（MaterialFingerprint）与词缀候选筛选（AffixPoolBuild）
   MATERIAL: {
     ROOT: 'Material',
     TYPE: 'Material.Type',
@@ -22,7 +19,6 @@ export const CreationTags = {
     QUALITY: 'Material.Quality',
     ELEMENT: 'Material.Element',
     SEMANTIC: 'Material.Semantic',
-    // 语义标签作为素材的“炼金属性”，保留在造物域
     SEMANTIC_FLAME: 'Material.Semantic.Flame',
     SEMANTIC_FREEZE: 'Material.Semantic.Freeze',
     SEMANTIC_THUNDER: 'Material.Semantic.Thunder',
@@ -39,14 +35,12 @@ export const CreationTags = {
     SEMANTIC_WOOD: 'Material.Semantic.Wood',
     SEMANTIC_POISON: 'Material.Semantic.Poison',
     SEMANTIC_DIVINE: 'Material.Semantic.Divine',
-    SEMANTIC_CHAOS: 'Material.Semantic.Chaos',
     SEMANTIC_SPACE: 'Material.Semantic.Space',
     SEMANTIC_TIME: 'Material.Semantic.Time',
     SEMANTIC_LIFE: 'Material.Semantic.Life',
     RECIPE: 'Material.Recipe',
   },
 
-  // 意图标签：用于 Intent 解析阶段决定造物方向
   INTENT: {
     ROOT: 'Intent',
     PRODUCT: 'Intent.Product',
@@ -58,7 +52,6 @@ export const CreationTags = {
     OUTCOME_PASSIVE: 'Intent.Outcome.PassiveAbility',
   },
 
-  // 配方标签
   RECIPE: {
     ROOT: 'Recipe',
     PRODUCT_BIAS: 'Recipe.ProductBias',
@@ -72,7 +65,6 @@ export const CreationTags = {
     UNLOCKED: 'Recipe.Unlocked',
   },
 
-  // 能量标签
   ENERGY: {
     ROOT: 'Energy',
     BASE: 'Energy.Base',
@@ -80,7 +72,6 @@ export const CreationTags = {
     RESERVED: 'Energy.Reserved',
   },
 
-  // 词缀分类标签（仅用于 CE 内部池管理）
   AFFIX: {
     ROOT: 'Affix',
     PREFIX: 'Affix.Prefix',
@@ -92,7 +83,6 @@ export const CreationTags = {
     MYTHIC: 'Affix.Mythic',
   },
 
-  // 结果标签：用于产物投影阶段标识最终产物类型
   OUTCOME: {
     ROOT: 'Outcome',
     ACTIVE_SKILL: 'Outcome.ActiveSkill',

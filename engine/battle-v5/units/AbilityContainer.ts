@@ -8,7 +8,7 @@ import {
   EventPriorityLevel,
   SkillPreCastEvent,
 } from '../core/events';
-import { GameplayTags } from '../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AbilityType } from '../core/types';
 import { Unit } from './Unit';
 
@@ -62,18 +62,18 @@ export class AbilityContainer {
     // NO_ACTION 已在 BattleEngineV5.executeActionPhase 中拦截，此处做防御性检查
     if (
       this._owner.tags.hasAnyTag([
-        GameplayTags.STATUS.NO_ACTION,
-        GameplayTags.STATUS.STUNNED,
+        GameplayTags.STATUS.CONTROL.NO_ACTION,
+        GameplayTags.STATUS.CONTROL.STUNNED,
       ])
     ) {
       return;
     }
 
     const isSkillBlocked = this._owner.tags.hasTag(
-      GameplayTags.STATUS.NO_SKILL,
+      GameplayTags.STATUS.CONTROL.NO_SKILL,
     );
     const isBasicBlocked = this._owner.tags.hasTag(
-      GameplayTags.STATUS.NO_BASIC,
+      GameplayTags.STATUS.CONTROL.NO_BASIC,
     );
 
     const opponent = this._getDefaultTarget();
@@ -138,7 +138,7 @@ export class AbilityContainer {
         type: 'ControlledSkipEvent',
         timestamp: Date.now(),
         unit: this._owner,
-        controlTag: GameplayTags.STATUS.NO_ACTION,
+        controlTag: GameplayTags.STATUS.CONTROL.NO_ACTION,
       });
     }
   }

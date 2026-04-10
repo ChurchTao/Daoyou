@@ -3,7 +3,7 @@ import { AbilityId, AbilityType, CombatEvent } from '../core/types';
 export type { AbilityId };
 import { Unit } from '../units/Unit';
 import { EventBus } from '../core/EventBus';
-import { GameplayTagContainer } from '../core/GameplayTags';
+import { GameplayTagContainer } from '@/engine/shared/tag-domain';
 
 type EventHandler = (event: CombatEvent) => void;
 

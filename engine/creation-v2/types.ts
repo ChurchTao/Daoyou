@@ -5,6 +5,7 @@ import {
   RealmType,
 } from '@/types/constants';
 import { Material } from '@/types/cultivator';
+import type { AbilityRuntimeSemantics } from '@/engine/shared/tag-domain';
 import type { Ability } from './contracts/battle';
 import { CreationPhase } from './core/types';
 import type { CreationProductModel } from './models/types';
@@ -239,7 +240,7 @@ export interface AffixCandidate {
   name: string;
   category: AffixCategory;
   tags: string[];
-  inherentTags?: string[];
+  runtimeSemantics?: AbilityRuntimeSemantics;
   weight: number;
   energyCost: number;
   evaluationScore?: number;
@@ -271,7 +272,7 @@ export interface CreationSessionState {
   id: string;
   phase: CreationPhase;
   input: CreationSessionInput;
-  tags: string[];
+  inputTags: string[];
 
   // ── 阶段 1：材料分析 ────────────────────────────────────────────────────────
   materialFingerprints: MaterialFingerprint[];

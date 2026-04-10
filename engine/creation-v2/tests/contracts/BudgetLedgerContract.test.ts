@@ -20,7 +20,7 @@ describe('BudgetLedger contract boundary', () => {
         },
       ],
       remainingEnergy: 12,
-      sessionTags: [],
+      inputTags: [],
       maxSelections: 3,
       selectionCount: 0,
       selectedAffixIds: [],

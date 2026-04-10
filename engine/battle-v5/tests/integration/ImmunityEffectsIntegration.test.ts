@@ -1,5 +1,8 @@
 import { EventBus } from '../../core/EventBus';
-import { GameplayTags } from '../../core/GameplayTags';
+import {
+  GameplayTags,
+  projectAbilityRuntimeSemantics,
+} from '@/engine/shared/tag-domain';
 import { EffectConfig } from '../../core/configs';
 import { DamageEvent, DamageImmuneEvent, EventPriorityLevel, ManaShieldAbsorbEvent } from '../../core/events';
 import { AbilityType, AttributeType, BuffType, DamageType } from '../../core/types';
@@ -28,7 +31,7 @@ describe('免疫效果集成测试', () => {
         slug: `passive_${effects.map((effect) => effect.type).join('_')}`,
         name: '护体法门',
         type: AbilityType.PASSIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
+        tags: [GameplayTags.ABILITY.KIND.PASSIVE],
         listeners: [
           {
             eventType: 'DamageEvent',
@@ -103,7 +106,7 @@ describe('免疫效果集成测试', () => {
     addPassiveDamageListener(defender, [
       {
         type: 'damage_immunity',
-        params: { tags: [GameplayTags.ABILITY.TYPE_MAGIC] },
+        params: { tags: [GameplayTags.ABILITY.CHANNEL.MAGIC] },
       },
     ]);
 
@@ -111,7 +114,7 @@ describe('免疫效果集成测试', () => {
       slug: 'magic_hit',
       name: '玄火咒',
       type: AbilityType.ACTIVE_SKILL,
-      tags: [GameplayTags.ABILITY.TYPE_MAGIC],
+      tags: [GameplayTags.ABILITY.CHANNEL.MAGIC],
       effects: [],
     });
 
@@ -139,13 +142,51 @@ describe('免疫效果集成测试', () => {
     EventBus.instance.unsubscribe<DamageImmuneEvent>('DamageImmuneEvent', handler);
   });
 
+  it('伤害免疫应能消费 shared runtime projection 产出的能力标签', () => {
+    const attacker = createUnit('attacker', '进攻者');
+    const defender = createUnit('defender', '免疫者');
+    const projectedTags = projectAbilityRuntimeSemantics({
+      functions: ['damage'],
+      channel: 'magic',
+    });
+
+    addPassiveDamageListener(defender, [
+      {
+        type: 'damage_immunity',
+        params: { tags: [GameplayTags.ABILITY.CHANNEL.MAGIC] },
+      },
+    ]);
+
+    const ability = AbilityFactory.create({
+      slug: 'projected_magic_hit',
+      name: '投影玄火咒',
+      type: AbilityType.ACTIVE_SKILL,
+      tags: projectedTags,
+      effects: [],
+    });
+
+    const damageEvent: DamageEvent = {
+      type: 'DamageEvent',
+      timestamp: Date.now(),
+      caster: attacker,
+      target: defender,
+      ability,
+      damageType: DamageType.MAGICAL,
+      finalDamage: 120,
+    };
+
+    EventBus.instance.publish(damageEvent);
+
+    expect(damageEvent.finalDamage).toBe(0);
+  });
+
   it('伤害免疫应拦截命中来源 Buff 标签的伤害', () => {
     const attacker = createUnit('attacker', '进攻者');
     const defender = createUnit('defender', '免疫者');
     addPassiveDamageListener(defender, [
       {
         type: 'damage_immunity',
-        params: { tags: [GameplayTags.BUFF.DOT] },
+        params: { tags: [GameplayTags.BUFF.DOT.ROOT] },
       },
     ]);
 
@@ -155,7 +196,7 @@ describe('免疫效果集成测试', () => {
       type: BuffType.DEBUFF,
       duration: 2,
       stackRule: 'refresh_duration',
-      tags: [GameplayTags.BUFF.DOT, GameplayTags.BUFF.DOT_BURN],
+      tags: [GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
     });
 
     const damageEvent: DamageEvent = {

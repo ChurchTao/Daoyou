@@ -1,4 +1,4 @@
-import { CreationTags } from '../../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { Rule } from '../core/Rule';
 import { RuleContext } from '../core/RuleContext';
 import { CompositionDecision } from '../contracts/CompositionDecision';
@@ -6,7 +6,7 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
 
 /**
  * OutcomeTagRules
- * 根据产物类型和元素偏向填充 outcomeKind 与 tags
+ * 根据产物类型和元素偏向填充 outcomeKind 与 outcomeTags
  */
 export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecision> {
   readonly id = 'composition.outcome_tags';
@@ -21,7 +21,7 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
     switch (productType) {
       case 'skill': {
         decision.outcomeKind = facts.outcomeKind;
-        decision.tags = [
+        decision.outcomeTags = [
           CreationTags.OUTCOME.ACTIVE_SKILL,
           ...intent.dominantTags,
         ];
@@ -29,7 +29,7 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
       }
       case 'artifact':
         decision.outcomeKind = facts.outcomeKind;
-        decision.tags = [
+        decision.outcomeTags = [
           CreationTags.OUTCOME.PASSIVE_ABILITY,
           CreationTags.OUTCOME.ARTIFACT,
           ...intent.dominantTags,
@@ -37,7 +37,7 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
         break;
       case 'gongfa':
         decision.outcomeKind = facts.outcomeKind;
-        decision.tags = [
+        decision.outcomeTags = [
           CreationTags.OUTCOME.PASSIVE_ABILITY,
           CreationTags.OUTCOME.GONGFA,
           ...intent.dominantTags,
@@ -57,7 +57,7 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
     diagnostics.addTrace({
       ruleId: this.id,
       outcome: 'applied',
-      message: `outcomeKind: ${decision.outcomeKind}, tags: ${decision.tags.length}`,
+      message: `outcomeKind: ${decision.outcomeKind}, outcomeTags: ${decision.outcomeTags.length}`,
     });
   }
 }

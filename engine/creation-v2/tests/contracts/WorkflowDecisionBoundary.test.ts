@@ -1,9 +1,31 @@
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import { CompositionRuleSet } from '@/engine/creation-v2/rules/composition/CompositionRuleSet';
 import type { CompositionFacts } from '@/engine/creation-v2/rules/contracts/CompositionFacts';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import { CreationError } from '@/engine/creation-v2/errors';
+import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
+import type { RolledAffix } from '@/engine/creation-v2/types';
+import { GameplayTags } from '@/engine/shared/tag-domain';
+
+function toRolledAffix(def: AffixDefinition): RolledAffix {
+  return {
+    id: def.id,
+    name: def.displayName,
+    category: def.category,
+    energyCost: def.energyCost,
+    rollScore: 1,
+    rollEfficiency: 1,
+    finalMultiplier: 1,
+    isPerfect: false,
+    effectTemplate: def.effectTemplate,
+    weight: def.weight,
+    tags: def.tagQuery,
+    runtimeSemantics: def.runtimeSemantics,
+    exclusiveGroup: def.exclusiveGroup,
+  };
+}
 
 function buildMinimalFacts(
   productType: 'skill' | 'artifact' | 'gongfa',
@@ -14,6 +36,8 @@ function buildMinimalFacts(
       : productType === 'artifact'
         ? 'artifact'
         : 'gongfa';
+
+  const skillCore = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-damage');
 
   return {
     productType,
@@ -40,7 +64,8 @@ function buildMinimalFacts(
       remainingAffixEnergy: 16,
     },
     materialNames: ['测试材料'],
-    affixes: [],
+    affixes:
+      productType === 'skill' && skillCore ? [toRolledAffix(skillCore)] : [],
     materialQualityProfile: {
       maxQuality: '灵品',
       weightedAverageQuality: '灵品',
@@ -51,7 +76,7 @@ function buildMinimalFacts(
       qualitySpread: 0,
       totalQuantity: 1,
     },
-    sessionTags: [],
+    inputTags: [],
     materialFingerprints: [],
   };
 }
@@ -64,13 +89,13 @@ describe('WorkflowDecisionBoundary — CompositionRuleSet 契约验证', () => {
   });
 
   describe('decision 字段填充完整性', () => {
-    it('skill 流程结束后 decision 应包含 outcomeKind / name / tags / projectionPolicy', () => {
+    it('skill 流程结束后 decision 应包含 outcomeKind / name / outcomeTags / projectionPolicy', () => {
       const decision = ruleSet.evaluate(buildMinimalFacts('skill'));
 
       expect(decision.outcomeKind).toBe('active_skill');
       expect(decision.name).toBeTruthy();
-      // 注意：由于去除了 fallback，如果 facts.affixes 为空，某些规则可能会导致结果不完整
-      // 但在 CompositionRuleSet 内部，NamingRules 现在会成功（因为我们注入了 elementBias）
+      expect(decision.outcomeTags).toContain('Outcome.ActiveSkill');
+      expect(decision.projectionPolicy?.kind).toBe('active_skill');
     });
 
     it('artifact 流程结束后 projectionPolicy.kind 应为 artifact_passive', () => {
@@ -122,6 +147,12 @@ describe('WorkflowDecisionBoundary — CompositionRuleSet 契约验证', () => {
       if (policy?.kind === 'active_skill') {
         expect(Number.isInteger(policy.priority)).toBe(true);
         expect(policy.priority).toBeGreaterThan(0);
+        expect(policy.abilityTags).toEqual(
+          expect.arrayContaining([
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+          ]),
+        );
       }
     });
   });

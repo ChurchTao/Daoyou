@@ -8,7 +8,7 @@ import {
   PassiveProjectionPolicy,
   SkillProjectionPolicy,
 } from '@/engine/creation-v2/rules/contracts/CompositionDecision';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 import { MaterialFingerprint, RecipeMatch, RolledAffix } from '@/engine/creation-v2/types';
 import { CreationError } from '@/engine/creation-v2/errors';
 
@@ -97,7 +97,7 @@ function makeFacts(
     recipeMatch: override.recipeMatch ?? BASE_RECIPE_MATCH,
     energySummary: override.energySummary ?? BASE_ENERGY_SUMMARY,
     affixes: affixes,
-    sessionTags: override.sessionTags ?? ['Material.Semantic.Metal'],
+    inputTags: override.inputTags ?? ['Material.Semantic.Metal'],
     materialFingerprints: override.materialFingerprints ?? [BASE_FINGERPRINT],
     materialQualityProfile:
       override.materialQualityProfile ?? BASE_QUALITY_PROFILE,
@@ -114,6 +114,11 @@ const DAMAGE_AFFIX_DEF: AffixDefinition = {
   tagQuery: ['Material.Semantic.Metal'],
   weight: 10,
   energyCost: 8,
+  runtimeSemantics: {
+    functions: ['damage'],
+    channel: 'magic',
+    traits: ['berserker'],
+  },
   effectTemplate: {
     type: 'damage' as const,
     params: {
@@ -258,6 +263,40 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const policy = decision.projectionPolicy as SkillProjectionPolicy;
       expect(policy.kind).toBe('active_skill');
       expect(policy.effects.some((e) => e.type === 'damage')).toBe(true);
+    });
+
+    it('skill 显式 runtimeSemantics 应透传到 abilityTags', () => {
+      const rolledAffix: RolledAffix = {
+        id: 'core-damage',
+        name: '锋刃',
+        category: 'core',
+        energyCost: 8,
+        rollScore: 1,
+        rollEfficiency: 1,
+        finalMultiplier: 1,
+        isPerfect: false,
+        effectTemplate: {
+          type: 'damage',
+          params: { value: { base: 100, attribute: AttributeType.MAGIC_ATK } },
+        } as any,
+        weight: 10,
+        tags: [],
+        runtimeSemantics: DAMAGE_AFFIX_DEF.runtimeSemantics,
+      };
+      const facts = makeFacts({
+        productType: 'skill',
+        affixes: [rolledAffix],
+      });
+      const decision = ruleSet.evaluate(facts);
+
+      const policy = decision.projectionPolicy as SkillProjectionPolicy;
+      expect(policy.abilityTags).toEqual(
+        expect.arrayContaining([
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+          GameplayTags.TRAIT.BERSERKER,
+        ]),
+      );
     });
 
     it('直接伤害词缀应保留词缀定义的原始数值', () => {
@@ -490,11 +529,11 @@ describe('CompositionRuleSet — 端到端集成', () => {
       }
     });
 
-    it('decision.tags 不应为空（所有 productType）', () => {
+    it('decision.outcomeTags 不应为空（所有 productType）', () => {
       for (const productType of ['skill', 'artifact', 'gongfa'] as const) {
         const facts = makeFacts({ productType });
         const decision = ruleSet.evaluate(facts);
-        expect(decision.tags.length).toBeGreaterThan(0);
+        expect(decision.outcomeTags.length).toBeGreaterThan(0);
       }
     });
 

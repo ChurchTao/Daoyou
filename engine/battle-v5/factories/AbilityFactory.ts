@@ -2,7 +2,7 @@ import { Ability } from '../abilities/Ability';
 import { DataDrivenActiveSkill } from '../abilities/DataDrivenActiveSkill';
 import { DataDrivenPassiveAbility } from '../abilities/DataDrivenPassiveAbility';
 import { TargetPolicy } from '../abilities/TargetPolicy';
-import { GameplayTags } from '../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AbilityConfig, EffectConfig, ListenerConfig } from '../core/configs';
 import { buildListenerRuntimeConfig } from '../core/listenerExecution';
 import { AbilityId, AbilityType, AttributeType, BuffType } from '../core/types';
@@ -128,31 +128,39 @@ export class AbilityFactory {
 
     if (
       capabilities.hasDamage &&
-      !tagSet.has(GameplayTags.ABILITY.TYPE_DAMAGE)
+      !tagSet.has(GameplayTags.ABILITY.FUNCTION.DAMAGE)
     ) {
       throw new Error(
-        `[AbilityFactory] damage-capable ability ${config.slug} must include ${GameplayTags.ABILITY.TYPE_DAMAGE}`,
+        `[AbilityFactory] damage-capable ability ${config.slug} must include ${GameplayTags.ABILITY.FUNCTION.DAMAGE}`,
       );
     }
 
     if (capabilities.damageChannel === 'magic') {
-      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_MAGIC);
+      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.CHANNEL.MAGIC);
     } else if (capabilities.damageChannel === 'physical') {
-      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_PHYSICAL);
+      this.assertTag(
+        tagSet,
+        config.slug,
+        GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+      );
     } else if (capabilities.damageChannel === 'true') {
       this.assertTag(
         tagSet,
         config.slug,
-        GameplayTags.ABILITY.TYPE_TRUE_DAMAGE,
+        GameplayTags.ABILITY.CHANNEL.TRUE,
       );
     }
 
     if (capabilities.hasHeal) {
-      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_HEAL);
+      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.FUNCTION.HEAL);
     }
 
     if (capabilities.hasControl) {
-      this.assertTag(tagSet, config.slug, GameplayTags.ABILITY.TYPE_CONTROL);
+      this.assertTag(
+        tagSet,
+        config.slug,
+        GameplayTags.ABILITY.FUNCTION.CONTROL,
+      );
     }
 
     return tags;

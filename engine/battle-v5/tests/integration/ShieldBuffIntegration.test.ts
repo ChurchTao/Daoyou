@@ -1,6 +1,6 @@
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { EventBus } from '../../core/EventBus';
-import { GameplayTags } from '../../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AbilityType, AttributeType } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { Unit } from '../../units/Unit';
@@ -31,7 +31,7 @@ describe('护盾 Buff 真实战斗验证', () => {
       slug: 'shield_wall',
       name: '不动如山',
       type: AbilityType.ACTIVE_SKILL,
-      tags: [GameplayTags.ABILITY.TYPE_HEAL],
+      tags: [GameplayTags.ABILITY.FUNCTION.HEAL],
       priority: 100,
       cooldown: 5, // 5回合冷却
       targetPolicy: { team: 'self', scope: 'single' },

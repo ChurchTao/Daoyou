@@ -1,4 +1,4 @@
-import { GameplayTagContainer, GameplayTags } from '../core/GameplayTags';
+import { GameplayTagContainer, GameplayTags } from '@/engine/shared/tag-domain';
 import { AttributeType, UnitId, UnitSnapshot } from '../core/types';
 import { AbilityContainer } from './AbilityContainer';
 import { AttributeSet } from './AttributeSet';
@@ -39,7 +39,7 @@ export class Unit {
 
     // Initialize tag container
     this.tags = new GameplayTagContainer();
-    this.tags.addTags([GameplayTags.UNIT.COMBATANT]);
+    this.tags.addTags([GameplayTags.UNIT.TYPE.COMBATANT]);
 
     this.maxHp = this.attributes.getMaxHp();
     this.maxMp = this.attributes.getMaxMp();

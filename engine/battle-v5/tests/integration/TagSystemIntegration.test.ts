@@ -1,6 +1,6 @@
 import { Buff, StackRule } from '../../buffs/Buff';
 import { EventBus } from '../../core/EventBus';
-import { GameplayTags } from '../../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { BuffAddEvent, BuffImmuneEvent, EventPriorityLevel } from '../../core/events';
 import { DispelEffect } from '../../effects/DispelEffect';
 import { AbilityType, BuffId, BuffType } from '../../core/types';
@@ -13,7 +13,7 @@ function addBuffImmunityPassive(unit: Unit, tags: string[]): void {
       slug: `buff_immunity_${tags.join('_')}`,
       name: '万法不侵',
       type: AbilityType.PASSIVE_SKILL,
-      tags: [GameplayTags.ABILITY.KIND_PASSIVE],
+      tags: [GameplayTags.ABILITY.KIND.PASSIVE],
       listeners: [
         {
           eventType: 'BuffAddEvent',
@@ -34,10 +34,10 @@ describe('标签系统集成测试', () => {
   describe('BUFF 免疫系统', () => {
     it('免疫效果应拦截命中标签的 DEBUFF 添加', () => {
       const unit = new Unit('test', '测试', {});
-      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE.DEBUFF]);
 
       const debuff = new Buff('poison' as BuffId, '中毒', BuffType.DEBUFF, 3);
-      debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
+      debuff.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
 
       const container = unit.buffs;
       container.addBuff(debuff);
@@ -47,10 +47,10 @@ describe('标签系统集成测试', () => {
 
     it('免疫效果不应影响未命中标签的 BUFF 添加', () => {
       const unit = new Unit('test', '测试', {});
-      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE.DEBUFF]);
 
       const buff = new Buff('strength' as BuffId, '力量', BuffType.BUFF, 3);
-      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
       const container = unit.buffs;
       container.addBuff(buff);
@@ -60,10 +60,10 @@ describe('标签系统集成测试', () => {
 
     it('拦截成功时应发布 BuffImmuneEvent', () => {
       const unit = new Unit('test', '测试', {});
-      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE.DEBUFF]);
 
       const debuff = new Buff('poison' as BuffId, '中毒', BuffType.DEBUFF, 3);
-      debuff.tags.addTags([GameplayTags.BUFF.TYPE_DEBUFF]);
+      debuff.tags.addTags([GameplayTags.BUFF.TYPE.DEBUFF]);
 
       let immuneTag: string | undefined;
       const handler = (event: BuffImmuneEvent) => {
@@ -75,19 +75,19 @@ describe('标签系统集成测试', () => {
       container.addBuff(debuff);
 
       expect(container.getAllBuffIds()).not.toContain('poison');
-      expect(immuneTag).toBe(GameplayTags.BUFF.TYPE_DEBUFF);
+      expect(immuneTag).toBe(GameplayTags.BUFF.TYPE.DEBUFF);
 
       EventBus.instance.unsubscribe<BuffImmuneEvent>('BuffImmuneEvent', handler);
     });
 
     it('通用 debuff 免疫应拦截带 control 标签的控制 buff', () => {
       const unit = new Unit('test', '测试', {});
-      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE_DEBUFF]);
+      addBuffImmunityPassive(unit, [GameplayTags.BUFF.TYPE.DEBUFF]);
 
       const controlBuff = new Buff('stun' as BuffId, '眩晕', BuffType.CONTROL, 2);
       controlBuff.tags.addTags([
-        GameplayTags.BUFF.TYPE_DEBUFF,
-        GameplayTags.BUFF.TYPE_CONTROL,
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.TYPE.CONTROL,
       ]);
 
       unit.buffs.addBuff(controlBuff);
@@ -101,15 +101,15 @@ describe('标签系统集成测试', () => {
       const unit = new Unit('test', '测试', {});
       const controlBuff = new Buff('stun' as BuffId, '眩晕', BuffType.CONTROL, 2);
       controlBuff.tags.addTags([
-        GameplayTags.BUFF.TYPE_DEBUFF,
-        GameplayTags.BUFF.TYPE_CONTROL,
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.TYPE.CONTROL,
       ]);
 
       unit.buffs.addBuff(controlBuff);
       expect(unit.buffs.getAllBuffIds()).toContain('stun');
 
       new DispelEffect({
-        targetTag: GameplayTags.BUFF.TYPE_DEBUFF,
+        targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
         maxCount: 1,
       }).execute({ caster: unit, target: unit });
 
@@ -165,7 +165,7 @@ describe('标签系统集成测试', () => {
           slug: 'buff_duration_extend',
           name: '状态持延',
           type: AbilityType.PASSIVE_SKILL,
-          tags: [GameplayTags.ABILITY.KIND_PASSIVE],
+          tags: [GameplayTags.ABILITY.KIND.PASSIVE],
           listeners: [
             {
               eventType: 'BuffAddEvent',
@@ -176,7 +176,7 @@ describe('标签系统集成测试', () => {
                   type: 'buff_duration_modify',
                   params: {
                     rounds: 1,
-                    tags: [GameplayTags.BUFF.TYPE_BUFF],
+                    tags: [GameplayTags.BUFF.TYPE.BUFF],
                   },
                 },
               ],
@@ -186,7 +186,7 @@ describe('标签系统集成测试', () => {
       );
 
       const buff = new Buff('focus' as BuffId, '凝神', BuffType.BUFF, 3);
-      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
       unit.buffs.addBuff(buff);
 
@@ -205,7 +205,7 @@ describe('标签系统集成测试', () => {
         3,
         StackRule.REFRESH_DURATION,
       );
-      buff1.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff1.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
       unit.buffs.addBuff(buff1);
       buff1.tickDuration();
@@ -218,7 +218,7 @@ describe('标签系统集成测试', () => {
         5,
         StackRule.REFRESH_DURATION,
       );
-      buff2.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff2.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
       unit.buffs.addBuff(buff2);
       expect(buff1.getDuration()).toBe(5);
@@ -233,7 +233,7 @@ describe('标签系统集成测试', () => {
         3,
         StackRule.IGNORE,
       );
-      buff1.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff1.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
       unit.buffs.addBuff(buff1);
       expect(buff1.getDuration()).toBe(3);
@@ -245,7 +245,7 @@ describe('标签系统集成测试', () => {
         5,
         StackRule.IGNORE,
       );
-      buff2.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff2.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
 
       unit.buffs.addBuff(buff2);
       expect(buff1.getDuration()).toBe(3);
@@ -256,7 +256,7 @@ describe('标签系统集成测试', () => {
     it('克隆应保留所有 BUFF 和标签', () => {
       const unit = new Unit('test', '测试', {});
       const buff = new Buff('test' as BuffId, '测试', BuffType.BUFF, 3);
-      buff.tags.addTags([GameplayTags.BUFF.TYPE_BUFF]);
+      buff.tags.addTags([GameplayTags.BUFF.TYPE.BUFF]);
       unit.buffs.addBuff(buff);
 
       const clonedContainer = unit.buffs.clone(unit);

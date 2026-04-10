@@ -276,7 +276,7 @@ export class CreationOrchestrator {
     fingerprints: MaterialFingerprint[],
   ): void {
     session.state.materialFingerprints = fingerprints;
-    session.syncTags(this.collectSessionTags(session));
+    session.syncInputTags(this.collectInputTags(session));
     session.setPhase(CreationPhase.MATERIAL_ANALYZED);
 
     this.eventBus.publish<MaterialAnalyzedEvent>({
@@ -289,7 +289,7 @@ export class CreationOrchestrator {
 
   resolveIntent(session: CreationSession, intent: CreationIntent): void {
     session.state.intent = intent;
-    session.syncTags(this.collectSessionTags(session));
+    session.syncInputTags(this.collectInputTags(session));
     session.setPhase(CreationPhase.INTENT_RESOLVED);
 
     this.eventBus.publish<IntentResolvedEvent>({
@@ -315,7 +315,7 @@ export class CreationOrchestrator {
 
   validateRecipe(session: CreationSession, recipeMatch: RecipeMatch): void {
     session.state.recipeMatch = recipeMatch;
-    session.syncTags(this.collectSessionTags(session));
+    session.syncInputTags(this.collectInputTags(session));
     session.setPhase(CreationPhase.RECIPE_VALIDATED);
 
     this.eventBus.publish<RecipeValidatedEvent>({
@@ -497,7 +497,7 @@ export class CreationOrchestrator {
     blueprint: CreationBlueprint,
   ): void {
     session.state.blueprint = blueprint;
-    session.syncTags(this.collectSessionTags(session));
+    session.syncInputTags(this.collectInputTags(session));
     session.setPhase(CreationPhase.BLUEPRINT_COMPOSED);
 
     this.eventBus.publish<BlueprintComposedEvent>({
@@ -596,7 +596,7 @@ export class CreationOrchestrator {
     });
   }
 
-  private collectSessionTags(session: CreationSession): string[] {
+  private collectInputTags(session: CreationSession): string[] {
     const tags = new Set<string>();
 
     session.state.materialFingerprints.forEach((fingerprint) => {
@@ -608,7 +608,6 @@ export class CreationOrchestrator {
     session.state.intent?.dominantTags.forEach((tag) => tags.add(tag));
     session.state.intent?.requestedTags.forEach((tag) => tags.add(tag));
     session.state.recipeMatch?.matchedTags.forEach((tag) => tags.add(tag));
-    session.state.blueprint?.productModel.tags.forEach((tag) => tags.add(tag));
 
     return Array.from(tags);
   }

@@ -47,9 +47,9 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
       duration: 3,
       stackRule: 'stack_layer',
       tags: [
-        GameplayTags.BUFF.TYPE_DEBUFF,
-        GameplayTags.STATUS.POISONED,
-        GameplayTags.BUFF.DOT,
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.STATUS.STATE.POISONED,
+        GameplayTags.BUFF.DOT.ROOT,
       ],
       listeners: [
         {
@@ -80,7 +80,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'cast_poison',
         name: '施毒术',
         type: AbilityType.ACTIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND_SKILL],
+        tags: [GameplayTags.ABILITY.KIND.SKILL],
         priority: 100,
         cooldown: 5,
         effects: [
@@ -94,13 +94,13 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'dispel_skill',
         name: '清静咒',
         type: AbilityType.ACTIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND_SKILL],
+        tags: [GameplayTags.ABILITY.KIND.SKILL],
         priority: 90,
         cooldown: 2, // 增加 CD，让法海在 CD 期间能普攻
         effects: [
           {
             type: 'dispel',
-            params: { targetTag: GameplayTags.STATUS.POISONED, maxCount: 1 },
+            params: { targetTag: GameplayTags.STATUS.STATE.POISONED, maxCount: 1 },
           },
         ],
       }),
@@ -129,8 +129,8 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         priority: 100,
         cooldown: 3,
         tags: [
-          GameplayTags.ABILITY.TYPE_DAMAGE,
-          GameplayTags.ABILITY.TYPE_PHYSICAL,
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.PHYSICAL,
         ],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
@@ -191,7 +191,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'burn',
         name: '蚀元咒',
         type: AbilityType.ACTIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND_SKILL],
+        tags: [GameplayTags.ABILITY.KIND.SKILL],
         priority: 100,
         cooldown: 3,
         targetPolicy: { team: 'enemy', scope: 'single' },
@@ -204,7 +204,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'shield',
         name: '真元盾',
         type: AbilityType.ACTIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND_SKILL],
+        tags: [GameplayTags.ABILITY.KIND.SKILL],
         mpCost: 200,
         priority: 90,
         cooldown: 3,
@@ -249,7 +249,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         slug: 'passive_immunity_and_shield',
         name: '防御法门',
         type: AbilityType.PASSIVE_SKILL,
-        tags: [GameplayTags.ABILITY.KIND_PASSIVE],
+        tags: [GameplayTags.ABILITY.KIND.PASSIVE],
         listeners: [
           {
             eventType: 'DamageEvent',
@@ -258,7 +258,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
             effects: [
               {
                 type: 'damage_immunity',
-                params: { tags: [GameplayTags.ABILITY.TYPE_MAGIC] },
+                params: { tags: [GameplayTags.ABILITY.CHANNEL.MAGIC] },
               },
             ],
           },
@@ -285,7 +285,7 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         type: AbilityType.ACTIVE_SKILL,
         priority: 100,
         cooldown: 3,
-        tags: [GameplayTags.ABILITY.TYPE_DAMAGE, GameplayTags.ABILITY.TYPE_MAGIC],
+        tags: [GameplayTags.ABILITY.FUNCTION.DAMAGE, GameplayTags.ABILITY.CHANNEL.MAGIC],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
           {

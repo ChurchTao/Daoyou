@@ -14,46 +14,116 @@ import {
   CREATION_LISTENER_PRIORITIES,
 } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { CreationTags } from '../../core/GameplayTags';
-import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import {
+  type AbilityChannelSemantic,
+  type AbilityRuntimeSemantics,
+  CreationTags,
+  GameplayTags,
+} from '@/engine/shared/tag-domain';
 import { AffixDefinition } from '../types';
 
-const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE_BUFF];
-const NEGATIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE_DEBUFF];
+const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.BUFF];
+const NEGATIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.DEBUFF];
 const CONTROL_BUFF_TAGS = [
-  GameplayTags.BUFF.TYPE_DEBUFF,
-  GameplayTags.BUFF.TYPE_CONTROL,
+  GameplayTags.BUFF.TYPE.DEBUFF,
+  GameplayTags.BUFF.TYPE.CONTROL,
 ];
 const BURN_DOT_BUFF_TAGS = [
-  GameplayTags.BUFF.TYPE_DEBUFF,
-  GameplayTags.BUFF.DOT,
-  GameplayTags.BUFF.DOT_BURN,
+  GameplayTags.BUFF.TYPE.DEBUFF,
+  GameplayTags.BUFF.DOT.ROOT,
+  GameplayTags.BUFF.DOT.BURN,
 ];
 
 const STUN_CONTROL_STATUS_TAGS = [
-  GameplayTags.STATUS.DEBUFF,
-  GameplayTags.STATUS.CONTROL,
-  GameplayTags.STATUS.STUNNED,
-  GameplayTags.STATUS.NO_ACTION,
+  GameplayTags.STATUS.CATEGORY.DEBUFF,
+  GameplayTags.STATUS.CONTROL.ROOT,
+  GameplayTags.STATUS.CONTROL.STUNNED,
+  GameplayTags.STATUS.CONTROL.NO_ACTION,
 ];
 const BURN_DOT_STATUS_TAGS = [
-  GameplayTags.STATUS.DEBUFF,
-  GameplayTags.STATUS.BURNED,
-  GameplayTags.STATUS.DOT,
+  GameplayTags.STATUS.CATEGORY.DEBUFF,
+  GameplayTags.STATUS.STATE.BURNED,
+  GameplayTags.STATUS.CATEGORY.DOT,
 ];
 const CHILL_STATUS_TAGS = [
-  GameplayTags.STATUS.DEBUFF,
-  GameplayTags.STATUS.CHILLED,
+  GameplayTags.STATUS.CATEGORY.DEBUFF,
+  GameplayTags.STATUS.STATE.CHILLED,
 ];
-const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.BUFF];
-const GENERIC_DEBUFF_STATUS_TAGS = [GameplayTags.STATUS.DEBUFF];
+const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.BUFF];
+const GENERIC_DEBUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.DEBUFF];
 const DEF_DEBUFF_STATUS_TAGS = [
-  GameplayTags.STATUS.DEBUFF,
-  GameplayTags.STATUS.DEF_DEBUFF,
+  GameplayTags.STATUS.CATEGORY.DEBUFF,
+  GameplayTags.STATUS.CATEGORY.DEF_DEBUFF,
 ];
-const COMBO_STATUS_TAGS = [GameplayTags.STATUS.COMBO];
-const MANA_EFF_STATUS_TAGS = [GameplayTags.STATUS.MANA_EFF];
-const MYTHIC_STATUS_TAGS = [GameplayTags.STATUS.MYTHIC];
+const COMBO_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.COMBO];
+const MANA_EFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MANA_EFF];
+const MYTHIC_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MYTHIC];
+
+function resolveSkillCoreChannel(
+  attribute?: AttributeType,
+): AbilityChannelSemantic | undefined {
+  switch (attribute) {
+    case AttributeType.MAGIC_ATK:
+    case AttributeType.SPIRIT:
+      return 'magic';
+    case AttributeType.ATK:
+      return 'physical';
+    default:
+      return undefined;
+  }
+}
+
+function inferSkillCoreRuntimeSemantics(
+  def: AffixDefinition,
+): AbilityRuntimeSemantics | undefined {
+  switch (def.effectTemplate.type) {
+    case 'damage': {
+      const channel = resolveSkillCoreChannel(
+        def.effectTemplate.params.value.attribute,
+      );
+
+      return {
+        functions: ['damage'],
+        ...(channel ? { channel } : {}),
+      };
+    }
+
+    case 'heal':
+      return {
+        functions: ['heal'],
+      };
+
+    case 'apply_buff':
+      if (def.effectTemplate.params.buffConfig.type === BuffType.CONTROL) {
+        return {
+          functions: ['control'],
+        };
+      }
+      return undefined;
+
+    default:
+      return undefined;
+  }
+}
+
+function normalizeSkillRuntimeSemantics(
+  defs: AffixDefinition[],
+): AffixDefinition[] {
+  return defs.map((def) => {
+    if (def.category === 'core') {
+      const runtimeSemantics = inferSkillCoreRuntimeSemantics(def);
+
+      if (runtimeSemantics) {
+        return {
+          ...def,
+          runtimeSemantics,
+        };
+      }
+    }
+
+    return def;
+  });
+}
 
 const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
   {
@@ -71,7 +141,6 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -103,7 +172,6 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -135,7 +203,6 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -154,7 +221,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
   },
 ];
 
-export const SKILL_AFFIXES: AffixDefinition[] = [
+export const SKILL_AFFIXES: AffixDefinition[] = normalizeSkillRuntimeSemantics([
   // ========================
   // ===== CORE 词缀 (9 种)
   // ========================
@@ -172,7 +239,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 100,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -184,6 +250,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
   },
+
   {
     id: 'skill-core-damage-fire',
     displayName: '焚岳斩',
@@ -194,7 +261,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 85,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -216,7 +282,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -242,7 +307,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -264,7 +328,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 72,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -286,7 +349,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -309,7 +371,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '灵品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -336,7 +397,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -362,7 +422,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '灵品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
@@ -389,7 +448,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 95,
     energyCost: 6,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -413,7 +471,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 6,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -443,7 +500,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 6,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -477,7 +533,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -503,7 +558,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -529,7 +583,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -559,7 +612,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 6,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -589,7 +641,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 6,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -619,7 +670,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'attribute_stat_buff',
       params: {
@@ -649,7 +699,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -680,7 +729,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'mp_above', params: { value: 0.7 } }],
@@ -710,7 +758,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -755,7 +802,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 78,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -788,11 +834,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 6,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'dispel',
       params: {
-        targetTag: GameplayTags.BUFF.TYPE_BUFF,
+        targetTag: GameplayTags.BUFF.TYPE.BUFF,
         maxCount: 1,
       },
     },
@@ -807,7 +852,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 72,
     energyCost: 9,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -831,7 +875,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -855,11 +898,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 9,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'tag_trigger',
       params: {
-        triggerTag: GameplayTags.STATUS.BURNED,
+        triggerTag: GameplayTags.STATUS.STATE.BURNED,
         damageRatio: { base: 1.2, scale: 'quality', coefficient: 0.2 },
         removeOnTrigger: false,
       },
@@ -879,11 +921,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 56,
     energyCost: 9,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'tag_trigger',
       params: {
-        triggerTag: GameplayTags.STATUS.CHILLED,
+        triggerTag: GameplayTags.STATUS.STATE.CHILLED,
         damageRatio: { base: 0.8, scale: 'quality', coefficient: 0.15 },
         removeOnTrigger: false,
       },
@@ -903,7 +944,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 8,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -933,7 +973,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -966,7 +1005,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -999,7 +1037,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 47,
     energyCost: 7,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1032,7 +1069,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 9,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1060,11 +1096,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 34,
     energyCost: 9,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
-        { type: 'has_tag', params: { tag: GameplayTags.STATUS.BURNED } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.STATE.BURNED } },
       ],
       params: {
         mode: 'increase',
@@ -1095,7 +1130,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1119,7 +1153,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1152,7 +1185,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1180,7 +1212,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                     {
                       type: 'ability_has_tag',
                       params: {
-                        tag: GameplayTags.ABILITY.TYPE_MAGIC,
+                        tag: GameplayTags.ABILITY.CHANNEL.MAGIC,
                       },
                     },
                   ],
@@ -1219,7 +1251,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1255,13 +1286,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 10,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
+          params: { tag: GameplayTags.ABILITY.FUNCTION.CONTROL },
         },
       ],
       params: {
@@ -1306,7 +1336,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_above', params: { value: 0.75 } }],
@@ -1335,7 +1364,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1368,17 +1396,16 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 46,
     energyCost: 12,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
+          params: { tag: GameplayTags.ABILITY.FUNCTION.CONTROL },
         },
         {
           type: 'has_tag',
-          params: { tag: GameplayTags.STATUS.CONTROL },
+          params: { tag: GameplayTags.STATUS.CONTROL.ROOT },
         },
       ],
       params: {
@@ -1402,7 +1429,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 12,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1464,7 +1490,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1494,7 +1519,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 12,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1518,7 +1542,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 12,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1546,7 +1569,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 36,
     energyCost: 11,
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_below', params: { value: 0.4 } }],
@@ -1577,11 +1599,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       conditions: [
-        { type: 'has_tag', params: { tag: GameplayTags.STATUS.BURNED } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.STATE.BURNED } },
       ],
       params: {
         value: {
@@ -1611,7 +1632,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       conditions: [
@@ -1642,7 +1662,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1681,7 +1700,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1709,7 +1727,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1738,7 +1755,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1767,7 +1783,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1796,7 +1811,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1825,7 +1839,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1851,7 +1864,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1883,7 +1895,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1915,7 +1926,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '地品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1947,7 +1957,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2001,7 +2010,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2054,7 +2062,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '玄品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2086,7 +2093,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '真品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2118,7 +2124,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2157,7 +2162,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '天品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -2186,7 +2190,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '仙品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2217,7 +2220,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2246,7 +2248,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2299,7 +2300,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['skill'],
-    inherentTags: [GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.TYPE_DAMAGE],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2314,4 +2314,4 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
-];
+]);

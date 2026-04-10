@@ -15,7 +15,7 @@ export type {
   ListenerConfig,
   ListenerScope,
 } from '@/engine/battle-v5/core/configs';
-export { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+export { GameplayTags } from '@/engine/shared/tag-domain';
 export {
   AbilityType,
   AttributeType,

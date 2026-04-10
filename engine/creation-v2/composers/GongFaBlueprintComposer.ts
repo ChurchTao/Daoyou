@@ -52,7 +52,7 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
       slug: buildAbilitySlug(session.id, input.productType),
       name: decision.name,
       description: decision.description,
-      tags: decision.tags,
+      outcomeTags: decision.outcomeTags,
       affixes: rolledAffixes,
       balanceMetrics: estimateBalanceMetrics(
         rolledAffixes,

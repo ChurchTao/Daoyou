@@ -18,7 +18,7 @@ export interface AffixSelectionFacts {
   productType: CreationProductType;
   candidates: AffixCandidate[];
   remainingEnergy: number;
-  sessionTags: string[];
+  inputTags: string[];
   maxSelections: number;
   selectionCount: number;
   selectedAffixIds: string[];

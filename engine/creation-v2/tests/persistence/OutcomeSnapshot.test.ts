@@ -1,3 +1,4 @@
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AbilityType, AttributeType } from '@/engine/creation-v2/contracts/battle';
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import type { CreationOutcomeMaterializer } from '@/engine/creation-v2/adapters/types';
@@ -20,11 +21,14 @@ function createSkillBlueprint(): CreationBlueprint {
       slug: 'craft-v2-snapshot-test',
       name: '试炼决',
       description: '用于快照测试的技能。',
-      tags: ['Outcome.ActiveSkill'],
+      outcomeTags: ['Outcome.ActiveSkill'],
       affixes: [],
       battleProjection: {
         projectionKind: 'active_skill',
-        abilityTags: ['Ability.Type.Damage', 'Ability.Type.Magic'],
+        abilityTags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ],
         mpCost: 10,
         cooldown: 2,
         priority: 10,

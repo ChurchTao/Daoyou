@@ -34,7 +34,7 @@
 
 import { EventPriorityLevel } from '../core/events';
 import { AttributeType, BuffType, ModifierType } from '../core/types';
-import { GameplayTags } from '../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { StackRule } from '../buffs/Buff';
 import { BuffConfig } from '../core/configs';
 
@@ -50,7 +50,7 @@ const penetratingInsight: BuffConfig = {
   type: BuffType.BUFF,
   duration: 3,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   modifiers: [
     {
       attrType: AttributeType.ARMOR_PENETRATION,
@@ -70,7 +70,7 @@ const vitalGuardIntent: BuffConfig = {
   type: BuffType.BUFF,
   duration: 4,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   modifiers: [
     {
       attrType: AttributeType.CRIT_RESIST,
@@ -95,7 +95,7 @@ const divineStepAura: BuffConfig = {
   type: BuffType.BUFF,
   duration: 2,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   modifiers: [
     {
       attrType: AttributeType.EVASION_RATE,
@@ -120,7 +120,7 @@ const diamondBody: BuffConfig = {
   type: BuffType.BUFF,
   duration: 3,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   modifiers: [
     {
       attrType: AttributeType.DEF,
@@ -140,7 +140,7 @@ const ironWillBody: BuffConfig = {
   type: BuffType.BUFF,
   duration: 5,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   modifiers: [
     {
       attrType: AttributeType.CONTROL_RESISTANCE,
@@ -160,7 +160,7 @@ const mercyVow: BuffConfig = {
   type: BuffType.BUFF,
   duration: 4,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   modifiers: [
     {
       attrType: AttributeType.HEAL_AMPLIFY,
@@ -184,7 +184,7 @@ const battleFrenzy: BuffConfig = {
   type: BuffType.BUFF,
   duration: 5,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   listeners: [
     {
       id: 'on_damage_taken_gain_penetration',
@@ -230,7 +230,7 @@ const soulCrush: BuffConfig = {
   type: BuffType.BUFF,
   duration: 5,
   stackRule: StackRule.REFRESH_DURATION,
-  tags: [GameplayTags.BUFF.TYPE_BUFF],
+  tags: [GameplayTags.BUFF.TYPE.BUFF],
   listeners: [
     {
       id: 'on_hit_reduce_target_resilience',

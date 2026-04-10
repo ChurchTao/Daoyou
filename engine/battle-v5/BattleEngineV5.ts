@@ -7,7 +7,7 @@ import {
   ControlledSkipEvent,
   EventPriorityLevel,
 } from './core/events';
-import { GameplayTags } from './core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AttributeType, CombatPhase } from './core/types';
 import { ActionExecutionSystem } from './systems/ActionExecutionSystem';
 import { DamageSystem } from './systems/DamageSystem';
@@ -197,15 +197,15 @@ export class BattleEngineV5 {
       // ===== 控制状态检查 =====
       // 禁行动：包括紧傅标签（向后兼容）和新式 NO_ACTION 标签
       const hasControlTag = actor.tags.hasAnyTag([
-        GameplayTags.STATUS.NO_ACTION,
-        GameplayTags.STATUS.STUNNED,
+        GameplayTags.STATUS.CONTROL.NO_ACTION,
+        GameplayTags.STATUS.CONTROL.STUNNED,
       ]);
       if (hasControlTag) {
         this._eventBus.publish<ControlledSkipEvent>({
           type: 'ControlledSkipEvent',
           timestamp: Date.now(),
           unit: actor,
-          controlTag: GameplayTags.STATUS.NO_ACTION,
+          controlTag: GameplayTags.STATUS.CONTROL.NO_ACTION,
         });
         continue;
       }

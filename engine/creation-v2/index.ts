@@ -23,7 +23,7 @@ export {
 } from './config/AffixSelectionConstraints';
 export type { AffixSelectionConstraintProfile } from './config/AffixSelectionConstraints';
 export { CreationEventBus } from './core/EventBus';
-export { CreationTagContainer, CreationTags } from './core/GameplayTags';
+export { CreationTagContainer, CreationTags } from '@/engine/shared/tag-domain';
 export { CreationPhaseHandlerRegistry } from './handlers/CreationPhaseHandlers';
 export type { CreationPhaseHandlerDeps } from './handlers/CreationPhaseHandlers';
 export * from './core/events';

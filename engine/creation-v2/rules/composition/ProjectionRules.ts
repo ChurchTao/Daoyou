@@ -14,8 +14,7 @@ import type {
   EffectConfig,
   ListenerConfig,
 } from '../../contracts/battle';
-import { AttributeType } from '../../contracts/battle';
-import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AFFIX_CATEGORIES, RolledAffix } from '../../types';
 import {
   CompositionDecision,
@@ -160,9 +159,11 @@ export class ProjectionRules implements Rule<
 
     const abilityTags = assembleAbilityTags({
       productType: 'skill',
+      rolledAffixes: affixes,
       effects: directEffects,
       listeners: extraListeners,
       elementBias: intent.elementBias,
+      registry: this.registry,
     });
 
     return {

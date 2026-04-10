@@ -1,3 +1,4 @@
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import type { Ability } from '@/engine/creation-v2/contracts/battle';
 import { AbilityType, AttributeType } from '@/engine/creation-v2/contracts/battle';
 import { CreationAbilityAdapter } from '@/engine/creation-v2/adapters/CreationAbilityAdapter';
@@ -13,14 +14,14 @@ function createSkillBlueprint(): CreationBlueprint {
       slug: 'craft-v2-skill-test',
       name: '焚岳诀',
       description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
-      tags: ['Outcome.ActiveSkill'],
+      outcomeTags: ['Outcome.ActiveSkill'],
       affixes: [],
       battleProjection: {
         projectionKind: 'active_skill',
         abilityTags: [
-          'Ability.Type.Damage',
-          'Ability.Type.Magic',
-          'Ability.Element.Fire',
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+          GameplayTags.ABILITY.ELEMENT.FIRE,
         ],
         mpCost: 18,
         cooldown: 2,

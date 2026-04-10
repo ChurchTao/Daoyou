@@ -44,7 +44,7 @@ describe('AffixPoolRuleSet', () => {
         },
       ],
       allowedCategories: ['core', 'signature'],
-      sessionTags: ['Material.Semantic.Spirit'],
+      inputTags: ['Material.Semantic.Spirit'],
       tagSignalScores: {},
       maxQualityOrder: 0,
     };
@@ -99,7 +99,7 @@ describe('AffixPoolRuleSet', () => {
         },
       ],
       allowedCategories: ['core', 'signature'],
-      sessionTags: ['Material.Semantic.Spirit'],
+      inputTags: ['Material.Semantic.Spirit'],
       tagSignalScores: {},
       // 材料品质为玄品（order=2），超过 maxQuality 上限
       maxQualityOrder: 2,
@@ -144,7 +144,7 @@ describe('AffixPoolRuleSet', () => {
         },
       ],
       allowedCategories: ['core'],
-      sessionTags: [],
+      inputTags: [],
       tagSignalScores: {},
       maxQualityOrder: 3,
     };
@@ -187,7 +187,7 @@ describe('AffixPoolRuleSet', () => {
         },
       ],
       allowedCategories: ['signature'],
-      sessionTags: ['a'],
+      inputTags: ['a'],
       tagSignalScores: { a: 0.7 },
       maxQualityOrder: 5,
     };
@@ -234,7 +234,7 @@ describe('AffixPoolRuleSet', () => {
         },
       ],
       allowedCategories: ['prefix'],
-      sessionTags: ['x', 'y'],
+      inputTags: ['x', 'y'],
       tagSignalScores: { x: 0.7, y: 0.7 },
       maxQualityOrder: 4,
     };
@@ -275,7 +275,7 @@ describe('AffixPoolRuleSet', () => {
         },
       ],
       allowedCategories: ['prefix'],
-      sessionTags: ['x'],
+      inputTags: ['x'],
       tagSignalScores: { x: 0.25 },
       maxQualityOrder: 4,
     };

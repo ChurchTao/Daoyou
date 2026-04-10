@@ -2,7 +2,7 @@
  * SemanticTagAllowlist: 造物系统允许的语义标签白名单与别名映射。
  * 用于约束 LLM 输出，避免噪声标签进入规则判断链路。
  */
-import { CreationTags } from '../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 
 export const CREATION_SEMANTIC_TAG_ALLOWLIST = [
   CreationTags.MATERIAL.SEMANTIC_FLAME,
@@ -21,7 +21,6 @@ export const CREATION_SEMANTIC_TAG_ALLOWLIST = [
   CreationTags.MATERIAL.SEMANTIC_WOOD,
   CreationTags.MATERIAL.SEMANTIC_POISON,
   CreationTags.MATERIAL.SEMANTIC_DIVINE,
-  CreationTags.MATERIAL.SEMANTIC_CHAOS,
   CreationTags.MATERIAL.SEMANTIC_SPACE,
   CreationTags.MATERIAL.SEMANTIC_TIME,
   CreationTags.MATERIAL.SEMANTIC_LIFE,
@@ -104,10 +103,6 @@ const SEMANTIC_TAG_ALIAS_MAP: Record<string, CreationSemanticTag> = {
   sacred: 'Material.Semantic.Divine',
   'material.semantic.divine': 'Material.Semantic.Divine',
   '圣': 'Material.Semantic.Divine',
-  chaos: 'Material.Semantic.Chaos',
-  chaotic: 'Material.Semantic.Chaos',
-  'material.semantic.chaos': 'Material.Semantic.Chaos',
-  '混': 'Material.Semantic.Chaos',
   space: 'Material.Semantic.Space',
   spatial: 'Material.Semantic.Space',
   'material.semantic.space': 'Material.Semantic.Space',
@@ -146,7 +141,6 @@ const SEMANTIC_TAG_TEXT_PATTERNS: Array<{
   { tag: CreationTags.MATERIAL.SEMANTIC_WOOD, pattern: /木|林|枝|藤|根/u },
   { tag: CreationTags.MATERIAL.SEMANTIC_POISON, pattern: /毒|蚀|腐|瘴|蛊/u },
   { tag: CreationTags.MATERIAL.SEMANTIC_DIVINE, pattern: /圣|神|煌|祈|赐/u },
-  { tag: CreationTags.MATERIAL.SEMANTIC_CHAOS, pattern: /混|乱|狂|渊|裂/u },
   { tag: CreationTags.MATERIAL.SEMANTIC_SPACE, pattern: /空|界|域|虚|折/u },
   { tag: CreationTags.MATERIAL.SEMANTIC_TIME, pattern: /时|刻|岁|轮|瞬/u },
   { tag: CreationTags.MATERIAL.SEMANTIC_LIFE, pattern: /生|命|苏|复|萌/u },

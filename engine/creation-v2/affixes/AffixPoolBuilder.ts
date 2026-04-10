@@ -11,7 +11,7 @@ import { AffixRegistry } from './AffixRegistry';
 
 /**
  * 词缀候选池构建器
- * 根据 session 当前状态（tags、品质上限、解锁类别、产物类型）
+ * 根据 session 当前状态（inputTags、品质上限、解锁类别、产物类型）
  * 从 AffixRegistry 查询并生成 AffixCandidate[]
  */
 export class AffixPoolBuilder {
@@ -25,7 +25,7 @@ export class AffixPoolBuilder {
     registry: AffixRegistry,
     session: CreationSession,
   ): AffixPoolDecision {
-    const { tags, materialFingerprints, recipeMatch, input } = session.state;
+    const { inputTags, materialFingerprints, recipeMatch, input } = session.state;
     if (!recipeMatch) {
       return {
         candidates: [],
@@ -41,7 +41,7 @@ export class AffixPoolBuilder {
       materialFingerprints,
     ).weightedAverageOrder;
 
-    if (tags.length === 0) {
+    if (inputTags.length === 0) {
       return {
         candidates: [],
         rejectedCandidates: [],
@@ -49,7 +49,7 @@ export class AffixPoolBuilder {
         reasons: [
           {
             code: 'affix_pool_empty_tags',
-            message: 'session.tags 为空，无法匹配任何词缀候选，词缀池为零',
+            message: 'session.inputTags 为空，无法匹配任何词缀候选，词缀池为零',
           },
         ],
         warnings: [],
@@ -57,7 +57,7 @@ export class AffixPoolBuilder {
           {
             ruleId: 'affix.pool.builder',
             outcome: 'blocked',
-            message: 'session.tags 为空，跳过词缀池构建',
+            message: 'session.inputTags 为空，跳过词缀池构建',
           },
         ],
       };
@@ -65,7 +65,7 @@ export class AffixPoolBuilder {
 
     const matching = this.filterCandidatesForProductContext(
       registry.queryByTags(
-        tags,
+        inputTags,
         recipeMatch.unlockedAffixCategories,
         input.productType,
       ),
@@ -79,7 +79,7 @@ export class AffixPoolBuilder {
       energyBudget: session.state.energyBudget ?? createEmptyEnergyBudget(),
       candidatePool: matching,
       allowedCategories: recipeMatch.unlockedAffixCategories,
-      sessionTags: tags,
+      inputTags,
       tagSignalScores: this.buildTagSignalScores(session),
       maxQualityOrder,
     };
@@ -186,7 +186,7 @@ export class AffixPoolBuilder {
       name: def.displayName,
       category: def.category,
       tags: def.tagQuery,
-      inherentTags: def.inherentTags,
+      runtimeSemantics: def.runtimeSemantics,
       weight: def.weight,
       energyCost: def.energyCost,
       exclusiveGroup: def.exclusiveGroup,

@@ -1,4 +1,4 @@
-import { CreationTagContainer } from './core/GameplayTags';
+import { CreationTagContainer } from '@/engine/shared/tag-domain';
 import { CreationPhase } from './core/types';
 import {
   CreationSessionInput,
@@ -19,7 +19,7 @@ import {
 export class CreationSession {
   readonly id: string;
   readonly state: CreationSessionState;
-  readonly tags = new CreationTagContainer();
+  readonly inputTags = new CreationTagContainer();
 
   constructor(input: CreationSessionInput) {
     if (!isCreationProductType(input.productType)) {
@@ -31,7 +31,7 @@ export class CreationSession {
       id: this.id,
       phase: CreationPhase.INIT,
       input,
-      tags: [],
+      inputTags: [],
       materialFingerprints: [],
       affixPool: [],
       rolledAffixes: [],
@@ -42,9 +42,9 @@ export class CreationSession {
     this.state.phase = phase;
   }
 
-  syncTags(tags: string[]): void {
-    this.tags.clear();
-    this.tags.addTags(tags);
-    this.state.tags = this.tags.getTags();
+  syncInputTags(tags: string[]): void {
+    this.inputTags.clear();
+    this.inputTags.addTags(tags);
+    this.state.inputTags = this.inputTags.getTags();
   }
 }

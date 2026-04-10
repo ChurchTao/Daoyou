@@ -43,7 +43,7 @@ export class CompositionRuleSet {
         outcomeKind: facts.outcomeKind,
         name: '',
         description: undefined,
-        tags: [],
+        outcomeTags: [],
         affixes: facts.affixes,
         defaultsApplied: [],
         reasons: [],

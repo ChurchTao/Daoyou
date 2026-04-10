@@ -1,6 +1,6 @@
-import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { resolveAffixSlotCount } from '@/engine/creation-v2/config/CreationBalance';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { TestableCreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { CreationProductType } from '@/engine/creation-v2/types';
 import { Material } from '@/types/cultivator';

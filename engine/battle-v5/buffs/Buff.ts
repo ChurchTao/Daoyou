@@ -1,6 +1,6 @@
 import { BuffId, BuffType } from '../core/types';
 import { Unit } from '../units/Unit';
-import { GameplayTagContainer } from '../core/GameplayTags';
+import { GameplayTagContainer } from '@/engine/shared/tag-domain';
 import { EventBus } from '../core/EventBus';
 
 // 堆叠规则枚举

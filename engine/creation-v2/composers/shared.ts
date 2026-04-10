@@ -128,7 +128,7 @@ export function buildCompositionFacts(
       remainingAffixEnergy: energyBudget.remaining,
     },
     affixes: rolledAffixes,
-    sessionTags: session.state.tags,
+    inputTags: session.state.inputTags,
     materialFingerprints,
     materialQualityProfile,
     materialNames: input.materials.map((m) => m.name),

@@ -1,5 +1,5 @@
 import { checkConditions, evaluateCondition } from '@/engine/battle-v5/core/conditionEvaluator';
-import { GameplayTagContainer, GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import { GameplayTagContainer, GameplayTags } from '@/engine/shared/tag-domain';
 import type { ConditionConfig } from '@/engine/battle-v5/core/configs';
 import { BuffType, DamageType } from '@/engine/battle-v5/core/types';
 
@@ -81,7 +81,7 @@ describe('conditionEvaluator', () => {
     const condition: ConditionConfig = {
       type: 'ability_has_tag',
       params: {
-        tag: GameplayTags.ABILITY.ELEMENT_FIRE,
+        tag: GameplayTags.ABILITY.ELEMENT.FIRE,
       },
     };
 
@@ -89,7 +89,7 @@ describe('conditionEvaluator', () => {
       {
         caster: createUnitStub(),
         target: createUnitStub(),
-        ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT_FIRE]),
+        ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT.FIRE]),
       },
       condition,
     );
@@ -101,7 +101,7 @@ describe('conditionEvaluator', () => {
     const condition: ConditionConfig = {
       type: 'ability_has_tag',
       params: {
-        tag: GameplayTags.ABILITY.ELEMENT_THUNDER,
+        tag: GameplayTags.ABILITY.ELEMENT.THUNDER,
       },
     };
 
@@ -111,7 +111,7 @@ describe('conditionEvaluator', () => {
         target: createUnitStub(),
         triggerEvent: {
           type: 'DamageRequestEvent',
-          ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT_THUNDER]),
+          ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT.THUNDER]),
         },
       },
       condition,
@@ -124,7 +124,7 @@ describe('conditionEvaluator', () => {
     const condition: ConditionConfig = {
       type: 'ability_has_tag',
       params: {
-        tag: GameplayTags.ABILITY.ELEMENT_FIRE,
+        tag: GameplayTags.ABILITY.ELEMENT.FIRE,
       },
     };
 
@@ -132,10 +132,10 @@ describe('conditionEvaluator', () => {
       {
         caster: createUnitStub(),
         target: createUnitStub(),
-        ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT_WATER]),
+        ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT.WATER]),
         triggerEvent: {
           type: 'DamageRequestEvent',
-          ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT_FIRE]),
+          ability: createAbilityStub([GameplayTags.ABILITY.ELEMENT.FIRE]),
         },
       },
       condition,
@@ -148,7 +148,7 @@ describe('conditionEvaluator', () => {
     const condition: ConditionConfig = {
       type: 'ability_has_not_tag',
       params: {
-        tag: GameplayTags.ABILITY.ELEMENT_ICE,
+        tag: GameplayTags.ABILITY.ELEMENT.ICE,
       },
     };
 
@@ -257,7 +257,7 @@ describe('conditionEvaluator', () => {
       {
         type: 'ability_has_tag',
         params: {
-          tag: GameplayTags.ABILITY.ELEMENT_FIRE,
+          tag: GameplayTags.ABILITY.ELEMENT.FIRE,
         },
       },
       {
@@ -273,8 +273,8 @@ describe('conditionEvaluator', () => {
         caster: createUnitStub(),
         target: createUnitStub(),
         ability: createAbilityStub([
-          GameplayTags.ABILITY.ELEMENT_FIRE,
-          GameplayTags.ABILITY.TYPE_MAGIC,
+          GameplayTags.ABILITY.ELEMENT.FIRE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
         ]),
         triggerEvent: {
           type: 'DamageRequestEvent',

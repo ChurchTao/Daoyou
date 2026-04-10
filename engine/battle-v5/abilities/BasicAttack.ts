@@ -1,5 +1,5 @@
 // engine/battle-v5/abilities/BasicAttack.ts
-import { GameplayTags } from '../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AbilityId, AttributeType } from '../core/types';
 import { DamageEffect } from '../effects/DamageEffect';
 import { Unit } from '../units/Unit';
@@ -27,7 +27,7 @@ export class BasicAttack extends ActiveSkill {
       },
     });
 
-    this.tags.addTags([GameplayTags.ABILITY.TYPE_PHYSICAL]);
+    this.tags.addTags([GameplayTags.ABILITY.CHANNEL.PHYSICAL]);
   }
 
   /**

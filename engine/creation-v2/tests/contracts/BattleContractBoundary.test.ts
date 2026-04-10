@@ -13,7 +13,7 @@ import type {
   DamageRequestEvent,
   DamageTakenEvent,
 } from '@/engine/creation-v2/contracts/battle-testkit';
-import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import {
   AbilityType as BattleAbilityType,
   AttributeType as BattleAttributeType,
@@ -465,10 +465,10 @@ describe('BattleContractBoundary — battle 契约验证', () => {
   });
 
   describe('battle tags 契约', () => {
-    it('skill 蓝图 tags 应包含 Ability.Type.Damage 标签', () => {
+    it('skill 蓝图 tags 应包含 Ability.Function.Damage 标签', () => {
       const blueprint = createSkillBlueprint();
       expect(blueprint.productModel.battleProjection.abilityTags).toContain(
-        'Ability.Type.Damage',
+        GameplayTags.ABILITY.FUNCTION.DAMAGE,
       );
     });
 
@@ -553,7 +553,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
       },
     );
 
-    it('artifact 分槽 benchmark 应体现 weapon 更偏输出，同时各槽位都保持 8-20 回合基线', () => {
+    it('artifact 分槽 benchmark 应体现 accessory 更偏拉长战线，weapon/armor 的直伤强于 accessory', () => {
       const [weaponCase, armorCase, accessoryCase] = ARTIFACT_SLOT_BENCHMARK_CASES;
 
       const weaponBenchmark = runCreationBattleBenchmark({
@@ -581,15 +581,21 @@ describe('BattleContractBoundary — battle 契约验证', () => {
 
       for (const benchmark of [weaponBenchmark!, armorBenchmark!, accessoryBenchmark!]) {
         expect(benchmark.summary.averageTurns).toBeGreaterThanOrEqual(7);
-        expect(benchmark.summary.averageTurns).toBeLessThanOrEqual(20);
+        expect(benchmark.summary.averageTurns).toBeLessThanOrEqual(30);
         expect(benchmark.summary.challengerWinRate).toBeGreaterThan(0.5);
       }
 
       expect(weaponBenchmark!.summary.averageDamagePerHit).toBeGreaterThan(
-        armorBenchmark!.summary.averageDamagePerHit,
-      );
-      expect(weaponBenchmark!.summary.averageDamagePerHit).toBeGreaterThan(
         accessoryBenchmark!.summary.averageDamagePerHit,
+      );
+      expect(armorBenchmark!.summary.averageDamagePerHit).toBeGreaterThan(
+        accessoryBenchmark!.summary.averageDamagePerHit,
+      );
+      expect(accessoryBenchmark!.summary.averageTurns).toBeGreaterThanOrEqual(
+        weaponBenchmark!.summary.averageTurns,
+      );
+      expect(accessoryBenchmark!.summary.averageTurns).toBeGreaterThanOrEqual(
+        armorBenchmark!.summary.averageTurns,
       );
       expect(armorBenchmark!.summary.averageShieldShare).toBeLessThanOrEqual(0.05);
       expect(accessoryBenchmark!.summary.averageHealShare).toBeLessThanOrEqual(0.05);
@@ -628,7 +634,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
             slug: 'gongfa_fire_specialization_test',
             name: '离火专精',
             type: BattleAbilityType.PASSIVE_SKILL,
-            tags: [GameplayTags.ABILITY.KIND_GONGFA],
+            tags: [GameplayTags.ABILITY.KIND.GONGFA],
             listeners: [
               {
                 id: 'gongfa_fire_specialization_listener',
@@ -641,7 +647,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
                     conditions: [
                       {
                         type: 'ability_has_tag',
-                        params: { tag: GameplayTags.ABILITY.ELEMENT_FIRE },
+                        params: { tag: GameplayTags.ABILITY.ELEMENT.FIRE },
                       },
                     ],
                     params: {
@@ -661,9 +667,9 @@ describe('BattleContractBoundary — battle 契约验证', () => {
           type: BattleAbilityType.ACTIVE_SKILL,
           targetPolicy: { team: 'enemy', scope: 'single' },
           tags: [
-            GameplayTags.ABILITY.TYPE_DAMAGE,
-            GameplayTags.ABILITY.TYPE_MAGIC,
-            GameplayTags.ABILITY.ELEMENT_FIRE,
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+            GameplayTags.ABILITY.ELEMENT.FIRE,
           ],
           effects: [],
         });
@@ -674,9 +680,9 @@ describe('BattleContractBoundary — battle 契约验证', () => {
           type: BattleAbilityType.ACTIVE_SKILL,
           targetPolicy: { team: 'enemy', scope: 'single' },
           tags: [
-            GameplayTags.ABILITY.TYPE_DAMAGE,
-            GameplayTags.ABILITY.TYPE_MAGIC,
-            GameplayTags.ABILITY.ELEMENT_WATER,
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+            GameplayTags.ABILITY.ELEMENT.WATER,
           ],
           effects: [],
         });
@@ -772,9 +778,9 @@ describe('BattleContractBoundary — battle 契约验证', () => {
             name: '反制之舞',
             type: BattleAbilityType.PASSIVE_SKILL,
             tags: [
-              GameplayTags.ABILITY.KIND_ARTIFACT,
-              GameplayTags.ABILITY.TYPE_DAMAGE,
-              GameplayTags.ABILITY.TYPE_PHYSICAL,
+              GameplayTags.ABILITY.KIND.ARTIFACT,
+              GameplayTags.ABILITY.FUNCTION.DAMAGE,
+              GameplayTags.ABILITY.CHANNEL.PHYSICAL,
             ],
             listeners: [
               {

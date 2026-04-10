@@ -17,11 +17,11 @@ export class AffixWeightRules
 
   apply({ facts, decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
-    const sessionTagSet = new Set(facts.sessionTags);
+    const inputTagSet = new Set(facts.inputTags);
 
     for (const candidate of decision.candidates) {
       const tagHitCount = candidate.tags.reduce(
-        (sum, tag) => sum + (sessionTagSet.has(tag) ? 1 : 0),
+        (sum, tag) => sum + (inputTagSet.has(tag) ? 1 : 0),
         0,
       );
       const coverage =

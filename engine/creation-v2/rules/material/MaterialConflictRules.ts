@@ -1,5 +1,5 @@
 import { Material } from '@/types/cultivator';
-import { CreationTags } from '../../core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationProductType, MaterialFingerprint } from '../../types';
 import { Rule } from '../core';

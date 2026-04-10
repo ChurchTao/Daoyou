@@ -1,11 +1,10 @@
-import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { RolledAffix } from '@/engine/creation-v2/types';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
-import { Quality } from '@/types/constants';
 
 /** 辅助函数：将静态定义转换为运行态 RolledAffix 以满足接口契约 */
 function toRolledAffix(def: AffixDefinition): RolledAffix {
@@ -49,7 +48,7 @@ describe('creation-v2 affix tagQuery contract', () => {
         (tag) =>
           tag.startsWith('Condition.') ||
           tag.startsWith('Trait.') ||
-          tag.startsWith('Ability.Type.') ||
+          tag.startsWith('Ability.') ||
           tag.startsWith('Status.'),
       ),
     );
@@ -66,7 +65,7 @@ describe('creation-v2 affix tagQuery contract', () => {
     expect(result.conditions).toEqual([
       {
         type: 'ability_has_tag',
-        params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
+        params: { tag: GameplayTags.ABILITY.FUNCTION.CONTROL },
       },
     ]);
   });
@@ -94,11 +93,11 @@ describe('creation-v2 affix tagQuery contract', () => {
     expect(result.conditions).toEqual([
       {
         type: 'ability_has_tag',
-        params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
+        params: { tag: GameplayTags.ABILITY.FUNCTION.CONTROL },
       },
       {
         type: 'has_tag',
-        params: { tag: GameplayTags.STATUS.CONTROL },
+        params: { tag: GameplayTags.STATUS.CONTROL.ROOT },
       },
     ]);
   });

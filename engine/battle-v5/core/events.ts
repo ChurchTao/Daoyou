@@ -21,7 +21,8 @@
 import { Ability } from '../abilities/Ability';
 import { Buff } from '../buffs/Buff';
 import { Unit } from '../units/Unit';
-import { CombatEvent, DamageSource, DamageType, TagPath } from './types';
+import type { TagPath } from '@/engine/shared/tag-domain';
+import { CombatEvent, DamageSource, DamageType } from './types';
 
 // ===== 事件优先级枚举 =====
 // 数值越大优先级越高，越先执行

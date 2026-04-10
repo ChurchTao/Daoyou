@@ -37,7 +37,7 @@ describe('BudgetExhaustionRules', () => {
         },
       ],
       remainingEnergy: 4,
-      sessionTags: [],
+      inputTags: [],
       maxSelections: 4,
       selectionCount: 0,
       selectedAffixIds: [],

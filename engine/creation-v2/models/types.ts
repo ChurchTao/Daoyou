@@ -25,7 +25,7 @@ interface BaseProductModel<
   slug: string;
   name: string;
   description?: string;
-  tags: string[];
+  outcomeTags: string[];
   affixes: RolledAffix[];
   balanceMetrics?: BalanceMetrics;
 }

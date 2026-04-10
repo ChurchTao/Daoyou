@@ -76,7 +76,7 @@ export class AffixSelector {
         productType: intent.productType,
         candidates,
         remainingEnergy: remaining,
-        sessionTags: intent.dominantTags,
+        inputTags: intent.dominantTags,
         maxSelections: maxCount,
         selectionCount: result.length,
         selectedAffixIds,

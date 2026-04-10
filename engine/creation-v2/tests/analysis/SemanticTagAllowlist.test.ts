@@ -1,11 +1,11 @@
-import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import {
   extractSemanticTagsFromText,
   getCreationSemanticTagAllowlist,
   normalizeSemanticTag,
   normalizeSemanticTags,
 } from '@/engine/creation-v2/analysis/SemanticTagAllowlist';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 
 describe('SemanticTagAllowlist', () => {
   it('应将别名归一化为 canonical tag', () => {
@@ -18,9 +18,10 @@ describe('SemanticTagAllowlist', () => {
     expect(normalizeSemanticTag('圣')).toBe('Material.Semantic.Divine');
     expect(normalizeSemanticTag('spatial')).toBe('Material.Semantic.Space');
     expect(normalizeSemanticTag('vitality')).toBe('Material.Semantic.Life');
+    expect(normalizeSemanticTag('chaos')).toBeNull();
   });
 
-  it('白名单应与 GameplayTags 的 20 个语义标签一致', () => {
+  it('白名单应与主链启用的 19 个语义标签一致', () => {
     expect(getCreationSemanticTagAllowlist()).toEqual([
       CreationTags.MATERIAL.SEMANTIC_FLAME,
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
@@ -38,7 +39,6 @@ describe('SemanticTagAllowlist', () => {
       CreationTags.MATERIAL.SEMANTIC_WOOD,
       CreationTags.MATERIAL.SEMANTIC_POISON,
       CreationTags.MATERIAL.SEMANTIC_DIVINE,
-      CreationTags.MATERIAL.SEMANTIC_CHAOS,
       CreationTags.MATERIAL.SEMANTIC_SPACE,
       CreationTags.MATERIAL.SEMANTIC_TIME,
       CreationTags.MATERIAL.SEMANTIC_LIFE,

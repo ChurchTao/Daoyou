@@ -1,5 +1,5 @@
 import { EventBus } from '../core/EventBus';
-import { GameplayTags } from '../core/GameplayTags';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import {
   DamageEvent,
   DamageRequestEvent,
@@ -103,7 +103,7 @@ export class DamageSystem {
 
       // ===== ② 神识抵抗判定（仅控制/减益类技能）=====
       if (
-        ability.tags.hasTag(GameplayTags.ABILITY.TYPE_CONTROL) &&
+        ability.tags.hasTag(GameplayTags.ABILITY.FUNCTION.CONTROL) &&
         hitCheckEvent.isHit
       ) {
         // 目标 CONTROL_RESISTANCE 减去施法者 CONTROL_HIT，转为百分比
@@ -258,16 +258,16 @@ export class DamageSystem {
     if (event.damageType) return event.damageType;
 
     const tags = event.ability?.tags || event.buff?.tags;
-    if (tags?.hasTag(GameplayTags.ABILITY.TYPE_TRUE_DAMAGE)) {
+    if (tags?.hasTag(GameplayTags.ABILITY.CHANNEL.TRUE)) {
       return DamageType.TRUE;
     }
-    if (tags?.hasTag(GameplayTags.ABILITY.TYPE_MAGIC)) {
+    if (tags?.hasTag(GameplayTags.ABILITY.CHANNEL.MAGIC)) {
       return DamageType.MAGICAL;
     }
-    if (tags?.hasTag(GameplayTags.ABILITY.TYPE_PHYSICAL)) {
+    if (tags?.hasTag(GameplayTags.ABILITY.CHANNEL.PHYSICAL)) {
       return DamageType.PHYSICAL;
     }
-    if (tags?.hasTag(GameplayTags.BUFF.DOT)) {
+    if (tags?.hasTag(GameplayTags.BUFF.DOT.ROOT)) {
       return DamageType.DOT;
     }
 

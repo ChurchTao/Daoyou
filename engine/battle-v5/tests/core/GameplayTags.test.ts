@@ -1,4 +1,4 @@
-import { GameplayTagContainer, GameplayTags } from '../../core/GameplayTags';
+import { GameplayTagContainer, GameplayTags } from '@/engine/shared/tag-domain';
 
 describe('GameplayTagContainer', () => {
   describe('基础操作', () => {
@@ -135,22 +135,31 @@ describe('GameplayTags 常量对象', () => {
   });
 
   it('应包含核心单位标签', () => {
-    expect(GameplayTags.UNIT.COMBATANT).toBe('Unit.Type.Combatant');
-    expect(GameplayTags.UNIT.PLAYER).toBe('Unit.Type.Player');
+    expect(GameplayTags.UNIT.TYPE.COMBATANT).toBe('Unit.Type.Combatant');
+    expect(GameplayTags.UNIT.TYPE.PLAYER).toBe('Unit.Type.Player');
   });
 
   it('应包含核心状态标签', () => {
-    expect(GameplayTags.STATUS.IMMUNE).toBe('Status.Immune');
-    expect(GameplayTags.STATUS.IMMUNE_DEBUFF).toBe('Status.Immune.Debuff');
+    expect(GameplayTags.STATUS.IMMUNE.ROOT).toBe('Status.Immune');
+    expect(GameplayTags.STATUS.IMMUNE.DEBUFF).toBe('Status.Immune.Debuff');
   });
 
   it('应包含核心技能标签', () => {
-    expect(GameplayTags.ABILITY.TYPE_MAGIC).toBe('Ability.Type.Magic');
-    expect(GameplayTags.ABILITY.ELEMENT_FIRE).toBe('Ability.Element.Fire');
+    expect(GameplayTags.ABILITY.FUNCTION.DAMAGE).toBe(
+      'Ability.Function.Damage',
+    );
+    expect(GameplayTags.ABILITY.CHANNEL.MAGIC).toBe('Ability.Channel.Magic');
+    expect(GameplayTags.ABILITY.ELEMENT.FIRE).toBe('Ability.Element.Fire');
+    expect(
+      Object.prototype.hasOwnProperty.call(GameplayTags.ABILITY, 'TYPE_MAGIC'),
+    ).toBe(false);
+    expect(
+      Object.prototype.hasOwnProperty.call(GameplayTags.ABILITY, 'FUNCTION_DAMAGE'),
+    ).toBe(false);
   });
 
   it('应包含核心 BUFF 标签', () => {
-    expect(GameplayTags.BUFF.TYPE_DEBUFF).toBe('Buff.Type.Debuff');
-    expect(GameplayTags.BUFF.DOT_POISON).toBe('Buff.Dot.Poison');
+    expect(GameplayTags.BUFF.TYPE.DEBUFF).toBe('Buff.Type.Debuff');
+    expect(GameplayTags.BUFF.DOT.POISON).toBe('Buff.Dot.Poison');
   });
 });

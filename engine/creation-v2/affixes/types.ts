@@ -15,6 +15,7 @@ import {
 } from '../contracts/battle';
 import { StackRule } from '../contracts/battle';
 import { EquipmentSlot, Quality } from '@/types/constants';
+import type { AbilityRuntimeSemantics } from '@/engine/shared/tag-domain';
 import { AffixCategory, CreationProductType } from '../types';
 
 // ===== 品质缩放值 =====
@@ -198,9 +199,8 @@ export interface AffixDefinition {
   /** 适用产物类型 */
   applicableTo: CreationProductType[];
   /**
-   * 固有标签：该词缀直接贡献给产物的战斗标签（GameplayTags）。
-   * 例如：[GameplayTags.ABILITY.TYPE_MAGIC, GameplayTags.ABILITY.ELEMENT_FIRE]
-   * 用于 AbilityTagAssembler 阶段的声明式聚合。
+   * 结构化运行时语义声明。
+   * affix 唯一允许的运行时语义入口，由共享标签域统一投影为 battle-v5 运行时标签。
    */
-  inherentTags?: string[];
+  runtimeSemantics?: AbilityRuntimeSemantics;
 }

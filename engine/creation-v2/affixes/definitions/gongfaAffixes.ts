@@ -7,14 +7,18 @@
  */
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_ABILITY_TAG, ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { CreationTags } from '../../core/GameplayTags';
-import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
+import { type AbilityRuntimeSemantics, CreationTags } from '@/engine/shared/tag-domain';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { AttributeType, ModifierType, BuffType, StackRule } from '../../contracts/battle';
 import { AffixDefinition } from '../types';
 
-const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE_BUFF];
-const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.BUFF];
-const MYTHIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.MYTHIC];
+const PASSIVE_RUNTIME_SEMANTICS: AbilityRuntimeSemantics = {
+  kind: 'passive',
+};
+
+const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.BUFF];
+const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.BUFF];
+const MYTHIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MYTHIC];
 
 const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
   {
@@ -32,7 +36,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -57,7 +61,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -82,7 +86,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -107,7 +111,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -132,7 +136,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -157,7 +161,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -182,7 +186,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -207,7 +211,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -232,7 +236,7 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -325,7 +329,7 @@ const GONGFA_ELEMENT_SPECIALIZATION_AFFIXES: AffixDefinition[] =
     weight: config.weight,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -361,7 +365,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 100,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -381,7 +385,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 95,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -405,7 +409,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 88,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -425,7 +429,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -445,7 +449,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -469,7 +473,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 85,
     energyCost: 6,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -489,7 +493,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 6,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -508,7 +512,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -533,7 +537,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'magic_shield',
       params: {
@@ -555,7 +559,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 62,
     energyCost: 6,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -574,7 +578,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -593,7 +597,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -615,7 +619,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
                   type: 'buff_duration_modify',
                   params: {
                     rounds: 1,
-                    tags: [GameplayTags.BUFF.TYPE_BUFF],
+                    tags: [GameplayTags.BUFF.TYPE.BUFF],
                   },
                 },
               ],
@@ -644,7 +648,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -674,7 +678,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 46,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -704,7 +708,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 7,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -738,11 +742,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
-        { type: 'has_tag', params: { tag: GameplayTags.STATUS.CHILLED } },
+        { type: 'has_tag', params: { tag: GameplayTags.STATUS.STATE.CHILLED } },
       ],
       params: {
         mode: 'increase',
@@ -774,7 +778,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -804,7 +808,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 9,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -828,7 +832,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 9,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -854,7 +858,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -884,7 +888,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -909,7 +913,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 9,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -933,11 +937,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 8,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'dispel',
       params: {
-        targetTag: GameplayTags.BUFF.TYPE_DEBUFF,
+        targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
         maxCount: 1,
       },
     },
@@ -960,7 +964,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 9,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'shield',
       params: {
@@ -990,7 +994,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 10,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1018,7 +1022,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 39,
     energyCost: 10,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_above', params: { value: 0.7 } }],
@@ -1049,7 +1053,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1079,7 +1083,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 11,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1142,7 +1146,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 11,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1170,13 +1174,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 11,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.ELEMENT },
+          params: { tag: GameplayTags.ABILITY.ELEMENT.ROOT },
         },
       ],
       params: {
@@ -1203,7 +1207,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 37,
     energyCost: 11,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_above', params: { value: 0.8 } }],
@@ -1236,7 +1240,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 12,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1259,7 +1263,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 47,
     energyCost: 12,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1293,7 +1297,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 44,
     energyCost: 12,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1320,7 +1324,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 12,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       conditions: [{ type: 'hp_below', params: { value: 0.45, scope: 'caster' } }],
@@ -1354,7 +1358,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 12,
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'mp_below', params: { value: 0.35 } }],
@@ -1385,7 +1389,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1406,7 +1410,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1459,7 +1463,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       conditions: [{ type: 'hp_below', params: { value: 0.6, scope: 'caster' } }],
@@ -1500,7 +1504,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'damage_immunity',
       conditions: [
@@ -1508,7 +1512,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         { type: 'chance', params: { value: 0.45 } },
       ],
       params: {
-        tags: [GameplayTags.ABILITY.TYPE_MAGIC],
+        tags: [GameplayTags.ABILITY.CHANNEL.MAGIC],
       },
     },
     listenerSpec: {
@@ -1532,7 +1536,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'apply_buff',
       conditions: [{ type: 'hp_above', params: { value: 0.5, scope: 'caster' } }],
@@ -1591,7 +1595,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1617,7 +1621,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1643,7 +1647,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1670,7 +1674,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1697,7 +1701,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1725,7 +1729,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1751,7 +1755,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1778,7 +1782,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1804,7 +1808,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1831,7 +1835,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1869,7 +1873,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1907,7 +1911,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1939,7 +1943,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '真品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1971,7 +1975,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2009,7 +2013,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '天品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -2053,7 +2057,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '仙品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2079,7 +2083,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2105,7 +2109,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2131,7 +2135,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2158,7 +2162,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2196,7 +2200,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['gongfa'],
-    inherentTags: [GameplayTags.ABILITY.KIND_PASSIVE],
+    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {

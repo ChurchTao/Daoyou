@@ -1,15 +1,15 @@
-import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { MaterialTagNormalizer } from '@/engine/creation-v2/analysis/MaterialTagNormalizer';
-import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { Material } from '@/types/cultivator';
 
 describe('MaterialTagNormalizer semantic extraction', () => {
   const normalizer = new MaterialTagNormalizer();
 
-  it('应覆盖 20 个 canonical 语义标签命中', () => {
+  it('应覆盖 19 个 canonical 语义标签命中', () => {
     const material: Material = {
       id: 'mat-all-semantic',
-      name: '火冰雷风锋护爆养诀魂土金水木毒圣混空时命',
+      name: '火冰雷风锋护爆养诀魂土金水木毒圣空时命',
       type: 'ore',
       rank: '玄品',
       quantity: 1,
@@ -35,7 +35,6 @@ describe('MaterialTagNormalizer semantic extraction', () => {
       CreationTags.MATERIAL.SEMANTIC_WOOD,
       CreationTags.MATERIAL.SEMANTIC_POISON,
       CreationTags.MATERIAL.SEMANTIC_DIVINE,
-      CreationTags.MATERIAL.SEMANTIC_CHAOS,
       CreationTags.MATERIAL.SEMANTIC_SPACE,
       CreationTags.MATERIAL.SEMANTIC_TIME,
       CreationTags.MATERIAL.SEMANTIC_LIFE,

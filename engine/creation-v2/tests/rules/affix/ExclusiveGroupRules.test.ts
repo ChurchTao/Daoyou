@@ -29,7 +29,7 @@ describe('ExclusiveGroupRules', () => {
         },
       ],
       remainingEnergy: 10,
-      sessionTags: [],
+      inputTags: [],
       maxSelections: 4,
       selectionCount: 1,
       selectedAffixIds: [],
