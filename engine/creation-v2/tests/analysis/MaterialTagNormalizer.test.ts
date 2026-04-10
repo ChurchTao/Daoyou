@@ -1,3 +1,4 @@
+import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
 import { MaterialTagNormalizer } from '@/engine/creation-v2/analysis/MaterialTagNormalizer';
 import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import { Material } from '@/types/cultivator';

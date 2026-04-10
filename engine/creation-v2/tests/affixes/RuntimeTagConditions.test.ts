@@ -1,3 +1,4 @@
+import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
@@ -25,8 +26,10 @@ describe('creation-v2 affix tagQuery contract', () => {
     const offenders = DEFAULT_AFFIX_REGISTRY.getAll().filter((def) =>
       def.tagQuery.some(
         (tag) =>
-          tag.startsWith(`${CreationTags.SCENARIO.ROOT}.`) ||
-          tag.startsWith(`${CreationTags.EFFECT.ROOT}.`),
+          tag.startsWith('Condition.') ||
+          tag.startsWith('Trait.') ||
+          tag.startsWith('Ability.Type.') ||
+          tag.startsWith('Status.'),
       ),
     );
 
@@ -42,7 +45,7 @@ describe('creation-v2 affix tagQuery contract', () => {
     expect(result.conditions).toEqual([
       {
         type: 'ability_has_tag',
-        params: { tag: CreationTags.BATTLE.ABILITY_TYPE_CONTROL },
+        params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
       },
     ]);
   });
@@ -70,11 +73,11 @@ describe('creation-v2 affix tagQuery contract', () => {
     expect(result.conditions).toEqual([
       {
         type: 'ability_has_tag',
-        params: { tag: CreationTags.BATTLE.ABILITY_TYPE_CONTROL },
+        params: { tag: GameplayTags.ABILITY.TYPE_CONTROL },
       },
       {
         type: 'has_tag',
-        params: { tag: CreationTags.BATTLE.STATUS_CONTROL },
+        params: { tag: GameplayTags.STATUS.CONTROL },
       },
     ]);
   });

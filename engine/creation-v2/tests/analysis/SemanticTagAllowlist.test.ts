@@ -1,3 +1,4 @@
+import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
 import {
   extractSemanticTagsFromText,
   getCreationSemanticTagAllowlist,

@@ -30,6 +30,7 @@ describe('Closed-loop energy flow', () => {
         tags: [],
         weight: 100,
         energyCost: 8,
+        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
       },
       {
         id: 'b',
@@ -38,6 +39,7 @@ describe('Closed-loop energy flow', () => {
         tags: [],
         weight: 100,
         energyCost: 6,
+        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
       },
       {
         id: 'c',
@@ -46,6 +48,7 @@ describe('Closed-loop energy flow', () => {
         tags: [],
         weight: 100,
         energyCost: 12,
+        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
       },
     ];
 
@@ -91,6 +94,7 @@ describe('Closed-loop energy flow', () => {
         weight: 100,
         energyCost: 5,
         exclusiveGroup: 'blade',
+        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
       },
       {
         id: 'grp-b',
@@ -100,6 +104,7 @@ describe('Closed-loop energy flow', () => {
         weight: 100,
         energyCost: 5,
         exclusiveGroup: 'blade',
+        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
       },
       {
         id: 'heavy',
@@ -108,6 +113,7 @@ describe('Closed-loop energy flow', () => {
         tags: [],
         weight: 100,
         energyCost: 20,
+        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
       },
     ];
 

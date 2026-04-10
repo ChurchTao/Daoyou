@@ -109,6 +109,10 @@ describe('DefaultEnergyBudgeter', () => {
           weight: 100,
           energyCost: 8,
           rollScore: 1,
+          rollEfficiency: 1,
+          finalMultiplier: 1,
+          isPerfect: false,
+          effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
         },
         {
           id: 'b',
@@ -118,6 +122,10 @@ describe('DefaultEnergyBudgeter', () => {
           weight: 100,
           energyCost: 6,
           rollScore: 0.8,
+          rollEfficiency: 1,
+          finalMultiplier: 1,
+          isPerfect: false,
+          effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
         },
       ],
     );

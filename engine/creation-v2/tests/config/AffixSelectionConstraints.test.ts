@@ -18,6 +18,7 @@ function candidate(
     tags: [],
     weight: 10,
     energyCost: 5,
+    effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
   };
 }
 

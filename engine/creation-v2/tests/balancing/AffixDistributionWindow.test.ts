@@ -14,6 +14,7 @@ function candidate(
     tags: ['Material.Semantic.Burst', 'Material.Semantic.Spirit'],
     weight,
     energyCost,
+    effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
   };
 }
 

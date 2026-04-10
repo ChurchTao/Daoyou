@@ -1,3 +1,4 @@
+import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixPoolBuilder } from '@/engine/creation-v2/affixes/AffixPoolBuilder';
@@ -138,7 +139,7 @@ describe('AffixEffectTranslator', () => {
     const result = translator.translate(def, '真品');
     expect(result.type).toBe('damage_immunity');
     if (result.type === 'damage_immunity') {
-      expect(result.params.tags).toEqual([CreationTags.BATTLE.ABILITY_TYPE_MAGIC]);
+      expect(result.params.tags).toEqual([GameplayTags.ABILITY.TYPE_MAGIC]);
     }
   });
 
@@ -147,7 +148,7 @@ describe('AffixEffectTranslator', () => {
     const result = translator.translate(def, '玄品');
     expect(result.type).toBe('buff_immunity');
     if (result.type === 'buff_immunity') {
-      expect(result.params.tags).toEqual([CreationTags.BATTLE.BUFF_TYPE_DEBUFF]);
+      expect(result.params.tags).toEqual([GameplayTags.BUFF.TYPE_DEBUFF]);
     }
   });
 
@@ -168,7 +169,7 @@ describe('AffixEffectTranslator', () => {
 
     expect(result.type).toBe('dispel');
     if (result.type === 'dispel') {
-      expect(result.params.targetTag).toBe(CreationTags.BATTLE.BUFF_TYPE_BUFF);
+      expect(result.params.targetTag).toBe(GameplayTags.BUFF.TYPE_BUFF);
     }
   });
 
@@ -178,7 +179,7 @@ describe('AffixEffectTranslator', () => {
 
     expect(result.type).toBe('dispel');
     if (result.type === 'dispel') {
-      expect(result.params.targetTag).toBe(CreationTags.BATTLE.BUFF_TYPE_DEBUFF);
+      expect(result.params.targetTag).toBe(GameplayTags.BUFF.TYPE_DEBUFF);
     }
   });
 
@@ -190,15 +191,15 @@ describe('AffixEffectTranslator', () => {
     if (result.type === 'apply_buff') {
       expect(result.params.buffConfig.tags).toHaveLength(2);
       expect(result.params.buffConfig.tags).toEqual(expect.arrayContaining([
-        CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
-        CreationTags.BATTLE.BUFF_TYPE_CONTROL,
+        GameplayTags.BUFF.TYPE_DEBUFF,
+        GameplayTags.BUFF.TYPE_CONTROL,
       ]));
       expect(result.params.buffConfig.statusTags).toHaveLength(4);
       expect(result.params.buffConfig.statusTags).toEqual(expect.arrayContaining([
-        CreationTags.BATTLE.STATUS_DEBUFF,
-        CreationTags.BATTLE.STATUS_CONTROL,
-        CreationTags.BATTLE.STATUS_STUNNED,
-        CreationTags.BATTLE.STATUS_NO_ACTION,
+        GameplayTags.STATUS.DEBUFF,
+        GameplayTags.STATUS.CONTROL,
+        GameplayTags.STATUS.STUNNED,
+        GameplayTags.STATUS.NO_ACTION,
       ]));
     }
   });
@@ -211,15 +212,15 @@ describe('AffixEffectTranslator', () => {
     if (result.type === 'apply_buff') {
       expect(result.params.buffConfig.tags).toHaveLength(3);
       expect(result.params.buffConfig.tags).toEqual(expect.arrayContaining([
-        CreationTags.BATTLE.BUFF_TYPE_DEBUFF,
-        CreationTags.BATTLE.BUFF_DOT,
-        CreationTags.BATTLE.BUFF_DOT_BURN,
+        GameplayTags.BUFF.TYPE_DEBUFF,
+        GameplayTags.BUFF.DOT,
+        GameplayTags.BUFF.DOT_BURN,
       ]));
       expect(result.params.buffConfig.statusTags).toHaveLength(3);
       expect(result.params.buffConfig.statusTags).toEqual(expect.arrayContaining([
-        CreationTags.BATTLE.STATUS_DEBUFF,
-        CreationTags.BATTLE.STATUS_DOT,
-        CreationTags.BATTLE.STATUS_BURN,
+        GameplayTags.STATUS.DEBUFF,
+        GameplayTags.STATUS.DOT,
+        GameplayTags.STATUS.BURNED,
       ]));
     }
   });
@@ -294,6 +295,7 @@ describe('AffixSelector', () => {
     weight,
     energyCost,
     exclusiveGroup,
+    effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
   });
 
   const makeIntent = (): CreationIntent => ({
@@ -481,7 +483,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
   it('所有 DamageTakenEvent + damage 词条都必须显式反击 event.caster', () => {
     const counterDamageDefs = [...SKILL_AFFIXES, ...ARTIFACT_AFFIXES, ...GONGFA_AFFIXES].filter(
       (def) =>
-        def.listenerSpec?.eventType === CreationTags.BATTLE_EVENT.DAMAGE_TAKEN &&
+        def.listenerSpec?.eventType === GameplayTags.EVENT.DAMAGE_TAKEN &&
         def.effectTemplate.type === 'damage',
     );
 
@@ -790,7 +792,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
 
     expect(def).toBeDefined();
     expect(def?.effectTemplate.type).toBe('apply_buff');
-    expect(def?.listenerSpec?.eventType).toBe(CreationTags.BATTLE_EVENT.ROUND_PRE);
+    expect(def?.listenerSpec?.eventType).toBe(GameplayTags.EVENT.ROUND_PRE);
 
     if (def?.effectTemplate.type === 'apply_buff') {
       expect(def.effectTemplate.conditions).toEqual([
@@ -1011,7 +1013,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.TYPE_MANUAL,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-      CreationTags.SCENARIO.CASTER_LOW_HP,
+      GameplayTags.CONDITION.CASTER_LOW_HP,
     ];
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);

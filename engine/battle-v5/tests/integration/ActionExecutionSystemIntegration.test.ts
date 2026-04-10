@@ -1,6 +1,6 @@
 import { ActiveSkill } from '../../abilities/ActiveSkill';
 import { GameplayTags } from '../../core/GameplayTags';
-import { AbilityId, AttributeType, DamageSource } from '../../core/types';
+import { AbilityId, AbilityType, AttributeType, DamageSource, ModifierType } from '../../core/types';
 import { EventBus } from '../../core/EventBus';
 import { DamageRequestEvent, SkillCastEvent, SkillPreCastEvent } from '../../core/events';
 import { DamageEffect } from '../../effects/DamageEffect';
@@ -92,7 +92,7 @@ describe('DamageSystem direct mitigation', () => {
     defender.attributes.addModifier({
       id: 'def_bonus',
       attrType: AttributeType.DEF,
-      type: 'fixed',
+      type: ModifierType.FIXED,
       value: 20,
       source: 'test',
     });
@@ -126,7 +126,7 @@ describe('DamageSystem direct mitigation', () => {
       AbilityFactory.create({
         slug: 'auto_magic_strike',
         name: '自适应灵击',
-        type: 'active_skill',
+        type: AbilityType.ACTIVE_SKILL,
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
           {
@@ -148,7 +148,7 @@ describe('DamageSystem direct mitigation', () => {
     const ability = AbilityFactory.create({
       slug: 'explicit_magic_strike',
       name: '明示灵击',
-      type: 'active_skill',
+      type: AbilityType.ACTIVE_SKILL,
       tags: [
         GameplayTags.ABILITY.TYPE_DAMAGE,
         GameplayTags.ABILITY.TYPE_MAGIC,
@@ -177,7 +177,7 @@ describe('DamageSystem direct mitigation', () => {
       AbilityFactory.create({
         slug: 'missing_damage_channel',
         name: '缺失通道标签',
-        type: 'active_skill',
+        type: AbilityType.ACTIVE_SKILL,
         tags: [GameplayTags.ABILITY.TYPE_DAMAGE],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
@@ -203,7 +203,7 @@ describe('DamageSystem direct mitigation', () => {
       AbilityFactory.create({
         slug: 'mixed_damage_channels',
         name: '双通道冲突',
-        type: 'active_skill',
+        type: AbilityType.ACTIVE_SKILL,
         tags: [
           GameplayTags.ABILITY.TYPE_DAMAGE,
           GameplayTags.ABILITY.TYPE_MAGIC,

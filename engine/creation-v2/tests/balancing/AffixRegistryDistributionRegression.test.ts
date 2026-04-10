@@ -1,3 +1,4 @@
+import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
 import { resolveAffixSlotCount } from '@/engine/creation-v2/config/CreationBalance';
 import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import { TestableCreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';

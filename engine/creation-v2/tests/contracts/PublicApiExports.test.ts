@@ -1,3 +1,4 @@
+import { GameplayTags } from "@/engine/battle-v5/core/GameplayTags";
 import * as creationV2 from '@/engine/creation-v2';
 import * as battleContract from '@/engine/creation-v2/contracts/battle';
 import * as battleTestkit from '@/engine/creation-v2/contracts/battle-testkit';
@@ -68,7 +69,7 @@ describe('creation-v2 public exports', () => {
       },
       battleProjection: {
         projectionKind: 'artifact_passive',
-        abilityTags: [CreationTags.BATTLE.ABILITY_KIND_ARTIFACT],
+        abilityTags: [GameplayTags.ABILITY.KIND_ARTIFACT],
         listeners: [],
       },
     };
@@ -87,7 +88,7 @@ describe('creation-v2 public exports', () => {
       },
       battleProjection: {
         projectionKind: 'gongfa_passive',
-        abilityTags: [CreationTags.BATTLE.ABILITY_KIND_GONGFA],
+        abilityTags: [GameplayTags.ABILITY.KIND_GONGFA],
         listeners: [],
       },
     };

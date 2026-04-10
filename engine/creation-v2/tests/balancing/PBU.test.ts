@@ -15,6 +15,10 @@ function affix(
     weight: 10,
     energyCost,
     rollScore: 1,
+    rollEfficiency: 1,
+    finalMultiplier: 1,
+    isPerfect: false,
+    effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
   };
 }
 

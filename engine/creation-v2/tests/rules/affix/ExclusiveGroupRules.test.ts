@@ -24,6 +24,7 @@ describe('ExclusiveGroupRules', () => {
           tags: [],
           weight: 10,
           energyCost: 4,
+          effectTemplate: { type: "damage", params: { value: 10 } } as any,
           exclusiveGroup: 'grp',
         },
       ],

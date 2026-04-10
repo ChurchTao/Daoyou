@@ -24,6 +24,7 @@ describe('BudgetExhaustionRules', () => {
           tags: [],
           weight: 10,
           energyCost: 9,
+          effectTemplate: { type: "damage", params: { value: 10 } } as any,
         },
         {
           id: 'cheap',
@@ -32,6 +33,7 @@ describe('BudgetExhaustionRules', () => {
           tags: [],
           weight: 10,
           energyCost: 4,
+          effectTemplate: { type: "damage", params: { value: 10 } } as any,
         },
       ],
       remainingEnergy: 4,

@@ -4,6 +4,7 @@ import { CreationOutcomeMaterializer } from '../adapters/types';
 import { TestableCreationOrchestrator as CreationOrchestrator } from './helpers/TestableCreationOrchestrator';
 import { AffixRolledEvent, CraftFailedEvent } from '../core/events';
 import { CreationTags } from '../core/GameplayTags';
+import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import { CreationEventPriorityLevel } from '../core/types';
 import { CreationBlueprint, EnergyBudget, MaterialFingerprint, RecipeMatch } from '../types';
 
@@ -135,7 +136,11 @@ describe('CreationOrchestrator', () => {
             tags: ['offensive', 'fire'],
             weight: 10,
             energyCost: 8,
-            rollScore: 0.91
+            rollScore: 0.91,
+            rollEfficiency: 1,
+            finalMultiplier: 1,
+            isPerfect: false,
+            effectTemplate: { type: 'damage', params: { value: 10 } } as any
           },
         ],
         battleProjection: {
@@ -250,8 +255,8 @@ describe('CreationOrchestrator', () => {
           abilityTags: ['Ability.Kind.Artifact', 'Ability.Element.Ice'],
           listeners: [
             {
-              eventType: CreationTags.BATTLE_EVENT.DAMAGE_TAKEN,
-              scope: CreationTags.LISTENER_SCOPE.OWNER_AS_TARGET,
+              eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
               priority: 50,
               effects: [
                 {
@@ -422,6 +427,7 @@ describe('CreationOrchestrator', () => {
         tags: ['Material.Semantic.Burst'],
         weight: 100,
         energyCost: 6,
+        effectTemplate: { type: 'damage', params: { value: 10 } } as any,
       },
     ]);
 
@@ -483,7 +489,11 @@ describe('CreationOrchestrator', () => {
         tags: ['Material.Semantic.Blade'],
         weight: 80,
         energyCost: 8,
-        rollScore: 1
+        rollScore: 1,
+        rollEfficiency: 1,
+        finalMultiplier: 1,
+        isPerfect: false,
+        effectTemplate: { type: 'damage', params: { value: 10 } } as any,
       },
       {
         id: 'skill-prefix-crit-boost',
@@ -492,7 +502,11 @@ describe('CreationOrchestrator', () => {
         tags: ['Material.Semantic.Blade'],
         weight: 60,
         energyCost: 6,
-        rollScore: 0.75
+        rollScore: 0.75,
+        rollEfficiency: 1,
+        finalMultiplier: 1,
+        isPerfect: false,
+        effectTemplate: { type: 'damage', params: { value: 10 } } as any,
       },
     ]);
 

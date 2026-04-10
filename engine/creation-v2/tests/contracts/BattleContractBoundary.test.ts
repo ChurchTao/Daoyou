@@ -197,7 +197,7 @@ const BATTLE_SMOKE_MATERIALS: Record<'skill' | 'artifact' | 'gongfa', Material[]
   ],
 };
 
-const ARTIFACT_SLOT_BENCHMARK_CASES = [
+const ARTIFACT_SLOT_BENCHMARK_CASES: Array<{ slot: any; materials: Material[] }> = [
   {
     slot: 'weapon' as const,
     materials: [
@@ -558,7 +558,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
         });
 
         const fireEvent = withFixedRandom(0.5, () => {
-          const event = {
+          const event: DamageRequestEvent = {
             type: 'DamageRequestEvent' as const,
             timestamp: Date.now(),
             caster: attacker,
@@ -569,6 +569,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
             baseDamage: 500,
             finalDamage: 500,
             isCritical: false,
+            damageIncreasePctBucket: 0,
           };
 
           EventBus.instance.publish(event);
@@ -578,7 +579,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
         defender.setHp(defender.getMaxHp());
 
         const waterEvent = withFixedRandom(0.5, () => {
-          const event = {
+          const event: DamageRequestEvent = {
             type: 'DamageRequestEvent' as const,
             timestamp: Date.now(),
             caster: attacker,
@@ -589,6 +590,7 @@ describe('BattleContractBoundary — battle 契约验证', () => {
             baseDamage: 500,
             finalDamage: 500,
             isCritical: false,
+            damageIncreasePctBucket: 0,
           };
 
           EventBus.instance.publish(event);
