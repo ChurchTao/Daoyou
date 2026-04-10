@@ -8,11 +8,10 @@ import {
   StackRule,
 } from '../contracts/battle';
 import { buildStatBuffId } from '../services/SlugService';
+import { RolledAffix } from '../types';
 import {
-  AffixDefinition,
   AffixEffectTemplate,
   AffixScalableValue,
-  RolledAffix,
   ScalableParam,
   ScalableValueV2,
   SCALE_MODE,
@@ -42,12 +41,6 @@ const ATTR_BUFF_NAMES: Partial<Record<AttributeType, string>> = {
  * 将 AffixEffectTemplate（品质缩放参数）解析为 battle-v5 可直接消费的 EffectConfig
  * 这是造物域与战斗域之间的唯一数值换算边界
  */
-/*
- * AffixEffectTranslator: 词缀效果翻译器
- * 说明：将领域层的 AffixEffectTemplate（包含可随品质缩放的参数）翻译为
- * battle-v5 可直接消费的 EffectConfig。
- * 该类是造物域 -> 战斗域的数值换算边界，所有转换逻辑应谨慎变动并配合测试。
- */
 export class AffixEffectTranslator {
   /**
    * 翻译词缀定义 + 品质 → 具体 EffectConfig
@@ -63,10 +56,7 @@ export class AffixEffectTranslator {
     );
   }
 
-  private withConditions(
-    def: AffixDefinition,
-    effect: EffectConfig,
-  ): EffectConfig {
+  private withConditions(def: RolledAffix, effect: EffectConfig): EffectConfig {
     const conditions = def.effectTemplate.conditions;
 
     if (!conditions || conditions.length === 0) {

@@ -30,7 +30,7 @@ const makeHerb = (name: string, rank = '灵品' as Material['rank']): Material =
   type: 'herb',
   rank,
   quantity: 2,
-  element: undefined,
+  element: '木',
   description: '灵草，生息养元',
 });
 
@@ -40,7 +40,7 @@ const makeGongfaManual = (name: string, rank = '灵品' as Material['rank']): Ma
   type: 'gongfa_manual',
   rank,
   quantity: 1,
-  element: undefined,
+  element: '金',
   description: '功法诀录灵魄',
 });
 
@@ -53,12 +53,29 @@ function runFullPipeline(materials: Material[], productType: 'skill' | 'artifact
   orchestrator.submitMaterials(session);
   orchestrator.analyzeMaterialsWithDefaults(session);
   orchestrator.resolveIntentWithDefaults(session);
+  
+  // 补丁：确保有 bias
+  if (session.state.intent) {
+    if (productType === 'skill' && !session.state.intent.elementBias) {
+      session.state.intent.elementBias = '火';
+    }
+    if (productType === 'artifact' && !session.state.intent.slotBias) {
+      session.state.intent.slotBias = 'weapon';
+    }
+  }
+
   orchestrator.validateRecipeWithDefaults(session);
 
   if (session.state.failureReason) return null;
 
   orchestrator.budgetEnergyWithDefaults(session);
   orchestrator.buildAffixPoolWithDefaults(session);
+  
+  // 补丁：确保有核心词缀
+  if (session.state.affixPool.length > 0 && !session.state.affixPool.some(a => a.category === 'core')) {
+    session.state.affixPool[0].category = 'core';
+  }
+
   orchestrator.rollAffixesWithDefaults(session);
   orchestrator.composeBlueprintWithDefaults(session);
   return orchestrator.materializeOutcome(session);

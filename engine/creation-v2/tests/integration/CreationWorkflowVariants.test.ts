@@ -18,7 +18,7 @@ const FIRE_MATERIAL = {
   id: 'mat-fire',
   name: '赤炎精铁',
   type: 'ore' as const,
-  rank: '灵品' as const,
+  rank: '仙品' as const,
   quantity: 1,
   element: '火' as const,
   description: '蕴含火行意象',
@@ -228,7 +228,7 @@ describe('CreationWorkflowVariants — Stage 5 验收测试', () => {
             id: 'mat-manual',
             name: '灵魄心经',
             type: 'gongfa_manual',
-            rank: '灵品',
+            rank: '仙品',
             quantity: 1,
             description: '蕴含心法要义',
           },
@@ -246,12 +246,13 @@ describe('CreationWorkflowVariants — Stage 5 验收测试', () => {
       const session = orchestrator.createSession({
         sessionId: 'variant-artifact-workflow',
         productType: 'artifact',
+        requestedSlot: 'weapon',
         materials: [
           {
             id: 'mat-jade',
             name: '玄铁矿',
             type: 'ore',
-            rank: '灵品',
+            rank: '仙品',
             quantity: 1,
             element: '金',
             description: '坚硬如铁，蕴含防御之意',

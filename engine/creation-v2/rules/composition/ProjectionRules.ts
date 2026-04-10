@@ -26,6 +26,7 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
 import { Rule } from '../core/Rule';
 import { RuleContext } from '../core/RuleContext';
 import { assembleAbilityTags } from './AbilityTagAssembler';
+import { CreationError } from '../../errors';
 
 /**
  * ProjectionRules
@@ -119,15 +120,17 @@ export class ProjectionRules implements Rule<
     const coreDef = coreAffix
       ? this.registry.queryById(coreAffix.id)
       : undefined;
-    const coreType = coreDef?.effectTemplate.type ?? 'damage';
+
     if (!coreDef) {
-      diagnostics.addTrace({
-        ruleId: this.id,
-        outcome: 'applied',
-        message: `coreType fallback to 'damage': no core affix found (coreAffixId=${coreAffix?.id ?? 'none'})`,
-      });
+      throw new CreationError(
+        'Composition',
+        'NO_CORE_AFFIX',
+        `无法投影技能：找不到核心词缀定义 (coreAffixId=${coreAffix?.id ?? 'none'})`,
+        { affixes }
+      );
     }
 
+    const coreType = coreDef.effectTemplate.type;
     const cooldown =
       coreType === 'heal'
         ? CREATION_SKILL_DEFAULTS.healCooldown
@@ -155,32 +158,12 @@ export class ProjectionRules implements Rule<
         ? { team: 'self' as const, scope: 'single' as const }
         : { team: 'enemy' as const, scope: 'single' as const };
 
-    const abilityTags =
-      directEffects.length === 0 &&
-      extraListeners.length === 0 &&
-      affixes.length === 0
-        ? assembleAbilityTags({
-            productType: 'skill',
-            effects: [
-              {
-                type: 'damage',
-                params: {
-                  value: {
-                    base: 0,
-                    attribute: AttributeType.MAGIC_ATK,
-                    coefficient: 0,
-                  },
-                },
-              },
-            ],
-            elementBias: intent.elementBias,
-          })
-        : assembleAbilityTags({
-            productType: 'skill',
-            effects: directEffects,
-            listeners: extraListeners,
-            elementBias: intent.elementBias,
-          });
+    const abilityTags = assembleAbilityTags({
+      productType: 'skill',
+      effects: directEffects,
+      listeners: extraListeners,
+      elementBias: intent.elementBias,
+    });
 
     return {
       kind: 'active_skill',

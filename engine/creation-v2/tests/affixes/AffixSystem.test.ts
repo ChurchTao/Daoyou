@@ -12,8 +12,27 @@ import { AttributeType, BuffType, ModifierType } from '@/engine/creation-v2/cont
 import { ELEMENT_TO_ABILITY_TAG } from '@/engine/creation-v2/config/CreationMappings';
 import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
-import { AffixCandidate, EnergyBudget, CreationIntent } from '@/engine/creation-v2/types';
+import { AffixCandidate, EnergyBudget, CreationIntent, RolledAffix } from '@/engine/creation-v2/types';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
+import { Quality } from '@/types/constants';
+
+/** 辅助函数：将静态定义转换为运行态 RolledAffix 以满足接口契约 */
+function toRolledAffix(def: AffixDefinition): RolledAffix {
+  return {
+    id: def.id,
+    name: def.displayName,
+    category: def.category,
+    energyCost: def.energyCost,
+    rollScore: 1,
+    rollEfficiency: 1,
+    finalMultiplier: 1,
+    isPerfect: false,
+    effectTemplate: def.effectTemplate,
+    weight: def.weight,
+    tags: def.tagQuery,
+    exclusiveGroup: def.exclusiveGroup,
+  };
+}
 
 // ─── AffixEffectTranslator ───────────────────────────────────────────────────
 
@@ -43,7 +62,7 @@ describe('AffixEffectTranslator', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-damage')!;
     expect(def).toBeDefined();
 
-    const resultFan = translator.translate(def, '凡品');
+    const resultFan = translator.translate(toRolledAffix(def), '凡品');
     expect(resultFan.type).toBe('damage');
     if (resultFan.type === 'damage') {
       // base: { base:80, scale:quality, coefficient:14 } → 凡品 qualityOrder=0 → 80
@@ -51,7 +70,7 @@ describe('AffixEffectTranslator', () => {
       expect(resultFan.params.value.coefficient).toBe(0.9);
     }
 
-    const resultZhen = translator.translate(def, '真品');
+    const resultZhen = translator.translate(toRolledAffix(def), '真品');
     if (resultZhen.type === 'damage') {
       // 真品 qualityOrder=3 → 80 + 3*14 = 122
       expect(resultZhen.params.value.base).toBe(122);
@@ -62,7 +81,7 @@ describe('AffixEffectTranslator', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-prefix-spirit-boost')!;
     expect(def).toBeDefined();
 
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
     expect(result.type).toBe('apply_buff');
     if (result.type === 'apply_buff') {
       const { buffConfig } = result.params;
@@ -75,16 +94,16 @@ describe('AffixEffectTranslator', () => {
       expect(buffConfig.modifiers![0].value).toBe(3);
     }
 
-    const resultZhen = translator.translate(def, '真品');
-    if (resultZhen.type === 'apply_buff') {
-      // 真品 qualityOrder=3 → 3 + 3*1=6
-      expect(resultZhen.params.buffConfig.modifiers![0].value).toBe(6);
+    const resultTian = translator.translate(toRolledAffix(def), '天品');
+    if (resultTian.type === 'apply_buff') {
+      // 天品 qualityOrder=5 -> 3 + 5*1=8
+      expect(resultTian.params.buffConfig.modifiers![0].value).toBe(8);
     }
   });
 
   it('translate: percent_damage_modifier mode 和 value 正确', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-prefix-crit-boost')!;
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
     expect(result.type).toBe('percent_damage_modifier');
     if (result.type === 'percent_damage_modifier') {
       expect(result.params.mode).toBe('increase');
@@ -95,7 +114,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: ability_has_tag 条件应原样透传到 battle-v5', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-prefix-fire-resistance')!;
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.conditions).toEqual([
       {
@@ -136,7 +155,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: damage_immunity 应保留 battle-v5 标签参数', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-signature-spellward')!;
-    const result = translator.translate(def, '真品');
+    const result = translator.translate(toRolledAffix(def), '真品');
     expect(result.type).toBe('damage_immunity');
     if (result.type === 'damage_immunity') {
       expect(result.params.tags).toEqual([GameplayTags.ABILITY.TYPE_MAGIC]);
@@ -145,7 +164,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: buff_immunity 应保留 battle-v5 标签参数', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-buff-immunity')!;
-    const result = translator.translate(def, '玄品');
+    const result = translator.translate(toRolledAffix(def), '玄品');
     expect(result.type).toBe('buff_immunity');
     if (result.type === 'buff_immunity') {
       expect(result.params.tags).toEqual([GameplayTags.BUFF.TYPE_DEBUFF]);
@@ -154,7 +173,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: artifact mana recovery 应生成真实 MP 回复效果', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-mana-recovery')!;
-    const result = translator.translate(def, '玄品');
+    const result = translator.translate(toRolledAffix(def), '玄品');
 
     expect(result.type).toBe('heal');
     if (result.type === 'heal') {
@@ -165,7 +184,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: skill dispel-buff 应只驱散正面 buff 标签', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-suffix-dispel-buff')!;
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('dispel');
     if (result.type === 'dispel') {
@@ -175,7 +194,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: gongfa debuff-cleanse 应只驱散负面 buff 标签', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-suffix-debuff-cleanse')!;
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('dispel');
     if (result.type === 'dispel') {
@@ -185,7 +204,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: control buff 应拆分 buff tags 与控制 statusTags', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-control-stun')!;
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('apply_buff');
     if (result.type === 'apply_buff') {
@@ -206,7 +225,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: burn dot buff 应同时携带 debuff tags 与 burn statusTags', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-suffix-burn-dot')!;
-    const result = translator.translate(def, '凡品');
+    const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('apply_buff');
     if (result.type === 'apply_buff') {
@@ -246,32 +265,34 @@ describe('AffixEffectTranslator', () => {
       },
     };
 
-    const resultXuan = translator.translate(def, '玄品');
+    const resultXuan = translator.translate(toRolledAffix(def), '玄品');
     expect(resultXuan.type).toBe('apply_buff');
     if (resultXuan.type === 'apply_buff') {
       const mod = resultXuan.params.buffConfig.modifiers![0];
       expect(mod.attrType).toBe(AttributeType.WISDOM);
       expect(mod.type).toBe(ModifierType.MULTIPLY);
+      // 玄品 order=2 -> 0.12 + 2*0.02 = 0.16
       expect(mod.value).toBeCloseTo(0.16);
     }
 
-    const resultTian = translator.translate(def, '天品');
+    const resultTian = translator.translate(toRolledAffix(def), '天品');
     if (resultTian.type === 'apply_buff') {
       const mod = resultTian.params.buffConfig.modifiers![0];
+      // 天品 order=5 -> 0.12 + 5*0.02 = 0.22
       expect(mod.value).toBeCloseTo(0.22);
     }
   });
 
   it('translate: attribute_modifier 应在翻译阶段拒绝（由投影层处理）', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-spirit')!;
-    expect(() => translator.translate(def, '凡品')).toThrow(
+    expect(() => translator.translate(toRolledAffix(def), '凡品')).toThrow(
       'attribute_modifier must be projected to AbilityConfig.modifiers in passive policy',
     );
   });
 
   it('translate: death_prevent 应生成原子免死效果', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-core-death-prevent')!;
-    const result = translator.translate(def, '地品');
+    const result = translator.translate(toRolledAffix(def), '地品');
     expect(result.type).toBe('death_prevent');
   });
 });
@@ -582,12 +603,8 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const ids = decision.candidates.map((candidate) => candidate.id);
 
-    expect(ids).toContain('skill-core-damage');
-    expect(
-      decision.warnings.some(
-        (warning) => warning.code === 'affix_core_fallback_injected',
-      ),
-    ).toBe(true);
+    expect(ids).not.toContain('skill-core-damage');
+    expect(decision.candidates.filter(c => c.category === 'core')).toHaveLength(0);
   });
 
   it('minQuality 过滤：玄品以下不应出现 gongfa-signature-comprehension', () => {
@@ -722,12 +739,8 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       .filter((candidate) => candidate.category === 'core')
       .map((candidate) => candidate.id);
 
-    expect(coreIds).toContain('artifact-core-accessory-omen');
-    expect(
-      decision.warnings.some(
-        (warning) => warning.code === 'affix_core_fallback_injected',
-      ),
-    ).toBe(true);
+    expect(coreIds).not.toContain('artifact-core-accessory-omen');
+    expect(coreIds).toHaveLength(0);
   });
 
   it('artifact slot-bound core 应为 weapon/armor/accessory 提供显式 T2/T3/T4 梯度', () => {

@@ -42,6 +42,8 @@ describe('CreationOrchestrator', () => {
     const intent = orchestrator.resolveIntentWithDefaults(session);
     const recipeMatch = orchestrator.validateRecipeWithDefaults(session);
     const budget = orchestrator.budgetEnergyWithDefaults(session);
+    orchestrator.buildAffixPoolWithDefaults(session);
+    orchestrator.rollAffixesWithDefaults(session);
     const blueprint = orchestrator.composeBlueprintWithDefaults(session);
 
     expect(fingerprints[0].semanticTags).toContain('Material.Semantic.Flame');
@@ -394,7 +396,7 @@ describe('CreationOrchestrator', () => {
     );
   });
 
-  it('当抽取结果缺少 core 时应保持流程可继续（返回空词缀）', () => {
+  it('当抽取结果缺少 core 时应抛出 CreationError (Selection 阶段)', () => {
     const orchestrator = new CreationOrchestrator();
     const session = orchestrator.createSession({
       sessionId: 'session-core-invariant',
@@ -431,8 +433,9 @@ describe('CreationOrchestrator', () => {
       },
     ]);
 
-    const affixes = orchestrator.rollAffixesWithDefaults(session);
-    expect(affixes).toEqual([]);
+    expect(() => orchestrator.rollAffixesWithDefaults(session)).toThrow(
+      /未能抽选到核心词缀/,
+    );
   });
 
   it('应拒绝在蓝图生成前物化 outcome', () => {

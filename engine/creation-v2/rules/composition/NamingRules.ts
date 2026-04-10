@@ -11,6 +11,7 @@ import { RuleDiagnostics } from '../core/RuleDiagnostics';
 import { RuleContext } from '../core/RuleContext';
 import { CompositionDecision } from '../contracts/CompositionDecision';
 import { CompositionFacts } from '../contracts/CompositionFacts';
+import { CreationError } from '../../errors';
 
 /**
  * NamingRules
@@ -43,27 +44,39 @@ export class NamingRules implements Rule<CompositionFacts, CompositionDecision> 
 
     switch (productType) {
       case 'skill': {
-        const prefix = elementBias
-          ? ELEMENT_NAME_PREFIX[elementBias]
-          : CREATION_SKILL_NAMING.defaultPrefix;
+        if (!elementBias) {
+          throw new CreationError(
+            'Composition',
+            'MISSING_ELEMENT_BIAS',
+            '技能命名失败：缺少元素偏向',
+            { facts }
+          );
+        }
+        const prefix = ELEMENT_NAME_PREFIX[elementBias];
         return `${prefix}${CREATION_SKILL_NAMING.nameSuffix}`;
       }
       case 'artifact': {
         const slotDisplayName = intent.slotBias
           ? (ARTIFACT_SLOT_DISPLAY_NAMES[intent.slotBias] ?? intent.slotBias)
           : undefined;
-        return slotDisplayName
-          ? `${slotDisplayName}${CREATION_ARTIFACT_NAMING.slotSuffix}`
-          : CREATION_ARTIFACT_NAMING.defaultName;
+        if (!slotDisplayName) {
+          throw new CreationError(
+            'Composition',
+            'MISSING_SLOT_BIAS',
+            '法宝命名失败：缺少部位偏向',
+            { facts }
+          );
+        }
+        return `${slotDisplayName}${CREATION_ARTIFACT_NAMING.slotSuffix}`;
       }
       case 'gongfa': {
         if (!materialNames[0]) {
-          diagnostics.addTrace({
-            ruleId: this.id,
-            outcome: 'applied',
-            message: `功法命名：materialNames[0] 为空，fallback 到默认名称 ${CREATION_GONGFA_NAMING.defaultName}`,
-          });
-          return CREATION_GONGFA_NAMING.defaultName;
+          throw new CreationError(
+            'Composition',
+            'NAMING_FAILED',
+            '功法命名失败：缺少主要材料名称',
+            { facts }
+          );
         }
         return `${materialNames[0]}${CREATION_GONGFA_NAMING.nameSuffix}`;
       }

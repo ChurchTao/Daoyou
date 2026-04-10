@@ -2,10 +2,6 @@ import { CreationSession } from '../CreationSession';
 import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile';
 import { AttributeType, BuffType, ModifierType } from '../contracts/battle';
 import { CREATION_AFFIX_POOL_SCORING } from '../config/CreationBalance';
-import {
-  CREATION_FALLBACK_ARTIFACT_CORE_AFFIX,
-  CREATION_FALLBACK_CORE_AFFIX,
-} from '../config/CreationFallbackPolicy';
 import { AffixCandidate, AFFIX_STOP_REASONS, createEmptyEnergyBudget } from '../types';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
 import { AffixPoolRuleSet } from '../rules/affix/AffixPoolRuleSet';
@@ -88,44 +84,7 @@ export class AffixPoolBuilder {
       maxQualityOrder,
     };
 
-    const decision = this.ruleSet.evaluate(facts);
-    return this.ensureCoreFallbackCandidate(registry, session, decision);
-  }
-
-  private ensureCoreFallbackCandidate(
-    registry: AffixRegistry,
-    session: CreationSession,
-    decision: AffixPoolDecision,
-  ): AffixPoolDecision {
-    const hasCoreCandidate = decision.candidates.some((c) => c.category === 'core');
-    if (hasCoreCandidate) {
-      return decision;
-    }
-
-    const fallbackId = this.resolveFallbackCoreAffixId(session);
-    const fallbackDef = registry.queryById(fallbackId);
-
-    if (!fallbackDef) {
-      return decision;
-    }
-
-    const fallbackCandidate = this.toCandidate(fallbackDef);
-
-    return {
-      ...decision,
-      candidates: [...decision.candidates, fallbackCandidate],
-      warnings: [
-        ...decision.warnings,
-        {
-          code: 'affix_core_fallback_injected',
-          message: '词缀池缺少 core，已注入保底 core 候选',
-          details: {
-            fallbackAffixId: fallbackId,
-            productType: session.state.input.productType,
-          },
-        },
-      ],
-    };
+    return this.ruleSet.evaluate(facts);
   }
 
   private filterCandidatesForProductContext(
@@ -219,18 +178,6 @@ export class AffixPoolBuilder {
         value: def.effectTemplate.params.value,
       },
     ];
-  }
-
-  private resolveFallbackCoreAffixId(session: CreationSession): string {
-    if (session.state.input.productType !== 'artifact') {
-      return CREATION_FALLBACK_CORE_AFFIX[session.state.input.productType];
-    }
-
-    const slotBias =
-      session.state.intent?.slotBias ??
-      session.state.input.requestedSlot ??
-      'weapon';
-    return CREATION_FALLBACK_ARTIFACT_CORE_AFFIX[slotBias];
   }
 
   private toCandidate(def: AffixDefinition): AffixCandidate {

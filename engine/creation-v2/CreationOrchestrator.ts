@@ -41,6 +41,8 @@ import { PhaseActionRegistry } from './handlers/PhaseActionRegistry';
 import { WorkflowVariantPolicy } from './handlers/WorkflowVariantPolicy';
 import { validateCreationInput } from './validation/CreationInputValidator';
 import { resolveAffixSlotCount } from './config/CreationBalance';
+import { CreationError } from './errors';
+import { SkillProductModel } from './models';
 
 /*
  * CreationOrchestrator: 编排层主入口。
@@ -469,11 +471,24 @@ export class CreationOrchestrator {
           session.state.energyBudget.remaining,
       ),
     );
-      session.state.affixSelectionAudit = selection;
-      if (selection.finalDecision) {
-        session.state.affixSelectionFinalDecision = selection.finalDecision;
-      }
-      this.rollAffixes(session, selection.affixes, selection.finalDecision);
+
+    // 断言：必须包含核心词缀（如果是技能、功法、法宝）
+    const needsCore = ['skill', 'gongfa', 'artifact'].includes(session.state.input.productType);
+    const hasCore = selection.affixes.some(a => a.category === 'core');
+    if (needsCore && !hasCore) {
+      throw new CreationError(
+        'Selection',
+        'NO_CORE_AFFIX',
+        `未能抽选到核心词缀 (已选: ${selection.affixes.length}, 耗尽原因: ${selection.exhaustionReason})`,
+        { decision: selection }
+      );
+    }
+
+    session.state.affixSelectionAudit = selection;
+    if (selection.finalDecision) {
+      session.state.affixSelectionFinalDecision = selection.finalDecision;
+    }
+    this.rollAffixes(session, selection.affixes, selection.finalDecision);
     return selection.affixes;
   }
 
@@ -499,6 +514,20 @@ export class CreationOrchestrator {
    */
   protected composeBlueprintWithDefaults(session: CreationSession): CreationBlueprint {
     const blueprint = this.blueprintComposer.compose(session);
+
+    // 断言：产出的效果列表不能为空 (针对技能)
+    if (session.state.input.productType === 'skill') {
+      const skillModel = blueprint.productModel as SkillProductModel;
+      if (!skillModel.battleProjection || skillModel.battleProjection.effects.length === 0) {
+        throw new CreationError(
+          'Composition',
+          'EMPTY_EFFECTS',
+          '技能产出的效果列表不能为空',
+          { decision: blueprint }
+        );
+      }
+    }
+
     this.composeBlueprint(session, blueprint);
     return blueprint;
   }
@@ -563,6 +592,7 @@ export class CreationOrchestrator {
       phase: failedAtPhase,
       reason,
       details,
+      ...(details?.cause ? { cause: details.cause } : {}),
     });
   }
 

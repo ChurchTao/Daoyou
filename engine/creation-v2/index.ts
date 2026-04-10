@@ -57,3 +57,4 @@ export type {
 	RecipeFacts,
 } from './rules/contracts';
 export * from './types';
+export * from './errors';

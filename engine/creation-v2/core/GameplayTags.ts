@@ -4,7 +4,6 @@
  * 所有的战斗特性、事件、状态标签均应直接引用 @/engine/battle-v5/core/GameplayTags。
  */
 import { GameplayTagContainer } from '@/engine/battle-v5/core/GameplayTags';
-import { CreationTagPath } from './types';
 
 // Alias 容器实现，确保底层逻辑统一
 export class CreationTagContainer extends GameplayTagContainer {}

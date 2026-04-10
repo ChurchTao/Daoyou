@@ -4,21 +4,20 @@ import { RuleSet } from '../core/RuleSet';
 import { CompositionDecision } from '../contracts/CompositionDecision';
 import { CompositionFacts } from '../contracts/CompositionFacts';
 import { EnergyConversionRules } from './EnergyConversionRules';
-import { FallbackOutcomeRules } from './FallbackOutcomeRules';
 import { NamingRules } from './NamingRules';
 import { OutcomeTagRules } from './OutcomeTagRules';
 import { ProjectionRules } from './ProjectionRules';
 
 /**
  * CompositionRuleSet
- * 执行顺序：OutcomeTagRules → NamingRules → EnergyConversionRules → ProjectionRules → FallbackOutcomeRules
+ * 执行顺序：OutcomeTagRules → NamingRules → EnergyConversionRules → ProjectionRules
  *
  * EnergyConversionRules 在 ProjectionRules 之前运行，填充 decision.energyConversion
  * ProjectionRules 优先读取该值，使换算策略可被替换
  */
 /*
  * CompositionRuleSet: 组合/蓝图生成阶段的规则集合门面。
- * 执行链：OutcomeTagRules -> NamingRules -> EnergyConversionRules -> ProjectionRules -> FallbackOutcomeRules
+ * 执行链：OutcomeTagRules -> NamingRules -> EnergyConversionRules -> ProjectionRules
  * 负责从 rolledAffixes 和 session facts 生成最终的 CompositionDecision（名称/描述/标签/投影策略等），
  * 由 Composer 将 Decision 投影为 CreationProductModel 与 AbilityConfig。
  */
@@ -39,7 +38,6 @@ export class CompositionRuleSet {
         new NamingRules(),
         new EnergyConversionRules(),
         new ProjectionRules(registry, translator),
-        new FallbackOutcomeRules(registry, translator),
       ],
       (facts) => ({
         outcomeKind: facts.outcomeKind,

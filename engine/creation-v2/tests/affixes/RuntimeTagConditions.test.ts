@@ -3,6 +3,27 @@ import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import { CreationTags } from '@/engine/creation-v2/core/GameplayTags';
+import { RolledAffix } from '@/engine/creation-v2/types';
+import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
+import { Quality } from '@/types/constants';
+
+/** 辅助函数：将静态定义转换为运行态 RolledAffix 以满足接口契约 */
+function toRolledAffix(def: AffixDefinition): RolledAffix {
+  return {
+    id: def.id,
+    name: def.displayName,
+    category: def.category,
+    energyCost: def.energyCost,
+    rollScore: 1,
+    rollEfficiency: 1,
+    finalMultiplier: 1,
+    isPerfect: false,
+    effectTemplate: def.effectTemplate,
+    weight: def.weight,
+    tags: def.tagQuery,
+    exclusiveGroup: def.exclusiveGroup,
+  };
+}
 
 describe('creation-v2 affix tagQuery contract', () => {
   const translator = new AffixEffectTranslator();
@@ -40,7 +61,7 @@ describe('creation-v2 affix tagQuery contract', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-resonance-control-mastery');
     expect(def).toBeDefined();
 
-    const result = translator.translate(def!, '玄品');
+    const result = translator.translate(toRolledAffix(def!), '玄品');
 
     expect(result.conditions).toEqual([
       {
@@ -54,7 +75,7 @@ describe('creation-v2 affix tagQuery contract', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-synergy-debuff-stack');
     expect(def).toBeDefined();
 
-    const result = translator.translate(def!, '玄品');
+    const result = translator.translate(toRolledAffix(def!), '玄品');
 
     expect(result.conditions).toEqual([
       {
@@ -68,7 +89,7 @@ describe('creation-v2 affix tagQuery contract', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-synergy-control-damage');
     expect(def).toBeDefined();
 
-    const result = translator.translate(def!, '真品');
+    const result = translator.translate(toRolledAffix(def!), '真品');
 
     expect(result.conditions).toEqual([
       {

@@ -5,6 +5,7 @@ import { AttributeType, BuffType } from '../../contracts/battle';
 import { GameplayTags } from '@/engine/battle-v5/core/GameplayTags';
 import type { CreationProductType, RolledAffix } from '../../types';
 import { AffixRegistry, DEFAULT_AFFIX_REGISTRY } from '../../affixes';
+import { CreationError } from '../../errors';
 
 type DamageChannel = 'magic' | 'physical' | 'true';
 
@@ -63,7 +64,7 @@ export function assembleAbilityTags({
     tags.add(GameplayTags.ABILITY.KIND_GONGFA);
   }
 
-  // 4. 能力特征分析 (Capability Inference - Fallback)
+  // 4. 能力特征分析 (Capability Inference)
   // 仅当 tags 中尚不包含关键功能分类（Damage/Heal/Control）时，尝试通过效果分析进行补全。
   const capabilities = summarizeCapabilities([
     ...effects,
@@ -99,8 +100,11 @@ export function assembleAbilityTags({
     !tags.has(GameplayTags.ABILITY.TYPE_HEAL) &&
     !tags.has(GameplayTags.ABILITY.TYPE_CONTROL)
   ) {
-    throw new Error(
-      `[AbilityTagAssembler] 技能产物必须声明至少一个核心功能标签（Damage/Heal/Control）。当前标签: ${Array.from(tags).join(', ')}`,
+    throw new CreationError(
+      'Composition',
+      'MISSING_CORE_CAPABILITY',
+      `技能产物必须声明至少一个核心功能标签（Damage/Heal/Control）。当前标签: ${Array.from(tags).join(', ')}`,
+      { productType, tags: Array.from(tags) } as any
     );
   }
 
@@ -121,8 +125,10 @@ function summarizeCapabilities(
         hasDamage = true;
         const channel = resolveDamageChannel(effect.params.value.attribute);
         if (!channel) {
-          throw new Error(
-            '[AbilityTagAssembler] damage effect is missing an explicit damage attribute',
+          throw new CreationError(
+            'Composition',
+            'MISSING_DAMAGE_ATTRIBUTE',
+            'damage effect is missing an explicit damage attribute'
           );
         }
         damageChannels.add(channel);
