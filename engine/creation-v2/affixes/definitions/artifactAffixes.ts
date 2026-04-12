@@ -6,7 +6,6 @@
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import {
-  type AbilityRuntimeSemantics,
   CreationTags,
   ELEMENT_TO_RUNTIME_ABILITY_TAG,
   GameplayTags,
@@ -19,9 +18,69 @@ import {
 } from '../../contracts/battle';
 import { AffixDefinition, matchAll } from '../types';
 
-const PASSIVE_RUNTIME_SEMANTICS: AbilityRuntimeSemantics = {
-  kind: 'passive',
-};
+function resolvePassiveGrantedAbilityTags(
+  def: AffixDefinition,
+): string[] | undefined {
+  switch (def.effectTemplate.type) {
+    case 'damage': {
+      const attribute = def.effectTemplate.params.value.attribute;
+      if (attribute === AttributeType.ATK) {
+        return [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+        ];
+      }
+
+      if (
+        attribute === AttributeType.MAGIC_ATK ||
+        attribute === AttributeType.SPIRIT
+      ) {
+        return [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ];
+      }
+
+      return [GameplayTags.ABILITY.FUNCTION.DAMAGE];
+    }
+
+    case 'heal':
+      return [GameplayTags.ABILITY.FUNCTION.HEAL];
+
+    case 'apply_buff':
+      return def.effectTemplate.params.buffConfig.type === BuffType.CONTROL
+        ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
+        : undefined;
+
+    case 'resource_drain':
+      return def.effectTemplate.params.targetType === 'mp'
+        ? [GameplayTags.TRAIT.MANA_THIEF]
+        : [GameplayTags.TRAIT.LIFESTEAL];
+
+    case 'mana_burn':
+      return [GameplayTags.TRAIT.MANA_THIEF];
+
+    case 'shield':
+      return [GameplayTags.TRAIT.SHIELD_MASTER];
+
+    case 'reflect':
+      return [GameplayTags.TRAIT.REFLECT];
+
+    default:
+      return undefined;
+  }
+}
+
+function attachArtifactGrantedAbilityTags(
+  defs: AffixDefinition[],
+): AffixDefinition[] {
+  return defs.map((def) => ({
+    ...def,
+    ...(resolvePassiveGrantedAbilityTags(def)
+      ? { grantedAbilityTags: resolvePassiveGrantedAbilityTags(def) }
+      : {}),
+  }));
+}
 
 const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
   {
@@ -36,7 +95,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -67,7 +125,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -98,7 +155,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -129,7 +185,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -160,7 +215,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -191,7 +245,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -222,7 +275,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -253,7 +305,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -284,7 +335,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -315,7 +365,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -346,7 +395,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -377,7 +425,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -408,7 +455,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -439,7 +485,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -470,7 +515,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -501,7 +545,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -532,7 +575,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -563,7 +605,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -594,7 +635,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -625,7 +665,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -656,7 +695,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -687,7 +725,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '玄品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -718,7 +755,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '真品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -749,7 +785,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
     minQuality: '地品',
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -770,7 +805,7 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
   },
 ];
 
-export const ARTIFACT_AFFIXES: AffixDefinition[] = [
+export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityTags([
   // ========================
   // ===== SLOT-BOUND CORE 词缀 (artifact only)
   // ========================
@@ -785,7 +820,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['weapon'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -815,7 +849,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['armor'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -845,7 +878,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -875,7 +907,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -905,7 +936,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -935,7 +965,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -965,7 +994,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -995,7 +1023,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     applicableArtifactSlots: ['accessory'],
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1029,7 +1056,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 95,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1049,7 +1075,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 90,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1069,7 +1094,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 82,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1089,7 +1113,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1113,7 +1136,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 10,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1140,7 +1162,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 10,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -1166,7 +1187,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 9,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1201,7 +1221,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'death_prevent',
       params: {},
@@ -1230,7 +1249,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '灵品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'shield',
       conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
@@ -1262,7 +1280,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 90,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1282,7 +1299,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1302,7 +1318,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1321,7 +1336,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 7,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1341,7 +1355,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 7,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1360,7 +1373,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 7,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1379,7 +1391,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 7,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -1405,7 +1416,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1424,7 +1434,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 56,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1443,7 +1452,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1462,7 +1470,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 6,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1484,7 +1491,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 7,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1516,7 +1522,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1546,7 +1551,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1570,7 +1574,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 9,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'magic_shield',
       params: {
@@ -1592,7 +1595,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 9,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1616,7 +1618,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1647,7 +1648,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 9,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1677,7 +1677,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 10,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'buff_immunity',
       params: {
@@ -1699,7 +1698,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 9,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1729,7 +1727,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 8,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'dispel',
       params: {
@@ -1759,7 +1756,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 9,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_above', params: { value: 0.65 } }],
@@ -1794,7 +1790,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 11,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1824,7 +1819,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 52,
     energyCost: 11,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1852,7 +1846,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 49,
     energyCost: 10,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1885,7 +1878,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 46,
     energyCost: 11,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -1926,7 +1918,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 36,
     energyCost: 11,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_above', params: { value: 0.75 } }],
@@ -1959,7 +1950,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 12,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1985,7 +1975,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 12,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -2010,7 +1999,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 12,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2037,7 +2025,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 39,
     energyCost: 11,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'apply_buff',
       conditions: [
@@ -2093,7 +2080,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 35,
     energyCost: 12,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
@@ -2121,7 +2107,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 34,
     energyCost: 12,
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'reflect',
       conditions: [
@@ -2156,7 +2141,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2181,7 +2165,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'damage_immunity',
       params: {
@@ -2209,7 +2192,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'magic_shield',
       params: {
@@ -2237,7 +2219,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.65, scope: 'caster' } }],
@@ -2272,7 +2253,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'reflect',
       conditions: [{ type: 'chance', params: { value: 0.82 } }],
@@ -2309,7 +2289,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2336,7 +2315,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2363,7 +2341,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2390,7 +2367,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2416,7 +2392,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2443,7 +2418,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2470,7 +2444,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2497,7 +2470,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 8,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2523,7 +2495,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2550,7 +2521,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 9,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2576,7 +2546,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 11,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2603,7 +2572,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2640,7 +2608,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2678,7 +2645,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'shield',
       params: {
@@ -2712,7 +2678,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 16,
     minQuality: '天品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'death_prevent',
       params: {},
@@ -2744,7 +2709,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 18,
     minQuality: '仙品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -2774,7 +2738,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2801,7 +2764,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2827,7 +2789,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 12,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2853,7 +2814,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
@@ -2879,7 +2839,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
-    runtimeSemantics: PASSIVE_RUNTIME_SEMANTICS,
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2900,4 +2859,4 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
   },
-];
+]);

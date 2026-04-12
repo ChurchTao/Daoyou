@@ -1,8 +1,5 @@
 import { EventBus } from '../../core/EventBus';
-import {
-  GameplayTags,
-  projectAbilityRuntimeSemantics,
-} from '@/engine/shared/tag-domain';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import { EffectConfig } from '../../core/configs';
 import { DamageEvent, DamageImmuneEvent, EventPriorityLevel, ManaShieldAbsorbEvent } from '../../core/events';
 import { AbilityType, AttributeType, BuffType, DamageType } from '../../core/types';
@@ -142,13 +139,13 @@ describe('免疫效果集成测试', () => {
     EventBus.instance.unsubscribe<DamageImmuneEvent>('DamageImmuneEvent', handler);
   });
 
-  it('伤害免疫应能消费 shared runtime projection 产出的能力标签', () => {
+  it('伤害免疫应能消费直接声明的能力标签', () => {
     const attacker = createUnit('attacker', '进攻者');
     const defender = createUnit('defender', '免疫者');
-    const projectedTags = projectAbilityRuntimeSemantics({
-      functions: ['damage'],
-      channel: 'magic',
-    });
+    const projectedTags = [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ];
 
     addPassiveDamageListener(defender, [
       {

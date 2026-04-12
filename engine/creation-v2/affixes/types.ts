@@ -15,7 +15,6 @@ import {
 } from '../contracts/battle';
 import { StackRule } from '../contracts/battle';
 import { EquipmentSlot, Quality } from '@/types/constants';
-import type { AbilityRuntimeSemantics } from '@/engine/shared/tag-domain';
 import type { CreationTagSignalSource } from '../types';
 import { AffixCategory, CreationProductType } from '../types';
 
@@ -253,8 +252,8 @@ export interface AffixDefinition {
   /** 适用产物类型 */
   applicableTo: CreationProductType[];
   /**
-   * 结构化运行时语义声明。
-   * affix 唯一允许的运行时语义入口，由共享标签域统一投影为 battle-v5 运行时标签。
+   * 作者侧显式声明的最终运行时能力标签。
+   * 这些标签会在 creation-v2 组合阶段直接从抽中的 affix 合并到产物的 abilityTags。
    */
-  runtimeSemantics?: AbilityRuntimeSemantics;
+  grantedAbilityTags?: string[];
 }

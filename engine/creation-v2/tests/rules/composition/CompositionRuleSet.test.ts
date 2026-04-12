@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { flattenAffixMatcherTags, matchAll } from '@/engine/creation-v2/affixes';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixRegistry } from '@/engine/creation-v2/affixes/AffixRegistry';
@@ -86,6 +87,10 @@ const CORE_DAMAGE_ROLLED: RolledAffix = {
     } as any,
     weight: 10,
     match: matchAll(['Material.Semantic.Metal']),
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
   }),
 };
 
@@ -133,11 +138,11 @@ const DAMAGE_AFFIX_DEF: AffixDefinition = {
   match: matchAll(['Material.Semantic.Metal']),
   weight: 10,
   energyCost: 8,
-  runtimeSemantics: {
-    functions: ['damage'],
-    channel: 'magic',
-    traits: ['berserker'],
-  },
+  grantedAbilityTags: [
+    GameplayTags.ABILITY.FUNCTION.DAMAGE,
+    GameplayTags.ABILITY.CHANNEL.MAGIC,
+    GameplayTags.TRAIT.BERSERKER,
+  ],
   effectTemplate: {
     type: 'damage' as const,
     params: {
@@ -275,6 +280,10 @@ describe('CompositionRuleSet — 端到端集成', () => {
         } as any,
         weight: 10,
         match: matchAll(['Material.Semantic.Metal']),
+        grantedAbilityTags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ],
       });
       const facts = makeFacts({
         productType: 'skill',
@@ -287,7 +296,7 @@ describe('CompositionRuleSet — 端到端集成', () => {
       expect(policy.effects.some((e) => e.type === 'damage')).toBe(true);
     });
 
-    it('skill 显式 runtimeSemantics 应透传到 abilityTags', () => {
+    it('skill 显式 grantedAbilityTags 应透传到 abilityTags', () => {
       const rolledAffix = buildRolledAffix({
         id: 'core-damage',
         name: '锋刃',
@@ -299,7 +308,7 @@ describe('CompositionRuleSet — 端到端集成', () => {
         } as any,
         weight: 10,
         match: matchAll(['Material.Semantic.Metal']),
-        runtimeSemantics: DAMAGE_AFFIX_DEF.runtimeSemantics,
+        grantedAbilityTags: DAMAGE_AFFIX_DEF.grantedAbilityTags,
       });
       const facts = makeFacts({
         productType: 'skill',
@@ -329,6 +338,10 @@ describe('CompositionRuleSet — 端到端集成', () => {
         } as any,
         weight: 10,
         match: matchAll(['Material.Semantic.Metal']),
+        grantedAbilityTags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ],
       });
       const facts = makeFacts({
         productType: 'skill',
@@ -369,6 +382,7 @@ describe('CompositionRuleSet — 端到端集成', () => {
         } as any,
         weight: 10,
         match: matchAll(['Material.Semantic.Spirit']),
+        grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
       });
       const facts = makeFacts({ productType: 'skill', affixes: [healAffix] });
       const decision = ruleSet.evaluate(facts);

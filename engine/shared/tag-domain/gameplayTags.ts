@@ -175,3 +175,20 @@ export const GameplayTags = {
     GLOBAL: 'global',
   },
 } as const;
+
+import type { ElementType } from '@/types/constants';
+
+/**
+ * 将 ElementType 中文字符映射到对应的运行时 Ability.Element.* 标签。
+ * 供 AbilityTagAssembler 与 affix 条件构造使用。
+ */
+export const ELEMENT_TO_RUNTIME_ABILITY_TAG: Record<ElementType, string> = {
+  金: GameplayTags.ABILITY.ELEMENT.METAL,
+  木: GameplayTags.ABILITY.ELEMENT.WOOD,
+  水: GameplayTags.ABILITY.ELEMENT.WATER,
+  火: GameplayTags.ABILITY.ELEMENT.FIRE,
+  土: GameplayTags.ABILITY.ELEMENT.EARTH,
+  风: GameplayTags.ABILITY.ELEMENT.WIND,
+  雷: GameplayTags.ABILITY.ELEMENT.THUNDER,
+  冰: GameplayTags.ABILITY.ELEMENT.ICE,
+};

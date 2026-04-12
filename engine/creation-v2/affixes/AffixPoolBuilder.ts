@@ -194,7 +194,7 @@ export class AffixPoolBuilder {
       category: def.category,
       match: def.match,
       tags: flattenAffixMatcherTags(def.match),
-      runtimeSemantics: def.runtimeSemantics,
+      grantedAbilityTags: def.grantedAbilityTags,
       weight: def.weight,
       energyCost: def.energyCost,
       exclusiveGroup: def.exclusiveGroup,

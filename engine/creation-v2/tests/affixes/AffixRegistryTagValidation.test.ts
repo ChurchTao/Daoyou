@@ -40,16 +40,43 @@ describe('AffixRegistry tag validation', () => {
     ).toThrow('affix test-affix match');
   });
 
-  it('应接受合法的作者侧与 runtimeSemantics 组合', () => {
+  it('应接受合法的作者侧 grantedAbilityTags 声明（Damage 必须配 Channel）', () => {
     const registry = new AffixRegistry();
 
     expect(() =>
       registry.register([
         buildAffix({
-          runtimeSemantics: { functions: ['damage'] },
+          grantedAbilityTags: [
+            GameplayTags.ABILITY.FUNCTION.DAMAGE,
+            GameplayTags.ABILITY.CHANNEL.MAGIC,
+          ],
         }),
       ]),
     ).not.toThrow();
+  });
+
+  it('应拒绝在 grantedAbilityTags 中只声明 Damage 而缺少 Channel', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.DAMAGE],
+        }),
+      ]),
+    ).toThrow('missing an Ability.Channel');
+  });
+
+  it('应拒绝在 grantedAbilityTags 中写入错层标签', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          grantedAbilityTags: [GameplayTags.BUFF.TYPE.CONTROL],
+        }),
+      ]),
+    ).toThrow('grantedAbilityTags');
   });
 
   it('默认词缀注册表不应再暴露 legacy inherentTags 字段', () => {

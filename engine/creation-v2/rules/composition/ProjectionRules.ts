@@ -160,10 +160,7 @@ export class ProjectionRules implements Rule<
     const abilityTags = assembleAbilityTags({
       productType: 'skill',
       rolledAffixes: affixes,
-      effects: directEffects,
-      listeners: extraListeners,
       elementBias: intent.elementBias,
-      registry: this.registry,
     });
 
     return {
@@ -234,9 +231,7 @@ export class ProjectionRules implements Rule<
     const abilityTags = assembleAbilityTags({
       productType,
       rolledAffixes: affixes,
-      listeners,
       elementBias: intent.elementBias,
-      registry: this.registry,
     });
 
     const projectionKind =

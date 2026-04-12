@@ -1,10 +1,9 @@
 import { AffixCategory, CreationProductType } from '../types';
 import {
   assertCreationTag,
-  assertRuntimeTag,
   assertRuntimeTagInNamespaces,
   assertRuntimeTagsInNamespaces,
-  validateAbilityRuntimeSemantics,
+  GameplayTags,
 } from '@/engine/shared/tag-domain';
 import type { BuffConfig, ConditionConfig, EffectConfig } from '../contracts/battle';
 import type { CreationTagSignal } from '../types';
@@ -72,14 +71,46 @@ export class AffixRegistry {
       assertCreationTag(tag, `affix ${def.id} match`),
     );
 
-    if (def.runtimeSemantics) {
-      validateAbilityRuntimeSemantics(
-        def.runtimeSemantics,
-        `affix ${def.id} runtimeSemantics`,
+    if (def.grantedAbilityTags) {
+      this.validateGrantedAbilityTags(
+        def.grantedAbilityTags,
+        `affix ${def.id} grantedAbilityTags`,
       );
+      this.validateGrantedAbilityTagsSchema(def);
     }
 
     this.validateEffectTags(def.effectTemplate, `affix ${def.id} effectTemplate`);
+  }
+
+  private validateGrantedAbilityTags(tags: string[], context: string): void {
+    if (new Set(tags).size !== tags.length) {
+      throw new Error(`${context}: duplicate tags are not allowed`);
+    }
+
+    assertRuntimeTagsInNamespaces(tags, ['Ability.', 'Trait.'], context);
+  }
+
+  /**
+   * Schema-level cross-field validation for grantedAbilityTags.
+   * Rule: Ability.Function.Damage must be paired with exactly one Ability.Channel.* tag.
+   */
+  private validateGrantedAbilityTagsSchema(def: AffixDefinition): void {
+    const tags = def.grantedAbilityTags!;
+    const hasDamage = tags.includes(GameplayTags.ABILITY.FUNCTION.DAMAGE);
+    const channelPrefix = GameplayTags.ABILITY.CHANNEL.ROOT + '.';
+    const channelTags = tags.filter((t) => t.startsWith(channelPrefix));
+
+    if (hasDamage && channelTags.length === 0) {
+      throw new Error(
+        `affix ${def.id}: grantedAbilityTags declares Ability.Function.Damage but is missing an Ability.Channel.* tag`,
+      );
+    }
+
+    if (hasDamage && channelTags.length > 1) {
+      throw new Error(
+        `affix ${def.id}: grantedAbilityTags declares ${channelTags.length} channel tags — only one is allowed per affix`,
+      );
+    }
   }
 
   private validateEffectTags(
@@ -170,7 +201,11 @@ export class AffixRegistry {
         case 'has_tag':
         case 'has_not_tag':
         case 'has_tag_on':
-          assertRuntimeTag(tag, conditionContext);
+          assertRuntimeTagInNamespaces(
+            tag,
+            ['Ability.', 'Buff.', 'Event.', 'Scope.', 'Status.', 'Trait.'],
+            conditionContext,
+          );
           return;
 
         default:

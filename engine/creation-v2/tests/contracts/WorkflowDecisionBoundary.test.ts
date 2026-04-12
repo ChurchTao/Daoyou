@@ -26,7 +26,7 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     weight: def.weight,
     match: def.match,
     tags: flattenAffixMatcherTags(def.match),
-    runtimeSemantics: def.runtimeSemantics,
+    grantedAbilityTags: def.grantedAbilityTags,
     exclusiveGroup: def.exclusiveGroup,
   };
 }

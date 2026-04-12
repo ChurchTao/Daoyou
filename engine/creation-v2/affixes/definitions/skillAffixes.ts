@@ -14,12 +14,7 @@ import {
   CREATION_LISTENER_PRIORITIES,
 } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import {
-  type AbilityChannelSemantic,
-  type AbilityRuntimeSemantics,
-  CreationTags,
-  GameplayTags,
-} from '@/engine/shared/tag-domain';
+import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 import { AffixDefinition, matchAll } from '../types';
 
 const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.BUFF];
@@ -59,70 +54,95 @@ const COMBO_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.COMBO];
 const MANA_EFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MANA_EFF];
 const MYTHIC_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MYTHIC];
 
-function resolveSkillCoreChannel(
-  attribute?: AttributeType,
-): AbilityChannelSemantic | undefined {
-  switch (attribute) {
-    case AttributeType.MAGIC_ATK:
-    case AttributeType.SPIRIT:
-      return 'magic';
-    case AttributeType.ATK:
-      return 'physical';
-    default:
-      return undefined;
-  }
-}
+const SKILL_DAMAGE_MAGIC_TAGS = [
+  GameplayTags.ABILITY.FUNCTION.DAMAGE,
+  GameplayTags.ABILITY.CHANNEL.MAGIC,
+];
+const SKILL_DAMAGE_PHYSICAL_TAGS = [
+  GameplayTags.ABILITY.FUNCTION.DAMAGE,
+  GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+];
+const SKILL_HEAL_TAGS = [GameplayTags.ABILITY.FUNCTION.HEAL];
+const SKILL_CONTROL_TAGS = [GameplayTags.ABILITY.FUNCTION.CONTROL];
+const SKILL_EXECUTE_TAGS = [
+  GameplayTags.ABILITY.FUNCTION.DAMAGE,
+  GameplayTags.ABILITY.CHANNEL.MAGIC,
+  GameplayTags.TRAIT.EXECUTE,
+];
+const SKILL_LIFESTEAL_TAGS = [GameplayTags.TRAIT.LIFESTEAL];
+const SKILL_MANA_THIEF_TAGS = [GameplayTags.TRAIT.MANA_THIEF];
+const SKILL_COOLDOWN_TAGS = [GameplayTags.TRAIT.COOLDOWN];
+const SKILL_EXECUTE_TRAIT_TAGS = [GameplayTags.TRAIT.EXECUTE];
+const SKILL_SHIELD_MASTER_TAGS = [GameplayTags.TRAIT.SHIELD_MASTER];
 
-function inferSkillCoreRuntimeSemantics(
-  def: AffixDefinition,
-): AbilityRuntimeSemantics | undefined {
-  switch (def.effectTemplate.type) {
-    case 'damage': {
-      const channel = resolveSkillCoreChannel(
-        def.effectTemplate.params.value.attribute,
-      );
+const SKILL_GRANTED_ABILITY_TAGS_BY_ID: Record<string, string[]> = {
+  // --- core: damage ---
+  'skill-core-damage': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-fire': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-ice': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-thunder': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-wind': SKILL_DAMAGE_PHYSICAL_TAGS,
+  'skill-core-damage-multi': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-t2': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-t3': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-core-damage-t4': SKILL_DAMAGE_MAGIC_TAGS,
+  // --- core: heal ---
+  'skill-core-heal': SKILL_HEAL_TAGS,
+  'skill-core-heal-t2': SKILL_HEAL_TAGS,
+  'skill-core-heal-t3': SKILL_HEAL_TAGS,
+  'skill-core-heal-t4': SKILL_HEAL_TAGS,
+  // --- core: control ---
+  'skill-core-control-stun': SKILL_CONTROL_TAGS,
+  'skill-core-control-stun-t2': SKILL_CONTROL_TAGS,
+  'skill-core-control-stun-t3': SKILL_CONTROL_TAGS,
+  'skill-core-control-stun-t4': SKILL_CONTROL_TAGS,
+  // --- core: execute (damage + execute trait) ---
+  'skill-core-cull-of-weak': SKILL_EXECUTE_TAGS,
+  // --- prefix: execute trait ---
+  'skill-prefix-execute-power': SKILL_EXECUTE_TRAIT_TAGS,
+  // --- prefix: cooldown trait ---
+  'skill-prefix-cooldown-reduce': SKILL_COOLDOWN_TAGS,
+  'skill-prefix-self-haste': SKILL_COOLDOWN_TAGS,
+  // --- prefix: shield trait ---
+  'skill-prefix-shield-grant': SKILL_SHIELD_MASTER_TAGS,
+  // --- suffix: lifesteal trait ---
+  'skill-suffix-life-siphon': SKILL_LIFESTEAL_TAGS,
+  'skill-suffix-lifesteal-t2': SKILL_LIFESTEAL_TAGS,
+  'skill-suffix-lifesteal-t3': SKILL_LIFESTEAL_TAGS,
+  'skill-suffix-lifesteal-t4': SKILL_LIFESTEAL_TAGS,
+  // --- suffix: mana thief trait ---
+  'skill-suffix-mana-siphon': SKILL_MANA_THIEF_TAGS,
+  // --- suffix: execute trait ---
+  'skill-suffix-low-hp-dmg': SKILL_EXECUTE_TRAIT_TAGS,
+  // --- suffix: shield trait ---
+  'skill-suffix-shield-on-cast': SKILL_SHIELD_MASTER_TAGS,
+  // --- synergy: secondary heal signal ---
+  'skill-synergy-damage-heal': SKILL_HEAL_TAGS,
+  'skill-synergy-recovery-vortex': SKILL_HEAL_TAGS,
+  // --- synergy: execute trait ---
+  'skill-synergy-execute-instinct': SKILL_EXECUTE_TRAIT_TAGS,
+  // --- synergy: shield trait ---
+  'skill-synergy-shield-damage': SKILL_SHIELD_MASTER_TAGS,
+  // --- synergy: mana thief ---
+  'skill-synergy-empty-mana-pierce': SKILL_MANA_THIEF_TAGS,
+  // --- signature / mythic / heaven: function + channel ---
+  'skill-signature-crimson-sentence': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-mythic-shatter-realm': SKILL_DAMAGE_MAGIC_TAGS,
+  'skill-mythic-divine-intervention': SKILL_HEAL_TAGS,
+  'skill-heaven-void-shatter': SKILL_DAMAGE_MAGIC_TAGS,
+  // --- immortal: lifesteal ---
+  'skill-immortal-nirvana': SKILL_LIFESTEAL_TAGS,
+};
 
-      return {
-        functions: ['damage'],
-        ...(channel ? { channel } : {}),
-      };
-    }
-
-    case 'heal':
-      return {
-        functions: ['heal'],
-      };
-
-    case 'apply_buff':
-      if (def.effectTemplate.params.buffConfig.type === BuffType.CONTROL) {
-        return {
-          functions: ['control'],
-        };
-      }
-      return undefined;
-
-    default:
-      return undefined;
-  }
-}
-
-function normalizeSkillRuntimeSemantics(
+function attachSkillGrantedAbilityTags(
   defs: AffixDefinition[],
 ): AffixDefinition[] {
-  return defs.map((def) => {
-    if (def.category === 'core') {
-      const runtimeSemantics = inferSkillCoreRuntimeSemantics(def);
-
-      if (runtimeSemantics) {
-        return {
-          ...def,
-          runtimeSemantics,
-        };
-      }
-    }
-
-    return def;
-  });
+  return defs.map((def) => ({
+    ...def,
+    ...(SKILL_GRANTED_ABILITY_TAGS_BY_ID[def.id]
+      ? { grantedAbilityTags: SKILL_GRANTED_ABILITY_TAGS_BY_ID[def.id] }
+      : {}),
+  }));
 }
 
 const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
@@ -221,7 +241,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
   },
 ];
 
-export const SKILL_AFFIXES: AffixDefinition[] = normalizeSkillRuntimeSemantics([
+export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
   // ========================
   // ===== CORE 词缀 (9 种)
   // ========================
