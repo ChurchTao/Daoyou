@@ -16,12 +16,12 @@ import { MaterialFingerprint } from '@/engine/creation-v2/types';
 
 const FIRE_MATERIAL = {
   id: 'mat-fire',
-  name: '赤炎精铁',
+  name: '赤炎裂铁',
   type: 'ore' as const,
   rank: '仙品' as const,
   quantity: 1,
   element: '火' as const,
-  description: '蕴含火行意象',
+  description: '蕴含火行、锋刃与爆烈意象',
 };
 
 class StubAsyncAnalyzer {
@@ -42,12 +42,16 @@ function makeFireFingerprints(): MaterialFingerprint[] {
   return [
     {
       materialId: 'mat-fire',
-      materialName: '赤炎精铁',
+      materialName: '赤炎裂铁',
       materialType: 'ore',
       rank: '灵品',
       quantity: 1,
       explicitTags: ['Material.Type.Ore', 'Material.Element.Fire'],
-      semanticTags: ['Material.Semantic.Flame'],
+      semanticTags: [
+        'Material.Semantic.Flame',
+        'Material.Semantic.Blade',
+        'Material.Semantic.Burst',
+      ],
       recipeTags: ['Recipe.ProductBias.Skill'],
       energyValue: 12,
       rarityWeight: 2,

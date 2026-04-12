@@ -66,7 +66,9 @@ export function assembleAbilityTags({
   }
 
   // 3. 产物分类标签 (Outcome Kind)
-  if (productType === 'artifact') {
+  if (productType === 'skill') {
+    tags.add(GameplayTags.ABILITY.KIND.SKILL);
+  } else if (productType === 'artifact') {
     tags.add(GameplayTags.ABILITY.KIND.ARTIFACT);
   } else if (productType === 'gongfa') {
     tags.add(GameplayTags.ABILITY.KIND.GONGFA);
@@ -176,6 +178,17 @@ function summarizeCapabilities(
       default:
         break;
     }
+  }
+
+  if (damageChannels.size > 1) {
+    throw new CreationError(
+      'Composition',
+      'MIXED_DAMAGE_CHANNELS',
+      'ability projection cannot mix multiple damage channels',
+      {
+        damageChannels: Array.from(damageChannels),
+      },
+    );
   }
 
   return {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import { DEFAULT_AFFIX_REGISTRY, matchAll } from '@/engine/creation-v2/affixes';
 import { AffixRegistry } from '@/engine/creation-v2/affixes/AffixRegistry';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
 import { BuffType, StackRule } from '@/engine/creation-v2/contracts/battle';
@@ -11,7 +11,7 @@ function buildAffix(overrides: Partial<AffixDefinition> = {}): AffixDefinition {
     displayName: 'test',
     displayDescription: 'test',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_FLAME],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FLAME]),
     weight: 1,
     energyCost: 1,
     applicableTo: ['skill'],
@@ -28,16 +28,16 @@ function buildAffix(overrides: Partial<AffixDefinition> = {}): AffixDefinition {
 }
 
 describe('AffixRegistry tag validation', () => {
-  it('应拒绝在 tagQuery 中使用运行时标签', () => {
+  it('应拒绝在 match 中使用运行时标签', () => {
     const registry = new AffixRegistry();
 
     expect(() =>
       registry.register([
         buildAffix({
-          tagQuery: [GameplayTags.ABILITY.FUNCTION.DAMAGE],
+          match: matchAll([GameplayTags.ABILITY.FUNCTION.DAMAGE]),
         }),
       ]),
-    ).toThrow('affix test-affix tagQuery');
+    ).toThrow('affix test-affix match');
   });
 
   it('应接受合法的作者侧与 runtimeSemantics 组合', () => {

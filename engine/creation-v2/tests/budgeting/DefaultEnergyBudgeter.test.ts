@@ -1,3 +1,4 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { DefaultEnergyBudgeter } from '@/engine/creation-v2/budgeting/DefaultEnergyBudgeter';
 
 describe('DefaultEnergyBudgeter', () => {
@@ -105,6 +106,7 @@ describe('DefaultEnergyBudgeter', () => {
           id: 'a',
           name: 'A',
           category: 'core',
+          match: matchAll([]),
           tags: [],
           weight: 100,
           energyCost: 8,
@@ -118,6 +120,7 @@ describe('DefaultEnergyBudgeter', () => {
           id: 'b',
           name: 'B',
           category: 'suffix',
+          match: matchAll([]),
           tags: [],
           weight: 100,
           energyCost: 6,

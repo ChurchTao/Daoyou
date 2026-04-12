@@ -1,3 +1,4 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { RuleSet } from '@/engine/creation-v2';
 import { AffixSelectionDecision, AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
 import { ExclusiveGroupRules } from '@/engine/creation-v2/rules/affix/ExclusiveGroupRules';
@@ -21,6 +22,7 @@ describe('ExclusiveGroupRules', () => {
           id: 'same-group',
           name: 'same-group',
           category: 'core',
+          match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 4,

@@ -4,6 +4,7 @@ import {
   runCreationBattleDuel,
   runGongfaSustainBaselineBattle,
 } from '@/engine/creation-v2/tests/helpers/BattleRegressionHarness';
+import { CreationTags } from '@/engine/shared/tag-domain';
 import { Material } from '@/types/cultivator';
 
 const SEEDS = [3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108];
@@ -20,15 +21,16 @@ const MATERIAL_SETS: Record<
         type: 'ore',
         rank: '灵品',
         quantity: 2,
-        description: '带有微弱锋刃与火意',
+        element: '火',
+        description: '带有微弱锋刃、火意与爆烈余韵',
       },
       {
-        id: 'skill-low-herb',
-        name: '温灵草',
-        type: 'herb',
+        id: 'skill-low-manual',
+        name: '焰纹手札',
+        type: 'skill_manual',
         rank: '凡品',
         quantity: 1,
-        description: '灵气平和，略带回复性',
+        description: '略通斩击与火行运转，能够勉强串起技能结构',
       },
     ],
     high: [
@@ -38,6 +40,7 @@ const MATERIAL_SETS: Record<
         type: 'ore',
         rank: '地品',
         quantity: 3,
+        element: '火',
         description: '兼具锋刃、火意与爆裂的重锋主材',
       },
       {
@@ -55,6 +58,14 @@ const MATERIAL_SETS: Record<
         rank: '真品',
         quantity: 1,
         description: '强化斩击与术法输出结构',
+      },
+      {
+        id: 'skill-high-special',
+        name: '焚界神纹',
+        type: 'tcdb',
+        rank: '真品',
+        quantity: 1,
+        description: '神锋、爆炎与术式框架彼此咬合，强化极限斩击',
       },
     ],
   },
@@ -152,12 +163,25 @@ const MATERIAL_SETS: Record<
   },
 };
 
+const REQUESTED_SKILL_TAGS = {
+  low: [
+    CreationTags.MATERIAL.SEMANTIC_BLADE,
+    CreationTags.MATERIAL.SEMANTIC_BURST,
+  ],
+  high: [
+    CreationTags.MATERIAL.SEMANTIC_BLADE,
+    CreationTags.MATERIAL.SEMANTIC_BURST,
+    CreationTags.MATERIAL.SEMANTIC_FLAME,
+  ],
+} as const;
+
 function summarize(
   productType: 'skill' | 'artifact' | 'gongfa',
   materials: Material[],
+  requestedTags?: readonly string[],
 ) {
   const duels = SEEDS.map((seed) =>
-    runCreationBattleDuel({ productType, materials, seed }),
+    runCreationBattleDuel({ productType, materials, seed, requestedTags }),
   ).filter((duel): duel is NonNullable<typeof duel> => Boolean(duel));
 
   return {
@@ -189,12 +213,12 @@ function summarizeBaseline(
 
 describe('creation-v2 battle tier regression', () => {
   it('skill 高投入样本应以更短回合形成优势', () => {
-    const low = summarize('skill', MATERIAL_SETS.skill.low);
-    const high = summarize('skill', MATERIAL_SETS.skill.high);
+    const low = summarize('skill', MATERIAL_SETS.skill.low, REQUESTED_SKILL_TAGS.low);
+    const high = summarize('skill', MATERIAL_SETS.skill.high, REQUESTED_SKILL_TAGS.high);
 
     expect(low.count).toBe(SEEDS.length);
     expect(high.count).toBe(SEEDS.length);
-    expect(low.winRate).toBeGreaterThanOrEqual(0.3);
+    expect(high.winRate).toBeGreaterThan(low.winRate);
     expect(high.winRate).toBeGreaterThanOrEqual(0.6);
     expect(high.avgTurns).toBeLessThan(low.avgTurns);
     expect(high.avgTurns).toBeLessThanOrEqual(low.avgTurns + 2);

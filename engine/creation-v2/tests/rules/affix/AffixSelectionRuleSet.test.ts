@@ -1,5 +1,16 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
+import { AffixCandidate } from '@/engine/creation-v2/types';
 import { AffixSelectionRuleSet } from '@/engine/creation-v2/rules/affix/AffixSelectionRuleSet';
 import { AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
+
+function candidate(
+  overrides: Omit<AffixCandidate, 'match'> & Partial<Pick<AffixCandidate, 'match'>>,
+): AffixCandidate {
+  return {
+    ...overrides,
+    match: overrides.match ?? matchAll([]),
+  };
+}
 
 describe('AffixSelectionRuleSet', () => {
   const ruleSet = new AffixSelectionRuleSet();
@@ -8,7 +19,7 @@ describe('AffixSelectionRuleSet', () => {
     const facts: AffixSelectionFacts = {
       productType: 'skill',
       candidates: [
-        {
+        candidate({
           id: 'blocked-budget',
           name: 'blocked-budget',
           category: 'suffix',
@@ -16,8 +27,8 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 9,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
-        {
+        }),
+        candidate({
           id: 'blocked-group',
           name: 'blocked-group',
           category: 'prefix',
@@ -26,8 +37,8 @@ describe('AffixSelectionRuleSet', () => {
           energyCost: 4,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
           exclusiveGroup: 'grp',
-        },
-        {
+        }),
+        candidate({
           id: 'eligible',
           name: 'eligible',
           category: 'suffix',
@@ -35,7 +46,7 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 4,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
+        }),
       ],
       remainingEnergy: 4,
       inputTags: [],
@@ -66,7 +77,7 @@ describe('AffixSelectionRuleSet', () => {
     const facts: AffixSelectionFacts = {
       productType: 'skill',
       candidates: [
-        {
+        candidate({
           id: 'blocked-budget',
           name: 'blocked-budget',
           category: 'core',
@@ -74,7 +85,7 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 9,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
+        }),
       ],
       remainingEnergy: 4,
       inputTags: [],
@@ -98,7 +109,7 @@ describe('AffixSelectionRuleSet', () => {
     const facts: AffixSelectionFacts = {
       productType: 'skill',
       candidates: [
-        {
+        candidate({
           id: 'prefix-over-cap',
           name: 'prefix-over-cap',
           category: 'prefix',
@@ -106,8 +117,8 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 4,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
-        {
+        }),
+        candidate({
           id: 'suffix-ok',
           name: 'suffix-ok',
           category: 'suffix',
@@ -115,7 +126,7 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 4,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
+        }),
       ],
       remainingEnergy: 10,
       inputTags: [],
@@ -148,7 +159,7 @@ describe('AffixSelectionRuleSet', () => {
     const facts: AffixSelectionFacts = {
       productType: 'skill',
       candidates: [
-        {
+        candidate({
           id: 'mythic-unassigned',
           name: 'mythic-unassigned',
           category: 'mythic',
@@ -156,7 +167,7 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 8,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
+        }),
       ],
       remainingEnergy: 10,
       inputTags: [],
@@ -195,7 +206,7 @@ describe('AffixSelectionRuleSet', () => {
     const facts: AffixSelectionFacts = {
       productType: 'skill',
       candidates: [
-        {
+        candidate({
           id: 'signature-over-bucket',
           name: 'signature-over-bucket',
           category: 'signature',
@@ -203,8 +214,8 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 8,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
-        {
+        }),
+        candidate({
           id: 'resonance-ok',
           name: 'resonance-ok',
           category: 'resonance',
@@ -212,7 +223,7 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 7,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
+        }),
       ],
       remainingEnergy: 12,
       inputTags: [],
@@ -254,7 +265,7 @@ describe('AffixSelectionRuleSet', () => {
     const facts: AffixSelectionFacts = {
       productType: 'skill',
       candidates: [
-        {
+        candidate({
           id: 'mythic-over-bucket',
           name: 'mythic-over-bucket',
           category: 'mythic',
@@ -262,8 +273,8 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 8,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
-        {
+        }),
+        candidate({
           id: 'suffix-ok',
           name: 'suffix-ok',
           category: 'suffix',
@@ -271,7 +282,7 @@ describe('AffixSelectionRuleSet', () => {
           weight: 10,
           energyCost: 6,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-        },
+        }),
       ],
       remainingEnergy: 12,
       inputTags: [],

@@ -17,7 +17,9 @@ export class AffixWeightRules
 
   apply({ facts, decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
-    const inputTagSet = new Set(facts.inputTags);
+    const inputTagSet = new Set(
+      facts.inputTagSignals.map((signal) => signal.tag),
+    );
 
     for (const candidate of decision.candidates) {
       const tagHitCount = candidate.tags.reduce(

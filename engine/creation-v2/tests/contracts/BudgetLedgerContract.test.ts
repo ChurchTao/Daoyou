@@ -1,3 +1,4 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { DefaultEnergyBudgeter } from '@/engine/creation-v2/budgeting/DefaultEnergyBudgeter';
 import { AffixSelectionRuleSet } from '@/engine/creation-v2/rules/affix/AffixSelectionRuleSet';
 import type { AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
@@ -13,6 +14,7 @@ describe('BudgetLedger contract boundary', () => {
           id: 'core-a',
           name: 'core-a',
           category: 'core',
+          match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 6,
@@ -108,6 +110,7 @@ describe('BudgetLedger contract boundary', () => {
           id: 'stale-core',
           name: 'stale-core',
           category: 'core',
+          match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 8,
@@ -129,6 +132,7 @@ describe('BudgetLedger contract boundary', () => {
         id: 'manual-core',
         name: 'manual-core',
         category: 'core',
+        match: matchAll([]),
         tags: [],
         weight: 10,
         energyCost: 6,

@@ -1,6 +1,7 @@
 import {
   AffixCandidate,
   AffixCategory,
+  CreationTagSignal,
   CreationProductType,
   EnergyBudget,
   RecipeMatch,
@@ -12,6 +13,7 @@ export interface AffixEligibilityFacts {
   energyBudget: EnergyBudget;
   candidatePool: AffixCandidate[];
   allowedCategories: AffixCategory[];
+  inputTagSignals: CreationTagSignal[];
   inputTags: string[];
   tagSignalScores: Record<string, number>;
   maxQualityOrder: number;

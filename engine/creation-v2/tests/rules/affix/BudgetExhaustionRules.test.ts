@@ -1,3 +1,4 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { RuleSet } from '@/engine/creation-v2';
 import { AffixSelectionDecision, AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
 import { BudgetExhaustionRules } from '@/engine/creation-v2/rules/affix/BudgetExhaustionRules';
@@ -21,6 +22,7 @@ describe('BudgetExhaustionRules', () => {
           id: 'expensive',
           name: 'expensive',
           category: 'core',
+          match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 9,
@@ -30,6 +32,7 @@ describe('BudgetExhaustionRules', () => {
           id: 'cheap',
           name: 'cheap',
           category: 'core',
+          match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 4,

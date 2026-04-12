@@ -1,6 +1,7 @@
 import { QUALITY_ORDER } from '@/types/constants';
 import { CREATION_AFFIX_POOL_SCORING } from '../../config/CreationBalance';
 import { AffixCandidate } from '../../types';
+import { evaluateAffixMatcher } from '../../affixes/AffixMatcher';
 import { Rule } from '../core';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../contracts';
 
@@ -15,7 +16,6 @@ export class AffixEligibilityRules
   apply({ facts, decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
     const scoreThresholds = CREATION_AFFIX_POOL_SCORING.minimumScoreByCategory;
-    const minHits = CREATION_AFFIX_POOL_SCORING.minTagHitsByCategory;
 
     for (const candidate of facts.candidatePool) {
       if (
@@ -60,23 +60,22 @@ export class AffixEligibilityRules
         continue;
       }
 
-      const tagHitCount = this.countTagHits(candidate, facts);
-      const requiredHits = (minHits as Record<string, number>)[candidate.category] ?? 1;
+      const matchResult = evaluateAffixMatcher(candidate.match, facts.inputTagSignals);
 
-      if (candidate.tags.length > 0 && tagHitCount < requiredHits) {
+      if (!matchResult.matched) {
         decision.rejectedCandidates.push({
           affixId: candidate.id,
-          reason: 'insufficient_tag_hits',
+          reason: 'match_unmet',
           category: candidate.category,
         });
         diagnostics.addTrace({
           ruleId: this.id,
           outcome: 'blocked',
-          message: '词缀因标签命中不足被过滤',
+          message: '词缀因 match 条件未满足被过滤',
           details: {
             affixId: candidate.id,
-            tagHitCount,
-            requiredHits,
+            match: candidate.match,
+            blockedTags: matchResult.blockedTags,
           },
         });
         continue;
@@ -85,7 +84,7 @@ export class AffixEligibilityRules
       const evaluationScore = this.calculateEvaluationScore(
         candidate,
         facts,
-        tagHitCount,
+        matchResult,
       );
       const threshold = (scoreThresholds as Record<string, number>)[candidate.category] ?? 0.45;
 
@@ -129,36 +128,25 @@ export class AffixEligibilityRules
     });
   }
 
-  private countTagHits(
-    candidate: AffixCandidate,
-    facts: AffixEligibilityFacts,
-  ): number {
-    if (candidate.tags.length === 0) {
-      return 1;
-    }
-
-    return candidate.tags.reduce(
-      (sum, tag) => sum + (facts.tagSignalScores[tag] !== undefined ? 1 : 0),
-      0,
-    );
-  }
-
   private calculateEvaluationScore(
     candidate: AffixCandidate,
     facts: AffixEligibilityFacts,
-    tagHitCount: number,
+    matchResult: ReturnType<typeof evaluateAffixMatcher>,
   ): number {
-    if (candidate.category === 'core' || candidate.tags.length === 0) {
+    if (candidate.category === 'core' || matchResult.totalUnits === 0) {
       return 1;
     }
 
     const scoreWeights = CREATION_AFFIX_POOL_SCORING.scoreWeights;
-    const matchedSignalSum = candidate.tags.reduce(
+    const matchedSignalSum = matchResult.matchedTags.reduce(
       (sum, tag) => sum + (facts.tagSignalScores[tag] ?? 0),
       0,
     );
-    const coverage = tagHitCount / candidate.tags.length;
-    const averageSignal = tagHitCount > 0 ? matchedSignalSum / tagHitCount : 0;
+    const coverage = matchResult.satisfiedUnits / matchResult.totalUnits;
+    const averageSignal =
+      matchResult.matchedTags.length > 0
+        ? matchedSignalSum / matchResult.matchedTags.length
+        : 0;
     const normalizedSignal = Math.min(
       1,
       averageSignal / CREATION_AFFIX_POOL_SCORING.maxSignalScorePerTag,

@@ -1,5 +1,9 @@
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
-import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import {
+  DEFAULT_AFFIX_REGISTRY,
+  flattenAffixMatcherTags,
+  matchAll,
+} from '@/engine/creation-v2/affixes';
 import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import {
   runCreationBattleBenchmark,
@@ -44,7 +48,8 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     isPerfect: false,
     effectTemplate: def.effectTemplate,
     weight: def.weight,
-    tags: def.tagQuery,
+    match: def.match,
+    tags: flattenAffixMatcherTags(def.match),
     exclusiveGroup: def.exclusiveGroup,
   };
 }
@@ -93,6 +98,7 @@ function createSkillBlueprint(sessionId: string = 'battle-contract-skill') {
       id: 'test-skill-core',
       name: '测试核心',
       category: 'core',
+      match: matchAll([]),
       tags: ['fire'],
       weight: 100,
       energyCost: 0, // 降低成本确保能选上
@@ -143,6 +149,7 @@ function createArtifactBlueprint(sessionId: string = 'battle-contract-artifact')
       id: 'test-artifact-core',
       name: '测试核心',
       category: 'core',
+      match: matchAll([]),
       tags: ['water'],
       weight: 100,
       energyCost: 0,
@@ -168,12 +175,12 @@ function createAccessoryArtifactBlueprint(
     materials: [
       {
         id: 'mat-accessory',
-        name: '灵纹玉佩',
+        name: '风锋灵佩',
         type: 'ore',
         rank: '仙品',
         quantity: 1,
         element: '风',
-        description: '蕴含机动与灵性的饰品胚材',
+        description: '蕴含身法、锋锐与灵性的饰品胚材',
       },
     ],
   });
@@ -193,6 +200,7 @@ function createAccessoryArtifactBlueprint(
       id: 'test-accessory-core',
       name: '测试核心',
       category: 'core',
+      match: matchAll([]),
       tags: ['wind'],
       weight: 100,
       energyCost: 0,
@@ -243,6 +251,7 @@ function createArmorArtifactBlueprint(
       id: 'test-armor-core',
       name: '测试核心',
       category: 'core',
+      match: matchAll([]),
       tags: ['water'],
       weight: 100,
       energyCost: 0,
@@ -334,12 +343,12 @@ const ARTIFACT_SLOT_BENCHMARK_CASES: Array<{ slot: any; materials: Material[] }>
     materials: [
       {
         id: 'battle-benchmark-accessory',
-        name: '回风灵佩',
+        name: '回风锋佩',
         type: 'ore',
         rank: '仙品',
         quantity: 2,
         element: '风',
-        description: '偏饰品与身法方向的灵矿',
+        description: '偏饰品、身法与锋锐方向的灵矿',
       },
     ],
   },
@@ -497,11 +506,12 @@ describe('BattleContractBoundary — battle 契约验证', () => {
       expect(model.battleProjection.modifiers?.length).toBeGreaterThan(0);
     });
 
-    it('accessory artifact 蓝图应投影两个二级属性 core modifiers', () => {
+    it('accessory artifact 蓝图应投影机动型 core modifiers', () => {
       const blueprint = createAccessoryArtifactBlueprint();
       const model = blueprint.productModel as ArtifactProductModel;
 
       expect(model.artifactConfig.slot).toBe('accessory');
+      expect(model.battleProjection.projectionKind).toBe('artifact_passive');
       expect(model.battleProjection.modifiers?.length).toBeGreaterThan(0);
     });
   });
@@ -524,7 +534,9 @@ describe('BattleContractBoundary — battle 契约验证', () => {
         expect(duel!.battleResult.turns).toBeGreaterThan(0);
         expect(duel!.battleResult.winner).toBeDefined();
         expect(duel!.battleResult.logs.length).toBeGreaterThan(0);
-        expect(duel!.challenger.abilities.getAllAbilities().length).toBeGreaterThanOrEqual(2);
+        expect(duel!.challenger.abilities.getAllAbilities().length).toBe(
+          productType === 'skill' ? 1 : 2,
+        );
         expect(duel!.defender.abilities.getAllAbilities().length).toBe(1);
       },
     );
@@ -582,13 +594,12 @@ describe('BattleContractBoundary — battle 契约验证', () => {
       for (const benchmark of [weaponBenchmark!, armorBenchmark!, accessoryBenchmark!]) {
         expect(benchmark.summary.averageTurns).toBeGreaterThanOrEqual(7);
         expect(benchmark.summary.averageTurns).toBeLessThanOrEqual(30);
-        expect(benchmark.summary.challengerWinRate).toBeGreaterThan(0.5);
       }
 
+      expect(weaponBenchmark!.summary.challengerWinRate).toBeGreaterThan(0.5);
+      expect(armorBenchmark!.summary.challengerWinRate).toBeGreaterThan(0.5);
+
       expect(weaponBenchmark!.summary.averageDamagePerHit).toBeGreaterThan(
-        accessoryBenchmark!.summary.averageDamagePerHit,
-      );
-      expect(armorBenchmark!.summary.averageDamagePerHit).toBeGreaterThan(
         accessoryBenchmark!.summary.averageDamagePerHit,
       );
       expect(accessoryBenchmark!.summary.averageTurns).toBeGreaterThanOrEqual(

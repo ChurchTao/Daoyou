@@ -1,3 +1,4 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { AffixSelector } from '@/engine/creation-v2/affixes/AffixSelector';
 import { AffixCandidate, CreationIntent, EnergyBudget } from '@/engine/creation-v2/types';
 
@@ -11,6 +12,7 @@ function candidate(
     id,
     name: id,
     category,
+    match: matchAll(['Material.Semantic.Burst', 'Material.Semantic.Spirit']),
     tags: ['Material.Semantic.Burst', 'Material.Semantic.Spirit'],
     weight,
     energyCost,

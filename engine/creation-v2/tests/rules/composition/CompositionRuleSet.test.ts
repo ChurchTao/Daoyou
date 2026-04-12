@@ -1,3 +1,4 @@
+import { flattenAffixMatcherTags, matchAll } from '@/engine/creation-v2/affixes';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixRegistry } from '@/engine/creation-v2/affixes/AffixRegistry';
 import { AffixDefinition } from '@/engine/creation-v2/affixes/types';
@@ -53,21 +54,39 @@ const BASE_FINGERPRINT: MaterialFingerprint = {
   rarityWeight: 1,
 };
 
+function buildRolledAffix(
+  overrides: Partial<RolledAffix> &
+    Pick<
+      RolledAffix,
+      'id' | 'name' | 'category' | 'energyCost' | 'weight' | 'effectTemplate'
+    >,
+): RolledAffix {
+  const match = overrides.match ?? matchAll([]);
+
+  return {
+    rollScore: 1,
+    rollEfficiency: 1,
+    finalMultiplier: 1,
+    isPerfect: false,
+    ...overrides,
+    match,
+    tags: overrides.tags ?? flattenAffixMatcherTags(match),
+  };
+}
+
 const CORE_DAMAGE_ROLLED: RolledAffix = {
-  id: 'core-damage',
-  name: '锋刃',
-  category: 'core',
-  energyCost: 8,
-  rollScore: 1,
-  rollEfficiency: 1,
-  finalMultiplier: 1,
-  isPerfect: false,
-  effectTemplate: {
-    type: 'damage',
-    params: { value: { base: 10, attribute: AttributeType.MAGIC_ATK } },
-  } as any,
-  weight: 10,
-  tags: [],
+  ...buildRolledAffix({
+    id: 'core-damage',
+    name: '锋刃',
+    category: 'core',
+    energyCost: 8,
+    effectTemplate: {
+      type: 'damage',
+      params: { value: { base: 10, attribute: AttributeType.MAGIC_ATK } },
+    } as any,
+    weight: 10,
+    match: matchAll(['Material.Semantic.Metal']),
+  }),
 };
 
 function makeFacts(
@@ -111,7 +130,7 @@ const DAMAGE_AFFIX_DEF: AffixDefinition = {
   displayDescription: '造物词缀：锋刃伤害',
   category: 'core',
   applicableTo: ['skill'],
-  tagQuery: ['Material.Semantic.Metal'],
+  match: matchAll(['Material.Semantic.Metal']),
   weight: 10,
   energyCost: 8,
   runtimeSemantics: {
@@ -137,7 +156,7 @@ const HEAL_AFFIX_DEF: AffixDefinition = {
   displayDescription: '造物词缀：愈元恢复',
   category: 'core',
   applicableTo: ['skill'],
-  tagQuery: ['Material.Semantic.Spirit'],
+  match: matchAll(['Material.Semantic.Spirit']),
   weight: 10,
   energyCost: 8,
   effectTemplate: {
@@ -152,7 +171,7 @@ const ARTIFACT_STATIC_MODIFIER_AFFIX_DEF: AffixDefinition = {
   displayDescription: '法宝常驻体魄加成',
   category: 'core',
   applicableTo: ['artifact'],
-  tagQuery: ['Material.Semantic.Metal'],
+  match: matchAll(['Material.Semantic.Metal']),
   weight: 10,
   energyCost: 8,
   effectTemplate: {
@@ -172,7 +191,7 @@ const ARTIFACT_BUNDLED_MODIFIER_AFFIX_DEF: AffixDefinition = {
   category: 'core',
   applicableTo: ['artifact'],
   applicableArtifactSlots: ['weapon'],
-  tagQuery: ['Material.Semantic.Metal'],
+  match: matchAll(['Material.Semantic.Metal']),
   weight: 10,
   energyCost: 8,
   effectTemplate: {
@@ -200,7 +219,7 @@ const ARTIFACT_TEMP_STAT_BUFF_AFFIX_DEF: AffixDefinition = {
   displayDescription: '通过 buff 临时提升属性',
   category: 'prefix',
   applicableTo: ['artifact'],
-  tagQuery: ['Material.Semantic.Spirit'],
+  match: matchAll(['Material.Semantic.Spirit']),
   weight: 10,
   energyCost: 6,
   effectTemplate: {
@@ -245,15 +264,18 @@ describe('CompositionRuleSet — 端到端集成', () => {
     });
 
     it('有 damage 词缀时：policy 包含来自词缀的 damage effect', () => {
-      const rolledAffix: RolledAffix = {
+      const rolledAffix = buildRolledAffix({
         id: 'core-damage',
         name: '锋刃',
         category: 'core',
         energyCost: 8,
-        rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "damage", params: { value: { base: 100, attribute: AttributeType.MAGIC_ATK } } } as any,
+        effectTemplate: {
+          type: 'damage',
+          params: { value: { base: 100, attribute: AttributeType.MAGIC_ATK } },
+        } as any,
         weight: 10,
-        tags: [],
-      };
+        match: matchAll(['Material.Semantic.Metal']),
+      });
       const facts = makeFacts({
         productType: 'skill',
         affixes: [rolledAffix],
@@ -266,23 +288,19 @@ describe('CompositionRuleSet — 端到端集成', () => {
     });
 
     it('skill 显式 runtimeSemantics 应透传到 abilityTags', () => {
-      const rolledAffix: RolledAffix = {
+      const rolledAffix = buildRolledAffix({
         id: 'core-damage',
         name: '锋刃',
         category: 'core',
         energyCost: 8,
-        rollScore: 1,
-        rollEfficiency: 1,
-        finalMultiplier: 1,
-        isPerfect: false,
         effectTemplate: {
           type: 'damage',
           params: { value: { base: 100, attribute: AttributeType.MAGIC_ATK } },
         } as any,
         weight: 10,
-        tags: [],
+        match: matchAll(['Material.Semantic.Metal']),
         runtimeSemantics: DAMAGE_AFFIX_DEF.runtimeSemantics,
-      };
+      });
       const facts = makeFacts({
         productType: 'skill',
         affixes: [rolledAffix],
@@ -300,15 +318,18 @@ describe('CompositionRuleSet — 端到端集成', () => {
     });
 
     it('直接伤害词缀应保留词缀定义的原始数值', () => {
-      const rolledAffix: RolledAffix = {
+      const rolledAffix = buildRolledAffix({
         id: 'core-damage',
         name: '锋刃',
         category: 'core',
         energyCost: 8,
-        rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "damage", params: { value: { base: 100, attribute: AttributeType.MAGIC_ATK } } } as any,
+        effectTemplate: {
+          type: 'damage',
+          params: { value: { base: 100, attribute: AttributeType.MAGIC_ATK } },
+        } as any,
         weight: 10,
-        tags: [],
-      };
+        match: matchAll(['Material.Semantic.Metal']),
+      });
       const facts = makeFacts({
         productType: 'skill',
         affixes: [rolledAffix],
@@ -337,15 +358,18 @@ describe('CompositionRuleSet — 端到端集成', () => {
     });
 
     it('heal 词缀时：targetPolicy 应为 self', () => {
-      const healAffix: RolledAffix = {
+      const healAffix = buildRolledAffix({
         id: 'core-heal',
         name: '愈元',
         category: 'core',
         energyCost: 8,
-        rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "heal", params: { value: { base: 10 } } } as any,
+        effectTemplate: {
+          type: 'heal',
+          params: { value: { base: 10 } },
+        } as any,
         weight: 10,
-        tags: [],
-      };
+        match: matchAll(['Material.Semantic.Spirit']),
+      });
       const facts = makeFacts({ productType: 'skill', affixes: [healAffix] });
       const decision = ruleSet.evaluate(facts);
 
@@ -375,15 +399,22 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const facts = makeFacts({
         productType: 'artifact',
         affixes: [
-          {
+          buildRolledAffix({
             id: 'artifact-static-modifier',
             name: '玄铁铸体',
             category: 'core',
             energyCost: 8,
-            rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "attribute_modifier", params: { attrType: AttributeType.VITALITY, modType: ModifierType.FIXED, value: 10 } } as any,
+            effectTemplate: {
+              type: 'attribute_modifier',
+              params: {
+                attrType: AttributeType.VITALITY,
+                modType: ModifierType.FIXED,
+                value: 10,
+              },
+            } as any,
             weight: 10,
-            tags: [],
-          },
+            match: matchAll(['Material.Semantic.Metal']),
+          }),
         ],
       });
       const decision = ruleSet.evaluate(facts);
@@ -409,15 +440,22 @@ describe('CompositionRuleSet — 端到端集成', () => {
           totalQuantity: 4,
         },
         affixes: [
-          {
+          buildRolledAffix({
             id: 'artifact-static-modifier',
             name: '玄铁铸体',
             category: 'core',
             energyCost: 8,
-            rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "attribute_modifier", params: { attrType: AttributeType.VITALITY, modType: ModifierType.FIXED, value: 10 } } as any,
+            effectTemplate: {
+              type: 'attribute_modifier',
+              params: {
+                attrType: AttributeType.VITALITY,
+                modType: ModifierType.FIXED,
+                value: 10,
+              },
+            } as any,
             weight: 10,
-            tags: [],
-          },
+            match: matchAll(['Material.Semantic.Metal']),
+          }),
         ],
       });
       const decision = ruleSet.evaluate(facts);
@@ -441,15 +479,31 @@ describe('CompositionRuleSet — 端到端集成', () => {
           requestedTags: [],
         },
         affixes: [
-          {
+          buildRolledAffix({
             id: 'artifact-bundled-modifier',
             name: '双极灵核',
             category: 'core',
             energyCost: 8,
-            rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "attribute_modifier", params: { modifiers: [{ attrType: AttributeType.ATK, modType: ModifierType.FIXED, value: 5 }, { attrType: AttributeType.MAGIC_ATK, modType: ModifierType.FIXED, value: 5 }] } } as any,
+            effectTemplate: {
+              type: 'attribute_modifier',
+              params: {
+                modifiers: [
+                  {
+                    attrType: AttributeType.ATK,
+                    modType: ModifierType.FIXED,
+                    value: 5,
+                  },
+                  {
+                    attrType: AttributeType.MAGIC_ATK,
+                    modType: ModifierType.FIXED,
+                    value: 5,
+                  },
+                ],
+              },
+            } as any,
             weight: 10,
-            tags: [],
-          },
+            match: matchAll(['Material.Semantic.Metal']),
+          }),
         ],
       });
       const decision = ruleSet.evaluate(facts);
@@ -474,15 +528,22 @@ describe('CompositionRuleSet — 端到端集成', () => {
       const facts = makeFacts({
         productType: 'artifact',
         affixes: [
-          {
+          buildRolledAffix({
             id: 'artifact-temp-stat-buff',
             name: '灵光灌注',
             category: 'prefix',
             energyCost: 6,
-            rollScore: 1, rollEfficiency: 1, finalMultiplier: 1, isPerfect: false, effectTemplate: { type: "attribute_stat_buff", params: { attrType: AttributeType.SPIRIT, modType: ModifierType.FIXED, value: 10 } } as any,
+            effectTemplate: {
+              type: 'attribute_stat_buff',
+              params: {
+                attrType: AttributeType.SPIRIT,
+                modType: ModifierType.FIXED,
+                value: 10,
+              },
+            } as any,
             weight: 10,
-            tags: [],
-          },
+            match: matchAll(['Material.Semantic.Spirit']),
+          }),
         ],
       });
       const decision = ruleSet.evaluate(facts);

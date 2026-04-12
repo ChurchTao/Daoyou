@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { estimateBalanceMetrics } from '@/engine/creation-v2/balancing/PBU';
 import { RolledAffix } from '@/engine/creation-v2/types';
 
@@ -11,6 +12,7 @@ function affix(
     id,
     name: id,
     category,
+    match: matchAll([]),
     tags: [],
     weight: 10,
     energyCost,

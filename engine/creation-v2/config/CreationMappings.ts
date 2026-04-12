@@ -1,8 +1,5 @@
 import { ElementType } from '@/types/constants';
-import {
-  CreationTags,
-  ELEMENT_TO_RUNTIME_ABILITY_TAG,
-} from '@/engine/shared/tag-domain';
+import { CreationTags } from '@/engine/shared/tag-domain';
 
 export const ELEMENT_TAG_TOKENS: Record<ElementType, string> = {
   金: 'Metal',
@@ -21,9 +18,6 @@ export const ELEMENT_TO_MATERIAL_TAG: Record<ElementType, string> = Object.fromE
     `${CreationTags.MATERIAL.ELEMENT}.${token}`,
   ]),
 ) as Record<ElementType, string>;
-
-export const ELEMENT_TO_ABILITY_TAG: Record<ElementType, string> =
-  ELEMENT_TO_RUNTIME_ABILITY_TAG;
 
 export const ELEMENT_NAME_PREFIX: Record<ElementType, string> = {
   金: '碎锋',

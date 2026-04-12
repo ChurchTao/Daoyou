@@ -1,6 +1,7 @@
 import { CreationTagContainer } from '@/engine/shared/tag-domain';
 import { CreationPhase } from './core/types';
 import {
+  CreationTagSignal,
   CreationSessionInput,
   CreationSessionState,
   isCreationProductType,
@@ -31,6 +32,7 @@ export class CreationSession {
       id: this.id,
       phase: CreationPhase.INIT,
       input,
+      inputTagSignals: [],
       inputTags: [],
       materialFingerprints: [],
       affixPool: [],
@@ -42,9 +44,10 @@ export class CreationSession {
     this.state.phase = phase;
   }
 
-  syncInputTags(tags: string[]): void {
+  syncInputTagSignals(signals: CreationTagSignal[]): void {
     this.inputTags.clear();
-    this.inputTags.addTags(tags);
+    this.inputTags.addTags(signals.map((signal) => signal.tag));
+    this.state.inputTagSignals = signals;
     this.state.inputTags = this.inputTags.getTags();
   }
 }

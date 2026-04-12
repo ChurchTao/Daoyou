@@ -1,5 +1,28 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { AffixCandidate } from '@/engine/creation-v2/types';
+
+function candidate(
+  id: string,
+  category: AffixCandidate['category'],
+  energyCost: number,
+  exclusiveGroup?: string,
+): AffixCandidate {
+  return {
+    id,
+    name: id,
+    category,
+    match: matchAll([]),
+    tags: [],
+    weight: 100,
+    energyCost,
+    exclusiveGroup,
+    effectTemplate: {
+      type: 'damage',
+      params: { value: { base: 10, attribute: 'magicAtk' } },
+    } as any,
+  };
+}
 
 function createSkillSession() {
   const orchestrator = new CreationOrchestrator();
@@ -23,33 +46,9 @@ describe('Closed-loop energy flow', () => {
   it('应维持 effectiveTotal = reserved + spent + remaining', () => {
     const { orchestrator, session } = createSkillSession();
     const pool: AffixCandidate[] = [
-      {
-        id: 'a',
-        name: 'A',
-        category: 'core',
-        tags: [],
-        weight: 100,
-        energyCost: 8,
-        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
-      },
-      {
-        id: 'b',
-        name: 'B',
-        category: 'prefix',
-        tags: [],
-        weight: 100,
-        energyCost: 6,
-        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
-      },
-      {
-        id: 'c',
-        name: 'C',
-        category: 'suffix',
-        tags: [],
-        weight: 100,
-        energyCost: 12,
-        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
-      },
+      candidate('a', 'core', 8),
+      candidate('b', 'prefix', 6),
+      candidate('c', 'suffix', 12),
     ];
 
     orchestrator.budgetEnergy(session, {
@@ -86,35 +85,9 @@ describe('Closed-loop energy flow', () => {
   it('应记录独占组冲突，并保留终止原因', () => {
     const { orchestrator, session } = createSkillSession();
     const pool: AffixCandidate[] = [
-      {
-        id: 'grp-a',
-        name: 'grp-a',
-        category: 'core',
-        tags: [],
-        weight: 100,
-        energyCost: 5,
-        exclusiveGroup: 'blade',
-        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
-      },
-      {
-        id: 'grp-b',
-        name: 'grp-b',
-        category: 'prefix',
-        tags: [],
-        weight: 100,
-        energyCost: 5,
-        exclusiveGroup: 'blade',
-        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
-      },
-      {
-        id: 'heavy',
-        name: 'heavy',
-        category: 'suffix',
-        tags: [],
-        weight: 100,
-        energyCost: 20,
-        effectTemplate: { type: 'damage', params: { value: { base: 10, attribute: 'magicAtk' } } } as any,
-      },
+      candidate('grp-a', 'core', 5, 'blade'),
+      candidate('grp-b', 'prefix', 5, 'blade'),
+      candidate('heavy', 'suffix', 20),
     ];
 
     orchestrator.budgetEnergy(session, {

@@ -9,6 +9,7 @@ import type { AbilityRuntimeSemantics } from '@/engine/shared/tag-domain';
 import type { Ability } from './contracts/battle';
 import { CreationPhase } from './core/types';
 import type { CreationProductModel } from './models/types';
+import type { AffixTagMatcher } from './affixes/types';
 import type {
   AffixPoolDecision,
   AffixSelectionDecision,
@@ -104,6 +105,20 @@ export interface MaterialQualityProfile {
   minQualityOrder: number;
   qualitySpread: number;
   totalQuantity: number;
+}
+
+export type CreationTagSignalSource =
+  | 'material_explicit'
+  | 'material_semantic'
+  | 'material_recipe'
+  | 'intent_dominant'
+  | 'intent_requested'
+  | 'recipe_matched';
+
+export interface CreationTagSignal {
+  tag: string;
+  source: CreationTagSignalSource;
+  weight: number;
 }
 
 export interface CreationIntent {
@@ -239,6 +254,7 @@ export interface AffixCandidate {
   id: string;
   name: string;
   category: AffixCategory;
+  match: AffixTagMatcher;
   tags: string[];
   runtimeSemantics?: AbilityRuntimeSemantics;
   weight: number;
@@ -272,6 +288,7 @@ export interface CreationSessionState {
   id: string;
   phase: CreationPhase;
   input: CreationSessionInput;
+  inputTagSignals: CreationTagSignal[];
   inputTags: string[];
 
   // ── 阶段 1：材料分析 ────────────────────────────────────────────────────────

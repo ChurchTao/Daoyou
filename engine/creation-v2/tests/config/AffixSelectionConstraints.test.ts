@@ -1,3 +1,4 @@
+import { matchAll } from '@/engine/creation-v2/affixes';
 import {
   ARTIFACT_AFFIX_SELECTION_CONSTRAINT_PROFILE,
   CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES,
@@ -15,6 +16,7 @@ function candidate(
     id,
     name: id,
     category,
+    match: matchAll([]),
     tags: [],
     weight: 10,
     energyCost: 5,

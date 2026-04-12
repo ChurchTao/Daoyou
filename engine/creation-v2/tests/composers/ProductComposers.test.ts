@@ -14,6 +14,16 @@ const makeOre = (name: string, rank = '灵品' as Material['rank']): Material =>
   description: '铁锋矿石，锋利',
 });
 
+const makeBurstOre = (name: string, rank = '灵品' as Material['rank']): Material => ({
+  id: `test-${name}`,
+  name,
+  type: 'ore',
+  rank,
+  quantity: 2,
+  element: undefined,
+  description: '铁锋矿石，锋利且爆烈',
+});
+
 const makeFireOre = (name: string, rank = '灵品' as Material['rank']): Material => ({
   id: `test-${name}`,
   name,
@@ -113,7 +123,7 @@ describe('SkillBlueprintComposer', () => {
   });
 
   it('技能蓝图有合法的 mpCost 和 cooldown', () => {
-    const outcome = runFullPipeline([makeOre('铁矿'), makeOre('铁矿')], 'skill');
+    const outcome = runFullPipeline([makeBurstOre('裂铁矿'), makeOre('锋铁矿')], 'skill');
     if (!outcome) return; // 可能 conflict
     const cfg = projectAbilityConfig(outcome.blueprint.productModel);
     expect(cfg.mpCost).toBeGreaterThanOrEqual(10);
@@ -183,7 +193,7 @@ describe('GongFaBlueprintComposer', () => {
 
 describe('CreationOrchestrator with ProductComposerRegistry', () => {
   it('skill → active_skill, artifact → artifact, gongfa → gongfa', () => {
-    const skillOutcome = runFullPipeline([makeOre('铁矿'), makeOre('铁矿')], 'skill');
+    const skillOutcome = runFullPipeline([makeBurstOre('裂铁矿'), makeOre('锋铁矿')], 'skill');
     const artifactOutcome = runFullPipeline([makeOre('玄铁'), makeOre('玄铁')], 'artifact');
     const gongfaOutcome = runFullPipeline([makeGongfaManual('心法'), makeHerb('灵草')], 'gongfa');
 

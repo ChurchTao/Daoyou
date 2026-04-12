@@ -7,15 +7,19 @@ import {
   validateAbilityRuntimeSemantics,
 } from '@/engine/shared/tag-domain';
 import type { BuffConfig, ConditionConfig, EffectConfig } from '../contracts/battle';
-import { AffixDefinition } from './types';
+import type { CreationTagSignal } from '../types';
+import { buildNeutralCreationTagSignals, evaluateAffixMatcher } from './AffixMatcher';
+import {
+  AffixDefinition,
+  collectAffixMatcherReferencedTags,
+} from './types';
 import type { AffixEffectTemplate } from './types';
-import { CREATION_AFFIX_POOL_SCORING } from '../config/CreationBalance';
 
 type RuntimeTagBearingEffect = AffixEffectTemplate | EffectConfig;
 
 /**
  * 词缀注册表
- * 存储所有 AffixDefinition，并支持按 tag / 类别 / 产物类型查询
+ * 存储所有 AffixDefinition，并支持按 matcher 输入 / 类别 / 产物类型查询
  */
 export class AffixRegistry {
   private defs: AffixDefinition[] = [];
@@ -26,26 +30,33 @@ export class AffixRegistry {
   }
 
   /**
-   * 按 tags + 解锁类别 + 产物类型查询
-   * 普通词缀（prefix/suffix）：OR 语义，命中任意 1 个标签即可入池
-   * 高阶词缀（resonance+）：至少需要命中 minTagHitsByCategory 数量的标签才可入池
+   * 按结构化输入信号 + 解锁类别 + 产物类型查询。
+   * affix 是否可进入候选池由其自身的 match 元数据决定，而不是外部分类阈值。
    */
+  queryBySignals(
+    signals: CreationTagSignal[],
+    unlockedCategories: AffixCategory[],
+    productType?: CreationProductType,
+  ): AffixDefinition[] {
+    const categorySet = new Set<AffixCategory>(unlockedCategories);
+
+    return this.defs.filter((def) => {
+      if (!categorySet.has(def.category)) return false;
+      if (productType && !def.applicableTo.includes(productType)) return false;
+      return evaluateAffixMatcher(def.match, signals).matched;
+    });
+  }
+
   queryByTags(
     tags: string[],
     unlockedCategories: AffixCategory[],
     productType?: CreationProductType,
   ): AffixDefinition[] {
-    const categorySet = new Set<AffixCategory>(unlockedCategories);
-    const tagSet = new Set(tags);
-    const minHits = CREATION_AFFIX_POOL_SCORING.minTagHitsByCategory;
-
-    return this.defs.filter((def) => {
-      if (!categorySet.has(def.category)) return false;
-      if (productType && !def.applicableTo.includes(productType)) return false;
-      const hitCount = def.tagQuery.filter((t) => tagSet.has(t)).length;
-      const required = (minHits as Record<string, number>)[def.category] ?? 1;
-      return hitCount >= required;
-    });
+    return this.queryBySignals(
+      buildNeutralCreationTagSignals(tags),
+      unlockedCategories,
+      productType,
+    );
   }
 
   queryById(id: string): AffixDefinition | undefined {
@@ -57,8 +68,8 @@ export class AffixRegistry {
   }
 
   private validateDefinition(def: AffixDefinition): void {
-    def.tagQuery.forEach((tag) =>
-      assertCreationTag(tag, `affix ${def.id} tagQuery`),
+    collectAffixMatcherReferencedTags(def.match).forEach((tag) =>
+      assertCreationTag(tag, `affix ${def.id} match`),
     );
 
     if (def.runtimeSemantics) {

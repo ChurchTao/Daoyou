@@ -3,13 +3,17 @@ import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixPoolBuilder } from '@/engine/creation-v2/affixes/AffixPoolBuilder';
 import { AffixSelector } from '@/engine/creation-v2/affixes/AffixSelector';
-import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import {
+  DEFAULT_AFFIX_REGISTRY,
+  flattenAffixMatcherTags,
+  matchAll,
+} from '@/engine/creation-v2/affixes';
 import { ARTIFACT_AFFIXES } from '@/engine/creation-v2/affixes/definitions/artifactAffixes';
 import { GONGFA_AFFIXES } from '@/engine/creation-v2/affixes/definitions/gongfaAffixes';
 import { SKILL_AFFIXES } from '@/engine/creation-v2/affixes/definitions/skillAffixes';
 import { CREATION_DURATION_POLICY } from '@/engine/creation-v2/config/CreationBalance';
 import { AttributeType, BuffType, ModifierType } from '@/engine/creation-v2/contracts/battle';
-import { ELEMENT_TO_ABILITY_TAG } from '@/engine/creation-v2/config/CreationMappings';
+import { ELEMENT_TO_RUNTIME_ABILITY_TAG } from '@/engine/shared/tag-domain';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { AffixCandidate, EnergyBudget, CreationIntent, RolledAffix } from '@/engine/creation-v2/types';
@@ -28,9 +32,22 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     isPerfect: false,
     effectTemplate: def.effectTemplate,
     weight: def.weight,
-    tags: def.tagQuery,
+    match: def.match,
+    tags: flattenAffixMatcherTags(def.match),
     exclusiveGroup: def.exclusiveGroup,
   };
+}
+
+function toSignals(tags: string[]) {
+  return tags.map((tag) => ({
+    tag,
+    source: 'material_semantic' as const,
+    weight: 0.55,
+  }));
+}
+
+function syncSessionTags(session: CreationSession, tags: string[]): void {
+  session.syncInputTagSignals(toSignals(tags));
 }
 
 // ─── AffixEffectTranslator ───────────────────────────────────────────────────
@@ -118,7 +135,7 @@ describe('AffixEffectTranslator', () => {
     expect(result.conditions).toEqual([
       {
         type: 'ability_has_tag',
-        params: { tag: ELEMENT_TO_ABILITY_TAG['火'] },
+        params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['火'] },
       },
     ]);
   });
@@ -145,7 +162,7 @@ describe('AffixEffectTranslator', () => {
         expect(def.effectTemplate.conditions).toEqual([
           {
             type: 'ability_has_tag',
-            params: { tag: ELEMENT_TO_ABILITY_TAG[element] },
+            params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG[element] },
           },
         ]);
       }
@@ -249,7 +266,7 @@ describe('AffixEffectTranslator', () => {
       displayName: 'test',
       displayDescription: 'test',
       category: 'prefix',
-      tagQuery: [],
+      match: matchAll([]),
       weight: 1,
       energyCost: 1,
       applicableTo: ['skill'],
@@ -311,6 +328,7 @@ describe('AffixSelector', () => {
     id,
     name: id,
     category,
+    match: matchAll([]),
     tags: [],
     weight,
     energyCost,
@@ -527,34 +545,33 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
 
   it('包含技能、法宝、功法词缀', () => {
     const skillDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
-      ['Material.Semantic.Blade'],
+      ['Material.Semantic.Flame', 'Material.Element.Fire'],
       ['core', 'prefix', 'suffix', 'signature'],
       'skill',
     );
     expect(skillDefs.length).toBeGreaterThan(0);
 
     const artifactDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
-      ['Material.Type.Ore'],
+      ['Material.Type.Ore', 'Material.Semantic.Blade'],
       ['core', 'prefix', 'suffix', 'signature'],
       'artifact',
     );
     expect(artifactDefs.length).toBeGreaterThan(0);
 
     const gongfaDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
-      ['Material.Semantic.Spirit'],
+      ['Material.Semantic.Spirit', 'Material.Type.Manual'],
       ['core', 'prefix', 'suffix', 'signature'],
       'gongfa',
     );
     expect(gongfaDefs.length).toBeGreaterThan(0);
   });
 
-  it('OR 语义：仅一条 tag 匹配即可', () => {
+  it('显式 matcher 语义：需满足 affix 自身声明的全部条件', () => {
     const defs = DEFAULT_AFFIX_REGISTRY.queryByTags(
-      ['Material.Semantic.Flame'], // 只传这一条
+      ['Material.Semantic.Flame', 'Material.Element.Fire'],
       ['core', 'suffix'],
       'skill',
     );
-    // skill-core-damage-fire 和一条燃烧后缀均应命中
     const ids = defs.map((d) => d.id);
     expect(ids).toContain('skill-core-damage-fire');
     expect(ids).toContain('skill-suffix-burn-dot');
@@ -605,7 +622,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.inputTags = ['Unknown.Tag'];
+    syncSessionTags(session, ['Unknown.Tag']);
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const ids = decision.candidates.map((candidate) => candidate.id);
@@ -627,7 +644,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     // 手动设置 session 状态
     session.state.materialFingerprints = [{ rank: '凡品', energyValue: 8, rarityWeight: 1, explicitTags: [], semanticTags: ['Material.Semantic.Spirit'], recipeTags: [], materialName: '凡品灵草', materialType: 'herb', quantity: 1 }];
     session.state.recipeMatch = { recipeId: 'default', valid: true, matchedTags: [], unlockedAffixCategories: ['core', 'prefix', 'suffix', 'signature'] };
-    session.state.inputTags = ['Material.Semantic.Spirit', 'Material.Semantic.Manual'];
+    syncSessionTags(session, ['Material.Semantic.Spirit', 'Material.Semantic.Manual']);
     const pool = builder.build(DEFAULT_AFFIX_REGISTRY, session);
     const ids = pool.map((c: AffixCandidate) => c.id);
     expect(ids).not.toContain('gongfa-signature-comprehension');
@@ -677,12 +694,12 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.inputTags = [
+    syncSessionTags(session, [
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ];
+    ]);
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const coreIds = decision.candidates
@@ -739,7 +756,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.inputTags = ['Unknown.Tag'];
+    syncSessionTags(session, ['Unknown.Tag']);
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const coreIds = decision.candidates
@@ -927,7 +944,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.inputTags = [
+    syncSessionTags(session, [
       CreationTags.RECIPE.PRODUCT_BIAS_SKILL,
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_BURST,
@@ -936,7 +953,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.TYPE_HERB,
-    ];
+    ]);
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const coreIds = decision.candidates
@@ -1022,7 +1039,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       matchedTags: [],
       unlockedAffixCategories: ['core'],
     };
-    session.state.inputTags = [
+    syncSessionTags(session, [
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_WIND,
@@ -1030,11 +1047,12 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.TYPE_HERB,
+      CreationTags.MATERIAL.TYPE_MONSTER,
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.TYPE_MANUAL,
       CreationTags.MATERIAL.TYPE_SPECIAL,
       GameplayTags.CONDITION.CASTER.LOW_HP,
-    ];
+    ]);
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const coreIds = decision.candidates

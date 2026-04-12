@@ -5,6 +5,7 @@ import { TestableCreationOrchestrator as CreationOrchestrator } from './helpers/
 import { AffixRolledEvent, CraftFailedEvent } from '../core/events';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { GameplayTags } from '@/engine/shared/tag-domain';
+import { matchAll } from '@/engine/creation-v2/affixes';
 import { CreationEventPriorityLevel } from '../core/types';
 import { CreationBlueprint, EnergyBudget, MaterialFingerprint, RecipeMatch } from '../types';
 
@@ -56,11 +57,11 @@ describe('CreationOrchestrator', () => {
     );
     expect(
       blueprint.productModel.battleProjection.abilityTags.some((tag) =>
-        [
+        ([
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
           GameplayTags.ABILITY.FUNCTION.HEAL,
           GameplayTags.ABILITY.FUNCTION.CONTROL,
-        ].includes(tag),
+        ] as string[]).includes(tag),
       ),
     ).toBe(true);
   });
@@ -144,6 +145,7 @@ describe('CreationOrchestrator', () => {
             id: 'core-flame-burst',
             name: '炎爆核心',
             category: 'core',
+            match: matchAll([]),
             tags: ['offensive', 'fire'],
             weight: 10,
             energyCost: 8,
@@ -436,6 +438,7 @@ describe('CreationOrchestrator', () => {
         id: 'skill-prefix-only',
         name: 'only-prefix',
         category: 'prefix',
+        match: matchAll([]),
         tags: ['Material.Semantic.Burst'],
         weight: 100,
         energyCost: 6,
@@ -499,6 +502,7 @@ describe('CreationOrchestrator', () => {
         id: 'skill-core-damage',
         name: '斩击',
         category: 'core',
+        match: matchAll([]),
         tags: ['Material.Semantic.Blade'],
         weight: 80,
         energyCost: 8,
@@ -512,6 +516,7 @@ describe('CreationOrchestrator', () => {
         id: 'skill-prefix-crit-boost',
         name: '锋锐',
         category: 'prefix',
+        match: matchAll([]),
         tags: ['Material.Semantic.Blade'],
         weight: 60,
         energyCost: 6,

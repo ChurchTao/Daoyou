@@ -14,6 +14,7 @@ const MATERIAL_SETS: Record<'skill' | 'artifact' | 'gongfa', Material[]> = {
       type: 'ore',
       rank: '地品',
       quantity: 3,
+      element: '火',
       description: '锋刃与爆烈并存，适合斩击连攻',
     },
     {
@@ -23,6 +24,14 @@ const MATERIAL_SETS: Record<'skill' | 'artifact' | 'gongfa', Material[]> = {
       rank: '天品',
       quantity: 2,
       description: '狂烈剑意与爆发妖力相互共鸣',
+    },
+    {
+      id: 'ttk-skill-manual',
+      name: '焚天剑诀残卷',
+      type: 'skill_manual',
+      rank: '天品',
+      quantity: 2,
+      description: '补足斩击框架与灵力运转，令爆发结构更稳定',
     },
   ],
   artifact: [
@@ -90,21 +99,21 @@ const BATTLE_THRESHOLDS: Record<
   }
 > = {
   skill: {
-    minWinRate: 0.72,
+    minWinRate: 0.6,
     minAvgTurns: 4,
-    maxAvgTurns: 10,
+    maxAvgTurns: 11,
     maxStallRate: 0.15,
     baselineKind: 'mirror',
   },
   artifact: {
     minAvgTurns: 4,
-    maxAvgTurns: 10,
+    maxAvgTurns: 12,
     maxStallRate: 0.4,
     baselineKind: 'artifact_guard',
   },
   gongfa: {
     minAvgTurns: 4,
-    maxAvgTurns: 10,
+    maxAvgTurns: 12,
     maxStallRate: 0.3,
     baselineKind: 'gongfa_sustain',
   },

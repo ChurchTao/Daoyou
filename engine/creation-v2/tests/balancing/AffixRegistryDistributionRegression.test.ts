@@ -140,8 +140,11 @@ const REQUESTED_HIGH_TIER_TAGS: Record<CreationProductType, string[]> = {
   skill: [
     CreationTags.MATERIAL.SEMANTIC_BURST,
     CreationTags.MATERIAL.SEMANTIC_BLADE,
+    CreationTags.MATERIAL.SEMANTIC_FLAME,
     CreationTags.MATERIAL.SEMANTIC_MANUAL,
     CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+    CreationTags.MATERIAL.SEMANTIC_DIVINE,
     CreationTags.MATERIAL.TYPE_SPECIAL,
   ],
   artifact: [

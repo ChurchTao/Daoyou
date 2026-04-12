@@ -17,6 +17,7 @@ import { CreationSession } from './CreationSession';
 import { CreationAbilityAdapter } from './adapters/CreationAbilityAdapter';
 import { CreationOutcomeMaterializer } from './adapters/types';
 import { AsyncMaterialAnalyzer } from './analysis/AsyncMaterialAnalyzer';
+import { buildCreationTagSignals } from './analysis/CreationTagSignalBuilder';
 import { DefaultMaterialAnalyzer } from './analysis/DefaultMaterialAnalyzer';
 import type { MaterialSemanticEnrichmentReport } from './analysis/MaterialSemanticEnricher';
 import { DefaultEnergyBudgeter } from './budgeting/DefaultEnergyBudgeter';
@@ -276,7 +277,7 @@ export class CreationOrchestrator {
     fingerprints: MaterialFingerprint[],
   ): void {
     session.state.materialFingerprints = fingerprints;
-    session.syncInputTags(this.collectInputTags(session));
+    session.syncInputTagSignals(this.collectInputTagSignals(session));
     session.setPhase(CreationPhase.MATERIAL_ANALYZED);
 
     this.eventBus.publish<MaterialAnalyzedEvent>({
@@ -289,7 +290,7 @@ export class CreationOrchestrator {
 
   resolveIntent(session: CreationSession, intent: CreationIntent): void {
     session.state.intent = intent;
-    session.syncInputTags(this.collectInputTags(session));
+    session.syncInputTagSignals(this.collectInputTagSignals(session));
     session.setPhase(CreationPhase.INTENT_RESOLVED);
 
     this.eventBus.publish<IntentResolvedEvent>({
@@ -315,7 +316,7 @@ export class CreationOrchestrator {
 
   validateRecipe(session: CreationSession, recipeMatch: RecipeMatch): void {
     session.state.recipeMatch = recipeMatch;
-    session.syncInputTags(this.collectInputTags(session));
+    session.syncInputTagSignals(this.collectInputTagSignals(session));
     session.setPhase(CreationPhase.RECIPE_VALIDATED);
 
     this.eventBus.publish<RecipeValidatedEvent>({
@@ -497,7 +498,7 @@ export class CreationOrchestrator {
     blueprint: CreationBlueprint,
   ): void {
     session.state.blueprint = blueprint;
-    session.syncInputTags(this.collectInputTags(session));
+    session.syncInputTagSignals(this.collectInputTagSignals(session));
     session.setPhase(CreationPhase.BLUEPRINT_COMPOSED);
 
     this.eventBus.publish<BlueprintComposedEvent>({
@@ -596,20 +597,12 @@ export class CreationOrchestrator {
     });
   }
 
-  private collectInputTags(session: CreationSession): string[] {
-    const tags = new Set<string>();
-
-    session.state.materialFingerprints.forEach((fingerprint) => {
-      fingerprint.explicitTags.forEach((tag) => tags.add(tag));
-      fingerprint.semanticTags.forEach((tag) => tags.add(tag));
-      fingerprint.recipeTags.forEach((tag) => tags.add(tag));
+  private collectInputTagSignals(session: CreationSession) {
+    return buildCreationTagSignals({
+      materialFingerprints: session.state.materialFingerprints,
+      intent: session.state.intent,
+      recipeMatch: session.state.recipeMatch,
     });
-
-    session.state.intent?.dominantTags.forEach((tag) => tags.add(tag));
-    session.state.intent?.requestedTags.forEach((tag) => tags.add(tag));
-    session.state.recipeMatch?.matchedTags.forEach((tag) => tags.add(tag));
-
-    return Array.from(tags);
   }
 
   /**

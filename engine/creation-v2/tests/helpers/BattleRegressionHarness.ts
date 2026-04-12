@@ -65,6 +65,7 @@ interface CreationBattleDuelInput {
   productType: CreationProductType;
   materials: Material[];
   seed?: number;
+  requestedTags?: readonly string[];
   requestedSlot?: EquipmentSlot;
   baselineTemplate?: SparringBaselineTemplate;
 }
@@ -121,6 +122,7 @@ function withDeterministicRandom<T>(seed: number, execute: () => T): T {
 function runPipeline(
   productType: CreationProductType,
   materials: Material[],
+  requestedTags?: readonly string[],
   requestedSlot?: EquipmentSlot,
 ): CraftedOutcome | undefined {
   const orchestrator = new TestableCreationOrchestrator();
@@ -129,6 +131,9 @@ function runPipeline(
   const session = orchestrator.createSession({
     productType,
     materials,
+    ...(requestedTags && requestedTags.length > 0
+      ? { requestedTags: [...requestedTags] }
+      : {}),
     ...(requestedSlot ? { requestedSlot } : {}),
     ...(productType === 'skill' && !hasElement ? { requestedElement: '火' } : {}),
   });
@@ -186,9 +191,9 @@ function createBaselineStrike() {
         type: 'damage',
         params: {
           value: {
-            base: 70,
+            base: 160,
             attribute: AttributeType.MAGIC_ATK,
-            coefficient: 0.9,
+            coefficient: 1.2,
           },
         },
       },
@@ -309,6 +314,7 @@ function createSparringUnit(
   id: string,
   name: string,
   template: SparringBaselineTemplate = 'mirror',
+  options: { includeBaselineStrike?: boolean } = {},
 ): Unit {
   const unit = new Unit(id, name, SPARRING_BASE_ATTRIBUTES);
 
@@ -322,7 +328,9 @@ function createSparringUnit(
     });
   }
 
-  unit.abilities.addAbility(createBaselineStrike());
+  if (options.includeBaselineStrike !== false) {
+    unit.abilities.addAbility(createBaselineStrike());
+  }
   applyBaselineTemplate(unit, template);
   unit.updateDerivedStats();
 
@@ -379,6 +387,7 @@ export function runCreationBattleDuel({
   productType,
   materials,
   seed = 1,
+  requestedTags,
   requestedSlot,
   baselineTemplate = 'mirror',
 }: CreationBattleDuelInput): CreationBattleDuelResult | undefined {
@@ -388,7 +397,12 @@ export function runCreationBattleDuel({
     let engine: BattleEngineV5 | undefined;
 
     try {
-      const outcome = runPipeline(productType, materials, requestedSlot);
+      const outcome = runPipeline(
+        productType,
+        materials,
+        requestedTags,
+        requestedSlot,
+      );
       if (!outcome) {
         return undefined;
       }
@@ -397,6 +411,11 @@ export function runCreationBattleDuel({
         'challenger',
         '试锋者',
         baselineTemplate,
+        {
+          // Active-skill benchmarks should evaluate the crafted skill itself,
+          // not the crafted skill stacked on top of the helper strike.
+          includeBaselineStrike: productType !== 'skill',
+        },
       );
       const defender = createSparringUnit('defender', '守关人', baselineTemplate);
 

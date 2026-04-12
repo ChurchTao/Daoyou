@@ -3,7 +3,10 @@ import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/c
 import { projectAbilityConfig } from '@/engine/creation-v2/models';
 import { CompositionRuleSet } from '@/engine/creation-v2/rules/composition/CompositionRuleSet';
 import type { CompositionFacts } from '@/engine/creation-v2/rules/contracts/CompositionFacts';
-import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import {
+  DEFAULT_AFFIX_REGISTRY,
+  flattenAffixMatcherTags,
+} from '@/engine/creation-v2/affixes';
 import { CreationError } from '@/engine/creation-v2/errors';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
 import type { RolledAffix } from '@/engine/creation-v2/types';
@@ -21,7 +24,8 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     isPerfect: false,
     effectTemplate: def.effectTemplate,
     weight: def.weight,
-    tags: def.tagQuery,
+    match: def.match,
+    tags: flattenAffixMatcherTags(def.match),
     runtimeSemantics: def.runtimeSemantics,
     exclusiveGroup: def.exclusiveGroup,
   };

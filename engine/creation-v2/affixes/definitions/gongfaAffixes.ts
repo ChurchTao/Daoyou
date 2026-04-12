@@ -6,11 +6,15 @@
  * - 映射为AbilityConfig.modifiers或listeners
  */
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
-import { ELEMENT_TO_ABILITY_TAG, ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { type AbilityRuntimeSemantics, CreationTags } from '@/engine/shared/tag-domain';
-import { GameplayTags } from '@/engine/shared/tag-domain';
+import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
+import {
+  type AbilityRuntimeSemantics,
+  CreationTags,
+  ELEMENT_TO_RUNTIME_ABILITY_TAG,
+  GameplayTags,
+} from '@/engine/shared/tag-domain';
 import { AttributeType, ModifierType, BuffType, StackRule } from '../../contracts/battle';
-import { AffixDefinition } from '../types';
+import { AffixDefinition, matchAll } from '../types';
 
 const PASSIVE_RUNTIME_SEMANTICS: AbilityRuntimeSemantics = {
   kind: 'passive',
@@ -26,11 +30,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '玄悟明台',
     displayDescription: '玄品功法核心，悟性显著提升以强化法门理解',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_MANUAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 46,
     energyCost: 10,
@@ -51,11 +55,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '天心悟道',
     displayDescription: '真品功法核心，悟性进入高阶通明境界',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 18,
     energyCost: 12,
@@ -76,11 +80,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '大衍通明',
     displayDescription: '地品功法核心，悟性足以明显抬升技能质量天花板',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 6,
     energyCost: 14,
@@ -101,11 +105,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '玄心镇岳',
     displayDescription: '玄品功法核心，意志力显著提升以稳定对抗节奏',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 44,
     energyCost: 10,
@@ -126,11 +130,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '天命不屈',
     displayDescription: '真品功法核心，意志强度进入高阶压制区间',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 17,
     energyCost: 12,
@@ -151,11 +155,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '万劫不移',
     displayDescription: '地品功法核心，意志属性形成显著韧性质变',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 6,
     energyCost: 14,
@@ -176,11 +180,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '御风踏影',
     displayDescription: '玄品功法核心，身法提升进入可感知机动档位',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_WIND,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.TYPE_MONSTER,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 42,
     energyCost: 10,
@@ -201,11 +205,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '天行无迹',
     displayDescription: '真品功法核心，身法提升足以明显改变出手节奏',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_WIND,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 16,
     energyCost: 12,
@@ -226,11 +230,11 @@ const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
     displayName: '遁空绝尘',
     displayDescription: '地品功法核心，身法属性形成明显先手与节奏优势',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_WIND,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 5,
     energyCost: 14,
@@ -321,11 +325,11 @@ const GONGFA_ELEMENT_SPECIALIZATION_AFFIXES: AffixDefinition[] =
     displayName: config.displayName,
     displayDescription: config.displayDescription,
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       config.semanticTag,
       ELEMENT_TO_MATERIAL_TAG[config.element],
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ],
+    ]),
     weight: config.weight,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -335,7 +339,7 @@ const GONGFA_ELEMENT_SPECIALIZATION_AFFIXES: AffixDefinition[] =
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_ABILITY_TAG[config.element] },
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG[config.element] },
         },
       ],
       params: {
@@ -360,7 +364,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '灵脉运转',
     displayDescription: '战斗中永久提升灵力属性',
     category: 'core',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_HERB],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_HERB]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 100,
     energyCost: 8,
@@ -380,7 +384,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '金刚体魄',
     displayDescription: '战斗中永久提升体魄属性',
     category: 'core',
-    tagQuery: [CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.TYPE_HERB],
+    match: matchAll([CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.TYPE_HERB]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 95,
     energyCost: 8,
@@ -400,11 +404,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '悟道明心',
     displayDescription: '战斗中永久提升悟性属性',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_MANUAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 88,
     energyCost: 8,
@@ -424,7 +428,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '心志如磐',
     displayDescription: '战斗中永久提升意志力属性',
     category: 'core',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.TYPE_MANUAL],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.TYPE_MANUAL]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 80,
     energyCost: 8,
@@ -444,7 +448,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '身法精进',
     displayDescription: '战斗中永久提升身法',
     category: 'core',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 55,
     energyCost: 8,
@@ -468,7 +472,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '破虚一剑',
     displayDescription: '战斗中永久提升暴击伤害倍率',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER]),
     exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
     weight: 85,
     energyCost: 6,
@@ -488,7 +492,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '生生不息',
     displayDescription: '战斗中永久提升治疗增强',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB]),
     exclusiveGroup: 'gongfa-prefix-heal-tier',
     weight: 80,
     energyCost: 6,
@@ -508,7 +512,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '金蝉反震',
     displayDescription: '受创后小幅反震伤害',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE]),
     weight: 68,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -533,7 +537,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '灵府护幕',
     displayDescription: '受击时以灵力抵消部分伤害',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL]),
     weight: 65,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -555,7 +559,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '鬼魅身法',
     displayDescription: '战斗中永久提升闪避率',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
     weight: 62,
     energyCost: 6,
     applicableTo: ['gongfa'],
@@ -574,7 +578,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '法穿神通',
     displayDescription: '战斗中永久提升法术穿透',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST]),
     weight: 58,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -593,7 +597,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '状态持延',
     displayDescription: '己方buff持续时间延长',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_MANUAL],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_MANUAL]),
     weight: 50,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -644,7 +648,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '冰心诀',
     displayDescription: '减少冰系技能造成的伤害',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_FREEZE, ELEMENT_TO_MATERIAL_TAG['冰']],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FREEZE, ELEMENT_TO_MATERIAL_TAG['冰']]),
     weight: 48,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -654,7 +658,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_ABILITY_TAG['冰'] },
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['冰'] },
         },
       ],
       params: {
@@ -674,7 +678,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '炎阳决',
     displayDescription: '减少火系技能造成的伤害',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']]),
     weight: 46,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -684,7 +688,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_ABILITY_TAG['火'] },
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['火'] },
         },
       ],
       params: {
@@ -704,7 +708,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '雷心闭合',
     displayDescription: '减少雷系技能造成的伤害',
     category: 'prefix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_THUNDER, ELEMENT_TO_MATERIAL_TAG['雷']],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_THUNDER, ELEMENT_TO_MATERIAL_TAG['雷']]),
     weight: 44,
     energyCost: 7,
     applicableTo: ['gongfa'],
@@ -714,7 +718,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_ABILITY_TAG['雷'] },
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['雷'] },
         },
       ],
       params: {
@@ -735,10 +739,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '寒痕破诀',
     displayDescription: '仅在目标冰缓时触发法伤增幅',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-    ],
+    ]),
     weight: 40,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -769,11 +773,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '吐纳归元',
     displayDescription: '每回合开始时恢复气血',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_HERB,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-round-heal-tier',
     weight: 80,
     energyCost: 8,
@@ -804,7 +808,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '归元汲气',
     displayDescription: '造成伤害后恢复灵力',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST]),
     weight: 75,
     energyCost: 9,
     applicableTo: ['gongfa'],
@@ -828,7 +832,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '周天回转',
     displayDescription: '施法后缩短自身其余技能冷却',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_WIND],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_WIND]),
     weight: 70,
     energyCost: 9,
     applicableTo: ['gongfa'],
@@ -854,7 +858,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '生命泉眼',
     displayDescription: '每回合恢复额外气血',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB]),
     weight: 68,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -884,7 +888,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '金刚护体',
     displayDescription: '受击时减免一部分伤害',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE]),
     weight: 65,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -908,7 +912,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '吸血决',
     displayDescription: '造成伤害后吸收部分气血',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN]),
     exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
     weight: 60,
     energyCost: 9,
@@ -933,7 +937,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '净化灵气',
     displayDescription: '每回合自动解除一层debuff',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL]),
     weight: 58,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -960,7 +964,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '护体光环',
     displayDescription: '持续维持一个护盾',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
     weight: 55,
     energyCost: 9,
     applicableTo: ['gongfa'],
@@ -990,7 +994,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '绝杀意念',
     displayDescription: '对低血量目标造成额外伤害',
     category: 'suffix',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_BURST],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST]),
     weight: 50,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -1015,10 +1019,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '盈海断流',
     displayDescription: '仅在目标高蓝时触发蚀元压制',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ],
+    ]),
     weight: 39,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -1049,7 +1053,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '治疗循环',
     displayDescription: '治疗效果与防御能力相互增幅',
     category: 'resonance',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_GUARD],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_GUARD]),
     weight: 55,
     energyCost: 11,
     applicableTo: ['gongfa'],
@@ -1079,7 +1083,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '灵力流动',
     displayDescription: '灵力恢复与消耗相互补衡',
     category: 'resonance',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_SUSTAIN]),
     weight: 52,
     energyCost: 11,
     applicableTo: ['gongfa'],
@@ -1138,11 +1142,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '伤害衰减',
     displayDescription: '多个防御机制叠加衰减伤害',
     category: 'resonance',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ],
+    ]),
     weight: 48,
     energyCost: 11,
     applicableTo: ['gongfa'],
@@ -1166,11 +1170,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '五行掌控',
     displayDescription: '元素技能造成的伤害相互强化',
     category: 'resonance',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_FLAME,
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
-    ],
+    ]),
     weight: 45,
     energyCost: 11,
     applicableTo: ['gongfa'],
@@ -1200,10 +1204,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '先机极境',
     displayDescription: '仅在目标高血时触发先手压制增伤',
     category: 'resonance',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-    ],
+    ]),
     weight: 37,
     energyCost: 11,
     applicableTo: ['gongfa'],
@@ -1232,11 +1236,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '完美平衡',
     displayDescription: '所有属性均衡提升，产生协同效应',
     category: 'synergy',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ],
+    ]),
     weight: 50,
     energyCost: 12,
     applicableTo: ['gongfa'],
@@ -1255,11 +1259,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '不灭守护',
     displayDescription: '治疗、防御、吸取三者相互强化',
     category: 'synergy',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-    ],
+    ]),
     weight: 47,
     energyCost: 12,
     applicableTo: ['gongfa'],
@@ -1289,11 +1293,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '浩荡之力',
     displayDescription: '攻防一体，伤害与吸取相互驱动',
     category: 'synergy',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
-    ],
+    ]),
     weight: 44,
     energyCost: 12,
     applicableTo: ['gongfa'],
@@ -1317,10 +1321,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '危机逆转',
     displayDescription: '仅在低血时触发的恢复与韧性强化',
     category: 'synergy',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ],
+    ]),
     weight: 40,
     energyCost: 12,
     applicableTo: ['gongfa'],
@@ -1351,10 +1355,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '空海折锋',
     displayDescription: '仅在目标低蓝时触发的额外伤害压制',
     category: 'synergy',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ],
+    ]),
     weight: 38,
     energyCost: 12,
     applicableTo: ['gongfa'],
@@ -1383,7 +1387,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '天道感悟',
     displayDescription: '感悟天道，大幅提升悟性（百分比）',
     category: 'signature',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
     exclusiveGroup: 'gongfa-signature-ultimate',
     weight: 28,
     energyCost: 13,
@@ -1404,7 +1408,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '万念不染',
     displayDescription: '解脱束缚，增强所有属性',
     category: 'signature',
-    tagQuery: [CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.TYPE_SPECIAL],
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.TYPE_SPECIAL]),
     exclusiveGroup: 'gongfa-signature-ultimate',
     weight: 25,
     energyCost: 14,
@@ -1453,11 +1457,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '永恒凤凰',
     displayDescription: '战斗中不断重生与回复，越战越强',
     category: 'signature',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.SEMANTIC_FLAME,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-signature-ultimate',
     weight: 22,
     energyCost: 15,
@@ -1494,11 +1498,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '太虚无相',
     displayDescription: '濒危时短暂屏退万法，概率免疫法术型伤害',
     category: 'mythic',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-mythic-transcendent',
     weight: 7,
     energyCost: 18,
@@ -1526,11 +1530,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '飞升大道',
     displayDescription: '功法达到超越凡俗的境界，所有属性与效果指数增长',
     category: 'mythic',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-mythic-transcendent',
     weight: 8,
     energyCost: 18,
@@ -1585,11 +1589,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '玄脉凝灵',
     displayDescription: '玄灵脉道运转，灵力大幅提升',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_HERB,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 52,
     energyCost: 10,
@@ -1612,10 +1616,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '太玄灵脉极境',
     displayDescription: '真灵凝聚，灵力之境超凡脱俗',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 22,
     energyCost: 12,
@@ -1638,10 +1642,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '地劫灵源真体',
     displayDescription: '地阶材料炼就，灵力化为本体，触之冥化万灵',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 7,
     energyCost: 14,
@@ -1664,11 +1668,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '玄铁金刚体',
     displayDescription: '玄铁淬炼，体魄大幅强化',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.TYPE_HERB,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 48,
     energyCost: 10,
@@ -1691,11 +1695,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '万古金刚不坏神功',
     displayDescription: '真品铸就不坏之躯，体魄强健令寻常伤害毫无用处',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 20,
     energyCost: 12,
@@ -1719,11 +1723,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '玄空极刺',
     displayDescription: '玄空合一，每次暴击威力倍增',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.TYPE_MONSTER,
       CreationTags.MATERIAL.SEMANTIC_BURST,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
     weight: 50,
     energyCost: 8,
@@ -1746,10 +1750,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '天裂一击',
     displayDescription: '真灵暴击无双，每次暴击都能造成灭天之力',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
     weight: 18,
     energyCost: 10,
@@ -1772,11 +1776,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '玄灵再生',
     displayDescription: '玄级治疗增幅，术法治疗效果倍增',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_HERB,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-prefix-heal-tier',
     weight: 46,
     energyCost: 8,
@@ -1799,10 +1803,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '渡厄春暖',
     displayDescription: '真灵春泽，治疗效果突破极限，令重伤迅速痊愈',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-prefix-heal-tier',
     weight: 17,
     energyCost: 10,
@@ -1825,11 +1829,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '玄气吐纳',
     displayDescription: '玄级吐纳功法，每回合大量恢复气血',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_HERB,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-round-heal-tier',
     weight: 44,
     energyCost: 10,
@@ -1863,11 +1867,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '元气周天归一',
     displayDescription: '真灵周天圆融，每回合气血大量恢复，几近不死',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-round-heal-tier',
     weight: 15,
     energyCost: 12,
@@ -1901,11 +1905,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '玄吸决',
     displayDescription: '玄级吸血功法，造成伤害后大量回复气血',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_MONSTER,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
     weight: 40,
     energyCost: 11,
@@ -1933,11 +1937,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '天噬归元神功',
     displayDescription: '真灵汲取，造成伤害时回复大量气血，战场上几乎无法耗尽',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
     weight: 15,
     energyCost: 13,
@@ -1965,11 +1969,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '天道不死神功',
     displayDescription: '天品功法，每回合恢复大量气血',
     category: 'signature',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-heaven-tier',
     weight: 3,
     energyCost: 15,
@@ -2003,11 +2007,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '万法归一',
     displayDescription: '天品功法，每次命中积累领悟层数，持续强化全属性',
     category: 'mythic',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-heaven-tier',
     weight: 2,
     energyCost: 16,
@@ -2047,11 +2051,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '大道无极功',
     displayDescription: '仙品至高功法，战斗中灵力全属性大幅提升',
     category: 'mythic',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_DIVINE,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-immortal-tier',
     weight: 1,
     energyCost: 18,
@@ -2073,11 +2077,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '地劫金刚极境',
     displayDescription: '地阶材料淬炼，体魄化为金刚，寻常伤害形同虚设',
     category: 'core',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.TYPE_ORE,
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-core-stat',
     weight: 7,
     energyCost: 14,
@@ -2100,10 +2104,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '灭世一击',
     displayDescription: '地阶必杀极意，暴击如同天地崩裂，敌无幸免',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BLADE,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
     weight: 4,
     energyCost: 12,
@@ -2126,10 +2130,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '天道慈悲',
     displayDescription: '地阶慈悲大法，治疗效果极境，伤势几乎无法影响持有者',
     category: 'prefix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-prefix-heal-tier',
     weight: 4,
     energyCost: 12,
@@ -2152,11 +2156,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '不死神功·完',
     displayDescription: '地阶不死神功，每回合恢复气血量令对手绝望',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-round-heal-tier',
     weight: 4,
     energyCost: 14,
@@ -2190,11 +2194,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayName: '乾坤汲源',
     displayDescription: '地阶乾坤之力，每次出手吸取目标大量气血，令对手精力耗竭',
     category: 'suffix',
-    tagQuery: [
+    match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.TYPE_SPECIAL,
-    ],
+    ]),
     exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
     weight: 4,
     energyCost: 15,

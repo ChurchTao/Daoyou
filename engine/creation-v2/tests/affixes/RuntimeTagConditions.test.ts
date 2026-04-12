@@ -2,6 +2,10 @@ import { GameplayTags } from '@/engine/shared/tag-domain';
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import {
+  collectAffixMatcherReferencedTags,
+  flattenAffixMatcherTags,
+} from '@/engine/creation-v2/affixes';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { RolledAffix } from '@/engine/creation-v2/types';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
@@ -19,12 +23,13 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     isPerfect: false,
     effectTemplate: def.effectTemplate,
     weight: def.weight,
-    tags: def.tagQuery,
+    match: def.match,
+    tags: flattenAffixMatcherTags(def.match),
     exclusiveGroup: def.exclusiveGroup,
   };
 }
 
-describe('creation-v2 affix tagQuery contract', () => {
+describe('creation-v2 affix match contract', () => {
   const translator = new AffixEffectTranslator();
 
   it('queryByTags 应仅依赖静态筛选标签，避免候选池不可达', () => {
@@ -42,9 +47,9 @@ describe('creation-v2 affix tagQuery contract', () => {
     );
   });
 
-  it('tagQuery 不应再包含运行时派生标签', () => {
+  it('match 不应再包含运行时派生标签', () => {
     const offenders = DEFAULT_AFFIX_REGISTRY.getAll().filter((def) =>
-      def.tagQuery.some(
+      collectAffixMatcherReferencedTags(def.match).some(
         (tag) =>
           tag.startsWith('Condition.') ||
           tag.startsWith('Trait.') ||

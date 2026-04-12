@@ -1,5 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
-import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import {
+  DEFAULT_AFFIX_REGISTRY,
+  flattenAffixMatcherTags,
+} from '@/engine/creation-v2/affixes';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
 import { AttributeType, BuffType } from '@/engine/creation-v2/contracts/battle';
@@ -19,7 +22,8 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
     isPerfect: false,
     effectTemplate: def.effectTemplate,
     weight: def.weight,
-    tags: def.tagQuery,
+    match: def.match,
+    tags: flattenAffixMatcherTags(def.match),
     runtimeSemantics: def.runtimeSemantics,
     exclusiveGroup: def.exclusiveGroup,
   };
@@ -119,6 +123,7 @@ describe('AbilityTagAssembler', () => {
     });
 
     expect(tags).toContain(GameplayTags.ABILITY.FUNCTION.HEAL);
+    expect(tags).toContain(GameplayTags.ABILITY.KIND.SKILL);
     expect(tags).not.toContain(GameplayTags.ABILITY.FUNCTION.DAMAGE);
   });
 
@@ -137,7 +142,36 @@ describe('AbilityTagAssembler', () => {
     });
 
     expect(tags).toContain(GameplayTags.ABILITY.FUNCTION.CONTROL);
+    expect(tags).toContain(GameplayTags.ABILITY.KIND.SKILL);
     expect(tags).not.toContain(GameplayTags.ABILITY.FUNCTION.DAMAGE);
+  });
+
+  it('应在 creation 投影阶段拒绝 mixed damage channels', () => {
+    expect(() =>
+      assembleAbilityTags({
+        productType: 'skill',
+        effects: [
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 18,
+                attribute: AttributeType.ATK,
+              },
+            },
+          },
+          {
+            type: 'damage',
+            params: {
+              value: {
+                base: 18,
+                attribute: AttributeType.MAGIC_ATK,
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow('ability projection cannot mix multiple damage channels');
   });
 
   it('应让 artifact 核心经 runtimeSemantics 投影出 passive 与 artifact kind', () => {

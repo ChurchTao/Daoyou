@@ -16,6 +16,7 @@ import {
 import { StackRule } from '../contracts/battle';
 import { EquipmentSlot, Quality } from '@/types/constants';
 import type { AbilityRuntimeSemantics } from '@/engine/shared/tag-domain';
+import type { CreationTagSignalSource } from '../types';
 import { AffixCategory, CreationProductType } from '../types';
 
 // ===== 品质缩放值 =====
@@ -168,6 +169,59 @@ export interface AffixListenerSpec {
   guard?: ListenerGuardConfig;
 }
 
+export interface AffixTagMatchGroup {
+  all?: string[];
+  any?: string[];
+  none?: string[];
+}
+
+export interface AffixTagMatcher extends AffixTagMatchGroup {
+  sources?: Partial<Record<CreationTagSignalSource, AffixTagMatchGroup>>;
+}
+
+export function matchAll(tags: string[]): AffixTagMatcher {
+  return tags.length > 0 ? { all: tags } : {};
+}
+
+export function matchAny(tags: string[]): AffixTagMatcher {
+  return tags.length > 0 ? { any: tags } : {};
+}
+
+export function matchNone(tags: string[]): AffixTagMatcher {
+  return tags.length > 0 ? { none: tags } : {};
+}
+
+export function flattenAffixMatcherTags(match: AffixTagMatcher): string[] {
+  const tags = new Set<string>();
+
+  const collectPositiveTags = (group?: AffixTagMatchGroup) => {
+    group?.all?.forEach((tag) => tags.add(tag));
+    group?.any?.forEach((tag) => tags.add(tag));
+  };
+
+  collectPositiveTags(match);
+  Object.values(match.sources ?? {}).forEach((group) => collectPositiveTags(group));
+
+  return Array.from(tags);
+}
+
+export function collectAffixMatcherReferencedTags(
+  match: AffixTagMatcher,
+): string[] {
+  const tags = new Set<string>();
+
+  const collectAllTags = (group?: AffixTagMatchGroup) => {
+    group?.all?.forEach((tag) => tags.add(tag));
+    group?.any?.forEach((tag) => tags.add(tag));
+    group?.none?.forEach((tag) => tags.add(tag));
+  };
+
+  collectAllTags(match);
+  Object.values(match.sources ?? {}).forEach((group) => collectAllTags(group));
+
+  return Array.from(tags);
+}
+
 // ===== 词缀定义 =====
 
 export interface AffixDefinition {
@@ -177,9 +231,9 @@ export interface AffixDefinition {
   /** 词缀类型，对应配方解锁阈值 */
   category: AffixCategory;
   /**
-   * OR 语义：session.tags 中命中任意一条 tagQuery 即可进入候选池
+    * 结构化静态匹配语义：由 affix 自身声明入池所需的材料/意图标签条件。
    */
-  tagQuery: string[];
+    match: AffixTagMatcher;
   /** 同一 exclusiveGroup 只会抽中一个词缀 */
   exclusiveGroup?: string;
   /** 加权抽签权重（越大越容易被抽中） */
