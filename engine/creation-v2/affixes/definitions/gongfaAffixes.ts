@@ -22,8 +22,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-core-spirit',
-    displayName: '灵脉运转',
-    displayDescription: '战斗中永久提升灵力属性',
+    displayName: '灵力强化',
+    displayDescription: '战斗中永久提升灵力，法术收益更高',
     category: 'core',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_HERB]),
     exclusiveGroup: 'gongfa-core-stat',
@@ -41,8 +41,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-core-vitality',
-    displayName: '金刚体魄',
-    displayDescription: '战斗中永久提升体魄属性',
+    displayName: '体魄强化',
+    displayDescription: '战斗中永久提升体魄，生存更稳',
     category: 'core',
     match: matchAll([CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.TYPE_HERB]),
     exclusiveGroup: 'gongfa-core-stat',
@@ -60,8 +60,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-core-wisdom',
-    displayName: '悟道明心',
-    displayDescription: '战斗中永久提升悟性属性',
+    displayName: '悟性强化',
+    displayDescription: '战斗中永久提升悟性，术法发挥更稳定',
     category: 'core',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
@@ -83,8 +83,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-core-willpower',
-    displayName: '心志如磐',
-    displayDescription: '战斗中永久提升意志力属性',
+    displayName: '意志强化',
+    displayDescription: '战斗中永久提升意志，抗控更强',
     category: 'core',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.TYPE_MANUAL]),
     exclusiveGroup: 'gongfa-core-stat',
@@ -102,8 +102,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-core-speed-mastery',
-    displayName: '身法精进',
-    displayDescription: '战斗中永久提升身法',
+    displayName: '速度强化',
+    displayDescription: '战斗中永久提升速度，先手更容易',
     category: 'core',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
     exclusiveGroup: 'gongfa-core-stat',
@@ -125,11 +125,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-prefix-crit-damage',
-    displayName: '破虚一剑',
+    displayName: '暴伤强化',
     displayDescription: '战斗中永久提升暴击伤害倍率',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER]),
-    exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
+    exclusiveGroup: 'gongfa-prefix-crit-dmg',
     weight: 85,
     energyCost: 6,
     applicableTo: ['gongfa'],
@@ -144,11 +144,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-heal-amplify',
-    displayName: '生生不息',
-    displayDescription: '战斗中永久提升治疗增强',
+    displayName: '治疗强化',
+    displayDescription: '战斗中永久提升治疗增幅',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB]),
-    exclusiveGroup: 'gongfa-prefix-heal-tier',
+    exclusiveGroup: 'gongfa-prefix-heal',
     weight: 80,
     energyCost: 6,
     applicableTo: ['gongfa'],
@@ -163,8 +163,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-reflect-skin',
-    displayName: '金蝉反震',
-    displayDescription: '受创后小幅反震伤害',
+    displayName: '受击反伤',
+    displayDescription: '受击后小幅反震伤害给敌人',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE]),
     weight: 68,
@@ -188,7 +188,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-magic-shield',
-    displayName: '灵府护幕',
+    displayName: '法力护幕',
     displayDescription: '受击时以灵力抵消部分伤害',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL]),
@@ -209,7 +209,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-evasion-master',
-    displayName: '鬼魅身法',
+    displayName: '闪避强化',
     displayDescription: '战斗中永久提升闪避率',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
@@ -245,7 +245,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-buff-sustain',
-    displayName: '状态持延',
+    displayName: '增益延长',
     displayDescription: '己方buff持续时间延长',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_MANUAL]),
@@ -295,7 +295,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-cold-resistance',
-    displayName: '冰心诀',
+    displayName: '冰伤减免',
     displayDescription: '减少冰系技能造成的伤害',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_FREEZE, ELEMENT_TO_MATERIAL_TAG['冰']]),
@@ -324,7 +324,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-fire-resistance',
-    displayName: '炎阳决',
+    displayName: '火伤减免',
     displayDescription: '减少火系技能造成的伤害',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']]),
@@ -353,7 +353,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-thunder-resistance',
-    displayName: '雷心闭合',
+    displayName: '雷伤减免',
     displayDescription: '减少雷系技能造成的伤害',
     category: 'prefix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_THUNDER, ELEMENT_TO_MATERIAL_TAG['雷']]),
@@ -382,8 +382,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-prefix-chill-breaker',
-    displayName: '寒痕破诀',
-    displayDescription: '仅在目标冰缓时触发法伤增幅',
+    displayName: '冰缓追击',
+    displayDescription: '仅在目标冰缓时触发额外增伤',
     category: 'prefix',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_FREEZE,
@@ -415,7 +415,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-suffix-round-heal',
-    displayName: '吐纳归元',
+    displayName: '回合回血',
     displayDescription: '每回合开始时恢复气血',
     category: 'suffix',
     match: matchAll([
@@ -423,7 +423,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       CreationTags.MATERIAL.TYPE_HERB,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
     ]),
-    exclusiveGroup: 'gongfa-suffix-round-heal-tier',
+    exclusiveGroup: 'gongfa-suffix-round-heal',
     weight: 80,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -450,7 +450,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-mp-siphon',
-    displayName: '归元汲气',
+    displayName: '伤害回蓝',
     displayDescription: '造成伤害后恢复灵力',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST]),
@@ -474,7 +474,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-self-haste',
-    displayName: '周天回转',
+    displayName: '施法加速',
     displayDescription: '施法后缩短自身其余技能冷却',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_WIND]),
@@ -499,7 +499,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-hp-recovery',
-    displayName: '生命泉眼',
+    displayName: '持续回血',
     displayDescription: '每回合恢复额外气血',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB]),
@@ -529,7 +529,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-armor-up',
-    displayName: '金刚护体',
+    displayName: '受击减伤',
     displayDescription: '受击时减免一部分伤害',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE]),
@@ -552,11 +552,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-lifesteal-passive',
-    displayName: '吸血决',
+    displayName: '伤害吸血',
     displayDescription: '造成伤害后吸收部分气血',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN]),
-    exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
+    exclusiveGroup: 'gongfa-suffix-lifesteal',
     weight: 60,
     energyCost: 9,
     applicableTo: ['gongfa'],
@@ -577,8 +577,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-debuff-cleanse',
-    displayName: '净化灵气',
-    displayDescription: '每回合自动解除一层debuff',
+    displayName: '回合驱散',
+    displayDescription: '每回合自动解除一层减益',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MANUAL]),
     weight: 58,
@@ -603,7 +603,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-shield-passive',
-    displayName: '护体光环',
+    displayName: '持续护盾',
     displayDescription: '持续维持一个护盾',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
@@ -633,7 +633,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-execution-passive',
-    displayName: '绝杀意念',
+    displayName: '低血斩杀',
     displayDescription: '对低血量目标造成额外伤害',
     category: 'suffix',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST]),
@@ -657,8 +657,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-suffix-overflow-punish',
-    displayName: '盈海断流',
-    displayDescription: '仅在目标高蓝时触发蚀元压制',
+    displayName: '高蓝燃灵',
+    displayDescription: '仅在目标高法力时触发燃灵压制',
     category: 'suffix',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
@@ -691,7 +691,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-resonance-healing-loop',
-    displayName: '治疗循环',
+    displayName: '治疗共鸣',
     displayDescription: '治疗效果与防御能力相互增幅',
     category: 'resonance',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_GUARD]),
@@ -721,7 +721,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-resonance-spirit-flow',
-    displayName: '灵力流动',
+    displayName: '灵力共鸣',
     displayDescription: '灵力恢复与消耗相互补衡',
     category: 'resonance',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_SUSTAIN]),
@@ -779,7 +779,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-resonance-damage-reduction',
-    displayName: '伤害衰减',
+    displayName: '减伤共鸣',
     displayDescription: '多个防御机制叠加衰减伤害',
     category: 'resonance',
     match: matchAll([
@@ -806,7 +806,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-resonance-elemental-mastery',
-    displayName: '五行掌控',
+    displayName: '元素共鸣',
     displayDescription: '元素技能造成的伤害相互强化',
     category: 'resonance',
     match: matchAll([
@@ -839,7 +839,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-resonance-opening-zenith',
-    displayName: '先机极境',
+    displayName: '开局压制',
     displayDescription: '仅在目标高血时触发先手压制增伤',
     category: 'resonance',
     match: matchAll([
@@ -870,7 +870,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-synergy-perfect-balance',
-    displayName: '完美平衡',
+    displayName: '均衡同修',
     displayDescription: '所有属性均衡提升，产生协同效应',
     category: 'synergy',
     match: matchAll([
@@ -892,7 +892,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-synergy-immortal-guardian',
-    displayName: '不灭守护',
+    displayName: '生存联动',
     displayDescription: '治疗、防御、吸取三者相互强化',
     category: 'synergy',
     match: matchAll([
@@ -926,7 +926,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-synergy-unstoppable-force',
-    displayName: '浩荡之力',
+    displayName: '攻防联动',
     displayDescription: '攻防一体，伤害与吸取相互驱动',
     category: 'synergy',
     match: matchAll([
@@ -953,7 +953,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-synergy-crisis-reversal',
-    displayName: '危机逆转',
+    displayName: '残血回稳',
     displayDescription: '仅在低血时触发的恢复与韧性强化',
     category: 'synergy',
     match: matchAll([
@@ -987,7 +987,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-synergy-empty-sea-break',
-    displayName: '空海折锋',
+    displayName: '低蓝压制',
     displayDescription: '仅在目标低蓝时触发的额外伤害压制',
     category: 'synergy',
     match: matchAll([
@@ -1018,7 +1018,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-signature-comprehension',
-    displayName: '天道感悟',
+    displayName: '悟道加持',
     displayDescription: '感悟天道，大幅提升悟性（百分比）',
     category: 'signature',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
@@ -1038,7 +1038,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-signature-unbound-mind',
-    displayName: '万念不染',
+    displayName: '无念加持',
     displayDescription: '解脱束缚，增强所有属性',
     category: 'signature',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.TYPE_SPECIAL]),
@@ -1086,7 +1086,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-signature-eternal-phoenix',
-    displayName: '永恒凤凰',
+    displayName: '浴火回春',
     displayDescription: '战斗中不断重生与回复，越战越强',
     category: 'signature',
     match: matchAll([
@@ -1127,8 +1127,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   {
     id: 'gongfa-mythic-void-aegis',
-    displayName: '太虚无相',
-    displayDescription: '濒危时短暂屏退万法，概率免疫法术型伤害',
+    displayName: '濒危法免',
+    displayDescription: '血量危险时有概率免疫法术伤害',
     category: 'mythic',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
@@ -1158,8 +1158,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-mythic-ascension',
-    displayName: '飞升大道',
-    displayDescription: '功法达到超越凡俗的境界，所有属性与效果指数增长',
+    displayName: '飞升增幅',
+    displayDescription: '高阶增幅词条，稳定提升关键属性',
     category: 'mythic',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
@@ -1206,137 +1206,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       mapping: {
         caster: 'owner',
         target: 'owner',
-      },
-    },
-  },
-  // ========================
-  // ===== 强度分层扩充 T2 / T3 / T4 + 天品仙品专属
-  // ========================
-
-  // --- 核心灵力 T2（玄品+，exclusiveGroup: gongfa-core-stat）---
-  {
-    id: 'gongfa-core-spirit-t2',
-    displayName: '玄脉凝灵',
-    displayDescription: '玄灵脉道运转，灵力大幅提升',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 52,
-    energyCost: 10,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPIRIT,
-        modType: ModifierType.FIXED,
-        value: { base: 8, scale: 'quality', coefficient: 3 },
-      },
-    },
-  },
-
-  // --- 核心灵力 T3（真品+，exclusiveGroup: gongfa-core-stat）---
-  {
-    id: 'gongfa-core-spirit-t3',
-    displayName: '太玄灵脉极境',
-    displayDescription: '真灵凝聚，灵力之境超凡脱俗',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 22,
-    energyCost: 12,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPIRIT,
-        modType: ModifierType.FIXED,
-        value: { base: 13, scale: 'quality', coefficient: 5 },
-      },
-    },
-  },
-
-  // --- 核心灵力 T4（地品+，exclusiveGroup: gongfa-core-stat）---
-  {
-    id: 'gongfa-core-spirit-t4',
-    displayName: '地劫灵源真体',
-    displayDescription: '地阶材料炼就，灵力化为本体，触之冥化万灵',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 7,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPIRIT,
-        modType: ModifierType.FIXED,
-        value: { base: 21, scale: 'quality', coefficient: 8 },
-      },
-    },
-  },
-
-  // --- 核心体魄 T2（玄品+，exclusiveGroup: gongfa-core-stat）---
-  {
-    id: 'gongfa-core-vitality-t2',
-    displayName: '玄铁金刚体',
-    displayDescription: '玄铁淬炼，体魄大幅强化',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.TYPE_ORE,
-      CreationTags.MATERIAL.TYPE_HERB,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 48,
-    energyCost: 10,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.VITALITY,
-        modType: ModifierType.FIXED,
-        value: { base: 8, scale: 'quality', coefficient: 3 },
-      },
-    },
-  },
-
-  // --- 核心体魄 T3（真品+，exclusiveGroup: gongfa-core-stat）---
-  {
-    id: 'gongfa-core-vitality-t3',
-    displayName: '万古金刚不坏神功',
-    displayDescription: '真品铸就不坏之躯，体魄强健令寻常伤害毫无用处',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.TYPE_ORE,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 20,
-    energyCost: 12,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.VITALITY,
-        modType: ModifierType.FIXED,
-        value: { base: 13, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -1606,497 +1475,4 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 前缀暴击伤害 T2（玄品+，exclusiveGroup: gongfa-prefix-crit-dmg-tier）---
-  {
-    id: 'gongfa-prefix-crit-damage-t2',
-    displayName: '玄空极刺',
-    displayDescription: '玄空合一，每次暴击威力倍增',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_MONSTER,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
-    weight: 50,
-    energyCost: 8,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.CRIT_DAMAGE_MULT,
-        modType: ModifierType.FIXED,
-        value: { base: 0.10, scale: 'quality', coefficient: 0.03 },
-      },
-    },
-  },
-
-  // --- 前缀暴击伤害 T3（真品+，exclusiveGroup: gongfa-prefix-crit-dmg-tier）---
-  {
-    id: 'gongfa-prefix-crit-damage-t3',
-    displayName: '天裂一击',
-    displayDescription: '真灵暴击无双，每次暴击都能造成灭天之力',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
-    weight: 18,
-    energyCost: 10,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.CRIT_DAMAGE_MULT,
-        modType: ModifierType.FIXED,
-        value: { base: 0.16, scale: 'quality', coefficient: 0.05 },
-      },
-    },
-  },
-
-  // --- 前缀治疗增幅 T2（玄品+，exclusiveGroup: gongfa-prefix-heal-tier）---
-  {
-    id: 'gongfa-prefix-heal-amplify-t2',
-    displayName: '玄灵再生',
-    displayDescription: '玄级治疗增幅，术法治疗效果倍增',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_HERB,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    exclusiveGroup: 'gongfa-prefix-heal-tier',
-    weight: 46,
-    energyCost: 8,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.HEAL_AMPLIFY,
-        modType: ModifierType.FIXED,
-        value: { base: 0.10, scale: 'quality', coefficient: 0.03 },
-      },
-    },
-  },
-
-  // --- 前缀治疗增幅 T3（真品+，exclusiveGroup: gongfa-prefix-heal-tier）---
-  {
-    id: 'gongfa-prefix-heal-amplify-t3',
-    displayName: '渡厄春暖',
-    displayDescription: '真灵春泽，治疗效果突破极限，令重伤迅速痊愈',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-prefix-heal-tier',
-    weight: 17,
-    energyCost: 10,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.HEAL_AMPLIFY,
-        modType: ModifierType.FIXED,
-        value: { base: 0.16, scale: 'quality', coefficient: 0.05 },
-      },
-    },
-  },
-
-  // --- 后缀每回合回血 T2（玄品+，exclusiveGroup: gongfa-suffix-round-heal-tier）---
-  {
-    id: 'gongfa-suffix-round-heal-t2',
-    displayName: '玄气吐纳',
-    displayDescription: '玄级吐纳功法，每回合大量恢复气血',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
-    exclusiveGroup: 'gongfa-suffix-round-heal-tier',
-    weight: 44,
-    energyCost: 10,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 16, scale: 'quality', coefficient: 6 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.30,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-
-  // --- 后缀每回合回血 T3（真品+，exclusiveGroup: gongfa-suffix-round-heal-tier）---
-  {
-    id: 'gongfa-suffix-round-heal-t3',
-    displayName: '元气周天归一',
-    displayDescription: '真灵周天圆融，每回合气血大量恢复，几近不死',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-suffix-round-heal-tier',
-    weight: 15,
-    energyCost: 12,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 25, scale: 'quality', coefficient: 9 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.45,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-
-  // --- 后缀吸血 T2（玄品+，exclusiveGroup: gongfa-suffix-lifesteal-tier）---
-  {
-    id: 'gongfa-suffix-lifesteal-t2',
-    displayName: '玄吸决',
-    displayDescription: '玄级吸血功法，造成伤害后大量回复气血',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_MONSTER,
-    ]),
-    exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
-    weight: 40,
-    energyCost: 11,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.15, scale: 'quality', coefficient: 0.03 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-
-  // --- 后缀吸血 T3（真品+，exclusiveGroup: gongfa-suffix-lifesteal-tier）---
-  {
-    id: 'gongfa-suffix-lifesteal-t3',
-    displayName: '天噬归元神功',
-    displayDescription: '真灵汲取，造成伤害时回复大量气血，战场上几乎无法耗尽',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
-    weight: 15,
-    energyCost: 13,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.24, scale: 'quality', coefficient: 0.04 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-
-  // --- 天品专属：天道不死神功（天品+）---
-  {
-    id: 'gongfa-heaven-immortal-body',
-    displayName: '天道不死神功',
-    displayDescription: '天品功法，每回合恢复大量气血',
-    category: 'signature',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-heaven-tier',
-    weight: 3,
-    energyCost: 15,
-    minQuality: '天品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 30, scale: 'quality', coefficient: 12 },
-          attribute: AttributeType.VITALITY,
-          coefficient: 0.50,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-
-  // --- 天品专属：万法归一（天品+，感悟叠加增幅）---
-  {
-    id: 'gongfa-heaven-myriad-laws',
-    displayName: '万法归一',
-    displayDescription: '天品功法，每次命中积累领悟层数，持续强化全属性',
-    category: 'mythic',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-heaven-tier',
-    weight: 2,
-    energyCost: 16,
-    minQuality: '天品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'apply_buff',
-      params: {
-        buffConfig: {
-          id: 'craft-myriad-laws',
-          name: '万法感悟',
-          type: BuffType.BUFF,
-          duration: -1,
-          stackRule: StackRule.STACK_LAYER,
-          tags: [GameplayTags.BUFF.TYPE.BUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
-          modifiers: [
-            { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: 0.10 },
-            { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.10 },
-            { attrType: AttributeType.DEF, type: ModifierType.ADD, value: 0.08 },
-          ],
-        },
-        chance: { base: 0.60, scale: 'quality', coefficient: 0.06 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-
-  // --- 仙品专属：大道无极功（仙品+）---
-  {
-    id: 'gongfa-immortal-great-dao',
-    displayName: '大道无极功',
-    displayDescription: '仙品至高功法，战斗中灵力全属性大幅提升',
-    category: 'mythic',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_DIVINE,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-immortal-tier',
-    weight: 1,
-    energyCost: 18,
-    minQuality: '仙品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPIRIT,
-        modType: ModifierType.ADD,
-        value: { base: 0.50, scale: 'quality', coefficient: 0.06 },
-      },
-    },
-  },
-  // --- 核心体魄 T4（地品+，exclusiveGroup: gongfa-core-stat）---
-  {
-    id: 'gongfa-core-vitality-t4',
-    displayName: '地劫金刚极境',
-    displayDescription: '地阶材料淬炼，体魄化为金刚，寻常伤害形同虚设',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.TYPE_ORE,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 7,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.VITALITY,
-        modType: ModifierType.FIXED,
-        value: { base: 21, scale: 'quality', coefficient: 8 },
-      },
-    },
-  },
-
-  // --- 前缀暴击伤害 T4（地品+，exclusiveGroup: gongfa-prefix-crit-dmg-tier）---
-  {
-    id: 'gongfa-prefix-crit-damage-t4',
-    displayName: '灭世一击',
-    displayDescription: '地阶必杀极意，暴击如同天地崩裂，敌无幸免',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-prefix-crit-dmg-tier',
-    weight: 4,
-    energyCost: 12,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.CRIT_DAMAGE_MULT,
-        modType: ModifierType.FIXED,
-        value: { base: 0.26, scale: 'quality', coefficient: 0.07 },
-      },
-    },
-  },
-
-  // --- 前缀治疗增幅 T4（地品+，exclusiveGroup: gongfa-prefix-heal-tier）---
-  {
-    id: 'gongfa-prefix-heal-amplify-t4',
-    displayName: '天道慈悲',
-    displayDescription: '地阶慈悲大法，治疗效果极境，伤势几乎无法影响持有者',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-prefix-heal-tier',
-    weight: 4,
-    energyCost: 12,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.HEAL_AMPLIFY,
-        modType: ModifierType.FIXED,
-        value: { base: 0.26, scale: 'quality', coefficient: 0.07 },
-      },
-    },
-  },
-
-  // --- 后缀每回合回血 T4（地品+，exclusiveGroup: gongfa-suffix-round-heal-tier）---
-  {
-    id: 'gongfa-suffix-round-heal-t4',
-    displayName: '不死神功·完',
-    displayDescription: '地阶不死神功，每回合恢复气血量令对手绝望',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-suffix-round-heal-tier',
-    weight: 4,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 38, scale: 'quality', coefficient: 14 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.65,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-
-  // --- 后缀吸血 T4（地品+，exclusiveGroup: gongfa-suffix-lifesteal-tier）---
-  {
-    id: 'gongfa-suffix-lifesteal-t4',
-    displayName: '乾坤汲源',
-    displayDescription: '地阶乾坤之力，每次出手吸取目标大量气血，令对手精力耗竭',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-suffix-lifesteal-tier',
-    weight: 4,
-    energyCost: 15,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.38, scale: 'quality', coefficient: 0.06 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
 ];

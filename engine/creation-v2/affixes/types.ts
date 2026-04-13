@@ -2,19 +2,20 @@
  * affixes/types.ts: 词缀（Affix）相关类型定义与常量。
  * 包含可缩放参数、词缀模板、监听器规格与 AffixDefinition 等。
  */
-import { AttributeType, ModifierType } from '../contracts/battle';
+import { EquipmentSlot, Quality } from '@/types/constants';
 import {
-  BuffImmunityParams,
+  AttributeType,
   BuffConfig,
+  BuffImmunityParams,
   ConditionConfig,
   DamageImmunityParams,
   DeathPreventParams,
   ListenerContextMapping,
   ListenerGuardConfig,
   ListenerScope,
+  ModifierType,
+  StackRule,
 } from '../contracts/battle';
-import { StackRule } from '../contracts/battle';
-import { EquipmentSlot, Quality } from '@/types/constants';
 import type { CreationTagSignalSource } from '../types';
 import { AffixCategory, CreationProductType } from '../types';
 
@@ -32,7 +33,8 @@ export const PERCENT_MODIFIER_MODE = {
   INCREASE: 'increase',
   REDUCE: 'reduce',
 } as const;
-export type PercentModifierMode = (typeof PERCENT_MODIFIER_MODE)[keyof typeof PERCENT_MODIFIER_MODE];
+export type PercentModifierMode =
+  (typeof PERCENT_MODIFIER_MODE)[keyof typeof PERCENT_MODIFIER_MODE];
 
 /**
  * V2 品质缩放值：resolved = base + qualityOrder * coefficient
@@ -84,74 +86,81 @@ export interface AffixAttributeModifierTemplate {
  */
 export type AffixEffectTemplate = AffixEffectTemplateBase &
   (
-  | { type: 'damage'; params: { value: AffixScalableValue } }
-  | {
-      type: 'heal';
-      params: { value: AffixScalableValue; target?: 'hp' | 'mp' };
-    }
-  | { type: 'shield'; params: { value: AffixScalableValue } }
-  | { type: 'mana_burn'; params: { value: AffixScalableValue } }
-  | {
-      type: 'resource_drain';
-      params: {
-        sourceType: 'hp' | 'mp';
-        targetType: 'hp' | 'mp';
-        ratio: ScalableParam;
-      };
-    }
-  | { type: 'magic_shield'; params: { absorbRatio?: ScalableParam } }
-  | { type: 'reflect'; params: { ratio: ScalableParam } }
-  | {
-      type: 'cooldown_modify';
-      params: { cdModifyValue: ScalableParam; tags?: string[] };
-    }
-  | {
-      type: 'tag_trigger';
-      params: {
-        triggerTag: string;
-        damageRatio?: ScalableParam;
-        removeOnTrigger?: boolean;
-      };
-    }
-  | { type: 'apply_buff'; params: { buffConfig: BuffConfig; chance?: ScalableParam } }
-  | {
-      /**
-       * 静态属性修改器（专为 gongfa / artifact 的常驻词缀设计）
-       * 由 ProjectionRules 投影为 AbilityConfig.modifiers
-       */
-      type: 'attribute_modifier';
-      params:
-        | {
-            modifiers: AffixAttributeModifierTemplate[];
-          }
-        | {
-            attrType: AttributeType;
-            modType: ModifierType;
-            value: ScalableParam;
-          };
-    }
-  | {
-      /**
-       * 属性强化 buff（用于可持续时间/可堆叠的 buff 语义）
-       * 翻译器会生成 apply_buff + stackRule=IGNORE + duration=-1 + modifiers[{ attrType, modType, value }]
-       */
-      type: 'attribute_stat_buff';
-      params: {
-        attrType: AttributeType;
-        modType: ModifierType;
-        value: ScalableParam;
-        duration?: number;
-        stackRule?: StackRule;
-      };
-    }
-  | {
-      type: 'percent_damage_modifier';
-      params: { mode: PercentModifierMode; value: ScalableParam; cap?: number };
-    }
-  | { type: 'death_prevent'; params: DeathPreventParams }
-  | { type: 'buff_immunity'; params: BuffImmunityParams }
-  | { type: 'damage_immunity'; params: DamageImmunityParams }
-  | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } }
+    | { type: 'damage'; params: { value: AffixScalableValue } }
+    | {
+        type: 'heal';
+        params: { value: AffixScalableValue; target?: 'hp' | 'mp' };
+      }
+    | { type: 'shield'; params: { value: AffixScalableValue } }
+    | { type: 'mana_burn'; params: { value: AffixScalableValue } }
+    | {
+        type: 'resource_drain';
+        params: {
+          sourceType: 'hp' | 'mp';
+          targetType: 'hp' | 'mp';
+          ratio: ScalableParam;
+        };
+      }
+    | { type: 'magic_shield'; params: { absorbRatio?: ScalableParam } }
+    | { type: 'reflect'; params: { ratio: ScalableParam } }
+    | {
+        type: 'cooldown_modify';
+        params: { cdModifyValue: ScalableParam; tags?: string[] };
+      }
+    | {
+        type: 'tag_trigger';
+        params: {
+          triggerTag: string;
+          damageRatio?: ScalableParam;
+          removeOnTrigger?: boolean;
+        };
+      }
+    | {
+        type: 'apply_buff';
+        params: { buffConfig: BuffConfig; chance?: ScalableParam };
+      }
+    | {
+        /**
+         * 静态属性修改器（专为 gongfa / artifact 的常驻词缀设计）
+         * 由 ProjectionRules 投影为 AbilityConfig.modifiers
+         */
+        type: 'attribute_modifier';
+        params:
+          | {
+              modifiers: AffixAttributeModifierTemplate[];
+            }
+          | {
+              attrType: AttributeType;
+              modType: ModifierType;
+              value: ScalableParam;
+            };
+      }
+    | {
+        /**
+         * 属性强化 buff（用于可持续时间/可堆叠的 buff 语义）
+         * 翻译器会生成 apply_buff + stackRule=IGNORE + duration=-1 + modifiers[{ attrType, modType, value }]
+         */
+        type: 'attribute_stat_buff';
+        params: {
+          attrType: AttributeType;
+          modType: ModifierType;
+          value: ScalableParam;
+          duration?: number;
+          stackRule?: StackRule;
+        };
+      }
+    | {
+        type: 'percent_damage_modifier';
+        params: {
+          mode: PercentModifierMode;
+          value: ScalableParam;
+          cap?: number;
+        };
+      }
+    | { type: 'death_prevent'; params: DeathPreventParams }
+    | { type: 'buff_immunity'; params: BuffImmunityParams }
+    | { type: 'damage_immunity'; params: DamageImmunityParams }
+    | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } }
   );
 
 // ===== 词缀监听器规格 =====
@@ -199,7 +208,9 @@ export function flattenAffixMatcherTags(match: AffixTagMatcher): string[] {
   };
 
   collectPositiveTags(match);
-  Object.values(match.sources ?? {}).forEach((group) => collectPositiveTags(group));
+  Object.values(match.sources ?? {}).forEach((group) =>
+    collectPositiveTags(group),
+  );
 
   return Array.from(tags);
 }
@@ -230,9 +241,9 @@ export interface AffixDefinition {
   /** 词缀类型，对应配方解锁阈值 */
   category: AffixCategory;
   /**
-    * 结构化静态匹配语义：由 affix 自身声明入池所需的材料/意图标签条件。
+   * 结构化静态匹配语义：由 affix 自身声明入池所需的材料/意图标签条件。
    */
-    match: AffixTagMatcher;
+  match: AffixTagMatcher;
   /** 同一 exclusiveGroup 只会抽中一个词缀 */
   exclusiveGroup?: string;
   /** 加权抽签权重（越大越容易被抽中） */
