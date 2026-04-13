@@ -18,71 +18,242 @@ import {
 } from '../../contracts/battle';
 import { AffixDefinition, matchAll } from '../types';
 
-function resolvePassiveGrantedAbilityTags(
-  def: AffixDefinition,
-): string[] | undefined {
-  switch (def.effectTemplate.type) {
-    case 'damage': {
-      const attribute = def.effectTemplate.params.value.attribute;
-      if (attribute === AttributeType.ATK) {
-        return [
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-        ];
-      }
-
-      if (
-        attribute === AttributeType.MAGIC_ATK ||
-        attribute === AttributeType.SPIRIT
-      ) {
-        return [
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.MAGIC,
-        ];
-      }
-
-      return [GameplayTags.ABILITY.FUNCTION.DAMAGE];
-    }
-
-    case 'heal':
-      return [GameplayTags.ABILITY.FUNCTION.HEAL];
-
-    case 'apply_buff':
-      return def.effectTemplate.params.buffConfig.type === BuffType.CONTROL
-        ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
-        : undefined;
-
-    case 'resource_drain':
-      return def.effectTemplate.params.targetType === 'mp'
-        ? [GameplayTags.TRAIT.MANA_THIEF]
-        : [GameplayTags.TRAIT.LIFESTEAL];
-
-    case 'mana_burn':
-      return [GameplayTags.TRAIT.MANA_THIEF];
-
-    case 'shield':
-      return [GameplayTags.TRAIT.SHIELD_MASTER];
-
-    case 'reflect':
-      return [GameplayTags.TRAIT.REFLECT];
-
-    default:
-      return undefined;
-  }
-}
-
-function attachArtifactGrantedAbilityTags(
-  defs: AffixDefinition[],
-): AffixDefinition[] {
-  return defs.map((def) => ({
-    ...def,
-    ...(resolvePassiveGrantedAbilityTags(def)
-      ? { grantedAbilityTags: resolvePassiveGrantedAbilityTags(def) }
-      : {}),
-  }));
-}
-
-const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
+export const ARTIFACT_AFFIXES: AffixDefinition[] = [
+  // ========================
+  // ===== SLOT-BOUND CORE 词缀 (artifact only)
+  // ========================
+  {
+    id: 'artifact-core-weapon-dual-edge',
+    displayName: '锋魂双极',
+    displayDescription: '永久提升物理攻击与法术攻击，作为战器的核心底座',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.SEMANTIC_BLADE]),
+    exclusiveGroup: 'artifact-core-slot-weapon',
+    weight: 100,
+    energyCost: 8,
+    applicableArtifactSlots: ['weapon'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.ATK,
+            modType: ModifierType.FIXED,
+            value: { base: 6, scale: 'quality', coefficient: 2 },
+          },
+          {
+            attrType: AttributeType.MAGIC_ATK,
+            modType: ModifierType.FIXED,
+            value: { base: 6, scale: 'quality', coefficient: 2 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-armor-dual-ward',
+    displayName: '玄甲双御',
+    displayDescription: '永久提升物理防御与法术防御，作为护甲的核心底座',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.SEMANTIC_GUARD]),
+    exclusiveGroup: 'artifact-core-slot-armor',
+    weight: 100,
+    energyCost: 8,
+    applicableArtifactSlots: ['armor'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.DEF,
+            modType: ModifierType.FIXED,
+            value: { base: 6, scale: 'quality', coefficient: 2 },
+          },
+          {
+            attrType: AttributeType.MAGIC_DEF,
+            modType: ModifierType.FIXED,
+            value: { base: 6, scale: 'quality', coefficient: 2 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-accessory-omen',
+    displayName: '星兆坠',
+    displayDescription: '永久提升暴击率与暴击伤害，作为饰品的输出型核心',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    exclusiveGroup: 'artifact-core-slot-accessory',
+    weight: 78,
+    energyCost: 8,
+    applicableArtifactSlots: ['accessory'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.CRIT_RATE,
+            modType: ModifierType.FIXED,
+            value: { base: 0.035, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.CRIT_DAMAGE_MULT,
+            modType: ModifierType.FIXED,
+            value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-accessory-skystride',
+    displayName: '游光佩',
+    displayDescription: '永久提升命中与闪避，作为饰品的机动型核心',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
+    exclusiveGroup: 'artifact-core-slot-accessory',
+    weight: 74,
+    energyCost: 8,
+    applicableArtifactSlots: ['accessory'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.ACCURACY,
+            modType: ModifierType.FIXED,
+            value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+          },
+          {
+            attrType: AttributeType.EVASION_RATE,
+            modType: ModifierType.FIXED,
+            value: { base: 0.035, scale: 'quality', coefficient: 0.008 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-accessory-command',
+    displayName: '摄心珮',
+    displayDescription: '永久提升控制命中与控制抗性，作为饰品的控制型核心',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
+    exclusiveGroup: 'artifact-core-slot-accessory',
+    weight: 72,
+    energyCost: 8,
+    applicableArtifactSlots: ['accessory'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.CONTROL_HIT,
+            modType: ModifierType.FIXED,
+            value: { base: 0.045, scale: 'quality', coefficient: 0.01 },
+          },
+          {
+            attrType: AttributeType.CONTROL_RESISTANCE,
+            modType: ModifierType.FIXED,
+            value: { base: 0.045, scale: 'quality', coefficient: 0.01 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-accessory-riftpiercer',
+    displayName: '破界坠',
+    displayDescription: '永久提升物穿与法穿，作为饰品的穿透型核心',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_METAL, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    exclusiveGroup: 'artifact-core-slot-accessory',
+    weight: 70,
+    energyCost: 8,
+    applicableArtifactSlots: ['accessory'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.ARMOR_PENETRATION,
+            modType: ModifierType.FIXED,
+            value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
+          },
+          {
+            attrType: AttributeType.MAGIC_PENETRATION,
+            modType: ModifierType.FIXED,
+            value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-accessory-aegis-soul',
+    displayName: '守心玉',
+    displayDescription: '永久提升暴击抗性与暴伤减免，作为饰品的韧性型核心',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_WATER]),
+    exclusiveGroup: 'artifact-core-slot-accessory',
+    weight: 68,
+    energyCost: 8,
+    applicableArtifactSlots: ['accessory'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.CRIT_RESIST,
+            modType: ModifierType.FIXED,
+            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
+          },
+          {
+            attrType: AttributeType.CRIT_DAMAGE_REDUCTION,
+            modType: ModifierType.FIXED,
+            value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: 'artifact-core-accessory-renewal',
+    displayName: '回天佩',
+    displayDescription: '永久提升治疗增强与命中，作为饰品的续航型核心',
+    category: 'core',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
+    exclusiveGroup: 'artifact-core-slot-accessory',
+    weight: 66,
+    energyCost: 8,
+    applicableArtifactSlots: ['accessory'],
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        modifiers: [
+          {
+            attrType: AttributeType.HEAL_AMPLIFY,
+            modType: ModifierType.FIXED,
+            value: { base: 0.07, scale: 'quality', coefficient: 0.015 },
+          },
+          {
+            attrType: AttributeType.ACCURACY,
+            modType: ModifierType.FIXED,
+            value: { base: 0.05, scale: 'quality', coefficient: 0.012 },
+          },
+        ],
+      },
+    },
+  },
   {
     id: 'artifact-core-weapon-dual-edge-t2',
     displayName: '玄锋双极',
@@ -803,245 +974,6 @@ const ARTIFACT_SLOT_CORE_TIER_AFFIXES: AffixDefinition[] = [
       },
     },
   },
-];
-
-export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityTags([
-  // ========================
-  // ===== SLOT-BOUND CORE 词缀 (artifact only)
-  // ========================
-  {
-    id: 'artifact-core-weapon-dual-edge',
-    displayName: '锋魂双极',
-    displayDescription: '永久提升物理攻击与法术攻击，作为战器的核心底座',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.SEMANTIC_BLADE]),
-    exclusiveGroup: 'artifact-core-slot-weapon',
-    weight: 100,
-    energyCost: 8,
-    applicableArtifactSlots: ['weapon'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.ATK,
-            modType: ModifierType.FIXED,
-            value: { base: 6, scale: 'quality', coefficient: 2 },
-          },
-          {
-            attrType: AttributeType.MAGIC_ATK,
-            modType: ModifierType.FIXED,
-            value: { base: 6, scale: 'quality', coefficient: 2 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-armor-dual-ward',
-    displayName: '玄甲双御',
-    displayDescription: '永久提升物理防御与法术防御，作为护甲的核心底座',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.SEMANTIC_GUARD]),
-    exclusiveGroup: 'artifact-core-slot-armor',
-    weight: 100,
-    energyCost: 8,
-    applicableArtifactSlots: ['armor'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.DEF,
-            modType: ModifierType.FIXED,
-            value: { base: 6, scale: 'quality', coefficient: 2 },
-          },
-          {
-            attrType: AttributeType.MAGIC_DEF,
-            modType: ModifierType.FIXED,
-            value: { base: 6, scale: 'quality', coefficient: 2 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-accessory-omen',
-    displayName: '星兆坠',
-    displayDescription: '永久提升暴击率与暴击伤害，作为饰品的输出型核心',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BURST]),
-    exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 78,
-    energyCost: 8,
-    applicableArtifactSlots: ['accessory'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.CRIT_RATE,
-            modType: ModifierType.FIXED,
-            value: { base: 0.035, scale: 'quality', coefficient: 0.008 },
-          },
-          {
-            attrType: AttributeType.CRIT_DAMAGE_MULT,
-            modType: ModifierType.FIXED,
-            value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-accessory-skystride',
-    displayName: '游光佩',
-    displayDescription: '永久提升命中与闪避，作为饰品的机动型核心',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
-    exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 74,
-    energyCost: 8,
-    applicableArtifactSlots: ['accessory'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.ACCURACY,
-            modType: ModifierType.FIXED,
-            value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
-          },
-          {
-            attrType: AttributeType.EVASION_RATE,
-            modType: ModifierType.FIXED,
-            value: { base: 0.035, scale: 'quality', coefficient: 0.008 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-accessory-command',
-    displayName: '摄心珮',
-    displayDescription: '永久提升控制命中与控制抗性，作为饰品的控制型核心',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
-    exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 72,
-    energyCost: 8,
-    applicableArtifactSlots: ['accessory'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.CONTROL_HIT,
-            modType: ModifierType.FIXED,
-            value: { base: 0.045, scale: 'quality', coefficient: 0.01 },
-          },
-          {
-            attrType: AttributeType.CONTROL_RESISTANCE,
-            modType: ModifierType.FIXED,
-            value: { base: 0.045, scale: 'quality', coefficient: 0.01 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-accessory-riftpiercer',
-    displayName: '破界坠',
-    displayDescription: '永久提升物穿与法穿，作为饰品的穿透型核心',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_METAL, CreationTags.MATERIAL.SEMANTIC_BURST]),
-    exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 70,
-    energyCost: 8,
-    applicableArtifactSlots: ['accessory'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.ARMOR_PENETRATION,
-            modType: ModifierType.FIXED,
-            value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
-          },
-          {
-            attrType: AttributeType.MAGIC_PENETRATION,
-            modType: ModifierType.FIXED,
-            value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-accessory-aegis-soul',
-    displayName: '守心玉',
-    displayDescription: '永久提升暴击抗性与暴伤减免，作为饰品的韧性型核心',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_WATER]),
-    exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 68,
-    energyCost: 8,
-    applicableArtifactSlots: ['accessory'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.CRIT_RESIST,
-            modType: ModifierType.FIXED,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-          },
-          {
-            attrType: AttributeType.CRIT_DAMAGE_REDUCTION,
-            modType: ModifierType.FIXED,
-            value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'artifact-core-accessory-renewal',
-    displayName: '回天佩',
-    displayDescription: '永久提升治疗增强与命中，作为饰品的续航型核心',
-    category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
-    exclusiveGroup: 'artifact-core-slot-accessory',
-    weight: 66,
-    energyCost: 8,
-    applicableArtifactSlots: ['accessory'],
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        modifiers: [
-          {
-            attrType: AttributeType.HEAL_AMPLIFY,
-            modType: ModifierType.FIXED,
-            value: { base: 0.07, scale: 'quality', coefficient: 0.015 },
-          },
-          {
-            attrType: AttributeType.ACCURACY,
-            modType: ModifierType.FIXED,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.012 },
-          },
-        ],
-      },
-    },
-  },
-  ...ARTIFACT_SLOT_CORE_TIER_AFFIXES,
 
   // ========================
   // ===== LEGACY 非槽位词缀（已降级为 prefix / suffix，避免继续占用 core 合约）
@@ -1136,6 +1068,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 75,
     energyCost: 10,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1162,6 +1095,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 70,
     energyCost: 10,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -1187,6 +1121,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 68,
     energyCost: 9,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1249,6 +1184,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     energyCost: 11,
     minQuality: '灵品',
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       conditions: [{ type: 'hp_below', params: { value: 0.4, scope: 'caster' } }],
@@ -1522,6 +1458,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 75,
     energyCost: 8,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1595,6 +1532,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 65,
     energyCost: 9,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1618,6 +1556,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 60,
     energyCost: 8,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1648,6 +1587,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 58,
     energyCost: 9,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1756,6 +1699,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 38,
     energyCost: 9,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_above', params: { value: 0.65 } }],
@@ -1950,6 +1894,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 48,
     energyCost: 12,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1975,6 +1920,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 45,
     energyCost: 12,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -1999,6 +1945,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 42,
     energyCost: 12,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2107,6 +2054,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     weight: 34,
     energyCost: 12,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
     effectTemplate: {
       type: 'reflect',
       conditions: [
@@ -2253,6 +2201,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
     effectTemplate: {
       type: 'reflect',
       conditions: [{ type: 'chance', params: { value: 0.82 } }],
@@ -2572,6 +2521,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2608,6 +2558,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2645,6 +2596,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -2839,6 +2791,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2859,4 +2812,4 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = attachArtifactGrantedAbilityT
       },
     },
   },
-]);
+];

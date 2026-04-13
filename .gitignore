@@ -63,3 +63,4 @@ next-env.d.ts
 !.dev.vars.example
 .worktrees/
 blog
+*/mcp.json

@@ -17,135 +17,39 @@ import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 import { AffixDefinition, matchAll } from '../types';
 
-const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.BUFF];
-const NEGATIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.DEBUFF];
-const CONTROL_BUFF_TAGS = [
-  GameplayTags.BUFF.TYPE.DEBUFF,
-  GameplayTags.BUFF.TYPE.CONTROL,
-];
-const BURN_DOT_BUFF_TAGS = [
-  GameplayTags.BUFF.TYPE.DEBUFF,
-  GameplayTags.BUFF.DOT.ROOT,
-  GameplayTags.BUFF.DOT.BURN,
-];
-
-const STUN_CONTROL_STATUS_TAGS = [
-  GameplayTags.STATUS.CATEGORY.DEBUFF,
-  GameplayTags.STATUS.CONTROL.ROOT,
-  GameplayTags.STATUS.CONTROL.STUNNED,
-  GameplayTags.STATUS.CONTROL.NO_ACTION,
-];
-const BURN_DOT_STATUS_TAGS = [
-  GameplayTags.STATUS.CATEGORY.DEBUFF,
-  GameplayTags.STATUS.STATE.BURNED,
-  GameplayTags.STATUS.CATEGORY.DOT,
-];
-const CHILL_STATUS_TAGS = [
-  GameplayTags.STATUS.CATEGORY.DEBUFF,
-  GameplayTags.STATUS.STATE.CHILLED,
-];
-const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.BUFF];
-const GENERIC_DEBUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.DEBUFF];
-const DEF_DEBUFF_STATUS_TAGS = [
-  GameplayTags.STATUS.CATEGORY.DEBUFF,
-  GameplayTags.STATUS.CATEGORY.DEF_DEBUFF,
-];
-const COMBO_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.COMBO];
-const MANA_EFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MANA_EFF];
-const MYTHIC_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MYTHIC];
-
-const SKILL_DAMAGE_MAGIC_TAGS = [
-  GameplayTags.ABILITY.FUNCTION.DAMAGE,
-  GameplayTags.ABILITY.CHANNEL.MAGIC,
-];
-const SKILL_DAMAGE_PHYSICAL_TAGS = [
-  GameplayTags.ABILITY.FUNCTION.DAMAGE,
-  GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-];
-const SKILL_HEAL_TAGS = [GameplayTags.ABILITY.FUNCTION.HEAL];
-const SKILL_CONTROL_TAGS = [GameplayTags.ABILITY.FUNCTION.CONTROL];
-const SKILL_EXECUTE_TAGS = [
-  GameplayTags.ABILITY.FUNCTION.DAMAGE,
-  GameplayTags.ABILITY.CHANNEL.MAGIC,
-  GameplayTags.TRAIT.EXECUTE,
-];
-const SKILL_LIFESTEAL_TAGS = [GameplayTags.TRAIT.LIFESTEAL];
-const SKILL_MANA_THIEF_TAGS = [GameplayTags.TRAIT.MANA_THIEF];
-const SKILL_COOLDOWN_TAGS = [GameplayTags.TRAIT.COOLDOWN];
-const SKILL_EXECUTE_TRAIT_TAGS = [GameplayTags.TRAIT.EXECUTE];
-const SKILL_SHIELD_MASTER_TAGS = [GameplayTags.TRAIT.SHIELD_MASTER];
-
-const SKILL_GRANTED_ABILITY_TAGS_BY_ID: Record<string, string[]> = {
-  // --- core: damage ---
-  'skill-core-damage': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-fire': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-ice': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-thunder': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-wind': SKILL_DAMAGE_PHYSICAL_TAGS,
-  'skill-core-damage-multi': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-t2': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-t3': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-core-damage-t4': SKILL_DAMAGE_MAGIC_TAGS,
-  // --- core: heal ---
-  'skill-core-heal': SKILL_HEAL_TAGS,
-  'skill-core-heal-t2': SKILL_HEAL_TAGS,
-  'skill-core-heal-t3': SKILL_HEAL_TAGS,
-  'skill-core-heal-t4': SKILL_HEAL_TAGS,
-  // --- core: control ---
-  'skill-core-control-stun': SKILL_CONTROL_TAGS,
-  'skill-core-control-stun-t2': SKILL_CONTROL_TAGS,
-  'skill-core-control-stun-t3': SKILL_CONTROL_TAGS,
-  'skill-core-control-stun-t4': SKILL_CONTROL_TAGS,
-  // --- core: execute (damage + execute trait) ---
-  'skill-core-cull-of-weak': SKILL_EXECUTE_TAGS,
-  // --- prefix: execute trait ---
-  'skill-prefix-execute-power': SKILL_EXECUTE_TRAIT_TAGS,
-  // --- prefix: cooldown trait ---
-  'skill-prefix-cooldown-reduce': SKILL_COOLDOWN_TAGS,
-  'skill-prefix-self-haste': SKILL_COOLDOWN_TAGS,
-  // --- prefix: shield trait ---
-  'skill-prefix-shield-grant': SKILL_SHIELD_MASTER_TAGS,
-  // --- suffix: lifesteal trait ---
-  'skill-suffix-life-siphon': SKILL_LIFESTEAL_TAGS,
-  'skill-suffix-lifesteal-t2': SKILL_LIFESTEAL_TAGS,
-  'skill-suffix-lifesteal-t3': SKILL_LIFESTEAL_TAGS,
-  'skill-suffix-lifesteal-t4': SKILL_LIFESTEAL_TAGS,
-  // --- suffix: mana thief trait ---
-  'skill-suffix-mana-siphon': SKILL_MANA_THIEF_TAGS,
-  // --- suffix: execute trait ---
-  'skill-suffix-low-hp-dmg': SKILL_EXECUTE_TRAIT_TAGS,
-  // --- suffix: shield trait ---
-  'skill-suffix-shield-on-cast': SKILL_SHIELD_MASTER_TAGS,
-  // --- synergy: secondary heal signal ---
-  'skill-synergy-damage-heal': SKILL_HEAL_TAGS,
-  'skill-synergy-recovery-vortex': SKILL_HEAL_TAGS,
-  // --- synergy: execute trait ---
-  'skill-synergy-execute-instinct': SKILL_EXECUTE_TRAIT_TAGS,
-  // --- synergy: shield trait ---
-  'skill-synergy-shield-damage': SKILL_SHIELD_MASTER_TAGS,
-  // --- synergy: mana thief ---
-  'skill-synergy-empty-mana-pierce': SKILL_MANA_THIEF_TAGS,
-  // --- signature / mythic / heaven: function + channel ---
-  'skill-signature-crimson-sentence': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-mythic-shatter-realm': SKILL_DAMAGE_MAGIC_TAGS,
-  'skill-mythic-divine-intervention': SKILL_HEAL_TAGS,
-  'skill-heaven-void-shatter': SKILL_DAMAGE_MAGIC_TAGS,
-  // --- immortal: lifesteal ---
-  'skill-immortal-nirvana': SKILL_LIFESTEAL_TAGS,
-};
-
-function attachSkillGrantedAbilityTags(
-  defs: AffixDefinition[],
-): AffixDefinition[] {
-  return defs.map((def) => ({
-    ...def,
-    ...(SKILL_GRANTED_ABILITY_TAGS_BY_ID[def.id]
-      ? { grantedAbilityTags: SKILL_GRANTED_ABILITY_TAGS_BY_ID[def.id] }
-      : {}),
-  }));
-}
-
-const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
+export const SKILL_AFFIXES: AffixDefinition[] = [
+  // ========================
+  // ===== CORE 词缀 (9 种)
+  // ========================
+  {
+    id: 'skill-core-damage',
+    displayName: '斩击',
+    displayDescription: '施放时造成一次基础伤害',
+    category: 'core',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.RECIPE.PRODUCT_BIAS_SKILL,
+    ]),
+    exclusiveGroup: 'skill-core-damage-type',
+    weight: 100,
+    energyCost: 8,
+    applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 80, scale: 'quality', coefficient: 14 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.9,
+        },
+      },
+    },
+  },
   {
     id: 'skill-core-control-stun-t2',
     displayName: '镇魂雷缚',
@@ -161,6 +65,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 13,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -170,8 +75,8 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
           type: BuffType.CONTROL,
           duration: CREATION_DURATION_POLICY.control.default,
           stackRule: StackRule.IGNORE,
-          tags: CONTROL_BUFF_TAGS,
-          statusTags: STUN_CONTROL_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CONTROL.ROOT, GameplayTags.STATUS.CONTROL.STUNNED, GameplayTags.STATUS.CONTROL.NO_ACTION],
         },
         chance: 0.85,
       },
@@ -192,6 +97,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -201,8 +107,8 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
           type: BuffType.CONTROL,
           duration: CREATION_DURATION_POLICY.control.elite,
           stackRule: StackRule.IGNORE,
-          tags: CONTROL_BUFF_TAGS,
-          statusTags: STUN_CONTROL_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CONTROL.ROOT, GameplayTags.STATUS.CONTROL.STUNNED, GameplayTags.STATUS.CONTROL.NO_ACTION],
         },
         chance: 0.9,
       },
@@ -223,6 +129,7 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -232,45 +139,13 @@ const SKILL_CONTROL_CORE_TIER_AFFIXES: AffixDefinition[] = [
           type: BuffType.CONTROL,
           duration: CREATION_DURATION_POLICY.control.elite,
           stackRule: StackRule.IGNORE,
-          tags: CONTROL_BUFF_TAGS,
-          statusTags: STUN_CONTROL_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CONTROL.ROOT, GameplayTags.STATUS.CONTROL.STUNNED, GameplayTags.STATUS.CONTROL.NO_ACTION],
         },
         chance: 0.95,
       },
     },
   },
-];
-
-export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
-  // ========================
-  // ===== CORE 词缀 (9 种)
-  // ========================
-  {
-    id: 'skill-core-damage',
-    displayName: '斩击',
-    displayDescription: '施放时造成一次基础伤害',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.RECIPE.PRODUCT_BIAS_SKILL,
-    ]),
-    exclusiveGroup: 'skill-core-damage-type',
-    weight: 100,
-    energyCost: 8,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'damage',
-      params: {
-        value: {
-          base: { base: 80, scale: 'quality', coefficient: 14 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.9,
-        },
-      },
-    },
-  },
-
   {
     id: 'skill-core-damage-fire',
     displayName: '焚岳斩',
@@ -281,6 +156,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 85,
     energyCost: 10,
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -302,6 +181,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 80,
     energyCost: 10,
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -327,6 +210,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 75,
     energyCost: 11,
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -348,6 +235,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 72,
     energyCost: 10,
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -369,6 +260,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 75,
     energyCost: 8,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -391,6 +283,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 12,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -400,8 +293,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.CONTROL,
           duration: CREATION_DURATION_POLICY.control.default,
           stackRule: StackRule.IGNORE,
-          tags: CONTROL_BUFF_TAGS,
-          statusTags: STUN_CONTROL_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CONTROL.ROOT, GameplayTags.STATUS.CONTROL.STUNNED, GameplayTags.STATUS.CONTROL.NO_ACTION],
         },
         chance: 0.8,
       },
@@ -417,6 +310,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 65,
     energyCost: 11,
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -442,6 +339,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 12,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+      GameplayTags.TRAIT.EXECUTE,
+    ],
     effectTemplate: {
       type: 'damage',
       conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
@@ -553,6 +455,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 68,
     energyCost: 7,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -578,6 +481,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 65,
     energyCost: 7,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
     effectTemplate: {
       type: 'cooldown_modify',
       params: {
@@ -603,6 +507,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 58,
     energyCost: 7,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -719,6 +624,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 44,
     energyCost: 8,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -787,8 +693,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: BURN_DOT_BUFF_TAGS,
-          statusTags: BURN_DOT_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.BURNED, GameplayTags.STATUS.CATEGORY.DOT],
           listeners: [
             {
               eventType: GameplayTags.EVENT.ROUND_PRE,
@@ -831,8 +737,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: NEGATIVE_BUFF_TAGS,
-          statusTags: CHILL_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.CHILLED],
           modifiers: [
             {
               attrType: AttributeType.SPEED,
@@ -872,6 +778,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 72,
     energyCost: 9,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -895,6 +802,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 65,
     energyCost: 8,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -964,6 +872,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 55,
     energyCost: 8,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1002,8 +911,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           modifiers: [
             {
               attrType: AttributeType.MAGIC_ATK,
@@ -1034,8 +943,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: NEGATIVE_BUFF_TAGS,
-          statusTags: DEF_DEBUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CATEGORY.DEF_DEBUFF],
           modifiers: [
             {
               attrType: AttributeType.DEF,
@@ -1066,8 +975,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.STACK_LAYER,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           modifiers: [
             {
               attrType: AttributeType.CRIT_RATE,
@@ -1089,6 +998,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 45,
     energyCost: 9,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1173,6 +1083,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 55,
     energyCost: 11,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -1182,8 +1093,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.STACK_LAYER,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: COMBO_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.COMBO],
           modifiers: [
             {
               attrType: AttributeType.MAGIC_ATK,
@@ -1214,8 +1125,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: MANA_EFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.MANA_EFF],
           listeners: [
             {
               eventType: GameplayTags.EVENT.SKILL_CAST,
@@ -1280,8 +1191,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.OVERRIDE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           modifiers: [
             {
               attrType: AttributeType.DEF,
@@ -1321,8 +1232,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.OVERRIDE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           modifiers: [
             {
               attrType: AttributeType.CONTROL_HIT,
@@ -1384,6 +1295,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 50,
     energyCost: 11,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1458,8 +1370,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.OVERRIDE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           listeners: [
             {
               eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
@@ -1539,6 +1451,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 40,
     energyCost: 12,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1562,6 +1475,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 38,
     energyCost: 12,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
@@ -1589,6 +1503,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     weight: 36,
     energyCost: 11,
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_below', params: { value: 0.4 } }],
@@ -1619,6 +1534,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       conditions: [
@@ -1652,6 +1571,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 16,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       conditions: [
@@ -1691,8 +1614,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.BUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.persistentException,
           stackRule: StackRule.STACK_LAYER,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: MYTHIC_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.MYTHIC],
           modifiers: [
             {
               attrType: AttributeType.MAGIC_ATK,
@@ -1720,6 +1643,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1747,6 +1671,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1775,6 +1703,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1803,6 +1735,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -1831,6 +1767,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1859,6 +1796,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1870,7 +1808,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
       },
     },
   },
-  ...SKILL_CONTROL_CORE_TIER_AFFIXES,
 
   // --- 前缀增伤 T2（玄品+，exclusiveGroup: skill-prefix-damage-boost-tier）---
   {
@@ -1986,8 +1923,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: BURN_DOT_BUFF_TAGS,
-          statusTags: BURN_DOT_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.BURNED, GameplayTags.STATUS.CATEGORY.DOT],
           listeners: [
             {
               eventType: GameplayTags.EVENT.ROUND_PRE,
@@ -2039,8 +1976,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.long,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: BURN_DOT_BUFF_TAGS,
-          statusTags: BURN_DOT_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.BURNED, GameplayTags.STATUS.CATEGORY.DOT],
           listeners: [
             {
               eventType: GameplayTags.EVENT.ROUND_PRE,
@@ -2082,6 +2019,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 11,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2113,6 +2051,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 13,
     minQuality: '真品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2153,8 +2092,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.IGNORE,
-          tags: NEGATIVE_BUFF_TAGS,
-          statusTags: GENERIC_DEBUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF],
           modifiers: [
             { attrType: AttributeType.ATK, type: ModifierType.ADD, value: -0.30 },
             { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: -0.30 },
@@ -2182,6 +2121,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 16,
     minQuality: '天品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
     effectTemplate: {
       type: 'damage',
       params: {
@@ -2210,6 +2153,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 18,
     minQuality: '仙品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2240,6 +2184,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2277,8 +2222,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.extended,
           stackRule: StackRule.IGNORE,
-          tags: BURN_DOT_BUFF_TAGS,
-          statusTags: BURN_DOT_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.BURNED, GameplayTags.STATUS.CATEGORY.DOT],
           listeners: [
             {
               eventType: GameplayTags.EVENT.ROUND_PRE,
@@ -2320,6 +2265,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2334,4 +2280,4 @@ export const SKILL_AFFIXES: AffixDefinition[] = attachSkillGrantedAbilityTags([
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
-]);
+];

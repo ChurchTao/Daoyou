@@ -15,396 +15,8 @@ import {
 import { AttributeType, ModifierType, BuffType, StackRule } from '../../contracts/battle';
 import { AffixDefinition, matchAll } from '../types';
 
-function resolvePassiveGrantedAbilityTags(
-  def: AffixDefinition,
-): string[] | undefined {
-  switch (def.effectTemplate.type) {
-    case 'damage': {
-      const attribute = def.effectTemplate.params.value.attribute;
-      if (attribute === AttributeType.ATK) {
-        return [
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-        ];
-      }
 
-      if (
-        attribute === AttributeType.MAGIC_ATK ||
-        attribute === AttributeType.SPIRIT
-      ) {
-        return [
-          GameplayTags.ABILITY.FUNCTION.DAMAGE,
-          GameplayTags.ABILITY.CHANNEL.MAGIC,
-        ];
-      }
-
-      return [GameplayTags.ABILITY.FUNCTION.DAMAGE];
-    }
-
-    case 'heal':
-      return [GameplayTags.ABILITY.FUNCTION.HEAL];
-
-    case 'apply_buff':
-      return def.effectTemplate.params.buffConfig.type === BuffType.CONTROL
-        ? [GameplayTags.ABILITY.FUNCTION.CONTROL]
-        : undefined;
-
-    case 'resource_drain':
-      return def.effectTemplate.params.targetType === 'mp'
-        ? [GameplayTags.TRAIT.MANA_THIEF]
-        : [GameplayTags.TRAIT.LIFESTEAL];
-
-    case 'mana_burn':
-      return [GameplayTags.TRAIT.MANA_THIEF];
-
-    case 'shield':
-      return [GameplayTags.TRAIT.SHIELD_MASTER];
-
-    case 'reflect':
-      return [GameplayTags.TRAIT.REFLECT];
-
-    default:
-      return undefined;
-  }
-}
-
-function attachGongfaGrantedAbilityTags(
-  defs: AffixDefinition[],
-): AffixDefinition[] {
-  return defs.map((def) => ({
-    ...def,
-    ...(resolvePassiveGrantedAbilityTags(def)
-      ? { grantedAbilityTags: resolvePassiveGrantedAbilityTags(def) }
-      : {}),
-  }));
-}
-
-const POSITIVE_BUFF_TAGS = [GameplayTags.BUFF.TYPE.BUFF];
-const GENERIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.BUFF];
-const MYTHIC_BUFF_STATUS_TAGS = [GameplayTags.STATUS.CATEGORY.MYTHIC];
-
-const GONGFA_PRIMARY_STAT_TIER_AFFIXES: AffixDefinition[] = [
-  {
-    id: 'gongfa-core-wisdom-t2',
-    displayName: '玄悟明台',
-    displayDescription: '玄品功法核心，悟性显著提升以强化法门理解',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 46,
-    energyCost: 10,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.WISDOM,
-        modType: ModifierType.FIXED,
-        value: { base: 7, scale: 'quality', coefficient: 3 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-wisdom-t3',
-    displayName: '天心悟道',
-    displayDescription: '真品功法核心，悟性进入高阶通明境界',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 18,
-    energyCost: 12,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.WISDOM,
-        modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-wisdom-t4',
-    displayName: '大衍通明',
-    displayDescription: '地品功法核心，悟性足以明显抬升技能质量天花板',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 6,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.WISDOM,
-        modType: ModifierType.FIXED,
-        value: { base: 20, scale: 'quality', coefficient: 8 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-willpower-t2',
-    displayName: '玄心镇岳',
-    displayDescription: '玄品功法核心，意志力显著提升以稳定对抗节奏',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 44,
-    energyCost: 10,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.WILLPOWER,
-        modType: ModifierType.FIXED,
-        value: { base: 7, scale: 'quality', coefficient: 3 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-willpower-t3',
-    displayName: '天命不屈',
-    displayDescription: '真品功法核心，意志强度进入高阶压制区间',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 17,
-    energyCost: 12,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.WILLPOWER,
-        modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 5 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-willpower-t4',
-    displayName: '万劫不移',
-    displayDescription: '地品功法核心，意志属性形成显著韧性质变',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 6,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.WILLPOWER,
-        modType: ModifierType.FIXED,
-        value: { base: 20, scale: 'quality', coefficient: 8 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-speed-mastery-t2',
-    displayName: '御风踏影',
-    displayDescription: '玄品功法核心，身法提升进入可感知机动档位',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_MONSTER,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 42,
-    energyCost: 10,
-    minQuality: '玄品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPEED,
-        modType: ModifierType.FIXED,
-        value: { base: 5, scale: 'quality', coefficient: 2 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-speed-mastery-t3',
-    displayName: '天行无迹',
-    displayDescription: '真品功法核心，身法提升足以明显改变出手节奏',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 16,
-    energyCost: 12,
-    minQuality: '真品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPEED,
-        modType: ModifierType.FIXED,
-        value: { base: 8, scale: 'quality', coefficient: 3 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-core-speed-mastery-t4',
-    displayName: '遁空绝尘',
-    displayDescription: '地品功法核心，身法属性形成明显先手与节奏优势',
-    category: 'core',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: 'gongfa-core-stat',
-    weight: 5,
-    energyCost: 14,
-    minQuality: '地品',
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPEED,
-        modType: ModifierType.FIXED,
-        value: { base: 13, scale: 'quality', coefficient: 5 },
-      },
-    },
-  },
-];
-
-const GONGFA_ELEMENT_SPECIALIZATION_CONFIGS = [
-  {
-    id: 'gongfa-prefix-metal-specialization',
-    displayName: '庚金锐意',
-    displayDescription: '金系技能造成的伤害提升',
-    element: '金' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_METAL,
-    weight: 45,
-  },
-  {
-    id: 'gongfa-prefix-wood-specialization',
-    displayName: '青木生衍',
-    displayDescription: '木系技能造成的伤害提升',
-    element: '木' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_WOOD,
-    weight: 45,
-  },
-  {
-    id: 'gongfa-prefix-water-specialization',
-    displayName: '玄水归流',
-    displayDescription: '水系技能造成的伤害提升',
-    element: '水' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_WATER,
-    weight: 46,
-  },
-  {
-    id: 'gongfa-prefix-fire-specialization',
-    displayName: '赤炎焚脉',
-    displayDescription: '火系技能造成的伤害提升',
-    element: '火' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_FLAME,
-    weight: 48,
-  },
-  {
-    id: 'gongfa-prefix-earth-specialization',
-    displayName: '厚土镇元',
-    displayDescription: '土系技能造成的伤害提升',
-    element: '土' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_EARTH,
-    weight: 44,
-  },
-  {
-    id: 'gongfa-prefix-wind-specialization',
-    displayName: '岚息游龙',
-    displayDescription: '风系技能造成的伤害提升',
-    element: '风' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_WIND,
-    weight: 47,
-  },
-  {
-    id: 'gongfa-prefix-thunder-specialization',
-    displayName: '惊霆裂脉',
-    displayDescription: '雷系技能造成的伤害提升',
-    element: '雷' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_THUNDER,
-    weight: 47,
-  },
-  {
-    id: 'gongfa-prefix-ice-specialization',
-    displayName: '玄霜凝意',
-    displayDescription: '冰系技能造成的伤害提升',
-    element: '冰' as const,
-    semanticTag: CreationTags.MATERIAL.SEMANTIC_FREEZE,
-    weight: 46,
-  },
-] as const;
-
-const GONGFA_ELEMENT_SPECIALIZATION_AFFIXES: AffixDefinition[] =
-  GONGFA_ELEMENT_SPECIALIZATION_CONFIGS.map((config) => ({
-    id: config.id,
-    displayName: config.displayName,
-    displayDescription: config.displayDescription,
-    category: 'prefix',
-    match: matchAll([
-      config.semanticTag,
-      ELEMENT_TO_MATERIAL_TAG[config.element],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: config.weight,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG[config.element] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  }));
-
-export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags([
+export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   // ===== CORE 词缀 (5 种)
   // ========================
@@ -558,6 +170,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 68,
     energyCost: 7,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
     effectTemplate: {
       type: 'reflect',
       params: {
@@ -648,8 +261,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           listeners: [
             {
               eventType: GameplayTags.EVENT.BUFF_ADD,
@@ -767,7 +380,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
-  ...GONGFA_ELEMENT_SPECIALIZATION_AFFIXES,
   {
     id: 'gongfa-prefix-chill-breaker',
     displayName: '寒痕破诀',
@@ -815,6 +427,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 80,
     energyCost: 8,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -844,6 +457,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 75,
     energyCost: 9,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -892,6 +506,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 68,
     energyCost: 8,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -945,6 +560,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 60,
     energyCost: 9,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -994,6 +610,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 55,
     energyCost: 9,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
       params: {
@@ -1050,6 +667,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 39,
     energyCost: 10,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
     effectTemplate: {
       type: 'mana_burn',
       conditions: [{ type: 'mp_above', params: { value: 0.7 } }],
@@ -1080,6 +698,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 55,
     energyCost: 11,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1118,8 +737,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           listeners: [
             {
               eventType: GameplayTags.EVENT.ROUND_PRE,
@@ -1284,6 +903,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 47,
     energyCost: 12,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1343,6 +963,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     weight: 40,
     energyCost: 12,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       conditions: [{ type: 'hp_below', params: { value: 0.45, scope: 'caster' } }],
@@ -1435,8 +1056,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: MYTHIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.MYTHIC],
           modifiers: [
             {
               attrType: AttributeType.SPEED,
@@ -1478,6 +1099,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       conditions: [{ type: 'hp_below', params: { value: 0.6, scope: 'caster' } }],
@@ -1559,8 +1181,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.IGNORE,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: MYTHIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.MYTHIC],
           modifiers: [
             {
               attrType: AttributeType.WISDOM,
@@ -1718,7 +1340,271 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
       },
     },
   },
-  ...GONGFA_PRIMARY_STAT_TIER_AFFIXES,
+
+  {
+    id: 'gongfa-prefix-metal-specialization',
+    displayName: '庚金锐意',
+    displayDescription: '金系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_METAL,
+      ELEMENT_TO_MATERIAL_TAG['金'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 45,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['金'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-wood-specialization',
+    displayName: '青木生衍',
+    displayDescription: '木系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WOOD,
+      ELEMENT_TO_MATERIAL_TAG['木'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 45,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['木'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-water-specialization',
+    displayName: '玄水归流',
+    displayDescription: '水系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WATER,
+      ELEMENT_TO_MATERIAL_TAG['水'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 46,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['水'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-fire-specialization',
+    displayName: '赤炎焚脉',
+    displayDescription: '火系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 48,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['火'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-earth-specialization',
+    displayName: '厚土镇元',
+    displayDescription: '土系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_EARTH,
+      ELEMENT_TO_MATERIAL_TAG['土'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 44,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['土'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-wind-specialization',
+    displayName: '岚息游龙',
+    displayDescription: '风系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      ELEMENT_TO_MATERIAL_TAG['风'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 47,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['风'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-thunder-specialization',
+    displayName: '惊霆裂脉',
+    displayDescription: '雷系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ELEMENT_TO_MATERIAL_TAG['雷'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 47,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['雷'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-prefix-ice-specialization',
+    displayName: '玄霜凝意',
+    displayDescription: '冰系技能造成的伤害提升',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      ELEMENT_TO_MATERIAL_TAG['冰'],
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 46,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['冰'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+        cap: 0.55,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
 
   // --- 前缀暴击伤害 T2（玄品+，exclusiveGroup: gongfa-prefix-crit-dmg-tier）---
   {
@@ -1838,6 +1724,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 10,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1875,6 +1762,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 12,
     minQuality: '真品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1912,6 +1800,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 11,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1943,6 +1832,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 13,
     minQuality: '真品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -1974,6 +1864,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 15,
     minQuality: '天品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2020,8 +1911,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
           type: BuffType.BUFF,
           duration: -1,
           stackRule: StackRule.STACK_LAYER,
-          tags: POSITIVE_BUFF_TAGS,
-          statusTags: GENERIC_BUFF_STATUS_TAGS,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
           modifiers: [
             { attrType: AttributeType.MAGIC_ATK, type: ModifierType.ADD, value: 0.10 },
             { attrType: AttributeType.ATK, type: ModifierType.ADD, value: 0.10 },
@@ -2155,6 +2046,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 14,
     minQuality: '地品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -2192,6 +2084,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
     energyCost: 15,
     minQuality: '地品',
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'resource_drain',
       params: {
@@ -2206,4 +2099,4 @@ export const GONGFA_AFFIXES: AffixDefinition[] = attachGongfaGrantedAbilityTags(
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
-]);
+];
