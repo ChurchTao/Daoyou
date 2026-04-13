@@ -18,6 +18,7 @@ import {
 } from '../contracts/battle';
 import type { CreationTagSignalSource } from '../types';
 import { AffixCategory, CreationProductType } from '../types';
+import type { ExclusiveGroup } from './exclusiveGroups';
 
 // ===== 品质缩放值 =====
 
@@ -245,7 +246,7 @@ export interface AffixDefinition {
    */
   match: AffixTagMatcher;
   /** 同一 exclusiveGroup 只会抽中一个词缀 */
-  exclusiveGroup?: string;
+  exclusiveGroup?: ExclusiveGroup;
   /** 加权抽签权重（越大越容易被抽中） */
   weight: number;
   /** 选中此词缀消耗的能量 */

@@ -13,21 +13,37 @@ describe('ExclusiveGroupRules', () => {
     trace: [],
   });
 
-  it('应过滤已命中的 exclusive group 候选', () => {
+  it.each([
+    {
+      label: 'artifact',
+      productType: 'artifact' as const,
+      group: 'artifact-core-stat',
+    },
+    {
+      label: 'gongfa',
+      productType: 'gongfa' as const,
+      group: 'gongfa-core-stat',
+    },
+    {
+      label: 'skill',
+      productType: 'skill' as const,
+      group: 'skill-core-damage-type',
+    },
+  ])('应过滤已命中的 exclusive group 候选（$label）', ({ productType, group }) => {
     const ruleSet = new RuleSet([new ExclusiveGroupRules()], createDecision);
     const decision = ruleSet.evaluate({
-      productType: 'skill',
+      productType,
       candidates: [
         {
-          id: 'same-group',
-          name: 'same-group',
+          id: `${productType}-same-group`,
+          name: `${productType}-same-group`,
           category: 'core',
           match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 4,
-          effectTemplate: { type: "damage", params: { value: 10 } } as any,
-          exclusiveGroup: 'grp',
+          effectTemplate: { type: 'damage', params: { value: 10 } } as any,
+          exclusiveGroup: group,
         },
       ],
       remainingEnergy: 10,
@@ -35,7 +51,7 @@ describe('ExclusiveGroupRules', () => {
       maxSelections: 4,
       selectionCount: 1,
       selectedAffixIds: [],
-      selectedExclusiveGroups: ['grp'],
+      selectedExclusiveGroups: [group],
       selectedCategoryCounts: { core: 1 },
       selectionConstraints: {
         categoryCaps: { core: 1, prefix: 2, suffix: 2 },

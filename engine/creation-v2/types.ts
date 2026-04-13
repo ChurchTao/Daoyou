@@ -14,6 +14,7 @@ import type {
   AffixSelectionDecision,
 } from './rules/contracts';
 import type { RuleTraceEntry } from './rules/core/types';
+import type { ExclusiveGroup } from './affixes/exclusiveGroups';
 
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
 export type CreationOutcomeKind = 'active_skill' | 'artifact' | 'gongfa';
@@ -190,7 +191,7 @@ export interface AffixRejection {
     AffixSelectionStopReason,
     'pool_exhausted' | 'max_count_reached'
   >;
-  exclusiveGroup?: string;
+  exclusiveGroup?: ExclusiveGroup;
 }
 
 export interface AffixSelectionRoundAudit {
@@ -259,7 +260,7 @@ export interface AffixCandidate {
   weight: number;
   energyCost: number;
   evaluationScore?: number;
-  exclusiveGroup?: string;
+  exclusiveGroup?: ExclusiveGroup;
   minQuality?: Quality;
   maxQuality?: Quality;
   effectTemplate: AffixEffectTemplate;
