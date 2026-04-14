@@ -8,9 +8,6 @@ import {
 } from '@/engine/shared/tag-domain';
 import type { CreationMaterialSemanticTag } from '@/engine/shared/tag-domain';
 
-export const CREATION_SEMANTIC_TAG_ALLOWLIST = CREATION_MATERIAL_SEMANTIC_TAGS;
-
-
 function sanitizeSemanticTagInput(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ').toLowerCase();
 }
@@ -148,7 +145,7 @@ const SEMANTIC_TAG_ALIAS_MAP = Object.fromEntries(
 ) as Record<string, CreationMaterialSemanticTag>;
 
 const SEMANTIC_TAG_ALLOWLIST = new Set<string>(
-  CREATION_SEMANTIC_TAG_ALLOWLIST,
+  CREATION_MATERIAL_SEMANTIC_TAGS,
 );
 
 const SEMANTIC_TAG_TEXT_PATTERN_MAP: Record<CreationMaterialSemanticTag, RegExp> = {
@@ -173,7 +170,7 @@ const SEMANTIC_TAG_TEXT_PATTERN_MAP: Record<CreationMaterialSemanticTag, RegExp>
   [CreationTags.MATERIAL.SEMANTIC_LIFE]: /生|命|苏|复|萌/u,
 };
 
-const SEMANTIC_TAG_TEXT_PATTERNS = CREATION_SEMANTIC_TAG_ALLOWLIST.map((tag) => ({
+const SEMANTIC_TAG_TEXT_PATTERNS = CREATION_MATERIAL_SEMANTIC_TAGS.map((tag) => ({
   tag,
   pattern: SEMANTIC_TAG_TEXT_PATTERN_MAP[tag],
 }));
@@ -189,7 +186,7 @@ export function normalizeSemanticTag(
     return aliasMatch;
   }
 
-  for (const candidate of CREATION_SEMANTIC_TAG_ALLOWLIST) {
+  for (const candidate of CREATION_MATERIAL_SEMANTIC_TAGS) {
     if (candidate.toLowerCase() === sanitized) {
       return candidate;
     }
@@ -239,5 +236,5 @@ export function extractSemanticTagsFromText(sourceText: string): CreationMateria
 }
 
 export function getCreationMaterialSemanticTagAllowlist(): CreationMaterialSemanticTag[] {
-  return [...CREATION_SEMANTIC_TAG_ALLOWLIST];
+  return [...CREATION_MATERIAL_SEMANTIC_TAGS];
 }

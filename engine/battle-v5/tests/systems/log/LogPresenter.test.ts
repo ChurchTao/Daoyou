@@ -36,9 +36,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」发起攻击，对「李四」造成 100 点伤害',
-    );
+    ]);
   });
 
   it('技能 + Buff 应包含持续回合', () => {
@@ -60,9 +60,9 @@ describe('LogPresenter 行动日志聚合', () => {
       }),
     ]);
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《火球术》，对「李四」造成 1,280 点伤害并施加「灼烧」×2（2 回合）',
-    );
+    ]);
   });
 
   it('驱散应使用中文并列分隔符', () => {
@@ -74,9 +74,9 @@ describe('LogPresenter 行动日志聚合', () => {
       }),
     ]);
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《火球术》，清除了「李四」身上的「灼烧」、「中毒」',
-    );
+    ]);
   });
 
   it('技能打断应包含被打断者姓名', () => {
@@ -90,9 +90,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
     span.ability = { id: 'seal', name: '封魔击' };
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《封魔击》，打断了「李四」的《火球术》！',
-    );
+    ]);
   });
 
   it('免死应优先于击杀文案', () => {
@@ -115,9 +115,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
     span.ability = { id: 'fatal', name: '致命一击' };
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《致命一击》，对「李四」造成 200 点伤害，「李四」触发免死效果，保住了性命！',
-    );
+    ]);
   });
 
   it('反伤应并入主目标行而不是拆成自伤目标行', () => {
@@ -145,9 +145,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」发起攻击，对「李四」造成 1,300 点伤害，「李四」触发免死效果，保住了性命！，反弹 38 点伤害给「张三」',
-    );
+    ]);
   });
 
   it('护盾完全吸收时也应输出0伤害和抵扣护盾', () => {
@@ -165,9 +165,9 @@ describe('LogPresenter 行动日志聚合', () => {
     ]);
     span.ability = { id: 'basic_attack', name: '普攻' };
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」发起攻击，对「李四」造成 0 点伤害（抵扣护盾 114 点）',
-    );
+    ]);
   });
 
   it('多目标应每目标一行', () => {
@@ -189,12 +189,10 @@ describe('LogPresenter 行动日志聚合', () => {
       }),
     ]);
 
-    expect(presenter.formatSpan(span)).toBe(
-      [
-        '「张三」施放《火球术》，对「李四」造成 100 点伤害',
-        '「张三」施放《火球术》，对「王五」造成 120 点伤害（暴击）！',
-      ].join('\n'),
-    );
+    expect(presenter.formatSpan(span)).toEqual([
+      '「张三」施放《火球术》，对「李四」造成 100 点伤害',
+      '「张三」施放《火球术》，对「王五」造成 120 点伤害（暴击）！',
+    ]);
   });
 
   it('魔法盾吸收应在伤害文案后追加真元化解描述', () => {
@@ -215,9 +213,9 @@ describe('LogPresenter 行动日志聚合', () => {
       }),
     ]);
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《火球术》，对「李四」造成 2 点伤害，「李四」以真元化解 98 点伤害（消耗 98 点真元）',
-    );
+    ]);
   });
 
   it('伤害免疫应输出免疫描述', () => {
@@ -230,9 +228,9 @@ describe('LogPresenter 行动日志聚合', () => {
       }),
     ]);
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《火球术》，对「李四」造成 0 点伤害，「李四」免疫了此次伤害',
-    );
+    ]);
   });
 
   it('纯 Buff 免疫应输出被免疫文案', () => {
@@ -245,8 +243,8 @@ describe('LogPresenter 行动日志聚合', () => {
       }),
     ]);
 
-    expect(presenter.formatSpan(span)).toBe(
+    expect(presenter.formatSpan(span)).toEqual([
       '「张三」施放《火球术》，对「李四」施加的「灼烧」被免疫了',
-    );
+    ]);
   });
 });

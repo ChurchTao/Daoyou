@@ -31,7 +31,7 @@ export class LogPresenter {
   /**
    * 格式化单个 Span 为单行输出
    */
-  formatSpan(span: LogSpan): string {
+  formatSpan(span: LogSpan): string[] {
     if (span.entries.length === 0) {
       return this.formatEmptySpan(span);
     }
@@ -42,7 +42,7 @@ export class LogPresenter {
       case 'battle_end':
         return this.formatBattleEnd(span);
       case 'round_start':
-        return `【第 ${span.turn} 回合】`;
+        return [`【第 ${span.turn} 回合】`];
       case 'action_pre':
         return this.formatActionPre(span);
       case 'action':
@@ -50,67 +50,67 @@ export class LogPresenter {
       case 'action_after':
         return this.formatActionAfter(span);
       default:
-        return '';
+        return [];
     }
   }
 
-  private formatEmptySpan(span: LogSpan): string {
+  private formatEmptySpan(span: LogSpan): string[] {
     switch (span.type) {
       case 'battle_init':
-        return '【战斗开始】';
+        return ['【战斗开始】'];
       case 'battle_end':
-        return `【战斗结束】${this.formatName(span.actor?.name ?? '未知')} 获胜！`;
+        return [`【战斗结束】${this.formatName(span.actor?.name ?? '未知')} 获胜！`];
       case 'round_start':
-        return `【第 ${span.turn} 回合】`;
+        return [`【第 ${span.turn} 回合】`];
       case 'action_after':
-        return '';
+        return [];
       default:
-        return '';
+        return [];
     }
   }
 
-  private formatBattleInit(): string {
-    return '【战斗开始】';
+  private formatBattleInit(): string[] {
+    return ['【战斗开始】'];
   }
 
-  private formatBattleEnd(span: LogSpan): string {
+  private formatBattleEnd(span: LogSpan): string[] {
     const winner = this.formatName(span.actor?.name ?? '未知');
-    return `【战斗结束】${winner} 获胜！`;
+    return [`【战斗结束】${winner} 获胜！`];
   }
 
-  private formatAction(span: LogSpan): string {
+  private formatAction(span: LogSpan): string[] {
     const actor = this.formatName(span.actor?.name ?? '未知');
     const ability = span.ability;
     const entries = span.entries;
 
     const targets = this.extractDisplayTargets(entries);
-    let mainOutput: string;
+    let mainOutput: string[];
     if (targets.length === 1) {
-      mainOutput = this.formatSingleTargetAction(
+      mainOutput = [this.formatSingleTargetAction(
         span,
         actor,
         ability,
         this.getEntriesForTarget(entries, targets[0]),
-      );
+      )];
     } else if (targets.length > 1) {
       mainOutput = this.formatMultiTargetAction(span, actor, ability, targets);
     } else {
-      mainOutput = this.formatSingleTargetAction(span, actor, ability, entries);
+      mainOutput = [this.formatSingleTargetAction(span, actor, ability, entries)];
     }
 
     return mainOutput;
   }
 
-  private formatActionAfter(span: LogSpan): string {
+  private formatActionAfter(span: LogSpan): string[] {
     const expiredEntries = this.findEntries(span.entries, 'buff_remove').filter(
       (e) => e.data.reason === 'expired',
     );
-    if (expiredEntries.length === 0) return '';
+    if (expiredEntries.length === 0) return [];
 
     // processBuffs 只处理当前行动者的 buff，所有过期条目实质属于同一单位
     const targetName = this.formatName(expiredEntries[0].data.targetName);
     const buffNames = this.formatQuotedList(expiredEntries.map((e) => e.data.buffName));
-    return `【持续】${targetName}身上的${buffNames}时效已过`;
+    return [`【持续】${targetName}身上的${buffNames}时效已过`];
   }
 
   private formatSingleTargetAction(
@@ -239,7 +239,7 @@ export class LogPresenter {
           0,
         );
         resultParts.push(
-          `${formattedPrimaryTarget}以真元化解 ${this.formatNumber(absorbedDamage)} 点伤害（消耗 ${this.formatNumber(mpConsumed)} 点真元）`,
+          `${formattedPrimaryTarget}以法力化解 ${this.formatNumber(absorbedDamage)} 点伤害（消耗 ${this.formatNumber(mpConsumed)} 点法力）`,
         );
       }
 
@@ -310,15 +310,15 @@ export class LogPresenter {
     // 情况 7: 焚元
     for (const manaBurn of manaBurns) {
       resultParts.push(
-        `削减了${this.formatName(manaBurn.data.targetName)} ${this.formatNumber(manaBurn.data.value)} 点真元`,
+        `削减了${this.formatName(manaBurn.data.targetName)} ${this.formatNumber(manaBurn.data.value)} 点法力`,
       );
     }
 
     // 情况 8: 掠夺
     for (const resourceDrain of resourceDrains) {
-      const typeText = resourceDrain.data.drainType === 'hp' ? '气血' : '真元';
+      const typeText = resourceDrain.data.drainType === 'hp' ? '气血' : '法力';
       resultParts.push(
-        `从${this.formatName(resourceDrain.data.targetName)}身上夺取了 ${this.formatNumber(resourceDrain.data.value)} 点${typeText}`,
+        `从${this.formatName(resourceDrain.data.targetName)}身上吸取了 ${this.formatNumber(resourceDrain.data.value)} 点${typeText}`,
       );
     }
 
@@ -356,7 +356,7 @@ export class LogPresenter {
     actor: string,
     ability: { id: string; name: string } | undefined,
     targets: string[],
-  ): string {
+  ): string[] {
     const lines: string[] = [];
     for (const target of targets) {
       const targetEntries = this.getEntriesForTarget(span.entries, target);
@@ -367,7 +367,7 @@ export class LogPresenter {
         this.formatSingleTargetAction(span, actor, ability, targetEntries),
       );
     }
-    return lines.join('\n');
+    return lines;
   }
 
   private extractDisplayTargets(entries: LogEntry[]): string[] {
@@ -435,7 +435,7 @@ export class LogPresenter {
     });
   }
 
-  private formatActionPre(span: LogSpan): string {
+  private formatActionPre(span: LogSpan): string[] {
     const actorName = span.actor?.name ?? '未知';
     const actor = this.formatName(actorName);
     const entries = span.entries;
@@ -452,10 +452,10 @@ export class LogPresenter {
       const controlDesc = getControlDesc(controlSkip.data.controlTag);
       const controlText = `${actor}${controlDesc}，本回合无法行动`;
       // 若同回合有 DOT/HOT，先描述持续效果再描述控制结果
-      return dotHotText ? `${dotHotText}，随后${controlText}` : controlText;
+      return [dotHotText ? `${dotHotText}，随后${controlText}` : controlText];
     }
 
-    return dotHotText ?? `${actor} 持续效果触发`;
+    return [dotHotText ?? `${actor} 持续效果触发`];
   }
 
   private _buildDotHotText(
@@ -550,6 +550,7 @@ export class LogPresenter {
     return spans
       .filter((span) => span.entries.length > 0 || this._isStructuralSpan(span))
       .map((span) => this.formatSpan(span))
+      .flat()
       .filter((text) => text.length > 0);
   }
 

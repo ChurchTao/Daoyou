@@ -51,16 +51,9 @@ function getDefaultScope(eventType: string): ListenerScope {
 }
 
 function getDefaultMapping(
-  eventType: string,
+  _eventType: string,
   scope: ListenerScope,
 ): ListenerContextMapping {
-  if (eventType === 'DamageTakenEvent') {
-    return {
-      caster: 'owner',
-      target: 'owner',
-    };
-  }
-
   switch (scope) {
     case 'owner_as_target':
       return {

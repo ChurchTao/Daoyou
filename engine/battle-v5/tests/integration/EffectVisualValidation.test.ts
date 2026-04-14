@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { BattleEngineV5 } from '../../BattleEngineV5';
 import { GameplayTags } from '../../core';
 import { BuffConfig } from '../../core/configs';
@@ -8,13 +9,11 @@ import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
 
 describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () => {
-
   beforeEach(() => {
     EventBus.instance.reset();
   });
 
-  afterEach(() => {
-  });
+  afterEach(() => {});
 
   const createTestUnit = (
     id: string,
@@ -100,7 +99,10 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         effects: [
           {
             type: 'dispel',
-            params: { targetTag: GameplayTags.STATUS.STATE.POISONED, maxCount: 1 },
+            params: {
+              targetTag: GameplayTags.STATUS.STATE.POISONED,
+              maxCount: 1,
+            },
           },
         ],
       }),
@@ -121,6 +123,8 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
       [AttributeType.SPEED]: 0,
     });
 
+    attacker.takeDamage(100);
+
     attacker.abilities.addAbility(
       AbilityFactory.create({
         slug: 'execute',
@@ -136,7 +140,29 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         effects: [
           {
             type: 'damage',
-            params: { value: { attribute: AttributeType.ATK, coefficient: 2.0 } },
+            params: {
+              value: { attribute: AttributeType.ATK, coefficient: 2.0 },
+            },
+          },
+        ],
+        listeners: [
+          {
+            eventType: 'DamageTakenEvent',
+            scope: 'owner_as_caster',
+            priority: 50,
+            guard: {
+              skipReflectSource: true,
+            },
+            effects: [
+              {
+                type: 'resource_drain',
+                params: {
+                  sourceType: 'hp',
+                  targetType: 'hp',
+                  ratio: 0.1,
+                },
+              },
+            ],
           },
         ],
       }),
@@ -176,7 +202,6 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     expect(result.logs[2]).toContain('对「不死者」造成');
     expect(result.logs[2]).toContain('反弹');
     expect(result.logs[2]).not.toContain('对「杀手」造成');
-    expect(result.logs[2]).not.toContain('\n');
   });
 
   it('4. 验证【护盾与焚元】：纯粹分步验证', () => {
@@ -237,8 +262,18 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     });
 
     console.log('--- 测试【伤害免疫优先于魔法盾】：实际战斗场景 ---');
-    console.log('攻击者 HP:', attacker.getCurrentHp(), 'MP:', attacker.getCurrentMp());
-    console.log('防御者 HP:', defender.getCurrentHp(), 'MP:', defender.getCurrentMp());
+    console.log(
+      '攻击者 HP:',
+      attacker.getCurrentHp(),
+      'MP:',
+      attacker.getCurrentMp(),
+    );
+    console.log(
+      '防御者 HP:',
+      defender.getCurrentHp(),
+      'MP:',
+      defender.getCurrentMp(),
+    );
 
     // 防御者同时具有 damage_immunity 和 magic_shield 被动
     // damage_immunity 应该比 magic_shield 先执行，使伤害为 0
@@ -285,7 +320,10 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
         type: AbilityType.ACTIVE_SKILL,
         priority: 100,
         cooldown: 3,
-        tags: [GameplayTags.ABILITY.FUNCTION.DAMAGE, GameplayTags.ABILITY.CHANNEL.MAGIC],
+        tags: [
+          GameplayTags.ABILITY.FUNCTION.DAMAGE,
+          GameplayTags.ABILITY.CHANNEL.MAGIC,
+        ],
         targetPolicy: { team: 'enemy', scope: 'single' },
         effects: [
           {
@@ -305,12 +343,23 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
     const engine = new BattleEngineV5(attacker, defender);
     const result = engine.execute();
 
-    console.log('战斗日志：',result.logs);
-    console.log('攻击者 HP:', attacker.getCurrentHp(), 'MP:', attacker.getCurrentMp());
-    console.log('防御者 HP:', defender.getCurrentHp(), 'MP:', defender.getCurrentMp());
-    
+    console.log('战斗日志：', result.logs);
+    console.log(
+      '攻击者 HP:',
+      attacker.getCurrentHp(),
+      'MP:',
+      attacker.getCurrentMp(),
+    );
+    console.log(
+      '防御者 HP:',
+      defender.getCurrentHp(),
+      'MP:',
+      defender.getCurrentMp(),
+    );
+
     // 验证：伤害应该被免疫为 0，因此魔法盾不应消耗 MP
-    expect(result.logs.some((log) => log.includes('免疫了此次伤害'))).toBe(true);
-    
+    expect(result.logs.some((log) => log.includes('免疫了此次伤害'))).toBe(
+      true,
+    );
   });
 });

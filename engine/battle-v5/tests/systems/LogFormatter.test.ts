@@ -43,11 +43,12 @@ describe('LogPresenter', () => {
         timestamp: Date.now(),
       };
       const output = presenter.formatSpan(complexSpan);
+      const text = output.join(' ');
       // 新格式：单行聚合
-      expect(output).toContain('林轩');
-      expect(output).toContain('火球术');
-      expect(output).toContain('100');
-      expect(output).toContain('灼烧');
+      expect(text).toContain('林轩');
+      expect(text).toContain('火球术');
+      expect(text).toContain('100');
+      expect(text).toContain('灼烧');
     });
 
     it('应该能格式化 action_pre Span (持续伤害)', () => {
@@ -73,11 +74,12 @@ describe('LogPresenter', () => {
         timestamp: Date.now(),
       };
       const output = presenter.formatSpan(preSpan);
+      const text = output.join(' ');
       // 新格式：【持续】蛇精身上的「中毒」发作，造成 50 点伤害
-      expect(output).toContain('【持续】');
-      expect(output).toContain('蛇精');
-      expect(output).toContain('中毒');
-      expect(output).toContain('50');
+      expect(text).toContain('【持续】');
+      expect(text).toContain('蛇精');
+      expect(text).toContain('中毒');
+      expect(text).toContain('50');
     });
 
     it('应该在无法聚合时输出基本信息', () => {
@@ -103,8 +105,9 @@ describe('LogPresenter', () => {
         timestamp: Date.now(),
       };
       const output = presenter.formatSpan(simpleSpan);
-      expect(output).toContain('林轩');
-      expect(output).toContain('10');
+      const text = output.join(' ');
+      expect(text).toContain('林轩');
+      expect(text).toContain('10');
     });
 
     it('应该格式化闪避事件', () => {
@@ -125,7 +128,7 @@ describe('LogPresenter', () => {
         timestamp: Date.now(),
       };
       const output = presenter.formatSpan(dodgeSpan);
-      expect(output).toContain('闪避');
+      expect(output.join(' ')).toContain('闪避');
     });
 
     it('应该格式化暴击伤害', () => {
@@ -157,8 +160,9 @@ describe('LogPresenter', () => {
         timestamp: Date.now(),
       };
       const output = presenter.formatSpan(critSpan);
-      expect(output).toContain('暴击');
-      expect(output).toContain('击败');
+      const text = output.join(' ');
+      expect(text).toContain('暴击');
+      expect(text).toContain('击败');
     });
   });
 

@@ -203,7 +203,7 @@ export interface CombatLogAIView {
     actor?: { id: string; name: string };
     ability?: { id: string; name: string };
     entries: Array<{ type: LogEntryType; data: unknown }>;
-    description: string;
+    description: string[];
   }>;
   summary: CombatLogSummary;
 }

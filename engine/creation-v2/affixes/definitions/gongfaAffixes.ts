@@ -124,44 +124,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ========================
   // ===== PREFIX 词缀 (11 种)
   // ========================
-  {
-    id: 'gongfa-prefix-crit-damage',
-    displayName: '暴伤强化',
-    displayDescription: '战斗中永久提升暴击伤害倍率',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.PREFIX_CRIT_DMG,
-    weight: 85,
-    energyCost: 6,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.CRIT_DAMAGE_MULT,
-        modType: ModifierType.FIXED,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-prefix-heal-amplify',
-    displayName: '治疗强化',
-    displayDescription: '战斗中永久提升治疗增幅',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.PREFIX_HEAL,
-    weight: 80,
-    energyCost: 6,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.HEAL_AMPLIFY,
-        modType: ModifierType.FIXED,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
-      },
-    },
-  },
+  
   {
     id: 'gongfa-prefix-reflect-skin',
     displayName: '受击反伤',
@@ -208,42 +171,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
     },
   },
-  {
-    id: 'gongfa-prefix-evasion-master',
-    displayName: '闪避强化',
-    displayDescription: '战斗中永久提升闪避率',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
-    weight: 62,
-    energyCost: 6,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.EVASION_RATE,
-        modType: ModifierType.FIXED,
-        value: { base: 0.04, scale: 'quality', coefficient: 0.012 },
-      },
-    },
-  },
-  {
-    id: 'gongfa-prefix-mag-pene-enhance',
-    displayName: '法穿神通',
-    displayDescription: '战斗中永久提升法术穿透',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST]),
-    weight: 58,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.MAGIC_PENETRATION,
-        modType: ModifierType.FIXED,
-        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
-      },
-    },
-  },
+  
   {
     id: 'gongfa-prefix-buff-sustain',
     displayName: '增益延长',
@@ -889,67 +817,6 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         modType: ModifierType.ADD,
         value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
       },
-    },
-  },
-  {
-    id: 'gongfa-synergy-immortal-guardian',
-    displayName: '生存联动',
-    displayDescription: '治疗、防御、吸取三者相互强化',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 47,
-    energyCost: 12,
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 8, scale: 'quality', coefficient: 3 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.16,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
-    id: 'gongfa-synergy-unstoppable-force',
-    displayName: '攻防联动',
-    displayDescription: '攻防一体，伤害与吸取相互驱动',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-    ]),
-    weight: 44,
-    energyCost: 12,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.6,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
