@@ -225,6 +225,12 @@ export class AffixEffectTranslator {
         );
       }
 
+      case 'random_attribute_modifier': {
+        throw new Error(
+          'AffixEffectTranslator: random_attribute_modifier must be projected to AbilityConfig.modifiers in passive policy',
+        );
+      }
+
       case 'attribute_stat_buff': {
         const { attrType, modType, value, duration, stackRule } =
           template.params;

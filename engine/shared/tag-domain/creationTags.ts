@@ -91,3 +91,28 @@ export const CreationTags = {
     GONGFA: 'Outcome.GongFa',
   },
 } as const;
+
+export const CREATION_MATERIAL_SEMANTIC_TAGS = [
+  CreationTags.MATERIAL.SEMANTIC_FLAME,
+  CreationTags.MATERIAL.SEMANTIC_FREEZE,
+  CreationTags.MATERIAL.SEMANTIC_THUNDER,
+  CreationTags.MATERIAL.SEMANTIC_WIND,
+  CreationTags.MATERIAL.SEMANTIC_BLADE,
+  CreationTags.MATERIAL.SEMANTIC_GUARD,
+  CreationTags.MATERIAL.SEMANTIC_BURST,
+  CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+  CreationTags.MATERIAL.SEMANTIC_MANUAL,
+  CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+  CreationTags.MATERIAL.SEMANTIC_EARTH,
+  CreationTags.MATERIAL.SEMANTIC_METAL,
+  CreationTags.MATERIAL.SEMANTIC_WATER,
+  CreationTags.MATERIAL.SEMANTIC_WOOD,
+  CreationTags.MATERIAL.SEMANTIC_POISON,
+  CreationTags.MATERIAL.SEMANTIC_DIVINE,
+  CreationTags.MATERIAL.SEMANTIC_SPACE,
+  CreationTags.MATERIAL.SEMANTIC_TIME,
+  CreationTags.MATERIAL.SEMANTIC_LIFE,
+] as const;
+
+export type CreationMaterialSemanticTag =
+  (typeof CREATION_MATERIAL_SEMANTIC_TAGS)[number];

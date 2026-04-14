@@ -180,7 +180,7 @@ export class ProjectionRules implements Rule<
     const qualityOrder = materialQualityProfile.weightedAverageOrder;
     const projectionQuality = materialQualityProfile.weightedAverageQuality;
 
-    // Partition affixes: attribute_modifier → direct AbilityConfig.modifiers
+    // Partition affixes: attribute_modifier / random_attribute_modifier → direct AbilityConfig.modifiers
     // everything else → listener-wrapped effects
     const modifiers: AttributeModifierConfig[] = [];
     const rolledListeners: RolledAffix[] = [];
@@ -209,6 +209,21 @@ export class ProjectionRules implements Rule<
           modifiers.push({
             attrType: modifierEntry.attrType,
             type: modifierEntry.modType,
+            value: baseValue * rolled.finalMultiplier,
+          });
+        }
+      } else if (def.effectTemplate.type === 'random_attribute_modifier') {
+        const { pool, pickCount } = def.effectTemplate.params;
+        // 造物时随机抽取，结果固化在此次投影中
+        const picked = pickRandom(pool, pickCount);
+        for (const entry of picked) {
+          const baseValue = this.translator.resolveParam(
+            entry.value,
+            qualityOrder,
+          );
+          modifiers.push({
+            attrType: entry.attrType,
+            type: entry.modType,
             value: baseValue * rolled.finalMultiplier,
           });
         }
@@ -261,4 +276,18 @@ export class ProjectionRules implements Rule<
       priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
     };
   }
+}
+
+/**
+ * 从数组中随机不重复地抽取 count 个元素（Fisher-Yates partial shuffle）。
+ * 若 count >= arr.length，返回原数组的完整副本（随机顺序）。
+ */
+function pickRandom<T>(arr: readonly T[], count: number): T[] {
+  const copy = arr.slice();
+  const n = Math.min(count, copy.length);
+  for (let i = 0; i < n; i++) {
+    const j = i + Math.floor(Math.random() * (copy.length - i));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
 }

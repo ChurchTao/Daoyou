@@ -162,6 +162,19 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
     | { type: 'buff_immunity'; params: BuffImmunityParams }
     | { type: 'damage_immunity'; params: DamageImmunityParams }
     | { type: 'dispel'; params: { targetTag?: string; maxCount?: number } }
+    | {
+        /**
+         * 随机属性修改器（仅用于 artifact/gongfa 被动词缀）
+         * 在造物时从 pool 中随机抽取 pickCount 条属性，解析为 AbilityConfig.modifiers。
+         * 每条池目指定独立的 attrType、modType 与 value 公式，允许携带不同量级的数值。
+         * 由 ProjectionRules 投影，不经过 AffixEffectTranslator。
+         */
+        type: 'random_attribute_modifier';
+        params: {
+          pool: AffixAttributeModifierTemplate[];
+          pickCount: number;
+        };
+      }
   );
 
 // ===== 词缀监听器规格 =====

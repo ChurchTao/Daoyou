@@ -1,5 +1,9 @@
 export { GameplayTagContainer } from './GameplayTagContainer';
-export { CreationTagContainer, CreationTags } from './creationTags';
+export {
+  CREATION_MATERIAL_SEMANTIC_TAGS,
+  CreationTagContainer,
+  CreationTags,
+} from './creationTags';
 export { ELEMENT_TO_RUNTIME_ABILITY_TAG, GameplayTags } from './gameplayTags';
 export {
   assertCreationTag,
@@ -11,3 +15,4 @@ export {
   TagDomainCatalog,
 } from './guards';
 export type { CreationTagPath, TagPath } from './types';
+export type { CreationMaterialSemanticTag } from './creationTags';
