@@ -3,11 +3,7 @@
  * 法宝词缀特点：通常包含 listenerSpec，用于被动能力的 listener 注册
  * 包括常驻属性修改、战斗中被动触发、以及高阶联动效果
  */
-import {
-  CreationTags,
-  ELEMENT_TO_RUNTIME_ABILITY_TAG,
-  GameplayTags,
-} from '@/engine/shared/tag-domain';
+import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import {
@@ -324,8 +320,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-suffix-armor-passive',
-    displayName: '受击减伤',
-    displayDescription: '受击时减免伤害',
+    displayName: '全能减伤',
+    displayDescription: '受击时百分比减免伤害',
     category: 'suffix',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
@@ -377,11 +373,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
-  // 法术吸血
+  // 物理吸血
   {
-    id: 'artifact-suffix-magic-vampiric-core',
-    displayName: '法术吸血',
-     displayDescription: '造成魔法伤害后按比例回复气血',
+    id: 'artifact-suffix-physical-vampiric-core',
+    displayName: '物理吸血',
+    displayDescription: '造成物理伤害后按比例回复气血',
     category: 'suffix',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BURST,
@@ -397,7 +393,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       conditions: [
         {
           type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.CHANNEL.MAGIC },
+          params: { tag: GameplayTags.ABILITY.CHANNEL.PHYSICAL },
         },
       ],
       params: {
@@ -412,8 +408,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
-  // 物理吸血
-  
   {
     id: 'artifact-suffix-mana-recovery',
     displayName: '回合回蓝',
@@ -450,101 +444,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'artifact-suffix-counter-attack',
-    displayName: '受击反击',
-    displayDescription: '受击时反击攻击者',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 58,
-    energyCost: 9,
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [
-      GameplayTags.ABILITY.FUNCTION.DAMAGE,
-      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
-    ],
-    effectTemplate: {
-      type: 'damage',
-      params: {
-        value: {
-          base: { base: 5, scale: 'quality', coefficient: 2 },
-          attribute: AttributeType.ATK,
-          coefficient: 0.25,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      mapping: {
-        caster: 'owner',
-        target: 'event.caster',
-      },
-    },
-  },
-  {
-    id: 'artifact-suffix-buff-immunity',
-    displayName: '减益免疫',
-    displayDescription: '免疫指定类型的减益效果',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ]),
-    weight: 50,
-    energyCost: 10,
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'buff_immunity',
-      params: {
-        tags: [GameplayTags.BUFF.TYPE.DEBUFF],
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.BUFF_ADD,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
-    },
-  },
-  {
-    id: 'artifact-suffix-damage-type-reduce',
-    displayName: '冰伤减免',
-    displayDescription: '减少冰系技能造成的伤害',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-    ]),
-    weight: 48,
-    energyCost: 9,
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['冰'] },
-        },
-      ],
-      params: {
-        mode: 'reduce',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.4,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
     id: 'artifact-suffix-dispel-debuff',
-    displayName: '回合驱散',
-    displayDescription: '每回合自动驱散一层减益',
+    displayName: '自动驱散',
+    displayDescription: '每回合有概率自动驱散一层减益',
     category: 'suffix',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
@@ -555,6 +457,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'dispel',
+      conditions: [{ type: 'chance', params: { value: 0.5 } }],
       params: {
         targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
         maxCount: 1,
@@ -570,73 +473,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
   },
-  {
-    id: 'artifact-suffix-high-mana-sunder',
-    displayName: '高蓝燃灵',
-    displayDescription: '只对高法力目标触发燃灵效果',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 38,
-    energyCost: 9,
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
-    effectTemplate: {
-      type: 'mana_burn',
-      conditions: [{ type: 'mp_above', params: { value: 0.65 } }],
-      params: {
-        value: {
-          base: { base: 12, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.18,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-
   // ========================
   // ===== RESONANCE 词缀 (5 种)
   // ========================
-  {
-    id: 'artifact-resonance-element-force',
-    displayName: '元素增伤共鸣',
-    displayDescription: '元素技能造成的伤害持续增幅',
-    category: 'resonance',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ELEMENT_TO_MATERIAL_TAG['火'],
-    ]),
-    weight: 55,
-    energyCost: 11,
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.ELEMENT.ROOT },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
-        cap: 0.4,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
   {
     id: 'artifact-resonance-opening-pressure',
     displayName: '开局压制',
@@ -668,91 +507,6 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // ========================
   // ===== SYNERGY 词缀 (6 种)
   // ========================
-  {
-    id: 'artifact-synergy-multi-defense',
-    displayName: '多重护体',
-    displayDescription: '多层防御机制相互补强',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_ORE,
-    ]),
-    weight: 48,
-    energyCost: 12,
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
-    effectTemplate: {
-      type: 'shield',
-      params: {
-        value: {
-          base: { base: 12, scale: 'quality', coefficient: 5 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.25,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
-    id: 'artifact-synergy-reflect-burst',
-    displayName: '反伤联动',
-    displayDescription: '受击时联动反伤机制，压制近战对手',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ]),
-    weight: 45,
-    energyCost: 12,
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
-    effectTemplate: {
-      type: 'reflect',
-      params: {
-        ratio: { base: 0.18, scale: 'quality', coefficient: 0.035 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      guard: {
-        skipReflectSource: true,
-      },
-    },
-  },
-  {
-    id: 'artifact-synergy-lifesteal-sustain',
-    displayName: '吸血续航',
-    displayDescription: '吸血与恢复配合，持续作战能力更强',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 42,
-    energyCost: 12,
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.14, scale: 'quality', coefficient: 0.035 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
   {
     id: 'artifact-synergy-control-immunity',
     displayName: '受控反制',

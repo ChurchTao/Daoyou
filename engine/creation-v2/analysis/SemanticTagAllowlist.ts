@@ -136,6 +136,62 @@ const SEMANTIC_TAG_ALIASES: Record<CreationMaterialSemanticTag, readonly string[
     'material.semantic.life',
     '生',
   ],
+  [CreationTags.MATERIAL.SEMANTIC_ALCHEMY]: [
+    'alchemy',
+    'pill',
+    'elixir',
+    'material.semantic.alchemy',
+    '丹',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_REFINING]: [
+    'refining',
+    'smithing',
+    'forge',
+    'material.semantic.refining',
+    '炼器',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_BEAST]: [
+    'beast',
+    'monster',
+    'feral',
+    'material.semantic.beast',
+    '兽',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_BLOOD]: [
+    'blood',
+    'hematic',
+    'sanguine',
+    'material.semantic.blood',
+    '血',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_BONE]: [
+    'bone',
+    'skeletal',
+    'carapace',
+    'material.semantic.bone',
+    '骨',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_FORMATION]: [
+    'formation',
+    'array',
+    'sigil',
+    'material.semantic.formation',
+    '阵',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_ILLUSION]: [
+    'illusion',
+    'phantom',
+    'mirage',
+    'material.semantic.illusion',
+    '幻',
+  ],
+  [CreationTags.MATERIAL.SEMANTIC_QI]: [
+    'qi',
+    'aura',
+    'energy',
+    'material.semantic.qi',
+    '气',
+  ],
 };
 
 const SEMANTIC_TAG_ALIAS_MAP = Object.fromEntries(
@@ -168,6 +224,14 @@ const SEMANTIC_TAG_TEXT_PATTERN_MAP: Record<CreationMaterialSemanticTag, RegExp>
   [CreationTags.MATERIAL.SEMANTIC_SPACE]: /空|界|域|虚|折/u,
   [CreationTags.MATERIAL.SEMANTIC_TIME]: /时|刻|岁|轮|瞬/u,
   [CreationTags.MATERIAL.SEMANTIC_LIFE]: /生|命|苏|复|萌/u,
+  [CreationTags.MATERIAL.SEMANTIC_ALCHEMY]: /丹|药|炉|炼丹|药性/u,
+  [CreationTags.MATERIAL.SEMANTIC_REFINING]: /铸|锻|炼器|器胚|熔/u,
+  [CreationTags.MATERIAL.SEMANTIC_BEAST]: /兽|妖|蛟|虎|鳞/u,
+  [CreationTags.MATERIAL.SEMANTIC_BLOOD]: /血|脉|煞|精血|血髓/u,
+  [CreationTags.MATERIAL.SEMANTIC_BONE]: /骨|骸|甲壳|角|刺/u,
+  [CreationTags.MATERIAL.SEMANTIC_FORMATION]: /阵|禁|纹|符|阵图/u,
+  [CreationTags.MATERIAL.SEMANTIC_ILLUSION]: /幻|梦|迷|蜃|惑/u,
+  [CreationTags.MATERIAL.SEMANTIC_QI]: /气|灵息|元炁|真元|灵压/u,
 };
 
 const SEMANTIC_TAG_TEXT_PATTERNS = CREATION_MATERIAL_SEMANTIC_TAGS.map((tag) => ({

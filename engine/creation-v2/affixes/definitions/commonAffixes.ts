@@ -1,8 +1,15 @@
-import { CreationTags } from '@/engine/shared/tag-domain';
+import {
+  CreationTags,
+  ELEMENT_TO_RUNTIME_ABILITY_TAG,
+  GameplayTags,
+} from '@/engine/shared/tag-domain';
+import { DamageChannel } from '@/engine/shared/tag-domain/gameplayTags';
+import { ElementType } from '@/types/constants';
+import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { AttributeType, ModifierType } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
-import { AffixDefinition, matchAll } from '../types';
+import { AffixDefinition, matchAll, PercentModifierMode } from '../types';
 
 /**
  * 一些通用的 prefix / suffix 词缀定义，适用于多个产物类型
@@ -456,4 +463,142 @@ export const COMMON_PREFIX_AFFIX: AffixDefinition[] = [
       },
     },
   },
+];
+
+const buildElementPercentDamageModifierAffixes = (
+  element: ElementType,
+  mode: PercentModifierMode,
+): AffixDefinition => ({
+  id: `common-suffix-damage-${ELEMENT_TO_MATERIAL_TAG[element]}-reduce`,
+  displayName: `${element}伤${mode === 'increase' ? '增幅' : '减伤'}`,
+  displayDescription:
+    mode === 'increase'
+      ? `增加造成的${element}系伤害`
+      : `减少受到的${element}系伤害`,
+  category: 'suffix',
+  match: matchAll([
+    mode === 'increase'
+      ? CreationTags.MATERIAL.SEMANTIC_BLADE
+      : CreationTags.MATERIAL.SEMANTIC_GUARD,
+    ELEMENT_TO_MATERIAL_TAG[element],
+  ]),
+  weight: 48,
+  energyCost: 9,
+  applicableTo: ['artifact', 'gongfa'],
+  effectTemplate: {
+    type: 'percent_damage_modifier',
+    conditions: [
+      {
+        type: 'ability_has_tag',
+        params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG[element] },
+      },
+    ],
+    params: {
+      mode: 'reduce',
+      value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      cap: 0.4,
+    },
+  },
+  listenerSpec: {
+    eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+    scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+    priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+  },
+});
+
+const buildDamageChannelPercentDamageModifierAffixes = (
+  channel: DamageChannel,
+  mode: PercentModifierMode,
+): AffixDefinition => {
+  const channelNameMap: Record<DamageChannel, string> = {
+    [GameplayTags.ABILITY.CHANNEL.MAGIC]: '法术',
+    [GameplayTags.ABILITY.CHANNEL.PHYSICAL]: '物理',
+    [GameplayTags.ABILITY.CHANNEL.TRUE]: '真实',
+  };
+  const matchTagMap: Record<DamageChannel, string> = {
+    [GameplayTags.ABILITY.CHANNEL.MAGIC]: CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    [GameplayTags.ABILITY.CHANNEL.PHYSICAL]: CreationTags.MATERIAL.TYPE_ORE,
+    [GameplayTags.ABILITY.CHANNEL.TRUE]: CreationTags.MATERIAL.SEMANTIC_SPACE,
+  };
+  const channelName = channelNameMap[channel];
+  const channelNameEn = channel.split('.').slice(-1)[0].toLowerCase();
+
+  return {
+    id: `common-suffix-damage-${channelNameEn}-reduce`,
+    displayName: `${channelName}伤${mode === 'increase' ? '增幅' : '减伤'}`,
+    displayDescription:
+      mode === 'increase'
+        ? `增加造成的${channelName}系伤害`
+        : `减少受到的${channelName}系伤害`,
+    category: 'suffix',
+    match: matchAll([
+      mode === 'increase'
+        ? CreationTags.MATERIAL.SEMANTIC_BLADE
+        : CreationTags.MATERIAL.SEMANTIC_GUARD,
+      matchTagMap[channel],
+    ]),
+    weight: 42,
+    energyCost: 9,
+    applicableTo: ['artifact', 'gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: channel },
+        },
+      ],
+      params: {
+        mode: 'reduce',
+        value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
+        cap: 0.4,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  };
+};
+
+/**
+ * 元素伤害增幅、减伤等百分比修改词缀的公共定义
+ * 通过 params.mode 区分增幅和减伤，params.value 支持品质缩放
+ * 适用于多个产物类型的元素伤害修改词缀，避免重复定义
+ * 例如：火焰增幅、冰霜增幅、火焰减伤、冰霜减伤等都可以使用这个通用定义
+ */
+export const COMMON_ELEMENT_PERCENT_DAMAGE_MODIFIER_AFFIX: AffixDefinition[] = [
+  buildElementPercentDamageModifierAffixes('金', 'increase'),
+  buildElementPercentDamageModifierAffixes('木', 'increase'),
+  buildElementPercentDamageModifierAffixes('水', 'increase'),
+  buildElementPercentDamageModifierAffixes('火', 'increase'),
+  buildElementPercentDamageModifierAffixes('土', 'increase'),
+  buildElementPercentDamageModifierAffixes('风', 'increase'),
+  buildElementPercentDamageModifierAffixes('雷', 'increase'),
+  buildElementPercentDamageModifierAffixes('冰', 'increase'),
+  buildElementPercentDamageModifierAffixes('金', 'reduce'),
+  buildElementPercentDamageModifierAffixes('木', 'reduce'),
+  buildElementPercentDamageModifierAffixes('水', 'reduce'),
+  buildElementPercentDamageModifierAffixes('火', 'reduce'),
+  buildElementPercentDamageModifierAffixes('土', 'reduce'),
+  buildElementPercentDamageModifierAffixes('风', 'reduce'),
+  buildElementPercentDamageModifierAffixes('雷', 'reduce'),
+  buildElementPercentDamageModifierAffixes('冰', 'reduce'),
+  buildDamageChannelPercentDamageModifierAffixes(
+    GameplayTags.ABILITY.CHANNEL.MAGIC,
+    'increase',
+  ),
+  buildDamageChannelPercentDamageModifierAffixes(
+    GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+    'increase',
+  ),
+  buildDamageChannelPercentDamageModifierAffixes(
+    GameplayTags.ABILITY.CHANNEL.MAGIC,
+    'reduce',
+  ),
+  buildDamageChannelPercentDamageModifierAffixes(
+    GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+    'reduce',
+  ),
 ];

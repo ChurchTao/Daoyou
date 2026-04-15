@@ -1,10 +1,10 @@
 import { AttributeType } from '../core';
 import { TagTriggerParams } from '../core/configs';
+import { EventBus } from '../core/EventBus';
+import { TagTriggerEvent } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { DamageEffect } from './DamageEffect';
 import { EffectContext, GameplayEffect } from './Effect';
-import { EventBus } from '../core/EventBus';
-import { EventPriorityLevel, TagTriggerEvent } from '../core/events';
 
 /**
  * 标签触发原子效果

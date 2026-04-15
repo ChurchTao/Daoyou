@@ -21,16 +21,18 @@ export class PercentDamageModifierEffect extends GameplayEffect {
     if (damageRequestEvent.damageSource === DamageSource.REFLECT) return;
 
     const rawValue = Math.max(0, this.params.value);
-    const value = this.params.cap ? Math.min(rawValue, this.params.cap) : rawValue;
+    const value = this.params.cap
+      ? Math.min(rawValue, this.params.cap)
+      : rawValue;
 
     if (this.params.mode === 'increase') {
       damageRequestEvent.damageIncreasePctBucket =
         (damageRequestEvent.damageIncreasePctBucket ?? 0) + value;
       return;
+    } else if (this.params.mode === 'reduce') {
+      damageRequestEvent.damageReductionPctBucket =
+        (damageRequestEvent.damageReductionPctBucket ?? 0) + value;
     }
-
-    damageRequestEvent.damageReductionPctBucket =
-      (damageRequestEvent.damageReductionPctBucket ?? 0) + value;
   }
 }
 

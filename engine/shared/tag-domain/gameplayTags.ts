@@ -192,3 +192,11 @@ export const ELEMENT_TO_RUNTIME_ABILITY_TAG: Record<ElementType, string> = {
   雷: GameplayTags.ABILITY.ELEMENT.THUNDER,
   冰: GameplayTags.ABILITY.ELEMENT.ICE,
 };
+
+export const DAMAGE_CHANNEL_ABILITY_TAGS = [
+  GameplayTags.ABILITY.CHANNEL.MAGIC,
+  GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+  GameplayTags.ABILITY.CHANNEL.TRUE,
+] as const;
+
+export type DamageChannel = (typeof DAMAGE_CHANNEL_ABILITY_TAGS)[number];

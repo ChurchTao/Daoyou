@@ -15,8 +15,8 @@ const TYPE_TAGS: Record<Material['type'], string> = {
   monster: CreationTags.MATERIAL.TYPE_MONSTER,
   tcdb: CreationTags.MATERIAL.TYPE_SPECIAL,
   aux: CreationTags.MATERIAL.TYPE_AUXILIARY,
-  gongfa_manual: CreationTags.MATERIAL.TYPE_MANUAL,
-  skill_manual: CreationTags.MATERIAL.TYPE_MANUAL,
+  gongfa_manual: CreationTags.MATERIAL.TYPE_GONGFA_MANUAL,
+  skill_manual: CreationTags.MATERIAL.TYPE_SKILL_MANUAL,
   manual: CreationTags.MATERIAL.TYPE_MANUAL,
 };
 
@@ -25,6 +25,12 @@ export class MaterialTagNormalizer {
     const tags = new Set<string>();
 
     tags.add(TYPE_TAGS[material.type]);
+
+    // Keep parent tag for manual-family materials to preserve existing aggregated rules.
+    if (material.type === 'gongfa_manual' || material.type === 'skill_manual') {
+      tags.add(CreationTags.MATERIAL.TYPE_MANUAL);
+    }
+
     tags.add(`${CreationTags.MATERIAL.QUALITY}.${material.rank}`);
 
     if (material.element) {
