@@ -80,6 +80,31 @@ export class AffixRegistry {
     }
 
     this.validateEffectTags(def.effectTemplate, `affix ${def.id} effectTemplate`);
+    this.validateBoundary(def);
+  }
+
+  /**
+   * 产物类型边界校验：
+   * - artifact：允许 OWNER_AS_TARGET 和 GLOBAL；
+   * - gongfa：禁止 OWNER_AS_TARGET；
+   * - skill：禁止 effectTemplate.type === 'attribute_modifier'。
+   */
+  private validateBoundary(def: AffixDefinition): void {
+    if (!def.listenerSpec) return;
+    const scope = def.listenerSpec.scope;
+
+    for (const productType of def.applicableTo) {
+      if (productType === 'gongfa' && scope === GameplayTags.SCOPE.OWNER_AS_TARGET) {
+        throw new Error(
+          `affix ${def.id}: gongfa affix must not use OWNER_AS_TARGET scope (boundary violation)`,
+        );
+      }
+      if (productType === 'skill' && def.effectTemplate.type === 'attribute_modifier') {
+        throw new Error(
+          `affix ${def.id}: skill affix must not use attribute_modifier effect type (boundary violation)`,
+        );
+      }
+    }
   }
 
   private validateGrantedAbilityTags(tags: string[], context: string): void {

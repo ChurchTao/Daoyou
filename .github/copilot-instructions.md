@@ -1,31 +1,65 @@
-# GitHub Copilot 工作区指令
+# copilot-instructions.md
 
-本文件适用于 **万界道友（Daoyou）** 项目的所有 AI 辅助编码交互。
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ---
 
-## 1. 完成请求后主动追问
-
-**完成用户请求后，必须立即调用 #tool:vscode/askQuestions 工具**，提出 1~3 个与当前上下文强相关的后续问题。
-
-追问应聚焦于：
-- 刚完成的修改是否还有遗留边界场景未覆盖
-- 相关联的功能点是否需要同步调整
-- 测试覆盖是否充分
-
----
-
-## 2. 不确定时先澄清，禁止猜测执行
-
-**存在任何歧义或不确定时，必须立即调用 #tool:vscode/askQuestions 工具进行澄清**，不得根据猜测直接执行操作。
-
-典型触发场景：
-- 用户需求描述不完整或有多种解读方式
-- 修改涉及多个模块但入口不明确
-- 不清楚是要"新增"还是"修改"现有逻辑
-
----
-
-## 3. 跨模块修改前必须理解架构全貌
-
-**任何涉及跨模块的修改，严禁仅凭局部视角简单更改**，必须先理解系统相关的整体架构和模块间关系。
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

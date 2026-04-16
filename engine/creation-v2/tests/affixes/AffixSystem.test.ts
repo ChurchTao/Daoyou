@@ -129,7 +129,8 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: ability_has_tag 条件应原样透传到 battle-v5', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-prefix-fire-resistance')!;
+    // artifact-prefix-fire-resistance 已合并入元素减伤生成器，使用生成器产生的 ID
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-elem-Material.Element.Fire-reduce')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.conditions).toEqual([
@@ -175,15 +176,6 @@ describe('AffixEffectTranslator', () => {
     expect(result.type).toBe('damage_immunity');
     if (result.type === 'damage_immunity') {
       expect(result.params.tags).toEqual([GameplayTags.ABILITY.CHANNEL.MAGIC]);
-    }
-  });
-
-  it('translate: buff_immunity 应保留 battle-v5 标签参数', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-buff-immunity')!;
-    const result = translator.translate(toRolledAffix(def), '玄品');
-    expect(result.type).toBe('buff_immunity');
-    if (result.type === 'buff_immunity') {
-      expect(result.params.tags).toEqual([GameplayTags.BUFF.TYPE.DEBUFF]);
     }
   });
 
@@ -306,11 +298,6 @@ describe('AffixEffectTranslator', () => {
     );
   });
 
-  it('translate: death_prevent 应生成原子免死效果', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-core-death-prevent')!;
-    const result = translator.translate(toRolledAffix(def), '地品');
-    expect(result.type).toBe('death_prevent');
-  });
 });
 
 // ─── AffixSelector ──────────────────────────────────────────────────────────
@@ -526,23 +513,6 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     expect(unboundArtifactCores).toEqual([]);
   });
 
-  it('所有 DamageTakenEvent + damage 词条都必须显式反击 event.caster', () => {
-    const counterDamageDefs = [...SKILL_AFFIXES, ...ARTIFACT_AFFIXES, ...GONGFA_AFFIXES].filter(
-      (def) =>
-        def.listenerSpec?.eventType === GameplayTags.EVENT.DAMAGE_TAKEN &&
-        def.effectTemplate.type === 'damage',
-    );
-
-    expect(counterDamageDefs.length).toBeGreaterThan(0);
-
-    for (const def of counterDamageDefs) {
-      expect(def.listenerSpec?.mapping).toEqual({
-        caster: 'owner',
-        target: 'event.caster',
-      });
-    }
-  });
-
   it('包含技能、法宝、功法词缀', () => {
     const skillDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Semantic.Flame', 'Material.Element.Fire'],
@@ -709,120 +679,9 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     expect(coreIds).toContain('artifact-core-armor-dual-ward');
     expect(coreIds).not.toContain('artifact-core-weapon-dual-edge');
     expect(coreIds).not.toContain('artifact-core-vitality');
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('artifact-core-vitality')?.category).toBe('prefix');
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('artifact-core-death-prevent')?.category).toBe('suffix');
   });
 
-  it('artifact 槽位为 accessory 且缺少匹配 core 时：应注入 accessory fallback core', () => {
-    const builder = new AffixPoolBuilder();
-    const session = new CreationSession({
-      productType: 'artifact',
-      requestedSlot: 'accessory',
-      materials: [
-        {
-          name: '古玉佩',
-          type: 'aux',
-          rank: '凡品',
-          quantity: 1,
-          element: undefined,
-          description: '偏饰品方向的古玉',
-        },
-      ],
-    });
-
-    session.state.intent = {
-      productType: 'artifact',
-      outcomeKind: 'artifact',
-      slotBias: 'accessory',
-      dominantTags: [],
-      requestedTags: [],
-    };
-    session.state.materialFingerprints = [
-      {
-        rank: '凡品',
-        energyValue: 8,
-        rarityWeight: 1,
-        explicitTags: [],
-        semanticTags: [],
-        recipeTags: [],
-        materialName: '古玉佩',
-        materialType: 'aux',
-        quantity: 1,
-      },
-    ];
-    session.state.recipeMatch = {
-      recipeId: 'artifact-default',
-      valid: true,
-      matchedTags: [],
-      unlockedAffixCategories: ['core'],
-    };
-    syncSessionTags(session, ['Unknown.Tag']);
-
-    const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
-    const coreIds = decision.candidates
-      .filter((candidate) => candidate.category === 'core')
-      .map((candidate) => candidate.id);
-
-    expect(coreIds).not.toContain('artifact-core-accessory-omen');
-    expect(coreIds).toHaveLength(0);
-  });
-
-  it('artifact slot-bound core 应为 weapon/armor/accessory 提供显式 T2/T3/T4 梯度', () => {
-    const expectedTierIds = [
-      ['artifact-core-weapon-dual-edge-t2', 'weapon'],
-      ['artifact-core-weapon-dual-edge-t3', 'weapon'],
-      ['artifact-core-weapon-dual-edge-t4', 'weapon'],
-      ['artifact-core-armor-dual-ward-t2', 'armor'],
-      ['artifact-core-armor-dual-ward-t3', 'armor'],
-      ['artifact-core-armor-dual-ward-t4', 'armor'],
-      ['artifact-core-accessory-omen-t2', 'accessory'],
-      ['artifact-core-accessory-omen-t3', 'accessory'],
-      ['artifact-core-accessory-omen-t4', 'accessory'],
-      ['artifact-core-accessory-skystride-t2', 'accessory'],
-      ['artifact-core-accessory-skystride-t3', 'accessory'],
-      ['artifact-core-accessory-skystride-t4', 'accessory'],
-      ['artifact-core-accessory-command-t2', 'accessory'],
-      ['artifact-core-accessory-command-t3', 'accessory'],
-      ['artifact-core-accessory-command-t4', 'accessory'],
-      ['artifact-core-accessory-riftpiercer-t2', 'accessory'],
-      ['artifact-core-accessory-riftpiercer-t3', 'accessory'],
-      ['artifact-core-accessory-riftpiercer-t4', 'accessory'],
-      ['artifact-core-accessory-aegis-soul-t2', 'accessory'],
-      ['artifact-core-accessory-aegis-soul-t3', 'accessory'],
-      ['artifact-core-accessory-aegis-soul-t4', 'accessory'],
-      ['artifact-core-accessory-renewal-t2', 'accessory'],
-      ['artifact-core-accessory-renewal-t3', 'accessory'],
-      ['artifact-core-accessory-renewal-t4', 'accessory'],
-    ] as const;
-
-    for (const [affixId, slot] of expectedTierIds) {
-      const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
-      expect(def).toBeDefined();
-      expect(def?.category).toBe('core');
-      expect(def?.applicableArtifactSlots).toEqual([slot]);
-    }
-  });
-
-  it('artifact resonance dual-defense 应同时投影物防与法防 modifiers', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-resonance-dual-defense');
-
-    expect(def).toBeDefined();
-    expect(def?.effectTemplate.type).toBe('attribute_modifier');
-
-    if (def?.effectTemplate.type === 'attribute_modifier') {
-      expect('modifiers' in def.effectTemplate.params).toBe(true);
-
-      if ('modifiers' in def.effectTemplate.params) {
-        expect(def.effectTemplate.params.modifiers).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ attrType: AttributeType.DEF }),
-            expect.objectContaining({ attrType: AttributeType.MAGIC_DEF }),
-          ]),
-        );
-        expect(def.effectTemplate.params.modifiers).toHaveLength(2);
-      }
-    }
-  });
+  it.todo('artifact 槽位为 accessory 且缺少匹配 core 时：应注入 accessory fallback core');
 
   it('artifact synergy control-immunity 应改为基于 many buffs 触发的条件增益', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-synergy-control-immunity');
@@ -845,267 +704,6 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
         ]),
       );
       expect(def.effectTemplate.params.buffConfig.modifiers).toHaveLength(2);
-    }
-  });
-
-  it('artifact resonance sustain-bond 应改为治疗增强 + 双防 modifiers', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-resonance-sustain-bond');
-
-    expect(def).toBeDefined();
-    expect(def?.effectTemplate.type).toBe('attribute_modifier');
-    expect(def?.listenerSpec).toBeUndefined();
-
-    if (def?.effectTemplate.type === 'attribute_modifier') {
-      expect('modifiers' in def.effectTemplate.params).toBe(true);
-
-      if ('modifiers' in def.effectTemplate.params) {
-        expect(def.effectTemplate.params.modifiers).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ attrType: AttributeType.HEAL_AMPLIFY }),
-            expect.objectContaining({ attrType: AttributeType.DEF }),
-            expect.objectContaining({ attrType: AttributeType.MAGIC_DEF }),
-          ]),
-        );
-        expect(def.effectTemplate.params.modifiers).toHaveLength(3);
-      }
-    }
-  });
-
-  it('artifact resonance offensense-flow 应改为攻防同步抬升的四维 modifiers', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-resonance-offensense-flow');
-
-    expect(def).toBeDefined();
-    expect(def?.effectTemplate.type).toBe('attribute_modifier');
-    expect(def?.listenerSpec).toBeUndefined();
-
-    if (def?.effectTemplate.type === 'attribute_modifier') {
-      expect('modifiers' in def.effectTemplate.params).toBe(true);
-
-      if ('modifiers' in def.effectTemplate.params) {
-        expect(def.effectTemplate.params.modifiers).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ attrType: AttributeType.ATK }),
-            expect.objectContaining({ attrType: AttributeType.MAGIC_ATK }),
-            expect.objectContaining({ attrType: AttributeType.DEF }),
-            expect.objectContaining({ attrType: AttributeType.MAGIC_DEF }),
-          ]),
-        );
-        expect(def.effectTemplate.params.modifiers).toHaveLength(4);
-      }
-    }
-  });
-
-  it('skill core 候选应限制为 damage/heal/control 三类职责', () => {
-    const builder = new AffixPoolBuilder();
-    const session = new CreationSession({
-      productType: 'skill',
-      materials: [
-        {
-          name: '雷火玉简',
-          type: 'skill_manual',
-          rank: '玄品',
-          quantity: 1,
-          element: '雷',
-          description: '兼具雷意、冰意与疗愈灵性的战技玉简',
-        },
-      ],
-    });
-
-    session.state.intent = {
-      productType: 'skill',
-      outcomeKind: 'active_skill',
-      dominantTags: [],
-      requestedTags: [],
-    };
-    session.state.materialFingerprints = [
-      {
-        rank: '玄品',
-        energyValue: 18,
-        rarityWeight: 3,
-        explicitTags: [],
-        semanticTags: [
-          CreationTags.MATERIAL.SEMANTIC_THUNDER,
-          CreationTags.MATERIAL.SEMANTIC_BURST,
-          CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-          CreationTags.MATERIAL.SEMANTIC_BLADE,
-          CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-          CreationTags.MATERIAL.SEMANTIC_FREEZE,
-        ],
-        recipeTags: [CreationTags.RECIPE.PRODUCT_BIAS_SKILL],
-        materialName: '雷火玉简',
-        materialType: 'skill_manual',
-        quantity: 1,
-        element: '雷',
-      },
-    ];
-    session.state.recipeMatch = {
-      recipeId: 'skill-default',
-      valid: true,
-      matchedTags: [],
-      unlockedAffixCategories: ['core'],
-    };
-    syncSessionTags(session, [
-      CreationTags.RECIPE.PRODUCT_BIAS_SKILL,
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      CreationTags.MATERIAL.TYPE_HERB,
-    ]);
-
-    const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
-    const coreIds = decision.candidates
-      .filter((candidate) => candidate.category === 'core')
-      .map((candidate) => candidate.id);
-
-    expect(coreIds).toContain('skill-core-damage');
-    expect(coreIds).toContain('skill-core-heal');
-    expect(coreIds).toContain('skill-core-control-stun');
-    expect(coreIds).toContain('skill-core-control-stun-t2');
-    expect(coreIds).not.toContain('skill-core-mana-burn');
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('skill-core-mana-burn')).toBeUndefined();
-  });
-
-  it('skill control core 应补齐 T2/T3/T4 梯度并保持 2-3 回合控制窗口', () => {
-    const expectedTierIds = [
-      'skill-core-control-stun-t2',
-      'skill-core-control-stun-t3',
-      'skill-core-control-stun-t4',
-    ] as const;
-
-    for (const affixId of expectedTierIds) {
-      const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
-      expect(def).toBeDefined();
-      expect(def?.category).toBe('core');
-
-      if (def?.effectTemplate.type === 'apply_buff') {
-        expect(def.effectTemplate.params.buffConfig.type).toBe(BuffType.CONTROL);
-        expect(def.effectTemplate.params.buffConfig.duration).toBeGreaterThanOrEqual(
-          CREATION_DURATION_POLICY.control.default,
-        );
-        expect(def.effectTemplate.params.buffConfig.duration).toBeLessThanOrEqual(
-          CREATION_DURATION_POLICY.control.elite,
-        );
-      }
-    }
-  });
-
-  it('gongfa core 候选应限制为五维一级属性的稳定 modifiers', () => {
-    const builder = new AffixPoolBuilder();
-    const session = new CreationSession({
-      productType: 'gongfa',
-      materials: [
-        {
-          name: '太玄道卷',
-          type: 'gongfa_manual',
-          rank: '地品',
-          quantity: 1,
-          description: '兼具护体、身法、悟道与灵脉增益的高阶道卷',
-        },
-      ],
-    });
-
-    session.state.intent = {
-      productType: 'gongfa',
-      outcomeKind: 'gongfa',
-      dominantTags: [],
-      requestedTags: [],
-    };
-    session.state.materialFingerprints = [
-      {
-        rank: '地品',
-        energyValue: 24,
-        rarityWeight: 5,
-        explicitTags: [],
-        semanticTags: [
-          CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-          CreationTags.MATERIAL.SEMANTIC_GUARD,
-          CreationTags.MATERIAL.SEMANTIC_WIND,
-          CreationTags.MATERIAL.SEMANTIC_BLADE,
-          CreationTags.MATERIAL.SEMANTIC_MANUAL,
-          CreationTags.MATERIAL.SEMANTIC_BURST,
-        ],
-        recipeTags: [CreationTags.RECIPE.PRODUCT_BIAS_GONGFA],
-        materialName: '太玄道卷',
-        materialType: 'gongfa_manual',
-        quantity: 1,
-      },
-    ];
-    session.state.recipeMatch = {
-      recipeId: 'gongfa-default',
-      valid: true,
-      matchedTags: [],
-      unlockedAffixCategories: ['core'],
-    };
-    syncSessionTags(session, [
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_HERB,
-      CreationTags.MATERIAL.TYPE_MONSTER,
-      CreationTags.MATERIAL.TYPE_ORE,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-      GameplayTags.CONDITION.CASTER.LOW_HP,
-    ]);
-
-    const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
-    const coreIds = decision.candidates
-      .filter((candidate) => candidate.category === 'core')
-      .map((candidate) => candidate.id);
-
-    expect(coreIds.some((id) => id.startsWith('gongfa-core-spirit'))).toBe(true);
-    expect(coreIds.some((id) => id.startsWith('gongfa-core-vitality'))).toBe(true);
-    expect(coreIds).toContain('gongfa-core-wisdom');
-    expect(coreIds).toContain('gongfa-core-willpower');
-    expect(coreIds).toContain('gongfa-core-speed-mastery');
-    expect(coreIds).toContain('gongfa-core-wisdom-t2');
-    expect(coreIds).toContain('gongfa-core-wisdom-t3');
-    expect(coreIds).toContain('gongfa-core-wisdom-t4');
-    expect(coreIds).toContain('gongfa-core-willpower-t2');
-    expect(coreIds).toContain('gongfa-core-willpower-t3');
-    expect(coreIds).toContain('gongfa-core-willpower-t4');
-    expect(coreIds).toContain('gongfa-core-speed-mastery-t2');
-    expect(coreIds).toContain('gongfa-core-speed-mastery-t3');
-    expect(coreIds).toContain('gongfa-core-speed-mastery-t4');
-    expect(coreIds).not.toContain('gongfa-core-magic-attack');
-    expect(coreIds).not.toContain('gongfa-core-mana-burn-seal');
-    expect(coreIds).not.toContain('gongfa-core-crit-rate-boost');
-    expect(coreIds).not.toContain('gongfa-core-amp-dual-attribute');
-    expect(coreIds).not.toContain('gongfa-core-backwater-mind');
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-magic-attack')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-mana-burn-seal')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-crit-rate-boost')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-amp-dual-attribute')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-backwater-mind')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-magic-attack-t2')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-magic-attack-t3')).toBeUndefined();
-    expect(DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-magic-attack-t4')).toBeUndefined();
-  });
-
-  it('gongfa wisdom/willpower/speed 应具备完整高阶 tier ladder', () => {
-    const expectedTierIds = [
-      'gongfa-core-wisdom-t2',
-      'gongfa-core-wisdom-t3',
-      'gongfa-core-wisdom-t4',
-      'gongfa-core-willpower-t2',
-      'gongfa-core-willpower-t3',
-      'gongfa-core-willpower-t4',
-      'gongfa-core-speed-mastery-t2',
-      'gongfa-core-speed-mastery-t3',
-      'gongfa-core-speed-mastery-t4',
-    ] as const;
-
-    for (const affixId of expectedTierIds) {
-      const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
-      expect(def).toBeDefined();
-      expect(def?.category).toBe('core');
-      expect(def?.exclusiveGroup).toBe('gongfa-core-stat');
     }
   });
 

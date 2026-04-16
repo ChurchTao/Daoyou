@@ -8,13 +8,18 @@
  * - 标签系统大幅扩展，支持语义、效果、战斗特性等多维度组合
  * - exclusive Groups 结构化，支持多个互斥集合
  */
-import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
+import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 import {
   CREATION_DURATION_POLICY,
   CREATION_LISTENER_PRIORITIES,
 } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
+import {
+  AttributeType,
+  BuffType,
+  ModifierType,
+  StackRule,
+} from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition, matchAll } from '../types';
 
@@ -54,9 +59,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-damage-fire',
     displayName: '火系伤害',
-    displayDescription: '造成火属性伤害，适合灼烧流派',
+    displayDescription: '造成一次火系法术伤害，与灼烧状态词缀联动可爆发更高输出',
     category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 85,
     energyCost: 10,
@@ -79,9 +87,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-damage-ice',
     displayName: '冰系伤害',
-    displayDescription: '造成冰属性伤害，偏控制节奏',
+    displayDescription: '造成一次冰系法术伤害，与冰缓控制词缀配合可限制目标行动',
     category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FREEZE, ELEMENT_TO_MATERIAL_TAG['冰']]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      ELEMENT_TO_MATERIAL_TAG['冰'],
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 80,
     energyCost: 10,
@@ -104,7 +115,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-damage-thunder',
     displayName: '雷系伤害',
-    displayDescription: '造成雷属性伤害，偏爆发压制',
+    displayDescription: '造成一次雷系法术伤害，施法消耗高，单次爆发强力',
     category: 'core',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_THUNDER,
@@ -133,9 +144,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-damage-wind',
     displayName: '风系伤害',
-    displayDescription: '造成风属性伤害，偏机动与穿透',
+    displayDescription: '造成一次风系物理伤害，基于物理攻击计算，与风系功法联动增益',
     category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, ELEMENT_TO_MATERIAL_TAG['风']]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      ELEMENT_TO_MATERIAL_TAG['风'],
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 72,
     energyCost: 10,
@@ -160,7 +174,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '基础治疗',
     displayDescription: '恢复目标大量气血',
     category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.TYPE_HERB]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_HERB,
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 75,
     energyCost: 8,
@@ -182,7 +199,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '眩晕控制',
     displayDescription: '眩晕目标，使其短时间无法行动',
     category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FREEZE, CreationTags.MATERIAL.SEMANTIC_THUNDER]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 50,
     energyCost: 12,
@@ -199,69 +219,129 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           duration: CREATION_DURATION_POLICY.control.default,
           stackRule: StackRule.IGNORE,
           tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
-          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CONTROL.ROOT, GameplayTags.STATUS.CONTROL.STUNNED, GameplayTags.STATUS.CONTROL.NO_ACTION],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.CONTROL.ROOT,
+            GameplayTags.STATUS.CONTROL.STUNNED,
+            GameplayTags.STATUS.CONTROL.NO_ACTION,
+          ],
         },
         chance: 0.8,
       },
     },
   },
   {
-    id: 'skill-core-damage-multi',
-    displayName: '连击伤害',
-    displayDescription: '连续斩击，每次伤害递增',
+    id: 'skill-core-damage-metal',
+    displayName: '金系伤害',
+    displayDescription: '造成一次金系物理伤害，与破防词缀配合可有效穿透甲胄',
     category: 'core',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_METAL,
+      ELEMENT_TO_MATERIAL_TAG['金'],
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
-    weight: 65,
-    energyCost: 11,
+    weight: 70,
+    energyCost: 10,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
-      GameplayTags.ABILITY.CHANNEL.MAGIC,
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
     ],
     effectTemplate: {
       type: 'damage',
       params: {
         value: {
-          base: { base: 88, scale: 'quality', coefficient: 14 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.9,
+          base: { base: 65, scale: 'quality', coefficient: 13 },
+          attribute: AttributeType.ATK,
+          coefficient: 0.78,
         },
       },
     },
   },
   {
-    id: 'skill-core-cull-of-weak',
-    displayName: '低血斩杀',
-    displayDescription: '仅在目标低血时触发斩杀伤害',
+    id: 'skill-core-damage-water',
+    displayName: '水系伤害',
+    displayDescription: '造成一次水系法术伤害，与燃蓝消耗词缀搭配可持续压制对手灵力',
     category: 'core',
     match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_WATER,
+      ELEMENT_TO_MATERIAL_TAG['水'],
     ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
-    weight: 46,
-    energyCost: 12,
-    minQuality: '灵品',
+    weight: 68,
+    energyCost: 10,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
-      GameplayTags.TRAIT.EXECUTE,
     ],
     effectTemplate: {
       type: 'damage',
-      conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
       params: {
         value: {
-          base: { base: 96, scale: 'quality', coefficient: 16 },
+          base: { base: 74, scale: 'quality', coefficient: 13 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 1.02,
+          coefficient: 0.84,
         },
       },
     },
   },
-
+  {
+    id: 'skill-core-damage-wood',
+    displayName: '木系伤害',
+    displayDescription: '造成一次木系法术伤害，与毒素侵染词缀搭配可形成持续削弱',
+    category: 'core',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WOOD,
+      ELEMENT_TO_MATERIAL_TAG['木'],
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 65,
+    energyCost: 10,
+    applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+    ],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 70, scale: 'quality', coefficient: 12 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.8,
+        },
+      },
+    },
+  },
+  {
+    id: 'skill-core-damage-earth',
+    displayName: '土系伤害',
+    displayDescription: '造成一次土系物理伤害，与踉跄、减速词缀搭配可压制目标行动',
+    category: 'core',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_EARTH,
+      ELEMENT_TO_MATERIAL_TAG['土'],
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 67,
+    energyCost: 10,
+    applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.PHYSICAL,
+    ],
+    effectTemplate: {
+      type: 'damage',
+      params: {
+        value: {
+          base: { base: 82, scale: 'quality', coefficient: 14 },
+          attribute: AttributeType.ATK,
+          coefficient: 0.88,
+        },
+      },
+    },
+  },
   // ========================
   // ===== PREFIX 词缀 (13 种)
   // ========================
@@ -270,7 +350,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '技能增伤',
     displayDescription: '提升本次技能伤害',
     category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_ORE]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.PREFIX_DAMAGE_BOOST,
     weight: 95,
     energyCost: 6,
@@ -292,49 +375,62 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-prefix-magic-pen',
     displayName: '法脉破壁',
-    displayDescription: '临时提升施法者法术穿透',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_MONSTER]),
+    displayDescription: '命中时附加「破法」减益，降低目标法术防御',
+    category: 'suffix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ]),
     weight: 80,
     energyCost: 6,
     applicableTo: ['skill'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'apply_buff',
       params: {
-        attrType: AttributeType.MAGIC_PENETRATION,
-        modType: ModifierType.FIXED,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
-        duration: CREATION_DURATION_POLICY.buffDebuff.short,
-        stackRule: StackRule.OVERRIDE,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
+        buffConfig: {
+          id: 'craft-magic-def-break',
+          name: '破法',
+          type: BuffType.DEBUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.CATEGORY.DEF_DEBUFF,
+          ],
+          modifiers: [
+            {
+              attrType: AttributeType.MAGIC_DEF,
+              type: ModifierType.FIXED,
+              value: -4,
+            },
+          ],
+        },
+        chance: { base: 0.75, scale: 'quality', coefficient: 0.04 },
       },
     },
   },
   {
     id: 'skill-prefix-spirit-boost',
-    displayName: '灵机聚集',
-    displayDescription: '施放时临时提升施法者灵力',
+    displayName: '灵泉回涌',
+    displayDescription: '施放后即时回复法力，维持连续施法的灵力充盈',
     category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_HERB]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_HERB,
+    ]),
     weight: 75,
     energyCost: 6,
     applicableTo: ['skill'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'heal',
       params: {
-        attrType: AttributeType.SPIRIT,
-        modType: ModifierType.FIXED,
-        value: { base: 3, scale: 'quality', coefficient: 1 },
-        duration: CREATION_DURATION_POLICY.buffDebuff.short,
-        stackRule: StackRule.OVERRIDE,
+        target: 'mp',
+        value: {
+          base: { base: 14, scale: 'quality', coefficient: 5 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.1,
+        },
       },
     },
     listenerSpec: {
@@ -378,37 +474,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'skill-prefix-self-haste',
-    displayName: '自我减冷却',
-    displayDescription: '施放后缩短自身其他技能冷却',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
-    weight: 65,
-    energyCost: 7,
-    applicableTo: ['skill'],
-    grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
-    effectTemplate: {
-      type: 'cooldown_modify',
-      params: {
-        cdModifyValue: { base: -0.8, scale: 'quality', coefficient: -0.2 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
     id: 'skill-prefix-shield-grant',
     displayName: '防御屏障',
     displayDescription: '施放后为自身生成护盾',
     category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
     weight: 58,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -434,51 +507,37 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'skill-prefix-healing-amp',
-    displayName: '治疗增幅',
-    displayDescription: '临时提升施法者治疗效果',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
-    weight: 50,
-    energyCost: 6,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'attribute_stat_buff',
-      params: {
-        attrType: AttributeType.HEAL_AMPLIFY,
-        modType: ModifierType.ADD,
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        duration: CREATION_DURATION_POLICY.buffDebuff.short,
-        stackRule: StackRule.OVERRIDE,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
     id: 'skill-prefix-evasion-boost',
     displayName: '身法轻灵',
-    displayDescription: '施放后临时提升闪避率',
+    displayDescription: '施放后附加「轻灵」状态，大幅提升闪避率持续数回合',
     category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_BLADE]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+    ]),
     weight: 52,
     energyCost: 6,
     applicableTo: ['skill'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'apply_buff',
       params: {
-        attrType: AttributeType.EVASION_RATE,
-        modType: ModifierType.FIXED,
-        value: { base: 0.04, scale: 'quality', coefficient: 0.01 },
-        duration: CREATION_DURATION_POLICY.buffDebuff.short,
-        stackRule: StackRule.OVERRIDE,
+        buffConfig: {
+          id: 'craft-evasion-boost',
+          name: '轻灵',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.OVERRIDE,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.EVASION_RATE,
+              type: ModifierType.FIXED,
+              value: 0.08,
+            },
+          ],
+        },
+        chance: 1,
       },
     },
     listenerSpec: {
@@ -494,20 +553,35 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-prefix-crit-damage-boost',
     displayName: '暴击深化',
-    displayDescription: '临时提升暴击伤害倍数',
+    displayDescription: '施放后附加「蓄势」状态，显著提升暴击伤害倍率',
     category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.TYPE_ORE]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
     weight: 48,
     energyCost: 7,
     applicableTo: ['skill'],
     effectTemplate: {
-      type: 'attribute_stat_buff',
+      type: 'apply_buff',
       params: {
-        attrType: AttributeType.CRIT_DAMAGE_MULT,
-        modType: ModifierType.ADD,
-        value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
-        duration: CREATION_DURATION_POLICY.buffDebuff.short,
-        stackRule: StackRule.OVERRIDE,
+        buffConfig: {
+          id: 'craft-crit-damage-buff',
+          name: '蓄势',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.OVERRIDE,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.CRIT_DAMAGE_MULT,
+              type: ModifierType.ADD,
+              value: 0.2,
+            },
+          ],
+        },
+        chance: 1,
       },
     },
     listenerSpec: {
@@ -520,71 +594,16 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
   },
-  {
-    id: 'skill-prefix-execute-power',
-    displayName: '斩杀加成',
-    displayDescription: '对低血量目标造成额外伤害',
-    category: 'prefix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_BLADE]),
-    weight: 44,
-    energyCost: 8,
-    applicableTo: ['skill'],
-    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
-        cap: 0.8,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-      guard: {
-        requireOwnerAlive: true,
-      },
-    },
-  },
-  {
-    id: 'skill-prefix-overflow-punish',
-    displayName: '高蓝压制',
-    displayDescription: '仅在目标高法力时触发额外增伤',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 40,
-    energyCost: 7,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'mp_above', params: { value: 0.7 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.14, scale: 'quality', coefficient: 0.03 },
-        cap: 0.7,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // ========================
-  // ===== SUFFIX 词缀 (16 种)
-  // ========================
+  
   {
     id: 'skill-suffix-burn-dot',
     displayName: '灼烧持续伤害',
     displayDescription: '命中时附加灼烧减益，每回合造成持续伤害',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FLAME, ELEMENT_TO_MATERIAL_TAG['火']]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.SUFFIX_BURN,
     weight: 80,
     energyCost: 8,
@@ -598,8 +617,16 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
-          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT, GameplayTags.BUFF.DOT.BURN],
-          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.BURNED, GameplayTags.STATUS.CATEGORY.DOT],
+          tags: [
+            GameplayTags.BUFF.TYPE.DEBUFF,
+            GameplayTags.BUFF.DOT.ROOT,
+            GameplayTags.BUFF.DOT.BURN,
+          ],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.STATE.BURNED,
+            GameplayTags.STATUS.CATEGORY.DOT,
+          ],
           listeners: [
             {
               eventType: GameplayTags.EVENT.ROUND_PRE,
@@ -629,7 +656,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '冰缓节',
     displayDescription: '命中时附加减速，降低目标身法',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FREEZE, ELEMENT_TO_MATERIAL_TAG['冰']]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      ELEMENT_TO_MATERIAL_TAG['冰'],
+    ]),
     weight: 78,
     energyCost: 8,
     applicableTo: ['skill'],
@@ -643,7 +673,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
           tags: [GameplayTags.BUFF.TYPE.DEBUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.STATE.CHILLED],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.STATE.CHILLED,
+          ],
           modifiers: [
             {
               attrType: AttributeType.SPEED,
@@ -657,11 +690,120 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
+    id: 'skill-suffix-thunder-shock',
+    displayName: '雷系麻痹',
+    displayDescription: '命中时附加雷击麻痹，降低目标速度并造成持续伤害',
+    category: 'suffix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ELEMENT_TO_MATERIAL_TAG['雷'],
+    ]),
+    weight: 72,
+    energyCost: 9,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-shock',
+          name: '麻痹',
+          type: BuffType.DEBUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.STATE.SHOCKED,
+            GameplayTags.STATUS.CATEGORY.DOT,
+          ],
+          modifiers: [
+            {
+              attrType: AttributeType.SPEED,
+              type: ModifierType.FIXED,
+              value: -2,
+            },
+          ],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.ROUND_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              priority: 20,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: 6,
+                      attribute: AttributeType.MAGIC_ATK,
+                      coefficient: 0.1,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: { base: 0.55, scale: 'quality', coefficient: 0.05 },
+      },
+    },
+  },
+  {
+    id: 'skill-suffix-poison-dot',
+    displayName: '毒素侵染',
+    displayDescription: '命中时附加毒素，每回合造成持续伤害且可叠层',
+    category: 'suffix',
+    match: matchAll([CreationTags.MATERIAL.SEMANTIC_POISON]),
+    weight: 68,
+    energyCost: 9,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-poison',
+          name: '中毒',
+          type: BuffType.DEBUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          stackRule: StackRule.STACK_LAYER,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.STATE.POISONED,
+            GameplayTags.STATUS.CATEGORY.DOT,
+          ],
+          listeners: [
+            {
+              eventType: GameplayTags.EVENT.ROUND_PRE,
+              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+              priority: 20,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: 5,
+                      attribute: AttributeType.MAGIC_ATK,
+                      coefficient: 0.08,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: { base: 0.65, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+  },
+  {
     id: 'skill-suffix-dispel-buff',
     displayName: '命中驱散',
     displayDescription: '命中时消除目标一层buff',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_MANUAL]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+    ]),
     weight: 60,
     energyCost: 6,
     applicableTo: ['skill'],
@@ -676,50 +818,69 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-suffix-life-siphon',
     displayName: '命中吸血',
-    displayDescription: '造成伤害时回复部分气血',
+    displayDescription: '施放后即时回复部分气血，攻守兼备',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+    ]),
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.SUFFIX_LIFESTEAL,
     weight: 72,
     energyCost: 9,
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
-      type: 'resource_drain',
+      type: 'heal',
       params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+        value: {
+          base: { base: 12, scale: 'quality', coefficient: 4 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.18,
+        },
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
     },
   },
   {
     id: 'skill-suffix-mana-siphon',
     displayName: '命中回蓝',
-    displayDescription: '造成伤害后恢复灵力',
+    displayDescription: '施放后即时回复法力，维持技能输出节奏',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
     weight: 65,
     energyCost: 8,
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
     effectTemplate: {
-      type: 'resource_drain',
+      type: 'heal',
       params: {
-        sourceType: 'hp',
-        targetType: 'mp',
-        ratio: { base: 0.1, scale: 'quality', coefficient: 0.025 },
+        target: 'mp',
+        value: {
+          base: { base: 14, scale: 'quality', coefficient: 5 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.12,
+        },
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.SKILL_CAST,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
     },
   },
   {
@@ -727,7 +888,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '灼烧引爆',
     displayDescription: '若目标带有灼烧，触发额外爆裂伤害',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FLAME, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
     weight: 58,
     energyCost: 9,
     applicableTo: ['skill'],
@@ -750,7 +914,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '冰封触发',
     displayDescription: '若目标被冰缓，释放冰锥追加伤害',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_FREEZE, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
     weight: 56,
     energyCost: 9,
     applicableTo: ['skill'],
@@ -773,7 +940,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '护盾激发',
     displayDescription: '施放时为目标生成护盾',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.TYPE_ORE]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
     weight: 55,
     energyCost: 8,
     applicableTo: ['skill'],
@@ -803,7 +973,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '强化符记',
     displayDescription: '为目标增加攻击力buff',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.TYPE_MONSTER]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ]),
     weight: 52,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -835,7 +1008,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '破防标记',
     displayDescription: '命中时降低目标防御',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
     weight: 50,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -849,7 +1025,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
           stackRule: StackRule.REFRESH_DURATION,
           tags: [GameplayTags.BUFF.TYPE.DEBUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF, GameplayTags.STATUS.CATEGORY.DEF_DEBUFF],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.CATEGORY.DEF_DEBUFF,
+          ],
           modifiers: [
             {
               attrType: AttributeType.DEF,
@@ -867,7 +1046,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '暴击之舞',
     displayDescription: '命中后短时间内增加暴击率',
     category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.TYPE_MONSTER]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ]),
     weight: 47,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -892,31 +1074,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         },
         chance: { base: 0.6, scale: 'quality', coefficient: 0.05 },
       },
-    },
-  },
-  {
-    id: 'skill-suffix-low-hp-dmg',
-    displayName: '低血增伤',
-    displayDescription: '当目标低血量时造成额外伤害',
-    category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST]),
-    weight: 45,
-    energyCost: 9,
-    applicableTo: ['skill'],
-    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.18, scale: 'quality', coefficient: 0.04 },
-        cap: 0.9,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -948,43 +1105,54 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
+  {
+    id: 'skill-suffix-stagger-strike',
+    displayName: '蹉跄击',
+    displayDescription: '命中时附加「蹉跄」状态，大幅降低目标速度持续1回合',
+    category: 'suffix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_EARTH,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+    ]),
+    weight: 52,
+    energyCost: 8,
+    applicableTo: ['skill'],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-stagger',
+          name: '蹉跄',
+          type: BuffType.CONTROL,
+          duration: CREATION_DURATION_POLICY.control.default,
+          stackRule: StackRule.OVERRIDE,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.DEBUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.SPEED,
+              type: ModifierType.FIXED,
+              value: -6,
+            },
+          ],
+        },
+        chance: { base: 0.65, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+  },
 
   // ========================
   // ===== RESONANCE 词缀 (6 种)
   // ========================
   {
-    id: 'skill-resonance-element-chain',
-    displayName: '元素共鸣',
-    displayDescription: '同元素伤害在战斗中不断增幅',
-    category: 'resonance',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-    ]),
-    weight: 60,
-    energyCost: 10,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      params: {
-        mode: 'increase',
-        value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
-        cap: 0.5,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
     id: 'skill-resonance-combo-power',
     displayName: '连招增幅',
     displayDescription: '连续施放提升伤害',
     category: 'resonance',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
     weight: 55,
     energyCost: 11,
     applicableTo: ['skill'],
@@ -1017,7 +1185,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '灵识回响',
     displayDescription: '多次施放法术时灵力消耗递减',
     category: 'resonance',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.TYPE_HERB]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_HERB,
+    ]),
     weight: 52,
     energyCost: 10,
     applicableTo: ['skill'],
@@ -1083,7 +1254,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '生命流转',
     displayDescription: '治疗技能增幅自身防御',
     category: 'resonance',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_GUARD]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+    ]),
     weight: 48,
     energyCost: 10,
     applicableTo: ['skill'],
@@ -1161,42 +1335,61 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'skill-resonance-calm-compression',
-    displayName: '开局压制',
-    displayDescription: '仅在目标高血时触发开局压制增伤',
+    id: 'skill-resonance-expose-weakness',
+    displayName: '揭露弱点',
+    displayDescription: '命中后附加「弱点暴露」减益，同时降低目标物防与法防',
     category: 'resonance',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
     ]),
-    weight: 38,
-    energyCost: 11,
+    weight: 45,
+    energyCost: 10,
     applicableTo: ['skill'],
     effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_above', params: { value: 0.75 } }],
+      type: 'apply_buff',
       params: {
-        mode: 'increase',
-        value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
-        cap: 0.6,
+        buffConfig: {
+          id: 'craft-expose-weakness',
+          name: '弱点暴露',
+          type: BuffType.DEBUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.OVERRIDE,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.CATEGORY.DEF_DEBUFF,
+          ],
+          modifiers: [
+            {
+              attrType: AttributeType.DEF,
+              type: ModifierType.FIXED,
+              value: -3,
+            },
+            {
+              attrType: AttributeType.MAGIC_DEF,
+              type: ModifierType.FIXED,
+              value: -3,
+            },
+          ],
+        },
+        chance: { base: 0.7, scale: 'quality', coefficient: 0.04 },
       },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
 
   // ========================
-  // ===== SYNERGY 词缀 (7 种)
+  // ===== SYNERGY 词缀
   // ========================
   {
     id: 'skill-synergy-damage-heal',
     displayName: '伤害转治疗',
     displayDescription: '伤害技能也能治疗友军',
     category: 'synergy',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST, CreationTags.MATERIAL.SEMANTIC_SUSTAIN]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+    ]),
     weight: 50,
     energyCost: 11,
     applicableTo: ['skill'],
@@ -1262,7 +1455,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '盾杀合一',
     displayDescription: '护盾吸收伤害时释放反击',
     category: 'synergy',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_BURST]),
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
     weight: 44,
     energyCost: 12,
     applicableTo: ['skill'],
@@ -1348,55 +1544,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'skill-synergy-recovery-vortex',
-    displayName: '恢复漩涡',
-    displayDescription: '治疗和吸取能相互强化',
-    category: 'synergy',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_SUSTAIN, CreationTags.MATERIAL.SEMANTIC_SPIRIT]),
-    weight: 40,
-    energyCost: 12,
-    applicableTo: ['skill'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 8, scale: 'quality', coefficient: 3 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.18,
-        },
-      },
-    },
-  },
-  {
-    id: 'skill-synergy-execute-instinct',
-    displayName: '斩杀联动',
-    displayDescription: '仅在目标低血时触发的高额增伤',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-    ]),
-    weight: 38,
-    energyCost: 12,
-    applicableTo: ['skill'],
-    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.22, scale: 'quality', coefficient: 0.04 },
-        cap: 1,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
     id: 'skill-synergy-empty-mana-pierce',
     displayName: '枯海破灵',
     displayDescription: '仅在目标灵力偏低时触发破灵增伤',
@@ -1417,6 +1564,56 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           base: { base: 16, scale: 'quality', coefficient: 5 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: 0.24,
+        },
+      },
+    },
+  },
+  {
+    id: 'skill-synergy-debuff-burst',
+    displayName: '减益联爆',
+    displayDescription: '目标身负三重以上减益时，附加一次灵力灼烧爆发',
+    category: 'synergy',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_POISON,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
+    weight: 38,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
+    effectTemplate: {
+      type: 'mana_burn',
+      conditions: [{ type: 'debuff_count_at_least', params: { value: 3 } }],
+      params: {
+        value: {
+          base: { base: 18, scale: 'quality', coefficient: 6 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.28,
+        },
+      },
+    },
+  },
+  {
+    id: 'skill-synergy-debuff-burst',
+    displayName: '减益联爆',
+    displayDescription: '目标身负三重以上减益时，附加一次灵力灼烧爆发',
+    category: 'synergy',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_POISON,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
+    weight: 38,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
+    effectTemplate: {
+      type: 'mana_burn',
+      conditions: [{ type: 'debuff_count_at_least', params: { value: 3 } }],
+      params: {
+        value: {
+          base: { base: 18, scale: 'quality', coefficient: 6 },
+          attribute: AttributeType.MAGIC_ATK,
+          coefficient: 0.28,
         },
       },
     },
@@ -1556,6 +1753,34 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           base: { base: 25, scale: 'quality', coefficient: 8 },
           attribute: AttributeType.MAGIC_ATK,
           coefficient: 0.5,
+        },
+      },
+    },
+  },
+  {
+    id: 'skill-core-cull-of-weak',
+    displayName: '低血斩杀',
+    displayDescription: '仅在目标低血时触发斩杀伤害',
+    category: 'resonance',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
+    weight: 46,
+    energyCost: 12,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    grantedAbilityTags: [
+      GameplayTags.ABILITY.FUNCTION.DAMAGE,
+      GameplayTags.ABILITY.CHANNEL.MAGIC,
+      GameplayTags.TRAIT.EXECUTE,
+    ],
+    effectTemplate: {
+      type: 'damage',
+      conditions: [{ type: 'hp_below', params: { value: 0.5 } }],
+      params: {
+        value: {
+          base: 99999,
         },
       },
     },

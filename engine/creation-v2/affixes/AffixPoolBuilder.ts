@@ -161,7 +161,7 @@ export class AffixPoolBuilder {
       modifierEntries.length === 1 &&
       modifierEntries.every(
         (modifier) =>
-          modifier.modType === ModifierType.FIXED &&
+          (modifier.modType === ModifierType.FIXED || modifier.modType === ModifierType.ADD) &&
           allowedPrimaryAttributes.has(modifier.attrType),
       )
     );

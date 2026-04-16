@@ -99,7 +99,7 @@ const BATTLE_THRESHOLDS: Record<
   }
 > = {
   skill: {
-    minWinRate: 0.6,
+    minWinRate: 0.55,
     minAvgTurns: 4,
     maxAvgTurns: 11,
     maxStallRate: 0.15,

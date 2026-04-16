@@ -34,6 +34,7 @@ export const GameplayTags = {
       FROZEN: 'Status.Frozen',
       BLEEDING: 'Status.Bleeding',
       CHILLED: 'Status.Chilled',
+      SHOCKED: 'Status.Shocked',
     },
     CATEGORY: {
       BUFF: 'Status.Buff',

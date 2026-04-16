@@ -1,17 +1,18 @@
 /*
- * artifactAffixes: 法宝词缀定义集合（大幅扩展）。
- * 法宝词缀特点：通常包含 listenerSpec，用于被动能力的 listener 注册
- * 包括常驻属性修改、战斗中被动触发、以及高阶联动效果
+ * artifactAffixes: 法宝词缀定义集合。
+ * 法宝定位：磐石与底线 — 固定面板属性 + 受击/防守触发。
+ * 允许的 listenerSpec.scope：OWNER_AS_TARGET, GLOBAL（禁止 OWNER_AS_CASTER）。
+ * 包含：常驻属性修改（固定值）、受击被动触发、以及元素减伤防御。
  */
-import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
+import {
+  CreationTags,
+  ELEMENT_TO_RUNTIME_ABILITY_TAG,
+  GameplayTags,
+} from '@/engine/shared/tag-domain';
+import type { ElementType } from '@/types/constants';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import {
-  AttributeType,
-  BuffType,
-  ModifierType,
-  StackRule,
-} from '../../contracts/battle';
+import { AttributeType, ModifierType } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition, matchAll } from '../types';
 
@@ -158,51 +159,19 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // ===== prefix / suffix 非槽位词缀
   // ========================
   {
-    id: 'artifact-suffix-shield-on-hit',
-    displayName: '受击护盾',
-    displayDescription: '受击时自动生成护盾，提升容错',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_ORE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.CORE_DEFENSE,
-    weight: 75,
-    energyCost: 10,
-    applicableTo: ['artifact'],
-    applicableArtifactSlots: ['armor', 'accessory'],
-    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
-    effectTemplate: {
-      type: 'shield',
-      params: {
-        value: {
-          base: { base: 14, scale: 'quality', coefficient: 6 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.1,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
     id: 'artifact-suffix-reflect-thorns',
     displayName: '受击反伤',
     displayDescription: '受击后把一部分伤害反给敌人',
     category: 'suffix',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_BONE,
     ]),
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.CORE_DEFENSE,
     weight: 70,
     energyCost: 10,
     applicableTo: ['artifact'],
-    applicableArtifactSlots: ['armor', 'accessory'],
+    applicableArtifactSlots: ['armor'],
     grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
     effectTemplate: {
       type: 'reflect',
@@ -220,55 +189,26 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'artifact-suffix-heal-on-round',
-    displayName: '回合回血',
-    displayDescription: '每回合自动恢复气血，续航更稳定',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_HERB,
-    ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.CORE_DEFENSE,
-    weight: 68,
-    energyCost: 9,
-    applicableTo: ['artifact'],
-    applicableArtifactSlots: ['armor', 'accessory'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 10, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.1,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
     id: 'artifact-suffix-death-prevent',
     displayName: '濒死续命',
     displayDescription: '每场战斗可在致命时刻保命一次',
     category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_TIME,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.CORE_DEFENSE,
     weight: 55,
     energyCost: 11,
     applicableTo: ['artifact'],
-    applicableArtifactSlots: ['armor', 'accessory'],
+    applicableArtifactSlots: ['accessory'],
     effectTemplate: {
       type: 'death_prevent',
       params: {},
@@ -284,20 +224,27 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
   {
+    // todo 全局触发一次
     id: 'artifact-suffix-last-stand-shell',
     displayName: '低血护盾',
     displayDescription: '血量低时触发更强护盾，适合反打',
     category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.CORE_DEFENSE,
     weight: 44,
     energyCost: 11,
     minQuality: '灵品',
     applicableTo: ['artifact'],
-    applicableArtifactSlots: ['armor', 'accessory'],
+    applicableArtifactSlots: ['armor'],
     grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
@@ -323,14 +270,21 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayName: '全能减伤',
     displayDescription: '受击时百分比减免伤害',
     category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_ORE,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
+    },
     weight: 70,
     energyCost: 8,
     applicableTo: ['artifact'],
-    applicableArtifactSlots: ['armor', 'accessory'],
+    applicableArtifactSlots: ['armor'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -346,77 +300,21 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'artifact-suffix-vampiric-core',
-    displayName: '全能吸血',
-    displayDescription: '造成伤害后按比例回复气血',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
-    weight: 40,
-    energyCost: 9,
-    applicableTo: ['artifact'],
-    applicableArtifactSlots: ['weapon'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.03, scale: 'quality', coefficient: 0.01 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  // 物理吸血
-  {
-    id: 'artifact-suffix-physical-vampiric-core',
-    displayName: '物理吸血',
-    displayDescription: '造成物理伤害后按比例回复气血',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
-    weight: 68,
-    energyCost: 9,
-    applicableTo: ['artifact'],
-    applicableArtifactSlots: ['weapon'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.CHANNEL.PHYSICAL },
-        },
-      ],
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
     id: 'artifact-suffix-mana-recovery',
     displayName: '回合回蓝',
     displayDescription: '每回合恢复一定灵力',
     category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.TYPE_AUXILIARY,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.SEMANTIC_ALCHEMY,
+      ],
+    },
     weight: 60,
     energyCost: 8,
     applicableTo: ['artifact'],
@@ -429,127 +327,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 10, scale: 'quality', coefficient: 4 },
           attribute: AttributeType.SPIRIT,
-          coefficient: 0.12,
+          coefficient: 0.05,
         },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
-    id: 'artifact-suffix-dispel-debuff',
-    displayName: '自动驱散',
-    displayDescription: '每回合有概率自动驱散一层减益',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-    ]),
-    weight: 45,
-    energyCost: 8,
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'dispel',
-      conditions: [{ type: 'chance', params: { value: 0.5 } }],
-      params: {
-        targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
-        maxCount: 1,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  // ========================
-  // ===== RESONANCE 词缀 (5 种)
-  // ========================
-  {
-    id: 'artifact-resonance-opening-pressure',
-    displayName: '开局压制',
-    displayDescription: '仅在目标高血时触发开局攻势加成',
-    category: 'resonance',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ]),
-    weight: 36,
-    energyCost: 11,
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_above', params: { value: 0.75 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.11, scale: 'quality', coefficient: 0.02 },
-        cap: 0.6,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // ========================
-  // ===== SYNERGY 词缀 (6 种)
-  // ========================
-  {
-    id: 'artifact-synergy-control-immunity',
-    displayName: '受控反制',
-    displayDescription: '在受控压力下强化意志和抗控',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-    ]),
-    weight: 39,
-    energyCost: 11,
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'apply_buff',
-      conditions: [
-        {
-          type: 'buff_count_at_least',
-          params: { value: 2, scope: 'caster' },
-        },
-      ],
-      params: {
-        buffConfig: {
-          id: 'craft-control-immunity-window',
-          name: '坚志不渝',
-          type: BuffType.BUFF,
-          duration: 1,
-          stackRule: StackRule.OVERRIDE,
-          tags: [GameplayTags.BUFF.TYPE.BUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
-          modifiers: [
-            {
-              attrType: AttributeType.WILLPOWER,
-              type: ModifierType.ADD,
-              value: 0.12,
-            },
-            {
-              attrType: AttributeType.CONTROL_RESISTANCE,
-              type: ModifierType.FIXED,
-              value: 0.06,
-            },
-          ],
-        },
-        chance: 1,
       },
     },
     listenerSpec: {
@@ -567,10 +346,16 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayName: '残血减伤',
     displayDescription: '仅在自身低血时触发的大幅减伤护持',
     category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+      ],
+    },
     weight: 35,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -591,65 +376,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
-  {
-    id: 'artifact-synergy-burn-punisher',
-    displayName: '灼烧反震',
-    displayDescription: '对灼烧目标触发额外反震伤害',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 34,
-    energyCost: 12,
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
-    effectTemplate: {
-      type: 'reflect',
-      conditions: [
-        { type: 'has_tag', params: { tag: GameplayTags.STATUS.STATE.BURNED } },
-        { type: 'chance', params: { value: 0.75 } },
-      ],
-      params: {
-        ratio: { base: 0.2, scale: 'quality', coefficient: 0.03 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      guard: {
-        skipReflectSource: true,
-      },
-    },
-  },
 
   // ========================
   // ===== SIGNATURE 词缀 (4 种)
   // ========================
-  {
-    id: 'artifact-signature-ice-armor',
-    displayName: '冰甲护体',
-    displayDescription: '冰系护体词条，大幅提升防御能力',
-    category: 'signature',
-    match: matchAll([
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-    ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.SIGNATURE_ULTIMATE,
-    weight: 35,
-    energyCost: 14,
-    minQuality: '真品',
-    applicableTo: ['artifact'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.DEF,
-        modType: ModifierType.ADD,
-        value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
-      },
-    },
-  },
   {
     id: 'artifact-signature-spellward',
     displayName: '法术免伤罩',
@@ -665,8 +395,17 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
     effectTemplate: {
       type: 'damage_immunity',
+      conditions: [
+        {
+          type: 'chance',
+          params: {
+            value: 0.2,
+          },
+        },
+      ],
       params: {
         tags: [GameplayTags.ABILITY.CHANNEL.MAGIC],
       },
@@ -692,10 +431,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 14,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
     effectTemplate: {
       type: 'magic_shield',
       params: {
-        absorbRatio: { base: 0.9, scale: 'quality', coefficient: 0.02 },
+        absorbRatio: { base: 0.7, scale: 'quality', coefficient: 0.03 },
       },
     },
     listenerSpec: {
@@ -705,29 +445,555 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'artifact-signature-eternal-defense',
-    displayName: '残血堡垒',
-    displayDescription: '血量降低后触发强减伤，适合残局翻盘',
-    category: 'signature',
+    id: 'artifact-mythic-void-aegis',
+    displayName: '濒危法免',
+    displayDescription: '血量危险时法宝自动激活，有概率免疫法术伤害',
+    category: 'mythic',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.TYPE_SPECIAL,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.MYTHIC_TRANSCENDENT,
+    weight: 7,
+    energyCost: 18,
+    minQuality: '地品',
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
+    effectTemplate: {
+      type: 'damage_immunity',
+      conditions: [
+        { type: 'hp_below', params: { value: 0.3, scope: 'caster' } },
+        { type: 'chance', params: { value: 0.45 } },
+      ],
+      params: {
+        tags: [GameplayTags.ABILITY.CHANNEL.MAGIC],
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApplyImmunity,
+    },
+  },
+];
+
+// ========================
+// ===== 通用固定属性 prefix (迁自 commonAffixes — artifact 专用，固定值面板)
+// ========================
+const ARTIFACT_COMMON_PREFIX_AFFIXES: AffixDefinition[] = [
+  {
+    id: 'artifact-prefix-vitality',
+    displayName: '体魄强化',
+    displayDescription: '永久提升体魄，打持久战更稳',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+    ]),
+    weight: 95,
+    energyCost: 8,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.VITALITY,
+        modType: ModifierType.FIXED,
+        value: { base: 4, scale: 'quality', coefficient: 2 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-spirit',
+    displayName: '灵力强化',
+    displayDescription: '永久提升灵力，提高法术相关收益',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ]),
+    weight: 90,
+    energyCost: 8,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPIRIT,
+        modType: ModifierType.FIXED,
+        value: { base: 4, scale: 'quality', coefficient: 2 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-willpower-boost',
+    displayName: '神识强化',
+    displayDescription: '永久提升神识，抵抗控制',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+    ]),
+    weight: 52,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WILLPOWER,
+        modType: ModifierType.FIXED,
+        value: { base: 2, scale: 'quality', coefficient: 1 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-wisdom-insight',
+    displayName: '悟性强化',
+    displayDescription: '永久提升悟性，加快修为',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+    ]),
+    weight: 50,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.WISDOM,
+        modType: ModifierType.FIXED,
+        value: { base: 2, scale: 'quality', coefficient: 1 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-speed',
+    displayName: '身法强化',
+    displayDescription: '永久提升身法，先手更容易',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      ELEMENT_TO_MATERIAL_TAG['风'],
+    ]),
+    weight: 80,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPEED,
+        modType: ModifierType.FIXED,
+        value: { base: 2, scale: 'quality', coefficient: 1 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-attack',
+    displayName: '物攻强化',
+    displayDescription: '永久提升物理攻击力，剑修常用',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
+    weight: 82,
+    energyCost: 8,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.ATK,
+        modType: ModifierType.FIXED,
+        value: { base: 4, scale: 'quality', coefficient: 2 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-magic-attack',
+    displayName: '法攻强化',
+    displayDescription: '永久提升法术攻击力，术法流核心之一',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
+    weight: 80,
+    energyCost: 8,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.MAGIC_ATK,
+        modType: ModifierType.FIXED,
+        value: { base: 4, scale: 'quality', coefficient: 2 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-physical-defense',
+    displayName: '物防强化',
+    displayDescription: '永久提升物理防御',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
+    weight: 58,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.DEF,
+        modType: ModifierType.FIXED,
+        value: { base: 3, scale: 'quality', coefficient: 1.5 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-magic-defense',
+    displayName: '法防强化',
+    displayDescription: '永久提升法术防御',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.TYPE_HERB,
+    ]),
+    weight: 56,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.MAGIC_DEF,
+        modType: ModifierType.FIXED,
+        value: { base: 3, scale: 'quality', coefficient: 1.5 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-crit-rate',
+    displayName: '暴击率强化',
+    displayDescription: '永久提升暴击率',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_MONSTER,
+    ]),
+    weight: 90,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_RATE,
+        modType: ModifierType.FIXED,
+        value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-crit-damage',
+    displayName: '暴伤强化',
+    displayDescription: '永久提升暴击伤害倍数',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_ORE,
+    ]),
+    weight: 68,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_DAMAGE_MULT,
+        modType: ModifierType.FIXED,
+        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-evasion',
+    displayName: '闪避强化',
+    displayDescription: '永久提升闪避率',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+    ]),
+    weight: 75,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.EVASION_RATE,
+        modType: ModifierType.FIXED,
+        value: { base: 0.03, scale: 'quality', coefficient: 0.01 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-magic-penetration',
+    displayName: '法穿锐锋',
+    displayDescription: '永久提升法术穿透',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
+    weight: 70,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.MAGIC_PENETRATION,
+        modType: ModifierType.FIXED,
+        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-armor-penetration',
+    displayName: '破甲锐锋',
+    displayDescription: '永久提升物理穿透',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+    ]),
+    weight: 69,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.ARMOR_PENETRATION,
+        modType: ModifierType.FIXED,
+        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-accuracy',
+    displayName: '精准强化',
+    displayDescription: '永久提升精准，降低被闪避风险',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+    ]),
+    weight: 72,
+    energyCost: 6,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.ACCURACY,
+        modType: ModifierType.FIXED,
+        value: { base: 0.045, scale: 'quality', coefficient: 0.012 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-control-hit',
+    displayName: '效果命中强化',
+    displayDescription: '永久提升控制命中，控制更稳定',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
     ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.SIGNATURE_ULTIMATE,
-    weight: 28,
-    energyCost: 15,
-    minQuality: '地品',
+    weight: 64,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CONTROL_HIT,
+        modType: ModifierType.FIXED,
+        value: { base: 0.04, scale: 'quality', coefficient: 0.01 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-control-resistance',
+    displayName: '效果抵抗强化',
+    displayDescription: '永久提升控制抗性，减少被控风险',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 62,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CONTROL_RESISTANCE,
+        modType: ModifierType.FIXED,
+        value: { base: 0.04, scale: 'quality', coefficient: 0.01 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-crit-resist',
+    displayName: '抗暴强化',
+    displayDescription: '永久提升暴击韧性，降低被暴击概率',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_WATER,
+    ]),
+    weight: 61,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_RESIST,
+        modType: ModifierType.FIXED,
+        value: { base: 0.045, scale: 'quality', coefficient: 0.01 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-crit-damage-reduction',
+    displayName: '暴伤减免强化',
+    displayDescription: '永久提升暴击减伤，降低暴击爆发伤害',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+    ]),
+    weight: 60,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CRIT_DAMAGE_REDUCTION,
+        modType: ModifierType.FIXED,
+        value: { base: 0.07, scale: 'quality', coefficient: 0.015 },
+      },
+    },
+  },
+  {
+    id: 'artifact-prefix-heal-amplify',
+    displayName: '治疗强化',
+    displayDescription: '永久提升治疗效果倍数',
+    category: 'prefix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 65,
+    energyCost: 7,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.HEAL_AMPLIFY,
+        modType: ModifierType.FIXED,
+        value: { base: 0.08, scale: 'quality', coefficient: 0.015 },
+      },
+    },
+  },
+];
+
+// ========================
+// ===== 元素/通道减伤 suffix builders (迁自 commonAffixes — artifact 专用，OWNER_AS_TARGET)
+// ========================
+const buildArtifactElementReduceAffix = (
+  element: ElementType,
+): AffixDefinition => ({
+  id: `artifact-suffix-elem-${ELEMENT_TO_MATERIAL_TAG[element]}-reduce`,
+  displayName: `${element}系减伤`,
+  displayDescription: `减少受到${element}系技能的伤害`,
+  category: 'suffix',
+  match: matchAll([
+    CreationTags.MATERIAL.SEMANTIC_GUARD,
+    ELEMENT_TO_MATERIAL_TAG[element],
+  ]),
+  weight: 48,
+  energyCost: 9,
+  applicableTo: ['artifact'],
+  effectTemplate: {
+    type: 'percent_damage_modifier',
+    conditions: [
+      {
+        type: 'ability_has_tag',
+        params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG[element] },
+      },
+    ],
+    params: {
+      mode: 'reduce',
+      value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+      cap: 0.4,
+    },
+  },
+  listenerSpec: {
+    eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+    scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+    priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+  },
+});
+
+type DamageChannel =
+  | typeof GameplayTags.ABILITY.CHANNEL.MAGIC
+  | typeof GameplayTags.ABILITY.CHANNEL.PHYSICAL;
+
+const buildArtifactChannelReduceAffix = (
+  channel: DamageChannel,
+): AffixDefinition => {
+  const channelNameMap: Record<DamageChannel, string> = {
+    [GameplayTags.ABILITY.CHANNEL.MAGIC]: '法术',
+    [GameplayTags.ABILITY.CHANNEL.PHYSICAL]: '物理',
+  };
+  const matchTagMap: Record<DamageChannel, string> = {
+    [GameplayTags.ABILITY.CHANNEL.MAGIC]: CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    [GameplayTags.ABILITY.CHANNEL.PHYSICAL]: CreationTags.MATERIAL.TYPE_ORE,
+  };
+  const channelNameEn = channel.split('.').slice(-1)[0].toLowerCase();
+  return {
+    id: `artifact-suffix-chan-${channelNameEn}-reduce`,
+    displayName: `${channelNameMap[channel]}减伤`,
+    displayDescription: `减少受到的${channelNameMap[channel]}伤害`,
+    category: 'suffix',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      matchTagMap[channel],
+    ]),
+    weight: 42,
+    energyCost: 9,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [
-        { type: 'hp_below', params: { value: 0.65, scope: 'caster' } },
-      ],
+      conditions: [{ type: 'ability_has_tag', params: { tag: channel } }],
       params: {
         mode: 'reduce',
-        value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
-        cap: 0.6,
+        value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
+        cap: 0.4,
       },
     },
     listenerSpec: {
@@ -735,41 +1001,20 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
-  },
+  };
+};
 
-  // ========================
-  // ===== MYTHIC 词缀 (1 种)
-  // ========================
-  {
-    id: 'artifact-mythic-judgment-seal',
-    displayName: '终战反伤印',
-    displayDescription: '高阶反伤词条，受击时强力反震敌人',
-    category: 'mythic',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.MYTHIC_TRANSCENDENT,
-    weight: 28,
-    energyCost: 16,
-    minQuality: '玄品',
-    applicableTo: ['artifact'],
-    grantedAbilityTags: [GameplayTags.TRAIT.REFLECT],
-    effectTemplate: {
-      type: 'reflect',
-      conditions: [{ type: 'chance', params: { value: 0.82 } }],
-      params: {
-        ratio: { base: 0.3, scale: 'quality', coefficient: 0.05 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-      guard: {
-        skipReflectSource: true,
-      },
-    },
-  },
+export const ARTIFACT_ELEMENT_REDUCE_AFFIXES: AffixDefinition[] = [
+  buildArtifactElementReduceAffix('金'),
+  buildArtifactElementReduceAffix('木'),
+  buildArtifactElementReduceAffix('水'),
+  buildArtifactElementReduceAffix('火'),
+  buildArtifactElementReduceAffix('土'),
+  buildArtifactElementReduceAffix('风'),
+  buildArtifactElementReduceAffix('雷'),
+  buildArtifactElementReduceAffix('冰'),
+  buildArtifactChannelReduceAffix(GameplayTags.ABILITY.CHANNEL.MAGIC),
+  buildArtifactChannelReduceAffix(GameplayTags.ABILITY.CHANNEL.PHYSICAL),
 ];
+
+export { ARTIFACT_COMMON_PREFIX_AFFIXES };
