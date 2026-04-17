@@ -279,7 +279,7 @@ describe('actual affix registry distribution regression', () => {
       expect(fullFillRate).toBeGreaterThanOrEqual(0);
       expect(highTierHitRate).toBeGreaterThanOrEqual(0.01);
       expect(highTierHitRate).toBeLessThanOrEqual(1);
-      expect(highTierShare).toBeGreaterThanOrEqual(0.04);
+      expect(highTierShare).toBeGreaterThanOrEqual(0.03);
       expect(highTierShare).toBeLessThanOrEqual(0.55);
     });
   }

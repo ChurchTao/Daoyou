@@ -26,7 +26,7 @@ import {
   StackRule,
 } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
-import { AffixDefinition, matchAll } from '../types';
+import { AffixDefinition } from '../types';
 
 export const SKILL_AFFIXES: AffixDefinition[] = [
   // ================================================================
@@ -40,10 +40,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '施放时造成一次基础法术伤害，通用输出核心',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 100,
     energyCost: 8,
@@ -71,10 +74,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次火系法术伤害，与灼烧状态联动可爆发更高输出',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      ELEMENT_TO_MATERIAL_TAG['火'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['火']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 85,
     energyCost: 10,
@@ -101,10 +107,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次冰系法术伤害，与冰缓控制配合可限制目标行动',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['冰']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 80,
     energyCost: 10,
@@ -131,11 +140,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次雷系法术伤害，单次爆发强力',
     category: 'skill_core',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      ELEMENT_TO_MATERIAL_TAG['雷'],
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['雷']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 75,
     energyCost: 11,
@@ -162,10 +173,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次风系物理伤害，与风系功法联动增益',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      ELEMENT_TO_MATERIAL_TAG['风'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['风']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 72,
     energyCost: 10,
@@ -192,10 +206,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次金系物理伤害，与破防配合可穿透甲胄',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_METAL,
-      ELEMENT_TO_MATERIAL_TAG['金'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['金']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 70,
     energyCost: 10,
@@ -222,10 +239,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次水系法术伤害，与燃蓝搭配可压制对手灵力',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WATER,
-      ELEMENT_TO_MATERIAL_TAG['水'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['水']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 68,
     energyCost: 10,
@@ -252,10 +272,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次木系法术伤害，与毒素侵染搭配可形成持续削弱',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WOOD,
-      ELEMENT_TO_MATERIAL_TAG['木'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['木']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 65,
     energyCost: 10,
@@ -282,10 +305,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次土系物理伤害，与减速搭配可压制目标行动',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_EARTH,
-      ELEMENT_TO_MATERIAL_TAG['土'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['土']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 67,
     energyCost: 10,
@@ -314,10 +340,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '恢复目标大量气血',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_HERB,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.TYPE_HERB,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 75,
     energyCost: 8,
@@ -342,10 +372,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '眩晕目标，使其短时间无法行动',
     category: 'skill_core',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-    ]),
+    match: {
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 50,
     energyCost: 12,
@@ -381,10 +414,12 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '降低本技能施法灵力消耗，便于频繁施放',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
-    ]),
+    match: {
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+      ],
+    },
     weight: 60,
     energyCost: 6,
     applicableTo: ['skill'],
@@ -403,10 +438,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '提高本次施法命中率，减少落空风险',
     category: 'skill_core',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      ],
+    },
     weight: 55,
     energyCost: 6,
     applicableTo: ['skill'],
@@ -445,10 +484,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中时附加灼烧，每回合造成持续伤害',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      ELEMENT_TO_MATERIAL_TAG['火'],
-    ]),
+    match: { all: [CreationTags.MATERIAL.SEMANTIC_FLAME] },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_BURN,
     weight: 80,
     energyCost: 8,
@@ -504,10 +540,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中时附加减速，降低目标身法',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-    ]),
+    match: { all: [CreationTags.MATERIAL.SEMANTIC_FREEZE] },
     weight: 78,
     energyCost: 8,
     applicableTo: ['skill'],
@@ -545,7 +578,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中时附加毒素，每回合造成持续伤害且可叠层',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_POISON]),
+    match: { all: [CreationTags.MATERIAL.SEMANTIC_POISON] },
     weight: 68,
     energyCost: 9,
     applicableTo: ['skill'],
@@ -596,10 +629,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中时降低目标防御，使后续攻击更具穿透力',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ],
+    },
     weight: 55,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -637,10 +674,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中时消除目标一层 buff，破除敌方增益',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      ],
+    },
     weight: 60,
     energyCost: 6,
     applicableTo: ['skill'],
@@ -660,10 +701,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '治疗时同时驱散目标一层负面效果',
     category: 'skill_variant',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+      ],
+    },
     weight: 45,
     energyCost: 8,
     applicableTo: ['skill'],
@@ -683,10 +728,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '施放后即时回复部分气血，攻守兼备',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_LIFESTEAL,
     weight: 72,
     energyCost: 9,
@@ -720,10 +769,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '施放后即时回复法力，维持连续施法的灵力充盈',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.TYPE_HERB,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+      ],
+    },
     weight: 75,
     energyCost: 6,
     applicableTo: ['skill'],
@@ -756,10 +809,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '施放后为自身生成护盾，增加容错空间',
     category: 'skill_variant',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_ORE,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
     weight: 58,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -792,10 +849,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '施放时提升本次技能伤害',
     category: 'skill_variant',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_ORE,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_DAMAGE_BOOST,
     weight: 65,
     energyCost: 6,
@@ -822,10 +883,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '目标低血时本次施法伤害提高',
     category: 'skill_variant',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+      ],
+    },
     weight: 50,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -855,10 +920,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '本次施法的控制效果命中提高',
     category: 'skill_variant',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ],
+    },
     weight: 48,
     energyCost: 7,
     applicableTo: ['skill'],
@@ -897,11 +966,16 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中带灼烧目标时，立即引爆灼烧造成额外伤害',
     category: 'skill_rare',
     rarity: 'legendary',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 5,
     energyCost: 16,
@@ -928,10 +1002,14 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '目标处于控制状态时，本次施法伤害大幅提升',
     category: 'skill_rare',
     rarity: 'rare',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_FREEZE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 8,
     energyCost: 14,
@@ -965,11 +1043,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '命中后有概率大幅延长目标所有技能冷却',
     category: 'skill_rare',
     rarity: 'rare',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+        CreationTags.MATERIAL.SEMANTIC_TIME,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 6,
     energyCost: 13,
@@ -1001,11 +1085,17 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '造成一次无视防御的真实伤害，直击灵魂',
     category: 'skill_rare',
     rarity: 'legendary',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 4,
     energyCost: 15,

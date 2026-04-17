@@ -1,6 +1,7 @@
 import z from 'zod';
 import { object } from '@/utils/aiClient';
 import { Material } from '@/types/cultivator';
+import { CREATION_TAG_DESCRIPTIONS } from '@/engine/shared/tag-domain';
 import {
   MaterialFingerprint,
   MaterialFingerprintLLMMetadata,
@@ -191,12 +192,24 @@ export class DeepSeekMaterialSemanticEnricher
   }
 
   private buildSystemPrompt(): string {
+    const allowlist = getCreationMaterialSemanticTagAllowlist();
+    const tagGuide = allowlist
+      .map((tag) => {
+        const desc = CREATION_TAG_DESCRIPTIONS[tag];
+        if (!desc) return `- ${tag}`;
+        return `- ${tag}（${desc.name}）：${desc.description}。示例：${desc.examples}`;
+      })
+      .join('\n');
+
     return `你是造物系统的材料语义标签提取器。
 
 目标：仅为材料补充额外的 canonical semantic tags，用于后续规则系统命中。
 
+标签语义参考：
+${tagGuide}
+
 严格要求：
-1. 只能从输入中的 allowlist 选择标签，不得创造新标签。
+1. 只能从上述标签中选择，不得创造新标签。
 2. 不要返回解释型文本作为 tag。
 3. 若无法判断，返回空数组。
 4. confidence 取值范围为 0 到 1。`;

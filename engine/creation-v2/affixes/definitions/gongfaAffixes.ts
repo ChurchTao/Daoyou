@@ -25,7 +25,7 @@ import {
   ModifierType,
 } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
-import { AffixDefinition, matchAll } from '../types';
+import { AffixDefinition } from '../types';
 
 export const GONGFA_AFFIXES: AffixDefinition[] = [
   // ================================================================
@@ -39,10 +39,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升灵力百分比，法术收益随境界成倍放大',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.TYPE_MANUAL,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 100,
     energyCost: 8,
@@ -62,10 +65,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升体力百分比，气血池更加深厚',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.TYPE_MANUAL,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 95,
     energyCost: 8,
@@ -85,10 +92,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升根骨百分比，法术穿透与命中提高',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_MANUAL],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.TYPE_MANUAL,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 80,
     energyCost: 8,
@@ -108,10 +118,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升意志百分比，抗性与控制抵抗提高',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 70,
     energyCost: 7,
@@ -131,10 +145,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升身法百分比，先手与回避更具优势',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.TYPE_ORE,
-    ]),
+    match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 75,
     energyCost: 8,
@@ -154,10 +165,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升物理攻击百分比',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_METAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 90,
     energyCost: 8,
@@ -177,10 +192,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升法术攻击百分比',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 90,
     energyCost: 8,
@@ -200,10 +219,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升物理防御百分比',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.TYPE_ORE,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 60,
     energyCost: 7,
@@ -223,10 +246,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升法术防御百分比',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 55,
     energyCost: 7,
@@ -246,10 +273,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '战斗中提升治疗效果百分比',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.TYPE_HERB,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 50,
     energyCost: 7,
@@ -271,10 +302,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '提升控制效果命中率，使控制技更稳定生效',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-    ]),
+    match: {
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 45,
     energyCost: 7,
@@ -296,10 +331,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '提升控制效果抵抗率，减少被控风险',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_EARTH,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 40,
     energyCost: 7,
@@ -321,10 +360,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '全局造成伤害提高',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_DAMAGE_MOD,
     weight: 55,
     energyCost: 9,
@@ -351,10 +394,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '提升防御属性，降低受到的伤害',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_DAMAGE_MOD,
     weight: 45,
     energyCost: 9,
@@ -380,10 +427,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '火系技能伤害提高，火修路线核心词条',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      ELEMENT_TO_MATERIAL_TAG['火'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['火']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
     weight: 75,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -413,10 +464,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '冰系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['冰']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
     weight: 72,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -446,10 +501,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '雷系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      ELEMENT_TO_MATERIAL_TAG['雷'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['雷']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
     weight: 70,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -479,10 +538,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '风系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      ELEMENT_TO_MATERIAL_TAG['风'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['风']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
     weight: 68,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -512,10 +575,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '金系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_METAL,
-      ELEMENT_TO_MATERIAL_TAG['金'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['金']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     weight: 65,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -545,10 +612,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '水系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WATER,
-      ELEMENT_TO_MATERIAL_TAG['水'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['水']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     weight: 63,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -578,10 +649,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '木系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WOOD,
-      ELEMENT_TO_MATERIAL_TAG['木'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['木']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      ],
+    },
     weight: 60,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -611,10 +686,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '土系技能伤害提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_EARTH,
-      ELEMENT_TO_MATERIAL_TAG['土'],
-    ]),
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['土']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     weight: 58,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -646,10 +725,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '暴击时回复灵力，维持高攻节奏',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ],
+    },
     weight: 50,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -679,10 +762,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '灵力低于阈值时伤害提高，破釜沉舟的背水之战',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.TYPE_MANUAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.TYPE_MANUAL,
+      ],
+    },
     weight: 42,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -711,10 +798,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '气血充足时伤害大幅提高，抢先机定胜负',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_WIND],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ],
+    },
     weight: 38,
     energyCost: 9,
     applicableTo: ['gongfa'],
@@ -743,10 +834,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '气血低于阈值时伤害大幅提高',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+      ],
+    },
     weight: 40,
     energyCost: 9,
     applicableTo: ['gongfa'],
@@ -775,10 +870,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '拥有护盾时伤害提高，攻守同步',
     category: 'gongfa_school',
     rarity: 'uncommon',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
     weight: 35,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -810,10 +909,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '对带有负面状态的目标伤害提高',
     category: 'gongfa_school',
     rarity: 'rare',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_POISON,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ]),
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_POISON],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+      ],
+    },
     weight: 30,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -845,10 +948,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '对处于持续伤害状态的目标造成额外伤害',
     category: 'gongfa_school',
     rarity: 'rare',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      CreationTags.MATERIAL.SEMANTIC_POISON,
-    ]),
+    match: {
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        CreationTags.MATERIAL.SEMANTIC_POISON,
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+      ],
+    },
     weight: 32,
     energyCost: 10,
     applicableTo: ['gongfa'],
@@ -880,10 +986,13 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '对处于控制状态的目标伤害提高',
     category: 'gongfa_school',
     rarity: 'rare',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-    ]),
+    match: {
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
+    },
     weight: 35,
     energyCost: 11,
     applicableTo: ['gongfa'],
@@ -919,11 +1028,16 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '火系技能命中灼烧目标时，最终伤害再次提升',
     category: 'gongfa_secret',
     rarity: 'legendary',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      ELEMENT_TO_MATERIAL_TAG['火'],
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        ELEMENT_TO_MATERIAL_TAG['火'],
+      ],
+      any: [
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 5,
     energyCost: 16,
@@ -961,11 +1075,16 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '攻击冰缓目标时附带目标最大气血比例的额外伤害',
     category: 'gongfa_secret',
     rarity: 'legendary',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        ELEMENT_TO_MATERIAL_TAG['冰'],
+      ],
+      any: [
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 5,
     energyCost: 16,
@@ -1000,11 +1119,17 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '技能命中后有概率减少自身随机一个技能的冷却',
     category: 'gongfa_secret',
     rarity: 'rare',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_TIME,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
     energyCost: 14,
@@ -1036,11 +1161,17 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     displayDescription: '修炼时随机强化两项属性',
     category: 'gongfa_secret',
     rarity: 'legendary',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_SPECIAL,
-    ]),
+    match: {
+      all: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 4,
     energyCost: 15,

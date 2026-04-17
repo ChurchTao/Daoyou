@@ -16,3 +16,7 @@ export {
 } from './guards';
 export type { CreationTagPath, TagPath } from './types';
 export type { CreationMaterialSemanticTag } from './creationTags';
+export {
+  CREATION_TAG_DESCRIPTIONS,
+  type TagDescription,
+} from './creationTagDescriptions';
