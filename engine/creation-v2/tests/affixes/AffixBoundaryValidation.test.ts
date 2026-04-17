@@ -76,25 +76,6 @@ describe('AffixBoundaryValidation', () => {
     expect(violations.map((d) => d.id)).toEqual([]);
   });
 
-  it('gongfa 词缀禁止使用 attribute_stat_buff（临时属性 buff 属于 skill 域）', () => {
-    const violations = allDefs.filter(
-      (def) =>
-        def.applicableTo.includes('gongfa') &&
-        def.effectTemplate.type === 'attribute_stat_buff',
-    );
-
-    expect(violations.map((d) => d.id)).toEqual([]);
-  });
-
-  it('skill 词缀禁止使用 attribute_stat_buff（已改用 apply_buff）', () => {
-    const violations = allDefs.filter(
-      (def) =>
-        def.applicableTo.includes('skill') &&
-        def.effectTemplate.type === 'attribute_stat_buff',
-    );
-
-    expect(violations.map((d) => d.id)).toEqual([]);
-  });
 
   it('artifact 词缀禁止使用 OWNER_AS_CASTER scope', () => {
     const violations = allDefs.filter(

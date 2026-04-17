@@ -344,11 +344,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 通用减伤 ---
+  // --- 通用减伤（静态防御加成） ---
   {
     id: 'gongfa-foundation-damage-reduce',
     displayName: '功法减伤',
-    displayDescription: '全局受到伤害降低',
+    displayDescription: '提升防御属性，降低受到的伤害',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
     match: matchAll([
@@ -360,17 +360,12 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     energyCost: 9,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'percent_damage_modifier',
+      type: 'attribute_modifier',
       params: {
-        mode: 'reduce',
-        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
-        cap: 0.4,
+        attrType: AttributeType.DEF,
+        modType: ModifierType.ADD,
+        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
       },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
     },
   },
 
@@ -660,7 +655,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'heal',
-      conditions: [{ type: 'chance', params: { value: 0.35 } }],
+      conditions: [{ type: 'is_critical' ,params:{}}],
       params: {
         target: 'mp',
         value: {
@@ -693,7 +688,9 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'mp_below', params: { value: 0.3 } }],
+      conditions: [
+        { type: 'mp_below', params: { value: 0.3, scope: 'caster' } },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.18, scale: 'quality', coefficient: 0.04 },
@@ -723,7 +720,9 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_above', params: { value: 0.8 } }],
+      conditions: [
+        { type: 'hp_above', params: { value: 0.8, scope: 'caster' } },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.25, scale: 'quality', coefficient: 0.05 },
@@ -753,7 +752,9 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
+      conditions: [
+        { type: 'hp_below', params: { value: 0.3, scope: 'caster' } },
+      ],
       params: {
         mode: 'increase',
         value: { base: 0.22, scale: 'quality', coefficient: 0.05 },
@@ -786,7 +787,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       conditions: [
         {
           type: 'buff_count_at_least',
-          params: { value: 1 },
+          params: { value: 1, scope: 'caster' },
         },
       ],
       params: {
@@ -805,8 +806,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 状态延长 ---
   {
     id: 'gongfa-school-debuff-extend',
-    displayName: '蚀骨延命',
-    displayDescription: '施加的负面状态持续时间延长',
+    displayName: '蚀骨增伤',
+    displayDescription: '对带有负面状态的目标伤害提高',
     category: 'gongfa_school',
     rarity: 'rare',
     match: matchAll([
@@ -841,7 +842,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-school-dot-amplify',
     displayName: 'DOT 放大',
-    displayDescription: '持续伤害效果数值提高',
+    displayDescription: '对处于持续伤害状态的目标造成额外伤害',
     category: 'gongfa_school',
     rarity: 'rare',
     match: matchAll([
@@ -856,7 +857,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       conditions: [
         {
           type: 'has_tag',
-          params: { tag: GameplayTags.BUFF.DOT.ROOT },
+          params: { tag: GameplayTags.STATUS.CATEGORY.DOT },
         },
       ],
       params: {
@@ -957,7 +958,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-secret-frost-soul',
     displayName: '寒魄诀',
-    displayDescription: '攻击冰缓目标时附带目标最大生命值比例伤害',
+    displayDescription: '攻击冰缓目标时附带目标最大气血比例的额外伤害',
     category: 'gongfa_secret',
     rarity: 'legendary',
     match: matchAll([
@@ -980,9 +981,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         value: {
-          base: { base: 0, scale: 'quality', coefficient: 0 },
-          attribute: AttributeType.VITALITY,
-          coefficient: 0.6,
+          base: 0,
+          targetMaxHpRatio: { base: 0.06, scale: 'quality', coefficient: 0.01 },
         },
       },
     },
@@ -1033,7 +1033,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   {
     id: 'gongfa-secret-adaptive',
     displayName: '无相诀',
-    displayDescription: '根据当前最高副属性自动切换对应强化方向',
+    displayDescription: '修炼时随机强化两项属性',
     category: 'gongfa_secret',
     rarity: 'legendary',
     match: matchAll([

@@ -69,6 +69,15 @@ function getShieldAbsorbedFromTriggerEvent(triggerEvent: unknown): number | unde
   return eventLike.shieldAbsorbed;
 }
 
+function getIsCriticalFromTriggerEvent(triggerEvent: unknown): boolean {
+  if (!triggerEvent || typeof triggerEvent !== 'object') return false;
+
+  const eventLike = triggerEvent as {
+    isCritical?: boolean;
+  };
+  return eventLike.isCritical === true;
+}
+
 function countBuffs(
   unit: ConditionUnitLike | undefined,
   predicate: (buff: ConditionBuffLike) => boolean,
@@ -139,6 +148,11 @@ export function evaluateCondition(
       return (getShieldAbsorbedFromTriggerEvent(context.triggerEvent) ?? 0) >= threshold;
     case 'chance':
       return Math.random() < threshold;
+    case 'is_critical': {
+      // scope 用于语义校验：'caster' 表示"我暴击了"，'target' 表示"我被暴击了"
+      // 运行时都读取 triggerEvent.isCritical，因为暴击是事件级属性
+      return getIsCriticalFromTriggerEvent(context.triggerEvent);
+    }
     default:
       return true;
   }

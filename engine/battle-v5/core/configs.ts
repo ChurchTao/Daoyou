@@ -27,7 +27,8 @@ export interface ConditionConfig {
     | 'debuff_count_at_least'
     | 'damage_type_is'
     | 'shield_absorbed_at_least'
-    | 'chance';
+    | 'chance'
+    | 'is_critical';
   params: {
     tag?: string;
     value?: number;
@@ -151,7 +152,10 @@ export interface PercentDamageModifierParams {
 /**
  * 防死参数定义
  */
-export type DeathPreventParams = object;
+export interface DeathPreventParams {
+  /** 触发后保留的气血值百分比，不传则=1点 */
+  hpFloorPercent?: number;
+}
 
 /**
  * BUFF 免疫参数定义

@@ -11,7 +11,6 @@
  * 硬边界（Section 2.3 + Section 6.1）：
  *   - 禁止 attribute_modifier（常驻属性归 gongfa/artifact）
  *   - 禁止通过长时 apply_buff + nested OWNER_AS_CASTER listener 模拟长期被动
- *   - 移除 attribute_stat_buff，改用 apply_buff 直接承载短效 buff
  *   - 顶层效果以即时 GE 为主
  */
 import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';

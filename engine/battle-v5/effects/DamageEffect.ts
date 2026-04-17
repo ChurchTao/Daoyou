@@ -18,8 +18,8 @@ export class DamageEffect extends GameplayEffect {
   execute(context: EffectContext): void {
     const { caster, target, ability, buff } = context;
 
-    // 使用统一计算器计算基础伤害
-    const damage = ValueCalculator.calculate(this.params.value, caster);
+    // 使用统一计算器计算基础伤害（传入 target 以支持 targetMaxHpRatio）
+    const damage = ValueCalculator.calculate(this.params.value, caster, target);
 
     if (damage <= 0) return;
 

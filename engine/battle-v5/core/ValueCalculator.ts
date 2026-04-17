@@ -3,12 +3,14 @@ import { AttributeType } from './types';
 
 /**
  * 可缩放数值配置
- * 支持：基础值 + 属性 * 系数
+ * 支持：基础值 + 属性 * 系数 + 目标最大气血比例
  */
 export interface ScalableValue {
   base?: number;
   attribute?: AttributeType;
   coefficient?: number;
+  /** 目标最大气血的比例伤害（如 0.08 表示 8% 目标最大气血） */
+  targetMaxHpRatio?: number;
 }
 
 /**
@@ -18,7 +20,7 @@ export class ValueCalculator {
   /**
    * 计算最终数值
    */
-  static calculate(value: ScalableValue | number, caster: Unit): number {
+  static calculate(value: ScalableValue | number, caster: Unit, target?: Unit): number {
 
     if (typeof value === 'number') {
       return value;
@@ -29,6 +31,9 @@ export class ValueCalculator {
     if (value.attribute) {
       const attrValue = caster.attributes.getValue(value.attribute);
       total = total + attrValue * coefficient;
+    }
+    if (value.targetMaxHpRatio && target) {
+      total += target.getMaxHp() * value.targetMaxHpRatio;
     }
     return Math.round(total);
   }

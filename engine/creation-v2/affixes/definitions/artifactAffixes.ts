@@ -21,10 +21,7 @@ import {
 } from '@/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import {
-  AttributeType,
-  ModifierType,
-} from '../../contracts/battle';
+import { AttributeType, ModifierType } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition, matchAll } from '../types';
 
@@ -385,7 +382,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-spirit',
-    displayName: '灵力根骨面板',
+    displayName: '灵力悟性面板',
     displayDescription: '固定提升灵力',
     category: 'artifact_panel',
     rarity: 'common',
@@ -409,8 +406,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-vitality',
-    displayName: '体力根骨面板',
-    displayDescription: '固定提升体力',
+    displayName: '体魄面板',
+    displayDescription: '固定提升体魄',
     category: 'artifact_panel',
     rarity: 'common',
     match: matchAll([
@@ -433,8 +430,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-wisdom',
-    displayName: '根骨面板',
-    displayDescription: '固定提升根骨',
+    displayName: '悟性面板',
+    displayDescription: '固定提升悟性',
     category: 'artifact_panel',
     rarity: 'common',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_MANUAL]),
@@ -454,8 +451,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-willpower',
-    displayName: '意志面板',
-    displayDescription: '固定提升意志',
+    displayName: '神识面板',
+    displayDescription: '固定提升神识',
     category: 'artifact_panel',
     rarity: 'common',
     match: matchAll([CreationTags.MATERIAL.SEMANTIC_GUARD]),
@@ -481,7 +478,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 反伤荆棘 ---
   {
     id: 'artifact-defense-reflect-thorns',
-    displayName: '荆棘反伤',
+    displayName: '荆棘',
     displayDescription: '受击时反弹部分伤害',
     category: 'artifact_defense',
     rarity: 'uncommon',
@@ -522,10 +519,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'death_prevent',
-      params: {
-        hpFloor: 1,
-        cooldownRounds: 99,
-      },
+      params: {},
     },
     listenerSpec: {
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
@@ -538,7 +532,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-last-stand-shell',
     displayName: '绝境护盾',
-    displayDescription: '气血低于阈值时自动获得护盾',
+    displayDescription: '气血低于阈值时受击有概率获得护盾',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: matchAll([
@@ -550,7 +544,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'shield',
-      conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
+      conditions: [
+        { type: 'hp_below', params: { value: 0.3 } },
+        { type: 'chance', params: { value: 0.35 } },
+      ],
       params: {
         value: {
           base: { base: 15, scale: 'quality', coefficient: 6 },
@@ -569,7 +566,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 被动护甲 ---
   {
     id: 'artifact-defense-armor-passive',
-    displayName: '被动护甲',
+    displayName: '坚韧',
     displayDescription: '受击时降低固定伤害',
     category: 'artifact_defense',
     rarity: 'common',
@@ -598,7 +595,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 回合回蓝 ---
   {
     id: 'artifact-defense-mana-recovery',
-    displayName: '灵力回复',
+    displayName: '灵泉',
     displayDescription: '每回合自动回复少量灵力',
     category: 'artifact_defense',
     rarity: 'common',
@@ -630,7 +627,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 负面清除 ---
   {
     id: 'artifact-defense-debuff-cleanse',
-    displayName: '净化之力',
+    displayName: '净化',
     displayDescription: '受击后有概率清除一层负面状态',
     category: 'artifact_defense',
     rarity: 'uncommon',
@@ -690,7 +687,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 8 种元素减伤 ---
   {
     id: 'artifact-defense-fire-resist',
-    displayName: '火系减伤',
+    displayName: '火抗',
     displayDescription: '受到火系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -720,7 +717,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-ice-resist',
-    displayName: '冰系减伤',
+    displayName: '冰抗',
     displayDescription: '受到冰系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -750,7 +747,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-thunder-resist',
-    displayName: '雷系减伤',
+    displayName: '雷抗',
     displayDescription: '受到雷系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -780,7 +777,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-wind-resist',
-    displayName: '风系减伤',
+    displayName: '风抗',
     displayDescription: '受到风系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -810,7 +807,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-metal-resist',
-    displayName: '金系减伤',
+    displayName: '金抗',
     displayDescription: '受到金系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -840,7 +837,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-water-resist',
-    displayName: '水系减伤',
+    displayName: '水抗',
     displayDescription: '受到水系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -870,7 +867,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-wood-resist',
-    displayName: '木系减伤',
+    displayName: '木抗',
     displayDescription: '受到木系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -900,7 +897,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-earth-resist',
-    displayName: '土系减伤',
+    displayName: '土抗',
     displayDescription: '受到土系伤害降低',
     category: 'artifact_defense',
     rarity: 'common',
@@ -932,7 +929,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 被暴击后回盾 ---
   {
     id: 'artifact-defense-crit-shield',
-    displayName: '暴击回盾',
+    displayName: '波澜不惊',
     displayDescription: '被暴击后获得护盾',
     category: 'artifact_defense',
     rarity: 'uncommon',
@@ -945,7 +942,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'shield',
-      conditions: [{ type: 'chance', params: { value: 0.3 } }],
+      conditions: [{ type: 'is_critical', params: {} }],
       params: {
         value: {
           base: { base: 12, scale: 'quality', coefficient: 5 },
@@ -964,7 +961,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 被暴击后反伤 ---
   {
     id: 'artifact-defense-crit-reflect',
-    displayName: '暴击反伤',
+    displayName: '混元',
     displayDescription: '被暴击后反弹伤害给攻击者',
     category: 'artifact_defense',
     rarity: 'uncommon',
@@ -977,7 +974,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'reflect',
-      conditions: [{ type: 'chance', params: { value: 0.25 } }],
+      conditions: [{ type: 'is_critical', params: {} }],
       params: {
         ratio: { base: 0.15, scale: 'quality', coefficient: 0.04 },
       },
@@ -992,7 +989,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 回合回血 ---
   {
     id: 'artifact-defense-round-heal',
-    displayName: '回合回血',
+    displayName: '生命之源',
     displayDescription: '每回合回复少量气血',
     category: 'artifact_defense',
     rarity: 'common',
@@ -1058,11 +1055,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 护命：首次濒死保留 1 血并获得护盾 ---
+  // --- 护命：首次濒死保命 ---
   {
     id: 'artifact-treasure-life-guard',
     displayName: '护命',
-    displayDescription: '首次受到致死伤害时保留 1 点气血并获得大量护盾',
+    displayDescription: '首次受到致死伤害时保留较多气血',
     category: 'artifact_treasure',
     rarity: 'legendary',
     match: matchAll([
@@ -1077,22 +1074,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'death_prevent',
-      params: {
-        hpFloor: 1,
-        cooldownRounds: 99,
-        onTriggerEffects: [
-          {
-            type: 'shield',
-            params: {
-              value: {
-                base: { base: 30, scale: 'quality', coefficient: 12 },
-                attribute: AttributeType.WILLPOWER,
-                coefficient: 0.5,
-              },
-            },
-          },
-        ],
-      },
+      params: { hpFloorPercent: 0.3 },
     },
     listenerSpec: {
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,

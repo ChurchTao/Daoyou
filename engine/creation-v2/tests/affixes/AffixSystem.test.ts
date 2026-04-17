@@ -261,45 +261,6 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
-  it('translate: attribute_stat_buff MULTIPLY modType 生成乘数 modifier', () => {
-    const def: AffixDefinition = {
-      id: 'test-multiply-buff',
-      displayName: 'test',
-      displayDescription: 'test',
-      category: 'skill_variant',
-      rarity: 'common',
-      match: matchAll([]),
-      weight: 1,
-      energyCost: 1,
-      applicableTo: ['skill'],
-      effectTemplate: {
-        type: 'attribute_stat_buff',
-        params: {
-          attrType: AttributeType.WISDOM,
-          modType: ModifierType.MULTIPLY,
-          value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
-          duration: 1,
-        },
-      },
-    };
-
-    const resultXuan = translator.translate(toRolledAffix(def), '玄品');
-    expect(resultXuan.type).toBe('apply_buff');
-    if (resultXuan.type === 'apply_buff') {
-      const mod = resultXuan.params.buffConfig.modifiers![0];
-      expect(mod.attrType).toBe(AttributeType.WISDOM);
-      expect(mod.type).toBe(ModifierType.MULTIPLY);
-      // 玄品 order=2 -> 0.12 + 2*0.02 = 0.16
-      expect(mod.value).toBeCloseTo(0.16);
-    }
-
-    const resultTian = translator.translate(toRolledAffix(def), '天品');
-    if (resultTian.type === 'apply_buff') {
-      const mod = resultTian.params.buffConfig.modifiers![0];
-      // 天品 order=5 -> 0.12 + 5*0.02 = 0.22
-      expect(mod.value).toBeCloseTo(0.22);
-    }
-  });
 
   it('translate: attribute_modifier 应在翻译阶段拒绝（由投影层处理）', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-foundation-spirit')!;
@@ -706,17 +667,6 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     const actualPersistentExceptionIds = new Set<string>();
 
     for (const def of SKILL_AFFIXES) {
-      if (def.effectTemplate.type === 'attribute_stat_buff') {
-        const duration = def.effectTemplate.params.duration;
-        expect(duration).toBeDefined();
-        expect(duration!).toBeGreaterThanOrEqual(
-          CREATION_DURATION_POLICY.buffDebuff.short,
-        );
-        expect(duration!).toBeLessThanOrEqual(
-          CREATION_DURATION_POLICY.buffDebuff.extended,
-        );
-        continue;
-      }
 
       if (def.effectTemplate.type !== 'apply_buff') {
         continue;

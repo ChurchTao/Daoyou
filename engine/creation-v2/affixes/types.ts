@@ -61,6 +61,8 @@ export interface AffixScalableValue {
   base: ScalableParam;
   attribute?: AttributeType;
   coefficient?: number;
+  /** 目标最大气血的比例伤害（固定值，不随品质缩放），如 0.08 表示 8% */
+  targetMaxHpRatio?: ScalableParam;
 }
 
 /**
@@ -82,7 +84,6 @@ export interface AffixAttributeModifierTemplate {
  * - damage / heal / shield / mana_burn：params.value 是 AffixScalableValue
  * - apply_buff：直接存储 BuffConfig（值不缩放，用于复杂 buff 模板）
  * - attribute_modifier：静态属性修改器，投影为 AbilityConfig.modifiers
- * - attribute_stat_buff：属性 buff，由翻译器包装为 apply_buff + BuffConfig.modifiers（可用于临时效果）
  * - percent_damage_modifier / dispel：简单参数
  */
 export type AffixEffectTemplate = AffixEffectTemplateBase &
@@ -135,20 +136,6 @@ export type AffixEffectTemplate = AffixEffectTemplateBase &
               modType: ModifierType;
               value: ScalableParam;
             };
-      }
-    | {
-        /**
-         * 属性强化 buff（用于可持续时间/可堆叠的 buff 语义）
-         * 翻译器会生成 apply_buff + stackRule=IGNORE + duration=-1 + modifiers[{ attrType, modType, value }]
-         */
-        type: 'attribute_stat_buff';
-        params: {
-          attrType: AttributeType;
-          modType: ModifierType;
-          value: ScalableParam;
-          duration?: number;
-          stackRule?: StackRule;
-        };
       }
     | {
         type: 'percent_damage_modifier';

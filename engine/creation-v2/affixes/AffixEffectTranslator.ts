@@ -2,12 +2,8 @@ import { Quality, QUALITY_ORDER } from '@/types/constants';
 import {
   ApplyBuffParams,
   AttributeType,
-  BuffType,
   EffectConfig,
-  ModifierType,
-  StackRule,
 } from '../contracts/battle';
-import { buildStatBuffId } from '../services/SlugService';
 import { RolledAffix } from '../types';
 import {
   AffixEffectTemplate,
@@ -231,36 +227,6 @@ export class AffixEffectTranslator {
         );
       }
 
-      case 'attribute_stat_buff': {
-        const { attrType, modType, value, duration, stackRule } =
-          template.params;
-        const resolvedValue = this.resolveParam(
-          value,
-          qualityOrder,
-          multiplier,
-        );
-        return {
-          type: 'apply_buff',
-          params: {
-            buffConfig: {
-              id: buildStatBuffId(attrType, modType),
-              name:
-                ATTR_BUFF_NAMES[attrType as AttributeType] ?? `${attrType}强化`,
-              type: BuffType.BUFF,
-              duration: duration ?? -1,
-              stackRule: stackRule ?? StackRule.IGNORE,
-              modifiers: [
-                {
-                  attrType: attrType as AttributeType,
-                  type: modType as ModifierType,
-                  value: resolvedValue,
-                },
-              ],
-            },
-          },
-        };
-      }
-
       case 'percent_damage_modifier': {
         return {
           type: 'percent_damage_modifier',
@@ -315,7 +281,7 @@ export class AffixEffectTranslator {
     sv: AffixScalableValue,
     qualityOrder: number,
     multiplier: number,
-  ): { base?: number; attribute?: AttributeType; coefficient?: number } {
+  ): { base?: number; attribute?: AttributeType; coefficient?: number; targetMaxHpRatio?: number } {
     return {
       base: this.resolveParam(sv.base, qualityOrder, multiplier),
       ...(sv.attribute !== undefined ? { attribute: sv.attribute } : {}),
@@ -323,6 +289,15 @@ export class AffixEffectTranslator {
         ? {
             coefficient: this.resolveParam(
               sv.coefficient,
+              qualityOrder,
+              multiplier,
+            ),
+          }
+        : {}),
+      ...(sv.targetMaxHpRatio !== undefined
+        ? {
+            targetMaxHpRatio: this.resolveParam(
+              sv.targetMaxHpRatio,
               qualityOrder,
               multiplier,
             ),

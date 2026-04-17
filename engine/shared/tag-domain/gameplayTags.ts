@@ -166,6 +166,7 @@ export const GameplayTags = {
     ROUND_PRE: 'RoundPreEvent',
     SKILL_CAST: 'SkillCastEvent',
     BUFF_ADD: 'BuffAddEvent',
+    DEATH_PREVENT: 'DeathPreventEvent',
   },
 
   // ===== 监听器作用域 =====
