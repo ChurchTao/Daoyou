@@ -49,7 +49,7 @@ describe('CreationTagSignalBuilder', () => {
       recipeId: 'skill-default',
       valid: true,
       matchedTags: ['Recipe.ProductBias.Skill'],
-      unlockedAffixCategories: ['core', 'prefix'],
+      unlockedAffixCategories: ['skill_core', 'skill_variant'],
     };
 
     const signals = buildCreationTagSignals({

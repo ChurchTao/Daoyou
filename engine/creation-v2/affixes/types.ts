@@ -248,12 +248,16 @@ export function collectAffixMatcherReferencedTags(
 
 // ===== 词缀定义 =====
 
+export type AffixRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
 export interface AffixDefinition {
   id: string;
   displayName: string;
   displayDescription: string;
   /** 词缀类型，对应配方解锁阈值 */
   category: AffixCategory;
+  /** 词缀稀有度 */
+  rarity: AffixRarity;
   /**
    * 结构化静态匹配语义：由 affix 自身声明入池所需的材料/意图标签条件。
    */

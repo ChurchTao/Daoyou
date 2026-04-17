@@ -19,22 +19,26 @@ import type { ExclusiveGroup } from './affixes/exclusiveGroups';
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
 export type CreationOutcomeKind = 'active_skill' | 'artifact' | 'gongfa';
 export type AffixCategory =
-  | 'prefix'
-  | 'suffix'
-  | 'core'
-  | 'signature'
-  | 'resonance'
-  | 'synergy'
-  | 'mythic';
+  | 'skill_core'
+  | 'skill_variant'
+  | 'skill_rare'
+  | 'gongfa_foundation'
+  | 'gongfa_school'
+  | 'gongfa_secret'
+  | 'artifact_panel'
+  | 'artifact_defense'
+  | 'artifact_treasure';
 
 export const AFFIX_CATEGORIES = {
-  PREFIX: 'prefix',
-  SUFFIX: 'suffix',
-  CORE: 'core',
-  SIGNATURE: 'signature',
-  RESONANCE: 'resonance',
-  SYNERGY: 'synergy',
-  MYTHIC: 'mythic',
+  SKILL_CORE: 'skill_core',
+  SKILL_VARIANT: 'skill_variant',
+  SKILL_RARE: 'skill_rare',
+  GONGFA_FOUNDATION: 'gongfa_foundation',
+  GONGFA_SCHOOL: 'gongfa_school',
+  GONGFA_SECRET: 'gongfa_secret',
+  ARTIFACT_PANEL: 'artifact_panel',
+  ARTIFACT_DEFENSE: 'artifact_defense',
+  ARTIFACT_TREASURE: 'artifact_treasure',
 } as const satisfies Record<string, AffixCategory>;
 
 export const CREATION_PRODUCT_TYPES = ['skill', 'artifact', 'gongfa'] as const;

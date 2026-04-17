@@ -21,7 +21,7 @@ describe('BudgetExhaustionRules', () => {
         {
           id: 'expensive',
           name: 'expensive',
-          category: 'core',
+          category: 'skill_core',
           match: matchAll([]),
           tags: [],
           weight: 10,
@@ -31,7 +31,7 @@ describe('BudgetExhaustionRules', () => {
         {
           id: 'cheap',
           name: 'cheap',
-          category: 'core',
+          category: 'skill_core',
           match: matchAll([]),
           tags: [],
           weight: 10,
@@ -47,7 +47,7 @@ describe('BudgetExhaustionRules', () => {
       selectedExclusiveGroups: [],
       selectedCategoryCounts: {},
       selectionConstraints: {
-        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+        categoryCaps: { skill_core: 1, skill_variant: 4, skill_rare: 1 },
       },
     });
 

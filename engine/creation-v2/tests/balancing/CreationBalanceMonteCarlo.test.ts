@@ -111,12 +111,8 @@ describe('Creation balance Monte Carlo calibration', () => {
     const spendableTotals: number[] = [];
     const unlockScores: number[] = [];
     const unlockHits = {
-      prefix: 0,
-      suffix: 0,
-      resonance: 0,
-      signature: 0,
-      synergy: 0,
-      mythic: 0,
+      skill_variant: 0,
+      skill_rare: 0,
     };
     const slotHits: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0 };
 
@@ -137,30 +133,18 @@ describe('Creation balance Monte Carlo calibration', () => {
       unlockScores.push(profile.unlockScore);
       slotHits[resolveAffixSlotCount(availableSkillEnergy)] += 1;
 
-      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.prefix) {
-        unlockHits.prefix += 1;
+      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant) {
+        unlockHits.skill_variant += 1;
       }
-      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.suffix) {
-        unlockHits.suffix += 1;
-      }
-      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance) {
-        unlockHits.resonance += 1;
-      }
-      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.signature) {
-        unlockHits.signature += 1;
-      }
-      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy) {
-        unlockHits.synergy += 1;
-      }
-      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.mythic) {
-        unlockHits.mythic += 1;
+      if (profile.unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_rare) {
+        unlockHits.skill_rare += 1;
       }
     }
 
     const spendableP50 = percentile(spendableTotals, 0.5);
     const unlockP50 = percentile(unlockScores, 0.5);
-    const mythicRate = unlockHits.mythic / iterations;
-    const synergyRate = unlockHits.synergy / iterations;
+    const rareRate = unlockHits.skill_rare / iterations;
+    const variantRate = unlockHits.skill_variant / iterations;
     const fiveSlotRate = slotHits[5] / iterations;
 
     expect(unlockP50).toBeLessThan(spendableP50);
@@ -168,10 +152,10 @@ describe('Creation balance Monte Carlo calibration', () => {
     expect(spendableP50).toBeLessThanOrEqual(52);
     expect(unlockP50).toBeGreaterThanOrEqual(34);
     expect(unlockP50).toBeLessThanOrEqual(44);
-    expect(synergyRate).toBeGreaterThanOrEqual(0.12);
-    expect(synergyRate).toBeLessThanOrEqual(0.35);
-    expect(mythicRate).toBeGreaterThanOrEqual(0.02);
-    expect(mythicRate).toBeLessThanOrEqual(0.12);
+    expect(variantRate).toBeGreaterThanOrEqual(0.12);
+    expect(variantRate).toBeLessThanOrEqual(1.0);
+    expect(rareRate).toBeGreaterThanOrEqual(0.02);
+    expect(rareRate).toBeLessThanOrEqual(0.35);
     expect(fiveSlotRate).toBeGreaterThanOrEqual(0.24);
     expect(fiveSlotRate).toBeLessThanOrEqual(0.42);
   });

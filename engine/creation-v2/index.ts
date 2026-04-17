@@ -14,14 +14,8 @@ export { DefaultMaterialAnalyzer } from './analysis/DefaultMaterialAnalyzer';
 export { MaterialTagNormalizer } from './analysis/MaterialTagNormalizer';
 export { DefaultEnergyBudgeter } from './budgeting/DefaultEnergyBudgeter';
 export {
-	ARTIFACT_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-	DEFAULT_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-	CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES,
-	GONGFA_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-	SKILL_AFFIX_SELECTION_CONSTRAINT_PROFILE,
 	resolveAffixSelectionConstraints,
 } from './config/AffixSelectionConstraints';
-export type { AffixSelectionConstraintProfile } from './config/AffixSelectionConstraints';
 export { CreationEventBus } from './core/EventBus';
 export { CreationTagContainer, CreationTags } from '@/engine/shared/tag-domain';
 export { CreationPhaseHandlerRegistry } from './handlers/CreationPhaseHandlers';

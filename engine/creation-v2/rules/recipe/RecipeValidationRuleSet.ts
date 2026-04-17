@@ -1,6 +1,6 @@
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { ELEMENT_TAG_TOKENS } from '../../config/CreationMappings';
-import { AFFIX_CATEGORIES, CREATION_PHASES, defaultRecipeId } from '../../types';
+import { CREATION_PHASES, defaultRecipeId } from '../../types';
 import { RecipeDecision, RecipeFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { AffixUnlockRules } from './AffixUnlockRules';
@@ -25,7 +25,7 @@ export class RecipeValidationRuleSet {
       recipeId: defaultRecipeId(facts.productType),
       valid: true,
       matchedTags: this.buildMatchedTags(facts),
-      unlockedAffixCategories: [AFFIX_CATEGORIES.CORE],
+      unlockedAffixCategories: ['skill_core', 'gongfa_foundation', 'artifact_panel'],
       reservedEnergy: undefined,
       notes: [],
       reasons: [],

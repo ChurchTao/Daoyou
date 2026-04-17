@@ -117,7 +117,7 @@ describe('CreationOrchestrator', () => {
       recipeId: 'skill-fire-core',
       valid: true,
       matchedTags: ['Recipe.Matched.Fire'],
-      unlockedAffixCategories: ['core', 'prefix'],
+      unlockedAffixCategories: ['skill_core', 'skill_variant'],
       reservedEnergy: 8,
     };
     const budget: EnergyBudget = {
@@ -144,10 +144,10 @@ describe('CreationOrchestrator', () => {
           {
             id: 'core-flame-burst',
             name: '炎爆核心',
-            category: 'core',
+            category: 'skill_core',
             match: matchAll([]),
             tags: ['offensive', 'fire'],
-            weight: 10,
+            weight: 1,
             energyCost: 8,
             rollScore: 0.91,
             rollEfficiency: 1,
@@ -437,15 +437,14 @@ describe('CreationOrchestrator', () => {
       {
         id: 'skill-prefix-only',
         name: 'only-prefix',
-        category: 'prefix',
+        category: 'skill_variant',
         match: matchAll([]),
         tags: ['Material.Semantic.Burst'],
         weight: 100,
-        energyCost: 6,
+        energyCost: 8,
         effectTemplate: { type: 'damage', params: { value: 10 } } as any,
       },
     ]);
-
     expect(() => orchestrator.rollAffixesWithDefaults(session)).toThrow(
       /未能抽选到核心词缀/,
     );
@@ -501,7 +500,7 @@ describe('CreationOrchestrator', () => {
       {
         id: 'skill-core-damage',
         name: '斩击',
-        category: 'core',
+        category: 'skill_core',
         match: matchAll([]),
         tags: ['Material.Semantic.Blade'],
         weight: 80,
@@ -515,7 +514,7 @@ describe('CreationOrchestrator', () => {
       {
         id: 'skill-prefix-crit-boost',
         name: '锋锐',
-        category: 'prefix',
+        category: 'skill_variant',
         match: matchAll([]),
         tags: ['Material.Semantic.Blade'],
         weight: 60,

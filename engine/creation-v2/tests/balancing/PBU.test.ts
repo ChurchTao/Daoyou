@@ -26,7 +26,7 @@ function affix(
 
 describe('PBU baseline', () => {
   it('高品质同配置应有更高 PBU', () => {
-    const sample = [affix('core-a', 'core', 10), affix('sig-a', 'signature', 12)];
+    const sample = [affix('core-a', 'skill_core', 10), affix('sig-a', 'skill_rare', 12)];
 
     const low = estimateBalanceMetrics(sample, '灵品');
     const high = estimateBalanceMetrics(sample, '天品');
@@ -37,14 +37,14 @@ describe('PBU baseline', () => {
 
   it('高阶类别词缀应抬升 PBU 并进入更快 TTK 分段', () => {
     const low = estimateBalanceMetrics([
-      affix('core-a', 'core', 8),
-      affix('prefix-a', 'prefix', 6),
+      affix('core-a', 'skill_core', 8),
+      affix('prefix-a', 'skill_variant', 6),
     ], '灵品');
 
     const high = estimateBalanceMetrics([
-      affix('core-a', 'core', 11),
-      affix('signature-a', 'signature', 13),
-      affix('mythic-a', 'mythic', 16),
+      affix('core-a', 'skill_core', 11),
+      affix('signature-a', 'skill_rare', 13),
+      affix('mythic-a', 'skill_rare', 16),
     ], '真品');
 
     expect(high.pbu).toBeGreaterThan(low.pbu);
@@ -55,9 +55,9 @@ describe('PBU baseline', () => {
   it('中档 PBU 应落入同级对战的 8-20 回合带', () => {
     const mid = estimateBalanceMetrics(
       [
-        affix('core-a', 'core', 10),
-        affix('signature-a', 'signature', 10),
-        affix('suffix-a', 'suffix', 9),
+        affix('core-a', 'skill_core', 10),
+        affix('signature-a', 'skill_rare', 10),
+        affix('suffix-a', 'skill_variant', 9),
       ],
       '玄品',
     );
@@ -68,15 +68,15 @@ describe('PBU baseline', () => {
   it('分项计分应能区分伤害与防御构成', () => {
     const damageBuild = estimateBalanceMetrics(
       [
-        affix('skill-core-damage', 'core', 10),
-        affix('skill-suffix-burn-dot', 'suffix', 9),
+        affix('skill-core-damage', 'skill_core', 10),
+        affix('skill-variant-burn-dot', 'skill_variant', 9),
       ],
       '玄品',
     );
     const defenseBuild = estimateBalanceMetrics(
       [
-        affix('artifact-suffix-armor-passive', 'suffix', 8),
-        affix('artifact-core-death-prevent', 'suffix', 11),
+        affix('artifact-suffix-armor-passive', 'artifact_defense', 8),
+        affix('artifact-suffix-death-prevent', 'artifact_defense', 11),
       ],
       '玄品',
     );

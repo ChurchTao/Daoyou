@@ -1,9 +1,5 @@
 import { matchAll } from '@/engine/creation-v2/affixes';
 import {
-  ARTIFACT_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-  CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES,
-  GONGFA_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-  SKILL_AFFIX_SELECTION_CONSTRAINT_PROFILE,
   resolveAffixSelectionConstraints,
 } from '@/engine/creation-v2/config/AffixSelectionConstraints';
 import type { AffixCandidate } from '@/engine/creation-v2/types';
@@ -26,99 +22,78 @@ function candidate(
 
 describe('AffixSelectionConstraints', () => {
   it('应为所有当前产品类型提供 constraint profile', () => {
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.skill).toBeDefined();
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.artifact).toBeDefined();
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.gongfa).toBeDefined();
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.skill).toBe(
-      SKILL_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-    );
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.artifact).toBe(
-      ARTIFACT_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-    );
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.gongfa).toBe(
-      GONGFA_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-    );
+    expect(resolveAffixSelectionConstraints('skill', 5, [])).toBeDefined();
+    expect(resolveAffixSelectionConstraints('artifact', 5, [])).toBeDefined();
+    expect(resolveAffixSelectionConstraints('gongfa', 5, [])).toBeDefined();
   });
 
   it('应按候选池可用数量收缩 category caps', () => {
     const constraints = resolveAffixSelectionConstraints('skill', 5, [
-      candidate('core-a', 'core'),
-      candidate('prefix-a', 'prefix'),
-      candidate('signature-a', 'signature'),
+      candidate('core-a', 'skill_core'),
+      candidate('variant-a', 'skill_variant'),
+      candidate('rare-a', 'skill_rare'),
     ]);
 
     expect(constraints.categoryCaps).toMatchObject({
-      core: 1,
-      prefix: 1,
-      suffix: 0,
-      signature: 1,
-      synergy: 0,
-      mythic: 0,
+      skill_core: 1,
+      skill_variant: 1,
+      skill_rare: 1,
     });
   });
 
   it('5 槽 profile 应保持单高阶强约束', () => {
-    const pool = [
-      candidate('core-a', 'core'),
-      candidate('prefix-a', 'prefix'),
-      candidate('prefix-b', 'prefix'),
-      candidate('suffix-a', 'suffix'),
-      candidate('suffix-b', 'suffix'),
-      candidate('resonance-a', 'resonance'),
-      candidate('signature-a', 'signature'),
-      candidate('synergy-a', 'synergy'),
-      candidate('mythic-a', 'mythic'),
+    const skillPool = [
+      candidate('core-a', 'skill_core'),
+      candidate('variant-a', 'skill_variant'),
+      candidate('variant-b', 'skill_variant'),
+      candidate('rare-a', 'skill_rare'),
     ];
-
-    expect(resolveAffixSelectionConstraints('skill', 5, pool)).toMatchObject({
+    expect(resolveAffixSelectionConstraints('skill', 5, skillPool)).toMatchObject({
       categoryCaps: expect.objectContaining({
-        prefix: 2,
-        suffix: 2,
+        skill_variant: 2,
       }),
-      bucketCaps: { highTierTotal: 1, mythic: 1 },
+      bucketCaps: { highTierTotal: 1 },
     });
 
-    expect(resolveAffixSelectionConstraints('artifact', 5, pool)).toMatchObject({
+    const artifactPool = [
+      candidate('panel-a', 'artifact_panel'),
+      candidate('defense-a', 'artifact_defense'),
+      candidate('defense-b', 'artifact_defense'),
+      candidate('treasure-a', 'artifact_treasure'),
+    ];
+    expect(resolveAffixSelectionConstraints('artifact', 5, artifactPool)).toMatchObject({
       categoryCaps: expect.objectContaining({
-        prefix: 1,
-        suffix: 2,
+        artifact_defense: 2,
       }),
-      bucketCaps: { highTierTotal: 1, mythic: 1 },
+      bucketCaps: { highTierTotal: 1 },
     });
 
-    expect(resolveAffixSelectionConstraints('gongfa', 4, pool)).toMatchObject({
+    const gongfaPool = [
+      candidate('foundation-a', 'gongfa_foundation'),
+      candidate('school-a', 'gongfa_school'),
+      candidate('school-b', 'gongfa_school'),
+      candidate('secret-a', 'gongfa_secret'),
+    ];
+    expect(resolveAffixSelectionConstraints('gongfa', 4, gongfaPool)).toMatchObject({
       categoryCaps: expect.objectContaining({
-        prefix: 1,
-        suffix: 2,
-        synergy: 0,
+        gongfa_school: 2,
       }),
-      bucketCaps: { highTierTotal: 1, mythic: 0 },
+      bucketCaps: { highTierTotal: 1 },
     });
   });
 
   it('maxCount 小于等于 0 时应返回全零约束', () => {
     const constraints = resolveAffixSelectionConstraints('gongfa', 0, [
-      candidate('core-a', 'core'),
+      candidate('core-a', 'gongfa_foundation'),
     ]);
 
-    expect(constraints.categoryCaps).toMatchObject({
-      core: 0,
-      prefix: 0,
-      suffix: 0,
-      resonance: 0,
-      signature: 0,
-      synergy: 0,
-      mythic: 0,
-    });
-    expect(constraints.bucketCaps).toEqual({ highTierTotal: 0, mythic: 0 });
+    expect(Object.values(constraints.categoryCaps).every((v) => v === 0)).toBe(true);
+    expect(constraints.bucketCaps).toEqual({ highTierTotal: 0 });
   });
 
-  it('各产品类型 profile 应保持独立实例，避免后续调参串扰', () => {
-    expect(SKILL_AFFIX_SELECTION_CONSTRAINT_PROFILE).not.toBe(
-      ARTIFACT_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-    );
-    expect(ARTIFACT_AFFIX_SELECTION_CONSTRAINT_PROFILE).not.toBe(
-      GONGFA_AFFIX_SELECTION_CONSTRAINT_PROFILE,
-    );
+  it('各产品类型返回独立约束对象，避免后续调参串扰', () => {
+    const skillConstraints = resolveAffixSelectionConstraints('skill', 5, []);
+    const artifactConstraints = resolveAffixSelectionConstraints('artifact', 5, []);
+    expect(skillConstraints).not.toBe(artifactConstraints);
   });
 });

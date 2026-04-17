@@ -136,7 +136,7 @@ export class AffixSelector {
     let coreSelected = false;
 
     if (maxCount > 0) {
-      const coreCandidates = available.filter((candidate) => candidate.category === 'core');
+      const coreCandidates = available.filter((candidate) => ['skill_core', 'gongfa_foundation', 'artifact_panel'].includes(candidate.category));
       if (coreCandidates.length > 0) {
         coreSelected = runSelectionRound(coreCandidates);
       } else {
@@ -145,7 +145,7 @@ export class AffixSelector {
     }
 
     while (coreSelected && available.length > 0 && result.length < maxCount) {
-      const nonCoreCandidates = available.filter((candidate) => candidate.category !== 'core');
+      const nonCoreCandidates = available.filter((candidate) => !['skill_core', 'gongfa_foundation', 'artifact_panel'].includes(candidate.category));
       if (nonCoreCandidates.length === 0) {
         exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
         break;

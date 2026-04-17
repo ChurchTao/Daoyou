@@ -133,7 +133,7 @@ export class AffixEligibilityRules
     facts: AffixEligibilityFacts,
     matchResult: ReturnType<typeof evaluateAffixMatcher>,
   ): number {
-    if (candidate.category === 'core' || matchResult.totalUnits === 0) {
+    if (['skill_core', 'gongfa_foundation', 'artifact_panel'].includes(candidate.category) || matchResult.totalUnits === 0) {
       return 1;
     }
 

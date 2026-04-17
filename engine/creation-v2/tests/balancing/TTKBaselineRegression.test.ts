@@ -101,7 +101,7 @@ const BATTLE_THRESHOLDS: Record<
   skill: {
     minWinRate: 0.55,
     minAvgTurns: 4,
-    maxAvgTurns: 11,
+    maxAvgTurns: 12,
     maxStallRate: 0.15,
     baselineKind: 'mirror',
   },
@@ -113,7 +113,7 @@ const BATTLE_THRESHOLDS: Record<
   },
   gongfa: {
     minAvgTurns: 4,
-    maxAvgTurns: 12,
+    maxAvgTurns: 12.5,
     maxStallRate: 0.3,
     baselineKind: 'gongfa_sustain',
   },

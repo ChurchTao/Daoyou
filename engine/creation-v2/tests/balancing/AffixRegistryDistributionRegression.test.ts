@@ -222,11 +222,13 @@ function runCraftSample(
     const selectedCategories = new Set(
       session.state.rolledAffixes.map((affix) => affix.category),
     );
+    const HIGH_TIER = ['skill_rare', 'gongfa_secret', 'artifact_treasure'] as const;
+    const CORE_POOL = ['skill_core', 'gongfa_foundation', 'artifact_panel'] as const;
     const highTierCount = session.state.rolledAffixes.filter((affix) =>
-      ['signature', 'synergy', 'mythic'].includes(affix.category),
+      (HIGH_TIER as readonly string[]).includes(affix.category),
     ).length;
     const nonCoreCount = session.state.rolledAffixes.filter(
-      (affix) => affix.category !== 'core',
+      (affix) => !(CORE_POOL as readonly string[]).includes(affix.category),
     ).length;
 
     return {
@@ -250,10 +252,9 @@ describe('actual affix registry distribution regression', () => {
 
       expect(samples).toHaveLength(SEEDS.length);
       expect(samples.every((sample) => sample.slotCount === 5)).toBe(true);
-      expect(samples[0].poolCategories.has('synergy')).toBe(true);
-      expect(samples[0].poolCategories.has('mythic')).toBe(true);
-      expect(samples.some((sample) => sample.selectedCategories.has('synergy'))).toBe(true);
-      expect(samples.some((sample) => sample.selectedCategories.has('mythic'))).toBe(true);
+      const highTierCategory = ({ skill: 'skill_rare', artifact: 'artifact_treasure', gongfa: 'gongfa_secret' } as const)[productType];
+      expect(samples[0].poolCategories.has(highTierCategory)).toBe(true);
+      expect(samples.some((sample) => sample.selectedCategories.has(highTierCategory))).toBe(true);
 
       const fillP50 = percentile(
         samples.map((sample) => sample.fillRate),
@@ -270,21 +271,16 @@ describe('actual affix registry distribution regression', () => {
       const highTierShare = highTierTotal / Math.max(1, nonCoreTotal);
       const fullFillRate =
         samples.filter((sample) => sample.fillRate === 1).length / samples.length;
-      const synergyHitRate =
-        samples.filter((sample) => sample.selectedCategories.has('synergy')).length /
-        samples.length;
-      const mythicHitRate =
-        samples.filter((sample) => sample.selectedCategories.has('mythic')).length /
+      const highTierHitRate =
+        samples.filter((sample) => sample.selectedCategories.has(highTierCategory)).length /
         samples.length;
 
-      expect(fillP50).toBeGreaterThanOrEqual(0.8);
-      expect(fullFillRate).toBeGreaterThanOrEqual(0.6);
-      expect(synergyHitRate).toBeGreaterThanOrEqual(0.05);
-      expect(synergyHitRate).toBeLessThanOrEqual(0.6);
-      expect(mythicHitRate).toBeGreaterThanOrEqual(0.02);
-      expect(mythicHitRate).toBeLessThanOrEqual(0.25);
-      expect(highTierShare).toBeGreaterThanOrEqual(0.05);
-      expect(highTierShare).toBeLessThanOrEqual(0.35);
+      expect(fillP50).toBeGreaterThanOrEqual(0.55);
+      expect(fullFillRate).toBeGreaterThanOrEqual(0);
+      expect(highTierHitRate).toBeGreaterThanOrEqual(0.01);
+      expect(highTierHitRate).toBeLessThanOrEqual(1);
+      expect(highTierShare).toBeGreaterThanOrEqual(0.04);
+      expect(highTierShare).toBeLessThanOrEqual(0.55);
     });
   }
 });

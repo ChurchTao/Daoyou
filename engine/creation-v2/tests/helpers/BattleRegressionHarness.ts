@@ -11,6 +11,7 @@ import type { BattleStateTimeline } from '@/engine/battle-v5/systems/state/types
 import { AbilityFactory } from '@/engine/battle-v5/factories/AbilityFactory';
 import { Unit } from '@/engine/battle-v5/units/Unit';
 import type {
+  AffixCategory,
   CraftedOutcome,
   CreationProductType,
 } from '@/engine/creation-v2/types';
@@ -162,10 +163,12 @@ function runPipeline(
   orchestrator.buildAffixPoolWithDefaults(session);
   
   // 补丁：如果词缀池没有核心，手动注入一个（用于测试）
-  if (session.state.affixPool.length > 0 && !session.state.affixPool.some(a => a.category === 'core')) {
+  const CORE_CATEGORIES: AffixCategory[] = ['skill_core', 'gongfa_foundation', 'artifact_panel'];
+  if (session.state.affixPool.length > 0 && !session.state.affixPool.some(a => CORE_CATEGORIES.includes(a.category))) {
     // 寻找一个合适的非核心词缀强转为核心，或者报错
     const first = session.state.affixPool[0];
-    first.category = 'core';
+    const coreCategory: AffixCategory = productType === 'skill' ? 'skill_core' : productType === 'gongfa' ? 'gongfa_foundation' : 'artifact_panel';
+    first.category = coreCategory;
   }
 
   orchestrator.rollAffixesWithDefaults(session);

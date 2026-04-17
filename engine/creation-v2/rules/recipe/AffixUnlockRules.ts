@@ -1,11 +1,11 @@
 import { CREATION_AFFIX_UNLOCK_THRESHOLDS } from '../../config/CreationBalance';
-import { AFFIX_CATEGORIES } from '../../types';
+import { type AffixCategory } from '../../types';
 import { Rule } from '../core';
 import { RecipeDecision, RecipeFacts } from '../contracts';
 
 /*
- * AffixUnlockRules: 根据材料总能量判断可解锁的词缀类别
- * （prefix/suffix/resonance/signature/synergy/mythic）。
+ * AffixUnlockRules: 根据材料总能量判断可解锁的词缀类别。
+ * 三段阶梯：核心池(0) / 中层池(20) / 稀有池(40)。
  */
 export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.affix.unlock';
@@ -14,28 +14,10 @@ export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
     const unlocked = new Set(decision.unlockedAffixCategories);
     const unlockScore = facts.material.unlockScore;
 
-    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.prefix) {
-      unlocked.add(AFFIX_CATEGORIES.PREFIX);
-    }
-
-    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.suffix) {
-      unlocked.add(AFFIX_CATEGORIES.SUFFIX);
-    }
-
-    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance) {
-      unlocked.add(AFFIX_CATEGORIES.RESONANCE);
-    }
-
-    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.signature) {
-      unlocked.add(AFFIX_CATEGORIES.SIGNATURE);
-    }
-
-    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy) {
-      unlocked.add(AFFIX_CATEGORIES.SYNERGY);
-    }
-
-    if (unlockScore >= CREATION_AFFIX_UNLOCK_THRESHOLDS.mythic) {
-      unlocked.add(AFFIX_CATEGORIES.MYTHIC);
+    for (const [cat, threshold] of Object.entries(CREATION_AFFIX_UNLOCK_THRESHOLDS) as [AffixCategory, number][]) {
+      if (unlockScore >= threshold) {
+        unlocked.add(cat);
+      }
     }
 
     decision.unlockedAffixCategories = Array.from(unlocked);

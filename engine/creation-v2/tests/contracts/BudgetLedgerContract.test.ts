@@ -13,7 +13,7 @@ describe('BudgetLedger contract boundary', () => {
         {
           id: 'core-a',
           name: 'core-a',
-          category: 'core',
+          category: 'skill_core',
           match: matchAll([]),
           tags: [],
           weight: 10,
@@ -29,7 +29,7 @@ describe('BudgetLedger contract boundary', () => {
       selectedExclusiveGroups: [],
       selectedCategoryCounts: {},
       selectionConstraints: {
-        categoryCaps: { core: 1, prefix: 1, suffix: 1 },
+        categoryCaps: { skill_core: 1, skill_variant: 1 },
       },
     } satisfies AffixSelectionFacts);
 
@@ -59,7 +59,7 @@ describe('BudgetLedger contract boundary', () => {
         recipeId: 'skill-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['core'],
+        unlockedAffixCategories: ['skill_core'],
         reservedEnergy: 3,
       },
     );
@@ -109,7 +109,7 @@ describe('BudgetLedger contract boundary', () => {
         {
           id: 'stale-core',
           name: 'stale-core',
-          category: 'core',
+          category: 'skill_core',
           match: matchAll([]),
           tags: [],
           weight: 10,
@@ -131,7 +131,7 @@ describe('BudgetLedger contract boundary', () => {
       {
         id: 'manual-core',
         name: 'manual-core',
-        category: 'core',
+        category: 'skill_core',
         match: matchAll([]),
         tags: [],
         weight: 10,

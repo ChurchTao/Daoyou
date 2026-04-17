@@ -4,8 +4,7 @@ import { Rule } from '../core';
 import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 
 /*
- * HighTierBucketRules: 约束 signature/synergy/mythic 的总量，
- * 避免修复类别 cap 后重新回到高阶词缀泛滥。
+ * HighTierBucketRules: 约束高阶词缀池（skill_rare/gongfa_secret/artifact_treasure）的总量。
  */
 export class HighTierBucketRules
   implements Rule<AffixSelectionFacts, AffixSelectionDecision>
@@ -32,37 +31,9 @@ export class HighTierBucketRules
         highTierCategories.has(category as AffixCategory) ? sum + (count ?? 0) : sum,
       0,
     );
-    const selectedMythicCount = facts.selectedCategoryCounts.mythic ?? 0;
     const accepted = [] as AffixSelectionDecision['candidatePool'];
 
     for (const candidate of decision.candidatePool) {
-      if (
-        candidate.category === 'mythic' &&
-        bucketCaps.mythic !== undefined &&
-        selectedMythicCount >= bucketCaps.mythic
-      ) {
-        decision.rejections.push({
-          affixId: candidate.id,
-          amount: candidate.energyCost,
-          reason: AFFIX_STOP_REASONS.CATEGORY_QUOTA_REACHED,
-          ...(candidate.exclusiveGroup
-            ? { exclusiveGroup: candidate.exclusiveGroup }
-            : {}),
-        });
-        diagnostics.addTrace({
-          ruleId: this.id,
-          outcome: 'blocked',
-          message: '词缀因 mythic 桶上限被过滤',
-          details: {
-            affixId: candidate.id,
-            category: candidate.category,
-            current: selectedMythicCount,
-            cap: bucketCaps.mythic,
-          },
-        });
-        continue;
-      }
-
       if (
         highTierCategories.has(candidate.category) &&
         bucketCaps.highTierTotal !== undefined &&
@@ -101,7 +72,6 @@ export class HighTierBucketRules
       message: `高阶桶过滤完成：${accepted.length} 个词缀通过`,
       details: {
         selectedHighTierCount,
-        selectedMythicCount,
         bucketCaps,
       },
     });

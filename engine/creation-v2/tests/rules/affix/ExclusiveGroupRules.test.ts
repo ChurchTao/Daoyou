@@ -1,4 +1,5 @@
 import { matchAll } from '@/engine/creation-v2/affixes';
+import type { ExclusiveGroup } from '@/engine/creation-v2/affixes/exclusiveGroups';
 import { RuleSet } from '@/engine/creation-v2';
 import { AffixSelectionDecision, AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
 import { ExclusiveGroupRules } from '@/engine/creation-v2/rules/affix/ExclusiveGroupRules';
@@ -37,13 +38,13 @@ describe('ExclusiveGroupRules', () => {
         {
           id: `${productType}-same-group`,
           name: `${productType}-same-group`,
-          category: 'core',
+          category: 'skill_core',
           match: matchAll([]),
           tags: [],
           weight: 10,
           energyCost: 4,
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
-          exclusiveGroup: group,
+          exclusiveGroup: group as ExclusiveGroup,
         },
       ],
       remainingEnergy: 10,
@@ -52,9 +53,9 @@ describe('ExclusiveGroupRules', () => {
       selectionCount: 1,
       selectedAffixIds: [],
       selectedExclusiveGroups: [group],
-      selectedCategoryCounts: { core: 1 },
+      selectedCategoryCounts: { skill_core: 1 },
       selectionConstraints: {
-        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+        categoryCaps: { skill_core: 1, skill_variant: 4, skill_rare: 1 },
       },
     });
 

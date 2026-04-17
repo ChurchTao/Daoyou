@@ -6,7 +6,7 @@ import {
   MaterialFingerprintLLMMetadata,
 } from '../types';
 import {
-  getCreationSemanticTagAllowlist,
+  getCreationMaterialSemanticTagAllowlist,
   normalizeSemanticTags,
 } from './SemanticTagAllowlist';
 
@@ -101,7 +101,7 @@ export class DeepSeekMaterialSemanticEnricher
           this.buildSystemPrompt(),
           JSON.stringify(
             {
-              allowlist: getCreationSemanticTagAllowlist(),
+              allowlist: getCreationMaterialSemanticTagAllowlist(),
               materials: materials.map((material, index) => ({
                 materialId: material.id,
                 materialName: material.name,

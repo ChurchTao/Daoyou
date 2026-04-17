@@ -34,7 +34,7 @@ describe('AffixPoolRuleSet', () => {
         recipeId: 'gongfa-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['core', 'signature'],
+        unlockedAffixCategories: ['gongfa_foundation', 'gongfa_secret'],
       },
       energyBudget: {
         baseTotal: 20,
@@ -49,7 +49,7 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'eligible-core',
           name: 'eligible-core',
-          category: 'core',
+          category: 'gongfa_foundation',
           tags: [],
           weight: 10,
           energyCost: 6,
@@ -58,7 +58,7 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'gated-signature',
           name: 'gated-signature',
-          category: 'signature',
+          category: 'gongfa_secret',
           tags: [],
           weight: 10,
           energyCost: 8,
@@ -66,11 +66,11 @@ describe('AffixPoolRuleSet', () => {
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
         }),
       ],
-      allowedCategories: ['core', 'signature'],
-      inputTagSignals: toSignals(['Material.Semantic.Spirit']),
-      inputTags: ['Material.Semantic.Spirit'],
+      allowedCategories: ['gongfa_foundation', 'gongfa_secret'],
+      inputTagSignals: [],
+      inputTags: [],
       tagSignalScores: {},
-      maxQualityOrder: 0,
+      maxQualityOrder: 1,
     };
 
     const decision = ruleSet.evaluate(facts);
@@ -89,7 +89,7 @@ describe('AffixPoolRuleSet', () => {
         recipeId: 'gongfa-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['core', 'signature'],
+        unlockedAffixCategories: ['gongfa_foundation', 'gongfa_secret'],
       },
       energyBudget: {
         baseTotal: 20,
@@ -104,7 +104,7 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'eligible-core',
           name: 'eligible-core',
-          category: 'core',
+          category: 'gongfa_foundation',
           tags: [],
           weight: 10,
           energyCost: 6,
@@ -113,7 +113,7 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'low-quality-only',
           name: 'low-quality-only',
-          category: 'signature',
+          category: 'gongfa_secret',
           tags: [],
           weight: 10,
           energyCost: 8,
@@ -122,7 +122,7 @@ describe('AffixPoolRuleSet', () => {
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
         }),
       ],
-      allowedCategories: ['core', 'signature'],
+      allowedCategories: ['gongfa_foundation', 'gongfa_secret'],
       inputTagSignals: toSignals(['Material.Semantic.Spirit']),
       inputTags: ['Material.Semantic.Spirit'],
       tagSignalScores: {},
@@ -146,7 +146,7 @@ describe('AffixPoolRuleSet', () => {
         recipeId: 'skill-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['core'],
+        unlockedAffixCategories: ['skill_core'],
       },
       energyBudget: {
         baseTotal: 12,
@@ -161,18 +161,18 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'bad-weight',
           name: 'bad-weight',
-          category: 'core',
+          category: 'skill_core',
           tags: [],
           weight: 0,
           energyCost: 4,
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
         }),
       ],
-      allowedCategories: ['core'],
+      allowedCategories: ['skill_core'],
       inputTagSignals: [],
       inputTags: [],
       tagSignalScores: {},
-      maxQualityOrder: 3,
+      maxQualityOrder: 2,
     };
 
     const decision = ruleSet.evaluate(facts);
@@ -190,7 +190,7 @@ describe('AffixPoolRuleSet', () => {
         recipeId: 'skill-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['signature'],
+        unlockedAffixCategories: ['skill_rare'],
       },
       energyBudget: {
         baseTotal: 30,
@@ -205,14 +205,14 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'sig-low-hit',
           name: 'sig-low-hit',
-          category: 'signature',
+          category: 'skill_rare',
           tags: ['a', 'b', 'c'],
           weight: 20,
           energyCost: 10,
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
         }),
       ],
-      allowedCategories: ['signature'],
+      allowedCategories: ['skill_rare'],
       inputTagSignals: toSignals(['a']),
       inputTags: ['a'],
       tagSignalScores: { a: 0.7 },
@@ -238,7 +238,7 @@ describe('AffixPoolRuleSet', () => {
         recipeId: 'skill-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['prefix'],
+        unlockedAffixCategories: ['skill_variant'],
       },
       energyBudget: {
         baseTotal: 20,
@@ -253,16 +253,16 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'prefix-score',
           name: 'prefix-score',
-          category: 'prefix',
+          category: 'skill_variant',
           tags: ['x', 'y'],
           weight: 10,
           energyCost: 4,
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
         }),
       ],
-      allowedCategories: ['prefix'],
-      inputTagSignals: toSignals(['x', 'y']),
+      allowedCategories: ['skill_variant'],
       inputTags: ['x', 'y'],
+      inputTagSignals: toSignals(['x', 'y']),
       tagSignalScores: { x: 0.7, y: 0.7 },
       maxQualityOrder: 4,
     };
@@ -280,7 +280,7 @@ describe('AffixPoolRuleSet', () => {
         recipeId: 'skill-default',
         valid: true,
         matchedTags: [],
-        unlockedAffixCategories: ['mythic'],
+        unlockedAffixCategories: ['skill_rare'],
       },
       energyBudget: {
         baseTotal: 20,
@@ -295,7 +295,7 @@ describe('AffixPoolRuleSet', () => {
         buildCandidate({
           id: 'mythic-weak-score',
           name: 'mythic-weak-score',
-          category: 'mythic',
+          category: 'skill_rare',
           tags: ['x', 'y', 'z'],
           match: matchAny(['x', 'y', 'z']),
           weight: 10,
@@ -304,9 +304,9 @@ describe('AffixPoolRuleSet', () => {
           effectTemplate: { type: 'damage', params: { value: 10 } } as any,
         }),
       ],
-      allowedCategories: ['mythic'],
-      inputTagSignals: toSignals(['x']),
+      allowedCategories: ['skill_rare'],
       inputTags: ['x'],
+      inputTagSignals: toSignals(['x']),
       tagSignalScores: { x: 0.25 },
       maxQualityOrder: 5,
     };

@@ -106,7 +106,7 @@ export function buildCompositionFacts(
 
   let coreEffectType: string | undefined;
   if (registry) {
-    const coreAffix = rolledAffixes.find((a) => a.category === 'core');
+    const coreAffix = rolledAffixes.find((a) => ['skill_core', 'gongfa_foundation', 'artifact_panel'].includes(a.category));
     if (coreAffix) {
       const coreDef = registry.queryById(coreAffix.id);
       coreEffectType = coreDef?.effectTemplate.type;

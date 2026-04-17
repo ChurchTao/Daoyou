@@ -32,11 +32,7 @@ export { AffixPicker } from './AffixPicker';
 
 import { AffixRegistry } from './AffixRegistry';
 import { SKILL_AFFIXES } from './definitions/skillAffixes';
-import {
-  ARTIFACT_AFFIXES,
-  ARTIFACT_COMMON_PREFIX_AFFIXES,
-  ARTIFACT_ELEMENT_REDUCE_AFFIXES,
-} from './definitions/artifactAffixes';
+import { ARTIFACT_AFFIXES } from './definitions/artifactAffixes';
 import { GONGFA_AFFIXES } from './definitions/gongfaAffixes';
 
 /**
@@ -46,8 +42,6 @@ export const DEFAULT_AFFIX_REGISTRY: AffixRegistry = (() => {
   const registry = new AffixRegistry();
   registry.register(SKILL_AFFIXES);
   registry.register(ARTIFACT_AFFIXES);
-  registry.register(ARTIFACT_COMMON_PREFIX_AFFIXES);
-  registry.register(ARTIFACT_ELEMENT_REDUCE_AFFIXES);
   registry.register(GONGFA_AFFIXES);
   return registry;
 })();

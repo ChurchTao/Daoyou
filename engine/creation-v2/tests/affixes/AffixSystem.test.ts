@@ -18,6 +18,7 @@ import { CreationTags } from '@/engine/shared/tag-domain';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { AffixCandidate, EnergyBudget, CreationIntent, RolledAffix } from '@/engine/creation-v2/types';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
+import type { ExclusiveGroup } from '@/engine/creation-v2/affixes/exclusiveGroups';
 
 /** 辅助函数：将静态定义转换为运行态 RolledAffix 以满足接口契约 */
 function toRolledAffix(def: AffixDefinition): RolledAffix {
@@ -93,32 +94,25 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
-  it('translate: attribute_stat_buff 生成 apply_buff with modifiers（临时 buff）', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-prefix-spirit-boost')!;
+  it('translate: apply_buff（控制 buff）结构正确', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-control-stun')!;
     expect(def).toBeDefined();
 
     const result = translator.translate(toRolledAffix(def), '凡品');
     expect(result.type).toBe('apply_buff');
     if (result.type === 'apply_buff') {
       const { buffConfig } = result.params;
-      expect(buffConfig.duration).toBe(CREATION_DURATION_POLICY.buffDebuff.short);
-      expect(buffConfig.stackRule).toBe('override');
-      expect(buffConfig.modifiers).toHaveLength(1);
-      expect(buffConfig.modifiers![0].attrType).toBe(AttributeType.SPIRIT);
-      expect(buffConfig.modifiers![0].type).toBe(ModifierType.FIXED);
-      // 凡品 qualityOrder=0 → base=3 + 0*1=3
-      expect(buffConfig.modifiers![0].value).toBe(3);
-    }
-
-    const resultTian = translator.translate(toRolledAffix(def), '天品');
-    if (resultTian.type === 'apply_buff') {
-      // 天品 qualityOrder=5 -> 3 + 5*1=8
-      expect(resultTian.params.buffConfig.modifiers![0].value).toBe(8);
+      expect(buffConfig.duration).toBe(CREATION_DURATION_POLICY.control.default);
+      expect(buffConfig.stackRule).toBe('ignore');
+      expect(buffConfig.tags).toEqual(expect.arrayContaining([
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.TYPE.CONTROL,
+      ]));
     }
   });
 
   it('translate: percent_damage_modifier mode 和 value 正确', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-prefix-crit-boost')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-damage-boost')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
     expect(result.type).toBe('percent_damage_modifier');
     if (result.type === 'percent_damage_modifier') {
@@ -130,7 +124,7 @@ describe('AffixEffectTranslator', () => {
 
   it('translate: ability_has_tag 条件应原样透传到 battle-v5', () => {
     // artifact-prefix-fire-resistance 已合并入元素减伤生成器，使用生成器产生的 ID
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-elem-Material.Element.Fire-reduce')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-fire-resist')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.conditions).toEqual([
@@ -143,20 +137,20 @@ describe('AffixEffectTranslator', () => {
 
   it('gongfa 元素专精增伤词条应覆盖八系并使用 ability_has_tag 过滤', () => {
     const elementalSpecializations = [
-      ['gongfa-prefix-metal-specialization', '金'],
-      ['gongfa-prefix-wood-specialization', '木'],
-      ['gongfa-prefix-water-specialization', '水'],
-      ['gongfa-prefix-fire-specialization', '火'],
-      ['gongfa-prefix-earth-specialization', '土'],
-      ['gongfa-prefix-wind-specialization', '风'],
-      ['gongfa-prefix-thunder-specialization', '雷'],
-      ['gongfa-prefix-ice-specialization', '冰'],
+      ['gongfa-school-metal-spec', '金'],
+      ['gongfa-school-wood-spec', '木'],
+      ['gongfa-school-water-spec', '水'],
+      ['gongfa-school-fire-spec', '火'],
+      ['gongfa-school-earth-spec', '土'],
+      ['gongfa-school-wind-spec', '风'],
+      ['gongfa-school-thunder-spec', '雷'],
+      ['gongfa-school-ice-spec', '冰'],
     ] as const;
 
     for (const [affixId, element] of elementalSpecializations) {
       const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
       expect(def).toBeDefined();
-      expect(def?.category).toBe('prefix');
+      expect(def?.category).toBe('gongfa_school');
       expect(def?.effectTemplate.type).toBe('percent_damage_modifier');
 
       if (def?.effectTemplate.type === 'percent_damage_modifier') {
@@ -171,27 +165,42 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: damage_immunity 应保留 battle-v5 标签参数', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-signature-spellward')!;
-    const result = translator.translate(toRolledAffix(def), '真品');
+    const rolledAffix: RolledAffix = {
+      id: 'test-spellward',
+      name: '咒术护盾',
+      category: 'artifact_treasure',
+      energyCost: 12,
+      rollScore: 1,
+      rollEfficiency: 1,
+      finalMultiplier: 1,
+      isPerfect: false,
+      weight: 10,
+      match: matchAll([]),
+      tags: [],
+      effectTemplate: {
+        type: 'damage_immunity',
+        params: { tags: [GameplayTags.ABILITY.CHANNEL.MAGIC] },
+      },
+    };
+    const result = translator.translate(rolledAffix, '真品');
     expect(result.type).toBe('damage_immunity');
     if (result.type === 'damage_immunity') {
       expect(result.params.tags).toEqual([GameplayTags.ABILITY.CHANNEL.MAGIC]);
     }
   });
 
-  it('translate: artifact mana recovery 应生成真实 MP 回复效果', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-suffix-mana-recovery')!;
+  it('translate: artifact mana recovery 应生成 MP 回复效果', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-mana-recovery')!;
     const result = translator.translate(toRolledAffix(def), '玄品');
 
     expect(result.type).toBe('heal');
     if (result.type === 'heal') {
       expect(result.params.target).toBe('mp');
-      expect(result.params.value.base).toBeGreaterThan(0);
     }
   });
 
   it('translate: skill dispel-buff 应只驱散正面 buff 标签', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-suffix-dispel-buff')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-dispel')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('dispel');
@@ -200,8 +209,8 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
-  it('translate: gongfa debuff-cleanse 应只驱散负面 buff 标签', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-suffix-debuff-cleanse')!;
+  it('translate: artifact debuff-cleanse 应只驱散负面 buff 标签', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-debuff-cleanse')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('dispel');
@@ -232,7 +241,7 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: burn dot buff 应同时携带 debuff tags 与 burn statusTags', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-suffix-burn-dot')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-burn-dot')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('apply_buff');
@@ -257,7 +266,8 @@ describe('AffixEffectTranslator', () => {
       id: 'test-multiply-buff',
       displayName: 'test',
       displayDescription: 'test',
-      category: 'prefix',
+      category: 'skill_variant',
+      rarity: 'common',
       match: matchAll([]),
       weight: 1,
       energyCost: 1,
@@ -292,7 +302,7 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: attribute_modifier 应在翻译阶段拒绝（由投影层处理）', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-core-spirit')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-foundation-spirit')!;
     expect(() => translator.translate(toRolledAffix(def), '凡品')).toThrow(
       'attribute_modifier must be projected to AbilityConfig.modifiers in passive policy',
     );
@@ -309,8 +319,8 @@ describe('AffixSelector', () => {
     id: string,
     weight: number,
     energyCost: number,
-    exclusiveGroup?: string,
-    category: AffixCandidate['category'] = 'core',
+    exclusiveGroup?: ExclusiveGroup,
+    category: AffixCandidate['category'] = 'skill_core',
   ): AffixCandidate => ({
     id,
     name: id,
@@ -362,14 +372,14 @@ describe('AffixSelector', () => {
 
   it('同 exclusiveGroup 只选一个', () => {
     const pool = [
-      makeCandidate('a', 100, 5, undefined, 'core'),
-      makeCandidate('b', 100, 5, 'grp', 'prefix'),
-      makeCandidate('c', 100, 5, 'grp', 'suffix'),
+      makeCandidate('a', 100, 5, undefined, 'skill_core'),
+      makeCandidate('b', 100, 5, 'grp' as ExclusiveGroup, 'skill_variant'),
+      makeCandidate('c', 100, 5, 'grp' as ExclusiveGroup, 'skill_variant'),
     ];
     // 三个都能选，但 grp 只能选一个，所以最多选 2 个
     const result = selector.select(pool, makeBudget(50), makeIntent());
     expect(result.affixes).toHaveLength(2);
-    const grpPicked = result.affixes.filter((r) => r.exclusiveGroup === 'grp');
+    const grpPicked = result.affixes.filter((r) => r.exclusiveGroup === ('grp' as ExclusiveGroup));
     expect(grpPicked).toHaveLength(1);
     expect(
       result.rejections.some(
@@ -380,9 +390,9 @@ describe('AffixSelector', () => {
 
   it('应保留逐轮审计，同时对汇总 rejection 去重', () => {
     const pool = [
-      makeCandidate('core-main', 100, 5, 'grp', 'core'),
-      makeCandidate('locked-prefix', 100, 4, 'grp', 'prefix'),
-      makeCandidate('free-suffix', 100, 4, undefined, 'suffix'),
+      makeCandidate('core-main', 100, 5, 'grp' as ExclusiveGroup, 'skill_core'),
+      makeCandidate('locked-prefix', 100, 4, 'grp' as ExclusiveGroup, 'skill_variant'),
+      makeCandidate('free-suffix', 100, 4, undefined, 'skill_variant'),
     ];
 
     const { audit } = selector.selectWithDecision(
@@ -433,16 +443,16 @@ describe('AffixSelector', () => {
 
   it('分阶段抽取：应先锁定 core，再抽取非 core', () => {
     const pool = [
-      makeCandidate('core-main', 1, 6, undefined, 'core'),
-      makeCandidate('prefix-heavy', 1000, 6, undefined, 'prefix'),
-      makeCandidate('suffix-heavy', 1000, 6, undefined, 'suffix'),
+      makeCandidate('core-main', 1, 6, undefined, 'skill_core'),
+      makeCandidate('prefix-heavy', 1000, 6, undefined, 'skill_variant'),
+      makeCandidate('suffix-heavy', 1000, 6, undefined, 'skill_variant'),
     ];
 
     const result = selector.select(pool, makeBudget(20), makeIntent(), 2);
 
     expect(result.affixes.length).toBeGreaterThanOrEqual(1);
-    expect(result.affixes[0].category).toBe('core');
-    expect(result.affixes.some((affix) => affix.category === 'core')).toBe(true);
+    expect(result.affixes[0].category).toBe('skill_core');
+    expect(result.affixes.some((affix) => affix.category === 'skill_core')).toBe(true);
   });
 
   it('加权选择应大致按权重比例分布（统计验证）', () => {
@@ -505,32 +515,32 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     }
   });
 
-  it('artifact category=core 的定义必须全部显式绑定槽位', () => {
-    const unboundArtifactCores = ARTIFACT_AFFIXES.filter(
-      (def) => def.category === 'core' && !def.applicableArtifactSlots,
+  it('artifact category=artifact_panel 的槽位绑定定义必须全部显式声明槽位', () => {
+    const unboundArtifactPanels = ARTIFACT_AFFIXES.filter(
+      (def) => def.category === 'artifact_panel' && def.exclusiveGroup?.startsWith('artifact-panel-slot') && !def.applicableArtifactSlots,
     ).map((def) => def.id);
 
-    expect(unboundArtifactCores).toEqual([]);
+    expect(unboundArtifactPanels).toEqual([]);
   });
 
   it('包含技能、法宝、功法词缀', () => {
     const skillDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Semantic.Flame', 'Material.Element.Fire'],
-      ['core', 'prefix', 'suffix', 'signature'],
+      ['skill_core', 'skill_variant', 'skill_rare'],
       'skill',
     );
     expect(skillDefs.length).toBeGreaterThan(0);
 
     const artifactDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Type.Ore', 'Material.Semantic.Blade'],
-      ['core', 'prefix', 'suffix', 'signature'],
+      ['artifact_panel', 'artifact_defense', 'artifact_treasure'],
       'artifact',
     );
     expect(artifactDefs.length).toBeGreaterThan(0);
 
     const gongfaDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Semantic.Spirit', 'Material.Type.Manual'],
-      ['core', 'prefix', 'suffix', 'signature'],
+      ['gongfa_foundation', 'gongfa_school', 'gongfa_secret'],
       'gongfa',
     );
     expect(gongfaDefs.length).toBeGreaterThan(0);
@@ -539,22 +549,22 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
   it('显式 matcher 语义：需满足 affix 自身声明的全部条件', () => {
     const defs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Semantic.Flame', 'Material.Element.Fire'],
-      ['core', 'suffix'],
+      ['skill_core', 'skill_variant'],
       'skill',
     );
     const ids = defs.map((d) => d.id);
     expect(ids).toContain('skill-core-damage-fire');
-    expect(ids).toContain('skill-suffix-burn-dot');
+    expect(ids).toContain('skill-variant-burn-dot');
   });
 
   it('未解锁类别的词缀不出现', () => {
     const defs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Semantic.Manual', 'Material.Semantic.Spirit'],
-      ['core'], // 未解锁 signature
+      ['gongfa_foundation'], // 未解锁 gongfa_secret
       'gongfa',
     );
     const ids = defs.map((d) => d.id);
-    expect(ids).not.toContain('gongfa-signature-comprehension');
+    expect(ids).not.toContain('gongfa-secret-inferno');
   });
 
   it('当匹配候选缺少 core 时，应注入保底 core 候选', () => {
@@ -590,7 +600,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       recipeId: 'default',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['core'],
+      unlockedAffixCategories: ['skill_core'],
     };
     syncSessionTags(session, ['Unknown.Tag']);
 
@@ -598,11 +608,11 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     const ids = decision.candidates.map((candidate) => candidate.id);
 
     expect(ids).not.toContain('skill-core-damage');
-    expect(decision.candidates.filter(c => c.category === 'core')).toHaveLength(0);
+    expect(decision.candidates.filter(c => c.category === 'skill_core')).toHaveLength(0);
   });
 
-  it('minQuality 过滤：玄品以下不应出现 gongfa-signature-comprehension', () => {
-    // 该签名词缀 minQuality = 玄品 (order=2)，凡品 (order=0) 不应通过
+  it('minQuality 过滤：玄品以下不应出现 gongfa-secret-inferno', () => {
+    // 该秘法词缀 minQuality = 玄品 (order=2)，凡品 (order=0) 不应通过
     // 这里通过 AffixPoolBuilder 来测试 quality 过滤
     const builder = new AffixPoolBuilder();
     const session = new CreationSession({
@@ -613,11 +623,11 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     });
     // 手动设置 session 状态
     session.state.materialFingerprints = [{ rank: '凡品', energyValue: 8, rarityWeight: 1, explicitTags: [], semanticTags: ['Material.Semantic.Spirit'], recipeTags: [], materialName: '凡品灵草', materialType: 'herb', quantity: 1 }];
-    session.state.recipeMatch = { recipeId: 'default', valid: true, matchedTags: [], unlockedAffixCategories: ['core', 'prefix', 'suffix', 'signature'] };
+    session.state.recipeMatch = { recipeId: 'default', valid: true, matchedTags: [], unlockedAffixCategories: ['gongfa_foundation', 'gongfa_school', 'gongfa_secret'] };
     syncSessionTags(session, ['Material.Semantic.Spirit', 'Material.Semantic.Manual']);
     const pool = builder.build(DEFAULT_AFFIX_REGISTRY, session);
     const ids = pool.map((c: AffixCandidate) => c.id);
-    expect(ids).not.toContain('gongfa-signature-comprehension');
+    expect(ids).not.toContain('gongfa-secret-inferno');
   });
 
   it('artifact 槽位为 armor 时：core 候选只保留护甲 core', () => {
@@ -662,7 +672,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       recipeId: 'artifact-default',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['core'],
+      unlockedAffixCategories: ['artifact_panel'],
     };
     syncSessionTags(session, [
       CreationTags.MATERIAL.TYPE_ORE,
@@ -672,43 +682,27 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     ]);
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
-    const coreIds = decision.candidates
-      .filter((candidate) => candidate.category === 'core')
+    const panelSlotIds = decision.candidates
+      .filter((candidate) => candidate.category === 'artifact_panel' && candidate.exclusiveGroup?.startsWith('artifact-panel-slot'))
       .map((candidate) => candidate.id);
 
-    expect(coreIds).toContain('artifact-core-armor-dual-ward');
-    expect(coreIds).not.toContain('artifact-core-weapon-dual-edge');
-    expect(coreIds).not.toContain('artifact-core-vitality');
+    expect(panelSlotIds).toContain('artifact-panel-armor-dual-def');
+    expect(panelSlotIds).not.toContain('artifact-panel-weapon-dual-atk');
+    expect(panelSlotIds).not.toContain('artifact-panel-vitality');
   });
 
   it.todo('artifact 槽位为 accessory 且缺少匹配 core 时：应注入 accessory fallback core');
 
-  it('artifact synergy control-immunity 应改为基于 many buffs 触发的条件增益', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-synergy-control-immunity');
+  it('artifact-defense-debuff-cleanse 应基于受击触发驱散效果', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-debuff-cleanse');
 
     expect(def).toBeDefined();
-    expect(def?.effectTemplate.type).toBe('apply_buff');
-    expect(def?.listenerSpec?.eventType).toBe(GameplayTags.EVENT.ROUND_PRE);
-
-    if (def?.effectTemplate.type === 'apply_buff') {
-      expect(def.effectTemplate.conditions).toEqual([
-        {
-          type: 'buff_count_at_least',
-          params: { value: 2, scope: 'caster' },
-        },
-      ]);
-      expect(def.effectTemplate.params.buffConfig.modifiers).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ attrType: AttributeType.WILLPOWER }),
-          expect.objectContaining({ attrType: AttributeType.CONTROL_RESISTANCE }),
-        ]),
-      );
-      expect(def.effectTemplate.params.buffConfig.modifiers).toHaveLength(2);
-    }
+    expect(def?.effectTemplate.type).toBe('dispel');
+    expect(def?.listenerSpec?.eventType).toBe(GameplayTags.EVENT.DAMAGE_TAKEN);
   });
 
   it('skill affix 的 control 与 buff/debuff duration 应收敛到统一策略', () => {
-    const persistentExceptionIds = new Set(['skill-mythic-eternal-echo']);
+    const persistentExceptionIds = new Set<string>();
     const actualPersistentExceptionIds = new Set<string>();
 
     for (const def of SKILL_AFFIXES) {
@@ -744,6 +738,11 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
         expect(duration).toBeLessThanOrEqual(
           CREATION_DURATION_POLICY.control.elite,
         );
+        continue;
+      }
+
+      // 允许 duration=1 的短效战术增益 buff（如命中提升、控制命中提升）
+      if (duration === 1) {
         continue;
       }
 

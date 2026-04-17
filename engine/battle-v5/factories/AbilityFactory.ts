@@ -199,9 +199,15 @@ export class AbilityFactory {
           hasDamage = true;
 
           const attribute = effect.params.value.attribute;
-          if (attribute === AttributeType.MAGIC_ATK) {
+          if (
+            attribute === AttributeType.MAGIC_ATK ||
+            attribute === AttributeType.MAGIC_DEF
+          ) {
             damageChannels.add('magic');
-          } else if (attribute === AttributeType.ATK) {
+          } else if (
+            attribute === AttributeType.ATK ||
+            attribute === AttributeType.DEF
+          ) {
             damageChannels.add('physical');
           } else {
             throw new Error(

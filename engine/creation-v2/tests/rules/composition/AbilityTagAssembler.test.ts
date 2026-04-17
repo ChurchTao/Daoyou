@@ -10,7 +10,7 @@ function buildRolledAffix(
   return {
     id,
     name: id,
-    category: 'core',
+    category: 'skill_core',
     energyCost: 1,
     rollScore: 1,
     rollEfficiency: 1,

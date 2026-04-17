@@ -1,4 +1,5 @@
 import { matchAll } from '@/engine/creation-v2/affixes';
+import type { ExclusiveGroup } from '@/engine/creation-v2/affixes/exclusiveGroups';
 import { AffixCandidate } from '@/engine/creation-v2/types';
 import { AffixSelectionRuleSet } from '@/engine/creation-v2/rules/affix/AffixSelectionRuleSet';
 import { AffixSelectionFacts } from '@/engine/creation-v2/rules/contracts';
@@ -22,7 +23,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'blocked-budget',
           name: 'blocked-budget',
-          category: 'suffix',
+          category: 'skill_variant',
           tags: [],
           weight: 10,
           energyCost: 9,
@@ -31,17 +32,17 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'blocked-group',
           name: 'blocked-group',
-          category: 'prefix',
+          category: 'skill_variant',
           tags: [],
           weight: 10,
           energyCost: 4,
           effectTemplate: { type: "damage", params: { value: 10 } } as any,
-          exclusiveGroup: 'grp',
+          exclusiveGroup: 'grp' as ExclusiveGroup,
         }),
         candidate({
           id: 'eligible',
           name: 'eligible',
-          category: 'suffix',
+          category: 'skill_variant',
           tags: [],
           weight: 10,
           energyCost: 4,
@@ -54,9 +55,9 @@ describe('AffixSelectionRuleSet', () => {
       selectionCount: 1,
       selectedAffixIds: ['picked-a'],
       selectedExclusiveGroups: ['grp'],
-      selectedCategoryCounts: { core: 1 },
+      selectedCategoryCounts: { skill_core: 1 },
       selectionConstraints: {
-        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+        categoryCaps: { skill_core: 1, skill_variant: 4, skill_rare: 1 },
       },
     };
 
@@ -80,7 +81,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'blocked-budget',
           name: 'blocked-budget',
-          category: 'core',
+          category: 'skill_core',
           tags: [],
           weight: 10,
           energyCost: 9,
@@ -95,7 +96,7 @@ describe('AffixSelectionRuleSet', () => {
       selectedExclusiveGroups: [],
       selectedCategoryCounts: {},
       selectionConstraints: {
-        categoryCaps: { core: 1, prefix: 2, suffix: 2 },
+        categoryCaps: { skill_core: 1, skill_variant: 4, skill_rare: 1 },
       },
     };
 
@@ -112,7 +113,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'prefix-over-cap',
           name: 'prefix-over-cap',
-          category: 'prefix',
+          category: 'skill_core',
           tags: [],
           weight: 10,
           energyCost: 4,
@@ -121,7 +122,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'suffix-ok',
           name: 'suffix-ok',
-          category: 'suffix',
+          category: 'skill_variant',
           tags: [],
           weight: 10,
           energyCost: 4,
@@ -134,9 +135,9 @@ describe('AffixSelectionRuleSet', () => {
       selectionCount: 2,
       selectedAffixIds: ['a', 'b'],
       selectedExclusiveGroups: [],
-      selectedCategoryCounts: { prefix: 1 },
+      selectedCategoryCounts: { skill_core: 1 },
       selectionConstraints: {
-        categoryCaps: { core: 1, prefix: 1, suffix: 2 },
+        categoryCaps: { skill_core: 1, skill_variant: 4, skill_rare: 1 },
       },
     };
 
@@ -162,7 +163,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'mythic-unassigned',
           name: 'mythic-unassigned',
-          category: 'mythic',
+          category: 'skill_rare',
           tags: [],
           weight: 10,
           energyCost: 8,
@@ -175,16 +176,12 @@ describe('AffixSelectionRuleSet', () => {
       selectionCount: 1,
       selectedAffixIds: ['core-picked'],
       selectedExclusiveGroups: [],
-      selectedCategoryCounts: { core: 1 },
+      selectedCategoryCounts: { skill_core: 1 },
       selectionConstraints: {
         categoryCaps: {
-          core: 1,
-          prefix: 1,
-          suffix: 1,
-          resonance: 1,
-          signature: 0,
-          synergy: 0,
-          mythic: 0,
+          skill_core: 1,
+          skill_variant: 2,
+          skill_rare: 0,
         },
       },
     };
@@ -209,7 +206,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'signature-over-bucket',
           name: 'signature-over-bucket',
-          category: 'signature',
+          category: 'skill_rare',
           tags: [],
           weight: 10,
           energyCost: 8,
@@ -218,7 +215,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'resonance-ok',
           name: 'resonance-ok',
-          category: 'resonance',
+          category: 'skill_variant',
           tags: [],
           weight: 10,
           energyCost: 7,
@@ -231,18 +228,14 @@ describe('AffixSelectionRuleSet', () => {
       selectionCount: 3,
       selectedAffixIds: ['core-picked', 'prefix-picked', 'signature-picked'],
       selectedExclusiveGroups: [],
-      selectedCategoryCounts: { core: 1, prefix: 1, signature: 1 },
+      selectedCategoryCounts: { skill_core: 1, skill_variant: 1, skill_rare: 1 },
       selectionConstraints: {
         categoryCaps: {
-          core: 1,
-          prefix: 2,
-          suffix: 2,
-          resonance: 1,
-          signature: 1,
-          synergy: 1,
-          mythic: 1,
+          skill_core: 1,
+          skill_variant: 3,
+          skill_rare: 1,
         },
-        bucketCaps: { highTierTotal: 1, mythic: 1 },
+        bucketCaps: { highTierTotal: 1 },
       },
     };
 
@@ -268,7 +261,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'mythic-over-bucket',
           name: 'mythic-over-bucket',
-          category: 'mythic',
+          category: 'skill_rare',
           tags: [],
           weight: 10,
           energyCost: 8,
@@ -277,7 +270,7 @@ describe('AffixSelectionRuleSet', () => {
         candidate({
           id: 'suffix-ok',
           name: 'suffix-ok',
-          category: 'suffix',
+          category: 'skill_variant',
           tags: [],
           weight: 10,
           energyCost: 6,
@@ -290,18 +283,14 @@ describe('AffixSelectionRuleSet', () => {
       selectionCount: 4,
       selectedAffixIds: ['core-picked', 'prefix-picked', 'res-picked', 'mythic-picked'],
       selectedExclusiveGroups: [],
-      selectedCategoryCounts: { core: 1, prefix: 1, resonance: 1, mythic: 1 },
+      selectedCategoryCounts: { skill_core: 1, skill_variant: 2, skill_rare: 1 },
       selectionConstraints: {
         categoryCaps: {
-          core: 1,
-          prefix: 2,
-          suffix: 2,
-          resonance: 1,
-          signature: 1,
-          synergy: 1,
-          mythic: 1,
+          skill_core: 1,
+          skill_variant: 3,
+          skill_rare: 1,
         },
-        bucketCaps: { highTierTotal: 1, mythic: 1 },
+        bucketCaps: { highTierTotal: 1 },
       },
     };
 

@@ -4,26 +4,17 @@ import {
   CREATION_LISTENER_PRIORITIES,
   CREATION_RESERVED_ENERGY,
 } from '@/engine/creation-v2/config/CreationBalance';
-import { CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES } from '@/engine/creation-v2/config/AffixSelectionConstraints';
+import { resolveAffixSelectionConstraints } from '@/engine/creation-v2/config/AffixSelectionConstraints';
 import { CREATION_EVENT_PRIORITY_LEVELS } from '@/engine/creation-v2/config/CreationEventPriorities';
 import { CREATION_SLUG_CONFIG } from '@/engine/creation-v2/config/CreationSlugConfig';
 
 describe('Creation config consistency', () => {
   it('应保证词缀解锁阈值严格递增', () => {
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.prefix).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.suffix,
+    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_core).toBeLessThan(
+      CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant,
     );
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.suffix).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance,
-    );
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.resonance).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.signature,
-    );
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.signature).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy,
-    );
-    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.synergy).toBeLessThan(
-      CREATION_AFFIX_UNLOCK_THRESHOLDS.mythic,
+    expect(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant).toBeLessThan(
+      CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_rare,
     );
   });
 
@@ -70,8 +61,8 @@ describe('Creation config consistency', () => {
   });
 
   it('应保证所有产品类型都有 affix selection constraint profile', () => {
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.skill).toBeDefined();
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.artifact).toBeDefined();
-    expect(CREATION_AFFIX_SELECTION_CONSTRAINT_PROFILES.gongfa).toBeDefined();
+    expect(resolveAffixSelectionConstraints('skill', 5, [])).toBeDefined();
+    expect(resolveAffixSelectionConstraints('artifact', 5, [])).toBeDefined();
+    expect(resolveAffixSelectionConstraints('gongfa', 5, [])).toBeDefined();
   });
 });

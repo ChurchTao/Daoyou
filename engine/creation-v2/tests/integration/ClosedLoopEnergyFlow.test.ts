@@ -1,12 +1,13 @@
 import { matchAll } from '@/engine/creation-v2/affixes';
 import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
-import { AffixCandidate } from '@/engine/creation-v2/types';
+import type { AffixCandidate } from '@/engine/creation-v2/types';
+import type { ExclusiveGroup } from '@/engine/creation-v2/affixes/exclusiveGroups';
 
 function candidate(
   id: string,
   category: AffixCandidate['category'],
   energyCost: number,
-  exclusiveGroup?: string,
+  exclusiveGroup?: ExclusiveGroup,
 ): AffixCandidate {
   return {
     id,
@@ -46,9 +47,9 @@ describe('Closed-loop energy flow', () => {
   it('应维持 effectiveTotal = reserved + spent + remaining', () => {
     const { orchestrator, session } = createSkillSession();
     const pool: AffixCandidate[] = [
-      candidate('a', 'core', 8),
-      candidate('b', 'prefix', 6),
-      candidate('c', 'suffix', 12),
+      candidate('a', 'skill_core', 8),
+      candidate('b', 'skill_variant', 6),
+      candidate('c', 'skill_variant', 12),
     ];
 
     orchestrator.budgetEnergy(session, {
@@ -85,9 +86,9 @@ describe('Closed-loop energy flow', () => {
   it('应记录独占组冲突，并保留终止原因', () => {
     const { orchestrator, session } = createSkillSession();
     const pool: AffixCandidate[] = [
-      candidate('grp-a', 'core', 5, 'blade'),
-      candidate('grp-b', 'prefix', 5, 'blade'),
-      candidate('heavy', 'suffix', 20),
+      candidate('grp-a', 'skill_core', 5, 'blade' as ExclusiveGroup),
+      candidate('grp-b', 'skill_variant', 5, 'blade' as ExclusiveGroup),
+      candidate('heavy', 'skill_variant', 20),
     ];
 
     orchestrator.budgetEnergy(session, {

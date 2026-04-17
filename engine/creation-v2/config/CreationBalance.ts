@@ -4,20 +4,21 @@ import { CREATION_EVENT_PRIORITY_LEVELS } from './CreationEventPriorities';
 /**
  * 词缀分类解锁阈值表。
  * 数值含义：当材料分析得到的 unlock score 达到该值后，对应分类才允许进入词缀池。
+ * 三段阶梯：核心池(0) / 中层池(20) / 稀有池(40)
  */
 export const CREATION_AFFIX_UNLOCK_THRESHOLDS = {
-  // 解锁 prefix 词缀所需的最低 unlock score。
-  prefix: 16,
-  // 解锁 suffix 词缀所需的最低 unlock score。
-  suffix: 24,
-  // 解锁 resonance 词缀所需的最低 unlock score。
-  resonance: 32,
-  // 解锁 signature 词缀所需的最低 unlock score。
-  signature: 42,
-  // 解锁 synergy 词缀所需的最低 unlock score。
-  synergy: 52,
-  // 解锁 mythic 词缀所需的最低 unlock score。
-  mythic: 66,
+  // 核心池：永远可用
+  skill_core: 0,
+  gongfa_foundation: 0,
+  artifact_panel: 0,
+  // 中层池：中等材料解锁
+  skill_variant: 20,
+  gongfa_school: 20,
+  artifact_defense: 20,
+  // 稀有池：高投入材料才解锁
+  skill_rare: 49,
+  gongfa_secret: 49,
+  artifact_treasure: 49,
 } as const;
 
 /**
@@ -138,36 +139,34 @@ export const CREATION_UNLOCK_SCORE_PROFILE = {
  */
 export const CREATION_AFFIX_POOL_SCORING = {
   // 视为“高阶桶”的分类集合，用于统一做高阶数量限制。
-  highTierCategories: ['signature', 'synergy', 'mythic'] as const,
+  highTierCategories: ['skill_rare', 'gongfa_secret', 'artifact_treasure'] as const,
 
   // 不同分类至少需要命中多少个标签，才有资格进入候选池。
   minTagHitsByCategory: {
-    // resonance 至少命中 2 个标签。
-    resonance: 2,
-    // signature 至少命中 2 个标签。
-    signature: 2,
-    // synergy 至少命中 2 个标签。
-    synergy: 2,
-    // mythic 至少命中 3 个标签，要求更严格。
-    mythic: 3,
+    // 中层池：至少命中 1 个标签。
+    skill_variant: 1,
+    gongfa_school: 1,
+    artifact_defense: 1,
+    // 稀有池：至少命中 2 个标签，要求更严格。
+    skill_rare: 2,
+    gongfa_secret: 2,
+    artifact_treasure: 2,
   } as const,
 
   // 各分类进入候选池所需达到的最低 admission score。
   minimumScoreByCategory: {
-    // core 是基础词缀，不做分数门槛限制。
-    core: 0,
-    // prefix 的最低准入分数。
-    prefix: 0.45,
-    // suffix 的最低准入分数。
-    suffix: 0.45,
-    // resonance 的最低准入分数。
-    resonance: 0.58,
-    // signature 的最低准入分数。
-    signature: 0.64,
-    // synergy 的最低准入分数。
-    synergy: 0.68,
-    // mythic 的最低准入分数，要求最高。
-    mythic: 0.76,
+    // 核心池不做分数门槛限制。
+    skill_core: 0,
+    gongfa_foundation: 0,
+    artifact_panel: 0,
+    // 中层池的最低准入分数。
+    skill_variant: 0.45,
+    gongfa_school: 0.45,
+    artifact_defense: 0.45,
+    // 稀有池的最低准入分数，要求最高。
+    skill_rare: 0.7,
+    gongfa_secret: 0.7,
+    artifact_treasure: 0.7,
   } as const,
 
   // 各类信号源在 tagSignalScores 中的加权强度。
@@ -210,136 +209,43 @@ export const CREATION_AFFIX_POOL_SCORING = {
  * 主要用于表达系统希望不同类别在整体分布上承担的角色和占比。
  */
 export const CREATION_AFFIX_CATEGORY_PLAN = {
-  // 低阶基础规划顺序，表示系统默认优先希望出现的非 core 类别。
-  baselineOrder: ['prefix', 'suffix'] as const,
-
-  // 完整优先级顺序，越靠前越容易在有限预算下优先被考虑。
+  // 完整优先级顺序：核心池 > 中层池 > 稀有池。
   priorityOrder: [
-    'prefix',
-    'suffix',
-    'resonance',
-    'signature',
-    'synergy',
-    'mythic',
+    'skill_core',
+    'gongfa_foundation',
+    'artifact_panel',
+    'skill_variant',
+    'gongfa_school',
+    'artifact_defense',
+    'skill_rare',
+    'gongfa_secret',
+    'artifact_treasure',
   ] as const,
 
   // 各分类在长期统计中的目标占比，用于辅助分布校准。
   targetShare: {
-    // prefix 的目标占比。
-    prefix: 0.28,
-    // suffix 的目标占比。
-    suffix: 0.26,
-    // resonance 的目标占比。
-    resonance: 0.16,
-    // signature 的目标占比。
-    signature: 0.14,
-    // synergy 的目标占比。
-    synergy: 0.10,
-    // mythic 的目标占比。
-    mythic: 0.06,
+    skill_core: 0.12,
+    skill_variant: 0.22,
+    skill_rare: 0.08,
+    gongfa_foundation: 0.12,
+    gongfa_school: 0.22,
+    gongfa_secret: 0.06,
+    artifact_panel: 0.08,
+    artifact_defense: 0.08,
+    artifact_treasure: 0.02,
   } as const,
-};
-
-/**
- * 分类上限矩阵的零值模板。
- * 用途是先把所有分类清零，再按槽位数逐步开放允许的类别和数量。
- */
-const EMPTY_AFFIX_CATEGORY_CAPS: Record<AffixCategory, number> = {
-  core: 0,
-  prefix: 0,
-  suffix: 0,
-  resonance: 0,
-  signature: 0,
-  synergy: 0,
-  mythic: 0,
-};
-
-/**
- * 不同槽位数下的分类数量上限。
- *
- * 读取方式：
- * - key：当前可用的最大词缀槽位数。
- * - value：该槽位数下，每个分类最多允许被抽中多少个。
- */
-export const CREATION_AFFIX_CATEGORY_CAP_PROFILES: Readonly<
-  Record<number, Readonly<Record<AffixCategory, number>>>
-> = {
-  // 1 槽：只允许 1 个 core，完全不开放非 core 词缀。
-  1: {
-    ...EMPTY_AFFIX_CATEGORY_CAPS,
-    core: 1,
-  },
-
-  // 2 槽：在 core 之外，只开放基础的 prefix 和 suffix 各 1 个。
-  2: {
-    ...EMPTY_AFFIX_CATEGORY_CAPS,
-    core: 1,
-    prefix: 1,
-    suffix: 1,
-  },
-
-  // 3 槽：允许出现 1 个 resonance，开始接触中阶机制。
-  3: {
-    ...EMPTY_AFFIX_CATEGORY_CAPS,
-    core: 1,
-    prefix: 1,
-    suffix: 1,
-    resonance: 1,
-  },
-
-  // 4 槽：允许 signature 和 synergy 各 1 个，但仍受高阶桶约束控制总量。
-  4: {
-    ...EMPTY_AFFIX_CATEGORY_CAPS,
-    core: 1,
-    prefix: 1,
-    suffix: 1,
-    resonance: 1,
-    signature: 1,
-    synergy: 1,
-  },
-
-  // 5 槽：开放完整 V2 上限，prefix 和 suffix 可到 2，高阶分类各保留 1 个入口。
-  5: {
-    ...EMPTY_AFFIX_CATEGORY_CAPS,
-    core: 1,
-    prefix: 2,
-    suffix: 2,
-    resonance: 1,
-    signature: 1,
-    synergy: 1,
-    mythic: 1,
-  },
 } as const;
 
 /**
  * 高阶桶上限。
  * 用来控制高阶词缀整体数量，而不是单独控制某个分类的出现次数。
+ * 具体的每池上限（skill_rare/gongfa_secret/artifact_treasure 各 1）
+ * 由 AffixSelectionConstraints 的固定池配额负责。
  */
 export interface CreationAffixBucketCaps {
-  /** signature、synergy、mythic 这类高阶词缀总共最多允许出现多少个。 */
+  /** skill_rare/gongfa_secret/artifact_treasure 这类稀有池词缀总共最多允许出现多少个。 */
   highTierTotal: number;
-  /** mythic 单独最多允许出现多少个。 */
-  mythic: number;
 }
-
-/**
- * 不同槽位数下的高阶桶限制。
- * 作用：在开放更多高阶类别时，仍然控制它们的总量，避免 5 槽高阶泛滥。
- */
-export const CREATION_AFFIX_BUCKET_CAP_PROFILES: Readonly<
-  Record<number, Readonly<CreationAffixBucketCaps>>
-> = {
-  // 1 槽：完全不允许高阶词缀。
-  1: { highTierTotal: 0, mythic: 0 },
-  // 2 槽：完全不允许高阶词缀。
-  2: { highTierTotal: 0, mythic: 0 },
-  // 3 槽：完全不允许高阶词缀。
-  3: { highTierTotal: 0, mythic: 0 },
-  // 4 槽：允许 1 个高阶词缀，但 mythic 仍然关闭。
-  4: { highTierTotal: 1, mythic: 0 },
-  // 5 槽：允许 1 个高阶词缀，同时允许该高阶词缀是 mythic。
-  5: { highTierTotal: 1, mythic: 1 },
-} as const;
 
 /**
  * MaterialFacts 构造阶段的辅助参数。

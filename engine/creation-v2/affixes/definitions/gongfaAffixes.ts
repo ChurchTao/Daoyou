@@ -1,9 +1,17 @@
 /*
- * gongfaAffixes: 功法词缀定义集合（大幅扩展）。
- * 功法词缀特点：
- * - 通常用于被动属性能力或战斗中触发的持续效果
- * - 包含战斗中长期增幅、触发链、以及修为相关机制
- * - 映射为AbilityConfig.modifiers或listeners
+ * gongfaAffixes: 功法词缀定义（梦幻西游风格三角重构）
+ *
+ * 功法定位："路" — 负责"流派成立感"，词条价值集中在全局规则与倍率。
+ *
+ * 池结构：
+ *   gongfa_foundation (~45%) — 百分比属性 + 通用增减伤 + 控制属性
+ *   gongfa_school     (~40%) — 定义"这套到底怎么玩"
+ *   gongfa_secret     (~15%) — 制造"门派真传感"
+ *
+ * 硬边界（Section 2.3 + Section 6.2）：
+ *   - 不提供固定面板（FIXED modifier 归 artifact）
+ *   - 不承担受击型防御特效（OWNER_AS_TARGET 归 artifact）
+ *   - 以 OWNER_AS_CASTER / GLOBAL 为主
  */
 import {
   CreationTags,
@@ -14,27 +22,28 @@ import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import {
   AttributeType,
-  BuffType,
   ModifierType,
-  StackRule,
 } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition, matchAll } from '../types';
 
 export const GONGFA_AFFIXES: AffixDefinition[] = [
-  // ========================
-  // ===== CORE 词缀 (5 种)
-  // ========================
+  // ================================================================
+  // ===== GONGFA_FOUNDATION 池 (14 种) — 百分比根骨属性 + 通用规则
+  // ================================================================
+
+  // --- 10 种百分比属性 ---
   {
-    id: 'gongfa-core-spirit',
+    id: 'gongfa-foundation-spirit',
     displayName: '灵力强化',
     displayDescription: '战斗中提升灵力百分比，法术收益随境界成倍放大',
-    category: 'core',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
+      CreationTags.MATERIAL.TYPE_MANUAL,
     ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.CORE_STAT,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 100,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -48,15 +57,16 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-core-vitality',
+    id: 'gongfa-foundation-vitality',
     displayName: '体魄强化',
-    displayDescription: '战斗中提升体魄百分比，高境界修士生存更稳',
-    category: 'core',
+    displayDescription: '战斗中提升体力百分比，气血池更加深厚',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
-      CreationTags.MATERIAL.TYPE_ORE,
-      CreationTags.MATERIAL.TYPE_HERB,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      CreationTags.MATERIAL.TYPE_MANUAL,
     ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.CORE_STAT,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 95,
     energyCost: 8,
     applicableTo: ['gongfa'],
@@ -70,17 +80,17 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-core-wisdom',
-    displayName: '悟性强化',
-    displayDescription: '战斗中提升悟性百分比，术法发挥愈发稳定',
-    category: 'core',
+    id: 'gongfa-foundation-wisdom',
+    displayName: '根骨增益',
+    displayDescription: '战斗中提升根骨百分比，法术穿透与命中提高',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_MANUAL,
       CreationTags.MATERIAL.TYPE_MANUAL,
     ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.CORE_STAT,
-    weight: 88,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 80,
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -93,17 +103,18 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-core-willpower',
+    id: 'gongfa-foundation-willpower',
     displayName: '意志强化',
-    displayDescription: '战斗中提升意志百分比，抗控效果与境界同步提升',
-    category: 'core',
+    displayDescription: '战斗中提升意志百分比，抗性与控制抵抗提高',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.TYPE_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
     ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.CORE_STAT,
-    weight: 80,
-    energyCost: 8,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 70,
+    energyCost: 7,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -115,16 +126,17 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-core-speed-mastery',
-    displayName: '速度强化',
-    displayDescription: '战斗中提升身法百分比，先手优势随境界成长',
-    category: 'core',
+    id: 'gongfa-foundation-speed',
+    displayName: '身法强化',
+    displayDescription: '战斗中提升身法百分比，先手与回避更具优势',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_WIND,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.TYPE_ORE,
     ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.CORE_STAT,
-    weight: 55,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 75,
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -132,693 +144,22 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPEED,
         modType: ModifierType.ADD,
-        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
-      },
-    },
-  },
-
-  // ========================
-  // ===== PREFIX 词缀 (OWNER_AS_CASTER / GLOBAL 边界词缀)
-  // ========================
-
-  {
-    // todo 不需要通过buff实现，可以直接用listener实现
-    id: 'gongfa-prefix-buff-sustain',
-    displayName: '增益延长',
-    displayDescription: '己方buff持续时间延长',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ]),
-    weight: 50,
-    energyCost: 8,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'apply_buff',
-      params: {
-        buffConfig: {
-          id: 'craft-buff-extend',
-          name: '状态延续',
-          type: BuffType.BUFF,
-          duration: -1,
-          stackRule: StackRule.IGNORE,
-          tags: [GameplayTags.BUFF.TYPE.BUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
-          listeners: [
-            {
-              eventType: GameplayTags.EVENT.BUFF_ADD,
-              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-              priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
-              effects: [
-                {
-                  type: 'buff_duration_modify',
-                  params: {
-                    rounds: 1,
-                    tags: [GameplayTags.BUFF.TYPE.BUFF],
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        chance: 1,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.BUFF_ADD,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.buffIntercept,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
+        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
       },
     },
   },
   {
-    id: 'gongfa-prefix-chill-breaker',
-    displayName: '冰缓追击',
-    displayDescription: '仅在目标冰缓时触发额外增伤',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 40,
-    energyCost: 8,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        { type: 'has_tag', params: { tag: GameplayTags.STATUS.STATE.CHILLED } },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.14, scale: 'quality', coefficient: 0.03 },
-        cap: 0.75,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // ========================
-  // ===== SUFFIX 词缀 (11 种)
-  // ========================
-  {
-    // todo 迁移到skill中变成给自己试用的增益buff
-    id: 'gongfa-suffix-round-heal',
-    displayName: '回合回血',
-    displayDescription: '每回合开始时恢复气血',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SUFFIX_ROUND_HEAL,
-    weight: 80,
-    energyCost: 8,
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
-    effectTemplate: {
-      type: 'heal',
-      params: {
-        value: {
-          base: { base: 10, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.2,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
-    id: 'gongfa-suffix-mp-siphon',
-    displayName: '伤害回蓝',
-    displayDescription: '造成伤害后恢复法力',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 75,
-    energyCost: 9,
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'mp',
-        ratio: { base: 0.5, scale: 'quality', coefficient: 0.02 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
-    id: 'gongfa-suffix-self-haste',
-    displayName: '施法加速',
-    displayDescription: '施法后缩短自身其余技能冷却',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-    ]),
-    weight: 70,
-    energyCost: 9,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'cooldown_modify',
-      params: {
-        cdModifyValue: { base: -1, scale: 'quality', coefficient: -0.2 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
-    id: 'gongfa-suffix-lifesteal-passive',
-    displayName: '伤害吸血',
-    displayDescription: '造成伤害后吸收部分气血',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
-    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SUFFIX_LIFESTEAL,
-    weight: 60,
-    energyCost: 9,
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.02, scale: 'quality', coefficient: 0.02 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
-    id: 'gongfa-suffix-debuff-cleanse',
-    displayName: '回合驱散',
-    displayDescription: '每回合自动解除一层减益',
-    category: 'suffix',
-    match: {
-      all: [
-        CreationTags.MATERIAL.SEMANTIC_GUARD,
-        CreationTags.MATERIAL.TYPE_SPECIAL,
-      ],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_DIVINE,
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      ],
-    },
-    weight: 33,
-    energyCost: 8,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'dispel',
-      params: {
-        targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
-        maxCount: 1,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.ROUND_PRE,
-      scope: GameplayTags.SCOPE.GLOBAL,
-      priority: CREATION_LISTENER_PRIORITIES.roundPre,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-  {
-    id: 'gongfa-suffix-execution-passive',
-    displayName: '低血斩杀',
-    displayDescription: '对低血量目标造成额外伤害',
-    category: 'suffix',
-    match: matchAll([CreationTags.MATERIAL.SEMANTIC_BURST]),
-    weight: 50,
-    energyCost: 10,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
-        cap: 0.75,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-suffix-overflow-punish',
-    displayName: '高蓝燃灵',
-    displayDescription: '仅在目标高法力时触发燃灵压制',
-    category: 'suffix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 39,
-    energyCost: 10,
-    applicableTo: ['gongfa'],
-    grantedAbilityTags: [GameplayTags.TRAIT.MANA_THIEF],
-    effectTemplate: {
-      type: 'mana_burn',
-      conditions: [{ type: 'mp_above', params: { value: 0.7 } }],
-      params: {
-        value: {
-          base: { base: 14, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.2,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
-    },
-  },
-  {
-    id: 'gongfa-resonance-opening-zenith',
-    displayName: '巨人杀手',
-    displayDescription: '仅在目标高血时触发先手压制增伤',
-    category: 'resonance',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      CreationTags.MATERIAL.SEMANTIC_BURST,
-    ]),
-    weight: 37,
-    energyCost: 11,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_above', params: { value: 0.8 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.12, scale: 'quality', coefficient: 0.02 },
-        cap: 0.6,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // ========================
-  // ===== SYNERGY 词缀 (5 种)
-  // ========================
-  {
-    id: 'gongfa-synergy-perfect-balance',
-    displayName: '均衡同修',
-    displayDescription: '随机强化一项根骨属性，形成均衡修行的协同收益',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_GUARD,
-      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    ]),
-    weight: 50,
-    energyCost: 12,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'random_attribute_modifier',
-      params: {
-        pickCount: 1,
-        pool: [
-          {
-            attrType: AttributeType.SPIRIT,
-            modType: ModifierType.ADD,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-          },
-          {
-            attrType: AttributeType.VITALITY,
-            modType: ModifierType.ADD,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-          },
-          {
-            attrType: AttributeType.WISDOM,
-            modType: ModifierType.ADD,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-          },
-          {
-            attrType: AttributeType.WILLPOWER,
-            modType: ModifierType.ADD,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-          },
-          {
-            attrType: AttributeType.SPEED,
-            modType: ModifierType.ADD,
-            value: { base: 0.05, scale: 'quality', coefficient: 0.01 },
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: 'gongfa-synergy-empty-sea-break',
-    displayName: '低蓝压制',
-    displayDescription: '仅在目标低蓝时触发的额外伤害压制',
-    category: 'synergy',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 38,
-    energyCost: 12,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'mp_below', params: { value: 0.20 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.16, scale: 'quality', coefficient: 0.03 },
-        cap: 0.8,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-metal-specialization',
-    displayName: '庚金锐意',
-    displayDescription: '金系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_METAL,
-      ELEMENT_TO_MATERIAL_TAG['金'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 45,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['金'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-wood-specialization',
-    displayName: '青木生衍',
-    displayDescription: '木系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WOOD,
-      ELEMENT_TO_MATERIAL_TAG['木'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 45,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['木'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-water-specialization',
-    displayName: '玄水归流',
-    displayDescription: '水系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WATER,
-      ELEMENT_TO_MATERIAL_TAG['水'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 46,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['水'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-fire-specialization',
-    displayName: '赤炎焚脉',
-    displayDescription: '火系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FLAME,
-      ELEMENT_TO_MATERIAL_TAG['火'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 48,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['火'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-earth-specialization',
-    displayName: '厚土镇元',
-    displayDescription: '土系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_EARTH,
-      ELEMENT_TO_MATERIAL_TAG['土'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 44,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['土'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-wind-specialization',
-    displayName: '岚息游龙',
-    displayDescription: '风系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_WIND,
-      ELEMENT_TO_MATERIAL_TAG['风'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 47,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['风'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-thunder-specialization',
-    displayName: '惊霆裂脉',
-    displayDescription: '雷系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      ELEMENT_TO_MATERIAL_TAG['雷'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 47,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['雷'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-  {
-    id: 'gongfa-prefix-ice-specialization',
-    displayName: '玄霜凝意',
-    displayDescription: '冰系技能造成的伤害提升',
-    category: 'prefix',
-    match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ELEMENT_TO_MATERIAL_TAG['冰'],
-      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    ]),
-    weight: 46,
-    energyCost: 7,
-    applicableTo: ['gongfa'],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['冰'] },
-        },
-      ],
-      params: {
-        mode: 'increase',
-        value: { base: 0.1, scale: 'quality', coefficient: 0.02 },
-        cap: 0.55,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // ========================
-  // ===== ADD 百分比属性 prefix (杠杆加成 — 区别于 artifact 固定面板)
-  // ========================
-  {
-    id: 'gongfa-prefix-atk-add',
-    displayName: '炼体强攻',
-    displayDescription: '功法炼化体魄经脉，战斗中按百分比提升物理攻击',
-    category: 'prefix',
+    id: 'gongfa-foundation-atk',
+    displayName: '物攻强化',
+    displayDescription: '战斗中提升物理攻击百分比',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_BLADE,
-      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_METAL,
     ]),
-    weight: 82,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 90,
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -831,15 +172,17 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-prefix-magic-atk-add',
-    displayName: '御灵强法',
-    displayDescription: '功法提升法脉运转效率，战斗中按百分比提升法术攻击',
-    category: 'prefix',
+    id: 'gongfa-foundation-magic-atk',
+    displayName: '法攻强化',
+    displayDescription: '战斗中提升法术攻击百分比',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       CreationTags.MATERIAL.SEMANTIC_BURST,
     ]),
-    weight: 80,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 90,
     energyCost: 8,
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -852,107 +195,146 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
   {
-    id: 'gongfa-prefix-def-add',
-    displayName: '磐石护体',
-    displayDescription: '功法强化气血壁垒，战斗中按百分比提升物理防御',
-    category: 'prefix',
+    id: 'gongfa-foundation-def',
+    displayName: '物防强化',
+    displayDescription: '战斗中提升物理防御百分比',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.TYPE_ORE,
     ]),
-    weight: 75,
-    energyCost: 8,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 60,
+    energyCost: 7,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
         attrType: AttributeType.DEF,
         modType: ModifierType.ADD,
-        value: { base: 0.07, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
       },
     },
   },
   {
-    id: 'gongfa-prefix-magic-def-add',
-    displayName: '灵障护法',
-    displayDescription: '功法凝练神识壁垒，战斗中按百分比提升法术防御',
-    category: 'prefix',
+    id: 'gongfa-foundation-magic-def',
+    displayName: '法防强化',
+    displayDescription: '战斗中提升法术防御百分比',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.TYPE_HERB,
     ]),
-    weight: 72,
-    energyCost: 8,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 55,
+    energyCost: 7,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
       params: {
         attrType: AttributeType.MAGIC_DEF,
         modType: ModifierType.ADD,
-        value: { base: 0.07, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
       },
     },
   },
-
-  // ========================
-  // ===== 通道增幅 suffix (法/物伤害通道增幅 — 迁自 commonAffixes 有别于元素专精)
-  // ========================
   {
-    id: 'gongfa-suffix-chan-magic-boost',
-    displayName: '法术增幅',
-    displayDescription: '功法提升所有法术通道伤害输出',
-    category: 'suffix',
+    id: 'gongfa-foundation-heal-amplify',
+    displayName: '疗伤增幅',
+    displayDescription: '战斗中提升治疗效果百分比',
+    category: 'gongfa_foundation',
+    rarity: 'common',
     match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
       CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      CreationTags.MATERIAL.SEMANTIC_BLADE,
     ]),
-    weight: 42,
-    energyCost: 9,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 50,
+    energyCost: 7,
     applicableTo: ['gongfa'],
     effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.CHANNEL.MAGIC },
-        },
-      ],
+      type: 'attribute_modifier',
       params: {
-        mode: 'increase',
-        value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
-        cap: 0.4,
+        attrType: AttributeType.HEAL_AMPLIFY,
+        modType: ModifierType.ADD,
+        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
       },
     },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+  },
+
+  // --- 控制命中 ---
+  {
+    id: 'gongfa-foundation-control-hit',
+    displayName: '控制命中',
+    displayDescription: '提升控制效果命中率，使控制技更稳定生效',
+    category: 'gongfa_foundation',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 45,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CONTROL_HIT,
+        modType: ModifierType.ADD,
+        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+      },
     },
   },
+
+  // --- 控制抗性 ---
   {
-    id: 'gongfa-suffix-chan-physical-boost',
-    displayName: '物理增幅',
-    displayDescription: '功法提升所有物理通道伤害输出',
-    category: 'suffix',
+    id: 'gongfa-foundation-control-resistance',
+    displayName: '控制抗性',
+    displayDescription: '提升控制效果抵抗率，减少被控风险',
+    category: 'gongfa_foundation',
+    rarity: 'uncommon',
     match: matchAll([
-      CreationTags.MATERIAL.TYPE_ORE,
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_EARTH,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
+    weight: 40,
+    energyCost: 7,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.CONTROL_RESISTANCE,
+        modType: ModifierType.ADD,
+        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+      },
+    },
+  },
+
+  // --- 通用增伤 ---
+  {
+    id: 'gongfa-foundation-damage-increase',
+    displayName: '功法增伤',
+    displayDescription: '全局造成伤害提高',
+    category: 'gongfa_foundation',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
       CreationTags.MATERIAL.SEMANTIC_BLADE,
     ]),
-    weight: 42,
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_DAMAGE_MOD,
+    weight: 55,
     energyCost: 9,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'ability_has_tag',
-          params: { tag: GameplayTags.ABILITY.CHANNEL.PHYSICAL },
-        },
-      ],
       params: {
         mode: 'increase',
-        value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
-        cap: 0.4,
+        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
+        cap: 0.5,
       },
     },
     listenerSpec: {
@@ -962,17 +344,378 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // ========================
-  // ===== 状态链条共鸣 prefix (has_tag 条件增伤 — 平衡三角联动)
-  // ========================
+  // --- 通用减伤 ---
   {
-    id: 'gongfa-prefix-burn-amp',
-    displayName: '焚状增伤',
-    displayDescription:
-      '目标带有灼烧时，功法自动放大攻势（与技能附灼烧产生三角共鸣）',
-    category: 'prefix',
+    id: 'gongfa-foundation-damage-reduce',
+    displayName: '功法减伤',
+    displayDescription: '全局受到伤害降低',
+    category: 'gongfa_foundation',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_DAMAGE_MOD,
+    weight: 45,
+    energyCost: 9,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      params: {
+        mode: 'reduce',
+        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+        cap: 0.4,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+
+  // ================================================================
+  // ===== GONGFA_SCHOOL 池 (16 种) — 定义"这套到底怎么玩"
+  // ================================================================
+
+  // --- 8 种元素专精 ---
+  {
+    id: 'gongfa-school-fire-spec',
+    displayName: '火系专精',
+    displayDescription: '火系技能伤害提高，火修路线核心词条',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
     match: matchAll([
       CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+    ]),
+    weight: 75,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['火'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-ice-spec',
+    displayName: '冰系专精',
+    displayDescription: '冰系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      ELEMENT_TO_MATERIAL_TAG['冰'],
+    ]),
+    weight: 72,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['冰'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-thunder-spec',
+    displayName: '雷系专精',
+    displayDescription: '雷系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      ELEMENT_TO_MATERIAL_TAG['雷'],
+    ]),
+    weight: 70,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['雷'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-wind-spec',
+    displayName: '风系专精',
+    displayDescription: '风系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      ELEMENT_TO_MATERIAL_TAG['风'],
+    ]),
+    weight: 68,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['风'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-metal-spec',
+    displayName: '金系专精',
+    displayDescription: '金系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_METAL,
+      ELEMENT_TO_MATERIAL_TAG['金'],
+    ]),
+    weight: 65,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['金'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-water-spec',
+    displayName: '水系专精',
+    displayDescription: '水系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WATER,
+      ELEMENT_TO_MATERIAL_TAG['水'],
+    ]),
+    weight: 63,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['水'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-wood-spec',
+    displayName: '木系专精',
+    displayDescription: '木系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WOOD,
+      ELEMENT_TO_MATERIAL_TAG['木'],
+    ]),
+    weight: 60,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['木'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+  {
+    id: 'gongfa-school-earth-spec',
+    displayName: '土系专精',
+    displayDescription: '土系技能伤害提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_EARTH,
+      ELEMENT_TO_MATERIAL_TAG['土'],
+    ]),
+    weight: 58,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['土'] },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 暴击回蓝 ---
+  {
+    id: 'gongfa-school-crit-mana',
+    displayName: '暴击回蓝',
+    displayDescription: '暴击时回复灵力，维持高攻节奏',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+    ]),
+    weight: 50,
+    energyCost: 8,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'heal',
+      conditions: [{ type: 'chance', params: { value: 0.35 } }],
+      params: {
+        target: 'mp',
+        value: {
+          base: { base: 8, scale: 'quality', coefficient: 3 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.06,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest + 1,
+    },
+  },
+
+  // --- 低蓝增伤 ---
+  {
+    id: 'gongfa-school-low-mp-boost',
+    displayName: '低蓝增伤',
+    displayDescription: '灵力低于阈值时伤害提高，破釜沉舟的背水之战',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_BURST,
+      CreationTags.MATERIAL.TYPE_MANUAL,
+    ]),
+    weight: 42,
+    energyCost: 8,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [{ type: 'mp_below', params: { value: 0.3 } }],
+      params: {
+        mode: 'increase',
+        value: { base: 0.18, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 首回合强化 ---
+  {
+    id: 'gongfa-school-first-round-boost',
+    displayName: '先手强化',
+    displayDescription: '气血充足时伤害大幅提高，抢先机定胜负',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_WIND,
       CreationTags.MATERIAL.SEMANTIC_BURST,
     ]),
     weight: 38,
@@ -980,13 +723,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [
-        { type: 'has_tag', params: { tag: GameplayTags.STATUS.STATE.BURNED } },
-      ],
+      conditions: [{ type: 'hp_above', params: { value: 0.8 } }],
       params: {
         mode: 'increase',
-        value: { base: 0.14, scale: 'quality', coefficient: 0.03 },
-        cap: 0.75,
+        value: { base: 0.25, scale: 'quality', coefficient: 0.05 },
+        cap: 1.0,
       },
     },
     listenerSpec: {
@@ -995,18 +736,155 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
+
+  // --- 低血强化 ---
   {
-    id: 'gongfa-prefix-stun-amp',
-    displayName: '控制压制',
-    displayDescription:
-      '目标处于控制状态时，功法自动强化攻势（与控制技能产生三角共鸣）',
-    category: 'prefix',
+    id: 'gongfa-school-low-hp-boost',
+    displayName: '绝境爆发',
+    displayDescription: '气血低于阈值时伤害大幅提高',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
     match: matchAll([
-      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      CreationTags.MATERIAL.SEMANTIC_BLADE,
+      CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+    ]),
+    weight: 40,
+    energyCost: 9,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
+      params: {
+        mode: 'increase',
+        value: { base: 0.22, scale: 'quality', coefficient: 0.05 },
+        cap: 0.9,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 护盾存在时强化 ---
+  {
+    id: 'gongfa-school-shielded-boost',
+    displayName: '盾攻一体',
+    displayDescription: '拥有护盾时伤害提高，攻守同步',
+    category: 'gongfa_school',
+    rarity: 'uncommon',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_GUARD,
       CreationTags.MATERIAL.SEMANTIC_BURST,
     ]),
-    weight: 36,
-    energyCost: 9,
+    weight: 35,
+    energyCost: 8,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'buff_count_at_least',
+          params: { value: 1 },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.15, scale: 'quality', coefficient: 0.03 },
+        cap: 0.6,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 状态延长 ---
+  {
+    id: 'gongfa-school-debuff-extend',
+    displayName: '蚀骨延命',
+    displayDescription: '施加的负面状态持续时间延长',
+    category: 'gongfa_school',
+    rarity: 'rare',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_POISON,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+    ]),
+    weight: 30,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'has_tag',
+          params: { tag: GameplayTags.STATUS.CATEGORY.DEBUFF },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+        cap: 0.5,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- DOT 放大 ---
+  {
+    id: 'gongfa-school-dot-amplify',
+    displayName: 'DOT 放大',
+    displayDescription: '持续伤害效果数值提高',
+    category: 'gongfa_school',
+    rarity: 'rare',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      CreationTags.MATERIAL.SEMANTIC_POISON,
+    ]),
+    weight: 32,
+    energyCost: 10,
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'has_tag',
+          params: { tag: GameplayTags.BUFF.DOT.ROOT },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.2, scale: 'quality', coefficient: 0.05 },
+        cap: 1.0,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 控制链强化（受控目标增伤） ---
+  {
+    id: 'gongfa-school-control-exploit',
+    displayName: '控场压制',
+    displayDescription: '对处于控制状态的目标伤害提高',
+    category: 'gongfa_school',
+    rarity: 'rare',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      CreationTags.MATERIAL.SEMANTIC_THUNDER,
+    ]),
+    weight: 35,
+    energyCost: 11,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -1018,14 +896,183 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         mode: 'increase',
-        value: { base: 0.08, scale: 'quality', coefficient: 0.03 },
-        cap: 0.7,
+        value: { base: 0.18, scale: 'quality', coefficient: 0.04 },
+        cap: 0.8,
       },
     },
     listenerSpec: {
       eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // ================================================================
+  // ===== GONGFA_SECRET 池 (4 种) — 制造"门派真传感"
+  // ================================================================
+
+  // --- 焚天诀：火系命中灼烧目标最终伤害再提高 ---
+  {
+    id: 'gongfa-secret-inferno',
+    displayName: '焚天诀',
+    displayDescription: '火系技能命中灼烧目标时，最终伤害再次提升',
+    category: 'gongfa_secret',
+    rarity: 'legendary',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ELEMENT_TO_MATERIAL_TAG['火'],
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 5,
+    energyCost: 16,
+    minQuality: '玄品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'percent_damage_modifier',
+      conditions: [
+        {
+          type: 'ability_has_tag',
+          params: { tag: ELEMENT_TO_RUNTIME_ABILITY_TAG['火'] },
+        },
+        {
+          type: 'has_tag',
+          params: { tag: GameplayTags.STATUS.STATE.BURNED },
+        },
+      ],
+      params: {
+        mode: 'increase',
+        value: { base: 0.3, scale: 'quality', coefficient: 0.08 },
+        cap: 1.5,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
+    },
+  },
+
+  // --- 寒魄诀：攻击冰缓目标附带最大生命比例伤害 ---
+  {
+    id: 'gongfa-secret-frost-soul',
+    displayName: '寒魄诀',
+    displayDescription: '攻击冰缓目标时附带目标最大生命值比例伤害',
+    category: 'gongfa_secret',
+    rarity: 'legendary',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      ELEMENT_TO_MATERIAL_TAG['冰'],
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 5,
+    energyCost: 16,
+    minQuality: '玄品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'damage',
+      conditions: [
+        {
+          type: 'has_tag',
+          params: { tag: GameplayTags.STATUS.STATE.CHILLED },
+        },
+      ],
+      params: {
+        value: {
+          base: { base: 0, scale: 'quality', coefficient: 0 },
+          attribute: AttributeType.VITALITY,
+          coefficient: 0.6,
+        },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest + 1,
+    },
+  },
+
+  // --- 轮回诀：技能命中后有几率减少随机技能 CD ---
+  {
+    id: 'gongfa-secret-cycle',
+    displayName: '轮回诀',
+    displayDescription: '技能命中后有概率减少自身随机一个技能的冷却',
+    category: 'gongfa_secret',
+    rarity: 'rare',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.SEMANTIC_WIND,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 6,
+    energyCost: 14,
+    minQuality: '灵品',
+    applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
+    effectTemplate: {
+      type: 'cooldown_modify',
+      conditions: [{ type: 'chance', params: { value: 0.35 } }],
+      params: {
+        cdModifyValue: { base: -2, scale: 'quality', coefficient: -0.5 },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
+    },
+  },
+
+  // --- 无相诀：根据当前最高副属性切换强化方向 ---
+  {
+    id: 'gongfa-secret-adaptive',
+    displayName: '无相诀',
+    displayDescription: '根据当前最高副属性自动切换对应强化方向',
+    category: 'gongfa_secret',
+    rarity: 'legendary',
+    match: matchAll([
+      CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      CreationTags.MATERIAL.SEMANTIC_MANUAL,
+      CreationTags.MATERIAL.TYPE_SPECIAL,
+    ]),
+    exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
+    weight: 4,
+    energyCost: 15,
+    minQuality: '真品',
+    applicableTo: ['gongfa'],
+    effectTemplate: {
+      type: 'random_attribute_modifier',
+      params: {
+        pool: [
+          {
+            attrType: AttributeType.ATK,
+            modType: ModifierType.ADD,
+            value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+          },
+          {
+            attrType: AttributeType.MAGIC_ATK,
+            modType: ModifierType.ADD,
+            value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+          },
+          {
+            attrType: AttributeType.DEF,
+            modType: ModifierType.ADD,
+            value: { base: 0.1, scale: 'quality', coefficient: 0.025 },
+          },
+          {
+            attrType: AttributeType.SPEED,
+            modType: ModifierType.ADD,
+            value: { base: 0.1, scale: 'quality', coefficient: 0.025 },
+          },
+        ],
+        pickCount: 2,
+      },
     },
   },
 ];

@@ -15,7 +15,7 @@ import type {
   ListenerConfig,
 } from '../../contracts/battle';
 import { GameplayTags } from '@/engine/shared/tag-domain';
-import { AFFIX_CATEGORIES, RolledAffix } from '../../types';
+import { RolledAffix } from '../../types';
 import {
   CompositionDecision,
   PassiveProjectionPolicy,
@@ -115,7 +115,7 @@ export class ProjectionRules implements Rule<
       }
     }
 
-    const coreAffix = affixes.find((r) => r.category === AFFIX_CATEGORIES.CORE);
+    const coreAffix = affixes.find((r) => r.category === 'skill_core');
     const coreDef = coreAffix
       ? this.registry.queryById(coreAffix.id)
       : undefined;

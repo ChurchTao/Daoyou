@@ -20,13 +20,15 @@ export interface BalanceMetrics {
 }
 
 const CATEGORY_MULTIPLIER: Record<AffixCategory, number> = {
-  core: 1.3,
-  prefix: 1,
-  suffix: 1,
-  resonance: 1.15,
-  signature: 1.35,
-  synergy: 1.25,
-  mythic: 1.5,
+  skill_core: 1.3,
+  skill_variant: 1.0,
+  skill_rare: 1.5,
+  gongfa_foundation: 1.3,
+  gongfa_school: 1.15,
+  gongfa_secret: 1.4,
+  artifact_panel: 1.3,
+  artifact_defense: 1.1,
+  artifact_treasure: 1.5,
 };
 
 const EFFECT_MULTIPLIER = {
