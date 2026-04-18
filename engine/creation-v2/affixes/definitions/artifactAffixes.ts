@@ -645,7 +645,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-mana-recovery',
     displayName: '灵泉',
-    displayDescription: '每回合自动回复少量灵力',
+    displayDescription: '每回合自动回复少量法力',
     category: 'artifact_defense',
     rarity: 'common',
     match: {

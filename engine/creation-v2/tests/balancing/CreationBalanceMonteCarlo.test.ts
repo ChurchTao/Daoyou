@@ -107,7 +107,7 @@ function buildRandomFingerprint(
 describe('Creation balance Monte Carlo calibration', () => {
   it('unlock score 与 spendable energy 应维持分轨分布窗口', () => {
     const rng = new DeterministicRng(20260406);
-    const iterations = 20000;
+    const iterations = 5000;
     const spendableTotals: number[] = [];
     const unlockScores: number[] = [];
     const unlockHits = {

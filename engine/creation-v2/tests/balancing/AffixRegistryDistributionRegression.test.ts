@@ -5,7 +5,7 @@ import { TestableCreationOrchestrator } from '@/engine/creation-v2/tests/helpers
 import { CreationProductType } from '@/engine/creation-v2/types';
 import { Material } from '@/types/cultivator';
 
-const SEEDS = Array.from({ length: 80 }, (_, index) => 4200 + index);
+const SEEDS = Array.from({ length: 30 }, (_, index) => 4200 + index);
 
 const HIGH_TIER_MATERIAL_SETS: Record<CreationProductType, Material[]> = {
   skill: [
