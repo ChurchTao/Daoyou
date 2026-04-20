@@ -3,6 +3,7 @@
     "target": "ES2024",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
+    "types": ["jest", "node"],
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
