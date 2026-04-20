@@ -14,7 +14,6 @@ import {
   ListenerGuardConfig,
   ListenerScope,
   ModifierType,
-  StackRule,
 } from '../contracts/battle';
 import type { CreationTagSignalSource } from '../types';
 import { AffixCategory, CreationProductType } from '../types';
