@@ -32,6 +32,9 @@ export class WorkflowVariantPolicy {
    * 根据当前 options 决定蓝图组合后的动作键
    */
   resolveBlueprintComposedAction(): WorkflowActionKey {
+    if (this.materialAnalysisMode === 'async') {
+      return 'enrichNaming';
+    }
     return this.autoMaterialize ? 'materializeOrComplete' : 'completeWorkflow';
   }
 

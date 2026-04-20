@@ -10,6 +10,7 @@ import { TestableCreationOrchestrator as CreationOrchestrator } from '@/engine/c
 import { AffixPoolBuilder, AffixSelector, DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import { ProductComposerRegistry } from '@/engine/creation-v2/composers/ProductComposerRegistry';
 import { MaterialFingerprint } from '@/engine/creation-v2/types';
+import { ProductNamingResult } from '../analysis/ProductNamingEnricher';
 
 class StubAsyncMaterialAnalyzer {
   constructor(
@@ -26,6 +27,13 @@ class StubAsyncMaterialAnalyzer {
       fingerprints: this.fingerprints,
       enrichment: this.enrichment,
     };
+  }
+}
+
+class StubProductNamingEnricher {
+  constructor(private readonly result: ProductNamingResult | null) {}
+  async enrich() {
+    return this.result;
   }
 }
 
@@ -556,5 +564,83 @@ describe('CreationOrchestrator async material analysis', () => {
 
     expect(completed).toBe(session);
     expect(completed.state.phase).toBe('init');
+  });
+
+  it('应支持通过 LLM 异步增强产物名称和描述', async () => {
+    // 启用 LLM 命名环境变量
+    process.env.NEXT_PUBLIC_ENABLE_LLM_NAMING = 'true';
+    
+    const eventBus = new CreationEventBus();
+    const stubNamingResult: ProductNamingResult = {
+      name: '仙风云体术',
+      description: '施展时身轻如燕，有白云环绕之异象。',
+      styleInsight: '风系意象强化',
+    };
+
+    const orchestrator = new CreationOrchestrator(
+      eventBus,
+      new CreationAbilityAdapter(),
+      new DefaultMaterialAnalyzer(),
+      new StubAsyncMaterialAnalyzer(
+        [
+          {
+            materialId: 'mat-wind',
+            materialName: '风灵石',
+            materialType: 'ore',
+            rank: '玄品',
+            quantity: 1,
+            explicitTags: ['Material.Type.Ore', 'Material.Element.Wind'],
+            semanticTags: ['Material.Semantic.Wind'],
+            recipeTags: ['Recipe.ProductBias.Skill'],
+            energyValue: 20, // 调高能量，确保够选 core 词缀 (cost=10)
+            rarityWeight: 2,
+            element: '风',
+          },
+        ],
+        { status: 'success' },
+      ) as unknown as AsyncMaterialAnalyzer,
+      new DefaultIntentResolver(),
+      new DefaultRecipeValidator(),
+      new DefaultEnergyBudgeter(),
+      new ProductComposerRegistry(),
+      new AffixPoolBuilder(),
+      new AffixSelector(),
+      DEFAULT_AFFIX_REGISTRY,
+      new StubProductNamingEnricher(stubNamingResult) as any,
+    );
+
+    const session = orchestrator.createSession({
+      sessionId: 'async-naming-test',
+      productType: 'skill',
+      materials: [
+        {
+          id: 'mat-wind',
+          name: '风灵石',
+          type: 'ore',
+          rank: '玄品',
+          quantity: 1,
+          element: '风',
+        },
+      ],
+    });
+
+    // 运行异步工作流
+    orchestrator.runEventDrivenWorkflow(session, {
+      materialAnalysisMode: 'async',
+      autoMaterialize: true,
+    });
+
+    const completed = await orchestrator.waitForWorkflowCompletion(session.id);
+
+    // 调试辅助信息
+    if (!completed.state.blueprint) {
+       console.error('Session Phase:', completed.state.phase);
+       console.error('Failure Reason:', completed.state.failureReason);
+    }
+
+    // 验证名称和描述是否被 LLM 结果覆盖
+    expect(completed.state.blueprint?.productModel.name).toBe(stubNamingResult.name);
+    expect(completed.state.blueprint?.productModel.description).toBe(stubNamingResult.description);
+    expect(completed.state.namingMetadata?.status).toBe('success');
   });
 });

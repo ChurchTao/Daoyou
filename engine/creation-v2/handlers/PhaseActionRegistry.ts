@@ -13,6 +13,7 @@ export type WorkflowActionKey =
   | 'buildAffixPool'
   | 'rollAffixes'
   | 'composeBlueprint'
+  | 'enrichNaming'
   | 'materializeOrComplete'
   | 'completeWorkflow';
 

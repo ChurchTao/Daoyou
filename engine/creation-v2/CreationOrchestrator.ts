@@ -20,6 +20,7 @@ import { AsyncMaterialAnalyzer } from './analysis/AsyncMaterialAnalyzer';
 import { buildCreationTagSignals } from './analysis/CreationTagSignalBuilder';
 import { DefaultMaterialAnalyzer } from './analysis/DefaultMaterialAnalyzer';
 import type { MaterialSemanticEnrichmentReport } from './analysis/MaterialSemanticEnricher';
+import { buildMaterialQualityProfile } from './analysis/MaterialBalanceProfile';
 import { DefaultEnergyBudgeter } from './budgeting/DefaultEnergyBudgeter';
 import { ProductComposerRegistry } from './composers/ProductComposerRegistry';
 import {
@@ -44,6 +45,7 @@ import { validateCreationInput } from './validation/CreationInputValidator';
 import { resolveAffixSlotCount } from './config/CreationBalance';
 import { CreationError } from './errors';
 import { SkillProductModel } from './models';
+import { DeepSeekProductNamingEnricher, ProductNamingFacts } from './analysis/ProductNamingEnricher';
 
 /*
  * CreationOrchestrator: 编排层主入口。
@@ -76,6 +78,7 @@ export class CreationOrchestrator {
     private readonly affixPoolBuilder = new AffixPoolBuilder(),
     private readonly affixSelector = new AffixSelector(),
     readonly affixRegistry: AffixRegistry = DEFAULT_AFFIX_REGISTRY,
+    private readonly namingEnricher = new DeepSeekProductNamingEnricher(),
   ) {
     this.phaseActionRegistry = new PhaseActionRegistry();
     this.phaseActionRegistry.registerDefaults({
@@ -87,6 +90,7 @@ export class CreationOrchestrator {
       buildAffixPool: (session) => { this.buildAffixPoolWithDefaults(session); },
       rollAffixes: (session) => { this.rollAffixesWithDefaults(session); },
       composeBlueprint: (session) => { this.composeBlueprintWithDefaults(session); },
+      enrichNaming: async (session) => { await this.enrichNamingWithLLM(session); },
       materializeOrComplete: (session) => { this.materializeOutcome(session); },
     });
 
@@ -96,13 +100,7 @@ export class CreationOrchestrator {
       getVariantPolicy: (sessionId) => this.activeWorkflowPolicies.get(sessionId),
       phaseActionRegistry: this.phaseActionRegistry,
       completeWorkflow: (sessionId) => {
-        const session = this.sessions.get(sessionId);
-        const completion = this.workflowCompletions.get(sessionId);
-        this.activeWorkflowPolicies.delete(sessionId);
-        this.workflowCompletions.delete(sessionId);
-        if (session && completion) {
-          completion.resolve(session);
-        }
+        this.completeWorkflow(sessionId);
       },
       fail: (session, reason, details) => {
         this.fail(session, reason, details);
@@ -561,6 +559,67 @@ export class CreationOrchestrator {
     });
 
     return outcome;
+  }
+
+  protected completeWorkflow(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    const completion = this.workflowCompletions.get(sessionId);
+    this.activeWorkflowPolicies.delete(sessionId);
+    this.workflowCompletions.delete(sessionId);
+    if (session && completion) {
+      completion.resolve(session);
+    }
+  }
+
+  protected async enrichNamingWithLLM(session: CreationSession): Promise<void> {
+    if (!session.state.blueprint) {
+      throw new Error('Cannot enrich naming before blueprint is composed');
+    }
+
+    // 从 session.state 构建 ProductNamingFacts 对象
+    const facts: ProductNamingFacts = {
+      productType: session.state.input.productType,
+      elementBias: session.state.intent?.elementBias,
+      dominantTags: session.state.intent?.dominantTags ?? [],
+      rolledAffixes: session.state.rolledAffixes,
+      qualityProfile: buildMaterialQualityProfile(
+        session.state.materialFingerprints,
+      ),
+      materialNames: session.state.materialFingerprints.map(
+        (f) => f.materialName,
+      ),
+    };
+
+    const enrichment = await this.namingEnricher.enrich(facts);
+
+    if (enrichment) {
+      const model = session.state.blueprint.productModel;
+      model.originalName = model.name; // Task 3 已增加该字段
+      model.name = enrichment.name;
+      model.description = enrichment.description;
+
+      session.state.namingMetadata = {
+        status: 'success',
+        styleInsight: enrichment.styleInsight,
+        originalName: model.originalName,
+        provider: 'deepseek',
+      };
+    } else {
+      session.state.namingMetadata = {
+        status: 'fallback',
+        originalName: session.state.blueprint.productModel.name,
+      };
+    }
+
+    // 核心流转逻辑
+    const policy = this.activeWorkflowPolicies.get(session.id);
+    if (policy) {
+      if (policy.isAutoMaterialize()) {
+        this.materializeOutcome(session);
+      } else {
+        this.completeWorkflow(session.id);
+      }
+    }
   }
 
   markPersisted(session: CreationSession): void {

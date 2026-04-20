@@ -87,6 +87,13 @@ export interface MaterialFingerprintLLMMetadata {
   provider?: string;
 }
 
+export interface ProductNamingLLMMetadata {
+  status: 'success' | 'fallback';
+  styleInsight?: string;
+  originalName?: string;
+  provider?: string;
+}
+
 export interface MaterialFingerprintMetadata extends Record<string, unknown> {
   description?: string;
   llm?: MaterialFingerprintLLMMetadata;
@@ -257,6 +264,7 @@ import type { AffixEffectTemplate } from './affixes/types';
 export interface AffixCandidate {
   id: string;
   name: string;
+  description: string;
   category: AffixCategory;
   match: AffixTagMatcher;
   tags: string[];
@@ -318,6 +326,7 @@ export interface CreationSessionState {
 
   // ── 阶段 7：蓝图组合 ────────────────────────────────────────────────────────
   blueprint?: CreationBlueprint;
+  namingMetadata?: ProductNamingLLMMetadata;
 
   // ── 阶段 8：产物实体化 ──────────────────────────────────────────────────────
   outcome?: CraftedOutcome;

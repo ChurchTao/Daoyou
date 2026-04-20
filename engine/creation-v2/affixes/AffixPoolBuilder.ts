@@ -191,6 +191,7 @@ export class AffixPoolBuilder {
     return {
       id: def.id,
       name: def.displayName,
+      description: def.displayDescription,
       category: def.category,
       match: def.match,
       tags: flattenAffixMatcherTags(def.match),

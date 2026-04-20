@@ -24,6 +24,7 @@ interface BaseProductModel<
   outcomeKind: TOutcomeKind;
   slug: string;
   name: string;
+  originalName?: string;
   description?: string;
   outcomeTags: string[];
   affixes: RolledAffix[];
