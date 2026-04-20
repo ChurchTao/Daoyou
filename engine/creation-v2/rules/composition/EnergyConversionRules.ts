@@ -25,13 +25,19 @@ export class EnergyConversionRules
   }: RuleContext<CompositionFacts, CompositionDecision>): void {
     if (facts.productType !== 'skill') return;
 
-    const { energySummary, affixes } = facts;
+    const { energySummary, affixes, materialQualityProfile } = facts;
+
+    // 指数级增长：每提升一阶品质，蓝耗加倍，以对齐角色属性的指数级增长
+    const qualityOrder = materialQualityProfile.weightedAverageOrder;
+    const qualityMultiplier = Math.pow(2, qualityOrder);
+
+    const baseMpCost = Math.round(
+      energySummary.effectiveTotal / CREATION_PROJECTION_BALANCE.mpCostDivisor,
+    );
+
     const mpCost = Math.max(
-      CREATION_SKILL_DEFAULTS.minMpCost,
-      Math.round(
-        energySummary.effectiveTotal /
-          CREATION_PROJECTION_BALANCE.mpCostDivisor,
-      ),
+      CREATION_SKILL_DEFAULTS.minMpCost * qualityMultiplier,
+      baseMpCost * qualityMultiplier,
     );
     const priority =
       CREATION_PROJECTION_BALANCE.skillPriorityBase + affixes.length;
@@ -41,7 +47,7 @@ export class EnergyConversionRules
     diagnostics.addTrace({
       ruleId: this.id,
       outcome: 'applied',
-      message: `能量换算：mpCost=${mpCost}, priority=${priority}`,
+      message: `能量换算：mpCost=${mpCost} (multiplier=${qualityMultiplier}), priority=${priority}`,
     });
   }
 }

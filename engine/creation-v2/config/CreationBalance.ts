@@ -318,6 +318,12 @@ export const CREATION_PROJECTION_BALANCE = {
 
   /** 功法 Spirit 增益型兜底效果的基础值。 */
   gongfaSpiritBuffBase: 3,
+
+  /**
+   * 主动技能冷却时间品质加成（基于品质 order 0-7）。
+   * 将在基础冷却上增加该值，且总冷却限制在 2~8 回合。
+   */
+  qualityCooldownBonus: [0, 0, 1, 2, 3, 4, 5, 6] as const,
 } as const;
 
 /**

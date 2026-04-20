@@ -7,6 +7,7 @@ import {
 } from '../../composers/shared';
 import {
   CREATION_LISTENER_PRIORITIES,
+  CREATION_PROJECTION_BALANCE,
   CREATION_SKILL_DEFAULTS,
 } from '../../config/CreationBalance';
 import type {
@@ -130,16 +131,22 @@ export class ProjectionRules implements Rule<
     }
 
     const coreType = coreDef.effectTemplate.type;
-    const cooldown =
+    const baseCooldown =
       coreType === 'heal'
         ? CREATION_SKILL_DEFAULTS.healCooldown
         : coreType === 'apply_buff'
           ? CREATION_SKILL_DEFAULTS.buffCooldown
           : CREATION_SKILL_DEFAULTS.damageCooldown;
+
+    // 增加随品质带来的冷却延长，封顶 8 回合
+    const qualityOrder = materialQualityProfile.weightedAverageOrder;
+    const cooldownBonus = CREATION_PROJECTION_BALANCE.qualityCooldownBonus[qualityOrder] ?? 0;
+    const cooldown = Math.min(8, baseCooldown + cooldownBonus);
+
     diagnostics.addTrace({
       ruleId: this.id,
       outcome: 'applied',
-      message: `cooldown=${cooldown} (coreType=${coreType})`,
+      message: `cooldown=${cooldown} (coreType=${coreType}, base=${baseCooldown}, bonus=${cooldownBonus})`,
     });
 
     // EnergyConversionRules must have already populated decision.energyConversion
