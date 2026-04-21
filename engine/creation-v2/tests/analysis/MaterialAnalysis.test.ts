@@ -127,7 +127,7 @@ describe('MaterialBalanceProfile', () => {
 describe('MaterialFactsBuilder', () => {
   const builder = new MaterialFactsBuilder();
 
-  it('材料语义应优先于用户请求标签，但请求标签仍可保留在 dominantTags 中', () => {
+  it('材料语义标签出现次数越高应越应居于 dominantTags 前位', () => {
     const fingerprints: MaterialFingerprint[] = Array.from({ length: 5 }).map(
       (_, index) => ({
         materialName: `赤炎材料-${index}`,
@@ -143,10 +143,10 @@ describe('MaterialFactsBuilder', () => {
       }),
     );
 
-    const facts = builder.build('skill', fingerprints, ['Material.Semantic.Burst']);
+    const facts = builder.build('skill', fingerprints);
 
     expect(facts.dominantTags[0]).toBe('Material.Semantic.Flame');
-    expect(facts.dominantTags).toContain('Material.Semantic.Burst');
+    expect(facts.dominantTags).toContain('Material.Semantic.Flame');
   });
 
   it('多材料 spread 投入时 unlock score 应低于 spendable energy', () => {
@@ -186,7 +186,7 @@ describe('MaterialFactsBuilder', () => {
       },
     ];
 
-    const facts = builder.build('skill', fingerprints, []);
+    const facts = builder.build('skill', fingerprints);
 
     expect(facts.energyProfile.effectiveEnergy).toBe(31);
     expect(facts.unlockScore).toBe(27);

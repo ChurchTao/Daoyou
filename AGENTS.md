@@ -1,45 +1,65 @@
-# Repository Guidelines
+# CLAUDE.md
 
-## Project Structure & Module Organization
-- `app/`: Next.js App Router pages, layouts, and route handlers (`app/api/*`).
-- `components/`: React components, including the Ink-style UI library under `components/ui/`.
-- `engine/`: Core game logic (battle, effects, buff, creation, cultivator). This layer is framework-agnostic.
-- `lib/`: Services, repositories, and infrastructure helpers (Drizzle, Supabase, Redis integrations).
-- `config/`: System configuration such as buff templates.
-- `types/` and `utils/`: Shared types and utility functions.
-- `drizzle/`: Migration artifacts; schema lives under `lib/drizzle/`.
-- `public/`: Static assets.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Build, Test, and Development Commands
-- `npm run dev`: Start the local Next.js dev server.
-- `npm run build`: Production build.
-- `npm run start`: Run the production server after build.
-- `npm run lint`: ESLint checks.
-- `npm run format`: Prettier formatting for code and docs.
-- `npm test`: Run Jest tests (Node environment).
-- `npx drizzle-kit push`: Push schema changes to the database.
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-## Coding Style & Naming Conventions
-- TypeScript everywhere; prefer explicit, descriptive names.
-- Prettier defaults: 2-space indent, single quotes, semicolons, 80-char print width.
-- ESLint config is Next.js-based; fix lint warnings before PRs.
-- Use `@/` path alias for root imports.
-- Code comments and identifiers are English; UI content is Simplified Chinese.
+## 1. Think Before Coding
 
-## Testing Guidelines
-- Jest is the test runner; tests live alongside modules.
-- Naming: `*.test.ts` (examples in `engine/`, `utils/`, `lib/`).
-- Add tests for engine logic and utility changes; keep test runtime under the global 10s timeout.
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-## Commit & Pull Request Guidelines
-- Commit history suggests conventional style with optional emoji: `type(scope): summary`.
-- Keep subjects short and imperative (e.g., `fix(battle): handle empty log`).
-- PRs should include: a clear summary, linked issue (if any), and screenshots for UI changes.
-- Note any schema changes and include migration steps when applicable.
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-## Security & Configuration Tips
-- Copy `.env.example` to `.env.local` and populate secrets locally.
-- Never commit API keys or database credentials.
+## 2. Simplicity First
 
-## Agent-Specific Instructions
-- See `CLAUDE.md` and `GEMINI.md` for deeper architecture and workflow notes.
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

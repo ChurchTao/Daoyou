@@ -1,5 +1,11 @@
-import { BuffInstanceState } from '@/engine/buff/types';
-import { EffectConfig } from '@/engine/effect/types';
+import type { AbilityConfig } from '@/engine/creation-v2/contracts/battle';
+import {
+  deserializeAbilityConfig,
+  serializeAbilityConfig,
+  serializeProductModel,
+} from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { AbilityType } from '@/engine/battle-v5/core/types';
+import { GameplayTags } from '@/engine/shared/tag-domain';
 import {
   ConsumableType,
   ElementType,
@@ -43,12 +49,14 @@ import {
   type CultivatorRecord,
   type CultivatorRelations,
 } from '@/lib/repositories/cultivatorRepository';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import {
   getExecutor,
   type DbExecutor,
   type DbTransaction,
 } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
+import { toArtifactFromProduct } from './creationProductArtifactSupport';
 
 async function assembleCultivatorFromRelations(
   cultivatorRecord: CultivatorRecord,
@@ -69,53 +77,97 @@ async function assembleCultivatorFromRelations(
   const pre_heaven_fates = relations.preHeavenFates.map((f) => ({
     name: f.name,
     quality: f.quality as Quality,
-    effects: (f.effects ?? []) as EffectConfig[],
     description: f.description || undefined,
   }));
+  const skillProducts = relations.creationProducts.filter(
+    (product) => product.productType === 'skill',
+  );
+  const gongfaProducts = relations.creationProducts.filter(
+    (product) => product.productType === 'gongfa',
+  );
+  const artifactProducts = relations.creationProducts.filter(
+    (product) => product.productType === 'artifact',
+  );
 
-  const cultivations = relations.cultivations.map((c) => ({
-    id: c.id,
-    name: c.name,
-    grade: c.grade as SkillGrade | undefined,
-    required_realm: c.required_realm as RealmType,
-    score: c.score || 0,
-    effects: (c.effects ?? []) as EffectConfig[],
-    description: c.description || undefined,
-  }));
+  const toAbilityConfig = (
+    abilityConfig: Record<string, unknown>,
+    id: string,
+  ): AbilityConfig => deserializeAbilityConfig(abilityConfig, id);
 
-  const skills = relations.skills.map((s) => ({
-    id: s.id,
-    name: s.name,
-    element: s.element as ElementType,
-    grade: s.grade as SkillGrade | undefined,
-    cost: s.cost || undefined,
-    cooldown: s.cooldown,
-    target_self: s.target_self === 1 ? true : undefined,
-    description: s.description || undefined,
-    effects: (s.effects ?? []) as EffectConfig[],
-  }));
+  const cultivations = gongfaProducts.map((product) => {
+    const abilityConfig = toAbilityConfig(
+      product.abilityConfig as Record<string, unknown>,
+      product.id,
+    );
 
-  const artifacts = relations.artifacts.map((a) => ({
-    id: a.id,
-    name: a.name,
-    slot: a.slot as Cultivator['inventory']['artifacts'][0]['slot'],
-    element: a.element as Cultivator['inventory']['artifacts'][0]['element'],
-    quality: a.quality as
-      | Cultivator['inventory']['artifacts'][0]['quality']
-      | undefined,
-    required_realm: a.required_realm as
-      | Cultivator['inventory']['artifacts'][0]['required_realm']
-      | undefined,
-    description: a.description || '',
-    effects: (a.effects ??
-      []) as Cultivator['inventory']['artifacts'][0]['effects'],
-  }));
+    return {
+      id: product.id,
+      name: product.name,
+      grade: undefined as SkillGrade | undefined,
+      required_realm: cultivatorRecord.realm as RealmType,
+      score: product.score || 0,
+      description: product.description || undefined,
+      attributeModifiers: abilityConfig.modifiers ?? [],
+      abilityConfig,
+    };
+  });
 
-  const equippedRow = relations.equippedItems[0];
+  const skills = skillProducts.map((product) => {
+    const abilityConfig = toAbilityConfig(
+      product.abilityConfig as Record<string, unknown>,
+      product.id,
+    );
+
+    return {
+      id: product.id,
+      name: product.name,
+      element: (product.element as ElementType) || '金',
+      grade: undefined as SkillGrade | undefined,
+      cost: abilityConfig.mpCost || undefined,
+      cooldown: abilityConfig.cooldown ?? 0,
+      target_self:
+        abilityConfig.targetPolicy?.team === 'self' ? true : undefined,
+      description: product.description || undefined,
+      abilityConfig,
+    };
+  });
+
+  const artifacts = artifactProducts.map((product) => {
+    const abilityConfig = toAbilityConfig(
+      product.abilityConfig as Record<string, unknown>,
+      product.id,
+    );
+
+    return {
+      id: product.id,
+      name: product.name,
+      slot: (product.slot as EquipmentSlot) || 'weapon',
+      element: (product.element as ElementType) || '金',
+      quality: product.quality as
+        | Cultivator['inventory']['artifacts'][0]['quality']
+        | undefined,
+      required_realm: cultivatorRecord.realm as
+        | Cultivator['inventory']['artifacts'][0]['required_realm']
+        | undefined,
+      description: product.description || '',
+      attributeModifiers: abilityConfig.modifiers ?? [],
+      abilityConfig,
+    };
+  });
+
   const equipped: Cultivator['equipped'] = {
-    weapon: equippedRow?.weapon_id ? String(equippedRow.weapon_id) : null,
-    armor: equippedRow?.armor_id ? String(equippedRow.armor_id) : null,
-    accessory: equippedRow?.accessory_id ? String(equippedRow.accessory_id) : null,
+    weapon:
+      artifactProducts.find(
+        (product) => product.isEquipped && product.slot === 'weapon',
+      )?.id ?? null,
+    armor:
+      artifactProducts.find(
+        (product) => product.isEquipped && product.slot === 'armor',
+      )?.id ?? null,
+    accessory:
+      artifactProducts.find(
+        (product) => product.isEquipped && product.slot === 'accessory',
+      )?.id ?? null,
   };
 
   const consumables: Consumable[] = [];
@@ -321,52 +373,14 @@ export async function createCultivator(
           cultivatorId,
           name: fate.name,
           quality: fate.quality || null,
-          effects: fate.effects ?? [],
+          effects: [],
           description: fate.description || null,
         })),
       );
     }
 
-    // 4. 创建功法
-    if (cultivator.cultivations.length > 0) {
-      await tx.insert(schema.cultivationTechniques).values(
-        cultivator.cultivations.map((cult) => ({
-          cultivatorId,
-          name: cult.name,
-          grade: cult.grade || null,
-          required_realm: cult.required_realm,
-          score: calculateSingleTechniqueScore(cult as CultivationTechnique),
-          effects: cult.effects ?? [],
-        })),
-      );
-    }
-
-    // 5. 创建技能
-    if (cultivator.skills.length > 0) {
-      await tx.insert(schema.skills).values(
-        cultivator.skills.map((skill) => ({
-          cultivatorId,
-          name: skill.name,
-          element: skill.element,
-          grade: skill.grade || null,
-          cost: skill.cost || 0,
-          cooldown: skill.cooldown,
-          target_self: skill.target_self ? 1 : 0,
-          description: skill.description || null,
-          effects: skill.effects ?? [],
-        })),
-      );
-    }
-
-    // 6. 创建装备状态表（初始为空）
-    await tx.insert(schema.equippedItems).values({
-      cultivatorId,
-      weapon_id: null,
-      armor_id: null,
-      accessory_id: null,
-    });
-
-    // 注意：artifacts 和 consumables 不在创建时生成，由用户后续手动添加
+    // 注意：产物与装备状态均由 creation_products 承载，创建角色时无需初始化旧装备表
+    // 注意：功法/神通 在角色创建阶段不再初始化，由造物 v2 流程单独生成
 
     return cultivatorRecord;
   });
@@ -800,19 +814,9 @@ export type MaterialInventorySortBy =
 export type MaterialInventorySortOrder = 'asc' | 'desc';
 
 function mapArtifactRow(
-  a: typeof schema.artifacts.$inferSelect,
+  a: ReturnType<typeof toArtifactFromProduct>,
 ): Cultivator['inventory']['artifacts'][number] {
-  return {
-    id: a.id,
-    name: a.name,
-    slot: a.slot as Artifact['slot'],
-    element: a.element as Artifact['element'],
-    quality: a.quality as Artifact['quality'],
-    required_realm: a.required_realm as Artifact['required_realm'],
-    description: a.description || '',
-    effects: (a.effects ?? []) as Artifact['effects'],
-    score: a.score,
-  };
+  return a;
 }
 
 function mapConsumableRow(
@@ -823,9 +827,6 @@ function mapConsumableRow(
     name: c.name,
     quality: c.quality as Quality,
     type: c.type as ConsumableType,
-    effects: (Array.isArray(c.effects)
-      ? c.effects
-      : [c.effects].filter(Boolean)) as EffectConfig[],
     quantity: c.quantity,
     description: c.description || '',
   };
@@ -875,13 +876,15 @@ export async function getCultivatorArtifacts(
   cultivatorId: string,
   tx?: DbTransaction,
 ): Promise<Cultivator['inventory']['artifacts']> {
+  await assertCultivatorOwnership(userId, cultivatorId);
   const q = getExecutor(tx);
-  const result = await q
-    .select()
-    .from(schema.artifacts)
-    .where(eq(schema.artifacts.cultivatorId, cultivatorId));
+  const result = await creationProductRepository.findByTypeAndCultivator(
+    cultivatorId,
+    'artifact',
+    q,
+  );
 
-  return result.map(mapArtifactRow);
+  return result.map((artifact) => mapArtifactRow(toArtifactFromProduct(artifact)));
 }
 
 export async function getPaginatedInventoryByType<T extends InventoryType>(
@@ -908,22 +911,36 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   if (options.type === 'artifacts') {
     const countResult = await getExecutor()
       .select({ count: sql<number>`count(*)` })
-      .from(schema.artifacts)
-      .where(eq(schema.artifacts.cultivatorId, cultivatorId));
+      .from(schema.creationProducts)
+      .where(
+        and(
+          eq(schema.creationProducts.cultivatorId, cultivatorId),
+          eq(schema.creationProducts.productType, 'artifact'),
+        ),
+      );
     const total = Number(countResult[0]?.count || 0);
 
     const rows = await getExecutor()
       .select()
-      .from(schema.artifacts)
-      .where(eq(schema.artifacts.cultivatorId, cultivatorId))
-      .orderBy(desc(schema.artifacts.createdAt), desc(schema.artifacts.id))
+      .from(schema.creationProducts)
+      .where(
+        and(
+          eq(schema.creationProducts.cultivatorId, cultivatorId),
+          eq(schema.creationProducts.productType, 'artifact'),
+        ),
+      )
+      .orderBy(
+        desc(schema.creationProducts.createdAt),
+        desc(schema.creationProducts.id),
+      )
       .limit(pageSize)
       .offset(offset);
 
     const totalPages = Math.ceil(total / pageSize);
     return {
       type: options.type,
-      items: rows.map(mapArtifactRow) as InventoryItemByType[T][],
+      items: rows
+        .map((artifact) => mapArtifactRow(toArtifactFromProduct(artifact))) as InventoryItemByType[T][],
       pagination: {
         page,
         pageSize,
@@ -1092,8 +1109,13 @@ export async function getInventory(
   // 获取法宝、消耗品和材料（串行）
   const artifactsResult = await getExecutor()
     .select()
-    .from(schema.artifacts)
-    .where(eq(schema.artifacts.cultivatorId, cultivatorId));
+    .from(schema.creationProducts)
+    .where(
+      and(
+        eq(schema.creationProducts.cultivatorId, cultivatorId),
+        eq(schema.creationProducts.productType, 'artifact'),
+      ),
+    );
   const consumablesResult = await getExecutor()
     .select()
     .from(schema.consumables)
@@ -1104,21 +1126,12 @@ export async function getInventory(
     .where(eq(schema.materials.cultivatorId, cultivatorId));
 
   return {
-    artifacts: artifactsResult.map((a) => ({
-      id: a.id,
-      name: a.name,
-      slot: a.slot as EquipmentSlot,
-      element: a.element as ElementType,
-      effects: a.effects as EffectConfig[],
-    })),
+    artifacts: artifactsResult.map(toArtifactFromProduct),
     consumables: consumablesResult.map((c) => ({
       id: c.id,
       name: c.name,
       type: c.type as ConsumableType,
       quality: c.quality as Quality | undefined,
-      effects: (Array.isArray(c.effects)
-        ? c.effects
-        : [c.effects].filter(Boolean)) as EffectConfig[],
       quantity: c.quantity,
     })),
     materials: materialsResult.map((m) => ({
@@ -1158,292 +1171,34 @@ export async function equipEquipment(
   }
 
   // 获取装备信息
-  const artifact = await getExecutor()
-    .select()
-    .from(schema.artifacts)
-    .where(
-      and(
-        eq(schema.artifacts.cultivatorId, cultivatorId),
-        eq(schema.artifacts.id, artifactId),
-      ),
-    );
+  const artifact = await creationProductRepository.findById(artifactId);
 
-  if (artifact.length === 0) {
+  if (
+    !artifact ||
+    artifact.cultivatorId !== cultivatorId ||
+    artifact.productType !== 'artifact'
+  ) {
     throw new Error('装备不存在或无权限操作');
   }
 
-  const artifactItem = artifact[0];
-  const slot = artifactItem.slot;
-
-  // 获取当前装备状态
-  const equippedItems = await getExecutor()
-    .select()
-    .from(schema.equippedItems)
-    .where(eq(schema.equippedItems.cultivatorId, cultivatorId));
-
-  let equippedItem;
-  if (equippedItems.length === 0) {
-    // 如果没有装备状态记录，创建一个
-    const newEquipped = await getExecutor()
-      .insert(schema.equippedItems)
-      .values({
-        cultivatorId,
-        weapon_id: null,
-        armor_id: null,
-        accessory_id: null,
-      })
-      .returning();
-    equippedItem = newEquipped[0];
+  const slot = (artifact.slot as EquipmentSlot) || 'weapon';
+  if (artifact.isEquipped) {
+    await creationProductRepository.unequipArtifact(artifactId);
   } else {
-    equippedItem = equippedItems[0];
+    await creationProductRepository.equipArtifact(artifactId, cultivatorId, slot);
   }
 
-  // 装备或卸下装备
-  const slotField = `${slot}_id` as 'weapon_id' | 'armor_id' | 'accessory_id';
-  const currentId = equippedItem[slotField];
-
-  const updateData: Partial<typeof schema.equippedItems.$inferInsert> = {};
-  if (currentId === artifactId) {
-    // 卸下装备
-    updateData[slotField] = null;
-  } else {
-    // 装备新装备，替换旧装备（artifactId 是字符串 UUID）
-    updateData[slotField] = artifactId as string & { __brand: 'uuid' };
-  }
-
-  // 更新装备状态
-  const updated = await getExecutor()
-    .update(schema.equippedItems)
-    .set(updateData)
-    .where(eq(schema.equippedItems.id, equippedItem.id))
-    .returning();
+  const equippedArtifacts = await creationProductRepository.findEquippedArtifacts(
+    cultivatorId,
+  );
 
   return {
-    weapon: updated[0].weapon_id ? String(updated[0].weapon_id) : null,
-    armor: updated[0].armor_id ? String(updated[0].armor_id) : null,
-    accessory: updated[0].accessory_id ? String(updated[0].accessory_id) : null,
+    weapon:
+      equippedArtifacts.find((item) => item.slot === 'weapon')?.id ?? null,
+    armor: equippedArtifacts.find((item) => item.slot === 'armor')?.id ?? null,
+    accessory:
+      equippedArtifacts.find((item) => item.slot === 'accessory')?.id ?? null,
   };
-}
-
-// ===== 技能相关操作 =====
-
-// ===== 装备相关操作 =====
-
-/**
- * 使用消耗品（类型分发入口）
- * 使用效果引擎统一处理所有消耗品效果
- */
-export async function consumeItem(
-  userId: string,
-  cultivatorId: string,
-  consumableId: string,
-): Promise<{ success: boolean; message: string; cultivator: Cultivator }> {
-  await assertCultivatorOwnership(userId, cultivatorId);
-
-  const consumableRows = await getExecutor()
-    .select()
-    .from(schema.consumables)
-    .where(eq(schema.consumables.id, consumableId));
-
-  if (consumableRows.length === 0) {
-    throw new Error('消耗品不存在或已使用');
-  }
-
-  const item = consumableRows[0];
-  if (item.cultivatorId !== cultivatorId) {
-    throw new Error('消耗品不属于该道友');
-  }
-
-  // 只查询角色主表，避免关联表查询
-  const cultivatorRows = await getExecutor()
-    .select()
-    .from(schema.cultivators)
-    .where(eq(schema.cultivators.id, cultivatorId))
-    .limit(1);
-
-  if (cultivatorRows.length === 0) {
-    throw new Error('道友不存在');
-  }
-
-  const cultivatorRecord = cultivatorRows[0];
-
-  // 创建最小化的 Cultivator 对象，仅包含效果引擎需要的字段
-  const cultivator = createMinimalCultivator(cultivatorRecord);
-
-  // 读取效果配置
-  const effects = (item.effects ?? []) as EffectConfig[];
-
-  if (effects.length === 0) {
-    // 即使无效也消耗掉
-    await handleConsumeItem(item.id, item.quantity);
-    return {
-      success: false,
-      message: '此消耗品灵气尽失，使用后毫无反应。',
-      cultivator: (await getCultivatorById(userId, cultivatorId))!,
-    };
-  }
-
-  // 使用事务处理效果应用和数量扣减
-  let finalMessage = `使用了【${item.name}】`;
-
-  await getExecutor().transaction(async (tx) => {
-    // 创建效果实例
-    const { EffectFactory } = await import('@/engine/effect/EffectFactory');
-    const { EffectTrigger } = await import('@/engine/effect/types');
-    const { CultivatorAdapter } =
-      await import('@/engine/effect/CultivatorAdapter');
-    const { EffectLogCollector } = await import('@/engine/effect/types');
-
-    // 创建适配器
-    const adapter = new CultivatorAdapter(cultivator);
-
-    // 创建日志收集器
-    const logCollector = new EffectLogCollector();
-
-    // 获取当前的持久状态
-    const currentStatuses = (cultivator.persistent_statuses ||
-      []) as BuffInstanceState[];
-
-    // 创建效果实例数组
-    const effectInstances = effects.map((config) =>
-      EffectFactory.create(config),
-    );
-
-    // 构建效果上下文
-    const ctx = {
-      source: adapter,
-      target: adapter,
-      trigger: EffectTrigger.ON_CONSUME,
-      value: 0,
-      metadata: {
-        tx,
-        consumableName: item.name,
-        persistent_statuses: currentStatuses,
-        newBuffs: [] as BuffInstanceState[],
-      },
-      logCollector,
-    };
-
-    // 依次执行每个效果
-    for (const effect of effectInstances) {
-      // 检查触发时机
-      if (effect.trigger !== EffectTrigger.ON_CONSUME) {
-        console.warn(`[consumeItem] 效果触发时机不匹配: ${effect.trigger}`);
-        continue;
-      }
-
-      effect.apply(ctx);
-    }
-
-    // 收集日志
-    const logs = logCollector.getLogMessages();
-    if (logs.length > 0) {
-      finalMessage = logs.join('，');
-    }
-
-    // 获取更新后的数据
-    const updatedCultivator = adapter.getData();
-
-    // 处理新添加的持久 Buff
-    const newBuffs = (ctx.metadata?.newBuffs as BuffInstanceState[]) || [];
-    let updatedStatuses = currentStatuses;
-    if (newBuffs.length > 0) {
-      updatedStatuses = [...currentStatuses, ...newBuffs];
-    }
-
-    // 获取待处理的修为、感悟、寿元值
-    const metadata = ctx.metadata as Record<string, unknown>;
-    const pendingCultivationExp =
-      (metadata.pendingCultivationExp as number) || 0;
-    const pendingComprehension = (metadata.pendingComprehension as number) || 0;
-    const pendingLifespan = (metadata.pendingLifespan as number) || 0;
-
-    // 更新 cultivation_progress（修为和感悟）
-    let finalCultivationProgress = updatedCultivator.cultivation_progress;
-    if (pendingCultivationExp > 0 || pendingComprehension > 0) {
-      const progress = getOrInitCultivationProgress(
-        (updatedCultivator.cultivation_progress as CultivationProgress | null) ||
-          ({} as CultivationProgress),
-        cultivator.realm as RealmType,
-        cultivator.realm_stage as RealmStage,
-      );
-
-      // 更新修为和感悟
-      progress.cultivation_exp += pendingCultivationExp;
-      progress.comprehension_insight += pendingComprehension;
-
-      finalCultivationProgress = progress;
-    }
-
-    // 更新寿元
-    let finalLifespan = updatedCultivator.lifespan || 0;
-    if (pendingLifespan > 0) {
-      finalLifespan = finalLifespan + pendingLifespan;
-    }
-
-    // 持久化所有变更
-    await tx
-      .update(schema.cultivators)
-      .set({
-        vitality: Math.round(updatedCultivator.attributes.vitality),
-        spirit: Math.round(updatedCultivator.attributes.spirit),
-        wisdom: Math.round(updatedCultivator.attributes.wisdom),
-        speed: Math.round(updatedCultivator.attributes.speed),
-        willpower: Math.round(updatedCultivator.attributes.willpower),
-        cultivation_progress: finalCultivationProgress,
-        lifespan: finalLifespan,
-        persistent_statuses: updatedStatuses,
-      })
-      .where(eq(schema.cultivators.id, cultivatorId));
-
-    // 消耗数量
-    await handleConsumeItemTx(tx, item.id, item.quantity);
-  });
-
-  // 只在最后查询一次完整数据用于返回
-  return {
-    success: true,
-    message: finalMessage,
-    cultivator: (await getCultivatorById(userId, cultivatorId))!,
-  };
-}
-
-/**
- * 处理消耗品消耗（事务版本）
- */
-async function handleConsumeItemTx(
-  tx: DbTransaction,
-  itemId: string,
-  quantity: number,
-) {
-  if (quantity > 1) {
-    await tx
-      .update(schema.consumables)
-      .set({ quantity: quantity - 1 })
-      .where(eq(schema.consumables.id, itemId));
-  } else {
-    await tx
-      .delete(schema.consumables)
-      .where(eq(schema.consumables.id, itemId));
-  }
-}
-
-async function handleConsumeItem(
-  itemId: string,
-  currentQuantity: number,
-  tx?: DbTransaction,
-) {
-  const dbInstance = getExecutor(tx);
-  if (currentQuantity > 1) {
-    await dbInstance
-      .update(schema.consumables)
-      .set({ quantity: currentQuantity - 1 })
-      .where(eq(schema.consumables.id, itemId));
-  } else {
-    await dbInstance
-      .delete(schema.consumables)
-      .where(eq(schema.consumables.id, itemId));
-  }
 }
 
 // ===== 资源管理引擎底层操作 =====
@@ -1718,18 +1473,34 @@ export async function addArtifactToInventory(
 
   const dbInstance = getExecutor(tx);
   const score = calculateSingleArtifactScore(artifact);
-  await dbInstance.insert(schema.artifacts).values({
-    cultivatorId,
-    name: artifact.name,
-    slot: artifact.slot,
-    element: artifact.element,
-    prompt: '', // 默认空提示词
-    quality: artifact.quality || '凡品',
-    required_realm: artifact.required_realm || '炼气',
-    description: artifact.description || null,
-    score,
-    effects: artifact.effects || [],
-  });
+  const abilityConfig =
+    artifact.abilityConfig ||
+    ({
+      slug: `artifact_${artifact.name}`,
+      name: artifact.name,
+      type: AbilityType.PASSIVE_SKILL,
+      tags: [GameplayTags.ABILITY.KIND.ARTIFACT],
+      modifiers: artifact.attributeModifiers ?? [],
+      effects: [],
+      listeners: [],
+    } as AbilityConfig);
+
+  await creationProductRepository.insert(
+    {
+      cultivatorId,
+      productType: 'artifact',
+      name: artifact.name,
+      description: artifact.description || null,
+      element: artifact.element,
+      quality: artifact.quality || '凡品',
+      slot: artifact.slot,
+      score,
+      isEquipped: false,
+      abilityConfig: serializeAbilityConfig(abilityConfig),
+      productModel: serializeProductModel({ affixes: [] } as Record<string, unknown> as never),
+    },
+    dbInstance,
+  );
 }
 
 /**
@@ -1776,7 +1547,7 @@ export async function addConsumableToInventory(
       type: consumable.type,
       prompt: '', // 默认空提示词
       quality: quality,
-      effects: consumable.effects || [],
+      effects: [],
       quantity: consumable.quantity,
       description: consumable.description || null,
       score,

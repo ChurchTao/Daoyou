@@ -1,4 +1,4 @@
-import { CultivatorUnit } from '@/engine/cultivator';
+import { getCultivatorDisplayAttributes } from '@/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import { NextRequest, NextResponse } from 'next/server';
@@ -33,11 +33,11 @@ export const POST = withActiveCultivator(
       const targetCultivator = targetRecord.cultivator;
 
       // 神识对比（使用最终属性中的意志/神识）
-      const targetUnit = new CultivatorUnit(targetCultivator);
-      const targetFinal = targetUnit.getFinalAttributes();
+      const { finalAttributes: targetFinal } =
+        getCultivatorDisplayAttributes(targetCultivator);
 
-      // const selfUnit = new CultivatorUnit(selfCultivator);
-      // const _selfFinal = selfUnit.getFinalAttributes(); // 保留供将来神识对比使用
+      // const { finalAttributes: _selfFinal } =
+      //   getCultivatorDisplayAttributes(selfCultivator); // 保留供将来神识对比使用
 
       // todo 神识查探先关闭
       // if (_selfFinal.willpower <= targetFinal.willpower) {

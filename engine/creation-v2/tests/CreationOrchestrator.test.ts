@@ -35,7 +35,6 @@ describe('CreationOrchestrator', () => {
           description: '碎晶中残留雷霆爆裂之意'
         },
       ],
-      requestedTags: ['Material.Semantic.Flame'],
     });
 
     orchestrator.submitMaterials(session);
@@ -95,7 +94,6 @@ describe('CreationOrchestrator', () => {
           description: '蕴含烈焰意象的矿石'
         },
       ],
-      requestedTags: ['Material.Semantic.Flame'],
     });
 
     const fingerprints: MaterialFingerprint[] = [
@@ -192,7 +190,6 @@ describe('CreationOrchestrator', () => {
       productType: 'skill',
       outcomeKind: 'active_skill',
       dominantTags: ['fire', 'burst'],
-      requestedTags: ['fire'],
       elementBias: '火',
     });
     orchestrator.validateRecipe(session, recipeMatch);
@@ -246,7 +243,6 @@ describe('CreationOrchestrator', () => {
       productType: 'artifact',
       outcomeKind: 'artifact',
       dominantTags: ['ice', 'defensive'],
-      requestedTags: ['shield'],
       elementBias: '冰',
     });
     orchestrator.composeBlueprint(session, {
@@ -400,7 +396,6 @@ describe('CreationOrchestrator', () => {
       productType: 'skill',
       outcomeKind: 'active_skill',
       dominantTags: ['Outcome.ActiveSkill'],
-      requestedTags: [],
     });
 
     expect(() => orchestrator.rollAffixesWithDefaults(session)).toThrow(
@@ -420,7 +415,6 @@ describe('CreationOrchestrator', () => {
       productType: 'skill',
       outcomeKind: 'active_skill',
       dominantTags: ['Material.Semantic.Burst'],
-      requestedTags: [],
     });
     orchestrator.budgetEnergy(session, {
       baseTotal: 20,
@@ -647,7 +641,6 @@ describe('CreationOrchestrator', () => {
           description: '碎晶中残留雷霆爆裂之意'
         },
       ],
-      requestedTags: ['Material.Semantic.Flame'],
     });
 
     orchestrator.runEventDrivenWorkflow(session);
@@ -704,7 +697,6 @@ describe('CreationOrchestrator', () => {
           description: '碎晶中残留雷霆爆裂之意',
         },
       ],
-      requestedTags: ['Material.Semantic.Flame'],
     });
 
     orchestrator.runEventDrivenWorkflow(session, { autoMaterialize: false });

@@ -1,27 +1,20 @@
+import { deserializeAbilityConfig } from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
 import { getExecutor } from '@/lib/drizzle/db';
 import {
-  artifacts,
   consumables,
-  cultivationTechniques,
+  creationProducts,
   cultivators,
-  skills,
 } from '@/lib/drizzle/schema';
 import {
   EquipmentSlot,
   QUALITY_VALUES,
-  SKILL_GRADE_VALUES,
 } from '@/types/constants';
 import { getEquipmentSlotLabel } from '@/types/dictionaries';
 import { ItemRankingEntry } from '@/types/rankings';
-import type { EffectConfig } from '@/engine/effect';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-
-function normalizeEffects(value: unknown): EffectConfig[] {
-  return Array.isArray(value) ? (value as EffectConfig[]) : [];
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,24 +31,25 @@ export async function GET(request: NextRequest) {
     // Filter logic: Only Xuan (玄) grade or higher
     // For artifacts/elixirs: QUALITY_VALUES index >= 2
     const validQualities = QUALITY_VALUES.slice(2);
-    // For skills: SKILL_GRADE_VALUES index <= 8
-    const validSkillGrades = SKILL_GRADE_VALUES.slice(0, 9);
+    // Unified products also use quality as the visible ranking threshold.
+    const validProductQualities = QUALITY_VALUES.slice(2);
 
     if (type === 'artifact') {
       const rows = await getExecutor()
         .select({
-          item: artifacts,
+          item: creationProducts,
           owner: cultivators,
         })
-        .from(artifacts)
-        .leftJoin(cultivators, eq(artifacts.cultivatorId, cultivators.id))
+        .from(creationProducts)
+        .leftJoin(cultivators, eq(creationProducts.cultivatorId, cultivators.id))
         .where(
           and(
-            isNotNull(artifacts.cultivatorId),
-            inArray(artifacts.quality, validQualities as string[]),
+            isNotNull(creationProducts.cultivatorId),
+            eq(creationProducts.productType, 'artifact'),
+            inArray(creationProducts.quality, validQualities as string[]),
           ),
         ) // ensure has owner and high quality
-        .orderBy(desc(artifacts.score))
+        .orderBy(desc(creationProducts.score))
         .limit(LIMIT);
 
       items = rows.map(({ item, owner }, index) => ({
@@ -64,49 +58,55 @@ export async function GET(request: NextRequest) {
         name: item.name,
         itemType: 'artifact',
         type: getEquipmentSlotLabel(item.slot as EquipmentSlot),
-        quality: item.quality,
+        quality: item.quality ?? undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
         description: item.description || '',
-        title: item.quality, // Use quality as subtitle/title
-        element: item.element,
-        slot: item.slot,
-        requiredRealm: item.required_realm,
-        effects: normalizeEffects(item.effects),
+        title: item.quality ?? undefined,
+        element: item.element ?? undefined,
+        slot: item.slot ?? undefined,
+        requiredRealm: undefined,
       }));
     } else if (type === 'skill') {
       const rows = await getExecutor()
         .select({
-          item: skills,
+          item: creationProducts,
           owner: cultivators,
         })
-        .from(skills)
-        .leftJoin(cultivators, eq(skills.cultivatorId, cultivators.id))
+        .from(creationProducts)
+        .leftJoin(cultivators, eq(creationProducts.cultivatorId, cultivators.id))
         .where(
           and(
-            isNotNull(skills.cultivatorId),
-            inArray(skills.grade, validSkillGrades as string[]),
+            isNotNull(creationProducts.cultivatorId),
+            eq(creationProducts.productType, 'skill'),
+            inArray(creationProducts.quality, validProductQualities as string[]),
           ),
         )
-        .orderBy(desc(skills.score))
+        .orderBy(desc(creationProducts.score))
         .limit(LIMIT);
 
-      items = rows.map(({ item, owner }, index) => ({
-        id: item.id,
-        rank: index + 1,
-        name: item.name,
-        itemType: 'skill',
-        type: item.element ? `${item.element}系神通` : '神通',
-        grade: item.grade || undefined,
-        ownerName: owner?.name || '未知',
-        score: item.score || 0,
-        description: item.description || '',
-        title: item.grade || '未知品阶',
-        element: item.element,
-        cooldown: item.cooldown,
-        cost: item.cost || 0,
-        effects: normalizeEffects(item.effects),
-      }));
+      items = rows.map(({ item, owner }, index) => {
+        const abilityConfig = deserializeAbilityConfig(
+          (item.abilityConfig ?? {}) as Record<string, unknown>,
+          item.id,
+        );
+
+        return {
+          id: item.id,
+          rank: index + 1,
+          name: item.name,
+          itemType: 'skill',
+          type: item.element ? `${item.element}系神通` : '神通',
+          grade: (item.quality as string | undefined) || undefined,
+          ownerName: owner?.name || '未知',
+          score: item.score || 0,
+          description: item.description || '',
+          title: item.quality || '未知品阶',
+          element: item.element ?? undefined,
+          cooldown: abilityConfig.cooldown ?? 0,
+          cost: abilityConfig.mpCost || 0,
+        };
+      });
     } else if (type === 'elixir') {
       const rows = await getExecutor()
         .select({
@@ -131,32 +131,32 @@ export async function GET(request: NextRequest) {
         name: item.name,
         itemType: 'elixir',
         type: '丹药',
-        quality: item.quality,
+        quality: item.quality ?? undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
         description: item.description || '',
-        title: item.quality,
+        title: item.quality ?? undefined,
         quantity: item.quantity,
-        effects: normalizeEffects(item.effects),
       }));
     } else if (type === 'technique') {
       const rows = await getExecutor()
         .select({
-          item: cultivationTechniques,
+          item: creationProducts,
           owner: cultivators,
         })
-        .from(cultivationTechniques)
+        .from(creationProducts)
         .leftJoin(
           cultivators,
-          eq(cultivationTechniques.cultivatorId, cultivators.id),
+          eq(creationProducts.cultivatorId, cultivators.id),
         )
         .where(
           and(
-            isNotNull(cultivationTechniques.cultivatorId),
-            inArray(cultivationTechniques.grade, validSkillGrades as string[]),
+            isNotNull(creationProducts.cultivatorId),
+            eq(creationProducts.productType, 'gongfa'),
+            inArray(creationProducts.quality, validProductQualities as string[]),
           ),
         )
-        .orderBy(desc(cultivationTechniques.score))
+        .orderBy(desc(creationProducts.score))
         .limit(LIMIT);
 
       items = rows.map(({ item, owner }, index) => ({
@@ -165,13 +165,12 @@ export async function GET(request: NextRequest) {
         name: item.name,
         itemType: 'technique',
         type: '功法',
-        grade: item.grade || undefined,
+        grade: (item.quality as string | undefined) || undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
         description: item.description || '',
-        title: item.grade || '未知品阶',
-        requiredRealm: item.required_realm,
-        effects: normalizeEffects(item.effects),
+        title: item.quality || '未知品阶',
+        requiredRealm: undefined,
       }));
     }
 

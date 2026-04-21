@@ -1,24 +1,27 @@
 'use client';
 
 import { MaterialSelector } from '@/app/(game)/game/components/MaterialSelector';
+import {
+  CreationIntentPanel,
+  SelectedMaterialsWithDose,
+} from '@/components/feature/creation';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
   InkButton,
-  InkInput,
-  InkList,
-  InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
+import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import type { CultivationTechnique, Material } from '@/types/cultivator';
+import type { Material } from '@/types/cultivator';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-const MAX_MATERIALS = 5;
+const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
+const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
+const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
 
 type CostEstimate = {
   spiritStones?: number;
@@ -33,18 +36,38 @@ type CostResponse = {
   };
 };
 
+type AffixSummary = {
+  id: string;
+  name: string;
+  category: string;
+  isPerfect: boolean;
+  rollEfficiency: number;
+};
+
+type V2CreationResult = {
+  id: string;
+  name: string;
+  quality: string | null;
+  element: string | null;
+  score: number;
+  affixes: AffixSummary[];
+  needs_replace?: boolean;
+};
+
 export default function GongfaCreationPage() {
   const router = useRouter();
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
-  const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [selectedMaterialMap, setSelectedMaterialMap] = useState<
     Record<string, Material>
   >({});
+  const [doseMap, setDoseMap] = useState<Record<string, number>>({});
+  const [userPrompt, setUserPrompt] = useState('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
-  const [createdGongfa, setCreatedGongfa] =
-    useState<CultivationTechnique | null>(null);
+  const [createdResult, setCreatedResult] = useState<V2CreationResult | null>(
+    null,
+  );
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [canAfford, setCanAfford] = useState(true);
@@ -76,13 +99,12 @@ export default function GongfaCreationPage() {
         console.error('检查待定失败:', e);
       }
     };
-    checkPending();
+    void checkPending();
   }, [cultivator, openDialog, router]);
 
-  // Fetch cost estimate when materials change
   useEffect(() => {
     if (selectedMaterialIds.length > 0) {
-      fetchCostEstimate('create_gongfa', selectedMaterialIds);
+      void fetchCostEstimate('create_gongfa', selectedMaterialIds);
     } else {
       setEstimatedCost(null);
       setCanAfford(true);
@@ -115,6 +137,11 @@ export default function GongfaCreationPage() {
           delete next[id];
           return next;
         });
+        setDoseMap((map) => {
+          const next = { ...map };
+          delete next[id];
+          return next;
+        });
         return prev.filter((mid) => mid !== id);
       }
       if (prev.length >= MAX_MATERIALS) {
@@ -125,26 +152,48 @@ export default function GongfaCreationPage() {
         return prev;
       }
       if (material) {
-        setSelectedMaterialMap((map) => ({
-          ...map,
-          [id]: material,
-        }));
+        setSelectedMaterialMap((map) => ({ ...map, [id]: material }));
+        setDoseMap((map) => ({ ...map, [id]: MIN_DOSE }));
       }
       return [...prev, id];
     });
   };
 
+  const handleDoseChange = (id: string, dose: number) => {
+    const material = selectedMaterialMap[id];
+    if (!material) return;
+    const stock = material.quantity ?? 0;
+    const clamped = Math.min(
+      Math.min(MAX_DOSE, Math.max(stock, MIN_DOSE)),
+      Math.max(MIN_DOSE, Math.floor(dose)),
+    );
+    setDoseMap((prev) => ({ ...prev, [id]: clamped }));
+  };
+
+  const resetAll = () => {
+    setStatus('');
+    setCreatedResult(null);
+    setSelectedMaterialIds([]);
+    setSelectedMaterialMap({});
+    setDoseMap({});
+    setUserPrompt('');
+  };
+
+  const submitPayload = useMemo(
+    () => ({
+      materialIds: selectedMaterialIds,
+      craftType: 'create_gongfa' as const,
+      materialQuantities: Object.fromEntries(
+        selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
+      ),
+      userPrompt: userPrompt.trim() || undefined,
+    }),
+    [selectedMaterialIds, doseMap, userPrompt],
+  );
+
   const handleSubmit = async () => {
     if (!cultivator) {
       pushToast({ message: '请先在首页觉醒灵根。', tone: 'warning' });
-      return;
-    }
-
-    if (!prompt.trim()) {
-      pushToast({
-        message: '请注入神念，描述功法理念。',
-        tone: 'warning',
-      });
       return;
     }
 
@@ -155,19 +204,13 @@ export default function GongfaCreationPage() {
 
     setSubmitting(true);
     setStatus('感悟天地，参悟大道……');
-    setCreatedGongfa(null);
+    setCreatedResult(null);
 
     try {
       const response = await fetch('/api/craft', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materialIds: selectedMaterialIds,
-          prompt: prompt,
-          craftType: 'create_gongfa',
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submitPayload),
       });
 
       const result = await response.json();
@@ -175,9 +218,8 @@ export default function GongfaCreationPage() {
         throw new Error(result.error || '参悟失败');
       }
 
-      const gongfa = result.data;
+      const gongfa = result.data as V2CreationResult;
 
-      // 检查是否需要替换
       if (gongfa.needs_replace) {
         pushToast({
           message: '功法已达上限，请选择一个进行替换',
@@ -187,14 +229,13 @@ export default function GongfaCreationPage() {
         return;
       }
 
-      setCreatedGongfa(gongfa);
-
+      setCreatedResult(gongfa);
       const successMessage = `功法【${gongfa.name}】参悟成功！`;
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
-      setPrompt('');
       setSelectedMaterialIds([]);
       setSelectedMaterialMap({});
+      setDoseMap({});
       await refreshCultivator();
       setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
@@ -216,15 +257,6 @@ export default function GongfaCreationPage() {
       </div>
     );
   }
-
-  const renderGongfaExtraInfo = (gongfa: CultivationTechnique) => (
-    <div className="space-y-1 text-sm">
-      <div className="border-ink/50 flex justify-between border-b pb-1">
-        <span className="opacity-70">需求境界</span>
-        <span>{gongfa.required_realm}</span>
-      </div>
-    </div>
-  );
 
   return (
     <InkPageShell
@@ -254,7 +286,6 @@ export default function GongfaCreationPage() {
           pageSize={20}
           includeMaterialTypes={['gongfa_manual', 'manual']}
           refreshKey={materialsRefreshKey}
-          showSelectedMaterialsPanel
           loadingText="正在检索可参悟典籍，请稍候……"
           emptyNoticeText="暂无可用于参悟功法的典籍。"
           totalText={(total) => `共 ${total} 部可参悟典籍`}
@@ -262,6 +293,28 @@ export default function GongfaCreationPage() {
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
+      </InkSection>
+
+      <InkSection title="2. 调度投入份数">
+        <SelectedMaterialsWithDose
+          selectedIds={selectedMaterialIds}
+          materialMap={selectedMaterialMap}
+          doseMap={doseMap}
+          minDose={MIN_DOSE}
+          maxDose={MAX_DOSE}
+          disabled={isSubmitting}
+          onRemove={(id) => toggleMaterial(id)}
+          onDoseChange={handleDoseChange}
+        />
+      </InkSection>
+
+      <InkSection title="3. 参悟意念">
+        <CreationIntentPanel
+          productType="gongfa"
+          userPrompt={userPrompt}
+          onUserPromptChange={setUserPrompt}
+          disabled={isSubmitting}
+        />
       </InkSection>
 
       <InkSection title="预计消耗">
@@ -285,50 +338,16 @@ export default function GongfaCreationPage() {
         )}
       </InkSection>
 
-      <InkSection title="2. 注入感悟">
-        <div className="mb-4">
-          <InkList dense>
-            <InkListItem
-              title="提示"
-              description="描述你对该功法的理解，或希望获得的效果方向。"
-            />
-            <InkListItem
-              title="示例"
-              description="“我想创造一门能提升灵力恢复速度，并在突破时增加成功率的功法。”"
-            />
-          </InkList>
-        </div>
-
-        <InkInput
-          multiline
-          rows={6}
-          placeholder="请在此注入你的感悟……"
-          value={prompt}
-          onChange={(value) => setPrompt(value)}
-          disabled={isSubmitting}
-          hint="💡 典籍品质决定下限，感悟深度决定上限。"
-        />
-
+      <InkSection title="4. 开始参悟">
         <InkActionGroup align="right">
-          <InkButton
-            onClick={() => {
-              setPrompt('');
-              setStatus('');
-              setSelectedMaterialIds([]);
-              setSelectedMaterialMap({});
-            }}
-            disabled={isSubmitting}
-          >
+          <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
           </InkButton>
           <InkButton
             variant="primary"
             onClick={handleSubmit}
             disabled={
-              isSubmitting ||
-              !prompt.trim() ||
-              selectedMaterialIds.length === 0 ||
-              !canAfford
+              isSubmitting || selectedMaterialIds.length === 0 || !canAfford
             }
           >
             {isSubmitting ? '参悟中……' : '开始参悟'}
@@ -336,42 +355,42 @@ export default function GongfaCreationPage() {
         </InkActionGroup>
       </InkSection>
 
-      {status && (
+      {status && !createdResult && (
         <div className="mt-4">
           <InkNotice tone="info">{status}</InkNotice>
         </div>
       )}
 
-      {/* Result Modal */}
-      {createdGongfa && (
-        <EffectDetailModal
-          isOpen={!!createdGongfa}
-          onClose={() => setCreatedGongfa(null)}
-          icon="📖"
-          name={createdGongfa.name}
-          badges={[
-            createdGongfa.grade && (
-              <InkBadge key="g" tier={createdGongfa.grade}>
-                {createdGongfa.grade}
-              </InkBadge>
-            ),
-          ].filter(Boolean)}
-          extraInfo={renderGongfaExtraInfo(createdGongfa)}
-          effects={createdGongfa.effects}
-          description={createdGongfa.description}
-          effectTitle="功法效果"
-          descriptionTitle="功法详述"
-          footer={
-            <InkButton
-              onClick={() => setCreatedGongfa(null)}
-              className="w-full"
-            >
-              了然于胸
-            </InkButton>
-          }
-        />
+      {createdResult && (
+        <InkSection title={`【${createdResult.name}】已纳入道基`}>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {createdResult.quality && (
+                <InkBadge tier={createdResult.quality as never}>
+                  {createdResult.quality}
+                </InkBadge>
+              )}
+              {createdResult.element && (
+                <InkBadge tone="default">{createdResult.element}</InkBadge>
+              )}
+              <InkBadge tone="default">{`评分 ${createdResult.score}`}</InkBadge>
+            </div>
+            {createdResult.affixes.length > 0 && (
+              <ul className="text-ink-secondary space-y-1 text-sm">
+                {createdResult.affixes.map((a) => (
+                  <li key={a.id} className="flex items-center gap-1">
+                    <span>{a.isPerfect ? '✦' : '◆'}</span>
+                    <span>{a.name}</span>
+                    {a.isPerfect && (
+                      <span className="text-amber-500 text-xs">（完美）</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </InkSection>
       )}
     </InkPageShell>
   );
 }
-

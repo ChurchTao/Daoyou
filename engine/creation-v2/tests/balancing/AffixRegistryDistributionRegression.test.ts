@@ -1,6 +1,4 @@
-import { GameplayTags } from '@/engine/shared/tag-domain';
 import { resolveAffixSlotCount } from '@/engine/creation-v2/config/CreationBalance';
-import { CreationTags } from '@/engine/shared/tag-domain';
 import { TestableCreationOrchestrator } from '@/engine/creation-v2/tests/helpers/TestableCreationOrchestrator';
 import { CreationProductType } from '@/engine/creation-v2/types';
 import { Material } from '@/types/cultivator';
@@ -136,30 +134,6 @@ const HIGH_TIER_MATERIAL_SETS: Record<CreationProductType, Material[]> = {
   ],
 };
 
-const REQUESTED_HIGH_TIER_TAGS: Record<CreationProductType, string[]> = {
-  skill: [
-    CreationTags.MATERIAL.SEMANTIC_BURST,
-    CreationTags.MATERIAL.SEMANTIC_BLADE,
-    CreationTags.MATERIAL.SEMANTIC_FLAME,
-    CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-    CreationTags.MATERIAL.SEMANTIC_DIVINE,
-    CreationTags.MATERIAL.TYPE_SPECIAL,
-  ],
-  artifact: [
-    CreationTags.MATERIAL.SEMANTIC_GUARD,
-    CreationTags.MATERIAL.SEMANTIC_BURST,
-    CreationTags.MATERIAL.TYPE_SPECIAL,
-  ],
-  gongfa: [
-    CreationTags.MATERIAL.SEMANTIC_GUARD,
-    CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-    CreationTags.MATERIAL.SEMANTIC_MANUAL,
-    CreationTags.MATERIAL.TYPE_SPECIAL,
-  ],
-};
-
 function withDeterministicRandom<T>(seed: number, execute: () => T): T {
   const originalRandom = Math.random;
   let state = seed >>> 0;
@@ -195,7 +169,6 @@ function runCraftSample(
     const session = orchestrator.createSession({
       productType,
       materials,
-      requestedTags: REQUESTED_HIGH_TIER_TAGS[productType],
     });
 
     orchestrator.submitMaterials(session);

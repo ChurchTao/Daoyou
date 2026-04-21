@@ -1,5 +1,4 @@
 import { RankingItem } from '@/lib/redis/rankings';
-import type { EffectConfig } from '@/engine/effect';
 
 export type BattleRankingItem = RankingItem;
 
@@ -22,7 +21,6 @@ export interface ItemRankingEntry {
   cost?: number;
   cooldown?: number;
   quantity?: number;
-  effects?: EffectConfig[];
 
   // Optional properties for UI compatibility
   title?: string;

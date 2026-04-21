@@ -61,8 +61,8 @@ export function BattleView() {
       }}
     >
       {/* 数值战斗回放 */}
-      {battleResult?.timeline &&
-        battleResult.timeline.length > 0 &&
+      {battleResult?.stateTimeline?.frames &&
+        battleResult.stateTimeline.frames.length > 0 &&
         opponent &&
         player &&
         (isStreaming || battleEnd) && (

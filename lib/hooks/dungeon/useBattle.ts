@@ -1,5 +1,5 @@
-import { BattleEngineResult } from '@/engine/battle';
 import type { ResourceOperation } from '@/engine/resource/types';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import {
   DungeonRound,
   DungeonSettlement,
@@ -20,7 +20,7 @@ interface BattleCallbackData {
  * 负责处理战斗执行和状态管理
  */
 export function useBattle() {
-  const [battleResult, setBattleResult] = useState<BattleEngineResult>();
+  const [battleResult, setBattleResult] = useState<BattleRecord>();
   const [streamingReport, setStreamingReport] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [battleEnd, setBattleEnd] = useState(false);
@@ -29,7 +29,7 @@ export function useBattle() {
    * 执行战斗（SSE流式请求）
    */
   const executeBattle = async (battleId: string) => {
-    let result: BattleEngineResult | undefined;
+    let result: BattleRecord | undefined;
     let callbackData: BattleCallbackData | null = null;
 
     try {
@@ -71,7 +71,7 @@ export function useBattle() {
             }
 
             if (data.type === 'battle_result') {
-              result = data.data as BattleEngineResult;
+              result = data.data as BattleRecord;
               setBattleResult(result);
             } else if (data.type === 'chunk') {
               fullReport += String(data.content ?? '');

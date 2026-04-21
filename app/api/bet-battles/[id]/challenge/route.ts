@@ -74,15 +74,22 @@ export const POST = withActiveCultivator(
               ),
             );
 
+            const finalFrame =
+              result.battleResult.stateTimeline.frames[
+                result.battleResult.stateTimeline.frames.length - 1
+              ];
+            const [challengerId, creatorId] =
+              result.battleResult.stateTimeline.unitIds;
+
             const [prompt, userPrompt] = getBattleReportPrompt({
               player: result.challenger.cultivator,
               opponent: result.creator.cultivator,
               battleResult: {
                 winnerId: result.battleResult.winner.id || '',
-                log: result.battleResult.log ?? [],
                 turns: result.battleResult.turns,
-                playerHp: result.battleResult.playerHp,
-                opponentHp: result.battleResult.opponentHp,
+                playerHp: finalFrame?.units[challengerId]?.hp.current,
+                opponentHp: finalFrame?.units[creatorId]?.hp.current,
+                logSpans: result.battleResult.logSpans,
               },
             });
 

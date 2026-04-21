@@ -1,5 +1,6 @@
 import { redis } from '@/lib/redis';
 import * as auctionRepository from '@/lib/repositories/auctionRepository';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
@@ -10,6 +11,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { getExecutor, type DbExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
+import { toArtifactFromProduct } from './creationProductArtifactSupport';
 
 // ============================================================================
 // Constants
@@ -86,6 +88,20 @@ export interface BuyItemInput {
 /**
  * 获取物品快照（完整数据）
  */
+async function getArtifactProductSnapshot(
+  itemId: string,
+  cultivatorId: string,
+  executor?: DbExecutor,
+) {
+  const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
+    cultivatorId,
+    [itemId],
+    executor ?? getExecutor(),
+  );
+
+  return rows[0] || null;
+}
+
 async function getItemSnapshot(
   itemType: 'material' | 'artifact' | 'consumable',
   itemId: string,
@@ -108,17 +124,12 @@ async function getItemSnapshot(
       return (material as Material | null) || null;
     }
     case 'artifact': {
-      const [artifact] = await q
-        .select()
-        .from(schema.artifacts)
-        .where(
-          and(
-            eq(schema.artifacts.id, itemId),
-            eq(schema.artifacts.cultivatorId, cultivatorId),
-          ),
-        )
-        .limit(1);
-      return (artifact as Artifact | null) || null;
+      const artifact = await getArtifactProductSnapshot(
+        itemId,
+        cultivatorId,
+        q,
+      );
+      return artifact ? toArtifactFromProduct(artifact) : null;
     }
     case 'consumable': {
       const [consumable] = await q
@@ -239,11 +250,21 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     }
 
     // 6. 获取物品快照并校验所有权
+    const artifactProduct =
+      itemType === 'artifact'
+        ? await getArtifactProductSnapshot(itemId, cultivatorId)
+        : null;
     const itemSnapshot = await getItemSnapshot(itemType, itemId, cultivatorId);
     if (!itemSnapshot) {
       throw new AuctionServiceError(
         AuctionError.ITEM_NOT_FOUND,
         '物品不存在或已消耗',
+      );
+    }
+    if (artifactProduct?.isEquipped) {
+      throw new AuctionServiceError(
+        AuctionError.INVALID_ITEM_TYPE,
+        '已装备法宝不可寄售，请先卸下',
       );
     }
     const itemQuality = normalizeItemQuality(itemType, itemSnapshot);
@@ -298,14 +319,33 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
           : ({ ...ownedItem, quantity } as Material | Consumable);
 
       if (itemType === 'artifact') {
-        await tx
-          .delete(schema.artifacts)
-          .where(
-            and(
-              eq(schema.artifacts.id, itemId),
-              eq(schema.artifacts.cultivatorId, cultivatorId),
-            ),
+        const artifact = await getArtifactProductSnapshot(itemId, cultivatorId, tx);
+        if (!artifact) {
+          throw new AuctionServiceError(
+            AuctionError.ITEM_NOT_FOUND,
+            '物品不存在或已被消耗',
           );
+        }
+        if (artifact.isEquipped) {
+          throw new AuctionServiceError(
+            AuctionError.INVALID_ITEM_TYPE,
+            '已装备法宝不可寄售，请先卸下',
+          );
+        }
+
+        const deleted =
+          await creationProductRepository.deleteArtifactsByIdsAndCultivator(
+            cultivatorId,
+            [itemId],
+            tx,
+          );
+
+        if (deleted.length !== 1) {
+          throw new AuctionServiceError(
+            AuctionError.ITEM_NOT_FOUND,
+            '物品不存在或已被消耗',
+          );
+        }
       } else if (itemType === 'material') {
         const current = ownedItem as Material;
         if (quantity > current.quantity) {

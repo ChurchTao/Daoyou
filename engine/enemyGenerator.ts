@@ -1,77 +1,71 @@
-import { buildAffixTable } from '@/engine/creation/AffixUtils';
-import { EffectMaterializer } from '@/engine/creation/EffectMaterializer';
-import { getSkillAffixPool } from '@/engine/creation/affixes/skillAffixes';
-import type { MaterializationContext } from '@/engine/creation/types';
+/**
+ * 敌人生成器（v2 迁移版）
+ *
+ * 为副本/练功房场景动态生成敌人 Cultivator，直接产出 v5 战斗引擎可消费的
+ * AbilityConfig 技能链。暂时使用算法规则生成基础攻击/治疗/控制技能，
+ * 后续可替换为调用 CreationOrchestrator 走完整的造物流程。
+ */
+
+import { AbilityType } from '@/engine/battle-v5/core/types';
+import type { AbilityConfig } from '@/engine/battle-v5/core/configs';
 import {
   ElementType,
   GenderType,
-  QUALITY_VALUES,
   REALM_STAGE_CAPS,
   RealmStage,
   RealmType,
   SkillType,
 } from '@/types/constants';
 import { Cultivator } from '@/types/cultivator';
-import { object } from '@/utils/aiClient';
 import { randomUUID } from 'crypto';
-import {
-  EnemyBlueprintSchema,
-  type EnemyBlueprint,
-} from './enemyGenerator/schemas';
 
-// ============================================================
-// Helper: Build Skill Affix Selection Prompt for AI
-// ============================================================
+interface EnemyBlueprint {
+  name: string;
+  title?: string;
+  gender: GenderType;
+  description?: string;
+  skills: SkillBlueprint[];
+  spiritualElement: ElementType;
+}
 
-/**
- * Build the skill affix selection prompt for AI
- * Includes all available affix pools for AI to choose from
- */
-function buildSkillAffixPrompt(): string {
-  const lines: string[] = [];
+interface SkillBlueprint {
+  name: string;
+  type: SkillType;
+  element: ElementType;
+}
 
-  // Get all skill types and their affix pools
-  const skillTypes: SkillType[] = [
-    'attack',
-    'heal',
-    'control',
-    'debuff',
-    'buff',
-  ];
+const ATTACK_NAMES = [
+  '烈焰掌',
+  '裂空斩',
+  '青木剑诀',
+  '玄水指',
+  '金刚拳',
+  '雷霆劈',
+  '冰凌刃',
+];
+const HEAL_NAMES = ['回春诀', '灵润术', '生生造化'];
+const BUFF_NAMES = ['金刚不坏', '御风诀', '凝神术'];
 
-  for (const skillType of skillTypes) {
-    const pool = getSkillAffixPool(skillType);
+const ELEMENT_POOL: ElementType[] = [
+  '金',
+  '木',
+  '水',
+  '火',
+  '土',
+  '风',
+  '雷',
+  '冰',
+];
 
-    lines.push(`### ${skillType.toUpperCase()} Skill Affixes`);
-    lines.push('');
+function pick<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
-    lines.push('**Primary Affixes (Select exactly 1 per skill):**');
-    lines.push('');
-    lines.push(
-      buildAffixTable(pool.primary, { showSlots: false, showQuality: true }),
-    );
-    lines.push('');
-
-    if (pool.secondary.length > 0) {
-      lines.push('**Secondary Affixes (Select 0-2 per skill):**');
-      lines.push('');
-      lines.push(
-        buildAffixTable(pool.secondary, {
-          showSlots: false,
-          showQuality: true,
-        }),
-      );
-      lines.push('');
-    }
-  }
-
-  return lines.join('\n');
+function realmFriendlyName(stage: RealmStage, realm: RealmType): string {
+  return `${realm}${stage}散修`;
 }
 
 export class EnemyGenerator {
-  /**
-   * Determine enemy realm stage based on difficulty
-   */
   private getEnemyStageByDifficulty(difficulty: number): RealmStage {
     if (difficulty <= 2) return '初期';
     if (difficulty <= 4) return Math.random() < 0.5 ? '初期' : '中期';
@@ -80,9 +74,6 @@ export class EnemyGenerator {
     return '圆满';
   }
 
-  /**
-   * Calculate attributes based on realm requirement and difficulty
-   */
   private calculateAttributes(
     realmRequirement: RealmType,
     difficulty: number,
@@ -95,11 +86,8 @@ export class EnemyGenerator {
   } {
     const stage = this.getEnemyStageByDifficulty(difficulty);
     const baseCap = REALM_STAGE_CAPS[realmRequirement][stage];
-
-    // Random value between 80%-100% of cap
     const minRatio = 0.8;
     const maxRatio = 1.0;
-
     const randomInRange = () =>
       Math.floor(baseCap * (minRatio + Math.random() * (maxRatio - minRatio)));
 
@@ -112,55 +100,10 @@ export class EnemyGenerator {
     };
   }
 
-  /**
-   * Get quality based on difficulty
-   */
-  private getQualityByDifficulty(
-    difficulty: number,
-  ): (typeof QUALITY_VALUES)[number] {
-    // Map difficulty 1-10 to quality
-    if (difficulty <= 3) return '凡品';
-    if (difficulty <= 5) return '灵品';
-    if (difficulty <= 7) return '真品';
-    if (difficulty <= 9) return '玄品';
-    return '地品';
-  }
-
-  /**
-   * Calculate skill cooldown based on type and difficulty
-   */
-  private calculateCooldown(skillType: SkillType, difficulty: number): number {
-    // Attack skills have no cooldown by default
-    if (skillType === 'attack') return 0;
-
-    // Other skills: higher difficulty = shorter cooldown (stronger skills)
-    const baseCooldown = { heal: 3, control: 4, debuff: 3, buff: 4 }[skillType];
-    return Math.max(1, baseCooldown - Math.floor(difficulty / 3));
-  }
-
-  /**
-   * Calculate skill cost (mana) based on type and difficulty
-   */
-  private calculateCost(skillType: SkillType, difficulty: number): number {
-    // Higher difficulty = more mana cost
-    const baseCost = {
-      attack: 10,
-      heal: 15,
-      control: 20,
-      debuff: 15,
-      buff: 20,
-    }[skillType];
-    return baseCost + difficulty * 5;
-  }
-
-  /**
-   * Calculate spiritual root strength based on realm and difficulty
-   */
   private calculateSpiritualRootStrength(
     realmRequirement: RealmType,
     difficulty: number,
   ): number {
-    // Base strength by realm
     const baseStrength: Record<RealmType, number> = {
       炼气: 30,
       筑基: 50,
@@ -172,180 +115,149 @@ export class EnemyGenerator {
       大乘: 98,
       渡劫: 99,
     };
-
     const base = baseStrength[realmRequirement] || 30;
-    const diffBonus = difficulty * 2;
-
-    return Math.min(100, base + diffBonus);
+    return Math.min(100, base + difficulty * 2);
   }
 
   /**
-   * Generate enemy blueprint using AI
-   * AI only selects affix IDs, system calculates all values
+   * 根据技能类型构造最小可运行的 AbilityConfig。
+   * 后续 Phase 2 会替换为 CreationOrchestrator 产出的完整 AbilityConfig。
    */
-  private async generateBlueprint(
+  private buildAbilityConfig(
+    bp: SkillBlueprint,
     difficulty: number,
-    realmRequirement: RealmType,
-    metadata: { enemy_name?: string; is_boss?: boolean },
-  ): Promise<EnemyBlueprint> {
-    const prompt = `
-# Role: 敌人生成器 (Enemy Generator)
+  ): AbilityConfig {
+    const slug = `enemy-${bp.type}-${randomUUID()}`;
+    const cooldown =
+      bp.type === 'attack' ? 0 : Math.max(1, 4 - Math.floor(difficulty / 3));
+    const mpCost =
+      bp.type === 'attack'
+        ? 10 + difficulty * 5
+        : 15 + difficulty * 5;
 
-## 任务
-根据副本信息生成敌人蓝图。**你只需要选择词条ID，不需要生成任何数值**。
-
-## 上下文
-- 境界门槛: ${realmRequirement}
-- 目标敌人: ${metadata.enemy_name || '未知道友'}
-- 难度系数: ${difficulty} (1-10)
-- 是否BOSS: ${metadata.is_boss ? '是' : '否'}
-
-## 生成规则
-1. **名字和描述**: 生成符合《凡人修仙传》世界观的敌人
-2. **灵根**: 选择1-3个元素，强度由系统计算
-3. **技能设计**: 生成 2-4 个技能
-   - 为每个技能从下方的词条池中选择 **1个主词条** (primary_affix_id)
-   - 可选选择 0-2 个副词条 (secondary_affix_ids)
-   - 只填写词条ID（如 skill_attack_base_damage），不要填写数值
-4. **法宝**: BOSS可以有法宝，普通敌人可选
-
-## 技能词条池
-${buildSkillAffixPrompt()}
-
-## 示例格式
-\`\`\`json
-{
-  "name": "烈火老祖",
-  "title": "火焰山守护者",
-  "gender": "男",
-  "description": "身披红色长袍，周身火焰缭绕，气息炽热逼人",
-  "spiritual_roots": [{"element": "火"}],
-  "skill_blueprints": [
-    {
-      "name": "烈焰掌",
-      "type": "attack",
-      "element": "火",
-      "primary_affix_id": "skill_attack_base_damage",
-      "secondary_affix_ids": ["skill_attack_s_element_bonus"]
+    if (bp.type === 'heal') {
+      return {
+        slug,
+        name: bp.name,
+        type: AbilityType.ACTIVE_SKILL,
+        tags: ['heal'],
+        mpCost,
+        cooldown,
+        targetPolicy: { team: 'self', scope: 'single' },
+        effects: [
+          {
+            type: 'heal',
+            params: {
+              value: { base: 30 + difficulty * 10 },
+              target: 'hp',
+            },
+          },
+        ],
+      };
     }
-  ],
-  "equipped_weapon_name": "赤炎剑"
-}
-\`\`\`
-`;
 
-    console.log('[EnemyGenerator] Generating enemy blueprint with AI');
-
-    const result = await object(
-      prompt,
-      JSON.stringify({ difficulty, realmRequirement, metadata }),
-      {
-        schema: EnemyBlueprintSchema,
-        schemaName: 'EnemyBlueprint',
-      },
-    );
-
-    return result.object;
+    return {
+      slug,
+      name: bp.name,
+      type: AbilityType.ACTIVE_SKILL,
+      tags: [bp.type, bp.element],
+      mpCost,
+      cooldown,
+      targetPolicy: { team: 'enemy', scope: 'single' },
+      effects: [
+        {
+          type: 'damage',
+          params: {
+            value: {
+              base: 15 + difficulty * 5,
+              coefficient: 1 + difficulty * 0.1,
+            },
+          },
+        },
+      ],
+    };
   }
 
-  /**
-   * Use AI to generate enemy blueprint, calculate stats algorithmically.
-   */
+  private generateBlueprint(
+    difficulty: number,
+    metadata: { enemy_name?: string; is_boss?: boolean },
+  ): EnemyBlueprint {
+    const primaryElement = pick(ELEMENT_POOL);
+    const skillCount = metadata.is_boss ? 4 : 2 + (difficulty > 5 ? 1 : 0);
+    const skills: SkillBlueprint[] = [];
+
+    for (let i = 0; i < skillCount; i++) {
+      if (i === 0) {
+        skills.push({
+          name: pick(ATTACK_NAMES),
+          type: 'attack',
+          element: primaryElement,
+        });
+      } else if (i === 1 && metadata.is_boss) {
+        skills.push({
+          name: pick(HEAL_NAMES),
+          type: 'heal',
+          element: primaryElement,
+        });
+      } else {
+        skills.push({
+          name: pick(BUFF_NAMES),
+          type: 'buff',
+          element: primaryElement,
+        });
+      }
+    }
+
+    return {
+      name: metadata.enemy_name || '散修',
+      gender: Math.random() < 0.5 ? '男' : '女',
+      spiritualElement: primaryElement,
+      skills,
+    };
+  }
+
   async generate(
-    metadata: {
-      enemy_name?: string;
-      is_boss?: boolean;
-    },
+    metadata: { enemy_name?: string; is_boss?: boolean },
     difficulty: number,
     realmRequirement: RealmType,
   ): Promise<Cultivator> {
-    // 1. AI generates blueprint (only selects affix IDs, no numerical values)
-    const blueprint = await this.generateBlueprint(
-      difficulty,
-      realmRequirement,
-      metadata,
-    );
-
-    // 2. Calculate attributes using algorithm
+    const blueprint = this.generateBlueprint(difficulty, metadata);
     const stage = this.getEnemyStageByDifficulty(difficulty);
     const attributes = this.calculateAttributes(realmRequirement, difficulty);
 
-    // 3. Build materialization context for skill effects
-    const quality = this.getQualityByDifficulty(difficulty);
-    const matContext: MaterializationContext = {
-      realm: realmRequirement,
-      quality,
-      element: blueprint.skill_blueprints[0]?.element || '无',
-    };
+    const skills = blueprint.skills.map((bp) => ({
+      id: randomUUID(),
+      name: bp.name,
+      element: bp.element,
+      cost:
+        bp.type === 'attack' ? 10 + difficulty * 5 : 15 + difficulty * 5,
+      cooldown:
+        bp.type === 'attack' ? 0 : Math.max(1, 4 - Math.floor(difficulty / 3)),
+      abilityConfig: this.buildAbilityConfig(bp, difficulty),
+    }));
 
-    // 4. Materialize skills using EffectMaterializer
-    const skills = blueprint.skill_blueprints.map((bp) => {
-      const affixPool = getSkillAffixPool(bp.type as SkillType);
-
-      // Validate and get primary affix
-      const primaryAffix = affixPool.primary.find(
-        (a) => a.id === bp.primary_affix_id,
-      );
-      if (!primaryAffix) {
-        console.warn(
-          `[EnemyGenerator] Primary affix not found: ${bp.primary_affix_id}, using default`,
-        );
-        // Fallback to first primary affix
-        const fallback = affixPool.primary[0];
-        return {
-          id: randomUUID(),
-          name: bp.name,
-          element: bp.element as ElementType,
-          cooldown: this.calculateCooldown(bp.type as SkillType, difficulty),
-          cost: this.calculateCost(bp.type as SkillType, difficulty),
-          effects: EffectMaterializer.materializeAll([fallback], matContext),
-        };
-      }
-
-      // Get secondary affixes
-      const secondaryAffixes = (bp.secondary_affix_ids || [])
-        .map((id) => affixPool.secondary.find((a) => a.id === id))
-        .filter(
-          (affix): affix is NonNullable<typeof affix> => affix !== undefined,
-        );
-
-      // Materialize all affixes into effects
-      const effects = EffectMaterializer.materializeAll(
-        [primaryAffix, ...secondaryAffixes],
-        matContext,
-      );
-
-      return {
-        id: randomUUID(),
-        name: bp.name,
-        element: bp.element as ElementType,
-        cooldown: this.calculateCooldown(bp.type as SkillType, difficulty),
-        cost: this.calculateCost(bp.type as SkillType, difficulty),
-        effects,
-      };
-    });
-
-    // 5. Build enemy cultivator
-    const enemy: Cultivator = {
+    return {
       id: `enemy-${randomUUID()}`,
-      name: blueprint.name,
+      name: blueprint.name || realmFriendlyName(stage, realmRequirement),
       title: blueprint.title,
-      gender: blueprint.gender as GenderType,
+      gender: blueprint.gender,
       realm: realmRequirement,
       realm_stage: stage,
       age: 100 + Math.floor(Math.random() * 200),
       lifespan: 1000,
-      attributes: attributes,
-      spiritual_roots: blueprint.spiritual_roots.map((r) => ({
-        element: r.element as ElementType,
-        strength: this.calculateSpiritualRootStrength(
-          realmRequirement,
-          difficulty,
-        ),
-      })),
+      attributes,
+      spiritual_roots: [
+        {
+          element: blueprint.spiritualElement,
+          strength: this.calculateSpiritualRootStrength(
+            realmRequirement,
+            difficulty,
+          ),
+        },
+      ],
       pre_heaven_fates: [],
       cultivations: [],
-      skills: skills,
+      skills,
       max_skills: 10,
       spirit_stones: Math.floor(Math.random() * 100 * difficulty),
       inventory: {
@@ -360,22 +272,6 @@ ${buildSkillAffixPrompt()}
       },
       background: blueprint.description,
     };
-
-    // 6. Handle weapon/artifact if specified
-    if (blueprint.equipped_weapon_name) {
-      const weaponId = randomUUID();
-      enemy.inventory.artifacts.push({
-        id: weaponId,
-        name: blueprint.equipped_weapon_name,
-        slot: 'weapon',
-        element: blueprint.skill_blueprints[0]?.element || '无',
-        quality: quality,
-        effects: [],
-      });
-      enemy.equipped.weapon = weaponId;
-    }
-
-    return enemy;
   }
 }
 

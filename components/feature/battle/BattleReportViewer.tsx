@@ -1,10 +1,10 @@
-import type { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import type { Cultivator } from '@/types/cultivator';
 
 interface BattleReportViewerProps {
   displayReport: string;
   isStreaming: boolean;
-  battleResult?: BattleEngineResult;
+  battleResult?: BattleRecord;
   player: Cultivator | null;
   isWin: boolean;
   // 挑战相关（可选）

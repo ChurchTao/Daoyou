@@ -31,7 +31,6 @@ export type ItemShowcaseSnapshotMap = {
     | 'quality'
     | 'required_realm'
     | 'description'
-    | 'effects'
   >;
   material: Pick<
     Material,
@@ -39,7 +38,7 @@ export type ItemShowcaseSnapshotMap = {
   >;
   consumable: Pick<
     Consumable,
-    'id' | 'name' | 'type' | 'quality' | 'effects' | 'quantity' | 'description'
+    'id' | 'name' | 'type' | 'quality' | 'quantity' | 'description'
   >;
 };
 

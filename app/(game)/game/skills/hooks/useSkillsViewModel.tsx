@@ -1,156 +1,122 @@
 'use client';
 
 import { useInkUI } from '@/components/providers/InkUIProvider';
+import {
+  toProductDisplayModel,
+  type ProductDisplayModel,
+} from '@/components/feature/products';
 import type { InkDialogState } from '@/components/ui/InkDialog';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import { StatusEffect } from '@/types/constants';
-import type { Skill } from '@/types/cultivator';
-import { getStatusEffectInfo } from '@/types/dictionaries';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+export type V2Skill = ProductDisplayModel & { id: string };
 
 export interface UseSkillsViewModelReturn {
-  // 数据
   cultivator: ReturnType<typeof useCultivator>['cultivator'];
-  skills: ReturnType<typeof useCultivator>['skills'];
+  skills: V2Skill[];
   isLoading: boolean;
   note: string | undefined;
   maxSkills: number;
-
-  // Dialog 状态
   dialog: InkDialogState | null;
   closeDialog: () => void;
-
-  // 详情 Modal 状态
-  selectedSkill: Skill | null;
+  selectedSkill: V2Skill | null;
   isModalOpen: boolean;
-  openSkillDetail: (skill: Skill) => void;
+  openSkillDetail: (skill: V2Skill) => void;
   closeSkillDetail: () => void;
-
-  // 业务操作
-  openForgetConfirm: (skill: Skill) => void;
-  showEffectHelp: (effect: StatusEffect) => void;
+  openForgetConfirm: (skill: V2Skill) => void;
+  refreshSkills: () => void;
 }
 
-/**
- * 神通页面 ViewModel
- */
 export function useSkillsViewModel(): UseSkillsViewModelReturn {
-  const { cultivator, skills, isLoading, note, refresh } = useCultivator();
+  const { cultivator, isLoading, note, refreshCultivator } = useCultivator();
   const { pushToast, openDialog } = useInkUI();
 
-  // Dialog 状态
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
-
-  // 详情 Modal 状态
-  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const [selectedSkill, setSelectedSkill] = useState<V2Skill | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [skills, setSkills] = useState<V2Skill[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
 
   const maxSkills = cultivator?.max_skills ?? 3;
 
-  // 关闭 Dialog
-  const closeDialog = useCallback(() => {
-    setDialog(null);
-  }, []);
+  const fetchSkills = useCallback(async () => {
+    if (!cultivator) return;
+    setSkillsLoading(true);
+    try {
+      const res = await fetch('/api/v2/products?type=skill');
+      const data = await res.json();
+      if (data.success) {
+        const parsed: V2Skill[] = (data.data ?? []).map(
+          (r: Record<string, unknown>) => ({
+            id: r.id as string,
+            ...toProductDisplayModel(r),
+          }),
+        );
+        setSkills(parsed);
+      }
+    } catch (e) {
+      console.error('加载神通失败:', e);
+    } finally {
+      setSkillsLoading(false);
+    }
+  }, [cultivator]);
 
-  // 打开神通详情
-  const openSkillDetail = useCallback((skill: Skill) => {
+  useEffect(() => {
+    fetchSkills();
+  }, [fetchSkills]);
+
+  const closeDialog = useCallback(() => setDialog(null), []);
+
+  const openSkillDetail = useCallback((skill: V2Skill) => {
     setSelectedSkill(skill);
     setIsModalOpen(true);
   }, []);
 
-  // 关闭神通详情
   const closeSkillDetail = useCallback(() => {
     setIsModalOpen(false);
+    setSelectedSkill(null);
   }, []);
 
-  // 遗忘神通
-  const handleForget = useCallback(
-    async (skill: Skill) => {
-      if (!cultivator) return;
-
-      try {
-        setDialog((prev) => ({
-          ...prev!,
-          loading: true,
-        }));
-
-        const response = await fetch('/api/cultivator/skills/forget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            skillId: skill.id,
-          }),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '遗忘失败');
-        }
-
-        pushToast({ message: `已将【${skill.name}】遗忘`, tone: 'default' });
-        await refresh();
-      } catch (error) {
-        pushToast({
-          message: error instanceof Error ? error.message : '操作失败',
-          tone: 'danger',
-        });
-      } finally {
-        setDialog((prev) => ({
-          ...prev!,
-          loading: false,
-        }));
-      }
-    },
-    [cultivator, pushToast, refresh],
-  );
-
-  // 打开遗忘确认
   const openForgetConfirm = useCallback(
-    (skill: Skill) => {
-      setDialog({
-        id: 'forget-confirm',
+    (skill: V2Skill) => {
+      openDialog({
         title: '遗忘神通',
         content: (
-          <div className="space-y-2 py-4 text-center">
-            <p>
-              确定要自废{' '}
-              <span className="text-ink-primary font-bold">{skill.name}</span>{' '}
-              吗？
-            </p>
-            <p className="text-ink-secondary text-xs">
-              此乃逆天之举，遗忘后将无法找回该神通的感悟。
-            </p>
-          </div>
+          <p className="py-2">
+            道友当真要将【{skill.name}】化为尘埃？此举不可逆转。
+          </p>
         ),
-        confirmLabel: '自废神通',
-        cancelLabel: '不可',
-        loadingLabel: '遗忘中...',
-        onConfirm: async () => await handleForget(skill),
+        confirmLabel: '道心已决',
+        cancelLabel: '再思量',
+        onConfirm: async () => {
+          try {
+            const res = await fetch(`/api/v2/products/${skill.id}`, {
+              method: 'DELETE',
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            pushToast({
+              message: `【${skill.name}】已从道基消散`,
+              tone: 'default',
+            });
+            await refreshCultivator();
+            await fetchSkills();
+          } catch (e) {
+            pushToast({
+              message: e instanceof Error ? e.message : '遗忘失败',
+              tone: 'danger',
+            });
+          }
+        },
       });
     },
-    [handleForget],
-  );
-
-  // 显示效果帮助
-  const showEffectHelp = useCallback(
-    (effect: StatusEffect) => {
-      openDialog({
-        title: '神通效果说明',
-        content: (
-          <div className="space-y-2 py-4 text-center">
-            <p>{getStatusEffectInfo(effect).description}</p>
-          </div>
-        ),
-        confirmLabel: '了然',
-      });
-    },
-    [openDialog],
+    [openDialog, pushToast, refreshCultivator, fetchSkills],
   );
 
   return {
     cultivator,
     skills,
-    isLoading,
+    isLoading: isLoading || skillsLoading,
     note,
     maxSkills,
     dialog,
@@ -160,6 +126,6 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
     openSkillDetail,
     closeSkillDetail,
     openForgetConfirm,
-    showEffectHelp,
+    refreshSkills: fetchSkills,
   };
 }

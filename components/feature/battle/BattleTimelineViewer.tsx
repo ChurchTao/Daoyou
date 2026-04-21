@@ -1,8 +1,12 @@
-import type { BattleEngineResult } from '@/engine/battle';
-import { useEffect, useState } from 'react';
+import {
+  toViewRecord,
+  type BattleRecord,
+  type BattleViewRecord,
+} from '@/lib/services/battleResult';
+import { useEffect, useMemo, useState } from 'react';
 
 interface BattleTimelineViewerProps {
-  battleResult: BattleEngineResult;
+  battleResult: BattleRecord | BattleViewRecord;
 }
 
 /**
@@ -14,11 +18,12 @@ export function BattleTimelineViewer({
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [autoPlayTurn, setAutoPlayTurn] = useState(true);
 
-  const timeline = battleResult.timeline ?? [];
+  const view = useMemo(() => toViewRecord(battleResult), [battleResult]);
+  const timeline = view.timeline ?? [];
   const totalTurns = timeline.length;
-  const isPlayerWin = battleResult.winner.id === battleResult.player;
-  const playerInfo = isPlayerWin ? battleResult.winner : battleResult.loser;
-  const opponentInfo = isPlayerWin ? battleResult.loser : battleResult.winner;
+  const isPlayerWin = view.winner.id === view.player;
+  const playerInfo = isPlayerWin ? view.winner : view.loser;
+  const opponentInfo = isPlayerWin ? view.loser : view.winner;
   const playerName = playerInfo.name;
   const opponentName = opponentInfo.name;
 
@@ -68,7 +73,7 @@ export function BattleTimelineViewer({
         <span className="tracking-wide">
           {snap.turn === 0
             ? '[战前状态]'
-            : `回合: ${snap.turn} / ${battleResult.turns ?? snap.turn}`}
+            : `回合: ${snap.turn} / ${view.turns ?? snap.turn}`}
         </span>
         <div className="flex items-center gap-3">
           <button

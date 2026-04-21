@@ -1,532 +1,139 @@
-import { EffectType, StatModifierType } from '@/engine/effect/types';
+/**
+ * 角色创建用基础功法 / 神通配置（v2 迁移版）
+ *
+ * 旧的 EffectConfig 体系已下线，这里使用 v5 的 AttributeModifierConfig（功法被动属性）
+ * 与 AbilityConfig（神通主动效果）进行最小可运行的初始化。
+ *
+ * 待 Phase 6 接入完整的 v2 造物流后，会用 CreationOrchestrator 动态产出，
+ * 不再依赖此静态配置。
+ */
+
+import {
+  AttributeType,
+  ModifierType,
+  AbilityType,
+} from '@/engine/battle-v5/core/types';
+import type {
+  AttributeModifierConfig,
+  AbilityConfig,
+} from '@/engine/battle-v5/core/configs';
 import type { ElementType } from '@/types/constants';
 import type { CultivationTechnique, Skill } from '@/types/cultivator';
 
-// 基础五行功法配置 (提供基础属性加成)
+type Grade = '黄阶下品' | '黄阶中品' | '黄阶上品';
+
+function modifier(
+  attrType: AttributeType,
+  value: number,
+): AttributeModifierConfig {
+  return { attrType, type: ModifierType.FIXED, value };
+}
+
+function buildTechnique(
+  name: string,
+  grade: Grade,
+  modifiers: AttributeModifierConfig[],
+): CultivationTechnique {
+  return {
+    name,
+    grade,
+    required_realm: '炼气',
+    attributeModifiers: modifiers,
+  };
+}
+
+function buildAttackSkill(
+  name: string,
+  element: ElementType,
+  baseDamage: number,
+  cooldown = 1,
+  cost = 5,
+): Skill {
+  const ability: AbilityConfig = {
+    slug: `basic-${element}-${name}`,
+    name,
+    type: AbilityType.ACTIVE_SKILL,
+    tags: ['attack', element],
+    mpCost: cost,
+    cooldown,
+    targetPolicy: { team: 'enemy', scope: 'single' },
+    effects: [
+      {
+        type: 'damage',
+        params: {
+          value: { base: baseDamage, attribute: AttributeType.SPIRIT, coefficient: 1.2 },
+        },
+      },
+    ],
+  };
+  return {
+    name,
+    element,
+    grade: '黄阶下品',
+    cost,
+    cooldown,
+    target_self: false,
+    abilityConfig: ability,
+  };
+}
+
+function buildHealSkill(
+  name: string,
+  element: ElementType,
+  baseHeal: number,
+  cooldown = 4,
+  cost = 8,
+): Skill {
+  const ability: AbilityConfig = {
+    slug: `basic-${element}-${name}`,
+    name,
+    type: AbilityType.ACTIVE_SKILL,
+    tags: ['heal', element],
+    mpCost: cost,
+    cooldown,
+    targetPolicy: { team: 'self', scope: 'single' },
+    effects: [
+      {
+        type: 'heal',
+        params: {
+          value: { base: baseHeal, attribute: AttributeType.SPIRIT, coefficient: 1.0 },
+          target: 'hp',
+        },
+      },
+    ],
+  };
+  return {
+    name,
+    element,
+    grade: '黄阶下品',
+    cost,
+    cooldown,
+    target_self: true,
+    abilityConfig: ability,
+  };
+}
+
 export const BASIC_TECHNIQUES: Record<
   ElementType,
-  (grade: '黄阶下品' | '黄阶中品' | '黄阶上品') => CultivationTechnique
+  (grade: Grade) => CultivationTechnique
 > = {
-  金: (grade) => ({
-    name: '金锐功',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'vitality',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'spirit',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-    ],
-  }),
-  木: (grade) => ({
-    name: '长春功',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'vitality',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'wisdom',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-    ],
-  }),
-  水: (grade) => ({
-    name: '弄潮诀',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'spirit',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'wisdom',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-    ],
-  }),
-  火: (grade) => ({
-    name: '烈焰功',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'spirit',
-          modType: StatModifierType.FIXED,
-          value: 8,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'vitality',
-          modType: StatModifierType.FIXED,
-          value: 2,
-        },
-      },
-    ],
-  }),
-  土: (grade) => ({
-    name: '厚土功',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'vitality',
-          modType: StatModifierType.FIXED,
-          value: 8,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'willpower',
-          modType: StatModifierType.FIXED,
-          value: 2,
-        },
-      },
-    ],
-  }),
-  风: (grade) => ({
-    name: '御风诀',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'speed',
-          modType: StatModifierType.FIXED,
-          value: 8,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'spirit',
-          modType: StatModifierType.FIXED,
-          value: 2,
-        },
-      },
-    ],
-  }),
-  雷: (grade) => ({
-    name: '奔雷诀',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'spirit',
-          modType: StatModifierType.FIXED,
-          value: 6,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'speed',
-          modType: StatModifierType.FIXED,
-          value: 4,
-        },
-      },
-    ],
-  }),
-  冰: (grade) => ({
-    name: '凝冰诀',
-    grade,
-    required_realm: '炼气',
-    effects: [
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'spirit',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-      {
-        type: EffectType.StatModifier,
-        params: {
-          stat: 'willpower',
-          modType: StatModifierType.FIXED,
-          value: 5,
-        },
-      },
-    ],
-  }),
+  金: (g) => buildTechnique('金锐功', g, [modifier(AttributeType.VITALITY, 5), modifier(AttributeType.SPIRIT, 5)]),
+  木: (g) => buildTechnique('长春功', g, [modifier(AttributeType.VITALITY, 5), modifier(AttributeType.WISDOM, 5)]),
+  水: (g) => buildTechnique('玄水诀', g, [modifier(AttributeType.SPIRIT, 5), modifier(AttributeType.SPEED, 5)]),
+  火: (g) => buildTechnique('烈阳功', g, [modifier(AttributeType.SPIRIT, 8), modifier(AttributeType.WILLPOWER, 2)]),
+  土: (g) => buildTechnique('厚土经', g, [modifier(AttributeType.VITALITY, 8), modifier(AttributeType.WILLPOWER, 2)]),
+  风: (g) => buildTechnique('御风诀', g, [modifier(AttributeType.SPEED, 8), modifier(AttributeType.WISDOM, 2)]),
+  雷: (g) => buildTechnique('紫雷诀', g, [modifier(AttributeType.SPIRIT, 5), modifier(AttributeType.SPEED, 5)]),
+  冰: (g) => buildTechnique('凝霜诀', g, [modifier(AttributeType.SPIRIT, 6), modifier(AttributeType.WILLPOWER, 4)]),
 };
 
-// 基础五行法术配置 (一攻一守/辅)
 export const BASIC_SKILLS: Record<ElementType, Skill[]> = {
-  金: [
-    {
-      name: '金锋术',
-      element: '金',
-      grade: '黄阶下品',
-      cooldown: 1,
-      cost: 5,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.2, element: '金' },
-        },
-      ],
-    },
-    {
-      name: '铁皮术',
-      element: '金',
-      grade: '黄阶下品',
-      cooldown: 3,
-      cost: 5,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'armor_up',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-      ],
-    },
-  ],
-  木: [
-    {
-      name: '缠绕术',
-      element: '木',
-      grade: '黄阶下品',
-      cooldown: 3,
-      cost: 5,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 0.5, element: '木' },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'root',
-            durationOverride: 2,
-            targetSelf: false,
-          },
-        },
-      ],
-    },
-    {
-      name: '回春术',
-      element: '木',
-      grade: '黄阶下品',
-      cooldown: 4,
-      cost: 8,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.Heal,
-          params: { multiplier: 1.5, targetSelf: true },
-        },
-      ],
-    },
-  ],
-  水: [
-    {
-      name: '冰锥术',
-      element: '水',
-      grade: '黄阶下品',
-      cooldown: 1,
-      cost: 5,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.0, element: '水' },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'slow',
-            durationOverride: 2,
-            targetSelf: false,
-          },
-        },
-      ],
-    },
-    {
-      name: '水罩术',
-      element: '水',
-      grade: '黄阶下品',
-      cooldown: 4,
-      cost: 6,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'shield',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-      ],
-    },
-  ],
-  火: [
-    {
-      name: '火弹术',
-      element: '火',
-      grade: '黄阶下品',
-      cooldown: 2,
-      cost: 8,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.4, element: '火' },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'burn',
-            durationOverride: 2,
-            targetSelf: false,
-          },
-        },
-      ],
-    },
-    {
-      name: '护体火盾',
-      element: '火',
-      grade: '黄阶下品',
-      cooldown: 4,
-      cost: 6,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'shield',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-      ],
-    },
-  ],
-  土: [
-    {
-      name: '土刺术',
-      element: '土',
-      grade: '黄阶下品',
-      cooldown: 2,
-      cost: 6,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.3, element: '土' },
-        },
-      ],
-    },
-    {
-      name: '土甲术',
-      element: '土',
-      grade: '黄阶下品',
-      cooldown: 4,
-      cost: 6,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'damage_reduction',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-      ],
-    },
-  ],
-  风: [
-    {
-      name: '风刃术',
-      element: '风',
-      grade: '黄阶下品',
-      cooldown: 0,
-      cost: 4,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.1, element: '风' },
-        },
-      ],
-    },
-    {
-      name: '轻身术',
-      element: '风',
-      grade: '黄阶下品',
-      cooldown: 3,
-      cost: 5,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'speed_up',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'dodge_up',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-      ],
-    },
-  ],
-  雷: [
-    {
-      name: '掌心雷',
-      element: '雷',
-      grade: '黄阶下品',
-      cooldown: 3,
-      cost: 10,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.5, element: '雷' },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'stun',
-            durationOverride: 1,
-            targetSelf: false,
-            chance: 0.3,
-          },
-        },
-      ],
-    },
-    {
-      name: '雷闪术',
-      element: '雷',
-      grade: '黄阶下品',
-      cooldown: 4,
-      cost: 8,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'speed_up',
-            durationOverride: 2,
-            targetSelf: true,
-          },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'crit_rate_up',
-            durationOverride: 2,
-            targetSelf: true,
-          },
-        },
-      ],
-    },
-  ],
-  冰: [
-    {
-      name: '冰刺',
-      element: '冰',
-      grade: '黄阶下品',
-      cooldown: 1,
-      cost: 6,
-      target_self: false,
-      effects: [
-        {
-          type: EffectType.Damage,
-          params: { multiplier: 1.1, element: '冰' },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'slow',
-            durationOverride: 2,
-            targetSelf: false,
-          },
-        },
-      ],
-    },
-    {
-      name: '冰甲术',
-      element: '冰',
-      grade: '黄阶下品',
-      cooldown: 4,
-      cost: 6,
-      target_self: true,
-      effects: [
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'shield',
-            durationOverride: 3,
-            targetSelf: true,
-          },
-        },
-        {
-          type: EffectType.AddBuff,
-          params: {
-            buffId: 'freeze',
-            durationOverride: 1,
-            targetSelf: false,
-            chance: 0.1,
-          },
-        },
-      ],
-    },
-  ],
+  金: [buildAttackSkill('金锋术', '金', 12), buildHealSkill('铁皮术', '金', 8)],
+  木: [buildAttackSkill('缠绕术', '木', 8), buildHealSkill('回春术', '木', 14)],
+  水: [buildAttackSkill('冰锥术', '水', 10), buildHealSkill('水罩术', '水', 12)],
+  火: [buildAttackSkill('烈焰指', '火', 14), buildHealSkill('焰息诀', '火', 8)],
+  土: [buildAttackSkill('落石术', '土', 11), buildHealSkill('厚土护体', '土', 10)],
+  风: [buildAttackSkill('风刃', '风', 10), buildHealSkill('清风诀', '风', 9)],
+  雷: [buildAttackSkill('紫雷击', '雷', 13), buildHealSkill('雷护身', '雷', 9)],
+  冰: [buildAttackSkill('寒冰刺', '冰', 11), buildHealSkill('冰幕诀', '冰', 10)],
 };

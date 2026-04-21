@@ -4,7 +4,6 @@ import {
   runCreationBattleDuel,
   runGongfaSustainBaselineBattle,
 } from '@/engine/creation-v2/tests/helpers/BattleRegressionHarness';
-import { CreationTags } from '@/engine/shared/tag-domain';
 import { Material } from '@/types/cultivator';
 
 const SEEDS = [3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108];
@@ -163,25 +162,12 @@ const MATERIAL_SETS: Record<
   },
 };
 
-const REQUESTED_SKILL_TAGS = {
-  low: [
-    CreationTags.MATERIAL.SEMANTIC_BLADE,
-    CreationTags.MATERIAL.SEMANTIC_BURST,
-  ],
-  high: [
-    CreationTags.MATERIAL.SEMANTIC_BLADE,
-    CreationTags.MATERIAL.SEMANTIC_BURST,
-    CreationTags.MATERIAL.SEMANTIC_FLAME,
-  ],
-} as const;
-
 function summarize(
   productType: 'skill' | 'artifact' | 'gongfa',
   materials: Material[],
-  requestedTags?: readonly string[],
 ) {
   const duels = SEEDS.map((seed) =>
-    runCreationBattleDuel({ productType, materials, seed, requestedTags }),
+    runCreationBattleDuel({ productType, materials, seed }),
   ).filter((duel): duel is NonNullable<typeof duel> => Boolean(duel));
 
   return {
@@ -213,8 +199,8 @@ function summarizeBaseline(
 
 describe('creation-v2 battle tier regression', () => {
   it('skill 高投入样本应以更短回合形成优势', () => {
-    const low = summarize('skill', MATERIAL_SETS.skill.low, REQUESTED_SKILL_TAGS.low);
-    const high = summarize('skill', MATERIAL_SETS.skill.high, REQUESTED_SKILL_TAGS.high);
+    const low = summarize('skill', MATERIAL_SETS.skill.low);
+    const high = summarize('skill', MATERIAL_SETS.skill.high);
 
     expect(low.count).toBe(SEEDS.length);
     expect(high.count).toBe(SEEDS.length);

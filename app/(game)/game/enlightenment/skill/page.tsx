@@ -1,29 +1,27 @@
 'use client';
 
 import { MaterialSelector } from '@/app/(game)/game/components/MaterialSelector';
+import {
+  CreationIntentPanel,
+  SelectedMaterialsWithDose,
+} from '@/components/feature/creation';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
   InkBadge,
   InkButton,
-  InkInput,
-  InkList,
-  InkListItem,
   InkNotice,
 } from '@/components/ui';
-import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
+import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import {
-  getSkillDisplayInfo,
-  getSkillElementInfo,
-} from '@/lib/utils/effectDisplay';
-import type { Material, Skill } from '@/types/cultivator';
-import { getElementInfo } from '@/types/dictionaries';
+import type { Material } from '@/types/cultivator';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-const MAX_MATERIALS = 5;
+const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
+const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
+const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
 
 type CostEstimate = {
   spiritStones?: number;
@@ -38,17 +36,38 @@ type CostResponse = {
   };
 };
 
+type AffixSummary = {
+  id: string;
+  name: string;
+  category: string;
+  isPerfect: boolean;
+  rollEfficiency: number;
+};
+
+type V2CreationResult = {
+  id: string;
+  name: string;
+  quality: string | null;
+  element: string | null;
+  score: number;
+  affixes: AffixSummary[];
+  needs_replace?: boolean;
+};
+
 export default function SkillCreationPage() {
   const router = useRouter();
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
-  const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [selectedMaterialMap, setSelectedMaterialMap] = useState<
     Record<string, Material>
   >({});
+  const [doseMap, setDoseMap] = useState<Record<string, number>>({});
+  const [userPrompt, setUserPrompt] = useState('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
-  const [createdSkill, setCreatedSkill] = useState<Skill | null>(null);
+  const [createdResult, setCreatedResult] = useState<V2CreationResult | null>(
+    null,
+  );
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [canAfford, setCanAfford] = useState(true);
@@ -80,13 +99,12 @@ export default function SkillCreationPage() {
         console.error('检查待定失败:', e);
       }
     };
-    checkPending();
+    void checkPending();
   }, [cultivator, openDialog, router]);
 
-  // Fetch cost estimate when materials change
   useEffect(() => {
     if (selectedMaterialIds.length > 0) {
-      fetchCostEstimate('create_skill', selectedMaterialIds);
+      void fetchCostEstimate('create_skill', selectedMaterialIds);
     } else {
       setEstimatedCost(null);
       setCanAfford(true);
@@ -119,6 +137,11 @@ export default function SkillCreationPage() {
           delete next[id];
           return next;
         });
+        setDoseMap((map) => {
+          const next = { ...map };
+          delete next[id];
+          return next;
+        });
         return prev.filter((mid) => mid !== id);
       }
       if (prev.length >= MAX_MATERIALS) {
@@ -129,14 +152,44 @@ export default function SkillCreationPage() {
         return prev;
       }
       if (material) {
-        setSelectedMaterialMap((map) => ({
-          ...map,
-          [id]: material,
-        }));
+        setSelectedMaterialMap((map) => ({ ...map, [id]: material }));
+        setDoseMap((map) => ({ ...map, [id]: MIN_DOSE }));
       }
       return [...prev, id];
     });
   };
+
+  const handleDoseChange = (id: string, dose: number) => {
+    const material = selectedMaterialMap[id];
+    if (!material) return;
+    const stock = material.quantity ?? 0;
+    const clamped = Math.min(
+      Math.min(MAX_DOSE, Math.max(stock, MIN_DOSE)),
+      Math.max(MIN_DOSE, Math.floor(dose)),
+    );
+    setDoseMap((prev) => ({ ...prev, [id]: clamped }));
+  };
+
+  const resetAll = () => {
+    setStatus('');
+    setCreatedResult(null);
+    setSelectedMaterialIds([]);
+    setSelectedMaterialMap({});
+    setDoseMap({});
+    setUserPrompt('');
+  };
+
+  const submitPayload = useMemo(
+    () => ({
+      materialIds: selectedMaterialIds,
+      craftType: 'create_skill' as const,
+      materialQuantities: Object.fromEntries(
+        selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
+      ),
+      userPrompt: userPrompt.trim() || undefined,
+    }),
+    [selectedMaterialIds, doseMap, userPrompt],
+  );
 
   const handleSubmit = async () => {
     if (!cultivator) {
@@ -144,34 +197,20 @@ export default function SkillCreationPage() {
       return;
     }
 
-    if (!prompt.trim()) {
-      pushToast({
-        message: '请注入神念，描述神通法门。',
-        tone: 'warning',
-      });
-      return;
-    }
-
     if (selectedMaterialIds.length === 0) {
-      pushToast({ message: '请选择要参悟的功法典籍。', tone: 'warning' });
+      pushToast({ message: '请选择要参悟的神通典籍。', tone: 'warning' });
       return;
     }
 
     setSubmitting(true);
     setStatus('感悟天地，推演法则……');
-    setCreatedSkill(null);
+    setCreatedResult(null);
 
     try {
       const response = await fetch('/api/craft', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materialIds: selectedMaterialIds,
-          prompt: prompt,
-          craftType: 'create_skill',
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submitPayload),
       });
 
       const result = await response.json();
@@ -179,9 +218,8 @@ export default function SkillCreationPage() {
         throw new Error(result.error || '推演失败');
       }
 
-      const skill = result.data;
+      const skill = result.data as V2CreationResult;
 
-      // 检查是否需要替换
       if (skill.needs_replace) {
         pushToast({
           message: '神通已达上限，请选择一个进行替换',
@@ -191,14 +229,13 @@ export default function SkillCreationPage() {
         return;
       }
 
-      setCreatedSkill(skill);
-
+      setCreatedResult(skill);
       const successMessage = `神通【${skill.name}】推演成功！`;
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
-      setPrompt('');
       setSelectedMaterialIds([]);
       setSelectedMaterialMap({});
+      setDoseMap({});
       await refreshCultivator();
       setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
@@ -220,45 +257,6 @@ export default function SkillCreationPage() {
       </div>
     );
   }
-
-  const renderSkillExtraInfo = (skill: Skill) => {
-    const elementInfo = getElementInfo(skill.element);
-    const displayInfo = getSkillDisplayInfo(skill);
-
-    return (
-      <div className="space-y-1 text-sm">
-        <div className="border-ink/50 flex justify-between border-b pb-1">
-          <span className="opacity-70">元素</span>
-          <span>
-            {elementInfo.icon} {elementInfo.label}
-          </span>
-        </div>
-        <div className="border-ink/50 flex justify-between border-b pb-1">
-          <span className="opacity-70">目标</span>
-          <span>{skill.target_self ? '自身' : '敌方'}</span>
-        </div>
-        <div className="border-ink/50 flex justify-between border-b pb-1">
-          <span className="opacity-70">威力</span>
-          <span>{displayInfo.power}%</span>
-        </div>
-        {displayInfo.healPercent !== undefined &&
-          displayInfo.healPercent > 0 && (
-            <div className="border-ink/50 flex justify-between border-b pb-1">
-              <span className="opacity-70">治疗</span>
-              <span>{displayInfo.healPercent}%</span>
-            </div>
-          )}
-        <div className="border-ink/50 flex justify-between border-b pb-1">
-          <span className="opacity-70">消耗</span>
-          <span>{skill.cost || 0} 灵力</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="opacity-70">冷却</span>
-          <span>{skill.cooldown || 0} 回合</span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <InkPageShell
@@ -288,7 +286,6 @@ export default function SkillCreationPage() {
           pageSize={20}
           includeMaterialTypes={['skill_manual', 'manual']}
           refreshKey={materialsRefreshKey}
-          showSelectedMaterialsPanel
           loadingText="正在检索可参悟典籍，请稍候……"
           emptyNoticeText="暂无可用于推演神通的典籍。"
           totalText={(total) => `共 ${total} 部可参悟典籍`}
@@ -296,6 +293,28 @@ export default function SkillCreationPage() {
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
+      </InkSection>
+
+      <InkSection title="2. 调度投入份数">
+        <SelectedMaterialsWithDose
+          selectedIds={selectedMaterialIds}
+          materialMap={selectedMaterialMap}
+          doseMap={doseMap}
+          minDose={MIN_DOSE}
+          maxDose={MAX_DOSE}
+          disabled={isSubmitting}
+          onRemove={(id) => toggleMaterial(id)}
+          onDoseChange={handleDoseChange}
+        />
+      </InkSection>
+
+      <InkSection title="3. 推演意念">
+        <CreationIntentPanel
+          productType="skill"
+          userPrompt={userPrompt}
+          onUserPromptChange={setUserPrompt}
+          disabled={isSubmitting}
+        />
       </InkSection>
 
       <InkSection title="预计消耗">
@@ -319,50 +338,16 @@ export default function SkillCreationPage() {
         )}
       </InkSection>
 
-      <InkSection title="2. 注入神念">
-        <div className="mb-4">
-          <InkList dense>
-            <InkListItem
-              title="提示"
-              description="描述你期望的神通形态，如“漫天剑雨”、“护身火罩”。"
-            />
-            <InkListItem
-              title="示例"
-              description="“我手持离火剑，想创造一门能召唤九条火龙护体并反击敌人的防御剑阵。”"
-            />
-          </InkList>
-        </div>
-
-        <InkInput
-          multiline
-          rows={6}
-          placeholder="请在此注入你的神念……"
-          value={prompt}
-          onChange={(value) => setPrompt(value)}
-          disabled={isSubmitting}
-          hint="💡 描述越具体、越符合自身条件，成功率越高。"
-        />
-
+      <InkSection title="4. 开始推演">
         <InkActionGroup align="right">
-          <InkButton
-            onClick={() => {
-              setPrompt('');
-              setStatus('');
-              setSelectedMaterialIds([]);
-              setSelectedMaterialMap({});
-            }}
-            disabled={isSubmitting}
-          >
+          <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
           </InkButton>
           <InkButton
             variant="primary"
             onClick={handleSubmit}
             disabled={
-              isSubmitting ||
-              !prompt.trim() ||
-              selectedMaterialIds.length === 0 ||
-              !canAfford
+              isSubmitting || selectedMaterialIds.length === 0 || !canAfford
             }
           >
             {isSubmitting ? '推演中……' : '开始推演'}
@@ -370,42 +355,42 @@ export default function SkillCreationPage() {
         </InkActionGroup>
       </InkSection>
 
-      {status && (
+      {status && !createdResult && (
         <div className="mt-4">
           <InkNotice tone="info">{status}</InkNotice>
         </div>
       )}
 
-      {/* Result Modal */}
-      {createdSkill && (
-        <EffectDetailModal
-          isOpen={!!createdSkill}
-          onClose={() => setCreatedSkill(null)}
-          icon={getSkillElementInfo(createdSkill).icon}
-          name={createdSkill.name}
-          badges={[
-            createdSkill.grade && (
-              <InkBadge key="g" tier={createdSkill.grade}>
-                {getSkillElementInfo(createdSkill).typeName}
-              </InkBadge>
-            ),
-            <InkBadge key="e" tone="default">
-              {getElementInfo(createdSkill.element).label}
-            </InkBadge>,
-          ].filter(Boolean)}
-          extraInfo={renderSkillExtraInfo(createdSkill)}
-          effects={createdSkill.effects}
-          description={createdSkill.description}
-          effectTitle="神通效果"
-          descriptionTitle="神通描述"
-          footer={
-            <InkButton onClick={() => setCreatedSkill(null)} className="w-full">
-              了然于胸
-            </InkButton>
-          }
-        />
+      {createdResult && (
+        <InkSection title={`【${createdResult.name}】已纳入道基`}>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {createdResult.quality && (
+                <InkBadge tier={createdResult.quality as never}>
+                  {createdResult.quality}
+                </InkBadge>
+              )}
+              {createdResult.element && (
+                <InkBadge tone="default">{createdResult.element}</InkBadge>
+              )}
+              <InkBadge tone="default">{`评分 ${createdResult.score}`}</InkBadge>
+            </div>
+            {createdResult.affixes.length > 0 && (
+              <ul className="text-ink-secondary space-y-1 text-sm">
+                {createdResult.affixes.map((a) => (
+                  <li key={a.id} className="flex items-center gap-1">
+                    <span>{a.isPerfect ? '✦' : '◆'}</span>
+                    <span>{a.name}</span>
+                    {a.isPerfect && (
+                      <span className="text-amber-500 text-xs">（完美）</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </InkSection>
       )}
     </InkPageShell>
   );
 }
-

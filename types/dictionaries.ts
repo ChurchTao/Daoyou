@@ -62,7 +62,19 @@ export function getElementInfo(key: ElementType): ElementDisplayInfo {
 
 // ===== 属性相关 =====
 
-export type AttributeKey = keyof Attributes;
+/**
+ * 展示层用属性键：基础 5 维 + battle-v5 派生键。
+ * Attributes 已被精简为仅保留基础 5 维，但 UI 显示仍需覆盖派生键，
+ * 因此这里通过字面量并集扩展 keyof Attributes。
+ */
+export type AttributeKey =
+  | keyof Attributes
+  | 'critRate'
+  | 'critDamage'
+  | 'damageReduction'
+  | 'flatDamageReduction'
+  | 'hitRate'
+  | 'dodgeRate';
 
 export interface AttributeDisplayInfo {
   label: string;

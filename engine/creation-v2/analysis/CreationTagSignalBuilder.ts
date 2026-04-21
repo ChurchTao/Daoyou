@@ -55,11 +55,6 @@ export function buildCreationTagSignals({
       'intent_dominant',
       SIGNAL_WEIGHTS.dominantIntent,
     );
-    pushSignals(
-      intent.requestedTags,
-      'intent_requested',
-      SIGNAL_WEIGHTS.requestedIntent,
-    );
   }
 
   if (recipeMatch) {

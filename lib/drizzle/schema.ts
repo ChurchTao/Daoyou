@@ -619,27 +619,43 @@ export const feedbacks = pgTable(
   ],
 );
 
-// 技能模板表 (Ability System V5)
-export const abilityTemplates = pgTable(
-  'wanjiedaoyou_ability_templates',
+// ===== 造物引擎 V2 统一产物表 =====
+// 所有 v2 产物（skill/artifact/gongfa）存入同一张表，通过 product_type 区分
+// 与 v1 旧表（skills/artifacts/cultivation_techniques）完全隔离
+export const creationProducts = pgTable(
+  'wanjiedaoyou_creation_products',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    slug: varchar('slug', { length: 100 }).unique().notNull(), // 唯一标识符，如 "fireball_v5"
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    productType: varchar('product_type', { length: 20 }).notNull(), // skill | artifact | gongfa
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description'),
-    type: varchar('type', { length: 20 }).notNull(), // active_skill | passive_ability
-    
-    // 核心配置：存储整个技能的效果链、消耗、冷却等 GAS 配置
-    config: jsonb('config').notNull(), 
-    
-    // 附加信息：如元素、等级、评分、AI Prompt 等
-    metadata: jsonb('metadata').default({}), 
-    
+    element: varchar('element', { length: 10 }), // 主元素，从 abilityTags 提取
+    quality: varchar('quality', { length: 20 }), // 品质等级，从 balanceMetrics 推算
+    slot: varchar('slot', { length: 20 }), // 仅 artifact: weapon | armor | accessory
+    score: integer('score').notNull().default(0), // 排行榜评分
+    isEquipped: boolean('is_equipped').notNull().default(false), // 仅 artifact: 装备状态
+    abilityConfig: jsonb('ability_config').notNull(), // 完整 battle-v5 AbilityConfig
+    productModel: jsonb('product_model').notNull(), // 完整 CreationProductModel 快照
     createdAt: timestamp('created_at').defaultNow(),
-    updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => [
-    index('ability_templates_slug_idx').on(table.slug),
-    index('ability_templates_type_idx').on(table.type),
+    index('creation_products_cultivator_type_idx').on(
+      table.cultivatorId,
+      table.productType,
+    ),
+    index('creation_products_type_score_idx').on(
+      table.productType,
+      table.score,
+    ),
+    index('creation_products_equipped_idx').on(
+      table.cultivatorId,
+      table.isEquipped,
+    ),
   ],
 );

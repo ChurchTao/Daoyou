@@ -1,5 +1,6 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getExecutor } from '@/lib/drizzle/db';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import * as schema from '@/lib/drizzle/schema';
 import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -22,16 +23,15 @@ export const POST = withActiveCultivator(
     // Delete item based on type
     let deleted = false;
     if (itemType === 'artifact') {
-      const result = await getExecutor()
-        .delete(schema.artifacts)
-        .where(
-          and(
-            eq(schema.artifacts.id, itemId),
-            eq(schema.artifacts.cultivatorId, cultivator.id),
-          ),
-        )
-        .returning();
-      deleted = result.length > 0;
+      const product = await creationProductRepository.findById(itemId);
+      if (
+        product &&
+        product.cultivatorId === cultivator.id &&
+        product.productType === 'artifact'
+      ) {
+        await creationProductRepository.deleteById(itemId);
+        deleted = true;
+      }
     } else if (itemType === 'consumable') {
       const result = await getExecutor()
         .delete(schema.consumables)

@@ -37,7 +37,6 @@ function createSkillSession() {
     productType: 'skill',
     outcomeKind: 'active_skill',
     dominantTags: ['Material.Semantic.Blade'],
-    requestedTags: [],
   };
 
   return { orchestrator, session };

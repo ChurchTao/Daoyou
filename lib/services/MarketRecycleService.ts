@@ -23,11 +23,10 @@ import {
 } from '@/engine/material/creation/config';
 import { getExecutor } from '@/lib/drizzle/db';
 import {
-  artifacts,
   cultivators,
-  equippedItems,
   materials,
 } from '@/lib/drizzle/schema';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import { redis } from '@/lib/redis';
 import { QUALITY_ORDER, type Quality } from '@/types/constants';
 import type { Artifact, Material } from '@/types/cultivator';
@@ -41,9 +40,24 @@ import type {
 } from '@/types/market';
 import { text } from '@/utils/aiClient';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import {
+  getArtifactQualityFromProduct,
+  getArtifactStateHash,
+  toArtifactFromProduct,
+} from './creationProductArtifactSupport';
 
 const SELL_SESSION_PREFIX = 'market:sell:session:';
 const SELL_LOCK_PREFIX = 'market:sell:lock:';
+
+function isLowTier(quality: Quality): boolean {
+  return (
+    (QUALITY_ORDER[quality] ?? 0) <= (QUALITY_ORDER[RECYCLE_LOW_TIER_MAX] ?? 0)
+  );
+}
+
+function isHighTier(quality: Quality): boolean {
+  return (QUALITY_ORDER[quality] ?? 0) >= (QUALITY_ORDER[HIGH_TIER_MIN] ?? 0);
+}
 
 interface ArtifactSnapshot {
   id: string;
@@ -92,14 +106,6 @@ export class MarketRecycleError extends Error {
     super(message);
     this.name = 'MarketRecycleError';
   }
-}
-
-function isLowTier(quality: Quality): boolean {
-  return QUALITY_ORDER[quality] <= QUALITY_ORDER[RECYCLE_LOW_TIER_MAX];
-}
-
-function isHighTier(quality: Quality): boolean {
-  return QUALITY_ORDER[quality] >= QUALITY_ORDER[HIGH_TIER_MIN];
 }
 
 function buildSessionKey(sessionId: string): string {
@@ -183,7 +189,7 @@ function getArtifactQuality(artifact: Pick<Artifact, 'quality'>): Quality {
 }
 
 export function calculateArtifactUnitPrice(
-  artifact: Pick<Artifact, 'quality' | 'score' | 'slot' | 'effects'>,
+  artifact: Pick<Artifact, 'quality' | 'score' | 'slot' | 'attributeModifiers'>,
 ): number {
   const quality = getArtifactQuality(artifact);
   const materialAnchorPrice = BASE_PRICES[quality];
@@ -191,17 +197,17 @@ export function calculateArtifactUnitPrice(
 
   const score = Math.max(0, artifact.score || 0);
   const scoreMultiplier = clamp(0.92 + score / 3000, 0.92, 1.5);
-  const effectCount = Array.isArray(artifact.effects)
-    ? artifact.effects.length
+  const modifierCount = Array.isArray(artifact.attributeModifiers)
+    ? artifact.attributeModifiers.length
     : 0;
-  const effectMultiplier = 1 + Math.min(0.22, effectCount * 0.05);
+  const modifierMultiplier = 1 + Math.min(0.22, modifierCount * 0.05);
   const slotMultiplier = ARTIFACT_SLOT_FACTOR[artifact.slot] ?? 1;
 
   const raw = Math.floor(
     materialAnchorPrice *
       qualityFactor *
       scoreMultiplier *
-      effectMultiplier *
+      modifierMultiplier *
       slotMultiplier,
   );
   const cap = Math.floor(materialAnchorPrice * RECYCLE_PRICE_FACTOR_CAP);
@@ -210,17 +216,17 @@ export function calculateArtifactUnitPrice(
 }
 
 function getArtifactAppraisalRating(
-  artifact: Pick<Artifact, 'quality' | 'score' | 'effects'>,
+  artifact: Pick<Artifact, 'quality' | 'score' | 'attributeModifiers'>,
 ): HighTierAppraisal['rating'] {
   const quality = getArtifactQuality(artifact);
   const qualityScore = QUALITY_ORDER[quality] ?? 0;
   const score = Math.max(0, artifact.score || 0);
-  const effectCount = Array.isArray(artifact.effects)
-    ? artifact.effects.length
+  const modifierCount = Array.isArray(artifact.attributeModifiers)
+    ? artifact.attributeModifiers.length
     : 0;
 
   const total =
-    qualityScore * 12 + Math.min(18, Math.floor(score / 220)) + effectCount * 3;
+    qualityScore * 12 + Math.min(18, Math.floor(score / 220)) + modifierCount * 3;
   if (total >= 88) return 'S';
   if (total >= 70) return 'A';
   if (total >= 54) return 'B';
@@ -228,12 +234,15 @@ function getArtifactAppraisalRating(
 }
 
 export function buildArtifactHighTierAppraisal(
-  artifact: Pick<Artifact, 'name' | 'quality' | 'score' | 'slot' | 'effects'>,
+  artifact: Pick<
+    Artifact,
+    'name' | 'quality' | 'score' | 'slot' | 'attributeModifiers'
+  >,
 ): HighTierAppraisal {
   const quality = getArtifactQuality(artifact);
   const score = Math.max(0, artifact.score || 0);
-  const effectCount = Array.isArray(artifact.effects)
-    ? artifact.effects.length
+  const modifierCount = Array.isArray(artifact.attributeModifiers)
+    ? artifact.attributeModifiers.length
     : 0;
 
   const rating = getArtifactAppraisalRating(artifact);
@@ -252,9 +261,9 @@ export function buildArtifactHighTierAppraisal(
           ? '灵性尚可'
           : '器韵平平';
   const effectText =
-    effectCount >= 4
+    modifierCount >= 4
       ? '器内道痕层叠，可承重祭'
-      : effectCount >= 2
+      : modifierCount >= 2
         ? '内蕴数重法效，可堪实战'
         : '法效单薄，更宜折价流转';
 
@@ -330,15 +339,10 @@ async function loadOwnedArtifacts(
   cultivatorId: string,
   artifactIds: string[],
 ): Promise<Artifact[]> {
-  const rows = await getExecutor()
-    .select()
-    .from(artifacts)
-    .where(
-      and(
-        eq(artifacts.cultivatorId, cultivatorId),
-        inArray(artifacts.id, artifactIds),
-      ),
-    );
+  const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
+    cultivatorId,
+    artifactIds,
+  );
 
   if (rows.length !== artifactIds.length) {
     throw new MarketRecycleError(400, '部分法宝不存在或不属于当前角色');
@@ -346,7 +350,7 @@ async function loadOwnedArtifacts(
 
   const order = new Map(artifactIds.map((id, index) => [id, index]));
   rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-  return rows as Artifact[];
+  return rows.map(toArtifactFromProduct);
 }
 
 function getEffectsHash(value: unknown): string {
@@ -358,18 +362,10 @@ function getEffectsHash(value: unknown): string {
 }
 
 async function getEquippedArtifactIds(cultivatorId: string): Promise<string[]> {
-  const [row] = await getExecutor()
-    .select({
-      weapon: equippedItems.weapon_id,
-      armor: equippedItems.armor_id,
-      accessory: equippedItems.accessory_id,
-    })
-    .from(equippedItems)
-    .where(eq(equippedItems.cultivatorId, cultivatorId))
-    .limit(1);
-
-  if (!row) return [];
-  return [row.weapon, row.armor, row.accessory].filter(Boolean) as string[];
+  const equipped = await creationProductRepository.findEquippedArtifacts(
+    cultivatorId,
+  );
+  return equipped.map((artifact) => artifact.id);
 }
 
 function ensureArtifactsNotEquipped(
@@ -408,7 +404,10 @@ function buildArtifactSessionSnapshot(
       quality: getArtifactQuality(item),
       score: item.score || 0,
       slot: item.slot,
-      effectsHash: getEffectsHash(item.effects),
+      effectsHash: getEffectsHash({
+        attributeModifiers: item.attributeModifiers ?? [],
+        abilityConfig: item.abilityConfig ?? null,
+      }),
     };
   }
   return snapshot;
@@ -718,39 +717,23 @@ async function confirmArtifactSell(
   session: RecycleSession,
 ): Promise<SellConfirmResponse> {
   const txResult = await getExecutor().transaction(async (tx) => {
-    const rows = await tx
-      .select()
-      .from(artifacts)
-      .where(
-        and(
-          eq(artifacts.cultivatorId, cultivatorId),
-          inArray(artifacts.id, session.itemIds),
-        ),
-      );
+    const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
+      cultivatorId,
+      session.itemIds,
+      tx,
+    );
 
     if (rows.length !== session.itemIds.length) {
       throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
     }
 
-    const [equippedRow] = await tx
-      .select({
-        weapon: equippedItems.weapon_id,
-        armor: equippedItems.armor_id,
-        accessory: equippedItems.accessory_id,
-      })
-      .from(equippedItems)
-      .where(eq(equippedItems.cultivatorId, cultivatorId))
-      .limit(1);
-
-    if (equippedRow) {
-      const equippedSet = new Set(
-        [equippedRow.weapon, equippedRow.armor, equippedRow.accessory].filter(
-          Boolean,
-        ),
-      );
-      if (session.itemIds.some((id) => equippedSet.has(id))) {
-        throw new MarketRecycleError(409, '法宝已装备，无法回收，请先卸下');
-      }
+    const equipped = await creationProductRepository.findEquippedArtifacts(
+      cultivatorId,
+      tx,
+    );
+    const equippedSet = new Set(equipped.map((artifact) => artifact.id));
+    if (session.itemIds.some((id) => equippedSet.has(id))) {
+      throw new MarketRecycleError(409, '法宝已装备，无法回收，请先卸下');
     }
 
     const rowMap = new Map(rows.map((row) => [row.id, row]));
@@ -760,12 +743,10 @@ async function confirmArtifactSell(
       if (!current || !expected) {
         throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');
       }
-      const currentQuality = getArtifactQuality({
-        quality: current.quality as Quality,
-      });
+      const currentQuality = getArtifactQualityFromProduct(current);
       const currentScore = current.score || 0;
-      const currentSlot = current.slot as Artifact['slot'];
-      const currentEffectsHash = getEffectsHash(current.effects);
+      const currentSlot = (current.slot as Artifact['slot']) || 'weapon';
+      const currentEffectsHash = getArtifactStateHash(current);
       if (
         currentQuality !== expected.quality ||
         currentScore !== expected.score ||
@@ -776,15 +757,11 @@ async function confirmArtifactSell(
       }
     }
 
-    const deleted = await tx
-      .delete(artifacts)
-      .where(
-        and(
-          eq(artifacts.cultivatorId, cultivatorId),
-          inArray(artifacts.id, session.itemIds),
-        ),
-      )
-      .returning({ id: artifacts.id });
+    const deleted = await creationProductRepository.deleteArtifactsByIdsAndCultivator(
+      cultivatorId,
+      session.itemIds,
+      tx,
+    );
 
     if (deleted.length !== session.itemIds.length) {
       throw new MarketRecycleError(409, '法宝已发生变化，请重新预览');

@@ -4,7 +4,7 @@ import Zhanji from '@/components/func/Zhanji';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkList } from '@/components/ui/InkList';
 import { InkNotice } from '@/components/ui/InkNotice';
-import type { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import { fetchJsonCached } from '@/lib/client/requestCache';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 type BattleSummary = {
   id: string;
   createdAt: string | null;
-} & Pick<BattleEngineResult, 'winner' | 'loser' | 'turns'>;
+} & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
 
 export function RecentBattles() {
   const [records, setRecords] = useState<BattleSummary[]>([]);

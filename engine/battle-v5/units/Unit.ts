@@ -55,6 +55,18 @@ export class Unit {
     this.currentMp = Math.min(this.currentMp, this.maxMp);
   }
 
+  overrideResourceCaps(maxHp?: number, maxMp?: number): void {
+    if (typeof maxHp === 'number' && maxHp > 0) {
+      this.maxHp = maxHp;
+      this.currentHp = Math.min(this.currentHp, this.maxHp);
+    }
+
+    if (typeof maxMp === 'number' && maxMp > 0) {
+      this.maxMp = maxMp;
+      this.currentMp = Math.min(this.currentMp, this.maxMp);
+    }
+  }
+
   /**
    * 增加护盾
    */

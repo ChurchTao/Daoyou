@@ -1,20 +1,23 @@
 'use client';
 
 import { MaterialSelector } from '@/app/(game)/game/components/MaterialSelector';
+import {
+  CreationIntentPanel,
+  SelectedMaterialsWithDose,
+} from '@/components/feature/creation';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import {
-  InkActionGroup,
-  InkButton,
-  InkInput,
-  InkList,
-  InkListItem,
-  InkNotice,
-} from '@/components/ui';
+import { InkActionGroup, InkButton, InkNotice } from '@/components/ui';
+import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import type { EquipmentSlot } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
+const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
+const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
 
 type CostEstimate = {
   spiritStones?: number;
@@ -31,11 +34,13 @@ type CostResponse = {
 
 export default function RefinePage() {
   const { cultivator, note, isLoading } = useCultivator();
-  const [prompt, setPrompt] = useState<string>('');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [selectedMaterialMap, setSelectedMaterialMap] = useState<
     Record<string, Material>
   >({});
+  const [doseMap, setDoseMap] = useState<Record<string, number>>({});
+  const [userPrompt, setUserPrompt] = useState('');
+  const [requestedSlot, setRequestedSlot] = useState<EquipmentSlot | ''>('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
@@ -44,12 +49,9 @@ export default function RefinePage() {
   const { pushToast } = useInkUI();
   const pathname = usePathname();
 
-  const MAX_MATERIALS = 5;
-
-  // Fetch cost estimate when materials change
   useEffect(() => {
     if (selectedMaterialIds.length > 0) {
-      fetchCostEstimate('refine', selectedMaterialIds);
+      void fetchCostEstimate('refine', selectedMaterialIds);
     } else {
       setEstimatedCost(null);
       setCanAfford(true);
@@ -82,6 +84,11 @@ export default function RefinePage() {
           delete next[id];
           return next;
         });
+        setDoseMap((map) => {
+          const next = { ...map };
+          delete next[id];
+          return next;
+        });
         return prev.filter((mid) => mid !== id);
       }
       if (prev.length >= MAX_MATERIALS) {
@@ -92,26 +99,49 @@ export default function RefinePage() {
         return prev;
       }
       if (material) {
-        setSelectedMaterialMap((map) => ({
-          ...map,
-          [id]: material,
-        }));
+        setSelectedMaterialMap((map) => ({ ...map, [id]: material }));
+        setDoseMap((map) => ({ ...map, [id]: MIN_DOSE }));
       }
       return [...prev, id];
     });
   };
 
+  const handleDoseChange = (id: string, dose: number) => {
+    const material = selectedMaterialMap[id];
+    if (!material) return;
+    const stock = material.quantity ?? 0;
+    const clamped = Math.min(
+      Math.min(MAX_DOSE, Math.max(stock, MIN_DOSE)),
+      Math.max(MIN_DOSE, Math.floor(dose)),
+    );
+    setDoseMap((prev) => ({ ...prev, [id]: clamped }));
+  };
+
+  const resetAll = () => {
+    setStatus('');
+    setSelectedMaterialIds([]);
+    setSelectedMaterialMap({});
+    setDoseMap({});
+    setUserPrompt('');
+    setRequestedSlot('');
+  };
+
+  const submitPayload = useMemo(
+    () => ({
+      materialIds: selectedMaterialIds,
+      craftType: 'refine' as const,
+      materialQuantities: Object.fromEntries(
+        selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
+      ),
+      userPrompt: userPrompt.trim() || undefined,
+      requestedSlot: requestedSlot || undefined,
+    }),
+    [selectedMaterialIds, doseMap, userPrompt, requestedSlot],
+  );
+
   const handleSubmit = async () => {
     if (!cultivator) {
       pushToast({ message: '请先在首页觉醒灵根。', tone: 'warning' });
-      return;
-    }
-
-    if (!prompt.trim()) {
-      pushToast({
-        message: '请注入神念，描述法宝雏形。',
-        tone: 'warning',
-      });
       return;
     }
 
@@ -126,14 +156,8 @@ export default function RefinePage() {
     try {
       const response = await fetch('/api/craft', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materialIds: selectedMaterialIds,
-          prompt: prompt,
-          craftType: 'refine',
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submitPayload),
       });
 
       const result = await response.json();
@@ -144,9 +168,9 @@ export default function RefinePage() {
       const successMessage = `【${result.data.name}】出世！`;
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
-      setPrompt('');
       setSelectedMaterialIds([]);
       setSelectedMaterialMap({});
+      setDoseMap({});
       setMaterialsRefreshKey((prev) => prev + 1);
     } catch (error) {
       const failMessage =
@@ -201,7 +225,6 @@ export default function RefinePage() {
             'manual',
           ]}
           refreshKey={materialsRefreshKey}
-          showSelectedMaterialsPanel
           loadingText="正在检索储物袋中的灵材，请稍候……"
           emptyNoticeText="暂无可用于炼器的灵材。"
           totalText={(total) => `共 ${total} 条灵材记录`}
@@ -209,6 +232,30 @@ export default function RefinePage() {
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
+      </InkSection>
+
+      <InkSection title="2. 调度投入份数">
+        <SelectedMaterialsWithDose
+          selectedIds={selectedMaterialIds}
+          materialMap={selectedMaterialMap}
+          doseMap={doseMap}
+          minDose={MIN_DOSE}
+          maxDose={MAX_DOSE}
+          disabled={isSubmitting}
+          onRemove={(id) => toggleMaterial(id)}
+          onDoseChange={handleDoseChange}
+        />
+      </InkSection>
+
+      <InkSection title="3. 造物意念">
+        <CreationIntentPanel
+          productType="artifact"
+          userPrompt={userPrompt}
+          onUserPromptChange={setUserPrompt}
+          requestedSlot={requestedSlot}
+          onRequestedSlotChange={setRequestedSlot}
+          disabled={isSubmitting}
+        />
       </InkSection>
 
       <InkSection title="预计消耗">
@@ -232,50 +279,16 @@ export default function RefinePage() {
         )}
       </InkSection>
 
-      <InkSection title="2. 注入神识">
-        <div className="mb-4">
-          <InkList dense>
-            <InkListItem
-              title="提示"
-              description="描述你期望的法宝类型（如剑、印、塔）、属性偏向甚至名字。"
-            />
-            <InkListItem
-              title="示例"
-              description="“我想炼制一把带有雷电之力的飞剑，剑身要轻盈。”"
-            />
-          </InkList>
-        </div>
-
-        <InkInput
-          multiline
-          rows={6}
-          placeholder="请在此注入你的神念……"
-          value={prompt}
-          onChange={(value) => setPrompt(value)}
-          disabled={isSubmitting}
-          hint="💡 灵材特性与神念越契合，成品品质越高。"
-        />
-
+      <InkSection title="4. 开炉炼制">
         <InkActionGroup align="right">
-          <InkButton
-            onClick={() => {
-              setPrompt('');
-              setStatus('');
-              setSelectedMaterialIds([]);
-              setSelectedMaterialMap({});
-            }}
-            disabled={isSubmitting}
-          >
+          <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
           </InkButton>
           <InkButton
             variant="primary"
             onClick={handleSubmit}
             disabled={
-              isSubmitting ||
-              !prompt.trim() ||
-              selectedMaterialIds.length === 0 ||
-              !canAfford
+              isSubmitting || selectedMaterialIds.length === 0 || !canAfford
             }
           >
             {isSubmitting ? '真火炼中……' : '开炉炼器'}

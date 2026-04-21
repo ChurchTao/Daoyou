@@ -1,6 +1,6 @@
 'use client';
 
-import { CultivatorUnit } from '@/engine/cultivator';
+import { getCultivatorDisplayAttributes } from '@/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { useAuth } from '@/lib/auth/AuthContext';
 import type {
   Attributes,
@@ -243,16 +243,16 @@ export function useCultivatorBundle() {
       };
 
       // 4. 计算最终属性
-      const unit = new CultivatorUnit(fullCultivator);
-      const finalAttrs = unit.getFinalAttributes();
+      const { finalAttributes: finalAttrs, maxHp, maxMp } =
+        getCultivatorDisplayAttributes(fullCultivator);
 
       // 5. 设置完整状态
       const newState: FetchState = {
         cultivator: fullCultivator,
         finalAttributes: {
           final: finalAttrs,
-          maxHp: unit.getMaxHp(),
-          maxMp: unit.getMaxMp(),
+          maxHp,
+          maxMp,
         },
         inventory,
         inventoryLoaded,

@@ -1,8 +1,8 @@
-import { simulateBattle } from '@/engine/battle';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { getExecutor } from '@/lib/drizzle/db';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
+import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
 import { NextRequest } from 'next/server';
@@ -44,7 +44,7 @@ export const POST = withActiveCultivator(
           const opponent = opponentBundle.cultivator;
 
           // 2. 执行战斗引擎
-          const battleResult = simulateBattle(player, opponent);
+          const battleResult = simulateBattleV5(player, opponent);
 
           // 3. 发送战斗结果数据
           const battleData = JSON.stringify({
@@ -53,16 +53,23 @@ export const POST = withActiveCultivator(
           });
           controller.enqueue(encoder.encode(`data: ${battleData}\n\n`));
 
+          const finalFrame =
+            battleResult.stateTimeline.frames[
+              battleResult.stateTimeline.frames.length - 1
+            ];
+          const playerUnitId = battleResult.stateTimeline.unitIds[0];
+          const opponentUnitId = battleResult.stateTimeline.unitIds[1];
+
           // 4. 生成战斗播报 prompt
           const [prompt, userPrompt] = getBattleReportPrompt({
             player,
             opponent,
             battleResult: {
               winnerId: battleResult.winner.id || '',
-              log: battleResult.log ?? [],
               turns: battleResult.turns,
-              playerHp: battleResult.playerHp,
-              opponentHp: battleResult.opponentHp,
+              playerHp: finalFrame?.units[playerUnitId]?.hp.current,
+              opponentHp: finalFrame?.units[opponentUnitId]?.hp.current,
+              logSpans: battleResult.logSpans,
             },
           });
 

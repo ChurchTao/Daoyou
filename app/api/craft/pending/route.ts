@@ -1,28 +1,32 @@
+import {
+  getPendingCreation,
+} from '@/lib/services/creationServiceV2';
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { redis } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * GET /api/craft/pending
- * 获取当前待确定的造物结果
+ * GET /api/craft/pending?type=create_skill
+ * 获取当前待确定的造物结果（v2 引擎）
+ * Redis key: creation_pending_v2:{cultivatorId}:{craftType}
  */
 export const GET = withActiveCultivator(
   async (request: NextRequest, { cultivator }) => {
     const url = new URL(request.url);
-    const craftType = url.searchParams.get('type'); // 'create_skill' | 'create_gongfa'
+    const craftType = url.searchParams.get('type');
 
-    if (!craftType || !['create_skill', 'create_gongfa'].includes(craftType)) {
+    if (
+      !craftType ||
+      !['refine', 'create_skill', 'create_gongfa'].includes(craftType)
+    ) {
       return NextResponse.json({ error: '无效的造物类型' }, { status: 400 });
     }
 
-    const pendingKey = `creation_pending:${cultivator.id}:${craftType}`;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pendingItem = await redis.get<any>(pendingKey);
+    const pending = await getPendingCreation(cultivator.id, craftType);
 
     return NextResponse.json({
       success: true,
-      hasPending: !!pendingItem,
-      item: pendingItem || null,
+      hasPending: !!pending,
+      item: pending || null,
     });
   },
 );

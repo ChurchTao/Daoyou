@@ -20,7 +20,7 @@ import {
   InkTabs,
   type InkDialogState,
 } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
+import { ItemCard } from '@/components/ui/ItemCard';
 import { tierColorMap, type Tier } from '@/components/ui/InkBadge';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { REALM_VALUES, type RealmType } from '@/types/constants';
@@ -217,7 +217,6 @@ function getInventoryCardProps(item: InventoryItem) {
           <span className="text-ink-secondary text-sm">x1</span>
         </>
       ),
-      effects: item.effects,
       meta: item.required_realm ? (
         <span className="text-ink-secondary text-xs">
           境界要求：{item.required_realm}
@@ -237,7 +236,6 @@ function getInventoryCardProps(item: InventoryItem) {
         <span className="text-ink-secondary text-sm">x{item.quantity}</span>
       </>
     ),
-    effects: item.effects,
     meta: null,
     description: item.description,
   };
@@ -898,14 +896,14 @@ function BetBattleCreateModal({
                     const card = getInventoryCardProps(item);
                     const checked = selectedItem?.itemId === item.id;
                     return (
-                      <EffectCard
+                      <ItemCard
                         key={`${item.itemType}-${item.id}`}
                         layout="col"
                         icon={card.icon}
                         name={item.name}
                         quality={card.quality}
                         badgeExtra={card.badgeExtra}
-                        effects={card.effects}
+
                         meta={card.meta}
                         description={card.description}
                         highlight={checked}
@@ -1219,14 +1217,14 @@ function BetBattleChallengeModal({
                     const checked = selectedItem?.itemId === item.id;
                     const card = getInventoryCardProps(item);
                     return (
-                      <EffectCard
+                      <ItemCard
                         key={`${item.itemType}-${item.id}`}
                         layout="col"
                         icon={card.icon}
                         name={item.name}
                         quality={card.quality}
                         badgeExtra={card.badgeExtra}
-                        effects={card.effects}
+
                         meta={card.meta}
                         description={card.description}
                         highlight={checked}

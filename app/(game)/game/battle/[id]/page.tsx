@@ -1,22 +1,26 @@
 'use client';
 
 import { BattleReplayViewer } from '@/components/feature/battle/BattleReplayViewer';
-import type { BattleEngineResult, TurnSnapshot } from '@/engine/battle';
+import {
+  toViewRecord,
+  type BattleRecord as BattleRecordNative,
+  type TurnSnapshot,
+} from '@/lib/services/battleResult';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-type BattleRecord = {
+type BattleRecordRow = {
   id: string;
   createdAt: string | null;
-  battleResult: BattleEngineResult;
+  battleResult: BattleRecordNative;
   battleReport?: string | null;
 };
 
 type BattleRecordResponse = {
   success: boolean;
-  data: BattleRecord;
+  data: BattleRecordRow;
 };
 
 export default function BattleReplayPage() {
@@ -24,7 +28,7 @@ export default function BattleReplayPage() {
   const id = params.id;
   const { cultivator } = useCultivator();
 
-  const [record, setRecord] = useState<BattleRecord | null>(null);
+  const [record, setRecord] = useState<BattleRecordRow | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -62,16 +66,16 @@ export default function BattleReplayPage() {
     );
   }
 
-  const battleResult = record?.battleResult;
+  const viewRecord = record ? toViewRecord(record.battleResult) : undefined;
   const currentCultivatorId = cultivator?.id;
 
   const selfIsOpponent =
-    !!battleResult &&
+    !!viewRecord &&
     !!currentCultivatorId &&
-    battleResult.opponent === currentCultivatorId;
+    viewRecord.opponent === currentCultivatorId;
 
   const getCultivatorNameById = (
-    result: BattleEngineResult,
+    result: BattleRecordNative,
     cultivatorId: string,
   ) => {
     if (result.winner?.id === cultivatorId) return result.winner.name;
@@ -79,31 +83,30 @@ export default function BattleReplayPage() {
     return cultivatorId === currentCultivatorId ? '道友' : '对手';
   };
 
-  const playerName = battleResult
+  const playerName = viewRecord
     ? selfIsOpponent
-      ? getCultivatorNameById(battleResult, battleResult.opponent)
-      : getCultivatorNameById(battleResult, battleResult.player)
+      ? getCultivatorNameById(viewRecord, viewRecord.opponent)
+      : getCultivatorNameById(viewRecord, viewRecord.player)
     : '道友';
-  const opponentName = battleResult
+  const opponentName = viewRecord
     ? selfIsOpponent
-      ? getCultivatorNameById(battleResult, battleResult.player)
-      : getCultivatorNameById(battleResult, battleResult.opponent)
+      ? getCultivatorNameById(viewRecord, viewRecord.player)
+      : getCultivatorNameById(viewRecord, viewRecord.opponent)
     : '对手';
 
-  let timeline: TurnSnapshot[] = battleResult?.timeline ?? [];
-  if (selfIsOpponent && battleResult?.timeline?.length) {
-    // 回放组件固定以 player/opponent 渲染，这里按“当前角色视角”交换左右两侧。
-    timeline = battleResult.timeline.map((snap) => ({
+  let timeline: TurnSnapshot[] = viewRecord?.timeline ?? [];
+  if (selfIsOpponent && timeline.length) {
+    timeline = timeline.map((snap) => ({
       ...snap,
       player: snap.opponent,
       opponent: snap.player,
     }));
   }
 
-  const turns = record?.battleResult.turns;
+  const turns = viewRecord?.turns;
   const isWin = currentCultivatorId
-    ? record?.battleResult.winner?.id === currentCultivatorId
-    : !!record?.battleResult.winner?.name;
+    ? viewRecord?.winner?.id === currentCultivatorId
+    : !!viewRecord?.winner?.name;
 
   return (
     <div className="bg-paper min-h-screen">

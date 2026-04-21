@@ -1,8 +1,6 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { getExecutor } from '@/lib/drizzle/db';
-import * as schema from '@/lib/drizzle/schema';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import { equipEquipment } from '@/lib/services/cultivatorService';
-import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -15,26 +13,17 @@ const EquipSchema = z.object({
  * 获取当前活跃角色装备状态
  */
 export const GET = withActiveCultivator(async (_req, { cultivator }) => {
-  // 获取装备状态
-  const equippedItems = await getExecutor()
-    .select()
-    .from(schema.equippedItems)
-    .where(eq(schema.equippedItems.cultivatorId, cultivator.id));
-
-  if (equippedItems.length === 0) {
-    // 如果没有装备状态记录，返回空状态
-    return NextResponse.json({
-      success: true,
-      data: { weapon: null, armor: null, accessory: null },
-    });
-  }
+  const equippedItems = await creationProductRepository.findEquippedArtifacts(
+    cultivator.id,
+  );
 
   return NextResponse.json({
     success: true,
     data: {
-      weapon: equippedItems[0].weapon_id || null,
-      armor: equippedItems[0].armor_id || null,
-      accessory: equippedItems[0].accessory_id || null,
+      weapon: equippedItems.find((item) => item.slot === 'weapon')?.id ?? null,
+      armor: equippedItems.find((item) => item.slot === 'armor')?.id ?? null,
+      accessory:
+        equippedItems.find((item) => item.slot === 'accessory')?.id ?? null,
     },
   });
 });

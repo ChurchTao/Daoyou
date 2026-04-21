@@ -1,6 +1,6 @@
 'use client';
 
-import type { TurnSnapshot } from '@/engine/battle';
+import type { TurnSnapshot } from '@/lib/services/battleResult';
 import { useState } from 'react';
 
 type Props = {

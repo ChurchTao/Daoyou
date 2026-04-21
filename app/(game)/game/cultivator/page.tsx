@@ -1,6 +1,6 @@
 'use client';
 
-import { GongFa, LingGen, ShenTong } from '@/components/func';
+import { LingGen } from '@/components/func';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
@@ -15,8 +15,8 @@ import {
   InkStatRow,
   InkStatusBar,
 } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
-import { CultivatorUnit } from '@/engine/cultivator';
+import { ItemCard } from '@/components/ui/ItemCard';
+import { getCultivatorDisplayAttributes } from '@/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Attributes } from '@/types/cultivator';
 import { getAttributeInfo, getEquipmentSlotInfo } from '@/types/dictionaries';
@@ -80,10 +80,8 @@ export default function CultivatorPage() {
   }
 
   // 计算最终属性
-  const unit = new CultivatorUnit(cultivator);
-  const finalAttrs = unit.getFinalAttributes();
-  const maxHp = unit.getMaxHp();
-  const maxMp = unit.getMaxMp();
+  const { finalAttributes: finalAttrs, maxHp, maxMp } =
+    getCultivatorDisplayAttributes(cultivator);
 
   const equippedItems = inventory.artifacts.filter(
     (item) =>
@@ -184,11 +182,10 @@ export default function CultivatorPage() {
         <InkSection title="【先天命格】">
           <InkList>
             {cultivator.pre_heaven_fates.map((fate, idx) => (
-              <EffectCard
+              <ItemCard
                 key={fate.name + idx}
                 name={fate.name}
                 quality={fate.quality}
-                effects={fate.effects}
                 description={fate.description}
               />
             ))}
@@ -235,7 +232,7 @@ export default function CultivatorPage() {
               const slotInfo = getEquipmentSlotInfo(item.slot);
 
               return (
-                <EffectCard
+                <ItemCard
                   key={item.id}
                   icon={slotInfo.icon}
                   name={item.name}
@@ -243,7 +240,6 @@ export default function CultivatorPage() {
                   badgeExtra={
                     <InkBadge tone="default">{`${item.element} · ${slotInfo.label}`}</InkBadge>
                   }
-                  effects={item.effects}
                   description={item.description}
                 />
               );
@@ -259,20 +255,44 @@ export default function CultivatorPage() {
         </div>
       </InkSection>
 
-      <GongFa cultivations={cultivator.cultivations || []} />
+      <InkSection title="【功法】">
+        {(cultivator.cultivations || []).length === 0 ? (
+          <InkNotice>尚无功法</InkNotice>
+        ) : (
+          <InkList>
+            {cultivator.cultivations.map((c) => (
+              <InkListItem
+                key={c.id ?? c.name}
+                title={c.name}
+                description={c.description}
+              />
+            ))}
+          </InkList>
+        )}
+      </InkSection>
 
-      <ShenTong
-        skills={skills}
-        footer={
-          skills.length > 0 ? (
+      <InkSection title="【神通】">
+        {skills.length === 0 ? (
+          <InkNotice>尚无神通</InkNotice>
+        ) : (
+          <>
+            <InkList>
+              {skills.map((s) => (
+                <InkListItem
+                  key={s.id ?? s.name}
+                  title={`${s.name} (${s.element})`}
+                  description={s.description}
+                />
+              ))}
+            </InkList>
             <div className="mt-3">
               <InkButton href="/game/skills" className="text-sm">
                 所有神通一览 →
               </InkButton>
             </div>
-          ) : undefined
-        }
-      />
+          </>
+        )}
+      </InkSection>
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
     </InkPageShell>

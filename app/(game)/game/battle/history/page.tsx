@@ -2,7 +2,7 @@
 
 import Zhanji from '@/components/func/Zhanji';
 import { InkTabs } from '@/components/ui/InkTabs';
-import type { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ type BattleSummary = {
   createdAt: string | null;
   challengeType?: 'challenge' | 'challenged' | 'normal';
   opponentCultivatorId?: string | null;
-} & Pick<BattleEngineResult, 'winner' | 'loser' | 'turns'>;
+} & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
 
 type BattleListResponse = {
   success: boolean;

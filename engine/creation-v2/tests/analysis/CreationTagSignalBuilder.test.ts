@@ -41,7 +41,6 @@ describe('CreationTagSignalBuilder', () => {
       productType: 'skill',
       outcomeKind: 'active_skill',
       dominantTags: ['Material.Semantic.Flame'],
-      requestedTags: ['Material.Semantic.Burst'],
       elementBias: '火',
     };
 
@@ -69,11 +68,6 @@ describe('CreationTagSignalBuilder', () => {
           tag: 'Material.Semantic.Flame',
           source: 'intent_dominant',
           weight: 0.55,
-        },
-        {
-          tag: 'Material.Semantic.Burst',
-          source: 'intent_requested',
-          weight: 0.25,
         },
         {
           tag: 'Recipe.ProductBias.Skill',

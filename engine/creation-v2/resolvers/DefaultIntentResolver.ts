@@ -3,7 +3,7 @@
  * 将用户输入与材料指纹合并，推断 CreationIntent（产物类型、dominant tags、元素/槽位偏好等）。
  * 注意：一些启发式逻辑（如槽位推断）应未来迁移到规则层以便审计。
  */
-import { EquipmentSlot } from '@/types/constants';
+import { ElementType, EquipmentSlot } from '@/types/constants';
 import { MaterialFactsBuilder } from '../analysis/MaterialFactsBuilder';
 import { RuleTraceEntry } from '../rules/core/types';
 import {
@@ -22,7 +22,6 @@ export class DefaultIntentResolver {
       input.productType === 'skill' ? 'active_skill' : input.productType;
     const dominantTags = MaterialFactsBuilder.pickDominantTags(
       fingerprints,
-      input.requestedTags ?? [],
     );
     const slotBiasResolution = this.resolveSlotBias(input, fingerprints);
 
@@ -30,8 +29,7 @@ export class DefaultIntentResolver {
       productType: input.productType,
       outcomeKind,
       dominantTags,
-      requestedTags: input.requestedTags ?? [],
-      elementBias: this.pickElementBias(fingerprints, input.requestedElement),
+      elementBias: this.pickElementBias(fingerprints),
       slotBias: slotBiasResolution.slotBias,
       slotBiasSource: slotBiasResolution.slotBiasSource,
       trace: slotBiasResolution.trace,
@@ -40,12 +38,7 @@ export class DefaultIntentResolver {
 
   private pickElementBias(
     fingerprints: MaterialFingerprint[],
-    requestedElement?: CreationSessionInput['requestedElement'],
   ) {
-    if (requestedElement) {
-      return requestedElement;
-    }
-
     const counts = new Map<string, number>();
 
     fingerprints.forEach((fingerprint) => {
@@ -57,7 +50,7 @@ export class DefaultIntentResolver {
     });
 
     return Array.from(counts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] as
-      | CreationSessionInput['requestedElement']
+      | ElementType
       | undefined;
   }
 

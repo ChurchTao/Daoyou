@@ -3,8 +3,8 @@
 import { InkButton } from '@/components/ui/InkButton';
 import { InkCard } from '@/components/ui/InkCard';
 import { InkDivider } from '@/components/ui/InkDivider';
-import { BattleEngineV2 } from '@/engine/battle/BattleEngine.v2';
-import type { TurnSnapshot } from '@/engine/battle/types';
+import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
+import { toLegacyTimeline, type TurnSnapshot } from '@/lib/services/battleResult';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Cultivator } from '@/types/cultivator';
 import { useRouter } from 'next/navigation';
@@ -65,15 +65,17 @@ export default function TrainingRoomPage() {
     };
 
     // 2. 执行战斗模拟
-    const engine = new BattleEngineV2();
-    const result = engine.simulateBattle(cultivator, mockDummy, {
+    const result = simulateBattleV5(cultivator, mockDummy, {
       isTraining: true,
       opponentMaxHpOverride: DUMMY_HP,
     });
 
+    const [playerUnitId, opponentUnitId] = result.stateTimeline.unitIds;
+    const timeline = toLegacyTimeline(result, playerUnitId, opponentUnitId);
+
     // 3. 初始快照同步
-    if (result.timeline.length > 0) {
-      setCurrentSnapshot(result.timeline[0]);
+    if (timeline.length > 0) {
+      setCurrentSnapshot(timeline[0]);
     }
 
     // 4. 逐行展示日志与状态同步
@@ -81,16 +83,15 @@ export default function TrainingRoomPage() {
     let currentTurn = 0;
 
     const interval = setInterval(() => {
-      if (currentLogIndex < result.log.length) {
-        const nextLog = result.log[currentLogIndex];
+      if (currentLogIndex < result.logs.length) {
+        const nextLog = result.logs[currentLogIndex];
         setLogs((prev) => [...prev, nextLog]);
 
-        // 检查是否进入新回合，同步快照
         if (nextLog.startsWith('[第') && nextLog.includes('回合]')) {
           const turnMatch = nextLog.match(/第(\d+)回合/);
           if (turnMatch) {
             currentTurn = parseInt(turnMatch[1], 10);
-            const snap = result.timeline.find((s) => s.turn === currentTurn);
+            const snap = timeline.find((s) => s.turn === currentTurn);
             if (snap) {
               setCurrentSnapshot(snap);
             }
@@ -101,9 +102,8 @@ export default function TrainingRoomPage() {
       } else {
         clearInterval(interval);
         setIsFighting(false);
-        // 战斗结束，显示最后的快照并输出总伤害
-        if (result.timeline.length > 0) {
-          const lastSnap = result.timeline[result.timeline.length - 1];
+        if (timeline.length > 0) {
+          const lastSnap = timeline[timeline.length - 1];
           setCurrentSnapshot(lastSnap);
 
           const totalDamage = DUMMY_HP - lastSnap.opponent.hp;

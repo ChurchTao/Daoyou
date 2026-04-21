@@ -2,16 +2,84 @@
 
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import { InkActionGroup, InkButton, InkList, InkNotice } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
-import {
-  getSkillDisplayInfo,
-  getSkillElementInfo,
-} from '@/lib/utils/effectDisplay';
+import { InkActionGroup, InkBadge, InkButton, InkNotice } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import type { CultivationTechnique, Skill } from '@/types/cultivator';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
+
+type AffixSummary = {
+  id: string;
+  name: string;
+  category: string;
+  isPerfect: boolean;
+  rollEfficiency: number;
+};
+
+type V2Product = {
+  id: string;
+  productType: string;
+  name: string;
+  quality: string | null;
+  element: string | null;
+  score: number;
+  affixes: AffixSummary[];
+};
+
+type PendingItem = {
+  productType: string;
+  previewName: string;
+  previewQuality: string | null;
+  previewElement: string | null;
+};
+
+function V2ProductCard({
+  product,
+  isSelected,
+  onToggle,
+  actionLabel,
+}: {
+  product: V2Product;
+  isSelected: boolean;
+  onToggle: () => void;
+  actionLabel: [string, string];
+}) {
+  return (
+    <div
+      className={`border rounded-lg p-3 space-y-2 transition-colors cursor-pointer ${isSelected ? 'border-ink/50 bg-ink/5' : 'border-ink/10'}`}
+      onClick={onToggle}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-sm">{product.name}</span>
+        <InkButton
+          variant={isSelected ? 'primary' : 'secondary'}
+          onClick={onToggle}
+        >
+          {isSelected ? actionLabel[0] : actionLabel[1]}
+        </InkButton>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {product.quality && (
+          <InkBadge tier={product.quality as never}>{product.quality}</InkBadge>
+        )}
+        {product.element && (
+          <InkBadge tone="default">{product.element}</InkBadge>
+        )}
+        <InkBadge tone="default">{`评分 ${product.score}`}</InkBadge>
+      </div>
+      {product.affixes.length > 0 && (
+        <ul className="text-ink-secondary text-xs space-y-0.5">
+          {product.affixes.map((a) => (
+            <li key={a.id} className="flex items-center gap-1">
+              <span>{a.isPerfect ? '✦' : '◆'}</span>
+              <span>{a.name}</span>
+              {a.isPerfect && <span className="text-amber-500">（完美）</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function ReplaceContent() {
   const router = useRouter();
@@ -24,40 +92,52 @@ function ReplaceContent() {
 
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
-  const [pendingItem, setPendingItem] = useState<
-    Skill | CultivationTechnique | null
-  >(null);
+  const [pendingItem, setPendingItem] = useState<PendingItem | null>(null);
+  const [existingItems, setExistingItems] = useState<V2Product[]>([]);
   const [selectedOldId, setSelectedOldId] = useState<string | null>(null);
   const [acceptNew, setAcceptNew] = useState(true);
 
   const isSkill = craftType === 'create_skill';
+  const productType = isSkill ? 'skill' : 'gongfa';
 
-  const fetchPendingStatus = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!craftType) return;
     try {
-      const res = await fetch(`/api/craft/pending?type=${craftType}`);
-      const data = await res.json();
-      if (data.success && data.hasPending) {
-        setPendingItem(data.item);
+      const [pendingRes, existingRes] = await Promise.all([
+        fetch(`/api/craft/pending?type=${craftType}`),
+        fetch(`/api/v2/products?type=${productType}`),
+      ]);
+      const [pendingData, existingData] = await Promise.all([
+        pendingRes.json(),
+        existingRes.json(),
+      ]);
+
+      if (pendingData.success && pendingData.hasPending) {
+        setPendingItem(pendingData.item);
       } else {
         router.back();
+        return;
+      }
+
+      if (existingData.success) {
+        setExistingItems(existingData.data ?? []);
       }
     } catch (e) {
-      console.error('获取待定状态失败:', e);
+      console.error('获取数据失败:', e);
     } finally {
       setInitializing(false);
     }
-  }, [craftType, router]);
+  }, [craftType, productType, router]);
 
   useEffect(() => {
     if (cultivator) {
-      fetchPendingStatus();
+      fetchData();
     }
-  }, [cultivator, fetchPendingStatus]);
+  }, [cultivator, fetchData]);
 
   const handleConfirm = async (isAbandon: boolean) => {
     if (!isAbandon && !selectedOldId) {
-      pushToast({ message: '请勾选需要舍弃的旧法门', tone: 'warning' });
+      pushToast({ message: '请选择需要舍弃的旧法门', tone: 'warning' });
       return;
     }
 
@@ -96,8 +176,6 @@ function ReplaceContent() {
   if (initializing || !cultivator) return null;
   if (!pendingItem) return <InkNotice>无可领悟之法</InkNotice>;
 
-  const existingItems = isSkill ? cultivator.skills : cultivator.cultivations;
-
   return (
     <InkPageShell
       title={isSkill ? '神通突围' : '功法破障'}
@@ -106,110 +184,46 @@ function ReplaceContent() {
     >
       <div className="space-y-6 pb-12">
         <InkNotice>
-          请勾选需要<b>舍弃的旧法门</b>和需要<b>承接的新机缘</b>。<br />
-          确认后，未选之新法将消散归于虚无，未选之旧法将固守道身。
+          请选择需要<b>舍弃的旧法门</b>，以承接新领悟。
+          <br />
+          一旦确认，被舍弃的法门将从道身消散。
         </InkNotice>
 
-        <InkSection title={`【现有${isSkill ? '神通' : '功法'}】（勾选以舍弃）`}>
-          <InkList>
-            {existingItems.map((item) => {
-              const isSelected = selectedOldId === item.id;
-              const { icon: typeIcon } = isSkill
-                ? getSkillElementInfo(item as Skill)
-                : { icon: '📜' };
-              const displayInfo = isSkill
-                ? getSkillDisplayInfo(item as Skill)
-                : null;
-
-              return (
-                <EffectCard
-                  key={item.id}
-                  highlight={isSelected}
-                  icon={typeIcon}
-                  name={item.name}
-                  quality={item.grade}
-                  effects={item.effects}
-                  meta={
-                    isSkill && displayInfo
-                      ? `威力：${displayInfo.power}｜冷却：${(item as Skill).cooldown}回合${
-                          (item as Skill).cost
-                            ? `｜消耗：${(item as Skill).cost} 灵力`
-                            : ''
-                        }`
-                      : undefined
-                  }
-                  badgeExtra={
-                    !isSkill ? (
-                      <span className="text-ink-secondary border-ink/20 bg-ink/5 rounded-xs border px-1 text-xs">
-                        {(item as CultivationTechnique).required_realm}
-                      </span>
-                    ) : undefined
-                  }
-                  description={item.description}
-                  actions={
-                    <InkButton
-                      variant={isSelected ? 'primary' : 'secondary'}
-                      onClick={() =>
-                        setSelectedOldId(isSelected ? null : item.id || null)
-                      }
-                    >
-                      {isSelected ? '将舍弃' : '固守'}
-                    </InkButton>
-                  }
-                  layout="col"
-                />
-              );
-            })}
-          </InkList>
+        <InkSection title={`【新领悟】`}>
+          <div className="border border-amber-400/50 bg-amber-50/30 rounded-lg p-3 space-y-2">
+            <span className="font-medium text-sm">{pendingItem.previewName}</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {pendingItem.previewQuality && (
+                <InkBadge tier={pendingItem.previewQuality as never}>
+                  {pendingItem.previewQuality}
+                </InkBadge>
+              )}
+              {pendingItem.previewElement && (
+                <InkBadge tone="default">{pendingItem.previewElement}</InkBadge>
+              )}
+              <InkBadge tone="default">待纳入道基</InkBadge>
+            </div>
+          </div>
         </InkSection>
 
-        <InkSection title={`【新领悟】（勾选以承接）`}>
-          <InkList>
-            {(() => {
-              const { icon: typeIcon } = isSkill
-                ? getSkillElementInfo(pendingItem as Skill)
-                : { icon: '📜' };
-              const displayInfo = isSkill
-                ? getSkillDisplayInfo(pendingItem as Skill)
-                : null;
-
-              return (
-                <EffectCard
-                  highlight={acceptNew}
-                  icon={typeIcon}
-                  name={pendingItem.name}
-                  quality={pendingItem.grade}
-                  effects={pendingItem.effects}
-                  meta={
-                    isSkill && displayInfo
-                      ? `威力：${displayInfo.power}｜冷却：${(pendingItem as Skill).cooldown}回合${
-                          (pendingItem as Skill).cost
-                            ? `｜消耗：${(pendingItem as Skill).cost} 灵力`
-                            : ''
-                        }`
-                      : undefined
+        <InkSection title={`【现有${isSkill ? '神通' : '功法'}】（选择以舍弃）`}>
+          {existingItems.length === 0 ? (
+            <InkNotice>暂无已有法门</InkNotice>
+          ) : (
+            <div className="space-y-3">
+              {existingItems.map((item) => (
+                <V2ProductCard
+                  key={item.id}
+                  product={item}
+                  isSelected={selectedOldId === item.id}
+                  onToggle={() =>
+                    setSelectedOldId(selectedOldId === item.id ? null : item.id)
                   }
-                  badgeExtra={
-                    !isSkill ? (
-                      <span className="text-ink-secondary border-ink/20 bg-ink/5 rounded-xs border px-1 text-xs">
-                        {(pendingItem as CultivationTechnique).required_realm}
-                      </span>
-                    ) : undefined
-                  }
-                  description={pendingItem.description}
-                  actions={
-                    <InkButton
-                      variant={acceptNew ? 'primary' : 'outline'}
-                      onClick={() => setAcceptNew(!acceptNew)}
-                    >
-                      {acceptNew ? '已定' : '契合'}
-                    </InkButton>
-                  }
-                  layout="col"
+                  actionLabel={['将舍弃', '固守']}
                 />
-              );
-            })()}
-          </InkList>
+              ))}
+            </div>
+          )}
         </InkSection>
 
         <InkActionGroup>
@@ -237,7 +251,7 @@ function ReplaceContent() {
           <InkButton
             variant="primary"
             onClick={() => handleConfirm(false)}
-            disabled={loading || !selectedOldId || !acceptNew}
+            disabled={loading || !selectedOldId}
           >
             {loading ? '演化中...' : '确认替换'}
           </InkButton>

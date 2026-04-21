@@ -181,8 +181,6 @@ export const CREATION_AFFIX_POOL_SCORING = {
     matchedRecipe: 0.6,
     // Intent 里主导标签的权重。
     dominantIntent: 0.55,
-    // 用户显式请求标签的权重。
-    requestedIntent: 0.25,
   } as const,
 
   // 单个 tag 的信号分最高上限，避免某个标签被无限堆高。
@@ -246,16 +244,6 @@ export interface CreationAffixBucketCaps {
   /** skill_rare/gongfa_secret/artifact_treasure 这类稀有池词缀总共最多允许出现多少个。 */
   highTierTotal: number;
 }
-
-/**
- * MaterialFacts 构造阶段的辅助参数。
- * 主要用于 dominantTags 的计算，不直接参与最终词缀抽取预算。
- */
-export const CREATION_MATERIAL_FACTS = {
-  // 用户请求标签在 dominantTags 评分中的权重。
-  // 需要明显高于自然材料语义，但又不能高到完全压制真实材料信号。
-  requestedTagWeight: 4,
-} as const;
 
 /**
  * 造物侧 listener 的事件优先级配置。

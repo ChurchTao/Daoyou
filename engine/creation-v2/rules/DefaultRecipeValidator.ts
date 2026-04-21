@@ -35,7 +35,6 @@ export class DefaultRecipeValidator {
     const materialFacts = this.materialFactsBuilder.build(
       productType,
       fingerprints,
-      intent.requestedTags,
     );
     const materialDecision = this.materialRuleSet.evaluate(materialFacts);
 

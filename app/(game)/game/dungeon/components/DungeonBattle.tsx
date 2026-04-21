@@ -1,7 +1,6 @@
 import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { BattleReportViewer } from '@/components/feature/battle/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimelineViewer';
-import { BattleEngineResult } from '@/engine/battle';
 import type { ResourceOperation } from '@/engine/resource/types';
 import {
   DungeonRound,
@@ -94,11 +93,10 @@ export function DungeonBattle({
       }}
     >
       {/* Timeline */}
-      {battleResult?.timeline && battleResult.timeline.length > 0 && (
-        <BattleTimelineViewer
-          battleResult={battleResult as BattleEngineResult}
-        />
-      )}
+      {battleResult?.stateTimeline?.frames &&
+        battleResult.stateTimeline.frames.length > 0 && (
+          <BattleTimelineViewer battleResult={battleResult} />
+        )}
 
       {/* Report */}
       <BattleReportViewer

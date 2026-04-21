@@ -48,7 +48,6 @@ function toDetailItem(
       quality: item.quality as Artifact['quality'],
       required_realm: item.requiredRealm as Artifact['required_realm'],
       description: item.description,
-      effects: item.effects,
       score: item.score,
     };
   }
@@ -62,7 +61,6 @@ function toDetailItem(
       cost: item.cost || 0,
       cooldown: item.cooldown || 0,
       description: item.description,
-      effects: item.effects,
     };
   }
 
@@ -74,7 +72,6 @@ function toDetailItem(
       required_realm:
         (item.requiredRealm as CultivationTechnique['required_realm']) || '炼气',
       description: item.description,
-      effects: item.effects,
     };
   }
 
@@ -85,7 +82,6 @@ function toDetailItem(
     quality: item.quality as Consumable['quality'],
     quantity: item.quantity || 1,
     description: item.description,
-    effects: item.effects,
     score: item.score,
   };
 }

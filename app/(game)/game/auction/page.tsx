@@ -16,7 +16,7 @@ import {
   InkNotice,
   InkTabs,
 } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
+import { ItemCard } from '@/components/ui/ItemCard';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import {
@@ -242,7 +242,6 @@ export default function AuctionPage() {
           ...baseProps,
           icon: slotInfo.icon,
           quality: artifact.quality,
-          effects: artifact.effects,
           badgeExtra: (
             <>
               <InkBadge tone="default">{artifact.element}</InkBadge>
@@ -259,7 +258,6 @@ export default function AuctionPage() {
           ...baseProps,
           icon: typeInfo.icon,
           quality: consumable.quality,
-          effects: consumable.effects,
           badgeExtra: (
             <>
               <InkBadge tone="default">{rankInfo.label}</InkBadge>
@@ -289,7 +287,7 @@ export default function AuctionPage() {
       'quantity' in listing.itemSnapshot ? listing.itemSnapshot.quantity : 1;
 
     return (
-      <EffectCard
+      <ItemCard
         key={listing.id}
         layout="col"
         {...displayProps}

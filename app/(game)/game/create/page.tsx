@@ -1,6 +1,6 @@
 'use client';
 
-import { GongFa, LingGen, ShenTong } from '@/components/func';
+import { LingGen } from '@/components/func';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
@@ -15,8 +15,8 @@ import {
   InkStatusBar,
   InkTag,
 } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
-import { CultivatorUnit } from '@/engine/cultivator';
+import { ItemCard } from '@/components/ui/ItemCard';
+import { getCultivatorDisplayAttributes } from '@/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Attributes, Cultivator } from '@/types/cultivator';
 import { getAttributeInfo } from '@/types/dictionaries';
@@ -293,16 +293,7 @@ export default function CreatePage() {
 
   const finalAttrsMemo = useMemo(() => {
     if (!player) return null;
-    // 计算最终属性
-    const unit = new CultivatorUnit(player);
-    const finalAttrs = unit.getFinalAttributes();
-    const maxHp = unit.getMaxHp();
-    const maxMp = unit.getMaxMp();
-    return {
-      finalAttrs,
-      maxHp,
-      maxMp,
-    };
+    return getCultivatorDisplayAttributes(player);
   }, [player]);
 
   if (checkingExisting) {
@@ -438,7 +429,10 @@ export default function CreatePage() {
             {Object.entries(player.attributes).map(([key, baseValue]) => {
               const attrKey = key as keyof Attributes;
               const attrInfo = getAttributeInfo(attrKey);
-              const finalValue = finalAttrsMemo?.finalAttrs[attrKey];
+              const finalValue =
+                finalAttrsMemo?.finalAttributes[
+                  attrKey as keyof typeof finalAttrsMemo.finalAttributes
+                ];
 
               return (
                 <InkStatRow
@@ -505,10 +499,9 @@ export default function CreatePage() {
                         className="w-full text-left"
                         onClick={() => toggleFateSelection(idx)}
                       >
-                        <EffectCard
+                        <ItemCard
                           name={fate.name}
                           quality={fate.quality}
-                          effects={fate.effects}
                           description={fate.description}
                           actions={
                             isSelected ? (
@@ -529,9 +522,37 @@ export default function CreatePage() {
             )}
           </InkSection>
 
-          <GongFa cultivations={player.cultivations || []} title="【功法】" />
+          <InkSection title="【功法】">
+            {(player.cultivations || []).length === 0 ? (
+              <InkNotice>尚无功法</InkNotice>
+            ) : (
+              <InkList>
+                {player.cultivations.map((c) => (
+                  <InkListItem
+                    key={c.id ?? c.name}
+                    title={c.name}
+                    description={c.description}
+                  />
+                ))}
+              </InkList>
+            )}
+          </InkSection>
 
-          <ShenTong skills={player.skills || []} title="【神通】" />
+          <InkSection title="【神通】">
+            {(player.skills || []).length === 0 ? (
+              <InkNotice>尚无神通</InkNotice>
+            ) : (
+              <InkList>
+                {player.skills.map((s) => (
+                  <InkListItem
+                    key={s.id ?? s.name}
+                    title={`${s.name} (${s.element})`}
+                    description={s.description}
+                  />
+                ))}
+              </InkList>
+            )}
+          </InkSection>
 
           <InkSection title="【战力评估】">
             <InkNotice tone="info">

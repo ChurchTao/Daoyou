@@ -4,7 +4,7 @@ import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { BattleReportViewer } from '@/components/feature/battle/BattleReportViewer';
 import { BattleTimelineViewer } from '@/components/feature/battle/BattleTimelineViewer';
 import { InkButton } from '@/components/ui/InkButton';
-import type { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import type { Cultivator } from '@/types/cultivator';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -17,7 +17,7 @@ function ChallengeBattlePageContent() {
   const router = useRouter();
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<Cultivator | null>(null);
-  const [battleResult, setBattleResult] = useState<BattleEngineResult>();
+  const [battleResult, setBattleResult] = useState<BattleRecord>();
   const [streamingReport, setStreamingReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -114,19 +114,8 @@ function ChallengeBattlePageContent() {
                 setDirectEntry({ rank: data.rank });
                 setIsStreaming(false);
               } else if (data.type === 'battle_result') {
-                // 接收战斗结果数据
-                const result = data.data;
-                setBattleResult({
-                  winner: result.winner,
-                  loser: result.loser,
-                  log: result.log,
-                  turns: result.turns,
-                  playerHp: result.playerHp,
-                  opponentHp: result.opponentHp,
-                  timeline: result.timeline ?? [],
-                  player: result.player,
-                  opponent: result.opponent,
-                });
+                const result = data.data as BattleRecord;
+                setBattleResult(result);
 
                 const isPlayerWin = result.winner.id === result.player;
                 const playerInfo = isPlayerWin ? result.winner : result.loser;
@@ -216,8 +205,8 @@ function ChallengeBattlePageContent() {
       }}
     >
       {/* 数值战斗回放 */}
-      {battleResult?.timeline &&
-        battleResult.timeline.length > 0 &&
+      {battleResult?.stateTimeline?.frames &&
+        battleResult.stateTimeline.frames.length > 0 &&
         opponent &&
         player &&
         (isStreaming || battleEnd) && (

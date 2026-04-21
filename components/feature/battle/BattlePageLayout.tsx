@@ -1,5 +1,5 @@
 import { InkButton } from '@/components/ui/InkButton';
-import { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -9,7 +9,7 @@ interface BattlePageLayoutProps {
   backLabel?: string;
   error?: string;
   loading?: boolean;
-  battleResult?: BattleEngineResult;
+  battleResult?: BattleRecord;
   isStreaming?: boolean;
   children: ReactNode;
   // 操作按钮配置

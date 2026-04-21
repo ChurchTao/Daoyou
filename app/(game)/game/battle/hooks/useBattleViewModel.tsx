@@ -1,7 +1,7 @@
 'use client';
 
-import type { BattleEngineResult } from '@/engine/battle';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import type { Cultivator } from '@/types/cultivator';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,7 +23,7 @@ export interface UseBattleViewModelReturn {
   // 数据
   player: Cultivator | null;
   opponent: EnemyData | null;
-  battleResult?: BattleEngineResult;
+  battleResult?: BattleRecord;
 
   // 状态
   streamingReport: string;
@@ -49,7 +49,7 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
 
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<EnemyData | null>(null);
-  const [battleResult, setBattleResult] = useState<BattleEngineResult>();
+  const [battleResult, setBattleResult] = useState<BattleRecord>();
   const [streamingReport, setStreamingReport] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -118,18 +118,8 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
                 const data = JSON.parse(line.slice(6));
 
                 if (data.type === 'battle_result') {
-                  const result = data.data;
-                  setBattleResult({
-                    winner: result.winner,
-                    loser: result.loser,
-                    log: result.log,
-                    turns: result.turns,
-                    playerHp: result.playerHp,
-                    opponentHp: result.opponentHp,
-                    timeline: result.timeline ?? [],
-                    player: result.player,
-                    opponent: result.opponent,
-                  });
+                  const result = data.data as BattleRecord;
+                  setBattleResult(result);
                   const playerId = result.player;
                   const isPlayerWin = result.winner.id === playerId;
                   const playerInfo = isPlayerWin ? result.winner : result.loser;
@@ -137,7 +127,15 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
                     ? result.loser
                     : result.winner;
                   setPlayer(playerInfo);
-                  setOpponent(opponentInfo);
+                  setOpponent({
+                    id: opponentInfo.id ?? '',
+                    name: opponentInfo.name,
+                    realm: opponentInfo.realm,
+                    realm_stage: opponentInfo.realm_stage,
+                    spiritual_roots: opponentInfo.spiritual_roots ?? [],
+                    background: opponentInfo.background,
+                    combatRating: 0,
+                  });
                 } else if (data.type === 'chunk') {
                   fullReport += data.content;
                   setStreamingReport(fullReport);

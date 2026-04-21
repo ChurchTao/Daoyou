@@ -1,11 +1,10 @@
-import type { BattleEngineResult } from '@/engine/battle';
-import { simulateBattle } from '@/engine/battle';
 import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@/config/temporaryRestrictions';
 import { redis } from '@/lib/redis';
 import * as betBattleRepository from '@/lib/repositories/betBattleRepository';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import { createMessage } from '@/lib/repositories/worldChatRepository';
 import type { Cultivator } from '@/types/cultivator';
 import { Artifact, Consumable, Material } from '@/types/cultivator';
@@ -13,7 +12,10 @@ import { and, eq, sql } from 'drizzle-orm';
 import { isRealmInRange, toRealmType } from '../admin/realm';
 import { getExecutor, type DbExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
+import type { BattleRecord } from './battleResult';
 import { MailAttachment, MailService } from './MailService';
+import { simulateBattleV5 } from './simulateBattleV5';
+import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { getCultivatorByIdUnsafe } from './cultivatorService';
 
 const CREATE_LOCK_PREFIX = 'bet_battle:create:lock:';
@@ -69,7 +71,7 @@ export interface ChallengeBetBattleResult {
   battleId: string;
   winnerId: string;
   battleRecordId: string;
-  battleResult: BattleEngineResult;
+  battleResult: BattleRecord;
   challenger: {
     id: string;
     name: string;
@@ -227,17 +229,16 @@ async function getItemSnapshot(
   }
 
   if (itemType === 'artifact') {
-    const [artifact] = await q
-      .select()
-      .from(schema.artifacts)
-      .where(
-        and(
-          eq(schema.artifacts.id, itemId),
-          eq(schema.artifacts.cultivatorId, cultivatorId),
-        ),
-      )
-      .limit(1);
-    return (artifact as Artifact | null) || null;
+    const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
+      cultivatorId,
+      [itemId],
+      q,
+    );
+    const artifact = rows[0] || null;
+    if (!artifact || artifact.isEquipped) {
+      return null;
+    }
+    return toArtifactFromProduct(artifact);
   }
 
   const [consumable] = await q
@@ -305,14 +306,17 @@ async function deductStakeItem(
       );
     }
 
-    await tx
-      .delete(schema.artifacts)
-      .where(
-        and(
-          eq(schema.artifacts.id, stakeItem.itemId),
-          eq(schema.artifacts.cultivatorId, cultivatorId),
-        ),
+    const deleted = await creationProductRepository.deleteArtifactsByIdsAndCultivator(
+      cultivatorId,
+      [stakeItem.itemId],
+      tx,
+    );
+    if (deleted.length !== 1) {
+      throw new BetBattleServiceError(
+        BetBattleError.ITEM_NOT_FOUND,
+        '押注物品不存在或已被消耗',
       );
+    }
 
     return {
       itemType: stakeItem.itemType,
@@ -652,7 +656,7 @@ export async function challengeBetBattle(
     assertBattleSnapshotStakeAllowed(betBattle.creatorStakeSnapshot);
 
     const creatorStake = normalizeStakeSnapshot(betBattle.creatorStakeSnapshot);
-    const battleResult = simulateBattle(
+    const battleResult = simulateBattleV5(
       challengerBundle.cultivator,
       creatorBundle.cultivator,
     );

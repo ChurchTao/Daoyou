@@ -103,7 +103,6 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
         quality: item.quality,
         required_realm: item.required_realm,
         description: item.description,
-        effects: item.effects,
       },
     };
   }
@@ -151,7 +150,6 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
       name: item.name,
       type: item.type,
       quality: item.quality,
-      effects: item.effects,
       quantity: item.quantity,
       description: item.description,
     },

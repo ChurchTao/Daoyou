@@ -36,7 +36,6 @@ function buildFacts(qualityOrder: number): CompositionFacts {
       productType: 'skill',
       outcomeKind: 'active_skill',
       dominantTags: [],
-      requestedTags: [],
       elementBias: '火',
     },
     recipeMatch: {

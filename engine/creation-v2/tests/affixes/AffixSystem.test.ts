@@ -306,7 +306,6 @@ describe('AffixSelector', () => {
     productType: 'skill',
     outcomeKind: 'active_skill',
     dominantTags: [],
-    requestedTags: [],
   });
 
   const makeBudget = (remaining: number): EnergyBudget => ({
@@ -613,7 +612,6 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       outcomeKind: 'artifact',
       slotBias: 'armor',
       dominantTags: [],
-      requestedTags: [],
     };
     session.state.materialFingerprints = [
       {

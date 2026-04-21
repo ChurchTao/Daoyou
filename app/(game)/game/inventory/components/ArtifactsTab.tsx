@@ -1,7 +1,7 @@
 'use client';
 
 import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
+import { ItemCard } from '@/components/ui/ItemCard';
 import type { Artifact } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
 
@@ -51,7 +51,7 @@ export function ArtifactsTab({
 
         const slotInfo = getEquipmentSlotInfo(item.slot);
         return (
-          <EffectCard
+          <ItemCard
             key={item.id ?? item.name}
             icon={slotInfo.icon}
             name={item.name}
@@ -72,7 +72,6 @@ export function ArtifactsTab({
                 )}
               </div>
             }
-            effects={item.effects}
             description={item.description}
             actions={
               <div className="flex gap-2">

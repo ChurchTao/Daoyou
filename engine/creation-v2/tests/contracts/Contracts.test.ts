@@ -57,7 +57,6 @@ function buildMinimalFacts(
       productType,
       outcomeKind: outcomeKind as CompositionFacts['intent']['outcomeKind'],
       dominantTags: [],
-      requestedTags: [],
       elementBias: '火',
       slotBias: 'weapon',
     },

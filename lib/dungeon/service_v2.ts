@@ -1,6 +1,6 @@
-import { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import type { BuffInstanceState } from '@/engine/buff/types';
-import { CultivatorUnit } from '@/engine/cultivator';
+import { getCultivatorDisplayAttributes } from '@/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { enemyGenerator } from '@/engine/enemyGenerator';
 import { TYPE_DESCRIPTIONS } from '@/engine/material/creation/config';
 import { resourceEngine } from '@/engine/resource/ResourceEngine';
@@ -598,7 +598,7 @@ ${materialTypeTable}
 
   async handleBattleCallback(
     cultivatorId: string,
-    battleResult: BattleEngineResult,
+    battleResult: BattleRecord,
   ): Promise<{
     state?: DungeonState;
     roundData?: DungeonRound;
@@ -681,10 +681,7 @@ ${materialTypeTable}
     const outcomeText = `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
     lastHistory.outcome = outcomeText;
 
-    // 从战斗结果中同步持久状态
-    if (battleResult.playerPersistentBuffs) {
-      state.persistentBuffs = battleResult.playerPersistentBuffs;
-    }
+    // 持久状态同步将在 Phase 6 后接入 v5 Unit.getSnapshot().persistentBuffs
 
     // FIX: Instead of calling AI immediately, enter LOOTING state
     state.status = 'LOOTING';
@@ -751,7 +748,7 @@ ${materialTypeTable}
    */
   async recoverAfterBattleCallbackFailure(
     cultivatorId: string,
-    battleResult: BattleEngineResult,
+    battleResult: BattleRecord,
     reason?: string,
   ): Promise<{
     state?: DungeonState;
@@ -1047,8 +1044,7 @@ ${materialTypeTable}
     if (!cultivatorBundle || !cultivatorBundle.cultivator)
       throw new Error('未找到名为该道友的记录');
     const cultivator = cultivatorBundle.cultivator;
-    const unit = new CultivatorUnit(cultivator);
-    const finalAttributes = unit.getFinalAttributes();
+    const { finalAttributes } = getCultivatorDisplayAttributes(cultivator);
 
     return {
       id: cultivator.id,

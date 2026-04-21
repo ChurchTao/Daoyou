@@ -56,8 +56,6 @@ export interface CreationSessionInput {
   productType: CreationProductType;
   materials: Material[];
   userPrompt?: string;
-  requestedTags?: string[];
-  requestedElement?: ElementType;
   requestedSlot?: EquipmentSlot;
 }
 
@@ -123,7 +121,6 @@ export type CreationTagSignalSource =
   | 'material_semantic'
   | 'material_recipe'
   | 'intent_dominant'
-  | 'intent_requested'
   | 'recipe_matched';
 
 export interface CreationTagSignal {
@@ -136,7 +133,6 @@ export interface CreationIntent {
   productType: CreationProductType;
   outcomeKind: CreationOutcomeKind;
   dominantTags: string[];
-  requestedTags: string[];
   elementBias?: ElementType;
   slotBias?: EquipmentSlot;
   slotBiasSource?: CreationIntentSlotBiasSource;
@@ -264,7 +260,7 @@ import type { AffixEffectTemplate } from './affixes/types';
 export interface AffixCandidate {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   category: AffixCategory;
   match: AffixTagMatcher;
   tags: string[];

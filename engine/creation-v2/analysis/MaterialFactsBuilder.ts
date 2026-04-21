@@ -9,13 +9,11 @@ import {
 } from './MaterialBalanceProfile';
 import { MaterialFacts } from '../rules/contracts';
 import { CreationProductType, MaterialFingerprint } from '../types';
-import { CREATION_MATERIAL_FACTS } from '../config/CreationBalance';
 
 export class MaterialFactsBuilder {
   build(
     productType: CreationProductType,
     fingerprints: MaterialFingerprint[],
-    requestedTags: string[] = [],
   ): MaterialFacts {
     const energyProfile = buildMaterialEnergyProfile(fingerprints);
     const qualityProfile = buildMaterialQualityProfile(fingerprints);
@@ -25,8 +23,7 @@ export class MaterialFactsBuilder {
       fingerprints,
       normalizedTags: this.collectNormalizedTags(fingerprints),
       recipeTags: this.collectRecipeTags(fingerprints),
-      requestedTags,
-      dominantTags: MaterialFactsBuilder.pickDominantTags(fingerprints, requestedTags),
+      dominantTags: MaterialFactsBuilder.pickDominantTags(fingerprints),
       energyProfile,
       qualityProfile,
       unlockScore: energyProfile.unlockScore,
@@ -39,11 +36,8 @@ export class MaterialFactsBuilder {
    */
   static pickDominantTags(
     fingerprints: MaterialFingerprint[],
-    requestedTags: string[],
   ): string[] {
     const scores = new Map<string, number>();
-
-    requestedTags.forEach((tag) => scores.set(tag, CREATION_MATERIAL_FACTS.requestedTagWeight));
 
     fingerprints.forEach((fingerprint) => {
       [...fingerprint.semanticTags, ...fingerprint.recipeTags].forEach((tag) => {

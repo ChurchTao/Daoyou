@@ -5,7 +5,6 @@ import { InkBadge } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkCard } from '@/components/ui/InkCard';
 import { useEnemyProbe } from '@/lib/hooks/dungeon/useEnemyProbe';
-import { getSkillDisplayInfo } from '@/lib/utils/effectDisplay';
 import { useEffect, useState } from 'react';
 
 interface BattlePreparationProps {
@@ -127,7 +126,7 @@ export function BattlePreparation({
                         {skill.name} ({skill.element})
                       </span>
                       <span className="text-ink-secondary">
-                        威力: {getSkillDisplayInfo(skill).power}%
+                        {skill.description ?? '—'}
                       </span>
                     </div>
                   ))}

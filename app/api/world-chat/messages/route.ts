@@ -74,7 +74,6 @@ async function buildItemShowcasePayload(params: {
       quality: item.quality,
       required_realm: item.required_realm,
       description: item.description,
-      effects: item.effects,
     };
     return { itemType, itemId, snapshot, text: showcaseText };
   }
@@ -103,7 +102,6 @@ async function buildItemShowcasePayload(params: {
     name: item.name,
     type: item.type,
     quality: item.quality,
-    effects: item.effects,
     quantity: item.quantity,
     description: item.description,
   };

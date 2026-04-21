@@ -1,6 +1,6 @@
 'use client';
 
-import { EffectDetailModal } from '@/components/ui/EffectDetailModal';
+import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import { InkBadge } from '@/components/ui/InkBadge';
 import type {
   Artifact,
@@ -55,7 +55,7 @@ export function ItemDetailModal({
     ) : null;
 
     return (
-      <EffectDetailModal
+      <ItemShowcaseModal
         isOpen
         onClose={onClose}
         icon={slotInfo.icon}
@@ -71,9 +71,7 @@ export function ItemDetailModal({
           </InkBadge>,
         ].filter(Boolean)}
         extraInfo={extraInfo}
-        effects={item.effects}
         description={item.description}
-        effectTitle="法宝效果"
         descriptionTitle="法宝说明"
       />
     );
@@ -83,7 +81,7 @@ export function ItemDetailModal({
   if ('required_realm' in item && !('slot' in item)) {
     const technique = item as CultivationTechnique;
     return (
-      <EffectDetailModal
+      <ItemShowcaseModal
         isOpen
         onClose={onClose}
         icon="📘"
@@ -101,9 +99,7 @@ export function ItemDetailModal({
             <span>{technique.required_realm}</span>
           </div>
         }
-        effects={technique.effects}
         description={technique.description}
-        effectTitle="功法效果"
         descriptionTitle="功法详述"
       />
     );
@@ -113,7 +109,7 @@ export function ItemDetailModal({
   if ('cooldown' in item && 'element' in item && !('type' in item)) {
     const skill = item as Skill;
     return (
-      <EffectDetailModal
+      <ItemShowcaseModal
         isOpen
         onClose={onClose}
         icon="📜"
@@ -140,19 +136,17 @@ export function ItemDetailModal({
             </div>
           </div>
         }
-        effects={skill.effects}
         description={skill.description}
-        effectTitle="神通效果"
         descriptionTitle="神通详述"
       />
     );
   }
 
-  // 丹药/符箓（有 quality + effects）
-  if ('quality' in item && 'effects' in item) {
+  // 丹药/符箓（消耗品）
+  if ('quality' in item && 'type' in item && 'quantity' in item) {
     const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
     return (
-      <EffectDetailModal
+      <ItemShowcaseModal
         isOpen
         onClose={onClose}
         icon={typeInfo.icon}
@@ -165,9 +159,7 @@ export function ItemDetailModal({
           ),
         ].filter(Boolean)}
         extraInfo={<QuantityInfo quantity={item.quantity} />}
-        effects={item.effects}
         description={item.description}
-        effectTitle="药效"
         descriptionTitle="丹药详述"
       />
     );
@@ -190,7 +182,7 @@ export function ItemDetailModal({
   }
 
   return (
-    <EffectDetailModal
+    <ItemShowcaseModal
       isOpen
       onClose={onClose}
       icon={typeInfo.icon}

@@ -1,4 +1,4 @@
-import type { BattleEngineResult } from '@/engine/battle';
+import type { LogSpan } from '@/engine/battle-v5/systems/log/types';
 import type { RealmStage, RealmType } from '../types/constants';
 import type { Attributes, Cultivator } from '../types/cultivator';
 import type { BreakthroughModifiers } from './breakthroughCalculator';
@@ -6,10 +6,35 @@ import type { BreakthroughModifiers } from './breakthroughCalculator';
 interface BattlePromptPayload {
   player: Cultivator;
   opponent: Cultivator;
-  battleResult: Pick<
-    BattleEngineResult,
-    'log' | 'turns' | 'playerHp' | 'opponentHp'
-  > & { winnerId: string };
+  battleResult: {
+    winnerId: string;
+    turns: number;
+    /** 玩家剩余气血 */
+    playerHp?: number;
+    /** 对手剩余气血 */
+    opponentHp?: number;
+    /** v5 结构化日志。AI 战报基于此分回合叙事 */
+    logSpans: LogSpan[];
+  };
+}
+
+function formatSpansAsBattleLog(spans: LogSpan[]): string {
+  const byTurn = new Map<number, string[]>();
+  for (const span of spans) {
+    if (span.type !== 'action' && span.type !== 'action_after') continue;
+    const lines = byTurn.get(span.turn) ?? [];
+    for (const entry of span.entries) {
+      const text = typeof (entry as unknown as { text?: string }).text === 'string'
+        ? ((entry as unknown as { text: string }).text)
+        : JSON.stringify(entry);
+      lines.push(text);
+    }
+    byTurn.set(span.turn, lines);
+  }
+  const turns = [...byTurn.keys()].sort((a, b) => a - b);
+  return turns
+    .map((turn) => `【第${turn}回合】\n${(byTurn.get(turn) ?? []).join('\n')}`)
+    .join('\n');
 }
 
 export function getBattleReportPrompt({
@@ -44,7 +69,7 @@ export function getBattleReportPrompt({
 先天气运/体质：${fates}`;
   };
 
-  const battleLog = (battleResult.log || []).join('\n');
+  const battleLog = formatSpansAsBattleLog(battleResult.logSpans ?? []);
 
   const systemPrompt = `你是一位修仙题材连载小说作者，擅长写具有画面感的战斗场景。请根据设定与战斗日志，创作分回合的战斗播报，每回合描述控制在30-100字左右。
 
@@ -76,7 +101,7 @@ ${battleLog}
 
 【战斗结论】
 胜者：${winner.name}
-回合数：${battleResult.turns ?? battleResult.log.length}
+回合数：${battleResult.turns}
 双方剩余气血：${player.name} ${
     battleResult.playerHp ?? '未知'
   } / ${opponent.name} ${battleResult.opponentHp ?? '未知'}

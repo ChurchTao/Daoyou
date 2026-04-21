@@ -13,7 +13,7 @@ import {
   InkNotice,
   InkTabs,
 } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
+import { ItemCard } from '@/components/ui/ItemCard';
 import {
   CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
@@ -387,7 +387,6 @@ export function ListItemModal({
           ...baseInfo,
           icon: slotInfo.icon,
           quality: artifact.quality,
-          effects: artifact.effects,
           badgeExtra: (
             <>
               <InkBadge tone="default">{artifact.element}</InkBadge>
@@ -403,7 +402,6 @@ export function ListItemModal({
           ...baseInfo,
           icon: typeInfo.icon,
           quality: consumable.quality,
-          effects: consumable.effects,
           badgeExtra: (
             <>
               <InkBadge tone="default">{consumable.type}</InkBadge>
@@ -849,7 +847,7 @@ export function ListItemModal({
                 {currentItems.map((item) => {
                   const displayProps = getItemDisplayProps(item);
                   return (
-                    <EffectCard
+                    <ItemCard
                       key={item.id}
                       layout="col"
                       {...displayProps}

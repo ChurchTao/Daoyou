@@ -1,6 +1,7 @@
 // ===== 新一代修仙底层数据模型 =====
 
-import type { EffectConfig } from '@/engine/effect/types';
+import type { AbilityConfig } from '@/engine/creation-v2/contracts/battle';
+import type { AttributeModifierConfig } from '@/engine/battle-v5/core/configs';
 import type {
   ConsumableType,
   ElementType,
@@ -14,20 +15,22 @@ import type {
   SpiritualRootGrade,
 } from './constants';
 
-// 基础属性
+/**
+ * 基础属性（仅 5 维）。
+ *
+ * 所有派生属性（暴击率、闪避率、气血上限 等）都由 battle-v5
+ * 的 AttributeSystem/AttrsStateView 动态计算，不再写入 DB 与实体。
+ *
+ * 展示层需要派生属性时，请通过
+ *   `CultivatorDisplayAdapter.snapshot(cultivator)` 或
+ *   `getCultivatorDisplayAttributes(cultivator)` 取 AttrsStateView。
+ */
 export interface Attributes {
   vitality: number; // 体魄：伤害减免、气血上限
   spirit: number; // 灵力：法术伤害、蓝量上限
   wisdom: number; // 悟性：暴击率、命中率、效果命中
   speed: number; // 速度：出手顺序、闪避率
   willpower: number; // 神识：暴击抗性、暴击伤害、状态抗性
-
-  critRate?: number; // 暴击率
-  critDamage?: number; // 暴击伤害
-  damageReduction?: number; // 伤害减免
-  flatDamageReduction?: number; // 固定减伤
-  hitRate?: number; // 命中率
-  dodgeRate?: number; // 闪避率
 }
 
 // 灵根
@@ -87,7 +90,6 @@ export interface PreHeavenFateAttributeMod {
 export interface PreHeavenFate {
   name: string;
   quality?: Quality; // 凡品 | 灵品 | 玄品 | 真品
-  effects?: EffectConfig[];
   description?: string;
 }
 
@@ -99,7 +101,9 @@ export interface CultivationTechnique {
   required_realm: RealmType;
   score?: number;
   description?: string;
-  effects?: EffectConfig[]; // 替代 bonus
+  attributeModifiers?: AttributeModifierConfig[];
+  /** Phase 1 过渡期可选：旧数据/排行榜快照可能没有 abilityConfig */
+  abilityConfig?: AbilityConfig;
 }
 
 // 技能
@@ -112,7 +116,8 @@ export interface Skill {
   cooldown: number;
   target_self?: boolean;
   description?: string;
-  effects?: EffectConfig[]; // 替代 power/effect/duration
+  /** Phase 1 过渡期可选：旧数据可能没有 abilityConfig */
+  abilityConfig?: AbilityConfig;
 }
 
 export interface Artifact {
@@ -123,9 +128,11 @@ export interface Artifact {
   quality?: Quality;
   required_realm?: RealmType;
   description?: string;
-  effects?: EffectConfig[]; // 替代 bonus/special_effects/curses
-  prompt?: string; // 炼器提示词
-  score?: number; // 评分
+  attributeModifiers?: AttributeModifierConfig[];
+  /** Phase 1 过渡期可选 */
+  abilityConfig?: AbilityConfig;
+  prompt?: string;
+  score?: number;
 }
 
 export interface Consumable {
@@ -133,12 +140,10 @@ export interface Consumable {
   name: string;
   type: ConsumableType;
   quality?: Quality;
-  effects?: EffectConfig[];
   quantity: number;
   description?: string;
   prompt?: string; // 炼丹提示词
   score?: number; // 评分
-  details?: Record<string, unknown>; // 符箓配置等额外数据
 }
 
 export interface Material {
@@ -151,23 +156,6 @@ export interface Material {
   description?: string;
   details?: Record<string, unknown>;
   quantity: number;
-}
-
-// 符箓配置（用于消耗品的details字段）
-export interface TalismanConfig {
-  buffId: string;
-  expiryDays: number;
-  maxUses?: number;
-  fatesPerUse?: number;
-  drawType?: 'gongfa' | 'skill';
-}
-
-// 符箓Buff元数据（用于BuffInstance的metadata字段）
-export interface TalismanBuffMetadata {
-  usesRemaining?: number;
-  expiresAt: number;
-  drawType?: 'gongfa' | 'skill';
-  [key: string]: unknown;
 }
 
 export interface Inventory {

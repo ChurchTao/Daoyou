@@ -1,4 +1,4 @@
-import type { BattleEngineResult } from '@/engine/battle';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import Link from 'next/link';
 
 export type ZhanjiRecord = {
@@ -6,7 +6,7 @@ export type ZhanjiRecord = {
   createdAt: string | null;
   challengeType?: 'challenge' | 'challenged' | 'normal' | string;
   opponentCultivatorId?: string | null;
-} & Pick<BattleEngineResult, 'winner' | 'loser' | 'turns'>;
+} & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
 
 interface ZhanjiProps {
   record: ZhanjiRecord;

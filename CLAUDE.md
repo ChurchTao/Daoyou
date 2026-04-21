@@ -29,12 +29,13 @@ npx drizzle-kit push # 推送 schema 到数据库
 
 ## 技术栈
 
-- **前端**: Next.js 16.1.4 (App Router), React 19.2.3, TypeScript 5
+- **前端**: Next.js 16.1.6 (App Router), React 19.2.4, TypeScript 5
 - **样式**: Tailwind CSS 4
 - **数据库**: PostgreSQL (Supabase), Drizzle ORM
 - **缓存**: Upstash Redis
-- **AI**: DeepSeek / OpenAI (通过 @ai-sdk)
-- **测试**: Jest 30.2.0, ts-jest 29.4.6
+- **AI**: DeepSeek / 火山引擎 ARK / Kimi / Alibaba（通过 @ai-sdk）
+- **测试**: Jest ~30.3.0, ts-jest
+- **部署**: Cloudflare Workers（通过 @opennextjs/cloudflare）
 
 ## 架构概览
 
@@ -78,10 +79,10 @@ npx drizzle-kit push # 推送 schema 到数据库
 ├── components/              # React 组件
 │   └── ui/                 # Ink 组件库（水墨风格基础组件）
 ├── engine/                 # 核心游戏引擎（纯逻辑）
-│   ├── battle/            # 战斗引擎（BattleEngine.v2.ts）
+│   ├── battle-v5/         # 战斗引擎 V5（GAS+EDA 架构，主入口 BattleEngineV5.ts）
 │   ├── buff/              # Buff 系统（BuffManager, BuffTemplateRegistry）
-│   ├── effect/            # 效果系统（EffectEngine, 20 种效果类型）
-│   ├── creation/          # 创建引擎（角色/技能/法宝，策略模式）
+│   ├── creation-v2/       # 创建引擎 V2（事件驱动，CreationOrchestrator 主控）
+│   ├── shared/            # 共享模块（GameplayTags 标签系统）
 │   └── cultivator/        # 角色引擎
 ├── lib/                    # 基础设施层
 │   ├── drizzle/           # 数据库 schema 和连接
@@ -95,8 +96,11 @@ npx drizzle-kit push # 推送 schema 到数据库
 ├── utils/                  # 工具函数
 │   ├── aiClient.ts        # AI 客户端封装（text, stream_text, object, tool）
 │   └── prompts.ts         # AI 提示词
-└── config/                 # 配置文件
-    └── buffTemplates.ts   # Buff 模板配置（20+ 模板）
+├── config/                 # 配置文件
+│   └── buffTemplates.ts   # Buff 模板配置（20+ 模板）
+├── worker/                 # Cloudflare Worker 入口（cron 调度）
+├── conductor/              # 产品规划文档（product.md, tracks.md 等）
+└── scripts/                # 工具脚本
 ```
 
 ## 数据库 Schema
@@ -191,26 +195,25 @@ npx drizzle-kit push # 推送 schema 到数据库
 
 ## 战斗引擎
 
-**文件**: `engine/battle/BattleEngine.v2.ts`
+**文件**: `engine/battle-v5/BattleEngineV5.ts`
 
-- 基于时间轴的回合制战斗
-- 支持 SSE 流式输出
-- 完整的技能执行器（SkillExecutor）
-- 伤害管道（DamagePipeline）
-- 属性计算系统
+**GAS+EDA 架构**（Gameplay Ability System + Event-Driven Architecture）：
+- **状态机驱动**（CombatStateMachine）：`INIT → ROUND_START → ROUND_PRE → TURN_ORDER → ACTION → ROUND_POST → VICTORY_CHECK`
+- **EventBus**：各子系统通过订阅事件响应，解耦战斗流程
+- **子系统**：ActionExecutionSystem、DamageSystem、VictorySystem、BattleStateRecorder
+- **CombatLogSystem**：结构化日志（LogSpan），支持 AIGC 战报生成
+- **BattleStateTimeline**：每次行动前后的双方状态帧（含 delta）
 
 ## 创建系统
 
-**文件**: `engine/creation/`
+**文件**: `engine/creation-v2/`
 
-策略模式实现：
-- **CreationEngine**: 创建引擎主控
-- **EffectMaterializer**: 效果实体化器
-- **SkillCreationStrategy**: 技能创建策略
-- **GongFaCreationStrategy**: 功法创建策略
-- **RefiningStrategy**: 炼器策略
-- **AlchemyStrategy**: 炼丹策略
-- **CraftCostCalculator**: 资源消耗计算器（灵石/道心感悟）
+事件驱动架构，`CreationOrchestrator` 主控整个创建流程：
+- **CreationSession**：维护创建会话上下文
+- **流程阶段**：材料分析 → 配方校验 → 能量预算 → 词缀池构建 → 词缀抽选 → 蓝图合成 → 结果实体化 → 持久化
+- **分析层**：MaterialAnalyzer（含语义增强）、EnergyBudgeter、AffixSelector
+- **CraftCostCalculator**：资源消耗计算（灵石/道心感悟）
+- **ProductNamingEnricher**：DeepSeek AI 命名增强
 
 ## AI 集成
 
@@ -265,7 +268,7 @@ AI 应用场景：
 
 ## 各模块 CLAUDE.md
 
-项目包含多个子模块的详细文档：
+> ⚠️ 以下子模块 CLAUDE.md 文件尚未创建，仅作规划参考。
 - `engine/battle/CLAUDE.md`: 战斗系统详解
 - `engine/creation/CLAUDE.md`: 创建系统详解
 - `engine/effect/CLAUDE.md`: 效果系统详解
@@ -310,7 +313,10 @@ CRON_SECRET=
 
 ## 部署
 
-- **平台**: Vercel
-- **Cron 任务**：
-  - 每日 01:00：刷新坊市
-  - 每日 00:00：发放排行榜奖励
+- **平台**: Cloudflare Workers（通过 `@opennextjs/cloudflare` + `open-next.config.ts`）
+- **入口**: `worker/index.ts` — Cloudflare Worker 主入口，处理请求转发与 cron 调度
+- **Cron 任务**（在 `wrangler.jsonc` 中定义，UTC 时间）：
+  - `0 * * * *`：每小时处理过期拍卖（`/api/cron/auction-expire`, `/api/cron/bet-battle-expire`）
+  - `0 16 * * *`：北京时间 00:00 发放天骄榜奖励（`/api/cron/rank-rewards`）
+- **缓存**: R2 增量缓存（`r2IncrementalCache`）
+- **Cron 调用鉴权**: `Authorization: Bearer $CRON_SECRET`

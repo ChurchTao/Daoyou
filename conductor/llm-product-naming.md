@@ -18,7 +18,7 @@
 **Files:**
 - Create: `engine/creation-v2/analysis/ProductNamingEnricher.ts`
 
-- [ ] **Step 1: 定义命名器输入事实接口 `ProductNamingFacts`**
+- [x] **Step 1: 定义命名器输入事实接口 `ProductNamingFacts`**
 
 ```typescript
 import { CreationProductType, RolledAffix, MaterialFingerprint, MaterialQualityProfile } from '../types';
@@ -34,7 +34,7 @@ export interface ProductNamingFacts {
 }
 ```
 
-- [ ] **Step 2: 定义 Zod Schema 以约束 LLM 输出**
+- [x] **Step 2: 定义 Zod Schema 以约束 LLM 输出**
 
 ```typescript
 import { z } from 'zod';
@@ -48,7 +48,7 @@ const namingResultSchema = z.object({
 export type ProductNamingResult = z.infer<typeof namingResultSchema>;
 ```
 
-- [ ] **Step 3: 实现 `DeepSeekProductNamingEnricher` 类框架**
+- [x] **Step 3: 实现 `DeepSeekProductNamingEnricher` 类框架**
 
 ```typescript
 import { object } from '@/utils/aiClient';
@@ -70,7 +70,7 @@ export class DeepSeekProductNamingEnricher {
 **Files:**
 - Modify: `engine/creation-v2/analysis/ProductNamingEnricher.ts`
 
-- [ ] **Step 1: 实现提示词构建私有方法 `buildSystemPrompt`**
+- [x] **Step 1: 实现提示词构建私有方法 `buildSystemPrompt`**
 
 ```typescript
   private buildSystemPrompt(productType: CreationProductType): string {
@@ -109,7 +109,7 @@ export class DeepSeekProductNamingEnricher {
   }
 ```
 
-- [ ] **Step 2: 实现 `enrich` 方法调用逻辑**
+- [x] **Step 2: 实现 `enrich` 方法调用逻辑**
 
 ```typescript
   async enrich(facts: ProductNamingFacts): Promise<ProductNamingResult | null> {
@@ -147,7 +147,7 @@ export class DeepSeekProductNamingEnricher {
 - Modify: `engine/creation-v2/types.ts`
 - Modify: `engine/creation-v2/core/events.ts`
 
-- [ ] **Step 1: 在 `MaterialFingerprintMetadata` 中增加命名元数据类型 (可选，用于审计)**
+- [x] **Step 1: 在 `MaterialFingerprintMetadata` 中增加命名元数据类型 (可选，用于审计)**
 
 ```typescript
 // engine/creation-v2/types.ts
@@ -160,14 +160,14 @@ export interface ProductNamingLLMMetadata {
 // ... 可以在适当位置添加该类型，或直接合并到现有 metadata
 ```
 
-- [ ] **Step 2: (方案调整) 我们直接修改蓝图，不需要新增事件，但在 Orchestrator 中记录轨迹。**
+- [x] **Step 2: (方案调整) 我们直接修改蓝图，不需要新增事件，但在 Orchestrator 中记录轨迹。**
 
 ### Task 4: 集成到 CreationOrchestrator
 
 **Files:**
 - Modify: `engine/creation-v2/CreationOrchestrator.ts`
 
-- [ ] **Step 1: 在构造函数中注入 `ProductNamingEnricher`**
+- [x] **Step 1: 在构造函数中注入 `ProductNamingEnricher`**
 
 ```typescript
 // 增加 import
@@ -182,7 +182,7 @@ constructor(
 }
 ```
 
-- [ ] **Step 2: 修改 `composeBlueprintWithDefaults` 以支持异步命名覆盖**
+- [x] **Step 2: 修改 `composeBlueprintWithDefaults` 以支持异步命名覆盖**
 
 ```typescript
   protected composeBlueprintWithDefaults(session: CreationSession): CreationBlueprint {
@@ -201,14 +201,14 @@ constructor(
   }
 ```
 
-- [ ] **Step 3: (优化集成方案) 在 `CreationPhaseHandlerRegistry` 中拦截 `BlueprintComposedEvent`**
+- [x] **Step 3: (优化集成方案) 在 `CreationPhaseHandlerRegistry` 中拦截 `BlueprintComposedEvent`**
 
 **Files:**
 - Modify: `engine/creation-v2/handlers/PhaseActionRegistry.ts`
 - Modify: `engine/creation-v2/handlers/CreationPhaseHandlers.ts`
 - Modify: `engine/creation-v2/CreationOrchestrator.ts`
 
-- [ ] **Step 4: 在 `PhaseActionRegistry` 增加 `enrichNaming` 动作**
+- [x] **Step 4: 在 `PhaseActionRegistry` 增加 `enrichNaming` 动作**
 
 ```typescript
 export type WorkflowActionKey =
@@ -216,7 +216,7 @@ export type WorkflowActionKey =
   | 'enrichNaming';
 ```
 
-- [ ] **Step 5: 在 `CreationOrchestrator` 实现 `enrichNamingWithLLM`**
+- [x] **Step 5: 在 `CreationOrchestrator` 实现 `enrichNamingWithLLM`**
 
 ```typescript
   protected async enrichNamingWithLLM(session: CreationSession): Promise<void> {
@@ -246,9 +246,9 @@ export type WorkflowActionKey =
 **Files:**
 - Create: `engine/creation-v2/tests/analysis/ProductNamingEnricher.test.ts`
 
-- [ ] **Step 1: 编写单元测试验证提示词生成**
-- [ ] **Step 2: 编写集成测试模拟 `craftAsync` 路径，验证产物名称是否被“仙化”**
-- [ ] **Step 3: 运行 `npm test engine/creation-v2` 确保不破坏现有逻辑**
+- [x] **Step 1: 编写单元测试验证提示词生成**
+- [x] **Step 2: 编写集成测试模拟 `craftAsync` 路径，验证产物名称是否被“仙化”**
+- [x] **Step 3: 运行 `npm test engine/creation-v2` 确保不破坏现有逻辑**
 
 ---
 

@@ -5,7 +5,6 @@ import type {
   BreakthroughResult,
   CultivationResult,
 } from '@/engine/cultivation/CultivationEngine';
-import { applyBreakthroughChanceBonus } from '@/engine/cultivation/retreatEffectIntegration';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { calculateBreakthroughChance } from '@/utils/breakthroughCalculator';
 import { useRouter } from 'next/navigation';
@@ -128,12 +127,12 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     try {
       const result = calculateBreakthroughChance(cultivator);
       const baseChance = result.chance;
-      const finalChance = applyBreakthroughChanceBonus(cultivator, baseChance);
+      const finalChance = baseChance;
 
       return {
         baseChance,
         finalChance,
-        buffBonus: Math.max(0, finalChance - baseChance),
+        buffBonus: 0,
         recommendation: result.recommendation,
       };
     } catch {

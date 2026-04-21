@@ -66,7 +66,6 @@ interface CreationBattleDuelInput {
   productType: CreationProductType;
   materials: Material[];
   seed?: number;
-  requestedTags?: readonly string[];
   requestedSlot?: EquipmentSlot;
   baselineTemplate?: SparringBaselineTemplate;
 }
@@ -123,20 +122,13 @@ function withDeterministicRandom<T>(seed: number, execute: () => T): T {
 function runPipeline(
   productType: CreationProductType,
   materials: Material[],
-  requestedTags?: readonly string[],
   requestedSlot?: EquipmentSlot,
 ): CraftedOutcome | undefined {
   const orchestrator = new TestableCreationOrchestrator();
-  // 为技能自动注入火元素（如果材料没带），以通过命名规则
-  const hasElement = materials.some(m => !!m.element);
   const session = orchestrator.createSession({
     productType,
     materials,
-    ...(requestedTags && requestedTags.length > 0
-      ? { requestedTags: [...requestedTags] }
-      : {}),
     ...(requestedSlot ? { requestedSlot } : {}),
-    ...(productType === 'skill' && !hasElement ? { requestedElement: '火' } : {}),
   });
 
   orchestrator.submitMaterials(session);
@@ -390,7 +382,6 @@ export function runCreationBattleDuel({
   productType,
   materials,
   seed = 1,
-  requestedTags,
   requestedSlot,
   baselineTemplate = 'mirror',
 }: CreationBattleDuelInput): CreationBattleDuelResult | undefined {
@@ -403,7 +394,6 @@ export function runCreationBattleDuel({
       const outcome = runPipeline(
         productType,
         materials,
-        requestedTags,
         requestedSlot,
       );
       if (!outcome) {

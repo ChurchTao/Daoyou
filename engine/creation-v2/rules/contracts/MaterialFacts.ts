@@ -10,7 +10,6 @@ export interface MaterialFacts {
   fingerprints: MaterialFingerprint[];
   normalizedTags: string[];
   recipeTags: string[];
-  requestedTags: string[];
   dominantTags: string[];
   energyProfile: MaterialEnergyProfile;
   qualityProfile: MaterialQualityProfile;

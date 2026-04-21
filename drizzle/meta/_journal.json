@@ -246,6 +246,13 @@
       "when": 1772781202870,
       "tag": "0034_exotic_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1776758354610,
+      "tag": "0035_tiny_nightshade",
+      "breakpoints": true
     }
   ]
 }

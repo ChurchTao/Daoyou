@@ -580,6 +580,7 @@ export class CreationOrchestrator {
     const facts: ProductNamingFacts = {
       productType: session.state.input.productType,
       elementBias: session.state.intent?.elementBias,
+      slotBias: session.state.intent?.slotBias,
       dominantTags: session.state.intent?.dominantTags ?? [],
       rolledAffixes: session.state.rolledAffixes,
       qualityProfile: buildMaterialQualityProfile(
@@ -588,6 +589,7 @@ export class CreationOrchestrator {
       materialNames: session.state.materialFingerprints.map(
         (f) => f.materialName,
       ),
+      userPrompt: session.state.input.userPrompt,
     };
 
     const enrichment = await this.namingEnricher.enrich(facts);

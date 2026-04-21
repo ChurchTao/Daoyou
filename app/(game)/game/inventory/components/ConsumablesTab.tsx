@@ -1,7 +1,7 @@
 'use client';
 
 import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
-import { EffectCard } from '@/components/ui/EffectCard';
+import { ItemCard } from '@/components/ui/ItemCard';
 import type { Consumable } from '@/types/cultivator';
 
 interface ConsumablesTabProps {
@@ -45,7 +45,7 @@ export function ConsumablesTab({
         const isTalisman = item.type === '符箓';
 
         return (
-          <EffectCard
+          <ItemCard
             key={item.id || idx}
             layout="col"
             name={item.name}
@@ -67,7 +67,6 @@ export function ConsumablesTab({
                 </div>
               ) : null
             }
-            effects={item.effects}
             description={item.description}
             actions={
               <div className="flex gap-2">

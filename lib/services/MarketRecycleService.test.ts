@@ -12,7 +12,8 @@ jest.mock('@/utils/aiClient', () => ({
   object: jest.fn(),
 }));
 
-import { EffectType } from '@/engine/effect/types';
+import { AttributeType, ModifierType } from '@/engine/battle-v5/core/types';
+import type { AttributeModifierConfig } from '@/engine/battle-v5/core/configs';
 import {
   buildArtifactHighTierAppraisal,
   buildFallbackAppraisal,
@@ -21,6 +22,12 @@ import {
   calculateKeywordBonus,
   calculateLowTierUnitPrice,
 } from './MarketRecycleService';
+
+const mod = (attrType: AttributeType, value: number): AttributeModifierConfig => ({
+  attrType,
+  type: ModifierType.FIXED,
+  value,
+});
 
 describe('MarketRecycleService pricing helpers', () => {
   it('calculates low tier unit price with conservative formula', () => {
@@ -70,32 +77,21 @@ describe('MarketRecycleService pricing helpers', () => {
     expect(Array.isArray(fallback.keywords)).toBe(true);
   });
 
-  it('calculates artifact recycle price with quality-score-effects factors', () => {
+  it('calculates artifact recycle price with quality-score-modifier factors', () => {
     const low = calculateArtifactUnitPrice({
       quality: '玄品',
       score: 600,
       slot: 'accessory',
-      effects: [
-        {
-          type: EffectType.StatModifier,
-          params: { stat: 'spirit', value: 10 },
-        },
-      ],
+      attributeModifiers: [mod(AttributeType.SPIRIT, 10)],
     });
     const high = calculateArtifactUnitPrice({
       quality: '天品',
       score: 2600,
       slot: 'weapon',
-      effects: [
-        {
-          type: EffectType.StatModifier,
-          params: { stat: 'spirit', value: 35 },
-        },
-        {
-          type: EffectType.ElementDamageBonus,
-          params: { element: '火', bonusPercent: 18 },
-        },
-        { type: EffectType.HealAmplify, params: { bonusPercent: 12 } },
+      attributeModifiers: [
+        mod(AttributeType.SPIRIT, 35),
+        mod(AttributeType.VITALITY, 20),
+        mod(AttributeType.SPEED, 12),
       ],
     });
     expect(high).toBeGreaterThan(low);
@@ -106,13 +102,13 @@ describe('MarketRecycleService pricing helpers', () => {
       quality: '天品',
       score: 1800,
       slot: 'weapon',
-      effects: [],
+      attributeModifiers: [],
     });
     const xuanPin = calculateArtifactUnitPrice({
       quality: '玄品',
       score: 1800,
       slot: 'weapon',
-      effects: [],
+      attributeModifiers: [],
     });
     expect(tianPin).toBeGreaterThan(xuanPin * 10);
   });
@@ -123,12 +119,7 @@ describe('MarketRecycleService pricing helpers', () => {
       quality: '天品',
       score: 2200,
       slot: 'weapon',
-      effects: [
-        {
-          type: EffectType.StatModifier,
-          params: { stat: 'spirit', value: 10 },
-        },
-      ],
+      attributeModifiers: [mod(AttributeType.SPIRIT, 10)],
     });
     expect(['S', 'A', 'B', 'C']).toContain(appraisal.rating);
     expect(appraisal.comment.length).toBeGreaterThanOrEqual(40);

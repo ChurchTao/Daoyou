@@ -1,5 +1,5 @@
-import type { BattleEngineResult } from '@/engine/battle';
 import { getExecutor } from '@/lib/drizzle/db';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import { battleRecords } from '@/lib/drizzle/schema';
 import { getUserAliveCultivatorId } from '@/lib/services/cultivatorService';
 import { createClient } from '@/lib/supabase/server';
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
 
   // 仅返回列表页需要的精简数据
   const data = records.map((r) => {
-    const result = r.battleResult as BattleEngineResult;
+    const result = r.battleResult as BattleRecord;
     const isChallenger = r.cultivatorId === cultivatorId;
     const hasOpponent = !!r.opponentCultivatorId;
 

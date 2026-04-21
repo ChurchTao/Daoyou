@@ -22,13 +22,13 @@ describe('MaterialRuleSet', () => {
       },
     ];
 
-    const facts = factsBuilder.build('skill', fingerprints, ['burst']);
+    const facts = factsBuilder.build('skill', fingerprints);
     const decision = ruleSet.evaluate(facts);
 
     expect(decision.valid).toBe(true);
     expect(decision.normalizedTags).toContain('Material.Element.Fire');
     expect(decision.recipeTags).toContain('Recipe.ProductBias.Skill');
-    expect(decision.dominantTags[0]).toBe('burst');
+    expect(decision.dominantTags[0]).toBe('Material.Semantic.Flame');
   });
 
   it('应在冲突材料下返回 invalid decision', () => {

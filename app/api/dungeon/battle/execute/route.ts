@@ -1,9 +1,9 @@
-import { simulateBattle } from '@/engine/battle';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { dungeonService } from '@/lib/dungeon/service_v2';
 import { BattleSession } from '@/lib/dungeon/types';
 import { redis } from '@/lib/redis';
 import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
+import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
 import { Cultivator } from '@/types/cultivator';
 import { stream_text } from '@/utils/aiClient';
 import { getBattleReportPrompt } from '@/utils/prompts';
@@ -41,7 +41,7 @@ export const POST = withActiveCultivator(
     const enemyUnit = enemyObject;
 
     // Simulate Battle with dungeon state
-    const result = simulateBattle(playerUnit, enemyUnit, {
+    const result = simulateBattleV5(playerUnit, enemyUnit, {
       hpLossPercent: sessionData.session.playerSnapshot.hpLossPercent,
       mpLossPercent: sessionData.session.playerSnapshot.mpLossPercent,
       // Note: dungeon 模块仍使用旧格式，这里暂时保持兼容
@@ -63,15 +63,19 @@ export const POST = withActiveCultivator(
             ),
           );
 
+          const finalFrame =
+            result.stateTimeline.frames[result.stateTimeline.frames.length - 1];
+          const [playerUnitId, opponentUnitId] = result.stateTimeline.unitIds;
+
           // 2. Stream AI Report
           const [systemPrompt, userPrompt] = getBattleReportPrompt({
             player: playerUnit,
             opponent: enemyUnit,
             battleResult: {
-              log: result.log,
+              logSpans: result.logSpans,
               turns: result.turns,
-              playerHp: result.playerHp,
-              opponentHp: result.opponentHp,
+              playerHp: finalFrame?.units[playerUnitId]?.hp.current,
+              opponentHp: finalFrame?.units[opponentUnitId]?.hp.current,
               winnerId: result.winner.id || result.winner.name,
             },
           });
