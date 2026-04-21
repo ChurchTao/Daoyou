@@ -24,21 +24,32 @@ import type {
   SkillProductModel,
 } from '@/engine/creation-v2/models/types';
 import type { RolledAffix } from '@/engine/creation-v2/types';
+import {
+  renderAffixLine,
+  rarityToTone,
+  type AffixRarity,
+} from '@/engine/battle-v5/effects/affixText';
+import { ATTR_LABELS } from '@/engine/battle-v5/effects/affixText/attributes';
+import type { Quality } from '@/types/constants';
 
 // ===== 基础视图态 =====
+
+export type AffixRarityTone = 'muted' | 'info' | 'rare' | 'legendary';
 
 export interface AffixView {
   id: string;
   name: string;
-  description?: string;
-  category: string;
-  /** 是否完美触发 */
+  /** 一句话渲染：[监听前缀] [条件] [效果+数值] */
+  bodyText: string;
+  /** 按稀有度上色 */
+  rarityTone: AffixRarityTone;
+  /** 原始稀有度（common/uncommon/rare/legendary） */
+  rarity: AffixRarity;
+  /** 是否完美触发（roll 到词缀上限） */
   isPerfect: boolean;
-  /** 随机效率分 0-1 */
-  rollEfficiency: number;
-  /** 最终倍率（如 1.12 表示 112%） */
-  finalMultiplier: number;
-  /** 标签（battle-v5 ability tags 等） */
+  /** 可选：词缀在定义中的作者描述（一般不再展示） */
+  description?: string;
+  /** battle-v5 ability tags 等额外标签 */
   tags: string[];
 }
 
@@ -53,12 +64,10 @@ export interface AttributeModifierView {
 export interface AbilityProjectionSummary {
   /** '主动 / 被动 / 装备' 中文标签 */
   kindLabel: string;
-  /** battle-v5 原生 projectionKind */
   projectionKind:
     | 'active_skill'
     | 'artifact_passive'
     | 'gongfa_passive';
-  /** 标签（法术、控制、增益……） */
   tags: string[];
   mpCost?: number;
   cooldown?: number;
@@ -82,47 +91,32 @@ export interface ProductDisplayModel {
   rawModel: CreationProductModel;
 }
 
-// ===== 映射 =====
-
-const ATTRIBUTE_LABELS: Record<AttributeType, string> = {
-  [AttributeType.SPIRIT]: '灵力',
-  [AttributeType.VITALITY]: '体魄',
-  [AttributeType.SPEED]: '身法',
-  [AttributeType.WILLPOWER]: '神识',
-  [AttributeType.WISDOM]: '悟性',
-  [AttributeType.ATK]: '物攻',
-  [AttributeType.DEF]: '物防',
-  [AttributeType.MAGIC_ATK]: '法攻',
-  [AttributeType.MAGIC_DEF]: '法防',
-  [AttributeType.CRIT_RATE]: '暴击率',
-  [AttributeType.CRIT_DAMAGE_MULT]: '暴击伤害',
-  [AttributeType.EVASION_RATE]: '闪避率',
-  [AttributeType.CONTROL_HIT]: '控制命中',
-  [AttributeType.CONTROL_RESISTANCE]: '控制抗性',
-  [AttributeType.ARMOR_PENETRATION]: '破防',
-  [AttributeType.MAGIC_PENETRATION]: '法穿',
-  [AttributeType.CRIT_RESIST]: '暴击抗性',
-  [AttributeType.CRIT_DAMAGE_REDUCTION]: '暴伤减免',
-  [AttributeType.ACCURACY]: '命中',
-  [AttributeType.HEAL_AMPLIFY]: '治疗加成',
-};
+// ===== 通用格式化 =====
 
 export function formatAttributeValue(
   modifier: AttributeModifierConfig,
 ): string {
   const prefix = modifier.value >= 0 ? '+' : '';
+  const abs = Math.abs(modifier.value);
   switch (modifier.type) {
     // ADD 在 battle-v5 语义为 "百分比加法" (final *= 1 + sum)
     case ModifierType.ADD:
-      return `${prefix}${(modifier.value * 100).toFixed(0)}%`;
+      return `${prefix}${formatNumber(abs * 100)}%`;
     // MULTIPLY 是独立累乘，value > 1 表示增益，< 1 表示减益
     case ModifierType.MULTIPLY:
-      return `×${modifier.value.toFixed(2)}`;
+      return `×${formatNumber(modifier.value)}`;
     case ModifierType.BASE:
     case ModifierType.FIXED:
     default:
-      return `${prefix}${modifier.value}`;
+      return `${prefix}${formatNumber(abs)}`;
   }
+}
+
+export function formatNumber(value: number, digits = 2): string {
+  if (!Number.isFinite(value)) return '0';
+  return value
+    .toFixed(digits)
+    .replace(/\.?0+$/, '');
 }
 
 export function toAttributeModifierView(
@@ -130,22 +124,36 @@ export function toAttributeModifierView(
 ): AttributeModifierView {
   return {
     attrKey: modifier.attrType,
-    attrLabel: ATTRIBUTE_LABELS[modifier.attrType] ?? modifier.attrType,
+    attrLabel: ATTR_LABELS[modifier.attrType] ?? modifier.attrType,
     valueText: formatAttributeValue(modifier),
     raw: modifier,
   };
 }
 
-export function toAffixView(affix: RolledAffix): AffixView {
+// ===== 词缀视图 =====
+
+/**
+ * 把 RolledAffix 转成 UI 视图态。
+ *
+ * @param affix  词缀 rolled 结果（含 id / 倍率 / 是否完美等）
+ * @param quality 产物品质，用于还原 effectTemplate 中的品质缩放
+ * @param abilityConfig 产物 abilityConfig，用于读取真实落地的属性修改器
+ */
+export function toAffixView(
+  affix: RolledAffix,
+  quality: Quality,
+  abilityConfig?: AbilityConfig,
+): AffixView {
+  const rendered = renderAffixLine(affix, quality, { abilityConfig });
   return {
-    id: affix.id,
-    name: affix.name,
-    description: affix.description,
-    category: affix.category,
-    isPerfect: affix.isPerfect,
-    rollEfficiency: affix.rollEfficiency,
-    finalMultiplier: affix.finalMultiplier,
-    tags: affix.tags ?? [],
+    id: rendered.id,
+    name: rendered.name,
+    bodyText: rendered.bodyText,
+    rarity: rendered.rarity,
+    rarityTone: rarityToTone(rendered.rarity),
+    isPerfect: rendered.isPerfect,
+    ...(rendered.description ? { description: rendered.description } : {}),
+    tags: (affix.tags as string[] | undefined) ?? [],
   };
 }
 
@@ -212,6 +220,8 @@ export interface ProductRecordLike {
   productModel?: unknown;
 }
 
+const DEFAULT_QUALITY: Quality = '凡品';
+
 /**
  * 将 `/api/v2/products` 的原始行转换为 UI 视图态。
  * `productModel` 是 battle-v5 与 creation-v2 的权威来源；其余列字段只作为冗余兜底。
@@ -220,7 +230,12 @@ export function toProductDisplayModel(
   record: ProductRecordLike,
 ): ProductDisplayModel {
   const rawModel = record.productModel as CreationProductModel;
-  const affixes = (rawModel?.affixes ?? []).map(toAffixView);
+  const abilityConfig = record.abilityConfig as AbilityConfig | undefined;
+  const quality = (record.quality as Quality | null) ?? DEFAULT_QUALITY;
+
+  const affixes = (rawModel?.affixes ?? []).map((affix) =>
+    toAffixView(affix, quality, abilityConfig),
+  );
   const modifiers = rawModel
     ? collectModifiers(rawModel).map(toAttributeModifierView)
     : [];
@@ -240,7 +255,7 @@ export function toProductDisplayModel(
     affixes,
     modifiers,
     projection: rawModel ? buildProjection(rawModel) : undefined,
-    abilityConfig: record.abilityConfig as AbilityConfig | undefined,
+    abilityConfig,
     rawModel,
   };
 }

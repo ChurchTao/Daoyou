@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  AffixChip,
+  toProductDisplayModel,
+  type ProductRecordLike,
+} from '@/components/feature/products';
 import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import { InkBadge } from '@/components/ui/InkBadge';
 import type {
@@ -46,7 +51,11 @@ export function ItemDetailModal({
 
   // 法宝（有 slot 属性）
   if ('slot' in item) {
+    const artifactRecord = item as unknown as ProductRecordLike;
     const slotInfo = getEquipmentSlotInfo(item.slot);
+    const product = artifactRecord.productModel
+      ? toProductDisplayModel(artifactRecord)
+      : null;
     const extraInfo = item.required_realm ? (
       <div className="border-ink/50 flex justify-between border-b pb-2">
         <span className="opacity-70">境界要求</span>
@@ -73,6 +82,20 @@ export function ItemDetailModal({
         extraInfo={extraInfo}
         description={item.description}
         descriptionTitle="法宝说明"
+        footer={
+          product && product.affixes.length > 0 ? (
+            <div className="space-y-2 pt-2">
+              <div className="text-ink-secondary text-xs font-semibold tracking-wide uppercase">
+                词缀
+              </div>
+              <ul className="space-y-1.5">
+                {product.affixes.map((affix) => (
+                  <AffixChip key={affix.id} affix={affix} />
+                ))}
+              </ul>
+            </div>
+          ) : null
+        }
       />
     );
   }

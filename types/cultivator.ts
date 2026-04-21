@@ -133,6 +133,10 @@ export interface Artifact {
   abilityConfig?: AbilityConfig;
   prompt?: string;
   score?: number;
+  /** 背包/列表展示链路透传 creation_products.product_model */
+  productModel?: unknown;
+  /** 背包/列表展示态 */
+  isEquipped?: boolean;
 }
 
 export interface Consumable {

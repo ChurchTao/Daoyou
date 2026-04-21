@@ -1,4 +1,8 @@
-import { deserializeAbilityConfig, deserializeProductModel } from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
+import {
+  deserializeAbilityConfig,
+  deserializeProductModel,
+} from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import type { CreationProductRecord } from '@/lib/repositories/creationProductRepository';
 import type { Artifact } from '@/types/cultivator';
 import type { Quality } from '@/types/constants';
@@ -8,9 +12,9 @@ function safeRecordJson(value: unknown): Record<string, unknown> {
 }
 
 export function toArtifactFromProduct(record: CreationProductRecord): Artifact {
-  const abilityConfig = deserializeAbilityConfig(
-    safeRecordJson(record.abilityConfig),
-    record.id,
+  const dbAbilityConfig = safeRecordJson(record.abilityConfig);
+  const productModel = enrichProductModelByAffixId(
+    deserializeProductModel(safeRecordJson(record.productModel)),
   );
 
   return {
@@ -21,10 +25,41 @@ export function toArtifactFromProduct(record: CreationProductRecord): Artifact {
     quality: (record.quality as Artifact['quality']) || '凡品',
     required_realm: undefined,
     description: record.description || undefined,
-    attributeModifiers: abilityConfig.modifiers ?? [],
-    abilityConfig,
+    attributeModifiers:
+      (dbAbilityConfig.modifiers as Artifact['attributeModifiers']) ?? [],
+    abilityConfig: dbAbilityConfig as unknown as Artifact['abilityConfig'],
     score: record.score || 0,
+    // 背包详情弹窗直接复用列表数据渲染词缀，保留原始结构。
+    ...(record.isEquipped !== undefined ? { isEquipped: record.isEquipped } : {}),
+    ...(productModel ? { productModel } : {}),
+  } as Artifact;
+}
+
+function enrichProductModelByAffixId<T>(model: T): T {
+  const productModel = model as {
+    affixes?: Array<Record<string, unknown>>;
   };
+  if (!productModel?.affixes?.length) return model;
+
+  const affixes = productModel.affixes.map((affix) => {
+    const id = affix.id as string | undefined;
+    if (!id) return affix;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById(id);
+    if (!def) return affix;
+    return {
+      ...affix,
+      name: def.displayName,
+      description: def.displayDescription,
+      category: def.category,
+      effectTemplate: def.effectTemplate,
+      rarity: def.rarity,
+    };
+  });
+
+  return {
+    ...(model as Record<string, unknown>),
+    affixes,
+  } as T;
 }
 
 export function getArtifactQualityFromProduct(

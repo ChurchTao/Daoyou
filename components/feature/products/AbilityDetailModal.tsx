@@ -2,8 +2,7 @@
 
 import { InkBadge, InkButton } from '@/components/ui';
 import { AffixChip } from './AffixChip';
-import { AttributeModifierList } from './AttributeModifierList';
-import type { ProductDisplayModel } from './abilityDisplay';
+import { formatNumber, type ProductDisplayModel } from './abilityDisplay';
 
 const SLOT_LABELS: Record<string, string> = {
   weapon: '武器',
@@ -81,7 +80,7 @@ export function AbilityDetailModal({
           {product.element && (
             <InkBadge tone="default">{product.element}</InkBadge>
           )}
-          <InkBadge tone="default">{`评分 ${product.score}`}</InkBadge>
+          <InkBadge tone="default">{`评分 ${formatNumber(product.score)}`}</InkBadge>
         </div>
 
         {product.description && (
@@ -100,8 +99,6 @@ export function AbilityDetailModal({
           </div>
         )}
 
-        <AttributeModifierList modifiers={product.modifiers} />
-
         {product.affixes.length > 0 && (
           <div className="space-y-1.5">
             <h3 className="text-ink-secondary text-xs font-semibold tracking-wide uppercase">
@@ -112,19 +109,6 @@ export function AbilityDetailModal({
                 <AffixChip key={a.id} affix={a} />
               ))}
             </ul>
-          </div>
-        )}
-
-        {projection && projection.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {projection.tags.map((t) => (
-              <span
-                key={t}
-                className="border-ink/10 text-ink-secondary rounded-full border px-2 py-0.5 text-[10px]"
-              >
-                {t}
-              </span>
-            ))}
           </div>
         )}
 

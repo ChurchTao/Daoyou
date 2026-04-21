@@ -1,6 +1,7 @@
 'use client';
 
 import { InkPageShell } from '@/components/layout';
+import { AffixChip, formatNumber } from '@/components/feature/products';
 import {
   InkActionGroup,
   InkBadge,
@@ -71,15 +72,13 @@ function ArtifactCard({
         {artifact.element && (
           <InkBadge tone="default">{artifact.element}</InkBadge>
         )}
-        <InkBadge tone="default">{`评分 ${artifact.score}`}</InkBadge>
+        <InkBadge tone="default">{`评分 ${formatNumber(artifact.score)}`}</InkBadge>
       </div>
       {artifact.affixes.length > 0 && (
-        <ul className="text-ink-secondary space-y-0.5 text-xs">
-          {artifact.affixes.map((a) => (
-            <li key={a.id} className="flex items-center gap-1">
-              <span>{a.isPerfect ? '✦' : '◆'}</span>
-              <span>{a.name}</span>
-              {a.isPerfect && <span className="text-amber-500">（完美）</span>}
+        <ul className="space-y-1">
+          {artifact.affixes.slice(0, 2).map((a) => (
+            <li key={a.id}>
+              <AffixChip affix={a} compact />
             </li>
           ))}
         </ul>
