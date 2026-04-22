@@ -23,7 +23,7 @@ export function AffixChip({ affix, compact = false }: AffixChipProps) {
         ? { color: 'var(--color-tier-xian)' }
         : affix.rarityTone === 'info'
           ? { color: 'var(--color-tier-zhen)' }
-          : { color: 'var(--color-tier-fan)' };
+          : { color: 'var(--color-tier-ling)' };
 
   const perfectBadge = affix.isPerfect ? (
     <span className="mr-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded bg-amber-100 px-1 text-[10px] font-bold text-amber-700">

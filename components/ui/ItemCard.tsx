@@ -7,7 +7,7 @@
  * 只做标题 / 徽标 / 描述 / 元信息 / 操作按钮的排版。
  */
 
-import type { Quality, SkillGrade } from '@/types/constants';
+import type { Quality } from '@/types/constants';
 import type { ReactNode } from 'react';
 import { InkBadge } from './InkBadge';
 import { InkListItem } from './InkList';
@@ -15,7 +15,7 @@ import { InkListItem } from './InkList';
 export interface ItemCardProps {
   icon?: string;
   name: string;
-  quality?: Quality | SkillGrade;
+  quality?: Quality;
   badgeExtra?: ReactNode;
   description?: string;
   meta?: ReactNode;

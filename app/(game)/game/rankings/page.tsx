@@ -57,7 +57,7 @@ function toDetailItem(
       id: item.id,
       name: item.name,
       element: (item.element as Skill['element']) || '金',
-      grade: item.grade as Skill['grade'],
+      quality: item.quality as Skill['quality'],
       cost: item.cost || 0,
       cooldown: item.cooldown || 0,
       description: item.description,
@@ -68,9 +68,8 @@ function toDetailItem(
     return {
       id: item.id,
       name: item.name,
-      grade: item.grade as CultivationTechnique['grade'],
-      required_realm:
-        (item.requiredRealm as CultivationTechnique['required_realm']) || '炼气',
+      element: item.element as CultivationTechnique['element'],
+      quality: item.quality as CultivationTechnique['quality'],
       description: item.description,
     };
   }

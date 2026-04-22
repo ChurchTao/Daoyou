@@ -100,34 +100,6 @@ export function ItemDetailModal({
     );
   }
 
-  // 功法（有 required_realm，无 slot）
-  if ('required_realm' in item && !('slot' in item)) {
-    const technique = item as CultivationTechnique;
-    return (
-      <ItemShowcaseModal
-        isOpen
-        onClose={onClose}
-        icon="📘"
-        name={technique.name}
-        badges={[
-          technique.grade && (
-            <InkBadge key="g" tier={technique.grade}>
-              功法
-            </InkBadge>
-          ),
-        ].filter(Boolean)}
-        extraInfo={
-          <div className="border-border/50 flex justify-between border-b pb-2">
-            <span className="opacity-70">境界要求</span>
-            <span>{technique.required_realm}</span>
-          </div>
-        }
-        description={technique.description}
-        descriptionTitle="功法详述"
-      />
-    );
-  }
-
   // 神通（有 cost、cooldown 和 element）
   if ('cooldown' in item && 'element' in item && !('type' in item)) {
     const skill = item as Skill;
@@ -138,8 +110,8 @@ export function ItemDetailModal({
         icon="📜"
         name={skill.name}
         badges={[
-          skill.grade && (
-            <InkBadge key="g" tier={skill.grade}>
+          skill.quality && (
+            <InkBadge key="g" tier={skill.quality}>
               神通
             </InkBadge>
           ),
@@ -150,7 +122,7 @@ export function ItemDetailModal({
         extraInfo={
           <div className="space-y-2">
             <div className="border-border/50 flex justify-between border-b pb-2">
-              <span className="opacity-70">灵力消耗</span>
+              <span className="opacity-70">法力消耗</span>
               <span>{skill.cost ?? 0}</span>
             </div>
             <div className="border-border/50 flex justify-between border-b pb-2">
@@ -161,6 +133,33 @@ export function ItemDetailModal({
         }
         description={skill.description}
         descriptionTitle="神通详述"
+      />
+    );
+  }
+
+  // 功法（无 slot，无 cooldown）
+  if (!('slot' in item) && !('cooldown' in item)) {
+    const technique = item as CultivationTechnique;
+    return (
+      <ItemShowcaseModal
+        isOpen
+        onClose={onClose}
+        icon="📘"
+        name={technique.name}
+        badges={[
+          technique.quality && (
+            <InkBadge key="g" tier={technique.quality}>
+              功法
+            </InkBadge>
+          ),
+          technique.element && (
+            <InkBadge key="e" tone="default">
+              {technique.element}
+            </InkBadge>
+          ),
+        ].filter(Boolean)}
+        description={technique.description}
+        descriptionTitle="功法详述"
       />
     );
   }

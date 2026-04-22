@@ -34,7 +34,7 @@ export function AbilityDetailModal({
 
   const projection = product.projection;
   const mpCostText =
-    projection?.mpCost !== undefined ? `灵力消耗 ${projection.mpCost}` : null;
+    projection?.mpCost !== undefined ? `法力消耗 ${projection.mpCost}` : null;
   const cooldownText =
     projection?.cooldown !== undefined ? `冷却 ${projection.cooldown}回合` : null;
 

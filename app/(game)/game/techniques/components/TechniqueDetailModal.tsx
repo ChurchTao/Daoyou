@@ -4,6 +4,7 @@ import { AffixChip } from '@/components/feature/products';
 import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import { InkBadge } from '@/components/ui/InkBadge';
 import type { V2Technique } from '../hooks/useTechniquesViewModel';
+import { Quality } from '@/types/constants';
 
 export function TechniqueDetailModal({
   isOpen,
@@ -24,7 +25,7 @@ export function TechniqueDetailModal({
       name={technique.name}
       badges={[
         technique.quality && (
-          <InkBadge key="q" tier={technique.quality}>
+          <InkBadge key="q" tier={technique.quality as Quality}>
             功法
           </InkBadge>
         ),

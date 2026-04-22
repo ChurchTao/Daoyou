@@ -14,6 +14,13 @@ import { usePathname } from 'next/navigation';
 import { useSkillsViewModel, type V2Skill } from '../hooks/useSkillsViewModel';
 import { SkillDetailModal } from './SkillDetailModal';
 
+function affixToneStyle(rarityTone: string) {
+  if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
+  if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
+  if (rarityTone === 'info') return { color: 'var(--color-tier-zhen)' };
+  return { color: 'var(--color-tier-ling)' };
+}
+
 function SkillCard({
   skill,
   onDetail,
@@ -43,10 +50,17 @@ function SkillCard({
       meta={
         <div className="space-y-1">
           {affixLine && (
-            <div className="text-ink-secondary text-xs">词缀：{affixLine}</div>
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-ink-secondary">词缀：</span>
+              {skill.affixes.map((affix) => (
+                <span key={affix.id} style={affixToneStyle(affix.rarityTone)}>
+                  {affix.isPerfect ? `极${affix.name}` : affix.name}
+                </span>
+              ))}
+            </div>
           )}
           <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-            <span>灵力消耗：{mpCost}</span>
+            <span>法力消耗：{mpCost}</span>
             <span>冷却回合：{cooldown}</span>
           </div>
         </div>

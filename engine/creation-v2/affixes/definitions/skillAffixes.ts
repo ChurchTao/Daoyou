@@ -404,7 +404,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-mp-cost-reduce',
     displayName: '法力节省',
-    displayDescription: '降低本技能施法灵力消耗，便于频繁施放',
+    displayDescription: '降低本技能施法法力消耗，便于频繁施放',
     category: 'skill_core',
     rarity: 'common',
     match: {

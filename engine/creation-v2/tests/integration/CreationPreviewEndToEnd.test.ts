@@ -44,7 +44,7 @@ const printOutcome = (title: string, session: any) => {
   const tags = Array.isArray(ability.tags) ? ability.tags : Array.from(ability.tags || []);
   console.log(`  - 最终标签: ${tags.join(', ')}`);
   
-  if (ability.mpCost) console.log(`  - 灵力消耗: ${ability.mpCost}`);
+  if (ability.mpCost) console.log(`  - 法力消耗: ${ability.mpCost}`);
   if (ability.cooldown) console.log(`  - 冷却回合: ${ability.cooldown}`);
   
   if (ability.modifiers && ability.modifiers.length > 0) {

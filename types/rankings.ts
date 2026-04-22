@@ -11,7 +11,6 @@ export interface ItemRankingEntry {
   itemType: RankingItemType;
   type?: string;
   quality?: string;
-  grade?: string; // For skills
   ownerName: string;
   score: number;
   description?: string;

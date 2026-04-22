@@ -42,7 +42,7 @@ export function SkillDetailModal({
       extraInfo={
         <div className="space-y-2">
           <div className="border-border/50 flex justify-between border-b pb-2">
-            <span className="opacity-70">灵力消耗</span>
+            <span className="opacity-70">法力消耗</span>
             <span>{mpCost}</span>
           </div>
           <div className="border-border/50 flex justify-between border-b pb-2">

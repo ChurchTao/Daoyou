@@ -47,10 +47,7 @@ export function ArtifactsTab({
     <InkList>
       {artifacts.map((item) => {
         const product = toProductDisplayModel(item as ProductRecordLike);
-        const affixLine =
-          product.affixes.length > 0
-            ? product.affixes.map((affix) => affix.name).join('、')
-            : null;
+        const affixLine = product.affixes.length > 0;
         const equippedNow = Boolean(
           item.id &&
           (equipped.weapon === item.id ||
@@ -74,8 +71,23 @@ export function ArtifactsTab({
             meta={
               <div className="space-y-1">
                 {affixLine && (
-                  <div className="text-ink-secondary text-xs">
-                    词缀：{affixLine}
+                  <div className="flex flex-wrap items-center gap-1 text-xs">
+                    <span className="text-ink-secondary">词缀：</span>
+                    {product.affixes.map((affix) => {
+                      const style =
+                        affix.rarityTone === 'legendary'
+                          ? { color: 'var(--color-tier-shen)' }
+                          : affix.rarityTone === 'rare'
+                            ? { color: 'var(--color-tier-xian)' }
+                            : affix.rarityTone === 'info'
+                              ? { color: 'var(--color-tier-zhen)' }
+                              : { color: 'var(--color-tier-ling)' };
+                      return (
+                        <span key={affix.id} style={style}>
+                          {affix.isPerfect ? `极${affix.name}` : affix.name}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
                 <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">

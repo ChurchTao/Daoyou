@@ -10,6 +10,14 @@ import {
   type V2Technique,
 } from '../hooks/useTechniquesViewModel';
 import { TechniqueDetailModal } from './TechniqueDetailModal';
+import { Quality } from '@/types/constants';
+
+function affixToneStyle(rarityTone: string) {
+  if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
+  if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
+  if (rarityTone === 'info') return { color: 'var(--color-tier-zhen)' };
+  return { color: 'var(--color-tier-ling)' };
+}
 
 function TechniqueCard({
   technique,
@@ -29,7 +37,7 @@ function TechniqueCard({
     <ItemCard
       icon="📘"
       name={technique.name}
-      quality={technique.quality}
+      quality={technique.quality as Quality}
       badgeExtra={
         <div className="flex flex-wrap gap-1">
           {technique.element && (
@@ -39,7 +47,14 @@ function TechniqueCard({
       }
       meta={
         affixLine ? (
-          <div className="text-ink-secondary text-xs">词缀：{affixLine}</div>
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <span className="text-ink-secondary">词缀：</span>
+            {technique.affixes.map((affix) => (
+              <span key={affix.id} style={affixToneStyle(affix.rarityTone)}>
+                {affix.isPerfect ? `极${affix.name}` : affix.name}
+              </span>
+            ))}
+          </div>
         ) : undefined
       }
       description={technique.description}

@@ -275,8 +275,8 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
             <SectionHeader icon="⚡" title="修习神通" />
             <div className="grid grid-cols-1 gap-3 px-1">
               {target.skills.map((skill, idx) => {
-                const tierClass = skill.grade
-                  ? tierColorMap[skill.grade as Tier]
+                const tierClass = skill.quality
+                  ? tierColorMap[skill.quality as Tier]
                   : '';
                 return (
                   <div
@@ -297,14 +297,14 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                           {skill.element}
                         </span>
                       </div>
-                      {skill.grade && (
+                      {skill.quality && (
                         <span
                           className={cn(
                             'rounded bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
                             tierClass,
                           )}
                         >
-                          {skill.grade}
+                          {skill.quality}
                         </span>
                       )}
                     </div>
@@ -325,8 +325,8 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
             <SectionHeader icon="📖" title="修炼功法" />
             <div className="grid grid-cols-1 gap-3 px-1">
               {target.cultivations.map((cult, idx) => {
-                const tierClass = cult.grade
-                  ? tierColorMap[cult.grade as Tier]
+                const tierClass = cult.quality
+                  ? tierColorMap[cult.quality as Tier]
                   : '';
                 return (
                   <div
@@ -342,14 +342,14 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                       >
                         {cult.name}
                       </span>
-                      {cult.grade && (
+                      {cult.quality && (
                         <span
                           className={cn(
                             'rounded bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
                             tierClass,
                           )}
                         >
-                          {cult.grade}
+                          {cult.quality}
                         </span>
                       )}
                     </div>

@@ -100,6 +100,13 @@ function chunkPairs<T>(items: T[]): T[][] {
   return rows;
 }
 
+function affixToneStyle(rarityTone: string) {
+  if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
+  if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
+  if (rarityTone === 'info') return { color: 'var(--color-tier-zhen)' };
+  return { color: 'var(--color-tier-ling)' };
+}
+
 export default function CultivatorPage() {
   const { cultivator, inventory, skills, equipped, isLoading } =
     useCultivator();
@@ -418,32 +425,46 @@ export default function CultivatorPage() {
           <InkNotice>尚无功法</InkNotice>
         ) : (
           <InkList>
-            {cultivator.cultivations.map((c) => (
-              <ItemCard
-                key={c.id ?? c.name}
-                icon="📘"
-                name={c.name}
-                quality={c.grade}
-                meta={
-                  (() => {
-                    const product = toProductDisplayModel(c as ProductRecordLike);
-                    const affixLine =
-                      product.affixes.length > 0
-                        ? product.affixes.map((affix) => affix.name).join('、')
-                        : null;
-                    return affixLine ? (
-                      <div className="text-ink-secondary text-xs">
-                        词缀：{affixLine}
+            {cultivator.cultivations.map((technique) => {
+              const product = toProductDisplayModel(technique as ProductRecordLike);
+              return (
+                <ItemCard
+                  key={technique.id ?? technique.name}
+                  icon="📘"
+                  name={technique.name}
+                  quality={technique.quality}
+                  badgeExtra={
+                    technique.element ? (
+                      <InkBadge tone="default">{technique.element}</InkBadge>
+                    ) : undefined
+                  }
+                  meta={
+                    product.affixes.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1 text-xs">
+                        <span className="text-ink-secondary">词缀：</span>
+                        {product.affixes.map((affix) => (
+                          <span
+                            key={affix.id}
+                            style={affixToneStyle(affix.rarityTone)}
+                          >
+                            {affix.isPerfect ? `极${affix.name}` : affix.name}
+                          </span>
+                        ))}
                       </div>
-                    ) : undefined;
-                  })()
-                }
-                description={c.description}
-                layout="col"
-              />
-            ))}
+                    ) : undefined
+                  }
+                  description={technique.description}
+                  layout="col"
+                />
+              );
+            })}
           </InkList>
         )}
+        <div className="mt-3">
+          <InkButton href="/game/techniques" className="text-sm">
+            所修功法一览 →
+          </InkButton>
+        </div>
       </InkSection>
 
       <InkSection title="【神通】">
@@ -452,41 +473,41 @@ export default function CultivatorPage() {
         ) : (
           <>
             <InkList>
-              {skills.map((s) => (
-                <ItemCard
-                  key={s.id ?? s.name}
-                  icon="📜"
-                  name={s.name}
-                  quality={s.grade}
-                  badgeExtra={<InkBadge tone="default">{s.element}</InkBadge>}
-                  meta={
-                    <div className="space-y-1">
-                      {(() => {
-                        const product = toProductDisplayModel(
-                          s as ProductRecordLike,
-                        );
-                        const affixLine =
-                          product.affixes.length > 0
-                            ? product.affixes
-                                .map((affix) => affix.name)
-                                .join('、')
-                            : null;
-                        return affixLine ? (
-                          <div className="text-ink-secondary text-xs">
-                            词缀：{affixLine}
+              {skills.map((skill) => {
+                const product = toProductDisplayModel(skill as ProductRecordLike);
+                return (
+                  <ItemCard
+                    key={skill.id ?? skill.name}
+                    icon="📜"
+                    name={skill.name}
+                    quality={skill.quality}
+                    badgeExtra={<InkBadge tone="default">{skill.element}</InkBadge>}
+                    meta={
+                      <div className="space-y-1">
+                        {product.affixes.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 text-xs">
+                            <span className="text-ink-secondary">词缀：</span>
+                            {product.affixes.map((affix) => (
+                              <span
+                                key={affix.id}
+                                style={affixToneStyle(affix.rarityTone)}
+                              >
+                                {affix.isPerfect ? `极${affix.name}` : affix.name}
+                              </span>
+                            ))}
                           </div>
-                        ) : null;
-                      })()}
-                      <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-                        <span>灵力消耗：{s.cost ?? 0}</span>
-                        <span>冷却回合：{s.cooldown}</span>
+                        )}
+                        <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
+                          <span>法力消耗：{skill.cost ?? 0}</span>
+                          <span>冷却回合：{skill.cooldown}</span>
+                        </div>
                       </div>
-                    </div>
-                  }
-                  description={s.description}
-                  layout="col"
-                />
-              ))}
+                    }
+                    description={skill.description}
+                    layout="col"
+                  />
+                );
+              })}
             </InkList>
             <div className="mt-3">
               <InkButton href="/game/skills" className="text-sm">

@@ -1,41 +1,12 @@
+import { AbilityType } from '@/engine/battle-v5/core/types';
 import type { AbilityConfig } from '@/engine/creation-v2/contracts/battle';
 import {
   deserializeAbilityConfig,
   serializeAbilityConfig,
   serializeProductModel,
 } from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
-import { AbilityType } from '@/engine/battle-v5/core/types';
 import { GameplayTags } from '@/engine/shared/tag-domain';
-import {
-  ConsumableType,
-  ElementType,
-  EquipmentSlot,
-  GenderType,
-  MaterialType,
-  Quality,
-  QUALITY_ORDER,
-  RealmStage,
-  RealmType,
-  SkillGrade,
-  SpiritualRootGrade,
-} from '@/types/constants';
-import type {
-  Artifact,
-  BreakthroughHistoryEntry,
-  Consumable,
-  CultivationTechnique,
-  CultivationProgress,
-  Cultivator,
-  Material,
-  RetreatRecord,
-} from '@/types/cultivator';
-import {
-  calculateSingleArtifactScore,
-  calculateSingleElixirScore,
-  calculateSingleTechniqueScore,
-} from '@/utils/rankingUtils';
-import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
-import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
+import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
 import {
   existsCultivatorById,
   findActiveCultivatorIdByUserId,
@@ -49,7 +20,32 @@ import {
   type CultivatorRecord,
   type CultivatorRelations,
 } from '@/lib/repositories/cultivatorRepository';
-import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
+import {
+  ConsumableType,
+  ElementType,
+  EquipmentSlot,
+  GenderType,
+  MaterialType,
+  Quality,
+  QUALITY_ORDER,
+  RealmStage,
+  RealmType,
+  SpiritualRootGrade,
+} from '@/types/constants';
+import type {
+  BreakthroughHistoryEntry,
+  Consumable,
+  CultivationProgress,
+  Cultivator,
+  Material,
+  RetreatRecord,
+} from '@/types/cultivator';
+import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
+import {
+  calculateSingleArtifactScore,
+  calculateSingleElixirScore,
+} from '@/utils/rankingUtils';
+import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
   getExecutor,
   type DbExecutor,
@@ -103,12 +99,13 @@ async function assembleCultivatorFromRelations(
     return {
       id: product.id,
       name: product.name,
-      grade: undefined as SkillGrade | undefined,
-      required_realm: cultivatorRecord.realm as RealmType,
+      element: (product.element as ElementType) || undefined,
+      quality: product.quality as Quality | undefined,
       score: product.score || 0,
       description: product.description || undefined,
       attributeModifiers: abilityConfig.modifiers ?? [],
       abilityConfig,
+      productModel: product.productModel ?? undefined,
     };
   });
 
@@ -122,13 +119,14 @@ async function assembleCultivatorFromRelations(
       id: product.id,
       name: product.name,
       element: (product.element as ElementType) || '金',
-      grade: undefined as SkillGrade | undefined,
+      quality: product.quality as Quality | undefined,
       cost: abilityConfig.mpCost || undefined,
       cooldown: abilityConfig.cooldown ?? 0,
       target_self:
         abilityConfig.targetPolicy?.team === 'self' ? true : undefined,
       description: product.description || undefined,
       abilityConfig,
+      productModel: product.productModel ?? undefined,
     };
   });
 
@@ -238,15 +236,15 @@ async function assembleCultivator(
   }
 
   if (prefetchedRelations) {
-    return assembleCultivatorFromRelations(cultivatorRecord, prefetchedRelations);
+    return assembleCultivatorFromRelations(
+      cultivatorRecord,
+      prefetchedRelations,
+    );
   }
 
   const q = executor ?? getExecutor();
   const relations = await loadCultivatorRelations(q, cultivatorRecord.id);
-  return assembleCultivatorFromRelations(
-    cultivatorRecord,
-    relations,
-  );
+  return assembleCultivatorFromRelations(cultivatorRecord, relations);
 }
 
 /**
@@ -489,7 +487,10 @@ export interface CultivatorBasic {
 export async function getCultivatorOwnerId(
   cultivatorId: string,
 ): Promise<string | null> {
-  const record = await findCultivatorOwnerStatusById(cultivatorId, getExecutor());
+  const record = await findCultivatorOwnerStatusById(
+    cultivatorId,
+    getExecutor(),
+  );
   if (!record || record.status !== 'active') {
     return null;
   }
@@ -884,7 +885,9 @@ export async function getCultivatorArtifacts(
     q,
   );
 
-  return result.map((artifact) => mapArtifactRow(toArtifactFromProduct(artifact)));
+  return result.map((artifact) =>
+    mapArtifactRow(toArtifactFromProduct(artifact)),
+  );
 }
 
 export async function getPaginatedInventoryByType<T extends InventoryType>(
@@ -939,8 +942,9 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
     const totalPages = Math.ceil(total / pageSize);
     return {
       type: options.type,
-      items: rows
-        .map((artifact) => mapArtifactRow(toArtifactFromProduct(artifact))) as InventoryItemByType[T][],
+      items: rows.map((artifact) =>
+        mapArtifactRow(toArtifactFromProduct(artifact)),
+      ) as InventoryItemByType[T][],
       pagination: {
         page,
         pageSize,
@@ -1050,8 +1054,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
       }
       case 'createdAt':
       default: {
-        result =
-          (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+        result = (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
         break;
       }
     }
@@ -1185,12 +1188,15 @@ export async function equipEquipment(
   if (artifact.isEquipped) {
     await creationProductRepository.unequipArtifact(artifactId);
   } else {
-    await creationProductRepository.equipArtifact(artifactId, cultivatorId, slot);
+    await creationProductRepository.equipArtifact(
+      artifactId,
+      cultivatorId,
+      slot,
+    );
   }
 
-  const equippedArtifacts = await creationProductRepository.findEquippedArtifacts(
-    cultivatorId,
-  );
+  const equippedArtifacts =
+    await creationProductRepository.findEquippedArtifacts(cultivatorId);
 
   return {
     weapon:
@@ -1497,7 +1503,10 @@ export async function addArtifactToInventory(
       score,
       isEquipped: false,
       abilityConfig: serializeAbilityConfig(abilityConfig),
-      productModel: serializeProductModel({ affixes: [] } as Record<string, unknown> as never),
+      productModel: serializeProductModel({ affixes: [] } as Record<
+        string,
+        unknown
+      > as never),
     },
     dbInstance,
   );

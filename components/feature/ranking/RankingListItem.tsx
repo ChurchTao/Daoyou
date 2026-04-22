@@ -81,8 +81,8 @@ function RankingListItemComponent({
           <span className="text-yellow-700">评分 {rankItem.score}</span>
         </div>
         <div className="ml-16 flex flex-wrap items-center gap-2 pb-2">
-          {(rankItem.quality || rankItem.grade) && (
-            <InkBadge tier={(rankItem.quality || rankItem.grade) as Tier}>
+          {rankItem.quality && (
+            <InkBadge tier={rankItem.quality as Tier}>
               {rankItem.type || '品质'}
             </InkBadge>
           )}
@@ -115,8 +115,8 @@ function RankingListItemComponent({
         </span>
         {isSelf && <span className="equipped-mark text-sm">← 你</span>}
         {item.is_new_comer && <InkBadge tone="accent">[新天骄]</InkBadge>}
-        {isItem && (rankItem?.quality || rankItem?.grade) && (
-          <InkBadge tier={(rankItem.quality || rankItem.grade) as Tier}>
+        {isItem && rankItem?.quality && (
+          <InkBadge tier={rankItem.quality as Tier}>
             {rankItem.type}
           </InkBadge>
         )}
