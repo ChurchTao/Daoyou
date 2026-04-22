@@ -736,6 +736,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 8,
     applicableTo: ['gongfa'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       conditions: [{ type: 'is_critical' ,params:{}}],

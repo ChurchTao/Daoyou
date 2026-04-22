@@ -40,7 +40,6 @@ export type AffixRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 export interface RenderedAffixLine {
   id: string;
   name: string;
-  description?: string;
   rarity: AffixRarity;
   isPerfect: boolean;
   bodyText: string;
@@ -82,8 +81,6 @@ export function renderAffixLine(
     definition?.rarity ??
     DEFAULT_RARITY;
   const name = (affix.name as string) ?? definition?.displayName ?? affix.id;
-  const description =
-    (affix.description as string | undefined) ?? definition?.displayDescription;
   const template = affix.effectTemplate ?? definition?.effectTemplate;
   const listenerSpec = definition?.listenerSpec;
 
@@ -98,7 +95,6 @@ export function renderAffixLine(
   return {
     id: affix.id,
     name,
-    ...(description ? { description } : {}),
     rarity,
     isPerfect: affix.isPerfect,
     bodyText,

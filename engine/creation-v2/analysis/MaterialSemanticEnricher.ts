@@ -74,7 +74,7 @@ export class DeepSeekMaterialSemanticEnricher
   constructor(options: DeepSeekMaterialSemanticEnricherOptions = {}) {
     this.enabled =
       options.enabled ?? true;
-    this.timeoutMs = options.timeoutMs ?? 10000;
+    this.timeoutMs = options.timeoutMs ?? 30_000;
     this.fastModel = options.fastModel ?? true;
     this.providerName = options.providerName ?? 'deepseek-structured';
   }

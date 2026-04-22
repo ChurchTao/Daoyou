@@ -659,6 +659,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 6,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {
@@ -1074,6 +1075,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 6,
     applicableTo: ['artifact'],
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
       params: {

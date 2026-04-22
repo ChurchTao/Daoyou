@@ -28,7 +28,7 @@ const namingResultSchema = z.object({
 export type ProductNamingResult = z.infer<typeof namingResultSchema>;
 
 /** 单次 LLM 命名调用超时（毫秒）。失败后走 fallback 保留基础名。 */
-const DEFAULT_NAMING_TIMEOUT_MS = 12_000;
+const DEFAULT_NAMING_TIMEOUT_MS = 30_000;
 
 /**
  * DeepSeek 命名增强器。

@@ -47,8 +47,6 @@ export interface AffixView {
   rarity: AffixRarity;
   /** 是否完美触发（roll 到词缀上限） */
   isPerfect: boolean;
-  /** 可选：词缀在定义中的作者描述（一般不再展示） */
-  description?: string;
   /** battle-v5 ability tags 等额外标签 */
   tags: string[];
 }
@@ -87,7 +85,6 @@ export interface ProductDisplayModel {
   affixes: AffixView[];
   modifiers: AttributeModifierView[];
   projection?: AbilityProjectionSummary;
-  abilityConfig?: AbilityConfig;
   rawModel: CreationProductModel;
 }
 
@@ -152,7 +149,6 @@ export function toAffixView(
     rarity: rendered.rarity,
     rarityTone: rarityToTone(rendered.rarity),
     isPerfect: rendered.isPerfect,
-    ...(rendered.description ? { description: rendered.description } : {}),
     tags: (affix.tags as string[] | undefined) ?? [],
   };
 }
@@ -255,7 +251,6 @@ export function toProductDisplayModel(
     affixes,
     modifiers,
     projection: rawModel ? buildProjection(rawModel) : undefined,
-    abilityConfig,
     rawModel,
   };
 }
