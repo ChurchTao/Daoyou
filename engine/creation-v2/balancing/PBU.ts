@@ -26,6 +26,7 @@ const CATEGORY_MULTIPLIER: Record<AffixCategory, number> = {
   gongfa_foundation: 1.3,
   gongfa_school: 1.15,
   gongfa_secret: 1.4,
+  artifact_core: 1.3,
   artifact_panel: 1.3,
   artifact_defense: 1.1,
   artifact_treasure: 1.5,

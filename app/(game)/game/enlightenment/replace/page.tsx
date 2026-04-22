@@ -1,5 +1,6 @@
 'use client';
 
+import { getCreationProductTypeFromCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkActionGroup, InkBadge, InkButton, InkNotice } from '@/components/ui';
@@ -84,9 +85,7 @@ function V2ProductCard({
 function ReplaceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const craftType = searchParams.get('type') as
-    | 'create_skill'
-    | 'create_gongfa';
+  const craftType = searchParams.get('type');
   const { cultivator, refreshCultivator } = useCultivator();
   const { pushToast, openDialog } = useInkUI();
 
@@ -97,11 +96,13 @@ function ReplaceContent() {
   const [selectedOldId, setSelectedOldId] = useState<string | null>(null);
   const [acceptNew, setAcceptNew] = useState(true);
 
-  const isSkill = craftType === 'create_skill';
-  const productType = isSkill ? 'skill' : 'gongfa';
+  const productType = craftType
+    ? getCreationProductTypeFromCraftType(craftType)
+    : undefined;
+  const isSkill = productType === 'skill';
 
   const fetchData = useCallback(async () => {
-    if (!craftType) return;
+    if (!craftType || !productType) return;
     try {
       const [pendingRes, existingRes] = await Promise.all([
         fetch(`/api/craft/pending?type=${craftType}`),

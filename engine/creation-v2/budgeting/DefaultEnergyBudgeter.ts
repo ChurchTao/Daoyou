@@ -1,4 +1,5 @@
 import {
+  CreationProductType,
   AffixSelectionAudit,
   EnergyBudget,
   MaterialFingerprint,
@@ -6,14 +7,25 @@ import {
   RolledAffix,
 } from '../types';
 import { buildMaterialEnergyProfile } from '../analysis/MaterialBalanceProfile';
+import { CREATION_MANUAL_ALIGNMENT } from '../config/CreationBalance';
+import { hasMissingMatchingManualForProduct } from '../config/CreationCraftPolicy';
 
 export class DefaultEnergyBudgeter {
   allocate(
     fingerprints: MaterialFingerprint[],
     recipeMatch?: RecipeMatch,
+    productType?: CreationProductType,
   ): EnergyBudget {
     const energyProfile = buildMaterialEnergyProfile(fingerprints);
     const reserved = recipeMatch?.reservedEnergy ?? 0;
+    const missingManualPenalty = this.resolveMissingManualPenalty(
+      productType,
+      fingerprints,
+    );
+    const effectiveTotal = Math.max(
+      0,
+      energyProfile.effectiveEnergy - missingManualPenalty,
+    );
 
     const sources = fingerprints.map((fingerprint) => ({
       source: fingerprint.materialName,
@@ -31,18 +43,46 @@ export class DefaultEnergyBudgeter {
         amount: energyProfile.coherenceBonus,
       });
     }
+    if (missingManualPenalty > 0) {
+      sources.push({
+        source: 'penalty:missing_matching_manual',
+        amount: -missingManualPenalty,
+      });
+    }
 
     return {
       baseTotal: energyProfile.baseEnergy,
-      effectiveTotal: energyProfile.effectiveEnergy,
+      effectiveTotal,
       reserved,
       spent: 0,
-      remaining: Math.max(0, energyProfile.effectiveEnergy - reserved),
-      initialRemaining: Math.max(0, energyProfile.effectiveEnergy - reserved),
+      remaining: Math.max(0, effectiveTotal - reserved),
+      initialRemaining: Math.max(0, effectiveTotal - reserved),
       allocations: [],
       rejections: [],
       sources,
     };
+  }
+
+  private resolveMissingManualPenalty(
+    productType: CreationProductType | undefined,
+    fingerprints: MaterialFingerprint[],
+  ): number {
+    if (!productType) {
+      return 0;
+    }
+
+    if (
+      !hasMissingMatchingManualForProduct(
+        productType,
+        fingerprints.map((fingerprint) => fingerprint.materialType),
+      )
+    ) {
+      return 0;
+    }
+
+    return (
+      CREATION_MANUAL_ALIGNMENT.missingManualPenaltyByProduct[productType] ?? 0
+    );
   }
 
   finalizeSelection(

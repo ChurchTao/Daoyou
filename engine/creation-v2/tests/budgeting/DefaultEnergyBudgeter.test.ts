@@ -164,6 +164,73 @@ describe('DefaultEnergyBudgeter', () => {
       ),
     ).toThrow('Energy budget ledger mismatch');
   });
+
+  it('应在神通缺少对应秘籍时削减可用能量', () => {
+    const next = budgeter.allocate(
+      [
+        {
+          materialName: '雷髓晶',
+          materialType: 'monster',
+          rank: '玄品',
+          quantity: 1,
+          explicitTags: [],
+          semanticTags: ['Material.Semantic.Thunder'],
+          recipeTags: ['Recipe.ProductBias.Skill'],
+          energyValue: 7,
+          rarityWeight: 2,
+        },
+      ],
+      {
+        recipeId: 'skill-default',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['skill_core'],
+        reservedEnergy: 3,
+      },
+      'skill',
+    );
+
+    expect(next.effectiveTotal).toBe(4);
+    expect(next.remaining).toBe(1);
+    expect(next.sources).toEqual(
+      expect.arrayContaining([
+        { source: 'penalty:missing_matching_manual', amount: -3 },
+      ]),
+    );
+  });
+
+  it('应在已有对应秘籍时保留完整预算', () => {
+    const next = budgeter.allocate(
+      [
+        {
+          materialName: '奔雷诀',
+          materialType: 'skill_manual',
+          rank: '玄品',
+          quantity: 1,
+          explicitTags: [],
+          semanticTags: ['Material.Semantic.Thunder'],
+          recipeTags: ['Recipe.ProductBias.Skill'],
+          energyValue: 10,
+          rarityWeight: 2,
+        },
+      ],
+      {
+        recipeId: 'skill-default',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['skill_core'],
+        reservedEnergy: 3,
+      },
+      'skill',
+    );
+
+    expect(next.effectiveTotal).toBe(10);
+    expect(next.sources).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'penalty:missing_matching_manual' }),
+      ]),
+    );
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

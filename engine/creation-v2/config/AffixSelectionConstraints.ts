@@ -20,8 +20,9 @@ const GONGFA_POOL_CAPS: Partial<Record<AffixCategory, number>> = {
 };
 
 const ARTIFACT_POOL_CAPS: Partial<Record<AffixCategory, number>> = {
-  artifact_panel: 1,
-  artifact_defense: 4,
+  artifact_core: 1,
+  artifact_panel: 2,
+  artifact_defense: 3,
   artifact_treasure: 1,
 };
 

@@ -1,6 +1,7 @@
 import {
   getPendingCreation,
 } from '@/lib/services/creationServiceV2';
+import { isCreationCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -14,10 +15,7 @@ export const GET = withActiveCultivator(
     const url = new URL(request.url);
     const craftType = url.searchParams.get('type');
 
-    if (
-      !craftType ||
-      !['refine', 'create_skill', 'create_gongfa'].includes(craftType)
-    ) {
+    if (!craftType || !isCreationCraftType(craftType)) {
       return NextResponse.json({ error: '无效的造物类型' }, { status: 400 });
     }
 

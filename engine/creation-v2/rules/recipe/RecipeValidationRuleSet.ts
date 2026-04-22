@@ -25,7 +25,7 @@ export class RecipeValidationRuleSet {
       recipeId: defaultRecipeId(facts.productType),
       valid: true,
       matchedTags: this.buildMatchedTags(facts),
-      unlockedAffixCategories: ['skill_core', 'gongfa_foundation', 'artifact_panel'],
+      unlockedAffixCategories: ['skill_core', 'gongfa_foundation', 'artifact_core', 'artifact_panel'],
       reservedEnergy: undefined,
       notes: [],
       reasons: [],

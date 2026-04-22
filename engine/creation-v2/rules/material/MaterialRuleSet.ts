@@ -2,6 +2,7 @@ import { CREATION_PHASES } from '../../types';
 import { MaterialDecision, MaterialFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { MaterialConflictRules } from './MaterialConflictRules';
+import { MaterialManualAlignmentRules } from './MaterialManualAlignmentRules';
 import { MaterialSemanticRules } from './MaterialSemanticRules';
 import { MaterialTypeRules } from './MaterialTypeRules';
 import { RecipeBiasRules } from './RecipeBiasRules';
@@ -19,6 +20,8 @@ export class MaterialRuleSet {
       new RecipeBiasRules(),
       // 冲突检测（可修改 valid 字段）
       new MaterialConflictRules(),
+      // 非阻断提示：缺少对应秘籍时会削减预算
+      new MaterialManualAlignmentRules(),
     ],
     (facts) => ({
       valid: true,

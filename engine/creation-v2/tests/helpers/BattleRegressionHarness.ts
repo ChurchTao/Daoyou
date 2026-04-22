@@ -155,11 +155,11 @@ function runPipeline(
   orchestrator.buildAffixPoolWithDefaults(session);
   
   // 补丁：如果词缀池没有核心，手动注入一个（用于测试）
-  const CORE_CATEGORIES: AffixCategory[] = ['skill_core', 'gongfa_foundation', 'artifact_panel'];
+  const CORE_CATEGORIES: AffixCategory[] = ['skill_core', 'gongfa_foundation', 'artifact_core'];
   if (session.state.affixPool.length > 0 && !session.state.affixPool.some(a => CORE_CATEGORIES.includes(a.category))) {
     // 寻找一个合适的非核心词缀强转为核心，或者报错
     const first = session.state.affixPool[0];
-    const coreCategory: AffixCategory = productType === 'skill' ? 'skill_core' : productType === 'gongfa' ? 'gongfa_foundation' : 'artifact_panel';
+    const coreCategory: AffixCategory = productType === 'skill' ? 'skill_core' : productType === 'gongfa' ? 'gongfa_foundation' : 'artifact_core';
     first.category = coreCategory;
   }
 

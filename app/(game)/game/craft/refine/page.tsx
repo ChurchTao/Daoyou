@@ -9,12 +9,15 @@ import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkActionGroup, InkButton, InkNotice } from '@/components/ui';
 import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
+import { getAllowedMaterialTypesForCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { EquipmentSlot } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+const CRAFT_TYPE = 'refine' as const;
+const ALLOWED_MATERIAL_TYPES = [...getAllowedMaterialTypesForCraftType(CRAFT_TYPE)];
 const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
 const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
 const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
@@ -29,7 +32,15 @@ type CostResponse = {
   data?: {
     cost: CostEstimate;
     canAfford: boolean;
+    validation: PreviewValidation | null;
   };
+};
+
+type PreviewValidation = {
+  valid: boolean;
+  blockingReason?: string;
+  warnings: string[];
+  missingMatchingManual: boolean;
 };
 
 export default function RefinePage() {
@@ -45,33 +56,34 @@ export default function RefinePage() {
   const [isSubmitting, setSubmitting] = useState(false);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
+  const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast } = useInkUI();
   const pathname = usePathname();
 
   useEffect(() => {
     if (selectedMaterialIds.length > 0) {
-      void fetchCostEstimate('refine', selectedMaterialIds);
+      void fetchCostEstimate(selectedMaterialIds);
     } else {
       setEstimatedCost(null);
+      setValidation(null);
       setCanAfford(true);
     }
   }, [selectedMaterialIds]);
 
-  const fetchCostEstimate = async (
-    craftType: string,
-    materialIds: string[],
-  ) => {
+  const fetchCostEstimate = async (materialIds: string[]) => {
     try {
       const response = await fetch(
-        `/api/craft?craftType=${craftType}&materialIds=${materialIds.join(',')}`,
+        `/api/craft?craftType=${CRAFT_TYPE}&materialIds=${materialIds.join(',')}`,
       );
       const result: CostResponse = await response.json();
       if (result.success && result.data) {
         setEstimatedCost(result.data.cost);
         setCanAfford(result.data.canAfford);
+        setValidation(result.data.validation);
       }
     } catch (error) {
+      setValidation(null);
       console.error('Failed to fetch cost estimate:', error);
     }
   };
@@ -124,12 +136,13 @@ export default function RefinePage() {
     setDoseMap({});
     setUserPrompt('');
     setRequestedSlot('');
+    setValidation(null);
   };
 
   const submitPayload = useMemo(
     () => ({
       materialIds: selectedMaterialIds,
-      craftType: 'refine' as const,
+      craftType: CRAFT_TYPE,
       materialQuantities: Object.fromEntries(
         selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
       ),
@@ -218,16 +231,11 @@ export default function RefinePage() {
           selectedMaterialMap={selectedMaterialMap}
           isSubmitting={isSubmitting}
           pageSize={20}
-          excludeMaterialTypes={[
-            'herb',
-            'gongfa_manual',
-            'skill_manual',
-            'manual',
-          ]}
+          includeMaterialTypes={ALLOWED_MATERIAL_TYPES}
           refreshKey={materialsRefreshKey}
           loadingText="正在检索储物袋中的灵材，请稍候……"
-          emptyNoticeText="暂无可用于炼器的灵材。"
-          totalText={(total) => `共 ${total} 条灵材记录`}
+          emptyNoticeText="暂无可用于炼器的材料。"
+          totalText={(total) => `共 ${total} 份可用于炼器的材料`}
         />
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
@@ -277,6 +285,10 @@ export default function RefinePage() {
         ) : (
           <InkNotice>请先选择材料以查看消耗</InkNotice>
         )}
+
+        {validation?.blockingReason && (
+          <InkNotice tone="warning">{validation.blockingReason}</InkNotice>
+        )}
       </InkSection>
 
       <InkSection title="4. 开炉炼制">
@@ -288,7 +300,10 @@ export default function RefinePage() {
             variant="primary"
             onClick={handleSubmit}
             disabled={
-              isSubmitting || selectedMaterialIds.length === 0 || !canAfford
+              isSubmitting ||
+              selectedMaterialIds.length === 0 ||
+              !canAfford ||
+              validation?.valid === false
             }
           >
             {isSubmitting ? '真火炼中……' : '开炉炼器'}

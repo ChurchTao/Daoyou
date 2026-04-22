@@ -2,13 +2,14 @@ import {
   abandonPending,
   confirmCreation,
   CreationServiceError,
-} from '@/lib/services/creationServiceV2';
+} from '../../../../lib/services/creationServiceV2';
+import { CREATION_CRAFT_TYPES } from '@/engine/creation-v2/config/CreationCraftPolicy';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const ConfirmSchema = z.object({
-  craftType: z.enum(['refine', 'create_skill', 'create_gongfa']),
+  craftType: z.enum(CREATION_CRAFT_TYPES),
   replaceId: z.uuid().nullable().optional(),
   abandon: z.boolean().optional(),
 });

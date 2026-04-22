@@ -1,5 +1,6 @@
 import { Material } from '@/types/cultivator';
 import { CreationTags } from '@/engine/shared/tag-domain';
+import { isMaterialTypeAllowedForProduct } from '../../config/CreationCraftPolicy';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
 import { CreationProductType, MaterialFingerprint } from '../../types';
 import { Rule } from '../core';
@@ -7,18 +8,31 @@ import { MaterialDecision, MaterialFacts } from '../contracts';
 
 // Using Material['type'] directly ensures this stays in sync with the canonical type.
 // If the type enum changes, TypeScript will report a compile error here.
-type ManualMaterialType = Extract<Material['type'], 'skill_manual' | 'gongfa_manual' | 'manual'>;
+type SpecializedManualMaterialType = Extract<
+  Material['type'],
+  'skill_manual' | 'gongfa_manual'
+>;
 
-const MANUAL_MATERIAL_TYPES: Record<string, ManualMaterialType> = {
+const SPECIALIZED_MANUAL_MATERIAL_TYPES: Record<
+  string,
+  SpecializedManualMaterialType
+> = {
   SKILL: 'skill_manual',
   GONGFA: 'gongfa_manual',
-  LEGACY: 'manual',
 } as const;
 
 const CONFLICT_IDS = {
   ELEMENT_FIRE_ICE: 'element-fire-ice',
   MANUAL_SPLIT_INTENT: 'manual-split-intent',
-  ARTIFACT_MANUAL_ONLY: 'artifact-manual-only',
+  ARTIFACT_HERB_FORBIDDEN: 'artifact-herb-forbidden',
+  ARTIFACT_MANUAL_FORBIDDEN: 'artifact-manual-forbidden',
+  ARTIFACT_LEGACY_MANUAL_FORBIDDEN: 'artifact-legacy-manual-forbidden',
+  SKILL_ORE_FORBIDDEN: 'skill-ore-forbidden',
+  SKILL_GONGFA_MANUAL_FORBIDDEN: 'skill-gongfa-manual-forbidden',
+  SKILL_LEGACY_MANUAL_FORBIDDEN: 'skill-legacy-manual-forbidden',
+  GONGFA_ORE_FORBIDDEN: 'gongfa-ore-forbidden',
+  GONGFA_SKILL_MANUAL_FORBIDDEN: 'gongfa-skill-manual-forbidden',
+  GONGFA_LEGACY_MANUAL_FORBIDDEN: 'gongfa-legacy-manual-forbidden',
 } as const;
 
 export interface MaterialConflict {
@@ -37,6 +51,117 @@ function hasTag(fingerprints: MaterialFingerprint[], tag: string): boolean {
   );
 }
 
+function buildForbiddenTypeConflict(
+  productType: CreationProductType,
+  materialType: Material['type'],
+): MaterialConflict | null {
+  if (productType === 'artifact') {
+    if (materialType === 'herb') {
+      return {
+        id: CONFLICT_IDS.ARTIFACT_HERB_FORBIDDEN,
+        reason: '灵药不可用于炼制法宝',
+        relatedTags: [CreationTags.MATERIAL.TYPE_HERB],
+      };
+    }
+
+    if (
+      materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.GONGFA ||
+      materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.SKILL
+    ) {
+      return {
+        id: CONFLICT_IDS.ARTIFACT_MANUAL_FORBIDDEN,
+        reason: '功法、神通秘籍不可用于炼制法宝',
+        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
+      };
+    }
+
+    if (materialType === 'manual') {
+      return {
+        id: CONFLICT_IDS.ARTIFACT_LEGACY_MANUAL_FORBIDDEN,
+        reason: '旧版通用秘籍已不可用于炼制法宝',
+        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
+      };
+    }
+  }
+
+  if (productType === 'skill') {
+    if (materialType === 'ore') {
+      return {
+        id: CONFLICT_IDS.SKILL_ORE_FORBIDDEN,
+        reason: '矿石不可直接用于推演神通',
+        relatedTags: [CreationTags.MATERIAL.TYPE_ORE],
+      };
+    }
+
+    if (materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.GONGFA) {
+      return {
+        id: CONFLICT_IDS.SKILL_GONGFA_MANUAL_FORBIDDEN,
+        reason: '功法秘籍不可用于推演神通',
+        relatedTags: [CreationTags.MATERIAL.TYPE_GONGFA_MANUAL],
+      };
+    }
+
+    if (materialType === 'manual') {
+      return {
+        id: CONFLICT_IDS.SKILL_LEGACY_MANUAL_FORBIDDEN,
+        reason: '旧版通用秘籍已不可用于推演神通',
+        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
+      };
+    }
+  }
+
+  if (productType === 'gongfa') {
+    if (materialType === 'ore') {
+      return {
+        id: CONFLICT_IDS.GONGFA_ORE_FORBIDDEN,
+        reason: '矿石不可直接用于参悟功法',
+        relatedTags: [CreationTags.MATERIAL.TYPE_ORE],
+      };
+    }
+
+    if (materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.SKILL) {
+      return {
+        id: CONFLICT_IDS.GONGFA_SKILL_MANUAL_FORBIDDEN,
+        reason: '神通秘籍不可用于参悟功法',
+        relatedTags: [CreationTags.MATERIAL.TYPE_SKILL_MANUAL],
+      };
+    }
+
+    if (materialType === 'manual') {
+      return {
+        id: CONFLICT_IDS.GONGFA_LEGACY_MANUAL_FORBIDDEN,
+        reason: '旧版通用秘籍已不可用于参悟功法',
+        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
+      };
+    }
+  }
+
+  return null;
+}
+
+function collectForbiddenTypeConflicts(
+  fingerprints: MaterialFingerprint[],
+  productType: CreationProductType,
+): MaterialConflict[] {
+  const conflictsById = new Map<string, MaterialConflict>();
+  const presentTypes = new Set(
+    fingerprints.map((fingerprint) => fingerprint.materialType),
+  );
+
+  for (const materialType of presentTypes) {
+    if (isMaterialTypeAllowedForProduct(productType, materialType)) {
+      continue;
+    }
+
+    const conflict = buildForbiddenTypeConflict(productType, materialType);
+    if (conflict) {
+      conflictsById.set(conflict.id, conflict);
+    }
+  }
+
+  return Array.from(conflictsById.values());
+}
+
 /*
  * MaterialConflictRules: 检测材料之间的冲突（如元素互斥、手工材料意图分裂等），并将冲突信息记录到 decision.notes/valid=false。
  */
@@ -44,7 +169,7 @@ export function detectMaterialConflicts(
   fingerprints: MaterialFingerprint[],
   productType: CreationProductType,
 ): MaterialConflict[] {
-  const conflicts: MaterialConflict[] = [];
+  const conflicts = collectForbiddenTypeConflicts(fingerprints, productType);
 
   if (
     hasTag(fingerprints, ELEMENT_TO_MATERIAL_TAG.火) &&
@@ -61,16 +186,19 @@ export function detectMaterialConflicts(
     hasTag(fingerprints, CreationTags.RECIPE.PRODUCT_BIAS_SKILL) &&
     hasTag(fingerprints, CreationTags.RECIPE.PRODUCT_BIAS_GONGFA) &&
     fingerprints.some((fingerprint) =>
-      (
-        [MANUAL_MATERIAL_TYPES.GONGFA, MANUAL_MATERIAL_TYPES.SKILL] as string[]
-      ).includes(fingerprint.materialType),
+      ([
+        SPECIALIZED_MANUAL_MATERIAL_TYPES.GONGFA,
+        SPECIALIZED_MANUAL_MATERIAL_TYPES.SKILL,
+      ] as string[]).includes(fingerprint.materialType),
     )
   ) {
     const hasSkillManual = fingerprints.some(
-      (fingerprint) => fingerprint.materialType === MANUAL_MATERIAL_TYPES.SKILL,
+      (fingerprint) =>
+        fingerprint.materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.SKILL,
     );
     const hasGongfaManual = fingerprints.some(
-      (fingerprint) => fingerprint.materialType === MANUAL_MATERIAL_TYPES.GONGFA,
+      (fingerprint) =>
+        fingerprint.materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.GONGFA,
     );
 
     if (hasSkillManual && hasGongfaManual) {
@@ -83,21 +211,6 @@ export function detectMaterialConflicts(
         ],
       });
     }
-  }
-
-  if (
-    productType === 'artifact' &&
-    fingerprints.every((fingerprint) =>
-      (
-        [MANUAL_MATERIAL_TYPES.GONGFA, MANUAL_MATERIAL_TYPES.SKILL, MANUAL_MATERIAL_TYPES.LEGACY] as string[]
-      ).includes(fingerprint.materialType),
-    )
-  ) {
-    conflicts.push({
-      id: CONFLICT_IDS.ARTIFACT_MANUAL_ONLY,
-      reason: '纯秘籍材料无法直接炼成法宝',
-      relatedTags: [CreationTags.RECIPE.PRODUCT_BIAS_ARTIFACT],
-    });
   }
 
   return conflicts;

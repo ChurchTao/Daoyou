@@ -99,7 +99,7 @@ export class AffixPoolBuilder {
     session: CreationSession,
   ): AffixDefinition[] {
     return defs.filter((def) => {
-      if (!['skill_core', 'gongfa_foundation', 'artifact_panel'].includes(def.category)) {
+      if (!['skill_core', 'gongfa_foundation', 'artifact_core'].includes(def.category)) {
         return true;
       }
 

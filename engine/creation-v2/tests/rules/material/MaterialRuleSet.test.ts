@@ -9,13 +9,13 @@ describe('MaterialRuleSet', () => {
   it('应从材料事实中提取 dominant tags 与 recipe tags', () => {
     const fingerprints: MaterialFingerprint[] = [
       {
-        materialName: '赤炎精铁',
-        materialType: 'ore',
+        materialName: '赤焰妖骨',
+        materialType: 'monster',
         rank: '玄品',
         quantity: 1,
-        explicitTags: ['Material.Type.Ore', 'Material.Element.Fire'],
+        explicitTags: ['Material.Type.Monster', 'Material.Element.Fire'],
         semanticTags: ['Material.Semantic.Flame'],
-        recipeTags: ['Recipe.ProductBias.Skill', 'Recipe.ProductBias.Artifact'],
+        recipeTags: ['Recipe.ProductBias.Skill', 'Recipe.ProductBias.GongFa'],
         energyValue: 8,
         rarityWeight: 2,
         element: '火',
@@ -64,8 +64,75 @@ describe('MaterialRuleSet', () => {
 
     expect(decision.valid).toBe(false);
     expect(decision.notes).toContain('火、冰材料不可同炉炼制');
-    expect(decision.reasons).toEqual([
-      expect.objectContaining({ code: 'element-fire-ice' }),
-    ]);
+    expect(decision.reasons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'skill-ore-forbidden' }),
+        expect.objectContaining({ code: 'element-fire-ice' }),
+      ]),
+    );
+  });
+
+  it('应允许无秘籍的功法材料继续通过，并给出预算削减警告', () => {
+    const fingerprints: MaterialFingerprint[] = [
+      {
+        materialName: '玄阴藤',
+        materialType: 'herb',
+        rank: '玄品',
+        quantity: 1,
+        explicitTags: ['Material.Type.Herb'],
+        semanticTags: ['Material.Semantic.Shadow'],
+        recipeTags: ['Recipe.ProductBias.GongFa'],
+        energyValue: 8,
+        rarityWeight: 2,
+      },
+      {
+        materialName: '幽冥骨粉',
+        materialType: 'aux',
+        rank: '灵品',
+        quantity: 1,
+        explicitTags: ['Material.Type.Auxiliary'],
+        semanticTags: ['Material.Semantic.Shadow'],
+        recipeTags: ['Recipe.ProductBias.GongFa'],
+        energyValue: 7,
+        rarityWeight: 2,
+      },
+    ];
+
+    const facts = factsBuilder.build('gongfa', fingerprints);
+    const decision = ruleSet.evaluate(facts);
+
+    expect(decision.valid).toBe(true);
+    expect(decision.recipeTags).toContain('Recipe.ProductBias.GongFa');
+    expect(decision.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'gongfa-missing-manual' }),
+      ]),
+    );
+  });
+
+  it('应拒绝旧版通用秘籍参与神通推演', () => {
+    const fingerprints: MaterialFingerprint[] = [
+      {
+        materialName: '百炼器经',
+        materialType: 'manual',
+        rank: '玄品',
+        quantity: 1,
+        explicitTags: ['Material.Type.Manual'],
+        semanticTags: ['Material.Semantic.Focus'],
+        recipeTags: ['Recipe.ProductBias.Utility'],
+        energyValue: 8,
+        rarityWeight: 2,
+      },
+    ];
+
+    const facts = factsBuilder.build('skill', fingerprints);
+    const decision = ruleSet.evaluate(facts);
+
+    expect(decision.valid).toBe(false);
+    expect(decision.reasons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'skill-legacy-manual-forbidden' }),
+      ]),
+    );
   });
 });

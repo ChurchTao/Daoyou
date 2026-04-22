@@ -25,6 +25,7 @@ export type AffixCategory =
   | 'gongfa_foundation'
   | 'gongfa_school'
   | 'gongfa_secret'
+  | 'artifact_core'
   | 'artifact_panel'
   | 'artifact_defense'
   | 'artifact_treasure';
@@ -36,6 +37,7 @@ export const AFFIX_CATEGORIES = {
   GONGFA_FOUNDATION: 'gongfa_foundation',
   GONGFA_SCHOOL: 'gongfa_school',
   GONGFA_SECRET: 'gongfa_secret',
+  ARTIFACT_CORE: 'artifact_core',
   ARTIFACT_PANEL: 'artifact_panel',
   ARTIFACT_DEFENSE: 'artifact_defense',
   ARTIFACT_TREASURE: 'artifact_treasure',

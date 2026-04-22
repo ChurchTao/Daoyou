@@ -35,7 +35,7 @@ export default function CraftPage() {
             <p className="text-ink-secondary mb-4 min-h-10 text-sm">
               引地火之威，锻造法宝神兵。
               <br />
-              需消耗金石矿材。
+              可投入矿材、妖骨与辅材，灵药与秘籍不可入炉。
             </p>
             <InkButton href="/game/craft/refine" variant="primary">
               前往炼器室
@@ -70,7 +70,7 @@ export default function CraftPage() {
             至关重要，它决定了成品的形态与功效。
           </p>
           <p>
-            • 炼器可得神兵利器，永久提升战力；炼丹可得灵丹妙药，永久提升属性。
+            • 炼器以矿材、妖骨与辅材铸骨立形；炼丹仍以草木灵药调和药性。
           </p>
         </div>
       </InkSection>

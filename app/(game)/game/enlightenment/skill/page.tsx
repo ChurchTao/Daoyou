@@ -14,11 +14,14 @@ import {
   InkNotice,
 } from '@/components/ui';
 import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
+import { getAllowedMaterialTypesForCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Material } from '@/types/cultivator';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+const CRAFT_TYPE = 'create_skill' as const;
+const ALLOWED_MATERIAL_TYPES = [...getAllowedMaterialTypesForCraftType(CRAFT_TYPE)];
 const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
 const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
 const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
@@ -33,7 +36,15 @@ type CostResponse = {
   data?: {
     cost: CostEstimate;
     canAfford: boolean;
+    validation: PreviewValidation | null;
   };
+};
+
+type PreviewValidation = {
+  valid: boolean;
+  blockingReason?: string;
+  warnings: string[];
+  missingMatchingManual: boolean;
 };
 
 type AffixSummary = {
@@ -70,6 +81,7 @@ export default function SkillCreationPage() {
   );
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
+  const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast, openDialog } = useInkUI();
   const pathname = usePathname();
@@ -78,7 +90,7 @@ export default function SkillCreationPage() {
     const checkPending = async () => {
       if (!cultivator) return;
       try {
-        const res = await fetch('/api/craft/pending?type=create_skill');
+        const res = await fetch(`/api/craft/pending?type=${CRAFT_TYPE}`);
         const data = await res.json();
         if (data.success && data.hasPending) {
           openDialog({
@@ -91,7 +103,7 @@ export default function SkillCreationPage() {
             confirmLabel: '继续推演',
             cancelLabel: '暂不处理',
             onConfirm: () => {
-              router.push('/game/enlightenment/replace?type=create_skill');
+              router.push(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
             },
           });
         }
@@ -104,27 +116,27 @@ export default function SkillCreationPage() {
 
   useEffect(() => {
     if (selectedMaterialIds.length > 0) {
-      void fetchCostEstimate('create_skill', selectedMaterialIds);
+      void fetchCostEstimate(selectedMaterialIds);
     } else {
       setEstimatedCost(null);
+      setValidation(null);
       setCanAfford(true);
     }
   }, [selectedMaterialIds]);
 
-  const fetchCostEstimate = async (
-    craftType: string,
-    materialIds: string[],
-  ) => {
+  const fetchCostEstimate = async (materialIds: string[]) => {
     try {
       const response = await fetch(
-        `/api/craft?craftType=${craftType}&materialIds=${materialIds.join(',')}`,
+        `/api/craft?craftType=${CRAFT_TYPE}&materialIds=${materialIds.join(',')}`,
       );
       const result: CostResponse = await response.json();
       if (result.success && result.data) {
         setEstimatedCost(result.data.cost);
         setCanAfford(result.data.canAfford);
+        setValidation(result.data.validation);
       }
     } catch (error) {
+      setValidation(null);
       console.error('Failed to fetch cost estimate:', error);
     }
   };
@@ -146,7 +158,7 @@ export default function SkillCreationPage() {
       }
       if (prev.length >= MAX_MATERIALS) {
         pushToast({
-          message: `悟道精力有限，最多参悟 ${MAX_MATERIALS} 种典籍`,
+          message: `悟道精力有限，最多参悟 ${MAX_MATERIALS} 种材料`,
           tone: 'warning',
         });
         return prev;
@@ -177,12 +189,13 @@ export default function SkillCreationPage() {
     setSelectedMaterialMap({});
     setDoseMap({});
     setUserPrompt('');
+    setValidation(null);
   };
 
   const submitPayload = useMemo(
     () => ({
       materialIds: selectedMaterialIds,
-      craftType: 'create_skill' as const,
+      craftType: CRAFT_TYPE,
       materialQuantities: Object.fromEntries(
         selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
       ),
@@ -198,7 +211,7 @@ export default function SkillCreationPage() {
     }
 
     if (selectedMaterialIds.length === 0) {
-      pushToast({ message: '请选择要参悟的神通典籍。', tone: 'warning' });
+      pushToast({ message: '请选择要用于推演的材料。', tone: 'warning' });
       return;
     }
 
@@ -225,7 +238,7 @@ export default function SkillCreationPage() {
           message: '神通已达上限，请选择一个进行替换',
           tone: 'default',
         });
-        router.push('/game/enlightenment/replace?type=create_skill');
+        router.push(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
         return;
       }
 
@@ -270,13 +283,13 @@ export default function SkillCreationPage() {
           <InkButton href="/game/enlightenment">返回</InkButton>
           <span className="text-ink-secondary text-xs">
             {selectedMaterialIds.length > 0
-              ? `已选 ${selectedMaterialIds.length} 种典籍`
-              : '请选择典籍开始参悟'}
+              ? `已选 ${selectedMaterialIds.length} 种材料`
+              : '请选择材料开始推演'}
           </span>
         </InkActionGroup>
       }
     >
-      <InkSection title="1. 甄选典籍">
+      <InkSection title="1. 甄选材料">
         <MaterialSelector
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
@@ -284,11 +297,11 @@ export default function SkillCreationPage() {
           selectedMaterialMap={selectedMaterialMap}
           isSubmitting={isSubmitting}
           pageSize={20}
-          includeMaterialTypes={['skill_manual', 'manual']}
+          includeMaterialTypes={ALLOWED_MATERIAL_TYPES}
           refreshKey={materialsRefreshKey}
-          loadingText="正在检索可参悟典籍，请稍候……"
-          emptyNoticeText="暂无可用于推演神通的典籍。"
-          totalText={(total) => `共 ${total} 部可参悟典籍`}
+          loadingText="正在检索可用于推演的材料，请稍候……"
+          emptyNoticeText="暂无可用于推演神通的材料。"
+          totalText={(total) => `共 ${total} 份可用于推演的材料`}
         />
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
@@ -334,7 +347,14 @@ export default function SkillCreationPage() {
             </span>
           </div>
         ) : (
-          <InkNotice>请先选择典籍以查看消耗</InkNotice>
+          <InkNotice>请先选择材料以查看消耗</InkNotice>
+        )}
+
+        {validation?.blockingReason && (
+          <InkNotice tone="warning">{validation.blockingReason}</InkNotice>
+        )}
+        {validation && validation.valid && validation.warnings.length > 0 && (
+          <InkNotice tone="info">{validation.warnings[0]}</InkNotice>
         )}
       </InkSection>
 
@@ -347,7 +367,10 @@ export default function SkillCreationPage() {
             variant="primary"
             onClick={handleSubmit}
             disabled={
-              isSubmitting || selectedMaterialIds.length === 0 || !canAfford
+              isSubmitting ||
+              selectedMaterialIds.length === 0 ||
+              !canAfford ||
+              validation?.valid === false
             }
           >
             {isSubmitting ? '推演中……' : '开始推演'}

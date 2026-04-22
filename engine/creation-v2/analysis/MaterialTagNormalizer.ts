@@ -5,8 +5,10 @@
 import { QUALITY_ORDER } from '@/types/constants';
 import { Material } from '@/types/cultivator';
 import { CREATION_MATERIAL_ENERGY } from '../config/CreationBalance';
+import { getAllowedMaterialTypesForProduct } from '../config/CreationCraftPolicy';
 import { ELEMENT_TO_MATERIAL_TAG } from '../config/CreationMappings';
 import { CreationTags } from '@/engine/shared/tag-domain';
+import { CreationProductType } from '../types';
 import { extractSemanticTagsFromText } from './SemanticTagAllowlist';
 
 const TYPE_TAGS: Record<Material['type'], string> = {
@@ -18,6 +20,12 @@ const TYPE_TAGS: Record<Material['type'], string> = {
   gongfa_manual: CreationTags.MATERIAL.TYPE_GONGFA_MANUAL,
   skill_manual: CreationTags.MATERIAL.TYPE_SKILL_MANUAL,
   manual: CreationTags.MATERIAL.TYPE_MANUAL,
+};
+
+const RECIPE_BIAS_TAG_BY_PRODUCT: Record<CreationProductType, string> = {
+  artifact: CreationTags.RECIPE.PRODUCT_BIAS_ARTIFACT,
+  skill: CreationTags.RECIPE.PRODUCT_BIAS_SKILL,
+  gongfa: CreationTags.RECIPE.PRODUCT_BIAS_GONGFA,
 };
 
 export class MaterialTagNormalizer {
@@ -48,32 +56,18 @@ export class MaterialTagNormalizer {
   normalizeRecipeTags(material: Material): string[] {
     const tags = new Set<string>();
 
-    switch (material.type) {
-      case 'ore':
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_ARTIFACT);
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_SKILL);
-        break;
-      case 'monster':
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_ARTIFACT);
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_SKILL);
-        break;
-      case 'herb':
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_SKILL);
-        break;
-      case 'gongfa_manual':
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_GONGFA);
-        break;
-      case 'skill_manual':
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_SKILL);
-        break;
-      case 'manual':
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_SKILL);
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_GONGFA);
-        break;
-      default:
-        tags.add(CreationTags.RECIPE.PRODUCT_BIAS_UTILITY);
-        break;
+    (Object.entries(RECIPE_BIAS_TAG_BY_PRODUCT) as Array<
+      [CreationProductType, string]
+    >).forEach(([productType, recipeBiasTag]) => {
+      if (getAllowedMaterialTypesForProduct(productType).includes(material.type)) {
+        tags.add(recipeBiasTag);
+      }
+    });
+
+    if (tags.size === 0) {
+      tags.add(CreationTags.RECIPE.PRODUCT_BIAS_UTILITY);
     }
+
     return Array.from(tags);
   }
 

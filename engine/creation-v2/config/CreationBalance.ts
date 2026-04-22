@@ -10,6 +10,7 @@ export const CREATION_AFFIX_UNLOCK_THRESHOLDS = {
   // 核心池：永远可用
   skill_core: 0,
   gongfa_foundation: 0,
+  artifact_core: 0,
   artifact_panel: 0,
   // 中层池：中等材料解锁
   skill_variant: 25,
@@ -119,6 +120,17 @@ export const CREATION_MATERIAL_ENERGY = {
 };
 
 /**
+ * 专用秘籍参与校准。
+ * 神通 / 功法在缺少对应秘籍时仍允许造物，但会削减可用于词缀分配的能量预算。
+ */
+export const CREATION_MANUAL_ALIGNMENT = {
+  missingManualPenaltyByProduct: {
+    skill: 3,
+    gongfa: 3,
+  } as Partial<Record<CreationProductType, number>>,
+} as const;
+
+/**
  * unlock score 计算参数。
  * unlock score 用来决定“能解锁到多高阶的词缀分类”，与 spendable energy 分轨计算。
  */
@@ -148,6 +160,7 @@ export const CREATION_AFFIX_POOL_SCORING = {
     // 核心池不做分数门槛限制。
     skill_core: 0,
     gongfa_foundation: 0,
+    artifact_core: 0,
     artifact_panel: 0,
     // 中层池的最低准入分数。
     skill_variant: 0.45,
@@ -201,9 +214,10 @@ export const CREATION_AFFIX_CATEGORY_PLAN = {
   priorityOrder: [
     'skill_core',
     'gongfa_foundation',
-    'artifact_panel',
+    'artifact_core',
     'skill_variant',
     'gongfa_school',
+    'artifact_panel',
     'artifact_defense',
     'skill_rare',
     'gongfa_secret',
@@ -218,7 +232,8 @@ export const CREATION_AFFIX_CATEGORY_PLAN = {
     gongfa_foundation: 0.12,
     gongfa_school: 0.22,
     gongfa_secret: 0.06,
-    artifact_panel: 0.08,
+    artifact_core: 0.03,
+    artifact_panel: 0.05,
     artifact_defense: 0.08,
     artifact_treasure: 0.02,
   } as const,

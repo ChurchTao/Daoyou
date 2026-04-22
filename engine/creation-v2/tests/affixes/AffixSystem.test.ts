@@ -475,9 +475,9 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     }
   });
 
-  it('artifact category=artifact_panel 的槽位绑定定义必须全部显式声明槽位', () => {
+  it('artifact category=artifact_core 的槽位绑定定义必须全部显式声明槽位', () => {
     const unboundArtifactPanels = ARTIFACT_AFFIXES.filter(
-      (def) => def.category === 'artifact_panel' && def.exclusiveGroup?.startsWith('artifact-panel-slot') && !def.applicableArtifactSlots,
+      (def) => def.category === 'artifact_core' && def.exclusiveGroup?.startsWith('artifact-panel-slot') && !def.applicableArtifactSlots,
     ).map((def) => def.id);
 
     expect(unboundArtifactPanels).toEqual([]);
@@ -493,7 +493,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
 
     const artifactDefs = DEFAULT_AFFIX_REGISTRY.queryByTags(
       ['Material.Type.Ore', 'Material.Semantic.Blade'],
-      ['artifact_panel', 'artifact_defense', 'artifact_treasure'],
+      ['artifact_core', 'artifact_defense', 'artifact_treasure'],
       'artifact',
     );
     expect(artifactDefs.length).toBeGreaterThan(0);
@@ -631,7 +631,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       recipeId: 'artifact-default',
       valid: true,
       matchedTags: [],
-      unlockedAffixCategories: ['artifact_panel'],
+      unlockedAffixCategories: ['artifact_core'],
     };
     syncSessionTags(session, [
       CreationTags.MATERIAL.TYPE_ORE,
@@ -642,7 +642,7 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
 
     const decision = builder.buildDecision(DEFAULT_AFFIX_REGISTRY, session);
     const panelSlotIds = decision.candidates
-      .filter((candidate) => candidate.category === 'artifact_panel' && candidate.exclusiveGroup?.startsWith('artifact-panel-slot'))
+      .filter((candidate) => candidate.category === 'artifact_core' && candidate.exclusiveGroup?.startsWith('artifact-panel-slot'))
       .map((candidate) => candidate.id);
 
     expect(panelSlotIds).toContain('artifact-panel-armor-dual-def');

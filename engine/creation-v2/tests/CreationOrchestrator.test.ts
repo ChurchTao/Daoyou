@@ -19,7 +19,7 @@ describe('CreationOrchestrator', () => {
         {
           id: 'mat-a',
           name: '赤炎精铁',
-          type: 'ore',
+          type: 'monster',
           rank: '仙品',
           quantity: 3,
           element: '火',
@@ -302,7 +302,7 @@ describe('CreationOrchestrator', () => {
         {
           id: 'mat-fire',
           name: '离火砂',
-          type: 'ore',
+          type: 'monster',
           rank: '玄品',
           quantity: 2,
           element: '火'
@@ -625,7 +625,7 @@ describe('CreationOrchestrator', () => {
         {
           id: 'mat-a',
           name: '赤炎精铁',
-          type: 'ore',
+          type: 'monster',
           rank: '玄品',
           quantity: 2,
           element: '火',
@@ -681,7 +681,7 @@ describe('CreationOrchestrator', () => {
         {
           id: 'mat-a',
           name: '赤炎精铁',
-          type: 'ore',
+          type: 'monster',
           rank: '玄品',
           quantity: 2,
           element: '火',
@@ -801,7 +801,7 @@ describe('CreationOrchestrator', () => {
         {
           id: 'mat-a',
           name: '赤炎精铁',
-          type: 'ore',
+          type: 'monster',
           rank: '玄品',
           quantity: 2,
           element: '火',

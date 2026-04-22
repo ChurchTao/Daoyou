@@ -1,5 +1,9 @@
+import { DefaultMaterialAnalyzer } from '@/engine/creation-v2/analysis/DefaultMaterialAnalyzer';
+import { MaterialFactsBuilder } from '@/engine/creation-v2/analysis/MaterialFactsBuilder';
 import { CreationOrchestrator } from '@/engine/creation-v2/CreationOrchestrator';
 import { CreationAbilityAdapter } from '@/engine/creation-v2/adapters/CreationAbilityAdapter';
+import { getCreationProductTypeFromCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
+import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import {
   deserializeCraftedOutcomeSnapshot,
   restoreCraftedOutcome,
@@ -7,6 +11,8 @@ import {
   snapshotCraftedOutcome,
 } from '@/engine/creation-v2/persistence/OutcomeSnapshot';
 import { toRow } from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { MaterialRuleSet } from '@/engine/creation-v2/rules/material/MaterialRuleSet';
+import { supportsProductType } from '@/engine/creation-v2/rules/recipe/ProductSupportRules';
 import type { CreationProductType } from '@/engine/creation-v2/types';
 import {
   calculateCraftCost,
@@ -16,7 +22,6 @@ import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
-import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import type { EquipmentSlot, Quality } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
@@ -37,13 +42,6 @@ export interface ProcessCreationOptions {
   /** 仅法宝有效：玩家指定的装备槽位。其它产物传入会被忽略。 */
   requestedSlot?: EquipmentSlot;
 }
-
-/** craftType 字符串 → CreationProductType 映射 */
-const CRAFT_TYPE_MAP: Record<string, CreationProductType> = {
-  refine: 'artifact',
-  create_skill: 'skill',
-  create_gongfa: 'gongfa',
-};
 
 export class CreationServiceError extends Error {
   constructor(
@@ -78,14 +76,151 @@ export interface CreationV2Result {
 }
 
 export interface PendingCreationItem {
-  snapshot: string; // 序列化的 CraftedOutcomeSnapshot
+  snapshot: string;
   productType: CreationProductType;
   previewName: string;
   previewElement: string | null;
   previewQuality: string | null;
 }
 
+export interface CreationPreviewValidation {
+  valid: boolean;
+  blockingReason?: string;
+  warnings: string[];
+  missingMatchingManual: boolean;
+}
+
+type MaterialRow = typeof materials.$inferSelect;
+
 const orchestrator = new CreationOrchestrator();
+const materialAnalyzer = new DefaultMaterialAnalyzer();
+const materialFactsBuilder = new MaterialFactsBuilder();
+const materialRuleSet = new MaterialRuleSet();
+
+const PRODUCT_TYPE_LABELS: Record<CreationProductType, string> = {
+  artifact: '法宝',
+  skill: '神通',
+  gongfa: '功法',
+};
+
+const MISSING_MATCHING_MANUAL_WARNING_CODES = new Set([
+  'skill-missing-manual',
+  'gongfa-missing-manual',
+]);
+
+function toCreationMaterial(
+  material: MaterialRow,
+  quantityOverride?: number,
+): Material {
+  return {
+    id: material.id,
+    name: material.name,
+    type: material.type as Material['type'],
+    rank: material.rank as Quality,
+    element: (material.element ?? undefined) as Material['element'],
+    description: material.description ?? undefined,
+    details: (material.details ?? undefined) as Material['details'],
+    quantity: quantityOverride ?? Math.max(1, material.quantity ?? 1),
+  };
+}
+
+function toCreationMaterials(
+  selectedMaterials: MaterialRow[],
+  quantityOverrides?: Map<string, number>,
+): Material[] {
+  return selectedMaterials.map((material) =>
+    toCreationMaterial(material, quantityOverrides?.get(material.id)),
+  );
+}
+
+async function loadOwnedMaterials(
+  cultivatorId: string,
+  materialIds: string[],
+): Promise<MaterialRow[]> {
+  const selectedMaterials = await getExecutor()
+    .select()
+    .from(materials)
+    .where(inArray(materials.id, materialIds));
+
+  if (selectedMaterials.length !== materialIds.length) {
+    throw new CreationServiceError('部分材料已耗尽或不存在');
+  }
+
+  for (const material of selectedMaterials) {
+    if (material.cultivatorId !== cultivatorId) {
+      throw new CreationServiceError('非本人材料，不可动用', 403);
+    }
+  }
+
+  return selectedMaterials;
+}
+
+function buildCreationPreviewValidation(
+  productType: CreationProductType,
+  selectedMaterials: Material[],
+): CreationPreviewValidation {
+  const fingerprints = materialAnalyzer.analyze(selectedMaterials);
+  const materialFacts = materialFactsBuilder.build(productType, fingerprints);
+  const materialDecision = materialRuleSet.evaluate(materialFacts);
+  const warnings = materialDecision.warnings.map((warning) => warning.message);
+  const missingMatchingManual = materialDecision.warnings.some((warning) =>
+    MISSING_MATCHING_MANUAL_WARNING_CODES.has(warning.code),
+  );
+
+  if (!materialDecision.valid) {
+    return {
+      valid: false,
+      blockingReason:
+        materialDecision.notes[0] ??
+        materialDecision.reasons[0]?.message ??
+        '当前材料组合不合法',
+      warnings,
+      missingMatchingManual,
+    };
+  }
+
+  if (!supportsProductType(productType, materialDecision.recipeTags)) {
+    return {
+      valid: false,
+      blockingReason: `当前材料组合不足以支撑${PRODUCT_TYPE_LABELS[productType]}成型`,
+      warnings,
+      missingMatchingManual,
+    };
+  }
+
+  return {
+    valid: true,
+    warnings,
+    missingMatchingManual,
+  };
+}
+
+export async function previewCreationSelection(
+  cultivatorId: string,
+  materialIds: string[],
+  craftType: string,
+): Promise<{
+  productType: CreationProductType;
+  materials: MaterialRow[];
+  validation: CreationPreviewValidation;
+}> {
+  const productType = getCreationProductTypeFromCraftType(craftType);
+  if (!productType) {
+    throw new CreationServiceError(`未知的造物类型: ${craftType}`);
+  }
+
+  const selectedMaterials = await loadOwnedMaterials(cultivatorId, materialIds);
+  const validation = buildCreationPreviewValidation(
+    productType,
+    toCreationMaterials(selectedMaterials),
+  );
+
+  return {
+    productType,
+    materials: selectedMaterials,
+    validation,
+  };
+}
 
 /**
  * 主造物入口（炼器/神通/功法）。
@@ -97,7 +232,7 @@ export async function processCreation(
   craftType: string,
   options: ProcessCreationOptions = {},
 ): Promise<CreationV2Result> {
-  const productType = CRAFT_TYPE_MAP[craftType];
+  const productType = getCreationProductTypeFromCraftType(craftType);
   if (!productType) {
     throw new CreationServiceError(`未知的造物类型: ${craftType}`);
   }
@@ -117,19 +252,7 @@ export async function processCreation(
 
   try {
     // 2. 加载并校验材料归属
-    const selectedMaterials = await getExecutor()
-      .select()
-      .from(materials)
-      .where(inArray(materials.id, materialIds));
-
-    if (selectedMaterials.length !== materialIds.length) {
-      throw new CreationServiceError('部分材料已耗尽或不存在');
-    }
-    for (const mat of selectedMaterials) {
-      if (mat.cultivatorId !== cultivatorId) {
-        throw new CreationServiceError('非本人材料，不可动用', 403);
-      }
-    }
+    const selectedMaterials = await loadOwnedMaterials(cultivatorId, materialIds);
 
     // 3. 加载角色（用于资源校验和容量检查）
     const [cultivator] = await getExecutor()
@@ -179,35 +302,27 @@ export async function processCreation(
       CREATION_INPUT_CONSTRAINTS;
 
     const dosePerMaterial = new Map<string, number>();
-    for (const mat of selectedMaterials) {
-      const requested = materialQuantities?.[mat.id] ?? 1;
+    for (const material of selectedMaterials) {
+      const requested = materialQuantities?.[material.id] ?? 1;
       if (!Number.isFinite(requested)) {
         throw new CreationServiceError(
-          `材料「${mat.name}」投入数量非法：${requested}`,
+          `材料「${material.name}」投入数量非法：${requested}`,
         );
       }
+
       const clamped = Math.min(
         maxQuantityPerMaterial,
         Math.max(minQuantityPerMaterial, Math.floor(requested)),
       );
-      if (clamped > (mat.quantity ?? 0)) {
+      if (clamped > (material.quantity ?? 0)) {
         throw new CreationServiceError(
-          `材料「${mat.name}」库存不足：需要 ${clamped}，仅剩 ${mat.quantity ?? 0}`,
+          `材料「${material.name}」库存不足：需要 ${clamped}，仅剩 ${material.quantity ?? 0}`,
         );
       }
-      dosePerMaterial.set(mat.id, clamped);
+      dosePerMaterial.set(material.id, clamped);
     }
 
-    const engineMaterials: Material[] = selectedMaterials.map((mat) => ({
-      id: mat.id,
-      name: mat.name,
-      type: mat.type as Material['type'],
-      rank: mat.rank as Quality,
-      element: (mat.element ?? undefined) as Material['element'],
-      description: mat.description ?? undefined,
-      details: (mat.details ?? undefined) as Material['details'],
-      quantity: dosePerMaterial.get(mat.id) ?? 1,
-    }));
+    const engineMaterials = toCreationMaterials(selectedMaterials, dosePerMaterial);
 
     const session = await orchestrator.craftAsync({
       cultivatorId,
@@ -256,21 +371,19 @@ export async function processCreation(
           .where(eq(cultivators.id, cultivatorId));
       }
 
-      // 7.2 消耗材料：按玩家指定的 dose 扣减，归零则删除
-      for (const mat of selectedMaterials) {
-        const dose = dosePerMaterial.get(mat.id) ?? 1;
-        const stock = mat.quantity ?? 0;
+      for (const material of selectedMaterials) {
+        const dose = dosePerMaterial.get(material.id) ?? 1;
+        const stock = material.quantity ?? 0;
         if (stock > dose) {
           await tx
             .update(materials)
             .set({ quantity: sql`${materials.quantity} - ${dose}` })
-            .where(eq(materials.id, mat.id));
+            .where(eq(materials.id, material.id));
         } else {
-          await tx.delete(materials).where(eq(materials.id, mat.id));
+          await tx.delete(materials).where(eq(materials.id, material.id));
         }
       }
 
-      // 7.3 容量检查
       if (productType === 'skill') {
         currentCount = await creationProductRepository.countByType(
           cultivatorId,
@@ -358,7 +471,10 @@ export async function getPendingCreation(
     previewQuality: string | null;
     previewElement: string | null;
   };
-  const productType = CRAFT_TYPE_MAP[craftType];
+  const productType = getCreationProductTypeFromCraftType(craftType);
+  if (!productType) {
+    throw new CreationServiceError(`未知的造物类型: ${craftType}`);
+  }
 
   return {
     snapshot: payload.snapshot,
@@ -441,12 +557,12 @@ function extractAffixSummary(
     rollEfficiency: number;
   }>,
 ) {
-  return affixes.map((a) => ({
-    id: a.id,
-    name: a.name,
-    category: a.category,
-    isPerfect: a.isPerfect,
-    rollEfficiency: a.rollEfficiency,
+  return affixes.map((affix) => ({
+    id: affix.id,
+    name: affix.name,
+    category: affix.category,
+    isPerfect: affix.isPerfect,
+    rollEfficiency: affix.rollEfficiency,
   }));
 }
 
@@ -455,12 +571,13 @@ export function estimateCost(
   selectedMaterials: Array<{ rank: Quality }>,
   craftType: string,
 ): { spiritStones?: number; comprehension?: number } {
-  const productType = CRAFT_TYPE_MAP[craftType];
+  const productType = getCreationProductTypeFromCraftType(craftType);
   if (!productType) return {};
 
   const maxQuality = calculateMaxQuality(selectedMaterials);
   if (productType === 'artifact') {
     return { spiritStones: calculateCraftCost(maxQuality, 'spiritStone') };
   }
+
   return { comprehension: calculateCraftCost(maxQuality, 'comprehension') };
 }

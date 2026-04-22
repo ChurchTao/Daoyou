@@ -371,6 +371,7 @@ export class CreationOrchestrator {
     const budget = this.energyBudgeter.allocate(
       session.state.materialFingerprints,
       session.state.recipeMatch,
+      session.state.input.productType,
     );
     this.budgetEnergy(session, budget);
     return budget;
@@ -473,7 +474,7 @@ export class CreationOrchestrator {
 
     // 断言：必须包含核心词缀（如果是技能、功法、法宝）
     const needsCore = ['skill', 'gongfa', 'artifact'].includes(session.state.input.productType);
-    const hasCore = selection.affixes.some(a => ['skill_core', 'gongfa_foundation', 'artifact_panel'].includes(a.category));
+    const hasCore = selection.affixes.some(a => ['skill_core', 'gongfa_foundation', 'artifact_core'].includes(a.category));
     if (needsCore && !hasCore) {
       throw new CreationError(
         'Selection',
