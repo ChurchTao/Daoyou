@@ -133,25 +133,31 @@ export class AffixEligibilityRules
     facts: AffixEligibilityFacts,
     matchResult: ReturnType<typeof evaluateAffixMatcher>,
   ): number {
-    if (['skill_core', 'gongfa_foundation', 'artifact_core'].includes(candidate.category) || matchResult.totalUnits === 0) {
+    if (
+      ['skill_core', 'gongfa_foundation', 'artifact_core'].includes(
+        candidate.category,
+      ) ||
+      matchResult.totalUnits === 0
+    ) {
       return 1;
     }
 
     const scoreWeights = CREATION_AFFIX_POOL_SCORING.scoreWeights;
-    const matchedSignalSum = matchResult.matchedTags.reduce(
-      (sum, tag) => sum + (facts.tagSignalScores[tag] ?? 0),
+
+    // 优化 2：取命中标签中的最高信号分，避免强信号被弱信号平均稀释
+    const maxSignal = matchResult.matchedTags.reduce(
+      (max, tag) => Math.max(max, facts.tagSignalScores[tag] ?? 0),
       0,
     );
     const coverage = matchResult.satisfiedUnits / matchResult.totalUnits;
-    const averageSignal =
-      matchResult.matchedTags.length > 0
-        ? matchedSignalSum / matchResult.matchedTags.length
-        : 0;
     const normalizedSignal = Math.min(
       1,
-      averageSignal / CREATION_AFFIX_POOL_SCORING.maxSignalScorePerTag,
+      maxSignal / CREATION_AFFIX_POOL_SCORING.maxSignalScorePerTag,
     );
-    const qualityFit = this.calculateQualityFit(candidate, facts.maxQualityOrder);
+    const qualityFit = this.calculateQualityFit(
+      candidate,
+      facts.maxQualityOrder,
+    );
 
     return Math.max(
       0,
@@ -172,12 +178,27 @@ export class AffixEligibilityRules
 
     if (candidate.minQuality !== undefined) {
       const minOrder = QUALITY_ORDER[candidate.minQuality];
-      fit = Math.min(fit, this.clamp((qualityOrder - minOrder + 2) / 4, 0.45, 1));
+
+      // 优化 3：高级材料炼低级词缀时给予惩罚，防止高级池被过度稀释
+      const optimalRangeEnd = minOrder + 2;
+      if (qualityOrder > optimalRangeEnd) {
+        // 超过最佳区间后，每高一阶衰减 0.15，保底 0.45
+        const overflow = qualityOrder - optimalRangeEnd;
+        fit = Math.max(0.45, 1 - overflow * 0.15);
+      } else {
+        fit = Math.min(
+          fit,
+          this.clamp((qualityOrder - minOrder + 2) / 4, 0.45, 1),
+        );
+      }
     }
 
     if (candidate.maxQuality !== undefined) {
       const maxOrder = QUALITY_ORDER[candidate.maxQuality];
-      fit = Math.min(fit, this.clamp((maxOrder - qualityOrder + 2) / 4, 0.45, 1));
+      fit = Math.min(
+        fit,
+        this.clamp((maxOrder - qualityOrder + 2) / 4, 0.45, 1),
+      );
     }
 
     return fit;

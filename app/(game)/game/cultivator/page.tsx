@@ -1,6 +1,10 @@
 'use client';
 
 import { LingGen } from '@/components/func';
+import {
+  toProductDisplayModel,
+  type ProductRecordLike,
+} from '@/components/feature/products';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
@@ -415,10 +419,27 @@ export default function CultivatorPage() {
         ) : (
           <InkList>
             {cultivator.cultivations.map((c) => (
-              <InkListItem
+              <ItemCard
                 key={c.id ?? c.name}
-                title={c.name}
+                icon="📘"
+                name={c.name}
+                quality={c.grade}
+                meta={
+                  (() => {
+                    const product = toProductDisplayModel(c as ProductRecordLike);
+                    const affixLine =
+                      product.affixes.length > 0
+                        ? product.affixes.map((affix) => affix.name).join('、')
+                        : null;
+                    return affixLine ? (
+                      <div className="text-ink-secondary text-xs">
+                        词缀：{affixLine}
+                      </div>
+                    ) : undefined;
+                  })()
+                }
                 description={c.description}
+                layout="col"
               />
             ))}
           </InkList>
@@ -432,10 +453,38 @@ export default function CultivatorPage() {
           <>
             <InkList>
               {skills.map((s) => (
-                <InkListItem
+                <ItemCard
                   key={s.id ?? s.name}
-                  title={`${s.name} (${s.element})`}
+                  icon="📜"
+                  name={s.name}
+                  quality={s.grade}
+                  badgeExtra={<InkBadge tone="default">{s.element}</InkBadge>}
+                  meta={
+                    <div className="space-y-1">
+                      {(() => {
+                        const product = toProductDisplayModel(
+                          s as ProductRecordLike,
+                        );
+                        const affixLine =
+                          product.affixes.length > 0
+                            ? product.affixes
+                                .map((affix) => affix.name)
+                                .join('、')
+                            : null;
+                        return affixLine ? (
+                          <div className="text-ink-secondary text-xs">
+                            词缀：{affixLine}
+                          </div>
+                        ) : null;
+                      })()}
+                      <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
+                        <span>灵力消耗：{s.cost ?? 0}</span>
+                        <span>冷却回合：{s.cooldown}</span>
+                      </div>
+                    </div>
+                  }
                   description={s.description}
+                  layout="col"
                 />
               ))}
             </InkList>

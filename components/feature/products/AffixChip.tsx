@@ -16,14 +16,14 @@ interface AffixChipProps {
  *   - 整行结构：`[极?] {name}：{bodyText}`，避免散装徽章干扰阅读。
  */
 export function AffixChip({ affix, compact = false }: AffixChipProps) {
-  const rarityColor =
+  const rarityColorStyle =
     affix.rarityTone === 'legendary'
-      ? 'text-amber-600'
+      ? { color: 'var(--color-tier-shen)' }
       : affix.rarityTone === 'rare'
-        ? 'text-violet-600'
+        ? { color: 'var(--color-tier-xian)' }
         : affix.rarityTone === 'info'
-          ? 'text-sky-600'
-          : 'text-ink-primary';
+          ? { color: 'var(--color-tier-zhen)' }
+          : { color: 'var(--color-tier-fan)' };
 
   const perfectBadge = affix.isPerfect ? (
     <span className="mr-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded bg-amber-100 px-1 text-[10px] font-bold text-amber-700">
@@ -35,7 +35,9 @@ export function AffixChip({ affix, compact = false }: AffixChipProps) {
     return (
       <span className="inline-flex items-center text-xs leading-snug">
         {perfectBadge}
-        <span className={`font-medium ${rarityColor}`}>{affix.name}</span>
+        <span className="font-medium" style={rarityColorStyle}>
+          {affix.name}
+        </span>
         <span className="text-ink-secondary">：{affix.bodyText}</span>
       </span>
     );
@@ -45,7 +47,9 @@ export function AffixChip({ affix, compact = false }: AffixChipProps) {
     <li className="flex items-start text-sm leading-relaxed">
       {perfectBadge}
       <div className="flex-1">
-        <span className={`font-medium ${rarityColor}`}>{affix.name}</span>
+        <span className="font-medium" style={rarityColorStyle}>
+          {affix.name}
+        </span>
         <span className="text-ink-secondary">：{affix.bodyText}</span>
       </div>
     </li>

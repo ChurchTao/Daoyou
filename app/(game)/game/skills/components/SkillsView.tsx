@@ -8,6 +8,7 @@ import {
   InkDialog,
   InkNotice,
 } from '@/components/ui';
+import { ItemCard } from '@/components/ui/ItemCard';
 import { usePathname } from 'next/navigation';
 
 import { useSkillsViewModel, type V2Skill } from '../hooks/useSkillsViewModel';
@@ -22,47 +23,47 @@ function SkillCard({
   onDetail: (skill: V2Skill) => void;
   onForget: (skill: V2Skill) => void;
 }) {
+  const affixLine =
+    skill.affixes.length > 0
+      ? skill.affixes.map((affix) => affix.name).join('、')
+      : null;
+  const mpCost = skill.projection?.mpCost ?? 0;
+  const cooldown = skill.projection?.cooldown ?? 0;
+
   return (
-    <div className="border-ink/10 space-y-2 rounded-lg border p-3">
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-medium">{skill.name}</span>
-        <div className="flex shrink-0 gap-1">
-          <InkButton
-            variant="secondary"
-            className="text-sm"
-            onClick={() => onDetail(skill)}
-          >
+    <ItemCard
+      icon="📜"
+      name={skill.name}
+      quality={skill.quality}
+      badgeExtra={
+        <div className="flex flex-wrap gap-1">
+          {skill.element && <InkBadge tone="default">{skill.element}</InkBadge>}
+        </div>
+      }
+      meta={
+        <div className="space-y-1">
+          {affixLine && (
+            <div className="text-ink-secondary text-xs">词缀：{affixLine}</div>
+          )}
+          <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
+            <span>灵力消耗：{mpCost}</span>
+            <span>冷却回合：{cooldown}</span>
+          </div>
+        </div>
+      }
+      description={skill.description}
+      actions={
+        <div className="flex gap-2">
+          <InkButton variant="secondary" onClick={() => onDetail(skill)}>
             详情
           </InkButton>
-          <InkButton
-            className="px-2 text-sm"
-            onClick={() => onForget(skill)}
-          >
+          <InkButton className="px-2" onClick={() => onForget(skill)}>
             遗忘
           </InkButton>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {skill.quality && (
-          <InkBadge tier={skill.quality as never}>{skill.quality}</InkBadge>
-        )}
-        {skill.element && (
-          <InkBadge tone="default">{skill.element}</InkBadge>
-        )}
-        <InkBadge tone="default">{`评分 ${skill.score}`}</InkBadge>
-      </div>
-      {skill.affixes.length > 0 && (
-        <ul className="text-ink-secondary space-y-0.5 text-xs">
-          {skill.affixes.map((a) => (
-            <li key={a.id} className="flex items-center gap-1">
-              <span>{a.isPerfect ? '✦' : '◆'}</span>
-              <span>{a.name}</span>
-              {a.isPerfect && <span className="text-amber-500">（完美）</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      }
+      layout="col"
+    />
   );
 }
 

@@ -48,16 +48,17 @@ export class AffixWeightRules
 
       const evaluationScore = candidate.evaluationScore ?? 1;
 
+      // 优化 4：平滑评分放大系数与标签堆叠奖励，收窄权重极值，保留适当的随机惊喜
+      const scoreMultiplier = 0.8 + 0.4 * evaluationScore;
+      const tagBonus =
+        1 +
+        Math.max(0, tagHitCount - 1) *
+          (CREATION_AFFIX_POOL_SCORING.tagHitBonus * 0.5) +
+        coverage * (CREATION_AFFIX_POOL_SCORING.coverageBonus * 0.3);
+
       const weighted = Math.max(
         1,
-        Math.round(
-          candidate.weight *
-            (0.5 + evaluationScore) *
-            (1 +
-              Math.max(0, tagHitCount - 1) *
-                CREATION_AFFIX_POOL_SCORING.tagHitBonus +
-              coverage * (CREATION_AFFIX_POOL_SCORING.coverageBonus / 2)),
-        ),
+        Math.round(candidate.weight * scoreMultiplier * tagBonus),
       );
 
       accepted.push({

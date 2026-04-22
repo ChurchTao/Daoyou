@@ -1,6 +1,10 @@
 'use client';
 
 import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
+import {
+  toProductDisplayModel,
+  type ProductRecordLike,
+} from '@/components/feature/products';
 import { ItemCard } from '@/components/ui/ItemCard';
 import type { Artifact } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
@@ -42,6 +46,11 @@ export function ArtifactsTab({
   return (
     <InkList>
       {artifacts.map((item) => {
+        const product = toProductDisplayModel(item as ProductRecordLike);
+        const affixLine =
+          product.affixes.length > 0
+            ? product.affixes.map((affix) => affix.name).join('、')
+            : null;
         const equippedNow = Boolean(
           item.id &&
           (equipped.weapon === item.id ||
@@ -63,13 +72,20 @@ export function ArtifactsTab({
               </>
             }
             meta={
-              <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-                {item.required_realm && (
-                  <span>境界要求：{item.required_realm}</span>
+              <div className="space-y-1">
+                {affixLine && (
+                  <div className="text-ink-secondary text-xs">
+                    词缀：{affixLine}
+                  </div>
                 )}
-                {equippedNow && (
-                  <span className="text-ink font-bold">已装备</span>
-                )}
+                <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
+                  {item.required_realm && (
+                    <span>境界要求：{item.required_realm}</span>
+                  )}
+                  {equippedNow && (
+                    <span className="text-ink font-bold">已装备</span>
+                  )}
+                </div>
               </div>
             }
             description={item.description}

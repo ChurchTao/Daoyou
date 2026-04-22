@@ -1,12 +1,8 @@
 'use client';
 
 import { InkPageShell } from '@/components/layout';
-import {
-  InkActionGroup,
-  InkBadge,
-  InkButton,
-  InkNotice,
-} from '@/components/ui';
+import { InkActionGroup, InkBadge, InkButton, InkNotice } from '@/components/ui';
+import { ItemCard } from '@/components/ui/ItemCard';
 import { usePathname } from 'next/navigation';
 
 import {
@@ -24,44 +20,41 @@ function TechniqueCard({
   onDetail: (t: V2Technique) => void;
   onForget: (t: V2Technique) => void;
 }) {
+  const affixLine =
+    technique.affixes.length > 0
+      ? technique.affixes.map((affix) => affix.name).join('、')
+      : null;
+
   return (
-    <div className="border-ink/10 space-y-2 rounded-lg border p-3">
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-medium">{technique.name}</span>
-        <div className="flex shrink-0 gap-1">
-          <InkButton
-            variant="secondary"
-            className="text-sm"
-            onClick={() => onDetail(technique)}
-          >
+    <ItemCard
+      icon="📘"
+      name={technique.name}
+      quality={technique.quality}
+      badgeExtra={
+        <div className="flex flex-wrap gap-1">
+          {technique.element && (
+            <InkBadge tone="default">{technique.element}</InkBadge>
+          )}
+        </div>
+      }
+      meta={
+        affixLine ? (
+          <div className="text-ink-secondary text-xs">词缀：{affixLine}</div>
+        ) : undefined
+      }
+      description={technique.description}
+      actions={
+        <div className="flex gap-2">
+          <InkButton variant="secondary" onClick={() => onDetail(technique)}>
             详情
           </InkButton>
-          <InkButton className="px-2 text-sm" onClick={() => onForget(technique)}>
+          <InkButton className="px-2" onClick={() => onForget(technique)}>
             废除
           </InkButton>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {technique.quality && (
-          <InkBadge tier={technique.quality as never}>{technique.quality}</InkBadge>
-        )}
-        {technique.element && (
-          <InkBadge tone="default">{technique.element}</InkBadge>
-        )}
-        <InkBadge tone="default">{`评分 ${technique.score}`}</InkBadge>
-      </div>
-      {technique.affixes.length > 0 && (
-        <ul className="text-ink-secondary space-y-0.5 text-xs">
-          {technique.affixes.map((a) => (
-            <li key={a.id} className="flex items-center gap-1">
-              <span>{a.isPerfect ? '✦' : '◆'}</span>
-              <span>{a.name}</span>
-              {a.isPerfect && <span className="text-amber-500">（完美）</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      }
+      layout="col"
+    />
   );
 }
 
