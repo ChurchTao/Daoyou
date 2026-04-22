@@ -1,17 +1,10 @@
 /*
- * skillAffixes: 技能词缀定义（梦幻西游风格三角重构）
- *
- * 技能定位："招" — 负责"出手惊艳感"，词条价值集中在本次施法。
- *
- * 池结构：
- *   skill_core    (~50%) — 保证技能不废，专注本次施法直接成立
- *   skill_variant (~35%) — 让同一技能长出不同战术身份
- *   skill_rare    (~15%) — 制造"神技感"，每 Skill 最多 1 条
- *
- * 硬边界（Section 2.3 + Section 6.1）：
- *   - 禁止 attribute_modifier（常驻属性归 gongfa/artifact）
- *   - 禁止通过长时 apply_buff + nested OWNER_AS_CASTER listener 模拟长期被动
- *   - 顶层效果以即时 GE 为主
+ * 灵能消耗平衡规则 (Energy Cost Balance Rule - V2):
+ * 1. 核心池 (Core/Panel): 8 ~ 15 点。作为基础底盘，保证产物基本强度。
+ * 2. 变体池 (Variant/School/Defense): 12 ~ 20 点。主要能量吸收点，定义流派特色。
+ * 3. 稀有池 (Rare/Secret/Treasure): 35 ~ 55 点。顶级消耗项，吸收神品材料溢出能量，产出质变效果。
+ * 
+ * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
 import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 import {
@@ -49,7 +42,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 100,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -83,7 +76,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 85,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -116,7 +109,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 80,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -149,7 +142,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 75,
-    energyCost: 11,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -182,7 +175,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 72,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -215,7 +208,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 70,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -248,7 +241,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 68,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -281,7 +274,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 65,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -314,7 +307,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 67,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['skill'],
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
@@ -350,7 +343,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 75,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
@@ -381,7 +374,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 50,
-    energyCost: 12,
+    energyCost: 20,
     minQuality: '灵品',
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
@@ -421,7 +414,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 60,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'cooldown_modify',
@@ -447,7 +440,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 55,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
@@ -487,7 +480,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_FLAME] },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_BURN,
     weight: 80,
-    energyCost: 8,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
@@ -542,7 +535,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [CreationTags.MATERIAL.SEMANTIC_FREEZE] },
     weight: 78,
-    energyCost: 8,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
@@ -580,7 +573,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [CreationTags.MATERIAL.SEMANTIC_POISON] },
     weight: 68,
-    energyCost: 9,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
@@ -638,7 +631,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 55,
-    energyCost: 7,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
@@ -683,7 +676,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 60,
-    energyCost: 6,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'dispel',
@@ -710,7 +703,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 45,
-    energyCost: 8,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'dispel',
@@ -738,7 +731,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_LIFESTEAL,
     weight: 72,
-    energyCost: 9,
+    energyCost: 12,
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
@@ -778,7 +771,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 75,
-    energyCost: 6,
+    energyCost: 12,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'heal',
@@ -818,7 +811,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 58,
-    energyCost: 7,
+    energyCost: 12,
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
@@ -859,7 +852,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_DAMAGE_BOOST,
     weight: 65,
-    energyCost: 6,
+    energyCost: 16,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -892,7 +885,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 50,
-    energyCost: 7,
+    energyCost: 16,
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
     effectTemplate: {
@@ -929,7 +922,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 48,
-    energyCost: 7,
+    energyCost: 16,
     applicableTo: ['skill'],
     effectTemplate: {
       type: 'apply_buff',
@@ -978,7 +971,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 5,
-    energyCost: 16,
+    energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['skill'],
     grantedAbilityTags: [
@@ -1012,7 +1005,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 8,
-    energyCost: 14,
+    energyCost: 40,
     minQuality: '灵品',
     applicableTo: ['skill'],
     effectTemplate: {
@@ -1056,7 +1049,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 6,
-    energyCost: 13,
+    energyCost: 45,
     minQuality: '灵品',
     applicableTo: ['skill'],
     grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
@@ -1098,7 +1091,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 4,
-    energyCost: 15,
+    energyCost: 55,
     minQuality: '真品',
     applicableTo: ['skill'],
     grantedAbilityTags: [
@@ -1117,3 +1110,4 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 ];
+

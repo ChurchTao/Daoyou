@@ -1,4 +1,4 @@
-import { AffixCategory, CreationProductType } from '../types';
+import { CreationProductType } from '../types';
 import { CREATION_EVENT_PRIORITY_LEVELS } from './CreationEventPriorities';
 
 /**
@@ -12,13 +12,13 @@ export const CREATION_AFFIX_UNLOCK_THRESHOLDS = {
   gongfa_foundation: 0,
   artifact_panel: 0,
   // 中层池：中等材料解锁
-  skill_variant: 20,
-  gongfa_school: 20,
-  artifact_defense: 20,
+  skill_variant: 25,
+  gongfa_school: 25,
+  artifact_defense: 25,
   // 稀有池：高投入材料才解锁
-  skill_rare: 49,
-  gongfa_secret: 49,
-  artifact_treasure: 49,
+  skill_rare: 80,
+  gongfa_secret: 80,
+  artifact_treasure: 80,
 } as const;
 
 /**
@@ -54,8 +54,6 @@ export const CREATION_INPUT_CONSTRAINTS = {
  * 用于兜底生成可运行的技能蓝图，避免出现空能力。
  */
 export const CREATION_SKILL_DEFAULTS = {
-  // 兜底技能的最低基础伤害。
-  minDamageBase: 12,
   // 兜底技能的最低蓝耗。
   minMpCost: 80,
   // 治疗型技能默认冷却。
@@ -105,7 +103,7 @@ export const CREATION_PASSIVE_DEFAULTS = {
  */
 export const CREATION_MATERIAL_ENERGY = {
   // 各品质对应的基础权重，索引按品质顺序映射。
-  qualityWeights: [3, 4, 6, 7, 8, 10, 12, 14] as const,
+  qualityWeights: [3, 5, 8, 13, 21, 34, 55, 89] as const,
   // 普通 manual 类型额外提供的能量奖励。
   manualBonus: 2,
   // gongfa_manual / skill_manual 这类专用秘籍的额外能量奖励。
@@ -139,19 +137,11 @@ export const CREATION_UNLOCK_SCORE_PROFILE = {
  */
 export const CREATION_AFFIX_POOL_SCORING = {
   // 视为“高阶桶”的分类集合，用于统一做高阶数量限制。
-  highTierCategories: ['skill_rare', 'gongfa_secret', 'artifact_treasure'] as const,
-
-  // 不同分类至少需要命中多少个标签，才有资格进入候选池。
-  minTagHitsByCategory: {
-    // 中层池：至少命中 1 个标签。
-    skill_variant: 1,
-    gongfa_school: 1,
-    artifact_defense: 1,
-    // 稀有池：至少命中 2 个标签，要求更严格。
-    skill_rare: 2,
-    gongfa_secret: 2,
-    artifact_treasure: 2,
-  } as const,
+  highTierCategories: [
+    'skill_rare',
+    'gongfa_secret',
+    'artifact_treasure',
+  ] as const,
 
   // 各分类进入候选池所需达到的最低 admission score。
   minimumScoreByCategory: {
@@ -330,13 +320,13 @@ export const CREATION_ENERGY_SLOT_TIERS: ReadonlyArray<{
   /** 当前梯次允许开放的最大词缀数量。 */
   maxAffixCount: number;
 }> = [
-  // 小于 18 点可支配词缀能量时，只开放 2 词缀。
-  { maxEnergy: 18, maxAffixCount: 2 },
-  // 小于 34 点可支配词缀能量时，开放到 3 词缀。
-  { maxEnergy: 34, maxAffixCount: 3 },
-  // 小于 56 点可支配词缀能量时，开放到 4 词缀。
-  { maxEnergy: 56, maxAffixCount: 4 },
-  // 56 点及以上开放完整 5 词缀上限。
+  // 小于 25 点可支配词缀能量时，只开放 2 词缀。
+  { maxEnergy: 25, maxAffixCount: 2 },
+  // 小于 50 点可支配词缀能量时，开放到 3 词缀。
+  { maxEnergy: 50, maxAffixCount: 3 },
+  // 小于 90 点可支配词缀能量时，开放到 4 词缀。
+  { maxEnergy: 90, maxAffixCount: 4 },
+  // 90 点及以上开放完整 5 词缀上限。
   { maxEnergy: Infinity, maxAffixCount: 5 },
 ];
 

@@ -63,7 +63,7 @@ describe('MaterialRuleSet', () => {
     const decision = ruleSet.evaluate(facts);
 
     expect(decision.valid).toBe(false);
-    expect(decision.notes).toContain('火、冰材料在首版规则中不可同炉炼制');
+    expect(decision.notes).toContain('火、冰材料不可同炉炼制');
     expect(decision.reasons).toEqual([
       expect.objectContaining({ code: 'element-fire-ice' }),
     ]);

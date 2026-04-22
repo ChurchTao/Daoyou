@@ -177,26 +177,26 @@ describe('DefaultEnergyBudgeter', () => {
 import { resolveAffixSlotCount, CREATION_AFFIX_UNLOCK_THRESHOLDS } from '@/engine/creation-v2/config/CreationBalance';
 
 describe('能量阈值与槽位梯次基准校准', () => {
-  it('低投入：可支配能量低于 18 时应保持 2 词缀槽位', () => {
-    const lowAvailableEnergy = 17;
+  it('低投入：可支配能量低于 25 时应保持 2 词缀槽位', () => {
+    const lowAvailableEnergy = 24;
     expect(resolveAffixSlotCount(lowAvailableEnergy)).toBe(2);
     expect(lowAvailableEnergy).toBeLessThan(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant);
   });
 
   it('中低投入：可支配能量进入 3 槽区间后应给 3 词缀槽位', () => {
-    const borderEnergy = 18;
+    const borderEnergy = 25;
     expect(resolveAffixSlotCount(borderEnergy)).toBe(3);
   });
 
-  it('中等投入：34 点可支配能量应进入 4 词缀槽位', () => {
-    const midEnergy = 34;
+  it('中等投入：50 点可支配能量应进入 4 词缀槽位', () => {
+    const midEnergy = 50;
     expect(resolveAffixSlotCount(midEnergy)).toBe(4);
     expect(midEnergy).toBeGreaterThanOrEqual(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_variant);
     expect(midEnergy).toBeLessThan(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_rare);
   });
 
-  it('高投入：56 点可支配能量才开放最大 5 词缀槽位', () => {
-    const highEnergy = 56;
+  it('高投入：90 点可支配能量才开放最大 5 词缀槽位', () => {
+    const highEnergy = 90;
     expect(resolveAffixSlotCount(highEnergy)).toBe(5);
     expect(highEnergy).toBeGreaterThanOrEqual(CREATION_AFFIX_UNLOCK_THRESHOLDS.skill_rare);
   });

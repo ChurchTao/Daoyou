@@ -56,8 +56,20 @@ export function estimateBalanceMetrics(
   quality: Quality,
 ): BalanceMetrics {
   const qualityMultiplier = 1 + QUALITY_ORDER[quality] * 0.12;
+  let perfectBonus = 0;
+
   const rawChannels = affixes.reduce<PBUChannels>((channels, affix) => {
-    const weightedEnergy = affix.energyCost * CATEGORY_MULTIPLIER[affix.category];
+    // 引入数值效率系数：效率越高，贡献的战力评估越高
+    const efficiencyFactor = 0.8 + 0.4 * (affix.rollEfficiency ?? 1);
+    const weightedEnergy = 
+      affix.energyCost * 
+      CATEGORY_MULTIPLIER[affix.category] * 
+      efficiencyFactor;
+
+    if (affix.isPerfect) {
+      perfectBonus += 15;
+    }
+
     const channel = inferChannel(affix);
     channels[channel] += weightedEnergy * EFFECT_MULTIPLIER[channel];
     return channels;
@@ -65,7 +77,8 @@ export function estimateBalanceMetrics(
 
   const channelSum = Object.values(rawChannels).reduce((sum, value) => sum + value, 0);
 
-  const pbu = Math.max(1, Math.round(channelSum * qualityMultiplier));
+  // 最终 PBU = (词缀能效总和 * 品质乘数) + 极品奖励
+  const pbu = Math.max(1, Math.round(channelSum * qualityMultiplier + perfectBonus));
   const channels: PBUChannels = {
     damage: Math.round(rawChannels.damage * qualityMultiplier),
     sustain: Math.round(rawChannels.sustain * qualityMultiplier),

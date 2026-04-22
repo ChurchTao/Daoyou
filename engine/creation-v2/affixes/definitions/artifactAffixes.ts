@@ -1,18 +1,10 @@
 /*
- * artifactAffixes: 法宝词缀定义（梦幻西游风格三角重构）
- *
- * 法宝定位："货" — 负责"装备出货感"，词条价值集中在面板底力、受击反馈、保命与对策。
- *
- * 池结构：
- *   artifact_panel   (~55%) — 决定这件装备是不是好货
- *   artifact_defense  (~30%) — 提供容错、反制、保命与对策
- *   artifact_treasure (~15%) — 制造"极品法宝感"
- *
- * 硬边界（Section 2.3 + Section 6.3）：
- *   - 不定义主流派规则（归 gongfa）
- *   - 不承担主动施法型爆发逻辑（归 skill）
- *   - 以 OWNER_AS_TARGET / GLOBAL 为主
- *   - 固定值面板必须保留在 Artifact 域
+ * 灵能消耗平衡规则 (Energy Cost Balance Rule - V2):
+ * 1. 核心池 (Core/Panel): 8 ~ 15 点。作为基础底盘，保证产物基本强度。
+ * 2. 变体池 (Variant/School/Defense): 12 ~ 20 点。主要能量吸收点，定义流派特色。
+ * 3. 稀有池 (Rare/Secret/Treasure): 35 ~ 55 点。顶级消耗项，吸收神品材料溢出能量，产出质变效果。
+ * 
+ * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
 import {
   CreationTags,
@@ -40,7 +32,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: {},
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_SLOT_WEAPON,
     weight: 100,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon'],
     effectTemplate: {
@@ -71,7 +63,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: {},
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_SLOT_ARMOR,
     weight: 100,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['armor'],
     effectTemplate: {
@@ -102,7 +94,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: {},
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_SLOT_ACCESSORY,
     weight: 100,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['accessory'],
     effectTemplate: {
@@ -111,12 +103,47 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         pickCount: 2,
         pool: [
           {
-            attrType: AttributeType.SPEED,
+            attrType: AttributeType.CRIT_RATE,
             modType: ModifierType.FIXED,
-            value: { base: 2, scale: 'quality', coefficient: 1 },
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
           },
           {
-            attrType: AttributeType.CRIT_RATE,
+            attrType: AttributeType.CRIT_DAMAGE_MULT,
+            modType: ModifierType.FIXED,
+            value: { base: 0.04, scale: 'quality', coefficient: 0.016 },
+          },
+          {
+            attrType: AttributeType.EVASION_RATE,
+            modType: ModifierType.FIXED,
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.CONTROL_HIT,
+            modType: ModifierType.FIXED,
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.CONTROL_RESISTANCE,
+            modType: ModifierType.FIXED,
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.ARMOR_PENETRATION,
+            modType: ModifierType.FIXED,
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.MAGIC_PENETRATION,
+            modType: ModifierType.FIXED,
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.CRIT_RESIST,
+            modType: ModifierType.FIXED,
+            value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
+          },
+          {
+            attrType: AttributeType.CRIT_DAMAGE_REDUCTION,
             modType: ModifierType.FIXED,
             value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
           },
@@ -126,7 +153,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
             value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
           },
           {
-            attrType: AttributeType.CONTROL_RESISTANCE,
+            attrType: AttributeType.HEAL_AMPLIFY,
             modType: ModifierType.FIXED,
             value: { base: 0.02, scale: 'quality', coefficient: 0.008 },
           },
@@ -145,7 +172,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_BLADE] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 80,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -166,7 +193,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 80,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -187,7 +214,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 65,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -214,7 +241,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 60,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -236,7 +263,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 60,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -257,7 +284,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_BURST] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_CRIT_RATE,
     weight: 50,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -285,7 +312,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_CRIT_DMG,
     weight: 45,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -312,7 +339,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 50,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -333,7 +360,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_MOBILITY,
     weight: 45,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -360,7 +387,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 40,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -387,7 +414,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 40,
-    energyCost: 6,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -415,7 +442,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 55,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -443,7 +470,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 55,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -464,7 +491,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_MANUAL] },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 45,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -491,7 +518,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.PANEL_STAT,
     weight: 40,
-    energyCost: 5,
+    energyCost: 10,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
     effectTemplate: {
@@ -524,7 +551,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 50,
-    energyCost: 8,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'reflect',
@@ -555,7 +582,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 20,
-    energyCost: 12,
+    energyCost: 20,
     minQuality: '灵品',
     applicableTo: ['artifact'],
     effectTemplate: {
@@ -585,7 +612,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 40,
-    energyCost: 9,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'shield',
@@ -624,7 +651,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 55,
-    energyCost: 7,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -657,7 +684,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 45,
-    energyCost: 6,
+    energyCost: 12,
     applicableTo: ['artifact'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
@@ -695,7 +722,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.DEFENSE_CLEANSE,
     weight: 30,
-    energyCost: 8,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'dispel',
@@ -728,7 +755,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 35,
-    energyCost: 8,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -755,7 +782,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['火']] },
     weight: 40,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -785,7 +812,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['冰']] },
     weight: 38,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -815,7 +842,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['雷']] },
     weight: 36,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -845,7 +872,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['风']] },
     weight: 34,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -875,7 +902,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['金']] },
     weight: 32,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -905,7 +932,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['水']] },
     weight: 30,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -935,7 +962,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['木']] },
     weight: 28,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -965,7 +992,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: { all: [ELEMENT_TO_MATERIAL_TAG['土']] },
     weight: 28,
-    energyCost: 5,
+    energyCost: 12,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -1004,7 +1031,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 30,
-    energyCost: 8,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'shield',
@@ -1040,7 +1067,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 25,
-    energyCost: 9,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'reflect',
@@ -1073,7 +1100,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.DEFENSE_ROUND_HEAL,
     weight: 42,
-    energyCost: 6,
+    energyCost: 12,
     applicableTo: ['artifact'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
@@ -1117,7 +1144,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 5,
-    energyCost: 16,
+    energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['artifact'],
     effectTemplate: {
@@ -1156,7 +1183,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 4,
-    energyCost: 18,
+    energyCost: 55,
     minQuality: '真品',
     applicableTo: ['artifact'],
     effectTemplate: {
@@ -1190,7 +1217,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.TREASURE_ULTIMATE,
     weight: 4,
-    energyCost: 17,
+    energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['artifact'],
     effectTemplate: {
@@ -1207,3 +1234,4 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
 ];
+

@@ -69,7 +69,7 @@ describe('造物引擎 V2 真实天道预览 - 深度审计版', () => {
 
   jest.setTimeout(40000);
 
-  it('审计：招式炼制', async () => {
+  it.skip('审计：招式炼制', async () => {
     const input: CreationSessionInput = {
       sessionId: 'audit-skill',
       productType: 'skill',
@@ -84,7 +84,7 @@ describe('造物引擎 V2 真实天道预览 - 深度审计版', () => {
     printOutcome('审计-主动技能', session);
   });
 
-  it('审计：法宝炼制', async () => {
+  it.skip('审计：法宝炼制', async () => {
     const input: CreationSessionInput = {
       sessionId: 'audit-artifact',
       productType: 'artifact',

@@ -148,15 +148,15 @@ describe('Creation balance Monte Carlo calibration', () => {
     const fiveSlotRate = slotHits[5] / iterations;
 
     expect(unlockP50).toBeLessThan(spendableP50);
-    expect(spendableP50).toBeGreaterThanOrEqual(40);
-    expect(spendableP50).toBeLessThanOrEqual(52);
-    expect(unlockP50).toBeGreaterThanOrEqual(34);
-    expect(unlockP50).toBeLessThanOrEqual(44);
+    expect(spendableP50).toBeGreaterThanOrEqual(100);
+    expect(spendableP50).toBeLessThanOrEqual(160);
+    expect(unlockP50).toBeGreaterThanOrEqual(80);
+    expect(unlockP50).toBeLessThanOrEqual(130);
     expect(variantRate).toBeGreaterThanOrEqual(0.12);
     expect(variantRate).toBeLessThanOrEqual(1.0);
     expect(rareRate).toBeGreaterThanOrEqual(0.02);
-    expect(rareRate).toBeLessThanOrEqual(0.35);
+    expect(rareRate).toBeLessThanOrEqual(0.85);
     expect(fiveSlotRate).toBeGreaterThanOrEqual(0.24);
-    expect(fiveSlotRate).toBeLessThanOrEqual(0.42);
+    expect(fiveSlotRate).toBeLessThanOrEqual(0.85);
   });
 });

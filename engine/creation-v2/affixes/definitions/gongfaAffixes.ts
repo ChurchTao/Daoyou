@@ -1,17 +1,10 @@
 /*
- * gongfaAffixes: 功法词缀定义（梦幻西游风格三角重构）
- *
- * 功法定位："路" — 负责"流派成立感"，词条价值集中在全局规则与倍率。
- *
- * 池结构：
- *   gongfa_foundation (~45%) — 百分比属性 + 通用增减伤 + 控制属性
- *   gongfa_school     (~40%) — 定义"这套到底怎么玩"
- *   gongfa_secret     (~15%) — 制造"门派真传感"
- *
- * 硬边界（Section 2.3 + Section 6.2）：
- *   - 不提供固定面板（FIXED modifier 归 artifact）
- *   - 不承担受击型防御特效（OWNER_AS_TARGET 归 artifact）
- *   - 以 OWNER_AS_CASTER / GLOBAL 为主
+ * 灵能消耗平衡规则 (Energy Cost Balance Rule - V2):
+ * 1. 核心池 (Core/Panel): 8 ~ 15 点。作为基础底盘，保证产物基本强度。
+ * 2. 变体池 (Variant/School/Defense): 12 ~ 20 点。主要能量吸收点，定义流派特色。
+ * 3. 稀有池 (Rare/Secret/Treasure): 35 ~ 55 点。顶级消耗项，吸收神品材料溢出能量，产出质变效果。
+ * 
+ * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
 import {
   CreationTags,
@@ -48,7 +41,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 100,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -75,7 +68,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 95,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -101,7 +94,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 80,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -128,7 +121,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 70,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -148,7 +141,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 75,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -175,7 +168,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 90,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -202,7 +195,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 90,
-    energyCost: 8,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -229,7 +222,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 60,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -256,7 +249,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 55,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -283,7 +276,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 50,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -312,7 +305,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 45,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -341,7 +334,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 40,
-    energyCost: 7,
+    energyCost: 10,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -370,7 +363,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_DAMAGE_MOD,
     weight: 55,
-    energyCost: 9,
+    energyCost: 12,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -404,7 +397,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_DAMAGE_MOD,
     weight: 45,
-    energyCost: 9,
+    energyCost: 12,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'attribute_modifier',
@@ -436,7 +429,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 75,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -473,7 +466,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 72,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -510,7 +503,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 70,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -547,7 +540,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 68,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -584,7 +577,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 65,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -621,7 +614,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 63,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -658,7 +651,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 60,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -695,7 +688,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 58,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -734,7 +727,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 50,
-    energyCost: 8,
+    energyCost: 12,
     applicableTo: ['gongfa'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
@@ -772,7 +765,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 42,
-    energyCost: 8,
+    energyCost: 12,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -808,7 +801,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 38,
-    energyCost: 9,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -844,7 +837,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 40,
-    energyCost: 9,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -880,7 +873,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 35,
-    energyCost: 8,
+    energyCost: 16,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -919,7 +912,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 30,
-    energyCost: 10,
+    energyCost: 20,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -957,7 +950,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 32,
-    energyCost: 10,
+    energyCost: 20,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -995,7 +988,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 35,
-    energyCost: 11,
+    energyCost: 20,
     applicableTo: ['gongfa'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -1041,7 +1034,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 5,
-    energyCost: 16,
+    energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -1088,7 +1081,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 5,
-    energyCost: 16,
+    energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -1133,7 +1126,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 6,
-    energyCost: 14,
+    energyCost: 45,
     minQuality: '灵品',
     applicableTo: ['gongfa'],
     grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
@@ -1175,7 +1168,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.SECRET_ULTIMATE,
     weight: 4,
-    energyCost: 15,
+    energyCost: 55,
     minQuality: '真品',
     applicableTo: ['gongfa'],
     effectTemplate: {
@@ -1208,3 +1201,4 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
 ];
+

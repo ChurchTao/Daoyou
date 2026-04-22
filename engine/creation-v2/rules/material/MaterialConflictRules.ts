@@ -52,7 +52,7 @@ export function detectMaterialConflicts(
   ) {
     conflicts.push({
       id: CONFLICT_IDS.ELEMENT_FIRE_ICE,
-      reason: '火、冰材料在首版规则中不可同炉炼制',
+      reason: '火、冰材料不可同炉炼制',
       relatedTags: [ELEMENT_TO_MATERIAL_TAG.火, ELEMENT_TO_MATERIAL_TAG.冰],
     });
   }
