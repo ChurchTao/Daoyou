@@ -46,7 +46,6 @@ function toDetailItem(
       slot: (item.slot as Artifact['slot']) || 'weapon',
       element: (item.element as Artifact['element']) || '金',
       quality: item.quality as Artifact['quality'],
-      required_realm: item.requiredRealm as Artifact['required_realm'],
       description: item.description,
       score: item.score,
     };

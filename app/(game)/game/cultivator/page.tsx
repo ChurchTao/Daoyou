@@ -425,9 +425,6 @@ export default function CultivatorPage() {
                         </div>
                       )}
                       <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-                        {item.required_realm && (
-                          <span>境界要求：{item.required_realm}</span>
-                        )}
                         <span className="text-ink font-bold">已装备</span>
                       </div>
                     </div>

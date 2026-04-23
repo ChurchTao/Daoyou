@@ -6,6 +6,7 @@ import {
   RecipeMatch,
   RolledAffix,
 } from '../../types';
+import { RealmStage, RealmType } from '@/types/constants';
 
 export interface CompositionEnergySummary {
   effectiveTotal: number;
@@ -31,4 +32,6 @@ export interface CompositionFacts {
    * If absent, rules should fall back to 'damage'.
    */
   coreEffectType?: string;
+  anchorRealm?: RealmType;
+  anchorRealmStage?: RealmStage;
 }

@@ -43,12 +43,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
           {
             attrType: AttributeType.ATK,
             modType: ModifierType.FIXED,
-            value: { base: 100, scale: 'quality', coefficient: 150 },
+            value: { base: 40, scale: 'quality', coefficient: 6 },
           },
           {
             attrType: AttributeType.MAGIC_ATK,
             modType: ModifierType.FIXED,
-            value: { base: 100, scale: 'quality', coefficient: 150 },
+            value: { base: 40, scale: 'quality', coefficient: 6 },
           },
         ],
       },
@@ -74,12 +74,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
           {
             attrType: AttributeType.DEF,
             modType: ModifierType.FIXED,
-            value: { base: 100, scale: 'quality', coefficient: 120 },
+            value: { base: 32, scale: 'quality', coefficient: 6 },
           },
           {
             attrType: AttributeType.MAGIC_DEF,
             modType: ModifierType.FIXED,
-            value: { base: 100, scale: 'quality', coefficient: 120 },
+            value: { base: 32, scale: 'quality', coefficient: 6 },
           },
         ],
       },
@@ -185,7 +185,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.ATK,
         modType: ModifierType.FIXED,
-        value: { base: 15, scale: 'quality', coefficient: 7 },
+        value: { base: 18, scale: 'quality', coefficient: 4 },
       },
     },
   },
@@ -211,7 +211,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_ATK,
         modType: ModifierType.FIXED,
-        value: { base: 15, scale: 'quality', coefficient: 7 },
+        value: { base: 18, scale: 'quality', coefficient: 4 },
       },
     },
   },
@@ -237,7 +237,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.DEF,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 6 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -263,7 +263,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_DEF,
         modType: ModifierType.FIXED,
-        value: { base: 12, scale: 'quality', coefficient: 6 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -446,7 +446,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.FIXED,
-        value: { base: 10, scale: 'quality', coefficient: 30 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -472,7 +472,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.VITALITY,
         modType: ModifierType.FIXED,
-        value: { base: 10, scale: 'quality', coefficient: 30 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -498,7 +498,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WISDOM,
         modType: ModifierType.FIXED,
-        value: { base: 10, scale: 'quality', coefficient: 30 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -524,7 +524,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WILLPOWER,
         modType: ModifierType.FIXED,
-        value: { base: 10, scale: 'quality', coefficient: 30 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },
@@ -550,7 +550,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPEED,
         modType: ModifierType.FIXED,
-        value: { base: 10, scale: 'quality', coefficient: 30 },
+        value: { base: 12, scale: 'quality', coefficient: 5 },
       },
     },
   },

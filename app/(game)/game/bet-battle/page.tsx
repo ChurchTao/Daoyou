@@ -217,11 +217,7 @@ function getInventoryCardProps(item: InventoryItem) {
           <span className="text-ink-secondary text-sm">x1</span>
         </>
       ),
-      meta: item.required_realm ? (
-        <span className="text-ink-secondary text-xs">
-          境界要求：{item.required_realm}
-        </span>
-      ) : null,
+      meta: null,
       description: item.description,
     };
   }

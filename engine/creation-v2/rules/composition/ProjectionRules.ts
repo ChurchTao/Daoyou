@@ -16,6 +16,8 @@ import type {
   ListenerConfig,
 } from '../../contracts/battle';
 import { GameplayTags } from '@/engine/shared/tag-domain';
+import { REALM_STAGE_CAPS, RealmStage, RealmType } from '@/types/constants';
+import { AttributeType, ModifierType } from '../../contracts/battle';
 import { RolledAffix } from '../../types';
 import {
   CompositionDecision,
@@ -174,9 +176,21 @@ export class ProjectionRules implements Rule<
   }
 
   private buildPassivePolicy(facts: CompositionFacts): PassiveProjectionPolicy {
-    const { productType, intent, affixes, materialQualityProfile } = facts;
+    const {
+      productType,
+      intent,
+      affixes,
+      materialQualityProfile,
+      anchorRealm,
+      anchorRealmStage,
+    } = facts;
     const qualityOrder = materialQualityProfile.weightedAverageOrder;
     const projectionQuality = materialQualityProfile.weightedAverageQuality;
+    const anchorFactor = this.getAnchorGrowthFactor(
+      productType,
+      anchorRealm,
+      anchorRealmStage,
+    );
 
     // Partition affixes: attribute_modifier / random_attribute_modifier → direct AbilityConfig.modifiers
     // everything else → listener-wrapped effects
@@ -203,11 +217,18 @@ export class ProjectionRules implements Rule<
             modifierEntry.value,
             qualityOrder,
           );
+          const grownValue = this.applyArtifactAnchorGrowth(
+            productType,
+            modifierEntry.attrType,
+            modifierEntry.modType,
+            baseValue,
+            anchorFactor,
+          );
           // 核心改动：被动属性修正也应用随机倍率
           modifiers.push({
             attrType: modifierEntry.attrType,
             type: modifierEntry.modType,
-            value: baseValue * rolled.finalMultiplier,
+            value: grownValue * rolled.finalMultiplier,
           });
         }
       } else if (def.effectTemplate.type === 'random_attribute_modifier') {
@@ -219,10 +240,17 @@ export class ProjectionRules implements Rule<
             entry.value,
             qualityOrder,
           );
+          const grownValue = this.applyArtifactAnchorGrowth(
+            productType,
+            entry.attrType,
+            entry.modType,
+            baseValue,
+            anchorFactor,
+          );
           modifiers.push({
             attrType: entry.attrType,
             type: entry.modType,
-            value: baseValue * rolled.finalMultiplier,
+            value: grownValue * rolled.finalMultiplier,
           });
         }
       } else {
@@ -274,7 +302,48 @@ export class ProjectionRules implements Rule<
       priority: CREATION_LISTENER_PRIORITIES.actionPreBuff,
     };
   }
+
+  private getAnchorGrowthFactor(
+    productType: 'skill' | 'artifact' | 'gongfa',
+    anchorRealm?: RealmType,
+    anchorRealmStage?: RealmStage,
+  ): number {
+    if (productType !== 'artifact' || !anchorRealm || !anchorRealmStage) {
+      return 1;
+    }
+    const anchorCap = REALM_STAGE_CAPS[anchorRealm][anchorRealmStage];
+    return Math.pow(anchorCap / 20, 0.45);
+  }
+
+  private applyArtifactAnchorGrowth(
+    productType: 'skill' | 'artifact' | 'gongfa',
+    attrType: AttributeType,
+    modType: ModifierType,
+    baseValue: number,
+    anchorFactor: number,
+  ): number {
+    if (
+      productType !== 'artifact' ||
+      modType !== ModifierType.FIXED ||
+      !ARTIFACT_MAIN_PANEL_ATTRS.has(attrType)
+    ) {
+      return baseValue;
+    }
+    return baseValue * anchorFactor;
+  }
 }
+
+const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
+  AttributeType.ATK,
+  AttributeType.MAGIC_ATK,
+  AttributeType.DEF,
+  AttributeType.MAGIC_DEF,
+  AttributeType.SPIRIT,
+  AttributeType.VITALITY,
+  AttributeType.SPEED,
+  AttributeType.WISDOM,
+  AttributeType.WILLPOWER,
+]);
 
 /**
  * 从数组中随机不重复地抽取 count 个元素（Fisher-Yates partial shuffle）。

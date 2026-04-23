@@ -124,6 +124,8 @@ export function buildCompositionFacts(
     materialFingerprints,
     materialQualityProfile,
     materialNames: input.materials.map((m) => m.name),
+    ...(input.realm ? { anchorRealm: input.realm } : {}),
+    ...(input.realmStage ? { anchorRealmStage: input.realmStage } : {}),
     ...(coreEffectType !== undefined ? { coreEffectType } : {}),
   };
 }

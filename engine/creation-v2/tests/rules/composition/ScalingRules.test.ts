@@ -5,6 +5,8 @@ import type { CompositionFacts } from '@/engine/creation-v2/rules/contracts/Comp
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
 import type { RolledAffix } from '@/engine/creation-v2/types';
 import { CREATION_SKILL_DEFAULTS } from '@/engine/creation-v2/config/CreationBalance';
+import { REALM_STAGE_CAPS } from '@/types/constants';
+import { AttributeType, ModifierType } from '@/engine/creation-v2/contracts/battle';
 
 function toRolledAffix(def: AffixDefinition): RolledAffix {
   return {
@@ -66,6 +68,53 @@ function buildFacts(qualityOrder: number): CompositionFacts {
   };
 }
 
+function buildArtifactFacts(
+  qualityOrder: number,
+  anchorRealm: '炼气' | '渡劫',
+): CompositionFacts {
+  const panelAtk = DEFAULT_AFFIX_REGISTRY.queryById('artifact-panel-atk');
+  const quality = (['凡品', '灵品', '玄品', '真品', '地品', '天品', '仙品', '神品'] as const)[qualityOrder];
+
+  return {
+    productType: 'artifact',
+    intent: {
+      productType: 'artifact',
+      dominantTags: [],
+      elementBias: '金',
+      slotBias: 'weapon',
+    },
+    recipeMatch: {
+      recipeId: 'artifact-default',
+      valid: true,
+      matchedTags: [],
+      unlockedAffixCategories: [],
+    },
+    energySummary: {
+      effectiveTotal: 30,
+      reserved: 3,
+      startingAffixEnergy: 27,
+      spentAffixEnergy: 8,
+      remainingAffixEnergy: 19,
+    },
+    materialNames: ['测试材料'],
+    affixes: panelAtk ? [toRolledAffix(panelAtk)] : [],
+    materialQualityProfile: {
+      maxQuality: quality,
+      weightedAverageQuality: quality,
+      minQuality: quality,
+      maxQualityOrder: qualityOrder,
+      weightedAverageOrder: qualityOrder,
+      minQualityOrder: qualityOrder,
+      qualitySpread: 0,
+      totalQuantity: 1,
+    },
+    inputTags: [],
+    materialFingerprints: [],
+    anchorRealm,
+    anchorRealmStage: '圆满',
+  };
+}
+
 describe('ScalingRules (mpCost and cooldown)', () => {
   let ruleSet: CompositionRuleSet;
 
@@ -112,5 +161,25 @@ describe('ScalingRules (mpCost and cooldown)', () => {
     // 神品 (Order 7) 治疗: 基础 3 + 补偿 6 = 9 -> 封顶 8
     const decision = ruleSet.evaluate(facts);
     expect((decision.projectionPolicy as any).cooldown).toBe(8);
+  });
+
+  it('artifact 主面板 fixed 应按锚定境界成长', () => {
+    const lowAnchorDecision = ruleSet.evaluate(buildArtifactFacts(7, '炼气'));
+    const highAnchorDecision = ruleSet.evaluate(buildArtifactFacts(7, '渡劫'));
+
+    const lowValue = (lowAnchorDecision.projectionPolicy as any).modifiers.find(
+      (m: any) => m.attrType === AttributeType.ATK && m.type === ModifierType.FIXED,
+    )?.value;
+    const highValue = (highAnchorDecision.projectionPolicy as any).modifiers.find(
+      (m: any) => m.attrType === AttributeType.ATK && m.type === ModifierType.FIXED,
+    )?.value;
+
+    const baseByQuality = 1.2 + 0.6 * 7; // artifact-panel-atk @ 神品
+    const lowFactor = Math.pow(REALM_STAGE_CAPS['炼气']['圆满'] / 20, 0.45);
+    const highFactor = Math.pow(REALM_STAGE_CAPS['渡劫']['圆满'] / 20, 0.45);
+
+    expect(lowValue).toBeCloseTo(baseByQuality * lowFactor, 6);
+    expect(highValue).toBeCloseTo(baseByQuality * highFactor, 6);
+    expect(highValue).toBeGreaterThan(lowValue);
   });
 });

@@ -101,7 +101,6 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
         slot: item.slot,
         element: item.element,
         quality: item.quality,
-        required_realm: item.required_realm,
         description: item.description,
       },
     };

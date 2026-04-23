@@ -5,7 +5,6 @@ import {
   EQUIPMENT_SLOT_VALUES,
   MATERIAL_TYPE_VALUES,
   QUALITY_VALUES,
-  REALM_VALUES,
 } from '@/types/constants';
 import redeemRewardPresetsRaw from './redeemRewardPresets.json';
 import { z } from 'zod';
@@ -54,7 +53,6 @@ const ArtifactAttachmentSchema = z.object({
     slot: z.enum(EQUIPMENT_SLOT_VALUES),
     element: z.enum(ELEMENT_VALUES),
     quality: z.enum(QUALITY_VALUES).optional(),
-    required_realm: z.enum(REALM_VALUES).optional(),
     description: z.string().optional(),
     effects: z.array(z.record(z.string(), z.unknown())).default([]),
   }),
