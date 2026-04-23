@@ -71,7 +71,7 @@ export function ArtifactsTab({
             meta={
               <div className="space-y-1">
                 {affixLine && (
-                  <div className="flex flex-wrap items-center gap-1 text-xs">
+                  <div className="flex flex-wrap items-center gap-1 text-sm">
                     <span className="text-ink-secondary">词缀：</span>
                     {product.affixes.map((affix) => {
                       const style =
@@ -80,8 +80,8 @@ export function ArtifactsTab({
                           : affix.rarityTone === 'rare'
                             ? { color: 'var(--color-tier-xian)' }
                             : affix.rarityTone === 'info'
-                              ? { color: 'var(--color-tier-zhen)' }
-                              : { color: 'var(--color-tier-ling)' };
+                              ? { color: 'var(--color-tier-di)' }
+                              : { color: 'var(--color-tier-xuan)' };
                       return (
                         <span key={affix.id} style={style}>
                           {affix.isPerfect ? `极${affix.name}` : affix.name}

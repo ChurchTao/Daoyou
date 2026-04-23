@@ -8,19 +8,17 @@
  * 不再依赖此静态配置。
  */
 
+import type {
+  AbilityConfig,
+  AttributeModifierConfig,
+} from '@/engine/battle-v5/core/configs';
 import {
+  AbilityType,
   AttributeType,
   ModifierType,
-  AbilityType,
 } from '@/engine/battle-v5/core/types';
-import type {
-  AttributeModifierConfig,
-  AbilityConfig,
-} from '@/engine/battle-v5/core/configs';
 import type { ElementType } from '@/types/constants';
 import type { CultivationTechnique, Skill } from '@/types/cultivator';
-
-type Grade = '黄阶下品' | '黄阶中品' | '黄阶上品';
 
 function modifier(
   attrType: AttributeType,
@@ -32,13 +30,12 @@ function modifier(
 function buildTechnique(
   name: string,
   element: ElementType,
-  grade: Grade,
   modifiers: AttributeModifierConfig[],
 ): CultivationTechnique {
   return {
     name,
     element,
-    quality: grade,
+    quality: '凡品',
     attributeModifiers: modifiers,
   };
 }
@@ -62,7 +59,11 @@ function buildAttackSkill(
       {
         type: 'damage',
         params: {
-          value: { base: baseDamage, attribute: AttributeType.SPIRIT, coefficient: 1.2 },
+          value: {
+            base: baseDamage,
+            attribute: AttributeType.SPIRIT,
+            coefficient: 1.2,
+          },
         },
       },
     ],
@@ -70,7 +71,6 @@ function buildAttackSkill(
   return {
     name,
     element,
-    quality: '黄阶下品',
     cost,
     cooldown,
     target_self: false,
@@ -97,7 +97,11 @@ function buildHealSkill(
       {
         type: 'heal',
         params: {
-          value: { base: baseHeal, attribute: AttributeType.SPIRIT, coefficient: 1.0 },
+          value: {
+            base: baseHeal,
+            attribute: AttributeType.SPIRIT,
+            coefficient: 1.0,
+          },
           target: 'hp',
         },
       },
@@ -106,7 +110,7 @@ function buildHealSkill(
   return {
     name,
     element,
-    quality: '黄阶下品',
+    quality: '凡品',
     cost,
     cooldown,
     target_self: true,
@@ -114,59 +118,66 @@ function buildHealSkill(
   };
 }
 
-export const BASIC_TECHNIQUES: Record<
-  ElementType,
-  (grade: Grade) => CultivationTechnique
-> = {
-  金: (g) =>
-    buildTechnique('金锐功', '金', g, [
-      modifier(AttributeType.VITALITY, 5),
-      modifier(AttributeType.SPIRIT, 5),
-    ]),
-  木: (g) =>
-    buildTechnique('长春功', '木', g, [
-      modifier(AttributeType.VITALITY, 5),
-      modifier(AttributeType.WISDOM, 5),
-    ]),
-  水: (g) =>
-    buildTechnique('玄水诀', '水', g, [
-      modifier(AttributeType.SPIRIT, 5),
-      modifier(AttributeType.SPEED, 5),
-    ]),
-  火: (g) =>
-    buildTechnique('烈阳功', '火', g, [
-      modifier(AttributeType.SPIRIT, 8),
-      modifier(AttributeType.WILLPOWER, 2),
-    ]),
-  土: (g) =>
-    buildTechnique('厚土经', '土', g, [
-      modifier(AttributeType.VITALITY, 8),
-      modifier(AttributeType.WILLPOWER, 2),
-    ]),
-  风: (g) =>
-    buildTechnique('御风诀', '风', g, [
-      modifier(AttributeType.SPEED, 8),
-      modifier(AttributeType.WISDOM, 2),
-    ]),
-  雷: (g) =>
-    buildTechnique('紫雷诀', '雷', g, [
-      modifier(AttributeType.SPIRIT, 5),
-      modifier(AttributeType.SPEED, 5),
-    ]),
-  冰: (g) =>
-    buildTechnique('凝霜诀', '冰', g, [
-      modifier(AttributeType.SPIRIT, 6),
-      modifier(AttributeType.WILLPOWER, 4),
-    ]),
-};
+export const BASIC_TECHNIQUES: Record<ElementType, () => CultivationTechnique> =
+  {
+    金: () =>
+      buildTechnique('金锐功', '金', [
+        modifier(AttributeType.VITALITY, 5),
+        modifier(AttributeType.SPIRIT, 5),
+      ]),
+    木: () =>
+      buildTechnique('长春功', '木', [
+        modifier(AttributeType.VITALITY, 5),
+        modifier(AttributeType.WISDOM, 5),
+      ]),
+    水: () =>
+      buildTechnique('玄水诀', '水', [
+        modifier(AttributeType.SPIRIT, 5),
+        modifier(AttributeType.SPEED, 5),
+      ]),
+    火: () =>
+      buildTechnique('烈阳功', '火', [
+        modifier(AttributeType.SPIRIT, 8),
+        modifier(AttributeType.WILLPOWER, 2),
+      ]),
+    土: () =>
+      buildTechnique('厚土经', '土', [
+        modifier(AttributeType.VITALITY, 8),
+        modifier(AttributeType.WILLPOWER, 2),
+      ]),
+    风: () =>
+      buildTechnique('御风诀', '风', [
+        modifier(AttributeType.SPEED, 8),
+        modifier(AttributeType.WISDOM, 2),
+      ]),
+    雷: () =>
+      buildTechnique('紫雷诀', '雷', [
+        modifier(AttributeType.SPIRIT, 5),
+        modifier(AttributeType.SPEED, 5),
+      ]),
+    冰: () =>
+      buildTechnique('凝霜诀', '冰', [
+        modifier(AttributeType.SPIRIT, 6),
+        modifier(AttributeType.WILLPOWER, 4),
+      ]),
+  };
 
 export const BASIC_SKILLS: Record<ElementType, Skill[]> = {
   金: [buildAttackSkill('金锋术', '金', 12), buildHealSkill('铁皮术', '金', 8)],
   木: [buildAttackSkill('缠绕术', '木', 8), buildHealSkill('回春术', '木', 14)],
-  水: [buildAttackSkill('冰锥术', '水', 10), buildHealSkill('水罩术', '水', 12)],
+  水: [
+    buildAttackSkill('冰锥术', '水', 10),
+    buildHealSkill('水罩术', '水', 12),
+  ],
   火: [buildAttackSkill('烈焰指', '火', 14), buildHealSkill('焰息诀', '火', 8)],
-  土: [buildAttackSkill('落石术', '土', 11), buildHealSkill('厚土护体', '土', 10)],
+  土: [
+    buildAttackSkill('落石术', '土', 11),
+    buildHealSkill('厚土护体', '土', 10),
+  ],
   风: [buildAttackSkill('风刃', '风', 10), buildHealSkill('清风诀', '风', 9)],
   雷: [buildAttackSkill('紫雷击', '雷', 13), buildHealSkill('雷护身', '雷', 9)],
-  冰: [buildAttackSkill('寒冰刺', '冰', 11), buildHealSkill('冰幕诀', '冰', 10)],
+  冰: [
+    buildAttackSkill('寒冰刺', '冰', 11),
+    buildHealSkill('冰幕诀', '冰', 10),
+  ],
 };

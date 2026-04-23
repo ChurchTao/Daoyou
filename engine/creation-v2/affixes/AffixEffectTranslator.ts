@@ -13,24 +13,6 @@ import {
   SCALE_MODE,
 } from './types';
 
-// 属性永久 buff 名称展示
-const ATTR_BUFF_NAMES: Partial<Record<AttributeType, string>> = {
-  [AttributeType.SPIRIT]: '灵力提振',
-  [AttributeType.VITALITY]: '体魄强化',
-  [AttributeType.SPEED]: '身法敏锐',
-  [AttributeType.WILLPOWER]: '神识坚壁',
-  [AttributeType.WISDOM]: '悟性增益',
-  [AttributeType.ATK]: '物攻增幅',
-  [AttributeType.DEF]: '物防增幅',
-  [AttributeType.MAGIC_ATK]: '法攻增幅',
-  [AttributeType.MAGIC_DEF]: '法防增幅',
-  [AttributeType.CRIT_RATE]: '暴击敏锐',
-  [AttributeType.CRIT_DAMAGE_MULT]: '暴击深化',
-  [AttributeType.EVASION_RATE]: '身法轻灵',
-  [AttributeType.HEAL_AMPLIFY]: '治愈增幅',
-  [AttributeType.MAGIC_PENETRATION]: '法穿之锋',
-};
-
 /**
  * 词缀效果翻译器
  *

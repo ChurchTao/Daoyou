@@ -2,7 +2,7 @@ import {
   deserializeAbilityConfig,
   deserializeProductModel,
 } from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
-import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import { DEFAULT_AFFIX_REGISTRY, flattenAffixMatcherTags } from '@/engine/creation-v2/affixes';
 import type { CreationProductRecord } from '@/lib/repositories/creationProductRepository';
 import type { Artifact } from '@/types/cultivator';
 import type { Quality } from '@/types/constants';
@@ -51,8 +51,10 @@ function enrichProductModelByAffixId<T>(model: T): T {
       name: def.displayName,
       description: def.displayDescription,
       category: def.category,
-      effectTemplate: def.effectTemplate,
       rarity: def.rarity,
+      effectTemplate: def.effectTemplate,
+      tags: flattenAffixMatcherTags(def.match),
+      ...(def.grantedAbilityTags ? { grantedAbilityTags: def.grantedAbilityTags } : {}),
     };
   });
 

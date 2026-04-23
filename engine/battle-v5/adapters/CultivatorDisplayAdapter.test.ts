@@ -25,7 +25,6 @@ function createCultivatorFixture(): Cultivator {
       {
         id: 'gongfa-1',
         name: '太初吐纳诀',
-        required_realm: '炼气',
         attributeModifiers: [
           {
             attrType: AttributeType.VITALITY,

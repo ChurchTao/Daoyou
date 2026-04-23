@@ -1,4 +1,4 @@
-import type { RealmStage, RealmType } from '@/types/constants';
+import type { Quality, RealmStage, RealmType } from '@/types/constants';
 import type {
   CultivationProgress,
   Cultivator,
@@ -177,24 +177,20 @@ export function getCultivationTechniqueMultiplier(
   }
 
   // 使用最高品级的功法
-  const gradeMultipliers: Record<string, number> = {
-    黄阶下品: 0.8,
-    黄阶中品: 0.85,
-    黄阶上品: 0.9,
-    玄阶下品: 0.95,
-    玄阶中品: 1.0,
-    玄阶上品: 1.05,
-    地阶下品: 1.1,
-    地阶中品: 1.15,
-    地阶上品: 1.2,
-    天阶下品: 1.25,
-    天阶中品: 1.3,
-    天阶上品: 1.4,
+  const qualityMultipliers: Record<Quality, number> = {
+    凡品: 0.8,
+    灵品: 0.85,
+    玄品: 0.9,
+    真品: 0.95,
+    地品: 1.0,
+    天品: 1.05,
+    仙品: 1.1,
+    神品: 1.15,
   };
 
   let maxMultiplier = 0.8;
   for (const cultivation of cultivator.cultivations) {
-    const multiplier = gradeMultipliers[cultivation.grade || ''] ?? 0.8;
+    const multiplier = qualityMultipliers[cultivation.quality ?? '凡品'] ?? 0.8;
     if (multiplier > maxMultiplier) {
       maxMultiplier = multiplier;
     }

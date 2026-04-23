@@ -15,8 +15,8 @@ import { Quality } from '@/types/constants';
 function affixToneStyle(rarityTone: string) {
   if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
   if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
-  if (rarityTone === 'info') return { color: 'var(--color-tier-zhen)' };
-  return { color: 'var(--color-tier-ling)' };
+  if (rarityTone === 'info') return { color: 'var(--color-tier-di)' };
+  return { color: 'var(--color-tier-xuan)' };
 }
 
 function TechniqueCard({
@@ -47,7 +47,7 @@ function TechniqueCard({
       }
       meta={
         affixLine ? (
-          <div className="flex flex-wrap items-center gap-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1 text-sm">
             <span className="text-ink-secondary">词缀：</span>
             {technique.affixes.map((affix) => (
               <span key={affix.id} style={affixToneStyle(affix.rarityTone)}>

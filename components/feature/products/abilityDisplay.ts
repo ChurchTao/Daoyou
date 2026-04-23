@@ -30,7 +30,7 @@ import {
   type AffixRarity,
 } from '@/engine/battle-v5/effects/affixText';
 import { ATTR_LABELS } from '@/engine/battle-v5/effects/affixText/attributes';
-import type { Quality } from '@/types/constants';
+import type { ElementType, Quality } from '@/types/constants';
 
 // ===== 基础视图态 =====
 
@@ -77,8 +77,8 @@ export interface ProductDisplayModel {
   originalName?: string;
   description?: string;
   productType: 'skill' | 'artifact' | 'gongfa';
-  quality?: string;
-  element?: string;
+  quality?: Quality;
+  element?: ElementType;
   slot?: string;
   score: number;
   isEquipped?: boolean;
@@ -207,8 +207,8 @@ export interface ProductRecordLike {
   name?: string;
   description?: string | null;
   productType?: string;
-  element?: string | null;
-  quality?: string | null;
+  element?: ElementType | null;
+  quality?: Quality | null;
   slot?: string | null;
   score?: number;
   isEquipped?: boolean;

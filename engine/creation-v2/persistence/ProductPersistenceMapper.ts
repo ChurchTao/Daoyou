@@ -70,12 +70,25 @@ export function deserializeAbilityConfig(
 }
 
 /**
- * 序列化完整 ProductModel 为纯 JSON 对象。
+ * 序列化 ProductModel 为纯 JSON 对象，affixes 数组只保留 per-roll 的唯一字段。
+ * 静态词缀属性（effectTemplate / name / category / rarity / match 等）可在读取时
+ * 通过 affix.id 从注册表回填，无需持久化。
  */
 export function serializeProductModel(
   model: CreationProductModel,
 ): Record<string, unknown> {
-  return JSON.parse(JSON.stringify(model));
+  const json = JSON.parse(JSON.stringify(model)) as Record<string, unknown>;
+  const affixes = json.affixes;
+  if (Array.isArray(affixes)) {
+    json.affixes = affixes.map((affix: Record<string, unknown>) => ({
+      id: affix.id,
+      finalMultiplier: affix.finalMultiplier,
+      rollScore: affix.rollScore,
+      rollEfficiency: affix.rollEfficiency,
+      isPerfect: affix.isPerfect,
+    }));
+  }
+  return json;
 }
 
 /**

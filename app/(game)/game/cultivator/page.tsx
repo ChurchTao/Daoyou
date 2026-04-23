@@ -103,8 +103,8 @@ function chunkPairs<T>(items: T[]): T[][] {
 function affixToneStyle(rarityTone: string) {
   if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
   if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
-  if (rarityTone === 'info') return { color: 'var(--color-tier-zhen)' };
-  return { color: 'var(--color-tier-ling)' };
+  if (rarityTone === 'info') return { color: 'var(--color-tier-di)' };
+  return { color: 'var(--color-tier-xuan)' };
 }
 
 export default function CultivatorPage() {
@@ -394,6 +394,7 @@ export default function CultivatorPage() {
         {equippedItems.length > 0 ? (
           <InkList>
             {equippedItems.map((item) => {
+              const product = toProductDisplayModel(item as ProductRecordLike);
               const slotInfo = getEquipmentSlotInfo(item.slot);
 
               return (
@@ -403,9 +404,36 @@ export default function CultivatorPage() {
                   name={item.name}
                   quality={item.quality}
                   badgeExtra={
-                    <InkBadge tone="default">{`${item.element} · ${slotInfo.label}`}</InkBadge>
+                    <>
+                      <InkBadge tone="default">{item.element}</InkBadge>
+                      <InkBadge tone="default">{slotInfo.label}</InkBadge>
+                    </>
+                  }
+                  meta={
+                    <div className="space-y-1">
+                      {product.affixes.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 text-sm">
+                          <span className="text-ink-secondary">词缀：</span>
+                          {product.affixes.map((affix) => (
+                            <span
+                              key={affix.id}
+                              style={affixToneStyle(affix.rarityTone)}
+                            >
+                              {affix.isPerfect ? `极${affix.name}` : affix.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
+                        {item.required_realm && (
+                          <span>境界要求：{item.required_realm}</span>
+                        )}
+                        <span className="text-ink font-bold">已装备</span>
+                      </div>
+                    </div>
                   }
                   description={item.description}
+                  layout="col"
                 />
               );
             })}
@@ -440,7 +468,7 @@ export default function CultivatorPage() {
                   }
                   meta={
                     product.affixes.length > 0 ? (
-                      <div className="flex flex-wrap items-center gap-1 text-xs">
+                      <div className="flex flex-wrap items-center gap-1 text-sm">
                         <span className="text-ink-secondary">词缀：</span>
                         {product.affixes.map((affix) => (
                           <span
@@ -485,7 +513,7 @@ export default function CultivatorPage() {
                     meta={
                       <div className="space-y-1">
                         {product.affixes.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1 text-xs">
+                          <div className="flex flex-wrap items-center gap-1 text-sm">
                             <span className="text-ink-secondary">词缀：</span>
                             {product.affixes.map((affix) => (
                               <span

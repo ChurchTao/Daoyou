@@ -17,8 +17,8 @@ import { SkillDetailModal } from './SkillDetailModal';
 function affixToneStyle(rarityTone: string) {
   if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
   if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
-  if (rarityTone === 'info') return { color: 'var(--color-tier-zhen)' };
-  return { color: 'var(--color-tier-ling)' };
+  if (rarityTone === 'info') return { color: 'var(--color-tier-di)' };
+  return { color: 'var(--color-tier-xuan)' };
 }
 
 function SkillCard({
@@ -50,7 +50,7 @@ function SkillCard({
       meta={
         <div className="space-y-1">
           {affixLine && (
-            <div className="flex flex-wrap items-center gap-1 text-xs">
+            <div className="flex flex-wrap items-center gap-1 text-sm">
               <span className="text-ink-secondary">词缀：</span>
               {skill.affixes.map((affix) => (
                 <span key={affix.id} style={affixToneStyle(affix.rarityTone)}>

@@ -50,7 +50,7 @@ export class CharacterGenerator {
 
     // 3. 分配功法与神通
     // 功法：主灵根对应的基础功法
-    const cultivation = BASIC_TECHNIQUES[mainRoot.element]('黄阶下品');
+    const cultivation = BASIC_TECHNIQUES[mainRoot.element]();
     const cultivations: CultivationTechnique[] = [cultivation];
 
     // 神通：主灵根对应的一攻一守
