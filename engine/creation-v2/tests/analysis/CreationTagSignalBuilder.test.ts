@@ -39,7 +39,6 @@ describe('CreationTagSignalBuilder', () => {
 
     const intent: CreationIntent = {
       productType: 'skill',
-      outcomeKind: 'active_skill',
       dominantTags: ['Material.Semantic.Flame'],
       elementBias: '火',
     };

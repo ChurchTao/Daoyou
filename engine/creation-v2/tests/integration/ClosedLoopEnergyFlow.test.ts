@@ -35,7 +35,6 @@ function createSkillSession() {
 
   session.state.intent = {
     productType: 'skill',
-    outcomeKind: 'active_skill',
     dominantTags: ['Material.Semantic.Blade'],
   };
 

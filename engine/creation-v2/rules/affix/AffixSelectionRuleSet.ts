@@ -1,4 +1,4 @@
-import { CREATION_PHASES } from '../../types';
+import { CREATION_RULE_PHASES } from '../../types';
 import { AffixSelectionDecision, AffixSelectionFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { BudgetExhaustionRules } from './BudgetExhaustionRules';
@@ -33,7 +33,7 @@ export class AffixSelectionRuleSet {
   evaluate(facts: AffixSelectionFacts): AffixSelectionDecision {
     return this.ruleSet.evaluate(facts, {
       metadata: {
-        phase: CREATION_PHASES.AFFIX_SELECTION,
+        phase: CREATION_RULE_PHASES.AFFIX_SELECTION,
       },
     });
   }

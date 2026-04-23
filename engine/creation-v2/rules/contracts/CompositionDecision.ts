@@ -1,5 +1,5 @@
 import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../../contracts/battle';
-import { CreationOutcomeKind, RolledAffix } from '../../types';
+import { CreationProductType, RolledAffix } from '../../types';
 import { RuleDecisionMeta } from '../core';
 
 export type CompositionProjectionKind =
@@ -28,7 +28,7 @@ export interface PassiveProjectionPolicy {
 export type ProjectionPolicy = SkillProjectionPolicy | PassiveProjectionPolicy;
 
 export interface CompositionDecision extends RuleDecisionMeta {
-  outcomeKind: CreationOutcomeKind;
+  productType: CreationProductType;
   name: string;
   description?: string;
   outcomeTags: string[];

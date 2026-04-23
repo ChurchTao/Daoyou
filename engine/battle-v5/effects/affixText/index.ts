@@ -8,6 +8,13 @@
  *      使用的 EffectConfig；再由 describeEffectCore 格式化。
  *   4. 组合：`[监听前缀] [条件] [效果核心]`。
  */
+import {
+  AffixEffectTranslator,
+  DEFAULT_AFFIX_REGISTRY,
+  type AffixEffectTemplate,
+  type AffixListenerSpec,
+  type AffixRegistry,
+} from '@/engine/creation-v2/affixes';
 import type { RolledAffix } from '@/engine/creation-v2/types';
 import type { Quality } from '@/types/constants';
 import type {
@@ -16,19 +23,11 @@ import type {
   EffectConfig,
 } from '../../core/configs';
 import { AttributeType, ModifierType } from '../../core/types';
-import {
-  AffixEffectTranslator,
-  DEFAULT_AFFIX_REGISTRY,
-  type AffixEffectTemplate,
-  type AffixListenerSpec,
-  type AffixRegistry,
-} from '@/engine/creation-v2/affixes';
-import type { AffixDefinition } from '@/engine/creation-v2/affixes';
 import { attrLabel } from './attributes';
 import { describeConditions } from './conditions';
 import { describeEffectCore } from './effectCore';
-import { describeListener } from './listeners';
 import { formatAffixNumber, formatAffixPercent } from './format';
+import { describeListener } from './listeners';
 
 export interface RenderAffixOptions {
   registry?: AffixRegistry;
@@ -123,7 +122,7 @@ function buildBodyText(args: BuildBodyArgs): string {
     return describeAttributeModifiers(template, abilityConfig, quality, affix);
   }
 
-  const effect = resolveEffectConfig(affix, quality);
+  const effect = resolveEffectConfig(affix, template, quality);
   if (!effect) return '';
 
   const listenerText = describeListener(listenerSpec);
@@ -135,10 +134,16 @@ function buildBodyText(args: BuildBodyArgs): string {
 
 function resolveEffectConfig(
   affix: RolledAffix,
+  template: AffixEffectTemplate,
   quality: Quality,
 ): EffectConfig | null {
   try {
-    return translator.translate(affix, quality);
+    // 使用已解析的 template（可能来自注册表兜底），而非直接读 affix.effectTemplate
+    // 防止精简存储后 affix.effectTemplate 缺失导致翻译抛异常
+    const effective: RolledAffix = affix.effectTemplate
+      ? affix
+      : { ...affix, effectTemplate: template };
+    return translator.translate(effective, quality);
   } catch {
     return null;
   }
@@ -187,7 +192,9 @@ function describeAttributeModifiers(
     .join('、');
 }
 
-function collectTemplateAttrs(template: AffixEffectTemplate): Set<AttributeType> {
+function collectTemplateAttrs(
+  template: AffixEffectTemplate,
+): Set<AttributeType> {
   const attrs = new Set<AttributeType>();
   if (template.type === 'attribute_modifier') {
     const params = template.params;

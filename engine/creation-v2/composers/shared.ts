@@ -5,7 +5,7 @@ import {
   AffixListenerSpec,
 } from '../affixes/types';
 import type { EffectConfig, ListenerConfig } from '../contracts/battle';
-import type { CreationOutcomeKind, CreationProductType, RolledAffix } from '../types';
+import type { CreationProductType, RolledAffix } from '../types';
 /*
  * composers/shared.ts: Composer 公共工具。
  * 包含根据材料品质聚合默认质量、构建分组 listener，以及通用的 slug 生成器委托等辅助函数。
@@ -14,13 +14,7 @@ import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile'
 import { CreationSession } from '../CreationSession';
 import { CompositionFacts } from '../rules/contracts/CompositionFacts';
 
-export interface BuildGroupedListenersInput {
-  registry: AffixRegistry;
-  translator: AffixEffectTranslator;
-  rolledAffixes: RolledAffix[];
-  quality: Quality;
-  defaultListenerSpec: AffixListenerSpec;
-}
+
 
 export function buildGroupedListeners({
   registry,
@@ -28,7 +22,7 @@ export function buildGroupedListeners({
   rolledAffixes,
   quality,
   defaultListenerSpec,
-}: BuildGroupedListenersInput): ListenerConfig[] {
+}: { registry: AffixRegistry; translator: AffixEffectTranslator; rolledAffixes: RolledAffix[]; quality: Quality; defaultListenerSpec: AffixListenerSpec; }): ListenerConfig[] {
   const listenerMap = new Map<string, ListenerConfig>();
 
   for (const rolled of rolledAffixes) {
@@ -95,7 +89,6 @@ export function buildCreationListenerGuard(
 export function buildCompositionFacts(
   session: CreationSession,
   productType: CreationProductType,
-  outcomeKind: CreationOutcomeKind,
   registry?: AffixRegistry,
 ): CompositionFacts {
   const { intent, energyBudget, rolledAffixes, input, materialFingerprints } = session.state;
@@ -115,7 +108,6 @@ export function buildCompositionFacts(
 
   return {
     productType,
-    outcomeKind,
     intent,
     recipeMatch: session.state.recipeMatch!,
     energySummary: {

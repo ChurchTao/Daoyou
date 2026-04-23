@@ -31,7 +31,7 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
 
   compose(session: CreationSession): CreationBlueprint {
     const { rolledAffixes, input } = session.state;
-    const facts: CompositionFacts = buildCompositionFacts(session, 'skill', 'active_skill', this.registry);
+    const facts: CompositionFacts = buildCompositionFacts(session, 'skill', this.registry);
 
     const decision = this.compositionRuleSet.evaluate(facts);
     const policy = decision.projectionPolicy as SkillProjectionPolicy | undefined;
@@ -41,7 +41,6 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
 
     const productModel: SkillProductModel = {
       productType: 'skill',
-      outcomeKind: 'active_skill',
       slug: buildAbilitySlug(session.id, input.productType),
       name: decision.name,
       description: decision.description,
@@ -66,7 +65,7 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
     };
 
     return {
-      outcomeKind: productModel.outcomeKind,
+      productType: productModel.productType,
       productModel,
     };
   }

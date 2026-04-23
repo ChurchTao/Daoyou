@@ -17,7 +17,7 @@ import type { RuleTraceEntry } from './rules/core/types';
 import type { ExclusiveGroup } from './affixes/exclusiveGroups';
 
 export type CreationProductType = 'skill' | 'artifact' | 'gongfa';
-export type CreationOutcomeKind = 'active_skill' | 'artifact' | 'gongfa';
+
 export type AffixCategory =
   | 'skill_core'
   | 'skill_variant'
@@ -30,18 +30,6 @@ export type AffixCategory =
   | 'artifact_defense'
   | 'artifact_treasure';
 
-export const AFFIX_CATEGORIES = {
-  SKILL_CORE: 'skill_core',
-  SKILL_VARIANT: 'skill_variant',
-  SKILL_RARE: 'skill_rare',
-  GONGFA_FOUNDATION: 'gongfa_foundation',
-  GONGFA_SCHOOL: 'gongfa_school',
-  GONGFA_SECRET: 'gongfa_secret',
-  ARTIFACT_CORE: 'artifact_core',
-  ARTIFACT_PANEL: 'artifact_panel',
-  ARTIFACT_DEFENSE: 'artifact_defense',
-  ARTIFACT_TREASURE: 'artifact_treasure',
-} as const satisfies Record<string, AffixCategory>;
 
 export const CREATION_PRODUCT_TYPES = ['skill', 'artifact', 'gongfa'] as const;
 
@@ -133,7 +121,6 @@ export interface CreationTagSignal {
 
 export interface CreationIntent {
   productType: CreationProductType;
-  outcomeKind: CreationOutcomeKind;
   dominantTags: string[];
   elementBias?: ElementType;
   slotBias?: EquipmentSlot;
@@ -172,7 +159,7 @@ export const AFFIX_STOP_REASONS = {
 } as const satisfies Record<string, AffixSelectionStopReason>;
 
 /** Rule evaluation phase identifiers — used in RuleContext metadata */
-export const CREATION_PHASES = {
+export const CREATION_RULE_PHASES = {
   MATERIAL_VALIDATION: 'material_validation',
   RECIPE_VALIDATION: 'recipe_validation',
   AFFIX_POOL_BUILD: 'affix_pool_build',
@@ -223,7 +210,7 @@ export interface AffixSelectionAudit {
   finalDecision?: AffixSelectionDecision;
 }
 
-export interface EnergyBudgetAllocation {
+export interface EnergyBudget {
   baseTotal: number;
   effectiveTotal: number;
   reserved: number;
@@ -232,17 +219,12 @@ export interface EnergyBudgetAllocation {
     source: string;
     amount: number;
   }>;
-}
-
-export interface EnergyBudgetLedger {
   spent: number;
   remaining: number;
   allocations: AffixAllocation[];
   rejections?: AffixRejection[];
   exhaustionReason?: AffixSelectionStopReason;
 }
-
-export interface EnergyBudget extends EnergyBudgetAllocation, EnergyBudgetLedger {}
 
 /** Returns a zero-value EnergyBudget for cases where session budget is unavailable */
 export function createEmptyEnergyBudget(): EnergyBudget {
@@ -284,7 +266,7 @@ export interface RolledAffix extends AffixCandidate {
 }
 
 export interface CreationBlueprint {
-  outcomeKind: CreationOutcomeKind;
+  productType: CreationProductType;
   productModel: CreationProductModel;
 }
 

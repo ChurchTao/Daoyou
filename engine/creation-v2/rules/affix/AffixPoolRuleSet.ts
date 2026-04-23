@@ -1,4 +1,4 @@
-import { CREATION_PHASES } from '../../types';
+import { CREATION_RULE_PHASES } from '../../types';
 import { AffixEligibilityFacts, AffixPoolDecision } from '../contracts';
 import { RuleSet } from '../core';
 import { AffixEligibilityRules } from './AffixEligibilityRules';
@@ -25,7 +25,7 @@ export class AffixPoolRuleSet {
   evaluate(facts: AffixEligibilityFacts): AffixPoolDecision {
     return this.ruleSet.evaluate(facts, {
       metadata: {
-        phase: CREATION_PHASES.AFFIX_POOL_BUILD,
+        phase: CREATION_RULE_PHASES.AFFIX_POOL_BUILD,
       },
     });
   }

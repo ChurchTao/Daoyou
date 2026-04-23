@@ -41,21 +41,12 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
 function buildMinimalFacts(
   productType: 'skill' | 'artifact' | 'gongfa',
 ): CompositionFacts {
-  const outcomeKind =
-    productType === 'skill'
-      ? 'active_skill'
-      : productType === 'artifact'
-        ? 'artifact'
-        : 'gongfa';
-
   const skillCore = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-damage');
 
   return {
     productType,
-    outcomeKind: outcomeKind as CompositionFacts['outcomeKind'],
     intent: {
       productType,
-      outcomeKind: outcomeKind as CompositionFacts['intent']['outcomeKind'],
       dominantTags: [],
       elementBias: '火',
       slotBias: 'weapon',
@@ -255,7 +246,7 @@ describe('WorkflowDecisionBoundary — CompositionRuleSet 契约验证', () => {
     it('skill 流程结束后 decision 应包含 outcomeKind / name / outcomeTags / projectionPolicy', () => {
       const decision = ruleSet.evaluate(buildMinimalFacts('skill'));
 
-      expect(decision.outcomeKind).toBe('active_skill');
+      expect(decision.productType).toBe('active_skill');
       expect(decision.name).toBeTruthy();
       expect(decision.outcomeTags).toContain('Outcome.ActiveSkill');
       expect(decision.projectionPolicy?.kind).toBe('active_skill');

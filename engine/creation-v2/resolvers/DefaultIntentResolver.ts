@@ -18,8 +18,6 @@ export class DefaultIntentResolver {
     input: CreationSessionInput,
     fingerprints: MaterialFingerprint[],
   ): CreationIntent {
-    const outcomeKind =
-      input.productType === 'skill' ? 'active_skill' : input.productType;
     const dominantTags = MaterialFactsBuilder.pickDominantTags(
       fingerprints,
     );
@@ -27,7 +25,6 @@ export class DefaultIntentResolver {
 
     return {
       productType: input.productType,
-      outcomeKind,
       dominantTags,
       elementBias: this.pickElementBias(fingerprints),
       slotBias: slotBiasResolution.slotBias,

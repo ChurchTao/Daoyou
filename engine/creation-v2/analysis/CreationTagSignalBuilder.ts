@@ -6,11 +6,7 @@ import type {
   RecipeMatch,
 } from '../types';
 
-interface BuildCreationTagSignalsInput {
-  materialFingerprints: MaterialFingerprint[];
-  intent?: CreationIntent;
-  recipeMatch?: RecipeMatch;
-}
+
 
 const SIGNAL_WEIGHTS = CREATION_AFFIX_POOL_SCORING.tagSignalWeights;
 
@@ -18,7 +14,7 @@ export function buildCreationTagSignals({
   materialFingerprints,
   intent,
   recipeMatch,
-}: BuildCreationTagSignalsInput): CreationTagSignal[] {
+}: { materialFingerprints: MaterialFingerprint[]; intent?: CreationIntent; recipeMatch?: RecipeMatch; }): CreationTagSignal[] {
   const signals: CreationTagSignal[] = [];
 
   const pushSignals = (

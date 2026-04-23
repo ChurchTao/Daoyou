@@ -9,13 +9,11 @@ import type { CreationOutcomeMaterializer } from '../adapters/types';
 import type {
   CraftedOutcome,
   CreationBlueprint,
-  CreationOutcomeKind,
   CreationProductType,
 } from '../types';
 
 export interface CraftedOutcomeSnapshot {
   productType: CreationProductType;
-  outcomeKind: CreationOutcomeKind;
   blueprint: CreationBlueprint;
   productModel: CreationProductModel;
   abilityConfig: AbilityConfig;
@@ -26,7 +24,6 @@ export function snapshotCraftedOutcome(
 ): CraftedOutcomeSnapshot {
   return {
     productType: outcome.blueprint.productModel.productType,
-    outcomeKind: outcome.blueprint.outcomeKind,
     blueprint: outcome.blueprint,
     productModel: outcome.blueprint.productModel,
     abilityConfig: projectAbilityConfig(outcome.blueprint.productModel),
@@ -57,7 +54,6 @@ export function restoreCraftedOutcome(
   );
 
   if (
-    restored.blueprint.outcomeKind !== snapshot.outcomeKind ||
     restored.blueprint.productModel.productType !== snapshot.productModel.productType ||
     restored.blueprint.productModel.slug !== snapshot.productModel.slug ||
     restored.blueprint.productModel.name !== snapshot.productModel.name
@@ -77,7 +73,7 @@ export function assertSnapshotShape(
     throw new Error('Invalid crafted outcome snapshot payload');
   }
 
-  if (!snapshot.productType || !snapshot.outcomeKind) {
+  if (!snapshot.productType) {
     throw new Error('Crafted outcome snapshot is missing identity fields');
   }
 

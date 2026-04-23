@@ -32,7 +32,7 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
 
   compose(session: CreationSession): CreationBlueprint {
     const { rolledAffixes, input } = session.state;
-    const facts: CompositionFacts = buildCompositionFacts(session, 'artifact', 'artifact', this.registry);
+    const facts: CompositionFacts = buildCompositionFacts(session, 'artifact', this.registry);
 
     const decision = this.compositionRuleSet.evaluate(facts);
     const policy = decision.projectionPolicy as PassiveProjectionPolicy | undefined;
@@ -49,8 +49,7 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
     };
 
     const productModel: ArtifactProductModel = {
-      productType: 'artifact',
-      outcomeKind: 'artifact',
+      productType: "artifact",
       slug: buildAbilitySlug(session.id, input.productType),
       name: decision.name,
       description: decision.description,
@@ -70,7 +69,7 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
     };
 
     return {
-      outcomeKind: productModel.outcomeKind,
+      productType: productModel.productType,
       productModel,
     };
   }

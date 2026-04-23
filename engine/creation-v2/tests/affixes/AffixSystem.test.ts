@@ -304,7 +304,6 @@ describe('AffixSelector', () => {
 
   const makeIntent = (): CreationIntent => ({
     productType: 'skill',
-    outcomeKind: 'active_skill',
     dominantTags: [],
   });
 
@@ -609,7 +608,6 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
 
     session.state.intent = {
       productType: 'artifact',
-      outcomeKind: 'artifact',
       slotBias: 'armor',
       dominantTags: [],
     };

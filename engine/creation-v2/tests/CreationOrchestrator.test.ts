@@ -47,7 +47,7 @@ describe('CreationOrchestrator', () => {
     const blueprint = orchestrator.composeBlueprintWithDefaults(session);
 
     expect(fingerprints[0].semanticTags).toContain('Material.Semantic.Flame');
-    expect(intent.outcomeKind).toBe('active_skill');
+    expect(intent.productType).toBe('skill');
     expect(recipeMatch.valid).toBe(true);
     expect(budget.effectiveTotal).toBeGreaterThan(0);
     expect(projectAbilityConfig(blueprint.productModel).type).toBe(AbilityType.ACTIVE_SKILL);
@@ -130,10 +130,9 @@ describe('CreationOrchestrator', () => {
       sources: [{ source: '赤炎精铁', amount: 24 }],
     };
     const blueprint: CreationBlueprint = {
-      outcomeKind: 'active_skill',
+      productType: 'skill',
       productModel: {
         productType: 'skill',
-        outcomeKind: 'active_skill',
         slug: 'craft-skill-session-active',
         name: '焚岳诀',
         description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
@@ -188,7 +187,6 @@ describe('CreationOrchestrator', () => {
     orchestrator.recordMaterialAnalysis(session, fingerprints);
     orchestrator.resolveIntent(session, {
       productType: 'skill',
-      outcomeKind: 'active_skill',
       dominantTags: ['fire', 'burst'],
       elementBias: '火',
     });
@@ -241,15 +239,13 @@ describe('CreationOrchestrator', () => {
     ]);
     orchestrator.resolveIntent(session, {
       productType: 'artifact',
-      outcomeKind: 'artifact',
       dominantTags: ['ice', 'defensive'],
       elementBias: '冰',
     });
     orchestrator.composeBlueprint(session, {
-      outcomeKind: 'artifact',
+      productType: 'artifact',
       productModel: {
         productType: 'artifact',
-        outcomeKind: 'artifact',
         slug: 'craft-passive-session-passive',
         name: '玄冰护心佩',
         description: '寒意护体，遇袭时凝结冰盾。',
@@ -394,7 +390,6 @@ describe('CreationOrchestrator', () => {
 
     orchestrator.resolveIntent(session, {
       productType: 'skill',
-      outcomeKind: 'active_skill',
       dominantTags: ['Outcome.ActiveSkill'],
     });
 
@@ -413,7 +408,6 @@ describe('CreationOrchestrator', () => {
 
     orchestrator.resolveIntent(session, {
       productType: 'skill',
-      outcomeKind: 'active_skill',
       dominantTags: ['Material.Semantic.Burst'],
     });
     orchestrator.budgetEnergy(session, {
@@ -542,10 +536,9 @@ describe('CreationOrchestrator', () => {
     });
 
     const blueprint: CreationBlueprint = {
-      outcomeKind: 'active_skill',
+      productType: 'skill',
       productModel: {
         productType: 'skill',
-        outcomeKind: 'active_skill',
         slug: 'test-abstract-materializer',
         name: '测试造物',
         description: '抽象物化器测试',

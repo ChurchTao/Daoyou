@@ -1,6 +1,5 @@
 import {
   CreationIntent,
-  CreationOutcomeKind,
   CreationProductType,
   MaterialFingerprint,
   MaterialQualityProfile,
@@ -18,7 +17,6 @@ export interface CompositionEnergySummary {
 
 export interface CompositionFacts {
   productType: CreationProductType;
-  outcomeKind: CreationOutcomeKind;
   intent: CreationIntent;
   recipeMatch: RecipeMatch;
   energySummary: CompositionEnergySummary;

@@ -1,4 +1,4 @@
-import { CREATION_PHASES } from '../../types';
+import { CREATION_RULE_PHASES } from '../../types';
 import { MaterialDecision, MaterialFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { MaterialConflictRules } from './MaterialConflictRules';
@@ -38,7 +38,7 @@ export class MaterialRuleSet {
   evaluate(facts: MaterialFacts): MaterialDecision {
     return this.ruleSet.evaluate(facts, {
       metadata: {
-        phase: CREATION_PHASES.MATERIAL_VALIDATION,
+        phase: CREATION_RULE_PHASES.MATERIAL_VALIDATION,
       },
     });
   }

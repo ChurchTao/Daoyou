@@ -1,4 +1,4 @@
-import { RuleDiagnosticsSnapshot, RuleReason, RuleTraceEntry } from './types';
+import { RuleDecisionMeta, RuleReason, RuleTraceEntry } from './types';
 
 /*
  * RuleDiagnostics: 规则执行期间用于收集 reasons/warnings/trace 的工具类。
@@ -22,7 +22,7 @@ export class RuleDiagnostics {
     this.trace.push(entry);
   }
 
-  merge(snapshot: Partial<RuleDiagnosticsSnapshot>): void {
+  merge(snapshot: Partial<RuleDecisionMeta>): void {
     if (snapshot.reasons) {
       this.reasons.push(...snapshot.reasons);
     }
@@ -36,7 +36,7 @@ export class RuleDiagnostics {
     }
   }
 
-  toSnapshot(): RuleDiagnosticsSnapshot {
+  toSnapshot(): RuleDecisionMeta {
     return {
       reasons: [...this.reasons],
       warnings: [...this.warnings],

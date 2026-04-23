@@ -6,11 +6,7 @@ import {
 import type { CreationProductType, RolledAffix } from '../../types';
 import { CreationError } from '../../errors';
 
-export interface AbilityTagAssemblyInput {
-  productType: CreationProductType;
-  rolledAffixes?: RolledAffix[];
-  elementBias?: ElementType;
-}
+
 
 /**
  * AbilityTagAssembler: 直接聚合抽中 affix 的最终能力标签。
@@ -24,7 +20,7 @@ export function assembleAbilityTags({
   productType,
   rolledAffixes = [],
   elementBias,
-}: AbilityTagAssemblyInput): string[] {
+}: { productType: CreationProductType; rolledAffixes?: RolledAffix[]; elementBias?: ElementType; }): string[] {
   const tags = new Set<string>();
 
   for (const rolled of rolledAffixes) {

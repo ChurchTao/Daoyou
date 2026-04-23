@@ -31,10 +31,8 @@ function buildFacts(qualityOrder: number): CompositionFacts {
 
   return {
     productType: 'skill',
-    outcomeKind: 'active_skill',
     intent: {
       productType: 'skill',
-      outcomeKind: 'active_skill',
       dominantTags: [],
       elementBias: '火',
     },

@@ -1,6 +1,6 @@
 import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../contracts/battle';
 import type { EquipmentSlot } from '@/types/constants';
-import type { CreationOutcomeKind, CreationProductType, RolledAffix } from '../types';
+import type { CreationProductType, RolledAffix } from '../types';
 import type { BalanceMetrics } from '../balancing/PBU';
 
 export interface ArtifactDomainConfig {
@@ -18,10 +18,8 @@ export interface GongFaDomainConfig {
 
 interface BaseProductModel<
   TProductType extends CreationProductType,
-  TOutcomeKind extends CreationOutcomeKind,
 > {
   productType: TProductType;
-  outcomeKind: TOutcomeKind;
   slug: string;
   name: string;
   originalName?: string;
@@ -57,19 +55,19 @@ export interface GongFaBattleProjection {
 }
 
 export interface SkillProductModel
-  extends BaseProductModel<'skill', 'active_skill'> {
+  extends BaseProductModel<'skill'> {
   /** Battle projection is the single source of truth for all battle-facing fields. */
   battleProjection: ActiveSkillBattleProjection;
 }
 
 export interface ArtifactProductModel
-  extends BaseProductModel<'artifact', 'artifact'> {
+  extends BaseProductModel<'artifact'> {
   artifactConfig: ArtifactDomainConfig;
   battleProjection: ArtifactBattleProjection;
 }
 
 export interface GongFaProductModel
-  extends BaseProductModel<'gongfa', 'gongfa'> {
+  extends BaseProductModel<'gongfa'> {
   gongfaConfig: GongFaDomainConfig;
   battleProjection: GongFaBattleProjection;
 }

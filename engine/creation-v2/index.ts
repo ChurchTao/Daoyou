@@ -31,7 +31,6 @@ export type {
 	RuleContext,
 	RuleContextMetadata,
 	RuleDecisionMeta,
-	RuleDiagnosticsSnapshot,
 	RuleReason,
 	RuleTraceEntry,
 	RuleTraceOutcome,

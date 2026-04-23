@@ -81,8 +81,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-foundation-wisdom',
-    displayName: '根骨增益',
-    displayDescription: '战斗中提升根骨百分比，法术穿透与命中提高',
+    displayName: '悟性增益',
+    displayDescription: '战斗中提升悟性百分比，法术穿透与命中提高',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -107,8 +107,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-foundation-willpower',
-    displayName: '意志强化',
-    displayDescription: '战斗中提升意志百分比，抗性与控制抵抗提高',
+    displayName: '神识强化',
+    displayDescription: '战斗中提升神识百分比，抗性与控制抵抗提高',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {

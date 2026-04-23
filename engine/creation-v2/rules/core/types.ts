@@ -24,4 +24,3 @@ export interface RuleDecisionMeta {
   trace: RuleTraceEntry[];
 }
 
-export interface RuleDiagnosticsSnapshot extends RuleDecisionMeta {}

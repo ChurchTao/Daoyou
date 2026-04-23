@@ -1,6 +1,6 @@
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { ELEMENT_TAG_TOKENS } from '../../config/CreationMappings';
-import { CREATION_PHASES, defaultRecipeId } from '../../types';
+import { CREATION_RULE_PHASES, defaultRecipeId } from '../../types';
 import { RecipeDecision, RecipeFacts } from '../contracts';
 import { RuleSet } from '../core';
 import { AffixUnlockRules } from './AffixUnlockRules';
@@ -37,7 +37,7 @@ export class RecipeValidationRuleSet {
   evaluate(facts: RecipeFacts): RecipeDecision {
     return this.ruleSet.evaluate(facts, {
       metadata: {
-        phase: CREATION_PHASES.RECIPE_VALIDATION,
+        phase: CREATION_RULE_PHASES.RECIPE_VALIDATION,
       },
     });
   }

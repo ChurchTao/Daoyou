@@ -40,7 +40,7 @@ export class CompositionRuleSet {
         new ProjectionRules(registry, translator),
       ],
       (facts) => ({
-        outcomeKind: facts.outcomeKind,
+        productType: facts.productType,
         name: '',
         description: undefined,
         outcomeTags: [],
