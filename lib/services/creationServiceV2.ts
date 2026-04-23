@@ -22,7 +22,7 @@ import { getExecutor } from '@/lib/drizzle/db';
 import { cultivators, materials } from '@/lib/drizzle/schema';
 import { redis } from '@/lib/redis';
 import * as creationProductRepository from '@/lib/repositories/creationProductRepository';
-import type { EquipmentSlot, Quality } from '@/types/constants';
+import type { EquipmentSlot, Quality, RealmStage, RealmType } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
 
@@ -326,6 +326,9 @@ export async function processCreation(
 
     const session = await orchestrator.craftAsync({
       cultivatorId,
+      creatorName: cultivator.name,
+      realm: cultivator.realm as RealmType,
+      realmStage: cultivator.realm_stage as RealmStage,
       productType,
       materials: engineMaterials,
       ...(userPrompt?.trim() ? { userPrompt: userPrompt.trim() } : {}),

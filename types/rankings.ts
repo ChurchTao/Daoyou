@@ -16,7 +16,6 @@ export interface ItemRankingEntry {
   description?: string;
   element?: string;
   slot?: string;
-  requiredRealm?: string;
   cost?: number;
   cooldown?: number;
   quantity?: number;

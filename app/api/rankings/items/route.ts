@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
         title: item.quality ?? undefined,
         element: item.element ?? undefined,
         slot: item.slot ?? undefined,
-        requiredRealm: undefined,
       }));
     } else if (type === 'skill') {
       const rows = await getExecutor()
@@ -170,7 +169,6 @@ export async function GET(request: NextRequest) {
         score: item.score || 0,
         description: item.description || '',
         title: item.quality || '未知品阶',
-        requiredRealm: undefined,
       }));
     }
 

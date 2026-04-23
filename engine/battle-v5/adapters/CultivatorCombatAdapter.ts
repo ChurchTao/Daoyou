@@ -1,6 +1,12 @@
 import type { Cultivator } from '@/types/cultivator';
+import { REALM_ORDER, type RealmType } from '@/types/constants';
 import { AbilityFactory } from '../factories/AbilityFactory';
-import { AttributeType, type UnitId } from '../core/types';
+import {
+  AttributeType,
+  ModifierType,
+  type UnitId,
+} from '../core/types';
+import type { AbilityConfig } from '../core/configs';
 import { Unit } from '../units/Unit';
 
 const ATTRIBUTE_MAP = {
@@ -10,6 +16,54 @@ const ATTRIBUTE_MAP = {
   wisdom: AttributeType.WISDOM,
   willpower: AttributeType.WILLPOWER,
 } as const;
+
+const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
+  AttributeType.ATK,
+  AttributeType.MAGIC_ATK,
+  AttributeType.DEF,
+  AttributeType.MAGIC_DEF,
+  AttributeType.SPIRIT,
+  AttributeType.VITALITY,
+  AttributeType.SPEED,
+  AttributeType.WISDOM,
+  AttributeType.WILLPOWER,
+]);
+
+function getCrossRealmModifierFactor(
+  anchorRealm: RealmType | undefined,
+  wearerRealm: RealmType,
+): number {
+  if (!anchorRealm) return 1;
+  const diff = REALM_ORDER[anchorRealm] - REALM_ORDER[wearerRealm];
+  if (diff <= 0) return 1;
+  if (diff === 1) return 0.8;
+  if (diff === 2) return 0.55;
+  if (diff === 3) return 0.45;
+  return 0.35;
+}
+
+function scaleArtifactAbilityConfig(
+  abilityConfig: AbilityConfig,
+  factor: number,
+): AbilityConfig {
+  if (!abilityConfig.modifiers?.length || factor >= 0.999) {
+    return abilityConfig;
+  }
+
+  return {
+    ...abilityConfig,
+    modifiers: abilityConfig.modifiers.map((modifier) => {
+      const shouldScale =
+        modifier.type === ModifierType.FIXED &&
+        ARTIFACT_MAIN_PANEL_ATTRS.has(modifier.attrType);
+      if (!shouldScale) return modifier;
+      return {
+        ...modifier,
+        value: modifier.value * factor,
+      };
+    }),
+  };
+}
 
 export function createCombatUnitFromCultivator(
   cultivator: Cultivator,
@@ -45,7 +99,18 @@ export function createCombatUnitFromCultivator(
     if (!artifact.id || !equippedIds.has(artifact.id) || !artifact.abilityConfig) {
       continue;
     }
-    unit.abilities.addAbility(AbilityFactory.create(artifact.abilityConfig));
+    const productModel = (artifact.productModel ?? {}) as {
+      metadata?: { anchorRealm?: RealmType };
+    };
+    const factor = getCrossRealmModifierFactor(
+      productModel.metadata?.anchorRealm,
+      cultivator.realm,
+    );
+    const effectiveAbilityConfig = scaleArtifactAbilityConfig(
+      artifact.abilityConfig,
+      factor,
+    );
+    unit.abilities.addAbility(AbilityFactory.create(effectiveAbilityConfig));
   }
 
   unit.updateDerivedStats();

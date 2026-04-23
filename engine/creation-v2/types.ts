@@ -2,6 +2,7 @@ import {
   ElementType,
   EquipmentSlot,
   Quality,
+  RealmStage,
   RealmType,
 } from '@/types/constants';
 import { Material } from '@/types/cultivator';
@@ -42,7 +43,9 @@ export function isCreationProductType(
 export interface CreationSessionInput {
   sessionId?: string;
   cultivatorId?: string;
+  creatorName?: string;
   realm?: RealmType;
+  realmStage?: RealmStage;
   productType: CreationProductType;
   materials: Material[];
   userPrompt?: string;

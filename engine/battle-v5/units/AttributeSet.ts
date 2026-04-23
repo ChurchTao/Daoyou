@@ -133,10 +133,10 @@ class Attribute {
  * - WISDOM    (悟性)    — 暴击率加成、暴击伤害上限、MP上限
  *
  * 派生型二级属性（浮点，base=公式，modifier 可叠加）：
- * - ATK                物理攻击   = VITALITY×5
- * - DEF                物理防御   = VITALITY×3
- * - MAGIC_ATK          法术攻击   = SPIRIT×5
- * - MAGIC_DEF          法术防御   = WILLPOWER×3
+ * - ATK                物理攻击   = VITALITY×4+SPEED×1
+ * - DEF                物理防御   = VITALITY×3+SPEED×1
+ * - MAGIC_ATK          法术攻击   = SPIRIT×4+WILLPOWER×1
+ * - MAGIC_DEF          法术防御   = SPIRIT×3+WILLPOWER×1
  * - CRIT_RATE          暴击率     = min(0.60, 0.05 + SPEED×0.0002 + WISDOM×0.0001)
  * - CRIT_DAMAGE_MULT   暴击伤害   = min(2.00, 1.25 + WISDOM×0.0005)
  * - EVASION_RATE       闪避率     = min(0.50, SPEED×0.0003)
@@ -180,7 +180,7 @@ export class AttributeSet {
     this._attributes.set(
       AttributeType.DEF,
       new Attribute(AttributeType.DEF, 0, true, () =>
-        this.getValue(AttributeType.VITALITY) * 2 + this.getValue(AttributeType.SPEED) * 1,
+        this.getValue(AttributeType.VITALITY) * 3 + this.getValue(AttributeType.SPEED) * 1,
       ),
     );
 
@@ -320,7 +320,7 @@ export class AttributeSet {
   }
 
   /**
-   * HP = 200 + VITALITY×12 + SPIRIT×4
+   * HP = 200 + VITALITY×16
    */
   getMaxHp(): number {
     return (
@@ -330,7 +330,7 @@ export class AttributeSet {
   }
 
   /**
-   * MP = 100 + SPIRIT×5 + WISDOM×3
+   * MP = 100 + SPIRIT×5 + WILLPOWER×3
    */
   getMaxMp(): number {
     return (

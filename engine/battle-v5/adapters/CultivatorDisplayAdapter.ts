@@ -1,4 +1,5 @@
 import type { Cultivator } from '@/types/cultivator';
+import { REALM_ORDER, type RealmType } from '@/types/constants';
 import type { AttributeModifierConfig } from '../core/configs';
 import { AttributeType, ModifierType, type AttributeModifier, type UnitId } from '../core/types';
 import type { AttrsStateView } from '../systems/state/types';
@@ -18,12 +19,58 @@ type ModifierCarrier = {
   attributeModifiers?: AttributeModifierConfig[];
 };
 
+const ARTIFACT_MAIN_PANEL_ATTRS = new Set<AttributeType>([
+  AttributeType.ATK,
+  AttributeType.MAGIC_ATK,
+  AttributeType.DEF,
+  AttributeType.MAGIC_DEF,
+  AttributeType.SPIRIT,
+  AttributeType.VITALITY,
+  AttributeType.SPEED,
+  AttributeType.WISDOM,
+  AttributeType.WILLPOWER,
+]);
+
+function getCrossRealmModifierFactor(
+  anchorRealm: RealmType | undefined,
+  wearerRealm: RealmType,
+): number {
+  if (!anchorRealm) return 1;
+  const diff = REALM_ORDER[anchorRealm] - REALM_ORDER[wearerRealm];
+  if (diff <= 0) return 1;
+  if (diff === 1) return 0.8;
+  if (diff === 2) return 0.55;
+  if (diff === 3) return 0.45;
+  return 0.35;
+}
+
+function scaleArtifactModifiers(
+  modifiers: AttributeModifierConfig[] | undefined,
+  factor: number,
+): AttributeModifierConfig[] {
+  if (!modifiers?.length || factor >= 0.999) {
+    return modifiers ?? [];
+  }
+
+  return modifiers.map((modifier) => {
+    const shouldScale =
+      modifier.type === ModifierType.FIXED &&
+      ARTIFACT_MAIN_PANEL_ATTRS.has(modifier.attrType);
+    if (!shouldScale) return modifier;
+    return {
+      ...modifier,
+      value: modifier.value * factor,
+    };
+  });
+}
+
 function mountModifiers(
   unit: Unit,
   sourcePrefix: string,
   carrier: ModifierCarrier,
+  overrides?: { modifiers?: AttributeModifierConfig[] },
 ): void {
-  const modifiers = carrier.attributeModifiers ?? [];
+  const modifiers = overrides?.modifiers ?? carrier.attributeModifiers ?? [];
 
   for (const [index, modifier] of modifiers.entries()) {
     const mountedModifier: AttributeModifier = {
@@ -66,7 +113,16 @@ export function createDisplayUnitFromCultivator(
   );
   for (const artifact of cultivator.inventory.artifacts ?? []) {
     if (!artifact.id || !equippedIds.has(artifact.id)) continue;
-    mountModifiers(unit, 'artifact', artifact);
+    const productModel = (artifact.productModel ?? {}) as {
+      metadata?: { anchorRealm?: RealmType };
+    };
+    const factor = getCrossRealmModifierFactor(
+      productModel.metadata?.anchorRealm,
+      cultivator.realm,
+    );
+    mountModifiers(unit, 'artifact', artifact, {
+      modifiers: scaleArtifactModifiers(artifact.attributeModifiers, factor),
+    });
   }
 
   unit.updateDerivedStats();

@@ -10,7 +10,6 @@ import type {
   MaterialType,
   Quality,
   RealmStage,
-  RealmType,
   SpiritualRootGrade,
 } from './constants';
 
@@ -129,7 +128,6 @@ export interface Artifact {
   slot: EquipmentSlot;
   element: ElementType;
   quality?: Quality;
-  required_realm?: RealmType;
   description?: string;
   attributeModifiers?: AttributeModifierConfig[];
   /** Phase 1 过渡期可选 */

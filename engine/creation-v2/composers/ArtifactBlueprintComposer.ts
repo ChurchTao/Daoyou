@@ -47,6 +47,19 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
       persistencePolicy: ARTIFACT_POLICIES.PERSISTENCE,
       progressionPolicy: ARTIFACT_POLICIES.PROGRESSION,
     };
+    const metadata =
+      input.cultivatorId &&
+      input.creatorName &&
+      input.realm &&
+      input.realmStage
+        ? {
+            creatorName: input.creatorName,
+            creatorCultivatorId: input.cultivatorId,
+            anchorRealm: input.realm,
+            anchorRealmStage: input.realmStage,
+            craftedAt: new Date().toISOString(),
+          }
+        : undefined;
 
     const productModel: ArtifactProductModel = {
       productType: "artifact",
@@ -66,6 +79,7 @@ export class ArtifactBlueprintComposer implements ProductBlueprintComposer {
         listeners: policy.listeners,
         modifiers: policy.modifiers,
       },
+      ...(metadata ? { metadata } : {}),
     };
 
     return {

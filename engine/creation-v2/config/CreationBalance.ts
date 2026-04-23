@@ -350,11 +350,11 @@ export const CREATION_ENERGY_SLOT_TIERS: ReadonlyArray<{
  * 这里的配置是全局生效的，所有词缀在抽中后都会按此逻辑进行数值“洗炼”。
  */
 export const CREATION_ROLL_POLICY = {
-  // 全局波动范围：0.85 表示最低随到基础值的 85%，1.15 表示最高 115%
-  globalVarianceRange: [0.85, 1.15] as [number, number],
+  // 全局波动范围：0.7 表示最低随到基础值的 70%，1.2 表示最高 120%
+  globalVarianceRange: [0.7, 1.2] as [number, number],
 
   // 完美标记阈值：当效率分 (rollEfficiency) 超过 0.96 时，赋予 Perfect 标记
-  perfectThreshold: 0.96,
+  perfectThreshold: 0.95,
 
   // 能量对随机下限的修正系数：
   // 逻辑：每多 1 点有效能量，随机下限提升 0.002 (即 0.2%)

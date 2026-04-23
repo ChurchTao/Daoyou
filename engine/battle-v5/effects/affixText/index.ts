@@ -32,6 +32,7 @@ import { describeListener } from './listeners';
 export interface RenderAffixOptions {
   registry?: AffixRegistry;
   abilityConfig?: AbilityConfig;
+  resolvedModifiers?: AttributeModifierConfig[];
 }
 
 export type AffixRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -89,6 +90,7 @@ export function renderAffixLine(
     template,
     listenerSpec,
     abilityConfig: options.abilityConfig,
+    resolvedModifiers: options.resolvedModifiers,
   });
 
   return {
@@ -108,10 +110,11 @@ interface BuildBodyArgs {
   template?: AffixEffectTemplate;
   listenerSpec?: AffixListenerSpec;
   abilityConfig?: AbilityConfig;
+  resolvedModifiers?: AttributeModifierConfig[];
 }
 
 function buildBodyText(args: BuildBodyArgs): string {
-  const { affix, quality, template, listenerSpec, abilityConfig } = args;
+  const { affix, quality, template, listenerSpec, abilityConfig, resolvedModifiers } = args;
   if (!template) return '';
 
   // 静态属性类词条走 modifier 分支：listener/condition 对它们无意义。
@@ -119,7 +122,7 @@ function buildBodyText(args: BuildBodyArgs): string {
     template.type === 'attribute_modifier' ||
     template.type === 'random_attribute_modifier'
   ) {
-    return describeAttributeModifiers(template, abilityConfig, quality, affix);
+    return describeAttributeModifiers(template, abilityConfig, quality, affix, resolvedModifiers);
   }
 
   const effect = resolveEffectConfig(affix, template, quality);
@@ -175,7 +178,12 @@ function describeAttributeModifiers(
   abilityConfig: AbilityConfig | undefined,
   quality: Quality,
   affix: RolledAffix,
+  resolvedModifiers?: AttributeModifierConfig[],
 ): string {
+  if (resolvedModifiers && resolvedModifiers.length > 0) {
+    return resolvedModifiers.map(formatModifier).join('、');
+  }
+
   const pickedAttrs = collectTemplateAttrs(template);
 
   // 优先使用 abilityConfig.modifiers 中真实落地的数值（已含随机选择结果）

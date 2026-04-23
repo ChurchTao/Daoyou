@@ -72,7 +72,6 @@ async function buildItemShowcasePayload(params: {
       slot: item.slot,
       element: item.element,
       quality: item.quality,
-      required_realm: item.required_realm,
       description: item.description,
     };
     return { itemType, itemId, snapshot, text: showcaseText };

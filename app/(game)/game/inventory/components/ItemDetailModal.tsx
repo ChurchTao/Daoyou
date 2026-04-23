@@ -56,12 +56,30 @@ export function ItemDetailModal({
     const product = artifactRecord.productModel
       ? toProductDisplayModel(artifactRecord)
       : null;
-    const extraInfo = item.required_realm ? (
-      <div className="border-ink/50 flex justify-between border-b pb-2">
-        <span className="opacity-70">境界要求</span>
-        <span>{item.required_realm}</span>
-      </div>
-    ) : null;
+    const artifactMetadata = (product?.rawModel &&
+    product.rawModel.productType === 'artifact'
+      ? product.rawModel.metadata
+      : undefined) as
+      | { creatorName?: string; anchorRealm?: string }
+      | undefined;
+    const extraRows: React.ReactNode[] = [];
+    if (artifactMetadata?.anchorRealm) {
+      extraRows.push(
+        <div key="anchor-realm" className="border-ink/50 flex justify-between border-b pb-2">
+          <span className="opacity-70">境界要求</span>
+          <span>{artifactMetadata.anchorRealm}</span>
+        </div>,
+      );
+    }
+    if (artifactMetadata?.creatorName) {
+      extraRows.push(
+        <div key="creator" className="border-ink/50 flex justify-between border-b pb-2">
+          <span className="opacity-70">打造者</span>
+          <span>{artifactMetadata.creatorName}</span>
+        </div>,
+      );
+    }
+    const extraInfo = extraRows.length > 0 ? <>{extraRows}</> : null;
 
     return (
       <ItemShowcaseModal

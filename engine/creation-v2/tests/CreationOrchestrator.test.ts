@@ -6,6 +6,7 @@ import { AffixRolledEvent, CraftFailedEvent } from '../core/events';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { GameplayTags } from '@/engine/shared/tag-domain';
 import { matchAll } from '@/engine/creation-v2/affixes';
+import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import { CreationEventPriorityLevel } from '../core/types';
 import { CreationBlueprint, EnergyBudget, MaterialFingerprint, RecipeMatch } from '../types';
 
@@ -209,6 +210,10 @@ describe('CreationOrchestrator', () => {
     const orchestrator = new CreationOrchestrator();
     const session = orchestrator.createSession({
       sessionId: 'session-passive',
+      cultivatorId: 'creator-1',
+      creatorName: '玄真子',
+      realm: '化神',
+      realmStage: '后期',
       productType: 'artifact',
       materials: [
         {
@@ -287,6 +292,129 @@ describe('CreationOrchestrator', () => {
     expect(outcome.ability.type).toBe(AbilityType.PASSIVE_SKILL);
     expect(outcome.ability.name).toBe('玄冰护心佩');
     expect(outcome.blueprint.productModel.productType).toBe('artifact');
+    const artifactModel = outcome.blueprint.productModel;
+    if (artifactModel.productType === 'artifact') {
+      // 手工 compose 的蓝图允许不带 metadata，兼容旧链路与测试桩。
+      expect(artifactModel.metadata).toBeUndefined();
+    }
+  });
+
+  it('应在 artifact composer 链路中注入 metadata', () => {
+    const orchestrator = new CreationOrchestrator();
+    const session = orchestrator.createSession({
+      sessionId: 'session-artifact-metadata',
+      cultivatorId: 'creator-1',
+      creatorName: '玄真子',
+      realm: '化神',
+      realmStage: '后期',
+      productType: 'artifact',
+      materials: [
+        {
+          id: 'mat-a',
+          name: '玄冰矿髓',
+          type: 'ore',
+          rank: '玄品',
+          quantity: 2,
+          element: '冰',
+          description: '冰系护体矿材',
+        },
+        {
+          id: 'mat-b',
+          name: '灵木芯',
+          type: 'herb',
+          rank: '灵品',
+          quantity: 1,
+          element: '木',
+          description: '含生机的柔性辅材',
+        },
+      ],
+    });
+    const coreDef = DEFAULT_AFFIX_REGISTRY.queryById('artifact-panel-weapon-dual-atk');
+    const panelDef = DEFAULT_AFFIX_REGISTRY.queryById('artifact-panel-atk');
+    if (!coreDef || !panelDef) {
+      throw new Error('artifact affix defs not found');
+    }
+
+    session.state.intent = {
+      productType: 'artifact',
+      dominantTags: ['Material.Semantic.Blade'],
+      slotBias: 'weapon',
+    };
+    session.state.recipeMatch = {
+      recipeId: 'artifact-default',
+      valid: true,
+      matchedTags: ['Recipe.Crafter.Artifact'],
+      unlockedAffixCategories: ['artifact_core', 'artifact_panel'],
+    };
+    session.state.energyBudget = {
+      baseTotal: 50,
+      effectiveTotal: 50,
+      reserved: 10,
+      spent: 20,
+      remaining: 20,
+      initialRemaining: 40,
+      allocations: [],
+      rejections: [],
+      sources: [{ source: 'test', amount: 50 }],
+    };
+    session.state.materialFingerprints = [
+      {
+        materialName: '玄冰矿髓',
+        materialType: 'ore',
+        rank: '玄品',
+        quantity: 2,
+        explicitTags: [],
+        semanticTags: [],
+        recipeTags: [],
+        energyValue: 20,
+        rarityWeight: 1,
+      },
+      {
+        materialName: '灵木芯',
+        materialType: 'herb',
+        rank: '灵品',
+        quantity: 1,
+        explicitTags: [],
+        semanticTags: [],
+        recipeTags: [],
+        energyValue: 10,
+        rarityWeight: 1,
+      },
+    ];
+    session.state.rolledAffixes = [
+      {
+        ...coreDef,
+        name: coreDef.displayName,
+        description: coreDef.displayDescription,
+        tags: [],
+        rollScore: 0.9,
+        rollEfficiency: 1,
+        finalMultiplier: 1,
+        isPerfect: false,
+      },
+      {
+        ...panelDef,
+        name: panelDef.displayName,
+        description: panelDef.displayDescription,
+        tags: [],
+        rollScore: 0.8,
+        rollEfficiency: 1,
+        finalMultiplier: 1,
+        isPerfect: false,
+      },
+    ];
+    const blueprint = orchestrator.composeBlueprintWithDefaults(session);
+
+    expect(blueprint.productModel.productType).toBe('artifact');
+    if (blueprint.productModel.productType === 'artifact') {
+      expect(blueprint.productModel.metadata).toMatchObject({
+        creatorName: '玄真子',
+        creatorCultivatorId: 'creator-1',
+        anchorRealm: '化神',
+        anchorRealmStage: '后期',
+      });
+      expect(typeof blueprint.productModel.metadata?.craftedAt).toBe('string');
+    }
   });
 
   it('应拒绝火冰材料混炉', () => {

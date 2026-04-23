@@ -1,5 +1,5 @@
 import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../contracts/battle';
-import type { EquipmentSlot } from '@/types/constants';
+import type { EquipmentSlot, RealmStage, RealmType } from '@/types/constants';
 import type { CreationProductType, RolledAffix } from '../types';
 import type { BalanceMetrics } from '../balancing/PBU';
 
@@ -8,6 +8,14 @@ export interface ArtifactDomainConfig {
   equipPolicy: 'single_slot';
   persistencePolicy: 'inventory_bound';
   progressionPolicy: 'reforgeable';
+}
+
+export interface ArtifactProductMetadata {
+  creatorName: string;
+  creatorCultivatorId: string;
+  anchorRealm: RealmType;
+  anchorRealmStage: RealmStage;
+  craftedAt: string;
 }
 
 export interface GongFaDomainConfig {
@@ -64,6 +72,7 @@ export interface ArtifactProductModel
   extends BaseProductModel<'artifact'> {
   artifactConfig: ArtifactDomainConfig;
   battleProjection: ArtifactBattleProjection;
+  metadata?: ArtifactProductMetadata;
 }
 
 export interface GongFaProductModel

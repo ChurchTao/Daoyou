@@ -144,12 +144,12 @@ async function assembleCultivatorFromRelations(
       quality: product.quality as
         | Cultivator['inventory']['artifacts'][0]['quality']
         | undefined,
-      required_realm: cultivatorRecord.realm as
-        | Cultivator['inventory']['artifacts'][0]['required_realm']
-        | undefined,
       description: product.description || '',
       attributeModifiers: abilityConfig.modifiers ?? [],
       abilityConfig,
+      productModel: product.productModel ?? undefined,
+      isEquipped: product.isEquipped ?? false,
+      score: product.score ?? 0,
     };
   });
 

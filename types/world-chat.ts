@@ -24,13 +24,7 @@ export type WorldChatShowcaseItemType = 'artifact' | 'material' | 'consumable';
 export type ItemShowcaseSnapshotMap = {
   artifact: Pick<
     Artifact,
-    | 'id'
-    | 'name'
-    | 'slot'
-    | 'element'
-    | 'quality'
-    | 'required_realm'
-    | 'description'
+    'id' | 'name' | 'slot' | 'element' | 'quality' | 'description'
   >;
   material: Pick<
     Material,

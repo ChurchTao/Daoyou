@@ -3,7 +3,7 @@
  * 1. 核心池 (Core/Panel): 8 ~ 15 点。作为基础底盘，保证产物基本强度。
  * 2. 变体池 (Variant/School/Defense): 12 ~ 20 点。主要能量吸收点，定义流派特色。
  * 3. 稀有池 (Rare/Secret/Treasure): 35 ~ 55 点。顶级消耗项，吸收神品材料溢出能量，产出质变效果。
- * 
+ *
  * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
 import {
@@ -43,12 +43,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
           {
             attrType: AttributeType.ATK,
             modType: ModifierType.FIXED,
-            value: { base: 4, scale: 'quality', coefficient: 2 },
+            value: { base: 100, scale: 'quality', coefficient: 150 },
           },
           {
             attrType: AttributeType.MAGIC_ATK,
             modType: ModifierType.FIXED,
-            value: { base: 4, scale: 'quality', coefficient: 2 },
+            value: { base: 100, scale: 'quality', coefficient: 150 },
           },
         ],
       },
@@ -74,12 +74,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
           {
             attrType: AttributeType.DEF,
             modType: ModifierType.FIXED,
-            value: { base: 3, scale: 'quality', coefficient: 1.5 },
+            value: { base: 100, scale: 'quality', coefficient: 120 },
           },
           {
             attrType: AttributeType.MAGIC_DEF,
             modType: ModifierType.FIXED,
-            value: { base: 3, scale: 'quality', coefficient: 1.5 },
+            value: { base: 100, scale: 'quality', coefficient: 120 },
           },
         ],
       },
@@ -171,7 +171,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
-      any: [CreationTags.MATERIAL.SEMANTIC_METAL, CreationTags.MATERIAL.SEMANTIC_BEAST],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+      ],
     },
     weight: 80,
     energyCost: 10,
@@ -182,7 +185,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.ATK,
         modType: ModifierType.FIXED,
-        value: { base: 3, scale: 'quality', coefficient: 1.5 },
+        value: { base: 15, scale: 'quality', coefficient: 7 },
       },
     },
   },
@@ -194,7 +197,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
-      any: [CreationTags.MATERIAL.SEMANTIC_QI, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
     },
     weight: 80,
     energyCost: 10,
@@ -205,7 +211,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_ATK,
         modType: ModifierType.FIXED,
-        value: { base: 3, scale: 'quality', coefficient: 1.5 },
+        value: { base: 15, scale: 'quality', coefficient: 7 },
       },
     },
   },
@@ -217,7 +223,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
-      any: [CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.SEMANTIC_METAL],
+      any: [
+        CreationTags.MATERIAL.TYPE_ORE,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+      ],
     },
     weight: 65,
     energyCost: 10,
@@ -228,7 +237,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.DEF,
         modType: ModifierType.FIXED,
-        value: { base: 2, scale: 'quality', coefficient: 1 },
+        value: { base: 12, scale: 'quality', coefficient: 6 },
       },
     },
   },
@@ -240,7 +249,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
-      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_WATER],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+      ],
     },
     weight: 60,
     energyCost: 10,
@@ -251,34 +263,11 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_DEF,
         modType: ModifierType.FIXED,
-        value: { base: 2, scale: 'quality', coefficient: 1 },
+        value: { base: 12, scale: 'quality', coefficient: 6 },
       },
     },
   },
 
-  {
-    id: 'artifact-panel-speed',
-    displayName: '乘风',
-    displayDescription: '法宝质地轻灵，使持有者身法更显莫测无矩',
-    category: 'artifact_panel',
-    rarity: 'common',
-    match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_WIND],
-      any: [CreationTags.MATERIAL.SEMANTIC_SPACE, CreationTags.MATERIAL.SEMANTIC_BEAST],
-    },
-    weight: 60,
-    energyCost: 10,
-    applicableTo: ['artifact'],
-    applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
-    effectTemplate: {
-      type: 'attribute_modifier',
-      params: {
-        attrType: AttributeType.SPEED,
-        modType: ModifierType.FIXED,
-        value: { base: 1, scale: 'quality', coefficient: 0.8 },
-      },
-    },
-  },
   {
     id: 'artifact-panel-crit-rate',
     displayName: '相机',
@@ -287,7 +276,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
-      any: [CreationTags.MATERIAL.SEMANTIC_ILLUSION, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
     },
     weight: 50,
     energyCost: 10,
@@ -310,7 +302,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
-      any: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BONE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_BONE,
+      ],
     },
     weight: 45,
     energyCost: 10,
@@ -333,7 +328,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
-      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
     },
     weight: 50,
     energyCost: 10,
@@ -356,7 +354,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
-      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPACE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
     },
     weight: 45,
     energyCost: 10,
@@ -379,7 +380,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
-      any: [CreationTags.MATERIAL.SEMANTIC_THUNDER, CreationTags.MATERIAL.SEMANTIC_FREEZE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      ],
     },
     weight: 40,
     energyCost: 10,
@@ -402,7 +406,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
-      any: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_EARTH],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+      ],
     },
     weight: 40,
     energyCost: 10,
@@ -425,7 +432,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
-      any: [CreationTags.MATERIAL.SEMANTIC_QI, CreationTags.MATERIAL.SEMANTIC_LIFE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
     },
     weight: 55,
     energyCost: 10,
@@ -436,7 +446,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.FIXED,
-        value: { base: 2, scale: 'quality', coefficient: 1 },
+        value: { base: 10, scale: 'quality', coefficient: 30 },
       },
     },
   },
@@ -448,7 +458,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
-      any: [CreationTags.MATERIAL.SEMANTIC_BLOOD, CreationTags.MATERIAL.SEMANTIC_LIFE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
     },
     weight: 55,
     energyCost: 10,
@@ -459,7 +472,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.VITALITY,
         modType: ModifierType.FIXED,
-        value: { base: 2, scale: 'quality', coefficient: 1 },
+        value: { base: 10, scale: 'quality', coefficient: 30 },
       },
     },
   },
@@ -471,7 +484,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_MANUAL],
-      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_FORMATION,
+      ],
     },
     weight: 45,
     energyCost: 10,
@@ -482,7 +498,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WISDOM,
         modType: ModifierType.FIXED,
-        value: { base: 1, scale: 'quality', coefficient: 0.8 },
+        value: { base: 10, scale: 'quality', coefficient: 30 },
       },
     },
   },
@@ -494,7 +510,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
-      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+      ],
     },
     weight: 40,
     energyCost: 10,
@@ -505,7 +524,33 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WILLPOWER,
         modType: ModifierType.FIXED,
-        value: { base: 1, scale: 'quality', coefficient: 0.8 },
+        value: { base: 10, scale: 'quality', coefficient: 30 },
+      },
+    },
+  },
+  {
+    id: 'artifact-panel-speed',
+    displayName: '乘风',
+    displayDescription: '法宝质地轻灵，使持有者身法更显莫测无矩',
+    category: 'artifact_panel',
+    rarity: 'common',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_WIND],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+      ],
+    },
+    weight: 60,
+    energyCost: 10,
+    applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'armor', 'accessory'],
+    effectTemplate: {
+      type: 'attribute_modifier',
+      params: {
+        attrType: AttributeType.SPEED,
+        modType: ModifierType.FIXED,
+        value: { base: 10, scale: 'quality', coefficient: 30 },
       },
     },
   },
@@ -722,7 +767,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-desperate-aegis',
     displayName: '死战',
-    displayDescription: '背水结阵，气血枯竭时反而能够激起宝物内部死士之念，大幅减伤',
+    displayDescription:
+      '背水结阵，气血枯竭时反而能够激起宝物内部死士之念，大幅减伤',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -794,7 +840,10 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
-      any: [ELEMENT_TO_MATERIAL_TAG['火'], CreationTags.MATERIAL.SEMANTIC_FLAME],
+      any: [
+        ELEMENT_TO_MATERIAL_TAG['火'],
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+      ],
     },
     weight: 38,
     energyCost: 12,
@@ -1170,7 +1219,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-treasure-life-guard',
     displayName: '护命',
-    displayDescription: '灵台清明，真灵不灭，遇生死绝境之时可护住心脉使气火不绝',
+    displayDescription:
+      '灵台清明，真灵不灭，遇生死绝境之时可护住心脉使气火不绝',
     category: 'artifact_treasure',
     rarity: 'legendary',
     match: {
@@ -1237,4 +1287,3 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
 ];
-

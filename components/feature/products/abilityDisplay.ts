@@ -14,7 +14,6 @@ import {
   ModifierType,
 } from '@/engine/battle-v5/core/types';
 import type {
-  AbilityConfig,
   AttributeModifierConfig,
 } from '@/engine/battle-v5/core/configs';
 import type {
@@ -24,13 +23,14 @@ import type {
   SkillProductModel,
 } from '@/engine/creation-v2/models/types';
 import type { RolledAffix } from '@/engine/creation-v2/types';
+import type { AffixEffectTemplate } from '@/engine/creation-v2/affixes';
 import {
   renderAffixLine,
   rarityToTone,
   type AffixRarity,
 } from '@/engine/battle-v5/effects/affixText';
 import { ATTR_LABELS } from '@/engine/battle-v5/effects/affixText/attributes';
-import type { ElementType, Quality } from '@/types/constants';
+import { QUALITY_ORDER, type ElementType, type Quality } from '@/types/constants';
 
 // ===== 基础视图态 =====
 
@@ -134,14 +134,15 @@ export function toAttributeModifierView(
  *
  * @param affix  词缀 rolled 结果（含 id / 倍率 / 是否完美等）
  * @param quality 产物品质，用于还原 effectTemplate 中的品质缩放
- * @param abilityConfig 产物 abilityConfig，用于读取真实落地的属性修改器
  */
 export function toAffixView(
   affix: RolledAffix,
   quality: Quality,
-  abilityConfig?: AbilityConfig,
+  resolvedModifiers?: AttributeModifierConfig[],
 ): AffixView {
-  const rendered = renderAffixLine(affix, quality, { abilityConfig });
+  const rendered = renderAffixLine(affix, quality, {
+    resolvedModifiers,
+  });
   return {
     id: rendered.id,
     name: rendered.name,
@@ -199,6 +200,128 @@ function collectModifiers(
   return [];
 }
 
+function approxEqual(a: number, b: number, epsilon = 1e-6): boolean {
+  return Math.abs(a - b) <= epsilon;
+}
+
+function resolveParamWithRoll(
+  value: number | { base: number; scale: 'quality' | 'none'; coefficient: number },
+  quality: Quality,
+  multiplier: number,
+): number {
+  if (typeof value === 'number') return value * multiplier;
+  const qualityOrder = QUALITY_ORDER[quality] ?? 0;
+  const base =
+    value.scale === 'none'
+      ? value.base
+      : value.base + qualityOrder * value.coefficient;
+  return base * multiplier;
+}
+
+function getAffixModifierTemplateEntries(
+  template: AffixEffectTemplate | undefined,
+): Array<{ attrType: AttributeType; type: ModifierType; expected: number }> {
+  if (!template) return [];
+  if (template.type === 'attribute_modifier') {
+    const params = template.params;
+    const entries =
+      'modifiers' in params
+        ? params.modifiers
+        : [
+            {
+              attrType: params.attrType,
+              modType: params.modType,
+              value: params.value,
+            },
+          ];
+    return entries.map((entry) => ({
+      attrType: entry.attrType,
+      type: entry.modType,
+      expected: 0,
+    }));
+  }
+  if (template.type === 'random_attribute_modifier') {
+    return template.params.pool.map((entry) => ({
+      attrType: entry.attrType,
+      type: entry.modType,
+      expected: 0,
+    }));
+  }
+  return [];
+}
+
+function bindAffixModifiers(
+  affixes: RolledAffix[],
+  quality: Quality,
+  modifiers: AttributeModifierConfig[],
+): Map<number, AttributeModifierConfig[]> {
+  const remaining = modifiers.map((modifier, index) => ({ modifier, index }));
+  const result = new Map<number, AttributeModifierConfig[]>();
+
+  for (let affixIndex = 0; affixIndex < affixes.length; affixIndex += 1) {
+    const affix = affixes[affixIndex];
+    const template = affix.effectTemplate;
+    if (!template) continue;
+    if (
+      template.type !== 'attribute_modifier' &&
+      template.type !== 'random_attribute_modifier'
+    ) {
+      continue;
+    }
+
+    const pickCount =
+      template.type === 'random_attribute_modifier'
+        ? template.params.pickCount
+        : getAffixModifierTemplateEntries(template).length;
+
+    const expectedByKey = new Map<string, number>();
+    const entries =
+      template.type === 'attribute_modifier'
+        ? ('modifiers' in template.params
+            ? template.params.modifiers
+            : [template.params])
+        : template.params.pool;
+    for (const entry of entries) {
+      const key = `${entry.attrType}:${entry.modType}`;
+      expectedByKey.set(
+        key,
+        resolveParamWithRoll(entry.value, quality, affix.finalMultiplier),
+      );
+    }
+
+    const candidates = remaining
+      .filter(({ modifier }) =>
+        expectedByKey.has(`${modifier.attrType}:${modifier.type}`),
+      )
+      .map((item) => {
+        const key = `${item.modifier.attrType}:${item.modifier.type}`;
+        const expected = expectedByKey.get(key) ?? item.modifier.value;
+        return {
+          ...item,
+          delta: Math.abs(item.modifier.value - expected),
+          perfect: approxEqual(item.modifier.value, expected),
+        };
+      })
+      .sort((a, b) => {
+        if (a.perfect !== b.perfect) return a.perfect ? -1 : 1;
+        return a.delta - b.delta;
+      })
+      .slice(0, pickCount);
+
+    if (candidates.length > 0) {
+      result.set(affixIndex, candidates.map((c) => c.modifier));
+      const used = new Set(candidates.map((c) => c.index));
+      for (let i = remaining.length - 1; i >= 0; i -= 1) {
+        if (used.has(remaining[i].index)) {
+          remaining.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 /**
  * DB/API 返回的单个产物记录的最小结构。与 `CreationProductRecord` 兼容。
  */
@@ -226,15 +349,16 @@ export function toProductDisplayModel(
   record: ProductRecordLike,
 ): ProductDisplayModel {
   const rawModel = record.productModel as CreationProductModel;
-  const abilityConfig = record.abilityConfig as AbilityConfig | undefined;
   const quality = (record.quality as Quality | null) ?? DEFAULT_QUALITY;
+  const projectionModifiers = rawModel ? collectModifiers(rawModel) : [];
+  const affixModifierMap = rawModel
+    ? bindAffixModifiers(rawModel.affixes ?? [], quality, projectionModifiers)
+    : new Map<number, AttributeModifierConfig[]>();
 
-  const affixes = (rawModel?.affixes ?? []).map((affix) =>
-    toAffixView(affix, quality, abilityConfig),
+  const affixes = (rawModel?.affixes ?? []).map((affix, index) =>
+    toAffixView(affix, quality, affixModifierMap.get(index)),
   );
-  const modifiers = rawModel
-    ? collectModifiers(rawModel).map(toAttributeModifierView)
-    : [];
+  const modifiers = projectionModifiers.map(toAttributeModifierView);
 
   return {
     name: rawModel?.name ?? record.name ?? '未知产物',

@@ -23,7 +23,6 @@ export function toArtifactFromProduct(record: CreationProductRecord): Artifact {
     slot: (record.slot as Artifact['slot']) || 'weapon',
     element: (record.element as Artifact['element']) || '金',
     quality: (record.quality as Artifact['quality']) || '凡品',
-    required_realm: undefined,
     description: record.description || undefined,
     attributeModifiers:
       (dbAbilityConfig.modifiers as Artifact['attributeModifiers']) ?? [],

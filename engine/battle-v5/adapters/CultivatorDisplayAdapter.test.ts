@@ -98,4 +98,31 @@ describe('CultivatorDisplayAdapter', () => {
     expect(finalAttributes.speed).toBe(10);
     expect(finalAttributes.willpower).toBe(10);
   });
+
+  it('applies cross-realm decay on artifact main panel fixed modifiers in display adapter', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.inventory.artifacts[0].attributeModifiers = [
+      {
+        attrType: AttributeType.SPIRIT,
+        type: ModifierType.FIXED,
+        value: 100,
+      },
+      {
+        attrType: AttributeType.CRIT_RATE,
+        type: ModifierType.FIXED,
+        value: 0.1,
+      },
+    ];
+    cultivator.inventory.artifacts[0].productModel = {
+      productType: 'artifact',
+      metadata: { anchorRealm: '金丹' },
+    };
+
+    const unit = createDisplayUnitFromCultivator(cultivator);
+
+    // 金丹 -> 炼气 diff=2 => factor=0.55，SPIRIT +55
+    expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(65);
+    // 功能属性不衰减
+    expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.153, 6);
+  });
 });
