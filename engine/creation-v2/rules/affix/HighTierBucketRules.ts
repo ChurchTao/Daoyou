@@ -11,11 +11,11 @@ export class HighTierBucketRules
 {
   readonly id = 'affix.selection.high-tier-bucket';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
     const bucketCaps = facts.selectionConstraints.bucketCaps;
 
     if (!bucketCaps) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
         message: '未提供高阶桶约束，跳过过滤',
@@ -47,7 +47,7 @@ export class HighTierBucketRules
             ? { exclusiveGroup: candidate.exclusiveGroup }
             : {}),
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因高阶桶上限被过滤',
@@ -66,7 +66,7 @@ export class HighTierBucketRules
 
     decision.candidatePool = accepted;
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `高阶桶过滤完成：${accepted.length} 个词缀通过`,

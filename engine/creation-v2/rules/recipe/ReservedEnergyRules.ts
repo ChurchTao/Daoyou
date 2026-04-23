@@ -8,10 +8,10 @@ import { RecipeDecision, RecipeFacts } from '../contracts';
 export class ReservedEnergyRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.reserved-energy';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
     decision.reservedEnergy = CREATION_RESERVED_ENERGY[facts.productType];
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: '已写入产物保留能量',

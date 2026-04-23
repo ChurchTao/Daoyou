@@ -10,7 +10,7 @@ import { RecipeDecision, RecipeFacts } from '../contracts';
 export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.affix.unlock';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
     const unlocked = new Set(decision.unlockedAffixCategories);
     const unlockScore = facts.material.unlockScore;
 
@@ -21,7 +21,7 @@ export class AffixUnlockRules implements Rule<RecipeFacts, RecipeDecision> {
     }
 
     decision.unlockedAffixCategories = Array.from(unlocked);
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: '已根据 unlock score 更新可解锁词缀分类',

@@ -11,11 +11,7 @@ import { CompositionFacts } from '../contracts/CompositionFacts';
 export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecision> {
   readonly id = 'composition.outcome_tags';
 
-  apply({
-    facts,
-    decision,
-    diagnostics,
-  }: RuleContext<CompositionFacts, CompositionDecision>): void {
+  apply({ facts, decision }: RuleContext<CompositionFacts, CompositionDecision>): void {
     const { productType, intent } = facts;
 
     switch (productType) {
@@ -45,7 +41,7 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
         break;
       default: {
         const _exhaustive: never = productType;
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: `未知 productType：${_exhaustive}`,
@@ -54,7 +50,7 @@ export class OutcomeTagRules implements Rule<CompositionFacts, CompositionDecisi
       }
     }
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `productType: ${decision.productType}, outcomeTags: ${decision.outcomeTags.length}`,

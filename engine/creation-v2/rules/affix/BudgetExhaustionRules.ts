@@ -10,7 +10,7 @@ export class BudgetExhaustionRules
 {
   readonly id = 'affix.selection.budget';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
     const accepted = [] as AffixSelectionDecision['candidatePool'];
 
     for (const candidate of decision.candidatePool) {
@@ -23,7 +23,7 @@ export class BudgetExhaustionRules
             ? { exclusiveGroup: candidate.exclusiveGroup }
             : {}),
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因预算不足被过滤',
@@ -41,7 +41,7 @@ export class BudgetExhaustionRules
 
     decision.candidatePool = accepted;
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `预算过滤完成：${accepted.length} 个词缀通过，剩余能量 ${facts.remainingEnergy}`,

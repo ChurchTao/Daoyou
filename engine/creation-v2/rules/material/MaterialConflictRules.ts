@@ -219,14 +219,14 @@ export function detectMaterialConflicts(
 export class MaterialConflictRules implements Rule<MaterialFacts, MaterialDecision> {
   readonly id = 'material.conflict';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<MaterialFacts, MaterialDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<MaterialFacts, MaterialDecision>['apply']>[0]): void {
     const conflicts = detectMaterialConflicts(
       facts.fingerprints,
       facts.productType,
     );
 
     if (conflicts.length === 0) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
         message: '未发现材料冲突',
@@ -238,14 +238,14 @@ export class MaterialConflictRules implements Rule<MaterialFacts, MaterialDecisi
     decision.notes.push(...conflicts.map((conflict) => conflict.reason));
 
     conflicts.forEach((conflict) => {
-      diagnostics.addReason({
+      decision.reasons.push({
         code: conflict.id,
         message: conflict.reason,
         details: {
           relatedTags: conflict.relatedTags,
         },
       });
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'blocked',
         message: conflict.reason,

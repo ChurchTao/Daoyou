@@ -51,24 +51,19 @@ export class ProjectionRules implements Rule<
     private readonly translator: AffixEffectTranslator,
   ) {}
 
-  apply({
-    facts,
-    decision,
-    diagnostics,
-  }: RuleContext<CompositionFacts, CompositionDecision>): void {
+  apply({ facts, decision }: RuleContext<CompositionFacts, CompositionDecision>): void {
     const { productType } = facts;
 
     if (productType === 'skill') {
       decision.projectionPolicy = this.buildSkillPolicy(
         facts,
         decision,
-        diagnostics,
       );
     } else {
       decision.projectionPolicy = this.buildPassivePolicy(facts);
     }
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `构建 projectionPolicy: ${decision.projectionPolicy.kind}`,
@@ -78,10 +73,6 @@ export class ProjectionRules implements Rule<
   private buildSkillPolicy(
     facts: CompositionFacts,
     decision: CompositionDecision,
-    diagnostics: RuleContext<
-      CompositionFacts,
-      CompositionDecision
-    >['diagnostics'],
   ): SkillProjectionPolicy {
     const { intent, affixes, materialQualityProfile } = facts;
     const projectionQuality = materialQualityProfile.weightedAverageQuality;
@@ -143,7 +134,7 @@ export class ProjectionRules implements Rule<
     const cooldownBonus = CREATION_PROJECTION_BALANCE.qualityCooldownBonus[qualityOrder] ?? 0;
     const cooldown = Math.min(8, baseCooldown + cooldownBonus);
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `cooldown=${cooldown} (coreType=${coreType}, base=${baseCooldown}, bonus=${cooldownBonus})`,

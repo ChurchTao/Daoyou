@@ -15,7 +15,7 @@ export class AffixWeightRules
 {
   readonly id = 'affix.pool.weight';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
     const inputTagSet = new Set(
       facts.inputTagSignals.map((signal) => signal.tag),
@@ -35,7 +35,7 @@ export class AffixWeightRules
           reason: 'non_positive_weight',
           category: candidate.category,
         });
-        diagnostics.addWarning({
+        decision.warnings.push({
           code: 'affix_non_positive_weight',
           message: '检测到非正权重词缀，已跳过',
           details: {
@@ -68,7 +68,7 @@ export class AffixWeightRules
     }
 
     decision.candidates = accepted;
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: '完成候选权重合法性过滤',

@@ -23,11 +23,11 @@ export class MaterialManualAlignmentRules
 
   apply({
     facts,
-    diagnostics,
+    decision,
   }: Parameters<Rule<MaterialFacts, MaterialDecision>['apply']>[0]): void {
     const warning = WARNING_BY_PRODUCT[facts.productType];
     if (!warning) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'skipped',
         message: '当前产物类型不要求专用秘籍',
@@ -39,7 +39,7 @@ export class MaterialManualAlignmentRules
       (fingerprint) => fingerprint.materialType,
     );
     if (!hasMissingMatchingManualForProduct(facts.productType, materialTypes)) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
         message: '已命中当前产物所需的专用秘籍',
@@ -47,14 +47,14 @@ export class MaterialManualAlignmentRules
       return;
     }
 
-    diagnostics.addWarning({
+    decision.warnings.push({
       code: warning.code,
       message: warning.message,
       details: {
         productType: facts.productType,
       },
     });
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: warning.message,

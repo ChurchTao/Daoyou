@@ -18,11 +18,7 @@ export class EnergyConversionRules
 {
   readonly id = 'composition.energy_conversion';
 
-  apply({
-    facts,
-    decision,
-    diagnostics,
-  }: RuleContext<CompositionFacts, CompositionDecision>): void {
+  apply({ facts, decision }: RuleContext<CompositionFacts, CompositionDecision>): void {
     if (facts.productType !== 'skill') return;
 
     const { energySummary, affixes, materialQualityProfile } = facts;
@@ -44,7 +40,7 @@ export class EnergyConversionRules
 
     decision.energyConversion = { mpCost, priority };
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `能量换算：mpCost=${mpCost} (multiplier=${qualityMultiplier}), priority=${priority}`,

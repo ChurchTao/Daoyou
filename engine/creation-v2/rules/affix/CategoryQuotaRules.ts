@@ -10,7 +10,7 @@ export class CategoryQuotaRules
 {
   readonly id = 'affix.selection.category-quota';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
     const accepted = [] as AffixSelectionDecision['candidatePool'];
 
     for (const candidate of decision.candidatePool) {
@@ -26,7 +26,7 @@ export class CategoryQuotaRules
             ? { exclusiveGroup: candidate.exclusiveGroup }
             : {}),
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因分类配额上限被过滤',
@@ -45,7 +45,7 @@ export class CategoryQuotaRules
 
     decision.candidatePool = accepted;
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `分类配额过滤完成：${accepted.length} 个词缀通过`,

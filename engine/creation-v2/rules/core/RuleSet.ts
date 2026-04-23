@@ -5,7 +5,7 @@
  */
 import { Rule } from './Rule';
 import { RuleContextMetadata } from './RuleContext';
-import { RuleDiagnostics } from './RuleDiagnostics';
+
 import { RuleDecisionMeta } from './types';
 
 /*
@@ -30,11 +30,9 @@ export class RuleSet<TFacts, TDecision extends RuleDecisionMeta> {
     } = {},
   ): TDecision {
     const decision = this.createDecision(facts, options.seed);
-    const diagnostics = new RuleDiagnostics();
     const context = {
       facts,
       decision,
-      diagnostics,
       metadata: options.metadata ?? {},
     };
 
@@ -42,10 +40,7 @@ export class RuleSet<TFacts, TDecision extends RuleDecisionMeta> {
       rule.apply(context);
     }
 
-    const snapshot = diagnostics.toSnapshot();
-    decision.reasons.push(...snapshot.reasons);
-    decision.warnings.push(...snapshot.warnings);
-    decision.trace.push(...snapshot.trace);
+
 
     return decision;
   }

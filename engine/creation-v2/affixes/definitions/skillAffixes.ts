@@ -330,7 +330,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-heal',
     displayName: '基础治疗',
-    displayDescription: '恢复目标大量气血',
+    displayDescription: '恢复目标气血',
     category: 'skill_core',
     rarity: 'common',
     match: {

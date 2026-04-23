@@ -26,7 +26,7 @@ export function supportsProductType(
 export class ProductSupportRules implements Rule<RecipeFacts, RecipeDecision> {
   readonly id = 'recipe.product.support';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<RecipeFacts, RecipeDecision>['apply']>[0]): void {
     const supported = supportsProductType(
       facts.productType,
       facts.material.recipeTags,
@@ -35,7 +35,7 @@ export class ProductSupportRules implements Rule<RecipeFacts, RecipeDecision> {
     if (!supported) {
       decision.valid = false;
       decision.notes.push(`当前材料组合不足以支持 ${facts.productType} 产物`);
-      diagnostics.addReason({
+      decision.reasons.push({
         code: 'recipe_product_unsupported',
         message: `当前材料组合不足以支持 ${facts.productType} 产物`,
         details: {
@@ -43,7 +43,7 @@ export class ProductSupportRules implements Rule<RecipeFacts, RecipeDecision> {
           recipeTags: facts.material.recipeTags,
         },
       });
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'blocked',
         message: 'recipe bias 未命中当前产物类型',
@@ -51,7 +51,7 @@ export class ProductSupportRules implements Rule<RecipeFacts, RecipeDecision> {
       return;
     }
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: 'recipe bias 已支持当前产物类型',

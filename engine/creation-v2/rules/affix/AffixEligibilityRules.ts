@@ -13,7 +13,7 @@ export class AffixEligibilityRules
 {
   readonly id = 'affix.pool.eligibility';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<AffixEligibilityFacts, AffixPoolDecision>['apply']>[0]): void {
     const accepted = [] as AffixPoolDecision['candidates'];
     const scoreThresholds = CREATION_AFFIX_POOL_SCORING.minimumScoreByCategory;
 
@@ -27,7 +27,7 @@ export class AffixEligibilityRules
           reason: 'min_quality_unmet',
           category: candidate.category,
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因材料品质不足被过滤',
@@ -48,7 +48,7 @@ export class AffixEligibilityRules
           reason: 'max_quality_exceeded',
           category: candidate.category,
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因材料品质超出上限被过滤',
@@ -68,7 +68,7 @@ export class AffixEligibilityRules
           reason: 'match_unmet',
           category: candidate.category,
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因 match 条件未满足被过滤',
@@ -96,7 +96,7 @@ export class AffixEligibilityRules
           score: evaluationScore,
           threshold,
         });
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'blocked',
           message: '词缀因 admission score 过低被过滤',
@@ -117,7 +117,7 @@ export class AffixEligibilityRules
 
     decision.candidates = accepted;
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: '完成候选资格过滤',

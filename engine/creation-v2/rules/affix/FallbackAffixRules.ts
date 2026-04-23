@@ -10,9 +10,9 @@ export class FallbackAffixRules
 {
   readonly id = 'affix.selection.fallback';
 
-  apply({ facts, decision, diagnostics }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
+  apply({ facts, decision }: Parameters<Rule<AffixSelectionFacts, AffixSelectionDecision>['apply']>[0]): void {
     if (decision.candidatePool.length > 0) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
         message: '仍存在可用候选，不触发停机回退',
@@ -42,7 +42,7 @@ export class FallbackAffixRules
       decision.exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
     }
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: '已设置本轮 affix 停机原因',

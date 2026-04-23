@@ -23,22 +23,18 @@ import { CreationError } from '../../errors';
 export class NamingRules implements Rule<CompositionFacts, CompositionDecision> {
   readonly id = 'composition.naming';
 
-  apply({
-    facts,
-    decision,
-    diagnostics,
-  }: RuleContext<CompositionFacts, CompositionDecision>): void {
-    decision.name = this.resolveName(facts, diagnostics);
+  apply({ facts, decision }: RuleContext<CompositionFacts, CompositionDecision>): void {
+    decision.name = this.resolveName(facts, decision);
     decision.description = this.resolveDescription(facts);
 
-    diagnostics.addTrace({
+    decision.trace.push({
       ruleId: this.id,
       outcome: 'applied',
       message: `命名决策：${decision.name}`,
     });
   }
 
-  private resolveName(facts: CompositionFacts, diagnostics: RuleDiagnostics): string {
+  private resolveName(facts: CompositionFacts, decision: CompositionDecision): string {
     const { productType, intent, materialNames } = facts;
     const elementBias = intent.elementBias;
 

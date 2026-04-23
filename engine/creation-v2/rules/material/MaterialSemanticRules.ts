@@ -19,9 +19,9 @@ import { MaterialFacts } from '../contracts/MaterialFacts';
 export class MaterialSemanticRules implements Rule<MaterialFacts, MaterialDecision> {
   readonly id = 'material.semantic-tags';
 
-  apply({ facts, diagnostics }: RuleContext<MaterialFacts, MaterialDecision>): void {
+  apply({ facts, decision }: RuleContext<MaterialFacts, MaterialDecision>): void {
     if (facts.fingerprints.length === 0) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'skipped',
         message: '无材料指纹，跳过语义标签溯源',
@@ -31,7 +31,7 @@ export class MaterialSemanticRules implements Rule<MaterialFacts, MaterialDecisi
 
     for (const fp of facts.fingerprints) {
       if (fp.semanticTags.length === 0) {
-        diagnostics.addTrace({
+        decision.trace.push({
           ruleId: this.id,
           outcome: 'skipped',
           message: `材料「${fp.materialName}」无语义标签（名称/描述未命中任何语义模式）`,
@@ -40,7 +40,7 @@ export class MaterialSemanticRules implements Rule<MaterialFacts, MaterialDecisi
         continue;
       }
 
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
         message: `材料「${fp.materialName}」贡献 ${fp.semanticTags.length} 个语义标签`,

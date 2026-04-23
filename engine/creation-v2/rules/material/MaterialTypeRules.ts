@@ -19,9 +19,9 @@ import { MaterialFacts } from '../contracts/MaterialFacts';
 export class MaterialTypeRules implements Rule<MaterialFacts, MaterialDecision> {
   readonly id = 'material.type-tags';
 
-  apply({ facts, diagnostics }: RuleContext<MaterialFacts, MaterialDecision>): void {
+  apply({ facts, decision }: RuleContext<MaterialFacts, MaterialDecision>): void {
     if (facts.fingerprints.length === 0) {
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'skipped',
         message: '无材料指纹，跳过类型标签溯源',
@@ -37,7 +37,7 @@ export class MaterialTypeRules implements Rule<MaterialFacts, MaterialDecision> 
           t.startsWith(CreationTags.MATERIAL.ELEMENT),
       );
 
-      diagnostics.addTrace({
+      decision.trace.push({
         ruleId: this.id,
         outcome: 'applied',
         message: `材料「${fp.materialName}」(${fp.materialType}) 贡献 ${typeTags.length} 个显式类型标签`,
