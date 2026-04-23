@@ -165,11 +165,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 通用固定值面板（20 种） ---
   {
     id: 'artifact-panel-atk',
-    displayName: '物攻面板',
-    displayDescription: '固定提升物理攻击力',
+    displayName: '断金',
+    displayDescription: '加持锋锐法阵，提升法宝本身的物理杀伤力',
     category: 'artifact_panel',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_BLADE] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      any: [CreationTags.MATERIAL.SEMANTIC_METAL, CreationTags.MATERIAL.SEMANTIC_BEAST],
+    },
     weight: 80,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -185,11 +188,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-magic-atk',
-    displayName: '法攻面板',
-    displayDescription: '固定提升法术攻击力',
+    displayName: '聚灵',
+    displayDescription: '铭刻聚灵纹路，提升法宝传导法术时的威力',
     category: 'artifact_panel',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [CreationTags.MATERIAL.SEMANTIC_QI, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+    },
     weight: 80,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -205,11 +211,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-def',
-    displayName: '物防面板',
-    displayDescription: '固定提升物理防御',
+    displayName: '铁壁',
+    displayDescription: '器体坚不可摧，被动强化肉身物理承伤之能',
     category: 'artifact_panel',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [CreationTags.MATERIAL.TYPE_ORE, CreationTags.MATERIAL.SEMANTIC_METAL],
+    },
     weight: 65,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -225,16 +234,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-magic-def',
-    displayName: '法防面板',
-    displayDescription: '固定提升法术防御',
+    displayName: '御法',
+    displayDescription: '莹莹宝光流转，化解袭来的诸般五行咒法术力',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_WATER,
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-        CreationTags.MATERIAL.SEMANTIC_GUARD,
-      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_WATER],
     },
     weight: 60,
     energyCost: 10,
@@ -252,11 +258,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
 
   {
     id: 'artifact-panel-speed',
-    displayName: '速度面板',
-    displayDescription: '固定提升身法',
+    displayName: '乘风',
+    displayDescription: '法宝质地轻灵，使持有者身法更显莫测无矩',
     category: 'artifact_panel',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_WIND],
+      any: [CreationTags.MATERIAL.SEMANTIC_SPACE, CreationTags.MATERIAL.SEMANTIC_BEAST],
+    },
     weight: 60,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -272,11 +281,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-crit-rate',
-    displayName: '暴击面板',
-    displayDescription: '固定提升暴击率',
+    displayName: '相机',
+    displayDescription: '宝器常生异象，协助破袭敌方微末破绽',
     category: 'artifact_panel',
     rarity: 'uncommon',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_BURST] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
+      any: [CreationTags.MATERIAL.SEMANTIC_ILLUSION, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+    },
     weight: 50,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -292,17 +304,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-crit-dmg',
-    displayName: '爆伤面板',
-    displayDescription: '固定提升暴击伤害',
+    displayName: '裂星',
+    displayDescription: '激发凶煞戾气，让致命一击造成更绝望惨重的创伤',
     category: 'artifact_panel',
     rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_BLADE,
-        CreationTags.MATERIAL.SEMANTIC_METAL,
-        CreationTags.MATERIAL.SEMANTIC_BEAST,
-      ],
+      any: [CreationTags.MATERIAL.SEMANTIC_BLADE, CreationTags.MATERIAL.SEMANTIC_BONE],
     },
     weight: 45,
     energyCost: 10,
@@ -319,16 +327,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-accuracy',
-    displayName: '命中面板',
-    displayDescription: '固定提升命中率',
+    displayName: '灵瞳',
+    displayDescription: '器灵如张心目，自行锁定敌踪定不使其遁脱',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_MANUAL,
-        CreationTags.MATERIAL.SEMANTIC_WIND,
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_FORMATION],
     },
     weight: 50,
     energyCost: 10,
@@ -345,11 +350,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-dodge',
-    displayName: '闪避面板',
-    displayDescription: '固定提升闪避率',
+    displayName: '无影',
+    displayDescription: '御使间光影摇曳，频频误导杀机规避险境',
     category: 'artifact_panel',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
+      any: [CreationTags.MATERIAL.SEMANTIC_WIND, CreationTags.MATERIAL.SEMANTIC_SPACE],
+    },
     weight: 45,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -365,16 +373,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-control-hit',
-    displayName: '控制命中面板',
-    displayDescription: '固定提升控制命中',
+    displayName: '镇魂',
+    displayDescription: '内蕴震慑神魂之威，令摄心、定身等奇术难以被拨开',
     category: 'artifact_panel',
     rarity: 'uncommon',
     match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_THUNDER,
-        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
-        CreationTags.MATERIAL.SEMANTIC_FREEZE,
-      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_ILLUSION],
+      any: [CreationTags.MATERIAL.SEMANTIC_THUNDER, CreationTags.MATERIAL.SEMANTIC_FREEZE],
     },
     weight: 40,
     energyCost: 10,
@@ -391,16 +396,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-control-resistance',
-    displayName: '控制抗性面板',
-    displayDescription: '固定提升控制抗性',
+    displayName: '明心',
+    displayDescription: '灵明时时刻刻守住灵窍，大幅减免被外物蒙扰受控的可能',
     category: 'artifact_panel',
     rarity: 'uncommon',
     match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_EARTH,
-        CreationTags.MATERIAL.SEMANTIC_GUARD,
-        CreationTags.MATERIAL.SEMANTIC_DIVINE,
-      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
+      any: [CreationTags.MATERIAL.SEMANTIC_GUARD, CreationTags.MATERIAL.SEMANTIC_EARTH],
     },
     weight: 40,
     energyCost: 10,
@@ -417,17 +419,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-spirit',
-    displayName: '灵力悟性面板',
-    displayDescription: '固定提升灵力',
+    displayName: '蕴灵',
+    displayDescription: '暖玉温养神念，充盈持有者的灵气本源',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_QI,
-        CreationTags.MATERIAL.TYPE_HERB,
-        CreationTags.MATERIAL.TYPE_MANUAL,
-      ],
+      any: [CreationTags.MATERIAL.SEMANTIC_QI, CreationTags.MATERIAL.SEMANTIC_LIFE],
     },
     weight: 55,
     energyCost: 10,
@@ -444,17 +442,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-vitality',
-    displayName: '体魄面板',
-    displayDescription: '固定提升体魄',
+    displayName: '淬体',
+    displayDescription: '持续引动生机反哺肉身血气，使体魄愈发强健',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_BLOOD,
-        CreationTags.MATERIAL.SEMANTIC_LIFE,
-        CreationTags.MATERIAL.TYPE_HERB,
-      ],
+      any: [CreationTags.MATERIAL.SEMANTIC_BLOOD, CreationTags.MATERIAL.SEMANTIC_LIFE],
     },
     weight: 55,
     energyCost: 10,
@@ -471,11 +465,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-wisdom',
-    displayName: '悟性面板',
-    displayDescription: '固定提升悟性',
+    displayName: '开智',
+    displayDescription: '时有清气流转，助人平心静气、提升推衍参悟道法的慧极',
     category: 'artifact_panel',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_MANUAL] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_MANUAL],
+      any: [CreationTags.MATERIAL.SEMANTIC_DIVINE, CreationTags.MATERIAL.SEMANTIC_FORMATION],
+    },
     weight: 45,
     energyCost: 10,
     applicableTo: ['artifact'],
@@ -491,16 +488,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-willpower',
-    displayName: '神识面板',
-    displayDescription: '固定提升神识',
+    displayName: '凝神',
+    displayDescription: '固本培元，令修者无形识海坚若磐石',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_GUARD,
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-        CreationTags.MATERIAL.SEMANTIC_DIVINE,
-      ],
+      all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
+      any: [CreationTags.MATERIAL.SEMANTIC_SPIRIT, CreationTags.MATERIAL.SEMANTIC_GUARD],
     },
     weight: 40,
     energyCost: 10,
@@ -523,8 +517,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 反伤荆棘 ---
   {
     id: 'artifact-defense-reflect-thorns',
-    displayName: '荆棘',
-    displayDescription: '受击时反弹部分伤害',
+    displayName: '反噬',
+    displayDescription: '器表布满生冷暗刺，受击时借势反震敌手',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -554,8 +548,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 濒死保命 ---
   {
     id: 'artifact-defense-death-prevent',
-    displayName: '绝处逢生',
-    displayDescription: '首次受到致死伤害时保留 1 点气血',
+    displayName: '涅槃',
+    displayDescription: '法宝本源与神魂相连，在形神俱灭之际强行截存一丝生机',
     category: 'artifact_defense',
     rarity: 'rare',
     match: {
@@ -584,8 +578,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 低血护盾 ---
   {
     id: 'artifact-defense-last-stand-shell',
-    displayName: '绝境护盾',
-    displayDescription: '气血低于阈值时受击有概率获得护盾',
+    displayName: '灵壁',
+    displayDescription: '感主之危，气血衰微时受击可自行激发真元护体',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -623,8 +617,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 被动护甲 ---
   {
     id: 'artifact-defense-armor-passive',
-    displayName: '坚韧',
-    displayDescription: '受击时降低固定伤害',
+    displayName: '坚甲',
+    displayDescription: '材质至坚，加持肉身，受击时可平摊来袭劲力降低伤害',
     category: 'artifact_defense',
     rarity: 'common',
     match: {
@@ -657,7 +651,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-mana-recovery',
     displayName: '灵泉',
-    displayDescription: '每回合自动回复少量法力',
+    displayDescription: '暗循周天，法宝每回合皆可自动接引天地灵气重聚真元',
     category: 'artifact_defense',
     rarity: 'common',
     match: {
@@ -693,8 +687,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 负面清除 ---
   {
     id: 'artifact-defense-debuff-cleanse',
-    displayName: '净化',
-    displayDescription: '受击后有概率清除一层负面状态',
+    displayName: '无垢',
+    displayDescription: '宝光澄澈，遭外邪入侵受击时，有概率强行洗去体内暗伤',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -727,8 +721,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 绝境护甲（低血减伤） ---
   {
     id: 'artifact-defense-desperate-aegis',
-    displayName: '绝境护甲',
-    displayDescription: '气血低于阈值时受到伤害降低',
+    displayName: '死战',
+    displayDescription: '背水结阵，气血枯竭时反而能够激起宝物内部死士之念，大幅减伤',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -761,11 +755,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 8 种元素减伤 ---
   {
     id: 'artifact-defense-fire-resist',
-    displayName: '火抗',
-    displayDescription: '受到火系伤害降低',
+    displayName: '辟火',
+    displayDescription: '蕴含冰寒之息，遭烈焰焚烧时可削弱大部分火系真诀威力',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['火']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['水'], ELEMENT_TO_MATERIAL_TAG['冰']],
+    },
     weight: 40,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -791,11 +788,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-ice-resist',
-    displayName: '冰抗',
-    displayDescription: '受到冰系伤害降低',
+    displayName: '辟冰',
+    displayDescription: '携炎阳脉络，受霜雪侵体时能护住经脉免遭冻结冰寒之害',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['冰']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['火'], CreationTags.MATERIAL.SEMANTIC_FLAME],
+    },
     weight: 38,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -821,11 +821,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-thunder-resist',
-    displayName: '雷抗',
-    displayDescription: '受到雷系伤害降低',
+    displayName: '辟雷',
+    displayDescription: '绝缘辟雷，万重天劫临身亦能将其劲气化去大半',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['雷']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['木'], ELEMENT_TO_MATERIAL_TAG['土']],
+    },
     weight: 36,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -851,11 +854,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-wind-resist',
-    displayName: '风抗',
-    displayDescription: '受到风系伤害降低',
+    displayName: '辟风',
+    displayDescription: '宝光所及，狂风息止，受风系道法席卷时伤害大减',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['风']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['土'], ELEMENT_TO_MATERIAL_TAG['金']],
+    },
     weight: 34,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -881,11 +887,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-metal-resist',
-    displayName: '金抗',
-    displayDescription: '受到金系伤害降低',
+    displayName: '辟金',
+    displayDescription: '暗合卸力之理，遇金铁之锐不撄其锋，可化解部分金系穿透',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['金']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['火'], ELEMENT_TO_MATERIAL_TAG['水']],
+    },
     weight: 32,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -911,11 +920,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-water-resist',
-    displayName: '水抗',
-    displayDescription: '受到水系伤害降低',
+    displayName: '辟水',
+    displayDescription: '携避水妙用，使敌方阴柔水行绵力如落空处，难伤分毫',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['水']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['土'], ELEMENT_TO_MATERIAL_TAG['木']],
+    },
     weight: 30,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -941,11 +953,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-wood-resist',
-    displayName: '木抗',
-    displayDescription: '受到木系伤害降低',
+    displayName: '辟木',
+    displayDescription: '蕴含肃杀伐木之意，受木属神通缠绕及毒瘴侵蚀显著减轻',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['木']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['金'], ELEMENT_TO_MATERIAL_TAG['火']],
+    },
     weight: 28,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -971,11 +986,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-defense-earth-resist',
-    displayName: '土抗',
-    displayDescription: '受到土系伤害降低',
+    displayName: '辟土',
+    displayDescription: '乘厚土德载，使地系镇压与土行重击难撼其根基',
     category: 'artifact_defense',
     rarity: 'common',
-    match: { all: [ELEMENT_TO_MATERIAL_TAG['土']] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      any: [ELEMENT_TO_MATERIAL_TAG['木'], ELEMENT_TO_MATERIAL_TAG['风']],
+    },
     weight: 28,
     energyCost: 12,
     applicableTo: ['artifact'],
@@ -1004,7 +1022,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-crit-shield',
     displayName: '波澜不惊',
-    displayDescription: '被暴击后获得护盾',
+    displayDescription: '在突遭危殆重击时，灵力如潮水汇聚结成护体光幕',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -1040,7 +1058,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-crit-reflect',
     displayName: '混元',
-    displayDescription: '被暴击后反弹伤害给攻击者',
+    displayDescription: '在承受凌厉猛击的瞬间，法阵自发逆转余波反震予施袭者',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -1071,8 +1089,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 回合回血 ---
   {
     id: 'artifact-defense-round-heal',
-    displayName: '生命之源',
-    displayDescription: '每回合回复少量气血',
+    displayName: '生命之泉',
+    displayDescription: '器体内封存草木之精，随真气流转持续蕴养残破血脉',
     category: 'artifact_defense',
     rarity: 'common',
     match: {
@@ -1152,7 +1170,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-treasure-life-guard',
     displayName: '护命',
-    displayDescription: '首次受到致死伤害时保留较多气血',
+    displayDescription: '灵台清明，真灵不灭，遇生死绝境之时可护住心脉使气火不绝',
     category: 'artifact_treasure',
     rarity: 'legendary',
     match: {
@@ -1185,8 +1203,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 太虚镜：特定元素伤害概率完全免疫 ---
   {
     id: 'artifact-treasure-void-mirror',
-    displayName: '太虚镜',
-    displayDescription: '受到特定元素伤害时有概率完全免疫',
+    displayName: '太虚',
+    displayDescription: '太虚无形，有概率将袭来的五行术法悉数化入虚无',
     category: 'artifact_treasure',
     rarity: 'legendary',
     match: {

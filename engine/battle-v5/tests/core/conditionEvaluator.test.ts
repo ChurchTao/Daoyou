@@ -14,6 +14,7 @@ function createUnitStub(
   options: {
     hp?: number;
     mp?: number;
+    shield?: number;
     buffs?: Array<{ type: BuffType }>;
   } = {},
 ) {
@@ -24,6 +25,7 @@ function createUnitStub(
     getMaxHp: () => 100,
     getCurrentMp: () => options.mp ?? 40,
     getMaxMp: () => 100,
+    getCurrentShield: () => options.shield ?? 0,
     buffs: {
       getAllBuffs: () => options.buffs ?? [],
     },
@@ -285,5 +287,52 @@ describe('conditionEvaluator', () => {
     );
 
     expect(result).toBe(true);
+  });
+
+  it('has_shield 应正确检测护盾存在', () => {
+    const condition: ConditionConfig = {
+      type: 'has_shield',
+      params: {
+        scope: 'caster',
+      },
+    };
+
+    const result = evaluateCondition(
+      {
+        caster: createUnitStub([], { shield: 10 }),
+        target: createUnitStub(),
+      },
+      condition,
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('has_shield 应支持阈值判断', () => {
+    const condition: ConditionConfig = {
+      type: 'has_shield',
+      params: {
+        value: 50,
+      },
+    };
+
+    const hasEnough = evaluateCondition(
+      {
+        caster: createUnitStub(),
+        target: createUnitStub([], { shield: 100 }),
+      },
+      condition,
+    );
+
+    const notEnough = evaluateCondition(
+      {
+        caster: createUnitStub(),
+        target: createUnitStub([], { shield: 30 }),
+      },
+      condition,
+    );
+
+    expect(hasEnough).toBe(true);
+    expect(notEnough).toBe(false);
   });
 });

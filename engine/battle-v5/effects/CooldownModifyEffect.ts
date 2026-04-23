@@ -1,7 +1,7 @@
 import { ActiveSkill } from '../abilities/ActiveSkill';
 import { CooldownModifyParams } from '../core/configs';
 import { EventBus } from '../core/EventBus';
-import { CooldownModifyEvent, EventPriorityLevel } from '../core/events';
+import { CooldownModifyEvent } from '../core/events';
 import { EffectRegistry } from '../factories/EffectRegistry';
 import { EffectContext, GameplayEffect } from './Effect';
 

@@ -1,34 +1,12 @@
+import { Buff } from '../buffs/Buff';
+import { EffectContext } from '../effects';
+import { Unit } from '../units/Unit';
 import { ConditionConfig } from './configs';
 import { DamageEvent, DamageRequestEvent, DamageTakenEvent } from './events';
 import { BuffType, DamageType } from './types';
 
-interface ConditionBuffLike {
-  type?: string;
-}
 
-interface ConditionBuffContainerLike {
-  getAllBuffs: () => ConditionBuffLike[];
-}
-
-interface ConditionUnitLike {
-  tags: { hasTag: (tag: string) => boolean };
-  getCurrentHp: () => number;
-  getMaxHp: () => number;
-  getCurrentMp: () => number;
-  getMaxMp: () => number;
-  buffs?: ConditionBuffContainerLike;
-}
-
-interface ConditionContext {
-  caster?: ConditionUnitLike;
-  target: ConditionUnitLike;
-  ability?: {
-    tags: { hasTag: (tag: string) => boolean };
-  };
-  triggerEvent?: unknown;
-}
-
-function getScopedUnit(context: ConditionContext, scope?: 'caster' | 'target') {
+function getScopedUnit(context: EffectContext, scope?: 'caster' | 'target') {
   if (scope === 'caster') return context.caster;
   return context.target;
 }
@@ -47,7 +25,7 @@ function getAbilityTagsFromTriggerEvent(triggerEvent: unknown) {
   return eventLike.ability?.tags;
 }
 
-function getAbilityTags(context: ConditionContext) {
+function getAbilityTags(context: EffectContext) {
   return getAbilityTagsFromTriggerEvent(context.triggerEvent) ?? context.ability?.tags;
 }
 
@@ -79,8 +57,8 @@ function getIsCriticalFromTriggerEvent(triggerEvent: unknown): boolean {
 }
 
 function countBuffs(
-  unit: ConditionUnitLike | undefined,
-  predicate: (buff: ConditionBuffLike) => boolean,
+  unit: Unit | undefined,
+  predicate: (buff: Buff) => boolean,
 ): number {
   if (!unit?.buffs) {
     return 0;
@@ -90,7 +68,7 @@ function countBuffs(
 }
 
 export function evaluateCondition(
-  context: ConditionContext,
+  context: EffectContext,
   cond: ConditionConfig,
 ): boolean {
   const scopedUnit = getScopedUnit(context, cond.params.scope);
@@ -127,6 +105,8 @@ export function evaluateCondition(
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() > threshold;
     case 'mp_below':
       return !!scopedUnit && scopedUnit.getCurrentMp() / scopedUnit.getMaxMp() < threshold;
+    case 'has_shield':
+      return !!scopedUnit && scopedUnit.getCurrentShield() > threshold;
     case 'buff_count_at_least':
       return (
         countBuffs(scopedUnit, (buff) => buff.type === BuffType.BUFF) >= threshold
@@ -159,7 +139,7 @@ export function evaluateCondition(
 }
 
 export function checkConditions(
-  context: ConditionContext,
+  context: EffectContext,
   conditions: ConditionConfig[],
 ): boolean {
   for (const cond of conditions) {

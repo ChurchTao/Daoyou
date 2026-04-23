@@ -3,7 +3,7 @@
  * 1. 核心池 (Core/Panel): 8 ~ 15 点。作为基础底盘，保证产物基本强度。
  * 2. 变体池 (Variant/School/Defense): 12 ~ 20 点。主要能量吸收点，定义流派特色。
  * 3. 稀有池 (Rare/Secret/Treasure): 35 ~ 55 点。顶级消耗项，吸收神品材料溢出能量，产出质变效果。
- * 
+ *
  * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
 import {
@@ -13,10 +13,7 @@ import {
 } from '@/engine/shared/tag-domain';
 import { CREATION_LISTENER_PRIORITIES } from '../../config/CreationBalance';
 import { ELEMENT_TO_MATERIAL_TAG } from '../../config/CreationMappings';
-import {
-  AttributeType,
-  ModifierType,
-} from '../../contracts/battle';
+import { AttributeType, ModifierType } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
 
@@ -28,8 +25,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 10 种百分比属性 ---
   {
     id: 'gongfa-foundation-spirit',
-    displayName: '灵力强化',
-    displayDescription: '战斗中提升灵力百分比，法术收益随境界成倍放大',
+    displayName: '蕴灵',
+    displayDescription: '功脉生息，提升体内灵力储量本源',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -48,14 +45,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPIRIT,
         modType: ModifierType.ADD,
-        value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-vitality',
-    displayName: '体魄强化',
-    displayDescription: '战斗中提升体力百分比，气血池更加深厚',
+    displayName: '血脉',
+    displayDescription: '大脉强劲，增淬肉壳生机气血',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -75,21 +72,21 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.VITALITY,
         modType: ModifierType.ADD,
-        value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-wisdom',
-    displayName: '悟性增益',
-    displayDescription: '战斗中提升悟性百分比，法术穿透与命中提高',
+    displayName: '慧心',
+    displayDescription: '心眼通明，提升修者天资悟性之根',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_MANUAL],
       any: [
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-        CreationTags.MATERIAL.TYPE_MANUAL,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
@@ -101,14 +98,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WISDOM,
         modType: ModifierType.ADD,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-willpower',
-    displayName: '神识强化',
-    displayDescription: '战斗中提升神识百分比，抗性与控制抵抗提高',
+    displayName: '固神',
+    displayDescription: '识海如固，坚守神宫不破之意志',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -128,17 +125,23 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.WILLPOWER,
         modType: ModifierType.ADD,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-speed',
-    displayName: '身法强化',
-    displayDescription: '战斗中提升身法百分比，先手与回避更具优势',
+    displayName: '御风',
+    displayDescription: '步踏罡斗，使身法运转更为无迹可寻',
     category: 'gongfa_foundation',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_WIND] },
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_WIND],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
+    },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
     weight: 75,
     energyCost: 10,
@@ -148,14 +151,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.SPEED,
         modType: ModifierType.ADD,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-atk',
-    displayName: '物攻强化',
-    displayDescription: '战斗中提升物理攻击百分比',
+    displayName: '断金',
+    displayDescription: '锐金之法，能显著拔高肉身体术之威',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -175,14 +178,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.ATK,
         modType: ModifierType.ADD,
-        value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-magic-atk',
-    displayName: '法攻强化',
-    displayDescription: '战斗中提升法术攻击百分比',
+    displayName: '通明',
+    displayDescription: '通明达微，使五行法术威能凭空暴涨',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -202,14 +205,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_ATK,
         modType: ModifierType.ADD,
-        value: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-def',
-    displayName: '物防强化',
-    displayDescription: '战斗中提升物理防御百分比',
+    displayName: '凝土',
+    displayDescription: '搬山卸岭，练就如玄土重岩般的肉身金脉',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -229,14 +232,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.DEF,
         modType: ModifierType.ADD,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-magic-def',
-    displayName: '法防强化',
-    displayDescription: '战斗中提升法术防御百分比',
+    displayName: '净水',
+    displayDescription: '如清水流云罩体，化散漫天轰落的敌方奇术',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -256,14 +259,14 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.MAGIC_DEF,
         modType: ModifierType.ADD,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
   {
     id: 'gongfa-foundation-heal-amplify',
-    displayName: '疗伤增幅',
-    displayDescription: '战斗中提升治疗效果百分比',
+    displayName: '生息',
+    displayDescription: '长青无极，运转间能够更有效激发疗伤药性与医术真气',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -283,7 +286,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.HEAL_AMPLIFY,
         modType: ModifierType.ADD,
-        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
@@ -291,8 +294,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 控制命中 ---
   {
     id: 'gongfa-foundation-control-hit',
-    displayName: '控制命中',
-    displayDescription: '提升控制效果命中率，使控制技更稳定生效',
+    displayName: '锁魂',
+    displayDescription: '天威如网，大幅拔高诸般摄心索灵异术的生效契机',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
     match: {
@@ -300,7 +303,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_THUNDER,
         CreationTags.MATERIAL.SEMANTIC_ILLUSION,
         CreationTags.MATERIAL.SEMANTIC_FREEZE,
-        CreationTags.MATERIAL.SEMANTIC_MANUAL,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.GONGFA.FOUNDATION_STAT,
@@ -312,7 +315,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.CONTROL_HIT,
         modType: ModifierType.ADD,
-        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
@@ -320,8 +323,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 控制抗性 ---
   {
     id: 'gongfa-foundation-control-resistance',
-    displayName: '控制抗性',
-    displayDescription: '提升控制效果抵抗率，减少被控风险',
+    displayName: '镇厄',
+    displayDescription: '镇压万邪，凭浩荡灵台强挡一切诡谲邪教的迷障控制',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
     match: {
@@ -341,7 +344,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       params: {
         attrType: AttributeType.CONTROL_RESISTANCE,
         modType: ModifierType.ADD,
-        value: { base: 0.05, scale: 'quality', coefficient: 0.015 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
       },
     },
   },
@@ -349,10 +352,10 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 通用增伤 ---
   {
     id: 'gongfa-foundation-damage-increase',
-    displayName: '功法增伤',
-    displayDescription: '全局造成伤害提高',
+    displayName: '狂歌',
+    displayDescription: '道蕴不羁，使修行者举手投足间带出远超常理的骇人神威',
     category: 'gongfa_foundation',
-    rarity: 'uncommon',
+    rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BURST],
       any: [
@@ -369,7 +372,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       type: 'percent_damage_modifier',
       params: {
         mode: 'increase',
-        value: { base: 0.06, scale: 'quality', coefficient: 0.02 },
+        value: { base: 0.02, scale: 'quality', coefficient: 0.02 },
         cap: 0.5,
       },
     },
@@ -383,8 +386,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 通用减伤（静态防御加成） ---
   {
     id: 'gongfa-foundation-damage-reduce',
-    displayName: '功法减伤',
-    displayDescription: '提升防御属性，降低受到的伤害',
+    displayName: '御气',
+    displayDescription: '运转护气之法，硬撼杀境保全自身完好',
     category: 'gongfa_foundation',
     rarity: 'uncommon',
     match: {
@@ -416,8 +419,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 8 种元素专精 ---
   {
     id: 'gongfa-school-fire-spec',
-    displayName: '火系专精',
-    displayDescription: '火系技能伤害提高，火修路线核心词条',
+    displayName: '融火',
+    displayDescription: '通晓真火大道，大幅提升火系神通的威能',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -453,8 +456,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-ice-spec',
-    displayName: '冰系专精',
-    displayDescription: '冰系技能伤害提高',
+    displayName: '凝霜',
+    displayDescription: '凝绝幽寒，明悟此门可大幅提升冰系神通的威能',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -490,8 +493,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-thunder-spec',
-    displayName: '雷系专精',
-    displayDescription: '雷系技能伤害提高',
+    displayName: '御雷',
+    displayDescription: '参透雷霆幻变之机，大幅提升雷系法术的威势',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -527,8 +530,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-wind-spec',
-    displayName: '风系专精',
-    displayDescription: '风系技能伤害提高',
+    displayName: '唤风',
+    displayDescription: '明谙风行之道，修习后能够大举强化风系流派杀招',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -564,8 +567,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-metal-spec',
-    displayName: '金系专精',
-    displayDescription: '金系技能伤害提高',
+    displayName: '掌金',
+    displayDescription: '金修内蕴之法，破阵裂城威力更甚平常',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -601,8 +604,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-water-spec',
-    displayName: '水系专精',
-    displayDescription: '水系技能伤害提高',
+    displayName: '聆水',
+    displayDescription: '通悉若水无定之形，大幅抬高水行神通的伤害界限',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -638,8 +641,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-wood-spec',
-    displayName: '木系专精',
-    displayDescription: '木系技能伤害提高',
+    displayName: '枯木',
+    displayDescription: '融生克于一体，显著助长木系道法的肆虐之威',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -675,8 +678,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-school-earth-spec',
-    displayName: '土系专精',
-    displayDescription: '土系技能伤害提高',
+    displayName: '厚土',
+    displayDescription: '立足浩荡地脉，使所有土系手段变得沉重绝伦',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -714,8 +717,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 暴击回蓝 ---
   {
     id: 'gongfa-school-crit-mana',
-    displayName: '暴击回蓝',
-    displayDescription: '暴击时回复灵力，维持高攻节奏',
+    displayName: '涌潮',
+    displayDescription: '灵力如潮，施展爆发破绽之时顺势汲引大量天地灵气入体',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -732,7 +735,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
-      conditions: [{ type: 'is_critical' ,params:{}}],
+      conditions: [{ type: 'is_critical', params: {} }],
       params: {
         target: 'mp',
         value: {
@@ -752,8 +755,9 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 低蓝增伤 ---
   {
     id: 'gongfa-school-low-mp-boost',
-    displayName: '低蓝增伤',
-    displayDescription: '灵力低于阈值时伤害提高，破釜沉舟的背水之战',
+    displayName: '破釜',
+    displayDescription:
+      '燃灵破釜，当体内真元临近枯竭时强行榨取残力发挥惊天之威',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -788,8 +792,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 首回合强化 ---
   {
     id: 'gongfa-school-first-round-boost',
-    displayName: '先手强化',
-    displayDescription: '气血充足时伤害大幅提高，抢先机定胜负',
+    displayName: '傲气',
+    displayDescription: '气脉全盛时出手自然不容抗拒，此法在满气血时具倾覆之威',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -806,7 +810,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
-        { type: 'hp_above', params: { value: 0.8, scope: 'caster' } },
+        { type: 'hp_above', params: { value: 0.95, scope: 'caster' } },
       ],
       params: {
         mode: 'increase',
@@ -824,8 +828,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 低血强化 ---
   {
     id: 'gongfa-school-low-hp-boost',
-    displayName: '绝境爆发',
-    displayDescription: '气血低于阈值时伤害大幅提高',
+    displayName: '死战',
+    displayDescription: '退无可退即为死战，周身负创严重时爆发出搏命一击',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -846,8 +850,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         mode: 'increase',
-        value: { base: 0.22, scale: 'quality', coefficient: 0.05 },
-        cap: 0.9,
+        value: { base: 0.15, scale: 'quality', coefficient: 0.05 },
       },
     },
     listenerSpec: {
@@ -860,8 +863,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 护盾存在时强化 ---
   {
     id: 'gongfa-school-shielded-boost',
-    displayName: '盾攻一体',
-    displayDescription: '拥有护盾时伤害提高，攻守同步',
+    displayName: '厚发',
+    displayDescription: '借护身灵罩作为依托，攻守共济下打出极为沉重的道术',
     category: 'gongfa_school',
     rarity: 'uncommon',
     match: {
@@ -879,8 +882,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       type: 'percent_damage_modifier',
       conditions: [
         {
-          type: 'buff_count_at_least',
-          params: { value: 1, scope: 'caster' },
+          type: 'has_shield',
+          params: { scope: 'caster' },
         },
       ],
       params: {
@@ -896,11 +899,11 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 状态延长 ---
+  // --- 减益伤害加深 ---
   {
     id: 'gongfa-school-debuff-extend',
-    displayName: '蚀骨增伤',
-    displayDescription: '对带有负面状态的目标伤害提高',
+    displayName: '落石',
+    displayDescription: '痛打落水之狗，趁敌方身中衰弱与剧毒时扩大杀伤',
     category: 'gongfa_school',
     rarity: 'rare',
     match: {
@@ -938,8 +941,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- DOT 放大 ---
   {
     id: 'gongfa-school-dot-amplify',
-    displayName: 'DOT 放大',
-    displayDescription: '对处于持续伤害状态的目标造成额外伤害',
+    displayName: '抽丝',
+    displayDescription: '针对受持续侵蚀折磨之敌，以剥茧抽丝般的手法引爆其痛楚',
     category: 'gongfa_school',
     rarity: 'rare',
     match: {
@@ -976,8 +979,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- 控制链强化（受控目标增伤） ---
   {
     id: 'gongfa-school-control-exploit',
-    displayName: '控场压制',
-    displayDescription: '对处于控制状态的目标伤害提高',
+    displayName: '摧心',
+    displayDescription: '乘敌身形受制、难以自持之际，直击破绽摧毁其防御',
     category: 'gongfa_school',
     rarity: 'rare',
     match: {
@@ -1178,22 +1181,47 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
           {
             attrType: AttributeType.ATK,
             modType: ModifierType.ADD,
-            value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+            value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
           },
           {
             attrType: AttributeType.MAGIC_ATK,
             modType: ModifierType.ADD,
-            value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
+            value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
           },
           {
             attrType: AttributeType.DEF,
             modType: ModifierType.ADD,
-            value: { base: 0.1, scale: 'quality', coefficient: 0.025 },
+            value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+          },
+          {
+            attrType: AttributeType.MAGIC_DEF,
+            modType: ModifierType.ADD,
+            value: { base: 0.05, scale: 'quality', coefficient: 0.02 },
+          },
+          {
+            attrType: AttributeType.SPIRIT,
+            modType: ModifierType.ADD,
+            value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
+          },
+          {
+            attrType: AttributeType.VITALITY,
+            modType: ModifierType.ADD,
+            value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
+          },
+          {
+            attrType: AttributeType.WISDOM,
+            modType: ModifierType.ADD,
+            value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
+          },
+          {
+            attrType: AttributeType.WILLPOWER,
+            modType: ModifierType.ADD,
+            value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
           },
           {
             attrType: AttributeType.SPEED,
             modType: ModifierType.ADD,
-            value: { base: 0.1, scale: 'quality', coefficient: 0.025 },
+            value: { base: 0.03, scale: 'quality', coefficient: 0.015 },
           },
         ],
         pickCount: 2,
@@ -1201,4 +1229,3 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
     },
   },
 ];
-

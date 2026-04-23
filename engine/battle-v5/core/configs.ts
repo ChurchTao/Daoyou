@@ -23,6 +23,7 @@ export interface ConditionConfig {
     | 'hp_below'
     | 'mp_above'
     | 'mp_below'
+    | 'has_shield'
     | 'buff_count_at_least'
     | 'debuff_count_at_least'
     | 'damage_type_is'

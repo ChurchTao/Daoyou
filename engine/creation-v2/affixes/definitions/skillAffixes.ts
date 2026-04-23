@@ -361,7 +361,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 控制 ---
   {
     id: 'skill-core-control-stun',
-    displayName: '眩晕控制',
+    displayName: '眩晕',
     displayDescription: '眩晕目标，使其短时间无法行动',
     category: 'skill_core',
     rarity: 'uncommon',
@@ -400,72 +400,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- MP 消耗降低 ---
-  {
-    id: 'skill-core-mp-cost-reduce',
-    displayName: '法力节省',
-    displayDescription: '降低本技能施法法力消耗，便于频繁施放',
-    category: 'skill_core',
-    rarity: 'common',
-    match: {
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-        CreationTags.MATERIAL.SEMANTIC_QI,
-      ],
-    },
-    weight: 60,
-    energyCost: 10,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'cooldown_modify',
-      params: {
-        cdModifyValue: { base: -1, scale: 'quality', coefficient: -0.2 },
-      },
-    },
-  },
-
-  // --- 命中提高 ---
-  {
-    id: 'skill-core-accuracy-boost',
-    displayName: '精准制导',
-    displayDescription: '提高本次施法命中率，减少落空风险',
-    category: 'skill_core',
-    rarity: 'common',
-    match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_WIND,
-        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
-        CreationTags.MATERIAL.SEMANTIC_MANUAL,
-      ],
-    },
-    weight: 55,
-    energyCost: 10,
-    applicableTo: ['skill'],
-    effectTemplate: {
-      type: 'apply_buff',
-      params: {
-        buffConfig: {
-          id: 'craft-accuracy-boost',
-          name: '锁定',
-          type: BuffType.BUFF,
-          duration: 1,
-          stackRule: StackRule.OVERRIDE,
-          tags: [GameplayTags.BUFF.TYPE.BUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
-          modifiers: [
-            {
-              attrType: AttributeType.ACCURACY,
-              type: ModifierType.FIXED,
-              value: 0.12,
-            },
-          ],
-        },
-        chance: 1,
-      },
-    },
-  },
-
   // ================================================================
   // ===== SKILL_VARIANT 池 (12 种) — 让同一技能长出不同战术身份
   // ================================================================
@@ -473,8 +407,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 灼烧 DOT ---
   {
     id: 'skill-variant-burn-dot',
-    displayName: '灼烧持续伤害',
-    displayDescription: '命中时附加灼烧，每回合造成持续伤害',
+    displayName: '焚身',
+    displayDescription: '命中时附加灼烧，使目标持续受到烈焰吞噬',
     category: 'skill_variant',
     rarity: 'common',
     match: { all: [CreationTags.MATERIAL.SEMANTIC_FLAME] },
@@ -529,8 +463,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 冰缓减速 ---
   {
     id: 'skill-variant-freeze-slow',
-    displayName: '冰缓节',
-    displayDescription: '命中时附加减速，降低目标身法',
+    displayName: '寒霜',
+    displayDescription: '携彻骨奇寒，命中后使目标身法运行滞涩',
     category: 'skill_variant',
     rarity: 'common',
     match: { all: [CreationTags.MATERIAL.SEMANTIC_FREEZE] },
@@ -567,8 +501,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 中毒 DOT ---
   {
     id: 'skill-variant-poison-dot',
-    displayName: '毒素侵染',
-    displayDescription: '命中时附加毒素，每回合造成持续伤害且可叠层',
+    displayName: '蚀骨',
+    displayDescription: '携剧毒入体，每次呼吸都会遭到毒液反噬',
     category: 'skill_variant',
     rarity: 'common',
     match: { all: [CreationTags.MATERIAL.SEMANTIC_POISON] },
@@ -618,16 +552,15 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 破防标记 ---
   {
     id: 'skill-variant-def-break',
-    displayName: '破防标记',
-    displayDescription: '命中时降低目标防御，使后续攻击更具穿透力',
+    displayName: '碎甲',
+    displayDescription: '罡劲透体而出，令目标护具瓦解，防御下降',
     category: 'skill_variant',
     rarity: 'common',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
       any: [
-        CreationTags.MATERIAL.SEMANTIC_BURST,
+        CreationTags.MATERIAL.SEMANTIC_BONE,
         CreationTags.MATERIAL.SEMANTIC_METAL,
-        CreationTags.MATERIAL.SEMANTIC_THUNDER,
       ],
     },
     weight: 55,
@@ -663,8 +596,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 驱散 ---
   {
     id: 'skill-variant-dispel',
-    displayName: '命中驱散',
-    displayDescription: '命中时消除目标一层 buff，破除敌方增益',
+    displayName: '破法',
+    displayDescription: '术含神威，命中时强行化去敌方身上的增益状态',
     category: 'skill_variant',
     rarity: 'common',
     match: {
@@ -690,8 +623,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 治疗附带净化 ---
   {
     id: 'skill-variant-heal-cleanse',
-    displayName: '净心吐纳',
-    displayDescription: '治疗时同时驱散目标一层负面效果',
+    displayName: '清心',
+    displayDescription: '灵力运转之间，驱散受术者体内郁结的负面状态',
     category: 'skill_variant',
     rarity: 'uncommon',
     match: {
@@ -717,16 +650,16 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 命中吸血 ---
   {
     id: 'skill-variant-heal-on-cast',
-    displayName: '命中吸血',
-    displayDescription: '施放后即时回复部分气血，攻守兼备',
+    displayName: '噬血',
+    displayDescription: '妖异奇诡之法，施展时能自虚空中汲气血以反哺己身',
     category: 'skill_variant',
     rarity: 'common',
     match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_BURST],
+      all: [CreationTags.MATERIAL.SEMANTIC_BLOOD],
       any: [
-        CreationTags.MATERIAL.SEMANTIC_BLOOD,
+        CreationTags.MATERIAL.SEMANTIC_BEAST,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
         CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-        CreationTags.MATERIAL.SEMANTIC_LIFE,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_LIFESTEAL,
@@ -758,8 +691,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 回蓝 ---
   {
     id: 'skill-variant-mp-on-cast',
-    displayName: '灵泉回涌',
-    displayDescription: '施放后即时回复法力，维持连续施法的灵力充盈',
+    displayName: '聚灵',
+    displayDescription: '暗合天道，施法之时可引周遭天地灵气入体',
     category: 'skill_variant',
     rarity: 'common',
     match: {
@@ -798,8 +731,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 施法护盾 ---
   {
     id: 'skill-variant-shield-on-cast',
-    displayName: '防御屏障',
-    displayDescription: '施放后为自身生成护盾，增加容错空间',
+    displayName: '罡气',
+    displayDescription: '术法激发之时，周身凝结出一层真元壁障',
     category: 'skill_variant',
     rarity: 'common',
     match: {
@@ -838,8 +771,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 技能增伤 ---
   {
     id: 'skill-variant-damage-boost',
-    displayName: '技能增伤',
-    displayDescription: '施放时提升本次技能伤害',
+    displayName: '聚力',
+    displayDescription: '术引灵压共乱，在此击中将天地元气尽数挤压爆出',
     category: 'skill_variant',
     rarity: 'uncommon',
     match: {
@@ -872,8 +805,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 低血斩杀增伤 ---
   {
     id: 'skill-variant-execute-boost',
-    displayName: '斩杀嗅觉',
-    displayDescription: '目标低血时本次施法伤害提高',
+    displayName: '夺命',
+    displayDescription: '术带戾气，专攻命门，生机越弱者越难生还',
     category: 'skill_variant',
     rarity: 'uncommon',
     match: {
@@ -909,8 +842,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   // --- 控制命中提高 ---
   {
     id: 'skill-variant-control-accuracy',
-    displayName: '神识贯穿',
-    displayDescription: '本次施法的控制效果命中提高',
+    displayName: '锁神',
+    displayDescription: '术引磅礴神识，将敌方气机牢牢锁定，令其避无可避',
     category: 'skill_variant',
     rarity: 'uncommon',
     match: {
@@ -956,7 +889,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-rare-ignite',
     displayName: '引燃',
-    displayDescription: '命中带灼烧目标时，立即引爆灼烧造成额外伤害',
+    displayDescription: '真阳异火所聚，瞬息点燃敌方护体真气引发爆裂',
     category: 'skill_rare',
     rarity: 'legendary',
     match: {
@@ -992,15 +925,15 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-rare-throat-seal',
     displayName: '封喉',
-    displayDescription: '目标处于控制状态时，本次施法伤害大幅提升',
+    displayDescription: '杀意内敛，专寻破绽，敌方受制时可一击必定乾坤',
     category: 'skill_rare',
     rarity: 'rare',
     match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_FREEZE],
+      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
       any: [
-        CreationTags.MATERIAL.SEMANTIC_BURST,
-        CreationTags.MATERIAL.SEMANTIC_BLADE,
-        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+        CreationTags.MATERIAL.SEMANTIC_TIME,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
@@ -1033,18 +966,18 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-rare-cd-curse',
     displayName: '逆脉',
-    displayDescription: '命中后有概率大幅延长目标所有技能冷却',
+    displayDescription: '携岁月流转之力，命中时概率令敌方经脉逆行、短时内无法施术',
     category: 'skill_rare',
     rarity: 'rare',
     match: {
       all: [
-        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_TIME,
         CreationTags.MATERIAL.TYPE_SPECIAL,
       ],
       any: [
         CreationTags.MATERIAL.SEMANTIC_MANUAL,
         CreationTags.MATERIAL.SEMANTIC_ILLUSION,
-        CreationTags.MATERIAL.SEMANTIC_TIME,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
@@ -1075,7 +1008,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-rare-soul-rend',
     displayName: '魂伤',
-    displayDescription: '造成一次无视防御的真实伤害，直击灵魂',
+    displayDescription: '斩魂绝灵之一击，穿透一切虚妄与肉身，伤及本源',
     category: 'skill_rare',
     rarity: 'legendary',
     match: {
