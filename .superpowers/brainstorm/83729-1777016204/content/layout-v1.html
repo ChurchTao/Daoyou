@@ -1,0 +1,47 @@
+<h2>战斗界面布局方案</h2>
+<p class="subtitle">请选择您偏好的回放与状态呈现布局（UI/UX Pro Max 风格）</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>【分栏联动式】战报为主，状态常驻</h3>
+      <p>左侧/顶部显示双方精美状态卡片（含动态血条、灵力条、Buff图标）；下方/右侧为大型战报区，每一行文字播报与当前回放动作 1:1 高亮联动。</p>
+      <div class="mockup" style="height: 150px; overflow: hidden; margin-top: 10px;">
+        <div style="display: flex; gap: 10px; height: 40px; border-bottom: 1px solid #ccc; padding: 5px;">
+           <div style="flex: 1; border: 1px solid #aaa; border-radius: 4px; background: #f9f9f9; font-size: 10px; padding: 2px;">玩家: HP [====]</div>
+           <div style="flex: 1; border: 1px solid #aaa; border-radius: 4px; background: #f9f9f9; font-size: 10px; padding: 2px;">对手: HP [====]</div>
+        </div>
+        <div style="padding: 10px; font-size: 11px;">
+           <div style="background: #eef; border-left: 3px solid blue; padding: 2px; margin-bottom: 2px;">▶ [当前动作] 玩家使用了《长生剑》，造成...</div>
+           <div style="color: #888;">[后续动作] 对手闪避了攻击...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>【舞台沉浸式】数值跳动，战报辅助</h3>
+      <p>中央为“对峙区域”，双方卡片尺寸更大，动作执行时有明显的数值跳动（-999）和特效展示；战报以浮窗或底栏形式简略显示，聚焦于数值的变化感。</p>
+      <div class="mockup" style="height: 150px; overflow: hidden; margin-top: 10px;">
+        <div style="display: flex; justify-content: space-around; align-items: center; height: 100px;">
+           <div style="width: 60px; height: 60px; border: 2px solid blue; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;">玩家</div>
+           <div style="color: red; font-weight: bold; font-size: 20px; animation: pulse 1s infinite;">-999</div>
+           <div style="width: 60px; height: 60px; border: 2px solid red; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;">对手</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.05); padding: 5px; font-size: 10px; text-align: center;">玩家发动攻击...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>核心交互特性：</h3>
+  <ul>
+    <li><strong>实时进度条</strong>：支持拖动回溯到任意动作（Action-level granularity）。</li>
+    <li><strong>Buff 悬浮窗</strong>：鼠标悬停 Buff 图标查看详细描述与剩余回合。</li>
+    <li><strong>多倍速切换</strong>：0.5x, 1.0x, 2.0x 甚至“瞬移”到结果。</li>
+  </ul>
+</div>

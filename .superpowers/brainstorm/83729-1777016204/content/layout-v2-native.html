@@ -1,0 +1,150 @@
+<style>
+  :root {
+    --color-paper: #f8f3e6;
+    --color-ink: #2c1810;
+    --color-ink-secondary: #5a4a42;
+    --color-crimson: #c1121f;
+    --color-teal: #4a7c59;
+    --color-wood: #8b4513;
+    --font-heading: 'Ma Shan Zheng', cursive;
+    --font-sans: 'LXGWWenKai', serif;
+  }
+  
+  .game-ui {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    padding: 15px;
+    border: 1px solid var(--color-ink-secondary);
+  }
+
+  .status-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .unit-card {
+    flex: 1;
+    border: 1px solid var(--color-ink-secondary);
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
+
+  .unit-name {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    border-bottom: 1px dashed var(--color-ink-secondary);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+  }
+
+  .bar-container {
+    height: 12px;
+    background: #e0d9c5;
+    margin: 4px 0;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  .hp-bar { background: var(--color-crimson); }
+  .mp-bar { background: var(--color-teal); }
+
+  .log-area {
+    border: 1px solid var(--color-ink-secondary);
+    height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .log-line {
+    margin-bottom: 8px;
+    padding-left: 15px;
+    position: relative;
+  }
+
+  .log-line::before {
+    content: "·";
+    position: absolute;
+    left: 4px;
+    color: var(--color-ink-secondary);
+  }
+
+  .log-line.active {
+    background: rgba(193, 18, 31, 0.1);
+    border-left: 3px solid var(--color-crimson);
+    padding-left: 12px;
+  }
+
+  .playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    padding: 8px;
+    border-top: 1px dashed var(--color-ink-secondary);
+  }
+
+  .speed-badge {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border: 1px solid var(--color-ink-secondary);
+    color: var(--color-ink-secondary);
+  }
+</style>
+
+<h2>方案 A：水墨游戏风格 (更新)</h2>
+<p class="subtitle">采用游戏原生的宣纸背景、水墨配色及字体风格</p>
+
+<div class="game-ui">
+  <div class="status-header">
+    <div class="unit-card">
+      <div class="unit-name">「玩家」</div>
+      <div style="font-size: 0.8rem;">气血: 850/1000</div>
+      <div class="bar-container"><div class="bar-fill hp-bar" style="width: 85%;"></div></div>
+      <div style="font-size: 0.8rem;">灵力: 400/500</div>
+      <div class="bar-container"><div class="bar-fill mp-bar" style="width: 80%;"></div></div>
+    </div>
+    <div class="unit-card" style="text-align: right;">
+      <div class="unit-name">「对手」</div>
+      <div style="font-size: 0.8rem;">气血: 420/1200</div>
+      <div class="bar-container"><div class="bar-fill hp-bar" style="width: 35%; float: right;"></div></div>
+      <div style="font-size: 0.8rem; clear: both;">灵力: 120/600</div>
+      <div class="bar-container"><div class="bar-fill mp-bar" style="width: 20%; float: right;"></div></div>
+    </div>
+  </div>
+
+  <div class="log-area">
+    <div class="log-line">【第一回合】</div>
+    <div class="log-line active">「玩家」施展《长生剑》，对「对手」造成 450 点伤害</div>
+    <div class="log-line" style="color: #888;">「对手」发起了攻击，被「玩家」闪避了</div>
+  </div>
+
+  <div class="playback-controls">
+    <div style="flex: 1; height: 4px; background: #ccc; position: relative;">
+      <div style="position: absolute; width: 40%; height: 100%; background: var(--color-ink);"></div>
+      <div style="position: absolute; left: 40%; top: -4px; width: 12px; height: 12px; background: var(--color-crimson); border-radius: 50%;"></div>
+    </div>
+    <div class="speed-badge">1.5x 倍速</div>
+    <div style="font-size: 1.2rem; cursor: pointer;">⏸</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>重构重点：</h3>
+  <ul>
+    <li><strong>风格统一</strong>：严格遵循 <code>globals.css</code> 中的配色方案（Crimson, Teal, Ink）和字体。</li>
+    <li><strong>动作级高亮</strong>：战报区当前执行的动作行会以浅红色背景和侧边框标识。</li>
+    <li><strong>平滑进度条</strong>：底部提供水墨风格进度条，指示战斗全过程。</li>
+  </ul>
+</div>
