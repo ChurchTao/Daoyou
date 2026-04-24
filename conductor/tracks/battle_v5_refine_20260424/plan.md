@@ -14,7 +14,7 @@
     - [x] 实现并修复：确保状态移除与叠加逻辑正确
 - [x] Task: Conductor - User Manual Verification '阶段 1: 核心逻辑审计与测试补完' (Protocol in workflow.md)
 
-## 阶段 2: 机制收尾与 Bug 修复
+## 阶段 2: 机制收尾与 Bug 修复 [checkpoint: ce653b5]
 根据第一阶段的审计结果，完成剩余的功能开发。
 
 - [x] Task: 完成五行克制与神通逻辑的硬切迁移 (根据用户指令，跳过五行生克逻辑)
