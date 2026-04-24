@@ -32,6 +32,12 @@ const CraftSchema = z.object({
   userPrompt: z.string().trim().max(300).optional(),
   /** 仅炼器有效的目标槽位。 */
   requestedSlot: z.enum(EQUIPMENT_SLOT_VALUES).optional(),
+  /** 仅神通有效：目标策略。 */
+  requestedTargetPolicy: z.object({
+    team: z.enum(['enemy', 'ally', 'self', 'any']),
+    scope: z.enum(['single', 'aoe', 'random']),
+    maxTargets: z.number().int().min(1).optional(),
+  }).optional(),
 });
 
 /**
@@ -144,6 +150,7 @@ export const POST = withActiveCultivator(
         materialQuantities,
         userPrompt,
         requestedSlot,
+        requestedTargetPolicy,
       } = parsed.data;
 
       if (
@@ -165,6 +172,7 @@ export const POST = withActiveCultivator(
           materialQuantities,
           userPrompt,
           requestedSlot,
+          requestedTargetPolicy,
         },
       );
       return NextResponse.json({ success: true, data: result });

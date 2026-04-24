@@ -163,6 +163,11 @@ export default function RefinePage() {
       return;
     }
 
+    if (!requestedSlot) {
+      pushToast({ message: '请选择目标槽位以确定法宝类型。', tone: 'warning' });
+      return;
+    }
+
     setSubmitting(true);
     setStatus('炉火纯青，真火锤锻……');
 
@@ -302,6 +307,7 @@ export default function RefinePage() {
             disabled={
               isSubmitting ||
               selectedMaterialIds.length === 0 ||
+              !requestedSlot ||
               !canAfford ||
               validation?.valid === false
             }

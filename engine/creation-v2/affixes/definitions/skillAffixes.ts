@@ -55,7 +55,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 80, scale: 'quality', coefficient: 14 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.9,
+          coefficient: 1.0,
         },
       },
     },
@@ -91,7 +91,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 86, scale: 'quality', coefficient: 15 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.92,
+          coefficient: 1.1,
         },
       },
     },
@@ -125,7 +125,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 78, scale: 'quality', coefficient: 14 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.86,
+          coefficient: 1.15,
         },
       },
     },

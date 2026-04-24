@@ -131,10 +131,10 @@ export class ProjectionRules implements Rule<
           ? CREATION_SKILL_DEFAULTS.buffCooldown
           : CREATION_SKILL_DEFAULTS.damageCooldown;
 
-    // 增加随品质带来的冷却延长，封顶 8 回合
+    // 增加随品质带来的冷却延长，封顶 10 回合
     const qualityOrder = materialQualityProfile.weightedAverageOrder;
     const cooldownBonus = CREATION_PROJECTION_BALANCE.qualityCooldownBonus[qualityOrder] ?? 0;
-    const cooldown = Math.min(8, baseCooldown + cooldownBonus);
+    const cooldown = Math.min(10, baseCooldown + cooldownBonus);
 
     decision.trace.push({
       ruleId: this.id,

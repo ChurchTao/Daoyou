@@ -41,6 +41,8 @@ export interface ProcessCreationOptions {
   userPrompt?: string;
   /** 仅法宝有效：玩家指定的装备槽位。其它产物传入会被忽略。 */
   requestedSlot?: EquipmentSlot;
+  /** 仅神通有效：玩家指定的目标策略（单体/AOE/队友等）。其它产物传入会被忽略。 */
+  requestedTargetPolicy?: { team: 'enemy' | 'ally' | 'self' | 'any'; scope: 'single' | 'aoe' | 'random'; maxTargets?: number };
 }
 
 export class CreationServiceError extends Error {
@@ -237,11 +239,15 @@ export async function processCreation(
     throw new CreationServiceError(`未知的造物类型: ${craftType}`);
   }
 
-  const { materialQuantities, userPrompt, requestedSlot } = options;
+  const { materialQuantities, userPrompt, requestedSlot, requestedTargetPolicy } = options;
 
   // Slot 只对 artifact 生效，其它产物传了也忽略，避免下游歧义。
   const effectiveRequestedSlot =
     productType === 'artifact' ? requestedSlot : undefined;
+
+  // TargetPolicy 只对 skill 生效。
+  const effectiveRequestedTargetPolicy =
+    productType === 'skill' ? requestedTargetPolicy : undefined;
 
   // 1. Redis 分布式锁
   const lockKey = `craft:lock:${cultivatorId}`;
@@ -334,6 +340,9 @@ export async function processCreation(
       ...(userPrompt?.trim() ? { userPrompt: userPrompt.trim() } : {}),
       ...(effectiveRequestedSlot
         ? { requestedSlot: effectiveRequestedSlot }
+        : {}),
+      ...(effectiveRequestedTargetPolicy
+        ? { requestedTargetPolicy: effectiveRequestedTargetPolicy }
         : {}),
     });
 

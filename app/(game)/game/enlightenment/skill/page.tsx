@@ -65,6 +65,24 @@ type V2CreationResult = {
   needs_replace?: boolean;
 };
 
+type TargetPolicySelection = {
+  team: 'enemy' | 'ally' | 'self' | 'any';
+  scope: 'single' | 'aoe' | 'random';
+  maxTargets?: number;
+} | null;
+
+const TARGET_TEAM_OPTIONS: { value: 'enemy' | 'ally' | 'self' | 'any'; label: string }[] = [
+  { value: 'enemy', label: '敌方' },
+  { value: 'self', label: '自身' },
+  { value: 'ally', label: '友方' },
+];
+
+const TARGET_SCOPE_OPTIONS: { value: 'single' | 'aoe' | 'random'; label: string }[] = [
+  { value: 'single', label: '单体' },
+  { value: 'aoe', label: '范围（AOE）' },
+  { value: 'random', label: '随机' },
+];
+
 export default function SkillCreationPage() {
   const router = useRouter();
   const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
@@ -83,6 +101,7 @@ export default function SkillCreationPage() {
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
+  const [targetPolicy, setTargetPolicy] = useState<TargetPolicySelection>(null);
   const { pushToast, openDialog } = useInkUI();
   const pathname = usePathname();
 
@@ -190,6 +209,7 @@ export default function SkillCreationPage() {
     setDoseMap({});
     setUserPrompt('');
     setValidation(null);
+    setTargetPolicy(null);
   };
 
   const submitPayload = useMemo(
@@ -200,8 +220,9 @@ export default function SkillCreationPage() {
         selectedMaterialIds.map((id) => [id, doseMap[id] ?? MIN_DOSE]),
       ),
       userPrompt: userPrompt.trim() || undefined,
+      requestedTargetPolicy: targetPolicy ?? undefined,
     }),
-    [selectedMaterialIds, doseMap, userPrompt],
+    [selectedMaterialIds, doseMap, userPrompt, targetPolicy],
   );
 
   const handleSubmit = async () => {
@@ -212,6 +233,11 @@ export default function SkillCreationPage() {
 
     if (selectedMaterialIds.length === 0) {
       pushToast({ message: '请选择要用于推演的材料。', tone: 'warning' });
+      return;
+    }
+
+    if (!targetPolicy) {
+      pushToast({ message: '请选择目标策略以确定神通施法方向。', tone: 'warning' });
       return;
     }
 
@@ -330,6 +356,80 @@ export default function SkillCreationPage() {
         />
       </InkSection>
 
+      <InkSection title="4. 目标策略">
+        <p className="text-ink-secondary mb-3 text-xs">
+          指定神通的施法目标倾向。
+          <span className="text-crimson ml-1">（必选）</span>
+        </p>
+        <div className="space-y-3">
+          <div>
+            <p className="text-ink-secondary mb-1.5 text-xs">目标阵营</p>
+            <div className="flex flex-wrap gap-2">
+              {TARGET_TEAM_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() =>
+                    setTargetPolicy((prev) => ({
+                      team: opt.value,
+                      scope: opt.value === 'self' ? 'single' : (prev?.scope ?? 'single'),
+                    }))
+                  }
+                  className={`rounded-md border px-3 py-1 text-sm transition-colors ${
+                    targetPolicy?.team === opt.value
+                      ? 'border-amber-500 bg-amber-50 text-amber-700'
+                      : 'border-ink/20 text-ink-secondary hover:border-ink/40'
+                  } disabled:opacity-50`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {targetPolicy && targetPolicy.team !== 'self' && (
+            <div>
+              <p className="text-ink-secondary mb-1.5 text-xs">目标范围</p>
+              <div className="flex flex-wrap gap-2">
+                {TARGET_SCOPE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() =>
+                      setTargetPolicy((prev) =>
+                        prev ? { ...prev, scope: opt.value } : null,
+                      )
+                    }
+                    className={`rounded-md border px-3 py-1 text-sm transition-colors ${
+                      targetPolicy.scope === opt.value
+                        ? 'border-amber-500 bg-amber-50 text-amber-700'
+                        : 'border-ink/20 text-ink-secondary hover:border-ink/40'
+                    } disabled:opacity-50`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {targetPolicy && (
+            <p className="text-ink-secondary text-xs">
+              已指定：
+              <span className="text-amber-600">
+                {TARGET_TEAM_OPTIONS.find((o) => o.value === targetPolicy.team)?.label}
+                {targetPolicy.team !== 'self' && (
+                  <>
+                    ·
+                    {TARGET_SCOPE_OPTIONS.find((o) => o.value === targetPolicy.scope)?.label}
+                  </>
+                )}
+              </span>
+            </p>
+          )}
+        </div>
+      </InkSection>
+
       <InkSection title="预计消耗">
         {estimatedCost ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
@@ -358,7 +458,7 @@ export default function SkillCreationPage() {
         )}
       </InkSection>
 
-      <InkSection title="4. 开始推演">
+      <InkSection title="5. 开始推演">
         <InkActionGroup align="right">
           <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
@@ -369,6 +469,7 @@ export default function SkillCreationPage() {
             disabled={
               isSubmitting ||
               selectedMaterialIds.length === 0 ||
+              !targetPolicy ||
               !canAfford ||
               validation?.valid === false
             }

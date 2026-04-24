@@ -23,7 +23,7 @@ export class BasicAttack extends ActiveSkill {
     this._damageEffect = new DamageEffect({
       value: {
         attribute: AttributeType.ATK,
-        coefficient: 1.0,
+        coefficient: 0.8,
       },
     });
 

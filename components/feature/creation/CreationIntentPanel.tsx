@@ -1,10 +1,7 @@
 'use client';
 
 import { InkInput } from '@/components/ui';
-import {
-  EQUIPMENT_SLOT_VALUES,
-  type EquipmentSlot,
-} from '@/types/constants';
+import { EQUIPMENT_SLOT_VALUES, type EquipmentSlot } from '@/types/constants';
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
   weapon: '武器',
@@ -16,7 +13,7 @@ export interface CreationIntentPanelProps {
   productType: 'artifact' | 'skill' | 'gongfa';
   userPrompt: string;
   onUserPromptChange: (value: string) => void;
-  /** 仅炼器需要：玩家可声明目标槽位。其它产物传了也会被忽略。 */
+  /** 仅炼器需要：玩家必须声明目标槽位。其它产物传了也会被忽略。 */
   requestedSlot?: EquipmentSlot | '';
   onRequestedSlotChange?: (value: EquipmentSlot | '') => void;
   disabled?: boolean;
@@ -25,9 +22,9 @@ export interface CreationIntentPanelProps {
 /**
  * 玩家造物意图面板。
  *
- * 只暴露“玩家真正需要主动决定”的输入：
+ * 只暴露"玩家真正需要主动决定"的输入：
  *   - userPrompt：命名/风格意念，会传入 LLM 命名阶段做意向融合；
- *   - requestedSlot：仅法宝有意义的装备槽位。
+ *   - requestedSlot：仅法宝有意义的装备槽位（必选）。
  *
  * 元素倾向 / 语义标签 一律交由材料和引擎自动推演；
  * LLM 命名增强固定开启（遇到错误会自动降级到规则命名）。
@@ -54,26 +51,31 @@ export function CreationIntentPanel({
       />
 
       {productType === 'artifact' && onRequestedSlotChange && (
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">目标槽位（可选）</span>
-          <select
-            className="border-ink/20 focus:border-crimson border bg-transparent px-3 py-3 text-base focus:outline-none"
-            value={requestedSlot ?? ''}
-            onChange={(e) =>
-              onRequestedSlotChange(
-                (e.target.value as EquipmentSlot | '') || '',
-              )
-            }
-            disabled={disabled}
-          >
-            <option value="">由材料自然决定</option>
+        <div className="flex flex-col gap-1.5">
+          <span className="font-semibold tracking-wide">
+            目标槽位
+            <span className="text-crimson ml-1 text-xs font-normal">
+              （必选）
+            </span>
+          </span>
+          <div className="flex flex-wrap gap-2">
             {EQUIPMENT_SLOT_VALUES.map((slot) => (
-              <option key={slot} value={slot}>
+              <button
+                key={slot}
+                type="button"
+                disabled={disabled}
+                onClick={() => onRequestedSlotChange(slot)}
+                className={`rounded-md border px-3 py-1 text-sm transition-colors ${
+                  requestedSlot === slot
+                    ? 'border-amber-500 bg-amber-50 text-amber-700'
+                    : 'border-ink/20 text-ink-secondary hover:border-ink/40'
+                } disabled:opacity-50`}
+              >
                 {SLOT_LABELS[slot]}
-              </option>
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
       )}
     </div>
   );
