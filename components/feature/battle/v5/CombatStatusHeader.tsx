@@ -1,0 +1,117 @@
+'use client';
+
+import { cn } from '@/lib/cn';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
+
+interface UnitCardProps {
+  unit: UnitStateSnapshot;
+  isOpponent?: boolean;
+}
+
+/**
+ * 单位状态卡片：展示名称、气血、灵力及 Buff
+ */
+function UnitCard({ unit, isOpponent }: UnitCardProps) {
+  return (
+    <div className={cn(
+      "flex-1 p-3 border border-ink-secondary bg-white/30 rounded-sm relative",
+      isOpponent && "text-right"
+    )}>
+      {/* 名称 */}
+      <div className="font-heading text-lg border-b border-dashed border-ink-secondary mb-2 px-1">
+        {unit.name}
+      </div>
+
+      {/* 气血条 */}
+      <div className="mb-2">
+        <div className="flex justify-between text-xs mb-0.5 px-1">
+          <span>{isOpponent ? '' : '气血'}</span>
+          <span className="font-mono">{unit.hp.current} / {unit.hp.max}</span>
+          <span>{isOpponent ? '气血' : ''}</span>
+        </div>
+        <div className="h-2.5 bg-ink/10 border border-ink/20 overflow-hidden relative">
+          <div 
+            className="h-full bg-crimson transition-all duration-500 ease-out" 
+            style={{ 
+              width: `${unit.hp.percent}%`, 
+              float: isOpponent ? 'right' : 'left' 
+            }}
+          />
+          {/* 护盾条（叠加在血条上） */}
+          {unit.shield > 0 && (
+            <div 
+              className="absolute top-0 h-full bg-gold/50 border-l border-gold"
+              style={{ 
+                width: `${Math.min(100, (unit.shield / unit.hp.max) * 100)}%`,
+                [isOpponent ? 'right' : 'left']: `${unit.hp.percent}%`
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 灵力条 */}
+      <div className="mb-2">
+        <div className="flex justify-between text-xs mb-0.5 px-1">
+          <span>{isOpponent ? '' : '灵力'}</span>
+          <span className="font-mono">{unit.mp.current} / {unit.mp.max}</span>
+          <span>{isOpponent ? '灵力' : ''}</span>
+        </div>
+        <div className="h-1.5 bg-ink/10 border border-ink/20 overflow-hidden">
+          <div 
+            className="h-full bg-teal transition-all duration-500 ease-out" 
+            style={{ 
+              width: `${unit.mp.percent}%`, 
+              float: isOpponent ? 'right' : 'left' 
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Buff 列表 */}
+      <div className={cn("flex flex-wrap gap-1 mt-1 px-1", isOpponent && "justify-end")}>
+        {unit.buffs.map((buff) => (
+          <div 
+            key={buff.id} 
+            className={cn(
+              "text-[10px] px-1 border border-ink/30 bg-paper/80 leading-tight",
+              buff.type === 'debuff' ? "text-crimson border-crimson/30" : "text-teal border-teal/30"
+            )}
+            title={`${buff.name}${buff.layers > 1 ? ` x${buff.layers}` : ''} (${buff.remaining === -1 ? '永久' : `${buff.remaining}回合`})`}
+          >
+            {buff.name.substring(0, 1)}
+            {buff.layers > 1 && <span className="scale-75 inline-block">x{buff.layers}</span>}
+          </div>
+        ))}
+        {unit.buffs.length === 0 && (
+          <div className="text-[10px] text-ink/30 italic">无状态</div>
+        )}
+      </div>
+
+      {/* 死亡阴影 */}
+      {!unit.alive && (
+        <div className="absolute inset-0 bg-ink/20 backdrop-grayscale flex items-center justify-center pointer-events-none">
+          <span className="font-heading text-xl text-ink/60 border-2 border-ink/40 px-3 py-1 rotate-12">已败</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 战斗顶部状态栏：集成双方卡片
+ */
+export function CombatStatusHeader({ 
+  player, 
+  opponent 
+}: { 
+  player: UnitStateSnapshot; 
+  opponent: UnitStateSnapshot;
+}) {
+  return (
+    <div className="flex justify-between gap-4 mb-4 select-none">
+      <UnitCard unit={player} />
+      <UnitCard unit={opponent} isOpponent />
+    </div>
+  );
+}
