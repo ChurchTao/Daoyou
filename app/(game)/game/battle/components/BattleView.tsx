@@ -98,17 +98,17 @@ export function BattleView() {
           />
         )}
 
-        {/* 玩家技能栏 */}
-        {currentPlayerFrame && (
-          <CombatSkillBar unit={currentPlayerFrame} />
-        )}
-
         {/* 结构化联动日志 */}
         {battleResult && (
           <CombatActionLog 
             spans={battleResult.logSpans} 
             currentIndex={currentIndex} 
           />
+        )}
+
+        {/* 玩家技能栏 */}
+        {currentPlayerFrame && (
+          <CombatSkillBar unit={currentPlayerFrame} />
         )}
 
         {/* 控制栏 */}

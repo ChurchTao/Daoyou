@@ -129,14 +129,14 @@ export function DungeonBattle({
           />
         )}
 
-        {/* 玩家技能栏 */}
-        {currentPlayerFrame && (
-          <CombatSkillBar unit={currentPlayerFrame} />
-        )}
-
         {/* 战报日志 */}
         {battleResult && (
           <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
+        )}
+
+        {/* 玩家技能栏 */}
+        {currentPlayerFrame && (
+          <CombatSkillBar unit={currentPlayerFrame} />
         )}
 
         {/* 控制栏 */}
