@@ -24,6 +24,7 @@ export function CombatControlBar({
   onReset,
 }: CombatControlBarProps) {
   const speeds = [0.5, 1.0, 1.5, 2.0];
+  const isFinished = progress >= 100;
 
   return (
     <div className="mt-4 p-3 border-t border-dashed border-ink-secondary flex flex-col gap-3 select-none">
@@ -36,30 +37,30 @@ export function CombatControlBar({
       </div>
 
       {/* 控制按钮 */}
-      <div className="flex items-center justify-between gap-4">
-        {/* 左侧：播放/暂停 & 重播 */}
-        <div className="flex gap-2">
-          <InkButton 
-            onClick={onToggle}
-            variant="primary"
-            // className="w-24 h-9"
-          >
-            {isPlaying ? '暂停' : '播放'}
-          </InkButton>
-          
-          {onReset && (
+      <div className="flex items-center justify-between gap-2">
+        {/* 左侧：主操作按钮 (播放/暂停 或 结束后的重播) */}
+        <div className="flex">
+          {!isFinished ? (
             <InkButton 
-              onClick={onReset}
-              variant="outline"
-              // className="w-20 h-9"
+              onClick={onToggle}
+              variant="primary"
             >
-              重播
+              {isPlaying ? '暂停' : '播放'}
             </InkButton>
+          ) : (
+            onReset && (
+              <InkButton 
+                onClick={onReset}
+                variant="outline"
+              >
+                重播
+              </InkButton>
+            )
           )}
         </div>
 
-        {/* 中间：倍速 */}
-        <div className="flex border border-ink-secondary rounded-sm overflow-hidden">
+        {/* 中间：倍速 (仅在未结束或需要调整时显示) */}
+        <div className="flex border border-ink-secondary rounded-sm overflow-hidden bg-white/50">
           {speeds.map((s) => (
             <button
               key={s}
@@ -76,9 +77,9 @@ export function CombatControlBar({
           ))}
         </div>
 
-        {/* 右侧：跳过（暂留位） */}
-        <div className="text-[10px] text-ink/40 italic">
-          {progress >= 100 ? '战斗结束' : `播放中 (${Math.round(progress)}%)`}
+        {/* 右侧：状态文本 */}
+        <div className="text-xs text-ink/40 italic text-right">
+          {isFinished ? '已结束' : `${Math.round(progress)}%`}
         </div>
       </div>
     </div>
