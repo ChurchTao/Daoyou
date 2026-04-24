@@ -13,6 +13,8 @@ const BattleSchema = z.object({
 });
 
 /**
+ * @deprecated 请使用 /api/battle/v5 接口。
+ * 此接口将在后续版本中移除。
  * POST /api/battle
  * 合并的战斗接口：执行战斗并生成战斗播报（SSE 流式输出）
  * 接收对手ID，直接返回战斗结果和播报
