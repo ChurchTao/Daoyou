@@ -17,6 +17,8 @@ export interface CooldownStateView {
   current: number;
   /** 技能最大冷却回合 */
   max: number;
+  /** 灵力消耗 */
+  mpCost: number;
 }
 
 // ===== 属性状态视图 =====
@@ -66,6 +68,7 @@ export interface UnitStateSnapshot {
   /** 当前护盾值 */
   shield: number;
   attrs: AttrsStateView;
+  baseAttrs: AttrsStateView;
   buffs: BuffStateView[];
   cooldowns: CooldownStateView[];
   /** 是否可行动（存活且未被控制）*/
@@ -82,6 +85,7 @@ export interface UnitStateDelta {
   shield?: { from: number; to: number; change: number };
   /** 仅包含发生变化的属性 */
   attrs?: Partial<Record<keyof AttrsStateView, { from: number; to: number }>>;
+  baseAttrs?: Partial<Record<keyof AttrsStateView, { from: number; to: number }>>;
   buffsAdded?: BuffStateView[];
   buffsRemoved?: Array<{ id: string; name: string }>;
   buffsUpdated?: Array<{

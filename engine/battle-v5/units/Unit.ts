@@ -202,6 +202,7 @@ export class Unit {
       mpPercent: this.getMpPercent(),
       currentShield: this.currentShield,
       abilities: this.abilities.getSnapshots(),
+      baseAttributes: this.attributes.getAllBaseValues(),
     };
   }
 

@@ -245,6 +245,19 @@ export class AttributeSet {
   }
 
   /**
+   * Get all base attribute values as a record.
+   * For derived attributes, returns the formula-computed base.
+   * @returns Record mapping attribute types to their base values
+   */
+  getAllBaseValues(): Record<AttributeType, number> {
+    const result = {} as Record<AttributeType, number>;
+    this._attributes.forEach((attr, type) => {
+      result[type] = attr.getBaseValue();
+    });
+    return result;
+  }
+
+  /**
    * Get the final value of an attribute after applying all modifiers.
    * @param attrType - The attribute type to query
    * @returns The final attribute value (0 if attribute doesn't exist)

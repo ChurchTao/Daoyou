@@ -126,6 +126,7 @@ export class BattleStateRecorder {
       },
       shield: Math.round(currentShield),
       attrs: this._buildAttrs(unit),
+      baseAttrs: this._buildAttrs(unit, true),
       buffs: this._buildBuffs(unit),
       cooldowns: this._buildCooldowns(unit),
       canAct:
@@ -137,29 +138,32 @@ export class BattleStateRecorder {
     };
   }
 
-  private _buildAttrs(unit: Unit): AttrsStateView {
+  private _buildAttrs(unit: Unit, useBase = false): AttrsStateView {
     const a = unit.attributes;
+    const getVal = (t: AttributeType) => 
+      useBase ? a.getBaseValue(t) : a.getValue(t);
+      
     return {
-      spirit: a.getValue(AttributeType.SPIRIT),
-      vitality: a.getValue(AttributeType.VITALITY),
-      speed: a.getValue(AttributeType.SPEED),
-      willpower: a.getValue(AttributeType.WILLPOWER),
-      wisdom: a.getValue(AttributeType.WISDOM),
-      atk: a.getValue(AttributeType.ATK),
-      def: a.getValue(AttributeType.DEF),
-      magicAtk: a.getValue(AttributeType.MAGIC_ATK),
-      magicDef: a.getValue(AttributeType.MAGIC_DEF),
-      critRate: a.getValue(AttributeType.CRIT_RATE),
-      critDamageMult: a.getValue(AttributeType.CRIT_DAMAGE_MULT),
-      evasionRate: a.getValue(AttributeType.EVASION_RATE),
-      controlHit: a.getValue(AttributeType.CONTROL_HIT),
-      controlResistance: a.getValue(AttributeType.CONTROL_RESISTANCE),
-      armorPenetration: a.getValue(AttributeType.ARMOR_PENETRATION),
-      magicPenetration: a.getValue(AttributeType.MAGIC_PENETRATION),
-      critResist: a.getValue(AttributeType.CRIT_RESIST),
-      critDamageReduction: a.getValue(AttributeType.CRIT_DAMAGE_REDUCTION),
-      accuracy: a.getValue(AttributeType.ACCURACY),
-      healAmplify: a.getValue(AttributeType.HEAL_AMPLIFY),
+      spirit: getVal(AttributeType.SPIRIT),
+      vitality: getVal(AttributeType.VITALITY),
+      speed: getVal(AttributeType.SPEED),
+      willpower: getVal(AttributeType.WILLPOWER),
+      wisdom: getVal(AttributeType.WISDOM),
+      atk: getVal(AttributeType.ATK),
+      def: getVal(AttributeType.DEF),
+      magicAtk: getVal(AttributeType.MAGIC_ATK),
+      magicDef: getVal(AttributeType.MAGIC_DEF),
+      critRate: getVal(AttributeType.CRIT_RATE),
+      critDamageMult: getVal(AttributeType.CRIT_DAMAGE_MULT),
+      evasionRate: getVal(AttributeType.EVASION_RATE),
+      controlHit: getVal(AttributeType.CONTROL_HIT),
+      controlResistance: getVal(AttributeType.CONTROL_RESISTANCE),
+      armorPenetration: getVal(AttributeType.ARMOR_PENETRATION),
+      magicPenetration: getVal(AttributeType.MAGIC_PENETRATION),
+      critResist: getVal(AttributeType.CRIT_RESIST),
+      critDamageReduction: getVal(AttributeType.CRIT_DAMAGE_REDUCTION),
+      accuracy: getVal(AttributeType.ACCURACY),
+      healAmplify: getVal(AttributeType.HEAL_AMPLIFY),
       maxHp: a.getMaxHp(),
       maxMp: a.getMaxMp(),
     };
@@ -185,6 +189,7 @@ export class BattleStateRecorder {
         skillName: skill.name,
         current: skill.currentCooldown,
         max: skill.maxCooldown,
+        mpCost: skill.manaCost,
       }));
   }
 
@@ -230,6 +235,18 @@ export class BattleStateRecorder {
     }
     if (Object.keys(changedAttrs).length > 0) {
       delta.attrs = changedAttrs;
+    }
+
+    const changedBaseAttrs: Partial<
+      Record<keyof AttrsStateView, { from: number; to: number }>
+    > = {};
+    for (const key of Object.keys(prev.baseAttrs) as Array<keyof AttrsStateView>) {
+      if (prev.baseAttrs[key] !== curr.baseAttrs[key]) {
+        changedBaseAttrs[key] = { from: prev.baseAttrs[key], to: curr.baseAttrs[key] };
+      }
+    }
+    if (Object.keys(changedBaseAttrs).length > 0) {
+      delta.baseAttrs = changedBaseAttrs;
     }
 
     const prevBuffMap = new Map(prev.buffs.map((b) => [b.id, b]));

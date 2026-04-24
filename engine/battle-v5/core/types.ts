@@ -159,6 +159,7 @@ export interface UnitSnapshot {
   mpPercent: number;
   currentShield: number;
   abilities: AbilitySnapshot[];
+  baseAttributes: Record<AttributeType, number>;
 }
 
 // ===== 战报日志 =====
