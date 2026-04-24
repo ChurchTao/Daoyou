@@ -236,6 +236,32 @@ export class AbilityContainer {
     return Array.from(this._abilities.values());
   }
 
+  /**
+   * 获取所有技能的快照
+   */
+  getSnapshots(): any[] {
+    return Array.from(this._abilities.values()).map((ability) => {
+      if (ability instanceof ActiveSkill) {
+        return {
+          id: ability.id,
+          name: ability.name,
+          currentCd: ability.currentCooldown,
+          maxCd: ability.maxCooldown,
+          mpCost: ability.manaCost,
+          type: ability.type,
+        };
+      }
+      return {
+        id: ability.id,
+        name: ability.name,
+        currentCd: 0,
+        maxCd: 0,
+        mpCost: 0,
+        type: ability.type,
+      };
+    });
+  }
+
   // ===== 克隆 =====
 
   clone(owner: Unit): AbilityContainer {

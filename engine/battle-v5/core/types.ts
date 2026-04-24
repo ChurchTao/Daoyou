@@ -136,6 +136,15 @@ export interface TurnSnapshot {
 }
 
 // ===== 单元快照 =====
+export interface AbilitySnapshot {
+  id: string;
+  name: string;
+  currentCd: number;
+  maxCd: number;
+  mpCost: number;
+  type: AbilityType;
+}
+
 export interface UnitSnapshot {
   unitId: UnitId;
   name: string;
@@ -149,6 +158,7 @@ export interface UnitSnapshot {
   hpPercent: number;
   mpPercent: number;
   currentShield: number;
+  abilities: AbilitySnapshot[];
 }
 
 // ===== 战报日志 =====
