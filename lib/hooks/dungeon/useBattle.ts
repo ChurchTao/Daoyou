@@ -5,7 +5,7 @@ import {
   DungeonSettlement,
   DungeonState,
 } from '@/lib/dungeon/types';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface BattleCallbackData {
   isFinished: boolean;
@@ -16,104 +16,62 @@ interface BattleCallbackData {
 }
 
 /**
- * 战斗逻辑Hook
- * 负责处理战斗执行和状态管理
+ * 战斗逻辑Hook (v5)
+ * 负责处理副本中的战斗执行
  */
 export function useBattle() {
   const [battleResult, setBattleResult] = useState<BattleRecord>();
-  const [streamingReport, setStreamingReport] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
   const [battleEnd, setBattleEnd] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   /**
-   * 执行战斗（SSE流式请求）
+   * 执行战斗 (JSON)
    */
-  const executeBattle = async (battleId: string) => {
-    let result: BattleRecord | undefined;
-    let callbackData: BattleCallbackData | null = null;
-
+  const executeBattle = useCallback(async (battleId: string) => {
     try {
-      setIsStreaming(true);
+      setLoading(true);
       setBattleEnd(false);
-      setStreamingReport('');
       setBattleResult(undefined);
 
-      const res = await fetch('/api/dungeon/battle/execute', {
+      const res = await fetch('/api/dungeon/battle/execute/v5', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ battleId }),
       });
 
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('Failed to get response reader');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || '战斗异常中断');
       }
 
-      let fullReport = '';
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            let data: Record<string, unknown>;
-            try {
-              data = JSON.parse(line.slice(6));
-            } catch {
-              // Ignore JSON parse errors for incomplete chunks
-              continue;
-            }
-
-            if (data.type === 'battle_result') {
-              result = data.data as BattleRecord;
-              setBattleResult(result);
-            } else if (data.type === 'chunk') {
-              fullReport += String(data.content ?? '');
-              setStreamingReport(fullReport);
-            } else if (data.type === 'done') {
-              setIsStreaming(false);
-              setStreamingReport(fullReport);
-              setBattleEnd(true);
-              callbackData = data as unknown as BattleCallbackData;
-            } else if (data.type === 'error') {
-              throw new Error(String(data.error ?? '战斗流程异常中断'));
-            }
-          }
-        }
-      }
-
-      return { battleResult: result, callbackData };
+      const data = await res.json();
+      const result = data.battleResult as BattleRecord;
+      
+      setBattleResult(result);
+      setBattleEnd(true);
+      
+      return { battleResult: result, callbackData: data.callbackData as BattleCallbackData };
     } catch (error) {
       console.error('[useBattle] Error:', error);
-      setIsStreaming(false);
-      // 保持可点击“继续探险”，让上层通过 refresh 做恢复
       setBattleEnd(true);
-      return { battleResult: result, callbackData };
+      return { battleResult: undefined, callbackData: null };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  /**
-   * 重置战斗状态
-   */
-  const resetBattle = () => {
+  const resetBattle = useCallback(() => {
     setBattleResult(undefined);
-    setStreamingReport('');
-    setIsStreaming(false);
     setBattleEnd(false);
-  };
+    setLoading(false);
+  }, []);
 
   return {
     battleResult,
-    streamingReport,
-    isStreaming,
     battleEnd,
+    loading,
     executeBattle,
     resetBattle,
   };
 }
+

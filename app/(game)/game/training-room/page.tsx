@@ -1,17 +1,21 @@
 'use client';
 
+import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
+import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
+import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
+import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
 import { InkButton } from '@/components/ui/InkButton';
 import { InkCard } from '@/components/ui/InkCard';
-import { InkDivider } from '@/components/ui/InkDivider';
 import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
-import { toLegacyTimeline, type TurnSnapshot } from '@/lib/services/battleResult';
+import { useCombatPlayer } from '../battle/hooks/useCombatPlayer';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { Cultivator } from '@/types/cultivator';
+import type { BattleRecord } from '@/lib/services/battleResult';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 /**
- * 练功房页面 - 修复版
+ * 练功房页面 - v5 重构版
  */
 const DUMMY_HP = 1000000000;
 
@@ -19,26 +23,27 @@ export default function TrainingRoomPage() {
   const router = useRouter();
   const { cultivator, isLoading } = useCultivator();
   const [isFighting, setIsFighting] = useState(false);
-  const [logs, setLogs] = useState<string[]>([
-    '[系统] 你走进了练功房，四周空旷静谧。',
-  ]);
-  const [currentSnapshot, setCurrentSnapshot] = useState<TurnSnapshot | null>(
-    null,
-  );
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const [battleResult, setBattleResult] = useState<BattleRecord>();
 
-  // 自动滚动日志
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+  const {
+    currentIndex,
+    isPlaying,
+    playbackSpeed,
+    setPlaybackSpeed,
+    play,
+    pause,
+    currentFrames,
+    totalActions,
+    progress,
+  } = useCombatPlayer(battleResult);
 
-  const handleStartTraining = async () => {
+  const handleStartTraining = useCallback(() => {
     if (!cultivator || isFighting) return;
 
     setIsFighting(true);
-    setLogs(['[系统] 演武开始。你屏息凝神，望向前方。']);
+    setBattleResult(undefined);
 
-    // 1. 定义 100 亿血量木桩 (Dummy)
+    // 1. 定义 10 亿血量木桩
     const mockDummy: Cultivator = {
       id: 'dummy',
       name: '木桩',
@@ -70,198 +75,103 @@ export default function TrainingRoomPage() {
       opponentMaxHpOverride: DUMMY_HP,
     });
 
-    const [playerUnitId, opponentUnitId] = result.stateTimeline.unitIds;
-    const timeline = toLegacyTimeline(result, playerUnitId, opponentUnitId);
+    setBattleResult(result);
+  }, [cultivator, isFighting]);
 
-    // 3. 初始快照同步
-    if (timeline.length > 0) {
-      setCurrentSnapshot(timeline[0]);
+  // 战斗结果产生后自动播放
+  useEffect(() => {
+    if (battleResult && totalActions > 0 && currentIndex === -1 && !isPlaying) {
+      play();
     }
+  }, [battleResult, totalActions, currentIndex, isPlaying, play]);
 
-    // 4. 逐行展示日志与状态同步
-    let currentLogIndex = 0;
-    let currentTurn = 0;
-
-    const interval = setInterval(() => {
-      if (currentLogIndex < result.logs.length) {
-        const nextLog = result.logs[currentLogIndex];
-        setLogs((prev) => [...prev, nextLog]);
-
-        if (nextLog.startsWith('[第') && nextLog.includes('回合]')) {
-          const turnMatch = nextLog.match(/第(\d+)回合/);
-          if (turnMatch) {
-            currentTurn = parseInt(turnMatch[1], 10);
-            const snap = timeline.find((s) => s.turn === currentTurn);
-            if (snap) {
-              setCurrentSnapshot(snap);
-            }
-          }
-        }
-
-        currentLogIndex++;
-      } else {
-        clearInterval(interval);
-        setIsFighting(false);
-        if (timeline.length > 0) {
-          const lastSnap = timeline[timeline.length - 1];
-          setCurrentSnapshot(lastSnap);
-
-          const totalDamage = DUMMY_HP - lastSnap.opponent.hp;
-          setLogs((prev) => [
-            ...prev,
-            `[系统] 演武结束。本次演武共对木桩造成伤害：${totalDamage.toLocaleString()}`,
-          ]);
-        }
-      }
-    }, 150);
-    };
-
-    if (isLoading) {
-    return (
-      <div className="flex min-h-[400px] flex-1 items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="border-ink/20 border-t-crimson h-8 w-8 animate-spin rounded-full border-2" />
-          <p className="text-ink/40 text-sm italic">识海构筑中...</p>
-        </div>
-      </div>
-    );
-    }
-
-    const handleLeave = () => {
-
-    if (isFighting) {
+  const handleLeave = () => {
+    if (isFighting && currentIndex < totalActions - 1) {
       if (!confirm('演武尚未结束，确定要强行离去吗？')) return;
     }
     router.push('/game');
   };
 
-  // 进度条辅助组件
-  const ProgressBar = ({
-    value,
-    max,
-    color = 'bg-crimson',
-  }: {
-    value: number;
-    max: number;
-    color?: string;
-  }) => {
-    const percent = Math.min(Math.max((value / max) * 100, 0), 100);
+  if (isLoading) {
     return (
-      <div className="bg-ink/5 h-1.5 w-full overflow-hidden rounded-full">
-        <div
-          className={`h-full ${color} transition-all duration-300 ease-out`}
-          style={{ width: `${percent}%` }}
-        />
+      <div className="bg-paper flex min-h-screen items-center justify-center">
+        <p className="text-ink/40 animate-pulse">识海构筑中...</p>
       </div>
     );
-  };
+  }
+
+  // 计算实时状态
+  const playerUnitId = battleResult?.player || cultivator?.id;
+  const opponentUnitId = battleResult?.opponent || 'dummy';
+
+  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
+  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
+
+  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
+  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+
+  const isEnded = battleResult && currentIndex >= totalActions - 1;
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-80px)] max-w-2xl flex-col space-y-6 overflow-hidden p-4">
-      {/* 头部 */}
-      <section className="flex shrink-0 items-center justify-between">
-        <div>
-          <h1 className="text-ink text-xl font-bold">练功房</h1>
-          <p className="text-ink/50 mt-1 text-xs">原始战斗数值测试中</p>
-        </div>
-        <InkButton onClick={handleLeave} variant="ghost" className="text-sm">
-          离开
-        </InkButton>
-      </section>
-
-      {/* 战斗数值面板 (双血条) */}
-      <InkCard variant="elevated" padding="lg" className="shrink-0 space-y-6">
-        <div className="flex items-start justify-between gap-8">
-          {/* 玩家状态 */}
-          <div className="flex-1 space-y-2">
-            <div className="flex items-end justify-between">
-              <span className="text-ink text-sm font-bold">
-                {cultivator?.name || '道友'}
-              </span>
-              <span className="text-ink/60 text-[10px]">
-                {currentSnapshot?.player.hp ?? 0} /{' '}
-                {currentSnapshot?.player.maxHp ?? 0}
-              </span>
-            </div>
-            <ProgressBar
-              value={currentSnapshot?.player.hp ?? 0}
-              max={currentSnapshot?.player.maxHp ?? 0}
-            />
-            <div className="flex items-center justify-between">
-              <span className="text-ink/40 text-[10px] italic">灵力</span>
-              <span className="text-ink/60 text-[10px]">
-                {currentSnapshot?.player.mp ?? 0}
-              </span>
-            </div>
+    <div className="bg-paper min-h-screen">
+      <div className="main-content mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16">
+        {/* 头部 */}
+        <section className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="font-ma-shan-zheng text-ink text-2xl">【演武厅 · 练功房】</h1>
+            <p className="text-ink/50 mt-1 text-xs">通过对战木桩测试功法威力</p>
           </div>
+          <InkButton onClick={handleLeave} variant="ghost" className="text-sm">
+            离开
+          </InkButton>
+        </section>
 
-          <div className="text-ink/20 self-center font-serif text-lg italic">
-            VS
-          </div>
-
-          {/* 木桩状态 */}
-          <div className="flex-1 space-y-2 text-right">
-            <div className="flex flex-row-reverse items-end justify-between">
-              <span className="text-ink text-sm font-bold">木桩</span>
-              <span className="text-ink/60 text-[10px]">
-                {currentSnapshot?.opponent.hp ?? DUMMY_HP} / 10亿
-              </span>
-            </div>
-            <ProgressBar
-              value={currentSnapshot?.opponent.hp ?? DUMMY_HP}
-              max={DUMMY_HP}
-              color="bg-ink/40"
-            />
-            <div className="flex flex-row-reverse items-center justify-between">
-              <span className="text-ink/40 text-[10px] italic">灵力</span>
-              <span className="text-ink/60 text-[10px]">
-                {currentSnapshot?.opponent.mp ?? 0}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 开始按钮 */}
-        {!isFighting && (
-          <div className="flex justify-center pt-2">
-            <InkButton
-              onClick={handleStartTraining}
-              variant="primary"
-              className="px-8 py-2"
-            >
+        {!battleResult && !isFighting ? (
+          <InkCard padding="lg" className="text-center py-12">
+            <p className="text-ink/60 mb-6 italic">此地宁静祥和，适合静心演武。</p>
+            <InkButton onClick={handleStartTraining} variant="primary" className="px-12 py-3 text-lg">
               开始演武
             </InkButton>
+          </InkCard>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {/* 状态栏 */}
+            {currentPlayerFrame && currentOpponentFrame && (
+              <CombatStatusHeader player={currentPlayerFrame} opponent={currentOpponentFrame} />
+            )}
+
+            {/* 战报日志 */}
+            {battleResult && (
+              <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
+            )}
+
+            {/* 控制栏 */}
+            {battleResult && (
+              <CombatControlBar 
+                isPlaying={isPlaying}
+                playbackSpeed={playbackSpeed}
+                progress={progress}
+                onToggle={() => isPlaying ? pause() : play()}
+                onSpeedChange={setPlaybackSpeed}
+              />
+            )}
+
+            {/* 结算 */}
+            {isEnded && (
+              <div className="mt-4 p-4 border border-ink-secondary bg-white/30 rounded-sm text-center animate-fade-in">
+                <p className="text-ink text-lg font-bold mb-1">演武结束</p>
+                <p className="text-ink/60 text-sm">
+                  本次演武共造成 {(DUMMY_HP - (currentOpponentFrame?.hp.current || 0)).toLocaleString()} 点伤害
+                </p>
+                <InkButton onClick={() => { setIsFighting(false); setBattleResult(undefined); }} className="mt-4">
+                  再次演武
+                </InkButton>
+              </div>
+            )}
           </div>
         )}
-      </InkCard>
-
-      {/* 日志展示区 */}
-      <InkCard variant="plain" className="flex flex-1 flex-col overflow-hidden">
-        <div className="mb-3 flex shrink-0 items-center justify-between px-1">
-          <h3 className="text-ink/70 text-sm font-bold">演武日志</h3>
-          {isFighting && (
-            <span className="text-crimson animate-pulse text-base tracking-tighter">
-              真元运行中...
-            </span>
-          )}
-        </div>
-        <InkDivider className="shrink-0 opacity-10" />
-        <div className="text-ink/80 flex-1 space-y-3 overflow-y-auto scroll-smooth px-1 py-4 text-[13px] leading-relaxed">
-          {logs.map((log, index) => (
-            <div
-              key={index}
-              className={
-                log.startsWith('[系统]')
-                  ? 'text-ink/40 italic'
-                  : 'border-ink/5 border-l pl-3'
-              }
-            >
-              {log}
-            </div>
-          ))}
-          <div ref={logEndRef} />
-        </div>
-      </InkCard>
+      </div>
     </div>
   );
 }
+

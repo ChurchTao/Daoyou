@@ -1,11 +1,11 @@
 'use client';
 
-import { BattleReplayViewer } from '@/components/feature/battle/BattleReplayViewer';
-import {
-  toViewRecord,
-  type BattleRecord as BattleRecordNative,
-  type TurnSnapshot,
-} from '@/lib/services/battleResult';
+import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
+import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
+import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
+import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
+import { useCombatPlayer } from '../hooks/useCombatPlayer';
+import type { BattleRecord as BattleRecordNative } from '@/lib/services/battleResult';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -30,6 +30,19 @@ export default function BattleReplayPage() {
 
   const [record, setRecord] = useState<BattleRecordRow | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // 播放器 Hook
+  const {
+    currentIndex,
+    isPlaying,
+    playbackSpeed,
+    setPlaybackSpeed,
+    play,
+    pause,
+    currentFrames,
+    totalActions,
+    progress,
+  } = useCombatPlayer(record?.battleResult);
 
   useEffect(() => {
     if (!id) return;
@@ -66,77 +79,69 @@ export default function BattleReplayPage() {
     );
   }
 
-  const viewRecord = record ? toViewRecord(record.battleResult) : undefined;
+  const battleResult = record?.battleResult;
+  const playerUnitId = battleResult?.player;
+  const opponentUnitId = battleResult?.opponent;
   const currentCultivatorId = cultivator?.id;
 
-  const selfIsOpponent =
-    !!viewRecord &&
-    !!currentCultivatorId &&
-    viewRecord.opponent === currentCultivatorId;
-
-  const getCultivatorNameById = (
-    result: BattleRecordNative,
-    cultivatorId: string,
-  ) => {
-    if (result.winner?.id === cultivatorId) return result.winner.name;
-    if (result.loser?.id === cultivatorId) return result.loser.name;
-    return cultivatorId === currentCultivatorId ? '道友' : '对手';
+  // 判定视角（玩家是否为回放中的一方）
+  const selfIsOpponent = !!battleResult && !!currentCultivatorId && battleResult.opponent === currentCultivatorId;
+  
+  const getUnitName = (unitId: string) => {
+    if (battleResult?.winner.id === unitId) return battleResult.winner.name;
+    if (battleResult?.loser.id === unitId) return battleResult.loser.name;
+    return '道友';
   };
 
-  const playerName = viewRecord
-    ? selfIsOpponent
-      ? getCultivatorNameById(viewRecord, viewRecord.opponent)
-      : getCultivatorNameById(viewRecord, viewRecord.player)
-    : '道友';
-  const opponentName = viewRecord
-    ? selfIsOpponent
-      ? getCultivatorNameById(viewRecord, viewRecord.player)
-      : getCultivatorNameById(viewRecord, viewRecord.opponent)
-    : '对手';
+  const playerName = playerUnitId ? getUnitName(playerUnitId) : '道友';
+  const opponentName = opponentUnitId ? getUnitName(opponentUnitId) : '对手';
 
-  let timeline: TurnSnapshot[] = viewRecord?.timeline ?? [];
-  if (selfIsOpponent && timeline.length) {
-    timeline = timeline.map((snap) => ({
-      ...snap,
-      player: snap.opponent,
-      opponent: snap.player,
-    }));
-  }
-
-  const turns = viewRecord?.turns;
-  const isWin = currentCultivatorId
-    ? viewRecord?.winner?.id === currentCultivatorId
-    : !!viewRecord?.winner?.name;
+  // 计算实时快照
+  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
+  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
+  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
+  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
 
   return (
-    <div className="bg-paper min-h-screen">
-      <div className="main-content mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16">
-        <Link href="/game" className="text-ink hover:text-crimson mb-4">
-          [← 返回]
-        </Link>
+    <BattlePageLayout
+      title={`【回放 · ${playerName} vs ${opponentName}】`}
+      backHref="/game"
+      loading={loading}
+      battleResult={battleResult}
+      isStreaming={false}
+      actions={{
+        primary: {
+          label: '返回主页',
+          href: '/game',
+        },
+      }}
+    >
+      <div className="flex flex-col gap-4 mb-8">
+        {currentPlayerFrame && currentOpponentFrame && (
+          <CombatStatusHeader player={currentPlayerFrame} opponent={currentOpponentFrame} />
+        )}
 
-        <div className="mb-6 text-center">
-          <h1 className="font-ma-shan-zheng text-ink text-2xl">
-            【战报回放 · {playerName} vs {opponentName}】
-          </h1>
-          {record?.createdAt && (
-            <p className="text-ink/60 mt-1 text-xs">
-              {new Date(record.createdAt).toLocaleString()}
-            </p>
-          )}
-        </div>
+        {battleResult && (
+          <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
+        )}
 
-        {record && (
-          <BattleReplayViewer
-            playerName={playerName}
-            opponentName={opponentName}
-            timeline={timeline}
-            battleReport={record.battleReport}
-            turns={turns}
-            isWin={isWin}
+        {battleResult && (
+          <CombatControlBar 
+            isPlaying={isPlaying}
+            playbackSpeed={playbackSpeed}
+            progress={progress}
+            onToggle={() => isPlaying ? pause() : play()}
+            onSpeedChange={setPlaybackSpeed}
           />
         )}
       </div>
-    </div>
+
+      {record?.createdAt && (
+        <p className="text-ink/40 text-center text-xs mt-4">
+          记录时间：{new Date(record.createdAt).toLocaleString()}
+        </p>
+      )}
+    </BattlePageLayout>
   );
 }
+

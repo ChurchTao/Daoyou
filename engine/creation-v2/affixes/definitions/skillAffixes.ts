@@ -1035,7 +1035,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-soul-rend',
     displayName: '魂伤',
     displayDescription: '斩魂绝灵之一击，穿透一切虚妄与肉身，伤及本源',
-    category: 'skill_rare',
+    category: 'skill_core',
     rarity: 'legendary',
     match: {
       all: [
@@ -1051,7 +1051,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
     weight: 4,
     energyCost: 55,
-    minQuality: '真品',
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
@@ -1062,9 +1061,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'damage',
       params: {
         value: {
-          base: { base: 60, scale: 'quality', coefficient: 18 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.8,
+          base: { base: 90, scale: 'quality', coefficient: 18 },
+          attribute: AttributeType.WILLPOWER,
+          coefficient: 1.5,
         },
       },
     },
