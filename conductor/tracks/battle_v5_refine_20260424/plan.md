@@ -25,7 +25,7 @@
     - [x] 修复代码 (No bugs found in core logic)
 - [x] Task: Conductor - User Manual Verification '阶段 2: 机制收尾与 Bug 修复' (Protocol in workflow.md)
 
-## 阶段 3: AIGC 播报优化与界面适配
+## 阶段 3: AIGC 播报优化与界面适配 [checkpoint: d3f1188]
 对接 AI 接口，并确保移动端表现。
 
 - [x] Task: 优化 AIGC 战斗播报 Prompt 与模板 (Prompt updated to humorous style)
