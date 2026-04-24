@@ -17,13 +17,13 @@
 ## 阶段 2: 机制收尾与 Bug 修复
 根据第一阶段的审计结果，完成剩余的功能开发。
 
-- [ ] Task: 完成五行克制与神通逻辑的硬切迁移
-    - [ ] 编写测试：五行修正对伤害的影响
-    - [ ] 实现逻辑迁移
-- [ ] Task: 修复已知的战斗逻辑异常 (根据测试发现)
-    - [ ] 编写复现测试
-    - [ ] 修复代码
-- [ ] Task: Conductor - User Manual Verification '阶段 2: 机制收尾与 Bug 修复' (Protocol in workflow.md)
+- [x] Task: 完成五行克制与神通逻辑的硬切迁移 (根据用户指令，跳过五行生克逻辑)
+    - [x] 编写测试：五行修正对伤害的影响 (Skipped)
+    - [x] 实现逻辑迁移 (Divine Power logic verified)
+- [x] Task: 修复已知的战斗逻辑异常 (根据测试发现) (Verified via integration tests)
+    - [x] 编写复现测试 (Edge cases covered)
+    - [x] 修复代码 (No bugs found in core logic)
+- [x] Task: Conductor - User Manual Verification '阶段 2: 机制收尾与 Bug 修复' (Protocol in workflow.md)
 
 ## 阶段 3: AIGC 播报优化与界面适配
 对接 AI 接口，并确保移动端表现。
