@@ -2,6 +2,8 @@
 
 import { cn } from '@/lib/cn';
 import type { UnitStateSnapshot, AttrsStateView } from '@/engine/battle-v5/systems/state/types';
+import { InkModal } from '@/components/layout/InkModal';
+import { format } from 'd3-format';
 
 interface Props {
   unit: UnitStateSnapshot | null;
@@ -9,12 +11,15 @@ interface Props {
   onClose: () => void;
 }
 
+const fmtInt = format(',d');
+const fmtPct = format('.1f');
+
 const ATTR_LABELS: Partial<Record<keyof AttrsStateView, string>> = {
-  spirit: '灵力 (主)',
-  vitality: '体魄 (主)',
-  speed: '身法 (主)',
-  willpower: '神识 (主)',
-  wisdom: '悟性 (主)',
+  spirit: '灵力',
+  vitality: '体魄',
+  speed: '身法',
+  willpower: '神识',
+  wisdom: '悟性',
   atk: '物理攻击',
   def: '物理防御',
   magicAtk: '法术攻击',
@@ -35,97 +40,91 @@ const ATTR_LABELS: Partial<Record<keyof AttrsStateView, string>> = {
 };
 
 /**
- * 详细属性弹窗
+ * 详细属性弹窗 - 使用统一的 InkModal
  */
 export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
-  if (!isOpen || !unit) return null;
+  if (!unit) return null;
 
   const renderAttr = (key: keyof AttrsStateView, isPercentage = false) => {
-    const val = unit.attrs[key];
-    const label = ATTR_LABELS[key] || key;
-    let displayVal = val.toString();
+    const finalVal = unit.attrs[key] || 0;
+    const baseVal = unit.baseAttrs[key] || 0;
+    const modifier = finalVal - baseVal;
     
-    if (isPercentage) {
-      displayVal = `${(val * 100).toFixed(1)}%`;
-    } else if (typeof val === 'number') {
-      displayVal = Math.round(val).toString();
-    }
+    const label = ATTR_LABELS[key] || key;
+    
+    const displayBase = isPercentage ? fmtPct(baseVal * 100) : fmtInt(baseVal);
+    const displayMod = isPercentage ? fmtPct(modifier * 100) : fmtInt(modifier);
 
     return (
       <div key={key} className="flex justify-between py-1 border-b border-ink/5 text-sm">
         <span className="text-ink/60">{label}</span>
-        <span className="font-mono text-ink">{displayVal}</span>
+        <div className="font-mono text-ink flex gap-1">
+          <span>{displayBase}{isPercentage && '%'}</span>
+          {Math.abs(modifier) > 0.001 && (
+            <span className={cn(
+              "text-[10px] mt-0.5",
+              modifier > 0 ? "text-teal-600" : "text-crimson"
+            )}>
+              {modifier > 0 ? '+' : ''}{displayMod}{isPercentage && '%'}
+            </span>
+          )}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-paper border-2 border-ink w-full max-w-md shadow-2xl relative animate-scale-in">
-        {/* 头部 */}
-        <div className="bg-ink text-paper px-4 py-3 flex justify-between items-center">
-          <h3 className="font-heading text-lg">角色详细属性 - {unit.name}</h3>
-          <button onClick={onClose} className="hover:rotate-90 transition-transform">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
-          </button>
-        </div>
+    <InkModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`角色属性 · ${unit.name}`}
+      className="max-w-lg"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 p-2">
+        {/* 基础五维 */}
+        <section>
+          <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-xs opacity-50 uppercase tracking-widest">基础属性</h4>
+          {renderAttr('spirit')}
+          {renderAttr('vitality')}
+          {renderAttr('speed')}
+          {renderAttr('willpower')}
+          {renderAttr('wisdom')}
+        </section>
 
-        {/* 内容 */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-            {/* 左侧：基础 5 维 */}
-            <div>
-              <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-sm uppercase">基础五维</h4>
-              {renderAttr('spirit')}
-              {renderAttr('vitality')}
-              {renderAttr('speed')}
-              {renderAttr('willpower')}
-              {renderAttr('wisdom')}
-            </div>
+        {/* 关键二级属性 */}
+        <section>
+          <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-xs opacity-50 uppercase tracking-widest">战斗资源</h4>
+          {renderAttr('maxHp')}
+          {renderAttr('maxMp')}
+          {renderAttr('atk')}
+          {renderAttr('magicAtk')}
+          {renderAttr('def')}
+          {renderAttr('magicDef')}
+        </section>
 
-            {/* 右侧：关键二级属性 */}
-            <div>
-              <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-sm uppercase">战斗属性</h4>
-              {renderAttr('atk')}
-              {renderAttr('magicAtk')}
-              {renderAttr('def')}
-              {renderAttr('magicDef')}
-              {renderAttr('maxHp')}
-              {renderAttr('maxMp')}
-            </div>
+        {/* 进阶属性 */}
+        <section className="sm:col-span-2">
+          <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-xs opacity-50 uppercase tracking-widest">详细修正</h4>
+          <div className="grid grid-cols-2 gap-x-8">
+            {renderAttr('critRate', true)}
+            {renderAttr('critDamageMult', true)}
+            {renderAttr('evasionRate', true)}
+            {renderAttr('accuracy', true)}
+            {renderAttr('controlHit', true)}
+            {renderAttr('controlResistance', true)}
+            {renderAttr('armorPenetration', true)}
+            {renderAttr('magicPenetration', true)}
+            {renderAttr('critResist', true)}
+            {renderAttr('critDamageReduction', true)}
+            {renderAttr('healAmplify', true)}
           </div>
-
-          {/* 下方：高级属性 */}
-          <div className="mt-6">
-            <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-sm uppercase">派生与进阶</h4>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-              {renderAttr('critRate', true)}
-              {renderAttr('critDamageMult', true)}
-              {renderAttr('evasionRate', true)}
-              {renderAttr('accuracy', true)}
-              {renderAttr('controlHit', true)}
-              {renderAttr('controlResistance', true)}
-              {renderAttr('armorPenetration', true)}
-              {renderAttr('magicPenetration', true)}
-              {renderAttr('critResist', true)}
-              {renderAttr('critDamageReduction', true)}
-              {renderAttr('healAmplify', true)}
-            </div>
-          </div>
-        </div>
-
-        {/* 底部按钮 */}
-        <div className="p-4 border-t border-ink/10 flex justify-end">
-          <button 
-            onClick={onClose}
-            className="px-6 py-1.5 border border-ink text-ink hover:bg-ink hover:text-paper transition-colors font-heading"
-          >
-            知晓了
-          </button>
-        </div>
+        </section>
       </div>
-    </div>
+
+      {/* 底部关闭提示 */}
+      <div className="mt-8 pt-4 border-t border-ink/10 flex justify-center">
+        <p className="text-[10px] text-ink/30 italic">点击遮罩或按下 Esc 键即可返回</p>
+      </div>
+    </InkModal>
   );
 }
