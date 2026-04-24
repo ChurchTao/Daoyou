@@ -2,6 +2,9 @@ import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
 import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
+import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
+import { CombatSkillBar } from '@/components/feature/battle/v5/CombatSkillBar';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import { useCombatPlayer } from '../../battle/hooks/useCombatPlayer';
 import type { ResourceOperation } from '@/engine/resource/types';
 import {
@@ -58,6 +61,7 @@ export function DungeonBattle({
 
   const [battleSettlement, setBattleSettlement] =
     useState<BattleCallbackData | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
   const hasExecuted = useRef(false);
 
   useEffect(() => {
@@ -117,7 +121,17 @@ export function DungeonBattle({
       <div className="flex flex-col gap-4 mb-8">
         {/* 状态栏 */}
         {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader player={currentPlayerFrame} opponent={currentOpponentFrame} />
+          <CombatStatusHeader 
+            player={currentPlayerFrame} 
+            opponent={currentOpponentFrame} 
+            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
+            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+          />
+        )}
+
+        {/* 玩家技能栏 */}
+        {currentPlayerFrame && (
+          <CombatSkillBar unit={currentPlayerFrame} />
         )}
 
         {/* 战报日志 */}
@@ -137,6 +151,13 @@ export function DungeonBattle({
           />
         )}
       </div>
+
+      {/* 详细属性弹窗 */}
+      <CombatAttributeModal 
+        unit={selectedUnit} 
+        isOpen={!!selectedUnit} 
+        onClose={() => setSelectedUnit(null)} 
+      />
 
       {/* 胜负汇总 */}
       {isPlaybackFinished && (

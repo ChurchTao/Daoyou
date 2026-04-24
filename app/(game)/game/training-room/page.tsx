@@ -9,6 +9,9 @@ import { InkCard } from '@/components/ui/InkCard';
 import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
 import { useCombatPlayer } from '../battle/hooks/useCombatPlayer';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
+import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
+import { CombatSkillBar } from '@/components/feature/battle/v5/CombatSkillBar';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import type { Cultivator } from '@/types/cultivator';
 import type { BattleRecord } from '@/lib/services/battleResult';
 import { useRouter } from 'next/navigation';
@@ -24,6 +27,7 @@ export default function TrainingRoomPage() {
   const { cultivator, isLoading } = useCultivator();
   const [isFighting, setIsFighting] = useState(false);
   const [battleResult, setBattleResult] = useState<BattleRecord>();
+  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
 
   const {
     currentIndex,
@@ -135,7 +139,17 @@ export default function TrainingRoomPage() {
           <div className="flex flex-col gap-4">
             {/* 状态栏 */}
             {currentPlayerFrame && currentOpponentFrame && (
-              <CombatStatusHeader player={currentPlayerFrame} opponent={currentOpponentFrame} />
+              <CombatStatusHeader 
+                player={currentPlayerFrame} 
+                opponent={currentOpponentFrame} 
+                onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
+                onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+              />
+            )}
+
+            {/* 玩家技能栏 */}
+            {currentPlayerFrame && (
+              <CombatSkillBar unit={currentPlayerFrame} />
             )}
 
             {/* 战报日志 */}
@@ -154,6 +168,13 @@ export default function TrainingRoomPage() {
                 onReset={reset}
               />
             )}
+
+            {/* 详细属性弹窗 */}
+            <CombatAttributeModal 
+              unit={selectedUnit} 
+              isOpen={!!selectedUnit} 
+              onClose={() => setSelectedUnit(null)} 
+            />
 
             {/* 结算 */}
             {isEnded && (

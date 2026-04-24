@@ -6,12 +6,18 @@ import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 interface UnitCardProps {
   unit: UnitStateSnapshot;
   isOpponent?: boolean;
+  onShowDetails?: () => void;
 }
 
 /**
  * 单位状态卡片：展示名称、气血、灵力及 Buff
  */
-function UnitCard({ unit, isOpponent }: UnitCardProps) {
+function UnitCard({ unit, isOpponent, onShowDetails }: UnitCardProps) {
+  // 计算紧凑属性
+  const mainAtk = Math.max(unit.attrs.atk || 0, unit.attrs.magicAtk || 0);
+  const critRate = Math.round((unit.attrs.critRate || 0) * 100);
+  const evasionRate = Math.round((unit.attrs.evasionRate || 0) * 100);
+
   return (
     <div className={cn(
       "flex-1 p-3 border border-ink-secondary bg-white/30 rounded-sm relative",
@@ -23,6 +29,7 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
       </div>
 
       {/* 气血与护盾条 */}
+      {/* ... (existing code) ... */}
       <div className="mb-2">
         <div className="flex justify-between text-[10px] mb-0.5 px-1 opacity-80">
           <span>{isOpponent ? '' : '气血'}</span>
@@ -71,6 +78,22 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
         </div>
       </div>
 
+      {/* 紧凑型属性显示 */}
+      <div 
+        className={cn(
+          "flex gap-2 text-[9px] mb-2 px-1 opacity-60 cursor-pointer hover:opacity-100 transition-opacity",
+          isOpponent && "justify-end"
+        )}
+        onClick={onShowDetails}
+        title="点击查看详细属性"
+      >
+        <span>攻 {mainAtk}</span>
+        <span className="opacity-30">|</span>
+        <span>暴 {critRate}%</span>
+        <span className="opacity-30">|</span>
+        <span>闪 {evasionRate}%</span>
+      </div>
+
 
       {/* Buff 列表 */}
       <div className={cn("flex flex-wrap gap-1 mt-1 px-1", isOpponent && "justify-end")}>
@@ -107,15 +130,19 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
  */
 export function CombatStatusHeader({ 
   player, 
-  opponent 
+  opponent,
+  onShowPlayerDetails,
+  onShowOpponentDetails
 }: { 
   player: UnitStateSnapshot; 
   opponent: UnitStateSnapshot;
+  onShowPlayerDetails?: () => void;
+  onShowOpponentDetails?: () => void;
 }) {
   return (
     <div className="flex justify-between gap-4 mb-4 select-none">
-      <UnitCard unit={player} />
-      <UnitCard unit={opponent} isOpponent />
+      <UnitCard unit={player} onShowDetails={onShowPlayerDetails} />
+      <UnitCard unit={opponent} isOpponent onShowDetails={onShowOpponentDetails} />
     </div>
   );
 }

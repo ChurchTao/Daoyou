@@ -7,12 +7,17 @@ import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBa
 
 import { useBattleViewModel } from '../hooks/useBattleViewModel';
 import { useCombatPlayer } from '../hooks/useCombatPlayer';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
+import { CombatSkillBar } from '@/components/feature/battle/v5/CombatSkillBar';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 
 /**
  * 战斗主视图组件
  */
 export function BattleView() {
+  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
+
   const {
     player,
     opponent,
@@ -88,7 +93,14 @@ export function BattleView() {
           <CombatStatusHeader 
             player={currentPlayerFrame} 
             opponent={currentOpponentFrame} 
+            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
+            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
           />
+        )}
+
+        {/* 玩家技能栏 */}
+        {currentPlayerFrame && (
+          <CombatSkillBar unit={currentPlayerFrame} />
         )}
 
         {/* 结构化联动日志 */}
@@ -112,6 +124,13 @@ export function BattleView() {
         )}
 
       </div>
+
+      {/* 详细属性弹窗 */}
+      <CombatAttributeModal 
+        unit={selectedUnit} 
+        isOpen={!!selectedUnit} 
+        onClose={() => setSelectedUnit(null)} 
+      />
 
       {/* 战斗结果汇总（播放结束后显示） */}
       {battleEnd && currentIndex >= totalActions - 1 && (

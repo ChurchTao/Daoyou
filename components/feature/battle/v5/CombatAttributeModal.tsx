@@ -2,7 +2,6 @@
 
 import { cn } from '@/lib/cn';
 import type { UnitStateSnapshot, AttrsStateView } from '@/engine/battle-v5/systems/state/types';
-import { X } from 'lucide-react';
 
 interface Props {
   unit: UnitStateSnapshot | null;
@@ -67,7 +66,9 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
         <div className="bg-ink text-paper px-4 py-3 flex justify-between items-center">
           <h3 className="font-heading text-lg">角色详细属性 - {unit.name}</h3>
           <button onClick={onClose} className="hover:rotate-90 transition-transform">
-            <X size={20} />
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
           </button>
         </div>
 
