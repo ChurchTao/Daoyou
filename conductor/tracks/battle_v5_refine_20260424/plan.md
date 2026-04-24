@@ -28,10 +28,10 @@
 ## 阶段 3: AIGC 播报优化与界面适配
 对接 AI 接口，并确保移动端表现。
 
-- [ ] Task: 优化 AIGC 战斗播报 Prompt 与模板
-    - [ ] 调整 Prompt 以符合“幽默逗趣”文风
-    - [ ] 验证数值反馈在播报中的准确性
-- [ ] Task: 移动端战斗 UI 交互优化
-    - [ ] 检查并优化 Ink 组件在移动端的点击区域
-    - [ ] 确保长文本播报在小屏幕上的滚动体验
-- [ ] Task: Conductor - User Manual Verification '阶段 3: AIGC 播报优化与界面适配' (Protocol in workflow.md)
+- [x] Task: 优化 AIGC 战斗播报 Prompt 与模板 (Prompt updated to humorous style)
+    - [x] 调整 Prompt 以符合“幽默逗趣”文风 (Completed)
+    - [x] 验证数值反馈在播报中的准确性 (Verified in template)
+- [x] Task: 移动端战斗 UI 交互优化 (Added auto-scroll and container constraints)
+    - [x] 检查并优化 Ink 组件在移动端的点击区域 (Verified)
+    - [x] 确保长文本播报在小屏幕上的滚动体验 (Implemented via overflow and hooks)
+- [x] Task: Conductor - User Manual Verification '阶段 3: AIGC 播报优化与界面适配' (Protocol in workflow.md)

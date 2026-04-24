@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { BattleRecord } from '@/lib/services/battleResult';
 import type { Cultivator } from '@/types/cultivator';
 
@@ -27,19 +28,28 @@ export function BattleReportViewer({
   isWin,
   rankingUpdate,
 }: BattleReportViewerProps) {
+  const reportEndRef = useRef<HTMLDivElement>(null);
+
+  // 流式输出时自动滚动到底部
+  useEffect(() => {
+    if (isStreaming) {
+      reportEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [displayReport, isStreaming]);
+
   if (!displayReport) {
     return null;
   }
 
   return (
-    <div className="battle-report animate-fade-in mt-2 mb-8">
-      {/* 播报内容 */}
-      <div className="text-ink leading-relaxed">
+    <div className="battle-report animate-fade-in mt-2 mb-8 flex flex-col">
+      {/* 播报内容容器 */}
+      <div className="text-ink leading-relaxed overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
         {displayReport
           .split('\n')
           .filter((line) => line.trim() !== '')
           .map((line, index) => (
-            <p key={index} className="mb-4 whitespace-pre-line">
+            <p key={index} className="mb-4 whitespace-pre-line text-base md:text-lg">
               <span dangerouslySetInnerHTML={{ __html: line }} />
               {isStreaming &&
                 index ===
@@ -52,9 +62,11 @@ export function BattleReportViewer({
                 )}
             </p>
           ))}
+        <div ref={reportEndRef} />
       </div>
 
       {/* 结果标记 */}
+
       {!isStreaming && battleResult && (
         <>
           {/* 普通战斗的胜利标记 */}
