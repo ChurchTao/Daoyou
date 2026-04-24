@@ -3,16 +3,16 @@
 ## 阶段 1: 核心逻辑审计与测试补完
 本阶段重点在于通过测试驱动的方式，验证战斗 v5 引擎的基础机制是否稳健。
 
-- [ ] Task: 审计战斗 v5 核心组件代码 (Damage Pipeline, Buff Manager)
-    - [ ] 检查代码实现与设计文档的一致性
-    - [ ] 标记未完成的 TODO 项
-- [ ] Task: 为伤害管道 (Damage Pipeline) 补全单元测试
-    - [ ] 编写失败测试：验证多层属性修正逻辑
-    - [ ] 实现并修复：确保数值计算精确
-- [ ] Task: 为状态管理器 (Buff Manager) 补全单元测试
-    - [ ] 编写失败测试：验证 19 种触发时机下的状态触发
-    - [ ] 实现并修复：确保状态移除与叠加逻辑正确
-- [ ] Task: Conductor - User Manual Verification '阶段 1: 核心逻辑审计与测试补完' (Protocol in workflow.md)
+- [x] Task: 审计战斗 v5 核心组件代码 (Damage Pipeline, Buff Manager) (Audit completed)
+    - [x] 检查代码实现与设计文档的一致性
+    - [x] 标记未完成的 TODO 项
+- [x] Task: 为伤害管道 (Damage Pipeline) 补全单元测试 (Completed)
+    - [x] 编写失败测试：验证多层属性修正逻辑
+    - [x] 实现并修复：确保数值计算精确
+- [x] Task: 为状态管理器 (Buff Manager) 补全单元测试 (Completed)
+    - [x] 编写失败测试：验证 19 种触发时机下的状态触发
+    - [x] 实现并修复：确保状态移除与叠加逻辑正确
+- [x] Task: Conductor - User Manual Verification '阶段 1: 核心逻辑审计与测试补完' (Protocol in workflow.md)
 
 ## 阶段 2: 机制收尾与 Bug 修复
 根据第一阶段的审计结果，完成剩余的功能开发。
