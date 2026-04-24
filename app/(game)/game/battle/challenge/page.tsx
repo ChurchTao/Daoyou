@@ -4,7 +4,10 @@ import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
 import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
+import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
+import { CombatResultDialog } from '@/components/feature/battle/v5/CombatResultDialog';
 import { InkButton } from '@/components/ui/InkButton';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import { useCombatPlayer } from '../hooks/useCombatPlayer';
 import type { BattleRecord } from '@/lib/services/battleResult';
 import type { Cultivator } from '@/types/cultivator';
@@ -32,6 +35,7 @@ function ChallengeBattlePageContent() {
     rank: number;
   } | null>(null);
   const [battleEnd, setBattleEnd] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
 
   // 播放器 Hook
   const {
@@ -145,7 +149,8 @@ function ChallengeBattlePageContent() {
 
   return (
     <BattlePageLayout
-      title={`【挑战 · ${!player ? '加载中' : `${player?.name} vs ${opponentName}`}】`}
+      title={`排行榜挑战 · ${!player ? '加载中' : `${player?.name} vs ${opponentName}`}`}
+      subtitle="这一战会直接影响你的榜单名次。"
       backHref="/game/rankings"
       backLabel="返回排行榜"
       error={error}
@@ -162,43 +167,52 @@ function ChallengeBattlePageContent() {
       <div className="flex flex-col gap-4 mb-8">
         {/* 状态栏 */}
         {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader player={currentPlayerFrame} opponent={currentOpponentFrame} />
+          <CombatStatusHeader
+            player={currentPlayerFrame}
+            opponent={currentOpponentFrame}
+            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
+            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+            controls={
+              <CombatControlBar
+                isPlaying={isPlaying}
+                playbackSpeed={playbackSpeed}
+                progress={progress}
+                onToggle={() => (isPlaying ? pause() : play())}
+                onSpeedChange={setPlaybackSpeed}
+                onReset={reset}
+              />
+            }
+          />
         )}
 
         {/* 战报日志 */}
         {battleResult && (
           <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
         )}
-
-        {/* 控制栏 */}
-        {battleResult && (
-          <CombatControlBar 
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            progress={progress}
-            onToggle={() => isPlaying ? pause() : play()}
-            onSpeedChange={setPlaybackSpeed}
-            onReset={reset}
-          />
-        )}
       </div>
 
-      {/* 结算结果 */}
-      {battleEnd && currentIndex >= totalActions - 1 && (
-        <div className="mt-4 p-4 border border-crimson/30 bg-crimson/5 rounded-sm text-center animate-fade-in">
-          <p className="text-crimson text-xl font-heading mb-2">
-            {isWin ? '挑战成功！' : '挑战失败'}
-          </p>
-          {rankingUpdate && (
-            <div className="text-ink/80 text-sm space-y-1">
-              {isWin && rankingUpdate.challengerRank && (
-                <p>你的排名已更新为第 {rankingUpdate.challengerRank} 名</p>
-              )}
-              <p className="text-xs opacity-60">今日剩余挑战次数：{rankingUpdate.remainingChallenges}/10</p>
-            </div>
-          )}
-        </div>
-      )}
+      <CombatAttributeModal
+        unit={selectedUnit}
+        isOpen={!!selectedUnit}
+        onClose={() => setSelectedUnit(null)}
+      />
+
+      <CombatResultDialog
+        key={`challenge-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        dialogKey={`challenge-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        open={!!battleResult && battleEnd && currentIndex >= totalActions - 1}
+        title={isWin ? '挑战成功' : '挑战失利'}
+        content={
+          <div className="space-y-1 leading-8">
+            {rankingUpdate?.challengerRank && isWin && (
+              <p>你的排名已更新为第 {rankingUpdate.challengerRank} 名。</p>
+            )}
+            {rankingUpdate && (
+              <p>今日剩余挑战次数：{rankingUpdate.remainingChallenges}/10。</p>
+            )}
+          </div>
+        }
+      />
     </BattlePageLayout>
   );
 }

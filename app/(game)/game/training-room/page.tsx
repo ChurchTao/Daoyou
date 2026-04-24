@@ -1,25 +1,22 @@
 'use client';
 
 import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
-import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
-import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
-import { InkButton } from '@/components/ui/InkButton';
-import { InkCard } from '@/components/ui/InkCard';
-import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
-import { useCombatPlayer } from '../battle/hooks/useCombatPlayer';
-import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
-import { CombatSkillBar } from '@/components/feature/battle/v5/CombatSkillBar';
+import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
+import { CombatResultDialog } from '@/components/feature/battle/v5/CombatResultDialog';
+import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
+import { InkButton } from '@/components/ui/InkButton';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
-import type { Cultivator } from '@/types/cultivator';
+import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import type { BattleRecord } from '@/lib/services/battleResult';
+import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
+import type { Cultivator } from '@/types/cultivator';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-/**
- * 练功房页面 - v5 重构版
- */
+import { useCombatPlayer } from '../battle/hooks/useCombatPlayer';
+
 const DUMMY_HP = 10000000;
 
 export default function TrainingRoomPage() {
@@ -27,7 +24,9 @@ export default function TrainingRoomPage() {
   const { cultivator, isLoading } = useCultivator();
   const [isFighting, setIsFighting] = useState(false);
   const [battleResult, setBattleResult] = useState<BattleRecord>();
-  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(
+    null,
+  );
 
   const {
     currentIndex,
@@ -48,7 +47,6 @@ export default function TrainingRoomPage() {
     setIsFighting(true);
     setBattleResult(undefined);
 
-    // 1. 定义 10 亿血量木桩
     const mockDummy: Cultivator = {
       id: 'dummy',
       name: '木桩',
@@ -74,7 +72,6 @@ export default function TrainingRoomPage() {
       realm_stage: '初期',
     };
 
-    // 2. 执行战斗模拟
     const result = simulateBattleV5(cultivator, mockDummy, {
       isTraining: true,
       opponentMaxHpOverride: DUMMY_HP,
@@ -83,7 +80,6 @@ export default function TrainingRoomPage() {
     setBattleResult(result);
   }, [cultivator, isFighting]);
 
-  // 战斗结果产生后自动播放
   useEffect(() => {
     if (battleResult && totalActions > 0 && currentIndex === -1 && !isPlaying) {
       play();
@@ -92,105 +88,105 @@ export default function TrainingRoomPage() {
 
   const handleLeave = () => {
     if (isFighting && currentIndex < totalActions - 1) {
-      if (!confirm('演武尚未结束，确定要强行离去吗？')) return;
+      if (!confirm('训练尚未结束，确定要离开吗？')) return;
     }
     router.push('/game');
   };
 
   if (isLoading) {
     return (
-      <div className="bg-paper flex min-h screen items-center justify-center">
+      <div className="bg-paper flex min-h-screen items-center justify-center">
         <p className="text-ink/40 animate-pulse">识海构筑中...</p>
       </div>
     );
   }
 
-  // 计算实时状态
   const playerUnitId = battleResult?.player || cultivator?.id;
   const opponentUnitId = battleResult?.opponent || 'dummy';
-
   const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
   const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
-
-  const isEnded = battleResult && currentIndex >= totalActions - 1;
+  const isEnded = !!battleResult && currentIndex >= totalActions - 1;
 
   return (
-    <div className="bg-paper min-h-screen">
-      <div className="main-content mx-auto flex max-w-xl flex-col px-4 pt-8 pb-16">
-        {/* 头部 */}
-        <section className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="font-ma-shan-zheng text-ink text-2xl">【演武厅 · 练功房】</h1>
-            <p className="text-ink/50 mt-1 text-xs">通过对战木桩测试功法威力</p>
-          </div>
-          <InkButton onClick={handleLeave} variant="ghost" className="text-sm">
-            离开
-          </InkButton>
-        </section>
-
-        {!battleResult && !isFighting ? (
-          <InkCard padding="lg" className="text-center py-12">
-            <p className="text-ink/60 mb-6 italic">此地宁静祥和，适合静心演武。</p>
-            <InkButton onClick={handleStartTraining} variant="primary" className="px-12 py-3 text-lg">
-              开始演武
+    <BattlePageLayout
+      title="练功房"
+      subtitle="和木桩切磋，测试伤害、耗蓝和技能节奏。"
+      backHref="/game"
+      backLabel="离开"
+      onBack={handleLeave}
+      loading={isFighting && !battleResult}
+    >
+      {!battleResult ? (
+        <div className="py-16 text-center">
+          <p className="battle-caption mb-3 text-xs">练功说明</p>
+          <p className="text-battle-muted mx-auto max-w-2xl text-sm leading-8 md:text-base">
+            这里不会消耗实战机会，适合反复测试技能伤害、灵力消耗和出手顺序。
+          </p>
+          <div className="mt-6">
+            <InkButton
+              onClick={handleStartTraining}
+              variant="primary"
+              className="text-base md:text-lg"
+            >
+              开始训练
             </InkButton>
-          </InkCard>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {/* 状态栏 */}
-            {currentPlayerFrame && currentOpponentFrame && (
-              <CombatStatusHeader 
-                player={currentPlayerFrame} 
-                opponent={currentOpponentFrame} 
-                onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
-                onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
-              />
-            )}
-
-            {/* 战报日志 */}
-            {battleResult && (
-              <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
-            )}
-
-            {/* 玩家技能栏 */}
-            {currentPlayerFrame && (
-              <CombatSkillBar unit={currentPlayerFrame} />
-            )}
-
-            {/* 控制栏 */}
-            {battleResult && (
-              <CombatControlBar 
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                progress={progress}
-                onToggle={() => isPlaying ? pause() : play()}
-                onSpeedChange={setPlaybackSpeed}
-                onReset={reset}
-              />
-            )}
-
-            {/* 详细属性弹窗 */}
-            <CombatAttributeModal 
-              unit={selectedUnit} 
-              isOpen={!!selectedUnit} 
-              onClose={() => setSelectedUnit(null)} 
-            />
-
-            {/* 结算 */}
-            {isEnded && (
-              <div className="mt-4 p-4 border border-ink-secondary bg-white/30 rounded-sm text-center animate-fade-in">
-                <p className="text-ink text-lg font-bold mb-1">演武结束</p>
-                <p className="text-ink/60 text-sm">
-                  本次演武共造成 {(DUMMY_HP - (currentOpponentFrame?.hp.current || 0)).toLocaleString()} 点伤害
-                </p>
-                <InkButton onClick={() => { setIsFighting(false); setBattleResult(undefined); }} className="mt-4">
-                  再次演武
-                </InkButton>
-              </div>
-            )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : (
+        <div className="mb-8 flex flex-col gap-4">
+          {currentPlayerFrame && currentOpponentFrame && (
+            <CombatStatusHeader
+              player={currentPlayerFrame}
+              opponent={currentOpponentFrame}
+              onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
+              onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+              controls={
+                <CombatControlBar
+                  isPlaying={isPlaying}
+                  playbackSpeed={playbackSpeed}
+                  progress={progress}
+                  onToggle={() => (isPlaying ? pause() : play())}
+                  onSpeedChange={setPlaybackSpeed}
+                  onReset={reset}
+                />
+              }
+            />
+          )}
+
+          <CombatActionLog
+            spans={battleResult.logSpans}
+            currentIndex={currentIndex}
+          />
+        </div>
+      )}
+
+      <CombatAttributeModal
+        unit={selectedUnit}
+        isOpen={!!selectedUnit}
+        onClose={() => setSelectedUnit(null)}
+      />
+
+      <CombatResultDialog
+        key={`training-${battleResult?.turns}-${currentOpponentFrame?.hp.current ?? 0}`}
+        dialogKey={`training-${battleResult?.turns}-${currentOpponentFrame?.hp.current ?? 0}`}
+        open={isEnded}
+        title="本次训练结束"
+        content={
+          <p className="leading-8">
+            本次训练共造成{' '}
+            {(
+              DUMMY_HP - (currentOpponentFrame?.hp.current || 0)
+            ).toLocaleString()}{' '}
+            点伤害。
+          </p>
+        }
+        confirmLabel="再来一次"
+        cancelLabel="先看看"
+        onConfirm={() => {
+          setIsFighting(false);
+          setBattleResult(undefined);
+        }}
+      />
+    </BattlePageLayout>
   );
 }

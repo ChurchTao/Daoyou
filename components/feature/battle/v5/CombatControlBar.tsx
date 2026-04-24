@@ -1,6 +1,5 @@
 'use client';
 
-import { InkButton } from '@/components/ui/InkButton';
 import { cn } from '@/lib/cn';
 
 interface CombatControlBarProps {
@@ -12,9 +11,6 @@ interface CombatControlBarProps {
   onReset?: () => void;
 }
 
-/**
- * 战斗播放控制栏
- */
 export function CombatControlBar({
   isPlaying,
   playbackSpeed,
@@ -25,63 +21,49 @@ export function CombatControlBar({
 }: CombatControlBarProps) {
   const speeds = [0.5, 1.0, 1.5, 2.0];
   const isFinished = progress >= 100;
+  const mainActionLabel =
+    onReset && isFinished ? '重播' : isPlaying ? '暂停' : '播放';
+  const mainAction = onReset && isFinished ? onReset : onToggle;
 
   return (
-    <div className="mt-4 p-3 border-t border-dashed border-ink-secondary flex flex-col gap-3 select-none">
-      {/* 进度条 */}
-      <div className="relative h-1 bg-ink/10 w-full rounded-full overflow-hidden">
-        <div 
-          className="absolute top-0 left-0 h-full bg-ink transition-all duration-300 ease-linear"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      {/* 控制按钮 */}
-      <div className="flex items-center justify-between gap-2">
-        {/* 左侧：主操作按钮 (播放/暂停 或 结束后的重播) */}
-        <div className="flex">
-          {!isFinished ? (
-            <InkButton 
-              onClick={onToggle}
-              variant="primary"
-            >
-              {isPlaying ? '暂停' : '播放'}
-            </InkButton>
-          ) : (
-            onReset && (
-              <InkButton 
-                onClick={onReset}
-                variant="outline"
-              >
-                重播
-              </InkButton>
-            )
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <button
+          type="button"
+          onClick={mainAction}
+          className={cn(
+            'transition-colors',
+            isPlaying && !isFinished
+              ? 'text-crimson'
+              : 'text-battle-muted hover:text-ink',
           )}
-        </div>
+        >
+          [{mainActionLabel}]
+        </button>
 
-        {/* 中间：倍速 (仅在未结束或需要调整时显示) */}
-        <div className="flex border border-ink-secondary rounded-sm overflow-hidden bg-white/50">
-          {speeds.map((s) => (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-battle-muted">速度</span>
+          {speeds.map((speed) => (
             <button
-              key={s}
-              onClick={() => onSpeedChange(s)}
+              key={speed}
+              type="button"
+              onClick={() => onSpeedChange(speed)}
               className={cn(
-                "px-2 py-1 text-xs transition-colors",
-                playbackSpeed === s 
-                  ? "bg-ink text-paper" 
-                  : "bg-transparent text-ink hover:bg-ink/5"
+                'text-sm transition-colors',
+                playbackSpeed === speed
+                  ? 'text-ink font-medium'
+                  : 'text-battle-muted hover:text-ink',
               )}
             >
-              {s.toFixed(1)}x
+              [{speed.toFixed(1)}x]
             </button>
           ))}
         </div>
-
-        {/* 右侧：状态文本 */}
-        <div className="text-xs text-ink/40 italic text-right">
-          {isFinished ? '已结束' : `${Math.round(progress)}%`}
-        </div>
       </div>
+
+      <p className="text-battle-muted shrink-0">
+        {isFinished ? '已结束' : isPlaying ? '播放中' : '已暂停'}
+      </p>
     </div>
   );
 }

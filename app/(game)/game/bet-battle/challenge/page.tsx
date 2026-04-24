@@ -4,9 +4,11 @@ import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
 import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
+import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
+import { CombatResultDialog } from '@/components/feature/battle/v5/CombatResultDialog';
 import { InkButton } from '@/components/ui/InkButton';
 import { useCombatPlayer } from '../../battle/hooks/useCombatPlayer';
-import { cn } from '@/lib/cn';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import type { BattleRecord } from '@/lib/services/battleResult';
 import type { Cultivator } from '@/types/cultivator';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,6 +32,7 @@ function BetBattleChallengePageContent() {
   const [error, setError] = useState<string>();
   const [battleEnd, setBattleEnd] = useState(false);
   const [settlement, setSettlement] = useState<SettlementState | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
 
   const {
     currentIndex,
@@ -133,7 +136,8 @@ function BetBattleChallengePageContent() {
 
   return (
     <BattlePageLayout
-      title={`【赌战 · ${!player ? '加载中' : `${player?.name} vs ${opponentName}`}】`}
+      title={`赌战 · ${!player ? '加载中' : `${player?.name} vs ${opponentName}`}`}
+      subtitle="胜负将直接决定这场赌战的结果。"
       backHref="/game/bet-battle"
       backLabel="返回赌战台"
       error={error}
@@ -149,33 +153,42 @@ function BetBattleChallengePageContent() {
     >
       <div className="flex flex-col gap-4 mb-8">
         {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader player={currentPlayerFrame} opponent={currentOpponentFrame} />
+          <CombatStatusHeader
+            player={currentPlayerFrame}
+            opponent={currentOpponentFrame}
+            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
+            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+            controls={
+              <CombatControlBar
+                isPlaying={isPlaying}
+                playbackSpeed={playbackSpeed}
+                progress={progress}
+                onToggle={() => (isPlaying ? pause() : play())}
+                onSpeedChange={setPlaybackSpeed}
+                onReset={reset}
+              />
+            }
+          />
         )}
 
         {battleResult && (
           <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
         )}
-
-        {battleResult && (
-          <CombatControlBar 
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            progress={progress}
-            onToggle={() => isPlaying ? pause() : play()}
-            onSpeedChange={setPlaybackSpeed}
-            onReset={reset}
-          />
-        )}
       </div>
 
-      {battleEnd && currentIndex >= totalActions - 1 && settlement && (
-        <div className="mt-4 p-4 border border-crimson/30 bg-crimson/5 rounded-sm text-center animate-fade-in">
-          <p className={cn("text-xl font-heading mb-2", settlement.isWin ? "text-crimson" : "text-ink/60")}>
-            {settlement.isWin ? '力压群雄！' : '技不如人...'}
-          </p>
-          <p className="text-ink/80 text-sm">{settlement.resultMessage}</p>
-        </div>
-      )}
+      <CombatAttributeModal
+        unit={selectedUnit}
+        isOpen={!!selectedUnit}
+        onClose={() => setSelectedUnit(null)}
+      />
+
+      <CombatResultDialog
+        key={`bet-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        dialogKey={`bet-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        open={!!battleResult && battleEnd && currentIndex >= totalActions - 1 && !!settlement}
+        title={settlement?.isWin ? '赌战胜利' : '赌战失败'}
+        content={<p className="leading-8">{settlement?.resultMessage}</p>}
+      />
     </BattlePageLayout>
   );
 }

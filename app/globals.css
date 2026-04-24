@@ -29,6 +29,14 @@
   --color-wood: #8b4513;
   --color-gold: #efbf04;
   --color-ink-muted: rgba(44, 24, 16, 0.6);
+  --color-battle-rule: rgba(44, 24, 16, 0.16);
+  --color-battle-rule-strong: rgba(44, 24, 16, 0.3);
+  --color-battle-muted: rgba(44, 24, 16, 0.48);
+  --color-battle-faint: rgba(44, 24, 16, 0.08);
+  --color-battle-surface: rgba(248, 243, 230, 0.74);
+  --color-battle-crimson-soft: rgba(193, 18, 31, 0.08);
+  --color-battle-teal-soft: rgba(74, 124, 89, 0.08);
+  --color-battle-gold-soft: rgba(239, 191, 4, 0.58);
 
   /* 品阶色板 */
   --color-tier-fan: #758a99;
@@ -79,6 +87,72 @@ h6,
   background-size: 300px;
 }
 
+.battle-divider {
+  border-top: 1px dashed var(--color-battle-rule-strong);
+}
+
+.battle-caption {
+  color: var(--color-battle-muted);
+  letter-spacing: 0.05em;
+}
+
+.battle-module {
+  position: relative;
+}
+
+.battle-module + .battle-module {
+  margin-top: 0.72rem;
+  padding-top: 0.72rem;
+}
+
+.battle-module + .battle-module::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--color-battle-rule-strong);
+}
+
+.battle-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-battle-rule-strong) transparent;
+}
+
+.battle-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.battle-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.battle-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-battle-rule-strong);
+}
+
+.battle-note {
+  background: linear-gradient(
+    90deg,
+    var(--color-battle-crimson-soft) 0%,
+    transparent 72%
+  );
+  padding: 0.9rem 1rem;
+}
+
+.battle-modal-panel {
+  border-color: var(--color-battle-rule-strong);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.25rem;
+}
+
+.battle-dock {
+  background: rgba(248, 243, 230, 0.96);
+  border-top: 1px dashed var(--color-battle-rule-strong);
+  backdrop-filter: blur(6px);
+}
+
 .bgi-map {
   background-image: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/map/map.webp');
 }
@@ -90,15 +164,15 @@ h6,
   }
 
   h1 {
-    font-size: 1.75rem;
+    font-size: var(--text-3xl);
   }
 
   h2 {
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
   }
 
   h3 {
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
   }
 }
 

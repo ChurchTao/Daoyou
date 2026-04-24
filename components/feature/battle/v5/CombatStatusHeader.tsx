@@ -3,151 +3,208 @@
 import { cn } from '@/lib/cn';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import { format } from 'd3-format';
+import type { CSSProperties, ReactNode } from 'react';
 
-// 格式化器
+import { CombatSkillBar } from './CombatSkillBar';
+
 const fmtInt = format(',d');
-const fmtPct = format('.1f'); // 保留 1 位小数
+const fmtPct = format('.1f');
 
-interface UnitCardProps {
-  unit: UnitStateSnapshot;
-  isOpponent?: boolean;
-  onShowDetails?: () => void;
+function formatBuffLabel(buff: UnitStateSnapshot['buffs'][number]) {
+  const layers = buff.layers > 1 ? ` x${buff.layers}` : '';
+  const duration = buff.remaining === -1 ? '常驻' : `余${buff.remaining}`;
+  return `${buff.name}${layers} · ${duration}`;
 }
 
-/**
- * 单位状态卡片：展示名称、气血、灵力及 Buff
- */
-function UnitCard({ unit, isOpponent, onShowDetails }: UnitCardProps) {
-  // 计算紧凑属性
-  const mainAtk = Math.max(unit.attrs.atk || 0, unit.attrs.magicAtk || 0);
-  const critRate = (unit.attrs.critRate || 0) * 100;
-  const evasionRate = (unit.attrs.evasionRate || 0) * 100;
+function ResourceRow({
+  label,
+  current,
+  max,
+  shield,
+  percent,
+  tone,
+}: {
+  label: string;
+  current: number;
+  max: number;
+  shield?: number;
+  percent: number;
+  tone: 'hp' | 'mp';
+}) {
+  const shieldPercent =
+    shield && max > 0 ? Math.min(100, (shield / max) * 100) : 0;
+  const shieldStyle: CSSProperties = {
+    width: `${shieldPercent}%`,
+    left: `${Math.max(0, percent - shieldPercent)}%`,
+  };
+  const shieldLabel = !!shield && shield > 0 ? ` (${fmtInt(shield)})` : '';
 
   return (
-    <div className={cn(
-      "flex-1 p-3 border border-ink-secondary bg-white/30 rounded-sm relative",
-      isOpponent && "text-right"
-    )}>
-      {/* 名称 */}
-      <div className="font-heading text-lg border-b border-dashed border-ink-secondary mb-2 px-1">
-        {unit.name}
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-xs leading-5 md:text-sm">
+        <span className="text-battle-muted shrink-0">{label}</span>
+        <span className="text-ink min-w-0 flex-1 truncate text-right font-mono">
+          {fmtInt(current)} / {fmtInt(max)}
+          {shieldLabel}
+        </span>
       </div>
-
-      {/* 气血与护盾条 */}
-      {/* ... (existing code) ... */}
-      <div className="mb-2">
-        <div className="flex justify-between text-[10px] mb-0.5 px-1 opacity-80">
-          <span>{isOpponent ? '' : '气血'}</span>
-          <span className="font-mono">{unit.hp.current} / {unit.hp.max}{unit.shield > 0 ? ` (+${unit.shield})` : ''}</span>
-          <span>{isOpponent ? '气血' : ''}</span>
-        </div>
-        <div className="h-1.5 bg-ink/5 overflow-hidden relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
-          {/* 血条背景层 */}
-          <div 
-            className="h-full bg-crimson transition-all duration-500 ease-out relative z-10" 
-            style={{ 
-              width: `${unit.hp.percent}%`, 
-              float: isOpponent ? 'right' : 'left' 
-            }}
-          />
-          {/* 护盾条（金色半透明，覆盖在血条之上，并延伸） */}
-          {unit.shield > 0 && (
-            <div 
-              className="absolute top-0 h-full bg-gold/80 z-20 transition-all duration-500 shadow-[0_0_4px_rgba(255,215,0,0.5)]"
-              style={{ 
-                width: `${Math.min(100, (unit.shield / unit.hp.max) * 100)}%`,
-                [isOpponent ? 'right' : 'left']: isOpponent 
-                  ? `${Math.max(0, 100 - unit.hp.percent - (unit.shield / unit.hp.max) * 100)}%`
-                  : `${Math.max(0, unit.hp.percent - (unit.shield / unit.hp.max) * 100)}%`
-              }}
-            />
+      <div className="bg-battle-faint relative h-[4px] overflow-hidden">
+        <div
+          className={cn(
+            'h-full transition-all duration-500 ease-out',
+            tone === 'hp' ? 'bg-crimson' : 'bg-teal',
           )}
-        </div>
-      </div>
-
-      {/* 灵力条 */}
-      <div className="mb-2">
-        <div className="flex justify-between text-[10px] mb-0.5 px-1 opacity-80">
-          <span>{isOpponent ? '' : '灵力'}</span>
-          <span className="font-mono">{unit.mp.current} / {unit.mp.max}</span>
-          <span>{isOpponent ? '灵力' : ''}</span>
-        </div>
-        <div className="h-1.5 bg-ink/5 overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
-          <div 
-            className="h-full bg-teal transition-all duration-500 ease-out" 
-            style={{ 
-              width: `${unit.mp.percent}%`, 
-              float: isOpponent ? 'right' : 'left' 
-            }}
+          style={{ width: `${percent}%` }}
+        />
+        {!!shield && shield > 0 && (
+          <div
+            className="bg-battle-gold-soft absolute top-0 h-full transition-all duration-500 ease-out"
+            style={shieldStyle}
           />
-        </div>
-      </div>
-
-      {/* 紧凑型属性显示 */}
-      <div 
-        className={cn(
-          "flex gap-2 text-[9px] mb-2 px-1 opacity-60 cursor-pointer hover:opacity-100 transition-opacity",
-          isOpponent && "justify-end"
-        )}
-        onClick={onShowDetails}
-        title="点击查看详细属性"
-      >
-        <span>攻 {fmtInt(mainAtk)}</span>
-        <span className="opacity-30">|</span>
-        <span>暴 {fmtPct(critRate)}%</span>
-        <span className="opacity-30">|</span>
-        <span>闪 {fmtPct(evasionRate)}%</span>
-      </div>
-
-
-      {/* Buff 列表 */}
-      <div className={cn("flex flex-wrap gap-1 mt-1 px-1", isOpponent && "justify-end")}>
-        {unit.buffs.map((buff) => (
-          <div 
-            key={buff.id} 
-            className={cn(
-              "text-[10px] px-1 border border-ink/30 bg-paper/80 leading-tight",
-              buff.type === 'debuff' ? "text-crimson border-crimson/30" : "text-teal border-teal/30"
-            )}
-            title={`${buff.name}${buff.layers > 1 ? ` x${buff.layers}` : ''} (${buff.remaining === -1 ? '永久' : `${buff.remaining}回合`})`}
-          >
-            {buff.name.substring(0, 1)}
-            {buff.layers > 1 && <span className="scale-75 inline-block">x{buff.layers}</span>}
-          </div>
-        ))}
-        {unit.buffs.length === 0 && (
-          <div className="text-[10px] text-ink/30 italic">无状态</div>
         )}
       </div>
-
-      {/* 死亡阴影 */}
-      {!unit.alive && (
-        <div className="absolute inset-0 bg-ink/20 backdrop-grayscale flex items-center justify-center pointer-events-none">
-          <span className="font-heading text-xl text-ink/60 border-2 border-ink/40 px-3 py-1 rotate-12">已败</span>
-        </div>
-      )}
     </div>
   );
 }
 
-/**
- * 战斗顶部状态栏：集成双方卡片
- */
-export function CombatStatusHeader({ 
-  player, 
+function UnitSummary({
+  unit,
+}: {
+  unit: UnitStateSnapshot;
+}) {
+  return (
+    <div className="min-w-0 space-y-2.5">
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="font-heading text-ink min-w-0 flex-1 truncate text-xl leading-none md:text-2xl">
+            {unit.name}
+          </span>
+          {!unit.alive && (
+            <span className="text-crimson shrink-0 text-xs">已结束</span>
+          )}
+        </div>
+      </div>
+
+      <ResourceRow
+        label="气血"
+        current={unit.hp.current}
+        max={unit.hp.max}
+        shield={unit.shield}
+        percent={unit.hp.percent}
+        tone="hp"
+      />
+      <ResourceRow
+        label="灵力"
+        current={unit.mp.current}
+        max={unit.mp.max}
+        percent={unit.mp.percent}
+        tone="mp"
+      />
+    </div>
+  );
+}
+
+export function CombatStatusHeader({
+  player,
   opponent,
   onShowPlayerDetails,
-  onShowOpponentDetails
-}: { 
-  player: UnitStateSnapshot; 
+  onShowOpponentDetails,
+  controls,
+}: {
+  player: UnitStateSnapshot;
   opponent: UnitStateSnapshot;
   onShowPlayerDetails?: () => void;
   onShowOpponentDetails?: () => void;
+  controls?: ReactNode;
 }) {
+  const mainAtk = Math.max(player.attrs.atk || 0, player.attrs.magicAtk || 0);
+  const critRate = (player.attrs.critRate || 0) * 100;
+  const evasionRate = (player.attrs.evasionRate || 0) * 100;
+  const statusText =
+    player.buffs.length > 0
+      ? player.buffs.map((buff) => formatBuffLabel(buff)).join(' ｜ ')
+      : '无状态';
+  const hasActions = onShowPlayerDetails || onShowOpponentDetails;
+  const hasSkills = player.cooldowns.length > 0;
+
   return (
-    <div className="flex justify-between gap-4 mb-4 select-none">
-      <UnitCard unit={player} onShowDetails={onShowPlayerDetails} />
-      <UnitCard unit={opponent} isOpponent onShowDetails={onShowOpponentDetails} />
-    </div>
+    <>
+      <section className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 md:gap-6">
+          <UnitSummary unit={player} />
+          <UnitSummary unit={opponent} />
+        </div>
+      </section>
+
+      <div className="battle-dock fixed inset-x-0 bottom-0 z-40 select-none">
+        <div className="mx-auto max-w-4xl px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.3rem)] md:px-6">
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <p className="battle-caption min-w-0 text-sm">我的状态</p>
+
+            {hasActions && (
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm">
+                {onShowPlayerDetails && (
+                  <button
+                    type="button"
+                    onClick={onShowPlayerDetails}
+                    className="text-battle-muted hover:text-ink transition"
+                  >
+                    [详细属性]
+                  </button>
+                )}
+                {onShowOpponentDetails && (
+                  <button
+                    type="button"
+                    onClick={onShowOpponentDetails}
+                    className="text-battle-muted hover:text-ink transition"
+                  >
+                    [敌方状态]
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="battle-module flex flex-wrap items-center gap-x-3 gap-y-1 text-sm leading-6">
+            <span className="min-w-0 truncate">
+              <span className="text-battle-muted">攻击</span>
+              <span className="text-ink ml-1 font-mono">{fmtInt(mainAtk)}</span>
+            </span>
+            <span className="text-battle-muted">｜</span>
+            <span className="min-w-0 truncate">
+              <span className="text-battle-muted">暴击</span>
+              <span className="text-ink ml-1 font-mono">{fmtPct(critRate)}%</span>
+            </span>
+            <span className="text-battle-muted">｜</span>
+            <span className="min-w-0 truncate">
+              <span className="text-battle-muted">闪避</span>
+              <span className="text-ink ml-1 font-mono">{fmtPct(evasionRate)}%</span>
+            </span>
+          </div>
+
+          <div className="battle-module flex items-start gap-2 text-sm leading-6">
+            <span className="text-battle-muted shrink-0">状态</span>
+            <span className="text-ink block min-w-0 flex-1 truncate">{statusText}</span>
+          </div>
+
+          {hasSkills && (
+            <div className="battle-module">
+              <CombatSkillBar unit={player} />
+            </div>
+          )}
+
+          {controls && (
+            <div className="battle-module">
+              {controls}
+            </div>
+          )}
+          {!controls && !hasSkills && (
+            <div className="battle-module text-battle-muted text-sm leading-6">
+              当前暂无技能和操作项
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

@@ -3,7 +3,7 @@ import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusH
 import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
 import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
 import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
-import { CombatSkillBar } from '@/components/feature/battle/v5/CombatSkillBar';
+import { CombatResultDialog } from '@/components/feature/battle/v5/CombatResultDialog';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import { useCombatPlayer } from '../../battle/hooks/useCombatPlayer';
 import type { ResourceOperation } from '@/engine/resource/types';
@@ -95,7 +95,8 @@ export function DungeonBattle({
 
   return (
     <BattlePageLayout
-      title={`【激战 · 副本探索】`}
+      title="副本战斗"
+      subtitle="查看双方状态、技能变化和实时战斗日志。"
       backHref="#"
       loading={loading && !battleResult}
       battleResult={battleResult}
@@ -121,34 +122,27 @@ export function DungeonBattle({
       <div className="flex flex-col gap-4 mb-8">
         {/* 状态栏 */}
         {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader 
-            player={currentPlayerFrame} 
-            opponent={currentOpponentFrame} 
+          <CombatStatusHeader
+            player={currentPlayerFrame}
+            opponent={currentOpponentFrame}
             onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
             onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+            controls={
+              <CombatControlBar
+                isPlaying={isPlaying}
+                playbackSpeed={playbackSpeed}
+                progress={progress}
+                onToggle={() => (isPlaying ? pause() : play())}
+                onSpeedChange={setPlaybackSpeed}
+                onReset={reset}
+              />
+            }
           />
         )}
 
         {/* 战报日志 */}
         {battleResult && (
           <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
-        )}
-
-        {/* 玩家技能栏 */}
-        {currentPlayerFrame && (
-          <CombatSkillBar unit={currentPlayerFrame} />
-        )}
-
-        {/* 控制栏 */}
-        {battleResult && (
-          <CombatControlBar 
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            progress={progress}
-            onToggle={() => isPlaying ? pause() : play()}
-            onSpeedChange={setPlaybackSpeed}
-            onReset={reset}
-          />
         )}
       </div>
 
@@ -159,15 +153,19 @@ export function DungeonBattle({
         onClose={() => setSelectedUnit(null)} 
       />
 
-      {/* 胜负汇总 */}
-      {isPlaybackFinished && (
-        <div className="mt-4 p-4 border border-crimson/30 bg-crimson/5 rounded-sm text-center animate-fade-in">
-          <p className="text-crimson text-xl font-heading mb-1">
-            {battleResult?.winner.id === player.id ? '捷报！' : '力战而竭...'}
+      <CombatResultDialog
+        key={`dungeon-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        dialogKey={`dungeon-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        open={!!battleResult && isPlaybackFinished}
+        title={battleResult?.winner.id === player.id ? '战斗胜利' : '战斗失败'}
+        content={
+          <p className="leading-8">
+            {battleResult?.winner.id === player.id
+              ? '你已经击败当前敌人，可以继续推进副本。'
+              : '你在这场战斗中落败，本轮探索到此结束。'}
           </p>
-        </div>
-      )}
+        }
+      />
     </BattlePageLayout>
   );
 }
-

@@ -2,52 +2,55 @@
 
 import { cn } from '@/lib/cn';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
+import { format } from 'd3-format';
 
 interface Props {
   unit: UnitStateSnapshot | null;
 }
 
-/**
- * 玩家技能监控栏 - 极简版
- * 展示技能名称、状态与冷却
- */
+const fmtInt = format(',d');
+
 export function CombatSkillBar({ unit }: Props) {
   if (!unit || unit.cooldowns.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 p-2.5 border border-ink/10 bg-white/20 rounded-sm mt-2">
-      <div className="text-[9px] font-heading text-ink/30 uppercase tracking-widest px-0.5">
-        可用技能 (Player Abilities)
-      </div>
-      
-      <div className="flex flex-wrap gap-2">
-        {unit.cooldowns.map((skill) => {
-          const isOnCd = skill.current > 0;
+    <div className="flex items-start gap-2 text-sm leading-6">
+      <span className="text-battle-muted shrink-0">技能状态</span>
+      <div className="min-w-0 flex flex-1 flex-wrap gap-x-2 gap-y-1">
+        {unit.cooldowns.map((skill, index) => {
+          const isOnCooldown = skill.current > 0;
           const isLowMp = unit.mp.current < skill.mpCost;
-          
+          const stateLabel = isOnCooldown
+            ? `冷却 ${skill.current}`
+            : isLowMp
+              ? '灵力不足'
+              : '可用';
+
           return (
-            <div 
-              key={skill.skillId}
-              className={cn(
-                "px-2 py-0.5 text-xs border transition-colors flex items-center gap-1.5",
-                isOnCd 
-                  ? "text-ink/30 border-ink/5 bg-ink/5" 
-                  : isLowMp 
-                    ? "text-blue-600 border-blue-200 bg-blue-50/50" 
-                    : "text-teal-700 border-teal-200 bg-teal-50/50 shadow-sm"
+            <span key={skill.skillId} className="contents">
+              <span className="text-ink truncate max-w-full">{skill.skillName}</span>
+              <span className="text-battle-muted">·</span>
+              <span
+                className={cn(
+                  isOnCooldown
+                    ? 'text-battle-muted'
+                    : isLowMp
+                      ? 'text-crimson'
+                      : 'text-teal',
+                )}
+              >
+                {stateLabel}
+              </span>
+              {skill.mpCost > 0 && (
+                <>
+                  <span className="text-battle-muted">·</span>
+                  <span className="text-battle-muted">消耗 {fmtInt(skill.mpCost)}</span>
+                </>
               )}
-              title={isOnCd ? `冷却中: ${skill.current}/${skill.max}回合` : isLowMp ? '灵力不足' : '就绪'}
-            >
-              <span className="font-medium">{skill.skillName}</span>
-              {isOnCd ? (
-                <span className="font-mono text-[10px] bg-ink/10 px-1 rounded-full">{skill.current}</span>
-              ) : skill.mpCost > 0 ? (
-                <span className={cn(
-                  "text-[9px] opacity-60",
-                  isLowMp && "font-bold"
-                )}>{skill.mpCost}</span>
-              ) : null}
-            </div>
+              {index < unit.cooldowns.length - 1 && (
+                <span className="text-battle-muted">｜</span>
+              )}
+            </span>
           );
         })}
       </div>

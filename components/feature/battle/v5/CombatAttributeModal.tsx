@@ -1,7 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/cn';
-import type { UnitStateSnapshot, AttrsStateView } from '@/engine/battle-v5/systems/state/types';
+import type {
+  AttrsStateView,
+  UnitStateSnapshot,
+} from '@/engine/battle-v5/systems/state/types';
 import { InkModal } from '@/components/layout/InkModal';
 import { format } from 'd3-format';
 
@@ -39,9 +42,12 @@ const ATTR_LABELS: Partial<Record<keyof AttrsStateView, string>> = {
   maxMp: '真元上限',
 };
 
-/**
- * 详细属性弹窗 - 使用统一的 InkModal
- */
+function formatBuffLabel(buff: UnitStateSnapshot['buffs'][number]) {
+  const layers = buff.layers > 1 ? ` x${buff.layers}` : '';
+  const duration = buff.remaining === -1 ? '常驻' : `余${buff.remaining}`;
+  return `${buff.name}${layers} · ${duration}`;
+}
+
 export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
   if (!unit) return null;
 
@@ -49,23 +55,30 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
     const finalVal = unit.attrs[key] || 0;
     const baseVal = unit.baseAttrs[key] || 0;
     const modifier = finalVal - baseVal;
-    
-    const label = ATTR_LABELS[key] || key;
-    
+
     const displayBase = isPercentage ? fmtPct(baseVal * 100) : fmtInt(baseVal);
     const displayMod = isPercentage ? fmtPct(modifier * 100) : fmtInt(modifier);
 
     return (
-      <div key={key} className="flex justify-between py-1 border-b border-ink/5 text-sm">
-        <span className="text-ink/60">{label}</span>
-        <div className="font-mono text-ink flex gap-1">
-          <span>{displayBase}{isPercentage && '%'}</span>
+      <div
+        key={key}
+        className="flex items-baseline justify-between gap-4 border-b border-dashed border-battle-faint py-1.5 text-sm last:border-b-0"
+      >
+        <span className="text-battle-muted">{ATTR_LABELS[key] || key}</span>
+        <div className="text-ink flex items-baseline gap-1 font-mono">
+          <span>
+            {displayBase}
+            {isPercentage && '%'}
+          </span>
           {Math.abs(modifier) > 0.001 && (
-            <span className={cn(
-              "text-[10px] mt-0.5",
-              modifier > 0 ? "text-teal-600" : "text-crimson"
-            )}>
-              {modifier > 0 ? '+' : ''}{displayMod}{isPercentage && '%'}
+            <span
+              className={cn(
+                modifier > 0 ? 'text-teal' : 'text-crimson',
+              )}
+            >
+              {modifier > 0 ? '+' : ''}
+              {displayMod}
+              {isPercentage && '%'}
             </span>
           )}
         </div>
@@ -77,53 +90,83 @@ export function CombatAttributeModal({ unit, isOpen, onClose }: Props) {
     <InkModal
       isOpen={isOpen}
       onClose={onClose}
-      title={`角色属性 · ${unit.name}`}
-      className="max-w-lg"
+      title={`详细属性 · ${unit.name}`}
+      className="battle-modal-panel max-w-2xl"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 p-2">
-        {/* 基础五维 */}
-        <section>
-          <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-xs opacity-50 uppercase tracking-widest">基础属性</h4>
-          {renderAttr('spirit')}
-          {renderAttr('vitality')}
-          {renderAttr('speed')}
-          {renderAttr('willpower')}
-          {renderAttr('wisdom')}
-        </section>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <section>
+            <p className="battle-caption mb-2 text-xs">基础属性</p>
+            <div className="py-1">
+              {renderAttr('spirit')}
+              {renderAttr('vitality')}
+              {renderAttr('speed')}
+              {renderAttr('willpower')}
+              {renderAttr('wisdom')}
+            </div>
+          </section>
 
-        {/* 关键二级属性 */}
-        <section>
-          <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-xs opacity-50 uppercase tracking-widest">战斗资源</h4>
-          {renderAttr('maxHp')}
-          {renderAttr('maxMp')}
-          {renderAttr('atk')}
-          {renderAttr('magicAtk')}
-          {renderAttr('def')}
-          {renderAttr('magicDef')}
-        </section>
+          <section>
+            <p className="battle-caption mb-2 text-xs">战斗资源</p>
+            <div className="py-1">
+              {renderAttr('maxHp')}
+              {renderAttr('maxMp')}
+              {renderAttr('atk')}
+              {renderAttr('magicAtk')}
+              {renderAttr('def')}
+              {renderAttr('magicDef')}
+            </div>
+          </section>
+        </div>
 
-        {/* 进阶属性 */}
-        <section className="sm:col-span-2">
-          <h4 className="font-heading text-ink border-b border-ink/20 mb-2 pb-1 text-xs opacity-50 uppercase tracking-widest">详细修正</h4>
-          <div className="grid grid-cols-2 gap-x-8">
-            {renderAttr('critRate', true)}
-            {renderAttr('critDamageMult', true)}
-            {renderAttr('evasionRate', true)}
-            {renderAttr('accuracy', true)}
-            {renderAttr('controlHit', true)}
-            {renderAttr('controlResistance', true)}
-            {renderAttr('armorPenetration', true)}
-            {renderAttr('magicPenetration', true)}
-            {renderAttr('critResist', true)}
-            {renderAttr('critDamageReduction', true)}
-            {renderAttr('healAmplify', true)}
+        <section>
+          <p className="battle-caption mb-2 text-xs">详细修正</p>
+          <div className="grid grid-cols-1 gap-6 py-1 md:grid-cols-2">
+            <div>
+              {renderAttr('critRate', true)}
+              {renderAttr('critDamageMult', true)}
+              {renderAttr('evasionRate', true)}
+              {renderAttr('accuracy', true)}
+              {renderAttr('controlHit', true)}
+              {renderAttr('controlResistance', true)}
+            </div>
+            <div>
+              {renderAttr('armorPenetration', true)}
+              {renderAttr('magicPenetration', true)}
+              {renderAttr('critResist', true)}
+              {renderAttr('critDamageReduction', true)}
+              {renderAttr('healAmplify', true)}
+            </div>
           </div>
         </section>
-      </div>
 
-      {/* 底部关闭提示 */}
-      <div className="mt-8 pt-4 border-t border-ink/10 flex justify-center">
-        <p className="text-[10px] text-ink/30 italic">点击遮罩或按下 Esc 键即可返回</p>
+        <section>
+          <p className="battle-caption mb-2 text-xs">状态效果</p>
+          <div className="flex flex-wrap gap-x-1 gap-y-1 py-2 text-sm leading-7">
+            {unit.buffs.length > 0 ? (
+              unit.buffs.map((buff, index) => (
+                <span key={buff.id} className="contents">
+                  <span
+                    className={cn(
+                      buff.type === 'debuff' ? 'text-crimson' : 'text-teal',
+                    )}
+                  >
+                    {formatBuffLabel(buff)}
+                  </span>
+                  {index < unit.buffs.length - 1 && (
+                    <span className="text-battle-muted">｜</span>
+                  )}
+                </span>
+              ))
+            ) : (
+              <span className="text-battle-muted">无状态</span>
+            )}
+          </div>
+        </section>
+
+        <p className="text-battle-muted text-center text-xs italic">
+          点击遮罩或按下 Esc 键即可返回
+        </p>
       </div>
     </InkModal>
   );

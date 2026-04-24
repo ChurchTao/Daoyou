@@ -4,12 +4,12 @@ import { BattlePageLayout } from '@/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@/components/feature/battle/v5/CombatActionLog';
 import { CombatControlBar } from '@/components/feature/battle/v5/CombatControlBar';
+import { CombatResultDialog } from '@/components/feature/battle/v5/CombatResultDialog';
 
 import { useBattleViewModel } from '../hooks/useBattleViewModel';
 import { useCombatPlayer } from '../hooks/useCombatPlayer';
 import { useEffect, useState } from 'react';
 import { CombatAttributeModal } from '@/components/feature/battle/v5/CombatAttributeModal';
-import { CombatSkillBar } from '@/components/feature/battle/v5/CombatSkillBar';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 
 /**
@@ -69,7 +69,8 @@ export function BattleView() {
 
   return (
     <BattlePageLayout
-      title={`【决战 · ${player?.name} vs ${opponentName}】`}
+      title={`战斗 · ${player?.name} vs ${opponentName}`}
+      subtitle="实时查看血量、技能状态和战斗日志。"
       backHref="/game"
       loading={loading}
       battleResult={battleResult}
@@ -90,36 +91,29 @@ export function BattleView() {
       <div className="flex flex-col gap-4 mb-8">
         {/* 顶部状态栏 */}
         {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader 
-            player={currentPlayerFrame} 
-            opponent={currentOpponentFrame} 
+          <CombatStatusHeader
+            player={currentPlayerFrame}
+            opponent={currentOpponentFrame}
             onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
             onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
+            controls={
+              <CombatControlBar
+                isPlaying={isPlaying}
+                playbackSpeed={playbackSpeed}
+                progress={progress}
+                onToggle={() => (isPlaying ? pause() : play())}
+                onSpeedChange={setPlaybackSpeed}
+                onReset={reset}
+              />
+            }
           />
         )}
 
         {/* 结构化联动日志 */}
         {battleResult && (
-          <CombatActionLog 
-            spans={battleResult.logSpans} 
-            currentIndex={currentIndex} 
-          />
-        )}
-
-        {/* 玩家技能栏 */}
-        {currentPlayerFrame && (
-          <CombatSkillBar unit={currentPlayerFrame} />
-        )}
-
-        {/* 控制栏 */}
-        {battleResult && (
-          <CombatControlBar 
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            progress={progress}
-            onToggle={() => isPlaying ? pause() : play()}
-            onSpeedChange={setPlaybackSpeed}
-            onReset={reset}
+          <CombatActionLog
+            spans={battleResult.logSpans}
+            currentIndex={currentIndex}
           />
         )}
 
@@ -132,18 +126,19 @@ export function BattleView() {
         onClose={() => setSelectedUnit(null)} 
       />
 
-      {/* 战斗结果汇总（播放结束后显示） */}
-      {battleEnd && currentIndex >= totalActions - 1 && (
-        <div className="mt-4 p-4 border border-crimson/30 bg-crimson/5 rounded-sm text-center animate-fade-in">
-          <p className="text-crimson text-xl font-heading mb-2">
-            {isWin ? '大获全胜！' : '惜败于此...'}
+      <CombatResultDialog
+        key={`battle-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        dialogKey={`battle-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
+        open={!!battleResult && battleEnd && currentIndex >= totalActions - 1}
+        title={isWin ? '战斗胜利' : '战斗失败'}
+        content={
+          <p className="leading-8">
+            {isWin
+              ? `「${player?.name}」在第 ${battleResult?.turns} 回合击败了对手。`
+              : `「${player?.name}」在第 ${battleResult?.turns} 回合力竭倒下。`}
           </p>
-          <p className="text-ink/80 text-sm italic">
-            {isWin ? `「${player?.name}」在第 ${battleResult?.turns} 回合击败了对手` : `「${player?.name}」在第 ${battleResult?.turns} 回合力竭倒下`}
-          </p>
-        </div>
-      )}
+        }
+      />
     </BattlePageLayout>
   );
 }
-

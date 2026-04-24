@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/cn';
 import { LogPresenter } from '@/engine/battle-v5/systems/log/LogPresenter';
 import type { LogSpan } from '@/engine/battle-v5/systems/log/types';
@@ -10,44 +10,37 @@ interface CombatActionLogProps {
   currentIndex: number;
 }
 
-/**
- * 战报展示区：实时高亮当前播放的动作行，并支持自动滚动。
- */
-export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
+export function CombatActionLog({
+  spans,
+  currentIndex,
+}: CombatActionLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  
-  // 缓存 presenter 实例
   const presenter = useMemo(() => new LogPresenter(), []);
 
-  // 格式化所有 Span 的文本
   const formattedLogs = useMemo(() => {
-    return spans.map((span, originalIdx) => ({
-      id: span.id,
-      turn: span.turn,
-      type: span.type,
-      originalIdx,
-      lines: presenter.formatSpan(span)
-    })).filter(item => item.lines.length > 0);
+    return spans
+      .map((span, originalIdx) => ({
+        id: span.id,
+        originalIdx,
+        lines: presenter.formatSpan(span),
+      }))
+      .filter((item) => item.lines.length > 0);
   }, [spans, presenter]);
 
-  // 过滤出已经播放过的日志（包括当前动作）
   const visibleLogs = useMemo(() => {
-    return formattedLogs.filter(item => item.originalIdx <= currentIndex);
+    return formattedLogs.filter((item) => item.originalIdx <= currentIndex);
   }, [formattedLogs, currentIndex]);
 
-  // 联动滚动：当可见日志增加时，确保最新一行在视图中心
   useEffect(() => {
     if (visibleLogs.length === 0) return;
-    
-    const lastId = visibleLogs[visibleLogs.length - 1].id;
 
+    const lastId = visibleLogs[visibleLogs.length - 1].id;
     const timer = setTimeout(() => {
-      const activeElement = scrollRef.current?.querySelector(`[data-span-id="${lastId}"]`);
+      const activeElement = scrollRef.current?.querySelector(
+        `[data-span-id="${lastId}"]`,
+      );
       if (activeElement) {
-        activeElement.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
+        activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 50);
 
@@ -55,47 +48,60 @@ export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
   }, [visibleLogs]);
 
   return (
-    <div 
-      ref={scrollRef} 
-      className="h-[40vh] min-h-[300px] overflow-y-auto border border-ink-secondary p-4 bg-white/40 custom-scrollbar font-sans text-sm leading-relaxed relative"
-    >
-      <div className="space-y-4">
-        {visibleLogs.map((item, idx) => {
-          const isActive = idx === visibleLogs.length - 1;
+    <section className="battle-divider mt-1 pt-3">
+      <p className="battle-caption mb-2 text-xs">战斗日志</p>
 
-          return (
-            <div 
-              key={item.id} 
-              data-span-id={item.id}
-              className={cn(
-                "group py-2 px-3 transition-all duration-300 border-l-4 border-transparent",
-                isActive ? "bg-crimson/5 border-crimson opacity-100 shadow-sm" : "opacity-60 grayscale-[0.5]"
-              )}
-            >
-              {item.lines.map((line, lIdx) => (
-                <p 
-                  key={lIdx} 
-                  className={cn(
-                    "text-base md:text-lg",
-                    isActive ? "text-ink font-medium" : "text-ink/60"
-                  )}
-                >
-                  <span dangerouslySetInnerHTML={{ __html: line }} />
-                </p>
-              ))}
+      <div
+        ref={scrollRef}
+        className="battle-report battle-scroll h-[36vh] min-h-[240px] overflow-y-auto pr-1 md:h-[42vh]"
+      >
+        <div className="space-y-2">
+          {visibleLogs.map((item, idx) => {
+            const isActive = idx === visibleLogs.length - 1;
+
+            return (
+              <div
+                key={item.id}
+                data-span-id={item.id}
+                className={cn('px-1 py-1', isActive && 'bg-battle-crimson-soft')}
+              >
+                <div className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-2.5">
+                  <span
+                    className={cn(
+                      'flex h-7 items-center justify-center text-sm leading-none transition-colors md:h-8',
+                      isActive ? 'text-crimson' : 'text-battle-muted',
+                    )}
+                  >
+                    {isActive ? '▸' : '•'}
+                  </span>
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    {item.lines.map((line, lineIndex) => (
+                      <p
+                        key={lineIndex}
+                        className={cn(
+                          'text-sm leading-7 transition-colors md:text-base md:leading-8',
+                          isActive ? 'text-ink' : 'text-battle-muted',
+                        )}
+                      >
+                        <span dangerouslySetInnerHTML={{ __html: line }} />
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {visibleLogs.length === 0 && (
+            <div className="text-battle-muted flex h-full min-h-[220px] items-center justify-center text-sm italic">
+              战斗即将开始...
             </div>
-          );
-        })}
+          )}
 
-        {visibleLogs.length === 0 && (
-          <div className="h-full flex items-center justify-center text-ink/30 italic">
-            正在推演战局...
-          </div>
-        )}
-
-        {/* 底部留白，确保最后一行能滚到中心 */}
-        <div className="h-32" />
+          <div className="h-12" />
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
