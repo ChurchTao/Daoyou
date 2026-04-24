@@ -11,7 +11,7 @@ class TestBuff extends Buff {
   deactivatedCount = 0;
 
   constructor(id: string, name: string, stackRule: StackRule = StackRule.REFRESH_DURATION) {
-    super(id, name, BuffType.BENEFICIAL, 5, stackRule);
+    super(id, name, BuffType.BUFF, 5, stackRule);
   }
 
   onActivate(): void {
@@ -105,7 +105,7 @@ describe('BuffContainer', () => {
 
     class ReflectBuff extends Buff {
       constructor() {
-        super('reflect', '反伤 Buff', BuffType.BENEFICIAL, 5);
+        super('reflect', '反伤 Buff', BuffType.BUFF, 5);
       }
 
       onActivate(): void {

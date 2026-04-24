@@ -20,7 +20,7 @@ import { useEffect, useState, useCallback } from 'react';
 /**
  * 练功房页面 - v5 重构版
  */
-const DUMMY_HP = 1000000000;
+const DUMMY_HP = 10000000;
 
 export default function TrainingRoomPage() {
   const router = useRouter();
