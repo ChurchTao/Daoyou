@@ -44,6 +44,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 100,
     energyCost: 10,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -78,6 +79,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 85,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -111,6 +113,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -144,6 +147,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -177,6 +181,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 72,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.PHYSICAL,
@@ -210,6 +215,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 70,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.PHYSICAL,
@@ -243,6 +249,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -276,6 +283,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -346,6 +354,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 10,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
@@ -378,6 +387,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 20,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
     effectTemplate: {
       type: 'apply_buff',
@@ -417,6 +427,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 80,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -472,6 +483,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 78,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -568,6 +580,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -613,6 +626,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 60,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'dispel',
       params: {
@@ -640,6 +654,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 45,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
     effectTemplate: {
       type: 'dispel',
       params: {
@@ -668,6 +683,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 72,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
       type: 'heal',
@@ -708,6 +724,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 75,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
     effectTemplate: {
       type: 'heal',
       params: {
@@ -748,6 +765,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 58,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
     grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
     effectTemplate: {
       type: 'shield',
@@ -823,6 +841,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 16,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -860,6 +879,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 48,
     energyCost: 16,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -910,6 +930,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.MAGIC,
@@ -944,6 +965,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 40,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -988,6 +1010,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 45,
     minQuality: '灵品',
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [GameplayTags.TRAIT.COOLDOWN],
     effectTemplate: {
       type: 'cooldown_modify',
@@ -1047,4 +1070,3 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 ];
-
