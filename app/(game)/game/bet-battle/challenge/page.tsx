@@ -38,6 +38,7 @@ function BetBattleChallengePageContent() {
     setPlaybackSpeed,
     play,
     pause,
+    reset,
     totalActions,
     progress,
     unitSnapshots,
@@ -162,6 +163,7 @@ function BetBattleChallengePageContent() {
             progress={progress}
             onToggle={() => isPlaying ? pause() : play()}
             onSpeedChange={setPlaybackSpeed}
+            onReset={reset}
           />
         )}
       </div>

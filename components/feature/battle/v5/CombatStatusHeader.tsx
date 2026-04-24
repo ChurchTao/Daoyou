@@ -29,7 +29,7 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
           <span className="font-mono">{unit.hp.current} / {unit.hp.max}{unit.shield > 0 ? ` (+${unit.shield})` : ''}</span>
           <span>{isOpponent ? '气血' : ''}</span>
         </div>
-        <div className="h-2 bg-ink/10 border border-ink/20 overflow-hidden relative">
+        <div className="h-1.5 bg-ink/5 overflow-hidden relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
           {/* 血条背景层 */}
           <div 
             className="h-full bg-crimson transition-all duration-500 ease-out relative z-10" 
@@ -38,13 +38,15 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
               float: isOpponent ? 'right' : 'left' 
             }}
           />
-          {/* 护盾条（叠加或紧跟在血条后） */}
+          {/* 护盾条（金色半透明，覆盖在血条之上，并延伸） */}
           {unit.shield > 0 && (
             <div 
-              className="absolute top-0 h-full bg-gold/60 border-x border-gold/50 z-20 transition-all duration-500"
+              className="absolute top-0 h-full bg-gold/80 z-20 transition-all duration-500 shadow-[0_0_4px_rgba(255,215,0,0.5)]"
               style={{ 
-                width: `${Math.min(100 - unit.hp.percent, (unit.shield / unit.hp.max) * 100)}%`,
-                [isOpponent ? 'right' : 'left']: `${unit.hp.percent}%`
+                width: `${Math.min(100, (unit.shield / unit.hp.max) * 100)}%`,
+                [isOpponent ? 'right' : 'left']: isOpponent 
+                  ? `${Math.max(0, 100 - unit.hp.percent - (unit.shield / unit.hp.max) * 100)}%`
+                  : `${Math.max(0, unit.hp.percent - (unit.shield / unit.hp.max) * 100)}%`
               }}
             />
           )}
@@ -58,7 +60,7 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
           <span className="font-mono">{unit.mp.current} / {unit.mp.max}</span>
           <span>{isOpponent ? '灵力' : ''}</span>
         </div>
-        <div className="h-2 bg-ink/10 border border-ink/20 overflow-hidden">
+        <div className="h-1.5 bg-ink/5 overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
           <div 
             className="h-full bg-teal transition-all duration-500 ease-out" 
             style={{ 

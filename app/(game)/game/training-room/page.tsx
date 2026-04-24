@@ -32,6 +32,7 @@ export default function TrainingRoomPage() {
     setPlaybackSpeed,
     play,
     pause,
+    reset,
     totalActions,
     progress,
     unitSnapshots,
@@ -150,6 +151,7 @@ export default function TrainingRoomPage() {
                 progress={progress}
                 onToggle={() => isPlaying ? pause() : play()}
                 onSpeedChange={setPlaybackSpeed}
+                onReset={reset}
               />
             )}
 

@@ -39,6 +39,7 @@ export default function BattleReplayPage() {
     setPlaybackSpeed,
     play,
     pause,
+    reset,
     totalActions,
     progress,
     unitSnapshots,
@@ -130,6 +131,7 @@ export default function BattleReplayPage() {
             progress={progress}
             onToggle={() => isPlaying ? pause() : play()}
             onSpeedChange={setPlaybackSpeed}
+            onReset={reset}
           />
         )}
       </div>

@@ -41,6 +41,7 @@ function ChallengeBattlePageContent() {
     setPlaybackSpeed,
     play,
     pause,
+    reset,
     totalActions,
     progress,
     unitSnapshots,
@@ -177,6 +178,7 @@ function ChallengeBattlePageContent() {
             progress={progress}
             onToggle={() => isPlaying ? pause() : play()}
             onSpeedChange={setPlaybackSpeed}
+            onReset={reset}
           />
         )}
       </div>

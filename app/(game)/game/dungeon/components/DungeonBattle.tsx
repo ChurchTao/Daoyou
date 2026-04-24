@@ -50,6 +50,7 @@ export function DungeonBattle({
     setPlaybackSpeed,
     play,
     pause,
+    reset,
     totalActions,
     progress,
     unitSnapshots,
@@ -132,6 +133,7 @@ export function DungeonBattle({
             progress={progress}
             onToggle={() => isPlaying ? pause() : play()}
             onSpeedChange={setPlaybackSpeed}
+            onReset={reset}
           />
         )}
       </div>

@@ -31,6 +31,7 @@ export function BattleView() {
     setPlaybackSpeed,
     play,
     pause,
+    reset,
     totalActions,
     progress,
     unitSnapshots,
@@ -98,7 +99,7 @@ export function BattleView() {
           />
         )}
 
-        {/* 播放控制栏 */}
+        {/* 控制栏 */}
         {battleResult && (
           <CombatControlBar 
             isPlaying={isPlaying}
@@ -106,8 +107,10 @@ export function BattleView() {
             progress={progress}
             onToggle={() => isPlaying ? pause() : play()}
             onSpeedChange={setPlaybackSpeed}
+            onReset={reset}
           />
         )}
+
       </div>
 
       {/* 战斗结果汇总（播放结束后显示） */}

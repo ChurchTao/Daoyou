@@ -9,7 +9,7 @@ interface CombatControlBarProps {
   progress: number;
   onToggle: () => void;
   onSpeedChange: (speed: number) => void;
-  onJump?: (progress: number) => void;
+  onReset?: () => void;
 }
 
 /**
@@ -21,6 +21,7 @@ export function CombatControlBar({
   progress,
   onToggle,
   onSpeedChange,
+  onReset,
 }: CombatControlBarProps) {
   const speeds = [0.5, 1.0, 1.5, 2.0];
 
@@ -36,14 +37,26 @@ export function CombatControlBar({
 
       {/* 控制按钮 */}
       <div className="flex items-center justify-between gap-4">
-        {/* 左侧：播放/暂停 */}
-        <InkButton 
-          onClick={onToggle}
-          variant="primary"
-          className="w-24 h-9"
-        >
-          {isPlaying ? '⏸ 暂停' : '▶ 播放'}
-        </InkButton>
+        {/* 左侧：播放/暂停 & 重播 */}
+        <div className="flex gap-2">
+          <InkButton 
+            onClick={onToggle}
+            variant="primary"
+            // className="w-24 h-9"
+          >
+            {isPlaying ? '暂停' : '播放'}
+          </InkButton>
+          
+          {onReset && (
+            <InkButton 
+              onClick={onReset}
+              variant="outline"
+              // className="w-20 h-9"
+            >
+              重播
+            </InkButton>
+          )}
+        </div>
 
         {/* 中间：倍速 */}
         <div className="flex border border-ink-secondary rounded-sm overflow-hidden">
