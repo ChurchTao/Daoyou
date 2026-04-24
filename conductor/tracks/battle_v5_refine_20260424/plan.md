@@ -1,6 +1,6 @@
 # Implementation Plan - 完善战斗 v5 引擎收尾与优化
 
-## 阶段 1: 核心逻辑审计与测试补完
+## 阶段 1: 核心逻辑审计与测试补完 [checkpoint: e7050e2]
 本阶段重点在于通过测试驱动的方式，验证战斗 v5 引擎的基础机制是否稳健。
 
 - [x] Task: 审计战斗 v5 核心组件代码 (Damage Pipeline, Buff Manager) (Audit completed)
