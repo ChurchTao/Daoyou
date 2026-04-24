@@ -2,6 +2,11 @@
 
 import { cn } from '@/lib/cn';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
+import { format } from 'd3-format';
+
+// 格式化器
+const fmtInt = format(',d');
+const fmtPct = format('.1f'); // 保留 1 位小数
 
 interface UnitCardProps {
   unit: UnitStateSnapshot;
@@ -15,8 +20,8 @@ interface UnitCardProps {
 function UnitCard({ unit, isOpponent, onShowDetails }: UnitCardProps) {
   // 计算紧凑属性
   const mainAtk = Math.max(unit.attrs.atk || 0, unit.attrs.magicAtk || 0);
-  const critRate = Math.round((unit.attrs.critRate || 0) * 100);
-  const evasionRate = Math.round((unit.attrs.evasionRate || 0) * 100);
+  const critRate = (unit.attrs.critRate || 0) * 100;
+  const evasionRate = (unit.attrs.evasionRate || 0) * 100;
 
   return (
     <div className={cn(
@@ -87,11 +92,11 @@ function UnitCard({ unit, isOpponent, onShowDetails }: UnitCardProps) {
         onClick={onShowDetails}
         title="点击查看详细属性"
       >
-        <span>攻 {mainAtk}</span>
+        <span>攻 {fmtInt(mainAtk)}</span>
         <span className="opacity-30">|</span>
-        <span>暴 {critRate}%</span>
+        <span>暴 {fmtPct(critRate)}%</span>
         <span className="opacity-30">|</span>
-        <span>闪 {evasionRate}%</span>
+        <span>闪 {fmtPct(evasionRate)}%</span>
       </div>
 
 
