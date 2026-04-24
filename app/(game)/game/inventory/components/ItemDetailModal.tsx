@@ -66,7 +66,7 @@ export function ItemDetailModal({
     if (artifactMetadata?.anchorRealm) {
       extraRows.push(
         <div key="anchor-realm" className="border-ink/50 flex justify-between border-b pb-2">
-          <span className="opacity-70">境界要求</span>
+          <span className="opacity-70">境界要求（若境界过低，效果将大打折扣）</span>
           <span>{artifactMetadata.anchorRealm}</span>
         </div>,
       );

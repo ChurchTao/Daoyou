@@ -1,13 +1,15 @@
 import { CreationSession } from '../CreationSession';
 import { buildCreationTagSignalScoreMap } from '../analysis/CreationTagSignalBuilder';
 import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile';
-import { AttributeType, BuffType, ModifierType } from '../contracts/battle';
-import { AffixCandidate, AFFIX_STOP_REASONS, createEmptyEnergyBudget } from '../types';
-import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
 import { AffixPoolRuleSet } from '../rules/affix/AffixPoolRuleSet';
-import type { AffixAttributeModifierTemplate } from './types';
-import { AffixDefinition, flattenAffixMatcherTags } from './types';
+import { AffixEligibilityFacts, AffixPoolDecision } from '../rules/contracts';
+import {
+  AFFIX_STOP_REASONS,
+  AffixCandidate,
+  createEmptyEnergyBudget,
+} from '../types';
 import { AffixRegistry } from './AffixRegistry';
+import { AffixDefinition, flattenAffixMatcherTags } from './types';
 
 /**
  * 词缀候选池构建器
@@ -43,9 +45,8 @@ export class AffixPoolBuilder {
       };
     }
 
-    const maxQualityOrder = buildMaterialQualityProfile(
-      materialFingerprints,
-    ).weightedAverageOrder;
+    const maxQualityOrder =
+      buildMaterialQualityProfile(materialFingerprints).weightedAverageOrder;
 
     if (inputTagSignals.length === 0) {
       return {
@@ -55,7 +56,8 @@ export class AffixPoolBuilder {
         reasons: [
           {
             code: 'affix_pool_empty_tags',
-            message: 'session.inputTagSignals 为空，无法匹配任何词缀候选，词缀池为零',
+            message:
+              'session.inputTagSignals 为空，无法匹配任何词缀候选，词缀池为零',
           },
         ],
         warnings: [],
@@ -76,8 +78,7 @@ export class AffixPoolBuilder {
         input.productType,
       ),
       session,
-    )
-      .map((def) => this.toCandidate(def));
+    ).map((def) => this.toCandidate(def));
 
     const facts: AffixEligibilityFacts = {
       productType: input.productType,
@@ -99,7 +100,11 @@ export class AffixPoolBuilder {
     session: CreationSession,
   ): AffixDefinition[] {
     return defs.filter((def) => {
-      if (!['skill_core', 'gongfa_foundation', 'artifact_core'].includes(def.category)) {
+      if (
+        !['skill_core', 'gongfa_foundation', 'artifact_core'].includes(
+          def.category,
+        )
+      ) {
         return true;
       }
 
@@ -127,64 +132,17 @@ export class AffixPoolBuilder {
   }
 
   private isSkillCoreCandidate(def: AffixDefinition): boolean {
-    if (def.effectTemplate.type === 'damage' || def.effectTemplate.type === 'heal') {
+    if (def.category === 'skill_core') {
       return true;
     }
-
-    if (def.effectTemplate.type === 'apply_buff') {
-      return def.effectTemplate.params.buffConfig.type === BuffType.CONTROL;
-    }
-
     return false;
   }
 
   private isGongfaCoreCandidate(def: AffixDefinition): boolean {
-    if (def.effectTemplate.type !== 'attribute_modifier') {
-      return false;
+    if (def.category === 'gongfa_foundation') {
+      return true;
     }
-
-    if ((def.effectTemplate.conditions?.length ?? 0) > 0) {
-      return false;
-    }
-
-    const allowedPrimaryAttributes = new Set<AttributeType>([
-      AttributeType.SPIRIT,
-      AttributeType.VITALITY,
-      AttributeType.SPEED,
-      AttributeType.WILLPOWER,
-      AttributeType.WISDOM,
-    ]);
-
-    const modifierEntries = this.extractAttributeModifierEntries(def);
-
-    return (
-      modifierEntries.length === 1 &&
-      modifierEntries.every(
-        (modifier) =>
-          (modifier.modType === ModifierType.FIXED || modifier.modType === ModifierType.ADD) &&
-          allowedPrimaryAttributes.has(modifier.attrType),
-      )
-    );
-  }
-
-  private extractAttributeModifierEntries(
-    def: AffixDefinition,
-  ): AffixAttributeModifierTemplate[] {
-    if (def.effectTemplate.type !== 'attribute_modifier') {
-      return [];
-    }
-
-    if ('modifiers' in def.effectTemplate.params) {
-      return def.effectTemplate.params.modifiers;
-    }
-
-    return [
-      {
-        attrType: def.effectTemplate.params.attrType,
-        modType: def.effectTemplate.params.modType,
-        value: def.effectTemplate.params.value,
-      },
-    ];
+    return false;
   }
 
   private toCandidate(def: AffixDefinition): AffixCandidate {

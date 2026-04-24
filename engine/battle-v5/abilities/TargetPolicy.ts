@@ -1,10 +1,17 @@
 /**
  * 目标类型
+ * enemy: 敌方
+ * ally: 友方
+ * any: 任意
+ * self: 自身
  */
 export type TargetTeam = 'enemy' | 'ally' | 'any' | 'self';
 
 /**
  * 目标范围
+ * single: 单体
+ * aoe: 范围
+ * random: 随机
  */
 export type TargetScope = 'single' | 'aoe' | 'random';
 
