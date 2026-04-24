@@ -32,9 +32,9 @@ export default function TrainingRoomPage() {
     setPlaybackSpeed,
     play,
     pause,
-    currentFrames,
     totalActions,
     progress,
+    unitSnapshots,
   } = useCombatPlayer(battleResult);
 
   const handleStartTraining = useCallback(() => {
@@ -94,7 +94,7 @@ export default function TrainingRoomPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="bg-paper flex min-h screen items-center justify-center">
         <p className="text-ink/40 animate-pulse">识海构筑中...</p>
       </div>
     );
@@ -104,11 +104,8 @@ export default function TrainingRoomPage() {
   const playerUnitId = battleResult?.player || cultivator?.id;
   const opponentUnitId = battleResult?.opponent || 'dummy';
 
-  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
-  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
-
-  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
-  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+  const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
+  const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
 
   const isEnded = battleResult && currentIndex >= totalActions - 1;
 
@@ -174,4 +171,3 @@ export default function TrainingRoomPage() {
     </div>
   );
 }
-

@@ -21,25 +21,28 @@ export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
 
   // 格式化所有 Span 的文本
   const formattedLogs = useMemo(() => {
-    return spans.map(span => ({
+    return spans.map((span, originalIdx) => ({
       id: span.id,
       turn: span.turn,
       type: span.type,
+      originalIdx,
       lines: presenter.formatSpan(span)
     })).filter(item => item.lines.length > 0);
   }, [spans, presenter]);
 
-  // 联动滚动：当索引变化时，确保当前行在视图中心
-  useEffect(() => {
-    if (currentIndex < 0) return;
-    
-    // 查找当前 span 在 formattedLogs 中的索引
-    const activeId = spans[currentIndex]?.id;
-    if (!activeId) return;
+  // 过滤出已经播放过的日志（包括当前动作）
+  const visibleLogs = useMemo(() => {
+    return formattedLogs.filter(item => item.originalIdx <= currentIndex);
+  }, [formattedLogs, currentIndex]);
 
-    // 延迟一小会儿确保 DOM 已渲染（特别是第一次渲染时）
+  // 联动滚动：当可见日志增加时，确保最新一行在视图中心
+  useEffect(() => {
+    if (visibleLogs.length === 0) return;
+    
+    const lastId = visibleLogs[visibleLogs.length - 1].id;
+
     const timer = setTimeout(() => {
-      const activeElement = scrollRef.current?.querySelector(`[data-span-id="${activeId}"]`);
+      const activeElement = scrollRef.current?.querySelector(`[data-span-id="${lastId}"]`);
       if (activeElement) {
         activeElement.scrollIntoView({ 
           behavior: 'smooth', 
@@ -49,7 +52,7 @@ export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [currentIndex, spans]);
+  }, [visibleLogs]);
 
   return (
     <div 
@@ -57,10 +60,8 @@ export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
       className="h-[40vh] min-h-[300px] overflow-y-auto border border-ink-secondary p-4 bg-white/40 custom-scrollbar font-sans text-sm leading-relaxed relative"
     >
       <div className="space-y-4">
-        {formattedLogs.map((item, idx) => {
-          // 确定当前 item 是否对应播放器的 currentIndex
-          // 注意：spans 可能包含空 span，而 formattedLogs 过滤掉了空行
-          const isActive = spans[currentIndex]?.id === item.id;
+        {visibleLogs.map((item, idx) => {
+          const isActive = idx === visibleLogs.length - 1;
 
           return (
             <div 
@@ -86,7 +87,7 @@ export function CombatActionLog({ spans, currentIndex }: CombatActionLogProps) {
           );
         })}
 
-        {formattedLogs.length === 0 && (
+        {visibleLogs.length === 0 && (
           <div className="h-full flex items-center justify-center text-ink/30 italic">
             正在推演战局...
           </div>

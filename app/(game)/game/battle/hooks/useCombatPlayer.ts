@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { BattleRecord } from '@/lib/services/battleResult';
 import type { LogSpan } from '@/engine/battle-v5/systems/log/types';
+import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 
 /**
  * useCombatPlayer
  * 
- * 职责：管理战斗播放状态（索引、播放/暂停、速度）。
- * 进度粒度：动作帧 (LogSpan)。
+ * 职责：管理战斗播放状态，并提供平滑的状态快照映射。
  */
 export function useCombatPlayer(record: BattleRecord | undefined) {
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -18,21 +18,85 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
   const spans = useMemo(() => record?.logSpans || [], [record]);
   const totalActions = spans.length;
 
+  const playerUnitId = record?.player;
+  const opponentUnitId = record?.opponent;
+
+  // 记录上一次显示的快照，防止状态回滚/闪烁
+  const [unitSnapshots, setUnitSnapshots] = useState<Record<string, UnitStateSnapshot>>({});
+
+  // 初始化快照
+  useEffect(() => {
+    if (record?.stateTimeline.frames[0]) {
+      setUnitSnapshots(record.stateTimeline.frames[0].units);
+      setCurrentIndex(-1);
+    }
+  }, [record]);
+
   const next = useCallback(() => {
-    setCurrentIndex((prev) => (prev < totalActions - 1 ? prev + 1 : prev));
-  }, [totalActions]);
+    setCurrentIndex((prev) => {
+      const nextIdx = prev + 1;
+      if (nextIdx >= totalActions) return prev;
+
+      // 更新快照：查找该动作产生的所有状态帧，取最后一帧更新到当前显示
+      if (record) {
+        const spanId = spans[nextIdx].id;
+        const frames = record.stateTimeline.frames.filter(f => f.sourceSpanId === spanId);
+        if (frames.length > 0) {
+          const lastFrame = frames[frames.length - 1];
+          setUnitSnapshots(prevSnaps => ({
+            ...prevSnaps,
+            ...lastFrame.units
+          }));
+        }
+      }
+
+      return nextIdx;
+    });
+  }, [totalActions, record, spans]);
 
   const pause = useCallback(() => setIsPlaying(false), []);
   const play = useCallback(() => setIsPlaying(true), []);
+  
+  const reset = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentIndex(-1);
+    if (record?.stateTimeline.frames[0]) {
+      setUnitSnapshots(record.stateTimeline.frames[0].units);
+    }
+  }, [record]);
+
+  const skipToEnd = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentIndex(totalActions - 1);
+    // 取最后一帧状态
+    if (record && record.stateTimeline.frames.length > 0) {
+      setUnitSnapshots(record.stateTimeline.frames[record.stateTimeline.frames.length - 1].units);
+    }
+  }, [record, totalActions]);
+
   const jumpTo = useCallback((index: number) => {
     setIsPlaying(false);
-    setCurrentIndex(Math.min(Math.max(-1, index), totalActions - 1));
-  }, [totalActions]);
+    const safeIndex = Math.min(Math.max(-1, index), totalActions - 1);
+    setCurrentIndex(safeIndex);
+    
+    // 重新计算状态：从头累加到目标索引
+    if (record) {
+      let snaps = record.stateTimeline.frames[0].units;
+      for (let i = 0; i <= safeIndex; i++) {
+        const spanId = spans[i].id;
+        const frames = record.stateTimeline.frames.filter(f => f.sourceSpanId === spanId);
+        if (frames.length > 0) {
+          snaps = { ...snaps, ...frames[frames.length - 1].units };
+        }
+      }
+      setUnitSnapshots(snaps);
+    }
+  }, [record, spans, totalActions]);
 
   // 自动播放逻辑
   useEffect(() => {
     if (!isPlaying || currentIndex >= totalActions - 1) {
-      if (currentIndex >= totalActions - 1) {
+      if (currentIndex >= totalActions - 1 && totalActions > 0) {
         setIsPlaying(false);
       }
       return;
@@ -43,18 +107,6 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
     return () => clearTimeout(timer);
   }, [isPlaying, currentIndex, totalActions, playbackSpeed, next]);
 
-  // 获取当前动作及其关联的状态帧
-  const currentSpan = useMemo<LogSpan | undefined>(() => {
-    if (currentIndex < 0) return undefined;
-    return spans[currentIndex];
-  }, [spans, currentIndex]);
-
-  const currentFrames = useMemo(() => {
-    if (!record || currentIndex < 0) return [];
-    const spanId = spans[currentIndex].id;
-    return record.stateTimeline.frames.filter((f) => f.sourceSpanId === spanId);
-  }, [record, currentIndex, spans]);
-
   return {
     currentIndex,
     isPlaying,
@@ -62,11 +114,13 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
     setPlaybackSpeed,
     play,
     pause,
+    reset,
+    skipToEnd,
     jumpTo,
-    currentSpan,
-    currentFrames,
+    unitSnapshots,
     totalActions,
     isEnded: currentIndex >= totalActions - 1 && totalActions > 0,
     progress: totalActions > 0 ? ((currentIndex + 1) / totalActions) * 100 : 0,
   };
 }
+

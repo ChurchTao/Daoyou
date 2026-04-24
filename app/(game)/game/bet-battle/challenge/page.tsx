@@ -38,9 +38,9 @@ function BetBattleChallengePageContent() {
     setPlaybackSpeed,
     play,
     pause,
-    currentFrames,
     totalActions,
     progress,
+    unitSnapshots,
   } = useCombatPlayer(battleResult);
 
   const hasBattleStarted = useRef(false);
@@ -125,10 +125,8 @@ function BetBattleChallengePageContent() {
 
   const playerUnitId = battleResult?.player;
   const opponentUnitId = battleResult?.opponent;
-  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
-  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
-  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
-  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+  const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
+  const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
 
   const opponentName = opponent?.name ?? '神秘对手';
 

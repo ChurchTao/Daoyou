@@ -686,23 +686,20 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
     effectTemplate: {
-      type: 'heal',
+      type: 'resource_drain',
       params: {
-        value: {
-          base: { base: 12, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.MAGIC_ATK,
-          coefficient: 0.18,
-        },
+        sourceType: 'hp',
+        targetType: 'hp',
+        ratio: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
+      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
+      guard: {
+        skipReflectSource: true,
+      }
     },
   },
 

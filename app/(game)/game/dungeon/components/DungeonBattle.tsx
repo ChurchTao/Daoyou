@@ -50,9 +50,9 @@ export function DungeonBattle({
     setPlaybackSpeed,
     play,
     pause,
-    currentFrames,
     totalActions,
     progress,
+    unitSnapshots,
   } = useCombatPlayer(battleResult);
 
   const [battleSettlement, setBattleSettlement] =
@@ -81,12 +81,10 @@ export function DungeonBattle({
   }, [battleResult, totalActions, currentIndex, isPlaying, play]);
 
   // 计算快照
-  const playerUnitId = battleResult?.player;
-  const opponentUnitId = battleResult?.opponent;
-  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
-  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
-  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
-  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+  const playerUnitId = battleResult?.player || '';
+  const opponentUnitId = battleResult?.opponent || '';
+  const currentPlayerFrame = unitSnapshots[playerUnitId];
+  const currentOpponentFrame = unitSnapshots[opponentUnitId];
 
   const isPlaybackFinished = battleEnd && currentIndex >= totalActions - 1;
 

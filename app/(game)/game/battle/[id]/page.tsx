@@ -39,9 +39,9 @@ export default function BattleReplayPage() {
     setPlaybackSpeed,
     play,
     pause,
-    currentFrames,
     totalActions,
     progress,
+    unitSnapshots,
   } = useCombatPlayer(record?.battleResult);
 
   useEffect(() => {
@@ -97,10 +97,8 @@ export default function BattleReplayPage() {
   const opponentName = opponentUnitId ? getUnitName(opponentUnitId) : '对手';
 
   // 计算实时快照
-  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
-  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
-  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
-  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+  const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
+  const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
 
   return (
     <BattlePageLayout

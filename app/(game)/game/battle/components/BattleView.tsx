@@ -31,10 +31,9 @@ export function BattleView() {
     setPlaybackSpeed,
     play,
     pause,
-    currentSpan,
-    currentFrames,
     totalActions,
     progress,
+    unitSnapshots,
   } = useCombatPlayer(battleResult);
 
   // 初始加载完成后自动播放
@@ -56,16 +55,11 @@ export function BattleView() {
   }
 
   // 计算当前双方单位的实时状态快照
-  const playerUnitId = battleResult?.stateTimeline?.unitIds[0];
-  const opponentUnitId = battleResult?.stateTimeline?.unitIds[1];
+  const playerUnitId = battleResult?.player || '';
+  const opponentUnitId = battleResult?.opponent || '';
 
-  // 默认使用第一帧（初始化帧）作为基准
-  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
-  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
-
-  // 播放器提供的当前帧
-  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
-  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+  const currentPlayerFrame = unitSnapshots[playerUnitId];
+  const currentOpponentFrame = unitSnapshots[opponentUnitId];
 
   return (
     <BattlePageLayout

@@ -41,9 +41,9 @@ function ChallengeBattlePageContent() {
     setPlaybackSpeed,
     play,
     pause,
-    currentFrames,
     totalActions,
     progress,
+    unitSnapshots,
   } = useCombatPlayer(battleResult);
 
   // 防止 React Strict Mode 重复调用战斗 API
@@ -134,12 +134,10 @@ function ChallengeBattlePageContent() {
   }
 
   // 计算实时状态快照
-  const playerUnitId = battleResult?.player;
-  const opponentUnitId = battleResult?.opponent;
-  const initialPlayerFrame = battleResult?.stateTimeline?.frames[0]?.units[playerUnitId || ''];
-  const initialOpponentFrame = battleResult?.stateTimeline?.frames[0]?.units[opponentUnitId || ''];
-  const currentPlayerFrame = currentFrames?.find(f => f.units[playerUnitId || ''])?.units[playerUnitId || ''] || initialPlayerFrame;
-  const currentOpponentFrame = currentFrames?.find(f => f.units[opponentUnitId || ''])?.units[opponentUnitId || ''] || initialOpponentFrame;
+  const playerUnitId = battleResult?.player || '';
+  const opponentUnitId = battleResult?.opponent || '';
+  const currentPlayerFrame = unitSnapshots[playerUnitId];
+  const currentOpponentFrame = unitSnapshots[opponentUnitId];
 
   const isWin = rankingUpdate?.isWin;
   const opponentName = opponent?.name ?? '神秘对手';

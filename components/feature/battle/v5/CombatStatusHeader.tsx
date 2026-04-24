@@ -22,27 +22,28 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
         {unit.name}
       </div>
 
-      {/* 气血条 */}
+      {/* 气血与护盾条 */}
       <div className="mb-2">
-        <div className="flex justify-between text-xs mb-0.5 px-1">
+        <div className="flex justify-between text-[10px] mb-0.5 px-1 opacity-80">
           <span>{isOpponent ? '' : '气血'}</span>
-          <span className="font-mono">{unit.hp.current} / {unit.hp.max}</span>
+          <span className="font-mono">{unit.hp.current} / {unit.hp.max}{unit.shield > 0 ? ` (+${unit.shield})` : ''}</span>
           <span>{isOpponent ? '气血' : ''}</span>
         </div>
-        <div className="h-2.5 bg-ink/10 border border-ink/20 overflow-hidden relative">
+        <div className="h-2 bg-ink/10 border border-ink/20 overflow-hidden relative">
+          {/* 血条背景层 */}
           <div 
-            className="h-full bg-crimson transition-all duration-500 ease-out" 
+            className="h-full bg-crimson transition-all duration-500 ease-out relative z-10" 
             style={{ 
               width: `${unit.hp.percent}%`, 
               float: isOpponent ? 'right' : 'left' 
             }}
           />
-          {/* 护盾条（叠加在血条上） */}
+          {/* 护盾条（叠加或紧跟在血条后） */}
           {unit.shield > 0 && (
             <div 
-              className="absolute top-0 h-full bg-gold/50 border-l border-gold"
+              className="absolute top-0 h-full bg-gold/60 border-x border-gold/50 z-20 transition-all duration-500"
               style={{ 
-                width: `${Math.min(100, (unit.shield / unit.hp.max) * 100)}%`,
+                width: `${Math.min(100 - unit.hp.percent, (unit.shield / unit.hp.max) * 100)}%`,
                 [isOpponent ? 'right' : 'left']: `${unit.hp.percent}%`
               }}
             />
@@ -52,12 +53,12 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
 
       {/* 灵力条 */}
       <div className="mb-2">
-        <div className="flex justify-between text-xs mb-0.5 px-1">
+        <div className="flex justify-between text-[10px] mb-0.5 px-1 opacity-80">
           <span>{isOpponent ? '' : '灵力'}</span>
           <span className="font-mono">{unit.mp.current} / {unit.mp.max}</span>
           <span>{isOpponent ? '灵力' : ''}</span>
         </div>
-        <div className="h-1.5 bg-ink/10 border border-ink/20 overflow-hidden">
+        <div className="h-2 bg-ink/10 border border-ink/20 overflow-hidden">
           <div 
             className="h-full bg-teal transition-all duration-500 ease-out" 
             style={{ 
@@ -67,6 +68,7 @@ function UnitCard({ unit, isOpponent }: UnitCardProps) {
           />
         </div>
       </div>
+
 
       {/* Buff 列表 */}
       <div className={cn("flex flex-wrap gap-1 mt-1 px-1", isOpponent && "justify-end")}>
