@@ -1,4 +1,4 @@
-# Track training_room_20260320 Context
+# Track battle_v5_refine_20260424 Context
 
 - [Specification](./spec.md)
 - [Implementation Plan](./plan.md)
