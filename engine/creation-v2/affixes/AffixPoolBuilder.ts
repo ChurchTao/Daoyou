@@ -99,35 +99,53 @@ export class AffixPoolBuilder {
     defs: AffixDefinition[],
     session: CreationSession,
   ): AffixDefinition[] {
+    const { productType } = session.state.input;
+    const { intent } = session.state;
+
     return defs.filter((def) => {
-      if (
-        !['skill_core', 'gongfa_foundation', 'artifact_core'].includes(
-          def.category,
-        )
-      ) {
-        return true;
-      }
+      // --- 1. 通用环境约束过滤 (Universal Context Filtering) ---
 
-      switch (session.state.input.productType) {
-        case 'artifact': {
-          const slotBias =
-            session.state.intent?.slotBias ?? session.state.input.requestedSlot;
-          if (!slotBias) {
-            return def.applicableArtifactSlots === undefined;
-          }
-
-          return def.applicableArtifactSlots?.includes(slotBias) ?? false;
+      // 法宝：检查装备槽位约束
+      if (productType === 'artifact' && def.applicableArtifactSlots) {
+        const slotBias =
+          intent?.slotBias ?? session.state.input.requestedSlot;
+        if (slotBias && !def.applicableArtifactSlots.includes(slotBias)) {
+          return false;
         }
-
-        case 'skill':
-          return this.isSkillCoreCandidate(def);
-
-        case 'gongfa':
-          return this.isGongfaCoreCandidate(def);
-
-        default:
-          return true;
       }
+
+      // 神通：检查目标策略约束
+      if (productType === 'skill' && def.targetPolicyConstraint) {
+        const bias = intent?.targetPolicyBias;
+        if (bias) {
+          const constraint = def.targetPolicyConstraint;
+          if (constraint.team && constraint.team !== bias.team) {
+            return false;
+          }
+          if (constraint.scope && constraint.scope !== bias.scope) {
+            return false;
+          }
+        }
+      }
+
+      // --- 2. 核心池特定内容校验 (Category-specific Content Validation) ---
+      // 注意：这里保留对核心池词缀的本质属性校验（如果有的话）
+      const isCore = [
+        'skill_core',
+        'gongfa_foundation',
+        'artifact_core',
+      ].includes(def.category);
+
+      if (isCore) {
+        switch (productType) {
+          case 'skill':
+            return this.isSkillCoreCandidate(def);
+          case 'gongfa':
+            return this.isGongfaCoreCandidate(def);
+        }
+      }
+
+      return true;
     });
   }
 

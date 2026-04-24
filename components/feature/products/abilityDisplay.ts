@@ -62,14 +62,16 @@ export interface AttributeModifierView {
 export interface AbilityProjectionSummary {
   /** '主动 / 被动 / 装备' 中文标签 */
   kindLabel: string;
-  projectionKind:
-    | 'active_skill'
-    | 'artifact_passive'
-    | 'gongfa_passive';
+  projectionKind: 'active_skill' | 'artifact_passive' | 'gongfa_passive';
   tags: string[];
   mpCost?: number;
   cooldown?: number;
   priority?: number;
+  targetPolicy?: {
+    team: 'enemy' | 'ally' | 'self' | 'any';
+    scope: 'single' | 'aoe' | 'random';
+    maxTargets?: number;
+  };
 }
 
 export interface ProductDisplayModel {
@@ -179,6 +181,7 @@ function buildProjection(
     base.mpCost = projection.mpCost;
     base.cooldown = projection.cooldown;
     base.priority = projection.priority;
+    base.targetPolicy = projection.targetPolicy;
   }
 
   return base;
@@ -337,6 +340,32 @@ export interface ProductRecordLike {
   isEquipped?: boolean;
   abilityConfig?: unknown;
   productModel?: unknown;
+}
+
+export function formatTargetPolicy(policy: AbilityProjectionSummary['targetPolicy']): string {
+  if (!policy) return '';
+
+  const teamLabels: Record<string, string> = {
+    enemy: '敌方',
+    ally: '友方',
+    self: '自身',
+    any: '任意',
+  };
+
+  const scopeLabels: Record<string, string> = {
+    single: '单体',
+    aoe: '群体',
+    random: '随机',
+  };
+
+  const team = teamLabels[policy.team] ?? policy.team;
+  const scope = scopeLabels[policy.scope] ?? policy.scope;
+  const maxTargets =
+    policy.scope !== 'single' && policy.maxTargets && policy.maxTargets > 1
+      ? `(最多 ${policy.maxTargets}人)`
+      : '';
+
+  return `目标：${team}${scope}${maxTargets}`;
 }
 
 const DEFAULT_QUALITY: Quality = '凡品';

@@ -10,6 +10,7 @@ import type {
   MaterialType,
   Quality,
   RealmStage,
+  RealmType,
   SpiritualRootGrade,
 } from './constants';
 

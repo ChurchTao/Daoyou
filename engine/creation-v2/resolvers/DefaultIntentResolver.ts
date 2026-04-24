@@ -29,6 +29,7 @@ export class DefaultIntentResolver {
       elementBias: this.pickElementBias(fingerprints),
       slotBias: slotBiasResolution.slotBias,
       slotBiasSource: slotBiasResolution.slotBiasSource,
+      targetPolicyBias: input.requestedTargetPolicy,
       trace: slotBiasResolution.trace,
     };
   }

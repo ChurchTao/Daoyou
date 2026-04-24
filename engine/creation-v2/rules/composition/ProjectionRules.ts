@@ -153,9 +153,10 @@ export class ProjectionRules implements Rule<
     const { mpCost, priority } = conv;
 
     const targetPolicy =
-      coreType === 'heal'
+      intent.targetPolicyBias ??
+      (coreType === 'heal'
         ? { team: 'self' as const, scope: 'single' as const }
-        : { team: 'enemy' as const, scope: 'single' as const };
+        : { team: 'enemy' as const, scope: 'single' as const });
 
     const abilityTags = assembleAbilityTags({
       productType: 'skill',

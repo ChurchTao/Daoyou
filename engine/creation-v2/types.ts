@@ -5,6 +5,7 @@ import {
   RealmStage,
   RealmType,
 } from '@/types/constants';
+import { TargetPolicyConfig } from '@/engine/battle-v5/abilities/TargetPolicy';
 import { Material } from '@/types/cultivator';
 import type { Ability } from './contracts/battle';
 import { CreationPhase } from './core/types';
@@ -50,6 +51,7 @@ export interface CreationSessionInput {
   materials: Material[];
   userPrompt?: string;
   requestedSlot?: EquipmentSlot;
+  requestedTargetPolicy?: TargetPolicyConfig;
 }
 
 export interface MaterialFingerprint {
@@ -128,6 +130,7 @@ export interface CreationIntent {
   elementBias?: ElementType;
   slotBias?: EquipmentSlot;
   slotBiasSource?: CreationIntentSlotBiasSource;
+  targetPolicyBias?: TargetPolicyConfig;
   trace?: RuleTraceEntry[];
 }
 

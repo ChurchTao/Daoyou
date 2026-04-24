@@ -309,6 +309,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 67,
     energyCost: 15,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.PHYSICAL,
@@ -509,6 +510,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 68,
     energyCost: 12,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'apply_buff',
       params: {
@@ -787,6 +789,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     weight: 65,
     energyCost: 16,
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -1027,6 +1030,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     energyCost: 55,
     minQuality: '真品',
     applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
     grantedAbilityTags: [
       GameplayTags.ABILITY.FUNCTION.DAMAGE,
       GameplayTags.ABILITY.CHANNEL.TRUE,

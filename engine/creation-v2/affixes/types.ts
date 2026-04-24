@@ -18,6 +18,7 @@ import {
 import type { CreationTagSignalSource } from '../types';
 import { AffixCategory, CreationProductType } from '../types';
 import type { ExclusiveGroup } from './exclusiveGroups';
+import { TargetPolicyConfig } from '@/engine/battle-v5/abilities/TargetPolicy';
 
 // ===== 品质缩放值 =====
 
@@ -260,6 +261,8 @@ export interface AffixDefinition {
   maxQuality?: Quality;
   /** 法宝专用：限定可进入候选池的装备槽位 */
   applicableArtifactSlots?: EquipmentSlot[];
+  /** 神通专用：限定可进入候选池的目标策略偏好 */
+  targetPolicyConstraint?: Partial<TargetPolicyConfig>;
   /** 词缀效果模板（含品质缩放参数） */
   effectTemplate: AffixEffectTemplate;
   /** 被动能力词缀的监听器规格（artifact/gongfa 词缀必填） */

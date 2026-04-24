@@ -2,7 +2,7 @@
 
 import { InkBadge, InkButton } from '@/components/ui';
 import { AffixChip } from './AffixChip';
-import { formatNumber, type ProductDisplayModel } from './abilityDisplay';
+import { formatNumber, formatTargetPolicy, type ProductDisplayModel } from './abilityDisplay';
 
 const SLOT_LABELS: Record<string, string> = {
   weapon: '武器',
@@ -91,6 +91,11 @@ export function AbilityDetailModal({
 
         {projection && projection.projectionKind === 'active_skill' && (
           <div className="text-ink-secondary flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {projection.targetPolicy && (
+              <span className="font-medium text-ink-primary">
+                {formatTargetPolicy(projection.targetPolicy)}
+              </span>
+            )}
             {mpCostText && <span>{mpCostText}</span>}
             {cooldownText && <span>{cooldownText}</span>}
             {projection.priority !== undefined && (
