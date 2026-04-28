@@ -122,6 +122,17 @@ describe('renderAffixLine 集成用例', () => {
     expect(targetScoped.bodyText).toContain('目标气血低于30%');
   });
 
+  it('伤害条件已包含完整事件语义时，不再重复监听前缀', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('gongfa-school-metal-spec');
+    expect(def).toBeDefined();
+
+    const line = renderAffixLine(toRolledAffix(def!), '真品');
+
+    expect(line.bodyText).toContain('造成「金系」伤害时');
+    expect(line.bodyText).toContain('增伤');
+    expect(line.bodyText).not.toContain('造成伤害时 造成「金系」伤害时');
+  });
+
   it('"重甲护体" + abilityConfig.modifiers：物防+10、法防+10', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-panel-armor-dual-def');
     expect(def).toBeDefined();

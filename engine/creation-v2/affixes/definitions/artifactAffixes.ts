@@ -766,9 +766,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 绝境护甲（低血减伤） ---
   {
     id: 'artifact-defense-desperate-aegis',
-    displayName: '死战',
+    displayName: '临危不惧',
     displayDescription:
-      '背水结阵，气血枯竭时反而能够激起宝物内部死士之念，大幅减伤',
+      '法宝感主命危，自行卸去来袭劲力，令持有者在气血衰微时更能强撑危局',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {

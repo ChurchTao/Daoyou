@@ -135,11 +135,28 @@ function buildBodyText(args: BuildBodyArgs): string {
         listenerScope: listenerSpec.scope,
       }
     : undefined;
-  const listenerText = describeListener(listenerSpec, renderContext);
   const conditionText = describeConditions(effect.conditions, renderContext);
+  const listenerText = shouldOmitListenerText(listenerSpec, conditionText)
+    ? ''
+    : describeListener(listenerSpec, renderContext);
   const coreText = describeEffectCore(effect);
 
   return joinSegments(listenerText, conditionText, coreText);
+}
+
+function shouldOmitListenerText(
+  listenerSpec: AffixListenerSpec | undefined,
+  conditionText: string,
+): boolean {
+  if (!listenerSpec || conditionText.length === 0) return false;
+
+  const isSpecificDamageCondition = /^(造成|受到|将受).+伤害时$/.test(conditionText);
+  if (!isSpecificDamageCondition) return false;
+
+  return (
+    listenerSpec.eventType === 'DamageRequestEvent' ||
+    listenerSpec.eventType === 'DamageTakenEvent'
+  );
 }
 
 function resolveEffectConfig(
