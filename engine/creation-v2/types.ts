@@ -8,6 +8,7 @@ import {
 import { TargetPolicyConfig } from '@/engine/battle-v5/abilities/TargetPolicy';
 import { Material } from '@/types/cultivator';
 import type { Ability } from './contracts/battle';
+import type { AttributeModifierConfig } from './contracts/battle';
 import { CreationPhase } from './core/types';
 import type { CreationProductModel } from './models/types';
 import type { AffixTagMatcher } from './affixes/types';
@@ -269,6 +270,12 @@ export interface RolledAffix extends AffixCandidate {
   rollEfficiency: number; // 0.0 - 1.0 之间的效率分
   finalMultiplier: number; // 最终随到的数值倍率（如 1.12）
   isPerfect: boolean; // 是否触发了“完美”标记
+  /**
+   * 造物投影阶段为该 affix 解析出的最终属性结果。
+   * 仅对 attribute_modifier / random_attribute_modifier 这类被动面板词缀生效，
+   * 作为 product_model 的展示权威来源持久化。
+   */
+  resolvedModifiers?: AttributeModifierConfig[];
 }
 
 export interface CreationBlueprint {

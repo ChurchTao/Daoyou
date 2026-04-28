@@ -70,7 +70,8 @@ export function deserializeAbilityConfig(
 }
 
 /**
- * 序列化 ProductModel 为纯 JSON 对象，affixes 数组只保留 per-roll 的唯一字段。
+ * 序列化 ProductModel 为纯 JSON 对象，affixes 数组保留 per-roll 的唯一字段，
+ * 以及展示层所需的 resolvedModifiers。
  * 静态词缀属性（effectTemplate / name / category / rarity / match 等）可在读取时
  * 通过 affix.id 从注册表回填，无需持久化。
  */
@@ -86,6 +87,9 @@ export function serializeProductModel(
       rollScore: affix.rollScore,
       rollEfficiency: affix.rollEfficiency,
       isPerfect: affix.isPerfect,
+      ...(Array.isArray(affix.resolvedModifiers)
+        ? { resolvedModifiers: affix.resolvedModifiers }
+        : {}),
     }));
   }
   return json;

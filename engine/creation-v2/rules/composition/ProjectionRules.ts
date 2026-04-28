@@ -201,6 +201,7 @@ export class ProjectionRules implements Rule<
     for (const rolled of affixes) {
       const def = this.registry.queryById(rolled.id);
       if (!def) continue;
+      rolled.resolvedModifiers = undefined;
       if (def.effectTemplate.type === 'attribute_modifier') {
         const modifierEntries =
           'modifiers' in def.effectTemplate.params
@@ -213,6 +214,7 @@ export class ProjectionRules implements Rule<
                 },
               ];
 
+        const resolvedModifiers: AttributeModifierConfig[] = [];
         for (const modifierEntry of modifierEntries) {
           const baseValue = this.translator.resolveParam(
             modifierEntry.value,
@@ -226,16 +228,22 @@ export class ProjectionRules implements Rule<
             anchorFactor,
           );
           // 核心改动：被动属性修正也应用随机倍率
-          modifiers.push({
+          const modifier = {
             attrType: modifierEntry.attrType,
             type: modifierEntry.modType,
             value: grownValue * rolled.finalMultiplier,
-          });
+          };
+          modifiers.push(modifier);
+          resolvedModifiers.push(modifier);
         }
+        rolled.resolvedModifiers = resolvedModifiers;
       } else if (def.effectTemplate.type === 'random_attribute_modifier') {
         const { pool, pickCount } = def.effectTemplate.params;
         // 造物时随机抽取，结果固化在此次投影中
-        const picked = pickRandom(pool, pickCount);
+        const picked = pickRandom(pool, pickCount).sort(
+          (left, right) => pool.indexOf(left) - pool.indexOf(right),
+        );
+        const resolvedModifiers: AttributeModifierConfig[] = [];
         for (const entry of picked) {
           const baseValue = this.translator.resolveParam(
             entry.value,
@@ -248,12 +256,15 @@ export class ProjectionRules implements Rule<
             baseValue,
             anchorFactor,
           );
-          modifiers.push({
+          const modifier = {
             attrType: entry.attrType,
             type: entry.modType,
             value: grownValue * rolled.finalMultiplier,
-          });
+          };
+          modifiers.push(modifier);
+          resolvedModifiers.push(modifier);
         }
+        rolled.resolvedModifiers = resolvedModifiers;
       } else {
         rolledListeners.push(rolled);
       }
