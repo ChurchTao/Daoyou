@@ -35,4 +35,9 @@ export const adminNavItems: AdminNavItem[] = [
     description: '活动兑换码创建与停用',
     href: '/admin/redeem-codes',
   },
+  {
+    title: '交流群二维码',
+    description: '玩家社群入口图片地址',
+    href: '/admin/community-qrcode',
+  },
 ];

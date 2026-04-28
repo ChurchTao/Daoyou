@@ -253,6 +253,13 @@
       "when": 1776758354610,
       "tag": "0035_tiny_nightshade",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1777346189750,
+      "tag": "0036_lyrical_carnage",
+      "breakpoints": true
     }
   ]
 }

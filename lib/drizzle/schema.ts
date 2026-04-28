@@ -460,6 +460,14 @@ export const adminMessageTemplates = pgTable(
   ],
 );
 
+// 应用级键值配置（运营可改，避免发版）
+export const appSettings = pgTable('wanjiedaoyou_app_settings', {
+  key: varchar('key', { length: 128 }).primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedBy: uuid('updated_by'),
+});
+
 // 单人副本历史记录表
 export const dungeonHistories = pgTable(
   'wanjiedaoyou_dungeon_histories',
