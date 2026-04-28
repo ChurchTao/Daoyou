@@ -252,7 +252,9 @@ export function toProductDisplayModel(
   record: ProductRecordLike,
 ): ProductDisplayModel {
   const rawModel = record.productModel as CreationProductModel;
-  const quality = (record.quality as Quality | null) ?? DEFAULT_QUALITY;
+  const quality =
+    (rawModel?.projectionQuality as Quality | undefined) ??
+    ((record.quality as Quality | null) ?? DEFAULT_QUALITY);
   const projectionModifiers = rawModel ? collectModifiers(rawModel) : [];
   const affixes = (rawModel?.affixes ?? []).map((affix) =>
     toAffixView(affix, quality, affix.resolvedModifiers),
@@ -266,7 +268,7 @@ export function toProductDisplayModel(
     productType:
       (rawModel?.productType as ProductDisplayModel['productType']) ??
       (record.productType as ProductDisplayModel['productType']),
-    quality: record.quality ?? undefined,
+    quality,
     element: record.element ?? undefined,
     slot: record.slot ?? undefined,
     score: record.score ?? 0,

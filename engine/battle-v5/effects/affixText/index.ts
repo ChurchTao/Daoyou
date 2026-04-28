@@ -25,6 +25,7 @@ import type {
 import { AttributeType, ModifierType } from '../../core/types';
 import { attrLabel } from './attributes';
 import { describeConditions } from './conditions';
+import type { AffixTextRenderContext } from './context';
 import { describeEffectCore } from './effectCore';
 import { formatAffixNumber, formatAffixPercent } from './format';
 import { describeListener } from './listeners';
@@ -128,8 +129,14 @@ function buildBodyText(args: BuildBodyArgs): string {
   const effect = resolveEffectConfig(affix, template, quality);
   if (!effect) return '';
 
-  const listenerText = describeListener(listenerSpec);
-  const conditionText = describeConditions(effect.conditions);
+  const renderContext: AffixTextRenderContext | undefined = listenerSpec
+    ? {
+        eventType: listenerSpec.eventType,
+        listenerScope: listenerSpec.scope,
+      }
+    : undefined;
+  const listenerText = describeListener(listenerSpec, renderContext);
+  const conditionText = describeConditions(effect.conditions, renderContext);
   const coreText = describeEffectCore(effect);
 
   return joinSegments(listenerText, conditionText, coreText);
@@ -165,7 +172,7 @@ function joinSegments(...parts: string[]): string {
   // 其它情况用 "，" 分隔。
   const first = cleaned[0];
   const rest = cleaned.slice(1).join('，');
-  if (/时$|每回合$/.test(first)) {
+  if (/时$|后$|每回合$/.test(first)) {
     return `${first} ${rest}`;
   }
   return `${first}，${rest}`;

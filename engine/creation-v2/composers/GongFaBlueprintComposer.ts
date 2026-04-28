@@ -33,6 +33,7 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
   compose(session: CreationSession): CreationBlueprint {
     const { rolledAffixes, input } = session.state;
     const facts: CompositionFacts = buildCompositionFacts(session, 'gongfa', this.registry);
+    const projectionQuality = facts.projectionQualityProfile.quality;
 
     const decision = this.compositionRuleSet.evaluate(facts);
     const policy = decision.projectionPolicy as PassiveProjectionPolicy | undefined;
@@ -51,11 +52,12 @@ export class GongFaBlueprintComposer implements ProductBlueprintComposer {
       slug: buildAbilitySlug(session.id, input.productType),
       name: decision.name,
       description: decision.description,
+      projectionQuality,
       outcomeTags: decision.outcomeTags,
       affixes: rolledAffixes,
       balanceMetrics: estimateBalanceMetrics(
         rolledAffixes,
-        facts.materialQualityProfile.weightedAverageQuality,
+        projectionQuality,
       ),
       gongfaConfig: domainConfig,
       battleProjection: {

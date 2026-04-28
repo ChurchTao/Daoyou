@@ -1,5 +1,6 @@
 import { CreationProductType } from '../types';
 import { CREATION_EVENT_PRIORITY_LEVELS } from './CreationEventPriorities';
+import type { Quality } from '@/types/constants';
 
 /**
  * 词缀分类解锁阈值表。
@@ -343,6 +344,29 @@ export const CREATION_ENERGY_SLOT_TIERS: ReadonlyArray<{
   { maxEnergy: 90, maxAffixCount: 4 },
   // 90 点及以上开放完整 5 词缀上限。
   { maxEnergy: Infinity, maxAffixCount: 5 },
+];
+
+/**
+ * 能量预算梯次 -> 成品数值品质映射（projectionQuality）。
+ *
+ * 设计约束：
+ * - 这是“数值投影品质”的唯一权威来源：词条数值、蓝耗/冷却等都必须使用同一个 projectionQuality
+ * - 映射基于 `EnergyBudget.effectiveTotal`（已包含多样性/一致性奖励与秘籍缺失惩罚），而非材料平均品质或 PBU
+ * - 该品质用于“可复现、可验证”的战斗投影与 UI 展示；PBU 仅用于评分/TTK 审计与排行
+ */
+export const CREATION_PROJECTION_QUALITY_TIERS: ReadonlyArray<{
+  /** 当前梯次生效的能量上界，effectiveTotal < maxEnergy 即落入该梯次。 */
+  maxEnergy: number;
+  quality: Quality;
+}> = [
+  { maxEnergy: 18, quality: '凡品' },
+  { maxEnergy: 30, quality: '灵品' },
+  { maxEnergy: 45, quality: '玄品' },
+  { maxEnergy: 65, quality: '真品' },
+  { maxEnergy: 90, quality: '地品' },
+  { maxEnergy: 125, quality: '天品' },
+  { maxEnergy: 170, quality: '仙品' },
+  { maxEnergy: Infinity, quality: '神品' },
 ];
 
 /**

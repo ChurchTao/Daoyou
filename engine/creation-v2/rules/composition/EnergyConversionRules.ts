@@ -21,10 +21,10 @@ export class EnergyConversionRules
   apply({ facts, decision }: RuleContext<CompositionFacts, CompositionDecision>): void {
     if (facts.productType !== 'skill') return;
 
-    const { energySummary, affixes, materialQualityProfile } = facts;
+    const { energySummary, affixes, projectionQualityProfile } = facts;
 
     // 指数级增长：每提升一阶品质，蓝耗加倍，以对齐角色属性的指数级增长
-    const qualityOrder = materialQualityProfile.weightedAverageOrder;
+    const qualityOrder = projectionQualityProfile.qualityOrder;
     const qualityMultiplier = Math.pow(2, qualityOrder);
 
     const baseMpCost = Math.round(

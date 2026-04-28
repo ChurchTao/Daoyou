@@ -1,28 +1,5 @@
-import type { Quality } from '@/types/constants';
 import type { BalanceMetrics } from '../balancing/PBU';
 import type { RolledAffix } from '../types';
-
-/**
- * 从 PBU 推算品质等级。
- * PBU 阈值是启发式的，与造物引擎能量经济对齐。
- */
-const PBU_QUALITY_THRESHOLDS: [number, Quality][] = [
-  [230, '神品'],
-  [170, '仙品'],
-  [120, '天品'],
-  [80, '地品'],
-  [50, '真品'],
-  [25, '玄品'],
-  [12, '灵品'],
-  [0, '凡品'],
-];
-
-export function pbuToQuality(pbu: number): Quality {
-  for (const [threshold, quality] of PBU_QUALITY_THRESHOLDS) {
-    if (pbu >= threshold) return quality;
-  }
-  return '凡品';
-}
 
 /**
  * 计算产物评分（排行榜用）。
@@ -51,11 +28,4 @@ function isHighTierCategory(category: string): boolean {
     category.endsWith('_secret') ||
     category.endsWith('_treasure')
   );
-}
-
-/**
- * 从 balanceMetrics 推算展示用品质。
- */
-export function deriveQuality(metrics: BalanceMetrics | undefined): Quality {
-  return pbuToQuality(metrics?.pbu ?? 0);
 }

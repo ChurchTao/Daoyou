@@ -2,11 +2,11 @@ import {
   CreationIntent,
   CreationProductType,
   MaterialFingerprint,
-  MaterialQualityProfile,
   RecipeMatch,
   RolledAffix,
 } from '../../types';
 import { RealmStage, RealmType } from '@/types/constants';
+import type { ProjectionQualityProfile } from '../../analysis/ProjectionQualityProfile';
 
 export interface CompositionEnergySummary {
   effectiveTotal: number;
@@ -21,10 +21,11 @@ export interface CompositionFacts {
   intent: CreationIntent;
   recipeMatch: RecipeMatch;
   energySummary: CompositionEnergySummary;
+  /** 数值投影品质（权威来源）：用于词条数值、蓝耗/冷却、展示品质等。 */
+  projectionQualityProfile: ProjectionQualityProfile;
   affixes: RolledAffix[];
   inputTags: string[];
   materialFingerprints: MaterialFingerprint[];
-  materialQualityProfile: MaterialQualityProfile;
   materialNames: string[];
   /**
    * effectTemplate.type of the core affix (e.g. 'damage', 'heal', 'apply_buff').

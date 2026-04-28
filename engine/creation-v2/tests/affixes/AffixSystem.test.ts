@@ -84,7 +84,7 @@ describe('AffixEffectTranslator', () => {
     if (resultFan.type === 'damage') {
       // base: { base:80, scale:quality, coefficient:14 } → 凡品 qualityOrder=0 → 80
       expect(resultFan.params.value.base).toBe(80);
-      expect(resultFan.params.value.coefficient).toBe(0.9);
+      expect(resultFan.params.value.coefficient).toBe(1);
     }
 
     const resultZhen = translator.translate(toRolledAffix(def), '真品');

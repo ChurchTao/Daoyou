@@ -1,5 +1,5 @@
 import type { AbilityConfig, AttributeModifierConfig, EffectConfig, ListenerConfig } from '../contracts/battle';
-import type { EquipmentSlot, RealmStage, RealmType } from '@/types/constants';
+import type { EquipmentSlot, Quality, RealmStage, RealmType } from '@/types/constants';
 import type { CreationProductType, RolledAffix } from '../types';
 import type { BalanceMetrics } from '../balancing/PBU';
 
@@ -32,6 +32,8 @@ interface BaseProductModel<
   name: string;
   originalName?: string;
   description?: string;
+  /** 数值投影品质（权威来源）：用于词条数值、蓝耗/冷却、展示品质等。 */
+  projectionQuality: Quality;
   outcomeTags: string[];
   affixes: RolledAffix[];
   balanceMetrics?: BalanceMetrics;

@@ -32,6 +32,7 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
   compose(session: CreationSession): CreationBlueprint {
     const { rolledAffixes, input } = session.state;
     const facts: CompositionFacts = buildCompositionFacts(session, 'skill', this.registry);
+    const projectionQuality = facts.projectionQualityProfile.quality;
 
     const decision = this.compositionRuleSet.evaluate(facts);
     const policy = decision.projectionPolicy as SkillProjectionPolicy | undefined;
@@ -44,11 +45,12 @@ export class SkillBlueprintComposer implements ProductBlueprintComposer {
       slug: buildAbilitySlug(session.id, input.productType),
       name: decision.name,
       description: decision.description,
+      projectionQuality,
       outcomeTags: decision.outcomeTags,
       affixes: rolledAffixes,
       balanceMetrics: estimateBalanceMetrics(
         rolledAffixes,
-        facts.materialQualityProfile.weightedAverageQuality,
+        projectionQuality,
       ),
       battleProjection: {
         projectionKind: 'active_skill',

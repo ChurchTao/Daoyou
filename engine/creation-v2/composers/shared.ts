@@ -10,7 +10,7 @@ import type { CreationProductType, RolledAffix } from '../types';
  * composers/shared.ts: Composer 公共工具。
  * 包含根据材料品质聚合默认质量、构建分组 listener，以及通用的 slug 生成器委托等辅助函数。
  */
-import { buildMaterialQualityProfile } from '../analysis/MaterialBalanceProfile';
+import { deriveProjectionQualityFromBudget } from '../analysis/ProjectionQualityProfile';
 import { CreationSession } from '../CreationSession';
 import { CompositionFacts } from '../rules/contracts/CompositionFacts';
 
@@ -95,7 +95,7 @@ export function buildCompositionFacts(
   if (!intent) throw new Error('Cannot compose blueprint before resolving intent');
   if (!energyBudget) throw new Error('Cannot compose blueprint before energy budgeting');
 
-  const materialQualityProfile = buildMaterialQualityProfile(materialFingerprints);
+  const projectionQualityProfile = deriveProjectionQualityFromBudget(energyBudget);
 
   let coreEffectType: string | undefined;
   if (registry) {
@@ -119,10 +119,10 @@ export function buildCompositionFacts(
       spentAffixEnergy: energyBudget.spent,
       remainingAffixEnergy: energyBudget.remaining,
     },
+    projectionQualityProfile,
     affixes: rolledAffixes,
     inputTags: session.state.inputTags,
     materialFingerprints,
-    materialQualityProfile,
     materialNames: input.materials.map((m) => m.name),
     ...(input.realm ? { anchorRealm: input.realm } : {}),
     ...(input.realmStage ? { anchorRealmStage: input.realmStage } : {}),

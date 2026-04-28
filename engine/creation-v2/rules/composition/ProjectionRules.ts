@@ -76,8 +76,8 @@ export class ProjectionRules implements Rule<
     facts: CompositionFacts,
     decision: CompositionDecision,
   ): SkillProjectionPolicy {
-    const { intent, affixes, materialQualityProfile } = facts;
-    const projectionQuality = materialQualityProfile.weightedAverageQuality;
+    const { intent, affixes, projectionQualityProfile } = facts;
+    const projectionQuality = projectionQualityProfile.quality;
 
     const directEffects: EffectConfig[] = [];
     const extraListeners: ListenerConfig[] = [];
@@ -132,7 +132,7 @@ export class ProjectionRules implements Rule<
           : CREATION_SKILL_DEFAULTS.damageCooldown;
 
     // 增加随品质带来的冷却延长，封顶 10 回合
-    const qualityOrder = materialQualityProfile.weightedAverageOrder;
+    const qualityOrder = projectionQualityProfile.qualityOrder;
     const cooldownBonus = CREATION_PROJECTION_BALANCE.qualityCooldownBonus[qualityOrder] ?? 0;
     const cooldown = Math.min(10, baseCooldown + cooldownBonus);
 
@@ -181,12 +181,12 @@ export class ProjectionRules implements Rule<
       productType,
       intent,
       affixes,
-      materialQualityProfile,
+      projectionQualityProfile,
       anchorRealm,
       anchorRealmStage,
     } = facts;
-    const qualityOrder = materialQualityProfile.weightedAverageOrder;
-    const projectionQuality = materialQualityProfile.weightedAverageQuality;
+    const qualityOrder = projectionQualityProfile.qualityOrder;
+    const projectionQuality = projectionQualityProfile.quality;
     const anchorFactor = this.getAnchorGrowthFactor(
       productType,
       anchorRealm,

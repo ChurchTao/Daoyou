@@ -64,19 +64,14 @@ function buildMinimalFacts(
       spentAffixEnergy: 8,
       remainingAffixEnergy: 16,
     },
+    projectionQualityProfile: {
+      quality: '灵品',
+      qualityOrder: 1,
+      basisEnergy: 30,
+    },
     materialNames: ['测试材料'],
     affixes:
       productType === 'skill' && skillCore ? [toRolledAffix(skillCore)] : [],
-    materialQualityProfile: {
-      maxQuality: '灵品',
-      weightedAverageQuality: '灵品',
-      minQuality: '灵品',
-      maxQualityOrder: 1,
-      weightedAverageOrder: 1,
-      minQualityOrder: 1,
-      qualitySpread: 0,
-      totalQuantity: 1,
-    },
     inputTags: [],
     materialFingerprints: [],
   };
@@ -246,7 +241,7 @@ describe('WorkflowDecisionBoundary — CompositionRuleSet 契约验证', () => {
     it('skill 流程结束后 decision 应包含 outcomeKind / name / outcomeTags / projectionPolicy', () => {
       const decision = ruleSet.evaluate(buildMinimalFacts('skill'));
 
-      expect(decision.productType).toBe('active_skill');
+      expect(decision.productType).toBe('skill');
       expect(decision.name).toBeTruthy();
       expect(decision.outcomeTags).toContain('Outcome.ActiveSkill');
       expect(decision.projectionPolicy?.kind).toBe('active_skill');

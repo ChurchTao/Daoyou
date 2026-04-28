@@ -7,7 +7,7 @@ import type {
 } from '../models/types';
 import type { CraftedOutcome } from '../types';
 import { extractElement } from './elementExtractor';
-import { calculateProductScore, deriveQuality } from './ScoreCalculator';
+import { calculateProductScore } from './ScoreCalculator';
 
 export type ProductRow = Omit<CreationProductInsert, 'id'>;
 
@@ -29,7 +29,7 @@ export function toRow(
     name: model.name,
     description: model.description ?? null,
     element: extractElement(abilityTags) ?? null,
-    quality: deriveQuality(model.balanceMetrics),
+    quality: model.projectionQuality,
     slot: getSlot(model),
     score: calculateProductScore(model.balanceMetrics, model.affixes),
     isEquipped: false,

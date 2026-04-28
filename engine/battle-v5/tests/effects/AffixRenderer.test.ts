@@ -64,7 +64,7 @@ describe('renderAffixLine 快照：遍历 DEFAULT_AFFIX_REGISTRY', () => {
 });
 
 describe('renderAffixLine 集成用例', () => {
-  it('"混元" 词缀 + 真品：反弹 34% 伤害（受击时 被暴击）', () => {
+  it('"混元" 在 DamageTakenEvent + owner_as_target 下保持受击主语', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-crit-reflect');
     expect(def).toBeDefined();
 
@@ -78,9 +78,48 @@ describe('renderAffixLine 集成用例', () => {
 
     expect(line.name).toBe('混元');
     expect(line.rarity).toBe('uncommon');
-    expect(line.bodyText).toContain('受击时');
-    expect(line.bodyText).toContain('被暴击');
+    expect(line.bodyText).toContain('受击后');
+    expect(line.bodyText).toContain('被暴击时');
     expect(line.bodyText).toMatch(/反弹\s*34%\s*伤害/);
+  });
+
+  it('"噬血" 在 DamageTakenEvent + owner_as_caster 下使用自身主语', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-heal-on-cast');
+    expect(def).toBeDefined();
+
+    const line = renderAffixLine(toRolledAffix(def!), '真品');
+
+    expect(line.name).toBe('噬血');
+    expect(line.bodyText).toContain('造成伤害后');
+    expect(line.bodyText).toContain('转化为气血');
+    expect(line.bodyText).not.toContain('受击');
+  });
+
+  it('caster/target 条件 scope 应渲染不同主语', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-damage-boost');
+    expect(def).toBeDefined();
+
+    const casterScoped = renderAffixLine(
+      toRolledAffix(def!, {
+        effectTemplate: {
+          ...def!.effectTemplate,
+          conditions: [{ type: 'hp_below', params: { value: 0.3, scope: 'caster' } }],
+        },
+      }),
+      '真品',
+    );
+    const targetScoped = renderAffixLine(
+      toRolledAffix(def!, {
+        effectTemplate: {
+          ...def!.effectTemplate,
+          conditions: [{ type: 'hp_below', params: { value: 0.3, scope: 'target' } }],
+        },
+      }),
+      '真品',
+    );
+
+    expect(casterScoped.bodyText).toContain('自身气血低于30%');
+    expect(targetScoped.bodyText).toContain('目标气血低于30%');
   });
 
   it('"重甲护体" + abilityConfig.modifiers：物防+10、法防+10', () => {
@@ -108,8 +147,8 @@ describe('renderAffixLine 集成用例', () => {
     expect(line.bodyText).toContain('物防 +10');
     expect(line.bodyText).toContain('法防 +10');
     // 属性类词缀不应带"受击时"等监听前缀
-    expect(line.bodyText).not.toContain('受击时');
-    expect(line.bodyText).not.toContain('被暴击');
+    expect(line.bodyText).not.toContain('受击后');
+    expect(line.bodyText).not.toContain('被暴击时');
   });
 
   it('完美标记通过 isPerfect 字段透出', () => {
