@@ -199,6 +199,20 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
+  it('translate: artifact magic shield 应生成按品质缩放的法盾吸收比例', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-magic-shield')!;
+    const fanpin = translator.translate(toRolledAffix(def), '凡品');
+    const shenpin = translator.translate(toRolledAffix(def), '神品');
+
+    expect(fanpin.type).toBe('magic_shield');
+    expect(shenpin.type).toBe('magic_shield');
+
+    if (fanpin.type === 'magic_shield' && shenpin.type === 'magic_shield') {
+      expect(fanpin.params.absorbRatio).toBeCloseTo(0.5);
+      expect(shenpin.params.absorbRatio).toBeCloseTo(0.98);
+    }
+  });
+
   it('translate: skill dispel-buff 应只驱散正面 buff 标签', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-dispel')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
@@ -658,6 +672,15 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     expect(def?.listenerSpec?.eventType).toBe(GameplayTags.EVENT.DAMAGE_TAKEN);
   });
 
+  it('artifact-defense-magic-shield 应在伤害结算阶段触发法盾吸收', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-magic-shield');
+
+    expect(def).toBeDefined();
+    expect(def?.rarity).toBe('rare');
+    expect(def?.effectTemplate.type).toBe('magic_shield');
+    expect(def?.listenerSpec?.eventType).toBe(GameplayTags.EVENT.DAMAGE);
+  });
+
   it('skill affix 的 control 与 buff/debuff duration 应收敛到统一策略', () => {
     const persistentExceptionIds = new Set<string>();
     const actualPersistentExceptionIds = new Set<string>();
@@ -706,4 +729,3 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     );
   });
 });
-

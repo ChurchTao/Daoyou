@@ -25,8 +25,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 3 种装备槽绑定核心 ---
   {
     id: 'artifact-panel-weapon-dual-atk',
-    displayName: '双刃强化',
-    displayDescription: '武器法宝同时提升物理与法术攻击力',
+    displayName: '基础攻击',
+    displayDescription: '武器法宝提升物理与法术攻击力',
     category: 'artifact_core',
     rarity: 'common',
     match: {},
@@ -56,8 +56,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-armor-dual-def',
-    displayName: '重甲护体',
-    displayDescription: '护甲法宝同时提升物理与法术防御',
+    displayName: '基础防御',
+    displayDescription: '护甲法宝提升物理与法术防御',
     category: 'artifact_core',
     rarity: 'common',
     match: {},
@@ -87,8 +87,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'artifact-panel-accessory-utility',
-    displayName: '灵饰增益',
-    displayDescription: '饰品法宝提升速度、暴击、命中等实用属性',
+    displayName: '基础属性',
+    displayDescription: '饰品法宝提升速度、暴击、命中等基础属性',
     category: 'artifact_core',
     rarity: 'common',
     match: {},
@@ -165,8 +165,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 通用固定值面板（20 种） ---
   {
     id: 'artifact-panel-atk',
-    displayName: '断金',
-    displayDescription: '加持锋锐法阵，提升法宝本身的物理杀伤力',
+    displayName: '锋锐',
+    displayDescription: '提升物理攻击力',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
@@ -270,8 +270,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
 
   {
     id: 'artifact-panel-crit-rate',
-    displayName: '相机',
-    displayDescription: '宝器常生异象，协助破袭敌方微末破绽',
+    displayName: '会心',
+    displayDescription: '提升暴击几率',
     category: 'artifact_panel',
     rarity: 'uncommon',
     match: {
@@ -282,7 +282,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 50,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'accessory'],
     effectTemplate: {
@@ -308,7 +308,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 45,
-    energyCost: 10,
+    energyCost: 16,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'accessory'],
     effectTemplate: {
@@ -323,7 +323,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-panel-accuracy',
     displayName: '灵瞳',
-    displayDescription: '器灵如张心目，自行锁定敌踪定不使其遁脱',
+    displayDescription: '提升命中率',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
@@ -349,7 +349,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-panel-dodge',
     displayName: '无影',
-    displayDescription: '御使间光影摇曳，频频误导杀机规避险境',
+    displayDescription: '提升闪避率',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
@@ -375,7 +375,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-panel-control-hit',
     displayName: '镇魂',
-    displayDescription: '内蕴震慑神魂之威，令摄心、定身等奇术难以被拨开',
+    displayDescription: '提升控制命中',
     category: 'artifact_panel',
     rarity: 'uncommon',
     match: {
@@ -386,7 +386,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 40,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['weapon', 'accessory'],
     effectTemplate: {
@@ -401,7 +401,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-panel-control-resistance',
     displayName: '明心',
-    displayDescription: '灵明时时刻刻守住灵窍，大幅减免被外物蒙扰受控的可能',
+    displayDescription: '提升控制抗性',
     category: 'artifact_panel',
     rarity: 'uncommon',
     match: {
@@ -412,7 +412,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 40,
-    energyCost: 10,
+    energyCost: 15,
     applicableTo: ['artifact'],
     applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
@@ -427,7 +427,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-panel-spirit',
     displayName: '蕴灵',
-    displayDescription: '暖玉温养神念，充盈持有者的灵气本源',
+    displayDescription: '提升灵力',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
@@ -453,7 +453,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-panel-vitality',
     displayName: '淬体',
-    displayDescription: '持续引动生机反哺肉身血气，使体魄愈发强健',
+    displayDescription: '提升体魄',
     category: 'artifact_panel',
     rarity: 'common',
     match: {
@@ -563,7 +563,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-reflect-thorns',
     displayName: '反噬',
-    displayDescription: '器表布满生冷暗刺，受击时借势反震敌手',
+    displayDescription: '受击时，有概率反震敌人',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -575,12 +575,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 50,
-    energyCost: 16,
+    energyCost: 18,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'reflect',
+      conditions: [{ type: 'chance', params: { value: 0.3 } }],
       params: {
-        ratio: { base: 0.08, scale: 'quality', coefficient: 0.02 },
+        ratio: { base: 0.03, scale: 'quality', coefficient: 0.01 },
       },
     },
     listenerSpec: {
@@ -593,8 +594,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   // --- 濒死保命 ---
   {
     id: 'artifact-defense-death-prevent',
-    displayName: '涅槃',
-    displayDescription: '法宝本源与神魂相连，在形神俱灭之际强行截存一丝生机',
+    displayName: '替身纸人',
+    displayDescription: '在形神俱灭之际，强行截存一丝生机',
     category: 'artifact_defense',
     rarity: 'rare',
     match: {
@@ -606,7 +607,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 20,
-    energyCost: 20,
+    energyCost: 38,
     minQuality: '灵品',
     applicableTo: ['artifact'],
     effectTemplate: {
@@ -624,7 +625,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-last-stand-shell',
     displayName: '灵壁',
-    displayDescription: '感主之危，气血衰微时受击可自行激发真元护体',
+    displayDescription: '气血衰微时，受击有概率自行激发真元护体',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -642,13 +643,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'shield',
       conditions: [
         { type: 'hp_below', params: { value: 0.3 } },
-        { type: 'chance', params: { value: 0.35 } },
+        { type: 'chance', params: { value: 0.3 } },
       ],
       params: {
         value: {
           base: { base: 15, scale: 'quality', coefficient: 6 },
-          attribute: AttributeType.WILLPOWER,
-          coefficient: 0.3,
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.02,
         },
       },
     },
@@ -663,7 +664,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-defense-armor-passive',
     displayName: '坚甲',
-    displayDescription: '材质至坚，加持肉身，受击时可平摊来袭劲力降低伤害',
+    displayDescription: '降低受到的伤害',
     category: 'artifact_defense',
     rarity: 'common',
     match: {
@@ -681,14 +682,14 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'percent_damage_modifier',
       params: {
         mode: 'reduce',
-        value: { base: 0.04, scale: 'quality', coefficient: 0.01 },
+        value: { base: 0.01, scale: 'quality', coefficient: 0.01 },
         cap: 0.3,
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
 
@@ -698,7 +699,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayName: '灵泉',
     displayDescription: '暗循周天，法宝每回合皆可自动接引天地灵气重聚真元',
     category: 'artifact_defense',
-    rarity: 'common',
+    rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
       any: [
@@ -707,8 +708,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_WATER,
       ],
     },
-    weight: 45,
-    energyCost: 12,
+    weight: 33,
+    energyCost: 18,
     applicableTo: ['artifact'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
@@ -718,7 +719,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 5, scale: 'quality', coefficient: 2 },
           attribute: AttributeType.SPIRIT,
-          coefficient: 0.04,
+          coefficient: 0.01,
         },
       },
     },
@@ -729,11 +730,42 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
 
+  // --- 法力护盾 ---
+  {
+    id: 'artifact-defense-magic-shield',
+    displayName: '玄罡',
+    displayDescription: '受击时，以真元为障，优先吸收部分伤害',
+    category: 'artifact_defense',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+      ],
+    },
+    weight: 18,
+    energyCost: 35,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'magic_shield',
+      params: {
+        absorbRatio: { base: 0.5, scale: 'quality', coefficient: 0.48 / 7 },
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.DAMAGE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.damageApply,
+    },
+  },
+
   // --- 负面清除 ---
   {
     id: 'artifact-defense-debuff-cleanse',
-    displayName: '无垢',
-    displayDescription: '宝光澄澈，遭外邪入侵受击时，有概率强行洗去体内暗伤',
+    displayName: '清浊',
+    displayDescription: '受到伤害时，有概率清除一个负面状态',
     category: 'artifact_defense',
     rarity: 'uncommon',
     match: {
@@ -746,7 +778,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.DEFENSE_CLEANSE,
     weight: 30,
-    energyCost: 16,
+    energyCost: 22,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'dispel',
@@ -760,6 +792,38 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
       priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+    },
+  },
+  {
+    id: 'artifact-defense-debuff-cleanse-per-round',
+    displayName: '七宝玲珑心',
+    displayDescription: '每回合有几率自动清除一个负面状态',
+    category: 'artifact_defense',
+    rarity: 'rare',
+    match: {
+      all: [CreationTags.MATERIAL.SEMANTIC_DIVINE],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.DEFENSE_CLEANSE,
+    weight: 20,
+    energyCost: 36,
+    applicableTo: ['artifact'],
+    effectTemplate: {
+      type: 'dispel',
+      conditions: [{ type: 'chance', params: { value: 0.5 } }],
+      params: {
+        targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
+        maxCount: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.ROUND_PRE,
+      scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+      priority: CREATION_LISTENER_PRIORITIES.roundPre,
     },
   },
 
@@ -780,7 +844,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 35,
-    energyCost: 16,
+    energyCost: 18,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -792,9 +856,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
 
@@ -827,9 +891,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -863,9 +927,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -873,13 +937,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayName: '辟雷',
     displayDescription: '绝缘辟雷，万重天劫临身亦能将其劲气化去大半',
     category: 'artifact_defense',
-    rarity: 'common',
+    rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
       any: [ELEMENT_TO_MATERIAL_TAG['木'], ELEMENT_TO_MATERIAL_TAG['土']],
     },
     weight: 36,
-    energyCost: 12,
+    energyCost: 16,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -896,9 +960,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -906,13 +970,13 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayName: '辟风',
     displayDescription: '宝光所及，狂风息止，受风系道法席卷时伤害大减',
     category: 'artifact_defense',
-    rarity: 'common',
+    rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
       any: [ELEMENT_TO_MATERIAL_TAG['土'], ELEMENT_TO_MATERIAL_TAG['金']],
     },
     weight: 34,
-    energyCost: 12,
+    energyCost: 14,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'percent_damage_modifier',
@@ -929,9 +993,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -962,9 +1026,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -995,9 +1059,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -1028,9 +1092,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
   {
@@ -1061,9 +1125,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
 
@@ -1083,7 +1147,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       ],
     },
     weight: 30,
-    energyCost: 16,
+    energyCost: 17,
     applicableTo: ['artifact'],
     effectTemplate: {
       type: 'shield',
@@ -1091,8 +1155,8 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       params: {
         value: {
           base: { base: 12, scale: 'quality', coefficient: 5 },
-          attribute: AttributeType.WILLPOWER,
-          coefficient: 0.2,
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.02,
         },
       },
     },
@@ -1125,7 +1189,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       type: 'reflect',
       conditions: [{ type: 'is_critical', params: {} }],
       params: {
-        ratio: { base: 0.15, scale: 'quality', coefficient: 0.04 },
+        ratio: { base: 0.04, scale: 'quality', coefficient: 0.02 },
       },
     },
     listenerSpec: {
@@ -1141,7 +1205,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     displayName: '生命之泉',
     displayDescription: '器体内封存草木之精，随真气流转持续蕴养残破血脉',
     category: 'artifact_defense',
-    rarity: 'common',
+    rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SUSTAIN],
       any: [
@@ -1152,7 +1216,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
     exclusiveGroup: EXCLUSIVE_GROUP.ARTIFACT.DEFENSE_ROUND_HEAL,
     weight: 42,
-    energyCost: 12,
+    energyCost: 16,
     applicableTo: ['artifact'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
@@ -1161,7 +1225,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 6, scale: 'quality', coefficient: 3 },
           attribute: AttributeType.VITALITY,
-          coefficient: 0.05,
+          coefficient: 0.02,
         },
       },
     },
@@ -1204,7 +1268,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       conditions: [{ type: 'chance', params: { value: 0.25 } }],
       params: {
         mode: 'reduce',
-        value: { base: 0.5, scale: 'quality', coefficient: 0.1 },
+        value: { base: 0.5, scale: 'quality', coefficient: 0.05 },
         cap: 0.9,
       },
     },
@@ -1215,12 +1279,12 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 护命：首次濒死保命 ---
+  // --- 濒死保命 ---
   {
     id: 'artifact-treasure-life-guard',
-    displayName: '护命',
+    displayName: '涅槃',
     displayDescription:
-      '灵台清明，真灵不灭，遇生死绝境之时可护住心脉使气火不绝',
+      '在生死绝境之时可护住心脉使气火不绝',
     category: 'artifact_treasure',
     rarity: 'legendary',
     match: {
@@ -1254,7 +1318,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
   {
     id: 'artifact-treasure-void-mirror',
     displayName: '太虚',
-    displayDescription: '太虚无形，有概率将袭来的五行术法悉数化入虚无',
+    displayDescription: '太虚无形，有概率将袭来的术法悉数化入虚无',
     category: 'artifact_treasure',
     rarity: 'legendary',
     match: {

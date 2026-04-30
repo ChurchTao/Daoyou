@@ -157,8 +157,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   },
   {
     id: 'gongfa-foundation-atk',
-    displayName: '锋锐',
-    displayDescription: '锐金之法，能显著拔高肉身体术之锋锐',
+    displayName: '根骨',
+    displayDescription: '增强肉身体质，提升物理攻击力',
     category: 'gongfa_foundation',
     rarity: 'common',
     match: {
@@ -912,8 +912,8 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
   // --- DOT 放大 ---
   {
     id: 'gongfa-school-dot-amplify',
-    displayName: '异常伤害强化',
-    displayDescription: '针对受持续侵蚀折磨之敌，以剥茧抽丝般的手法引爆其痛楚',
+    displayName: '异常精通',
+    displayDescription: '异常状态命中敌人时，造成伤害提升',
     category: 'gongfa_school',
     rarity: 'rare',
     match: {
