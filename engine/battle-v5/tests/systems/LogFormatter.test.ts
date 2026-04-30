@@ -75,8 +75,8 @@ describe('LogPresenter', () => {
       };
       const output = presenter.formatSpan(preSpan);
       const text = output.join(' ');
-      // 新格式：【持续】蛇精身上的「中毒」发作，造成 50 点伤害
-      expect(text).toContain('【持续】');
+      // 新格式：蛇精身上的「中毒」发作，造成 50 点伤害
+      expect(text).toContain('');
       expect(text).toContain('蛇精');
       expect(text).toContain('中毒');
       expect(text).toContain('50');

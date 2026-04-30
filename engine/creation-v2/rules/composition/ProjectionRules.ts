@@ -152,11 +152,17 @@ export class ProjectionRules implements Rule<
     }
     const { mpCost, priority } = conv;
 
-    const targetPolicy =
-      intent.targetPolicyBias ??
-      (coreType === 'heal'
-        ? { team: 'self' as const, scope: 'single' as const }
-        : { team: 'enemy' as const, scope: 'single' as const });
+    const coreTargetPolicy = coreDef.targetPolicyConstraint;
+    const targetPolicy = {
+      team:
+        coreTargetPolicy?.team ??
+        intent.targetPolicyBias?.team ??
+        (coreType === 'heal' ? ('self' as const) : ('enemy' as const)),
+      scope:
+        coreTargetPolicy?.scope ??
+        intent.targetPolicyBias?.scope ??
+        ('single' as const),
+    };
 
     const abilityTags = assembleAbilityTags({
       productType: 'skill',

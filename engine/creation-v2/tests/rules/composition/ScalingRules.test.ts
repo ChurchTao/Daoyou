@@ -154,6 +154,19 @@ describe('ScalingRules (mpCost and cooldown)', () => {
     expect((decision.projectionPolicy as any).cooldown).toBe(10);
   });
 
+  it('self buff core 应投影为 self target 的主动技能', () => {
+    const buffCore = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-fire-channeling');
+    const facts = buildFacts(0);
+    if (buffCore) facts.affixes = [toRolledAffix(buffCore)];
+
+    const decision = ruleSet.evaluate(facts);
+    expect((decision.projectionPolicy as any).targetPolicy).toEqual({
+      team: 'self',
+      scope: 'single',
+    });
+    expect((decision.projectionPolicy as any).cooldown).toBe(3);
+  });
+
   it('artifact 主面板 fixed 应按锚定境界成长', () => {
     const lowAnchorDecision = ruleSet.evaluate(buildArtifactFacts(7, '炼气'));
     const highAnchorDecision = ruleSet.evaluate(buildArtifactFacts(7, '渡劫'));

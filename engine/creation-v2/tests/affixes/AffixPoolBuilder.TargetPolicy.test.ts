@@ -5,7 +5,7 @@ import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { AffixDefinition } from '@/engine/creation-v2/affixes/types';
 import { DefaultIntentResolver } from '@/engine/creation-v2/resolvers/DefaultIntentResolver';
-import { BuffType, StackRule } from '../../contracts/battle';
+import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
 
 describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
   const registry = new AffixRegistry();
@@ -164,5 +164,159 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
     sessionAoe.state.intent = new DefaultIntentResolver().resolve(sessionAoe.state.input, []);
 
     expect(builder.build(localRegistry, sessionAoe).map(c => c.id)).toContain('skill-variant-aoe-only');
+  });
+
+  it('artifact requestedSlot 应过滤所有声明了 applicableArtifactSlots 的 category', () => {
+    const artifactRegistry = new AffixRegistry();
+    const artifactAffixes: AffixDefinition[] = [
+      {
+        id: 'artifact-core-weapon-test',
+        displayName: '武器核心',
+        displayDescription: '测试用',
+        category: 'artifact_core',
+        rarity: 'common',
+        match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+        weight: 100,
+        energyCost: 10,
+        applicableTo: ['artifact'],
+        applicableArtifactSlots: ['weapon'],
+        effectTemplate: {
+          type: 'attribute_modifier',
+          params: {
+            attrType: AttributeType.ATK,
+            modType: ModifierType.FIXED,
+            value: 10,
+          },
+        },
+      },
+      {
+        id: 'artifact-core-armor-test',
+        displayName: '护甲核心',
+        displayDescription: '测试用',
+        category: 'artifact_core',
+        rarity: 'common',
+        match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+        weight: 100,
+        energyCost: 10,
+        applicableTo: ['artifact'],
+        applicableArtifactSlots: ['armor'],
+        effectTemplate: {
+          type: 'attribute_modifier',
+          params: {
+            attrType: AttributeType.DEF,
+            modType: ModifierType.FIXED,
+            value: 10,
+          },
+        },
+      },
+      {
+        id: 'artifact-defense-weapon-only',
+        displayName: '武器防御',
+        displayDescription: '测试用',
+        category: 'artifact_defense',
+        rarity: 'common',
+        match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+        weight: 100,
+        energyCost: 10,
+        applicableTo: ['artifact'],
+        applicableArtifactSlots: ['weapon'],
+        effectTemplate: {
+          type: 'attribute_modifier',
+          params: {
+            attrType: AttributeType.ACCURACY,
+            modType: ModifierType.FIXED,
+            value: 0.02,
+          },
+        },
+      },
+      {
+        id: 'artifact-defense-armor-only',
+        displayName: '护甲防御',
+        displayDescription: '测试用',
+        category: 'artifact_defense',
+        rarity: 'common',
+        match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+        weight: 100,
+        energyCost: 10,
+        applicableTo: ['artifact'],
+        applicableArtifactSlots: ['armor'],
+        effectTemplate: {
+          type: 'attribute_modifier',
+          params: {
+            attrType: AttributeType.CONTROL_RESISTANCE,
+            modType: ModifierType.FIXED,
+            value: 0.02,
+          },
+        },
+      },
+      {
+        id: 'artifact-treasure-weapon-only',
+        displayName: '武器珍宝',
+        displayDescription: '测试用',
+        category: 'artifact_treasure',
+        rarity: 'rare',
+        match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+        weight: 100,
+        energyCost: 10,
+        applicableTo: ['artifact'],
+        applicableArtifactSlots: ['weapon'],
+        effectTemplate: {
+          type: 'attribute_modifier',
+          params: {
+            attrType: AttributeType.CRIT_RATE,
+            modType: ModifierType.FIXED,
+            value: 0.02,
+          },
+        },
+      },
+      {
+        id: 'artifact-treasure-armor-only',
+        displayName: '护甲珍宝',
+        displayDescription: '测试用',
+        category: 'artifact_treasure',
+        rarity: 'rare',
+        match: { any: [CreationTags.MATERIAL.SEMANTIC_GUARD] },
+        weight: 100,
+        energyCost: 10,
+        applicableTo: ['artifact'],
+        applicableArtifactSlots: ['armor'],
+        effectTemplate: {
+          type: 'attribute_modifier',
+          params: {
+            attrType: AttributeType.HEAL_AMPLIFY,
+            modType: ModifierType.FIXED,
+            value: 0.02,
+          },
+        },
+      },
+    ];
+
+    artifactRegistry.register(artifactAffixes);
+
+    const session = new CreationSession({
+      sessionId: 'artifact-slot-filter',
+      productType: 'artifact',
+      materials: [],
+      requestedSlot: 'armor',
+    });
+    session.syncInputTagSignals([
+      { tag: CreationTags.MATERIAL.SEMANTIC_GUARD, source: 'material_semantic', weight: 1 },
+    ]);
+    session.state.recipeMatch = {
+      recipeId: 'artifact-test',
+      valid: true,
+      matchedTags: [],
+      unlockedAffixCategories: ['artifact_core', 'artifact_defense', 'artifact_treasure'],
+    };
+    session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
+
+    const ids = builder.build(artifactRegistry, session).map((candidate) => candidate.id);
+
+    expect(ids).toContain('artifact-core-armor-test');
+    expect(ids).toContain('artifact-defense-armor-only');
+    expect(ids).toContain('artifact-treasure-armor-only');
+    expect(ids).not.toContain('artifact-core-weapon-test');
+    expect(ids).not.toContain('artifact-defense-weapon-only');
+    expect(ids).not.toContain('artifact-treasure-weapon-only');
   });
 });

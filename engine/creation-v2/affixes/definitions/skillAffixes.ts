@@ -29,7 +29,7 @@ const DOT_TICK_LISTENER = {
 
 export const SKILL_AFFIXES: AffixDefinition[] = [
   // ================================================================
-  // ===== SKILL_CORE 池 (14 种) — 保证技能不废，专注本次施法
+  // ===== SKILL_CORE 池 (10 种) — 保证技能不废，专注本次施法
   // ================================================================
 
   // --- 基础伤害 ---
@@ -150,7 +150,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
-    weight: 75,
+    weight: 65,
     energyCost: 15,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
@@ -345,7 +345,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-core-heal',
     displayName: '基础治疗',
-    displayDescription: '恢复目标气血',
+    displayDescription: '恢复目标气血，构成主动治疗技能的基础底盘',
     category: 'skill_core',
     rarity: 'common',
     match: {
@@ -374,11 +374,488 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 控制 ---
+  // --- 罡气护体 ---
   {
-    id: 'skill-core-control-stun',
+    id: 'skill-core-guard-aura',
+    displayName: '罡气',
+    displayDescription: '主动凝聚护体真元，在施术当下为自身撑起壁障',
+    category: 'skill_core',
+    rarity: 'common',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['土']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 72,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'shield',
+      params: {
+        value: {
+          base: { base: 12, scale: 'quality', coefficient: 4 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.25,
+        },
+      },
+    },
+  },
+
+  // --- 风行疾身 ---
+  {
+    id: 'skill-core-wind-haste',
+    displayName: '疾行',
+    displayDescription: '主动引风入脉，自身身法骤提，适合抢节奏与游斗',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['风']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 58,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-wind-haste',
+          name: '疾行',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.SPEED,
+              type: ModifierType.ADD,
+              value: 0.2,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 焰息聚元 ---
+  {
+    id: 'skill-core-fire-channeling',
+    displayName: '焰息',
+    displayDescription: '主动鼓荡真火，自身法攻短时暴起，走向爆发流派',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['火']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 56,
+    energyCost: 13,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-fire-channeling',
+          name: '焰息',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.MAGIC_ATK,
+              type: ModifierType.ADD,
+              value: 0.15,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 雷印凝神 ---
+  {
+    id: 'skill-core-thunder-focus',
+    displayName: '雷印',
+    displayDescription: '主动烙下雷印，自身神识更锐，适合控场流派',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['雷']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 52,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-thunder-focus',
+          name: '雷印',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.CONTROL_HIT,
+              type: ModifierType.FIXED,
+              value: 0.18,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 潮生回澜 ---
+  {
+    id: 'skill-core-water-tide-surge',
+    displayName: '潮生',
+    displayDescription: '主动引灵潮回卷周身，提升灵力与护持，偏向续航周转',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['水']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_QI,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 44,
+    energyCost: 14,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-water-tide-surge',
+          name: '潮生',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.SPIRIT,
+              type: ModifierType.ADD,
+              value: 0.18,
+            },
+            {
+              attrType: AttributeType.MAGIC_DEF,
+              type: ModifierType.ADD,
+              value: 0.12,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 金芒裂甲 ---
+  {
+    id: 'skill-core-metal-edge',
+    displayName: '金芒',
+    displayDescription: '主动聚敛金行锐意，自身破甲大增，适合金系穿透流',
+    category: 'skill_core',
+    rarity: 'rare',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['金']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 28,
+    energyCost: 14,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-metal-edge',
+          name: '金芒',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.ARMOR_PENETRATION,
+              type: ModifierType.FIXED,
+              value: 0.18,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 长青回生 ---
+  {
+    id: 'skill-core-wood-evergreen',
+    displayName: '长青',
+    displayDescription: '主动催生木行生机，自身体魄与疗愈之力同步抬升',
+    category: 'skill_core',
+    rarity: 'rare',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['木']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.TYPE_HERB,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 22,
+    energyCost: 15,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-wood-evergreen',
+          name: '长青',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.VITALITY,
+              type: ModifierType.ADD,
+              value: 0.15,
+            },
+            {
+              attrType: AttributeType.HEAL_AMPLIFY,
+              type: ModifierType.FIXED,
+              value: 0.12,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 焚阳耀心 ---
+  {
+    id: 'skill-core-fire-solarflare',
+    displayName: '焚阳',
+    displayDescription: '主动照映灵台，法攻与暴伤同时跃升，火系爆发上限极高',
+    category: 'skill_core',
+    rarity: 'legendary',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['火'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FLAME,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 8,
+    energyCost: 15,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-fire-solarflare',
+          name: '焚阳',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.MAGIC_ATK,
+              type: ModifierType.ADD,
+              value: 0.2,
+            },
+            {
+              attrType: AttributeType.CRIT_DAMAGE_MULT,
+              type: ModifierType.FIXED,
+              value: 0.25,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 御风踏虚 ---
+  {
+    id: 'skill-core-wind-voidstep',
+    displayName: '踏虚',
+    displayDescription: '主动借风遁入虚隙，兼具高机动与高闪避，是风系游斗核心',
+    category: 'skill_core',
+    rarity: 'legendary',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['风'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 6,
+    energyCost: 15,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-wind-voidstep',
+          name: '踏虚',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.SPEED,
+              type: ModifierType.ADD,
+              value: 0.25,
+            },
+            {
+              attrType: AttributeType.EVASION_RATE,
+              type: ModifierType.FIXED,
+              value: 0.12,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 镇岳不移 ---
+  {
+    id: 'skill-core-earth-immovable',
+    displayName: '镇岳',
+    displayDescription: '主动凝炼土行厚势，自身护体与定力俱增，稳守反打两宜',
+    category: 'skill_core',
+    rarity: 'legendary',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['土'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 5,
+    energyCost: 15,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-earth-immovable',
+          name: '镇岳',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.DEF,
+              type: ModifierType.ADD,
+              value: 0.2,
+            },
+            {
+              attrType: AttributeType.CONTROL_RESISTANCE,
+              type: ModifierType.FIXED,
+              value: 0.15,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // ================================================================
+  // ===== SKILL_VARIANT 池 (11 种) — 只保留直接结算的附加战术层
+  // ================================================================
+
+  // --- 短时控制 ---
+  {
+    id: 'skill-variant-control-stun',
     displayName: '眩晕',
-    displayDescription: '眩晕目标，使其短时间无法行动',
+    displayDescription: '主动一击眩晕目标，使其短时间无法行动',
     category: 'skill_variant',
     rarity: 'uncommon',
     match: {
@@ -415,10 +892,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       },
     },
   },
-
-  // ================================================================
-  // ===== SKILL_VARIANT 池 (16 种) — 让同一技能长出不同战术身份
-  // ================================================================
 
   // --- 灼烧 DOT ---
   {
@@ -653,8 +1126,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       ],
     },
-    weight: 62,
-    energyCost: 12,
+    weight: 60,
+    energyCost: 14,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
@@ -690,7 +1163,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '碎甲',
     displayDescription: '罡劲透体而出，令目标护具瓦解，防御下降',
     category: 'skill_variant',
-    rarity: 'common',
+    rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
       any: [
@@ -698,8 +1171,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_METAL,
       ],
     },
-    weight: 55,
-    energyCost: 12,
+    weight: 28,
+    energyCost: 16,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
@@ -719,8 +1192,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           modifiers: [
             {
               attrType: AttributeType.DEF,
-              type: ModifierType.FIXED,
-              value: -3,
+              type: ModifierType.ADD,
+              value: -0.18,
             },
           ],
         },
@@ -729,13 +1202,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 驱散 ---
+  // --- 单体破法 ---
   {
     id: 'skill-variant-dispel',
     displayName: '破法',
-    displayDescription: '术含神威，命中时强行化去敌方身上的增益状态',
+    displayDescription: '术含神威，命中时强行化去敌方身上的一层增益状态',
     category: 'skill_variant',
-    rarity: 'common',
+    rarity: 'rare',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
       any: [
@@ -744,8 +1217,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_MANUAL,
       ],
     },
-    weight: 60,
-    energyCost: 12,
+    weight: 24,
+    energyCost: 18,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
@@ -757,7 +1230,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 治疗附带净化 ---
+  // --- 治疗净化 ---
   {
     id: 'skill-variant-heal-cleanse',
     displayName: '清心',
@@ -780,57 +1253,18 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       type: 'dispel',
       params: {
         targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
-        maxCount: 1,
+        maxCount: 3,
       },
     },
   },
 
-  // --- 命中吸血 ---
+  // --- 聚灵回元 ---
   {
-    id: 'skill-variant-heal-on-cast',
-    displayName: '噬血',
-    displayDescription: '妖异奇诡之法，施展时能自虚空中汲气血以反哺己身',
-    category: 'skill_variant',
-    rarity: 'common',
-    match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_BLOOD],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_BEAST,
-        CreationTags.MATERIAL.SEMANTIC_BLADE,
-        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
-      ],
-    },
-    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_LIFESTEAL,
-    weight: 72,
-    energyCost: 12,
-    applicableTo: ['skill'],
-    targetPolicyConstraint: { team: 'enemy' },
-    grantedAbilityTags: [GameplayTags.TRAIT.LIFESTEAL],
-    effectTemplate: {
-      type: 'resource_drain',
-      params: {
-        sourceType: 'hp',
-        targetType: 'hp',
-        ratio: { base: 0.03, scale: 'quality', coefficient: 0.01 },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      guard: {
-        skipReflectSource: true,
-      },
-    },
-  },
-
-  // --- 回蓝 ---
-  {
-    id: 'skill-variant-mp-on-cast',
+    id: 'skill-variant-mana-spring',
     displayName: '聚灵',
-    displayDescription: '暗合天道，施法之时可引周遭天地灵气入体',
+    displayDescription: '主动引灵回体，在本次施法中顺带恢复自身灵能',
     category: 'skill_variant',
-    rarity: 'common',
+    rarity: 'uncommon',
     match: {
       all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
       any: [
@@ -839,7 +1273,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_WATER,
       ],
     },
-    weight: 75,
+    weight: 48,
     energyCost: 12,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'self' },
@@ -854,66 +1288,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         },
       },
     },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-
-  // --- 疾行 ---
-  {
-    id: 'skill-variant-wind-haste',
-    displayName: '疾行',
-    displayDescription: '风意缠身，施术后步法更疾，下一轮更易抢得先机',
-    category: 'skill_variant',
-    rarity: 'common',
-    match: {
-      all: [ELEMENT_TO_MATERIAL_TAG['风']],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_WIND,
-        CreationTags.MATERIAL.SEMANTIC_SPACE,
-      ],
-    },
-    weight: 66,
-    energyCost: 12,
-    applicableTo: ['skill'],
-    targetPolicyConstraint: { team: 'self' },
-    effectTemplate: {
-      type: 'apply_buff',
-      params: {
-        buffConfig: {
-          id: 'craft-wind-haste',
-          name: '疾行',
-          type: BuffType.BUFF,
-          duration: CREATION_DURATION_POLICY.buffDebuff.short,
-          stackRule: StackRule.REFRESH_DURATION,
-          tags: [GameplayTags.BUFF.TYPE.BUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
-          modifiers: [
-            {
-              attrType: AttributeType.SPEED,
-              type: ModifierType.ADD,
-              value: 0.2,
-            },
-          ],
-        },
-        chance: 1,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
   },
 
   // --- 蚀灵燃蓝 ---
@@ -922,7 +1296,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayName: '蚀灵',
     displayDescription: '水行灵力如潮侵袭，经脉回转之间不断蚀去对手真元',
     category: 'skill_variant',
-    rarity: 'common',
+    rarity: 'uncommon',
     match: {
       all: [ELEMENT_TO_MATERIAL_TAG['水']],
       any: [
@@ -930,8 +1304,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_SPIRIT,
       ],
     },
-    weight: 64,
-    energyCost: 12,
+    weight: 52,
+    energyCost: 14,
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
@@ -946,164 +1320,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 施法护盾 ---
-  {
-    id: 'skill-variant-shield-on-cast',
-    displayName: '罡气',
-    displayDescription: '术法激发之时，周身凝结出一层真元壁障',
-    category: 'skill_variant',
-    rarity: 'common',
-    match: {
-      all: [ELEMENT_TO_MATERIAL_TAG['土']],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_GUARD,
-        CreationTags.MATERIAL.SEMANTIC_EARTH,
-        CreationTags.MATERIAL.SEMANTIC_METAL,
-        CreationTags.MATERIAL.TYPE_ORE,
-      ],
-    },
-    weight: 58,
-    energyCost: 12,
-    applicableTo: ['skill'],
-    targetPolicyConstraint: { team: 'self' },
-    grantedAbilityTags: [GameplayTags.TRAIT.SHIELD_MASTER],
-    effectTemplate: {
-      type: 'shield',
-      params: {
-        value: {
-          base: { base: 10, scale: 'quality', coefficient: 4 },
-          attribute: AttributeType.SPIRIT,
-          coefficient: 0.25,
-        },
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'owner',
-      },
-    },
-  },
-
-  // --- 技能增伤 ---
-  {
-    id: 'skill-variant-damage-boost',
-    displayName: '聚力',
-    displayDescription: '术引灵压共乱，在此击中将天地元气尽数挤压爆出',
-    category: 'skill_variant',
-    rarity: 'uncommon',
-    match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_BURST,
-        CreationTags.MATERIAL.SEMANTIC_METAL,
-        CreationTags.MATERIAL.TYPE_ORE,
-      ],
-    },
-    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_DAMAGE_BOOST,
-    weight: 65,
-    energyCost: 16,
-    applicableTo: ['skill'],
-    targetPolicyConstraint: { team: 'enemy' },
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      params: {
-        mode: 'increase',
-        value: { base: 0.12, scale: 'quality', coefficient: 0.03 },
-        cap: 0.6,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // --- 低血斩杀增伤 ---
-  {
-    id: 'skill-variant-execute-boost',
-    displayName: '夺命',
-    displayDescription: '术带戾气，专攻命门，生机越弱者越难生还',
-    category: 'skill_variant',
-    rarity: 'uncommon',
-    match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_BURST,
-        CreationTags.MATERIAL.SEMANTIC_BLOOD,
-        CreationTags.MATERIAL.SEMANTIC_BEAST,
-      ],
-    },
-    weight: 50,
-    energyCost: 16,
-    applicableTo: ['skill'],
-    targetPolicyConstraint: { team: 'enemy' },
-    grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
-    effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
-      params: {
-        mode: 'increase',
-        value: { base: 0.2, scale: 'quality', coefficient: 0.04 },
-        cap: 0.8,
-      },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
-    },
-  },
-
-  // --- 控制命中提高 ---
-  {
-    id: 'skill-variant-control-accuracy',
-    displayName: '锁神',
-    displayDescription: '术引磅礴神识，将敌方气机牢牢锁定，令其避无可避',
-    category: 'skill_variant',
-    rarity: 'uncommon',
-    match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_SPIRIT],
-      any: [
-        CreationTags.MATERIAL.SEMANTIC_MANUAL,
-        CreationTags.MATERIAL.SEMANTIC_ILLUSION,
-        CreationTags.MATERIAL.SEMANTIC_THUNDER,
-      ],
-    },
-    weight: 48,
-    energyCost: 16,
-    applicableTo: ['skill'],
-    targetPolicyConstraint: { team: 'enemy' },
-    effectTemplate: {
-      type: 'apply_buff',
-      params: {
-        buffConfig: {
-          id: 'craft-control-hit-buff',
-          name: '神识聚焦',
-          type: BuffType.BUFF,
-          duration: 1,
-          stackRule: StackRule.OVERRIDE,
-          tags: [GameplayTags.BUFF.TYPE.BUFF],
-          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
-          modifiers: [
-            {
-              attrType: AttributeType.CONTROL_HIT,
-              type: ModifierType.FIXED,
-              value: 0.15,
-            },
-          ],
-        },
-        chance: 1,
-      },
-    },
-  },
-
   // ================================================================
-  // ===== SKILL_RARE 池 (4 种) — 制造"神技感"，每 Skill 最多 1 条
+  // ===== SKILL_RARE 池 (5 种) — 只保留高冲击的敌方压制与终结
   // ================================================================
 
   // --- 引燃：命中灼烧目标引爆一次灼烧 ---
@@ -1143,54 +1361,90 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
-  // --- 封喉：目标受控时终结增伤 ---
+  // --- 雷牢封脉 ---
   {
-    id: 'skill-rare-throat-seal',
-    displayName: '封喉',
-    displayDescription: '杀意内敛，专寻破绽，敌方受制时可一击必定乾坤',
+    id: 'skill-rare-thunder-prison',
+    displayName: '雷牢',
+    displayDescription: '以雷霆封缚经脉，强行压制目标行动，是高阶控场词条',
     category: 'skill_rare',
     rarity: 'rare',
     match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_BLADE],
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['雷'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
       any: [
-        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
         CreationTags.MATERIAL.SEMANTIC_ILLUSION,
-        CreationTags.MATERIAL.SEMANTIC_TIME,
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
-    weight: 8,
+    weight: 20,
+    energyCost: 38,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.CONTROL],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-thunder-prison',
+          name: '雷牢',
+          type: BuffType.CONTROL,
+          duration: CREATION_DURATION_POLICY.control.elite,
+          stackRule: StackRule.IGNORE,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.TYPE.CONTROL],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.CONTROL.ROOT,
+            GameplayTags.STATUS.CONTROL.STUNNED,
+            GameplayTags.STATUS.CONTROL.NO_ACTION,
+          ],
+        },
+        chance: { base: 0.78, scale: 'quality', coefficient: 0.03 },
+      },
+    },
+  },
+
+  // --- 潮崩破法 ---
+  {
+    id: 'skill-rare-tide-collapse',
+    displayName: '潮崩',
+    displayDescription: '灵潮倒灌，强行冲散目标多层护体增益',
+    category: 'skill_rare',
+    rarity: 'rare',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['水'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 18,
     energyCost: 40,
     minQuality: '灵品',
     applicableTo: ['skill'],
     targetPolicyConstraint: { team: 'enemy' },
     effectTemplate: {
-      type: 'percent_damage_modifier',
-      conditions: [
-        {
-          type: 'has_tag',
-          params: { tag: GameplayTags.STATUS.CONTROL.ROOT },
-        },
-      ],
+      type: 'dispel',
       params: {
-        mode: 'increase',
-        value: { base: 0.35, scale: 'quality', coefficient: 0.06 },
-        cap: 1.5,
+        targetTag: GameplayTags.BUFF.TYPE.BUFF,
+        maxCount: 2,
       },
-    },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
 
-  // --- 逆脉：命中有概率延长对方技能 CD ---
+  // --- 逆脉封转 ---
   {
     id: 'skill-rare-cd-curse',
     displayName: '逆脉',
-    displayDescription:
-      '携岁月流转之力，命中时概率令敌方经脉逆行、短时内无法施术',
+    displayDescription: '携岁月流转之力，命中时有概率令敌方经脉逆行、延长技能冷却',
     category: 'skill_rare',
     rarity: 'rare',
     match: {
@@ -1205,7 +1459,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       ],
     },
     exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
-    weight: 6,
+    weight: 22,
     energyCost: 45,
     minQuality: '灵品',
     applicableTo: ['skill'],
@@ -1218,15 +1472,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         cdModifyValue: { base: 2, scale: 'quality', coefficient: 0.5 },
       },
     },
-    listenerSpec: {
-      eventType: GameplayTags.EVENT.SKILL_CAST,
-      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
-      priority: CREATION_LISTENER_PRIORITIES.skillCast,
-      mapping: {
-        caster: 'owner',
-        target: 'event.target',
-      },
-    },
   },
 
   // --- 魂伤：真实伤害无视防御 ---
@@ -1234,7 +1479,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-rare-soul-rend',
     displayName: '魂伤',
     displayDescription: '斩魂绝灵之一击，穿透一切虚妄与肉身，伤及本源',
-    category: 'skill_core',
+    category: 'skill_rare',
     rarity: 'legendary',
     match: {
       all: [

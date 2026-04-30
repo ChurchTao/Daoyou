@@ -177,6 +177,8 @@ export class AffixPoolBuilder {
       exclusiveGroup: def.exclusiveGroup,
       minQuality: def.minQuality,
       maxQuality: def.maxQuality,
+      applicableArtifactSlots: def.applicableArtifactSlots,
+      targetPolicyConstraint: def.targetPolicyConstraint,
       effectTemplate: def.effectTemplate,
     };
   }

@@ -18,9 +18,7 @@ export const EXCLUSIVE_GROUP = {
   },
   SKILL: {
     CORE_DAMAGE_TYPE: 'skill-core-damage-type',
-    VARIANT_DAMAGE_BOOST: 'skill-variant-damage-boost',
     VARIANT_BURN: 'skill-variant-burn',
-    VARIANT_LIFESTEAL: 'skill-variant-lifesteal',
     RARE_ULTIMATE: 'skill-rare-ultimate',
   },
 } as const;

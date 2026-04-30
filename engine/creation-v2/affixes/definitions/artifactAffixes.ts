@@ -577,6 +577,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 50,
     energyCost: 18,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'reflect',
       conditions: [{ type: 'chance', params: { value: 0.3 } }],
@@ -610,6 +611,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 38,
     minQuality: '灵品',
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
     effectTemplate: {
       type: 'death_prevent',
       params: {},
@@ -639,6 +641,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 16,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'shield',
       conditions: [
@@ -678,6 +681,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 55,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       params: {
@@ -711,6 +715,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 33,
     energyCost: 18,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
@@ -748,6 +753,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 18,
     energyCost: 35,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
     effectTemplate: {
       type: 'magic_shield',
       params: {
@@ -780,6 +786,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 30,
     energyCost: 22,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
     effectTemplate: {
       type: 'dispel',
       conditions: [{ type: 'chance', params: { value: 0.25 } }],
@@ -812,6 +819,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 20,
     energyCost: 36,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
     effectTemplate: {
       type: 'dispel',
       conditions: [{ type: 'chance', params: { value: 0.5 } }],
@@ -846,6 +854,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 35,
     energyCost: 18,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'hp_below', params: { value: 0.3 } }],
@@ -876,6 +885,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 40,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -912,6 +922,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 38,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -945,6 +956,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 36,
     energyCost: 16,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -978,6 +990,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 34,
     energyCost: 14,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1011,6 +1024,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 32,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1044,6 +1058,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 30,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1077,6 +1092,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 28,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1110,6 +1126,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 28,
     energyCost: 12,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [
@@ -1149,6 +1166,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 30,
     energyCost: 17,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'shield',
       conditions: [{ type: 'is_critical', params: {} }],
@@ -1185,6 +1203,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 25,
     energyCost: 16,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'reflect',
       conditions: [{ type: 'is_critical', params: {} }],
@@ -1218,6 +1237,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     weight: 42,
     energyCost: 16,
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['accessory'],
     grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
     effectTemplate: {
       type: 'heal',
@@ -1263,6 +1283,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor'],
     effectTemplate: {
       type: 'percent_damage_modifier',
       conditions: [{ type: 'chance', params: { value: 0.25 } }],
@@ -1303,6 +1324,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 55,
     minQuality: '真品',
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['armor', 'accessory'],
     effectTemplate: {
       type: 'death_prevent',
       params: { hpFloorPercent: 0.3 },
@@ -1337,6 +1359,7 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
     energyCost: 50,
     minQuality: '玄品',
     applicableTo: ['artifact'],
+    applicableArtifactSlots: ['weapon', 'accessory'],
     effectTemplate: {
       type: 'damage_immunity',
       conditions: [{ type: 'chance', params: { value: 0.15 } }],

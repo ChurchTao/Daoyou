@@ -148,6 +148,7 @@ describe('GameplayTags 常量对象', () => {
     expect(GameplayTags.ABILITY.FUNCTION.DAMAGE).toBe(
       'Ability.Function.Damage',
     );
+    expect(GameplayTags.ABILITY.FUNCTION.BUFF).toBe('Ability.Function.Buff');
     expect(GameplayTags.ABILITY.CHANNEL.MAGIC).toBe('Ability.Channel.Magic');
     expect(GameplayTags.ABILITY.ELEMENT.FIRE).toBe('Ability.Element.Fire');
     expect(

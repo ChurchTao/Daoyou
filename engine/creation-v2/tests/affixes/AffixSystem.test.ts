@@ -1,5 +1,6 @@
 import { GameplayTags } from '@/engine/shared/tag-domain';
 import { describe, expect, it } from '@jest/globals';
+import { isPercentageAttributeType } from '@/engine/battle-v5/core/attributeMeta';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { AffixPoolBuilder } from '@/engine/creation-v2/affixes/AffixPoolBuilder';
 import { AffixSelector } from '@/engine/creation-v2/affixes/AffixSelector';
@@ -99,7 +100,7 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: apply_buff（控制 buff）结构正确', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-control-stun')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-control-stun')!;
     expect(def).toBeDefined();
 
     const result = translator.translate(toRolledAffix(def), '凡品');
@@ -115,14 +116,18 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
-  it('translate: percent_damage_modifier mode 和 value 正确', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-damage-boost')!;
+  it('translate: cooldown_modify 数值与条件应正确透传', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-rare-cd-curse')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
-    expect(result.type).toBe('percent_damage_modifier');
-    if (result.type === 'percent_damage_modifier') {
-      expect(result.params.mode).toBe('increase');
-      // 凡品: 0.12 + 0*0.03 = 0.12
-      expect(result.params.value).toBeCloseTo(0.12);
+    expect(result.type).toBe('cooldown_modify');
+    if (result.type === 'cooldown_modify') {
+      expect(result.params.cdModifyValue).toBeCloseTo(2);
+      expect(result.conditions).toEqual([
+        {
+          type: 'chance',
+          params: { value: 0.6 },
+        },
+      ]);
     }
   });
 
@@ -238,7 +243,7 @@ describe('AffixEffectTranslator', () => {
   });
 
   it('translate: control buff 应拆分 buff tags 与控制 statusTags', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-core-control-stun')!;
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-control-stun')!;
     const result = translator.translate(toRolledAffix(def), '凡品');
 
     expect(result.type).toBe('apply_buff');
@@ -353,6 +358,8 @@ describe('AffixSelector', () => {
     energyCost: number,
     exclusiveGroup?: ExclusiveGroup,
     category: AffixCandidate['category'] = 'skill_core',
+    targetPolicyConstraint?: AffixCandidate['targetPolicyConstraint'],
+    applicableArtifactSlots?: AffixCandidate['applicableArtifactSlots'],
   ): AffixCandidate => ({
     id,
     name: id,
@@ -371,6 +378,8 @@ describe('AffixSelector', () => {
         },
       },
     },
+    targetPolicyConstraint,
+    applicableArtifactSlots,
   });
 
   const makeIntent = (): CreationIntent => ({
@@ -485,6 +494,45 @@ describe('AffixSelector', () => {
     expect(result.affixes.some((affix) => affix.category === 'skill_core')).toBe(true);
   });
 
+  it('skill 选中 self core 后，不应再混入 enemy target 的变体词条', () => {
+    const pool = [
+      makeCandidate('self-core', 100, 6, undefined, 'skill_core', { team: 'self' }),
+      makeCandidate('enemy-variant', 100, 4, undefined, 'skill_variant', { team: 'enemy' }),
+      makeCandidate('self-variant', 100, 4, undefined, 'skill_variant', { team: 'self' }),
+    ];
+
+    const result = selector.select(pool, makeBudget(20), makeIntent(), 3);
+    const ids = result.affixes.map((affix) => affix.id);
+
+    expect(ids).toContain('self-core');
+    expect(ids).toContain('self-variant');
+    expect(ids).not.toContain('enemy-variant');
+  });
+
+  it('artifact 选中 armor core 后，不应再混入 weapon-only 的后续词条', () => {
+    const pool = [
+      makeCandidate('armor-core', 100, 6, undefined, 'artifact_core', undefined, ['armor']),
+      makeCandidate('weapon-defense', 100, 4, undefined, 'artifact_defense', undefined, ['weapon']),
+      makeCandidate('armor-defense', 100, 4, undefined, 'artifact_defense', undefined, ['armor']),
+    ];
+
+    const result = selector.select(
+      pool,
+      makeBudget(20),
+      {
+        productType: 'artifact',
+        dominantTags: [],
+        slotBias: 'armor',
+      },
+      3,
+    );
+    const ids = result.affixes.map((affix) => affix.id);
+
+    expect(ids).toContain('armor-core');
+    expect(ids).toContain('armor-defense');
+    expect(ids).not.toContain('weapon-defense');
+  });
+
   it('加权选择应大致按权重比例分布（统计验证）', () => {
     // 三个候选，权重比 4:2:1，在足够大的样本中各自命中次数应近似该比例
     const pool = [
@@ -545,12 +593,12 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     }
   });
 
-  it('artifact category=artifact_core 的槽位绑定定义必须全部显式声明槽位', () => {
-    const unboundArtifactPanels = ARTIFACT_AFFIXES.filter(
-      (def) => def.category === 'artifact_core' && def.exclusiveGroup?.startsWith('artifact-panel-slot') && !def.applicableArtifactSlots,
+  it('所有 artifact affix 都应显式声明 applicableArtifactSlots', () => {
+    const unboundArtifactAffixes = ARTIFACT_AFFIXES.filter(
+      (def) => !def.applicableArtifactSlots || def.applicableArtifactSlots.length === 0,
     ).map((def) => def.id);
 
-    expect(unboundArtifactPanels).toEqual([]);
+    expect(unboundArtifactAffixes).toEqual([]);
   });
 
   it('包含技能、法宝、功法词缀', () => {
@@ -587,16 +635,16 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     expect(ids).toContain('skill-variant-burn-dot');
   });
 
-  it('八系 skill variant 应各自提供一个明确的元素特色词条', () => {
+  it('八系 skill 应各自提供一个明确的元素流派词条', () => {
     const cases = [
       ['火', CreationTags.MATERIAL.SEMANTIC_FLAME, 'skill-variant-burn-dot'],
       ['木', CreationTags.MATERIAL.SEMANTIC_POISON, 'skill-variant-poison-dot'],
       ['金', CreationTags.MATERIAL.SEMANTIC_METAL, 'skill-variant-bleed-dot'],
       ['冰', CreationTags.MATERIAL.SEMANTIC_FREEZE, 'skill-variant-freeze-slow'],
       ['雷', CreationTags.MATERIAL.SEMANTIC_THUNDER, 'skill-variant-thunder-shock'],
-      ['风', CreationTags.MATERIAL.SEMANTIC_WIND, 'skill-variant-wind-haste'],
+      ['风', CreationTags.MATERIAL.SEMANTIC_WIND, 'skill-core-wind-haste'],
       ['水', CreationTags.MATERIAL.SEMANTIC_WATER, 'skill-variant-water-mana-burn'],
-      ['土', CreationTags.MATERIAL.SEMANTIC_EARTH, 'skill-variant-shield-on-cast'],
+      ['土', CreationTags.MATERIAL.SEMANTIC_EARTH, 'skill-core-guard-aura'],
     ] as const;
 
     for (const [element, semanticTag, affixId] of cases) {
@@ -607,10 +655,122 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
 
       const defs = DEFAULT_AFFIX_REGISTRY.queryByTags(
         [ELEMENT_TO_MATERIAL_TAG[element], semanticTag],
-        ['skill_variant'],
+        ['skill_core', 'skill_variant'],
         'skill',
       );
       expect(defs.map((candidate) => candidate.id)).toContain(affixId);
+    }
+  });
+
+  it('skill affix 稀有度分布应满足新的高阶池目标', () => {
+    const counts = SKILL_AFFIXES.reduce(
+      (acc, def) => {
+        acc[def.rarity] += 1;
+        return acc;
+      },
+      {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        legendary: 0,
+      },
+    );
+
+    expect(counts.uncommon).toBeGreaterThanOrEqual(10);
+    expect(counts.rare).toBeGreaterThanOrEqual(7);
+    expect(counts.legendary).toBeGreaterThanOrEqual(5);
+  });
+
+  it('skill affix 的 energyCost 应落在各 category 的规则区间内', () => {
+    const ranges = {
+      skill_core: [8, 15],
+      skill_variant: [12, 20],
+      skill_rare: [35, 55],
+    } as const;
+
+    for (const def of SKILL_AFFIXES) {
+      const [min, max] = ranges[def.category];
+      expect(def.energyCost).toBeGreaterThanOrEqual(min);
+      expect(def.energyCost).toBeLessThanOrEqual(max);
+    }
+  });
+
+  it('skill apply_buff modifier 应按属性语义使用 FIXED 或 ADD', () => {
+    for (const def of SKILL_AFFIXES) {
+      if (def.effectTemplate.type !== 'apply_buff') {
+        continue;
+      }
+
+      const modifiers = def.effectTemplate.params.buffConfig.modifiers ?? [];
+      for (const modifier of modifiers) {
+        const expectedType = isPercentageAttributeType(modifier.attrType)
+          ? ModifierType.FIXED
+          : ModifierType.ADD;
+        expect(modifier.type).toBe(expectedType);
+      }
+    }
+  });
+
+  it('skill 越界词条应被移除，魂伤应归位到 skill_rare', () => {
+    expect(DEFAULT_AFFIX_REGISTRY.queryById('skill-rare-throat-seal')).toBeUndefined();
+    expect(DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-execute-boost')).toBeUndefined();
+    expect(DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-control-accuracy')).toBeUndefined();
+
+    const soulRend = DEFAULT_AFFIX_REGISTRY.queryById('skill-rare-soul-rend');
+    expect(soulRend).toBeDefined();
+    expect(soulRend?.category).toBe('skill_rare');
+  });
+
+  it('主动 self-buff core 应直接作用于自身且不声明 listenerSpec', () => {
+    const selfBuffAffixIds = [
+      'skill-core-wind-haste',
+      'skill-core-fire-channeling',
+      'skill-core-thunder-focus',
+      'skill-core-water-tide-surge',
+      'skill-core-metal-edge',
+      'skill-core-wood-evergreen',
+      'skill-core-fire-solarflare',
+      'skill-core-wind-voidstep',
+      'skill-core-earth-immovable',
+    ];
+
+    for (const affixId of selfBuffAffixIds) {
+      const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
+      expect(def).toBeDefined();
+      expect(def?.category).toBe('skill_core');
+      expect(def?.targetPolicyConstraint).toEqual(
+        expect.objectContaining({ team: 'self' }),
+      );
+      expect(def?.listenerSpec).toBeUndefined();
+      expect(['apply_buff', 'shield']).toContain(def?.effectTemplate.type);
+
+      if (def?.effectTemplate.type !== 'apply_buff') {
+        continue;
+      }
+
+      const { buffConfig } = def.effectTemplate.params;
+      expect(buffConfig.type).toBe(BuffType.BUFF);
+      expect(buffConfig.duration).toBeGreaterThanOrEqual(
+        CREATION_DURATION_POLICY.buffDebuff.short,
+      );
+      expect(buffConfig.duration).toBeLessThanOrEqual(
+        CREATION_DURATION_POLICY.buffDebuff.extended,
+      );
+
+      for (const modifier of buffConfig.modifiers ?? []) {
+        const expectedType = isPercentageAttributeType(modifier.attrType)
+          ? ModifierType.FIXED
+          : ModifierType.ADD;
+        expect(modifier.type).toBe(expectedType);
+      }
+    }
+  });
+
+  it('默认 skill affix 不应声明 listenerSpec，也不应再使用被动式 effect 类型', () => {
+    for (const def of SKILL_AFFIXES) {
+      expect(def.listenerSpec).toBeUndefined();
+      expect(def.effectTemplate.type).not.toBe('resource_drain');
+      expect(def.effectTemplate.type).not.toBe('percent_damage_modifier');
     }
   });
 

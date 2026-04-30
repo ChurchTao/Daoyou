@@ -22,6 +22,7 @@ import type {
   AttributeModifierConfig,
   EffectConfig,
 } from '../../core/configs';
+import { isPercentageAttributeType } from '../../core/attributeMeta';
 import { AttributeType, ModifierType } from '../../core/types';
 import { attrLabel } from './attributes';
 import { describeConditions } from './conditions';
@@ -47,20 +48,6 @@ export interface RenderedAffixLine {
 }
 
 const DEFAULT_RARITY: AffixRarity = 'common';
-
-const PERCENT_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_RATE,
-  AttributeType.CRIT_DAMAGE_MULT,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-]);
 
 const translator = new AffixEffectTranslator();
 
@@ -297,7 +284,7 @@ function formatModifier(mod: AttributeModifierConfig): string {
     case ModifierType.BASE:
     case ModifierType.FIXED:
     default: {
-      if (PERCENT_ATTRS.has(mod.attrType)) {
+      if (isPercentageAttributeType(mod.attrType)) {
         return `${label} ${sign}${formatAffixPercent(abs)}`;
       }
       return `${label} ${sign}${formatAffixNumber(abs)}`;

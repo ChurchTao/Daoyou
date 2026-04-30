@@ -58,12 +58,13 @@ export function assembleAbilityTags({
     productType === 'skill' &&
     !tags.has(GameplayTags.ABILITY.FUNCTION.DAMAGE) &&
     !tags.has(GameplayTags.ABILITY.FUNCTION.HEAL) &&
-    !tags.has(GameplayTags.ABILITY.FUNCTION.CONTROL)
+    !tags.has(GameplayTags.ABILITY.FUNCTION.CONTROL) &&
+    !tags.has(GameplayTags.ABILITY.FUNCTION.BUFF)
   ) {
     throw new CreationError(
       'Composition',
       'MISSING_CORE_CAPABILITY',
-      `技能产物必须声明至少一个核心功能标签（Damage/Heal/Control）。当前标签: ${Array.from(tags).join(', ')}`,
+      `技能产物必须声明至少一个核心功能标签（Damage/Heal/Control/Buff）。当前标签: ${Array.from(tags).join(', ')}`,
       { productType, tags: Array.from(tags) },
     );
   }

@@ -69,6 +69,8 @@ export class AffixSelector {
     );
     let exhaustionReason: AffixSelectionAudit['exhaustionReason'];
     let finalDecision: AffixSelectionDecision | undefined;
+    let selectedSkillTargetConstraint: AffixCandidate['targetPolicyConstraint'];
+    let selectedArtifactSlots: AffixCandidate['applicableArtifactSlots'];
 
     const runSelectionRound = (candidates: AffixCandidate[]): boolean => {
       const remainingBefore = remaining;
@@ -117,6 +119,20 @@ export class AffixSelector {
       selectedCategoryCounts[chosen.category] =
         (selectedCategoryCounts[chosen.category] ?? 0) + 1;
 
+      if (
+        intent.productType === 'skill' &&
+        chosen.category === 'skill_core'
+      ) {
+        selectedSkillTargetConstraint = chosen.targetPolicyConstraint;
+      }
+
+      if (
+        intent.productType === 'artifact' &&
+        chosen.category === 'artifact_core'
+      ) {
+        selectedArtifactSlots = chosen.applicableArtifactSlots;
+      }
+
       if (chosen.exclusiveGroup) pickedGroups.add(chosen.exclusiveGroup);
 
       rounds.push({
@@ -145,7 +161,33 @@ export class AffixSelector {
     }
 
     while (coreSelected && available.length > 0 && result.length < maxCount) {
-      const nonCoreCandidates = available.filter((candidate) => !['skill_core', 'gongfa_foundation', 'artifact_core'].includes(candidate.category));
+      const nonCoreCandidates = available.filter((candidate) => {
+        if (['skill_core', 'gongfa_foundation', 'artifact_core'].includes(candidate.category)) {
+          return false;
+        }
+
+        if (
+          intent.productType === 'skill' &&
+          !this.isSkillTargetPolicyCompatible(
+            selectedSkillTargetConstraint,
+            candidate.targetPolicyConstraint,
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          intent.productType === 'artifact' &&
+          !this.isArtifactSlotCompatible(
+            selectedArtifactSlots,
+            candidate.applicableArtifactSlots,
+          )
+        ) {
+          return false;
+        }
+
+        return true;
+      });
       if (nonCoreCandidates.length === 0) {
         exhaustionReason = AFFIX_STOP_REASONS.POOL_EXHAUSTED;
         break;
@@ -203,6 +245,44 @@ export class AffixSelector {
       rejection.exclusiveGroup ?? '',
       String(rejection.amount),
     ].join('||');
+  }
+
+  private isSkillTargetPolicyCompatible(
+    coreConstraint?: AffixCandidate['targetPolicyConstraint'],
+    candidateConstraint?: AffixCandidate['targetPolicyConstraint'],
+  ): boolean {
+    if (!coreConstraint || !candidateConstraint) {
+      return true;
+    }
+
+    if (
+      coreConstraint.team &&
+      candidateConstraint.team &&
+      coreConstraint.team !== candidateConstraint.team
+    ) {
+      return false;
+    }
+
+    if (
+      coreConstraint.scope &&
+      candidateConstraint.scope &&
+      coreConstraint.scope !== candidateConstraint.scope
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private isArtifactSlotCompatible(
+    coreSlots?: AffixCandidate['applicableArtifactSlots'],
+    candidateSlots?: AffixCandidate['applicableArtifactSlots'],
+  ): boolean {
+    if (!coreSlots || coreSlots.length === 0 || !candidateSlots || candidateSlots.length === 0) {
+      return true;
+    }
+
+    return coreSlots.some((slot) => candidateSlots.includes(slot));
   }
 
 }

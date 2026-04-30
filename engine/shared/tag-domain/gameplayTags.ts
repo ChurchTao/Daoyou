@@ -56,7 +56,7 @@ export const GameplayTags = {
 
   // ===== 能力域 =====
   // Ability 是 battle-v5 最关键的运行时标签出口，必须按轴读取：
-  // - FUNCTION：能力职责（damage/heal/control）
+  // - FUNCTION：能力职责（damage/heal/control/buff）
   // - CHANNEL：伤害通道（magic/physical/true）
   // - KIND：能力来源（skill/passive/artifact/gongfa）
   // - ELEMENT / TARGET：元素与目标范围
@@ -67,6 +67,7 @@ export const GameplayTags = {
       DAMAGE: 'Ability.Function.Damage',
       CONTROL: 'Ability.Function.Control',
       HEAL: 'Ability.Function.Heal',
+      BUFF: 'Ability.Function.Buff',
     },
     CHANNEL: {
       ROOT: 'Ability.Channel',

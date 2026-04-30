@@ -5,6 +5,7 @@ import {
   assertRuntimeTagsInNamespaces,
   GameplayTags,
 } from '@/engine/shared/tag-domain';
+import { isPercentageAttributeType } from '@/engine/battle-v5/core/attributeMeta';
 import type { BuffConfig, ConditionConfig, EffectConfig } from '../contracts/battle';
 import { ModifierType } from '../contracts/battle';
 import type { CreationTagSignal } from '../types';
@@ -97,10 +98,12 @@ export class AffixRegistry {
    *
    * 规则三：Artifact 禁止 OWNER_AS_CASTER scope
    * 规则四：Gongfa 禁止 OWNER_AS_TARGET scope
-   * 规则五：Skill 禁止 attribute_modifier effectType
-   * 规则六：Gongfa 禁止 attribute_modifier 使用 FIXED modType
-   * 规则七：Skill 禁止 apply_buff 内嵌 listener 且 duration > 1
-   * 规则八：percent_damage_modifier 必须监听 DAMAGE_REQUEST
+   * 规则五：Skill 禁止声明 listenerSpec
+   * 规则六：Skill 禁止 attribute_modifier / resource_drain / percent_damage_modifier
+   * 规则七：Gongfa 禁止 attribute_modifier 使用 FIXED modType
+   * 规则八：Skill 禁止 apply_buff 内嵌 OWNER_AS_CASTER listener 且 duration > 1
+   * 规则九：percent_damage_modifier 必须监听 DAMAGE_REQUEST
+   * 规则十：Skill apply_buff modifier 需按属性语义分流 FIXED / ADD
    */
   private validateBoundary(def: AffixDefinition): void {
     // 规则一：池与产物类型强绑定
@@ -152,17 +155,29 @@ export class AffixRegistry {
         );
       }
 
-      // 规则五：Skill 禁止 attribute_modifier effectType
+      // 规则五：Skill 禁止声明 listenerSpec
       if (
         productType === 'skill' &&
-        def.effectTemplate.type === 'attribute_modifier'
+        def.listenerSpec
       ) {
         throw new Error(
-          `affix ${def.id}: skill affix must not use attribute_modifier effect type (boundary violation)`,
+          `affix ${def.id}: skill affix must not declare listenerSpec (boundary violation)`,
         );
       }
 
-      // 规则六：Gongfa attribute_modifier 禁止 FIXED modType
+      // 规则六：Skill 仅允许直接结算型 effect
+      if (
+        productType === 'skill' &&
+        ['attribute_modifier', 'resource_drain', 'percent_damage_modifier'].includes(
+          def.effectTemplate.type,
+        )
+      ) {
+        throw new Error(
+          `affix ${def.id}: skill affix must not use effect type '${def.effectTemplate.type}' (boundary violation)`,
+        );
+      }
+
+      // 规则七：Gongfa attribute_modifier 禁止 FIXED modType
       if (
         productType === 'gongfa' &&
         def.effectTemplate.type === 'attribute_modifier'
@@ -179,13 +194,26 @@ export class AffixRegistry {
         }
       }
 
-      // 规则七：Skill apply_buff 内嵌 OWNER_AS_CASTER listener 且 duration > 1 禁止
+      // 规则八：Skill apply_buff 内嵌 OWNER_AS_CASTER listener 且 duration > 1 禁止
       // （防止通过长持续 buff 模拟 gongfa 的长期被动系统；DOT/debuff 应用到目标是合法的）
       if (
         productType === 'skill' &&
         def.effectTemplate.type === 'apply_buff'
       ) {
         const buffConfig = def.effectTemplate.params.buffConfig;
+        const modifiers = buffConfig.modifiers ?? [];
+
+        for (const modifier of modifiers) {
+          const expectedType = isPercentageAttributeType(modifier.attrType)
+            ? ModifierType.FIXED
+            : ModifierType.ADD;
+          if (modifier.type !== expectedType) {
+            throw new Error(
+              `affix ${def.id}: skill apply_buff modifier '${modifier.attrType}' must use ModifierType.${expectedType.toUpperCase()} (boundary violation)`,
+            );
+          }
+        }
+
         if (
           buffConfig.listeners &&
           buffConfig.listeners.length > 0 &&
@@ -203,8 +231,10 @@ export class AffixRegistry {
           }
         }
       }
+
     }
 
+    // 规则九：percent_damage_modifier 必须监听 DAMAGE_REQUEST
     if (def.effectTemplate.type === 'percent_damage_modifier') {
       if (def.listenerSpec?.eventType !== GameplayTags.EVENT.DAMAGE_REQUEST) {
         throw new Error(

@@ -110,7 +110,7 @@ export class LogPresenter {
     // processBuffs 只处理当前行动者的 buff，所有过期条目实质属于同一单位
     const targetName = this.formatName(expiredEntries[0].data.targetName);
     const buffNames = this.formatQuotedList(expiredEntries.map((e) => e.data.buffName));
-    return [`【持续】${targetName}身上的${buffNames}时效已过`];
+    return [`${targetName}身上的${buffNames}时效已过`];
   }
 
   private formatSingleTargetAction(
@@ -466,7 +466,7 @@ export class LogPresenter {
     heal: LogEntry<'heal'> | undefined,
   ): string | undefined {
     if (damage?.data.sourceBuff) {
-      let result = `【持续】${actor}身上的「${damage.data.sourceBuff}」发作`;
+      let result = `${actor}身上的「${damage.data.sourceBuff}」发作`;
       result += `，造成 ${this.formatNumber(damage.data.value)} 点伤害`;
 
       if (damage.data.shieldAbsorbed && damage.data.shieldAbsorbed > 0) {
@@ -481,7 +481,7 @@ export class LogPresenter {
     }
 
     if (heal?.data.sourceBuff) {
-      return `【持续】${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点气血`;
+      return `${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点气血`;
     }
 
     return undefined;

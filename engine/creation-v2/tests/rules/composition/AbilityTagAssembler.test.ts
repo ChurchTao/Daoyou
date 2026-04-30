@@ -60,6 +60,26 @@ describe('AbilityTagAssembler', () => {
     );
   });
 
+  it('主动 buff skill 也应被视为合法核心能力', () => {
+    const tags = assembleAbilityTags({
+      productType: 'skill',
+      rolledAffixes: [
+        buildRolledAffix('skill-core-buff', [
+          GameplayTags.ABILITY.FUNCTION.BUFF,
+        ]),
+      ],
+      elementBias: '风',
+    });
+
+    expect(tags).toEqual(
+      expect.arrayContaining([
+        GameplayTags.ABILITY.FUNCTION.BUFF,
+        GameplayTags.ABILITY.KIND.SKILL,
+        GameplayTags.ABILITY.ELEMENT.WIND,
+      ]),
+    );
+  });
+
   it('应去重重复的 affix ability tags，并补 elementBias', () => {
     const tags = assembleAbilityTags({
       productType: 'skill',

@@ -2,7 +2,12 @@ import { describe, expect, it } from '@jest/globals';
 import { DEFAULT_AFFIX_REGISTRY, matchAll } from '@/engine/creation-v2/affixes';
 import { AffixRegistry } from '@/engine/creation-v2/affixes/AffixRegistry';
 import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
-import { BuffType, StackRule } from '@/engine/creation-v2/contracts/battle';
+import {
+  AttributeType,
+  BuffType,
+  ModifierType,
+  StackRule,
+} from '@/engine/creation-v2/contracts/battle';
 import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
 
 function buildAffix(overrides: Partial<AffixDefinition> = {}): AffixDefinition {
@@ -207,6 +212,9 @@ describe('AffixRegistry tag validation', () => {
     expect(() =>
       registry.register([
         buildAffix({
+          category: 'gongfa_school',
+          rarity: 'rare',
+          applicableTo: ['gongfa'],
           effectTemplate: {
             type: 'percent_damage_modifier',
             params: {
@@ -216,11 +224,94 @@ describe('AffixRegistry tag validation', () => {
           },
           listenerSpec: {
             eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
-            scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+            scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
             priority: 1,
           },
         }),
       ]),
     ).toThrow("percent_damage_modifier must use listenerSpec.eventType 'DamageRequestEvent'");
+  });
+
+  it('应拒绝 skill apply_buff 为非百分比属性使用 FIXED', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          effectTemplate: {
+            type: 'apply_buff',
+            params: {
+              buffConfig: {
+                id: 'test-speed-buff',
+                name: 'test-speed-buff',
+                type: BuffType.BUFF,
+                duration: 3,
+                stackRule: StackRule.REFRESH_DURATION,
+                modifiers: [
+                  {
+                    attrType: AttributeType.SPEED,
+                    type: ModifierType.FIXED,
+                    value: 0.2,
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      ]),
+    ).toThrow("must use ModifierType.ADD");
+  });
+
+  it('应拒绝 skill 声明 listenerSpec', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          listenerSpec: {
+            eventType: GameplayTags.EVENT.SKILL_CAST,
+            scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+            priority: 1,
+          },
+        }),
+      ]),
+    ).toThrow('skill affix must not declare listenerSpec');
+  });
+
+  it('应拒绝 skill 使用 percent_damage_modifier', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          effectTemplate: {
+            type: 'percent_damage_modifier',
+            params: {
+              mode: 'increase',
+              value: 0.25,
+            },
+          },
+        }),
+      ]),
+    ).toThrow("skill affix must not use effect type 'percent_damage_modifier'");
+  });
+
+  it('应拒绝 skill 使用 resource_drain', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          effectTemplate: {
+            type: 'resource_drain',
+            params: {
+              sourceType: 'hp',
+              targetType: 'hp',
+              ratio: 0.2,
+            },
+          },
+        }),
+      ]),
+    ).toThrow("skill affix must not use effect type 'resource_drain'");
   });
 });

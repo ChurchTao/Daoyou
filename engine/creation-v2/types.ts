@@ -5,8 +5,8 @@ import {
   RealmStage,
   RealmType,
 } from '@/types/constants';
-import { TargetPolicyConfig } from '@/engine/battle-v5/abilities/TargetPolicy';
 import { Material } from '@/types/cultivator';
+import type { TargetPolicyConfig } from '@/engine/battle-v5/abilities/TargetPolicy';
 import type { Ability } from './contracts/battle';
 import type { AttributeModifierConfig } from './contracts/battle';
 import { CreationPhase } from './core/types';
@@ -262,6 +262,8 @@ export interface AffixCandidate {
   exclusiveGroup?: ExclusiveGroup;
   minQuality?: Quality;
   maxQuality?: Quality;
+  applicableArtifactSlots?: EquipmentSlot[];
+  targetPolicyConstraint?: Partial<TargetPolicyConfig>;
   effectTemplate: AffixEffectTemplate;
 }
 

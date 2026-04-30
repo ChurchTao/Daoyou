@@ -2,33 +2,11 @@ import { GameplayTags } from '@/engine/shared/tag-domain';
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import { SKILL_AFFIXES } from '@/engine/creation-v2/affixes/definitions/skillAffixes';
 import { ELEMENT_TO_MATERIAL_TAG } from '@/engine/creation-v2/config/CreationMappings';
-import {
-  collectAffixMatcherReferencedTags,
-  flattenAffixMatcherTags,
-} from '@/engine/creation-v2/affixes';
+import { collectAffixMatcherReferencedTags } from '@/engine/creation-v2/affixes';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { RolledAffix } from '@/engine/creation-v2/types';
-import type { AffixDefinition } from '@/engine/creation-v2/affixes/types';
-
-/** 辅助函数：将静态定义转换为运行态 RolledAffix 以满足接口契约 */
-function toRolledAffix(def: AffixDefinition): RolledAffix {
-  return {
-    id: def.id,
-    name: def.displayName,
-    category: def.category,
-    energyCost: def.energyCost,
-    rollScore: 1,
-    rollEfficiency: 1,
-    finalMultiplier: 1,
-    isPerfect: false,
-    effectTemplate: def.effectTemplate,
-    weight: def.weight,
-    match: def.match,
-    tags: flattenAffixMatcherTags(def.match),
-    exclusiveGroup: def.exclusiveGroup,
-  };
-}
 
 describe('creation-v2 affix match contract', () => {
   const translator = new AffixEffectTranslator();
@@ -131,17 +109,14 @@ describe('creation-v2 affix match contract', () => {
     ]);
   });
 
-  it('控制联动增伤应声明目标状态条件', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-rare-throat-seal');
-    expect(def).toBeDefined();
+  it('默认 skill 词条不应再包含 listenerSpec 或被动式 effect 类型', () => {
+    const offenders = SKILL_AFFIXES.filter(
+      (def) =>
+        !!def.listenerSpec ||
+        def.effectTemplate.type === 'percent_damage_modifier' ||
+        def.effectTemplate.type === 'resource_drain',
+    );
 
-    const result = translator.translate(toRolledAffix(def!), '真品');
-
-    expect(result.conditions).toEqual([
-      {
-        type: 'has_tag',
-        params: { tag: GameplayTags.STATUS.CONTROL.ROOT },
-      },
-    ]);
+    expect(offenders).toEqual([]);
   });
 });
