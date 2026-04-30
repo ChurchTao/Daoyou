@@ -200,4 +200,27 @@ describe('AffixRegistry tag validation', () => {
       ]),
     ).not.toThrow();
   });
+
+  it('应拒绝 percent_damage_modifier 绑定到非 DamageRequestEvent', () => {
+    const registry = new AffixRegistry();
+
+    expect(() =>
+      registry.register([
+        buildAffix({
+          effectTemplate: {
+            type: 'percent_damage_modifier',
+            params: {
+              mode: 'reduce',
+              value: 0.25,
+            },
+          },
+          listenerSpec: {
+            eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+            scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
+            priority: 1,
+          },
+        }),
+      ]),
+    ).toThrow("percent_damage_modifier must use listenerSpec.eventType 'DamageRequestEvent'");
+  });
 });

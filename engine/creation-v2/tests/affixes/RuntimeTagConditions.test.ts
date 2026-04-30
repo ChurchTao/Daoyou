@@ -2,6 +2,7 @@ import { GameplayTags } from '@/engine/shared/tag-domain';
 import { describe, expect, it } from '@jest/globals';
 import { AffixEffectTranslator } from '@/engine/creation-v2/affixes/AffixEffectTranslator';
 import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
+import { ELEMENT_TO_MATERIAL_TAG } from '@/engine/creation-v2/config/CreationMappings';
 import {
   collectAffixMatcherReferencedTags,
   flattenAffixMatcherTags,
@@ -35,6 +36,7 @@ describe('creation-v2 affix match contract', () => {
   it('queryByTags 应仅依赖静态筛选标签，避免候选池不可达', () => {
     const candidates = DEFAULT_AFFIX_REGISTRY.queryByTags(
       [
+        ELEMENT_TO_MATERIAL_TAG['木'],
         CreationTags.MATERIAL.SEMANTIC_POISON,
         CreationTags.MATERIAL.SEMANTIC_THUNDER,
       ],

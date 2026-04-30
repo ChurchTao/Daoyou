@@ -1,6 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { getExecutor } from '@/lib/drizzle/db';
-import { battleRecords } from '@/lib/drizzle/schema';
+import { createBattleRecordV2 } from '@/lib/repositories/battleRecordV2Repository';
 import {
   acquireChallengeLock,
   addToRanking,
@@ -103,14 +102,14 @@ export const POST = withActiveCultivator(
       // 8. 增加挑战次数
       const remainingChallenges = await incrementDailyChallenges(cultivatorId);
 
-      // 9. 记录战斗结果（异步）
-      getExecutor().insert(battleRecords).values({
+      // 9. 记录战斗结果（同步）
+      await createBattleRecordV2({
         userId: user.id,
         cultivatorId,
-        challengeType: 'challenge',
+        battleType: 'challenge',
         opponentCultivatorId: targetId,
         battleResult,
-      }).catch(e => console.error('Failed to save challenge record:', e));
+      });
 
       return NextResponse.json({
         type: 'battle_result',

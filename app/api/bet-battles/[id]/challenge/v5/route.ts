@@ -1,11 +1,8 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { getExecutor } from '@/lib/drizzle/db';
-import { battleRecords } from '@/lib/drizzle/schema';
 import {
   BetBattleServiceError,
   challengeBetBattle,
 } from '@/lib/services/BetBattleService';
-import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -73,7 +70,7 @@ export const POST = withActiveCultivator(
           isWin,
           winnerId: result.winnerId,
           battleId: result.battleId,
-          battleRecordId: result.battleRecordId,
+          battleRecordV2Id: result.battleRecordV2Id,
           resultMessage,
         }
       });

@@ -258,6 +258,8 @@ export interface CreationAffixBucketCaps {
 export const CREATION_LISTENER_PRIORITIES = {
   // 行动触发前的增益或预处理优先级。
   actionPreBuff: CREATION_EVENT_PRIORITY_LEVELS.ACTION_TRIGGER,
+  // DOT 在行动前触发，但应晚于同帧预处理增益。
+  dotTick: CREATION_EVENT_PRIORITY_LEVELS.ROUND_PRE,
   // 技能施放瞬间的监听优先级。
   skillCast: CREATION_EVENT_PRIORITY_LEVELS.SKILL_CAST,
   // 伤害请求阶段的监听优先级，必须早于 DamageSystem 本身，

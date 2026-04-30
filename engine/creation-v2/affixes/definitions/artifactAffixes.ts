@@ -1273,9 +1273,9 @@ export const ARTIFACT_AFFIXES: AffixDefinition[] = [
       },
     },
     listenerSpec: {
-      eventType: GameplayTags.EVENT.DAMAGE_TAKEN,
+      eventType: GameplayTags.EVENT.DAMAGE_REQUEST,
       scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-      priority: CREATION_LISTENER_PRIORITIES.damageTaken,
+      priority: CREATION_LISTENER_PRIORITIES.damageRequest,
     },
   },
 

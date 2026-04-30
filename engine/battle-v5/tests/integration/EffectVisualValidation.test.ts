@@ -3,7 +3,8 @@ import { BattleEngineV5 } from '../../BattleEngineV5';
 import { GameplayTags } from '../../core';
 import { BuffConfig } from '../../core/configs';
 import { EventBus } from '../../core/EventBus';
-import { AbilityType, AttributeType, BuffType } from '../../core/types';
+import { ActionPreEvent, DamageRequestEvent } from '../../core/events';
+import { AbilityType, AttributeType, BuffType, DamageSource } from '../../core/types';
 import { AbilityFactory } from '../../factories/AbilityFactory';
 import { BuffFactory } from '../../factories/BuffFactory';
 import { Unit } from '../../units/Unit';
@@ -250,6 +251,69 @@ describe('战斗引擎 V5 原子效果全量回归验证 (最终回归版)', () 
           log.includes('护盾已破碎'),
       ),
     ).toBe(true);
+  });
+
+  it('5. 验证【DOT 叠层】：ActionPreEvent 下按层数线性放大并保留来源', () => {
+    const source = createTestUnit('source', '施毒者');
+    const target = createTestUnit('target', '受术者');
+    const damageRequests: DamageRequestEvent[] = [];
+
+    const poisonBuffCfg: BuffConfig = {
+      id: 'stacking_poison',
+      name: '叠毒',
+      type: BuffType.DEBUFF,
+      duration: 3,
+      stackRule: 'stack_layer',
+      tags: [
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.DOT.ROOT,
+        GameplayTags.BUFF.DOT.POISON,
+      ],
+      listeners: [
+        {
+          eventType: 'ActionPreEvent',
+          scope: 'owner_as_actor',
+          priority: 45,
+          effects: [
+            {
+              type: 'damage',
+              params: {
+                value: {
+                  base: 10,
+                  attribute: AttributeType.MAGIC_ATK,
+                  coefficient: 0.1,
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    EventBus.instance.subscribe<DamageRequestEvent>(
+      'DamageRequestEvent',
+      (event) => damageRequests.push(event),
+      999,
+    );
+
+    target.buffs.addBuff(BuffFactory.create(poisonBuffCfg), source);
+    target.buffs.addBuff(BuffFactory.create(poisonBuffCfg), source);
+
+    expect(target.buffs.getAllBuffs()).toHaveLength(1);
+    expect(target.buffs.getAllBuffs()[0].getLayer()).toBe(2);
+
+    EventBus.instance.publish<ActionPreEvent>({
+      type: 'ActionPreEvent',
+      timestamp: Date.now(),
+      caster: target,
+    });
+
+    expect(damageRequests).toHaveLength(1);
+    expect(damageRequests[0].baseDamage).toBe(120);
+    expect(damageRequests[0].buff?.id).toBe('stacking_poison');
+    expect(damageRequests[0].caster?.id).toBe(source.id);
+    expect(damageRequests[0].target.id).toBe(target.id);
+    expect(damageRequests[0].damageSource).not.toBe(DamageSource.REFLECT);
   });
 
   it('2. 验证【伤害免疫优先于魔法盾】：执行顺序与零伤害处理', () => {

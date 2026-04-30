@@ -260,6 +260,13 @@
       "when": 1777346189750,
       "tag": "0036_lyrical_carnage",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777539154038,
+      "tag": "0037_clever_morlocks",
+      "breakpoints": true
     }
   ]
 }

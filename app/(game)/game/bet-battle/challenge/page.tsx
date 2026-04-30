@@ -18,7 +18,7 @@ type SettlementState = {
   isWin: boolean;
   winnerId: string;
   battleId: string;
-  battleRecordId: string;
+  battleRecordV2Id: string;
   resultMessage: string;
 };
 

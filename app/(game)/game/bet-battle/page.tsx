@@ -72,7 +72,7 @@ type BetBattleListing = {
   challengerName: string | null;
   challengerStakeSnapshot: BetStakeSnapshot | null;
   winnerCultivatorId: string | null;
-  battleRecordId: string | null;
+  battleRecordV2Id?: string | null;
   expiresAt: string;
   createdAt: string;
 };

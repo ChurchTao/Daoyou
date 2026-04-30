@@ -11,7 +11,11 @@ import {
 import { ARTIFACT_AFFIXES } from '@/engine/creation-v2/affixes/definitions/artifactAffixes';
 import { GONGFA_AFFIXES } from '@/engine/creation-v2/affixes/definitions/gongfaAffixes';
 import { SKILL_AFFIXES } from '@/engine/creation-v2/affixes/definitions/skillAffixes';
-import { CREATION_DURATION_POLICY } from '@/engine/creation-v2/config/CreationBalance';
+import {
+  CREATION_DURATION_POLICY,
+  CREATION_LISTENER_PRIORITIES,
+} from '@/engine/creation-v2/config/CreationBalance';
+import { ELEMENT_TO_MATERIAL_TAG } from '@/engine/creation-v2/config/CreationMappings';
 import { AttributeType, BuffType, ModifierType } from '@/engine/creation-v2/contracts/battle';
 import { ELEMENT_TO_RUNTIME_ABILITY_TAG } from '@/engine/shared/tag-domain';
 import { CreationTags } from '@/engine/shared/tag-domain';
@@ -272,6 +276,59 @@ describe('AffixEffectTranslator', () => {
         GameplayTags.STATUS.CATEGORY.DOT,
         GameplayTags.STATUS.STATE.BURNED,
       ]));
+      expect(result.params.buffConfig.listeners).toEqual([
+        expect.objectContaining({
+          eventType: GameplayTags.EVENT.ACTION_PRE,
+          scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+          priority: CREATION_LISTENER_PRIORITIES.dotTick,
+        }),
+      ]);
+    }
+  });
+
+  it('translate: poison dot buff 应携带 poison tags 并使用统一 DOT listener', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-poison-dot')!;
+    const result = translator.translate(toRolledAffix(def), '凡品');
+
+    expect(result.type).toBe('apply_buff');
+    if (result.type === 'apply_buff') {
+      expect(result.params.buffConfig.tags).toEqual(expect.arrayContaining([
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.DOT.ROOT,
+        GameplayTags.BUFF.DOT.POISON,
+      ]));
+      expect(result.params.buffConfig.listeners).toEqual([
+        expect.objectContaining({
+          eventType: GameplayTags.EVENT.ACTION_PRE,
+          scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+          priority: CREATION_LISTENER_PRIORITIES.dotTick,
+        }),
+      ]);
+    }
+  });
+
+  it('translate: bleed dot buff 应携带 bleed tags 并使用统一 DOT listener', () => {
+    const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-bleed-dot')!;
+    const result = translator.translate(toRolledAffix(def), '凡品');
+
+    expect(result.type).toBe('apply_buff');
+    if (result.type === 'apply_buff') {
+      expect(result.params.buffConfig.tags).toEqual(expect.arrayContaining([
+        GameplayTags.BUFF.TYPE.DEBUFF,
+        GameplayTags.BUFF.DOT.ROOT,
+        GameplayTags.BUFF.DOT.BLEED,
+      ]));
+      expect(result.params.buffConfig.statusTags).toEqual(expect.arrayContaining([
+        GameplayTags.STATUS.CATEGORY.DOT,
+        GameplayTags.STATUS.STATE.BLEEDING,
+      ]));
+      expect(result.params.buffConfig.listeners).toEqual([
+        expect.objectContaining({
+          eventType: GameplayTags.EVENT.ACTION_PRE,
+          scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+          priority: CREATION_LISTENER_PRIORITIES.dotTick,
+        }),
+      ]);
     }
   });
 
@@ -528,6 +585,33 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
     const ids = defs.map((d) => d.id);
     expect(ids).toContain('skill-core-damage-fire');
     expect(ids).toContain('skill-variant-burn-dot');
+  });
+
+  it('八系 skill variant 应各自提供一个明确的元素特色词条', () => {
+    const cases = [
+      ['火', CreationTags.MATERIAL.SEMANTIC_FLAME, 'skill-variant-burn-dot'],
+      ['木', CreationTags.MATERIAL.SEMANTIC_POISON, 'skill-variant-poison-dot'],
+      ['金', CreationTags.MATERIAL.SEMANTIC_METAL, 'skill-variant-bleed-dot'],
+      ['冰', CreationTags.MATERIAL.SEMANTIC_FREEZE, 'skill-variant-freeze-slow'],
+      ['雷', CreationTags.MATERIAL.SEMANTIC_THUNDER, 'skill-variant-thunder-shock'],
+      ['风', CreationTags.MATERIAL.SEMANTIC_WIND, 'skill-variant-wind-haste'],
+      ['水', CreationTags.MATERIAL.SEMANTIC_WATER, 'skill-variant-water-mana-burn'],
+      ['土', CreationTags.MATERIAL.SEMANTIC_EARTH, 'skill-variant-shield-on-cast'],
+    ] as const;
+
+    for (const [element, semanticTag, affixId] of cases) {
+      const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId)!;
+      expect(def.match.all).toEqual(
+        expect.arrayContaining([ELEMENT_TO_MATERIAL_TAG[element]]),
+      );
+
+      const defs = DEFAULT_AFFIX_REGISTRY.queryByTags(
+        [ELEMENT_TO_MATERIAL_TAG[element], semanticTag],
+        ['skill_variant'],
+        'skill',
+      );
+      expect(defs.map((candidate) => candidate.id)).toContain(affixId);
+    }
   });
 
   it('未解锁类别的词缀不出现', () => {

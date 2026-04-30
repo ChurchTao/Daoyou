@@ -70,7 +70,7 @@ export interface ChallengeBetBattleInput {
 export interface ChallengeBetBattleResult {
   battleId: string;
   winnerId: string;
-  battleRecordId: string;
+  battleRecordV2Id: string;
   battleResult: BattleRecord;
   challenger: {
     id: string;
@@ -666,7 +666,7 @@ export async function challengeBetBattle(
         : betBattle.creatorId;
 
     const q = getExecutor();
-    let battleRecordId = '';
+    let battleRecordV2Id = '';
     await q.transaction(async (tx) => {
       const current = await tx
         .select()
@@ -699,17 +699,17 @@ export async function challengeBetBattle(
       assertStakeMatch(creatorStake, challengerStake);
 
       const [battleRecord] = await tx
-        .insert(schema.battleRecords)
+        .insert(schema.battleRecordsV2)
         .values({
           userId: input.challengerUserId,
           cultivatorId: input.challengerId,
-          challengeType: 'challenge',
+          battleType: 'challenge',
           opponentCultivatorId: betBattle.creatorId,
           battleResult,
           battleReport: null,
         })
-        .returning({ id: schema.battleRecords.id });
-      battleRecordId = battleRecord.id;
+        .returning({ id: schema.battleRecordsV2.id });
+      battleRecordV2Id = battleRecord.id;
 
       const attachments: MailAttachment[] = [
         ...buildRewardAttachments(creatorStake),
@@ -731,7 +731,7 @@ export async function challengeBetBattle(
         challengerName: input.challengerName,
         challengerStakeSnapshot: challengerStake,
         winnerCultivatorId: winnerId,
-        battleRecordId: battleRecord.id,
+        battleRecordV2Id: battleRecord.id,
         matchedAt: new Date(),
         settledAt: new Date(),
       });
@@ -769,7 +769,7 @@ export async function challengeBetBattle(
     return {
       battleId: input.battleId,
       winnerId,
-      battleRecordId,
+      battleRecordV2Id,
       battleResult,
       challenger: {
         id: challengerBundle.cultivator.id!,

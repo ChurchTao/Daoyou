@@ -51,7 +51,9 @@ export default function BattleReplayPage() {
     const fetchBattleRecord = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/battles/${id}`, { cache: 'no-store' });
+        const res = await fetch(`/api/battle-records/v2/${id}`, {
+          cache: 'no-store',
+        });
         if (!res.ok) return;
         const data = (await res.json()) as BattleRecordResponse;
         if (data.success) {
@@ -81,6 +83,9 @@ export default function BattleReplayPage() {
   }
 
   const battleResult = record?.battleResult;
+  const isReplaySupported =
+    !!battleResult?.logSpans?.length &&
+    !!battleResult?.stateTimeline?.frames?.length;
   const playerUnitId = battleResult?.player;
   const opponentUnitId = battleResult?.opponent;
   const getUnitName = (unitId: string) => {
@@ -112,7 +117,12 @@ export default function BattleReplayPage() {
       }}
     >
       <div className="flex flex-col gap-4 mb-8">
-        {currentPlayerFrame && currentOpponentFrame && (
+        {!isReplaySupported && battleResult && (
+          <p className="text-ink-secondary">
+            该战斗记录不支持新版回放（缺少关键时间线数据）。
+          </p>
+        )}
+        {isReplaySupported && currentPlayerFrame && currentOpponentFrame && (
           <CombatStatusHeader
             player={currentPlayerFrame}
             opponent={currentOpponentFrame}
@@ -131,7 +141,7 @@ export default function BattleReplayPage() {
           />
         )}
 
-        {battleResult && (
+        {isReplaySupported && battleResult && (
           <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
         )}
       </div>

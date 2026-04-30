@@ -4,6 +4,7 @@ import Link from 'next/link';
 export type ZhanjiRecord = {
   id: string;
   createdAt: string | null;
+  battleType?: 'challenge' | 'challenged' | 'normal' | string;
   challengeType?: 'challenge' | 'challenged' | 'normal' | string;
   opponentCultivatorId?: string | null;
 } & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
@@ -40,8 +41,9 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
   const loserName = record.loser?.name ?? '未知';
   const isWin = currentCultivatorId === record.winner?.id;
   const turns = record.turns ?? 0;
-  const typeLabel = getChallengeTypeLabel(record.challengeType);
-  const typeColor = getChallengeTypeColor(record.challengeType);
+  const type = record.battleType ?? record.challengeType;
+  const typeLabel = getChallengeTypeLabel(type);
+  const typeColor = getChallengeTypeColor(type);
 
   return (
     <Link

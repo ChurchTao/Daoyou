@@ -1,6 +1,5 @@
 import { withActiveCultivator } from '@/lib/api/withAuth';
-import { getExecutor } from '@/lib/drizzle/db';
-import { battleRecords } from '@/lib/drizzle/schema';
+import { createBattleRecordV2 } from '@/lib/repositories/battleRecordV2Repository';
 import { getCultivatorByIdUnsafe } from '@/lib/services/cultivatorService';
 import { simulateBattleV5 } from '@/lib/services/simulateBattleV5';
 import { NextRequest, NextResponse } from 'next/server';
@@ -35,17 +34,14 @@ export const POST = withActiveCultivator(
       // 执行战斗引擎
       const battleResult = simulateBattleV5(player, opponent);
 
-      // 将本次战斗结果以快照方式写入数据库（异步）
-      getExecutor()
-        .insert(battleRecords)
-        .values({
-          userId: user.id,
-          cultivatorId: cultivator.id,
-          battleResult,
-        })
-        .catch((e) => {
-          console.error('写入战斗记录失败:', e);
-        });
+      // 同步写入新版战斗记录，失败则直接返回错误
+      await createBattleRecordV2({
+        userId: user.id,
+        cultivatorId: cultivator.id,
+        opponentCultivatorId: opponent.id,
+        battleType: 'normal',
+        battleResult,
+      });
 
       return NextResponse.json(battleResult);
     } catch (error) {

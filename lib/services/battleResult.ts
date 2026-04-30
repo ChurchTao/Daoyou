@@ -60,7 +60,26 @@ export interface BattleRecord {
 /**
  * UI 视图态战斗结果（兼容层已移除，目前与 BattleRecord 一致）。
  */
-export interface BattleViewRecord extends BattleRecord {}
+export type BattleViewRecord = BattleRecord;
+
+export type BattleRecordType = 'challenge' | 'challenged' | 'normal';
+
+export interface BattleRecordV2Summary {
+  id: string;
+  createdAt: Date | null;
+  battleType: BattleRecordType;
+  opponentCultivatorId: string | null;
+  winner: Cultivator;
+  loser: Cultivator;
+  turns: number;
+}
+
+export interface BattleRecordV2Detail {
+  id: string;
+  createdAt: Date | null;
+  battleResult: BattleRecord;
+  battleReport?: string | null;
+}
 
 /**
  * 将 BattleRecord 封装为 UI 视图态。

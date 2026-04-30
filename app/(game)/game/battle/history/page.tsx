@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 type BattleSummary = {
   id: string;
   createdAt: string | null;
-  challengeType?: 'challenge' | 'challenged' | 'normal';
+  battleType?: 'challenge' | 'challenged' | 'normal';
   opponentCultivatorId?: string | null;
 } & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
 
@@ -37,9 +37,12 @@ export default function BattleHistoryPage() {
     setLoading(true);
     try {
       const typeParam = type === 'all' ? '' : `&type=${type}`;
-      const res = await fetch(`/api/battles?page=1&pageSize=100${typeParam}`, {
-        cache: 'no-store',
-      });
+      const res = await fetch(
+        `/api/battle-records/v2?page=1&pageSize=100${typeParam}`,
+        {
+          cache: 'no-store',
+        },
+      );
       if (!res.ok) return;
       const data = (await res.json()) as BattleListResponse;
       if (data.success && Array.isArray(data.data)) {

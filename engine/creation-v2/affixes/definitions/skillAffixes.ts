@@ -3,7 +3,7 @@
  * 1. 核心池 (Core/Panel): 8 ~ 15 点。作为基础底盘，保证产物基本强度。
  * 2. 变体池 (Variant/School/Defense): 12 ~ 20 点。主要能量吸收点，定义流派特色。
  * 3. 稀有池 (Rare/Secret/Treasure): 35 ~ 55 点。顶级消耗项，吸收神品材料溢出能量，产出质变效果。
- * 
+ *
  * PBU 换算逻辑：PBU = (∑词缀消耗 * 类别系数 * 效率加成) * 品质乘数 + 极品奖励。
  */
 import { CreationTags, GameplayTags } from '@/engine/shared/tag-domain';
@@ -20,6 +20,12 @@ import {
 } from '../../contracts/battle';
 import { EXCLUSIVE_GROUP } from '../exclusiveGroups';
 import { AffixDefinition } from '../types';
+
+const DOT_TICK_LISTENER = {
+  eventType: GameplayTags.EVENT.ACTION_PRE,
+  scope: GameplayTags.SCOPE.OWNER_AS_ACTOR,
+  priority: CREATION_LISTENER_PRIORITIES.dotTick,
+} as const;
 
 export const SKILL_AFFIXES: AffixDefinition[] = [
   // ================================================================
@@ -91,7 +97,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         value: {
           base: { base: 86, scale: 'quality', coefficient: 15 },
           attribute: AttributeType.MAGIC_ATK,
-          coefficient: 1.1,
+          coefficient: 1.2,
         },
       },
     },
@@ -373,7 +379,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     id: 'skill-core-control-stun',
     displayName: '眩晕',
     displayDescription: '眩晕目标，使其短时间无法行动',
-    category: 'skill_core',
+    category: 'skill_variant',
     rarity: 'uncommon',
     match: {
       any: [
@@ -382,7 +388,6 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
         CreationTags.MATERIAL.SEMANTIC_ILLUSION,
       ],
     },
-    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
     weight: 50,
     energyCost: 20,
     minQuality: '灵品',
@@ -406,24 +411,26 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             GameplayTags.STATUS.CONTROL.NO_ACTION,
           ],
         },
-        chance: 0.8,
+        chance: 0.75,
       },
     },
   },
 
   // ================================================================
-  // ===== SKILL_VARIANT 池 (12 种) — 让同一技能长出不同战术身份
+  // ===== SKILL_VARIANT 池 (16 种) — 让同一技能长出不同战术身份
   // ================================================================
 
   // --- 灼烧 DOT ---
   {
     id: 'skill-variant-burn-dot',
-    displayName: '焚身',
+    displayName: '灼烧',
     displayDescription: '命中时附加灼烧，使目标持续受到烈焰吞噬',
     category: 'skill_variant',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_FLAME] },
-    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.VARIANT_BURN,
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['火']],
+      any: [CreationTags.MATERIAL.SEMANTIC_FLAME],
+    },
     weight: 80,
     energyCost: 12,
     applicableTo: ['skill'],
@@ -436,7 +443,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           name: '灼烧',
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.short,
-          stackRule: StackRule.REFRESH_DURATION,
+          stackRule: StackRule.STACK_LAYER,
           tags: [
             GameplayTags.BUFF.TYPE.DEBUFF,
             GameplayTags.BUFF.DOT.ROOT,
@@ -449,9 +456,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           ],
           listeners: [
             {
-              eventType: GameplayTags.EVENT.ROUND_PRE,
-              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-              priority: 20,
+              ...DOT_TICK_LISTENER,
               effects: [
                 {
                   type: 'damage',
@@ -479,7 +484,10 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '携彻骨奇寒，命中后使目标身法运行滞涩',
     category: 'skill_variant',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_FREEZE] },
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['冰']],
+      any: [CreationTags.MATERIAL.SEMANTIC_FREEZE],
+    },
     weight: 78,
     energyCost: 12,
     applicableTo: ['skill'],
@@ -501,8 +509,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           modifiers: [
             {
               attrType: AttributeType.SPEED,
-              type: ModifierType.FIXED,
-              value: -3,
+              type: ModifierType.ADD,
+              value: -0.3,
             },
           ],
         },
@@ -518,7 +526,13 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     displayDescription: '携剧毒入体，每次呼吸都会遭到毒液反噬',
     category: 'skill_variant',
     rarity: 'common',
-    match: { all: [CreationTags.MATERIAL.SEMANTIC_POISON] },
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['木']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_POISON,
+        CreationTags.MATERIAL.SEMANTIC_WOOD,
+      ],
+    },
     weight: 68,
     energyCost: 12,
     applicableTo: ['skill'],
@@ -532,7 +546,11 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           type: BuffType.DEBUFF,
           duration: CREATION_DURATION_POLICY.buffDebuff.standard,
           stackRule: StackRule.STACK_LAYER,
-          tags: [GameplayTags.BUFF.TYPE.DEBUFF, GameplayTags.BUFF.DOT.ROOT],
+          tags: [
+            GameplayTags.BUFF.TYPE.DEBUFF,
+            GameplayTags.BUFF.DOT.ROOT,
+            GameplayTags.BUFF.DOT.POISON,
+          ],
           statusTags: [
             GameplayTags.STATUS.CATEGORY.DEBUFF,
             GameplayTags.STATUS.STATE.POISONED,
@@ -540,9 +558,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           ],
           listeners: [
             {
-              eventType: GameplayTags.EVENT.ROUND_PRE,
-              scope: GameplayTags.SCOPE.OWNER_AS_TARGET,
-              priority: 20,
+              ...DOT_TICK_LISTENER,
               effects: [
                 {
                   type: 'damage',
@@ -555,6 +571,111 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
                   },
                 },
               ],
+            },
+          ],
+        },
+        chance: { base: 0.65, scale: 'quality', coefficient: 0.04 },
+      },
+    },
+  },
+
+  // --- 流血 DOT ---
+  {
+    id: 'skill-variant-bleed-dot',
+    displayName: '裂创',
+    displayDescription: '锋锐金气撕开创口，使目标持续流血不止',
+    category: 'skill_variant',
+    rarity: 'common',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['金']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+      ],
+    },
+    weight: 70,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-bleed',
+          name: '流血',
+          type: BuffType.DEBUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.STACK_LAYER,
+          tags: [
+            GameplayTags.BUFF.TYPE.DEBUFF,
+            GameplayTags.BUFF.DOT.ROOT,
+            GameplayTags.BUFF.DOT.BLEED,
+          ],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.STATE.BLEEDING,
+            GameplayTags.STATUS.CATEGORY.DOT,
+          ],
+          listeners: [
+            {
+              ...DOT_TICK_LISTENER,
+              effects: [
+                {
+                  type: 'damage',
+                  params: {
+                    value: {
+                      base: 7,
+                      attribute: AttributeType.ATK,
+                      coefficient: 0.12,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        chance: { base: 0.62, scale: 'quality', coefficient: 0.05 },
+      },
+    },
+  },
+
+  // --- 感电降抗 ---
+  {
+    id: 'skill-variant-thunder-shock',
+    displayName: '感电',
+    displayDescription: '雷意贯体，击溃目标护持神识，使后续控制更易命中',
+    category: 'skill_variant',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['雷']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_THUNDER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
+    weight: 62,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-shocked',
+          name: '感电',
+          type: BuffType.DEBUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.DEBUFF],
+          statusTags: [
+            GameplayTags.STATUS.CATEGORY.DEBUFF,
+            GameplayTags.STATUS.STATE.SHOCKED,
+          ],
+          modifiers: [
+            {
+              attrType: AttributeType.CONTROL_RESISTANCE,
+              type: ModifierType.FIXED,
+              value: -0.15,
             },
           ],
         },
@@ -699,7 +820,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
       priority: CREATION_LISTENER_PRIORITIES.skillCast,
       guard: {
         skipReflectSource: true,
-      }
+      },
     },
   },
 
@@ -744,6 +865,87 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
+  // --- 疾行 ---
+  {
+    id: 'skill-variant-wind-haste',
+    displayName: '疾行',
+    displayDescription: '风意缠身，施术后步法更疾，下一轮更易抢得先机',
+    category: 'skill_variant',
+    rarity: 'common',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['风']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WIND,
+        CreationTags.MATERIAL.SEMANTIC_SPACE,
+      ],
+    },
+    weight: 66,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-wind-haste',
+          name: '疾行',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.SPEED,
+              type: ModifierType.ADD,
+              value: 0.2,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+    listenerSpec: {
+      eventType: GameplayTags.EVENT.SKILL_CAST,
+      scope: GameplayTags.SCOPE.OWNER_AS_CASTER,
+      priority: CREATION_LISTENER_PRIORITIES.skillCast,
+      mapping: {
+        caster: 'owner',
+        target: 'owner',
+      },
+    },
+  },
+
+  // --- 蚀灵燃蓝 ---
+  {
+    id: 'skill-variant-water-mana-burn',
+    displayName: '蚀灵',
+    displayDescription: '水行灵力如潮侵袭，经脉回转之间不断蚀去对手真元',
+    category: 'skill_variant',
+    rarity: 'common',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['水']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+      ],
+    },
+    weight: 64,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'enemy' },
+    effectTemplate: {
+      type: 'mana_burn',
+      params: {
+        value: {
+          base: { base: 12, scale: 'quality', coefficient: 4 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.12,
+        },
+      },
+    },
+  },
+
   // --- 施法护盾 ---
   {
     id: 'skill-variant-shield-on-cast',
@@ -752,8 +954,9 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     category: 'skill_variant',
     rarity: 'common',
     match: {
-      all: [CreationTags.MATERIAL.SEMANTIC_GUARD],
+      all: [ELEMENT_TO_MATERIAL_TAG['土']],
       any: [
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
         CreationTags.MATERIAL.SEMANTIC_EARTH,
         CreationTags.MATERIAL.SEMANTIC_METAL,
         CreationTags.MATERIAL.TYPE_ORE,
@@ -842,9 +1045,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     grantedAbilityTags: [GameplayTags.TRAIT.EXECUTE],
     effectTemplate: {
       type: 'percent_damage_modifier',
-      conditions: [
-        { type: 'hp_below', params: { value: 0.35 } },
-      ],
+      conditions: [{ type: 'hp_below', params: { value: 0.35 } }],
       params: {
         mode: 'increase',
         value: { base: 0.2, scale: 'quality', coefficient: 0.04 },
@@ -988,7 +1189,8 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   {
     id: 'skill-rare-cd-curse',
     displayName: '逆脉',
-    displayDescription: '携岁月流转之力，命中时概率令敌方经脉逆行、短时内无法施术',
+    displayDescription:
+      '携岁月流转之力，命中时概率令敌方经脉逆行、短时内无法施术',
     category: 'skill_rare',
     rarity: 'rare',
     match: {

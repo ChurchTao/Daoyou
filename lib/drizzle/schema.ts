@@ -347,6 +347,41 @@ export const battleRecords = pgTable(
   ],
 );
 
+// 战斗记录表 v2 - 新版战斗引擎记录（唯一产品路径）
+export const battleRecordsV2 = pgTable(
+  'wanjiedaoyou_battle_records_v2',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    battleType: varchar('battle_type', { length: 20 }).notNull().default('normal'), // challenge | challenged | normal
+    opponentCultivatorId: uuid('opponent_cultivator_id').references(
+      () => cultivators.id,
+      { onDelete: 'set null' },
+    ),
+    engineVersion: varchar('engine_version', { length: 40 })
+      .notNull()
+      .default('battle-v5'),
+    resultVersion: integer('result_version').notNull().default(2),
+    battleResult: jsonb('battle_result').notNull(),
+    battleReport: text('battle_report'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('battle_records_v2_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+    index('battle_records_v2_opponent_created_idx').on(
+      table.opponentCultivatorId,
+      table.createdAt,
+    ),
+    index('battle_records_v2_user_created_idx').on(table.userId, table.createdAt),
+  ],
+);
+
 // 邮件/传音玉简表
 export const mails = pgTable(
   'wanjiedaoyou_mails',
@@ -581,6 +616,12 @@ export const betBattles = pgTable(
     ),
     battleRecordId: uuid('battle_record_id').references(
       () => battleRecords.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
+    battleRecordV2Id: uuid('battle_record_v2_id').references(
+      () => battleRecordsV2.id,
       {
         onDelete: 'set null',
       },

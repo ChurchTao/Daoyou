@@ -100,6 +100,7 @@ export class AffixRegistry {
    * 规则五：Skill 禁止 attribute_modifier effectType
    * 规则六：Gongfa 禁止 attribute_modifier 使用 FIXED modType
    * 规则七：Skill 禁止 apply_buff 内嵌 listener 且 duration > 1
+   * 规则八：percent_damage_modifier 必须监听 DAMAGE_REQUEST
    */
   private validateBoundary(def: AffixDefinition): void {
     // 规则一：池与产物类型强绑定
@@ -201,6 +202,14 @@ export class AffixRegistry {
             );
           }
         }
+      }
+    }
+
+    if (def.effectTemplate.type === 'percent_damage_modifier') {
+      if (def.listenerSpec?.eventType !== GameplayTags.EVENT.DAMAGE_REQUEST) {
+        throw new Error(
+          `affix ${def.id}: percent_damage_modifier must use listenerSpec.eventType '${GameplayTags.EVENT.DAMAGE_REQUEST}'`,
+        );
       }
     }
   }
