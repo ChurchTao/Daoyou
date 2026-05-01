@@ -3,8 +3,9 @@
 /**
  * 通用物品展示弹窗
  *
- * 替代已下线的 EffectDetailModal；用于材料/消耗品等非 CreationProduct 的物品详情。
- * 能力（skill/artifact/gongfa）的详情请使用 AbilityDetailModal。
+ * 作为所有道具与能力详情的统一承载容器：
+ * - 材料 / 消耗品使用基础信息区域
+ * - 神通 / 功法 / 法宝可通过 summary / metaSection / footer 组装更丰富的展示内容
  */
 
 import { InkModal } from '@/components/layout';
@@ -16,6 +17,8 @@ export interface ItemShowcaseModalProps {
   icon: string;
   name: string;
   badges?: ReactNode[];
+  summary?: ReactNode;
+  metaSection?: ReactNode;
   extraInfo?: ReactNode;
   description?: string;
   descriptionTitle?: string;
@@ -28,6 +31,8 @@ export function ItemShowcaseModal({
   icon,
   name,
   badges = [],
+  summary,
+  metaSection,
   extraInfo,
   description,
   descriptionTitle = '说明',
@@ -46,9 +51,11 @@ export function ItemShowcaseModal({
               ))}
             </div>
           )}
+          {summary && <div className="mt-3 w-full">{summary}</div>}
         </div>
 
         <div className="space-y-2 text-sm">
+          {metaSection}
           {extraInfo}
 
           {description && (

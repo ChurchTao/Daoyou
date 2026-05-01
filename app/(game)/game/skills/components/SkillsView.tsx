@@ -2,6 +2,10 @@
 
 import { InkPageShell } from '@/components/layout';
 import {
+  AbilityMetaLine,
+  AffixInlineList,
+} from '@/components/feature/products';
+import {
   InkActionGroup,
   InkBadge,
   InkButton,
@@ -14,13 +18,6 @@ import { usePathname } from 'next/navigation';
 import { useSkillsViewModel, type V2Skill } from '../hooks/useSkillsViewModel';
 import { SkillDetailModal } from './SkillDetailModal';
 
-function affixToneStyle(rarityTone: string) {
-  if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
-  if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
-  if (rarityTone === 'info') return { color: 'var(--color-tier-di)' };
-  return { color: 'var(--color-tier-xuan)' };
-}
-
 function SkillCard({
   skill,
   onDetail,
@@ -30,13 +27,6 @@ function SkillCard({
   onDetail: (skill: V2Skill) => void;
   onForget: (skill: V2Skill) => void;
 }) {
-  const affixLine =
-    skill.affixes.length > 0
-      ? skill.affixes.map((affix) => affix.name).join('、')
-      : null;
-  const mpCost = skill.projection?.mpCost ?? 0;
-  const cooldown = skill.projection?.cooldown ?? 0;
-
   return (
     <ItemCard
       icon="📜"
@@ -49,20 +39,8 @@ function SkillCard({
       }
       meta={
         <div className="space-y-1">
-          {affixLine && (
-            <div className="flex flex-wrap items-center gap-1 text-sm">
-              <span className="text-ink-secondary">词缀：</span>
-              {skill.affixes.map((affix) => (
-                <span key={affix.id} style={affixToneStyle(affix.rarityTone)}>
-                  {affix.isPerfect ? `极${affix.name}` : affix.name}
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-            <span>法力消耗：{mpCost}</span>
-            <span>冷却回合：{cooldown}</span>
-          </div>
+          <AffixInlineList affixes={skill.affixes} />
+          <AbilityMetaLine projection={skill.projection} />
         </div>
       }
       description={skill.description}

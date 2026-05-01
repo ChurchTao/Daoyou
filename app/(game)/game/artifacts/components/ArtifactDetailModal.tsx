@@ -1,6 +1,7 @@
 'use client';
 
-import { AbilityDetailModal } from '@/components/feature/products';
+import { getProductShowcaseProps } from '@/components/feature/products';
+import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import type { V2Artifact } from '../hooks/useArtifactsViewModel';
 
 export function ArtifactDetailModal({
@@ -12,11 +13,13 @@ export function ArtifactDetailModal({
   onClose: () => void;
   artifact: V2Artifact | null;
 }) {
+  if (!artifact) return null;
+
   return (
-    <AbilityDetailModal
+    <ItemShowcaseModal
       isOpen={isOpen}
       onClose={onClose}
-      product={artifact}
+      {...getProductShowcaseProps(artifact)}
     />
   );
 }

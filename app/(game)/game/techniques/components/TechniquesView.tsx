@@ -1,7 +1,13 @@
 'use client';
 
 import { InkPageShell } from '@/components/layout';
-import { InkActionGroup, InkBadge, InkButton, InkNotice } from '@/components/ui';
+import { AffixInlineList } from '@/components/feature/products';
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkNotice,
+} from '@/components/ui';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { usePathname } from 'next/navigation';
 
@@ -12,13 +18,6 @@ import {
 import { TechniqueDetailModal } from './TechniqueDetailModal';
 import { Quality } from '@/types/constants';
 
-function affixToneStyle(rarityTone: string) {
-  if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
-  if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
-  if (rarityTone === 'info') return { color: 'var(--color-tier-di)' };
-  return { color: 'var(--color-tier-xuan)' };
-}
-
 function TechniqueCard({
   technique,
   onDetail,
@@ -28,11 +27,6 @@ function TechniqueCard({
   onDetail: (t: V2Technique) => void;
   onForget: (t: V2Technique) => void;
 }) {
-  const affixLine =
-    technique.affixes.length > 0
-      ? technique.affixes.map((affix) => affix.name).join('、')
-      : null;
-
   return (
     <ItemCard
       icon="📘"
@@ -46,15 +40,8 @@ function TechniqueCard({
         </div>
       }
       meta={
-        affixLine ? (
-          <div className="flex flex-wrap items-center gap-1 text-sm">
-            <span className="text-ink-secondary">词缀：</span>
-            {technique.affixes.map((affix) => (
-              <span key={affix.id} style={affixToneStyle(affix.rarityTone)}>
-                {affix.isPerfect ? `极${affix.name}` : affix.name}
-              </span>
-            ))}
-          </div>
+        technique.affixes.length > 0 ? (
+          <AffixInlineList affixes={technique.affixes} />
         ) : undefined
       }
       description={technique.description}

@@ -2,6 +2,8 @@
 
 import { LingGen } from '@/components/func';
 import {
+  AbilityMetaLine,
+  AffixInlineList,
   toProductDisplayModel,
   type ProductRecordLike,
 } from '@/components/feature/products';
@@ -98,13 +100,6 @@ function chunkPairs<T>(items: T[]): T[][] {
     rows.push(items.slice(i, i + 2));
   }
   return rows;
-}
-
-function affixToneStyle(rarityTone: string) {
-  if (rarityTone === 'legendary') return { color: 'var(--color-tier-shen)' };
-  if (rarityTone === 'rare') return { color: 'var(--color-tier-xian)' };
-  if (rarityTone === 'info') return { color: 'var(--color-tier-di)' };
-  return { color: 'var(--color-tier-xuan)' };
 }
 
 export default function CultivatorPage() {
@@ -411,21 +406,9 @@ export default function CultivatorPage() {
                   }
                   meta={
                     <div className="space-y-1">
-                      {product.affixes.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1 text-sm">
-                          <span className="text-ink-secondary">词缀：</span>
-                          {product.affixes.map((affix) => (
-                            <span
-                              key={affix.id}
-                              style={affixToneStyle(affix.rarityTone)}
-                            >
-                              {affix.isPerfect ? `极${affix.name}` : affix.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-                        <span className="text-ink font-bold">已装备</span>
+                      <AffixInlineList affixes={product.affixes} />
+                      <div className="text-ink-secondary flex flex-wrap gap-2 text-sm">
+                        <span className="text-ink font-medium">已装备</span>
                       </div>
                     </div>
                   }
@@ -464,19 +447,7 @@ export default function CultivatorPage() {
                     ) : undefined
                   }
                   meta={
-                    product.affixes.length > 0 ? (
-                      <div className="flex flex-wrap items-center gap-1 text-sm">
-                        <span className="text-ink-secondary">词缀：</span>
-                        {product.affixes.map((affix) => (
-                          <span
-                            key={affix.id}
-                            style={affixToneStyle(affix.rarityTone)}
-                          >
-                            {affix.isPerfect ? `极${affix.name}` : affix.name}
-                          </span>
-                        ))}
-                      </div>
-                    ) : undefined
+                    <AffixInlineList affixes={product.affixes} />
                   }
                   description={technique.description}
                   layout="col"
@@ -509,23 +480,8 @@ export default function CultivatorPage() {
                     badgeExtra={<InkBadge tone="default">{skill.element}</InkBadge>}
                     meta={
                       <div className="space-y-1">
-                        {product.affixes.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1 text-sm">
-                            <span className="text-ink-secondary">词缀：</span>
-                            {product.affixes.map((affix) => (
-                              <span
-                                key={affix.id}
-                                style={affixToneStyle(affix.rarityTone)}
-                              >
-                                {affix.isPerfect ? `极${affix.name}` : affix.name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
-                          <span>法力消耗：{skill.cost ?? 0}</span>
-                          <span>冷却回合：{skill.cooldown}</span>
-                        </div>
+                        <AffixInlineList affixes={product.affixes} />
+                        <AbilityMetaLine projection={product.projection} />
                       </div>
                     }
                     description={skill.description}

@@ -217,6 +217,13 @@ export interface ProductRecordLike {
 }
 
 export function formatTargetPolicy(policy: AbilityProjectionSummary['targetPolicy']): string {
+  const targetPolicyValue = formatTargetPolicyValue(policy);
+  return targetPolicyValue ? `目标策略：${targetPolicyValue}` : '';
+}
+
+export function formatTargetPolicyValue(
+  policy: AbilityProjectionSummary['targetPolicy'],
+): string {
   if (!policy) return '';
 
   const teamLabels: Record<string, string> = {
@@ -236,10 +243,14 @@ export function formatTargetPolicy(policy: AbilityProjectionSummary['targetPolic
   const scope = scopeLabels[policy.scope] ?? policy.scope;
   const maxTargets =
     policy.scope !== 'single' && policy.maxTargets && policy.maxTargets > 1
-      ? `(最多 ${policy.maxTargets}人)`
+      ? `（最多 ${policy.maxTargets}）`
       : '';
 
-  return `目标：${team}${scope}${maxTargets}`;
+  if (policy.team === 'self') {
+    return `自身${maxTargets}`;
+  }
+
+  return `${team}·${scope}${maxTargets}`;
 }
 
 const DEFAULT_QUALITY: Quality = '凡品';

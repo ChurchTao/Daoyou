@@ -29,7 +29,7 @@ const DOT_TICK_LISTENER = {
 
 export const SKILL_AFFIXES: AffixDefinition[] = [
   // ================================================================
-  // ===== SKILL_CORE 池 (10 种) — 保证技能不废，专注本次施法
+  // ===== SKILL_CORE 池 (20 种) — 保证技能不废，专注本次施法
   // ================================================================
 
   // --- 基础伤害 ---
@@ -540,6 +540,56 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
     },
   },
 
+  // --- 冰魄护心 ---
+  {
+    id: 'skill-core-ice-frost-guard',
+    displayName: '冰魄',
+    displayDescription: '主动凝结冰魄护体，提升法防与定神之力，补足冰系自护流派',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['冰']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 50,
+    energyCost: 13,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-ice-frost-guard',
+          name: '冰魄',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.MAGIC_DEF,
+              type: ModifierType.ADD,
+              value: 0.16,
+            },
+            {
+              attrType: AttributeType.CONTROL_RESISTANCE,
+              type: ModifierType.FIXED,
+              value: 0.12,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
   // --- 潮生回澜 ---
   {
     id: 'skill-core-water-tide-surge',
@@ -582,6 +632,105 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
               attrType: AttributeType.MAGIC_DEF,
               type: ModifierType.ADD,
               value: 0.12,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 金锋砺身 ---
+  {
+    id: 'skill-core-metal-honed-edge',
+    displayName: '砺锋',
+    displayDescription: '主动锻起金行锋意，自身攻势与穿透同步抬升，补足金系自增流派',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['金']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 46,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-metal-honed-edge',
+          name: '砺锋',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.ATK,
+              type: ModifierType.ADD,
+              value: 0.16,
+            },
+            {
+              attrType: AttributeType.ARMOR_PENETRATION,
+              type: ModifierType.FIXED,
+              value: 0.08,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 木灵回荣 ---
+  {
+    id: 'skill-core-wood-regrowth',
+    displayName: '回荣',
+    displayDescription: '主动催发生机回卷己身，抬升体魄与灵息，补足木系续航型核心',
+    category: 'skill_core',
+    rarity: 'uncommon',
+    match: {
+      all: [ELEMENT_TO_MATERIAL_TAG['木']],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.TYPE_HERB,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.CORE_DAMAGE_TYPE,
+    weight: 44,
+    energyCost: 12,
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-wood-regrowth',
+          name: '回荣',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.standard,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.VITALITY,
+              type: ModifierType.ADD,
+              value: 0.12,
+            },
+            {
+              attrType: AttributeType.SPIRIT,
+              type: ModifierType.ADD,
+              value: 0.1,
             },
           ],
         },
@@ -1321,7 +1470,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
   },
 
   // ================================================================
-  // ===== SKILL_RARE 池 (5 种) — 只保留高冲击的敌方压制与终结
+  // ===== SKILL_RARE 池 (10 种) — 覆盖敌方压制与自身极致强化
   // ================================================================
 
   // --- 引燃：命中灼烧目标引爆一次灼烧 ---
@@ -1508,6 +1657,223 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
           base: { base: 90, scale: 'quality', coefficient: 18 },
           attribute: AttributeType.WILLPOWER,
           coefficient: 1.5,
+        },
+      },
+    },
+  },
+
+  // --- 冰镜护心 ---
+  {
+    id: 'skill-rare-ice-mirror-heart',
+    displayName: '镜心',
+    displayDescription: '冰华凝镜照彻灵台，大幅强化自身护持与抗暴能力',
+    category: 'skill_rare',
+    rarity: 'rare',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['冰'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_FREEZE,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 19,
+    energyCost: 38,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-ice-mirror-heart',
+          name: '镜心',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.long,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.MAGIC_DEF,
+              type: ModifierType.ADD,
+              value: 0.24,
+            },
+            {
+              attrType: AttributeType.CRIT_RESIST,
+              type: ModifierType.FIXED,
+              value: 0.14,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 金煞战锋 ---
+  {
+    id: 'skill-rare-metal-warform',
+    displayName: '战锋',
+    displayDescription: '金煞灌体而行，自身攻势与会心一并攀升，适合豪烈自强流',
+    category: 'skill_rare',
+    rarity: 'rare',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['金'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_BLADE,
+        CreationTags.MATERIAL.SEMANTIC_METAL,
+        CreationTags.MATERIAL.SEMANTIC_BURST,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 18,
+    energyCost: 40,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'apply_buff',
+      params: {
+        buffConfig: {
+          id: 'craft-metal-warform',
+          name: '战锋',
+          type: BuffType.BUFF,
+          duration: CREATION_DURATION_POLICY.buffDebuff.short,
+          stackRule: StackRule.REFRESH_DURATION,
+          tags: [GameplayTags.BUFF.TYPE.BUFF],
+          statusTags: [GameplayTags.STATUS.CATEGORY.BUFF],
+          modifiers: [
+            {
+              attrType: AttributeType.ATK,
+              type: ModifierType.ADD,
+              value: 0.2,
+            },
+            {
+              attrType: AttributeType.CRIT_RATE,
+              type: ModifierType.FIXED,
+              value: 0.12,
+            },
+          ],
+        },
+        chance: 1,
+      },
+    },
+  },
+
+  // --- 潮息净身 ---
+  {
+    id: 'skill-rare-water-purifying-tide',
+    displayName: '净潮',
+    displayDescription: '灵潮回卷周天，主动涤净自身多层负面，稳住续战节奏',
+    category: 'skill_rare',
+    rarity: 'rare',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['水'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WATER,
+        CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        CreationTags.MATERIAL.SEMANTIC_DIVINE,
+        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 20,
+    energyCost: 39,
+    minQuality: '灵品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    effectTemplate: {
+      type: 'dispel',
+      params: {
+        targetTag: GameplayTags.BUFF.TYPE.DEBUFF,
+        maxCount: 4,
+      },
+    },
+  },
+
+  // --- 木灵回春 ---
+  {
+    id: 'skill-rare-wood-spring-return',
+    displayName: '回春',
+    displayDescription: '木灵返照本源，主动回复大量气血，撑起高阶续航核心',
+    category: 'skill_rare',
+    rarity: 'legendary',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['木'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_WOOD,
+        CreationTags.MATERIAL.SEMANTIC_LIFE,
+        CreationTags.MATERIAL.SEMANTIC_SUSTAIN,
+        CreationTags.MATERIAL.TYPE_HERB,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 6,
+    energyCost: 46,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.HEAL],
+    effectTemplate: {
+      type: 'heal',
+      params: {
+        value: {
+          base: { base: 40, scale: 'quality', coefficient: 9 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.45,
+        },
+      },
+    },
+  },
+
+  // --- 镇垒护身 ---
+  {
+    id: 'skill-rare-earth-rampart',
+    displayName: '镇垒',
+    displayDescription: '厚土垒起重障，主动为自身撑开高阶护盾，适合久战反打',
+    category: 'skill_rare',
+    rarity: 'legendary',
+    match: {
+      all: [
+        ELEMENT_TO_MATERIAL_TAG['土'],
+        CreationTags.MATERIAL.TYPE_SPECIAL,
+      ],
+      any: [
+        CreationTags.MATERIAL.SEMANTIC_EARTH,
+        CreationTags.MATERIAL.SEMANTIC_GUARD,
+        CreationTags.MATERIAL.TYPE_ORE,
+      ],
+    },
+    exclusiveGroup: EXCLUSIVE_GROUP.SKILL.RARE_ULTIMATE,
+    weight: 5,
+    energyCost: 48,
+    minQuality: '玄品',
+    applicableTo: ['skill'],
+    targetPolicyConstraint: { team: 'self' },
+    grantedAbilityTags: [GameplayTags.ABILITY.FUNCTION.BUFF],
+    effectTemplate: {
+      type: 'shield',
+      params: {
+        value: {
+          base: { base: 28, scale: 'quality', coefficient: 8 },
+          attribute: AttributeType.SPIRIT,
+          coefficient: 0.55,
         },
       },
     },

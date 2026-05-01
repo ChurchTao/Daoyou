@@ -1,9 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 import { AffixPoolBuilder } from '@/engine/creation-v2/affixes/AffixPoolBuilder';
 import { AffixRegistry } from '@/engine/creation-v2/affixes/AffixRegistry';
+import { DEFAULT_AFFIX_REGISTRY } from '@/engine/creation-v2/affixes';
 import { CreationSession } from '@/engine/creation-v2/CreationSession';
 import { CreationTags } from '@/engine/shared/tag-domain';
 import { AffixDefinition } from '@/engine/creation-v2/affixes/types';
+import { ELEMENT_TO_MATERIAL_TAG } from '@/engine/creation-v2/config/CreationMappings';
 import { DefaultIntentResolver } from '@/engine/creation-v2/resolvers/DefaultIntentResolver';
 import { AttributeType, BuffType, ModifierType, StackRule } from '../../contracts/battle';
 
@@ -318,5 +320,123 @@ describe('AffixPoolBuilder TargetPolicy 过滤测试', () => {
     expect(ids).not.toContain('artifact-core-weapon-test');
     expect(ids).not.toContain('artifact-defense-weapon-only');
     expect(ids).not.toContain('artifact-treasure-weapon-only');
+  });
+
+  it('冰系材料 + self 目标策略时，默认词缀库应仍能提供 self buff core', () => {
+    const session = new CreationSession({
+      sessionId: 'skill-ice-self-core',
+      productType: 'skill',
+      materials: [],
+      requestedTargetPolicy: { team: 'self', scope: 'single' },
+    });
+
+    session.syncInputTagSignals([
+      { tag: CreationTags.MATERIAL.SEMANTIC_FREEZE, source: 'material_semantic', weight: 1 },
+      { tag: ELEMENT_TO_MATERIAL_TAG['冰'], source: 'material_semantic', weight: 1 },
+    ]);
+    session.state.recipeMatch = {
+      recipeId: 'skill-test',
+      valid: true,
+      matchedTags: [],
+      unlockedAffixCategories: ['skill_core', 'skill_variant'],
+    };
+    session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
+
+    const candidates = builder.build(DEFAULT_AFFIX_REGISTRY, session);
+    const ids = candidates.filter((candidate) => candidate.category === 'skill_core').map((candidate) => candidate.id);
+
+    expect(ids).toContain('skill-core-ice-frost-guard');
+    expect(ids).not.toContain('skill-core-damage-ice');
+  });
+
+  it('八系元素在 self 目标策略下都应至少保留一个低阶 skill_core', () => {
+    const canonicalSemanticByElement = {
+      火: CreationTags.MATERIAL.SEMANTIC_FLAME,
+      冰: CreationTags.MATERIAL.SEMANTIC_FREEZE,
+      雷: CreationTags.MATERIAL.SEMANTIC_THUNDER,
+      风: CreationTags.MATERIAL.SEMANTIC_WIND,
+      金: CreationTags.MATERIAL.SEMANTIC_METAL,
+      水: CreationTags.MATERIAL.SEMANTIC_WATER,
+      木: CreationTags.MATERIAL.SEMANTIC_WOOD,
+      土: CreationTags.MATERIAL.SEMANTIC_EARTH,
+    } as const;
+
+    for (const [element, semanticTag] of Object.entries(canonicalSemanticByElement) as Array<
+      [keyof typeof canonicalSemanticByElement, string]
+    >) {
+      const session = new CreationSession({
+        sessionId: `skill-${element}-self-core`,
+        productType: 'skill',
+        materials: [],
+        requestedTargetPolicy: { team: 'self', scope: 'single' },
+      });
+
+      session.syncInputTagSignals([
+        { tag: semanticTag, source: 'material_semantic', weight: 1 },
+        { tag: ELEMENT_TO_MATERIAL_TAG[element], source: 'material_semantic', weight: 1 },
+      ]);
+      session.state.recipeMatch = {
+        recipeId: 'skill-test',
+        valid: true,
+        matchedTags: [],
+        unlockedAffixCategories: ['skill_core'],
+      };
+      session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
+
+      const coreIds = builder
+        .build(DEFAULT_AFFIX_REGISTRY, session)
+        .filter((candidate) => candidate.category === 'skill_core')
+        .map((candidate) => candidate.id);
+
+      expect(coreIds.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('水系特材 + self 目标策略 + rare 解锁时，应转向 self skill_rare 而非 enemy rare', () => {
+    const session = new CreationSession({
+      sessionId: 'skill-water-self-rare',
+      productType: 'skill',
+      materials: [],
+      requestedTargetPolicy: { team: 'self', scope: 'single' },
+    });
+
+    session.syncInputTagSignals([
+      { tag: CreationTags.MATERIAL.SEMANTIC_WATER, source: 'material_semantic', weight: 1 },
+      { tag: CreationTags.MATERIAL.SEMANTIC_SPIRIT, source: 'material_semantic', weight: 1 },
+      { tag: CreationTags.MATERIAL.TYPE_SPECIAL, source: 'material_semantic', weight: 1 },
+      { tag: ELEMENT_TO_MATERIAL_TAG['水'], source: 'material_semantic', weight: 1 },
+    ]);
+    session.state.materialFingerprints = [
+      {
+        rank: '玄品',
+        energyValue: 34,
+        rarityWeight: 6,
+        explicitTags: [CreationTags.MATERIAL.TYPE_SPECIAL, ELEMENT_TO_MATERIAL_TAG['水']],
+        semanticTags: [
+          CreationTags.MATERIAL.SEMANTIC_WATER,
+          CreationTags.MATERIAL.SEMANTIC_SPIRIT,
+        ],
+        recipeTags: [CreationTags.RECIPE.PRODUCT_BIAS_SKILL],
+        materialName: '玄潮灵核',
+        materialType: 'tcdb',
+        quantity: 1,
+        element: '水',
+      },
+    ];
+    session.state.recipeMatch = {
+      recipeId: 'skill-test',
+      valid: true,
+      matchedTags: [],
+      unlockedAffixCategories: ['skill_core', 'skill_variant', 'skill_rare'],
+    };
+    session.state.intent = new DefaultIntentResolver().resolve(session.state.input, []);
+
+    const ids = builder
+      .build(DEFAULT_AFFIX_REGISTRY, session)
+      .filter((candidate) => candidate.category === 'skill_rare')
+      .map((candidate) => candidate.id);
+
+    expect(ids).toContain('skill-rare-water-purifying-tide');
+    expect(ids).not.toContain('skill-rare-tide-collapse');
   });
 });

@@ -509,6 +509,21 @@ describe('AffixSelector', () => {
     expect(ids).not.toContain('enemy-variant');
   });
 
+  it('skill 选中 self core 后，应允许继续抽取 self target 的高阶 skill_rare', () => {
+    const pool = [
+      makeCandidate('self-core', 100, 6, undefined, 'skill_core', { team: 'self' }),
+      makeCandidate('enemy-rare', 100, 8, undefined, 'skill_rare', { team: 'enemy' }),
+      makeCandidate('self-rare', 100, 8, undefined, 'skill_rare', { team: 'self' }),
+    ];
+
+    const result = selector.select(pool, makeBudget(20), makeIntent(), 2);
+    const ids = result.affixes.map((affix) => affix.id);
+
+    expect(ids).toContain('self-core');
+    expect(ids).toContain('self-rare');
+    expect(ids).not.toContain('enemy-rare');
+  });
+
   it('artifact 选中 armor core 后，不应再混入 weapon-only 的后续词条', () => {
     const pool = [
       makeCandidate('armor-core', 100, 6, undefined, 'artifact_core', undefined, ['armor']),
@@ -726,7 +741,10 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       'skill-core-wind-haste',
       'skill-core-fire-channeling',
       'skill-core-thunder-focus',
+      'skill-core-ice-frost-guard',
       'skill-core-water-tide-surge',
+      'skill-core-metal-honed-edge',
+      'skill-core-wood-regrowth',
       'skill-core-metal-edge',
       'skill-core-wood-evergreen',
       'skill-core-fire-solarflare',
@@ -771,6 +789,49 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       expect(def.listenerSpec).toBeUndefined();
       expect(def.effectTemplate.type).not.toBe('resource_drain');
       expect(def.effectTemplate.type).not.toBe('percent_damage_modifier');
+    }
+  });
+
+  it('主动 self skill_rare 应直接作用于自身且保持主动技能语义', () => {
+    const selfHighTierAffixIds = [
+      'skill-rare-ice-mirror-heart',
+      'skill-rare-metal-warform',
+      'skill-rare-water-purifying-tide',
+      'skill-rare-wood-spring-return',
+      'skill-rare-earth-rampart',
+    ];
+
+    for (const affixId of selfHighTierAffixIds) {
+      const def = DEFAULT_AFFIX_REGISTRY.queryById(affixId);
+      expect(def).toBeDefined();
+      expect(def?.category).toBe('skill_rare');
+      expect(def?.targetPolicyConstraint).toEqual(
+        expect.objectContaining({ team: 'self' }),
+      );
+      expect(def?.listenerSpec).toBeUndefined();
+      expect(['apply_buff', 'dispel', 'heal', 'shield']).toContain(
+        def?.effectTemplate.type,
+      );
+
+      if (def?.effectTemplate.type !== 'apply_buff') {
+        continue;
+      }
+
+      const { buffConfig } = def.effectTemplate.params;
+      expect(buffConfig.type).toBe(BuffType.BUFF);
+      expect(buffConfig.duration).toBeGreaterThanOrEqual(
+        CREATION_DURATION_POLICY.buffDebuff.short,
+      );
+      expect(buffConfig.duration).toBeLessThanOrEqual(
+        CREATION_DURATION_POLICY.buffDebuff.extended,
+      );
+
+      for (const modifier of buffConfig.modifiers ?? []) {
+        const expectedType = isPercentageAttributeType(modifier.attrType)
+          ? ModifierType.FIXED
+          : ModifierType.ADD;
+        expect(modifier.type).toBe(expectedType);
+      }
     }
   });
 

@@ -1,12 +1,12 @@
 'use client';
 
 import {
-  AffixChip,
+  getProductShowcaseProps,
   toProductDisplayModel,
   type ProductRecordLike,
 } from '@/components/feature/products';
-import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import { InkBadge } from '@/components/ui/InkBadge';
+import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import type {
   Artifact,
   Consumable,
@@ -16,7 +16,6 @@ import type {
 } from '@/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
-  getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
 
@@ -52,68 +51,16 @@ export function ItemDetailModal({
   // 法宝（有 slot 属性）
   if ('slot' in item) {
     const artifactRecord = item as unknown as ProductRecordLike;
-    const slotInfo = getEquipmentSlotInfo(item.slot);
-    const product = artifactRecord.productModel
-      ? toProductDisplayModel(artifactRecord)
-      : null;
-    const artifactMetadata = (product?.rawModel &&
-    product.rawModel.productType === 'artifact'
-      ? product.rawModel.metadata
-      : undefined) as
-      | { creatorName?: string; anchorRealm?: string }
-      | undefined;
-    const extraRows: React.ReactNode[] = [];
-    if (artifactMetadata?.anchorRealm) {
-      extraRows.push(
-        <div key="anchor-realm" className="border-ink/50 flex justify-between border-b pb-2">
-          <span className="opacity-70">境界要求（若境界过低，效果将大打折扣）</span>
-          <span>{artifactMetadata.anchorRealm}</span>
-        </div>,
-      );
-    }
-    if (artifactMetadata?.creatorName) {
-      extraRows.push(
-        <div key="creator" className="border-ink/50 flex justify-between border-b pb-2">
-          <span className="opacity-70">打造者</span>
-          <span>{artifactMetadata.creatorName}</span>
-        </div>,
-      );
-    }
-    const extraInfo = extraRows.length > 0 ? <>{extraRows}</> : null;
+    const product = toProductDisplayModel({
+      ...artifactRecord,
+      productType: 'artifact',
+    });
 
     return (
       <ItemShowcaseModal
         isOpen
         onClose={onClose}
-        icon={slotInfo.icon}
-        name={item.name}
-        badges={[
-          item.quality && (
-            <InkBadge key="q" tier={item.quality}>
-              {slotInfo.label}
-            </InkBadge>
-          ),
-          <InkBadge key="e" tone="default">
-            {item.element}
-          </InkBadge>,
-        ].filter(Boolean)}
-        extraInfo={extraInfo}
-        description={item.description}
-        descriptionTitle="法宝说明"
-        footer={
-          product && product.affixes.length > 0 ? (
-            <div className="space-y-2 pt-2">
-              <div className="text-ink-secondary text-xs font-semibold tracking-wide uppercase">
-                词缀
-              </div>
-              <ul className="space-y-1.5">
-                {product.affixes.map((affix) => (
-                  <AffixChip key={affix.id} affix={affix} />
-                ))}
-              </ul>
-            </div>
-          ) : null
-        }
+        {...getProductShowcaseProps(product)}
       />
     );
   }
@@ -121,36 +68,16 @@ export function ItemDetailModal({
   // 神通（有 cost、cooldown 和 element）
   if ('cooldown' in item && 'element' in item && !('type' in item)) {
     const skill = item as Skill;
+    const product = toProductDisplayModel({
+      ...skill,
+      productType: 'skill',
+    } as ProductRecordLike);
+
     return (
       <ItemShowcaseModal
         isOpen
         onClose={onClose}
-        icon="📜"
-        name={skill.name}
-        badges={[
-          skill.quality && (
-            <InkBadge key="g" tier={skill.quality}>
-              神通
-            </InkBadge>
-          ),
-          <InkBadge key="e" tone="default">
-            {skill.element}
-          </InkBadge>,
-        ].filter(Boolean)}
-        extraInfo={
-          <div className="space-y-2">
-            <div className="border-border/50 flex justify-between border-b pb-2">
-              <span className="opacity-70">法力消耗</span>
-              <span>{skill.cost ?? 0}</span>
-            </div>
-            <div className="border-border/50 flex justify-between border-b pb-2">
-              <span className="opacity-70">冷却回合</span>
-              <span>{skill.cooldown}</span>
-            </div>
-          </div>
-        }
-        description={skill.description}
-        descriptionTitle="神通详述"
+        {...getProductShowcaseProps(product)}
       />
     );
   }
@@ -158,26 +85,16 @@ export function ItemDetailModal({
   // 功法（无 slot，无 cooldown）
   if (!('slot' in item) && !('cooldown' in item)) {
     const technique = item as CultivationTechnique;
+    const product = toProductDisplayModel({
+      ...technique,
+      productType: 'gongfa',
+    } as ProductRecordLike);
+
     return (
       <ItemShowcaseModal
         isOpen
         onClose={onClose}
-        icon="📘"
-        name={technique.name}
-        badges={[
-          technique.quality && (
-            <InkBadge key="g" tier={technique.quality}>
-              功法
-            </InkBadge>
-          ),
-          technique.element && (
-            <InkBadge key="e" tone="default">
-              {technique.element}
-            </InkBadge>
-          ),
-        ].filter(Boolean)}
-        description={technique.description}
-        descriptionTitle="功法详述"
+        {...getProductShowcaseProps(product)}
       />
     );
   }

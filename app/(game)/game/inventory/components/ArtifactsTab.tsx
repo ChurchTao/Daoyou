@@ -2,6 +2,7 @@
 
 import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
 import {
+  AffixInlineList,
   toProductDisplayModel,
   type ProductRecordLike,
 } from '@/components/feature/products';
@@ -47,7 +48,6 @@ export function ArtifactsTab({
     <InkList>
       {artifacts.map((item) => {
         const product = toProductDisplayModel(item as ProductRecordLike);
-        const affixLine = product.affixes.length > 0;
         const equippedNow = Boolean(
           item.id &&
           (equipped.weapon === item.id ||
@@ -70,29 +70,10 @@ export function ArtifactsTab({
             }
             meta={
               <div className="space-y-1">
-                {affixLine && (
-                  <div className="flex flex-wrap items-center gap-1 text-sm">
-                    <span className="text-ink-secondary">词缀：</span>
-                    {product.affixes.map((affix) => {
-                      const style =
-                        affix.rarityTone === 'legendary'
-                          ? { color: 'var(--color-tier-shen)' }
-                          : affix.rarityTone === 'rare'
-                            ? { color: 'var(--color-tier-xian)' }
-                            : affix.rarityTone === 'info'
-                              ? { color: 'var(--color-tier-di)' }
-                              : { color: 'var(--color-tier-xuan)' };
-                      return (
-                        <span key={affix.id} style={style}>
-                          {affix.isPerfect ? `极${affix.name}` : affix.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                <div className="text-ink-secondary flex flex-wrap gap-2 text-xs">
+                <AffixInlineList affixes={product.affixes} />
+                <div className="text-ink-secondary flex flex-wrap gap-2 text-sm">
                   {equippedNow && (
-                    <span className="text-ink font-bold">已装备</span>
+                    <span className="text-ink font-medium">已装备</span>
                   )}
                 </div>
               </div>

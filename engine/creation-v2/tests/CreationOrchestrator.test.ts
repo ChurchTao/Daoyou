@@ -61,9 +61,92 @@ describe('CreationOrchestrator', () => {
           GameplayTags.ABILITY.FUNCTION.DAMAGE,
           GameplayTags.ABILITY.FUNCTION.HEAL,
           GameplayTags.ABILITY.FUNCTION.CONTROL,
+          GameplayTags.ABILITY.FUNCTION.BUFF,
         ] as string[]).includes(tag),
       ),
     ).toBe(true);
+  });
+
+  it('冰系材料 + self 目标策略时，默认流程应能抽到 self core 而非在 rollAffixes 阶段失败', () => {
+    const orchestrator = new CreationOrchestrator();
+    const session = orchestrator.createSession({
+      sessionId: 'session-ice-self-core',
+      productType: 'skill',
+      requestedTargetPolicy: {
+        team: 'self',
+        scope: 'single',
+      },
+      materials: [
+        {
+          id: 'mat-ice-1',
+          name: '玄冰魄',
+          type: 'ore',
+          rank: '玄品',
+          quantity: 2,
+          element: '冰',
+          description: '冰寒灵矿，兼具冻气与护心之意',
+        },
+      ],
+    });
+
+    orchestrator.submitMaterials(session);
+    orchestrator.recordMaterialAnalysis(session, [
+      {
+        materialId: 'mat-ice-1',
+        materialName: '玄冰魄',
+        materialType: 'ore',
+        rank: '玄品',
+        quantity: 2,
+        explicitTags: ['Material.Type.Ore', 'Material.Element.Ice'],
+        semanticTags: [
+          'Material.Semantic.Freeze',
+          'Material.Semantic.Spirit',
+        ],
+        recipeTags: ['Recipe.Crafter.Skill'],
+        energyValue: 28,
+        rarityWeight: 2,
+        element: '冰',
+      },
+    ]);
+
+    orchestrator.resolveIntent(session, {
+      productType: 'skill',
+      dominantTags: [
+        'Material.Semantic.Freeze',
+        'Material.Semantic.Spirit',
+      ],
+      elementBias: '冰',
+      targetPolicyBias: {
+        team: 'self',
+        scope: 'single',
+      },
+    });
+    orchestrator.validateRecipe(session, {
+      recipeId: 'skill-ice-self',
+      valid: true,
+      matchedTags: ['Recipe.Crafter.Skill'],
+      unlockedAffixCategories: ['skill_core', 'skill_variant'],
+      reservedEnergy: 3,
+    });
+    orchestrator.budgetEnergy(session, {
+      baseTotal: 36,
+      effectiveTotal: 36,
+      reserved: 3,
+      spent: 0,
+      remaining: 33,
+      initialRemaining: 33,
+      allocations: [],
+      rejections: [],
+      sources: [{ source: '玄冰魄', amount: 36 }],
+    });
+    orchestrator.buildAffixPoolWithDefaults(session);
+    expect(session.state.affixPool.map((affix) => affix.id)).toContain(
+      'skill-core-ice-frost-guard',
+    );
+    const affixes = orchestrator.rollAffixesWithDefaults(session);
+
+    expect(affixes.some((affix) => affix.category === 'skill_core')).toBe(true);
+    expect(affixes.map((affix) => affix.id)).toContain('skill-core-ice-frost-guard');
   });
 
   it('应能将主动技能蓝图物化为 battle-v5 主动技能能力实例', () => {

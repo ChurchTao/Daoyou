@@ -19,6 +19,8 @@ export interface ItemRankingEntry {
   cost?: number;
   cooldown?: number;
   quantity?: number;
+  abilityConfig?: unknown;
+  productModel?: unknown;
 
   // Optional properties for UI compatibility
   title?: string;
