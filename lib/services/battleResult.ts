@@ -13,21 +13,20 @@ import type {
   BattleStateTimeline,
   UnitStateSnapshot,
 } from '@/engine/battle-v5/systems/state/types';
+import type {
+  BattleInitConfigV5,
+  BattleUnitInitSpec,
+  PersistentCombatStatusV5,
+  ResourcePointState,
+} from '@/engine/battle-v5/setup/types';
 import type { Cultivator } from '@/types/cultivator';
 
-/**
- * 初始进入战场的状态覆盖
- */
-export interface InitialUnitState {
-  /** HP 损失百分比 (0-1) */
-  hpLossPercent?: number;
-  /** MP 损失百分比 (0-1) */
-  mpLossPercent?: number;
-  /** 是否为练功房模式 */
-  isTraining?: boolean;
-  /** 木桩最大血量覆盖（仅练功房有效） */
-  opponentMaxHpOverride?: number;
-}
+export type {
+  BattleInitConfigV5,
+  BattleUnitInitSpec,
+  PersistentCombatStatusV5,
+  ResourcePointState,
+};
 
 /**
  * v5 原生战斗记录。
@@ -87,4 +86,3 @@ export interface BattleRecordV2Detail {
 export function toViewRecord(record: BattleRecord): BattleViewRecord {
   return record;
 }
-

@@ -38,6 +38,22 @@ export { DataDrivenBuff } from './buffs/DataDrivenBuff';
 export { AbilityFactory } from './factories/AbilityFactory';
 export { BuffFactory } from './factories/BuffFactory';
 export { AbilityDataLoader } from './loaders/AbilityDataLoader';
+export {
+  combatStatusTemplateRegistry,
+  getAllCombatStatusTemplates,
+  getCombatStatusDisplay,
+  getCombatStatusTemplate,
+  normalizePersistentCombatStatuses,
+} from './setup/CombatStatusTemplateRegistry';
+export { createBattleUnitsWithInit } from './setup/BattleInitApplier';
+export type {
+  BattleInitConfigV5,
+  BattleUnitInitSpec,
+  CombatStatusTemplate,
+  PersistentCombatStatusV5,
+  ResourcePointState,
+  TrainingRoomModifierDraft,
+} from './setup/types';
 
 // Main Entry
 export { BattleEngineV5, type BattleResult } from './BattleEngineV5';

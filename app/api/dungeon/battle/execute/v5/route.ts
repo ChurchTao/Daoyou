@@ -43,10 +43,11 @@ export const POST = withActiveCultivator(
       const playerUnit = playerBundle.cultivator;
 
       // Simulate Battle
-      const result = simulateBattleV5(playerUnit, enemyObject, {
-        hpLossPercent: sessionData.session.playerSnapshot.hpLossPercent,
-        mpLossPercent: sessionData.session.playerSnapshot.mpLossPercent,
-      });
+      const result = simulateBattleV5(
+        playerUnit,
+        enemyObject,
+        sessionData.session.battleInit,
+      );
 
       // Update Dungeon State
       let callbackResult;

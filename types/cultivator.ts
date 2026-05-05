@@ -2,6 +2,7 @@
 
 import type { AbilityConfig } from '@/engine/creation-v2/contracts/battle';
 import type { AttributeModifierConfig } from '@/engine/battle-v5/core/configs';
+import type { PersistentCombatStatusV5 } from '@/engine/battle-v5/setup/types';
 import type {
   ConsumableType,
   ElementType,
@@ -229,5 +230,5 @@ export interface Cultivator {
   cultivation_progress?: CultivationProgress;
 
   // 持久状态（用于存储战斗/副本中产生的持久状态）
-  persistent_statuses?: unknown; // JSONB field from database
+  persistent_statuses?: PersistentCombatStatusV5[];
 }

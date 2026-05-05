@@ -164,8 +164,8 @@ export class BattleStateRecorder {
       critDamageReduction: getVal(AttributeType.CRIT_DAMAGE_REDUCTION),
       accuracy: getVal(AttributeType.ACCURACY),
       healAmplify: getVal(AttributeType.HEAL_AMPLIFY),
-      maxHp: a.getMaxHp(),
-      maxMp: a.getMaxMp(),
+      maxHp: getVal(AttributeType.MAX_HP),
+      maxMp: getVal(AttributeType.MAX_MP),
     };
   }
 

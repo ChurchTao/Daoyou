@@ -238,6 +238,22 @@ export class AttributeSet {
       ),
     );
 
+    this._attributes.set(
+      AttributeType.MAX_HP,
+      new Attribute(AttributeType.MAX_HP, 0, false, () =>
+        200 + this.getValue(AttributeType.VITALITY) * 16,
+      ),
+    );
+
+    this._attributes.set(
+      AttributeType.MAX_MP,
+      new Attribute(AttributeType.MAX_MP, 0, false, () =>
+        100 +
+        this.getValue(AttributeType.SPIRIT) * 5 +
+        this.getValue(AttributeType.WILLPOWER) * 3,
+      ),
+    );
+
     // ── 外部注入型二级属性（base=0）──
     for (const attrType of EXTERNAL_SECONDARY_ATTRS) {
       this._attributes.set(attrType, new Attribute(attrType, 0, true));
@@ -336,21 +352,14 @@ export class AttributeSet {
    * HP = 200 + VITALITY×16
    */
   getMaxHp(): number {
-    return (
-      200 +
-      this.getValue(AttributeType.VITALITY) * 16
-    );
+    return this.getValue(AttributeType.MAX_HP);
   }
 
   /**
    * MP = 100 + SPIRIT×5 + WILLPOWER×3
    */
   getMaxMp(): number {
-    return (
-      100 +
-      this.getValue(AttributeType.SPIRIT) * 5 +
-      this.getValue(AttributeType.WILLPOWER) * 3
-    );
+    return this.getValue(AttributeType.MAX_MP);
   }
 
   /**

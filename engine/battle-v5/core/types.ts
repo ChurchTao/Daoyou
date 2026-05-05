@@ -42,6 +42,8 @@ export enum AttributeType {
   EVASION_RATE = 'evasionRate',                 // 闪避率 (0~0.50)：SPEED×0.003
   CONTROL_HIT = 'controlHit',                   // 控制命中 (0~0.80)：WILLPOWER×0.003
   CONTROL_RESISTANCE = 'controlResistance',     // 控制抗性 (0~0.80)：WILLPOWER×0.003
+  MAX_HP = 'maxHp',                             // 最大气血：200 + VITALITY×16
+  MAX_MP = 'maxMp',                             // 最大真元：100 + SPIRIT×5 + WILLPOWER×3
 
   // ── 外部注入型二级属性（base=0，完全由装备/Buff/命格提供）──
   ARMOR_PENETRATION = 'armorPenetration',        // 破防：抵消目标减伤率 (0~1)

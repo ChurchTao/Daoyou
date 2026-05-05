@@ -1,6 +1,7 @@
-import { buffRegistry } from '@/engine/buff';
-import type { BuffInstanceState } from '@/engine/buff/types';
-import { BuffTag } from '@/engine/buff/types';
+import {
+  getCombatStatusTemplate,
+} from '@/engine/battle-v5/setup/CombatStatusTemplateRegistry';
+import type { PersistentCombatStatusV5 } from '@/engine/battle-v5/setup/types';
 
 /**
  * 状态显示信息
@@ -19,52 +20,29 @@ export interface StatusDisplayInfo {
  * 获取状态显示信息（从 BuffRegistry）
  */
 export function getStatusDisplay(
-  configId: string,
+  templateId: string,
   stacks?: number,
 ): StatusDisplayInfo {
-  const config = buffRegistry.get(configId);
+  const config = getCombatStatusTemplate(templateId);
 
   if (!config) {
     return {
-      key: configId,
-      name: configId,
+      key: templateId,
+      name: templateId,
       description: '未知状态',
       icon: '❓',
       color: 'text-ink-secondary',
-      type: 'combat',
+      type: 'persistent',
     };
   }
 
-  // 根据标签确定类型
-  const tags = config.tags || [];
-  let displayType: StatusDisplayInfo['type'] = 'combat';
-  if (tags.includes(BuffTag.PERSISTENT)) displayType = 'persistent';
-  else if (tags.includes(BuffTag.BUFF)) displayType = 'buff';
-  else if (tags.includes(BuffTag.DEBUFF)) displayType = 'debuff';
-
-  const iconMap: Record<string, string> = {
-    buff: '⬆️',
-    debuff: '⬇️',
-    persistent: '💫',
-    combat: '⚔️',
-    environmental: '🌍',
-  };
-
-  const colorMap: Record<string, string> = {
-    buff: 'text-green-600',
-    debuff: 'text-orange-600',
-    persistent: 'text-blue-600',
-    combat: 'text-purple-600',
-    environmental: 'text-teal-600',
-  };
-
   return {
-    key: configId,
+    key: templateId,
     name: config.name,
-    description: config.description ?? '状态效果',
-    icon: iconMap[displayType] ?? '⭐',
-    color: colorMap[displayType] ?? 'text-ink',
-    type: displayType,
+    description: config.description,
+    icon: config.display.icon,
+    color: 'text-blue-600',
+    type: 'persistent',
     stacks,
   };
 }
@@ -73,9 +51,9 @@ export function getStatusDisplay(
  * 批量获取状态显示信息
  */
 export function getBuffsDisplay(
-  buffs: BuffInstanceState[],
+  buffs: PersistentCombatStatusV5[],
 ): StatusDisplayInfo[] {
-  return buffs.map((b) => getStatusDisplay(b.configId, b.currentStacks));
+  return buffs.map((buff) => getStatusDisplay(buff.templateId, buff.stacks));
 }
 
 /**

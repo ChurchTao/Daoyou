@@ -41,12 +41,11 @@ export const POST = withActiveCultivator(
     const enemyUnit = enemyObject;
 
     // Simulate Battle with dungeon state
-    const result = simulateBattleV5(playerUnit, enemyUnit, {
-      hpLossPercent: sessionData.session.playerSnapshot.hpLossPercent,
-      mpLossPercent: sessionData.session.playerSnapshot.mpLossPercent,
-      // Note: dungeon 模块仍使用旧格式，这里暂时保持兼容
-      // 未来应统一为 BuffInstanceState
-    });
+    const result = simulateBattleV5(
+      playerUnit,
+      enemyUnit,
+      sessionData.session.battleInit,
+    );
 
     // Stream Response
     const encoder = new TextEncoder();

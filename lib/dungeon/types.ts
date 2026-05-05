@@ -1,4 +1,7 @@
-import type { BuffInstanceState } from '@/engine/buff/types';
+import type {
+  BattleInitConfigV5,
+  PersistentCombatStatusV5,
+} from '@/engine/battle-v5/setup/types';
 import type { ResourceOperation } from '@/engine/resource/types';
 import { z } from 'zod';
 
@@ -186,14 +189,7 @@ export interface BattleSession {
     level: string;
     difficulty: number;
   };
-  playerSnapshot: {
-    /** 持久 Buff 状态（使用新格式） */
-    persistentBuffs: BuffInstanceState[];
-    /** HP 损失百分比 */
-    hpLossPercent: number;
-    /** MP 损失百分比 */
-    mpLossPercent: number;
-  };
+  battleInit: BattleInitConfigV5;
 }
 
 // === Internal State Management ===
@@ -224,6 +220,6 @@ export interface DungeonState {
   currentRoundItems?: RewardBlueprint[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
-  /** 持久 Buff 状态（使用新格式） */
-  persistentBuffs: BuffInstanceState[];
+  /** v5 持久状态模板引用 */
+  persistentStatuses: PersistentCombatStatusV5[];
 }

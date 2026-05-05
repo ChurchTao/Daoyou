@@ -1,11 +1,13 @@
 'use client';
 
 import { InkCard } from '@/components/ui/InkCard';
-import { buffRegistry } from '@/engine/buff';
-import type { BuffInstanceState } from '@/engine/buff/types';
+import {
+  getCombatStatusTemplate,
+} from '@/engine/battle-v5/setup/CombatStatusTemplateRegistry';
+import type { PersistentCombatStatusV5 } from '@/engine/battle-v5/setup/types';
 
 interface StatusCardProps {
-  buffs: BuffInstanceState[];
+  buffs: PersistentCombatStatusV5[];
   title?: string;
   compact?: boolean;
   emptyMessage?: string;
@@ -21,13 +23,14 @@ export function StatusCard({
   compact = false,
   emptyMessage = '无异常状态',
 }: StatusCardProps) {
-  const displayInfos = buffs.map((b) => {
-    const config = buffRegistry.get(b.configId);
+  const displayInfos = buffs.map((buff, index) => {
+    const config = getCombatStatusTemplate(buff.templateId);
     return {
-      key: b.configId,
-      name: config?.name || b.configId,
+      key: `${buff.templateId}:${index}`,
+      name: config?.name || buff.templateId,
       description: config?.description || '未知状态',
-      stacks: b.currentStacks,
+      stacks: buff.stacks,
+      icon: config?.display.icon || '💫',
     };
   });
 
@@ -45,7 +48,7 @@ export function StatusCard({
       <div className="space-y-2">
         {displayInfos.map((info) => (
           <div key={info.key} className="flex items-start gap-2 text-sm">
-            <span className="text-base">💫</span>
+            <span className="text-base">{info.icon}</span>
             <div className="flex-1">
               <div className="font-bold text-blue-600">
                 {info.name}

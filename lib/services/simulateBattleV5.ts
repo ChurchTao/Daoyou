@@ -6,45 +6,25 @@
  */
 
 import { BattleEngineV5 } from '@/engine/battle-v5/BattleEngineV5';
-import { createCombatUnitFromCultivator } from '@/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { EventBus } from '@/engine/battle-v5/core/EventBus';
+import { createBattleUnitsWithInit } from '@/engine/battle-v5/setup/BattleInitApplier';
+import type { BattleInitConfigV5 } from '@/engine/battle-v5/setup/types';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 import type { Cultivator } from '@/types/cultivator';
-import type { BattleRecord, InitialUnitState } from './battleResult';
-
-function applyInitialState(
-  unit: ReturnType<typeof createCombatUnitFromCultivator>,
-  state?: InitialUnitState,
-) {
-  if (!state) return;
-
-  if (state.hpLossPercent && state.hpLossPercent > 0) {
-    unit.setHp(Math.floor(unit.getMaxHp() * (1 - state.hpLossPercent)));
-  }
-  if (state.mpLossPercent && state.mpLossPercent > 0) {
-    unit.takeMp(Math.floor(unit.getMaxMp() * state.mpLossPercent));
-  }
-}
+import type { BattleRecord } from './battleResult';
 
 export function simulateBattleV5(
   player: Cultivator,
   opponent: Cultivator,
-  initialPlayerState?: InitialUnitState,
+  initConfig?: BattleInitConfigV5,
 ): BattleRecord {
   EventBus.instance.reset();
 
-  const playerUnit = createCombatUnitFromCultivator(player);
-  const opponentUnit = createCombatUnitFromCultivator(opponent);
-
-  applyInitialState(playerUnit, initialPlayerState);
-  if (
-    initialPlayerState?.isTraining &&
-    initialPlayerState.opponentMaxHpOverride &&
-    initialPlayerState.opponentMaxHpOverride > 0
-  ) {
-    opponentUnit.overrideResourceCaps(initialPlayerState.opponentMaxHpOverride);
-    opponentUnit.setHp(initialPlayerState.opponentMaxHpOverride);
-  }
+  const { playerUnit, opponentUnit } = createBattleUnitsWithInit(
+    player,
+    opponent,
+    initConfig,
+  );
 
   const engine = new BattleEngineV5(playerUnit, opponentUnit);
 

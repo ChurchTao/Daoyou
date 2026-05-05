@@ -19,7 +19,8 @@ export function DungeonProgressCard({
   state,
   onQuit,
 }: DungeonProgressCardProps) {
-  const hasBuffs = state.persistentBuffs && state.persistentBuffs.length > 0;
+  const hasBuffs =
+    state.persistentStatuses && state.persistentStatuses.length > 0;
 
   return (
     <InkSection title="副本状态" subdued>
@@ -39,7 +40,11 @@ export function DungeonProgressCard({
 
         {/* 角色状态 */}
         {hasBuffs && (
-          <StatusCard buffs={state.persistentBuffs} title="持久状态" compact />
+          <StatusCard
+            buffs={state.persistentStatuses}
+            title="持久状态"
+            compact
+          />
         )}
 
         {/* 资源损耗 */}

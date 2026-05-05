@@ -1,4 +1,6 @@
 import { AbilityType } from '@/engine/battle-v5/core/types';
+import { normalizePersistentCombatStatuses } from '@/engine/battle-v5/setup/CombatStatusTemplateRegistry';
+import type { PersistentCombatStatusV5 } from '@/engine/battle-v5/setup/types';
 import type { AbilityConfig } from '@/engine/creation-v2/contracts/battle';
 import {
   deserializeAbilityConfig,
@@ -217,8 +219,7 @@ async function assembleCultivatorFromRelations(
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
     persistent_statuses:
-      (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) ||
-      [],
+      normalizePersistentCombatStatuses(cultivatorRecord.persistent_statuses),
   };
 }
 
@@ -306,8 +307,7 @@ export function createMinimalCultivator(
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
     persistent_statuses:
-      (cultivatorRecord.persistent_statuses as Cultivator['persistent_statuses']) ||
-      [],
+      normalizePersistentCombatStatuses(cultivatorRecord.persistent_statuses),
   };
 }
 
@@ -663,6 +663,7 @@ export async function updateCultivator(
       | 'closed_door_years_total'
       | 'status'
       | 'cultivation_progress'
+      | 'persistent_statuses'
     >
   >,
 ): Promise<Cultivator | null> {
@@ -697,6 +698,10 @@ export async function updateCultivator(
   if (updates.status !== undefined) updateData.status = updates.status;
   if (updates.cultivation_progress !== undefined)
     updateData.cultivation_progress = updates.cultivation_progress;
+  if (updates.persistent_statuses !== undefined) {
+    updateData.persistent_statuses =
+      updates.persistent_statuses as PersistentCombatStatusV5[];
+  }
 
   await getExecutor()
     .update(schema.cultivators)

@@ -55,18 +55,6 @@ export class Unit {
     this.currentMp = Math.min(this.currentMp, this.maxMp);
   }
 
-  overrideResourceCaps(maxHp?: number, maxMp?: number): void {
-    if (typeof maxHp === 'number' && maxHp > 0) {
-      this.maxHp = maxHp;
-      this.currentHp = Math.min(this.currentHp, this.maxHp);
-    }
-
-    if (typeof maxMp === 'number' && maxMp > 0) {
-      this.maxMp = maxMp;
-      this.currentMp = Math.min(this.currentMp, this.maxMp);
-    }
-  }
-
   /**
    * 增加护盾
    */
@@ -77,6 +65,14 @@ export class Unit {
 
   setHp(amount: number): void {
     this.currentHp = Math.max(0, Math.min(this.maxHp, amount));
+  }
+
+  setMp(amount: number): void {
+    this.currentMp = Math.max(0, Math.min(this.maxMp, amount));
+  }
+
+  setShield(amount: number): void {
+    this.currentShield = Math.max(0, Math.round(amount));
   }
 
   /**
@@ -135,7 +131,7 @@ export class Unit {
   }
 
   restoreMp(amount: number): void {
-    this.currentMp = Math.min(this.maxMp, this.currentMp + amount);
+    this.setMp(this.currentMp + amount);
   }
 
   isAlive(): boolean {
@@ -179,6 +175,7 @@ export class Unit {
     clone.currentMp = this.currentMp;
     clone.maxHp = this.maxHp;
     clone.maxMp = this.maxMp;
+    clone.currentShield = this.currentShield;
 
     // Clone tags (clear default tags from constructor, then copy all tags from original)
     clone.tags.clear();

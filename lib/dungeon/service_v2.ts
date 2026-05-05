@@ -1,5 +1,4 @@
 import type { BattleRecord } from '@/lib/services/battleResult';
-import type { BuffInstanceState } from '@/engine/buff/types';
 import { getCultivatorDisplayAttributes } from '@/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { enemyGenerator } from '@/engine/enemyGenerator';
 import { TYPE_DESCRIPTIONS } from '@/engine/material/creation/config';
@@ -22,7 +21,13 @@ import {
   getCultivatorByIdUnsafe,
   getCultivatorOwnerId,
   getPaginatedInventoryByType,
+  updateCultivator,
 } from '../services/cultivatorService';
+import {
+  buildDungeonBattleInit,
+  incrementOrInsertStatus,
+  promoteInjuryStatus,
+} from './battleInit';
 import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
 import { RewardFactory } from './reward';
@@ -265,27 +270,8 @@ ${materialTypeTable}
         throw new Error('未找到修真者数据');
       }
 
-      // 从数据库加载持久状态（转换为 BuffInstanceState 格式）
-      const rawStatuses = Array.isArray(
-        cultivator.cultivator.persistent_statuses,
-      )
-        ? cultivator.cultivator.persistent_statuses
-        : [];
-      const persistentBuffs: BuffInstanceState[] = rawStatuses.map(
-        (s: {
-          statusKey?: string;
-          configId?: string;
-          potency?: number;
-          currentStacks?: number;
-          createdAt?: number;
-        }) => ({
-          instanceId: '',
-          configId: s.statusKey || s.configId || '',
-          currentStacks: s.potency || s.currentStacks || 1,
-          remainingTurns: -1,
-          createdAt: s.createdAt || Date.now(),
-        }),
-      );
+      const persistentStatuses =
+        cultivator.cultivator.persistent_statuses ?? [];
 
       // 3. 初始状态
       const state: DungeonState = {
@@ -301,7 +287,7 @@ ${materialTypeTable}
         summary_of_sacrifice: [],
         accumulatedRewards: [],
         status: 'EXPLORING',
-        persistentBuffs,
+        persistentStatuses,
         accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
         accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
       };
@@ -443,24 +429,11 @@ ${materialTypeTable}
           );
         } else if (cost.type === 'weak') {
           // 1.2 weak 成本映射为 weakness 状态
-          const weaknessPotency = cost.value;
-          const existingWeakness = state.persistentBuffs.find(
-            (b) => b.configId === 'weakness',
+          state.persistentStatuses = incrementOrInsertStatus(
+            state.persistentStatuses,
+            'weakness',
+            cost.value,
           );
-          if (existingWeakness) {
-            existingWeakness.currentStacks = Math.min(
-              10,
-              existingWeakness.currentStacks + weaknessPotency,
-            );
-          } else {
-            state.persistentBuffs.push({
-              instanceId: '',
-              configId: 'weakness',
-              currentStacks: weaknessPotency,
-              remainingTurns: -1,
-              createdAt: Date.now(),
-            });
-          }
         }
       }
 
@@ -579,11 +552,7 @@ ${materialTypeTable}
         level: `${enemy.realm} ${enemy.realm_stage}`,
         difficulty: battleCost.value,
       },
-      playerSnapshot: {
-        persistentBuffs: dungeonState.persistentBuffs,
-        hpLossPercent: dungeonState.accumulatedHpLoss,
-        mpLossPercent: dungeonState.accumulatedMpLoss,
-      },
+      battleInit: buildDungeonBattleInit(dungeonState),
     };
 
     // Save to Redis
@@ -625,52 +594,7 @@ ${materialTypeTable}
     // 战斗失败处理：生成伤势状态
     if (!isWin) {
       // 根据当前伤势状态升级：minor_wound → major_wound → near_death
-      const hasMinorWound = state.persistentBuffs.find(
-        (b) => b.configId === 'minor_wound',
-      );
-      const hasMajorWound = state.persistentBuffs.find(
-        (b) => b.configId === 'major_wound',
-      );
-      const hasNearDeath = state.persistentBuffs.find(
-        (b) => b.configId === 'near_death',
-      );
-
-      if (hasNearDeath) {
-        hasNearDeath.currentStacks = Math.min(
-          10,
-          hasNearDeath.currentStacks + 1,
-        );
-      } else if (hasMajorWound) {
-        state.persistentBuffs = state.persistentBuffs.filter(
-          (b) => b.configId !== 'major_wound',
-        );
-        state.persistentBuffs.push({
-          instanceId: '',
-          configId: 'near_death',
-          currentStacks: 1,
-          remainingTurns: -1,
-          createdAt: Date.now(),
-        });
-      } else if (hasMinorWound) {
-        state.persistentBuffs = state.persistentBuffs.filter(
-          (b) => b.configId !== 'minor_wound',
-        );
-        state.persistentBuffs.push({
-          instanceId: '',
-          configId: 'major_wound',
-          currentStacks: 1,
-          remainingTurns: -1,
-          createdAt: Date.now(),
-        });
-      } else {
-        state.persistentBuffs.push({
-          instanceId: '',
-          configId: 'minor_wound',
-          currentStacks: 1,
-          remainingTurns: -1,
-          createdAt: Date.now(),
-        });
-      }
+      state.persistentStatuses = promoteInjuryStatus(state.persistentStatuses);
 
       const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
       lastHistory.outcome = outcomeText;
@@ -680,8 +604,6 @@ ${materialTypeTable}
 
     const outcomeText = `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
     lastHistory.outcome = outcomeText;
-
-    // 持久状态同步将在 Phase 6 后接入 v5 Unit.getSnapshot().persistentBuffs
 
     // FIX: Instead of calling AI immediately, enter LOOTING state
     state.status = 'LOOTING';
@@ -1080,6 +1002,10 @@ ${materialTypeTable}
     settlement: DungeonSettlement,
     realGains?: ResourceOperation[],
   ) {
+    await updateCultivator(state.cultivatorId, {
+      persistent_statuses: state.persistentStatuses,
+    });
+
     // Archive to DB
     await getExecutor()
       .insert(dungeonHistories)
@@ -1105,6 +1031,9 @@ ${materialTypeTable}
 
     const state = await redis.get<DungeonState>(key);
     if (state) {
+      await updateCultivator(cultivatorId, {
+        persistent_statuses: state.persistentStatuses,
+      });
       await getExecutor()
         .insert(dungeonHistories)
         .values({
