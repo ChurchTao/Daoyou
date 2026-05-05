@@ -164,9 +164,6 @@ export function getProductShowcaseProps(
         </InkBadge>
       ) : null,
     ].filter(Boolean),
-    summary: product.isEquipped ? (
-      <div className="text-ink-primary text-sm font-medium">已装备</div>
-    ) : undefined,
     extraInfo: getExtraInfo(product),
     description: product.description,
     descriptionTitle: getDescriptionTitle(product),
