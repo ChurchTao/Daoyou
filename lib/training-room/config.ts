@@ -35,7 +35,6 @@ export interface TrainingRoomDummyDraft {
     wisdom: number;
   };
   modifiers: TrainingRoomModifierDraft[];
-  statusRefs: PersistentCombatStatusV5[];
 }
 
 export interface TrainingRoomDraft {
@@ -145,16 +144,10 @@ function sanitizeDraft(value: unknown): TrainingRoomDraft {
   if (!value || typeof value !== 'object') return fallback;
 
   const candidate = value as Partial<TrainingRoomDraft>;
-  const player = (candidate.player ?? {}) as Partial<TrainingRoomPlayerDraft>;
   const dummy = (candidate.dummy ?? {}) as Partial<TrainingRoomDummyDraft>;
 
   return {
-    player: {
-      hp: sanitizeResourceState(player.hp, fallback.player.hp),
-      mp: sanitizeResourceState(player.mp, fallback.player.mp),
-      shield: Math.max(0, toFiniteNumber(player.shield, fallback.player.shield)),
-      statusRefs: sanitizeStatusRefs(player.statusRefs),
-    },
+    player: fallback.player,
     dummy: {
       maxHp: Math.max(0, toFiniteNumber(dummy.maxHp, fallback.dummy.maxHp)),
       maxMp: Math.max(0, toFiniteNumber(dummy.maxMp, fallback.dummy.maxMp)),
@@ -184,7 +177,6 @@ function sanitizeDraft(value: unknown): TrainingRoomDraft {
         ),
       },
       modifiers: sanitizeModifierDrafts(dummy.modifiers),
-      statusRefs: sanitizeStatusRefs(dummy.statusRefs),
     },
   };
 }
@@ -219,7 +211,7 @@ export function createDefaultTrainingRoomDraft(): TrainingRoomDraft {
       statusRefs: [],
     },
     dummy: {
-      maxHp: 10_000_000,
+      maxHp: 100_000,
       maxMp: 0,
       baseAttributes: {
         spirit: 10,
@@ -229,7 +221,6 @@ export function createDefaultTrainingRoomDraft(): TrainingRoomDraft {
         wisdom: 10,
       },
       modifiers: [],
-      statusRefs: [],
     },
   };
 }
@@ -300,11 +291,10 @@ export function buildTrainingBattleInitConfig(
   return {
     player: {
       resourceState: {
-        hp: toResourcePointState(sanitized.player.hp),
-        mp: toResourcePointState(sanitized.player.mp),
-        shield: sanitized.player.shield,
+        hp: toResourcePointState({ mode: 'percent', value: 1 }),
+        mp: toResourcePointState({ mode: 'percent', value: 1 }),
+        shield: 0,
       },
-      statusRefs: sanitized.player.statusRefs,
     },
     opponent: {
       baseAttributeOverrides: {
@@ -325,7 +315,6 @@ export function buildTrainingBattleInitConfig(
             ? { mode: 'absolute', value: sanitized.dummy.maxMp }
             : { mode: 'percent', value: 1 },
       },
-      statusRefs: sanitized.dummy.statusRefs,
     },
   };
 }

@@ -582,7 +582,7 @@ export default function TrainingRoomPage() {
               </InkButton>
             </div>
             <p className="mt-3 text-xs text-ink/55">
-              默认配置下，玩家会以完整状态入场；你在这里保存的设置也会保留在当前浏览器中。
+              默认配置下，玩家会以完整状态入场，木桩气血为 100000；你在这里保存的设置也会保留在当前浏览器中。
             </p>
           </InkCard>
 
@@ -597,7 +597,7 @@ export default function TrainingRoomPage() {
                       className={INPUT_CLASSNAME}
                       value={presetName}
                       onChange={(event) => setPresetName(event.target.value)}
-                      placeholder="例如：千万血木桩 / 濒死测试"
+                      placeholder="例如：十万血木桩 / 破防测试"
                     />
                   </label>
 
@@ -654,93 +654,7 @@ export default function TrainingRoomPage() {
                 </div>
               </InkCard>
 
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <div className="space-y-4">
-                  <InkCard variant="elevated" className="rounded-lg p-5">
-                    <p className="mb-3 text-base font-semibold text-ink">玩家入场状态</p>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <ResourceStateEditor
-                        label="当前气血"
-                        mode={draft.player.hp.mode}
-                        value={draft.player.hp.value}
-                        onModeChange={(mode) =>
-                          setDraft((current) => ({
-                            ...current,
-                            player: {
-                              ...current.player,
-                              hp: { ...current.player.hp, mode },
-                            },
-                          }))
-                        }
-                        onValueChange={(value) =>
-                          setDraft((current) => ({
-                            ...current,
-                            player: {
-                              ...current.player,
-                              hp: { ...current.player.hp, value },
-                            },
-                          }))
-                        }
-                      />
-                      <ResourceStateEditor
-                        label="当前真元"
-                        mode={draft.player.mp.mode}
-                        value={draft.player.mp.value}
-                        onModeChange={(mode) =>
-                          setDraft((current) => ({
-                            ...current,
-                            player: {
-                              ...current.player,
-                              mp: { ...current.player.mp, mode },
-                            },
-                          }))
-                        }
-                        onValueChange={(value) =>
-                          setDraft((current) => ({
-                            ...current,
-                            player: {
-                              ...current.player,
-                              mp: { ...current.player.mp, value },
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="mt-4">
-                      <NumberField
-                        label="起始护盾"
-                        value={draft.player.shield}
-                        min={0}
-                        onChange={(value) =>
-                          setDraft((current) => ({
-                            ...current,
-                            player: {
-                              ...current.player,
-                              shield: Math.max(0, value),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                  </InkCard>
-
-                  <StatusRefEditor
-                    title="玩家附带状态"
-                    statuses={draft.player.statusRefs}
-                    onChange={(statuses) =>
-                      setDraft((current) => ({
-                        ...current,
-                        player: {
-                          ...current.player,
-                          statusRefs: statuses,
-                        },
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-4">
+              <div className="space-y-4">
                   <InkCard variant="elevated" className="rounded-lg p-5">
                     <p className="mb-3 text-base font-semibold text-ink">木桩基础设置</p>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -798,20 +712,6 @@ export default function TrainingRoomPage() {
                     </div>
                   </InkCard>
 
-                  <StatusRefEditor
-                    title="木桩附带状态"
-                    statuses={draft.dummy.statusRefs}
-                    onChange={(statuses) =>
-                      setDraft((current) => ({
-                        ...current,
-                        dummy: {
-                          ...current.dummy,
-                          statusRefs: statuses,
-                        },
-                      }))
-                    }
-                  />
-
                   <ModifierEditor
                     modifiers={draft.dummy.modifiers}
                     onChange={(modifiers) =>
@@ -824,7 +724,6 @@ export default function TrainingRoomPage() {
                       }))
                     }
                   />
-                </div>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dashed border-ink/10 pt-4">

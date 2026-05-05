@@ -49,7 +49,40 @@ describe('training-room config', () => {
     expect(brokenJson).toEqual(createDefaultTrainingRoomStorage());
   });
 
-  test('默认练功房配置能把木桩首帧初始化为千万血', () => {
+  test('玩家旧自定义配置会被忽略并恢复为默认入场', () => {
+    const storage = parseTrainingRoomStorage(
+      JSON.stringify({
+        version: 1,
+        currentDraft: {
+          player: {
+            hp: { mode: 'percent', value: 0.2 },
+            mp: { mode: 'absolute', value: 12 },
+            shield: 999,
+            statusRefs: [{ version: 1, templateId: 'weakness', stacks: 3 }],
+          },
+          dummy: {
+            maxHp: 100_000,
+            maxMp: 0,
+            baseAttributes: {
+              spirit: 10,
+              vitality: 10,
+              wisdom: 10,
+              speed: 10,
+              willpower: 10,
+            },
+            modifiers: [],
+          },
+        },
+        presets: [],
+      }),
+    );
+
+    expect(storage.currentDraft.player).toEqual(
+      createDefaultTrainingRoomStorage().currentDraft.player,
+    );
+  });
+
+  test('默认练功房配置能把木桩首帧初始化为十万血', () => {
     const player = createCultivator('player', '道友');
     const dummy = createCultivator('dummy', '木桩');
     const initConfig = buildTrainingBattleInitConfig(
@@ -59,7 +92,27 @@ describe('training-room config', () => {
     const result = simulateBattleV5(player, dummy, initConfig);
     const initFrame = result.stateTimeline.frames[0].units.dummy;
 
-    expect(initFrame.hp.current).toBe(10_000_000);
-    expect(initFrame.hp.max).toBe(10_000_000);
+    expect(initFrame.hp.current).toBe(100_000);
+    expect(initFrame.hp.max).toBe(100_000);
+  });
+
+  test('训练初始化不会读取玩家自定义草稿', () => {
+    const initConfig = buildTrainingBattleInitConfig({
+      player: {
+        hp: { mode: 'percent', value: 0.2 },
+        mp: { mode: 'absolute', value: 12 },
+        shield: 999,
+        statusRefs: [{ version: 1, templateId: 'weakness', stacks: 3 }],
+      },
+      dummy: createDefaultTrainingRoomStorage().currentDraft.dummy,
+    });
+
+    expect(initConfig.player).toEqual({
+      resourceState: {
+        hp: { mode: 'percent', value: 1 },
+        mp: { mode: 'percent', value: 1 },
+        shield: 0,
+      },
+    });
   });
 });
