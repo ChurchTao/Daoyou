@@ -19,7 +19,6 @@ const TYPE_TAGS: Record<Material['type'], string> = {
   aux: CreationTags.MATERIAL.TYPE_AUXILIARY,
   gongfa_manual: CreationTags.MATERIAL.TYPE_GONGFA_MANUAL,
   skill_manual: CreationTags.MATERIAL.TYPE_SKILL_MANUAL,
-  manual: CreationTags.MATERIAL.TYPE_MANUAL,
 };
 
 const RECIPE_BIAS_TAG_BY_PRODUCT: Record<CreationProductType, string> = {
@@ -79,9 +78,7 @@ export class MaterialTagNormalizer {
     const typeBonus =
       material.type === 'gongfa_manual' || material.type === 'skill_manual'
         ? CREATION_MATERIAL_ENERGY.specializedManualBonus
-        : material.type === 'manual'
-          ? CREATION_MATERIAL_ENERGY.manualBonus
-          : 0;
+        : 0;
 
     const quantityTerm = Math.sqrt(material.quantity);
     return Math.round(qualityWeight * quantityTerm + typeBonus);

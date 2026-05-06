@@ -22,6 +22,10 @@ const mockPlayer: PlayerInfo = {
   spirit_stones: 100,
   background: '测试背景',
   inventory_summary: 'mock inventory',
+  resourceCaps: {
+    maxHp: 1000,
+    maxMp: 800,
+  },
 };
 
 test('test 敌人生成器', async () => {

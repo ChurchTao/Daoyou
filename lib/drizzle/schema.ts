@@ -53,6 +53,7 @@ export const cultivators = pgTable(
 
     // 持久状态（用于存储战斗/副本中产生的持久状态）
     persistent_statuses: jsonb('persistent_statuses').default([]),
+    persistent_state: jsonb('persistent_state').default({}),
 
     // 修为进度系统
     cultivation_progress: jsonb('cultivation_progress').default({}),
@@ -98,7 +99,10 @@ export const preHeavenFates = pgTable(
       .notNull(),
     name: varchar('name', { length: 100 }).notNull(),
     quality: varchar('quality', { length: 10 }), // 凡品 | 灵品 | 玄品 | 真品
+    // @deprecated 新版本上线后删除
     effects: jsonb('effects').default([]),
+    registryKey: varchar('registry_key', { length: 100 }),
+    details: jsonb('details').default({}),
     description: text('description'),
     createdAt: timestamp('created_at').defaultNow(),
   },
@@ -218,9 +222,14 @@ export const consumables = pgTable(
       .notNull(),
     name: varchar('name', { length: 100 }).notNull(),
     type: varchar('type', { length: 20 }).notNull(), // 丹药 | 符箓
+    category: varchar('category', { length: 40 }),
     prompt: varchar('prompt', { length: 200 }).notNull().default(''), // 提示词
     quality: varchar('quality', { length: 20 }).notNull().default('凡品'), // 凡品 | 下品 | 中品 | 上品 | 极品 | 仙品 | 神品
+    // @deprecated 新版本上线后删除
     effects: jsonb('effects').default([]), // EffectConfig[]
+    mechanicKey: varchar('mechanic_key', { length: 100 }),
+    quotaKind: varchar('quota_kind', { length: 40 }),
+    useSpec: jsonb('use_spec'),
     quantity: integer('quantity').notNull().default(1),
     description: text('description'),
     score: integer('score').notNull().default(0), // 评分
@@ -356,7 +365,9 @@ export const battleRecordsV2 = pgTable(
     cultivatorId: uuid('cultivator_id')
       .references(() => cultivators.id, { onDelete: 'cascade' })
       .notNull(),
-    battleType: varchar('battle_type', { length: 20 }).notNull().default('normal'), // challenge | challenged | normal
+    battleType: varchar('battle_type', { length: 20 })
+      .notNull()
+      .default('normal'), // challenge | challenged | normal
     opponentCultivatorId: uuid('opponent_cultivator_id').references(
       () => cultivators.id,
       { onDelete: 'set null' },
@@ -378,7 +389,10 @@ export const battleRecordsV2 = pgTable(
       table.opponentCultivatorId,
       table.createdAt,
     ),
-    index('battle_records_v2_user_created_idx').on(table.userId, table.createdAt),
+    index('battle_records_v2_user_created_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
   ],
 );
 

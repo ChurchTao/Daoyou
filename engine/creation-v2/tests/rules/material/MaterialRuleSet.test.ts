@@ -110,16 +110,16 @@ describe('MaterialRuleSet', () => {
     );
   });
 
-  it('应拒绝旧版通用秘籍参与神通推演', () => {
+  it('应拒绝功法秘籍参与神通推演', () => {
     const fingerprints: MaterialFingerprint[] = [
       {
         materialName: '百炼器经',
-        materialType: 'manual',
+        materialType: 'gongfa_manual',
         rank: '玄品',
         quantity: 1,
         explicitTags: ['Material.Type.Manual'],
         semanticTags: ['Material.Semantic.Focus'],
-        recipeTags: ['Recipe.ProductBias.Utility'],
+        recipeTags: ['Recipe.ProductBias.GongFa'],
         energyValue: 8,
         rarityWeight: 2,
       },
@@ -131,7 +131,7 @@ describe('MaterialRuleSet', () => {
     expect(decision.valid).toBe(false);
     expect(decision.reasons).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ code: 'skill-legacy-manual-forbidden' }),
+        expect.objectContaining({ code: 'skill-gongfa-manual-forbidden' }),
       ]),
     );
   });

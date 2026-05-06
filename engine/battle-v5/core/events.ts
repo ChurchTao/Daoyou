@@ -323,12 +323,6 @@ export interface BattleInitEvent extends CombatEvent {
   opponent: Unit;
 }
 
-// ===== 命格觉醒事件 =====
-export interface DestinyAwakenEvent extends CombatEvent {
-  type: 'DestinyAwakenEvent';
-  turn: number;
-}
-
 // ===== 回合开始事件（状态机驱动） =====
 export interface RoundStartEvent extends CombatEvent {
   type: 'RoundStartEvent';

@@ -32,7 +32,6 @@ const MATERIAL_TYPES = [
   'herb',
   'aux',
   'tcdb',
-  'manual',
   'gongfa_manual',
   'skill_manual',
 ] as const;
@@ -58,9 +57,7 @@ function calculateEnergyValue(
   const typeBonus =
     materialType === 'gongfa_manual' || materialType === 'skill_manual'
       ? CREATION_MATERIAL_ENERGY.specializedManualBonus
-      : materialType === 'manual'
-        ? CREATION_MATERIAL_ENERGY.manualBonus
-        : 0;
+      : 0;
 
   return Math.round(qualityWeight * Math.sqrt(quantity) + typeBonus);
 }

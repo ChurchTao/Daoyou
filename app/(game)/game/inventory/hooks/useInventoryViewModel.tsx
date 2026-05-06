@@ -408,7 +408,24 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     async (item: Consumable) => {
       if (!cultivator || !item.id) {
         pushToast({
-          message: '此丹药暂无有效 ID，无法服用。',
+          message: '此消耗品暂无有效 ID，无法使用。',
+          tone: 'warning',
+        });
+        return;
+      }
+
+      const isTalisman = item.category === 'talisman_key' || item.type === '符箓';
+      if (isTalisman) {
+        pushToast({
+          message: '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',
+          tone: 'warning',
+        });
+        return;
+      }
+
+      if (!item.category || !item.useSpec) {
+        pushToast({
+          message: '该消耗品仍是旧制数据，暂未开放新版本使用。',
           tone: 'warning',
         });
         return;

@@ -21,7 +21,6 @@ export const TYPE_CHANCE_MAP: Record<MaterialType, number> = {
   aux: 0.05, // 5% 特殊辅料
   gongfa_manual: 0.05, // 5% 功法典籍（稀有）
   skill_manual: 0.05, // 5% 神通秘术（稀有）
-  manual: 0, // deprecated: blocked from new generation
 };
 
 // 品质基础价格
@@ -45,7 +44,6 @@ export const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
   aux: 1.5,
   gongfa_manual: 3.0, // 功法典籍
   skill_manual: 3.0, // 神通秘术
-  manual: 3.0, // deprecated input compatibility only
 };
 
 // 类型中文描述与解释（用于 Prompt）
@@ -57,7 +55,6 @@ export const TYPE_DESCRIPTIONS: Record<MaterialType, string> = {
   aux: '辅料 (炼丹/炼器的辅助材料，如灵液、粉尘)',
   gongfa_manual: '功法典籍',
   skill_manual: '神通秘术',
-  manual: '古旧典籍(兼容，仅历史数据，不再新产出)',
 };
 
 // 各品质的堆叠数量配置 [min, max]

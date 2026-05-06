@@ -51,6 +51,7 @@ export interface CreationSessionInput {
   productType: CreationProductType;
   materials: Material[];
   userPrompt?: string;
+  contextDominantTags?: string[];
   requestedSlot?: EquipmentSlot;
   requestedTargetPolicy?: TargetPolicyConfig;
 }

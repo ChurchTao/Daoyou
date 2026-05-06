@@ -24,17 +24,15 @@
           "quality": "仙品",
           "quantity": 1,
           "description": "以此符遮蔽天机，逆转先天之数。可获三次推演命格之机，择优而栖。",
-          "effects": [
-            {
-              "type": "ConsumeAddBuff",
-              "trigger": "ON_CONSUME",
-              "params": {
-                "buffId": "reshape_fate_talisman",
-                "expiryMinutes": 3600,
-                "maxUses": 3
-              }
-            }
-          ]
+          "category": "talisman_key",
+          "mechanicKey": "fate_reshape_access",
+          "useSpec": {
+            "talisman": {
+              "scenario": "fate_reshape",
+              "sessionMode": "lock_on_enter_settle_on_exit"
+            },
+            "notes": "进入逆天改命玩法时锁定，结算时扣除。"
+          }
         }
       }
     ]
@@ -53,18 +51,15 @@
           "quality": "仙品",
           "quantity": 1,
           "description": "燃此符可神游太虚，感悟天地至理。三日内可得一次机缘，从虚空中领悟一部玄品以上功法典籍。",
-          "effects": [
-            {
-              "type": "ConsumeAddBuff",
-              "trigger": "ON_CONSUME",
-              "params": {
-                "buffId": "draw_gongfa_talisman",
-                "expiryMinutes": 3600,
-                "maxUses": 1,
-                "drawType": "gongfa"
-              }
-            }
-          ]
+          "category": "talisman_key",
+          "mechanicKey": "gongfa_draw_access",
+          "useSpec": {
+            "talisman": {
+              "scenario": "draw_gongfa",
+              "sessionMode": "lock_on_enter_settle_on_exit"
+            },
+            "notes": "进入悟道演法玩法时锁定，终局结算后扣除。"
+          }
         }
       }
     ]
@@ -83,18 +78,15 @@
           "quality": "仙品",
           "quantity": 1,
           "description": "此符蕴含天地法则碎片。三日内可得一次机缘，衍化出一门玄品以上神通秘术。",
-          "effects": [
-            {
-              "type": "ConsumeAddBuff",
-              "trigger": "ON_CONSUME",
-              "params": {
-                "buffId": "draw_skill_talisman",
-                "expiryMinutes": 3600,
-                "maxUses": 1,
-                "drawType": "skill"
-              }
-            }
-          ]
+          "category": "talisman_key",
+          "mechanicKey": "skill_draw_access",
+          "useSpec": {
+            "talisman": {
+              "scenario": "draw_skill",
+              "sessionMode": "lock_on_enter_settle_on_exit"
+            },
+            "notes": "进入神通衍化玩法时锁定，终局结算后扣除。"
+          }
         }
       }
     ]

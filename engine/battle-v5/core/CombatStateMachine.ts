@@ -7,7 +7,7 @@
  * - 每个阶段职责单一，便于扩展
  *
  * 状态流程：
- * INIT → DESTINY_AWAKEN → ROUND_START → ROUND_PRE → TURN_ORDER → ACTION → ROUND_POST → VICTORY_CHECK
+ * INIT → ROUND_START → ROUND_PRE → TURN_ORDER → ACTION → ROUND_POST → VICTORY_CHECK
  *                                                                      ↑                    |
  *                                                                      └────────────────────┘
  *                                                                           (下一回合)
@@ -18,7 +18,6 @@ import { CombatPhase } from './types';
 import { EventBus } from './EventBus';
 import {
   BattleInitEvent,
-  DestinyAwakenEvent,
   RoundStartEvent,
   RoundPreEvent,
   TurnOrderEvent,
@@ -84,20 +83,6 @@ export class CombatStateMachine {
           timestamp: Date.now(),
           player: units[0],
           opponent: units[1],
-        });
-      },
-      onUpdate: () => {},
-      onExit: () => {},
-    });
-
-    // DESTINY_AWAKEN 状态 - 命格觉醒阶段
-    this._states.set(CombatPhase.DESTINY_AWAKEN, {
-      phase: CombatPhase.DESTINY_AWAKEN,
-      onEnter: () => {
-        EventBus.instance.publish<DestinyAwakenEvent>({
-          type: 'DestinyAwakenEvent',
-          timestamp: Date.now(),
-          turn: this._context.turn,
         });
       },
       onUpdate: () => {},

@@ -2,10 +2,12 @@ import type {
   BattleInitConfigV5,
   PersistentCombatStatusV5,
 } from '@/engine/battle-v5/setup/types';
+import type { CultivatorPersistentState } from '@/types/cultivator';
 
 export interface DungeonBattleInitSource {
-  accumulatedHpLoss: number;
-  accumulatedMpLoss: number;
+  accumulatedHpLoss?: number;
+  accumulatedMpLoss?: number;
+  persistentState?: CultivatorPersistentState;
   persistentStatuses: PersistentCombatStatusV5[];
 }
 
@@ -27,16 +29,37 @@ export function clampRemainingPercent(lossPercent: number): number {
 export function buildDungeonBattleInit(
   state: DungeonBattleInitSource,
 ): BattleInitConfigV5 {
+  if (
+    typeof state.persistentState?.currentHp === 'number' &&
+    typeof state.persistentState?.currentMp === 'number'
+  ) {
+    return {
+      player: {
+        resourceState: {
+          hp: {
+            mode: 'absolute',
+            value: state.persistentState.currentHp,
+          },
+          mp: {
+            mode: 'absolute',
+            value: state.persistentState.currentMp,
+          },
+        },
+        statusRefs: state.persistentStatuses,
+      },
+    };
+  }
+
   return {
     player: {
       resourceState: {
         hp: {
           mode: 'percent',
-          value: clampRemainingPercent(state.accumulatedHpLoss),
+          value: clampRemainingPercent(state.accumulatedHpLoss ?? 0),
         },
         mp: {
           mode: 'percent',
-          value: clampRemainingPercent(state.accumulatedMpLoss),
+          value: clampRemainingPercent(state.accumulatedMpLoss ?? 0),
         },
       },
       statusRefs: state.persistentStatuses,

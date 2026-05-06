@@ -76,20 +76,17 @@ describe('detectMaterialConflicts', () => {
     );
   });
 
-  it('应识别纯秘籍法宝冲突', () => {
+  it('应识别秘籍法宝冲突', () => {
     const conflicts = detectMaterialConflicts(
       [
         {
           materialName: '百炼器经',
-          materialType: 'manual',
+          materialType: 'gongfa_manual',
           rank: '玄品',
           quantity: 1,
           explicitTags: ['Material.Type.Manual'],
           semanticTags: [],
-          recipeTags: [
-            'Recipe.ProductBias.Skill',
-            'Recipe.ProductBias.GongFa',
-          ],
+          recipeTags: ['Recipe.ProductBias.GongFa'],
           energyValue: 8,
           rarityWeight: 2,
         },
@@ -99,7 +96,7 @@ describe('detectMaterialConflicts', () => {
 
     expect(conflicts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'artifact-legacy-manual-forbidden' }),
+        expect.objectContaining({ id: 'artifact-manual-forbidden' }),
       ]),
     );
   });

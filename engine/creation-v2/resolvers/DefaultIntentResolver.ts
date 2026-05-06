@@ -18,8 +18,11 @@ export class DefaultIntentResolver {
     input: CreationSessionInput,
     fingerprints: MaterialFingerprint[],
   ): CreationIntent {
-    const dominantTags = MaterialFactsBuilder.pickDominantTags(
-      fingerprints,
+    const dominantTags = Array.from(
+      new Set([
+        ...MaterialFactsBuilder.pickDominantTags(fingerprints),
+        ...(input.contextDominantTags ?? []),
+      ]),
     );
     const slotBiasResolution = this.resolveSlotBias(input, fingerprints);
 

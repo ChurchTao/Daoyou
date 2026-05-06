@@ -48,9 +48,6 @@ export const STATUS_EFFECT_VALUES = [
   'artifact_damaged',
   'mana_depleted',
   'hp_deficit',
-  'enlightenment',
-  'willpower_enhanced',
-  'fate_blessing',
   // 环境状态
   'scorching',
   'freezing',
@@ -67,6 +64,23 @@ export type EquipmentSlot = (typeof EQUIPMENT_SLOT_VALUES)[number];
 // 消耗品类型
 export const CONSUMABLE_TYPE_VALUES = ['丹药', '符箓'] as const;
 export type ConsumableType = (typeof CONSUMABLE_TYPE_VALUES)[number];
+
+export const CONSUMABLE_CATEGORY_VALUES = [
+  'healing',
+  'mana',
+  'cultivation',
+  'breakthrough',
+  'permanent_attribute',
+  'marrow_wash',
+  'detox',
+  'poison_control',
+  'talisman_key',
+] as const;
+export type ConsumableCategory = (typeof CONSUMABLE_CATEGORY_VALUES)[number];
+
+export const CONSUMABLE_QUOTA_KIND_VALUES = ['long_term_pill'] as const;
+export type ConsumableQuotaKind =
+  (typeof CONSUMABLE_QUOTA_KIND_VALUES)[number];
 
 // 性别
 export const GENDER_VALUES = ['男', '女'] as const;
@@ -180,8 +194,6 @@ export const MATERIAL_TYPE_VALUES = [
   'aux',
   'gongfa_manual',
   'skill_manual',
-  // deprecated: legacy type, kept for backward compatibility
-  'manual',
 ] as const;
 export type MaterialType = (typeof MATERIAL_TYPE_VALUES)[number];
 

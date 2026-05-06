@@ -42,7 +42,14 @@ export function ConsumablesTab({
   return (
     <InkList>
       {sortedItems.map((item, idx) => {
-        const isTalisman = item.type === '符箓';
+        const isTalisman = item.category === 'talisman_key' || item.type === '符箓';
+        const isDirectlyUsable =
+          !isTalisman && Boolean(item.id && item.category && item.useSpec);
+        const usageHint = isTalisman
+          ? '【需在对应玩法入口校验并锁定，终局结算后扣除】'
+          : isDirectlyUsable
+            ? null
+            : '【旧制数据，暂未接入新版本使用规则】';
 
         return (
           <ItemCard
@@ -61,9 +68,9 @@ export function ConsumablesTab({
               </>
             }
             meta={
-              isTalisman ? (
+              usageHint ? (
                 <div className="text-ink-primary text-xs">
-                  【使用后获得特殊增益】
+                  {usageHint}
                 </div>
               ) : null
             }
@@ -77,17 +84,17 @@ export function ConsumablesTab({
                   详情
                 </InkButton>
                 <InkButton
-                  disabled={!item.id || pendingId === item.id}
+                  disabled={!item.id || pendingId === item.id || !isDirectlyUsable}
                   onClick={() => onConsume(item)}
                   variant="primary"
                 >
                   {pendingId === item.id
-                    ? isTalisman
-                      ? '祭炼中…'
-                      : '服用中…'
+                    ? '服用中…'
                     : isTalisman
-                      ? '祭炼'
-                      : '服用'}
+                      ? '场外使用'
+                      : isDirectlyUsable
+                        ? '服用'
+                        : '暂未开放'}
                 </InkButton>
                 <InkButton variant="primary" onClick={() => onDiscard(item)}>
                   销毁

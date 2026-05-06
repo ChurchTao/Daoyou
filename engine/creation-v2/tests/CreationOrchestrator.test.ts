@@ -220,6 +220,7 @@ describe('CreationOrchestrator', () => {
         slug: 'craft-skill-session-active',
         name: '焚岳诀',
         description: '将烈焰压缩成一线，瞬间焚穿敌躯。',
+        projectionQuality: '玄品',
         outcomeTags: ['Outcome.ActiveSkill'],
         affixes: [
           {
@@ -337,6 +338,7 @@ describe('CreationOrchestrator', () => {
         slug: 'craft-passive-session-passive',
         name: '玄冰护心佩',
         description: '寒意护体，遇袭时凝结冰盾。',
+        projectionQuality: '真品',
         outcomeTags: ['Outcome.PassiveAbility', 'Outcome.Artifact'],
         affixes: [],
         artifactConfig: {
@@ -753,6 +755,7 @@ describe('CreationOrchestrator', () => {
         slug: 'test-abstract-materializer',
         name: '测试造物',
         description: '抽象物化器测试',
+        projectionQuality: '凡品',
         outcomeTags: ['Outcome.ActiveSkill'],
         affixes: [],
         battleProjection: {

@@ -39,7 +39,9 @@ import type {
   Consumable,
   CultivationProgress,
   Cultivator,
+  CultivatorPersistentState,
   Material,
+  PreHeavenFate,
   RetreatRecord,
 } from '@/types/cultivator';
 import { getOrInitCultivationProgress } from '@/utils/cultivationUtils';
@@ -47,6 +49,8 @@ import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
 } from '@/utils/rankingUtils';
+import { ConsumableRegistry } from './ConsumableRegistry';
+import { FateEngine } from './FateEngine';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
   getExecutor,
@@ -72,11 +76,31 @@ async function assembleCultivatorFromRelations(
     };
   });
 
-  const pre_heaven_fates = relations.preHeavenFates.map((f) => ({
-    name: f.name,
-    quality: f.quality as Quality,
-    description: f.description || undefined,
-  }));
+  const pre_heaven_fates = FateEngine.normalizeFates(
+    relations.preHeavenFates.map(
+      (f): PreHeavenFate => ({
+        name: f.name,
+        quality: f.quality as Quality,
+        description: f.description || undefined,
+        registryKey: f.registryKey || undefined,
+        tags:
+          ((f.details as Record<string, unknown> | null)?.tags as string[]) ||
+          undefined,
+        growthBias:
+          ((f.details as Record<string, unknown> | null)?.growthBias as
+            | PreHeavenFate['growthBias']
+            | undefined) || undefined,
+        worldBias:
+          ((f.details as Record<string, unknown> | null)?.worldBias as
+            | PreHeavenFate['worldBias']
+            | undefined) || undefined,
+        tradeoffs:
+          ((f.details as Record<string, unknown> | null)?.tradeoffs as
+            | PreHeavenFate['tradeoffs']
+            | undefined) || undefined,
+      }),
+    ),
+  );
   const skillProducts = relations.creationProducts.filter(
     (product) => product.productType === 'skill',
   );
@@ -220,6 +244,9 @@ async function assembleCultivatorFromRelations(
     ),
     persistent_statuses:
       normalizePersistentCombatStatuses(cultivatorRecord.persistent_statuses),
+    persistent_state:
+      (cultivatorRecord.persistent_state as CultivatorPersistentState | null) ??
+      undefined,
   };
 }
 
@@ -308,6 +335,9 @@ export function createMinimalCultivator(
     ),
     persistent_statuses:
       normalizePersistentCombatStatuses(cultivatorRecord.persistent_statuses),
+    persistent_state:
+      (cultivatorRecord.persistent_state as CultivatorPersistentState | null) ??
+      undefined,
   };
 }
 
@@ -320,6 +350,10 @@ export async function createCultivator(
 ): Promise<Cultivator> {
   const q = getExecutor();
   const result = await q.transaction(async (tx) => {
+    const normalizedFates = FateEngine.normalizeFates(
+      cultivator.pre_heaven_fates,
+    );
+
     // 1. 创建角色主表记录
     const cultivatorResult = await tx
       .insert(schema.cultivators)
@@ -343,6 +377,7 @@ export async function createCultivator(
         speed: cultivator.attributes.speed,
         willpower: cultivator.attributes.willpower,
         max_skills: cultivator.max_skills,
+        persistent_state: cultivator.persistent_state ?? {},
       })
       .returning();
 
@@ -365,13 +400,19 @@ export async function createCultivator(
     }
 
     // 3. 创建先天命格
-    if (cultivator.pre_heaven_fates.length > 0) {
+    if (normalizedFates.length > 0) {
       await tx.insert(schema.preHeavenFates).values(
-        cultivator.pre_heaven_fates.map((fate) => ({
+        normalizedFates.map((fate) => ({
           cultivatorId,
           name: fate.name,
           quality: fate.quality || null,
-          effects: [],
+          registryKey: fate.registryKey || null,
+          details: {
+            tags: fate.tags ?? [],
+            growthBias: fate.growthBias ?? {},
+            worldBias: fate.worldBias ?? {},
+            tradeoffs: fate.tradeoffs ?? [],
+          },
           description: fate.description || null,
         })),
       );
@@ -664,6 +705,7 @@ export async function updateCultivator(
       | 'status'
       | 'cultivation_progress'
       | 'persistent_statuses'
+      | 'persistent_state'
     >
   >,
 ): Promise<Cultivator | null> {
@@ -701,6 +743,10 @@ export async function updateCultivator(
   if (updates.persistent_statuses !== undefined) {
     updateData.persistent_statuses =
       updates.persistent_statuses as PersistentCombatStatusV5[];
+  }
+  if (updates.persistent_state !== undefined) {
+    updateData.persistent_state =
+      (updates.persistent_state as CultivatorPersistentState) ?? {};
   }
 
   await getExecutor()
@@ -828,14 +874,21 @@ function mapArtifactRow(
 function mapConsumableRow(
   c: typeof schema.consumables.$inferSelect,
 ): Cultivator['inventory']['consumables'][number] {
-  return {
+  return ConsumableRegistry.normalizeConsumable({
     id: c.id,
     name: c.name,
     quality: c.quality as Quality,
     type: c.type as ConsumableType,
     quantity: c.quantity,
     description: c.description || '',
-  };
+    prompt: c.prompt || undefined,
+    score: c.score || 0,
+    category: (c.category as Consumable['category']) || undefined,
+    mechanicKey: c.mechanicKey || undefined,
+    quotaKind: (c.quotaKind as Consumable['quotaKind']) || undefined,
+    useSpec: (c.useSpec as Consumable['useSpec']) || undefined,
+    details: (c.details as Record<string, unknown>) || undefined,
+  });
 }
 
 function mapMaterialRow(
@@ -1135,13 +1188,7 @@ export async function getInventory(
 
   return {
     artifacts: artifactsResult.map(toArtifactFromProduct),
-    consumables: consumablesResult.map((c) => ({
-      id: c.id,
-      name: c.name,
-      type: c.type as ConsumableType,
-      quality: c.quality as Quality | undefined,
-      quantity: c.quantity,
-    })),
+    consumables: consumablesResult.map(mapConsumableRow),
     materials: materialsResult.map((m) => ({
       id: m.id,
       name: m.name,
@@ -1529,16 +1576,17 @@ export async function addConsumableToInventory(
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = getExecutor(tx);
-  const score = calculateSingleElixirScore(consumable);
+  const normalizedConsumable = ConsumableRegistry.normalizeConsumable(consumable);
+  const score = calculateSingleElixirScore(normalizedConsumable);
   // 检查是否已经有相同的消耗品（名称和品质都必须一致）
-  const quality = consumable.quality || '凡品';
+  const quality = normalizedConsumable.quality || '凡品';
   const existing = await dbInstance
     .select()
     .from(schema.consumables)
     .where(
       and(
         eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.name, consumable.name),
+        eq(schema.consumables.name, normalizedConsumable.name),
         eq(schema.consumables.quality, quality),
       ),
     );
@@ -1548,25 +1596,120 @@ export async function addConsumableToInventory(
     await dbInstance
       .update(schema.consumables)
       .set({
-        quantity: existing[0].quantity + consumable.quantity,
+        quantity: existing[0].quantity + normalizedConsumable.quantity,
         // 兼容旧数据可能存在的 0 分，合并时取更高评分
         score: Math.max(existing[0].score || 0, score),
+        prompt: normalizedConsumable.prompt || existing[0].prompt || '',
+        category: normalizedConsumable.category || existing[0].category || null,
+        mechanicKey:
+          normalizedConsumable.mechanicKey || existing[0].mechanicKey || null,
+        quotaKind:
+          normalizedConsumable.quotaKind || existing[0].quotaKind || null,
+        useSpec:
+          (normalizedConsumable.useSpec as Record<string, unknown>) ||
+          existing[0].useSpec ||
+          null,
+        details:
+          (normalizedConsumable.details as Record<string, unknown>) ||
+          existing[0].details ||
+          null,
+        description:
+          normalizedConsumable.description ||
+          existing[0].description ||
+          null,
       })
       .where(eq(schema.consumables.id, existing[0].id));
   } else {
     // 添加新消耗品
     await dbInstance.insert(schema.consumables).values({
       cultivatorId,
-      name: consumable.name,
-      type: consumable.type,
-      prompt: '', // 默认空提示词
+      name: normalizedConsumable.name,
+      type: normalizedConsumable.type,
+      category: normalizedConsumable.category || null,
+      prompt: normalizedConsumable.prompt || '',
       quality: quality,
-      effects: [],
-      quantity: consumable.quantity,
-      description: consumable.description || null,
+      mechanicKey: normalizedConsumable.mechanicKey || null,
+      quotaKind: normalizedConsumable.quotaKind || null,
+      useSpec:
+        (normalizedConsumable.useSpec as Record<string, unknown>) || null,
+      quantity: normalizedConsumable.quantity,
+      description: normalizedConsumable.description || null,
       score,
+      details:
+        (normalizedConsumable.details as Record<string, unknown>) || null,
     });
   }
+}
+
+export async function replaceSpiritualRoots(
+  userId: string,
+  cultivatorId: string,
+  spiritualRoots: Cultivator['spiritual_roots'],
+  tx?: DbTransaction,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const dbInstance = getExecutor(tx);
+  await dbInstance
+    .delete(schema.spiritualRoots)
+    .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
+
+  if (spiritualRoots.length === 0) {
+    return;
+  }
+
+  const rootCount = spiritualRoots.length;
+  await dbInstance.insert(schema.spiritualRoots).values(
+    spiritualRoots.map((root) => ({
+      cultivatorId,
+      element: root.element,
+      strength: root.strength,
+      grade: root.grade ?? resolveSpiritualRootGrade(rootCount, root.element),
+    })),
+  );
+}
+
+export async function consumeConsumableById(
+  userId: string,
+  cultivatorId: string,
+  consumableId: string,
+  quantity: number,
+  tx?: DbTransaction,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const dbInstance = getExecutor(tx);
+  const rows = await dbInstance
+    .select()
+    .from(schema.consumables)
+    .where(
+      and(
+        eq(schema.consumables.id, consumableId),
+        eq(schema.consumables.cultivatorId, cultivatorId),
+      ),
+    )
+    .limit(1);
+
+  const existing = rows[0];
+  if (!existing) {
+    throw new Error('消耗品不存在或已被耗尽');
+  }
+
+  if (existing.quantity < quantity) {
+    throw new Error(`消耗品数量不足，当前仅有 ${existing.quantity}`);
+  }
+
+  if (existing.quantity === quantity) {
+    await dbInstance
+      .delete(schema.consumables)
+      .where(eq(schema.consumables.id, existing.id));
+    return;
+  }
+
+  await dbInstance
+    .update(schema.consumables)
+    .set({ quantity: existing.quantity - quantity })
+    .where(eq(schema.consumables.id, existing.id));
 }
 
 /**

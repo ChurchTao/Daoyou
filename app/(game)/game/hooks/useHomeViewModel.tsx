@@ -157,7 +157,7 @@ export function useHomeViewModel(): UseHomeViewModelReturn {
     [maxHp, maxSpirit, gender, genderIcon, age, lifespan],
   );
 
-  // 保留原有的 statusItems 用于兼容性，但标记为 deprecated
+  // 首页状态栏数据
   const statusItems = useMemo(() => {
     return statusItemKeys.map(getStatusItemValue);
   }, [statusItemKeys, getStatusItemValue]);

@@ -1,5 +1,7 @@
 import type { MailAttachment } from '@/lib/services/MailService';
 import {
+  CONSUMABLE_CATEGORY_VALUES,
+  CONSUMABLE_QUOTA_KIND_VALUES,
   CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
   EQUIPMENT_SLOT_VALUES,
@@ -39,7 +41,12 @@ const ConsumableAttachmentSchema = z.object({
     quality: z.enum(QUALITY_VALUES).optional(),
     quantity: z.number().int().min(1),
     description: z.string().optional(),
-    effects: z.array(z.record(z.string(), z.unknown())).default([]),
+    prompt: z.string().optional(),
+    score: z.number().int().optional(),
+    category: z.enum(CONSUMABLE_CATEGORY_VALUES).optional(),
+    mechanicKey: z.string().optional(),
+    quotaKind: z.enum(CONSUMABLE_QUOTA_KIND_VALUES).optional(),
+    useSpec: z.record(z.string(), z.unknown()).optional(),
     details: z.record(z.string(), z.unknown()).optional(),
   }),
 });

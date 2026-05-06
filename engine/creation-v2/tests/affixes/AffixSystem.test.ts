@@ -703,8 +703,21 @@ describe('DEFAULT_AFFIX_REGISTRY', () => {
       skill_rare: [35, 55],
     } as const;
 
+    const resolveRange = (category: (typeof SKILL_AFFIXES)[number]['category']) => {
+      switch (category) {
+        case 'skill_core':
+          return ranges.skill_core;
+        case 'skill_variant':
+          return ranges.skill_variant;
+        case 'skill_rare':
+          return ranges.skill_rare;
+        default:
+          throw new Error(`Unexpected skill affix category: ${category}`);
+      }
+    };
+
     for (const def of SKILL_AFFIXES) {
-      const [min, max] = ranges[def.category];
+      const [min, max] = resolveRange(def.category);
       expect(def.energyCost).toBeGreaterThanOrEqual(min);
       expect(def.energyCost).toBeLessThanOrEqual(max);
     }

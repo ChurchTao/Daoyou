@@ -17,6 +17,8 @@ import type {
   Cultivator,
 } from '@/types/cultivator';
 import { format } from 'd3-format';
+import { FateEngine } from '@/lib/services/FateEngine';
+import { PersistentStateService } from '@/lib/services/PersistentStateService';
 import { calculateExpProgress, getBreakthroughType } from './cultivationUtils';
 import { getRealmStageAttributeCap } from './cultivatorUtils';
 
@@ -51,6 +53,9 @@ export interface BreakthroughModifiers {
   insightMultiplier: number; // 感悟系数
   wisdomMultiplier: number; // 悟性系数
   demonPenalty: number; // 心魔惩罚
+  fateBonus: number; // 命格加成
+  pillBonus: number; // 破境丹残留加成
+  toxicityPenalty: number; // 丹毒惩罚
   finalChance: number; // 最终成功率
 }
 
@@ -119,16 +124,29 @@ export function calculateBreakthroughChance(
 
   // 6. 心魔惩罚
   const demonPenalty = progress.inner_demon ? 0.95 : 1.0;
+  const fateBonus = FateEngine.evaluateGrowthContext(
+    cultivator.pre_heaven_fates ?? [],
+  ).breakthroughChanceBonus;
+  const pillBonus = cultivator.persistent_state?.pendingBreakthroughBonus ?? 0;
+  const toxicityPenalty = PersistentStateService.getBreakthroughPenalty(
+    cultivator.persistent_state,
+  );
 
   // 计算最终成功率
   const finalChance = Math.min(
     1.0,
-    baseChance *
-      realmDifficulty *
-      progressMultiplier *
-      insightMultiplier *
-      wisdomMultiplier *
-      demonPenalty,
+    Math.max(
+      0.05,
+      baseChance *
+        realmDifficulty *
+        progressMultiplier *
+        insightMultiplier *
+        wisdomMultiplier *
+        demonPenalty +
+        fateBonus +
+        pillBonus -
+        toxicityPenalty,
+    ),
   );
 
   // 生成突破建议
@@ -149,6 +167,9 @@ export function calculateBreakthroughChance(
       insightMultiplier,
       wisdomMultiplier,
       demonPenalty,
+      fateBonus,
+      pillBonus,
+      toxicityPenalty,
       finalChance,
     },
     breakthroughType,
@@ -329,6 +350,9 @@ function createInsufficientExpResult(
       insightMultiplier: 0,
       wisdomMultiplier: 0,
       demonPenalty: 0,
+      fateBonus: 0,
+      pillBonus: 0,
+      toxicityPenalty: 0,
       finalChance: 0,
     },
     breakthroughType: 'forced',
@@ -351,6 +375,9 @@ function createMaxRealmResult(): BreakthroughChanceResult {
       insightMultiplier: 0,
       wisdomMultiplier: 0,
       demonPenalty: 0,
+      fateBonus: 0,
+      pillBonus: 0,
+      toxicityPenalty: 0,
       finalChance: 0,
     },
     breakthroughType: 'forced',

@@ -184,14 +184,13 @@ npx drizzle-kit push # 推送 schema 到数据库
 ### 效果日志系统
 - **EffectLogCollector**: 统一收集 Effect 执行过程中的日志，用于生成战报和调试
 
-## Buff 系统
+## 持久状态系统
 
-**文件**: `engine/buff/`, `config/buffTemplates.ts`
+**文件**: `engine/battle-v5/setup/CombatStatusTemplateRegistry.ts`
 
-- **BuffManager**: Buff 管理器，处理添加/移除/触发
-- **BuffMaterializer**: Buff 实体化器，将模板转为可执行的 Buff
-- **BuffTemplateRegistry**: Buff 模板注册表
-- **20+ Buff 模板**: 包括属性加成、状态效果、特殊机制等（带 emoji 图标）
+- **CombatStatusTemplateRegistry**: 持久状态模板注册表，统一定义伤势、气血亏空、真元枯竭等长期状态
+- **PersistentCombatStatusV5**: 角色长期状态的持久化结构，存放于 cultivator 的 `persistent_statuses`
+- **toBattleInit**: 将长期状态投射到 battle-v5 的战斗初始化阶段，而不是走旧 Buff 模板链路
 
 ## 战斗引擎
 

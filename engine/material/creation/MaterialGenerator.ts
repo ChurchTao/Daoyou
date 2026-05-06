@@ -1,4 +1,3 @@
-import { normalizeGeneratedManualType } from '@/engine/material/materialTypeUtils';
 import {
   MATERIAL_TYPE_VALUES,
   QUALITY_VALUES,
@@ -65,13 +64,8 @@ export class MaterialGenerator {
   ): Promise<GeneratedMaterial[]> {
     if (skeletons.length === 0) return [];
 
-    const normalizedSkeletons = skeletons.map((skeleton) => ({
-      ...skeleton,
-      type: normalizeGeneratedManualType(skeleton.type),
-    }));
-
     const prompt = getMaterialGenerationPrompt();
-    const userPrompt = getMaterialGenerationUserPrompt(normalizedSkeletons);
+    const userPrompt = getMaterialGenerationUserPrompt(skeletons);
     console.log('User Prompt:', userPrompt);
     try {
       const aiResponse = await objectArray(
@@ -85,7 +79,7 @@ export class MaterialGenerator {
       );
 
       // 组合结果
-      return normalizedSkeletons.map((skeleton, index) => {
+      return skeletons.map((skeleton, index) => {
         const aiData = aiResponse.object[index] || {
           name: '未知材料',
           description: '天道感应模糊...',
@@ -111,7 +105,7 @@ export class MaterialGenerator {
     } catch (error) {
       console.error('Material Generation Failed:', error);
       // AI 失败时仍返回可发放的材料，避免奖励邮件出现空附件
-      return this.buildFallbackMaterials(normalizedSkeletons);
+      return this.buildFallbackMaterials(skeletons);
     }
   }
 
@@ -144,9 +138,7 @@ export class MaterialGenerator {
         options.guaranteedRank || this.randomQuality(options.rankRange);
 
       // 2. 确定类型
-      const type = normalizeGeneratedManualType(
-        options.specifiedType || this.randomType(options.regionTags),
-      );
+      const type = options.specifiedType || this.randomType(options.regionTags);
 
       // 3. 确定数量
       const [min, max] = QUANTITY_RANGE_MAP[rank] || [1, 1];

@@ -25,6 +25,8 @@ import * as creationProductRepository from '@/lib/repositories/creationProductRe
 import type { EquipmentSlot, Quality, RealmStage, RealmType } from '@/types/constants';
 import type { Material } from '@/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
+import { getCultivatorByIdUnsafe } from './cultivatorService';
+import { FateEngine } from './FateEngine';
 
 const MAX_GONGFA = 5;
 
@@ -271,6 +273,19 @@ export async function processCreation(
       throw new CreationServiceError('道友查无此人', 404);
     }
 
+    const fullCultivator = await getCultivatorByIdUnsafe(cultivatorId);
+    const fateCreationContext = FateEngine.evaluateCreationContext(
+      fullCultivator?.cultivator.pre_heaven_fates ?? [],
+    );
+    const enrichedUserPrompt = [
+      userPrompt?.trim(),
+      fateCreationContext.summary
+        ? `命格偏置：${fateCreationContext.summary}`
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join('；');
+
     // 4. 计算资源消耗
     const maxQuality = calculateMaxQuality(
       selectedMaterials as unknown as Array<{ rank: Quality }>,
@@ -337,7 +352,10 @@ export async function processCreation(
       realmStage: cultivator.realm_stage as RealmStage,
       productType,
       materials: engineMaterials,
-      ...(userPrompt?.trim() ? { userPrompt: userPrompt.trim() } : {}),
+      ...(fateCreationContext.dominantTags.length > 0
+        ? { contextDominantTags: fateCreationContext.dominantTags }
+        : {}),
+      ...(enrichedUserPrompt ? { userPrompt: enrichedUserPrompt } : {}),
       ...(effectiveRequestedSlot
         ? { requestedSlot: effectiveRequestedSlot }
         : {}),

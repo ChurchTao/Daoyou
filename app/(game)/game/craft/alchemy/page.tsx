@@ -131,7 +131,7 @@ export default function AlchemyPage() {
         },
         body: JSON.stringify({
           materialIds: selectedMaterialIds,
-          prompt: prompt,
+          userPrompt: prompt,
           craftType: 'alchemy',
         }),
       });
@@ -198,7 +198,6 @@ export default function AlchemyPage() {
             'ore',
             'gongfa_manual',
             'skill_manual',
-            'manual',
           ]}
           refreshKey={materialsRefreshKey}
           showSelectedMaterialsPanel

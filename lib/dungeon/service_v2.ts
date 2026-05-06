@@ -23,10 +23,11 @@ import {
   getPaginatedInventoryByType,
   updateCultivator,
 } from '../services/cultivatorService';
+import { FateEngine } from '../services/FateEngine';
+import { PersistentStateService } from '../services/PersistentStateService';
 import {
   buildDungeonBattleInit,
   incrementOrInsertStatus,
-  promoteInjuryStatus,
 } from './battleInit';
 import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
@@ -152,7 +153,6 @@ export class DungeonService {
 
     // 动态生成材料类型描述表格（从 config.ts 统一获取）
     const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
-      .filter(([key]) => key !== 'manual')
       .map(([key, desc]) => `| ${key} | ${desc} |`)
       .join('\n');
 
@@ -270,8 +270,11 @@ ${materialTypeTable}
         throw new Error('未找到修真者数据');
       }
 
-      const persistentStatuses =
-        cultivator.cultivator.persistent_statuses ?? [];
+      const hydratedPersistent = PersistentStateService.applyNaturalRecovery(
+        cultivator.cultivator,
+        cultivator.cultivator.persistent_state,
+        cultivator.cultivator.persistent_statuses,
+      );
 
       // 3. 初始状态
       const state: DungeonState = {
@@ -287,7 +290,8 @@ ${materialTypeTable}
         summary_of_sacrifice: [],
         accumulatedRewards: [],
         status: 'EXPLORING',
-        persistentStatuses,
+        persistentStatuses: hydratedPersistent.statuses,
+        persistentState: hydratedPersistent.state,
         accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
         accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
       };
@@ -333,6 +337,15 @@ ${materialTypeTable}
   async handleAction(cultivatorId: string, choiceId: number) {
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('副本已失效');
+    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    if (!cultivatorBundle?.cultivator) {
+      throw new Error('未找到修真者数据');
+    }
+    const runtimeCultivator = {
+      ...cultivatorBundle.cultivator,
+      persistent_state: state.persistentState,
+      persistent_statuses: state.persistentStatuses,
+    };
 
     // 1. 校验选项
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
@@ -416,17 +429,27 @@ ${materialTypeTable}
       // 1.1 累加 HP/MP 损失百分比
       for (const cost of chosenOption.costs) {
         if (cost.type === 'hp_loss') {
-          // 直接累加百分比小数
-          state.accumulatedHpLoss = Math.min(
-            1,
-            state.accumulatedHpLoss + cost.value,
+          const next = PersistentStateService.applyExternalResourceLoss(
+            runtimeCultivator,
+            state.persistentState,
+            state.persistentStatuses,
+            {
+              hpPercent: cost.value,
+            },
           );
+          state.persistentState = next.state;
+          state.persistentStatuses = next.statuses;
         } else if (cost.type === 'mp_loss') {
-          // 直接累加百分比小数
-          state.accumulatedMpLoss = Math.min(
-            1,
-            state.accumulatedMpLoss + cost.value,
+          const next = PersistentStateService.applyExternalResourceLoss(
+            runtimeCultivator,
+            state.persistentState,
+            state.persistentStatuses,
+            {
+              mpPercent: cost.value,
+            },
           );
+          state.persistentState = next.state;
+          state.persistentStatuses = next.statuses;
         } else if (cost.type === 'weak') {
           // 1.2 weak 成本映射为 weakness 状态
           state.persistentStatuses = incrementOrInsertStatus(
@@ -590,12 +613,35 @@ ${materialTypeTable}
         ? battleResult.winner.name
         : battleResult.loser.name;
     const isWin = battleResult.winner.name === state.playerInfo.name;
+    const playerSnapshot = isWin
+      ? battleResult.winnerSnapshot
+      : battleResult.loserSnapshot;
+
+    if (!playerSnapshot) {
+      throw new Error('战斗终局缺少玩家状态快照');
+    }
+
+    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    if (!cultivatorBundle?.cultivator) {
+      throw new Error('未找到修真者数据');
+    }
+
+    const persistedBattleState = PersistentStateService.applyPveBattleOutcome(
+      {
+        ...cultivatorBundle.cultivator,
+        persistent_state: state.persistentState,
+        persistent_statuses: state.persistentStatuses,
+      },
+      state.persistentState,
+      state.persistentStatuses,
+      playerSnapshot,
+      !isWin,
+    );
+    state.persistentState = persistedBattleState.state;
+    state.persistentStatuses = persistedBattleState.statuses;
 
     // 战斗失败处理：生成伤势状态
     if (!isWin) {
-      // 根据当前伤势状态升级：minor_wound → major_wound → near_death
-      state.persistentStatuses = promoteInjuryStatus(state.persistentStatuses);
-
       const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
       lastHistory.outcome = outcomeText;
 
@@ -694,6 +740,30 @@ ${materialTypeTable}
     const lastHistory = state.history[state.history.length - 1];
 
     if (!isWin) {
+      const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+      if (!cultivatorBundle?.cultivator) {
+        throw new Error('未找到修真者数据');
+      }
+      const playerSnapshot =
+        battleResult.winner.id === cultivatorId
+          ? battleResult.winnerSnapshot
+          : battleResult.loserSnapshot;
+      if (playerSnapshot) {
+        const persistedBattleState = PersistentStateService.applyPveBattleOutcome(
+          {
+            ...cultivatorBundle.cultivator,
+            persistent_state: state.persistentState,
+            persistent_statuses: state.persistentStatuses,
+          },
+          state.persistentState,
+          state.persistentStatuses,
+          playerSnapshot,
+          true,
+        );
+        state.persistentState = persistedBattleState.state;
+        state.persistentStatuses = persistedBattleState.statuses;
+      }
+
       if (lastHistory) {
         lastHistory.outcome = `你不敌 ${enemyName}，被迫退出秘境。${reason ? `（天机紊乱：${reason}）` : ''}`;
       }
@@ -792,7 +862,6 @@ ${materialTypeTable}
   }> {
     // 动态生成材料类型描述表格（从 config.ts 统一获取）
     const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
-      .filter(([key]) => key !== 'manual')
       .map(([key, desc]) => `| ${key} | ${desc} |`)
       .join('\n');
 
@@ -945,6 +1014,19 @@ ${materialTypeTable}
   async getState(cultivatorId: string) {
     const state = await redis.get<DungeonState>(getDungeonKey(cultivatorId));
     if (!state) return null;
+    if (!state.persistentState) {
+      const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+      if (cultivatorBundle?.cultivator) {
+        const hydrated = PersistentStateService.applyNaturalRecovery(
+          cultivatorBundle.cultivator,
+          cultivatorBundle.cultivator.persistent_state,
+          state.persistentStatuses ??
+            cultivatorBundle.cultivator.persistent_statuses,
+        );
+        state.persistentState = hydrated.state;
+        state.persistentStatuses = hydrated.statuses;
+      }
+    }
     return state;
   }
 
@@ -966,7 +1048,10 @@ ${materialTypeTable}
     if (!cultivatorBundle || !cultivatorBundle.cultivator)
       throw new Error('未找到名为该道友的记录');
     const cultivator = cultivatorBundle.cultivator;
-    const { finalAttributes } = getCultivatorDisplayAttributes(cultivator);
+    const { finalAttributes, attrs } = getCultivatorDisplayAttributes(cultivator);
+    const fateWorldContext = FateEngine.evaluateWorldContext(
+      cultivator.pre_heaven_fates,
+    );
 
     return {
       id: cultivator.id,
@@ -977,6 +1062,10 @@ ${materialTypeTable}
       lifespan: cultivator.lifespan,
       personality: cultivator.personality || '普通',
       attributes: { ...finalAttributes },
+      resourceCaps: {
+        maxHp: attrs.maxHp,
+        maxMp: attrs.maxMp,
+      },
       spiritual_roots: cultivator.spiritual_roots.map(
         (root) => `${root.element}(${root.grade})`,
       ),
@@ -988,6 +1077,9 @@ ${materialTypeTable}
       background: cultivator.background || '',
       inventory_summary:
         '玩家拥有储物袋。如有需要特定材料的操作，请使用模糊类型与品质要求。',
+      fate_bias_summary: fateWorldContext.summary,
+      fate_reward_bias: fateWorldContext.rewardTypeMultipliers,
+      fate_reward_score_multiplier: fateWorldContext.rewardScoreMultiplier,
     };
   }
 
@@ -1004,6 +1096,7 @@ ${materialTypeTable}
   ) {
     await updateCultivator(state.cultivatorId, {
       persistent_statuses: state.persistentStatuses,
+      persistent_state: state.persistentState,
     });
 
     // Archive to DB
@@ -1033,6 +1126,7 @@ ${materialTypeTable}
     if (state) {
       await updateCultivator(cultivatorId, {
         persistent_statuses: state.persistentStatuses,
+        persistent_state: state.persistentState,
       });
       await getExecutor()
         .insert(dungeonHistories)

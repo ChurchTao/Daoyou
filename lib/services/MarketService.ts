@@ -171,7 +171,6 @@ function buildMysteryMask(type: MaterialType) {
     },
     gongfa_manual: manualMaskPool,
     skill_manual: manualMaskPool,
-    manual: manualMaskPool, // deprecated legacy type
   };
 
   const pool = poolByType[type] || poolByType.aux;
@@ -815,11 +814,4 @@ export async function clearMarketCache(nodeId?: string, layer?: MarketLayer) {
   const targetNodeId = resolveNodeId(nodeId);
   const targetLayer = layer || 'common';
   await redis.del(getCacheKey(targetNodeId, targetLayer));
-}
-
-export function getCompatibilityDefaults() {
-  return {
-    nodeId: getDefaultMarketNodeId(),
-    layer: 'common' as MarketLayer,
-  };
 }

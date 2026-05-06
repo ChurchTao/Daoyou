@@ -3,6 +3,7 @@ import type {
   PersistentCombatStatusV5,
 } from '@/engine/battle-v5/setup/types';
 import type { ResourceOperation } from '@/engine/resource/types';
+import type { CultivatorPersistentState } from '@/types/cultivator';
 import { z } from 'zod';
 
 // === AI Interaction Schemas ===
@@ -161,6 +162,13 @@ export const PlayerInfoSchema = z.object({
   spirit_stones: z.number(),
   background: z.string(),
   inventory_summary: z.string().optional(),
+  resourceCaps: z.object({
+    maxHp: z.number(),
+    maxMp: z.number(),
+  }),
+  fate_bias_summary: z.string().optional(),
+  fate_reward_bias: z.record(z.string(), z.number()).optional(),
+  fate_reward_score_multiplier: z.number().optional(),
 });
 
 export type PlayerInfo = z.infer<typeof PlayerInfoSchema>;
@@ -222,4 +230,5 @@ export interface DungeonState {
   accumulatedMpLoss: number;
   /** v5 持久状态模板引用 */
   persistentStatuses: PersistentCombatStatusV5[];
+  persistentState: CultivatorPersistentState;
 }

@@ -267,6 +267,13 @@
       "when": 1777539154038,
       "tag": "0037_clever_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1778051615396,
+      "tag": "0038_fantastic_wolfpack",
+      "breakpoints": true
     }
   ]
 }

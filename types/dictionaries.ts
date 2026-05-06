@@ -321,21 +321,6 @@ export const STATUS_EFFECT_DISPLAY_MAP: Record<
     icon: '🩸',
     description: '气血亏虚，行动受限',
   },
-  enlightenment: {
-    label: '顿悟',
-    icon: '💡',
-    description: '灵台清明，修炼事半功倍',
-  },
-  willpower_enhanced: {
-    label: '意志增强',
-    icon: '💪',
-    description: '道心坚固，抗性提升',
-  },
-  fate_blessing: {
-    label: '天命眷顾',
-    icon: '🌟',
-    description: '气运加身，诸事顺遂',
-  },
   // 环境状态
   scorching: {
     label: '酷热',
@@ -483,10 +468,6 @@ export const MATERIAL_TYPE_DISPLAY_MAP: Record<
   skill_manual: {
     label: '神通秘术',
     icon: '📜',
-  },
-  manual: {
-    label: '古旧典籍',
-    icon: '📖',
   },
 };
 

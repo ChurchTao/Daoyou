@@ -10,18 +10,20 @@ describe('dungeon battle init helpers', () => {
     const weakness = buildPersistentStatus('weakness', 2);
 
     const battleInit = buildDungeonBattleInit({
-      accumulatedHpLoss: 0.25,
-      accumulatedMpLoss: 0.4,
+      persistentState: {
+        currentHp: 750,
+        currentMp: 360,
+      },
       persistentStatuses: [weakness],
     });
 
     expect(battleInit.player?.resourceState?.hp).toEqual({
-      mode: 'percent',
-      value: 0.75,
+      mode: 'absolute',
+      value: 750,
     });
     expect(battleInit.player?.resourceState?.mp).toEqual({
-      mode: 'percent',
-      value: 0.6,
+      mode: 'absolute',
+      value: 360,
     });
     expect(battleInit.player?.statusRefs).toEqual([weakness]);
   });

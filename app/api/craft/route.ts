@@ -4,6 +4,11 @@ import {
   previewCreationSelection,
   processCreation,
 } from '../../../lib/services/creationServiceV2';
+import {
+  AlchemyServiceError,
+  previewAlchemySelection,
+  processAlchemyCraft,
+} from '@/lib/services/alchemyServiceV2';
 import { withActiveCultivator } from '@/lib/api/withAuth';
 import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import { CREATION_CRAFT_TYPES, isCreationCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
@@ -11,12 +16,14 @@ import { EQUIPMENT_SLOT_VALUES, Quality } from '@/types/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+const SUPPORTED_CRAFT_TYPES = [...CREATION_CRAFT_TYPES, 'alchemy'] as const;
+
 const { minQuantityPerMaterial, maxQuantityPerMaterial } =
   CREATION_INPUT_CONSTRAINTS;
 
 const CraftSchema = z.object({
   materialIds: z.array(z.string()).optional(),
-  craftType: z.enum(CREATION_CRAFT_TYPES),
+  craftType: z.enum(SUPPORTED_CRAFT_TYPES),
   /** materialId -> 本次实际投入数量（1..maxQuantityPerMaterial）。 */
   materialQuantities: z
     .record(
@@ -55,7 +62,10 @@ export const GET = withActiveCultivator(
         return NextResponse.json({ error: '请指定造物类型' }, { status: 400 });
       }
 
-      if (!isCreationCraftType(craftType)) {
+      if (
+        craftType !== 'alchemy' &&
+        !isCreationCraftType(craftType)
+      ) {
         return NextResponse.json({ error: '无效的造物类型' }, { status: 400 });
       }
 
@@ -78,17 +88,26 @@ export const GET = withActiveCultivator(
 
       if (materialIdsParam && materialIdsParam.length > 0) {
         const materialIds = materialIdsParam.split(',');
-        const preview = await previewCreationSelection(
-          cultivator.id,
-          materialIds,
-          craftType,
-        );
+        if (craftType === 'alchemy') {
+          const preview = await previewAlchemySelection(cultivator.id, materialIds);
+          cost = estimateCost(
+            preview.materials as Array<{ rank: Quality }>,
+            craftType,
+          );
+          validation = null;
+        } else {
+          const preview = await previewCreationSelection(
+            cultivator.id,
+            materialIds,
+            craftType,
+          );
 
-        cost = estimateCost(
-          preview.materials as Array<{ rank: Quality }>,
-          craftType,
-        );
-        validation = preview.validation;
+          cost = estimateCost(
+            preview.materials as Array<{ rank: Quality }>,
+            craftType,
+          );
+          validation = preview.validation;
+        }
       } else {
         // 神通/功法在无选材预览时，回退到凡品基础消耗。
         cost = estimateCost([{ rank: '凡品' }], craftType);
@@ -113,6 +132,12 @@ export const GET = withActiveCultivator(
       });
     } catch (error) {
       if (error instanceof CreationServiceError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
+      if (error instanceof AlchemyServiceError) {
         return NextResponse.json(
           { error: error.message },
           { status: error.status },
@@ -164,20 +189,27 @@ export const POST = withActiveCultivator(
         );
       }
 
-      const result = await processCreation(
-        cultivator.id,
-        materialIds,
-        craftType,
-        {
-          materialQuantities,
-          userPrompt,
-          requestedSlot,
-          requestedTargetPolicy,
-        },
-      );
+      const result =
+        craftType === 'alchemy'
+          ? await processAlchemyCraft(cultivator.id, materialIds, {
+              materialQuantities,
+              userPrompt,
+            })
+          : await processCreation(cultivator.id, materialIds, craftType, {
+              materialQuantities,
+              userPrompt,
+              requestedSlot,
+              requestedTargetPolicy,
+            });
       return NextResponse.json({ success: true, data: result });
     } catch (error) {
       if (error instanceof CreationServiceError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.status },
+        );
+      }
+      if (error instanceof AlchemyServiceError) {
         return NextResponse.json(
           { error: error.message },
           { status: error.status },

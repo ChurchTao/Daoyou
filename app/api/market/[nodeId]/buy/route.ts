@@ -12,7 +12,6 @@ import { z } from 'zod';
 
 const BuySchema = z.object({
   listingId: z.string().optional(),
-  itemId: z.string().optional(),
   quantity: z.number().min(1).default(1),
   layer: z.enum(['common', 'treasure', 'heaven', 'black']).optional(),
   items: z
@@ -49,7 +48,7 @@ export const POST = withActiveCultivator(
       }
 
       // 单点购买逻辑
-      const listingId = parsed.listingId || parsed.itemId;
+      const listingId = parsed.listingId;
       if (!listingId) {
         return NextResponse.json({ error: '缺少 listingId' }, { status: 400 });
       }

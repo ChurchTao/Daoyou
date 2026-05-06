@@ -127,6 +127,36 @@ combatStatusTemplateRegistry.register(
   ),
 );
 
+combatStatusTemplateRegistry.register({
+  id: 'hp_deficit',
+  name: '气血亏空',
+  description: '当前气血尚未回满，需要时间调养或丹药救急。',
+  display: {
+    icon: '❤️',
+    shortDesc: '气血未复',
+    showUses: false,
+    showExpiry: false,
+  },
+  toBattleInit() {
+    return {};
+  },
+});
+
+combatStatusTemplateRegistry.register({
+  id: 'mana_depleted',
+  name: '真元枯竭',
+  description: '真元暂未恢复，短时间内不宜再连番斗法。',
+  display: {
+    icon: '💧',
+    shortDesc: '真元未复',
+    showUses: false,
+    showExpiry: false,
+  },
+  toBattleInit() {
+    return {};
+  },
+});
+
 export function getCombatStatusTemplate(statusId: string) {
   return combatStatusTemplateRegistry.get(statusId);
 }

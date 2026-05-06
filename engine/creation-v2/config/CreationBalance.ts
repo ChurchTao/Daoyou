@@ -106,8 +106,6 @@ export const CREATION_PASSIVE_DEFAULTS = {
 export const CREATION_MATERIAL_ENERGY = {
   // 各品质对应的基础权重，索引按品质顺序映射。
   qualityWeights: [3, 5, 8, 13, 21, 34, 55, 89] as const,
-  // 普通 manual 类型额外提供的能量奖励。
-  manualBonus: 2,
   // gongfa_manual / skill_manual 这类专用秘籍的额外能量奖励。
   specializedManualBonus: 3,
   // 每多一种不同材料类型时提供的多样性奖励。

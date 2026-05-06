@@ -26,13 +26,10 @@ const CONFLICT_IDS = {
   MANUAL_SPLIT_INTENT: 'manual-split-intent',
   ARTIFACT_HERB_FORBIDDEN: 'artifact-herb-forbidden',
   ARTIFACT_MANUAL_FORBIDDEN: 'artifact-manual-forbidden',
-  ARTIFACT_LEGACY_MANUAL_FORBIDDEN: 'artifact-legacy-manual-forbidden',
   SKILL_ORE_FORBIDDEN: 'skill-ore-forbidden',
   SKILL_GONGFA_MANUAL_FORBIDDEN: 'skill-gongfa-manual-forbidden',
-  SKILL_LEGACY_MANUAL_FORBIDDEN: 'skill-legacy-manual-forbidden',
   GONGFA_ORE_FORBIDDEN: 'gongfa-ore-forbidden',
   GONGFA_SKILL_MANUAL_FORBIDDEN: 'gongfa-skill-manual-forbidden',
-  GONGFA_LEGACY_MANUAL_FORBIDDEN: 'gongfa-legacy-manual-forbidden',
 } as const;
 
 export interface MaterialConflict {
@@ -75,13 +72,6 @@ function buildForbiddenTypeConflict(
       };
     }
 
-    if (materialType === 'manual') {
-      return {
-        id: CONFLICT_IDS.ARTIFACT_LEGACY_MANUAL_FORBIDDEN,
-        reason: '旧版通用秘籍已不可用于炼制法宝',
-        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
-      };
-    }
   }
 
   if (productType === 'skill') {
@@ -101,13 +91,6 @@ function buildForbiddenTypeConflict(
       };
     }
 
-    if (materialType === 'manual') {
-      return {
-        id: CONFLICT_IDS.SKILL_LEGACY_MANUAL_FORBIDDEN,
-        reason: '旧版通用秘籍已不可用于推演神通',
-        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
-      };
-    }
   }
 
   if (productType === 'gongfa') {
@@ -127,13 +110,6 @@ function buildForbiddenTypeConflict(
       };
     }
 
-    if (materialType === 'manual') {
-      return {
-        id: CONFLICT_IDS.GONGFA_LEGACY_MANUAL_FORBIDDEN,
-        reason: '旧版通用秘籍已不可用于参悟功法',
-        relatedTags: [CreationTags.MATERIAL.TYPE_MANUAL],
-      };
-    }
   }
 
   return null;
@@ -186,10 +162,8 @@ export function detectMaterialConflicts(
     hasTag(fingerprints, CreationTags.RECIPE.PRODUCT_BIAS_SKILL) &&
     hasTag(fingerprints, CreationTags.RECIPE.PRODUCT_BIAS_GONGFA) &&
     fingerprints.some((fingerprint) =>
-      ([
-        SPECIALIZED_MANUAL_MATERIAL_TYPES.GONGFA,
-        SPECIALIZED_MANUAL_MATERIAL_TYPES.SKILL,
-      ] as string[]).includes(fingerprint.materialType),
+      fingerprint.materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.GONGFA ||
+      fingerprint.materialType === SPECIALIZED_MANUAL_MATERIAL_TYPES.SKILL,
     )
   ) {
     const hasSkillManual = fingerprints.some(

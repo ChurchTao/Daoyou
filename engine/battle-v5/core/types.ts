@@ -13,7 +13,6 @@ export interface CombatEvent {
 // ===== 战斗阶段枚举 =====
 export enum CombatPhase {
   INIT = 'init',
-  DESTINY_AWAKEN = 'destiny_awaken',
   ROUND_START = 'round_start',
   ROUND_PRE = 'round_pre',
   TURN_ORDER = 'turn_order',

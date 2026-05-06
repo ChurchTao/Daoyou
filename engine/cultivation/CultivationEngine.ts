@@ -27,6 +27,12 @@ import {
   getCultivationProgress,
   isBottleneckReached,
 } from '@/utils/cultivationUtils';
+import { FateEngine } from '@/lib/services/FateEngine';
+import { PersistentStateService } from '@/lib/services/PersistentStateService';
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
 
 /**
  * 闭关修炼结果
@@ -91,11 +97,25 @@ export function performCultivation(
 
   // 记录闭关前修为
   const exp_before = progress.cultivation_exp;
+  const fateGrowthContext = FateEngine.evaluateGrowthContext(
+    cultivator.pre_heaven_fates ?? [],
+  );
 
   // 计算修为获取
   const expResult = calculateCultivationExp(cultivator, years, rng);
 
-  const finalExpGain = expResult.exp_gained;
+  const finalExpGain = Math.max(
+    0,
+    Math.floor(
+      expResult.exp_gained * fateGrowthContext.cultivationExpMultiplier,
+    ),
+  );
+  const finalInsightGain = Math.max(
+    0,
+    Math.floor(
+      expResult.insight_gained * fateGrowthContext.insightGainMultiplier,
+    ),
+  );
 
   // 更新修为
   progress.cultivation_exp = Math.min(
@@ -105,8 +125,6 @@ export function performCultivation(
 
   // 更新感悟值
   if (expResult.epiphany_triggered) {
-    const finalInsightGain = expResult.insight_gained;
-
     progress.comprehension_insight = Math.min(
       100,
       progress.comprehension_insight + finalInsightGain,
@@ -147,7 +165,7 @@ export function performCultivation(
     exp_gained: finalExpGain,
     exp_before,
     exp_after: progress.cultivation_exp,
-    insight_gained: expResult.insight_gained,
+    insight_gained: finalInsightGain,
     epiphany_triggered: expResult.epiphany_triggered,
   };
 
@@ -157,7 +175,7 @@ export function performCultivation(
       exp_gained: finalExpGain,
       exp_before,
       exp_after: progress.cultivation_exp,
-      insight_gained: expResult.insight_gained,
+      insight_gained: finalInsightGain,
       epiphany_triggered: expResult.epiphany_triggered,
       bottleneck_entered,
       can_breakthrough: canAttemptBreakthrough(progress),
@@ -187,6 +205,14 @@ export function attemptBreakthrough(
   const fromRealm = cultivator.realm;
   const fromStage = cultivator.realm_stage;
   const nextStage = getNextStage(fromRealm, fromStage);
+  const fateGrowthContext = FateEngine.evaluateGrowthContext(
+    cultivator.pre_heaven_fates ?? [],
+  );
+  const pillBreakthroughBonus =
+    cultivator.persistent_state?.pendingBreakthroughBonus ?? 0;
+  const pillToxicityPenalty = PersistentStateService.getBreakthroughPenalty(
+    cultivator.persistent_state,
+  );
 
   if (!nextStage) {
     throw new Error('已达最高境界，无法继续突破');
@@ -204,8 +230,20 @@ export function attemptBreakthrough(
     throw new Error(breakthroughResult.recommendation);
   }
 
-  const finalChance = breakthroughResult.chance;
+  const finalChance = clamp(
+    breakthroughResult.chance +
+      fateGrowthContext.breakthroughChanceBonus +
+      pillBreakthroughBonus -
+      pillToxicityPenalty,
+    0.05,
+    0.95,
+  );
   const modifiers = breakthroughResult.modifiers;
+
+  cultivator.persistent_state = {
+    ...(cultivator.persistent_state ?? {}),
+    pendingBreakthroughBonus: 0,
+  };
 
   // roll突破
   const roll = rng();

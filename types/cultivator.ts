@@ -4,6 +4,8 @@ import type { AbilityConfig } from '@/engine/creation-v2/contracts/battle';
 import type { AttributeModifierConfig } from '@/engine/battle-v5/core/configs';
 import type { PersistentCombatStatusV5 } from '@/engine/battle-v5/setup/types';
 import type {
+  ConsumableCategory,
+  ConsumableQuotaKind,
   ConsumableType,
   ElementType,
   EquipmentSlot,
@@ -87,10 +89,37 @@ export interface PreHeavenFateAttributeMod {
   willpower?: number;
 }
 
+export interface PreHeavenFateGrowthBias {
+  creationTags?: string[];
+  cultivationExpMultiplier?: number;
+  insightGainMultiplier?: number;
+  breakthroughChanceBonus?: number;
+}
+
+export interface PreHeavenFateWorldBias {
+  encounterHints?: string[];
+  preferredRewardTypes?: string[];
+  rewardScoreMultiplier?: number;
+}
+
+export interface PreHeavenFateTradeoff {
+  scope: 'creation' | 'cultivation' | 'breakthrough' | 'world';
+  description: string;
+  creationTags?: string[];
+  multiplier?: number;
+  breakthroughChanceBonus?: number;
+  rewardTypes?: string[];
+}
+
 export interface PreHeavenFate {
   name: string;
   quality?: Quality; // 凡品 | 灵品 | 玄品 | 真品
   description?: string;
+  registryKey?: string;
+  tags?: string[];
+  growthBias?: PreHeavenFateGrowthBias;
+  worldBias?: PreHeavenFateWorldBias;
+  tradeoffs?: PreHeavenFateTradeoff[];
 }
 
 // 功法（被动）
@@ -151,6 +180,36 @@ export interface Consumable {
   description?: string;
   prompt?: string; // 炼丹提示词
   score?: number; // 评分
+  category?: ConsumableCategory;
+  quotaKind?: ConsumableQuotaKind;
+  mechanicKey?: string;
+  useSpec?: ConsumableUseSpec;
+  details?: Record<string, unknown>;
+}
+
+export interface ConsumableUseSpec {
+  hpRecoverFlat?: number;
+  hpRecoverPercent?: number;
+  mpRecoverFlat?: number;
+  mpRecoverPercent?: number;
+  cultivationExpGain?: number;
+  comprehensionInsightGain?: number;
+  breakthroughChanceBonus?: number;
+  toxicityDelta?: number;
+  detoxifyAmount?: number;
+  woundRelief?: number;
+  attributeDelta?: Partial<Attributes>;
+  spiritualRootDelta?: {
+    mode?: 'all' | 'highest' | 'lowest';
+    amount: number;
+    cap?: number;
+  };
+  aptitudeDelta?: number;
+  talisman?: {
+    scenario: string;
+    sessionMode: 'lock_on_enter_settle_on_exit';
+  };
+  notes?: string;
 }
 
 export interface Material {
@@ -188,6 +247,18 @@ export interface CultivationProgress {
   deviation_risk: number; // 走火入魔风险值（0-100）
   last_epiphany_at?: string; // 上次顿悟时间（ISO字符串）
   epiphany_buff_expires_at?: string; // 顿悟buff过期时间（ISO字符串）
+}
+
+export interface CultivatorPersistentState {
+  currentHp?: number;
+  currentMp?: number;
+  pillToxicity?: number;
+  realmPillUsage?: Partial<Record<RealmType, number>>;
+  pendingBreakthroughBonus?: number;
+  lastNaturalRecoveryAt?: string;
+  lastBattleAt?: string;
+  totalRecoveredHp?: number;
+  totalRecoveredMp?: number;
 }
 
 // 角色完整数据模型（与 basic.md 中 JSON Schema 对齐的运行时结构）
@@ -231,4 +302,5 @@ export interface Cultivator {
 
   // 持久状态（用于存储战斗/副本中产生的持久状态）
   persistent_statuses?: PersistentCombatStatusV5[];
+  persistent_state?: CultivatorPersistentState;
 }

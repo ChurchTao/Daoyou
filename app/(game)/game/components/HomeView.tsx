@@ -19,7 +19,7 @@ import {
 import { usePathname } from 'next/navigation';
 
 import { useHomeViewModel } from '../hooks/useHomeViewModel';
-import { ActivePersistentBuffs } from './ActivePersistentBuffs';
+import { PersistentStatusesCard } from './PersistentStatusesCard';
 import { QuickActionsGrid } from './QuickActionsGrid';
 import { TitleEditorModal } from './TitleEditorModal';
 
@@ -77,8 +77,7 @@ export function HomeView() {
       currentPath={pathname}
       footer={<DivineFortune />}
     >
-      {/* 激活的持久Buff状态 */}
-      <ActivePersistentBuffs />
+      <PersistentStatusesCard />
 
       {/* 历练收益卡片 */}
       {cultivator && (
