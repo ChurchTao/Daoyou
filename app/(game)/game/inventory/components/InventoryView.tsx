@@ -102,7 +102,7 @@ export function InventoryView() {
           isLoading={isTabLoading && inventory.artifacts.length === 0}
           equipped={equipped}
           pendingId={pendingId}
-          onShowDetails={openItemDetail}
+          onShowDetails={(item) => openItemDetail({ kind: 'artifact', item })}
           onEquipToggle={handleEquipToggle}
           onDiscard={(item) => openDiscardConfirm(item, 'artifact')}
         />
@@ -117,7 +117,7 @@ export function InventoryView() {
           onElementFilterChange={setMaterialElementFilter}
           onSortChange={setMaterialSort}
           onResetFilters={resetMaterialFilters}
-          onShowDetails={openItemDetail}
+          onShowDetails={(item) => openItemDetail({ kind: 'material', item })}
           pendingId={pendingId}
           onIdentify={handleIdentifyMaterial}
           onDiscard={(item) => openDiscardConfirm(item, 'material')}
@@ -128,7 +128,9 @@ export function InventoryView() {
           consumables={inventory.consumables}
           isLoading={isTabLoading && inventory.consumables.length === 0}
           pendingId={pendingId}
-          onShowDetails={openItemDetail}
+          onShowDetails={(item) =>
+            openItemDetail({ kind: 'consumable', item })
+          }
           onConsume={handleConsume}
           onDiscard={(item) => openDiscardConfirm(item, 'consumable')}
         />

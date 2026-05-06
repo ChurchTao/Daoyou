@@ -1,6 +1,7 @@
 'use client';
 
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
+import type { ItemDetailPayload } from '@/app/(game)/game/inventory/components/itemDetailPayload';
 import { RankingListItem } from '@/components/feature/ranking/RankingListItem';
 import { formatProbeResultContent } from '@/components/func/ProbeResult';
 import { InkModal, InkPageShell } from '@/components/layout';
@@ -16,16 +17,11 @@ import {
   InkTabs,
 } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
-import type {
-  Artifact,
-  Consumable,
-  CultivationTechnique,
-  Skill,
-} from '@/types/cultivator';
 import { RANKING_REWARDS } from '@/types/constants';
 import { ItemRankingEntry, RankingsDisplayItem } from '@/types/rankings';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { toRankingDetailItem } from './rankingDetailItem';
 type MyRankInfo = {
   rank: number | null;
   remainingChallenges: number;
@@ -35,60 +31,6 @@ type MyRankInfo = {
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
 type RankingTab = 'battle' | 'artifact' | 'technique' | 'skill' | 'elixir';
-
-function toDetailItem(
-  item: ItemRankingEntry,
-): Artifact | Consumable | Skill | CultivationTechnique {
-  if (item.itemType === 'artifact') {
-    return {
-      id: item.id,
-      name: item.name,
-      slot: (item.slot as Artifact['slot']) || 'weapon',
-      element: (item.element as Artifact['element']) || '金',
-      quality: item.quality as Artifact['quality'],
-      description: item.description,
-      score: item.score,
-      abilityConfig: item.abilityConfig as Artifact['abilityConfig'],
-      productModel: item.productModel,
-    };
-  }
-
-  if (item.itemType === 'skill') {
-    return {
-      id: item.id,
-      name: item.name,
-      element: (item.element as Skill['element']) || '金',
-      quality: item.quality as Skill['quality'],
-      cost: item.cost || 0,
-      cooldown: item.cooldown || 0,
-      description: item.description,
-      abilityConfig: item.abilityConfig as Skill['abilityConfig'],
-      productModel: item.productModel,
-    };
-  }
-
-  if (item.itemType === 'technique') {
-    return {
-      id: item.id,
-      name: item.name,
-      element: item.element as CultivationTechnique['element'],
-      quality: item.quality as CultivationTechnique['quality'],
-      description: item.description,
-      abilityConfig: item.abilityConfig as CultivationTechnique['abilityConfig'],
-      productModel: item.productModel,
-    };
-  }
-
-  return {
-    id: item.id,
-    name: item.name,
-    type: '丹药',
-    quality: item.quality as Consumable['quality'],
-    quantity: item.quantity || 1,
-    description: item.description,
-    score: item.score,
-  };
-}
 
 export default function RankingsPage() {
   const router = useRouter();
@@ -106,7 +48,7 @@ export default function RankingsPage() {
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [showRules, setShowRules] = useState(false);
   const [selectedItemDetail, setSelectedItemDetail] =
-    useState<ItemRankingEntry | null>(null);
+    useState<ItemDetailPayload | null>(null);
   const pathname = usePathname();
 
   const loadRankings = useCallback(
@@ -422,7 +364,10 @@ export default function RankingsPage() {
                     isItem={!isBattle}
                     onViewDetails={
                       !isBattle
-                        ? (selectedItem) => setSelectedItemDetail(selectedItem)
+                        ? (selectedItem) =>
+                            setSelectedItemDetail(
+                              toRankingDetailItem(selectedItem),
+                            )
                         : undefined
                     }
                   />
@@ -435,7 +380,7 @@ export default function RankingsPage() {
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
       <ItemDetailModal
-        item={selectedItemDetail ? toDetailItem(selectedItemDetail) : null}
+        item={selectedItemDetail}
         isOpen={Boolean(selectedItemDetail)}
         onClose={() => setSelectedItemDetail(null)}
       />

@@ -1,11 +1,11 @@
 'use client';
 
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
+import type { ItemDetailPayload } from '@/app/(game)/game/inventory/components/itemDetailPayload';
 import type { Tier } from '@/components/ui/InkBadge';
 import { InkBadge, tierColorMap } from '@/components/ui/InkBadge';
 import { InkButton } from '@/components/ui/InkButton';
 import { cn } from '@/lib/cn';
-import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import type {
   ItemShowcaseSnapshotMap,
   WorldChatDuelInvitePayload,
@@ -17,8 +17,6 @@ import { useMemo, useState } from 'react';
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', {
   numeric: 'auto',
 });
-
-type WorldChatDetailItem = Artifact | Consumable | Material;
 
 function formatRelativeTime(isoString: string): string {
   const time = new Date(isoString).getTime();
@@ -72,11 +70,11 @@ function isDuelInvitePayload(
   return typeof payload === 'object' && payload !== null;
 }
 
-function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
+export function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
   name: string;
   tier?: Tier;
   text?: string;
-  detailItem: WorldChatDetailItem;
+  detailItem: ItemDetailPayload;
 } | null {
   if (!payload.snapshot || typeof payload.snapshot !== 'object') {
     return null;
@@ -96,12 +94,15 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
       tier: item.quality as Tier | undefined,
       text: payload.text,
       detailItem: {
-        id: item.id || payload.itemId,
-        name: item.name,
-        slot: item.slot,
-        element: item.element,
-        quality: item.quality,
-        description: item.description,
+        kind: 'artifact',
+        item: {
+          id: item.id || payload.itemId,
+          name: item.name,
+          slot: item.slot,
+          element: item.element,
+          quality: item.quality,
+          description: item.description,
+        },
       },
     };
   }
@@ -121,13 +122,16 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
       tier: item.rank as Tier,
       text: payload.text,
       detailItem: {
-        id: item.id || payload.itemId,
-        name: item.name,
-        type: item.type,
-        rank: item.rank,
-        element: item.element,
-        description: item.description,
-        quantity: item.quantity,
+        kind: 'material',
+        item: {
+          id: item.id || payload.itemId,
+          name: item.name,
+          type: item.type,
+          rank: item.rank,
+          element: item.element,
+          description: item.description,
+          quantity: item.quantity,
+        },
       },
     };
   }
@@ -145,12 +149,15 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
     tier: item.quality as Tier | undefined,
     text: payload.text,
     detailItem: {
-      id: item.id || payload.itemId,
-      name: item.name,
-      type: item.type,
-      quality: item.quality,
-      quantity: item.quantity,
-      description: item.description,
+      kind: 'consumable',
+      item: {
+        id: item.id || payload.itemId,
+        name: item.name,
+        type: item.type,
+        quality: item.quality,
+        quantity: item.quantity,
+        description: item.description,
+      },
     },
   };
 }
@@ -161,9 +168,7 @@ interface WorldChatMessageItemProps {
 }
 
 export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
-  const [detailItem, setDetailItem] = useState<WorldChatDetailItem | null>(
-    null,
-  );
+  const [detailItem, setDetailItem] = useState<ItemDetailPayload | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const isSystemRumor =
     message.senderCultivatorId === null && message.senderName === '修仙界传闻';

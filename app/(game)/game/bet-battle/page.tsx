@@ -2,6 +2,10 @@
 
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
 import {
+  toInventoryItemDetail,
+  type ItemDetailPayload,
+} from '@/app/(game)/game/inventory/components/itemDetailPayload';
+import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@/config/temporaryRestrictions';
@@ -355,9 +359,8 @@ export default function BetBattlePage() {
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [probingId, setProbingId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
-  const [selectedStakeDetail, setSelectedStakeDetail] = useState<
-    Material | Artifact | Consumable | null
-  >(null);
+  const [selectedStakeDetail, setSelectedStakeDetail] =
+    useState<ItemDetailPayload | null>(null);
 
   const loadHall = async () => {
     setLoadingHall(true);
@@ -518,7 +521,10 @@ export default function BetBattlePage() {
             className={`${stakeItemTierClass} cursor-pointer hover:opacity-80`}
             onClick={() =>
               setSelectedStakeDetail(
-                stakeItem.data as Material | Artifact | Consumable,
+                toInventoryItemDetail(
+                  stakeItem.itemType,
+                  stakeItem.data as Material | Artifact | Consumable,
+                ),
               )
             }
           >

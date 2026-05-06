@@ -66,9 +66,7 @@ function ArtifactCard({
         </div>
       </div>
       <div className="flex flex-wrap gap-1">
-        {artifact.quality && (
-          <InkBadge tier={artifact.quality as never}>{artifact.quality}</InkBadge>
-        )}
+        {artifact.quality && <InkBadge tier={artifact.quality as never} />}
         {artifact.slot && (
           <InkBadge tone="default">{SLOT_LABELS[artifact.slot] ?? artifact.slot}</InkBadge>
         )}

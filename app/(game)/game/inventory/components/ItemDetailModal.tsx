@@ -8,7 +8,6 @@ import {
 import { InkBadge } from '@/components/ui/InkBadge';
 import { ItemShowcaseModal } from '@/components/ui/ItemShowcaseModal';
 import type {
-  Artifact,
   Consumable,
   CultivationTechnique,
   Material,
@@ -18,14 +17,12 @@ import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getMaterialTypeInfo,
 } from '@/types/dictionaries';
-
-type InventoryItem = Artifact | Consumable | Material;
-type DetailItem = InventoryItem | Skill | CultivationTechnique;
+import type { ItemDetailPayload } from './itemDetailPayload';
 
 interface ItemDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: DetailItem | null;
+  item: ItemDetailPayload | null;
 }
 
 // 持有数量信息组件
@@ -48,9 +45,8 @@ export function ItemDetailModal({
 }: ItemDetailModalProps) {
   if (!item || !isOpen) return null;
 
-  // 法宝（有 slot 属性）
-  if ('slot' in item) {
-    const artifactRecord = item as unknown as ProductRecordLike;
+  if (item.kind === 'artifact') {
+    const artifactRecord = item.item as unknown as ProductRecordLike;
     const product = toProductDisplayModel({
       ...artifactRecord,
       productType: 'artifact',
@@ -65,9 +61,8 @@ export function ItemDetailModal({
     );
   }
 
-  // 神通（有 cost、cooldown 和 element）
-  if ('cooldown' in item && 'element' in item && !('type' in item)) {
-    const skill = item as Skill;
+  if (item.kind === 'skill') {
+    const skill = item.item as Skill;
     const product = toProductDisplayModel({
       ...skill,
       productType: 'skill',
@@ -82,9 +77,8 @@ export function ItemDetailModal({
     );
   }
 
-  // 功法（无 slot，无 cooldown）
-  if (!('slot' in item) && !('cooldown' in item)) {
-    const technique = item as CultivationTechnique;
+  if (item.kind === 'gongfa') {
+    const technique = item.item as CultivationTechnique;
     const product = toProductDisplayModel({
       ...technique,
       productType: 'gongfa',
@@ -99,34 +93,37 @@ export function ItemDetailModal({
     );
   }
 
-  // 丹药/符箓（消耗品）
-  if ('quality' in item && 'type' in item && 'quantity' in item) {
-    const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
+  if (item.kind === 'consumable') {
+    const consumable = item.item as Consumable;
+    const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
     return (
       <ItemShowcaseModal
         isOpen
         onClose={onClose}
         icon={typeInfo.icon}
-        name={item.name}
+        name={consumable.name}
         badges={[
-          item.quality && (
-            <InkBadge key="q" tier={item.quality}>
+          consumable.quality ? (
+            <InkBadge key="type" tier={consumable.quality}>
+              {typeInfo.label}
+            </InkBadge>
+          ) : (
+            <InkBadge key="type" tone="default">
               {typeInfo.label}
             </InkBadge>
           ),
         ].filter(Boolean)}
-        extraInfo={<QuantityInfo quantity={item.quantity} />}
-        description={item.description}
+        extraInfo={<QuantityInfo quantity={consumable.quantity} />}
+        description={consumable.description}
         descriptionTitle="丹药详述"
       />
     );
   }
 
-  // 材料
-  const material = item as Material;
+  const material = item.item as Material;
   const typeInfo = getMaterialTypeInfo(material.type);
   const badges = [
-    <InkBadge key="r" tier={material.rank}>
+    <InkBadge key="type" tier={material.rank}>
       {typeInfo.label}
     </InkBadge>,
   ];

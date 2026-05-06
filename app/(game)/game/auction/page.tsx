@@ -2,6 +2,10 @@
 
 import { ItemDetailModal } from '@/app/(game)/game/inventory/components/ItemDetailModal';
 import {
+  toInventoryItemDetail,
+  type ItemDetailPayload,
+} from '@/app/(game)/game/inventory/components/itemDetailPayload';
+import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@/config/temporaryRestrictions';
@@ -52,9 +56,9 @@ export default function AuctionPage() {
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showListModal, setShowListModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<
-    Material | Artifact | Consumable | null
-  >(null);
+  const [selectedItem, setSelectedItem] = useState<ItemDetailPayload | null>(
+    null,
+  );
 
   const [pagination, setPagination] = useState({
     browse: { page: 1, totalPages: 1 },
@@ -319,7 +323,11 @@ export default function AuctionPage() {
           <div className="flex w-full justify-end gap-2">
             <InkButton
               variant="secondary"
-              onClick={() => setSelectedItem(listing.itemSnapshot)}
+              onClick={() =>
+                setSelectedItem(
+                  toInventoryItemDetail(listing.itemType, listing.itemSnapshot),
+                )
+              }
             >
               详情
             </InkButton>

@@ -389,9 +389,7 @@ export default function GongfaCreationPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
               {createdResult.quality && (
-                <InkBadge tier={createdResult.quality as never}>
-                  {createdResult.quality}
-                </InkBadge>
+                <InkBadge tier={createdResult.quality as never} />
               )}
               {createdResult.element && (
                 <InkBadge tone="default">{createdResult.element}</InkBadge>

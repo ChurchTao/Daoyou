@@ -81,6 +81,13 @@ const MODIFIER_VALUE_HINTS: Record<
   [ModifierType.OVERRIDE]: '忽略原值，直接指定为这个数值。',
 };
 
+function readTrainingRoomStorage() {
+  if (typeof window === 'undefined') return null;
+  return parseTrainingRoomStorage(
+    window.localStorage.getItem(TRAINING_ROOM_STORAGE_KEY),
+  );
+}
+
 function createStatusRef(templateId?: string): PersistentCombatStatusV5 {
   return {
     version: 1,
@@ -377,13 +384,15 @@ export default function TrainingRoomPage() {
   const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(
     null,
   );
-  const [draft, setDraft] = useState<TrainingRoomDraft>(
-    createDefaultTrainingRoomDraft(),
-  );
-  const [presets, setPresets] = useState<TrainingRoomPreset[]>([]);
+  const [draft, setDraft] = useState<TrainingRoomDraft>(() => {
+    return readTrainingRoomStorage()?.currentDraft ?? createDefaultTrainingRoomDraft();
+  });
+  const [presets, setPresets] = useState<TrainingRoomPreset[]>(() => {
+    return readTrainingRoomStorage()?.presets ?? [];
+  });
   const [selectedPresetId, setSelectedPresetId] = useState('');
   const [presetName, setPresetName] = useState('');
-  const [storageReady, setStorageReady] = useState(false);
+  const [storageReady] = useState(typeof window !== 'undefined');
   const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
 
   const {
@@ -398,15 +407,6 @@ export default function TrainingRoomPage() {
     progress,
     unitSnapshots,
   } = useCombatPlayer(battleResult);
-
-  useEffect(() => {
-    const storage = parseTrainingRoomStorage(
-      window.localStorage.getItem(TRAINING_ROOM_STORAGE_KEY),
-    );
-    setDraft(storage.currentDraft);
-    setPresets(storage.presets);
-    setStorageReady(true);
-  }, []);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -581,9 +581,6 @@ export default function TrainingRoomPage() {
                 {isDebugPanelOpen ? '收起自定义设置' : '打开自定义设置'}
               </InkButton>
             </div>
-            <p className="mt-3 text-xs text-ink/55">
-              默认配置下，玩家会以完整状态入场，木桩气血为 100000；你在这里保存的设置也会保留在当前浏览器中。
-            </p>
           </InkCard>
 
           {isDebugPanelOpen ? (

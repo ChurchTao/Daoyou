@@ -11,6 +11,7 @@ import {
 } from '@/types/constants';
 import type { Artifact, Consumable, Material } from '@/types/cultivator';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ItemDetailPayload } from '../components/itemDetailPayload';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;
@@ -110,9 +111,9 @@ export interface UseInventoryViewModelReturn {
   resetMaterialFilters: () => void;
 
   // Modal 状态
-  selectedItem: InventoryItem | null;
+  selectedItem: ItemDetailPayload | null;
   isModalOpen: boolean;
-  openItemDetail: (item: InventoryItem) => void;
+  openItemDetail: (item: ItemDetailPayload) => void;
   closeItemDetail: () => void;
 
   // Dialog 状态
@@ -188,7 +189,9 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
   });
 
   // Modal 状态
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ItemDetailPayload | null>(
+    null,
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Dialog 状态
@@ -263,7 +266,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
   }, [activeTab, cultivator?.id, fetchTabPage]);
 
   // 打开物品详情
-  const openItemDetail = useCallback((item: InventoryItem) => {
+  const openItemDetail = useCallback((item: ItemDetailPayload) => {
     setSelectedItem(item);
     setIsModalOpen(true);
   }, []);
@@ -482,7 +485,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         });
 
         if (revealed) {
-          setSelectedItem(revealed);
+          setSelectedItem({ kind: 'material', item: revealed });
           setIsModalOpen(true);
         }
 

@@ -59,9 +59,7 @@ function V2ProductCard({
         </InkButton>
       </div>
       <div className="flex flex-wrap gap-1">
-        {product.quality && (
-          <InkBadge tier={product.quality as never}>{product.quality}</InkBadge>
-        )}
+        {product.quality && <InkBadge tier={product.quality as never} />}
         {product.element && (
           <InkBadge tone="default">{product.element}</InkBadge>
         )}
