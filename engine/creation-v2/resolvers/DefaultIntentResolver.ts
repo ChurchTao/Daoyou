@@ -18,10 +18,12 @@ export class DefaultIntentResolver {
     input: CreationSessionInput,
     fingerprints: MaterialFingerprint[],
   ): CreationIntent {
+    const positiveTagBiases = input.contextPositiveTagBiases ?? [];
+    const negativeTagBiases = input.contextNegativeTagBiases ?? [];
     const dominantTags = Array.from(
       new Set([
         ...MaterialFactsBuilder.pickDominantTags(fingerprints),
-        ...(input.contextDominantTags ?? []),
+        ...positiveTagBiases.map((bias) => bias.tag),
       ]),
     );
     const slotBiasResolution = this.resolveSlotBias(input, fingerprints);
@@ -29,6 +31,8 @@ export class DefaultIntentResolver {
     return {
       productType: input.productType,
       dominantTags,
+      positiveTagBiases,
+      negativeTagBiases,
       elementBias: this.pickElementBias(fingerprints),
       slotBias: slotBiasResolution.slotBias,
       slotBiasSource: slotBiasResolution.slotBiasSource,

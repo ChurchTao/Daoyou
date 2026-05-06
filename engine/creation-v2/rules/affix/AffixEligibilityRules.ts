@@ -81,11 +81,13 @@ export class AffixEligibilityRules
         continue;
       }
 
-      const evaluationScore = this.calculateEvaluationScore(
+      const baseEvaluationScore = this.calculateEvaluationScore(
         candidate,
         facts,
         matchResult,
       );
+      const negativePenalty = this.calculateNegativePenalty(candidate.tags, facts);
+      const evaluationScore = Math.max(0, baseEvaluationScore - negativePenalty);
       const threshold = (scoreThresholds as Record<string, number>)[candidate.category] ?? 0.45;
 
       if (evaluationScore < threshold) {
@@ -102,6 +104,8 @@ export class AffixEligibilityRules
           message: '词缀因 admission score 过低被过滤',
           details: {
             affixId: candidate.id,
+            baseEvaluationScore,
+            negativePenalty,
             evaluationScore,
             threshold,
           },
@@ -206,5 +210,21 @@ export class AffixEligibilityRules
 
   private clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
+  }
+
+  private calculateNegativePenalty(
+    candidateTags: string[],
+    facts: AffixEligibilityFacts,
+  ): number {
+    if (!facts.negativeTagBiases?.length) {
+      return 0;
+    }
+
+    const matchedWeight = facts.negativeTagBiases.reduce(
+      (sum, bias) => (candidateTags.includes(bias.tag) ? sum + bias.weight : sum),
+      0,
+    );
+
+    return Math.min(0.35, matchedWeight * 0.16);
   }
 }

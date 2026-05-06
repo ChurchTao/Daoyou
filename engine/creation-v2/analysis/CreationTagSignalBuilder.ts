@@ -51,6 +51,9 @@ export function buildCreationTagSignals({
       'intent_dominant',
       SIGNAL_WEIGHTS.dominantIntent,
     );
+    for (const bias of intent.positiveTagBiases ?? []) {
+      pushSignals([bias.tag], 'intent_positive_bias', bias.weight);
+    }
   }
 
   if (recipeMatch) {

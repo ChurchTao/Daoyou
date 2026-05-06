@@ -1,6 +1,11 @@
 'use client';
 
 import { LingGen } from '@/components/func';
+import { FateDetailModal } from '@/components/feature/fates/FateDetailModal';
+import {
+  FateEffectInlineList,
+} from '@/components/feature/fates/FateEffectInlineList';
+import { toFateDisplayModel } from '@/components/feature/fates/FateDisplayAdapter';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
@@ -53,6 +58,7 @@ export default function CreatePage() {
     Cultivator['pre_heaven_fates']
   >([]);
   const [selectedFateIndices, setSelectedFateIndices] = useState<number[]>([]);
+  const [detailFate, setDetailFate] = useState<Cultivator['pre_heaven_fates'][number] | null>(null);
   const [balanceNotes, setBalanceNotes] = useState<string[]>([]);
   const [hasExistingCultivator, setHasExistingCultivator] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
@@ -487,6 +493,7 @@ export default function CreatePage() {
               <InkList>
                 {availableFates.map((fate, idx) => {
                   const isSelected = selectedFateIndices.includes(idx);
+                  const fateDisplay = toFateDisplayModel(fate);
                   return (
                     <div
                       key={fate.name + idx}
@@ -494,23 +501,42 @@ export default function CreatePage() {
                         isSelected ? 'ink-selectable-active' : ''
                       }`}
                     >
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         className="w-full text-left"
                         onClick={() => toggleFateSelection(idx)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            toggleFateSelection(idx);
+                          }
+                        }}
                       >
                         <ItemCard
                           name={fate.name}
                           quality={fate.quality}
+                          meta={<FateEffectInlineList lines={fateDisplay.previewLines} />}
                           description={fate.description}
                           actions={
-                            isSelected ? (
-                              <InkTag tone="good">已取</InkTag>
-                            ) : null
+                            <div
+                              className="flex gap-2"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <InkButton
+                                variant="secondary"
+                                onClick={() => setDetailFate(fate)}
+                              >
+                                详情
+                              </InkButton>
+                              {isSelected ? (
+                                <InkTag tone="good">已取</InkTag>
+                              ) : null}
+                            </div>
                           }
                           layout="col"
                         />
-                      </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -521,6 +547,11 @@ export default function CreatePage() {
               </div>
             )}
           </InkSection>
+          <FateDetailModal
+            isOpen={detailFate !== null}
+            onClose={() => setDetailFate(null)}
+            fate={detailFate}
+          />
 
           <InkSection title="【功法】">
             {(player.cultivations || []).length === 0 ? (

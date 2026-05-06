@@ -51,9 +51,15 @@ export interface CreationSessionInput {
   productType: CreationProductType;
   materials: Material[];
   userPrompt?: string;
-  contextDominantTags?: string[];
+  contextPositiveTagBiases?: CreationContextTagBias[];
+  contextNegativeTagBiases?: CreationContextTagBias[];
   requestedSlot?: EquipmentSlot;
   requestedTargetPolicy?: TargetPolicyConfig;
+}
+
+export interface CreationContextTagBias {
+  tag: string;
+  weight: number;
 }
 
 export interface MaterialFingerprint {
@@ -118,6 +124,7 @@ export type CreationTagSignalSource =
   | 'material_semantic'
   | 'material_recipe'
   | 'intent_dominant'
+  | 'intent_positive_bias'
   | 'recipe_matched';
 
 export interface CreationTagSignal {
@@ -129,6 +136,8 @@ export interface CreationTagSignal {
 export interface CreationIntent {
   productType: CreationProductType;
   dominantTags: string[];
+  positiveTagBiases?: CreationContextTagBias[];
+  negativeTagBiases?: CreationContextTagBias[];
   elementBias?: ElementType;
   slotBias?: EquipmentSlot;
   slotBiasSource?: CreationIntentSlotBiasSource;

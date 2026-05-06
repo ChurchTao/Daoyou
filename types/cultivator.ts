@@ -81,45 +81,65 @@ export interface BreakthroughHistoryEntry {
 }
 
 // 先天命格 / 气运
-export interface PreHeavenFateAttributeMod {
-  vitality?: number;
-  spirit?: number;
-  wisdom?: number;
-  speed?: number;
-  willpower?: number;
-}
+export type FateEffectScope =
+  | 'creation'
+  | 'cultivation'
+  | 'breakthrough'
+  | 'world';
 
-export interface PreHeavenFateGrowthBias {
-  creationTags?: string[];
-  cultivationExpMultiplier?: number;
-  insightGainMultiplier?: number;
-  breakthroughChanceBonus?: number;
-}
+export type FateEffectPolarity = 'boon' | 'burden';
 
-export interface PreHeavenFateWorldBias {
-  encounterHints?: string[];
-  preferredRewardTypes?: string[];
-  rewardScoreMultiplier?: number;
-}
+export type FateEffectType =
+  | 'creation_tag_bias'
+  | 'cultivation_exp_multiplier'
+  | 'insight_gain_multiplier'
+  | 'breakthrough_bonus'
+  | 'reward_type_bias'
+  | 'reward_score_multiplier'
+  | 'encounter_hint';
 
-export interface PreHeavenFateTradeoff {
-  scope: 'creation' | 'cultivation' | 'breakthrough' | 'world';
-  description: string;
-  creationTags?: string[];
-  multiplier?: number;
-  breakthroughChanceBonus?: number;
+export type FateEffectExtreme = 'mild' | 'strong' | 'extreme';
+
+export interface FateEffectEntry {
+  id: string;
+  fragmentId: string;
+  scope: FateEffectScope;
+  polarity: FateEffectPolarity;
+  effectType: FateEffectType;
+  value: number;
+  tags?: string[];
   rewardTypes?: string[];
+  label: string;
+  description: string;
+  extreme: FateEffectExtreme;
+}
+
+export interface FateGenerationModel {
+  version: string;
+  quality: Quality;
+  fragmentIds: string[];
+  compositionHash: string;
+  primaryDomains: FateEffectScope[];
+  qualityTemplateId: string;
+  coreKey: string;
+  rollStrategy?: 'fully_random' | 'root_restricted';
+}
+
+export interface FateNamingMetadata {
+  status: 'success' | 'fallback';
+  originalName?: string;
+  provider?: string;
+  styleInsight?: string;
 }
 
 export interface PreHeavenFate {
   name: string;
-  quality?: Quality; // 凡品 | 灵品 | 玄品 | 真品
+  quality?: Quality;
   description?: string;
-  registryKey?: string;
   tags?: string[];
-  growthBias?: PreHeavenFateGrowthBias;
-  worldBias?: PreHeavenFateWorldBias;
-  tradeoffs?: PreHeavenFateTradeoff[];
+  effects?: FateEffectEntry[];
+  generationModel?: FateGenerationModel;
+  namingMetadata?: FateNamingMetadata;
 }
 
 // 功法（被动）

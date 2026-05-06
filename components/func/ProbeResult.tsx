@@ -1,3 +1,5 @@
+import { FateEffectInlineList } from '@/components/feature/fates/FateEffectInlineList';
+import { toFateDisplayModel } from '@/components/feature/fates/FateDisplayAdapter';
 import { tierColorMap, type Tier } from '@/components/ui/InkBadge';
 import { cn } from '@/lib/cn';
 import type { Artifact, Attributes, Cultivator } from '@/types/cultivator';
@@ -228,6 +230,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
           <SectionHeader icon="🔮" title="先天命格" />
           <div className="grid grid-cols-1 gap-3 px-1">
             {target.pre_heaven_fates.map((fate, idx) => {
+              const fateDisplay = toFateDisplayModel(fate);
               const tierClass = fate.quality
                 ? tierColorMap[fate.quality as Tier]
                 : '';
@@ -261,6 +264,9 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                       {fate.description}
                     </div>
                   )}
+                  <div className="mt-3">
+                    <FateEffectInlineList lines={fateDisplay.previewLines} />
+                  </div>
                 </div>
               );
             })}

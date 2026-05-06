@@ -89,6 +89,7 @@ export class AffixPoolBuilder {
       inputTagSignals,
       inputTags,
       tagSignalScores: buildCreationTagSignalScoreMap(inputTagSignals),
+      negativeTagBiases: session.state.intent?.negativeTagBiases ?? [],
       maxQualityOrder,
     };
 

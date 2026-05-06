@@ -1,8 +1,6 @@
 import { withAuth } from '@/lib/api/withAuth';
+import { FATE_REROLL_LIMIT } from '@/lib/services/FateConfig';
 import { FateEngine } from '@/lib/services/FateEngine';
-import {
-  FATE_REROLL_LIMIT,
-} from '@/lib/services/FatePolicyRegistry';
 import {
   checkAndIncrementReroll,
   getTempCharacter,
@@ -53,7 +51,9 @@ export const POST = withAuth(async (request: NextRequest) => {
     remainingRerolls = rerollCheck.remaining;
   }
 
-  const fates = FateEngine.generateCandidatePool(cultivator);
+  const fates = await FateEngine.generateCandidatePool(cultivator, {
+    strategy: 'root_restricted',
+  });
   await saveTempFates(tempId, fates);
 
   return NextResponse.json({
@@ -64,4 +64,3 @@ export const POST = withAuth(async (request: NextRequest) => {
     },
   });
 });
-

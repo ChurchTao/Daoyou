@@ -55,10 +55,17 @@ export class AffixWeightRules
         Math.max(0, tagHitCount - 1) *
           (CREATION_AFFIX_POOL_SCORING.tagHitBonus * 0.5) +
         coverage * (CREATION_AFFIX_POOL_SCORING.coverageBonus * 0.3);
+      const negativeBiasPenalty = this.calculateNegativeBiasPenalty(
+        candidate.tags,
+        facts.negativeTagBiases,
+      );
+      const penaltyMultiplier = Math.max(0.35, 1 - negativeBiasPenalty);
 
       const weighted = Math.max(
         1,
-        Math.round(candidate.weight * scoreMultiplier * tagBonus),
+        Math.round(
+          candidate.weight * scoreMultiplier * tagBonus * penaltyMultiplier,
+        ),
       );
 
       accepted.push({
@@ -76,5 +83,20 @@ export class AffixWeightRules
         accepted: accepted.length,
       },
     });
+  }
+
+  private calculateNegativeBiasPenalty(
+    candidateTags: string[],
+    negativeBiases: AffixEligibilityFacts['negativeTagBiases'],
+  ): number {
+    if (!negativeBiases?.length) {
+      return 0;
+    }
+
+    const totalMatchedWeight = negativeBiases.reduce((sum, bias) => {
+      return candidateTags.includes(bias.tag) ? sum + bias.weight : sum;
+    }, 0);
+
+    return Math.min(0.65, totalMatchedWeight * 0.2);
   }
 }

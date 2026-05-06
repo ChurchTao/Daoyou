@@ -352,8 +352,11 @@ export async function processCreation(
       realmStage: cultivator.realm_stage as RealmStage,
       productType,
       materials: engineMaterials,
-      ...(fateCreationContext.dominantTags.length > 0
-        ? { contextDominantTags: fateCreationContext.dominantTags }
+      ...(fateCreationContext.positiveTagBiases.length > 0
+        ? { contextPositiveTagBiases: fateCreationContext.positiveTagBiases }
+        : {}),
+      ...(fateCreationContext.negativeTagBiases.length > 0
+        ? { contextNegativeTagBiases: fateCreationContext.negativeTagBiases }
         : {}),
       ...(enrichedUserPrompt ? { userPrompt: enrichedUserPrompt } : {}),
       ...(effectiveRequestedSlot

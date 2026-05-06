@@ -82,21 +82,20 @@ async function assembleCultivatorFromRelations(
         name: f.name,
         quality: f.quality as Quality,
         description: f.description || undefined,
-        registryKey: f.registryKey || undefined,
         tags:
           ((f.details as Record<string, unknown> | null)?.tags as string[]) ||
           undefined,
-        growthBias:
-          ((f.details as Record<string, unknown> | null)?.growthBias as
-            | PreHeavenFate['growthBias']
+        effects:
+          ((f.details as Record<string, unknown> | null)?.effects as
+            | PreHeavenFate['effects']
             | undefined) || undefined,
-        worldBias:
-          ((f.details as Record<string, unknown> | null)?.worldBias as
-            | PreHeavenFate['worldBias']
+        generationModel:
+          ((f.details as Record<string, unknown> | null)?.generationModel as
+            | PreHeavenFate['generationModel']
             | undefined) || undefined,
-        tradeoffs:
-          ((f.details as Record<string, unknown> | null)?.tradeoffs as
-            | PreHeavenFate['tradeoffs']
+        namingMetadata:
+          ((f.details as Record<string, unknown> | null)?.namingMetadata as
+            | PreHeavenFate['namingMetadata']
             | undefined) || undefined,
       }),
     ),
@@ -406,12 +405,12 @@ export async function createCultivator(
           cultivatorId,
           name: fate.name,
           quality: fate.quality || null,
-          registryKey: fate.registryKey || null,
+          registryKey: null,
           details: {
             tags: fate.tags ?? [],
-            growthBias: fate.growthBias ?? {},
-            worldBias: fate.worldBias ?? {},
-            tradeoffs: fate.tradeoffs ?? [],
+            effects: fate.effects ?? [],
+            generationModel: fate.generationModel ?? null,
+            namingMetadata: fate.namingMetadata ?? null,
           },
           description: fate.description || null,
         })),

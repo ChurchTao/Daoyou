@@ -1,6 +1,9 @@
 'use client';
 
 import { LingGen } from '@/components/func';
+import { FateDetailModal } from '@/components/feature/fates/FateDetailModal';
+import { FateEffectInlineList } from '@/components/feature/fates/FateEffectInlineList';
+import { toFateDisplayModel } from '@/components/feature/fates/FateDisplayAdapter';
 import {
   AbilityMetaLine,
   AffixInlineList,
@@ -26,6 +29,7 @@ import { attrLabel } from '@/engine/battle-v5/effects/affixText/attributes';
 import { AttributeType } from '@/engine/battle-v5/core/types';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { cn } from '@/lib/cn';
+import type { Cultivator } from '@/types/cultivator';
 import { getEquipmentSlotInfo } from '@/types/dictionaries';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -109,6 +113,9 @@ export default function CultivatorPage() {
   const router = useRouter();
   const { pushToast } = useInkUI();
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
+  const [detailFate, setDetailFate] = useState<
+    Cultivator['pre_heaven_fates'][number] | null
+  >(null);
   const [showAllAttributes, setShowAllAttributes] = useState(false);
 
   const handleReincarnate = async () => {
@@ -280,14 +287,27 @@ export default function CultivatorPage() {
       {cultivator.pre_heaven_fates?.length > 0 && (
         <InkSection title="【先天命格】">
           <InkList>
-            {cultivator.pre_heaven_fates.map((fate, idx) => (
-              <ItemCard
-                key={fate.name + idx}
-                name={fate.name}
-                quality={fate.quality}
-                description={fate.description}
-              />
-            ))}
+            {cultivator.pre_heaven_fates.map((fate, idx) => {
+              const fateDisplay = toFateDisplayModel(fate);
+              return (
+                <ItemCard
+                  key={fate.name + idx}
+                  name={fate.name}
+                  quality={fate.quality}
+                  meta={<FateEffectInlineList lines={fateDisplay.previewLines} />}
+                  description={fate.description}
+                  actions={
+                    <InkButton
+                      variant="secondary"
+                      onClick={() => setDetailFate(fate)}
+                    >
+                      详情
+                    </InkButton>
+                  }
+                  layout="col"
+                />
+              );
+            })}
           </InkList>
         </InkSection>
       )}
@@ -500,6 +520,11 @@ export default function CultivatorPage() {
       </InkSection>
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
+      <FateDetailModal
+        isOpen={detailFate !== null}
+        onClose={() => setDetailFate(null)}
+        fate={detailFate}
+      />
     </InkPageShell>
   );
 }

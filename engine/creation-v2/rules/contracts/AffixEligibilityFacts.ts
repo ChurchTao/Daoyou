@@ -1,6 +1,7 @@
 import {
   AffixCandidate,
   AffixCategory,
+  CreationContextTagBias,
   CreationTagSignal,
   CreationProductType,
   EnergyBudget,
@@ -16,5 +17,6 @@ export interface AffixEligibilityFacts {
   inputTagSignals: CreationTagSignal[];
   inputTags: string[];
   tagSignalScores: Record<string, number>;
+  negativeTagBiases?: CreationContextTagBias[];
   maxQualityOrder: number;
 }
