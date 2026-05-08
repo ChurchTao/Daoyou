@@ -249,6 +249,27 @@ async function assembleCultivatorFromRelations(
   };
 }
 
+function buildPreHeavenFateInsertValues(
+  cultivatorId: string,
+  fates: PreHeavenFate[],
+) {
+  const normalizedFates = FateEngine.normalizeFates(fates);
+
+  return normalizedFates.map((fate) => ({
+    cultivatorId,
+    name: fate.name,
+    quality: fate.quality || null,
+    registryKey: null,
+    details: {
+      tags: fate.tags ?? [],
+      effects: fate.effects ?? [],
+      generationModel: fate.generationModel ?? null,
+      namingMetadata: fate.namingMetadata ?? null,
+    },
+    description: fate.description || null,
+  }));
+}
+
 /**
  * 将数据库记录组装成完整的 Cultivator 对象
  */
@@ -400,21 +421,9 @@ export async function createCultivator(
 
     // 3. 创建先天命格
     if (normalizedFates.length > 0) {
-      await tx.insert(schema.preHeavenFates).values(
-        normalizedFates.map((fate) => ({
-          cultivatorId,
-          name: fate.name,
-          quality: fate.quality || null,
-          registryKey: null,
-          details: {
-            tags: fate.tags ?? [],
-            effects: fate.effects ?? [],
-            generationModel: fate.generationModel ?? null,
-            namingMetadata: fate.namingMetadata ?? null,
-          },
-          description: fate.description || null,
-        })),
-      );
+      await tx
+        .insert(schema.preHeavenFates)
+        .values(buildPreHeavenFateInsertValues(cultivatorId, normalizedFates));
     }
 
     // 注意：产物与装备状态均由 creation_products 承载，创建角色时无需初始化旧装备表
@@ -1666,6 +1675,28 @@ export async function replaceSpiritualRoots(
       grade: root.grade ?? resolveSpiritualRootGrade(rootCount, root.element),
     })),
   );
+}
+
+export async function replacePreHeavenFates(
+  userId: string,
+  cultivatorId: string,
+  fates: Cultivator['pre_heaven_fates'],
+  tx?: DbTransaction,
+): Promise<void> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const dbInstance = getExecutor(tx);
+  await dbInstance
+    .delete(schema.preHeavenFates)
+    .where(eq(schema.preHeavenFates.cultivatorId, cultivatorId));
+
+  if (fates.length === 0) {
+    return;
+  }
+
+  await dbInstance
+    .insert(schema.preHeavenFates)
+    .values(buildPreHeavenFateInsertValues(cultivatorId, fates));
 }
 
 export async function consumeConsumableById(

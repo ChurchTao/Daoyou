@@ -35,7 +35,7 @@ describe('ConsumableRegistry', () => {
     expect(detox.quotaKind).toBeUndefined();
   });
 
-  it('maps talismans to session-lock mechanics instead of direct buffs', () => {
+  it('maps talismans to special-play mechanics instead of direct buffs', () => {
     const talisman = ConsumableRegistry.normalizeConsumable({
       name: '天机逆命符',
       type: '符箓',
@@ -48,4 +48,3 @@ describe('ConsumableRegistry', () => {
     expect(talisman.useSpec?.talisman?.scenario).toBe('fate_reshape');
   });
 });
-

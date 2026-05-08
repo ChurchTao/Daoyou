@@ -19,8 +19,8 @@ function FateSummary({ model }: { model: FateDisplayModel }) {
 
   return (
     <div className="flex flex-wrap justify-center gap-1.5">
-      {model.coreTags.map((tag) => (
-        <InkBadge key={tag} tone="default">
+      {model.coreTags.map((tag, index) => (
+        <InkBadge key={`${tag}-${index}`} tone="default">
           {tag}
         </InkBadge>
       ))}

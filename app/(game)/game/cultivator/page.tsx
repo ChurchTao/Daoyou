@@ -285,7 +285,16 @@ export default function CultivatorPage() {
       <LingGen spiritualRoots={cultivator.spiritual_roots || []} />
 
       {cultivator.pre_heaven_fates?.length > 0 && (
-        <InkSection title="【先天命格】">
+        <InkSection
+          title={
+            <div className="flex items-center justify-between gap-3">
+              <span>【先天命格】</span>
+              <InkButton href="/game/fate-reshape" variant="secondary">
+                重塑命格
+              </InkButton>
+            </div>
+          }
+        >
           <InkList>
             {cultivator.pre_heaven_fates.map((fate, idx) => {
               const fateDisplay = toFateDisplayModel(fate);

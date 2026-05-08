@@ -9,8 +9,8 @@ export function FateEffectInlineList({ lines }: FateEffectInlineListProps) {
 
   return (
     <ul className="space-y-1 text-sm">
-      {lines.map((line) => (
-        <li key={line} className="text-ink-secondary leading-relaxed">
+      {lines.map((line, index) => (
+        <li key={`${line}-${index}`} className="text-ink-secondary leading-relaxed">
           · {line}
         </li>
       ))}

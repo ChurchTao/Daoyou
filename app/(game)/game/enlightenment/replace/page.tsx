@@ -1,37 +1,23 @@
 'use client';
 
 import { getCreationProductTypeFromCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
+import {
+  CreationProductResultModal,
+  type CreationProductResultRecord,
+} from '@/components/feature/creation';
 import { InkPageShell, InkSection } from '@/components/layout';
+import {
+  toProductDisplayModel,
+  type ProductDisplayModel,
+} from '@/components/feature/products';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import { InkActionGroup, InkBadge, InkButton, InkNotice } from '@/components/ui';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
-type AffixSummary = {
-  id: string;
-  name: string;
-  category: string;
-  isPerfect: boolean;
-  rollEfficiency: number;
-};
-
-type V2Product = {
-  id: string;
-  productType: string;
-  name: string;
-  quality: string | null;
-  element: string | null;
-  score: number;
-  affixes: AffixSummary[];
-};
-
-type PendingItem = {
-  productType: string;
-  previewName: string;
-  previewQuality: string | null;
-  previewElement: string | null;
-};
+type V2Product = ProductDisplayModel & { id: string };
+type PendingItem = CreationProductResultRecord & { snapshot: string };
 
 function V2ProductCard({
   product,
@@ -92,7 +78,7 @@ function ReplaceContent() {
   const [pendingItem, setPendingItem] = useState<PendingItem | null>(null);
   const [existingItems, setExistingItems] = useState<V2Product[]>([]);
   const [selectedOldId, setSelectedOldId] = useState<string | null>(null);
-  const [acceptNew, setAcceptNew] = useState(true);
+  const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
 
   const productType = craftType
     ? getCreationProductTypeFromCraftType(craftType)
@@ -119,7 +105,13 @@ function ReplaceContent() {
       }
 
       if (existingData.success) {
-        setExistingItems(existingData.data ?? []);
+        const items: V2Product[] = (existingData.data ?? []).map(
+          (item: Record<string, unknown>) => ({
+            id: item.id as string,
+            ...toProductDisplayModel(item),
+          }),
+        );
+        setExistingItems(items);
       }
     } catch (e) {
       console.error('获取数据失败:', e);
@@ -190,18 +182,26 @@ function ReplaceContent() {
 
         <InkSection title={`【新领悟】`}>
           <div className="border border-amber-400/50 bg-amber-50/30 rounded-lg p-3 space-y-2">
-            <span className="font-medium text-sm">{pendingItem.previewName}</span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {pendingItem.previewQuality && (
-                <InkBadge tier={pendingItem.previewQuality as never}>
-                  {pendingItem.previewQuality}
+            <span className="font-medium text-sm">{pendingItem.name}</span>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {pendingItem.quality && (
+                <InkBadge tier={pendingItem.quality as never}>
+                  {pendingItem.quality}
                 </InkBadge>
               )}
-              {pendingItem.previewElement && (
-                <InkBadge tone="default">{pendingItem.previewElement}</InkBadge>
+              {pendingItem.element && (
+                <InkBadge tone="default">{pendingItem.element}</InkBadge>
               )}
               <InkBadge tone="default">待纳入道基</InkBadge>
             </div>
+            <InkActionGroup align="right">
+              <InkButton
+                variant="secondary"
+                onClick={() => setIsPendingModalOpen(true)}
+              >
+                查看详情
+              </InkButton>
+            </InkActionGroup>
           </div>
         </InkSection>
 
@@ -255,6 +255,12 @@ function ReplaceContent() {
             {loading ? '演化中...' : '确认替换'}
           </InkButton>
         </InkActionGroup>
+
+        <CreationProductResultModal
+          isOpen={isPendingModalOpen}
+          onClose={() => setIsPendingModalOpen(false)}
+          product={pendingItem}
+        />
       </div>
     </InkPageShell>
   );

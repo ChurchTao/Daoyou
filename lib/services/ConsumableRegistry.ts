@@ -1,5 +1,5 @@
 import { CONSUMABLE_TOXICITY_DEFAULTS, getConsumableQualityScalar } from '@/config/consumableSystem';
-import type { ConsumableCategory, ConsumableQuotaKind, Quality } from '@/types/constants';
+import type { ConsumableQuotaKind, Quality } from '@/types/constants';
 import type { Attributes, Consumable, ConsumableUseSpec } from '@/types/cultivator';
 
 type ConsumableDefinition = Pick<
@@ -139,8 +139,9 @@ function buildLegacyDefinition(consumable: Consumable): ConsumableDefinition | n
       useSpec: {
         talisman: {
           scenario: 'fate_reshape',
-          sessionMode: 'lock_on_enter_settle_on_exit',
+          sessionMode: 'consume_on_action',
         },
+        notes: '前往命格重塑页，点击开启后直接消耗。',
       },
     };
   }
@@ -152,8 +153,9 @@ function buildLegacyDefinition(consumable: Consumable): ConsumableDefinition | n
       useSpec: {
         talisman: {
           scenario: 'draw_gongfa',
-          sessionMode: 'lock_on_enter_settle_on_exit',
+          sessionMode: 'consume_on_action',
         },
+        notes: '前往问法寻卷页，直接抽取灵品及以上功法秘籍；5 连至少一部真品。',
       },
     };
   }
@@ -165,8 +167,9 @@ function buildLegacyDefinition(consumable: Consumable): ConsumableDefinition | n
       useSpec: {
         talisman: {
           scenario: 'draw_skill',
-          sessionMode: 'lock_on_enter_settle_on_exit',
+          sessionMode: 'consume_on_action',
         },
+        notes: '前往问法寻卷页，直接抽取灵品及以上神通秘籍；5 连至少一部真品。',
       },
     };
   }

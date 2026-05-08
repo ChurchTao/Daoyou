@@ -175,7 +175,7 @@ export const ConsumableUseEngine = {
     }
 
     if (consumable.category === 'talisman_key') {
-      throw new Error('此符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。');
+      throw new Error('此符箓需前往对应玩法页中消耗，不能在背包中直接使用。');
     }
 
     const now = new Date();

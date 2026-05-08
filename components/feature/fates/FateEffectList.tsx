@@ -17,9 +17,9 @@ export function FateEffectList({ groups }: FateEffectListProps) {
             {group.title}
           </h3>
           <ul className="space-y-1.5">
-            {group.lines.map((line) => (
+            {group.lines.map((line, index) => (
               <li
-                key={line}
+                key={`${group.key}-${line}-${index}`}
                 className="border-ink/10 text-ink-secondary rounded-md border px-2 py-1.5 text-sm leading-relaxed"
               >
                 {line}

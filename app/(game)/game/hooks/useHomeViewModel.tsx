@@ -57,6 +57,8 @@ const quickActionGroups: QuickActionGroup[] = [
     actions: [
       { label: '🧘 洞府', href: '/game/retreat' },
       { label: '📚 藏经阁', href: '/game/enlightenment' },
+      { label: '🪄 问法寻卷', href: '/game/enlightenment/manual-draw' },
+      { label: '🔮 重塑命格', href: '/game/fate-reshape' },
       { label: '⚗️ 造物仙炉', href: '/game/craft' },
       { label: '🏔️ 云游探秘', href: '/game/dungeon' },
       { label: '📘 所修功法', href: '/game/techniques' },

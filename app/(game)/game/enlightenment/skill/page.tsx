@@ -3,14 +3,16 @@
 import { MaterialSelector } from '@/app/(game)/game/components/MaterialSelector';
 import {
   CreationIntentPanel,
+  CreationProductResultModal,
   SelectedMaterialsWithDose,
+  type CreationProductResultRecord,
 } from '@/components/feature/creation';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
 import {
   InkActionGroup,
-  InkBadge,
   InkButton,
+  InkIdentifyCelebration,
   InkNotice,
 } from '@/components/ui';
 import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
@@ -47,24 +49,6 @@ type PreviewValidation = {
   missingMatchingManual: boolean;
 };
 
-type AffixSummary = {
-  id: string;
-  name: string;
-  category: string;
-  isPerfect: boolean;
-  rollEfficiency: number;
-};
-
-type V2CreationResult = {
-  id: string;
-  name: string;
-  quality: string | null;
-  element: string | null;
-  score: number;
-  affixes: AffixSummary[];
-  needs_replace?: boolean;
-};
-
 type TargetPolicySelection = {
   team: 'enemy' | 'ally' | 'self' | 'any';
   scope: 'single' | 'aoe' | 'random';
@@ -94,9 +78,11 @@ export default function SkillCreationPage() {
   const [userPrompt, setUserPrompt] = useState('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
-  const [createdResult, setCreatedResult] = useState<V2CreationResult | null>(
-    null,
-  );
+  const [createdResult, setCreatedResult] =
+    useState<CreationProductResultRecord | null>(null);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [celebrationTick, setCelebrationTick] = useState(0);
+  const [pendingReplaceHref, setPendingReplaceHref] = useState<string | null>(null);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
@@ -108,10 +94,12 @@ export default function SkillCreationPage() {
   useEffect(() => {
     const checkPending = async () => {
       if (!cultivator) return;
+      const replaceHref = `/game/enlightenment/replace?type=${CRAFT_TYPE}`;
       try {
         const res = await fetch(`/api/craft/pending?type=${CRAFT_TYPE}`);
         const data = await res.json();
         if (data.success && data.hasPending) {
+          setPendingReplaceHref(replaceHref);
           openDialog({
             title: '感应天机',
             content: (
@@ -122,9 +110,11 @@ export default function SkillCreationPage() {
             confirmLabel: '继续推演',
             cancelLabel: '暂不处理',
             onConfirm: () => {
-              router.push(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
+              router.push(replaceHref);
             },
           });
+        } else {
+          setPendingReplaceHref(null);
         }
       } catch (e) {
         console.error('检查待定失败:', e);
@@ -204,6 +194,7 @@ export default function SkillCreationPage() {
   const resetAll = () => {
     setStatus('');
     setCreatedResult(null);
+    setIsResultModalOpen(false);
     setSelectedMaterialIds([]);
     setSelectedMaterialMap({});
     setDoseMap({});
@@ -241,9 +232,15 @@ export default function SkillCreationPage() {
       return;
     }
 
+    if (pendingReplaceHref) {
+      pushToast({ message: '已有待纳入道基的新神通，请先前往处理。', tone: 'warning' });
+      return;
+    }
+
     setSubmitting(true);
     setStatus('感悟天地，推演法则……');
     setCreatedResult(null);
+    setIsResultModalOpen(false);
 
     try {
       const response = await fetch('/api/craft', {
@@ -257,26 +254,26 @@ export default function SkillCreationPage() {
         throw new Error(result.error || '推演失败');
       }
 
-      const skill = result.data as V2CreationResult;
-
-      if (skill.needs_replace) {
-        pushToast({
-          message: '神通已达上限，请选择一个进行替换',
-          tone: 'default',
-        });
-        router.push(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
-        return;
-      }
+      const skill = result.data as CreationProductResultRecord;
+      const successMessage = `神通【${skill.name}】推演成功！`;
 
       setCreatedResult(skill);
-      const successMessage = `神通【${skill.name}】推演成功！`;
+      setIsResultModalOpen(true);
+      setCelebrationTick((prev) => prev + 1);
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
       setSelectedMaterialIds([]);
       setSelectedMaterialMap({});
       setDoseMap({});
-      await refreshCultivator();
       setMaterialsRefreshKey((prev) => prev + 1);
+
+      if (skill.needs_replace) {
+        setPendingReplaceHref(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
+        return;
+      }
+
+      setPendingReplaceHref(null);
+      await refreshCultivator();
     } catch (error) {
       const failMessage =
         error instanceof Error
@@ -470,6 +467,7 @@ export default function SkillCreationPage() {
               isSubmitting ||
               selectedMaterialIds.length === 0 ||
               !targetPolicy ||
+              !!pendingReplaceHref ||
               !canAfford ||
               validation?.valid === false
             }
@@ -485,33 +483,41 @@ export default function SkillCreationPage() {
         </div>
       )}
 
-      {createdResult && (
-        <InkSection title={`【${createdResult.name}】已纳入道基`}>
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-              {createdResult.quality && (
-                <InkBadge tier={createdResult.quality as never} />
-              )}
-              {createdResult.element && (
-                <InkBadge tone="default">{createdResult.element}</InkBadge>
-              )}
-              <InkBadge tone="default">{`评分 ${createdResult.score}`}</InkBadge>
+      {pendingReplaceHref && (
+        <div className="mt-4 space-y-3">
+          <InkNotice tone="warning">
+            已有一门待纳入道基的新神通，请先处理取舍，再继续推演。
+          </InkNotice>
+          <InkActionGroup align="right">
+            <InkButton href={pendingReplaceHref} variant="secondary">
+              前往处理
+            </InkButton>
+          </InkActionGroup>
+        </div>
+      )}
+
+      <CreationProductResultModal
+        isOpen={isResultModalOpen}
+        onClose={() => setIsResultModalOpen(false)}
+        product={createdResult}
+        footer={
+          createdResult?.needs_replace && pendingReplaceHref ? (
+            <div className="space-y-3 pt-2">
+              <InkNotice tone="warning">
+                神通栏已满，请先择一门旧术让位，方可将新神通纳入道基。
+              </InkNotice>
+              <InkActionGroup align="right">
+                <InkButton href={pendingReplaceHref} variant="primary">
+                  前往处理
+                </InkButton>
+              </InkActionGroup>
             </div>
-            {createdResult.affixes.length > 0 && (
-              <ul className="text-ink-secondary space-y-1 text-sm">
-                {createdResult.affixes.map((a) => (
-                  <li key={a.id} className="flex items-center gap-1">
-                    <span>{a.isPerfect ? '✦' : '◆'}</span>
-                    <span>{a.name}</span>
-                    {a.isPerfect && (
-                      <span className="text-amber-500 text-xs">（完美）</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </InkSection>
+          ) : undefined
+        }
+      />
+
+      {celebrationTick > 0 && (
+        <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
     </InkPageShell>
   );

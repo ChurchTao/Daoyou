@@ -2,6 +2,7 @@
 
 import { InkBadge, InkButton, InkList, InkNotice } from '@/components/ui';
 import { ItemCard } from '@/components/ui/ItemCard';
+import { buildManualDrawHref } from '@/types/manualDraw';
 import type { Consumable } from '@/types/cultivator';
 
 interface ConsumablesTabProps {
@@ -43,10 +44,40 @@ export function ConsumablesTab({
     <InkList>
       {sortedItems.map((item, idx) => {
         const isTalisman = item.category === 'talisman_key' || item.type === '符箓';
+        const isFateReshapeTalisman =
+          item.mechanicKey === 'fate_reshape_access' ||
+          item.name === '天机逆命符';
+        const isGongfaDrawTalisman =
+          item.mechanicKey === 'gongfa_draw_access' ||
+          item.name === '悟道演法符';
+        const isSkillDrawTalisman =
+          item.mechanicKey === 'skill_draw_access' ||
+          item.name === '神通衍化符';
         const isDirectlyUsable =
           !isTalisman && Boolean(item.id && item.category && item.useSpec);
+        const scenarioHref = isFateReshapeTalisman
+          ? '/game/fate-reshape'
+          : isGongfaDrawTalisman
+            ? buildManualDrawHref('gongfa')
+            : isSkillDrawTalisman
+              ? buildManualDrawHref('skill')
+              : undefined;
+        const scenarioActionLabel = isFateReshapeTalisman
+          ? '前往重塑'
+          : isGongfaDrawTalisman
+            ? '抽功法秘籍'
+            : isSkillDrawTalisman
+              ? '抽神通秘籍'
+              : null;
+        const canNavigateToScenario = Boolean(item.id && scenarioHref);
         const usageHint = isTalisman
-          ? '【需在对应玩法入口校验并锁定，终局结算后扣除】'
+          ? isFateReshapeTalisman
+            ? '【前往命格重塑功能页启封，开启时立即扣除】'
+            : isGongfaDrawTalisman
+              ? '【前往问法寻卷，直接消耗符箓抽取功法秘籍】'
+              : isSkillDrawTalisman
+                ? '【前往问法寻卷，直接消耗符箓抽取神通秘籍】'
+                : '【需在对应玩法入口校验并锁定，终局结算后扣除】'
           : isDirectlyUsable
             ? null
             : '【旧制数据，暂未接入新版本使用规则】';
@@ -84,13 +115,22 @@ export function ConsumablesTab({
                   详情
                 </InkButton>
                 <InkButton
-                  disabled={!item.id || pendingId === item.id || !isDirectlyUsable}
-                  onClick={() => onConsume(item)}
+                  disabled={
+                    !item.id ||
+                    pendingId === item.id ||
+                    (!isDirectlyUsable && !canNavigateToScenario)
+                  }
+                  onClick={
+                    canNavigateToScenario ? undefined : () => onConsume(item)
+                  }
+                  href={canNavigateToScenario ? scenarioHref : undefined}
                   variant="primary"
                 >
                   {pendingId === item.id
                     ? '服用中…'
-                    : isTalisman
+                    : canNavigateToScenario
+                      ? scenarioActionLabel
+                      : isTalisman
                       ? '场外使用'
                       : isDirectlyUsable
                         ? '服用'

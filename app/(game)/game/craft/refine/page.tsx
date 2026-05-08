@@ -3,11 +3,18 @@
 import { MaterialSelector } from '@/app/(game)/game/components/MaterialSelector';
 import {
   CreationIntentPanel,
+  CreationProductResultModal,
   SelectedMaterialsWithDose,
+  type CreationProductResultRecord,
 } from '@/components/feature/creation';
 import { InkPageShell, InkSection } from '@/components/layout';
 import { useInkUI } from '@/components/providers/InkUIProvider';
-import { InkActionGroup, InkButton, InkNotice } from '@/components/ui';
+import {
+  InkActionGroup,
+  InkButton,
+  InkIdentifyCelebration,
+  InkNotice,
+} from '@/components/ui';
 import { CREATION_INPUT_CONSTRAINTS } from '@/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@/lib/contexts/CultivatorContext';
@@ -54,6 +61,10 @@ export default function RefinePage() {
   const [requestedSlot, setRequestedSlot] = useState<EquipmentSlot | ''>('');
   const [status, setStatus] = useState<string>('');
   const [isSubmitting, setSubmitting] = useState(false);
+  const [createdResult, setCreatedResult] =
+    useState<CreationProductResultRecord | null>(null);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [celebrationTick, setCelebrationTick] = useState(0);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState<CostEstimate | null>(null);
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
@@ -131,6 +142,8 @@ export default function RefinePage() {
 
   const resetAll = () => {
     setStatus('');
+    setCreatedResult(null);
+    setIsResultModalOpen(false);
     setSelectedMaterialIds([]);
     setSelectedMaterialMap({});
     setDoseMap({});
@@ -170,6 +183,8 @@ export default function RefinePage() {
 
     setSubmitting(true);
     setStatus('炉火纯青，真火锤锻……');
+    setCreatedResult(null);
+    setIsResultModalOpen(false);
 
     try {
       const response = await fetch('/api/craft', {
@@ -183,7 +198,11 @@ export default function RefinePage() {
         throw new Error(result.error || '炼制失败');
       }
 
-      const successMessage = `【${result.data.name}】出世！`;
+      const artifact = result.data as CreationProductResultRecord;
+      const successMessage = `【${artifact.name}】出世！`;
+      setCreatedResult(artifact);
+      setIsResultModalOpen(true);
+      setCelebrationTick((prev) => prev + 1);
       setStatus(successMessage);
       pushToast({ message: successMessage, tone: 'success' });
       setSelectedMaterialIds([]);
@@ -317,10 +336,20 @@ export default function RefinePage() {
         </InkActionGroup>
       </InkSection>
 
-      {status && (
+      {status && !createdResult && (
         <div className="mt-4">
           <InkNotice tone="info">{status}</InkNotice>
         </div>
+      )}
+
+      <CreationProductResultModal
+        isOpen={isResultModalOpen}
+        onClose={() => setIsResultModalOpen(false)}
+        product={createdResult}
+      />
+
+      {celebrationTick > 0 && (
+        <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
     </InkPageShell>
   );

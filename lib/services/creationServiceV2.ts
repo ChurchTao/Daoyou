@@ -13,7 +13,10 @@ import {
 import { toRow } from '@/engine/creation-v2/persistence/ProductPersistenceMapper';
 import { MaterialRuleSet } from '@/engine/creation-v2/rules/material/MaterialRuleSet';
 import { supportsProductType } from '@/engine/creation-v2/rules/recipe/ProductSupportRules';
-import type { CreationProductType } from '@/engine/creation-v2/types';
+import type {
+  CraftedOutcome,
+  CreationProductType,
+} from '@/engine/creation-v2/types';
 import {
   calculateCraftCost,
   calculateMaxQuality,
@@ -66,6 +69,7 @@ export interface CreationV2Result {
   quality: string | null;
   slot: string | null;
   score: number;
+  productModel: Record<string, unknown>;
   /** 词缀摘要（来自 product_model.affixes），供前端结果页展示 */
   affixes: Array<{
     id: string;
@@ -81,10 +85,14 @@ export interface CreationV2Result {
 
 export interface PendingCreationItem {
   snapshot: string;
+  name: string;
+  description: string | null;
   productType: CreationProductType;
-  previewName: string;
-  previewElement: string | null;
-  previewQuality: string | null;
+  element: string | null;
+  quality: string | null;
+  slot: string | null;
+  score: number;
+  productModel: Record<string, unknown>;
 }
 
 export interface CreationPreviewValidation {
@@ -111,6 +119,43 @@ const MISSING_MATCHING_MANUAL_WARNING_CODES = new Set([
   'skill-missing-manual',
   'gongfa-missing-manual',
 ]);
+
+function buildCreationResult(
+  outcome: CraftedOutcome,
+  row: ReturnType<typeof toRow>,
+  id: string,
+): CreationV2Result {
+  return {
+    id,
+    productType: row.productType as CreationProductType,
+    name: row.name,
+    description: row.description ?? null,
+    element: row.element ?? null,
+    quality: row.quality ?? null,
+    slot: row.slot ?? null,
+    score: row.score ?? 0,
+    productModel: row.productModel as Record<string, unknown>,
+    affixes: extractAffixSummary(outcome.blueprint.productModel.affixes),
+  };
+}
+
+function buildPendingCreationItem(
+  outcome: CraftedOutcome,
+  row: ReturnType<typeof toRow>,
+  snapshot: string,
+): PendingCreationItem {
+  return {
+    snapshot,
+    name: row.name,
+    description: row.description ?? null,
+    productType: row.productType as CreationProductType,
+    element: row.element ?? null,
+    quality: row.quality ?? null,
+    slot: row.slot ?? null,
+    score: row.score ?? 0,
+    productModel: row.productModel as Record<string, unknown>,
+  };
+}
 
 function toCreationMaterial(
   material: MaterialRow,
@@ -456,32 +501,14 @@ export async function processCreation(
     if (needsReplace) {
       // 返回"需要替换"标识，不含 id
       return {
-        id: '',
-        productType,
-        name: row.name,
-        description: row.description ?? null,
-        element: row.element ?? null,
-        quality: row.quality ?? null,
-        slot: row.slot ?? null,
-        score: row.score ?? 0,
-        affixes: extractAffixSummary(outcome.blueprint.productModel.affixes),
+        ...buildCreationResult(outcome, row, ''),
         needs_replace: true,
         currentCount,
         maxCount,
       };
     }
 
-    return {
-      id: insertedId!,
-      productType,
-      name: row.name,
-      description: row.description ?? null,
-      element: row.element ?? null,
-      quality: row.quality ?? null,
-      slot: row.slot ?? null,
-      score: row.score ?? 0,
-      affixes: extractAffixSummary(outcome.blueprint.productModel.affixes),
-    };
+    return buildCreationResult(outcome, row, insertedId!);
   } finally {
     await redis.del(lockKey);
   }
@@ -500,22 +527,17 @@ export async function getPendingCreation(
 
   const payload = JSON.parse(raw) as {
     snapshot: string;
-    previewName: string;
-    previewQuality: string | null;
-    previewElement: string | null;
   };
   const productType = getCreationProductTypeFromCraftType(craftType);
   if (!productType) {
     throw new CreationServiceError(`未知的造物类型: ${craftType}`);
   }
 
-  return {
-    snapshot: payload.snapshot,
-    productType,
-    previewName: payload.previewName,
-    previewElement: payload.previewElement,
-    previewQuality: payload.previewQuality,
-  };
+  const snapshot = deserializeCraftedOutcomeSnapshot(payload.snapshot);
+  const outcome = restoreCraftedOutcome(snapshot, new CreationAbilityAdapter());
+  const row = toRow(outcome, cultivatorId);
+
+  return buildPendingCreationItem(outcome, row, payload.snapshot);
 }
 
 /**
@@ -554,17 +576,7 @@ export async function confirmCreation(
 
   await redis.del(pendingKey);
 
-  return {
-    id: insertedId,
-    productType: row.productType as CreationProductType,
-    name: row.name,
-    description: row.description ?? null,
-    element: row.element ?? null,
-    quality: row.quality ?? null,
-    slot: row.slot ?? null,
-    score: row.score ?? 0,
-    affixes: extractAffixSummary(outcome.blueprint.productModel.affixes),
-  };
+  return buildCreationResult(outcome, row, insertedId);
 }
 
 /**

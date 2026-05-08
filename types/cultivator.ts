@@ -227,7 +227,7 @@ export interface ConsumableUseSpec {
   aptitudeDelta?: number;
   talisman?: {
     scenario: string;
-    sessionMode: 'lock_on_enter_settle_on_exit';
+    sessionMode: 'lock_on_enter_settle_on_exit' | 'consume_on_action';
   };
   notes?: string;
 }

@@ -999,6 +999,55 @@ describe('CreationOrchestrator', () => {
     expect(session.state.failureReason).toContain('材料种类数量必须在');
   });
 
+  it('应在 workflow 失败日志中带出失败阶段与能量预算摘要', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const orchestrator = new CreationOrchestrator();
+    const session = orchestrator.createSession({
+      sessionId: 'session-failure-log',
+      productType: 'skill',
+      materials: [],
+    });
+
+    orchestrator.budgetEnergy(session, {
+      baseTotal: 30,
+      effectiveTotal: 30,
+      reserved: 6,
+      spent: 14,
+      remaining: 10,
+      initialRemaining: 24,
+      allocations: [
+        { affixId: 'skill-core-damage', amount: 8 },
+        { affixId: 'skill-prefix-crit-boost', amount: 6 },
+      ],
+      rejections: [],
+      sources: [{ source: '测试材料', amount: 30 }],
+    });
+    orchestrator.fail(session, '配方失败');
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[creation-v2] workflow failed',
+      expect.objectContaining({
+        sessionId: 'session-failure-log',
+        failedAtPhase: 'energy_budgeted',
+        currentPhase: 'failed',
+        reason: '配方失败',
+        energyBudget: expect.objectContaining({
+          effectiveTotal: 30,
+          reserved: 6,
+          availableForAffixes: 24,
+          spent: 14,
+          remaining: 10,
+        }),
+      }),
+    );
+
+    warnSpy.mockRestore();
+    process.env.NODE_ENV = previousNodeEnv;
+  });
+
   it('应允许 event-driven workflow 停在 blueprint 阶段而不自动物化', async () => {
     const orchestrator = new CreationOrchestrator();
     const session = orchestrator.createSession({
@@ -1032,5 +1081,59 @@ describe('CreationOrchestrator', () => {
     expect(session.state.phase).toBe('blueprint_composed');
     expect(session.state.blueprint).toBeDefined();
     expect(session.state.outcome).toBeUndefined();
+  });
+
+  it('应在 workflow 成功日志中带出造物结果与能量摘要', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+    const orchestrator = new CreationOrchestrator();
+    const session = orchestrator.createSession({
+      sessionId: 'session-success-log',
+      productType: 'skill',
+      materials: [
+        {
+          id: 'mat-a',
+          name: '赤炎精铁',
+          type: 'monster',
+          rank: '玄品',
+          quantity: 2,
+          element: '火',
+          description: '蕴含火行意象与锋锐之气',
+        },
+        {
+          id: 'mat-b',
+          name: '雷髓碎晶',
+          type: 'monster',
+          rank: '灵品',
+          quantity: 1,
+          element: '雷',
+          description: '碎晶中残留雷霆爆裂之意',
+        },
+      ],
+    });
+
+    orchestrator.runEventDrivenWorkflow(session, { autoMaterialize: false });
+    await orchestrator.waitForWorkflowCompletion(session.id);
+
+    expect(infoSpy).toHaveBeenCalledWith(
+      '[creation-v2] workflow completed',
+      expect.objectContaining({
+        sessionId: 'session-success-log',
+        phase: 'blueprint_composed',
+        productType: 'skill',
+        autoMaterialized: false,
+        energyBudget: expect.objectContaining({
+          effectiveTotal: expect.any(Number),
+          spent: expect.any(Number),
+          remaining: expect.any(Number),
+        }),
+        rolledAffixes: expect.any(Array),
+      }),
+    );
+
+    infoSpy.mockRestore();
+    process.env.NODE_ENV = previousNodeEnv;
   });
 });

@@ -567,6 +567,9 @@ export class CreationOrchestrator {
     const completion = this.workflowCompletions.get(sessionId);
     this.activeWorkflowPolicies.delete(sessionId);
     this.workflowCompletions.delete(sessionId);
+    if (session) {
+      this.logWorkflowCompleted(session);
+    }
     if (session && completion) {
       completion.resolve(session);
     }
@@ -657,6 +660,8 @@ export class CreationOrchestrator {
       details,
       ...(details?.cause ? { cause: details.cause } : {}),
     });
+
+    this.logWorkflowFailed(session, failedAtPhase, reason, details);
   }
 
   private collectInputTagSignals(session: CreationSession) {
@@ -715,5 +720,93 @@ export class CreationOrchestrator {
         auditAffix.energyCost === rolledAffix.energyCost
       );
     });
+  }
+
+  private logWorkflowCompleted(session: CreationSession): void {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
+    console.info('[creation-v2] workflow completed', {
+      sessionId: session.id,
+      phase: session.state.phase,
+      productType: session.state.input.productType,
+      autoMaterialized: session.state.phase === CreationPhase.OUTCOME_MATERIALIZED,
+      blueprintName: session.state.blueprint?.productModel.name,
+      rolledAffixes: this.summarizeRolledAffixes(session.state.rolledAffixes),
+      energyBudget: this.summarizeEnergyBudget(session.state.energyBudget),
+      selection: this.summarizeSelection(session.state.affixSelectionAudit),
+    });
+  }
+
+  private logWorkflowFailed(
+    session: CreationSession,
+    failedAtPhase: CreationPhase,
+    reason: string,
+    details?: Record<string, unknown>,
+  ): void {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
+    console.warn('[creation-v2] workflow failed', {
+      sessionId: session.id,
+      failedAtPhase,
+      currentPhase: session.state.phase,
+      productType: session.state.input.productType,
+      reason,
+      details,
+      rolledAffixes: this.summarizeRolledAffixes(session.state.rolledAffixes),
+      energyBudget: this.summarizeEnergyBudget(session.state.energyBudget),
+      selection: this.summarizeSelection(session.state.affixSelectionAudit),
+    });
+  }
+
+  private summarizeEnergyBudget(budget?: EnergyBudget) {
+    if (!budget) {
+      return undefined;
+    }
+
+    return {
+      baseTotal: budget.baseTotal,
+      effectiveTotal: budget.effectiveTotal,
+      reserved: budget.reserved,
+      availableForAffixes:
+        budget.initialRemaining ?? Math.max(0, budget.effectiveTotal - budget.reserved),
+      spent: budget.spent,
+      remaining: budget.remaining,
+      exhaustionReason: budget.exhaustionReason,
+      sources: budget.sources,
+      allocations: budget.allocations,
+      rejections: budget.rejections ?? [],
+    };
+  }
+
+  private summarizeRolledAffixes(affixes: RolledAffix[]) {
+    return affixes.map((affix) => ({
+      id: affix.id,
+      name: affix.name,
+      category: affix.category,
+      energyCost: affix.energyCost,
+      rollScore: affix.rollScore,
+      rollEfficiency: affix.rollEfficiency,
+      finalMultiplier: affix.finalMultiplier,
+      isPerfect: affix.isPerfect,
+    }));
+  }
+
+  private summarizeSelection(audit?: AffixSelectionAudit) {
+    if (!audit) {
+      return undefined;
+    }
+
+    return {
+      spent: audit.spent,
+      remaining: audit.remaining,
+      exhaustionReason: audit.exhaustionReason,
+      roundCount: audit.rounds.length,
+      allocations: audit.allocations,
+      rejections: audit.rejections,
+    };
   }
 }

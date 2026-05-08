@@ -72,4 +72,53 @@ describe('FateDetailModal', () => {
     expect(markup).toContain('代价反噬');
     expect(markup).toContain('药材类机缘权重 -20%');
   });
+
+  it('重复词条与标签不应触发 duplicate key 警告', () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderToStaticMarkup(
+      <FateDetailModal
+        isOpen
+        onClose={() => {}}
+        fate={{
+          name: '雷鸣命',
+          quality: '天品',
+          description: '雷意纠缠，天机易现同形异数。',
+          tags: ['Material.Semantic.Thunder', 'Material.Semantic.Thunder'],
+          effects: [
+            {
+              id: '1',
+              fragmentId: 'boon_thunder_a',
+              scope: 'creation',
+              polarity: 'boon',
+              effectType: 'creation_tag_bias',
+              value: 0.8,
+              tags: ['Material.Semantic.Thunder'],
+              label: '造物更易引出【雷霆 / 爆发】词缀（极）',
+              description: '造物更易引出【雷霆 / 爆发】词缀（极）',
+              extreme: 'extreme',
+            },
+            {
+              id: '2',
+              fragmentId: 'boon_thunder_b',
+              scope: 'creation',
+              polarity: 'boon',
+              effectType: 'creation_tag_bias',
+              value: 0.8,
+              tags: ['Material.Semantic.Thunder'],
+              label: '造物更易引出【雷霆 / 爆发】词缀（极）',
+              description: '造物更易引出【雷霆 / 爆发】词缀（极）',
+              extreme: 'extreme',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('Encountered two children with the same key'),
+    );
+
+    consoleSpy.mockRestore();
+  });
 });
