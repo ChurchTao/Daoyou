@@ -1,5 +1,6 @@
 import { AlibabaLanguageModelOptions, createAlibaba } from '@ai-sdk/alibaba';
-import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createDeepSeek, DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText, streamText, ToolSet } from 'ai';
 import { jsonrepair } from 'jsonrepair';
 import z from 'zod';
@@ -19,7 +20,7 @@ ${JSON.stringify(jsonSchema, null, 2)}`;
 /**
  * 获取 DeepSeek Provider
  */
-function getDeepSeekProvider() {
+function getProvider() {
   if (process.env.PROVIDER_CHOOSE === 'ark') {
     return createDeepSeek({
       baseURL: process.env.ARK_BASE_URL,
@@ -45,6 +46,17 @@ function getDeepSeekProvider() {
       baseURL: process.env.KIMI_BASE_URL,
     });
   }
+  if (process.env.PROVIDER_CHOOSE === 'openrouter') {
+    return createOpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY,
+    });
+  }
+  if (process.env.PROVIDER_CHOOSE === 'deepseek') {
+    return createDeepSeek({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: process.env.DEEPSEEK_BASE_URL,
+    });
+  }
   return createDeepSeek({
     apiKey: process.env.OPENAI_API_KEY,
     baseURL: process.env.OPENAI_BASE_URL,
@@ -60,7 +72,7 @@ const getArkRandomModel = () => {
  * 获取 Model 实例
  */
 export function getModel(fast: boolean = false) {
-  const provider = getDeepSeekProvider();
+  const provider = getProvider();
   if (process.env.PROVIDER_CHOOSE === 'ark') {
     const model = fast ? process.env.ARK_MODEL_FAST_USE : getArkRandomModel();
     return provider(model!);
@@ -78,6 +90,16 @@ export function getModel(fast: boolean = false) {
       baseURL: process.env.ALIBABA_BASE_URL,
     });
     return alibabaProvider.languageModel(model!);
+  } else if (process.env.PROVIDER_CHOOSE === 'openrouter') {
+    const model = fast
+      ? process.env.OPENROUTER_MODEL_FAST_USE
+      : process.env.OPENROUTER_MODEL_USE;
+    return provider(model!);
+  } else if (process.env.PROVIDER_CHOOSE === 'deepseek') {
+    const model = fast
+      ? process.env.DEEPSEEK_MODEL_FAST_USE
+      : process.env.DEEPSEEK_MODEL_USE;
+    return provider(model!);
   } else {
     const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
     return provider(model!);
@@ -98,7 +120,9 @@ export async function text(
     system: prompt,
     prompt: userInput,
     providerOptions: {
-      deepseek: { thinking: { type: 'disabled' } },
+      deepseek: {
+        thinking: { type: 'disabled' },
+      } satisfies DeepSeekLanguageModelOptions,
       alibaba: {
         enableThinking: false,
         thinkingBudget: 2048,
@@ -126,7 +150,9 @@ export function stream_text(
       console.debug('AI生成Text Stream：usage', res.usage);
     },
     providerOptions: {
-      deepseek: { thinking: { type: thinking ? 'auto' : 'disabled' } },
+      deepseek: {
+        thinking: { type: thinking ? 'enabled' : 'disabled' },
+      } satisfies DeepSeekLanguageModelOptions,
       alibaba: {
         enableThinking: thinking,
         thinkingBudget: 2048,
@@ -163,7 +189,9 @@ async function generateStructuredData<T>(
       prompt: userInput,
       // output: Output.json(),
       providerOptions: {
-        deepseek: { thinking: { type: thinking ? 'auto' : 'disabled' } },
+        deepseek: {
+          thinking: { type: thinking ? 'enabled' : 'disabled' },
+        } satisfies DeepSeekLanguageModelOptions,
         alibaba: {
           enableThinking: thinking,
           thinkingBudget: 2048,
@@ -252,7 +280,9 @@ export async function tool(
     prompt: userInput,
     tools,
     providerOptions: {
-      deepseek: { thinking: { type: thinking ? 'auto' : 'disabled' } },
+      deepseek: {
+        thinking: { type: thinking ? 'enabled' : 'disabled' },
+      } satisfies DeepSeekLanguageModelOptions,
       alibaba: {
         enableThinking: thinking,
         thinkingBudget: 2048,
