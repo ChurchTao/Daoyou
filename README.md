@@ -1,4 +1,4 @@
-# 万界道友 (daoyou.org)
+# 万界道友
 
 <p align="center">
   <img src="public/assets/daoyou_logo.png" alt="万界道友 Logo" width="200" />
@@ -8,23 +8,8 @@
   <strong>一款 AIGC 驱动、高自由度文字体验、修仙世界观的开源游戏项目。</strong>
 </p>
 
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL v3" /></a>
-  <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
-  <img src="https://img.shields.io/badge/React-19-149eca" alt="React 19" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178c6" alt="TypeScript 5" />
-  <img src="https://img.shields.io/badge/Deploy-Vercel%20%7C%20Cloudflare-orange" alt="Deploy Targets" />
-</p>
-
-<p align="center">
-  <a href="#-项目亮点">项目亮点</a> •
-  <a href="#-快速开始">快速开始</a> •
-  <a href="#-部署指南">部署指南</a> •
-  <a href="#-功能矩阵">功能矩阵</a> •
-  <a href="#-架构总览">架构总览</a> •
-  <a href="#-roadmap">Roadmap</a> •
-  <a href="#-贡献指南">贡献指南</a>
-</p>
+> 本仓库当前实现为 `Hono + React SPA`。  
+> 这里的说明以现有代码为准，已不再适用于旧版 Next.js 架构。
 
 ---
 
@@ -58,220 +43,247 @@
   <img src="https://page-r2.daoyou.org/index/Xnip2026-02-02_19-02-21.png" alt="云游坊市" width="260" />
 </p>
 
-## 🚀 快速开始
+## 当前技术栈
 
-### 1. 环境要求
+- 服务端：`Hono 4` + `Bun`
+- 前端：`React 19` + `React Router 7` + `Vite 8`
+- 样式：`Tailwind CSS 4`
+- 数据库：`PostgreSQL` + `Drizzle ORM`
+- 认证：`Better Auth`
+- 缓存 / 定时任务依赖：`Redis`
+- AI 能力：`AI SDK` + `DeepSeek / ARK / Kimi / Alibaba / OpenRouter / OpenAI-compatible`
 
-- Node.js 18+
-- npm 10+
-- PostgreSQL（推荐 Supabase）
-- Redis（推荐 Upstash）
+## 当前目录结构
 
-### 2. 克隆与安装
-
-```bash
-git clone https://github.com/ChurchTao/Daoyou.git
-cd Daoyou
-npm install
+```text
+.
+├── src/index.ts                 # 根 Hono 应用，生产环境负责 SPA fallback
+├── src/server/                  # Hono API、认证、服务层、数据库访问
+├── src/react-app/               # React SPA
+├── src/shared/                  # 共享引擎、配置、类型、契约
+├── drizzle/                     # Drizzle SQL migrations
+├── scripts/                     # Docker 启停脚本
+├── Dockerfile
+├── docker-compose.yml
+└── vite.config.ts
 ```
 
-### 3. 配置环境变量
+## 运行方式
+
+这个仓库不是 SSR 应用。
+
+- `src/react-app` 使用 `BrowserRouter` 管理前端路由
+- `src/server/app.ts` 提供 `/api/*` 和 `/internal/*` 接口
+- `src/index.ts` 在生产环境对非 API 的 `GET/HEAD` 请求返回 `dist/index.html`，由前端 SPA 接管路由
+
+当前路由约定：
+
+- `/api/*`：游戏与后台 API
+- `/api/auth/*`：Better Auth
+- `/internal/cron/*`：内部定时任务接口
+- `/api/health-check`：健康检查
+- 其余如 `/login`、`/game`、`/admin`：前端 SPA 路由
+
+## 环境要求
+
+- `Bun 1.3+`
+- `PostgreSQL`
+- `Redis`：不是进程启动硬依赖，但排行榜、世界聊天、部分定时任务等功能会用到
+
+说明：
+
+- 仓库脚本默认围绕 `bun` / `bunx` 编写，不建议继续沿用旧的 `npm + Next.js` 使用方式
+- 开发模式默认端口是 `5173`
+- 构建后服务默认端口是 `3000`
+
+## 安装
 
 ```bash
+bun install
 cp .env.example .env.local
 ```
 
-最低必填（本地可运行）示例：
+## 环境变量
+
+### 启动时必需
+
+这些变量缺失时，服务会在启动阶段或鉴权初始化阶段直接报错：
+
+| 变量 | 说明 |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL 连接串 |
+| `BETTER_AUTH_SECRET` | Better Auth 密钥 |
+| `BETTER_AUTH_URL` | Better Auth 对外基准地址；本地开发通常填 `http://localhost:5173`，构建后本地运行通常填 `http://localhost:3000` |
+
+### 建议同时配置
+
+| 变量 | 说明 |
+| --- | --- |
+| `REDIS_URL` | Redis 连接串；缺失时相关功能会在运行时失败 |
+| `CRON_SECRET` | 保护 `/internal/cron/*` 接口；不配置时这些接口不会做 Bearer 校验 |
+| `BETTER_AUTH_DB_SCHEMA` | Better Auth schema 名；默认值为 `better_auth` |
+| `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
+
+### 登录 / 注册相关
+
+当前鉴权中，以下接口会强制要求 Turnstile token：
+
+- `/api/auth/sign-in/email`
+- `/api/auth/sign-up/email`
+- `/api/auth/request-password-reset`
+- `/api/auth/email-otp/send-verification-otp`
+
+因此前端若不配置 Turnstile，相关表单无法正常工作。
+
+| 变量 | 说明 |
+| --- | --- |
+| `VITE_TURNSTILE_SITE_KEY` | 前端构建时注入；没有它，登录/注册/找回密码页不会渲染验证码组件 |
+| `TURNSTILE_SECRET_KEY` 或 `TURNSTILE_SECRET` | 服务端校验 Turnstile 的密钥；未配置时服务端仍要求 token，但不会调用 Cloudflare 做真正校验 |
+
+### 邮件能力
+
+邮箱验证码、重置密码邮件、后台邮件广播都会使用 SMTP：
+
+| 变量 | 说明 |
+| --- | --- |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | SMTP 连接配置 |
+| `SMTP_USER` / `SMTP_PASS` | SMTP 认证信息 |
+| `MAIL_FROM` | 发件人 |
+
+### AI 能力
+
+AI 相关功能按 `PROVIDER_CHOOSE` 选择 provider：
+
+- `deepseek`
+- `ark`
+- `kimi`
+- `alibaba`
+- `openrouter`
+- 其他情况走 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL`
+
+请按所选 provider 配置对应的 `*_API_KEY`、`*_BASE_URL`、`*_MODEL_USE`、`*_MODEL_FAST_USE`。
+
+## 数据库初始化
+
+首次启动通常要做两件事：
+
+1. 应用业务表迁移
+2. Better Auth 表迁移
 
 ```bash
-PROVIDER_CHOOSE=ark
-OPENAI_API_KEY=
-
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-DATABASE_URL=
-DB_RUNTIME=node
-
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-
-CRON_SECRET=
+bunx drizzle-kit migrate
+bun run auth:migrate
 ```
 
-### 4. 初始化数据库并启动
+说明：
+
+- 运行这些命令前，请先确保 `DATABASE_URL`、`BETTER_AUTH_SECRET`、`BETTER_AUTH_URL` 已在当前进程环境中可见
+- `drizzle/` 目录下已经存在业务表迁移文件
+- `bun run auth:migrate` 使用 `src/server/lib/auth/auth.ts` 中的 Better Auth 配置执行迁移
+- `bun run auth:generate` 用于在认证 schema 变更后重新生成 `better-auth.schema.sql`，不是每次启动都要执行
+
+## 本地开发
+
+1. 准备好 `.env.local`
+2. 确保数据库和 Redis 可连接
+3. 执行迁移
+4. 启动开发服务器
 
 ```bash
-npx drizzle-kit push
-npm run dev
+bun run dev
 ```
 
-访问：`http://localhost:3000`
+访问：
 
-## 📦 部署指南
+- 前端页面：`http://localhost:5173`
+- 健康检查：`http://localhost:5173/api/health-check`
 
-### 方案对比
+`bun run dev` 由 `vite` 启动，并通过 `@hono/vite-dev-server` 同时提供前端页面和 Hono API。
 
-| 方案 | 适用场景 | 构建命令 | 部署命令 |
-| --- | --- | --- | --- |
-| Vercel | 常规 Next.js 托管 | `npm run build` | Vercel 平台自动部署 |
-| Cloudflare Workers | 全球边缘节点 / OpenNext | `npm run build:cf` | `npm run deploy:cf` |
+## 构建与运行
 
-### Vercel 部署
+| 命令 | 作用 |
+| --- | --- |
+| `bun run dev` | 本地开发 |
+| `bun run build` | 构建前端与服务端到 `dist/` |
+| `bun run preview` | 先构建，再运行 `dist/index.js` |
+| `bun run start` | 直接运行已构建产物 |
+| `bun run lint` | ESLint 检查 |
+| `bun run test` | Vitest |
+| `bun run auth:generate` | 重新生成 Better Auth schema SQL |
+| `bun run auth:migrate` | 执行 Better Auth 迁移 |
 
-1. 将仓库导入 Vercel。
-2. Build Command: `npm run build`。
-3. 在项目设置中填入 `.env.example` 对应变量。
-   - 建议显式设置 `DB_RUNTIME=node`（默认 Node 侧池化配置）。
-4. 确认定时任务路径（`vercel.json`）：`/api/cron/auction-expire`。
+构建产物：
 
-本地验证：
+- `dist/index.html`：前端 SPA
+- `dist/index.js`：Bun 运行的 Hono 服务入口
+
+## Docker
+
+仓库内已经提供 Dockerfile，运行形态是单容器 Hono 服务，默认监听 `3000`。
+
+本地构建镜像：
 
 ```bash
-npm run build
-npm run start
+docker build -t daoyou-hono-bun:local \
+  --build-arg VITE_TURNSTILE_SITE_KEY=your-public-site-key \
+  -f Dockerfile .
 ```
 
-### Cloudflare Workers 部署（OpenNext）
-
-仓库已集成 `@opennextjs/cloudflare`，可直接使用：
-
-- `npm run build:cf`
-- `npm run deploy:cf`
-- `npm run deploy`（构建 + 部署）
-- `npm run preview`
-
-部署注意事项（重要）：
-
-1. **必须使用 Hyperdrive 连接数据库**，不要直接使用普通公网 `DATABASE_URL` 直连。
-2. **不要使用全局单例的 `db` 实例**。Cloudflare Worker 场景下请按官方示例按请求初始化连接，参考：<https://opennext.js.org/cloudflare/howtos/db>。
-3. **连接池 `max` 必须设置为 `1`**，避免 Worker 并发复用导致连接行为异常。
-
-部署步骤：
-
-1. 登录 Cloudflare
+运行镜像：
 
 ```bash
-npx wrangler login
+docker run --rm -p 3000:3000 \
+  --env-file /path/to/.env.production \
+  daoyou-hono-bun:local
 ```
 
-2. 根据 `wrangler.jsonc` 准备资源
+注意：
 
-- Worker 名：`daoyou`
-- R2 Bucket：`daoyou`（绑定 `NEXT_INC_CACHE_R2_BUCKET`）
-- 绑定：`ASSETS`、`IMAGES`、`WORKER_SELF_REFERENCE`
+- `VITE_TURNSTILE_SITE_KEY` 是前端构建期变量，不是单纯的运行时变量
+- 服务运行时环境变量通过 shell、容器环境或 `--env-file` 注入
 
-3. 配置 Secrets（示例）
+## 仓库内现成部署脚本
+
+### 构建本地镜像并启动
 
 ```bash
-npx wrangler secret put OPENAI_API_KEY
-npx wrangler secret put DATABASE_URL
-npx wrangler secret put UPSTASH_REDIS_REST_TOKEN
-npx wrangler secret put CRON_SECRET
+ENV_FILE=/path/to/.env.production ./scripts/start-local.sh
 ```
 
-并在 `wrangler.jsonc` 或 Cloudflare 环境变量中设置：
+这个脚本会：
 
-```jsonc
-"vars": {
-  "DB_RUNTIME": "worker"
-}
-```
+- 依据当前仓库构建本地镜像
+- 启动容器
+- 轮询 `/api/health-check` 直到就绪
 
-可选回滚开关（默认批量组装开启）：
+### 拉取远程镜像并启动
 
 ```bash
-DB_BATCH_ASSEMBLY=1
+ENV_FILE=/path/to/.env.production ./scripts/deploy-local.sh
 ```
 
-4. 构建与部署
+这个脚本会：
+
+- 拉取远程镜像，默认是 `swkzymlyy/daoyou-hono:latest`
+- 删除同名旧容器
+- 启动新容器并等待健康检查成功
+
+### 使用 docker compose
 
 ```bash
-npm run build:cf
-npm run deploy:cf
+docker compose up -d
 ```
 
-## 🧩 功能矩阵
+`docker-compose.yml` 默认使用远程镜像，并通过 `env_file` 注入运行时环境。
 
-| 模块      | 状态 | 说明                                     |
-| --------- | ---- | ---------------------------------------- |
-| 战斗引擎  | ✅   | 时间轴回合制、技能执行、伤害管道         |
-| 效果系统  | ✅   | 19 触发时机、28 效果类型、多阶段属性修正 |
-| Buff 系统 | ✅   | BuffManager、模板实体化、状态编排        |
-| 创建系统  | ✅   | 技能 / 功法 / 炼器 / 炼丹策略模式        |
-| AI 集成   | ✅   | DeepSeek / ARK / Kimi 多 Provider        |
-| UI 组件库 | ✅   | Ink 风格组件体系                         |
-| 轮回转世  | 🚧   | 规划中                                   |
-| 宗门系统  | 🚧   | 规划中                                   |
+## CI / 镜像发布
 
-## 🧱 技术栈
+当前仓库的 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) 会在 `master` 分支推送时：
 
-| 层级     | 技术                                            |
-| -------- | ----------------------------------------------- |
-| 应用框架 | Next.js 16 (App Router), React 19, TypeScript 5 |
-| 样式系统 | Tailwind CSS 4                                  |
-| 数据层   | Supabase PostgreSQL, Drizzle ORM                |
-| 缓存层   | Upstash Redis                                   |
-| AI 能力  | Vercel AI SDK + 多 Provider                     |
-| 部署平台 | Vercel / Cloudflare Workers (OpenNext)          |
-
-## 🏗 架构总览
-
-```mermaid
-graph TB
-subgraph "Frontend"
-Pages["Next.js App Router"]
-UI["Ink Components"]
-end
-
-subgraph "Backend"
-API["API Routes + SSE"]
-end
-
-subgraph "Engine"
-Battle["BattleEngine"]
-Effect["Effect System"]
-Buff["Buff System"]
-Creation["Creation Engine"]
-end
-
-subgraph "Infra"
-Svc["Services / Repository"]
-PG["PostgreSQL"]
-Redis["Redis"]
-AI["AI Providers"]
-end
-
-Pages --> API
-UI --> API
-API --> Svc
-Svc --> Battle
-Svc --> Effect
-Svc --> Buff
-Svc --> Creation
-Svc --> PG
-Svc --> Redis
-Svc --> AI
-```
-
-## 🛠 常用命令
-
-```bash
-npm run dev       # 本地开发
-npm run lint      # 代码检查
-npm test          # 单元测试
-npm run build     # Next.js 生产构建
-npm run build:cf  # OpenNext Cloudflare 构建
-npm run deploy:cf # Cloudflare 部署
-npm run preview   # Cloudflare 本地预览
-```
-
-## 🗺 Roadmap
-
-- [ ] 轮回转世系统
-- [ ] 宗门系统
-- [ ] 更多奇遇模板与事件编排
-- [ ] 移动端交互体验优化
-- [ ] 更完整的 PVE / PVP 赛季机制
+- 构建 Docker 镜像
+- 推送到 Docker Hub
+- 将 `VITE_TURNSTILE_SITE_KEY` 作为构建参数注入
 
 ## 贡献指南
 
