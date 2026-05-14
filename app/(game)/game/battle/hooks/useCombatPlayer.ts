@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { BattleRecord } from '@/lib/services/battleResult';
-import type { LogSpan } from '@/engine/battle-v5/systems/log/types';
 import type { UnitStateSnapshot } from '@/engine/battle-v5/systems/state/types';
 
 /**
@@ -17,9 +16,6 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
 
   const spans = useMemo(() => record?.logSpans || [], [record]);
   const totalActions = spans.length;
-
-  const playerUnitId = record?.player;
-  const opponentUnitId = record?.opponent;
 
   // 记录上一次显示的快照，防止状态回滚/闪烁
   const [unitSnapshots, setUnitSnapshots] = useState<Record<string, UnitStateSnapshot>>({});
