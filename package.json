@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "GPL-3.0",
+  "type": "module",
   "scripts": {
     "auth:generate": "bunx auth@latest generate --config src/server/lib/auth/auth.ts --output src/server/lib/auth/better-auth.schema.sql --yes",
     "auth:info": "bunx auth@latest info --config src/server/lib/auth/auth.ts --json",
