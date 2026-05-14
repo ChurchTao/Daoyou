@@ -1,14 +1,11 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import { useAuth } from '@app/lib/auth/AuthContext';
 import { PlayerProvider, usePlayer } from '@app/lib/player/PlayerProvider';
-import { useEffect } from 'react';
-import type { ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router';
+import { Outlet } from 'react-router';
 
 
 /**
  * 主游戏区布局
- * - 提供修仙者数据上下文
+ * - 承载游戏路由分支
  */
 function LoadingScreen({ message }: { message: string }) {
   return (
@@ -18,20 +15,14 @@ function LoadingScreen({ message }: { message: string }) {
   );
 }
 
-function PlayerShell({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
+function PlayerShell() {
   const { cultivator, note, hasActiveCultivator, isLoading } = usePlayer();
 
-  // 后台刷新时保留当前页面，避免卸载子路由导致局部交互结果丢失。
   if (isLoading && !cultivator && !hasActiveCultivator) {
     return <LoadingScreen message="正在推演命盘……" />;
   }
 
   if (!hasActiveCultivator) {
-    if (pathname === '/game/create' || pathname === '/game/reincarnate') {
-      return <div className="bg-paper min-h-screen pb-20">{children}</div>;
-    }
-
     const isDead = Boolean(note);
 
     return (
@@ -58,26 +49,25 @@ function PlayerShell({ children }: { children: ReactNode }) {
     );
   }
 
-  return <div className="bg-paper min-h-screen pb-20">{children}</div>;
+  return (
+    <div className="bg-paper min-h-screen pb-20">
+      <Outlet />
+    </div>
+  );
 }
 
-export default function MainLayout({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+export default function GameLayout() {
+  return (
+    <div className="bg-paper min-h-screen">
+      <Outlet />
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login', { replace: true });
-    }
-  }, [isLoading, navigate, user]);
-
-  if (isLoading || !user) {
-    return <LoadingScreen message="正在进入道界……" />;
-  }
-
+export function PlayerProviderLayout() {
   return (
     <PlayerProvider>
-      <PlayerShell>{children}</PlayerShell>
+      <PlayerShell />
     </PlayerProvider>
   );
 }

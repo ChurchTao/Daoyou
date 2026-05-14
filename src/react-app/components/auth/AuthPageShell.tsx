@@ -1,8 +1,5 @@
 import { InkPageShell } from '@app/components/layout';
-import { useAuth } from '@app/lib/auth/AuthContext';
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
 
 interface AuthPageShellProps {
   title: string;
@@ -13,14 +10,6 @@ interface AuthPageShellProps {
   children: ReactNode;
 }
 
-function AuthLoadingScreen({ message }: { message: string }) {
-  return (
-    <div className="bg-paper flex min-h-screen items-center justify-center">
-      <p className="loading-tip">{message}</p>
-    </div>
-  );
-}
-
 export function AuthPageShell({
   title,
   lead,
@@ -29,19 +18,6 @@ export function AuthPageShell({
   footer,
   children,
 }: AuthPageShellProps) {
-  const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      navigate('/game', { replace: true });
-    }
-  }, [isLoading, navigate, user]);
-
-  if (isLoading || user) {
-    return <AuthLoadingScreen message="神识感应中……" />;
-  }
-
   return (
     <InkPageShell
       title={title}

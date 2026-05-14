@@ -11,9 +11,14 @@ export default defineConfig({
   resolve: { alias },
   test: {
     environment: 'node',
-    exclude: ['dist/**', 'node_modules/**', 'src/react-app/**'],
+    exclude: ['dist/**', 'node_modules/**'],
     globals: true,
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    include: [
+      'src/**/*.test.ts',
+      'src/**/*.spec.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.tsx',
+    ],
     restoreMocks: true,
   },
 });
