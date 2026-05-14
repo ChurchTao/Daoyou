@@ -1,0 +1,252 @@
+import { useInkUI } from '@app/components/providers/InkUIProvider';
+import type { InkDialogState } from '@app/components/ui/InkDialog';
+import { useAuth } from '@app/lib/auth/AuthContext';
+import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { useCallback, useMemo, useState } from 'react';
+
+export interface UseHomeViewModelReturn {
+  // 数据
+  cultivator: ReturnType<typeof useCultivator>['cultivator'];
+  isLoading: boolean;
+  note: string | undefined;
+  finalAttributes: ReturnType<typeof useCultivator>['finalAttributes'];
+  unreadMailCount: number;
+
+  // 计算属性
+  maxHp: number;
+  maxSpirit: number;
+  statusItems: Array<{ label: string; value: number | string; icon: string }>;
+
+  // Dialog 状态
+  dialog: InkDialogState | null;
+  closeDialog: () => void;
+
+  // 称号编辑状态
+  isTitleModalOpen: boolean;
+  editingTitle: string;
+  isSavingTitle: boolean;
+  openTitleEditor: () => void;
+  closeTitleEditor: () => void;
+  setEditingTitle: (title: string) => void;
+  handleSaveTitle: () => Promise<void>;
+
+  // 业务操作
+  handleLogout: () => void;
+  refresh: () => void;
+}
+
+export interface QuickActionItem {
+  label: string;
+  href: string;
+}
+
+export interface QuickActionGroup {
+  key: string;
+  title: string;
+  actions: QuickActionItem[];
+}
+
+const quickActionGroups: QuickActionGroup[] = [
+  {
+    key: 'game',
+    title: '修仙门径',
+    actions: [
+      { label: '🧘 洞府', href: '/game/retreat' },
+      { label: '📚 藏经阁', href: '/game/enlightenment' },
+      { label: '🪄 问法寻卷', href: '/game/enlightenment/manual-draw' },
+      { label: '🔮 重塑命格', href: '/game/fate-reshape' },
+      { label: '⚗️ 造物仙炉', href: '/game/craft' },
+      { label: '🏔️ 云游探秘', href: '/game/dungeon' },
+      { label: '📘 所修功法', href: '/game/techniques' },
+      { label: '📖 所修神通', href: '/game/skills' },
+      { label: '⚔️ 练功房', href: '/game/training-room' },
+    ],
+  },
+  {
+    key: 'sell',
+    title: '交易市场',
+    actions: [
+      { label: '🛖 修仙坊市', href: '/game/map?intent=market' },
+      { label: '🧾 坊市鉴宝', href: '/game/market/recycle' },
+      { label: '🔨 拍卖行', href: '/game/auction' },
+      { label: '⚔️ 赌战台', href: '/game/bet-battle' },
+    ],
+  },
+  {
+    key: 'service',
+    title: '道友服务',
+    actions: [
+      { label: '💬 世界传音', href: '/game/world-chat' },
+      { label: '🎁 兑换码', href: '/game/redeem' },
+      { label: '👥 玩家交流群', href: '/game/community' },
+      { label: '🗂️ 探险札记', href: '/game/dungeon/history' },
+      { label: '📝 意见反馈', href: '/game/settings/feedback' },
+    ],
+  },
+];
+
+export { quickActionGroups };
+
+/**
+ * 首页 ViewModel
+ * 封装所有业务逻辑和状态管理
+ */
+export function useHomeViewModel(): UseHomeViewModelReturn {
+  const {
+    cultivator,
+    isLoading,
+    note,
+    refresh,
+    finalAttributes,
+    unreadMailCount,
+  } = useCultivator();
+
+  const { signOut } = useAuth();
+  const { pushToast } = useInkUI();
+
+  // Dialog 状态
+  const [dialog, setDialog] = useState<InkDialogState | null>(null);
+
+  // 称号编辑状态
+  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+
+  // 计算属性
+  const maxHp = finalAttributes?.maxHp ?? 100;
+  const maxSpirit = finalAttributes?.maxMp ?? 100;
+
+  // 使用派生状态而非对象数组，减少重渲染
+  const gender = cultivator?.gender ?? '未知';
+  const age = cultivator?.age ?? 0;
+  const lifespan = cultivator?.lifespan ?? 0;
+  const genderIcon = gender === '男' ? '♂' : gender === '女' ? '♀' : '❓';
+
+  // 将对象构建逻辑移到渲染层或使用稳定的 key
+  const statusItemKeys = useMemo(() => {
+    if (!cultivator) return [];
+    return ['气血', '灵力', '性别', '年龄', '寿元'];
+  }, [cultivator]);
+
+  // 提供稳定的 getter 函数而非对象数组
+  const getStatusItemValue = useCallback(
+    (key: string) => {
+      switch (key) {
+        case '气血':
+          return { label: '气血：', value: maxHp, icon: '❤️' };
+        case '灵力':
+          return { label: '灵力：', value: maxSpirit, icon: '⚡️' };
+        case '性别':
+          return { label: '性别：', value: gender, icon: genderIcon };
+        case '年龄':
+          return { label: '年龄：', value: age, icon: '⌛' };
+        case '寿元':
+          return {
+            label: '剩余寿元：',
+            value: Math.max(lifespan - age, 0),
+            icon: '🔮',
+          };
+        default:
+          return { label: '', value: '', icon: '' };
+      }
+    },
+    [maxHp, maxSpirit, gender, genderIcon, age, lifespan],
+  );
+
+  // 首页状态栏数据
+  const statusItems = useMemo(() => {
+    return statusItemKeys.map(getStatusItemValue);
+  }, [statusItemKeys, getStatusItemValue]);
+
+  // 关闭 Dialog
+  const closeDialog = useCallback(() => {
+    setDialog(null);
+  }, []);
+
+  // 打开称号编辑器
+  const openTitleEditor = useCallback(() => {
+    setEditingTitle(cultivator?.title || '');
+    setIsTitleModalOpen(true);
+  }, [cultivator?.title]);
+
+  // 关闭称号编辑器
+  const closeTitleEditor = useCallback(() => {
+    setIsTitleModalOpen(false);
+  }, []);
+
+  // 保存称号
+  const handleSaveTitle = useCallback(async () => {
+    if (!cultivator) return;
+
+    if (
+      editingTitle.length > 0 &&
+      (editingTitle.length < 2 || editingTitle.length > 20)
+    ) {
+      pushToast({ message: '称号长度需在2-20字之间', tone: 'warning' });
+      return;
+    }
+
+    try {
+      setIsSavingTitle(true);
+      const response = await fetch('/api/cultivator/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editingTitle,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '保存失败');
+      }
+
+      pushToast({ message: '名号已定，威震八方！', tone: 'success' });
+      setIsTitleModalOpen(false);
+      refresh();
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '保存失败',
+        tone: 'danger',
+      });
+    } finally {
+      setIsSavingTitle(false);
+    }
+  }, [cultivator, editingTitle, pushToast, refresh]);
+
+  // 登出处理
+  const handleLogout = useCallback(() => {
+    signOut().then(() => refresh());
+  }, [refresh, signOut]);
+
+  return {
+    // 数据
+    cultivator,
+    isLoading,
+    note,
+    finalAttributes,
+    unreadMailCount,
+
+    // 计算属性
+    maxHp,
+    maxSpirit,
+    statusItems,
+
+    // Dialog 状态
+    dialog,
+    closeDialog,
+
+    // 称号编辑状态
+    isTitleModalOpen,
+    editingTitle,
+    isSavingTitle,
+    openTitleEditor,
+    closeTitleEditor,
+    setEditingTitle,
+    handleSaveTitle,
+
+    // 业务操作
+    handleLogout,
+    refresh,
+  };
+}

@@ -1,0 +1,103 @@
+import { cn } from '@shared/lib/cn';
+import Link from '@app/components/router/AppLink';
+import type { ReactNode } from 'react';
+import { InkNav } from '../ui/InkNav';
+
+export interface InkPageShellProps {
+  title: string;
+  subtitle?: string;
+  lead?: string;
+  hero?: ReactNode;
+  backHref?: string;
+  note?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  statusBar?: ReactNode;
+  toolbar?: ReactNode;
+  currentPath?: string;
+  showBottomNav?: boolean;
+  navItems?: Array<{ label: string; href: string }>;
+}
+
+/**
+ * 页面壳组件
+ * 提供统一的页面布局结构：头部、内容区、底部导航
+ */
+export function InkPageShell({
+  title,
+  subtitle,
+  lead,
+  hero,
+  backHref,
+  note,
+  actions,
+  children,
+  footer,
+  statusBar,
+  toolbar,
+  currentPath,
+  showBottomNav = true,
+  navItems,
+}: InkPageShellProps) {
+  const baseNav = navItems ?? [
+    { label: '首页', href: '/game' },
+    { label: '储物袋', href: '/game/inventory' },
+    { label: '道身', href: '/game/cultivator' },
+    { label: '天骄榜', href: '/game/rankings' },
+  ];
+
+  return (
+    <div className="bg-paper min-h-screen">
+      <div className="mx-auto flex max-w-xl flex-col px-4 pt-8 pb-24">
+        {/* 返回链接 */}
+        {backHref && (
+          <Link
+            href={backHref}
+            className="text-ink hover:text-crimson mb-4 no-underline transition"
+          >
+            [← 返回]
+          </Link>
+        )}
+
+        {/* 页面头部 */}
+        <header className="mb-6 text-center">
+          {hero && <div className="mb-3 flex justify-center">{hero}</div>}
+          <h1 className="text-ink font-heading text-3xl">{title}</h1>
+          {subtitle && (
+            <p className="text-ink-secondary mt-1 text-base">{subtitle}</p>
+          )}
+          {lead && <p className="text-ink mt-3 text-lg">{lead}</p>}
+          {note && <p className="text-crimson/80 mt-2 text-sm">{note}</p>}
+          {actions && (
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              {actions}
+            </div>
+          )}
+          {statusBar && <div className="mt-4">{statusBar}</div>}
+        </header>
+
+        {/* 工具栏 */}
+        {toolbar && <div className="mb-4">{toolbar}</div>}
+
+        {/* 主内容区 */}
+        <div className="flex-1">{children}</div>
+
+        {/* 页脚 */}
+        {footer && <div className="mt-8">{footer}</div>}
+      </div>
+
+      {/* 底部导航 */}
+      {showBottomNav && (
+        <div
+          className={cn(
+            'fixed right-0 bottom-0 left-0 z-100',
+            'bg-paper border-ink/10 border-t shadow',
+          )}
+        >
+          <InkNav items={baseNav} currentPath={currentPath} />
+        </div>
+      )}
+    </div>
+  );
+}

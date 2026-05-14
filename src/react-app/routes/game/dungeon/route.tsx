@@ -1,0 +1,75 @@
+import { InkPageShell } from '@app/components/layout';
+import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { useDungeonViewModel } from '@app/lib/hooks/dungeon/useDungeonViewModel';
+import { Suspense, useCallback } from 'react';
+import { DungeonViewRenderer } from './components/DungeonViewRenderer';
+import { useNavigate, useSearchParams } from 'react-router';
+
+
+/**
+ * 副本主页面内容组件
+ *
+ * 重构后的设计原则：
+ * 1. 单一职责：仅负责数据获取和视图渲染协调
+ * 2. 状态管理：使用 ViewModel Hook 统一管理所有状态
+ * 3. 视图渲染：委托给 DungeonViewRenderer 处理
+ */
+function DungeonContent() {
+  const {
+    cultivator,
+    isLoading: isCultivatorLoading,
+    refresh,
+  } = useCultivator();
+  const [searchParams] = useSearchParams();
+  const preSelectedNodeId = searchParams.get('nodeId');
+  const navigate = useNavigate();
+
+  // 使用 ViewModel Hook 管理所有业务逻辑和状态
+  const { viewState, processing, actions } = useDungeonViewModel(
+    !!cultivator,
+    preSelectedNodeId,
+  );
+
+  // 结算确认回调：刷新库存后跳转首页
+  const handleSettlementConfirm = useCallback(async () => {
+    await refresh();
+    navigate('/game');
+  }, [navigate, refresh]);
+
+  // 修正加载状态：ViewModel 内部已经处理了副本状态的加载
+  // 这里只需要处理用户信息的加载
+  if (isCultivatorLoading) {
+    return (
+      <InkPageShell title="推演中...">
+        <div className="flex justify-center p-12">
+          <p className="animate-pulse">天机混沌，正在解析...</p>
+        </div>
+      </InkPageShell>
+    );
+  }
+
+  // 委托给视图渲染器
+  return (
+    <DungeonViewRenderer
+      viewState={viewState}
+      cultivator={cultivator}
+      processing={processing}
+      actions={actions}
+      onSettlementConfirm={handleSettlementConfirm}
+    />
+  );
+}
+
+export default function DungeonPage() {
+  return (
+    <Suspense
+      fallback={
+        <InkPageShell title="加载中...">
+          <div className="animate-pulse p-8 text-center">正在加载...</div>
+        </InkPageShell>
+      }
+    >
+      <DungeonContent />
+    </Suspense>
+  );
+}

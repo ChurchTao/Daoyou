@@ -1,0 +1,253 @@
+@import 'tailwindcss';
+
+/* 引入本地字体 */
+@font-face {
+  font-family: 'LXGWWenKai';
+  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/LXGWWenKaiLite-Regular.ttf')
+    format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ma Shan Zheng';
+  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/MaShanZheng-Regular.ttf')
+    format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* 色彩系统 */
+  --color-bgpaper: #f8f3e6;
+  --color-ink: #2c1810;
+  --color-ink-secondary: #5a4a42;
+  --color-crimson: #c1121f;
+  --color-teal: #4a7c59;
+  --color-wood: #8b4513;
+  --color-gold: #efbf04;
+  --color-ink-muted: rgba(44, 24, 16, 0.6);
+  --color-battle-rule: rgba(44, 24, 16, 0.16);
+  --color-battle-rule-strong: rgba(44, 24, 16, 0.3);
+  --color-battle-muted: rgba(44, 24, 16, 0.48);
+  --color-battle-faint: rgba(44, 24, 16, 0.08);
+  --color-battle-surface: rgba(248, 243, 230, 0.74);
+  --color-battle-crimson-soft: rgba(193, 18, 31, 0.08);
+  --color-battle-teal-soft: rgba(74, 124, 89, 0.08);
+  --color-battle-gold-soft: rgba(239, 191, 4, 0.58);
+
+  /* 品阶色板 */
+  --color-tier-fan: #758a99;
+  --color-tier-ling: #16a951;
+  --color-tier-xuan: #1685a9;
+  --color-tier-zhen: #b35c44;
+  --color-tier-di: #003472;
+  --color-tier-tian: #efbf04;
+  --color-tier-xian: #801dae;
+  --color-tier-shen: #c1121f;
+}
+
+@theme inline {
+  --color-background: var(--color-bgpaper);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-lxgwwenkai);
+  --font-mono: var(--font-lxgwwenkai);
+  --font-heading: 'Ma Shan Zheng';
+}
+
+:root {
+  /* 字体变量 */
+  --font-lxgwwenkai: 'LXGWWenKai', serif;
+  --font-ma-shan-zheng: 'Ma Shan Zheng', cursive;
+}
+
+body {
+  background: var(--color-bgpaper);
+  color: var(--color-ink);
+  font-family: var(--font-lxgwwenkai), Arial, Helvetica, sans-serif;
+}
+
+/* 标题字体样式 */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-heading {
+  font-family: var(--font-ma-shan-zheng), Arial, Helvetica, sans-serif;
+}
+
+/* 宣纸背景 */
+.bg-paper {
+  background-color: var(--color-bgpaper);
+  background-image: url('/assets/paper.png');
+  background-size: 300px;
+}
+
+.battle-divider {
+  border-top: 1px dashed var(--color-battle-rule-strong);
+}
+
+.battle-caption {
+  color: var(--color-battle-muted);
+  letter-spacing: 0.05em;
+}
+
+.battle-module {
+  position: relative;
+}
+
+.battle-module + .battle-module {
+  margin-top: 0.72rem;
+  padding-top: 0.72rem;
+}
+
+.battle-module + .battle-module::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--color-battle-rule-strong);
+}
+
+.battle-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-battle-rule-strong) transparent;
+}
+
+.battle-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.battle-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.battle-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-battle-rule-strong);
+}
+
+.battle-note {
+  background: linear-gradient(
+    90deg,
+    var(--color-battle-crimson-soft) 0%,
+    transparent 72%
+  );
+  padding: 0.9rem 1rem;
+}
+
+.battle-modal-panel {
+  border-color: var(--color-battle-rule-strong);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.25rem;
+}
+
+.battle-dock {
+  background: rgba(248, 243, 230, 0.96);
+  border-top: 1px dashed var(--color-battle-rule-strong);
+  backdrop-filter: blur(6px);
+}
+
+.bgi-map {
+  background-image: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/map/map.webp');
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: var(--text-3xl);
+  }
+
+  h2 {
+    font-size: var(--text-2xl);
+  }
+
+  h3 {
+    font-size: var(--text-xl);
+  }
+}
+
+/* 战报样式增强 */
+.battle-report {
+  font-family: var(--font-lxgwwenkai), serif;
+  line-height: 1.8;
+  text-align: left;
+}
+
+/* 
+ * 字体大小规范 (Typography Standards)
+ * - h1 ~ h6: 标题字体 (Ma Shan Zheng)
+ * - text-base (1rem/16px): 主要正文、标准按钮、输入框
+ * - text-sm (0.875rem/14px): 次要信息、小按钮、标签
+ * - text-xs (0.75rem/12px): 极少数提示、元数据、微型标注。禁止用于按钮。
+ */
+
+.battle-report turn {
+  color: var(--color-crimson);
+  font-weight: bold;
+}
+
+.battle-report name {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.battle-report skill {
+  color: var(--color-teal);
+  font-weight: 600;
+}
+
+.battle-report damage {
+  color: var(--color-crimson);
+  font-weight: bold;
+}
+
+.battle-report heal {
+  color: var(--color-teal);
+  font-weight: bold;
+}
+
+.battle-report effect {
+  color: var(--color-wood);
+  font-style: italic;
+}
+
+.battle-report result {
+  color: var(--color-crimson);
+  font-weight: bold;
+}
+
+/* 动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* 隐藏横向滚动条（用于 Tabs） */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

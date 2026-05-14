@@ -246,6 +246,34 @@
       "when": 1772781202870,
       "tag": "0034_exotic_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1776758354610,
+      "tag": "0035_tiny_nightshade",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1777346189750,
+      "tag": "0036_lyrical_carnage",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777539154038,
+      "tag": "0037_clever_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1778051615396,
+      "tag": "0038_fantastic_wolfpack",
+      "breakpoints": true
     }
   ]
 }

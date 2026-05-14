@@ -1,0 +1,26 @@
+name: ${COMPOSE_PROJECT_NAME:-daoyou-hono}
+
+services:
+  app:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    image: ${IMAGE_TAG:-swkzymlyy/daoyou-hono:latest}
+    container_name: ${CONTAINER_NAME:-daoyou-hono}
+    restart: unless-stopped
+    pull_policy: ${PULL_POLICY:-always}
+    env_file:
+      - ${ENV_FILE:-/opt/daoyou/.env.production}
+    ports:
+      - "${PORT:-3000}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health-check').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

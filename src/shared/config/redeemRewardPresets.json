@@ -1,0 +1,94 @@
+{
+  "welcome_stones": {
+    "name": "新友见面礼",
+    "description": "基础灵石补给，适合新道友启程。",
+    "attachments": [
+      {
+        "type": "spirit_stones",
+        "name": "灵石",
+        "quantity": 5000
+      }
+    ]
+  },
+  "talisman_reshape_fate": {
+    "name": "天机逆命符",
+    "description": "前往命格重塑后，可直接消耗符箓重塑命格。",
+    "attachments": [
+      {
+        "type": "consumable",
+        "name": "天机逆命符",
+        "quantity": 3,
+        "data": {
+          "name": "天机逆命符",
+          "type": "符箓",
+          "quality": "仙品",
+          "quantity": 1,
+          "description": "以此符遮蔽天机，逆转先天之数。前往命格重塑页后，点击开启会直接消耗 1 张，并抽出新的命格候选。",
+          "category": "talisman_key",
+          "mechanicKey": "fate_reshape_access",
+          "useSpec": {
+            "talisman": {
+              "scenario": "fate_reshape",
+              "sessionMode": "consume_on_action"
+            },
+            "notes": "前往命格重塑页，点击开启后直接消耗。"
+          }
+        }
+      }
+    ]
+  },
+  "talisman_draw_gongfa": {
+    "name": "悟道演法符",
+    "description": "前往问法寻卷，可直接消耗符箓抽取灵品及以上的功法秘籍，5 连至少一部真品。",
+    "attachments": [
+      {
+        "type": "consumable",
+        "name": "悟道演法符",
+        "quantity": 1,
+        "data": {
+          "name": "悟道演法符",
+          "type": "符箓",
+          "quality": "仙品",
+          "quantity": 1,
+          "description": "燃此符可神游太虚，感悟天地至理。前往问法寻卷页后，可直接消耗符箓抽取灵品及以上的功法秘籍；若行 5 连，至少可得一部真品，并自动放入材料背包。",
+          "category": "talisman_key",
+          "mechanicKey": "gongfa_draw_access",
+          "useSpec": {
+            "talisman": {
+              "scenario": "draw_gongfa",
+              "sessionMode": "consume_on_action"
+            },
+            "notes": "前往问法寻卷页，点击抽取后直接消耗。"
+          }
+        }
+      }
+    ]
+  },
+  "talisman_draw_skill": {
+    "name": "神通衍化符",
+    "description": "前往问法寻卷，可直接消耗符箓抽取灵品及以上的神通秘籍，5 连至少一部真品。",
+    "attachments": [
+      {
+        "type": "consumable",
+        "name": "神通衍化符",
+        "quantity": 1,
+        "data": {
+          "name": "神通衍化符",
+          "type": "符箓",
+          "quality": "仙品",
+          "quantity": 1,
+          "description": "此符蕴含天地法则碎片。前往问法寻卷页后，可直接消耗符箓抽取灵品及以上的神通秘籍；若行 5 连，至少可得一部真品，并自动放入材料背包。",
+          "category": "talisman_key",
+          "mechanicKey": "skill_draw_access",
+          "useSpec": {
+            "talisman": {
+              "scenario": "draw_skill",
+              "sessionMode": "consume_on_action"
+            },
+            "notes": "前往问法寻卷页，点击抽取后直接消耗。"
+          }
+        }
+      }
+    ]
+  }
+}

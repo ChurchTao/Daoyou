@@ -1,0 +1,55 @@
+import {
+  toFateDisplayModel,
+  type FateDisplayModel,
+} from '@app/components/feature/fates/FateDisplayAdapter';
+import { FateEffectList } from '@app/components/feature/fates/FateEffectList';
+import { InkBadge, ItemShowcaseModal } from '@app/components/ui';
+import type { PreHeavenFate } from '@shared/types/cultivator';
+
+interface FateDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fate: PreHeavenFate | null;
+}
+
+function FateSummary({ model }: { model: FateDisplayModel }) {
+  if (model.coreTags.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap justify-center gap-1.5">
+      {model.coreTags.map((tag, index) => (
+        <InkBadge key={`${tag}-${index}`} tone="default">
+          {tag}
+        </InkBadge>
+      ))}
+    </div>
+  );
+}
+
+export function FateDetailModal({
+  isOpen,
+  onClose,
+  fate,
+}: FateDetailModalProps) {
+  if (!fate) return null;
+
+  const model = toFateDisplayModel(fate);
+
+  return (
+    <ItemShowcaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon="🔮"
+      name={model.name}
+      badges={
+        model.quality
+          ? [<InkBadge key="quality" tier={model.quality} />]
+          : undefined
+      }
+      summary={<FateSummary model={model} />}
+      metaSection={<FateEffectList groups={model.detailGroups} />}
+      description={model.description}
+      descriptionTitle="命格详述"
+    />
+  );
+}
