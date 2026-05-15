@@ -1,6 +1,4 @@
 import { AbilityType } from '@shared/engine/battle-v5/core/types';
-import { normalizePersistentCombatStatuses } from '@shared/engine/battle-v5/setup/CombatStatusTemplateRegistry';
-import type { PersistentCombatStatusV5 } from '@shared/engine/battle-v5/setup/types';
 import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
 import {
   deserializeAbilityConfig,
@@ -44,19 +42,20 @@ import type {
   Consumable,
   CultivationProgress,
   Cultivator,
-  CultivatorPersistentState,
   EquippedItems,
   Inventory,
   Material,
   PreHeavenFate,
   RetreatRecord,
 } from '@shared/types/cultivator';
+import type { CultivatorCondition } from '@shared/types/condition';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
 } from '@server/utils/rankingUtils';
 import { ConsumableRegistry } from './ConsumableRegistry';
+import { ConditionService } from './ConditionService';
 import { FateEngine } from './FateEngine';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
@@ -248,11 +247,53 @@ async function assembleCultivatorFromRelations(
       cultivatorRecord.realm as Cultivator['realm'],
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
-    persistent_statuses:
-      normalizePersistentCombatStatuses(cultivatorRecord.persistent_statuses),
-    persistent_state:
-      (cultivatorRecord.persistent_state as CultivatorPersistentState | null) ??
-      undefined,
+    condition: ConditionService.normalizeCondition(
+      {
+        name: cultivatorRecord.name,
+        gender: (cultivatorRecord.gender as Cultivator['gender']) || undefined,
+        origin: cultivatorRecord.origin || undefined,
+        personality: cultivatorRecord.personality || undefined,
+        background: cultivatorRecord.background || undefined,
+        title: cultivatorRecord.title || undefined,
+        prompt: cultivatorRecord.prompt,
+        realm: cultivatorRecord.realm as Cultivator['realm'],
+        realm_stage: cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+        age: cultivatorRecord.age,
+        lifespan: cultivatorRecord.lifespan,
+        status: (cultivatorRecord.status as Cultivator['status']) ?? 'active',
+        closed_door_years_total:
+          cultivatorRecord.closedDoorYearsTotal ?? undefined,
+        retreat_records,
+        breakthrough_history,
+        attributes: {
+          vitality: cultivatorRecord.vitality,
+          spirit: cultivatorRecord.spirit,
+          wisdom: cultivatorRecord.wisdom,
+          speed: cultivatorRecord.speed,
+          willpower: cultivatorRecord.willpower,
+        },
+        spiritual_roots,
+        pre_heaven_fates,
+        cultivations,
+        skills,
+        inventory: {
+          artifacts,
+          consumables,
+          materials,
+        },
+        equipped,
+        max_skills: cultivatorRecord.max_skills,
+        spirit_stones: cultivatorRecord.spirit_stones,
+        last_yield_at: cultivatorRecord.last_yield_at || new Date(),
+        balance_notes: cultivatorRecord.balance_notes || undefined,
+        cultivation_progress: getOrInitCultivationProgress(
+          cultivatorRecord.cultivation_progress as CultivationProgress,
+          cultivatorRecord.realm as Cultivator['realm'],
+          cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+        ),
+      },
+      (cultivatorRecord.condition as CultivatorCondition | null) ?? undefined,
+    ),
   };
 }
 
@@ -360,11 +401,58 @@ export function createMinimalCultivator(
       cultivatorRecord.realm as Cultivator['realm'],
       cultivatorRecord.realm_stage as Cultivator['realm_stage'],
     ),
-    persistent_statuses:
-      normalizePersistentCombatStatuses(cultivatorRecord.persistent_statuses),
-    persistent_state:
-      (cultivatorRecord.persistent_state as CultivatorPersistentState | null) ??
-      undefined,
+    condition: ConditionService.normalizeCondition(
+      {
+        id: cultivatorRecord.id,
+        name: cultivatorRecord.name,
+        gender: (cultivatorRecord.gender as Cultivator['gender']) || undefined,
+        origin: cultivatorRecord.origin || undefined,
+        personality: cultivatorRecord.personality || undefined,
+        background: cultivatorRecord.background || undefined,
+        title: cultivatorRecord.title || undefined,
+        prompt: cultivatorRecord.prompt,
+        realm: cultivatorRecord.realm as Cultivator['realm'],
+        realm_stage: cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+        age: cultivatorRecord.age,
+        lifespan: cultivatorRecord.lifespan,
+        status: (cultivatorRecord.status as Cultivator['status']) ?? 'active',
+        closed_door_years_total:
+          cultivatorRecord.closedDoorYearsTotal ?? undefined,
+        retreat_records: undefined,
+        breakthrough_history: undefined,
+        attributes: {
+          vitality: cultivatorRecord.vitality,
+          spirit: cultivatorRecord.spirit,
+          wisdom: cultivatorRecord.wisdom,
+          speed: cultivatorRecord.speed,
+          willpower: cultivatorRecord.willpower,
+        },
+        spiritual_roots: [],
+        pre_heaven_fates: [],
+        cultivations: [],
+        skills: [],
+        inventory: {
+          artifacts: [],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: null,
+          armor: null,
+          accessory: null,
+        },
+        max_skills: cultivatorRecord.max_skills,
+        spirit_stones: cultivatorRecord.spirit_stones,
+        last_yield_at: cultivatorRecord.last_yield_at || new Date(),
+        balance_notes: cultivatorRecord.balance_notes || undefined,
+        cultivation_progress: getOrInitCultivationProgress(
+          cultivatorRecord.cultivation_progress as CultivationProgress,
+          cultivatorRecord.realm as Cultivator['realm'],
+          cultivatorRecord.realm_stage as Cultivator['realm_stage'],
+        ),
+      },
+      (cultivatorRecord.condition as CultivatorCondition | null) ?? undefined,
+    ),
   };
 }
 
@@ -404,7 +492,7 @@ export async function createCultivator(
         speed: cultivator.attributes.speed,
         willpower: cultivator.attributes.willpower,
         max_skills: cultivator.max_skills,
-        persistent_state: cultivator.persistent_state ?? {},
+        condition: ConditionService.normalizeCondition(cultivator, cultivator.condition),
       })
       .returning();
 
@@ -755,8 +843,7 @@ export async function updateCultivator(
       | 'closed_door_years_total'
       | 'status'
       | 'cultivation_progress'
-      | 'persistent_statuses'
-      | 'persistent_state'
+      | 'condition'
     >
   >,
 ): Promise<Cultivator | null> {
@@ -791,13 +878,8 @@ export async function updateCultivator(
   if (updates.status !== undefined) updateData.status = updates.status;
   if (updates.cultivation_progress !== undefined)
     updateData.cultivation_progress = updates.cultivation_progress;
-  if (updates.persistent_statuses !== undefined) {
-    updateData.persistent_statuses =
-      updates.persistent_statuses as PersistentCombatStatusV5[];
-  }
-  if (updates.persistent_state !== undefined) {
-    updateData.persistent_state =
-      (updates.persistent_state as CultivatorPersistentState) ?? {};
+  if (updates.condition !== undefined) {
+    updateData.condition = (updates.condition as CultivatorCondition) ?? {};
   }
 
   await getExecutor()

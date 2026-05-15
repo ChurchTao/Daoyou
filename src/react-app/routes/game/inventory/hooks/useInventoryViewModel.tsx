@@ -481,46 +481,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         return;
       }
 
-      if (!item.category || !item.useSpec) {
-        pushToast({
-          message: '该消耗品仍是旧制数据，暂未开放新版本使用。',
-          tone: 'warning',
-        });
-        return;
-      }
-
-      setPendingId(item.id);
-      try {
-        const response = await fetch(`/api/cultivator/consume`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consumableId: item.id }),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '使用失败');
-        }
-
-        pushToast({ message: result.data.message, tone: 'success' });
-        await refresh();
-        await fetchTabPage('consumables', paginationByTab.consumables.page);
-      } catch (error) {
-        pushToast({
-          message: error instanceof Error ? error.message : '使用失败',
-          tone: 'danger',
-        });
-      } finally {
-        setPendingId(null);
-      }
+      pushToast({
+        message: '丹药系统重构中，当前版本暂不开放背包内直接服用。',
+        tone: 'warning',
+      });
+      return;
     },
-    [
-      cultivator,
-      fetchTabPage,
-      paginationByTab.consumables.page,
-      pushToast,
-      refresh,
-    ],
+    [cultivator, pushToast],
   );
 
   // 鉴定神秘材料

@@ -30,7 +30,6 @@ function createCultivator(id: string, name: string): Cultivator {
     gender: '男',
     realm: '炼气',
     realm_stage: '初期',
-    persistent_statuses: [],
   };
 }
 

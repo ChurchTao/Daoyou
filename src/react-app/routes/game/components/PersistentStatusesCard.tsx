@@ -1,16 +1,15 @@
-import { getCombatStatusTemplate } from '@shared/engine/battle-v5/setup/CombatStatusTemplateRegistry';
-import type { PersistentCombatStatusV5 } from '@shared/engine/battle-v5/setup/types';
+import { getPillToxicityStage, isConditionStatusActive } from '@shared/lib/condition';
+import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { InkListItem } from '@app/components/ui/InkList';
 import { useState } from 'react';
 
-function formatRemainingTime(
-  expiresAt: number | undefined,
-  now: number,
-): string {
-  if (!expiresAt || expiresAt <= 0) return '永久';
-  const remaining = expiresAt - now;
+function formatRemainingTime(expiresAt: string | undefined, now: number): string {
+  if (!expiresAt) return '永久';
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMs)) return '永久';
 
+  const remaining = expiresAtMs - now;
   if (remaining <= 0) return '已过期';
 
   const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
@@ -22,41 +21,29 @@ function formatRemainingTime(
   return `${minutes}分`;
 }
 
-function isActiveStatus(status: PersistentCombatStatusV5, now: number): boolean {
-  if (typeof status.expiresAt === 'number' && status.expiresAt <= now) {
-    return false;
-  }
-  if (
-    typeof status.usesRemaining === 'number' &&
-    status.usesRemaining <= 0
-  ) {
-    return false;
-  }
-  return true;
-}
-
 export function PersistentStatusesCard() {
   const { cultivator, finalAttributes } = useCultivator();
   const [now] = useState(() => Date.now());
 
   if (!cultivator) return null;
-  const statuses = (cultivator.persistent_statuses ?? []).filter((status) =>
-    isActiveStatus(status, now),
+  const statuses = (cultivator.condition?.statuses ?? []).filter((status) =>
+    isConditionStatusActive(status, new Date(now)),
   );
   const maxHp = Math.max(0, Math.floor(finalAttributes?.maxHp ?? 0));
   const maxMp = Math.max(0, Math.floor(finalAttributes?.maxMp ?? 0));
   const currentHp = Math.max(
     0,
-    Math.floor(cultivator.persistent_state?.currentHp ?? maxHp),
+    Math.floor(cultivator.condition?.resources.hp.current ?? maxHp),
   );
   const currentMp = Math.max(
     0,
-    Math.floor(cultivator.persistent_state?.currentMp ?? maxMp),
+    Math.floor(cultivator.condition?.resources.mp.current ?? maxMp),
   );
   const pillToxicity = Math.max(
     0,
-    Math.floor(cultivator.persistent_state?.pillToxicity ?? 0),
+    Math.floor(cultivator.condition?.gauges.pillToxicity ?? 0),
   );
+  const pillToxicityStage = getPillToxicityStage(cultivator.condition);
 
   const showResourceState =
     currentHp < maxHp || currentMp < maxMp || pillToxicity > 0;
@@ -92,15 +79,16 @@ export function PersistentStatusesCard() {
               <div className="bg-ink/5 rounded p-2 text-sm">
                 <div className="opacity-60">丹毒积累</div>
                 <div className="font-bold">{pillToxicity}</div>
+                <div className="text-xs opacity-60">{pillToxicityStage.label}</div>
               </div>
             </div>
           )}
 
           {statuses.map((status, index) => {
-            const template = getCombatStatusTemplate(status.templateId);
+            const template = getConditionStatusTemplate(status.key);
             return (
               <div
-                key={`${status.templateId}:${index}`}
+                key={`${status.key}:${index}`}
                 className="bg-ink/5 flex items-center justify-between rounded p-2"
               >
                 <div className="flex flex-1 items-center gap-2">
@@ -109,7 +97,7 @@ export function PersistentStatusesCard() {
                   </span>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
-                      {template?.name ?? status.templateId}
+                      {template?.name ?? status.key}
                     </span>
                     <span className="text-xs opacity-60">
                       {template?.display.shortDesc ?? template?.description ?? '长期状态影响'}
@@ -117,11 +105,11 @@ export function PersistentStatusesCard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
-                  {typeof status.expiresAt === 'number' && (
+                  {status.duration.kind === 'time' && (
                     <div className="text-right">
                       <div className="opacity-60">剩余</div>
                       <div className="font-bold">
-                      {formatRemainingTime(status.expiresAt, now)}
+                        {formatRemainingTime(status.duration.expiresAt, now)}
                       </div>
                     </div>
                   )}

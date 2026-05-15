@@ -440,7 +440,6 @@ export default function TrainingRoomPage() {
         gender: '男',
         realm: '炼气',
         realm_stage: '初期',
-        persistent_statuses: [],
       };
 
       const result = simulateBattleV5(

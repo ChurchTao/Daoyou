@@ -274,6 +274,13 @@
       "when": 1778051615396,
       "tag": "0038_fantastic_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1778810020458,
+      "tag": "0039_white_anita_blake",
+      "breakpoints": true
     }
   ]
 }

@@ -1,24 +1,31 @@
 import type {
   BattleInitConfigV5,
-  PersistentCombatStatusV5,
 } from '@shared/engine/battle-v5/setup/types';
-import type { CultivatorPersistentState } from '@shared/types/cultivator';
+import type {
+  ConditionStatusInstance,
+  ConditionStatusKey,
+  CultivatorCondition,
+} from '@shared/types/condition';
+import { isConditionStatusActive } from '@shared/lib/condition';
 
 export interface DungeonBattleInitSource {
   accumulatedHpLoss?: number;
   accumulatedMpLoss?: number;
-  persistentState?: CultivatorPersistentState;
-  persistentStatuses: PersistentCombatStatusV5[];
+  condition?: CultivatorCondition;
 }
 
 export function buildPersistentStatus(
-  templateId: string,
+  statusKey: ConditionStatusKey,
   stacks: number,
-): PersistentCombatStatusV5 {
+): ConditionStatusInstance {
+  const now = new Date().toISOString();
   return {
-    version: 1,
-    templateId,
+    key: statusKey,
     stacks: Math.max(1, Math.floor(stacks)),
+    source: 'event',
+    duration: { kind: 'until_removed' },
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
@@ -29,23 +36,26 @@ export function clampRemainingPercent(lossPercent: number): number {
 export function buildDungeonBattleInit(
   state: DungeonBattleInitSource,
 ): BattleInitConfigV5 {
-  if (
-    typeof state.persistentState?.currentHp === 'number' &&
-    typeof state.persistentState?.currentMp === 'number'
-  ) {
+  if (state.condition) {
     return {
       player: {
         resourceState: {
           hp: {
             mode: 'absolute',
-            value: state.persistentState.currentHp,
+            value: state.condition.resources.hp.current,
           },
           mp: {
             mode: 'absolute',
-            value: state.persistentState.currentMp,
+            value: state.condition.resources.mp.current,
           },
         },
-        statusRefs: state.persistentStatuses,
+        statusRefs: state.condition.statuses
+          .filter((status) => isConditionStatusActive(status))
+          .map((status) => ({
+            version: 1 as const,
+            templateId: status.key,
+            stacks: status.stacks,
+          })),
       },
     };
   }
@@ -62,50 +72,52 @@ export function buildDungeonBattleInit(
           value: clampRemainingPercent(state.accumulatedMpLoss ?? 0),
         },
       },
-      statusRefs: state.persistentStatuses,
+      statusRefs: [],
     },
   };
 }
 
 export function incrementOrInsertStatus(
-  statuses: PersistentCombatStatusV5[],
-  templateId: string,
+  statuses: ConditionStatusInstance[],
+  statusKey: ConditionStatusKey,
   stacks: number,
   cap = 10,
-): PersistentCombatStatusV5[] {
+): ConditionStatusInstance[] {
   const next = [...statuses];
-  const existing = next.find((status) => status.templateId === templateId);
+  const existing = next.find((status) => status.key === statusKey);
   if (existing) {
     existing.stacks = Math.min(cap, existing.stacks + Math.floor(stacks));
+    existing.updatedAt = new Date().toISOString();
     return next;
   }
 
-  next.push(buildPersistentStatus(templateId, stacks));
+  next.push(buildPersistentStatus(statusKey, stacks));
   return next;
 }
 
 export function promoteInjuryStatus(
-  statuses: PersistentCombatStatusV5[],
-): PersistentCombatStatusV5[] {
-  const hasMinorWound = statuses.find((status) => status.templateId === 'minor_wound');
-  const hasMajorWound = statuses.find((status) => status.templateId === 'major_wound');
-  const hasNearDeath = statuses.find((status) => status.templateId === 'near_death');
+  statuses: ConditionStatusInstance[],
+): ConditionStatusInstance[] {
+  const hasMinorWound = statuses.find((status) => status.key === 'minor_wound');
+  const hasMajorWound = statuses.find((status) => status.key === 'major_wound');
+  const hasNearDeath = statuses.find((status) => status.key === 'near_death');
 
   if (hasNearDeath) {
     hasNearDeath.stacks = Math.min(10, hasNearDeath.stacks + 1);
+    hasNearDeath.updatedAt = new Date().toISOString();
     return [...statuses];
   }
 
   if (hasMajorWound) {
     return [
-      ...statuses.filter((status) => status.templateId !== 'major_wound'),
+      ...statuses.filter((status) => status.key !== 'major_wound'),
       buildPersistentStatus('near_death', 1),
     ];
   }
 
   if (hasMinorWound) {
     return [
-      ...statuses.filter((status) => status.templateId !== 'minor_wound'),
+      ...statuses.filter((status) => status.key !== 'minor_wound'),
       buildPersistentStatus('major_wound', 1),
     ];
   }

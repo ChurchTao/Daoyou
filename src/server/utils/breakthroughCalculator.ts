@@ -19,7 +19,7 @@ import type {
 import {
   evaluateFateGrowthContext,
 } from '@shared/lib/fates';
-import { getBreakthroughPenalty } from '@shared/lib/persistentState';
+import { getBreakthroughPenalty } from '@shared/lib/condition';
 import { format } from 'd3-format';
 import { calculateExpProgress, getBreakthroughType } from './cultivationUtils';
 import { getRealmStageAttributeCap } from './cultivatorUtils';
@@ -129,9 +129,8 @@ export function calculateBreakthroughChance(
   const fateBonus = evaluateFateGrowthContext(
     cultivator.pre_heaven_fates ?? [],
   ).breakthroughChanceBonus;
-  const pillBonus = cultivator.persistent_state?.pendingBreakthroughBonus ?? 0;
   const toxicityPenalty = getBreakthroughPenalty(
-    cultivator.persistent_state,
+    cultivator.condition,
   );
 
   // 计算最终成功率
@@ -146,7 +145,6 @@ export function calculateBreakthroughChance(
         wisdomMultiplier *
         demonPenalty +
         fateBonus +
-        pillBonus -
         toxicityPenalty,
     ),
   );
@@ -170,7 +168,7 @@ export function calculateBreakthroughChance(
       wisdomMultiplier,
       demonPenalty,
       fateBonus,
-      pillBonus,
+      pillBonus: 0,
       toxicityPenalty,
       finalChance,
     },

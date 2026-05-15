@@ -306,6 +306,21 @@ export const STATUS_EFFECT_DISPLAY_MAP: Record<
     icon: '☠️',
     description: '命悬一线，随时可能陨落',
   },
+  breakthrough_focus: {
+    label: '破境凝神',
+    icon: '🕯️',
+    description: '心神收束，为下一次破境做足准备',
+  },
+  protect_meridians: {
+    label: '护脉',
+    icon: '🪢',
+    description: '药力护住经脉，可减轻破境反噬',
+  },
+  clear_mind: {
+    label: '清心',
+    icon: '🪷',
+    description: '心境澄明，可减少杂念干扰',
+  },
   artifact_damaged: {
     label: '法宝受损',
     icon: '🔧',

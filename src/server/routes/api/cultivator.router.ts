@@ -650,7 +650,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       lifespan: result.cultivator.lifespan,
       attributes: result.cultivator.attributes,
       cultivation_progress: result.cultivator.cultivation_progress,
-      persistent_state: result.cultivator.persistent_state,
+      condition: result.cultivator.condition,
     });
 
     return c.json({

@@ -25,9 +25,9 @@ import {
   getPaginatedInventoryByType,
   updateCultivator,
 } from '../services/cultivatorService';
+import { ConditionService } from '../services/ConditionService';
 import { FateEngine } from '../services/FateEngine';
-import { PersistentStateService } from '../services/PersistentStateService';
-import { buildDungeonBattleInit, incrementOrInsertStatus } from './battleInit';
+import { buildDungeonBattleInit } from './battleInit';
 import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
 import { RewardFactory } from './reward';
@@ -221,10 +221,9 @@ export class DungeonService {
         throw new Error('未找到修真者数据');
       }
 
-      const hydratedPersistent = PersistentStateService.applyNaturalRecovery(
+      const hydratedCondition = ConditionService.tickNaturalRecovery(
         cultivator.cultivator,
-        cultivator.cultivator.persistent_state,
-        cultivator.cultivator.persistent_statuses,
+        cultivator.cultivator.condition,
       );
 
       // 3. 初始状态
@@ -241,8 +240,7 @@ export class DungeonService {
         summary_of_sacrifice: [],
         accumulatedRewards: [],
         status: 'EXPLORING',
-        persistentStatuses: hydratedPersistent.statuses,
-        persistentState: hydratedPersistent.state,
+        condition: hydratedCondition,
         accumulatedHpLoss: 0, // 累积HP损失百分比 (0-1)
         accumulatedMpLoss: 0, // 累积MP损失百分比 (0-1)
       };
@@ -294,8 +292,7 @@ export class DungeonService {
     }
     const runtimeCultivator = {
       ...cultivatorBundle.cultivator,
-      persistent_state: state.persistentState,
-      persistent_statuses: state.persistentStatuses,
+      condition: state.condition,
     };
 
     // 1. 校验选项
@@ -380,33 +377,29 @@ export class DungeonService {
       // 1.1 累加 HP/MP 损失百分比
       for (const cost of chosenOption.costs) {
         if (cost.type === 'hp_loss') {
-          const next = PersistentStateService.applyExternalResourceLoss(
+          const next = ConditionService.applyExternalResourceLoss(
             runtimeCultivator,
-            state.persistentState,
-            state.persistentStatuses,
+            state.condition,
             {
               hpPercent: cost.value,
             },
           );
-          state.persistentState = next.state;
-          state.persistentStatuses = next.statuses;
+          state.condition = next;
         } else if (cost.type === 'mp_loss') {
-          const next = PersistentStateService.applyExternalResourceLoss(
+          const next = ConditionService.applyExternalResourceLoss(
             runtimeCultivator,
-            state.persistentState,
-            state.persistentStatuses,
+            state.condition,
             {
               mpPercent: cost.value,
             },
           );
-          state.persistentState = next.state;
-          state.persistentStatuses = next.statuses;
+          state.condition = next;
         } else if (cost.type === 'weak') {
-          // 1.2 weak 成本映射为 weakness 状态
-          state.persistentStatuses = incrementOrInsertStatus(
-            state.persistentStatuses,
+          state.condition = ConditionService.addOrStackStatus(
+            state.condition,
             'weakness',
             cost.value,
+            'event',
           );
         }
       }
@@ -578,19 +571,17 @@ export class DungeonService {
       throw new Error('未找到修真者数据');
     }
 
-    const persistedBattleState = PersistentStateService.applyPveBattleOutcome(
+    const persistedBattleState = ConditionService.applyBattleOutcome(
       {
         ...cultivatorBundle.cultivator,
-        persistent_state: state.persistentState,
-        persistent_statuses: state.persistentStatuses,
+        condition: state.condition,
       },
-      state.persistentState,
-      state.persistentStatuses,
+      state.condition,
       playerSnapshot,
+      'persistent_pve',
       !isWin,
     );
-    state.persistentState = persistedBattleState.state;
-    state.persistentStatuses = persistedBattleState.statuses;
+    state.condition = persistedBattleState;
 
     // 战斗失败处理：生成伤势状态
     if (!isWin) {
@@ -702,19 +693,17 @@ export class DungeonService {
           : battleResult.loserSnapshot;
       if (playerSnapshot) {
         const persistedBattleState =
-          PersistentStateService.applyPveBattleOutcome(
+          ConditionService.applyBattleOutcome(
             {
               ...cultivatorBundle.cultivator,
-              persistent_state: state.persistentState,
-              persistent_statuses: state.persistentStatuses,
+              condition: state.condition,
             },
-            state.persistentState,
-            state.persistentStatuses,
+            state.condition,
             playerSnapshot,
+            'persistent_pve',
             true,
           );
-        state.persistentState = persistedBattleState.state;
-        state.persistentStatuses = persistedBattleState.statuses;
+        state.condition = persistedBattleState;
       }
 
       if (lastHistory) {
@@ -928,17 +917,14 @@ export class DungeonService {
     const key = getDungeonKey(cultivatorId);
     const state = parseRedisJson<DungeonState>(await redis.get(key), key);
     if (!state) return null;
-    if (!state.persistentState) {
+    if (!state.condition) {
       const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
       if (cultivatorBundle?.cultivator) {
-        const hydrated = PersistentStateService.applyNaturalRecovery(
+        const hydrated = ConditionService.tickNaturalRecovery(
           cultivatorBundle.cultivator,
-          cultivatorBundle.cultivator.persistent_state,
-          state.persistentStatuses ??
-            cultivatorBundle.cultivator.persistent_statuses,
+          cultivatorBundle.cultivator.condition,
         );
-        state.persistentState = hydrated.state;
-        state.persistentStatuses = hydrated.statuses;
+        state.condition = hydrated;
       }
     }
     return state;
@@ -1010,8 +996,7 @@ export class DungeonService {
     realGains?: ResourceOperation[],
   ) {
     await updateCultivator(state.cultivatorId, {
-      persistent_statuses: state.persistentStatuses,
-      persistent_state: state.persistentState,
+      condition: state.condition,
     });
 
     // Archive to DB
@@ -1040,8 +1025,7 @@ export class DungeonService {
     const state = parseRedisJson<DungeonState>(await redis.get(key), key);
     if (state) {
       await updateCultivator(cultivatorId, {
-        persistent_statuses: state.persistentStatuses,
-        persistent_state: state.persistentState,
+        condition: state.condition,
       });
       await getExecutor()
         .insert(dungeonHistories)

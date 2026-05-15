@@ -6,7 +6,6 @@ import {
 import {
   evaluateFateGrowthContext,
 } from '@shared/lib/fates';
-import { getBreakthroughPenalty } from '@shared/lib/persistentState';
 import type {
   Attributes,
   BreakthroughHistoryEntry,
@@ -207,14 +206,6 @@ export function attemptBreakthrough(
   const fromRealm = cultivator.realm;
   const fromStage = cultivator.realm_stage;
   const nextStage = getNextStage(fromRealm, fromStage);
-  const fateGrowthContext = evaluateFateGrowthContext(
-    cultivator.pre_heaven_fates ?? [],
-  );
-  const pillBreakthroughBonus =
-    cultivator.persistent_state?.pendingBreakthroughBonus ?? 0;
-  const pillToxicityPenalty = getBreakthroughPenalty(
-    cultivator.persistent_state,
-  );
 
   if (!nextStage) {
     throw new Error('已达最高境界，无法继续突破');
@@ -232,20 +223,8 @@ export function attemptBreakthrough(
     throw new Error(breakthroughResult.recommendation);
   }
 
-  const finalChance = clamp(
-    breakthroughResult.chance +
-      fateGrowthContext.breakthroughChanceBonus +
-      pillBreakthroughBonus -
-      pillToxicityPenalty,
-    0.05,
-    0.95,
-  );
+  const finalChance = clamp(breakthroughResult.chance, 0.05, 0.95);
   const modifiers = breakthroughResult.modifiers;
-
-  cultivator.persistent_state = {
-    ...(cultivator.persistent_state ?? {}),
-    pendingBreakthroughBonus: 0,
-  };
 
   // roll突破
   const roll = rng();

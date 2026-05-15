@@ -1,9 +1,4 @@
 import {
-  AlchemyServiceError,
-  previewAlchemySelection,
-  processAlchemyCraft,
-} from '@server/lib/services/alchemyServiceV2';
-import {
   abandonPending,
   confirmCreation,
   CreationServiceError,
@@ -76,6 +71,9 @@ router.get('/', requireActiveCultivator(), async (c) => {
     if (craftType !== 'alchemy' && !isCreationCraftType(craftType)) {
       return c.json({ error: '无效的造物类型' }, 400);
     }
+    if (craftType === 'alchemy') {
+      return c.json({ error: '炼丹系统重构中，当前版本暂不开放。' }, 503);
+    }
     if (
       craftType !== 'create_skill' &&
       craftType !== 'create_gongfa' &&
@@ -92,19 +90,13 @@ router.get('/', requireActiveCultivator(), async (c) => {
 
     if (materialIdsParam && materialIdsParam.length > 0) {
       const materialIds = materialIdsParam.split(',');
-      if (craftType === 'alchemy') {
-        const preview = await previewAlchemySelection(cultivator.id, materialIds);
-        cost = estimateCost(preview.materials as Array<{ rank: Quality }>, craftType);
-        validation = null;
-      } else {
-        const preview = await previewCreationSelection(
-          cultivator.id,
-          materialIds,
-          craftType,
-        );
-        cost = estimateCost(preview.materials as Array<{ rank: Quality }>, craftType);
-        validation = preview.validation;
-      }
+      const preview = await previewCreationSelection(
+        cultivator.id,
+        materialIds,
+        craftType,
+      );
+      cost = estimateCost(preview.materials as Array<{ rank: Quality }>, craftType);
+      validation = preview.validation;
     } else {
       cost = estimateCost([{ rank: '凡品' }], craftType);
     }
@@ -128,9 +120,6 @@ router.get('/', requireActiveCultivator(), async (c) => {
     });
   } catch (error) {
     if (error instanceof CreationServiceError) {
-      return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-    if (error instanceof AlchemyServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
     return c.json({ error: '消耗预估失败，请稍后再试。' }, 500);
@@ -164,26 +153,20 @@ router.post('/', requireActiveCultivator(), async (c) => {
     if (!materialIds || materialIds.length === 0) {
       return c.json({ error: '参数缺失，请选择材料' }, 400);
     }
+    if (craftType === 'alchemy') {
+      return c.json({ error: '炼丹系统重构中，当前版本暂不开放。' }, 503);
+    }
 
-    const result =
-      craftType === 'alchemy'
-        ? await processAlchemyCraft(cultivator.id, materialIds, {
-            materialQuantities,
-            userPrompt,
-          })
-        : await processCreation(cultivator.id, materialIds, craftType, {
-            materialQuantities,
-            userPrompt,
-            requestedSlot,
-            requestedTargetPolicy,
-          });
+    const result = await processCreation(cultivator.id, materialIds, craftType, {
+      materialQuantities,
+      userPrompt,
+      requestedSlot,
+      requestedTargetPolicy,
+    });
 
     return c.json({ success: true, data: result });
   } catch (error) {
     if (error instanceof CreationServiceError) {
-      return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-    if (error instanceof AlchemyServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
     if (error instanceof z.ZodError) {

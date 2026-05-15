@@ -2,7 +2,7 @@
 
 import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
 import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
-import type { PersistentCombatStatusV5 } from '@shared/engine/battle-v5/setup/types';
+import type { CultivatorCondition } from '@shared/types/condition';
 import type {
   ConsumableCategory,
   ConsumableQuotaKind,
@@ -269,18 +269,6 @@ export interface CultivationProgress {
   epiphany_buff_expires_at?: string; // 顿悟buff过期时间（ISO字符串）
 }
 
-export interface CultivatorPersistentState {
-  currentHp?: number;
-  currentMp?: number;
-  pillToxicity?: number;
-  realmPillUsage?: Partial<Record<RealmType, number>>;
-  pendingBreakthroughBonus?: number;
-  lastNaturalRecoveryAt?: string;
-  lastBattleAt?: string;
-  totalRecoveredHp?: number;
-  totalRecoveredMp?: number;
-}
-
 // 角色完整数据模型（与 basic.md 中 JSON Schema 对齐的运行时结构）
 export interface Cultivator {
   id?: string;
@@ -320,7 +308,6 @@ export interface Cultivator {
   // 修为系统
   cultivation_progress?: CultivationProgress;
 
-  // 持久状态（用于存储战斗/副本中产生的持久状态）
-  persistent_statuses?: PersistentCombatStatusV5[];
-  persistent_state?: CultivatorPersistentState;
+  // 角色当前状态（用于存储战斗/副本中产生的持久状态）
+  condition?: CultivatorCondition;
 }

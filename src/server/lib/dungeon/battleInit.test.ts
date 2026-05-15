@@ -8,13 +8,36 @@ import {
 describe('dungeon battle init helpers', () => {
   test('副本状态可转为统一的 battleInit 配置', () => {
     const weakness = buildPersistentStatus('weakness', 2);
+    const now = new Date().toISOString();
 
     const battleInit = buildDungeonBattleInit({
-      persistentState: {
-        currentHp: 750,
-        currentMp: 360,
+      condition: {
+        version: 1,
+        resources: {
+          hp: { current: 750 },
+          mp: { current: 360 },
+        },
+        gauges: {
+          pillToxicity: 0,
+        },
+        tracks: {
+          tempering: {
+            vitality: { level: 0, progress: 0 },
+            spirit: { level: 0, progress: 0 },
+            wisdom: { level: 0, progress: 0 },
+            speed: { level: 0, progress: 0 },
+            willpower: { level: 0, progress: 0 },
+          },
+          marrowWash: { level: 0, progress: 0 },
+        },
+        counters: {
+          longTermPillUsesByRealm: {},
+        },
+        statuses: [weakness],
+        timestamps: {
+          lastRecoveryAt: now,
+        },
       },
-      persistentStatuses: [weakness],
     });
 
     expect(battleInit.player?.resourceState?.hp).toEqual({
@@ -25,7 +48,9 @@ describe('dungeon battle init helpers', () => {
       mode: 'absolute',
       value: 360,
     });
-    expect(battleInit.player?.statusRefs).toEqual([weakness]);
+    expect(battleInit.player?.statusRefs).toEqual([
+      { version: 1, templateId: 'weakness', stacks: 2 },
+    ]);
   });
 
   test('weakness 可叠层，伤势会按轻伤→重伤→濒死晋级', () => {
@@ -42,9 +67,9 @@ describe('dungeon battle init helpers', () => {
     const major = promoteInjuryStatus(minor);
     const nearDeath = promoteInjuryStatus(major);
 
-    expect(minor.map((status) => status.templateId)).toEqual(['minor_wound']);
-    expect(major.map((status) => status.templateId)).toEqual(['major_wound']);
-    expect(nearDeath.map((status) => status.templateId)).toEqual([
+    expect(minor.map((status) => status.key)).toEqual(['minor_wound']);
+    expect(major.map((status) => status.key)).toEqual(['major_wound']);
+    expect(nearDeath.map((status) => status.key)).toEqual([
       'near_death',
     ]);
   });

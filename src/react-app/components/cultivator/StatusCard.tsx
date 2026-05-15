@@ -1,11 +1,9 @@
 import { InkCard } from '@app/components/ui/InkCard';
-import {
-  getCombatStatusTemplate,
-} from '@shared/engine/battle-v5/setup/CombatStatusTemplateRegistry';
-import type { PersistentCombatStatusV5 } from '@shared/engine/battle-v5/setup/types';
+import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import type { ConditionStatusInstance } from '@shared/types/condition';
 
 interface StatusCardProps {
-  buffs: PersistentCombatStatusV5[];
+  buffs: ConditionStatusInstance[];
   title?: string;
   compact?: boolean;
   emptyMessage?: string;
@@ -22,10 +20,10 @@ export function StatusCard({
   emptyMessage = '无异常状态',
 }: StatusCardProps) {
   const displayInfos = buffs.map((buff, index) => {
-    const config = getCombatStatusTemplate(buff.templateId);
+    const config = getConditionStatusTemplate(buff.key);
     return {
-      key: `${buff.templateId}:${index}`,
-      name: config?.name || buff.templateId,
+      key: `${buff.key}:${index}`,
+      name: config?.name || buff.key,
       description: config?.description || '未知状态',
       stacks: buff.stacks,
       icon: config?.display.icon || '💫',

@@ -51,8 +51,7 @@ export function ConsumablesTab({
         const isSkillDrawTalisman =
           item.mechanicKey === 'skill_draw_access' ||
           item.name === '神通衍化符';
-        const isDirectlyUsable =
-          !isTalisman && Boolean(item.id && item.category && item.useSpec);
+        const isDirectlyUsable = false;
         const scenarioHref = isFateReshapeTalisman
           ? '/game/fate-reshape'
           : isGongfaDrawTalisman
@@ -76,9 +75,7 @@ export function ConsumablesTab({
               : isSkillDrawTalisman
                 ? '【前往问法寻卷，直接消耗符箓抽取神通秘籍】'
                 : '【需在对应玩法入口校验并锁定，终局结算后扣除】'
-          : isDirectlyUsable
-            ? null
-            : '【旧制数据，暂未接入新版本使用规则】';
+          : '【丹药系统重构中，当前版本暂不开放直接服用】';
 
         return (
           <ItemCard

@@ -1,9 +1,8 @@
 import type {
   BattleInitConfigV5,
-  PersistentCombatStatusV5,
 } from '@shared/engine/battle-v5/setup/types';
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import type { CultivatorPersistentState } from '@shared/types/cultivator';
+import type { CultivatorCondition } from '@shared/types/condition';
 import { z } from 'zod';
 
 // === AI Interaction Schemas ===
@@ -228,7 +227,5 @@ export interface DungeonState {
   currentRoundItems?: RewardBlueprint[];
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
-  /** v5 持久状态模板引用 */
-  persistentStatuses: PersistentCombatStatusV5[];
-  persistentState: CultivatorPersistentState;
+  condition: CultivatorCondition;
 }
