@@ -13,20 +13,37 @@ export const PILL_FAMILY_VALUES = [
 
 export type PillFamily = (typeof PILL_FAMILY_VALUES)[number];
 
+export const ALCHEMY_MODE_VALUES = [
+  'improvised',
+  'formula',
+] as const;
+
+export type AlchemyMode = (typeof ALCHEMY_MODE_VALUES)[number];
+
 export interface PillConsumeRules {
   scene: 'out_of_battle_only';
   countsTowardLongTermQuota: boolean;
 }
 
-export interface PillAlchemyMeta {
-  source: 'improvised' | 'formula';
-  formulaId?: string;
-  sourceMaterials: string[];
-  dominantElement?: ElementType;
-  stability: number;
-  toxicityRating: number;
-  tags: string[];
-}
+export type PillAlchemyMeta =
+  | {
+      source: 'improvised';
+      formulaId?: never;
+      sourceMaterials: string[];
+      dominantElement?: ElementType;
+      stability: number;
+      toxicityRating: number;
+      tags: string[];
+    }
+  | {
+      source: 'formula';
+      formulaId: string;
+      sourceMaterials: string[];
+      dominantElement?: ElementType;
+      stability: number;
+      toxicityRating: number;
+      tags: string[];
+    };
 
 export interface RestoreResourceOperation {
   type: 'restore_resource';
@@ -77,6 +94,19 @@ export interface PillSpec {
   alchemyMeta: PillAlchemyMeta;
 }
 
+export interface AlchemyFormulaMastery {
+  level: number;
+  exp: number;
+}
+
+export interface AlchemyFormulaPattern {
+  requiredTags: MaterialAlchemyEffectTag[];
+  optionalTags?: MaterialAlchemyEffectTag[];
+  dominantElement?: ElementType;
+  minQuality?: Quality;
+  slotCount: number;
+}
+
 export const TALISMAN_SESSION_MODE_VALUES = [
   'lock_on_enter_settle_on_exit',
   'consume_on_action',
@@ -94,31 +124,28 @@ export interface TalismanSpec {
 
 export type ConsumableSpec = PillSpec | TalismanSpec;
 
+export const MATERIAL_ALCHEMY_EFFECT_TAG_VALUES = [
+  'healing',
+  'mana',
+  'detox',
+  'breakthrough',
+  'tempering_vitality',
+  'tempering_spirit',
+  'tempering_wisdom',
+  'tempering_speed',
+  'tempering_willpower',
+  'marrow_wash',
+] as const;
+
+export type MaterialAlchemyEffectTag =
+  (typeof MATERIAL_ALCHEMY_EFFECT_TAG_VALUES)[number];
+
 export interface MaterialAlchemyProfile {
-  effectTags: Array<
-    | 'healing'
-    | 'mana'
-    | 'detox'
-    | 'breakthrough'
-    | 'tempering_vitality'
-    | 'tempering_spirit'
-    | 'tempering_wisdom'
-    | 'tempering_speed'
-    | 'tempering_willpower'
-    | 'marrow_wash'
-  >;
+  effectTags: MaterialAlchemyEffectTag[];
   elementBias?: ElementType;
   potency: number;
   toxicity: number;
   stability: number;
-}
-
-export interface AlchemyFormulaPattern {
-  requiredTags: string[];
-  optionalTags?: string[];
-  dominantElement?: ElementType;
-  minQuality?: Quality;
-  slotCount: number;
 }
 
 export interface AlchemyFormulaBlueprint {
@@ -126,4 +153,23 @@ export interface AlchemyFormulaBlueprint {
   consumeRules: PillConsumeRules;
   targetStability: number;
   targetToxicity: number;
+}
+
+export interface AlchemyFormula {
+  id: string;
+  cultivatorId: string;
+  name: string;
+  family: PillFamily;
+  pattern: AlchemyFormulaPattern;
+  blueprint: AlchemyFormulaBlueprint;
+  mastery: AlchemyFormulaMastery;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AlchemyFormulaDiscoveryCandidate {
+  token: string;
+  name: string;
+  family: PillFamily;
+  patternSummary: string;
 }

@@ -202,6 +202,11 @@ export interface Consumable {
   spec: ConsumableSpec;
 }
 
+export interface MaterialDetails {
+  alchemyProfile?: MaterialAlchemyProfile;
+  [key: string]: unknown;
+}
+
 export interface Material {
   id?: string;
   name: string;
@@ -210,10 +215,7 @@ export interface Material {
   price?: number;
   element?: ElementType;
   description?: string;
-  details?: {
-    alchemyProfile?: MaterialAlchemyProfile;
-    [key: string]: unknown;
-  };
+  details?: MaterialDetails;
   quantity: number;
 }
 

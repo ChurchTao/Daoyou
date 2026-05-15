@@ -281,6 +281,20 @@
       "when": 1778810020458,
       "tag": "0039_white_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1778818510083,
+      "tag": "0040_fantastic_red_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1778820275498,
+      "tag": "0041_alchemy_formulas",
+      "breakpoints": true
     }
   ]
 }

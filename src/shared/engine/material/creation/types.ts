@@ -4,6 +4,7 @@ import {
   type MaterialType,
   type Quality,
 } from '@shared/types/constants';
+import type { MaterialDetails } from '@shared/types/cultivator';
 import { z } from 'zod';
 
 // AI 生成的部分：包含名称、描述、以及 AI 决定的元素
@@ -33,6 +34,7 @@ export interface GeneratedMaterial {
   rank: Quality;
   element: ElementType;
   description: string;
+  details?: MaterialDetails;
   quantity: number;
   price: number;
 }

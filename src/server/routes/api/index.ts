@@ -1,4 +1,5 @@
 import adminRouter from '@server/routes/api/admin';
+import alchemyFormulasRouter from '@server/routes/api/alchemy-formulas.router';
 import auctionRouter from '@server/routes/api/auction.router';
 import battleRecordsRouter from '@server/routes/api/battle-records.router';
 import betBattlesRouter from '@server/routes/api/bet-battles.router';
@@ -34,6 +35,7 @@ apiRouter.get('/health-check', (c) =>
 
 apiRouter.route('/player', playerRouter);
 apiRouter.route('/admin', adminRouter);
+apiRouter.route('/alchemy', alchemyFormulasRouter);
 apiRouter.route('/auction', auctionRouter);
 apiRouter.route('/battle-records', battleRecordsRouter);
 apiRouter.route('/bet-battles', betBattlesRouter);

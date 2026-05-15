@@ -89,6 +89,7 @@ async function buildDrawRewards(
     ...material,
     quantity: 1,
     details: {
+      ...(material.details ?? {}),
       source: 'manual_draw',
       kind,
       talismanName: config.talismanName,

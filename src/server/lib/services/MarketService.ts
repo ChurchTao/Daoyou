@@ -262,6 +262,7 @@ function applyMysteryLayer(
         rank: item.rank,
         element: item.element,
         description: item.description,
+        details: item.details,
         quantity: 1,
       },
       createdAt: Date.now(),
@@ -445,6 +446,7 @@ export async function buyMarketItem(input: BuyInput) {
           description: item.description,
           quantity,
           details: {
+            ...(item.details || {}),
             mystery: {
               mysteryId,
               identifyCost: rollIdentifyCost(item.rank),
@@ -575,6 +577,7 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
             description: item.description,
             quantity,
             details: {
+              ...(item.details || {}),
               mystery: {
                 mysteryId,
                 identifyCost: rollIdentifyCost(item.rank),

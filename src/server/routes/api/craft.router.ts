@@ -8,6 +8,15 @@ import {
   processCreation,
 } from '@server/lib/services/creationServiceV2';
 import {
+  AlchemyServiceError,
+  previewAlchemySelection,
+  processAlchemyCraft,
+} from '@server/lib/services/alchemyServiceV2';
+import {
+  craftFromFormula,
+  previewFormulaCraft,
+} from '@server/lib/services/AlchemyFormulaService';
+import {
   requireActiveCultivator,
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
@@ -17,6 +26,7 @@ import {
   CREATION_CRAFT_TYPES,
   isCreationCraftType,
 } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
+import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { EQUIPMENT_SLOT_VALUES, type Quality } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -28,6 +38,8 @@ const { minQuantityPerMaterial, maxQuantityPerMaterial } =
 const CraftSchema = z.object({
   materialIds: z.array(z.string()).optional(),
   craftType: z.enum(SUPPORTED_CRAFT_TYPES),
+  alchemyMode: z.enum(ALCHEMY_MODE_VALUES).optional(),
+  formulaId: z.string().uuid().optional(),
   materialQuantities: z
     .record(
       z.string(),
@@ -64,6 +76,8 @@ router.get('/', requireActiveCultivator(), async (c) => {
   try {
     const materialIdsParam = c.req.query('materialIds');
     const craftType = c.req.query('craftType');
+    const alchemyMode = c.req.query('alchemyMode') ?? 'improvised';
+    const formulaId = c.req.query('formulaId');
 
     if (!craftType) {
       return c.json({ error: '请指定造物类型' }, 400);
@@ -72,7 +86,36 @@ router.get('/', requireActiveCultivator(), async (c) => {
       return c.json({ error: '无效的造物类型' }, 400);
     }
     if (craftType === 'alchemy') {
-      return c.json({ error: '炼丹系统重构中，需待 Phase 5 重做完成后恢复。' }, 503);
+      if (alchemyMode !== 'improvised' && alchemyMode !== 'formula') {
+        return c.json({ error: '无效的炼丹模式' }, 400);
+      }
+      if (!materialIdsParam || materialIdsParam.length === 0) {
+        return c.json({ error: '请选择材料以查询消耗' }, 400);
+      }
+
+      const materialIds = materialIdsParam.split(',');
+      const preview = alchemyMode === 'formula'
+        ? await (() => {
+            if (!formulaId) {
+              throw new AlchemyServiceError('请选择丹方后再校验炉材。');
+            }
+            return previewFormulaCraft(
+              cultivator.id,
+              formulaId,
+              materialIds,
+              cultivator.spirit_stones || 0,
+            );
+          })()
+        : await previewAlchemySelection(
+            cultivator.id,
+            cultivator.spirit_stones || 0,
+            materialIds,
+          );
+
+      return c.json({
+        success: true,
+        data: preview,
+      });
     }
     if (
       craftType !== 'create_skill' &&
@@ -119,6 +162,9 @@ router.get('/', requireActiveCultivator(), async (c) => {
       },
     });
   } catch (error) {
+    if (error instanceof AlchemyServiceError) {
+      return jsonWithStatus(c, { error: error.message }, error.status);
+    }
     if (error instanceof CreationServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
@@ -144,6 +190,8 @@ router.post('/', requireActiveCultivator(), async (c) => {
     const {
       materialIds,
       craftType,
+      alchemyMode,
+      formulaId,
       materialQuantities,
       userPrompt,
       requestedSlot,
@@ -154,7 +202,27 @@ router.post('/', requireActiveCultivator(), async (c) => {
       return c.json({ error: '参数缺失，请选择材料' }, 400);
     }
     if (craftType === 'alchemy') {
-      return c.json({ error: '炼丹系统重构中，需待 Phase 5 重做完成后恢复。' }, 503);
+      const resolvedAlchemyMode = alchemyMode ?? 'improvised';
+      if (resolvedAlchemyMode === 'improvised' && !userPrompt?.trim()) {
+        return c.json({ error: '请注入神念，描述丹药功效。' }, 400);
+      }
+      if (resolvedAlchemyMode === 'formula' && !formulaId) {
+        return c.json({ error: '请先选定丹方。' }, 400);
+      }
+
+      const result = resolvedAlchemyMode === 'formula'
+        ? await craftFromFormula(
+            cultivator.id,
+            formulaId!,
+            materialIds,
+            materialQuantities,
+          )
+        : await processAlchemyCraft(cultivator.id, materialIds, {
+            materialQuantities,
+            userPrompt,
+          });
+
+      return c.json({ success: true, data: result });
     }
 
     const result = await processCreation(cultivator.id, materialIds, craftType, {
@@ -166,6 +234,9 @@ router.post('/', requireActiveCultivator(), async (c) => {
 
     return c.json({ success: true, data: result });
   } catch (error) {
+    if (error instanceof AlchemyServiceError) {
+      return jsonWithStatus(c, { error: error.message }, error.status);
+    }
     if (error instanceof CreationServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }

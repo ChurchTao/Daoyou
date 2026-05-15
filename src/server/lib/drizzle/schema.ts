@@ -11,6 +11,12 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import type {
+  AlchemyFormulaBlueprint,
+  AlchemyFormulaMastery,
+  AlchemyFormulaPattern,
+  PillFamily,
+} from '@shared/types/consumable';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -237,6 +243,39 @@ export const consumables = pgTable(
       table.quality,
     ),
     index('consumables_score_idx').on(table.score),
+  ],
+);
+
+export const alchemyFormulas = pgTable(
+  'wanjiedaoyou_alchemy_formulas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 100 }).notNull(),
+    family: varchar('family', { length: 20 }).$type<PillFamily>().notNull(),
+    pattern: jsonb('pattern').$type<AlchemyFormulaPattern>().notNull(),
+    blueprint: jsonb('blueprint').$type<AlchemyFormulaBlueprint>().notNull(),
+    mastery: jsonb('mastery')
+      .$type<AlchemyFormulaMastery>()
+      .notNull()
+      .default({ level: 0, exp: 0 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('alchemy_formulas_cultivator_updated_idx').on(
+      table.cultivatorId,
+      table.updatedAt,
+    ),
+    index('alchemy_formulas_cultivator_family_idx').on(
+      table.cultivatorId,
+      table.family,
+    ),
   ],
 );
 
