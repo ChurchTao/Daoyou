@@ -1,6 +1,6 @@
 export const temporaryRestrictions = {
-  disableConsumableBetBattle: true,
-  disableConsumableAuctionListing: true,
+  disableConsumableBetBattle: false,
+  disableConsumableAuctionListing: false,
 } as const;
 
 export const TEMP_DISABLED_MESSAGES = {
