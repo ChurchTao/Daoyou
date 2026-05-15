@@ -1,5 +1,5 @@
-import type { BattleRecord } from '@shared/types/battle';
 import Link from '@app/components/router/AppLink';
+import type { BattleRecord } from '@shared/types/battle';
 
 export type ZhanjiRecord = {
   id: string;
@@ -48,15 +48,11 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
   return (
     <Link
       href={`/game/battle/${record.id}`}
-      className="border-ink/10 text-ink/80 hover:border-crimson/40 hover:text-ink block border border-dashed bg-bgpaper/70 px-3 py-2 text-sm transition"
+      className="border-ink/10 text-ink/80 hover:border-crimson hover:text-ink block border bg-white/70 px-3 py-2 text-sm transition"
     >
       <div className="flex justify-between">
         <div>
-          <span
-            className={`${typeColor} ${
-              isWin ? 'text-teal' : 'text-crimson'
-            }`}
-          >
+          <span className={`${isWin ? 'text-teal' : 'text-crimson'}`}>
             {isWin ? '【胜】' : '【败】'}
           </span>
           <span className="ml-1">

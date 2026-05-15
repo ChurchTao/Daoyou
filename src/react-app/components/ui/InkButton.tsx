@@ -13,7 +13,7 @@ const inkButtonVariants = cva(
     variants: {
       variant: {
         default: 'text-ink hover:text-crimson',
-        primary: 'ink-emphasis text-crimson font-semibold hover:text-crimson/80',
+        primary: 'text-crimson font-semibold hover:text-crimson/80',
         secondary: 'text-ink-secondary hover:text-ink',
         outline:
           'border-b border-dashed border-ink/30 text-ink hover:border-crimson/50 hover:text-crimson',

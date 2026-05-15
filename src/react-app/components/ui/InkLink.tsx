@@ -22,7 +22,7 @@ export function InkLink({
       className={cn(
         'text-ink inline-flex items-center px-1.5 py-1 no-underline transition-colors duration-150',
         'hover:text-crimson',
-        active && 'ink-emphasis text-crimson font-semibold',
+        active && 'text-crimson font-semibold',
         className,
       )}
     >

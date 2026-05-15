@@ -181,7 +181,7 @@ export function LifespanStatusCard({
           </div>
 
           {/* 进度条 */}
-          <div className="bg-bgpaper border-ink/15 h-2 w-full overflow-hidden border border-dashed">
+          <div className="bg-white/70 border-ink/15 h-2 w-full overflow-hidden border">
             <div
               className={`h-full transition-all duration-300 ${progressColor}`}
               style={{

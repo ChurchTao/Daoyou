@@ -314,7 +314,7 @@ export default function CultivatorPage() {
               {primaryRows.map((item) => (
                 <tr
                   key={item.type}
-                  className="border-ink/10 border-b last:border-b-0"
+                  className="border-ink/10 border-b border-dashed last:border-b-0"
                 >
                   <td className="text-crimson w-[40%] py-2 pl-3 pr-2 font-semibold">
                     {item.label}
@@ -342,7 +342,7 @@ export default function CultivatorPage() {
               {secondaryRows.map((pair, rowIdx) => (
                 <tr
                   key={`sec-${rowIdx}`}
-                  className="border-ink/10 border-b last:border-b-0"
+                  className="border-ink/10 border-b border-dashed last:border-b-0"
                 >
                   {pair.map((item, colIdx) => (
                     <td
@@ -352,7 +352,7 @@ export default function CultivatorPage() {
                         'min-w-0 w-1/2 py-2 pl-3 pr-2 align-top',
                         colIdx === 0 &&
                           pair.length === 2 &&
-                          'border-ink/10 border-r',
+                          'border-ink/10 border-r border-dashed',
                       )}
                     >
                       <div className="flex min-w-0 items-baseline justify-between gap-2">

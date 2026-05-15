@@ -97,12 +97,12 @@ h6,
 
 .ink-surface {
   background-color: rgba(248, 243, 230, 0.92);
-  border: 1px dashed rgba(44, 24, 16, 0.18);
+  border: 1px solid rgba(44, 24, 16, 0.18);
 }
 
 .ink-surface-quiet {
   background-color: rgba(248, 243, 230, 0.76);
-  border: 1px dashed rgba(44, 24, 16, 0.12);
+  border: 1px solid rgba(44, 24, 16, 0.12);
 }
 
 .ink-overlay {

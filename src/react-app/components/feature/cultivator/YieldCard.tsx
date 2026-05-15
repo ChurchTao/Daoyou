@@ -126,7 +126,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
   }, [cultivator?.last_yield_at]);
 
   return (
-    <div className="border-ink/20 bg-bgpaper relative mb-6 overflow-hidden border border-dashed p-4">
+    <div className="border-ink/20 bg-white/70 relative mb-6 overflow-hidden border p-4">
       <div className="relative z-10 flex items-center justify-between">
         <div>
           <div className="text-ink-primary flex items-center gap-2 text-lg font-bold">

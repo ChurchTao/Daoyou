@@ -39,7 +39,7 @@ export function ItemShowcaseModal({
   return (
     <InkModal isOpen={isOpen} onClose={onClose}>
       <div className="space-y-3">
-        <div className="ink-surface flex flex-col items-center gap-2 p-4 text-center">
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
           <div className="mb-2 text-4xl">{icon}</div>
           <h4 className="text-lg font-semibold">{name}</h4>
           {badges.length > 0 && (

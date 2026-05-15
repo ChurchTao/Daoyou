@@ -85,7 +85,7 @@ export function CultivatorStatusCard({
 
   return (
     <>
-      <div className="border-ink/20 bg-bgpaper relative overflow-hidden border border-dashed px-4 py-3">
+      <div className="border-ink/20 bg-white/70 relative overflow-hidden border px-4 py-3">
         {/* 顶部标题 */}
         {showTitle && (
           <div className="mb-4 flex items-center justify-between">
@@ -120,7 +120,7 @@ export function CultivatorStatusCard({
               {format('.2f')(statusData.expPercent)}%
             </span>
           </div>
-          <div className="bg-bgpaper border-ink/15 relative h-2 w-full overflow-hidden border border-dashed">
+          <div className="bg-white/70 border-ink/50 relative h-2 w-full overflow-hidden border">
             {/* 进度条 */}
             <div
               className={`h-full transition-all duration-500 ${
