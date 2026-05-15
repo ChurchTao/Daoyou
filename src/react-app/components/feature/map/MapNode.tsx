@@ -6,12 +6,12 @@ import { memo } from 'react';
  * MapNode 变体定义
  */
 const mapNodeVariants = cva(
-  'absolute transform -translate-x-1/2 -translate-y-1/2 transition-colors duration-200 cursor-pointer',
+  'absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 cursor-pointer',
   {
     variants: {
       selected: {
-        true: 'z-30',
-        false: 'z-20',
+        true: 'z-30 scale-125',
+        false: 'z-20 hover:scale-110',
       },
     },
     defaultVariants: {
@@ -20,11 +20,11 @@ const mapNodeVariants = cva(
   },
 );
 
-const markerVariants = cva('h-4 w-4 border-2', {
+const markerVariants = cva('w-4 h-4 rounded-full border-2', {
   variants: {
     selected: {
-      true: 'bg-crimson border-bgpaper',
-      false: 'border-ink bg-background hover:border-crimson',
+      true: 'bg-crimson border-bgpaper ring-4 ring-crimson/20',
+      false: 'border-ink hover:bg-crimson/50 bg-background',
     },
   },
   defaultVariants: {
@@ -33,12 +33,12 @@ const markerVariants = cva('h-4 w-4 border-2', {
 });
 
 const labelVariants = cva(
-  'absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap border px-2 py-0.5 text-xs font-bold',
+  'absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold px-2 py-0.5 rounded',
   {
     variants: {
       selected: {
-        true: 'border-crimson bg-bgpaper text-crimson',
-        false: 'border-ink/10 bg-background text-ink',
+        true: 'bg-crimson text-bgpaper',
+        false: 'text-ink shadow-sm border border-ink/10 bg-background',
       },
     },
     defaultVariants: {
@@ -89,11 +89,11 @@ function MapNodeComponent({
       <div
         className={cn(
           markerVariants({ selected }),
-          marketEnabled && 'border-teal',
+          marketEnabled && 'ring-2 ring-emerald-500/35',
         )}
       />
       {marketEnabled && (
-        <div className="text-teal border-teal bg-bgpaper absolute -top-2 -right-2 border border-dashed px-1 text-[9px] leading-4">
+        <div className="bg-emerald-600 text-bgpaper absolute -top-2 -right-2 rounded px-1 text-[9px] leading-4">
           市
         </div>
       )}

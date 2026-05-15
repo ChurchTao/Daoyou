@@ -65,7 +65,7 @@ export function InkModal({
       {/* 模态框内容 */}
       <div
         className={cn(
-          'ink-surface relative z-10 w-full max-w-md p-4 md:p-5',
+          'relative z-10 w-full max-w-md p-4 md:p-5',
           className,
         )}
         role="dialog"

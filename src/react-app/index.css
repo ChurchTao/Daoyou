@@ -95,16 +95,6 @@ h6,
   background-size: 300px;
 }
 
-.ink-surface {
-  background-color: rgba(248, 243, 230, 0.92);
-  border: 1px solid rgba(44, 24, 16, 0.18);
-}
-
-.ink-surface-quiet {
-  background-color: rgba(248, 243, 230, 0.76);
-  border: 1px solid rgba(44, 24, 16, 0.12);
-}
-
 .ink-overlay {
   background: rgba(20, 10, 5, 0.6);
 }

@@ -28,7 +28,7 @@ export function MapNodeDetail({
 }: MapNodeDetailProps) {
   return (
     <div className="bg-background absolute right-4 bottom-16 left-4 z-40 md:right-8 md:left-auto md:w-96">
-      <div className="ink-surface p-3">
+      <div className="p-3">
         <div className="mb-2 flex items-start justify-between">
           <h2 className="text-xl font-bold">{node.name}</h2>
           <InkButton variant="ghost" className="p-0!" onClick={onClose}>

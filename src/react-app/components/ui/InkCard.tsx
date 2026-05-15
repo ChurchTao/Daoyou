@@ -13,8 +13,8 @@ const inkCardVariants = cva(
       variant: {
         default: 'ink-surface',
         highlighted:
-          'ink-surface border-crimson/35 border-l-2 border-l-crimson',
-        elevated: 'ink-surface border-ink/25 bg-bgpaper',
+          'border-crimson/35 border-l-2 border-l-crimson',
+        elevated: 'border-ink/25 bg-bgpaper',
         plain: '',
       },
       padding: {

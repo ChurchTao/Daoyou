@@ -42,7 +42,7 @@ export function InkToast({
   return (
     <div
       className={cn(
-        'ink-surface flex items-start gap-2 p-3 text-[0.9rem] leading-[1.6]',
+        'flex items-start gap-2 p-3 text-[0.9rem] leading-[1.6]',
         toneMeta.borderClass,
       )}
     >

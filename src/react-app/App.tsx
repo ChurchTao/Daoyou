@@ -52,7 +52,7 @@ export function RootRouteErrorBoundary() {
   return (
     <div className="bg-paper flex min-h-screen items-center justify-center px-6">
       <title>{formatDocumentTitle('道途异常')}</title>
-      <div className="ink-surface w-full max-w-xl p-6">
+      <div className="w-full max-w-xl p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">
           {APP_TITLE}
         </p>
