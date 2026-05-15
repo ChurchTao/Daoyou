@@ -5,6 +5,7 @@ import { AuthProvider } from '@app/lib/auth/AuthContext';
 import { APP_TITLE, formatDocumentTitle } from '@app/lib/router/routeTitle';
 import {
   Outlet,
+  ScrollRestoration,
   isRouteErrorResponse,
   useNavigation,
   useRouteError,
@@ -29,6 +30,7 @@ export default function App() {
     <AuthProvider>
       <InkUIProvider>
         <RouteDocumentTitle />
+        <ScrollRestoration />
         <NavigationIndicator />
         <Outlet />
       </InkUIProvider>
