@@ -68,23 +68,6 @@ export type EquipmentSlot = (typeof EQUIPMENT_SLOT_VALUES)[number];
 export const CONSUMABLE_TYPE_VALUES = ['丹药', '符箓'] as const;
 export type ConsumableType = (typeof CONSUMABLE_TYPE_VALUES)[number];
 
-export const CONSUMABLE_CATEGORY_VALUES = [
-  'healing',
-  'mana',
-  'cultivation',
-  'breakthrough',
-  'permanent_attribute',
-  'marrow_wash',
-  'detox',
-  'poison_control',
-  'talisman_key',
-] as const;
-export type ConsumableCategory = (typeof CONSUMABLE_CATEGORY_VALUES)[number];
-
-export const CONSUMABLE_QUOTA_KIND_VALUES = ['long_term_pill'] as const;
-export type ConsumableQuotaKind =
-  (typeof CONSUMABLE_QUOTA_KIND_VALUES)[number];
-
 // 性别
 export const GENDER_VALUES = ['男', '女'] as const;
 export type GenderType = (typeof GENDER_VALUES)[number];

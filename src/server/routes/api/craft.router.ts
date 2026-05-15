@@ -72,7 +72,7 @@ router.get('/', requireActiveCultivator(), async (c) => {
       return c.json({ error: '无效的造物类型' }, 400);
     }
     if (craftType === 'alchemy') {
-      return c.json({ error: '炼丹系统重构中，当前版本暂不开放。' }, 503);
+      return c.json({ error: '炼丹系统重构中，需待 Phase 5 重做完成后恢复。' }, 503);
     }
     if (
       craftType !== 'create_skill' &&
@@ -154,7 +154,7 @@ router.post('/', requireActiveCultivator(), async (c) => {
       return c.json({ error: '参数缺失，请选择材料' }, 400);
     }
     if (craftType === 'alchemy') {
-      return c.json({ error: '炼丹系统重构中，当前版本暂不开放。' }, 503);
+      return c.json({ error: '炼丹系统重构中，需待 Phase 5 重做完成后恢复。' }, 503);
     }
 
     const result = await processCreation(cultivator.id, materialIds, craftType, {

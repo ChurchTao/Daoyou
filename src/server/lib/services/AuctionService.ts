@@ -11,6 +11,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { getExecutor, type DbExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
+import { mapConsumableRow } from './consumablePersistence';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 
 // ============================================================================
@@ -142,7 +143,7 @@ async function getItemSnapshot(
           ),
         )
         .limit(1);
-      return (consumable as Consumable | null) || null;
+      return consumable ? mapConsumableRow(consumable) : null;
     }
     default:
       return null;

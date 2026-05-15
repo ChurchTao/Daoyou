@@ -32,6 +32,7 @@ import {
   MailService,
   type MailAttachment,
 } from '@server/lib/services/MailService';
+import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import {
   identifyMysteryMaterial,
   MarketServiceError,
@@ -578,6 +579,10 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
     }
 
     const result = attemptBreakthrough(cultivator);
+    result.cultivator.condition = PillOperationExecutor.consumeBreakthroughSupportStatuses(
+      result.cultivator.condition,
+      result.cultivator,
+    );
     let story: string | undefined;
     let storyType: 'breakthrough' | 'lifespan' | null = null;
 

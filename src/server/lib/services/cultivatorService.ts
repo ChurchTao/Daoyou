@@ -25,7 +25,6 @@ import {
   type CultivatorRelations,
 } from '@server/lib/repositories/cultivatorRepository';
 import {
-  ConsumableType,
   ElementType,
   EquipmentSlot,
   GenderType,
@@ -49,12 +48,12 @@ import type {
   RetreatRecord,
 } from '@shared/types/cultivator';
 import type { CultivatorCondition } from '@shared/types/condition';
+import { serializeConsumableSpec, mapConsumableRow } from './consumablePersistence';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
 } from '@server/utils/rankingUtils';
-import { ConsumableRegistry } from './ConsumableRegistry';
 import { ConditionService } from './ConditionService';
 import { FateEngine } from './FateEngine';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
@@ -1004,26 +1003,6 @@ function mapArtifactRow(
   return a;
 }
 
-function mapConsumableRow(
-  c: typeof schema.consumables.$inferSelect,
-): Cultivator['inventory']['consumables'][number] {
-  return ConsumableRegistry.normalizeConsumable({
-    id: c.id,
-    name: c.name,
-    quality: c.quality as Quality,
-    type: c.type as ConsumableType,
-    quantity: c.quantity,
-    description: c.description || '',
-    prompt: c.prompt || undefined,
-    score: c.score || 0,
-    category: (c.category as Consumable['category']) || undefined,
-    mechanicKey: c.mechanicKey || undefined,
-    quotaKind: (c.quotaKind as Consumable['quotaKind']) || undefined,
-    useSpec: (c.useSpec as Consumable['useSpec']) || undefined,
-    details: (c.details as Record<string, unknown>) || undefined,
-  });
-}
-
 function mapMaterialRow(
   m: typeof schema.materials.$inferSelect,
 ): Cultivator['inventory']['materials'][number] {
@@ -1709,67 +1688,47 @@ export async function addConsumableToInventory(
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = getExecutor(tx);
-  const normalizedConsumable = ConsumableRegistry.normalizeConsumable(consumable);
-  const score = calculateSingleElixirScore(normalizedConsumable);
-  // 检查是否已经有相同的消耗品（名称和品质都必须一致）
-  const quality = normalizedConsumable.quality || '凡品';
-  const existing = await dbInstance
+  const score = calculateSingleElixirScore(consumable);
+  const quality = consumable.quality || '凡品';
+  const incomingSpecSignature = serializeConsumableSpec(consumable.spec);
+  const candidates = await dbInstance
     .select()
     .from(schema.consumables)
     .where(
       and(
         eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.name, normalizedConsumable.name),
+        eq(schema.consumables.name, consumable.name),
         eq(schema.consumables.quality, quality),
+        eq(schema.consumables.type, consumable.type),
       ),
     );
+  const existing = candidates.find((row) => {
+    const existingConsumable = mapConsumableRow(row);
+    return serializeConsumableSpec(existingConsumable.spec) === incomingSpecSignature;
+  });
 
-  if (existing.length > 0) {
-    // 增加数量
+  if (existing?.id) {
     await dbInstance
       .update(schema.consumables)
       .set({
-        quantity: existing[0].quantity + normalizedConsumable.quantity,
-        // 兼容旧数据可能存在的 0 分，合并时取更高评分
-        score: Math.max(existing[0].score || 0, score),
-        prompt: normalizedConsumable.prompt || existing[0].prompt || '',
-        category: normalizedConsumable.category || existing[0].category || null,
-        mechanicKey:
-          normalizedConsumable.mechanicKey || existing[0].mechanicKey || null,
-        quotaKind:
-          normalizedConsumable.quotaKind || existing[0].quotaKind || null,
-        useSpec:
-          (normalizedConsumable.useSpec as Record<string, unknown>) ||
-          existing[0].useSpec ||
-          null,
-        details:
-          (normalizedConsumable.details as Record<string, unknown>) ||
-          existing[0].details ||
-          null,
-        description:
-          normalizedConsumable.description ||
-          existing[0].description ||
-          null,
+        quantity: existing.quantity + consumable.quantity,
+        score: Math.max(existing.score || 0, score),
+        prompt: consumable.prompt || existing.prompt || '',
+        spec: consumable.spec,
+        description: consumable.description || existing.description || null,
       })
-      .where(eq(schema.consumables.id, existing[0].id));
+      .where(eq(schema.consumables.id, existing.id));
   } else {
-    // 添加新消耗品
     await dbInstance.insert(schema.consumables).values({
       cultivatorId,
-      name: normalizedConsumable.name,
-      type: normalizedConsumable.type,
-      category: normalizedConsumable.category || null,
-      prompt: normalizedConsumable.prompt || '',
+      name: consumable.name,
+      type: consumable.type,
+      prompt: consumable.prompt || '',
       quality: quality,
-      mechanicKey: normalizedConsumable.mechanicKey || null,
-      quotaKind: normalizedConsumable.quotaKind || null,
-      useSpec:
-        (normalizedConsumable.useSpec as Record<string, unknown>) || null,
-      quantity: normalizedConsumable.quantity,
-      description: normalizedConsumable.description || null,
+      spec: consumable.spec,
+      quantity: consumable.quantity,
+      description: consumable.description || null,
       score,
-      details:
-        (normalizedConsumable.details as Record<string, unknown>) || null,
     });
   }
 }

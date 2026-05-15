@@ -2,30 +2,13 @@ import { getExecutor } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
+import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
+import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import type { Consumable } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
-import { consumeConsumableById } from './cultivatorService';
-import { ConsumableRegistry } from './ConsumableRegistry';
-
-function mapConsumableRow(
-  row: typeof schema.consumables.$inferSelect,
-): Consumable {
-  return ConsumableRegistry.normalizeConsumable({
-    id: row.id,
-    name: row.name,
-    type: row.type as Consumable['type'],
-    quality: row.quality as Consumable['quality'],
-    quantity: row.quantity,
-    description: row.description || undefined,
-    prompt: row.prompt || undefined,
-    score: row.score || 0,
-    category: (row.category as Consumable['category']) || undefined,
-    mechanicKey: row.mechanicKey || undefined,
-    quotaKind: (row.quotaKind as Consumable['quotaKind']) || undefined,
-    useSpec: (row.useSpec as Consumable['useSpec']) || undefined,
-    details: (row.details as Record<string, unknown>) || undefined,
-  });
-}
+import { consumeConsumableById, getCultivatorById, replaceSpiritualRoots } from './cultivatorService';
+import { PillOperationExecutor } from './PillOperationExecutor';
+import { mapConsumableRow } from './consumablePersistence';
 
 async function loadOwnedConsumable(
   cultivatorId: string,
@@ -47,14 +30,68 @@ async function loadOwnedConsumable(
 
 export const ConsumableUseEngine = {
   async consume(
-    _userId: string,
-    _cultivatorId: string,
-    _consumableId: string,
+    userId: string,
+    cultivatorId: string,
+    consumableId: string,
   ): Promise<{
     message: string;
     consumable: Consumable;
   }> {
-    throw new Error('丹药系统重构中，当前版本暂不开放背包内直接服用。');
+    const cultivator = await getCultivatorById(userId, cultivatorId);
+    if (!cultivator) {
+      throw new Error('角色不存在或无权限操作。');
+    }
+
+    const consumable = await loadOwnedConsumable(cultivatorId, consumableId);
+    if (!consumable) {
+      throw new Error('该消耗品不存在或已耗尽。');
+    }
+
+    if (isTalismanConsumable(consumable)) {
+      throw new Error('符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
+    }
+
+    if (!isPillConsumable(consumable)) {
+      throw new Error('该消耗品缺少有效丹药 spec。');
+    }
+
+    const execution = PillOperationExecutor.execute(cultivator, consumable);
+    const nextCultivator = execution.cultivator;
+
+    await getExecutor().transaction(async (tx) => {
+      await tx
+        .update(schema.cultivators)
+        .set({
+          vitality: Math.round(nextCultivator.attributes.vitality),
+          spirit: Math.round(nextCultivator.attributes.spirit),
+          wisdom: Math.round(nextCultivator.attributes.wisdom),
+          speed: Math.round(nextCultivator.attributes.speed),
+          willpower: Math.round(nextCultivator.attributes.willpower),
+          condition: nextCultivator.condition ?? {},
+        })
+        .where(eq(schema.cultivators.id, cultivatorId));
+
+      await replaceSpiritualRoots(
+        userId,
+        cultivatorId,
+        nextCultivator.spiritual_roots,
+        tx,
+      );
+
+      await consumeConsumableById(userId, cultivatorId, consumableId, 1, tx);
+    });
+
+    const trackMessage =
+      execution.trackLevelUps.length > 0
+        ? ` ${execution.trackLevelUps
+            .map((item) => `${getTrackConfig(item.track).name}提升至 Lv.${item.newLevel}`)
+            .join('，')}。`
+        : '';
+
+    return {
+      message: `${consumable.name}已服下，药力已经入体。${trackMessage}`.trim(),
+      consumable,
+    };
   },
 
   async lockTalismanForSession(options: {
@@ -68,10 +105,10 @@ export const ConsumableUseEngine = {
     if (!consumable) {
       throw new Error('符箓不存在或已被耗尽');
     }
-    if (consumable.category !== 'talisman_key') {
+    if (!isTalismanConsumable(consumable)) {
       throw new Error('该物品并非会话型符箓');
     }
-    if (consumable.useSpec?.talisman?.scenario !== scenario) {
+    if (consumable.spec.scenario !== scenario) {
       throw new Error('该符箓无法用于当前玩法');
     }
 

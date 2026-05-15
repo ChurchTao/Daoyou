@@ -180,6 +180,7 @@ publicRouter.get('/items', async (c) => {
         description: item.description || '',
         title: item.quality ?? undefined,
         quantity: item.quantity,
+        spec: item.spec ?? undefined,
       }));
     } else if (type === 'technique') {
       const rows = await getExecutor()

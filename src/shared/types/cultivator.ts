@@ -2,10 +2,9 @@
 
 import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
 import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
+import type { ConsumableSpec, MaterialAlchemyProfile } from '@shared/types/consumable';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type {
-  ConsumableCategory,
-  ConsumableQuotaKind,
   ConsumableType,
   ElementType,
   EquipmentSlot,
@@ -200,36 +199,7 @@ export interface Consumable {
   description?: string;
   prompt?: string; // 炼丹提示词
   score?: number; // 评分
-  category?: ConsumableCategory;
-  quotaKind?: ConsumableQuotaKind;
-  mechanicKey?: string;
-  useSpec?: ConsumableUseSpec;
-  details?: Record<string, unknown>;
-}
-
-export interface ConsumableUseSpec {
-  hpRecoverFlat?: number;
-  hpRecoverPercent?: number;
-  mpRecoverFlat?: number;
-  mpRecoverPercent?: number;
-  cultivationExpGain?: number;
-  comprehensionInsightGain?: number;
-  breakthroughChanceBonus?: number;
-  toxicityDelta?: number;
-  detoxifyAmount?: number;
-  woundRelief?: number;
-  attributeDelta?: Partial<Attributes>;
-  spiritualRootDelta?: {
-    mode?: 'all' | 'highest' | 'lowest';
-    amount: number;
-    cap?: number;
-  };
-  aptitudeDelta?: number;
-  talisman?: {
-    scenario: string;
-    sessionMode: 'lock_on_enter_settle_on_exit' | 'consume_on_action';
-  };
-  notes?: string;
+  spec: ConsumableSpec;
 }
 
 export interface Material {
@@ -240,7 +210,10 @@ export interface Material {
   price?: number;
   element?: ElementType;
   description?: string;
-  details?: Record<string, unknown>;
+  details?: {
+    alchemyProfile?: MaterialAlchemyProfile;
+    [key: string]: unknown;
+  };
   quantity: number;
 }
 

@@ -1,5 +1,6 @@
 import { InkBadge, InkButton, InkList, InkNotice } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
+import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import { buildManualDrawHref } from '@shared/types/manualDraw';
 import type { Consumable } from '@shared/types/cultivator';
 
@@ -41,17 +42,12 @@ export function ConsumablesTab({
   return (
     <InkList>
       {sortedItems.map((item, idx) => {
-        const isTalisman = item.category === 'talisman_key' || item.type === '符箓';
-        const isFateReshapeTalisman =
-          item.mechanicKey === 'fate_reshape_access' ||
-          item.name === '天机逆命符';
-        const isGongfaDrawTalisman =
-          item.mechanicKey === 'gongfa_draw_access' ||
-          item.name === '悟道演法符';
-        const isSkillDrawTalisman =
-          item.mechanicKey === 'skill_draw_access' ||
-          item.name === '神通衍化符';
-        const isDirectlyUsable = false;
+        const isTalisman = isTalismanConsumable(item);
+        const isDirectlyUsable = isPillConsumable(item);
+        const scenario = isTalisman ? item.spec.scenario : undefined;
+        const isFateReshapeTalisman = scenario === 'fate_reshape';
+        const isGongfaDrawTalisman = scenario === 'draw_gongfa';
+        const isSkillDrawTalisman = scenario === 'draw_skill';
         const scenarioHref = isFateReshapeTalisman
           ? '/game/fate-reshape'
           : isGongfaDrawTalisman
@@ -72,10 +68,10 @@ export function ConsumablesTab({
             ? '【前往命格重塑功能页启封，开启时立即扣除】'
             : isGongfaDrawTalisman
               ? '【前往问法寻卷，直接消耗符箓抽取功法秘籍】'
-              : isSkillDrawTalisman
-                ? '【前往问法寻卷，直接消耗符箓抽取神通秘籍】'
-                : '【需在对应玩法入口校验并锁定，终局结算后扣除】'
-          : '【丹药系统重构中，当前版本暂不开放直接服用】';
+                : isSkillDrawTalisman
+                  ? '【前往问法寻卷，直接消耗符箓抽取神通秘籍】'
+                  : '【需在对应玩法入口校验并锁定，终局结算后扣除】'
+          : '【仅可在场外服用，药力会直接回写当前状态】';
 
         return (
           <ItemCard

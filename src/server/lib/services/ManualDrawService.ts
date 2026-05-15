@@ -2,6 +2,7 @@ import { rollManualDrawQualities } from '@shared/config/manualDrawConfig';
 import type { MaterialSkeleton } from '@shared/engine/material/creation/types';
 import { MaterialGenerator } from '@shared/engine/material/creation/MaterialGenerator';
 import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
+import { isTalismanConsumable } from '@shared/lib/consumables';
 import type { Material } from '@shared/types/cultivator';
 import {
   MANUAL_DRAW_CONFIG,
@@ -11,14 +12,13 @@ import {
   type ManualDrawStatusDTO,
   type ManualDrawTalismanCounts,
 } from '@shared/types/manualDraw';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { consumeConsumableById } from './cultivatorService';
+import { mapConsumableRow, type ConsumableRow } from './consumablePersistence';
 
 const ALLOWED_DRAW_COUNTS = new Set<ManualDrawCount>([1, 5]);
-
-type ConsumableRow = typeof schema.consumables.$inferSelect;
 
 function validateDrawCount(count: number): asserts count is ManualDrawCount {
   if (!ALLOWED_DRAW_COUNTS.has(count as ManualDrawCount)) {
@@ -38,28 +38,23 @@ async function loadMatchingTalismanRows(
       and(
         eq(schema.consumables.cultivatorId, cultivatorId),
         eq(schema.consumables.type, '符箓'),
-        or(
-          eq(schema.consumables.mechanicKey, config.talismanMechanicKey),
-          eq(schema.consumables.name, config.talismanName),
-        ),
       ),
     )
     .limit(200);
 
   return rows
-    .filter((row) => row.quantity > 0)
-    .sort((left, right) => {
-      const leftPriority =
-        left.mechanicKey === config.talismanMechanicKey ? 1 : 0;
-      const rightPriority =
-        right.mechanicKey === config.talismanMechanicKey ? 1 : 0;
-      if (leftPriority !== rightPriority) {
-        return rightPriority - leftPriority;
-      }
+    .filter((row) => {
+      if (row.quantity <= 0) return false;
+      const consumable = mapConsumableRow(row);
       return (
-        (left.createdAt?.getTime() ?? 0) - (right.createdAt?.getTime() ?? 0)
+        isTalismanConsumable(consumable) &&
+        consumable.spec.scenario === config.talismanScenario
       );
-    });
+    })
+    .sort(
+      (left, right) =>
+        (left.createdAt?.getTime() ?? 0) - (right.createdAt?.getTime() ?? 0),
+    );
 }
 
 function buildSpendPlan(rows: ConsumableRow[], count: number) {

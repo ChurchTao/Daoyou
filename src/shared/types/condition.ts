@@ -20,6 +20,8 @@ export type TemperingTrackKey =
   | 'speed'
   | 'willpower';
 
+export type ConditionTrackPath = `tempering.${TemperingTrackKey}` | 'marrow_wash';
+
 export type ConditionStatusKey =
   | 'weakness'
   | 'minor_wound'

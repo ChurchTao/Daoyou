@@ -11,7 +11,7 @@ interface ManualDrawKindConfig {
   tabLabel: string;
   title: string;
   talismanName: string;
-  talismanMechanicKey: string;
+  talismanScenario: string;
   materialType: MaterialType;
   intro: string;
   usageHint: string;
@@ -27,7 +27,7 @@ export const MANUAL_DRAW_CONFIG: Record<ManualDrawKind, ManualDrawKindConfig> =
       tabLabel: '功法秘籍',
       title: '功法秘籍',
       talismanName: '悟道演法符',
-      talismanMechanicKey: 'gongfa_draw_access',
+      talismanScenario: 'draw_gongfa',
       materialType: 'gongfa_manual',
       intro: '消耗悟道演法符，抽取灵品及以上的功法秘籍。',
       usageHint: '5 连抽至少 1 本真品，可直接用于参悟功法。',
@@ -38,7 +38,7 @@ export const MANUAL_DRAW_CONFIG: Record<ManualDrawKind, ManualDrawKindConfig> =
       tabLabel: '神通秘籍',
       title: '神通秘籍',
       talismanName: '神通衍化符',
-      talismanMechanicKey: 'skill_draw_access',
+      talismanScenario: 'draw_skill',
       materialType: 'skill_manual',
       intro: '消耗神通衍化符，抽取灵品及以上的神通秘籍。',
       usageHint: '5 连抽至少 1 本真品，可直接用于推演神通。',

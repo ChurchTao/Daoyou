@@ -1,4 +1,5 @@
 import type { ItemDetailPayload } from '@app/routes/game/inventory/components/itemDetailPayload';
+import { assertConsumableSpec } from '@shared/lib/consumables';
 import type {
   Artifact,
   Consumable,
@@ -62,6 +63,7 @@ export function toRankingDetailItem(item: ItemRankingEntry): ItemDetailPayload {
     quantity: item.quantity || 1,
     description: item.description,
     score: item.score,
+    spec: assertConsumableSpec(item.spec),
   };
 
   return { kind: 'consumable', item: consumable };

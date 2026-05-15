@@ -1,5 +1,6 @@
 import { getPillToxicityStage, isConditionStatusActive } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { InkListItem } from '@app/components/ui/InkList';
 import { useState } from 'react';
@@ -44,11 +45,33 @@ export function PersistentStatusesCard() {
     Math.floor(cultivator.condition?.gauges.pillToxicity ?? 0),
   );
   const pillToxicityStage = getPillToxicityStage(cultivator.condition);
+  const trackConfigs = getAllTrackConfigs();
+  const trackEntries = trackConfigs.map((config) => {
+    const state =
+      config.key === 'marrow_wash'
+        ? cultivator.condition?.tracks.marrowWash
+        : cultivator.condition?.tracks.tempering[
+            config.key.replace('tempering.', '') as keyof NonNullable<
+              typeof cultivator.condition
+            >['tracks']['tempering']
+          ];
+    const level = state?.level ?? 0;
+    const progress = state?.progress ?? 0;
+    const threshold = config.thresholdByLevel(level);
+    return {
+      config,
+      level,
+      progress,
+      threshold,
+    };
+  });
 
   const showResourceState =
     currentHp < maxHp || currentMp < maxMp || pillToxicity > 0;
 
-  if (!showResourceState && statuses.length === 0) return null;
+  if (!showResourceState && statuses.length === 0 && trackEntries.length === 0) {
+    return null;
+  }
 
   return (
     <InkListItem
@@ -124,6 +147,24 @@ export function PersistentStatusesCard() {
               </div>
             );
           })}
+
+          <div className="space-y-2 pt-1">
+            <div className="text-sm font-medium opacity-80">炼体 / 洗髓进度</div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {trackEntries.map(({ config, level, progress, threshold }) => (
+                <div key={config.key} className="bg-ink/5 rounded p-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>{config.name}</span>
+                    <span className="font-bold">Lv.{level}</span>
+                  </div>
+                  <div className="mt-1 text-xs opacity-60">{config.shortDesc}</div>
+                  <div className="mt-1 font-mono text-xs">
+                    {progress} / {threshold}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       }
     />

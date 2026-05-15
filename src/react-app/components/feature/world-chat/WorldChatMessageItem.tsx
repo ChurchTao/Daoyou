@@ -155,6 +155,7 @@ export function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
         quality: item.quality,
         quantity: item.quantity,
         description: item.description,
+        spec: item.spec,
       },
     },
   };

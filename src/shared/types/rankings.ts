@@ -19,6 +19,7 @@ export interface ItemRankingEntry {
   cost?: number;
   cooldown?: number;
   quantity?: number;
+  spec?: unknown;
   abilityConfig?: unknown;
   productModel?: unknown;
 

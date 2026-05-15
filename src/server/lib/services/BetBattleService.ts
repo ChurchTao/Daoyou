@@ -14,6 +14,7 @@ import { getExecutor, type DbExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import type { BattleRecord } from './battleResult';
 import { MailAttachment, MailService } from './MailService';
+import { mapConsumableRow } from './consumablePersistence';
 import { simulateBattleV5 } from './simulateBattleV5';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { getCultivatorByIdUnsafe } from './cultivatorService';
@@ -251,7 +252,7 @@ async function getItemSnapshot(
       ),
     )
     .limit(1);
-  return (consumable as Consumable | null) || null;
+  return consumable ? mapConsumableRow(consumable) : null;
 }
 
 async function deductSpiritStones(

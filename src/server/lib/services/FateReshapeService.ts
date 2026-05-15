@@ -1,11 +1,12 @@
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
+import { isTalismanConsumable } from '@shared/lib/consumables';
 import type {
   FateReshapeSessionDTO,
   FateReshapeSessionStore,
 } from '@shared/types/fateReshape';
 import type { PreHeavenFate } from '@shared/types/cultivator';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getExecutor } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { FateEngine } from './FateEngine';
@@ -15,12 +16,10 @@ import {
   getCultivatorByIdUnsafe,
   replacePreHeavenFates,
 } from './cultivatorService';
+import { mapConsumableRow, type ConsumableRow } from './consumablePersistence';
 
 const FATE_RESHAPE_SESSION_TTL_SEC = 3600;
-const FATE_RESHAPE_TALISMAN_NAME = '天机逆命符';
-const FATE_RESHAPE_MECHANIC_KEY = 'fate_reshape_access';
-
-type ConsumableRow = typeof schema.consumables.$inferSelect;
+const FATE_RESHAPE_SCENARIO = 'fate_reshape';
 
 function buildSessionKey(cultivatorId: string): string {
   return `fate-reshape-session:${cultivatorId}`;
@@ -134,28 +133,23 @@ async function loadMatchingTalismanRows(
       and(
         eq(schema.consumables.cultivatorId, cultivatorId),
         eq(schema.consumables.type, '符箓'),
-        or(
-          eq(schema.consumables.mechanicKey, FATE_RESHAPE_MECHANIC_KEY),
-          eq(schema.consumables.name, FATE_RESHAPE_TALISMAN_NAME),
-        ),
       ),
     )
     .limit(100);
 
   return rows
-    .filter((row) => row.quantity > 0)
-    .sort((left, right) => {
-      const leftPriority =
-        left.mechanicKey === FATE_RESHAPE_MECHANIC_KEY ? 1 : 0;
-      const rightPriority =
-        right.mechanicKey === FATE_RESHAPE_MECHANIC_KEY ? 1 : 0;
-      if (leftPriority !== rightPriority) {
-        return rightPriority - leftPriority;
-      }
+    .filter((row) => {
+      if (row.quantity <= 0) return false;
+      const consumable = mapConsumableRow(row);
       return (
-        (left.createdAt?.getTime() ?? 0) - (right.createdAt?.getTime() ?? 0)
+        isTalismanConsumable(consumable) &&
+        consumable.spec.scenario === FATE_RESHAPE_SCENARIO
       );
-    });
+    })
+    .sort(
+      (left, right) =>
+        (left.createdAt?.getTime() ?? 0) - (right.createdAt?.getTime() ?? 0),
+    );
 }
 
 export class FateReshapeServiceError extends Error {

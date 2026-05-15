@@ -32,7 +32,7 @@ export type ItemShowcaseSnapshotMap = {
   >;
   consumable: Pick<
     Consumable,
-    'id' | 'name' | 'type' | 'quality' | 'quantity' | 'description'
+    'id' | 'name' | 'type' | 'quality' | 'quantity' | 'description' | 'spec'
   >;
 };
 

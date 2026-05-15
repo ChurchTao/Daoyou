@@ -1,6 +1,7 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import {
   QUALITY_ORDER,
   type ElementType,
@@ -472,8 +473,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         return;
       }
 
-      const isTalisman = item.category === 'talisman_key' || item.type === '符箓';
-      if (isTalisman) {
+      if (isTalismanConsumable(item)) {
         pushToast({
           message: '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',
           tone: 'warning',
@@ -481,13 +481,50 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         return;
       }
 
-      pushToast({
-        message: '丹药系统重构中，当前版本暂不开放背包内直接服用。',
-        tone: 'warning',
-      });
-      return;
+      if (!isPillConsumable(item)) {
+        pushToast({
+          message: '该消耗品缺少有效丹药数据，暂时无法服用。',
+          tone: 'warning',
+        });
+        return;
+      }
+
+      setPendingId(item.id);
+      try {
+        const response = await fetch('/api/cultivator/consume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ consumableId: item.id }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || '服用失败');
+        }
+
+        pushToast({
+          message: result.data?.message || `${item.name}已服下。`,
+          tone: 'success',
+        });
+
+        await refresh();
+        await fetchTabPage('consumables', paginationByTab.consumables.page);
+      } catch (error) {
+        pushToast({
+          message:
+            error instanceof Error ? `服用失败：${error.message}` : '服用失败',
+          tone: 'danger',
+        });
+      } finally {
+        setPendingId(null);
+      }
     },
-    [cultivator, pushToast],
+    [
+      cultivator,
+      fetchTabPage,
+      paginationByTab.consumables.page,
+      pushToast,
+      refresh,
+    ],
   );
 
   // 鉴定神秘材料
