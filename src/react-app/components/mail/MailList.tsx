@@ -34,7 +34,7 @@ export function MailList({ mails, onSelect }: MailListProps) {
         <div
           key={mail.id}
           onClick={() => onSelect(mail)}
-          className={`cursor-pointer overflow-hidden rounded-lg transition-colors ${mail.isRead ? 'opacity-80' : 'bg-paper-2'} hover:bg-ink/5`}
+          className={`cursor-pointer overflow-hidden border border-dashed border-transparent transition-colors ${mail.isRead ? 'opacity-80' : 'bg-paper-2 border-ink/10'} hover:border-ink/15 hover:bg-ink/5`}
         >
           <InkListItem
             title={
@@ -47,7 +47,9 @@ export function MailList({ mails, onSelect }: MailListProps) {
                 )}
                 {mail.type === 'system' && <span className="text-lg">📢</span>}
                 {!mail.isRead && (
-                  <span className="bg-crimson inline-block h-2 w-2 rounded-full" />
+                  <span className="text-crimson inline-block text-[0.65rem] leading-none">
+                    ■
+                  </span>
                 )}
 
                 <span

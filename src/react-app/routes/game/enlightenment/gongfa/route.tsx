@@ -331,16 +331,16 @@ export default function GongfaCreationPage() {
 
       <InkSection title="预计消耗">
         {displayEstimatedCost ? (
-          <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
+          <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
               道心感悟：
-              <span className="font-bold text-purple-600">
+              <span className="text-tier-di font-bold">
                 {displayEstimatedCost.comprehension}
               </span>{' '}
               点
             </span>
             <span
-              className={`text-xs ${displayCanAfford ? 'text-emerald-600' : 'text-red-600'}`}
+              className={`text-xs ${displayCanAfford ? 'text-teal' : 'text-crimson'}`}
             >
               {displayCanAfford ? '✓ 感悟充足' : '✗ 感悟不足'}
             </span>

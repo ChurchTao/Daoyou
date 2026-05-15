@@ -2,6 +2,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES } from '@shared/types/constants';
 import { useEffect, useState } from 'react';
 
@@ -125,22 +126,19 @@ export function GameMailBroadcastForm() {
         可选模板 + 人群筛选。当前为同步执行，灵石为 0 时发公告，&gt;0 时发奖励。
       </InkNotice>
 
-      <label className="flex flex-col gap-1">
-        <span className="font-semibold tracking-wide">模板（可选）</span>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
-          value={templateId}
-          onChange={(e) => setTemplateId(e.target.value)}
-          disabled={loading}
-        >
+      <InkSelect
+        label="模板（可选）"
+        value={templateId}
+        onChange={(value) => setTemplateId(value)}
+        disabled={loading}
+      >
           <option value="">不使用模板（手动填写）</option>
           {templates.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
             </option>
           ))}
-        </select>
-      </label>
+      </InkSelect>
 
       <InkInput
         label="邮件标题（手动填写）"
@@ -178,61 +176,49 @@ export function GameMailBroadcastForm() {
       />
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">角色创建时间起</span>
-          <input
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            type="date"
-            value={createdFrom}
-            onChange={(e) => setCreatedFrom(e.target.value)}
-            disabled={loading}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">角色创建时间止</span>
-          <input
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            type="date"
-            value={createdTo}
-            onChange={(e) => setCreatedTo(e.target.value)}
-            disabled={loading}
-          />
-        </label>
+        <InkInput
+          label="角色创建时间起"
+          type="date"
+          value={createdFrom}
+          onChange={(value) => setCreatedFrom(value)}
+          disabled={loading}
+        />
+        <InkInput
+          label="角色创建时间止"
+          type="date"
+          value={createdTo}
+          onChange={(value) => setCreatedTo(value)}
+          disabled={loading}
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">境界下限</span>
-          <select
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            value={realmMin}
-            onChange={(e) => setRealmMin(e.target.value)}
-            disabled={loading}
-          >
+        <InkSelect
+          label="境界下限"
+          value={realmMin}
+          onChange={(value) => setRealmMin(value)}
+          disabled={loading}
+        >
             <option value="">不限</option>
             {REALM_VALUES.map((realm) => (
               <option key={realm} value={realm}>
                 {realm}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">境界上限</span>
-          <select
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            value={realmMax}
-            onChange={(e) => setRealmMax(e.target.value)}
-            disabled={loading}
-          >
+        </InkSelect>
+        <InkSelect
+          label="境界上限"
+          value={realmMax}
+          onChange={(value) => setRealmMax(value)}
+          disabled={loading}
+        >
             <option value="">不限</option>
             {REALM_VALUES.map((realm) => (
               <option key={realm} value={realm}>
                 {realm}
               </option>
             ))}
-          </select>
-        </label>
+        </InkSelect>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -253,7 +239,7 @@ export function GameMailBroadcastForm() {
       </div>
 
       {result && (
-        <pre className="border-ink/15 bg-bgpaper/60 overflow-x-auto rounded-lg border p-3 text-xs leading-5">
+        <pre className="border-ink/15 bg-bgpaper/60 overflow-x-auto border border-dashed p-3 text-xs leading-5">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}

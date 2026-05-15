@@ -19,7 +19,7 @@ export function AttributeModifierList({ modifiers }: AttributeModifierListProps)
         {modifiers.map((mod, i) => (
           <li
             key={`${mod.attrKey}-${i}`}
-            className="border-ink/10 flex items-center justify-between rounded-md border px-2 py-1"
+            className="border-ink/10 flex items-center justify-between border border-dashed px-2 py-1"
           >
             <span className="text-ink-secondary">{mod.attrLabel}</span>
             <span className="text-ink-primary font-medium">{mod.valueText}</span>

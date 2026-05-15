@@ -46,7 +46,7 @@ export function StatusCard({
           <div key={info.key} className="flex items-start gap-2 text-sm">
             <span className="text-base">{info.icon}</span>
             <div className="flex-1">
-              <div className="font-bold text-blue-600">
+              <div className="text-ink font-bold">
                 {info.name}
                 {info.stacks > 1 && ` (${info.stacks}层)`}
               </div>

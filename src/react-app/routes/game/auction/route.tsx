@@ -350,7 +350,7 @@ export default function AuctionPage() {
                   {listing.sellerId === cultivator?.id ? ' (我)' : ''}
                 </span>
                 <span>数量: x{listedQuantity}</span>
-                <span className="text-sm font-semibold text-yellow-700">
+                <span className="text-gold text-sm font-semibold">
                   💰 {listing.price} 灵石
                 </span>
               </div>

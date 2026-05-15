@@ -238,7 +238,7 @@ export default function MarketRecyclePage() {
           content: (
             <p className="py-3 text-center leading-7">
               坊市已入账
-              <span className="mx-1 font-bold text-amber-700">
+              <span className="text-wood mx-1 font-bold">
                 {result.gainedSpiritStones}
               </span>
               灵石。
@@ -254,7 +254,7 @@ export default function MarketRecyclePage() {
           id: 'sell-error',
           title: '回收失败',
           content: (
-            <p className="py-3 text-center text-red-700">
+            <p className="text-crimson py-3 text-center">
               {err instanceof Error ? err.message : '未知错误'}
             </p>
           ),
@@ -300,7 +300,7 @@ export default function MarketRecyclePage() {
                 </p>
                 <p className="text-sm">
                   评级：
-                  <span className="ml-1 font-bold text-amber-700">
+                  <span className="text-wood ml-1 font-bold">
                     {appraisal.rating}
                   </span>
                 </p>
@@ -353,7 +353,7 @@ export default function MarketRecyclePage() {
           id: 'material-preview-error',
           title: '鉴定失败',
           content: (
-            <p className="py-3 text-center text-red-700">
+            <p className="text-crimson py-3 text-center">
               {err instanceof Error ? err.message : '鉴定失败'}
             </p>
           ),
@@ -373,7 +373,7 @@ export default function MarketRecyclePage() {
           id: 'artifact-equipped-warning',
           title: '不可回收',
           content: (
-            <p className="py-3 text-center text-red-700">
+            <p className="text-crimson py-3 text-center">
               已装备法宝不可回收，请先卸下。
             </p>
           ),
@@ -394,7 +394,7 @@ export default function MarketRecyclePage() {
           id: 'artifact-preview-error',
           title: '鉴评失败',
           content: (
-            <p className="py-3 text-center text-red-700">
+            <p className="text-crimson py-3 text-center">
               {err instanceof Error ? err.message : '鉴评失败'}
             </p>
           ),
@@ -454,7 +454,7 @@ export default function MarketRecyclePage() {
         id: 'bulk-preview-error',
         title: '预览失败',
         content: (
-          <p className="py-3 text-center text-red-700">
+          <p className="text-crimson py-3 text-center">
             {err instanceof Error ? err.message : '预览失败'}
           </p>
         ),

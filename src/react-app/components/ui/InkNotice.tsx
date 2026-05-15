@@ -6,8 +6,8 @@ const inkNoticeVariants = cva('text-center italic my-4', {
   variants: {
     tone: {
       muted: 'text-ink-secondary',
-      info: 'text-blue-600',
-      warning: 'text-amber-600',
+      info: 'text-wood',
+      warning: 'text-crimson/80',
       danger: 'text-crimson',
     },
   },

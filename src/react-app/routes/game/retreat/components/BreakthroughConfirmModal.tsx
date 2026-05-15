@@ -40,23 +40,23 @@ export function BreakthroughConfirmModal({
           道友确定要尝试突破吗？此举关乎道途，不可不慎重。
         </p>
 
-        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-          <p className="font-medium text-amber-900">【突破风险】</p>
-          <p className="text-xs text-amber-800">
+        <div className="border-wood/35 bg-bgpaper space-y-2 border border-dashed p-3">
+          <p className="text-wood font-medium">【突破风险】</p>
+          <p className="text-wood text-xs">
             • 若冲关失败，修为将有所损耗，真元涣散
           </p>
-          <p className="text-xs text-amber-800">
+          <p className="text-wood text-xs">
             • 道行感悟将有所降低，心生迷惘
           </p>
-          <p className="text-xs text-amber-800">
+          <p className="text-wood text-xs">
             • 连续失败三次将生心魔，影响后续突破
           </p>
         </div>
 
         {chancePreview && (
-          <div className="space-y-1 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
-            <p className="font-medium text-emerald-900">【当前成功率推演】</p>
-            <p className="text-xs text-emerald-800">
+          <div className="border-teal/35 bg-bgpaper space-y-1 border border-dashed p-3">
+            <p className="text-teal font-medium">【当前成功率推演】</p>
+            <p className="text-teal text-xs">
               基础成功率：{format('.1%')(Math.min(chancePreview.baseChance, 1))}
             </p>
             {chancePreview.buffBonus > 0 && (

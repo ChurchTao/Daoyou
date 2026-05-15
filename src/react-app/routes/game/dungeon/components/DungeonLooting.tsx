@@ -35,7 +35,7 @@ export function DungeonLooting({
 
       <InkSection title="下一步抉择">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2 p-4 border border-ink/20 bg-paper rounded text-center">
+          <div className="flex flex-col gap-2 border border-dashed border-ink/20 bg-paper p-4 text-center">
             <h4 className="font-bold">继续深入</h4>
             <p className="text-xs text-ink-secondary mb-4">
               向秘境更深处进发，寻找更大的机缘。
@@ -50,7 +50,7 @@ export function DungeonLooting({
             </InkButton>
           </div>
 
-          <div className="flex flex-col gap-2 p-4 border border-ink/20 bg-paper rounded text-center">
+          <div className="flex flex-col gap-2 border border-dashed border-ink/20 bg-paper p-4 text-center">
             <h4 className="font-bold">见好就收</h4>
             <p className="text-xs text-ink-secondary mb-4">
               带着当前的收获直接离开秘境。

@@ -18,14 +18,15 @@ export function InkLink({
   return (
     <Link
       href={href}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'text-ink inline-block px-2 py-2 no-underline transition-colors',
+        'text-ink inline-flex items-center px-1.5 py-1 no-underline transition-colors duration-150',
         'hover:text-crimson',
-        active && 'text-crimson font-semibold',
+        active && 'ink-emphasis text-crimson font-semibold',
         className,
       )}
     >
-      {active ? `【${children}】` : `[${children}]`}
+      [{children}]
     </Link>
   );
 }

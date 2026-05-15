@@ -10,8 +10,10 @@ import {
   InkList,
   InkNotice,
   InkTabs,
+  inkFieldVariants,
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
+import { cn } from '@shared/lib/cn';
 import {
   CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
@@ -127,6 +129,8 @@ const defaultConsumableFilters: ConsumableListFilters = {
   sortBy: 'quality',
   sortOrder: 'desc',
 };
+
+const compactSelectClassName = cn(inkFieldVariants({ size: 'sm' }), 'mt-1');
 
 function isStackableItem(
   item: SelectableItem,
@@ -641,7 +645,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         品级
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={materialFilters.rank}
                           onChange={(event) =>
                             setMaterialFilters((prev) => ({
@@ -663,7 +667,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         种类
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={materialFilters.type}
                           onChange={(event) =>
                             setMaterialFilters((prev) => ({
@@ -685,7 +689,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         属性
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={materialFilters.element}
                           onChange={(event) =>
                             setMaterialFilters((prev) => ({
@@ -709,7 +713,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         排序
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={`${materialFilters.sortBy}:${materialFilters.sortOrder}`}
                           onChange={(event) => {
                             const [sortBy, sortOrder] =
@@ -752,7 +756,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         品级
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={artifactFilters.quality}
                           onChange={(event) =>
                             setArtifactFilters((prev) => ({
@@ -774,7 +778,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         排序
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={`${artifactFilters.sortBy}:${artifactFilters.sortOrder}`}
                           onChange={(event) => {
                             const [sortBy, sortOrder] =
@@ -813,7 +817,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         品级
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={consumableFilters.quality}
                           onChange={(event) =>
                             setConsumableFilters((prev) => ({
@@ -835,7 +839,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         种类
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={consumableFilters.type}
                           onChange={(event) =>
                             setConsumableFilters((prev) => ({
@@ -859,7 +863,7 @@ export function ListItemModal({
                       <label className="text-ink-secondary text-xs">
                         排序
                         <select
-                          className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                          className={compactSelectClassName}
                           value={`${consumableFilters.sortBy}:${consumableFilters.sortOrder}`}
                           onChange={(event) => {
                             const [sortBy, sortOrder] =
@@ -979,7 +983,7 @@ export function ListItemModal({
       ) : (
         <div className="space-y-4">
           {selectedItem && (
-            <div className="bg-ink/5 border-ink/20 rounded-lg border p-4">
+            <div className="bg-ink/5 border-ink/20 border border-dashed p-4">
               <div className="flex items-center gap-2">
                 <span className="font-bold">{selectedItem.name}</span>
                 {(() => {
@@ -1030,7 +1034,7 @@ export function ListItemModal({
             )}
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-crimson text-sm">{error}</p>}
 
           <div className="text-ink-secondary text-xs">
             <p>· 仅玄品及以上物品可寄售</p>

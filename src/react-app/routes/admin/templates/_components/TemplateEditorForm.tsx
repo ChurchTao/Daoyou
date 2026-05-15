@@ -1,6 +1,7 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
+import { InkSelect } from '@app/components/ui/InkSelect';
 import { TemplateStatus } from '@shared/types/admin-broadcast';
 import { useNavigate } from 'react-router';
 import { useMemo, useState } from 'react';
@@ -120,18 +121,15 @@ export function TemplateEditorForm({
 
   return (
     <div className="space-y-4">
-      <label className="flex flex-col gap-1">
-        <span className="font-semibold tracking-wide">模板频道</span>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
-          value={channel}
-          onChange={(e) => setChannel(e.target.value as TemplateChannel)}
-          disabled={loading || mode === 'edit'}
-        >
+      <InkSelect
+        label="模板频道"
+        value={channel}
+        onChange={(value) => setChannel(value as TemplateChannel)}
+        disabled={loading || mode === 'edit'}
+      >
           <option value="email">email</option>
           <option value="game_mail">game_mail</option>
-        </select>
-      </label>
+      </InkSelect>
 
       <InkInput
         label="模板名称"
@@ -170,18 +168,15 @@ export function TemplateEditorForm({
         disabled={loading}
       />
 
-      <label className="flex flex-col gap-1">
-        <span className="font-semibold tracking-wide">状态</span>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as TemplateStatus)}
-          disabled={loading}
-        >
+      <InkSelect
+        label="状态"
+        value={status}
+        onChange={(value) => setStatus(value as TemplateStatus)}
+        disabled={loading}
+      >
           <option value="active">active</option>
           <option value="disabled">disabled</option>
-        </select>
-      </label>
+      </InkSelect>
 
       <div className="flex gap-3">
         <InkButton variant="primary" onClick={submit} disabled={loading}>

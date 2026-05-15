@@ -1,7 +1,7 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkSelect } from '@app/components/ui/InkSelect';
 import { TemplateStatus } from '@shared/types/admin-broadcast';
-import Link from '@app/components/router/AppLink';
 import { useEffect, useState } from 'react';
 
 interface TemplateItem {
@@ -94,34 +94,34 @@ export function TemplatesTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
+        <InkSelect
+          size="sm"
           value={channel}
-          onChange={(e) =>
-            setChannel(e.target.value as 'all' | 'email' | 'game_mail')
+          onChange={(value) =>
+            setChannel(value as 'all' | 'email' | 'game_mail')
           }
         >
           <option value="all">全部频道</option>
           <option value="email">email</option>
           <option value="game_mail">game_mail</option>
-        </select>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
+        </InkSelect>
+        <InkSelect
+          size="sm"
           value={status}
-          onChange={(e) =>
-            setStatus(e.target.value as 'all' | 'active' | 'disabled')
+          onChange={(value) =>
+            setStatus(value as 'all' | 'active' | 'disabled')
           }
         >
           <option value="all">全部状态</option>
           <option value="active">active</option>
           <option value="disabled">disabled</option>
-        </select>
+        </InkSelect>
         <InkButton href="/admin/templates/new" variant="primary">
           新建模板
         </InkButton>
       </div>
 
-      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto rounded-xl border">
+      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto border border-dashed">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="border-ink/10 text-ink-secondary border-b text-left">
             <tr>
@@ -160,19 +160,18 @@ export function TemplatesTable() {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex gap-2">
-                      <Link
+                      <InkButton
                         href={`/admin/templates/${item.id}`}
-                        className="text-ink hover:text-crimson no-underline"
+                        variant="secondary"
                       >
-                        [编辑]
-                      </Link>
-                      <button
+                        编辑
+                      </InkButton>
+                      <InkButton
                         onClick={() => toggleStatus(item.id)}
-                        className="text-ink-secondary hover:text-crimson cursor-pointer"
-                        type="button"
+                        variant="secondary"
                       >
-                        [{item.status === 'active' ? '停用' : '启用'}]
-                      </button>
+                        {item.status === 'active' ? '停用' : '启用'}
+                      </InkButton>
                     </div>
                   </td>
                 </tr>

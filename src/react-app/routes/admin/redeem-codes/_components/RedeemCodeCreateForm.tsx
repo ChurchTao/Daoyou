@@ -1,6 +1,7 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
+import { InkSelect } from '@app/components/ui/InkSelect';
 import { useNavigate } from 'react-router';
 import { useMemo, useState } from 'react';
 
@@ -96,24 +97,21 @@ export function RedeemCodeCreateForm({
         disabled={loading}
       />
 
-      <label className="flex flex-col gap-1">
-        <span className="font-semibold tracking-wide">奖励预设</span>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
-          value={rewardPresetId}
-          onChange={(event) => setRewardPresetId(event.target.value)}
-          disabled={loading}
-        >
+      <InkSelect
+        label="奖励预设"
+        value={rewardPresetId}
+        onChange={(value) => setRewardPresetId(value)}
+        disabled={loading}
+      >
           {presetOptions.map((option) => (
             <option key={option.id} value={option.id}>
               {option.name}
             </option>
           ))}
-        </select>
-      </label>
+      </InkSelect>
 
       {selectedPreset && (
-        <p className="text-ink-secondary border-ink/10 rounded border px-3 py-2 text-sm">
+        <p className="text-ink-secondary border-ink/10 border border-dashed px-3 py-2 text-sm">
           奖励预览：{selectedPreset.description}
         </p>
       )}
@@ -145,26 +143,20 @@ export function RedeemCodeCreateForm({
       />
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">生效时间（可选）</span>
-          <input
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            type="datetime-local"
-            value={startsAt}
-            onChange={(event) => setStartsAt(event.target.value)}
-            disabled={loading}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">结束时间（可选）</span>
-          <input
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            type="datetime-local"
-            value={endsAt}
-            onChange={(event) => setEndsAt(event.target.value)}
-            disabled={loading}
-          />
-        </label>
+        <InkInput
+          label="生效时间（可选）"
+          type="datetime-local"
+          value={startsAt}
+          onChange={(value) => setStartsAt(value)}
+          disabled={loading}
+        />
+        <InkInput
+          label="结束时间（可选）"
+          type="datetime-local"
+          value={endsAt}
+          onChange={(value) => setEndsAt(value)}
+          disabled={loading}
+        />
       </div>
 
       {createdCode && (

@@ -4,7 +4,7 @@ import { MapNodeInfo } from '@shared/lib/game/mapSystem';
 export function MapNodeCard({ node }: { node: MapNodeInfo }) {
   return (
     <div
-      className={`border-crimson bg-crimson/5 ring-crimson rounded border transition-all duration-300`}
+      className="border-crimson bg-crimson/5 border transition-colors"
     >
       <div className="cursor-pointer p-3">
         <div className="mb-1 flex items-start justify-between">

@@ -1,5 +1,6 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkSelect } from '@app/components/ui/InkSelect';
 import { useEffect, useState } from 'react';
 
 interface RedeemCodeItem {
@@ -96,23 +97,23 @@ export function RedeemCodesTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
+        <InkSelect
+          size="sm"
           value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as 'all' | 'active' | 'disabled')
+          onChange={(value) =>
+            setStatus(value as 'all' | 'active' | 'disabled')
           }
         >
           <option value="all">全部状态</option>
           <option value="active">active</option>
           <option value="disabled">disabled</option>
-        </select>
+        </InkSelect>
         <InkButton href="/admin/redeem-codes/new" variant="primary">
           新建兑换码
         </InkButton>
       </div>
 
-      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto rounded-xl border">
+      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto border border-dashed">
         <table className="w-full min-w-[1080px] text-sm">
           <thead className="border-ink/10 text-ink-secondary border-b text-left">
             <tr>
@@ -159,13 +160,12 @@ export function RedeemCodesTable() {
                     {new Date(item.createdAt).toLocaleString()}
                   </td>
                   <td className="px-3 py-2">
-                    <button
-                      type="button"
+                    <InkButton
                       onClick={() => toggleStatus(item.id)}
-                      className="text-ink-secondary hover:text-crimson cursor-pointer"
+                      variant="secondary"
                     >
-                      [{item.status === 'active' ? '停用' : '启用'}]
-                    </button>
+                      {item.status === 'active' ? '停用' : '启用'}
+                    </InkButton>
                   </td>
                 </tr>
               ))

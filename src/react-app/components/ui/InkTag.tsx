@@ -3,19 +3,19 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { ReactNode } from 'react';
 
 const inkTagVariants = cva(
-  'inline-flex items-center text-[0.8rem] px-1 rounded-sm',
+  'inline-flex items-center gap-0.5 text-[0.82rem] leading-[1.4]',
   {
     variants: {
       variant: {
-        default: 'border border-ink/25',
-        outline: 'border border-ink/25 bg-transparent',
-        ghost: 'border-transparent text-ink-secondary',
+        default: '',
+        outline: 'ink-emphasis',
+        ghost: 'opacity-80',
       },
       tone: {
-        neutral: 'text-ink',
-        good: 'text-teal border-teal/50',
-        bad: 'text-crimson border-crimson/50',
-        info: 'text-blue-600 border-blue-600/40',
+        neutral: 'text-ink-secondary',
+        good: 'text-teal',
+        bad: 'text-crimson',
+        info: 'text-wood',
       },
     },
     defaultVariants: {
@@ -41,7 +41,9 @@ export function InkTag({
 }: InkTagProps) {
   return (
     <span className={cn(inkTagVariants({ variant, tone }), className)}>
-      {children}
+      <span aria-hidden="true">「</span>
+      <span>{children}</span>
+      <span aria-hidden="true">」</span>
     </span>
   );
 }

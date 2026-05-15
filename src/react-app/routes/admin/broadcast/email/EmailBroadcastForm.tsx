@@ -2,6 +2,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES } from '@shared/types/constants';
 import { useEffect, useState } from 'react';
 
@@ -119,22 +120,19 @@ export function EmailBroadcastForm() {
         可选模板 + 人群筛选。当前为同步执行，建议先 dry run 预估人数。
       </InkNotice>
 
-      <label className="flex flex-col gap-1">
-        <span className="font-semibold tracking-wide">模板（可选）</span>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
-          value={templateId}
-          onChange={(e) => setTemplateId(e.target.value)}
-          disabled={loading}
-        >
+      <InkSelect
+        label="模板（可选）"
+        value={templateId}
+        onChange={(value) => setTemplateId(value)}
+        disabled={loading}
+      >
           <option value="">不使用模板（手动填写）</option>
           {templates.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
             </option>
           ))}
-        </select>
-      </label>
+      </InkSelect>
 
       <InkInput
         label="主题（手动填写）"
@@ -164,74 +162,59 @@ export function EmailBroadcastForm() {
       />
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">注册时间起</span>
-          <input
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            type="date"
-            value={registeredFrom}
-            onChange={(e) => setRegisteredFrom(e.target.value)}
-            disabled={loading}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">注册时间止</span>
-          <input
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            type="date"
-            value={registeredTo}
-            onChange={(e) => setRegisteredTo(e.target.value)}
-            disabled={loading}
-          />
-        </label>
+        <InkInput
+          label="注册时间起"
+          type="date"
+          value={registeredFrom}
+          onChange={(value) => setRegisteredFrom(value)}
+          disabled={loading}
+        />
+        <InkInput
+          label="注册时间止"
+          type="date"
+          value={registeredTo}
+          onChange={(value) => setRegisteredTo(value)}
+          disabled={loading}
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">活跃角色</span>
-          <select
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            value={hasActiveCultivator}
-            onChange={(e) => setHasActiveCultivator(e.target.value)}
-            disabled={loading}
-          >
+        <InkSelect
+          label="活跃角色"
+          value={hasActiveCultivator}
+          onChange={(value) => setHasActiveCultivator(value)}
+          disabled={loading}
+        >
             <option value="">不限</option>
             <option value="true">仅有活跃角色</option>
             <option value="false">仅无活跃角色</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">境界下限</span>
-          <select
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            value={realmMin}
-            onChange={(e) => setRealmMin(e.target.value)}
-            disabled={loading}
-          >
+        </InkSelect>
+        <InkSelect
+          label="境界下限"
+          value={realmMin}
+          onChange={(value) => setRealmMin(value)}
+          disabled={loading}
+        >
             <option value="">不限</option>
             {REALM_VALUES.map((realm) => (
               <option key={realm} value={realm}>
                 {realm}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-semibold tracking-wide">境界上限</span>
-          <select
-            className="border-ink/20 border bg-transparent px-3 py-2"
-            value={realmMax}
-            onChange={(e) => setRealmMax(e.target.value)}
-            disabled={loading}
-          >
+        </InkSelect>
+        <InkSelect
+          label="境界上限"
+          value={realmMax}
+          onChange={(value) => setRealmMax(value)}
+          disabled={loading}
+        >
             <option value="">不限</option>
             {REALM_VALUES.map((realm) => (
               <option key={realm} value={realm}>
                 {realm}
               </option>
             ))}
-          </select>
-        </label>
+        </InkSelect>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -252,7 +235,7 @@ export function EmailBroadcastForm() {
       </div>
 
       {result && (
-        <pre className="border-ink/15 bg-bgpaper/60 overflow-x-auto rounded-lg border p-3 text-xs leading-5">
+        <pre className="border-ink/15 bg-bgpaper/60 overflow-x-auto border border-dashed p-3 text-xs leading-5">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}

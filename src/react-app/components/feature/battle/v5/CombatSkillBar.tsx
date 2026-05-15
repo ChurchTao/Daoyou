@@ -28,12 +28,12 @@ export function CombatSkillBar({ unit }: Props) {
           return (
             <div
               key={skill.skillId}
-              className="bg-battle-faint grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 rounded-sm border border-battle-faint px-2 py-1.5"
+              className="bg-battle-faint grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 border border-dashed border-battle-faint px-2 py-1.5"
             >
               <span className="text-ink min-w-0 truncate">{skill.skillName}</span>
               <span
                 className={cn(
-                  'shrink-0 rounded-sm border px-1.5 py-0.5 text-[11px] leading-none font-medium',
+                  'shrink-0 border px-1.5 py-0.5 text-[11px] leading-none font-medium',
                   isOnCooldown
                     ? 'border-battle-faint bg-paper text-battle-muted'
                     : isLowMp

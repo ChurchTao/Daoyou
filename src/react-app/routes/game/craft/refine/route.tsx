@@ -294,16 +294,16 @@ export default function RefinePage() {
 
       <InkSection title="预计消耗">
         {displayEstimatedCost ? (
-          <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
+          <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
               灵石：
-              <span className="font-bold text-amber-600">
+              <span className="text-wood font-bold">
                 {displayEstimatedCost.spiritStones}
               </span>{' '}
               枚
             </span>
             <span
-              className={`text-xs ${displayCanAfford ? 'text-emerald-600' : 'text-red-600'}`}
+              className={`text-xs ${displayCanAfford ? 'text-teal' : 'text-crimson'}`}
             >
               {displayCanAfford ? '✓ 资源充足' : '✗ 灵石不足'}
             </span>

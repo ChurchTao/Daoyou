@@ -92,7 +92,7 @@ export function InkPageShell({
         <div
           className={cn(
             'fixed right-0 bottom-0 left-0 z-100',
-            'bg-paper border-ink/10 border-t shadow',
+            'bg-paper border-ink/15 border-t border-dashed',
           )}
         >
           <InkNav items={baseNav} currentPath={currentPath} />

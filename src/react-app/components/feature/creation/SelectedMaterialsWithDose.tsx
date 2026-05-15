@@ -45,7 +45,7 @@ export function SelectedMaterialsWithDose({
           return (
             <div
               key={id}
-              className="border-ink/10 bg-bgpaper/55 flex items-center justify-between rounded-md border p-2"
+              className="border-ink/10 bg-bgpaper/55 flex items-center justify-between border border-dashed p-2"
             >
               <span className="text-ink-secondary text-xs">
                 材料信息加载中…
@@ -72,7 +72,7 @@ export function SelectedMaterialsWithDose({
         return (
           <div
             key={id}
-            className="border-ink/10 bg-bgpaper/55 rounded-md border p-2"
+            className="border-ink/10 bg-bgpaper/55 border border-dashed p-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

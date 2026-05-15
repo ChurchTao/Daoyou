@@ -1,4 +1,4 @@
-import { InkInput } from '@app/components/ui';
+import { InkChoiceButton, InkInput } from '@app/components/ui';
 import { EQUIPMENT_SLOT_VALUES, type EquipmentSlot } from '@shared/types/constants';
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
@@ -58,19 +58,14 @@ export function CreationIntentPanel({
           </span>
           <div className="flex flex-wrap gap-2">
             {EQUIPMENT_SLOT_VALUES.map((slot) => (
-              <button
+              <InkChoiceButton
                 key={slot}
-                type="button"
                 disabled={disabled}
                 onClick={() => onRequestedSlotChange(slot)}
-                className={`rounded-md border px-3 py-1 text-sm transition-colors ${
-                  requestedSlot === slot
-                    ? 'border-amber-500 bg-amber-50 text-amber-700'
-                    : 'border-ink/20 text-ink-secondary hover:border-ink/40'
-                } disabled:opacity-50`}
+                selected={requestedSlot === slot}
               >
                 {SLOT_LABELS[slot]}
-              </button>
+              </InkChoiceButton>
             ))}
           </div>
         </div>

@@ -346,7 +346,7 @@ export default function FateReshapePage() {
         <InkSection title="【开始重塑】">
           <InkCard variant="elevated" padding="lg" className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="border-ink/10 rounded-md border px-3 py-2">
+              <div className="border-ink/10 border border-dashed px-3 py-2">
                 <div className="text-ink-secondary text-xs">天机逆命符</div>
                 <div className="text-ink text-lg font-semibold">
                   {talismanCount} 张
@@ -381,13 +381,13 @@ export default function FateReshapePage() {
           <InkSection title="【当前进度】">
             <InkCard variant="elevated" padding="lg" className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="border-ink/10 rounded-md border px-3 py-2">
+                <div className="border-ink/10 border border-dashed px-3 py-2">
                   <div className="text-ink-secondary text-xs">还能重塑</div>
                   <div className="text-ink text-lg font-semibold">
                     {session.canReroll ? '1 次' : '0 次'}
                   </div>
                 </div>
-                <div className="border-ink/10 rounded-md border px-3 py-2">
+                <div className="border-ink/10 border border-dashed px-3 py-2">
                   <div className="text-ink-secondary text-xs">天机将于此失效</div>
                   <div className="text-ink text-lg font-semibold">
                     {formatExpireTime(session.expiresAt)}

@@ -3,7 +3,7 @@ import { TemplatesTable } from './_components/TemplatesTable';
 export default function TemplatesPage() {
   return (
     <div className="space-y-5">
-      <header className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6">
+      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">TEMPLATES</p>
         <h2 className="font-heading text-ink mt-2 text-4xl">模板中心</h2>
         <p className="text-ink-secondary mt-2 text-sm">
@@ -11,7 +11,7 @@ export default function TemplatesPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6">
+      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
         <TemplatesTable />
       </section>
     </div>

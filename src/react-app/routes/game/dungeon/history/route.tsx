@@ -146,13 +146,13 @@ export default function DungeonHistoryPage() {
   const getTierColor = (tier?: string) => {
     switch (tier) {
       case 'S':
-        return 'text-amber-500';
+        return 'text-gold';
       case 'A':
         return 'text-crimson';
       case 'B':
-        return 'text-blue-500';
+        return 'text-wood';
       case 'C':
-        return 'text-green-600';
+        return 'text-teal';
       case 'D':
         return 'text-ink-secondary';
       default:
@@ -246,7 +246,7 @@ export default function DungeonHistoryPage() {
                         if (entries.length === 0) {
                           // 降级处理：解析失败时显示原始日志
                           return (
-                            <pre className="bg-paper-dark text-ink/70 rounded p-2 text-xs whitespace-pre-wrap">
+                            <pre className="bg-paper-dark text-ink/70 border border-dashed border-ink/10 p-2 text-xs whitespace-pre-wrap">
                               {record.log || '暂无详细记录'}
                             </pre>
                           );

@@ -38,10 +38,10 @@ export function ItemShowcaseModal({
 }: ItemShowcaseModalProps) {
   return (
     <InkModal isOpen={isOpen} onClose={onClose}>
-      <div className="space-y-2">
-        <div className="bg-muted/20 flex flex-col items-center rounded-lg p-4">
+      <div className="space-y-3">
+        <div className="ink-surface flex flex-col items-center gap-2 p-4 text-center">
           <div className="mb-2 text-4xl">{icon}</div>
-          <h4 className="text-lg font-bold">{name}</h4>
+          <h4 className="text-lg font-semibold">{name}</h4>
           {badges.length > 0 && (
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               {badges.map((badge, index) => (
@@ -52,13 +52,13 @@ export function ItemShowcaseModal({
           {summary && <div className="mt-3 w-full">{summary}</div>}
         </div>
 
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-sm leading-7">
           {metaSection}
           {extraInfo}
 
           {description && (
             <div className="pt-2">
-              <span className="text-ink mb-1 block font-bold opacity-70">
+              <span className="ink-emphasis text-ink mb-1 block font-semibold">
                 {descriptionTitle}
               </span>
               <p className="text-ink-secondary">{description}</p>

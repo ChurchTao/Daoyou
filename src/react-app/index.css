@@ -22,12 +22,18 @@
 @theme {
   /* 色彩系统 */
   --color-bgpaper: #f8f3e6;
+  --color-paper: #f8f3e6;
+  --color-paper-2: #f1ead8;
   --color-ink: #2c1810;
   --color-ink-secondary: #5a4a42;
   --color-crimson: #c1121f;
+  --color-primary: #c1121f;
   --color-teal: #4a7c59;
   --color-wood: #8b4513;
   --color-gold: #efbf04;
+  --color-muted: rgba(44, 24, 16, 0.06);
+  --color-paper-dark: rgba(44, 24, 16, 0.04);
+  --color-ink-border: rgba(44, 24, 16, 0.18);
   --color-ink-muted: rgba(44, 24, 16, 0.6);
   --color-battle-rule: rgba(44, 24, 16, 0.16);
   --color-battle-rule-strong: rgba(44, 24, 16, 0.3);
@@ -64,9 +70,11 @@
 }
 
 body {
-  background: var(--color-bgpaper);
+  background-color: var(--color-bgpaper);
+  background-image: url('/assets/paper.png');
+  background-size: 300px;
   color: var(--color-ink);
-  font-family: var(--font-lxgwwenkai), Arial, Helvetica, sans-serif;
+  font-family: var(--font-lxgwwenkai), serif;
 }
 
 /* 标题字体样式 */
@@ -77,7 +85,7 @@ h4,
 h5,
 h6,
 .font-heading {
-  font-family: var(--font-ma-shan-zheng), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ma-shan-zheng), cursive;
 }
 
 /* 宣纸背景 */
@@ -85,6 +93,27 @@ h6,
   background-color: var(--color-bgpaper);
   background-image: url('/assets/paper.png');
   background-size: 300px;
+}
+
+.ink-surface {
+  background-color: rgba(248, 243, 230, 0.92);
+  border: 1px dashed rgba(44, 24, 16, 0.18);
+}
+
+.ink-surface-quiet {
+  background-color: rgba(248, 243, 230, 0.76);
+  border: 1px dashed rgba(44, 24, 16, 0.12);
+}
+
+.ink-overlay {
+  background: rgba(20, 10, 5, 0.6);
+}
+
+.ink-emphasis {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: rgba(193, 18, 31, 0.58);
+  text-underline-offset: 0.2em;
 }
 
 .battle-divider {
@@ -132,25 +161,20 @@ h6,
 }
 
 .battle-note {
-  background: linear-gradient(
-    90deg,
-    var(--color-battle-crimson-soft) 0%,
-    transparent 72%
-  );
+  background: rgba(248, 243, 230, 0.88);
+  border-left: 2px solid var(--color-crimson);
   padding: 0.9rem 1rem;
 }
 
 .battle-modal-panel {
   border-color: var(--color-battle-rule-strong);
   border-radius: 0;
-  box-shadow: none;
   padding: 1.25rem;
 }
 
 .battle-dock {
   background: rgba(248, 243, 230, 0.96);
   border-top: 1px dashed var(--color-battle-rule-strong);
-  backdrop-filter: blur(6px);
 }
 
 .bgi-map {

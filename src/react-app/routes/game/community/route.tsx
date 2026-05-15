@@ -13,7 +13,7 @@ export default function CommunityPage() {
       backHref="/game"
     >
       <InkSection title="【群二维码】">
-        <div className="border-ink/20 bg-paper mx-auto max-w-sm rounded-sm border border-dashed p-4">
+        <div className="border-ink/20 bg-paper mx-auto max-w-sm border border-dashed p-4">
           <img
             src={QR_CODE_PATH}
             alt="万界道友玩家交流群二维码"

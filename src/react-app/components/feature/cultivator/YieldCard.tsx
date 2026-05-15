@@ -165,13 +165,13 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
           </InkButton>
         }
       >
-        <div className="prose prose-sm prose-invert text-foreground/90 bg-ink/5 border-ink/10 mb-6 max-w-none rounded-lg border p-4 leading-relaxed">
+        <div className="text-ink bg-ink/5 border-ink/10 mb-6 max-w-none border border-dashed p-4 text-sm leading-relaxed whitespace-pre-line">
           {yieldResult?.story}
         </div>
 
         <div className="mb-4 flex items-center justify-center gap-2">
           <span className="text-ink-secondary">获得灵石：</span>
-          <span className="flex items-center gap-1 text-2xl font-bold text-yellow-500">
+          <span className="text-gold flex items-center gap-1 text-2xl font-bold">
             💎 {yieldResult?.amount}
           </span>
         </div>
@@ -179,7 +179,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
         {yieldResult?.expGain && (
           <div className="mb-4 flex items-center justify-center gap-2">
             <span className="text-ink-secondary">修为精进：</span>
-            <span className="text-2xl font-bold text-blue-500">
+            <span className="text-teal text-2xl font-bold">
               ✨ {yieldResult.expGain}
             </span>
           </div>
@@ -188,7 +188,7 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
         {yieldResult?.insightGain && (
           <div className="mb-4 flex items-center justify-center gap-2">
             <span className="text-ink-secondary">道心感悟：</span>
-            <span className="text-2xl font-bold text-purple-500">
+            <span className="text-wood text-2xl font-bold">
               💡 {yieldResult.insightGain}
             </span>
           </div>
@@ -213,10 +213,10 @@ export function YieldCard({ cultivator, onOk }: YieldCardProps) {
         {yieldResult?.materialCount &&
           yieldResult.materialCount > 0 &&
           (!yieldResult.materials || yieldResult.materials.length === 0) && (
-            <div className="bg-primary/10 border-primary/30 mb-6 rounded-lg border p-3 text-center">
+            <div className="border-crimson/30 bg-bgpaper mb-6 border border-dashed p-3 text-center">
               <p className="text-ink-secondary text-sm">
                 另有{' '}
-                <span className="text-primary font-bold">
+                <span className="text-crimson font-bold">
                   {yieldResult.materialCount}
                 </span>{' '}
                 份天材地宝正在运送中， 稍后将通过传音玉简（邮件）送达。

@@ -308,7 +308,7 @@ export default function CultivatorPage() {
       )}
 
       <InkSection title="【根基属性】">
-        <div className="border-ink/15 overflow-x-auto rounded border">
+        <div className="border-ink/15 overflow-x-auto border border-dashed">
           <table className="border-ink/10 w-full border-collapse text-sm">
             <tbody>
               {primaryRows.map((item) => (

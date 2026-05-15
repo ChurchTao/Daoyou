@@ -9,6 +9,10 @@ export { InkBadge, type InkBadgeProps, type Tier } from './InkBadge';
 export { InkButton, type InkButtonProps } from './InkButton';
 export { InkCard, type InkCardProps } from './InkCard';
 export {
+  InkChoiceButton,
+  type InkChoiceButtonProps,
+} from './InkChoiceButton';
+export {
   InkDialog,
   type InkDialogProps,
   type InkDialogState,
@@ -30,6 +34,7 @@ export {
   type InkStatusBarProps,
   type InkStatusDatum,
 } from './InkStatusBar';
+export { InkSelect, type InkSelectProps } from './InkSelect';
 export { InkTabs, type InkTabItem, type InkTabsProps } from './InkTabs';
 export { InkTag, type InkTagProps } from './InkTag';
 export {
@@ -43,3 +48,7 @@ export {
   InkIdentifyCelebration,
   type IdentifyCelebrationData,
 } from './InkIdentifyCelebration';
+export {
+  inkFieldVariants,
+  type InkFieldVariantProps,
+} from './inkFieldStyles';

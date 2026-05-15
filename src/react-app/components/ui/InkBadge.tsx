@@ -60,8 +60,8 @@ export const tierColorMap: Record<Tier, string> = {
 const toneColorMap = {
   default: 'text-ink-secondary',
   accent: 'text-crimson',
-  warning: 'text-amber-600',
-  danger: 'text-red-800',
+  warning: 'text-wood',
+  danger: 'text-crimson',
 };
 
 export interface InkBadgeProps {
@@ -92,17 +92,22 @@ export function InkBadge({
 
   const combinedClass = cn(
     'inline-flex items-center leading-[1.4] px-1 mr-1',
-    compact ? 'text-[0.75rem]' : 'text-[0.85rem]',
+    compact ? 'text-[0.8rem]' : 'text-[0.9rem]',
     colorClass,
     className,
   );
 
+  const wrapBadgeText = (text: string) =>
+    text.startsWith('「') && text.endsWith('」') ? text : `「${text}」`;
+
   // 构建显示内容
   const displayContent = hideTierText
     ? children
-    : tier
+      : tier
       ? `「${tierText || tier}」${children || ''}`
-      : children || '';
+      : children
+        ? wrapBadgeText(children)
+        : '';
 
   return <span className={combinedClass}>{displayContent}</span>;
 }

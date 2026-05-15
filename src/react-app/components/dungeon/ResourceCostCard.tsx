@@ -42,7 +42,7 @@ export function ResourceCostCard({
           <div className="space-y-1">
             {hpLossPercent > 0 && (
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1 text-red-600">
+                <span className="text-crimson flex items-center gap-1">
                   <span>{getResourceIcon('hp_loss')}</span>
                   <span>{getResourceDisplayName('hp_loss')}</span>
                 </span>
@@ -53,7 +53,7 @@ export function ResourceCostCard({
             )}
             {mpLossPercent > 0 && (
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1 text-blue-600">
+                <span className="text-wood flex items-center gap-1">
                   <span>{getResourceIcon('mp_loss')}</span>
                   <span>{getResourceDisplayName('mp_loss')}</span>
                 </span>

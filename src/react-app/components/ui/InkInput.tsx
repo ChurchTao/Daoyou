@@ -1,36 +1,12 @@
 import { cn } from '@shared/lib/cn';
-import { cva, type VariantProps } from 'class-variance-authority';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import type { HTMLInputTypeAttribute } from 'react';
+import {
+  inkFieldVariants,
+  type InkFieldVariantProps,
+} from './inkFieldStyles';
 
-/**
- * InkInput 变体定义
- */
-const inkInputVariants = cva(
-  // 基础样式
-  'w-full bg-transparent font-sans leading-[1.5] focus:outline-none',
-  {
-    variants: {
-      variant: {
-        default: 'border border-ink/20 focus:border-crimson',
-        outlined: 'border-2 border-ink/30 focus:border-crimson rounded-md',
-        underlined:
-          'border-b border-ink/20 focus:border-b-crimson border-t-0 border-l-0 border-r-0',
-      },
-      size: {
-        sm: 'px-2 py-2 text-sm',
-        md: 'px-3 py-3 text-base',
-        lg: 'px-4 py-4 text-lg',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'md',
-    },
-  },
-);
-
-export interface InkInputProps extends VariantProps<typeof inkInputVariants> {
+export interface InkInputProps extends InkFieldVariantProps {
   label?: string;
   placeholder?: string;
   value: string;
@@ -69,8 +45,8 @@ export function InkInput({
   size,
 }: InkInputProps) {
   const fieldClass = cn(
-    inkInputVariants({ variant, size }),
-    multiline && 'min-h-32 resize-y',
+    inkFieldVariants({ variant, size }),
+    multiline && 'battle-scroll min-h-32 resize-y',
     disabled && 'opacity-50 cursor-not-allowed',
   );
 
@@ -80,7 +56,9 @@ export function InkInput({
 
   return (
     <label className="flex flex-col gap-1">
-      {label && <span className="font-semibold tracking-wide">{label}</span>}
+      {label && (
+        <span className="text-ink font-semibold tracking-[0.08em]">{label}</span>
+      )}
       {multiline ? (
         <textarea
           className={fieldClass}
@@ -103,9 +81,9 @@ export function InkInput({
         />
       )}
       {hint && !error && (
-        <span className="text-ink-secondary text-[0.8rem]">{hint}</span>
+        <span className="text-ink-secondary text-[0.82rem]">{hint}</span>
       )}
-      {error && <span className="text-crimson text-[0.8rem]">{error}</span>}
+      {error && <span className="text-crimson text-[0.82rem]">{error}</span>}
     </label>
   );
 }

@@ -27,7 +27,7 @@ function PlayerShell() {
 
     return (
       <div className="bg-paper flex min-h-screen items-center justify-center px-6">
-        <div className="border-ink/15 bg-bgpaper/90 w-full max-w-xl rounded border p-6">
+        <div className="ink-surface w-full max-w-xl p-6">
           <h1 className="text-xl font-semibold tracking-wide">
             {isDead ? '前世道途已尽' : '尚未凝聚真身'}
           </h1>

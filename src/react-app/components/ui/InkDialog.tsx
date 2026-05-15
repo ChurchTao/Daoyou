@@ -1,4 +1,5 @@
 import { cn } from '@shared/lib/cn';
+import { InkModal } from '@app/components/layout/InkModal';
 import type { ReactNode } from 'react';
 import { InkButton } from './InkButton';
 
@@ -46,32 +47,16 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
   const effectiveCancelLabel = cancelLabel === undefined ? '罢' : cancelLabel;
 
   return (
-    <div
-      className={cn(
-        'fixed inset-0 z-300 flex items-center justify-center p-4',
-        'bg-[rgba(20,10,5,0.55)]',
-      )}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className={cn(
-          'bg-paper w-[min(90vw,420px)] p-4',
-          'border-ink/20 border border-dashed',
-        )}
-      >
-        {/* 标题 */}
-        {title && <h3 className="font-heading mb-2 text-[1.25rem]">{title}</h3>}
-
-        {/* 内容 */}
-        <div className="text-ink mb-3">{content}</div>
-
-        {/* 操作按钮 */}
+    <InkModal
+      isOpen={!!dialog}
+      onClose={onClose}
+      title={title}
+      footer={
         <div className="flex justify-end gap-2">
           {effectiveCancelLabel !== null ? (
             <InkButton
-              onClick={() => {
-                onCancel?.();
+              onClick={async () => {
+                await onCancel?.();
                 onClose();
               }}
             >
@@ -91,7 +76,9 @@ export function InkDialog({ dialog, onClose }: InkDialogProps) {
             </InkButton>
           ) : null}
         </div>
-      </div>
-    </div>
+      }
+    >
+      <div className={cn('text-ink', title && 'pt-1')}>{content}</div>
+    </InkModal>
   );
 }

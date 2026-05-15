@@ -22,13 +22,13 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
   // 通用章节头部
   const SectionHeader = ({ icon, title }: { icon: string; title: string }) => (
     <div className="group mb-4 flex items-center gap-3">
-      <div className="bg-ink/4 group-hover:bg-ink/[0.07] flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-colors">
+      <div className="bg-ink/4 border-ink/10 group-hover:bg-ink/[0.07] flex h-8 w-8 items-center justify-center border border-dashed text-lg transition-colors">
         {icon}
       </div>
       <h4 className="text-ink-primary text-lg font-bold tracking-wide">
         {title}
       </h4>
-      <div className="from-ink/10 ml-2 h-px flex-1 bg-linear-to-r to-transparent" />
+      <div className="border-ink/10 ml-2 flex-1 border-t border-dashed" />
     </div>
   );
 
@@ -36,7 +36,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
   const formatAttr = (label: string, base: number, final: number) => {
     const isModified = base !== final;
     return (
-      <div className="bg-ink/3 hover:bg-ink/6 flex flex-col gap-1 rounded-md p-3 transition-all hover:-translate-y-px">
+      <div className="bg-ink/3 border-ink/10 hover:bg-ink/6 flex flex-col gap-1 border border-dashed p-3 transition-colors">
         <span className="text-ink-secondary text-xs tracking-widest opacity-70">
           {label}
         </span>
@@ -45,7 +45,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
           {isModified && (
             <div className="flex items-center gap-1 text-[10px]">
               <span className="line-through opacity-40">{base}</span>
-              <span className="text-crimson bg-crimson/5 rounded-sm px-1 font-medium">
+              <span className="text-crimson bg-crimson/5 border-crimson/20 border px-1 font-medium">
                 {final > base ? `+${final - base}` : final - base}
               </span>
             </div>
@@ -67,8 +67,8 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
     const slotInfo = getEquipmentSlotInfo(type);
     if (!item) {
       return (
-        <div className="bg-ink/2 flex items-center gap-4 rounded-lg p-3 opacity-40 grayscale">
-          <div className="bg-ink/5 flex h-10 w-10 items-center justify-center rounded-full text-xl">
+        <div className="bg-ink/2 border-ink/10 flex items-center gap-4 border border-dashed p-3 opacity-40 grayscale">
+          <div className="bg-ink/5 border-ink/10 flex h-10 w-10 items-center justify-center border border-dashed text-xl">
             {slotInfo.icon}
           </div>
           <span className="text-ink-secondary text-sm italic">
@@ -81,10 +81,10 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
     const tierClass = item.quality ? tierColorMap[item.quality as Tier] : '';
 
     return (
-      <div className="bg-ink/3 group hover:bg-ink/6 rounded-lg p-4 transition-all">
+      <div className="bg-ink/3 border-ink/10 group hover:bg-ink/6 border border-dashed p-4 transition-colors">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-ink/5 flex h-10 w-10 items-center justify-center rounded-full text-xl transition-transform group-hover:scale-110">
+            <div className="bg-ink/5 border-ink/10 flex h-10 w-10 items-center justify-center border border-dashed text-xl">
               {slotInfo.icon}
             </div>
             <div className="flex flex-col">
@@ -97,7 +97,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                 {item.quality && (
                   <span
                     className={cn(
-                      'rounded bg-current/5 px-1.5 py-0.5 text-[10px] font-medium uppercase',
+                      'border border-current/20 bg-current/5 px-1.5 py-0.5 text-[10px] font-medium uppercase',
                       tierClass,
                     )}
                   >
@@ -127,7 +127,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
   return (
     <div className="scrollbar-hide max-h-[70vh] space-y-10 overflow-y-auto px-1 pb-6">
       {/* 身份摘要 */}
-      <section className="bg-ink/3 relative overflow-hidden rounded-2xl p-6">
+      <section className="bg-ink/3 border-ink/10 relative overflow-hidden border border-dashed p-6">
         {/* 背景大字装饰 */}
         <div className="pointer-events-none absolute -top-4 -right-2 text-8xl font-black opacity-[0.03] select-none">
           {target.realm}
@@ -139,7 +139,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
               {target.name}
             </h3>
             {target.title && (
-              <span className="bg-ink/5 text-ink-secondary border-ink/5 rounded-full border px-2.5 py-1 text-xs">
+              <span className="bg-ink/5 text-ink-secondary border-ink/10 border border-dashed px-2.5 py-1 text-xs">
                 {target.title}
               </span>
             )}
@@ -200,7 +200,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
               return (
                 <div
                   key={`${root.element}-${idx}`}
-                  className="bg-ink/3 flex min-w-20 flex-col gap-1 rounded-md p-3"
+                  className="bg-ink/3 border-ink/10 flex min-w-20 flex-col gap-1 border border-dashed p-3"
                 >
                   <span className="text-ink-secondary/60 text-xs uppercase">
                     {root.element}
@@ -237,7 +237,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
               return (
                 <div
                   key={fate.name + idx}
-                  className="bg-ink/3 group hover:bg-ink/6 rounded-lg p-4 transition-colors"
+                  className="bg-ink/3 border-ink/10 group hover:bg-ink/6 border border-dashed p-4 transition-colors"
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <span
@@ -251,7 +251,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                     {fate.quality && (
                       <span
                         className={cn(
-                          'rounded bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
+                          'border border-current/20 bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
                           tierClass,
                         )}
                       >
@@ -287,7 +287,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                 return (
                   <div
                     key={skill.id || skill.name + idx}
-                    className="bg-ink/3 group hover:bg-ink/6 rounded-lg p-4 transition-all"
+                    className="bg-ink/3 border-ink/10 group hover:bg-ink/6 border border-dashed p-4 transition-colors"
                   >
                     <div className="mb-2 flex items-start justify-between">
                       <div className="flex flex-col">
@@ -306,7 +306,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                       {skill.quality && (
                         <span
                           className={cn(
-                            'rounded bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
+                            'border border-current/20 bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
                             tierClass,
                           )}
                         >
@@ -337,7 +337,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                 return (
                   <div
                     key={cult.name + idx}
-                    className="bg-ink/3 group hover:bg-ink/6 rounded-lg p-4 transition-all"
+                    className="bg-ink/3 border-ink/10 group hover:bg-ink/6 border border-dashed p-4 transition-colors"
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <span
@@ -351,7 +351,7 @@ export function formatProbeResultContent(probeResult: ProbeResultData) {
                       {cult.quality && (
                         <span
                           className={cn(
-                            'rounded bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
+                            'border border-current/20 bg-current/5 px-1.5 py-0.5 text-[10px] font-medium',
                             tierClass,
                           )}
                         >

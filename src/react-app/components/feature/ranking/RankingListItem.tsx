@@ -76,7 +76,7 @@ function RankingListItemComponent({
             <span>{icon}</span>
             <span className="truncate font-semibold">{rankItem.name}</span>
           </div>
-          <span className="text-yellow-700">评分 {rankItem.score}</span>
+          <span className="text-gold">评分 {rankItem.score}</span>
         </div>
         <div className="ml-16 flex flex-wrap items-center gap-2 pb-2">
           {rankItem.quality && (

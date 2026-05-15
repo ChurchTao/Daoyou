@@ -33,50 +33,43 @@ const QUALITY_STYLE_MAP: Record<
   }
 > = {
   凡品: {
-    cardClass: 'border-slate-500/20 bg-slate-500/5',
-    chipClass: 'border-slate-500/30 bg-slate-500/10 text-slate-700',
+    cardClass: 'border-ink/20 bg-bgpaper/70',
+    chipClass: 'border-ink/20 bg-bgpaper text-ink-secondary',
     title: '寻常所得',
   },
   灵品: {
-    cardClass:
-      'border-emerald-500/25 bg-emerald-500/6',
-    chipClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
+    cardClass: 'border-teal/25 bg-teal/5',
+    chipClass: 'border-teal/30 bg-teal/10 text-teal',
     title: '气机清明',
   },
   玄品: {
-    cardClass:
-      'border-sky-500/25 bg-sky-500/6',
-    chipClass: 'border-sky-500/30 bg-sky-500/10 text-sky-700',
+    cardClass: 'border-tier-xuan/25 bg-tier-xuan/5',
+    chipClass: 'border-tier-xuan/30 bg-tier-xuan/10 text-tier-xuan',
     title: '灵卷浮现',
   },
   真品: {
-    cardClass:
-      'border-indigo-500/25 bg-indigo-500/6',
-    chipClass: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-700',
+    cardClass: 'border-tier-zhen/25 bg-tier-zhen/5',
+    chipClass: 'border-tier-zhen/30 bg-tier-zhen/10 text-tier-zhen',
     title: '真卷现形',
   },
   地品: {
-    cardClass:
-      'border-amber-500/30 bg-amber-500/8',
-    chipClass: 'border-amber-500/30 bg-amber-500/12 text-amber-700',
+    cardClass: 'border-tier-di/25 bg-tier-di/5',
+    chipClass: 'border-tier-di/30 bg-tier-di/10 text-tier-di',
     title: '厚运入手',
   },
   天品: {
-    cardClass:
-      'border-orange-500/30 bg-orange-500/8',
-    chipClass: 'border-orange-500/30 bg-orange-500/12 text-orange-700',
+    cardClass: 'border-gold/35 bg-gold/10',
+    chipClass: 'border-gold/40 bg-gold/15 text-gold',
     title: '上品出世',
   },
   仙品: {
-    cardClass:
-      'border-rose-500/30 bg-rose-500/8',
-    chipClass: 'border-rose-500/30 bg-rose-500/12 text-rose-700',
+    cardClass: 'border-tier-xian/25 bg-tier-xian/5',
+    chipClass: 'border-tier-xian/30 bg-tier-xian/10 text-tier-xian',
     title: '仙卷临尘',
   },
   神品: {
-    cardClass:
-      'border-red-600/30 bg-red-500/8',
-    chipClass: 'border-red-600/30 bg-red-500/12 text-red-700',
+    cardClass: 'border-crimson/25 bg-crimson/5',
+    chipClass: 'border-crimson/30 bg-crimson/10 text-crimson',
     title: '神卷显圣',
   },
 };
@@ -161,7 +154,7 @@ function ResultHeroCard({
 
   return (
     <div
-      className={`rounded-2xl border p-5 transition-transform duration-300 hover:-translate-y-0.5 ${style.cardClass}`}
+      className={`border p-5 transition-colors ${style.cardClass}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -178,7 +171,7 @@ function ResultHeroCard({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <InkBadge tier={material.rank} />
         <span
-          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${style.chipClass}`}
+          className={`border px-2.5 py-1 text-xs font-medium ${style.chipClass}`}
         >
           {style.title}
         </span>
@@ -203,7 +196,7 @@ function ResultMiniCard({ material }: { material: Material }) {
 
   return (
     <div
-      className={`rounded-xl border p-3 transition-transform duration-300 hover:-translate-y-0.5 ${style.cardClass}`}
+      className={`border p-3 transition-colors ${style.cardClass}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -408,7 +401,7 @@ export default function ManualDrawPage() {
           <InkNotice>正在读取符箓数量……</InkNotice>
         ) : (
           <InkCard className="overflow-hidden p-0">
-            <div className="bg-[linear-gradient(135deg,rgba(120,53,15,0.06),rgba(120,53,15,0.01))] p-5">
+            <div className="bg-bgpaper p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
@@ -428,14 +421,14 @@ export default function ManualDrawPage() {
                     {activeTab === 'gongfa' ? '参悟功法' : '推演神通'}。
                   </p>
                 </div>
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-center">
+                <div className="border-gold/30 bg-bgpaper border border-dashed px-4 py-3 text-center">
                   <p className="text-ink-secondary text-xs">剩余符箓</p>
                   <p className="text-ink-primary mt-1 text-2xl font-semibold">
                     {currentCount}
                   </p>
                 </div>
               </div>
-              <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3">
+              <div className="border-gold/30 bg-bgpaper mt-3 border border-dashed px-4 py-3">
                 <p className="text-ink-secondary text-xs">规则说明</p>
                 <p className="text-ink-primary mt-1 text-sm leading-6">
                   {currentConfig.usageHint}
@@ -484,7 +477,7 @@ export default function ManualDrawPage() {
                     {latestResult.drawCount === 5 ? '五连结果' : '单抽结果'}
                   </h2>
                 </div>
-                <span className="rounded-full border border-amber-500/20 bg-amber-500/8 px-3 py-1 text-sm font-medium text-amber-700">
+                <span className="text-gold border-gold/30 bg-bgpaper border border-dashed px-3 py-1 text-sm font-medium">
                   {getResultHeadline(latestResult)}
                 </span>
               </div>
@@ -494,7 +487,7 @@ export default function ManualDrawPage() {
                   {qualitySummary.map(([quality, count]) => (
                     <span
                       key={quality}
-                      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${QUALITY_STYLE_MAP[quality].chipClass}`}
+                      className={`border px-2.5 py-1 text-xs font-medium ${QUALITY_STYLE_MAP[quality].chipClass}`}
                     >
                       {quality} x {count}
                     </span>

@@ -208,13 +208,13 @@ function AlchemyResultModal({
       }
       metaSection={
         <div className="space-y-2">
-          <div className="border-ink/10 rounded-md border p-3">
+          <div className="border-ink/10 border border-dashed p-3">
             <div className="text-ink-secondary mb-2 text-xs">炼制材料</div>
             <div className="text-sm">
               {meta.sourceMaterials.join('、')}
             </div>
           </div>
-          <div className="border-ink/10 rounded-md border p-3">
+          <div className="border-ink/10 border border-dashed p-3">
             <div className="text-ink-secondary mb-2 text-xs">药性结果</div>
             <div className="space-y-1 text-sm">
               {consumable.spec.operations.map((operation, index) => (
@@ -225,7 +225,7 @@ function AlchemyResultModal({
             </div>
           </div>
           {formulaProgress && (
-            <div className="border-ink/10 rounded-md border p-3">
+            <div className="border-ink/10 border border-dashed p-3">
               <div className="text-ink-secondary mb-2 text-xs">丹方熟练</div>
               <div className="space-y-1 text-sm">
                 <div>本次熟练 +{formulaProgress.gainedExp}</div>
@@ -688,7 +688,7 @@ export default function AlchemyPage() {
                     type="button"
                     onClick={() => setSelectedFormulaId(formula.id)}
                     className={cn(
-                      'w-full rounded-lg border px-3 py-3 text-left transition-colors',
+                      'w-full border px-3 py-3 text-left transition-colors',
                       isActive
                         ? 'border-crimson bg-crimson/5'
                         : 'border-ink/10 hover:border-ink/30',
@@ -815,16 +815,16 @@ export default function AlchemyPage() {
 
       <InkSection title="预计消耗">
         {estimatedSpiritStones !== null ? (
-          <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
+          <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
               灵石：
-              <span className="font-bold text-amber-600">
+              <span className="text-wood font-bold">
                 {estimatedSpiritStones}
               </span>{' '}
               枚
             </span>
             <span
-              className={`text-xs ${displayCanAfford ? 'text-emerald-600' : 'text-red-600'}`}
+              className={`text-xs ${displayCanAfford ? 'text-teal' : 'text-crimson'}`}
             >
               {displayCanAfford ? '✓ 资源充足' : '✗ 灵石不足'}
             </span>

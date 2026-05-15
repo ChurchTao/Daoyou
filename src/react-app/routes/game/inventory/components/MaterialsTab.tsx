@@ -4,7 +4,9 @@ import {
   InkList,
   InkListItem,
   InkNotice,
+  inkFieldVariants,
 } from '@app/components/ui';
+import { cn } from '@shared/lib/cn';
 import {
   ELEMENT_VALUES,
   MATERIAL_TYPE_VALUES,
@@ -35,6 +37,8 @@ interface MaterialsTabProps {
   onIdentify: (item: Material) => void;
   onDiscard: (item: Material) => void;
 }
+
+const compactSelectClassName = cn(inkFieldVariants({ size: 'sm' }), 'mt-1');
 
 /**
  * 材料 Tab 组件
@@ -77,7 +81,7 @@ export function MaterialsTab({
               <label className="text-ink-secondary text-xs">
                 品级
                 <select
-                  className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                  className={compactSelectClassName}
                   value={filters.rank}
                   onChange={(event) =>
                     onRankFilterChange(event.target.value as Quality | 'all')
@@ -95,7 +99,7 @@ export function MaterialsTab({
               <label className="text-ink-secondary text-xs">
                 种类
                 <select
-                  className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                  className={compactSelectClassName}
                   value={filters.type}
                   onChange={(event) =>
                     onTypeFilterChange(
@@ -115,7 +119,7 @@ export function MaterialsTab({
               <label className="text-ink-secondary text-xs">
                 属性
                 <select
-                  className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                  className={compactSelectClassName}
                   value={filters.element}
                   onChange={(event) =>
                     onElementFilterChange(
@@ -135,7 +139,7 @@ export function MaterialsTab({
               <label className="text-ink-secondary text-xs">
                 排序
                 <select
-                  className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                  className={compactSelectClassName}
                   value={`${filters.sortBy}:${filters.sortOrder}`}
                   onChange={(event) => {
                     const [sortBy, sortOrder] = event.target.value.split(':');
@@ -186,7 +190,7 @@ export function MaterialsTab({
                   <>
                     <span className="inline-flex items-center">
                       {isMystery && (
-                        <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border px-px text-xs">
+                        <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 min-w-4 items-center justify-center border px-px text-xs">
                           疑
                         </span>
                       )}

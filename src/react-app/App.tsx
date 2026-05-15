@@ -52,7 +52,7 @@ export function RootRouteErrorBoundary() {
   return (
     <div className="bg-paper flex min-h-screen items-center justify-center px-6">
       <title>{formatDocumentTitle('道途异常')}</title>
-      <div className="border-ink/15 bg-bgpaper/90 w-full max-w-xl rounded border p-6">
+      <div className="ink-surface w-full max-w-xl p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">
           {APP_TITLE}
         </p>
@@ -61,13 +61,13 @@ export function RootRouteErrorBoundary() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/"
-            className="border-ink/20 text-ink hover:border-crimson/40 hover:text-crimson rounded border px-3 py-2 no-underline"
+            className="border-ink/20 text-ink hover:border-crimson/40 hover:text-crimson border border-dashed px-3 py-2 no-underline"
           >
             返回首页
           </Link>
           <Link
             href="/game"
-            className="border-ink/20 text-ink hover:border-crimson/40 hover:text-crimson rounded border px-3 py-2 no-underline"
+            className="border-ink/20 text-ink hover:border-crimson/40 hover:text-crimson border border-dashed px-3 py-2 no-underline"
           >
             返回游戏
           </Link>

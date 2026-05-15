@@ -1,4 +1,6 @@
+import { InkButton, InkSelect, inkFieldVariants } from '@app/components/ui';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { cn } from '@shared/lib/cn';
 import { useEffect, useState } from 'react';
 
 type FeedbackType = 'bug' | 'feature' | 'balance' | 'other';
@@ -24,10 +26,10 @@ const STATUS_LABELS: Record<FeedbackStatus, string> = {
 };
 
 const STATUS_COLORS: Record<FeedbackStatus, string> = {
-  pending: 'text-red-600',
-  processing: 'text-yellow-600',
-  resolved: 'text-green-600',
-  closed: 'text-gray-500',
+  pending: 'text-crimson',
+  processing: 'text-wood',
+  resolved: 'text-teal',
+  closed: 'text-ink-secondary',
 };
 
 const TYPE_LABELS: Record<FeedbackType, string> = {
@@ -175,11 +177,11 @@ export function FeedbackTable() {
     <div className="space-y-4">
       {/* 筛选条件 */}
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
+        <InkSelect
+          size="sm"
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as FeedbackStatus | 'all');
+          onChange={(value) => {
+            setStatus(value as FeedbackStatus | 'all');
             setPage(1);
           }}
         >
@@ -188,12 +190,12 @@ export function FeedbackTable() {
           <option value="processing">处理中</option>
           <option value="resolved">已解决</option>
           <option value="closed">已关闭</option>
-        </select>
-        <select
-          className="border-ink/20 border bg-transparent px-3 py-2"
+        </InkSelect>
+        <InkSelect
+          size="sm"
           value={type}
-          onChange={(e) => {
-            setType(e.target.value as FeedbackType | 'all');
+          onChange={(value) => {
+            setType(value as FeedbackType | 'all');
             setPage(1);
           }}
         >
@@ -202,26 +204,22 @@ export function FeedbackTable() {
           <option value="feature">功能建议</option>
           <option value="balance">游戏平衡</option>
           <option value="other">其他意见</option>
-        </select>
+        </InkSelect>
         <input
           type="text"
           placeholder="搜索内容..."
-          className="border-ink/20 min-w-[200px] border bg-transparent px-3 py-2"
+          className={cn(inkFieldVariants({ size: 'sm' }), 'min-w-[200px]')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
         />
-        <button
-          onClick={handleSearch}
-          className="border-ink/20 hover:border-ink/40 border px-3 py-2"
-          type="button"
-        >
+        <InkButton onClick={handleSearch} variant="secondary">
           搜索
-        </button>
+        </InkButton>
       </div>
 
       {/* 表格 */}
-      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto rounded-xl border">
+      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto border border-dashed">
         <table className="w-full min-w-[800px] text-sm">
           <thead className="border-ink/10 text-ink-secondary border-b text-left">
             <tr>
@@ -301,7 +299,10 @@ export function FeedbackTable() {
                             </label>
                             <textarea
                               id={`feedback-admin-message-${item.id}`}
-                              className="border-ink/20 mt-1 min-h-20 w-full border bg-transparent px-3 py-2"
+                              className={cn(
+                                inkFieldVariants({ size: 'sm' }),
+                                'mt-1 min-h-20',
+                              )}
                               placeholder="可选：填写给用户的说明、处理结果或补偿原因"
                               value={adminMessages[item.id] ?? ''}
                               onChange={(e) =>
@@ -325,19 +326,14 @@ export function FeedbackTable() {
                                 'closed',
                               ] as FeedbackStatus[]
                             ).map((s) => (
-                              <button
+                              <InkButton
                                 key={s}
-                                type="button"
                                 disabled={updatingId === item.id}
                                 onClick={() => updateStatus(item.id, s)}
-                                className={`border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                                  item.status === s
-                                    ? 'border-crimson text-crimson bg-crimson/5'
-                                    : 'border-ink/20 text-ink-secondary hover:border-ink/40'
-                                }`}
+                                variant={item.status === s ? 'primary' : 'secondary'}
                               >
                                 {STATUS_LABELS[s]}
-                              </button>
+                              </InkButton>
                             ))}
                           </div>
                         </div>
@@ -358,22 +354,20 @@ export function FeedbackTable() {
             共 {total} 条，第 {page} / {totalPages} 页
           </span>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <InkButton
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="border-ink/20 border px-3 py-1 disabled:opacity-50"
+              variant="secondary"
             >
               上一页
-            </button>
-            <button
-              type="button"
+            </InkButton>
+            <InkButton
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="border-ink/20 border px-3 py-1 disabled:opacity-50"
+              variant="secondary"
             >
               下一页
-            </button>
+            </InkButton>
           </div>
         </div>
       )}

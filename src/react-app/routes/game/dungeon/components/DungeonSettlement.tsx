@@ -46,12 +46,12 @@ export function DungeonSettlement({
   };
 
   const tier = settlement?.settlement?.reward_tier ?? 'C';
-  const tierTheme: Record<string, { title: string; glow: string }> = {
-    S: { title: '天命垂青', glow: 'shadow-[0_0_30px_rgba(234,179,8,0.25)]' },
-    A: { title: '机缘深厚', glow: 'shadow-[0_0_24px_rgba(34,197,94,0.2)]' },
-    B: { title: '收获颇丰', glow: 'shadow-[0_0_24px_rgba(59,130,246,0.2)]' },
-    C: { title: '小有所获', glow: 'shadow-[0_0_18px_rgba(120,113,108,0.2)]' },
-    D: { title: '险中脱身', glow: 'shadow-[0_0_14px_rgba(239,68,68,0.2)]' },
+  const tierTheme: Record<string, { title: string }> = {
+    S: { title: '天命垂青' },
+    A: { title: '机缘深厚' },
+    B: { title: '收获颇丰' },
+    C: { title: '小有所获' },
+    D: { title: '险中脱身' },
   };
 
   const gainByType = realGains.reduce<Record<string, number>>((acc, gain) => {
@@ -121,9 +121,7 @@ export function DungeonSettlement({
   return (
     <InkPageShell title="探索结束" backHref="/game">
       <InkCard className="space-y-5 overflow-hidden p-4">
-        <div
-          className={`border-ink/15 border p-4 ${tierTheme[tier]?.glow || ''}`}
-        >
+        <div className="border-ink/15 border border-dashed p-4">
           <div className="text-ink-secondary text-xs tracking-[0.2em]">
             天机判词
           </div>

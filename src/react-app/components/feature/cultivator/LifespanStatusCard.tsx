@@ -120,13 +120,13 @@ export function LifespanStatusCard({
   // 根据消耗比例确定颜色
   const getColor = () => {
     if (percentage >= 90) return 'text-crimson';
-    if (percentage >= 70) return 'text-amber-600';
+    if (percentage >= 70) return 'text-wood';
     return 'text-ink';
   };
 
   const getProgressColor = () => {
     if (percentage >= 90) return 'bg-crimson';
-    if (percentage >= 70) return 'bg-amber-500';
+    if (percentage >= 70) return 'bg-wood';
     return 'bg-ink';
   };
 
@@ -181,7 +181,7 @@ export function LifespanStatusCard({
           </div>
 
           {/* 进度条 */}
-          <div className="bg-ink/10 h-2 w-full overflow-hidden rounded-full">
+          <div className="bg-bgpaper border-ink/15 h-2 w-full overflow-hidden border border-dashed">
             <div
               className={`h-full transition-all duration-300 ${progressColor}`}
               style={{

@@ -1,5 +1,6 @@
 import { InkPageShell, InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import type { FeedbackType } from '@shared/contracts/feedback';
 import { useState } from 'react';
@@ -71,18 +72,14 @@ export default function FeedbackPage() {
             </label>
             <div className="flex flex-wrap gap-2">
               {FEEDBACK_TYPES.map((item) => (
-                <button
+                <InkChoiceButton
                   key={item.value}
-                  type="button"
                   onClick={() => setType(item.value)}
-                  className={`border px-3 py-1.5 text-sm transition-colors ${
-                    type === item.value
-                      ? 'border-crimson text-crimson bg-crimson/5'
-                      : 'border-ink/20 text-ink-secondary hover:border-ink/40'
-                  }`}
+                  selected={type === item.value}
+                  className="py-1.5"
                 >
                   {item.label}
-                </button>
+                </InkChoiceButton>
               ))}
             </div>
           </div>
@@ -116,7 +113,7 @@ export default function FeedbackPage() {
             {message && (
               <span
                 className={`text-sm ${
-                  message.type === 'success' ? 'text-green-600' : 'text-crimson'
+                  message.type === 'success' ? 'text-teal' : 'text-crimson'
                 }`}
               >
                 {message.text}

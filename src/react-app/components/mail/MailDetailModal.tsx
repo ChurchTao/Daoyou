@@ -61,7 +61,7 @@ export function MailDetailModal({
           {new Date(mail.createdAt).toLocaleString()}
         </div>
 
-        <div className="text-ink bg-paper border-ink/5 min-h-[100px] rounded border p-3 leading-relaxed whitespace-pre-wrap">
+        <div className="text-ink bg-paper border-ink/10 min-h-[100px] border border-dashed p-3 leading-relaxed whitespace-pre-wrap">
           {mail.content}
         </div>
 
@@ -74,7 +74,7 @@ export function MailDetailModal({
               {mail.attachments?.map((item, idx) => (
                 <div
                   key={idx}
-                  className="bg-paper-2 flex items-center justify-between rounded p-2 text-sm"
+                  className="bg-paper-2 border-ink/10 flex items-center justify-between border border-dashed p-2 text-sm"
                 >
                   {item.type === 'spirit_stones' && (
                     <span className="text-ink">{item.name}</span>

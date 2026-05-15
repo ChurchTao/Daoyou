@@ -11,17 +11,17 @@ const inkCardVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-b border-dashed border-ink/10',
+        default: 'ink-surface',
         highlighted:
-          'border-l-2 border-l-crimson pl-3 border-b border-dashed border-ink/10',
-        elevated: 'shadow-sm bg-bgpaper/50 border border-ink/10 rounded-lg',
+          'ink-surface border-crimson/35 border-l-2 border-l-crimson',
+        elevated: 'ink-surface border-ink/25 bg-bgpaper',
         plain: '',
       },
       padding: {
         none: '',
-        sm: 'py-2',
-        md: 'py-3',
-        lg: 'py-4 px-3',
+        sm: 'p-2',
+        md: 'p-3',
+        lg: 'p-4 md:p-5',
       },
     },
     defaultVariants: {
@@ -56,7 +56,6 @@ export function InkCard({
     <div
       className={cn(
         inkCardVariants({ variant: effectiveVariant, padding }),
-        highlighted && 'text-crimson',
         className,
       )}
     >

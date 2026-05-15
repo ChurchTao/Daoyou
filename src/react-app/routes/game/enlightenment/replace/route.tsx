@@ -27,7 +27,7 @@ function V2ProductCard({
 }) {
   return (
     <div
-      className={`border rounded-lg p-3 space-y-2 transition-colors cursor-pointer ${isSelected ? 'border-ink/50 bg-ink/5' : 'border-ink/10'}`}
+      className={`border p-3 space-y-2 transition-colors cursor-pointer ${isSelected ? 'border-ink/50 bg-ink/5' : 'border-ink/10'}`}
       onClick={onToggle}
     >
       <div className="flex items-center justify-between">
@@ -52,7 +52,7 @@ function V2ProductCard({
             <li key={a.id} className="flex items-center gap-1">
               <span>{a.isPerfect ? '✦' : '◆'}</span>
               <span>{a.name}</span>
-              {a.isPerfect && <span className="text-amber-500">（完美）</span>}
+              {a.isPerfect && <span className="text-wood">（完美）</span>}
             </li>
           ))}
         </ul>
@@ -189,7 +189,7 @@ function ReplaceContent() {
         </InkNotice>
 
         <InkSection title={`【新领悟】`}>
-          <div className="border border-amber-400/50 bg-amber-50/30 rounded-lg p-3 space-y-2">
+          <div className="border-wood/35 bg-bgpaper border border-dashed p-3 space-y-2">
             <span className="font-medium text-sm">{pendingItem.name}</span>
             <div className="mt-1 flex flex-wrap gap-1">
               {pendingItem.quality && (

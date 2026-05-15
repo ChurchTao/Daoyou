@@ -43,7 +43,7 @@ function CultivationResultContent({
 
   return (
     <InkSection title="【修炼成果】">
-      <div className="border-ink-border space-y-3 rounded border p-3 text-sm leading-6">
+      <div className="border-ink-border space-y-3 border border-dashed p-3 text-sm leading-6">
         <p className="font-medium">🌱 修炼有成</p>
         <p>修为增长：+{Number(summary.exp_gained)}</p>
         <p>当前进度：{format('.2f')(summary.progress)}%</p>
@@ -57,13 +57,13 @@ function CultivationResultContent({
         )}
 
         {summary.bottleneck_entered && (
-          <p className="text-orange-500">
+          <p className="text-wood">
             ⚠️ 已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式积累感悟。
           </p>
         )}
 
         {retreatResult.story && (
-          <div className="rounded p-3 text-sm leading-6 whitespace-pre-line">
+          <div className="border-ink/10 bg-bgpaper/60 border border-dashed p-3 text-sm leading-6 whitespace-pre-line">
             {retreatResult.story}
           </div>
         )}
@@ -108,7 +108,7 @@ function BreakthroughResultContent({
 
   return (
     <InkSection title="【突破结果】">
-      <div className="border-ink-border space-y-3 rounded border p-3 text-sm leading-6">
+      <div className="border-ink-border space-y-3 border border-dashed p-3 text-sm leading-6">
         <p className="font-medium">
           {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
         </p>
@@ -130,13 +130,13 @@ function BreakthroughResultContent({
 
         {/* 失败时显示损失信息 */}
         {!summary.success && (
-          <div className="mt-3 space-y-2 rounded-lg border border-orange-200 bg-orange-50/50 p-3">
-            <p className="font-medium text-orange-800">
+          <div className="border-wood/35 bg-bgpaper mt-3 space-y-2 border border-dashed p-3">
+            <p className="text-wood font-medium">
               【道途坎坷，受创不轻】
             </p>
 
             {summary.exp_lost && (
-              <p className="text-orange-700">
+              <p className="text-wood">
                 修为损失：-{summary.exp_lost} 点
                 <span className="ml-1 text-xs opacity-80">
                   （冲关失败，真元涣散）
@@ -145,7 +145,7 @@ function BreakthroughResultContent({
             )}
 
             {summary.insight_change && summary.insight_change < 0 && (
-              <p className="text-orange-700">
+              <p className="text-wood">
                 道行感悟：{summary.insight_change}
                 <span className="ml-1 text-xs opacity-80">
                   （未能破关，心生迷惘）
@@ -154,7 +154,7 @@ function BreakthroughResultContent({
             )}
 
             {summary.inner_demon_triggered && (
-              <p className="font-medium text-red-600">
+              <p className="text-crimson font-medium">
                 ⚠️ 屡战屡败，已生心魔！下次突破成功率将降低
                 <span className="ml-1 text-xs opacity-80">
                   （可通过副本、战斗等历练消除）
@@ -165,7 +165,7 @@ function BreakthroughResultContent({
         )}
 
         {retreatResult.story && (
-          <div className="rounded p-3 text-sm leading-6 whitespace-pre-line">
+          <div className="border-ink/10 bg-bgpaper/60 border border-dashed p-3 text-sm leading-6 whitespace-pre-line">
             {retreatResult.story}
           </div>
         )}

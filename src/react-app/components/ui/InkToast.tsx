@@ -1,4 +1,5 @@
 import { cn } from '@shared/lib/cn';
+import { InkButton } from './InkButton';
 
 // ============ Toast Types ============
 
@@ -18,11 +19,14 @@ interface InkToastProps extends InkToastData {
   onDismiss: (id: string) => void;
 }
 
-const toastBorderColors: Record<InkToastTone, string> = {
-  default: 'border-ink/15',
-  success: 'border-green-600/40',
-  warning: 'border-amber-600/40',
-  danger: 'border-red-700/50',
+const toastToneMeta: Record<
+  InkToastTone,
+  { borderClass: string; icon: string }
+> = {
+  default: { borderClass: 'border-ink/20', icon: '🕯️' },
+  success: { borderClass: 'border-teal/40', icon: '✅' },
+  warning: { borderClass: 'border-wood/45', icon: '⚠️' },
+  danger: { borderClass: 'border-crimson/45', icon: '❗' },
 };
 
 export function InkToast({
@@ -33,32 +37,36 @@ export function InkToast({
   onAction,
   onDismiss,
 }: InkToastProps) {
+  const toneMeta = toastToneMeta[tone];
+
   return (
     <div
       className={cn(
-        'bg-bgpaper/90 border p-2 shadow-[0_4px_10px_rgba(0,0,0,0.1)]',
-        'flex items-center justify-between gap-2 text-[0.9rem]',
-        toastBorderColors[tone],
+        'ink-surface flex items-start gap-2 p-3 text-[0.9rem] leading-[1.6]',
+        toneMeta.borderClass,
       )}
     >
-      <span>{message}</span>
-      <div className="flex gap-1">
+      <span aria-hidden="true" className="shrink-0 pt-px">
+        {toneMeta.icon}
+      </span>
+      <span className="min-w-0 flex-1">{message}</span>
+      <div className="flex shrink-0 items-center gap-1">
         {actionLabel && onAction && (
-          <button
-            type="button"
+          <InkButton
+            variant="primary"
             onClick={onAction}
-            className="text-crimson cursor-pointer border-none bg-transparent"
+            className="px-0"
           >
-            [{actionLabel}]
-          </button>
+            {actionLabel}
+          </InkButton>
         )}
-        <button
-          type="button"
+        <InkButton
+          variant="ghost"
           onClick={() => onDismiss(id)}
-          className="text-crimson cursor-pointer border-none bg-transparent"
+          className="px-0"
         >
-          [撤去]
-        </button>
+          撤去
+        </InkButton>
       </div>
     </div>
   );
@@ -79,9 +87,10 @@ export function InkToastHost({ toasts, onDismiss }: InkToastHostProps) {
   return (
     <div
       className={cn(
-        'fixed bottom-20 left-1/2 z-200 -translate-x-1/2',
-        'flex w-[min(90vw,420px)] flex-col gap-2',
+        'fixed inset-x-3 bottom-20 z-200 flex flex-col gap-2',
+        'md:left-1/2 md:right-auto md:w-[28rem] md:-translate-x-1/2',
       )}
+      aria-live="polite"
     >
       {toasts.map((toast) => (
         <InkToast key={toast.id} {...toast} onDismiss={onDismiss} />

@@ -132,7 +132,7 @@ export function DungeonViewRenderer({
       if (!viewState.limitInfo) return null;
       const { remaining, dailyLimit } = viewState.limitInfo;
       if (remaining === 0) return <p className="text-crimson mt-2 text-center text-sm">今日探索次数已用尽，明日再来</p>;
-      const textColor = remaining === 1 ? 'text-amber-600' : 'text-ink';
+      const textColor = remaining === 1 ? 'text-wood' : 'text-ink';
       return <p className={`text-center text-xs ${textColor} mt-2`}>今日剩余探索次数：{remaining}/{dailyLimit}</p>;
     };
 

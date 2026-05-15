@@ -22,7 +22,7 @@ const HERO_IMAGE = (
     alt="万界道友_logo"
     width={108}
     height={108}
-    className="object-contain drop-shadow-lg"
+    className="object-contain"
   />
 );
 

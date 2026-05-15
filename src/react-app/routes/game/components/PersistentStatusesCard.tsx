@@ -87,19 +87,19 @@ export function PersistentStatusesCard() {
         <div className="mt-2 space-y-2">
           {showResourceState && (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <div className="bg-ink/5 rounded p-2 text-sm">
+              <div className="bg-ink/5 border-ink/10 border border-dashed p-2 text-sm">
                 <div className="opacity-60">当前气血</div>
                 <div className="font-bold">
                   {currentHp} / {maxHp}
                 </div>
               </div>
-              <div className="bg-ink/5 rounded p-2 text-sm">
+              <div className="bg-ink/5 border-ink/10 border border-dashed p-2 text-sm">
                 <div className="opacity-60">当前真元</div>
                 <div className="font-bold">
                   {currentMp} / {maxMp}
                 </div>
               </div>
-              <div className="bg-ink/5 rounded p-2 text-sm">
+              <div className="bg-ink/5 border-ink/10 border border-dashed p-2 text-sm">
                 <div className="opacity-60">丹毒积累</div>
                 <div className="font-bold">{pillToxicity}</div>
                 <div className="text-xs opacity-60">{pillToxicityStage.label}</div>
@@ -112,7 +112,7 @@ export function PersistentStatusesCard() {
             return (
               <div
                 key={`${status.key}:${index}`}
-                className="bg-ink/5 flex items-center justify-between rounded p-2"
+                className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-2"
               >
                 <div className="flex flex-1 items-center gap-2">
                   <span className="text-xl">
@@ -152,7 +152,7 @@ export function PersistentStatusesCard() {
             <div className="text-sm font-medium opacity-80">炼体 / 洗髓进度</div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {trackEntries.map(({ config, level, progress, threshold }) => (
-                <div key={config.key} className="bg-ink/5 rounded p-2 text-sm">
+                <div key={config.key} className="bg-ink/5 border-ink/10 border border-dashed p-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span>{config.name}</span>
                     <span className="font-bold">Lv.{level}</span>

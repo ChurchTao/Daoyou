@@ -120,12 +120,12 @@ export default function MapPage() {
           <InkButton
             onClick={() => navigate(-1)}
             variant="outline"
-            className="bg-background! px-2 text-sm shadow"
+            className="bg-background! px-2 text-sm"
           >
             关闭
           </InkButton>
         </div>
-        <div className="border-ink/10 bg-background pointer-events-auto rounded border px-4 py-2 shadow">
+        <div className="border-ink/10 bg-background pointer-events-auto border border-dashed px-4 py-2">
           <div className="text-ink font-bold">修仙界</div>
           <div className="text-ink-secondary text-xs">
             人界·全图 · {intent === 'market' ? '坊市选址' : '历练选址'}
@@ -153,7 +153,7 @@ export default function MapPage() {
                 height: '2143px',
               }}
             >
-              <div className="bgi-map ring-ink/50 absolute inset-0 opacity-80 shadow ring-10" />
+              <div className="bgi-map absolute inset-0 opacity-80" />
 
               <div className="text-ink/40 pointer-events-none absolute top-[65%] right-[35%] rotate-6 text-6xl tracking-widest select-none">
                 乱星海

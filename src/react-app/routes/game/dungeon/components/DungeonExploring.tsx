@@ -3,6 +3,7 @@ import { InkPageShell, InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkTag } from '@app/components/ui/InkTag';
+import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { DungeonOption, DungeonRound, DungeonState } from '@shared/lib/dungeon/types';
 import { useState } from 'react';
 
@@ -49,15 +50,12 @@ export function DungeonExploring({
           {lastRound.interaction.options.map((opt: DungeonOption) => {
             const isSelected = selectedOptionId === opt.id;
             return (
-              <button
+              <InkChoiceButton
                 key={opt.id}
+                layout="card"
+                selected={isSelected}
                 disabled={processing}
                 onClick={() => setSelectedOptionId(opt.id)}
-                className={`w-full rounded border p-4 text-left transition-all ${
-                  isSelected
-                    ? 'border-crimson bg-crimson/5 ring-crimson ring-1'
-                    : 'border-ink/20 bg-paper hover:border-crimson hover:bg-paper-dark'
-                } ${processing ? 'cursor-not-allowed opacity-50' : ''} `}
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <span
@@ -93,7 +91,7 @@ export function DungeonExploring({
                     代价: {opt.potential_cost}
                   </div>
                 )}
-              </button>
+              </InkChoiceButton>
             );
           })}
         </div>
@@ -124,7 +122,7 @@ export function DungeonExploring({
                 <div>{h.scene.substring(0, 50)}...</div>
                 {h.choice && <div className="text-crimson">➜ {h.choice}</div>}
                 {h.gained_items && h.gained_items.length > 0 && (
-                  <div className="mt-0.5 text-xs text-amber-600">
+                  <div className="text-wood mt-0.5 text-xs">
                     获得: {h.gained_items.join(', ')}
                   </div>
                 )}

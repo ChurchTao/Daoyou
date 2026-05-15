@@ -190,7 +190,7 @@ export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
         <div className="mb-1 flex items-center gap-2">
           {isSystemRumor ? (
             <>
-              <span className="font-semibold text-amber-700">
+              <span className="text-wood font-semibold">
                 {message.senderName}
               </span>
               <InkBadge tone="warning">「天道」</InkBadge>

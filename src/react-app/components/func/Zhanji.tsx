@@ -29,9 +29,9 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
   const getChallengeTypeColor = (type?: string) => {
     switch (type) {
       case 'challenge':
-        return 'text-blue-600';
+        return 'text-wood';
       case 'challenged':
-        return 'text-purple-600';
+        return 'text-ink-secondary';
       default:
         return 'text-ink/80';
     }
@@ -48,13 +48,13 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
   return (
     <Link
       href={`/game/battle/${record.id}`}
-      className="border-ink/10 text-ink/80 hover:border-crimson/40 hover:text-ink block border bg-white/50 px-3 py-2 text-sm transition"
+      className="border-ink/10 text-ink/80 hover:border-crimson/40 hover:text-ink block border border-dashed bg-bgpaper/70 px-3 py-2 text-sm transition"
     >
       <div className="flex justify-between">
         <div>
           <span
             className={`${typeColor} ${
-              isWin ? 'text-emerald-600' : 'text-crimson'
+              isWin ? 'text-teal' : 'text-crimson'
             }`}
           >
             {isWin ? '【胜】' : '【败】'}

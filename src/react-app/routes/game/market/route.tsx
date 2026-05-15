@@ -248,7 +248,7 @@ export default function MarketPage() {
           <div className="text-ink-secondary text-sm">
             {selectedItems.map((i) => i.name).join('、')}
           </div>
-          <p className="font-bold text-yellow-600">共计：💰 {totalCost} 灵石</p>
+          <p className="text-gold font-bold">共计：💰 {totalCost} 灵石</p>
         </div>
       ),
       confirmLabel: '购入',
@@ -409,7 +409,7 @@ export default function MarketPage() {
                       )}
                       <div className="flex items-center">
                         {item.isMystery && (
-                          <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 w-4 items-center justify-center rounded-xs border px-px text-xs">
+                          <span className="text-tier-di border-tier-di bg-tier-di/5 mr-1 inline-flex h-4 min-w-4 items-center justify-center border px-px text-xs">
                             疑
                           </span>
                         )}
@@ -423,7 +423,7 @@ export default function MarketPage() {
                       <span>
                         {typeInfo.icon} · {item.element || '无属性'}
                       </span>
-                      <span className="font-bold text-yellow-600">
+                      <span className="text-gold font-bold">
                         💰 {item.price} 灵石
                       </span>
                     </div>

@@ -3,7 +3,7 @@ import { FeedbackTable } from './_components/FeedbackTable';
 export default function FeedbackPage() {
   return (
     <div className="space-y-5">
-      <header className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6">
+      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">FEEDBACK</p>
         <h2 className="font-heading text-ink mt-2 text-4xl">用户反馈</h2>
         <p className="text-ink-secondary mt-2 text-sm">
@@ -11,7 +11,7 @@ export default function FeedbackPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6">
+      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
         <FeedbackTable />
       </section>
     </div>

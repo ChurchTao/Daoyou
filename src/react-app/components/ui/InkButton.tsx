@@ -8,15 +8,16 @@ import type { ReactNode } from 'react';
  */
 const inkButtonVariants = cva(
   // 基础样式
-  'inline-block px-2 py-1 font-sans text-[0.95rem] leading-[1.5] whitespace-nowrap cursor-pointer no-underline transition-colors duration-200',
+  'inline-flex items-center px-1.5 py-1 font-sans text-[0.95rem] leading-[1.6] tracking-[0.08em] whitespace-nowrap cursor-pointer no-underline transition-colors duration-150',
   {
     variants: {
       variant: {
         default: 'text-ink hover:text-crimson',
-        primary: 'text-crimson font-semibold hover:opacity-80',
+        primary: 'ink-emphasis text-crimson font-semibold hover:text-crimson/80',
         secondary: 'text-ink-secondary hover:text-ink',
-        outline: 'text-ink hover:text-crimson',
-        ghost: 'text-ink/60 hover:text-ink',
+        outline:
+          'border-b border-dashed border-ink/30 text-ink hover:border-crimson/50 hover:text-crimson',
+        ghost: 'text-ink-secondary/80 hover:text-ink',
       },
       disabled: {
         true: 'text-ink-secondary opacity-50 cursor-not-allowed pointer-events-none',

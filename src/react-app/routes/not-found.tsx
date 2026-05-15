@@ -4,10 +4,11 @@ import Link from '@app/components/router/AppLink';
 export default function NotFound() {
   return (
     <div className="bg-paper relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4">
-      {/* 水墨装饰背景效果 */}
-      <div className="pointer-events-none absolute inset-0 opacity-5">
-        <div className="bg-ink absolute top-1/4 left-1/4 h-96 w-96 animate-pulse rounded-full blur-[100px]" />
-        <div className="bg-crimson absolute right-1/4 bottom-1/4 h-64 w-64 rounded-full opacity-30 blur-[100px]" />
+      <div className="pointer-events-none absolute inset-0 opacity-15">
+        <div className="text-ink/10 absolute top-16 left-8 text-7xl">「虚」</div>
+        <div className="text-crimson/10 absolute right-8 bottom-20 text-8xl">
+          「空」
+        </div>
       </div>
 
       <div className="relative z-10 max-w-lg text-center">
@@ -20,7 +21,9 @@ export default function NotFound() {
           <h2 className="font-heading text-ink mb-4 text-4xl">
             缘分未至，误入虚空
           </h2>
-          <div className="bg-crimson mx-auto mb-6 h-1 w-16" />
+          <div className="text-crimson mx-auto mb-6 text-sm tracking-[0.35em]">
+            ┈┈┈
+          </div>
           <p className="text-ink-secondary text-lg leading-relaxed">
             道友请留步。此处乃天地裂隙，神识所及尽是虚无。
             <br />
@@ -47,8 +50,7 @@ export default function NotFound() {
         </div>
       </div>
 
-      {/* 底部装饰 */}
-      <div className="via-ink/20 fixed bottom-0 left-0 h-1 w-full bg-gradient-to-r from-transparent to-transparent" />
+      <div className="border-ink/15 fixed right-0 bottom-0 left-0 border-t border-dashed" />
     </div>
   );
 }

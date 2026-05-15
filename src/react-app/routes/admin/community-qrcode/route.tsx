@@ -83,7 +83,7 @@ export default function CommunityQrcodeAdminPage() {
 
   return (
     <div className="space-y-6">
-      <header className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6">
+      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.22em]">
           COMMUNITY
         </p>
@@ -94,7 +94,7 @@ export default function CommunityQrcodeAdminPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6 space-y-4">
+      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6 space-y-4">
         {!storedInDb && !loading ? (
           <p className="text-ink-secondary text-sm">
             当前尚未写入数据库，玩家端显示的是代码内建的默认图。保存后即可改为仅由后台控制。
@@ -129,12 +129,12 @@ export default function CommunityQrcodeAdminPage() {
         </div>
       </section>
 
-      <section className="border-ink/15 bg-bgpaper/90 rounded-xl border p-6">
+      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
         <h3 className="text-ink text-lg font-semibold">预览（与玩家端一致）</h3>
         <p className="text-ink-secondary mt-2 text-sm">
           保存后会刷新下图；若浏览器仍显示旧图，可强制刷新页面。
         </p>
-        <div className="border-ink/20 bg-paper mt-4 inline-block rounded-sm border border-dashed p-4">
+        <div className="border-ink/20 bg-paper mt-4 inline-block border border-dashed p-4">
           <img
             src={`/api/community/qrcode?t=${previewNonce}`}
             alt="交流群二维码预览"

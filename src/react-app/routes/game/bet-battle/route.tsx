@@ -8,10 +8,11 @@ import { InkPageShell, InkSection } from '@app/components/layout';
 import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
-  InkActionGroup, InkBadge, InkButton, InkDialog, InkInput, InkList, InkNotice, InkTabs, type InkDialogState, } from '@app/components/ui';
+  InkActionGroup, InkBadge, InkButton, InkDialog, InkInput, InkList, InkNotice, InkTabs, inkFieldVariants, type InkDialogState, } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { tierColorMap, type Tier } from '@app/components/ui/InkBadge';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { cn } from '@shared/lib/cn';
 import { REALM_VALUES, type RealmType } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useNavigate, useLocation } from 'react-router';
@@ -37,6 +38,8 @@ type BetStakeSnapshotItem = {
   quality: string;
   data: Material | Artifact | Consumable;
 };
+
+const compactFieldClassName = cn(inkFieldVariants({ size: 'sm' }), 'mt-1');
 
 type BetStakeSnapshot = {
   stakeType: 'spirit_stones' | 'item';
@@ -666,7 +669,7 @@ export default function BetBattlePage() {
               规则: 限制境界 {item.minRealm}-{item.maxRealm}
             </span>
             <span
-              className={`whitespace-nowrap ${isEndingSoon ? 'font-semibold text-red-700' : ''}`}
+              className={`whitespace-nowrap ${isEndingSoon ? 'text-crimson font-semibold' : ''}`}
             >
               {item.status === 'pending' ? `剩余: ${remainText}` : remainText}
             </span>
@@ -1056,14 +1059,17 @@ function BetBattleCreateModal({
               )}
 
               {selectedItem && (
-                <div className="border-ink/10 rounded border p-2">
+                <div className="border-ink/10 border border-dashed p-2">
                   <div className="text-sm">
                     当前押注：{selectedItem.name}（{selectedItem.quality}）
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-ink-secondary text-sm">数量</span>
                     <input
-                      className="w-20 border border-black/20 px-1 py-0.5 text-sm"
+                      className={cn(
+                        inkFieldVariants({ size: 'sm' }),
+                        'w-20 px-1 text-center',
+                      )}
                       value={String(selectedItem.quantity)}
                       onChange={(e) => updateQuantity(e.target.value)}
                       disabled={selectedItem.itemType === 'artifact'}
@@ -1082,7 +1088,7 @@ function BetBattleCreateModal({
           <label className="text-sm">
             最低境界
             <select
-              className="mt-1 w-full border border-black/20 px-2 py-1"
+              className={compactFieldClassName}
               value={minRealm}
               onChange={(e) => setMinRealm(e.target.value as RealmType)}
             >
@@ -1096,7 +1102,7 @@ function BetBattleCreateModal({
           <label className="text-sm">
             最高境界
             <select
-              className="mt-1 w-full border border-black/20 px-2 py-1"
+              className={compactFieldClassName}
               value={maxRealm}
               onChange={(e) => setMaxRealm(e.target.value as RealmType)}
             >

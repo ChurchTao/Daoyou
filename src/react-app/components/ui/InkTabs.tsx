@@ -69,7 +69,9 @@ export function InkTabs({
   };
 
   return (
-    <div className={cn('border-ink/10 relative border-b', className)}>
+    <div
+      className={cn('border-ink/15 relative border-b border-dashed', className)}
+    >
       {canScrollLeft && (
         <button
           type="button"
@@ -77,7 +79,7 @@ export function InkTabs({
           className="text-ink-secondary absolute top-1/2 left-0 z-10 flex -translate-y-1/2 items-center px-2 py-1 text-base"
           aria-label="查看左侧标签"
         >
-          ⬅
+          ←
         </button>
       )}
       {canScrollRight && (
@@ -87,7 +89,7 @@ export function InkTabs({
           className="text-ink-secondary absolute top-1/2 right-0 z-10 flex -translate-y-1/2 items-center px-2 py-1 text-base"
           aria-label="查看右侧标签"
         >
-          ⮕
+          →
         </button>
       )}
 
@@ -100,12 +102,14 @@ export function InkTabs({
           return (
             <button
               key={item.value}
+              type="button"
               onClick={() => onChange(item.value)}
+              aria-pressed={isActive}
               className={cn(
-                'shrink-0 px-4 py-2 text-base transition-colors',
+                'shrink-0 px-2 py-2 text-base transition-colors',
                 isActive
-                  ? 'border-crimson text-crimson border-b-2'
-                  : 'text-ink/60 hover:text-ink',
+                  ? 'ink-emphasis text-crimson font-semibold'
+                  : 'text-ink-secondary hover:text-ink',
               )}
             >
               {item.label}

@@ -30,7 +30,7 @@ function ArtifactCard({
   onDestroy: (a: V2Artifact) => void;
 }) {
   return (
-    <div className="border-ink/10 space-y-2 rounded-lg border p-3">
+    <div className="border-ink/10 space-y-2 border border-dashed p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-0.5">
           <span className="font-medium">{artifact.name}</span>

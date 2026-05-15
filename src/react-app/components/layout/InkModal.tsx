@@ -1,5 +1,5 @@
 import { cn } from '@shared/lib/cn';
-import { ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface InkModalProps {
@@ -58,32 +58,39 @@ export function InkModal({
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
       {/* 遮罩层 */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="ink-overlay absolute inset-0" onClick={onClose} />
 
       {/* 模态框内容 */}
       <div
         className={cn(
-          'bg-paper w-full max-w-md rounded-xl shadow-2xl',
-          'border-ink/30 relative z-10 border p-6',
+          'ink-surface relative z-10 w-full max-w-md p-4 md:p-5',
           className,
         )}
         role="dialog"
         aria-modal="true"
       >
         {title && (
-          <h3 className="text-ink font-heading text-center text-xl font-bold">
+          <h3 className="text-ink font-heading text-center text-[1.35rem]">
             {title}
           </h3>
         )}
 
-        <div className="max-h-[50vh] overflow-y-auto">{children}</div>
+        <div
+          className={cn(
+            'battle-scroll max-h-[60vh] overflow-y-auto',
+            title && 'mt-3',
+          )}
+        >
+          {children}
+        </div>
 
-        {footer}
+        {footer && (
+          <div className="mt-4 border-t border-dashed border-ink/15 pt-3">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body,

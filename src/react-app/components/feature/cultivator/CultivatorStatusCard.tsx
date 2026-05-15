@@ -72,8 +72,8 @@ export function CultivatorStatusCard({
   ) => {
     if (!type) return null;
     const labels = {
-      forced: { text: '强行突破', color: 'text-orange-500' },
-      normal: { text: '常规突破', color: 'text-blue-500' },
+      forced: { text: '强行突破', color: 'text-wood' },
+      normal: { text: '常规突破', color: 'text-teal' },
       perfect: { text: '圆满突破', color: 'text-crimson' },
     };
     return labels[type];
@@ -120,22 +120,22 @@ export function CultivatorStatusCard({
               {format('.2f')(statusData.expPercent)}%
             </span>
           </div>
-          <div className="bg-ink/10 relative h-2 w-full overflow-hidden">
+          <div className="bg-bgpaper border-ink/15 relative h-2 w-full overflow-hidden border border-dashed">
             {/* 进度条 */}
             <div
               className={`h-full transition-all duration-500 ${
                 statusData.expPercent >= 100
                   ? 'bg-crimson'
                   : statusData.expPercent >= 90
-                    ? 'bg-linear-to-r from-blue-500 to-cyan-500'
-                    : 'from-ink to-tier-ling bg-linear-to-r'
+                    ? 'bg-wood'
+                    : 'bg-ink'
               }`}
               style={{ width: `${Math.min(statusData.expPercent, 100)}%` }}
             />
             {/* 瓶颈期标记线（90%处） */}
             {statusData.expPercent > 80 && (
               <div
-                className="absolute top-0 h-full w-0.5 bg-orange-500/50"
+                className="bg-wood/50 absolute top-0 h-full w-0.5"
                 style={{ left: '90%' }}
               />
             )}
@@ -196,7 +196,7 @@ export function CultivatorStatusCard({
 
             {/* 瓶颈期说明 */}
             {statusData.bottleneck_state && (
-              <div className="border border-orange-500/30 bg-orange-500/5 p-2">
+              <div className="border-wood/35 bg-bgpaper border border-dashed p-2">
                 <p className="text-ink text-sm">
                   ⚠️
                   已入瓶颈期，闭关修为获取效率降低50%。建议通过副本、战斗等方式积累感悟后再突破。
@@ -216,8 +216,8 @@ export function CultivatorStatusCard({
 
             {/* 顿悟buff */}
             {statusData.epiphany_buff_expires_at && (
-              <div className="border border-yellow-600/30 bg-yellow-600/5 p-2">
-                <p className="text-sm text-yellow-600">
+              <div className="border-gold/30 bg-bgpaper border border-dashed p-2">
+                <p className="text-gold text-sm">
                   ✨ 顿悟状态，修为获取翻倍！
                 </p>
               </div>
@@ -262,16 +262,16 @@ export function CultivatorStatusCard({
           <section>
             <h3 className="text-ink mb-2 font-bold">⚔️ 突破类型</h3>
             <div className="space-y-2">
-              <div className="bg-orange-500/10 p-2">
-                <p className="mb-1 text-sm font-bold text-orange-500">
+              <div className="border-wood/35 bg-bgpaper border border-dashed p-2">
+                <p className="text-wood mb-1 text-sm font-bold">
                   强行突破（60%-79%）
                 </p>
                 <p className="text-ink-secondary text-sm">
                   成功率×0.5，失败损失50%-70%修为
                 </p>
               </div>
-              <div className="bg-blue-500/10 p-2">
-                <p className="mb-1 text-sm font-bold text-blue-500">
+              <div className="border-teal/35 bg-bgpaper border border-dashed p-2">
+                <p className="text-teal mb-1 text-sm font-bold">
                   常规突破（80%-99%）
                 </p>
                 <p className="text-ink-secondary text-sm">
@@ -293,7 +293,7 @@ export function CultivatorStatusCard({
             <h3 className="text-ink mb-2 font-bold">🚧 特殊状态</h3>
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
-                <span className="text-orange-500">⚠️</span>
+                <span className="text-wood">⚠️</span>
                 <div>
                   <strong className="text-ink">瓶颈期：</strong>
                   <p className="text-ink-secondary text-sm">

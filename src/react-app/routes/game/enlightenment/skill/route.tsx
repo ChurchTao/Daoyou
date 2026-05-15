@@ -4,7 +4,7 @@ import {
 import { InkPageShell, InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
-  InkActionGroup, InkButton, InkIdentifyCelebration, InkNotice, } from '@app/components/ui';
+  InkActionGroup, InkButton, InkChoiceButton, InkIdentifyCelebration, InkNotice, } from '@app/components/ui';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
@@ -365,9 +365,8 @@ export default function SkillCreationPage() {
             <p className="text-ink-secondary mb-1.5 text-xs">目标阵营</p>
             <div className="flex flex-wrap gap-2">
               {TARGET_TEAM_OPTIONS.map((opt) => (
-                <button
+                <InkChoiceButton
                   key={opt.value}
-                  type="button"
                   disabled={isSubmitting}
                   onClick={() =>
                     setTargetPolicy((prev) => ({
@@ -375,14 +374,10 @@ export default function SkillCreationPage() {
                       scope: opt.value === 'self' ? 'single' : (prev?.scope ?? 'single'),
                     }))
                   }
-                  className={`rounded-md border px-3 py-1 text-sm transition-colors ${
-                    targetPolicy?.team === opt.value
-                      ? 'border-amber-500 bg-amber-50 text-amber-700'
-                      : 'border-ink/20 text-ink-secondary hover:border-ink/40'
-                  } disabled:opacity-50`}
+                  selected={targetPolicy?.team === opt.value}
                 >
                   {opt.label}
-                </button>
+                </InkChoiceButton>
               ))}
             </div>
           </div>
@@ -391,23 +386,18 @@ export default function SkillCreationPage() {
               <p className="text-ink-secondary mb-1.5 text-xs">目标范围</p>
               <div className="flex flex-wrap gap-2">
                 {TARGET_SCOPE_OPTIONS.map((opt) => (
-                  <button
+                  <InkChoiceButton
                     key={opt.value}
-                    type="button"
                     disabled={isSubmitting}
                     onClick={() =>
                       setTargetPolicy((prev) =>
                         prev ? { ...prev, scope: opt.value } : null,
                       )
                     }
-                    className={`rounded-md border px-3 py-1 text-sm transition-colors ${
-                      targetPolicy.scope === opt.value
-                        ? 'border-amber-500 bg-amber-50 text-amber-700'
-                        : 'border-ink/20 text-ink-secondary hover:border-ink/40'
-                    } disabled:opacity-50`}
+                    selected={targetPolicy.scope === opt.value}
                   >
                     {opt.label}
-                  </button>
+                  </InkChoiceButton>
                 ))}
               </div>
             </div>
@@ -415,7 +405,7 @@ export default function SkillCreationPage() {
           {targetPolicy && (
             <p className="text-ink-secondary text-xs">
               已指定：
-              <span className="text-amber-600">
+              <span className="text-wood">
                 {TARGET_TEAM_OPTIONS.find((o) => o.value === targetPolicy.team)?.label}
                 {targetPolicy.team !== 'self' && (
                   <>
@@ -431,16 +421,16 @@ export default function SkillCreationPage() {
 
       <InkSection title="预计消耗">
         {displayEstimatedCost ? (
-          <div className="bg-ink/5 border-ink/10 flex items-center justify-between rounded-lg border p-3">
+          <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
               道心感悟：
-              <span className="font-bold text-purple-600">
+              <span className="text-tier-di font-bold">
                 {displayEstimatedCost.comprehension}
               </span>{' '}
               点
             </span>
             <span
-              className={`text-xs ${displayCanAfford ? 'text-emerald-600' : 'text-red-600'}`}
+              className={`text-xs ${displayCanAfford ? 'text-teal' : 'text-crimson'}`}
             >
               {displayCanAfford ? '✓ 感悟充足' : '✗ 感悟不足'}
             </span>

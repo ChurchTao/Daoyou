@@ -66,7 +66,7 @@ export default function ReincarnatePage() {
     >
       <InkSection title="【前世余音】">
         {context?.story ? (
-          <div className="border-ink-border bg-bgpaper/80 rounded border p-4 text-sm leading-7 whitespace-pre-line">
+          <div className="border-ink-border bg-bgpaper/80 border border-dashed p-4 text-sm leading-7 whitespace-pre-line">
             {context.story}
           </div>
         ) : (

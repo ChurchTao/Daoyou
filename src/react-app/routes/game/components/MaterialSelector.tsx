@@ -1,5 +1,11 @@
-import { InkBadge, InkButton, InkNotice } from '@app/components/ui';
+import {
+  InkBadge,
+  InkButton,
+  InkNotice,
+  inkFieldVariants,
+} from '@app/components/ui';
 import { usePaginatedInventoryMaterials } from '@app/lib/hooks/usePaginatedInventoryMaterials';
+import { cn } from '@shared/lib/cn';
 import {
   ELEMENT_VALUES,
   MATERIAL_TYPE_VALUES,
@@ -28,6 +34,8 @@ interface MaterialSelectorProps {
   emptyNoticeText: string;
   totalText: (total: number) => string;
 }
+
+const compactSelectClassName = cn(inkFieldVariants({ size: 'sm' }), 'mt-1');
 
 export function MaterialSelector({
   cultivatorId,
@@ -146,7 +154,7 @@ export function MaterialSelector({
                 <label className="text-ink-secondary text-xs">
                   品级
                   <select
-                    className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                    className={compactSelectClassName}
                     value={rankFilter}
                     onChange={(e) =>
                       setRankFilter(e.target.value as Quality | 'all')
@@ -165,7 +173,7 @@ export function MaterialSelector({
                 <label className="text-ink-secondary text-xs">
                   种类
                   <select
-                    className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                    className={compactSelectClassName}
                     value={typeFilter}
                     onChange={(e) =>
                       setTypeFilter(e.target.value as MaterialType | 'all')
@@ -184,7 +192,7 @@ export function MaterialSelector({
                 <label className="text-ink-secondary text-xs">
                   属性
                   <select
-                    className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                    className={compactSelectClassName}
                     value={elementFilter}
                     onChange={(e) =>
                       setElementFilter(e.target.value as ElementType | 'all')
@@ -203,7 +211,7 @@ export function MaterialSelector({
                 <label className="text-ink-secondary text-xs">
                   排序
                   <select
-                    className="border-ink/20 mt-1 w-full border bg-transparent px-2 py-1 text-sm"
+                    className={compactSelectClassName}
                     value={`${sortBy}:${sortOrder}`}
                     onChange={(e) => {
                       const [nextSortBy, nextSortOrder] = e.target.value.split(':');
@@ -252,15 +260,15 @@ export function MaterialSelector({
       )}
 
       {isLoading && !isInitialized ? (
-        <div className="bg-ink/5 border-ink/10 max-h-60 overflow-y-auto rounded-lg border p-2">
+        <div className="bg-ink/5 border-ink/10 max-h-60 overflow-y-auto border border-dashed p-2">
           <div className="space-y-2">
             {[1, 2, 3].map((idx) => (
               <div
                 key={idx}
-                className="border-ink/10 bg-bgpaper/55 animate-pulse rounded-md border p-3"
+                className="border-ink/10 bg-bgpaper/55 animate-pulse border border-dashed p-3"
               >
-                <div className="mb-2 h-5 w-1/2 rounded bg-black/10" />
-                <div className="h-4 w-5/6 rounded bg-black/10" />
+                <div className="bg-ink/10 mb-2 h-5 w-1/2" />
+                <div className="bg-ink/10 h-4 w-5/6" />
               </div>
             ))}
           </div>
@@ -268,7 +276,7 @@ export function MaterialSelector({
       ) : error ? (
         <InkNotice>材料加载失败：{error}</InkNotice>
       ) : materials.length > 0 ? (
-        <div className="bg-ink/5 border-ink/10 max-h-60 overflow-y-auto rounded-lg border p-2">
+        <div className="bg-ink/5 border-ink/10 max-h-60 overflow-y-auto border border-dashed p-2">
           <div className="space-y-2">
             {materials.map((material) => {
               const typeInfo = getMaterialTypeInfo(material.type);
@@ -282,7 +290,7 @@ export function MaterialSelector({
                     material.id &&
                     onToggleMaterial(material.id, material)
                   }
-                  className={`cursor-pointer rounded-lg border p-3 transition-colors ${
+                  className={`cursor-pointer border p-3 transition-colors ${
                     isSelected
                       ? 'border-ink/35 bg-ink/12'
                       : 'border-ink/10 bg-bgpaper/55 hover:bg-bgpaper/70 hover:border-ink/20'
@@ -347,7 +355,7 @@ export function MaterialSelector({
       )}
 
       {showSelectedMaterialsPanel && (
-        <div className="bg-ink/5 border-ink/10 mt-3 rounded-lg border p-2">
+        <div className="bg-ink/5 border-ink/10 mt-3 border border-dashed p-2">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-semibold">已选材料</span>
             <span className="text-ink-secondary text-xs">
@@ -368,7 +376,7 @@ export function MaterialSelector({
                   return (
                     <div
                       key={id}
-                      className="border-ink/10 bg-bgpaper/55 flex items-center justify-between rounded-md border p-2"
+                      className="border-ink/10 bg-bgpaper/55 flex items-center justify-between border border-dashed p-2"
                     >
                       <span className="text-ink-secondary text-xs">
                         材料信息加载中…
@@ -387,7 +395,7 @@ export function MaterialSelector({
                 return (
                   <div
                     key={id}
-                    className="border-ink/10 bg-bgpaper/55 rounded-md border p-2"
+                    className="border-ink/10 bg-bgpaper/55 border border-dashed p-2"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">

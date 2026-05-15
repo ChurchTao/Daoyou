@@ -6,6 +6,7 @@ import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResu
 import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
+import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
 import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
 import {
   AttributeType, ModifierType, } from '@shared/engine/battle-v5/core/types';
@@ -36,10 +37,8 @@ const MODIFIER_TYPE_OPTIONS = [
   ModifierType.OVERRIDE,
 ] as const;
 
-const SELECT_CLASSNAME =
-  'w-full rounded-md border border-ink/20 bg-transparent px-3 py-2 text-sm focus:border-crimson focus:outline-none';
-const INPUT_CLASSNAME =
-  'w-full rounded-md border border-ink/20 bg-transparent px-3 py-2 text-sm focus:border-crimson focus:outline-none';
+const SELECT_CLASSNAME = inkFieldVariants({ size: 'sm' });
+const INPUT_CLASSNAME = inkFieldVariants({ size: 'sm' });
 
 const PRIMARY_ATTRIBUTE_FIELDS = [
   { key: 'spirit', label: '灵力' },
@@ -142,7 +141,7 @@ function ResourceStateEditor({
   const displayValue = mode === 'percent' ? value * 100 : value;
 
   return (
-    <div className="rounded-md border border-dashed border-ink/10 p-3">
+    <div className="border border-dashed border-ink/10 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-sm font-medium text-ink">{label}</span>
         <select
@@ -181,7 +180,7 @@ function StatusRefEditor({
   onChange: (statuses: PersistentCombatStatusV5[]) => void;
 }) {
   return (
-    <InkCard variant="elevated" className="rounded-lg p-4">
+    <InkCard variant="elevated" className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-ink">{title}</p>
@@ -202,7 +201,7 @@ function StatusRefEditor({
           {statuses.map((status, index) => (
             <div
               key={`${status.templateId}-${index}`}
-              className="grid grid-cols-1 gap-3 rounded-md border border-dashed border-ink/10 p-3 md:grid-cols-[minmax(0,2fr)_120px_auto]"
+              className="grid grid-cols-1 gap-3 border border-dashed border-ink/10 p-3 md:grid-cols-[minmax(0,2fr)_120px_auto]"
             >
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink/55">状态</span>
@@ -266,7 +265,7 @@ function ModifierEditor({
   onChange: (modifiers: TrainingRoomModifierDraft[]) => void;
 }) {
   return (
-    <InkCard variant="elevated" className="rounded-lg p-4">
+    <InkCard variant="elevated" className="p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">木桩属性调整</p>
@@ -286,7 +285,7 @@ function ModifierEditor({
           {modifiers.map((modifier, index) => (
             <div
               key={modifier.id}
-              className="grid grid-cols-1 gap-3 rounded-md border border-dashed border-ink/10 p-3 md:grid-cols-[minmax(0,2fr)_150px_120px_auto]"
+              className="grid grid-cols-1 gap-3 border border-dashed border-ink/10 p-3 md:grid-cols-[minmax(0,2fr)_150px_120px_auto]"
             >
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-ink/55">属性</span>
@@ -549,7 +548,7 @@ export default function TrainingRoomPage() {
     >
       {!battleResult ? (
         <div className="space-y-6">
-          <InkCard variant="elevated" className="rounded-lg p-5">
+          <InkCard variant="elevated" className="p-5">
             <p className="battle-caption mb-3 text-xs">练功说明</p>
             <p className="text-battle-muted max-w-3xl text-sm leading-7 md:text-base">
               默认会提供一只标准木桩，你可以直接开始训练，快速查看伤害、耗蓝和技能节奏。想做专项测试时，再展开自定义设置即可。
@@ -573,7 +572,7 @@ export default function TrainingRoomPage() {
 
           {isDebugPanelOpen ? (
             <div className="space-y-6">
-              <InkCard variant="elevated" className="rounded-lg p-5">
+              <InkCard variant="elevated" className="p-5">
                 <p className="battle-caption mb-4 text-xs">自定义设置</p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px_auto]">
                   <label className="flex flex-col gap-1">
@@ -640,7 +639,7 @@ export default function TrainingRoomPage() {
               </InkCard>
 
               <div className="space-y-4">
-                  <InkCard variant="elevated" className="rounded-lg p-5">
+                  <InkCard variant="elevated" className="p-5">
                     <p className="mb-3 text-base font-semibold text-ink">木桩基础设置</p>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <NumberField
