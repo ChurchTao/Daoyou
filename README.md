@@ -74,6 +74,7 @@
 
 - `src/react-app` 使用 `BrowserRouter` 管理前端路由
 - `src/server/app.ts` 提供 `/api/*` 和 `/internal/*` 接口
+- `src/index.ts` 在生产环境会注册 Bun 内置 cron，用于单容器内直接触发定时任务
 - `src/index.ts` 在生产环境对非 API 的 `GET/HEAD` 请求返回 `dist/index.html`，由前端 SPA 接管路由
 
 当前路由约定：
@@ -120,9 +121,14 @@ cp .env.example .env.local
 | 变量 | 说明 |
 | --- | --- |
 | `REDIS_URL` | Redis 连接串；缺失时相关功能会在运行时失败 |
-| `CRON_SECRET` | 保护 `/internal/cron/*` 接口；不配置时这些接口不会做 Bearer 校验 |
 | `BETTER_AUTH_DB_SCHEMA` | Better Auth schema 名；默认值为 `better_auth` |
 | `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
+
+### 生产 cron 必需
+
+| 变量 | 说明 |
+| --- | --- |
+| `CRON_SECRET` | 保护 `/internal/cron/*` 接口的 Bearer 密钥；生产环境必须配置，调度器调用时也要携带它 |
 
 ### 登录 / 注册相关
 
@@ -276,6 +282,40 @@ docker compose up -d
 ```
 
 `docker-compose.yml` 默认使用远程镜像，并通过 `env_file` 注入运行时环境。
+
+## 生产 cron 配置方式
+
+当前仓库默认采用两层设计：
+
+- 生产环境单容器运行时，`src/index.ts` 会直接注册 Bun 内置 cron
+- `/internal/cron/*` 仍然保留，便于手动触发、联调，或后续切回外部调度器
+
+- `GET /internal/cron/auction-expire`
+- `GET /internal/cron/bet-battle-expire`
+- `GET /internal/cron/rank-rewards`
+
+当前内置调度频率：
+
+- `auction-expire`：每 2 分钟
+- `bet-battle-expire`：每 2 分钟
+- `rank-rewards`：每天 `00:00 Asia/Shanghai`
+
+说明：
+
+- Bun 内置 cron 运行在 Web 进程内，适合当前“单 Docker 容器先跑起来”的场景
+- 这类进程内调度不保证跨重启继续执行；如果后续要更强保证，仍建议切回宿主机 cron、云定时任务或 K8s CronJob
+- Bun 的 cron 表达式按 `UTC` 解释，所以 `rank-rewards` 在代码里配置为 `0 16 * * *`，对应北京时间次日 `00:00`
+- 内置任务直接调用 job runner，不走 HTTP
+- `/internal/cron/*` 接口继续要求 `Authorization: Bearer ${CRON_SECRET}`，适合人工补跑或外部调度
+- 这些任务内部带 Redis 分布式锁与幂等保护，重复触发会返回 `skipped`
+
+如果你想改回外部 HTTP 调度，可使用：
+
+```cron
+*/2 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/auction-expire
+*/2 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/bet-battle-expire
+0 0 * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" https://your-domain/internal/cron/rank-rewards
+```
 
 ## CI / 镜像发布
 

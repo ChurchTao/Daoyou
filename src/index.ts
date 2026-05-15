@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import apiApp from './server/app';
+import { registerInternalCronJobs } from './server/lib/jobs/internalCronScheduler';
 
 const indexHtmlUrl = new URL('../dist/index.html', import.meta.url);
 
@@ -31,6 +32,8 @@ export function createRootApp(options: RootAppOptions = {}) {
     app.use('/api/*', logger());
     app.use('/internal/*', logger());
   }
+
+  registerInternalCronJobs({ enabled: isProd });
 
   app.route('/', apiApp);
 
