@@ -85,6 +85,12 @@ export const router = createBrowserRouter(
         />
       </Route>
 
+      <Route
+        path="/ui-demo/game-hud"
+        lazy={lazyRoute(() => import('@app/routes/game/ui-demo/route'))}
+        handle={title('界面 Demo')}
+      />
+
       <Route path="/game" element={<GameLayout />} loader={requireUserLoader}>
         <Route
           path="create"
@@ -95,6 +101,11 @@ export const router = createBrowserRouter(
           path="reincarnate"
           lazy={lazyRoute(() => import('@app/routes/game/reincarnate/route'))}
           handle={title('转世重修')}
+        />
+        <Route
+          path="ui-demo"
+          lazy={lazyRoute(() => import('@app/routes/game/ui-demo/route'))}
+          handle={title('界面 Demo')}
         />
 
         <Route element={<PlayerProviderLayout />}>
