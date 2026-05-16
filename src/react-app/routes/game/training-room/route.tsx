@@ -1,4 +1,5 @@
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
 import { CombatAttributeModal } from '@app/components/feature/battle/v5/CombatAttributeModal';
 import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
@@ -21,9 +22,10 @@ import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import {
   buildTrainingBattleInitConfig, createDefaultTrainingRoomDraft, parseTrainingRoomStorage, TRAINING_ROOM_STORAGE_KEY, TRAINING_ROOM_STORAGE_VERSION, type TrainingRoomDraft, type TrainingRoomPreset, } from '@shared/lib/training-room/config';
 import type { Cultivator } from '@shared/types/cultivator';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useCombatPlayer } from '../battle/hooks/useCombatPlayer';
+import { useSpecialSceneBackAction } from '@app/layouts/game-layout';
 import { useNavigate } from 'react-router';
 
 
@@ -466,12 +468,22 @@ export default function TrainingRoomPage() {
     }
   }, [battleResult, totalActions, currentIndex, isPlaying, play]);
 
-  const handleLeave = () => {
+  const handleLeave = useCallback(() => {
     if (isFighting && currentIndex < totalActions - 1) {
       if (!confirm('训练尚未结束，确定要离开吗？')) return;
     }
     navigate('/game');
-  };
+  }, [currentIndex, isFighting, navigate, totalActions]);
+
+  const immersiveBackAction = useMemo(
+    () => ({
+      label: '离开练功房',
+      onBack: handleLeave,
+    }),
+    [handleLeave],
+  );
+
+  useSpecialSceneBackAction(immersiveBackAction);
 
   const savePreset = () => {
     const normalizedName =
@@ -517,11 +529,7 @@ export default function TrainingRoomPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
-        <p className="text-ink/40 animate-pulse">识海构筑中...</p>
-      </div>
-    );
+    return <GameImmersiveLoading message="识海构筑中……" />;
   }
 
   const playerUnitId = battleResult?.player || cultivator?.id;

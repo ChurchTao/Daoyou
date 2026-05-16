@@ -1,4 +1,5 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkIdentifyCelebration } from '@app/components/ui/InkIdentifyCelebration';
@@ -48,10 +49,24 @@ export default function RedeemCodePage() {
   };
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="兑换码"
-      subtitle="天机有契，凭码领缘"
-      backHref="/game"
+      description="天机有契，凭码领缘。奖励不直接落袋，而是经由玉简投递，适合作为轻量服务页嵌回主游戏壳。"
+      aside={
+        <GameSceneAsideSection title="使用说明" className="text-sm leading-7">
+          <p>兑换成功后，奖励会通过传音玉简发放。</p>
+          <p className="mt-2">码值会自动转为大写，避免手误失配。</p>
+        </GameSceneAsideSection>
+      }
+      actionBar={
+        <div className="flex flex-wrap gap-2">
+          <InkButton href="/game/mail" variant="primary">
+            前往传音玉简
+          </InkButton>
+          <InkButton href="/game/world-chat">查看世界传音</InkButton>
+        </div>
+      }
     >
       <InkSection title="【兑换】">
         <div className="space-y-4">
@@ -83,6 +98,6 @@ export default function RedeemCodePage() {
       {celebrationTick > 0 && (
         <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

@@ -1,19 +1,18 @@
 import { CultivatorStatusCard } from '@app/components/feature/cultivator/CultivatorStatusCard';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import {
   InkActionGroup, InkBadge, InkButton, InkInput, InkNotice, } from '@app/components/ui';
 
 import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { RetreatResultSection } from './RetreatResultSection';
-import { useLocation } from 'react-router';
 
 
 /**
  * 洞府主视图组件
  */
 export function RetreatView() {
-  const { pathname } = useLocation();
   const {
     cultivator,
     isLoading,
@@ -36,7 +35,7 @@ export function RetreatView() {
   // 加载状态
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">洞府封闭中，稍候片刻……</p>
       </div>
     );
@@ -45,30 +44,52 @@ export function RetreatView() {
   // 未创建角色
   if (!cultivator) {
     return (
-      <InkPageShell
-        title="【洞府】"
-        subtitle="须有道基，方可入定"
-        backHref="/game"
-        currentPath={pathname}
-      >
+      <div className="flex h-full items-center justify-center px-4">
         <InkNotice>
           尚未觉醒灵根，无法入驻洞府。
           <InkButton href="/game/create" variant="primary" className="ml-2">
             前往觉醒 →
           </InkButton>
         </InkNotice>
-      </InkPageShell>
+      </div>
     );
   }
 
   return (
-    <InkPageShell
-      title="【洞府】"
-      subtitle="莫负洞天一寸时"
-      backHref="/game"
-      currentPath={pathname}
-      note={note}
-      footer={
+    <GameSceneFrame
+      eyebrow="修炼焦点"
+      title="【洞府修行】"
+      description="收束外务，静室观息。闭关、悟道与冲关都在此完成，最该关注的是寿元余量、瓶颈状态与这一次要押上的年数。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              修行摘要
+            </div>
+            <div className="space-y-2 text-sm leading-7">
+              <p>当前境界：{cultivator.realm_stage}</p>
+              <p>剩余寿元：{remainingLifespan} 年</p>
+              <p>累计闭关：{cultivator.closed_door_years_total ?? 0} 年</p>
+              <p>本次闭关：{retreatYears || '未定'} 年</p>
+            </div>
+          </section>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 text-sm leading-7">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              关窍提醒
+            </div>
+            <p>修为达 60% 可尝试突破，达 100% 且感悟足够时更稳。</p>
+            <p className="mt-2">若见瓶颈久驻，宜转去历练、斗法或参悟求感悟。</p>
+          </section>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game">返回</InkButton>
         </InkActionGroup>
@@ -151,6 +172,6 @@ export function RetreatView() {
           onGoReincarnate={handleGoReincarnate}
         />
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

@@ -1,4 +1,5 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import {
   InkActionGroup, InkBadge, InkButton, InkDialog, InkList, InkListItem, InkNotice, InkTabs, } from '@app/components/ui';
 import { TypewriterText } from '@app/components/ui/TypewriterText';
@@ -12,7 +13,6 @@ import {
 import type {
   HighTierAppraisal, SellConfirmResponse, SellItemType, SellPreviewResponse, } from '@shared/types/market';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router';
 
 
 interface SellApiError {
@@ -160,7 +160,6 @@ async function fetchAllLowTierArtifactIds(
 }
 
 export default function MarketRecyclePage() {
-  const { pathname } = useLocation();
   const { cultivator, equipped, refresh } = useCultivator();
   const [activeTab, setActiveTab] = useState<RecycleTab>('materials');
   const [dialog, setDialog] = useState<RecycleDialogState | null>(null);
@@ -472,8 +471,6 @@ export default function MarketRecyclePage() {
       }
     : null;
 
-  const subtitle = cultivator ? `灵石余额：${cultivator.spirit_stones}` : '';
-
   const isMaterialTab = activeTab === 'materials';
   const isLoading = isMaterialTab ? materialLoading : artifactLoading;
   const isRefreshing = isMaterialTab ? materialRefreshing : artifactRefreshing;
@@ -486,12 +483,36 @@ export default function MarketRecyclePage() {
     : isInitialized && artifacts.length > 0;
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【坊市鉴宝司】"
-      subtitle={subtitle}
-      backHref="/game"
-      currentPath={pathname}
-      footer={
+      description="材料与法宝的回收流统一并入交易场景。主区保留货单与鉴评弹窗，旁栏只汇总当前资源、页签和批量处理规则。"
+      aside={
+        <>
+          <GameSceneAsideSection title="鉴宝摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+              <p>当前页签：{isMaterialTab ? '材料回收' : '法宝回收'}</p>
+              <p>当前页次：{pagination.page} / {Math.max(pagination.totalPages, 1)}</p>
+              {!isMaterialTab ? <p>已装备法宝：{equippedIds.size} 件</p> : null}
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="回收规矩" className="text-sm leading-7">
+            {isMaterialTab ? (
+              <>
+                <p>凡、灵、玄品材料适合批量清理；高阶材料会先进入鉴定流程。</p>
+                <p className="mt-2">预览过期后需重新鉴定，确认前不会真正成交。</p>
+              </>
+            ) : (
+              <>
+                <p>已装备法宝不可回收；高阶法宝仅支持单件鉴评。</p>
+                <p className="mt-2">凡、灵、玄品法宝可直接纳入批量清理。</p>
+              </>
+            )}
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game">返回主界</InkButton>
           <InkButton href="/game/map?intent=market">前往坊市</InkButton>
@@ -690,6 +711,6 @@ export default function MarketRecyclePage() {
       </InkSection>
 
       <InkDialog dialog={dialogState} onClose={closeDialog} />
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

@@ -1,7 +1,8 @@
 import { MaterialSelector } from '@app/routes/game/components/MaterialSelector';
 import {
   CreationIntentPanel, CreationProductResultModal, SelectedMaterialsWithDose, type CreationProductResultRecord, } from '@app/components/feature/creation';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkButton, InkIdentifyCelebration, InkNotice, } from '@app/components/ui';
@@ -11,8 +12,6 @@ import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { EquipmentSlot } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router';
-
 
 const CRAFT_TYPE = 'refine' as const;
 const ALLOWED_MATERIAL_TYPES = [...getAllowedMaterialTypesForCraftType(CRAFT_TYPE)];
@@ -61,7 +60,6 @@ export default function RefinePage() {
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast } = useInkUI();
-  const { pathname } = useLocation();
 
   useEffect(() => {
     if (selectedMaterialIds.length === 0) {
@@ -225,27 +223,46 @@ export default function RefinePage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">地火引动中……</p>
       </div>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【炼器室】"
-      subtitle="千锤百炼，法宝天成"
-      backHref="/game/craft"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="千锤百炼，法宝天成。保留原有炼器业务流，只把当前投入、资源判断与去向压缩进统一工作流壳。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="炼制摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>已投入灵材：{selectedMaterialIds.length} / {MAX_MATERIALS}</p>
+              <p>目标槽位：{requestedSlot ? '已选定' : '尚未指定'}</p>
+              <p>预计灵石：{displayEstimatedCost?.spiritStones ?? 0}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="成器提醒" className="text-sm leading-7">
+            <p>槽位决定器型，灵材决定骨相，意念决定成品气质。</p>
+            <p className="mt-2">若资源不足或规则冲突，先在主区修正后再起炉。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
-          <InkButton href="/game/craft">返回</InkButton>
-          <span className="text-ink-secondary text-xs">
-            {selectedMaterialIds.length > 0
-              ? `已投入 ${selectedMaterialIds.length} 种灵材`
-              : '请投入灵材开始炼制'}
-          </span>
+          <InkButton href="/game/craft">返回造物仙炉</InkButton>
+          <InkButton href="/game/artifacts">查看法宝</InkButton>
+          <InkButton href="/game/inventory" variant="secondary">
+            查看储物袋
+          </InkButton>
         </InkActionGroup>
       }
     >
@@ -353,6 +370,6 @@ export default function RefinePage() {
       {celebrationTick > 0 && (
         <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

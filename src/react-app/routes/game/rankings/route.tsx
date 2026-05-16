@@ -2,7 +2,8 @@ import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetai
 import type { ItemDetailPayload } from '@app/routes/game/inventory/components/itemDetailPayload';
 import { RankingListItem } from '@app/components/feature/ranking/RankingListItem';
 import { formatProbeResultContent } from '@app/components/func/ProbeResult';
-import { InkModal, InkPageShell } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkButton, InkDialog, type InkDialogState, InkList, InkListItem, InkNotice, InkTabs, } from '@app/components/ui';
@@ -11,7 +12,7 @@ import { RANKING_REWARDS } from '@shared/types/constants';
 import { ItemRankingEntry, RankingsDisplayItem } from '@shared/types/rankings';
 import { useCallback, useEffect, useState } from 'react';
 import { toRankingDetailItem } from './rankingDetailItem';
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate } from 'react-router';
 
 type MyRankInfo = {
   rank: number | null;
@@ -40,7 +41,6 @@ export default function RankingsPage() {
   const [showRules, setShowRules] = useState(false);
   const [selectedItemDetail, setSelectedItemDetail] =
     useState<ItemDetailPayload | null>(null);
-  const { pathname } = useLocation();
 
   const loadRankings = useCallback(
     async (tab: RankingTab) => {
@@ -298,7 +298,7 @@ export default function RankingsPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">万界金榜刷新中……</p>
       </div>
     );
@@ -308,21 +308,65 @@ export default function RankingsPage() {
   const remainingChallenges = myRankInfo?.remainingChallenges;
   const isEmpty = rankings.length === 0;
   const isLoadingChallenges = myRankInfoLoadingState !== 'loaded';
+  const rankingTabs = [
+    { label: '天骄榜', value: 'battle' },
+    { label: '法宝榜', value: 'artifact' },
+    { label: '功法榜', value: 'technique' },
+    { label: '神通榜', value: 'skill' },
+    { label: '丹药榜', value: 'elixir' },
+  ];
+  const activeTabLabel =
+    rankingTabs.find((tab) => tab.value === activeTab)?.label ?? '天骄榜';
 
   return (
     <>
-      <InkPageShell
-        title={`【万界金榜】`}
-        subtitle="战天下英豪，登万界金榜"
-        lead={
-          activeTab === 'battle' && myRankInfo
-            ? `我的排名: ${myRank ? `第${myRank}名` : '未上榜'} | 今日剩余挑战: ${isLoadingChallenges ? '推演中…' : `${remainingChallenges}/10`}`
-            : ''
+      <GameSceneFrame
+        variant="workflow"
+        title="【万界金榜】"
+        description="战天下英豪，登万界金榜。榜单切换、挑战校验与物品详情都保留原逻辑，只把战况摘要与奖励规则归到侧栏。"
+        headerMeta={
+          <div className="space-y-2">
+            {activeTab === 'battle' && myRankInfo ? (
+              <div className="battle-note">
+                <p className="text-sm leading-7">
+                  我的排名：{myRank ? `第${myRank}名` : '未上榜'} ｜ 今日剩余挑战：
+                  {isLoadingChallenges ? '推演中…' : `${remainingChallenges}/10`}
+                </p>
+              </div>
+            ) : null}
+            {note || error ? (
+              <div className="battle-note">
+                <p className="text-sm leading-7">{note || error}</p>
+              </div>
+            ) : null}
+          </div>
         }
-        backHref="/game"
-        note={note || error}
-        currentPath={pathname}
-        footer={
+        aside={
+          <>
+            <GameSceneAsideSection title="榜单摘要">
+              <div className="space-y-2 text-sm leading-7">
+                <p>当前榜单：{activeTabLabel}</p>
+                <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+                <p>当前收录：{rankings.length} 条</p>
+                {activeTab === 'battle' ? (
+                  <p>
+                    今日挑战：
+                    {isLoadingChallenges
+                      ? '推演中…'
+                      : `${remainingChallenges ?? 0} / 10`}
+                  </p>
+                ) : null}
+              </div>
+            </GameSceneAsideSection>
+            <GameSceneAsideSection title="结算奖励" className="text-sm leading-7">
+              <p>第一名：{RANKING_REWARDS[1]} 灵石</p>
+              <p>第二名：{RANKING_REWARDS[2]} 灵石</p>
+              <p>第三名：{RANKING_REWARDS[3]} 灵石</p>
+              <p className="mt-2">更多档位可点下方“奖励说明”查看。</p>
+            </GameSceneAsideSection>
+          </>
+        }
+        actionBar={
           <InkActionGroup align="between">
             <InkButton
               onClick={() => loadRankings(activeTab)}
@@ -341,13 +385,7 @@ export default function RankingsPage() {
           className="mb-6"
           activeValue={activeTab}
           onChange={handleTabChange}
-          items={[
-            { label: '天骄榜', value: 'battle' },
-            { label: '法宝榜', value: 'artifact' },
-            { label: '功法榜', value: 'technique' },
-            { label: '神通榜', value: 'skill' },
-            { label: '丹药榜', value: 'elixir' },
-          ]}
+          items={rankingTabs}
         />
 
         {!cultivator ? (
@@ -436,7 +474,7 @@ export default function RankingsPage() {
             </div>
           </>
         )}
-      </InkPageShell>
+      </GameSceneFrame>
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
       <ItemDetailModal

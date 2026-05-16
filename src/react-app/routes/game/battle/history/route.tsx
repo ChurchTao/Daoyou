@@ -1,8 +1,9 @@
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
 import Zhanji from '@app/components/func/Zhanji';
-import { InkTabs } from '@app/components/ui/InkTabs';
-import type { BattleRecord } from '@shared/types/battle';
+import { InkButton, InkNotice, InkTabs } from '@app/components/ui';
+import { InkSection } from '@app/components/layout';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
-import Link from '@app/components/router/AppLink';
+import type { BattleRecord } from '@shared/types/battle';
 import { useEffect, useState } from 'react';
 
 type BattleSummary = {
@@ -68,20 +69,33 @@ export default function BattleHistoryPage() {
   }, [activeTab]);
 
   return (
-    <div className="bg-paper min-h-screen">
-      <div className="main-content mx-auto max-w-xl px-4 pt-8 pb-16">
-        <Link
-          href="/game"
-          className="text-ink hover:text-crimson mb-4 inline-block"
-        >
-          [← 返回]
-        </Link>
-
-        <h1 className="font-ma-shan-zheng text-ink mb-4 text-2xl">
-          【全部战绩】
-        </h1>
-
-        {/* 标签页 */}
+    <GameSceneFrame
+      variant="lite"
+      title="【全部战绩】"
+      description="战绩页回归常规场景流，只保留筛选、卷宗列表与回到榜单的路径，不再独立占用旧页壳。"
+      aside={
+        <>
+          <GameSceneAsideSection title="卷宗摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>当前筛选：{activeTab === 'all' ? '全部' : activeTab === 'challenge' ? '我的挑战' : '我被挑战'}</p>
+              <p>收录战绩：{records.length} 场</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="查看建议" className="text-sm leading-7">
+            <p>想继续挑战可回天骄榜；想看单场过程则点入战绩卡片。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
+        <div className="flex flex-wrap gap-2">
+          <InkButton href="/game/rankings" variant="primary">
+            返回天骄榜
+          </InkButton>
+          <InkButton href="/game">返回洞府</InkButton>
+        </div>
+      }
+    >
+      <InkSection title="战绩筛选">
         <InkTabs
           className="mb-4"
           activeValue={activeTab}
@@ -92,15 +106,12 @@ export default function BattleHistoryPage() {
             { label: '我被挑战', value: 'challenged' },
           ]}
         />
-
-        {loading && <p className="text-ink-secondary">战绩加载中……</p>}
-
-        {!loading && !records.length && (
-          <p className="text-ink-secondary">暂无战斗记录。</p>
-        )}
-
-        {!loading && (
-          <div className="mt-4 space-y-3">
+        {loading ? (
+          <InkNotice>战绩加载中……</InkNotice>
+        ) : !records.length ? (
+          <InkNotice>暂无战斗记录。</InkNotice>
+        ) : (
+          <div className="space-y-3">
             {records.map((r) => (
               <Zhanji
                 key={r.id}
@@ -110,7 +121,7 @@ export default function BattleHistoryPage() {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </InkSection>
+    </GameSceneFrame>
   );
 }

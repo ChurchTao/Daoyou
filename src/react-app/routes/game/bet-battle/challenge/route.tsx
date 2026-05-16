@@ -1,3 +1,4 @@
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
@@ -118,8 +119,8 @@ function BetBattleChallengePageContent() {
 
   if (error) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
-        <div className="text-center">
+      <div className="flex h-full items-center justify-center px-4 py-20">
+        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
           <p className="text-crimson mb-4">{error}</p>
           <InkButton onClick={() => navigate('/game/bet-battle')}>
             返回赌战台
@@ -203,15 +204,7 @@ function BetBattleChallengePageContent() {
 
 export default function BetBattleChallengePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="bg-paper flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <p className="text-ink">加载中...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<GameImmersiveLoading message="赌战战报推演中……" />}>
       <BetBattleChallengePageContent />
     </Suspense>
   );

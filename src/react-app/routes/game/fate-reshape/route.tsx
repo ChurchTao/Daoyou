@@ -1,7 +1,8 @@
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkButton, InkCard, InkList, InkNotice, InkTag, ItemCard, } from '@app/components/ui';
@@ -9,8 +10,6 @@ import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import type { FateReshapeSessionDTO } from '@shared/types/fateReshape';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router';
-
 
 type SessionResponse = {
   success: boolean;
@@ -43,7 +42,6 @@ function formatExpireTime(expiresAt: number): string {
 }
 
 export default function FateReshapePage() {
-  const { pathname } = useLocation();
   const { cultivator, note, isLoading, refreshCultivator, refreshInventory } =
     useCultivator();
   const { pushToast } = useInkUI();
@@ -270,7 +268,7 @@ export default function FateReshapePage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">命格天机推演中……</p>
       </div>
     );
@@ -278,25 +276,60 @@ export default function FateReshapePage() {
 
   if (!cultivator) {
     return (
-      <InkPageShell
+      <GameSceneFrame
+        variant="lite"
         title="【命格重塑】"
-        subtitle="需先踏入仙途，方能拨动天机"
-        backHref="/game"
-        currentPath={pathname}
+        description="需先踏入仙途，方能拨动天机。"
+        actionBar={<InkButton href="/game">返回洞府</InkButton>}
       >
         <InkNotice>当前没有活跃角色，暂无法进行命格重塑。</InkNotice>
-      </InkPageShell>
+      </GameSceneFrame>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【命格重塑】"
-      subtitle="遮蔽天机，逆转先天之数"
-      backHref="/game/cultivator"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="遮蔽天机，逆转先天之数。命格会话、候选池与确认替换流程都被统一安放到常规工作流场景里。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        !session ? (
+          <>
+            <GameSceneAsideSection title="重塑资源">
+              <div className="space-y-2 text-sm leading-7">
+                <p>天机逆命符：{talismanCount} 张</p>
+                <p>当前会话：未开启</p>
+              </div>
+            </GameSceneAsideSection>
+            <GameSceneAsideSection title="操作规则" className="text-sm leading-7">
+              <p>开启后会消耗 1 张逆命符，并给出 6 个候选命格。</p>
+              <p className="mt-2">需从中选 3 个，直接全量替换当前命格。</p>
+            </GameSceneAsideSection>
+          </>
+        ) : (
+          <>
+            <GameSceneAsideSection title="会话摘要">
+              <div className="space-y-2 text-sm leading-7">
+                <p>已选候选：{selectedIndices.length} / 3</p>
+                <p>还能重塑：{session.canReroll ? '1 次' : '0 次'}</p>
+                <p>失效时间：{formatExpireTime(session.expiresAt)}</p>
+              </div>
+            </GameSceneAsideSection>
+            <GameSceneAsideSection title="确认条件" className="text-sm leading-7">
+              <p>先选满 3 个命格，才可确认全量替换。</p>
+              <p className="mt-2">放弃或超时都会结束本次会话，消耗不返还。</p>
+            </GameSceneAsideSection>
+          </>
+        )
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game/cultivator">返回道我真形</InkButton>
           <InkButton href="/game/inventory" variant="secondary">
@@ -507,6 +540,6 @@ export default function FateReshapePage() {
         onClose={() => setDetailFate(null)}
         fate={detailFate}
       />
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

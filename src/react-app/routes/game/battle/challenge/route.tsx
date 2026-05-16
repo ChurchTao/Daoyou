@@ -1,3 +1,4 @@
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
@@ -122,8 +123,8 @@ function ChallengeBattlePageContent() {
 
   if (error) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
-        <div className="text-center">
+      <div className="flex h-full items-center justify-center px-4 py-20">
+        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
           <p className="text-crimson mb-4">{error}</p>
           <InkButton onClick={() => navigate('/game/rankings')}>
             返回排行榜
@@ -135,8 +136,8 @@ function ChallengeBattlePageContent() {
 
   if (directEntry) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
-        <div className="text-center">
+      <div className="flex h-full items-center justify-center px-4 py-20">
+        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
           <h1 className="font-ma-shan-zheng text-ink mb-4 text-2xl">成功上榜！</h1>
           <p className="text-ink mb-6">你已占据万界金榜第 {directEntry.rank} 名</p>
           <InkButton onClick={() => navigate('/game/rankings')} variant="primary">
@@ -238,15 +239,7 @@ function ChallengeBattlePageContent() {
  */
 export default function ChallengeBattlePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="bg-paper flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <p className="text-ink">加载中...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<GameImmersiveLoading message="挑战战报推演中……" />}>
       <ChallengeBattlePageContent />
     </Suspense>
   );

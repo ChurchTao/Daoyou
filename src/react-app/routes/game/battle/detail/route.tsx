@@ -1,4 +1,5 @@
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
 import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
@@ -75,13 +76,20 @@ export default function BattleReplayPage() {
     fetchBattleRecord();
   }, [id]);
 
+  if (loading && !record) {
+    return <GameImmersiveLoading message="回溯战斗回放……" />;
+  }
+
   if (!record && !loading) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
-        <div className="text-center">
+      <div className="flex h-full items-center justify-center px-4 py-20">
+        <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
           <p className="text-ink mb-4">未找到该战斗记录</p>
-          <Link href="/game" className="text-ink hover:text-crimson">
-            [返回主页]
+          <Link
+            href="/game/battle/history"
+            className="text-ink hover:text-crimson"
+          >
+            [返回战绩]
           </Link>
         </div>
       </div>
@@ -110,14 +118,14 @@ export default function BattleReplayPage() {
     <BattlePageLayout
       title={`战斗回放 · ${playerName} vs ${opponentName}`}
       subtitle="按时间顺序查看这场战斗的全过程。"
-      backHref="/game"
+      backHref="/game/battle/history"
       loading={loading}
       battleResult={battleResult}
       isStreaming={false}
       actions={{
         primary: {
-          label: '返回主页',
-          href: '/game',
+          label: '返回战绩',
+          href: '/game/battle/history',
         },
       }}
     >

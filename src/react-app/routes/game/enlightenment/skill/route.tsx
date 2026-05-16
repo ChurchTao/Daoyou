@@ -1,7 +1,8 @@
 import { MaterialSelector } from '@app/routes/game/components/MaterialSelector';
 import {
   CreationIntentPanel, CreationProductResultModal, SelectedMaterialsWithDose, type CreationProductResultRecord, } from '@app/components/feature/creation';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkButton, InkChoiceButton, InkIdentifyCelebration, InkNotice, } from '@app/components/ui';
@@ -10,7 +11,7 @@ import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate } from 'react-router';
 
 
 const CRAFT_TYPE = 'create_skill' as const;
@@ -80,7 +81,6 @@ export default function SkillCreationPage() {
   const [canAfford, setCanAfford] = useState(true);
   const [targetPolicy, setTargetPolicy] = useState<TargetPolicySelection>(null);
   const { pushToast, openDialog } = useInkUI();
-  const { pathname } = useLocation();
 
   useEffect(() => {
     const checkPending = async () => {
@@ -290,27 +290,58 @@ export default function SkillCreationPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">入定冥想中……</p>
       </div>
     );
   }
 
+  const targetPolicySummary = targetPolicy
+    ? [
+        TARGET_TEAM_OPTIONS.find((option) => option.value === targetPolicy.team)?.label,
+        targetPolicy.team === 'self'
+          ? null
+          : TARGET_SCOPE_OPTIONS.find((option) => option.value === targetPolicy.scope)
+              ?.label,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '未指定';
+
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【神通推演】"
-      subtitle="神念所至，万法皆生"
-      backHref="/game/enlightenment"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="神通推演属于典型工作流页，保留原有推演逻辑，把材料、目标策略与道心消耗统一收束到同一壳内。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="推演摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>已选材料：{selectedMaterialIds.length} / {MAX_MATERIALS}</p>
+              <p>目标策略：{targetPolicySummary}</p>
+              <p>预计感悟：{displayEstimatedCost?.comprehension ?? 0}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="推演提醒" className="text-sm leading-7">
+            <p>目标策略是必填项，决定神通的施法方向与覆盖范围。</p>
+            <p className="mt-2">若已有待纳入的新神通，请先处理旧术取舍。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
-          <InkButton href="/game/enlightenment">返回</InkButton>
-          <span className="text-ink-secondary text-xs">
-            {selectedMaterialIds.length > 0
-              ? `已选 ${selectedMaterialIds.length} 种材料`
-              : '请选择材料开始推演'}
-          </span>
+          <InkButton href="/game/enlightenment">返回藏经阁</InkButton>
+          <InkButton href="/game/skills">查看所修神通</InkButton>
+          <InkButton href="/game/enlightenment/manual-draw" variant="secondary">
+            问法寻卷
+          </InkButton>
         </InkActionGroup>
       }
     >
@@ -513,6 +544,6 @@ export default function SkillCreationPage() {
       {celebrationTick > 0 && (
         <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

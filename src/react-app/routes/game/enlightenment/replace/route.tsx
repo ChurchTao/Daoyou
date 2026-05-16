@@ -1,7 +1,8 @@
 import { getCreationProductTypeFromCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import {
   CreationProductResultModal, type CreationProductResultRecord, } from '@app/components/feature/creation';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import {
   toProductDisplayModel, type ProductDisplayModel, } from '@app/components/feature/products';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -173,13 +174,72 @@ function ReplaceContent() {
   };
 
   if (initializing || !cultivator) return null;
-  if (!pendingItem) return <InkNotice>无可领悟之法</InkNotice>;
+  if (!pendingItem) {
+    return (
+      <GameSceneFrame
+        variant="lite"
+        title={isSkill ? '神通突围' : '功法破障'}
+        description="当前没有待处理的新法门。"
+      >
+        <InkNotice>无可领悟之法</InkNotice>
+      </GameSceneFrame>
+    );
+  }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title={isSkill ? '神通突围' : '功法破障'}
-      subtitle="万法随心，取舍有道"
-      backHref="/game/enlightenment"
+      description="万法随心，取舍有道。新法门与旧道基的取舍被压成单一工作流页，避免跳出主游戏壳。"
+      aside={
+        <>
+          <GameSceneAsideSection title="取舍摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>待纳入：{pendingItem.name}</p>
+              <p>现有法门：{existingItems.length} 门</p>
+              <p>已选舍弃：{selectedOldId ? '1 门' : '尚未选择'}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="决断提醒" className="text-sm leading-7">
+            <p>确认替换后，旧法会永久消散；放弃则本次灵感归空。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
+        <InkActionGroup>
+          <InkButton href={isSkill ? '/game/skills' : '/game/techniques'}>
+            查看现有法门
+          </InkButton>
+          <InkButton
+            variant="outline"
+            onClick={() => {
+              openDialog({
+                title: '确认放弃',
+                content: (
+                  <p>
+                    道友当真要放弃此次造化之机？
+                    <br />
+                    一旦放弃，灵感将消散归于虚无。
+                  </p>
+                ),
+                onConfirm: () => handleConfirm(true),
+                confirmLabel: '确认放弃',
+                cancelLabel: '再想想',
+              });
+            }}
+            disabled={loading}
+          >
+            放弃领悟
+          </InkButton>
+          <InkButton
+            variant="primary"
+            onClick={() => handleConfirm(false)}
+            disabled={loading || !selectedOldId}
+          >
+            {loading ? '演化中...' : '确认替换'}
+          </InkButton>
+        </InkActionGroup>
+      }
     >
       <div className="space-y-6 pb-12">
         <InkNotice>
@@ -233,50 +293,19 @@ function ReplaceContent() {
           )}
         </InkSection>
 
-        <InkActionGroup>
-          <InkButton
-            variant="outline"
-            onClick={() => {
-              openDialog({
-                title: '确认放弃',
-                content: (
-                  <p>
-                    道友当真要放弃此次造化之机？
-                    <br />
-                    一旦放弃，灵感将消散归于虚无。
-                  </p>
-                ),
-                onConfirm: () => handleConfirm(true),
-                confirmLabel: '确认放弃',
-                cancelLabel: '再想想',
-              });
-            }}
-            disabled={loading}
-          >
-            放弃领悟
-          </InkButton>
-          <InkButton
-            variant="primary"
-            onClick={() => handleConfirm(false)}
-            disabled={loading || !selectedOldId}
-          >
-            {loading ? '演化中...' : '确认替换'}
-          </InkButton>
-        </InkActionGroup>
-
         <CreationProductResultModal
           isOpen={isPendingModalOpen}
           onClose={() => setIsPendingModalOpen(false)}
           product={pendingItem}
         />
       </div>
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }
 
 export default function ReplacePage() {
   return (
-    <Suspense fallback={<InkNotice>感知天机中...</InkNotice>}>
+    <Suspense fallback={<GameSceneLoading message="感知天机中..." />}>
       <ReplaceContent />
     </Suspense>
   );

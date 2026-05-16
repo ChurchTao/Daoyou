@@ -1,4 +1,4 @@
-import { InkPageShell } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
 import { AffixInlineList } from '@app/components/feature/products';
 import {
   InkActionGroup, InkBadge, InkButton, InkNotice, } from '@app/components/ui';
@@ -10,8 +10,6 @@ import {
 } from '../hooks/useTechniquesViewModel';
 import { TechniqueDetailModal } from './TechniqueDetailModal';
 import { Quality } from '@shared/types/constants';
-import { useLocation } from 'react-router';
-
 
 function TechniqueCard({
   technique,
@@ -56,7 +54,6 @@ function TechniqueCard({
 }
 
 export function TechniquesView() {
-  const { pathname } = useLocation();
   const {
     cultivator,
     techniques,
@@ -71,20 +68,38 @@ export function TechniquesView() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">功法卷轴徐徐展开……</p>
       </div>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="【所修功法】"
-      subtitle={`共 ${techniques.length} 部`}
-      backHref="/game"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="根基所系的功法都在此归档。这里强调数量、取舍与回藏经阁继续参悟，而不再沿用旧文书页壳。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="道基摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>已习功法：{techniques.length} 部</p>
+              <p>建议先保留与当前流派相合的底层功法。</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="下一步" className="text-sm leading-7">
+            <p>若功法稀缺，可先去问法寻卷；若想再造新法，则回藏经阁继续参悟。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game">返回</InkButton>
           <InkButton href="/game/enlightenment" variant="primary">
@@ -116,6 +131,6 @@ export function TechniquesView() {
           />
         </>
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

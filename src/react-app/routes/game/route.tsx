@@ -9,7 +9,7 @@ export default function HomePage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-paper flex min-h-screen items-center justify-center">
+        <div className="flex h-full items-center justify-center">
           <p className="loading-tip">正在推演天机……</p>
         </div>
       }

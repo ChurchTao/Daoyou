@@ -1,7 +1,8 @@
 import {
   SelectedMaterialsWithDose,
 } from '@app/components/feature/creation';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -33,7 +34,6 @@ import type {
   PillFamily,
 } from '@shared/types/consumable';
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router';
 
 const ALLOWED_MATERIAL_TYPES = [
   'herb',
@@ -305,7 +305,6 @@ export default function AlchemyPage() {
   const [isLoadingFormulas, setIsLoadingFormulas] = useState(false);
   const [formulasError, setFormulasError] = useState<string | null>(null);
   const { pushToast } = useInkUI();
-  const { pathname } = useLocation();
 
   const selectedFormula = useMemo(
     () => formulas.find((formula) => formula.id === selectedFormulaId) ?? null,
@@ -630,20 +629,67 @@ export default function AlchemyPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">丹火温养中……</p>
       </div>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      eyebrow="造化场景"
       title="【炼丹房】"
-      subtitle="丹意引炉，药性成形"
-      backHref="/game/craft"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="丹意引炉，药性成形。左侧专心排布材料与炉法，右侧始终盯着丹方、灵石消耗与当前炉况。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              炉况摘要
+            </div>
+            <div className="space-y-2 text-sm leading-7">
+              <p>当前炉法：{activeMode === 'formula' ? '丹方炼制' : '即兴炼丹'}</p>
+              <p>
+                已投入灵材：{selectedMaterialIds.length}/{MAX_MATERIALS}
+              </p>
+              <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+              {estimatedSpiritStones !== null ? (
+                <p>预计耗费：{estimatedSpiritStones} 灵石</p>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 text-sm leading-7">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              丹方与提示
+            </div>
+            {activeMode === 'formula' && selectedFormula ? (
+              <div className="space-y-2">
+                <p>已选丹方：{selectedFormula.name}</p>
+                <p>丹方族类：{getPillFamilyLabel(selectedFormula.family)}</p>
+                <p>熟练等级：Lv.{selectedFormula.mastery.level}</p>
+              </div>
+            ) : activeMode === 'formula' ? (
+              <p>请先选定丹方，再投入灵材。</p>
+            ) : (
+              <p>请投入灵材并注入丹意，系统会按材料药性与意图共振出丹。</p>
+            )}
+            {previewError ? <p className="text-crimson mt-2">{previewError}</p> : null}
+            {displayValidation?.blockingReason ? (
+              <p className="text-crimson mt-2">
+                {displayValidation.blockingReason}
+              </p>
+            ) : null}
+          </section>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game/craft">返回</InkButton>
           <span className="text-ink-secondary text-xs">
@@ -896,6 +942,6 @@ export default function AlchemyPage() {
       {celebrationTick > 0 && (
         <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

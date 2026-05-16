@@ -1,4 +1,4 @@
-import { InkPageShell } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkBadge, InkButton, InkCard, InkNotice, InkTabs, InkTag, } from '@app/components/ui';
@@ -9,7 +9,7 @@ import { getElementInfo, getMaterialTypeInfo } from '@shared/types/dictionaries'
 import {
   buildManualDrawHref, MANUAL_DRAW_CONFIG, normalizeManualDrawKind, type ManualDrawKind, type ManualDrawResultDTO, type ManualDrawStatusDTO, } from '@shared/types/manualDraw';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 
 type StatusResponse = {
@@ -219,7 +219,6 @@ function ResultMiniCard({ material }: { material: Material }) {
 }
 
 export default function ManualDrawPage() {
-  const { pathname } = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { cultivator, note, isLoading, refreshInventory } = useCultivator();
@@ -355,7 +354,7 @@ export default function ManualDrawPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">正在推演卷中气机……</p>
       </div>
     );
@@ -363,29 +362,52 @@ export default function ManualDrawPage() {
 
   if (!cultivator) {
     return (
-      <InkPageShell
+      <GameSceneFrame
+        variant="lite"
         title="【问法寻卷】"
-        subtitle="需先踏入仙途，方可求取经卷"
-        backHref="/game"
-        currentPath={pathname}
+        description="需先踏入仙途，方可求取经卷。"
+        actionBar={<InkButton href="/game">返回洞府</InkButton>}
       >
         <InkNotice>当前没有活跃角色，暂时无法求卷。</InkNotice>
-      </InkPageShell>
+      </GameSceneFrame>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【问法寻卷】"
-      subtitle="请符求卷，得功法与神通秘籍"
-      backHref="/game"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="请符求卷，得功法与神通秘籍。卷池切换、抽取结果与存量信息统一回收到同一场景骨架中。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="符箓存量">
+            <div className="space-y-2 text-sm leading-7">
+              <p>功法符：{status.talismanCounts.gongfa}</p>
+              <p>神通符：{status.talismanCounts.skill}</p>
+              <p>当前卷池：{currentConfig.tabLabel}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="卷池规则" className="text-sm leading-7">
+            <p>{currentConfig.usageHint}</p>
+            <p className="mt-2">抽出的秘籍会直接落入材料背包，供藏经阁后续使用。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game/inventory">查看储物袋</InkButton>
-          <InkButton href="/game" variant="secondary">
-            返回主界
+          <InkButton href="/game/enlightenment" variant="primary">
+            返回藏经阁
+          </InkButton>
+          <InkButton href="/game/skills" variant="secondary">
+            查看已修法门
           </InkButton>
         </InkActionGroup>
       }
@@ -535,6 +557,6 @@ export default function ManualDrawPage() {
           )}
         </InkCard>
       </div>
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

@@ -1,4 +1,4 @@
-import { InkPageShell } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
 import {
   AbilityMetaLine, AffixInlineList, } from '@app/components/feature/products';
 import {
@@ -7,8 +7,6 @@ import { ItemCard } from '@app/components/ui/ItemCard';
 
 import { useSkillsViewModel, type V2Skill } from '../hooks/useSkillsViewModel';
 import { SkillDetailModal } from './SkillDetailModal';
-import { useLocation } from 'react-router';
-
 
 function SkillCard({
   skill,
@@ -55,7 +53,6 @@ function SkillCard({
  * 神通主视图组件
  */
 export function SkillsView() {
-  const { pathname } = useLocation();
   const {
     cultivator,
     skills,
@@ -73,20 +70,39 @@ export function SkillsView() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">神通卷轴徐徐展开……</p>
       </div>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="【所修神通】"
-      subtitle={`共 ${skills.length}/${maxSkills}`}
-      backHref="/game"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="攻伐、辅助与身法诸术都在这里归卷。主区只保留术册本体，旁栏集中显示容量与下一步修行去向。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="术册摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>已习神通：{skills.length} 门</p>
+              <p>可承道基：{maxSkills} 门</p>
+              <p>剩余空位：{Math.max(maxSkills - skills.length, 0)} 门</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="下一步" className="text-sm leading-7">
+            <p>想补底稿可去问法寻卷，想创造新术可直入藏经阁。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game">返回</InkButton>
           <InkButton href="/game/enlightenment" variant="primary">
@@ -121,6 +137,6 @@ export function SkillsView() {
           />
         </>
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

@@ -2,6 +2,25 @@ import type { Params, UIMatch } from 'react-router';
 
 export const APP_TITLE = '万界道友';
 
+export type GameSceneGroup =
+  | 'cultivation'
+  | 'travel'
+  | 'craft'
+  | 'trade'
+  | 'service';
+
+export type GameSceneChrome = 'standard' | 'immersive';
+
+export type GameSceneDockMode = 'core' | 'expanded' | 'hidden';
+
+export interface GameSceneHandle {
+  id: string;
+  label: string;
+  group: GameSceneGroup;
+  chrome: GameSceneChrome;
+  dock: GameSceneDockMode;
+}
+
 export interface RouteTitleContext {
   params: Params<string>;
   pathname: string;
@@ -16,6 +35,7 @@ export type RouteTitleResolver =
 
 export interface AppRouteHandle {
   title?: RouteTitleResolver;
+  gameScene?: GameSceneHandle;
 }
 
 export interface RouteTitleLocationLike {
@@ -68,4 +88,17 @@ export function resolveRouteTitle(
   }
 
   return APP_TITLE;
+}
+
+export function resolveGameScene(matches: MatchLike[]) {
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const match = matches[index];
+    const handle = match.handle as AppRouteHandle | undefined;
+
+    if (handle?.gameScene) {
+      return handle.gameScene;
+    }
+  }
+
+  return null;
 }

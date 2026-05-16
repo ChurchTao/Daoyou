@@ -4,7 +4,8 @@ import {
 import {
   TEMP_DISABLED_MESSAGES, temporaryRestrictions, } from '@shared/config/temporaryRestrictions';
 import { ListItemModal } from '@app/components/auction/ListItemModal';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkBadge, InkButton, InkList, InkNotice, InkTabs, } from '@app/components/ui';
@@ -14,7 +15,6 @@ import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP, getConsumableRankInfo, getEquipmentSlotInfo, getMaterialTypeInfo, } from '@shared/types/dictionaries';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router';
 
 
 type AuctionListing = {
@@ -51,7 +51,6 @@ export default function AuctionPage() {
   });
 
   const { pushToast } = useInkUI();
-  const { pathname } = useLocation();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -324,12 +323,6 @@ export default function AuctionPage() {
     { label: '我的寄售', value: 'my' },
   ];
 
-  const subtitle = cultivator
-    ? activeTab === 'my'
-      ? `灵石余额：${cultivator.spirit_stones} ｜ 我的寄售：${myListings.length}/5`
-      : `灵石余额：${cultivator.spirit_stones}`
-    : '路人止步';
-
   const renderListing = (listing: AuctionListing, isMyListing: boolean) => {
     const displayProps = getItemDisplayProps(listing);
     const timeLeft = formatTime(listing.expiresAt);
@@ -432,12 +425,27 @@ export default function AuctionPage() {
   };
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【拍卖行】"
-      subtitle={subtitle}
-      backHref="/game"
-      currentPath={pathname}
-      footer={
+      description="拍卖行保留浏览、购买、寄售与详情弹窗，右侧改为只呈现灵石余额、寄售容量与成交规则。"
+      aside={
+        <>
+          <GameSceneAsideSection title="寄售摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+              <p>当前页签：{activeTab === 'browse' ? '浏览拍卖' : '我的寄售'}</p>
+              <p>浏览货单：{browseListings.length} 条</p>
+              <p>我的寄售：{myListings.length} / 5</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="成交规则" className="text-sm leading-7">
+            <p>寄售成功后按时限等待成交；自己的货单不可回购。</p>
+            <p className="mt-2">卖家实际到手为标价的九成，余下一成视作抽成。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup>
           <InkButton href="/game/inventory">查看储物袋</InkButton>
           {cultivator && activeTab === 'my' && (
@@ -445,6 +453,9 @@ export default function AuctionPage() {
               上架物品
             </InkButton>
           )}
+          <InkButton href="/game/market/recycle" variant="secondary">
+            前往坊市鉴宝
+          </InkButton>
         </InkActionGroup>
       }
     >
@@ -506,6 +517,6 @@ export default function AuctionPage() {
         onClose={() => setSelectedItem(null)}
         item={selectedItem}
       />
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

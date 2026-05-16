@@ -1,4 +1,5 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { MailDetailModal } from '@app/components/mail/MailDetailModal';
 import { Mail, MailList } from '@app/components/mail/MailList';
@@ -197,11 +198,53 @@ export default function MailPage() {
     }
   };
 
+  const unreadCount = mails.filter((mail) => !mail.isRead).length;
+  const pendingAttachments = mails.filter(
+    (mail) => mail.type === 'reward' && !mail.isClaimed,
+  ).length;
+
   return (
-    <InkPageShell
-      title="传音玉简"
-      subtitle="鸿雁长飞光不度，鱼龙潜跃水成文"
-      backHref="/game"
+    <GameSceneFrame
+      eyebrow="消息场景"
+      title="【传音玉简】"
+      description="宗门告示、奖励来函与四方灵讯都在此归卷。先清掉要紧的未读与附件，再决定今日是否继续外出。"
+      aside={
+        <>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              收件摘要
+            </div>
+            <div className="space-y-2 text-sm leading-7">
+              <p>当前已载：{mails.length} 封</p>
+              <p>未读：{unreadCount} 封</p>
+              <p>待领附件：{pendingAttachments} 封</p>
+            </div>
+          </section>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 text-sm leading-7">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              操作说明
+            </div>
+            <p>点击玉简可展开全文，未读会即时回写。</p>
+            <p className="mt-2">奖励类来函支持就地领取，不必离开当前场景。</p>
+          </section>
+        </>
+      }
+      actionBar={
+        <div className="flex flex-wrap justify-end gap-2">
+          <InkButton
+            onClick={handleClaimAll}
+            disabled={batchClaiming || batchReading || mails.length === 0}
+          >
+            {batchClaiming ? '领取中...' : '一键领取'}
+          </InkButton>
+          <InkButton
+            onClick={handleReadAll}
+            disabled={batchReading || batchClaiming || mails.length === 0}
+          >
+            {batchReading ? '处理中...' : '全部已读'}
+          </InkButton>
+        </div>
+      }
     >
       <InkSection title="【收件箱】">
         {loading ? (
@@ -210,28 +253,14 @@ export default function MailPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex flex-wrap justify-end gap-2">
-              <InkButton
-                onClick={handleClaimAll}
-                disabled={batchClaiming || batchReading || mails.length === 0}
-              >
-                {batchClaiming ? '领取中...' : '一键领取'}
-              </InkButton>
-              <InkButton
-                onClick={handleReadAll}
-                disabled={batchReading || batchClaiming || mails.length === 0}
-              >
-                {batchReading ? '处理中...' : '全部已读'}
-              </InkButton>
-            </div>
             <MailList mails={mails} onSelect={handleSelectMail} />
-            {hasMore && (
+            {hasMore ? (
               <div className="flex justify-center pt-2">
                 <InkButton onClick={handleLoadMore} disabled={loadingMore}>
                   {loadingMore ? '接收中...' : '加载更多'}
                 </InkButton>
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </InkSection>
@@ -241,6 +270,6 @@ export default function MailPage() {
         onClose={() => setSelectedMail(null)}
         onUpdate={handleUpdate}
       />
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

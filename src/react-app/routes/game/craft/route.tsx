@@ -1,26 +1,46 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { InkActionGroup } from '@app/components/ui/InkActionGroup';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
-import { useLocation } from 'react-router';
-
 
 export default function CraftPage() {
   const { note } = useCultivator();
-  const { pathname } = useLocation();
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="【造物仙炉】"
-      subtitle="天地为炉，造化为工"
-      backHref="/game"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="天地为炉，造化为工。先分清此刻是要炼器成兵，还是炼丹调息，再携合适灵材入室。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="炉房分途">
+            <div className="space-y-2 text-sm leading-7">
+              <p>炼器室：矿材、妖骨、辅材入炉，锻出法宝形体。</p>
+              <p>炼丹房：草木灵药调性，求疗伤、破境与炼体诸丹。</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="造物要诀" className="text-sm leading-7">
+            <p>品阶越高、五行越契合，成品越稳。</p>
+            <p className="mt-2">神念描述会直接影响成品的方向与气质。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup>
           <InkButton href="/game/inventory">查看储物袋</InkButton>
-          <InkButton href="/game">返回主界</InkButton>
+          <InkButton href="/game/craft/refine" variant="primary">
+            前往炼器室
+          </InkButton>
+          <InkButton href="/game/craft/alchemy">前往炼丹房</InkButton>
         </InkActionGroup>
       }
     >
@@ -73,6 +93,6 @@ export default function CraftPage() {
           </p>
         </div>
       </InkSection>
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

@@ -1,26 +1,46 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { InkActionGroup } from '@app/components/ui/InkActionGroup';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
-import { useLocation } from 'react-router';
-
 
 export default function EnlightenmentPage() {
   const { note } = useCultivator();
-  const { pathname } = useLocation();
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="【藏经阁】"
-      subtitle="万法归宗，神念通玄"
-      backHref="/game"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="万法归宗，神念通玄。这里不再只是门户，而是决定你此刻要推演神通、参悟功法，还是先去求卷补足底稿。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="参悟分流">
+            <div className="space-y-2 text-sm leading-7">
+              <p>神通推演：更偏攻伐、辅助与施法方向。</p>
+              <p>功法参悟：更偏根基、修炼速度与长期属性。</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="先做什么" className="text-sm leading-7">
+            <p>若缺秘籍底稿，宜先去问法寻卷。</p>
+            <p className="mt-2">若已有待纳入的新法门，处理取舍优先级最高。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup>
           <InkButton href="/game/skills">查看神通</InkButton>
-          <InkButton href="/game">返回主界</InkButton>
+          <InkButton href="/game/techniques">查看功法</InkButton>
+          <InkButton href="/game/enlightenment/manual-draw" variant="primary">
+            问法寻卷
+          </InkButton>
         </InkActionGroup>
       }
     >
@@ -75,6 +95,6 @@ export default function EnlightenmentPage() {
           </p>
         </div>
       </InkSection>
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

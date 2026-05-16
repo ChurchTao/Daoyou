@@ -1,4 +1,4 @@
-import { InkPageShell } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
 import {
   AffixInlineList, formatNumber, } from '@app/components/feature/products';
 import {
@@ -9,8 +9,6 @@ import {
   type V2Artifact,
 } from '../hooks/useArtifactsViewModel';
 import { ArtifactDetailModal } from './ArtifactDetailModal';
-import { useLocation } from 'react-router';
-
 
 const SLOT_LABELS: Record<string, string> = {
   weapon: '武器',
@@ -76,7 +74,6 @@ function ArtifactCard({
 }
 
 export function ArtifactsView() {
-  const { pathname } = useLocation();
   const {
     cultivator,
     artifacts,
@@ -92,20 +89,38 @@ export function ArtifactsView() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">法宝灵光徐徐显现……</p>
       </div>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="【所炼法宝】"
-      subtitle={`共 ${artifacts.length} 件`}
-      backHref="/game"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="佩装、收藏与待销毁的法宝都归在此处。主区只看器物，侧栏只保留装备占比与下一步流转方向。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="法宝摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>法宝总数：{artifacts.length} 件</p>
+              <p>已装备：{artifacts.filter((artifact) => artifact.isEquipped).length} 件</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="流转去向" className="text-sm leading-7">
+            <p>需补装备可回炼器室；多余器物则可送去坊市鉴评或拍卖行。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
           <InkButton href="/game">返回</InkButton>
           <InkButton href="/game/craft/refine" variant="primary">
@@ -138,6 +153,6 @@ export function ArtifactsView() {
           />
         </>
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

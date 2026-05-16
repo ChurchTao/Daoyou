@@ -1,7 +1,9 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
+import { InkNotice } from '@app/components/ui/InkNotice';
 import { getResourceTypeLabel } from '@shared/types/dictionaries';
 import { useEffect, useState } from 'react';
 
@@ -162,29 +164,65 @@ export default function DungeonHistoryPage() {
 
   if (loading && records.length === 0) {
     return (
-      <InkPageShell title="探险札记" backHref="/game/dungeon">
-        <div className="flex justify-center p-12">
-          <p className="animate-pulse">翻阅旧事...</p>
-        </div>
-      </InkPageShell>
+      <GameSceneFrame
+        variant="lite"
+        title="探险札记"
+        description="副本骨架仍保持沉浸式，这页则作为常规卷宗页，专门整理已经发生过的探险过程与收获。"
+      >
+        <InkNotice>翻阅旧事…</InkNotice>
+      </GameSceneFrame>
     );
   }
 
   if (records.length === 0) {
     return (
-      <InkPageShell title="探险札记" backHref="/game/dungeon">
+      <GameSceneFrame
+        variant="lite"
+        title="探险札记"
+        description="副本骨架仍保持沉浸式，这页则作为常规卷宗页，专门整理已经发生过的探险过程与收获。"
+        actionBar={
+          <div className="flex flex-wrap gap-2">
+            <InkButton href="/game/dungeon" variant="primary">
+              开始探险
+            </InkButton>
+            <InkButton href="/game">返回洞府</InkButton>
+          </div>
+        }
+      >
         <InkCard className="p-6 text-center">
           <p className="text-ink-secondary">尚无探险记录</p>
-          <InkButton href="/game/dungeon" variant="primary" className="mt-4">
-            开始探险
-          </InkButton>
         </InkCard>
-      </InkPageShell>
+      </GameSceneFrame>
     );
   }
 
   return (
-    <InkPageShell title="探险札记" backHref="/game/dungeon">
+    <GameSceneFrame
+      title="探险札记"
+      description="副本骨架仍保持沉浸式，这页则作为常规卷宗页，专门整理已经发生过的探险过程与收获。"
+      aside={
+        <>
+          <GameSceneAsideSection title="札记摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>累计探险：{pagination.total} 次</p>
+              <p>当前页次：{pagination.page} / {Math.max(pagination.totalPages, 1)}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="奖励品阶" className="text-sm leading-7">
+            <p>S / A 越高，表示本次探险机缘与回收层级越高。</p>
+            <p className="mt-2">展开单条札记可继续查看逐回合路线。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
+        <div className="flex flex-wrap gap-2">
+          <InkButton href="/game/dungeon" variant="primary">
+            返回云游探秘
+          </InkButton>
+          <InkButton href="/game">返回洞府</InkButton>
+        </div>
+      }
+    >
       <InkSection title={`共 ${pagination.total} 次探险`}>
         <div className="space-y-4">
           {records.map((record) => (
@@ -303,6 +341,6 @@ export default function DungeonHistoryPage() {
           </div>
         )}
       </InkSection>
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

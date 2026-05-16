@@ -1,4 +1,5 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkBadge, InkButton, InkDialog, InkDialogState, InkList, InkListItem, InkNotice, InkTabs, } from '@app/components/ui';
@@ -8,7 +9,7 @@ import { Material } from '@shared/types/cultivator';
 import { getMaterialTypeInfo } from '@shared/types/dictionaries';
 import { MarketLayer } from '@shared/types/market';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 
 type MarketListing = Material & {
@@ -35,7 +36,6 @@ const LAYER_OPTIONS: Array<{ label: string; value: MarketLayer }> = [
 export default function MarketPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { pathname } = useLocation();
   const { cultivator, refresh } = useCultivator();
   const { pushToast } = useInkUI();
 
@@ -126,7 +126,7 @@ export default function MarketPage() {
       const next = new URLSearchParams(searchParams.toString());
       next.set('nodeId', DEFAULT_NODE_ID);
       if (!next.get('layer')) next.set('layer', 'common');
-      navigate(`${pathname}?${next.toString()}`, { replace: true });
+      navigate(`/game/market?${next.toString()}`, { replace: true });
       return;
     }
     let cancelled = false;
@@ -176,7 +176,7 @@ export default function MarketPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeLayer, navigate, nodeId, pathname, pushToast, searchParams]);
+  }, [activeLayer, navigate, nodeId, pushToast, searchParams]);
 
   const handleBuy = async (item: MarketListing) => {
     if (!cultivator) return;
@@ -320,31 +320,57 @@ export default function MarketPage() {
   }, [fetchMarket, nextRefresh]);
 
   const handleLayerChange = (nextLayer: string) => {
-    const target = nextLayer as MarketLayer;
-    const next = new URLSearchParams(searchParams.toString());
-    next.set('nodeId', nodeId);
-    next.set('layer', target);
-    navigate(`${pathname}?${next.toString()}`, { replace: true });
+      const target = nextLayer as MarketLayer;
+      const next = new URLSearchParams(searchParams.toString());
+      next.set('nodeId', nodeId);
+      next.set('layer', target);
+      navigate(`/game/market?${next.toString()}`, { replace: true });
   };
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      eyebrow="交易场景"
       title={`【${marketFlavor?.title || '云游坊市'}】`}
-      subtitle={
-        cultivator
-          ? `灵石余额：${cultivator.spirit_stones} · 当前节点：${selectedNode?.name || nodeId}`
-          : '路人止步'
+      description={
+        marketFlavor?.description ||
+        '四方云集，奇货待价。先看节点、层级与刷新节奏，再决定补给、捡漏还是观望。'
       }
-      backHref="/game"
-      currentPath={pathname}
-      footer={
+      aside={
+        <>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              坊市摘要
+            </div>
+            <div className="space-y-2 text-sm leading-7">
+              <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+              <p>当前节点：{selectedNode?.name || nodeId}</p>
+              <p>当前层级：{LAYER_OPTIONS.find((item) => item.value === activeLayer)?.label}</p>
+              <p>刷新倒计时：{timeLeft}</p>
+            </div>
+          </section>
+          <section className="border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 text-sm leading-7">
+            <div className="text-battle-muted mb-2 text-xs tracking-[0.2em]">
+              入场条件
+            </div>
+            {access.allowed ? (
+              <p>当前层可自由进入，宜趁刷新前比价出手。</p>
+            ) : (
+              <p>{access.reason || '当前层不可进入'}</p>
+            )}
+            {typeof access.entryFee === 'number' ? (
+              <p className="mt-2">入场耗费：{access.entryFee} 灵石</p>
+            ) : null}
+          </section>
+        </>
+      }
+      actionBar={
         <InkActionGroup>
           <InkButton href="/game/map?intent=market">地图择城</InkButton>
           <InkButton href="/game/inventory">查看储物袋</InkButton>
         </InkActionGroup>
       }
     >
-      <InkSection title={marketFlavor?.description || '四方云集，价高者得'}>
+      <InkSection title="【坊市分层】">
         <InkTabs
           className="mb-4"
           activeValue={activeLayer}
@@ -380,7 +406,7 @@ export default function MarketPage() {
         )}
       </InkSection>
 
-      <InkSection title={`下批好货刷新倒计时：${timeLeft}`}>
+      <InkSection title={`【货架】 下批好货刷新倒计时：${timeLeft}`}>
         {isLoadingMarket ? (
           <div className="py-10 text-center">坊市掌柜正在盘货...</div>
         ) : listings.length > 0 ? (
@@ -468,6 +494,6 @@ export default function MarketPage() {
         dialog={batchBuyDialog}
         onClose={() => setBatchBuyDialog(null)}
       />
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

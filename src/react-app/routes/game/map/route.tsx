@@ -1,5 +1,4 @@
 import { MapNode, MapNodeDetail, type MapNodeDetailAction, MapSatellite, } from '@app/components/feature/map';
-import { InkButton } from '@app/components/ui/InkButton';
 import {
   getAllMapNodes, getAllSatelliteNodes, getMapNode, type MapNodeInfo, } from '@shared/lib/game/mapSystem';
 import { useMemo, useState } from 'react';
@@ -114,25 +113,7 @@ export default function MapPage() {
   ]);
 
   return (
-    <div className="bg-paper fixed inset-0 flex flex-col overflow-hidden">
-      <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 flex items-start justify-between p-4">
-        <div className="pointer-events-auto flex gap-2">
-          <InkButton
-            onClick={() => navigate(-1)}
-            variant="outline"
-            className="bg-background! px-2 text-sm"
-          >
-            关闭
-          </InkButton>
-        </div>
-        <div className="border-ink/10 bg-background pointer-events-auto border border-dashed px-4 py-2">
-          <div className="text-ink font-bold">修仙界</div>
-          <div className="text-ink-secondary text-xs">
-            人界·全图 · {intent === 'market' ? '坊市选址' : '历练选址'}
-          </div>
-        </div>
-      </div>
-
+    <div className="relative h-full overflow-hidden">
       <div className="relative h-full w-full flex-1 cursor-grab active:cursor-grabbing">
         <TransformWrapper
           initialScale={1}

@@ -4,7 +4,7 @@ import {
 import {
   TEMP_DISABLED_MESSAGES, temporaryRestrictions, } from '@shared/config/temporaryRestrictions';
 import { formatProbeResultContent } from '@app/components/func/ProbeResult';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { InkSection } from '@app/components/layout';
 import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
@@ -15,7 +15,7 @@ import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { cn } from '@shared/lib/cn';
 import { REALM_VALUES, type RealmType } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP, getEquipmentSlotInfo, getMaterialTypeInfo, } from '@shared/types/dictionaries';
@@ -376,7 +376,6 @@ function useInventorySelector() {
 }
 
 export default function BetBattlePage() {
-  const { pathname } = useLocation();
   const { cultivator, refresh } = useCultivator();
   const { pushToast } = useInkUI();
   const [now, setNow] = useState(() => Date.now());
@@ -717,85 +716,111 @@ export default function BetBattlePage() {
   };
 
   return (
-    <InkPageShell
-      title="【赌战台】"
-      subtitle={cultivator ? `灵石：${cultivator.spirit_stones}` : '路人止步'}
-      backHref="/game"
-      currentPath={pathname}
-      footer={
-        <InkActionGroup>
-          <InkButton href="/game/mail">查看邮件</InkButton>
-          <InkButton
-            variant="primary"
-            onClick={() => setShowCreateModal(true)}
-            disabled={!cultivator || !canCreateMore}
-          >
-            发起赌战
-          </InkButton>
-        </InkActionGroup>
-      }
-    >
-      <InkTabs
-        items={[
-          { label: '赌战大厅', value: 'hall' },
-          { label: '我的赌战', value: 'mine' },
-        ]}
-        activeValue={activeTab}
-        onChange={(value) => setActiveTab(value as 'hall' | 'mine')}
-      />
-      {temporaryRestrictions.disableConsumableBetBattle && (
-        <InkNotice>{TEMP_DISABLED_MESSAGES.consumableBetBattle}</InkNotice>
-      )}
+    <div className="battle-scroll h-full overflow-y-auto">
+      <div className="mx-auto flex min-h-full max-w-5xl flex-col px-3 pt-4 pb-[calc(env(safe-area-inset-bottom)+2rem)] md:px-6 md:pt-5 md:pb-[calc(env(safe-area-inset-bottom)+2.4rem)]">
+        <section className="border-battle-rule-strong bg-[rgba(248,243,230,0.88)] border border-dashed px-4 py-4 md:px-5 md:py-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0">
+              <div className="text-battle-muted text-[0.7rem] tracking-[0.18em]">
+                竞技大厅
+              </div>
+              <h1 className="font-heading text-ink mt-2 text-3xl leading-none md:text-4xl">
+                赌战大厅
+              </h1>
+              <p className="text-ink-secondary mt-3 max-w-3xl text-sm leading-7">
+                以灵石或器物为筹，邀天下道友一战分高下。胜者得赌注，败者留名于台。
+              </p>
+              <div className="text-battle-muted mt-3 text-sm">
+                当前灵石：{cultivator?.spirit_stones ?? 0}
+              </div>
+            </div>
 
-      {activeTab === 'hall' ? (
-        <InkSection title="">
-          {loadingHall ? (
-            <div className="py-10 text-center">正在加载赌战列表...</div>
-          ) : hallListings.length === 0 ? (
-            <InkNotice>暂无进行中的赌战</InkNotice>
-          ) : (
-            <InkList>{hallListings.map((item) => renderItem(item))}</InkList>
+            <InkActionGroup>
+              <InkButton href="/game/mail">查看邮件</InkButton>
+              <InkButton
+                variant="primary"
+                onClick={() => setShowCreateModal(true)}
+                disabled={!cultivator || !canCreateMore}
+              >
+                发起赌战
+              </InkButton>
+            </InkActionGroup>
+          </div>
+
+          <div className="mt-4">
+            <InkTabs
+              items={[
+                { label: '赌战大厅', value: 'hall' },
+                { label: '我的赌战', value: 'mine' },
+              ]}
+              activeValue={activeTab}
+              onChange={(value) => setActiveTab(value as 'hall' | 'mine')}
+            />
+          </div>
+
+          {temporaryRestrictions.disableConsumableBetBattle && (
+            <div className="mt-4">
+              <InkNotice>{TEMP_DISABLED_MESSAGES.consumableBetBattle}</InkNotice>
+            </div>
           )}
-        </InkSection>
-      ) : (
-        <InkSection title="">
-          {loadingMine ? (
-            <div className="py-10 text-center">正在加载我的赌战...</div>
-          ) : myListings.length === 0 ? (
-            <InkNotice>你还没有参与过赌战</InkNotice>
+        </section>
+
+        <div className="mt-4">
+          {activeTab === 'hall' ? (
+            <InkSection title="">
+              {loadingHall ? (
+                <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.88)] border border-dashed px-4 py-10 text-center">
+                  正在加载赌战列表...
+                </div>
+              ) : hallListings.length === 0 ? (
+                <InkNotice>暂无进行中的赌战</InkNotice>
+              ) : (
+                <InkList>{hallListings.map((item) => renderItem(item))}</InkList>
+              )}
+            </InkSection>
           ) : (
-            <InkList>
-              {myListings.map((item) => renderItem(item, true))}
-            </InkList>
+            <InkSection title="">
+              {loadingMine ? (
+                <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.88)] border border-dashed px-4 py-10 text-center">
+                  正在加载我的赌战...
+                </div>
+              ) : myListings.length === 0 ? (
+                <InkNotice>你还没有参与过赌战</InkNotice>
+              ) : (
+                <InkList>
+                  {myListings.map((item) => renderItem(item, true))}
+                </InkList>
+              )}
+            </InkSection>
           )}
-        </InkSection>
-      )}
+        </div>
 
-      {showCreateModal && cultivator && (
-        <BetBattleCreateModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={async () => {
-            setShowCreateModal(false);
-            await Promise.all([loadHall(), loadMine(), refresh()]);
-          }}
+        {showCreateModal && cultivator && (
+          <BetBattleCreateModal
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={async () => {
+              setShowCreateModal(false);
+              await Promise.all([loadHall(), loadMine(), refresh()]);
+            }}
+          />
+        )}
+
+        {challengeTarget && cultivator && (
+          <BetBattleChallengeModal
+            battle={challengeTarget}
+            onClose={() => setChallengeTarget(null)}
+          />
+        )}
+
+        <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
+
+        <ItemDetailModal
+          isOpen={!!selectedStakeDetail}
+          onClose={() => setSelectedStakeDetail(null)}
+          item={selectedStakeDetail}
         />
-      )}
-
-      {challengeTarget && cultivator && (
-        <BetBattleChallengeModal
-          battle={challengeTarget}
-          onClose={() => setChallengeTarget(null)}
-        />
-      )}
-
-      <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
-
-      <ItemDetailModal
-        isOpen={!!selectedStakeDetail}
-        onClose={() => setSelectedStakeDetail(null)}
-        item={selectedStakeDetail}
-      />
-    </InkPageShell>
+      </div>
+    </div>
   );
 }
 

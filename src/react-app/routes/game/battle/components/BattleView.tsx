@@ -1,3 +1,4 @@
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
 import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
 import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
@@ -49,13 +50,7 @@ export function BattleView() {
 
   // 加载中
   if (!player || !opponent) {
-    return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-ink">加载中...</p>
-        </div>
-      </div>
-    );
+    return <GameImmersiveLoading message="战局演算中……" />;
   }
 
   // 计算当前双方单位的实时状态快照
@@ -76,7 +71,7 @@ export function BattleView() {
       actions={{
         primary: {
           label: '返回主界',
-          href: '/',
+          href: '/game',
         },
         secondary: [
           {

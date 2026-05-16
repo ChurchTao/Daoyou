@@ -1,7 +1,8 @@
 import { MaterialSelector } from '@app/routes/game/components/MaterialSelector';
 import {
   CreationIntentPanel, CreationProductResultModal, SelectedMaterialsWithDose, type CreationProductResultRecord, } from '@app/components/feature/creation';
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup, InkButton, InkIdentifyCelebration, InkNotice, } from '@app/components/ui';
@@ -10,7 +11,7 @@ import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate } from 'react-router';
 
 
 const CRAFT_TYPE = 'create_gongfa' as const;
@@ -61,7 +62,6 @@ export default function GongfaCreationPage() {
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast, openDialog } = useInkUI();
-  const { pathname } = useLocation();
 
   useEffect(() => {
     const checkPending = async () => {
@@ -264,27 +264,46 @@ export default function GongfaCreationPage() {
 
   if (isLoading && !cultivator) {
     return (
-      <div className="bg-paper flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <p className="loading-tip">布置静室中……</p>
       </div>
     );
   }
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="workflow"
       title="【功法参悟】"
-      subtitle="万法归宗，神念通玄"
-      backHref="/game/enlightenment"
-      note={note}
-      currentPath={pathname}
-      footer={
+      description="功法参悟保留原有表单与待替换机制，只把当前投入、悟性消耗与待处理状态集中到统一场景摘要。"
+      headerMeta={
+        note ? (
+          <div className="battle-note">
+            <p className="text-sm leading-7">{note}</p>
+          </div>
+        ) : undefined
+      }
+      aside={
+        <>
+          <GameSceneAsideSection title="参悟摘要">
+            <div className="space-y-2 text-sm leading-7">
+              <p>已选材料：{selectedMaterialIds.length} / {MAX_MATERIALS}</p>
+              <p>预计感悟：{displayEstimatedCost?.comprehension ?? 0}</p>
+              <p>待处理新法：{pendingReplaceHref ? '有' : '无'}</p>
+            </div>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="参悟提醒" className="text-sm leading-7">
+            <p>若已有待纳入的新功法，先处理旧法取舍，再继续开悟。</p>
+            <p className="mt-2">缺底稿时可去问法寻卷补齐。</p>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
         <InkActionGroup align="between">
-          <InkButton href="/game/enlightenment">返回</InkButton>
-          <span className="text-ink-secondary text-xs">
-            {selectedMaterialIds.length > 0
-              ? `已选 ${selectedMaterialIds.length} 种材料`
-              : '请选择材料开始参悟'}
-          </span>
+          <InkButton href="/game/enlightenment">返回藏经阁</InkButton>
+          <InkButton href="/game/techniques">查看所修功法</InkButton>
+          <InkButton href="/game/enlightenment/manual-draw" variant="secondary">
+            问法寻卷
+          </InkButton>
         </InkActionGroup>
       }
     >
@@ -422,6 +441,6 @@ export default function GongfaCreationPage() {
       {celebrationTick > 0 && (
         <InkIdentifyCelebration key={celebrationTick} variant="basic" />
       )}
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

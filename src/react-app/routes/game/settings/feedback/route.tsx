@@ -1,4 +1,5 @@
-import { InkPageShell, InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkInput } from '@app/components/ui/InkInput';
@@ -58,10 +59,34 @@ export default function FeedbackPage() {
   };
 
   return (
-    <InkPageShell
+    <GameSceneFrame
+      variant="lite"
       title="意见反馈"
-      subtitle="广纳良言，共筑仙途"
-      backHref="/game"
+      description="广纳良言，共筑仙途。这里保留表单本体，把反馈类型、内容与外链提交整合进统一服务场景。"
+      aside={
+        <>
+          <GameSceneAsideSection title="填写建议" className="text-sm leading-7">
+            <p>优先写清复现路径、预期与实际结果，便于尽快定位。</p>
+            <p className="mt-2">平衡性建议尽量附上场景、境界或资源阶段。</p>
+          </GameSceneAsideSection>
+          <GameSceneAsideSection title="GitHub Issue">
+            <a
+              href={GITHUB_ISSUE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-crimson text-sm hover:underline"
+            >
+              {GITHUB_ISSUE_URL} →
+            </a>
+          </GameSceneAsideSection>
+        </>
+      }
+      actionBar={
+        <div className="flex flex-wrap gap-2">
+          <InkButton href="/game/community">玩家交流群</InkButton>
+          <InkButton href="/game/world-chat">世界传音</InkButton>
+        </div>
+      }
     >
       <InkSection title="【提交反馈】">
         <div className="space-y-6">
@@ -137,6 +162,6 @@ export default function FeedbackPage() {
           </div>
         </div>
       </InkSection>
-    </InkPageShell>
+    </GameSceneFrame>
   );
 }

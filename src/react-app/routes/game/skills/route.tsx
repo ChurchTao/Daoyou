@@ -1,4 +1,4 @@
-import { InkPageShell } from '@app/components/layout';
+import { GameSceneLoading } from '@app/components/game-shell';
 import { Suspense } from 'react';
 import { SkillsView } from './components/SkillsView';
 
@@ -8,15 +8,7 @@ import { SkillsView } from './components/SkillsView';
  */
 export default function SkillsPage() {
   return (
-    <Suspense
-      fallback={
-        <InkPageShell title="加载中...">
-          <div className="animate-pulse p-8 text-center">
-            神通卷轴徐徐展开……
-          </div>
-        </InkPageShell>
-      }
-    >
+    <Suspense fallback={<GameSceneLoading message="神通卷轴徐徐展开……" />}>
       <SkillsView />
     </Suspense>
   );

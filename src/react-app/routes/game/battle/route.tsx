@@ -1,3 +1,4 @@
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { Suspense } from 'react';
 import { BattleView } from './components/BattleView';
 
@@ -7,15 +8,7 @@ import { BattleView } from './components/BattleView';
  */
 export default function BattlePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="bg-paper flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <p className="text-ink">加载中...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<GameImmersiveLoading message="战局演算中……" />}>
       <BattleView />
     </Suspense>
   );

@@ -1,5 +1,11 @@
 import App, { RootRouteErrorBoundary } from '@app/App';
-import GameLayout, { PlayerProviderLayout } from '@app/layouts/game-layout';
+import GameLayout, {
+  GameArenaLayout,
+  GameCombatLayout,
+  GameMapLayout,
+  GameViewportLayout,
+  PlayerProviderLayout,
+} from '@app/layouts/game-layout';
 import { lazyRoute } from '@app/lib/router/lazyRoute';
 import {
   guestOnlyLoader,
@@ -7,10 +13,26 @@ import {
   requireAdminLoader,
   requireUserLoader,
 } from '@app/lib/router/loaders';
-import type { AppRouteHandle, RouteTitleResolver } from '@app/lib/router/routeTitle';
+import type {
+  AppRouteHandle,
+  GameSceneHandle,
+  RouteTitleResolver,
+} from '@app/lib/router/routeTitle';
 import { createBrowserRouter, createRoutesFromElements, Outlet, Route } from 'react-router';
 
 const title = (value: RouteTitleResolver): AppRouteHandle => ({ title: value });
+const scene = (
+  sceneHandle: Omit<GameSceneHandle, 'chrome' | 'dock'> &
+    Partial<Pick<GameSceneHandle, 'chrome' | 'dock'>>,
+  value: RouteTitleResolver,
+): AppRouteHandle => ({
+  title: value,
+  gameScene: {
+    chrome: 'standard',
+    dock: 'core',
+    ...sceneHandle,
+  },
+});
 
 const mapTitle: RouteTitleResolver = ({ searchParams }) =>
   searchParams.get('intent') === 'market'
@@ -109,182 +131,383 @@ export const router = createBrowserRouter(
         />
 
         <Route element={<PlayerProviderLayout />}>
-          <Route
-            index
-            lazy={lazyRoute(() => import('@app/routes/game/route'))}
-            handle={title('万界道友')}
-          />
-          <Route
-            path="cultivator"
-            lazy={lazyRoute(() => import('@app/routes/game/cultivator/route'))}
-            handle={title('道身')}
-          />
-          <Route
-            path="inventory"
-            lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
-            handle={title('储物袋')}
-          />
-          <Route
-            path="skills"
-            lazy={lazyRoute(() => import('@app/routes/game/skills/route'))}
-            handle={title('【所修神通】')}
-          />
-          <Route
-            path="techniques"
-            lazy={lazyRoute(() => import('@app/routes/game/techniques/route'))}
-            handle={title('【所修功法】')}
-          />
-          <Route
-            path="artifacts"
-            lazy={lazyRoute(() => import('@app/routes/game/artifacts/route'))}
-            handle={title('【所炼法宝】')}
-          />
-          <Route
-            path="craft"
-            lazy={lazyRoute(() => import('@app/routes/game/craft/route'))}
-            handle={title('【造物仙炉】')}
-          />
-          <Route
-            path="craft/alchemy"
-            lazy={lazyRoute(() => import('@app/routes/game/craft/alchemy/route'))}
-            handle={title('【炼丹房】')}
-          />
-          <Route
-            path="craft/refine"
-            lazy={lazyRoute(() => import('@app/routes/game/craft/refine/route'))}
-            handle={title('【炼器室】')}
-          />
-          <Route
-            path="enlightenment"
-            lazy={lazyRoute(() => import('@app/routes/game/enlightenment/route'))}
-            handle={title('【藏经阁】')}
-          />
-          <Route
-            path="enlightenment/gongfa"
-            lazy={lazyRoute(() => import('@app/routes/game/enlightenment/gongfa/route'))}
-            handle={title('【功法参悟】')}
-          />
-          <Route
-            path="enlightenment/manual-draw"
-            lazy={lazyRoute(
-              () => import('@app/routes/game/enlightenment/manual-draw/route'),
-            )}
-            handle={title('问法寻卷')}
-          />
-          <Route
-            path="enlightenment/replace"
-            lazy={lazyRoute(() => import('@app/routes/game/enlightenment/replace/route'))}
-            handle={title('参悟抉择')}
-          />
-          <Route
-            path="enlightenment/skill"
-            lazy={lazyRoute(() => import('@app/routes/game/enlightenment/skill/route'))}
-            handle={title('【神通推演】')}
-          />
-          <Route
-            path="fate-reshape"
-            lazy={lazyRoute(() => import('@app/routes/game/fate-reshape/route'))}
-            handle={title('重塑命格')}
-          />
-          <Route
-            path="market"
-            lazy={lazyRoute(() => import('@app/routes/game/market/route'))}
-            handle={title('修仙坊市')}
-          />
-          <Route
-            path="market/recycle"
-            lazy={lazyRoute(() => import('@app/routes/game/market/recycle/route'))}
-            handle={title('坊市鉴宝')}
-          />
-          <Route
-            path="auction"
-            lazy={lazyRoute(() => import('@app/routes/game/auction/route'))}
-            handle={title('拍卖行')}
-          />
-          <Route
-            path="battle"
-            lazy={lazyRoute(() => import('@app/routes/game/battle/route'))}
-            handle={title('对战播报')}
-          />
-          <Route
-            path="battle/history"
-            lazy={lazyRoute(() => import('@app/routes/game/battle/history/route'))}
-            handle={title('【全部战绩】')}
-          />
-          <Route
-            path="battle/challenge"
-            lazy={lazyRoute(() => import('@app/routes/game/battle/challenge/route'))}
-            handle={title('挑战天骄')}
-          />
-          <Route
-            path="battle/:id"
-            lazy={lazyRoute(() => import('@app/routes/game/battle/detail/route'))}
-            handle={title('战斗回放')}
-          />
-          <Route
-            path="bet-battle"
-            lazy={lazyRoute(() => import('@app/routes/game/bet-battle/route'))}
-            handle={title('赌战台')}
-          />
-          <Route
-            path="bet-battle/challenge"
-            lazy={lazyRoute(() => import('@app/routes/game/bet-battle/challenge/route'))}
-            handle={title('赌战挑战')}
-          />
-          <Route
-            path="rankings"
-            lazy={lazyRoute(() => import('@app/routes/game/rankings/route'))}
-            handle={title('天骄榜')}
-          />
+          <Route element={<GameViewportLayout />}>
+            <Route
+              index
+              lazy={lazyRoute(() => import('@app/routes/game/route'))}
+              handle={scene(
+                { id: 'cave', label: '洞府', group: 'cultivation' },
+                '洞府',
+              )}
+            />
+            <Route
+              path="cultivator"
+              lazy={lazyRoute(() => import('@app/routes/game/cultivator/route'))}
+              handle={scene(
+                { id: 'cultivator', label: '道身', group: 'cultivation' },
+                '道身',
+              )}
+            />
+            <Route
+              path="inventory"
+              lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
+              handle={scene(
+                { id: 'inventory', label: '储物袋', group: 'trade' },
+                '储物袋',
+              )}
+            />
+            <Route
+              path="craft/alchemy"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/craft/alchemy/route'),
+              )}
+              handle={scene(
+                { id: 'alchemy', label: '炼丹房', group: 'craft' },
+                '【炼丹房】',
+              )}
+            />
+            <Route
+              path="market"
+              lazy={lazyRoute(() => import('@app/routes/game/market/route'))}
+              handle={scene(
+                { id: 'market', label: '坊市', group: 'trade' },
+                '修仙坊市',
+              )}
+            />
+            <Route
+              path="mail"
+              lazy={lazyRoute(() => import('@app/routes/game/mail/route'))}
+              handle={scene(
+                { id: 'mail', label: '传音玉简', group: 'service' },
+                '传音玉简',
+              )}
+            />
+            <Route
+              path="retreat"
+              lazy={lazyRoute(() => import('@app/routes/game/retreat/route'))}
+              handle={scene(
+                { id: 'retreat', label: '洞府修行', group: 'cultivation' },
+                '洞府',
+              )}
+            />
+            <Route
+              path="skills"
+              lazy={lazyRoute(() => import('@app/routes/game/skills/route'))}
+              handle={scene(
+                { id: 'skills', label: '所修神通', group: 'cultivation' },
+                '【所修神通】',
+              )}
+            />
+            <Route
+              path="techniques"
+              lazy={lazyRoute(() => import('@app/routes/game/techniques/route'))}
+              handle={scene(
+                { id: 'techniques', label: '所修功法', group: 'cultivation' },
+                '【所修功法】',
+              )}
+            />
+            <Route
+              path="artifacts"
+              lazy={lazyRoute(() => import('@app/routes/game/artifacts/route'))}
+              handle={scene(
+                { id: 'artifacts', label: '所炼法宝', group: 'craft' },
+                '【所炼法宝】',
+              )}
+            />
+            <Route
+              path="craft"
+              lazy={lazyRoute(() => import('@app/routes/game/craft/route'))}
+              handle={scene(
+                { id: 'craft', label: '造物仙炉', group: 'craft' },
+                '【造物仙炉】',
+              )}
+            />
+            <Route
+              path="craft/refine"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/craft/refine/route'),
+              )}
+              handle={scene(
+                { id: 'refine', label: '炼器室', group: 'craft' },
+                '【炼器室】',
+              )}
+            />
+            <Route
+              path="enlightenment"
+              lazy={lazyRoute(() => import('@app/routes/game/enlightenment/route'))}
+              handle={scene(
+                { id: 'enlightenment', label: '藏经阁', group: 'cultivation' },
+                '【藏经阁】',
+              )}
+            />
+            <Route
+              path="enlightenment/gongfa"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/enlightenment/gongfa/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'gongfa-enlightenment',
+                  label: '功法参悟',
+                  group: 'cultivation',
+                },
+                '【功法参悟】',
+              )}
+            />
+            <Route
+              path="enlightenment/manual-draw"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/enlightenment/manual-draw/route'),
+              )}
+              handle={scene(
+                { id: 'manual-draw', label: '问法寻卷', group: 'cultivation' },
+                '问法寻卷',
+              )}
+            />
+            <Route
+              path="enlightenment/replace"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/enlightenment/replace/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'enlightenment-replace',
+                  label: '参悟抉择',
+                  group: 'cultivation',
+                },
+                '参悟抉择',
+              )}
+            />
+            <Route
+              path="enlightenment/skill"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/enlightenment/skill/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'skill-enlightenment',
+                  label: '神通推演',
+                  group: 'cultivation',
+                },
+                '【神通推演】',
+              )}
+            />
+            <Route
+              path="fate-reshape"
+              lazy={lazyRoute(() => import('@app/routes/game/fate-reshape/route'))}
+              handle={scene(
+                { id: 'fate-reshape', label: '重塑命格', group: 'cultivation' },
+                '重塑命格',
+              )}
+            />
+            <Route
+              path="market/recycle"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/market/recycle/route'),
+              )}
+              handle={scene(
+                { id: 'market-recycle', label: '坊市鉴宝', group: 'trade' },
+                '坊市鉴宝',
+              )}
+            />
+            <Route
+              path="auction"
+              lazy={lazyRoute(() => import('@app/routes/game/auction/route'))}
+              handle={scene(
+                { id: 'auction', label: '拍卖行', group: 'trade' },
+                '拍卖行',
+              )}
+            />
+            <Route
+              path="battle/history"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/battle/history/route'),
+              )}
+              handle={scene(
+                { id: 'battle-history', label: '全部战绩', group: 'service' },
+                '【全部战绩】',
+              )}
+            />
+            <Route
+              path="rankings"
+              lazy={lazyRoute(() => import('@app/routes/game/rankings/route'))}
+              handle={scene(
+                { id: 'rankings', label: '天骄榜', group: 'travel' },
+                '天骄榜',
+              )}
+            />
+            <Route
+              path="dungeon/history"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/dungeon/history/route'),
+              )}
+              handle={scene(
+                { id: 'dungeon-history', label: '探险札记', group: 'service' },
+                '探险札记',
+              )}
+            />
+            <Route
+              path="world-chat"
+              lazy={lazyRoute(() => import('@app/routes/game/world-chat/route'))}
+              handle={scene(
+                { id: 'world-chat', label: '世界传音', group: 'service' },
+                '世界传音',
+              )}
+            />
+            <Route
+              path="community"
+              lazy={lazyRoute(() => import('@app/routes/game/community/route'))}
+              handle={scene(
+                { id: 'community', label: '玩家交流群', group: 'service' },
+                '玩家交流群',
+              )}
+            />
+            <Route
+              path="redeem"
+              lazy={lazyRoute(() => import('@app/routes/game/redeem/route'))}
+              handle={scene(
+                { id: 'redeem', label: '兑换码', group: 'service' },
+                '兑换码',
+              )}
+            />
+            <Route
+              path="settings/feedback"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/settings/feedback/route'),
+              )}
+              handle={scene(
+                { id: 'feedback', label: '意见反馈', group: 'service' },
+                '意见反馈',
+              )}
+            />
+          </Route>
+
+          <Route element={<GameCombatLayout />}>
+            <Route
+              path="battle"
+              lazy={lazyRoute(() => import('@app/routes/game/battle/route'))}
+              handle={scene(
+                {
+                  id: 'battle',
+                  label: '对战播报',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '对战播报',
+              )}
+            />
+            <Route
+              path="battle/challenge"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/battle/challenge/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'battle-challenge',
+                  label: '挑战天骄',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '挑战天骄',
+              )}
+            />
+            <Route
+              path="battle/:id"
+              lazy={lazyRoute(() => import('@app/routes/game/battle/detail/route'))}
+              handle={scene(
+                {
+                  id: 'battle-replay',
+                  label: '战斗回放',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '战斗回放',
+              )}
+            />
+            <Route
+              path="bet-battle/challenge"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/bet-battle/challenge/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'bet-battle-challenge',
+                  label: '赌战挑战',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '赌战挑战',
+              )}
+            />
+            <Route
+              path="training-room"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/training-room/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'training-room',
+                  label: '练功房',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '练功房',
+              )}
+            />
+          </Route>
+
+          <Route element={<GameArenaLayout />}>
+            <Route
+              path="bet-battle"
+              lazy={lazyRoute(() => import('@app/routes/game/bet-battle/route'))}
+              handle={scene(
+                {
+                  id: 'bet-battle',
+                  label: '赌战台',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '赌战台',
+              )}
+            />
+          </Route>
+
+          <Route element={<GameMapLayout />}>
+            <Route
+              path="map"
+              lazy={lazyRoute(() => import('@app/routes/game/map/route'))}
+              handle={scene(
+                {
+                  id: 'map',
+                  label: '修仙界地图',
+                  group: 'travel',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                mapTitle,
+              )}
+            />
+          </Route>
+
           <Route
             path="dungeon"
             lazy={lazyRoute(() => import('@app/routes/game/dungeon/route'))}
-            handle={title('云游探秘')}
-          />
-          <Route
-            path="dungeon/history"
-            lazy={lazyRoute(() => import('@app/routes/game/dungeon/history/route'))}
-            handle={title('探险札记')}
-          />
-          <Route
-            path="mail"
-            lazy={lazyRoute(() => import('@app/routes/game/mail/route'))}
-            handle={title('传音玉简')}
-          />
-          <Route
-            path="world-chat"
-            lazy={lazyRoute(() => import('@app/routes/game/world-chat/route'))}
-            handle={title('世界传音')}
-          />
-          <Route
-            path="community"
-            lazy={lazyRoute(() => import('@app/routes/game/community/route'))}
-            handle={title('玩家交流群')}
-          />
-          <Route
-            path="redeem"
-            lazy={lazyRoute(() => import('@app/routes/game/redeem/route'))}
-            handle={title('兑换码')}
-          />
-          <Route
-            path="settings/feedback"
-            lazy={lazyRoute(() => import('@app/routes/game/settings/feedback/route'))}
-            handle={title('意见反馈')}
-          />
-          <Route
-            path="retreat"
-            lazy={lazyRoute(() => import('@app/routes/game/retreat/route'))}
-            handle={title('洞府')}
-          />
-          <Route
-            path="training-room"
-            lazy={lazyRoute(() => import('@app/routes/game/training-room/route'))}
-            handle={title('练功房')}
-          />
-          <Route
-            path="map"
-            lazy={lazyRoute(() => import('@app/routes/game/map/route'))}
-            handle={title(mapTitle)}
+            handle={scene(
+              {
+                id: 'dungeon',
+                label: '云游探秘',
+                group: 'travel',
+                chrome: 'immersive',
+                dock: 'hidden',
+              },
+              '云游探秘',
+            )}
           />
         </Route>
       </Route>
