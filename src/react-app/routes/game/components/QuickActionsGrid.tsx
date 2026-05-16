@@ -25,8 +25,9 @@ export function QuickActionsGrid({
               <InkButton href="/game/mail" className="relative text-sm">
                 🔔 传音玉简
                 {unreadMailCount > 0 && (
-                  <span className="text-crimson absolute -top-1 -right-1 text-[0.7rem] leading-none">
-                    ■
+                  <span className="absolute -top-0.5 -right-1 flex h-3 w-3">
+                    <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                    <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
                   </span>
                 )}
               </InkButton>
