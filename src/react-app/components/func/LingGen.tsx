@@ -1,3 +1,4 @@
+import { GameSceneSection } from '@app/components/game-shell';
 import { InkSection } from '@app/components/layout';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -16,6 +17,8 @@ interface LingGenProps {
   compact?: boolean;
   /** 自定义标题，默认 "【灵根】" */
   title?: ReactNode;
+  /** 场景页使用正文级 section，避免引入 display 标题 */
+  sectionVariant?: 'ink' | 'scene';
 }
 
 /**
@@ -26,6 +29,7 @@ export function LingGen({
   showSection = true,
   compact = false,
   title = '【灵根】',
+  sectionVariant = 'ink',
 }: LingGenProps) {
   const { openDialog } = useInkUI();
   if (!spiritualRoots || spiritualRoots.length === 0) {
@@ -87,10 +91,24 @@ export function LingGen({
   );
 
   if (showSection) {
-    return (
-      <InkSection title={title}>
+    const sectionContent = (
+      <>
         {content}
         <InkButton onClick={showRootHelp}>💡 灵根说明</InkButton>
+      </>
+    );
+
+    if (sectionVariant === 'scene') {
+      return (
+        <GameSceneSection title={title} contentClassName="space-y-3">
+          {sectionContent}
+        </GameSceneSection>
+      );
+    }
+
+    return (
+      <InkSection title={title}>
+        {sectionContent}
       </InkSection>
     );
   }

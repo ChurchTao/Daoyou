@@ -1,5 +1,4 @@
 import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
 
@@ -19,7 +18,7 @@ export default function CommunityPage() {
         </GameSceneAsideSection>
       }
     >
-      <InkSection title="【群二维码】">
+      <div>
         <div className="border-ink/20 bg-paper mx-auto max-w-sm border border-dashed p-4">
           <img
             src={QR_CODE_PATH}
@@ -39,7 +38,7 @@ export default function CommunityPage() {
         <InkNotice className="mt-4">
           若未自动下载，请打开原图后长按图片保存。
         </InkNotice>
-      </InkSection>
+      </div>
     </GameSceneFrame>
   );
 }

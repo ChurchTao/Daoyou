@@ -1,5 +1,4 @@
 import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkIdentifyCelebration } from '@app/components/ui/InkIdentifyCelebration';
@@ -60,32 +59,27 @@ export default function RedeemCodePage() {
         </GameSceneAsideSection>
       }
     >
-      <InkSection title="【兑换】">
-        <div className="space-y-4">
-          <InkInput
-            label="兑换码"
-            value={code}
-            onChange={(value) => setCode(value.toUpperCase())}
-            placeholder="请输入兑换码"
-            disabled={loading}
-          />
+      <div className="space-y-4">
+        <InkInput
+          label="兑换码"
+          value={code}
+          onChange={(value) => setCode(value.toUpperCase())}
+          placeholder="请输入兑换码"
+          disabled={loading}
+        />
 
-          <div className="flex flex-wrap gap-3">
-            <InkButton variant="primary" onClick={submit} disabled={loading}>
-              {loading ? '兑换中...' : '立即兑换'}
-            </InkButton>
-            <InkButton href="/game/mail" variant="secondary">
-              前往传音玉简
-            </InkButton>
-          </div>
-
-          {success && (
-            <p className="text-sm text-emerald-700">
-              兑换成功，奖励已通过传音玉简发放，请及时查收。
-            </p>
-          )}
+        <div className="flex flex-wrap gap-3">
+          <InkButton variant="primary" onClick={submit} disabled={loading}>
+            {loading ? '兑换中...' : '立即兑换'}
+          </InkButton>
         </div>
-      </InkSection>
+
+        {success && (
+          <p className="text-sm text-emerald-700">
+            兑换成功，奖励已通过传音玉简发放，请及时查收。
+          </p>
+        )}
+      </div>
 
       {celebrationTick > 0 && (
         <InkIdentifyCelebration key={celebrationTick} variant="basic" />

@@ -3,7 +3,6 @@ import {
   GameSceneFrame,
   GameSceneTabs,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import {
   InkBadge,
   InkButton,
@@ -532,7 +531,7 @@ export default function MarketRecyclePage() {
         ]}
       />
 
-      <InkSection title="鉴宝师规矩">
+      <div className="space-y-3">
         {isMaterialTab ? (
           <p className="text-ink-secondary text-sm leading-7">
             真品及以上需先行鉴定再成交；凡、灵、玄品可批量清理。鉴定结果当场生效，
@@ -569,9 +568,9 @@ export default function MarketRecyclePage() {
                 : '刷新法宝'}
           </InkButton>
         </div>
-      </InkSection>
+      </div>
 
-      <InkSection title={isMaterialTab ? '待鉴定材料' : '待鉴定法宝'}>
+      <div className="space-y-4">
         {!isInitialized && isLoading ? (
           <InkNotice>
             {isMaterialTab
@@ -708,7 +707,7 @@ export default function MarketRecyclePage() {
             </InkButton>
           </div>
         )}
-      </InkSection>
+      </div>
 
       <InkDialog dialog={dialogState} onClose={closeDialog} />
     </GameSceneFrame>

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   countNewWorldChatMessages,
   mergeWorldChatMessages,
-} from './useWorldChatHostModel';
+} from './useWorldChatFeedModel';
 import { getWorldChatMessageBody } from './worldChatSummary';
 
 function createMessage(
@@ -28,7 +28,7 @@ function createMessage(
   };
 }
 
-describe('world chat host model helpers', () => {
+describe('world chat feed model helpers', () => {
   it('merges polled messages without duplicates and keeps newest first', () => {
     const base = [
       createMessage('m2', '2026-05-17T08:02:00.000Z'),

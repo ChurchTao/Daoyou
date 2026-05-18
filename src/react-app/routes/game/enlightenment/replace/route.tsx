@@ -1,8 +1,7 @@
 import { getCreationProductTypeFromCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import {
   CreationProductResultModal, type CreationProductResultRecord, } from '@app/components/feature/creation';
-import { GameSceneAsideSection, GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
+import { GameSceneAsideSection, GameSceneFrame, GameSceneLoading, GameSceneSection } from '@app/components/game-shell';
 import {
   toProductDisplayModel, type ProductDisplayModel, } from '@app/components/feature/products';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -244,7 +243,7 @@ function ReplaceContent() {
           </InkButton>
         </div>
 
-        <InkSection title={`【新领悟】`}>
+        <GameSceneSection title="新领悟">
           <div className="border-wood/35 bg-bgpaper border border-dashed p-3 space-y-2">
             <span className="font-medium text-sm">{pendingItem.name}</span>
             <div className="mt-1 flex flex-wrap gap-1">
@@ -267,9 +266,9 @@ function ReplaceContent() {
               </InkButton>
             </InkActionGroup>
           </div>
-        </InkSection>
+        </GameSceneSection>
 
-        <InkSection title={`【现有${isSkill ? '神通' : '功法'}】（选择以舍弃）`}>
+        <GameSceneSection title={`现有${isSkill ? '神通' : '功法'}（选择以舍弃）`}>
           {existingItems.length === 0 ? (
             <InkNotice>暂无已有法门</InkNotice>
           ) : (
@@ -287,7 +286,7 @@ function ReplaceContent() {
               ))}
             </div>
           )}
-        </InkSection>
+        </GameSceneSection>
 
         <CreationProductResultModal
           isOpen={isPendingModalOpen}

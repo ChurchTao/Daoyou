@@ -12,10 +12,9 @@ import {
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
 } from '@shared/types/dictionaries';
-import { cn } from '@shared/lib/cn';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WorldChatMessageItem } from './WorldChatMessageItem';
-import { useWorldChatHostModel } from './useWorldChatHostModel';
+import { useWorldChatFeedModel } from './useWorldChatFeedModel';
 
 const MAX_LENGTH = 100;
 const SHOWCASE_PAGE_SIZE = 20;
@@ -48,11 +47,7 @@ function tabToMessageItemType(
   return 'consumable';
 }
 
-export function WorldChatChannel({
-  variant = 'page',
-}: {
-  variant?: 'drawer' | 'page';
-}) {
+export function WorldChatChannel() {
   const { pushToast } = useInkUI();
   const {
     messages,
@@ -63,7 +58,7 @@ export function WorldChatChannel({
     loadMore,
     sendTextMessage,
     sendShowcaseMessage,
-  } = useWorldChatHostModel();
+  } = useWorldChatFeedModel();
   const [input, setInput] = useState('');
   const [showcaseOpen, setShowcaseOpen] = useState(false);
   const [showcaseText, setShowcaseText] = useState('');
@@ -92,18 +87,9 @@ export function WorldChatChannel({
 
   const charCount = useMemo(() => countChars(input), [input]);
   const displayMessages = useMemo(() => [...messages].reverse(), [messages]);
-  const canShowcase = variant === 'page';
   const currentShowcaseItems = showcaseItems[
     showcaseTab
   ] as ShowcaseItemByTab[ShowcaseTab][];
-  const shellClass =
-    variant === 'drawer'
-      ? 'flex h-full min-h-0 flex-col overflow-hidden'
-      : 'space-y-4';
-  const listClass =
-    variant === 'drawer'
-      ? 'battle-scroll min-h-0 flex-1 overflow-y-auto pr-1'
-      : 'battle-scroll h-[22rem] overflow-y-auto pr-1 md:h-[20rem]';
 
   useEffect(() => {
     if (!showcaseOpen || showcaseLoaded[showcaseTab] || showcaseLoadingRef.current) {
@@ -263,10 +249,10 @@ export function WorldChatChannel({
 
   return (
     <>
-      <div className={shellClass}>
+      <div className="space-y-4">
         <div
           ref={messageListRef}
-          className={cn(listClass)}
+          className="battle-scroll h-[22rem] overflow-y-auto pr-1 md:h-[20rem]"
           onScroll={(event) => {
             const el = event.currentTarget;
             const distanceToBottom =
@@ -294,13 +280,11 @@ export function WorldChatChannel({
           )}
         </div>
 
-        <div
-          className='pt-3'
-        >
+        <div className="pt-3">
           <InkInput
             value={input}
             multiline
-            rows={variant === 'drawer' ? 1 : 3}
+            rows={3}
             placeholder="道友请留步，输入你想说的话..."
             onChange={(next) => {
               const limited = Array.from(next).slice(0, MAX_LENGTH).join('');
@@ -310,15 +294,13 @@ export function WorldChatChannel({
             disabled={posting}
           />
           <div className="flex justify-end gap-2">
-            {canShowcase ? (
-              <InkButton
-                variant="secondary"
-                onClick={() => setShowcaseOpen(true)}
-                disabled={posting}
-              >
-                展示道具
-              </InkButton>
-            ) : null}
+            <InkButton
+              variant="secondary"
+              onClick={() => setShowcaseOpen(true)}
+              disabled={posting}
+            >
+              展示道具
+            </InkButton>
             <InkButton
               variant="primary"
               onClick={handleSend}
@@ -330,65 +312,63 @@ export function WorldChatChannel({
         </div>
       </div>
 
-      {canShowcase ? (
-        <InkModal
-          isOpen={showcaseOpen}
-          onClose={() => setShowcaseOpen(false)}
-          title="展示储物袋道具"
-          className="max-w-xl"
-        >
-          <div className="space-y-3">
-            <InkTabs
-              activeValue={showcaseTab}
-              onChange={(value) => setShowcaseTab(value as ShowcaseTab)}
-              items={[
-                { label: '法宝', value: 'artifacts' },
-                { label: '材料', value: 'materials' },
-                { label: '消耗品', value: 'consumables' },
-              ]}
-            />
-            <InkInput
-              label="附言（可选）"
-              value={showcaseText}
-              multiline
-              rows={2}
-              placeholder="例如：此宝与我有缘，诸位道友请鉴赏。"
-              onChange={(next) => {
-                const limited = Array.from(next).slice(0, MAX_LENGTH).join('');
-                setShowcaseText(limited);
-              }}
-              hint={`${countChars(showcaseText)}/${MAX_LENGTH}`}
-              disabled={posting}
-            />
+      <InkModal
+        isOpen={showcaseOpen}
+        onClose={() => setShowcaseOpen(false)}
+        title="展示储物袋道具"
+        className="max-w-xl"
+      >
+        <div className="space-y-3">
+          <InkTabs
+            activeValue={showcaseTab}
+            onChange={(value) => setShowcaseTab(value as ShowcaseTab)}
+            items={[
+              { label: '法宝', value: 'artifacts' },
+              { label: '材料', value: 'materials' },
+              { label: '消耗品', value: 'consumables' },
+            ]}
+          />
+          <InkInput
+            label="附言（可选）"
+            value={showcaseText}
+            multiline
+            rows={2}
+            placeholder="例如：此宝与我有缘，诸位道友请鉴赏。"
+            onChange={(next) => {
+              const limited = Array.from(next).slice(0, MAX_LENGTH).join('');
+              setShowcaseText(limited);
+            }}
+            hint={`${countChars(showcaseText)}/${MAX_LENGTH}`}
+            disabled={posting}
+          />
 
-            {showcaseLoading ? (
-              <InkNotice>读取储物袋中……</InkNotice>
-            ) : currentShowcaseItems.length === 0 ? (
-              <InkNotice>当前分类暂无可展示道具</InkNotice>
-            ) : (
-              <div className="max-h-[44vh] overflow-y-auto pr-1">
-                <InkList dense>
-                  {currentShowcaseItems.map((item) => (
-                    <InkListItem
-                      key={item.id || `${showcaseTab}-${item.name}`}
-                      title={item.name}
-                      meta={renderShowcaseMeta(showcaseTab, item)}
-                      actions={
-                        <InkButton
-                          onClick={() => handleSendShowcase(showcaseTab, item)}
-                          disabled={posting}
-                        >
-                          展示
-                        </InkButton>
-                      }
-                    />
-                  ))}
-                </InkList>
-              </div>
-            )}
-          </div>
-        </InkModal>
-      ) : null}
+          {showcaseLoading ? (
+            <InkNotice>读取储物袋中……</InkNotice>
+          ) : currentShowcaseItems.length === 0 ? (
+            <InkNotice>当前分类暂无可展示道具</InkNotice>
+          ) : (
+            <div className="max-h-[44vh] overflow-y-auto pr-1">
+              <InkList dense>
+                {currentShowcaseItems.map((item) => (
+                  <InkListItem
+                    key={item.id || `${showcaseTab}-${item.name}`}
+                    title={item.name}
+                    meta={renderShowcaseMeta(showcaseTab, item)}
+                    actions={
+                      <InkButton
+                        onClick={() => handleSendShowcase(showcaseTab, item)}
+                        disabled={posting}
+                      >
+                        展示
+                      </InkButton>
+                    }
+                  />
+                ))}
+              </InkList>
+            </div>
+          )}
+        </div>
+      </InkModal>
     </>
   );
 }

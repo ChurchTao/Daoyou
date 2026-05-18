@@ -6,8 +6,8 @@ import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneInset,
+  GameSceneSection,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { InkButton, InkList, InkListItem, InkNotice } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import {
@@ -327,7 +327,7 @@ export function HomeView() {
 
   return (
     <GameSceneFrame title="洞府" aside={<CaveAside />}>
-      <InkSection title="【洞府一瞥】">
+      <GameSceneSection title="洞府一瞥">
         <div className="space-y-2 text-sm leading-7">
           <p>
             石门半掩，纸窗透白。丹火、经卷、器架与玉简都安放在各自的位置，今日该做什么，一眼便可分明。
@@ -339,9 +339,9 @@ export function HomeView() {
             </p>
           ) : null}
         </div>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="【当下要事】">
+      <GameSceneSection title="当下要事">
         {urgentItems.length > 0 ? (
           <InkList>{urgentItems.slice(0, 4)}</InkList>
         ) : (
@@ -361,15 +361,15 @@ export function HomeView() {
             />
           </InkList>
         )}
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="【洞府诸处】">
+      <GameSceneSection title="洞府诸处">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {CAVE_AREAS.map((area) => (
             <CaveAreaCard key={area.title} area={area} />
           ))}
         </div>
-      </InkSection>
+      </GameSceneSection>
     </GameSceneFrame>
   );
 }

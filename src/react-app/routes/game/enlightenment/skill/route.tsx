@@ -9,8 +9,8 @@ import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
+  GameSceneSection,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -349,7 +349,7 @@ export default function SkillCreationPage() {
         </>
       }
     >
-      <InkSection title="1. 甄选材料">
+      <GameSceneSection title="1. 甄选材料">
         <MaterialSelector
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
@@ -366,9 +366,9 @@ export default function SkillCreationPage() {
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="2. 调度投入份数">
+      <GameSceneSection title="2. 调度投入份数">
         <SelectedMaterialsWithDose
           selectedIds={selectedMaterialIds}
           materialMap={selectedMaterialMap}
@@ -379,18 +379,18 @@ export default function SkillCreationPage() {
           onRemove={(id) => toggleMaterial(id)}
           onDoseChange={handleDoseChange}
         />
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="3. 推演意念">
+      <GameSceneSection title="3. 推演意念">
         <CreationIntentPanel
           productType="skill"
           userPrompt={userPrompt}
           onUserPromptChange={setUserPrompt}
           disabled={isSubmitting}
         />
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="4. 目标策略">
+      <GameSceneSection title="4. 目标策略">
         <p className="text-ink-secondary mb-3 text-xs">
           指定神通的施法目标倾向。
           <span className="text-crimson ml-1">（必选）</span>
@@ -452,9 +452,9 @@ export default function SkillCreationPage() {
             </p>
           )}
         </div>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="预计消耗">
+      <GameSceneSection title="预计消耗">
         {displayEstimatedCost ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
@@ -482,9 +482,9 @@ export default function SkillCreationPage() {
           displayValidation.warnings.length > 0 && (
           <InkNotice tone="info">{displayValidation.warnings[0]}</InkNotice>
         )}
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="5. 开始推演">
+      <GameSceneSection title="5. 开始推演">
         <InkActionGroup align="right">
           <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
@@ -504,7 +504,7 @@ export default function SkillCreationPage() {
             {isSubmitting ? '推演中……' : '开始推演'}
           </InkButton>
         </InkActionGroup>
-      </InkSection>
+      </GameSceneSection>
 
       {status && !createdResult && (
         <div className="mt-4">

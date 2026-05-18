@@ -3,7 +3,6 @@ import {
   GameSceneFrame,
   GameSceneTabs,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkBadge,
@@ -406,7 +405,7 @@ export default function MarketPage() {
         )}
       </div>
 
-      <InkSection title="【货架】">
+      <div className="space-y-4">
         <p className="text-ink-secondary mb-4 text-sm leading-6">
           下批好货刷新倒计时：{timeLeft}
         </p>
@@ -492,7 +491,7 @@ export default function MarketPage() {
         ) : (
           <InkNotice>今日货物已售罄，请稍后再来。</InkNotice>
         )}
-      </InkSection>
+      </div>
       <InkDialog
         dialog={batchBuyDialog}
         onClose={() => setBatchBuyDialog(null)}

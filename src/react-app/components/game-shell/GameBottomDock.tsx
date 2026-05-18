@@ -37,14 +37,12 @@ export function GameBottomDock({
   unreadMailCount,
   isExpanded,
   onToggleExpanded,
-  onOpenCultivator,
   dockMode = 'core',
 }: {
   sceneId?: string | null;
   unreadMailCount: number;
   isExpanded: boolean;
   onToggleExpanded: () => void;
-  onOpenCultivator: () => void;
   dockMode?: 'core' | 'expanded' | 'hidden';
 }) {
   const location = useLocation();
@@ -58,16 +56,11 @@ export function GameBottomDock({
     <footer className="battle-dock border-battle-rule-strong border-t border-dashed">
       <div className="mx-auto max-w-5xl px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.8rem)] md:px-6">
         <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_4rem] items-center gap-1.5 text-sm">
-          <button
-            type="button"
-            onClick={onOpenCultivator}
-            className={cn(
-              'hover:text-crimson px-1 py-1.5 text-center leading-5 whitespace-nowrap transition',
-              sceneId === 'cultivator' ? 'text-crimson' : 'text-ink',
-            )}
-          >
-            [角色]
-          </button>
+          <DockLink
+            href="/game/cultivator"
+            label="角色"
+            active={sceneId === 'cultivator'}
+          />
           <DockLink
             href="/game/inventory"
             label="储物袋"

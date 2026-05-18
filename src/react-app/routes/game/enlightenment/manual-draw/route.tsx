@@ -171,7 +171,7 @@ function ResultHeroCard({
           <p className="text-ink-secondary text-xs tracking-[0.2em] uppercase">
             {label}
           </p>
-          <h3 className="text-ink-primary mt-2 text-2xl font-semibold">
+          <h3 className="text-ink-primary mt-2 text-lg font-semibold">
             {material.name}
           </h3>
         </div>
@@ -427,7 +427,7 @@ export default function ManualDrawPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-4xl">{currentConfig.icon}</span>
                     <div>
-                      <p className="text-ink-primary text-xl font-semibold">
+                      <p className="text-ink-primary text-lg font-semibold">
                         {currentConfig.tabLabel}
                       </p>
                       <p className="text-ink-secondary text-sm">
@@ -493,7 +493,7 @@ export default function ManualDrawPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-ink-secondary text-xs">最近一次</p>
-                  <h2 className="text-ink-primary mt-1 text-xl font-semibold">
+                  <h2 className="text-ink-primary mt-1 text-lg font-semibold">
                     {latestResult.drawCount === 5 ? '五连结果' : '单抽结果'}
                   </h2>
                 </div>

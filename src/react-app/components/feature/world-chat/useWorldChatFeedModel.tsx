@@ -24,7 +24,7 @@ export interface SendWorldChatShowcaseInput {
   textContent?: string;
 }
 
-interface WorldChatHostModel {
+interface WorldChatFeedModel {
   messages: WorldChatMessageDTO[];
   latestMessage: WorldChatMessageDTO | null;
   newMessageCount: number;
@@ -32,16 +32,13 @@ interface WorldChatHostModel {
   loadingMore: boolean;
   hasMore: boolean;
   posting: boolean;
-  isDrawerOpen: boolean;
   isWorldChatRoute: boolean;
-  openDrawer: () => void;
-  closeDrawer: () => void;
   loadMore: () => Promise<void>;
   sendTextMessage: (text: string) => Promise<boolean>;
   sendShowcaseMessage: (input: SendWorldChatShowcaseInput) => Promise<boolean>;
 }
 
-const WorldChatHostContext = createContext<WorldChatHostModel | null>(null);
+const WorldChatFeedContext = createContext<WorldChatFeedModel | null>(null);
 
 export function mergeWorldChatMessages(
   base: WorldChatMessageDTO[],
@@ -73,7 +70,7 @@ export function countNewWorldChatMessages(
   return seenIndex;
 }
 
-export function WorldChatHostProvider({
+export function WorldChatFeedProvider({
   children,
 }: {
   children: ReactNode;
@@ -87,7 +84,6 @@ export function WorldChatHostProvider({
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [posting, setPosting] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [lastSeenMessageId, setLastSeenMessageId] = useState<string | null>(null);
   const initializedSeenRef = useRef(false);
 
@@ -204,31 +200,14 @@ export function WorldChatHostProvider({
   }, [latestMessage]);
 
   useEffect(() => {
-    if (isWorldChatRoute) {
-      setIsDrawerOpen(false);
-    }
-  }, [isWorldChatRoute]);
-
-  useEffect(() => {
     if (!latestMessage) {
       return;
     }
 
-    if (isWorldChatRoute || isDrawerOpen) {
+    if (isWorldChatRoute) {
       setLastSeenMessageId(latestMessage.id);
     }
-  }, [isDrawerOpen, isWorldChatRoute, latestMessage]);
-
-  const openDrawer = useCallback(() => {
-    if (latestMessage) {
-      setLastSeenMessageId(latestMessage.id);
-    }
-    setIsDrawerOpen(true);
-  }, [latestMessage]);
-
-  const closeDrawer = useCallback(() => {
-    setIsDrawerOpen(false);
-  }, []);
+  }, [isWorldChatRoute, latestMessage]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore) {
@@ -311,7 +290,7 @@ export function WorldChatHostProvider({
     [pushToast],
   );
 
-  const value = useMemo<WorldChatHostModel>(
+  const value = useMemo<WorldChatFeedModel>(
     () => ({
       messages,
       latestMessage,
@@ -320,18 +299,13 @@ export function WorldChatHostProvider({
       loadingMore,
       hasMore,
       posting,
-      isDrawerOpen,
       isWorldChatRoute,
-      openDrawer,
-      closeDrawer,
       loadMore,
       sendTextMessage,
       sendShowcaseMessage,
     }),
     [
-      closeDrawer,
       hasMore,
-      isDrawerOpen,
       isWorldChatRoute,
       lastSeenMessageId,
       latestMessage,
@@ -339,7 +313,6 @@ export function WorldChatHostProvider({
       loading,
       loadingMore,
       messages,
-      openDrawer,
       posting,
       sendShowcaseMessage,
       sendTextMessage,
@@ -347,17 +320,17 @@ export function WorldChatHostProvider({
   );
 
   return (
-    <WorldChatHostContext.Provider value={value}>
+    <WorldChatFeedContext.Provider value={value}>
       {children}
-    </WorldChatHostContext.Provider>
+    </WorldChatFeedContext.Provider>
   );
 }
 
-export function useWorldChatHostModel() {
-  const context = useContext(WorldChatHostContext);
+export function useWorldChatFeedModel() {
+  const context = useContext(WorldChatFeedContext);
 
   if (!context) {
-    throw new Error('useWorldChatHostModel 必须在 WorldChatHostProvider 内使用');
+    throw new Error('useWorldChatFeedModel 必须在 WorldChatFeedProvider 内使用');
   }
 
   return context;

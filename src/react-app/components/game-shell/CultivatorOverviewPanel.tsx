@@ -12,7 +12,6 @@ import {
   type ProductRecordLike,
 } from '@app/components/feature/products';
 import { LingGen } from '@app/components/func';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkBadge,
@@ -34,6 +33,7 @@ import type { Cultivator } from '@shared/types/cultivator';
 import { getEquipmentSlotInfo } from '@shared/types/dictionaries';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { GameSceneSection } from './GameSceneSection';
 
 const PRIMARY_ATTR_ORDER: AttributeType[] = [
   AttributeType.SPIRIT,
@@ -276,24 +276,19 @@ export function CultivatorOverviewPanel() {
       <PersistentStatusesCard />
 
       {cultivator.cultivation_progress ? (
-        <InkSection title="【修为与感悟】">
+        <GameSceneSection title="修为与感悟">
           <CultivatorStatusCard cultivator={cultivator} showDetails={true} />
-        </InkSection>
+        </GameSceneSection>
       ) : null}
 
-      <LingGen spiritualRoots={cultivator.spiritual_roots || []} />
+      <LingGen
+        spiritualRoots={cultivator.spiritual_roots || []}
+        title="灵根"
+        sectionVariant="scene"
+      />
 
       {cultivator.pre_heaven_fates?.length > 0 ? (
-        <InkSection
-          title={
-            <div className="flex items-center justify-between gap-3">
-              <span>【先天命格】</span>
-              <InkButton href="/game/fate-reshape" variant="secondary">
-                重塑命格
-              </InkButton>
-            </div>
-          }
-        >
+        <GameSceneSection title="先天命格">
           <InkList>
             {cultivator.pre_heaven_fates.map((fate, idx) => {
               const fateDisplay = toFateDisplayModel(fate);
@@ -319,10 +314,10 @@ export function CultivatorOverviewPanel() {
               );
             })}
           </InkList>
-        </InkSection>
+        </GameSceneSection>
       ) : null}
 
-      <InkSection title="【根基属性】">
+      <GameSceneSection title="根基属性">
         <div className="border-ink/15 overflow-x-auto border border-dashed">
           <table className="border-ink/10 w-full border-collapse text-sm">
             <tbody>
@@ -408,9 +403,9 @@ export function CultivatorOverviewPanel() {
             </InkButton>
           </div>
         ) : null}
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="【当前所御法宝】">
+      <GameSceneSection title="当前所御法宝">
         {equippedItems.length > 0 ? (
           <InkList>
             {equippedItems.map((item) => {
@@ -446,14 +441,9 @@ export function CultivatorOverviewPanel() {
         ) : (
           <InkNotice>尚未佩戴法宝</InkNotice>
         )}
-        <div className="mt-3">
-          <InkButton href="/game/inventory" className="text-sm">
-            前往储物袋更换装备 →
-          </InkButton>
-        </div>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="【功法】">
+      <GameSceneSection title="功法">
         {(cultivator.cultivations || []).length === 0 ? (
           <InkNotice>尚无功法</InkNotice>
         ) : (
@@ -481,14 +471,9 @@ export function CultivatorOverviewPanel() {
             })}
           </InkList>
         )}
-        <div className="mt-3">
-          <InkButton href="/game/techniques" className="text-sm">
-            所修功法一览 →
-          </InkButton>
-        </div>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="【神通】">
+      <GameSceneSection title="神通">
         {skills.length === 0 ? (
           <InkNotice>尚无神通</InkNotice>
         ) : (
@@ -558,7 +543,7 @@ export function CultivatorOverviewPanel() {
             </div>
           </>
         )}
-      </InkSection>
+      </GameSceneSection>
 
       <InkDialog dialog={dialog} onClose={() => setDialog(null)} />
       <FateDetailModal

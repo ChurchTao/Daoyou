@@ -1,5 +1,8 @@
-import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
+import {
+  GameSceneAsideSection,
+  GameSceneFrame,
+  GameSceneSection,
+} from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
@@ -207,7 +210,7 @@ export default function DungeonHistoryPage() {
         </>
       }
     >
-      <InkSection title={`共 ${pagination.total} 次探险`}>
+      <GameSceneSection title={`共 ${pagination.total} 次探险`}>
         <div className="space-y-4">
           {records.map((record) => (
             <InkCard key={record.id} className="p-4">
@@ -324,7 +327,7 @@ export default function DungeonHistoryPage() {
             </InkButton>
           </div>
         )}
-      </InkSection>
+      </GameSceneSection>
     </GameSceneFrame>
   );
 }

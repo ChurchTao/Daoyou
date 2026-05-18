@@ -30,10 +30,7 @@ export default function CultivatorPage() {
   }
 
   return (
-    <GameSceneFrame
-      title="【道身总谱】"
-      description="此页是顶部 HUD 的完整展开。所有即时状态、长期状态、根基属性与所修之物，都应先在 HUD 被感知，再在此处细读。"
-    >
+    <GameSceneFrame>
       <CultivatorOverviewPanel />
     </GameSceneFrame>
   );

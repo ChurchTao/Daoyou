@@ -6,9 +6,9 @@ import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
+  GameSceneSection,
   GameSceneTabs,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -714,7 +714,7 @@ export default function AlchemyPage() {
       />
 
       {activeMode === 'formula' && (
-        <InkSection title="丹方总览">
+        <GameSceneSection title="丹方总览">
           {formulasError && (
             <InkNotice tone="warning">{formulasError}</InkNotice>
           )}
@@ -774,10 +774,10 @@ export default function AlchemyPage() {
               })}
             </div>
           )}
-        </InkSection>
+        </GameSceneSection>
       )}
 
-      <InkSection title={activeMode === 'formula' ? '炉材甄选' : '甄选灵材'}>
+      <GameSceneSection title={activeMode === 'formula' ? '炉材甄选' : '甄选灵材'}>
         <MaterialSelector
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
@@ -794,9 +794,9 @@ export default function AlchemyPage() {
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="调度投入份数">
+      <GameSceneSection title="调度投入份数">
         <SelectedMaterialsWithDose
           selectedIds={selectedMaterialIds}
           materialMap={selectedMaterialMap}
@@ -807,10 +807,10 @@ export default function AlchemyPage() {
           onRemove={(id) => toggleMaterial(id)}
           onDoseChange={handleDoseChange}
         />
-      </InkSection>
+      </GameSceneSection>
 
       {activeMode === 'improvised' ? (
-        <InkSection title="注入丹意">
+        <GameSceneSection title="注入丹意">
           <InkInput
             label="丹药意图（必填）"
             placeholder="比如：想炼一枚兼顾疗伤与回元、但药性不要太躁烈的丹"
@@ -821,9 +821,9 @@ export default function AlchemyPage() {
             hint="AI 只会解析你的丹意方向，具体数值仍由材料药性和规则系统决定。"
             disabled={isSubmitting}
           />
-        </InkSection>
+        </GameSceneSection>
       ) : (
-        <InkSection title="丹方摘要">
+        <GameSceneSection title="丹方摘要">
           {selectedFormula ? (
             <InkCard variant="elevated" padding="lg">
               <div className="space-y-2 text-sm">
@@ -858,10 +858,10 @@ export default function AlchemyPage() {
               先从上方选定一份丹方，再安排炉材。
             </InkNotice>
           )}
-        </InkSection>
+        </GameSceneSection>
       )}
 
-      <InkSection title="预计消耗">
+      <GameSceneSection title="预计消耗">
         {estimatedSpiritStones !== null ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
@@ -896,9 +896,9 @@ export default function AlchemyPage() {
             {warning}
           </InkNotice>
         ))}
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title={activeMode === 'formula' ? '按方起炉' : '开炉炼丹'}>
+      <GameSceneSection title={activeMode === 'formula' ? '按方起炉' : '开炉炼丹'}>
         <InkActionGroup align="right">
           <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
@@ -924,7 +924,7 @@ export default function AlchemyPage() {
                 : '开炉炼丹'}
           </InkButton>
         </InkActionGroup>
-      </InkSection>
+      </GameSceneSection>
 
       {status && !isResultModalOpen && (
         <div className="mt-4">

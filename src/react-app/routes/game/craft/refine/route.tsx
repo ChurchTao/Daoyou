@@ -9,8 +9,8 @@ import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
+  GameSceneSection,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -269,7 +269,7 @@ export default function RefinePage() {
         </>
       }
     >
-      <InkSection title="1. 甄选灵材">
+      <GameSceneSection title="1. 甄选灵材">
         <MaterialSelector
           cultivatorId={cultivator?.id}
           selectedMaterialIds={selectedMaterialIds}
@@ -286,9 +286,9 @@ export default function RefinePage() {
         <p className="text-ink-secondary mt-1 text-right text-xs">
           {selectedMaterialIds.length}/{MAX_MATERIALS}
         </p>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="2. 调度投入份数">
+      <GameSceneSection title="2. 调度投入份数">
         <SelectedMaterialsWithDose
           selectedIds={selectedMaterialIds}
           materialMap={selectedMaterialMap}
@@ -299,9 +299,9 @@ export default function RefinePage() {
           onRemove={(id) => toggleMaterial(id)}
           onDoseChange={handleDoseChange}
         />
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="3. 造物意念">
+      <GameSceneSection title="3. 造物意念">
         <CreationIntentPanel
           productType="artifact"
           userPrompt={userPrompt}
@@ -310,9 +310,9 @@ export default function RefinePage() {
           onRequestedSlotChange={setRequestedSlot}
           disabled={isSubmitting}
         />
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="预计消耗">
+      <GameSceneSection title="预计消耗">
         {displayEstimatedCost ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
@@ -335,9 +335,9 @@ export default function RefinePage() {
         {displayValidation?.blockingReason && (
           <InkNotice tone="warning">{displayValidation.blockingReason}</InkNotice>
         )}
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="4. 开炉炼制">
+      <GameSceneSection title="4. 开炉炼制">
         <InkActionGroup align="right">
           <InkButton onClick={resetAll} disabled={isSubmitting}>
             重置
@@ -356,7 +356,7 @@ export default function RefinePage() {
             {isSubmitting ? '真火炼中……' : '开炉炼器'}
           </InkButton>
         </InkActionGroup>
-      </InkSection>
+      </GameSceneSection>
 
       {status && !createdResult && (
         <div className="mt-4">

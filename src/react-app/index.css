@@ -78,12 +78,6 @@ body {
 }
 
 /* 标题字体样式 */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
 .font-heading {
   font-family: var(--font-ma-shan-zheng), cursive;
 }
@@ -170,18 +164,6 @@ h6,
   body {
     font-size: 16px;
   }
-
-  h1 {
-    font-size: var(--text-3xl);
-  }
-
-  h2 {
-    font-size: var(--text-2xl);
-  }
-
-  h3 {
-    font-size: var(--text-xl);
-  }
 }
 
 /* 战报样式增强 */
@@ -193,7 +175,7 @@ h6,
 
 /* 
  * 字体大小规范 (Typography Standards)
- * - h1 ~ h6: 标题字体 (Ma Shan Zheng)
+ * - .font-heading: 显式 display 标题字体 (Ma Shan Zheng)
  * - text-base (1rem/16px): 主要正文、标准按钮、输入框
  * - text-sm (0.875rem/14px): 次要信息、小按钮、标签
  * - text-xs (0.75rem/12px): 极少数提示、元数据、微型标注。禁止用于按钮。

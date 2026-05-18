@@ -1,15 +1,14 @@
 import {
-  CultivatorOverviewOverlay,
   GameBottomDock,
   GameTopHud,
   useGameHudModel,
 } from '@app/components/game-shell';
 import {
-  WorldChatHost,
-} from '@app/components/feature/world-chat/WorldChatHost';
+  WorldChatPreviewBar,
+} from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import {
-  WorldChatHostProvider,
-} from '@app/components/feature/world-chat/useWorldChatHostModel';
+  WorldChatFeedProvider,
+} from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { InkButton } from '@app/components/ui/InkButton';
 import { PlayerProvider, usePlayer } from '@app/lib/player/PlayerProvider';
 import {
@@ -303,43 +302,31 @@ export function GameViewportLayout() {
   const hud = useGameHudModel();
   const scene = resolveGameScene(matches);
   const routeKey = `${location.pathname}${location.search}`;
-  const [cultivatorOpenAt, setCultivatorOpenAt] = useState<string | null>(null);
   const [dockExpandedAt, setDockExpandedAt] = useState<string | null>(null);
-  const isCultivatorOpen = cultivatorOpenAt === routeKey;
   const isDockExpanded = dockExpandedAt === routeKey;
 
-  const openCultivatorOverview = () => setCultivatorOpenAt(routeKey);
-  const closeCultivatorOverview = () => setCultivatorOpenAt(null);
   const toggleDockExpanded = () => {
     setDockExpandedAt((prev) => (prev === routeKey ? null : routeKey));
   };
 
   return (
     <div className="bg-paper h-screen overflow-hidden">
-      <WorldChatHostProvider>
+      <WorldChatFeedProvider>
         <div className="flex h-full flex-col">
-          <GameTopHud
-            snapshot={hud}
-            onOpenCultivator={openCultivatorOverview}
-          />
+          <GameTopHud snapshot={hud} />
           <main className="min-h-0 flex-1 overflow-hidden">
             <Outlet />
           </main>
-          <WorldChatHost />
+          <WorldChatPreviewBar />
           <GameBottomDock
             sceneId={scene?.id ?? null}
             unreadMailCount={hud?.unreadMailCount ?? 0}
             isExpanded={isDockExpanded}
             onToggleExpanded={toggleDockExpanded}
-            onOpenCultivator={openCultivatorOverview}
             dockMode={scene?.dock ?? 'core'}
           />
         </div>
-      </WorldChatHostProvider>
-      <CultivatorOverviewOverlay
-        isOpen={isCultivatorOpen}
-        onClose={closeCultivatorOverview}
-      />
+      </WorldChatFeedProvider>
     </div>
   );
 }

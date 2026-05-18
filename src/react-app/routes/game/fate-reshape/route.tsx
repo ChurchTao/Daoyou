@@ -5,8 +5,8 @@ import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
+  GameSceneSection,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkActionGroup,
@@ -340,7 +340,7 @@ export default function FateReshapePage() {
         )
       }
     >
-      <InkSection title="【当前命格】">
+      <GameSceneSection title="当前命格">
         {currentFates.length === 0 ? (
           <InkNotice>当前道身暂无先天命格可供重塑。</InkNotice>
         ) : (
@@ -368,14 +368,14 @@ export default function FateReshapePage() {
             })}
           </InkList>
         )}
-      </InkSection>
+      </GameSceneSection>
 
       {isBooting && !session ? (
-        <InkSection title="【开始重塑】">
+        <GameSceneSection title="开始重塑">
           <InkNotice>正在校验未完成的命格重塑会话……</InkNotice>
-        </InkSection>
+        </GameSceneSection>
       ) : !session ? (
-        <InkSection title="【开始重塑】">
+        <GameSceneSection title="开始重塑">
           <InkCard variant="elevated" padding="lg" className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="border-ink/10 border border-dashed px-3 py-2">
@@ -407,10 +407,10 @@ export default function FateReshapePage() {
               </InkButton>
             </InkActionGroup>
           </InkCard>
-        </InkSection>
+        </GameSceneSection>
       ) : (
         <>
-          <InkSection title="【当前进度】">
+          <GameSceneSection title="当前进度">
             <InkCard variant="elevated" padding="lg" className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="border-ink/10 border border-dashed px-3 py-2">
@@ -431,9 +431,9 @@ export default function FateReshapePage() {
                 直到你确认、放弃，或者天机失效。
               </p>
             </InkCard>
-          </InkSection>
+          </GameSceneSection>
 
-          <InkSection title="【命格候选】">
+          <GameSceneSection title="命格候选">
             <div className="mb-4 flex items-center justify-between gap-3">
               <span className="text-ink-secondary text-sm">{`已选 ${selectedIndices.length}/3`}</span>
               <div className="flex flex-wrap items-center gap-2">
@@ -520,7 +520,7 @@ export default function FateReshapePage() {
                 })}
               </InkList>
             )}
-          </InkSection>
+          </GameSceneSection>
 
           <InkActionGroup align="center">
             <InkButton

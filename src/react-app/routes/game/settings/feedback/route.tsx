@@ -1,5 +1,4 @@
 import { GameSceneAsideSection, GameSceneFrame } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkInput } from '@app/components/ui/InkInput';
@@ -82,80 +81,78 @@ export default function FeedbackPage() {
         </>
       }
     >
-      <InkSection title="【提交反馈】">
-        <div className="space-y-6">
-          {/* 反馈类型选择 */}
-          <div>
-            <label className="mb-2 block font-semibold tracking-wide">
-              反馈类型
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {FEEDBACK_TYPES.map((item) => (
-                <InkChoiceButton
-                  key={item.value}
-                  onClick={() => setType(item.value)}
-                  selected={type === item.value}
-                  className="py-1.5"
-                >
-                  {item.label}
-                </InkChoiceButton>
-              ))}
-            </div>
-          </div>
-
-          {/* 反馈内容 */}
-          <InkInput
-            label="反馈内容"
-            placeholder="请详细描述您遇到的问题或建议..."
-            value={content}
-            onChange={setContent}
-            multiline
-            rows={6}
-            hint={`${contentLength} / 最少 10 字`}
-            error={
-              contentLength > 0 && contentLength < 10
-                ? '反馈内容至少需要 10 个字'
-                : undefined
-            }
-          />
-
-          {/* 提交按钮 */}
-          <div className="flex items-center gap-4">
-            <InkButton
-              variant="primary"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-            >
-              {submitting ? '提交中...' : '提交反馈'}
-            </InkButton>
-
-            {message && (
-              <span
-                className={`text-sm ${
-                  message.type === 'success' ? 'text-teal' : 'text-crimson'
-                }`}
+      <div className="space-y-6">
+        {/* 反馈类型选择 */}
+        <div>
+          <label className="mb-2 block font-semibold tracking-wide">
+            反馈类型
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {FEEDBACK_TYPES.map((item) => (
+              <InkChoiceButton
+                key={item.value}
+                onClick={() => setType(item.value)}
+                selected={type === item.value}
+                className="py-1.5"
               >
-                {message.text}
-              </span>
-            )}
-          </div>
-
-          {/* GitHub 引导 */}
-          <div className="border-ink/10 border-t pt-4">
-            <p className="text-ink-secondary mb-2 text-sm">
-              也可以前往 GitHub 提交 Issue，获得更快的响应：
-            </p>
-            <a
-              href={GITHUB_ISSUE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-crimson text-sm hover:underline"
-            >
-              {GITHUB_ISSUE_URL} →
-            </a>
+                {item.label}
+              </InkChoiceButton>
+            ))}
           </div>
         </div>
-      </InkSection>
+
+        {/* 反馈内容 */}
+        <InkInput
+          label="反馈内容"
+          placeholder="请详细描述您遇到的问题或建议..."
+          value={content}
+          onChange={setContent}
+          multiline
+          rows={6}
+          hint={`${contentLength} / 最少 10 字`}
+          error={
+            contentLength > 0 && contentLength < 10
+              ? '反馈内容至少需要 10 个字'
+              : undefined
+          }
+        />
+
+        {/* 提交按钮 */}
+        <div className="flex items-center gap-4">
+          <InkButton
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
+            {submitting ? '提交中...' : '提交反馈'}
+          </InkButton>
+
+          {message && (
+            <span
+              className={`text-sm ${
+                message.type === 'success' ? 'text-teal' : 'text-crimson'
+              }`}
+            >
+              {message.text}
+            </span>
+          )}
+        </div>
+
+        {/* GitHub 引导 */}
+        <div className="border-ink/10 border-t pt-4">
+          <p className="text-ink-secondary mb-2 text-sm">
+            也可以前往 GitHub 提交 Issue，获得更快的响应：
+          </p>
+          <a
+            href={GITHUB_ISSUE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-crimson text-sm hover:underline"
+          >
+            {GITHUB_ISSUE_URL} →
+          </a>
+        </div>
+      </div>
     </GameSceneFrame>
   );
 }

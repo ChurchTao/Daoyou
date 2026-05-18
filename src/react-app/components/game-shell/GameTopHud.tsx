@@ -1,3 +1,4 @@
+import Link from '@app/components/router/AppLink';
 import type { GameHudSnapshot } from './useGameHudModel';
 
 function HudMeter({
@@ -34,18 +35,15 @@ function HudMeter({
 
 export function GameTopHud({
   snapshot,
-  onOpenCultivator,
 }: {
   snapshot: GameHudSnapshot | null;
-  onOpenCultivator: () => void;
 }) {
   if (!snapshot) return null;
 
   return (
     <header className="border-ink/10 border-b border-dashed">
-      <button
-        type="button"
-        onClick={onOpenCultivator}
+      <Link
+        href="/game/cultivator"
         className="mx-auto block w-full max-w-5xl px-3 py-1.5 text-left md:px-6 md:py-2"
       >
         <div className="grid grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] gap-2.5 md:gap-5">
@@ -91,7 +89,7 @@ export function GameTopHud({
             </div>
           </div>
         </div>
-      </button>
+      </Link>
     </header>
   );
 }

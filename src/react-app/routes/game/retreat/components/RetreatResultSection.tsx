@@ -1,4 +1,4 @@
-import { InkSection } from '@app/components/layout';
+import { GameSceneSection } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import type {
   BreakthroughResult,
@@ -42,7 +42,7 @@ function CultivationResultContent({
   const summary = retreatResult.summary as CultivationResult['summary'];
 
   return (
-    <InkSection title="【修炼成果】">
+    <GameSceneSection title="修炼成果">
       <div className="border-ink-border space-y-3 border border-dashed p-3 text-sm leading-6">
         <p className="font-medium">🌱 修炼有成</p>
         <p>修为增长：+{Number(summary.exp_gained)}</p>
@@ -74,7 +74,7 @@ function CultivationResultContent({
           </InkButton>
         )}
       </div>
-    </InkSection>
+    </GameSceneSection>
   );
 }
 
@@ -107,7 +107,7 @@ function BreakthroughResultContent({
   }, [summary.attributeGrowth]);
 
   return (
-    <InkSection title="【突破结果】">
+    <GameSceneSection title="突破结果">
       <div className="border-ink-border space-y-3 border border-dashed p-3 text-sm leading-6">
         <p className="font-medium">
           {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
@@ -170,6 +170,6 @@ function BreakthroughResultContent({
           </div>
         )}
       </div>
-    </InkSection>
+    </GameSceneSection>
   );
 }

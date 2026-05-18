@@ -42,7 +42,7 @@ export function InkToast({
   return (
     <div
       className={cn(
-        'flex items-start gap-2 p-3 text-[0.9rem] leading-[1.6]',
+        'flex items-start gap-2 p-3 text-[0.9rem] leading-[1.6] bg-bgpaper border shadow',
         toneMeta.borderClass,
       )}
     >
@@ -88,7 +88,7 @@ export function InkToastHost({ toasts, onDismiss }: InkToastHostProps) {
     <div
       className={cn(
         'fixed inset-x-3 bottom-20 z-200 flex flex-col gap-2',
-        'md:left-1/2 md:right-auto md:w-[28rem] md:-translate-x-1/2',
+        'md:left-1/2 md:right-auto md:w-md md:-translate-x-1/2',
       )}
       aria-live="polite"
     >

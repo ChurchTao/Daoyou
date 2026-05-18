@@ -22,66 +22,71 @@ export interface GameSceneFrameProps {
   contentClassName?: string;
 }
 
-const sceneSurfaceClassName = [
-  'animate-fade-in',
-  'bg-[linear-gradient(180deg,rgba(255,252,245,0.42),rgba(248,243,230,0))]',
-  'bg-[rgba(248,243,230,0.82)]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)]',
-  'backdrop-blur-[2px]',
-].join(' ');
-
-const sceneBodyClassName = [
-  'min-w-0',
-  '[&>*+*]:mt-4',
-  '[&_.ink-section]:mb-0',
-  '[&_.ink-section+.ink-section]:mt-5',
-  '[&_.ink-section+.ink-section]:border-t',
-  '[&_.ink-section+.ink-section]:border-dashed',
-  '[&_.ink-section+.ink-section]:border-ink/15',
-  '[&_.ink-section+.ink-section]:pt-4',
-  '[&_.ink-section-title]:font-sans',
-  '[&_.ink-section-title]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_.ink-section-title]:font-semibold',
-  '[&_.ink-section-title]:leading-7',
-  '[&_.ink-section-title]:tracking-[0.04em]',
-  '[&_.ink-section-hint]:leading-7',
-  '[&_h1]:font-sans',
-  '[&_h2]:font-sans',
-  '[&_h3]:font-sans',
-  '[&_h4]:font-sans',
-  '[&_h5]:font-sans',
-  '[&_h6]:font-sans',
-  '[&_h1]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_h2]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_h3]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_h4]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_h5]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_h6]:text-[clamp(1rem,0.95rem+0.35vw,1.125rem)]',
-  '[&_h1]:font-semibold',
-  '[&_h2]:font-semibold',
-  '[&_h3]:font-semibold',
-  '[&_h4]:font-semibold',
-  '[&_h5]:font-semibold',
-  '[&_h6]:font-semibold',
-  '[&_h1]:leading-7',
-  '[&_h2]:leading-7',
-  '[&_h3]:leading-7',
-  '[&_h4]:leading-7',
-  '[&_h5]:leading-7',
-  '[&_h6]:leading-7',
-  '[&_h1]:tracking-[0.04em]',
-  '[&_h2]:tracking-[0.04em]',
-  '[&_h3]:tracking-[0.04em]',
-  '[&_h4]:tracking-[0.04em]',
-  '[&_h5]:tracking-[0.04em]',
-  '[&_h6]:tracking-[0.04em]',
-].join(' ');
-
 export function GameSceneLoading({ message }: { message: string }) {
   return (
     <div className="flex h-full items-center justify-center px-4">
       <p className="loading-tip">{message}</p>
     </div>
+  );
+}
+
+function SceneSurface({
+  as = 'section',
+  children,
+  className,
+}: {
+  as?: 'section' | 'aside';
+  children: ReactNode;
+  className?: string;
+}) {
+  const Tag = as;
+
+  return (
+    <Tag
+      className={cn(
+        'animate-fade-in bg-[rgba(248,243,230,0.82)] bg-[linear-gradient(180deg,rgba(255,252,245,0.42),rgba(248,243,230,0))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] backdrop-blur-[2px] md:px-5 md:py-5',
+        className,
+      )}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+function SceneBody({
+  children,
+  compact = false,
+  className,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        compact ? 'mt-4' : 'mt-5',
+        'min-w-0 [&>*+*]:mt-4',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SceneAsideRail({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <SceneSurface
+      as="aside"
+      className="[&>*+*]:mt-4 [&>*+*]:border-t [&>*+*]:border-dashed [&>*+*]:border-ink/20 [&>*+*]:pt-4"
+    >
+      {children}
+    </SceneSurface>
   );
 }
 
@@ -95,7 +100,7 @@ export function GameSceneInset({
   return (
     <section
       className={cn(
-        'bg-ink/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]',
+        'bg-ink/4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]',
         className,
       )}
     >
@@ -206,7 +211,6 @@ export function GameSceneFrame({
     description,
   });
   const frameWidthClass = variant === 'lite' ? 'max-w-4xl' : 'max-w-5xl';
-  const contentSpacingClass = variant === 'default' ? 'mt-5' : 'mt-4';
   const asideWidthClass =
     variant === 'workflow'
       ? 'lg:grid-cols-[minmax(0,1fr)_280px]'
@@ -221,12 +225,7 @@ export function GameSceneFrame({
         )}
       >
         <div className={cn('grid gap-4', aside ? asideWidthClass : '')}>
-          <section
-            className={cn(
-              sceneSurfaceClassName,
-              'px-4 py-4 md:px-5 md:py-5',
-            )}
-          >
+          <SceneSurface>
             <SceneStrip
               group={sceneGroup}
               label={header.label}
@@ -236,28 +235,15 @@ export function GameSceneFrame({
 
             {headerMeta ? <div className="mt-4">{headerMeta}</div> : null}
 
-            <div
-              className={cn(
-                contentSpacingClass,
-                sceneBodyClassName,
-                contentClassName,
-              )}
+            <SceneBody
+              compact={variant !== 'default'}
+              className={contentClassName}
             >
               {children}
-            </div>
-          </section>
+            </SceneBody>
+          </SceneSurface>
 
-          {aside ? (
-            <aside
-              className={cn(
-                sceneSurfaceClassName,
-                'px-4 py-4 md:px-5 md:py-5',
-                '[&>*+*]:mt-4 [&>*+*]:border-t [&>*+*]:border-dashed [&>*+*]:border-ink/20 [&>*+*]:pt-4',
-              )}
-            >
-              {aside}
-            </aside>
-          ) : null}
+          {aside ? <SceneAsideRail>{aside}</SceneAsideRail> : null}
         </div>
       </div>
     </div>

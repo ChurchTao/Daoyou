@@ -3,8 +3,8 @@ import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
+  GameSceneSection,
 } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
 import { InkBadge, InkButton, InkInput, InkNotice } from '@app/components/ui';
 
 import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
@@ -162,7 +162,7 @@ export function RetreatView() {
         </>
       }
     >
-      <InkSection title="【当前火候】">
+      <GameSceneSection title="当前火候">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <QuietRoomMetric
             label="境界"
@@ -197,9 +197,9 @@ export function RetreatView() {
             </span>
           ) : null}
         </div>
-      </InkSection>
+      </GameSceneSection>
 
-      <InkSection title="【本次闭关】">
+      <GameSceneSection title="本次闭关">
         <div className="space-y-4 text-sm leading-7">
           <p>
             静室只看与这一次决断直接相关的事：要押几年寿元、此刻该不该冲关，以及冲关失败后还能否承受代价。
@@ -232,7 +232,7 @@ export function RetreatView() {
             ) : null}
           </div>
         </div>
-      </InkSection>
+      </GameSceneSection>
 
       <BreakthroughConfirmModal
         isOpen={showBreakthroughConfirm}
