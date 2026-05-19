@@ -12,6 +12,8 @@ const CAVE_AREAS: CaveQuickArea[] = [
   { title: '📚 藏经阁', href: '/game/enlightenment' },
   { title: '⛰️ 外出云游', href: '/game/dungeon' },
   { title: '🔔 传音玉简', href: '/game/mail' },
+  { title: '👊 练功房', href: '/game/training-room' },
+  { title: '🪞 储物袋', href: '/game/inventory' },
 ];
 
 export function CaveQuickGrid() {
