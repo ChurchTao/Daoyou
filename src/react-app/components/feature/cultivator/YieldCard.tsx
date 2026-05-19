@@ -144,12 +144,8 @@ export function YieldCard({
 
   const compactSummary =
     timeSinceYield >= 24
-      ? `已历练 ${timeSinceYield}h，行囊已满`
-      : timeSinceYield >= 20
-        ? `已历练 ${timeSinceYield}h，宜先结算`
-        : timeSinceYield >= 1
-          ? `已历练 ${timeSinceYield}h，可收入囊中`
-          : '道身仍在外历练';
+      ? `已历练 ${timeSinceYield}/24小时，行囊已满`
+      : `已历练 ${timeSinceYield} / 24小时`;
 
   return (
     <>
@@ -157,7 +153,7 @@ export function YieldCard({
         <HomeUrgentRow
           title={
             <>
-              <span>🗺️ 历练归讯</span>
+              <span>🗺️ 外出历练</span>
               {timeSinceYield >= 24 ? (
                 <InkBadge tone="danger" compact>
                   已满

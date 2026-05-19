@@ -1,8 +1,8 @@
+import { useLifespanStatus } from '@app/components/feature/cultivator/LifespanStatusCard';
+import { YieldCard } from '@app/components/feature/cultivator/YieldCard';
 import { CaveQuickGrid } from '@app/components/feature/home/CaveQuickGrid';
 import { HomeAside } from '@app/components/feature/home/HomeAside';
 import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
-import { useLifespanStatus } from '@app/components/feature/cultivator/LifespanStatusCard';
-import { YieldCard } from '@app/components/feature/cultivator/YieldCard';
 import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
@@ -150,11 +150,11 @@ export function HomeView() {
     urgentItems.push(
       <HomeUrgentRow
         key="breakthrough"
-        title={<span className="text-crimson">⚡ 冲关火候</span>}
-        summary={`修为 ${caveStatus?.cultivationPercent ?? 0}% · 感悟 ${caveStatus?.insight ?? 0}/100`}
+        title={<span className="text-crimson">⚡ 突破瓶颈</span>}
+        summary={`修为进度已达 ${Math.min(100,(caveStatus?.cultivationPercent ?? 0))}%`}
         action={
-          <InkButton href="/game/retreat" variant="primary" className="px-0">
-            入静室
+          <InkButton href="/game/retreat" variant="primary">
+            突破
           </InkButton>
         }
       />,
