@@ -28,7 +28,7 @@ export function AuthChoiceCard({
   const content = (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <p className="font-heading text-ink text-xl">{title}</p>
+        <p className="text-ink text-xl">{title}</p>
         <p className="text-ink-secondary mt-1 text-sm leading-6">
           {description}
         </p>

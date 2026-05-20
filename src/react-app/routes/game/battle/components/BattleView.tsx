@@ -1,22 +1,14 @@
-import { GameImmersiveLoading } from '@app/components/game-shell';
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
-import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
-import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
+import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlaybackPanel';
+import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
-
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { useBattleViewModel } from '../hooks/useBattleViewModel';
-import { useCombatPlayer } from '../hooks/useCombatPlayer';
-import { useEffect, useState } from 'react';
-import { CombatAttributeModal } from '@app/components/feature/battle/v5/CombatAttributeModal';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
 
 /**
  * 战斗主视图组件
  */
 export function BattleView() {
-  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
-
   const {
     player,
     opponent,
@@ -27,47 +19,18 @@ export function BattleView() {
     opponentName,
     handleBattleAgain,
   } = useBattleViewModel();
+  const playback = useBattlePlaybackState(battleResult);
 
-  const {
-    currentIndex,
-    isPlaying,
-    playbackSpeed,
-    setPlaybackSpeed,
-    play,
-    pause,
-    reset,
-    totalActions,
-    progress,
-    unitSnapshots,
-  } = useCombatPlayer(battleResult);
-
-  // 初始加载完成后自动播放
-  useEffect(() => {
-    if (battleResult && totalActions > 0 && !isPlaying && currentIndex === -1) {
-      play();
-    }
-  }, [battleResult, totalActions, isPlaying, currentIndex, play]);
-
-  // 加载中
   if (!player || !opponent) {
     return <GameImmersiveLoading message="战局演算中……" />;
   }
 
-  // 计算当前双方单位的实时状态快照
-  const playerUnitId = battleResult?.player || '';
-  const opponentUnitId = battleResult?.opponent || '';
-
-  const currentPlayerFrame = unitSnapshots[playerUnitId];
-  const currentOpponentFrame = unitSnapshots[opponentUnitId];
-
   return (
     <BattlePageLayout
-      title={`战斗 · ${player?.name} vs ${opponentName}`}
+      title={`战斗 · ${player.name} vs ${opponentName}`}
       subtitle="实时查看血量、技能状态和战斗日志。"
-      backHref="/game"
       loading={loading}
       battleResult={battleResult}
-      isStreaming={false}
       actions={{
         primary: {
           label: '返回主界',
@@ -81,54 +44,18 @@ export function BattleView() {
         ],
       }}
     >
-      <div className="flex flex-col gap-4 mb-8">
-        {/* 顶部状态栏 */}
-        {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader
-            player={currentPlayerFrame}
-            opponent={currentOpponentFrame}
-            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
-            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
-            controls={
-              <CombatControlBar
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                progress={progress}
-                onToggle={() => (isPlaying ? pause() : play())}
-                onSpeedChange={setPlaybackSpeed}
-                onReset={reset}
-              />
-            }
-          />
-        )}
-
-        {/* 结构化联动日志 */}
-        {battleResult && (
-          <CombatActionLog
-            spans={battleResult.logSpans}
-            currentIndex={currentIndex}
-          />
-        )}
-
-      </div>
-
-      {/* 详细属性弹窗 */}
-      <CombatAttributeModal 
-        unit={selectedUnit} 
-        isOpen={!!selectedUnit} 
-        onClose={() => setSelectedUnit(null)} 
-      />
+      <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
       <CombatResultDialog
         key={`battle-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         dialogKey={`battle-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
-        open={!!battleResult && battleEnd && currentIndex >= totalActions - 1}
+        open={!!battleResult && battleEnd && playback.isPlaybackFinished}
         title={isWin ? '战斗胜利' : '战斗失败'}
         content={
           <p className="leading-8">
             {isWin
-              ? `「${player?.name}」在第 ${battleResult?.turns} 回合击败了对手。`
-              : `「${player?.name}」在第 ${battleResult?.turns} 回合力竭倒下。`}
+              ? `「${player.name}」在第 ${battleResult?.turns} 回合击败了对手。`
+              : `「${player.name}」在第 ${battleResult?.turns} 回合力竭倒下。`}
           </p>
         }
       />

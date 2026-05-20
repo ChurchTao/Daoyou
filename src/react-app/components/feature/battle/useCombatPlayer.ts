@@ -2,11 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BattleRecord } from '@shared/types/battle';
 import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
 
-type PlaybackState = {
+export type PlaybackState = {
   record: BattleRecord | undefined;
   currentIndex: number;
   isPlaying: boolean;
 };
+
+export function resolvePlaybackStateForRecord(
+  playbackState: PlaybackState,
+  record: BattleRecord | undefined,
+): PlaybackState {
+  return playbackState.record === record
+    ? playbackState
+    : { record, currentIndex: -1, isPlaying: false };
+}
 
 /**
  * useCombatPlayer
@@ -23,10 +32,7 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
 
   const spans = useMemo(() => record?.logSpans || [], [record]);
   const totalActions = spans.length;
-  const currentRecordState =
-    playbackState.record === record
-      ? playbackState
-      : { record, currentIndex: -1, isPlaying: false };
+  const currentRecordState = resolvePlaybackStateForRecord(playbackState, record);
   const currentIndex = currentRecordState.currentIndex;
   const isEnded = currentIndex >= totalActions - 1 && totalActions > 0;
   const isPlaying = currentRecordState.isPlaying && totalActions > 0 && !isEnded;
@@ -69,8 +75,7 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
     }
 
     setPlaybackState((prev) => {
-      const baseState =
-        prev.record === record ? prev : { record, currentIndex: -1, isPlaying: false };
+      const baseState = resolvePlaybackStateForRecord(prev, record);
       return {
         record,
         currentIndex: Math.min(baseState.currentIndex + 1, totalActions - 1),
@@ -81,9 +86,7 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
 
   const pause = useCallback(() => {
     setPlaybackState((prev) => ({
-      ...(prev.record === record
-        ? prev
-        : { record, currentIndex: -1, isPlaying: false }),
+      ...resolvePlaybackStateForRecord(prev, record),
       isPlaying: false,
     }));
   }, [record]);
@@ -94,8 +97,7 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
     }
 
     setPlaybackState((prev) => {
-      const baseState =
-        prev.record === record ? prev : { record, currentIndex: -1, isPlaying: false };
+      const baseState = resolvePlaybackStateForRecord(prev, record);
       return {
         record,
         currentIndex:
@@ -113,24 +115,6 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
     });
   }, [record]);
 
-  const skipToEnd = useCallback(() => {
-    setPlaybackState({
-      record,
-      currentIndex: totalActions - 1,
-      isPlaying: false,
-    });
-  }, [record, totalActions]);
-
-  const jumpTo = useCallback((index: number) => {
-    const safeIndex = Math.min(Math.max(-1, index), totalActions - 1);
-    setPlaybackState({
-      record,
-      currentIndex: safeIndex,
-      isPlaying: false,
-    });
-  }, [record, totalActions]);
-
-  // 自动播放逻辑
   useEffect(() => {
     if (!isPlaying) {
       return;
@@ -149,11 +133,8 @@ export function useCombatPlayer(record: BattleRecord | undefined) {
     play,
     pause,
     reset,
-    skipToEnd,
-    jumpTo,
     unitSnapshots,
     totalActions,
-    isEnded,
     progress: totalActions > 0 ? ((currentIndex + 1) / totalActions) * 100 : 0,
   };
 }

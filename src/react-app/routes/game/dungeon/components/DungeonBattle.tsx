@@ -1,20 +1,16 @@
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
-import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
-import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
-import { CombatAttributeModal } from '@app/components/feature/battle/v5/CombatAttributeModal';
+import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlaybackPanel';
+import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
-import { useCombatPlayer } from '../../battle/hooks/useCombatPlayer';
+import { useBattle } from '@app/lib/hooks/dungeon/useBattle';
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import type { Cultivator } from '@shared/types/cultivator';
+import { useEffect, useRef, useState } from 'react';
 import {
   DungeonRound,
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { useBattle } from '@app/lib/hooks/dungeon/useBattle';
-import { Cultivator } from '@shared/types/cultivator';
-import { useEffect, useRef, useState } from 'react';
 
 export interface BattleCallbackData {
   isFinished: boolean;
@@ -39,29 +35,10 @@ export function DungeonBattle({
   player,
   onBattleComplete,
 }: DungeonBattleProps) {
-  const {
-    battleResult,
-    battleEnd,
-    loading,
-    executeBattle,
-  } = useBattle();
-
-  const {
-    currentIndex,
-    isPlaying,
-    playbackSpeed,
-    setPlaybackSpeed,
-    play,
-    pause,
-    reset,
-    totalActions,
-    progress,
-    unitSnapshots,
-  } = useCombatPlayer(battleResult);
-
+  const { battleResult, loading, executeBattle } = useBattle();
+  const playback = useBattlePlaybackState(battleResult);
   const [battleSettlement, setBattleSettlement] =
     useState<BattleCallbackData | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
   const hasExecuted = useRef(false);
 
   useEffect(() => {
@@ -75,32 +52,17 @@ export function DungeonBattle({
       }
     };
 
-    runBattle();
+    void runBattle();
   }, [battleId, executeBattle]);
 
-  // 自动播放
-  useEffect(() => {
-    if (battleResult && totalActions > 0 && currentIndex === -1 && !isPlaying) {
-      play();
-    }
-  }, [battleResult, totalActions, currentIndex, isPlaying, play]);
-
-  // 计算快照
-  const playerUnitId = battleResult?.player || '';
-  const opponentUnitId = battleResult?.opponent || '';
-  const currentPlayerFrame = unitSnapshots[playerUnitId];
-  const currentOpponentFrame = unitSnapshots[opponentUnitId];
-
-  const isPlaybackFinished = battleEnd && currentIndex >= totalActions - 1;
+  const isPlaybackFinished = playback.isPlaybackFinished;
 
   return (
     <BattlePageLayout
       title="副本战斗"
       subtitle="查看双方状态、技能变化和实时战斗日志。"
-      backHref="#"
       loading={loading && !battleResult}
       battleResult={battleResult}
-      isStreaming={false}
       actions={{
         primary: {
           label: battleSettlement?.isFinished
@@ -111,7 +73,7 @@ export function DungeonBattle({
           onClick: () => {
             if (battleSettlement) {
               onBattleComplete(battleSettlement);
-            } else if (battleEnd) {
+            } else if (battleResult) {
               onBattleComplete(null);
             }
           },
@@ -119,39 +81,7 @@ export function DungeonBattle({
         },
       }}
     >
-      <div className="flex flex-col gap-4 mb-8">
-        {/* 状态栏 */}
-        {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader
-            player={currentPlayerFrame}
-            opponent={currentOpponentFrame}
-            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
-            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
-            controls={
-              <CombatControlBar
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                progress={progress}
-                onToggle={() => (isPlaying ? pause() : play())}
-                onSpeedChange={setPlaybackSpeed}
-                onReset={reset}
-              />
-            }
-          />
-        )}
-
-        {/* 战报日志 */}
-        {battleResult && (
-          <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
-        )}
-      </div>
-
-      {/* 详细属性弹窗 */}
-      <CombatAttributeModal 
-        unit={selectedUnit} 
-        isOpen={!!selectedUnit} 
-        onClose={() => setSelectedUnit(null)} 
-      />
+      <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
       <CombatResultDialog
         key={`dungeon-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}

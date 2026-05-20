@@ -5,15 +5,10 @@ import type { ReactNode } from 'react';
 interface BattlePageLayoutProps {
   title: string;
   subtitle?: string;
-  backHref: string;
-  backLabel?: string;
-  onBack?: () => void;
   error?: string;
   loading?: boolean;
   battleResult?: BattleRecord;
-  isStreaming?: boolean;
   children: ReactNode;
-  // 操作按钮配置
   actions?: {
     primary?: {
       label: string;
@@ -39,7 +34,6 @@ export function BattlePageLayout({
   error,
   loading,
   battleResult,
-  isStreaming,
   children,
   actions,
 }: BattlePageLayoutProps) {
@@ -67,7 +61,7 @@ export function BattlePageLayout({
 
         <div className="flex-1">{children}</div>
 
-        {battleResult && !isStreaming && actions && (
+        {battleResult && actions && (
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
             {actions.secondary?.map((action, index) => (
               <InkButton

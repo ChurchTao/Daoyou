@@ -31,8 +31,6 @@ export interface BattleRecord {
   loserSnapshot?: UnitStateSnapshot;
 }
 
-export type BattleViewRecord = BattleRecord;
-
 export type BattleRecordType = 'challenge' | 'challenged' | 'normal';
 
 export interface BattleRecordV2Summary {
@@ -50,8 +48,4 @@ export interface BattleRecordV2Detail {
   createdAt: Date | null;
   battleResult: BattleRecord;
   battleReport?: string | null;
-}
-
-export function toViewRecord(record: BattleRecord): BattleViewRecord {
-  return record;
 }

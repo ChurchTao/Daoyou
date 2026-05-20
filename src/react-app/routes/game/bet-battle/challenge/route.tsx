@@ -1,14 +1,10 @@
-import { GameImmersiveLoading } from '@app/components/game-shell';
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
-import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
-import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
-import { CombatAttributeModal } from '@app/components/feature/battle/v5/CombatAttributeModal';
+import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlaybackPanel';
+import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
+import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { fetchJsonCached } from '@app/lib/client/requestCache';
-import { useCombatPlayer } from '../../battle/hooks/useCombatPlayer';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -28,20 +24,7 @@ function BetBattleChallengePageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [settlement, setSettlement] = useState<SettlementState | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
-
-  const {
-    currentIndex,
-    isPlaying,
-    playbackSpeed,
-    setPlaybackSpeed,
-    play,
-    pause,
-    reset,
-    totalActions,
-    progress,
-    unitSnapshots,
-  } = useCombatPlayer(battleResult);
+  const playback = useBattlePlaybackState(battleResult);
 
   const battleId = searchParams.get('battleId');
   const stakeType = searchParams.get('stakeType');
@@ -57,12 +40,6 @@ function BetBattleChallengePageContent() {
     itemId ?? 'no-item-id',
     quantity,
   ].join(':');
-
-  useEffect(() => {
-    if (battleResult && totalActions > 0 && currentIndex === -1 && !isPlaying) {
-      play();
-    }
-  }, [battleResult, totalActions, currentIndex, isPlaying, play]);
 
   useEffect(() => {
     if (!battleId) return;
@@ -130,28 +107,13 @@ function BetBattleChallengePageContent() {
     );
   }
 
-  const playerUnitId = battleResult?.player;
-  const opponentUnitId = battleResult?.opponent;
-  const getUnitName = (unitId: string) => {
-    if (battleResult?.winner.id === unitId) return battleResult.winner.name;
-    if (battleResult?.loser.id === unitId) return battleResult.loser.name;
-    return '神秘对手';
-  };
-  const playerName = playerUnitId ? getUnitName(playerUnitId) : '加载中';
-  const opponentName = opponentUnitId ? getUnitName(opponentUnitId) : '神秘对手';
-  const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
-  const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
-
   return (
     <BattlePageLayout
-      title={`赌战 · ${battleResult ? `${playerName} vs ${opponentName}` : '加载中'}`}
+      title={`赌战 · ${battleResult ? `${playback.playerName} vs ${playback.opponentName}` : '加载中'}`}
       subtitle="胜负将直接决定这场赌战的结果。"
-      backHref="/game/bet-battle"
-      backLabel="返回赌战台"
       error={error}
       loading={loading}
       battleResult={battleResult}
-      isStreaming={false}
       actions={{
         primary: {
           label: '返回赌战台',
@@ -159,48 +121,18 @@ function BetBattleChallengePageContent() {
         },
       }}
     >
-      <div className="flex flex-col gap-4 mb-8">
-        {currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader
-            player={currentPlayerFrame}
-            opponent={currentOpponentFrame}
-            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
-            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
-            controls={
-              <CombatControlBar
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                progress={progress}
-                onToggle={() => (isPlaying ? pause() : play())}
-                onSpeedChange={setPlaybackSpeed}
-                onReset={reset}
-              />
-            }
-          />
-        )}
-
-        {battleResult && (
-          <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
-        )}
-      </div>
-
-      <CombatAttributeModal
-        unit={selectedUnit}
-        isOpen={!!selectedUnit}
-        onClose={() => setSelectedUnit(null)}
-      />
+      <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
       <CombatResultDialog
         key={`bet-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         dialogKey={`bet-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
-        open={!!battleResult && currentIndex >= totalActions - 1 && !!settlement}
+        open={!!battleResult && playback.isPlaybackFinished && !!settlement}
         title={settlement?.isWin ? '赌战胜利' : '赌战失败'}
         content={<p className="leading-8">{settlement?.resultMessage}</p>}
       />
     </BattlePageLayout>
   );
 }
-
 
 export default function BetBattleChallengePage() {
   return (

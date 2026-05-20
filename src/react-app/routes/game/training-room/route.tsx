@@ -1,20 +1,13 @@
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
+import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlaybackPanel';
+import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import { GameImmersiveLoading } from '@app/components/game-shell';
-import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
-import { CombatAttributeModal } from '@app/components/feature/battle/v5/CombatAttributeModal';
-import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
-import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
-import {
-  AttributeType, ModifierType, } from '@shared/engine/battle-v5/core/types';
-import {
-  getAllCombatStatusTemplates, } from '@shared/engine/battle-v5/setup/CombatStatusTemplateRegistry';
-import type {
-  PersistentCombatStatusV5, TrainingRoomModifierDraft, } from '@shared/engine/battle-v5/setup/types';
+import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
+import type { TrainingRoomModifierDraft } from '@shared/engine/battle-v5/setup/types';
 import { ATTR_LABELS } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { BattleRecord } from '@shared/types/battle';
@@ -23,13 +16,9 @@ import {
   buildTrainingBattleInitConfig, createDefaultTrainingRoomDraft, parseTrainingRoomStorage, TRAINING_ROOM_STORAGE_KEY, TRAINING_ROOM_STORAGE_VERSION, type TrainingRoomDraft, type TrainingRoomPreset, } from '@shared/lib/training-room/config';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-import { useCombatPlayer } from '../battle/hooks/useCombatPlayer';
 import { useSpecialSceneBackAction } from '@app/layouts/special-scene';
 import { useNavigate } from 'react-router';
 
-
-const STATUS_TEMPLATES = getAllCombatStatusTemplates();
 const ATTRIBUTE_OPTIONS = Object.values(AttributeType);
 const MODIFIER_TYPE_OPTIONS = [
   ModifierType.FIXED,
@@ -76,14 +65,6 @@ function readTrainingRoomStorage() {
   );
 }
 
-function createStatusRef(templateId?: string): PersistentCombatStatusV5 {
-  return {
-    version: 1,
-    templateId: templateId ?? STATUS_TEMPLATES[0]?.id ?? 'weakness',
-    stacks: 1,
-  };
-}
-
 function createModifierDraft(): TrainingRoomModifierDraft {
   return {
     id:
@@ -123,139 +104,6 @@ function NumberField({
       />
       {hint ? <span className="text-xs text-ink/55">{hint}</span> : null}
     </label>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ResourceStateEditor({
-  label,
-  mode,
-  value,
-  onModeChange,
-  onValueChange,
-}: {
-  label: string;
-  mode: 'absolute' | 'percent';
-  value: number;
-  onModeChange: (mode: 'absolute' | 'percent') => void;
-  onValueChange: (value: number) => void;
-}) {
-  const displayValue = mode === 'percent' ? value * 100 : value;
-
-  return (
-    <div className="border border-dashed border-ink/10 p-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-ink">{label}</span>
-        <select
-          className={SELECT_CLASSNAME}
-          value={mode}
-          onChange={(event) =>
-            onModeChange(event.target.value as 'absolute' | 'percent')
-          }
-        >
-          <option value="percent">按比例</option>
-          <option value="absolute">按数值</option>
-        </select>
-      </div>
-      <NumberField
-        label={mode === 'percent' ? `${label}百分比` : `${label}数值`}
-        value={displayValue}
-        step={mode === 'percent' ? 1 : 1}
-        min={0}
-        hint={mode === 'percent' ? '输入 0-100，对应当前资源占上限的比例。' : undefined}
-        onChange={(nextValue) =>
-          onValueChange(mode === 'percent' ? nextValue / 100 : nextValue)
-        }
-      />
-    </div>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function StatusRefEditor({
-  title,
-  statuses,
-  onChange,
-}: {
-  title: string;
-  statuses: PersistentCombatStatusV5[];
-  onChange: (statuses: PersistentCombatStatusV5[]) => void;
-}) {
-  return (
-    <InkCard variant="elevated" className="p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-ink">{title}</p>
-          <p className="text-xs text-ink/55">开战时会附带这些状态。</p>
-        </div>
-        <InkButton
-          variant="secondary"
-          onClick={() => onChange([...statuses, createStatusRef()])}
-        >
-          新增状态
-        </InkButton>
-      </div>
-
-      {statuses.length === 0 ? (
-        <p className="text-sm text-ink/55">暂未添加状态。</p>
-      ) : (
-        <div className="space-y-3">
-          {statuses.map((status, index) => (
-            <div
-              key={`${status.templateId}-${index}`}
-              className="grid grid-cols-1 gap-3 border border-dashed border-ink/10 p-3 md:grid-cols-[minmax(0,2fr)_120px_auto]"
-            >
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/55">状态</span>
-                <select
-                  className={SELECT_CLASSNAME}
-                  value={status.templateId}
-                  onChange={(event) => {
-                    const next = [...statuses];
-                    next[index] = {
-                      ...status,
-                      templateId: event.target.value,
-                    };
-                    onChange(next);
-                  }}
-                >
-                  {STATUS_TEMPLATES.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <NumberField
-                label="层数"
-                value={status.stacks}
-                min={1}
-                onChange={(nextValue) => {
-                  const next = [...statuses];
-                  next[index] = {
-                    ...status,
-                    stacks: Math.max(1, Math.floor(nextValue)),
-                  };
-                  onChange(next);
-                }}
-              />
-
-              <div className="flex items-end justify-end">
-                <InkButton
-                  variant="ghost"
-                  onClick={() =>
-                    onChange(statuses.filter((_, itemIndex) => itemIndex !== index))
-                  }
-                >
-                  删除
-                </InkButton>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </InkCard>
   );
 }
 
@@ -371,9 +219,6 @@ export default function TrainingRoomPage() {
   const { cultivator, isLoading } = useCultivator();
   const [isFighting, setIsFighting] = useState(false);
   const [battleResult, setBattleResult] = useState<BattleRecord>();
-  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(
-    null,
-  );
   const [draft, setDraft] = useState<TrainingRoomDraft>(() => {
     return readTrainingRoomStorage()?.currentDraft ?? createDefaultTrainingRoomDraft();
   });
@@ -384,19 +229,7 @@ export default function TrainingRoomPage() {
   const [presetName, setPresetName] = useState('');
   const [storageReady] = useState(typeof window !== 'undefined');
   const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
-
-  const {
-    currentIndex,
-    isPlaying,
-    playbackSpeed,
-    setPlaybackSpeed,
-    play,
-    pause,
-    reset,
-    totalActions,
-    progress,
-    unitSnapshots,
-  } = useCombatPlayer(battleResult);
+  const playback = useBattlePlaybackState(battleResult);
 
   useEffect(() => {
     if (!storageReady) return;
@@ -462,18 +295,12 @@ export default function TrainingRoomPage() {
     startTrainingWithDraft(createDefaultTrainingRoomDraft());
   }, [startTrainingWithDraft]);
 
-  useEffect(() => {
-    if (battleResult && totalActions > 0 && currentIndex === -1 && !isPlaying) {
-      play();
-    }
-  }, [battleResult, totalActions, currentIndex, isPlaying, play]);
-
   const handleLeave = useCallback(() => {
-    if (isFighting && currentIndex < totalActions - 1) {
+    if (isFighting && !playback.isPlaybackFinished) {
       if (!confirm('训练尚未结束，确定要离开吗？')) return;
     }
     navigate('/game');
-  }, [currentIndex, isFighting, navigate, totalActions]);
+  }, [isFighting, navigate, playback.isPlaybackFinished]);
 
   const immersiveBackAction = useMemo(
     () => ({
@@ -532,26 +359,21 @@ export default function TrainingRoomPage() {
     return <GameImmersiveLoading message="识海构筑中……" />;
   }
 
-  const playerUnitId = battleResult?.player || cultivator?.id;
   const opponentUnitId = battleResult?.opponent || 'dummy';
-  const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
-  const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
   const initialOpponentHp =
     battleResult?.stateTimeline.frames[0]?.units[opponentUnitId || '']?.hp
       .current ?? 0;
   const totalDamage = Math.max(
     0,
-    initialOpponentHp - (currentOpponentFrame?.hp.current ?? initialOpponentHp),
+    initialOpponentHp -
+      (playback.currentOpponentFrame?.hp.current ?? initialOpponentHp),
   );
-  const isEnded = !!battleResult && currentIndex >= totalActions - 1;
+  const isEnded = !!battleResult && playback.isPlaybackFinished;
 
   return (
     <BattlePageLayout
       title="练功房"
       subtitle="直接和木桩切磋；需要时再展开自定义设置。"
-      backHref="/game"
-      backLabel="离开"
-      onBack={handleLeave}
       loading={isFighting && !battleResult}
     >
       {!battleResult ? (
@@ -734,42 +556,12 @@ export default function TrainingRoomPage() {
           ) : null}
         </div>
       ) : (
-        <div className="mb-8 flex flex-col gap-4">
-          {currentPlayerFrame && currentOpponentFrame && (
-            <CombatStatusHeader
-              player={currentPlayerFrame}
-              opponent={currentOpponentFrame}
-              onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
-              onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
-              controls={
-                <CombatControlBar
-                  isPlaying={isPlaying}
-                  playbackSpeed={playbackSpeed}
-                  progress={progress}
-                  onToggle={() => (isPlaying ? pause() : play())}
-                  onSpeedChange={setPlaybackSpeed}
-                  onReset={reset}
-                />
-              }
-            />
-          )}
-
-          <CombatActionLog
-            spans={battleResult.logSpans}
-            currentIndex={currentIndex}
-          />
-        </div>
+        <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
       )}
 
-      <CombatAttributeModal
-        unit={selectedUnit}
-        isOpen={!!selectedUnit}
-        onClose={() => setSelectedUnit(null)}
-      />
-
       <CombatResultDialog
-        key={`training-${battleResult?.turns}-${currentOpponentFrame?.hp.current ?? 0}`}
-        dialogKey={`training-${battleResult?.turns}-${currentOpponentFrame?.hp.current ?? 0}`}
+        key={`training-${battleResult?.turns}-${playback.currentOpponentFrame?.hp.current ?? 0}`}
+        dialogKey={`training-${battleResult?.turns}-${playback.currentOpponentFrame?.hp.current ?? 0}`}
         open={isEnded}
         title="本次训练结束"
         content={

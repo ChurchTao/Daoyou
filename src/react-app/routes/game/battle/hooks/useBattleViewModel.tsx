@@ -19,23 +19,13 @@ export type EnemyData = {
 };
 
 export interface UseBattleViewModelReturn {
-  // 数据
   player: Cultivator | null;
   opponent: EnemyData | null;
   battleResult?: BattleRecord;
-
-  // 状态
-  streamingReport: string;
-  isStreaming: boolean;
   loading: boolean;
   battleEnd: boolean;
-
-  // 计算属性
   isWin: boolean;
-  displayReport: string;
   opponentName: string;
-
-  // 操作
   handleBattleAgain: () => void;
 }
 
@@ -141,19 +131,15 @@ export function useBattleViewModel(): UseBattleViewModelReturn {
   }, [handleBattle]);
 
   const isWin = battleResult?.winner.id === player?.id;
-  const displayReport = ''; // 不再使用 streamingReport
   const opponentName = opponent?.name ?? '神秘对手';
 
   return {
     player,
     opponent,
     battleResult,
-    streamingReport: '',
-    isStreaming: false,
     loading,
     battleEnd,
     isWin,
-    displayReport,
     opponentName,
     handleBattleAgain,
   };

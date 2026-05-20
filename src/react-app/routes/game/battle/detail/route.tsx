@@ -1,15 +1,11 @@
 import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { GameImmersiveLoading } from '@app/components/game-shell';
-import { CombatStatusHeader } from '@app/components/feature/battle/v5/CombatStatusHeader';
-import { CombatActionLog } from '@app/components/feature/battle/v5/CombatActionLog';
-import { CombatControlBar } from '@app/components/feature/battle/v5/CombatControlBar';
-import { CombatAttributeModal } from '@app/components/feature/battle/v5/CombatAttributeModal';
-import { useCombatPlayer } from '../hooks/useCombatPlayer';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
-import type { BattleRecord as BattleRecordNative } from '@shared/types/battle';
+import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlaybackPanel';
+import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import Link from '@app/components/router/AppLink';
-import { useParams } from 'react-router';
+import { GameImmersiveLoading } from '@app/components/game-shell';
+import type { BattleRecord as BattleRecordNative } from '@shared/types/battle';
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router';
 
 type BattleRecordRow = {
   id: string;
@@ -29,28 +25,8 @@ export default function BattleReplayPage() {
 
   const [record, setRecord] = useState<BattleRecordRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedUnit, setSelectedUnit] = useState<UnitStateSnapshot | null>(null);
   const battleResult = record?.battleResult;
-
-  // 播放器 Hook
-  const {
-    currentIndex,
-    isPlaying,
-    playbackSpeed,
-    setPlaybackSpeed,
-    play,
-    pause,
-    reset,
-    totalActions,
-    progress,
-    unitSnapshots,
-  } = useCombatPlayer(battleResult);
-
-  useEffect(() => {
-    if (battleResult && totalActions > 0 && currentIndex === -1 && !isPlaying) {
-      play();
-    }
-  }, [battleResult, totalActions, currentIndex, isPlaying, play]);
+  const playback = useBattlePlaybackState(battleResult);
 
   useEffect(() => {
     if (!id) return;
@@ -66,14 +42,14 @@ export default function BattleReplayPage() {
         if (data.success) {
           setRecord(data.data);
         }
-      } catch (e) {
-        console.error('获取战斗记录失败:', e);
+      } catch (error) {
+        console.error('获取战斗记录失败:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBattleRecord();
+    void fetchBattleRecord();
   }, [id]);
 
   if (loading && !record) {
@@ -96,32 +72,12 @@ export default function BattleReplayPage() {
     );
   }
 
-  const isReplaySupported =
-    !!battleResult?.logSpans?.length &&
-    !!battleResult?.stateTimeline?.frames?.length;
-  const playerUnitId = battleResult?.player;
-  const opponentUnitId = battleResult?.opponent;
-  const getUnitName = (unitId: string) => {
-    if (battleResult?.winner.id === unitId) return battleResult.winner.name;
-    if (battleResult?.loser.id === unitId) return battleResult.loser.name;
-    return '道友';
-  };
-
-  const playerName = playerUnitId ? getUnitName(playerUnitId) : '道友';
-  const opponentName = opponentUnitId ? getUnitName(opponentUnitId) : '对手';
-
-  // 计算实时快照
-  const currentPlayerFrame = unitSnapshots[playerUnitId || ''];
-  const currentOpponentFrame = unitSnapshots[opponentUnitId || ''];
-
   return (
     <BattlePageLayout
-      title={`战斗回放 · ${playerName} vs ${opponentName}`}
+      title={`战斗回放 · ${playback.playerName} vs ${playback.opponentName}`}
       subtitle="按时间顺序查看这场战斗的全过程。"
-      backHref="/game/battle/history"
       loading={loading}
       battleResult={battleResult}
-      isStreaming={false}
       actions={{
         primary: {
           label: '返回战绩',
@@ -129,40 +85,14 @@ export default function BattleReplayPage() {
         },
       }}
     >
-      <div className="flex flex-col gap-4 mb-8">
-        {!isReplaySupported && battleResult && (
+      <BattlePlaybackPanel
+        battleResult={battleResult}
+        playback={playback}
+        unsupportedNotice={
           <p className="text-ink-secondary">
             该战斗记录不支持新版回放（缺少关键时间线数据）。
           </p>
-        )}
-        {isReplaySupported && currentPlayerFrame && currentOpponentFrame && (
-          <CombatStatusHeader
-            player={currentPlayerFrame}
-            opponent={currentOpponentFrame}
-            onShowPlayerDetails={() => setSelectedUnit(currentPlayerFrame)}
-            onShowOpponentDetails={() => setSelectedUnit(currentOpponentFrame)}
-            controls={
-              <CombatControlBar
-                isPlaying={isPlaying}
-                playbackSpeed={playbackSpeed}
-                progress={progress}
-                onToggle={() => (isPlaying ? pause() : play())}
-                onSpeedChange={setPlaybackSpeed}
-                onReset={reset}
-              />
-            }
-          />
-        )}
-
-        {isReplaySupported && battleResult && (
-          <CombatActionLog spans={battleResult.logSpans} currentIndex={currentIndex} />
-        )}
-      </div>
-
-      <CombatAttributeModal
-        unit={selectedUnit}
-        isOpen={!!selectedUnit}
-        onClose={() => setSelectedUnit(null)}
+        }
       />
 
       {record?.createdAt && (
