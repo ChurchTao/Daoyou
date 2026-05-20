@@ -12,7 +12,7 @@ import {
   toProductDisplayModel,
   type ProductRecordLike,
 } from '@app/components/feature/products';
-import { LingGen } from '@app/components/func';
+import { LingGen } from '@app/components/func/LingGen';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkBadge,

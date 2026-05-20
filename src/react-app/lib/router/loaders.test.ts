@@ -1,17 +1,17 @@
 import { authClient } from '@app/lib/auth/client';
+import type { UserLoaderData } from '@app/lib/router/routeData';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   guestOnlyLoader,
   indexRedirectLoader,
   requireAdminLoader,
   requireUserLoader,
 } from './loaders';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@app/lib/auth/client', async () => {
-  const actual =
-    await vi.importActual<typeof import('@app/lib/auth/client')>(
-      '@app/lib/auth/client',
-    );
+  const actual = await vi.importActual<typeof import('@app/lib/auth/client')>(
+    '@app/lib/auth/client',
+  );
 
   return {
     ...actual,
@@ -102,6 +102,20 @@ describe('router loaders', () => {
 
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).headers.get('Location')).toBe('/login');
+  });
+
+  it('returns the authenticated user id for protected routes', async () => {
+    getSessionMock.mockResolvedValue(createSessionPayload(true) as never);
+
+    const response = await requireUserLoader({
+      request: createRequest('http://localhost/game'),
+      params: {},
+      context: undefined,
+    });
+
+    expect(response).toEqual({
+      userId: 'user-1',
+    } satisfies UserLoaderData);
   });
 
   it('redirects admin routes to /login when unauthenticated', async () => {

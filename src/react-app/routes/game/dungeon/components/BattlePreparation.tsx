@@ -1,4 +1,4 @@
-import { LingGenMini } from '@app/components/func';
+import { LingGenMini } from '@app/components/func/LingGen';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';

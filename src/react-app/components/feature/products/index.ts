@@ -3,4 +3,18 @@ export { AffixChip } from './AffixChip';
 export { AffixInlineList } from './AffixInlineList';
 export { AttributeModifierList } from './AttributeModifierList';
 export { getProductShowcaseProps } from './productShowcase';
-export * from './abilityDisplay';
+export {
+  formatAttributeValue,
+  formatNumber,
+  formatTargetPolicy,
+  formatTargetPolicyValue,
+  toAffixView,
+  toAttributeModifierView,
+  toProductDisplayModel,
+  type AbilityProjectionSummary,
+  type AffixRarityTone,
+  type AffixView,
+  type AttributeModifierView,
+  type ProductDisplayModel,
+  type ProductRecordLike,
+} from './abilityDisplay';

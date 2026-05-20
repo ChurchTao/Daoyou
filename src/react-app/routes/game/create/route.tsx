@@ -1,4 +1,4 @@
-import { LingGen } from '@app/components/func';
+import { LingGen } from '@app/components/func/LingGen';
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import {
   FateEffectInlineList,

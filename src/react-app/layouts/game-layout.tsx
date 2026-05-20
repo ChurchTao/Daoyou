@@ -1,8 +1,6 @@
-import {
-  GameBottomDock,
-  GameTopHud,
-  useGameHudModel,
-} from '@app/components/game-shell';
+import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
+import { GameTopHud } from '@app/components/game-shell/GameTopHud';
+import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import {
   WorldChatPreviewBar,
 } from '@app/components/feature/world-chat/WorldChatPreviewBar';

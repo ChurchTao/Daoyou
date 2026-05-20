@@ -1,5 +1,6 @@
 import { authClient } from '@app/lib/auth/client';
 import { replace, type LoaderFunctionArgs } from 'react-router';
+import type { AdminLoaderData, UserLoaderData } from './routeData';
 
 type SessionResult = Awaited<ReturnType<typeof authClient.getSession>>;
 type SessionData = SessionResult['data'];
@@ -9,10 +10,6 @@ type AdminSessionResponse = {
   email?: string;
   error?: string;
 };
-
-export interface AdminLoaderData {
-  adminEmail: string;
-}
 
 async function hasAuthenticatedUser(request: Request) {
   const session = await resolveSessionData(request);
@@ -47,8 +44,13 @@ export async function guestOnlyLoader({ request }: LoaderFunctionArgs) {
   return (await hasAuthenticatedUser(request)) ? replace('/game') : null;
 }
 
-export async function requireUserLoader({ request }: LoaderFunctionArgs) {
-  return (await hasAuthenticatedUser(request)) ? null : replace('/login');
+export async function requireUserLoader({
+  request,
+}: LoaderFunctionArgs): Promise<UserLoaderData | Response> {
+  const session = await resolveSessionData(request);
+  const user = session?.user;
+
+  return user ? { userId: user.id } : replace('/login');
 }
 
 export async function requireAdminLoader({

@@ -1,6 +1,6 @@
 import App, { RootRouteErrorBoundary } from '@app/App';
 import { getGameSceneMeta } from '@app/components/game-shell/gameNavigation';
-import GameLayout, {
+import {
   GameCombatLayout,
   GameDungeonLayout,
   GameGenesisLayout,
@@ -9,12 +9,7 @@ import GameLayout, {
   PlayerProviderLayout,
 } from '@app/layouts/game-layout';
 import { lazyRoute } from '@app/lib/router/lazyRoute';
-import {
-  guestOnlyLoader,
-  indexRedirectLoader,
-  requireAdminLoader,
-  requireUserLoader,
-} from '@app/lib/router/loaders';
+import { GAME_ROUTE_ID } from '@app/lib/router/routeData';
 import type {
   AppRouteHandle,
   GameSceneHandle,
@@ -23,7 +18,6 @@ import type {
 import {
   createBrowserRouter,
   createRoutesFromElements,
-  Outlet,
   Route,
 } from 'react-router';
 
@@ -66,71 +60,65 @@ const mapTitle: RouteTitleResolver = ({ searchParams }) =>
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<App />} errorElement={<RootRouteErrorBoundary />}>
-      <Route index loader={indexRedirectLoader} element={null} />
+      <Route index lazy={lazyRoute(() => import('@app/routes/index/route'))} />
 
-      <Route element={<Outlet />}>
+      <Route lazy={lazyRoute(() => import('@app/routes/auth/layout'))}>
         <Route
           path="/login"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/login/route'))}
           handle={title('【入界】')}
         />
         <Route
           path="/login/email"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/login/email/route'))}
           handle={title('【邮箱归位】')}
         />
         <Route
           path="/login/password"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/login/password/route'))}
           handle={title('【口令归位】')}
         />
         <Route
           path="/login/verify"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/login/verify/route'))}
           handle={title('【口令验证】')}
         />
         <Route
           path="/signup"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/signup/route'))}
           handle={title('【缔结真身】')}
         />
         <Route
           path="/signup/email"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/signup/email/route'))}
           handle={title('【邮箱建号】')}
         />
         <Route
           path="/signup/password"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/signup/password/route'))}
           handle={title('【口令建号】')}
         />
         <Route
           path="/signup/verify"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/signup/verify/route'))}
           handle={title('【建号验证】')}
         />
         <Route
           path="/forgot-password"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/forgot-password/route'))}
           handle={title('【找回口令】')}
         />
         <Route
           path="/reset-password"
-          loader={guestOnlyLoader}
           lazy={lazyRoute(() => import('@app/routes/reset-password/route'))}
           handle={title('【重设口令】')}
         />
       </Route>
-      <Route path="/game" element={<GameLayout />} loader={requireUserLoader}>
+      <Route
+        id={GAME_ROUTE_ID}
+        path="/game"
+        lazy={lazyRoute(() => import('@app/routes/game/layout'))}
+      >
         <Route element={<GameGenesisLayout />}>
           <Route
             path="create"
@@ -601,7 +589,6 @@ export const router = createBrowserRouter(
 
       <Route
         path="/admin"
-        loader={requireAdminLoader}
         lazy={lazyRoute(() => import('@app/routes/admin/layout'))}
         handle={title('万界司天台')}
       >

@@ -1,12 +1,16 @@
-import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { useAuth } from '@app/lib/auth/AuthContext';
+import { getCultivatorResourceSnapshot } from '@app/lib/player/cultivatorResourceSnapshot';
+import { GAME_ROUTE_ID, type UserLoaderData } from '@app/lib/router/routeData';
 import type { ApiFailure } from '@shared/contracts/http';
 import type { PlayerActiveResponse } from '@shared/contracts/player';
 import type {
-  Attributes, Cultivator, EquippedItems, Inventory, Skill, } from '@shared/types/cultivator';
+  Attributes,
+  Cultivator,
+  EquippedItems,
+  Inventory,
+  Skill,
+} from '@shared/types/cultivator';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
-
+import { useNavigate, useRouteLoaderData } from 'react-router';
 
 // ============================================================
 // 类型定义
@@ -185,7 +189,8 @@ async function buildCultivatorState(userId: string): Promise<FetchState> {
   const cachedInventory = getCachedState(userId)?.inventory;
   const cachedLoaded = getCachedState(userId)?.inventoryLoaded;
   const inventory: Inventory = {
-    artifacts: cultivator.inventory?.artifacts || cachedInventory?.artifacts || [],
+    artifacts:
+      cultivator.inventory?.artifacts || cachedInventory?.artifacts || [],
     consumables: cachedInventory?.consumables || [],
     materials: cachedInventory?.materials || [],
   };
@@ -203,8 +208,11 @@ async function buildCultivatorState(userId: string): Promise<FetchState> {
     equipped: cultivator.equipped || defaultEquipped,
   };
 
-  const { finalAttributes: finalAttrs, maxHp, maxMp } =
-    getCultivatorDisplayAttributes(fullCultivator);
+  const {
+    final: finalAttrs,
+    maxHp,
+    maxMp,
+  } = getCultivatorResourceSnapshot(fullCultivator);
 
   return {
     cultivator: fullCultivator,
@@ -243,8 +251,10 @@ function fetchCultivatorStateShared(userId: string): Promise<FetchState> {
 // ============================================================
 
 export function useCultivatorBundle() {
-  const { user } = useAuth();
-  const userId = user?.id || null;
+  const gameLoaderData = useRouteLoaderData(GAME_ROUTE_ID) as
+    | UserLoaderData
+    | undefined;
+  const userId = gameLoaderData?.userId ?? null;
   const navigate = useNavigate();
 
   // 使用 ref 跟踪加载状态，避免重复请求
@@ -306,8 +316,10 @@ export function useCultivatorBundle() {
 
   // ========== 细粒度刷新函数 ==========
   const refreshInventory = useCallback(
-    async (types: InventoryType[] = ['artifacts', 'materials', 'consumables']) => {
-    if (!state.cultivator?.id) return;
+    async (
+      types: InventoryType[] = ['artifacts', 'materials', 'consumables'],
+    ) => {
+      if (!state.cultivator?.id) return;
 
       const uniqueTypes = Array.from(new Set(types));
       const entries = await Promise.all(
@@ -320,8 +332,10 @@ export function useCultivatorBundle() {
       const patch: Partial<Inventory> = {};
       for (const [type, items] of entries) {
         if (items) {
-          if (type === 'artifacts') patch.artifacts = items as Inventory['artifacts'];
-          if (type === 'materials') patch.materials = items as Inventory['materials'];
+          if (type === 'artifacts')
+            patch.artifacts = items as Inventory['artifacts'];
+          if (type === 'materials')
+            patch.materials = items as Inventory['materials'];
           if (type === 'consumables')
             patch.consumables = items as Inventory['consumables'];
         }

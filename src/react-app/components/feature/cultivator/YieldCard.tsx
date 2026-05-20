@@ -142,11 +142,6 @@ export function YieldCard({
     </InkButton>
   );
 
-  const compactSummary =
-    timeSinceYield >= 24
-      ? `已历练 ${timeSinceYield}/24小时，行囊已满`
-      : `已历练 ${timeSinceYield} / 24小时`;
-
   return (
     <>
       {variant === 'compact' ? (
@@ -161,20 +156,20 @@ export function YieldCard({
               ) : null}
             </>
           }
-          summary={compactSummary}
+          summary={`已历练 ${timeSinceYield}/24小时`}
           action={actionButton}
         />
       ) : (
         <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4">
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <div className="text-ink-primary flex items-center gap-2 text-lg font-bold">
+              <div className="text-ink-primary flex items-center gap-1 text-lg font-bold">
                 <span>🗺️ 历练收益</span>
                 {timeSinceYield >= 24 && (
                   <InkBadge tone="danger">已满</InkBadge>
                 )}
               </div>
-              <div className="text-ink-secondary mt-1 text-sm">
+              <div className="text-ink-secondary text-sm">
                 已历练{' '}
                 <span className="text-ink-primary font-bold">
                   {timeSinceYield}

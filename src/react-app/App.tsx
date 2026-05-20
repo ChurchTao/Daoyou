@@ -1,7 +1,6 @@
 import { InkUIProvider } from '@app/components/providers/InkUIProvider';
 import Link from '@app/components/router/AppLink';
 import { RouteDocumentTitle } from '@app/components/router/RouteDocumentTitle';
-import { AuthProvider } from '@app/lib/auth/AuthContext';
 import { APP_TITLE, formatDocumentTitle } from '@app/lib/router/routeTitle';
 import {
   Outlet,
@@ -27,14 +26,12 @@ function NavigationIndicator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <InkUIProvider>
-        <RouteDocumentTitle />
-        <ScrollRestoration />
-        <NavigationIndicator />
-        <Outlet />
-      </InkUIProvider>
-    </AuthProvider>
+    <InkUIProvider>
+      <RouteDocumentTitle />
+      <ScrollRestoration />
+      <NavigationIndicator />
+      <Outlet />
+    </InkUIProvider>
   );
 }
 

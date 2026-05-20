@@ -1,4 +1,4 @@
-import { GameSceneSection } from '@app/components/game-shell';
+import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
 import { InkSection } from '@app/components/layout';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';

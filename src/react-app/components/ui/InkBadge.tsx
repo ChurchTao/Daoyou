@@ -91,7 +91,7 @@ export function InkBadge({
   const colorClass = tier ? tierColorMap[tier] : toneColorMap[tone];
 
   const combinedClass = cn(
-    'inline-flex items-center px-1 mr-1',
+    'inline-flex items-center px-1',
     compact ? 'text-xs' : 'text-sm',
     colorClass,
     className,

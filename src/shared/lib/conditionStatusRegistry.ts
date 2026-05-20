@@ -1,10 +1,13 @@
 import type { BattleUnitInitSpec } from '@shared/engine/battle-v5/setup/types';
-import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
 import type {
   ConditionStatusInstance,
   ConditionStatusKey,
   CultivatorCondition,
 } from '@shared/types/condition';
+import type {
+  AttributeType,
+  ModifierType,
+} from '@shared/engine/battle-v5/core/types';
 
 export interface ConditionStatusTemplate {
   key: ConditionStatusKey;
@@ -22,6 +25,19 @@ export interface ConditionStatusTemplate {
     ) => number;
   };
 }
+
+const ATTR = {
+  MAX_HP: 'maxHp' as AttributeType,
+  SPIRIT: 'spirit' as AttributeType,
+  VITALITY: 'vitality' as AttributeType,
+  SPEED: 'speed' as AttributeType,
+  WILLPOWER: 'willpower' as AttributeType,
+  WISDOM: 'wisdom' as AttributeType,
+};
+
+const MOD = {
+  MULTIPLY: 'multiply' as ModifierType,
+};
 
 class Registry {
   private readonly templates = new Map<ConditionStatusKey, ConditionStatusTemplate>();
@@ -77,8 +93,8 @@ function buildWoundTemplate(
       onBattleInit: () => ({
         modifiers: [
           {
-            attrType: AttributeType.MAX_HP,
-            type: ModifierType.MULTIPLY,
+            attrType: ATTR.MAX_HP,
+            type: MOD.MULTIPLY,
             value: hpRatio,
           },
         ],
@@ -103,14 +119,14 @@ registry.register({
       const value = buildWeaknessMultiplier(status);
       return {
         modifiers: [
-          AttributeType.SPIRIT,
-          AttributeType.VITALITY,
-          AttributeType.SPEED,
-          AttributeType.WILLPOWER,
-          AttributeType.WISDOM,
+          ATTR.SPIRIT,
+          ATTR.VITALITY,
+          ATTR.SPEED,
+          ATTR.WILLPOWER,
+          ATTR.WISDOM,
         ].map((attrType) => ({
           attrType,
-          type: ModifierType.MULTIPLY,
+          type: MOD.MULTIPLY,
           value,
         })),
       };
