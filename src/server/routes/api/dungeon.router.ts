@@ -25,6 +25,15 @@ const router = new Hono<AppEnv>();
 const historyRouter = new Hono<AppEnv>();
 const limitRouter = new Hono<AppEnv>();
 const lootingRouter = new Hono<AppEnv>();
+const battleRouter = new Hono<AppEnv>();
+
+const BattleIdQuerySchema = z.object({
+  battleId: z.string().min(1),
+});
+
+const BattleIdBodySchema = z.object({
+  battleId: z.string().min(1),
+});
 
 router.post('/start', requireActiveCultivator(), async (c) => {
   const cultivator = c.get('cultivator');
@@ -151,8 +160,77 @@ lootingRouter.post('/escape', requireActiveCultivator(), async (c) => {
   return c.json(result);
 });
 
+battleRouter.get('/probe', requireActiveCultivator(), async (c) => {
+  try {
+    const cultivator = c.get('cultivator');
+    if (!cultivator) {
+      return c.json({ error: '当前没有活跃角色' }, 404);
+    }
+
+    const { battleId } = BattleIdQuerySchema.parse({
+      battleId: c.req.query('battleId'),
+    });
+    const enemy = await dungeonService.probeBattleEnemy(cultivator.id, battleId);
+    return c.json({
+      success: true,
+      enemy,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : '遭遇战查探失败';
+    const status = /遭遇战|修真者/.test(message) ? 404 : 500;
+    return c.json({ error: message }, status);
+  }
+});
+
+battleRouter.post('/abandon', requireActiveCultivator(), async (c) => {
+  try {
+    const cultivator = c.get('cultivator');
+    if (!cultivator) {
+      return c.json({ error: '当前没有活跃角色' }, 404);
+    }
+
+    const { battleId } = BattleIdBodySchema.parse(await c.req.json());
+    const result = await dungeonService.abandonBattle(cultivator.id, battleId);
+    return c.json(result);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : '放弃遭遇战失败';
+    const status = /遭遇战|修真者/.test(message) ? 404 : 500;
+    return c.json({ error: message }, status);
+  }
+});
+
+battleRouter.post('/execute/v5', requireActiveCultivator(), async (c) => {
+  try {
+    const cultivator = c.get('cultivator');
+    if (!cultivator) {
+      return c.json({ error: '当前没有活跃角色' }, 404);
+    }
+
+    const { battleId } = BattleIdBodySchema.parse(await c.req.json());
+    const result = await dungeonService.executeBattle(cultivator.id, battleId);
+    return c.json({
+      battleResult: result.battleResult,
+      callbackData: {
+        dungeonState: result.state,
+        roundData: result.roundData,
+        isFinished: result.isFinished,
+        settlement: result.settlement,
+        realGains: result.realGains,
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : '遭遇战执行失败';
+    const status = /遭遇战|修真者/.test(message) ? 404 : 500;
+    return c.json({ error: message }, status);
+  }
+});
+
 router.route('/history', historyRouter);
 router.route('/limit', limitRouter);
 router.route('/looting', lootingRouter);
+router.route('/battle', battleRouter);
 
 export default router;

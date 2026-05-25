@@ -1,13 +1,10 @@
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useDungeonViewModel } from '@app/lib/hooks/dungeon/useDungeonViewModel';
 import { Suspense, useCallback } from 'react';
-import {
-  DungeonSceneScreen,
-  resolveDungeonSceneDescriptor,
-} from './dungeonScene';
+import { DungeonSceneScreen } from './dungeonScene';
+import { resolveDungeonSceneDescriptor } from './dungeonSceneRegistry';
 import { DungeonViewRenderer } from './components/DungeonViewRenderer';
 import { useNavigate, useSearchParams } from 'react-router';
-
 
 /**
  * 副本主页面内容组件

@@ -1,4 +1,5 @@
 import { BattleCallbackData } from '@app/routes/game/dungeon/components/DungeonBattle';
+import { DungeonAbandonBattleResult } from './useEnemyProbe';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
   DungeonOption,
@@ -252,11 +253,24 @@ export function useDungeonViewModel(
     setActiveBattleId(state?.activeBattleId);
   };
 
-  /**
-   * 操作：放弃战斗
-   */
-  const handleAbandonBattle = async () => {
+  const handleAbandonBattleWithResult = async (
+    result: DungeonAbandonBattleResult,
+  ) => {
     setActiveBattleId(undefined);
+    if (result.isFinished) {
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              isFinished: true,
+              settlement: result.settlement,
+              realGains: result.realGains,
+            }
+          : null,
+      );
+      return;
+    }
+
     refresh();
   };
 
@@ -294,7 +308,7 @@ export function useDungeonViewModel(
       continueLooting: handleContinueLooting,
       escapeLooting: handleEscapeLooting,
       startBattle: handleStartBattle,
-      abandonBattle: handleAbandonBattle,
+      abandonBattle: handleAbandonBattleWithResult,
       completeBattle: handleBattleComplete,
     },
   };

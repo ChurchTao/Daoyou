@@ -5,11 +5,10 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import { DungeonOption } from '@shared/lib/dungeon/types';
 import { getMapNode } from '@shared/lib/game/mapSystem';
 import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
+import { DungeonAbandonBattleResult } from '@app/lib/hooks/dungeon/useEnemyProbe';
 import { Cultivator } from '@shared/types/cultivator';
-import {
-  DungeonSceneScreen,
-  resolveDungeonSceneDescriptor,
-} from '../dungeonScene';
+import { DungeonSceneScreen } from '../dungeonScene';
+import { resolveDungeonSceneDescriptor } from '../dungeonSceneRegistry';
 import { BattlePreparation } from './BattlePreparation';
 import { BattleCallbackData, DungeonBattle } from './DungeonBattle';
 import { DungeonExploring } from './DungeonExploring';
@@ -28,7 +27,7 @@ interface DungeonViewRendererProps {
     continueLooting: () => Promise<void>;
     escapeLooting: () => Promise<void>;
     startBattle: (enemyName: string) => void;
-    abandonBattle: () => Promise<void>;
+    abandonBattle: (result: DungeonAbandonBattleResult) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
   };
   onSettlementConfirm?: () => void;

@@ -1,6 +1,14 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import type { ResourceOperation } from '@shared/engine/resource/types';
+import type { DungeonSettlement } from '@shared/lib/dungeon/types';
 import { Cultivator } from '@shared/types/cultivator';
 import { useRef, useState } from 'react';
+
+export interface DungeonAbandonBattleResult {
+  isFinished: boolean;
+  settlement?: DungeonSettlement;
+  realGains?: ResourceOperation[];
+}
 
 /**
  * 敌人查探Hook
@@ -77,7 +85,7 @@ export function useEnemyProbe(battleId: string) {
       }
 
       pushToast({ message: '已放弃战斗', tone: 'success' });
-      return data;
+      return data as DungeonAbandonBattleResult;
     } catch (e) {
       pushToast({
         message: e instanceof Error ? e.message : '操作失败',

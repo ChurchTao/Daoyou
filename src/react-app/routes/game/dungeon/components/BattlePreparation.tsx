@@ -3,13 +3,16 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
-import { useEnemyProbe } from '@app/lib/hooks/dungeon/useEnemyProbe';
+import {
+  DungeonAbandonBattleResult,
+  useEnemyProbe,
+} from '@app/lib/hooks/dungeon/useEnemyProbe';
 import { useEffect, useState } from 'react';
 
 interface BattlePreparationProps {
   battleId: string;
   onStart: (enemyName: string) => void;
-  onAbandon: () => Promise<void>;
+  onAbandon: (result: DungeonAbandonBattleResult) => Promise<void>;
 }
 
 export function BattlePreparation({
@@ -40,8 +43,10 @@ export function BattlePreparation({
       confirmLabel: '确认放弃',
       cancelLabel: '取消',
       onConfirm: async () => {
-        await abandonBattle();
-        await onAbandon();
+        const result = await abandonBattle();
+        if (result) {
+          await onAbandon(result);
+        }
       },
     });
   };

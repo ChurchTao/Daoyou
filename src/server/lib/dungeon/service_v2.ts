@@ -1,4 +1,5 @@
 import { renderPrompt } from '@server/lib/prompts';
+import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
 import type { BattleRecord } from '@server/lib/services/battleResult';
 import { object } from '@server/utils/aiClient'; // AI client helper
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
@@ -15,6 +16,7 @@ import {
   RealmType,
 } from '@shared/types/constants';
 import { randomUUID } from 'crypto';
+import type { Cultivator } from '@shared/types/cultivator';
 import { getExecutor } from '../drizzle/db';
 import { dungeonHistories } from '../drizzle/schema';
 import { redis } from '../redis';
@@ -55,7 +57,44 @@ function getDungeonStartLockKey(cultivatorId: string) {
   return `dungeon:starting:${cultivatorId}`;
 }
 
+function getDungeonBattleKey(battleId: string) {
+  return `dungeon:battle:${battleId}`;
+}
+
+interface DungeonBattleCachePayload {
+  session: BattleSession;
+  enemyObject: Cultivator;
+}
+
 export class DungeonService {
+  private async getBattleContext(cultivatorId: string, battleId: string) {
+    const state = await this.getState(cultivatorId);
+    if (!state || state.activeBattleId !== battleId) {
+      throw new Error('当前没有匹配的遭遇战');
+    }
+
+    const battleKey = getDungeonBattleKey(battleId);
+    const battlePayload = parseRedisJson<DungeonBattleCachePayload>(
+      await redis.get(battleKey),
+      battleKey,
+    );
+
+    if (!battlePayload?.session || !battlePayload.enemyObject) {
+      throw new Error('遭遇战数据不存在或已失效');
+    }
+
+    if (battlePayload.session.cultivatorId !== cultivatorId) {
+      throw new Error('无权访问该遭遇战');
+    }
+
+    return {
+      state,
+      battleKey,
+      session: battlePayload.session,
+      enemyObject: battlePayload.enemyObject,
+    };
+  }
+
   /**
    * 计算境界差距
    * @param playerRealm 玩家境界字符串，如 "化神 中期"
@@ -606,6 +645,69 @@ export class DungeonService {
     state.status = 'LOOTING';
     await this.saveState(cultivatorId, state);
     return { state, isFinished: false };
+  }
+
+  async probeBattleEnemy(cultivatorId: string, battleId: string) {
+    const { enemyObject } = await this.getBattleContext(cultivatorId, battleId);
+    return enemyObject;
+  }
+
+  async executeBattle(cultivatorId: string, battleId: string) {
+    const { battleKey, enemyObject, session } = await this.getBattleContext(
+      cultivatorId,
+      battleId,
+    );
+
+    const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
+    if (!cultivatorBundle?.cultivator) {
+      throw new Error('未找到修真者数据');
+    }
+
+    const battleResult = simulateBattleV5(
+      cultivatorBundle.cultivator,
+      enemyObject,
+      session.battleInit,
+    );
+
+    try {
+      const callbackData = await this.handleBattleCallback(
+        cultivatorId,
+        battleResult,
+      );
+      return {
+        battleResult,
+        ...callbackData,
+      };
+    } catch (error) {
+      console.error('[DungeonService] 战斗回调失败，进入恢复路径:', error);
+      const recovered = await this.recoverAfterBattleCallbackFailure(
+        cultivatorId,
+        battleResult,
+        error instanceof Error ? error.message : undefined,
+      );
+      return {
+        battleResult,
+        ...recovered,
+      };
+    } finally {
+      await redis.del(battleKey);
+    }
+  }
+
+  async abandonBattle(cultivatorId: string, battleId: string) {
+    const { battleKey, state } = await this.getBattleContext(
+      cultivatorId,
+      battleId,
+    );
+
+    delete state.activeBattleId;
+    state.status = 'FINISHED';
+
+    try {
+      return await this.settleDungeon(state, { abandonedBattle: true });
+    } finally {
+      await redis.del(battleKey);
+    }
   }
 
   /**

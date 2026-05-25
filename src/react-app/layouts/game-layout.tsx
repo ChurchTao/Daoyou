@@ -14,10 +14,8 @@ import {
   resolveRouteTitle,
   type GameSceneHandle,
 } from '@app/lib/router/routeTitle';
-import {
-  DungeonSceneProvider,
-  useResolvedDungeonScene,
-} from '@app/routes/game/dungeon/dungeonScene';
+import { DungeonSceneProvider } from '@app/routes/game/dungeon/dungeonScene';
+import { useResolvedDungeonScene } from '@app/routes/game/dungeon/dungeonSceneContext';
 import {
   SpecialSceneProvider,
   useSpecialSceneBackOverride,
@@ -28,6 +26,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type RefObject,
 } from 'react';
 import {
   Outlet,
@@ -490,12 +489,22 @@ export function GameGenesisLayout() {
   );
 }
 
-function DungeonSceneChrome() {
+const DUNGEON_SCENE_TOP_OFFSET_FALLBACK =
+  'calc(env(safe-area-inset-top) + 5rem)';
+
+function DungeonSceneChrome({
+  chromeRef,
+}: {
+  chromeRef?: RefObject<HTMLDivElement | null>;
+}) {
   const navigate = useNavigate();
   const descriptor = useResolvedDungeonScene();
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-30 px-3 pt-[calc(env(safe-area-inset-top)+0.65rem)] md:px-5">
+    <div
+      ref={chromeRef}
+      className="pointer-events-none absolute inset-x-0 top-0 z-30 px-3 pt-[calc(env(safe-area-inset-top)+0.65rem)] md:px-5"
+    >
       <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] pointer-events-auto flex items-start justify-between gap-4 border border-dashed px-3 py-2 shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
         <button
           type="button"
@@ -523,11 +532,47 @@ function DungeonSceneChrome() {
 }
 
 function GameDungeonLayoutBody() {
+  const chromeRef = useRef<HTMLDivElement | null>(null);
+  const [chromeHeight, setChromeHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const node = chromeRef.current;
+    if (!node) return;
+
+    const updateChromeHeight = () => {
+      setChromeHeight(Math.ceil(node.getBoundingClientRect().height));
+    };
+
+    updateChromeHeight();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(updateChromeHeight);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const dungeonLayoutStyle = useMemo(
+    () =>
+      ({
+        '--dungeon-scene-top-offset':
+          chromeHeight !== null
+            ? `${chromeHeight}px`
+            : DUNGEON_SCENE_TOP_OFFSET_FALLBACK,
+      }) as CSSProperties,
+    [chromeHeight],
+  );
+
   return (
-    <div className="bg-paper h-screen overflow-hidden">
+    <div
+      className="bg-paper h-screen overflow-hidden"
+      style={dungeonLayoutStyle}
+    >
       <div className="relative h-full overflow-hidden">
-        <DungeonSceneChrome />
-        <main className="h-full overflow-hidden">
+        <DungeonSceneChrome chromeRef={chromeRef} />
+        <main className="battle-scroll h-full overflow-y-auto">
           <Outlet />
         </main>
       </div>
