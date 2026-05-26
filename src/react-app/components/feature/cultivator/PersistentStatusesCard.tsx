@@ -1,6 +1,7 @@
 import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
 import { InkDialog, type InkDialogState } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { cn } from '@shared/lib/cn';
 import {
   getBreakthroughPenaltyPercent,
   getNaturalRecoveryEstimate,
@@ -9,9 +10,8 @@ import {
   isConditionStatusActive,
 } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
 import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
-import { cn } from '@shared/lib/cn';
-import { getResourceLabel } from '@shared/lib/resourceText';
 import type {
   ConditionStatusInstance,
   ConditionTrackPath,
@@ -31,7 +31,10 @@ const TRACK_ORDER: ConditionTrackPath[] = [
   'tempering.willpower',
 ];
 
-function formatRemainingTime(expiresAt: string | undefined, now: number): string {
+function formatRemainingTime(
+  expiresAt: string | undefined,
+  now: number,
+): string {
   if (!expiresAt) return '永久';
   const expiresAtMs = Date.parse(expiresAt);
   if (!Number.isFinite(expiresAtMs)) return '永久';
@@ -86,6 +89,26 @@ function usePersistentStatusState() {
     0,
     Math.floor(cultivator.condition?.resources.mp.current ?? maxMp),
   );
+  const cultivationExp = Math.max(
+    0,
+    Math.floor(cultivator.cultivation_progress?.cultivation_exp ?? 0),
+  );
+  const cultivationCap = Math.max(
+    1,
+    Math.floor(cultivator.cultivation_progress?.exp_cap ?? 100),
+  );
+  const cultivationPercent = Math.round(
+    Math.max(0, Math.min((cultivationExp / cultivationCap) * 100, 100)),
+  );
+  const comprehensionInsight = Math.round(
+    Math.max(
+      0,
+      Math.min(
+        cultivator.cultivation_progress?.comprehension_insight ?? 0,
+        100,
+      ),
+    ),
+  );
   const pillToxicity = Math.max(
     0,
     Math.floor(cultivator.condition?.gauges.pillToxicity ?? 0),
@@ -101,26 +124,25 @@ function usePersistentStatusState() {
     (left, right) =>
       TRACK_ORDER.indexOf(left.key) - TRACK_ORDER.indexOf(right.key),
   );
-  const trackEntries = trackConfigs
-    .map((config) => {
-      const state =
-        config.key === 'marrow_wash'
-          ? cultivator.condition?.tracks.marrowWash
-          : cultivator.condition?.tracks.tempering[
-              config.key.replace('tempering.', '') as keyof NonNullable<
-                typeof cultivator.condition
-              >['tracks']['tempering']
-            ];
-      const level = state?.level ?? 0;
-      const progress = state?.progress ?? 0;
-      const threshold = config.thresholdByLevel(level);
-      return {
-        config,
-        level,
-        progress,
-        threshold,
-      };
-    });
+  const trackEntries = trackConfigs.map((config) => {
+    const state =
+      config.key === 'marrow_wash'
+        ? cultivator.condition?.tracks.marrowWash
+        : cultivator.condition?.tracks.tempering[
+            config.key.replace('tempering.', '') as keyof NonNullable<
+              typeof cultivator.condition
+            >['tracks']['tempering']
+          ];
+    const level = state?.level ?? 0;
+    const progress = state?.progress ?? 0;
+    const threshold = config.thresholdByLevel(level);
+    return {
+      config,
+      level,
+      progress,
+      threshold,
+    };
+  });
   const hpRecovery = getNaturalRecoveryEstimate({
     resource: 'hp',
     current: currentHp,
@@ -146,6 +168,10 @@ function usePersistentStatusState() {
     mpRecovery,
     now,
     breakthroughPenaltyPercent,
+    comprehensionInsight,
+    cultivationCap,
+    cultivationExp,
+    cultivationPercent,
     pillToxicity,
     pillToxicityRecoveryEfficiency,
     pillToxicityStage,
@@ -204,7 +230,7 @@ function CompactInfoRow({
       {hasMeta ? (
         <div className="shrink-0 text-right">
           {value ? (
-            <div className="text-ink text-sm font-semibold leading-6">
+            <div className="text-ink text-sm leading-6 font-semibold">
               {value}
             </div>
           ) : null}
@@ -216,7 +242,7 @@ function CompactInfoRow({
           {actionLabel ? (
             <button
               type="button"
-              className="text-ink-secondary mt-1 text-xs underline decoration-dotted underline-offset-4 transition-colors hover:text-ink"
+              className="text-ink-secondary hover:text-ink mt-1 text-xs underline decoration-dotted underline-offset-4 transition-colors"
               onClick={onAction}
             >
               {actionLabel}
@@ -236,14 +262,7 @@ export function CultivatorCurrentStatusSection() {
     return null;
   }
 
-  const showResourceState =
-    state.currentHp < state.maxHp ||
-    state.currentMp < state.maxMp ||
-    state.pillToxicity > 0;
-
-  if (!showResourceState && state.statuses.length === 0) {
-    return null;
-  }
+  const hasCultivationState = Boolean(state.cultivator.cultivation_progress);
 
   const dialog: InkDialogState | null =
     detailDialog?.kind === 'status'
@@ -291,56 +310,71 @@ export function CultivatorCurrentStatusSection() {
           }
         : null;
 
+  const cultivationRows = hasCultivationState ? (
+    <>
+      <CompactInfoRow
+        icon="🧘"
+        label={getResourceText('cultivation_exp')}
+        value={`${state.cultivationExp} / ${state.cultivationCap}`}
+        trailing={`${state.cultivationPercent}%`}
+      />
+      <CompactInfoRow
+        icon="💡"
+        label="道心感悟"
+        value={`${state.comprehensionInsight} / 100`}
+      />
+    </>
+  ) : null;
+
   return (
     <>
       <GameSceneSection title="当前状态" contentClassName="space-y-2">
-        {showResourceState ? (
-          <div>
-            <CompactInfoRow
-              icon="❤️"
-              label={getResourceLabel('hp')}
-              note={
-                state.hpRecovery.isFull
-                  ? '自然恢复已满'
-                  : `自然恢复每时约 ${formatRecoveryPerHour(state.hpRecovery.perHour)}/小时`
-              }
-              value={`${state.currentHp} / ${state.maxHp}`}
-              trailing={
-                state.hpRecovery.isFull
-                  ? undefined
-                  : state.hpRecovery.timeToFullMs !== null
-                    ? `约 ${formatDurationMs(state.hpRecovery.timeToFullMs)}回满`
-                    : '恢复时机未定'
-              }
-            />
-            <CompactInfoRow
-              icon="💧"
-              label={getResourceLabel('mp')}
-              note={
-                state.mpRecovery.isFull
-                  ? '自然恢复已满'
-                  : `自然恢复约 ${formatRecoveryPerHour(state.mpRecovery.perHour)}/小时`
-              }
-              value={`${state.currentMp} / ${state.maxMp}`}
-              trailing={
-                state.mpRecovery.isFull
-                  ? undefined
-                  : state.mpRecovery.timeToFullMs !== null
-                    ? `约 ${formatDurationMs(state.mpRecovery.timeToFullMs)}回满`
-                    : '恢复时机未定'
-              }
-            />
-            <CompactInfoRow
-              icon="☠️"
-              label="丹毒"
-              note={state.pillToxicityStage.label}
-              value={`${state.pillToxicity}`}
-              trailing={`恢复 ${state.pillToxicityRecoveryEfficiency}% · 破境压制 ${state.breakthroughPenaltyPercent}%`}
-              actionLabel="查看情况"
-              onAction={() => setDetailDialog({ kind: 'toxicity' })}
-            />
-          </div>
-        ) : null}
+        <div>
+          {cultivationRows}
+          <CompactInfoRow
+            icon="❤️"
+            label={getResourceLabel('hp')}
+            note={
+              state.hpRecovery.isFull
+                ? '自然恢复已满'
+                : `自然恢复每时约 ${formatRecoveryPerHour(state.hpRecovery.perHour)}/小时`
+            }
+            value={`${state.currentHp} / ${state.maxHp}`}
+            trailing={
+              state.hpRecovery.isFull
+                ? undefined
+                : state.hpRecovery.timeToFullMs !== null
+                  ? `约 ${formatDurationMs(state.hpRecovery.timeToFullMs)}回满`
+                  : '恢复时机未定'
+            }
+          />
+          <CompactInfoRow
+            icon="💧"
+            label={getResourceLabel('mp')}
+            note={
+              state.mpRecovery.isFull
+                ? '自然恢复已满'
+                : `自然恢复约 ${formatRecoveryPerHour(state.mpRecovery.perHour)}/小时`
+            }
+            value={`${state.currentMp} / ${state.maxMp}`}
+            trailing={
+              state.mpRecovery.isFull
+                ? undefined
+                : state.mpRecovery.timeToFullMs !== null
+                  ? `约 ${formatDurationMs(state.mpRecovery.timeToFullMs)}回满`
+                  : '恢复时机未定'
+            }
+          />
+          <CompactInfoRow
+            icon="☠️"
+            label="丹毒"
+            note={state.pillToxicityStage.label}
+            value={`${state.pillToxicity}`}
+            trailing={`恢复 ${state.pillToxicityRecoveryEfficiency}% · 破境压制 ${state.breakthroughPenaltyPercent}%`}
+            actionLabel="查看情况"
+            onAction={() => setDetailDialog({ kind: 'toxicity' })}
+          />
+        </div>
 
         {state.statuses.map((status, index) => {
           const template = getConditionStatusTemplate(status.key);
@@ -352,7 +386,9 @@ export function CultivatorCurrentStatusSection() {
               icon={template?.display.icon ?? '💫'}
               label={template?.name ?? status.key}
               note={
-                template?.display.shortDesc ?? template?.description ?? '长期状态影响'
+                template?.display.shortDesc ??
+                template?.description ??
+                '长期状态影响'
               }
               value={
                 status.duration.kind === 'time'
@@ -360,7 +396,8 @@ export function CultivatorCurrentStatusSection() {
                   : undefined
               }
               trailing={
-                typeof status.usesRemaining === 'number' && status.usesRemaining > 0
+                typeof status.usesRemaining === 'number' &&
+                status.usesRemaining > 0
                   ? `${status.usesRemaining}次`
                   : undefined
               }

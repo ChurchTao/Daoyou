@@ -1,7 +1,7 @@
+import { calculateCultivationExp } from '@server/utils/cultivationUtils';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { REALM_YIELD_RATES, RealmType } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
-import { calculateCultivationExp } from '@server/utils/cultivationUtils';
 
 /**
  * 历练收益计算器
@@ -34,8 +34,8 @@ export class YieldCalculator {
 
     // 2. 修为奖励（重构：复用闭关系统）
     if (cultivator) {
-      // 复用 calculateCultivationExp，1小时=闭关1年
-      const expResult = calculateCultivationExp(cultivator, hoursElapsed);
+      // 复用 calculateCultivationExp，2小时=闭关1年
+      const expResult = calculateCultivationExp(cultivator, hoursElapsed / 2);
       if (expResult.exp_gained > 0) {
         operations.push({
           type: 'cultivation_exp',

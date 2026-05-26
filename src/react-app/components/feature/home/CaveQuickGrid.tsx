@@ -7,7 +7,6 @@ type CaveQuickArea = {
 
 const CAVE_AREAS: CaveQuickArea[] = [
   { title: '🧘 修炼室', href: '/game/retreat' },
-  { title: '🛏️ 客栈', href: '/game/inn' },
   { title: '🌕 炼丹房', href: '/game/craft/alchemy' },
   { title: '🔥 炼器室', href: '/game/craft/refine' },
   { title: '📚 藏经阁', href: '/game/enlightenment' },

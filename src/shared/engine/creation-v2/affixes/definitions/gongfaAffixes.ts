@@ -972,8 +972,7 @@ export const GONGFA_AFFIXES: AffixDefinition[] = [
       ],
       params: {
         mode: 'increase',
-        value: { base: 0.8, scale: 'quality', coefficient: 0.04 },
-        cap: 0.8,
+        value: { base: 0.04, scale: 'quality', coefficient: 0.02 },
       },
     },
     listenerSpec: {

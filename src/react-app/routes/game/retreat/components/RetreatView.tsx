@@ -1,7 +1,5 @@
-import { BreakthroughTaskCard } from '@app/components/feature/tasks/BreakthroughTaskCard';
 import { useLifespanStatus } from '@app/components/feature/cultivator/LifespanStatusCard';
 import {
-  GameSceneAsideSection,
   GameSceneFrame,
   GameSceneNote,
   GameSceneSection,
@@ -11,11 +9,6 @@ import { InkBadge, InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { RetreatResultSection } from './RetreatResultSection';
-
-function formatChance(value: number | undefined) {
-  if (typeof value !== 'number') return '未明';
-  return `${Math.round(value * 1000) / 10}%`;
-}
 
 function BreakthroughLabel({
   type,
@@ -36,24 +29,76 @@ function BreakthroughLabel({
   return <InkBadge tier={tone}>{text}</InkBadge>;
 }
 
-function QuietRoomMetric({
+function RetreatSummaryEntry({
   label,
   value,
-  hint,
+  note,
 }: {
   label: string;
   value: string;
-  hint: string;
+  note: string;
 }) {
   return (
-    <div className="border-ink/15 bg-bgpaper border border-dashed px-3 py-3">
-      <div className="text-battle-muted text-[0.68rem] tracking-[0.18em]">
+    <div className="min-w-0">
+      <dt className="text-battle-muted text-[0.72rem] tracking-[0.18em]">
         {label}
-      </div>
-      <div className="text-ink mt-2 text-lg">{value}</div>
-      <div className="text-ink-secondary mt-1 text-xs leading-5">{hint}</div>
+      </dt>
+      <dd className="text-ink mt-1 text-base leading-7">{value}</dd>
+      <div className="text-ink-secondary mt-1 text-xs leading-6">{note}</div>
     </div>
   );
+}
+
+function getRetreatLeadText({
+  isMajorBreakthrough,
+  majorBreakthroughBlocked,
+}: {
+  isMajorBreakthrough: boolean;
+  majorBreakthroughBlocked: boolean;
+}) {
+  if (isMajorBreakthrough && majorBreakthroughBlocked) {
+    return '石门一合，静室里只余炉火与回声。这一关还不到起手的时候，你更该先把破境前置补齐，再决定要不要拿寿元去换这一回闭关。';
+  }
+
+  if (isMajorBreakthrough) {
+    return '炉火已稳，卷宗也已齐备。静室此刻只剩一个问题：你准备押下多少寿元，再决定要不要在这一炷香里冲开下一重天门。';
+  }
+
+  return '蒲团、丹炉与静香都已备好。你只需定下这次要坐多少年，再看眼前火候，是继续积累，还是顺势推门试上一关。';
+}
+
+function getRetreatGuidanceText({
+  canBreakthrough,
+  isMajorBreakthrough,
+  majorBreakthroughBlocked,
+  tasksLoading,
+  currentMajorTaskTitle,
+  breakthroughRecommendation,
+}: {
+  canBreakthrough: boolean;
+  isMajorBreakthrough: boolean;
+  majorBreakthroughBlocked: boolean;
+  tasksLoading: boolean;
+  currentMajorTaskTitle?: string;
+  breakthroughRecommendation?: string;
+}) {
+  if (isMajorBreakthrough && majorBreakthroughBlocked) {
+    if (tasksLoading) {
+      return '破境卷宗仍在整理，静室暂且只适合继续闭关。';
+    }
+
+    if (currentMajorTaskTitle) {
+      return `${currentMajorTaskTitle} 尚未办妥，正式冲关还得再等等。`;
+    }
+
+    return '大境界门槛已至，但卷宗尚未归档完成。';
+  }
+
+  if (!canBreakthrough) {
+    return '修为未到门槛，先把这回闭关坐实。';
+  }
+
+  return breakthroughRecommendation ?? '火候已到，是否冲关，只看你此刻心意。';
 }
 
 export function RetreatView() {
@@ -107,6 +152,20 @@ export function RetreatView() {
     );
   }
 
+  const canAttemptBreakthrough =
+    Boolean(cultivationProgress?.canBreakthrough) &&
+    (!isMajorBreakthrough || !majorBreakthroughBlocked);
+  const guidanceText = getRetreatGuidanceText({
+    canBreakthrough: Boolean(cultivationProgress?.canBreakthrough),
+    isMajorBreakthrough,
+    majorBreakthroughBlocked,
+    tasksLoading,
+    currentMajorTaskTitle: currentMajorTask?.snapshot.title,
+    breakthroughRecommendation: breakthroughPreview?.recommendation,
+  });
+  const missingRequirements =
+    currentMajorTask?.snapshot.missingRequirements.slice(0, 2) ?? [];
+
   return (
     <GameSceneFrame
       title="静室修行"
@@ -117,155 +176,80 @@ export function RetreatView() {
           </GameSceneNote>
         ) : undefined
       }
-      aside={
-        <>
-          <GameSceneAsideSection title="静室案头">
-            <div className="space-y-2 text-sm leading-7">
-              <p>当前境界：{cultivator.realm_stage}</p>
-              <p>剩余寿元：{remainingLifespan} 年</p>
-              <p>累计闭关：{cultivator.closed_door_years_total ?? 0} 年</p>
-              <p>本次闭关：{retreatYears || '未定'} 年</p>
-            </div>
-          </GameSceneAsideSection>
-
-          <GameSceneAsideSection title="寿元账">
-            <div className="space-y-2 text-sm leading-7">
-              {lifespanStatus ? (
-                <>
-                  <p>
-                    今日已用：{lifespanStatus.consumed}/
-                    {lifespanStatus.dailyLimit} 年
-                  </p>
-                  <p>今日尚余：{lifespanStatus.remaining} 年</p>
-                </>
-              ) : (
-                <p>寿元账册尚在整理。</p>
-              )}
-              <p className="text-ink-secondary">
-                闭关愈久，修为增长愈多，但寿元也会一并消耗。
-              </p>
-            </div>
-          </GameSceneAsideSection>
-
-          <GameSceneAsideSection title="冲关火候">
-            <div className="space-y-2 text-sm leading-7">
-              <p>修为约：{cultivationProgress?.percent ?? 0}%</p>
-              <p>
-                道心感悟：{cultivationProgress?.comprehension_insight ?? 0}/100
-              </p>
-              <p>
-                成功把握：
-                {isMajorBreakthrough && majorBreakthroughBlocked
-                  ? '前置未齐'
-                  : formatChance(breakthroughPreview?.finalChance)}
-              </p>
-              {breakthroughPreview?.recommendation ? (
-                <p className="text-ink-secondary">
-                  {breakthroughPreview.recommendation}
-                </p>
-              ) : isMajorBreakthrough && majorBreakthroughBlocked ? (
-                <p className="text-ink-secondary">
-                  先把当前破境前置做完，再谈正式冲关。
-                </p>
-              ) : (
-                <p className="text-ink-secondary">
-                  修为达 60% 可试冲关，圆满火候更宜稳破。
-                </p>
-              )}
-            </div>
-          </GameSceneAsideSection>
-        </>
-      }
     >
-      {isMajorBreakthrough ? (
-        <GameSceneSection title="破境前置">
-          {tasksLoading ? (
-            <p className="text-sm leading-7 text-ink-secondary">
-              破境卷宗整理中……稍后便会显出这一关该先做什么。
+      <GameSceneSection>
+        <div className="border-ink/10 bg-bgpaper/70 space-y-5 border border-dashed px-4 py-4 md:px-5">
+          <div className="space-y-3 text-sm leading-7">
+            <p>
+              {getRetreatLeadText({
+                isMajorBreakthrough,
+                majorBreakthroughBlocked,
+              })}
             </p>
-          ) : taskError ? (
-            <InkNotice>{taskError}</InkNotice>
-          ) : currentMajorTask ? (
-            <div className="space-y-3">
-              <BreakthroughTaskCard task={currentMajorTask} />
-              {currentMajorTask.status === 'completed' ? (
-                <p className="text-sm leading-7 text-emerald-800">
-                  前置卷宗已齐，现在可以回到静室，正式冲击
-                  {currentMajorTask.snapshot.toRealm}。
-                </p>
-              ) : currentMajorTask.snapshot.missingRequirements.length > 0 ? (
-                <div className="border-ink/10 bg-bgpaper border border-dashed px-4 py-3">
-                  <p className="text-sm font-medium text-ink">当前缺口</p>
-                  <ul className="mt-2 space-y-1 text-sm leading-7 text-ink-secondary">
-                    {currentMajorTask.snapshot.missingRequirements.map((requirement) => (
-                      <li key={requirement}>{requirement}</li>
+            <div className="flex flex-wrap items-center gap-2 text-sm leading-7">
+              <span className="text-ink-secondary">眼下火候：</span>
+              {cultivationProgress?.canBreakthrough ? (
+                <BreakthroughLabel
+                  type={cultivationProgress.breakthroughType ?? null}
+                />
+              ) : null}
+              <span className="text-ink-secondary">{guidanceText}</span>
+            </div>
+          </div>
+
+          {isMajorBreakthrough ? (
+            tasksLoading ? (
+              <p className="text-ink-secondary text-sm leading-7">
+                破境卷宗整理中……稍后便会显出这一关还缺什么。
+              </p>
+            ) : taskError ? (
+              <InkNotice>{taskError}</InkNotice>
+            ) : majorBreakthroughBlocked && currentMajorTask ? (
+              <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.74)] px-4 py-3">
+                <div className="space-y-1">
+                  <p className="text-ink text-sm font-medium">
+                    {currentMajorTask.snapshot.title}
+                  </p>
+                  <p className="text-ink-secondary text-sm leading-7">
+                    {currentMajorTask.snapshot.summary}
+                  </p>
+                </div>
+
+                {missingRequirements.length > 0 ? (
+                  <ul className="text-ink-secondary space-y-1 text-sm leading-7">
+                    {missingRequirements.map((requirement) => (
+                      <li key={requirement}>• {requirement}</li>
                     ))}
                   </ul>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-sm leading-7 text-ink-secondary">
-              当前已临大境界门槛，但卷宗尚未归档完成。稍后刷新即可继续。
-            </p>
-          )}
-        </GameSceneSection>
-      ) : null}
+                ) : null}
 
-      <GameSceneSection title="当前火候">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <QuietRoomMetric
-            label="境界"
-            value={cultivator.realm_stage}
-            hint="静室中一切筹算都以当前境界为基。"
-          />
-          <QuietRoomMetric
-            label="修为"
-            value={`${cultivationProgress?.percent ?? 0}%`}
-            hint="修为达到 60% 后，才有资格尝试突破。"
-          />
-          <QuietRoomMetric
-            label="感悟"
-            value={`${cultivationProgress?.comprehension_insight ?? 0}/100`}
-            hint="感悟越高，冲关时越稳。"
-          />
-          <QuietRoomMetric
-            label="突破"
-            value={formatChance(breakthroughPreview?.finalChance)}
-            hint="结合修为、感悟与当前状态得出的估计。"
-          />
-        </div>
-
-        <div className="border-battle-rule-strong mt-3 flex flex-wrap items-center gap-2 border-t border-dashed pt-3 text-sm">
-          <span className="text-ink-secondary">当前判断：</span>
-          <BreakthroughLabel
-            type={cultivationProgress?.breakthroughType ?? null}
-          />
-          {!cultivationProgress?.canBreakthrough ? (
-            <span className="text-battle-muted">
-              修为未到 60%，仍应以闭关积累为先。
-            </span>
+                {currentMajorTask.snapshot.missingRequirements.length >
+                missingRequirements.length ? (
+                  <p className="text-ink-secondary text-xs leading-6">
+                    其余细项已归回卷宗，不在静室逐条摊开。
+                  </p>
+                ) : null}
+              </div>
+            ) : majorBreakthroughBlocked ? (
+              <p className="text-ink-secondary text-sm leading-7">
+                当前已临大境界门槛，但卷宗尚未归档完成。稍后刷新即可继续。
+              </p>
+            ) : null
           ) : null}
-        </div>
-      </GameSceneSection>
 
-      <GameSceneSection title="本次闭关">
-        <div className="space-y-4 text-sm leading-7">
-          <p>
-            {isMajorBreakthrough
-              ? majorBreakthroughBlocked
-                ? '这一关先别急着起手。先把破境前置做完，静室此刻更适合补足修为、准备资源。'
-                : '前置卷宗已齐，静室此刻只剩最后的冲关决断，以及你愿不愿承受失败后的代价。'
-              : '静室只看与这一次决断直接相关的事：要押几年寿元、此刻该不该冲关，以及冲关失败后还能否承受代价。'}
-          </p>
-
-          <InkInput
-            label="闭关年限"
-            value={retreatYears}
-            placeholder="输入 1~200 之间的整数"
-            onChange={handleRetreatYearsChange}
-            hint="闭关越久修为增长越多，也会消耗相应寿元。"
-          />
+          <div className="space-y-3">
+            <InkInput
+              label="闭关年限"
+              value={retreatYears}
+              placeholder="输入 1~200 之间的整数"
+              onChange={handleRetreatYearsChange}
+              hint={
+                lifespanStatus
+                  ? `闭关越久，修为增长越多。今日尚余 ${lifespanStatus.remaining} 年寿元可用，已用 ${lifespanStatus.consumed}/${lifespanStatus.dailyLimit} 年。`
+                  : '闭关越久，修为增长越多。寿元账册尚在整理，先按心中的年限定下这次闭关。'
+              }
+            />
+          </div>
 
           <div className="flex flex-wrap gap-2">
             <InkButton
@@ -276,8 +260,7 @@ export function RetreatView() {
               {retreatLoading ? '修炼中……' : '闭关修炼'}
             </InkButton>
 
-            {cultivationProgress?.canBreakthrough &&
-            (!isMajorBreakthrough || !majorBreakthroughBlocked) ? (
+            {canAttemptBreakthrough ? (
               <InkButton
                 onClick={handleBreakthroughClick}
                 disabled={retreatLoading}
@@ -286,14 +269,33 @@ export function RetreatView() {
               </InkButton>
             ) : null}
           </div>
+        </div>
+      </GameSceneSection>
 
-          {cultivationProgress?.canBreakthrough &&
-          isMajorBreakthrough &&
-          majorBreakthroughBlocked ? (
-            <p className="text-xs leading-6 text-ink-secondary">
-              大境界突破暂未开放正式冲关，先按上方卷宗补齐当前阶段。
-            </p>
-          ) : null}
+      <GameSceneSection title="当前筹算">
+        <div className="border-ink/10 bg-bgpaper/60 border border-dashed px-4 py-4">
+          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <RetreatSummaryEntry
+              label="当前境界"
+              value={`${cultivator.realm}${cultivator.realm_stage}`}
+              note="静室里的一切筹算，都从这一层火候起算。"
+            />
+            <RetreatSummaryEntry
+              label="修为进度"
+              value={`${cultivationProgress?.percent ?? 0}%`}
+              note="修为达到 60% 后，才算摸到冲关门槛。"
+            />
+            <RetreatSummaryEntry
+              label="道心感悟"
+              value={`${cultivationProgress?.comprehension_insight ?? 0}/100`}
+              note="感悟越稳，临门一脚越不容易乱。"
+            />
+            <RetreatSummaryEntry
+              label="剩余寿元"
+              value={`${remainingLifespan} 年`}
+              note="这次要坐多久、还能承受几次尝试，都看它。"
+            />
+          </dl>
         </div>
       </GameSceneSection>
 

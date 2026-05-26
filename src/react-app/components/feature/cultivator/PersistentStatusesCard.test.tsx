@@ -108,6 +108,15 @@ describe('PersistentStatusesCard sections', () => {
 
     mockUseCultivator.mockReturnValue({
       cultivator: {
+        cultivation_progress: {
+          cultivation_exp: 420,
+          exp_cap: 1000,
+          comprehension_insight: 37,
+          breakthrough_failures: 0,
+          bottleneck_state: false,
+          inner_demon: false,
+          deviation_risk: 0,
+        },
         condition: {
           resources: {
             hp: { current: 80 },
@@ -189,6 +198,11 @@ describe('PersistentStatusesCard sections', () => {
     expect(html).toContain('12');
     expect(html).toContain('毒息未散');
     expect(html).toContain('恢复 93% · 破境压制 1.2%');
+    expect(html).toContain('修为');
+    expect(html).toContain('420 / 1000');
+    expect(html).toContain('42%');
+    expect(html).toContain('道心感悟');
+    expect(html).toContain('37 / 100');
     expect(html).toContain('福缘护体');
     expect(html).toContain('30分');
     expect(html).toContain('2次');
@@ -218,6 +232,15 @@ describe('PersistentStatusesCard sections', () => {
   it('keeps all six tracks visible even before any progress has been made', () => {
     mockUseCultivator.mockReturnValue({
       cultivator: {
+        cultivation_progress: {
+          cultivation_exp: 0,
+          exp_cap: 100,
+          comprehension_insight: 0,
+          breakthrough_failures: 0,
+          bottleneck_state: false,
+          inner_demon: false,
+          deviation_risk: 0,
+        },
         condition: {
           resources: {
             hp: { current: 120 },
@@ -276,7 +299,81 @@ describe('PersistentStatusesCard sections', () => {
     expect(html).toContain('炼体·神识');
   });
 
-  it('hides the current-status section when resources are full and no status remains', () => {
+  it('keeps cultivation rows visible even when other current-state resources are full', () => {
+    mockGetBreakthroughPenaltyPercent.mockReturnValue(0);
+    mockGetPillToxicityRecoveryMultiplier.mockReturnValue(1);
+    mockGetNaturalRecoveryEstimate.mockReturnValue({
+      perHour: 0,
+      timeToFullMs: 0,
+      isFull: true,
+    });
+    mockUseCultivator.mockReturnValue({
+      cultivator: {
+        cultivation_progress: {
+          cultivation_exp: 0,
+          exp_cap: 100,
+          comprehension_insight: 0,
+          breakthrough_failures: 0,
+          bottleneck_state: false,
+          inner_demon: false,
+          deviation_risk: 0,
+        },
+        condition: {
+          resources: {
+            hp: { current: 120 },
+            mp: { current: 60 },
+          },
+          gauges: {
+            pillToxicity: 0,
+          },
+          statuses: [],
+          tracks: {
+            marrowWash: {
+              level: 0,
+              progress: 0,
+            },
+            tempering: {
+              vitality: {
+                level: 0,
+                progress: 0,
+              },
+              spirit: {
+                level: 0,
+                progress: 0,
+              },
+              wisdom: {
+                level: 0,
+                progress: 0,
+              },
+              speed: {
+                level: 0,
+                progress: 0,
+              },
+              willpower: {
+                level: 0,
+                progress: 0,
+              },
+            },
+          },
+        },
+      },
+      finalAttributes: {
+        maxHp: 120,
+        maxMp: 60,
+      },
+    });
+
+    const html = renderToStaticMarkup(<CultivatorCurrentStatusSection />);
+
+    expect(html).toContain('当前状态');
+    expect(html).toContain('修为');
+    expect(html).toContain('0 / 100');
+    expect(html).toContain('0%');
+    expect(html).toContain('道心感悟');
+    expect(html).toContain('0 / 100');
+  });
+
+  it('hides the current-status section when resources are full, no status remains, and cultivation progress is missing', () => {
     mockGetBreakthroughPenaltyPercent.mockReturnValue(0);
     mockGetPillToxicityRecoveryMultiplier.mockReturnValue(1);
     mockGetNaturalRecoveryEstimate.mockReturnValue({
