@@ -142,19 +142,19 @@ function createDailyTaskRecord(
     daily_alchemy_once: {
       stageId: 'daily-alchemy-stage',
       dailyKind: 'alchemy',
-      rewardSummary: ['灵石 x300'],
+      rewardSummary: ['灵石 x1000'],
       objectiveId: 'daily-alchemy-objective',
     },
     daily_dungeon_once: {
       stageId: 'daily-dungeon-stage',
       dailyKind: 'dungeon',
-      rewardSummary: ['灵石 x500'],
+      rewardSummary: ['灵石 x1000'],
       objectiveId: 'daily-dungeon-objective',
     },
     daily_ranking_once: {
       stageId: 'daily-ranking-stage',
       dailyKind: 'ranking',
-      rewardSummary: ['灵石 x400'],
+      rewardSummary: ['灵石 x1000'],
       objectiveId: 'daily-ranking-objective',
     },
   } as const;
@@ -360,7 +360,7 @@ describe('TaskService', () => {
         metadata: {
           dailyKind: 'dungeon',
           resetKey: '2026-05-25',
-          rewardSummary: ['灵石 x500'],
+          rewardSummary: ['灵石 x1000'],
         },
         completedAt: new Date('2026-05-25T08:00:00.000Z'),
       }),
@@ -438,12 +438,53 @@ describe('TaskService', () => {
       'cultivator-1',
       '【今日日常】云游一程',
       expect.stringContaining('云游一程'),
-      [{ type: 'spirit_stones', name: '灵石', quantity: 500 }],
+      [{ type: 'spirit_stones', name: '灵石', quantity: 1000 }],
       'reward',
     );
 
     await TaskService.recordTaskEvent('cultivator-1', 'dungeon_completed');
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('scales daily reward summary and mail attachments by current realm', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        realm: '渡劫',
+        realm_stage: '初期',
+      }),
+    );
+    taskStore.set(
+      'task-daily_dungeon_once',
+      createDailyTaskRecord('daily_dungeon_once', {
+        metadata: {
+          dailyKind: 'dungeon',
+          resetKey: '2026-05-26',
+          rewardSummary: ['灵石 x1000'],
+        },
+      }),
+    );
+
+    const tasks = await TaskService.syncCultivatorTasks('cultivator-1');
+    const dailyTask = tasks.find((task) => task.definitionId === 'daily_dungeon_once');
+
+    expect(dailyTask).toMatchObject({
+      metadata: {
+        rewardSummary: ['灵石 x9000'],
+      },
+      snapshot: {
+        rewardSummary: ['灵石 x9000'],
+      },
+    });
+
+    await TaskService.recordTaskEvent('cultivator-1', 'dungeon_completed');
+
+    expect(sendMailMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      '【今日日常】云游一程',
+      expect.stringContaining('云游一程'),
+      [{ type: 'spirit_stones', name: '灵石', quantity: 9000 }],
+      'reward',
+    );
   });
 });

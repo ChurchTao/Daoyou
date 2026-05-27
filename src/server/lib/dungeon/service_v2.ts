@@ -46,6 +46,7 @@ import {
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const START_LOCK_TTL_SECONDS = 180;
+const DUNGEON_ENEMY_DIFFICULTY_COEFFICIENT = 0.7;
 
 // Helper to generate Redis key
 function getDungeonKey(cultivatorId: string) {
@@ -58,6 +59,13 @@ function getDungeonStartLockKey(cultivatorId: string) {
 
 function getDungeonBattleKey(battleId: string) {
   return `dungeon:battle:${battleId}`;
+}
+
+function scaleDungeonEnemyDifficulty(rawDifficulty: number) {
+  return Math.max(
+    0,
+    Math.min(100, Math.round(rawDifficulty * DUNGEON_ENEMY_DIFFICULTY_COEFFICIENT)),
+  );
 }
 
 interface DungeonBattleCachePayload {
@@ -541,11 +549,13 @@ export class DungeonService {
       throw new Error('Battle cost metadata must include race and realm_stage');
     }
 
+    const enemyDifficulty = scaleDungeonEnemyDifficulty(battleCost.value);
+
     const draft = enemyGenerator.buildDraft({
       realm: realmRequirement as import('@shared/types/constants').RealmType,
       realmStage: metadata.realm_stage,
       race: metadata.race,
-      difficulty: battleCost.value,
+      difficulty: enemyDifficulty,
       name: metadata.enemy_name,
       background: metadata.background,
       description: metadata.description,
@@ -563,7 +573,7 @@ export class DungeonService {
         realm: enemy.realm,
         stage: enemy.realm_stage,
         level: `${enemy.realm} ${enemy.realm_stage}`,
-        difficulty: battleCost.value,
+        difficulty: enemyDifficulty,
       },
       battleInit: buildDungeonBattleInit(dungeonState),
     };
