@@ -22,6 +22,7 @@ import type {
   CultivationTechnique,
   Skill,
 } from '@shared/types/cultivator';
+import { CREATION_RESERVED_ENERGY } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getEnemyArchetype } from './EnemyArchetypeRegistry';
 import {
   DEFAULT_ENEMY_INTENT_SAFETY_PROFILE,
@@ -303,7 +304,10 @@ export class EnemyCraftExecutor {
 
     return {
       productType: intent.productType,
-      energyBudget: Math.max(12, intent.energyBudget + (archetype.energyBias ?? 0)),
+      energyBudget: Math.max(
+        CREATION_RESERVED_ENERGY[intent.productType] + 10,
+        intent.energyBudget + (archetype.energyBias ?? 0),
+      ),
       unlockScore: Math.max(0, intent.unlockScore + (archetype.unlockBias ?? 0)),
       dominantTags,
       ...(positiveTagBiases ? { positiveTagBiases } : {}),

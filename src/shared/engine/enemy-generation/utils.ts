@@ -1,4 +1,5 @@
 import { ELEMENT_NAME_PREFIX } from '@shared/engine/creation-v2/config/CreationMappings';
+import { CREATION_RESERVED_ENERGY } from '@shared/engine/creation-v2/config/CreationBalance';
 import type { ElementType, EnemyRace, RealmStage, RealmType } from '@shared/types/constants';
 import {
   ATTRIBUTE_KEYS,
@@ -147,8 +148,10 @@ export function resolveEnergyBudget(
     artifact: 0.46,
   } as const;
 
+  const minByType = CREATION_RESERVED_ENERGY[productType] + 10;
+
   return Math.max(
-    12,
+    minByType,
     Math.round(
       baseByType[productType] +
         difficulty * scaleByType[productType] +
