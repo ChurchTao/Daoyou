@@ -165,9 +165,11 @@ describe('PersistentStatusesCard sections', () => {
           },
         },
       },
-      finalAttributes: {
-        maxHp: 120,
-        maxMp: 60,
+      display: {
+        resources: {
+          hp: { current: 80, max: 120, percent: 66.67 },
+          mp: { current: 40, max: 60, percent: 66.67 },
+        },
       },
     });
   });
@@ -280,9 +282,11 @@ describe('PersistentStatusesCard sections', () => {
           },
         },
       },
-      finalAttributes: {
-        maxHp: 120,
-        maxMp: 60,
+      display: {
+        resources: {
+          hp: { current: 120, max: 120, percent: 100 },
+          mp: { current: 60, max: 60, percent: 100 },
+        },
       },
     });
 
@@ -357,9 +361,11 @@ describe('PersistentStatusesCard sections', () => {
           },
         },
       },
-      finalAttributes: {
-        maxHp: 120,
-        maxMp: 60,
+      display: {
+        resources: {
+          hp: { current: 120, max: 120, percent: 100 },
+          mp: { current: 60, max: 60, percent: 100 },
+        },
       },
     });
 
@@ -422,9 +428,11 @@ describe('PersistentStatusesCard sections', () => {
           },
         },
       },
-      finalAttributes: {
-        maxHp: 120,
-        maxMp: 60,
+      display: {
+        resources: {
+          hp: { current: 120, max: 120, percent: 100 },
+          mp: { current: 60, max: 60, percent: 100 },
+        },
       },
     });
 

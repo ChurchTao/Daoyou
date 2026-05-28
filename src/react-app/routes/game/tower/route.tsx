@@ -540,7 +540,7 @@ function TowerSettlementCard({
 }
 
 export default function TowerPage() {
-  const { cultivator, finalAttributes, isLoading: cultivatorLoading } =
+  const { cultivator, display, isLoading: cultivatorLoading } =
     useCultivator();
   const { openDialog } = useInkUI();
   const navigate = useNavigate();
@@ -563,8 +563,8 @@ export default function TowerPage() {
   const towerState = payload?.state ?? null;
   const settlement = payload?.settlement;
   const season = payload?.season ?? leaderboardPayload?.season;
-  const maxHp = finalAttributes?.maxHp ?? 0;
-  const maxMp = finalAttributes?.maxMp ?? 0;
+  const maxHp = display?.resources.hp.max ?? 0;
+  const maxMp = display?.resources.mp.max ?? 0;
   const scenePulse = buildScenePulse(season);
   const encounterProbe =
     towerState?.status === 'WAITING_BATTLE' &&

@@ -27,7 +27,7 @@ function calculateYieldHours(lastYieldAt: Date | string | undefined) {
 }
 
 export function HomeView() {
-  const { cultivator, isLoading, finalAttributes } = useCultivator();
+  const { cultivator, isLoading, display } = useCultivator();
   const {
     tasks,
     loading: tasksLoading,
@@ -57,16 +57,12 @@ export function HomeView() {
   const caveStatus = useMemo(() => {
     if (!cultivator) return null;
 
-    const maxHp = Math.max(1, Math.floor(finalAttributes?.maxHp ?? 1));
-    const maxMp = Math.max(1, Math.floor(finalAttributes?.maxMp ?? 1));
-    const currentHp = Math.max(
-      0,
-      Math.floor(cultivator.condition?.resources.hp.current ?? maxHp),
-    );
-    const currentMp = Math.max(
-      0,
-      Math.floor(cultivator.condition?.resources.mp.current ?? maxMp),
-    );
+    const hp = display?.resources.hp;
+    const mp = display?.resources.mp;
+    const maxHp = Math.max(1, Math.floor(hp?.max ?? 1));
+    const maxMp = Math.max(1, Math.floor(mp?.max ?? 1));
+    const currentHp = Math.max(0, Math.floor(hp?.current ?? maxHp));
+    const currentMp = Math.max(0, Math.floor(mp?.current ?? maxMp));
     const activeStatuses = (cultivator.condition?.statuses ?? []).filter(
       (status) => isConditionStatusActive(status),
     );
@@ -114,7 +110,7 @@ export function HomeView() {
       trackSummary,
       insight: cultivationProgress?.comprehension_insight ?? 0,
     };
-  }, [cultivator, finalAttributes]);
+  }, [cultivator, display]);
 
   const currentMajorTask = useMemo(
     () => findCurrentMajorBreakthroughTask(cultivator, tasks),

@@ -163,6 +163,43 @@ export interface CultivatorDisplayAttributes {
   };
 }
 
+export interface ResourceView {
+  current: number;
+  max: number;
+  percent: number;
+}
+
+export interface CultivatorDisplaySnapshot {
+  attrs: AttrsStateView;
+  resources: {
+    hp: ResourceView;
+    mp: ResourceView;
+  };
+}
+
+function clampResourceCurrent(value: number | undefined, max: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return max;
+  }
+
+  return Math.max(0, Math.min(value, max));
+}
+
+function buildResourceView(
+  current: number | undefined,
+  max: number,
+): ResourceView {
+  const normalizedCurrent = clampResourceCurrent(current, max);
+  const percent =
+    max > 0 ? Math.round((normalizedCurrent / max) * 10000) / 100 : 0;
+
+  return {
+    current: normalizedCurrent,
+    max,
+    percent,
+  };
+}
+
 function buildAttrsView(unit: Unit): AttrsStateView {
   return {
     spirit: unit.attributes.getValue(AttributeType.SPIRIT),
@@ -221,6 +258,26 @@ export function getCultivatorDisplayAttributes(
       flatDamageReduction: 0,
       hitRate: attrs.accuracy,
       dodgeRate: attrs.evasionRate,
+    },
+  };
+}
+
+export function getCultivatorDisplaySnapshot(
+  cultivator: Cultivator,
+): CultivatorDisplaySnapshot {
+  const { attrs } = getCultivatorDisplayAttributes(cultivator);
+
+  return {
+    attrs,
+    resources: {
+      hp: buildResourceView(
+        cultivator.condition?.resources.hp.current,
+        attrs.maxHp,
+      ),
+      mp: buildResourceView(
+        cultivator.condition?.resources.mp.current,
+        attrs.maxMp,
+      ),
     },
   };
 }

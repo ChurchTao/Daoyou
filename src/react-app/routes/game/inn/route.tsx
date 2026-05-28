@@ -22,7 +22,7 @@ type InnRecoveryResponse = {
 };
 
 export default function InnRecoveryPage() {
-  const { cultivator, finalAttributes, isLoading, refreshCultivator } =
+  const { cultivator, display, isLoading, refreshCultivator } =
     useCultivator();
   const { openDialog, pushToast } = useInkUI();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,19 +31,16 @@ export default function InnRecoveryPage() {
     ? (() => {
         const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
         const spiritStoneCost = calculateInnRecoverySpiritStoneCost(
+          cultivator.realm,
           getInnSpiritStoneMultiplier(fateContext),
         );
 
-        const maxHp = Math.max(1, Math.floor(finalAttributes?.maxHp ?? 1));
-        const maxMp = Math.max(1, Math.floor(finalAttributes?.maxMp ?? 1));
-        const currentHp = Math.max(
-          0,
-          Math.floor(cultivator.condition?.resources.hp.current ?? maxHp),
-        );
-        const currentMp = Math.max(
-          0,
-          Math.floor(cultivator.condition?.resources.mp.current ?? maxMp),
-        );
+        const hp = display?.resources.hp;
+        const mp = display?.resources.mp;
+        const maxHp = Math.max(1, Math.floor(hp?.max ?? 1));
+        const maxMp = Math.max(1, Math.floor(mp?.max ?? 1));
+        const currentHp = Math.max(0, Math.floor(hp?.current ?? maxHp));
+        const currentMp = Math.max(0, Math.floor(mp?.current ?? maxMp));
         const activeStatusCount = (cultivator.condition?.statuses ?? []).filter(
           (status) => isConditionStatusActive(status),
         ).length;
@@ -107,8 +104,13 @@ export default function InnRecoveryPage() {
         throw new Error(result.error || '住店疗伤失败');
       }
 
+      const recoveryMessage =
+        result.data.cultivationLossAmount > 0
+          ? `你在客栈歇过一夜，气息已稳。修为折损 ${result.data.cultivationLossAmount} 点。`
+          : '你在客栈歇过一夜，气息已稳。';
+
       pushToast({
-        message: `你在客栈歇过一夜，气息已稳。修为折损 ${result.data.cultivationLossPercent}%。`,
+        message: recoveryMessage,
         tone: 'success',
       });
       await refreshCultivator();
@@ -125,6 +127,13 @@ export default function InnRecoveryPage() {
   const openRecoveryConfirm = () => {
     if (!canConfirmRecovery) return;
 
+    const cultivationLossHint =
+      state.cultivationLossRange.max > 0
+        ? state.cultivationLossRange.min === state.cultivationLossRange.max
+          ? `代价是折去你当前修为 ${state.cultivationLossRange.max} 点。`
+          : `代价是折去你当前修为 ${state.cultivationLossRange.min}-${state.cultivationLossRange.max} 点。`
+        : null;
+
     openDialog({
       title: '要住这一晚吗？',
       content: (
@@ -134,7 +143,7 @@ export default function InnRecoveryPage() {
             灵石，替你备好静房与药汤。
           </p>
           <p>这一夜过去，你的气血与法力都会恢复，身上所有状态也会一并散去。</p>
-          <p>代价是折去你当前修为的 5%-10%。</p>
+          {cultivationLossHint ? <p>{cultivationLossHint}</p> : null}
           <p>丹毒不会在这间客栈里化开，若有余毒，仍需另寻办法。</p>
         </div>
       ),

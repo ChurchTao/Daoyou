@@ -140,9 +140,11 @@ describe('InnRecoveryPage', () => {
           ],
         },
       }),
-      finalAttributes: {
-        maxHp: 200,
-        maxMp: 120,
+      display: {
+        resources: {
+          hp: { current: 80, max: 200, percent: 40 },
+          mp: { current: 35, max: 120, percent: 29.17 },
+        },
       },
       isLoading: false,
       refreshCultivator: vi.fn(),
@@ -154,7 +156,7 @@ describe('InnRecoveryPage', () => {
     expect(html).toContain('药香混着热水白气从后院慢慢漫出来');
     expect(html).toContain('上楼住店');
     expect(html).toContain('若要歇脚养伤，与掌柜知会一声便可');
-    expect(html).not.toContain('5000 灵石');
+    expect(html).not.toContain('3000 灵石');
     expect(html).not.toContain('5%-10%');
     expect(html).not.toContain('当前道体');
   });
@@ -170,9 +172,11 @@ describe('InnRecoveryPage', () => {
           },
         },
       }),
-      finalAttributes: {
-        maxHp: 120,
-        maxMp: 80,
+      display: {
+        resources: {
+          hp: { current: 120, max: 120, percent: 100 },
+          mp: { current: 80, max: 80, percent: 100 },
+        },
       },
       isLoading: false,
       refreshCultivator: vi.fn(),

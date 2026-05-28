@@ -6,6 +6,7 @@ import {
   getCultivatorsByUserId,
   hasDeadCultivator,
 } from '@server/lib/services/cultivatorService';
+import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import type { PlayerActiveResponse } from '@shared/contracts/player';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -20,8 +21,12 @@ router.get('/active', requireUser(), async (c) => {
 
   const cultivators = await getCultivatorsByUserId(user.id);
   const hasDead = await hasDeadCultivator(user.id);
-  const activeCultivator = cultivators[0] ?? null;
-  const activeCultivatorId = activeCultivator?.id;
+  const cultivatorViews = cultivators.map((cultivator) => ({
+    cultivator,
+    display: getCultivatorDisplaySnapshot(cultivator),
+  }));
+  const activeCultivator = cultivatorViews[0] ?? null;
+  const activeCultivatorId = activeCultivator?.cultivator.id;
 
   let unreadMailCount = 0;
   if (activeCultivatorId) {
@@ -42,11 +47,11 @@ router.get('/active', requireUser(), async (c) => {
     success: true,
     data: {
       activeCultivator,
-      cultivators,
+      cultivators: cultivatorViews,
       unreadMailCount,
     },
     meta: {
-      hasActive: cultivators.length > 0,
+      hasActive: cultivatorViews.length > 0,
       hasDead,
     },
   };

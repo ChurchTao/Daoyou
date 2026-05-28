@@ -82,10 +82,32 @@ describe('fate context evaluation', () => {
     expect(context.alchemySpiritStoneMultiplier).toBe(0.65);
     expect(context.refineSpiritStoneMultiplier).toBe(0.7);
     expect(context.enlightenmentInsightMultiplier).toBe(0.65);
-    expect(context.innCultivationLossMultiplier).toBe(0.4);
+    expect(context.innCultivationLossMultiplier).toBe(0);
     expect(context.systemSpiritStoneMultiplier).toBe(1.3);
     expect(context.summary).toContain('厚骨命');
     expect(context.summary).toContain('幽骨命');
+  });
+
+  it('adds inn loss reductions together and caps the reduction at 100%', () => {
+    const stackedContext = evaluateFateContext([
+      createFate('稳脉命', [
+        createEffect('inn_cultivation_loss_multiplier', 0.85),
+      ]),
+      createFate('静骨命', [
+        createEffect('inn_cultivation_loss_multiplier', 0.9),
+      ]),
+    ]);
+    const cappedContext = evaluateFateContext([
+      createFate('归虚命', [
+        createEffect('inn_cultivation_loss_multiplier', 0.5),
+      ]),
+      createFate('止损命', [
+        createEffect('inn_cultivation_loss_multiplier', 0.5),
+      ]),
+    ]);
+
+    expect(stackedContext.innCultivationLossMultiplier).toBeCloseTo(0.75);
+    expect(cappedContext.innCultivationLossMultiplier).toBe(0);
   });
 
   it('combines shared system spirit stone burden with per-system cost multipliers', () => {

@@ -1,5 +1,9 @@
 import { AttributeType, ModifierType } from '../core/types';
-import { createDisplayUnitFromCultivator, getCultivatorDisplayAttributes } from './CultivatorDisplayAdapter';
+import {
+  createDisplayUnitFromCultivator,
+  getCultivatorDisplayAttributes,
+  getCultivatorDisplaySnapshot,
+} from './CultivatorDisplayAdapter';
 import type { Cultivator } from '@shared/types/cultivator';
 
 function createCultivatorFixture(): Cultivator {
@@ -85,7 +89,7 @@ describe('CultivatorDisplayAdapter', () => {
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(12);
     expect(unit.attributes.getValue(AttributeType.SPEED)).toBe(10);
     expect(unit.getMaxHp()).toBe(440);
-    expect(unit.getMaxMp()).toBe(190);
+    expect(unit.getMaxMp()).toBe(380);
   });
 
   it('maps Unit values back to cultivator display attributes', () => {
@@ -97,6 +101,53 @@ describe('CultivatorDisplayAdapter', () => {
     expect(finalAttributes.spirit).toBe(12);
     expect(finalAttributes.speed).toBe(10);
     expect(finalAttributes.willpower).toBe(10);
+  });
+
+  it('builds a serializable display snapshot from battle-v5 attrs and resources', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.condition = {
+      version: 1,
+      resources: {
+        hp: { current: 320 },
+        mp: { current: 180 },
+      },
+      gauges: {
+        pillToxicity: 0,
+      },
+      tracks: {
+        tempering: {
+          vitality: { level: 0, progress: 0 },
+          spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 },
+          speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+      counters: {
+        longTermPillUsesByRealm: {},
+        cultivationPillUsesByRealm: {},
+      },
+      statuses: [],
+      timestamps: {},
+    };
+
+    const snapshot = getCultivatorDisplaySnapshot(cultivator);
+
+    expect(snapshot.attrs.vitality).toBe(15);
+    expect(snapshot.attrs.spirit).toBe(12);
+    expect(snapshot.attrs.maxHp).toBe(440);
+    expect(snapshot.attrs.maxMp).toBe(380);
+    expect(snapshot.resources.hp).toEqual({
+      current: 320,
+      max: 440,
+      percent: 72.73,
+    });
+    expect(snapshot.resources.mp).toEqual({
+      current: 180,
+      max: 380,
+      percent: 47.37,
+    });
   });
 
   it('applies cross-realm decay on artifact main panel fixed modifiers in display adapter', () => {
@@ -124,5 +175,42 @@ describe('CultivatorDisplayAdapter', () => {
     expect(unit.attributes.getValue(AttributeType.SPIRIT)).toBe(65);
     // 功能属性不衰减
     expect(unit.attributes.getValue(AttributeType.CRIT_RATE)).toBeCloseTo(0.153, 6);
+  });
+
+  it('clamps legacy over-cap resource values when building the display snapshot', () => {
+    const cultivator = createCultivatorFixture();
+    cultivator.condition = {
+      version: 1,
+      resources: {
+        hp: { current: 9999 },
+        mp: { current: 9999 },
+      },
+      gauges: {
+        pillToxicity: 0,
+      },
+      tracks: {
+        tempering: {
+          vitality: { level: 0, progress: 0 },
+          spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 },
+          speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+      counters: {
+        longTermPillUsesByRealm: {},
+        cultivationPillUsesByRealm: {},
+      },
+      statuses: [],
+      timestamps: {},
+    };
+
+    const snapshot = getCultivatorDisplaySnapshot(cultivator);
+
+    expect(snapshot.resources.hp.current).toBe(snapshot.attrs.maxHp);
+    expect(snapshot.resources.hp.percent).toBe(100);
+    expect(snapshot.resources.mp.current).toBe(snapshot.attrs.maxMp);
+    expect(snapshot.resources.mp.percent).toBe(100);
   });
 });

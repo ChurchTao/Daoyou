@@ -147,9 +147,11 @@ describe('TowerPage', () => {
 
     mockedUseCultivator.mockReturnValue({
       cultivator: createCultivator(),
-      finalAttributes: {
-        maxHp: 360,
-        maxMp: 180,
+      display: {
+        resources: {
+          hp: { current: 360, max: 360, percent: 100 },
+          mp: { current: 180, max: 180, percent: 100 },
+        },
       },
       isLoading: false,
       refreshCultivator: vi.fn(),

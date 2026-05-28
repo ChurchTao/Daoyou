@@ -35,24 +35,20 @@ function clamp(value: number, min: number, max: number) {
 
 export function buildGameHudSnapshot(input: {
   cultivator: ReturnType<typeof useCultivator>['cultivator'];
-  finalAttributes: ReturnType<typeof useCultivator>['finalAttributes'];
+  display: ReturnType<typeof useCultivator>['display'];
   unreadMailCount: number;
   now?: Date;
 }): GameHudSnapshot | null {
-  const { cultivator, finalAttributes, unreadMailCount, now = new Date() } =
+  const { cultivator, display, unreadMailCount, now = new Date() } =
     input;
   if (!cultivator) return null;
 
-  const maxHp = Math.max(1, Math.floor(finalAttributes?.maxHp ?? 1));
-  const maxMp = Math.max(1, Math.floor(finalAttributes?.maxMp ?? 1));
-  const currentHp = Math.max(
-    0,
-    Math.floor(cultivator.condition?.resources.hp.current ?? maxHp),
-  );
-  const currentMp = Math.max(
-    0,
-    Math.floor(cultivator.condition?.resources.mp.current ?? maxMp),
-  );
+  const hp = display?.resources.hp;
+  const mp = display?.resources.mp;
+  const maxHp = Math.max(1, Math.floor(hp?.max ?? 1));
+  const maxMp = Math.max(1, Math.floor(mp?.max ?? 1));
+  const currentHp = Math.max(0, Math.floor(hp?.current ?? maxHp));
+  const currentMp = Math.max(0, Math.floor(mp?.current ?? maxMp));
 
   const cultivationExp = cultivator.cultivation_progress?.cultivation_exp ?? 0;
   const cultivationCap = Math.max(
@@ -101,14 +97,14 @@ export function buildGameHudSnapshot(input: {
         key: 'hp',
         label: getResourceLabel('hp'),
         display: `${currentHp}/${maxHp}`,
-        percent: Math.round(clamp((currentHp / maxHp) * 100, 0, 100)),
+        percent: Math.round(clamp(hp?.percent ?? 100, 0, 100)),
         tone: 'hp',
       },
       {
         key: 'mp',
         label: getResourceLabel('mp'),
         display: `${currentMp}/${maxMp}`,
-        percent: Math.round(clamp((currentMp / maxMp) * 100, 0, 100)),
+        percent: Math.round(clamp(mp?.percent ?? 100, 0, 100)),
         tone: 'mp',
       },
       {
@@ -130,11 +126,11 @@ export function buildGameHudSnapshot(input: {
 }
 
 export function useGameHudModel() {
-  const { cultivator, finalAttributes, unreadMailCount } = useCultivator();
+  const { cultivator, display, unreadMailCount } = useCultivator();
 
   return buildGameHudSnapshot({
     cultivator,
-    finalAttributes,
+    display,
     unreadMailCount,
   });
 }

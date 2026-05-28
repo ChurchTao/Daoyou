@@ -26,7 +26,7 @@ const FATE_LIMITS = {
   alchemySpiritStoneMultiplier: { min: 0.65, max: 1.3 },
   refineSpiritStoneMultiplier: { min: 0.7, max: 1.3 },
   enlightenmentInsightMultiplier: { min: 0.65, max: 1.3 },
-  innCultivationLossMultiplier: { min: 0.4, max: 1.3 },
+  innCultivationLossMultiplier: { min: 0, max: 1.3 },
   systemSpiritStoneMultiplier: { min: 0.7, max: 1.3 },
 } as const;
 
@@ -59,7 +59,7 @@ export function evaluateFateContext(fates: PreHeavenFate[]): FateContext {
   let alchemySpiritStoneMultiplier = 1;
   let refineSpiritStoneMultiplier = 1;
   let enlightenmentInsightMultiplier = 1;
-  let innCultivationLossMultiplier = 1;
+  let innCultivationLossReduction = 0;
   let systemSpiritStoneMultiplier = 1;
 
   for (const fate of normalized) {
@@ -90,7 +90,7 @@ export function evaluateFateContext(fates: PreHeavenFate[]): FateContext {
           enlightenmentInsightMultiplier *= effect.value;
           break;
         case 'inn_cultivation_loss_multiplier':
-          innCultivationLossMultiplier *= effect.value;
+          innCultivationLossReduction += 1 - effect.value;
           break;
         case 'system_spirit_stone_multiplier':
           systemSpiritStoneMultiplier *= effect.value;
@@ -141,7 +141,7 @@ export function evaluateFateContext(fates: PreHeavenFate[]): FateContext {
       FATE_LIMITS.enlightenmentInsightMultiplier.max,
     ),
     innCultivationLossMultiplier: clamp(
-      innCultivationLossMultiplier,
+      1 - innCultivationLossReduction,
       FATE_LIMITS.innCultivationLossMultiplier.min,
       FATE_LIMITS.innCultivationLossMultiplier.max,
     ),

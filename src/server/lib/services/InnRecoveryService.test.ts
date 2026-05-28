@@ -118,6 +118,7 @@ describe('InnRecoveryService', () => {
     expect(result.nextCondition.counters.longTermPillUsesByRealm).toEqual({
       筑基: 2,
     });
+    expect(result.spiritStoneCost).toBe(3000);
     expect(result.clearedStatusCount).toBe(2);
     expect(result.cultivationLossPercent).toBe(5);
     expect(result.cultivationLossAmount).toBe(Math.floor(987 * 0.05));
@@ -139,9 +140,97 @@ describe('InnRecoveryService', () => {
       () => 0.999,
     );
 
+    expect(result.spiritStoneCost).toBe(3000);
     expect(result.cultivationLossPercent).toBe(10);
     expect(result.cultivationLossAmount).toBe(0);
     expect(result.nextCultivationProgress.cultivation_exp).toBe(3);
+  });
+
+  it('scales spirit stone cost by major realm from 2000 to 10000', () => {
+    const lowRealmCultivator = createCultivator();
+    lowRealmCultivator.realm = '炼气';
+
+    const highRealmCultivator = createCultivator();
+    highRealmCultivator.realm = '渡劫';
+
+    expect(
+      InnRecoveryService.buildRecoveryResult(
+        lowRealmCultivator,
+        new Date('2026-05-25T00:00:00.000Z'),
+        () => 0,
+      ).spiritStoneCost,
+    ).toBe(2000);
+    expect(
+      InnRecoveryService.buildRecoveryResult(
+        highRealmCultivator,
+        new Date('2026-05-25T00:00:00.000Z'),
+        () => 0,
+      ).spiritStoneCost,
+    ).toBe(10000);
+  });
+
+  it('adds multiple inn loss reductions together before applying the deduction', () => {
+    const cultivator = createCultivator();
+    cultivator.cultivation_progress = {
+      ...cultivator.cultivation_progress!,
+      cultivation_exp: 2000,
+    };
+    cultivator.pre_heaven_fates = [
+      {
+        name: '稳脉命',
+        effects: [
+          {
+            id: 'inn-loss-a',
+            effectId: 'inn-loss-reduction',
+            scope: 'daily',
+            polarity: 'boon',
+            effectType: 'inn_cultivation_loss_multiplier',
+            value: 0.85,
+            label: '住店修为损耗 -15%',
+            description: '住店修为损耗降低。',
+            rollMeta: {
+              qualityAnchor: '凡品',
+              minValue: 0.85,
+              maxValue: 0.85,
+              rolledPercentile: 0.5,
+              roundingStep: 0.01,
+            },
+          },
+        ],
+      },
+      {
+        name: '静骨命',
+        effects: [
+          {
+            id: 'inn-loss-b',
+            effectId: 'inn-loss-reduction',
+            scope: 'daily',
+            polarity: 'boon',
+            effectType: 'inn_cultivation_loss_multiplier',
+            value: 0.85,
+            label: '住店修为损耗 -15%',
+            description: '住店修为损耗降低。',
+            rollMeta: {
+              qualityAnchor: '凡品',
+              minValue: 0.85,
+              maxValue: 0.85,
+              rolledPercentile: 0.5,
+              roundingStep: 0.01,
+            },
+          },
+        ],
+      },
+    ];
+
+    const result = InnRecoveryService.buildRecoveryResult(
+      cultivator,
+      new Date('2026-05-25T00:00:00.000Z'),
+      () => 0,
+    );
+
+    expect(result.cultivationLossPercent).toBe(5);
+    expect(result.cultivationLossAmount).toBe(70);
+    expect(result.nextCultivationProgress.cultivation_exp).toBe(1930);
   });
 
   it('applies fate-based inn loss reduction and system spirit stone surcharge', () => {
@@ -194,7 +283,7 @@ describe('InnRecoveryService', () => {
       () => 0,
     );
 
-    expect(result.spiritStoneCost).toBe(5400);
+    expect(result.spiritStoneCost).toBe(3240);
     expect(result.cultivationLossPercent).toBe(5);
     expect(result.cultivationLossAmount).toBe(42);
     expect(result.nextCultivationProgress.cultivation_exp).toBe(945);

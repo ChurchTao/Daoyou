@@ -385,7 +385,7 @@ export class AttributeSet {
   }
 
   /**
-   * 法力 = 100 + SPIRIT×5 + WILLPOWER×3
+   * 法力 = 200 + SPIRIT×10 + WILLPOWER×6
    */
   getMaxMp(): number {
     return this.getValue(AttributeType.MAX_MP);

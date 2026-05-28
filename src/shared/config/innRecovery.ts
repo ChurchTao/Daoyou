@@ -1,13 +1,26 @@
 import { scaleFateAdjustedValue } from '@shared/lib/fates';
+import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 
-export const INN_RECOVERY_SPIRIT_STONE_COST = 5000;
+export const INN_RECOVERY_SPIRIT_STONE_COST_MIN = 2000;
+export const INN_RECOVERY_SPIRIT_STONE_COST_STEP = 1000;
 export const INN_RECOVERY_LOSS_PERCENT_MIN = 5;
 export const INN_RECOVERY_LOSS_PERCENT_MAX = 10;
 
+export function getInnRecoveryBaseSpiritStoneCost(realm: RealmType): number {
+  return (
+    INN_RECOVERY_SPIRIT_STONE_COST_MIN +
+    REALM_ORDER[realm] * INN_RECOVERY_SPIRIT_STONE_COST_STEP
+  );
+}
+
 export function calculateInnRecoverySpiritStoneCost(
+  realm: RealmType,
   multiplier = 1,
 ): number {
-  return scaleFateAdjustedValue(INN_RECOVERY_SPIRIT_STONE_COST, multiplier);
+  return scaleFateAdjustedValue(
+    getInnRecoveryBaseSpiritStoneCost(realm),
+    multiplier,
+  );
 }
 
 export function calculateInnRecoveryLossAmount(

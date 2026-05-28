@@ -282,14 +282,14 @@ describe('cultivator inn recovery route', () => {
     };
     getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
     buildRecoveryResultMock.mockReturnValueOnce({
-      spiritStoneCost: 5000,
+      spiritStoneCost: 3000,
       nextCondition,
       nextCultivationProgress,
       cultivationLossPercent: 8,
       cultivationLossAmount: 71,
       clearedStatusCount: 2,
     });
-    mockTransactionReturning([{ spiritStones: 4000 }]);
+    mockTransactionReturning([{ spiritStones: 6000 }]);
 
     const response = await createApp().request('/api/cultivator/inn-recovery', {
       method: 'POST',
@@ -301,11 +301,11 @@ describe('cultivator inn recovery route', () => {
       data: {
         cultivator: {
           ...cultivator,
-          spirit_stones: 4000,
+          spirit_stones: 6000,
           cultivation_progress: nextCultivationProgress,
           condition: nextCondition,
         },
-        spiritStoneCost: 5000,
+        spiritStoneCost: 3000,
         cultivationLossPercent: 8,
         cultivationLossAmount: 71,
         clearedStatusCount: 2,
@@ -322,7 +322,7 @@ describe('cultivator inn recovery route', () => {
       cultivator.cultivation_progress as CultivationProgress;
     getCultivatorByIdMock.mockResolvedValueOnce(cultivator);
     buildRecoveryResultMock.mockReturnValueOnce({
-      spiritStoneCost: 5000,
+      spiritStoneCost: 3000,
       nextCondition: currentCondition,
       nextCultivationProgress: currentProgress,
       cultivationLossPercent: 5,
@@ -338,7 +338,7 @@ describe('cultivator inn recovery route', () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       success: false,
-      error: '囊中羞涩，灵石不足（至少需要 5000 灵石）',
+      error: '囊中羞涩，灵石不足（至少需要 3000 灵石）',
     });
   });
 });

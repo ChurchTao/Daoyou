@@ -1,9 +1,10 @@
-import { getCultivatorResourceSnapshot } from '@app/lib/player/cultivatorResourceSnapshot';
 import { GAME_ROUTE_ID, type UserLoaderData } from '@app/lib/router/routeData';
 import type { ApiFailure } from '@shared/contracts/http';
-import type { PlayerActiveResponse } from '@shared/contracts/player';
 import type {
-  Attributes,
+  PlayerActiveResponse,
+  PlayerCultivatorView,
+} from '@shared/contracts/player';
+import type {
   Cultivator,
   EquippedItems,
   Inventory,
@@ -16,17 +17,13 @@ import { useNavigate, useRouteLoaderData } from 'react-router';
 // 类型定义
 // ============================================================
 
-type FinalAttributesState = {
-  final: Attributes;
-  maxHp: number;
-  maxMp: number;
-};
+type DisplayState = PlayerCultivatorView['display'];
 
 type InventoryType = 'artifacts' | 'consumables' | 'materials';
 
 type FetchState = {
   cultivator: Cultivator | null;
-  finalAttributes: FinalAttributesState | null;
+  display: DisplayState | null;
   inventory: Inventory;
   inventoryLoaded: Record<InventoryType, boolean>;
   skills: Skill[];
@@ -54,7 +51,7 @@ const BUNDLE_INVENTORY_PAGE_SIZE = 50;
 
 const initialState: FetchState = {
   cultivator: null,
-  finalAttributes: null,
+  display: null,
   inventory: defaultInventory,
   inventoryLoaded: {
     artifacts: false,
@@ -115,7 +112,7 @@ function clearInflight(userId?: string) {
 // ============================================================
 
 async function fetchCultivatorData(): Promise<{
-  cultivator: Cultivator | null;
+  cultivatorView: PlayerCultivatorView | null;
   hasActive: boolean;
   hasDead: boolean;
   unreadMailCount: number;
@@ -131,12 +128,56 @@ async function fetchCultivatorData(): Promise<{
     throw new Error('未获取到角色数据');
   }
 
-  const list: Cultivator[] = result.data?.cultivators || [];
+  const list: PlayerCultivatorView[] = result.data?.cultivators || [];
   return {
-    cultivator: result.data?.activeCultivator || list[0] || null,
+    cultivatorView: result.data?.activeCultivator || list[0] || null,
     hasActive: !!result.meta?.hasActive,
     hasDead: !!result.meta?.hasDead,
     unreadMailCount: result.data?.unreadMailCount || 0,
+  };
+}
+
+export function buildFetchStateFromPlayerView(args: {
+  cultivatorView: PlayerCultivatorView;
+  unreadMailCount: number;
+  cachedState?: FetchState | null;
+}): FetchState {
+  const { cultivatorView, unreadMailCount, cachedState } = args;
+  const cultivator = cultivatorView.cultivator;
+  const cachedInventory = cachedState?.inventory;
+  const cachedLoaded = cachedState?.inventoryLoaded;
+  const inventory: Inventory = {
+    artifacts:
+      cultivator.inventory?.artifacts || cachedInventory?.artifacts || [],
+    consumables: cachedInventory?.consumables || [],
+    materials: cachedInventory?.materials || [],
+  };
+  const inventoryLoaded: Record<InventoryType, boolean> = {
+    artifacts: true,
+    materials: cachedLoaded?.materials || false,
+    consumables: cachedLoaded?.consumables || false,
+  };
+
+  const fullCultivator: Cultivator = {
+    ...cultivator,
+    inventory,
+    cultivations: cultivator.cultivations || [],
+    skills: cultivator.skills || [],
+    equipped: cultivator.equipped || defaultEquipped,
+  };
+
+  return {
+    cultivator: fullCultivator,
+    display: cultivatorView.display,
+    inventory,
+    inventoryLoaded,
+    skills: fullCultivator.skills || [],
+    equipped: fullCultivator.equipped || defaultEquipped,
+    isLoading: false,
+    error: undefined,
+    note: undefined,
+    unreadMailCount: unreadMailCount || 0,
+    hasActiveCultivator: true,
   };
 }
 
@@ -173,10 +214,10 @@ async function fetchUnreadCount(): Promise<number> {
 }
 
 async function buildCultivatorState(userId: string): Promise<FetchState> {
-  const { cultivator, hasActive, hasDead, unreadMailCount } =
+  const { cultivatorView, hasActive, hasDead, unreadMailCount } =
     await fetchCultivatorData();
 
-  if (!hasActive || !cultivator) {
+  if (!hasActive || !cultivatorView) {
     return {
       ...initialState,
       note: hasDead ? '前世道途已尽，待转世重修。' : undefined,
@@ -185,52 +226,11 @@ async function buildCultivatorState(userId: string): Promise<FetchState> {
   }
 
   const unreadCount = unreadMailCount || (await fetchUnreadCount());
-
-  const cachedInventory = getCachedState(userId)?.inventory;
-  const cachedLoaded = getCachedState(userId)?.inventoryLoaded;
-  const inventory: Inventory = {
-    artifacts:
-      cultivator.inventory?.artifacts || cachedInventory?.artifacts || [],
-    consumables: cachedInventory?.consumables || [],
-    materials: cachedInventory?.materials || [],
-  };
-  const inventoryLoaded: Record<InventoryType, boolean> = {
-    artifacts: true,
-    materials: cachedLoaded?.materials || false,
-    consumables: cachedLoaded?.consumables || false,
-  };
-
-  const fullCultivator: Cultivator = {
-    ...cultivator,
-    inventory,
-    cultivations: cultivator.cultivations || [],
-    skills: cultivator.skills || [],
-    equipped: cultivator.equipped || defaultEquipped,
-  };
-
-  const {
-    final: finalAttrs,
-    maxHp,
-    maxMp,
-  } = getCultivatorResourceSnapshot(fullCultivator);
-
-  return {
-    cultivator: fullCultivator,
-    finalAttributes: {
-      final: finalAttrs,
-      maxHp,
-      maxMp,
-    },
-    inventory,
-    inventoryLoaded,
-    skills: fullCultivator.skills || [],
-    equipped: fullCultivator.equipped || defaultEquipped,
-    isLoading: false,
-    error: undefined,
-    note: undefined,
-    unreadMailCount: unreadCount || 0,
-    hasActiveCultivator: true,
-  };
+  return buildFetchStateFromPlayerView({
+    cultivatorView,
+    unreadMailCount: unreadCount,
+    cachedState: getCachedState(userId),
+  });
 }
 
 function fetchCultivatorStateShared(userId: string): Promise<FetchState> {

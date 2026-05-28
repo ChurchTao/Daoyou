@@ -73,23 +73,19 @@ function formatRecoveryPerHour(value: number): string {
 }
 
 function usePersistentStatusState() {
-  const { cultivator, finalAttributes } = useCultivator();
+  const { cultivator, display } = useCultivator();
   const [now] = useState(() => Date.now());
 
   if (!cultivator) return null;
   const statuses = (cultivator.condition?.statuses ?? []).filter((status) =>
     isConditionStatusActive(status, new Date(now)),
   );
-  const maxHp = Math.max(0, Math.floor(finalAttributes?.maxHp ?? 0));
-  const maxMp = Math.max(0, Math.floor(finalAttributes?.maxMp ?? 0));
-  const currentHp = Math.max(
-    0,
-    Math.floor(cultivator.condition?.resources.hp.current ?? maxHp),
-  );
-  const currentMp = Math.max(
-    0,
-    Math.floor(cultivator.condition?.resources.mp.current ?? maxMp),
-  );
+  const hp = display?.resources.hp;
+  const mp = display?.resources.mp;
+  const maxHp = Math.max(0, Math.floor(hp?.max ?? 0));
+  const maxMp = Math.max(0, Math.floor(mp?.max ?? 0));
+  const currentHp = Math.max(0, Math.floor(hp?.current ?? maxHp));
+  const currentMp = Math.max(0, Math.floor(mp?.current ?? maxMp));
   const cultivationExp = Math.max(
     0,
     Math.floor(cultivator.cultivation_progress?.cultivation_exp ?? 0),

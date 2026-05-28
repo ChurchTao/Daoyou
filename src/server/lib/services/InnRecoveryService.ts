@@ -41,6 +41,7 @@ export const InnRecoveryService = {
       fateContext.innCultivationLossMultiplier,
     );
     const spiritStoneCost = calculateInnRecoverySpiritStoneCost(
+      cultivator.realm,
       getInnSpiritStoneMultiplier(fateContext),
     );
 
