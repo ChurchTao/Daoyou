@@ -228,39 +228,6 @@ function useSpecialSceneBackActionState(descriptor: SpecialSceneDescriptor | nul
   };
 }
 
-function CombatSceneChrome() {
-  const { descriptor, routeTitle } = useResolvedSpecialScene();
-  const { label, onBack } = useSpecialSceneBackActionState(descriptor);
-
-  if (!descriptor) {
-    return null;
-  }
-
-  const detail = routeTitle === descriptor.sceneLabel ? null : routeTitle;
-
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 text-right z-30 px-3 pt-[calc(env(safe-area-inset-top)+0.65rem)] md:px-5">
-      <div className="border-battle-rule-strong bg-bgpaper pointer-events-auto inline-flex max-w-md items-center gap-3 border border-dashed px-3 py-2 shadow backdrop-blur-sm">
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-battle-muted hover:text-crimson shrink-0 text-sm transition"
-        >
-          [{label}]
-        </button>
-        <div className="min-w-0">
-          <div className="text-battle-muted text-[0.66rem] tracking-[0.18em]">
-            战局 · {descriptor.sceneLabel}
-          </div>
-          {detail ? (
-            <div className="text-ink mt-1 text-sm leading-6">{detail}</div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MapSceneChrome() {
   const { descriptor, location } = useResolvedSpecialScene();
   const { label, onBack } = useSpecialSceneBackActionState(descriptor);
@@ -373,12 +340,9 @@ export function GameViewportLayout() {
 function GameCombatLayoutBody() {
   return (
     <div className="bg-paper h-screen overflow-hidden">
-      <div className="relative h-full overflow-hidden">
-        <CombatSceneChrome />
-        <main className="h-full overflow-hidden">
-          <Outlet />
-        </main>
-      </div>
+      <main className="h-full overflow-hidden">
+        <Outlet />
+      </main>
     </div>
   );
 }
@@ -532,12 +496,17 @@ function DungeonSceneChrome({
 }
 
 function GameDungeonLayoutBody() {
+  const descriptor = useResolvedDungeonScene();
   const chromeRef = useRef<HTMLDivElement | null>(null);
   const [chromeHeight, setChromeHeight] = useState<number | null>(null);
+  const isImmersiveBattleScene = descriptor.density === 'full';
 
   useEffect(() => {
     const node = chromeRef.current;
-    if (!node) return;
+    if (!node) {
+      setChromeHeight(0);
+      return;
+    }
 
     const updateChromeHeight = () => {
       setChromeHeight(Math.ceil(node.getBoundingClientRect().height));
@@ -552,7 +521,7 @@ function GameDungeonLayoutBody() {
     const observer = new ResizeObserver(updateChromeHeight);
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [isImmersiveBattleScene]);
 
   const dungeonLayoutStyle = useMemo(
     () =>
@@ -571,8 +540,14 @@ function GameDungeonLayoutBody() {
       style={dungeonLayoutStyle}
     >
       <div className="relative h-full overflow-hidden">
-        <DungeonSceneChrome chromeRef={chromeRef} />
-        <main className="battle-scroll h-full overflow-y-auto">
+        {!isImmersiveBattleScene && <DungeonSceneChrome chromeRef={chromeRef} />}
+        <main
+          className={
+            isImmersiveBattleScene
+              ? 'h-full overflow-hidden'
+              : 'battle-scroll h-full overflow-y-auto'
+          }
+        >
           <Outlet />
         </main>
       </div>

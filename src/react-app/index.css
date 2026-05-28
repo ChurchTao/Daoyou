@@ -225,6 +225,35 @@ body {
   animation: fade-in 0.5s ease-out;
 }
 
+@keyframes auth-announcement-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.auth-announcement-marquee {
+  overflow: hidden;
+}
+
+.auth-announcement-track {
+  display: flex;
+  width: max-content;
+  animation: auth-announcement-marquee 18s linear infinite;
+}
+
+.auth-announcement-segment {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.auth-announcement-copy {
+  white-space: nowrap;
+}
+
 /* 隐藏横向滚动条（用于 Tabs） */
 .no-scrollbar {
   -ms-overflow-style: none;

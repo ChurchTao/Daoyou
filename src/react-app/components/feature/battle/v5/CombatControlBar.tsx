@@ -24,8 +24,8 @@ export function CombatControlBar({
   const mainAction = onReset && isFinished ? onReset : onToggle;
 
   return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="flex items-center justify-between gap-2 text-[13px] leading-5">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5">
         <button
           type="button"
           onClick={mainAction}
@@ -39,7 +39,7 @@ export function CombatControlBar({
           [{mainActionLabel}]
         </button>
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <span className="text-battle-muted">速度</span>
           {speeds.map((speed) => (
             <button
@@ -47,7 +47,7 @@ export function CombatControlBar({
               type="button"
               onClick={() => onSpeedChange(speed)}
               className={cn(
-                'text-sm transition-colors',
+                'text-[13px] transition-colors',
                 playbackSpeed === speed
                   ? 'text-ink font-medium'
                   : 'text-battle-muted hover:text-ink',

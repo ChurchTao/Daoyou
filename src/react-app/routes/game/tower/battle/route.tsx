@@ -3,9 +3,7 @@ import { BattlePlaybackPanel } from '@app/components/feature/battle/BattlePlayba
 import { useBattlePlaybackState } from '@app/components/feature/battle/useBattlePlaybackState';
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
-import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkCard } from '@app/components/ui/InkCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useTowerBattle } from '@app/lib/hooks/tower/useTowerBattle';
 import { useTowerBattleContext } from '@app/lib/hooks/tower/useTowerBattleContext';
@@ -80,43 +78,20 @@ export default function TowerBattlePage() {
           ? `${formatDepthLabel(context.encounter.floor)} · ${describeEncounterLabel(context.encounter.kind)} · ${context.encounter.realm} ${context.encounter.realmStage}`
           : '幻影正在显形。'
       }
+      variant="immersive-battle"
       error={pageError}
       loading={battleLoading && !battleResult}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: '返回幻境',
-          onClick: () => navigate('/game/tower'),
-          disabled: !playback.isPlaybackFinished || !hasBattleCallback,
-        },
-      }}
     >
-      {context ? (
-        <InkCard className="mb-4 space-y-3 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <InkBadge tier={context.encounter.realm}>
-              {`${context.encounter.realm} ${context.encounter.realmStage}`}
-            </InkBadge>
-            <InkBadge tone="accent">{describeEncounterLabel(context.encounter.kind)}</InkBadge>
-          </div>
-          {context.enemy.description ? (
-            <p className="text-sm leading-7">{context.enemy.description}</p>
-          ) : null}
-          {context.enemy.background ? (
-            <p className="text-ink-secondary text-sm leading-7">
-              {context.enemy.background}
-            </p>
-          ) : null}
-        </InkCard>
-      ) : null}
-
       <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
       <CombatResultDialog
         key={`tower-route-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         dialogKey={`tower-route-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
-        open={!!battleResult && playback.isPlaybackFinished}
+        open={!!battleResult && playback.isPlaybackFinished && hasBattleCallback}
         title={battleResult?.winner.id === cultivator?.id ? '战局得胜' : '战局失利'}
+        confirmLabel="返回幻境"
+        onConfirm={() => navigate('/game/tower')}
         content={
           <p className="leading-8">
             {battleResult?.winner.id === cultivator?.id

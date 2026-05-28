@@ -16,8 +16,7 @@ import { getResourceText } from '@shared/lib/resourceText';
 import {
   buildTrainingBattleInitConfig, createDefaultTrainingRoomDraft, parseTrainingRoomStorage, TRAINING_ROOM_STORAGE_KEY, TRAINING_ROOM_STORAGE_VERSION, type TrainingRoomDraft, type TrainingRoomPreset, } from '@shared/lib/training-room/config';
 import type { Cultivator } from '@shared/types/cultivator';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSpecialSceneBackAction } from '@app/layouts/special-scene';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const ATTRIBUTE_OPTIONS = Object.values(AttributeType);
@@ -303,16 +302,6 @@ export default function TrainingRoomPage() {
     navigate('/game');
   }, [isFighting, navigate, playback.isPlaybackFinished]);
 
-  const immersiveBackAction = useMemo(
-    () => ({
-      label: '离开练功房',
-      onBack: handleLeave,
-    }),
-    [handleLeave],
-  );
-
-  useSpecialSceneBackAction(immersiveBackAction);
-
   const savePreset = () => {
     const normalizedName =
       presetName.trim() ||
@@ -375,6 +364,7 @@ export default function TrainingRoomPage() {
     <BattlePageLayout
       title="练功房"
       subtitle="直接和木桩切磋；需要时再展开自定义设置。"
+      variant={battleResult ? 'immersive-battle' : 'page'}
       loading={isFighting && !battleResult}
     >
       {!battleResult ? (
@@ -557,7 +547,14 @@ export default function TrainingRoomPage() {
           ) : null}
         </div>
       ) : (
-        <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
+        <BattlePlaybackPanel
+          battleResult={battleResult}
+          playback={playback}
+          statusAction={{
+            label: '离开练功房',
+            onClick: handleLeave,
+          }}
+        />
       )}
 
       <CombatResultDialog

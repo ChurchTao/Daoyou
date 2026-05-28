@@ -29,20 +29,9 @@ export function BattleView() {
     <BattlePageLayout
       title={`战斗 · ${player.name} vs ${opponentName}`}
       subtitle="实时查看血量、技能状态和战斗日志。"
+      variant="immersive-battle"
       loading={loading}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: '返回主界',
-          href: '/game',
-        },
-        secondary: [
-          {
-            label: '再战',
-            onClick: handleBattleAgain,
-          },
-        ],
-      }}
     >
       <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
@@ -51,6 +40,12 @@ export function BattleView() {
         dialogKey={`battle-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && battleEnd && playback.isPlaybackFinished}
         title={isWin ? '战斗胜利' : '战斗失败'}
+        confirmLabel="返回主界"
+        cancelLabel="再战"
+        onConfirm={() => {
+          window.location.href = '/game';
+        }}
+        onCancel={handleBattleAgain}
         content={
           <p className="leading-8">
             {isWin

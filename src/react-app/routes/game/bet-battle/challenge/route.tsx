@@ -111,15 +111,10 @@ function BetBattleChallengePageContent() {
     <BattlePageLayout
       title={`赌战 · ${battleResult ? `${playback.playerName} vs ${playback.opponentName}` : '加载中'}`}
       subtitle="胜负将直接决定这场赌战的结果。"
+      variant="immersive-battle"
       error={error}
       loading={loading}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: '返回赌战台',
-          onClick: () => navigate('/game/bet-battle'),
-        },
-      }}
     >
       <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
@@ -128,6 +123,8 @@ function BetBattleChallengePageContent() {
         dialogKey={`bet-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && playback.isPlaybackFinished && !!settlement}
         title={settlement?.isWin ? '赌战胜利' : '赌战失败'}
+        confirmLabel="返回赌战台"
+        onConfirm={() => navigate('/game/bet-battle')}
         content={<p className="leading-8">{settlement?.resultMessage}</p>}
       />
     </BattlePageLayout>

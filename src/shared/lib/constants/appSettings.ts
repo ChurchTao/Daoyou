@@ -1,6 +1,7 @@
 /** Keys for `wanjiedaoyou_app_settings.key` — keep in sync with DB migrations */
 export const APP_SETTING_KEYS = {
   communityQqGroupNumber: 'community_qq_group_number',
+  authPageAnnouncement: 'auth_page_announcement',
 } as const;
 
 /** Bundled fallback when DB has no row or row is empty. */

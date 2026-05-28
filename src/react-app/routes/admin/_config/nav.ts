@@ -26,6 +26,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/broadcast/game-mail',
   },
   {
+    title: '游戏公告',
+    description: '认证页横幅公告配置',
+    href: '/admin/announcement',
+  },
+  {
     title: '模板中心',
     description: '运营文案模板管理',
     href: '/admin/templates',

@@ -76,30 +76,31 @@ export default function BattleReplayPage() {
     <BattlePageLayout
       title={`战斗回放 · ${playback.playerName} vs ${playback.opponentName}`}
       subtitle="按时间顺序查看这场战斗的全过程。"
+      variant="immersive-battle"
       loading={loading}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: '返回战绩',
-          href: '/game/battle/history',
-        },
-      }}
     >
       <BattlePlaybackPanel
         battleResult={battleResult}
         playback={playback}
+        statusAction={{
+          label: '返回战绩',
+          href: '/game/battle/history',
+        }}
         unsupportedNotice={
-          <p className="text-ink-secondary">
-            该战斗记录不支持新版回放（缺少关键时间线数据）。
-          </p>
+          <div className="space-y-3 text-center">
+            <p className="text-ink-secondary">
+              该战斗记录不支持新版回放（缺少关键时间线数据）。
+            </p>
+            <Link
+              href="/game/battle/history"
+              className="text-ink hover:text-crimson"
+            >
+              [返回战绩]
+            </Link>
+          </div>
         }
       />
-
-      {record?.createdAt && (
-        <p className="text-ink/40 text-center text-xs mt-4">
-          记录时间：{new Date(record.createdAt).toLocaleString()}
-        </p>
-      )}
     </BattlePageLayout>
   );
 }

@@ -1,7 +1,8 @@
 import { authClient } from '@app/lib/auth/client';
-import type { UserLoaderData } from '@app/lib/router/routeData';
+import type { AuthLoaderData, UserLoaderData } from '@app/lib/router/routeData';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  authLayoutLoader,
   guestOnlyLoader,
   indexRedirectLoader,
   requireAdminLoader,
@@ -89,6 +90,80 @@ describe('router loaders', () => {
 
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).headers.get('Location')).toBe('/game');
+  });
+
+  it('redirects auth layout to /game when already authenticated', async () => {
+    getSessionMock.mockResolvedValue(createSessionPayload(true) as never);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await authLayoutLoader({
+      request: createRequest('http://localhost/login'),
+      params: {},
+      context: undefined,
+    });
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).headers.get('Location')).toBe('/game');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns announcement loader data for guest auth pages', async () => {
+    getSessionMock.mockResolvedValue(createSessionPayload(false) as never);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: true,
+            announcement: '今晚 23:00 维护，请提前下线。',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    );
+
+    const response = await authLayoutLoader({
+      request: createRequest('http://localhost/login'),
+      params: {},
+      context: undefined,
+    });
+
+    expect(response).toEqual({
+      announcement: '今晚 23:00 维护，请提前下线。',
+    } satisfies AuthLoaderData);
+  });
+
+  it('falls back to a null announcement when auth announcement loading fails', async () => {
+    getSessionMock.mockResolvedValue(createSessionPayload(false) as never);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: '公告配置暂不可用，请稍后重试',
+          }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    );
+
+    const response = await authLayoutLoader({
+      request: createRequest('http://localhost/login'),
+      params: {},
+      context: undefined,
+    });
+
+    expect(response).toEqual({
+      announcement: null,
+    } satisfies AuthLoaderData);
   });
 
   it('redirects protected routes to /login when unauthenticated', async () => {

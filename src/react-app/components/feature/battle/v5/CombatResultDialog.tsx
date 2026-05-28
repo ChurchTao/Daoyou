@@ -10,6 +10,7 @@ interface CombatResultDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm?: () => void | Promise<void>;
+  onCancel?: () => void | Promise<void>;
 }
 
 export function CombatResultDialog({
@@ -20,6 +21,7 @@ export function CombatResultDialog({
   confirmLabel = '知道了',
   cancelLabel = '先看看',
   onConfirm,
+  onCancel,
 }: CombatResultDialogProps) {
   const [dismissed, setDismissed] = useState(false);
 
@@ -35,8 +37,9 @@ export function CombatResultDialog({
       confirmLabel,
       cancelLabel,
       onConfirm,
+      onCancel,
     };
-  }, [cancelLabel, confirmLabel, content, dialogKey, dismissed, onConfirm, open, title]);
+  }, [cancelLabel, confirmLabel, content, dialogKey, dismissed, onCancel, onConfirm, open, title]);
 
   return (
     <InkDialog

@@ -142,15 +142,10 @@ function ChallengeBattlePageContent() {
     <BattlePageLayout
       title={`排行榜挑战 · ${battleResult ? `${playback.playerName} vs ${playback.opponentName}` : '加载中'}`}
       subtitle="这一战会直接影响你的榜单名次。"
+      variant="immersive-battle"
       error={error}
       loading={loading}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: '返回排行榜',
-          onClick: () => navigate('/game/rankings'),
-        },
-      }}
     >
       <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
@@ -159,6 +154,8 @@ function ChallengeBattlePageContent() {
         dialogKey={`challenge-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && playback.isPlaybackFinished}
         title={isWin ? '挑战成功' : '挑战失利'}
+        confirmLabel="返回排行榜"
+        onConfirm={() => navigate('/game/rankings')}
         content={
           <div className="space-y-1 leading-8">
             {rankingUpdate?.challengerRank != null && isWin && (

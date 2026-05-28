@@ -1,6 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import type { BattleRecord } from '@shared/types/battle';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 interface BattlePageLayoutProps {
   title: string;
@@ -9,6 +9,7 @@ interface BattlePageLayoutProps {
   loading?: boolean;
   battleResult?: BattleRecord;
   children: ReactNode;
+  variant?: 'page' | 'immersive-battle';
   actions?: {
     primary?: {
       label: string;
@@ -35,8 +36,42 @@ export function BattlePageLayout({
   loading,
   battleResult,
   children,
+  variant = 'page',
   actions,
 }: BattlePageLayoutProps) {
+  if (variant === 'immersive-battle') {
+    const immersiveLayoutStyle: CSSProperties = {
+      paddingBottom:
+        'calc(var(--battle-dock-height, calc(env(safe-area-inset-bottom) + 4.25rem)) + 0.6rem)',
+    };
+
+    return (
+      <div
+        className="h-full overflow-hidden"
+        data-battle-layout-root="true"
+      >
+        <div
+          className="main-content mx-auto flex h-full max-w-4xl flex-col px-4 pt-[calc(env(safe-area-inset-top)+0.7rem)] md:px-6 md:pt-[calc(env(safe-area-inset-top)+0.95rem)]"
+          style={immersiveLayoutStyle}
+        >
+          {error && (
+            <div className="border-crimson bg-crimson/6 mb-4 border-l-2 px-4 py-3">
+              <p className="text-crimson text-sm leading-7">{error}</p>
+            </div>
+          )}
+
+          {loading && !battleResult ? (
+            <div className="flex flex-1 items-center justify-center py-16 text-center">
+              <p className="loading-tip">正在加载战斗...</p>
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1">{children}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="battle-scroll h-full overflow-y-auto">
       <div className="main-content mx-auto flex min-h-full max-w-4xl flex-col px-4 pt-[calc(env(safe-area-inset-top)+4.25rem)] pb-64 md:px-6 md:pt-[calc(env(safe-area-inset-top)+4.6rem)] md:pb-68">
@@ -61,7 +96,7 @@ export function BattlePageLayout({
 
         <div className="flex-1">{children}</div>
 
-        {battleResult && actions && (
+        {battleResult && actions && variant === 'page' && (
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
             {actions.secondary?.map((action, index) => (
               <InkButton

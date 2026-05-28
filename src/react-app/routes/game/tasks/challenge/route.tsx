@@ -82,20 +82,9 @@ function TaskChallengePageContent() {
     <BattlePageLayout
       title={challengeTitle}
       subtitle="以斗法验道心，以胜负问前路。"
+      variant="immersive-battle"
       loading={loading}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: '返回任务中心',
-          onClick: () => navigate('/game/tasks'),
-        },
-        secondary: [
-          {
-            label: '回静室',
-            onClick: () => navigate('/game/retreat'),
-          },
-        ],
-      }}
     >
       <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
@@ -104,6 +93,10 @@ function TaskChallengePageContent() {
         dialogKey={`task-challenge-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && playback.isPlaybackFinished}
         title={isWin ? '试炼已过' : '试炼未过'}
+        confirmLabel="返回任务中心"
+        cancelLabel="回静室"
+        onConfirm={() => navigate('/game/tasks')}
+        onCancel={() => navigate('/game/retreat')}
         content={
           <div className="space-y-1 leading-8">
             <p>

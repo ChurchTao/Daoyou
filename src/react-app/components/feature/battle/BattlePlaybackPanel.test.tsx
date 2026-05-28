@@ -2,7 +2,7 @@ import type { BattlePlaybackState } from '@app/components/feature/battle/useBatt
 import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
 import type { Cultivator } from '@shared/types/cultivator';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BattlePlaybackPanel } from './BattlePlaybackPanel';
 
 function createCultivator(id: string, name: string): Cultivator {
@@ -60,10 +60,27 @@ function createPlaybackState(
     isReplaySupported: true,
     isPlaybackFinished: true,
     selectedUnit: null,
-    setSelectedUnit: vi.fn(),
+    openUnitDetails: vi.fn(),
+    closeUnitDetails: vi.fn(),
     ...overrides,
   };
 }
+
+const originalWindow = globalThis.window;
+
+function restoreWindow() {
+  if (originalWindow) {
+    (globalThis as typeof globalThis & { window?: Window }).window =
+      originalWindow;
+    return;
+  }
+
+  delete (globalThis as typeof globalThis & { window?: Window }).window;
+}
+
+afterEach(() => {
+  restoreWindow();
+});
 
 describe('BattlePlaybackPanel', () => {
   it('renders the shared combat status, controls, and log for a supported record', () => {
@@ -80,11 +97,45 @@ describe('BattlePlaybackPanel', () => {
     );
 
     expect(html).toContain('战斗日志');
-    expect(html).toContain('我的状态');
+    expect(html).toContain('战术状态');
     expect(html).toContain('[详细属性]');
     expect(html).toContain('[敌方状态]');
     expect(html).toContain('赵青');
     expect(html).toContain('林玄');
+  });
+
+  it('renders the compact mobile dock summary and status action when collapsed is persisted', () => {
+    (globalThis as typeof globalThis & { window?: Window }).window = {
+      matchMedia: vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      }),
+      localStorage: {
+        getItem: vi.fn().mockReturnValue('true'),
+        setItem: vi.fn(),
+      },
+    } as unknown as Window;
+
+    const battleResult = simulateBattleV5(
+      createCultivator('player', '林玄'),
+      createCultivator('opponent', '赵青'),
+    );
+
+    const html = renderToStaticMarkup(
+      <BattlePlaybackPanel
+        battleResult={battleResult}
+        playback={createPlaybackState(battleResult)}
+        statusAction={{ label: '离开练功房', onClick: vi.fn() }}
+      />,
+    );
+
+    expect(html).toContain('战术状态');
+    expect(html).toContain('[离开练功房]');
+    expect(html).toContain('[展开战术]');
+    expect(html).not.toContain('[详细属性]');
   });
 
   it('shows only the unsupported notice when replay data is incomplete', () => {
@@ -120,6 +171,6 @@ describe('BattlePlaybackPanel', () => {
 
     expect(html).toContain('该战斗记录不支持新版回放');
     expect(html).not.toContain('战斗日志');
-    expect(html).not.toContain('我的状态');
+    expect(html).not.toContain('战术状态');
   });
 });

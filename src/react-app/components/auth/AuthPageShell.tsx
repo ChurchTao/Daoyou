@@ -1,5 +1,10 @@
 import Link from '@app/components/router/AppLink';
+import {
+  AUTH_LAYOUT_ROUTE_ID,
+  type AuthLoaderData,
+} from '@app/lib/router/routeData';
 import type { ReactNode } from 'react';
+import { useRouteLoaderData } from 'react-router';
 
 interface AuthPageShellProps {
   title: string;
@@ -18,6 +23,11 @@ export function AuthPageShell({
   footer,
   children,
 }: AuthPageShellProps) {
+  const authLoaderData = useRouteLoaderData(AUTH_LAYOUT_ROUTE_ID) as
+    | AuthLoaderData
+    | undefined;
+  const announcement = authLoaderData?.announcement?.trim() || null;
+
   return (
     <div className="bg-paper relative min-h-screen overflow-hidden">
       <div
@@ -32,6 +42,38 @@ export function AuthPageShell({
       />
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-4 sm:px-6">
         <div className="mx-auto w-full max-w-xl">
+          {announcement ? (
+            <div className="border-ink/15 bg-bgpaper/88 mb-4 flex items-center gap-3 overflow-hidden border border-dashed px-3 py-2 shadow-[0_8px_20px_rgba(44,24,16,0.05)]">
+              <span className="text-ink-secondary shrink-0 tracking-[0.22em]">
+                公告
+              </span>
+              <div className="auth-announcement-marquee min-w-0 flex-1">
+                <div className="auth-announcement-track">
+                  <span className="auth-announcement-segment">
+                    <span className="auth-announcement-copy">
+                      {announcement}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="text-ink-secondary/70 px-4"
+                    >
+                      ·
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="auth-announcement-segment"
+                  >
+                    <span className="auth-announcement-copy">
+                      {announcement}
+                    </span>
+                    <span className="text-ink-secondary/70 px-4">·</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <header className="mb-4 text-center">
             <p className="text-ink-secondary/80 mb-3 text-[0.72rem] tracking-[0.38em] sm:mb-4">
               WANJIE DAOYOU

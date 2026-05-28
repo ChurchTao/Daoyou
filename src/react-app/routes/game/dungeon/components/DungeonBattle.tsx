@@ -61,25 +61,9 @@ export function DungeonBattle({
     <BattlePageLayout
       title="副本战斗"
       subtitle="查看双方状态、技能变化和实时战斗日志。"
+      variant="immersive-battle"
       loading={loading && !battleResult}
       battleResult={battleResult}
-      actions={{
-        primary: {
-          label: battleSettlement?.isFinished
-            ? '查看结算'
-            : isPlaybackFinished
-              ? '继续探险'
-              : '战斗中...',
-          onClick: () => {
-            if (battleSettlement) {
-              onBattleComplete(battleSettlement);
-            } else if (battleResult) {
-              onBattleComplete(null);
-            }
-          },
-          disabled: !isPlaybackFinished && !battleSettlement,
-        },
-      }}
     >
       <BattlePlaybackPanel battleResult={battleResult} playback={playback} />
 
@@ -88,6 +72,17 @@ export function DungeonBattle({
         dialogKey={`dungeon-${battleResult?.turns}-${battleResult?.winner.id ?? 'unknown'}`}
         open={!!battleResult && isPlaybackFinished}
         title={battleResult?.winner.id === player.id ? '战斗胜利' : '战斗失败'}
+        confirmLabel={battleSettlement?.isFinished ? '查看结算' : '继续探险'}
+        onConfirm={() => {
+          if (battleSettlement) {
+            onBattleComplete(battleSettlement);
+            return;
+          }
+
+          if (battleResult) {
+            onBattleComplete(null);
+          }
+        }}
         content={
           <p className="leading-8">
             {battleResult?.winner.id === player.id

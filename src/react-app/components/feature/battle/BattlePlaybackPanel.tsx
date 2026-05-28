@@ -6,16 +6,24 @@ import { CombatAttributeModal } from './v5/CombatAttributeModal';
 import { CombatControlBar } from './v5/CombatControlBar';
 import { CombatStatusHeader } from './v5/CombatStatusHeader';
 
+export interface BattleStatusAction {
+  label: string;
+  onClick?: () => void;
+  href?: string;
+}
+
 interface BattlePlaybackPanelProps {
   battleResult: BattleRecord | undefined;
   playback: BattlePlaybackState;
   unsupportedNotice?: ReactNode;
+  statusAction?: BattleStatusAction;
 }
 
 export function BattlePlaybackPanel({
   battleResult,
   playback,
   unsupportedNotice,
+  statusAction,
 }: BattlePlaybackPanelProps) {
   if (!battleResult) {
     return null;
@@ -24,7 +32,7 @@ export function BattlePlaybackPanel({
   return (
     <>
       {playback.isReplaySupported ? (
-        <div className="mb-8 flex flex-col gap-4">
+        <div className="flex h-full min-h-0 flex-col gap-3 md:gap-4">
           {playback.currentPlayerFrame && playback.currentOpponentFrame && (
             <CombatStatusHeader
               player={playback.currentPlayerFrame}
@@ -47,6 +55,7 @@ export function BattlePlaybackPanel({
                   onReset={playback.reset}
                 />
               }
+              statusAction={statusAction}
             />
           )}
 
@@ -56,7 +65,9 @@ export function BattlePlaybackPanel({
           />
         </div>
       ) : unsupportedNotice ? (
-        <div className="mb-8">{unsupportedNotice}</div>
+        <div className="flex h-full items-center justify-center py-8">
+          {unsupportedNotice}
+        </div>
       ) : null}
 
       <CombatAttributeModal

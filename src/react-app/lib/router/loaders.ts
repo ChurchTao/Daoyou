@@ -1,6 +1,10 @@
 import { authClient } from '@app/lib/auth/client';
 import { replace, type LoaderFunctionArgs } from 'react-router';
-import type { AdminLoaderData, UserLoaderData } from './routeData';
+import type {
+  AdminLoaderData,
+  AuthLoaderData,
+  UserLoaderData,
+} from './routeData';
 
 type SessionResult = Awaited<ReturnType<typeof authClient.getSession>>;
 type SessionData = SessionResult['data'];
@@ -8,6 +12,12 @@ type SessionData = SessionResult['data'];
 type AdminSessionResponse = {
   success?: boolean;
   email?: string;
+  error?: string;
+};
+
+type AuthAnnouncementResponse = {
+  success?: boolean;
+  announcement?: string | null;
   error?: string;
 };
 
@@ -42,6 +52,33 @@ export async function indexRedirectLoader({ request }: LoaderFunctionArgs) {
 
 export async function guestOnlyLoader({ request }: LoaderFunctionArgs) {
   return (await hasAuthenticatedUser(request)) ? replace('/game') : null;
+}
+
+export async function authLayoutLoader({
+  request,
+}: LoaderFunctionArgs): Promise<AuthLoaderData | Response> {
+  if (await hasAuthenticatedUser(request)) {
+    return replace('/game');
+  }
+
+  try {
+    const response = await fetch('/api/community/announcement', {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: request.signal,
+    });
+    const payload = (await response.json()) as AuthAnnouncementResponse;
+
+    if (!response.ok || !payload.success) {
+      return { announcement: null };
+    }
+
+    return {
+      announcement: payload.announcement?.trim() || null,
+    };
+  } catch {
+    return { announcement: null };
+  }
 }
 
 export async function requireUserLoader({

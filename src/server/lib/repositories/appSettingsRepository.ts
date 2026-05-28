@@ -1,10 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { getExecutor } from '@server/lib/drizzle/db';
+import { appSettings } from '@server/lib/drizzle/schema';
 import {
   APP_SETTING_KEYS,
   DEFAULT_COMMUNITY_QQ_GROUP_NUMBER,
 } from '@shared/lib/constants/appSettings';
-import { getExecutor } from '@server/lib/drizzle/db';
-import { appSettings } from '@server/lib/drizzle/schema';
+import { eq } from 'drizzle-orm';
 
 export async function getAppSetting(key: string): Promise<string | null> {
   const q = getExecutor();
@@ -46,4 +46,8 @@ export async function getResolvedCommunityQqGroupNumber(): Promise<string> {
   const fromDb = await getAppSetting(APP_SETTING_KEYS.communityQqGroupNumber);
   if (fromDb) return fromDb;
   return DEFAULT_COMMUNITY_QQ_GROUP_NUMBER;
+}
+
+export async function getAuthPageAnnouncement(): Promise<string | null> {
+  return getAppSetting(APP_SETTING_KEYS.authPageAnnouncement);
 }

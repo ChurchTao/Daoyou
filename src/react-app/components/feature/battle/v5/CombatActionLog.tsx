@@ -46,12 +46,12 @@ export function CombatActionLog({
   }, [visibleLogs]);
 
   return (
-    <section className="battle-divider mt-1 pt-3">
-      <p className="battle-caption mb-2 text-xs">战斗日志</p>
+    <section className="battle-divider mt-1 flex min-h-0 flex-1 flex-col pt-3">
+      <p className="battle-caption mb-2 shrink-0 text-xs">战斗日志</p>
 
       <div
         ref={scrollRef}
-        className="battle-report battle-scroll h-[36vh] min-h-[240px] overflow-y-auto pr-1 md:h-[42vh]"
+        className="battle-report battle-scroll min-h-0 flex-1 overflow-y-auto pr-1"
       >
         <div className="space-y-2">
           {visibleLogs.map((item, idx) => {
@@ -92,7 +92,7 @@ export function CombatActionLog({
           })}
 
           {visibleLogs.length === 0 && (
-            <div className="text-battle-muted flex h-full min-h-[220px] items-center justify-center text-sm italic">
+            <div className="text-battle-muted flex min-h-full items-center justify-center py-12 text-sm italic">
               战斗即将开始...
             </div>
           )}

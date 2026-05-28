@@ -9,7 +9,7 @@ import {
   PlayerProviderLayout,
 } from '@app/layouts/game-layout';
 import { lazyRoute } from '@app/lib/router/lazyRoute';
-import { GAME_ROUTE_ID } from '@app/lib/router/routeData';
+import { AUTH_LAYOUT_ROUTE_ID, GAME_ROUTE_ID } from '@app/lib/router/routeData';
 import type {
   AppRouteHandle,
   GameSceneHandle,
@@ -62,7 +62,10 @@ export const router = createBrowserRouter(
     <Route element={<App />} errorElement={<RootRouteErrorBoundary />}>
       <Route index lazy={lazyRoute(() => import('@app/routes/index/route'))} />
 
-      <Route lazy={lazyRoute(() => import('@app/routes/auth/layout'))}>
+      <Route
+        id={AUTH_LAYOUT_ROUTE_ID}
+        lazy={lazyRoute(() => import('@app/routes/auth/layout'))}
+      >
         <Route
           path="/login"
           lazy={lazyRoute(() => import('@app/routes/login/route'))}
@@ -206,7 +209,8 @@ export const router = createBrowserRouter(
               handle={scene(
                 {
                   id: 'tower',
-                  summary: '蜃气每周聚作一境。先应眼前幻影，再看名号能留到第几重。',
+                  summary:
+                    '蜃气每周聚作一境。先应眼前幻影，再看名号能留到第几重。',
                 },
                 '蜃楼幻境',
               )}
@@ -668,6 +672,11 @@ export const router = createBrowserRouter(
             () => import('@app/routes/admin/broadcast/game-mail/route'),
           )}
           handle={title('游戏邮件')}
+        />
+        <Route
+          path="announcement"
+          lazy={lazyRoute(() => import('@app/routes/admin/announcement/route'))}
+          handle={title('游戏公告')}
         />
         <Route
           path="templates"
