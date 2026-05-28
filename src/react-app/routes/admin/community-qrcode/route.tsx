@@ -4,26 +4,25 @@ import { InkInput } from '@app/components/ui/InkInput';
 import { useCallback, useEffect, useState } from 'react';
 
 type LoadState = {
-  sourceUrl: string;
-  storedInDb: boolean;
+  groupNumber: string;
+  customized: boolean;
 };
 
-export default function CommunityQrcodeAdminPage() {
+export default function CommunityQqGroupAdminPage() {
   const { pushToast } = useInkUI();
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [storedInDb, setStoredInDb] = useState(false);
+  const [groupNumber, setGroupNumber] = useState('');
+  const [customized, setCustomized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [previewNonce, setPreviewNonce] = useState(0);
 
   const load = useCallback(async () => {
-    const response = await fetch('/api/admin/community-qrcode');
+    const response = await fetch('/api/admin/community-group');
     const data = (await response.json()) as LoadState & { error?: string };
     if (!response.ok) {
       throw new Error(data.error ?? '加载配置失败');
     }
-    setSourceUrl(data.sourceUrl ?? '');
-    setStoredInDb(Boolean(data.storedInDb));
+    setGroupNumber(data.groupNumber ?? '');
+    setCustomized(Boolean(data.customized));
   }, []);
 
   useEffect(() => {
@@ -49,27 +48,26 @@ export default function CommunityQrcodeAdminPage() {
   }, [load, pushToast]);
 
   const submit = async () => {
-    const trimmed = sourceUrl.trim();
+    const trimmed = groupNumber.trim();
     if (!trimmed) {
-      pushToast({ message: '请填写图片 URL', tone: 'warning' });
+      pushToast({ message: '请填写 QQ 群号', tone: 'warning' });
       return;
     }
 
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/community-qrcode', {
+      const response = await fetch('/api/admin/community-group', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceUrl: trimmed }),
+        body: JSON.stringify({ groupNumber: trimmed }),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error ?? '保存失败');
       }
-      setSourceUrl(data.sourceUrl ?? trimmed);
-      setStoredInDb(true);
-      setPreviewNonce((n) => n + 1);
-      pushToast({ message: '已保存，玩家端将使用新图片地址', tone: 'success' });
+      setGroupNumber(data.groupNumber ?? trimmed);
+      setCustomized(true);
+      pushToast({ message: '已保存，玩家端将显示新的 QQ 群号', tone: 'success' });
       await load();
     } catch (error) {
       pushToast({
@@ -87,25 +85,26 @@ export default function CommunityQrcodeAdminPage() {
         <p className="text-ink-secondary text-xs tracking-[0.22em]">
           COMMUNITY
         </p>
-        <h2 className="font-heading text-ink mt-2 text-3xl">交流群二维码</h2>
+        <h2 className="font-heading text-ink mt-2 text-3xl">QQ 交流群</h2>
         <p className="text-ink-secondary mt-3 max-w-2xl text-sm leading-7">
-          填写 HTTPS 图片直链（与原先 R2 静态地址同类）。保存后即时生效，
-          `/api/community/qrcode` 将代理该地址，无需重新发版。
+          在这里维护玩家端展示的 QQ 群号。保存后即时生效，玩家页会直接读取最新配置；
+          若数据库没有配置，则回退为默认群号 `1107586928`。
         </p>
       </header>
 
       <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6 space-y-4">
-        {!storedInDb && !loading ? (
+        {!customized && !loading ? (
           <p className="text-ink-secondary text-sm">
-            当前尚未写入数据库，玩家端显示的是代码内建的默认图。保存后即可改为仅由后台控制。
+            当前尚未写入数据库，玩家端显示的是代码内建默认群号。保存后即可改为后台控制。
           </p>
         ) : null}
 
         <InkInput
-          label="图片 URL（https）"
-          value={sourceUrl}
-          onChange={setSourceUrl}
-          placeholder="https://..."
+          label="QQ 群号"
+          value={groupNumber}
+          onChange={setGroupNumber}
+          placeholder="1107586928"
+          hint="仅支持 5 到 12 位数字。"
           disabled={loading || saving}
         />
 
@@ -127,19 +126,10 @@ export default function CommunityQrcodeAdminPage() {
             重新加载
           </InkButton>
         </div>
-      </section>
 
-      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <h3 className="text-ink text-lg font-semibold">预览（与玩家端一致）</h3>
-        <p className="text-ink-secondary mt-2 text-sm">
-          保存后会刷新下图；若浏览器仍显示旧图，可强制刷新页面。
-        </p>
-        <div className="border-ink/20 bg-paper mt-4 inline-block border border-dashed p-4">
-          <img
-            src={`/api/community/qrcode?t=${previewNonce}`}
-            alt="交流群二维码预览"
-            className="h-auto w-[280px] max-w-full"
-          />
+        <div className="border-ink/20 bg-paper p-4">
+          <p className="text-ink-secondary text-xs tracking-[0.16em]">当前生效群号</p>
+          <p className="text-ink mt-2 text-2xl tracking-[0.18em]">{groupNumber || '1107586928'}</p>
         </div>
       </section>
     </div>

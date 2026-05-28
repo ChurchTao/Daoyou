@@ -701,11 +701,11 @@ export const router = createBrowserRouter(
           handle={title('新建兑换码')}
         />
         <Route
-          path="community-qrcode"
+          path="community-group"
           lazy={lazyRoute(
             () => import('@app/routes/admin/community-qrcode/route'),
           )}
-          handle={title('交流群二维码')}
+          handle={title('QQ交流群')}
         />
       </Route>
 

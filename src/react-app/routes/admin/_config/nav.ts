@@ -36,8 +36,8 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/redeem-codes',
   },
   {
-    title: '交流群二维码',
-    description: '玩家社群入口图片地址',
-    href: '/admin/community-qrcode',
+    title: 'QQ交流群',
+    description: '玩家社群 QQ 群号配置',
+    href: '/admin/community-group',
   },
 ];

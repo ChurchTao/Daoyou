@@ -1,6 +1,6 @@
 import {
   getAppSetting,
-  getResolvedCommunityQrcodeSourceUrl,
+  getResolvedCommunityQqGroupNumber,
   upsertAppSetting,
 } from '@server/lib/repositories/appSettingsRepository';
 import { requireAdmin } from '@server/lib/hono/middleware';
@@ -12,33 +12,22 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 const PatchBodySchema = z.object({
-  sourceUrl: z
+  groupNumber: z
     .string()
     .trim()
-    .min(1, 'URL 不能为空')
-    .max(2048)
-    .refine((u) => {
-      try {
-        const parsed = new URL(u);
-        return parsed.protocol === 'https:';
-      } catch {
-        return false;
-      }
-    }, '请输入有效的 https 图片地址'),
+    .regex(/^\d{5,12}$/, '请输入 5 到 12 位数字 QQ 群号'),
 });
 
 const router = new Hono<AppEnv>();
 
 router.get('/', requireAdmin(), async (c) => {
-  const resolved = await getResolvedCommunityQrcodeSourceUrl();
-  const stored = await getAppSetting(
-    APP_SETTING_KEYS.communityQrcodeSourceUrl,
-  );
+  const resolved = await getResolvedCommunityQqGroupNumber();
+  const stored = await getAppSetting(APP_SETTING_KEYS.communityQqGroupNumber);
 
   return c.json({
-    sourceUrl: resolved,
-    storedInDb: Boolean(stored),
-    storedUrl: stored,
+    groupNumber: resolved,
+    customized: Boolean(stored),
+    storedGroupNumber: stored,
   });
 });
 
@@ -59,13 +48,13 @@ router.patch('/', requireAdmin(), async (c) => {
   }
 
   await upsertAppSetting({
-    key: APP_SETTING_KEYS.communityQrcodeSourceUrl,
-    value: parsed.data.sourceUrl,
+    key: APP_SETTING_KEYS.communityQqGroupNumber,
+    value: parsed.data.groupNumber,
     updatedBy: user.id,
   });
 
-  const resolved = await getResolvedCommunityQrcodeSourceUrl();
-  return c.json({ ok: true, sourceUrl: resolved });
+  const resolved = await getResolvedCommunityQqGroupNumber();
+  return c.json({ ok: true, groupNumber: resolved });
 });
 
 export default router;

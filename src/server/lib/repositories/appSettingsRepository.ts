@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import {
   APP_SETTING_KEYS,
-  DEFAULT_COMMUNITY_QR_CODE_SOURCE,
+  DEFAULT_COMMUNITY_QQ_GROUP_NUMBER,
 } from '@shared/lib/constants/appSettings';
 import { getExecutor } from '@server/lib/drizzle/db';
 import { appSettings } from '@server/lib/drizzle/schema';
@@ -41,11 +41,9 @@ export async function upsertAppSetting(params: {
     });
 }
 
-/** Effective image URL for community QR proxy (DB override or bundled default). */
-export async function getResolvedCommunityQrcodeSourceUrl(): Promise<string> {
-  const fromDb = await getAppSetting(
-    APP_SETTING_KEYS.communityQrcodeSourceUrl,
-  );
+/** Effective QQ group number for the community entry. */
+export async function getResolvedCommunityQqGroupNumber(): Promise<string> {
+  const fromDb = await getAppSetting(APP_SETTING_KEYS.communityQqGroupNumber);
   if (fromDb) return fromDb;
-  return DEFAULT_COMMUNITY_QR_CODE_SOURCE;
+  return DEFAULT_COMMUNITY_QQ_GROUP_NUMBER;
 }
