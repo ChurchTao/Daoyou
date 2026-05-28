@@ -1,9 +1,7 @@
-import { Hono } from 'hono';
-import type {
-  CultivationProgress,
-  Cultivator,
-} from '@shared/types/cultivator';
+import type { RetreatStreamEvent } from '@shared/contracts/retreat';
 import type { CultivatorCondition } from '@shared/types/condition';
+import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
+import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('@server/lib/drizzle/db', () => ({
@@ -53,15 +51,7 @@ vi.mock('@server/lib/redis', () => ({
 }));
 
 vi.mock('@server/lib/redis/lifespanLimiter', () => ({
-  getLifespanLimiter: vi.fn(() => ({
-    acquireRetreatLock: vi.fn(),
-    releaseRetreatLock: vi.fn(),
-    checkAndConsumeLifespan: vi.fn(),
-    rollbackLifespan: vi.fn(),
-    getConsumedLifespan: vi.fn(),
-    getRemainingLifespan: vi.fn(),
-    isRetreatLocked: vi.fn(),
-  })),
+  getLifespanLimiter: vi.fn(),
 }));
 
 vi.mock('@server/lib/repositories/creationProductRepository', () => ({
@@ -97,6 +87,7 @@ vi.mock('@server/lib/services/MarketService', () => ({
 
 vi.mock('@server/lib/services/TaskService', () => ({
   TaskService: {
+    getMajorBreakthroughGate: vi.fn(),
     syncCultivatorTasks: vi.fn(),
   },
 }));
@@ -127,10 +118,6 @@ vi.mock('@server/utils/aiClient', () => ({
   stream_text: vi.fn(),
 }));
 
-vi.mock('@server/utils/storyService', () => ({
-  createBreakthroughStory: vi.fn(),
-}));
-
 vi.mock('@shared/config/redeemRewardPresets', () => ({
   getRedeemPresetById: vi.fn(),
 }));
@@ -158,14 +145,44 @@ vi.mock('@shared/engine/yield/YieldCalculator', () => ({
 }));
 
 import { getExecutor } from '@server/lib/drizzle/db';
+import { consumeLifespanAndHandleDepletion } from '@server/lib/lifespan/handleLifespan';
+import { renderPrompt } from '@server/lib/prompts';
+import { getLifespanLimiter } from '@server/lib/redis/lifespanLimiter';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
-import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
+import { TaskService } from '@server/lib/services/TaskService';
+import {
+  addBreakthroughHistoryEntry,
+  addRetreatRecord,
+  getCultivatorById,
+  updateCultivator,
+} from '@server/lib/services/cultivatorService';
+import { stream_text } from '@server/utils/aiClient';
+import {
+  attemptBreakthrough,
+  performCultivation,
+} from '@shared/engine/cultivation/CultivationEngine';
 import cultivatorRouter from './cultivator.router';
 
 const getExecutorMock = getExecutor as unknown as Mock;
-const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
+const consumeLifespanAndHandleDepletionMock =
+  consumeLifespanAndHandleDepletion as unknown as Mock;
+const renderPromptMock = renderPrompt as unknown as Mock;
+const getLifespanLimiterMock = getLifespanLimiter as unknown as Mock;
 const buildRecoveryResultMock =
   InnRecoveryService.buildRecoveryResult as unknown as Mock;
+const consumeBreakthroughSupportStatusesMock =
+  PillOperationExecutor.consumeBreakthroughSupportStatuses as unknown as Mock;
+const getMajorBreakthroughGateMock =
+  TaskService.getMajorBreakthroughGate as unknown as Mock;
+const addBreakthroughHistoryEntryMock =
+  addBreakthroughHistoryEntry as unknown as Mock;
+const addRetreatRecordMock = addRetreatRecord as unknown as Mock;
+const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
+const updateCultivatorMock = updateCultivator as unknown as Mock;
+const streamTextMock = stream_text as unknown as Mock;
+const attemptBreakthroughMock = attemptBreakthrough as unknown as Mock;
+const performCultivationMock = performCultivation as unknown as Mock;
 
 function createApp() {
   return new Hono().route('/api/cultivator', cultivatorRouter);
@@ -234,7 +251,7 @@ function createCultivator(): Cultivator {
       },
       counters: {
         longTermPillUsesByRealm: {},
-      cultivationPillUsesByRealm: {},
+        cultivationPillUsesByRealm: {},
       },
       statuses: [],
       timestamps: {
@@ -251,12 +268,360 @@ function mockTransactionReturning(rows: unknown[]) {
   const update = vi.fn(() => ({ set }));
 
   getExecutorMock.mockReturnValue({
-    transaction: async (callback: (tx: { update: typeof update }) => Promise<unknown>) =>
-      callback({ update }),
+    transaction: async (
+      callback: (tx: { update: typeof update }) => Promise<unknown>,
+    ) => callback({ update }),
   } as any);
 
   return { update, set, where, returning };
 }
+
+function createLimiterMocks() {
+  return {
+    acquireRetreatLock: vi.fn().mockResolvedValue(true),
+    releaseRetreatLock: vi.fn().mockResolvedValue(undefined),
+    checkAndConsumeLifespan: vi.fn().mockResolvedValue({
+      allowed: true,
+      remaining: 188,
+      consumed: 12,
+    }),
+    rollbackLifespan: vi.fn().mockResolvedValue(undefined),
+    getConsumedLifespan: vi.fn(),
+    getRemainingLifespan: vi.fn(),
+    isRetreatLocked: vi.fn(),
+  };
+}
+
+function createTextStream(...chunks: string[]) {
+  return {
+    textStream: (async function* () {
+      for (const chunk of chunks) {
+        yield chunk;
+      }
+    })(),
+  };
+}
+
+function parseSseEvents(raw: string): RetreatStreamEvent[] {
+  return raw
+    .split('\n\n')
+    .map((block) =>
+      block
+        .split('\n')
+        .filter((line) => line.startsWith('data: '))
+        .map((line) => line.slice(6))
+        .join('\n')
+        .trim(),
+    )
+    .filter(Boolean)
+    .map((payload) => JSON.parse(payload) as RetreatStreamEvent);
+}
+
+describe('cultivator retreat route', () => {
+  let limiterMocks: ReturnType<typeof createLimiterMocks>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    limiterMocks = createLimiterMocks();
+    getLifespanLimiterMock.mockReturnValue(limiterMocks);
+
+    const cultivator = createCultivator();
+
+    getCultivatorByIdMock.mockResolvedValue(cultivator);
+    updateCultivatorMock.mockResolvedValue(cultivator);
+    addRetreatRecordMock.mockResolvedValue(undefined);
+    addBreakthroughHistoryEntryMock.mockResolvedValue(undefined);
+    consumeLifespanAndHandleDepletionMock.mockResolvedValue({
+      depleted: false,
+    });
+    getMajorBreakthroughGateMock.mockResolvedValue({
+      required: false,
+      blocked: false,
+      task: null,
+    });
+    consumeBreakthroughSupportStatusesMock.mockImplementation(
+      (condition: Cultivator['condition']) => condition,
+    );
+    renderPromptMock.mockReturnValue({
+      system: 'system prompt',
+      user: 'user prompt',
+    });
+    streamTextMock.mockReturnValue(
+      createTextStream('灵潮翻卷，', '石门洞开。'),
+    );
+  });
+
+  it('streams a plain cultivate result without story chunks', async () => {
+    const cultivator = createCultivator();
+    performCultivationMock.mockReturnValue({
+      cultivator: {
+        ...cultivator,
+        age: 42,
+        closed_door_years_total: 12,
+      },
+      summary: {
+        exp_gained: 24,
+        exp_before: 880,
+        exp_after: 904,
+        insight_gained: 2,
+        epiphany_triggered: false,
+        bottleneck_entered: false,
+        can_breakthrough: true,
+        progress: 90.4,
+      },
+      record: { id: 'retreat-record-1' },
+    });
+
+    const response = await createApp().request('/api/cultivator/retreat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'cultivate',
+        years: 12,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/event-stream');
+
+    const events = parseSseEvents(await response.text());
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({
+      type: 'result',
+      data: expect.objectContaining({
+        action: 'cultivate',
+      }),
+    });
+    expect(streamTextMock).not.toHaveBeenCalled();
+    expect(addRetreatRecordMock).toHaveBeenCalled();
+  });
+
+  it('streams lifespan depletion story after cultivate settlement', async () => {
+    const cultivator = createCultivator();
+    performCultivationMock.mockReturnValue({
+      cultivator: {
+        ...cultivator,
+        age: 180,
+        closed_door_years_total: 150,
+      },
+      summary: {
+        exp_gained: 12,
+        exp_before: 880,
+        exp_after: 892,
+        insight_gained: 0,
+        epiphany_triggered: false,
+        bottleneck_entered: false,
+        can_breakthrough: true,
+        progress: 89.2,
+      },
+      record: { id: 'retreat-record-2' },
+    });
+    consumeLifespanAndHandleDepletionMock.mockResolvedValue({
+      depleted: true,
+      storyPayload: {
+        cultivator: {
+          ...cultivator,
+          age: 180,
+          status: 'dead',
+        },
+        summary: {
+          success: false,
+          isMajor: false,
+          yearsSpent: 150,
+          chance: 0,
+          roll: 0,
+          fromRealm: '筑基',
+          fromStage: '初期',
+          lifespanGained: 0,
+          attributeGrowth: {},
+          lifespanDepleted: true,
+          modifiers: {} as any,
+        },
+      },
+    });
+    streamTextMock.mockReturnValue(
+      createTextStream('炉火将熄，', '余念仍指向大道。'),
+    );
+
+    const response = await createApp().request('/api/cultivator/retreat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'cultivate',
+        years: 150,
+      }),
+    });
+
+    const events = parseSseEvents(await response.text());
+    expect(events[0]).toEqual({
+      type: 'result',
+      data: expect.objectContaining({
+        action: 'cultivate',
+        storyType: 'lifespan',
+        depleted: true,
+      }),
+    });
+    expect(events.slice(1)).toEqual([
+      { type: 'chunk', text: '炉火将熄，' },
+      { type: 'chunk', text: '余念仍指向大道。' },
+    ]);
+    expect(streamTextMock).toHaveBeenCalled();
+    expect(addBreakthroughHistoryEntryMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      expect.objectContaining({
+        from_realm: '筑基',
+        from_stage: '初期',
+        to_realm: '筑基',
+        to_stage: '初期',
+        years_spent: 150,
+        story: '炉火将熄，余念仍指向大道。',
+      }),
+    );
+  });
+
+  it('streams breakthrough story and persists the final history entry', async () => {
+    const cultivator = createCultivator();
+    attemptBreakthroughMock.mockReturnValue({
+      cultivator: {
+        ...cultivator,
+        realm_stage: '中期',
+      },
+      summary: {
+        success: true,
+        chance: 0.82,
+        roll: 0.31,
+        fromRealm: '筑基',
+        fromStage: '初期',
+        toRealm: '筑基',
+        toStage: '中期',
+        lifespanGained: 20,
+        attributeGrowth: { vitality: 2, spirit: 1 },
+        exp_progress: 0,
+        insight_value: 44,
+        breakthrough_type: 'normal',
+        insight_change: 0,
+        inner_demon_triggered: false,
+        modifiers: {
+          baseChance: 0.52,
+          realmDifficulty: 1,
+          progressMultiplier: 1,
+          insightMultiplier: 1,
+          wisdomMultiplier: 1,
+          demonPenalty: 1,
+          fateBonus: 0.02,
+          pillBonus: 0.04,
+          toxicityPenalty: 0,
+          finalChance: 0.82,
+        },
+      },
+      historyEntry: {
+        from_realm: '筑基',
+        from_stage: '初期',
+        to_realm: '筑基',
+        to_stage: '中期',
+        age: 31,
+        years_spent: 1,
+      },
+    });
+    streamTextMock.mockReturnValue(
+      createTextStream('天光一线，', '丹田轰鸣。'),
+    );
+
+    const response = await createApp().request('/api/cultivator/retreat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'breakthrough',
+      }),
+    });
+
+    const events = parseSseEvents(await response.text());
+    expect(events[0]).toEqual({
+      type: 'result',
+      data: expect.objectContaining({
+        action: 'breakthrough',
+        storyType: 'breakthrough',
+      }),
+    });
+    expect(events.slice(1)).toEqual([
+      { type: 'chunk', text: '天光一线，' },
+      { type: 'chunk', text: '丹田轰鸣。' },
+    ]);
+    expect(addBreakthroughHistoryEntryMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      expect.objectContaining({
+        story: '天光一线，丹田轰鸣。',
+      }),
+    );
+  });
+
+  it('keeps blocked major breakthroughs on JSON errors', async () => {
+    getMajorBreakthroughGateMock.mockResolvedValue({
+      required: true,
+      blocked: true,
+      task: {
+        id: 'task-major',
+      },
+    });
+
+    const response = await createApp().request('/api/cultivator/retreat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'breakthrough',
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: '大境界突破仍需先完成破境任务',
+      errorCode: 'MAJOR_BREAKTHROUGH_TASK_REQUIRED',
+      data: {
+        task: {
+          id: 'task-major',
+        },
+      },
+    });
+  });
+
+  it('keeps lock conflicts on JSON errors', async () => {
+    limiterMocks.acquireRetreatLock.mockResolvedValue(false);
+
+    const response = await createApp().request('/api/cultivator/retreat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'cultivate',
+        years: 12,
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: '角色正在闭关中，请稍后再试',
+    });
+  });
+
+  it('keeps invalid years on JSON errors', async () => {
+    const response = await createApp().request('/api/cultivator/retreat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'cultivate',
+        years: 0,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: '闭关年限需在 1~200 年之间',
+    });
+  });
+});
 
 describe('cultivator inn recovery route', () => {
   beforeEach(() => {
@@ -311,7 +676,10 @@ describe('cultivator inn recovery route', () => {
         clearedStatusCount: 2,
       },
     });
-    expect(getCultivatorByIdMock).toHaveBeenCalledWith('user-1', 'cultivator-1');
+    expect(getCultivatorByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+    );
     expect(buildRecoveryResultMock).toHaveBeenCalledWith(cultivator);
   });
 

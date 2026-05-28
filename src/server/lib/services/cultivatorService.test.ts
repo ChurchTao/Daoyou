@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { composeProductFromAffixIds } from '@shared/engine/creation-v2/composeProductFromAffixIds';
 import { serializeProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   findActiveCultivatorRecordByIdMock,
@@ -57,7 +57,13 @@ vi.mock('./FateEngine', () => ({
   },
 }));
 
-import { getCultivatorByIdUnsafe } from './cultivatorService';
+import { getExecutor } from '@server/lib/drizzle/db';
+import {
+  getCultivatorByIdUnsafe,
+  getLastDeadCultivatorSummary,
+} from './cultivatorService';
+
+const getExecutorMock = vi.mocked(getExecutor);
 
 function createCondition() {
   return {
@@ -88,6 +94,35 @@ function createCondition() {
       lastRecoveryAt: '2026-05-21T00:00:00.000Z',
     },
   };
+}
+
+function createSelectChain(rows: unknown[]) {
+  const limit = vi.fn().mockResolvedValue(rows);
+  const orderBy = vi.fn(() => ({ limit }));
+  const where = vi.fn(() => ({ orderBy }));
+  const from = vi.fn(() => ({ where }));
+  const select = vi.fn(() => ({ from }));
+
+  return {
+    executor: { select },
+    orderBy,
+  };
+}
+
+function getOrderDirection(orderByArg: unknown): string | undefined {
+  const queryChunks = (orderByArg as { queryChunks?: unknown[] })?.queryChunks;
+  const lastChunk = queryChunks?.[queryChunks.length - 1] as
+    | { value?: string[] }
+    | undefined;
+
+  return lastChunk?.value?.[0];
+}
+
+function getOrderedColumnName(orderByArg: unknown): string | undefined {
+  const queryChunks = (orderByArg as { queryChunks?: unknown[] })?.queryChunks;
+  const column = queryChunks?.[1] as { name?: string } | undefined;
+
+  return column?.name;
 }
 
 describe('getCultivatorByIdUnsafe', () => {
@@ -302,5 +337,53 @@ describe('getCultivatorByIdUnsafe', () => {
       cost: 80,
       cooldown: 2,
     });
+  });
+});
+
+describe('getLastDeadCultivatorSummary', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('loads the latest dead cultivator and its latest terminal story in descending order', async () => {
+    const deadCultivatorQuery = createSelectChain([
+      {
+        id: 'cultivator-latest',
+        name: '韩立',
+        realm: '筑基',
+        realm_stage: '后期',
+      },
+    ]);
+    const historyQuery = createSelectChain([
+      {
+        story: '炉火将熄，余念仍指向大道。',
+      },
+    ]);
+
+    getExecutorMock
+      .mockReturnValueOnce(deadCultivatorQuery.executor as any)
+      .mockReturnValueOnce(historyQuery.executor as any);
+
+    const summary = await getLastDeadCultivatorSummary('user-1');
+
+    expect(summary).toEqual({
+      id: 'cultivator-latest',
+      name: '韩立',
+      realm: '筑基',
+      realm_stage: '后期',
+      story: '炉火将熄，余念仍指向大道。',
+    });
+    expect(
+      getOrderedColumnName(deadCultivatorQuery.orderBy.mock.calls[0]?.[0]),
+    ).toBe('updated_at');
+    expect(
+      getOrderDirection(deadCultivatorQuery.orderBy.mock.calls[0]?.[0]),
+    ).toBe(' desc');
+    expect(getOrderedColumnName(historyQuery.orderBy.mock.calls[0]?.[0])).toBe(
+      'created_at',
+    );
+    expect(getOrderDirection(historyQuery.orderBy.mock.calls[0]?.[0])).toBe(
+      ' desc',
+    );
   });
 });

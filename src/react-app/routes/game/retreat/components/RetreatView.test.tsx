@@ -34,8 +34,8 @@ vi.mock('./BreakthroughConfirmModal', () => ({
   BreakthroughConfirmModal: () => <div data-testid="breakthrough-confirm" />,
 }));
 
-vi.mock('./RetreatResultSection', () => ({
-  RetreatResultSection: () => <div data-testid="retreat-result" />,
+vi.mock('./RetreatResultModal', () => ({
+  RetreatResultModal: () => <div data-testid="retreat-result-modal" />,
 }));
 
 import { useLifespanStatus } from '@app/components/feature/cultivator/LifespanStatusCard';
@@ -81,11 +81,15 @@ function createBaseViewModel() {
     handleRetreatYearsChange: vi.fn(),
     retreatLoading: false,
     retreatResult: null,
+    retreatResultOpen: false,
+    retreatResultStreaming: false,
+    celebrationTick: 0,
     showBreakthroughConfirm: false,
     handleRetreat: vi.fn(),
     handleBreakthroughClick: vi.fn(),
     handleBreakthrough: vi.fn(),
     closeBreakthroughConfirm: vi.fn(),
+    closeRetreatResult: vi.fn(),
     handleGoReincarnate: vi.fn(),
   };
 }
@@ -118,6 +122,7 @@ describe('RetreatView', () => {
     expect(html).not.toContain('冲关火候');
     expect(html).not.toContain('当前成功率推演');
     expect(html).not.toContain('78.5%');
+    expect(html).toContain('retreat-result-modal');
   });
 
   it('shows only a compact blocking summary when a major breakthrough is not ready', () => {
@@ -185,5 +190,40 @@ describe('RetreatView', () => {
     expect(html).toContain('圆满突破');
     expect(html).toContain('修为达到 100%，且道心感悟至少达到 50');
     expect(html).toContain('跨大境界突破');
+  });
+
+  it('keeps the result modal mounted when a depleted result outlives the cultivator refresh', () => {
+    mockedUseInkUI.mockReturnValue({
+      openDialog: vi.fn(),
+    } as any);
+    mockedUseRetreatViewModel.mockReturnValue({
+      ...createBaseViewModel(),
+      cultivator: null,
+      note: '前世道途已尽，待转世重修。',
+      retreatResultOpen: true,
+      retreatResult: {
+        action: 'cultivate',
+        depleted: true,
+        storyType: 'lifespan',
+        story: '炉火将熄，道心未灭。',
+        summary: {
+          exp_gained: 12,
+          progress: 68,
+          insight_gained: 0,
+          epiphany_triggered: false,
+          bottleneck_entered: false,
+        } as any,
+      },
+    } as any);
+    mockedUseLifespanStatus.mockReturnValue({
+      status: null,
+    } as any);
+
+    const html = renderToStaticMarkup(<RetreatView />);
+
+    expect(html).toContain('静室修行');
+    expect(html).toContain('前尘回响尚未收束');
+    expect(html).toContain('retreat-result-modal');
+    expect(html).not.toContain('尚未觉醒灵根');
   });
 });

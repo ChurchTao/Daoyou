@@ -1,0 +1,223 @@
+import { InkModal } from '@app/components/layout';
+import { InkButton, InkIdentifyCelebration } from '@app/components/ui';
+import type { RetreatResultData } from '@shared/contracts/retreat';
+import type {
+  BreakthroughResult,
+  CultivationResult,
+} from '@shared/engine/cultivation/CultivationEngine';
+import type { Attributes } from '@shared/types/cultivator';
+import { format } from 'd3-format';
+import { useMemo } from 'react';
+import { isSuccessfulBreakthrough } from '../lib/retreatStream';
+
+interface RetreatResultModalProps {
+  isOpen: boolean;
+  retreatResult: RetreatResultData | null;
+  isStreaming: boolean;
+  celebrationTick: number;
+  onClose: () => void;
+  onGoReincarnate: () => void;
+}
+
+export function RetreatResultModal({
+  isOpen,
+  retreatResult,
+  isStreaming,
+  celebrationTick,
+  onClose,
+  onGoReincarnate,
+}: RetreatResultModalProps) {
+  if (!retreatResult) {
+    return null;
+  }
+
+  const title =
+    retreatResult.action === 'breakthrough' ? '冲关回响' : '闭关回响';
+  const showStoryPanel = Boolean(
+    retreatResult.storyType || retreatResult.story || isStreaming,
+  );
+  const primaryLabel = isStreaming
+    ? '推演中……'
+    : retreatResult.depleted
+      ? '转世重修 →'
+      : '收拢心神';
+
+  return (
+    <>
+      <InkModal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={title}
+        className="max-w-2xl"
+        footer={
+          <div className="flex flex-wrap gap-3">
+            <InkButton
+              variant="primary"
+              onClick={retreatResult.depleted ? onGoReincarnate : onClose}
+              disabled={isStreaming}
+              className="w-full"
+            >
+              {primaryLabel}
+            </InkButton>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          {showStoryPanel ? (
+            <div className="border-ink/10 bg-bgpaper/70 border border-dashed p-4 text-sm leading-7 whitespace-pre-line">
+              {getStoryText(retreatResult, isStreaming)}
+            </div>
+          ) : null}
+
+          {retreatResult.action === 'cultivate' ? (
+            <CultivationResultContent retreatResult={retreatResult} />
+          ) : (
+            <BreakthroughResultContent retreatResult={retreatResult} />
+          )}
+        </div>
+      </InkModal>
+
+      {isOpen &&
+      celebrationTick > 0 &&
+      isSuccessfulBreakthrough(retreatResult) ? (
+        <InkIdentifyCelebration key={celebrationTick} variant="basic" />
+      ) : null}
+    </>
+  );
+}
+
+function CultivationResultContent({
+  retreatResult,
+}: {
+  retreatResult: RetreatResultData;
+}) {
+  const summary = retreatResult.summary as CultivationResult['summary'];
+
+  return (
+    <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7">
+      <p className="text-ink text-base font-medium">🌱 修炼有成</p>
+      <p>修为增长：+{Number(summary.exp_gained)}</p>
+      <p>当前进度：{format('.2f')(summary.progress)}%</p>
+
+      {summary.insight_gained > 0 ? (
+        <p>感悟提升：+{summary.insight_gained}</p>
+      ) : null}
+
+      {summary.epiphany_triggered ? (
+        <p className="text-gold">✨ 触发顿悟！修为翻倍！</p>
+      ) : null}
+
+      {summary.bottleneck_entered ? (
+        <p className="text-wood">
+          ⚠️ 已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式积累感悟。
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function BreakthroughResultContent({
+  retreatResult,
+}: {
+  retreatResult: RetreatResultData;
+}) {
+  const summary = retreatResult.summary as BreakthroughResult['summary'];
+  const buffBonus = Math.max(
+    0,
+    (summary.modifiers?.pillBonus ?? 0) + (summary.modifiers?.fateBonus ?? 0),
+  );
+  const displayedBaseChance = Math.max(
+    0,
+    Math.min(1, summary.chance - buffBonus),
+  );
+
+  const attributeGrowthText = useMemo(() => {
+    if (!summary.attributeGrowth) return '';
+
+    const mapping: Array<{ key: keyof Attributes; label: string }> = [
+      { key: 'vitality', label: '体魄' },
+      { key: 'spirit', label: '灵力' },
+      { key: 'speed', label: '身法' },
+      { key: 'willpower', label: '神识' },
+    ];
+
+    return mapping
+      .map(({ key, label }) => {
+        const gain = summary.attributeGrowth[key];
+        return gain ? `${label}+${gain}` : null;
+      })
+      .filter(Boolean)
+      .join('，');
+  }, [summary.attributeGrowth]);
+
+  return (
+    <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7">
+      <p className="text-ink text-base font-medium">
+        {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
+      </p>
+
+      <p>成功率 {format('.1%')(Math.min(summary.chance, 1))}</p>
+      {buffBonus > 0 ? (
+        <p className="text-emerald-700">
+          机缘加成：+{format('.1%')(buffBonus)}（
+          {format('.1%')(displayedBaseChance)} →{' '}
+          {format('.1%')(Math.min(summary.chance, 1))}）
+        </p>
+      ) : null}
+
+      {attributeGrowthText ? <p>属性收获：{attributeGrowthText}</p> : null}
+
+      {summary.lifespanGained > 0 ? (
+        <p>寿元增加：+{summary.lifespanGained} 年</p>
+      ) : null}
+
+      {!summary.success ? (
+        <div className="border-wood/35 bg-bgpaper mt-1 space-y-2 border border-dashed p-3">
+          <p className="text-wood font-medium">【道途坎坷，受创不轻】</p>
+
+          {summary.exp_lost ? (
+            <p className="text-wood">
+              修为损失：-{summary.exp_lost} 点
+              <span className="ml-1 text-xs opacity-80">
+                （冲关失败，法力涣散）
+              </span>
+            </p>
+          ) : null}
+
+          {summary.insight_change && summary.insight_change < 0 ? (
+            <p className="text-wood">
+              道行感悟：{summary.insight_change}
+              <span className="ml-1 text-xs opacity-80">
+                （未能破关，心生迷惘）
+              </span>
+            </p>
+          ) : null}
+
+          {summary.inner_demon_triggered ? (
+            <p className="text-crimson font-medium">
+              ⚠️ 屡战屡败，已生心魔！下次突破成功率将降低
+              <span className="ml-1 text-xs opacity-80">
+                （可通过副本、战斗等历练消除）
+              </span>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function getStoryText(
+  retreatResult: RetreatResultData,
+  isStreaming: boolean,
+): string {
+  if (retreatResult.story) {
+    return retreatResult.story;
+  }
+
+  if (isStreaming) {
+    return '天机推演中……';
+  }
+
+  return '天机推演中断，此番结果已然落定。';
+}

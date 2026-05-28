@@ -9,7 +9,7 @@ import { InkBadge, InkButton, InkInput, InkNotice } from '@app/components/ui';
 
 import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
-import { RetreatResultSection } from './RetreatResultSection';
+import { RetreatResultModal } from './RetreatResultModal';
 
 function BreakthroughLabel({
   type,
@@ -188,11 +188,15 @@ export function RetreatView() {
     handleRetreatYearsChange,
     retreatLoading,
     retreatResult,
+    retreatResultOpen,
+    retreatResultStreaming,
+    celebrationTick,
     showBreakthroughConfirm,
     handleRetreat,
     handleBreakthroughClick,
     handleBreakthrough,
     closeBreakthroughConfirm,
+    closeRetreatResult,
     handleGoReincarnate,
   } = useRetreatViewModel();
   const { status: lifespanStatus } = useLifespanStatus({
@@ -200,8 +204,10 @@ export function RetreatView() {
     autoRefresh: true,
     refreshInterval: 60_000,
   });
+  const shouldHoldResultShell =
+    !cultivator && retreatResultOpen && Boolean(retreatResult?.depleted);
 
-  if (isLoading && !cultivator) {
+  if (isLoading && !cultivator && !shouldHoldResultShell) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="loading-tip">洞府封闭中，稍候片刻……</p>
@@ -210,6 +216,36 @@ export function RetreatView() {
   }
 
   if (!cultivator) {
+    if (shouldHoldResultShell) {
+      return (
+        <GameSceneFrame
+          title="静室修行"
+          headerMeta={
+            note ? (
+              <GameSceneNote>
+                <p className="text-sm leading-7">{note}</p>
+              </GameSceneNote>
+            ) : undefined
+          }
+        >
+          <GameSceneSection>
+            <div className="border-ink/10 bg-bgpaper/70 border border-dashed px-4 py-4 text-sm leading-7">
+              前尘回响尚未收束，听完这一段，再踏入轮回。
+            </div>
+          </GameSceneSection>
+
+          <RetreatResultModal
+            isOpen={retreatResultOpen}
+            retreatResult={retreatResult}
+            isStreaming={retreatResultStreaming}
+            celebrationTick={celebrationTick}
+            onClose={closeRetreatResult}
+            onGoReincarnate={handleGoReincarnate}
+          />
+        </GameSceneFrame>
+      );
+    }
+
     return (
       <div className="flex h-full items-center justify-center px-4">
         <InkNotice>
@@ -395,12 +431,14 @@ export function RetreatView() {
         isMajorBreakthrough={isMajorBreakthrough}
       />
 
-      {retreatResult ? (
-        <RetreatResultSection
-          retreatResult={retreatResult}
-          onGoReincarnate={handleGoReincarnate}
-        />
-      ) : null}
+      <RetreatResultModal
+        isOpen={retreatResultOpen}
+        retreatResult={retreatResult}
+        isStreaming={retreatResultStreaming}
+        celebrationTick={celebrationTick}
+        onClose={closeRetreatResult}
+        onGoReincarnate={handleGoReincarnate}
+      />
     </GameSceneFrame>
   );
 }

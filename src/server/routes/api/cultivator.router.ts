@@ -28,17 +28,17 @@ import { getLifespanLimiter } from '@server/lib/redis/lifespanLimiter';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
+import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import {
   MailService,
   type MailAttachment,
 } from '@server/lib/services/MailService';
-import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import {
   identifyMysteryMaterial,
   MarketServiceError,
 } from '@server/lib/services/MarketService';
+import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import { TaskService } from '@server/lib/services/TaskService';
-import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
@@ -55,8 +55,17 @@ import {
   updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import { stream_text } from '@server/utils/aiClient';
-import { createBreakthroughStory } from '@server/utils/storyService';
+import {
+  getBreakthroughStoryPrompt,
+  getLifespanExhaustedStoryPrompt,
+  type BreakthroughStoryPayload,
+  type LifespanExhaustedStoryPayload,
+} from '@server/utils/prompts';
 import { getRedeemPresetById } from '@shared/config/redeemRewardPresets';
+import type {
+  RetreatResultData,
+  RetreatStreamEvent,
+} from '@shared/contracts/retreat';
 import {
   attemptBreakthrough,
   performCultivation,
@@ -75,7 +84,12 @@ import {
   type Quality,
   type RealmType,
 } from '@shared/types/constants';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
+import type {
+  Artifact,
+  BreakthroughHistoryEntry,
+  Consumable,
+  Material,
+} from '@shared/types/cultivator';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -199,6 +213,106 @@ function buildMajorBreakthroughRumor(
     `${cultivatorName}破开桎梏，境界再上一重楼，正式踏入「${target}」！`,
   ];
   return templates[Math.floor(Math.random() * templates.length)];
+}
+
+function buildLifespanHistoryEntry(
+  payload: LifespanExhaustedStoryPayload,
+  story: string,
+): BreakthroughHistoryEntry {
+  return {
+    from_realm: payload.summary.fromRealm,
+    from_stage: payload.summary.fromStage,
+    to_realm: payload.summary.fromRealm,
+    to_stage: payload.summary.fromStage,
+    age: payload.cultivator.age,
+    years_spent: payload.summary.yearsSpent,
+    story: story || undefined,
+  };
+}
+
+type RetreatStorySource =
+  | {
+      type: 'breakthrough';
+      payload: BreakthroughStoryPayload;
+    }
+  | {
+      type: 'lifespan';
+      payload: LifespanExhaustedStoryPayload;
+    }
+  | null;
+
+function encodeSseEvent(
+  encoder: TextEncoder,
+  event: RetreatStreamEvent,
+): Uint8Array {
+  return encoder.encode(`data: ${JSON.stringify(event)}\n\n`);
+}
+
+function createRetreatStreamResponse(args: {
+  result: RetreatResultData;
+  storySource: RetreatStorySource;
+  onStoryComplete?: (story: string) => Promise<void> | void;
+}): Response {
+  const encoder = new TextEncoder();
+
+  const customStream = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(
+        encodeSseEvent(encoder, {
+          type: 'result',
+          data: args.result,
+        }),
+      );
+
+      if (!args.storySource) {
+        controller.close();
+        return;
+      }
+
+      let accumulatedStory = '';
+
+      try {
+        const prompt =
+          args.storySource.type === 'breakthrough'
+            ? getBreakthroughStoryPrompt(args.storySource.payload)
+            : getLifespanExhaustedStoryPrompt(args.storySource.payload);
+        const aiStreamResult = stream_text(prompt[0], prompt[1], true);
+
+        for await (const chunk of aiStreamResult.textStream) {
+          accumulatedStory += chunk;
+          controller.enqueue(
+            encodeSseEvent(encoder, {
+              type: 'chunk',
+              text: chunk,
+            }),
+          );
+        }
+      } catch (error) {
+        console.error('Retreat story stream error:', error);
+        controller.enqueue(
+          encodeSseEvent(encoder, {
+            type: 'error',
+            error: '天机推演中断，此番结果已然落定。',
+          }),
+        );
+      } finally {
+        try {
+          await args.onStoryComplete?.(accumulatedStory);
+        } catch (persistError) {
+          console.error('Retreat story persist error:', persistError);
+        }
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(customStream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
 }
 
 const router = new Hono<AppEnv>();
@@ -606,42 +720,50 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
         throw new Error('更新角色数据失败');
       }
 
+      let streamResult: RetreatResultData = {
+        summary: result.summary,
+        action: 'cultivate',
+      };
+      let storySource: RetreatStorySource = null;
+
       try {
         const lifespanResult = await consumeLifespanAndHandleDepletion(
           cultivatorId,
           years,
         );
-        if (lifespanResult.depleted && lifespanResult.story) {
-          return c.json({
-            success: true,
-            data: {
-              cultivator: lifespanResult.updatedCultivator ?? saved,
-              summary: result.summary,
-              action: 'cultivate',
-              story: lifespanResult.story,
-              storyType: 'lifespan',
-              depleted: lifespanResult.depleted,
-              lifespanInfo: {
-                remaining: lifespanCheck.remaining,
-                consumed: lifespanCheck.consumed,
-              },
-            },
-          });
+        if (lifespanResult.depleted) {
+          streamResult = {
+            ...streamResult,
+            storyType: lifespanResult.storyPayload ? 'lifespan' : null,
+            depleted: true,
+          };
+          storySource = lifespanResult.storyPayload
+            ? {
+                type: 'lifespan',
+                payload: lifespanResult.storyPayload,
+              }
+            : null;
         }
       } catch (error) {
         console.warn('处理寿元耗尽失败：', error);
       }
 
-      return c.json({
-        success: true,
-        data: {
-          cultivator: saved,
-          summary: result.summary,
-          action: 'cultivate',
-          lifespanInfo: {
-            remaining: lifespanCheck.remaining,
-            consumed: lifespanCheck.consumed,
-          },
+      const lifespanStoryPayload =
+        storySource?.type === 'lifespan' ? storySource.payload : null;
+
+      return createRetreatStreamResponse({
+        result: streamResult,
+        storySource,
+        onStoryComplete: async (story) => {
+          if (!lifespanStoryPayload) {
+            return;
+          }
+
+          await addBreakthroughHistoryEntry(
+            user.id,
+            cultivatorId,
+            buildLifespanHistoryEntry(lifespanStoryPayload, story),
+          );
         },
       });
     }
@@ -662,41 +784,36 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
     }
 
     const result = attemptBreakthrough(cultivator);
-    result.cultivator.condition = PillOperationExecutor.consumeBreakthroughSupportStatuses(
-      result.cultivator.condition,
-      result.cultivator,
-    );
-    let story: string | undefined;
-    let storyType: 'breakthrough' | 'lifespan' | null = null;
+    result.cultivator.condition =
+      PillOperationExecutor.consumeBreakthroughSupportStatuses(
+        result.cultivator.condition,
+        result.cultivator,
+      );
+    const storySource: RetreatStorySource = result.summary.success
+      ? {
+          type: 'breakthrough',
+          payload: {
+            cultivator: result.cultivator,
+            summary: {
+              success: result.summary.success,
+              isMajor: result.summary.toRealm !== result.summary.fromRealm,
+              yearsSpent: 1,
+              chance: result.summary.chance,
+              roll: result.summary.roll,
+              fromRealm: result.summary.fromRealm,
+              fromStage: result.summary.fromStage,
+              toRealm: result.summary.toRealm,
+              toStage: result.summary.toStage,
+              lifespanGained: result.summary.lifespanGained,
+              attributeGrowth: result.summary.attributeGrowth,
+              lifespanDepleted: false,
+              modifiers: result.summary.modifiers,
+            },
+          },
+        }
+      : null;
 
     if (result.summary.success) {
-      try {
-        story = await createBreakthroughStory({
-          cultivator: result.cultivator,
-          summary: {
-            success: result.summary.success,
-            isMajor: result.summary.toRealm !== result.summary.fromRealm,
-            yearsSpent: 1,
-            chance: result.summary.chance,
-            roll: result.summary.roll,
-            fromRealm: result.summary.fromRealm,
-            fromStage: result.summary.fromStage,
-            toRealm: result.summary.toRealm,
-            toStage: result.summary.toStage,
-            lifespanGained: result.summary.lifespanGained,
-            attributeGrowth: result.summary.attributeGrowth,
-            lifespanDepleted: false,
-            modifiers: result.summary.modifiers,
-          },
-        });
-        storyType = 'breakthrough';
-        if (result.historyEntry && story) {
-          result.historyEntry.story = story;
-        }
-      } catch (storyError) {
-        console.warn('生成突破故事失败：', storyError);
-      }
-
       const isMajorBreakthrough =
         result.summary.toRealm &&
         result.summary.toRealm !== result.summary.fromRealm;
@@ -723,14 +840,6 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       }
     }
 
-    if (result.summary.success && result.historyEntry) {
-      await addBreakthroughHistoryEntry(
-        user.id,
-        cultivatorId,
-        result.historyEntry,
-      );
-    }
-
     const saved = await updateCultivator(cultivatorId, {
       realm: result.cultivator.realm,
       realm_stage: result.cultivator.realm_stage,
@@ -741,14 +850,31 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       condition: result.cultivator.condition,
     });
 
-    return c.json({
-      success: true,
-      data: {
-        cultivator: saved,
+    if (!saved) {
+      throw new Error('更新角色数据失败');
+    }
+
+    return createRetreatStreamResponse({
+      result: {
         summary: result.summary,
-        story,
-        storyType,
+        storyType: storySource ? 'breakthrough' : null,
         action: 'breakthrough',
+      },
+      storySource,
+      onStoryComplete: async (story) => {
+        if (!result.summary.success || !result.historyEntry) {
+          return;
+        }
+
+        if (story) {
+          result.historyEntry.story = story;
+        }
+
+        await addBreakthroughHistoryEntry(
+          user.id,
+          cultivatorId,
+          result.historyEntry,
+        );
       },
     });
   } catch (err) {

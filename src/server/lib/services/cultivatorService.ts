@@ -1,13 +1,3 @@
-import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
-import {
-  rehydrateStoredProductModel,
-  serializeProductModel,
-} from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
-import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
-import {
-  ensureStarterSkill,
-  ensureStarterTechnique,
-} from '@shared/engine/cultivator/creation/starterProducts';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import {
   existsCultivatorById,
@@ -22,6 +12,22 @@ import {
   type CultivatorRecord,
   type CultivatorRelations,
 } from '@server/lib/repositories/cultivatorRepository';
+import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
+import {
+  calculateSingleArtifactScore,
+  calculateSingleElixirScore,
+} from '@server/utils/rankingUtils';
+import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
+import { projectAbilityConfig } from '@shared/engine/creation-v2/models/AbilityProjection';
+import {
+  rehydrateStoredProductModel,
+  serializeProductModel,
+} from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import {
+  ensureStarterSkill,
+  ensureStarterTechnique,
+} from '@shared/engine/cultivator/creation/starterProducts';
+import type { CultivatorCondition } from '@shared/types/condition';
 import {
   ElementType,
   EquipmentSlot,
@@ -45,15 +51,6 @@ import type {
   PreHeavenFate,
   RetreatRecord,
 } from '@shared/types/cultivator';
-import type { CultivatorCondition } from '@shared/types/condition';
-import { serializeConsumableSpec, mapConsumableRow } from './consumablePersistence';
-import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
-import {
-  calculateSingleArtifactScore,
-  calculateSingleElixirScore,
-} from '@server/utils/rankingUtils';
-import { ConditionService } from './ConditionService';
-import { FateEngine } from './FateEngine';
 import { and, desc, eq, inArray, notInArray, sql, type SQL } from 'drizzle-orm';
 import {
   getExecutor,
@@ -61,7 +58,13 @@ import {
   type DbTransaction,
 } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
+import { ConditionService } from './ConditionService';
+import {
+  mapConsumableRow,
+  serializeConsumableSpec,
+} from './consumablePersistence';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
+import { FateEngine } from './FateEngine';
 
 async function assembleCultivatorFromRelations(
   cultivatorRecord: CultivatorRecord,
@@ -526,7 +529,10 @@ export async function createCultivator(
         speed: cultivator.attributes.speed,
         willpower: cultivator.attributes.willpower,
         max_skills: cultivator.max_skills,
-        condition: ConditionService.normalizeCondition(cultivator, cultivator.condition),
+        condition: ConditionService.normalizeCondition(
+          cultivator,
+          cultivator.condition,
+        ),
       })
       .returning();
 
@@ -829,7 +835,7 @@ export async function getLastDeadCultivatorSummary(userId: string): Promise<{
         eq(schema.cultivators.status, 'dead'),
       ),
     )
-    .orderBy(schema.cultivators.updatedAt)
+    .orderBy(desc(schema.cultivators.updatedAt))
     .limit(1);
 
   if (rows.length === 0) return null;
@@ -839,7 +845,7 @@ export async function getLastDeadCultivatorSummary(userId: string): Promise<{
     .select()
     .from(schema.breakthroughHistory)
     .where(eq(schema.breakthroughHistory.cultivatorId, record.id))
-    .orderBy(schema.breakthroughHistory.createdAt)
+    .orderBy(desc(schema.breakthroughHistory.createdAt))
     .limit(1);
 
   const storyEntry = history[0];
@@ -1725,7 +1731,9 @@ export async function addConsumableToInventory(
     );
   const existing = candidates.find((row) => {
     const existingConsumable = mapConsumableRow(row);
-    return serializeConsumableSpec(existingConsumable.spec) === incomingSpecSignature;
+    return (
+      serializeConsumableSpec(existingConsumable.spec) === incomingSpecSignature
+    );
   });
 
   if (existing?.id) {

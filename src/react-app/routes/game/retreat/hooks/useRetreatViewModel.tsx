@@ -2,25 +2,22 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
-import type {
-  BreakthroughResult,
-  CultivationResult,
-} from '@shared/engine/cultivation/CultivationEngine';
-import type { TaskInstance } from '@shared/types/task';
 import {
   calculateBreakthroughChance,
   getNextStage,
 } from '@server/utils/breakthroughCalculator';
+import type {
+  RetreatAction,
+  RetreatResultData,
+} from '@shared/contracts/retreat';
+import type { TaskInstance } from '@shared/types/task';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-
-export interface RetreatResultData {
-  summary: BreakthroughResult['summary'] | CultivationResult['summary'];
-  story?: string;
-  storyType?: 'breakthrough' | 'lifespan' | null;
-  action?: 'cultivate' | 'breakthrough';
-  depleted?: boolean;
-}
+import {
+  type ReincarnateContextData,
+  consumeRetreatStream,
+  isSuccessfulBreakthrough,
+} from '../lib/retreatStream';
 
 export interface CultivationProgressData {
   cultivation_exp: number;
@@ -52,20 +49,31 @@ export interface UseRetreatViewModelReturn {
   taskError: string | undefined;
 
   retreatYears: string;
-  setRetreatYears: (years: string) => void;
   handleRetreatYearsChange: (value: string) => void;
 
   retreatLoading: boolean;
   retreatResult: RetreatResultData | null;
+  retreatResultOpen: boolean;
+  retreatResultStreaming: boolean;
+  celebrationTick: number;
   showBreakthroughConfirm: boolean;
 
   handleRetreat: () => Promise<void>;
   handleBreakthroughClick: () => void;
   handleBreakthrough: () => Promise<void>;
   closeBreakthroughConfirm: () => void;
+  closeRetreatResult: () => void;
   handleGoReincarnate: () => void;
-  clearRetreatResult: () => void;
 }
+
+interface RetreatFailurePayload {
+  error?: string;
+  errorCode?: string;
+}
+
+type RetreatRequestOutcome =
+  | { ok: true }
+  | { ok: false; payload: RetreatFailurePayload | null };
 
 export function useRetreatViewModel(): UseRetreatViewModelReturn {
   const { cultivator, isLoading, refresh, note } = useCultivator();
@@ -82,8 +90,13 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
   const [retreatResult, setRetreatResult] = useState<RetreatResultData | null>(
     null,
   );
+  const [retreatResultOpen, setRetreatResultOpen] = useState(false);
+  const [retreatResultStreaming, setRetreatResultStreaming] = useState(false);
+  const [celebrationTick, setCelebrationTick] = useState(0);
   const [retreatLoading, setRetreatLoading] = useState(false);
   const [showBreakthroughConfirm, setShowBreakthroughConfirm] = useState(false);
+  const [reincarnateContext, setReincarnateContext] =
+    useState<ReincarnateContextData | null>(null);
 
   const remainingLifespan = useMemo(() => {
     if (!cultivator) return 0;
@@ -128,8 +141,8 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
 
   const isMajorBreakthrough = Boolean(
     cultivator &&
-      nextBreakthrough &&
-      nextBreakthrough.realm !== cultivator.realm,
+    nextBreakthrough &&
+    nextBreakthrough.realm !== cultivator.realm,
   );
 
   const currentMajorTask = useMemo(
@@ -139,54 +152,124 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
 
   const majorBreakthroughBlocked = Boolean(
     isMajorBreakthrough &&
-      (!currentMajorTask || currentMajorTask.status !== 'completed'),
+    (!currentMajorTask || currentMajorTask.status !== 'completed'),
   );
 
-  const breakthroughPreview = useMemo((): BreakthroughChancePreviewData | null => {
-    if (
-      !cultivator ||
-      !cultivationProgress?.canBreakthrough ||
-      (isMajorBreakthrough && majorBreakthroughBlocked)
-    ) {
-      return null;
-    }
+  const breakthroughPreview =
+    useMemo((): BreakthroughChancePreviewData | null => {
+      if (
+        !cultivator ||
+        !cultivationProgress?.canBreakthrough ||
+        (isMajorBreakthrough && majorBreakthroughBlocked)
+      ) {
+        return null;
+      }
 
-    try {
-      const result = calculateBreakthroughChance(cultivator);
-      const baseChance = Math.min(
-        1,
-        Math.max(
-          0.05,
-          result.modifiers.baseChance *
-            result.modifiers.realmDifficulty *
-            result.modifiers.progressMultiplier *
-            result.modifiers.insightMultiplier *
-            result.modifiers.wisdomMultiplier *
-            result.modifiers.demonPenalty +
-            result.modifiers.toxicityPenalty,
-        ),
-      );
+      try {
+        const result = calculateBreakthroughChance(cultivator);
+        const baseChance = Math.min(
+          1,
+          Math.max(
+            0.05,
+            result.modifiers.baseChance *
+              result.modifiers.realmDifficulty *
+              result.modifiers.progressMultiplier *
+              result.modifiers.insightMultiplier *
+              result.modifiers.wisdomMultiplier *
+              result.modifiers.demonPenalty +
+              result.modifiers.toxicityPenalty,
+          ),
+        );
 
-      return {
-        baseChance,
-        finalChance: result.chance,
-        buffBonus: result.modifiers.pillBonus + result.modifiers.fateBonus,
-        recommendation: result.recommendation,
-      };
-    } catch {
-      return null;
-    }
-  }, [
-    cultivator,
-    cultivationProgress?.canBreakthrough,
-    isMajorBreakthrough,
-    majorBreakthroughBlocked,
-  ]);
+        return {
+          baseChance,
+          finalChance: result.chance,
+          buffBonus: result.modifiers.pillBonus + result.modifiers.fateBonus,
+          recommendation: result.recommendation,
+        };
+      } catch {
+        return null;
+      }
+    }, [
+      cultivator,
+      cultivationProgress?.canBreakthrough,
+      isMajorBreakthrough,
+      majorBreakthroughBlocked,
+    ]);
 
   const handleRetreatYearsChange = useCallback((value: string) => {
     const numeric = value.replace(/[^\d]/g, '');
     setRetreatYears(numeric);
   }, []);
+
+  const streamRetreatAction = useCallback(
+    async (body: {
+      action: RetreatAction;
+      years?: number;
+    }): Promise<RetreatRequestOutcome> => {
+      const cultivatorSnapshot = cultivator
+        ? {
+            name: cultivator.name,
+            realm: cultivator.realm,
+            realm_stage: cultivator.realm_stage,
+          }
+        : null;
+
+      setRetreatLoading(true);
+      setRetreatResult(null);
+      setRetreatResultOpen(false);
+      setRetreatResultStreaming(false);
+      setReincarnateContext(null);
+
+      try {
+        const response = await fetch('/api/cultivator/retreat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const payload = (await response
+            .json()
+            .catch(() => null)) as RetreatFailurePayload | null;
+          return {
+            ok: false,
+            payload,
+          };
+        }
+
+        await consumeRetreatStream(response, {
+          cultivatorSnapshot,
+          onResult: (result) => {
+            setRetreatResult(result);
+            setRetreatResultOpen(true);
+            setRetreatResultStreaming(Boolean(result.storyType));
+
+            if (isSuccessfulBreakthrough(result)) {
+              setCelebrationTick((current) => current + 1);
+            }
+          },
+          onStoryUpdate: setRetreatResult,
+          onReincarnateContext: setReincarnateContext,
+          onError: (message) => {
+            setRetreatResultStreaming(false);
+            pushToast({
+              message,
+              tone: 'warning',
+            });
+          },
+        });
+
+        await Promise.all([refresh(), reloadTasks()]);
+
+        return { ok: true };
+      } finally {
+        setRetreatResultStreaming(false);
+        setRetreatLoading(false);
+      }
+    },
+    [cultivator, pushToast, refresh, reloadTasks],
+  );
 
   const handleRetreat = useCallback(async () => {
     if (!cultivator) return;
@@ -200,34 +283,23 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       return;
     }
 
-    setRetreatLoading(true);
     try {
-      const response = await fetch('/api/cultivator/retreat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          years: parsedYears,
-          action: 'cultivate',
-        }),
+      const outcome = await streamRetreatAction({
+        action: 'cultivate',
+        years: parsedYears,
       });
 
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.error || '闭关失败');
+      if (!outcome.ok) {
+        throw new Error(outcome.payload?.error || '闭关失败');
       }
-
-      setRetreatResult(payload.data);
-      await Promise.all([refresh(), reloadTasks()]);
     } catch (error) {
       pushToast({
         message:
           error instanceof Error ? error.message : '闭关失败，请稍后再试',
         tone: 'danger',
       });
-    } finally {
-      setRetreatLoading(false);
     }
-  }, [cultivator, pushToast, refresh, reloadTasks, retreatYears]);
+  }, [cultivator, pushToast, streamRetreatAction, retreatYears]);
 
   const handleBreakthroughClick = useCallback(() => {
     if (isMajorBreakthrough && majorBreakthroughBlocked) {
@@ -251,65 +323,55 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     if (!cultivator) return;
 
     setShowBreakthroughConfirm(false);
-    setRetreatLoading(true);
 
     try {
-      const response = await fetch('/api/cultivator/retreat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'breakthrough',
-        }),
+      const outcome = await streamRetreatAction({
+        action: 'breakthrough',
       });
 
-      const payload = await response.json();
-      if (!response.ok || !payload.success) {
-        if (payload?.errorCode === 'MAJOR_BREAKTHROUGH_TASK_REQUIRED') {
+      if (!outcome.ok) {
+        if (outcome.payload?.errorCode === 'MAJOR_BREAKTHROUGH_TASK_REQUIRED') {
           await reloadTasks();
           pushToast({
             message:
-              typeof payload.error === 'string'
-                ? payload.error
+              typeof outcome.payload.error === 'string'
+                ? outcome.payload.error
                 : '大境界突破仍需先完成破境任务',
             tone: 'warning',
           });
           return;
         }
 
-        throw new Error(payload.error || '突破失败');
+        throw new Error(outcome.payload?.error || '突破失败');
       }
-
-      setRetreatResult(payload.data);
-      await Promise.all([refresh(), reloadTasks()]);
     } catch (error) {
       pushToast({
         message:
           error instanceof Error ? error.message : '突破失败，请稍后再试',
         tone: 'danger',
       });
-    } finally {
-      setRetreatLoading(false);
     }
-  }, [cultivator, pushToast, refresh, reloadTasks]);
+  }, [cultivator, pushToast, reloadTasks, streamRetreatAction]);
+
+  const closeRetreatResult = useCallback(() => {
+    if (retreatResultStreaming || retreatResult?.depleted) {
+      return;
+    }
+
+    setRetreatResultOpen(false);
+    setRetreatResult(null);
+    setReincarnateContext(null);
+  }, [retreatResult, retreatResultStreaming]);
 
   const handleGoReincarnate = useCallback(() => {
-    if (retreatResult?.story && typeof window !== 'undefined' && cultivator) {
+    if (reincarnateContext && typeof window !== 'undefined') {
       window.sessionStorage.setItem(
         'reincarnateContext',
-        JSON.stringify({
-          story: retreatResult.story,
-          name: cultivator.name,
-          realm: cultivator.realm,
-          realm_stage: cultivator.realm_stage,
-        }),
+        JSON.stringify(reincarnateContext),
       );
     }
     navigate('/game/reincarnate');
-  }, [cultivator, navigate, retreatResult]);
-
-  const clearRetreatResult = useCallback(() => {
-    setRetreatResult(null);
-  }, []);
+  }, [navigate, reincarnateContext]);
 
   return {
     cultivator,
@@ -324,16 +386,18 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     tasksLoading,
     taskError,
     retreatYears,
-    setRetreatYears,
     handleRetreatYearsChange,
     retreatLoading,
     retreatResult,
+    retreatResultOpen,
+    retreatResultStreaming,
+    celebrationTick,
     showBreakthroughConfirm,
     handleRetreat,
     handleBreakthroughClick,
     handleBreakthrough,
     closeBreakthroughConfirm,
+    closeRetreatResult,
     handleGoReincarnate,
-    clearRetreatResult,
   };
 }

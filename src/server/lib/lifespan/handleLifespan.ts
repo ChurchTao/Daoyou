@@ -2,21 +2,19 @@ import {
   getCultivatorBasicsByIdUnsafe,
   updateCultivator,
 } from '@server/lib/services/cultivatorService';
-import { RealmStage, RealmType } from '@shared/types/constants';
-import type { Cultivator } from '@shared/types/cultivator';
 import type { BreakthroughModifiers } from '@server/utils/breakthroughCalculator';
-import { createLifespanExhaustedStory } from '@server/utils/storyService';
+import type { LifespanExhaustedStoryPayload } from '@server/utils/prompts';
+import { RealmStage, RealmType } from '@shared/types/constants';
 
 export interface ConsumeLifespanResult {
   depleted: boolean;
-  story?: string;
-  updatedCultivator?: Cultivator | null;
+  storyPayload?: LifespanExhaustedStoryPayload;
 }
 
 /**
  * 消耗寿元并集中处理寿元耗尽的副作用：
- * - 若寿元耗尽（age + years >= lifespan），则设置角色 status 为 'dead' 并尝试生成坐化故事
- * - 返回是否耗尽、可能的故事和已更新的角色快照
+ * - 若寿元耗尽（age + years >= lifespan），则设置角色 status 为 'dead'
+ * - 返回是否耗尽，以及用于后续流式生成故事的上下文
  */
 export async function consumeLifespanAndHandleDepletion(
   cultivatorId: string,
@@ -33,7 +31,7 @@ export async function consumeLifespanAndHandleDepletion(
 
   const newAge = (cultivator.age || 0) + years;
 
-  // 只在寿元耗尽时做自动更新与故事生成；否则不在此处重复写入年龄（调用方已负责写入）
+  // 只在寿元耗尽时做自动更新与故事上下文准备；否则不在此处重复写入年龄（调用方已负责写入）
   if (newAge >= (cultivator.lifespan || 0)) {
     // 更新角色为已死，确保 age 被同步为新的年龄
     let updatedCultivator = null;
@@ -46,15 +44,16 @@ export async function consumeLifespanAndHandleDepletion(
       console.error('更新角色为死时失败：', err);
     }
 
-    // 尝试生成坐化故事（失败不影响主流程）
-    let story: string | undefined;
-    try {
-      story = await createLifespanExhaustedStory({
-        cultivator: {
-          ...updatedCultivator!,
-          age: newAge,
-          status: 'dead',
-        },
+    const storyCultivator = {
+      ...(updatedCultivator ?? cultivator),
+      age: newAge,
+      status: 'dead' as const,
+    };
+
+    return {
+      depleted: true,
+      storyPayload: {
+        cultivator: storyCultivator,
         summary: {
           success: false,
           isMajor: false,
@@ -68,12 +67,8 @@ export async function consumeLifespanAndHandleDepletion(
           lifespanDepleted: true,
           modifiers: {} as BreakthroughModifiers,
         },
-      });
-    } catch (storyErr) {
-      console.warn('生成坐化故事失败：', storyErr);
-    }
-
-    return { depleted: true, story, updatedCultivator };
+      },
+    };
   }
 
   return { depleted: false };
