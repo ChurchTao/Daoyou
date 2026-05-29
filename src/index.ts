@@ -6,6 +6,7 @@ import apiApp from './server/app';
 import { registerInternalCronJobs } from './server/lib/jobs/internalCronScheduler';
 
 const indexHtmlUrl = new URL('../dist/index.html', import.meta.url);
+const fileRequestPattern = /\/[^/?]+\.[^/]+$/;
 
 let indexHtmlPromise: Promise<string> | undefined;
 
@@ -13,6 +14,9 @@ const getIndexHtml = () => {
   indexHtmlPromise ??= readFile(indexHtmlUrl, 'utf8');
   return indexHtmlPromise;
 };
+
+const isStaticFileRequest = (path: string) =>
+  path.startsWith('/assets/') || fileRequestPattern.test(path);
 
 type RootAppOptions = {
   enableLogger?: boolean;
@@ -51,11 +55,13 @@ export function createRootApp(options: RootAppOptions = {}) {
     }
 
     const isPageRequest = c.req.method === 'GET' || c.req.method === 'HEAD';
-    if (!isProd || !isPageRequest) {
+    if (!isProd || !isPageRequest || isStaticFileRequest(c.req.path)) {
       return new Response('Not Found', { status: 404 });
     }
 
-    return c.html(await loadIndexHtml());
+    return c.html(await loadIndexHtml(), 200, {
+      'Cache-Control': 'no-cache',
+    });
   });
 
   return app;

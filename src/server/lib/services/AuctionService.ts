@@ -5,6 +5,7 @@ import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,
 } from '@shared/config/temporaryRestrictions';
+import { isPillConsumable } from '@shared/lib/consumables';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
@@ -265,6 +266,15 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         '已装备法宝不可寄售，请先卸下',
       );
     }
+    if (
+      itemType === 'consumable' &&
+      !isPillConsumable(itemSnapshot as Consumable)
+    ) {
+      throw new AuctionServiceError(
+        AuctionError.INVALID_ITEM_TYPE,
+        '当前仅支持丹药寄售',
+      );
+    }
     const itemQuality = normalizeItemQuality(itemType, itemSnapshot);
     if (!isAuctionListableQuality(itemQuality)) {
       throw new AuctionServiceError(
@@ -308,6 +318,15 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         throw new AuctionServiceError(
           AuctionError.ITEM_NOT_FOUND,
           '物品不存在或已被消耗',
+        );
+      }
+      if (
+        itemType === 'consumable' &&
+        !isPillConsumable(ownedItem as Consumable)
+      ) {
+        throw new AuctionServiceError(
+          AuctionError.INVALID_ITEM_TYPE,
+          '当前仅支持丹药寄售',
         );
       }
 

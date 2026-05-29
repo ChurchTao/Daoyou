@@ -152,7 +152,19 @@ function getItemQuality(item: SelectableItem): Quality {
   return quality in QUALITY_ORDER ? quality : '凡品';
 }
 
+function getAuctionUnsupportedReason(item: SelectableItem): string | null {
+  if (item.itemType === 'consumable' && !isPillConsumable(item as Consumable)) {
+    return '当前仅支持丹药寄售';
+  }
+
+  return null;
+}
+
 function isAuctionListableItem(item: SelectableItem): boolean {
+  if (getAuctionUnsupportedReason(item)) {
+    return false;
+  }
+
   const quality = getItemQuality(item);
   return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
 }
@@ -345,6 +357,11 @@ export function ListItemModal({
       setListError(TEMP_DISABLED_MESSAGES.consumableAuctionListing);
       return;
     }
+    const unsupportedReason = getAuctionUnsupportedReason(item);
+    if (unsupportedReason) {
+      setListError(unsupportedReason);
+      return;
+    }
 
     if (!isAuctionListableItem(item)) {
       setListError(`仅玄品及以上物品可寄售，当前为${getItemQuality(item)}`);
@@ -380,6 +397,11 @@ export function ListItemModal({
       selectedItem.itemType === 'consumable'
     ) {
       setError(TEMP_DISABLED_MESSAGES.consumableAuctionListing);
+      return;
+    }
+    const unsupportedReason = getAuctionUnsupportedReason(selectedItem);
+    if (unsupportedReason) {
+      setError(unsupportedReason);
       return;
     }
 
@@ -492,6 +514,8 @@ export function ListItemModal({
   };
 
   const currentPagination = paginationByType[activeType];
+  const hasAnyLoadedItems = itemsByType[activeType].length > 0;
+  const hasAnyAuctionItems = itemsByType[activeType].some(isAuctionListableItem);
 
   const currentItems = useMemo(() => {
     const baseItems = itemsByType[activeType].filter(isAuctionListableItem);
@@ -571,11 +595,10 @@ export function ListItemModal({
     itemsByType,
   ]);
 
-  const hasAnyLoadedItems = itemsByType[activeType].length > 0;
-
   const tabs = [
     { label: '材料', value: 'material' },
     { label: '法宝', value: 'artifact' },
+    { label: '丹药', value: 'consumable' },
   ];
 
   return (
@@ -955,13 +978,15 @@ export function ListItemModal({
               </InkList>
             ) : (
               <InkNotice>
-                {hasAnyLoadedItems
-                  ? '暂无符合筛选条件的可寄售物品（仅限玄品及以上）。'
+                {hasAnyLoadedItems && hasAnyAuctionItems
+                  ? activeType === 'consumable'
+                    ? '暂无符合筛选条件的可寄售丹药（仅限玄品及以上）。'
+                    : '暂无符合筛选条件的可寄售物品（仅限玄品及以上）。'
                   : activeType === 'material'
                     ? '储物袋中没有可寄售材料（仅限玄品及以上）。'
                     : activeType === 'artifact'
                       ? '储物袋中没有可寄售法宝（仅限玄品及以上）。'
-                      : '储物袋中没有可寄售消耗品（仅限玄品及以上）。'}
+                      : '储物袋中没有可寄售丹药（仅限玄品及以上）。'}
               </InkNotice>
             )}
           </div>

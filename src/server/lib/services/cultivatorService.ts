@@ -1682,6 +1682,20 @@ export async function addArtifactToInventory(
 
   const dbInstance = getExecutor(tx);
   const score = calculateSingleArtifactScore(artifact);
+  const rawProductModel =
+    artifact.productModel &&
+    typeof artifact.productModel === 'object' &&
+    !Array.isArray(artifact.productModel)
+      ? (artifact.productModel as Record<string, unknown>)
+      : null;
+  const normalizedProductModel = rehydrateStoredProductModel(
+    rawProductModel,
+    artifact.element,
+  );
+
+  if (!rawProductModel || !normalizedProductModel) {
+    throw new Error('法宝数据缺少有效 productModel，无法入库');
+  }
 
   await creationProductRepository.insert(
     {
@@ -1694,10 +1708,7 @@ export async function addArtifactToInventory(
       slot: artifact.slot,
       score,
       isEquipped: false,
-      productModel: serializeProductModel({ affixes: [] } as Record<
-        string,
-        unknown
-      > as never),
+      productModel: serializeProductModel(normalizedProductModel),
     },
     dbInstance,
   );
