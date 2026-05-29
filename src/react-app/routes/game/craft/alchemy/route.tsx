@@ -21,10 +21,12 @@ import {
   InkBadge,
   InkButton,
   InkCard,
+  InkDialog,
   InkIdentifyCelebration,
   InkInput,
   InkNotice,
   ItemShowcaseModal,
+  type InkDialogState,
 } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
@@ -113,6 +115,12 @@ type DiscoveryConfirmResponse = {
   error?: string;
 };
 
+type FormulaDeleteResponse = {
+  success: boolean;
+  message?: string;
+  error?: string;
+};
+
 const DEFAULT_PREVIEW_STATE: PreviewState = {
   key: null,
   estimatedSpiritStones: null,
@@ -120,6 +128,31 @@ const DEFAULT_PREVIEW_STATE: PreviewState = {
   canAfford: true,
   previewError: null,
 };
+
+function resolvePreferredFormulaId(
+  formulas: AlchemyFormula[],
+  preferredId: string | null,
+): string | null {
+  return formulas.find((formula) => formula.id === preferredId)
+    ? preferredId
+    : (formulas[0]?.id ?? null);
+}
+
+export function getNextSelectedFormulaIdAfterDelete(
+  formulas: AlchemyFormula[],
+  deletedFormulaId: string,
+  currentSelectedFormulaId: string | null,
+): string | null {
+  const remainingFormulas = formulas.filter(
+    (formula) => formula.id !== deletedFormulaId,
+  );
+  const preferredId =
+    currentSelectedFormulaId === deletedFormulaId
+      ? null
+      : currentSelectedFormulaId;
+
+  return resolvePreferredFormulaId(remainingFormulas, preferredId);
+}
 
 function formatFormulaTags(formula: AlchemyFormula): string {
   return formula.pattern.requiredTags
@@ -207,6 +240,43 @@ export function FormulaNarrativeBlock({
         </div>
       ) : null}
     </div>
+  );
+}
+
+export function AlchemyFormulaSummaryCard({
+  formula,
+  isDeleting,
+  onDelete,
+}: {
+  formula: AlchemyFormula;
+  isDeleting: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <InkCard variant="elevated" padding="lg">
+      <div className="space-y-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-base font-semibold">{formula.name}</span>
+          <InkBadge tone="default">
+            {getPillFamilyLabel(formula.family)}
+          </InkBadge>
+          <InkBadge tone="accent">
+            {`熟练 Lv.${formula.mastery.level}`}
+          </InkBadge>
+        </div>
+        <FormulaNarrativeBlock formula={formula} showMasteryExp />
+        <InkActionGroup align="right">
+          <InkButton
+            variant="ghost"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="text-crimson hover:text-crimson/80"
+          >
+            {isDeleting ? '删除中……' : '删除丹方'}
+          </InkButton>
+        </InkActionGroup>
+      </div>
+    </InkCard>
   );
 }
 
@@ -375,7 +445,9 @@ export default function AlchemyPage() {
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
   const [isHandlingDiscovery, setIsHandlingDiscovery] = useState(false);
+  const [isDeletingFormula, setIsDeletingFormula] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [celebrationTick, setCelebrationTick] = useState(0);
   const [materialsRefreshKey, setMaterialsRefreshKey] = useState(0);
   const [previewState, setPreviewState] = useState<PreviewState>(
@@ -416,9 +488,7 @@ export default function AlchemyPage() {
       setFormulasError(null);
       setSelectedFormulaId((currentSelected) => {
         const preferredId = options?.selectFormulaId ?? currentSelected;
-        return nextFormulas.find((formula) => formula.id === preferredId)
-          ? preferredId
-          : (nextFormulas[0]?.id ?? null);
+        return resolvePreferredFormulaId(nextFormulas, preferredId);
       });
     } catch (error) {
       setFormulasError(
@@ -454,9 +524,7 @@ export default function AlchemyPage() {
         setFormulas(nextFormulas);
         setFormulasError(null);
         setSelectedFormulaId((currentSelected) =>
-          nextFormulas.find((formula) => formula.id === currentSelected)
-            ? currentSelected
-            : (nextFormulas[0]?.id ?? null),
+          resolvePreferredFormulaId(nextFormulas, currentSelected),
         );
       } catch (error) {
         if (cancelled) return;
@@ -771,6 +839,86 @@ export default function AlchemyPage() {
     }
   };
 
+  const openDeleteFormulaConfirm = (formula: AlchemyFormula) => {
+    setDialog({
+      id: `delete-formula-${formula.id}`,
+      title: '删除丹方',
+      content: (
+        <div className="space-y-2 py-2 text-center">
+          <p>
+            确定要删去{' '}
+            <span className="text-ink-primary font-bold">{formula.name}</span>{' '}
+            吗？
+          </p>
+          <p className="text-ink-secondary text-xs">
+            删除后将无法恢复，但已炼成丹药的来源记述不会受影响。
+          </p>
+        </div>
+      ),
+      confirmLabel: '删除丹方',
+      cancelLabel: '作罢',
+      loading: isDeletingFormula,
+      loadingLabel: '删除中……',
+      onConfirm: async () => {
+        if (isDeletingFormula) {
+          return;
+        }
+
+        const nextSelectedFormulaId = getNextSelectedFormulaIdAfterDelete(
+          formulas,
+          formula.id,
+          selectedFormulaId,
+        );
+
+        try {
+          setIsDeletingFormula(true);
+          setDialog((currentDialog) =>
+            currentDialog
+              ? {
+                  ...currentDialog,
+                  loading: true,
+                }
+              : currentDialog,
+          );
+
+          const response = await fetch(`/api/alchemy/formulas/${formula.id}`, {
+            method: 'DELETE',
+          });
+          const result: FormulaDeleteResponse = await response.json();
+
+          if (!response.ok || !result.success) {
+            throw new Error(result.error || '丹方删除失败');
+          }
+
+          setPreviewState(DEFAULT_PREVIEW_STATE);
+          await loadFormulas({
+            selectFormulaId: nextSelectedFormulaId,
+          });
+          pushToast({
+            message: result.message || `已删除【${formula.name}】`,
+            tone: 'success',
+          });
+        } catch (error) {
+          pushToast({
+            message:
+              error instanceof Error ? error.message : '丹方删除失败，请稍后再试。',
+            tone: 'danger',
+          });
+        } finally {
+          setIsDeletingFormula(false);
+          setDialog((currentDialog) =>
+            currentDialog
+              ? {
+                  ...currentDialog,
+                  loading: false,
+                }
+              : currentDialog,
+          );
+        }
+      },
+    });
+  };
+
   if (isLoading && !cultivator) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -960,25 +1108,11 @@ export default function AlchemyPage() {
       ) : (
         <GameSceneSection title="丹方摘要">
           {selectedFormula ? (
-            <InkCard variant="elevated" padding="lg">
-              <div className="space-y-2 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-semibold">
-                    {selectedFormula.name}
-                  </span>
-                  <InkBadge tone="default">
-                    {getPillFamilyLabel(selectedFormula.family)}
-                  </InkBadge>
-                  <InkBadge tone="accent">
-                    {`熟练 Lv.${selectedFormula.mastery.level}`}
-                  </InkBadge>
-                </div>
-                <FormulaNarrativeBlock
-                  formula={selectedFormula}
-                  showMasteryExp
-                />
-              </div>
-            </InkCard>
+            <AlchemyFormulaSummaryCard
+              formula={selectedFormula}
+              isDeleting={isDeletingFormula}
+              onDelete={() => openDeleteFormulaConfirm(selectedFormula)}
+            />
           ) : (
             <InkNotice tone="info">
               先从上方选定一份丹方，再安排炉材。
@@ -1080,6 +1214,15 @@ export default function AlchemyPage() {
       <AlchemyGuideModal
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
+      />
+
+      <InkDialog
+        dialog={dialog}
+        onClose={() => {
+          if (!isDeletingFormula) {
+            setDialog(null);
+          }
+        }}
       />
 
       {celebrationTick > 0 && (
