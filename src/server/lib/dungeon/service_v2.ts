@@ -21,6 +21,7 @@ import { getExecutor } from '../drizzle/db';
 import { dungeonHistories } from '../drizzle/schema';
 import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
+import { stableCompactStringify } from '@server/utils/llmPayload';
 import {
   getCultivatorByIdUnsafe,
   getCultivatorOwnerId,
@@ -30,6 +31,10 @@ import {
 import { ConditionService } from '../services/ConditionService';
 import { TaskService } from '../services/TaskService';
 import { buildDungeonBattleInit } from './battleInit';
+import {
+  buildDungeonRoundLlmContext,
+  buildDungeonSettlementLlmContext,
+} from './llmContext';
 import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
 import { RewardFactory } from './reward';
@@ -37,8 +42,12 @@ import {
   BattleSession,
   DungeonOptionCost,
   DungeonRound,
+  DungeonRoundLlmContext,
+  DungeonRoundLlmSchema,
   DungeonRoundSchema,
   DungeonSettlement,
+  DungeonSettlementLlmContext,
+  DungeonSettlementLlmSchema,
   DungeonSettlementSchema,
   DungeonState,
   PlayerInfo,
@@ -47,6 +56,9 @@ import {
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const START_LOCK_TTL_SECONDS = 180;
 const DUNGEON_ENEMY_DIFFICULTY_COEFFICIENT = 0.7;
+const DUNGEON_MATERIAL_TYPE_TABLE = Object.entries(TYPE_DESCRIPTIONS)
+  .map(([key, desc]) => `| ${key} | ${desc} |`)
+  .join('\n');
 
 // Helper to generate Redis key
 function getDungeonKey(cultivatorId: string) {
@@ -123,35 +135,6 @@ export class DungeonService {
     return playerIndex - mapIndex;
   }
 
-  /**
-   * 根据境界差距生成叙事指导
-   */
-  private getRealmGuidance(realmGap: number): string {
-    if (realmGap >= 2) {
-      return `
-> [!IMPORTANT] 境界碾压场景
-> 玩家境界远超此地图要求（差距${realmGap}个大境界）。叙事应体现**轻松应对、游刃有余**的状态：
-> - 剧情避免使用"险象环生"、"巨大代价"、"死里逃生"等词汇
-> - 风险选项的危险程度应大幅降低
-> - 代价（costs）应极少或轻微（如少量法力消耗）
-> - 战斗难度系数（battle.value）不应超过3
-> - 整体危险分（danger_score）应保持在30以下
-`;
-    } else if (realmGap === 1) {
-      return `
-> 境界优势场景：玩家境界略高于地图要求。应体现**有一定优势但不至于碾压**的状态。风险和代价适中偏低。
-`;
-    } else if (realmGap === 0) {
-      return `
-> 实力相当场景：玩家与地图境界匹配。应体现**正常挑战难度**，风险和代价中等。
-`;
-    } else {
-      return `
-> 挑战场景：玩家境界低于地图要求。应体现**高风险高挑战**，但仍有机会通过谨慎操作成功。
-`;
-    }
-  }
-
   // 核心配置：定义每个轮次对应的副本相位
   private getPhase(
     currentRound: number,
@@ -161,54 +144,29 @@ export class DungeonService {
     // 境界碾压场景：简化剧情，降低风险
     if (realmGap >= 2) {
       if (currentRound === 1)
-        return '**【Phase 1: 探索期】**: 凭借境界优势，轻松探查环境。选项应偏向顺利推进。';
+        return '探索期：境界占优，宜顺势探查。';
       if (currentRound < maxRounds - 1)
-        return '**【Phase 2: 收获期】**: 以实力碾压，顺利获取资源。轻微消耗即可。';
+        return '收获期：可稳取资源，代价宜轻。';
       if (currentRound === maxRounds - 1)
-        return '**【Phase 3: 收尾期】**: 轻松解决最后的阻碍。风险和代价极低。';
-      return '**【Phase 4: 圆满期】**: 毫无悬念地完成探索，满载而归。';
+        return '收尾期：阻碍将尽，风险应低。';
+      return '圆满期：可稳妥结局，满载而归。';
     }
 
     // 正常场景
     if (currentRound === 1)
-      return '**【Phase 1: 潜入期】(Round 1)**: 侧重环境描写。发现阵法、禁制或古修遗迹入口。选项应偏向探测与尝试。';
+      return '潜入期：先探环境、阵法与入口。';
     if (currentRound < maxRounds - 1)
-      return '**【Phase 2: 变局期】(Round 2-3)**: 引入转折。遭遇残存傀儡、禁制反弹、或发现同道斗法留下的血迹。开始消耗资源。';
+      return '变局期：引入转折，开始消耗资源。';
     if (currentRound === maxRounds - 1)
-      return '**【Phase 3: 夺宝/死战期】(Round 4)**: 副本高潮。面对核心守护者或最强禁制。选项必须包含极高风险或巨量消耗';
-    return '**【Phase 4: 结尾期】(Round 5)**: 禁制崩塌或取宝后的逃亡。评估玩家之前的行为，决定最终的狼狈程度或圆满程度';
+      return '夺宝期：副本高潮，风险应显著抬升。';
+    return '结尾期：根据前情收束结局与余波。';
   }
 
   // 统一的 System Prompt 生成器
-  private getSystemPrompt(state: DungeonState): string {
-    // 获取地图境界要求
-    const mapNode = getMapNode(state.mapNodeId);
-    const mapRealm =
-      mapNode && 'realm_requirement' in mapNode
-        ? (mapNode as SatelliteNode).realm_requirement
-        : ('筑基' as RealmType); // 默认筑基
-
-    // 计算境界差距
-    const realmGap = this.calculateRealmGap(state.playerInfo.realm, mapRealm);
-    const realmGuidance = this.getRealmGuidance(realmGap);
-    const phaseDesc = this.getPhase(
-      state.currentRound,
-      state.maxRounds,
-      realmGap,
-    );
-
-    // 动态生成材料类型描述表格（从 config.ts 统一获取）
-    const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
-      .map(([key, desc]) => `| ${key} | ${desc} |`)
-      .join('\n');
-
+  private getSystemPrompt(): string {
     return (
       renderPrompt('dungeon-round', {
-        realmGuidance,
-        phaseDesc,
-        maxRounds: state.maxRounds,
-        currentRound: state.currentRound,
-        materialTypeTable,
+        materialTypeTable: DUNGEON_MATERIAL_TYPE_TABLE,
         userContextJson: '',
       }).system +
       `
@@ -218,14 +176,7 @@ export class DungeonService {
 - **数值范围**: hp_loss, mp_loss 必须是 0-1 之间的小数；其他类型为正整数。
 - **材料(material)**: 禁止指定 name，必须提供 required_type 和 required_quality。
 - **冲突禁止**: 若有 'battle'，严禁同时出现 'hp_loss' 或 'mp_loss'。
-- **战斗元数据(battle.metadata)**: 必须提供 race 与 realm_stage；可选提供 enemy_name、background、description、is_boss。
-
-## 6. 当前上下文摘要
-- 地点：${state.location.location}
-- 地图境界要求：${mapRealm}
-- 玩家境界：${state.playerInfo.realm}
-- 境界差距：${realmGap > 0 ? `玩家高出${realmGap}个大境界` : realmGap < 0 ? `玩家低${Math.abs(realmGap)}个大境界` : '实力相当'}
-- 历史参考：${JSON.stringify(state.history.slice(-2))}`
+- **战斗元数据(battle.metadata)**: 必须提供 race 与 realm_stage；可选提供 enemy_name、background、description、is_boss。`
     );
   }
 
@@ -644,7 +595,9 @@ export class DungeonService {
       const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
       lastHistory.outcome = outcomeText;
 
-      return this.settleDungeon(state);
+      return this.settleDungeon(state, {
+        endDisposition: 'retreated_after_battle',
+      });
     }
 
     const outcomeText = `历经 ${battleResult.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
@@ -713,7 +666,10 @@ export class DungeonService {
     state.status = 'FINISHED';
 
     try {
-      return await this.settleDungeon(state, { abandonedBattle: true });
+      return await this.settleDungeon(state, {
+        abandonedBattle: true,
+        endDisposition: 'abandoned_before_battle',
+      });
     } finally {
       await redis.del(battleKey);
     }
@@ -769,7 +725,10 @@ export class DungeonService {
   async escapeFromLooting(cultivatorId: string) {
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('Dungeon state not found');
-    return this.settleDungeon(state, { abandonedBattle: true });
+    return this.settleDungeon(state, {
+      abandonedBattle: true,
+      endDisposition: 'retreated_after_battle',
+    });
   }
 
   /**
@@ -914,6 +873,7 @@ export class DungeonService {
     options?: {
       skipInjury?: boolean; // 跳过受伤逻辑
       abandonedBattle?: boolean; // 标记为主动放弃
+      endDisposition?: DungeonSettlementLlmContext['endDisposition'];
     },
   ): Promise<{
     state?: DungeonState;
@@ -921,11 +881,6 @@ export class DungeonService {
     isFinished: boolean;
     realGains: ResourceOperation[];
   }> {
-    // 动态生成材料类型描述表格（从 config.ts 统一获取）
-    const materialTypeTable = Object.entries(TYPE_DESCRIPTIONS)
-      .map(([key, desc]) => `| ${key} | ${desc} |`)
-      .join('\n');
-
     // --- 核心优化：使用 RewardFactory 将 AI 蓝图转化为真实奖励 ---
     // 获取地图境界门槛
     const mapNode = getMapNode(state.mapNodeId);
@@ -934,32 +889,25 @@ export class DungeonService {
         ? (mapNode as SatelliteNode).realm_requirement
         : ('筑基' as RealmType);
 
-    const settlementContext = {
-      history: state.history,
-      danger_score: state.dangerScore,
-      // 核心：明确告知 AI 玩家付出了什么
-      summary_of_sacrifice: state.summary_of_sacrifice,
-      accumulatedRewards: state.accumulatedRewards,
-      location: state.location,
-      playerInfo: state.playerInfo,
-    };
+    const endDisposition =
+      options?.endDisposition ??
+      (options?.abandonedBattle ? 'abandoned_before_battle' : 'completed');
+    const settlementContext = buildDungeonSettlementLlmContext({
+      state,
+      mapRealm,
+      endDisposition,
+    });
     const { system: settlementPrompt, user: settlementUserPrompt } =
       renderPrompt('dungeon-settlement', {
-        abandonedBattleNote: options?.abandonedBattle
-          ? '\n> [!CAUTION] 玩家在战斗前主动放弃撤退，评价应为D级，奖励极少。'
-          : '',
-        materialTypeTable,
-        dangerScore: state.dangerScore,
-        summaryOfSacrificeJson: JSON.stringify(state.summary_of_sacrifice),
-        accumulatedRewardsJson: JSON.stringify(state.accumulatedRewards),
-        mapRealm,
-        playerRealm: state.playerInfo.realm,
-        settlementContextJson: JSON.stringify(settlementContext),
+        materialTypeTable: DUNGEON_MATERIAL_TYPE_TABLE,
+        settlementContextJson: stableCompactStringify(settlementContext),
       });
 
     const aiRes = await object(settlementPrompt, settlementUserPrompt, {
       schema: DungeonSettlementSchema,
+      llmSchema: DungeonSettlementLlmSchema,
       schemaName: 'DungeonSettlement',
+      sceneId: 'dungeon-settlement',
     });
 
     const settlement = aiRes.object;
@@ -1014,23 +962,28 @@ export class DungeonService {
    * 内部工具：调用 AI 并处理上下文压缩
    */
   private async callAI(state: DungeonState): Promise<DungeonRound> {
-    // 压缩历史，只给 AI 看关键节点，节省 Token 且提高稳定性
-    const compressedHistory = state.history.map((h) => ({
-      ...h,
-      scene: h.scene.substring(0, 100) + '...', // 摘要
-    }));
-
-    const userContext: DungeonState = {
-      ...state,
-      history: compressedHistory,
-    };
+    const mapNode = getMapNode(state.mapNodeId);
+    const mapRealm =
+      mapNode && 'realm_requirement' in mapNode
+        ? (mapNode as SatelliteNode).realm_requirement
+        : ('筑基' as RealmType);
+    const realmGap = this.calculateRealmGap(state.playerInfo.realm, mapRealm);
+    const phase = this.getPhase(state.currentRound, state.maxRounds, realmGap);
+    const userContext: DungeonRoundLlmContext = buildDungeonRoundLlmContext({
+      state,
+      mapRealm,
+      realmGap,
+      phase,
+    });
 
     const aiRes = await object(
-      this.getSystemPrompt(state),
-      JSON.stringify(userContext),
+      this.getSystemPrompt(),
+      stableCompactStringify(userContext),
       {
         schema: DungeonRoundSchema,
+        llmSchema: DungeonRoundLlmSchema,
         schemaName: 'DungeonRound',
+        sceneId: 'dungeon-round',
       },
     );
 

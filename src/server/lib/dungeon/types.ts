@@ -131,6 +131,24 @@ export const RewardBlueprintSchema = z.object({
 
 export type RewardBlueprint = z.infer<typeof RewardBlueprintSchema>;
 
+const RewardBlueprintLlmSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+  material_type: z
+    .enum([
+      'herb',
+      'ore',
+      'monster',
+      'tcdb',
+      'aux',
+      'gongfa_manual',
+      'skill_manual',
+    ])
+    .optional(),
+  element: z.enum(['金', '木', '水', '火', '土', '风', '雷', '冰']).optional(),
+  reward_score: z.number().min(0).max(100).optional(),
+});
+
 // Response from AI for each round
 export const DungeonRoundSchema = z.object({
   scene_description: z.string().describe('场景描述'),
@@ -146,6 +164,77 @@ export const DungeonRoundSchema = z.object({
       internal_danger_score: z.number(),
     })
     .describe('状态更新'),
+});
+
+const DungeonBattleMetadataLlmSchema = z.object({
+  race: z.enum(ENEMY_RACE_VALUES),
+  realm_stage: z.enum(REALM_STAGE_VALUES),
+  enemy_name: z.string().optional(),
+  background: z.string().optional(),
+  description: z.string().optional(),
+  is_boss: z.boolean().optional(),
+});
+
+const DungeonCostLlmSchema = z
+  .object({
+    type: z.enum([
+      'spirit_stones',
+      'lifespan',
+      'cultivation_exp',
+      'comprehension_insight',
+      'material',
+      'hp_loss',
+      'mp_loss',
+      'weak',
+      'battle',
+      'artifact_damage',
+    ]),
+    value: z.number(),
+    name: z.string().optional(),
+    required_quality: z.enum(DUNGEON_QUALITY_VALUES).optional(),
+    required_type: z
+      .enum([
+        'herb',
+        'ore',
+        'monster',
+        'tcdb',
+        'aux',
+        'gongfa_manual',
+        'skill_manual',
+      ])
+      .optional(),
+    desc: z.string().optional(),
+    metadata: DungeonBattleMetadataLlmSchema.optional(),
+  })
+  .superRefine((cost, ctx) => {
+    if (cost.type === 'battle' && !cost.metadata) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['metadata'],
+        message: 'battle 类型必须提供 metadata',
+      });
+    }
+  });
+
+export const DungeonRoundLlmSchema = z.object({
+  scene_description: z.string(),
+  interaction: z.object({
+    options: z.array(
+      z.object({
+        id: z.number(),
+        text: z.string(),
+        risk_level: z.enum(['low', 'medium', 'high']),
+        requirement: z.string().optional(),
+        potential_cost: z.string().optional(),
+        costs: z.array(DungeonCostLlmSchema).optional(),
+      }),
+    ),
+  }),
+  acquired_items: z.array(RewardBlueprintLlmSchema).optional(),
+  status_update: z.object({
+    is_final_round: z.boolean(),
+    internal_danger_score: z.number(),
+  }),
 });
 
 // Settlement info from AI
@@ -165,6 +254,15 @@ export const DungeonSettlementSchema = z
     }),
   })
   .describe('结算信息');
+
+export const DungeonSettlementLlmSchema = z.object({
+  ending_narrative: z.string(),
+  settlement: z.object({
+    reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']),
+    reward_blueprints: z.array(RewardBlueprintLlmSchema).min(1).max(5),
+    performance_tags: z.array(z.string()),
+  }),
+});
 
 export const PlayerInfoSchema = z.object({
   name: z.string(),
@@ -250,4 +348,70 @@ export interface DungeonState {
   accumulatedHpLoss: number;
   accumulatedMpLoss: number;
   condition: CultivatorCondition;
+}
+
+export interface DungeonRoundLlmContext {
+  round: number;
+  maxRounds: number;
+  dangerScore: number;
+  phase: string;
+  realmGap: number;
+  map: {
+    name: string;
+    realmRequirement: string;
+    tags: string[];
+    descriptionSummary: string;
+  };
+  player: {
+    name: string;
+    realm: string;
+    age: number;
+    lifespan: number;
+    coreTraits: string[];
+    rootsSummary: string[];
+    fatesSummary: string[];
+    techniqueNames: string[];
+    combatStyleSummary: string;
+  };
+  history: Array<{
+    round: number;
+    sceneSummary: string;
+    choice?: string;
+    outcomeSummary?: string;
+    gainedItemNames?: string[];
+  }>;
+  resourcePressure: {
+    hpLossRatio: number;
+    mpLossRatio: number;
+    hasWeakness: boolean;
+  };
+  battleAftermath?: string;
+  accumulatedRewardNames: string[];
+}
+
+export interface DungeonSettlementLlmContext {
+  map: {
+    name: string;
+    realmRequirement: string;
+  };
+  player: {
+    name: string;
+    realm: string;
+  };
+  journeySummary: string[];
+  dangerScore: number;
+  sacrificeSummary: Array<{
+    type: DungeonOptionCost['type'];
+    count: number;
+    totalValue: number;
+    sample?: string;
+  }>;
+  accumulatedRewards: Array<{
+    name?: string;
+    description?: string;
+    material_type?: RewardBlueprint['material_type'];
+    element?: RewardBlueprint['element'];
+    reward_score?: number;
+  }>;
+  endDisposition: 'completed' | 'retreated_after_battle' | 'abandoned_before_battle';
 }

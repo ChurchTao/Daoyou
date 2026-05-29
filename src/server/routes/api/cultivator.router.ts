@@ -276,7 +276,12 @@ function createRetreatStreamResponse(args: {
           args.storySource.type === 'breakthrough'
             ? getBreakthroughStoryPrompt(args.storySource.payload)
             : getLifespanExhaustedStoryPrompt(args.storySource.payload);
-        const aiStreamResult = stream_text(prompt[0], prompt[1], true);
+        const aiStreamResult = stream_text(prompt[0], prompt[1], true, false, {
+          sceneId:
+            args.storySource.type === 'breakthrough'
+              ? 'breakthrough-story'
+              : 'lifespan-exhausted',
+        });
 
         for await (const chunk of aiStreamResult.textStream) {
           accumulatedStory += chunk;
@@ -1074,15 +1079,20 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
             cultivatorRealm: result.cultivatorRealm,
             cultivatorName: result.cultivatorName,
             amount: result.amount,
-            expLine: result.expGain
-              ? `2. 修为精进：【${result.expGain}】点。\n`
-              : '',
-            insightLine: result.insightGain
-              ? `${result.expGain ? '3.' : '2.'} 道心感悟：【${result.insightGain}】点。\n`
-              : '',
+            extraYieldText: (() => {
+              const extra = [
+                result.expGain ? `修为精进 ${result.expGain} 点` : '',
+                result.insightGain ? `道心感悟 ${result.insightGain} 点` : '',
+              ]
+                .filter(Boolean)
+                .join('；');
+              return extra ? `；${extra}` : '';
+            })(),
           });
 
-          const aiStreamResult = stream_text(system, user, true);
+          const aiStreamResult = stream_text(system, user, true, false, {
+            sceneId: 'yield-story',
+          });
           for await (const chunk of aiStreamResult.textStream) {
             const message = JSON.stringify({ type: 'chunk', text: chunk });
             controller.enqueue(encoder.encode(`data: ${message}\n\n`));

@@ -73,6 +73,7 @@ export class MaterialGenerator {
         {
           schema: z.array(MaterialAISchema),
           schemaName: 'MaterialTextList',
+          sceneId: 'material-generation',
         },
         false, // use fast model
       );

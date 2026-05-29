@@ -6,6 +6,7 @@ import {
 } from '@server/lib/redis/characterGenerationLimiter';
 import { saveTempCharacter } from '@server/lib/repositories/redisCultivatorRepository';
 import { generateCultivatorFromAI } from '@server/utils/characterEngine';
+import { normalizeFreeformLlmInput } from '@server/utils/llmPayload';
 import {
   CHARACTER_GENERATION_LIMIT_REACHED_CODE,
   type CharacterGenerationQuota,
@@ -84,7 +85,7 @@ router.post('/', requireUser(), async (c) => {
     );
   }
 
-  const userInput = parsed.data.userInput.trim();
+  const userInput = normalizeFreeformLlmInput(parsed.data.userInput);
   const promptLength = countChars(userInput);
 
   if (promptLength < MIN_PROMPT_LENGTH) {

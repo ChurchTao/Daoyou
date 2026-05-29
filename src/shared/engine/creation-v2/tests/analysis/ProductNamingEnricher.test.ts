@@ -75,7 +75,7 @@ describe('DeepSeekProductNamingEnricher', () => {
       elementText: '火',
       slotText: '兵刃',
       intentTagsText: '爆发',
-      affixesText: '- 烈焰核心：释放纯净火元',
+      affixesText: '- 烈焰核心',
       materialsText: '赤炎矿',
       playerIntentText: '希望名字偏火系剑修一脉',
     });

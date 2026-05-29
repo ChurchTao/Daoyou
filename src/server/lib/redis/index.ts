@@ -5,11 +5,45 @@ const REDIS_COMMAND_TIMEOUT_MS = 4_000;
 const REDIS_SOCKET_TIMEOUT_MS = 30_000;
 const REDIS_KEEP_ALIVE_MS = 10_000;
 const REDIS_MAX_RETRY_DELAY_MS = 2_000;
+const REDIS_RESET_ERROR_MESSAGES = [
+  'Command timed out',
+  'Socket timeout',
+  'Connection is closed.',
+  'read ECONNRESET',
+  'ETIMEDOUT',
+  'EPIPE',
+] as const;
 
 let redisClient: Redis | null = null;
 
 function isRedisConfigured(): boolean {
   return Boolean(process.env.REDIS_URL);
+}
+
+function clearRedisClientIfCurrent(client: Redis): void {
+  if (redisClient === client) {
+    redisClient = null;
+  }
+}
+
+function resetRedisClient(client: Redis, reason: string): void {
+  if (redisClient !== client) {
+    return;
+  }
+
+  console.warn('[redis] resetting client', { reason });
+  redisClient = null;
+  client.disconnect(false);
+}
+
+function shouldResetRedisClient(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return REDIS_RESET_ERROR_MESSAGES.some((message) =>
+    error.message.includes(message),
+  );
 }
 
 function createRedisClient(redisUrl: string): Redis {
@@ -42,7 +76,7 @@ function createRedisClient(redisUrl: string): Redis {
   });
   client.on('end', () => {
     console.error('[redis] reconnect attempts stopped');
-    redisClient = null;
+    clearRedisClientIfCurrent(client);
   });
   client.on('error', (error) => {
     console.error('[redis] error', error);
@@ -72,7 +106,7 @@ export async function getRedisHealthStatus(): Promise<
   }
 
   try {
-    await getRedisClient().ping();
+    await redis.ping();
     return 'up';
   } catch {
     return 'down';
@@ -83,7 +117,24 @@ const redis = new Proxy({} as Redis, {
   get(_target, prop) {
     const client = getRedisClient();
     const value = Reflect.get(client, prop);
-    return typeof value === 'function' ? value.bind(client) : value;
+    if (typeof value !== 'function') {
+      return value;
+    }
+
+    return (...args: unknown[]) => {
+      const result = value.apply(client, args);
+      if (!result || typeof result.then !== 'function') {
+        return result;
+      }
+
+      return result.catch((error: unknown) => {
+        if (shouldResetRedisClient(error)) {
+          resetRedisClient(client, `${String(prop)} failed: ${(error as Error).message}`);
+        }
+
+        throw error;
+      });
+    };
   },
 });
 

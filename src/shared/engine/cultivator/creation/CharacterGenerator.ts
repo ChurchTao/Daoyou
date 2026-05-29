@@ -30,6 +30,7 @@ export class CharacterGenerator {
       {
         schema: CultivatorAIRawSchema,
         schemaName: '修仙真形骨架',
+        sceneId: 'character-generation',
       },
       false,
     );

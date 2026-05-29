@@ -31,7 +31,9 @@ router.get('/', async (c) => {
     }
 
     const [systemPrompt, userPrompt] = getDivineFortunePrompt();
-    const aiResponse = await text(systemPrompt, userPrompt, true);
+    const aiResponse = await text(systemPrompt, userPrompt, true, undefined, {
+      sceneId: 'divine-fortune',
+    });
 
     let fortune: DivineFortune;
     try {

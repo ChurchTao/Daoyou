@@ -143,6 +143,7 @@ export class AlchemyNarrativeEnricher {
           {
             schema: improvisedPillCopySchema,
             schemaName: 'ImprovisedPillCopy',
+            sceneId: 'alchemy-improvised-copy',
           },
           true,
         ),

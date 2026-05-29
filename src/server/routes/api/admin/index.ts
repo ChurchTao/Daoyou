@@ -4,6 +4,7 @@ import announcementRouter from '@server/routes/api/admin/announcement.router';
 import broadcastRouter from '@server/routes/api/admin/broadcast.router';
 import communityGroupRouter from '@server/routes/api/admin/community-qrcode.router';
 import feedbackRouter from '@server/routes/api/admin/feedback.router';
+import llmMetricsRouter from '@server/routes/api/admin/llm-metrics.router';
 import redeemCodesRouter from '@server/routes/api/admin/redeem-codes.router';
 import templatesRouter from '@server/routes/api/admin/templates.router';
 import { Hono } from 'hono';
@@ -24,5 +25,6 @@ router.route('/broadcast', broadcastRouter);
 router.route('/announcement', announcementRouter);
 router.route('/redeem-codes', redeemCodesRouter);
 router.route('/community-group', communityGroupRouter);
+router.route('/llm-metrics', llmMetricsRouter);
 
 export default router;

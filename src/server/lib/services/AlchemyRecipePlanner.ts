@@ -1,5 +1,6 @@
 import { renderPrompt } from '@server/lib/prompts';
 import { object } from '@server/utils/aiClient';
+import { stableCompactStringify, truncateText } from '@server/utils/llmPayload';
 import {
   getAlchemyPropertyLabel,
   normalizeWeightedAlchemyProperties,
@@ -66,22 +67,18 @@ export class AlchemyRecipePlanner {
     materials: PreparedAlchemyMaterial[];
     userPrompt?: string;
   }): Promise<AlchemyRecipePlan> {
-    const payloadJson = JSON.stringify(
-      {
-        materials: input.materials.map((material) => ({
-          materialRef: material.materialRef,
-          materialName: material.name,
-          type: material.type,
-          rank: material.rank,
-          element: material.element,
-          dose: material.dose,
-          description: material.description,
-        })),
-        userPrompt: input.userPrompt?.trim() || '',
-      },
-      null,
-      2,
-    );
+    const payloadJson = stableCompactStringify({
+      materials: input.materials.map((material) => ({
+        materialRef: material.materialRef,
+        materialName: material.name,
+        type: material.type,
+        rank: material.rank,
+        element: material.element,
+        dose: material.dose,
+        description: truncateText(material.description, 64),
+      })),
+      userPrompt: input.userPrompt?.trim() || '',
+    });
 
     const { system, user } = renderPrompt('alchemy-recipe-plan', {
       propertyGuide: buildPropertyGuide(),
@@ -96,6 +93,7 @@ export class AlchemyRecipePlanner {
         {
           schema: alchemyRecipePlanSchema,
           schemaName: 'AlchemyRecipePlan',
+          sceneId: 'alchemy-recipe-plan',
         },
         this.options.fastModel ?? true,
       ),

@@ -724,6 +724,11 @@ export const router = createBrowserRouter(
           handle={title('新建兑换码')}
         />
         <Route
+          path="llm-metrics"
+          lazy={lazyRoute(() => import('@app/routes/admin/llm-metrics/route'))}
+          handle={title('LLM 观测')}
+        />
+        <Route
           path="community-group"
           lazy={lazyRoute(
             () => import('@app/routes/admin/community-qrcode/route'),

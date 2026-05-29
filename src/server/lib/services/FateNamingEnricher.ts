@@ -1,5 +1,6 @@
 import { renderPrompt } from '@server/lib/prompts';
 import { object } from '@server/utils/aiClient';
+import { stableCompactStringify, truncateText } from '@server/utils/llmPayload';
 import type { Quality } from '@shared/types/constants';
 import z from 'zod';
 
@@ -59,19 +60,15 @@ export class FateNamingEnricher {
     if (!enabled || facts.length === 0) return null;
 
     try {
-      const candidatesJson = JSON.stringify(
-        {
-          candidates: facts.map((fact) => ({
-            quality: fact.quality,
-            primaryEffectLabel: fact.primaryEffectLabel,
-            burdenEffectLabel: fact.burdenEffectLabel,
-            isDualSided: fact.isDualSided,
-            fallbackDescription: fact.fallbackDescription,
-          })),
-        },
-        null,
-        2,
-      );
+      const candidatesJson = stableCompactStringify({
+        candidates: facts.map((fact) => ({
+          quality: fact.quality,
+          primaryEffectLabel: fact.primaryEffectLabel,
+          burdenEffectLabel: fact.burdenEffectLabel,
+          isDualSided: fact.isDualSided,
+          fallbackDescription: truncateText(fact.fallbackDescription, 40),
+        })),
+      });
       const { system, user } = renderPrompt('fate-naming', { candidatesJson });
       const response = await this.withTimeout(
         object(
@@ -80,6 +77,7 @@ export class FateNamingEnricher {
           {
             schema: fateNamingSchema,
             schemaName: 'FateNamingBatch',
+            sceneId: 'fate-naming',
           },
           true,
         ),

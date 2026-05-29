@@ -1,5 +1,6 @@
 import { renderPrompt } from '@server/lib/prompts';
 import { object } from '@server/utils/aiClient';
+import { stableCompactStringify, truncateText } from '@server/utils/llmPayload';
 import type {
   EnemyCopyPayload,
   EnemyCopyProvider,
@@ -49,8 +50,35 @@ export class ServerEnemyCopyProvider implements EnemyCopyProvider {
     }
 
     try {
+      const factsJson = stableCompactStringify({
+        race: draft.copyFacts.race,
+        realm: draft.copyFacts.realm,
+        realmStage: draft.copyFacts.realmStage,
+        difficulty: draft.copyFacts.difficulty,
+        difficultyFactor: draft.copyFacts.difficultyFactor,
+        primaryElement: draft.copyFacts.primaryElement,
+        secondaryElement: draft.copyFacts.secondaryElement,
+        profileTags: draft.copyFacts.profileTags,
+        personaTags: draft.copyFacts.personaTags,
+        character: draft.copyFacts.character,
+        products: draft.copyFacts.products.map((product) => ({
+          id: product.id,
+          productType: product.productType,
+          role: product.role,
+          quality: product.quality,
+          element: product.element,
+          slot: product.slot,
+          narrativeTags: product.narrativeTags,
+          affixNames: product.affixNames.slice(0, 4),
+          fallbackName: product.fallbackName,
+          fallbackDescriptionSummary: truncateText(
+            product.fallbackDescription,
+            56,
+          ),
+        })),
+      });
       const { system, user } = renderPrompt('enemy-narrative', {
-        factsJson: JSON.stringify(draft.copyFacts, null, 2),
+        factsJson,
       });
       const response = await this.withTimeout(
         object(
@@ -59,6 +87,7 @@ export class ServerEnemyCopyProvider implements EnemyCopyProvider {
           {
             schema: enemyCopySchema,
             schemaName: 'EnemyCopyPayload',
+            sceneId: 'enemy-narrative',
           },
           true,
         ),

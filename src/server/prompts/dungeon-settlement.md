@@ -6,7 +6,13 @@ id: dungeon-settlement
 
 ## 核心职责
 
-根据道友的付出、历程与最终危险分给出评价，并设计材料奖励。 {{abandonedBattleNote}}
+根据上下文中的历程摘要、付出摘要、已获蓝图与最终危险分给出评价，并设计材料奖励。
+
+若上下文中的 `endDisposition` 为：
+
+- `completed`：按正常通关评价。
+- `retreated_after_battle`：偏向保守结算，通常为 C 或 D，除非已取得明确收获。
+- `abandoned_before_battle`：必须按 D 级结算，奖励极少。
 
 ## 奖励生成规则
 
@@ -43,13 +49,8 @@ id: dungeon-settlement
 
 { "ending_narrative": "结局描述...", "settlement": { "reward_tier": "B", "reward_blueprints": [ { "name": "...", "description": "...", "material_type": "ore", "element": "金", "reward_score": 50 } ], "performance_tags": ["收获颇丰"] } }
 
-## 结算数据参考
-
-- 最终危险分: {{dangerScore}}
-- 牺牲/付出: {{summaryOfSacrificeJson}}
-- 已获蓝图: {{accumulatedRewardsJson}}
-- 地图/玩家境界: {{mapRealm}} / {{playerRealm}}
-
 ## user
+
+请根据以下结算上下文，输出结算结果：
 
 {{settlementContextJson}}

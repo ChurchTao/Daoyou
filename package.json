@@ -12,6 +12,7 @@
     "check": "bun run build",
     "dev": "vite",
     "lint": "eslint .",
+    "llm:cost-report": "bun scripts/llm-cost-report.ts",
     "preview": "bun run build && bun run dist/index.js",
     "start": "bun run dist/index.js",
     "test": "vitest run"

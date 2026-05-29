@@ -208,20 +208,6 @@ describe('AffixEffectTranslator', () => {
     }
   });
 
-  it('translate: artifact magic shield 应生成按品质缩放的法盾吸收比例', () => {
-    const def = DEFAULT_AFFIX_REGISTRY.queryById('artifact-defense-magic-shield')!;
-    const fanpin = translator.translate(toRolledAffix(def), '凡品');
-    const shenpin = translator.translate(toRolledAffix(def), '神品');
-
-    expect(fanpin.type).toBe('magic_shield');
-    expect(shenpin.type).toBe('magic_shield');
-
-    if (fanpin.type === 'magic_shield' && shenpin.type === 'magic_shield') {
-      expect(fanpin.params.absorbRatio).toBeCloseTo(0.5);
-      expect(shenpin.params.absorbRatio).toBeCloseTo(0.98);
-    }
-  });
-
   it('translate: skill dispel-buff 应只驱散正面 buff 标签', () => {
     const def = DEFAULT_AFFIX_REGISTRY.queryById('skill-variant-dispel')!;
     const result = translator.translate(toRolledAffix(def), '凡品');

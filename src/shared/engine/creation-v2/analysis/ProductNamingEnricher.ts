@@ -1,6 +1,7 @@
 import { renderPrompt } from '@server/lib/prompts';
 import type { TemplateVariableMap } from '@server/lib/template/render';
 import { object } from '@server/utils/aiClient';
+import { truncateText } from '@server/utils/llmPayload';
 import { ElementType, EquipmentSlot, Quality } from '@shared/types/constants';
 import z from 'zod';
 import { CreationProductType, RolledAffix } from '../types';
@@ -38,6 +39,25 @@ interface ProductNamingPromptVariables extends TemplateVariableMap {
 
 /** 单次 LLM 命名调用超时（毫秒）。失败后走 fallback 保留基础名。 */
 const DEFAULT_NAMING_TIMEOUT_MS = 30_000;
+const MAX_AFFIX_LINES = 4;
+const MAX_MATERIAL_NAMES = 6;
+
+function shouldIncludeAffixDescription(affix: RolledAffix): boolean {
+  return affix.name.trim().length <= 2;
+}
+
+function formatAffixLines(affixes: RolledAffix[]): string {
+  if (affixes.length === 0) return '- 无显著词缀';
+
+  return affixes
+    .slice(0, MAX_AFFIX_LINES)
+    .map((affix) =>
+      shouldIncludeAffixDescription(affix) && affix.description
+        ? `- ${affix.name}：${truncateText(affix.description, 18)}`
+        : `- ${affix.name}`,
+    )
+    .join('\n');
+}
 
 /**
  * DeepSeek 命名增强器。
@@ -83,13 +103,13 @@ export class DeepSeekProductNamingEnricher {
     const variables = this.buildPromptVariables(facts);
     const { system, user } = renderPrompt('product-naming', variables);
 
-    console.log('炼器命名调用参数：', user);
     return await object(
       system,
       user,
       {
         schema: namingResultSchema,
         schemaName: 'ProductNamingResult',
+        sceneId: 'product-naming',
       },
       true,
     );
@@ -119,19 +139,12 @@ export class DeepSeekProductNamingEnricher {
         facts.dominantTags.length > 0
           ? facts.dominantTags.join('、')
           : '无明显意图偏向',
-      affixesText:
-        facts.rolledAffixes.length > 0
-          ? facts.rolledAffixes
-              .map((affix) =>
-                affix.description
-                  ? `- ${affix.name}：${affix.description}`
-                  : `- ${affix.name}`,
-              )
-              .join('\n')
-          : '- 无显著词缀',
+      affixesText: formatAffixLines(facts.rolledAffixes),
       materialsText:
         facts.materialNames.length > 0
-          ? Array.from(new Set(facts.materialNames)).join('、')
+          ? Array.from(new Set(facts.materialNames))
+              .slice(0, MAX_MATERIAL_NAMES)
+              .join('、')
           : '无',
       playerIntentText: facts.userPrompt?.trim() || '无',
     };

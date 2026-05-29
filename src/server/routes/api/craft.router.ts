@@ -23,6 +23,7 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
+import { normalizeFreeformLlmInput } from '@server/utils/llmPayload';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import {
   CREATION_CRAFT_TYPES,
@@ -212,13 +213,16 @@ router.post('/', requireActiveCultivator(), async (c) => {
       requestedSlot,
       requestedTargetPolicy,
     } = parsed.data;
+    const normalizedUserPrompt = userPrompt
+      ? normalizeFreeformLlmInput(userPrompt)
+      : undefined;
 
     if (!materialIds || materialIds.length === 0) {
       return c.json({ error: '参数缺失，请选择材料' }, 400);
     }
     if (craftType === 'alchemy') {
       const resolvedAlchemyMode = alchemyMode ?? 'improvised';
-      if (resolvedAlchemyMode === 'improvised' && !userPrompt?.trim()) {
+      if (resolvedAlchemyMode === 'improvised' && !normalizedUserPrompt) {
         return c.json({ error: '请注入神念，描述丹药功效。' }, 400);
       }
       if (resolvedAlchemyMode === 'formula' && !formulaId) {
@@ -234,7 +238,7 @@ router.post('/', requireActiveCultivator(), async (c) => {
           )
         : await processAlchemyCraft(cultivator.id, materialIds, {
             materialQuantities,
-            userPrompt,
+            userPrompt: normalizedUserPrompt,
           });
       try {
         await TaskService.recordTaskEvent(cultivator.id, 'alchemy_crafted');
@@ -247,7 +251,7 @@ router.post('/', requireActiveCultivator(), async (c) => {
 
     const result = await processCreation(cultivator.id, materialIds, craftType, {
       materialQuantities,
-      userPrompt,
+      userPrompt: normalizedUserPrompt,
       requestedSlot,
       requestedTargetPolicy,
     });

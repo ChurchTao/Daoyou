@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type MockRedisClient = {
   handlers: Map<string, (...args: any[]) => void>;
+  disconnect: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
   ping: ReturnType<typeof vi.fn>;
 };
@@ -12,6 +13,7 @@ const { createRedisClientMock, redisConstructorMock } = vi.hoisted(() => {
 
     return {
       handlers,
+      disconnect: vi.fn(),
       on: vi.fn((event: string, handler: (...args: any[]) => void) => {
         handlers.set(event, handler);
       }),
@@ -107,6 +109,23 @@ describe('redis client', () => {
 
     expect(getRedisClient()).toBe(replacementClient);
     expect(getRedisClient()).not.toBe(firstClient);
+    expect(redisConstructorMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('resets the singleton client after a timed out command', async () => {
+    const { redis } = await import('./index');
+
+    currentClient.ping.mockRejectedValueOnce(new Error('Command timed out'));
+
+    await expect(redis.ping()).rejects.toThrow('Command timed out');
+    expect(currentClient.disconnect).toHaveBeenCalledWith(false);
+
+    const replacementClient = createRedisClientMock();
+    replacementClient.ping.mockResolvedValueOnce('PONG');
+    currentClient = replacementClient;
+    redisConstructorMock.mockImplementation(() => currentClient);
+
+    await expect(redis.ping()).resolves.toBe('PONG');
     expect(redisConstructorMock).toHaveBeenCalledTimes(2);
   });
 

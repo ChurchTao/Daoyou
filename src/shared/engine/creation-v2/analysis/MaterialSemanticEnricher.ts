@@ -1,5 +1,9 @@
 import { renderPrompt } from '@server/lib/prompts';
 import { object } from '@server/utils/aiClient';
+import {
+  stableCompactStringify,
+  truncateText,
+} from '@server/utils/llmPayload';
 import { CREATION_TAG_DESCRIPTIONS } from '@shared/engine/shared/tag-domain';
 import { Material } from '@shared/types/cultivator';
 import z from 'zod';
@@ -100,22 +104,17 @@ export class DeepSeekMaterialSemanticEnricher implements MaterialSemanticEnriche
           return `- ${tag}（${desc.name}）：${desc.description}。示例：${desc.examples}`;
         })
         .join('\n');
-      const payloadJson = JSON.stringify(
-        {
-          allowlist,
-          materials: materials.map((material, index) => ({
-            materialId: material.id,
-            materialName: material.name,
-            description: material.description,
-            rank: material.rank,
-            type: material.type,
-            element: material.element,
-            existingRuleTags: fingerprints[index]?.semanticTags ?? [],
-          })),
-        },
-        null,
-        2,
-      );
+      const payloadJson = stableCompactStringify({
+        materials: materials.map((material, index) => ({
+          materialId: material.id,
+          materialName: material.name,
+          description: truncateText(material.description, 64),
+          rank: material.rank,
+          type: material.type,
+          element: material.element,
+          existingRuleTags: fingerprints[index]?.semanticTags ?? [],
+        })),
+      });
       const { system, user } = renderPrompt('material-semantic-enrichment', {
         tagGuide,
         payloadJson,
@@ -127,6 +126,7 @@ export class DeepSeekMaterialSemanticEnricher implements MaterialSemanticEnriche
           {
             schema: enrichmentSchema,
             schemaName: 'CreationMaterialSemanticEnrichment',
+            sceneId: 'material-semantic-enrichment',
           },
           this.fastModel,
         ),

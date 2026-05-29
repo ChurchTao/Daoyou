@@ -2,21 +2,166 @@ import { AlibabaLanguageModelOptions, createAlibaba } from '@ai-sdk/alibaba';
 import { createDeepSeek, DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { getCurrentContext } from '@server/lib/http/context';
-import { generateText, streamText, ToolSet } from 'ai';
+import { recordLlmCallMetric } from '@server/lib/llm/metricsStore';
+import { stableCompactStringify } from '@server/utils/llmPayload';
+import { generateText, LanguageModel, streamText, ToolSet } from 'ai';
 import { jsonrepair } from 'jsonrepair';
 import z from 'zod';
 
-/**
- * 注入 Schema 到 System Prompt
- */
-const injectSystemWithSchema = (system: string, schema: z.ZodType<unknown>) => {
-  const jsonSchema = schema.toJSONSchema();
-  return `${system}
+export type LlmSceneId =
+  | 'alchemy-improvised-copy'
+  | 'alchemy-recipe-plan'
+  | 'battle-report'
+  | 'breakthrough-story'
+  | 'character-generation'
+  | 'divine-fortune'
+  | 'dungeon-round'
+  | 'dungeon-settlement'
+  | 'enemy-narrative'
+  | 'fate-naming'
+  | 'lifespan-exhausted'
+  | 'material-generation'
+  | 'material-semantic-enrichment'
+  | 'product-naming'
+  | 'yield-story';
+
+export interface LlmCallMetrics {
+  sceneId: LlmSceneId | 'unknown';
+  provider: string;
+  model: string;
+  systemChars: number;
+  userChars: number;
+  schemaChars: number;
+  retryCount: number;
+  usage: Record<string, number>;
+  status: 'success' | 'failure';
+}
+
+type StructuredLlmOptions<T> = {
+  schema: z.ZodType<T>;
+  schemaName?: string;
+  schemaDescription?: string;
+  llmSchema?: z.ZodType<unknown>;
+  llmConstraint?: string;
+  sceneId?: LlmSceneId;
+};
+
+type LlmTextOptions = {
+  sceneId?: LlmSceneId;
+};
+
+type ResolvedModelHandle = {
+  model: LanguageModel;
+  providerName: string;
+  modelName: string;
+};
+
+function resolveProviderName(override?: LlmOverrideConfig): string {
+  return (
+    getEffectiveProvider(override) ??
+    process.env.PROVIDER_CHOOSE ??
+    'openai-compatible'
+  );
+}
+
+function buildStructuredConstraintText<T>(
+  options: StructuredLlmOptions<T>,
+): string {
+  if (options.llmConstraint?.trim()) {
+    return options.llmConstraint.trim();
+  }
+
+  const schema = options.llmSchema ?? options.schema;
+  return stableCompactStringify(schema.toJSONSchema());
+}
+
+export function buildStructuredSystemPrompt<T>(
+  system: string,
+  options: StructuredLlmOptions<T>,
+): {
+  systemPrompt: string;
+  schemaChars: number;
+} {
+  const constraintText = buildStructuredConstraintText(options);
+  return {
+    systemPrompt: `${system}
 
 [输出 JSON 格式要求]
 你必须遵循以下 JSON Schema 进行输出：
-${JSON.stringify(jsonSchema, null, 2)}`;
-};
+${constraintText}`,
+    schemaChars: constraintText.length,
+  };
+}
+
+function summarizeUsage(usage: unknown): Record<string, number> {
+  if (!usage || typeof usage !== 'object') {
+    return {};
+  }
+
+  return Object.entries(usage as Record<string, unknown>).reduce<
+    Record<string, number>
+  >((acc, [key, value]) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+}
+
+function accumulateUsage(
+  total: Record<string, number>,
+  usage: unknown,
+): Record<string, number> {
+  const summarized = summarizeUsage(usage);
+  for (const [key, value] of Object.entries(summarized)) {
+    total[key] = (total[key] ?? 0) + value;
+  }
+  return total;
+}
+
+function logLlmCallMetrics(metrics: LlmCallMetrics): void {
+  console.info('[LLM_METRICS]', JSON.stringify(metrics));
+  recordLlmCallMetric(metrics);
+}
+
+function baseMetrics(args: {
+  sceneId?: LlmSceneId;
+  provider: string;
+  model: string;
+  systemChars: number;
+  userChars: number;
+  schemaChars?: number;
+  retryCount?: number;
+  usage?: unknown;
+  status: 'success' | 'failure';
+}): LlmCallMetrics {
+  return {
+    sceneId: args.sceneId ?? 'unknown',
+    provider: args.provider,
+    model: args.model,
+    systemChars: args.systemChars,
+    userChars: args.userChars,
+    schemaChars: args.schemaChars ?? 0,
+    retryCount: args.retryCount ?? 0,
+    usage: summarizeUsage(args.usage),
+    status: args.status,
+  };
+}
+
+function injectSystemWithSchema<T>(
+  system: string,
+  options: StructuredLlmOptions<T>,
+): {
+  systemPrompt: string;
+  schemaChars: number;
+} {
+  return buildStructuredSystemPrompt(system, options);
+}
+
+function getArkRandomModel() {
+  const models = process.env.ARK_MODEL_USE!.split(',');
+  return models[Math.floor(Math.random() * models.length)];
+}
 
 /**
  * 从请求上下文读取用户自定义 LLM 配置
@@ -52,9 +197,7 @@ function getEffectiveProvider(
   return (override ?? getUserLlmConfig())?.provider;
 }
 
-function kimiTemperature(
-  override?: LlmOverrideConfig,
-): number | undefined {
+function kimiTemperature(override?: LlmOverrideConfig): number | undefined {
   return getEffectiveProvider(override) === 'kimi' ? 0.6 : undefined;
 }
 
@@ -103,65 +246,101 @@ function getProvider(override?: LlmOverrideConfig) {
   });
 }
 
-const getArkRandomModel = () => {
-  const models = process.env.ARK_MODEL_USE!.split(',');
-  return models[Math.floor(Math.random() * models.length)];
-};
-
 /**
  * 获取 Model 实例
  */
-export function getModel(
+function resolveModelHandle(
   fast: boolean = false,
   override?: LlmOverrideConfig,
-) {
+): ResolvedModelHandle {
   const userConfig = override ?? getUserLlmConfig();
+  const providerName = resolveProviderName(override);
 
   if (userConfig) {
-    const model = fast ? userConfig.fastModel : userConfig.model;
+    const modelName = fast ? userConfig.fastModel : userConfig.model;
     if (userConfig.provider === 'alibaba') {
       const alibabaProvider = createAlibaba({
         apiKey: userConfig.apiKey,
         baseURL: userConfig.baseUrl ?? undefined,
       });
-      return alibabaProvider.languageModel(model);
+      return {
+        model: alibabaProvider.languageModel(modelName),
+        providerName,
+        modelName,
+      };
     }
     const provider = getProvider(override);
-    return provider(model);
+    return {
+      model: provider(modelName),
+      providerName,
+      modelName,
+    };
   }
 
   const provider = getProvider(override);
   if (process.env.PROVIDER_CHOOSE === 'ark') {
-    const model = fast ? process.env.ARK_MODEL_FAST_USE : getArkRandomModel();
-    return provider(model!);
+    const modelName = fast
+      ? process.env.ARK_MODEL_FAST_USE!
+      : getArkRandomModel();
+    return {
+      model: provider(modelName),
+      providerName,
+      modelName,
+    };
   } else if (process.env.PROVIDER_CHOOSE === 'kimi') {
-    const model = fast
+    const modelName = fast
       ? process.env.KIMI_MODEL_FAST_USE
       : process.env.KIMI_MODEL_USE;
-    return provider(model!);
+    return {
+      model: provider(modelName!),
+      providerName,
+      modelName: modelName!,
+    };
   } else if (process.env.PROVIDER_CHOOSE === 'alibaba') {
-    const model = fast
+    const modelName = fast
       ? process.env.ALIBABA_MODEL_FAST_USE
       : process.env.ALIBABA_MODEL_USE;
     const alibabaProvider = createAlibaba({
       apiKey: process.env.ALIBABA_API_KEY,
       baseURL: process.env.ALIBABA_BASE_URL,
     });
-    return alibabaProvider.languageModel(model!);
+    return {
+      model: alibabaProvider.languageModel(modelName!),
+      providerName,
+      modelName: modelName!,
+    };
   } else if (process.env.PROVIDER_CHOOSE === 'openrouter') {
-    const model = fast
+    const modelName = fast
       ? process.env.OPENROUTER_MODEL_FAST_USE
       : process.env.OPENROUTER_MODEL_USE;
-    return provider(model!);
+    return {
+      model: provider(modelName!),
+      providerName,
+      modelName: modelName!,
+    };
   } else if (process.env.PROVIDER_CHOOSE === 'deepseek') {
-    const model = fast
+    const modelName = fast
       ? process.env.DEEPSEEK_MODEL_FAST_USE
       : process.env.DEEPSEEK_MODEL_USE;
-    return provider(model!);
+    return {
+      model: provider(modelName!),
+      providerName,
+      modelName: modelName!,
+    };
   } else {
-    const model = fast ? process.env.FAST_MODEL : process.env.OPENAI_MODEL;
-    return provider(model!);
+    const modelName = fast
+      ? process.env.FAST_MODEL!
+      : process.env.OPENAI_MODEL!;
+    return {
+      model: provider(modelName),
+      providerName,
+      modelName,
+    };
   }
+}
+
+export function getModel(fast: boolean = false, override?: LlmOverrideConfig) {
+  return resolveModelHandle(fast, override).model;
 }
 
 /**
@@ -172,25 +351,51 @@ export async function text(
   userInput: string,
   fast: boolean = false,
   override?: LlmOverrideConfig,
+  options: LlmTextOptions = {},
 ) {
-  const model = getModel(fast, override);
+  const { model, providerName, modelName } = resolveModelHandle(fast, override);
   const temperature = kimiTemperature(override);
-  const res = await generateText({
-    model,
-    system: prompt,
-    prompt: userInput,
-    ...(temperature !== undefined && { temperature }),
-    providerOptions: {
-      deepseek: {
-        thinking: { type: 'disabled' },
-      } satisfies DeepSeekLanguageModelOptions,
-      alibaba: {
-        enableThinking: false,
-        thinkingBudget: 2048,
-      } satisfies AlibabaLanguageModelOptions,
-    },
-  });
-  return res;
+  try {
+    const res = await generateText({
+      model,
+      system: prompt,
+      prompt: userInput,
+      ...(temperature !== undefined && { temperature }),
+      providerOptions: {
+        deepseek: {
+          thinking: { type: 'disabled' },
+        } satisfies DeepSeekLanguageModelOptions,
+        alibaba: {
+          enableThinking: false,
+          thinkingBudget: 2048,
+        } satisfies AlibabaLanguageModelOptions,
+      },
+    });
+    logLlmCallMetrics(
+      baseMetrics({
+        sceneId: options.sceneId,
+        provider: providerName,
+        model: modelName,
+        systemChars: prompt.length,
+        userChars: userInput.length,
+        usage: res.usage,
+        status: 'success',
+      }),
+    );
+    return res;
+  } catch (error) {
+    logLlmCallMetrics(
+      baseMetrics({
+        sceneId: options.sceneId,
+        provider: providerName,
+        model: modelName,
+        systemChars: prompt.length,
+        userChars: userInput.length,
+        status: 'failure',
+      }),
+    );
+    throw error;
+  }
 }
 
 /**
@@ -201,60 +406,29 @@ export function stream_text(
   userInput: string,
   fast: boolean = false,
   thinking: boolean = false,
+  options: LlmTextOptions = {},
 ) {
-  const model = getModel(fast);
+  const { model, providerName, modelName } = resolveModelHandle(fast);
   const temperature = kimiTemperature();
-  return streamText({
-    model,
-    system: prompt,
-    prompt: userInput,
-    ...(temperature !== undefined && { temperature }),
-    onFinish: (res) => {
-      console.debug('AI生成Text Stream：usage', res.usage);
-    },
-    providerOptions: {
-      deepseek: {
-        thinking: { type: thinking ? 'enabled' : 'disabled' },
-      } satisfies DeepSeekLanguageModelOptions,
-      alibaba: {
-        enableThinking: thinking,
-        thinkingBudget: 2048,
-      } satisfies AlibabaLanguageModelOptions,
-    },
-  });
-}
-
-/**
- * 核心逻辑：生成结构化数据并进行手动校验与重试
- */
-async function generateStructuredData<T>(
-  prompt: string,
-  userInput: string,
-  options: {
-    schema: z.ZodType<T>;
-    schemaName?: string;
-    schemaDescription?: string;
-  },
-  fast: boolean = false,
-  thinking: boolean = false,
-) {
-  const maxRetries = 3;
-  let lastError: z.ZodError<T> | undefined = undefined;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    // 每次重试降低温度：1.0 -> 0.7 -> 0.4 (更加稳定)
-    const kimiTemp = kimiTemperature();
-    const temperature =
-      kimiTemp !== undefined
-        ? Math.max(0, kimiTemp - attempt * 0.2)
-        : Math.max(0, 1 - attempt * 0.3);
-    const model = getModel(fast);
-    const res = await generateText({
+  try {
+    return streamText({
       model,
-      temperature,
-      system: injectSystemWithSchema(prompt, options.schema),
+      system: prompt,
       prompt: userInput,
-      // output: Output.json(),
+      ...(temperature !== undefined && { temperature }),
+      onFinish: (res) => {
+        logLlmCallMetrics(
+          baseMetrics({
+            sceneId: options.sceneId,
+            provider: providerName,
+            model: modelName,
+            systemChars: prompt.length,
+            userChars: userInput.length,
+            usage: res.usage,
+            status: 'success',
+          }),
+        );
+      },
       providerOptions: {
         deepseek: {
           thinking: { type: thinking ? 'enabled' : 'disabled' },
@@ -265,6 +439,83 @@ async function generateStructuredData<T>(
         } satisfies AlibabaLanguageModelOptions,
       },
     });
+  } catch (error) {
+    logLlmCallMetrics(
+      baseMetrics({
+        sceneId: options.sceneId,
+        provider: providerName,
+        model: modelName,
+        systemChars: prompt.length,
+        userChars: userInput.length,
+        status: 'failure',
+      }),
+    );
+    throw error;
+  }
+}
+
+/**
+ * 核心逻辑：生成结构化数据并进行手动校验与重试
+ */
+async function generateStructuredData<T>(
+  prompt: string,
+  userInput: string,
+  options: StructuredLlmOptions<T>,
+  fast: boolean = false,
+  thinking: boolean = false,
+) {
+  const maxRetries = 3;
+  let lastError: z.ZodError<T> | undefined = undefined;
+  let lastUsage: Record<string, number> = {};
+  const { systemPrompt, schemaChars } = injectSystemWithSchema(prompt, options);
+  let lastProviderName = resolveProviderName();
+  let lastModelName = '';
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // 每次重试降低温度：1.0 -> 0.7 -> 0.4 (更加稳定)
+    const kimiTemp = kimiTemperature();
+    const temperature =
+      kimiTemp !== undefined
+        ? Math.max(0, kimiTemp - attempt * 0.2)
+        : Math.max(0, 1 - attempt * 0.3);
+    const { model, providerName, modelName } = resolveModelHandle(fast);
+    lastProviderName = providerName;
+    lastModelName = modelName;
+    let res;
+    try {
+      res = await generateText({
+        model,
+        temperature,
+        system: systemPrompt,
+        prompt: userInput,
+        // output: Output.json(),
+        providerOptions: {
+          deepseek: {
+            thinking: { type: thinking ? 'enabled' : 'disabled' },
+          } satisfies DeepSeekLanguageModelOptions,
+          alibaba: {
+            enableThinking: thinking,
+            thinkingBudget: 2048,
+          } satisfies AlibabaLanguageModelOptions,
+        },
+      });
+    } catch (error) {
+      logLlmCallMetrics(
+        baseMetrics({
+          sceneId: options.sceneId,
+          provider: providerName,
+          model: modelName,
+          systemChars: prompt.length,
+          userChars: userInput.length,
+          schemaChars,
+          retryCount: attempt,
+          usage: lastUsage,
+          status: 'failure',
+        }),
+      );
+      throw error;
+    }
+    lastUsage = accumulateUsage(lastUsage, res.usage);
     let json;
     try {
       json = JSON.parse(res.output);
@@ -278,6 +529,19 @@ async function generateStructuredData<T>(
       if (attempt > 0) {
         console.info(`结构化数据在第 ${attempt + 1} 次尝试成功。`);
       }
+      logLlmCallMetrics(
+        baseMetrics({
+          sceneId: options.sceneId,
+          provider: providerName,
+          model: modelName,
+          systemChars: prompt.length,
+          userChars: userInput.length,
+          schemaChars,
+          retryCount: attempt,
+          usage: lastUsage,
+          status: 'success',
+        }),
+      );
       return {
         ...res,
         object: parsed.data,
@@ -291,6 +555,20 @@ async function generateStructuredData<T>(
     lastError = parsed.error;
   }
 
+  logLlmCallMetrics(
+    baseMetrics({
+      sceneId: options.sceneId,
+      provider: lastProviderName,
+      model: lastModelName,
+      systemChars: prompt.length,
+      userChars: userInput.length,
+      schemaChars,
+      retryCount: maxRetries - 1,
+      usage: lastUsage,
+      status: 'failure',
+    }),
+  );
+
   throw new Error(
     `无法生成符合要求的结构化数据。尝试：${maxRetries}次。最后错误：${lastError?.message || '未知错误'}`,
   );
@@ -302,11 +580,7 @@ async function generateStructuredData<T>(
 export async function object<T>(
   prompt: string,
   userInput: string,
-  options: {
-    schemaName?: string;
-    schemaDescription?: string;
-    schema: z.ZodType<T>;
-  },
+  options: StructuredLlmOptions<T>,
   fast: boolean = false,
   thinking: boolean = false,
 ) {
@@ -319,11 +593,7 @@ export async function object<T>(
 export async function objectArray<T>(
   prompt: string,
   userInput: string,
-  options: {
-    schemaName?: string;
-    schemaDescription?: string;
-    schema: z.ZodType<T>;
-  },
+  options: StructuredLlmOptions<T>,
   fast: boolean = false,
   thinking: boolean = false,
 ) {
@@ -339,25 +609,50 @@ export async function tool(
   userInput: string,
   tools: ToolSet,
   thinking: boolean = false,
+  options: LlmTextOptions = {},
 ) {
-  const model = getModel();
+  const { model, providerName, modelName } = resolveModelHandle();
   const temperature = kimiTemperature();
-  const res = await generateText({
-    model,
-    system: prompt,
-    prompt: userInput,
-    tools,
-    ...(temperature !== undefined && { temperature }),
-    providerOptions: {
-      deepseek: {
-        thinking: { type: thinking ? 'enabled' : 'disabled' },
-      } satisfies DeepSeekLanguageModelOptions,
-      alibaba: {
-        enableThinking: thinking,
-        thinkingBudget: 2048,
-      } satisfies AlibabaLanguageModelOptions,
-    },
-  });
-  console.debug('AI工具调用完成：usage', res.usage);
-  return res;
+  try {
+    const res = await generateText({
+      model,
+      system: prompt,
+      prompt: userInput,
+      tools,
+      ...(temperature !== undefined && { temperature }),
+      providerOptions: {
+        deepseek: {
+          thinking: { type: thinking ? 'enabled' : 'disabled' },
+        } satisfies DeepSeekLanguageModelOptions,
+        alibaba: {
+          enableThinking: thinking,
+          thinkingBudget: 2048,
+        } satisfies AlibabaLanguageModelOptions,
+      },
+    });
+    logLlmCallMetrics(
+      baseMetrics({
+        sceneId: options.sceneId,
+        provider: providerName,
+        model: modelName,
+        systemChars: prompt.length,
+        userChars: userInput.length,
+        usage: res.usage,
+        status: 'success',
+      }),
+    );
+    return res;
+  } catch (error) {
+    logLlmCallMetrics(
+      baseMetrics({
+        sceneId: options.sceneId,
+        provider: providerName,
+        model: modelName,
+        systemChars: prompt.length,
+        userChars: userInput.length,
+        status: 'failure',
+      }),
+    );
+    throw error;
+  }
 }

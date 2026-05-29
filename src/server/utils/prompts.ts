@@ -19,6 +19,14 @@ interface BattlePromptPayload {
   };
 }
 
+function summarizeRootElements(cultivator: Cultivator): string {
+  return cultivator.spiritual_roots?.map((root) => root.element).join('，') ?? '未知';
+}
+
+function summarizeFateNames(cultivator: Cultivator): string {
+  return cultivator.pre_heaven_fates?.map((fate) => fate.name).join('，') ?? '无';
+}
+
 function formatSpansAsBattleLog(spans: LogSpan[]): string {
   const byTurn = new Map<number, string[]>();
   for (const span of spans) {
@@ -109,19 +117,10 @@ export function getBreakthroughStoryPrompt({
   cultivator,
   summary,
 }: BreakthroughStoryPayload): [string, string] {
-  const roots =
-    cultivator.spiritual_roots
-      ?.map(
-        (root) =>
-          `${root.element}${root.grade ? `(${root.grade}/${root.strength})` : ''}`,
-      )
-      .join('，') ?? '未知';
+  const roots = summarizeRootElements(cultivator);
   const cultivations =
     cultivator.cultivations?.map((cult) => cult.name).join('，') ?? '无';
-  const fates =
-    cultivator.pre_heaven_fates
-      ?.map((fate) => `${fate.name}(${fate.description})`)
-      .join('，') ?? '无';
+  const fates = summarizeFateNames(cultivator);
   const attributeGain = formatAttributeGrowth(summary.attributeGrowth);
   const targetRealm = summary.toRealm ?? summary.fromRealm;
   const targetStage = summary.toStage ?? summary.fromStage;
@@ -171,17 +170,8 @@ export function getLifespanExhaustedStoryPrompt({
   cultivator,
   summary,
 }: LifespanExhaustedStoryPayload): [string, string] {
-  const roots =
-    cultivator.spiritual_roots
-      ?.map(
-        (root) =>
-          `${root.element}${root.grade ? `(${root.grade}/${root.strength})` : ''}`,
-      )
-      .join('，') ?? '未知';
-  const fates =
-    cultivator.pre_heaven_fates
-      ?.map((fate) => `${fate.name}(${fate.description})`)
-      .join('，') ?? '无';
+  const roots = summarizeRootElements(cultivator);
+  const fates = summarizeFateNames(cultivator);
   const { system, user } = renderPrompt('lifespan-exhausted', {
     name: cultivator.name,
     realm: cultivator.realm,

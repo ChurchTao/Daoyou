@@ -41,6 +41,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/redeem-codes',
   },
   {
+    title: 'LLM 观测',
+    description: '查看场景体积、usage 与缓存迹象',
+    href: '/admin/llm-metrics',
+  },
+  {
     title: 'QQ交流群',
     description: '玩家社群 QQ 群号配置',
     href: '/admin/community-group',
