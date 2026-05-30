@@ -38,6 +38,7 @@ export const ALCHEMY_PROPERTY_KEY_VALUES = [
   'detox',
   'cultivation',
   'insight',
+  'clear_mind_support',
   'breakthrough_support',
   'tempering_vitality',
   'tempering_spirit',

@@ -4,60 +4,16 @@ import {
   GameSceneNote,
 } from '@app/components/game-shell';
 import {
-  AbilityMetaLine,
-  AffixInlineList,
+  AbilityDetailModal,
+  AbilityListCard,
 } from '@app/components/feature/products';
 import {
-  InkBadge,
   InkButton,
   InkDialog,
   InkNotice,
 } from '@app/components/ui';
-import { ItemCard } from '@app/components/ui/ItemCard';
 
-import { useSkillsViewModel, type V2Skill } from '../hooks/useSkillsViewModel';
-import { SkillDetailModal } from './SkillDetailModal';
-
-function SkillCard({
-  skill,
-  onDetail,
-  onForget,
-}: {
-  skill: V2Skill;
-  onDetail: (skill: V2Skill) => void;
-  onForget: (skill: V2Skill) => void;
-}) {
-  return (
-    <ItemCard
-      icon="📜"
-      name={skill.name}
-      quality={skill.quality}
-      badgeExtra={
-        <div className="flex flex-wrap gap-1">
-          {skill.element && <InkBadge tone="default">{skill.element}</InkBadge>}
-        </div>
-      }
-      meta={
-        <div className="space-y-1">
-          <AffixInlineList affixes={skill.affixes} />
-          <AbilityMetaLine projection={skill.projection} />
-        </div>
-      }
-      description={skill.description}
-      actions={
-        <div className="flex gap-2">
-          <InkButton variant="secondary" onClick={() => onDetail(skill)}>
-            详情
-          </InkButton>
-          <InkButton className="px-2" onClick={() => onForget(skill)}>
-            遗忘
-          </InkButton>
-        </div>
-      }
-      layout="col"
-    />
-  );
-}
+import { useSkillsViewModel } from '../hooks/useSkillsViewModel';
 
 /**
  * 神通主视图组件
@@ -121,21 +77,29 @@ export function SkillsView() {
         <>
           <div className="space-y-3">
             {skills.map((skill) => (
-              <SkillCard
+              <AbilityListCard
                 key={skill.id}
-                skill={skill}
-                onDetail={openSkillDetail}
-                onForget={openForgetConfirm}
+                product={skill}
+                actions={
+                  <div className="flex gap-2">
+                    <InkButton variant="secondary" onClick={() => openSkillDetail(skill)}>
+                      详情
+                    </InkButton>
+                    <InkButton className="px-2" onClick={() => openForgetConfirm(skill)}>
+                      遗忘
+                    </InkButton>
+                  </div>
+                }
               />
             ))}
           </div>
 
           <InkDialog dialog={dialog} onClose={closeDialog} />
 
-          <SkillDetailModal
+          <AbilityDetailModal
             isOpen={isModalOpen}
             onClose={closeSkillDetail}
-            skill={selectedSkill}
+            product={selectedSkill}
           />
         </>
       )}

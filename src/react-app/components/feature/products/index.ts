@@ -1,3 +1,5 @@
+export { AbilityDetailModal } from './AbilityDetailModal';
+export { AbilityListCard } from './AbilityListCard';
 export { AbilityMetaLine } from './AbilityMetaLine';
 export { AffixChip } from './AffixChip';
 export { AffixInlineList } from './AffixInlineList';

@@ -316,6 +316,13 @@
       "when": 1779875090468,
       "tag": "0044_eager_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1780049942596,
+      "tag": "0045_breezy_black_queen",
+      "breakpoints": true
     }
   ]
 }

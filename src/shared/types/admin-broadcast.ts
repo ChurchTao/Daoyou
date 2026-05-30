@@ -17,6 +17,7 @@ export interface EmailAudienceFilter {
 }
 
 export interface GameMailAudienceFilter {
+  targetCultivatorId?: string;
   cultivatorCreatedFrom?: string;
   cultivatorCreatedTo?: string;
   realmMin?: RealmType;

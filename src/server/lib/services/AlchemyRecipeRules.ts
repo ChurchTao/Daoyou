@@ -255,6 +255,12 @@ function buildBasePropertyOperation(
         target: 'comprehension_insight',
         value: buildInsightGain(quality),
       };
+    case 'clear_mind_support':
+      return {
+        type: 'add_status',
+        status: 'clear_mind',
+        usesRemaining: 1,
+      };
     case 'breakthrough_support':
       return {
         type: 'add_status',

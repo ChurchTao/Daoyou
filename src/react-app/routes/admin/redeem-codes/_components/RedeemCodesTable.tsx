@@ -6,14 +6,54 @@ import { useEffect, useState } from 'react';
 interface RedeemCodeItem {
   id: string;
   code: string;
-  rewardPresetId: string;
-  rewardPresetName: string;
+  rewardSummary: string[];
+  rewardSource?: 'snapshot' | 'expired_legacy' | 'broken_snapshot';
   status: 'active' | 'disabled';
+  rewardPresetId?: string;
+  rewardAttachments?: unknown[] | null;
   totalLimit: number | null;
   claimedCount: number;
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
+}
+
+function getRewardSourceLabel(item: RedeemCodeItem) {
+  const hasBrokenSummary = item.rewardSummary.some(
+    (entry) => entry === '奖励快照异常' || entry === '奖励配置异常',
+  );
+  const hasExpiredLegacySummary = item.rewardSummary.includes(
+    '旧版兑换码（已失效）',
+  );
+
+  if (item.rewardSource === 'broken_snapshot') {
+    return '快照奖励异常';
+  }
+
+  if (item.rewardSource === 'snapshot') {
+    return '快照奖励';
+  }
+
+  if (item.rewardAttachments !== null && item.rewardAttachments !== undefined) {
+    return '快照奖励';
+  }
+
+  if (item.rewardPresetId === '__reward_catalog_snapshot__') {
+    if (!hasBrokenSummary && !hasExpiredLegacySummary && item.rewardSummary.length > 0) {
+      return '快照奖励';
+    }
+    return '快照奖励异常';
+  }
+
+  if (hasBrokenSummary) {
+    return '快照奖励异常';
+  }
+
+  if (!hasExpiredLegacySummary && item.rewardSummary.length > 0) {
+    return '快照奖励';
+  }
+
+  return '旧版兑换码（已失效）';
 }
 
 export function RedeemCodesTable() {
@@ -118,7 +158,7 @@ export function RedeemCodesTable() {
           <thead className="border-ink/10 text-ink-secondary border-b text-left">
             <tr>
               <th className="px-3 py-2">兑换码</th>
-              <th className="px-3 py-2">奖励包</th>
+              <th className="px-3 py-2">奖励</th>
               <th className="px-3 py-2">状态</th>
               <th className="px-3 py-2">名额</th>
               <th className="px-3 py-2">生效时间</th>
@@ -145,9 +185,11 @@ export function RedeemCodesTable() {
                 <tr key={item.id} className="border-ink/8 border-b">
                   <td className="px-3 py-2 font-mono tracking-wide">{item.code}</td>
                   <td className="px-3 py-2">
-                    <div className="font-semibold">{item.rewardPresetName}</div>
+                    <div className="font-semibold">
+                      {item.rewardSummary.join('、')}
+                    </div>
                     <div className="text-ink-secondary text-xs">
-                      {item.rewardPresetId}
+                      {getRewardSourceLabel(item)}
                     </div>
                   </td>
                   <td className="px-3 py-2">{item.status}</td>

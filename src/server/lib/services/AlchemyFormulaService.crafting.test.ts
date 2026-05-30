@@ -354,6 +354,74 @@ describe('craftFromFormula narrative copy', () => {
     });
   });
 
+  it('preserves clear_mind status effects when crafting breakthrough formulas', async () => {
+    executorState.formulaRows = [
+      {
+        ...executorState.formulaRows[0],
+        name: '清心护婴丹方',
+        description: '此方以清心定神为先，专为护住婴劫前的识海。',
+        family: 'breakthrough',
+        pattern: {
+          targetPropertyVector: [{ key: 'clear_mind_support', weight: 1 }],
+          slotCount: 1,
+        },
+        blueprint: {
+          operations: [
+            { type: 'add_status', status: 'clear_mind', usesRemaining: 1 },
+            { type: 'change_gauge', gauge: 'pillToxicity', delta: 9 },
+          ],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'long_term',
+          },
+          targetStability: 74,
+          targetToxicity: 9,
+        },
+      },
+    ];
+    executorState.materialRows = [
+      {
+        ...executorState.materialRows[0],
+        name: '静神芝',
+        description: '芝气清宁，可助清心定神，稳住识海。',
+        element: '水',
+      },
+    ];
+    plannerPlanMock.mockResolvedValueOnce({
+      materialVectors: [
+        {
+          materialRef: 'material_1',
+          materialName: '静神芝',
+          properties: [{ key: 'clear_mind_support', weight: 1 }],
+        },
+      ],
+      intentVector: [],
+      focusMode: 'balanced',
+    });
+    executorState.cultivatorRow = {
+      ...executorState.cultivatorRow,
+      realm: '金丹',
+    };
+
+    const result = await craftFromFormula('cultivator-1', 'formula-1', ['m1']);
+
+    expect(result.consumable.name).toBe('护婴丹');
+    expect(result.consumable.spec.kind).toBe('pill');
+    expect(
+      (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
+    ).toBe('long_term');
+    expect((result.consumable.spec as PillSpec).operations).toContainEqual({
+      type: 'add_status',
+      status: 'clear_mind',
+      usesRemaining: 1,
+    });
+    expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
+      breakthroughTargetRealm: '元婴',
+      breakthroughLabel: '护婴丹',
+      propertyVector: [{ key: 'clear_mind_support', weight: 1 }],
+    });
+  });
+
   it('stores formula target vector and fit metrics in formula alchemy meta', async () => {
     const result = await craftFromFormula('cultivator-1', 'formula-1', ['m1']);
 

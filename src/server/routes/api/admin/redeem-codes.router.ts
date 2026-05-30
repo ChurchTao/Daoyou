@@ -1,24 +1,30 @@
-import {
-  getRedeemPresetById,
-  getRedeemPresetOptions,
-} from '@shared/config/redeemRewardPresets';
 import { getExecutor } from '@server/lib/drizzle/db';
 import { redeemCodes } from '@server/lib/drizzle/schema';
+import { getRewardCatalog } from '@server/lib/repositories/rewardCatalogRepository';
 import {
   generateRedeemCode,
   isValidRedeemCodeFormat,
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
+import { describeRedeemCodeReward } from '@server/lib/redeem/reward';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import type { MailAttachment } from '@shared/types/mail';
+import {
+  RewardCatalogResolveError,
+  RewardSelectionsSchema,
+} from '@shared/lib/rewardCatalog';
+import { resolveRewardSelections } from '@shared/lib/rewardCatalog';
 import { and, desc, eq, type SQL } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+const SNAPSHOT_REWARD_PRESET_ID = '__reward_catalog_snapshot__';
+
 const CreateRedeemCodeSchema = z
   .object({
     code: z.string().trim().max(64).optional(),
-    rewardPresetId: z.string().trim().min(1).max(100),
+    rewardSelections: RewardSelectionsSchema.min(1, '至少选择一项奖励'),
     mailTitle: z.string().trim().min(1).max(200),
     mailContent: z.string().trim().min(1).max(10000),
     totalLimit: z.number().int().min(1).max(100000000).nullable().optional(),
@@ -60,7 +66,7 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 async function createWithAutoCode(params: {
-  rewardPresetId: string;
+  rewardAttachments: MailAttachment[];
   mailTitle: string;
   mailContent: string;
   totalLimit: number | null;
@@ -77,7 +83,8 @@ async function createWithAutoCode(params: {
         .insert(redeemCodes)
         .values({
           code,
-          rewardPresetId: params.rewardPresetId,
+          rewardPresetId: SNAPSHOT_REWARD_PRESET_ID,
+          rewardAttachments: params.rewardAttachments,
           mailTitle: params.mailTitle,
           mailContent: params.mailContent,
           totalLimit: params.totalLimit,
@@ -114,14 +121,34 @@ router.get('/', requireAdmin(), async (c) => {
     orderBy: [desc(redeemCodes.createdAt)],
   });
 
-  const presetNameMap = new Map(
-    getRedeemPresetOptions().map((item) => [item.id, item.name]),
-  );
-  const rows = items.map((item) => ({
-    ...item,
-    rewardPresetName:
-      presetNameMap.get(item.rewardPresetId) ?? item.rewardPresetId,
-  }));
+  const rows = items.map((item) => {
+    const hasRewardAttachments =
+      item.rewardAttachments !== null && item.rewardAttachments !== undefined;
+    let rewardSummary: string[];
+    let rewardSource: 'snapshot' | 'expired_legacy' | 'broken_snapshot';
+
+    if (hasRewardAttachments) {
+      try {
+        rewardSummary = describeRedeemCodeReward(item);
+        rewardSource = 'snapshot';
+      } catch {
+        rewardSummary = ['奖励配置异常'];
+        rewardSource = 'broken_snapshot';
+      }
+    } else if (item.rewardPresetId === SNAPSHOT_REWARD_PRESET_ID) {
+      rewardSummary = ['奖励快照异常'];
+      rewardSource = 'broken_snapshot';
+    } else {
+      rewardSummary = ['旧版兑换码（已失效）'];
+      rewardSource = 'expired_legacy';
+    }
+
+    return {
+      ...item,
+      rewardSummary,
+      rewardSource,
+    };
+  });
 
   return c.json({ redeemCodes: rows });
 });
@@ -143,17 +170,33 @@ router.post('/', requireAdmin(), async (c) => {
     );
   }
 
-  const preset = getRedeemPresetById(parsed.data.rewardPresetId);
-  if (!preset) {
-    return c.json({ error: '奖励预设不存在' }, 400);
-  }
-
   const startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
   const endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null;
   const totalLimit = parsed.data.totalLimit ?? null;
   const manualCode = parsed.data.code
     ? normalizeRedeemCode(parsed.data.code)
     : '';
+  let rewardAttachments: MailAttachment[] = [];
+
+  try {
+    const rewardCatalog = await getRewardCatalog();
+    rewardAttachments = resolveRewardSelections(
+      parsed.data.rewardSelections,
+      rewardCatalog,
+    );
+  } catch (error) {
+    if (error instanceof RewardCatalogResolveError) {
+      return c.json({ error: error.message }, 400);
+    }
+
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : '奖励目录加载失败',
+      },
+      500,
+    );
+  }
 
   try {
     if (manualCode) {
@@ -168,7 +211,8 @@ router.post('/', requireAdmin(), async (c) => {
         .insert(redeemCodes)
         .values({
           code: manualCode,
-          rewardPresetId: parsed.data.rewardPresetId,
+          rewardPresetId: SNAPSHOT_REWARD_PRESET_ID,
+          rewardAttachments,
           mailTitle: parsed.data.mailTitle,
           mailContent: parsed.data.mailContent,
           totalLimit,
@@ -184,7 +228,7 @@ router.post('/', requireAdmin(), async (c) => {
     }
 
     const inserted = await createWithAutoCode({
-      rewardPresetId: parsed.data.rewardPresetId,
+      rewardAttachments,
       mailTitle: parsed.data.mailTitle,
       mailContent: parsed.data.mailContent,
       totalLimit,

@@ -121,10 +121,6 @@ vi.mock('@server/utils/aiClient', () => ({
   stream_text: vi.fn(),
 }));
 
-vi.mock('@shared/config/redeemRewardPresets', () => ({
-  getRedeemPresetById: vi.fn(),
-}));
-
 vi.mock('@shared/engine/cultivation/CultivationEngine', () => ({
   attemptBreakthrough: vi.fn(),
   performCultivation: vi.fn(),
@@ -157,6 +153,7 @@ import { renderPrompt } from '@server/lib/prompts';
 import { redis } from '@server/lib/redis';
 import { getLifespanLimiter } from '@server/lib/redis/lifespanLimiter';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
+import { MailService } from '@server/lib/services/MailService';
 import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
 import { TaskService } from '@server/lib/services/TaskService';
 import {
@@ -184,6 +181,7 @@ const redisDelMock = redis.del as unknown as Mock;
 const getLifespanLimiterMock = getLifespanLimiter as unknown as Mock;
 const buildRecoveryResultMock =
   InnRecoveryService.buildRecoveryResult as unknown as Mock;
+const sendMailMock = MailService.sendMail as unknown as Mock;
 const consumeBreakthroughSupportStatusesMock =
   PillOperationExecutor.consumeBreakthroughSupportStatuses as unknown as Mock;
 const getMajorBreakthroughGateMock =
@@ -336,6 +334,129 @@ function parseSseEvents(raw: string): RetreatStreamEvent[] {
     .filter(Boolean)
     .map((payload) => JSON.parse(payload) as RetreatStreamEvent);
 }
+
+describe('cultivator redeem route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('claims a snapshot-backed redeem code and sends a reward mail', async () => {
+    const insertValuesMock = vi.fn().mockResolvedValue(undefined);
+    const tx = {
+      query: {
+        redeemCodes: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'redeem-1',
+            code: 'SPRING2026',
+            rewardAttachments: [
+              {
+                type: 'spirit_stones',
+                name: '灵石',
+                quantity: 500,
+              },
+            ],
+            status: 'active',
+            startsAt: null,
+            endsAt: null,
+            totalLimit: null,
+            claimedCount: 0,
+            mailTitle: '活动奖励',
+            mailContent: '请查收奖励。',
+          }),
+        },
+        redeemCodeClaims: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      },
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(() => ({
+            returning: vi.fn().mockResolvedValue([{ id: 'redeem-1' }]),
+          })),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: insertValuesMock,
+      })),
+    };
+
+    getExecutorMock.mockReturnValue({
+      transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    } as any);
+    sendMailMock.mockResolvedValue({ id: 'mail-1' });
+
+    const response = await createApp().request('/api/cultivator/redeem-code/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'SPRING2026' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(sendMailMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      '活动奖励',
+      '请查收奖励。',
+      [
+        {
+          type: 'spirit_stones',
+          name: '灵石',
+          quantity: 500,
+        },
+      ],
+      'reward',
+      tx,
+    );
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      message: '兑换成功，奖励已通过传音玉简发放',
+      mailId: 'mail-1',
+    });
+  });
+
+  it('treats legacy redeem codes without reward attachments as expired', async () => {
+    const tx = {
+      query: {
+        redeemCodes: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'legacy-redeem-1',
+            code: 'OLD2025',
+            rewardAttachments: null,
+            status: 'active',
+            startsAt: null,
+            endsAt: null,
+            totalLimit: null,
+            claimedCount: 0,
+            mailTitle: '旧奖励',
+            mailContent: '请查收奖励。',
+          }),
+        },
+        redeemCodeClaims: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      },
+      update: vi.fn(),
+      insert: vi.fn(),
+    };
+
+    getExecutorMock.mockReturnValue({
+      transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    } as any);
+
+    const response = await createApp().request('/api/cultivator/redeem-code/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'OLD2025' }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(sendMailMock).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      error: '兑换码已失效',
+    });
+  });
+});
 
 describe('cultivator yield route', () => {
   beforeEach(() => {

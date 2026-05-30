@@ -1,28 +1,23 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
-import { InkSelect } from '@app/components/ui/InkSelect';
 import { useNavigate } from 'react-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import {
+  RewardSelectionEditor,
+  createSpiritStoneDraft,
+  parseRewardSelectionDrafts,
+  type RewardSelectionDraft,
+} from '../../_components/RewardSelectionEditor';
 
-interface PresetOption {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface RedeemCodeCreateFormProps {
-  presetOptions: PresetOption[];
-}
-
-export function RedeemCodeCreateForm({
-  presetOptions,
-}: RedeemCodeCreateFormProps) {
+export function RedeemCodeCreateForm() {
   const { pushToast } = useInkUI();
   const navigate = useNavigate();
 
   const [code, setCode] = useState('');
-  const [rewardPresetId, setRewardPresetId] = useState(presetOptions[0]?.id ?? '');
+  const [rewardSelections, setRewardSelections] = useState<
+    RewardSelectionDraft[]
+  >([createSpiritStoneDraft()]);
   const [mailTitle, setMailTitle] = useState('');
   const [mailContent, setMailContent] = useState('');
   const [totalLimit, setTotalLimit] = useState('');
@@ -31,18 +26,20 @@ export function RedeemCodeCreateForm({
   const [loading, setLoading] = useState(false);
   const [createdCode, setCreatedCode] = useState('');
 
-  const selectedPreset = useMemo(
-    () => presetOptions.find((item) => item.id === rewardPresetId) ?? null,
-    [presetOptions, rewardPresetId],
-  );
-
   const submit = async () => {
-    if (!rewardPresetId) {
-      pushToast({ message: '请选择奖励预设', tone: 'warning' });
-      return;
-    }
     if (!mailTitle.trim() || !mailContent.trim()) {
       pushToast({ message: '请填写邮件标题与正文', tone: 'warning' });
+      return;
+    }
+
+    let parsedRewardSelections;
+    try {
+      parsedRewardSelections = parseRewardSelectionDrafts(rewardSelections);
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '奖励配置错误',
+        tone: 'warning',
+      });
       return;
     }
 
@@ -50,7 +47,7 @@ export function RedeemCodeCreateForm({
     try {
       const payload = {
         code: code.trim() || undefined,
-        rewardPresetId,
+        rewardSelections: parsedRewardSelections,
         mailTitle: mailTitle.trim(),
         mailContent: mailContent.trim(),
         totalLimit: totalLimit.trim() ? Number(totalLimit.trim()) : null,
@@ -97,24 +94,11 @@ export function RedeemCodeCreateForm({
         disabled={loading}
       />
 
-      <InkSelect
-        label="奖励预设"
-        value={rewardPresetId}
-        onChange={(value) => setRewardPresetId(value)}
+      <RewardSelectionEditor
+        value={rewardSelections}
+        onChange={setRewardSelections}
         disabled={loading}
-      >
-          {presetOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-      </InkSelect>
-
-      {selectedPreset && (
-        <p className="text-ink-secondary border-ink/10 border border-dashed px-3 py-2 text-sm">
-          奖励预览：{selectedPreset.description}
-        </p>
-      )}
+      />
 
       <InkInput
         label="邮件标题"

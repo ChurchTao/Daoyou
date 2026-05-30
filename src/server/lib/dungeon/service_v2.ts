@@ -55,7 +55,7 @@ import {
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const START_LOCK_TTL_SECONDS = 180;
-const DUNGEON_ENEMY_DIFFICULTY_COEFFICIENT = 0.7;
+const DUNGEON_ENEMY_DIFFICULTY_COEFFICIENT = 0.6;
 const DUNGEON_MATERIAL_TYPE_TABLE = Object.entries(TYPE_DESCRIPTIONS)
   .map(([key, desc]) => `| ${key} | ${desc} |`)
   .join('\n');

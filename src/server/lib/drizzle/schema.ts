@@ -17,6 +17,7 @@ import type {
   AlchemyFormulaPattern,
   PillFamily,
 } from '@shared/types/consumable';
+import type { MailAttachment } from '@shared/types/mail';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -497,6 +498,7 @@ export const redeemCodes = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     code: varchar('code', { length: 64 }).notNull(),
     rewardPresetId: varchar('reward_preset_id', { length: 100 }).notNull(),
+    rewardAttachments: jsonb('reward_attachments').$type<MailAttachment[]>(),
     mailTitle: varchar('mail_title', { length: 200 }).notNull(),
     mailContent: text('mail_content').notNull(),
     status: varchar('status', { length: 20 }).notNull().default('active'), // active | disabled
@@ -786,5 +788,4 @@ export const creationProducts = pgTable(
     ),
   ],
 );
-
 

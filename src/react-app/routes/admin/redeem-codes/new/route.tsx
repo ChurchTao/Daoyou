@@ -1,9 +1,6 @@
-import { getRedeemPresetOptions } from '@shared/config/redeemRewardPresets';
 import { RedeemCodeCreateForm } from '../_components/RedeemCodeCreateForm';
 
 export default function NewRedeemCodePage() {
-  const presetOptions = getRedeemPresetOptions();
-
   return (
     <div className="space-y-5">
       <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
@@ -14,7 +11,7 @@ export default function NewRedeemCodePage() {
       </header>
 
       <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <RedeemCodeCreateForm presetOptions={presetOptions} />
+        <RedeemCodeCreateForm />
       </section>
     </div>
   );

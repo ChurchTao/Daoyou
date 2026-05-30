@@ -61,7 +61,7 @@ import {
   type BreakthroughStoryPayload,
   type LifespanExhaustedStoryPayload,
 } from '@server/utils/prompts';
-import { getRedeemPresetById } from '@shared/config/redeemRewardPresets';
+import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import type {
   RetreatResultData,
   RetreatStreamEvent,
@@ -600,9 +600,13 @@ router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
         throw new RedeemClaimError('该兑换码你已使用过');
       }
 
-      const preset = getRedeemPresetById(redeemCode.rewardPresetId);
-      if (!preset) {
-        throw new RedeemClaimError('兑换奖励配置缺失，请联系管理员', 500);
+      let rewardAttachments: MailAttachment[] = [];
+      try {
+        rewardAttachments = resolveRedeemCodeRewardAttachments(redeemCode);
+      } catch (error) {
+        throw new RedeemClaimError(
+          error instanceof Error ? error.message : '兑换码已失效',
+        );
       }
 
       const [reservedCode] = await tx
@@ -629,7 +633,7 @@ router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
         cultivator.id,
         redeemCode.mailTitle,
         redeemCode.mailContent,
-        preset.attachments,
+        rewardAttachments,
         'reward',
         tx,
       );

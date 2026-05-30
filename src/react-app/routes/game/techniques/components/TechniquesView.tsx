@@ -3,62 +3,16 @@ import {
   GameSceneFrame,
   GameSceneNote,
 } from '@app/components/game-shell';
-import { AffixInlineList } from '@app/components/feature/products';
 import {
-  InkBadge,
+  AbilityDetailModal,
+  AbilityListCard,
+} from '@app/components/feature/products';
+import {
   InkButton,
   InkNotice,
 } from '@app/components/ui';
-import { ItemCard } from '@app/components/ui/ItemCard';
 
-import {
-  useTechniquesViewModel,
-  type V2Technique,
-} from '../hooks/useTechniquesViewModel';
-import { TechniqueDetailModal } from './TechniqueDetailModal';
-import { Quality } from '@shared/types/constants';
-
-function TechniqueCard({
-  technique,
-  onDetail,
-  onForget,
-}: {
-  technique: V2Technique;
-  onDetail: (t: V2Technique) => void;
-  onForget: (t: V2Technique) => void;
-}) {
-  return (
-    <ItemCard
-      icon="📘"
-      name={technique.name}
-      quality={technique.quality as Quality}
-      badgeExtra={
-        <div className="flex flex-wrap gap-1">
-          {technique.element && (
-            <InkBadge tone="default">{technique.element}</InkBadge>
-          )}
-        </div>
-      }
-      meta={
-        technique.affixes.length > 0 ? (
-          <AffixInlineList affixes={technique.affixes} />
-        ) : undefined
-      }
-      description={technique.description}
-      actions={
-        <div className="flex gap-2">
-          <InkButton variant="secondary" onClick={() => onDetail(technique)}>
-            详情
-          </InkButton>
-          <InkButton className="px-2" onClick={() => onForget(technique)}>
-            废除
-          </InkButton>
-        </div>
-      }
-      layout="col"
-    />
-  );
-}
+import { useTechniquesViewModel } from '../hooks/useTechniquesViewModel';
 
 export function TechniquesView() {
   const {
@@ -115,18 +69,26 @@ export function TechniquesView() {
         <>
           <div className="space-y-3">
             {techniques.map((t) => (
-              <TechniqueCard
+              <AbilityListCard
                 key={t.id}
-                technique={t}
-                onDetail={openTechniqueDetail}
-                onForget={openForgetConfirm}
+                product={t}
+                actions={
+                  <div className="flex gap-2">
+                    <InkButton variant="secondary" onClick={() => openTechniqueDetail(t)}>
+                      详情
+                    </InkButton>
+                    <InkButton className="px-2" onClick={() => openForgetConfirm(t)}>
+                      废除
+                    </InkButton>
+                  </div>
+                }
               />
             ))}
           </div>
-          <TechniqueDetailModal
+          <AbilityDetailModal
             isOpen={isModalOpen}
             onClose={closeTechniqueDetail}
-            technique={selectedTechnique}
+            product={selectedTechnique}
           />
         </>
       )}

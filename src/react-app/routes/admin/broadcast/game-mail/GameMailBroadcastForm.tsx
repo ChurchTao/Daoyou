@@ -5,6 +5,11 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES } from '@shared/types/constants';
 import { useEffect, useState } from 'react';
+import {
+  RewardSelectionEditor,
+  parseRewardSelectionDrafts,
+  type RewardSelectionDraft,
+} from '../../_components/RewardSelectionEditor';
 
 interface GameMailTemplateOption {
   id: string;
@@ -16,7 +21,7 @@ interface GameMailBroadcastResult {
   totalRecipients?: number;
   success?: boolean;
   mailType?: string;
-  rewardSpiritStones?: number;
+  rewardSummary?: string[];
   sampleRecipients?: Array<{ recipientKey: string }>;
 }
 
@@ -26,7 +31,10 @@ export function GameMailBroadcastForm() {
   const [content, setContent] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [payloadText, setPayloadText] = useState('{}');
-  const [rewardSpiritStones, setRewardSpiritStones] = useState('0');
+  const [rewardSelections, setRewardSelections] = useState<
+    RewardSelectionDraft[]
+  >([]);
+  const [targetCultivatorId, setTargetCultivatorId] = useState('');
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
   const [realmMin, setRealmMin] = useState('');
@@ -62,20 +70,24 @@ export function GameMailBroadcastForm() {
       return;
     }
 
-    const reward = Number(rewardSpiritStones || '0');
-    if (!Number.isFinite(reward) || reward < 0) {
-      pushToast({
-        message: '灵石奖励必须是大于等于 0 的数字',
-        tone: 'warning',
-      });
-      return;
-    }
-
     let payload = {};
     try {
       payload = JSON.parse(payloadText || '{}');
     } catch {
       pushToast({ message: '变量 JSON 格式错误', tone: 'warning' });
+      return;
+    }
+
+    let parsedRewardSelections;
+    try {
+      parsedRewardSelections = parseRewardSelectionDrafts(rewardSelections, {
+        allowEmpty: true,
+      });
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '奖励配置错误',
+        tone: 'warning',
+      });
       return;
     }
 
@@ -88,9 +100,10 @@ export function GameMailBroadcastForm() {
           templateId: templateId || undefined,
           title: title.trim() || undefined,
           content: content.trim() || undefined,
-          rewardSpiritStones: Math.floor(reward),
+          rewardSelections: parsedRewardSelections,
           payload,
           filters: {
+            targetCultivatorId: targetCultivatorId.trim() || undefined,
             cultivatorCreatedFrom: createdFrom || undefined,
             cultivatorCreatedTo: createdTo || undefined,
             realmMin: realmMin || undefined,
@@ -123,7 +136,8 @@ export function GameMailBroadcastForm() {
   return (
     <div className="space-y-5">
       <InkNotice tone="info">
-        可选模板 + 人群筛选。当前为同步执行，灵石为 0 时发公告，&gt;0 时发奖励。
+        可选模板 + 人群筛选。奖励支持灵石与奖励目录道具，留空时发送纯公告。
+        填写目标角色 ID 时进入单发模式，并忽略下方群发筛选条件。
       </InkNotice>
 
       <InkSelect
@@ -167,11 +181,19 @@ export function GameMailBroadcastForm() {
         disabled={loading}
       />
 
+      <RewardSelectionEditor
+        value={rewardSelections}
+        onChange={setRewardSelections}
+        disabled={loading}
+        allowEmpty
+      />
+
       <InkInput
-        label="灵石奖励（0=公告）"
-        value={rewardSpiritStones}
-        onChange={(value) => setRewardSpiritStones(value)}
-        placeholder="0"
+        label="目标角色 ID（可选，填写后单独发送）"
+        value={targetCultivatorId}
+        onChange={(value) => setTargetCultivatorId(value)}
+        placeholder="例如：6d9f6f44-..."
+        hint="填写 cultivatorId 后只发送给该活跃角色。"
         disabled={loading}
       />
 
@@ -181,14 +203,14 @@ export function GameMailBroadcastForm() {
           type="date"
           value={createdFrom}
           onChange={(value) => setCreatedFrom(value)}
-          disabled={loading}
+          disabled={loading || Boolean(targetCultivatorId.trim())}
         />
         <InkInput
           label="角色创建时间止"
           type="date"
           value={createdTo}
           onChange={(value) => setCreatedTo(value)}
-          disabled={loading}
+          disabled={loading || Boolean(targetCultivatorId.trim())}
         />
       </div>
 
@@ -197,7 +219,7 @@ export function GameMailBroadcastForm() {
           label="境界下限"
           value={realmMin}
           onChange={(value) => setRealmMin(value)}
-          disabled={loading}
+          disabled={loading || Boolean(targetCultivatorId.trim())}
         >
             <option value="">不限</option>
             {REALM_VALUES.map((realm) => (
@@ -210,7 +232,7 @@ export function GameMailBroadcastForm() {
           label="境界上限"
           value={realmMax}
           onChange={(value) => setRealmMax(value)}
-          disabled={loading}
+          disabled={loading || Boolean(targetCultivatorId.trim())}
         >
             <option value="">不限</option>
             {REALM_VALUES.map((realm) => (

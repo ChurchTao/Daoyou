@@ -2,6 +2,7 @@
 export const APP_SETTING_KEYS = {
   communityQqGroupNumber: 'community_qq_group_number',
   authPageAnnouncement: 'auth_page_announcement',
+  rewardCatalog: 'reward_catalog',
 } as const;
 
 /** Bundled fallback when DB has no row or row is empty. */

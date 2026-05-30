@@ -31,6 +31,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/announcement',
   },
   {
+    title: '奖励目录',
+    description: '可发放道具配置表',
+    href: '/admin/reward-catalog',
+  },
+  {
     title: '模板中心',
     description: '运营文案模板管理',
     href: '/admin/templates',

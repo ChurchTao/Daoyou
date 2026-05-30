@@ -1,71 +1,41 @@
 import { getCreationProductTypeFromCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
+import type { CreationProductResultRecord } from '@app/components/feature/creation';
 import {
-  CreationProductResultModal, type CreationProductResultRecord, } from '@app/components/feature/creation';
-import { GameSceneAsideSection, GameSceneFrame, GameSceneLoading, GameSceneSection } from '@app/components/game-shell';
+  AbilityDetailModal,
+  AbilityListCard,
+  toProductDisplayModel,
+  type ProductDisplayModel,
+} from '@app/components/feature/products';
 import {
-  toProductDisplayModel, type ProductDisplayModel, } from '@app/components/feature/products';
+  GameSceneAsideSection,
+  GameSceneFrame,
+  GameSceneLoading,
+  GameSceneSection,
+} from '@app/components/game-shell';
+import {
+  InkActionGroup,
+  InkBadge,
+  InkButton,
+  InkNotice,
+  InkTag,
+} from '@app/components/ui';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkActionGroup, InkBadge, InkButton, InkNotice } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
-
 type V2Product = ProductDisplayModel & { id: string };
-type PendingItem = CreationProductResultRecord & { snapshot: string };
-
-function V2ProductCard({
-  product,
-  isSelected,
-  onToggle,
-  actionLabel,
-}: {
-  product: V2Product;
-  isSelected: boolean;
-  onToggle: () => void;
-  actionLabel: [string, string];
-}) {
-  return (
-    <div
-      className={`border p-3 space-y-2 transition-colors cursor-pointer ${isSelected ? 'border-ink/50 bg-ink/5' : 'border-ink/10'}`}
-      onClick={onToggle}
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-medium text-sm">{product.name}</span>
-        <InkButton
-          variant={isSelected ? 'primary' : 'secondary'}
-          onClick={onToggle}
-        >
-          {isSelected ? actionLabel[0] : actionLabel[1]}
-        </InkButton>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {product.quality && <InkBadge tier={product.quality as never} />}
-        {product.element && (
-          <InkBadge tone="default">{product.element}</InkBadge>
-        )}
-        <InkBadge tone="default">{`评分 ${product.score}`}</InkBadge>
-      </div>
-      {product.affixes.length > 0 && (
-        <ul className="text-ink-secondary text-xs space-y-0.5">
-          {product.affixes.map((a) => (
-            <li key={a.id} className="flex items-center gap-1">
-              <span>{a.isPerfect ? '✦' : '◆'}</span>
-              <span>{a.name}</span>
-              {a.isPerfect && <span className="text-wood">（完美）</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+type PendingItem = CreationProductResultRecord;
 
 function ReplaceContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const craftType = searchParams.get('type');
-  const { cultivator, refreshCultivator } = useCultivator();
+  const {
+    cultivator,
+    isLoading: cultivatorLoading,
+    refreshCultivator,
+  } = useCultivator();
   const { pushToast, openDialog } = useInkUI();
 
   const [loading, setLoading] = useState(false);
@@ -73,21 +43,28 @@ function ReplaceContent() {
   const [pendingItem, setPendingItem] = useState<PendingItem | null>(null);
   const [existingItems, setExistingItems] = useState<V2Product[]>([]);
   const [selectedOldId, setSelectedOldId] = useState<string | null>(null);
-  const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<ProductDisplayModel | null>(
+    null,
+  );
 
   const productType = craftType
     ? getCreationProductTypeFromCraftType(craftType)
     : undefined;
   const isSkill = productType === 'skill';
+  const abilityLabel = isSkill ? '神通' : '功法';
+  const pendingDisplayModel = pendingItem ? toProductDisplayModel(pendingItem) : null;
 
   useEffect(() => {
-    if (!cultivator || !craftType || !productType) {
+    if (cultivatorLoading || !cultivator || !craftType || !productType) {
       return;
     }
 
     let cancelled = false;
 
     const loadData = async () => {
+      setInitializing(true);
+      setSelectedOldId(null);
+
       try {
         const [pendingRes, existingRes] = await Promise.all([
           fetch(`/api/craft/pending?type=${craftType}`),
@@ -103,8 +80,7 @@ function ReplaceContent() {
         if (pendingData.success && pendingData.hasPending) {
           setPendingItem(pendingData.item);
         } else {
-          navigate(-1);
-          return;
+          setPendingItem(null);
         }
 
         if (existingData.success) {
@@ -115,10 +91,14 @@ function ReplaceContent() {
             }),
           );
           setExistingItems(items);
+        } else {
+          setExistingItems([]);
         }
       } catch (e) {
         if (!cancelled) {
           console.error('获取数据失败:', e);
+          setPendingItem(null);
+          setExistingItems([]);
         }
       } finally {
         if (!cancelled) {
@@ -132,7 +112,7 @@ function ReplaceContent() {
     return () => {
       cancelled = true;
     };
-  }, [craftType, cultivator, navigate, productType]);
+  }, [craftType, cultivator, cultivatorLoading, productType]);
 
   const handleConfirm = async (isAbandon: boolean) => {
     if (!isAbandon && !selectedOldId) {
@@ -172,15 +152,30 @@ function ReplaceContent() {
     }
   };
 
-  if (initializing || !cultivator) return null;
+  if (cultivatorLoading || initializing) {
+    return <GameSceneLoading message="感知天机中..." />;
+  }
+
+  if (!cultivator) {
+    return (
+      <GameSceneFrame variant="lite">
+        <InkNotice>当前没有活跃角色，暂无法处理参悟取舍。</InkNotice>
+      </GameSceneFrame>
+    );
+  }
+
+  if (!craftType || !productType) {
+    return (
+      <GameSceneFrame variant="lite">
+        <InkNotice>当前参悟类型无效，无法进入取舍流程。</InkNotice>
+      </GameSceneFrame>
+    );
+  }
+
   if (!pendingItem) {
     return (
-      <GameSceneFrame
-        variant="lite"
-        title={isSkill ? '神通突围' : '功法破障'}
-        description="当前没有待处理的新法门。"
-      >
-        <InkNotice>无可领悟之法</InkNotice>
+      <GameSceneFrame variant="lite">
+        <InkNotice>当前没有待处理的新法门。</InkNotice>
       </GameSceneFrame>
     );
   }
@@ -188,8 +183,6 @@ function ReplaceContent() {
   return (
     <GameSceneFrame
       variant="workflow"
-      title={isSkill ? '神通突围' : '功法破障'}
-      description="万法随心，取舍有道。新法门与旧道基的取舍被压成单一工作流页，避免跳出主游戏壳。"
       aside={
         <>
           <GameSceneAsideSection title="取舍摘要">
@@ -206,13 +199,60 @@ function ReplaceContent() {
       }
     >
       <div className="space-y-6 pb-12">
-        <InkNotice>
-          请选择需要<b>舍弃的旧法门</b>，以承接新领悟。
-          <br />
-          一旦确认，被舍弃的法门将从道身消散。
-        </InkNotice>
+        <GameSceneSection title="待纳入新法">
+          {pendingDisplayModel ? (
+            <AbilityListCard
+              product={pendingDisplayModel}
+              extraBadges={<InkBadge tone="accent">待纳入道基</InkBadge>}
+              actions={
+                <div className="flex gap-2">
+                  <InkButton
+                    variant="secondary"
+                    onClick={() => setDetailProduct(pendingDisplayModel)}
+                  >
+                    详情
+                  </InkButton>
+                </div>
+              }
+            />
+          ) : (
+            <InkNotice>当前新法门详情暂不可见。</InkNotice>
+          )}
+        </GameSceneSection>
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <GameSceneSection title={`选择舍弃的现有${abilityLabel}`}>
+          {existingItems.length === 0 ? (
+            <InkNotice>暂无已有法门</InkNotice>
+          ) : (
+            <div className="space-y-3">
+              {existingItems.map((item) => (
+                <AbilityListCard
+                  key={item.id}
+                  product={item}
+                  selected={selectedOldId === item.id}
+                  onSelect={() =>
+                    setSelectedOldId(selectedOldId === item.id ? null : item.id)
+                  }
+                  actions={
+                    <div className="flex flex-wrap items-center gap-2">
+                      <InkButton
+                        variant="secondary"
+                        onClick={() => setDetailProduct(item)}
+                      >
+                        详情
+                      </InkButton>
+                      {selectedOldId === item.id ? (
+                        <InkTag tone="good">已选舍弃</InkTag>
+                      ) : null}
+                    </div>
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </GameSceneSection>
+
+        <InkActionGroup align="center">
           <InkButton
             variant="outline"
             onClick={() => {
@@ -241,57 +281,12 @@ function ReplaceContent() {
           >
             {loading ? '演化中...' : '确认替换'}
           </InkButton>
-        </div>
+        </InkActionGroup>
 
-        <GameSceneSection title="新领悟">
-          <div className="border-wood/35 bg-bgpaper border border-dashed p-3 space-y-2">
-            <span className="font-medium text-sm">{pendingItem.name}</span>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {pendingItem.quality && (
-                <InkBadge tier={pendingItem.quality as never}>
-                  {pendingItem.quality}
-                </InkBadge>
-              )}
-              {pendingItem.element && (
-                <InkBadge tone="default">{pendingItem.element}</InkBadge>
-              )}
-              <InkBadge tone="default">待纳入道基</InkBadge>
-            </div>
-            <InkActionGroup align="right">
-              <InkButton
-                variant="secondary"
-                onClick={() => setIsPendingModalOpen(true)}
-              >
-                查看详情
-              </InkButton>
-            </InkActionGroup>
-          </div>
-        </GameSceneSection>
-
-        <GameSceneSection title={`现有${isSkill ? '神通' : '功法'}（选择以舍弃）`}>
-          {existingItems.length === 0 ? (
-            <InkNotice>暂无已有法门</InkNotice>
-          ) : (
-            <div className="space-y-3">
-              {existingItems.map((item) => (
-                <V2ProductCard
-                  key={item.id}
-                  product={item}
-                  isSelected={selectedOldId === item.id}
-                  onToggle={() =>
-                    setSelectedOldId(selectedOldId === item.id ? null : item.id)
-                  }
-                  actionLabel={['将舍弃', '固守']}
-                />
-              ))}
-            </div>
-          )}
-        </GameSceneSection>
-
-        <CreationProductResultModal
-          isOpen={isPendingModalOpen}
-          onClose={() => setIsPendingModalOpen(false)}
-          product={pendingItem}
+        <AbilityDetailModal
+          isOpen={detailProduct !== null}
+          onClose={() => setDetailProduct(null)}
+          product={detailProduct}
         />
       </div>
     </GameSceneFrame>

@@ -1,4 +1,5 @@
 import {
+  RecipientResolveError,
   resolveEmailRecipients,
   resolveGameMailRecipients,
 } from '@server/lib/admin/recipient-resolver';
@@ -11,8 +12,15 @@ import { getExecutor } from '@server/lib/drizzle/db';
 import { adminMessageTemplates, mails } from '@server/lib/drizzle/schema';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { getRewardCatalog } from '@server/lib/repositories/rewardCatalogRepository';
 import type { MailAttachment } from '@server/lib/services/MailService';
 import { REALM_VALUES } from '@shared/types/constants';
+import {
+  RewardCatalogResolveError,
+  RewardSelectionsSchema,
+  resolveRewardSelections,
+  summarizeMailAttachments,
+} from '@shared/lib/rewardCatalog';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -51,12 +59,13 @@ const GameMailBroadcastSchema = z
     templateId: z.string().uuid().optional(),
     title: z.string().trim().min(1).max(200).optional(),
     content: z.string().trim().min(1).max(10000).optional(),
-    rewardSpiritStones: z.number().int().min(0).max(100000000).optional(),
+    rewardSelections: RewardSelectionsSchema.default([]),
     payload: z
       .record(z.string(), z.union([z.string(), z.number()]))
       .default({}),
     filters: z
       .object({
+        targetCultivatorId: z.string().uuid().optional(),
         cultivatorCreatedFrom: z.string().optional(),
         cultivatorCreatedTo: z.string().optional(),
         realmMin: z.enum(REALM_VALUES).optional(),
@@ -180,7 +189,18 @@ router.post('/game-mail', requireAdmin(), async (c) => {
   }
 
   const { templateId, filters, payload, dryRun } = parsed.data;
-  const resolvedRecipients = await resolveGameMailRecipients(filters);
+  let resolvedRecipients;
+  try {
+    resolvedRecipients = await resolveGameMailRecipients(filters);
+  } catch (error) {
+    if (error instanceof RecipientResolveError) {
+      return c.json(
+        { error: error.message },
+        { status: error.status as 400 | 404 },
+      );
+    }
+    throw error;
+  }
 
   if (dryRun) {
     return c.json({
@@ -192,7 +212,6 @@ router.post('/game-mail', requireAdmin(), async (c) => {
 
   let finalTitle = parsed.data.title ?? '';
   let finalContent = parsed.data.content ?? '';
-  let finalReward = parsed.data.rewardSpiritStones ?? 0;
 
   if (templateId) {
     const template = await q.query.adminMessageTemplates.findFirst({
@@ -223,25 +242,29 @@ router.post('/game-mail', requireAdmin(), async (c) => {
         400,
       );
     }
-
-    if (parsed.data.rewardSpiritStones === undefined) {
-      const maybeReward = mergedPayload.rewardSpiritStones;
-      if (typeof maybeReward === 'number') {
-        finalReward = Math.max(0, Math.floor(maybeReward));
-      }
-    }
   }
 
-  const attachments: MailAttachment[] =
-    finalReward > 0
-      ? [
-          {
-            type: 'spirit_stones',
-            name: '灵石',
-            quantity: finalReward,
-          },
-        ]
-      : [];
+  let attachments: MailAttachment[] = [];
+
+  try {
+    const rewardCatalog = await getRewardCatalog();
+    attachments = resolveRewardSelections(
+      parsed.data.rewardSelections,
+      rewardCatalog,
+    );
+  } catch (error) {
+    if (error instanceof RewardCatalogResolveError) {
+      return c.json({ error: error.message }, 400);
+    }
+
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : '奖励目录加载失败',
+      },
+      500,
+    );
+  }
 
   const type = attachments.length > 0 ? 'reward' : 'system';
   const rows = resolvedRecipients.recipients.map((recipient) => ({
@@ -263,7 +286,7 @@ router.post('/game-mail', requireAdmin(), async (c) => {
     success: true,
     totalRecipients: rows.length,
     mailType: type,
-    rewardSpiritStones: finalReward,
+    rewardSummary: summarizeMailAttachments(attachments),
   });
 });
 

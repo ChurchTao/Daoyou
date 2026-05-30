@@ -136,6 +136,42 @@ describe('toPillDisplayModel', () => {
     expect(model.detailGroups[2].lines).toContain('丹方倍率：102%');
   });
 
+  it('renders clear_mind breakthrough pills without exposing the raw status key', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'breakthrough',
+        operations: [
+          { type: 'add_status', status: 'clear_mind', usesRemaining: 1 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'formula',
+          formulaId: 'formula-2',
+          sourceMaterials: ['静神芝'],
+          fitScore: 0.76,
+          fitMultiplier: 1.08,
+          stability: 82,
+          toxicityRating: 24,
+          tags: ['clear_mind_support', 'breakthrough'],
+          breakthroughTargetRealm: '元婴',
+          breakthroughLabel: '护婴丹',
+        },
+      }),
+      { realm: '金丹' },
+    );
+
+    expect(model.primaryEffect).toContain('护婴丹');
+    expect(model.primaryEffect).toContain('清心');
+    expect(model.primaryEffect).not.toContain('clear_mind');
+    expect(model.keywordLabels).toContain('护婴丹');
+    expect(model.detailGroups[2].lines).toContain('目标大境界：元婴');
+  });
+
   it('uses track config names for tempering and marrow-wash pills', () => {
     const temperingModel = toPillDisplayModel(
       createPill({

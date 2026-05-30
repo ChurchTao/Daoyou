@@ -33,6 +33,16 @@ function buildResolveResult(
   };
 }
 
+export class RecipientResolveError extends Error {
+  constructor(
+    message: string,
+    public readonly status = 400,
+  ) {
+    super(message);
+    this.name = 'RecipientResolveError';
+  }
+}
+
 export async function resolveEmailRecipients(
   filters: EmailAudienceFilter = {},
 ): Promise<RecipientResolveResult> {
@@ -117,6 +127,46 @@ export async function resolveEmailRecipients(
 export async function resolveGameMailRecipients(
   filters: GameMailAudienceFilter = {},
 ): Promise<RecipientResolveResult> {
+  if (filters.targetCultivatorId) {
+    const row = await getExecutor()
+      .select({
+        id: cultivators.id,
+        name: cultivators.name,
+        realm: cultivators.realm,
+        createdAt: cultivators.createdAt,
+      })
+      .from(cultivators)
+      .where(
+        and(
+          eq(cultivators.id, filters.targetCultivatorId),
+          eq(cultivators.status, 'active'),
+        ),
+      )
+      .then((rows) => rows[0]);
+
+    if (!row) {
+      throw new RecipientResolveError('目标角色不存在或未处于活跃状态', 404);
+    }
+
+    const realm = toRealmType(row.realm);
+    if (!realm) {
+      throw new RecipientResolveError('目标角色境界数据异常', 400);
+    }
+
+    return buildResolveResult([
+      {
+        recipientType: 'cultivator',
+        recipientKey: row.id,
+        metadata: {
+          cultivatorId: row.id,
+          cultivatorName: row.name,
+          realm,
+          createdAt: row.createdAt?.toISOString(),
+        },
+      },
+    ]);
+  }
+
   const createdFrom = toStartOfDay(filters.cultivatorCreatedFrom);
   const createdTo = toEndOfDay(filters.cultivatorCreatedTo);
 
@@ -131,6 +181,7 @@ export async function resolveGameMailRecipients(
   const rows = await getExecutor()
     .select({
       id: cultivators.id,
+      name: cultivators.name,
       realm: cultivators.realm,
       createdAt: cultivators.createdAt,
     })
@@ -150,6 +201,8 @@ export async function resolveGameMailRecipients(
       recipientType: 'cultivator',
       recipientKey: row.id,
       metadata: {
+        cultivatorId: row.id,
+        cultivatorName: row.name,
         realm,
         createdAt: row.createdAt?.toISOString(),
       },

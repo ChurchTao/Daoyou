@@ -290,4 +290,49 @@ describe('synthesizeAlchemy', () => {
       usesRemaining: 1,
     });
   });
+
+  it('turns clear-mind routes into breakthrough pills that grant clear_mind status', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '静神芝',
+          description: '芝气清宁，可助清心定神，稳住识海。',
+          element: '水',
+          type: 'herb',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '静神芝',
+            properties: [{ key: 'clear_mind_support', weight: 1 }],
+          },
+        ],
+        intentVector: [{ key: 'clear_mind_support', weight: 1 }],
+        focusMode: 'focused',
+      },
+      '真品',
+      '金丹',
+    );
+
+    expect(result.family).toBe('breakthrough');
+    expect(result.propertyVector).toEqual([
+      { key: 'clear_mind_support', weight: 1 },
+    ]);
+    expect(result.operations).toContainEqual({
+      type: 'add_status',
+      status: 'clear_mind',
+      usesRemaining: 1,
+    });
+    expect(
+      result.operations.some(
+        (operation) =>
+          operation.type === 'gain_progress' &&
+          operation.target === 'comprehension_insight',
+      ),
+    ).toBe(false);
+  });
 });
