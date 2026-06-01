@@ -2,11 +2,19 @@ import { getExecutor } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
+import {
+  isPillConsumable,
+  isTalismanConsumable,
+} from '@shared/lib/consumables';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
-import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
+import { getAttributeLabel } from '@shared/types/dictionaries';
 import type { Consumable } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
-import { consumeConsumableById, getCultivatorById, replaceSpiritualRoots } from './cultivatorService';
+import {
+  consumeConsumableById,
+  getCultivatorById,
+  replaceSpiritualRoots,
+} from './cultivatorService';
 import { PillOperationExecutor } from './PillOperationExecutor';
 import { mapConsumableRow } from './consumablePersistence';
 
@@ -26,6 +34,21 @@ async function loadOwnedConsumable(
     .limit(1);
 
   return rows[0] ? mapConsumableRow(rows[0]) : null;
+}
+
+function describeTrackLevelUp(levelUp: {
+  track: Parameters<typeof getTrackConfig>[0];
+  newLevel: number;
+}): string {
+  const config = getTrackConfig(levelUp.track);
+
+  if (config.reward.kind === 'attribute') {
+    return `${config.name}提升至 Lv.${levelUp.newLevel}，${getAttributeLabel(
+      config.reward.attribute,
+    )} +${config.reward.amount}`;
+  }
+
+  return `${config.name}提升至 Lv.${levelUp.newLevel}，所有灵根 +${config.reward.amount}`;
 }
 
 export const ConsumableUseEngine = {
@@ -85,7 +108,7 @@ export const ConsumableUseEngine = {
     const trackMessage =
       execution.trackLevelUps.length > 0
         ? ` ${execution.trackLevelUps
-            .map((item) => `${getTrackConfig(item.track).name}提升至 Lv.${item.newLevel}`)
+            .map(describeTrackLevelUp)
             .join('，')}。`
         : '';
 

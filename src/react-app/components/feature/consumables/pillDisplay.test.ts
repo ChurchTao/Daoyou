@@ -109,7 +109,7 @@ describe('toPillDisplayModel', () => {
         ],
         consumeRules: {
           scene: 'out_of_battle_only',
-          quotaCategory: 'long_term',
+          quotaCategory: 'none',
         },
         alchemyMeta: {
           source: 'formula',
@@ -132,10 +132,16 @@ describe('toPillDisplayModel', () => {
     expect(model.primaryEffect).toContain('破境凝神');
     expect(model.primaryEffect).not.toContain('breakthrough_focus');
     expect(model.keywordLabels).toContain('护婴丹');
+    expect(
+      model.keywordLabels.some((label) => label.startsWith('服用上限')),
+    ).toBe(false);
     expect(model.detailGroups[2].lines).toContain('目标大境界：元婴');
     expect(model.detailGroups[2].lines).toContain('成丹层级：勉强成丹');
     expect(model.detailGroups[2].lines).toContain('药性拟合：58%');
     expect(model.detailGroups[2].lines).toContain('丹方倍率：102%');
+    expect(
+      model.detailGroups[1].lines.some((line) => line.startsWith('服用上限')),
+    ).toBe(false);
   });
 
   it('renders clear_mind breakthrough pills without exposing the raw status key', () => {
@@ -149,7 +155,7 @@ describe('toPillDisplayModel', () => {
         ],
         consumeRules: {
           scene: 'out_of_battle_only',
-          quotaCategory: 'long_term',
+          quotaCategory: 'none',
         },
         alchemyMeta: {
           source: 'formula',
@@ -187,7 +193,7 @@ describe('toPillDisplayModel', () => {
         ],
         consumeRules: {
           scene: 'out_of_battle_only',
-          quotaCategory: 'long_term',
+          quotaCategory: 'none',
         },
         alchemyMeta: {
           source: 'formula',

@@ -219,10 +219,7 @@ function buildKeywordLabels(spec: PillSpec, realm?: RealmType): string[] {
   const labels = [
     getPillFamilyLabel(spec.family),
     spec.family === 'breakthrough' ? getBreakthroughPurposeLabel(spec) : null,
-    getPillUsageKeywordLabel(
-      spec.consumeRules.quotaCategory,
-      realm,
-    ),
+    getPillUsageKeywordLabel(spec.consumeRules.quotaCategory, realm),
   ].filter((label): label is string => Boolean(label));
 
   const gaugeChange = spec.operations.find(

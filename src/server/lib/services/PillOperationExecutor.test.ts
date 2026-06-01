@@ -142,6 +142,74 @@ function createInsightPill(): Consumable {
   };
 }
 
+function createBreakthroughPill(): Consumable {
+  return {
+    id: 'pill-breakthrough',
+    name: '护婴丹',
+    type: '丹药',
+    quality: '真品',
+    quantity: 1,
+    description: '护持识海，助力破境。',
+    spec: {
+      kind: 'pill',
+      family: 'breakthrough',
+      operations: [
+        { type: 'add_status', status: 'clear_mind', usesRemaining: 1 },
+      ],
+      consumeRules: {
+        scene: 'out_of_battle_only',
+        quotaCategory: 'none',
+      },
+      alchemyMeta: {
+        source: 'improvised',
+        sourceMaterials: ['静神芝'],
+        analysisVersion: 2,
+        propertyVector: [{ key: 'clear_mind_support', weight: 1 }],
+        sourceMaterialVectors: [],
+        dominantElement: '水',
+        stability: 74,
+        toxicityRating: 10,
+        tags: ['breakthrough'],
+        breakthroughTargetRealm: '元婴',
+        breakthroughLabel: '护婴丹',
+      },
+    },
+  };
+}
+
+function createTemperingPill(): Consumable {
+  return {
+    id: 'pill-tempering',
+    name: '淬体丹',
+    type: '丹药',
+    quality: '真品',
+    quantity: 1,
+    description: '锤炼肉身。',
+    spec: {
+      kind: 'pill',
+      family: 'tempering',
+      operations: [
+        { type: 'advance_track', track: 'tempering.vitality', value: 1 },
+      ],
+      consumeRules: {
+        scene: 'out_of_battle_only',
+        quotaCategory: 'long_term',
+      },
+      alchemyMeta: {
+        source: 'improvised',
+        sourceMaterials: ['铁骨藤'],
+        analysisVersion: 2,
+        propertyVector: [{ key: 'tempering_vitality', weight: 1 }],
+        sourceMaterialVectors: [],
+        dominantElement: '土',
+        stability: 68,
+        toxicityRating: 12,
+        tags: ['tempering_vitality'],
+      },
+    },
+  };
+}
+
 describe('PillOperationExecutor', () => {
   it('restores percent-based hp from max hp instead of filling to full', () => {
     const cultivator = createCultivator();
@@ -222,5 +290,65 @@ describe('PillOperationExecutor', () => {
     expect(
       result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基 ?? 0,
     ).toBe(0);
+  });
+
+  it('does not consume long-term quota entries for breakthrough pills', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      counters: {
+        longTermPillUsesByRealm: {
+          筑基: 3,
+        },
+        cultivationPillUsesByRealm: {},
+      },
+    };
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      createBreakthroughPill(),
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(
+      result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基,
+    ).toBe(3);
+    expect(
+      result.cultivator.condition?.statuses.some(
+        (status) => status.key === 'clear_mind',
+      ),
+    ).toBe(true);
+  });
+
+  it('levels up tempering tracks and applies the matching attribute reward', () => {
+    const cultivator = createCultivator();
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      tracks: {
+        tempering: {
+          vitality: { level: 0, progress: 99 },
+          spirit: { level: 0, progress: 0 },
+          wisdom: { level: 0, progress: 0 },
+          speed: { level: 0, progress: 0 },
+          willpower: { level: 0, progress: 0 },
+        },
+        marrowWash: { level: 0, progress: 0 },
+      },
+    };
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      createTemperingPill(),
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.cultivator.attributes.vitality).toBe(41);
+    expect(result.cultivator.condition?.tracks.tempering.vitality).toEqual({
+      level: 1,
+      progress: 0,
+    });
+    expect(result.trackLevelUps).toEqual([
+      { track: 'tempering.vitality', newLevel: 1 },
+    ]);
   });
 });

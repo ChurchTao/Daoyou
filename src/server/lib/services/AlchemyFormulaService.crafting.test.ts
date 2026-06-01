@@ -667,7 +667,7 @@ describe('craftFromFormula narrative copy', () => {
     expect(result.consumable.spec.kind).toBe('pill');
     expect(
       (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
-    ).toBe('long_term');
+    ).toBe('none');
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'add_status',
       status: 'clear_mind',
@@ -750,7 +750,7 @@ describe('craftFromFormula narrative copy', () => {
     expect(result.consumable.spec.kind).toBe('pill');
     expect(
       (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
-    ).toBe('long_term');
+    ).toBe('none');
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'add_status',
       status: 'protect_meridians',
