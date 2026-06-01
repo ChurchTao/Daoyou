@@ -6,7 +6,6 @@ import type { AppEnv } from '@server/lib/hono/types';
 import {
   batchBuyMarketItems,
   buyMarketItem,
-  clearMarketCache,
   getMarketListings,
   MarketServiceError,
   resolveLayer,
@@ -114,6 +113,7 @@ router.get('/:nodeId', requireActiveCultivator(), async (c) => {
     const result = await getMarketListings({
       nodeId,
       layer,
+      userId: cultivator.userId,
       cultivatorRealm: cultivator.realm as RealmType,
     });
 
@@ -125,34 +125,6 @@ router.get('/:nodeId', requireActiveCultivator(), async (c) => {
 
     console.error('Market node API error:', error);
     return c.json({ error: 'Failed to fetch market listings' }, 500);
-  }
-});
-
-router.post('/:nodeId', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
-
-  try {
-    const nodeId = resolveNodeId(c.req.param('nodeId'));
-    const layer = resolveLayer(c.req.query('layer'));
-    await clearMarketCache(nodeId, layer);
-
-    const result = await getMarketListings({
-      nodeId,
-      layer,
-      cultivatorRealm: cultivator.realm as RealmType,
-    });
-
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof MarketServiceError) {
-      return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-
-    console.error('Market node refresh API error:', error);
-    return c.json({ error: 'Failed to refresh market listings' }, 500);
   }
 });
 
@@ -172,6 +144,7 @@ router.post('/:nodeId/buy', requireActiveCultivator(), async (c) => {
         nodeId,
         layer,
         items: parsed.items,
+        userId: cultivator.userId,
         cultivatorId: cultivator.id,
         cultivatorRealm: cultivator.realm as RealmType,
       });
@@ -187,6 +160,7 @@ router.post('/:nodeId/buy', requireActiveCultivator(), async (c) => {
       layer,
       listingId: parsed.listingId,
       quantity: parsed.quantity,
+      userId: cultivator.userId,
       cultivatorId: cultivator.id,
       cultivatorRealm: cultivator.realm as RealmType,
     });

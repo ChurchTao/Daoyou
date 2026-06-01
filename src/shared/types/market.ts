@@ -1,6 +1,7 @@
 import type {
   ElementType,
   EquipmentSlot,
+  MaterialType,
   Quality,
   RealmType,
 } from './constants';
@@ -8,6 +9,49 @@ import type { Material } from './cultivator';
 
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
 export type RegionProfileKey = 'tiannan' | 'luanxinghai' | 'dajin' | 'default';
+
+/** 预设生成层（凡市 / 珍宝阁）使用内存预设池 */
+export const PRESET_LAYERS: MarketLayer[] = ['common', 'treasure'];
+/** LLM 生成层（天宝殿 / 黑市）使用 AI 调用 */
+export const LLM_LAYERS: MarketLayer[] = ['heaven', 'black'];
+
+export function isPresetLayer(layer: MarketLayer): boolean {
+  return PRESET_LAYERS.includes(layer);
+}
+
+/** 刷新周期（毫秒） */
+export const MARKET_REFRESH_MS: Record<MarketLayer, number> = {
+  common: 15 * 60 * 1000,    // 15 分钟
+  treasure: 15 * 60 * 1000,  // 15 分钟
+  heaven: 2 * 60 * 60 * 1000, // 2 小时
+  black: 2 * 60 * 60 * 1000,  // 2 小时
+};
+
+/** 每层商品数量 */
+export const MARKET_ITEM_COUNT = 8;
+
+// ─── 地域差异化 ───
+
+export interface RegionProfileLayerOverride {
+  count?: number;
+  rankRange?: { min: Quality; max: Quality };
+  mysteryChance?: number;
+}
+
+export interface RegionProfile {
+  typeWeights: Partial<Record<MaterialType, number>>;
+  priceModifier: { min: number; max: number };
+  layerOverrides: Partial<Record<MarketLayer, RegionProfileLayerOverride>>;
+  signatureTags: string[];
+  signatureRatio: number;
+}
+
+export interface ResolvedLayerConfig {
+  count: number;
+  rankRange: { min: Quality; max: Quality };
+  mysteryChance?: number;
+  access: MarketAccessRule;
+}
 
 export interface MarketAccessRule {
   minRealm?: RealmType;

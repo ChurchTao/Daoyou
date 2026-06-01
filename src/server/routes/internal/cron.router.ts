@@ -1,6 +1,7 @@
 import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
+  runMarketRefreshCronJob,
   runRankRewardsJob,
 } from '@server/lib/jobs/internalCron';
 import type { AppEnv } from '@server/lib/hono/types';
@@ -65,6 +66,10 @@ router.get('/bet-battle-expire', (c) =>
 
 router.get('/rank-rewards', (c) =>
   handleCronRequest(c.req.raw, runRankRewardsJob),
+);
+
+router.get('/market-refresh', (c) =>
+  handleCronRequest(c.req.raw, runMarketRefreshCronJob),
 );
 
 export default router;

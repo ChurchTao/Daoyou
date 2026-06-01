@@ -4,6 +4,7 @@ import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import { MailService } from '@server/lib/services/MailService';
+import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
 import { RANKING_REWARDS } from '@shared/types/constants';
 
 const AUCTION_EXPIRE_LOCK_KEY = 'cron:auction-expire:lock';
@@ -168,6 +169,17 @@ export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
       processed: topCultivatorIds.length,
       skipped: false,
       logs,
+    };
+  });
+}
+
+export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
+  return withJobLock('market-refresh', 'cron:market-refresh:lock', async () => {
+    const result = await runMarketRefreshJob();
+    return {
+      success: true,
+      processed: result.processed,
+      skipped: result.skipped,
     };
   });
 }

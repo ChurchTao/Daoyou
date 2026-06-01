@@ -1,16 +1,18 @@
 import { getRealmOrder } from '@server/lib/admin/realm';
 import type { MapNode } from '@shared/lib/game/mapSystem';
 import { getMapNode } from '@shared/lib/game/mapSystem';
-import type { Quality, RealmType } from '@shared/types/constants';
+import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
 import type {
   MarketAccessRule,
   MarketAccessState,
   MarketLayer,
+  RegionProfile,
   RegionProfileKey,
+  ResolvedLayerConfig,
 } from '@shared/types/market';
+import { MARKET_ITEM_COUNT, MARKET_REFRESH_MS } from '@shared/types/market';
 import mapData from '../../data/map.json';
 
-export const MARKET_CACHE_TTL_SEC = 7200;
 export const MARKET_STALE_RETRY_MS = 15000;
 export const MYSTERY_MAPPING_TTL_SEC = 72 * 60 * 60;
 export const DEFAULT_BLACK_MYSTERY_CHANCE = 0.7;
@@ -26,25 +28,72 @@ type LayerConfig = {
 
 export const MARKET_LAYER_CONFIG: Record<MarketLayer, LayerConfig> = {
   common: {
-    count: 10,
+    count: MARKET_ITEM_COUNT,
     rankRange: { min: '凡品', max: '玄品' },
     access: {},
   },
   treasure: {
-    count: 8,
+    count: MARKET_ITEM_COUNT,
     rankRange: { min: '玄品', max: '地品' },
     access: { minRealm: '筑基', entryFee: 0 },
   },
   heaven: {
-    count: 6,
+    count: MARKET_ITEM_COUNT,
     rankRange: { min: '地品', max: '神品' },
     access: { minRealm: '元婴' },
   },
   black: {
-    count: 8,
+    count: MARKET_ITEM_COUNT,
     rankRange: { min: '灵品', max: '仙品' },
     access: { minRealm: '筑基' },
     mysteryChance: DEFAULT_BLACK_MYSTERY_CHANCE,
+  },
+};
+
+// ─── 地域 Profile 配置 ───
+
+export const REGION_PROFILES: Record<RegionProfileKey, RegionProfile> = {
+  tiannan: {
+    typeWeights: {
+      herb: 3, aux: 2, ore: 1, monster: 1, tcdb: 0.5,
+      gongfa_manual: 0.5, skill_manual: 0.5,
+    } satisfies Partial<Record<MaterialType, number>>,
+    priceModifier: { min: 0.75, max: 1.1 },
+    layerOverrides: {},
+    signatureTags: ['灵草', '阵材', '药王谷', '天南特产'],
+    signatureRatio: 0.4,
+  },
+  luanxinghai: {
+    typeWeights: {
+      monster: 3, ore: 2, tcdb: 1.5, herb: 0.5, aux: 1,
+      gongfa_manual: 0.3, skill_manual: 0.8,
+    } satisfies Partial<Record<MaterialType, number>>,
+    priceModifier: { min: 0.9, max: 1.5 },
+    layerOverrides: {
+      black: { mysteryChance: 0.85 },
+    },
+    signatureTags: ['深海', '妖兽', '乱星海', '海底矿脉'],
+    signatureRatio: 0.45,
+  },
+  dajin: {
+    typeWeights: {
+      ore: 2, tcdb: 3, herb: 1, monster: 1, aux: 1.5,
+      gongfa_manual: 1.2, skill_manual: 1,
+    } satisfies Partial<Record<MaterialType, number>>,
+    priceModifier: { min: 1.1, max: 1.6 },
+    layerOverrides: {
+      heaven: { rankRange: { min: '地品', max: '神品' } },
+      treasure: { rankRange: { min: '真品', max: '天品' } },
+    },
+    signatureTags: ['皇都', '贡品', '大晋商会', '上古遗珍'],
+    signatureRatio: 0.35,
+  },
+  default: {
+    typeWeights: {},
+    priceModifier: { min: 0.85, max: 1.25 },
+    layerOverrides: {},
+    signatureTags: ['散修', '杂货'],
+    signatureRatio: 0.2,
   },
 };
 
@@ -70,6 +119,8 @@ const REGION_MARKET_FLAVOR: Record<
   },
 };
 
+// ─── 工具函数 ───
+
 function getRawMainNodes(): MapNode[] {
   return (mapData as { map_nodes: MapNode[] }).map_nodes;
 }
@@ -79,6 +130,12 @@ export function getDefaultMarketNodeId(): string {
     (node) => node.market_config?.enabled,
   );
   return firstEnabled?.id ?? FALLBACK_NODE_ID;
+}
+
+export function getEnabledMarketNodeIds(): string[] {
+  return getRawMainNodes()
+    .filter((node) => node.market_config?.enabled)
+    .map((node) => node.id);
 }
 
 export function getMarketConfigByNodeId(
@@ -99,6 +156,42 @@ export function getNodeRegionTags(nodeId: string): string[] {
 export function isMarketNodeEnabled(nodeId: string): boolean {
   const config = getMarketConfigByNodeId(nodeId);
   return Boolean(config?.enabled);
+}
+
+export function getRegionProfile(nodeId: string): RegionProfile {
+  const config = getMarketConfigByNodeId(nodeId);
+  const key = config?.region_profile ?? 'default';
+  return REGION_PROFILES[key];
+}
+
+export function getRefreshInterval(layer: MarketLayer): number {
+  return MARKET_REFRESH_MS[layer];
+}
+
+export function getCurrentCycle(layer: MarketLayer): number {
+  return Math.floor(Date.now() / getRefreshInterval(layer));
+}
+
+export function getCycleEndTime(layer: MarketLayer): number {
+  return (getCurrentCycle(layer) + 1) * getRefreshInterval(layer);
+}
+
+/**
+ * 合并层级配置：全局默认 ← RegionProfile 覆盖 ← 节点级覆盖
+ */
+export function resolveLayerConfig(
+  layer: MarketLayer,
+  profile: RegionProfile,
+): ResolvedLayerConfig {
+  const base = MARKET_LAYER_CONFIG[layer];
+  const regionOverride = profile.layerOverrides[layer];
+
+  return {
+    count: regionOverride?.count ?? base.count,
+    rankRange: regionOverride?.rankRange ?? base.rankRange,
+    mysteryChance: regionOverride?.mysteryChance ?? base.mysteryChance,
+    access: base.access,
+  };
 }
 
 export function validateLayerAccess(

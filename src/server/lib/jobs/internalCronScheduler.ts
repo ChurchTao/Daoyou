@@ -1,6 +1,7 @@
 import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
+  runMarketRefreshCronJob,
   runRankRewardsJob,
 } from './internalCron';
 
@@ -19,6 +20,8 @@ const AUCTION_EXPIRE_SCHEDULE = '*/2 * * * *';
 const BET_BATTLE_EXPIRE_SCHEDULE = '*/2 * * * *';
 // Bun.cron uses UTC for cron expressions. 16:00 UTC equals 00:00 Asia/Shanghai.
 const RANK_REWARDS_SCHEDULE = '0 16 * * *';
+// Market refresh: every 5 minutes to pre-generate listings before 15-min cycle ends
+const MARKET_REFRESH_SCHEDULE = '*/5 * * * *';
 
 let schedulerRegistered = false;
 let scheduledTasks: BunCronTask[] = [];
@@ -67,6 +70,9 @@ export function registerInternalCronJobs(options: {
     bunCron(RANK_REWARDS_SCHEDULE, () =>
       runScheduledJob('rank-rewards', runRankRewardsJob),
     ),
+    bunCron(MARKET_REFRESH_SCHEDULE, () =>
+      runScheduledJob('market-refresh', runMarketRefreshCronJob),
+    ),
   ];
   schedulerRegistered = true;
 
@@ -75,6 +81,7 @@ export function registerInternalCronJobs(options: {
     betBattleExpire: BET_BATTLE_EXPIRE_SCHEDULE,
     rankRewardsUtc: RANK_REWARDS_SCHEDULE,
     rankRewardsLocal: '00:00 Asia/Shanghai',
+    marketRefresh: MARKET_REFRESH_SCHEDULE,
   });
 
   return scheduledTasks;

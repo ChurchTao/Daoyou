@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 const {
   batchBuyMarketItemsMock,
   buyMarketItemMock,
-  clearMarketCacheMock,
   confirmSellMock,
   getMarketListingsMock,
   previewSellMock,
@@ -12,7 +11,6 @@ const {
 } = vi.hoisted(() => ({
   batchBuyMarketItemsMock: vi.fn(),
   buyMarketItemMock: vi.fn(),
-  clearMarketCacheMock: vi.fn(),
   confirmSellMock: vi.fn(),
   getMarketListingsMock: vi.fn(),
   previewSellMock: vi.fn(),
@@ -25,6 +23,7 @@ vi.mock('@server/lib/hono/middleware', () => ({
     () => async (context: any, next: () => Promise<void>) => {
       context.set('cultivator', {
         id: 'cultivator-1',
+        userId: 'user-1',
         realm: '筑基',
       });
       await next();
@@ -39,7 +38,6 @@ vi.mock('@server/lib/hono/response', () => ({
 vi.mock('@server/lib/services/MarketService', () => ({
   batchBuyMarketItems: batchBuyMarketItemsMock,
   buyMarketItem: buyMarketItemMock,
-  clearMarketCache: clearMarketCacheMock,
   getMarketListings: getMarketListingsMock,
   MarketServiceError: class MarketServiceError extends Error {
     constructor(
@@ -79,7 +77,26 @@ describe('market router', () => {
     resolveNodeIdMock.mockImplementation((value?: string | null) => value || 'node-1');
   });
 
-  it('routes POST /sell preview to recycle handler before node refresh route', async () => {
+  it('routes GET /:nodeId to getMarketListings with userId', async () => {
+    getMarketListingsMock.mockResolvedValueOnce({
+      listings: [],
+      nextRefresh: Date.now() + 60_000,
+      access: { allowed: true },
+      marketFlavor: { title: '测试坊市', description: '测试描述' },
+    });
+
+    const response = await createApp().request('/api/market/node-1?layer=common');
+
+    expect(response.status).toBe(200);
+    expect(getMarketListingsMock).toHaveBeenCalledWith({
+      nodeId: 'node-1',
+      layer: 'common',
+      userId: 'user-1',
+      cultivatorRealm: '筑基',
+    });
+  });
+
+  it('routes POST /sell preview to recycle handler', async () => {
     previewSellMock.mockResolvedValueOnce({
       success: true,
       itemType: 'material',
@@ -113,7 +130,6 @@ describe('market router', () => {
       ['material-1'],
       'material',
     );
-    expect(clearMarketCacheMock).not.toHaveBeenCalled();
     expect(getMarketListingsMock).not.toHaveBeenCalled();
   });
 
@@ -139,6 +155,33 @@ describe('market router', () => {
 
     expect(response.status).toBe(200);
     expect(confirmSellMock).toHaveBeenCalledWith('cultivator-1', 'session-2');
-    expect(clearMarketCacheMock).not.toHaveBeenCalled();
+  });
+
+  it('routes POST /:nodeId/buy to buyMarketItem with userId', async () => {
+    buyMarketItemMock.mockResolvedValueOnce({
+      success: true,
+      message: '成功购入',
+    });
+
+    const response = await createApp().request('/api/market/node-1/buy', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        listingId: 'listing-1',
+        quantity: 1,
+        layer: 'common',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(buyMarketItemMock).toHaveBeenCalledWith({
+      nodeId: 'node-1',
+      layer: 'common',
+      listingId: 'listing-1',
+      quantity: 1,
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      cultivatorRealm: '筑基',
+    });
   });
 });
