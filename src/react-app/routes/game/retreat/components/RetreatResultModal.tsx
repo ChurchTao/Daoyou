@@ -100,16 +100,21 @@ function CultivationResultContent({
       <p>当前进度：{format('.2f')(summary.progress)}%</p>
 
       {summary.insight_gained > 0 ? (
-        <p>感悟提升：+{summary.insight_gained}</p>
+        <p>
+          道心感悟：+{summary.insight_gained}
+          {summary.epiphany_triggered ? (
+            <span className="text-gold ml-1">（顿悟加持）</span>
+          ) : null}
+        </p>
       ) : null}
 
       {summary.epiphany_triggered ? (
-        <p className="text-gold">✨ 触发顿悟！修为翻倍！</p>
+        <p className="text-gold">✨ 触发顿悟！修为翻倍，感悟大增！</p>
       ) : null}
 
       {summary.bottleneck_entered ? (
         <p className="text-wood">
-          ⚠️ 已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式积累感悟。
+          ⚠️ 已入瓶颈期，闭关效率降低。建议通过副本、战斗等方式寻求突破。
         </p>
       ) : null}
     </div>

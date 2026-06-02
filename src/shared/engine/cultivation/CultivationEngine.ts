@@ -151,18 +151,12 @@ export function performCultivation(
     progress.exp_cap,
   );
 
-  // 更新感悟值
-  if (expResult.epiphany_triggered) {
+  // 更新感悟值（每次闭关都可能获得，非顿悟时0~20，顿悟时20~50）
+  if (finalInsightGain > 0) {
     progress.comprehension_insight = Math.min(
       100,
       progress.comprehension_insight + finalInsightGain,
     );
-
-    // 应用顿悟buff
-    const now = new Date();
-    progress.last_epiphany_at = now.toISOString();
-    const buffExpires = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3天
-    progress.epiphany_buff_expires_at = buffExpires.toISOString();
   }
 
   // 检查是否进入瓶颈期

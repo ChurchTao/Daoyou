@@ -2,7 +2,31 @@ import {
   BASE_EXP_PER_YEAR,
   EXP_CAP_TABLE,
 } from '@shared/config/cultivationProgress';
-import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
+import {
+  BOTTLENECK_EXP_PENALTY,
+  BOTTLENECK_THRESHOLD,
+  BREAKTHROUGH_MIN_PROGRESS,
+  DEFAULT_SPIRITUAL_ROOT_STRENGTH,
+  EPIPHANY_CHANCE,
+  EPIPHANY_EXP_MULTIPLIER,
+  EPIPHANY_INSIGHT_MIN,
+  EPIPHANY_INSIGHT_RANGE,
+  FAILURE_LOSS_PARAMS,
+  MAX_NORMAL_INSIGHT,
+  NO_TECHNIQUE_MULTIPLIER,
+  NORMAL_BREAKTHROUGH_THRESHOLD,
+  NORMAL_INSIGHT_SCALE,
+  PERFECT_BREAKTHROUGH_INSIGHT,
+  RANDOM_FACTOR_LOW,
+  RANDOM_FACTOR_RANGE,
+  SPIRITUAL_ROOT_BASE,
+  TECHNIQUE_FALLBACK_QUALITY,
+  TECHNIQUE_MIN_MULTIPLIER,
+  TECHNIQUE_QUALITY_MULTIPLIERS,
+  YEARS_MULTIPLIER_BASE,
+  YEARS_MULTIPLIER_SCALE,
+} from '@shared/config/cultivationTuning';
+import type { RealmStage, RealmType } from '@shared/types/constants';
 import type {
   CultivationProgress,
   Cultivator,
@@ -16,7 +40,7 @@ export function calculateExpCap(
   realm: RealmType,
   realm_stage: RealmStage,
 ): number {
-  return EXP_CAP_TABLE[realm]?.[realm_stage] ?? 1000;
+  return EXP_CAP_TABLE[realm]?.[realm_stage] ?? EXP_CAP_TABLE['炼气']['初期'];
 }
 
 export function getCultivationProgress(
@@ -70,7 +94,7 @@ export function getMainSpiritualRootStrength(
   spiritual_roots: SpiritualRoot[],
 ): number {
   if (!spiritual_roots || spiritual_roots.length === 0) {
-    return 50; // 默认值
+    return DEFAULT_SPIRITUAL_ROOT_STRENGTH;
   }
 
   let maxStrength = spiritual_roots[0].strength;
@@ -85,14 +109,13 @@ export function getMainSpiritualRootStrength(
 
 /**
  * 计算灵根系数
- * 公式：0.5 + (主灵根强度 / 100)
- * 范围：0.7 ~ 1.5
+ * 公式：SPIRITUAL_ROOT_BASE + (主灵根强度 / 100)
  */
 export function calculateSpiritualRootMultiplier(
   spiritual_roots: SpiritualRoot[],
 ): number {
   const strength = getMainSpiritualRootStrength(spiritual_roots);
-  return 0.5 + strength / 100;
+  return SPIRITUAL_ROOT_BASE + strength / 100;
 }
 
 /**
@@ -102,24 +125,14 @@ export function getCultivationTechniqueMultiplier(
   cultivator: Cultivator,
 ): number {
   if (!cultivator.cultivations || cultivator.cultivations.length === 0) {
-    return 1.0; // 无功法，默认系数
+    return NO_TECHNIQUE_MULTIPLIER;
   }
 
-  // 使用最高品级的功法
-  const qualityMultipliers: Record<Quality, number> = {
-    凡品: 0.8,
-    灵品: 0.85,
-    玄品: 0.9,
-    真品: 0.95,
-    地品: 1.0,
-    天品: 1.05,
-    仙品: 1.1,
-    神品: 1.15,
-  };
-
-  let maxMultiplier = 0.8;
+  let maxMultiplier = TECHNIQUE_MIN_MULTIPLIER;
   for (const cultivation of cultivator.cultivations) {
-    const multiplier = qualityMultipliers[cultivation.quality ?? '凡品'] ?? 0.8;
+    const multiplier =
+      TECHNIQUE_QUALITY_MULTIPLIERS[cultivation.quality ?? TECHNIQUE_FALLBACK_QUALITY] ??
+      TECHNIQUE_MIN_MULTIPLIER;
     if (multiplier > maxMultiplier) {
       maxMultiplier = multiplier;
     }
@@ -129,38 +142,37 @@ export function getCultivationTechniqueMultiplier(
 }
 
 /**
- * 计算悟性系数
- * 公式：1.0 + (悟性 - 50) / 200
- * 范围：0.75 ~ 1.5
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function calculateWisdomMultiplier(wisdom: number): number {
-  // 暂时无影响
-  return 1.0;
-}
-
-/**
  * 计算年限系数
- * 公式：0.7 + sqrt(log10(闭关年限 + 1))
- * 使用 sqrt(log10) 复合函数，让短期收益更合理
- * years=1 → ~1.25, years=10 → ~1.72, years=100 → ~2.12
+ * 公式：YEARS_MULTIPLIER_BASE + YEARS_MULTIPLIER_SCALE × √(log₁₀(years + 1))
  */
 export function calculateYearsMultiplier(years: number): number {
   if (years <= 0) return 1.0;
-  return 0.7 + Math.sqrt(Math.log10(years + 1));
+  return YEARS_MULTIPLIER_BASE + YEARS_MULTIPLIER_SCALE * Math.sqrt(Math.log10(years + 1));
 }
 
 /**
- * 计算顿悟触发概率
- * 基于悟性，公式：Math.log10(悟性) / 100
+ * 顿悟触发概率（固定 EPIPHANY_CHANCE）
  */
-export function calculateEpiphanyChance(wisdom: number): number {
-  return Math.log10(wisdom) / 100 + 0.05;
+export function calculateEpiphanyChance(): number {
+  return EPIPHANY_CHANCE;
+}
+
+/**
+ * 计算非顿悟时的常规感悟值获取
+ * 公式：min(MAX_NORMAL_INSIGHT, floor(√years × NORMAL_INSIGHT_SCALE × rng))
+ */
+export function calculateNormalInsightGain(
+  years: number,
+  rng: () => number = Math.random,
+): number {
+  if (years <= 0) return 0;
+  const base = Math.sqrt(years) * NORMAL_INSIGHT_SCALE * rng();
+  return Math.min(MAX_NORMAL_INSIGHT, Math.floor(base));
 }
 
 /**
  * 计算单次闭关获得的修为
- * 公式：基础修为 × 灵根系数 × 功法系数 × 悟性系数 × 年限系数 × 随机波动
+ * 公式：基础修为 × 灵根系数 × 功法系数 × 年限系数 × 随机波动
  */
 export interface CultivationExpResult {
   exp_gained: number; // 获得的修为
@@ -174,7 +186,7 @@ export function calculateCultivationExp(
   rng: () => number = Math.random,
 ): CultivationExpResult {
   // 1. 基础修为
-  const baseExp = BASE_EXP_PER_YEAR[cultivator.realm] ?? 50;
+  const baseExp = BASE_EXP_PER_YEAR[cultivator.realm] ?? BASE_EXP_PER_YEAR['炼气'];
 
   // 2. 灵根系数
   const spiritualRootMultiplier = calculateSpiritualRootMultiplier(
@@ -184,42 +196,39 @@ export function calculateCultivationExp(
   // 3. 功法系数
   const techniqueMultiplier = getCultivationTechniqueMultiplier(cultivator);
 
-  // 4. 悟性系数
-  const wisdomMultiplier = calculateWisdomMultiplier(
-    cultivator.attributes.wisdom,
-  );
-
-  // 5. 年限系数
+  // 4. 年限系数
   const yearsMultiplier = calculateYearsMultiplier(years);
 
-  // 6. 随机波动 (±10%)
-  const randomFactor = 0.9 + rng() * 0.2;
+  // 5. 随机波动
+  const randomFactor = RANDOM_FACTOR_LOW + rng() * RANDOM_FACTOR_RANGE;
 
-  // 7. 检查是否触发顿悟
-  const epiphanyChance = calculateEpiphanyChance(cultivator.attributes.wisdom);
+  // 6. 顿悟判定
+  const epiphanyChance = calculateEpiphanyChance();
   const epiphany_triggered = rng() < epiphanyChance;
 
-  // 8. 计算基础修为获取
+  // 7. 计算基础修为获取
   let exp_gained =
     baseExp *
     years *
     spiritualRootMultiplier *
     techniqueMultiplier *
-    wisdomMultiplier *
     yearsMultiplier *
     randomFactor;
 
-  // 9. 顿悟加成
+  // 8. 顿悟加成：修为翻倍 + 感悟值
   let insight_gained = 0;
   if (epiphany_triggered) {
-    exp_gained *= 2; // 修为翻倍
-    insight_gained = Math.floor(20 + rng() * 30); // 20-50感悟值
+    exp_gained *= EPIPHANY_EXP_MULTIPLIER;
+    insight_gained = Math.floor(EPIPHANY_INSIGHT_MIN + rng() * EPIPHANY_INSIGHT_RANGE);
+  } else {
+    // 9. 非顿悟时的常规感悟值
+    insight_gained = calculateNormalInsightGain(years, rng);
   }
 
-  // 10. 如果处于瓶颈期，修为获取减半
+  // 10. 如果处于瓶颈期，修为获取衰减
   const progress = cultivator.cultivation_progress;
   if (progress?.bottleneck_state) {
-    exp_gained *= 0.5;
+    exp_gained *= BOTTLENECK_EXP_PENALTY;
   }
 
   return {
@@ -238,18 +247,17 @@ export function calculateExpProgress(progress: CultivationProgress): number {
 }
 
 /**
- * 判断修为是否达到瓶颈期（90%）
+ * 判断修为是否达到瓶颈期
  */
 export function isBottleneckReached(progress: CultivationProgress): boolean {
-  return calculateExpProgress(progress) >= 90;
+  return calculateExpProgress(progress) >= BOTTLENECK_THRESHOLD;
 }
 
 /**
  * 判断是否可以尝试突破
- * 至少需要60%修为进度
  */
 export function canAttemptBreakthrough(progress: CultivationProgress): boolean {
-  return calculateExpProgress(progress) >= 60;
+  return calculateExpProgress(progress) >= BREAKTHROUGH_MIN_PROGRESS;
 }
 
 /**
@@ -260,9 +268,9 @@ export function getBreakthroughType(
 ): 'forced' | 'normal' | 'perfect' {
   const expProgress = calculateExpProgress(progress);
 
-  if (expProgress >= 100 && progress.comprehension_insight >= 50) {
+  if (expProgress >= 100 && progress.comprehension_insight >= PERFECT_BREAKTHROUGH_INSIGHT) {
     return 'perfect';
-  } else if (expProgress >= 80) {
+  } else if (expProgress >= NORMAL_BREAKTHROUGH_THRESHOLD) {
     return 'normal';
   } else {
     return 'forced';
@@ -277,27 +285,10 @@ export function calculateExpLossOnFailure(
   rng: () => number = Math.random,
 ): number {
   const breakthroughType = getBreakthroughType(progress);
+  const params = FAILURE_LOSS_PARAMS[breakthroughType];
 
-  let baseLossRatio: number;
-  let insightProtectionDivisor: number;
-
-  switch (breakthroughType) {
-    case 'forced':
-      baseLossRatio = 0.5 + rng() * 0.2; // 50%-70%
-      insightProtectionDivisor = 500;
-      break;
-    case 'normal':
-      baseLossRatio = 0.3 + rng() * 0.2; // 30%-50%
-      insightProtectionDivisor = 300;
-      break;
-    case 'perfect':
-      baseLossRatio = 0.2 + rng() * 0.1; // 20%-30%
-      insightProtectionDivisor = 200;
-      break;
-  }
-
-  const insightProtection =
-    progress.comprehension_insight / insightProtectionDivisor;
+  const baseLossRatio = params.baseLow + rng() * params.baseRange;
+  const insightProtection = progress.comprehension_insight / params.insightDivisor;
   const actualLossRatio = baseLossRatio * (1 - insightProtection);
 
   return Math.floor(progress.cultivation_exp * actualLossRatio);
