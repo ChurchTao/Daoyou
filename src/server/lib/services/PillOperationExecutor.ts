@@ -14,7 +14,11 @@ import {
   getCultivationPillUsageLimit,
   getPillUsageLimitReachedText,
 } from '@shared/lib/pillUsageText';
-import { REALM_PILL_USAGE_LIMITS } from '@shared/config/consumableSystem';
+import {
+  CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
+  REALM_PILL_USAGE_LIMITS,
+} from '@shared/config/consumableSystem';
+import { QUALITY_ORDER } from '@shared/types/constants';
 import { ConditionService } from './ConditionService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 
@@ -54,6 +58,25 @@ function cloneCultivator(cultivator: Cultivator): Cultivator {
 
 function createUntilRemovedDuration(): ConditionStatusDuration {
   return { kind: 'until_removed' };
+}
+
+function assertCultivationPillQualityAllowed(
+  cultivator: Cultivator,
+  consumable: Consumable & { spec: PillSpec },
+): void {
+  if (consumable.spec.family !== 'cultivation') {
+    return;
+  }
+
+  const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[cultivator.realm];
+  const pillQuality = consumable.quality ?? '凡品';
+  if ((QUALITY_ORDER[pillQuality] ?? 0) <= (QUALITY_ORDER[maxQuality] ?? 0)) {
+    return;
+  }
+
+  throw new Error(
+    `药力过盛，强行服用恐爆体而亡。当前境界最多可承受${maxQuality}修为丹。`,
+  );
 }
 
 function removeStatuses(
@@ -331,6 +354,8 @@ export const PillOperationExecutor = {
       now,
     );
     const trackLevelUps: TrackLevelUpResult[] = [];
+
+    assertCultivationPillQualityAllowed(nextCultivator, consumable);
 
     if (consumable.spec.consumeRules.quotaCategory === 'long_term') {
       const used =

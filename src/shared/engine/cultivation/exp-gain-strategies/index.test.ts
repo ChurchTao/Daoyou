@@ -22,13 +22,13 @@ describe('cultivation exp gain strategies', () => {
       randomFactor: 1,
     });
 
-    expect(result.baseExp).toBe(200);
+    expect(result.baseExp).toBe(22);
     expect(result.trace.units).toBe(4);
-    expect(calculateOfflineExp('金丹', '初期', 6, () => 0.5, 1_000)).toBe(50);
+    expect(calculateOfflineExp('金丹', '初期', 6, () => 0.5, 1_000)).toBe(5);
   });
 
   it('dungeon resolves tier and danger bonus', () => {
-    expect(calculateDungeonExp('筑基', '初期', 'S', 0, 1_500)).toBe(375);
+    expect(calculateDungeonExp('筑基', '初期', 'S', 0, 1_500)).toBe(255);
 
     expect(
       calculateSceneCultivationExp('dungeon', {
@@ -37,7 +37,7 @@ describe('cultivation exp gain strategies', () => {
         expCap: 1_000,
         result: 'perfect',
       }).baseExp,
-    ).toBe(150);
+    ).toBe(170);
   });
 
   it('pill resolves either quality percent or quality scalar', () => {
@@ -48,13 +48,13 @@ describe('cultivation exp gain strategies', () => {
         expCap: 2_000,
         quality: '真品',
       }).baseExp,
-    ).toBe(166);
+    ).toBe(40);
 
-    expect(calculatePillExp('筑基', 1.66, '初期', 2_000)).toBe(166);
+    expect(calculatePillExp('筑基', 1.66, '初期', 2_000)).toBe(13);
   });
 
   it('battle victory resolves realm diff and victory type multipliers', () => {
-    expect(calculateBattleExp('筑基', '初期', 1, 'perfect', 1_000)).toBe(58);
+    expect(calculateBattleExp('筑基', '初期', 1, 'perfect', 1_000)).toBe(19);
   });
 
   it('daily task and event strategies resolve controlled weights', () => {
@@ -65,7 +65,7 @@ describe('cultivation exp gain strategies', () => {
         expCap: 1_000,
         difficulty: 'hard',
       }).baseExp,
-    ).toBe(45);
+    ).toBe(113);
 
     expect(
       calculateSceneCultivationExp('system_reward', {
@@ -75,6 +75,6 @@ describe('cultivation exp gain strategies', () => {
         weight: 'major',
         multiplier: 10,
       }).baseExp,
-    ).toBe(200);
+    ).toBe(80);
   });
 });

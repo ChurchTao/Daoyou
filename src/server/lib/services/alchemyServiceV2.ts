@@ -33,6 +33,7 @@ import type {
   ElementType,
   MaterialType,
   Quality,
+  RealmStage,
   RealmType,
 } from '@shared/types/constants';
 import type { AlchemyRecipePlan, PillSpec } from '@shared/types/consumable';
@@ -404,11 +405,19 @@ export function createAlchemyService(
           throw new AlchemyServiceError('丹意未明，请稍后重试。', 503);
         }
 
+        const cultivationProgress = cultivator.cultivation_progress as
+          | { exp_cap?: number }
+          | null
+          | undefined;
         const synthesis = synthesizeAlchemyFromPlan(
           preparedMaterials,
           recipePlan,
           highestMaterialRank,
-          cultivator.realm as RealmType,
+          {
+            realm: cultivator.realm as RealmType,
+            realmStage: (cultivator.realm_stage ?? '初期') as RealmStage,
+            expCap: cultivationProgress?.exp_cap,
+          },
         );
         const breakthroughTargetRealm =
           synthesis.family === 'breakthrough'

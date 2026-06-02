@@ -500,7 +500,7 @@ describe('cultivator yield route', () => {
     ]);
     calculateMaterialCountMock.mockReturnValue(2);
     getMaterialQualityChanceMapMock.mockReturnValue(qualityChanceMap);
-    generateRandomMaterialsMock.mockResolvedValue([
+    const generatedMaterials = [
       {
         name: '寒髓晶',
         type: 'ore',
@@ -510,7 +510,9 @@ describe('cultivator yield route', () => {
         quantity: 1,
         price: 50000,
       },
-    ]);
+    ];
+    generateRandomMaterialsMock.mockResolvedValue(generatedMaterials);
+    sendMailMock.mockResolvedValue({ id: 'mail-1' });
 
     const response = await createApp().request('/api/cultivator/yield', {
       method: 'POST',
@@ -525,6 +527,7 @@ describe('cultivator yield route', () => {
         amount: 1200,
         expGain: 80,
         materialCount: 2,
+        materials: generatedMaterials,
       }),
     });
     expect(events.slice(1)).toEqual([
@@ -532,18 +535,26 @@ describe('cultivator yield route', () => {
       { type: 'chunk', text: '清光落袖。' },
     ]);
 
-    expect(runDetachedMock).toHaveBeenCalledTimes(1);
-    const detachedTask = runDetachedMock.mock.calls[0]?.[0] as
-      | (() => Promise<void>)
-      | undefined;
-    expect(detachedTask).toBeTypeOf('function');
-
-    await detachedTask?.();
-
+    // 材料和邮件现在在 SSE 流开始前同步完成，不再走 runDetached
+    expect(runDetachedMock).not.toHaveBeenCalled();
     expect(getMaterialQualityChanceMapMock).toHaveBeenCalledWith('元婴');
     expect(generateRandomMaterialsMock).toHaveBeenCalledWith(2, {
       qualityChanceMap,
     });
+    expect(sendMailMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      '历练机缘',
+      '道友历练途中，偶得天材地宝，特以此传音玉简送达。',
+      [
+        {
+          type: 'material',
+          name: '寒髓晶',
+          quantity: 1,
+          data: generatedMaterials[0],
+        },
+      ],
+      'reward',
+    );
   });
 });
 

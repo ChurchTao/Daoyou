@@ -1,6 +1,5 @@
-import { calculatePillExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
-import { getConsumableQualityScalar } from '@shared/config/consumableSystem';
-import type { Quality, RealmType } from '@shared/types/constants';
+import { calculateSceneCultivationExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
+import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
 
 const INSIGHT_GAIN_BY_QUALITY: Record<Quality, number> = {
   凡品: 1,
@@ -13,11 +12,41 @@ const INSIGHT_GAIN_BY_QUALITY: Record<Quality, number> = {
   神品: 15,
 };
 
+export interface CultivationGainSnapshotInput {
+  realm: RealmType;
+  realmStage?: RealmStage;
+  expCap?: number;
+  quality: Quality;
+  fitMultiplier?: number;
+}
+
+export function buildCultivationGain(
+  input: CultivationGainSnapshotInput,
+): number;
 export function buildCultivationGain(
   realm: RealmType,
   quality: Quality,
+): number;
+export function buildCultivationGain(
+  inputOrRealm: CultivationGainSnapshotInput | RealmType,
+  quality?: Quality,
 ): number {
-  return calculatePillExp(realm, getConsumableQualityScalar(quality));
+  const input =
+    typeof inputOrRealm === 'string'
+      ? {
+          realm: inputOrRealm,
+          realmStage: '初期' as const,
+          quality: quality ?? '凡品',
+        }
+      : inputOrRealm;
+
+  return calculateSceneCultivationExp('pill', {
+    realm: input.realm,
+    realmStage: input.realmStage ?? '初期',
+    expCap: input.expCap,
+    quality: input.quality,
+    fitMultiplier: input.fitMultiplier,
+  }).baseExp;
 }
 
 export function buildInsightGain(quality: Quality): number {

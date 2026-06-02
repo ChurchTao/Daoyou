@@ -570,6 +570,10 @@ describe('craftFromFormula narrative copy', () => {
     executorState.cultivatorRow = {
       ...executorState.cultivatorRow,
       realm: '筑基',
+      realm_stage: '后期',
+      cultivation_progress: {
+        exp_cap: 5000,
+      },
     };
 
     const result = await craftFromFormula(
@@ -588,7 +592,13 @@ describe('craftFromFormula narrative copy', () => {
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'gain_progress',
       target: 'cultivation_exp',
-      value: Math.floor(buildCultivationGain('筑基', '真品') * 1.15),
+      value: buildCultivationGain({
+        realm: '筑基',
+        realmStage: '后期',
+        expCap: 5000,
+        quality: '真品',
+        fitMultiplier: 1.15,
+      }),
     });
     expect((result.consumable.spec as PillSpec).operations).not.toContainEqual({
       type: 'gain_progress',

@@ -77,7 +77,7 @@ function createCultivationPill(): Consumable {
     id: 'pill-cultivation',
     name: '养元丹',
     type: '丹药',
-    quality: '真品',
+    quality: '玄品',
     quantity: 1,
     description: '积修养元。',
     spec: {
@@ -262,6 +262,37 @@ describe('PillOperationExecutor', () => {
     ).toBe(1);
     expect(
       result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基 ?? 0,
+    ).toBe(0);
+  });
+
+  it('rejects cultivation pills above the current realm quality tolerance without mutating state', () => {
+    const cultivator = createCultivator();
+    cultivator.cultivation_progress = {
+      cultivation_exp: 12,
+      exp_cap: 100,
+      comprehension_insight: 30,
+      breakthrough_failures: 0,
+      bottleneck_state: false,
+      inner_demon: false,
+      deviation_risk: 0,
+    };
+    cultivator.condition = ConditionService.normalizeCondition(cultivator);
+    const pill = {
+      ...createCultivationPill(),
+      quality: '真品',
+    } satisfies Consumable;
+
+    expect(() =>
+      PillOperationExecutor.execute(
+        cultivator,
+        pill,
+        new Date('2026-05-25T12:00:00.000Z'),
+      ),
+    ).toThrow('药力过盛，强行服用恐爆体而亡');
+
+    expect(cultivator.cultivation_progress.cultivation_exp).toBe(12);
+    expect(
+      cultivator.condition.counters.cultivationPillUsesByRealm.筑基 ?? 0,
     ).toBe(0);
   });
 

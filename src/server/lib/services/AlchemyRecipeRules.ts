@@ -10,6 +10,7 @@ import {
   buildCultivationGain,
   buildInsightGain,
   scaleProgressGain,
+  type CultivationGainSnapshotInput,
 } from '@shared/lib/alchemyProgress';
 import {
   getAlchemyPropertyFamily,
@@ -20,7 +21,12 @@ import {
   sortWeightedAlchemyProperties,
 } from '@shared/lib/alchemyProperties';
 import { getHealingCuredStatus } from '@shared/lib/healingPill';
-import type { ElementType, Quality, RealmType } from '@shared/types/constants';
+import type {
+  ElementType,
+  Quality,
+  RealmStage,
+  RealmType,
+} from '@shared/types/constants';
 import type {
   AlchemyFocusMode,
   AlchemyMaterialPropertyVector,
@@ -57,6 +63,12 @@ export interface AggregatedAlchemyProperties {
 export interface SynthesizedAlchemyResult extends AggregatedAlchemyProperties {
   family: PillFamily;
   operations: ConditionOperation[];
+}
+
+export interface AlchemyCultivationSnapshotContext {
+  realm: RealmType;
+  realmStage?: RealmStage;
+  expCap?: number;
 }
 
 const FOCUS_BONUS: Record<AlchemyFocusMode, number> = {
@@ -214,7 +226,7 @@ export function chooseDominantElement(
 function buildBasePropertyOperation(
   key: AlchemyPropertyKey,
   quality: Quality,
-  realm: RealmType,
+  cultivationContext: CultivationGainSnapshotInput,
 ): ConditionOperation {
   const scalar = getConsumableQualityScalar(quality);
 
@@ -248,7 +260,7 @@ function buildBasePropertyOperation(
       return {
         type: 'gain_progress',
         target: 'cultivation_exp',
-        value: buildCultivationGain(realm, quality),
+        value: buildCultivationGain(cultivationContext),
       };
     case 'insight':
       return {
@@ -347,14 +359,18 @@ function selectEffectiveProperties(
 function buildPropertyOperationSet(
   selectedProperties: WeightedAlchemyProperty[],
   quality: Quality,
-  realm: RealmType,
+  cultivationContext: AlchemyCultivationSnapshotContext,
   toxicityRating: number,
 ): ConditionOperation[] {
+  const cultivationGainContext: CultivationGainSnapshotInput = {
+    ...cultivationContext,
+    quality,
+  };
   const operations = selectedProperties.map((property, index) => {
     const baseOperation = buildBasePropertyOperation(
       property.key,
       quality,
-      realm,
+      cultivationGainContext,
     );
     const scalar =
       PROPERTY_OPERATION_SCALARS[index] ?? PROPERTY_OPERATION_SCALARS[2];
@@ -577,14 +593,18 @@ export function synthesizeAlchemyFromPlan(
   materials: PreparedAlchemyMaterial[],
   plan: AlchemyRecipePlan,
   quality: Quality,
-  realm: RealmType,
+  cultivationContextOrRealm: AlchemyCultivationSnapshotContext | RealmType,
 ): SynthesizedAlchemyResult {
+  const cultivationContext =
+    typeof cultivationContextOrRealm === 'string'
+      ? { realm: cultivationContextOrRealm }
+      : cultivationContextOrRealm;
   const aggregated = aggregateAlchemyProperties(materials, plan);
   const family = determineAlchemyFamily(aggregated.propertyVector);
   let operations = buildPropertyOperationSet(
     aggregated.propertyVector,
     quality,
-    realm,
+    cultivationContext,
     aggregated.toxicityRating,
   );
 

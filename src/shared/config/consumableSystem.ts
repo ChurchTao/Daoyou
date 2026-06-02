@@ -24,6 +24,18 @@ export const CULTIVATION_PILL_USAGE_LIMITS: Record<RealmType, number> = {
   渡劫: 90,
 };
 
+export const CULTIVATION_PILL_MAX_QUALITY_BY_REALM: Record<RealmType, Quality> = {
+  炼气: '玄品',
+  筑基: '真品',
+  金丹: '地品',
+  元婴: '天品',
+  化神: '神品',
+  炼虚: '神品',
+  合体: '神品',
+  大乘: '神品',
+  渡劫: '神品',
+};
+
 export function getConsumableQualityScalar(quality: Quality | undefined): number {
   return 1 + (QUALITY_ORDER[quality ?? '凡品'] ?? 0) * 0.22;
 }

@@ -3,6 +3,7 @@ import {
   DAILY_TASK_EXP_BUDGET,
   DUNGEON_EXP_BUDGET,
   EVENT_EXP_BUDGET,
+  EXP_GAIN_REALM_PACE_MULTIPLIER,
   OFFLINE_YIELD_EXP_BUDGET,
   PILL_EXP_BUDGET,
   RETREAT_EXP_BUDGET,
@@ -64,6 +65,10 @@ function resolveRealmDiffMultiplier(realmDiff: number): number {
   return config.same;
 }
 
+function resolveRealmPaceMultiplier(realm: RealmType): number {
+  return EXP_GAIN_REALM_PACE_MULTIPLIER[realm] ?? 1;
+}
+
 export const retreatStrategy: CultivationExpGainStrategy<RetreatExpContext> = {
   id: 'retreat',
   resolve(context) {
@@ -92,7 +97,8 @@ export const offlineYieldStrategy: CultivationExpGainStrategy<OfflineYieldExpCon
       cap: resolveExpCap(context),
       percent:
         OFFLINE_YIELD_EXP_BUDGET.percentPerUnit *
-        clampNonNegativeFinite(context.randomFactor ?? 1, 1),
+        clampNonNegativeFinite(context.randomFactor ?? 1, 1) *
+        resolveRealmPaceMultiplier(context.realm),
       units,
       minBaseExp: OFFLINE_YIELD_EXP_BUDGET.minBaseExp,
     };
@@ -108,7 +114,8 @@ export const battleVictoryStrategy: CultivationExpGainStrategy<BattleVictoryExpC
       percent:
         BATTLE_VICTORY_EXP_BUDGET.percent *
         resolveRealmDiffMultiplier(context.realmDiff ?? 0) *
-        BATTLE_VICTORY_EXP_BUDGET.victoryMultiplier[victoryType],
+        BATTLE_VICTORY_EXP_BUDGET.victoryMultiplier[victoryType] *
+        resolveRealmPaceMultiplier(context.realm),
       minBaseExp: BATTLE_VICTORY_EXP_BUDGET.minBaseExp,
     };
   },
@@ -120,11 +127,17 @@ export const dungeonStrategy: CultivationExpGainStrategy<DungeonExpContext> = {
     const basePercent = context.result
       ? DUNGEON_EXP_BUDGET.resultPercent[context.result]
       : DUNGEON_EXP_BUDGET.tierPercent[normalizeDungeonTier(context.tier)];
-    const dangerBonus = clampNonNegativeFinite(context.dangerBonus ?? 0);
+    const dangerBonus = Math.min(
+      clampNonNegativeFinite(context.dangerBonus ?? 0),
+      1,
+    );
 
     return {
       cap: resolveExpCap(context),
-      percent: basePercent * (1 + dangerBonus * DUNGEON_EXP_BUDGET.dangerBonusScale),
+      percent:
+        basePercent *
+        (1 + dangerBonus * DUNGEON_EXP_BUDGET.dangerBonusScale) *
+        resolveRealmPaceMultiplier(context.realm),
       minBaseExp: DUNGEON_EXP_BUDGET.minBaseExp,
     };
   },
@@ -136,7 +149,8 @@ export const dailyTaskStrategy: CultivationExpGainStrategy<DailyTaskExpContext> 
     return {
       cap: resolveExpCap(context),
       percent:
-        DAILY_TASK_EXP_BUDGET.difficultyPercent[context.difficulty ?? 'normal'],
+        DAILY_TASK_EXP_BUDGET.difficultyPercent[context.difficulty ?? 'normal'] *
+        resolveRealmPaceMultiplier(context.realm),
       minBaseExp: DAILY_TASK_EXP_BUDGET.minBaseExp,
     };
   },
@@ -159,7 +173,10 @@ export const pillStrategy: CultivationExpGainStrategy<PillExpContext> = {
 
     return {
       cap: resolveExpCap(context),
-      percent: qualityPercent * fitMultiplier,
+      percent:
+        qualityPercent *
+        fitMultiplier *
+        resolveRealmPaceMultiplier(context.realm),
       minBaseExp: PILL_EXP_BUDGET.minBaseExp,
     };
   },
@@ -172,7 +189,8 @@ export const eventStrategy: CultivationExpGainStrategy<EventExpContext> = {
       cap: resolveExpCap(context),
       percent:
         EVENT_EXP_BUDGET.percentByWeight[context.weight ?? 'normal'] *
-        clampNonNegativeFinite(context.multiplier ?? 1, 1),
+        clampNonNegativeFinite(context.multiplier ?? 1, 1) *
+        resolveRealmPaceMultiplier(context.realm),
       minBaseExp: EVENT_EXP_BUDGET.minBaseExp,
     };
   },
@@ -183,7 +201,8 @@ export const systemRewardStrategy: CultivationExpGainStrategy<SystemRewardExpCon
   resolve(context) {
     const percent =
       SYSTEM_REWARD_EXP_BUDGET.percentByWeight[context.weight ?? 'normal'] *
-      clampNonNegativeFinite(context.multiplier ?? 1, 1);
+      clampNonNegativeFinite(context.multiplier ?? 1, 1) *
+      resolveRealmPaceMultiplier(context.realm);
     return {
       cap: resolveExpCap(context),
       percent,

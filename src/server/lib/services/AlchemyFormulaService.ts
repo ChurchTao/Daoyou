@@ -46,6 +46,7 @@ import {
   type ElementType,
   type MaterialType,
   type Quality,
+  type RealmStage,
   type RealmType,
 } from '@shared/types/constants';
 import type {
@@ -648,7 +649,11 @@ function scaleFormulaOperations(
   operations: ConditionOperation[],
   fitMultiplier: number,
   quality: Quality,
-  realm: RealmType,
+  cultivationContext: {
+    realm: RealmType;
+    realmStage?: RealmStage;
+    expCap?: number;
+  },
 ): ConditionOperation[] {
   return operations.map((operation) => {
     if (operation.type === 'restore_resource') {
@@ -658,11 +663,18 @@ function scaleFormulaOperations(
     if (operation.type === 'gain_progress') {
       const baseValue =
         operation.target === 'cultivation_exp'
-          ? buildCultivationGain(realm, quality)
+          ? buildCultivationGain({
+              ...cultivationContext,
+              quality,
+              fitMultiplier,
+            })
           : buildInsightGain(quality);
       return {
         ...operation,
-        value: scaleProgressGain(baseValue, fitMultiplier),
+        value:
+          operation.target === 'cultivation_exp'
+            ? baseValue
+            : scaleProgressGain(baseValue, fitMultiplier),
       };
     }
 
@@ -1246,6 +1258,10 @@ export async function craftFromFormula(
       fitBand === 'degraded'
         ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 30)
         : 0;
+    const cultivationProgress = cultivator.cultivation_progress as
+      | { exp_cap?: number }
+      | null
+      | undefined;
     const spec: PillSpec = {
       kind: 'pill',
       family: formula.family,
@@ -1253,7 +1269,11 @@ export async function craftFromFormula(
         formula.blueprint.operations,
         fitMultiplier,
         highestMaterialRank,
-        cultivator.realm as RealmType,
+        {
+          realm: cultivator.realm as RealmType,
+          realmStage: (cultivator.realm_stage ?? '初期') as RealmStage,
+          expCap: cultivationProgress?.exp_cap,
+        },
       ),
       consumeRules: {
         ...formula.blueprint.consumeRules,

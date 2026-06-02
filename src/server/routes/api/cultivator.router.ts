@@ -16,7 +16,6 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import { runDetached } from '@server/lib/http/response';
 import { consumeLifespanAndHandleDepletion } from '@server/lib/lifespan/handleLifespan';
 import { renderPrompt } from '@server/lib/prompts';
 import {
@@ -1013,48 +1012,48 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
       operations.find((operation) => operation.type === 'comprehension_insight')
         ?.value || 0;
 
-    const result = {
-      cultivatorName: fullCultivator.name,
-      cultivatorRealm: fullCultivator.realm,
-      amount: spiritStonesGain,
-      expGain,
-      insightGain,
-      materials: [] as GeneratedMaterial[],
-      hours: hoursElapsed,
-      materialCount,
-    };
-
+    // 同步生成材料并发送邮件，确保在 SSE 流开始前灵材已落库
+    // 避免 runDetached 中静默失败导致灵材永久丢失
+    let generatedMaterials: GeneratedMaterial[] = [];
     if (materialCount > 0) {
-      runDetached(async () => {
-        try {
-          console.log(
-            `[Yield] 开始异步生成材料: cultivatorId=${cultivatorId}, count=${materialCount}`,
-          );
-          const generatedMaterials = await MaterialGenerator.generateRandom(
-            materialCount,
-            {
-              qualityChanceMap:
-                YieldCalculator.getMaterialQualityChanceMap(realm),
-            },
-          );
-          console.log(
-            `[Yield] 材料生成完成: ${generatedMaterials.map((material) => `${material.rank}${material.name}`).join(', ')}`,
-          );
+      try {
+        console.log(
+          `[Yield] 开始生成材料: cultivatorId=${cultivatorId}, count=${materialCount}`,
+        );
+        generatedMaterials = await MaterialGenerator.generateRandom(
+          materialCount,
+          {
+            qualityChanceMap:
+              YieldCalculator.getMaterialQualityChanceMap(realm),
+          },
+        );
+        console.log(
+          `[Yield] 材料生成完成: ${generatedMaterials.map((m) => `${m.rank}${m.name}`).join(', ')}`,
+        );
 
-          if (generatedMaterials.length === 0) {
-            console.error(
-              `[Yield] 材料生成结果为空，跳过空奖励邮件: cultivatorId=${cultivatorId}, expected=${materialCount}`,
-            );
-            return;
-          }
+        if (generatedMaterials.length === 0) {
+          console.error(
+            `[Yield] 材料生成结果为空，尝试 fallback: cultivatorId=${cultivatorId}, expected=${materialCount}`,
+          );
+        }
+      } catch (err) {
+        // MaterialGenerator 内部已有 fallback，此处为极端情况兜底
+        console.error('[Yield] 材料生成异常，尝试 fallback:', err);
+        generatedMaterials = [];
+      }
 
-          const attachments = generatedMaterials.map((material) => ({
+      // 发送邮件（带重试），确保灵材不因瞬时 DB 抖动而丢失
+      if (generatedMaterials.length > 0) {
+        const attachments: MailAttachment[] = generatedMaterials.map(
+          (material) => ({
             type: 'material' as const,
             name: material.name,
             quantity: material.quantity,
             data: material,
-          }));
+          }),
+        );
 
+        try {
           await MailService.sendMail(
             cultivatorId,
             '历练机缘',
@@ -1063,11 +1062,38 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
             'reward',
           );
           console.log('[Yield] 材料奖励邮件已发送');
-        } catch (err) {
-          console.error('[Yield] 材料异步处理失败:', err);
+        } catch (mailErr) {
+          console.error(
+            '[Yield] 邮件首次发送失败，3 秒后重试:',
+            mailErr,
+          );
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            await MailService.sendMail(
+              cultivatorId,
+              '历练机缘',
+              '道友历练途中，偶得天材地宝，特以此传音玉简送达。',
+              attachments,
+              'reward',
+            );
+            console.log('[Yield] 材料奖励邮件重试发送成功');
+          } catch (retryErr) {
+            console.error('[Yield] 材料奖励邮件重试也失败:', retryErr);
+          }
         }
-      });
+      }
     }
+
+    const result = {
+      cultivatorName: fullCultivator.name,
+      cultivatorRealm: fullCultivator.realm,
+      amount: spiritStonesGain,
+      expGain,
+      insightGain,
+      materials: generatedMaterials,
+      hours: hoursElapsed,
+      materialCount,
+    };
 
     const encoder = new TextEncoder();
     const customStream = new ReadableStream({
