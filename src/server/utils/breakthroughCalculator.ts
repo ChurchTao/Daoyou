@@ -224,18 +224,18 @@ export function getNextStage(
 /**
  * 根据突破类型获取基础成功率
  *
- * 强行突破：40%（小） / 20%（大）
- * 常规突破：60%（小） / 40%（大）
- * 圆满突破：80%（小） / 60%（大）
+ * 强行突破：25%（小） / 12%（大）
+ * 常规突破：48%（小） / 28%（大）
+ * 圆满突破：65%（小） / 51%（大）
  */
 function getBaseChanceByType(
   type: 'forced' | 'normal' | 'perfect',
   isMajor: boolean,
 ): number {
   const rates = {
-    forced: { minor: 0.4, major: 0.2 },
-    normal: { minor: 0.6, major: 0.4 },
-    perfect: { minor: 0.8, major: 0.6 },
+    forced: { minor: 0.25, major: 0.12 },
+    normal: { minor: 0.48, major: 0.28 },
+    perfect: { minor: 0.65, major: 0.51 },
   };
 
   return isMajor ? rates[type].major : rates[type].minor;
@@ -246,15 +246,15 @@ function getBaseChanceByType(
  *
  * 境界越高，突破越难
  * 炼气：1.0
- * 筑基：0.9
- * 金丹：0.81
- * 元婴：0.72
+ * 筑基：0.85
+ * 金丹：0.7225
+ * 元婴：0.6141
  * ...
  */
 function calculateRealmDifficulty(realm: RealmType): number {
   const realmIndex = REALM_ORDER.indexOf(realm);
-  // 使用0.9的衰减率
-  return Math.pow(0.9, realmIndex);
+  // 使用0.85的衰减率
+  return Math.pow(0.85, realmIndex);
 }
 
 /**
