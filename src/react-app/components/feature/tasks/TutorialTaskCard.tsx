@@ -69,7 +69,7 @@ export function TutorialTaskCard({
         onClaimed?.(),
       ]);
       pushToast({
-        message: `已领取：${result.data.rewards.join('，')}`,
+        message: `奖励邮件已送达：${result.data.rewards.join('，')}`,
         tone: 'success',
       });
     } catch (error) {
@@ -83,7 +83,7 @@ export function TutorialTaskCard({
   };
 
   const statusText = rewardClaimedAt
-    ? '奖励已领'
+    ? '奖励已寄'
     : task.status === 'completed'
       ? '可领取'
       : '进行中';

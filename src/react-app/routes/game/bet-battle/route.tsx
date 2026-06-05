@@ -32,6 +32,7 @@ import {
 } from '@shared/config/temporaryRestrictions';
 import { cn } from '@shared/lib/cn';
 import { isPillConsumable } from '@shared/lib/consumables';
+import type { CultivatorCondition } from '@shared/types/condition';
 import { REALM_VALUES, type RealmType } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useNavigate } from 'react-router';
@@ -223,7 +224,10 @@ async function readBetBattleListings(
   );
 }
 
-function getInventoryCardProps(item: InventoryItem, realm?: RealmType) {
+function getInventoryCardProps(
+  item: InventoryItem,
+  options?: { realm?: RealmType; condition?: CultivatorCondition },
+) {
   if (item.itemType === 'material') {
     const typeInfo = getMaterialTypeInfo(item.type);
     return {
@@ -261,7 +265,10 @@ function getInventoryCardProps(item: InventoryItem, realm?: RealmType) {
 
   const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
   const pillDisplay = isPillConsumable(item)
-    ? toPillDisplayModel(item, { realm })
+    ? toPillDisplayModel(item, {
+        realm: options?.realm,
+        condition: options?.condition,
+      })
     : null;
   return {
     icon: typeInfo.icon,
@@ -1043,7 +1050,10 @@ function BetBattleCreateModal({
                 <InkList>
                   {currentItems.map((item) => {
                     if (!item.id) return null;
-                    const card = getInventoryCardProps(item, cultivator?.realm);
+                    const card = getInventoryCardProps(item, {
+                      realm: cultivator?.realm,
+                      condition: cultivator?.condition,
+                    });
                     const checked = selectedItem?.itemId === item.id;
                     return (
                       <ItemCard
@@ -1368,7 +1378,10 @@ function BetBattleChallengeModal({
                   availableCandidates.map((item) => {
                     if (!requiredItem || !item.id) return null;
                     const checked = selectedItem?.itemId === item.id;
-                    const card = getInventoryCardProps(item, cultivator?.realm);
+                    const card = getInventoryCardProps(item, {
+                      realm: cultivator?.realm,
+                      condition: cultivator?.condition,
+                    });
                     return (
                       <ItemCard
                         key={`${item.itemType}-${item.id}`}

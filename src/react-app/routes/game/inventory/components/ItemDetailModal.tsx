@@ -10,6 +10,7 @@ import {
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
+import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type {
   Consumable,
@@ -28,6 +29,7 @@ interface ItemDetailModalProps {
   onClose: () => void;
   item: ItemDetailPayload | null;
   viewerRealm?: RealmType;
+  viewerCondition?: CultivatorCondition;
 }
 
 // 持有数量信息组件
@@ -63,6 +65,7 @@ export function ItemDetailModal({
   onClose,
   item,
   viewerRealm,
+  viewerCondition,
 }: ItemDetailModalProps) {
   if (!item || !isOpen) return null;
 
@@ -119,7 +122,10 @@ export function ItemDetailModal({
     const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
 
     if (isPillConsumable(consumable)) {
-      const model = toPillDisplayModel(consumable, { realm: viewerRealm });
+      const model = toPillDisplayModel(consumable, {
+        realm: viewerRealm,
+        condition: viewerCondition,
+      });
 
       return (
         <ItemShowcaseModal

@@ -5,6 +5,7 @@ import {
 import { InkBadge, InkButton, InkList, InkNotice } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
+import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import { buildManualDrawHref } from '@shared/types/manualDraw';
 import type { Consumable } from '@shared/types/cultivator';
@@ -12,6 +13,7 @@ import type { Consumable } from '@shared/types/cultivator';
 interface ConsumablesTabProps {
   consumables: Consumable[];
   realm?: RealmType;
+  condition?: CultivatorCondition;
   isLoading?: boolean;
   pendingId: string | null;
   onShowDetails: (item: Consumable) => void;
@@ -25,6 +27,7 @@ interface ConsumablesTabProps {
 export function ConsumablesTab({
   consumables,
   realm,
+  condition,
   isLoading = false,
   pendingId,
   onShowDetails,
@@ -71,7 +74,7 @@ export function ConsumablesTab({
               : null;
         const canNavigateToScenario = Boolean(item.id && scenarioHref);
         const pillDisplay = isDirectlyUsable
-          ? toPillDisplayModel(item, { realm })
+          ? toPillDisplayModel(item, { realm, condition })
           : null;
         const usageHint = isTalisman
           ? isFateReshapeTalisman

@@ -637,7 +637,10 @@ describe('TaskService', () => {
       'cultivator-1',
       '【今日日常】云游一程',
       expect.stringContaining('云游一程'),
-      [{ type: 'spirit_stones', name: '灵石', quantity: 1000 }],
+      [
+        { type: 'spirit_stones', name: '灵石', quantity: 1000 },
+        { type: 'cultivation_exp', name: '修为', quantity: 16 },
+      ],
       'reward',
     );
 
@@ -687,7 +690,10 @@ describe('TaskService', () => {
       'cultivator-1',
       '【今日日常】云游一程',
       expect.stringContaining('云游一程'),
-      [{ type: 'spirit_stones', name: '灵石', quantity: 9000 }],
+      [
+        { type: 'spirit_stones', name: '灵石', quantity: 9000 },
+        { type: 'cultivation_exp', name: '修为', quantity: 577500 },
+      ],
       'reward',
     );
   });
@@ -708,21 +714,38 @@ describe('TaskService', () => {
       '入门护身布甲 x1',
       '入门护身玉佩 x1',
     ]);
-    expect(updateCultivationExpMock).toHaveBeenCalledWith(
-      'user-1',
+    expect(updateCultivationExpMock).not.toHaveBeenCalled();
+    expect(updateSpiritStonesMock).not.toHaveBeenCalled();
+    expect(addMaterialToInventoryMock).not.toHaveBeenCalled();
+    expect(addArtifactToInventoryMock).not.toHaveBeenCalled();
+    expect(sendMailMock).toHaveBeenCalledWith(
       'cultivator-1',
-      40,
-      undefined,
-      {},
+      '【任务奖励】入门供给',
+      expect.stringContaining('入门供给'),
+      expect.arrayContaining([
+        { type: 'cultivation_exp', name: '修为', quantity: 40 },
+        { type: 'spirit_stones', name: '灵石', quantity: 5000 },
+        expect.objectContaining({ type: 'material', name: '青露草', quantity: 3 }),
+        expect.objectContaining({ type: 'material', name: '凝水花', quantity: 2 }),
+        expect.objectContaining({
+          type: 'artifact',
+          name: '入门青竹剑',
+          quantity: 1,
+        }),
+        expect.objectContaining({
+          type: 'artifact',
+          name: '入门护身布甲',
+          quantity: 1,
+        }),
+        expect.objectContaining({
+          type: 'artifact',
+          name: '入门护身玉佩',
+          quantity: 1,
+        }),
+      ]),
+      'reward',
+      expect.anything(),
     );
-    expect(updateSpiritStonesMock).toHaveBeenCalledWith(
-      'user-1',
-      'cultivator-1',
-      5000,
-      {},
-    );
-    expect(addMaterialToInventoryMock).toHaveBeenCalledTimes(2);
-    expect(addArtifactToInventoryMock).toHaveBeenCalledTimes(3);
     expect(result.task.snapshot.rewardClaimedAt).toBe(
       '2026-05-26T02:00:00.000Z',
     );
@@ -817,8 +840,34 @@ describe('TaskService', () => {
 
     expect(updateCultivationExpMock).not.toHaveBeenCalled();
     expect(updateSpiritStonesMock).not.toHaveBeenCalled();
-    expect(addMaterialToInventoryMock).toHaveBeenCalledTimes(2);
-    expect(addArtifactToInventoryMock).toHaveBeenCalledTimes(3);
+    expect(addMaterialToInventoryMock).not.toHaveBeenCalled();
+    expect(addArtifactToInventoryMock).not.toHaveBeenCalled();
+    expect(sendMailMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      '【任务奖励】入门供给',
+      expect.stringContaining('入门供给'),
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'material', name: '青露草', quantity: 3 }),
+        expect.objectContaining({ type: 'material', name: '凝水花', quantity: 2 }),
+        expect.objectContaining({
+          type: 'artifact',
+          name: '入门青竹剑',
+          quantity: 1,
+        }),
+        expect.objectContaining({
+          type: 'artifact',
+          name: '入门护身布甲',
+          quantity: 1,
+        }),
+        expect.objectContaining({
+          type: 'artifact',
+          name: '入门护身玉佩',
+          quantity: 1,
+        }),
+      ]),
+      'reward',
+      expect.anything(),
+    );
     expect(result.task.metadata.rewardGrantedKey).toBe(
       'tutorial:tutorial_starter_supply',
     );
@@ -839,7 +888,7 @@ describe('TaskService', () => {
     expect(sendMailMock).not.toHaveBeenCalled();
   });
 
-  it('retries daily mail rewards after a pending grant fails without duplicating exp', async () => {
+  it('retries daily mail rewards after a pending grant fails', async () => {
     const cultivatorRecord = createCultivatorRecord({
       realm_stage: '初期',
     });
@@ -856,20 +905,16 @@ describe('TaskService', () => {
     ).rejects.toThrow('SMTP 暂不可用');
 
     expect(clearTaskRewardGrantPendingForKeyMock).toHaveBeenCalledTimes(1);
-    expect(taskStore.get('task-daily_dungeon_once')?.metadata).toMatchObject({
-      rewardExpGrantedKey: 'daily_dungeon_once:2026-05-26',
-    });
     expect(taskStore.get('task-daily_dungeon_once')?.metadata).not.toHaveProperty(
       'rewardGrantPendingKey',
     );
-    expect(updateCultivatorMock).toHaveBeenCalledTimes(1);
+    expect(updateCultivatorMock).not.toHaveBeenCalled();
 
     await TaskService.recordTaskEvent('cultivator-1', 'dungeon_completed');
 
     expect(sendMailMock).toHaveBeenCalledTimes(2);
-    expect(updateCultivatorMock).toHaveBeenCalledTimes(1);
+    expect(updateCultivatorMock).not.toHaveBeenCalled();
     expect(taskStore.get('task-daily_dungeon_once')?.metadata).toMatchObject({
-      rewardExpGrantedKey: 'daily_dungeon_once:2026-05-26',
       rewardGrantedKey: 'daily_dungeon_once:2026-05-26',
     });
   });

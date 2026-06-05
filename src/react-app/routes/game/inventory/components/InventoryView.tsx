@@ -152,6 +152,7 @@ export function InventoryView() {
           <ConsumablesTab
             consumables={inventory.consumables}
             realm={cultivator?.realm}
+            condition={cultivator?.condition}
             isLoading={isTabLoading && inventory.consumables.length === 0}
             pendingId={pendingId}
             onShowDetails={(item) =>
@@ -191,6 +192,7 @@ export function InventoryView() {
         onClose={closeItemDetail}
         item={selectedItem}
         viewerRealm={cultivator?.realm}
+        viewerCondition={cultivator?.condition}
       />
 
       {/* 鉴定庆祝特效 */}

@@ -521,7 +521,10 @@ export function ListItemModal({
         const consumable = item as Consumable;
         const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
         const pillDisplay = isPillConsumable(consumable)
-          ? toPillDisplayModel(consumable, { realm: cultivator?.realm })
+          ? toPillDisplayModel(consumable, {
+              realm: cultivator?.realm,
+              condition: cultivator?.condition,
+            })
           : null;
         return {
           ...baseInfo,

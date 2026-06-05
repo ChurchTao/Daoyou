@@ -24,7 +24,11 @@ export function PillKeywordLine({ labels }: { labels: string[] }) {
               : {
                   ...getAffixUnderlineStyle(false),
                   ...getAffixToneStyle(
-                    label.startsWith('服用上限') ? 'info' : 'muted',
+                    label.startsWith('剩余') ||
+                      label.startsWith('寿元丹剩余') ||
+                      label.startsWith('服用上限')
+                      ? 'info'
+                      : 'muted',
                   ),
                 }
           }

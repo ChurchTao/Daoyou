@@ -5,11 +5,9 @@ import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry'
 import type { BattleRecord } from '@shared/types/battle';
 import type { ConditionStatusKey } from '@shared/types/condition';
 import type {
-  Artifact,
   Consumable,
   CultivationProgress,
   Cultivator,
-  Material,
 } from '@shared/types/cultivator';
 import type { MailAttachment } from '@shared/types/mail';
 import {
@@ -39,21 +37,8 @@ import {
 import { getNextStage } from '@server/utils/breakthroughCalculator';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { simulateBattleV5 } from './simulateBattleV5';
-import {
-  addArtifactToInventory,
-  addConsumableToInventory,
-  addMaterialToInventory,
-  getInventory,
-  getCultivatorByIdUnsafe,
-  updateCultivator,
-  updateCultivationExp,
-  updateSpiritStones,
-} from './cultivatorService';
-import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
-import {
-  addCultivationExp,
-  calculateDailyTaskExpGain,
-} from '@server/utils/expGainSystem';
+import { getCultivatorByIdUnsafe, getInventory } from './cultivatorService';
+import { getExecutor } from '@server/lib/drizzle/db';
 import { calculateSceneCultivationExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
 import {
   createCultivatorTask,
@@ -128,7 +113,7 @@ function getDailyTaskSpiritStoneReward(realm: RealmType): number {
 function resolveTaskRewardAttachments(
   definition: Pick<RuntimeTaskDefinition, 'category' | 'rewardAttachments'>,
   realm?: RealmType,
-) {
+): MailAttachment[] {
   const attachments = definition.rewardAttachments ?? [];
   if (definition.category !== 'daily' || !realm) {
     return attachments;
@@ -145,25 +130,25 @@ function resolveTaskRewardAttachments(
   );
 }
 
-function formatTaskRewardSummary(
-  definition: Pick<RuntimeTaskDefinition, 'category' | 'rewardAttachments' | 'difficulty'> & {
+function resolveTaskRewardMailAttachments(
+  definition: Pick<
+    RuntimeTaskDefinition,
+    'category' | 'rewardAttachments' | 'difficulty'
+  > & {
     rewardCultivationExp?: number;
   },
   realm?: RealmType,
   realmStage?: Cultivator['realm_stage'],
   expCap?: number,
-): string[] {
-  const summary = resolveTaskRewardAttachments(definition, realm).map((attachment) => {
-    switch (attachment.type) {
-      case 'spirit_stones':
-        return `${attachment.name} x${attachment.quantity}`;
-      default:
-        return `${attachment.name} x${attachment.quantity}`;
-    }
-  });
+): MailAttachment[] {
+  const attachments = [...resolveTaskRewardAttachments(definition, realm)];
 
   if (definition.category === 'tutorial' && definition.rewardCultivationExp) {
-    summary.unshift(`修为 x${definition.rewardCultivationExp}`);
+    attachments.unshift({
+      type: 'cultivation_exp',
+      name: '修为',
+      quantity: definition.rewardCultivationExp,
+    });
   }
 
   if (definition.category === 'daily' && definition.difficulty && realm && realmStage) {
@@ -173,12 +158,42 @@ function formatTaskRewardSummary(
       expCap,
       difficulty: definition.difficulty,
     });
+
     if (expCalc.baseExp > 0) {
-      summary.push(`修为 x${expCalc.baseExp}`);
+      attachments.push({
+        type: 'cultivation_exp',
+        name: '修为',
+        quantity: expCalc.baseExp,
+      });
     }
   }
 
-  return summary;
+  return attachments;
+}
+
+function formatTaskRewardSummary(
+  definition: Pick<RuntimeTaskDefinition, 'category' | 'rewardAttachments' | 'difficulty'> & {
+    rewardCultivationExp?: number;
+  },
+  realm?: RealmType,
+  realmStage?: Cultivator['realm_stage'],
+  expCap?: number,
+): string[] {
+  return resolveTaskRewardMailAttachments(
+    definition,
+    realm,
+    realmStage,
+    expCap,
+  ).map((attachment) => {
+    switch (attachment.type) {
+      case 'spirit_stones':
+      case 'cultivation_exp':
+      case 'comprehension_insight':
+        return `${attachment.name} x${attachment.quantity}`;
+      default:
+        return `${attachment.name} x${attachment.quantity}`;
+    }
+  });
 }
 
 function createTaskMetadata(
@@ -780,62 +795,18 @@ async function grantDailyTaskRewardIfNeeded(
   let grantMetadata = pendingMetadata;
 
   try {
-    let expGained = 0;
-    if (
-      definition.difficulty &&
-      pendingMetadata.rewardExpGrantedKey !== grantKey
-    ) {
-      const cultivator = await loadBundleOrThrow(cultivatorId);
-      const baseExp = calculateDailyTaskExpGain(
-        cultivator,
-        definition.difficulty,
-      );
-
-      if (baseExp > 0) {
-        const { result: expResult, updated_progress } = addCultivationExp(
-          cultivator,
-          { source: 'daily_task', base_amount: baseExp },
-        );
-        await getExecutor().transaction(async (tx) => {
-          await updateCultivator(
-            cultivatorId,
-            {
-              cultivation_progress: updated_progress,
-            },
-            tx,
-          );
-          grantMetadata = {
-            ...pendingMetadata,
-            rewardExpGrantedKey: grantKey,
-          };
-          await updateCultivatorTask(
-            record.id,
-            cultivatorId,
-            {
-              metadata: grantMetadata,
-            },
-            tx,
-          );
-        });
-        expGained = expResult.exp_gained;
-      }
-    }
-
-    const rewardAttachments = resolveTaskRewardAttachments(
+    const rewardAttachments = resolveTaskRewardMailAttachments(
       definition,
       context.realm,
+      context.realmStage,
+      context.cultivationProgress?.exp_cap,
     );
 
-    let mailBody = `道友已办妥"${task.snapshot.title}"，这份薄礼已由传音玉简送达。`;
-    if (expGained > 0) {
-      mailBody += `\n（修为 +${expGained}）`;
-    }
-
-    if (rewardAttachments.length > 0 || expGained > 0) {
+    if (rewardAttachments.length > 0) {
       await MailService.sendMail(
         cultivatorId,
         `【今日日常】${task.snapshot.title}`,
-        mailBody,
+        `道友已办妥"${task.snapshot.title}"，这份薄礼已由传音玉简送达，请查收附件。`,
         rewardAttachments,
         'reward',
       );
@@ -1197,50 +1168,6 @@ async function syncCultivatorTasksWithContext(
   return Promise.all(records.map((record) => syncTaskRecord(context, record)));
 }
 
-async function applyTaskRewardAttachment(
-  userId: string,
-  cultivatorId: string,
-  attachment: MailAttachment,
-  tx: DbTransaction,
-): Promise<void> {
-  switch (attachment.type) {
-    case 'spirit_stones':
-      await updateSpiritStones(userId, cultivatorId, attachment.quantity, tx);
-      return;
-    case 'material':
-      if (!attachment.data || !('name' in attachment.data)) {
-        throw new Error(`新手奖励材料缺少数据：${attachment.name}`);
-      }
-      await addMaterialToInventory(userId, cultivatorId, {
-        ...(attachment.data as Material),
-        quantity: attachment.quantity,
-      }, tx);
-      return;
-    case 'consumable':
-      if (!attachment.data || !('spec' in attachment.data)) {
-        throw new Error(`新手奖励丹药缺少数据：${attachment.name}`);
-      }
-      await addConsumableToInventory(userId, cultivatorId, {
-        ...(attachment.data as Consumable),
-        quantity: attachment.quantity,
-      }, tx);
-      return;
-    case 'artifact':
-      if (!attachment.data || !('productModel' in attachment.data)) {
-        throw new Error(`新手奖励法宝缺少数据：${attachment.name}`);
-      }
-      for (let index = 0; index < Math.max(1, attachment.quantity); index += 1) {
-        await addArtifactToInventory(
-          userId,
-          cultivatorId,
-          attachment.data as Artifact,
-          tx,
-        );
-      }
-      return;
-  }
-}
-
 async function resolveMissingTaskRewardAttachments(
   userId: string,
   cultivatorId: string,
@@ -1294,6 +1221,8 @@ async function resolveMissingTaskRewardAttachments(
         break;
       }
       case 'spirit_stones':
+      case 'cultivation_exp':
+      case 'comprehension_insight':
         break;
     }
   }
@@ -1586,20 +1515,27 @@ export const TaskService = {
       throw new Error('奖励已经领取');
     }
 
-    const rewardAttachments = resolveTaskRewardAttachments(
-      definition,
-      context.realm,
-    );
-    const rewards = formatTaskRewardSummary(definition, context.realm);
-    const claimedAt = new Date().toISOString();
-    const currentMetadata = task.metadata;
-    const attachmentsToApply = alreadyClaimed
+    const rewardAttachments = resolveTaskRewardAttachments(definition, context.realm);
+    const mailAttachments = alreadyClaimed
       ? await resolveMissingTaskRewardAttachments(
           userId,
           cultivatorId,
           rewardAttachments,
         )
-      : rewardAttachments;
+      : resolveTaskRewardMailAttachments(
+          definition,
+          context.realm,
+          context.realmStage,
+          context.cultivationProgress?.exp_cap,
+        );
+    const rewards = formatTaskRewardSummary(
+      definition,
+      context.realm,
+      context.realmStage,
+      context.cultivationProgress?.exp_cap,
+    );
+    const claimedAt = new Date().toISOString();
+    const currentMetadata = task.metadata;
 
     await getExecutor().transaction(async (tx) => {
       const pendingRecord = await markTaskRewardGrantPendingForKey(
@@ -1618,18 +1554,15 @@ export const TaskService = {
         throw new Error('奖励已经领取');
       }
 
-      if (!alreadyClaimed && definition.rewardCultivationExp > 0) {
-        await updateCultivationExp(
-          userId,
+      if (mailAttachments.length > 0) {
+        await MailService.sendMail(
           cultivatorId,
-          definition.rewardCultivationExp,
-          undefined,
+          `【任务奖励】${task.snapshot.title}`,
+          `道友已完成"${task.snapshot.title}"，任务奖励已封入附件，请前往传音符诏领取。`,
+          mailAttachments,
+          'reward',
           tx,
         );
-      }
-
-      for (const attachment of attachmentsToApply) {
-        await applyTaskRewardAttachment(userId, cultivatorId, attachment, tx);
       }
 
       const grantedRecord = await markTaskRewardGrantedForKey(

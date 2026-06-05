@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Consumable } from '@shared/types/cultivator';
 import type { PillSpec } from '@shared/types/consumable';
+import type { CultivatorCondition } from '@shared/types/condition';
 import { toPillDisplayModel } from './pillDisplay';
 
 function createPill(spec: PillSpec, description = '炉火既定，自有丹评。') {
@@ -13,6 +14,39 @@ function createPill(spec: PillSpec, description = '炉火既定，自有丹评�
     description,
     spec,
   } satisfies Consumable & { spec: PillSpec };
+}
+
+function createCondition(
+  counters: Partial<CultivatorCondition['counters']> = {},
+): CultivatorCondition {
+  return {
+    version: 1,
+    resources: {
+      hp: { current: 0 },
+      mp: { current: 0 },
+    },
+    gauges: {
+      pillToxicity: 0,
+    },
+    tracks: {
+      tempering: {
+        vitality: { level: 0, progress: 0 },
+        spirit: { level: 0, progress: 0 },
+        wisdom: { level: 0, progress: 0 },
+        speed: { level: 0, progress: 0 },
+        willpower: { level: 0, progress: 0 },
+      },
+      marrowWash: { level: 0, progress: 0 },
+    },
+    counters: {
+      longTermPillUsesByRealm: {},
+      cultivationPillUsesByRealm: {},
+      longevityPillUsesByRealm: {},
+      ...counters,
+    },
+    statuses: [],
+    timestamps: {},
+  };
 }
 
 describe('toPillDisplayModel', () => {
@@ -359,6 +393,155 @@ describe('toPillDisplayModel', () => {
     expect(model.primaryEffect).toBe('修为 +498');
     expect(model.keywordLabels).toEqual(['修为', '服用上限 30 次', '丹毒 +9']);
     expect(model.detailGroups[0].lines).toContain('修为 +498');
+    expect(model.detailGroups[1].lines).toContain('服用上限：30 次');
+  });
+
+  it('formats cultivation pill remaining uses from the current condition', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'cultivation',
+        operations: [
+          {
+            type: 'gain_progress',
+            target: 'cultivation_exp',
+            value: 498,
+          },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 9 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'cultivation',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['金霞芝'],
+          stability: 72,
+          toxicityRating: 18,
+          tags: ['cultivation'],
+        },
+      }),
+      {
+        realm: '金丹',
+        condition: createCondition({
+          cultivationPillUsesByRealm: { 金丹: 12 },
+        }),
+      },
+    );
+
+    expect(model.keywordLabels).toEqual(['修为', '剩余 18/30', '丹毒 +9']);
+    expect(model.detailGroups[1].lines).toContain(
+      '本境界已服 12/30，尚可服 18 颗',
+    );
+  });
+
+  it('formats long-term pill remaining uses from the matching counter', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'tempering',
+        operations: [
+          { type: 'advance_track', track: 'tempering.vitality', value: 40 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['铁骨藤'],
+          stability: 49,
+          toxicityRating: 28,
+          tags: ['tempering_vitality'],
+        },
+      }),
+      {
+        realm: '筑基',
+        condition: createCondition({
+          longTermPillUsesByRealm: { 筑基: 7 },
+        }),
+      },
+    );
+
+    expect(model.keywordLabels).toEqual(['炼体', '剩余 1/8', '丹毒 +10']);
+    expect(model.detailGroups[1].lines).toContain(
+      '本境界已服 7/8，尚可服 1 颗',
+    );
+  });
+
+  it('falls back to realm-variable quota text when legacy realm data has no configured limit', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'tempering',
+        operations: [
+          { type: 'advance_track', track: 'tempering.spirit', value: 40 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['赤髓藤'],
+          stability: 49,
+          toxicityRating: 28,
+          tags: ['tempering_spirit'],
+        },
+      }),
+      {
+        realm: '旧境界' as never,
+        condition: createCondition({
+          longTermPillUsesByRealm: { 旧境界: 2 } as never,
+        }),
+      },
+    );
+
+    expect(model.keywordLabels).toEqual([
+      '炼体',
+      '服用上限随境界变化',
+      '丹毒 +10',
+    ]);
+    expect(model.detailGroups[1].lines).toContain(
+      '服用上限：随当前境界变化',
+    );
+    expect(model.keywordLabels.join(' ')).not.toContain('NaN');
+    expect(model.keywordLabels.join(' ')).not.toContain('undefined');
+  });
+
+  it('treats legacy conditions without counters as zero used instead of crashing', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'tempering',
+        operations: [
+          { type: 'advance_track', track: 'tempering.vitality', value: 40 },
+          { type: 'change_gauge', gauge: 'pillToxicity', delta: 10 },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['铁骨藤'],
+          stability: 49,
+          toxicityRating: 28,
+          tags: ['tempering_vitality'],
+        },
+      }),
+      {
+        realm: '筑基',
+        condition: { ...createCondition(), counters: undefined } as never,
+      },
+    );
+
+    expect(model.keywordLabels).toEqual(['炼体', '剩余 8/8', '丹毒 +10']);
+    expect(model.detailGroups[1].lines).toContain(
+      '本境界已服 0/8，尚可服 8 颗',
+    );
   });
 
   it('formats insight pills without any usage-limit label', () => {
@@ -392,5 +575,8 @@ describe('toPillDisplayModel', () => {
     expect(model.primaryEffect).toBe('道心感悟 +8');
     expect(model.keywordLabels).toEqual(['感悟', '丹毒 +5']);
     expect(model.detailGroups[1].lines).not.toContain('服用上限：30 次');
+    expect(
+      model.keywordLabels.some((label) => label.startsWith('剩余')),
+    ).toBe(false);
   });
 });

@@ -79,6 +79,12 @@ export function MailDetailModal({
                   {item.type === 'spirit_stones' && (
                     <span className="text-ink">{item.name}</span>
                   )}
+                  {item.type === 'cultivation_exp' && (
+                    <span className="text-ink">{item.name}</span>
+                  )}
+                  {item.type === 'comprehension_insight' && (
+                    <span className="text-ink">{item.name}</span>
+                  )}
                   {item.type === 'material' && (
                     <InkBadge tier={(item.data as Material)?.rank} hideTierText>
                       {item.name}

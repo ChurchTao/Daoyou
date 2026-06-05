@@ -1,19 +1,31 @@
 import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import {
+  getCultivationPillUsageLimit,
+  getLongevityPillUsageLimit,
   getPillUsageKeywordLabel,
   getPillUsageRuleText,
+  getRealmPillUsageLimit,
 } from '@shared/lib/pillUsageText';
 import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
-import type { ConditionStatusKey } from '@shared/types/condition';
+import type {
+  ConditionStatusKey,
+  CultivatorCondition,
+} from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type {
   ConditionOperation,
   PillFamily,
+  PillQuotaCategory,
   PillSpec,
 } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
+
+interface PillDisplayOptions {
+  realm?: RealmType;
+  condition?: CultivatorCondition;
+}
 
 export interface PillDetailGroup {
   key: string;
@@ -84,6 +96,77 @@ function getBreakthroughPurposeLabel(spec: PillSpec): string | null {
       ? getBreakthroughPillLabel(spec.alchemyMeta.breakthroughTargetRealm)
       : null)
   );
+}
+
+function getPillUsageLimit(
+  quotaCategory: PillQuotaCategory,
+  realm: RealmType,
+): number | null {
+  const limit = (() => {
+    switch (quotaCategory) {
+      case 'long_term':
+        return getRealmPillUsageLimit(realm);
+      case 'cultivation':
+        return getCultivationPillUsageLimit(realm);
+      case 'longevity':
+        return getLongevityPillUsageLimit(realm);
+      case 'none':
+        return null;
+    }
+  })();
+
+  return Number.isFinite(limit) ? limit : null;
+}
+
+function getPillUsageCount(
+  condition: CultivatorCondition,
+  quotaCategory: PillQuotaCategory,
+  realm: RealmType,
+): number {
+  const counters = condition.counters ?? {};
+  const longTermCounters = counters.longTermPillUsesByRealm ?? {};
+  const cultivationCounters = counters.cultivationPillUsesByRealm ?? {};
+  const longevityCounters = counters.longevityPillUsesByRealm ?? {};
+  const used =
+    quotaCategory === 'long_term'
+      ? longTermCounters[realm]
+      : quotaCategory === 'cultivation'
+        ? cultivationCounters[realm]
+        : quotaCategory === 'longevity'
+          ? longevityCounters[realm]
+          : 0;
+
+  return Number.isFinite(used) ? Math.max(0, Math.floor(used ?? 0)) : 0;
+}
+
+function getPillUsageProgressText(
+  quotaCategory: PillQuotaCategory,
+  options?: PillDisplayOptions,
+): { keyword: string; rule: string } | null {
+  if (quotaCategory === 'none' || !options?.realm || !options.condition) {
+    return null;
+  }
+
+  const limit = getPillUsageLimit(quotaCategory, options.realm);
+  if (limit === null) {
+    return null;
+  }
+
+  const used = getPillUsageCount(
+    options.condition,
+    quotaCategory,
+    options.realm,
+  );
+  const remaining = Math.max(0, limit - used);
+  const keyword =
+    quotaCategory === 'longevity'
+      ? `寿元丹剩余 ${remaining}/${limit}`
+      : `剩余 ${remaining}/${limit}`;
+
+  return {
+    keyword,
+    rule: `本境界已服 ${used}/${limit}，尚可服 ${remaining} 颗`,
+  };
 }
 
 export function getPillFamilyLabel(family: PillFamily): string {
@@ -234,7 +317,10 @@ function buildPrimaryEffect(spec: PillSpec): string {
   }
 }
 
-function buildKeywordLabels(spec: PillSpec, realm?: RealmType): string[] {
+function buildKeywordLabels(
+  spec: PillSpec,
+  options?: PillDisplayOptions,
+): string[] {
   const lifespan = spec.operations.find(
     (
       operation,
@@ -249,7 +335,9 @@ function buildKeywordLabels(spec: PillSpec, realm?: RealmType): string[] {
       ? getLifespanGainText(lifespan.value)
       : null,
     spec.family === 'breakthrough' ? getBreakthroughPurposeLabel(spec) : null,
-    getPillUsageKeywordLabel(spec.consumeRules.quotaCategory, realm),
+    getPillUsageProgressText(spec.consumeRules.quotaCategory, options)
+      ?.keyword ??
+      getPillUsageKeywordLabel(spec.consumeRules.quotaCategory, options?.realm),
   ].filter((label): label is string => Boolean(label));
 
   const gaugeChange = spec.operations.find(
@@ -273,7 +361,10 @@ function buildCoreEffectLines(spec: PillSpec): string[] {
     .map(describePillOperation);
 }
 
-function buildCostAndRuleLines(spec: PillSpec, realm?: RealmType): string[] {
+function buildCostAndRuleLines(
+  spec: PillSpec,
+  options?: PillDisplayOptions,
+): string[] {
   const lines = spec.operations
     .filter(
       (
@@ -284,10 +375,12 @@ function buildCostAndRuleLines(spec: PillSpec, realm?: RealmType): string[] {
     .map((operation) => describePillOperation(operation));
 
   lines.push('仅可在场外服用');
-  const usageRuleText = getPillUsageRuleText(
-    spec.consumeRules.quotaCategory,
-    realm,
-  );
+  const usageRuleText =
+    getPillUsageProgressText(spec.consumeRules.quotaCategory, options)?.rule ??
+    getPillUsageRuleText(
+      spec.consumeRules.quotaCategory,
+      options?.realm,
+    );
   if (usageRuleText) {
     lines.push(usageRuleText);
   }
@@ -343,12 +436,12 @@ function buildAlchemyInfoLines(
 
 export function toPillDisplayModel(
   consumable: Consumable & { spec: PillSpec },
-  options?: { realm?: RealmType },
+  options?: PillDisplayOptions,
 ): PillDisplayModel {
   return {
     familyLabel: getPillFamilyLabel(consumable.spec.family),
     primaryEffect: buildPrimaryEffect(consumable.spec),
-    keywordLabels: buildKeywordLabels(consumable.spec, options?.realm),
+    keywordLabels: buildKeywordLabels(consumable.spec, options),
     detailGroups: [
       {
         key: 'core-effects',
@@ -358,7 +451,7 @@ export function toPillDisplayModel(
       {
         key: 'cost-and-rules',
         title: '代价与规则',
-        lines: buildCostAndRuleLines(consumable.spec, options?.realm),
+        lines: buildCostAndRuleLines(consumable.spec, options),
       },
       {
         key: 'alchemy-info',
