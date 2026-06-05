@@ -54,6 +54,8 @@ export const cultivators = pgTable(
     willpower: integer('willpower').notNull(),
 
     spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
+    qi: integer('qi').notNull().default(200), // 天地灵气
+    qiLastRefreshedAt: timestamp('qi_last_refreshed_at').notNull().defaultNow(),
     last_yield_at: timestamp('last_yield_at').defaultNow(),
 
     max_skills: integer('max_skills').notNull().default(4),
@@ -77,6 +79,38 @@ export const cultivators = pgTable(
       table.updatedAt,
     ),
     index('cultivators_status_created_idx').on(table.status, table.createdAt),
+  ],
+);
+
+export const qiLogs = pgTable(
+  'wanjiedaoyou_qi_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    action: varchar('action', { length: 64 }).notNull(),
+    actionInstanceId: varchar('action_instance_id', { length: 128 }).notNull(),
+    status: varchar('status', { length: 32 }).notNull(),
+    qiCost: integer('qi_cost').notNull().default(0),
+    qiGain: integer('qi_gain').notNull().default(0),
+    qiBefore: integer('qi_before').notNull(),
+    qiAfter: integer('qi_after').notNull(),
+    source: varchar('source', { length: 64 }),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('qi_logs_action_instance_uidx').on(table.actionInstanceId),
+    index('qi_logs_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+    index('qi_logs_status_created_idx').on(table.status, table.createdAt),
   ],
 );
 
