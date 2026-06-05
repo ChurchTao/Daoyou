@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { EnemyGenerator } from '@shared/engine/enemyGenerator';
-import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
-import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
   buildTowerBlessingChoices,
   getTowerSeasonMeta,
@@ -22,22 +20,30 @@ import {
   type TowerState,
 } from '@shared/lib/tower';
 import type { RealmType } from '@shared/types/constants';
-import type { Cultivator } from '@shared/types/cultivator';
+import type { Cultivator, Material } from '@shared/types/cultivator';
 import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
 import { RewardFactory } from '@server/lib/dungeon/reward';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import {
   getCultivatorByIdUnsafe,
-  getCultivatorOwnerId,
 } from '@server/lib/services/cultivatorService';
 import { ConditionService } from '@server/lib/services/ConditionService';
+import { MailService, type MailAttachment } from '@server/lib/services/MailService';
 import { ServerEnemyCopyProvider } from '@server/lib/services/ServerEnemyCopyProvider';
 import type { PlayerInfo } from '@server/lib/dungeon/types';
 import { buildTowerBattleInit, applyTowerBattleOutcome } from './battleInit';
 import { getTowerLeaderboard, updateTowerWeeklyRecord } from './leaderboard';
 
 const RUN_TTL_SECONDS = 8 * 24 * 60 * 60;
+
+const RESOURCE_DISPLAY_NAME: Record<string, string> = {
+  spirit_stones: '灵石',
+  cultivation_exp: '修为',
+  comprehension_insight: '感悟',
+  material: '材料',
+};
+
 const towerEnemyGenerator = new EnemyGenerator({
   copyProvider: new ServerEnemyCopyProvider({
     enabled: process.env.NODE_ENV !== 'test',
@@ -247,26 +253,50 @@ export class TowerService {
       return undefined;
     }
 
-    const userId = await getCultivatorOwnerId(args.cultivatorId);
-    if (!userId) {
-      throw new Error('无法获取修真者所属用户');
-    }
-
     const rewards = RewardFactory.generateBaseRewards(
       args.cultivator.realm,
       tier,
       args.floor,
       buildRewardPlayerInfo(args.cultivator),
     );
-    const result = await resourceEngine.gain(
-      userId,
-      args.cultivatorId,
-      rewards as ResourceOperation[],
+
+    // All rewards go into mail attachments for the player to claim
+    // manually — nothing is auto-granted.
+    const attachments: MailAttachment[] = rewards.map((item) => {
+      const name =
+        item.name ??
+        RESOURCE_DISPLAY_NAME[item.type] ??
+        item.type;
+
+      return {
+        type: item.type as MailAttachment['type'],
+        name,
+        quantity: item.value,
+        ...(item.data ? { data: item.data as Material } : {}),
+      };
+    });
+
+    const rewardLines = rewards.map(
+      (r) =>
+        `${RESOURCE_DISPLAY_NAME[r.type] ?? r.type} +${r.value}`,
     );
 
-    if (!result.success) {
-      throw new Error(result.errors?.join('; ') || '里程碑奖励发放失败');
-    }
+    const mailTitle = `【蜃楼幻境】第 ${args.floor} 层 · ${tier} 级机缘`;
+    const mailBody = [
+      `道友在蜃楼幻境第 ${args.floor} 层达成里程碑，获得${tier}级机缘奖励：`,
+      '',
+      ...rewardLines,
+      '',
+      '所有奖励已附于此邮件，请及时领取。',
+    ].join('\n');
+
+    await MailService.sendMail(
+      args.cultivatorId,
+      mailTitle,
+      mailBody,
+      attachments,
+      'reward',
+    );
 
     const reward: TowerMilestoneReward = {
       floor: args.floor,
@@ -308,6 +338,18 @@ export class TowerService {
       throw new Error('未找到修真者数据');
     }
 
+    // Carry forward milestone progress from any previous run in the same
+    // season (e.g. a finished run or a reset-preserved state) so that
+    // milestone rewards cannot be claimed more than once per season.
+    const previousMilestones =
+      state?.seasonKey === season.seasonKey
+        ? state.claimedMilestones
+        : [];
+    const previousRewardLog =
+      state?.seasonKey === season.seasonKey
+        ? state.milestoneRewardLog
+        : [];
+
     const nextState: TowerState = {
       runId: randomUUID(),
       seasonKey: season.seasonKey,
@@ -321,8 +363,8 @@ export class TowerService {
       ),
       blessings: {},
       pendingBlessingChoices: [],
-      claimedMilestones: [],
-      milestoneRewardLog: [],
+      claimedMilestones: [...previousMilestones],
+      milestoneRewardLog: [...previousRewardLog],
     };
 
     await this.saveState(cultivatorId, nextState);
@@ -338,7 +380,24 @@ export class TowerService {
       await redis.del(getTowerBattleKey(state.activeBattleId));
     }
 
-    await redis.del(getTowerRunKey(cultivatorId));
+    // Preserve claimed milestones and reward log across resets within
+    // the same season so that milestone rewards cannot be farmed by
+    // repeatedly resetting and replaying the tower.
+    if (state) {
+      const preservedState: TowerState = {
+        ...state,
+        runId: randomUUID(),
+        status: 'FINISHED',
+        currentFloor: 1,
+        highestFloorCleared: 0,
+        blessings: {},
+        pendingBlessingChoices: [],
+        activeBattleId: undefined,
+      };
+      await this.saveState(cultivatorId, preservedState);
+    } else {
+      await redis.del(getTowerRunKey(cultivatorId));
+    }
 
     return {
       success: true,

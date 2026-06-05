@@ -1456,6 +1456,12 @@ mailRouter.post('/claim', requireActiveCultivator(), async (c) => {
             });
           }
           break;
+        case 'cultivation_exp':
+          gains.push({ type: 'cultivation_exp', value: item.quantity });
+          break;
+        case 'comprehension_insight':
+          gains.push({ type: 'comprehension_insight', value: item.quantity });
+          break;
       }
     }
 
@@ -1549,6 +1555,12 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
                 data: item.data as Artifact,
               });
             }
+            break;
+          case 'cultivation_exp':
+            gains.push({ type: 'cultivation_exp', value: item.quantity });
+            break;
+          case 'comprehension_insight':
+            gains.push({ type: 'comprehension_insight', value: item.quantity });
             break;
         }
       }

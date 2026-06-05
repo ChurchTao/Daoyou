@@ -16,6 +16,7 @@ import {
   getTowerBlessingDefinition,
   getTowerBlessingEffectPreview,
   resolveTowerFloorKind,
+  resolveTowerMilestoneTier,
   TOWER_DIFFICULTY_STEP,
   TOWER_MAX_FLOOR,
   type TowerBattleContext,
@@ -114,6 +115,8 @@ function getFloorSummaryCopy(args: {
   };
 }
 
+const MILESTONE_FLOORS = [5, 10, 15, 20] as const;
+
 function TowerFloorSummaryCard({
   state,
   settlement,
@@ -126,6 +129,12 @@ function TowerFloorSummaryCard({
   const currentCopy = getFloorSummaryCopy({ state, settlement });
   const highestFloor =
     state?.highestFloorCleared ?? settlement?.highestFloorCleared ?? 0;
+
+  const claimedFloors = new Set(
+    state?.claimedMilestones ??
+      settlement?.milestoneRewards.map((r) => r.floor) ??
+      [],
+  );
 
   return (
     <InkCard className="mb-0 p-4">
@@ -147,6 +156,51 @@ function TowerFloorSummaryCard({
           </div>
         </div>
       </div>
+
+      <div className="border-ink/15 mt-3 border-t border-dashed pt-3">
+        <div className="text-battle-muted mb-2 text-[0.68rem] tracking-[0.14em]">
+          本周机缘进度
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {MILESTONE_FLOORS.map((floor) => {
+            const tier = resolveTowerMilestoneTier(floor);
+            const claimed = claimedFloors.has(floor);
+            return (
+              <div
+                key={floor}
+                className={`rounded-none border border-dashed px-2 py-1.5 text-center transition-colors ${
+                  claimed
+                    ? 'border-crimson/30 bg-crimson/6'
+                    : 'border-ink/12 bg-ink/2'
+                }`}
+              >
+                <div
+                  className={`text-[0.68rem] tracking-[0.08em] ${
+                    claimed ? 'text-crimson' : 'text-battle-muted'
+                  }`}
+                >
+                  {tier}级
+                </div>
+                <div
+                  className={`mt-0.5 text-xs font-medium ${
+                    claimed ? 'text-ink' : 'text-ink-secondary'
+                  }`}
+                >
+                  第{floor}层
+                </div>
+                <div
+                  className={`mt-0.5 text-[0.62rem] ${
+                    claimed ? 'text-crimson/80' : 'text-battle-muted/70'
+                  }`}
+                >
+                  {claimed ? '已领取' : '未领取'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="border-ink/15 mt-3 flex justify-end border-t border-dashed pt-3">
         <button
           type="button"

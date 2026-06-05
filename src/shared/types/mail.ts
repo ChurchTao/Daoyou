@@ -4,7 +4,9 @@ export type MailAttachmentType =
   | 'material'
   | 'consumable'
   | 'artifact'
-  | 'spirit_stones';
+  | 'spirit_stones'
+  | 'cultivation_exp'
+  | 'comprehension_insight';
 
 export interface MailAttachment {
   type: MailAttachmentType;
