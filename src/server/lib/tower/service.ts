@@ -1,15 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import {
   buildTowerBlessingChoices,
   getTowerSeasonMeta,
   isTowerSeasonKeyCurrent,
-  pickTowerRace,
-  resolveTowerDifficulty,
-  resolveTowerFloorKind,
+  isTowerRealmEligible,
   resolveTowerMilestoneTier,
-  resolveTowerRealmStage,
+  TOWER_MIN_REALM,
   TOWER_MAX_FLOOR,
   type TowerBattleContext,
   type TowerBlessingId,
@@ -30,9 +27,9 @@ import {
 } from '@server/lib/services/cultivatorService';
 import { ConditionService } from '@server/lib/services/ConditionService';
 import { MailService, type MailAttachment } from '@server/lib/services/MailService';
-import { ServerEnemyCopyProvider } from '@server/lib/services/ServerEnemyCopyProvider';
 import type { PlayerInfo } from '@server/lib/dungeon/types';
 import { buildTowerBattleInit, applyTowerBattleOutcome } from './battleInit';
+import { towerEnemySetService } from './enemySets';
 import { getTowerLeaderboard, updateTowerWeeklyRecord } from './leaderboard';
 
 const RUN_TTL_SECONDS = 8 * 24 * 60 * 60;
@@ -43,12 +40,6 @@ const RESOURCE_DISPLAY_NAME: Record<string, string> = {
   comprehension_insight: '感悟',
   material: '材料',
 };
-
-const towerEnemyGenerator = new EnemyGenerator({
-  copyProvider: new ServerEnemyCopyProvider({
-    enabled: process.env.NODE_ENV !== 'test',
-  }),
-});
 
 interface TowerBattleSession {
   battleId: string;
@@ -82,6 +73,13 @@ function buildTowerSettlement(
     endReason,
     milestoneRewards: state.milestoneRewardLog,
     blessings: state.blessings,
+  };
+}
+
+function buildTowerEligibility(realm: RealmType | undefined) {
+  return {
+    eligible: realm ? isTowerRealmEligible(realm) : false,
+    minRealm: TOWER_MIN_REALM,
   };
 }
 
@@ -170,22 +168,19 @@ export class TowerService {
     };
   }
 
-  private buildEncounter(
-    cultivator: Cultivator,
+  private resolveChallengeRealm(
     state: TowerState,
-  ): TowerEncounter {
-    const floor = state.currentFloor;
-    const kind = resolveTowerFloorKind(floor);
+    cultivator: Cultivator,
+  ): RealmType {
+    if (state.challengeRealm && isTowerRealmEligible(state.challengeRealm)) {
+      return state.challengeRealm;
+    }
+    if (isTowerRealmEligible(cultivator.realm)) {
+      state.challengeRealm = cultivator.realm;
+      return cultivator.realm;
+    }
 
-    return {
-      floor,
-      kind,
-      difficulty: resolveTowerDifficulty(floor),
-      race: pickTowerRace(state.runId, floor),
-      realm: cultivator.realm,
-      realmStage: resolveTowerRealmStage(floor),
-      isBoss: kind === 'boss',
-    };
+    throw new Error(`蜃楼幻境仅向${TOWER_MIN_REALM}及以上境界开放`);
   }
 
   private async createBattleSession(
@@ -194,21 +189,17 @@ export class TowerService {
     season: TowerSeasonMeta,
     state: TowerState,
   ) {
-    const encounter = this.buildEncounter(cultivator, state);
-    const draft = await towerEnemyGenerator.enrichNarrative(
-      towerEnemyGenerator.buildDraft({
-        realm: encounter.realm,
-        realmStage: encounter.realmStage,
-        race: encounter.race,
-        difficulty: encounter.difficulty,
-        isBoss: encounter.isBoss,
-      }),
-    );
+    const challengeRealm = this.resolveChallengeRealm(state, cultivator);
+    const preparedEnemy = await towerEnemySetService.loadTowerEnemyForBattle({
+      seasonKey: season.seasonKey,
+      realm: challengeRealm,
+      floor: state.currentFloor,
+    });
     const { normalizedCondition } = buildTowerBattleInit({
       cultivator,
       condition: state.condition,
       blessings: state.blessings,
-      encounterKind: encounter.kind,
+      encounterKind: preparedEnemy.encounter.kind,
     });
 
     const battleId = randomUUID();
@@ -217,14 +208,14 @@ export class TowerService {
       cultivatorId,
       runId: state.runId,
       seasonKey: season.seasonKey,
-      encounter,
+      encounter: preparedEnemy.encounter,
     };
 
     await redis.set(
       getTowerBattleKey(battleId),
       JSON.stringify({
         session,
-        enemyObject: draft.cultivator,
+        enemyObject: preparedEnemy.enemy,
       } satisfies TowerBattleCachePayload),
       'EX',
       RUN_TTL_SECONDS,
@@ -232,7 +223,7 @@ export class TowerService {
 
     return {
       session,
-      enemyObject: draft.cultivator,
+      enemyObject: preparedEnemy.enemy,
       normalizedCondition,
     };
   }
@@ -242,6 +233,7 @@ export class TowerService {
     cultivator: Cultivator;
     state: TowerState;
     floor: number;
+    challengeRealm: RealmType;
     now: Date;
   }): Promise<TowerMilestoneReward | undefined> {
     if (args.state.claimedMilestones.includes(args.floor)) {
@@ -254,7 +246,7 @@ export class TowerService {
     }
 
     const rewards = RewardFactory.generateBaseRewards(
-      args.cultivator.realm,
+      args.challengeRealm,
       tier,
       args.floor,
       buildRewardPlayerInfo(args.cultivator),
@@ -301,7 +293,7 @@ export class TowerService {
     const reward: TowerMilestoneReward = {
       floor: args.floor,
       tier,
-      realm: args.cultivator.realm,
+      realm: args.challengeRealm,
       grantedAt: args.now.toISOString(),
       rewards,
     };
@@ -312,11 +304,16 @@ export class TowerService {
     return reward;
   }
 
-  async getState(cultivatorId: string, now: Date = new Date()) {
+  async getState(
+    cultivatorId: string,
+    now: Date = new Date(),
+    currentRealm?: RealmType,
+  ) {
     const { season, state } = await this.loadState(cultivatorId, now);
     return {
       season,
       state,
+      ...buildTowerEligibility(currentRealm),
       settlement:
         state?.status === 'FINISHED'
           ? buildTowerSettlement(
@@ -337,6 +334,9 @@ export class TowerService {
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }
+    if (!isTowerRealmEligible(cultivatorBundle.cultivator.realm)) {
+      throw new Error(`蜃楼幻境仅向${TOWER_MIN_REALM}及以上境界开放`);
+    }
 
     // Carry forward milestone progress from any previous run in the same
     // season (e.g. a finished run or a reset-preserved state) so that
@@ -353,6 +353,7 @@ export class TowerService {
     const nextState: TowerState = {
       runId: randomUUID(),
       seasonKey: season.seasonKey,
+      challengeRealm: cultivatorBundle.cultivator.realm,
       status: 'READY',
       currentFloor: 1,
       highestFloorCleared: 0,
@@ -534,6 +535,15 @@ export class TowerService {
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
     }
+    if (
+      !state.challengeRealm ||
+      !isTowerRealmEligible(state.challengeRealm)
+    ) {
+      throw new Error('本轮幻境缺少挑战境界，请重置后重新开始');
+    }
+    if (cultivatorBundle.cultivator.realm !== state.challengeRealm) {
+      throw new Error('当前境界已变化，请重开幻境以进入新的境界榜');
+    }
 
     const { battleInit } = buildTowerBattleInit({
       cultivator: cultivatorBundle.cultivator,
@@ -584,7 +594,7 @@ export class TowerService {
         seasonKey: state.seasonKey,
         seasonEndAt: getTowerSeasonMeta(now).seasonEndsAt,
         cultivatorId,
-        recordedRealm: cultivatorBundle.cultivator.realm,
+        recordedRealm: state.challengeRealm,
         highestFloor: state.highestFloorCleared,
         firstReachedAt: now.toISOString(),
       });
@@ -594,6 +604,7 @@ export class TowerService {
         cultivator: cultivatorBundle.cultivator,
         state,
         floor: clearedFloor,
+        challengeRealm: state.challengeRealm,
         now,
       });
 
@@ -646,6 +657,10 @@ export class TowerService {
     limit: number,
     now: Date = new Date(),
   ) {
+    if (!isTowerRealmEligible(realm)) {
+      throw new Error(`蜃楼幻境榜仅开放${TOWER_MIN_REALM}及以上境界`);
+    }
+
     const season = getTowerSeasonMeta(now);
     const entries = await getTowerLeaderboard({
       seasonKey: season.seasonKey,

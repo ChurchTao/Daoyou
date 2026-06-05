@@ -1,8 +1,11 @@
 import { GameSceneSection, GameSceneTabs } from '@app/components/game-shell';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkSelect } from '@app/components/ui/InkSelect';
-import type { TowerLeaderboardEntry } from '@shared/lib/tower';
-import { REALM_VALUES, type RealmType } from '@shared/types/constants';
+import {
+  TOWER_ELIGIBLE_REALMS,
+  type TowerLeaderboardEntry,
+} from '@shared/lib/tower';
+import type { RealmType } from '@shared/types/constants';
 
 interface TowerLeaderboardProps {
   activeRealm: RealmType;
@@ -26,7 +29,7 @@ export function TowerLeaderboard({
             onChange={(value) => onRealmChange(value as RealmType)}
             className="w-full"
           >
-            {REALM_VALUES.map((realm) => (
+            {TOWER_ELIGIBLE_REALMS.map((realm) => (
               <option key={realm} value={realm}>
                 {realm}榜
               </option>
@@ -36,7 +39,7 @@ export function TowerLeaderboard({
 
         <GameSceneTabs
           className="hidden md:block"
-          items={REALM_VALUES.map((realm) => ({
+          items={TOWER_ELIGIBLE_REALMS.map((realm) => ({
             label: `${realm}榜`,
             value: realm,
           }))}

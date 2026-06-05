@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 export interface TowerStatePayload {
   season: TowerSeasonMeta;
   state: TowerState | null;
+  eligible: boolean;
+  minRealm: string;
   settlement?: TowerSettlement;
 }
 

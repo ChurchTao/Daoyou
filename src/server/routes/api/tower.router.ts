@@ -1,7 +1,8 @@
 import { towerService } from '@server/lib/tower/service';
 import { requireActiveCultivator } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import { REALM_VALUES } from '@shared/types/constants';
+import { TOWER_ELIGIBLE_REALMS } from '@shared/lib/tower';
+import type { RealmType } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -31,18 +32,23 @@ const BattleIdQuerySchema = z.object({
 });
 
 const LeaderboardQuerySchema = z.object({
-  realm: z.enum(REALM_VALUES),
+  realm: z.enum(TOWER_ELIGIBLE_REALMS),
   limit: z.coerce.number().int().min(1).max(30).default(30),
 });
 
 router.post('/start', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
+  try {
+    const cultivator = c.get('cultivator');
+    if (!cultivator) {
+      return c.json({ error: '当前没有活跃角色' }, 404);
+    }
 
-  const result = await towerService.startRun(cultivator.id);
-  return c.json(result);
+    const result = await towerService.startRun(cultivator.id);
+    return c.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '开启幻境失败';
+    return c.json({ error: message }, 400);
+  }
 });
 
 router.get('/state', requireActiveCultivator(), async (c) => {
@@ -51,7 +57,11 @@ router.get('/state', requireActiveCultivator(), async (c) => {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const result = await towerService.getState(cultivator.id);
+  const result = await towerService.getState(
+    cultivator.id,
+    undefined,
+    cultivator.realm as RealmType,
+  );
   return c.json(result);
 });
 

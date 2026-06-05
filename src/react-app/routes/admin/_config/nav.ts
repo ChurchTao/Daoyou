@@ -51,6 +51,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/llm-metrics',
   },
   {
+    title: '蜃楼敌人',
+    description: '按周查看与手动生成敌人',
+    href: '/admin/tower-enemy-sets',
+  },
+  {
     title: 'QQ交流群',
     description: '玩家社群 QQ 群号配置',
     href: '/admin/community-group',

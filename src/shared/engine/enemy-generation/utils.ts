@@ -134,6 +134,7 @@ export function buildVariantKey(input: {
   realmStage: RealmStage;
   difficulty: number;
   isBoss: boolean;
+  variantSeed?: string;
 }): string {
   return [
     input.race,
@@ -141,7 +142,8 @@ export function buildVariantKey(input: {
     input.realmStage,
     String(input.difficulty),
     input.isBoss ? 'boss' : 'normal',
-  ].join(':');
+    input.variantSeed,
+  ].filter(Boolean).join(':');
 }
 
 export function buildStableProductId(

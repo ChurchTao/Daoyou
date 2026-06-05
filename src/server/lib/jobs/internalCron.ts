@@ -5,13 +5,16 @@ import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import { MailService } from '@server/lib/services/MailService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
+import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS } from '@shared/types/constants';
 
 const AUCTION_EXPIRE_LOCK_KEY = 'cron:auction-expire:lock';
 const BET_BATTLE_EXPIRE_LOCK_KEY = 'cron:bet-battle-expire:lock';
 const RANK_REWARD_LOCK_KEY = 'golden_rank:rewards:lock';
+const TOWER_ENEMY_SETS_LOCK_KEY = 'cron:tower-enemy-sets:lock';
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
+const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 export type CronJobResult = {
@@ -24,6 +27,12 @@ export type CronJobResult = {
 export type RankRewardsJobResult = CronJobResult & {
   settlementDate?: string;
   logs?: string[];
+};
+
+export type TowerEnemySetsJobResult = CronJobResult & {
+  generated: number;
+  failed: number;
+  logs: string[];
 };
 
 function getRewardByRank(rank: number): number {
@@ -57,6 +66,7 @@ async function withJobLock<T extends CronJobResult>(
   jobName: string,
   lockKey: string,
   run: () => Promise<T>,
+  ttlSeconds: number = LOCK_TTL_SECONDS,
 ): Promise<T | CronJobResult> {
   const startedAt = Date.now();
   const lockToken = randomUUID();
@@ -67,7 +77,7 @@ async function withJobLock<T extends CronJobResult>(
     lockKey,
     lockToken,
     'EX',
-    LOCK_TTL_SECONDS,
+    ttlSeconds,
     'NX',
   );
 
@@ -182,4 +192,32 @@ export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
       skipped: result.skipped,
     };
   });
+}
+
+export async function runTowerEnemySetRefreshJob(): Promise<TowerEnemySetsJobResult | CronJobResult> {
+  return withJobLock(
+    'tower-enemy-sets',
+    TOWER_ENEMY_SETS_LOCK_KEY,
+    async () => {
+      const results = await towerEnemySetService.refreshCurrentAndNextIfNeeded();
+      const generated = results.reduce((sum, result) => sum + result.generated, 0);
+      const failed = results.reduce((sum, result) => sum + result.failed, 0);
+      const skipped = results.reduce((sum, result) => sum + result.skipped, 0);
+      const processed = results.reduce((sum, result) => sum + result.processed, 0);
+
+      return {
+        success: true,
+        processed,
+        skipped: generated === 0 && failed === 0,
+        generated,
+        failed,
+        logs: results.flatMap((result) => [
+          `season ${result.seasonKey}`,
+          ...result.logs,
+        ]),
+        reason: generated === 0 && failed === 0 ? `existing:${skipped}` : undefined,
+      };
+    },
+    TOWER_ENEMY_SETS_LOCK_TTL_SECONDS,
+  );
 }

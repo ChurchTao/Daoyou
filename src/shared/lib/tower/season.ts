@@ -55,6 +55,11 @@ export function getTowerSeasonMeta(now: Date = new Date()): TowerSeasonMeta {
   };
 }
 
+export function getNextTowerSeasonMeta(now: Date = new Date()): TowerSeasonMeta {
+  const current = getTowerSeasonMeta(now);
+  return getTowerSeasonMeta(new Date(Date.parse(current.seasonEndsAt) + 1));
+}
+
 export function isTowerSeasonKeyCurrent(
   seasonKey: string,
   now: Date = new Date(),

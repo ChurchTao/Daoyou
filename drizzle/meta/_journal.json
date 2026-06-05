@@ -330,6 +330,13 @@
       "when": 1780645314270,
       "tag": "0046_stormy_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1780655159474,
+      "tag": "0047_early_vance_astro",
+      "breakpoints": true
     }
   ]
 }

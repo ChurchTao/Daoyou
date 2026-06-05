@@ -18,15 +18,18 @@ import {
   getTowerBlessingEffectPreview,
   resolveTowerFloorKind,
   resolveTowerMilestoneTier,
+  isTowerRealmEligible,
+  TOWER_ELIGIBLE_REALMS,
   TOWER_DIFFICULTY_STEP,
   TOWER_MAX_FLOOR,
+  TOWER_MIN_REALM,
   type TowerBlessingId,
   type TowerSeasonMeta,
   type TowerSettlement,
   type TowerState,
 } from '@shared/lib/tower';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { REALM_VALUES, type RealmType } from '@shared/types/constants';
+import type { RealmType } from '@shared/types/constants';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkCard } from '@app/components/ui/InkCard';
@@ -603,7 +606,12 @@ export default function TowerPage() {
   const { startRun, probeBattle, chooseBlessing, resetRun, processing } =
     useTowerActions();
   const [selectedRealm, setSelectedRealm] = useState<RealmType | null>(null);
-  const activeRealm = selectedRealm ?? cultivator?.realm ?? REALM_VALUES[0];
+  const cultivatorRealm = cultivator?.realm as RealmType | undefined;
+  const activeRealm =
+    selectedRealm ??
+    (cultivatorRealm && isTowerRealmEligible(cultivatorRealm)
+      ? cultivatorRealm
+      : TOWER_ELIGIBLE_REALMS[0]);
   const { payload: leaderboardPayload, loading: leaderboardLoading } =
     useTowerLeaderboard(!!cultivator, activeRealm);
   const [probe, setProbe] = useState<TowerProbeResponse | null>(null);
@@ -618,6 +626,10 @@ export default function TowerPage() {
   const towerState = payload?.state ?? null;
   const settlement = payload?.settlement;
   const season = payload?.season ?? leaderboardPayload?.season;
+  const eligible =
+    payload?.eligible ??
+    (cultivatorRealm ? isTowerRealmEligible(cultivatorRealm) : false);
+  const minRealm = payload?.minRealm ?? TOWER_MIN_REALM;
   const maxHp = display?.resources.hp.max ?? 0;
   const maxMp = display?.resources.mp.max ?? 0;
   const scenePulse = buildScenePulse(season);
@@ -633,7 +645,7 @@ export default function TowerPage() {
   const handleStartRun = async () => {
     const data = await startRun();
     if (!data) return;
-    setPayload(data);
+    setPayload({ ...data, eligible: true, minRealm });
     setProbe(null);
     probeRequestBattleIdRef.current = null;
   };
@@ -646,6 +658,8 @@ export default function TowerPage() {
         ? {
             season: current?.season ?? leaderboardPayload!.season,
             state: null,
+            eligible: current?.eligible ?? eligible,
+            minRealm: current?.minRealm ?? minRealm,
             settlement: undefined,
           }
         : null,
@@ -662,6 +676,8 @@ export default function TowerPage() {
     setPayload({
       season: data.season,
       state: data.state,
+      eligible: true,
+      minRealm,
     });
     setProbe(data);
     return true;
@@ -670,7 +686,7 @@ export default function TowerPage() {
   const handleChooseBlessing = async (blessingId: TowerBlessingId) => {
     const data = await chooseBlessing(blessingId);
     if (!data) return;
-    setPayload(data);
+    setPayload({ ...data, eligible: true, minRealm });
     setProbe(null);
     probeRequestBattleIdRef.current = null;
     setSelectedBlessingDetail(null);
@@ -780,6 +796,8 @@ export default function TowerPage() {
       setPayload({
         season: data.season,
         state: data.state,
+        eligible: true,
+        minRealm,
       });
       setProbe(data);
     };
@@ -791,6 +809,7 @@ export default function TowerPage() {
     };
   }, [
     encounterProbe,
+    minRealm,
     processing,
     setPayload,
     towerState?.activeBattleId,
@@ -805,6 +824,36 @@ export default function TowerPage() {
     return (
       <GameSceneFrame title={TOWER_SCENE_NAME}>
         <GameSceneNote>需先有活跃角色，方可踏入这重幻境。</GameSceneNote>
+      </GameSceneFrame>
+    );
+  }
+
+  if (!eligible) {
+    return (
+      <GameSceneFrame
+        title={TOWER_SCENE_NAME}
+        variant="workflow"
+        contentClassName="min-w-0 [&>*+*]:mt-3"
+        headerMeta={scenePulse ? (
+          <GameSceneNote>
+            <p className="text-sm leading-6">{scenePulse}</p>
+          </GameSceneNote>
+        ) : undefined}
+      >
+        <GameSceneSection title="当前事件">
+          <InkCard className="mb-0 p-4">
+            <p className="text-ink-secondary text-sm leading-6">
+              蜃楼幻境仅向{minRealm}及以上境界开放。待道行稳固后，此境门自会显现。
+            </p>
+          </InkCard>
+        </GameSceneSection>
+
+        <TowerLeaderboard
+          activeRealm={activeRealm}
+          entries={leaderboardPayload?.entries ?? []}
+          loading={leaderboardLoading}
+          onRealmChange={setSelectedRealm}
+        />
       </GameSceneFrame>
     );
   }

@@ -18,6 +18,7 @@ import type {
   PillFamily,
 } from '@shared/types/consumable';
 import type { MailAttachment } from '@shared/types/mail';
+import type { TowerPreparedEnemy } from '@shared/lib/tower';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -640,6 +641,35 @@ export const dungeonRuns = pgTable(
       table.updatedAt,
     ),
     index('dungeon_runs_status_updated_idx').on(table.status, table.updatedAt),
+  ],
+);
+
+// 蜃楼幻境每周预生成敌人集
+export const towerEnemySets = pgTable(
+  'wanjiedaoyou_tower_enemy_sets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    seasonKey: varchar('season_key', { length: 40 }).notNull(),
+    realm: varchar('realm', { length: 20 }).notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('ready'),
+    schemaVersion: integer('schema_version').notNull().default(1),
+    enemies: jsonb('enemies').$type<TowerPreparedEnemy[]>().notNull().default([]),
+    generatedAt: timestamp('generated_at').defaultNow().notNull(),
+    errorMessage: text('error_message'),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('tower_enemy_sets_season_realm_uidx').on(
+      table.seasonKey,
+      table.realm,
+    ),
+    index('tower_enemy_sets_realm_generated_idx').on(
+      table.realm,
+      table.generatedAt,
+    ),
   ],
 );
 

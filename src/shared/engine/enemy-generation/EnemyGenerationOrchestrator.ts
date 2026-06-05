@@ -250,6 +250,7 @@ export class EnemyGenerationOrchestrator {
       realmStage: input.realmStage,
       race: input.race,
       difficulty: Math.max(0, Math.min(100, Math.round(input.difficulty ?? 50))),
+      variantSeed: normalizeOptionalText(input.variantSeed),
       name: normalizeOptionalText(input.name),
       title: normalizeOptionalText(input.title),
       background: normalizeOptionalText(input.background),

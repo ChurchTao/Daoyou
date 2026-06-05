@@ -155,24 +155,33 @@ describe('tower router', () => {
   it('returns leaderboard entries for a realm bucket', async () => {
     getLeaderboardMock.mockResolvedValueOnce({
       season: { seasonKey: '2026-W22@Asia/Shanghai' },
-      realm: '筑基',
+      realm: '金丹',
       entries: [{ cultivatorId: 'cultivator-1', highestFloor: 18 }],
     });
 
     const response = await createApp().request(
-      '/api/tower/leaderboard?realm=%E7%AD%91%E5%9F%BA&limit=30',
+      '/api/tower/leaderboard?realm=%E9%87%91%E4%B8%B9&limit=30',
     );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       season: { seasonKey: '2026-W22@Asia/Shanghai' },
-      realm: '筑基',
+      realm: '金丹',
       entries: [{ cultivatorId: 'cultivator-1', highestFloor: 18 }],
     });
     expect(getLeaderboardMock).toHaveBeenCalledWith(
       'cultivator-1',
-      '筑基',
+      '金丹',
       30,
     );
+  });
+
+  it('rejects leaderboard realms below tower eligibility', async () => {
+    const response = await createApp().request(
+      '/api/tower/leaderboard?realm=%E7%AD%91%E5%9F%BA&limit=30',
+    );
+
+    expect(response.status).toBe(400);
+    expect(getLeaderboardMock).not.toHaveBeenCalled();
   });
 });

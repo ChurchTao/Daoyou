@@ -40,6 +40,7 @@ export interface EnemyGenerationInput {
   realmStage: RealmStage;
   race: EnemyRace;
   difficulty?: number;
+  variantSeed?: string;
   name?: string;
   title?: string;
   background?: string;
@@ -52,6 +53,7 @@ export interface NormalizedEnemyGenerationInput {
   realmStage: RealmStage;
   race: EnemyRace;
   difficulty: number;
+  variantSeed?: string;
   name?: string;
   title?: string;
   background?: string;

@@ -1,17 +1,37 @@
 import { describe, expect, it } from 'vitest';
+import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import {
+  buildTowerEnemyVariantSeed,
   buildTowerBlessingChoices,
+  isTowerRealmEligible,
   packTowerLeaderboardScore,
   resolveTowerDifficulty,
   resolveTowerFloorKind,
   resolveTowerMilestoneTier,
   resolveTowerRealmStage,
   TOWER_MAX_FLOOR,
+  TOWER_ELIGIBLE_REALMS,
   unpackTowerLeaderboardScore,
 } from './helpers';
 import { getTowerBlessingEffectPreview } from './presentation';
 
 describe('tower helpers', () => {
+  it('limits tower eligibility to golden core and above', () => {
+    expect(TOWER_ELIGIBLE_REALMS).toEqual([
+      '金丹',
+      '元婴',
+      '化神',
+      '炼虚',
+      '合体',
+      '大乘',
+      '渡劫',
+    ]);
+    expect(isTowerRealmEligible('炼气')).toBe(false);
+    expect(isTowerRealmEligible('筑基')).toBe(false);
+    expect(isTowerRealmEligible('金丹')).toBe(true);
+    expect(isTowerRealmEligible('渡劫')).toBe(true);
+  });
+
   it('maps floor kinds and realm stages deterministically', () => {
     expect(TOWER_MAX_FLOOR).toBe(20);
     expect(resolveTowerDifficulty(1)).toBe(5);
@@ -102,5 +122,45 @@ describe('tower helpers', () => {
       highestFloor: 17,
       firstReachedAtMs: Date.parse('2026-06-02T12:00:00.000Z'),
     });
+  });
+
+  it('builds weekly tower enemy seeds that vary by season', () => {
+    expect(
+      buildTowerEnemyVariantSeed({
+        seasonKey: '2026-W22@Asia/Shanghai',
+        realm: '金丹',
+        floor: 1,
+      }),
+    ).toBe('tower:2026-W22@Asia/Shanghai:金丹:1');
+    expect(
+      buildTowerEnemyVariantSeed({
+        seasonKey: '2026-W22@Asia/Shanghai',
+        realm: '金丹',
+        floor: 99,
+      }),
+    ).toBe('tower:2026-W22@Asia/Shanghai:金丹:20');
+  });
+
+  it('uses variantSeed to create distinct enemy variants for the same realm floor', () => {
+    const generator = new EnemyGenerator();
+    const base = {
+      realm: '金丹' as const,
+      realmStage: '初期' as const,
+      race: '人族' as const,
+      difficulty: 5,
+      isBoss: false,
+    };
+
+    const first = generator.buildDraft({
+      ...base,
+      variantSeed: 'tower:2026-W22@Asia/Shanghai:金丹:1',
+    });
+    const second = generator.buildDraft({
+      ...base,
+      variantSeed: 'tower:2026-W23@Asia/Shanghai:金丹:1',
+    });
+
+    expect(first.cultivator.id).not.toBe(second.cultivator.id);
+    expect(first.balance.variantKey).not.toBe(second.balance.variantKey);
   });
 });

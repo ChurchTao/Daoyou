@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getTowerSeasonMeta, isTowerSeasonKeyCurrent } from './season';
+import {
+  getNextTowerSeasonMeta,
+  getTowerSeasonMeta,
+  isTowerSeasonKeyCurrent,
+} from './season';
 
 describe('tower season helpers', () => {
   it('switches season at Monday 00:00 Asia/Shanghai', () => {
@@ -25,5 +29,12 @@ describe('tower season helpers', () => {
         new Date('2026-05-31T16:00:00.000Z'),
       ),
     ).toBe(false);
+  });
+
+  it('resolves the next weekly season target', () => {
+    const next = getNextTowerSeasonMeta(new Date('2026-06-05T10:00:00.000Z'));
+
+    expect(next.seasonKey).toBe('2026-W24@Asia/Shanghai');
+    expect(next.seasonStartedAt).toBe('2026-06-07T16:00:00.000Z');
   });
 });

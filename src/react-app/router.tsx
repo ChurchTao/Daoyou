@@ -734,6 +734,13 @@ export const router = createBrowserRouter(
           handle={title('LLM 观测')}
         />
         <Route
+          path="tower-enemy-sets"
+          lazy={lazyRoute(
+            () => import('@app/routes/admin/tower-enemy-sets/route'),
+          )}
+          handle={title('蜃楼敌人')}
+        />
+        <Route
           path="community-group"
           lazy={lazyRoute(
             () => import('@app/routes/admin/community-qrcode/route'),

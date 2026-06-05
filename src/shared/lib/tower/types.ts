@@ -46,6 +46,26 @@ export interface TowerBattleContext {
   enemy: Cultivator;
 }
 
+export type TowerPreparedEnemySetStatus = 'ready' | 'failed';
+
+export interface TowerPreparedEnemy {
+  floor: number;
+  encounter: TowerEncounter;
+  enemy: Cultivator;
+  generationMeta: {
+    variantSeed: string;
+    source: 'llm' | 'fallback';
+    generatedAt: string;
+  };
+}
+
+export interface TowerPreparedEnemySet {
+  seasonKey: string;
+  realm: RealmType;
+  generatedAt: string;
+  enemies: TowerPreparedEnemy[];
+}
+
 export interface TowerMilestoneReward {
   floor: number;
   tier: TowerMilestoneTier;
@@ -66,6 +86,7 @@ export interface TowerSettlement {
 export interface TowerState {
   runId: string;
   seasonKey: string;
+  challengeRealm: RealmType;
   status: TowerRunStatus;
   currentFloor: number;
   highestFloorCleared: number;

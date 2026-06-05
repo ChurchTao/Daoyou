@@ -4,16 +4,19 @@ const {
   runAuctionExpireJobMock,
   runBetBattleExpireJobMock,
   runRankRewardsJobMock,
+  runTowerEnemySetRefreshJobMock,
 } = vi.hoisted(() => ({
   runAuctionExpireJobMock: vi.fn(),
   runBetBattleExpireJobMock: vi.fn(),
   runRankRewardsJobMock: vi.fn(),
+  runTowerEnemySetRefreshJobMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/jobs/internalCron', () => ({
   runAuctionExpireJob: runAuctionExpireJobMock,
   runBetBattleExpireJob: runBetBattleExpireJobMock,
   runRankRewardsJob: runRankRewardsJobMock,
+  runTowerEnemySetRefreshJob: runTowerEnemySetRefreshJobMock,
 }));
 
 import cronRouter from './cron.router';
@@ -38,6 +41,7 @@ describe('cron router', () => {
     ['/internal/cron/auction-expire', runAuctionExpireJobMock],
     ['/internal/cron/bet-battle-expire', runBetBattleExpireJobMock],
     ['/internal/cron/rank-rewards', runRankRewardsJobMock],
+    ['/internal/cron/tower-enemy-sets', runTowerEnemySetRefreshJobMock],
   ])('rejects unauthorized requests for %s', async (path, runner) => {
     const response = await createApp().request(path);
 
@@ -68,6 +72,18 @@ describe('cron router', () => {
         processed: 100,
         skipped: false,
         settlementDate: '2026-05-15',
+      },
+    ],
+    [
+      '/internal/cron/tower-enemy-sets',
+      runTowerEnemySetRefreshJobMock,
+      {
+        success: true,
+        processed: 7,
+        skipped: false,
+        generated: 7,
+        failed: 0,
+        logs: ['season 2026-W22@Asia/Shanghai'],
       },
     ],
   ])('runs %s when bearer auth is valid', async (path, runner, result) => {

@@ -1,4 +1,10 @@
-import { ENEMY_RACE_VALUES, type EnemyRace, type RealmStage } from '@shared/types/constants';
+import {
+  ENEMY_RACE_VALUES,
+  REALM_ORDER,
+  type EnemyRace,
+  type RealmStage,
+  type RealmType,
+} from '@shared/types/constants';
 import {
   TOWER_BLESSING_DEFINITIONS,
   TOWER_BLESSING_IDS,
@@ -13,6 +19,20 @@ import type {
 export const TOWER_MAX_FLOOR = 20;
 export const TOWER_DIFFICULTY_STEP = 5;
 export const TOWER_LEADERBOARD_SCORE_UNIT = 1_000_000_000;
+export const TOWER_ELIGIBLE_REALMS = [
+  '金丹',
+  '元婴',
+  '化神',
+  '炼虚',
+  '合体',
+  '大乘',
+  '渡劫',
+] as const satisfies readonly RealmType[];
+export const TOWER_MIN_REALM: RealmType = '金丹';
+
+export function isTowerRealmEligible(realm: RealmType): boolean {
+  return REALM_ORDER[realm] >= REALM_ORDER[TOWER_MIN_REALM];
+}
 
 export function clampTowerFloor(floor: number) {
   return Math.max(1, Math.min(TOWER_MAX_FLOOR, Math.floor(floor)));
@@ -66,6 +86,14 @@ export function hashTowerSeed(seed: string) {
 
 export function pickTowerRace(runId: string, floor: number): EnemyRace {
   return ENEMY_RACE_VALUES[hashTowerSeed(`${runId}:${floor}:race`) % ENEMY_RACE_VALUES.length];
+}
+
+export function buildTowerEnemyVariantSeed(args: {
+  seasonKey: string;
+  realm: RealmType;
+  floor: number;
+}) {
+  return `tower:${args.seasonKey}:${args.realm}:${clampTowerFloor(args.floor)}`;
 }
 
 export function packTowerLeaderboardScore(
