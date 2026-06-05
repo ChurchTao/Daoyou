@@ -37,6 +37,9 @@ interface DungeonViewRendererProps {
     quitDungeon: () => Promise<boolean>;
     continueLooting: () => Promise<void>;
     escapeLooting: () => Promise<void>;
+    recoverDungeon: (
+      action: 'retry' | 'safe_retreat' | 'force_quit',
+    ) => Promise<void>;
     startBattle: (enemyName: string) => void;
     abandonBattle: (result: DungeonAbandonBattleResult) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
@@ -214,6 +217,55 @@ export function DungeonViewRenderer({
           onQuit={actions.quitDungeon}
           processing={processing}
         />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'recoverable_error') {
+    const actionsAvailable = viewState.state.recoverableActions ?? [
+      'retry',
+      'safe_retreat',
+      'force_quit',
+    ];
+    return (
+      <DungeonSceneScreen descriptor={resolveDungeonSceneDescriptor('exploring')}>
+        <InkCard className="space-y-4 p-6">
+          <div>
+            <h2 className="text-crimson mb-2 text-xl font-bold">秘境推演中断</h2>
+            <p className="text-ink-secondary leading-7">
+              {viewState.state.statusReason || '当前副本状态可恢复，请选择后续处理方式。'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {actionsAvailable.includes('retry') ? (
+              <InkButton
+                variant="primary"
+                disabled={processing}
+                onClick={() => actions.recoverDungeon('retry')}
+              >
+                重新推演
+              </InkButton>
+            ) : null}
+            {actionsAvailable.includes('safe_retreat') ? (
+              <InkButton
+                variant="secondary"
+                disabled={processing}
+                onClick={() => actions.recoverDungeon('safe_retreat')}
+              >
+                安全撤退
+              </InkButton>
+            ) : null}
+            {actionsAvailable.includes('force_quit') ? (
+              <InkButton
+                variant="ghost"
+                disabled={processing}
+                onClick={() => actions.recoverDungeon('force_quit')}
+              >
+                放弃副本
+              </InkButton>
+            ) : null}
+          </div>
+        </InkCard>
       </DungeonSceneScreen>
     );
   }

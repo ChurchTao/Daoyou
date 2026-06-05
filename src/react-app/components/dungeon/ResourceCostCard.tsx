@@ -4,12 +4,17 @@ import {
   getResourceDisplayName,
   getResourceIcon,
 } from '@shared/lib/utils/statusDisplay';
+import {
+  formatDungeonCostName,
+  formatDungeonCostValue,
+} from '@app/lib/dungeon/formatDungeonCost';
 import { format } from 'd3-format';
 
 interface ResourceCostCardProps {
   costs: DungeonOptionCost[];
   hpLossPercent: number;
   mpLossPercent: number;
+  pendingCosts?: DungeonOptionCost[];
   compact?: boolean;
 }
 
@@ -21,17 +26,28 @@ export function ResourceCostCard({
   costs,
   hpLossPercent,
   mpLossPercent,
+  pendingCosts = [],
   compact = false,
 }: ResourceCostCardProps) {
   // 按类型分组资源消耗（排除虚拟损耗类型）
   const resourceCosts = costs.filter((c) =>
-    ['spirit_stones', 'lifespan', 'cultivation_exp', 'material'].includes(
-      c.type,
-    ),
+    [
+      'spirit_stones',
+      'lifespan',
+      'cultivation_exp',
+      'comprehension_insight',
+      'material',
+      'weak',
+      'battle',
+      'artifact_damage',
+    ].includes(c.type),
   );
 
   const hasAnyLoss =
-    hpLossPercent > 0 || mpLossPercent > 0 || resourceCosts.length > 0;
+    hpLossPercent > 0 ||
+    mpLossPercent > 0 ||
+    resourceCosts.length > 0 ||
+    pendingCosts.length > 0;
 
   return (
     <InkCard className={compact ? 'p-3' : 'p-4'}>
@@ -74,15 +90,34 @@ export function ResourceCostCard({
               <div key={idx} className="flex items-center justify-between">
                 <span className="flex items-center gap-1">
                   <span>{getResourceIcon(cost.type)}</span>
-                  <span>
-                    {cost.type === 'material' && cost.name
-                      ? cost.name
-                      : cost.desc || getResourceDisplayName(cost.type)}
-                  </span>
+                  <span>{formatDungeonCostName(cost)}</span>
                 </span>
-                <span className="text-crimson font-bold">-{cost.value}</span>
+                <span className="text-crimson font-bold">
+                  {formatDungeonCostValue(cost)}
+                </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {pendingCosts.length > 0 && (
+          <div className="border-ink/10 border-t pt-2">
+            <div className="text-ink-secondary mb-1 text-xs font-bold">
+              本轮待确认
+            </div>
+            <div className="space-y-1">
+              {pendingCosts.map((cost, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <span>{getResourceIcon(cost.type)}</span>
+                    <span>{formatDungeonCostName(cost)}</span>
+                  </span>
+                  <span className="text-crimson font-bold">
+                    {formatDungeonCostValue(cost)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

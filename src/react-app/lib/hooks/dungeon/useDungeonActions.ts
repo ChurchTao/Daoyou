@@ -2,6 +2,10 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { DungeonOption } from '@shared/lib/dungeon/types';
 import { useState } from 'react';
 
+function createActionId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
 /**
  * 副本操作Hook
  * 负责处理副本相关的操作（启动、选择选项、退出）
@@ -54,6 +58,7 @@ export function useDungeonActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           choiceId: option.id,
+          actionId: createActionId(),
         }),
       });
 
@@ -148,11 +153,36 @@ export function useDungeonActions() {
     }
   };
 
+  const recoverDungeon = async (
+    action: 'retry' | 'safe_retreat' | 'force_quit',
+  ) => {
+    try {
+      setProcessing(true);
+      const res = await fetch('/api/dungeon/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      return data;
+    } catch (e) {
+      pushToast({
+        message: e instanceof Error ? e.message : '副本恢复失败',
+        tone: 'danger',
+      });
+      return null;
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return {
     startDungeon,
     performAction,
     continueLooting,
     escapeLooting,
+    recoverDungeon,
     quitDungeon,
     processing,
   };

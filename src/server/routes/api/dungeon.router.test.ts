@@ -5,6 +5,7 @@ const {
   probeBattleEnemyMock,
   abandonBattleMock,
   executeBattleMock,
+  recoverDungeonMock,
   listCultivatorTasksMock,
   getCultivatorByIdUnsafeMock,
   getCultivatorDisplaySnapshotMock,
@@ -14,6 +15,7 @@ const {
   probeBattleEnemyMock: vi.fn(),
   abandonBattleMock: vi.fn(),
   executeBattleMock: vi.fn(),
+  recoverDungeonMock: vi.fn(),
   listCultivatorTasksMock: vi.fn(),
   getCultivatorByIdUnsafeMock: vi.fn(),
   getCultivatorDisplaySnapshotMock: vi.fn(),
@@ -40,6 +42,7 @@ vi.mock('@server/lib/dungeon/service_v2', () => ({
     probeBattleEnemy: probeBattleEnemyMock,
     abandonBattle: abandonBattleMock,
     executeBattle: executeBattleMock,
+    recoverDungeon: recoverDungeonMock,
   },
 }));
 
@@ -308,5 +311,33 @@ describe('dungeon battle router', () => {
       'cultivator-1',
       'battle-1',
     );
+  });
+
+  it('recovers a dungeon via POST /api/dungeon/recover', async () => {
+    recoverDungeonMock.mockResolvedValueOnce({
+      state: {
+        status: 'EXPLORING',
+      },
+      isFinished: false,
+    });
+
+    const response = await createApp().request('/api/dungeon/recover', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'retry',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      state: {
+        status: 'EXPLORING',
+      },
+      isFinished: false,
+    });
+    expect(recoverDungeonMock).toHaveBeenCalledWith('cultivator-1', 'retry');
   });
 });

@@ -89,6 +89,18 @@ export class ResourceEngine {
             }
             break;
 
+          case 'comprehension_insight': {
+            const currentInsight =
+              cultivator.cultivation_progress?.comprehension_insight ?? 0;
+            if (currentInsight < req.value) {
+              missing.push(req);
+              errors.push(
+                `道心感悟不足，需要 ${req.value}，当前感悟 ${currentInsight}`,
+              );
+            }
+            break;
+          }
+
           case 'material':
             if (req.name) {
               const has = await hasMaterial(
@@ -112,7 +124,6 @@ export class ResourceEngine {
           case 'artifact_damage':
           case 'artifact':
           case 'consumable':
-          case 'comprehension_insight':
             // 暂不校验
             break;
 

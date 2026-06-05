@@ -23,7 +23,8 @@ import {
 import { randomUUID } from 'crypto';
 import type { Cultivator } from '@shared/types/cultivator';
 import { getExecutor } from '../drizzle/db';
-import { dungeonHistories } from '../drizzle/schema';
+import { dungeonHistories, dungeonRuns } from '../drizzle/schema';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
 import { stableCompactStringify } from '@server/utils/llmPayload';
@@ -46,6 +47,8 @@ import { RewardFactory } from './reward';
 import {
   BattleSession,
   DungeonOptionCost,
+  DungeonPendingAction,
+  DungeonRecoverAction,
   DungeonRound,
   DungeonRoundLlmContext,
   DungeonRoundLlmSchema,
@@ -60,6 +63,19 @@ import {
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const START_LOCK_TTL_SECONDS = 180;
+const RUN_TERMINAL_STATUSES = new Set(['FINISHED']);
+const COST_LIMITS: Partial<Record<DungeonOptionCost['type'], number>> = {
+  spirit_stones: 10_000_000,
+  lifespan: 10_000,
+  cultivation_exp: 1_000_000,
+  comprehension_insight: 100,
+  material: 999,
+  hp_loss: 1,
+  mp_loss: 1,
+  weak: 10,
+  battle: 100,
+  artifact_damage: 100,
+};
 const DUNGEON_MATERIAL_TYPE_TABLE = Object.entries(TYPE_DESCRIPTIONS)
   .map(([key, desc]) => `| ${key} | ${desc} |`)
   .join('\n');
@@ -82,7 +98,177 @@ interface DungeonBattleCachePayload {
   enemyObject: Cultivator;
 }
 
+function isActiveRunStatus(status: string | null | undefined) {
+  return Boolean(status && !RUN_TERMINAL_STATUSES.has(status));
+}
+
+function cloneCosts(costs: DungeonOptionCost[] | undefined): DungeonOptionCost[] {
+  return costs ? costs.map((cost) => ({ ...cost, metadata: cost.metadata ? { ...cost.metadata } : undefined })) : [];
+}
+
 export class DungeonService {
+  private normalizeOptionCosts(option: { costs?: DungeonOptionCost[] }) {
+    const costs = cloneCosts(option.costs)
+      .map((cost) => {
+        const max = COST_LIMITS[cost.type] ?? Number.MAX_SAFE_INTEGER;
+        const rawValue = Number.isFinite(cost.value) ? cost.value : 0;
+        const value =
+          cost.type === 'hp_loss' || cost.type === 'mp_loss'
+            ? Math.max(0, Math.min(max, rawValue))
+            : Math.floor(Math.max(0, Math.min(max, rawValue)));
+        return {
+          ...cost,
+          value,
+        };
+      })
+      .filter((cost) => cost.value > 0 || cost.type === 'battle');
+
+    const hasBattle = costs.some((cost) => cost.type === 'battle');
+    return hasBattle
+      ? costs.filter((cost) => cost.type !== 'hp_loss' && cost.type !== 'mp_loss')
+      : costs;
+  }
+
+  private normalizeRoundOptions(roundData: DungeonRound) {
+    roundData.interaction.options = roundData.interaction.options.map((option) => {
+      const costPreview = this.normalizeOptionCosts(option);
+      return {
+        ...option,
+        costs: costPreview,
+        costPreview,
+      };
+    });
+    return roundData;
+  }
+
+  private normalizeState(state: DungeonState): DungeonState {
+    state.costLedger ??= [];
+    state.gainLedger ??= [];
+    state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
+      cloneCosts(entry.costs),
+    );
+    state.currentOptions = state.currentOptions?.map((option) => {
+      const costPreview = this.normalizeOptionCosts(option);
+      return {
+        ...option,
+        costs: costPreview,
+        costPreview,
+      };
+    });
+    if (state.status === 'RECOVERABLE_ERROR') {
+      state.recoverableActions ??= ['retry', 'safe_retreat', 'force_quit'];
+    }
+    return state;
+  }
+
+  private async loadActiveRun(cultivatorId: string) {
+    const rows = await getExecutor()
+      .select()
+      .from(dungeonRuns)
+      .where(
+        and(
+          eq(dungeonRuns.cultivatorId, cultivatorId),
+          isNull(dungeonRuns.endedAt),
+        ),
+      )
+      .orderBy(desc(dungeonRuns.updatedAt))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row || !isActiveRunStatus(row.status)) return null;
+    return row;
+  }
+
+  private async markRecoverable(
+    cultivatorId: string,
+    state: DungeonState,
+    reason: string,
+    actions: DungeonRecoverAction[] = ['retry', 'safe_retreat', 'force_quit'],
+  ) {
+    state.status = 'RECOVERABLE_ERROR';
+    state.statusReason = reason;
+    state.recoverableActions = actions;
+    if (state.pendingAction) {
+      state.pendingAction.status = 'failed';
+      state.pendingAction.error = reason;
+    }
+    await this.saveState(cultivatorId, state);
+    return state;
+  }
+
+  private hasCommittedAction(state: DungeonState, actionId: string) {
+    return state.costLedger?.some((entry) => entry.actionId === actionId);
+  }
+
+  private commitCostsToState(
+    state: DungeonState,
+    action: DungeonPendingAction,
+  ) {
+    for (const cost of action.costs) {
+      if (cost.type === 'hp_loss') {
+        state.accumulatedHpLoss = Math.min(
+          1,
+          (state.accumulatedHpLoss ?? 0) + cost.value,
+        );
+      } else if (cost.type === 'mp_loss') {
+        state.accumulatedMpLoss = Math.min(
+          1,
+          (state.accumulatedMpLoss ?? 0) + cost.value,
+        );
+      }
+    }
+
+    state.costLedger ??= [];
+    state.costLedger.push({
+      actionId: action.actionId,
+      round: action.round,
+      choiceId: action.choiceId,
+      choiceText: action.choiceText,
+      costs: cloneCosts(action.costs),
+      committedAt: new Date().toISOString(),
+    });
+    state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
+      cloneCosts(entry.costs),
+    );
+    state.pendingAction = {
+      ...action,
+      status: 'committed',
+    };
+  }
+
+  private applyConditionCosts(
+    state: DungeonState,
+    runtimeCultivator: Cultivator,
+    costs: DungeonOptionCost[],
+  ) {
+    for (const cost of costs) {
+      if (cost.type === 'hp_loss') {
+        state.condition = ConditionService.applyExternalResourceLoss(
+          runtimeCultivator,
+          state.condition,
+          {
+            hpPercent: cost.value,
+          },
+        );
+      } else if (cost.type === 'mp_loss') {
+        state.condition = ConditionService.applyExternalResourceLoss(
+          runtimeCultivator,
+          state.condition,
+          {
+            mpPercent: cost.value,
+          },
+        );
+      } else if (cost.type === 'weak') {
+        state.condition = ConditionService.addOrStackStatus(
+          state.condition,
+          'weakness',
+          cost.value,
+          'event',
+        );
+      }
+    }
+  }
+
   private async getBattleContext(cultivatorId: string, battleId: string) {
     const state = await this.getState(cultivatorId);
     if (!state || state.activeBattleId !== battleId) {
@@ -90,13 +276,39 @@ export class DungeonService {
     }
 
     const battleKey = getDungeonBattleKey(battleId);
-    const battlePayload = parseRedisJson<DungeonBattleCachePayload>(
+    let battlePayload = parseRedisJson<DungeonBattleCachePayload>(
       await redis.get(battleKey),
       battleKey,
     );
 
     if (!battlePayload?.session || !battlePayload.enemyObject) {
-      throw new Error('遭遇战数据不存在或已失效');
+      const run = await this.loadActiveRun(cultivatorId);
+      const persistedPayload = run?.battlePayload as
+        | DungeonBattleCachePayload
+        | null
+        | undefined;
+      if (
+        persistedPayload?.session?.battleId === battleId &&
+        persistedPayload.enemyObject
+      ) {
+        await redis.set(
+          battleKey,
+          JSON.stringify(persistedPayload),
+          'EX',
+          REDIS_TTL,
+        );
+        battlePayload = persistedPayload;
+      }
+    }
+
+    if (!battlePayload?.session || !battlePayload.enemyObject) {
+      await this.markRecoverable(
+        cultivatorId,
+        state,
+        '遭遇战数据不存在或已失效',
+        ['safe_retreat', 'force_quit'],
+      );
+      throw new Error('遭遇战数据不存在或已失效，可选择安全撤退或放弃副本');
     }
 
     if (battlePayload.session.cultivatorId !== cultivatorId) {
@@ -203,7 +415,7 @@ export class DungeonService {
         throw new Error('今日探索次数已用尽（每日限 2 次）');
       }
 
-      const existingSession = await redis.get(activeKey);
+      const existingSession = await this.loadActiveRun(cultivatorId);
       if (existingSession) {
         throw new Error('当前已有正在进行的副本，请先完成或放弃');
       }
@@ -234,6 +446,8 @@ export class DungeonService {
         cultivatorId: context.playerInfo.id!,
         theme: context.location.location,
         summary_of_sacrifice: [],
+        costLedger: [],
+        gainLedger: [],
         accumulatedRewards: [],
         status: 'EXPLORING',
         condition: hydratedCondition,
@@ -242,7 +456,7 @@ export class DungeonService {
       };
 
       // 4. 首次 AI 调用
-      const roundData = await this.callAI(state);
+      const roundData = this.normalizeRoundOptions(await this.callAI(state));
 
       // 5. 更新历史并存入 Redis
       const gainedNames = roundData.acquired_items?.map(
@@ -266,6 +480,12 @@ export class DungeonService {
         await consumeDungeonLimit(cultivatorId);
       } catch (error) {
         // 扣次数失败时回滚活跃副本，避免“启动失败但次数异常”
+        if (state.runId) {
+          await getExecutor()
+            .update(dungeonRuns)
+            .set({ status: 'FINISHED', endedAt: new Date() })
+            .where(eq(dungeonRuns.id, state.runId));
+        }
         await redis.del(activeKey);
         throw error;
       }
@@ -279,9 +499,16 @@ export class DungeonService {
   /**
    * 处理玩家交互
    */
-  async handleAction(cultivatorId: string, choiceId: number) {
+  async handleAction(
+    cultivatorId: string,
+    choiceId: number,
+    actionId: string = randomUUID(),
+  ) {
     const state = await this.getState(cultivatorId);
     if (!state) throw new Error('副本已失效');
+    if (this.hasCommittedAction(state, actionId)) {
+      return { actionId, state, isFinished: state.isFinished };
+    }
     const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
     if (!cultivatorBundle?.cultivator) {
       throw new Error('未找到修真者数据');
@@ -297,9 +524,9 @@ export class DungeonService {
       throw new Error(`无效的交互选项: ${choiceId}`);
     }
 
-    let actionCosts = chosenOption.costs ?? [];
+    const actionCosts = this.normalizeOptionCosts(chosenOption);
 
-    const consumeActionCostsOrThrow = async () => {
+    const consumeActionCostsOrThrow = async (dryRun = false) => {
       if (actionCosts.length === 0) return;
 
       // 获取 userId
@@ -345,12 +572,12 @@ export class DungeonService {
         }
       }
 
-      // DungeonOptionCost 与 ResourceOperation 结构兼容
-      // desc 字段在 ResourceEngine 中会被忽略
       const result = await resourceEngine.consume(
         userId,
         cultivatorId,
         actionCosts as ResourceOperation[],
+        undefined,
+        dryRun,
       );
 
       if (!result.success) {
@@ -358,95 +585,128 @@ export class DungeonService {
       }
     };
 
-    if (chosenOption?.costs) {
-      // 防御性编程：如果 AI 违规生成了 battle + hp_loss/mp_loss 组合，过滤掉冲突项
-      const hasBattle = chosenOption.costs.some((c) => c.type === 'battle');
-      if (hasBattle) {
-        chosenOption.costs = chosenOption.costs.filter(
-          (c) => c.type !== 'hp_loss' && c.type !== 'mp_loss',
-        );
-        actionCosts = chosenOption.costs;
-      }
+    await consumeActionCostsOrThrow(true);
 
-      state.summary_of_sacrifice?.push(...chosenOption.costs);
-
-      // 1.1 累加气血/法力损失百分比
-      for (const cost of chosenOption.costs) {
-        if (cost.type === 'hp_loss') {
-          const next = ConditionService.applyExternalResourceLoss(
-            runtimeCultivator,
-            state.condition,
-            {
-              hpPercent: cost.value,
-            },
-          );
-          state.condition = next;
-        } else if (cost.type === 'mp_loss') {
-          const next = ConditionService.applyExternalResourceLoss(
-            runtimeCultivator,
-            state.condition,
-            {
-              mpPercent: cost.value,
-            },
-          );
-          state.condition = next;
-        } else if (cost.type === 'weak') {
-          state.condition = ConditionService.addOrStackStatus(
-            state.condition,
-            'weakness',
-            cost.value,
-            'event',
-          );
-        }
-      }
-
-      // 1.3 Battle Interception (FIX: Prevent immediate AI call before battle)
-      const battleCost = chosenOption.costs.find((c) => c.type === 'battle');
-      if (battleCost) {
-        // 战斗分支没有 LLM 步骤，先扣除真实资源再进入战斗
-        await consumeActionCostsOrThrow();
-
-        state.history[state.history.length - 1].choice = chosenOption.text;
-        state.status = 'WAITING_BATTLE'; // Use intermediary state
-
-        const session = await this.createBattleSession(
-          cultivatorId,
-          getDungeonKey(cultivatorId),
-          battleCost,
-          state.playerInfo,
-          state,
-        );
-
-        state.activeBattleId = session.battleId;
-        await this.saveState(cultivatorId, state);
-
-        return {
-          state,
-          type: 'TRIGGER_BATTLE',
-          battleId: session.battleId,
-          isFinished: false,
-        };
-      }
-    }
+    const pendingAction: DungeonPendingAction = {
+      actionId,
+      choiceId,
+      choiceText: chosenOption.text,
+      round: state.currentRound,
+      status: 'pending',
+      costs: actionCosts,
+      createdAt: new Date().toISOString(),
+    };
+    state.pendingAction = pendingAction;
+    state.costPreview = actionCosts;
 
     // 2. 推进状态
     state.history[state.history.length - 1].choice = chosenOption?.text;
     state.history[state.history.length - 1].outcome =
       chosenOption?.potential_cost;
 
-    if (state.currentRound >= state.maxRounds) {
-      // 最后一轮直接结算，不走 LLM；此处仍需先扣资源
-      await consumeActionCostsOrThrow();
-      return this.settleDungeon(state);
+    const battleCost = actionCosts.find((c) => c.type === 'battle');
+    if (battleCost) {
+      const session = await this.createBattleSession(
+        cultivatorId,
+        getDungeonKey(cultivatorId),
+        battleCost,
+        state.playerInfo,
+        state,
+      );
+
+      try {
+        await consumeActionCostsOrThrow();
+      } catch (error) {
+        state.pendingAction = {
+          ...pendingAction,
+          status: 'failed',
+          error: error instanceof Error ? error.message : String(error),
+        };
+        state.costPreview = undefined;
+        state.status = 'EXPLORING';
+        await this.saveState(cultivatorId, state);
+        throw error;
+      }
+
+      this.applyConditionCosts(state, runtimeCultivator, actionCosts);
+      this.commitCostsToState(state, pendingAction);
+      state.pendingAction = undefined;
+      state.costPreview = undefined;
+      state.status = 'WAITING_BATTLE';
+      state.activeBattleId = session.battleId;
+      const { enemyObject, ...battleSession } = session;
+      await this.saveState(cultivatorId, state, {
+        session: battleSession,
+        enemyObject,
+      });
+
+      return {
+        actionId,
+        state,
+        type: 'TRIGGER_BATTLE',
+        battleId: session.battleId,
+        isFinished: false,
+      };
     }
 
+    if (state.currentRound >= state.maxRounds) {
+      state.status = 'SETTLING';
+      await this.saveState(cultivatorId, state);
+      try {
+        const result = await this.settleDungeon(state, {
+          pendingAction,
+          runtimeCultivator,
+        });
+        return { actionId, ...result };
+      } catch (error) {
+        await this.markRecoverable(
+          cultivatorId,
+          state,
+          error instanceof Error ? error.message : '结算生成失败',
+          ['retry', 'safe_retreat', 'force_quit'],
+        );
+        throw error;
+      }
+    }
+
+    state.status = 'GENERATING_NEXT';
+    await this.saveState(cultivatorId, state);
     state.currentRound++;
 
     // 3. AI 生成下一轮
-    const roundData = await this.callAI(state);
+    let roundData: DungeonRound;
+    try {
+      roundData = this.normalizeRoundOptions(await this.callAI(state));
+    } catch (error) {
+      state.currentRound--;
+      await this.markRecoverable(
+        cultivatorId,
+        state,
+        error instanceof Error ? error.message : '下一轮生成失败',
+        ['retry', 'safe_retreat', 'force_quit'],
+      );
+      throw error;
+    }
 
     // LLM 成功后再扣资源，避免“生成失败但资源已扣除”
-    await consumeActionCostsOrThrow();
+    try {
+      await consumeActionCostsOrThrow();
+    } catch (error) {
+      state.currentRound--;
+      state.status = 'EXPLORING';
+      state.pendingAction = {
+        ...pendingAction,
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      };
+      state.costPreview = undefined;
+      await this.saveState(cultivatorId, state);
+      throw error;
+    }
+    this.applyConditionCosts(state, runtimeCultivator, actionCosts);
+    this.commitCostsToState(state, pendingAction);
+    state.pendingAction = undefined;
+    state.costPreview = undefined;
 
     // 记录过程战利品
     const gainedNames = roundData.acquired_items?.map(
@@ -466,9 +726,10 @@ export class DungeonService {
     });
     state.currentOptions = roundData.interaction.options;
     state.dangerScore = roundData.status_update.internal_danger_score;
+    state.status = 'EXPLORING';
 
     await this.saveState(cultivatorId, state);
-    return { state, roundData, isFinished: false };
+    return { actionId, state, roundData, isFinished: false };
   }
 
   // --- Battle Integration ---
@@ -481,7 +742,7 @@ export class DungeonService {
     battleCost: DungeonOptionCost,
     playerInfo: PlayerInfo,
     dungeonState: DungeonState,
-  ): Promise<BattleSession> {
+  ): Promise<BattleSession & { enemyObject: Cultivator }> {
     console.log('[createBattleSession]', battleCost);
     const battleId = randomUUID();
 
@@ -538,7 +799,10 @@ export class DungeonService {
       3600,
     );
 
-    return session;
+    return {
+      ...session,
+      enemyObject: enemy,
+    };
   }
 
   async handleBattleCallback(
@@ -658,10 +922,11 @@ export class DungeonService {
   }
 
   async abandonBattle(cultivatorId: string, battleId: string) {
-    const { battleKey, state } = await this.getBattleContext(
-      cultivatorId,
-      battleId,
-    );
+    const state = await this.getState(cultivatorId);
+    if (!state || state.activeBattleId !== battleId) {
+      throw new Error('当前没有匹配的遭遇战');
+    }
+    const battleKey = getDungeonBattleKey(battleId);
 
     delete state.activeBattleId;
     state.status = 'FINISHED';
@@ -693,10 +958,12 @@ export class DungeonService {
 
     let roundData: DungeonRound;
     try {
-      roundData = await this.callAI(state);
+      roundData = this.normalizeRoundOptions(await this.callAI(state));
     } catch (error) {
       console.error('[DungeonService] 战后生成失败:', error);
-      roundData = this.buildFallbackRoundAfterBattle(state, '先前强敌');
+      roundData = this.normalizeRoundOptions(
+        this.buildFallbackRoundAfterBattle(state, '先前强敌'),
+      );
     }
 
     const gainedNames = roundData.acquired_items?.map(
@@ -875,6 +1142,8 @@ export class DungeonService {
       skipInjury?: boolean; // 跳过受伤逻辑
       abandonedBattle?: boolean; // 标记为主动放弃
       endDisposition?: DungeonSettlementLlmContext['endDisposition'];
+      pendingAction?: DungeonPendingAction;
+      runtimeCultivator?: Cultivator;
     },
   ): Promise<{
     state?: DungeonState;
@@ -913,6 +1182,39 @@ export class DungeonService {
 
     const settlement = aiRes.object;
 
+    if (options?.pendingAction) {
+      const userId = await getCultivatorOwnerId(state.cultivatorId);
+      if (!userId) {
+        throw new Error('无法获取修真者所属用户');
+      }
+      const result = await resourceEngine.consume(
+        userId,
+        state.cultivatorId,
+        options.pendingAction.costs as ResourceOperation[],
+      );
+      if (!result.success) {
+        state.status = 'EXPLORING';
+        state.pendingAction = {
+          ...options.pendingAction,
+          status: 'failed',
+          error: result.errors?.join('; ') || '资源消耗失败',
+        };
+        state.costPreview = undefined;
+        await this.saveState(state.cultivatorId, state);
+        throw new Error(result.errors?.join('; ') || '资源消耗失败');
+      }
+      if (options.runtimeCultivator) {
+        this.applyConditionCosts(
+          state,
+          options.runtimeCultivator,
+          options.pendingAction.costs,
+        );
+      }
+      this.commitCostsToState(state, options.pendingAction);
+      state.pendingAction = undefined;
+      state.costPreview = undefined;
+    }
+
     const realGains = RewardFactory.generateAllRewards(
       settlement.settlement.reward_blueprints as RewardBlueprint[],
       mapRealm,
@@ -940,6 +1242,12 @@ export class DungeonService {
     }
 
     // 清理并存档 (逻辑同你之前)
+    state.gainLedger ??= [];
+    state.gainLedger.push({
+      source: 'settlement',
+      gains: realGains,
+      committedAt: new Date().toISOString(),
+    });
     await this.archiveDungeon(state, settlement, realGains);
     if (!options?.abandonedBattle) {
       try {
@@ -1005,7 +1313,46 @@ export class DungeonService {
     return aiRes.object;
   }
 
-  async saveState(cultivatorId: string, state: DungeonState) {
+  async saveState(
+    cultivatorId: string,
+    state: DungeonState,
+    battlePayload?: DungeonBattleCachePayload,
+  ) {
+    this.normalizeState(state);
+    const values = {
+      cultivatorId,
+      mapNodeId: state.mapNodeId,
+      status: state.status,
+      currentRound: state.currentRound,
+      maxRounds: state.maxRounds,
+      dangerScore: state.dangerScore,
+      runState: state,
+      costLedger: state.costLedger ?? [],
+      gainLedger: state.gainLedger ?? [],
+      pendingAction: state.pendingAction ?? null,
+      activeBattleId: state.activeBattleId ?? null,
+      battlePayload: battlePayload ?? null,
+    };
+
+    if (state.runId) {
+      await getExecutor()
+        .update(dungeonRuns)
+        .set(values)
+        .where(eq(dungeonRuns.id, state.runId));
+    } else {
+      const inserted = await getExecutor()
+        .insert(dungeonRuns)
+        .values(values)
+        .returning({ id: dungeonRuns.id });
+      state.runId = inserted[0]?.id;
+      if (state.runId) {
+        await getExecutor()
+          .update(dungeonRuns)
+          .set({ runState: state })
+          .where(eq(dungeonRuns.id, state.runId));
+      }
+    }
+
     await redis.set(
       getDungeonKey(cultivatorId),
       JSON.stringify(state),
@@ -1016,7 +1363,25 @@ export class DungeonService {
 
   async getState(cultivatorId: string) {
     const key = getDungeonKey(cultivatorId);
-    const state = parseRedisJson<DungeonState>(await redis.get(key), key);
+    const run = await this.loadActiveRun(cultivatorId);
+    let state: DungeonState | null = null;
+    if (run) {
+      state = run.runState as DungeonState;
+      state.runId = run.id;
+      state.status = run.status as DungeonState['status'];
+      state.currentRound = run.currentRound;
+      state.maxRounds = run.maxRounds;
+      state.dangerScore = run.dangerScore;
+      state.costLedger = (run.costLedger as DungeonState['costLedger']) ?? [];
+      state.gainLedger = (run.gainLedger as DungeonState['gainLedger']) ?? [];
+      state.pendingAction =
+        (run.pendingAction as DungeonState['pendingAction']) ?? undefined;
+      state.activeBattleId = run.activeBattleId ?? state.activeBattleId;
+      this.normalizeState(state);
+      await redis.set(key, JSON.stringify(state), 'EX', REDIS_TTL);
+    } else {
+      state = parseRedisJson<DungeonState>(await redis.get(key), key);
+    }
     if (!state) return null;
     if (!state.condition) {
       const cultivatorBundle = await getCultivatorByIdUnsafe(cultivatorId);
@@ -1028,7 +1393,7 @@ export class DungeonService {
         state.condition = hydrated;
       }
     }
-    return state;
+    return this.normalizeState(state);
   }
 
   async prepareDungeonContext(cultivatorId: string, mapNodeId: string) {
@@ -1089,6 +1454,15 @@ export class DungeonService {
     settlement: DungeonSettlement,
     realGains?: ResourceOperation[],
   ) {
+    state.status = 'FINISHED';
+    state.isFinished = true;
+    state.settlement = settlement;
+    state.realGains = realGains;
+    state.pendingAction = undefined;
+    state.costPreview = undefined;
+    state.recoverableActions = undefined;
+    state.activeBattleId = undefined;
+
     await updateCultivator(state.cultivatorId, {
       condition: state.condition,
     });
@@ -1106,6 +1480,22 @@ export class DungeonService {
         realGains: realGains ?? null,
       });
 
+    if (state.runId) {
+      await getExecutor()
+        .update(dungeonRuns)
+        .set({
+          status: 'FINISHED',
+          runState: this.normalizeState(state),
+          costLedger: state.costLedger ?? [],
+          gainLedger: state.gainLedger ?? [],
+          pendingAction: null,
+          activeBattleId: null,
+          battlePayload: null,
+          endedAt: new Date(),
+        })
+        .where(eq(dungeonRuns.id, state.runId));
+    }
+
     // Clear Redis
     await redis.del(getDungeonKey(state.cultivatorId));
   }
@@ -1113,11 +1503,62 @@ export class DungeonService {
   /**
    * Abandon the current dungeon
    */
+  async recoverDungeon(cultivatorId: string, action: DungeonRecoverAction) {
+    const state = await this.getState(cultivatorId);
+    if (!state) {
+      throw new Error('副本已失效');
+    }
+
+    if (action === 'force_quit') {
+      return this.quitDungeon(cultivatorId);
+    }
+
+    if (action === 'safe_retreat') {
+      delete state.activeBattleId;
+      state.status = 'SETTLING';
+      state.statusReason = '已选择安全撤退';
+      state.recoverableActions = undefined;
+      return this.settleDungeon(state, {
+        abandonedBattle: true,
+        endDisposition: 'retreated_after_battle',
+      });
+    }
+
+    if (action === 'retry') {
+      const pending = state.pendingAction;
+      if (!pending?.choiceId) {
+        state.status = 'EXPLORING';
+        state.statusReason = undefined;
+        state.recoverableActions = undefined;
+        state.pendingAction = undefined;
+        state.costPreview = undefined;
+        await this.saveState(cultivatorId, state);
+        return { state, isFinished: false };
+      }
+
+      state.status = 'EXPLORING';
+      state.statusReason = undefined;
+      state.recoverableActions = undefined;
+      state.pendingAction = undefined;
+      state.costPreview = undefined;
+      await this.saveState(cultivatorId, state);
+      return this.handleAction(cultivatorId, pending.choiceId, pending.actionId);
+    }
+
+    throw new Error('未知的副本恢复动作');
+  }
+
   async quitDungeon(cultivatorId: string) {
     const key = getDungeonKey(cultivatorId);
 
-    const state = parseRedisJson<DungeonState>(await redis.get(key), key);
+    const state = await this.getState(cultivatorId);
     if (state) {
+      state.status = 'FINISHED';
+      state.isFinished = true;
+      state.pendingAction = undefined;
+      state.costPreview = undefined;
+      state.recoverableActions = undefined;
+      state.activeBattleId = undefined;
       await updateCultivator(cultivatorId, {
         condition: state.condition,
       });
@@ -1139,6 +1580,19 @@ export class DungeonService {
               )
               .join('\n') + '\n[ABANDONED]',
         });
+      if (state.runId) {
+        await getExecutor()
+          .update(dungeonRuns)
+          .set({
+            status: 'FINISHED',
+            runState: this.normalizeState(state),
+            pendingAction: null,
+            activeBattleId: null,
+            battlePayload: null,
+            endedAt: new Date(),
+          })
+          .where(eq(dungeonRuns.id, state.runId));
+      }
     }
 
     await redis.del(key);

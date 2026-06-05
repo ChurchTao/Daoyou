@@ -91,4 +91,28 @@ describe('dungeon battle metadata schemas', () => {
     expect(missingRace.success).toBe(false);
     expect(missingRealmStage.success).toBe(false);
   });
+
+  it.each([
+    ['shared', sharedDungeonCostSchema],
+    ['server', serverDungeonCostSchema],
+  ])('%s DungeonCostSchema rejects negative and non-finite values', (_, schema) => {
+    expect(
+      schema.safeParse({
+        type: 'lifespan',
+        value: -1,
+      }).success,
+    ).toBe(false);
+    expect(
+      schema.safeParse({
+        type: 'lifespan',
+        value: Number.POSITIVE_INFINITY,
+      }).success,
+    ).toBe(false);
+    expect(
+      schema.safeParse({
+        type: 'comprehension_insight',
+        value: Number.NaN,
+      }).success,
+    ).toBe(false);
+  });
 });

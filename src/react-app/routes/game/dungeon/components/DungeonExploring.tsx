@@ -5,10 +5,16 @@ import { InkCard } from '@app/components/ui/InkCard';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkTag } from '@app/components/ui/InkTag';
 import type {
+  DungeonOptionCost,
   DungeonOption,
   DungeonRound,
   DungeonState,
 } from '@shared/lib/dungeon/types';
+import { getResourceIcon } from '@shared/lib/utils/statusDisplay';
+import {
+  formatDungeonCostName,
+  formatDungeonCostValue,
+} from '@app/lib/dungeon/formatDungeonCost';
 import { useState } from 'react';
 
 interface DungeonExploringProps {
@@ -17,6 +23,29 @@ interface DungeonExploringProps {
   onAction: (option: DungeonOption) => Promise<unknown>;
   onQuit: () => Promise<boolean>;
   processing: boolean;
+}
+
+function OptionCostPreview({ costs }: { costs: DungeonOptionCost[] }) {
+  if (costs.length === 0) {
+    return <div className="text-ink-secondary mt-1 text-sm">代价: 无需代价</div>;
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+      {costs.map((cost, index) => (
+        <span
+          key={`${cost.type}-${index}`}
+          className="border-ink/15 bg-paper-dark inline-flex items-center gap-1 border border-dashed px-1.5 py-0.5"
+        >
+          <span>{getResourceIcon(cost.type)}</span>
+          <span>{formatDungeonCostName(cost)}</span>
+          <span className="text-crimson font-semibold">
+            {formatDungeonCostValue(cost)}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function DungeonExploring({
@@ -46,6 +75,7 @@ export function DungeonExploring({
         <div className="space-y-3">
           {lastRound.interaction.options.map((option) => {
             const isSelected = selectedOptionId === option.id;
+            const costs = option.costPreview ?? option.costs ?? [];
             return (
               <InkChoiceButton
                 key={option.id}
@@ -85,9 +115,10 @@ export function DungeonExploring({
                 ) : null}
                 {option.potential_cost ? (
                   <div className="text-ink-secondary mt-1 text-sm">
-                    代价: {option.potential_cost}
+                    提示: {option.potential_cost}
                   </div>
                 ) : null}
+                <OptionCostPreview costs={costs} />
               </InkChoiceButton>
             );
           })}

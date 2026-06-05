@@ -46,9 +46,14 @@ export function DungeonProgressCard({
 
         {/* 资源损耗 */}
         <ResourceCostCard
-          costs={state.summary_of_sacrifice || []}
+          costs={
+            state.costLedger?.flatMap((entry) => entry.costs) ??
+            state.summary_of_sacrifice ??
+            []
+          }
           hpLossPercent={state.accumulatedHpLoss}
           mpLossPercent={state.accumulatedMpLoss}
+          pendingCosts={state.pendingAction?.costs ?? state.costPreview ?? []}
           compact
         />
 

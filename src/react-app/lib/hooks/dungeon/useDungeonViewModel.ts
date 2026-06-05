@@ -37,6 +37,7 @@ export type DungeonViewState =
       state: DungeonState;
     }
   | { type: 'looting'; state: DungeonState }
+  | { type: 'recoverable_error'; state: DungeonState }
   | {
       type: 'settlement';
       settlement?: DungeonSettlement;
@@ -57,7 +58,7 @@ export function useDungeonViewModel(
     loading: stateLoading,
     refresh,
   } = useDungeonState(hasCultivator);
-  const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, processing } =
+  const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, recoverDungeon, processing } =
     useDungeonActions();
 
   // 副本次数限制
@@ -139,6 +140,10 @@ export function useDungeonViewModel(
     // 战后休整
     if (state?.status === 'LOOTING') {
       return { type: 'looting', state };
+    }
+
+    if (state?.status === 'RECOVERABLE_ERROR') {
+      return { type: 'recoverable_error', state };
     }
 
     // 探索中
@@ -234,6 +239,29 @@ export function useDungeonViewModel(
     }
   };
 
+  const handleRecoverDungeon = async (
+    action: 'retry' | 'safe_retreat' | 'force_quit',
+  ) => {
+    const data = await recoverDungeon(action);
+    if (!data) return;
+    if (data.state) {
+      setState(data.state);
+    } else if (data.isFinished) {
+      setState((prev) =>
+        prev
+          ? {
+              ...prev,
+              isFinished: true,
+              settlement: data.settlement,
+              realGains: data.realGains,
+            }
+          : null,
+      );
+    } else if (data.success) {
+      setState(null);
+    }
+  };
+
   /**
    * 操作：退出副本
    */
@@ -307,6 +335,7 @@ export function useDungeonViewModel(
       quitDungeon: handleQuitDungeon,
       continueLooting: handleContinueLooting,
       escapeLooting: handleEscapeLooting,
+      recoverDungeon: handleRecoverDungeon,
       startBattle: handleStartBattle,
       abandonBattle: handleAbandonBattleWithResult,
       completeBattle: handleBattleComplete,

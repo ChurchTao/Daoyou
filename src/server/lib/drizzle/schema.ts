@@ -606,6 +606,43 @@ export const dungeonHistories = pgTable(
   ],
 );
 
+// 进行中副本权威状态表
+export const dungeonRuns = pgTable(
+  'wanjiedaoyou_dungeon_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    mapNodeId: varchar('map_node_id', { length: 100 }).notNull(),
+    status: varchar('status', { length: 30 }).notNull().default('EXPLORING'),
+    currentRound: integer('current_round').notNull().default(1),
+    maxRounds: integer('max_rounds').notNull().default(5),
+    dangerScore: integer('danger_score').notNull().default(10),
+    runState: jsonb('run_state').notNull(),
+    costLedger: jsonb('cost_ledger').notNull().default([]),
+    gainLedger: jsonb('gain_ledger').notNull().default([]),
+    pendingAction: jsonb('pending_action'),
+    activeBattleId: uuid('active_battle_id'),
+    battlePayload: jsonb('battle_payload'),
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    endedAt: timestamp('ended_at'),
+  },
+  (table) => [
+    index('dungeon_runs_cultivator_status_updated_idx').on(
+      table.cultivatorId,
+      table.status,
+      table.updatedAt,
+    ),
+    index('dungeon_runs_status_updated_idx').on(table.status, table.updatedAt),
+  ],
+);
+
 // 拍卖行表
 export const auctionListings = pgTable(
   'wanjiedaoyou_auction_listings',

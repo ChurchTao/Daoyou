@@ -49,11 +49,13 @@ export function DungeonBattle({
       const result = await executeBattle(battleId);
       if (result?.callbackData) {
         setBattleSettlement(result.callbackData);
+      } else if (!result?.battleResult) {
+        onBattleComplete(null);
       }
     };
 
     void runBattle();
-  }, [battleId, executeBattle]);
+  }, [battleId, executeBattle, onBattleComplete]);
 
   const isPlaybackFinished = playback.isPlaybackFinished;
 

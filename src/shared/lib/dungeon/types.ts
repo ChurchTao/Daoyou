@@ -48,7 +48,7 @@ export const DungeonCostSchema = z.object({
     'battle',
     'artifact_damage',
   ]),
-  value: z.number().describe('数量或强度'),
+  value: z.number().min(0).refine(Number.isFinite, '数量或强度必须为有限数').describe('数量或强度'),
   name: z.string().optional().describe('材料名称（material 类型需要，如果未知可省略留给系统匹配）'),
   required_quality: z.enum(DUNGEON_QUALITY_VALUES).optional().describe('模糊要求时：最低品质'),
   required_type: z.enum(['herb', 'ore', 'monster', 'tcdb', 'aux', 'gongfa_manual', 'skill_manual']).optional().describe('模糊要求时：材料类型'),
@@ -77,7 +77,7 @@ export const DungeonGainSchema = z.object({
     'artifact',
     'consumable',
   ]),
-  value: z.number().describe('数量'),
+  value: z.number().min(0).max(10_000_000).refine(Number.isFinite, '数量必须为有限数').describe('数量'),
   name: z.string().optional().describe('物品名称'),
   desc: z.string().optional().describe('描述信息'),
   data: z.any().optional().describe('完整物品数据'),
@@ -91,6 +91,7 @@ export const DungeonOptionSchema = z.object({
   requirement: z.string().optional().describe('选项要求'),
   potential_cost: z.string().optional().describe('潜在成本(文本描述)'),
   costs: z.array(DungeonCostSchema).optional().describe('成本(结构化成本)'),
+  costPreview: z.array(DungeonCostSchema).optional().describe('服务端归一化后的预计代价'),
 });
 
 // 奖励蓝图 Schema - AI 只生成创意内容，数值由程序计算
@@ -167,6 +168,7 @@ export const DungeonSettlementSchema = z
   .describe('结算信息');
 
 export const PlayerInfoSchema = z.object({
+  id: z.string().optional(),
   name: z.string(),
   realm: z.string(),
   gender: z.string(),
@@ -221,9 +223,49 @@ export interface BattleSession {
   battleInit: BattleInitConfigV5;
 }
 
+export type DungeonRunStatus =
+  | 'EXPLORING'
+  | 'GENERATING_NEXT'
+  | 'WAITING_BATTLE'
+  | 'IN_BATTLE'
+  | 'LOOTING'
+  | 'SETTLING'
+  | 'FINISHED'
+  | 'RECOVERABLE_ERROR';
+
+export type DungeonRecoverAction = 'retry' | 'safe_retreat' | 'force_quit';
+
+export interface DungeonCostLedgerEntry {
+  actionId: string;
+  round: number;
+  choiceId?: number;
+  choiceText?: string;
+  costs: DungeonOptionCost[];
+  committedAt: string;
+}
+
+export interface DungeonGainLedgerEntry {
+  source: 'round' | 'settlement' | 'system';
+  round?: number;
+  gains: ResourceOperation[];
+  committedAt: string;
+}
+
+export interface DungeonPendingAction {
+  actionId: string;
+  choiceId?: number;
+  choiceText?: string;
+  round: number;
+  status: 'pending' | 'committed' | 'failed';
+  costs: DungeonOptionCost[];
+  error?: string;
+  createdAt: string;
+}
+
 // === Internal State Management ===
 
 export interface DungeonState {
+  runId?: string;
   cultivatorId: string;
   mapNodeId: string;
   playerInfo: PlayerInfo;
@@ -231,7 +273,8 @@ export interface DungeonState {
   currentRound: number;
   maxRounds: number;
   history: History[];
-  status: 'EXPLORING' | 'WAITING_BATTLE' | 'IN_BATTLE' | 'LOOTING' | 'FINISHED';
+  status: DungeonRunStatus;
+  statusReason?: string;
   activeBattleId?: string;
   dangerScore: number;
   isFinished: boolean;
@@ -243,6 +286,11 @@ export interface DungeonState {
     location_description: string;
   };
   summary_of_sacrifice?: DungeonOptionCost[];
+  costPreview?: DungeonOptionCost[];
+  costLedger?: DungeonCostLedgerEntry[];
+  gainLedger?: DungeonGainLedgerEntry[];
+  pendingAction?: DungeonPendingAction;
+  recoverableActions?: DungeonRecoverAction[];
   realGains?: ResourceOperation[];
   accumulatedRewards: RewardBlueprint[];
   /** 当前轮次获得的物品 */

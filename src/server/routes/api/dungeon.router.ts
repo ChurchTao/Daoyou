@@ -24,6 +24,11 @@ const StartSchema = z.object({
 
 const ActionSchema = z.object({
   choiceId: z.number(),
+  actionId: z.string().min(1).optional(),
+});
+
+const RecoverSchema = z.object({
+  action: z.enum(['retry', 'safe_retreat', 'force_quit']),
 });
 
 const router = new Hono<AppEnv>();
@@ -99,14 +104,40 @@ router.get('/state', requireActiveCultivator(), async (c) => {
 });
 
 router.post('/action', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
+  try {
+    const cultivator = c.get('cultivator');
+    if (!cultivator) {
+      return c.json({ error: '当前没有活跃角色' }, 404);
+    }
 
-  const { choiceId } = ActionSchema.parse(await c.req.json());
-  const result = await dungeonService.handleAction(cultivator.id, choiceId);
-  return c.json(result);
+    const { choiceId, actionId } = ActionSchema.parse(await c.req.json());
+    const result = await dungeonService.handleAction(
+      cultivator.id,
+      choiceId,
+      actionId,
+    );
+    return c.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '副本推进失败';
+    const status = /不足|没有符合条件|资源消耗失败/.test(message) ? 409 : 500;
+    return c.json({ error: message }, status);
+  }
+});
+
+router.post('/recover', requireActiveCultivator(), async (c) => {
+  try {
+    const cultivator = c.get('cultivator');
+    if (!cultivator) {
+      return c.json({ error: '当前没有活跃角色' }, 404);
+    }
+
+    const { action } = RecoverSchema.parse(await c.req.json());
+    const result = await dungeonService.recoverDungeon(cultivator.id, action);
+    return c.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '副本恢复失败';
+    return c.json({ error: message }, 500);
+  }
 });
 
 router.post('/quit', requireActiveCultivator(), async (c) => {
