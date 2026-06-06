@@ -37,8 +37,20 @@ export function CombatActionLog({
       const activeElement = scrollRef.current?.querySelector(
         `[data-span-id="${lastId}"]`,
       );
-      if (activeElement) {
-        activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const scrollContainer = scrollRef.current;
+      if (activeElement && scrollContainer) {
+        const activeRect = activeElement.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const nextTop =
+          scrollContainer.scrollTop +
+          activeRect.top -
+          containerRect.top -
+          (containerRect.height - activeRect.height) / 2;
+
+        scrollContainer.scrollTo({
+          top: Math.max(0, nextTop),
+          behavior: 'smooth',
+        });
       }
     }, 50);
 

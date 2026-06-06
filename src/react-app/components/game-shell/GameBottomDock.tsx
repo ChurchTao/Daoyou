@@ -17,17 +17,19 @@ function DockLink({
     <Link
       href={href}
       className={cn(
-        'hover:text-crimson relative px-1 py-1.5 text-center leading-5 whitespace-nowrap transition',
+        'hover:text-crimson inline-flex px-1 py-1.5 leading-5 whitespace-nowrap transition',
         active ? 'text-crimson' : 'text-ink',
       )}
     >
-      [{label}]
-      {badge && badge > 0 ? (
-        <span className="absolute -top-0.5 -right-1 flex h-3 w-3">
-          <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
-          <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
-        </span>
-      ) : null}
+      <span className="relative inline-flex items-center">
+        [{label}]
+        {badge && badge > 0 ? (
+          <span className="absolute -top-0.5 -right-2 flex h-3 w-3">
+            <span className="bg-crimson absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+            <span className="bg-crimson relative inline-flex h-3 w-3 rounded-full" />
+          </span>
+        ) : null}
+      </span>
     </Link>
   );
 }
@@ -56,7 +58,10 @@ export function GameBottomDock({
   return (
     <footer className="battle-dock border-battle-rule-strong w-full border-t border-dashed">
       <div className="mx-auto max-w-5xl px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.8rem)] md:px-6">
-        <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_4rem] items-center gap-1.5 text-sm">
+        <nav
+          aria-label="核心场景"
+          className="flex min-w-0 flex-wrap items-center justify-around text-sm"
+        >
           {coreDockItems.map((item) => (
             <DockLink
               key={item.id}
@@ -69,11 +74,11 @@ export function GameBottomDock({
           <button
             type="button"
             onClick={onToggleExpanded}
-            className="hover:text-crimson px-2 py-1.5 text-center tracking-[0.08em] whitespace-nowrap transition"
+            className="hover:text-crimson shrink-0 px-1.5 py-1.5 text-center tracking-[0.08em] whitespace-nowrap transition"
           >
             [{isExpanded ? '收起' : '展开'}]
           </button>
-        </div>
+        </nav>
 
         {showExpanded ? (
           <div className="battle-module border-ink/15 mt-2 grid gap-3 border-t border-dashed pt-2.5 text-sm md:grid-cols-2 xl:grid-cols-5">

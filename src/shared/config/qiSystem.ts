@@ -8,11 +8,11 @@ export const QI_ACTION_COSTS = {
   dungeon_start: 50,
   retreat_10_years: 5,
   breakthrough_attempt: 20,
-  alchemy_improvised: 10,
-  alchemy_formula: 10,
-  creation_artifact: 10,
-  creation_gongfa: 10,
-  creation_skill: 10,
+  alchemy_improvised: 8,
+  alchemy_formula: 8,
+  creation_artifact: 8,
+  creation_gongfa: 8,
+  creation_skill: 8,
 } as const;
 
 export type QiAction = keyof typeof QI_ACTION_COSTS;

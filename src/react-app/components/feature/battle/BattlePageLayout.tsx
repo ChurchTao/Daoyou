@@ -47,11 +47,11 @@ export function BattlePageLayout({
 
     return (
       <div
-        className="h-full overflow-hidden"
+        className="h-full min-h-0 overflow-hidden"
         data-battle-layout-root="true"
       >
         <div
-          className="main-content mx-auto flex h-full max-w-4xl flex-col px-4 pt-[calc(env(safe-area-inset-top)+0.7rem)] md:px-6 md:pt-[calc(env(safe-area-inset-top)+0.95rem)]"
+          className="main-content mx-auto box-border flex h-full min-h-0 max-w-4xl flex-col overflow-hidden px-4 pt-[calc(env(safe-area-inset-top)+0.7rem)] md:px-6 md:pt-[calc(env(safe-area-inset-top)+0.95rem)]"
           style={immersiveLayoutStyle}
         >
           {error && (
@@ -65,7 +65,7 @@ export function BattlePageLayout({
               <p className="loading-tip">正在加载战斗...</p>
             </div>
           ) : (
-            <div className="min-h-0 flex-1">{children}</div>
+            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           )}
         </div>
       </div>
