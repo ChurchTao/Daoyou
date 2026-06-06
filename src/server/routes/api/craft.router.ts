@@ -16,6 +16,11 @@ import {
   craftFromFormula,
   previewFormulaCraft,
 } from '@server/lib/services/AlchemyFormulaService';
+import {
+  QiInsufficientError,
+  QiService,
+  QiServiceError,
+} from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
 import {
@@ -28,9 +33,12 @@ import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/Cr
 import {
   CREATION_CRAFT_TYPES,
   isCreationCraftType,
+  type CreationCraftType,
 } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
+import type { QiAction } from '@shared/config/qiSystem';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { EQUIPMENT_SLOT_VALUES, type Quality } from '@shared/types/constants';
+import { randomUUID } from 'crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -70,6 +78,44 @@ const ConfirmSchema = z.object({
 const router = new Hono<AppEnv>();
 const pendingRouter = new Hono<AppEnv>();
 const confirmRouter = new Hono<AppEnv>();
+
+function getCraftQiAction(args: {
+  craftType: (typeof SUPPORTED_CRAFT_TYPES)[number];
+  alchemyMode?: string;
+}): QiAction {
+  if (args.craftType === 'alchemy') {
+    return args.alchemyMode === 'formula'
+      ? 'alchemy_formula'
+      : 'alchemy_improvised';
+  }
+
+  const creationCraftType = args.craftType as CreationCraftType;
+  if (creationCraftType === 'refine') return 'creation_artifact';
+  if (creationCraftType === 'create_gongfa') return 'creation_gongfa';
+  return 'creation_skill';
+}
+
+function qiErrorPayload(error: unknown) {
+  if (error instanceof QiInsufficientError) {
+    return {
+      body: {
+        error: error.code,
+        message: error.message,
+        required: error.required,
+        current: error.current,
+        action: error.action,
+      },
+      status: 409 as const,
+    };
+  }
+  if (error instanceof QiServiceError) {
+    return {
+      body: { error: error.message },
+      status: error.status,
+    };
+  }
+  return null;
+}
 
 router.get('/', requireActiveCultivator(), async (c) => {
   const user = c.get('user');
@@ -195,6 +241,9 @@ router.post('/', requireActiveCultivator(), async (c) => {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
+  let qiActionInstanceId: string | null = null;
+  let qiReservationOpen = false;
+
   try {
     const parsed = CraftSchema.safeParse(await c.req.json());
     if (!parsed.success) {
@@ -234,6 +283,23 @@ router.post('/', requireActiveCultivator(), async (c) => {
         return c.json({ error: '请先按方辨材。' }, 400);
       }
 
+      qiActionInstanceId = randomUUID();
+      await QiService.reserveQi({
+        cultivatorId: cultivator.id,
+        action: getCraftQiAction({
+          craftType,
+          alchemyMode: resolvedAlchemyMode,
+        }),
+        actionInstanceId: qiActionInstanceId,
+        metadata: {
+          craftType,
+          alchemyMode: resolvedAlchemyMode,
+          materialCount: materialIds.length,
+          formulaId,
+        },
+      });
+      qiReservationOpen = true;
+
       const result = resolvedAlchemyMode === 'formula'
         ? await craftFromFormula(
             cultivator.id,
@@ -246,6 +312,13 @@ router.post('/', requireActiveCultivator(), async (c) => {
             materialQuantities,
             userPrompt: normalizedUserPrompt,
           });
+
+      await QiService.commitReservation({
+        actionInstanceId: qiActionInstanceId,
+        metadata: { committedAt: new Date().toISOString() },
+      });
+      qiReservationOpen = false;
+
       try {
         await TaskService.recordTaskEvent(cultivator.id, 'alchemy_crafted');
       } catch (syncError) {
@@ -255,6 +328,19 @@ router.post('/', requireActiveCultivator(), async (c) => {
       return c.json({ success: true, data: result });
     }
 
+    qiActionInstanceId = randomUUID();
+    await QiService.reserveQi({
+      cultivatorId: cultivator.id,
+      action: getCraftQiAction({ craftType }),
+      actionInstanceId: qiActionInstanceId,
+      metadata: {
+        craftType,
+        materialCount: materialIds.length,
+        requestedSlot,
+      },
+    });
+    qiReservationOpen = true;
+
     const result = await processCreation(cultivator.id, materialIds, craftType, {
       materialQuantities,
       userPrompt: normalizedUserPrompt,
@@ -262,8 +348,28 @@ router.post('/', requireActiveCultivator(), async (c) => {
       requestedTargetPolicy,
     });
 
+    await QiService.commitReservation({
+      actionInstanceId: qiActionInstanceId,
+      metadata: { committedAt: new Date().toISOString() },
+    });
+    qiReservationOpen = false;
+
     return c.json({ success: true, data: result });
   } catch (error) {
+    if (qiReservationOpen && qiActionInstanceId) {
+      try {
+        await QiService.refundReservation({
+          actionInstanceId: qiActionInstanceId,
+          reason: 'craft_route_error',
+        });
+      } catch (refundError) {
+        console.error('造物失败后回滚灵气预扣失败:', refundError);
+      }
+    }
+    const qiError = qiErrorPayload(error);
+    if (qiError) {
+      return jsonWithStatus(c, qiError.body, qiError.status);
+    }
     if (error instanceof AlchemyServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }

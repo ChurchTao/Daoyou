@@ -1,4 +1,9 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import {
+  getQiErrorMessage,
+  useQiActionConfirm,
+} from '@app/components/feature/cultivator/useQiActionConfirm';
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
@@ -11,6 +16,7 @@ import type {
   RetreatResultData,
 } from '@shared/contracts/retreat';
 import type { TaskInstance } from '@shared/types/task';
+import { getRetreatQiCost } from '@shared/config/qiSystem';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -69,6 +75,7 @@ export interface UseRetreatViewModelReturn {
 interface RetreatFailurePayload {
   error?: string;
   errorCode?: string;
+  message?: string;
 }
 
 type RetreatRequestOutcome =
@@ -78,6 +85,7 @@ type RetreatRequestOutcome =
 export function useRetreatViewModel(): UseRetreatViewModelReturn {
   const { cultivator, isLoading, refresh, note } = useCultivator();
   const { pushToast } = useInkUI();
+  const { openQiActionConfirm } = useQiActionConfirm();
   const navigate = useNavigate();
   const {
     tasks,
@@ -85,7 +93,6 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     error: taskError,
     reload: reloadTasks,
   } = useTaskList(cultivator?.id);
-
   const [retreatYears, setRetreatYears] = useState('10');
   const [retreatResult, setRetreatResult] = useState<RetreatResultData | null>(
     null,
@@ -260,6 +267,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         });
 
         await Promise.all([refresh(), reloadTasks()]);
+        invalidateQiState(cultivator?.id);
 
         return { ok: true };
       } finally {
@@ -282,23 +290,36 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       return;
     }
 
-    try {
-      const outcome = await streamRetreatAction({
-        action: 'cultivate',
-        years: parsedYears,
-      });
+    openQiActionConfirm({
+      actionName: '闭关修炼',
+      qiCost: getRetreatQiCost(parsedYears),
+      confirmLabel: '入定闭关',
+      onConfirm: async () => {
+        try {
+          const outcome = await streamRetreatAction({
+            action: 'cultivate',
+            years: parsedYears,
+          });
 
-      if (!outcome.ok) {
-        throw new Error(outcome.payload?.error || '闭关失败');
-      }
-    } catch (error) {
-      pushToast({
-        message:
-          error instanceof Error ? error.message : '闭关失败，请稍后再试',
-        tone: 'danger',
-      });
-    }
-  }, [cultivator, pushToast, streamRetreatAction, retreatYears]);
+          if (!outcome.ok) {
+            throw new Error(getQiErrorMessage(outcome.payload, '闭关失败'));
+          }
+        } catch (error) {
+          pushToast({
+            message:
+              error instanceof Error ? error.message : '闭关失败，请稍后再试',
+            tone: 'danger',
+          });
+        }
+      },
+    });
+  }, [
+    cultivator,
+    openQiActionConfirm,
+    pushToast,
+    streamRetreatAction,
+    retreatYears,
+  ]);
 
   const handleBreakthroughClick = useCallback(() => {
     if (isMajorBreakthrough && majorBreakthroughBlocked) {
@@ -341,7 +362,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
           return;
         }
 
-        throw new Error(outcome.payload?.error || '突破失败');
+        throw new Error(getQiErrorMessage(outcome.payload, '突破失败'));
       }
     } catch (error) {
       pushToast({

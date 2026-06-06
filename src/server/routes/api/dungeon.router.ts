@@ -3,16 +3,21 @@ import { dungeonHistories } from '@server/lib/drizzle/schema';
 import {
   requireActiveCultivator,
 } from '@server/lib/hono/middleware';
+import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   checkDungeonLimit,
   getDungeonLimitConfig,
 } from '@server/lib/dungeon/dungeonLimiter';
 import { dungeonService } from '@server/lib/dungeon/service_v2';
+import {
+  QiInsufficientError,
+  QiServiceError,
+} from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import { getCultivatorByIdUnsafe } from '@server/lib/services/cultivatorService';
 import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { getMapNode } from '@shared/lib/game/mapSystem';
+import { getMapNode, isSatelliteNode } from '@shared/lib/game/mapSystem';
 import { evaluateNoviceReadiness } from '@shared/lib/noviceGuidance';
 import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -52,6 +57,12 @@ router.post('/start', requireActiveCultivator(), async (c) => {
   }
 
   const { mapNodeId } = StartSchema.parse(await c.req.json());
+
+  // 只有卫星地图可以进行副本挑战，主节点不可以
+  if (!isSatelliteNode(mapNodeId)) {
+    return c.json({ error: '只有秘境节点可以进行副本挑战' }, 400);
+  }
+
   const [tasks, bundle] = await Promise.all([
     TaskService.listCultivatorTasks(cultivator.id),
     getCultivatorByIdUnsafe(cultivator.id),
@@ -89,8 +100,27 @@ router.post('/start', requireActiveCultivator(), async (c) => {
     );
   }
 
-  const result = await dungeonService.startDungeon(cultivator.id, mapNodeId);
-  return c.json(result);
+  try {
+    const result = await dungeonService.startDungeon(cultivator.id, mapNodeId);
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof QiInsufficientError) {
+      return c.json(
+        {
+          error: error.code,
+          message: error.message,
+          required: error.required,
+          current: error.current,
+          action: error.action,
+        },
+        409,
+      );
+    }
+    if (error instanceof QiServiceError) {
+      return jsonWithStatus(c, { error: error.message }, error.status);
+    }
+    throw error;
+  }
 });
 
 router.get('/state', requireActiveCultivator(), async (c) => {

@@ -18,6 +18,7 @@ export interface GameHudStatusTag {
 }
 
 export interface GameHudSnapshot {
+  cultivatorId: string;
   name: string;
   realm: string;
   realmStage: string;
@@ -84,6 +85,7 @@ export function buildGameHudSnapshot(input: {
   }
 
   return {
+    cultivatorId: cultivator.id ?? '',
     name: cultivator.name,
     realm: cultivator.realm,
     realmStage: cultivator.realm_stage,

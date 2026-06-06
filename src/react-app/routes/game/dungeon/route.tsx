@@ -30,6 +30,7 @@ function DungeonContent() {
   // 使用 ViewModel Hook 管理所有业务逻辑和状态
   const { viewState, processing, actions } = useDungeonViewModel(
     !!cultivator,
+    cultivator?.id,
     preSelectedNodeId,
   );
 

@@ -1,4 +1,5 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { getQiErrorMessage } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { DungeonOption } from '@shared/lib/dungeon/types';
 import { useState } from 'react';
 
@@ -31,7 +32,7 @@ export function useDungeonActions() {
       const data = await res.json();
 
       if (data.error) {
-        throw new Error(data.error);
+        throw new Error(getQiErrorMessage(data, '启动秘境失败'));
       }
 
       pushToast({ message: '秘境已开启', tone: 'success' });

@@ -17,6 +17,11 @@ import {
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
+  getQiErrorMessage,
+  useQiActionConfirm,
+} from '@app/components/feature/cultivator/useQiActionConfirm';
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
+import {
   InkActionGroup,
   InkBadge,
   InkButton,
@@ -35,6 +40,7 @@ import {
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { formatAlchemyPropertyVector } from '@shared/lib/alchemyProperties';
 import { cn } from '@shared/lib/cn';
@@ -625,6 +631,7 @@ export default function AlchemyPage() {
   >(null);
   const analyzedFormulaSelectionKeyRef = useRef<string | null>(null);
   const { pushToast } = useInkUI();
+  const { openQiActionConfirm } = useQiActionConfirm();
   const isLoadingFormulas =
     Boolean(cultivatorId) && loadedFormulaCultivatorId !== cultivatorId;
 
@@ -996,6 +1003,9 @@ export default function AlchemyPage() {
   const displayValidation = validation;
   const displayCanAfford = canAfford;
   const isFormulaMode = activeMode === 'formula';
+  const qiCost = isFormulaMode
+    ? QI_ACTION_COSTS.alchemy_formula
+    : QI_ACTION_COSTS.alchemy_improvised;
   const hasCraftableFormulaAnalysis =
     !!formulaAnalysis?.analysisId && formulaAnalysis.fitBand !== 'blocked';
   const canAnalyzeFormula =
@@ -1155,66 +1165,74 @@ export default function AlchemyPage() {
       return;
     }
 
-    setSubmitting(true);
-    setStatus(
-      activeMode === 'formula'
-        ? '丹方引火，炉势循脉而行……'
-        : '地火回环，药性相搏……',
-    );
-    setCreatedConsumable(null);
-    setFormulaDiscovery(null);
-    setFormulaProgress(null);
-    setIsResultModalOpen(false);
-    setIsDiscoveryModalOpen(false);
+    openQiActionConfirm({
+      actionName: activeMode === 'formula' ? '丹方炼丹' : '开炉炼丹',
+      qiCost,
+      confirmLabel: activeMode === 'formula' ? '依方成丹' : '开炉炼丹',
+      onConfirm: async () => {
+        setSubmitting(true);
+        setStatus(
+          activeMode === 'formula'
+            ? '丹方引火，炉势循脉而行……'
+            : '地火回环，药性相搏……',
+        );
+        setCreatedConsumable(null);
+        setFormulaDiscovery(null);
+        setFormulaProgress(null);
+        setIsResultModalOpen(false);
+        setIsDiscoveryModalOpen(false);
 
-    try {
-      const response = await fetch('/api/craft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitPayload),
-      });
-      const result: AlchemyCraftResponse = await response.json();
+        try {
+          const response = await fetch('/api/craft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submitPayload),
+          });
+          const result: AlchemyCraftResponse = await response.json();
 
-      if (!response.ok || !result.success || !result.data?.consumable) {
-        throw new Error(result.error || '炼丹失败');
-      }
+          if (!response.ok || !result.success || !result.data?.consumable) {
+            throw new Error(getQiErrorMessage(result, '炼丹失败'));
+          }
 
-      const nextConsumable = result.data.consumable;
-      const discoveredFormula = result.data.formulaDiscovery ?? null;
-      const successMessage = `【${nextConsumable.name}】丹成！`;
-      setCreatedConsumable(nextConsumable);
-      setFormulaDiscovery(discoveredFormula);
-      setFormulaProgress(result.data.formulaProgress ?? null);
-      setIsResultModalOpen(true);
-      setIsDiscoveryModalOpen(false);
-      setCelebrationTick((prev) => prev + 1);
-      setStatus(successMessage);
-      pushToast({ message: successMessage, tone: 'success' });
-      setSelectedMaterialIds([]);
-      setSelectedMaterialMap({});
-      setDoseMap({});
-      setIsMaterialModalOpen(false);
-      if (activeMode === 'improvised') {
-        setUserPrompt('');
-      }
-      setPreviewState(DEFAULT_PREVIEW_STATE);
-      clearFormulaAnalysis();
-      setMaterialsRefreshKey((prev) => prev + 1);
-      await refreshCultivator();
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('请先按方辨材')) {
-        clearFormulaAnalysis({ keepError: true });
-        setFormulaAnalysisError(error.message);
-      }
-      const failMessage =
-        error instanceof Error
-          ? `炸炉了：${error.message}`
-          : '炼丹失败，请稍后再试。';
-      setStatus(failMessage);
-      pushToast({ message: failMessage, tone: 'danger' });
-    } finally {
-      setSubmitting(false);
-    }
+          const nextConsumable = result.data.consumable;
+          const discoveredFormula = result.data.formulaDiscovery ?? null;
+          const successMessage = `【${nextConsumable.name}】丹成！`;
+          setCreatedConsumable(nextConsumable);
+          setFormulaDiscovery(discoveredFormula);
+          setFormulaProgress(result.data.formulaProgress ?? null);
+          setIsResultModalOpen(true);
+          setIsDiscoveryModalOpen(false);
+          setCelebrationTick((prev) => prev + 1);
+          setStatus(successMessage);
+          pushToast({ message: successMessage, tone: 'success' });
+          setSelectedMaterialIds([]);
+          setSelectedMaterialMap({});
+          setDoseMap({});
+          setIsMaterialModalOpen(false);
+          if (activeMode === 'improvised') {
+            setUserPrompt('');
+          }
+          setPreviewState(DEFAULT_PREVIEW_STATE);
+          clearFormulaAnalysis();
+          setMaterialsRefreshKey((prev) => prev + 1);
+          await refreshCultivator();
+          invalidateQiState(cultivator.id);
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('请先按方辨材')) {
+            clearFormulaAnalysis({ keepError: true });
+            setFormulaAnalysisError(error.message);
+          }
+          const failMessage =
+            error instanceof Error
+              ? `炸炉了：${error.message}`
+              : '炼丹失败，请稍后再试。';
+          setStatus(failMessage);
+          pushToast({ message: failMessage, tone: 'danger' });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const handleDiscoveryDecision = async (accept: boolean) => {

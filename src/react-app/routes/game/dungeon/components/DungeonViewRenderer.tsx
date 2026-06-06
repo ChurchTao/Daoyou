@@ -308,17 +308,6 @@ export function DungeonViewRenderer({
           })
         : null;
 
-    const renderLimitHint = () => {
-      if (viewState.limitLoading) {
-        return <p className="text-ink-secondary mt-2 text-center text-xs">查询中...</p>;
-      }
-      if (!viewState.limitInfo) return null;
-      const { remaining, dailyLimit } = viewState.limitInfo;
-      if (remaining === 0) return <p className="text-crimson mt-2 text-center text-sm">今日探索次数已用尽，明日再来</p>;
-      const textColor = remaining === 1 ? 'text-wood' : 'text-ink';
-      return <p className={`text-center text-xs ${textColor} mt-2`}>今日剩余探索次数：{remaining}/{dailyLimit}</p>;
-    };
-
     return (
       <DungeonSceneScreen descriptor={resolveDungeonSceneDescriptor('map_selection')}>
         <InkCard className="mb-6 p-6">
@@ -340,7 +329,6 @@ export function DungeonViewRenderer({
           />
         </InkSection>
         {renderPreparationNotice(cultivator, selectedNode ?? null, readiness)}
-        {renderLimitHint()}
         <div className="mt-4 text-center">
           <InkButton href="/game/dungeon/history" variant="ghost">
             📖 查看历史记录

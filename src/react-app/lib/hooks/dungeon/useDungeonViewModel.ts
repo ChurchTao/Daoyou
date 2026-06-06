@@ -7,9 +7,11 @@ import {
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
+import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { useMemo, useState } from 'react';
 import { useDungeonActions } from './useDungeonActions';
-import { useDungeonLimit } from './useDungeonLimit';
 import { useDungeonState } from './useDungeonState';
 
 /**
@@ -21,12 +23,6 @@ export type DungeonViewState =
   | {
       type: 'map_selection';
       preSelectedNodeId: string | null;
-      limitInfo?: {
-        remaining: number;
-        used: number;
-        dailyLimit: number;
-      } | null;
-      limitLoading?: boolean;
     }
   | { type: 'exploring'; state: DungeonState; lastRound: DungeonRound }
   | { type: 'battle_preparation'; state: DungeonState }
@@ -49,6 +45,7 @@ export type DungeonViewState =
  */
 export function useDungeonViewModel(
   hasCultivator: boolean,
+  cultivatorId: string | undefined,
   preSelectedNodeId: string | null,
 ) {
   // 副本状态管理
@@ -61,12 +58,7 @@ export function useDungeonViewModel(
   const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, recoverDungeon, processing } =
     useDungeonActions();
 
-  // 副本次数限制
-  const {
-    limitInfo,
-    isLoading: limitLoading,
-    refresh: refreshLimit,
-  } = useDungeonLimit(hasCultivator);
+  const { openQiActionConfirm } = useQiActionConfirm();
 
   // 战斗相关状态
   const [activeBattleId, setActiveBattleId] = useState<string>();
@@ -155,8 +147,6 @@ export function useDungeonViewModel(
     return {
       type: 'map_selection',
       preSelectedNodeId,
-      limitInfo,
-      limitLoading,
     };
   }, [
     stateLoading,
@@ -166,20 +156,24 @@ export function useDungeonViewModel(
     lastRound,
     opponentName,
     preSelectedNodeId,
-    limitInfo,
-    limitLoading,
   ]);
 
   /**
    * 操作：启动副本
    */
   const handleStartDungeon = async (nodeId: string) => {
-    const newState = await startDungeon(nodeId);
-    if (newState) {
-      setState(newState);
-      // 刷新次数限制
-      refreshLimit();
-    }
+    openQiActionConfirm({
+      actionName: '秘境探索',
+      qiCost: QI_ACTION_COSTS.dungeon_start,
+      confirmLabel: '开始探索',
+      onConfirm: async () => {
+        const newState = await startDungeon(nodeId);
+        if (newState) {
+          setState(newState);
+          invalidateQiState(cultivatorId);
+        }
+      },
+    });
   };
 
   /**

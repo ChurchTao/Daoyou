@@ -13,7 +13,6 @@
       },
       "tags": ["黄枫谷", "灵气中等", "新手区"],
       "description": "越国七大派割据之地，黄枫谷所在地，山势雄奇。",
-      "dungeon_config": { "difficulty": "easy" },
       "connections": ["TN_YUE_02", "TN_YW_01", "TN_XI_01", "TN_BORDER_01"],
       "x": 84,
       "y": 85
@@ -25,7 +24,6 @@
       "realm_requirement": "筑基",
       "tags": ["副本", "筑基丹主药", "空间禁制"],
       "description": "每六十年开启一次，内部奇草无数，也伴随极高陨落风险。",
-      "dungeon_config": { "difficulty": "hard" },
       "connections": ["TN_YUE_01"],
       "x": 80,
       "y": 90
@@ -42,7 +40,6 @@
       },
       "tags": ["天星宗", "阵法交易", "齐云霄"],
       "description": "阵法之道极其发达，许多珍稀阵盘均产自此地。",
-      "dungeon_config": { "difficulty": "normal" },
       "connections": ["TN_YUE_01", "TN_WE_01"],
       "x": 88,
       "y": 77
@@ -59,7 +56,6 @@
       },
       "tags": ["落云宗", "古剑门", "百巧院"],
       "description": "天南灵气最浓郁的三个地点之一，三派共治。",
-      "dungeon_config": { "difficulty": "normal" },
       "connections": ["TN_YUE_01", "TN_ZMG_01"],
       "x": 88,
       "y": 70
@@ -71,7 +67,6 @@
       "realm_requirement": "元婴",
       "tags": ["顶级副本", "空间裂缝", "古魔遗迹"],
       "description": "天南第一禁地，内部充斥着空间裂缝，传闻有上古修士宝藏。",
-      "dungeon_config": { "difficulty": "elite" },
       "connections": ["TN_XI_01"],
       "x": 94,
       "y": 75
@@ -83,7 +78,6 @@
       "realm_requirement": "筑基",
       "tags": ["魔道入侵", "古传送阵", "转折点"],
       "description": "废弃灵石矿脉，深处隐藏着通往乱星海的古传送阵。",
-      "dungeon_config": { "difficulty": "hard" },
       "connections": ["TN_YUE_01", "LX_INNER_01"],
       "x": 92,
       "y": 84
@@ -95,7 +89,6 @@
       "realm_requirement": "金丹",
       "tags": ["法士", "部落", "边境战争"],
       "description": "天南修士与慕兰法士对峙的广袤草原，民风剽悍。",
-      "dungeon_config": { "difficulty": "hard" },
       "connections": ["TN_WE_01", "DJ_NORTH_01"],
       "x": 90,
       "y": 42
@@ -112,7 +105,6 @@
       },
       "tags": ["枢纽", "星宫", "圣山", "修仙圣地"],
       "description": "乱星海核心，围绕巨型灵脉建立的城市，严禁私斗。",
-      "dungeon_config": { "difficulty": "normal" },
       "connections": ["TN_BORDER_01", "LX_INNER_02", "LX_OUTER_01"],
       "x": 55,
       "y": 72
@@ -124,7 +116,6 @@
       "realm_requirement": "炼气",
       "tags": ["初期发育", "六连殿", "猎妖"],
       "description": "内星海边缘岛屿，韩立初入乱星海的落脚点。",
-      "dungeon_config": { "difficulty": "easy" },
       "connections": ["LX_INNER_01"],
       "x": 45,
       "y": 84
@@ -141,7 +132,6 @@
       },
       "tags": ["高阶妖兽", "猎妖营地", "黑市"],
       "description": "深入妖兽腹地的孤岛，是猎取高阶妖丹的绝佳去处。",
-      "dungeon_config": { "difficulty": "hard" },
       "connections": ["LX_INNER_01", "LX_VOID_01"],
       "x": 37,
       "y": 92
@@ -153,7 +143,6 @@
       "realm_requirement": "金丹",
       "tags": ["史诗副本", "虚天鼎", "极阴祖师"],
       "description": "每数百年现世一次的上古秘殿，非结丹以上不可入。",
-      "dungeon_config": { "difficulty": "elite" },
       "connections": ["LX_INNER_01"],
       "x": 55,
       "y": 60
@@ -170,7 +159,6 @@
       },
       "tags": ["人界巅峰", "顶级拍卖会", "皇权"],
       "description": "大晋帝都，商贸发达，元婴修士多如牛毛。",
-      "dungeon_config": { "difficulty": "normal" },
       "connections": ["ML_PLAINS_01", "DJ_SOUTH_01", "DJ_NORTH_01", "DJ_KW_01"],
       "x": 40,
       "y": 25
@@ -182,7 +170,6 @@
       "realm_requirement": "化神",
       "tags": ["终极副本", "封印", "通天灵宝"],
       "description": "上古被封印的圣山，内部灵气已液化，镇压着元刹分魂。",
-      "dungeon_config": { "difficulty": "boss" },
       "connections": ["DJ_CENTRAL_01", "DJ_RIFT_01"],
       "x": 45,
       "y": 40
@@ -194,7 +181,6 @@
       "realm_requirement": "元婴",
       "tags": ["冰属性", "寒髓", "传送阵"],
       "description": "极北寒冷之地，擅长冰系功法，守卫着通往虚空殿的节点。",
-      "dungeon_config": { "difficulty": "hard" },
       "connections": ["DJ_CENTRAL_01"],
       "x": 45,
       "y": 5
@@ -206,7 +192,6 @@
       "realm_requirement": "金丹",
       "tags": ["毒瘴", "阴气", "天鬼门"],
       "description": "大晋南方的蛮荒之地，各种秘术和毒物横行。",
-      "dungeon_config": { "difficulty": "hard" },
       "connections": ["DJ_CENTRAL_01"],
       "x": 60,
       "y": 20
@@ -218,7 +203,6 @@
       "realm_requirement": "炼虚",
       "tags": ["神话副本", "界面裂隙", "太古凶兽"],
       "description": "昆吾山封印外侧撕开的巨渊，空间乱流化作刀罡，唯有炼虚修士方可深入。",
-      "dungeon_config": { "difficulty": "boss" },
       "connections": ["DJ_KW_01", "DJ_VOID_01"],
       "x": 35,
       "y": 42
@@ -230,7 +214,6 @@
       "realm_requirement": "合体",
       "tags": ["远古副本", "冥海潮汐", "真魔遗蜕"],
       "description": "深不见底的黑潮之海，传闻每次潮汐都会卷出上古真魔遗蜕，杀机与机缘并存。",
-      "dungeon_config": { "difficulty": "boss" },
       "connections": ["DJ_RIFT_01", "DJ_SKY_01"],
       "x": 8,
       "y": 28
@@ -242,7 +225,6 @@
       "realm_requirement": "大乘",
       "tags": ["传说副本", "天罡雷域", "古仙战场"],
       "description": "悬于九天罡风层的破碎关隘，古仙与真魔曾在此鏖战，残留法则仍可斩魂。",
-      "dungeon_config": { "difficulty": "boss" },
       "connections": ["DJ_VOID_01", "DJ_TRIB_01"],
       "x": 26,
       "y": 8
@@ -254,7 +236,6 @@
       "realm_requirement": "渡劫",
       "tags": ["终焉副本", "天劫化形", "飞升契机"],
       "description": "传说中的飞升古台已化为万劫雷狱，唯有渡劫大能可在此搏一线飞升之机。",
-      "dungeon_config": { "difficulty": "boss" },
       "connections": ["DJ_SKY_01"],
       "x": 5,
       "y": 7

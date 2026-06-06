@@ -38,10 +38,16 @@ import {
   MarketServiceError,
 } from '@server/lib/services/MarketService';
 import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
+import {
+  QiInsufficientError,
+  QiService,
+  QiServiceError,
+} from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
+  consumeConsumableById,
   equipEquipment,
   getCultivatorArtifacts,
   getCultivatorById,
@@ -63,6 +69,11 @@ import {
   type LifespanExhaustedStoryPayload,
 } from '@server/utils/prompts';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
+import {
+  QI_RESTORE_TALISMAN_SCENARIOS,
+  getRetreatQiCost,
+  isQiRestoreTalismanScenario,
+} from '@shared/config/qiSystem';
 import type {
   RetreatResultData,
   RetreatStreamEvent,
@@ -91,8 +102,9 @@ import type {
   Consumable,
   Material,
 } from '@shared/types/cultivator';
+import { randomUUID } from 'crypto';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
 const TitleSchema = z.object({
@@ -100,6 +112,10 @@ const TitleSchema = z.object({
 });
 
 const ConsumeSchema = z.object({
+  consumableId: z.string().uuid(),
+});
+
+const QiRestoreSchema = z.object({
   consumableId: z.string().uuid(),
 });
 
@@ -156,6 +172,25 @@ function isUniqueViolation(error: unknown): boolean {
   }
 
   return (error as { code?: string }).code === '23505';
+}
+
+function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof QiInsufficientError) {
+    return c.json(
+      {
+        error: error.code,
+        message: error.message,
+        required: error.required,
+        current: error.current,
+        action: error.action,
+      },
+      409,
+    );
+  }
+  if (error instanceof QiServiceError) {
+    return jsonWithStatus(c, { error: error.message }, error.status);
+  }
+  return null;
 }
 
 function parseMaterialTypes(raw: string | null): MaterialType[] | undefined {
@@ -535,6 +570,110 @@ router.get('/lifespan-status', requireActiveCultivator(), async (c) => {
   });
 });
 
+router.get('/qi', requireActiveCultivator(), async (c) => {
+  const cultivator = c.get('cultivator');
+  if (!cultivator) {
+    return c.json({ error: '当前没有活跃角色' }, 404);
+  }
+
+  try {
+    const data = await QiService.getQiState(cultivator.id);
+    return c.json({ success: true, data });
+  } catch (error) {
+    const qiResponse = qiErrorResponse(c, error);
+    if (qiResponse) return qiResponse;
+    console.error('获取灵气状态失败:', error);
+    return c.json({ error: '获取灵气状态失败' }, 500);
+  }
+});
+
+router.get('/qi/logs', requireActiveCultivator(), async (c) => {
+  const cultivator = c.get('cultivator');
+  if (!cultivator) {
+    return c.json({ error: '当前没有活跃角色' }, 404);
+  }
+
+  const limit = Number.parseInt(c.req.query('limit') ?? '30', 10);
+  const logs = await QiService.listLogs(cultivator.id, limit);
+  return c.json({ success: true, data: { logs } });
+});
+
+router.post('/qi/restore', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
+  const cultivator = c.get('cultivator');
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  try {
+    const { consumableId } = QiRestoreSchema.parse(await c.req.json());
+    const actionInstanceId = randomUUID();
+
+    const result = await getExecutor().transaction(async (tx) => {
+      const [consumable] = await tx
+        .select()
+        .from(consumables)
+        .where(
+          and(
+            eq(consumables.id, consumableId),
+            eq(consumables.cultivatorId, cultivator.id),
+          ),
+        )
+        .for('update')
+        .limit(1);
+
+      if (!consumable) {
+        throw new QiServiceError('恢复符箓不存在或已耗尽。', 404);
+      }
+      if (consumable.type !== '符箓') {
+        throw new QiServiceError('该物品不是恢复灵气的符箓。', 400);
+      }
+
+      const spec = consumable.spec as {
+        kind?: string;
+        scenario?: string;
+        sessionMode?: string;
+      };
+      if (
+        spec.kind !== 'talisman' ||
+        spec.sessionMode !== 'consume_on_action' ||
+        !spec.scenario ||
+        !isQiRestoreTalismanScenario(spec.scenario)
+      ) {
+        throw new QiServiceError('该符箓不能用于恢复天地灵气。', 400);
+      }
+
+      const restoreSpec = QI_RESTORE_TALISMAN_SCENARIOS[spec.scenario];
+      const restored = await QiService.restoreQi({
+        cultivatorId: cultivator.id,
+        amount: restoreSpec.amount,
+        source: 'talisman',
+        action: spec.scenario,
+        actionInstanceId,
+        tx,
+        metadata: {
+          consumableId,
+          consumableName: consumable.name,
+          scenario: spec.scenario,
+        },
+      });
+
+      await consumeConsumableById(user.id, cultivator.id, consumableId, 1, tx);
+      return restored;
+    });
+
+    return c.json({ success: true, data: result });
+  } catch (error) {
+    const qiResponse = qiErrorResponse(c, error);
+    if (qiResponse) return qiResponse;
+    if (error instanceof z.ZodError) {
+      return c.json({ error: error.issues[0]?.message || '请求参数错误' }, 400);
+    }
+    console.error('恢复灵气失败:', error);
+    return c.json({ error: '恢复灵气失败，请稍后再试。' }, 500);
+  }
+});
+
 router.post('/title', requireActiveCultivator(), async (c) => {
   const cultivator = c.get('cultivator');
   if (!cultivator) {
@@ -676,6 +815,8 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
   const cultivatorId = activeCultivator.id;
   let years = 0;
   let lockAcquired = false;
+  let qiActionInstanceId: string | null = null;
+  let qiReservationOpen = false;
 
   try {
     const { years: inputYears, action } = RetreatSchema.parse(
@@ -701,20 +842,18 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
         return c.json({ error: '道友，您没有这么多寿元了' }, 400);
       }
 
-      const lifespanCheck = await limiter.checkAndConsumeLifespan(
+      qiActionInstanceId = randomUUID();
+      await QiService.reserveQi({
         cultivatorId,
-        years,
-      );
-      if (!lifespanCheck.allowed) {
-        return c.json(
-          {
-            error: lifespanCheck.message,
-            remaining: lifespanCheck.remaining,
-            consumed: lifespanCheck.consumed,
-          },
-          400,
-        );
-      }
+        action: 'retreat_10_years',
+        actionInstanceId: qiActionInstanceId,
+        cost: getRetreatQiCost(years),
+        metadata: {
+          years,
+          retreatAction: action,
+        },
+      });
+      qiReservationOpen = true;
 
       const result = performCultivation(cultivator, years);
       await addRetreatRecord(user.id, cultivatorId, result.record);
@@ -726,8 +865,22 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       });
 
       if (!saved) {
-        await limiter.rollbackLifespan(cultivatorId, years);
+        if (qiActionInstanceId) {
+          await QiService.refundReservation({
+            actionInstanceId: qiActionInstanceId,
+            reason: 'cultivator_update_failed',
+          });
+          qiReservationOpen = false;
+        }
         throw new Error('更新角色数据失败');
+      }
+
+      if (qiActionInstanceId) {
+        await QiService.commitReservation({
+          actionInstanceId: qiActionInstanceId,
+          metadata: { committedAt: new Date().toISOString() },
+        });
+        qiReservationOpen = false;
       }
 
       let streamResult: RetreatResultData = {
@@ -792,6 +945,17 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
         409,
       );
     }
+
+    qiActionInstanceId = randomUUID();
+    await QiService.reserveQi({
+      cultivatorId,
+      action: 'breakthrough_attempt',
+      actionInstanceId: qiActionInstanceId,
+      metadata: {
+        retreatAction: action,
+      },
+    });
+    qiReservationOpen = true;
 
     const result = attemptBreakthrough(cultivator);
     result.cultivator.condition =
@@ -861,7 +1025,30 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
     });
 
     if (!saved) {
+      if (qiActionInstanceId) {
+        await QiService.refundReservation({
+          actionInstanceId: qiActionInstanceId,
+          reason: 'breakthrough_update_failed',
+        });
+        qiReservationOpen = false;
+      }
       throw new Error('更新角色数据失败');
+    }
+
+    if (qiActionInstanceId) {
+      if (result.summary.success) {
+        await QiService.commitReservation({
+          actionInstanceId: qiActionInstanceId,
+          metadata: { committedAt: new Date().toISOString() },
+        });
+      } else {
+        await QiService.markNoRefund({
+          actionInstanceId: qiActionInstanceId,
+          reason: 'breakthrough_failed_normally',
+          metadata: { committedAt: new Date().toISOString() },
+        });
+      }
+      qiReservationOpen = false;
     }
 
     return createRetreatStreamResponse({
@@ -888,14 +1075,22 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       },
     });
   } catch (err) {
-    console.error('闭关突破 API 错误:', err);
-    if (cultivatorId && years > 0) {
+    const qiResponse = qiErrorResponse(c, err);
+    if (qiResponse) return qiResponse;
+    if (qiReservationOpen && qiActionInstanceId) {
       try {
-        await limiter.rollbackLifespan(cultivatorId, years);
+        await QiService.refundReservation({
+          actionInstanceId: qiActionInstanceId,
+          reason: 'retreat_route_error',
+          metadata: {
+            years,
+          },
+        });
       } catch (rollbackErr) {
-        console.error('回滚寿元消耗失败:', rollbackErr);
+        console.error('回滚灵气预扣失败:', rollbackErr);
       }
     }
+    console.error('闭关突破 API 错误:', err);
     throw err;
   } finally {
     if (lockAcquired && cultivatorId) {

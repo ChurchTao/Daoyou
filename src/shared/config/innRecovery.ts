@@ -3,8 +3,8 @@ import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 
 export const INN_RECOVERY_SPIRIT_STONE_COST_MIN = 500;
 export const INN_RECOVERY_SPIRIT_STONE_COST_STEP = 500;
-export const INN_RECOVERY_LOSS_PERCENT_MIN = 5;
-export const INN_RECOVERY_LOSS_PERCENT_MAX = 10;
+export const INN_RECOVERY_LOSS_PERCENT_MIN = 1;
+export const INN_RECOVERY_LOSS_PERCENT_MAX = 6;
 
 export function getInnRecoveryBaseSpiritStoneCost(realm: RealmType): number {
   return (

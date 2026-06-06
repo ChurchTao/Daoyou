@@ -1,10 +1,10 @@
-import { useLifespanStatus } from '@app/components/feature/cultivator/LifespanStatusCard';
 import {
   GameSceneFrame,
   GameSceneNote,
   GameSceneSection,
 } from '@app/components/game-shell';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 
 import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
@@ -192,11 +192,6 @@ export function RetreatView() {
     closeRetreatResult,
     handleGoReincarnate,
   } = useRetreatViewModel();
-  const { status: lifespanStatus } = useLifespanStatus({
-    cultivatorId: cultivator?.id ?? '',
-    autoRefresh: true,
-    refreshInterval: 60_000,
-  });
   const shouldHoldResultShell =
     !cultivator && retreatResultOpen && Boolean(retreatResult?.depleted);
 
@@ -264,6 +259,8 @@ export function RetreatView() {
   });
   const missingRequirements =
     currentMajorTask?.snapshot.missingRequirements.slice(0, 2) ?? [];
+  const parsedRetreatYears = Number(retreatYears || '0');
+  const breakthroughQiCost = QI_ACTION_COSTS.breakthrough_attempt;
 
   return (
     <GameSceneFrame
@@ -356,9 +353,9 @@ export function RetreatView() {
               placeholder="输入 1~200 之间的整数"
               onChange={handleRetreatYearsChange}
               hint={
-                lifespanStatus
-                  ? `闭关越久，修为增长越多。今日尚余 ${lifespanStatus.remaining} 年寿元可用，已用 ${lifespanStatus.consumed}/${lifespanStatus.dailyLimit} 年。`
-                  : '闭关越久，修为增长越多。寿元账册尚在整理，先按心中的年限定下这次闭关。'
+                parsedRetreatYears > 0
+                  ? `闭关越久，修为增长越多。本次将消耗寿元 ${parsedRetreatYears} 年。`
+                  : '闭关越久，修为增长越多。'
               }
             />
           </div>
@@ -377,7 +374,9 @@ export function RetreatView() {
                 onClick={handleBreakthroughClick}
                 disabled={retreatLoading}
               >
-                {retreatLoading ? '冲关中……' : '尝试突破'}
+                {retreatLoading
+                  ? '冲关中……'
+                  : '尝试突破'}
               </InkButton>
             ) : null}
           </div>
@@ -417,6 +416,7 @@ export function RetreatView() {
         onConfirm={handleBreakthrough}
         chancePreview={breakthroughPreview}
         isMajorBreakthrough={isMajorBreakthrough}
+        qiCost={breakthroughQiCost}
       />
 
       <RetreatResultModal

@@ -66,22 +66,29 @@ describe('resolveDungeonMapConfig', () => {
   });
 
   it('keeps curated map data explicitly classified', () => {
-    const nodes = [...getAllMapNodes(), ...getAllSatelliteNodes()];
+    const satelliteNodes = getAllSatelliteNodes();
 
-    expect(nodes.every((node) => node.dungeon_config?.difficulty)).toBe(true);
+    // 只有卫星节点需要 dungeon_config
+    expect(satelliteNodes.every((node) => node.dungeon_config?.difficulty)).toBe(true);
+
+    // 主节点不应有 dungeon_config（副本仅限卫星节点）
+    const mainNodes = getAllMapNodes();
+    expect(mainNodes.every((node) => !node.dungeon_config)).toBe(true);
+
+    // 验证特定卫星节点的难度配置
     expect(
       resolveDungeonMapConfig(
-        nodes.find((node) => node.id === 'TN_YUE_01')!,
+        satelliteNodes.find((node) => node.id === 'SAT_TN_01')!,
       ).difficultyLabel,
-    ).toBe('低危');
+    ).toBe('普通');
     expect(
       resolveDungeonMapConfig(
-        nodes.find((node) => node.id === 'LX_VOID_01')!,
+        satelliteNodes.find((node) => node.id === 'SAT_LX_05')!,
       ).difficultyLabel,
     ).toBe('凶险');
     expect(
       resolveDungeonMapConfig(
-        nodes.find((node) => node.id === 'DJ_KW_01')!,
+        satelliteNodes.find((node) => node.id === 'SAT_DJ_02')!,
       ).difficultyLabel,
     ).toBe('绝境');
   });

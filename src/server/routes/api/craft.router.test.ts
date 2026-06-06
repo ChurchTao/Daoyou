@@ -54,6 +54,23 @@ vi.mock('@server/lib/services/TaskService', () => ({
   },
 }));
 
+vi.mock('@server/lib/services/QiService', () => ({
+  QiInsufficientError: class QiInsufficientError extends Error {},
+  QiServiceError: class QiServiceError extends Error {
+    status: number;
+
+    constructor(message: string, status = 400) {
+      super(message);
+      this.status = status;
+    }
+  },
+  QiService: {
+    reserveQi: vi.fn(),
+    commitReservation: vi.fn(),
+    refundReservation: vi.fn(),
+  },
+}));
+
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorById: vi.fn(),
 }));
@@ -67,6 +84,7 @@ import {
   processAlchemyCraft,
 } from '@server/lib/services/alchemyServiceV2';
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { QiService } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import craftRouter from './craft.router';
 
@@ -76,6 +94,9 @@ const processAlchemyCraftMock = processAlchemyCraft as unknown as Mock;
 const craftFromFormulaMock = craftFromFormula as unknown as Mock;
 const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
 const recordTaskEventMock = TaskService.recordTaskEvent as unknown as Mock;
+const reserveQiMock = QiService.reserveQi as unknown as Mock;
+const commitReservationMock = QiService.commitReservation as unknown as Mock;
+const refundReservationMock = QiService.refundReservation as unknown as Mock;
 
 function createApp() {
   return new Hono().route('/api/craft', craftRouter);
@@ -89,6 +110,15 @@ describe('craft router alchemy routes', () => {
       pre_heaven_fates: [],
     } as any);
     recordTaskEventMock.mockResolvedValue([]);
+    reserveQiMock.mockResolvedValue({
+      success: true,
+      actionInstanceId: 'qi-action-1',
+      qiBefore: 200,
+      qiAfter: 185,
+      consumed: 15,
+    });
+    commitReservationMock.mockResolvedValue(undefined);
+    refundReservationMock.mockResolvedValue(undefined);
   });
 
   it('restores alchemy preview via GET /api/craft', async () => {
@@ -272,6 +302,22 @@ describe('craft router alchemy routes', () => {
         userPrompt: '疗伤为主',
       },
     );
+    expect(reserveQiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cultivatorId: 'cultivator-1',
+        action: 'alchemy_improvised',
+        metadata: expect.objectContaining({
+          craftType: 'alchemy',
+          alchemyMode: 'improvised',
+          materialCount: 1,
+        }),
+      }),
+    );
+    expect(commitReservationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionInstanceId: expect.any(String),
+      }),
+    );
     expect(recordTaskEventMock).toHaveBeenCalledWith(
       'cultivator-1',
       'alchemy_crafted',
@@ -371,6 +417,23 @@ describe('craft router alchemy routes', () => {
       { m1: 2 },
       '22222222-2222-4222-8222-222222222222',
     );
+    expect(reserveQiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cultivatorId: 'cultivator-1',
+        action: 'alchemy_formula',
+        metadata: expect.objectContaining({
+          craftType: 'alchemy',
+          alchemyMode: 'formula',
+          formulaId: '11111111-1111-4111-8111-111111111111',
+          materialCount: 1,
+        }),
+      }),
+    );
+    expect(commitReservationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionInstanceId: expect.any(String),
+      }),
+    );
     expect(recordTaskEventMock).toHaveBeenCalledWith(
       'cultivator-1',
       'alchemy_crafted',
@@ -397,5 +460,37 @@ describe('craft router alchemy routes', () => {
       error: '请先按方辨材。',
     });
     expect(craftFromFormulaMock).not.toHaveBeenCalled();
+    expect(reserveQiMock).not.toHaveBeenCalled();
+  });
+
+  it('refunds reserved qi when crafting throws after reservation', async () => {
+    processAlchemyCraftMock.mockRejectedValueOnce(new Error('LLM unavailable'));
+
+    const response = await createApp().request('/api/craft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'alchemy',
+        materialIds: ['m1'],
+        materialQuantities: { m1: 1 },
+        userPrompt: '疗伤为主',
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    expect(reserveQiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'alchemy_improvised',
+      }),
+    );
+    expect(refundReservationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionInstanceId: expect.any(String),
+        reason: 'craft_route_error',
+      }),
+    );
+    expect(commitReservationMock).not.toHaveBeenCalled();
   });
 });

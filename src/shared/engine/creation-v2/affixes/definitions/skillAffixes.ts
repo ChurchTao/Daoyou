@@ -1023,7 +1023,7 @@ export const SKILL_AFFIXES: AffixDefinition[] = [
             GameplayTags.STATUS.CONTROL.NO_ACTION,
           ],
         },
-        chance: 0.5,
+        chance: 0.45,
       },
     },
   },

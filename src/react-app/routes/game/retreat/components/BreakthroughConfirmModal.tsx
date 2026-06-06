@@ -9,6 +9,7 @@ interface BreakthroughConfirmModalProps {
   onConfirm: () => void;
   chancePreview?: BreakthroughChancePreviewData | null;
   isMajorBreakthrough?: boolean;
+  qiCost: number;
 }
 
 /**
@@ -20,6 +21,7 @@ export function BreakthroughConfirmModal({
   onConfirm,
   chancePreview,
   isMajorBreakthrough = false,
+  qiCost,
 }: BreakthroughConfirmModalProps) {
   return (
     <InkModal
@@ -40,6 +42,9 @@ export function BreakthroughConfirmModal({
       <div className="mt-4 space-y-3 text-sm leading-6">
         <p className="text-ink-secondary">
           道友确定要尝试突破吗？此举关乎道途，不可不慎重。
+        </p>
+        <p className="text-ink">
+          本次突破将消耗 {qiCost} 天地灵气。
         </p>
 
         <div className="border-wood/35 bg-bgpaper space-y-2 border border-dashed p-3">

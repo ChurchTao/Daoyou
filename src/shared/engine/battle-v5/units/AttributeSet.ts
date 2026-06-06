@@ -267,7 +267,7 @@ export class AttributeSet {
     this._attributes.set(
       AttributeType.CONTROL_RESISTANCE,
       new Attribute(AttributeType.CONTROL_RESISTANCE, 0, true, () =>
-        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.0003),
+        Math.min(0.8, this.getValue(AttributeType.WILLPOWER) * 0.0006),
       ),
     );
 

@@ -41,23 +41,30 @@ function buildNodeActions(
   navigate: (path: string) => void,
 ): MapNodeDetailAction[] {
   const builders: Record<MapIntent, (input: NodeActionContext) => MapNodeDetailAction[]> = {
-    dungeon: ({ selectedNodeId: id }) => [
-      {
-        key: 'enter-dungeon',
-        label: '前往历练',
-        variant: 'primary',
-        onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
-      },
-    ],
-    market: ({ selectedNodeId: id, isMainNode, marketEnabled }) => {
-      const actions: MapNodeDetailAction[] = [
+    dungeon: ({ selectedNodeId: id, isMainNode }) => {
+      // 只有卫星节点可以进行副本挑战
+      if (isMainNode) return [];
+      return [
         {
+          key: 'enter-dungeon',
+          label: '前往历练',
+          variant: 'primary',
+          onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
+        },
+      ];
+    },
+    market: ({ selectedNodeId: id, isMainNode, marketEnabled }) => {
+      const actions: MapNodeDetailAction[] = [];
+
+      // 只有卫星节点可以进行副本挑战
+      if (!isMainNode) {
+        actions.push({
           key: 'enter-dungeon',
           label: '前往历练',
           variant: 'secondary',
           onClick: () => navigate(`/game/dungeon?nodeId=${id}`),
-        },
-      ];
+        });
+      }
 
       // 需求约束：只有主节点且已开放坊市时才展示按钮
       if (isMainNode && marketEnabled) {

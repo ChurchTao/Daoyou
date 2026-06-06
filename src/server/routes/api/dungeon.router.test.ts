@@ -10,6 +10,9 @@ const {
   getCultivatorByIdUnsafeMock,
   getCultivatorDisplaySnapshotMock,
   getMapNodeMock,
+  isSatelliteNodeMock,
+  QiInsufficientErrorMock,
+  QiServiceErrorMock,
 } = vi.hoisted(() => ({
   startDungeonMock: vi.fn(),
   probeBattleEnemyMock: vi.fn(),
@@ -20,6 +23,28 @@ const {
   getCultivatorByIdUnsafeMock: vi.fn(),
   getCultivatorDisplaySnapshotMock: vi.fn(),
   getMapNodeMock: vi.fn(),
+  isSatelliteNodeMock: vi.fn(),
+  QiInsufficientErrorMock: class QiInsufficientError extends Error {
+    code = 'QI_INSUFFICIENT';
+    action: string;
+    required: number;
+    current: number;
+
+    constructor(args: { action: string; required: number; current: number }) {
+      super('天地灵气不足');
+      this.action = args.action;
+      this.required = args.required;
+      this.current = args.current;
+    }
+  },
+  QiServiceErrorMock: class QiServiceError extends Error {
+    status: number;
+
+    constructor(message: string, status = 400) {
+      super(message);
+      this.status = status;
+    }
+  },
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -52,6 +77,11 @@ vi.mock('@server/lib/services/TaskService', () => ({
   },
 }));
 
+vi.mock('@server/lib/services/QiService', () => ({
+  QiInsufficientError: QiInsufficientErrorMock,
+  QiServiceError: QiServiceErrorMock,
+}));
+
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorByIdUnsafe: getCultivatorByIdUnsafeMock,
 }));
@@ -62,6 +92,7 @@ vi.mock('@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter', () => ({
 
 vi.mock('@shared/lib/game/mapSystem', () => ({
   getMapNode: getMapNodeMock,
+  isSatelliteNode: isSatelliteNodeMock,
 }));
 
 vi.mock('@server/lib/drizzle/db', () => ({
@@ -104,6 +135,7 @@ describe('dungeon battle router', () => {
       id: 'node-1',
       realm_requirement: '炼气',
     });
+    isSatelliteNodeMock.mockReturnValue(true);
   });
 
   it('starts a dungeon when novice readiness passes', async () => {
@@ -130,6 +162,54 @@ describe('dungeon battle router', () => {
       },
     });
     expect(startDungeonMock).toHaveBeenCalledWith('cultivator-1', 'node-1');
+  });
+
+  it('rejects dungeon start for main map nodes (only satellite nodes allowed)', async () => {
+    isSatelliteNodeMock.mockReturnValueOnce(false);
+
+    const response = await createApp().request('/api/dungeon/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mapNodeId: 'TN_YUE_01',
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const payload = (await response.json()) as { error: string };
+    expect(payload.error).toContain('只有秘境节点可以进行副本挑战');
+    expect(startDungeonMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when starting a dungeon lacks qi', async () => {
+    startDungeonMock.mockRejectedValueOnce(
+      new QiInsufficientErrorMock({
+        action: 'dungeon_start',
+        required: 50,
+        current: 30,
+      }),
+    );
+
+    const response = await createApp().request('/api/dungeon/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mapNodeId: 'node-1',
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: 'QI_INSUFFICIENT',
+      message: '天地灵气不足',
+      required: 50,
+      current: 30,
+      action: 'dungeon_start',
+    });
   });
 
   it('blocks the first dungeon when novice readiness fails', async () => {

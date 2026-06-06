@@ -41,7 +41,7 @@ export enum AttributeType {
   EVASION_RATE = 'evasionRate',                 // 闪避率 (0~0.30)：SPEED×0.00018
   ACCURACY = 'accuracy',                         // 命中 (0~0.30)：WISDOM×0.00012 + WILLPOWER×0.00008
   CONTROL_HIT = 'controlHit',                   // 控制命中 (0~0.80)：WILLPOWER×0.003
-  CONTROL_RESISTANCE = 'controlResistance',     // 控制抗性 (0~0.80)：WILLPOWER×0.003
+  CONTROL_RESISTANCE = 'controlResistance',     // 控制抗性 (0~0.80)：WILLPOWER×0.006
   MAX_HP = 'maxHp',                             // 最大气血：200 + VITALITY×16
   MAX_MP = 'maxMp',                             // 最大法力：200 + SPIRIT×10 + WILLPOWER×6
 

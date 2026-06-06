@@ -1,4 +1,3 @@
-import { useLifespanStatus } from '@app/components/feature/cultivator/LifespanStatusCard';
 import { YieldCard } from '@app/components/feature/cultivator/YieldCard';
 import { CaveQuickGrid } from '@app/components/feature/home/CaveQuickGrid';
 import { HomeAside } from '@app/components/feature/home/HomeAside';
@@ -37,14 +36,6 @@ export function HomeView() {
   const [yieldHours, setYieldHours] = useState(() =>
     calculateYieldHours(cultivator?.last_yield_at),
   );
-  const {
-    status: lifespanStatus,
-    loading: lifespanLoading,
-  } = useLifespanStatus({
-    cultivatorId: cultivator?.id ?? '',
-    autoRefresh: true,
-    refreshInterval: 60_000,
-  });
 
   useEffect(() => {
     const update = () =>
@@ -157,16 +148,6 @@ export function HomeView() {
   const isMajorBreakthroughCandidate = Boolean(
     cultivator.realm_stage === '圆满' && getNextMajorRealm(cultivator.realm),
   );
-  const lifespanAction = lifespanStatus ? (
-    <span className="text-ink/70 text-sm">
-      {lifespanStatus.remaining} / {lifespanStatus.dailyLimit}
-    </span>
-  ) : (
-    <span className="text-ink-secondary text-sm">
-      {lifespanLoading ? '核算中' : '--'}
-    </span>
-  );
-
   if (noviceAction) {
     urgentItems.push(
       <HomeUrgentRow
@@ -181,16 +162,6 @@ export function HomeView() {
       />,
     );
   }
-
-  urgentItems.push(
-    <HomeUrgentRow
-      key="lifespan"
-      className="pr-2"
-      title={<span>⏳ 可用寿元</span>}
-      summary={<span className="text-ink/50 text-xs">（每日凌晨重置）</span>}
-      action={lifespanAction}
-    />,
-  );
 
   if (hasYieldAlert) {
     urgentItems.push(

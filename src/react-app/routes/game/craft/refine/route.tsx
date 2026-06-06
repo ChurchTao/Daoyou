@@ -18,6 +18,12 @@ import {
   InkIdentifyCelebration,
   InkNotice,
 } from '@app/components/ui';
+import {
+  getQiErrorMessage,
+  useQiActionConfirm,
+} from '@app/components/feature/cultivator/useQiActionConfirm';
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
@@ -73,6 +79,7 @@ export default function RefinePage() {
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast } = useInkUI();
+  const { openQiActionConfirm } = useQiActionConfirm();
 
   useEffect(() => {
     if (selectedMaterialIds.length === 0) {
@@ -178,6 +185,7 @@ export default function RefinePage() {
     selectedMaterialIds.length > 0 ? estimatedCost : null;
   const displayValidation = selectedMaterialIds.length > 0 ? validation : null;
   const displayCanAfford = selectedMaterialIds.length > 0 ? canAfford : true;
+  const qiCost = QI_ACTION_COSTS.creation_artifact;
 
   const handleSubmit = async () => {
     if (!cultivator) {
@@ -195,45 +203,53 @@ export default function RefinePage() {
       return;
     }
 
-    setSubmitting(true);
-    setStatus('炉火纯青，真火锤锻……');
-    setCreatedResult(null);
-    setIsResultModalOpen(false);
+    openQiActionConfirm({
+      actionName: '开炉炼器',
+      qiCost,
+      confirmLabel: '开炉炼器',
+      onConfirm: async () => {
+        setSubmitting(true);
+        setStatus('炉火纯青，真火锤锻……');
+        setCreatedResult(null);
+        setIsResultModalOpen(false);
 
-    try {
-      const response = await fetch('/api/craft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitPayload),
-      });
+        try {
+          const response = await fetch('/api/craft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submitPayload),
+          });
 
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '炼制失败');
-      }
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(getQiErrorMessage(result, '炼制失败'));
+          }
 
-      const artifact = result.data as CreationProductResultRecord;
-      const successMessage = `【${artifact.name}】出世！`;
-      setCreatedResult(artifact);
-      setIsResultModalOpen(true);
-      setCelebrationTick((prev) => prev + 1);
-      setStatus(successMessage);
-      pushToast({ message: successMessage, tone: 'success' });
-      setSelectedMaterialIds([]);
-      setSelectedMaterialMap({});
-      setDoseMap({});
-      setIsMaterialModalOpen(false);
-      setMaterialsRefreshKey((prev) => prev + 1);
-    } catch (error) {
-      const failMessage =
-        error instanceof Error
-          ? `炸炉了：${error.message}`
-          : '炼制失败，请稍后再试。';
-      setStatus(failMessage);
-      pushToast({ message: failMessage, tone: 'danger' });
-    } finally {
-      setSubmitting(false);
-    }
+          const artifact = result.data as CreationProductResultRecord;
+          const successMessage = `【${artifact.name}】出世！`;
+          setCreatedResult(artifact);
+          setIsResultModalOpen(true);
+          setCelebrationTick((prev) => prev + 1);
+          setStatus(successMessage);
+          pushToast({ message: successMessage, tone: 'success' });
+          setSelectedMaterialIds([]);
+          setSelectedMaterialMap({});
+          setDoseMap({});
+          setIsMaterialModalOpen(false);
+          setMaterialsRefreshKey((prev) => prev + 1);
+          invalidateQiState(cultivator.id);
+        } catch (error) {
+          const failMessage =
+            error instanceof Error
+              ? `炸炉了：${error.message}`
+              : '炼制失败，请稍后再试。';
+          setStatus(failMessage);
+          pushToast({ message: failMessage, tone: 'danger' });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   if (isLoading && !cultivator) {

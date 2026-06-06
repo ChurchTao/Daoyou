@@ -124,6 +124,10 @@ export function getMapNode(id: string): MapNode | SatelliteNode | undefined {
   return worldData.satellite_nodes.find((n) => n.id === id);
 }
 
+export function isSatelliteNode(id: string): boolean {
+  return worldData.satellite_nodes.some((n) => n.id === id);
+}
+
 export function getNodesByRegion(region: string): MapNode[] {
   return worldData.map_nodes.filter((n) => n.region === region);
 }

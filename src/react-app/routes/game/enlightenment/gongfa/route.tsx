@@ -18,6 +18,12 @@ import {
   InkIdentifyCelebration,
   InkNotice,
 } from '@app/components/ui';
+import {
+  getQiErrorMessage,
+  useQiActionConfirm,
+} from '@app/components/feature/cultivator/useQiActionConfirm';
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
@@ -75,6 +81,7 @@ export default function GongfaCreationPage() {
   const [validation, setValidation] = useState<PreviewValidation | null>(null);
   const [canAfford, setCanAfford] = useState(true);
   const { pushToast, openDialog } = useInkUI();
+  const { openQiActionConfirm } = useQiActionConfirm();
 
   useEffect(() => {
     const checkPending = async () => {
@@ -210,6 +217,7 @@ export default function GongfaCreationPage() {
     selectedMaterialIds.length > 0 ? estimatedCost : null;
   const displayValidation = selectedMaterialIds.length > 0 ? validation : null;
   const displayCanAfford = selectedMaterialIds.length > 0 ? canAfford : true;
+  const qiCost = QI_ACTION_COSTS.creation_gongfa;
 
   const handleSubmit = async () => {
     if (!cultivator) {
@@ -227,54 +235,62 @@ export default function GongfaCreationPage() {
       return;
     }
 
-    setSubmitting(true);
-    setStatus('感悟天地，参悟大道……');
-    setCreatedResult(null);
-    setIsResultModalOpen(false);
+    openQiActionConfirm({
+      actionName: '参悟功法',
+      qiCost,
+      confirmLabel: '开始参悟',
+      onConfirm: async () => {
+        setSubmitting(true);
+        setStatus('感悟天地，参悟大道……');
+        setCreatedResult(null);
+        setIsResultModalOpen(false);
 
-    try {
-      const response = await fetch('/api/craft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitPayload),
-      });
+        try {
+          const response = await fetch('/api/craft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submitPayload),
+          });
 
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '参悟失败');
-      }
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(getQiErrorMessage(result, '参悟失败'));
+          }
 
-      const gongfa = result.data as CreationProductResultRecord;
-      const successMessage = `功法【${gongfa.name}】参悟成功！`;
+          const gongfa = result.data as CreationProductResultRecord;
+          const successMessage = `功法【${gongfa.name}】参悟成功！`;
 
-      setCreatedResult(gongfa);
-      setIsResultModalOpen(true);
-      setCelebrationTick((prev) => prev + 1);
-      setStatus(successMessage);
-      pushToast({ message: successMessage, tone: 'success' });
-      setSelectedMaterialIds([]);
-      setSelectedMaterialMap({});
-      setDoseMap({});
-      setIsMaterialModalOpen(false);
-      setMaterialsRefreshKey((prev) => prev + 1);
+          setCreatedResult(gongfa);
+          setIsResultModalOpen(true);
+          setCelebrationTick((prev) => prev + 1);
+          setStatus(successMessage);
+          pushToast({ message: successMessage, tone: 'success' });
+          setSelectedMaterialIds([]);
+          setSelectedMaterialMap({});
+          setDoseMap({});
+          setIsMaterialModalOpen(false);
+          setMaterialsRefreshKey((prev) => prev + 1);
+          invalidateQiState(cultivator.id);
 
-      if (gongfa.needs_replace) {
-        setPendingReplaceHref(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
-        return;
-      }
+          if (gongfa.needs_replace) {
+            setPendingReplaceHref(`/game/enlightenment/replace?type=${CRAFT_TYPE}`);
+            return;
+          }
 
-      setPendingReplaceHref(null);
-      await refreshCultivator();
-    } catch (error) {
-      const failMessage =
-        error instanceof Error
-          ? `走火入魔：${error.message}`
-          : '参悟失败，灵感中断。';
-      setStatus(failMessage);
-      pushToast({ message: failMessage, tone: 'danger' });
-    } finally {
-      setSubmitting(false);
-    }
+          setPendingReplaceHref(null);
+          await refreshCultivator();
+        } catch (error) {
+          const failMessage =
+            error instanceof Error
+              ? `走火入魔：${error.message}`
+              : '参悟失败，灵感中断。';
+          setStatus(failMessage);
+          pushToast({ message: failMessage, tone: 'danger' });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   if (isLoading && !cultivator) {

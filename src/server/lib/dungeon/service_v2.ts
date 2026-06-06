@@ -9,6 +9,7 @@ import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
   getMapNode,
+  isSatelliteNode,
   resolveDungeonMapConfig,
   scaleDungeonBattleDifficulty,
 } from '@shared/lib/game/mapSystem';
@@ -35,6 +36,7 @@ import {
   updateCultivator,
 } from '../services/cultivatorService';
 import { ConditionService } from '../services/ConditionService';
+import { QiService } from '../services/QiService';
 import { ServerEnemyCopyProvider } from '../services/ServerEnemyCopyProvider';
 import { TaskService } from '../services/TaskService';
 import { buildDungeonBattleInit } from './battleInit';
@@ -42,7 +44,6 @@ import {
   buildDungeonRoundLlmContext,
   buildDungeonSettlementLlmContext,
 } from './llmContext';
-import { checkDungeonLimit, consumeDungeonLimit } from './dungeonLimiter';
 import type { RewardBlueprint } from './reward';
 import { RewardFactory } from './reward';
 import {
@@ -400,8 +401,9 @@ export class DungeonService {
    * 初始化副本
    */
   async startDungeon(cultivatorId: string, mapNodeId: string) {
-    const activeKey = getDungeonKey(cultivatorId);
     const startLockKey = getDungeonStartLockKey(cultivatorId);
+    let qiActionInstanceId: string | null = null;
+    let qiReservationOpen = false;
 
     // 防并发：避免重复点击导致并行启动时重复扣次数
     const lockAcquired = await redis.set(
@@ -416,16 +418,26 @@ export class DungeonService {
     }
 
     try {
-      // 0. 检查每日次数限制
-      const limit = await checkDungeonLimit(cultivatorId);
-      if (!limit.allowed) {
-        throw new Error('今日探索次数已用尽（每日限 2 次）');
-      }
-
       const existingSession = await this.loadActiveRun(cultivatorId);
       if (existingSession) {
         throw new Error('当前已有正在进行的副本，请先完成或放弃');
       }
+
+      // 只有卫星地图节点可以进行副本挑战
+      if (!isSatelliteNode(mapNodeId)) {
+        throw new Error('只有秘境节点可以进行副本挑战');
+      }
+
+      qiActionInstanceId = randomUUID();
+      await QiService.reserveQi({
+        cultivatorId,
+        action: 'dungeon_start',
+        actionInstanceId: qiActionInstanceId,
+        metadata: {
+          mapNodeId,
+        },
+      });
+      qiReservationOpen = true;
 
       // 1. 获取玩家与地图数据 (逻辑同你之前)
       const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
@@ -482,22 +494,33 @@ export class DungeonService {
       }
       await this.saveState(cultivatorId, state);
 
-      // 6. 仅在副本已成功初始化后再扣除次数
-      try {
-        await consumeDungeonLimit(cultivatorId);
-      } catch (error) {
-        // 扣次数失败时回滚活跃副本，避免“启动失败但次数异常”
-        if (state.runId) {
-          await getExecutor()
-            .update(dungeonRuns)
-            .set({ status: 'FINISHED', endedAt: new Date() })
-            .where(eq(dungeonRuns.id, state.runId));
-        }
-        await redis.del(activeKey);
-        throw error;
+      if (qiActionInstanceId) {
+        await QiService.commitReservation({
+          actionInstanceId: qiActionInstanceId,
+          metadata: {
+            runId: state.runId,
+            committedAt: new Date().toISOString(),
+          },
+        });
+        qiReservationOpen = false;
       }
 
       return { state, roundData };
+    } catch (error) {
+      if (qiReservationOpen && qiActionInstanceId) {
+        try {
+          await QiService.refundReservation({
+            actionInstanceId: qiActionInstanceId,
+            reason: 'dungeon_start_failed',
+            metadata: {
+              mapNodeId,
+            },
+          });
+        } catch (refundError) {
+          console.error('[DungeonService] 回滚灵气预扣失败:', refundError);
+        }
+      }
+      throw error;
     } finally {
       await redis.del(startLockKey);
     }

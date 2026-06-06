@@ -83,6 +83,39 @@ vi.mock('@server/lib/services/PillOperationExecutor', () => ({
   },
 }));
 
+vi.mock('@server/lib/services/QiService', () => ({
+  QiInsufficientError: class QiInsufficientError extends Error {
+    code = 'QI_INSUFFICIENT';
+    action: string;
+    required: number;
+    current: number;
+
+    constructor(args: { action: string; required: number; current: number }) {
+      super('天地灵气不足');
+      this.action = args.action;
+      this.required = args.required;
+      this.current = args.current;
+    }
+  },
+  QiServiceError: class QiServiceError extends Error {
+    status: number;
+
+    constructor(message: string, status = 400) {
+      super(message);
+      this.status = status;
+    }
+  },
+  QiService: {
+    getQiState: vi.fn(),
+    listLogs: vi.fn(),
+    reserveQi: vi.fn(),
+    commitReservation: vi.fn(),
+    markNoRefund: vi.fn(),
+    refundReservation: vi.fn(),
+    restoreQi: vi.fn(),
+  },
+}));
+
 vi.mock('@server/lib/services/MarketService', () => ({
   identifyMysteryMaterial: vi.fn(),
   MarketServiceError: class MarketServiceError extends Error {},
@@ -104,6 +137,7 @@ vi.mock('@server/lib/services/InnRecoveryService', () => ({
 vi.mock('@server/lib/services/cultivatorService', () => ({
   addBreakthroughHistoryEntry: vi.fn(),
   addRetreatRecord: vi.fn(),
+  consumeConsumableById: vi.fn(),
   equipEquipment: vi.fn(),
   getCultivatorArtifacts: vi.fn(),
   getCultivatorById: vi.fn(),
@@ -155,10 +189,12 @@ import { getLifespanLimiter } from '@server/lib/redis/lifespanLimiter';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import { MailService } from '@server/lib/services/MailService';
 import { PillOperationExecutor } from '@server/lib/services/PillOperationExecutor';
+import { QiService } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
+  consumeConsumableById,
   getCultivatorById,
   updateCultivator,
 } from '@server/lib/services/cultivatorService';
@@ -184,6 +220,14 @@ const buildRecoveryResultMock =
 const sendMailMock = MailService.sendMail as unknown as Mock;
 const consumeBreakthroughSupportStatusesMock =
   PillOperationExecutor.consumeBreakthroughSupportStatuses as unknown as Mock;
+const getQiStateMock = QiService.getQiState as unknown as Mock;
+const listLogsMock = QiService.listLogs as unknown as Mock;
+const reserveQiMock = QiService.reserveQi as unknown as Mock;
+const commitReservationMock = QiService.commitReservation as unknown as Mock;
+const markNoRefundMock = QiService.markNoRefund as unknown as Mock;
+const refundReservationMock = QiService.refundReservation as unknown as Mock;
+const restoreQiMock = QiService.restoreQi as unknown as Mock;
+const consumeConsumableByIdMock = consumeConsumableById as unknown as Mock;
 const getMajorBreakthroughGateMock =
   TaskService.getMajorBreakthroughGate as unknown as Mock;
 const addBreakthroughHistoryEntryMock =
@@ -459,6 +503,210 @@ describe('cultivator redeem route', () => {
   });
 });
 
+describe('cultivator qi routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the active cultivator qi state', async () => {
+    getQiStateMock.mockResolvedValueOnce({
+      current: 120,
+      max: 200,
+      overflowMax: 300,
+      dailyRefresh: 200,
+      lastRefreshedAt: '2026-06-06T00:00:00.000Z',
+      todayConsumed: 80,
+      todayRestored: 0,
+      todayRestoreItemUses: 0,
+      dailyRestoreItemLimit: 3,
+    });
+
+    const response = await createApp().request('/api/cultivator/qi');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: {
+        current: 120,
+        max: 200,
+        overflowMax: 300,
+        dailyRefresh: 200,
+        lastRefreshedAt: '2026-06-06T00:00:00.000Z',
+        todayConsumed: 80,
+        todayRestored: 0,
+        todayRestoreItemUses: 0,
+        dailyRestoreItemLimit: 3,
+      },
+    });
+    expect(getQiStateMock).toHaveBeenCalledWith('cultivator-1');
+  });
+
+  it('returns recent qi logs with the requested limit', async () => {
+    listLogsMock.mockResolvedValueOnce([
+      {
+        id: 'log-1',
+        action: 'dungeon_start',
+        actionInstanceId: 'action-1',
+        status: 'committed',
+        qiCost: 50,
+        qiGain: 0,
+        qiBefore: 200,
+        qiAfter: 150,
+        source: null,
+        metadata: { mapNodeId: 'node-1' },
+        createdAt: '2026-06-06T00:00:00.000Z',
+        updatedAt: '2026-06-06T00:00:00.000Z',
+      },
+    ]);
+
+    const response = await createApp().request('/api/cultivator/qi/logs?limit=5');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: {
+        logs: [
+          {
+            id: 'log-1',
+            action: 'dungeon_start',
+            actionInstanceId: 'action-1',
+            status: 'committed',
+            qiCost: 50,
+            qiGain: 0,
+            qiBefore: 200,
+            qiAfter: 150,
+            source: null,
+            metadata: { mapNodeId: 'node-1' },
+            createdAt: '2026-06-06T00:00:00.000Z',
+            updatedAt: '2026-06-06T00:00:00.000Z',
+          },
+        ],
+      },
+    });
+    expect(listLogsMock).toHaveBeenCalledWith('cultivator-1', 5);
+  });
+
+  it('restores qi from a consume-on-action talisman in one transaction', async () => {
+    const tx = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            for: vi.fn(() => ({
+              limit: vi.fn().mockResolvedValue([
+                {
+                  id: 'talisman-1',
+                  cultivatorId: 'cultivator-1',
+                  name: '小聚灵符',
+                  type: '符箓',
+                  quantity: 1,
+                  spec: {
+                    kind: 'talisman',
+                    scenario: 'qi_restore_small',
+                    sessionMode: 'consume_on_action',
+                  },
+                },
+              ]),
+            })),
+          })),
+        })),
+      })),
+    };
+    getExecutorMock.mockReturnValue({
+      transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    } as any);
+    restoreQiMock.mockResolvedValueOnce({
+      success: true,
+      qiBefore: 80,
+      qiAfter: 130,
+      restored: 50,
+      overflowMax: 300,
+    });
+    consumeConsumableByIdMock.mockResolvedValueOnce(undefined);
+
+    const response = await createApp().request('/api/cultivator/qi/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consumableId: '11111111-1111-4111-8111-111111111111' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: {
+        success: true,
+        qiBefore: 80,
+        qiAfter: 130,
+        restored: 50,
+        overflowMax: 300,
+      },
+    });
+    expect(restoreQiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cultivatorId: 'cultivator-1',
+        amount: 50,
+        source: 'talisman',
+        action: 'qi_restore_small',
+        tx,
+        metadata: expect.objectContaining({
+          consumableId: '11111111-1111-4111-8111-111111111111',
+          consumableName: '小聚灵符',
+          scenario: 'qi_restore_small',
+        }),
+      }),
+    );
+    expect(consumeConsumableByIdMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      '11111111-1111-4111-8111-111111111111',
+      1,
+      tx,
+    );
+  });
+
+  it('rejects non-talisman qi restore consumables before restoring', async () => {
+    const tx = {
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            for: vi.fn(() => ({
+              limit: vi.fn().mockResolvedValue([
+                {
+                  id: 'pill-1',
+                  cultivatorId: 'cultivator-1',
+                  name: '聚灵丹',
+                  type: '丹药',
+                  quantity: 1,
+                  spec: {
+                    kind: 'pill',
+                  },
+                },
+              ]),
+            })),
+          })),
+        })),
+      })),
+    };
+    getExecutorMock.mockReturnValue({
+      transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    } as any);
+
+    const response = await createApp().request('/api/cultivator/qi/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consumableId: '11111111-1111-4111-8111-111111111111' }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: '该物品不是恢复灵气的符箓。',
+    });
+    expect(restoreQiMock).not.toHaveBeenCalled();
+    expect(consumeConsumableByIdMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('cultivator yield route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -592,6 +840,16 @@ describe('cultivator retreat route', () => {
     consumeBreakthroughSupportStatusesMock.mockImplementation(
       (condition: Cultivator['condition']) => condition,
     );
+    reserveQiMock.mockResolvedValue({
+      success: true,
+      actionInstanceId: 'qi-action-1',
+      qiBefore: 200,
+      qiAfter: 195,
+      consumed: 5,
+    });
+    commitReservationMock.mockResolvedValue(undefined);
+    markNoRefundMock.mockResolvedValue(undefined);
+    refundReservationMock.mockResolvedValue(undefined);
     renderPromptMock.mockReturnValue({
       system: 'system prompt',
       user: 'user prompt',
