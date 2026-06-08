@@ -79,6 +79,16 @@ export function resolveDungeonMutationResult(
   return { type: 'none' };
 }
 
+export function shouldRefreshCultivatorAfterDungeonMutation(
+  resolution: DungeonMutationResolution,
+) {
+  return (
+    resolution.type === 'state' ||
+    resolution.type === 'settlement' ||
+    resolution.type === 'clear'
+  );
+}
+
 /**
  * 副本视图模型 Hook
  */
@@ -221,37 +231,38 @@ export function useDungeonViewModel(
    */
   const handlePerformAction = async (option: DungeonOption) => {
     const data = await performAction(option);
-    applyMutationResult(data);
+    await applyMutationResult(data);
   };
 
   const handleContinueLooting = async () => {
     const data = await continueLooting();
-    applyMutationResult(data);
+    await applyMutationResult(data);
   };
 
   const handleEscapeLooting = async () => {
     const data = await escapeLooting();
-    applyMutationResult(data);
+    await applyMutationResult(data);
   };
 
   const handleRecoverDungeon = async (action: DungeonRecoverAction) => {
     const data = await recoverDungeon(action);
-    applyMutationResult(data);
+    await applyMutationResult(data);
   };
 
-  const applyMutationResult = (
+  const applyMutationResult = async (
     data: Parameters<typeof resolveDungeonMutationResult>[0],
   ) => {
     const resolution = resolveDungeonMutationResult(data);
+    const shouldRefreshCultivator =
+      shouldRefreshCultivatorAfterDungeonMutation(resolution);
+
     if (resolution.type === 'refresh') {
       refresh();
       return;
     }
     if (resolution.type === 'state') {
       setState(resolution.state);
-      return;
-    }
-    if (resolution.type === 'settlement') {
+    } else if (resolution.type === 'settlement') {
       setState((prev) =>
         prev
           ? {
@@ -262,10 +273,12 @@ export function useDungeonViewModel(
             }
           : null,
       );
-      return;
-    }
-    if (resolution.type === 'clear') {
+    } else if (resolution.type === 'clear') {
       setState(null);
+    }
+
+    if (shouldRefreshCultivator) {
+      await refreshCultivator?.();
     }
   };
 

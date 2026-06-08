@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { DungeonState } from '@shared/lib/dungeon/types';
-import { resolveDungeonMutationResult } from './useDungeonViewModel';
+import {
+  resolveDungeonMutationResult,
+  shouldRefreshCultivatorAfterDungeonMutation,
+} from './useDungeonViewModel';
 
 describe('resolveDungeonMutationResult', () => {
   it('prioritizes finished settlement over state payloads', () => {
@@ -49,5 +52,35 @@ describe('resolveDungeonMutationResult', () => {
     expect(resolveDungeonMutationResult({ success: true })).toEqual({
       type: 'clear',
     });
+  });
+});
+
+describe('shouldRefreshCultivatorAfterDungeonMutation', () => {
+  it('refreshes cultivator data after successful dungeon mutations', () => {
+    expect(
+      shouldRefreshCultivatorAfterDungeonMutation({
+        type: 'state',
+        state: { status: 'EXPLORING' } as DungeonState,
+      }),
+    ).toBe(true);
+    expect(
+      shouldRefreshCultivatorAfterDungeonMutation({
+        type: 'settlement',
+        settlement: undefined,
+        realGains: [],
+      }),
+    ).toBe(true);
+    expect(
+      shouldRefreshCultivatorAfterDungeonMutation({ type: 'clear' }),
+    ).toBe(true);
+  });
+
+  it('does not refresh cultivator data for local-only refresh or empty results', () => {
+    expect(
+      shouldRefreshCultivatorAfterDungeonMutation({ type: 'refresh' }),
+    ).toBe(false);
+    expect(shouldRefreshCultivatorAfterDungeonMutation({ type: 'none' })).toBe(
+      false,
+    );
   });
 });
