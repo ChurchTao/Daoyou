@@ -6,6 +6,7 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import type {
   DungeonOption,
   DungeonRecoverAction,
+  DungeonState,
 } from '@shared/lib/dungeon/types';
 import { getMapNode } from '@shared/lib/game/mapSystem';
 import { isConditionStatusActive } from '@shared/lib/condition';

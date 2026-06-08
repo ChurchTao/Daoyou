@@ -8,9 +8,11 @@ import { useSearchParams } from 'react-router';
 import { AccountSettingsTab } from './components/AccountSettingsTab';
 import { GameSettingsTab } from './components/GameSettingsTab';
 import { ModelConfigTab } from './components/ModelConfigTab';
+import { QiLogsTab } from './components/QiLogsTab';
 
 const SETTINGS_TABS = [
   { label: '游戏设置', value: 'game' },
+  { label: '天地灵气', value: 'qi' },
   { label: '账号管理', value: 'account' },
   { label: '模型配置', value: 'llm' },
 ] as const;
@@ -63,6 +65,7 @@ export default function SettingsPage() {
 
       <div className="pt-2">
         {activeTab === 'game' ? <GameSettingsTab /> : null}
+        {activeTab === 'qi' ? <QiLogsTab /> : null}
         {activeTab === 'account' ? <AccountSettingsTab /> : null}
         {activeTab === 'llm' ? <ModelConfigTab /> : null}
       </div>

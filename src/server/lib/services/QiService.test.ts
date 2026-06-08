@@ -77,26 +77,26 @@ describe('QiService', () => {
     delete process.env.QI_SYSTEM_ENABLED;
   });
 
-  it('refreshes qi to QI_MAX across a Shanghai natural day', async () => {
+  it('reports QI_MAX across a Shanghai natural day without mutating', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-06T01:00:00+08:00'));
-    const { updates } = createDbMock([
+    const { executor, updates } = createDbMock([
       [
         {
-          id: 'cultivator-1',
           qi: 40,
           qiLastRefreshedAt: new Date('2026-06-05T23:00:00+08:00'),
         },
       ],
-      [{ total: 0 }],
-      [{ total: 0, uses: 0 }],
     ]);
 
     const state = await QiService.getQiState('cultivator-1');
 
-    expect(state.current).toBe(200);
-    expect(state.max).toBe(200);
-    expect(updates[0]?.values).toMatchObject({ qi: 200 });
+    expect(state).toEqual({
+      current: 200,
+      max: 200,
+    });
+    expect(executor.transaction).not.toHaveBeenCalled();
+    expect(updates).toHaveLength(0);
   });
 
   it('reserves qi once and writes a reserved log', async () => {

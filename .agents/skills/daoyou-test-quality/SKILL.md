@@ -55,7 +55,7 @@ bunx vitest run src/react-app/lib/router/gameShellRegistry.test.ts
 
 ## Test Patterns To Reuse
 
-- API tests commonly use `x-daoyou-test-user-id`, which is honored only when `NODE_ENV === "test"`.
+- API route tests should mock `requireUser`, `requireAdmin`, or `requireActiveCultivator` when they need an authenticated context.
 - Hono validation should use existing `validateJson`, `validateQuery`, and middleware rather than hand-parsing.
 - Shared rules often already have focused tests under `src/shared/engine/**/tests` or `src/shared/lib/*.test.ts`.
 

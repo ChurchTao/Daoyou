@@ -15,14 +15,6 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function createTestUser(testUserId: string) {
-  return {
-    id: testUserId,
-    email: `${testUserId}@test.daoyou.local`,
-    name: testUserId,
-  };
-}
-
 function applyAuthHeaders(context: Context<AppEnv>, headers?: Headers | null) {
   if (!headers) {
     return;
@@ -40,11 +32,6 @@ async function resolveUser(context: Context<AppEnv>): Promise<AuthUser | null> {
 
   if (existingUser) {
     return existingUser;
-  }
-
-  const testUserId = context.req.header('x-daoyou-test-user-id');
-  if (process.env.NODE_ENV === 'test' && testUserId) {
-    return createTestUser(testUserId);
   }
 
   const session = await auth.api.getSession({

@@ -4,13 +4,6 @@ import type { QiLogStatus } from '@shared/types/qi';
 export interface QiState {
   current: number;
   max: number;
-  overflowMax: number;
-  dailyRefresh: number;
-  lastRefreshedAt: string;
-  todayConsumed: number;
-  todayRestored: number;
-  todayRestoreItemUses: number;
-  dailyRestoreItemLimit: number;
 }
 
 export interface QiLogEntry {
@@ -30,6 +23,10 @@ export interface QiLogEntry {
 
 export interface QiLogsResponse {
   logs: QiLogEntry[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 }
 
 export interface QiInsufficientError {

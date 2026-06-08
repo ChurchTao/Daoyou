@@ -512,13 +512,6 @@ describe('cultivator qi routes', () => {
     getQiStateMock.mockResolvedValueOnce({
       current: 120,
       max: 200,
-      overflowMax: 300,
-      dailyRefresh: 200,
-      lastRefreshedAt: '2026-06-06T00:00:00.000Z',
-      todayConsumed: 80,
-      todayRestored: 0,
-      todayRestoreItemUses: 0,
-      dailyRestoreItemLimit: 3,
     });
 
     const response = await createApp().request('/api/cultivator/qi');
@@ -529,37 +522,38 @@ describe('cultivator qi routes', () => {
       data: {
         current: 120,
         max: 200,
-        overflowMax: 300,
-        dailyRefresh: 200,
-        lastRefreshedAt: '2026-06-06T00:00:00.000Z',
-        todayConsumed: 80,
-        todayRestored: 0,
-        todayRestoreItemUses: 0,
-        dailyRestoreItemLimit: 3,
       },
     });
     expect(getQiStateMock).toHaveBeenCalledWith('cultivator-1');
   });
 
-  it('returns recent qi logs with the requested limit', async () => {
-    listLogsMock.mockResolvedValueOnce([
-      {
-        id: 'log-1',
-        action: 'dungeon_start',
-        actionInstanceId: 'action-1',
-        status: 'committed',
-        qiCost: 50,
-        qiGain: 0,
-        qiBefore: 200,
-        qiAfter: 150,
-        source: null,
-        metadata: { mapNodeId: 'node-1' },
-        createdAt: '2026-06-06T00:00:00.000Z',
-        updatedAt: '2026-06-06T00:00:00.000Z',
-      },
-    ]);
+  it('returns paginated qi logs', async () => {
+    listLogsMock.mockResolvedValueOnce({
+      logs: [
+        {
+          id: 'log-1',
+          action: 'dungeon_start',
+          actionInstanceId: 'action-1',
+          status: 'committed',
+          qiCost: 50,
+          qiGain: 0,
+          qiBefore: 200,
+          qiAfter: 150,
+          source: null,
+          metadata: { mapNodeId: 'node-1' },
+          createdAt: '2026-06-06T00:00:00.000Z',
+          updatedAt: '2026-06-06T00:00:00.000Z',
+        },
+      ],
+      page: 2,
+      pageSize: 5,
+      total: 6,
+      totalPages: 2,
+    });
 
-    const response = await createApp().request('/api/cultivator/qi/logs?limit=5');
+    const response = await createApp().request(
+      '/api/cultivator/qi/logs?page=2&pageSize=5',
+    );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -581,9 +575,16 @@ describe('cultivator qi routes', () => {
             updatedAt: '2026-06-06T00:00:00.000Z',
           },
         ],
+        page: 2,
+        pageSize: 5,
+        total: 6,
+        totalPages: 2,
       },
     });
-    expect(listLogsMock).toHaveBeenCalledWith('cultivator-1', 5);
+    expect(listLogsMock).toHaveBeenCalledWith('cultivator-1', {
+      page: 2,
+      pageSize: 5,
+    });
   });
 
   it('restores qi from a consume-on-action talisman in one transaction', async () => {

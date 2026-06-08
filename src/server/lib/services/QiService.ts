@@ -1,13 +1,12 @@
 import {
   QI_ACTION_COSTS,
-  QI_DAILY_REFRESH,
   QI_DAILY_RESTORE_ITEM_LIMIT,
   QI_MAX,
   QI_OVERFLOW_MAX,
   QI_REFRESH_TIMEZONE,
   type QiAction,
 } from '@shared/config/qiSystem';
-import type { QiLogEntry, QiState } from '@shared/contracts/qi';
+import type { QiLogEntry, QiLogsResponse, QiState } from '@shared/contracts/qi';
 import type {
   QiLogMetadata,
   QiLogStatus,
@@ -15,11 +14,10 @@ import type {
   QiRestoreResult,
   QiRestoreSource,
 } from '@shared/types/qi';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { getExecutor, type DbTransaction } from '../drizzle/db';
 import { cultivators, qiLogs } from '../drizzle/schema';
 
-const CONSUMED_STATUSES: QiLogStatus[] = ['committed', 'failed_no_refund'];
 const RESTORE_STATUS: QiLogStatus = 'restore_committed';
 
 function isQiEnabled() {
@@ -42,6 +40,11 @@ function shouldRefresh(lastRefreshedAt: Date | null, now = new Date()) {
 
 function normalizeMetadata(metadata?: QiLogMetadata): QiLogMetadata {
   return metadata && typeof metadata === 'object' ? metadata : {};
+}
+
+function normalizePositiveInteger(value: number | undefined, fallback: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.max(1, Math.floor(value));
 }
 
 export class QiInsufficientError extends Error {
@@ -113,52 +116,28 @@ export class QiService {
   }
 
   static async getQiState(cultivatorId: string): Promise<QiState> {
-    const q = getExecutor();
-    const today = getDateInTimezone();
+    const [row] = await getExecutor()
+      .select({
+        qi: cultivators.qi,
+        qiLastRefreshedAt: cultivators.qiLastRefreshedAt,
+      })
+      .from(cultivators)
+      .where(eq(cultivators.id, cultivatorId))
+      .limit(1);
 
-    return q.transaction(async (tx) => {
-      const refreshed = await this.refreshLockedCultivator(tx, cultivatorId);
+    if (!row) {
+      throw new QiServiceError('角色不存在', 404);
+    }
 
-      const [consumedRow] = await tx
-        .select({
-          total: sql<number>`COALESCE(SUM(${qiLogs.qiCost}), 0)`,
-        })
-        .from(qiLogs)
-        .where(
-          and(
-            eq(qiLogs.cultivatorId, cultivatorId),
-            inArray(qiLogs.status, CONSUMED_STATUSES),
-            sql`DATE(${qiLogs.createdAt} AT TIME ZONE ${QI_REFRESH_TIMEZONE}) = ${today}::date`,
-          ),
-        );
+    const current =
+      shouldRefresh(row.qiLastRefreshedAt) && row.qi < QI_MAX
+        ? QI_MAX
+        : row.qi;
 
-      const [restoredRow] = await tx
-        .select({
-          total: sql<number>`COALESCE(SUM(${qiLogs.qiGain}), 0)`,
-          uses: sql<number>`COUNT(*)`,
-        })
-        .from(qiLogs)
-        .where(
-          and(
-            eq(qiLogs.cultivatorId, cultivatorId),
-            eq(qiLogs.status, RESTORE_STATUS),
-            eq(qiLogs.source, 'talisman'),
-            sql`DATE(${qiLogs.createdAt} AT TIME ZONE ${QI_REFRESH_TIMEZONE}) = ${today}::date`,
-          ),
-        );
-
-      return {
-        current: refreshed.qi,
-        max: QI_MAX,
-        overflowMax: QI_OVERFLOW_MAX,
-        dailyRefresh: QI_DAILY_REFRESH,
-        lastRefreshedAt: refreshed.qiLastRefreshedAt.toISOString(),
-        todayConsumed: Number(consumedRow?.total ?? 0),
-        todayRestored: Number(restoredRow?.total ?? 0),
-        todayRestoreItemUses: Number(restoredRow?.uses ?? 0),
-        dailyRestoreItemLimit: QI_DAILY_RESTORE_ITEM_LIMIT,
-      };
-    });
+    return {
+      current,
+      max: QI_MAX,
+    };
   }
 
   private static async getRawQi(cultivatorId: string): Promise<number> {
@@ -177,29 +156,52 @@ export class QiService {
 
   static async listLogs(
     cultivatorId: string,
-    limit = 30,
-  ): Promise<QiLogEntry[]> {
-    const rows = await getExecutor()
+    options: { page?: number; pageSize?: number } = {},
+  ): Promise<QiLogsResponse> {
+    const page = normalizePositiveInteger(options.page, 1);
+    const pageSize = Math.min(
+      100,
+      normalizePositiveInteger(options.pageSize, 20),
+    );
+    const offset = (page - 1) * pageSize;
+    const q = getExecutor();
+
+    const [totalRow] = await q
+      .select({ total: sql<number>`COUNT(*)` })
+      .from(qiLogs)
+      .where(eq(qiLogs.cultivatorId, cultivatorId));
+
+    const rows = await q
       .select()
       .from(qiLogs)
       .where(eq(qiLogs.cultivatorId, cultivatorId))
       .orderBy(desc(qiLogs.createdAt))
-      .limit(Math.max(1, Math.min(100, limit)));
+      .limit(pageSize)
+      .offset(offset);
 
-    return rows.map((row) => ({
-      id: row.id,
-      action: row.action,
-      actionInstanceId: row.actionInstanceId,
-      status: row.status as QiLogStatus,
-      qiCost: row.qiCost,
-      qiGain: row.qiGain,
-      qiBefore: row.qiBefore,
-      qiAfter: row.qiAfter,
-      source: row.source,
-      metadata: normalizeMetadata(row.metadata as QiLogMetadata),
-      createdAt: row.createdAt?.toISOString() ?? new Date(0).toISOString(),
-      updatedAt: row.updatedAt?.toISOString() ?? new Date(0).toISOString(),
-    }));
+    const total = Number(totalRow?.total ?? 0);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    return {
+      logs: rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        actionInstanceId: row.actionInstanceId,
+        status: row.status as QiLogStatus,
+        qiCost: row.qiCost,
+        qiGain: row.qiGain,
+        qiBefore: row.qiBefore,
+        qiAfter: row.qiAfter,
+        source: row.source,
+        metadata: normalizeMetadata(row.metadata as QiLogMetadata),
+        createdAt: row.createdAt?.toISOString() ?? new Date(0).toISOString(),
+        updatedAt: row.updatedAt?.toISOString() ?? new Date(0).toISOString(),
+      })),
+      page,
+      pageSize,
+      total,
+      totalPages,
+    };
   }
 
   static async reserveQi(input: {

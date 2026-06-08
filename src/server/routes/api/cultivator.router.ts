@@ -193,6 +193,15 @@ function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
   return null;
 }
 
+function parsePositiveInt(
+  rawValue: string | undefined,
+  fallback: number,
+): number {
+  if (!rawValue) return fallback;
+  const parsed = Number.parseInt(rawValue, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function parseMaterialTypes(raw: string | null): MaterialType[] | undefined {
   if (!raw) return undefined;
   const values = raw
@@ -593,9 +602,13 @@ router.get('/qi/logs', requireActiveCultivator(), async (c) => {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const limit = Number.parseInt(c.req.query('limit') ?? '30', 10);
-  const logs = await QiService.listLogs(cultivator.id, limit);
-  return c.json({ success: true, data: { logs } });
+  const page = parsePositiveInt(c.req.query('page'), 1);
+  const pageSize = Math.min(
+    100,
+    parsePositiveInt(c.req.query('pageSize'), 20),
+  );
+  const data = await QiService.listLogs(cultivator.id, { page, pageSize });
+  return c.json({ success: true, data });
 });
 
 router.post('/qi/restore', requireActiveCultivator(), async (c) => {
