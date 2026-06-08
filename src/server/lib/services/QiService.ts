@@ -6,7 +6,7 @@ import {
   QI_REFRESH_TIMEZONE,
   type QiAction,
 } from '@shared/config/qiSystem';
-import type { QiLogEntry, QiLogsResponse, QiState } from '@shared/contracts/qi';
+import type { QiLogsResponse, QiState } from '@shared/contracts/qi';
 import type {
   QiLogMetadata,
   QiLogStatus,

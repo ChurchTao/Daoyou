@@ -23,6 +23,7 @@ import {
   getMaterialTypeInfo,
 } from '@shared/types/dictionaries';
 import type { ItemDetailPayload } from './itemDetailPayload';
+import { buildTalismanDetailText } from './talismanDisplay';
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -44,14 +45,7 @@ function QuantityInfo({ quantity }: { quantity: number }) {
 
 function buildTalismanDescription(consumable: Consumable): string {
   if (isTalismanConsumable(consumable)) {
-    return [
-      `适用场景：${consumable.spec.scenario}`,
-      `消耗方式：${consumable.spec.sessionMode}`,
-      consumable.spec.notes,
-      consumable.description,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    return buildTalismanDetailText(consumable);
   }
 
   return consumable.description ?? '';

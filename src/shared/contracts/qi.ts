@@ -36,7 +36,3 @@ export interface QiInsufficientError {
   current: number;
   action: QiAction;
 }
-
-export interface QiRestoreRequest {
-  consumableId: string;
-}

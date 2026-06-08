@@ -4,6 +4,10 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { stripExpCapForStorage } from '@server/utils/cultivationUtils';
 import {
+  QI_RESTORE_TALISMAN_SCENARIOS,
+  isQiRestoreTalismanScenario,
+} from '@shared/config/qiSystem';
+import {
   isPillConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
@@ -17,7 +21,9 @@ import {
   replaceSpiritualRoots,
 } from './cultivatorService';
 import { PillOperationExecutor } from './PillOperationExecutor';
+import { QiService } from './QiService';
 import { mapConsumableRow } from './consumablePersistence';
+import { randomUUID } from 'crypto';
 
 async function loadOwnedConsumable(
   cultivatorId: string,
@@ -72,7 +78,38 @@ export const ConsumableUseEngine = {
     }
 
     if (isTalismanConsumable(consumable)) {
-      throw new Error('符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
+      if (!isQiRestoreTalismanScenario(consumable.spec.scenario)) {
+        throw new Error('符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
+      }
+
+      if (consumable.spec.sessionMode !== 'consume_on_action') {
+        throw new Error('该符箓需在对应玩法入口校验并消耗，不能在背包中直接使用。');
+      }
+
+      const restoreSpec = QI_RESTORE_TALISMAN_SCENARIOS[consumable.spec.scenario];
+      const restored = await getExecutor().transaction(async (tx) => {
+        const result = await QiService.restoreQi({
+          cultivatorId,
+          amount: restoreSpec.amount,
+          source: 'talisman',
+          action: consumable.spec.scenario,
+          actionInstanceId: randomUUID(),
+          tx,
+          metadata: {
+            consumableId,
+            consumableName: consumable.name,
+            scenario: consumable.spec.scenario,
+          },
+        });
+
+        await consumeConsumableById(userId, cultivatorId, consumableId, 1, tx);
+        return result;
+      });
+
+      return {
+        message: `已使用${consumable.name}，天地灵气 +${restored.restored}。`,
+        consumable,
+      };
     }
 
     if (!isPillConsumable(consumable)) {

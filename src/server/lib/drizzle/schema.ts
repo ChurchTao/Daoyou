@@ -151,54 +151,6 @@ export const preHeavenFates = pgTable(
   (table) => [index('pre_heaven_fates_cultivator_idx').on(table.cultivatorId)],
 );
 
-// 功法表（1对多）
-export const cultivationTechniques = pgTable(
-  'wanjiedaoyou_cultivation_techniques',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    cultivatorId: uuid('cultivator_id')
-      .references(() => cultivators.id, { onDelete: 'cascade' })
-      .notNull(),
-    name: varchar('name', { length: 100 }).notNull(),
-    grade: varchar('grade', { length: 20 }),
-    required_realm: varchar('required_realm', { length: 20 }).notNull(),
-    description: text('description'),
-    score: integer('score').notNull().default(0),
-    effects: jsonb('effects').default([]), // EffectConfig[]
-    createdAt: timestamp('created_at').defaultNow(),
-  },
-  (table) => [
-    index('cultivation_techniques_cultivator_idx').on(table.cultivatorId),
-    index('cultivation_techniques_score_idx').on(table.score),
-  ],
-);
-
-// 技能表（1对多）
-export const skills = pgTable(
-  'wanjiedaoyou_skills',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    cultivatorId: uuid('cultivator_id')
-      .references(() => cultivators.id, { onDelete: 'cascade' })
-      .notNull(),
-    name: varchar('name', { length: 100 }).notNull(),
-    prompt: text('prompt').notNull().default(''),
-    element: varchar('element', { length: 10 }).notNull(),
-    grade: varchar('grade', { length: 20 }),
-    cost: integer('cost').default(0),
-    cooldown: integer('cooldown').notNull().default(0),
-    target_self: integer('target_self').default(0),
-    description: text('description'),
-    score: integer('score').notNull().default(0),
-    effects: jsonb('effects').default([]), // EffectConfig[]
-    createdAt: timestamp('created_at').defaultNow(),
-  },
-  (table) => [
-    index('skills_cultivator_idx').on(table.cultivatorId),
-    index('skills_score_idx').on(table.score),
-  ],
-);
-
 // 材料表（1对多）
 export const materials = pgTable(
   'wanjiedaoyou_materials',
@@ -224,33 +176,6 @@ export const materials = pgTable(
       table.name,
       table.rank,
     ),
-  ],
-);
-
-// 法宝表（1对多）
-export const artifacts = pgTable(
-  'wanjiedaoyou_artifacts',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    cultivatorId: uuid('cultivator_id')
-      .references(() => cultivators.id, { onDelete: 'cascade' })
-      .notNull(),
-    name: varchar('name', { length: 100 }).notNull(),
-    prompt: varchar('prompt', { length: 200 }).notNull().default(''),
-    quality: varchar('quality', { length: 20 }).notNull().default('凡品'),
-    required_realm: varchar('required_realm', { length: 20 })
-      .notNull()
-      .default('练气'),
-    slot: varchar('slot', { length: 20 }).notNull(), // weapon | armor | accessory
-    element: varchar('element', { length: 10 }).notNull(),
-    description: text('description'),
-    score: integer('score').notNull().default(0),
-    effects: jsonb('effects').default([]), // EffectConfig[]
-    createdAt: timestamp('created_at').defaultNow(),
-  },
-  (table) => [
-    index('artifacts_cultivator_idx').on(table.cultivatorId),
-    index('artifacts_score_idx').on(table.score),
   ],
 );
 
@@ -396,28 +321,6 @@ export const cultivatorTasks = pgTable(
     ),
   ],
 );
-
-// 装备状态表（1对1）
-export const equippedItems = pgTable('wanjiedaoyou_equipped_items', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cultivatorId: uuid('cultivator_id')
-    .references(() => cultivators.id, { onDelete: 'cascade' })
-    .notNull()
-    .unique(),
-  weapon_id: uuid('weapon_id').references(() => artifacts.id, {
-    onDelete: 'set null',
-  }),
-  armor_id: uuid('armor_id').references(() => artifacts.id, {
-    onDelete: 'set null',
-  }),
-  accessory_id: uuid('accessory_id').references(() => artifacts.id, {
-    onDelete: 'set null',
-  }),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
 
 // 战斗记录表 - 存放每场战斗的完整结果快照与战报
 export const battleRecords = pgTable(
@@ -861,7 +764,6 @@ export const feedbacks = pgTable(
 
 // ===== 造物引擎 V2 统一产物表 =====
 // 所有 v2 产物（skill/artifact/gongfa）存入同一张表，通过 product_type 区分
-// 与 v1 旧表（skills/artifacts/cultivation_techniques）完全隔离
 export const creationProducts = pgTable(
   'wanjiedaoyou_creation_products',
   {

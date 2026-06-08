@@ -4,15 +4,17 @@ import {
   PillKeywordLine,
   toPillDisplayModel,
 } from '@app/components/feature/consumables';
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { ArtifactListCard } from '@app/components/feature/products';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkNotice } from '@app/components/ui';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { isPillConsumable } from '@shared/lib/consumables';
+import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import type { DungeonState } from '@shared/lib/dungeon/types';
 import type { Artifact, Consumable, Cultivator } from '@shared/types/cultivator';
 import { useCallback, useRef, useState } from 'react';
@@ -25,7 +27,7 @@ interface DungeonRunPanelProps {
 }
 
 type DrawerMainTab = 'status' | 'inventory';
-type DrawerInventoryTab = 'artifacts' | 'pills';
+type DrawerInventoryTab = 'artifacts' | 'consumables';
 type DrawerInventoryPage = {
   items: Artifact[] | Consumable[];
   page: number;
@@ -34,6 +36,14 @@ type DrawerInventoryPage = {
 };
 
 const DRAWER_INVENTORY_PAGE_SIZE = 6;
+
+function isDirectUseConsumable(item: Consumable) {
+  return (
+    isPillConsumable(item) ||
+    (isTalismanConsumable(item) &&
+      isQiRestoreTalismanScenario(item.spec.scenario))
+  );
+}
 
 function clampPercent(value: number | undefined): number {
   if (!Number.isFinite(value)) return 0;
@@ -138,7 +148,9 @@ export function DungeonRunPanel({
     .map((reward) => reward.name || '神秘机缘')
     .slice(-4);
   const artifacts = artifactPage.items as Artifact[];
-  const pills = (pillPage.items as Consumable[]).filter(isPillConsumable);
+  const directUseConsumables = (pillPage.items as Consumable[]).filter(
+    isDirectUseConsumable,
+  );
 
   const fetchDrawerInventoryPage = useCallback(
     async (tab: DrawerInventoryTab, page = 1) => {
@@ -269,10 +281,10 @@ export function DungeonRunPanel({
     [artifactPage.page, fetchDrawerInventoryPage, pushToast, refresh, refreshInventory],
   );
 
-  const handleConsumePill = useCallback(
+  const handleConsumeConsumable = useCallback(
     async (item: Consumable) => {
       if (!item.id) {
-        pushToast({ message: '此丹药暂无有效 ID，无法服用。', tone: 'warning' });
+        pushToast({ message: '此消耗品暂无有效 ID，无法使用。', tone: 'warning' });
         return;
       }
 
@@ -289,23 +301,33 @@ export function DungeonRunPanel({
         }
 
         pushToast({
-          message: result.data?.message || `${item.name}已服下。`,
+          message: result.data?.message || `${item.name}已使用。`,
           tone: 'success',
         });
+        if (isTalismanConsumable(item)) {
+          invalidateQiState(cultivator?.id);
+        }
         await refresh();
         await refreshInventory(['consumables']);
-        await fetchDrawerInventoryPage('pills', pillPage.page);
+        await fetchDrawerInventoryPage('consumables', pillPage.page);
       } catch (error) {
         pushToast({
           message:
-            error instanceof Error ? `服用失败：${error.message}` : '服用失败。',
+            error instanceof Error ? `使用失败：${error.message}` : '使用失败。',
           tone: 'danger',
         });
       } finally {
         setPendingId(null);
       }
     },
-    [fetchDrawerInventoryPage, pillPage.page, pushToast, refresh, refreshInventory],
+    [
+      cultivator,
+      fetchDrawerInventoryPage,
+      pillPage.page,
+      pushToast,
+      refresh,
+      refreshInventory,
+    ],
   );
 
   return (
@@ -397,7 +419,7 @@ export function DungeonRunPanel({
                   onChange={handleInventoryTabChange}
                   items={[
                     { label: '法宝', value: 'artifacts' },
-                    { label: '丹药', value: 'pills' },
+                    { label: '消耗品', value: 'consumables' },
                   ]}
                 />
                 {activeInventoryTab === 'artifacts' ? (
@@ -466,15 +488,19 @@ export function DungeonRunPanel({
                 ) : (
                   <div className="space-y-2">
                     {!pillPage.isLoaded && isInventoryLoading ? (
-                      <InkNotice className="my-2">正在检索丹药。</InkNotice>
-                    ) : pills.length === 0 ? (
-                      <InkNotice className="my-2">暂无可直接服用的丹药。</InkNotice>
+                      <InkNotice className="my-2">正在检索消耗品。</InkNotice>
+                    ) : directUseConsumables.length === 0 ? (
+                      <InkNotice className="my-2">
+                        暂无可直接使用的丹药或聚灵符。
+                      </InkNotice>
                     ) : (
-                      pills.map((item) => {
-                        const pillDisplay = toPillDisplayModel(item, {
-                          realm: cultivator?.realm,
-                          condition: cultivator?.condition,
-                        });
+                      directUseConsumables.map((item) => {
+                        const pillDisplay = isPillConsumable(item)
+                          ? toPillDisplayModel(item, {
+                              realm: cultivator?.realm,
+                              condition: cultivator?.condition,
+                            })
+                          : null;
                         return (
                           <div
                             key={item.id ?? item.name}
@@ -487,19 +513,23 @@ export function DungeonRunPanel({
                                   x{item.quantity}
                                 </span>
                               </div>
-                              <PillKeywordLine
-                                labels={pillDisplay.keywordLabels}
-                              />
+                              {pillDisplay ? (
+                                <PillKeywordLine
+                                  labels={pillDisplay.keywordLabels}
+                                />
+                              ) : null}
                               <p className="text-ink-secondary line-clamp-2 text-xs leading-5">
-                                {pillDisplay.effectSummary}
+                                {pillDisplay?.effectSummary ??
+                                  item.description ??
+                                  '使用后恢复天地灵气。'}
                               </p>
                             </div>
                             <InkButton
                               variant="primary"
                               disabled={!item.id || pendingId === item.id}
-                              onClick={() => handleConsumePill(item)}
+                              onClick={() => handleConsumeConsumable(item)}
                             >
-                              {pendingId === item.id ? '服用中…' : '服用'}
+                              {pendingId === item.id ? '使用中…' : '使用'}
                             </InkButton>
                           </div>
                         );
@@ -510,7 +540,10 @@ export function DungeonRunPanel({
                         <InkButton
                           disabled={pillPage.page <= 1 || isInventoryLoading}
                           onClick={() =>
-                            fetchDrawerInventoryPage('pills', pillPage.page - 1)
+                            fetchDrawerInventoryPage(
+                              'consumables',
+                              pillPage.page - 1,
+                            )
                           }
                         >
                           上一页
@@ -524,7 +557,10 @@ export function DungeonRunPanel({
                             isInventoryLoading
                           }
                           onClick={() =>
-                            fetchDrawerInventoryPage('pills', pillPage.page + 1)
+                            fetchDrawerInventoryPage(
+                              'consumables',
+                              pillPage.page + 1,
+                            )
                           }
                         >
                           下一页

@@ -2,13 +2,11 @@ import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   breakthroughHistory,
   consumables,
-  cultivationTechniques,
   cultivators,
   mails,
   materials,
   redeemCodeClaims,
   redeemCodes,
-  skills,
 } from '@server/lib/drizzle/schema';
 import {
   requireActiveCultivator,
@@ -47,7 +45,6 @@ import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
-  consumeConsumableById,
   equipEquipment,
   getCultivatorArtifacts,
   getCultivatorById,
@@ -69,11 +66,7 @@ import {
   type LifespanExhaustedStoryPayload,
 } from '@server/utils/prompts';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
-import {
-  QI_RESTORE_TALISMAN_SCENARIOS,
-  getRetreatQiCost,
-  isQiRestoreTalismanScenario,
-} from '@shared/config/qiSystem';
+import { getRetreatQiCost } from '@shared/config/qiSystem';
 import type {
   RetreatResultData,
   RetreatStreamEvent,
@@ -115,10 +108,6 @@ const ConsumeSchema = z.object({
   consumableId: z.string().uuid(),
 });
 
-const QiRestoreSchema = z.object({
-  consumableId: z.string().uuid(),
-});
-
 const EquipSchema = z.object({
   artifactId: z.string(),
 });
@@ -147,14 +136,6 @@ const ClaimMailSchema = z.object({
 
 const ReadMailSchema = z.object({
   mailId: z.string(),
-});
-
-const ForgetSkillSchema = z.object({
-  skillId: z.string(),
-});
-
-const ForgetTechniqueSchema = z.object({
-  techniqueId: z.string(),
 });
 
 class RedeemClaimError extends Error {
@@ -368,8 +349,6 @@ function createRetreatStreamResponse(args: {
 const router = new Hono<AppEnv>();
 const inventoryRouter = new Hono<AppEnv>();
 const mailRouter = new Hono<AppEnv>();
-const skillsRouter = new Hono<AppEnv>();
-const techniquesRouter = new Hono<AppEnv>();
 
 router.get('/reincarnate-context', requireUser(), async (c) => {
   const user = c.get('user');
@@ -436,7 +415,7 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
     try {
       await TaskService.syncCultivatorTasks(cultivator.id);
     } catch (syncError) {
-      console.error('服用丹药后同步任务失败:', syncError);
+      console.error('使用消耗品后同步任务失败:', syncError);
     }
     return c.json({
       success: true,
@@ -446,6 +425,8 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
       },
     });
   } catch (error) {
+    const qiResponse = qiErrorResponse(c, error);
+    if (qiResponse) return qiResponse;
     return c.json(
       {
         success: false,
@@ -609,82 +590,6 @@ router.get('/qi/logs', requireActiveCultivator(), async (c) => {
   );
   const data = await QiService.listLogs(cultivator.id, { page, pageSize });
   return c.json({ success: true, data });
-});
-
-router.post('/qi/restore', requireActiveCultivator(), async (c) => {
-  const user = c.get('user');
-  const cultivator = c.get('cultivator');
-  if (!user || !cultivator) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-
-  try {
-    const { consumableId } = QiRestoreSchema.parse(await c.req.json());
-    const actionInstanceId = randomUUID();
-
-    const result = await getExecutor().transaction(async (tx) => {
-      const [consumable] = await tx
-        .select()
-        .from(consumables)
-        .where(
-          and(
-            eq(consumables.id, consumableId),
-            eq(consumables.cultivatorId, cultivator.id),
-          ),
-        )
-        .for('update')
-        .limit(1);
-
-      if (!consumable) {
-        throw new QiServiceError('恢复符箓不存在或已耗尽。', 404);
-      }
-      if (consumable.type !== '符箓') {
-        throw new QiServiceError('该物品不是恢复灵气的符箓。', 400);
-      }
-
-      const spec = consumable.spec as {
-        kind?: string;
-        scenario?: string;
-        sessionMode?: string;
-      };
-      if (
-        spec.kind !== 'talisman' ||
-        spec.sessionMode !== 'consume_on_action' ||
-        !spec.scenario ||
-        !isQiRestoreTalismanScenario(spec.scenario)
-      ) {
-        throw new QiServiceError('该符箓不能用于恢复天地灵气。', 400);
-      }
-
-      const restoreSpec = QI_RESTORE_TALISMAN_SCENARIOS[spec.scenario];
-      const restored = await QiService.restoreQi({
-        cultivatorId: cultivator.id,
-        amount: restoreSpec.amount,
-        source: 'talisman',
-        action: spec.scenario,
-        actionInstanceId,
-        tx,
-        metadata: {
-          consumableId,
-          consumableName: consumable.name,
-          scenario: spec.scenario,
-        },
-      });
-
-      await consumeConsumableById(user.id, cultivator.id, consumableId, 1, tx);
-      return restored;
-    });
-
-    return c.json({ success: true, data: result });
-  } catch (error) {
-    const qiResponse = qiErrorResponse(c, error);
-    if (qiResponse) return qiResponse;
-    if (error instanceof z.ZodError) {
-      return c.json({ error: error.issues[0]?.message || '请求参数错误' }, 400);
-    }
-    console.error('恢复灵气失败:', error);
-    return c.json({ error: '恢复灵气失败，请稍后再试。' }, 500);
-  }
 });
 
 router.post('/title', requireActiveCultivator(), async (c) => {
@@ -1856,55 +1761,7 @@ mailRouter.get('/unread-count', requireActiveCultivator(), async (c) => {
   return c.json({ count: Number(result[0].count) });
 });
 
-skillsRouter.post('/forget', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
-
-  const { skillId } = ForgetSkillSchema.parse(await c.req.json());
-  const deleted = await getExecutor()
-    .delete(skills)
-    .where(and(eq(skills.id, skillId), eq(skills.cultivatorId, cultivator.id)))
-    .returning();
-
-  if (!deleted || deleted.length === 0) {
-    return c.json({ error: 'Skill not found or could not be deleted' }, 404);
-  }
-
-  return c.json({ success: true });
-});
-
-techniquesRouter.post('/forget', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
-
-  const { techniqueId } = ForgetTechniqueSchema.parse(await c.req.json());
-  const deleted = await getExecutor()
-    .delete(cultivationTechniques)
-    .where(
-      and(
-        eq(cultivationTechniques.id, techniqueId),
-        eq(cultivationTechniques.cultivatorId, cultivator.id),
-      ),
-    )
-    .returning();
-
-  if (!deleted || deleted.length === 0) {
-    return c.json(
-      { error: 'Technique not found or could not be deleted' },
-      404,
-    );
-  }
-
-  return c.json({ success: true });
-});
-
 router.route('/inventory', inventoryRouter);
 router.route('/mail', mailRouter);
-router.route('/skills', skillsRouter);
-router.route('/techniques', techniquesRouter);
 
 export default router;

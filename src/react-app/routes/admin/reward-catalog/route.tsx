@@ -622,7 +622,7 @@ function RewardCatalogEditorCard({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-ink-secondary text-xs tracking-[0.18em]">
-                  SPEC
+                  规格
                 </p>
                 <h4 className="text-ink mt-1 text-lg font-semibold">
                   消耗品规格
@@ -651,11 +651,11 @@ function RewardCatalogEditorCard({
               <div className="border-ink/12 bg-paper/70 space-y-3 border border-dashed p-4">
                 <div>
                   <p className="text-ink-secondary text-xs tracking-[0.16em]">
-                    QUICK PRESETS
+                    快捷模板
                   </p>
                   <p className="text-ink mt-1 font-semibold">固定符箓快捷模板</p>
                   <p className="text-ink-secondary mt-1 text-sm leading-6">
-                    这三张符箓是系统固定玩法道具。点击后会自动填入名称、说明、玩法标识、
+                    这些符箓是系统固定玩法道具。点击后会自动填入名称、说明、玩法标识、
                     消耗时机与建议目录项 ID，你仍可以继续微调。
                   </p>
                 </div>
@@ -820,7 +820,7 @@ function RewardCatalogEditorCard({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-ink-secondary text-xs tracking-[0.16em]">
-                        OPERATIONS
+                        效果
                       </p>
                       <p className="text-ink mt-1 font-semibold">
                         服用效果

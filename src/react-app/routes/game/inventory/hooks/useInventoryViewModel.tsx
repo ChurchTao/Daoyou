@@ -1,6 +1,8 @@
+import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import {
   QUALITY_ORDER,
@@ -474,14 +476,14 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       }
 
       if (isTalismanConsumable(item)) {
-        pushToast({
-          message: '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',
-          tone: 'warning',
-        });
-        return;
-      }
-
-      if (!isPillConsumable(item)) {
+        if (!isQiRestoreTalismanScenario(item.spec.scenario)) {
+          pushToast({
+            message: '符箓需在对应特殊玩法入口校验并锁定，不能在背包中直接使用。',
+            tone: 'warning',
+          });
+          return;
+        }
+      } else if (!isPillConsumable(item)) {
         pushToast({
           message: '该消耗品缺少有效丹药数据，暂时无法服用。',
           tone: 'warning',
@@ -502,16 +504,19 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         }
 
         pushToast({
-          message: result.data?.message || `${item.name}已服下。`,
+          message: result.data?.message || `${item.name}已使用。`,
           tone: 'success',
         });
 
+        if (isTalismanConsumable(item)) {
+          invalidateQiState(cultivator.id);
+        }
         await refresh();
         await fetchTabPage('consumables', paginationByTab.consumables.page);
       } catch (error) {
         pushToast({
           message:
-            error instanceof Error ? `服用失败：${error.message}` : '服用失败',
+            error instanceof Error ? `使用失败：${error.message}` : '使用失败',
           tone: 'danger',
         });
       } finally {

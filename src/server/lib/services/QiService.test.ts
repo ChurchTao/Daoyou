@@ -13,7 +13,7 @@ vi.mock('../drizzle/db', () => ({
 }));
 
 import { getExecutor } from '../drizzle/db';
-import { QiInsufficientError, QiService } from './QiService';
+import { QiInsufficientError, QiService, QiServiceError } from './QiService';
 
 const getExecutorMock = getExecutor as unknown as Mock;
 
@@ -262,6 +262,51 @@ describe('QiService', () => {
       qiAfter: 300,
       source: 'talisman',
     });
+  });
+
+  it('rejects talisman restore when the daily use limit is reached', async () => {
+    const { updates, inserts } = createDbMock([
+      [],
+      [{ uses: 3 }],
+    ]);
+
+    await expect(
+      QiService.restoreQi({
+        cultivatorId: 'cultivator-1',
+        amount: 50,
+        source: 'talisman',
+        actionInstanceId: 'restore-1',
+        action: 'qi_restore_small',
+      }),
+    ).rejects.toBeInstanceOf(QiServiceError);
+    expect(updates).toHaveLength(0);
+    expect(inserts).toHaveLength(0);
+  });
+
+  it('rejects talisman restore when qi is already at the overflow max', async () => {
+    const { updates, inserts } = createDbMock([
+      [],
+      [{ uses: 0 }],
+      [
+        {
+          id: 'cultivator-1',
+          qi: 300,
+          qiLastRefreshedAt: new Date(),
+        },
+      ],
+    ]);
+
+    await expect(
+      QiService.restoreQi({
+        cultivatorId: 'cultivator-1',
+        amount: 50,
+        source: 'talisman',
+        actionInstanceId: 'restore-1',
+        action: 'qi_restore_small',
+      }),
+    ).rejects.toBeInstanceOf(QiServiceError);
+    expect(updates).toHaveLength(0);
+    expect(inserts).toHaveLength(0);
   });
 
   it('does not write a consume log or change qi when the system is disabled', async () => {

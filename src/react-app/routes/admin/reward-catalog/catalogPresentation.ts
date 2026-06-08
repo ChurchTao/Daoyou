@@ -1,4 +1,8 @@
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import {
+  QI_RESTORE_TALISMAN_SCENARIOS,
+  type QiRestoreTalismanScenario,
+} from '@shared/config/qiSystem';
 import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type { ConditionStatusKey } from '@shared/types/condition';
@@ -85,12 +89,17 @@ const TALISMAN_SCENARIO_LABELS = {
   fate_reshape: '命格重塑',
   draw_gongfa: '问法寻卷·功法抽取',
   draw_skill: '问法寻卷·神通抽取',
+  qi_restore_small: '天地灵气恢复·小聚灵符',
+  qi_restore_medium: '天地灵气恢复·中聚灵符',
+  qi_restore_large: '天地灵气恢复·大聚灵符',
+  qi_restore_fill_to_max: '天地灵气恢复·天地引气符',
 } as const;
 
 export type TalismanQuickPresetId =
   | 'talisman_reshape_fate'
   | 'talisman_draw_gongfa'
-  | 'talisman_draw_skill';
+  | 'talisman_draw_skill'
+  | `talisman_${QiRestoreTalismanScenario}`;
 
 interface TalismanQuickPreset {
   id: TalismanQuickPresetId;
@@ -100,6 +109,32 @@ interface TalismanQuickPreset {
   sessionMode: ConsumableTalismanDraft['sessionMode'];
   notes: string;
 }
+
+const QI_RESTORE_TALISMAN_DESCRIPTIONS: Record<
+  QiRestoreTalismanScenario,
+  string
+> = {
+  qi_restore_small:
+    '符中封存一缕清灵气机，使用后可恢复 50 点天地灵气，受每日符箓使用次数和灵气溢出上限约束。',
+  qi_restore_medium:
+    '符中汇聚一团天地元息，使用后可恢复 100 点天地灵气，受每日符箓使用次数和灵气溢出上限约束。',
+  qi_restore_large:
+    '符中蕴藏充沛灵潮，使用后可恢复 200 点天地灵气，受每日符箓使用次数和灵气溢出上限约束。',
+  qi_restore_fill_to_max:
+    '符箓引动天地气机回流，使用后可将天地灵气补至基础上限，受每日符箓使用次数和灵气溢出上限约束。',
+};
+
+const QI_RESTORE_TALISMAN_PRESETS: TalismanQuickPreset[] = Object.entries(
+  QI_RESTORE_TALISMAN_SCENARIOS,
+).map(([scenario, config]) => ({
+  id: `talisman_${scenario}` as TalismanQuickPresetId,
+  name: config.label,
+  description:
+    QI_RESTORE_TALISMAN_DESCRIPTIONS[scenario as QiRestoreTalismanScenario],
+  scenario: scenario as keyof typeof TALISMAN_SCENARIO_LABELS,
+  sessionMode: 'consume_on_action',
+  notes: '可在背包中直接使用，恢复天地灵气。',
+}));
 
 export const TALISMAN_QUICK_PRESETS: TalismanQuickPreset[] = [
   {
@@ -129,6 +164,7 @@ export const TALISMAN_QUICK_PRESETS: TalismanQuickPreset[] = [
     sessionMode: 'consume_on_action',
     notes: '前往问法寻卷页，点击抽取后直接消耗。',
   },
+  ...QI_RESTORE_TALISMAN_PRESETS,
 ];
 
 const TALISMAN_QUICK_PRESET_MAP = new Map(

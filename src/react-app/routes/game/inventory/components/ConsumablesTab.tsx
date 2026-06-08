@@ -11,7 +11,12 @@ import {
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
-import { buildManualDrawHref } from '@shared/types/manualDraw';
+import {
+  getTalismanActionHref,
+  getTalismanActionLabel,
+  getTalismanUsageHint,
+  isQiRestoreTalisman,
+} from './talismanDisplay';
 
 interface ConsumablesTabProps {
   consumables: Consumable[];
@@ -56,37 +61,16 @@ export function ConsumablesTab({
     <InkList>
       {sortedItems.map((item, idx) => {
         const isTalisman = isTalismanConsumable(item);
-        const isDirectlyUsable = isPillConsumable(item);
-        const scenario = isTalisman ? item.spec.scenario : undefined;
-        const isFateReshapeTalisman = scenario === 'fate_reshape';
-        const isGongfaDrawTalisman = scenario === 'draw_gongfa';
-        const isSkillDrawTalisman = scenario === 'draw_skill';
-        const scenarioHref = isFateReshapeTalisman
-          ? '/game/fate-reshape'
-          : isGongfaDrawTalisman
-            ? buildManualDrawHref('gongfa')
-            : isSkillDrawTalisman
-              ? buildManualDrawHref('skill')
-              : undefined;
-        const scenarioActionLabel = isFateReshapeTalisman
-          ? '前往重塑'
-          : isGongfaDrawTalisman
-            ? '抽功法秘籍'
-            : isSkillDrawTalisman
-              ? '抽神通秘籍'
-              : null;
+        const isDirectlyUsable =
+          isPillConsumable(item) || isQiRestoreTalisman(item);
+        const scenarioHref = getTalismanActionHref(item);
+        const scenarioActionLabel = getTalismanActionLabel(item);
         const canNavigateToScenario = Boolean(item.id && scenarioHref);
-        const pillDisplay = isDirectlyUsable
+        const pillDisplay = isPillConsumable(item)
           ? toPillDisplayModel(item, { realm, condition })
           : null;
         const usageHint = isTalisman
-          ? isFateReshapeTalisman
-            ? '【前往命格重塑功能页启封，开启时立即扣除】'
-            : isGongfaDrawTalisman
-              ? '【前往问法寻卷，直接消耗符箓抽取功法秘籍】'
-              : isSkillDrawTalisman
-                ? '【前往问法寻卷，直接消耗符箓抽取神通秘籍】'
-                : '【需在对应玩法入口校验并锁定，终局结算后扣除】'
+          ? getTalismanUsageHint(item)
           : '【仅可在场外服用，药力会直接回写当前状态】';
 
         return (
@@ -138,11 +122,13 @@ export function ConsumablesTab({
                   variant="primary"
                 >
                   {pendingId === item.id
-                    ? '服用中…'
+                    ? '使用中…'
                     : canNavigateToScenario
                       ? scenarioActionLabel
                       : isTalisman
-                        ? '场外使用'
+                        ? isDirectlyUsable
+                          ? '使用'
+                          : '需前往玩法'
                         : isDirectlyUsable
                           ? '服用'
                           : '暂未开放'}

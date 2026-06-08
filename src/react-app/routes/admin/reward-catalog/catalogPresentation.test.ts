@@ -44,6 +44,28 @@ describe('reward catalog presentation helpers', () => {
   it('maps known talisman scenarios to readable labels', () => {
     expect(getTalismanScenarioAlias('draw_gongfa')).toBe('问法寻卷·功法抽取');
     expect(getTalismanScenarioAlias('fate_reshape')).toBe('命格重塑');
+    expect(getTalismanScenarioAlias('qi_restore_small')).toBe(
+      '天地灵气恢复·小聚灵符',
+    );
     expect(getTalismanScenarioAlias('custom_scene')).toBe('custom_scene');
+  });
+
+  it('applies the qi restore talisman preset', () => {
+    const item = createEmptyDraftItem('consumable');
+
+    const next = applyTalismanQuickPreset(item, 'talisman_qi_restore_small');
+
+    expect(next).toMatchObject({
+      id: 'talisman_qi_restore_small',
+      name: '小聚灵符',
+      consumableType: '符箓',
+      quality: '仙品',
+      spec: {
+        kind: 'talisman',
+        scenario: 'qi_restore_small',
+        sessionMode: 'consume_on_action',
+        notes: '可在背包中直接使用，恢复天地灵气。',
+      },
+    });
   });
 });
