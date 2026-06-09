@@ -17,6 +17,10 @@ import type {
   AlchemyFormulaPattern,
   PillFamily,
 } from '@shared/types/consumable';
+import type {
+  ItemLibraryEditorConfig,
+  ItemLibraryPayload,
+} from '@shared/lib/itemLibrary';
 import type { MailAttachment } from '@shared/types/mail';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
 
@@ -522,6 +526,38 @@ export const appSettings = pgTable('wanjiedaoyou_app_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   updatedBy: uuid('updated_by'),
 });
+
+export const itemLibrary = pgTable(
+  'wanjiedaoyou_item_library',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    itemId: varchar('item_id', { length: 120 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // material | consumable | artifact
+    status: varchar('status', { length: 20 }).notNull().default('published'),
+    name: varchar('name', { length: 100 }).notNull(),
+    description: text('description'),
+    quality: varchar('quality', { length: 20 }),
+    element: varchar('element', { length: 10 }),
+    category: varchar('category', { length: 40 }),
+    payload: jsonb('payload').$type<ItemLibraryPayload>().notNull(),
+    editorConfig: jsonb('editor_config')
+      .$type<ItemLibraryEditorConfig>()
+      .notNull()
+      .default({}),
+    createdBy: uuid('created_by').notNull(),
+    updatedBy: uuid('updated_by').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('item_library_item_id_unique').on(table.itemId),
+    index('item_library_status_type_idx').on(table.status, table.type),
+    index('item_library_name_idx').on(table.name),
+  ],
+);
 
 // 单人副本历史记录表
 export const dungeonHistories = pgTable(
