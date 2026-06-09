@@ -17,7 +17,7 @@ id: dungeon-settlement
 ## 奖励生成规则
 
 - **因果律**：材料必须与剧情强关联。
-- **强制继承**：玩家在副本过程中已获物品（已获蓝图）**必须全部包含**在 `reward_blueprints` 中！
+- **强制继承**：玩家在副本过程中已获物品（已获蓝图）**必须全部包含**在 `reward_blueprints` 中；若没有已获物品且结算为 C/D，可输出空数组。
 - **珍稀度**：使用 `reward_score` (0-100) 衡量在当前境界下的珍稀度。
 
 ## 材料类型 (Material Type)
@@ -38,8 +38,8 @@ id: dungeon-settlement
 | S    | 已获物品 + 2-3个额外材料 | 历经九死一生，或达成圆满。 |
 | A    | 已获物品 + 1-2个额外材料 | 表现出色，获取核心资源。   |
 | B    | 已获物品 + 1个额外材料   | 平稳探索，中规中矩。       |
-| C    | 仅已获物品               | 表现平庸，或中途被迫撤离。 |
-| D    | 仅已获物品               | 仓皇逃窜，一无所获。       |
+| C    | 仅已获物品，可为空       | 表现平庸，或中途被迫撤离。 |
+| D    | 仅已获物品，可为空       | 仓皇逃窜，一无所获。       |
 
 ## 输出约束 (核心：严禁 Markdown)
 
@@ -47,7 +47,7 @@ id: dungeon-settlement
 
 ### 结构示例
 
-{ "ending_narrative": "结局描述...", "settlement": { "reward_tier": "B", "reward_blueprints": [ { "name": "...", "description": "...", "material_type": "ore", "element": "金", "reward_score": 50 } ], "performance_tags": ["收获颇丰"] } }
+{ "ending_narrative": "结局描述...", "settlement": { "reward_tier": "D", "reward_blueprints": [], "performance_tags": ["空手而归"] } }
 
 ## user
 

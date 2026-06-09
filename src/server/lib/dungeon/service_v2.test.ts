@@ -109,6 +109,10 @@ import {
   DungeonFlowErrorCode,
   DungeonService,
 } from './service_v2';
+import {
+  DungeonSettlementLlmSchema,
+  DungeonSettlementSchema,
+} from './types';
 import { object as objectMock } from '@server/utils/aiClient';
 import { renderPrompt } from '@server/lib/prompts';
 import {
@@ -367,6 +371,17 @@ function createSettlement() {
         },
       ],
       performance_tags: ['稳妥收获'],
+    },
+  };
+}
+
+function createEmptySettlement() {
+  return {
+    ending_narrative: '你狼狈退出秘境，此行并无实际收获。',
+    settlement: {
+      reward_tier: 'D' as const,
+      reward_blueprints: [],
+      performance_tags: ['空手而归'],
     },
   };
 }
@@ -992,6 +1007,40 @@ describe('DungeonService looting continuation', () => {
       statusReason: 'settlement LLM down',
       recoverableActions: ['retry_settle', 'force_quit'],
     });
+  });
+
+  it('settles successfully when the LLM returns no reward blueprints', async () => {
+    const service = new DungeonService();
+    const state = createDungeonState('easy-map');
+    state.status = 'SETTLING';
+    const emptySettlement = createEmptySettlement();
+    vi.spyOn(service, 'saveState').mockResolvedValue();
+    const archiveSpy = vi.spyOn(service, 'archiveDungeon').mockResolvedValue();
+    vi.mocked(objectMock).mockResolvedValueOnce({
+      object: emptySettlement,
+    } as Awaited<ReturnType<typeof objectMock>>);
+
+    const result = await service.settleDungeon(state, {
+      endDisposition: 'retreated_after_battle',
+    });
+
+    expect(DungeonSettlementSchema.safeParse(emptySettlement).success).toBe(
+      true,
+    );
+    expect(DungeonSettlementLlmSchema.safeParse(emptySettlement).success).toBe(
+      true,
+    );
+    expect(result).toMatchObject({
+      isFinished: true,
+      settlement: emptySettlement,
+    });
+    expect(result.realGains).toEqual(expect.any(Array));
+    expect(resourceGainMock).toHaveBeenCalled();
+    expect(archiveSpy).toHaveBeenCalledWith(
+      state,
+      emptySettlement,
+      result.realGains,
+    );
   });
 
   it('does not return successful settlement when reward gain fails', async () => {

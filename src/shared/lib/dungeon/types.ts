@@ -156,9 +156,8 @@ export const DungeonSettlementSchema = z
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
       reward_blueprints: z
         .array(RewardBlueprintSchema)
-        .min(1)
         .max(5)
-        .describe('奖励蓝图列表（需包含之前获取的物品，根据评级1-5个）'),
+        .describe('奖励蓝图列表（需包含之前获取的物品，空手撤离时可为空）'),
       performance_tags: z
         .array(z.string())
         .describe('评价标签（如：收获颇丰、险象环生、九死一生、空手而归）'),
