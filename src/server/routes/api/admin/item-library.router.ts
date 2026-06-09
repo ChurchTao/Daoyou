@@ -58,6 +58,7 @@ function buildArtifactPayload(
     description: input.description,
     slot: input.slot,
     element: input.element,
+    quality: input.quality,
     affixIds: input.affixIds,
     realm: input.realm,
     realmStage: input.realmStage,
@@ -207,6 +208,7 @@ router.post('/artifact/preview', requireAdmin(), async (c) => {
       editorConfig: {
         slot: parsed.data.slot,
         element: parsed.data.element,
+        quality: parsed.data.quality,
         realm: parsed.data.realm,
         realmStage: parsed.data.realmStage,
         affixIds: parsed.data.affixIds,

@@ -201,4 +201,37 @@ describe('item library editor helpers', () => {
 
     expect(() => buildItemLibrarySubmitBody(draft)).toThrow('请先生成法宝预览');
   });
+
+  it('keeps artifact quality in editor config when submitting', () => {
+    const draft = {
+      ...createEmptyDraft(),
+      type: 'artifact' as const,
+      itemId: 'lihuo_seal',
+      name: '离火古印',
+      artifactSlot: 'accessory' as const,
+      artifactElement: '火' as const,
+      artifactQuality: '天品' as const,
+      artifactAffixIds: ['artifact-panel-atk'],
+      artifactPayload: {
+        name: '离火古印',
+        slot: 'accessory' as const,
+        element: '火' as const,
+        quality: '天品' as const,
+        productModel: {
+          productType: 'artifact',
+          projectionQuality: '天品',
+        },
+      },
+    };
+
+    expect(buildItemLibrarySubmitBody(draft)).toMatchObject({
+      type: 'artifact',
+      editorConfig: {
+        slot: 'accessory',
+        element: '火',
+        quality: '天品',
+        affixIds: ['artifact-panel-atk'],
+      },
+    });
+  });
 });

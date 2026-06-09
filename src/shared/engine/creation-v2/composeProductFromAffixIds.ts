@@ -18,10 +18,12 @@ import type {
 import type {
   ElementType,
   EquipmentSlot,
+  Quality,
   RealmStage,
   RealmType,
 } from '@shared/types/constants';
 import type { TargetPolicyConfig } from '@shared/engine/battle-v5/abilities/TargetPolicy';
+import { CREATION_PROJECTION_QUALITY_TIERS } from './config/CreationBalance';
 
 const PRESET_QUALITY = '凡品' as const;
 const PRESET_EFFECTIVE_ENERGY = 17;
@@ -38,6 +40,7 @@ export interface ComposeProductFromAffixIdsArgs {
   affixIds: string[];
   requestedSlot?: EquipmentSlot;
   requestedTargetPolicy?: TargetPolicyConfig;
+  requestedQuality?: Quality;
   realm?: RealmType;
   realmStage?: RealmStage;
   creatorName?: string;
@@ -85,11 +88,13 @@ function toRolledAffix(def: AffixDefinition): RolledAffix {
 }
 
 function buildSyntheticMaterial(args: ComposeProductFromAffixIdsArgs) {
+  const rank = args.requestedQuality ?? PRESET_QUALITY;
+
   if (args.productType === 'skill') {
     return {
       name: args.name,
       type: 'skill_manual' as const,
-      rank: PRESET_QUALITY,
+      rank,
       quantity: 1,
       element: args.element,
     };
@@ -99,7 +104,7 @@ function buildSyntheticMaterial(args: ComposeProductFromAffixIdsArgs) {
     return {
       name: args.name,
       type: 'gongfa_manual' as const,
-      rank: PRESET_QUALITY,
+      rank,
       quantity: 1,
       element: args.element,
     };
@@ -108,10 +113,19 @@ function buildSyntheticMaterial(args: ComposeProductFromAffixIdsArgs) {
   return {
     name: args.name,
     type: 'ore' as const,
-    rank: PRESET_QUALITY,
+    rank,
     quantity: 1,
     element: args.element,
   };
+}
+
+function resolvePresetEffectiveEnergy(quality?: Quality): number {
+  if (!quality) return PRESET_EFFECTIVE_ENERGY;
+  const index = CREATION_PROJECTION_QUALITY_TIERS.findIndex(
+    (tier) => tier.quality === quality,
+  );
+  if (index <= 0) return PRESET_EFFECTIVE_ENERGY;
+  return CREATION_PROJECTION_QUALITY_TIERS[index - 1].maxEnergy;
 }
 
 export function composeProductFromAffixIds(
@@ -127,6 +141,7 @@ export function composeProductFromAffixIds(
 
   const rolledAffixes = defs.map(toRolledAffix);
   const spentEnergy = defs.reduce((sum, def) => sum + def.energyCost, 0);
+  const effectiveTotal = resolvePresetEffectiveEnergy(args.requestedQuality);
   const unlockedAffixCategories = Array.from(
     new Set(defs.map((def) => def.category)),
   );
@@ -174,15 +189,15 @@ export function composeProductFromAffixIds(
     unlockedAffixCategories,
   };
   session.state.energyBudget = {
-    baseTotal: PRESET_EFFECTIVE_ENERGY,
-    effectiveTotal: PRESET_EFFECTIVE_ENERGY,
+    baseTotal: effectiveTotal,
+    effectiveTotal,
     reserved: 0,
     spent: spentEnergy,
-    remaining: Math.max(0, PRESET_EFFECTIVE_ENERGY - spentEnergy),
-    initialRemaining: PRESET_EFFECTIVE_ENERGY,
+    remaining: Math.max(0, effectiveTotal - spentEnergy),
+    initialRemaining: effectiveTotal,
     allocations: [],
     rejections: [],
-    sources: [{ source: 'preset', amount: PRESET_EFFECTIVE_ENERGY }],
+    sources: [{ source: 'preset', amount: effectiveTotal }],
   };
   session.state.rolledAffixes = rolledAffixes;
   if (args.projectionContext) {

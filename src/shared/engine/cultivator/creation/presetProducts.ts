@@ -33,6 +33,7 @@ export interface PresetProductComposeArgs {
   name: string;
   description?: string;
   affixIds: string[];
+  requestedQuality?: Quality;
   requestedSlot?: EquipmentSlot;
   realm?: RealmType;
   realmStage?: RealmStage;
@@ -70,6 +71,7 @@ export interface PresetTechniqueDefinition {
   element: ElementType;
   description?: string;
   affixIds: string[];
+  quality?: Quality;
 }
 
 export interface PresetSkillDefinition {
@@ -77,6 +79,7 @@ export interface PresetSkillDefinition {
   element: ElementType;
   description?: string;
   affixIds: string[];
+  quality?: Quality;
 }
 
 export interface PresetArtifactDefinition {
@@ -86,6 +89,7 @@ export interface PresetArtifactDefinition {
   element: ElementType;
   description?: string;
   affixIds: string[];
+  quality?: Quality;
   realm?: RealmType;
   realmStage?: RealmStage;
   creatorName?: string;
@@ -111,6 +115,7 @@ export function buildPresetTechnique(
     name: definition.name,
     description: definition.description,
     affixIds: definition.affixIds,
+    requestedQuality: definition.quality,
   }) as GongFaProductModel;
   const abilityConfig = projectAbilityConfig(productModel);
 
@@ -134,6 +139,7 @@ export function buildPresetSkill(
     name: definition.name,
     description: definition.description,
     affixIds: definition.affixIds,
+    requestedQuality: definition.quality,
   }) as SkillProductModel;
   const abilityConfig = projectAbilityConfig(productModel);
 
@@ -165,6 +171,7 @@ export function buildPresetArtifact(
     description: definition.description,
     affixIds: definition.affixIds,
     requestedSlot: definition.slot,
+    requestedQuality: definition.quality,
     realm: definition.realm,
     realmStage: definition.realmStage,
     creatorName: definition.creatorName,

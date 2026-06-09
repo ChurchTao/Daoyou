@@ -151,6 +151,7 @@ export interface ItemLibraryDraft {
   talismanNotes: string;
   artifactSlot: EquipmentSlot;
   artifactElement: ElementType;
+  artifactQuality: Quality;
   artifactRealm: '' | RealmType;
   artifactRealmStage: '' | RealmStage;
   artifactAffixIds: string[];
@@ -319,6 +320,7 @@ export function createEmptyDraft(): ItemLibraryDraft {
     talismanNotes: '',
     artifactSlot: EQUIPMENT_SLOT_VALUES[0],
     artifactElement: ELEMENT_VALUES[0],
+    artifactQuality: QUALITY_VALUES[0],
     artifactRealm: '',
     artifactRealmStage: '',
     artifactAffixIds: [],
@@ -422,6 +424,8 @@ export function entryToDraft(entry: ItemLibraryEntry): ItemLibraryDraft {
   if (entry.type === 'artifact') {
     draft.artifactSlot = entry.editorConfig.slot;
     draft.artifactElement = entry.editorConfig.element;
+    draft.artifactQuality =
+      entry.editorConfig.quality ?? entry.payload.quality ?? QUALITY_VALUES[0];
     draft.artifactRealm = entry.editorConfig.realm ?? '';
     draft.artifactRealmStage = entry.editorConfig.realmStage ?? '';
     draft.artifactAffixIds = entry.editorConfig.affixIds;
@@ -645,6 +649,7 @@ export function buildItemLibrarySubmitBody(
     editorConfig: {
       slot: draft.artifactSlot,
       element: draft.artifactElement,
+      quality: draft.artifactQuality,
       ...(draft.artifactRealm ? { realm: draft.artifactRealm } : {}),
       ...(draft.artifactRealmStage
         ? { realmStage: draft.artifactRealmStage }

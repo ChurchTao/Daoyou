@@ -140,6 +140,7 @@ describe('admin item library router', () => {
           name: '离火古印',
           slot: 'accessory',
           element: '火',
+          quality: '真品',
           realm: '筑基',
           realmStage: '后期',
           affixIds: ['artifact-panel-atk'],
@@ -149,6 +150,7 @@ describe('admin item library router', () => {
     expect(ok.status).toBe(200);
     const okPayload = (await ok.json()) as { payload?: { productModel?: unknown } };
     expect(okPayload.payload?.productModel).toBeTruthy();
+    expect(okPayload.payload).toMatchObject({ quality: '真品' });
 
     const bad = await createApp().request(
       '/api/admin/item-library/artifact/preview',

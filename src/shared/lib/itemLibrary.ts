@@ -186,6 +186,7 @@ export const MailAttachmentsSchema = z.array(MailAttachmentSchema);
 export const ArtifactEditorConfigSchema = z.object({
   slot: z.enum(EQUIPMENT_SLOT_VALUES),
   element: z.enum(ELEMENT_VALUES),
+  quality: z.enum(QUALITY_VALUES).optional(),
   realm: z.enum(REALM_VALUES).optional(),
   realmStage: z.enum(REALM_STAGE_VALUES).optional(),
   affixIds: z.array(z.string().min(1)).min(1),

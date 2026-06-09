@@ -181,6 +181,7 @@ export default function ItemLibraryAdminPage() {
         description: draft.description.trim() || undefined,
         slot: draft.artifactSlot,
         element: draft.artifactElement,
+        quality: draft.artifactQuality,
         realm: draft.artifactRealm || undefined,
         realmStage: draft.artifactRealmStage || undefined,
         affixIds: draft.artifactAffixIds,
@@ -984,7 +985,7 @@ export default function ItemLibraryAdminPage() {
 
           {draft.type === 'artifact' ? (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-5">
                 <InkSelect
                   label="槽位"
                   value={draft.artifactSlot}
@@ -1014,6 +1015,23 @@ export default function ItemLibraryAdminPage() {
                   }}
                 >
                   {ELEMENT_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </InkSelect>
+                <InkSelect
+                  label="品质"
+                  value={draft.artifactQuality}
+                  onChange={(value) => {
+                    setDraftField(
+                      'artifactQuality',
+                      value as ItemLibraryDraft['artifactQuality'],
+                    );
+                    setDraftField('artifactPayload', null);
+                  }}
+                >
+                  {QUALITY_VALUES.map((value) => (
                     <option key={value} value={value}>
                       {value}
                     </option>
