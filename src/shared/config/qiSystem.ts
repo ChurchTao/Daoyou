@@ -6,10 +6,10 @@ export const QI_REFRESH_TIMEZONE = 'Asia/Shanghai';
 
 export const QI_ACTION_COSTS = {
   dungeon_start: 50,
-  retreat_10_years: 5,
+  retreat_10_years: 4,
   breakthrough_attempt: 20,
-  alchemy_improvised: 8,
-  alchemy_formula: 8,
+  alchemy_improvised: 2,
+  alchemy_formula: 2,
   creation_artifact: 8,
   creation_gongfa: 8,
   creation_skill: 8,
