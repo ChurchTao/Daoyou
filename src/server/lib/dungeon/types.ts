@@ -415,7 +415,8 @@ export interface DungeonRoundLlmContext {
     realmRequirement: string;
     difficultyTier: string;
     difficultyLabel: string;
-    battleDifficultyCap: number;
+    enemyDifficulty: number;
+    allowedEnemyRealmStages: string[];
     tags: string[];
     descriptionSummary: string;
   };

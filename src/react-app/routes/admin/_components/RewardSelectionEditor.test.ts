@@ -1,5 +1,5 @@
 import {
-  createCatalogItemDraft,
+  createItemLibraryItemDraft,
   createSpiritStoneDraft,
   parseRewardSelectionDrafts,
 } from './RewardSelectionEditor.helpers';
@@ -9,7 +9,7 @@ describe('reward selection editor helpers', () => {
     expect(
       parseRewardSelectionDrafts([
         createSpiritStoneDraft(),
-        createCatalogItemDraft('refined_iron'),
+        createItemLibraryItemDraft('refined_iron'),
       ]),
     ).toEqual([
       {

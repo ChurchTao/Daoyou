@@ -386,7 +386,7 @@ function createEmptySettlement() {
   };
 }
 
-describe('DungeonService dungeon enemy scaling', () => {
+describe('DungeonService dungeon enemy difficulty', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     redisSetMock.mockResolvedValue('OK');
@@ -400,7 +400,7 @@ describe('DungeonService dungeon enemy scaling', () => {
     enrichNarrativeMock.mockImplementation(async (draft) => draft);
   });
 
-  it('uses map realm requirement instead of player realm and disables boss loadout below elite', async () => {
+  it('uses table difficulty and stage clamp instead of LLM battle value', async () => {
     getMapNodeMock.mockReturnValueOnce({
       id: 'easy-map',
       name: '太岳山脉',
@@ -426,18 +426,20 @@ describe('DungeonService dungeon enemy scaling', () => {
     expect(buildDraftMock).toHaveBeenCalledWith(
       expect.objectContaining({
         realm: '筑基',
-        difficulty: 35,
+        realmStage: '初期',
+        difficulty: 12,
         isBoss: false,
       }),
     );
     expect(enrichNarrativeMock).toHaveBeenCalledTimes(1);
     expect(session.enemyData).toMatchObject({
       realm: '筑基',
-      difficulty: 35,
+      stage: '初期',
+      difficulty: 12,
     });
   });
 
-  it('allows boss loadout on boss maps and caps effective difficulty', async () => {
+  it('allows boss loadout only on boss maps and uses fixed table difficulty', async () => {
     getMapNodeMock.mockReturnValueOnce({
       id: 'boss-map',
       name: '昆吾山',
@@ -463,14 +465,16 @@ describe('DungeonService dungeon enemy scaling', () => {
     expect(buildDraftMock).toHaveBeenCalledWith(
       expect.objectContaining({
         realm: '化神',
-        difficulty: 100,
+        realmStage: '圆满',
+        difficulty: 90,
         isBoss: true,
       }),
     );
     expect(enrichNarrativeMock).toHaveBeenCalledTimes(1);
     expect(session.enemyData).toMatchObject({
       realm: '化神',
-      difficulty: 100,
+      stage: '圆满',
+      difficulty: 90,
     });
   });
 });

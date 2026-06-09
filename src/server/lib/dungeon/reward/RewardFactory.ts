@@ -13,6 +13,10 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
 import { calculateDungeonExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
+import {
+  getDungeonRewardBonus,
+  type DungeonDifficultyTier,
+} from '@shared/lib/game/mapSystem';
 import type {
   ElementType,
   MaterialType,
@@ -54,9 +58,11 @@ export class RewardFactory {
     tier: string,
     dangerScore: number,
     playerInfo: PlayerInfo,
+    difficultyTier?: DungeonDifficultyTier,
   ): ResourceOperation[] {
     const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
     const dangerBonus = this.getDangerBonus(dangerScore);
+    const rewardBonus = getDungeonRewardBonus(difficultyTier);
     const rewards: ResourceOperation[] = [];
 
     // 1. 灵石奖励 (基于挂机收益)
@@ -67,7 +73,9 @@ export class RewardFactory {
     if (spiritStones > 0) {
       rewards.push({
         type: 'spirit_stones',
-        value: Math.floor(spiritStones * (1 + dangerBonus * 0.35)),
+        value: Math.floor(
+          spiritStones * (1 + dangerBonus * 0.35) * rewardBonus,
+        ),
       });
     }
 
@@ -84,19 +92,25 @@ export class RewardFactory {
     if (cultivationExp > 0) {
       rewards.push({
         type: 'cultivation_exp',
-        value: cultivationExp,
+        value: Math.floor(cultivationExp * rewardBonus),
       });
     }
 
-    // 3. 感悟奖励 (仅 S 评级有)
-    if (tier === 'S') {
+    // 3. 感悟奖励 (A 级少量产出，S 级完整产出)
+    if (tier === 'S' || tier === 'A') {
       const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
+      const insightValue = this.randomInRange(
+        config.comprehension_insight,
+        tier === 'A'
+          ? { min: multiplier.min * 0.5, max: multiplier.max * 0.65 }
+          : multiplier,
+        dangerBonus,
+      );
       rewards.push({
         type: 'comprehension_insight',
-        value: this.randomInRange(
-          config.comprehension_insight,
-          multiplier,
-          dangerBonus,
+        value: Math.max(
+          1,
+          Math.floor(insightValue * rewardBonus),
         ),
       });
     }
@@ -152,6 +166,7 @@ export class RewardFactory {
     tier: string,
     dangerScore: number,
     playerInfo: PlayerInfo,
+    difficultyTier?: DungeonDifficultyTier,
   ): ResourceOperation[] {
     // 生成基础奖励（灵石、修为、感悟值）
     const baseRewards = this.generateBaseRewards(
@@ -159,6 +174,7 @@ export class RewardFactory {
       tier,
       dangerScore,
       playerInfo,
+      difficultyTier,
     );
 
     // 实体化材料奖励

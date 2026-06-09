@@ -321,7 +321,7 @@
       "environmental_status": "toxic_air",
       "tags": ["炼尸", "阴气滔天", "万年尸熊", "阴属性材料"],
       "description": "藏于沼泽深处的古老石墓，石门上刻满了镇邪符文，却掩盖不住内部溢出的尸气。",
-      "dungeon_config": { "difficulty": "elite" },
+      "dungeon_config": { "difficulty": "hard" },
       "connections": ["DJ_SOUTH_01"],
       "x": 58,
       "y": 18
@@ -335,7 +335,7 @@
       "environmental_status": null,
       "tags": ["潜入", "圣兽分身", "慕兰灵石"],
       "description": "慕兰法士秘密举行祭祀的简易阵地，戒备森严，似乎在酝酿某种阴谋。",
-      "dungeon_config": { "difficulty": "elite" },
+      "dungeon_config": { "difficulty": "normal" },
       "connections": ["ML_PLAINS_01"],
       "x": 90,
       "y": 38
@@ -355,6 +355,34 @@
       "y": 89
     },
     {
+      "id": "SAT_TN_08",
+      "name": "太岳山·青溪灵草坡",
+      "parent_id": "TN_YUE_01",
+      "type": "浅层资源点",
+      "realm_requirement": "炼气",
+      "environmental_status": null,
+      "tags": ["单人副本", "入门采药", "灵草坡", "低危历练"],
+      "description": "太岳山外缘一处被溪水环绕的缓坡，灵草年份不高，却适合初入道途者熟悉秘境采集与轻度禁制。",
+      "dungeon_config": { "difficulty": "easy" },
+      "connections": ["TN_YUE_01"],
+      "x": 81,
+      "y": 86
+    },
+    {
+      "id": "SAT_LX_07",
+      "name": "魁星岛·礁洞妖影",
+      "parent_id": "LX_INNER_02",
+      "type": "近海礁洞",
+      "realm_requirement": "炼气",
+      "environmental_status": "freezing",
+      "tags": ["单人副本", "近海妖兽", "潮汐礁洞", "炼气试炼"],
+      "description": "魁星岛外海退潮后显露的礁洞，洞内多见低阶海兽踪迹，也藏着被潮水冲刷出的贝晶与水行材料。",
+      "dungeon_config": { "difficulty": "normal" },
+      "connections": ["LX_INNER_02"],
+      "x": 43,
+      "y": 86
+    },
+    {
       "id": "SAT_DJ_02",
       "name": "玄黄裂渊·逆鳞祭坛",
       "parent_id": "DJ_RIFT_01",
@@ -367,6 +395,20 @@
       "connections": ["DJ_RIFT_01"],
       "x": 33,
       "y": 44
+    },
+    {
+      "id": "SAT_DJ_10",
+      "name": "玄黄裂渊·碎鳞石林",
+      "parent_id": "DJ_RIFT_01",
+      "type": "裂渊石林",
+      "realm_requirement": "合体",
+      "environmental_status": "formation_suppressed",
+      "tags": ["单人副本", "碎鳞石林", "界隙罡风", "合体历练"],
+      "description": "逆鳞祭坛外侧散布着大片黑色石林，石面残留古龙鳞纹，罡风虽烈，却未触及祭坛核心杀机。",
+      "dungeon_config": { "difficulty": "hard" },
+      "connections": ["DJ_RIFT_01"],
+      "x": 31,
+      "y": 47
     },
     {
       "id": "SAT_DJ_03",
@@ -383,6 +425,20 @@
       "y": 28
     },
     {
+      "id": "SAT_DJ_11",
+      "name": "九幽冥海·黑潮贝场",
+      "parent_id": "DJ_VOID_01",
+      "type": "冥海资源带",
+      "realm_requirement": "大乘",
+      "environmental_status": "freezing",
+      "tags": ["单人副本", "黑潮贝场", "冥海灵贝", "法则潮汐"],
+      "description": "沉日神殿外围的黑潮贝场随冥海潮汐开合，灵贝与残破法则碎屑偶尔被卷上礁台。",
+      "dungeon_config": { "difficulty": "hard" },
+      "connections": ["DJ_VOID_01"],
+      "x": 10,
+      "y": 31
+    },
+    {
       "id": "SAT_DJ_04",
       "name": "飞升台·劫火回廊",
       "parent_id": "DJ_TRIB_01",
@@ -395,6 +451,20 @@
       "connections": ["DJ_TRIB_01"],
       "x": 4,
       "y": 12
+    },
+    {
+      "id": "SAT_DJ_12",
+      "name": "飞升台·残雷碑林",
+      "parent_id": "DJ_TRIB_01",
+      "type": "天劫碑林",
+      "realm_requirement": "渡劫",
+      "environmental_status": "scorching",
+      "tags": ["单人副本", "残雷碑林", "劫纹参悟", "渡劫试炼"],
+      "description": "飞升台边缘残立着成片雷碑，碑面劫纹时明时灭，可供渡劫修士参悟雷劫余韵。",
+      "dungeon_config": { "difficulty": "elite" },
+      "connections": ["DJ_TRIB_01"],
+      "x": 8,
+      "y": 10
     },
     {
       "id": "SAT_TN_04",
@@ -433,7 +503,7 @@
       "environmental_status": "toxic_air",
       "tags": ["单人副本", "古魔印记", "魔气潮汐", "高危机缘"],
       "description": "坠魔谷深处散落着多座古魔祭坛，黑色魔纹时隐时现，令人神魂不宁。",
-      "dungeon_config": { "difficulty": "elite" },
+      "dungeon_config": { "difficulty": "hard" },
       "connections": ["TN_ZMG_01"],
       "x": 95,
       "y": 72
@@ -461,7 +531,7 @@
       "environmental_status": "abundant_qi",
       "tags": ["单人副本", "星宫禁卫", "地脉结晶", "灵脉争夺"],
       "description": "圣山下方天然地脉形成的秘窟，灵气如潮，亦有星宫遗留禁卫巡弋。",
-      "dungeon_config": { "difficulty": "elite" },
+      "dungeon_config": { "difficulty": "normal" },
       "connections": ["LX_INNER_01"],
       "x": 57,
       "y": 70
@@ -503,7 +573,7 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "圣禽图腾", "法士军阵", "边境冲突"],
       "description": "慕兰法士供奉圣禽的古老祭台，祭阵发动时天地灵机紊乱，杀机四伏。",
-      "dungeon_config": { "difficulty": "elite" },
+      "dungeon_config": { "difficulty": "normal" },
       "connections": ["ML_PLAINS_01"],
       "x": 87,
       "y": 40
@@ -517,7 +587,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "玄冰妖灵", "寒髓矿脉", "冰系传承", "冰系功法"],
       "description": "小极宫最深层的玄冰库封印了万年寒气，连神识都可能在此被冻结。",
-      "dungeon_config": { "difficulty": "elite" },
+      "dungeon_config": { "difficulty": "hard" },
       "connections": ["DJ_NORTH_01"],
       "x": 43,
       "y": 7
@@ -535,6 +605,20 @@
       "connections": ["DJ_KW_01"],
       "x": 43,
       "y": 38
+    },
+    {
+      "id": "SAT_DJ_13",
+      "name": "昆吾山·灵液暗河",
+      "parent_id": "DJ_KW_01",
+      "type": "山腹暗河",
+      "realm_requirement": "炼虚",
+      "environmental_status": "abundant_qi",
+      "tags": ["单人副本", "灵液暗河", "山腹禁制", "炼虚资源"],
+      "description": "昆吾山封印外层有灵液暗河穿行山腹，河道禁制尚可周旋，偶能寻得被灵液浸润的古材。",
+      "dungeon_config": { "difficulty": "hard" },
+      "connections": ["DJ_KW_01"],
+      "x": 47,
+      "y": 39
     },
     {
       "id": "SAT_DJ_07",

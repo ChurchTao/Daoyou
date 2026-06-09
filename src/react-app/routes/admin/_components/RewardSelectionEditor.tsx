@@ -6,7 +6,7 @@ import { InkSelect } from '@app/components/ui/InkSelect';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { useEffect, useState } from 'react';
 import {
-  createCatalogItemDraft,
+  createItemLibraryItemDraft,
   createSpiritStoneDraft,
   type RewardSelectionDraft,
 } from './RewardSelectionEditor.helpers';
@@ -23,7 +23,7 @@ interface ItemLibraryResponse {
   error?: string;
 }
 
-function getCatalogItemTypeLabel(item: ItemLibraryEntry) {
+function getItemLibraryTypeLabel(item: ItemLibraryEntry) {
   switch (item.type) {
     case 'material':
       return '材料';
@@ -34,19 +34,21 @@ function getCatalogItemTypeLabel(item: ItemLibraryEntry) {
   }
 }
 
-function getCatalogItemLabel(item: ItemLibraryEntry) {
-  return `${item.name}（${getCatalogItemTypeLabel(item)} / ${item.itemId}）`;
+function getItemLibraryItemLabel(item: ItemLibraryEntry) {
+  return `${item.name}（${getItemLibraryTypeLabel(item)} / ${item.itemId}）`;
 }
 
 function getDraftSummary(
   draft: RewardSelectionDraft,
-  catalog: ItemLibraryEntry[],
+  itemLibraryItems: ItemLibraryEntry[],
 ): string {
   if (draft.type === 'spirit_stones') {
     return draft.quantity.trim() ? `灵石 x${draft.quantity.trim()}` : '灵石';
   }
 
-  const item = catalog.find((catalogItem) => catalogItem.itemId === draft.itemId);
+  const item = itemLibraryItems.find(
+    (libraryItem) => libraryItem.itemId === draft.itemId,
+  );
   const name = item?.name ?? draft.itemId ?? '未选择道具';
   return draft.quantity.trim()
     ? `${name} x${draft.quantity.trim()}`
@@ -60,8 +62,8 @@ export function RewardSelectionEditor({
   allowEmpty = false,
 }: RewardSelectionEditorProps) {
   const { pushToast } = useInkUI();
-  const [catalog, setCatalog] = useState<ItemLibraryEntry[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [itemLibraryItems, setItemLibraryItems] = useState<ItemLibraryEntry[]>([]);
+  const [itemLibraryLoading, setItemLibraryLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +76,7 @@ export function RewardSelectionEditor({
           throw new Error(data.error ?? '加载道具库失败');
         }
         if (!cancelled) {
-          setCatalog(data.items ?? []);
+          setItemLibraryItems(data.items ?? []);
         }
       } catch (error) {
         if (!cancelled) {
@@ -85,7 +87,7 @@ export function RewardSelectionEditor({
         }
       } finally {
         if (!cancelled) {
-          setCatalogLoading(false);
+          setItemLibraryLoading(false);
         }
       }
     })();
@@ -96,7 +98,7 @@ export function RewardSelectionEditor({
   }, [pushToast]);
 
   useEffect(() => {
-    if (catalog.length === 0) {
+    if (itemLibraryItems.length === 0) {
       return;
     }
 
@@ -106,7 +108,7 @@ export function RewardSelectionEditor({
         return draft;
       }
 
-      const exists = catalog.some((item) => item.itemId === draft.itemId);
+      const exists = itemLibraryItems.some((item) => item.itemId === draft.itemId);
       if (exists) {
         return draft;
       }
@@ -114,14 +116,14 @@ export function RewardSelectionEditor({
       changed = true;
       return {
         ...draft,
-        itemId: catalog[0].itemId,
+        itemId: itemLibraryItems[0].itemId,
       };
     });
 
     if (changed) {
       onChange(nextValue);
     }
-  }, [catalog, onChange, value]);
+  }, [itemLibraryItems, onChange, value]);
 
   const updateDraft = (index: number, nextDraft: RewardSelectionDraft) => {
     onChange(value.map((item, itemIndex) => (itemIndex === index ? nextDraft : item)));
@@ -136,7 +138,7 @@ export function RewardSelectionEditor({
   };
 
   const addCatalogItem = () => {
-    if (catalog.length === 0) {
+    if (itemLibraryItems.length === 0) {
       pushToast({
         message: '道具库为空，请先到“道具库”页面配置道具',
         tone: 'warning',
@@ -144,10 +146,12 @@ export function RewardSelectionEditor({
       return;
     }
 
-    onChange([...value, createCatalogItemDraft(catalog[0].itemId)]);
+    onChange([...value, createItemLibraryItemDraft(itemLibraryItems[0].itemId)]);
   };
 
-  const summaries = value.map((draft) => getDraftSummary(draft, catalog));
+  const summaries = value.map((draft) =>
+    getDraftSummary(draft, itemLibraryItems),
+  );
 
   return (
     <div className="space-y-4">
@@ -164,17 +168,17 @@ export function RewardSelectionEditor({
           type="button"
           variant="secondary"
           onClick={addCatalogItem}
-          disabled={disabled || catalogLoading}
+          disabled={disabled || itemLibraryLoading}
         >
           添加道具库道具
         </InkButton>
       </div>
 
-      {catalogLoading ? (
+      {itemLibraryLoading ? (
         <InkNotice tone="muted">道具库加载中...</InkNotice>
       ) : null}
 
-      {!catalogLoading && catalog.length === 0 ? (
+      {!itemLibraryLoading && itemLibraryItems.length === 0 ? (
         <InkNotice tone="warning">
           当前道具库没有 published 道具，暂时只能添加灵石奖励。
         </InkNotice>
@@ -199,7 +203,7 @@ export function RewardSelectionEditor({
                     index,
                     nextType === 'spirit_stones'
                       ? createSpiritStoneDraft()
-                      : createCatalogItemDraft(catalog[0]?.itemId ?? ''),
+                      : createItemLibraryItemDraft(itemLibraryItems[0]?.itemId ?? ''),
                   )
                 }
                 disabled={disabled}
@@ -218,14 +222,14 @@ export function RewardSelectionEditor({
                       itemId,
                     })
                   }
-                  disabled={disabled || catalog.length === 0}
+                  disabled={disabled || itemLibraryItems.length === 0}
                 >
-                  {catalog.length === 0 ? (
-                    <option value="">暂无目录项</option>
+                  {itemLibraryItems.length === 0 ? (
+                    <option value="">暂无道具</option>
                   ) : (
-                    catalog.map((item) => (
+                    itemLibraryItems.map((item) => (
                       <option key={item.id} value={item.itemId}>
-                        {getCatalogItemLabel(item)}
+                        {getItemLibraryItemLabel(item)}
                       </option>
                     ))
                   )}
@@ -267,7 +271,7 @@ export function RewardSelectionEditor({
             </div>
 
             <p className="text-ink-secondary text-sm">
-              奖励预览：{getDraftSummary(draft, catalog)}
+              奖励预览：{getDraftSummary(draft, itemLibraryItems)}
             </p>
           </div>
         ))

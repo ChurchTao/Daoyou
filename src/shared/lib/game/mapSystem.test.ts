@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { DungeonDifficultyTier, MapNodeInfo } from './mapSystem';
 import {
+  clampDungeonEnemyRealmStage,
   getAllMapNodes,
   getAllSatelliteNodes,
+  getDungeonRewardBonus,
+  resolveDungeonEnemyDifficulty,
   resolveDungeonMapConfig,
-  scaleDungeonBattleDifficulty,
 } from './mapSystem';
 
 function createNode(
@@ -30,39 +32,77 @@ describe('resolveDungeonMapConfig', () => {
       realmRequirement: '筑基',
       difficultyTier: 'normal',
       difficultyLabel: '普通',
-      enemyDifficultyMultiplier: 0.5,
-      maxEnemyDifficulty: 50,
+      enemyDifficulty: 24,
+      allowedEnemyRealmStages: ['初期', '中期'],
       allowBossLoadout: false,
     });
   });
 
   it.each([
-    ['easy', '低危', 0.35, 35, false],
-    ['normal', '普通', 0.5, 50, false],
-    ['hard', '险地', 0.65, 70, false],
-    ['elite', '凶险', 0.8, 85, true],
-    ['boss', '绝境', 0.95, 100, true],
+    ['easy', '低危', 12, ['初期'], false],
+    ['normal', '普通', 24, ['初期', '中期'], false],
+    ['hard', '险地', 40, ['中期', '后期'], false],
+    ['elite', '凶险', 60, ['后期', '圆满'], true],
+    ['boss', '绝境', 80, ['圆满'], true],
   ] as const)(
     'resolves %s difficulty preset',
-    (tier, label, multiplier, cap, allowBossLoadout) => {
+    (tier, label, enemyDifficulty, allowedStages, allowBossLoadout) => {
       expect(resolveDungeonMapConfig(createNode(tier))).toMatchObject({
         difficultyTier: tier,
         difficultyLabel: label,
-        enemyDifficultyMultiplier: multiplier,
-        maxEnemyDifficulty: cap,
+        enemyDifficulty,
+        allowedEnemyRealmStages: allowedStages,
         allowBossLoadout,
       });
     },
   );
 
-  it('scales and caps battle difficulty by map preset', () => {
-    const easy = resolveDungeonMapConfig(createNode('easy'));
-    const boss = resolveDungeonMapConfig(createNode('boss'));
+  it('resolves fixed enemy generator difficulty by realm and tier', () => {
+    expect(resolveDungeonEnemyDifficulty('炼气', 'easy')).toBe(10);
+    expect(resolveDungeonEnemyDifficulty('筑基', 'normal')).toBe(24);
+    expect(resolveDungeonEnemyDifficulty('元婴', 'hard')).toBe(50);
+    expect(resolveDungeonEnemyDifficulty('渡劫', 'boss')).toBe(96);
+  });
 
-    expect(scaleDungeonBattleDifficulty(100, easy)).toBe(35);
-    expect(scaleDungeonBattleDifficulty(100, boss)).toBe(95);
-    expect(scaleDungeonBattleDifficulty(200, boss)).toBe(100);
-    expect(scaleDungeonBattleDifficulty(-20, easy)).toBe(0);
+  it('clamps enemy realm stage by dungeon tier', () => {
+    expect(
+      clampDungeonEnemyRealmStage(
+        '圆满',
+        resolveDungeonMapConfig(createNode('easy')),
+      ),
+    ).toBe('初期');
+    expect(
+      clampDungeonEnemyRealmStage(
+        '后期',
+        resolveDungeonMapConfig(createNode('normal')),
+      ),
+    ).toBe('中期');
+    expect(
+      clampDungeonEnemyRealmStage(
+        '初期',
+        resolveDungeonMapConfig(createNode('hard')),
+      ),
+    ).toBe('中期');
+    expect(
+      clampDungeonEnemyRealmStage(
+        '中期',
+        resolveDungeonMapConfig(createNode('elite')),
+      ),
+    ).toBe('后期');
+    expect(
+      clampDungeonEnemyRealmStage(
+        '后期',
+        resolveDungeonMapConfig(createNode('boss')),
+      ),
+    ).toBe('圆满');
+  });
+
+  it('exposes reward bonuses by dungeon tier', () => {
+    expect(getDungeonRewardBonus('easy')).toBe(1);
+    expect(getDungeonRewardBonus('normal')).toBe(1.1);
+    expect(getDungeonRewardBonus('hard')).toBe(1.2);
+    expect(getDungeonRewardBonus('elite')).toBe(1.3);
+    expect(getDungeonRewardBonus('boss')).toBe(1.5);
   });
 
   it('keeps curated map data explicitly classified', () => {

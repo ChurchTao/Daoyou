@@ -4,8 +4,8 @@ import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { DEFAULT_AFFIX_REGISTRY } from '@shared/engine/creation-v2/affixes';
+import { getAllConditionStatusTemplates } from '@shared/lib/conditionStatusRegistry';
 import {
-  CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
   EQUIPMENT_SLOT_VALUES,
   MATERIAL_TYPE_VALUES,
@@ -13,12 +13,35 @@ import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
 } from '@shared/types/constants';
+import { getEquipmentSlotLabel, getMaterialTypeLabel } from '@shared/types/dictionaries';
+import {
+  PILL_FAMILY_VALUES,
+  PILL_QUOTA_CATEGORY_VALUES,
+  TALISMAN_SESSION_MODE_VALUES,
+} from '@shared/types/consumable';
 import type {
   CreateItemLibraryEntry,
   ItemLibraryEntry,
   UpdateItemLibraryEntry,
 } from '@shared/lib/itemLibrary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ITEM_LIBRARY_STATUS_LABELS,
+  ITEM_LIBRARY_TYPE_LABELS,
+  PILL_FAMILY_LABELS,
+  PILL_OPERATION_LABELS,
+  PILL_QUOTA_LABELS,
+  TALISMAN_SESSION_MODE_LABELS,
+  TRACK_OPTIONS,
+  buildItemLibrarySubmitBody,
+  createDefaultPillOperation,
+  createEmptyDraft,
+  entryToDraft,
+  resetDraftForType,
+  resetPillOperationsForFamily,
+  type ItemLibraryDraft,
+  type VisualPillOperation,
+} from './itemLibraryEditor.helpers';
 
 interface ItemLibraryResponse {
   items?: ItemLibraryEntry[];
@@ -26,32 +49,6 @@ interface ItemLibraryResponse {
   payload?: Extract<ItemLibraryEntry, { type: 'artifact' }>['payload'];
   error?: string;
 }
-
-interface ItemLibraryDraft {
-  rowId: string;
-  itemId: string;
-  type: ItemLibraryEntry['type'];
-  status: ItemLibraryEntry['status'];
-  name: string;
-  description: string;
-  materialType: string;
-  materialRank: string;
-  materialElement: string;
-  consumablePayloadText: string;
-  artifactSlot: string;
-  artifactElement: string;
-  artifactRealm: string;
-  artifactRealmStage: string;
-  artifactAffixIds: string[];
-  artifactPayload:
-    | Extract<ItemLibraryEntry, { type: 'artifact' }>['payload']
-    | null;
-}
-
-type ConsumableEntryPayload = Extract<
-  CreateItemLibraryEntry,
-  { type: 'consumable' }
->['payload'];
 
 const artifactAffixOptions = DEFAULT_AFFIX_REGISTRY.getAll()
   .filter((affix) => affix.applicableTo.includes('artifact'))
@@ -63,105 +60,13 @@ const artifactAffixOptions = DEFAULT_AFFIX_REGISTRY.getAll()
     rarity: affix.rarity,
   }));
 
-function defaultConsumablePayload() {
-  return {
-    name: '清心丹',
-    type: '丹药',
-    quality: '凡品',
-    description: '一枚可用于测试发放的丹药。',
-    prompt: '',
-    score: 80,
-    spec: {
-      kind: 'pill',
-      family: 'healing',
-      operations: [
-        {
-          type: 'restore_resource',
-          resource: 'hp',
-          mode: 'flat',
-          value: 100,
-        },
-      ],
-      consumeRules: {
-        scene: 'out_of_battle_only',
-        quotaCategory: 'none',
-      },
-      alchemyMeta: {
-        source: 'improvised',
-        sourceMaterials: [],
-        stability: 80,
-        toxicityRating: 5,
-        tags: [],
-      },
-    },
-  };
-}
-
-function createEmptyDraft(): ItemLibraryDraft {
-  return {
-    rowId: '',
-    itemId: '',
-    type: 'material',
-    status: 'published',
-    name: '',
-    description: '',
-    materialType: MATERIAL_TYPE_VALUES[0],
-    materialRank: QUALITY_VALUES[0],
-    materialElement: '',
-    consumablePayloadText: JSON.stringify(defaultConsumablePayload(), null, 2),
-    artifactSlot: EQUIPMENT_SLOT_VALUES[0],
-    artifactElement: ELEMENT_VALUES[0],
-    artifactRealm: '',
-    artifactRealmStage: '',
-    artifactAffixIds: [],
-    artifactPayload: null,
-  };
-}
-
-function entryToDraft(entry: ItemLibraryEntry): ItemLibraryDraft {
-  const draft = createEmptyDraft();
-  draft.rowId = entry.id;
-  draft.itemId = entry.itemId;
-  draft.type = entry.type;
-  draft.status = entry.status;
-  draft.name = entry.name;
-  draft.description = entry.description ?? '';
-
-  if (entry.type === 'material') {
-    draft.materialType = entry.payload.type;
-    draft.materialRank = entry.payload.rank;
-    draft.materialElement = entry.payload.element ?? '';
-  }
-
-  if (entry.type === 'consumable') {
-    draft.consumablePayloadText = JSON.stringify(entry.payload, null, 2);
-  }
-
-  if (entry.type === 'artifact') {
-    draft.artifactSlot = entry.editorConfig.slot;
-    draft.artifactElement = entry.editorConfig.element;
-    draft.artifactRealm = entry.editorConfig.realm ?? '';
-    draft.artifactRealmStage = entry.editorConfig.realmStage ?? '';
-    draft.artifactAffixIds = entry.editorConfig.affixIds;
-    draft.artifactPayload = entry.payload;
-  }
-
-  return draft;
-}
-
-function getTypeLabel(type: ItemLibraryEntry['type']) {
-  switch (type) {
-    case 'material':
-      return '材料';
-    case 'consumable':
-      return '消耗品';
-    case 'artifact':
-      return '法宝';
-  }
-}
+const conditionStatusOptions = getAllConditionStatusTemplates().map((status) => ({
+  key: status.key,
+  name: status.name,
+}));
 
 function getEntryMeta(entry: ItemLibraryEntry) {
-  const parts = [getTypeLabel(entry.type)];
+  const parts = [ITEM_LIBRARY_TYPE_LABELS[entry.type]];
   if (entry.quality) parts.push(entry.quality);
   if (entry.element) parts.push(entry.element);
   if (entry.category) parts.push(entry.category);
@@ -177,11 +82,45 @@ export default function ItemLibraryAdminPage() {
   const [statusFilter, setStatusFilter] = useState('published');
   const [typeFilter, setTypeFilter] = useState('');
   const [query, setQuery] = useState('');
+  const [affixQuery, setAffixQuery] = useState('');
+  const [affixCategoryFilter, setAffixCategoryFilter] = useState('');
+  const [affixRarityFilter, setAffixRarityFilter] = useState('');
 
   const selectedAffixSet = useMemo(
     () => new Set(draft.artifactAffixIds),
     [draft.artifactAffixIds],
   );
+  const selectedAffixes = useMemo(
+    () =>
+      artifactAffixOptions.filter((affix) =>
+        selectedAffixSet.has(affix.id),
+      ),
+    [selectedAffixSet],
+  );
+  const affixCategories = useMemo(
+    () => Array.from(new Set(artifactAffixOptions.map((affix) => affix.category))),
+    [],
+  );
+  const affixRarities = useMemo(
+    () => Array.from(new Set(artifactAffixOptions.map((affix) => affix.rarity))),
+    [],
+  );
+  const filteredAffixOptions = useMemo(() => {
+    const keyword = affixQuery.trim().toLowerCase();
+    return artifactAffixOptions.filter((affix) => {
+      if (affixCategoryFilter && affix.category !== affixCategoryFilter) {
+        return false;
+      }
+      if (affixRarityFilter && affix.rarity !== affixRarityFilter) {
+        return false;
+      }
+      if (!keyword) return true;
+      return [affix.name, affix.description, affix.category, affix.rarity, affix.id]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }, [affixCategoryFilter, affixQuery, affixRarityFilter]);
 
   const loadItems = useCallback(async () => {
     const params = new URLSearchParams();
@@ -257,77 +196,15 @@ export default function ItemLibraryAdminPage() {
 
   const buildSubmitBody = async ():
     Promise<CreateItemLibraryEntry | UpdateItemLibraryEntry> => {
-    const name = draft.name.trim();
-    if (!name) throw new Error('请填写名称');
-
-    if (draft.type === 'material') {
-      return {
-        itemId: draft.itemId.trim(),
-        type: 'material',
-        status: draft.status,
-        payload: {
-          name,
-          type: draft.materialType as (typeof MATERIAL_TYPE_VALUES)[number],
-          rank: draft.materialRank as (typeof QUALITY_VALUES)[number],
-          ...(draft.materialElement
-            ? { element: draft.materialElement as (typeof ELEMENT_VALUES)[number] }
-            : {}),
-          ...(draft.description.trim()
-            ? { description: draft.description.trim() }
-            : {}),
-        },
-        editorConfig: {},
-      };
+    if (draft.type === 'artifact' && !draft.artifactPayload) {
+      const payload = await previewArtifact();
+      return buildItemLibrarySubmitBody({
+        ...draft,
+        artifactPayload: payload,
+      });
     }
 
-    if (draft.type === 'consumable') {
-      let payload: unknown;
-      try {
-        payload = JSON.parse(draft.consumablePayloadText);
-      } catch {
-        throw new Error('消耗品 payload JSON 格式错误');
-      }
-
-      return {
-        itemId: draft.itemId.trim(),
-        type: 'consumable',
-        status: draft.status,
-        payload: {
-          ...(payload as Record<string, unknown>),
-          name,
-          ...(draft.description.trim()
-            ? { description: draft.description.trim() }
-            : {}),
-        } as ConsumableEntryPayload,
-        editorConfig: {},
-      };
-    }
-
-    const payload = draft.artifactPayload ?? (await previewArtifact());
-    if (!payload) {
-      throw new Error('法宝预览生成失败');
-    }
-
-    return {
-      itemId: draft.itemId.trim(),
-      type: 'artifact',
-      status: draft.status,
-      payload,
-      editorConfig: {
-        slot: draft.artifactSlot as (typeof EQUIPMENT_SLOT_VALUES)[number],
-        element: draft.artifactElement as (typeof ELEMENT_VALUES)[number],
-        ...(draft.artifactRealm
-          ? { realm: draft.artifactRealm as (typeof REALM_VALUES)[number] }
-          : {}),
-        ...(draft.artifactRealmStage
-          ? {
-              realmStage:
-                draft.artifactRealmStage as (typeof REALM_STAGE_VALUES)[number],
-            }
-          : {}),
-        affixIds: draft.artifactAffixIds,
-      },
-    };
+    return buildItemLibrarySubmitBody(draft);
   };
 
   const save = async () => {
@@ -413,6 +290,37 @@ export default function ItemLibraryAdminPage() {
     });
   };
 
+  const updatePillOperation = (
+    index: number,
+    nextOperation: VisualPillOperation,
+  ) => {
+    setDraft((current) => ({
+      ...current,
+      pillOperations: current.pillOperations.map((operation, operationIndex) =>
+        operationIndex === index ? nextOperation : operation,
+      ),
+    }));
+  };
+
+  const removePillOperation = (index: number) => {
+    setDraft((current) => ({
+      ...current,
+      pillOperations: current.pillOperations.filter(
+        (_, operationIndex) => operationIndex !== index,
+      ),
+    }));
+  };
+
+  const addPillOperation = () => {
+    setDraft((current) => ({
+      ...current,
+      pillOperations: [
+        ...current.pillOperations,
+        createDefaultPillOperation('restore_resource'),
+      ],
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
@@ -442,8 +350,12 @@ export default function ItemLibraryAdminPage() {
                 onChange={setStatusFilter}
               >
                 <option value="">全部</option>
-                <option value="published">published</option>
-                <option value="archived">archived</option>
+                <option value="published">
+                  {ITEM_LIBRARY_STATUS_LABELS.published}
+                </option>
+                <option value="archived">
+                  {ITEM_LIBRARY_STATUS_LABELS.archived}
+                </option>
               </InkSelect>
               <InkSelect
                 label="类型"
@@ -451,9 +363,11 @@ export default function ItemLibraryAdminPage() {
                 onChange={setTypeFilter}
               >
                 <option value="">全部</option>
-                <option value="material">材料</option>
-                <option value="consumable">消耗品</option>
-                <option value="artifact">法宝</option>
+                <option value="material">{ITEM_LIBRARY_TYPE_LABELS.material}</option>
+                <option value="consumable">
+                  {ITEM_LIBRARY_TYPE_LABELS.consumable}
+                </option>
+                <option value="artifact">{ITEM_LIBRARY_TYPE_LABELS.artifact}</option>
               </InkSelect>
             </div>
             <InkButton
@@ -482,7 +396,8 @@ export default function ItemLibraryAdminPage() {
                   {item.name}
                 </span>
                 <span className="text-ink-secondary mt-1 block text-xs">
-                  {item.itemId} · {item.status} · {getEntryMeta(item)}
+                  {item.itemId} · {ITEM_LIBRARY_STATUS_LABELS[item.status]} ·{' '}
+                  {getEntryMeta(item)}
                 </span>
               </button>
             ))}
@@ -502,21 +417,17 @@ export default function ItemLibraryAdminPage() {
               label="类型"
               value={draft.type}
               onChange={(value) =>
-                setDraft((current) => ({
-                  ...createEmptyDraft(),
-                  rowId: current.rowId,
-                  itemId: current.itemId,
-                  name: current.name,
-                  description: current.description,
-                  status: current.status,
-                  type: value as ItemLibraryEntry['type'],
-                }))
+                setDraft((current) =>
+                  resetDraftForType(current, value as ItemLibraryEntry['type']),
+                )
               }
               disabled={Boolean(draft.rowId)}
             >
-              <option value="material">材料</option>
-              <option value="consumable">消耗品</option>
-              <option value="artifact">法宝</option>
+              <option value="material">{ITEM_LIBRARY_TYPE_LABELS.material}</option>
+              <option value="consumable">
+                {ITEM_LIBRARY_TYPE_LABELS.consumable}
+              </option>
+              <option value="artifact">{ITEM_LIBRARY_TYPE_LABELS.artifact}</option>
             </InkSelect>
             <InkSelect
               label="状态"
@@ -525,8 +436,12 @@ export default function ItemLibraryAdminPage() {
                 setDraftField('status', value as ItemLibraryEntry['status'])
               }
             >
-              <option value="published">published</option>
-              <option value="archived">archived</option>
+              <option value="published">
+                {ITEM_LIBRARY_STATUS_LABELS.published}
+              </option>
+              <option value="archived">
+                {ITEM_LIBRARY_STATUS_LABELS.archived}
+              </option>
             </InkSelect>
           </div>
 
@@ -556,18 +471,28 @@ export default function ItemLibraryAdminPage() {
               <InkSelect
                 label="材料类型"
                 value={draft.materialType}
-                onChange={(value) => setDraftField('materialType', value)}
+                onChange={(value) =>
+                  setDraftField(
+                    'materialType',
+                    value as ItemLibraryDraft['materialType'],
+                  )
+                }
               >
                 {MATERIAL_TYPE_VALUES.map((value) => (
                   <option key={value} value={value}>
-                    {value}
+                    {getMaterialTypeLabel(value)}
                   </option>
                 ))}
               </InkSelect>
               <InkSelect
                 label="品阶"
                 value={draft.materialRank}
-                onChange={(value) => setDraftField('materialRank', value)}
+                onChange={(value) =>
+                  setDraftField(
+                    'materialRank',
+                    value as ItemLibraryDraft['materialRank'],
+                  )
+                }
               >
                 {QUALITY_VALUES.map((value) => (
                   <option key={value} value={value}>
@@ -578,7 +503,12 @@ export default function ItemLibraryAdminPage() {
               <InkSelect
                 label="元素"
                 value={draft.materialElement}
-                onChange={(value) => setDraftField('materialElement', value)}
+                onChange={(value) =>
+                  setDraftField(
+                    'materialElement',
+                    value as ItemLibraryDraft['materialElement'],
+                  )
+                }
               >
                 <option value="">无</option>
                 {ELEMENT_VALUES.map((value) => (
@@ -591,14 +521,465 @@ export default function ItemLibraryAdminPage() {
           ) : null}
 
           {draft.type === 'consumable' ? (
-            <InkInput
-              label="消耗品 payload JSON"
-              value={draft.consumablePayloadText}
-              onChange={(value) => setDraftField('consumablePayloadText', value)}
-              hint={`type 可用：${CONSUMABLE_TYPE_VALUES.join('、')}；spec.kind 支持 pill / talisman。`}
-              multiline
-              rows={18}
-            />
+            <div className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-4">
+                <InkSelect
+                  label="消耗品类别"
+                  value={draft.consumableKind}
+                  onChange={(value) =>
+                    setDraftField(
+                      'consumableKind',
+                      value as ItemLibraryDraft['consumableKind'],
+                    )
+                  }
+                >
+                  <option value="pill">丹药</option>
+                  <option value="talisman">符箓</option>
+                </InkSelect>
+                <InkSelect
+                  label="品质"
+                  value={draft.consumableQuality}
+                  onChange={(value) =>
+                    setDraftField(
+                      'consumableQuality',
+                      value as ItemLibraryDraft['consumableQuality'],
+                    )
+                  }
+                >
+                  {QUALITY_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </InkSelect>
+                <InkSelect
+                  label="元素"
+                  value={draft.consumableElement}
+                  onChange={(value) =>
+                    setDraftField(
+                      'consumableElement',
+                      value as ItemLibraryDraft['consumableElement'],
+                    )
+                  }
+                >
+                  <option value="">无</option>
+                  {ELEMENT_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </InkSelect>
+                <InkInput
+                  label="评分"
+                  value={draft.consumableScore}
+                  onChange={(value) => setDraftField('consumableScore', value)}
+                  type="number"
+                  placeholder="例如：80"
+                />
+              </div>
+
+              {draft.consumableKind === 'pill' ? (
+                <div className="space-y-4">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <InkSelect
+                      label="丹药用途"
+                      value={draft.pillFamily}
+                      onChange={(value) =>
+                        setDraft((current) =>
+                          resetPillOperationsForFamily(
+                            current,
+                            value as ItemLibraryDraft['pillFamily'],
+                          ),
+                        )
+                      }
+                    >
+                      {PILL_FAMILY_VALUES.map((value) => (
+                        <option key={value} value={value}>
+                          {PILL_FAMILY_LABELS[value]}
+                        </option>
+                      ))}
+                    </InkSelect>
+                    <InkSelect
+                      label="服用额度"
+                      value={draft.pillQuotaCategory}
+                      onChange={(value) =>
+                        setDraftField(
+                          'pillQuotaCategory',
+                          value as ItemLibraryDraft['pillQuotaCategory'],
+                        )
+                      }
+                    >
+                      {PILL_QUOTA_CATEGORY_VALUES.map((value) => (
+                        <option key={value} value={value}>
+                          {PILL_QUOTA_LABELS[value]}
+                        </option>
+                      ))}
+                    </InkSelect>
+                    <InkInput
+                      label="药性稳定度"
+                      value={draft.pillStability}
+                      onChange={(value) => setDraftField('pillStability', value)}
+                      type="number"
+                      placeholder="例如：80"
+                    />
+                    <InkInput
+                      label="丹毒"
+                      value={draft.pillToxicity}
+                      onChange={(value) => setDraftField('pillToxicity', value)}
+                      type="number"
+                      placeholder="例如：5"
+                    />
+                  </div>
+                  <InkInput
+                    label="来源材料"
+                    value={draft.pillSourceMaterials}
+                    onChange={(value) =>
+                      setDraftField('pillSourceMaterials', value)
+                    }
+                    placeholder="可用逗号或顿号分隔，例如：青木芝、寒魄晶"
+                  />
+
+                  <div className="border-ink/12 bg-paper/70 space-y-3 border border-dashed p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-ink font-heading text-lg">丹药效果</h3>
+                      <InkButton
+                        type="button"
+                        variant="secondary"
+                        onClick={addPillOperation}
+                      >
+                        添加效果
+                      </InkButton>
+                    </div>
+
+                    {draft.pillOperations.length === 0 ? (
+                      <InkNotice tone="warning">请至少添加一个丹药效果。</InkNotice>
+                    ) : null}
+
+                    {draft.pillOperations.map((operation, index) => (
+                      <div
+                        key={`${operation.type}-${index}`}
+                        className="border-ink/12 bg-bgpaper/70 space-y-3 border border-dashed p-3"
+                      >
+                        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                          <InkSelect
+                            label={`效果 #${index + 1}`}
+                            value={operation.type}
+                            onChange={(value) =>
+                              updatePillOperation(
+                                index,
+                                createDefaultPillOperation(
+                                  value as VisualPillOperation['type'],
+                                ),
+                              )
+                            }
+                          >
+                            {Object.entries(PILL_OPERATION_LABELS).map(
+                              ([value, label]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ),
+                            )}
+                          </InkSelect>
+                          <div className="flex items-end">
+                            <InkButton
+                              type="button"
+                              variant="secondary"
+                              onClick={() => removePillOperation(index)}
+                            >
+                              删除
+                            </InkButton>
+                          </div>
+                        </div>
+
+                        {operation.type === 'restore_resource' ? (
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <InkSelect
+                              label="恢复对象"
+                              value={operation.resource}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  resource: value as typeof operation.resource,
+                                })
+                              }
+                            >
+                              <option value="hp">气血</option>
+                              <option value="mp">法力</option>
+                            </InkSelect>
+                            <InkSelect
+                              label="恢复方式"
+                              value={operation.mode}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  mode: value as typeof operation.mode,
+                                })
+                              }
+                            >
+                              <option value="flat">固定数值</option>
+                              <option value="percent">最大值百分比</option>
+                            </InkSelect>
+                            <InkInput
+                              label={
+                                operation.mode === 'percent'
+                                  ? '恢复百分比'
+                                  : '恢复数值'
+                              }
+                              value={operation.value}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  value,
+                                })
+                              }
+                              type="number"
+                              hint={
+                                operation.mode === 'percent'
+                                  ? '填写 20 表示恢复最大值的 20%。'
+                                  : undefined
+                              }
+                            />
+                          </div>
+                        ) : null}
+
+                        {operation.type === 'gain_progress' ? (
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <InkSelect
+                              label="增加对象"
+                              value={operation.target}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  target: value as typeof operation.target,
+                                })
+                              }
+                            >
+                              <option value="cultivation_exp">修为</option>
+                              <option value="comprehension_insight">悟性</option>
+                            </InkSelect>
+                            <InkInput
+                              label="增加数值"
+                              value={operation.value}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  value,
+                                })
+                              }
+                              type="number"
+                            />
+                          </div>
+                        ) : null}
+
+                        {operation.type === 'increase_lifespan' ? (
+                          <InkInput
+                            label="增加寿元年数"
+                            value={operation.value}
+                            onChange={(value) =>
+                              updatePillOperation(index, {
+                                ...operation,
+                                value,
+                              })
+                            }
+                            type="number"
+                          />
+                        ) : null}
+
+                        {operation.type === 'change_gauge' ? (
+                          <InkInput
+                            label="丹毒变化"
+                            value={operation.delta}
+                            onChange={(value) =>
+                              updatePillOperation(index, {
+                                ...operation,
+                                delta: value,
+                              })
+                            }
+                            type="number"
+                            hint="正数增加丹毒，负数降低丹毒。"
+                          />
+                        ) : null}
+
+                        {operation.type === 'add_status' ? (
+                          <div className="grid gap-3 md:grid-cols-4">
+                            <InkSelect
+                              label="添加状态"
+                              value={operation.status}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  status: value,
+                                })
+                              }
+                            >
+                              {conditionStatusOptions.map((status) => (
+                                <option key={status.key} value={status.key}>
+                                  {status.name}
+                                </option>
+                              ))}
+                            </InkSelect>
+                            <InkInput
+                              label="状态层数"
+                              value={operation.stacks}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  stacks: value,
+                                })
+                              }
+                              type="number"
+                              placeholder="可选"
+                            />
+                            <InkInput
+                              label="可用次数"
+                              value={operation.usesRemaining}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  usesRemaining: value,
+                                })
+                              }
+                              type="number"
+                              placeholder="可选"
+                            />
+                            <InkSelect
+                              label="持续方式"
+                              value={operation.durationKind}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  durationKind:
+                                    value as typeof operation.durationKind,
+                                })
+                              }
+                            >
+                              <option value="">默认</option>
+                              <option value="until_removed">直到被移除</option>
+                              <option value="time">指定结束时间</option>
+                            </InkSelect>
+                            {operation.durationKind === 'time' ? (
+                              <InkInput
+                                label="结束时间"
+                                value={operation.expiresAt}
+                                onChange={(value) =>
+                                  updatePillOperation(index, {
+                                    ...operation,
+                                    expiresAt: value,
+                                  })
+                                }
+                                placeholder="ISO 时间"
+                              />
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {operation.type === 'remove_status' ? (
+                          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                            <InkSelect
+                              label="移除状态"
+                              value={operation.status}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  status: value,
+                                })
+                              }
+                            >
+                              {conditionStatusOptions.map((status) => (
+                                <option key={status.key} value={status.key}>
+                                  {status.name}
+                                </option>
+                              ))}
+                            </InkSelect>
+                            <label className="text-ink flex items-end gap-2 pb-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={operation.removeAll}
+                                onChange={(event) =>
+                                  updatePillOperation(index, {
+                                    ...operation,
+                                    removeAll: event.target.checked,
+                                  })
+                                }
+                              />
+                              全部移除
+                            </label>
+                          </div>
+                        ) : null}
+
+                        {operation.type === 'advance_track' ? (
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <InkSelect
+                              label="推进项目"
+                              value={operation.track}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  track: value as typeof operation.track,
+                                })
+                              }
+                            >
+                              {TRACK_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </InkSelect>
+                            <InkInput
+                              label="推进数值"
+                              value={operation.value}
+                              onChange={(value) =>
+                                updatePillOperation(index, {
+                                  ...operation,
+                                  value,
+                                })
+                              }
+                              type="number"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <InkInput
+                    label="使用场景"
+                    value={draft.talismanScenario}
+                    onChange={(value) => setDraftField('talismanScenario', value)}
+                    placeholder="例如：fate_reshape"
+                  />
+                  <InkSelect
+                    label="消耗模式"
+                    value={draft.talismanSessionMode}
+                    onChange={(value) =>
+                      setDraftField(
+                        'talismanSessionMode',
+                        value as ItemLibraryDraft['talismanSessionMode'],
+                      )
+                    }
+                  >
+                    {TALISMAN_SESSION_MODE_VALUES.map((value) => (
+                      <option key={value} value={value}>
+                        {TALISMAN_SESSION_MODE_LABELS[value]}
+                      </option>
+                    ))}
+                  </InkSelect>
+                  <div className="md:col-span-2">
+                    <InkInput
+                      label="备注"
+                      value={draft.talismanNotes}
+                      onChange={(value) => setDraftField('talismanNotes', value)}
+                      placeholder="可选，给运营自己看的说明"
+                      multiline
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           ) : null}
 
           {draft.type === 'artifact' ? (
@@ -608,13 +989,16 @@ export default function ItemLibraryAdminPage() {
                   label="槽位"
                   value={draft.artifactSlot}
                   onChange={(value) => {
-                    setDraftField('artifactSlot', value);
+                    setDraftField(
+                      'artifactSlot',
+                      value as ItemLibraryDraft['artifactSlot'],
+                    );
                     setDraftField('artifactPayload', null);
                   }}
                 >
                   {EQUIPMENT_SLOT_VALUES.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {getEquipmentSlotLabel(value)}
                     </option>
                   ))}
                 </InkSelect>
@@ -622,7 +1006,10 @@ export default function ItemLibraryAdminPage() {
                   label="元素"
                   value={draft.artifactElement}
                   onChange={(value) => {
-                    setDraftField('artifactElement', value);
+                    setDraftField(
+                      'artifactElement',
+                      value as ItemLibraryDraft['artifactElement'],
+                    );
                     setDraftField('artifactPayload', null);
                   }}
                 >
@@ -636,7 +1023,10 @@ export default function ItemLibraryAdminPage() {
                   label="境界锚点"
                   value={draft.artifactRealm}
                   onChange={(value) => {
-                    setDraftField('artifactRealm', value);
+                    setDraftField(
+                      'artifactRealm',
+                      value as ItemLibraryDraft['artifactRealm'],
+                    );
                     setDraftField('artifactPayload', null);
                   }}
                 >
@@ -651,7 +1041,10 @@ export default function ItemLibraryAdminPage() {
                   label="阶段锚点"
                   value={draft.artifactRealmStage}
                   onChange={(value) => {
-                    setDraftField('artifactRealmStage', value);
+                    setDraftField(
+                      'artifactRealmStage',
+                      value as ItemLibraryDraft['artifactRealmStage'],
+                    );
                     setDraftField('artifactPayload', null);
                   }}
                 >
@@ -664,30 +1057,79 @@ export default function ItemLibraryAdminPage() {
                 </InkSelect>
               </div>
 
-              <div className="border-ink/12 bg-paper/70 max-h-[420px] space-y-2 overflow-auto border border-dashed p-4">
-                {artifactAffixOptions.map((affix) => (
-                  <label
-                    key={affix.id}
-                    className="border-ink/12 flex gap-3 border-b border-dashed pb-2 text-sm"
+              <div className="border-ink/12 bg-paper/70 space-y-3 border border-dashed p-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <InkInput
+                    label="搜索词缀"
+                    value={affixQuery}
+                    onChange={setAffixQuery}
+                    placeholder="输入名称、类别或描述"
+                  />
+                  <InkSelect
+                    label="词缀类别"
+                    value={affixCategoryFilter}
+                    onChange={setAffixCategoryFilter}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedAffixSet.has(affix.id)}
-                      onChange={() => toggleAffix(affix.id)}
-                    />
-                    <span>
-                      <span className="text-ink font-semibold">
-                        {affix.name}
+                    <option value="">全部</option>
+                    {affixCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </InkSelect>
+                  <InkSelect
+                    label="稀有度"
+                    value={affixRarityFilter}
+                    onChange={setAffixRarityFilter}
+                  >
+                    <option value="">全部</option>
+                    {affixRarities.map((rarity) => (
+                      <option key={rarity} value={rarity}>
+                        {rarity}
+                      </option>
+                    ))}
+                  </InkSelect>
+                </div>
+
+                <div className="border-ink/12 bg-bgpaper/70 border border-dashed px-3 py-2">
+                  <p className="text-ink-secondary text-xs tracking-[0.18em]">
+                    已选词缀
+                  </p>
+                  <p className="text-ink mt-1 text-sm leading-7">
+                    {selectedAffixes.length > 0
+                      ? selectedAffixes.map((affix) => affix.name).join('、')
+                      : '暂未选择'}
+                  </p>
+                </div>
+
+                <div className="max-h-[420px] space-y-2 overflow-auto">
+                  {filteredAffixOptions.length === 0 ? (
+                    <InkNotice tone="warning">没有符合筛选条件的法宝词缀。</InkNotice>
+                  ) : null}
+                  {filteredAffixOptions.map((affix) => (
+                    <label
+                      key={affix.id}
+                      className="border-ink/12 bg-bgpaper/50 flex gap-3 border border-dashed p-3 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAffixSet.has(affix.id)}
+                        onChange={() => toggleAffix(affix.id)}
+                      />
+                      <span>
+                        <span className="text-ink font-semibold">
+                          {affix.name}
+                        </span>
+                        <span className="text-ink-secondary ml-2">
+                          {affix.category} / {affix.rarity}
+                        </span>
+                        <span className="text-ink-secondary mt-1 block">
+                          {affix.description}
+                        </span>
                       </span>
-                      <span className="text-ink-secondary ml-2">
-                        {affix.id} / {affix.category} / {affix.rarity}
-                      </span>
-                      <span className="text-ink-secondary mt-1 block">
-                        {affix.description}
-                      </span>
-                    </span>
-                  </label>
-                ))}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">

@@ -19,7 +19,15 @@ import { and, desc, eq, type SQL } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-const SNAPSHOT_REWARD_PRESET_ID = '__reward_catalog_snapshot__';
+const ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID = '__item_library_snapshot__';
+const LEGACY_REWARD_CATALOG_SNAPSHOT_PRESET_ID = '__reward_catalog_snapshot__';
+
+function isSnapshotRewardPresetId(value: string | null | undefined): boolean {
+  return (
+    value === ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID ||
+    value === LEGACY_REWARD_CATALOG_SNAPSHOT_PRESET_ID
+  );
+}
 
 const CreateRedeemCodeSchema = z
   .object({
@@ -83,7 +91,7 @@ async function createWithAutoCode(params: {
         .insert(redeemCodes)
         .values({
           code,
-          rewardPresetId: SNAPSHOT_REWARD_PRESET_ID,
+          rewardPresetId: ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID,
           rewardAttachments: params.rewardAttachments,
           mailTitle: params.mailTitle,
           mailContent: params.mailContent,
@@ -135,7 +143,7 @@ router.get('/', requireAdmin(), async (c) => {
         rewardSummary = ['奖励配置异常'];
         rewardSource = 'broken_snapshot';
       }
-    } else if (item.rewardPresetId === SNAPSHOT_REWARD_PRESET_ID) {
+    } else if (isSnapshotRewardPresetId(item.rewardPresetId)) {
       rewardSummary = ['奖励快照异常'];
       rewardSource = 'broken_snapshot';
     } else {
@@ -213,7 +221,7 @@ router.post('/', requireAdmin(), async (c) => {
         .insert(redeemCodes)
         .values({
           code: manualCode,
-          rewardPresetId: SNAPSHOT_REWARD_PRESET_ID,
+          rewardPresetId: ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID,
           rewardAttachments,
           mailTitle: parsed.data.mailTitle,
           mailContent: parsed.data.mailContent,

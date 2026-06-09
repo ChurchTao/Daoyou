@@ -26,6 +26,11 @@ export interface MapNodeDetailProps {
   actions: MapNodeDetailAction[];
 }
 
+function formatRewardBonus(multiplier: number): string {
+  const percent = Math.round((multiplier - 1) * 100);
+  return `奖励加成 +${Math.max(0, percent)}%`;
+}
+
 /**
  * 地图节点详情面板组件
  */
@@ -70,6 +75,11 @@ export function MapNodeDetail({
               {dungeonConfig.difficultyLabel}
             </span>
           </span>
+          {node.dungeon_config?.difficulty && (
+            <span className="border-crimson/70 bg-crimson/5 text-crimson inline-flex items-center border border-double px-1.5 py-0.5 text-[11px] font-bold leading-none">
+              {formatRewardBonus(dungeonConfig.rewardBonus)}
+            </span>
+          )}
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">

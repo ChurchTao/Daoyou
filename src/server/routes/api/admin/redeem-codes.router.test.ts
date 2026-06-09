@@ -96,7 +96,7 @@ describe('admin redeem codes router', () => {
     expect(valuesMock).toHaveBeenCalledWith(
       expect.objectContaining({
         code: 'SPRING2026',
-        rewardPresetId: '__reward_catalog_snapshot__',
+        rewardPresetId: '__item_library_snapshot__',
         rewardAttachments: [
           {
             type: 'spirit_stones',
@@ -120,7 +120,7 @@ describe('admin redeem codes router', () => {
     );
   });
 
-  it('rejects missing reward catalog items', async () => {
+  it('rejects missing item library items', async () => {
     getExecutorMock.mockReturnValue({
       insert: vi.fn(),
     });
@@ -188,7 +188,7 @@ describe('admin redeem codes router', () => {
             {
               id: 'snapshot-code-1',
               code: 'NEW2026',
-              rewardPresetId: '__reward_catalog_snapshot__',
+              rewardPresetId: '__item_library_snapshot__',
               rewardAttachments: null,
               status: 'active',
               totalLimit: null,

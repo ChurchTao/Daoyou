@@ -1,6 +1,6 @@
 import type { Material } from '@shared/types/cultivator';
 import { calculateDungeonExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { PlayerInfo } from '../types';
 import { RewardFactory } from './RewardFactory';
 
@@ -85,5 +85,93 @@ describe('RewardFactory', () => {
     expect(expReward?.value).toBe(
       calculateDungeonExp('筑基', '初期', 'S', 0),
     );
+  });
+
+  it('按副本档位加成灵石、修为和感悟，不影响材料生成入口', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const playerInfo: PlayerInfo = {
+      name: '韩立',
+      realm: '筑基 初期',
+      gender: '男',
+      age: 30,
+      lifespan: 180,
+      personality: '谨慎',
+      attributes: {
+        vitality: 40,
+        spirit: 36,
+        wisdom: 30,
+        speed: 28,
+        willpower: 32,
+      },
+      spiritual_roots: ['木(80)'],
+      fates: [],
+      skills: [],
+      spirit_stones: 0,
+      background: '',
+      resourceCaps: {
+        maxHp: 100,
+        maxMp: 100,
+      },
+    };
+
+    try {
+      const easyRewards = RewardFactory.generateBaseRewards(
+        '筑基',
+        'S',
+        0,
+        playerInfo,
+        'easy',
+      );
+      const bossRewards = RewardFactory.generateBaseRewards(
+        '筑基',
+        'S',
+        0,
+        playerInfo,
+        'boss',
+      );
+
+      const easySpiritStones = easyRewards.find(
+        (reward) => reward.type === 'spirit_stones',
+      );
+      const bossSpiritStones = bossRewards.find(
+        (reward) => reward.type === 'spirit_stones',
+      );
+      const easyExp = easyRewards.find(
+        (reward) => reward.type === 'cultivation_exp',
+      );
+      const bossExp = bossRewards.find(
+        (reward) => reward.type === 'cultivation_exp',
+      );
+      const easyInsight = easyRewards.find(
+        (reward) => reward.type === 'comprehension_insight',
+      );
+      const bossInsight = bossRewards.find(
+        (reward) => reward.type === 'comprehension_insight',
+      );
+
+      expect(bossSpiritStones?.value).toBe(
+        Math.floor((easySpiritStones?.value ?? 0) * 1.5),
+      );
+      expect(bossExp?.value).toBe(
+        Math.floor((easyExp?.value ?? 0) * 1.5),
+      );
+      expect(bossInsight?.value).toBe(
+        Math.floor((easyInsight?.value ?? 0) * 1.5),
+      );
+
+      const aRewards = RewardFactory.generateBaseRewards(
+        '筑基',
+        'A',
+        0,
+        playerInfo,
+        'normal',
+      );
+      expect(
+        aRewards.find((reward) => reward.type === 'comprehension_insight')
+          ?.value,
+      ).toBeGreaterThan(0);
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });

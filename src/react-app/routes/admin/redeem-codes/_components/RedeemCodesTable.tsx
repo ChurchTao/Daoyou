@@ -18,6 +18,11 @@ interface RedeemCodeItem {
   createdAt: string;
 }
 
+const SNAPSHOT_REWARD_PRESET_IDS = new Set([
+  '__item_library_snapshot__',
+  '__reward_catalog_snapshot__',
+]);
+
 function getRewardSourceLabel(item: RedeemCodeItem) {
   const hasBrokenSummary = item.rewardSummary.some(
     (entry) => entry === '奖励快照异常' || entry === '奖励配置异常',
@@ -38,7 +43,7 @@ function getRewardSourceLabel(item: RedeemCodeItem) {
     return '快照奖励';
   }
 
-  if (item.rewardPresetId === '__reward_catalog_snapshot__') {
+  if (SNAPSHOT_REWARD_PRESET_IDS.has(item.rewardPresetId ?? '')) {
     if (!hasBrokenSummary && !hasExpiredLegacySummary && item.rewardSummary.length > 0) {
       return '快照奖励';
     }

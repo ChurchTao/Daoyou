@@ -1,4 +1,5 @@
 import type { RealmType } from '@shared/types/constants';
+import type { RealmStage } from '@shared/types/constants';
 import type { MarketLayer, RegionProfileKey } from '@shared/types/market';
 import mapData from '../../data/map.json';
 
@@ -23,45 +24,64 @@ export interface ResolvedDungeonMapConfig {
   realmRequirement: RealmType;
   difficultyTier: DungeonDifficultyTier;
   difficultyLabel: string;
-  enemyDifficultyMultiplier: number;
-  maxEnemyDifficulty: number;
+  enemyDifficulty: number;
+  allowedEnemyRealmStages: RealmStage[];
   allowBossLoadout: boolean;
+  rewardBonus: number;
 }
 
 const DUNGEON_DIFFICULTY_PRESETS: Record<
   DungeonDifficultyTier,
-  Omit<ResolvedDungeonMapConfig, 'realmRequirement' | 'difficultyTier'>
+  Pick<
+    ResolvedDungeonMapConfig,
+    'difficultyLabel' | 'allowedEnemyRealmStages' | 'allowBossLoadout' | 'rewardBonus'
+  >
 > = {
   easy: {
     difficultyLabel: '低危',
-    enemyDifficultyMultiplier: 0.35,
-    maxEnemyDifficulty: 35,
+    allowedEnemyRealmStages: ['初期'],
     allowBossLoadout: false,
+    rewardBonus: 1,
   },
   normal: {
     difficultyLabel: '普通',
-    enemyDifficultyMultiplier: 0.5,
-    maxEnemyDifficulty: 50,
+    allowedEnemyRealmStages: ['初期', '中期'],
     allowBossLoadout: false,
+    rewardBonus: 1.1,
   },
   hard: {
     difficultyLabel: '险地',
-    enemyDifficultyMultiplier: 0.65,
-    maxEnemyDifficulty: 70,
+    allowedEnemyRealmStages: ['中期', '后期'],
     allowBossLoadout: false,
+    rewardBonus: 1.2,
   },
   elite: {
     difficultyLabel: '凶险',
-    enemyDifficultyMultiplier: 0.8,
-    maxEnemyDifficulty: 85,
+    allowedEnemyRealmStages: ['后期', '圆满'],
     allowBossLoadout: true,
+    rewardBonus: 1.3,
   },
   boss: {
     difficultyLabel: '绝境',
-    enemyDifficultyMultiplier: 0.95,
-    maxEnemyDifficulty: 100,
+    allowedEnemyRealmStages: ['圆满'],
     allowBossLoadout: true,
+    rewardBonus: 1.5,
   },
+};
+
+export const DUNGEON_ENEMY_DIFFICULTY_TABLE: Record<
+  RealmType,
+  Record<DungeonDifficultyTier, number>
+> = {
+  炼气: { easy: 10, normal: 20, hard: 35, elite: 55, boss: 75 },
+  筑基: { easy: 12, normal: 24, hard: 40, elite: 60, boss: 80 },
+  金丹: { easy: 15, normal: 28, hard: 45, elite: 65, boss: 85 },
+  元婴: { easy: 18, normal: 32, hard: 50, elite: 70, boss: 88 },
+  化神: { easy: 20, normal: 36, hard: 55, elite: 74, boss: 90 },
+  炼虚: { easy: 22, normal: 38, hard: 58, elite: 76, boss: 92 },
+  合体: { easy: 24, normal: 40, hard: 60, elite: 78, boss: 94 },
+  大乘: { easy: 26, normal: 42, hard: 62, elite: 80, boss: 95 },
+  渡劫: { easy: 28, normal: 45, hard: 65, elite: 82, boss: 96 },
 };
 
 export interface MapNode {
@@ -153,19 +173,43 @@ export function resolveDungeonMapConfig(
   return {
     realmRequirement: node.realm_requirement,
     difficultyTier,
+    enemyDifficulty: resolveDungeonEnemyDifficulty(
+      node.realm_requirement,
+      difficultyTier,
+    ),
     ...preset,
   };
 }
 
-export function scaleDungeonBattleDifficulty(
-  rawDifficulty: number,
-  config: ResolvedDungeonMapConfig,
+export function resolveDungeonEnemyDifficulty(
+  realm: RealmType,
+  tier: DungeonDifficultyTier,
 ): number {
-  return Math.max(
-    0,
-    Math.min(
-      config.maxEnemyDifficulty,
-      Math.round(rawDifficulty * config.enemyDifficultyMultiplier),
-    ),
+  return DUNGEON_ENEMY_DIFFICULTY_TABLE[realm]?.[tier] ?? 24;
+}
+
+export function clampDungeonEnemyRealmStage(
+  realmStage: RealmStage,
+  config: ResolvedDungeonMapConfig,
+): RealmStage {
+  if (config.allowedEnemyRealmStages.includes(realmStage)) {
+    return realmStage;
+  }
+
+  if (realmStage === '初期' || realmStage === '中期') {
+    return config.allowedEnemyRealmStages[0] ?? '初期';
+  }
+
+  return (
+    config.allowedEnemyRealmStages[config.allowedEnemyRealmStages.length - 1] ??
+    '初期'
   );
+}
+
+export function getDungeonRewardBonus(
+  tier: DungeonDifficultyTier | undefined,
+): number {
+  const difficultyTier =
+    tier && tier in DUNGEON_DIFFICULTY_PRESETS ? tier : 'easy';
+  return DUNGEON_DIFFICULTY_PRESETS[difficultyTier].rewardBonus;
 }

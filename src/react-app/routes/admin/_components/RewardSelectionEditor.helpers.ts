@@ -16,7 +16,7 @@ export function createSpiritStoneDraft(): RewardSelectionDraft {
   };
 }
 
-export function createCatalogItemDraft(itemId = ''): RewardSelectionDraft {
+export function createItemLibraryItemDraft(itemId = ''): RewardSelectionDraft {
   return {
     type: 'item_library',
     itemId,

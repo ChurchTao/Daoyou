@@ -82,7 +82,8 @@ describe('buildDungeonRoundLlmContext', () => {
       realmRequirement: '筑基',
       difficultyTier: 'hard',
       difficultyLabel: '险地',
-      battleDifficultyCap: 70,
+      enemyDifficulty: 40,
+      allowedEnemyRealmStages: ['中期', '后期'],
     });
     expect(context.player.realm).toBe('元婴 后期');
     expect(context).not.toHaveProperty('resourcePressure');

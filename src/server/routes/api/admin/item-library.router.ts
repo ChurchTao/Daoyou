@@ -180,24 +180,6 @@ router.put('/:id', requireAdmin(), async (c) => {
   }
 });
 
-router.post('/:id/archive', requireAdmin(), async (c) => {
-  const user = c.get('user');
-  if (!user) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-
-  const item = await archiveItemLibraryEntry({
-    id: c.req.param('id'),
-    userId: user.id,
-  });
-
-  if (!item) {
-    return c.json({ error: '道具不存在' }, 404);
-  }
-
-  return c.json({ success: true, item });
-});
-
 router.post('/artifact/preview', requireAdmin(), async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = ArtifactPreviewRequestSchema.safeParse(body);
@@ -237,6 +219,24 @@ router.post('/artifact/preview', requireAdmin(), async (c) => {
       400,
     );
   }
+});
+
+router.post('/:id/archive', requireAdmin(), async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const item = await archiveItemLibraryEntry({
+    id: c.req.param('id'),
+    userId: user.id,
+  });
+
+  if (!item) {
+    return c.json({ error: '道具不存在' }, 404);
+  }
+
+  return c.json({ success: true, item });
 });
 
 router.get('/:id', requireAdmin(), async (c) => {

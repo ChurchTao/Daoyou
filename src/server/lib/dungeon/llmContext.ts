@@ -194,7 +194,8 @@ export function buildDungeonRoundLlmContext(args: {
       realmRequirement: mapConfig.realmRequirement,
       difficultyTier: mapConfig.difficultyTier,
       difficultyLabel: mapConfig.difficultyLabel,
-      battleDifficultyCap: mapConfig.maxEnemyDifficulty,
+      enemyDifficulty: mapConfig.enemyDifficulty,
+      allowedEnemyRealmStages: mapConfig.allowedEnemyRealmStages,
       tags: state.location.location_tags.slice(0, 6),
       descriptionSummary: truncateText(
         state.location.location_description,

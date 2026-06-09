@@ -10,8 +10,8 @@ import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
   getMapNode,
   isSatelliteNode,
+  clampDungeonEnemyRealmStage,
   resolveDungeonMapConfig,
-  scaleDungeonBattleDifficulty,
 } from '@shared/lib/game/mapSystem';
 import type { SatelliteNode } from '@shared/lib/game/mapSystem';
 import {
@@ -501,7 +501,8 @@ export class DungeonService {
 - **数值范围**: hp_loss, mp_loss 必须是 0-1 之间的小数；其他类型为正整数。
 - **材料(material)**: 禁止指定 name，必须提供 required_type 和 required_quality。
 - **冲突禁止**: 若有 'battle'，严禁同时出现 'hp_loss' 或 'mp_loss'。
-- **战斗元数据(battle.metadata)**: 必须提供 race 与 realm_stage；可选提供 enemy_name、background、description、is_boss。`
+- **战斗元数据(battle.metadata)**: 必须提供 race 与 realm_stage；可选提供 enemy_name、background、description、is_boss。
+- **战斗难度**: battle.value 只作为剧情风险参考；最终敌人 difficulty 与 realm_stage 会由服务端按副本档位配置表覆盖或钳制。`
     );
   }
 
@@ -906,21 +907,22 @@ export class DungeonService {
       throw new Error('Battle cost metadata must include race and realm_stage');
     }
 
-    const enemyDifficulty = scaleDungeonBattleDifficulty(
-      battleCost.value,
+    const enemyDifficulty = mapConfig.enemyDifficulty;
+    const enemyRealmStage = clampDungeonEnemyRealmStage(
+      metadata.realm_stage,
       mapConfig,
     );
 
     const draft = await dungeonEnemyGenerator.enrichNarrative(
       dungeonEnemyGenerator.buildDraft({
         realm: realmRequirement as import('@shared/types/constants').RealmType,
-        realmStage: metadata.realm_stage,
+        realmStage: enemyRealmStage,
         race: metadata.race,
         difficulty: enemyDifficulty,
         name: metadata.enemy_name,
         background: metadata.background,
         description: metadata.description,
-        isBoss: mapConfig.allowBossLoadout && Boolean(metadata.is_boss),
+        isBoss: mapConfig.difficultyTier === 'boss' && Boolean(metadata.is_boss),
       }),
     );
     const enemy = draft.cultivator;
@@ -1404,6 +1406,7 @@ export class DungeonService {
         settlement.settlement.reward_tier,
         state.dangerScore, // 传递危险分数用于奖励计算
         state.playerInfo, // 传递玩家信息用于修为计算
+        mapNode ? resolveDungeonMapConfig(mapNode).difficultyTier : undefined,
       );
     state.realGains = realGains;
     await this.saveState(state.cultivatorId, state);
