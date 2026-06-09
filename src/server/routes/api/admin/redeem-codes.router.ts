@@ -1,6 +1,6 @@
 import { getExecutor } from '@server/lib/drizzle/db';
 import { redeemCodes } from '@server/lib/drizzle/schema';
-import { getRewardCatalog } from '@server/lib/repositories/rewardCatalogRepository';
+import { findPublishedItemLibraryForSelections } from '@server/lib/repositories/itemLibraryRepository';
 import {
   generateRedeemCode,
   isValidRedeemCodeFormat,
@@ -11,10 +11,10 @@ import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import type { MailAttachment } from '@shared/types/mail';
 import {
-  RewardCatalogResolveError,
-  RewardSelectionsSchema,
-} from '@shared/lib/rewardCatalog';
-import { resolveRewardSelections } from '@shared/lib/rewardCatalog';
+  ItemLibraryResolveError,
+  ItemLibraryRewardSelectionsSchema,
+  resolveItemLibrarySelections,
+} from '@shared/lib/itemLibrary';
 import { and, desc, eq, type SQL } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -24,7 +24,7 @@ const SNAPSHOT_REWARD_PRESET_ID = '__reward_catalog_snapshot__';
 const CreateRedeemCodeSchema = z
   .object({
     code: z.string().trim().max(64).optional(),
-    rewardSelections: RewardSelectionsSchema.min(1, '至少选择一项奖励'),
+    rewardSelections: ItemLibraryRewardSelectionsSchema.min(1, '至少选择一项奖励'),
     mailTitle: z.string().trim().min(1).max(200),
     mailContent: z.string().trim().min(1).max(10000),
     totalLimit: z.number().int().min(1).max(100000000).nullable().optional(),
@@ -179,20 +179,22 @@ router.post('/', requireAdmin(), async (c) => {
   let rewardAttachments: MailAttachment[] = [];
 
   try {
-    const rewardCatalog = await getRewardCatalog();
-    rewardAttachments = resolveRewardSelections(
+    const itemLibraryEntries = await findPublishedItemLibraryForSelections(
       parsed.data.rewardSelections,
-      rewardCatalog,
+    );
+    rewardAttachments = resolveItemLibrarySelections(
+      parsed.data.rewardSelections,
+      itemLibraryEntries,
     );
   } catch (error) {
-    if (error instanceof RewardCatalogResolveError) {
+    if (error instanceof ItemLibraryResolveError) {
       return c.json({ error: error.message }, 400);
     }
 
     return c.json(
       {
         error:
-          error instanceof Error ? error.message : '奖励目录加载失败',
+          error instanceof Error ? error.message : '道具库加载失败',
       },
       500,
     );

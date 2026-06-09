@@ -12,15 +12,15 @@ import { getExecutor } from '@server/lib/drizzle/db';
 import { adminMessageTemplates, mails } from '@server/lib/drizzle/schema';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import { getRewardCatalog } from '@server/lib/repositories/rewardCatalogRepository';
+import { findPublishedItemLibraryForSelections } from '@server/lib/repositories/itemLibraryRepository';
 import type { MailAttachment } from '@server/lib/services/MailService';
 import { REALM_VALUES } from '@shared/types/constants';
 import {
-  RewardCatalogResolveError,
-  RewardSelectionsSchema,
-  resolveRewardSelections,
+  ItemLibraryResolveError,
+  ItemLibraryRewardSelectionsSchema,
+  resolveItemLibrarySelections,
   summarizeMailAttachments,
-} from '@shared/lib/rewardCatalog';
+} from '@shared/lib/itemLibrary';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -59,7 +59,7 @@ const GameMailBroadcastSchema = z
     templateId: z.string().uuid().optional(),
     title: z.string().trim().min(1).max(200).optional(),
     content: z.string().trim().min(1).max(10000).optional(),
-    rewardSelections: RewardSelectionsSchema.default([]),
+    rewardSelections: ItemLibraryRewardSelectionsSchema.default([]),
     payload: z
       .record(z.string(), z.union([z.string(), z.number()]))
       .default({}),
@@ -247,20 +247,22 @@ router.post('/game-mail', requireAdmin(), async (c) => {
   let attachments: MailAttachment[] = [];
 
   try {
-    const rewardCatalog = await getRewardCatalog();
-    attachments = resolveRewardSelections(
+    const itemLibraryEntries = await findPublishedItemLibraryForSelections(
       parsed.data.rewardSelections,
-      rewardCatalog,
+    );
+    attachments = resolveItemLibrarySelections(
+      parsed.data.rewardSelections,
+      itemLibraryEntries,
     );
   } catch (error) {
-    if (error instanceof RewardCatalogResolveError) {
+    if (error instanceof ItemLibraryResolveError) {
       return c.json({ error: error.message }, 400);
     }
 
     return c.json(
       {
         error:
-          error instanceof Error ? error.message : '奖励目录加载失败',
+          error instanceof Error ? error.message : '道具库加载失败',
       },
       500,
     );

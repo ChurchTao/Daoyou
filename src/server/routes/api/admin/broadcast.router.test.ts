@@ -2,12 +2,12 @@ import { Hono } from 'hono';
 
 const {
   getExecutorMock,
-  getRewardCatalogMock,
+  findPublishedItemLibraryForSelectionsMock,
   resolveEmailRecipientsMock,
   resolveGameMailRecipientsMock,
 } = vi.hoisted(() => ({
   getExecutorMock: vi.fn(),
-  getRewardCatalogMock: vi.fn(),
+  findPublishedItemLibraryForSelectionsMock: vi.fn(),
   resolveEmailRecipientsMock: vi.fn(),
   resolveGameMailRecipientsMock: vi.fn(),
 }));
@@ -26,8 +26,8 @@ vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: getExecutorMock,
 }));
 
-vi.mock('@server/lib/repositories/rewardCatalogRepository', () => ({
-  getRewardCatalog: getRewardCatalogMock,
+vi.mock('@server/lib/repositories/itemLibraryRepository', () => ({
+  findPublishedItemLibraryForSelections: findPublishedItemLibraryForSelectionsMock,
 }));
 
 vi.mock('@server/lib/admin/recipient-resolver', () => ({
@@ -42,15 +42,27 @@ function createApp() {
 }
 
 describe('admin broadcast router', () => {
-  const sampleCatalog = [
+  const sampleItems = [
     {
-      id: 'refined_iron',
+      id: '11111111-1111-4111-8111-111111111111',
+      itemId: 'refined_iron',
       type: 'material' as const,
-      data: {
+      status: 'published' as const,
+      name: '精炼玄铁',
+      description: null,
+      quality: '玄品',
+      element: null,
+      category: 'ore',
+      payload: {
         name: '精炼玄铁',
         type: 'ore' as const,
         rank: '玄品' as const,
       },
+      editorConfig: {},
+      createdBy: '11111111-1111-4111-8111-111111111111',
+      updatedBy: '11111111-1111-4111-8111-111111111111',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
     },
   ];
 
@@ -83,7 +95,7 @@ describe('admin broadcast router', () => {
         },
       },
     });
-    getRewardCatalogMock.mockResolvedValue([]);
+    findPublishedItemLibraryForSelectionsMock.mockResolvedValue([]);
 
     const response = await createApp().request('/api/admin/broadcast/game-mail', {
       method: 'POST',
@@ -128,7 +140,7 @@ describe('admin broadcast router', () => {
         },
       },
     });
-    getRewardCatalogMock.mockResolvedValue(sampleCatalog);
+    findPublishedItemLibraryForSelectionsMock.mockResolvedValue(sampleItems);
 
     const response = await createApp().request('/api/admin/broadcast/game-mail', {
       method: 'POST',
@@ -138,7 +150,7 @@ describe('admin broadcast router', () => {
         content: '请查收补偿。',
         rewardSelections: [
           { type: 'spirit_stones', quantity: 300 },
-          { type: 'catalog_item', itemId: 'refined_iron', quantity: 2 },
+          { type: 'item_library', itemId: 'refined_iron', quantity: 2 },
         ],
       }),
     });
@@ -193,7 +205,7 @@ describe('admin broadcast router', () => {
         },
       },
     });
-    getRewardCatalogMock.mockResolvedValue([]);
+    findPublishedItemLibraryForSelectionsMock.mockResolvedValue([]);
     resolveGameMailRecipientsMock.mockResolvedValue({
       totalCount: 1,
       recipients: [{ recipientKey: targetCultivatorId }],

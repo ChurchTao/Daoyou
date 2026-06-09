@@ -1,7 +1,7 @@
 import {
   parseMailAttachments,
   summarizeMailAttachments,
-} from '@shared/lib/rewardCatalog';
+} from '@shared/lib/itemLibrary';
 import type { MailAttachment } from '@shared/types/mail';
 
 interface RedeemCodeRewardSource {

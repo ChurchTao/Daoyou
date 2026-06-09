@@ -5,11 +5,11 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES } from '@shared/types/constants';
 import { useEffect, useState } from 'react';
+import { RewardSelectionEditor } from '../../_components/RewardSelectionEditor';
 import {
-  RewardSelectionEditor,
   parseRewardSelectionDrafts,
   type RewardSelectionDraft,
-} from '../../_components/RewardSelectionEditor';
+} from '../../_components/RewardSelectionEditor.helpers';
 
 interface GameMailTemplateOption {
   id: string;
@@ -136,7 +136,7 @@ export function GameMailBroadcastForm() {
   return (
     <div className="space-y-5">
       <InkNotice tone="info">
-        可选模板 + 人群筛选。奖励支持灵石与奖励目录道具，留空时发送纯公告。
+        可选模板 + 人群筛选。奖励支持灵石与道具库 published 道具，留空时发送纯公告。
         填写目标角色 ID 时进入单发模式，并忽略下方群发筛选条件。
       </InkNotice>
 

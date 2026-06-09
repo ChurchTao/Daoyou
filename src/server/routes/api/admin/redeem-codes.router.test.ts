@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 
-const { getExecutorMock, getRewardCatalogMock } = vi.hoisted(() => ({
+const { getExecutorMock, findPublishedItemLibraryForSelectionsMock } = vi.hoisted(() => ({
   getExecutorMock: vi.fn(),
-  getRewardCatalogMock: vi.fn(),
+  findPublishedItemLibraryForSelectionsMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -19,8 +19,8 @@ vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: getExecutorMock,
 }));
 
-vi.mock('@server/lib/repositories/rewardCatalogRepository', () => ({
-  getRewardCatalog: getRewardCatalogMock,
+vi.mock('@server/lib/repositories/itemLibraryRepository', () => ({
+  findPublishedItemLibraryForSelections: findPublishedItemLibraryForSelectionsMock,
 }));
 
 import redeemCodesRouter from './redeem-codes.router';
@@ -30,16 +30,28 @@ function createApp() {
 }
 
 describe('admin redeem codes router', () => {
-  const sampleCatalog = [
+  const sampleItems = [
     {
-      id: 'refined_iron',
+      id: '11111111-1111-4111-8111-111111111111',
+      itemId: 'refined_iron',
       type: 'material' as const,
-      data: {
+      status: 'published' as const,
+      name: '精炼玄铁',
+      description: null,
+      quality: '玄品',
+      element: '金',
+      category: 'ore',
+      payload: {
         name: '精炼玄铁',
         type: 'ore' as const,
         rank: '玄品' as const,
         element: '金' as const,
       },
+      editorConfig: {},
+      createdBy: '11111111-1111-4111-8111-111111111111',
+      updatedBy: '11111111-1111-4111-8111-111111111111',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
     },
   ];
 
@@ -64,7 +76,7 @@ describe('admin redeem codes router', () => {
     getExecutorMock.mockReturnValue({
       insert: insertMock,
     });
-    getRewardCatalogMock.mockResolvedValue(sampleCatalog);
+    findPublishedItemLibraryForSelectionsMock.mockResolvedValue(sampleItems);
 
     const response = await createApp().request('/api/admin/redeem-codes', {
       method: 'POST',
@@ -73,7 +85,7 @@ describe('admin redeem codes router', () => {
         code: 'SPRING2026',
         rewardSelections: [
           { type: 'spirit_stones', quantity: 500 },
-          { type: 'catalog_item', itemId: 'refined_iron', quantity: 2 },
+          { type: 'item_library', itemId: 'refined_iron', quantity: 2 },
         ],
         mailTitle: '活动奖励',
         mailContent: '请查收奖励。',
@@ -112,14 +124,14 @@ describe('admin redeem codes router', () => {
     getExecutorMock.mockReturnValue({
       insert: vi.fn(),
     });
-    getRewardCatalogMock.mockResolvedValue(sampleCatalog);
+    findPublishedItemLibraryForSelectionsMock.mockResolvedValue(sampleItems);
 
     const response = await createApp().request('/api/admin/redeem-codes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         rewardSelections: [
-          { type: 'catalog_item', itemId: 'missing', quantity: 1 },
+          { type: 'item_library', itemId: 'missing', quantity: 1 },
         ],
         mailTitle: '活动奖励',
         mailContent: '请查收奖励。',
@@ -128,7 +140,7 @@ describe('admin redeem codes router', () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: '奖励目录项不存在：missing',
+      error: '道具库道具不存在：missing',
     });
   });
 

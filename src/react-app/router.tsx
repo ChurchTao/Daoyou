@@ -691,11 +691,11 @@ export const router = createBrowserRouter(
           handle={title('游戏公告')}
         />
         <Route
-          path="reward-catalog"
+          path="item-library"
           lazy={lazyRoute(
-            () => import('@app/routes/admin/reward-catalog/route'),
+            () => import('@app/routes/admin/item-library/route'),
           )}
-          handle={title('奖励目录')}
+          handle={title('道具库')}
         />
         <Route
           path="templates"

@@ -3,12 +3,12 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
+import { RewardSelectionEditor } from '../../_components/RewardSelectionEditor';
 import {
-  RewardSelectionEditor,
   createSpiritStoneDraft,
   parseRewardSelectionDrafts,
   type RewardSelectionDraft,
-} from '../../_components/RewardSelectionEditor';
+} from '../../_components/RewardSelectionEditor.helpers';
 
 export function RedeemCodeCreateForm() {
   const { pushToast } = useInkUI();

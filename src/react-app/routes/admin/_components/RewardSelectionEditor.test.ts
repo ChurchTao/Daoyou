@@ -2,7 +2,7 @@ import {
   createCatalogItemDraft,
   createSpiritStoneDraft,
   parseRewardSelectionDrafts,
-} from './RewardSelectionEditor';
+} from './RewardSelectionEditor.helpers';
 
 describe('reward selection editor helpers', () => {
   it('parses mixed reward drafts into API payloads', () => {
@@ -17,7 +17,7 @@ describe('reward selection editor helpers', () => {
         quantity: 1,
       },
       {
-        type: 'catalog_item',
+        type: 'item_library',
         itemId: 'refined_iron',
         quantity: 1,
       },

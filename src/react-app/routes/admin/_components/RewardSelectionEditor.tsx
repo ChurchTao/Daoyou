@@ -3,19 +3,13 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
-import type { RewardCatalogItem } from '@shared/lib/rewardCatalog';
+import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { useEffect, useState } from 'react';
-
-export type RewardSelectionDraft =
-  | {
-      type: 'spirit_stones';
-      quantity: string;
-    }
-  | {
-      type: 'catalog_item';
-      itemId: string;
-      quantity: string;
-    };
+import {
+  createCatalogItemDraft,
+  createSpiritStoneDraft,
+  type RewardSelectionDraft,
+} from './RewardSelectionEditor.helpers';
 
 interface RewardSelectionEditorProps {
   value: RewardSelectionDraft[];
@@ -24,65 +18,12 @@ interface RewardSelectionEditorProps {
   allowEmpty?: boolean;
 }
 
-interface RewardCatalogResponse {
-  catalog?: RewardCatalogItem[];
+interface ItemLibraryResponse {
+  items?: ItemLibraryEntry[];
   error?: string;
 }
 
-export function createSpiritStoneDraft(): RewardSelectionDraft {
-  return {
-    type: 'spirit_stones',
-    quantity: '1',
-  };
-}
-
-export function createCatalogItemDraft(itemId = ''): RewardSelectionDraft {
-  return {
-    type: 'catalog_item',
-    itemId,
-    quantity: '1',
-  };
-}
-
-export function parseRewardSelectionDrafts(
-  drafts: RewardSelectionDraft[],
-  options?: {
-    allowEmpty?: boolean;
-  },
-) {
-  if (drafts.length === 0) {
-    if (options?.allowEmpty) {
-      return [];
-    }
-    throw new Error('至少选择一项奖励');
-  }
-
-  return drafts.map((draft, index) => {
-    const quantity = Number(draft.quantity.trim());
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw new Error(`第 ${index + 1} 项奖励数量必须是大于 0 的整数`);
-    }
-
-    if (draft.type === 'spirit_stones') {
-      return {
-        type: 'spirit_stones' as const,
-        quantity,
-      };
-    }
-
-    if (!draft.itemId) {
-      throw new Error(`第 ${index + 1} 项奖励未选择目录道具`);
-    }
-
-    return {
-      type: 'catalog_item' as const,
-      itemId: draft.itemId,
-      quantity,
-    };
-  });
-}
-
-function getCatalogItemTypeLabel(item: RewardCatalogItem) {
+function getCatalogItemTypeLabel(item: ItemLibraryEntry) {
   switch (item.type) {
     case 'material':
       return '材料';
@@ -93,20 +34,20 @@ function getCatalogItemTypeLabel(item: RewardCatalogItem) {
   }
 }
 
-function getCatalogItemLabel(item: RewardCatalogItem) {
-  return `${item.data.name}（${getCatalogItemTypeLabel(item)} / ${item.id}）`;
+function getCatalogItemLabel(item: ItemLibraryEntry) {
+  return `${item.name}（${getCatalogItemTypeLabel(item)} / ${item.itemId}）`;
 }
 
 function getDraftSummary(
   draft: RewardSelectionDraft,
-  catalog: RewardCatalogItem[],
+  catalog: ItemLibraryEntry[],
 ): string {
   if (draft.type === 'spirit_stones') {
     return draft.quantity.trim() ? `灵石 x${draft.quantity.trim()}` : '灵石';
   }
 
-  const item = catalog.find((catalogItem) => catalogItem.id === draft.itemId);
-  const name = item?.data.name ?? draft.itemId ?? '未选择目录项';
+  const item = catalog.find((catalogItem) => catalogItem.itemId === draft.itemId);
+  const name = item?.name ?? draft.itemId ?? '未选择道具';
   return draft.quantity.trim()
     ? `${name} x${draft.quantity.trim()}`
     : name;
@@ -119,7 +60,7 @@ export function RewardSelectionEditor({
   allowEmpty = false,
 }: RewardSelectionEditorProps) {
   const { pushToast } = useInkUI();
-  const [catalog, setCatalog] = useState<RewardCatalogItem[]>([]);
+  const [catalog, setCatalog] = useState<ItemLibraryEntry[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
 
   useEffect(() => {
@@ -127,18 +68,18 @@ export function RewardSelectionEditor({
 
     (async () => {
       try {
-        const response = await fetch('/api/admin/reward-catalog');
-        const data = (await response.json()) as RewardCatalogResponse;
+        const response = await fetch('/api/admin/item-library?status=published');
+        const data = (await response.json()) as ItemLibraryResponse;
         if (!response.ok) {
-          throw new Error(data.error ?? '加载奖励目录失败');
+          throw new Error(data.error ?? '加载道具库失败');
         }
         if (!cancelled) {
-          setCatalog(data.catalog ?? []);
+          setCatalog(data.items ?? []);
         }
       } catch (error) {
         if (!cancelled) {
           pushToast({
-            message: error instanceof Error ? error.message : '加载奖励目录失败',
+            message: error instanceof Error ? error.message : '加载道具库失败',
             tone: 'danger',
           });
         }
@@ -161,11 +102,11 @@ export function RewardSelectionEditor({
 
     let changed = false;
     const nextValue = value.map((draft) => {
-      if (draft.type !== 'catalog_item') {
+      if (draft.type !== 'item_library') {
         return draft;
       }
 
-      const exists = catalog.some((item) => item.id === draft.itemId);
+      const exists = catalog.some((item) => item.itemId === draft.itemId);
       if (exists) {
         return draft;
       }
@@ -173,7 +114,7 @@ export function RewardSelectionEditor({
       changed = true;
       return {
         ...draft,
-        itemId: catalog[0].id,
+        itemId: catalog[0].itemId,
       };
     });
 
@@ -197,13 +138,13 @@ export function RewardSelectionEditor({
   const addCatalogItem = () => {
     if (catalog.length === 0) {
       pushToast({
-        message: '奖励目录为空，请先到“奖励目录”页面配置道具',
+        message: '道具库为空，请先到“道具库”页面配置道具',
         tone: 'warning',
       });
       return;
     }
 
-    onChange([...value, createCatalogItemDraft(catalog[0].id)]);
+    onChange([...value, createCatalogItemDraft(catalog[0].itemId)]);
   };
 
   const summaries = value.map((draft) => getDraftSummary(draft, catalog));
@@ -225,17 +166,17 @@ export function RewardSelectionEditor({
           onClick={addCatalogItem}
           disabled={disabled || catalogLoading}
         >
-          添加目录道具
+          添加道具库道具
         </InkButton>
       </div>
 
       {catalogLoading ? (
-        <InkNotice tone="muted">奖励目录加载中...</InkNotice>
+        <InkNotice tone="muted">道具库加载中...</InkNotice>
       ) : null}
 
       {!catalogLoading && catalog.length === 0 ? (
         <InkNotice tone="warning">
-          当前奖励目录为空，暂时只能添加灵石奖励。
+          当前道具库没有 published 道具，暂时只能添加灵石奖励。
         </InkNotice>
       ) : null}
 
@@ -258,18 +199,18 @@ export function RewardSelectionEditor({
                     index,
                     nextType === 'spirit_stones'
                       ? createSpiritStoneDraft()
-                      : createCatalogItemDraft(catalog[0]?.id ?? ''),
+                      : createCatalogItemDraft(catalog[0]?.itemId ?? ''),
                   )
                 }
                 disabled={disabled}
               >
                 <option value="spirit_stones">灵石</option>
-                <option value="catalog_item">目录道具</option>
+                <option value="item_library">道具库道具</option>
               </InkSelect>
 
-              {draft.type === 'catalog_item' ? (
+              {draft.type === 'item_library' ? (
                 <InkSelect
-                  label="目录项"
+                  label="道具"
                   value={draft.itemId}
                   onChange={(itemId) =>
                     updateDraft(index, {
@@ -283,7 +224,7 @@ export function RewardSelectionEditor({
                     <option value="">暂无目录项</option>
                   ) : (
                     catalog.map((item) => (
-                      <option key={item.id} value={item.id}>
+                      <option key={item.id} value={item.itemId}>
                         {getCatalogItemLabel(item)}
                       </option>
                     ))
