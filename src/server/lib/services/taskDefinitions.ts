@@ -164,8 +164,8 @@ async function buildGeneratedChallengeOpponent(
 }
 
 const BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY = {
-  tribulationDeity: 70,
-  lawInsightVoid: 80,
+  tribulationDeity: 65,
+  lawInsightVoid: 75,
   tribulationBody: 90,
   heavenlyTribulationFinal: 100,
 } as const;
