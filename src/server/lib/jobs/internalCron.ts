@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
+import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import { MailService } from '@server/lib/services/MailService';
@@ -12,10 +13,13 @@ const AUCTION_EXPIRE_LOCK_KEY = 'cron:auction-expire:lock';
 const BET_BATTLE_EXPIRE_LOCK_KEY = 'cron:bet-battle-expire:lock';
 const RANK_REWARD_LOCK_KEY = 'golden_rank:rewards:lock';
 const TOWER_ENEMY_SETS_LOCK_KEY = 'cron:tower-enemy-sets:lock';
+const PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY =
+  'cron:player-state-events-cleanup:lock';
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
+const PLAYER_STATE_EVENT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type CronJobResult = {
   success: true;
@@ -219,5 +223,21 @@ export async function runTowerEnemySetRefreshJob(): Promise<TowerEnemySetsJobRes
       };
     },
     TOWER_ENEMY_SETS_LOCK_TTL_SECONDS,
+  );
+}
+
+export async function runPlayerStateEventsCleanupJob(): Promise<CronJobResult> {
+  return withJobLock(
+    'player-state-events-cleanup',
+    PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY,
+    async () => {
+      const cutoff = new Date(Date.now() - PLAYER_STATE_EVENT_RETENTION_MS);
+      const processed = await prunePlayerStateEventsOlderThan(cutoff);
+      return {
+        success: true,
+        processed,
+        skipped: false,
+      };
+    },
   );
 }

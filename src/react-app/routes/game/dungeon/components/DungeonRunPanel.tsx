@@ -4,12 +4,12 @@ import {
   PillKeywordLine,
   toPillDisplayModel,
 } from '@app/components/feature/consumables';
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { ArtifactListCard } from '@app/components/feature/products';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkNotice } from '@app/components/ui';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import { isConditionStatusActive } from '@shared/lib/condition';
@@ -115,8 +115,9 @@ export function DungeonRunPanel({
   displayResources,
   onQuit,
 }: DungeonRunPanelProps) {
-  const { equipped, refresh, refreshInventory } = useCultivator();
+  const { equipped } = useCultivator();
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
   const [expanded, setExpanded] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState<DrawerMainTab>('status');
   const [activeInventoryTab, setActiveInventoryTab] =
@@ -252,19 +253,15 @@ export function DungeonRunPanel({
 
       setPendingId(item.id);
       try {
-        const response = await fetch('/api/cultivator/equip', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ artifactId: item.id }),
-        });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '装备操作失败');
-        }
+        await mutate(
+          fetch('/api/cultivator/equip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ artifactId: item.id }),
+          }),
+        );
 
         pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
-        await refresh();
-        await refreshInventory(['artifacts']);
         await fetchDrawerInventoryPage('artifacts', artifactPage.page);
       } catch (error) {
         pushToast({
@@ -278,7 +275,7 @@ export function DungeonRunPanel({
         setPendingId(null);
       }
     },
-    [artifactPage.page, fetchDrawerInventoryPage, pushToast, refresh, refreshInventory],
+    [artifactPage.page, fetchDrawerInventoryPage, mutate, pushToast],
   );
 
   const handleConsumeConsumable = useCallback(
@@ -290,25 +287,21 @@ export function DungeonRunPanel({
 
       setPendingId(item.id);
       try {
-        const response = await fetch('/api/cultivator/consume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consumableId: item.id }),
-        });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '服用失败');
-        }
+        const result = await mutate<{
+          message: string;
+          consumable: Consumable;
+        }>(
+          fetch('/api/cultivator/consume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ consumableId: item.id }),
+          }),
+        );
 
         pushToast({
-          message: result.data?.message || `${item.name}已使用。`,
+          message: result.message || `${item.name}已使用。`,
           tone: 'success',
         });
-        if (isTalismanConsumable(item)) {
-          invalidateQiState(cultivator?.id);
-        }
-        await refresh();
-        await refreshInventory(['consumables']);
         await fetchDrawerInventoryPage('consumables', pillPage.page);
       } catch (error) {
         pushToast({
@@ -321,12 +314,10 @@ export function DungeonRunPanel({
       }
     },
     [
-      cultivator,
       fetchDrawerInventoryPage,
+      mutate,
       pillPage.page,
       pushToast,
-      refresh,
-      refreshInventory,
     ],
   );
 

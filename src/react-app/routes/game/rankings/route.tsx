@@ -16,6 +16,7 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import { RANKING_REWARDS } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
 import { ItemRankingEntry, RankingsDisplayItem } from '@shared/types/rankings';
@@ -32,6 +33,12 @@ type MyRankInfo = {
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
 type RankingTab = 'battle' | 'artifact' | 'technique' | 'skill' | 'elixir';
+
+type DirectEntryResponse = {
+  type: 'direct_entry';
+  rank: number;
+  remainingChallenges: number;
+};
 
 export default function RankingsPage() {
   const navigate = useNavigate();
@@ -187,6 +194,25 @@ export default function RankingsPage() {
     setActiveTab(val as RankingTab);
   };
 
+  const executeDirectEntry = async () => {
+    const data = await consumePlayerStateMutation<DirectEntryResponse>(
+      await fetch('/api/rankings/challenge-battle/v5', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: null,
+        }),
+      }),
+    );
+    await Promise.all([loadRankings(activeTab), loadMyRankInfo()]);
+    pushToast({
+      message: `成功上榜，占据第${data.rank}名！`,
+      tone: 'success',
+    });
+  };
+
   const handleProbe = async (targetId: string) => {
     if (!cultivator?.id) return;
     setProbing(targetId);
@@ -240,11 +266,7 @@ export default function RankingsPage() {
 
       // 如果是直接上榜，显示提示并刷新
       if (result.data.directEntry) {
-        pushToast({
-          message: `成功上榜，占据第${result.data.rank}名！`,
-          tone: 'success',
-        });
-        await Promise.all([loadRankings(activeTab), loadMyRankInfo()]);
+        await executeDirectEntry();
         return;
       }
 
@@ -264,7 +286,7 @@ export default function RankingsPage() {
 
     setChallenging('direct');
     try {
-      // 验证直接上榜条件并直接上榜
+      // 验证直接上榜条件，真正上榜只走 v5 mutation。
       const response = await fetch('/api/rankings/challenge', {
         method: 'POST',
         headers: {
@@ -281,16 +303,12 @@ export default function RankingsPage() {
         throw new Error(result.error || '上榜失败');
       }
 
-      // 直接上榜成功，刷新排行榜和我的排名信息
-      await Promise.all([loadRankings(activeTab), loadMyRankInfo()]);
-
-      // 显示成功提示
       if (result.data.directEntry) {
-        pushToast({
-          message: `成功上榜，占据第${result.data.rank}名！`,
-          tone: 'success',
-        });
+        await executeDirectEntry();
+        return;
       }
+
+      throw new Error('当前无法直接上榜');
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '上榜失败，请稍后重试';

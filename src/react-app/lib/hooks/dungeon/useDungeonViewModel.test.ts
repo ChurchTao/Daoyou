@@ -56,23 +56,23 @@ describe('resolveDungeonMutationResult', () => {
 });
 
 describe('shouldRefreshCultivatorAfterDungeonMutation', () => {
-  it('refreshes cultivator data after successful dungeon mutations', () => {
+  it('does not manually refresh cultivator data after event-driven mutations', () => {
     expect(
       shouldRefreshCultivatorAfterDungeonMutation({
         type: 'state',
         state: { status: 'EXPLORING' } as DungeonState,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldRefreshCultivatorAfterDungeonMutation({
         type: 'settlement',
         settlement: undefined,
         realGains: [],
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldRefreshCultivatorAfterDungeonMutation({ type: 'clear' }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('does not refresh cultivator data for local-only refresh or empty results', () => {

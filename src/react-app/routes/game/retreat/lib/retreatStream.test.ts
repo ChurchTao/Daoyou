@@ -1,3 +1,4 @@
+import type { PlayerStateEvent } from '@shared/contracts/player';
 import type { RetreatStreamEvent } from '@shared/contracts/retreat';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -92,6 +93,45 @@ describe('retreatStream', () => {
     });
 
     expect(onError).toHaveBeenCalledWith('天机推演中断，此番结果已然落定。');
+  });
+
+  it('passes player state events through the retreat stream', async () => {
+    const stateEvent: PlayerStateEvent = {
+      id: 1,
+      cultivatorId: 'cultivator-1',
+      globalVersion: 2,
+      domainVersion: 2,
+      domain: 'progress',
+      eventType: 'progress.cultivation.changed',
+      patch: { progress: { cultivation_exp: 920 } },
+      invalidates: [],
+      source: 'retreat_cultivate',
+      createdAt: '2026-06-10T00:00:00.000Z',
+    };
+    const response = createStreamResponse([
+      encodeEvent({
+        type: 'result',
+        data: {
+          action: 'cultivate',
+          summary: {
+            exp_gained: 18,
+          },
+        } as any,
+      }),
+      encodeEvent({
+        type: 'state',
+        events: [stateEvent],
+      }),
+    ]);
+
+    const onStateEvents = vi.fn();
+
+    await readRetreatStream(response, {
+      onResult: vi.fn(),
+      onStateEvents,
+    });
+
+    expect(onStateEvents).toHaveBeenCalledWith([stateEvent]);
   });
 
   it('supports story appends and breakthrough celebration guards', () => {

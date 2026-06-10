@@ -24,6 +24,7 @@ import {
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
@@ -188,10 +189,10 @@ function OverviewDetailItem({
 }
 
 export function CultivatorOverviewPanel() {
-  const { cultivator, inventory, skills, equipped, refreshCultivator } =
-    useCultivator();
+  const { cultivator, inventory, skills, equipped } = useCultivator();
   const navigate = useNavigate();
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
   const [detailFate, setDetailFate] = useState<
     Cultivator['pre_heaven_fates'][number] | null
@@ -234,22 +235,18 @@ export function CultivatorOverviewPanel() {
 
     try {
       setIsSavingTitle(true);
-      const response = await fetch('/api/cultivator/title', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editingTitle,
+      await mutate(
+        fetch('/api/cultivator/title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: editingTitle,
+          }),
         }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '保存失败');
-      }
+      );
 
       pushToast({ message: '名号已定，威震八方！', tone: 'success' });
       setIsTitleModalOpen(false);
-      await refreshCultivator();
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '保存失败',

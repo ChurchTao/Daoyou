@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
-import { getExecutor, type DbTransaction } from '../drizzle/db';
+import { getExecutor, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
 export type BetBattleRecord = typeof schema.betBattles.$inferSelect;
@@ -43,8 +43,11 @@ export async function createBetBattle(
   return row;
 }
 
-export async function findById(id: string): Promise<BetBattleRecord | null> {
-  const q = getExecutor();
+export async function findById(
+  id: string,
+  executor?: DbExecutor,
+): Promise<BetBattleRecord | null> {
+  const q = executor ?? getExecutor();
   const [row] = await q
     .select()
     .from(schema.betBattles)
@@ -55,8 +58,9 @@ export async function findById(id: string): Promise<BetBattleRecord | null> {
 
 export async function countPendingByCreator(
   creatorId: string,
+  executor?: DbExecutor,
 ): Promise<number> {
-  const q = getExecutor();
+  const q = executor ?? getExecutor();
   const [row] = await q
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.betBattles)

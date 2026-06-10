@@ -1,4 +1,7 @@
-import { requireUser } from '@server/lib/hono/middleware';
+import {
+  invalidateActiveCultivatorRef,
+  requireUser,
+} from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   deleteTempData,
@@ -57,6 +60,7 @@ router.post('/', requireUser(), async (c) => {
 
   cultivator.pre_heaven_fates = selectedFates;
   const newCultivator = await createCultivator(user.id, cultivator);
+  await invalidateActiveCultivatorRef(user.id);
 
   await MailService.sendMail(
     newCultivator.id!,

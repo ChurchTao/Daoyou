@@ -3,6 +3,7 @@ import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import { GeneratedMaterial } from '@shared/engine/material/creation/types';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useEffect, useState } from 'react';
@@ -95,6 +96,23 @@ export function YieldCard({
                 setYieldResult((prev) =>
                   prev ? { ...prev, story: currentStory } : null,
                 );
+              } else if (data.type === 'state' && data.state) {
+                await consumePlayerStateMutation({
+                  success: true,
+                  data: null,
+                  state: data.state,
+                });
+              } else if (data.type === 'state' && Array.isArray(data.events)) {
+                await consumePlayerStateMutation({
+                  success: true,
+                  data: null,
+                  state: {
+                    cultivatorId: data.cultivatorId ?? cultivator.id,
+                    globalVersion: data.globalVersion ?? 0,
+                    domainVersions: data.domainVersions ?? {},
+                    events: data.events,
+                  },
+                });
               } else if (data.type === 'error') {
                 pushToast({ message: data.error, tone: 'danger' });
               }

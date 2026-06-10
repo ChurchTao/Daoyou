@@ -2,7 +2,13 @@ import { Hono } from 'hono';
 import type { Cultivator } from '@shared/types/cultivator';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
-const { activeCultivatorRecord, executorMock } = vi.hoisted(() => ({
+const {
+  activeCultivatorRecord,
+  executorMock,
+  commitPlayerStateMutationMock,
+  listStateEventsAfterMock,
+} =
+  vi.hoisted(() => ({
   activeCultivatorRecord: {
     id: 'cultivator-1',
     userId: 'user-1',
@@ -10,6 +16,32 @@ const { activeCultivatorRecord, executorMock } = vi.hoisted(() => ({
     gameSettings: {},
   },
   executorMock: {},
+  listStateEventsAfterMock: vi.fn(),
+  commitPlayerStateMutationMock: vi.fn(async (input: any) => {
+    const { result, changes } = await input.run({ __tx: true });
+    return {
+      result,
+      state: {
+        cultivatorId: input.cultivatorId,
+        globalVersion: 40,
+        domainVersions: Object.fromEntries(
+          changes.map((change: any) => [change.domain, 40]),
+        ),
+        events: changes.map((change: any, index: number) => ({
+          id: index + 1,
+          cultivatorId: input.cultivatorId,
+          globalVersion: 40,
+          domainVersion: 40,
+          domain: change.domain,
+          eventType: change.eventType,
+          patch: change.patch ?? {},
+          invalidates: change.invalidates ?? [],
+          source: input.source,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        })),
+      },
+    };
+  }),
 }));
 
 vi.mock('@server/lib/drizzle/db', () => ({
@@ -30,6 +62,19 @@ vi.mock('@server/lib/hono/middleware', () => ({
     context.set('executor', executorMock);
     await next();
   },
+  requireActiveCultivatorRef: () => async (
+    context: any,
+    next: () => Promise<void>,
+  ) => {
+    context.set('user', { id: 'user-1' });
+    context.set('activeCultivatorRef', {
+      userId: 'user-1',
+      cultivatorId: 'cultivator-1',
+      status: 'active',
+    });
+    context.set('executor', executorMock);
+    await next();
+  },
   validateJson: (schema: any) => async (
     context: any,
     next: () => Promise<void>,
@@ -46,7 +91,35 @@ vi.mock('@server/lib/services/cultivatorService', () => ({
   updateCultivatorGameSettings: vi.fn(),
 }));
 
+vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  commitPlayerStateMutation: commitPlayerStateMutationMock,
+  toPlayerStateMutationResponse: (committed: any) => ({
+    success: true,
+    data: committed.result,
+    state: committed.state,
+  }),
+}));
+
+vi.mock('@server/lib/repositories/playerStateRepository', () => ({
+  listStateEventsAfter: listStateEventsAfterMock,
+}));
+
+vi.mock('@server/lib/services/PlayerStateSnapshotService', () => ({
+  buildPlayerStateSnapshot: vi.fn(),
+  parsePlayerStateDomains: vi.fn(() => [
+    'profile',
+    'condition',
+    'progress',
+    'currency',
+    'inventory',
+    'products',
+    'mail',
+    'tasks',
+  ]),
+}));
+
 import { getExecutor } from '@server/lib/drizzle/db';
+import { listStateEventsAfter } from '@server/lib/repositories/playerStateRepository';
 import {
   getCultivatorsByUserId,
   hasDeadCultivator,
@@ -59,6 +132,7 @@ const getCultivatorsByUserIdMock = getCultivatorsByUserId as unknown as Mock;
 const hasDeadCultivatorMock = hasDeadCultivator as unknown as Mock;
 const updateCultivatorGameSettingsMock =
   updateCultivatorGameSettings as unknown as Mock;
+const listStateEventsAfterImportedMock = listStateEventsAfter as unknown as Mock;
 
 function createApp() {
   return new Hono().route('/player', playerRouter);
@@ -141,6 +215,7 @@ describe('player router', () => {
         })),
       })),
     });
+    listStateEventsAfterMock.mockResolvedValue([]);
   });
 
   it('returns player cultivators with a server-derived display snapshot', async () => {
@@ -243,14 +318,94 @@ describe('player router', () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      success: true,
-      data: nextSettings,
-    });
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: nextSettings,
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({
+              source: 'player_settings_update',
+              domain: 'profile',
+            }),
+          ]),
+        }),
+      }),
+    );
     expect(updateCultivatorGameSettingsMock).toHaveBeenCalledWith(
       'cultivator-1',
       nextSettings,
-      executorMock,
+      { __tx: true },
+    );
+  });
+
+  it('does not require snapshot for multiple domains sharing the next global version', async () => {
+    listStateEventsAfterImportedMock.mockResolvedValueOnce([
+      {
+        id: 1,
+        cultivatorId: 'cultivator-1',
+        globalVersion: 11,
+        domainVersion: 4,
+        domain: 'mail',
+        eventType: 'mail.changed',
+        patch: {},
+        invalidates: [],
+        source: 'test',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 2,
+        cultivatorId: 'cultivator-1',
+        globalVersion: 11,
+        domainVersion: 7,
+        domain: 'currency',
+        eventType: 'currency.changed',
+        patch: {},
+        invalidates: [],
+        source: 'test',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+
+    const response = await createApp().request('/player/state/events?after=10');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          requiresSnapshot: false,
+        }),
+      }),
+    );
+  });
+
+  it('requires snapshot when recovered events have a real version gap', async () => {
+    listStateEventsAfterImportedMock.mockResolvedValueOnce([
+      {
+        id: 3,
+        cultivatorId: 'cultivator-1',
+        globalVersion: 12,
+        domainVersion: 4,
+        domain: 'mail',
+        eventType: 'mail.changed',
+        patch: {},
+        invalidates: [],
+        source: 'test',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+
+    const response = await createApp().request('/player/state/events?after=10');
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          requiresSnapshot: true,
+        }),
+      }),
     );
   });
 });

@@ -1,16 +1,17 @@
 import { GAME_ROUTE_ID, type UserLoaderData } from '@app/lib/router/routeData';
-import type { ApiFailure } from '@shared/contracts/http';
-import type {
-  PlayerActiveResponse,
-  PlayerCultivatorView,
-} from '@shared/contracts/player';
+import type { PlayerCultivatorView } from '@shared/contracts/player';
 import type {
   Cultivator,
   EquippedItems,
   Inventory,
   Skill,
 } from '@shared/types/cultivator';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PlayerStateStoreData } from '@app/lib/player-state/store';
+import {
+  usePlayerState,
+  usePlayerStateActions,
+} from '@app/lib/player-state/store';
+import { useCallback, useEffect } from 'react';
 import { useNavigate, useRouteLoaderData } from 'react-router';
 
 // ============================================================
@@ -47,8 +48,6 @@ const defaultEquipped: EquippedItems = {
   accessory: null,
 };
 
-const BUNDLE_INVENTORY_PAGE_SIZE = 50;
-
 const initialState: FetchState = {
   cultivator: null,
   display: null,
@@ -66,76 +65,6 @@ const initialState: FetchState = {
   unreadMailCount: 0,
   hasActiveCultivator: false,
 };
-
-const loadingState: FetchState = {
-  ...initialState,
-  isLoading: true,
-};
-
-// ============================================================
-// 模块级缓存（简化版）
-// ============================================================
-
-let cachedState: FetchState | null = null;
-let cachedUserId: string | null = null;
-let inflightUserId: string | null = null;
-let inflightStatePromise: Promise<FetchState> | null = null;
-
-function getCachedState(userId: string | null): FetchState | null {
-  if (cachedUserId === userId && cachedState) {
-    return cachedState;
-  }
-  return null;
-}
-
-function setCachedState(state: FetchState, userId: string | null) {
-  cachedState = state;
-  cachedUserId = userId;
-}
-
-function clearCache() {
-  cachedState = null;
-  cachedUserId = null;
-}
-
-function clearInflight(userId?: string) {
-  if (userId && inflightUserId !== userId) {
-    return;
-  }
-
-  inflightUserId = null;
-  inflightStatePromise = null;
-}
-
-// ============================================================
-// 数据获取函数
-// ============================================================
-
-async function fetchCultivatorData(): Promise<{
-  cultivatorView: PlayerCultivatorView | null;
-  hasActive: boolean;
-  hasDead: boolean;
-  unreadMailCount: number;
-}> {
-  const response = await fetch('/api/player/active');
-  const result = (await response.json()) as PlayerActiveResponse | ApiFailure;
-
-  if (!result.success) {
-    throw new Error(result.error || '未获取到角色数据');
-  }
-
-  if (!response.ok) {
-    throw new Error('未获取到角色数据');
-  }
-
-  const list: PlayerCultivatorView[] = result.data?.cultivators || [];
-  return {
-    cultivatorView: result.data?.activeCultivator || list[0] || null,
-    hasActive: !!result.meta?.hasActive,
-    hasDead: !!result.meta?.hasDead,
-    unreadMailCount: result.data?.unreadMailCount || 0,
-  };
-}
 
 export function buildFetchStateFromPlayerView(args: {
   cultivatorView: PlayerCultivatorView;
@@ -181,71 +110,6 @@ export function buildFetchStateFromPlayerView(args: {
   };
 }
 
-async function fetchInventoryByType(
-  type: InventoryType,
-): Promise<Inventory[InventoryType] | null> {
-  try {
-    const res = await fetch(
-      `/api/cultivator/inventory?type=${type}&page=1&pageSize=${BUNDLE_INVENTORY_PAGE_SIZE}`,
-    );
-    const json = await res.json();
-    if (!res.ok || !json.success) {
-      return null;
-    }
-    return (json.data?.items || []) as Inventory[InventoryType];
-  } catch (e) {
-    console.error(`获取背包类型 ${type} 失败`, e);
-    return null;
-  }
-}
-
-async function fetchUnreadCount(): Promise<number> {
-  try {
-    const res = await fetch('/api/cultivator/mail/unread-count');
-    if (res.ok) {
-      const data = await res.json();
-      return data.count || 0;
-    }
-    return 0;
-  } catch (e) {
-    console.error('获取未读邮件失败', e);
-    return 0;
-  }
-}
-
-async function buildCultivatorState(userId: string): Promise<FetchState> {
-  const { cultivatorView, hasActive, hasDead, unreadMailCount } =
-    await fetchCultivatorData();
-
-  if (!hasActive || !cultivatorView) {
-    return {
-      ...initialState,
-      note: hasDead ? '前世道途已尽，待转世重修。' : undefined,
-      hasActiveCultivator: false,
-    };
-  }
-
-  const unreadCount = unreadMailCount || (await fetchUnreadCount());
-  return buildFetchStateFromPlayerView({
-    cultivatorView,
-    unreadMailCount: unreadCount,
-    cachedState: getCachedState(userId),
-  });
-}
-
-function fetchCultivatorStateShared(userId: string): Promise<FetchState> {
-  if (inflightUserId === userId && inflightStatePromise) {
-    return inflightStatePromise;
-  }
-
-  inflightUserId = userId;
-  inflightStatePromise = buildCultivatorState(userId).finally(() => {
-    clearInflight(userId);
-  });
-
-  return inflightStatePromise;
-}
-
 // ============================================================
 // 主 Hook
 // ============================================================
@@ -256,116 +120,23 @@ export function useCultivatorBundle() {
     | undefined;
   const userId = gameLoaderData?.userId ?? null;
   const navigate = useNavigate();
+  const storeState = usePlayerState((state) => state);
+  const actions = usePlayerStateActions();
+  const state = buildLegacyFetchStateFromPlayerState(storeState);
 
-  // 使用 ref 跟踪加载状态，避免重复请求
-  const loadingRef = useRef(false);
-  const lastUserIdRef = useRef<string | null>(null);
-
-  // 从缓存初始化状态
-  const [state, setState] = useState<FetchState>(() => {
-    const cached = getCachedState(userId);
-    return cached || (userId ? loadingState : initialState);
-  });
-
-  // ========== 辅助函数：更新状态并同步缓存 ==========
-  const updateState = useCallback(
-    (updater: FetchState | ((prev: FetchState) => FetchState)) => {
-      setState((prev) => {
-        const newState =
-          typeof updater === 'function' ? updater(prev) : updater;
-        // 同步更新缓存
-        setCachedState(newState, userId);
-        return newState;
-      });
-    },
-    [userId],
-  );
-
-  // ========== 核心加载函数 ==========
   const loadFromServer = useCallback(async () => {
-    if (!userId) {
-      clearCache();
-      clearInflight();
-      setState(initialState);
-      return;
-    }
-
-    // 防止重复请求
-    if (loadingRef.current) {
-      return;
-    }
-    loadingRef.current = true;
-
-    setState((prev) => ({ ...prev, isLoading: true, error: undefined }));
-
-    try {
-      const newState = await fetchCultivatorStateShared(userId);
-      setCachedState(newState, userId);
-      setState(newState);
-    } catch (error) {
-      console.warn('加载角色资料失败：', error);
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : prev.error,
-      }));
-    } finally {
-      loadingRef.current = false;
-    }
-  }, [userId]);
+    await actions.refresh(undefined, userId);
+  }, [actions, userId]);
 
   // ========== 细粒度刷新函数 ==========
   const refreshInventory = useCallback(
     async (
       types: InventoryType[] = ['artifacts', 'materials', 'consumables'],
     ) => {
-      if (!state.cultivator?.id) return;
-
-      const uniqueTypes = Array.from(new Set(types));
-      const entries = await Promise.all(
-        uniqueTypes.map(async (type) => {
-          const items = await fetchInventoryByType(type);
-          return [type, items] as const;
-        }),
-      );
-
-      const patch: Partial<Inventory> = {};
-      for (const [type, items] of entries) {
-        if (items) {
-          if (type === 'artifacts')
-            patch.artifacts = items as Inventory['artifacts'];
-          if (type === 'materials')
-            patch.materials = items as Inventory['materials'];
-          if (type === 'consumables')
-            patch.consumables = items as Inventory['consumables'];
-        }
-      }
-
-      if (Object.keys(patch).length === 0) return;
-
-      updateState((prev) => {
-        if (!prev.cultivator) return prev;
-
-        const newInventory: Inventory = {
-          ...prev.inventory,
-          ...patch,
-        };
-
-        return {
-          ...prev,
-          cultivator: { ...prev.cultivator, inventory: newInventory },
-          inventory: newInventory,
-          inventoryLoaded: uniqueTypes.reduce(
-            (acc, type) => {
-              acc[type] = true;
-              return acc;
-            },
-            { ...prev.inventoryLoaded },
-          ),
-        };
-      });
+      void types;
+      await actions.refresh(['inventory', 'products'], userId);
     },
-    [state.cultivator?.id, updateState],
+    [actions, userId],
   );
 
   const ensureInventoryLoaded = useCallback(
@@ -397,42 +168,13 @@ export function useCultivatorBundle() {
 
   const refreshUnreadMailCount = useCallback(async () => {
     if (!userId) return;
-    const count = await fetchUnreadCount();
-    updateState((prev) => ({ ...prev, unreadMailCount: count }));
-  }, [userId, updateState]);
+    await actions.refresh(['mail'], userId);
+  }, [actions, userId]);
 
   // ========== 初始化逻辑 ==========
   useEffect(() => {
-    // 无用户时重置
-    if (!userId) {
-      if (lastUserIdRef.current !== null) {
-        clearCache();
-        setState(initialState);
-      }
-      clearInflight();
-      lastUserIdRef.current = null;
-      return;
-    }
-
-    // 用户未变化，跳过
-    if (lastUserIdRef.current === userId) {
-      return;
-    }
-
-    // 用户变化
-    lastUserIdRef.current = userId;
-
-    // 检查是否有缓存
-    const cached = getCachedState(userId);
-    if (cached) {
-      setState(cached);
-      return;
-    }
-
-    // 无缓存，从服务器加载
-    setState(loadingState);
-    loadFromServer();
-  }, [userId, loadFromServer]);
+    void actions.initialize(userId);
+  }, [actions, userId]);
 
   // ========== 死亡重定向 ==========
   useEffect(() => {
@@ -460,5 +202,62 @@ export function useCultivatorBundle() {
     ensureInventoryLoaded,
     refreshCultivator,
     refreshUnreadMailCount,
+  };
+}
+
+function buildLegacyFetchStateFromPlayerState(
+  storeState: PlayerStateStoreData,
+): FetchState {
+  const profile = storeState.snapshot.profile;
+  const cultivator = profile?.cultivator ?? null;
+
+  if (!cultivator) {
+    return {
+      ...initialState,
+      isLoading: storeState.loading,
+      error: storeState.error ?? undefined,
+      hasActiveCultivator: false,
+    };
+  }
+
+  const products = storeState.snapshot.products;
+  const inventory: Inventory = storeState.snapshot.inventory ?? {
+    artifacts: products?.artifacts ?? cultivator.inventory?.artifacts ?? [],
+    consumables: cultivator.inventory?.consumables ?? [],
+    materials: cultivator.inventory?.materials ?? [],
+  };
+  const equipped = products?.equipped ?? cultivator.equipped ?? defaultEquipped;
+  const skills = products?.skills ?? cultivator.skills ?? [];
+  const fullCultivator: Cultivator = {
+    ...cultivator,
+    condition: storeState.snapshot.condition ?? cultivator.condition,
+    cultivation_progress:
+      'cultivation_exp' in (storeState.snapshot.progress ?? {})
+        ? (storeState.snapshot.progress as Cultivator['cultivation_progress'])
+        : cultivator.cultivation_progress,
+    spirit_stones:
+      storeState.snapshot.currency?.spiritStones ?? cultivator.spirit_stones,
+    inventory,
+    skills,
+    cultivations: products?.cultivations ?? cultivator.cultivations ?? [],
+    equipped,
+  };
+
+  return {
+    cultivator: fullCultivator,
+    display: profile?.display ?? null,
+    inventory,
+    inventoryLoaded: {
+      artifacts: Boolean(storeState.snapshot.inventory || products),
+      materials: Boolean(storeState.snapshot.inventory),
+      consumables: Boolean(storeState.snapshot.inventory),
+    },
+    skills,
+    equipped,
+    isLoading: storeState.loading,
+    error: storeState.error ?? undefined,
+    note: undefined,
+    unreadMailCount: storeState.snapshot.mail?.unreadCount ?? 0,
+    hasActiveCultivator: true,
   };
 }

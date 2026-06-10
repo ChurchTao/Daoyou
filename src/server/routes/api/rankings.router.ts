@@ -27,6 +27,10 @@ import {
 } from '@server/lib/redis/rankings';
 import { createBattleRecordV2 } from '@server/lib/repositories/battleRecordV2Repository';
 import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
+import {
   getCultivatorByIdUnsafe,
 } from '@server/lib/services/cultivatorService';
 import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
@@ -352,10 +356,9 @@ challengeRouter.post('/challenge', requireActiveCultivator(), async (c) => {
   const challengerRank = await getCultivatorRank(cultivatorId);
 
   if ((!targetId || targetId === '') && isEmpty && challengerRank === null) {
-    await addToRanking(cultivatorId, user.id, 1);
     return c.json({
       success: true,
-      message: '成功上榜，占据第一名！',
+      message: '可直接上榜',
       data: {
         directEntry: true,
         rank: 1,
@@ -429,11 +432,26 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
 
     if ((!targetId || targetId === '') && isEmpty && challengerRank === null) {
       await addToRanking(cultivatorId, user.id, 1);
-      return c.json({
-        type: 'direct_entry',
-        rank: 1,
-        remainingChallenges: challengeCheck.remaining,
+      const committed = await commitPlayerStateMutation({
+        userId: user.id,
+        cultivatorId,
+        source: 'ranking_challenge_direct_entry',
+        run: async () => ({
+          result: {
+            type: 'direct_entry' as const,
+            rank: 1,
+            remainingChallenges: challengeCheck.remaining,
+          },
+          changes: [
+            {
+              domain: 'tasks',
+              eventType: 'tasks.ranking.direct_entry',
+              invalidates: ['tasks'],
+            },
+          ],
+        }),
       });
+      return c.json(toPlayerStateMutationResponse(committed));
     }
 
     if (!targetId || targetId.trim() === '') {
@@ -481,32 +499,50 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
 
     const remainingChallenges = await incrementDailyChallenges(cultivatorId);
 
-    await createBattleRecordV2({
+    const committed = await commitPlayerStateMutation({
       userId: user.id,
       cultivatorId,
-      battleType: 'challenge',
-      opponentCultivatorId: targetId,
-      battleResult,
-    });
-    try {
-      await TaskService.recordTaskEvent(
-        cultivatorId,
-        'ranking_challenge_battled',
-      );
-    } catch (taskError) {
-      console.error('挑战战斗后同步任务失败:', taskError);
-    }
+      source: 'ranking_challenge_battle',
+      run: async (tx) => {
+        await createBattleRecordV2(
+          {
+            userId: user.id,
+            cultivatorId,
+            battleType: 'challenge',
+            opponentCultivatorId: targetId,
+            battleResult,
+          },
+          tx,
+        );
+        await TaskService.recordTaskEvent(
+          cultivatorId,
+          'ranking_challenge_battled',
+          { tx },
+        );
 
-    return c.json({
-      type: 'battle_result',
-      battleResult,
-      rankingUpdate: {
-        isWin,
-        challengerRank: newChallengerRank,
-        targetRank: newTargetRank,
-        remainingChallenges,
+        return {
+          result: {
+            type: 'battle_result' as const,
+            battleResult,
+            rankingUpdate: {
+              isWin,
+              challengerRank: newChallengerRank,
+              targetRank: newTargetRank,
+              remainingChallenges,
+            },
+          },
+          changes: [
+            {
+              domain: 'tasks',
+              eventType: 'tasks.ranking.challenge_battled',
+              invalidates: ['tasks'],
+            },
+          ],
+        };
       },
     });
+
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     console.error('挑战战斗流程错误:', error);
     return c.json(

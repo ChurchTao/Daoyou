@@ -4,7 +4,7 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/useBattle
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
-import { fetchJsonCached } from '@app/lib/client/requestCache';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -62,6 +62,7 @@ function ChallengeBattlePageContent() {
     rank: number;
   } | null>(null);
   const playback = useBattlePlaybackState(battleResult);
+  const { mutate } = usePlayerStateActions();
 
   const targetId = searchParams.get('targetId');
 
@@ -76,14 +77,12 @@ function ChallengeBattlePageContent() {
       setRankingUpdate(null);
 
       try {
-        const data = await fetchJsonCached<ChallengeBattleResponse>(
-          '/api/rankings/challenge-battle/v5',
-          {
-            key: `rankings:challenge-battle:${targetId ?? 'direct-entry'}`,
+        const data = await mutate<ChallengeBattleResponse>(
+          fetch('/api/rankings/challenge-battle/v5', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ targetId: targetId || null }),
-          },
+          }),
         );
         if (cancelled) return;
 
@@ -112,7 +111,7 @@ function ChallengeBattlePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [targetId]);
+  }, [mutate, targetId]);
 
   if (error) {
     return (

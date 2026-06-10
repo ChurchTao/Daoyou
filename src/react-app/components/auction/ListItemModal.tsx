@@ -17,6 +17,7 @@ import {
   inkFieldVariants,
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { cn } from '@shared/lib/cn';
 import { isPillConsumable } from '@shared/lib/consumables';
 import {
@@ -194,6 +195,7 @@ export function ListItemModal({
   onSuccess,
   cultivator,
 }: ListItemModalProps) {
+  const { mutate } = usePlayerStateActions();
   const [step, setStep] = useState<'select' | 'price'>('select');
   const [activeType, setActiveType] = useState<ItemType>('material');
   const [selectedItem, setSelectedItem] = useState<SelectableItem | null>(null);
@@ -453,23 +455,19 @@ export function ListItemModal({
     setError('');
 
     try {
-      const res = await fetch('/api/auction/list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemType: selectedItem.itemType,
-          itemId: selectedItem.id,
-          price: priceNum,
-          quantity: quantityNum,
+      await mutate(
+        fetch('/api/auction/list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemType: selectedItem.itemType,
+            itemId: selectedItem.id,
+            price: priceNum,
+            quantity: quantityNum,
+          }),
         }),
-      });
-
-      const result = await res.json();
-      if (result.success) {
-        onSuccess();
-      } else {
-        setError(result.error || '上架失败');
-      }
+      );
+      onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : '上架失败');
     } finally {

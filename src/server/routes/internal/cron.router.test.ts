@@ -3,11 +3,13 @@ import { Hono } from 'hono';
 const {
   runAuctionExpireJobMock,
   runBetBattleExpireJobMock,
+  runPlayerStateEventsCleanupJobMock,
   runRankRewardsJobMock,
   runTowerEnemySetRefreshJobMock,
 } = vi.hoisted(() => ({
   runAuctionExpireJobMock: vi.fn(),
   runBetBattleExpireJobMock: vi.fn(),
+  runPlayerStateEventsCleanupJobMock: vi.fn(),
   runRankRewardsJobMock: vi.fn(),
   runTowerEnemySetRefreshJobMock: vi.fn(),
 }));
@@ -15,6 +17,7 @@ const {
 vi.mock('@server/lib/jobs/internalCron', () => ({
   runAuctionExpireJob: runAuctionExpireJobMock,
   runBetBattleExpireJob: runBetBattleExpireJobMock,
+  runPlayerStateEventsCleanupJob: runPlayerStateEventsCleanupJobMock,
   runRankRewardsJob: runRankRewardsJobMock,
   runTowerEnemySetRefreshJob: runTowerEnemySetRefreshJobMock,
 }));
@@ -42,6 +45,10 @@ describe('cron router', () => {
     ['/internal/cron/bet-battle-expire', runBetBattleExpireJobMock],
     ['/internal/cron/rank-rewards', runRankRewardsJobMock],
     ['/internal/cron/tower-enemy-sets', runTowerEnemySetRefreshJobMock],
+    [
+      '/internal/cron/player-state-events-cleanup',
+      runPlayerStateEventsCleanupJobMock,
+    ],
   ])('rejects unauthorized requests for %s', async (path, runner) => {
     const response = await createApp().request(path);
 
@@ -85,6 +92,11 @@ describe('cron router', () => {
         failed: 0,
         logs: ['season 2026-W22@Asia/Shanghai'],
       },
+    ],
+    [
+      '/internal/cron/player-state-events-cleanup',
+      runPlayerStateEventsCleanupJobMock,
+      { success: true, processed: 42, skipped: false },
     ],
   ])('runs %s when bearer auth is valid', async (path, runner, result) => {
     runner.mockResolvedValueOnce(result);

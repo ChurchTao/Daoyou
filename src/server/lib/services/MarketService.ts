@@ -6,7 +6,7 @@ import {
   TYPE_CHANCE_MAP,
   TYPE_MULTIPLIERS,
 } from '@shared/engine/material/creation/config';
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators, materials } from '@server/lib/drizzle/schema';
 import {
   getCurrentCycle,
@@ -70,6 +70,8 @@ export type BuyInput = {
   userId: string;
   cultivatorId: string;
   cultivatorRealm: RealmType;
+  tx?: DbTransaction;
+  deferSideEffects?: boolean;
 };
 
 export type BatchBuyInput = {
@@ -79,11 +81,15 @@ export type BatchBuyInput = {
   userId: string;
   cultivatorId: string;
   cultivatorRealm: RealmType;
+  tx?: DbTransaction;
+  deferSideEffects?: boolean;
 };
 
 type IdentifyInput = {
   materialId: string;
   cultivatorId: string;
+  tx?: DbTransaction;
+  deferSideEffects?: boolean;
 };
 
 export class MarketServiceError extends Error {
@@ -605,8 +611,8 @@ export async function buyMarketItem(input: BuyInput) {
 
     const totalPrice = item.price * quantity;
 
-    // DB 事务：扣灵石 + 发材料
-    await getExecutor().transaction(async (tx) => {
+    const afterCommitJobs: Array<() => Promise<void>> = [];
+    const writePurchase = async (tx: DbTransaction) => {
       const [updatedCultivator] = await tx
         .update(cultivators)
         .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${totalPrice}` })
@@ -622,7 +628,14 @@ export async function buyMarketItem(input: BuyInput) {
       if (item.isMystery && item.mysteryPayload) {
         const mysteryId = crypto.randomUUID();
         const mysteryKey = getMysteryKey(cultivatorId, mysteryId);
-        await redis.set(mysteryKey, JSON.stringify(item.mysteryPayload), 'EX', MYSTERY_MAPPING_TTL_SEC);
+        afterCommitJobs.push(() =>
+          redis.set(
+            mysteryKey,
+            JSON.stringify(item.mysteryPayload),
+            'EX',
+            MYSTERY_MAPPING_TTL_SEC,
+          ).then(() => undefined),
+        );
 
         await tx.insert(materials).values({
           cultivatorId,
@@ -654,17 +667,34 @@ export async function buyMarketItem(input: BuyInput) {
           details: item.details || {},
         });
       }
-    });
+    };
+
+    if (input.tx) {
+      await writePurchase(input.tx);
+    } else {
+      await getExecutor().transaction(writePurchase);
+    }
 
     // 记录已购买
     const ttl = getBoughtTtlSec(layer);
-    await redis.sadd(boughtKey, listingId);
-    await redis.expire(boughtKey, ttl);
+    afterCommitJobs.push(async () => {
+      await redis.sadd(boughtKey, listingId);
+      await redis.expire(boughtKey, ttl);
+    });
+    const afterCommit = async () => {
+      for (const job of afterCommitJobs) {
+        await job();
+      }
+    };
+    if (!input.deferSideEffects) {
+      await afterCommit();
+    }
 
     return {
       success: true,
       message: `成功购入 ${item.name} x${quantity}`,
       item: sanitizeListing(item),
+      afterCommit: input.deferSideEffects ? afterCommit : undefined,
     };
   } finally {
     await redis.del(lockKey);
@@ -729,7 +759,8 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       processItems.push({ item, quantity: buyReq.quantity });
     }
 
-    await getExecutor().transaction(async (tx) => {
+    const afterCommitJobs: Array<() => Promise<void>> = [];
+    const writeBatchPurchase = async (tx: DbTransaction) => {
       const [updatedCultivator] = await tx
         .update(cultivators)
         .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${totalCost}` })
@@ -746,7 +777,14 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
         if (item.isMystery && item.mysteryPayload) {
           const mysteryId = crypto.randomUUID();
           const mysteryKey = getMysteryKey(cultivatorId, mysteryId);
-          await redis.set(mysteryKey, JSON.stringify(item.mysteryPayload), 'EX', MYSTERY_MAPPING_TTL_SEC);
+          afterCommitJobs.push(() =>
+            redis.set(
+              mysteryKey,
+              JSON.stringify(item.mysteryPayload),
+              'EX',
+              MYSTERY_MAPPING_TTL_SEC,
+            ).then(() => undefined),
+          );
 
           await tx.insert(materials).values({
             cultivatorId,
@@ -805,18 +843,35 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
           }
         }
       }
-    });
+    };
+
+    if (input.tx) {
+      await writeBatchPurchase(input.tx);
+    } else {
+      await getExecutor().transaction(writeBatchPurchase);
+    }
 
     // 批量记录已购买
     const ttl = getBoughtTtlSec(layer);
     const listingIds = processItems.map(({ item }) => item.id);
-    await redis.sadd(boughtKey, ...listingIds);
-    await redis.expire(boughtKey, ttl);
+    afterCommitJobs.push(async () => {
+      await redis.sadd(boughtKey, ...listingIds);
+      await redis.expire(boughtKey, ttl);
+    });
+    const afterCommit = async () => {
+      for (const job of afterCommitJobs) {
+        await job();
+      }
+    };
+    if (!input.deferSideEffects) {
+      await afterCommit();
+    }
 
     return {
       success: true,
       message: `成功批量购入 ${processItems.length} 种物品`,
       totalCost,
+      afterCommit: input.deferSideEffects ? afterCommit : undefined,
     };
   } finally {
     await redis.del(lockKey);
@@ -834,7 +889,8 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
   }
 
   try {
-    const current = await getExecutor()
+    const q = input.tx ?? getExecutor();
+    const current = await q
       .select()
       .from(materials)
       .where(and(eq(materials.id, materialId), eq(materials.cultivatorId, cultivatorId)))
@@ -870,7 +926,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
     );
 
     let revealedMaterialId = materialId;
-    await getExecutor().transaction(async (tx) => {
+    const writeReveal = async (tx: DbTransaction) => {
       const [updatedCultivator] = await tx
         .update(cultivators)
         .set({ spirit_stones: sql`${cultivators.spirit_stones} - ${cost}` })
@@ -905,9 +961,13 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
         })
         .returning({ id: materials.id });
       revealedMaterialId = insertedMaterial.id;
-    });
+    };
 
-    await redis.del(mysteryKey);
+    if (input.tx) {
+      await writeReveal(input.tx);
+    } else {
+      await getExecutor().transaction(writeReveal);
+    }
 
     const disguiseOrder =
       QUALITY_ORDER[(mystery.disguiseTier || target.rank) as keyof typeof QUALITY_ORDER];
@@ -917,7 +977,11 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
       delta >= 3 ? 'legendary_win' : delta >= 1 ? 'win' : delta <= -2 ? 'big_loss' : 'normal';
     const isHeavenOrAbove = realOrder >= QUALITY_ORDER['天品'];
 
-    if (isHeavenOrAbove) {
+    const afterCommit = async () => {
+      await redis.del(mysteryKey);
+      if (!isHeavenOrAbove) {
+        return;
+      }
       const [sender] = await getExecutor()
         .select({ userId: cultivators.userId, name: cultivators.name })
         .from(cultivators)
@@ -953,6 +1017,10 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
           console.error('鉴定传闻发送失败:', chatError);
         }
       }
+    };
+
+    if (!input.deferSideEffects) {
+      await afterCommit();
     }
 
     return {
@@ -961,6 +1029,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
       cost,
       jackpotLevel,
       revealEffect: delta >= 2 ? '金光冲霄' : delta <= -2 ? '灵尘散尽' : '封印破除',
+      afterCommit: input.deferSideEffects ? afterCommit : undefined,
     };
   } finally {
     await redis.del(lockKey);

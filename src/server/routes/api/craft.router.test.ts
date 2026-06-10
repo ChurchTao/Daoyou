@@ -71,6 +71,38 @@ vi.mock('@server/lib/services/QiService', () => ({
   },
 }));
 
+vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  commitPlayerStateMutation: vi.fn(async (input: any) => {
+    const { result, changes } = await input.run({ __tx: true });
+    return {
+      result,
+      state: {
+        cultivatorId: input.cultivatorId,
+        globalVersion: 10,
+        domainVersions: Object.fromEntries(
+          changes.map((change: any) => [change.domain, 10]),
+        ),
+        events: changes.map((change: any, index: number) => ({
+          id: index + 1,
+          cultivatorId: input.cultivatorId,
+          globalVersion: 10,
+          domain: change.domain,
+          eventType: change.eventType,
+          patch: change.patch ?? {},
+          invalidates: change.invalidates ?? [],
+          source: input.source,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        })),
+      },
+    };
+  }),
+  toPlayerStateMutationResponse: vi.fn((committed: any) => ({
+    success: true,
+    data: committed.result,
+    state: committed.state,
+  })),
+}));
+
 vi.mock('@server/lib/services/cultivatorService', () => ({
   getCultivatorById: vi.fn(),
 }));
@@ -86,6 +118,9 @@ import {
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
 import { QiService } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
+import {
+  commitPlayerStateMutation,
+} from '@server/lib/services/PlayerStateMutationService';
 import craftRouter from './craft.router';
 
 const previewAlchemySelectionMock = previewAlchemySelection as unknown as Mock;
@@ -97,6 +132,8 @@ const recordTaskEventMock = TaskService.recordTaskEvent as unknown as Mock;
 const reserveQiMock = QiService.reserveQi as unknown as Mock;
 const commitReservationMock = QiService.commitReservation as unknown as Mock;
 const refundReservationMock = QiService.refundReservation as unknown as Mock;
+const commitPlayerStateMutationMock =
+  commitPlayerStateMutation as unknown as Mock;
 
 function createApp() {
   return new Hono().route('/api/craft', craftRouter);
@@ -293,6 +330,26 @@ describe('craft router alchemy routes', () => {
           family: 'healing',
         }),
       }),
+      state: expect.objectContaining({
+        cultivatorId: 'cultivator-1',
+        events: expect.arrayContaining([
+          expect.objectContaining({
+            domain: 'currency',
+            eventType: 'currency.changed',
+            invalidates: ['currency'],
+          }),
+          expect.objectContaining({
+            domain: 'inventory',
+            eventType: 'inventory.changed',
+            invalidates: ['inventory'],
+          }),
+          expect.objectContaining({
+            domain: 'tasks',
+            eventType: 'tasks.changed',
+            invalidates: ['tasks'],
+          }),
+        ]),
+      }),
     });
     expect(processAlchemyCraftMock).toHaveBeenCalledWith(
       'cultivator-1',
@@ -300,6 +357,7 @@ describe('craft router alchemy routes', () => {
       {
         materialQuantities: { m1: 2 },
         userPrompt: '疗伤为主',
+        tx: { __tx: true },
       },
     );
     expect(reserveQiMock).toHaveBeenCalledWith(
@@ -321,6 +379,14 @@ describe('craft router alchemy routes', () => {
     expect(recordTaskEventMock).toHaveBeenCalledWith(
       'cultivator-1',
       'alchemy_crafted',
+      { tx: { __tx: true } },
+    );
+    expect(commitPlayerStateMutationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
+        source: 'alchemy_improvised',
+      }),
     );
   });
 
@@ -409,6 +475,23 @@ describe('craft router alchemy routes', () => {
           leveledUp: false,
         },
       },
+      state: expect.objectContaining({
+        cultivatorId: 'cultivator-1',
+        events: expect.arrayContaining([
+          expect.objectContaining({
+            domain: 'currency',
+            eventType: 'currency.changed',
+          }),
+          expect.objectContaining({
+            domain: 'inventory',
+            eventType: 'inventory.changed',
+          }),
+          expect.objectContaining({
+            domain: 'tasks',
+            eventType: 'tasks.changed',
+          }),
+        ]),
+      }),
     });
     expect(craftFromFormulaMock).toHaveBeenCalledWith(
       'cultivator-1',
@@ -416,6 +499,10 @@ describe('craft router alchemy routes', () => {
       ['m1'],
       { m1: 2 },
       '22222222-2222-4222-8222-222222222222',
+      {
+        tx: { __tx: true },
+        deferSideEffects: true,
+      },
     );
     expect(reserveQiMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -437,6 +524,14 @@ describe('craft router alchemy routes', () => {
     expect(recordTaskEventMock).toHaveBeenCalledWith(
       'cultivator-1',
       'alchemy_crafted',
+      { tx: { __tx: true } },
+    );
+    expect(commitPlayerStateMutationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
+        source: 'alchemy_formula',
+      }),
     );
   });
 
@@ -463,7 +558,7 @@ describe('craft router alchemy routes', () => {
     expect(reserveQiMock).not.toHaveBeenCalled();
   });
 
-  it('refunds reserved qi when crafting throws after reservation', async () => {
+  it('rolls back transaction-scoped qi reservation when crafting throws', async () => {
     processAlchemyCraftMock.mockRejectedValueOnce(new Error('LLM unavailable'));
 
     const response = await createApp().request('/api/craft', {
@@ -485,12 +580,7 @@ describe('craft router alchemy routes', () => {
         action: 'alchemy_improvised',
       }),
     );
-    expect(refundReservationMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actionInstanceId: expect.any(String),
-        reason: 'craft_route_error',
-      }),
-    );
+    expect(refundReservationMock).not.toHaveBeenCalled();
     expect(commitReservationMock).not.toHaveBeenCalled();
   });
 });

@@ -15,6 +15,7 @@ import { TypewriterText } from '@app/components/ui/TypewriterText';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { usePaginatedInventoryArtifacts } from '@app/lib/hooks/usePaginatedInventoryArtifacts';
 import { usePaginatedInventoryMaterials } from '@app/lib/hooks/usePaginatedInventoryMaterials';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type { Artifact, Material } from '@shared/types/cultivator';
 import {
@@ -85,20 +86,18 @@ async function requestSellPreview(
 
 async function requestSellConfirm(
   sessionId: string,
+  mutate: (request: Promise<Response>) => Promise<SellConfirmResponse>,
 ): Promise<SellConfirmResponse> {
-  const response = await fetch('/api/market/sell', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      phase: 'confirm',
-      sessionId,
+  return mutate(
+    fetch('/api/market/sell', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phase: 'confirm',
+        sessionId,
+      }),
     }),
-  });
-  const payload = (await response.json()) as SellConfirmResponse & SellApiError;
-  if (!response.ok || !payload.success) {
-    throw new Error(payload.error || '回收确认失败');
-  }
-  return payload;
+  );
 }
 
 async function fetchAllLowTierMaterialIds(): Promise<string[]> {
@@ -169,7 +168,8 @@ async function fetchAllLowTierArtifactIds(
 }
 
 export default function MarketRecyclePage() {
-  const { cultivator, equipped, refresh } = useCultivator();
+  const { cultivator, equipped } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const [activeTab, setActiveTab] = useState<RecycleTab>('materials');
   const [dialog, setDialog] = useState<RecycleDialogState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -239,7 +239,7 @@ export default function MarketRecyclePage() {
           ...prev!,
           loading: true,
         }));
-        const result = await requestSellConfirm(preview.sessionId);
+        const result = await requestSellConfirm(preview.sessionId, mutate);
         setDialog({
           id: 'sell-result',
           title: '回收完成',
@@ -255,7 +255,6 @@ export default function MarketRecyclePage() {
           confirmLabel: '知晓',
           cancelLabel: '关闭',
         });
-        await refresh();
         await refreshCurrentTab();
       } catch (err) {
         setDialog({
@@ -275,7 +274,7 @@ export default function MarketRecyclePage() {
         setBulkLoading(false);
       }
     },
-    [refresh, refreshCurrentTab],
+    [mutate, refreshCurrentTab],
   );
 
   const openPreviewDialog = useCallback(

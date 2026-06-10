@@ -6,6 +6,7 @@ const {
   confirmSellMock,
   getMarketListingsMock,
   previewSellMock,
+  commitPlayerStateMutationMock,
   resolveLayerMock,
   resolveNodeIdMock,
 } = vi.hoisted(() => ({
@@ -14,6 +15,30 @@ const {
   confirmSellMock: vi.fn(),
   getMarketListingsMock: vi.fn(),
   previewSellMock: vi.fn(),
+  commitPlayerStateMutationMock: vi.fn(async (input: any) => {
+    const { result, changes } = await input.run({ __tx: true });
+    return {
+      result,
+      state: {
+        cultivatorId: input.cultivatorId,
+        globalVersion: 12,
+        domainVersions: Object.fromEntries(
+          changes.map((change: any) => [change.domain, 12]),
+        ),
+        events: changes.map((change: any, index: number) => ({
+          id: index + 1,
+          cultivatorId: input.cultivatorId,
+          globalVersion: 12,
+          domain: change.domain,
+          eventType: change.eventType,
+          patch: change.patch ?? {},
+          invalidates: change.invalidates ?? [],
+          source: input.source,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        })),
+      },
+    };
+  }),
   resolveLayerMock: vi.fn(() => 'common'),
   resolveNodeIdMock: vi.fn((value?: string | null) => value || 'node-1'),
 }));
@@ -62,6 +87,15 @@ vi.mock('@server/lib/services/MarketRecycleService', () => ({
   },
   confirmSell: confirmSellMock,
   previewSell: previewSellMock,
+}));
+
+vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  commitPlayerStateMutation: commitPlayerStateMutationMock,
+  toPlayerStateMutationResponse: (committed: any) => ({
+    success: true,
+    data: committed.result,
+    state: committed.state,
+  }),
 }));
 
 import marketRouter from './market.router';
@@ -154,7 +188,33 @@ describe('market router', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(confirmSellMock).toHaveBeenCalledWith('cultivator-1', 'session-2');
+    expect(confirmSellMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'session-2',
+      {
+        tx: { __tx: true },
+        deferSideEffects: true,
+      },
+    );
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({
+              domain: 'currency',
+              eventType: 'currency.changed',
+              patch: { currency: { spiritStones: 1688 } },
+            }),
+            expect.objectContaining({
+              domain: 'products',
+              eventType: 'products.changed',
+              invalidates: ['products'],
+            }),
+          ]),
+        }),
+      }),
+    );
   });
 
   it('routes POST /:nodeId/buy to buyMarketItem with userId', async () => {
@@ -174,6 +234,25 @@ describe('market router', () => {
     });
 
     expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({
+              domain: 'currency',
+              eventType: 'currency.changed',
+              invalidates: ['currency'],
+            }),
+            expect.objectContaining({
+              domain: 'inventory',
+              eventType: 'inventory.changed',
+              invalidates: ['inventory'],
+            }),
+          ]),
+        }),
+      }),
+    );
     expect(buyMarketItemMock).toHaveBeenCalledWith({
       nodeId: 'node-1',
       layer: 'common',
@@ -182,6 +261,15 @@ describe('market router', () => {
       userId: 'user-1',
       cultivatorId: 'cultivator-1',
       cultivatorRealm: '筑基',
+      tx: { __tx: true },
+      deferSideEffects: true,
     });
+    expect(commitPlayerStateMutationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
+        source: 'market_buy',
+      }),
+    );
   });
 });

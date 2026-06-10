@@ -22,6 +22,7 @@ import {
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { isPillConsumable } from '@shared/lib/consumables';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import {
@@ -44,7 +45,7 @@ type AuctionListing = {
 };
 
 export default function AuctionPage() {
-  const { cultivator, refresh } = useCultivator();
+  const { cultivator } = useCultivator();
   const [activeTab, setActiveTab] = useState('browse');
   const [browseListings, setBrowseListings] = useState<AuctionListing[]>([]);
   const [myListings, setMyListings] = useState<AuctionListing[]>([]);
@@ -63,6 +64,7 @@ export default function AuctionPage() {
   });
 
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -218,19 +220,15 @@ export default function AuctionPage() {
 
     setBuyingId(listing.id);
     try {
-      const res = await fetch('/api/auction/buy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: listing.id }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        pushToast({ message: result.message, tone: 'success' });
-        await refresh();
-        fetchBrowseListings(pagination.browse.page);
-      } else {
-        throw new Error(result.error);
-      }
+      const result = await mutate<{ message: string }>(
+        fetch('/api/auction/buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: listing.id }),
+        }),
+      );
+      pushToast({ message: result.message, tone: 'success' });
+      fetchBrowseListings(pagination.browse.page);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '购买失败';
       pushToast({ message, tone: 'danger' });
@@ -244,16 +242,13 @@ export default function AuctionPage() {
 
     setCancellingId(listing.id);
     try {
-      const res = await fetch(`/api/auction/${listing.id}`, {
-        method: 'DELETE',
-      });
-      const result = await res.json();
-      if (result.success) {
-        pushToast({ message: result.message, tone: 'success' });
-        fetchMyListings(pagination.my.page);
-      } else {
-        throw new Error(result.error);
-      }
+      const result = await mutate<{ message: string }>(
+        fetch(`/api/auction/${listing.id}`, {
+          method: 'DELETE',
+        }),
+      );
+      pushToast({ message: result.message, tone: 'success' });
+      fetchMyListings(pagination.my.page);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '下架失败';
       pushToast({ message, tone: 'danger' });
@@ -534,7 +529,6 @@ export default function AuctionPage() {
           onSuccess={() => {
             setShowListModal(false);
             fetchMyListings();
-            refresh();
           }}
           cultivator={cultivator}
         />

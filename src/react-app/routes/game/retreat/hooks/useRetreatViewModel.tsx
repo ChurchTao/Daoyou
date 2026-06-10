@@ -3,9 +3,9 @@ import {
   getQiErrorMessage,
   useQiActionConfirm,
 } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
 import {
   calculateBreakthroughChance,
@@ -83,9 +83,10 @@ type RetreatRequestOutcome =
   | { ok: false; payload: RetreatFailurePayload | null };
 
 export function useRetreatViewModel(): UseRetreatViewModelReturn {
-  const { cultivator, isLoading, refresh, note } = useCultivator();
+  const { cultivator, isLoading, note } = useCultivator();
   const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
+  const { applyEvents } = usePlayerStateActions();
   const navigate = useNavigate();
   const {
     tasks,
@@ -257,6 +258,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
           },
           onStoryUpdate: setRetreatResult,
           onReincarnateContext: setReincarnateContext,
+          onStateEvents: applyEvents,
           onError: (message) => {
             setRetreatResultStreaming(false);
             pushToast({
@@ -266,16 +268,13 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
           },
         });
 
-        await Promise.all([refresh(), reloadTasks()]);
-        invalidateQiState(cultivator?.id);
-
         return { ok: true };
       } finally {
         setRetreatResultStreaming(false);
         setRetreatLoading(false);
       }
     },
-    [cultivator, pushToast, refresh, reloadTasks],
+    [applyEvents, cultivator, pushToast],
   );
 
   const handleRetreat = useCallback(async () => {

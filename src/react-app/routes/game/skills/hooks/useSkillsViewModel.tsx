@@ -5,6 +5,7 @@ import {
 } from '@app/components/feature/products';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { MAX_OWNED_CREATION_PRODUCTS_PER_TYPE } from '@shared/config/creationProductLimits';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -31,7 +32,8 @@ export interface UseSkillsViewModelReturn {
 }
 
 export function useSkillsViewModel(): UseSkillsViewModelReturn {
-  const { cultivator, isLoading, note, refreshCultivator } = useCultivator();
+  const { cultivator, isLoading, note } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
   const [dialog, setDialog] = useState<InkDialogState | null>(null);
@@ -124,22 +126,23 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
 
       setPendingToggleId(skill.id);
       try {
-        const res = await fetch('/api/v2/products/equip', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: skill.id }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || '神通启停失败');
-        }
+        const data = await mutate<{
+          productId: string;
+          productType: string;
+          equipped: boolean;
+        }>(
+          fetch('/api/v2/products/equip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: skill.id }),
+          }),
+        );
         pushToast({
           message: data.equipped
             ? `【${skill.name}】已启用`
             : `【${skill.name}】已停用`,
           tone: 'success',
         });
-        await refreshCultivator();
         await fetchSkills();
       } catch (e) {
         pushToast({
@@ -150,7 +153,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         setPendingToggleId(null);
       }
     },
-    [cultivator, pushToast, refreshCultivator, fetchSkills],
+    [cultivator, mutate, pushToast, fetchSkills],
   );
 
   const openForgetConfirm = useCallback(
@@ -166,16 +169,15 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         cancelLabel: '再思量',
         onConfirm: async () => {
           try {
-            const res = await fetch(`/api/v2/products/${skill.id}`, {
-              method: 'DELETE',
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            await mutate(
+              fetch(`/api/v2/products/${skill.id}`, {
+                method: 'DELETE',
+              }),
+            );
             pushToast({
               message: `【${skill.name}】已从道基消散`,
               tone: 'default',
             });
-            await refreshCultivator();
             await fetchSkills();
           } catch (e) {
             pushToast({
@@ -186,7 +188,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         },
       });
     },
-    [openDialog, pushToast, refreshCultivator, fetchSkills],
+    [openDialog, mutate, pushToast, fetchSkills],
   );
 
   return {

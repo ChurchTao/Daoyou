@@ -7,6 +7,10 @@ import {
   ManualDrawService,
   ManualDrawServiceError,
 } from '@server/lib/services/ManualDrawService';
+import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
 import { MANUAL_DRAW_KIND_VALUES } from '@shared/types/manualDraw';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -31,17 +35,32 @@ router.post('/', requireActiveCultivator(), async (c) => {
       return c.json({ success: false, error: '请求参数格式错误' }, 400);
     }
 
-    const result = await ManualDrawService.draw(
-      user.id,
-      cultivator.id,
-      parsed.data.kind,
-      parsed.data.count,
-    );
-
-    return c.json({
-      success: true,
-      data: result,
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'manual_draw',
+      run: async (tx) => {
+        const result = await ManualDrawService.draw(
+          user.id,
+          cultivator.id,
+          parsed.data.kind,
+          parsed.data.count,
+          { tx },
+        );
+        return {
+          result,
+          changes: [
+            {
+              domain: 'inventory',
+              eventType: 'inventory.changed',
+              invalidates: ['inventory'],
+            },
+          ],
+        };
+      },
     });
+
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const status = error instanceof ManualDrawServiceError ? error.status : 400;
     return jsonWithStatus(

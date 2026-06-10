@@ -7,6 +7,10 @@ import {
   FateReshapeService,
   FateReshapeServiceError,
 } from '@server/lib/services/FateReshapeService';
+import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -54,18 +58,36 @@ router.post('/session', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const session = await FateReshapeService.startSession(user.id, cultivator.id);
-    const talismanCount = await FateReshapeService.getAvailableTalismanCount(
-      cultivator.id,
-    );
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'fate_reshape_start',
+      run: async (tx) => {
+        const session = await FateReshapeService.startSession(
+          user.id,
+          cultivator.id,
+          { tx },
+        );
+        const talismanCount = await FateReshapeService.getAvailableTalismanCount(
+          cultivator.id,
+        );
 
-    return c.json({
-      success: true,
-      data: {
-        session,
-        talismanCount,
+        return {
+          result: {
+            session,
+            talismanCount,
+          },
+          changes: [
+            {
+              domain: 'inventory',
+              eventType: 'inventory.changed',
+              invalidates: ['inventory'],
+            },
+          ],
+        };
       },
     });
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const status = error instanceof FateReshapeServiceError ? error.status : 400;
     return jsonWithStatus(
@@ -117,16 +139,31 @@ router.post('/confirm', requireActiveCultivator(), async (c) => {
       return c.json({ success: false, error: '请求参数格式错误' }, 400);
     }
 
-    const selectedFates = await FateReshapeService.confirmSession(
-      user.id,
-      cultivator.id,
-      parsed.data.selectedIndices,
-    );
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'fate_reshape_confirm',
+      run: async (tx) => {
+        const selectedFates = await FateReshapeService.confirmSession(
+          user.id,
+          cultivator.id,
+          parsed.data.selectedIndices,
+          { tx },
+        );
 
-    return c.json({
-      success: true,
-      data: { selectedFates },
+        return {
+          result: { selectedFates },
+          changes: [
+            {
+              domain: 'profile',
+              eventType: 'profile.fates.changed',
+              invalidates: ['profile'],
+            },
+          ],
+        };
+      },
     });
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const status = error instanceof FateReshapeServiceError ? error.status : 400;
     return jsonWithStatus(

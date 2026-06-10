@@ -1,6 +1,16 @@
-import { requireActiveCultivator } from '@server/lib/hono/middleware';
+import { getExecutor, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db';
+import { mails } from '@server/lib/drizzle/schema';
+import {
+  requireActiveCultivator,
+  requireActiveCultivatorRef,
+} from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
 import { TaskService } from '@server/lib/services/TaskService';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -10,15 +20,30 @@ const ListQuerySchema = z.object({
 
 const router = new Hono<AppEnv>();
 
-router.get('/', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+async function countUnreadMail(
+  cultivatorId: string,
+  q: DbExecutor | DbTransaction = getExecutor(),
+): Promise<number> {
+  const [result] = await q
+    .select({ count: sql<number>`count(*)::int` })
+    .from(mails)
+    .where(and(eq(mails.cultivatorId, cultivatorId), eq(mails.isRead, false)));
+
+  return Number(result?.count ?? 0);
+}
+
+router.get('/', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
   try {
     const { status } = ListQuerySchema.parse(c.req.query());
-    const tasks = await TaskService.listCultivatorTasks(cultivator.id, status);
+    const tasks = await TaskService.listCultivatorTasks(
+      ref.cultivatorId,
+      status,
+    );
     return c.json({
       success: true,
       data: {
@@ -34,15 +59,15 @@ router.get('/', requireActiveCultivator(), async (c) => {
   }
 });
 
-router.get('/:id', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+router.get('/:id', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
   try {
     const task = await TaskService.getCultivatorTask(
-      cultivator.id,
+      ref.cultivatorId,
       c.req.param('id'),
     );
     if (!task) {
@@ -98,16 +123,39 @@ router.post('/:id/claim-reward', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const result = await TaskService.claimTaskReward(
-      user.id,
-      cultivator.id,
-      c.req.param('id'),
-    );
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'task_claim_reward',
+      run: async (tx) => {
+        const result = await TaskService.claimTaskReward(
+          user.id,
+          cultivator.id,
+          c.req.param('id'),
+          { tx },
+        );
+        const unreadMailCount = await countUnreadMail(cultivator.id, tx);
 
-    return c.json({
-      success: true,
-      data: result,
+        return {
+          result,
+          changes: [
+            {
+              domain: 'tasks' as const,
+              eventType: 'tasks.reward_claimed',
+              invalidates: ['tasks' as const],
+            },
+            {
+              domain: 'mail' as const,
+              eventType: 'mail.reward_created',
+              patch: { unreadMailCount },
+              invalidates: ['mail' as const],
+            },
+          ],
+        };
+      },
     });
+
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const message =
       error instanceof Error ? error.message : '领取奖励失败，请稍后再试';

@@ -24,6 +24,7 @@ import { PillOperationExecutor } from './PillOperationExecutor';
 import { QiService } from './QiService';
 import { mapConsumableRow } from './consumablePersistence';
 import { randomUUID } from 'crypto';
+import type { DbTransaction } from '@server/lib/drizzle/db';
 
 async function loadOwnedConsumable(
   cultivatorId: string,
@@ -63,6 +64,7 @@ export const ConsumableUseEngine = {
     userId: string,
     cultivatorId: string,
     consumableId: string,
+    options: { tx?: DbTransaction } = {},
   ): Promise<{
     message: string;
     consumable: Consumable;
@@ -87,7 +89,7 @@ export const ConsumableUseEngine = {
       }
 
       const restoreSpec = QI_RESTORE_TALISMAN_SCENARIOS[consumable.spec.scenario];
-      const restored = await getExecutor().transaction(async (tx) => {
+      const restore = async (tx: DbTransaction) => {
         const result = await QiService.restoreQi({
           cultivatorId,
           amount: restoreSpec.amount,
@@ -104,7 +106,10 @@ export const ConsumableUseEngine = {
 
         await consumeConsumableById(userId, cultivatorId, consumableId, 1, tx);
         return result;
-      });
+      };
+      const restored = options.tx
+        ? await restore(options.tx)
+        : await getExecutor().transaction(restore);
 
       return {
         message: `已使用${consumable.name}，天地灵气 +${restored.restored}。`,
@@ -123,7 +128,7 @@ export const ConsumableUseEngine = {
       Math.floor(nextCultivator.lifespan) - Math.floor(cultivator.lifespan),
     );
 
-    await getExecutor().transaction(async (tx) => {
+    const persistPillEffect = async (tx: DbTransaction) => {
       await tx
         .update(schema.cultivators)
         .set({
@@ -148,7 +153,13 @@ export const ConsumableUseEngine = {
       );
 
       await consumeConsumableById(userId, cultivatorId, consumableId, 1, tx);
-    });
+    };
+
+    if (options.tx) {
+      await persistPillEffect(options.tx);
+    } else {
+      await getExecutor().transaction(persistPillEffect);
+    }
 
     const trackMessage =
       execution.trackLevelUps.length > 0

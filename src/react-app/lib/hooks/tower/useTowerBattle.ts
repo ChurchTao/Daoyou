@@ -1,4 +1,6 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
+import type { PlayerStateMutationResponse } from '@shared/contracts/player';
 import type {
   TowerMilestoneReward,
   TowerSettlement,
@@ -12,6 +14,22 @@ export interface TowerBattleCallbackData {
   isFinished: boolean;
   settlement?: TowerSettlement;
   milestoneReward?: TowerMilestoneReward;
+}
+
+type TowerBattlePayload = {
+  battleResult?: BattleRecord;
+  callbackData?: TowerBattleCallbackData;
+};
+
+function isTowerBattleMutationResponse(
+  value: unknown,
+): value is PlayerStateMutationResponse<TowerBattlePayload> {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      (value as { success?: unknown }).success === true &&
+      (value as { state?: unknown }).state,
+  );
 }
 
 export function useTowerBattle() {
@@ -30,11 +48,26 @@ export function useTowerBattle() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ battleId }),
         });
-        const data = (await response.json()) as {
+        const raw = (await response.json()) as {
+          success?: boolean;
+          data?: {
+            battleResult?: BattleRecord;
+            callbackData?: TowerBattleCallbackData;
+          };
+          state?: unknown;
           error?: string;
           battleResult?: BattleRecord;
           callbackData?: TowerBattleCallbackData;
         };
+        const data: {
+          error?: string;
+          battleResult?: BattleRecord;
+          callbackData?: TowerBattleCallbackData;
+        } = isTowerBattleMutationResponse(raw)
+          ? await consumePlayerStateMutation<TowerBattlePayload>(raw)
+          : raw.success
+            ? (raw.data ?? {})
+            : raw;
 
         if (!response.ok || data.error || !data.battleResult || !data.callbackData) {
           throw new Error(data.error || '幻境战局异常中断');

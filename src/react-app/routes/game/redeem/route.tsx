@@ -3,10 +3,12 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkIdentifyCelebration } from '@app/components/ui/InkIdentifyCelebration';
 import { InkInput } from '@app/components/ui/InkInput';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { useState } from 'react';
 
 export default function RedeemCodePage() {
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -21,15 +23,13 @@ export default function RedeemCodePage() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/cultivator/redeem-code/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: normalizedCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || '兑换失败');
-      }
+      await mutate(
+        fetch('/api/cultivator/redeem-code/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: normalizedCode }),
+        }),
+      );
       setSuccess(true);
       setCelebrationTick((prev) => prev + 1);
       setCode('');

@@ -1,4 +1,4 @@
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   alchemyFormulas,
   consumables,
@@ -1137,7 +1137,12 @@ export async function craftFromFormula(
   materialIds: string[],
   materialQuantities?: Record<string, number>,
   analysisId?: string,
-): Promise<{ consumable: Consumable; formulaProgress: FormulaProgress }> {
+  options: { tx?: DbTransaction; deferSideEffects?: boolean } = {},
+): Promise<{
+  consumable: Consumable;
+  formulaProgress: FormulaProgress;
+  afterCommit?: () => Promise<void>;
+}> {
   const lockKey = getFormulaLockKey(cultivatorId);
   const acquired = await redis.set(
     lockKey,
@@ -1155,13 +1160,13 @@ export async function craftFromFormula(
       await Promise.all([
         loadCultivatorFormula(cultivatorId, formulaId),
         loadOwnedMaterials(cultivatorId, materialIds),
-        getExecutor()
+        (options.tx ?? getExecutor())
           .select()
           .from(cultivators)
           .where(eq(cultivators.id, cultivatorId))
           .limit(1)
           .then((rows) => rows[0]),
-        getCultivatorByIdUnsafe(cultivatorId),
+        getCultivatorByIdUnsafe(cultivatorId, options.tx),
         analysisId
           ? redis.get(getFormulaAnalysisKey(cultivatorId, analysisId))
           : Promise.resolve(null),
@@ -1355,7 +1360,7 @@ export async function craftFromFormula(
       formula.mastery,
     );
 
-    await getExecutor().transaction(async (tx) => {
+    const writeFormulaCraft = async (tx: DbTransaction) => {
       for (const material of materialsList) {
         const row = selectedMaterials.find((item) => item.id === material.id);
         if (!row) {
@@ -1388,10 +1393,21 @@ export async function craftFromFormula(
         .update(alchemyFormulas)
         .set({ mastery: nextMastery })
         .where(eq(alchemyFormulas.id, formula.id));
-    });
-    await redis.del(analysisKey);
+    };
 
-    const inserted = await getExecutor()
+    if (options.tx) {
+      await writeFormulaCraft(options.tx);
+    } else {
+      await getExecutor().transaction(writeFormulaCraft);
+    }
+    const afterCommit = async () => {
+      await redis.del(analysisKey);
+    };
+    if (!options.deferSideEffects) {
+      await afterCommit();
+    }
+
+    const inserted = await (options.tx ?? getExecutor())
       .select()
       .from(consumables)
       .where(
@@ -1418,6 +1434,7 @@ export async function craftFromFormula(
     return {
       consumable: insertedRow ? mapConsumableRow(insertedRow) : consumable,
       formulaProgress: progress,
+      afterCommit: options.deferSideEffects ? afterCommit : undefined,
     };
   } finally {
     await redis.del(lockKey);

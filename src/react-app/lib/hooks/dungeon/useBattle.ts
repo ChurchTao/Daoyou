@@ -1,5 +1,6 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import type { BattleRecord } from '@shared/types/battle';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import {
   DungeonRound,
   DungeonSettlement,
@@ -44,7 +45,15 @@ export function useBattle() {
         throw new Error(errorData.error || '战斗异常中断');
       }
 
-      const data = await res.json();
+      const raw = await res.json();
+      const data = raw.success && raw.state
+        ? await consumePlayerStateMutation<{
+            battleResult: BattleRecord;
+            callbackData: BattleCallbackData;
+          }>(raw)
+        : raw.success
+          ? raw.data
+          : raw;
       const result = data.battleResult as BattleRecord;
       
       setBattleResult(result);

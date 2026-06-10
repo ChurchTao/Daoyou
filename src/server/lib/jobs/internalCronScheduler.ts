@@ -2,6 +2,7 @@ import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
   runMarketRefreshCronJob,
+  runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
   runTowerEnemySetRefreshJob,
 } from './internalCron';
@@ -24,6 +25,7 @@ const RANK_REWARDS_SCHEDULE = '0 16 * * *';
 // Market refresh: every 5 minutes to pre-generate listings before 15-min cycle ends
 const MARKET_REFRESH_SCHEDULE = '*/5 * * * *';
 const TOWER_ENEMY_SETS_SCHEDULE = '0 * * * *';
+const PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE = '30 18 * * *';
 
 let schedulerRegistered = false;
 let scheduledTasks: BunCronTask[] = [];
@@ -78,6 +80,12 @@ export function registerInternalCronJobs(options: {
     bunCron(TOWER_ENEMY_SETS_SCHEDULE, () =>
       runScheduledJob('tower-enemy-sets', runTowerEnemySetRefreshJob),
     ),
+    bunCron(PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE, () =>
+      runScheduledJob(
+        'player-state-events-cleanup',
+        runPlayerStateEventsCleanupJob,
+      ),
+    ),
   ];
   schedulerRegistered = true;
 
@@ -88,6 +96,7 @@ export function registerInternalCronJobs(options: {
     rankRewardsLocal: '00:00 Asia/Shanghai',
     marketRefresh: MARKET_REFRESH_SCHEDULE,
     towerEnemySets: TOWER_ENEMY_SETS_SCHEDULE,
+    playerStateEventsCleanupUtc: PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE,
   });
 
   return scheduledTasks;

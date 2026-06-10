@@ -1,4 +1,4 @@
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   consumables,
   cultivators,
@@ -345,6 +345,7 @@ export function createAlchemyService(
       options: {
         materialQuantities?: Record<string, number>;
         userPrompt?: string;
+        tx?: DbTransaction;
       } = {},
     ): Promise<ImprovisedAlchemyCraftResult> {
       const lockKey = `alchemy:lock:${cultivatorId}`;
@@ -357,13 +358,13 @@ export function createAlchemyService(
         const [selectedMaterials, cultivator, fullCultivator] =
           await Promise.all([
             loadOwnedMaterials(cultivatorId, materialIds),
-            getExecutor()
+            (options.tx ?? getExecutor())
               .select()
               .from(cultivators)
               .where(eq(cultivators.id, cultivatorId))
               .limit(1)
               .then((rows) => rows[0]),
-            getCultivatorByIdUnsafe(cultivatorId),
+            getCultivatorByIdUnsafe(cultivatorId, options.tx),
           ]);
 
         if (!cultivator) {
@@ -476,7 +477,7 @@ export function createAlchemyService(
         };
         consumable.score = calculateSingleElixirScore(consumable);
 
-        await getExecutor().transaction(async (tx) => {
+        const writeAlchemy = async (tx: DbTransaction) => {
           for (const material of preparedMaterials) {
             const row = selectedMaterials.find(
               (item) => item.id === material.id,
@@ -506,9 +507,15 @@ export function createAlchemyService(
             consumable,
             tx,
           );
-        });
+        };
 
-        const inserted = await getExecutor()
+        if (options.tx) {
+          await writeAlchemy(options.tx);
+        } else {
+          await getExecutor().transaction(writeAlchemy);
+        }
+
+        const inserted = await (options.tx ?? getExecutor())
           .select()
           .from(consumables)
           .where(

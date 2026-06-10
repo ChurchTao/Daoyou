@@ -13,6 +13,7 @@ import {
   InkTag,
 } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import { getElementInfo, getMaterialTypeInfo } from '@shared/types/dictionaries';
@@ -25,12 +26,6 @@ import { useNavigate, useSearchParams } from 'react-router';
 type StatusResponse = {
   success: boolean;
   data?: ManualDrawStatusDTO;
-  error?: string;
-};
-
-type DrawResponse = {
-  success: boolean;
-  data?: ManualDrawResultDTO;
   error?: string;
 };
 
@@ -231,7 +226,8 @@ function ResultMiniCard({ material }: { material: Material }) {
 export default function ManualDrawPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { cultivator, note, isLoading, refreshInventory } = useCultivator();
+  const { cultivator, note, isLoading } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
   const [activeTab, setActiveTab] = useState<ManualDrawKind>(
     normalizeManualDrawKind(searchParams.get('tab')),
@@ -328,23 +324,19 @@ export default function ManualDrawPage() {
   const handleDraw = async (count: 1 | 5) => {
     setPendingDrawCount(count);
     try {
-      const response = await fetch('/api/manual-draw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: activeTab, count }),
-      });
-      const result = (await response.json()) as DrawResponse;
-
-      if (!response.ok || !result.success || !result.data) {
-        throw new Error(result.error || '秘籍抽取失败');
-      }
+      const data = await mutate<ManualDrawResultDTO>(
+        fetch('/api/manual-draw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: activeTab, count }),
+        }),
+      );
 
       setLatestResults((prev) => ({
         ...prev,
-        [activeTab]: result.data!,
+        [activeTab]: data,
       }));
-      setStatus({ talismanCounts: result.data.talismanCounts });
-      await refreshInventory(['materials', 'consumables']);
+      setStatus({ talismanCounts: data.talismanCounts });
       pushToast({
         message:
           count === 5

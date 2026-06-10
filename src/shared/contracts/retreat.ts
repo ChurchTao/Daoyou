@@ -2,6 +2,7 @@ import type {
   BreakthroughResult,
   CultivationResult,
 } from '@shared/engine/cultivation/CultivationEngine';
+import type { PlayerStateEvent } from '@shared/contracts/player';
 
 export type RetreatAction = 'cultivate' | 'breakthrough';
 export type RetreatStoryType = 'breakthrough' | 'lifespan';
@@ -18,6 +19,10 @@ export type RetreatStreamEvent =
   | {
       type: 'result';
       data: RetreatResultData;
+    }
+  | {
+      type: 'state';
+      events: PlayerStateEvent[];
     }
   | {
       type: 'chunk';

@@ -19,6 +19,7 @@ import {
 import { tierColorMap, type Tier } from '@app/components/ui/InkBadge';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
 import {
   toInventoryItemDetail,
@@ -438,8 +439,9 @@ function useInventorySelector() {
 }
 
 export default function BetBattlePage() {
-  const { cultivator, refresh } = useCultivator();
+  const { cultivator } = useCultivator();
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
   const cultivatorId = cultivator?.id;
   const [now, setNow] = useState(() => Date.now());
 
@@ -564,13 +566,13 @@ export default function BetBattlePage() {
   const handleCancel = async (battleId: string) => {
     setPendingActionId(battleId);
     try {
-      const res = await fetch(`/api/bet-battles/${battleId}/cancel`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '取消失败');
+      const data = await mutate<{ message: string }>(
+        fetch(`/api/bet-battles/${battleId}/cancel`, {
+          method: 'POST',
+        }),
+      );
       pushToast({ message: data.message || '已取消', tone: 'success' });
-      await Promise.all([loadHall(), loadMine(), refresh()]);
+      await Promise.all([loadHall(), loadMine()]);
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '取消失败',
@@ -820,13 +822,13 @@ export default function BetBattlePage() {
         </div>
 
         {showCreateModal && cultivator && (
-          <BetBattleCreateModal
-            onClose={() => setShowCreateModal(false)}
-            onSuccess={async () => {
-              setShowCreateModal(false);
-              await Promise.all([loadHall(), loadMine(), refresh()]);
-            }}
-          />
+              <BetBattleCreateModal
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={async () => {
+                  setShowCreateModal(false);
+                  await Promise.all([loadHall(), loadMine()]);
+                }}
+              />
         )}
 
         {challengeTarget && cultivator && (
@@ -863,6 +865,7 @@ function BetBattleCreateModal({
 }) {
   const { pushToast } = useInkUI();
   const { cultivator } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const [selectedStakeType, setSelectedStakeType] = useState<
     'spirit_stones' | 'material' | 'artifact'
   >('spirit_stones');
@@ -933,28 +936,27 @@ function BetBattleCreateModal({
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/bet-battles/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          minRealm,
-          maxRealm,
-          taunt: normalizedTaunt || undefined,
-          stakeType: isStoneMode ? 'spirit_stones' : 'item',
-          spiritStones: isStoneMode ? spiritStoneValue : 0,
-          stakeItem:
-            !isStoneMode && selectedItem
-              ? {
-                  itemType: selectedItem.itemType,
-                  itemId: selectedItem.itemId,
-                  quantity: selectedItem.quantity,
-                }
-              : null,
+      const data = await mutate<{ message: string }>(
+        fetch('/api/bet-battles/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            minRealm,
+            maxRealm,
+            taunt: normalizedTaunt || undefined,
+            stakeType: isStoneMode ? 'spirit_stones' : 'item',
+            spiritStones: isStoneMode ? spiritStoneValue : 0,
+            stakeItem:
+              !isStoneMode && selectedItem
+                ? {
+                    itemType: selectedItem.itemType,
+                    itemId: selectedItem.itemId,
+                    quantity: selectedItem.quantity,
+                  }
+                : null,
+          }),
         }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '发起赌战失败');
+      );
 
       pushToast({ message: data.message || '赌战发起成功', tone: 'success' });
       await onSuccess();

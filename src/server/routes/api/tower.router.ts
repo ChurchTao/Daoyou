@@ -1,6 +1,10 @@
 import { towerService } from '@server/lib/tower/service';
 import { requireActiveCultivator } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
 import { TOWER_ELIGIBLE_REALMS } from '@shared/lib/tower';
 import type { RealmType } from '@shared/types/constants';
 import { Hono } from 'hono';
@@ -145,22 +149,62 @@ battleRouter.get('/context', requireActiveCultivator(), async (c) => {
 
 battleRouter.post('/execute/v5', requireActiveCultivator(), async (c) => {
   try {
+    const user = c.get('user');
     const cultivator = c.get('cultivator');
-    if (!cultivator) {
-      return c.json({ error: '当前没有活跃角色' }, 404);
+    if (!user || !cultivator) {
+      return c.json({ error: '未授权访问' }, 401);
     }
 
     const { battleId } = BattleIdBodySchema.parse(await c.req.json());
-    const result = await towerService.executeBattle(cultivator.id, battleId);
-    return c.json({
-      battleResult: result.battleResult,
+    const result = await towerService.executeBattle(
+      cultivator.id,
+      battleId,
+      new Date(),
+      { deferPersistence: true },
+    );
+    const { persist, afterCommit, ...responseResult } = result;
+    const data = {
+      battleResult: responseResult.battleResult,
       callbackData: {
-        towerState: result.state,
-        isFinished: result.isFinished,
-        settlement: result.settlement,
-        milestoneReward: result.milestoneReward,
+        towerState: responseResult.state,
+        isFinished: responseResult.isFinished,
+        settlement: responseResult.settlement,
+        milestoneReward: responseResult.milestoneReward,
+      },
+    };
+
+    if (!persist) {
+      if (afterCommit) {
+        await afterCommit();
+      }
+      return c.json({ success: true, data });
+    }
+
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'tower_battle_execute',
+      run: async (tx) => {
+        if (persist) {
+          await persist(tx);
+        }
+
+        return {
+          result: data,
+          changes: [
+            {
+              domain: 'mail',
+              eventType: 'mail.tower_milestone.created',
+              invalidates: ['mail'],
+            },
+          ],
+        };
       },
     });
+    if (afterCommit) {
+      await afterCommit();
+    }
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const message = error instanceof Error ? error.message : '幻境战局执行失败';
     return c.json({ error: message }, 400);

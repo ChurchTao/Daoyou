@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 const {
   startDungeonMock,
   handleActionMock,
+  quitDungeonMock,
   probeBattleEnemyMock,
   abandonBattleMock,
   executeBattleMock,
@@ -17,9 +18,11 @@ const {
   DungeonFlowErrorMock,
   QiInsufficientErrorMock,
   QiServiceErrorMock,
+  commitPlayerStateMutationMock,
 } = vi.hoisted(() => ({
   startDungeonMock: vi.fn(),
   handleActionMock: vi.fn(),
+  quitDungeonMock: vi.fn(),
   probeBattleEnemyMock: vi.fn(),
   abandonBattleMock: vi.fn(),
   executeBattleMock: vi.fn(),
@@ -63,10 +66,35 @@ const {
       this.status = status;
     }
   },
+  commitPlayerStateMutationMock: vi.fn(async (input: any) => {
+    const { result, changes } = await input.run({ __tx: true });
+    return {
+      result,
+      state: {
+        cultivatorId: input.cultivatorId,
+        globalVersion: 20,
+        domainVersions: Object.fromEntries(
+          changes.map((change: any) => [change.domain, 20]),
+        ),
+        events: changes.map((change: any, index: number) => ({
+          id: index + 1,
+          cultivatorId: input.cultivatorId,
+          globalVersion: 20,
+          domain: change.domain,
+          eventType: change.eventType,
+          patch: change.patch ?? {},
+          invalidates: change.invalidates ?? [],
+          source: input.source,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        })),
+      },
+    };
+  }),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
   requireActiveCultivator: () => async (context: any, next: () => Promise<void>) => {
+    context.set('user', { id: 'user-1' });
     context.set('cultivator', {
       id: 'cultivator-1',
     });
@@ -80,7 +108,7 @@ vi.mock('@server/lib/dungeon/service_v2', () => ({
     startDungeon: startDungeonMock,
     getState: vi.fn(),
     handleAction: handleActionMock,
-    quitDungeon: vi.fn(),
+    quitDungeon: quitDungeonMock,
     continueFromLooting: continueFromLootingMock,
     escapeFromLooting: escapeFromLootingMock,
     probeBattleEnemy: probeBattleEnemyMock,
@@ -116,6 +144,15 @@ vi.mock('@shared/lib/game/mapSystem', () => ({
 
 vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: vi.fn(),
+}));
+
+vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  commitPlayerStateMutation: commitPlayerStateMutationMock,
+  toPlayerStateMutationResponse: (committed: any) => ({
+    success: true,
+    data: committed.result,
+    state: committed.state,
+  }),
 }));
 
 import router from './dungeon.router';
@@ -158,10 +195,14 @@ describe('dungeon battle router', () => {
   });
 
   it('starts a dungeon when novice readiness passes', async () => {
+    const persist = vi.fn().mockResolvedValue(undefined);
+    const afterCommit = vi.fn().mockResolvedValue(undefined);
     startDungeonMock.mockResolvedValueOnce({
       state: {
         id: 'dungeon-state-1',
       },
+      persist,
+      afterCommit,
     });
 
     const response = await createApp().request('/api/dungeon/start', {
@@ -175,12 +216,25 @@ describe('dungeon battle router', () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      state: {
-        id: 'dungeon-state-1',
-      },
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: { state: { id: 'dungeon-state-1' } },
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ source: 'dungeon_start' }),
+          ]),
+        }),
+      }),
+    );
+    expect(startDungeonMock).toHaveBeenCalledWith('cultivator-1', 'node-1', {
+      deferPersistence: true,
     });
-    expect(startDungeonMock).toHaveBeenCalledWith('cultivator-1', 'node-1');
+    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(afterCommit).toHaveBeenCalledTimes(1);
+    expect(persist.mock.invocationCallOrder[0]).toBeLessThan(
+      afterCommit.mock.invocationCallOrder[0],
+    );
   });
 
   it('rejects dungeon start for main map nodes (only satellite nodes allowed)', async () => {
@@ -293,12 +347,20 @@ describe('dungeon battle router', () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      state: {
-        id: 'dungeon-state-1',
-      },
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: { state: { id: 'dungeon-state-1' } },
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ source: 'dungeon_start' }),
+          ]),
+        }),
+      }),
+    );
+    expect(startDungeonMock).toHaveBeenCalledWith('cultivator-1', 'node-1', {
+      deferPersistence: true,
     });
-    expect(startDungeonMock).toHaveBeenCalledWith('cultivator-1', 'node-1');
   });
 
   it('returns 409 when dungeon action is already being processed', async () => {
@@ -372,16 +434,27 @@ describe('dungeon battle router', () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      isFinished: true,
-      settlement: {
-        ending_narrative: '你见势不妙，及时抽身而退。',
-      },
-      realGains: [],
-    });
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          isFinished: true,
+          settlement: {
+            ending_narrative: '你见势不妙，及时抽身而退。',
+          },
+          realGains: [],
+        },
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ domain: 'tasks' }),
+          ]),
+        }),
+      }),
+    );
     expect(abandonBattleMock).toHaveBeenCalledWith(
       'cultivator-1',
       'battle-1',
+      { deferPersistence: true },
     );
   });
 
@@ -412,6 +485,8 @@ describe('dungeon battle router', () => {
   });
 
   it('executes the current dungeon battle via POST /api/dungeon/battle/execute/v5', async () => {
+    const persist = vi.fn().mockResolvedValue(undefined);
+    const afterCommit = vi.fn().mockResolvedValue(undefined);
     executeBattleMock.mockResolvedValueOnce({
       battleResult: {
         turns: 3,
@@ -426,6 +501,8 @@ describe('dungeon battle router', () => {
       roundData: undefined,
       settlement: undefined,
       realGains: undefined,
+      persist,
+      afterCommit,
     });
 
     const response = await createApp().request(
@@ -442,27 +519,68 @@ describe('dungeon battle router', () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      battleResult: {
-        turns: 3,
-        winner: { id: 'cultivator-1', name: '韩立' },
-        loser: { id: 'enemy-1', name: '守陵阴魂' },
-      },
-      callbackData: {
-        dungeonState: {
-          activeBattleId: undefined,
-          status: 'LOOTING',
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          battleResult: {
+            turns: 3,
+            winner: { id: 'cultivator-1', name: '韩立' },
+            loser: { id: 'enemy-1', name: '守陵阴魂' },
+          },
+          callbackData: expect.objectContaining({
+            dungeonState: {
+              status: 'LOOTING',
+            },
+            isFinished: false,
+          }),
         },
-        roundData: undefined,
-        isFinished: false,
-        settlement: undefined,
-        realGains: undefined,
-      },
-    });
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ source: 'dungeon_battle_execute' }),
+          ]),
+        }),
+      }),
+    );
     expect(executeBattleMock).toHaveBeenCalledWith(
       'cultivator-1',
       'battle-1',
+      { deferPersistence: true },
     );
+    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(afterCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it('quits a dungeon through the deferred mutation boundary', async () => {
+    const persist = vi.fn().mockResolvedValue(undefined);
+    const afterCommit = vi.fn().mockResolvedValue(undefined);
+    quitDungeonMock.mockResolvedValueOnce({
+      success: true,
+      persist,
+      afterCommit,
+    });
+
+    const response = await createApp().request('/api/dungeon/quit', {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: { success: true },
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ source: 'dungeon_quit' }),
+          ]),
+        }),
+      }),
+    );
+    expect(quitDungeonMock).toHaveBeenCalledWith('cultivator-1', {
+      deferPersistence: true,
+    });
+    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(afterCommit).toHaveBeenCalledTimes(1);
   });
 
   it('returns 409 when executing a dungeon battle while another flow is processing', async () => {
@@ -514,17 +632,29 @@ describe('dungeon battle router', () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      state: {
-        status: 'EXPLORING',
-        currentRound: 3,
-      },
-      roundData: {
-        scene_description: '你继续深入秘境。',
-      },
-      isFinished: false,
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          state: {
+            status: 'EXPLORING',
+            currentRound: 3,
+          },
+          roundData: {
+            scene_description: '你继续深入秘境。',
+          },
+          isFinished: false,
+        },
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ source: 'dungeon_looting_continue' }),
+          ]),
+        }),
+      }),
+    );
+    expect(continueFromLootingMock).toHaveBeenCalledWith('cultivator-1', {
+      deferPersistence: true,
     });
-    expect(continueFromLootingMock).toHaveBeenCalledWith('cultivator-1');
   });
 
   it('returns 409 when continuing from looting after dungeon state changed', async () => {
@@ -605,13 +735,25 @@ describe('dungeon battle router', () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      state: {
-        status: 'EXPLORING',
-      },
-      isFinished: false,
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          state: {
+            status: 'EXPLORING',
+          },
+          isFinished: false,
+        },
+        state: expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ source: 'dungeon_recover_retry' }),
+          ]),
+        }),
+      }),
+    );
+    expect(recoverDungeonMock).toHaveBeenCalledWith('cultivator-1', 'retry', {
+      deferPersistence: true,
     });
-    expect(recoverDungeonMock).toHaveBeenCalledWith('cultivator-1', 'retry');
   });
 
   it('accepts explicit recover actions for continue and settlement retries', async () => {
@@ -661,11 +803,13 @@ describe('dungeon battle router', () => {
       1,
       'cultivator-1',
       'retry_continue',
+      { deferPersistence: true },
     );
     expect(recoverDungeonMock).toHaveBeenNthCalledWith(
       2,
       'cultivator-1',
       'retry_settle',
+      { deferPersistence: true },
     );
   });
 });

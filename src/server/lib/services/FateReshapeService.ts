@@ -7,7 +7,7 @@ import type {
 } from '@shared/types/fateReshape';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
-import { getExecutor } from '../drizzle/db';
+import { getExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { FateEngine } from './FateEngine';
 import {
@@ -20,6 +20,10 @@ import { mapConsumableRow, type ConsumableRow } from './consumablePersistence';
 
 const FATE_RESHAPE_SESSION_TTL_SEC = 3600;
 const FATE_RESHAPE_SCENARIO = 'fate_reshape';
+
+export interface FateReshapeMutationOptions {
+  tx?: DbTransaction;
+}
 
 function buildSessionKey(cultivatorId: string): string {
   return `fate-reshape-session:${cultivatorId}`;
@@ -176,6 +180,7 @@ export const FateReshapeService = {
   async startSession(
     userId: string,
     cultivatorId: string,
+    options: FateReshapeMutationOptions = {},
   ): Promise<FateReshapeSessionDTO> {
     return withCultivatorLock(cultivatorId, async () => {
       const existing = await readSession(cultivatorId);
@@ -206,22 +211,28 @@ export const FateReshapeService = {
         expiresAt: createdAt + FATE_RESHAPE_SESSION_TTL_SEC * 1000,
       };
 
+      const persistStart = async (tx: DbTransaction) => {
+        await consumeConsumableById(
+          userId,
+          cultivatorId,
+          availableTalisman.id!,
+          1,
+          tx,
+        );
+        await redis.set(
+          buildSessionKey(cultivatorId),
+          JSON.stringify(session),
+          'EX',
+          FATE_RESHAPE_SESSION_TTL_SEC,
+        );
+      };
+
       try {
-        await getExecutor().transaction(async (tx) => {
-          await consumeConsumableById(
-            userId,
-            cultivatorId,
-            availableTalisman.id!,
-            1,
-            tx,
-          );
-          await redis.set(
-            buildSessionKey(cultivatorId),
-            JSON.stringify(session),
-            'EX',
-            FATE_RESHAPE_SESSION_TTL_SEC,
-          );
-        });
+        if (options.tx) {
+          await persistStart(options.tx);
+        } else {
+          await getExecutor().transaction(persistStart);
+        }
       } catch (error) {
         await redis.del(buildSessionKey(cultivatorId));
         throw error;
@@ -268,6 +279,7 @@ export const FateReshapeService = {
     userId: string,
     cultivatorId: string,
     selectedIndices: number[],
+    options: FateReshapeMutationOptions = {},
   ): Promise<PreHeavenFate[]> {
     return withCultivatorLock(cultivatorId, async () => {
       const session = await requireSession(cultivatorId);
@@ -277,11 +289,17 @@ export const FateReshapeService = {
         (index) => session.currentCandidates[index],
       );
 
+      const persistConfirm = async (tx: DbTransaction) => {
+        await replacePreHeavenFates(userId, cultivatorId, selectedFates, tx);
+        await redis.del(buildSessionKey(cultivatorId));
+      };
+
       try {
-        await getExecutor().transaction(async (tx) => {
-          await replacePreHeavenFates(userId, cultivatorId, selectedFates, tx);
-          await redis.del(buildSessionKey(cultivatorId));
-        });
+        if (options.tx) {
+          await persistConfirm(options.tx);
+        } else {
+          await getExecutor().transaction(persistConfirm);
+        }
       } catch (error) {
         await restoreSession(session);
         throw error;

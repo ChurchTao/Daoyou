@@ -18,6 +18,7 @@ import {
   ItemCard,
 } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import type { FateReshapeSessionDTO } from '@shared/types/fateReshape';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -42,6 +43,9 @@ type SessionMutationResponse = {
 
 type ConfirmResponse = {
   success: boolean;
+  data?: {
+    selectedFates: PreHeavenFate[];
+  };
   error?: string;
 };
 
@@ -53,8 +57,8 @@ function formatExpireTime(expiresAt: number): string {
 }
 
 export default function FateReshapePage() {
-  const { cultivator, note, isLoading, refreshCultivator, refreshInventory } =
-    useCultivator();
+  const { cultivator, note, isLoading } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
   const [session, setSession] = useState<FateReshapeSessionDTO | null>(null);
   const [talismanCount, setTalismanCount] = useState(0);
@@ -154,23 +158,23 @@ export default function FateReshapePage() {
   const handleStart = async () => {
     setPendingAction('start');
     try {
-      const response = await fetch('/api/fate-reshape/session', {
-        method: 'POST',
-      });
-      const result = (await response.json()) as SessionMutationResponse;
+      const result = await mutate<NonNullable<SessionMutationResponse['data']>>(
+        fetch('/api/fate-reshape/session', {
+          method: 'POST',
+        }),
+      );
 
-      if (!response.ok || !result.success || !result.data?.session) {
-        throw new Error(result.error || '开启命格重塑失败');
+      if (!result.session) {
+        throw new Error('开启命格重塑失败');
       }
 
-      setSession(result.data.session);
-      setTalismanCount(result.data.talismanCount ?? talismanCount);
+      setSession(result.session);
+      setTalismanCount(result.talismanCount ?? talismanCount);
       setSelectedIndices([]);
       pushToast({
         message: '天机已启，本次命格重塑正式开始。',
         tone: 'success',
       });
-      await refreshInventory(['consumables']);
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '开启命格重塑失败',
@@ -217,20 +221,16 @@ export default function FateReshapePage() {
 
     setPendingAction('confirm');
     try {
-      const response = await fetch('/api/fate-reshape/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedIndices }),
-      });
-      const result = (await response.json()) as ConfirmResponse;
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '确认命格重塑失败');
-      }
+      await mutate<NonNullable<ConfirmResponse['data']>>(
+        fetch('/api/fate-reshape/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selectedIndices }),
+        }),
+      );
 
       setSession(null);
       setSelectedIndices([]);
-      await refreshCultivator();
       await loadSession(false);
       pushToast({
         message: '新命格已落定，道身气数已全量重塑。',

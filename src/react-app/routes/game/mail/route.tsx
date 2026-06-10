@@ -6,7 +6,7 @@ import { MailDetailModal } from '@app/components/mail/MailDetailModal';
 import { Mail, MailList } from '@app/components/mail/MailList';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { useCallback, useEffect, useState } from 'react';
 
 const PAGE_SIZE = 20;
@@ -20,7 +20,7 @@ export default function MailPage() {
   const [selectedMail, setSelectedMail] = useState<Mail | null>(null);
   const [batchClaiming, setBatchClaiming] = useState(false);
   const [batchReading, setBatchReading] = useState(false);
-  const { refreshInventory, refreshUnreadMailCount } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
 
   const fetchMails = useCallback(
@@ -94,17 +94,17 @@ export default function MailPage() {
     // Mark as read if not already
     if (!mail.isRead) {
       try {
-        await fetch('/api/cultivator/mail/read', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mailId: mail.id }),
-        });
+        await mutate(
+          fetch('/api/cultivator/mail/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mailId: mail.id }),
+          }),
+        );
         // Optimistic update locally
         setMails((prev) =>
           prev.map((m) => (m.id === mail.id ? { ...m, isRead: true } : m)),
         );
-        // 刷新全局状态以更新红点
-        refreshUnreadMailCount();
       } catch (e) {
         console.error('Failed to mark read', e);
       }
@@ -128,22 +128,22 @@ export default function MailPage() {
         ? { ...prev, isClaimed: true, isRead: true }
         : prev,
     );
-    refreshInventory();
-    refreshUnreadMailCount();
   };
 
   const handleClaimAll = async () => {
     try {
       setBatchClaiming(true);
-      const res = await fetch('/api/cultivator/mail/claim-all', {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || '一键领取失败');
-      }
+      const data = await mutate<{
+        claimedCount: number;
+        claimedMailIds: string[];
+        unreadMailCount: number;
+      }>(
+        fetch('/api/cultivator/mail/claim-all', {
+          method: 'POST',
+        }),
+      );
 
-      const claimedMailIds = (data.claimedMailIds || []) as string[];
+      const claimedMailIds = data.claimedMailIds || [];
       if (claimedMailIds.length > 0) {
         setMails((prev) =>
           prev.map((mail) =>
@@ -157,8 +157,6 @@ export default function MailPage() {
             ? { ...prev, isClaimed: true, isRead: true }
             : prev,
         );
-        await refreshInventory();
-        refreshUnreadMailCount();
       }
 
       pushToast({
@@ -179,19 +177,18 @@ export default function MailPage() {
   const handleReadAll = async () => {
     try {
       setBatchReading(true);
-      const res = await fetch('/api/cultivator/mail/read-all', {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || '全部已读失败');
-      }
+      const data = await mutate<{
+        updatedCount: number;
+        unreadMailCount: number;
+      }>(
+        fetch('/api/cultivator/mail/read-all', {
+          method: 'POST',
+        }),
+      );
 
       const updatedCount = Number(data.updatedCount || 0);
       setMails((prev) => prev.map((mail) => ({ ...mail, isRead: true })));
       setSelectedMail((prev) => (prev ? { ...prev, isRead: true } : prev));
-
-      refreshUnreadMailCount();
 
       pushToast({
         message:

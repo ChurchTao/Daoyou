@@ -10,7 +10,7 @@ import type { Cultivator } from '@shared/types/cultivator';
 import { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealmInRange, toRealmType } from '../admin/realm';
-import { getExecutor, type DbExecutor } from '../drizzle/db';
+import { getExecutor, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import type { BattleRecord } from './battleResult';
 import { MailAttachment, MailService } from './MailService';
@@ -31,6 +31,10 @@ export interface BetStakeInputItem {
   itemType: BetStakeItemType;
   itemId: string;
   quantity: number;
+}
+
+export interface BetBattleMutationOptions {
+  tx?: DbTransaction;
 }
 
 export interface BetStakeSnapshotItem {
@@ -512,6 +516,7 @@ async function lockAndDeductStake(
 
 export async function createBetBattle(
   input: CreateBetBattleInput,
+  options: BetBattleMutationOptions = {},
 ): Promise<{ battleId: string }> {
   const spiritStones = input.spiritStones ?? 0;
   const stakeItem = input.stakeItem ?? null;
@@ -530,8 +535,10 @@ export async function createBetBattle(
   }
 
   try {
+    const q = getExecutor(options.tx);
     const pendingCount = await betBattleRepository.countPendingByCreator(
       input.creatorId,
+      q,
     );
     if (pendingCount >= 1) {
       throw new BetBattleServiceError(
@@ -543,8 +550,7 @@ export async function createBetBattle(
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + BATTLE_DURATION_HOURS);
 
-    const q = getExecutor();
-    const battle = await q.transaction(async (tx) => {
+    const persistBattle = async (tx: DbTransaction) => {
       const creatorStakeSnapshot = await lockAndDeductStake(
         input.creatorId,
         input.stakeType,
@@ -565,7 +571,11 @@ export async function createBetBattle(
         },
         tx,
       );
-    });
+    };
+
+    const battle = options.tx
+      ? await persistBattle(options.tx)
+      : await getExecutor().transaction(persistBattle);
 
     return { battleId: battle.id };
   } finally {
@@ -575,6 +585,7 @@ export async function createBetBattle(
 
 export async function challengeBetBattle(
   input: ChallengeBetBattleInput,
+  options: BetBattleMutationOptions = {},
 ): Promise<ChallengeBetBattleResult> {
   const spiritStones = input.spiritStones ?? 0;
   const stakeItem = input.stakeItem ?? null;
@@ -592,7 +603,8 @@ export async function challengeBetBattle(
   }
 
   try {
-    const betBattle = await betBattleRepository.findById(input.battleId);
+    const q = getExecutor(options.tx);
+    const betBattle = await betBattleRepository.findById(input.battleId, q);
     if (!betBattle) {
       throw new BetBattleServiceError(
         BetBattleError.BATTLE_NOT_FOUND,
@@ -671,9 +683,8 @@ export async function challengeBetBattle(
         ? input.challengerId
         : betBattle.creatorId;
 
-    const q = getExecutor();
     let battleRecordV2Id = '';
-    await q.transaction(async (tx) => {
+    const persistChallenge = async (tx: DbTransaction) => {
       const current = await tx
         .select()
         .from(schema.betBattles)
@@ -741,7 +752,13 @@ export async function challengeBetBattle(
         matchedAt: new Date(),
         settledAt: new Date(),
       });
-    });
+    };
+
+    if (options.tx) {
+      await persistChallenge(options.tx);
+    } else {
+      await getExecutor().transaction(persistChallenge);
+    }
 
     const winnerName =
       winnerId === input.challengerId
@@ -796,8 +813,10 @@ export async function challengeBetBattle(
 export async function cancelBetBattle(
   battleId: string,
   creatorId: string,
+  options: BetBattleMutationOptions = {},
 ): Promise<void> {
-  const battle = await betBattleRepository.findById(battleId);
+  const q = getExecutor(options.tx);
+  const battle = await betBattleRepository.findById(battleId, q);
   if (!battle) {
     throw new BetBattleServiceError(
       BetBattleError.BATTLE_NOT_FOUND,
@@ -821,8 +840,7 @@ export async function cancelBetBattle(
 
   const creatorStake = normalizeStakeSnapshot(battle.creatorStakeSnapshot);
 
-  const q = getExecutor();
-  await q.transaction(async (tx) => {
+  const persistCancel = async (tx: DbTransaction) => {
     await betBattleRepository.updateBetBattleById(tx, battleId, {
       status: 'cancelled',
     });
@@ -835,7 +853,13 @@ export async function cancelBetBattle(
       'reward',
       tx,
     );
-  });
+  };
+
+  if (options.tx) {
+    await persistCancel(options.tx);
+  } else {
+    await getExecutor().transaction(persistCancel);
+  }
 }
 
 export async function expireBetBattles(): Promise<number> {

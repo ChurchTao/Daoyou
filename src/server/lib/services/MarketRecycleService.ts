@@ -17,7 +17,7 @@ import {
   BASE_PRICES,
   TYPE_MULTIPLIERS,
 } from '@shared/engine/material/creation/config';
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   cultivators,
   materials,
@@ -59,6 +59,9 @@ const HIGH_TIER_MATERIAL_BASE_RATING = {
 >;
 
 type HighTierMaterialRank = keyof typeof HIGH_TIER_MATERIAL_BASE_RATING;
+type SellConfirmResult = SellConfirmResponse & {
+  afterCommit?: () => Promise<unknown>;
+};
 
 function isLowTier(quality: Quality): boolean {
   return (
@@ -738,7 +741,8 @@ async function readSession(sessionId: string): Promise<RecycleSession> {
 async function confirmMaterialSell(
   cultivatorId: string,
   session: RecycleSession,
-): Promise<SellConfirmResponse> {
+  options: { tx?: DbTransaction; deferSideEffects?: boolean } = {},
+): Promise<SellConfirmResult> {
   const ownedMaterials = await loadOwnedMaterials(
     cultivatorId,
     session.itemIds,
@@ -761,7 +765,7 @@ async function confirmMaterialSell(
     }
   }
 
-  const txResult = await getExecutor().transaction(async (tx) => {
+  const writeSell = async (tx: DbTransaction) => {
     const deleted = await tx
       .delete(materials)
       .where(
@@ -790,9 +794,15 @@ async function confirmMaterialSell(
       throw new MarketRecycleError(404, '角色不存在或已失效');
     }
     return updated;
-  });
+  };
 
-  await redis.del(buildSessionKey(session.sessionId));
+  const txResult = options.tx
+    ? await writeSell(options.tx)
+    : await getExecutor().transaction(writeSell);
+  const afterCommit = () => redis.del(buildSessionKey(session.sessionId));
+  if (!options.deferSideEffects) {
+    await afterCommit();
+  }
 
   return {
     success: true,
@@ -807,14 +817,16 @@ async function confirmMaterialSell(
     })),
     remainingSpiritStones: txResult.spiritStones,
     appraisal: session.appraisal,
+    afterCommit: options.deferSideEffects ? afterCommit : undefined,
   };
 }
 
 async function confirmArtifactSell(
   cultivatorId: string,
   session: RecycleSession,
-): Promise<SellConfirmResponse> {
-  const txResult = await getExecutor().transaction(async (tx) => {
+  options: { tx?: DbTransaction; deferSideEffects?: boolean } = {},
+): Promise<SellConfirmResult> {
+  const writeSell = async (tx: DbTransaction) => {
     const rows = await creationProductRepository.findArtifactsByIdsAndCultivator(
       cultivatorId,
       session.itemIds,
@@ -880,9 +892,15 @@ async function confirmArtifactSell(
     }
 
     return updated;
-  });
+  };
 
-  await redis.del(buildSessionKey(session.sessionId));
+  const txResult = options.tx
+    ? await writeSell(options.tx)
+    : await getExecutor().transaction(writeSell);
+  const afterCommit = () => redis.del(buildSessionKey(session.sessionId));
+  if (!options.deferSideEffects) {
+    await afterCommit();
+  }
 
   return {
     success: true,
@@ -900,13 +918,15 @@ async function confirmArtifactSell(
     })),
     remainingSpiritStones: txResult.spiritStones,
     appraisal: session.appraisal,
+    afterCommit: options.deferSideEffects ? afterCommit : undefined,
   };
 }
 
 export async function confirmSell(
   cultivatorId: string,
   sessionId: string,
-): Promise<SellConfirmResponse> {
+  options: { tx?: DbTransaction; deferSideEffects?: boolean } = {},
+): Promise<SellConfirmResult> {
   const lockKey = `${SELL_LOCK_PREFIX}${cultivatorId}`;
   const acquiredLock = await redis.set(lockKey, 'locked', 'EX', 10, 'NX');
   if (!acquiredLock) {
@@ -925,10 +945,10 @@ export async function confirmSell(
     }
 
     if (session.itemType === 'artifact') {
-      return confirmArtifactSell(cultivatorId, session);
+      return confirmArtifactSell(cultivatorId, session, options);
     }
 
-    return confirmMaterialSell(cultivatorId, session);
+    return confirmMaterialSell(cultivatorId, session, options);
   } finally {
     await redis.del(lockKey);
   }
