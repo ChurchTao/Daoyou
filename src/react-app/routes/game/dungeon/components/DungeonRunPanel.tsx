@@ -17,6 +17,7 @@ import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry'
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import type { DungeonState } from '@shared/lib/dungeon/types';
 import type { Artifact, Consumable, Cultivator } from '@shared/types/cultivator';
+import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { useCallback, useRef, useState } from 'react';
 
 interface DungeonRunPanelProps {
@@ -340,10 +341,10 @@ export function DungeonRunPanel({
           aria-expanded={expanded}
         >
           <div className="min-w-0">
-            <ResourceLine label="气血" resource={hp} tone="hp" />
+            <ResourceLine label={getResourceTypeLabel('hp')} resource={hp} tone="hp" />
           </div>
           <div className="min-w-0">
-            <ResourceLine label="法力" resource={mp} tone="mp" />
+            <ResourceLine label={getResourceTypeLabel('mp')} resource={mp} tone="mp" />
           </div>
           <div className="col-span-2 flex items-center justify-between gap-3 text-xs md:col-span-1 md:min-w-60">
             <span className="text-ink-secondary">
@@ -418,8 +419,8 @@ export function DungeonRunPanel({
                   activeValue={activeInventoryTab}
                   onChange={handleInventoryTabChange}
                   items={[
-                    { label: '法宝', value: 'artifacts' },
-                    { label: '消耗品', value: 'consumables' },
+                    { label: getResourceTypeLabel('artifact'), value: 'artifacts' },
+                    { label: getResourceTypeLabel('consumable'), value: 'consumables' },
                   ]}
                 />
                 {activeInventoryTab === 'artifacts' ? (

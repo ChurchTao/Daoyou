@@ -44,7 +44,8 @@ import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
-} from '@shared/types/dictionaries';
+  getResourceTypeLabel,
+} from '@shared/lib/gameConceptDisplay';
 import {
   useCallback,
   useEffect,
@@ -1019,9 +1020,9 @@ function BetBattleCreateModal({
         <div className="space-y-3">
           <InkTabs
             items={[
-              { label: '灵石', value: 'spirit_stones' },
-              { label: '材料', value: 'material' },
-              { label: '法宝', value: 'artifact' },
+              { label: getResourceTypeLabel('spirit_stones'), value: 'spirit_stones' },
+              { label: getResourceTypeLabel('material'), value: 'material' },
+              { label: getResourceTypeLabel('artifact'), value: 'artifact' },
             ]}
             activeValue={selectedStakeType}
             onChange={(value) => {
@@ -1361,8 +1362,8 @@ function BetBattleChallengeModal({
           <>
             <InkTabs
               items={[
-                { label: '材料', value: 'material' },
-                { label: '法宝', value: 'artifact' },
+                { label: getResourceTypeLabel('material'), value: 'material' },
+                { label: getResourceTypeLabel('artifact'), value: 'artifact' },
               ]}
               activeValue={activeType}
               onChange={(value) => {

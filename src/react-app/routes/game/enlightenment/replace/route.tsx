@@ -21,6 +21,7 @@ import {
 } from '@app/components/ui';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -51,7 +52,9 @@ function ReplaceContent() {
     ? getCreationProductTypeFromCraftType(craftType)
     : undefined;
   const isSkill = productType === 'skill';
-  const abilityLabel = isSkill ? '神通' : '功法';
+  const abilityLabel = productType
+    ? getCreationProductTypeLabel(productType)
+    : getCreationProductTypeLabel('gongfa');
   const pendingDisplayModel = pendingItem ? toProductDisplayModel(pendingItem) : null;
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
 import type { MaterialType } from './constants';
 import type { Material } from './cultivator';
 
@@ -23,7 +24,7 @@ export const MANUAL_DRAW_ROUTE = '/game/enlightenment/manual-draw';
 export const MANUAL_DRAW_CONFIG: Record<ManualDrawKind, ManualDrawKindConfig> =
   {
     gongfa: {
-      icon: '📖',
+      icon: getGameConceptIcon('material_gongfa_manual'),
       tabLabel: '功法秘籍',
       title: '功法秘籍',
       talismanName: '悟道演法符',
@@ -34,7 +35,7 @@ export const MANUAL_DRAW_CONFIG: Record<ManualDrawKind, ManualDrawKindConfig> =
       actionLabel: '抽功法秘籍',
     },
     skill: {
-      icon: '📜',
+      icon: getGameConceptIcon('material_skill_manual'),
       tabLabel: '神通秘籍',
       title: '神通秘籍',
       talismanName: '神通衍化符',

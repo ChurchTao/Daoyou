@@ -23,9 +23,14 @@ import {
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { isPillConsumable } from '@shared/lib/consumables';
-import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import {
-  CONSUMABLE_TYPE_DISPLAY_MAP, getConsumableRankInfo, getEquipmentSlotInfo, getMaterialTypeInfo, } from '@shared/types/dictionaries';
+  CONSUMABLE_TYPE_DISPLAY_MAP,
+  getEquipmentSlotInfo,
+  getGameConceptInfo,
+  getMaterialTypeInfo,
+} from '@shared/lib/gameConceptDisplay';
+import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
+import { getConsumableRankInfo } from '@shared/types/dictionaries';
 import { useEffect, useState } from 'react';
 
 
@@ -42,6 +47,8 @@ type AuctionListing = {
   expiresAt: string;
   soldAt?: string;
 };
+
+const SPIRIT_STONES_INFO = getGameConceptInfo('spirit_stones');
 
 export default function AuctionPage() {
   const { cultivator, refresh } = useCultivator();
@@ -365,7 +372,8 @@ export default function AuctionPage() {
                 </span>
                 <span>数量: x{listedQuantity}</span>
                 <span className="text-gold text-sm font-semibold">
-                  💰 {listing.price} 灵石
+                  {SPIRIT_STONES_INFO.icon} {listing.price}{' '}
+                  {SPIRIT_STONES_INFO.label}
                 </span>
               </div>
               <span className="whitespace-nowrap">剩余: {timeLeft}</span>
@@ -454,7 +462,10 @@ export default function AuctionPage() {
         <>
           <GameSceneAsideSection title="寄售摘要">
             <div className="space-y-2 text-sm leading-7">
-              <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+              <p>
+                {SPIRIT_STONES_INFO.label}余额：
+                {cultivator?.spirit_stones ?? 0}
+              </p>
               <p>当前页签：{activeTab === 'browse' ? '浏览拍卖' : '我的寄售'}</p>
               <p>浏览货单：{browseListings.length} 条</p>
               <p>我的寄售：{myListings.length} / 5</p>

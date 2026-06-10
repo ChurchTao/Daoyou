@@ -27,6 +27,7 @@ import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { EquipmentSlot } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
@@ -36,6 +37,7 @@ const ALLOWED_MATERIAL_TYPES = [...getAllowedMaterialTypesForCraftType(CRAFT_TYP
 const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
 const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
 const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
+const SPIRIT_STONES_LABEL = getGameConceptLabel('spirit_stones');
 
 type CostEstimate = {
   spiritStones?: number;
@@ -337,7 +339,7 @@ export default function RefinePage() {
         {displayEstimatedCost ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
-              灵石：
+              {SPIRIT_STONES_LABEL}：
               <span className="text-wood font-bold">
                 {displayEstimatedCost.spiritStones}
               </span>{' '}

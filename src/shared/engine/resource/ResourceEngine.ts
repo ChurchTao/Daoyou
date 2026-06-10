@@ -13,6 +13,7 @@ import {
   updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
   calculateSingleArtifactScore,
   calculateSingleElixirScore,
@@ -56,6 +57,10 @@ export class ResourceEngine {
       }
 
       const cultivator = cultivatorBundle.cultivator;
+      const spiritStonesLabel = getGameConceptLabel('spirit_stones');
+      const lifespanLabel = getGameConceptLabel('lifespan');
+      const cultivationLabel = getGameConceptLabel('cultivation_exp');
+      const insightLabel = getGameConceptLabel('comprehension_insight');
 
       for (const req of requirements) {
         switch (req.type) {
@@ -63,7 +68,7 @@ export class ResourceEngine {
             if (cultivator.spirit_stones < req.value) {
               missing.push(req);
               errors.push(
-                `灵石不足，需要 ${req.value}，当前拥有 ${cultivator.spirit_stones}`,
+                `${spiritStonesLabel}不足，需要 ${req.value}，当前拥有 ${cultivator.spirit_stones}`,
               );
             }
             break;
@@ -72,7 +77,7 @@ export class ResourceEngine {
             if (cultivator.lifespan < req.value) {
               missing.push(req);
               errors.push(
-                `寿元不足，需要 ${req.value}，当前剩余 ${cultivator.lifespan}`,
+                `${lifespanLabel}不足，需要 ${req.value}，当前剩余 ${cultivator.lifespan}`,
               );
             }
             break;
@@ -84,7 +89,7 @@ export class ResourceEngine {
             ) {
               missing.push(req);
               errors.push(
-                `修为不足，需要 ${req.value}，当前修为 ${cultivator.cultivation_progress.cultivation_exp}`,
+                `${cultivationLabel}不足，需要 ${req.value}，当前${cultivationLabel} ${cultivator.cultivation_progress.cultivation_exp}`,
               );
             }
             break;
@@ -95,7 +100,7 @@ export class ResourceEngine {
             if (currentInsight < req.value) {
               missing.push(req);
               errors.push(
-                `道心感悟不足，需要 ${req.value}，当前感悟 ${currentInsight}`,
+                `${insightLabel}不足，需要 ${req.value}，当前${insightLabel} ${currentInsight}`,
               );
             }
             break;

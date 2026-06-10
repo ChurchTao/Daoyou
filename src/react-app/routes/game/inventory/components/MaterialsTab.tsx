@@ -17,7 +17,7 @@ import {
   type Quality,
 } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
-import { getMaterialTypeInfo } from '@shared/types/dictionaries';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import { useState } from 'react';
 import type { MaterialFilters } from '../hooks/useInventoryViewModel';
 

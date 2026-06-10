@@ -2,6 +2,7 @@ import { renderPrompt } from '@server/lib/prompts';
 import type { LogSpan } from '@shared/engine/battle-v5/systems/log/types';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { Attributes, Cultivator } from '@shared/types/cultivator';
+import { getAttributeInfo } from '@shared/lib/gameConceptDisplay';
 import type { BreakthroughModifiers } from './breakthroughCalculator';
 
 interface BattlePromptPayload {
@@ -196,11 +197,11 @@ export function getLifespanExhaustedStoryPrompt({
 function formatAttributeGrowth(growth: Partial<Attributes>): string {
   if (!growth) return '';
   const mapping: Array<{ key: keyof Attributes; label: string }> = [
-    { key: 'vitality', label: '体魄' },
-    { key: 'spirit', label: '灵力' },
-    { key: 'speed', label: '身法' },
-    { key: 'willpower', label: '神识' },
-    { key: 'wisdom', label: '悟性' },
+    { key: 'vitality', label: getAttributeInfo('vitality').label },
+    { key: 'spirit', label: getAttributeInfo('spirit').label },
+    { key: 'speed', label: getAttributeInfo('speed').label },
+    { key: 'willpower', label: getAttributeInfo('willpower').label },
+    { key: 'wisdom', label: getAttributeInfo('wisdom').label },
   ];
   return mapping
     .map(({ key, label }) => {

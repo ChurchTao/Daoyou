@@ -4,7 +4,7 @@
  * 输入一组 ConditionConfig，产出如 "被暴击时"、"气血低于30%时"、"35%概率" 等短句，
  * 供 renderAffixLine 作为"触发条件"段落。
  */
-import { getResourceLabel } from '@shared/lib/resourceText';
+import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import type { ConditionConfig } from '../../core/configs';
 import { formatAffixPercent } from './format';
 import type { AffixTextRenderContext } from './context';

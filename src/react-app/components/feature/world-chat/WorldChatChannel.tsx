@@ -11,7 +11,8 @@ import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
-} from '@shared/types/dictionaries';
+  getResourceTypeLabel,
+} from '@shared/lib/gameConceptDisplay';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WorldChatMessageItem } from './WorldChatMessageItem';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
@@ -323,9 +324,9 @@ export function WorldChatChannel() {
             activeValue={showcaseTab}
             onChange={(value) => setShowcaseTab(value as ShowcaseTab)}
             items={[
-              { label: '法宝', value: 'artifacts' },
-              { label: '材料', value: 'materials' },
-              { label: '消耗品', value: 'consumables' },
+              { label: getResourceTypeLabel('artifact'), value: 'artifacts' },
+              { label: getResourceTypeLabel('material'), value: 'materials' },
+              { label: getResourceTypeLabel('consumable'), value: 'consumables' },
             ]}
           />
           <InkInput

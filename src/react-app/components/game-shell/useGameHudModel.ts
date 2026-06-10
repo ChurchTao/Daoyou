@@ -4,7 +4,8 @@ import {
   isConditionStatusActive,
 } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
+import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { RealmType } from '@shared/types/constants';
 
 export interface GameHudMetric {
@@ -129,7 +130,7 @@ export function buildGameHudSnapshot(input: {
       },
       {
         key: 'insight',
-        label: '感悟',
+        label: getGameConceptLabel('comprehension_insight'),
         display: `${insight}/100`,
         percent: insight,
         tone: 'insight',

@@ -30,17 +30,11 @@ import { MailService, type MailAttachment } from '@server/lib/services/MailServi
 import type { PlayerInfo } from '@server/lib/dungeon/types';
 import { buildTowerBattleInit, applyTowerBattleOutcome } from './battleInit';
 import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
+import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { towerEnemySetService } from './enemySets';
 import { getTowerLeaderboard, updateTowerWeeklyRecord } from './leaderboard';
 
 const RUN_TTL_SECONDS = 8 * 24 * 60 * 60;
-
-const RESOURCE_DISPLAY_NAME: Record<string, string> = {
-  spirit_stones: '灵石',
-  cultivation_exp: '修为',
-  comprehension_insight: '感悟',
-  material: '材料',
-};
 
 interface TowerBattleSession {
   battleId: string;
@@ -258,8 +252,7 @@ export class TowerService {
     const attachments: MailAttachment[] = rewards.map((item) => {
       const name =
         item.name ??
-        RESOURCE_DISPLAY_NAME[item.type] ??
-        item.type;
+        getResourceTypeLabel(item.type);
 
       return {
         type: item.type as MailAttachment['type'],
@@ -271,7 +264,7 @@ export class TowerService {
 
     const rewardLines = rewards.map(
       (r) =>
-        `${RESOURCE_DISPLAY_NAME[r.type] ?? r.type} +${r.value}`,
+        `${getResourceTypeLabel(r.type)} +${r.value}`,
     );
 
     const mailTitle = `【蜃楼幻境】第 ${args.floor} 层 · ${tier} 级机缘`;

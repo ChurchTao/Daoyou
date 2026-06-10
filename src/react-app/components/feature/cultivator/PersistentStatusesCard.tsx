@@ -11,7 +11,8 @@ import {
 } from '@shared/lib/condition';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
+import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getAllTrackConfigs } from '@shared/lib/trackConfigRegistry';
 import type {
   ConditionStatusInstance,
@@ -320,14 +321,14 @@ export function CultivatorCurrentStatusSection() {
   const cultivationRows = hasCultivationState ? (
     <>
       <CompactInfoRow
-        icon="🧘"
+        icon={getGameConceptInfo('cultivation_exp').icon}
         label={getResourceText('cultivation_exp')}
         value={`${state.cultivationExp} / ${state.cultivationCap}`}
         trailing={`${state.cultivationPercent}%`}
       />
       <CompactInfoRow
-        icon="💡"
-        label="道心感悟"
+        icon={getGameConceptInfo('comprehension_insight').icon}
+        label={getGameConceptInfo('comprehension_insight').label}
         value={`${state.comprehensionInsight} / 100`}
       />
     </>
@@ -339,7 +340,7 @@ export function CultivatorCurrentStatusSection() {
         <div>
           {cultivationRows}
           <CompactInfoRow
-            icon="❤️"
+            icon={getGameConceptInfo('hp').icon}
             label={getResourceLabel('hp')}
             note={
               state.hpRecovery.isFull
@@ -356,7 +357,7 @@ export function CultivatorCurrentStatusSection() {
             }
           />
           <CompactInfoRow
-            icon="💧"
+            icon={getGameConceptInfo('mp').icon}
             label={getResourceLabel('mp')}
             note={
               state.mpRecovery.isFull

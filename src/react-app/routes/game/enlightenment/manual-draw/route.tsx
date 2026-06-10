@@ -15,7 +15,7 @@ import {
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
-import { getElementInfo, getMaterialTypeInfo } from '@shared/types/dictionaries';
+import { getElementInfo, getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import {
   buildManualDrawHref, MANUAL_DRAW_CONFIG, normalizeManualDrawKind, type ManualDrawKind, type ManualDrawResultDTO, type ManualDrawStatusDTO, } from '@shared/types/manualDraw';
 import { useEffect, useMemo, useState } from 'react';

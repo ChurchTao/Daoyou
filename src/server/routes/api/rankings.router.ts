@@ -33,11 +33,15 @@ import { simulateBattleV5 } from '@server/lib/services/simulateBattleV5';
 import { TaskService } from '@server/lib/services/TaskService';
 import type { BattleInitConfigV5 } from '@shared/types/battle';
 import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStrategyInit';
+import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
   EquipmentSlot,
   QUALITY_VALUES,
 } from '@shared/types/constants';
-import { getEquipmentSlotLabel } from '@shared/types/dictionaries';
+import {
+  getConsumableTypeLabel,
+  getEquipmentSlotLabel,
+} from '@shared/lib/gameConceptDisplay';
 import type { ItemRankingEntry } from '@shared/types/rankings';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -190,7 +194,9 @@ publicRouter.get('/items', async (c) => {
           rank: index + 1,
           name: item.name,
           itemType: 'skill',
-          type: item.element ? `${item.element}系神通` : '神通',
+          type: item.element
+            ? `${item.element}系${getCreationProductTypeLabel('skill')}`
+            : getCreationProductTypeLabel('skill'),
           quality: (item.quality as string | undefined) || undefined,
           ownerName: owner?.name || '未知',
           score: item.score || 0,
@@ -222,7 +228,7 @@ publicRouter.get('/items', async (c) => {
         rank: index + 1,
         name: item.name,
         itemType: 'elixir',
-        type: '丹药',
+        type: getConsumableTypeLabel('丹药'),
         quality: item.quality ?? undefined,
         ownerName: owner?.name || '未知',
         score: item.score || 0,
@@ -257,7 +263,7 @@ publicRouter.get('/items', async (c) => {
           rank: index + 1,
           name: item.name,
           itemType: 'technique',
-          type: '功法',
+          type: getCreationProductTypeLabel('gongfa'),
           quality: (item.quality as string | undefined) || undefined,
           ownerName: owner?.name || '未知',
           score: item.score || 0,

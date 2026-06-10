@@ -11,7 +11,7 @@ import type {
   DungeonState,
 } from '@shared/lib/dungeon/types';
 import type { Cultivator } from '@shared/types/cultivator';
-import { getResourceIcon } from '@shared/lib/utils/statusDisplay';
+import { getResourceIcon } from '@shared/lib/gameConceptDisplay';
 import {
   formatDungeonCostName,
   formatDungeonCostValue,

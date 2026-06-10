@@ -1,5 +1,6 @@
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { InkBadge } from '@app/components/ui/InkBadge';
+import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
 import { AbilityMetaLine } from './AbilityMetaLine';
 import { AffixInlineList } from './AffixInlineList';
@@ -15,11 +16,11 @@ export interface AbilityListCardProps {
 
 function getAbilityIcon(product: ProductDisplayModel): string {
   if (product.productType === 'gongfa') {
-    return '📘';
+    return getGameConceptIcon('gongfa');
   }
 
   if (product.productType === 'skill') {
-    return '📜';
+    return getGameConceptIcon('skill');
   }
 
   return '🗡️';

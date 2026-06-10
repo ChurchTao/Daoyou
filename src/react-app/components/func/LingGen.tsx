@@ -5,7 +5,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
 import { ELEMENT_VALUES } from '@shared/types/constants';
 import type { SpiritualRoot } from '@shared/types/cultivator';
-import { getElementInfo } from '@shared/types/dictionaries';
+import { getElementInfo } from '@shared/lib/gameConceptDisplay';
 import { ReactNode } from 'react';
 import { useInkUI } from '../providers/InkUIProvider';
 

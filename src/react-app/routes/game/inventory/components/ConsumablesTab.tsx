@@ -12,6 +12,10 @@ import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
 import {
+  getConsumableTypeLabel,
+  getResourceTypeLabel,
+} from '@shared/lib/gameConceptDisplay';
+import {
   getTalismanActionHref,
   getTalismanActionLabel,
   getTalismanUsageHint,
@@ -43,11 +47,15 @@ export function ConsumablesTab({
   onDiscard,
 }: ConsumablesTabProps) {
   if (isLoading) {
-    return <InkNotice>正在检索消耗品记录，请稍候……</InkNotice>;
+    return (
+      <InkNotice>
+        正在检索{getResourceTypeLabel('consumable')}记录，请稍候……
+      </InkNotice>
+    );
   }
 
   if (!consumables || consumables.length === 0) {
-    return <InkNotice>暂无消耗品。</InkNotice>;
+    return <InkNotice>暂无{getResourceTypeLabel('consumable')}。</InkNotice>;
   }
 
   // 按类型排序：符箓在前，丹药在后
@@ -82,7 +90,7 @@ export function ConsumablesTab({
             badgeExtra={
               <>
                 <InkBadge tone="default">
-                  {isTalisman ? '符箓' : '丹药'}
+                  {getConsumableTypeLabel(isTalisman ? '符箓' : '丹药')}
                 </InkBadge>
                 <span className="text-ink-secondary text-sm">
                   x{item.quantity}

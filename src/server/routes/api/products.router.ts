@@ -8,6 +8,7 @@ import {
 } from '@shared/config/creationProductLimits';
 import { rehydrateStoredProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import type { CreationProductType } from '@shared/engine/creation-v2/types';
+import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import type { ElementType } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -16,11 +17,6 @@ const VALID_TYPES = new Set(['skill', 'gongfa', 'artifact']);
 const EquipSchema = z.object({
   productId: z.string().uuid(),
 });
-const PRODUCT_TYPE_LABELS: Record<CreationProductType, string> = {
-  artifact: '法宝',
-  skill: '神通',
-  gongfa: '功法',
-};
 
 const router = new Hono<AppEnv>();
 
@@ -130,7 +126,7 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
   if (equippedCount >= maxEquipped) {
     return c.json(
       {
-        error: `${PRODUCT_TYPE_LABELS[productType]}启用数量已达上限，请先停用旧项`,
+        error: `${getCreationProductTypeLabel(productType)}启用数量已达上限，请先停用旧项`,
       },
       409,
     );

@@ -4,23 +4,24 @@ import type {
   PillFamily,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
+import { getGameConceptLabel } from './gameConceptDisplay';
 
 export const ALCHEMY_PROPERTY_LABELS: Record<AlchemyPropertyKey, string> = {
-  restore_hp: '补充气血',
+  restore_hp: `补充${getGameConceptLabel('hp')}`,
   heal_wounds: '治愈伤势',
-  restore_mp: '回补法力',
+  restore_mp: `回补${getGameConceptLabel('mp')}`,
   detox: '解毒祛浊',
-  cultivation: '积蓄修为',
-  insight: '澄明悟心',
+  cultivation: `积蓄${getGameConceptLabel('cultivation_exp')}`,
+  insight: `澄明${getGameConceptLabel('comprehension_insight')}`,
   clear_mind_support: '清心定神',
   protect_meridians_support: '护脉稳络',
   breakthrough_support: '冲关蓄势',
-  extend_lifespan: '延寿固元',
-  tempering_vitality: '炼体·体魄',
-  tempering_spirit: '炼体·灵力',
-  tempering_wisdom: '炼体·悟性',
-  tempering_speed: '炼体·身法',
-  tempering_willpower: '炼体·神识',
+  extend_lifespan: `延长${getGameConceptLabel('lifespan')}`,
+  tempering_vitality: `炼体·${getGameConceptLabel('vitality')}`,
+  tempering_spirit: `炼体·${getGameConceptLabel('spirit')}`,
+  tempering_wisdom: `炼体·${getGameConceptLabel('wisdom')}`,
+  tempering_speed: `炼体·${getGameConceptLabel('speed')}`,
+  tempering_willpower: `炼体·${getGameConceptLabel('willpower')}`,
   marrow_wash: '洗髓伐脉',
 };
 

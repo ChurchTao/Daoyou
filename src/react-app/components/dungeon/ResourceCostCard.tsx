@@ -3,7 +3,7 @@ import type { DungeonOptionCost } from '@shared/lib/dungeon/types';
 import {
   getResourceDisplayName,
   getResourceIcon,
-} from '@shared/lib/utils/statusDisplay';
+} from '@shared/lib/gameConceptDisplay';
 import {
   formatDungeonCostName,
   formatDungeonCostValue,

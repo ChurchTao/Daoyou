@@ -9,7 +9,7 @@ import type { Material } from '@shared/types/cultivator';
 import {
   getMaterialTypeLabel,
   getResourceTypeInfo,
-} from '@shared/types/dictionaries';
+} from '@shared/lib/gameConceptDisplay';
 
 interface DisplayMaterial {
   name: string;

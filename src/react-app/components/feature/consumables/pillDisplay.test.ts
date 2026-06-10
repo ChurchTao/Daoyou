@@ -642,7 +642,7 @@ describe('toPillDisplayModel', () => {
       { realm: '金丹' },
     );
 
-    expect(model.primaryEffect).toBe('道心感悟 +8');
+    expect(model.primaryEffect).toBe('感悟 +8');
     expect(model.keywordLabels).toEqual(['感悟', '丹毒 +5']);
     expect(model.detailGroups[1].lines).not.toContain('服用上限：30 次');
     expect(model.keywordLabels.some((label) => label.startsWith('剩余'))).toBe(

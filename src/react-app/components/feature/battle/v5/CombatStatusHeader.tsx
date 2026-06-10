@@ -1,7 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@shared/lib/cn';
 import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
-import { getResourceLabel } from '@shared/lib/resourceText';
+import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import { format } from 'd3-format';
 import {
   useEffect,

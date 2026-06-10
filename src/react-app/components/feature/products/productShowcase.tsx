@@ -1,7 +1,9 @@
 import type { ItemShowcaseModalProps } from '@app/components/ui/ItemShowcaseModal';
 import { InkBadge } from '@app/components/ui/InkBadge';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
+import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import type { EquipmentSlot } from '@shared/types/constants';
-import { getEquipmentSlotInfo } from '@shared/types/dictionaries';
+import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import { AffixChip } from './AffixChip';
 import {
   formatTargetPolicyValue,
@@ -14,16 +16,20 @@ function getProductIcon(product: ProductDisplayModel): string {
   }
 
   if (product.productType === 'gongfa') {
-    return '📘';
+    return getGameConceptInfo('gongfa').icon;
   }
 
-  return '📜';
+  return getGameConceptInfo('skill').icon;
 }
 
 function getProductLabel(product: ProductDisplayModel): string {
-  if (product.productType === 'artifact') return '法宝';
-  if (product.productType === 'gongfa') return '功法';
-  return '神通';
+  if (product.productType === 'artifact') {
+    return getGameConceptInfo('artifact').label;
+  }
+  if (product.productType === 'gongfa') {
+    return getGameConceptInfo('gongfa').label;
+  }
+  return getGameConceptInfo('skill').label;
 }
 
 function getDescriptionTitle(product: ProductDisplayModel): string {
@@ -52,7 +58,7 @@ function buildInfoRows(product: ProductDisplayModel) {
   ) {
     rows.push({
       key: 'mp-cost',
-      label: '法力消耗',
+      label: `${getResourceLabel('mp')}消耗`,
       value: `${product.projection.mpCost}`,
     });
   }

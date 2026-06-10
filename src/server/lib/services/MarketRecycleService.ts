@@ -27,7 +27,7 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Material } from '@shared/types/cultivator';
-import { getMaterialTypeLabel } from '@shared/types/dictionaries';
+import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import type {
   HighTierAppraisal,
   SellConfirmResponse,

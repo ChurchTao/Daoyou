@@ -1,11 +1,6 @@
 import { InkChoiceButton, InkInput } from '@app/components/ui';
+import { getEquipmentSlotConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { EQUIPMENT_SLOT_VALUES, type EquipmentSlot } from '@shared/types/constants';
-
-const SLOT_LABELS: Record<EquipmentSlot, string> = {
-  weapon: '武器',
-  armor: '护甲',
-  accessory: '配饰',
-};
 
 export interface CreationIntentPanelProps {
   productType: 'artifact' | 'skill' | 'gongfa';
@@ -64,7 +59,7 @@ export function CreationIntentPanel({
                 onClick={() => onRequestedSlotChange(slot)}
                 selected={requestedSlot === slot}
               >
-                {SLOT_LABELS[slot]}
+                {getEquipmentSlotConceptLabel(slot, 'intent')}
               </InkChoiceButton>
             ))}
           </div>

@@ -9,7 +9,7 @@
  *   shield {base=38, ...}  → "获得护盾 38 + 神识×29%"
  *   heal mp                → "回复法力 12 + 灵力×40%"
  */
-import { getResourceLabel } from '@shared/lib/resourceText';
+import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import type { EffectConfig } from '../../core/configs';
 import { formatAffixNumber, formatAffixPercent } from './format';
 import { formatScalableValue } from './values';

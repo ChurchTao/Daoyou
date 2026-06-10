@@ -45,6 +45,7 @@ import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/Cr
 import { formatAlchemyPropertyVector } from '@shared/lib/alchemyProperties';
 import { cn } from '@shared/lib/cn';
 import { isPillConsumable } from '@shared/lib/consumables';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { MaterialType, RealmType } from '@shared/types/constants';
 import type {
   AlchemyFormula,
@@ -67,6 +68,7 @@ const CRAFT_TYPE = 'alchemy' as const;
 const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
 const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
 const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
+const SPIRIT_STONES_LABEL = getGameConceptLabel('spirit_stones');
 
 type PreviewValidation = {
   valid: boolean;
@@ -1607,7 +1609,7 @@ export default function AlchemyPage() {
         {estimatedSpiritStones !== null ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
-              灵石：
+              {SPIRIT_STONES_LABEL}：
               <span className="text-wood font-bold">
                 {estimatedSpiritStones}
               </span>{' '}

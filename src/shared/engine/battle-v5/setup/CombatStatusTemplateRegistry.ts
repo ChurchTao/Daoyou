@@ -1,5 +1,6 @@
 import type { CombatStatusTemplate, PersistentCombatStatusV5 } from './types';
 import { AttributeType, ModifierType } from '../core/types';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 
 class CombatStatusTemplateRegistry {
   private readonly templates = new Map<string, CombatStatusTemplate>();
@@ -33,18 +34,17 @@ function buildWeaknessMultiplier(status: PersistentCombatStatusV5): number {
 
 function buildHpMultiplierStatus(
   id: string,
-  name: string,
-  description: string,
-  icon: string,
   ratio: number,
   shortDesc: string,
 ): CombatStatusTemplate {
+  const displayInfo = getGameConceptInfo(`status_${id}`);
+
   return {
     id,
-    name,
-    description,
+    name: displayInfo.label,
+    description: displayInfo.description ?? '',
     display: {
-      icon,
+      icon: displayInfo.icon,
       shortDesc,
       showUses: false,
       showExpiry: false,
@@ -67,10 +67,12 @@ export const combatStatusTemplateRegistry = new CombatStatusTemplateRegistry();
 
 combatStatusTemplateRegistry.register({
   id: 'weakness',
-  name: '虚弱',
-  description: '元气大伤，全属性随层数下降。',
+  name: getGameConceptInfo('status_weakness').label,
+  description:
+    getGameConceptInfo('status_weakness').description ??
+    '元气大伤，全属性随层数下降。',
   display: {
-    icon: '😰',
+    icon: getGameConceptInfo('status_weakness').icon,
     shortDesc: '元气大伤，全属性降低',
     showUses: false,
     showExpiry: false,
@@ -97,9 +99,6 @@ combatStatusTemplateRegistry.register({
 combatStatusTemplateRegistry.register(
   buildHpMultiplierStatus(
     'minor_wound',
-    '轻伤',
-    '气血上限降低 10%，需要疗伤调息。',
-    '🩹',
     0.9,
     '气血上限降低10%，需要疗伤',
   ),
@@ -108,9 +107,6 @@ combatStatusTemplateRegistry.register(
 combatStatusTemplateRegistry.register(
   buildHpMultiplierStatus(
     'major_wound',
-    '重伤',
-    '气血上限降低 30%，实力受损明显。',
-    '💥',
     0.7,
     '最大气血大幅降低30%，需要疗伤',
   ),
@@ -119,9 +115,6 @@ combatStatusTemplateRegistry.register(
 combatStatusTemplateRegistry.register(
   buildHpMultiplierStatus(
     'near_death',
-    '濒死',
-    '命悬一线，气血上限大幅衰减。',
-    '☠️',
     0.4,
     '命悬一线，需要紧急疗伤',
   ),
@@ -129,10 +122,10 @@ combatStatusTemplateRegistry.register(
 
 combatStatusTemplateRegistry.register({
   id: 'hp_deficit',
-  name: '气血亏空',
-  description: '当前气血尚未回满，需要时间调养或丹药救急。',
+  name: getGameConceptInfo('status_hp_deficit').label,
+  description: getGameConceptInfo('status_hp_deficit').description ?? '',
   display: {
-    icon: '❤️',
+    icon: getGameConceptInfo('status_hp_deficit').icon,
     shortDesc: '气血未复',
     showUses: false,
     showExpiry: false,
@@ -144,10 +137,10 @@ combatStatusTemplateRegistry.register({
 
 combatStatusTemplateRegistry.register({
   id: 'mana_depleted',
-  name: '法力枯竭',
-  description: '法力暂未恢复，短时间内不宜再连番斗法。',
+  name: getGameConceptInfo('status_mana_depleted').label,
+  description: getGameConceptInfo('status_mana_depleted').description ?? '',
   display: {
-    icon: '💧',
+    icon: getGameConceptInfo('status_mana_depleted').icon,
     shortDesc: '法力未复',
     showUses: false,
     showExpiry: false,

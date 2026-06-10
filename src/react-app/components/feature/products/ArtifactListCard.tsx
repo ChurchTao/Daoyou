@@ -1,7 +1,7 @@
 import { InkBadge } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import type { Artifact } from '@shared/types/cultivator';
-import { getEquipmentSlotInfo } from '@shared/types/dictionaries';
+import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
 import { AffixInlineList } from './AffixInlineList';
 import {

@@ -13,7 +13,7 @@ import {
   REALM_STAGE_VALUES,
   REALM_VALUES,
 } from '@shared/types/constants';
-import { getEquipmentSlotLabel, getMaterialTypeLabel } from '@shared/types/dictionaries';
+import { getEquipmentSlotLabel, getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
   PILL_FAMILY_VALUES,
   PILL_QUOTA_CATEGORY_VALUES,

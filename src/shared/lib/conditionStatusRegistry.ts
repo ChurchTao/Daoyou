@@ -8,6 +8,7 @@ import type {
   AttributeType,
   ModifierType,
 } from '@shared/engine/battle-v5/core/types';
+import { getGameConceptInfo } from './gameConceptDisplay';
 
 export interface ConditionStatusTemplate {
   key: ConditionStatusKey;
@@ -75,23 +76,22 @@ function buildWeaknessMultiplier(status: ConditionStatusInstance): number {
 
 function buildWoundTemplate(
   key: Extract<ConditionStatusKey, 'minor_wound' | 'major_wound' | 'near_death'>,
-  name: string,
-  description: string,
-  icon: string,
   hpRatio: number,
   recoveryMultiplier: number,
   shortDesc: string,
 ): ConditionStatusTemplate {
+  const display = getGameConceptInfo(`status_${key}`);
+
   return {
     key,
-    name,
-    description,
+    name: display.label,
+    description: display.description ?? '',
     effectDetails: [
       `战斗时最大气血降低 ${Math.round((1 - hpRatio) * 100)}%。`,
       `自然恢复速度降低至 ${Math.round(recoveryMultiplier * 100)}%。`,
     ],
     display: {
-      icon,
+      icon: display.icon,
       shortDesc,
     },
     hooks: {
@@ -113,14 +113,16 @@ const registry = new Registry();
 
 registry.register({
   key: 'weakness',
-  name: '虚弱',
-  description: '元气大伤，全属性随层数下降。',
+  name: getGameConceptInfo('status_weakness').label,
+  description:
+    getGameConceptInfo('status_weakness').description ??
+    '元气大伤，全属性随层数下降。',
   effectDetails: [
     '战斗时体魄、灵力、悟性、身法、神识都会同步下降。',
     '每层额外降低 5%，最多衰减至原本的 50%。',
   ],
   display: {
-    icon: '😰',
+    icon: getGameConceptInfo('status_weakness').icon,
     shortDesc: '元气大伤，全属性降低',
   },
   hooks: {
@@ -146,9 +148,6 @@ registry.register({
 registry.register(
   buildWoundTemplate(
     'minor_wound',
-    '轻伤',
-    '气血上限降低 10%，需要疗伤调息。',
-    '🩹',
     0.9,
     0.88,
     '气血上限降低10%，需要疗伤',
@@ -158,9 +157,6 @@ registry.register(
 registry.register(
   buildWoundTemplate(
     'major_wound',
-    '重伤',
-    '气血上限降低 30%，实力受损明显。',
-    '💥',
     0.7,
     0.68,
     '最大气血大幅降低30%，需要疗伤',
@@ -170,9 +166,6 @@ registry.register(
 registry.register(
   buildWoundTemplate(
     'near_death',
-    '濒死',
-    '命悬一线，气血上限大幅衰减。',
-    '☠️',
     0.4,
     0.42,
     '命悬一线，需要紧急疗伤',
@@ -181,10 +174,10 @@ registry.register(
 
 registry.register({
   key: 'breakthrough_focus',
-  name: '破境凝神',
-  description: '心神收束，为下一次破境做足准备。',
+  name: getGameConceptInfo('status_breakthrough_focus').label,
+  description: getGameConceptInfo('status_breakthrough_focus').description ?? '',
   display: {
-    icon: '🕯️',
+    icon: getGameConceptInfo('status_breakthrough_focus').icon,
     shortDesc: '突破前凝神蓄势',
   },
   hooks: {},
@@ -192,10 +185,10 @@ registry.register({
 
 registry.register({
   key: 'protect_meridians',
-  name: '护脉',
-  description: '药力护住经脉，减轻破境时的反噬。',
+  name: getGameConceptInfo('status_protect_meridians').label,
+  description: getGameConceptInfo('status_protect_meridians').description ?? '',
   display: {
-    icon: '🪢',
+    icon: getGameConceptInfo('status_protect_meridians').icon,
     shortDesc: '护住经脉，降低反噬',
   },
   hooks: {},
@@ -203,10 +196,10 @@ registry.register({
 
 registry.register({
   key: 'clear_mind',
-  name: '清心',
-  description: '心境澄明，便于在关键时刻稳住道心。',
+  name: getGameConceptInfo('status_clear_mind').label,
+  description: getGameConceptInfo('status_clear_mind').description ?? '',
   display: {
-    icon: '🪷',
+    icon: getGameConceptInfo('status_clear_mind').icon,
     shortDesc: '清心定神，减少杂念',
   },
   hooks: {},

@@ -16,6 +16,13 @@ import { ArtifactsTab } from './ArtifactsTab';
 import { ConsumablesTab } from './ConsumablesTab';
 import { ItemDetailModal } from './ItemDetailModal';
 import { MaterialsTab } from './MaterialsTab';
+import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
+
+function getInventoryTabLabel(tab: InventoryTab): string {
+  if (tab === 'artifacts') return getResourceTypeLabel('artifact');
+  if (tab === 'materials') return getResourceTypeLabel('material');
+  return getResourceTypeLabel('consumable');
+}
 
 /**
  * 储物袋主视图组件
@@ -73,11 +80,7 @@ export function InventoryView() {
           </p>
           <p>
             当前分栏：
-            {activeTab === 'artifacts'
-              ? '法宝'
-              : activeTab === 'materials'
-                ? '材料'
-                : '消耗品'}
+            {getInventoryTabLabel(activeTab)}
           </p>
         </div>
       </GameSceneAsideSection>
@@ -115,9 +118,9 @@ export function InventoryView() {
           activeValue={activeTab}
           onChange={(val) => setActiveTab(val as InventoryTab)}
           items={[
-            { label: '法宝', value: 'artifacts' },
-            { label: '材料', value: 'materials' },
-            { label: '消耗品', value: 'consumables' },
+            { label: getResourceTypeLabel('artifact'), value: 'artifacts' },
+            { label: getResourceTypeLabel('material'), value: 'materials' },
+            { label: getResourceTypeLabel('consumable'), value: 'consumables' },
           ]}
         />
 

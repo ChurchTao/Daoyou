@@ -27,6 +27,7 @@ import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -37,6 +38,7 @@ const ALLOWED_MATERIAL_TYPES = [...getAllowedMaterialTypesForCraftType(CRAFT_TYP
 const MAX_MATERIALS = CREATION_INPUT_CONSTRAINTS.maxMaterialKinds;
 const MIN_DOSE = CREATION_INPUT_CONSTRAINTS.minQuantityPerMaterial;
 const MAX_DOSE = CREATION_INPUT_CONSTRAINTS.maxQuantityPerMaterial;
+const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
 type CostEstimate = {
   spiritStones?: number;
@@ -376,7 +378,7 @@ export default function GongfaCreationPage() {
         {displayEstimatedCost ? (
           <div className="bg-ink/5 border-ink/10 flex items-center justify-between border border-dashed p-3">
             <span className="text-sm">
-              道心感悟：
+              {COMPREHENSION_LABEL}：
               <span className="text-tier-di font-bold">
                 {displayEstimatedCost.comprehension}
               </span>{' '}

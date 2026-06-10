@@ -11,7 +11,7 @@ import type { Consumable } from '@shared/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
-} from '@shared/types/dictionaries';
+} from '@shared/lib/gameConceptDisplay';
 import {
   BattleRankingItem,
   ItemRankingEntry,

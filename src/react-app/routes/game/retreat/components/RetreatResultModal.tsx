@@ -5,10 +5,14 @@ import type {
   BreakthroughResult,
   CultivationResult,
 } from '@shared/engine/cultivation/CultivationEngine';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { Attributes } from '@shared/types/cultivator';
+import { getAttributeInfo } from '@shared/lib/gameConceptDisplay';
 import { format } from 'd3-format';
 import { useMemo } from 'react';
 import { isSuccessfulBreakthrough } from '../lib/retreatStream';
+
+const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
 interface RetreatResultModalProps {
   isOpen: boolean;
@@ -101,7 +105,7 @@ function CultivationResultContent({
 
       {summary.insight_gained > 0 ? (
         <p>
-          道心感悟：+{summary.insight_gained}
+          {COMPREHENSION_LABEL}：+{summary.insight_gained}
           {summary.epiphany_triggered ? (
             <span className="text-gold ml-1">（顿悟加持）</span>
           ) : null}
@@ -140,10 +144,10 @@ function BreakthroughResultContent({
     if (!summary.attributeGrowth) return '';
 
     const mapping: Array<{ key: keyof Attributes; label: string }> = [
-      { key: 'vitality', label: '体魄' },
-      { key: 'spirit', label: '灵力' },
-      { key: 'speed', label: '身法' },
-      { key: 'willpower', label: '神识' },
+      { key: 'vitality', label: getAttributeInfo('vitality').label },
+      { key: 'spirit', label: getAttributeInfo('spirit').label },
+      { key: 'speed', label: getAttributeInfo('speed').label },
+      { key: 'willpower', label: getAttributeInfo('willpower').label },
     ];
 
     return mapping

@@ -12,7 +12,7 @@ import {
   isTalismanConsumable,
 } from '@shared/lib/consumables';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
-import { getAttributeLabel } from '@shared/types/dictionaries';
+import { getAttributeLabel } from '@shared/lib/gameConceptDisplay';
 import type { Consumable } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import {

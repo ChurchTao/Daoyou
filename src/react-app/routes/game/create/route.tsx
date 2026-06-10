@@ -33,7 +33,8 @@ import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapter
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
-import { getResourceLabel } from '@shared/lib/resourceText';
+import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
+import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -652,7 +653,7 @@ export default function CreatePage() {
                             {
                               label: '寿元：',
                               value: player.lifespan,
-                              icon: '🔮',
+                              icon: getGameConceptIcon('lifespan'),
                             },
                             {
                               label: '性别：',
@@ -662,12 +663,12 @@ export default function CreatePage() {
                             {
                               label: `${getResourceLabel('hp')}：`,
                               value: `${previewStats?.maxHp}`,
-                              icon: '❤️',
+                              icon: getGameConceptIcon('hp'),
                             },
                             {
                               label: `${getResourceLabel('mp')}：`,
                               value: `${previewStats?.maxMp}`,
-                              icon: '⚡️',
+                              icon: getGameConceptIcon('mp'),
                             },
                           ]}
                         />

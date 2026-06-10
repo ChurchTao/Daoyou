@@ -12,7 +12,7 @@ import { ATTR_LABELS } from '@shared/engine/battle-v5/effects/affixText/attribut
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import type { BattleRecord } from '@shared/types/battle';
 import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
-import { getResourceText } from '@shared/lib/resourceText';
+import { getResourceText } from '@shared/lib/gameConceptDisplay';
 import {
   buildTrainingBattleInitConfig, createDefaultTrainingRoomDraft, parseTrainingRoomStorage, TRAINING_ROOM_STORAGE_KEY, TRAINING_ROOM_STORAGE_VERSION, type TrainingRoomDraft, type TrainingRoomPreset, } from '@shared/lib/training-room/config';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -32,11 +32,11 @@ const SELECT_CLASSNAME = inkFieldVariants({ size: 'sm' });
 const INPUT_CLASSNAME = inkFieldVariants({ size: 'sm' });
 
 const PRIMARY_ATTRIBUTE_FIELDS = [
-  { key: 'spirit', label: '灵力' },
-  { key: 'vitality', label: '体魄' },
-  { key: 'speed', label: '身法' },
-  { key: 'willpower', label: '神识' },
-  { key: 'wisdom', label: '悟性' },
+  { key: AttributeType.SPIRIT, label: ATTR_LABELS[AttributeType.SPIRIT] },
+  { key: AttributeType.VITALITY, label: ATTR_LABELS[AttributeType.VITALITY] },
+  { key: AttributeType.SPEED, label: ATTR_LABELS[AttributeType.SPEED] },
+  { key: AttributeType.WILLPOWER, label: ATTR_LABELS[AttributeType.WILLPOWER] },
+  { key: AttributeType.WISDOM, label: ATTR_LABELS[AttributeType.WISDOM] },
 ] as const;
 
 const MODIFIER_TYPE_LABELS: Record<(typeof MODIFIER_TYPE_OPTIONS)[number], string> = {

@@ -1,4 +1,5 @@
 import type { MaterialType, Quality } from '@shared/types/constants';
+import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 
 // 每个品质出现的概率
 export const QUALITY_CHANCE_MAP: Record<Quality, number> = {
@@ -48,13 +49,13 @@ export const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
 
 // 类型中文描述与解释（用于 Prompt）
 export const TYPE_DESCRIPTIONS: Record<MaterialType, string> = {
-  herb: '药材 (用于炼丹，如灵草、灵果)',
-  ore: '矿石 (用于炼器，如金属、晶石)',
-  monster: '妖兽材料 (妖丹、骨骼、皮毛等)',
-  tcdb: '天材地宝 (稀世奇珍，蕴含天地法则)',
-  aux: '辅料 (炼丹/炼器的辅助材料，如灵液、粉尘)',
-  gongfa_manual: '功法典籍',
-  skill_manual: '神通秘术',
+  herb: `${getMaterialTypeLabel('herb')} (用于炼丹，如灵草、灵果)`,
+  ore: `${getMaterialTypeLabel('ore')} (用于炼器，如金属、晶石)`,
+  monster: `${getMaterialTypeLabel('monster')} (妖丹、骨骼、皮毛等)`,
+  tcdb: `${getMaterialTypeLabel('tcdb')} (稀世奇珍，蕴含天地法则)`,
+  aux: `${getMaterialTypeLabel('aux')} (炼丹/炼器的辅助材料，如灵液、粉尘)`,
+  gongfa_manual: getMaterialTypeLabel('gongfa_manual'),
+  skill_manual: getMaterialTypeLabel('skill_manual'),
 };
 
 // 各品质的堆叠数量配置 [min, max]

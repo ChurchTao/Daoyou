@@ -14,6 +14,7 @@ import {
   QI_OVERFLOW_MAX,
 } from '@shared/config/qiSystem';
 import { cn } from '@shared/lib/cn';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
 import type { GameHudSnapshot } from './useGameHudModel';
 
@@ -161,6 +162,9 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const insightMetric = snapshot.metrics.find(
     (metric) => metric.key === 'insight',
   );
+  const insightInfo = getGameConceptInfo('comprehension_insight');
+  const qiInfo = getGameConceptInfo('world_qi');
+  const spiritStonesInfo = getGameConceptInfo('spirit_stones');
 
   const openRealmInfo = () => {
     openDialog({
@@ -194,12 +198,16 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   };
 
   const openCultivationInfo = () => {
+    const cultivationLabel = getGameConceptInfo('cultivation_exp').label;
     openDialog({
-      title: '修为',
+      title: cultivationLabel,
       content: (
         <div className="space-y-3 text-sm leading-7">
           <p>
-            修为是当前境界内的积累进度。闭关、秘境、任务与部分丹药都可能带来修为增长，达到门槛后可在静室考虑冲关。
+            {cultivationLabel}
+            是当前境界内的积累进度。闭关、秘境、任务与部分丹药都可能带来
+            {cultivationLabel}
+            增长，达到门槛后可在静室考虑冲关。
           </p>
           <InfoTable
             rows={[
@@ -217,7 +225,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
               },
               {
                 label: '圆满突破',
-                value: `100% 且感悟 ${PERFECT_BREAKTHROUGH_INSIGHT}+`,
+                value: `100% 且${insightInfo.label} ${PERFECT_BREAKTHROUGH_INSIGHT}+`,
               },
               {
                 label: '瓶颈期',
@@ -234,16 +242,17 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
 
   const openInsightInfo = () => {
     openDialog({
-      title: '道心感悟',
+      title: `${insightInfo.icon} ${insightInfo.label}`,
       content: (
         <div className="space-y-3 text-sm leading-7">
           <p>
-            道心感悟代表对功法、神通与天地法则的理解。它会参与突破火候，也会在推演功法、神通等玩法中作为关键消耗。
+            {insightInfo.label}
+            代表对功法、神通与天地法则的理解。它会参与突破火候，也会在推演功法、神通等玩法中作为关键消耗。
           </p>
           <InfoTable
             rows={[
               {
-                label: '当前感悟',
+                label: `当前${insightInfo.label}`,
                 value: insightMetric?.display ?? '--',
               },
               {
@@ -269,13 +278,13 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
 
   const openQiInfo = () => {
     openDialog({
-      title: '🍃 天地灵气',
+      title: `${qiInfo.icon} ${qiInfo.label}`,
       content: (
         <div className="space-y-3 text-sm leading-7">
           <p>进入秘境、闭关修行、突破与造物时需要消耗的一定的天地灵气。</p>
           <div className="border-ink/10 bg-bgpaper/70 space-y-1 border border-dashed px-3 py-2">
             <p>
-              当前灵气：
+              当前{qiInfo.label}：
               {qiState
                 ? `${qiState.current}/${qiState.max}`
                 : qiError
@@ -390,13 +399,13 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
             onClick={openRealmInfo}
           />
           <HudTag
-            label="🍃 灵气"
+            label={`${qiInfo.icon} ${qiInfo.label}`}
             value={qiDisplay}
             tone="qi"
             onClick={openQiInfo}
           />
           <HudTag
-            label="💰 灵石"
+            label={`${spiritStonesInfo.icon} ${spiritStonesInfo.label}`}
             value={formatSpiritStones(snapshot.spiritStones)}
             tone="wealth"
           />

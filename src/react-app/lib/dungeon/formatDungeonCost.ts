@@ -1,7 +1,10 @@
 import type { DungeonOptionCost } from '@shared/lib/dungeon/types';
 import type { MaterialType } from '@shared/types/constants';
-import { getMaterialTypeLabel } from '@shared/types/dictionaries';
-import { getResourceDisplayName } from '@shared/lib/utils/statusDisplay';
+import {
+  getMaterialTypeLabel,
+  getResourceTypeLabel,
+} from '@shared/lib/gameConceptDisplay';
+import { getResourceDisplayName } from '@shared/lib/gameConceptDisplay';
 
 function formatMaterialCostName(cost: DungeonOptionCost) {
   if (cost.name) {
@@ -10,7 +13,7 @@ function formatMaterialCostName(cost: DungeonOptionCost) {
 
   const typeLabel = cost.required_type
     ? getMaterialTypeLabel(cost.required_type as MaterialType)
-    : '材料';
+    : getResourceTypeLabel('material');
   const qualityLabel = cost.required_quality
     ? `${cost.required_quality}以上`
     : '';

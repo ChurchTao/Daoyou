@@ -15,7 +15,7 @@ import {
   type Quality,
 } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
-import { getMaterialTypeInfo } from '@shared/types/dictionaries';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface MaterialSelectorProps {

@@ -18,7 +18,7 @@ import { usePaginatedInventoryMaterials } from '@app/lib/hooks/usePaginatedInven
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type { Artifact, Material } from '@shared/types/cultivator';
 import {
-  getEquipmentSlotInfo, getMaterialTypeInfo, } from '@shared/types/dictionaries';
+  getEquipmentSlotInfo, getMaterialTypeInfo, } from '@shared/lib/gameConceptDisplay';
 import type {
   HighTierAppraisal, SellConfirmResponse, SellItemType, SellPreviewResponse, } from '@shared/types/market';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';

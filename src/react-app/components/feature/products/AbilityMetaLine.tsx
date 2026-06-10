@@ -1,4 +1,5 @@
 import { cn } from '@shared/lib/cn';
+import { getResourceLabel } from '@shared/lib/gameConceptDisplay';
 import {
   formatTargetPolicyValue,
   type AbilityProjectionSummary,
@@ -40,7 +41,7 @@ export function AbilityMetaLine({
     projection.mpCost !== undefined
       ? {
           key: 'mp-cost',
-          label: '法力消耗',
+          label: `${getResourceLabel('mp')}消耗`,
           value: projection.mpCost,
         }
       : null,

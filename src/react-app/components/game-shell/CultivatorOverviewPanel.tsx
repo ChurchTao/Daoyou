@@ -29,7 +29,7 @@ import { AttributeType } from '@shared/engine/battle-v5/core/types';
 import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
 import type { Cultivator } from '@shared/types/cultivator';
-import { getEquipmentSlotInfo } from '@shared/types/dictionaries';
+import { getEquipmentSlotInfo } from '@shared/lib/gameConceptDisplay';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { GameSceneSection } from './GameSceneSection';
@@ -79,23 +79,23 @@ const MULTIPLIER_ATTRS = new Set<AttributeType>([
 
 const PRIMARY_ATTRIBUTE_HELP = [
   {
-    label: '灵力',
+    label: attrLabel(AttributeType.SPIRIT),
     description: '滋养术法根基，主要增加法术攻击、法术防御，并补益一些法力。',
   },
   {
-    label: '体魄',
+    label: attrLabel(AttributeType.VITALITY),
     description: '稳固血肉筋骨，主要增加气血、物理攻击与物理防御。',
   },
   {
-    label: '身法',
+    label: attrLabel(AttributeType.SPEED),
     description: '决定出手快慢，增加一些闪避，并少量补益物理攻击、物理防御与暴击。',
   },
   {
-    label: '神识',
+    label: attrLabel(AttributeType.WILLPOWER),
     description: '凝练感知与抗衡之力，增加一些控制命中、控制抗性、法术攻防与法力，并少量增加命中。',
   },
   {
-    label: '悟性',
+    label: attrLabel(AttributeType.WISDOM),
     description: '提升临战洞察，增加一些暴击伤害，并少量增加暴击与命中。',
   },
 ];

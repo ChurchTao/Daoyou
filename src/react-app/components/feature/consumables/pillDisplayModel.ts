@@ -1,5 +1,6 @@
 import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
   getCultivationPillUsageLimit,
   getLongevityPillUsageLimit,
@@ -7,7 +8,7 @@ import {
   getPillUsageRuleText,
   getRealmPillUsageLimit,
 } from '@shared/lib/pillUsageText';
-import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
+import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type {
   ConditionStatusKey,
@@ -80,7 +81,7 @@ function getProgressTargetLabel(
 ): string {
   return target === 'cultivation_exp'
     ? getResourceText('cultivation_exp')
-    : '道心感悟';
+    : getGameConceptLabel('comprehension_insight');
 }
 
 function getLifespanGainText(value: number): string {
@@ -176,9 +177,9 @@ export function getPillFamilyLabel(family: PillFamily): string {
     case 'detox':
       return '解毒';
     case 'cultivation':
-      return '修为';
+      return getGameConceptLabel('cultivation_exp');
     case 'insight':
-      return '感悟';
+      return getGameConceptLabel('comprehension_insight');
     case 'breakthrough':
       return '破境';
     case 'tempering':

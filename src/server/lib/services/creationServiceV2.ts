@@ -32,6 +32,10 @@ import {
   scaleFateAdjustedValue,
 } from '@shared/lib/fates';
 import {
+  getCreationProductTypeLabel,
+  getGameConceptLabel,
+} from '@shared/lib/gameConceptDisplay';
+import {
   MAX_EQUIPPED_GONGFA,
   MAX_OWNED_CREATION_PRODUCTS_PER_TYPE,
 } from '@shared/config/creationProductLimits';
@@ -154,12 +158,6 @@ class PreviewValidationOrchestrator extends CreationOrchestrator {
 }
 
 const previewValidationOrchestrator = new PreviewValidationOrchestrator();
-
-const PRODUCT_TYPE_LABELS: Record<CreationProductType, string> = {
-  artifact: '法宝',
-  skill: '神通',
-  gongfa: '功法',
-};
 
 const MISSING_MATCHING_MANUAL_WARNING_CODES = new Set([
   'skill-missing-manual',
@@ -291,7 +289,7 @@ function buildCreationPreviewValidation(
   if (!supportsProductType(productType, materialDecision.recipeTags)) {
     return {
       valid: false,
-      blockingReason: `当前材料组合不足以支撑${PRODUCT_TYPE_LABELS[productType]}成型`,
+      blockingReason: `当前材料组合不足以支撑${getCreationProductTypeLabel(productType)}成型`,
       warnings,
       missingMatchingManual,
     };
@@ -481,14 +479,18 @@ export async function processCreation(
     // 校验资源是否充足
     if (resourceType === 'spiritStone') {
       if ((cultivator.spirit_stones ?? 0) < costAmount) {
-        throw new CreationServiceError(`灵石不足，需要 ${costAmount} 枚`);
+        throw new CreationServiceError(
+          `${getGameConceptLabel('spirit_stones')}不足，需要 ${costAmount} 枚`,
+        );
       }
     } else {
       const progress = cultivator.cultivation_progress as {
         comprehension_insight?: number;
       } | null;
       if ((progress?.comprehension_insight ?? 0) < costAmount) {
-        throw new CreationServiceError(`道心感悟不足，需要 ${costAmount} 点`);
+        throw new CreationServiceError(
+          `${getGameConceptLabel('comprehension_insight')}不足，需要 ${costAmount} 点`,
+        );
       }
     }
 
@@ -738,7 +740,7 @@ export async function confirmCreation(
         !replaceId
       ) {
         throw new CreationServiceError(
-          `${PRODUCT_TYPE_LABELS[productType]}数量已达上限，请先选择一项替换`,
+          `${getCreationProductTypeLabel(productType)}数量已达上限，请先选择一项替换`,
           409,
         );
       }

@@ -7,7 +7,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkList, InkListItem } from '@app/components/ui/InkList';
 import { InkNotice } from '@app/components/ui/InkNotice';
-import { getResourceTypeLabel } from '@shared/types/dictionaries';
+import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { useEffect, useState } from 'react';
 
 /**

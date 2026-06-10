@@ -15,8 +15,9 @@ import {
 } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { getMapNode } from '@shared/lib/game/mapSystem';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import { Material } from '@shared/types/cultivator';
-import { getMaterialTypeInfo } from '@shared/types/dictionaries';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import { MarketLayer } from '@shared/types/market';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -34,6 +35,7 @@ type MarketListing = Material & {
 };
 
 const DEFAULT_NODE_ID = 'TN_YUE_01';
+const SPIRIT_STONES_INFO = getGameConceptInfo('spirit_stones');
 
 const LAYER_OPTIONS: Array<{ label: string; value: MarketLayer }> = [
   { label: '凡市', value: 'common' },
@@ -291,7 +293,10 @@ export default function MarketPage() {
           <div className="text-ink-secondary text-sm">
             {selectedItems.map((i) => i.name).join('、')}
           </div>
-          <p className="text-gold font-bold">共计：💰 {totalCost} 灵石</p>
+          <p className="text-gold font-bold">
+            共计：{SPIRIT_STONES_INFO.icon} {totalCost}{' '}
+            {SPIRIT_STONES_INFO.label}
+          </p>
         </div>
       ),
       confirmLabel: '购入',
@@ -381,7 +386,10 @@ export default function MarketPage() {
         <>
           <GameSceneAsideSection title="坊市摘要">
             <div className="space-y-2 text-sm leading-7">
-              <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+              <p>
+                {SPIRIT_STONES_INFO.label}余额：
+                {cultivator?.spirit_stones ?? 0}
+              </p>
               <p>当前节点：{selectedNode?.name || nodeId}</p>
               <p>
                 当前层级：
@@ -406,7 +414,9 @@ export default function MarketPage() {
                     <p>{access.reason || '当前层不可进入'}</p>
                   )}
                   {typeof access.entryFee === 'number' ? (
-                    <p>入场耗费：{access.entryFee} 灵石</p>
+                    <p>
+                      入场耗费：{access.entryFee} {SPIRIT_STONES_INFO.label}
+                    </p>
                   ) : null}
                 </div>
               ),
@@ -437,7 +447,7 @@ export default function MarketPage() {
               onClick={handleBatchBuy}
               disabled={isBatchBuying}
             >
-              购入已选 ({selectedIds.size}件 - 💰{' '}
+              购入已选 ({selectedIds.size}件 - {SPIRIT_STONES_INFO.icon}{' '}
               {listings
                 .filter((l) => selectedIds.has(l.id))
                 .reduce((acc, curr) => acc + curr.price, 0)}
@@ -497,7 +507,8 @@ export default function MarketPage() {
                         {typeInfo.icon} · {item.element || '无属性'}
                       </span>
                       <span className="text-gold font-bold">
-                        💰 {item.price} 灵石
+                        {SPIRIT_STONES_INFO.icon} {item.price}{' '}
+                        {SPIRIT_STONES_INFO.label}
                       </span>
                     </div>
                   }

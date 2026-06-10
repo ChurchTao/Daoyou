@@ -21,7 +21,7 @@ import type {
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getMaterialTypeInfo,
-} from '@shared/types/dictionaries';
+} from '@shared/lib/gameConceptDisplay';
 import type { ItemDetailPayload } from './itemDetailPayload';
 import { buildTalismanDetailText } from './talismanDisplay';
 

@@ -1,10 +1,10 @@
 import { ELEMENT_NAME_PREFIX } from '../../config/CreationMappings';
 import {
-  ARTIFACT_SLOT_DISPLAY_NAMES,
   CREATION_ARTIFACT_NAMING,
   CREATION_DESCRIPTION_TEMPLATE,
   CREATION_GONGFA_NAMING,
   CREATION_SKILL_NAMING,
+  getArtifactSlotDisplayName,
 } from '../../config/CreationNamingPolicy';
 import { Rule } from '../core/Rule';
 import { RuleContext } from '../core/RuleContext';
@@ -45,7 +45,7 @@ export class NamingRules implements Rule<CompositionFacts, CompositionDecision> 
       }
       case 'artifact': {
         const slotDisplayName = intent.slotBias
-          ? (ARTIFACT_SLOT_DISPLAY_NAMES[intent.slotBias] ?? intent.slotBias)
+          ? getArtifactSlotDisplayName(intent.slotBias)
           : undefined;
         if (!slotDisplayName) {
           return CREATION_ARTIFACT_NAMING.defaultName;

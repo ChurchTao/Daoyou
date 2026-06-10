@@ -7,6 +7,7 @@ import {
   LogSpan,
 } from './types';
 import { GameplayTags } from '@shared/engine/shared/tag-domain';
+import { getResourceText } from '@shared/lib/gameConceptDisplay';
 
 /**
  * 控制标签 → 战报状态描述（基于行动完全被压制的场景）
@@ -83,7 +84,7 @@ export class LogPresenter {
 
     const healEntries = this.findEntries(span.entries, 'heal');
     for (const entry of healEntries) {
-      const resourceLabel = entry.data.healType === 'mp' ? '法力' : '气血';
+      const resourceLabel = getResourceText(entry.data.healType ?? 'hp');
       lines.push(
         `${this.formatName(entry.data.targetName)}恢复 ${this.formatNumber(entry.data.value)} 点${resourceLabel}`,
       );
@@ -352,7 +353,7 @@ export class LogPresenter {
 
     // 情况 8: 掠夺
     for (const resourceDrain of resourceDrains) {
-      const typeText = resourceDrain.data.drainType === 'hp' ? '气血' : '法力';
+      const typeText = getResourceText(resourceDrain.data.drainType);
       resultParts.push(
         `从${this.formatName(resourceDrain.data.targetName)}身上吸取了 ${this.formatNumber(resourceDrain.data.value)} 点${typeText}`,
       );
@@ -526,7 +527,7 @@ export class LogPresenter {
     }
 
     if (heal?.data.sourceBuff) {
-      const resourceLabel = heal.data.healType === 'mp' ? '法力' : '气血';
+      const resourceLabel = getResourceText(heal.data.healType ?? 'hp');
       return `${actor}身上的「${heal.data.sourceBuff}」生效，恢复 ${this.formatNumber(heal.data.value)} 点${resourceLabel}`;
     }
 

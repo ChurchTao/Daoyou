@@ -2,6 +2,7 @@
  * CreationNamingPolicy
  * 命名规则策略配置 — 控制 NamingRules 产生的产物默认名称
  */
+import { getEquipmentSlotConceptLabel } from '@shared/lib/gameConceptDisplay';
 
 /** 技能类产物命名配置 */
 export const CREATION_SKILL_NAMING = {
@@ -19,12 +20,9 @@ export const CREATION_ARTIFACT_NAMING = {
   slotSuffix: '法宝',
 } as const;
 
-/** 装备槽位显示名称映射（用于法宝命名，避免直接拼接英文枚举值） */
-export const ARTIFACT_SLOT_DISPLAY_NAMES: Record<string, string> = {
-  weapon: '战器',
-  armor: '护甲',
-  accessory: '玉佩',
-};
+export function getArtifactSlotDisplayName(slot: string): string {
+  return getEquipmentSlotConceptLabel(slot, 'naming');
+}
 
 /** 功法类产物命名配置 */
 export const CREATION_GONGFA_NAMING = {

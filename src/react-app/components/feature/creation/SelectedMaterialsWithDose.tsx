@@ -1,6 +1,6 @@
 import { InkBadge, InkButton } from '@app/components/ui';
 import type { FormulaMaterialJudgment } from '@shared/types/consumable';
-import { getMaterialTypeInfo } from '@shared/types/dictionaries';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import type { Material } from '@shared/types/cultivator';
 
 export interface SelectedMaterialsWithDoseProps {

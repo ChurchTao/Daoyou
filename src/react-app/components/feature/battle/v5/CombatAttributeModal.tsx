@@ -3,7 +3,12 @@ import type {
   AttrsStateView,
   UnitStateSnapshot,
 } from '@shared/engine/battle-v5/systems/state/types';
-import { getResourceText } from '@shared/lib/resourceText';
+import {
+  getGameConceptLabel,
+  getGameConceptVariantLabel,
+} from '@shared/lib/gameConceptDisplay';
+import { getResourceText } from '@shared/lib/gameConceptDisplay';
+import { getAttributeInfo } from '@shared/lib/gameConceptDisplay';
 import { InkModal } from '@app/components/layout/InkModal';
 import { format } from 'd3-format';
 
@@ -17,26 +22,32 @@ const fmtInt = format(',d');
 const fmtPct = format('.1f');
 
 const ATTR_LABELS: Partial<Record<keyof AttrsStateView, string>> = {
-  spirit: '灵力',
-  vitality: '体魄',
-  speed: '身法',
-  willpower: '神识',
-  wisdom: '悟性',
-  atk: '物理攻击',
-  def: '物理防御',
-  magicAtk: '法术攻击',
-  magicDef: '法术防御',
-  critRate: '暴击率',
-  critDamageMult: '暴击伤害',
-  evasionRate: '闪避率',
-  controlHit: '控制命中',
-  controlResistance: '控制抗性',
-  armorPenetration: '破甲',
-  magicPenetration: '法术穿透',
-  critResist: '暴击韧性',
-  critDamageReduction: '暴击减伤',
-  accuracy: '精准',
-  healAmplify: '治疗增强',
+  spirit: getAttributeInfo('spirit').label,
+  vitality: getAttributeInfo('vitality').label,
+  speed: getAttributeInfo('speed').label,
+  willpower: getAttributeInfo('willpower').label,
+  wisdom: getAttributeInfo('wisdom').label,
+  atk: getGameConceptLabel('attribute_atk'),
+  def: getGameConceptLabel('attribute_def'),
+  magicAtk: getGameConceptLabel('attribute_magic_atk'),
+  magicDef: getGameConceptLabel('attribute_magic_def'),
+  critRate: getGameConceptLabel('attribute_crit_rate'),
+  critDamageMult: getGameConceptLabel('attribute_crit_damage'),
+  evasionRate: getGameConceptLabel('attribute_evasion_rate'),
+  controlHit: getGameConceptLabel('attribute_control_hit'),
+  controlResistance: getGameConceptLabel('attribute_control_resistance'),
+  armorPenetration: getGameConceptVariantLabel(
+    'attribute_armor_penetration',
+    'detailed',
+  ),
+  magicPenetration: getGameConceptLabel('attribute_magic_penetration'),
+  critResist: getGameConceptVariantLabel('attribute_crit_resist', 'detailed'),
+  critDamageReduction: getGameConceptVariantLabel(
+    'attribute_crit_damage_reduction',
+    'detailed',
+  ),
+  accuracy: getGameConceptVariantLabel('attribute_accuracy', 'detailed'),
+  healAmplify: getGameConceptVariantLabel('attribute_heal_amplify', 'detailed'),
   maxHp: getResourceText('maxHp'),
   maxMp: getResourceText('maxMp'),
 };

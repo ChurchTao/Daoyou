@@ -5,11 +5,14 @@ import {
 } from '@app/components/game-shell';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 
 import { useRetreatViewModel } from '../hooks/useRetreatViewModel';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { RetreatResultModal } from './RetreatResultModal';
 import { cn } from '@shared/lib/utils';
+
+const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
 
 function BreakthroughLabel({
   type,
@@ -76,7 +79,7 @@ export function BreakthroughHelpContent({
         <div>
           <p className="text-ink font-medium">圆满突破</p>
           <p className="text-ink-secondary">
-            修为达到 100%，且道心感悟至少达到 50
+            修为达到 100%，且{COMPREHENSION_LABEL}至少达到 50
             时方可成形。此时火候最足，往往是最稳妥的破关时机。
           </p>
         </div>
@@ -397,7 +400,7 @@ export function RetreatView() {
               note="修为达到 60% 后，才算摸到冲关门槛。"
             />
             <RetreatSummaryEntry
-              label="道心感悟"
+              label={COMPREHENSION_LABEL}
               value={`${cultivationProgress?.comprehension_insight ?? 0}/100`}
               note="感悟越稳，临门一脚越不容易乱。"
             />

@@ -2,6 +2,10 @@ import { renderPrompt } from '@server/lib/prompts';
 import type { TemplateVariableMap } from '@server/lib/template/render';
 import { object } from '@server/utils/aiClient';
 import { truncateText } from '@server/utils/llmPayload';
+import {
+  getCreationProductTypeLabel,
+  getEquipmentSlotConceptLabel,
+} from '@shared/lib/gameConceptDisplay';
 import { ElementType, EquipmentSlot, Quality } from '@shared/types/constants';
 import z from 'zod';
 import { CreationProductType, RolledAffix } from '../types';
@@ -131,10 +135,12 @@ export class DeepSeekProductNamingEnricher {
     facts: ProductNamingFacts,
   ): ProductNamingPromptVariables {
     return {
-      productTypeLabel: PRODUCT_TYPE_LABELS[facts.productType],
+      productTypeLabel: getCreationProductTypeLabel(facts.productType, 'naming'),
       projectionQuality: facts.projectionQuality,
       elementText: facts.elementBias ?? '未显主属性',
-      slotText: facts.slotBias ? SLOT_LABELS[facts.slotBias] : '未指定',
+      slotText: facts.slotBias
+        ? getEquipmentSlotConceptLabel(facts.slotBias, 'productNaming')
+        : '未指定',
       intentTagsText:
         facts.dominantTags.length > 0
           ? facts.dominantTags.join('、')
@@ -150,15 +156,3 @@ export class DeepSeekProductNamingEnricher {
     };
   }
 }
-
-const PRODUCT_TYPE_LABELS: Record<CreationProductType, string> = {
-  artifact: '法宝灵器',
-  gongfa: '功法典籍',
-  skill: '神通招式',
-};
-
-const SLOT_LABELS: Record<EquipmentSlot, string> = {
-  accessory: '饰物',
-  armor: '护具',
-  weapon: '兵刃',
-};

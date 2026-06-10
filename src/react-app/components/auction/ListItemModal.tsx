@@ -40,7 +40,8 @@ import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getMaterialTypeInfo,
-} from '@shared/types/dictionaries';
+  getResourceTypeLabel,
+} from '@shared/lib/gameConceptDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface ListItemModalProps {
@@ -625,9 +626,9 @@ export function ListItemModal({
   ]);
 
   const tabs = [
-    { label: '材料', value: 'material' },
-    { label: '法宝', value: 'artifact' },
-    { label: '丹药', value: 'consumable' },
+    { label: getResourceTypeLabel('material'), value: 'material' },
+    { label: getResourceTypeLabel('artifact'), value: 'artifact' },
+    { label: CONSUMABLE_TYPE_DISPLAY_MAP.丹药.label, value: 'consumable' },
   ];
 
   return (

@@ -67,6 +67,7 @@ import {
 } from '@server/utils/prompts';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type {
   RetreatResultData,
   RetreatStreamEvent,
@@ -1227,7 +1228,9 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
             extraYieldText: (() => {
               const extra = [
                 result.expGain ? `修为精进 ${result.expGain} 点` : '',
-                result.insightGain ? `道心感悟 ${result.insightGain} 点` : '',
+                result.insightGain
+                  ? `${getGameConceptLabel('comprehension_insight')} ${result.insightGain} 点`
+                  : '',
               ]
                 .filter(Boolean)
                 .join('；');

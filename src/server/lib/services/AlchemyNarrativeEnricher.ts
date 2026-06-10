@@ -2,7 +2,8 @@ import { renderPrompt } from '@server/lib/prompts';
 import { object } from '@server/utils/aiClient';
 import { formatAlchemyPropertyVector } from '@shared/lib/alchemyProperties';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getResourceLabel, getResourceText } from '@shared/lib/resourceText';
+import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type {
   ConditionStatusKey,
@@ -63,7 +64,7 @@ function describeOperation(operation: ConditionOperation): string {
       return `${
         operation.target === 'cultivation_exp'
           ? getResourceText('cultivation_exp')
-          : '道心感悟'
+          : getGameConceptLabel('comprehension_insight')
       } +${operation.value}`;
     case 'increase_lifespan':
       return `寿元 +${operation.value} 年`;

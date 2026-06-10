@@ -4,6 +4,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { GeneratedMaterial } from '@shared/engine/material/creation/types';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useEffect, useState } from 'react';
 
@@ -141,6 +142,9 @@ export function YieldCard({
       {claiming ? '结算中' : timeSinceYield < 1 ? '历练中' : '领取'}
     </InkButton>
   );
+  const spiritStonesInfo = getGameConceptInfo('spirit_stones');
+  const cultivationInfo = getGameConceptInfo('cultivation_exp');
+  const insightInfo = getGameConceptInfo('comprehension_insight');
 
   return (
     <>
@@ -202,9 +206,11 @@ export function YieldCard({
         </div>
 
         <div className="mb-4 flex items-center justify-center gap-2">
-          <span className="text-ink-secondary">获得灵石：</span>
+          <span className="text-ink-secondary">
+            获得{spiritStonesInfo.label}：
+          </span>
           <span className="text-gold flex items-center gap-1 text-2xl font-bold">
-            💎 {yieldResult?.amount}
+            {spiritStonesInfo.icon} {yieldResult?.amount}
           </span>
         </div>
 
@@ -212,16 +218,16 @@ export function YieldCard({
           <div className="mb-4 flex items-center justify-center gap-2">
             <span className="text-ink-secondary">修为精进：</span>
             <span className="text-teal text-2xl font-bold">
-              ✨ {yieldResult.expGain}
+              {cultivationInfo.icon} {yieldResult.expGain}
             </span>
           </div>
         )}
 
         {yieldResult?.insightGain && (
           <div className="mb-4 flex items-center justify-center gap-2">
-            <span className="text-ink-secondary">道心感悟：</span>
+            <span className="text-ink-secondary">{insightInfo.label}：</span>
             <span className="text-wood text-2xl font-bold">
-              💡 {yieldResult.insightGain}
+              {insightInfo.icon} {yieldResult.insightGain}
             </span>
           </div>
         )}
