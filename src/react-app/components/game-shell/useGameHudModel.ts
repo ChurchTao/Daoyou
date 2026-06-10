@@ -104,7 +104,7 @@ export function buildGameHudSnapshot(input: {
     title: cultivator.title ?? null,
     spiritStones: cultivator.spirit_stones,
     unreadMailCount,
-    statusText: statusLabels.join(' ｜ ') || '安稳无恙',
+    statusText: statusLabels.join(' ｜ ') || '安稳',
     activeStatuses,
     metrics: [
       {

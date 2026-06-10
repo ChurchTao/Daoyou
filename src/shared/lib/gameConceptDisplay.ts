@@ -40,7 +40,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   hp_loss: {
     label: '气血损失',
-    icon: '❤️',
+    icon: '🩸',
     description: '气血百分比损失',
   },
   mp_loss: {
@@ -50,7 +50,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   spirit_stones: {
     label: '灵石',
-    icon: '💎',
+    icon: '💰',
     description: '通用货币',
   },
   cultivation_exp: {
@@ -59,12 +59,14 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     description: '修为进度',
   },
   comprehension_insight: {
-    label: '感悟',
+    label: '道心感悟',
+    shortLabel: '感悟',
     icon: '💡',
     description: '突破、推演功法与神通所需的感悟',
   },
   world_qi: {
     label: '天地灵气',
+    shortLabel: '灵气',
     icon: '🍃',
     description: '玩法行动所消耗的天地灵气',
   },
@@ -80,7 +82,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   artifact: {
     label: '法宝',
-    icon: '⚔️',
+    icon: '🗡️',
     description: '法宝物品',
     aliases: {
       naming: '法宝灵器',
@@ -103,7 +105,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   artifact_damage: {
     label: '法宝受损',
-    icon: '💔',
+    icon: '💥',
     description: '法宝受损代价',
   },
   vitality: {
@@ -138,7 +140,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   gongfa: {
     label: '功法',
-    icon: '📘',
+    icon: '📖',
     description: '功法产品',
     aliases: {
       naming: '功法典籍',
