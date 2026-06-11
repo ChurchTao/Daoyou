@@ -2,6 +2,7 @@ import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import { cultivators, cultivatorTasks, mails } from '@server/lib/drizzle/schema';
 import { getOrCreateStateVersion } from '@server/lib/repositories/playerStateRepository';
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
+import { QiService } from '@server/lib/services/QiService';
 import {
   PLAYER_STATE_DOMAINS,
   type PlayerStateDomain,
@@ -83,11 +84,15 @@ export async function buildPlayerStateSnapshot(args: {
   }
 
   if (domainSet.has('currency')) {
+    const qiState = QiService.calculateNaturalQiState({
+      qi: rawCultivator?.qi ?? 0,
+      qiLastRefreshedAt: rawCultivator?.qiLastRefreshedAt ?? null,
+    });
     snapshot.currency = {
       spiritStones: rawCultivator?.spirit_stones ?? cultivator?.spirit_stones ?? 0,
-      qi: rawCultivator?.qi ?? 0,
+      qi: qiState.qi,
       qiLastRefreshedAt:
-        rawCultivator?.qiLastRefreshedAt?.toISOString() ?? null,
+        qiState.qiLastRefreshedAt?.toISOString() ?? null,
     };
   }
 

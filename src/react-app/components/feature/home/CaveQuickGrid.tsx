@@ -19,7 +19,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '🔥 炼器室', href: '/game/craft/refine' },
       { label: '📚 悟道室', href: '/game/enlightenment' },
       { label: '👊 练功房', href: '/game/training-room' },
-      { label: '🛏️ 灵眼之泉', href: '/game/inn' },
+      { label: '💧 灵眼之泉', href: '/game/inn' },
     ],
   },
   {
@@ -28,6 +28,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '⛰️ 外出云游', href: '/game/dungeon' },
       { label: '🛖 坊市', href: '/game/map?intent=market' },
       { label: '🪞 蜃楼幻境', href: '/game/tower' },
+      { label: '🔨 拍卖行', href: '/game/auction' },
     ],
   },
 ];

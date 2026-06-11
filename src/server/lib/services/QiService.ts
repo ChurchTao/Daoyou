@@ -2,6 +2,7 @@ import {
   QI_ACTION_COSTS,
   QI_DAILY_RESTORE_ITEM_LIMIT,
   QI_MAX,
+  QI_NATURAL_RESTORE_PER_HOUR,
   QI_OVERFLOW_MAX,
   QI_REFRESH_TIMEZONE,
   type QiAction,
@@ -19,6 +20,7 @@ import { getExecutor, type DbTransaction } from '../drizzle/db';
 import { cultivators, qiLogs } from '../drizzle/schema';
 
 const RESTORE_STATUS: QiLogStatus = 'restore_committed';
+const QI_NATURAL_RESTORE_INTERVAL_MS = 60 * 60 * 1000;
 
 function isQiEnabled() {
   return process.env.QI_SYSTEM_ENABLED !== 'false';
@@ -31,11 +33,6 @@ function getDateInTimezone(date = new Date()): string {
     month: '2-digit',
     day: '2-digit',
   }).format(date);
-}
-
-function shouldRefresh(lastRefreshedAt: Date | null, now = new Date()) {
-  if (!lastRefreshedAt) return true;
-  return getDateInTimezone(lastRefreshedAt) !== getDateInTimezone(now);
 }
 
 function normalizeMetadata(metadata?: QiLogMetadata): QiLogMetadata {
@@ -71,6 +68,73 @@ export class QiServiceError extends Error {
 }
 
 export class QiService {
+  static calculateNaturalQiState(input: {
+    qi: number;
+    qiLastRefreshedAt: Date | null;
+    now?: Date;
+  }): {
+    qi: number;
+    qiLastRefreshedAt: Date | null;
+    restored: number;
+    shouldPersist: boolean;
+  } {
+    const now = input.now ?? new Date();
+    const rawQi = Math.max(0, Math.floor(input.qi));
+
+    if (!input.qiLastRefreshedAt) {
+      return {
+        qi: rawQi,
+        qiLastRefreshedAt: now,
+        restored: 0,
+        shouldPersist: true,
+      };
+    }
+
+    if (rawQi >= QI_MAX) {
+      return {
+        qi: rawQi,
+        qiLastRefreshedAt: now,
+        restored: 0,
+        shouldPersist: input.qiLastRefreshedAt.getTime() !== now.getTime(),
+      };
+    }
+
+    const elapsedMs = Math.max(
+      0,
+      now.getTime() - input.qiLastRefreshedAt.getTime(),
+    );
+    const elapsedHours = Math.floor(
+      elapsedMs / QI_NATURAL_RESTORE_INTERVAL_MS,
+    );
+
+    if (elapsedHours <= 0) {
+      return {
+        qi: rawQi,
+        qiLastRefreshedAt: input.qiLastRefreshedAt,
+        restored: 0,
+        shouldPersist: false,
+      };
+    }
+
+    const rawRestored = elapsedHours * QI_NATURAL_RESTORE_PER_HOUR;
+    const nextQi = Math.min(QI_MAX, rawQi + rawRestored);
+    const restored = nextQi - rawQi;
+    const qiLastRefreshedAt =
+      nextQi >= QI_MAX
+        ? now
+        : new Date(
+            input.qiLastRefreshedAt.getTime() +
+              elapsedHours * QI_NATURAL_RESTORE_INTERVAL_MS,
+          );
+
+    return {
+      qi: nextQi,
+      qiLastRefreshedAt,
+      restored,
+      shouldPersist: restored > 0,
+    };
+  }
+
   private static async refreshLockedCultivator(
     tx: DbTransaction,
     cultivatorId: string,
@@ -91,23 +155,25 @@ export class QiService {
     }
 
     const now = new Date();
-    const refreshed = shouldRefresh(row.qiLastRefreshedAt, now);
-    const qi = refreshed && row.qi < QI_MAX ? QI_MAX : row.qi;
-    const qiLastRefreshedAt = refreshed ? now : row.qiLastRefreshedAt;
+    const next = this.calculateNaturalQiState({
+      qi: row.qi,
+      qiLastRefreshedAt: row.qiLastRefreshedAt,
+      now,
+    });
 
-    if (refreshed) {
+    if (next.shouldPersist) {
       await tx
         .update(cultivators)
         .set({
-          qi,
-          qiLastRefreshedAt,
+          qi: next.qi,
+          qiLastRefreshedAt: next.qiLastRefreshedAt ?? now,
         })
         .where(eq(cultivators.id, cultivatorId));
     }
 
     return {
-      qi,
-      qiLastRefreshedAt,
+      qi: next.qi,
+      qiLastRefreshedAt: next.qiLastRefreshedAt,
     };
   }
 
@@ -129,10 +195,10 @@ export class QiService {
       throw new QiServiceError('角色不存在', 404);
     }
 
-    const current =
-      shouldRefresh(row.qiLastRefreshedAt) && row.qi < QI_MAX
-        ? QI_MAX
-        : row.qi;
+    const current = this.calculateNaturalQiState({
+      qi: row.qi,
+      qiLastRefreshedAt: row.qiLastRefreshedAt,
+    }).qi;
 
     return {
       current,

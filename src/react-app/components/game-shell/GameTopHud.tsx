@@ -11,6 +11,7 @@ import {
   QI_ACTION_COSTS,
   QI_DAILY_RESTORE_ITEM_LIMIT,
   QI_MAX,
+  QI_NATURAL_RESTORE_PER_HOUR,
   QI_OVERFLOW_MAX,
 } from '@shared/config/qiSystem';
 import { cn } from '@shared/lib/cn';
@@ -77,6 +78,49 @@ function formatSpiritStones(value: number): string {
     return `${Math.floor(value / 10000)}万`;
   }
   return String(value);
+}
+
+function formatQiDateTime(value: string | null): string {
+  if (!value) return '--';
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return '--';
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(time));
+}
+
+function formatQiDuration(durationMs: number | null): string {
+  if (durationMs === null) return '--';
+  const totalMinutes = Math.max(0, Math.ceil(durationMs / 60_000));
+  if (totalMinutes <= 0) return '即将恢复';
+
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    return minutes > 0
+      ? `${days}日${hours}时${minutes}分`
+      : hours > 0
+        ? `${days}日${hours}时`
+        : `${days}日`;
+  }
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}时${minutes}分` : `${hours}时`;
+  }
+  return `${minutes}分`;
+}
+
+function formatQiRecoveryMoment(
+  at: string | null,
+  inMs: number | null,
+): string {
+  if (!at || inMs === null) return '--';
+  return `${formatQiDateTime(at)}（约 ${formatQiDuration(inMs)}）`;
 }
 
 function InfoTable({
@@ -165,6 +209,29 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const insightInfo = getGameConceptInfo('comprehension_insight');
   const qiInfo = getGameConceptInfo('world_qi');
   const spiritStonesInfo = getGameConceptInfo('spirit_stones');
+  const qiRecovery = qiState?.recovery ?? null;
+  const qiNextRestoreText =
+    qiRecovery?.status === 'recovering'
+      ? formatQiRecoveryMoment(
+          qiRecovery.nextRestoreAt,
+          qiRecovery.nextRestoreInMs,
+        )
+      : qiRecovery?.status === 'full'
+        ? '已达自然上限'
+        : qiRecovery?.status === 'overflow'
+          ? '溢出期间暂停'
+          : '恢复时机未定';
+  const qiFullRestoreText =
+    qiRecovery?.status === 'recovering'
+      ? formatQiRecoveryMoment(
+          qiRecovery.fullRestoreAt,
+          qiRecovery.fullRestoreInMs,
+        )
+      : qiRecovery?.status === 'full'
+        ? '已回满'
+        : qiRecovery?.status === 'overflow'
+          ? `降至 ${QI_MAX} 以下后重新计算`
+          : '恢复时机未定';
 
   const openRealmInfo = () => {
     openDialog({
@@ -291,7 +358,12 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                   ? '暂不可查'
                   : '汇聚中'}
             </p>
-            <p>每日会按自然日恢复到 {QI_MAX}。</p>
+            <p>
+              每小时自然恢复 {QI_NATURAL_RESTORE_PER_HOUR} 点，最高恢复到{' '}
+              {QI_MAX}。
+            </p>
+            <p>下次恢复：{qiState ? qiNextRestoreText : '--'}</p>
+            <p>预计回满：{qiState ? qiFullRestoreText : '--'}</p>
           </div>
           <p>
             恢复符箓可临时溢出到 {QI_OVERFLOW_MAX}，每日最多使用{' '}
