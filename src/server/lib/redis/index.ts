@@ -138,5 +138,5 @@ const redis = new Proxy({} as Redis, {
   },
 });
 
-export { getLifespanLimiter, LifespanLimiter } from './lifespanLimiter';
+export { getRetreatLock, RetreatLock } from './retreatLock';
 export { getRedisClient, redis };

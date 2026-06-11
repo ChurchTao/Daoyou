@@ -123,12 +123,12 @@ qiCost = ceil(years / 10) * 5
 | 现有限制 | 首版处理 |
 |----------|----------|
 | `dungeonLimiter` 每日 2 次 | 废弃，由 `dungeon_start` 50 灵气替代 |
-| `lifespanLimiter` 每日 200 年 | 废弃，由 `retreat_10_years` 灵气消耗替代 |
+| 每日寿元 200 年上限 | 已删除，由 `retreat_10_years` 灵气消耗替代 |
 | `rankings daily challenges` 每日 10 次 | 保留，不接入灵气 |
 | `characterGenerationLimiter` | 保留 |
 | `worldChatLimiter` | 保留 |
 | 炼丹/丹方短冷却 | 保留 |
-| retreat lock、challenge lock 等并发锁 | 保留 |
+| `retreatLock`、challenge lock 等并发锁 | 保留 |
 
 ---
 
@@ -543,7 +543,7 @@ export interface QiRestoreResult {
 
 ### Phase 2：闭关接入
 
-- 废弃 `lifespanLimiter` 每日 200 年限制。
+- 删除每日寿元 200 年限制。
 - 闭关修炼按 `ceil(years / 10) * 5` 预扣。
 - 突破尝试预扣 15。
 - 参数校验、寿元不足、大境界任务阻塞必须发生在预扣前。
@@ -583,7 +583,7 @@ export interface QiRestoreResult {
 由于采用直接切换，不保留双轨长期运行。但可以保留短期应急开关：
 
 - `QI_SYSTEM_ENABLED=false`：灵气预扣变为 no-op。
-- 旧副本/闭关限制器代码在首版上线后短期保留一个版本，不继续维护新需求。
+- 旧副本/闭关每日限制器代码不再保留；并发锁仍按玩法保留。
 - 回滚只作为事故处理手段，不作为常规并行方案。
 
 ---
@@ -601,7 +601,7 @@ export interface QiRestoreResult {
 | `src/server/routes/api/cultivator.router.ts` | 修改 | 灵气查询、日志、恢复接口；闭关接入 |
 | `src/server/lib/dungeon/service_v2.ts` | 修改 | 副本开始接入灵气 |
 | `src/server/lib/dungeon/dungeonLimiter.ts` | 废弃 | 首版不再使用 |
-| `src/server/lib/redis/lifespanLimiter.ts` | 废弃 | 首版不再使用每日寿元限制 |
+| `src/server/lib/redis/retreatLock.ts` | 保留 | 仅用于闭关/突破并发锁，不再承载每日寿元限制 |
 | 造物/炼丹相关服务 | 修改 | 接入预扣、提交、退款 |
 | `src/react-app` 相关游戏 UI | 修改 | 灵气展示、消耗预览、恢复入口 |
 

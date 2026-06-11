@@ -27,6 +27,8 @@ export async function consumeLifespanAndHandleDepletion(
   options: {
     executor?: DbExecutor | DbTransaction;
     deferSideEffects?: boolean;
+    /** 调用方已完成年龄结算时传入，避免在死亡判定中重复累加 years。 */
+    ageAfterConsumption?: number;
   } = {},
 ): Promise<ConsumeLifespanResult> {
   if (years <= 0) {
@@ -39,7 +41,7 @@ export async function consumeLifespanAndHandleDepletion(
     return { depleted: false };
   }
 
-  const newAge = (cultivator.age || 0) + years;
+  const newAge = options.ageAfterConsumption ?? (cultivator.age || 0) + years;
 
   // 只在寿元耗尽时做自动更新与故事上下文准备；否则不在此处重复写入年龄（调用方已负责写入）
   if (newAge >= (cultivator.lifespan || 0)) {

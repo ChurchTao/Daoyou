@@ -65,8 +65,8 @@ vi.mock('@server/lib/redis', () => ({
   },
 }));
 
-vi.mock('@server/lib/redis/lifespanLimiter', () => ({
-  getLifespanLimiter: vi.fn(),
+vi.mock('@server/lib/redis/retreatLock', () => ({
+  getRetreatLock: vi.fn(),
 }));
 
 vi.mock('@server/lib/repositories/creationProductRepository', () => ({
@@ -199,7 +199,7 @@ import { runDetached } from '@server/lib/http/response';
 import { consumeLifespanAndHandleDepletion } from '@server/lib/lifespan/handleLifespan';
 import { renderPrompt } from '@server/lib/prompts';
 import { redis } from '@server/lib/redis';
-import { getLifespanLimiter } from '@server/lib/redis/lifespanLimiter';
+import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import { MailService } from '@server/lib/services/MailService';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
@@ -231,7 +231,7 @@ const consumeLifespanAndHandleDepletionMock =
 const renderPromptMock = renderPrompt as unknown as Mock;
 const redisSetMock = redis.set as unknown as Mock;
 const redisDelMock = redis.del as unknown as Mock;
-const getLifespanLimiterMock = getLifespanLimiter as unknown as Mock;
+const getRetreatLockMock = getRetreatLock as unknown as Mock;
 const buildRecoveryResultMock =
   InnRecoveryService.buildRecoveryResult as unknown as Mock;
 const sendMailMock = MailService.sendMail as unknown as Mock;
@@ -591,19 +591,11 @@ function mockConsumeTransaction() {
   return txMock;
 }
 
-function createLimiterMocks() {
+function createRetreatLockMocks() {
   return {
-    acquireRetreatLock: vi.fn().mockResolvedValue(true),
-    releaseRetreatLock: vi.fn().mockResolvedValue(undefined),
-    checkAndConsumeLifespan: vi.fn().mockResolvedValue({
-      allowed: true,
-      remaining: 188,
-      consumed: 12,
-    }),
-    rollbackLifespan: vi.fn().mockResolvedValue(undefined),
-    getConsumedLifespan: vi.fn(),
-    getRemainingLifespan: vi.fn(),
-    isRetreatLocked: vi.fn(),
+    acquire: vi.fn().mockResolvedValue(true),
+    release: vi.fn().mockResolvedValue(undefined),
+    isLocked: vi.fn(),
   };
 }
 
@@ -1145,13 +1137,13 @@ describe('cultivator yield route', () => {
 });
 
 describe('cultivator retreat route', () => {
-  let limiterMocks: ReturnType<typeof createLimiterMocks>;
+  let retreatLockMocks: ReturnType<typeof createRetreatLockMocks>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    limiterMocks = createLimiterMocks();
-    getLifespanLimiterMock.mockReturnValue(limiterMocks);
+    retreatLockMocks = createRetreatLockMocks();
+    getRetreatLockMock.mockReturnValue(retreatLockMocks);
 
     const cultivator = createCultivator();
 
@@ -1261,6 +1253,14 @@ describe('cultivator retreat route', () => {
     });
     expect(streamTextMock).not.toHaveBeenCalled();
     expect(addRetreatRecordMock).toHaveBeenCalled();
+    expect(consumeLifespanAndHandleDepletionMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      12,
+      expect.objectContaining({
+        deferSideEffects: true,
+        ageAfterConsumption: 42,
+      }),
+    );
   });
 
   it('streams lifespan depletion story after cultivate settlement', async () => {
@@ -1462,7 +1462,7 @@ describe('cultivator retreat route', () => {
   });
 
   it('keeps lock conflicts on JSON errors', async () => {
-    limiterMocks.acquireRetreatLock.mockResolvedValue(false);
+    retreatLockMocks.acquire.mockResolvedValue(false);
 
     const response = await createApp().request('/api/cultivator/retreat', {
       method: 'POST',

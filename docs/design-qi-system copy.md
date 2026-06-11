@@ -7,7 +7,7 @@
 《万界道友》当前各玩法采用**独立的限制机制**：副本每天 2 次、天骄榜每天 10 次、闭关修炼每天消耗 200 年寿元上限等。这些限制各自为政，带来了几个核心问题：
 
 - **玩家体验僵硬**：每种玩法的次数相互独立，玩家无法按自己的偏好分配游戏时间。想多刷副本的玩家无法把天骄榜的次数"转移"过来。
-- **成本管控分散**：每个需要 LLM 参与的玩法都有自己的限制器（`dungeonLimiter`、`lifespanLimiter`、`characterGenerationLimiter` 等），缺乏统一的成本视角。
+- **成本管控分散**：每个需要 LLM 参与的玩法都有自己的限制器（`dungeonLimiter`、`characterGenerationLimiter` 等），缺乏统一的成本视角。
 - **扩展性差**：新增一个玩法就要写一个新的 Limiter，数值调整需要逐个系统修改。
 - **付费设计困难**：独立的次数限制难以设计统一的付费补充方案。
 
@@ -122,7 +122,7 @@
 | 现有限制器 | 原限制 | 迁移方案 |
 |-----------|-------|---------|
 | `dungeonLimiter` | 2 次/天 | **废弃**。由灵气系统统一管控，副本 50 灵气/次，等效 4 次 |
-| `lifespanLimiter`（每日寿元上限） | 200 年/天 | **废弃**。闭关改为消耗灵气（5 灵气/10 年），寿元仍按角色实际寿元扣除 |
+| 每日寿元上限 | 200 年/天 | **已删除**。闭关改为消耗灵气（5 灵气/10 年），寿元仍按角色实际寿元扣除 |
 | `rankings daily challenges` | 10 次/天 | **废弃**。天骄榜挑战改为每次消耗 8 灵气 |
 
 ### 4.2 保留的限制器
@@ -132,7 +132,7 @@
 | `characterGenerationLimiter` | 防批量注册，与游戏内体力无关 |
 | `worldChatLimiter`（60 秒冷却） | 防刷屏，保留 |
 | `alchemyFormulaCooldown`（30 秒冷却） | 防脚本刷解析，保留作为反刷机制 |
-| 并发锁（retreat lock、challenge lock 等） | 防并发冲突，保留 |
+| 并发锁（`retreatLock`、challenge lock 等） | 防并发冲突，保留 |
 | 拍卖行上架数量上限（5 个） | 经济平衡，保留 |
 | 赌战上限（1 个） | 经济平衡，保留 |
 
@@ -142,7 +142,7 @@
 
 1. 执行数据库迁移，为所有角色新增灵气列，初始值设为 200（满灵气）。
 2. 在同一个版本中，所有玩法入口统一接入灵气消耗检查。
-3. 同步废弃旧限制器（`dungeonLimiter`、`lifespanLimiter`、`rankings daily challenges`）。
+3. 同步废弃旧限制器（`dungeonLimiter`、每日寿元上限、`rankings daily challenges`）。
 4. 旧限制器的 Redis 键会在次日自然过期，无需手动清理。
 
 选择直接切换的原因：
@@ -632,7 +632,7 @@ export const QI_REFRESH_TIMEZONE = 'Asia/Shanghai';
 - 改造副本系统接入灵气消耗（50/次）
 - 改造闭关/突破系统接入灵气消耗
 - 改造天骄榜接入灵气消耗
-- **同步废弃**旧限制器（`dungeonLimiter`、`lifespanLimiter`、rankings daily）
+- **同步废弃**旧限制器（`dungeonLimiter`、每日寿元上限、rankings daily）
 
 ### Phase 2：全玩法接入（3-5 天）
 
@@ -691,7 +691,7 @@ export const QI_REFRESH_TIMEZONE = 'Asia/Shanghai';
 | `src/server/lib/services/QiService.ts` | 新增 | 灵气管理核心服务 |
 | `src/server/routes/api/cultivator.ts` | 修改 | 新增灵气查询/恢复接口 |
 | `src/server/lib/dungeon/dungeonLimiter.ts` | 废弃 | 由灵气系统替代 |
-| `src/server/lib/redis/lifespanLimiter.ts` | 废弃 | 由灵气系统替代 |
+| `src/server/lib/redis/retreatLock.ts` | 保留 | 仅用于闭关/突破并发锁，不再承载每日寿元限制 |
 | `src/server/lib/redis/rankings.ts` | 修改 | 移除每日挑战计数逻辑 |
 | `src/server/lib/services/DungeonService.ts` | 修改 | 接入灵气消耗 |
 | `src/server/lib/services/CultivationService.ts` | 修改 | 闭关/突破接入灵气消耗 |

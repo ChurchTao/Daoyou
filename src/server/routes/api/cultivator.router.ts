@@ -28,7 +28,7 @@ import {
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
 import { redis } from '@server/lib/redis';
-import { getLifespanLimiter } from '@server/lib/redis/lifespanLimiter';
+import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
@@ -892,29 +892,6 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
-router.get('/lifespan-status', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
-  }
-
-  const limiter = getLifespanLimiter();
-  const consumed = await limiter.getConsumedLifespan(cultivator.id);
-  const remaining = await limiter.getRemainingLifespan(cultivator.id);
-  const isLocked = await limiter.isRetreatLocked(cultivator.id);
-
-  return c.json({
-    success: true,
-    data: {
-      cultivatorId: cultivator.id,
-      dailyLimit: 200,
-      consumed,
-      remaining,
-      isInRetreat: isLocked,
-    },
-  });
-});
-
 router.get('/qi', requireActiveCultivatorRef(), async (c) => {
   const ref = c.get('activeCultivatorRef');
   if (!ref) {
@@ -1118,7 +1095,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
     return c.json({ error: '未授权访问' }, 401);
   }
 
-  const limiter = getLifespanLimiter();
+  const retreatLock = getRetreatLock();
   const cultivatorId = activeCultivator.id;
   let years = 0;
   let lockAcquired = false;
@@ -1130,7 +1107,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
     );
     years = inputYears ?? 0;
 
-    lockAcquired = await limiter.acquireRetreatLock(cultivatorId);
+    lockAcquired = await retreatLock.acquire(cultivatorId);
     if (!lockAcquired) {
       return c.json({ error: '角色正在闭关中，请稍后再试' }, 409);
     }
@@ -1202,7 +1179,11 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
             const lifespanResult = await consumeLifespanAndHandleDepletion(
               cultivatorId,
               years,
-              { executor: tx, deferSideEffects: true },
+              {
+                executor: tx,
+                deferSideEffects: true,
+                ageAfterConsumption: result.cultivator.age,
+              },
             );
             if (lifespanResult.depleted) {
               streamResult = {
@@ -1474,7 +1455,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
   } finally {
     if (lockAcquired && cultivatorId) {
       try {
-        await limiter.releaseRetreatLock(cultivatorId);
+        await retreatLock.release(cultivatorId);
       } catch (unlockErr) {
         console.error('释放闭关锁失败:', unlockErr);
       }
