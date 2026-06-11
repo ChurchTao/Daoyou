@@ -53,6 +53,11 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     icon: '💰',
     description: '通用货币',
   },
+  reputation: {
+    label: '声望值',
+    icon: '🏵️',
+    description: '天骄宝阁兑换所需的声望',
+  },
   cultivation_exp: {
     label: '修为',
     icon: '🧘',
@@ -867,6 +872,7 @@ export const RESOURCE_TYPE_DISPLAY_MAP: Record<
   maxHp: getConceptInfo('maxHp'),
   maxMp: getConceptInfo('maxMp'),
   spirit_stones: getConceptInfo('spirit_stones'),
+  reputation: getConceptInfo('reputation'),
   lifespan: getConceptInfo('lifespan'),
   cultivation_exp: getConceptInfo('cultivation_exp'),
   comprehension_insight: getConceptInfo('comprehension_insight'),

@@ -5,6 +5,7 @@ export type MailAttachmentType =
   | 'consumable'
   | 'artifact'
   | 'spirit_stones'
+  | 'reputation'
   | 'cultivation_exp'
   | 'comprehension_insight';
 

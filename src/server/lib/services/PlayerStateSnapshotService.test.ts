@@ -48,6 +48,7 @@ describe('PlayerStateSnapshotService', () => {
           findFirst: vi.fn().mockResolvedValue({
             id: 'cultivator-1',
             spirit_stones: 123,
+            reputation: 456,
             qi: 40,
             qiLastRefreshedAt: new Date('2026-06-06T00:00:00+08:00'),
           }),
@@ -64,6 +65,7 @@ describe('PlayerStateSnapshotService', () => {
 
     expect(snapshot.snapshot.currency).toEqual({
       spiritStones: 123,
+      reputation: 456,
       qi: 60,
       qiLastRefreshedAt: new Date('2026-06-06T02:00:00+08:00').toISOString(),
     });

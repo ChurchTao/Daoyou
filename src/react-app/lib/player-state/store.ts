@@ -554,6 +554,7 @@ function applyEventPatch(
     next.currency = {
       ...(snapshot.currency ?? {
         spiritStones: 0,
+        reputation: 0,
         qi: 0,
         qiLastRefreshedAt: null,
       }),

@@ -55,6 +55,7 @@ export async function buildPlayerStateSnapshot(args: {
         columns: {
           id: true,
           spirit_stones: true,
+          reputation: true,
           qi: true,
           qiLastRefreshedAt: true,
         },
@@ -90,6 +91,7 @@ export async function buildPlayerStateSnapshot(args: {
     });
     snapshot.currency = {
       spiritStones: rawCultivator?.spirit_stones ?? cultivator?.spirit_stones ?? 0,
+      reputation: rawCultivator?.reputation ?? cultivator?.reputation ?? 0,
       qi: qiState.qi,
       qiLastRefreshedAt:
         qiState.qiLastRefreshedAt?.toISOString() ?? null,

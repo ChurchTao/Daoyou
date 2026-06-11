@@ -33,6 +33,7 @@ export function ResourceCostCard({
   const resourceCosts = costs.filter((c) =>
     [
       'spirit_stones',
+      'reputation',
       'lifespan',
       'cultivation_exp',
       'comprehension_insight',

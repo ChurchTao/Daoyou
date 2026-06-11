@@ -36,6 +36,12 @@ import { getTowerLeaderboard, updateTowerWeeklyRecord } from './leaderboard';
 import type { DbTransaction } from '@server/lib/drizzle/db';
 
 const RUN_TTL_SECONDS = 8 * 24 * 60 * 60;
+const TOWER_REPUTATION_REWARDS: Record<TowerMilestoneReward['tier'], number> = {
+  C: 1000,
+  B: 2500,
+  A: 5000,
+  S: 10000,
+};
 
 interface TowerBattleSession {
   battleId: string;
@@ -278,6 +284,13 @@ export class TowerService {
       args.floor,
       buildRewardPlayerInfo(args.cultivator),
     );
+    const reputationReward = TOWER_REPUTATION_REWARDS[tier];
+    if (reputationReward > 0) {
+      rewards.push({
+        type: 'reputation',
+        value: reputationReward,
+      });
+    }
 
     const attachments: MailAttachment[] = rewards.map((item) => {
       const name =

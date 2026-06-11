@@ -1,12 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { prunePlayerStateEventsOlderThanMock, redisMock } = vi.hoisted(() => ({
+const {
+  getExecutorMock,
+  getTopRankingCultivatorIdsMock,
+  prunePlayerStateEventsOlderThanMock,
+  redisMock,
+  updateReputationMock,
+} = vi.hoisted(() => ({
+  getExecutorMock: vi.fn(),
+  getTopRankingCultivatorIdsMock: vi.fn(),
   prunePlayerStateEventsOlderThanMock: vi.fn(),
   redisMock: {
     set: vi.fn(),
     eval: vi.fn(),
     exists: vi.fn(),
   },
+  updateReputationMock: vi.fn(),
+}));
+
+vi.mock('@server/lib/drizzle/db', () => ({
+  getExecutor: getExecutorMock,
 }));
 
 vi.mock('@server/lib/redis', () => ({
@@ -14,7 +27,7 @@ vi.mock('@server/lib/redis', () => ({
 }));
 
 vi.mock('@server/lib/redis/rankings', () => ({
-  getTopRankingCultivatorIds: vi.fn(),
+  getTopRankingCultivatorIds: getTopRankingCultivatorIdsMock,
 }));
 
 vi.mock('@server/lib/repositories/playerStateRepository', () => ({
@@ -35,6 +48,10 @@ vi.mock('@server/lib/services/MailService', () => ({
   },
 }));
 
+vi.mock('@server/lib/services/cultivatorService', () => ({
+  updateReputation: updateReputationMock,
+}));
+
 vi.mock('@server/lib/services/MarketScheduler', () => ({
   runMarketRefreshJob: vi.fn(),
 }));
@@ -45,7 +62,10 @@ vi.mock('@server/lib/tower/enemySets', () => ({
   },
 }));
 
-import { runPlayerStateEventsCleanupJob } from './internalCron';
+import {
+  runPlayerStateEventsCleanupJob,
+  runRankRewardsJob,
+} from './internalCron';
 
 describe('internal cron jobs', () => {
   beforeEach(() => {
@@ -54,6 +74,16 @@ describe('internal cron jobs', () => {
     vi.clearAllMocks();
     redisMock.set.mockResolvedValue('OK');
     redisMock.eval.mockResolvedValue(1);
+    redisMock.exists.mockResolvedValue(0);
+    getExecutorMock.mockReturnValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn(async () => [{ userId: 'user-1' }]),
+          })),
+        })),
+      })),
+    });
   });
 
   afterEach(() => {
@@ -71,6 +101,33 @@ describe('internal cron jobs', () => {
 
     expect(prunePlayerStateEventsOlderThanMock).toHaveBeenCalledWith(
       new Date('2026-06-09T00:00:00.000Z'),
+    );
+  });
+
+  it('settles rank rewards as reputation instead of spirit stone mail', async () => {
+    getTopRankingCultivatorIdsMock.mockResolvedValueOnce([
+      'cultivator-1',
+      'cultivator-2',
+    ]);
+
+    await expect(runRankRewardsJob()).resolves.toMatchObject({
+      success: true,
+      processed: 2,
+      skipped: false,
+      logs: ['Rank 1: +30000 reputation', 'Rank 2: +20000 reputation'],
+    });
+
+    expect(updateReputationMock).toHaveBeenNthCalledWith(
+      1,
+      'user-1',
+      'cultivator-1',
+      30000,
+    );
+    expect(updateReputationMock).toHaveBeenNthCalledWith(
+      2,
+      'user-1',
+      'cultivator-2',
+      20000,
     );
   });
 });

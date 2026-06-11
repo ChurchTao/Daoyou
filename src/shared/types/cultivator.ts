@@ -283,6 +283,7 @@ export interface Cultivator {
 
   max_skills: number;
   spirit_stones: number;
+  reputation?: number;
   last_yield_at?: Date;
   background?: string;
   description?: string;

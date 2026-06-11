@@ -80,6 +80,9 @@ export function MailDetailModal({
                   {item.type === 'spirit_stones' && (
                     <span className="text-ink">{item.name}</span>
                   )}
+                  {item.type === 'reputation' && (
+                    <span className="text-ink">{item.name}</span>
+                  )}
                   {item.type === 'cultivation_exp' && (
                     <span className="text-ink">{item.name}</span>
                   )}

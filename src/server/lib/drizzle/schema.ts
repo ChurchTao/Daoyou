@@ -60,6 +60,7 @@ export const cultivators = pgTable(
     willpower: integer('willpower').notNull(),
 
     spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
+    reputation: integer('reputation').notNull().default(0), // 声望值
     qi: integer('qi').notNull().default(200), // 天地灵气
     qiLastRefreshedAt: timestamp('qi_last_refreshed_at').notNull().defaultNow(),
     last_yield_at: timestamp('last_yield_at').defaultNow(),
@@ -632,6 +633,62 @@ export const itemLibrary = pgTable(
     uniqueIndex('item_library_item_id_unique').on(table.itemId),
     index('item_library_status_type_idx').on(table.status, table.type),
     index('item_library_name_idx').on(table.name),
+  ],
+);
+
+export const reputationShopItems = pgTable(
+  'wanjiedaoyou_reputation_shop_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    itemLibraryItemId: varchar('item_library_item_id', { length: 120 })
+      .notNull()
+      .references(() => itemLibrary.itemId),
+    price: integer('price').notNull(),
+    quantity: integer('quantity').notNull().default(1),
+    perUserLimit: integer('per_user_limit'),
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdBy: uuid('created_by').notNull(),
+    updatedBy: uuid('updated_by').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('reputation_shop_item_library_item_uidx').on(
+      table.itemLibraryItemId,
+    ),
+    index('reputation_shop_status_sort_idx').on(
+      table.status,
+      table.sortOrder,
+      table.updatedAt,
+    ),
+  ],
+);
+
+export const reputationShopPurchases = pgTable(
+  'wanjiedaoyou_reputation_shop_purchases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    shopItemId: uuid('shop_item_id')
+      .notNull()
+      .references(() => reputationShopItems.id, { onDelete: 'cascade' }),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    itemLibraryItemId: varchar('item_library_item_id', { length: 120 }).notNull(),
+    quantity: integer('quantity').notNull(),
+    reputationCost: integer('reputation_cost').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('reputation_shop_purchases_cultivator_item_idx').on(
+      table.cultivatorId,
+      table.shopItemId,
+    ),
+    index('reputation_shop_purchases_created_idx').on(table.createdAt),
   ],
 );
 

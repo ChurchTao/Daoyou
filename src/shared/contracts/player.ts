@@ -79,6 +79,7 @@ export type PlayerStateSnapshot = {
   progress: CultivationProgress | Record<string, unknown>;
   currency: {
     spiritStones: number;
+    reputation: number;
     qi: number;
     qiLastRefreshedAt: string | null;
   };

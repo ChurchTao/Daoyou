@@ -210,6 +210,63 @@ describe('tower service prepared enemies', () => {
     expect(savedState.challengeRealm).toBe('金丹');
   });
 
+  it('adds reputation to milestone rewards', async () => {
+    const season = getTowerSeasonMeta();
+    const encounter = {
+      ...makePreparedEnemy().encounter,
+      floor: 5,
+      kind: 'elite' as const,
+    };
+    redisStore.set(
+      'tower:run:cultivator-1',
+      JSON.stringify({
+        runId: 'run-1',
+        seasonKey: season.seasonKey,
+        challengeRealm: '金丹',
+        status: 'WAITING_BATTLE',
+        currentFloor: 5,
+        highestFloorCleared: 4,
+        condition,
+        blessings: {},
+        pendingBlessingChoices: [],
+        claimedMilestones: [],
+        milestoneRewardLog: [],
+        activeBattleId: 'battle-1',
+      }),
+    );
+    redisStore.set(
+      'tower:battle:battle-1',
+      JSON.stringify({
+        session: {
+          battleId: 'battle-1',
+          cultivatorId: 'cultivator-1',
+          runId: 'run-1',
+          seasonKey: season.seasonKey,
+          encounter,
+        },
+        enemyObject: makePreparedEnemy().enemy,
+      }),
+    );
+    simulateBattleV5Mock.mockReturnValueOnce({
+      winner: { id: 'cultivator-1' },
+      winnerSnapshot: {
+        hp: { current: 80 },
+        mp: { current: 70 },
+      },
+    });
+
+    const result = await towerService.executeBattle(
+      'cultivator-1',
+      'battle-1',
+      new Date(),
+      { deferPersistence: true },
+    );
+
+    expect(result.milestoneReward?.rewards).toEqual(
+      expect.arrayContaining([{ type: 'reputation', value: 1000 }]),
+    );
+  });
+
   it('rejects execution when the cultivator has crossed into a new realm', async () => {
     const season = getTowerSeasonMeta();
     redisStore.set(
