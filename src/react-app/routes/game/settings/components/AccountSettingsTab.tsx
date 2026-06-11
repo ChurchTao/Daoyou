@@ -1,4 +1,5 @@
 import { toErrorMessage, validatePasswordConfirmation } from '@app/components/auth';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import type { AuthActionError } from '@app/lib/auth/authState';
@@ -7,6 +8,7 @@ import { toAuthActionError } from '@app/lib/auth/authState';
 import type { AccountSetPasswordResponse } from '@shared/contracts/account';
 import type { ApiFailure } from '@shared/contracts/http';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   SettingsField,
   SettingsMessage,
@@ -31,6 +33,8 @@ function getPasswordMode(accounts: LinkedAccount[]): PasswordMode {
 
 export function AccountSettingsTab() {
   const sessionState = authClient.useSession();
+  const navigate = useNavigate();
+  const { openDialog, pushToast } = useInkUI();
   const user = sessionState.data?.user ?? null;
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
@@ -49,6 +53,8 @@ export function AccountSettingsTab() {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+  const [logoutSubmitting, setLogoutSubmitting] = useState(false);
+  const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,6 +193,46 @@ export function AccountSettingsTab() {
     }
   };
 
+  const handleSignOut = async () => {
+    if (logoutSubmitting) return;
+
+    let didNavigate = false;
+    setLogoutSubmitting(true);
+    setLogoutMessage(null);
+
+    try {
+      const { error } = await authClient.signOut();
+      if (error) {
+        throw toAuthActionError(error);
+      }
+
+      pushToast({ message: '已退出登录', tone: 'success' });
+      didNavigate = true;
+      navigate('/login', { replace: true });
+    } catch (error) {
+      const message = toErrorMessage(error as AuthActionError, '退出登录失败');
+      setLogoutMessage(message);
+      pushToast({ message, tone: 'danger' });
+    } finally {
+      if (!didNavigate) {
+        setLogoutSubmitting(false);
+      }
+    }
+  };
+
+  const openLogoutConfirm = () => {
+    if (logoutSubmitting) return;
+
+    openDialog({
+      title: '退出登录',
+      content: '确定要退出当前账号吗？退出后需要重新登录才能继续游历。',
+      confirmLabel: '确认退出',
+      cancelLabel: '取消',
+      loadingLabel: '退出中...',
+      onConfirm: handleSignOut,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <SettingsSection>
@@ -304,6 +350,24 @@ export function AccountSettingsTab() {
             {githubMessage.text}
           </SettingsMessage>
         ) : null}
+      </SettingsSection>
+
+      <SettingsSection
+        title="登录会话"
+        description="退出当前浏览器的登录状态，不会删除账号或角色数据。"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <InkButton
+            variant="primary"
+            onClick={openLogoutConfirm}
+            disabled={logoutSubmitting}
+          >
+            {logoutSubmitting ? '退出中...' : '退出登录'}
+          </InkButton>
+          {logoutMessage ? (
+            <SettingsMessage type="error">{logoutMessage}</SettingsMessage>
+          ) : null}
+        </div>
       </SettingsSection>
     </div>
   );
