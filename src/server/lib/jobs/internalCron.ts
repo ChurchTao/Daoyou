@@ -19,7 +19,7 @@ const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
-const PLAYER_STATE_EVENT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const PLAYER_STATE_EVENT_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
 
 export type CronJobResult = {
   success: true;
