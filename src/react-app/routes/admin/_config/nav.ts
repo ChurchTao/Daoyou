@@ -36,6 +36,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/item-library',
   },
   {
+    title: '声望商店管理',
+    description: '配置天骄宝阁兑换商品',
+    href: '/admin/reputation-shop',
+  },
+  {
     title: '模板中心',
     description: '运营文案模板管理',
     href: '/admin/templates',

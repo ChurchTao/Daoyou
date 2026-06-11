@@ -209,7 +209,7 @@ export const REALM_YIELD_RATES: Record<RealmType, number> = {
   渡劫: 12800,
 };
 
-// 排行榜每日结算奖励（灵石）
+// 排行榜每日结算奖励（声望值）
 export const RANKING_REWARDS = {
   1: 30000,
   2: 20000,

@@ -76,6 +76,7 @@ export function selectActiveCultivatorProfile(
     cultivation_progress: cultivationProgress,
     spirit_stones:
       storeState.snapshot.currency?.spiritStones ?? cultivator.spirit_stones,
+    reputation: storeState.snapshot.currency?.reputation ?? cultivator.reputation ?? 0,
     inventory,
     skills,
     cultivations: products?.cultivations ?? cultivator.cultivations ?? [],

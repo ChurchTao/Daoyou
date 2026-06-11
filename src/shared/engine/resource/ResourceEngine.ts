@@ -11,6 +11,7 @@ import {
   removeMaterialFromInventory,
   updateCultivationExp,
   updateLifespan,
+  updateReputation,
   updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
@@ -59,6 +60,7 @@ export class ResourceEngine {
 
       const cultivator = cultivatorBundle.cultivator;
       const spiritStonesLabel = getGameConceptLabel('spirit_stones');
+      const reputationLabel = getGameConceptLabel('reputation');
       const lifespanLabel = getGameConceptLabel('lifespan');
       const cultivationLabel = getGameConceptLabel('cultivation_exp');
       const insightLabel = getGameConceptLabel('comprehension_insight');
@@ -70,6 +72,15 @@ export class ResourceEngine {
               missing.push(req);
               errors.push(
                 `${spiritStonesLabel}不足，需要 ${req.value}，当前拥有 ${cultivator.spirit_stones}`,
+              );
+            }
+            break;
+
+          case 'reputation':
+            if ((cultivator.reputation ?? 0) < req.value) {
+              missing.push(req);
+              errors.push(
+                `${reputationLabel}不足，需要 ${req.value}，当前拥有 ${cultivator.reputation ?? 0}`,
               );
             }
             break;
@@ -214,6 +225,10 @@ export class ResourceEngine {
               await updateSpiritStones(userId, cultivatorId, -cost.value, tx);
               break;
 
+            case 'reputation':
+              await updateReputation(userId, cultivatorId, -cost.value, tx);
+              break;
+
             case 'lifespan': {
               await updateLifespan(userId, cultivatorId, -cost.value, tx);
               // [安全守卫] 寿元消耗后执行死亡检查（防止绕过 handleLifespan 的死亡判定）
@@ -347,6 +362,9 @@ export class ResourceEngine {
       switch (cost.type) {
         case 'spirit_stones':
           await updateSpiritStones(userId, cultivatorId, -cost.value, tx);
+          break;
+        case 'reputation':
+          await updateReputation(userId, cultivatorId, -cost.value, tx);
           break;
         case 'lifespan':
           await updateLifespan(userId, cultivatorId, -cost.value, tx);
@@ -540,6 +558,10 @@ export class ResourceEngine {
       switch (gain.type) {
         case 'spirit_stones':
           await updateSpiritStones(userId, cultivatorId, gain.value, tx);
+          break;
+
+        case 'reputation':
+          await updateReputation(userId, cultivatorId, gain.value, tx);
           break;
 
         case 'lifespan':

@@ -2,6 +2,7 @@ import { buildPresetArtifact } from '@shared/engine/cultivator/creation/presetPr
 import { serializeProductModel } from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
 import {
   ItemLibraryResolveError,
+  attachmentsToResourceOperations,
   buildAttachmentFromItemLibraryEntry,
   parseItemLibraryEntry,
   resolveItemLibrarySelections,
@@ -80,6 +81,14 @@ describe('item library helpers', () => {
     expect(() => buildAttachmentFromItemLibraryEntry(item, 1)).toThrow(
       ItemLibraryResolveError,
     );
+  });
+
+  it('converts reputation attachments into resource operations', () => {
+    expect(
+      attachmentsToResourceOperations([
+        { type: 'reputation', name: '声望值', quantity: 2500 },
+      ]),
+    ).toEqual([{ type: 'reputation', value: 2500 }]);
   });
 
   it('accepts creation-v2 artifact payloads with rehydratable productModel', () => {

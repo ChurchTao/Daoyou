@@ -395,6 +395,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="tianjiao-vault"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/tianjiao-vault/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'tianjiao-vault',
+                  presentation: 'service',
+                  summary: '凭声望换取宝阁珍藏。',
+                },
+                '天骄宝阁',
+              )}
+            />
+            <Route
               path="auction"
               lazy={lazyRoute(() => import('@app/routes/game/auction/route'))}
               handle={scene(
@@ -696,6 +710,13 @@ export const router = createBrowserRouter(
             () => import('@app/routes/admin/item-library/route'),
           )}
           handle={title('道具库')}
+        />
+        <Route
+          path="reputation-shop"
+          lazy={lazyRoute(
+            () => import('@app/routes/admin/reputation-shop/route'),
+          )}
+          handle={title('声望商店管理')}
         />
         <Route
           path="templates"

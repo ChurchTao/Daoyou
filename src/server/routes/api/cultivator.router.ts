@@ -81,6 +81,7 @@ import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { isTalismanConsumable } from '@shared/lib/consumables';
+import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
 import type {
   RetreatResultData,
   RetreatStreamEvent,
@@ -109,11 +110,8 @@ import {
   type RealmType,
 } from '@shared/types/constants';
 import type {
-  Artifact,
   BreakthroughHistoryEntry,
   CultivationProgress,
-  Consumable,
-  Material,
 } from '@shared/types/cultivator';
 import { randomUUID } from 'crypto';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -206,51 +204,6 @@ async function countUnreadMail(
   return Number(result?.count ?? 0);
 }
 
-function attachmentsToResourceOperations(
-  attachments: MailAttachment[],
-): ResourceOperation[] {
-  const gains: ResourceOperation[] = [];
-
-  for (const item of attachments) {
-    switch (item.type) {
-      case 'spirit_stones':
-        gains.push({ type: 'spirit_stones', value: item.quantity });
-        break;
-      case 'material':
-        gains.push({
-          type: 'material',
-          value: item.quantity,
-          data: item.data as Material,
-        });
-        break;
-      case 'consumable':
-        gains.push({
-          type: 'consumable',
-          value: item.quantity,
-          data: item.data as Consumable,
-        });
-        break;
-      case 'artifact':
-        for (let i = 0; i < (item.quantity || 1); i++) {
-          gains.push({
-            type: 'artifact',
-            value: 1,
-            data: item.data as Artifact,
-          });
-        }
-        break;
-      case 'cultivation_exp':
-        gains.push({ type: 'cultivation_exp', value: item.quantity });
-        break;
-      case 'comprehension_insight':
-        gains.push({ type: 'comprehension_insight', value: item.quantity });
-        break;
-    }
-  }
-
-  return gains;
-}
-
 function getRewardAffectedDomains(
   gains: ResourceOperation[],
 ): Set<PlayerStateDomain> {
@@ -267,7 +220,7 @@ function getRewardAffectedDomains(
     if (gain.type === 'artifact') {
       domains.add('products');
     }
-    if (gain.type === 'spirit_stones') {
+    if (gain.type === 'spirit_stones' || gain.type === 'reputation') {
       domains.add('currency');
     }
     if (
@@ -287,6 +240,7 @@ function buildMailStateChanges(args: {
   mailIds?: string[];
   gains?: ResourceOperation[];
   spiritStones?: number;
+  reputation?: number;
   cultivationProgress?: unknown;
   realm?: RealmType;
   realmStage?: RealmStage;
@@ -326,8 +280,18 @@ function buildMailStateChanges(args: {
       domain: 'currency',
       eventType: 'currency.changed',
       patch:
-        typeof args.spiritStones === 'number'
-          ? { currency: { spiritStones: args.spiritStones } }
+        typeof args.spiritStones === 'number' ||
+        typeof args.reputation === 'number'
+          ? {
+              currency: {
+                ...(typeof args.spiritStones === 'number'
+                  ? { spiritStones: args.spiritStones }
+                  : {}),
+                ...(typeof args.reputation === 'number'
+                  ? { reputation: args.reputation }
+                  : {}),
+              },
+            }
           : {},
     });
   }
@@ -2138,6 +2102,7 @@ mailRouter.post('/claim', requireActiveCultivator(), async (c) => {
         const [cultivatorState] = await tx
           .select({
             spiritStones: cultivators.spirit_stones,
+            reputation: cultivators.reputation,
             cultivationProgress: cultivators.cultivation_progress,
             realm: cultivators.realm,
             realmStage: cultivators.realm_stage,
@@ -2158,6 +2123,7 @@ mailRouter.post('/claim', requireActiveCultivator(), async (c) => {
             mailIds: [mailId],
             gains,
             spiritStones: cultivatorState?.spiritStones,
+            reputation: cultivatorState?.reputation,
             cultivationProgress: cultivatorState?.cultivationProgress,
             realm: cultivatorState?.realm as RealmType | undefined,
             realmStage: cultivatorState?.realmStage as RealmStage | undefined,
@@ -2242,6 +2208,7 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
         const [cultivatorState] = await tx
           .select({
             spiritStones: cultivators.spirit_stones,
+            reputation: cultivators.reputation,
             cultivationProgress: cultivators.cultivation_progress,
             realm: cultivators.realm,
             realmStage: cultivators.realm_stage,
@@ -2263,6 +2230,7 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
             mailIds: claimedMailIds,
             gains,
             spiritStones: cultivatorState?.spiritStones,
+            reputation: cultivatorState?.reputation,
             cultivationProgress: cultivatorState?.cultivationProgress,
             realm: cultivatorState?.realm as RealmType | undefined,
             realmStage: cultivatorState?.realmStage as RealmStage | undefined,

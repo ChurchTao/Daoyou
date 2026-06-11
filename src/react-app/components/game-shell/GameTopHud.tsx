@@ -209,6 +209,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const insightInfo = getGameConceptInfo('comprehension_insight');
   const qiInfo = getGameConceptInfo('world_qi');
   const spiritStonesInfo = getGameConceptInfo('spirit_stones');
+  const reputationInfo = getGameConceptInfo('reputation');
   const qiRecovery = qiState?.recovery ?? null;
   const qiNextRestoreText =
     qiRecovery?.status === 'recovering'
@@ -480,6 +481,14 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
             label={`${spiritStonesInfo.icon} ${spiritStonesInfo.label}`}
             value={formatSpiritStones(snapshot.spiritStones)}
             tone="wealth"
+          />
+          <HudTag
+            label={`${reputationInfo.icon} ${reputationInfo.label}`}
+            value={formatSpiritStones(snapshot.reputation)}
+            tone="wealth"
+            onClick={() => {
+              window.location.href = '/game/tianjiao-vault';
+            }}
           />
         </div>
       </div>

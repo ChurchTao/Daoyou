@@ -29,6 +29,7 @@ export interface GameHudSnapshot {
   realmStage: string;
   title: string | null;
   spiritStones: number;
+  reputation: number;
   unreadMailCount: number;
   statusText: string;
   metrics: GameHudMetric[];
@@ -103,6 +104,7 @@ export function buildGameHudSnapshot(input: {
     realmStage: cultivator.realm_stage,
     title: cultivator.title ?? null,
     spiritStones: cultivator.spirit_stones,
+    reputation: cultivator.reputation ?? 0,
     unreadMailCount,
     statusText: statusLabels.join(' ｜ ') || '安稳',
     activeStatuses,

@@ -17,6 +17,7 @@ import {
 } from '@app/components/ui';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { consumePlayerStateMutation } from '@app/lib/player-state/store';
+import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import { RANKING_REWARDS } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
 import { ItemRankingEntry, RankingsDisplayItem } from '@shared/types/rankings';
@@ -33,6 +34,7 @@ type MyRankInfo = {
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
 type RankingTab = 'battle' | 'artifact' | 'technique' | 'skill' | 'elixir';
+const REPUTATION_INFO = getGameConceptInfo('reputation');
 
 type DirectEntryResponse = {
   type: 'direct_entry';
@@ -368,7 +370,9 @@ export default function RankingsPage() {
             <GameSceneAsideSection title="榜单摘要">
               <div className="space-y-2 text-sm leading-7">
                 <p>当前榜单：{activeTabLabel}</p>
-                <p>灵石余额：{cultivator?.spirit_stones ?? 0}</p>
+                <p>
+                  {REPUTATION_INFO.label}：{cultivator?.reputation ?? 0}
+                </p>
                 <p>当前收录：{rankings.length} 条</p>
                 {activeTab === 'battle' ? (
                   <p>
@@ -388,41 +392,47 @@ export default function RankingsPage() {
                 content: (
                   <div className="space-y-3">
                     <InkNotice tone="info" className="text-sm">
-                      每日凌晨自动结算，根据排名发放灵石奖励。
+                      每日凌晨自动结算，根据排名发放声望值。
                     </InkNotice>
                     <InkList dense>
                       <InkListItem
                         title="🏆 第一名"
-                        meta={`${RANKING_REWARDS[1]} 灵石`}
+                        meta={`${RANKING_REWARDS[1]} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
                         title="🥈 第二名"
-                        meta={`${RANKING_REWARDS[2]} 灵石`}
+                        meta={`${RANKING_REWARDS[2]} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
                         title="🥉 第三名"
-                        meta={`${RANKING_REWARDS[3]} 灵石`}
+                        meta={`${RANKING_REWARDS[3]} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
                         title="✨ 第 4-10 名"
-                        meta={`${RANKING_REWARDS['4-10']} 灵石`}
+                        meta={`${RANKING_REWARDS['4-10']} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
                         title="🔹 第 11-50 名"
-                        meta={`${RANKING_REWARDS['11-50']} 灵石`}
+                        meta={`${RANKING_REWARDS['11-50']} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
                         title="🔸 第 51-100 名"
-                        meta={`${RANKING_REWARDS['51-100']} 灵石`}
+                        meta={`${RANKING_REWARDS['51-100']} ${REPUTATION_INFO.label}`}
                       />
                     </InkList>
                   </div>
                 ),
               }}
             >
-              <p>第一名：{RANKING_REWARDS[1]} 灵石</p>
-              <p>第二名：{RANKING_REWARDS[2]} 灵石</p>
-              <p>第三名：{RANKING_REWARDS[3]} 灵石</p>
+              <p>
+                第一名：{RANKING_REWARDS[1]} {REPUTATION_INFO.label}
+              </p>
+              <p>
+                第二名：{RANKING_REWARDS[2]} {REPUTATION_INFO.label}
+              </p>
+              <p>
+                第三名：{RANKING_REWARDS[3]} {REPUTATION_INFO.label}
+              </p>
             </GameSceneAsideSection>
           </>
         }

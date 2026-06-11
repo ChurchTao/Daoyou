@@ -283,6 +283,7 @@ async function assembleCultivatorFromRelations(
     equipped,
     max_skills: cultivatorRecord.max_skills,
     spirit_stones: cultivatorRecord.spirit_stones,
+    reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
     gameSettings: normalizeCultivatorGameSettings(
@@ -330,6 +331,7 @@ async function assembleCultivatorFromRelations(
         equipped,
         max_skills: cultivatorRecord.max_skills,
         spirit_stones: cultivatorRecord.spirit_stones,
+        reputation: cultivatorRecord.reputation,
         last_yield_at: cultivatorRecord.last_yield_at || new Date(),
         balance_notes: cultivatorRecord.balance_notes || undefined,
         gameSettings: normalizeCultivatorGameSettings(
@@ -443,6 +445,7 @@ export function createMinimalCultivator(
     },
     max_skills: cultivatorRecord.max_skills,
     spirit_stones: cultivatorRecord.spirit_stones,
+    reputation: cultivatorRecord.reputation,
     last_yield_at: cultivatorRecord.last_yield_at || new Date(),
     balance_notes: cultivatorRecord.balance_notes || undefined,
     gameSettings: normalizeCultivatorGameSettings(
@@ -496,6 +499,7 @@ export function createMinimalCultivator(
         },
         max_skills: cultivatorRecord.max_skills,
         spirit_stones: cultivatorRecord.spirit_stones,
+        reputation: cultivatorRecord.reputation,
         last_yield_at: cultivatorRecord.last_yield_at || new Date(),
         balance_notes: cultivatorRecord.balance_notes || undefined,
         gameSettings: normalizeCultivatorGameSettings(
@@ -1473,6 +1477,10 @@ const RESOURCE_SAFETY = {
     maxDelta: 10_000_000,    // 单次最多变动 1000 万灵石
     ceiling: 1_000_000_000,  // 灵石绝对上限 10 亿
   },
+  reputation: {
+    maxDelta: 10_000_000,    // 单次最多变动 1000 万声望
+    ceiling: 1_000_000_000,  // 声望绝对上限 10 亿
+  },
   lifespan: {
     maxDelta: 100_000,       // 单次最多变动 10 万年寿元
     ceiling: 10_000_000,     // 寿元绝对上限 1000 万年
@@ -1534,6 +1542,48 @@ export async function updateSpiritStones(
   await dbInstance
     .update(schema.cultivators)
     .set({ spirit_stones: newValue })
+    .where(eq(schema.cultivators.id, cultivatorId));
+  return newValue;
+}
+
+/**
+ * 更新角色声望值
+ */
+export async function updateReputation(
+  userId: string,
+  cultivatorId: string,
+  delta: number,
+  tx?: DbTransaction,
+): Promise<number> {
+  await assertCultivatorOwnership(userId, cultivatorId);
+
+  const safeDelta = clampResourceDelta(delta, RESOURCE_SAFETY.reputation.maxDelta);
+
+  const dbInstance = getExecutor(tx);
+  const cultivator = await dbInstance
+    .select({ reputation: schema.cultivators.reputation })
+    .from(schema.cultivators)
+    .where(eq(schema.cultivators.id, cultivatorId))
+    .for('update')
+    .limit(1);
+
+  if (cultivator.length === 0) {
+    throw new Error('修真者不存在');
+  }
+
+  const newValue = Math.min(
+    cultivator[0].reputation + safeDelta,
+    RESOURCE_SAFETY.reputation.ceiling,
+  );
+  if (newValue < 0) {
+    throw new Error(
+      `声望值不足，需要 ${-safeDelta}，当前拥有 ${cultivator[0].reputation}`,
+    );
+  }
+
+  await dbInstance
+    .update(schema.cultivators)
+    .set({ reputation: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
   return newValue;
 }

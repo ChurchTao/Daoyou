@@ -1,13 +1,16 @@
 import { randomUUID } from 'node:crypto';
+import { getExecutor } from '@server/lib/drizzle/db';
+import { cultivators } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
 import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
-import { MailService } from '@server/lib/services/MailService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
+import { updateReputation } from '@server/lib/services/cultivatorService';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS } from '@shared/types/constants';
+import { eq } from 'drizzle-orm';
 
 const AUCTION_EXPIRE_LOCK_KEY = 'cron:auction-expire:lock';
 const BET_BATTLE_EXPIRE_LOCK_KEY = 'cron:bet-battle-expire:lock';
@@ -164,15 +167,20 @@ export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
       const rank = i + 1;
       const reward = getRewardByRank(rank);
 
-      await MailService.sendMail(
-        topCultivatorIds[i],
-        '万界金榜结算奖励',
-        `恭喜你在本期万界金榜中位列第${rank}名，奖励已随邮件发放，请及时领取。`,
-        [{ type: 'spirit_stones', name: '灵石', quantity: reward }],
-        'reward',
-      );
+      const [cultivator] = await getExecutor()
+        .select({ userId: cultivators.userId })
+        .from(cultivators)
+        .where(eq(cultivators.id, topCultivatorIds[i]))
+        .limit(1);
 
-      logs.push(`Rank ${rank}: +${reward}`);
+      if (!cultivator) {
+        logs.push(`Rank ${rank}: skipped missing cultivator`);
+        continue;
+      }
+
+      await updateReputation(cultivator.userId, topCultivatorIds[i], reward);
+
+      logs.push(`Rank ${rank}: +${reward} reputation`);
     }
 
     await redis.set(settledKey, Date.now().toString(), 'EX', SETTLED_TTL_SECONDS);

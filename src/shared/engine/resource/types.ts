@@ -5,6 +5,7 @@ import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
  *
  * 通用资源类型（资源引擎直接处理）：
  * - spirit_stones: 灵石
+ * - reputation: 声望值
  * - lifespan: 寿元
  * - cultivation_exp: 修为
  * - comprehension_insight: 感悟值
@@ -21,6 +22,7 @@ import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
  */
 export type ResourceType =
   | 'spirit_stones'
+  | 'reputation'
   | 'lifespan'
   | 'cultivation_exp'
   | 'comprehension_insight'

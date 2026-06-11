@@ -184,6 +184,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🧾 坊市鉴宝',
       },
       {
+        id: 'tianjiao-vault',
+        sceneLabel: '天骄宝阁',
+        href: '/game/tianjiao-vault',
+        expandedDockLabel: '🏵️ 天骄宝阁',
+      },
+      {
         id: 'auction',
         sceneLabel: '拍卖行',
         href: '/game/auction',
