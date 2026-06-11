@@ -1,11 +1,12 @@
-import { and, desc, eq, or, sql } from 'drizzle-orm';
 import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import { battleRecordsV2 } from '@server/lib/drizzle/schema';
 import type {
   BattleRecord,
   BattleRecordType,
+  BattleRecordUnitSummary,
   BattleRecordV2Summary,
 } from '@server/lib/services/battleResult';
+import { and, desc, eq, or, sql, type SQL } from 'drizzle-orm';
 
 export type BattleRecordV2Row = typeof battleRecordsV2.$inferSelect;
 
@@ -29,9 +30,34 @@ export interface ListBattleRecordV2Input {
 
 export interface ListBattleRecordV2Result {
   data: BattleRecordV2Summary[];
-  total: number;
-  totalPages: number;
+  hasMore: boolean;
 }
+
+const battleRecordSummaryFields = {
+  id: battleRecordsV2.id,
+  cultivatorId: battleRecordsV2.cultivatorId,
+  opponentCultivatorId: battleRecordsV2.opponentCultivatorId,
+  createdAt: battleRecordsV2.createdAt,
+  winner: sql<BattleRecordUnitSummary>`jsonb_build_object(
+    'id', ${battleRecordsV2.battleResult} #>> '{winner,id}',
+    'name', ${battleRecordsV2.battleResult} #>> '{winner,name}'
+  )`,
+  loser: sql<BattleRecordUnitSummary>`jsonb_build_object(
+    'id', ${battleRecordsV2.battleResult} #>> '{loser,id}',
+    'name', ${battleRecordsV2.battleResult} #>> '{loser,name}'
+  )`,
+  turns: sql<number>`(${battleRecordsV2.battleResult} ->> 'turns')::int`,
+};
+
+type BattleRecordSummaryRow = {
+  id: string;
+  cultivatorId: string;
+  opponentCultivatorId: string | null;
+  createdAt: Date;
+  winner: BattleRecordUnitSummary;
+  loser: BattleRecordUnitSummary;
+  turns: number | null;
+};
 
 function assertBattleResultShape(result: BattleRecord): void {
   if (!Array.isArray(result.logSpans) || !result.logSpans.length) {
@@ -64,60 +90,96 @@ export async function createBattleRecordV2(
   return row;
 }
 
-export async function listBattleRecordV2Summaries(
-  input: ListBattleRecordV2Input,
-): Promise<ListBattleRecordV2Result> {
-  const participantCondition = or(
-    eq(battleRecordsV2.cultivatorId, input.cultivatorId),
-    eq(battleRecordsV2.opponentCultivatorId, input.cultivatorId),
-  );
-
-  let whereCondition = participantCondition;
-  if (input.type === 'challenge') {
-    whereCondition = and(
-      participantCondition,
-      eq(battleRecordsV2.cultivatorId, input.cultivatorId),
-    );
-  } else if (input.type === 'challenged') {
-    whereCondition = and(
-      participantCondition,
-      eq(battleRecordsV2.opponentCultivatorId, input.cultivatorId),
-    );
-  }
-
-  const [countRow] = await getExecutor()
-    .select({ count: sql<number>`count(*)::int` })
-    .from(battleRecordsV2)
-    .where(whereCondition);
-
-  const total = Number(countRow?.count ?? 0);
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
-  const offset = (input.page - 1) * input.pageSize;
-
-  const rows = await getExecutor()
-    .select()
+async function listBattleRecordSummaryRows(
+  whereCondition: SQL,
+  limit: number,
+  offset = 0,
+): Promise<BattleRecordSummaryRow[]> {
+  return getExecutor()
+    .select(battleRecordSummaryFields)
     .from(battleRecordsV2)
     .where(whereCondition)
     .orderBy(desc(battleRecordsV2.createdAt))
-    .limit(input.pageSize)
+    .limit(limit)
     .offset(offset);
+}
 
-  const data: BattleRecordV2Summary[] = rows.map((r) => ({
-    id: r.id,
-    createdAt: r.createdAt,
+function toBattleRecordV2Summary(
+  row: BattleRecordSummaryRow,
+  cultivatorId: string,
+): BattleRecordV2Summary {
+  return {
+    id: row.id,
+    createdAt: row.createdAt,
     battleType:
-      r.opponentCultivatorId && r.cultivatorId === input.cultivatorId
+      row.opponentCultivatorId && row.cultivatorId === cultivatorId
         ? 'challenge'
-        : r.opponentCultivatorId
+        : row.opponentCultivatorId
           ? 'challenged'
           : 'normal',
-    opponentCultivatorId: r.opponentCultivatorId,
-    winner: (r.battleResult as BattleRecord).winner,
-    loser: (r.battleResult as BattleRecord).loser,
-    turns: (r.battleResult as BattleRecord).turns,
-  }));
+    opponentCultivatorId: row.opponentCultivatorId,
+    winner: {
+      id: row.winner.id,
+      name: row.winner.name,
+    },
+    loser: {
+      id: row.loser.id,
+      name: row.loser.name,
+    },
+    turns: Number(row.turns ?? 0),
+  };
+}
 
-  return { data, total, totalPages };
+export async function listBattleRecordV2Summaries(
+  input: ListBattleRecordV2Input,
+): Promise<ListBattleRecordV2Result> {
+  const offset = (input.page - 1) * input.pageSize;
+  const limit = input.pageSize + 1;
+
+  let rows: BattleRecordSummaryRow[];
+  if (input.type === 'challenge') {
+    rows = await listBattleRecordSummaryRows(
+      eq(battleRecordsV2.cultivatorId, input.cultivatorId),
+      limit,
+      offset,
+    );
+  } else if (input.type === 'challenged') {
+    rows = await listBattleRecordSummaryRows(
+      eq(battleRecordsV2.opponentCultivatorId, input.cultivatorId),
+      limit,
+      offset,
+    );
+  } else {
+    const fetchLimit = input.page * input.pageSize + 1;
+    const [initiatedRows, receivedRows] = await Promise.all([
+      listBattleRecordSummaryRows(
+        eq(battleRecordsV2.cultivatorId, input.cultivatorId),
+        fetchLimit,
+      ),
+      listBattleRecordSummaryRows(
+        eq(battleRecordsV2.opponentCultivatorId, input.cultivatorId),
+        fetchLimit,
+      ),
+    ]);
+    const byId = new Map<string, BattleRecordSummaryRow>();
+    for (const row of [...initiatedRows, ...receivedRows]) {
+      byId.set(row.id, row);
+    }
+    rows = [...byId.values()]
+      .sort(
+        (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+      )
+      .slice(offset, offset + limit);
+  }
+
+  const hasMore = rows.length > input.pageSize;
+  const pageRows = hasMore ? rows.slice(0, input.pageSize) : rows;
+
+  const data = pageRows.map((row) =>
+    toBattleRecordV2Summary(row, input.cultivatorId),
+  );
+
+  return { data, hasMore };
 }
 
 export async function getBattleRecordV2ByIdForCultivator(

@@ -1,5 +1,5 @@
 import Link from '@app/components/router/AppLink';
-import type { BattleRecord } from '@shared/types/battle';
+import type { BattleRecordUnitSummary } from '@shared/types/battle';
 
 export type ZhanjiRecord = {
   id: string;
@@ -7,7 +7,10 @@ export type ZhanjiRecord = {
   battleType?: 'challenge' | 'challenged' | 'normal' | string;
   challengeType?: 'challenge' | 'challenged' | 'normal' | string;
   opponentCultivatorId?: string | null;
-} & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
+  winner: BattleRecordUnitSummary;
+  loser: BattleRecordUnitSummary;
+  turns: number;
+};
 
 interface ZhanjiProps {
   record: ZhanjiRecord;
@@ -56,7 +59,7 @@ export default function Zhanji({ record, currentCultivatorId }: ZhanjiProps) {
   return (
     <Link
       href={`/game/battle/${record.id}`}
-      className="border-ink/10 text-ink hover:border-crimson/40 hover:bg-white/85 block border bg-white/70 px-3 py-2 transition"
+      className="border-ink/10 text-ink hover:border-crimson/40 block border bg-white/70 px-3 py-2 transition hover:bg-white/85"
     >
       <div className="flex items-center gap-2 text-sm leading-6 whitespace-nowrap">
         <span className={`${outcomeColor} shrink-0 font-semibold`}>

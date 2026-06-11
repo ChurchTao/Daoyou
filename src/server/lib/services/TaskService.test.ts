@@ -543,11 +543,64 @@ describe('TaskService', () => {
     );
   });
 
-  it('hides completed major breakthrough tasks from the default task list', async () => {
+  it('hides completed non-current major breakthrough tasks from the default task list', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        realm: '筑基',
+        realm_stage: '初期',
+      }),
+    );
     taskStore.set(
       'task-old-major',
       createFoundationTaskRecord({
         id: 'task-old-major',
+        status: 'completed',
+        currentStage: null,
+        objectives: [
+          {
+            objectiveId: 'breakthrough-focus',
+            completed: true,
+            progressValue: 1,
+            completedAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          {
+            objectiveId: 'clear-garden',
+            completed: true,
+            progressValue: 1,
+            completedAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+        ],
+        completedAt: new Date('2026-05-20T00:00:00.000Z'),
+        metadata: {
+          fromRealm: '炼气',
+          toRealm: '筑基',
+          taskTheme: 'foundation',
+        },
+      }),
+    );
+
+    const tasks = await TaskService.listCultivatorTasks('cultivator-1');
+
+    expect(listCultivatorTasksMock).toHaveBeenLastCalledWith('cultivator-1', {
+      q: undefined,
+    });
+    expect(tasks.map((task) => task.id)).not.toContain('task-old-major');
+  });
+
+  it('keeps the completed current major breakthrough task in the default task list', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        realm: '筑基',
+        realm_stage: '圆满',
+      }),
+    );
+    listCultivatorTechniqueQualitiesMock.mockResolvedValue([{ quality: '玄品' }]);
+    taskStore.set(
+      'task-current-major',
+      createFoundationTaskRecord({
+        id: 'task-current-major',
         definitionId: 'major_breakthrough_筑基_金丹',
         status: 'completed',
         currentStage: null,
@@ -582,15 +635,21 @@ describe('TaskService', () => {
         },
       }),
     );
-    taskStore.set('task-major-1', createFoundationTaskRecord());
 
     const tasks = await TaskService.listCultivatorTasks('cultivator-1');
 
-    expect(listCultivatorTasksMock).toHaveBeenLastCalledWith('cultivator-1', {
-      q: undefined,
-      hideCompletedBreakthrough: true,
+    expect(tasks.map((task) => task.id)).toContain('task-current-major');
+    expect(
+      tasks.find((task) => task.id === 'task-current-major'),
+    ).toMatchObject({
+      status: 'completed',
+      snapshot: {
+        isCompleted: true,
+        currentStageId: null,
+        fromRealm: '筑基',
+        toRealm: '金丹',
+      },
     });
-    expect(tasks.map((task) => task.id)).not.toContain('task-old-major');
   });
 
   it('creates the three fixed daily task records during sync', async () => {

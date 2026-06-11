@@ -2,15 +2,18 @@ import Zhanji from '@app/components/func/Zhanji';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkList } from '@app/components/ui/InkList';
 import { InkNotice } from '@app/components/ui/InkNotice';
-import type { BattleRecord } from '@shared/types/battle';
 import { fetchJsonCached } from '@app/lib/client/requestCache';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
+import type { BattleRecordUnitSummary } from '@shared/types/battle';
 import { useEffect, useState } from 'react';
 
 type BattleSummary = {
   id: string;
   createdAt: string | null;
-} & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
+  winner: BattleRecordUnitSummary;
+  loser: BattleRecordUnitSummary;
+  turns: number;
+};
 
 export function RecentBattles() {
   const [records, setRecords] = useState<BattleSummary[]>([]);

@@ -36,8 +36,8 @@ export function TasksView() {
 
       return left.status === 'active' ? -1 : 1;
     });
-  const activeBreakthroughTasks = tasks.filter(
-    (task) => task.category === 'breakthrough_major' && task.status === 'active',
+  const breakthroughTasks = tasks.filter(
+    (task) => task.category === 'breakthrough_major',
   );
   const nextTutorialTask = findNextTutorialTask(tasks);
 
@@ -88,13 +88,13 @@ export function TasksView() {
 
       {!loading && !error ? (
         <GameSceneSection title="破境卷宗">
-          {activeBreakthroughTasks.length === 0 ? (
+          {breakthroughTasks.length === 0 ? (
             <p className="text-sm leading-7 text-ink-secondary">
               眼前没有待办的破境卷宗。若已临大境界圆满，回静室或稍后刷新即可整理新卷。
             </p>
           ) : (
             <div className="space-y-4">
-              {activeBreakthroughTasks.map((task) => (
+              {breakthroughTasks.map((task) => (
                 <BreakthroughTaskCard key={task.id} task={task} />
               ))}
             </div>

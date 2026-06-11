@@ -1,12 +1,12 @@
+import Zhanji from '@app/components/func/Zhanji';
 import {
   GameSceneAsideSection,
   GameSceneFrame,
   GameSceneTabs,
 } from '@app/components/game-shell';
-import Zhanji from '@app/components/func/Zhanji';
-import { InkList, InkNotice } from '@app/components/ui';
+import { InkButton, InkList, InkNotice } from '@app/components/ui';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
-import type { BattleRecord } from '@shared/types/battle';
+import type { BattleRecordUnitSummary } from '@shared/types/battle';
 import { useEffect, useState } from 'react';
 
 type BattleSummary = {
@@ -14,7 +14,10 @@ type BattleSummary = {
   createdAt: string | null;
   battleType?: 'challenge' | 'challenged' | 'normal';
   opponentCultivatorId?: string | null;
-} & Pick<BattleRecord, 'winner' | 'loser' | 'turns'>;
+  winner: BattleRecordUnitSummary;
+  loser: BattleRecordUnitSummary;
+  turns: number;
+};
 
 type BattleListResponse = {
   success: boolean;
@@ -22,27 +25,33 @@ type BattleListResponse = {
   pagination?: {
     page: number;
     pageSize: number;
-    total: number;
-    totalPages: number;
+    hasMore: boolean;
   };
 };
 
 type TabType = 'all' | 'challenge' | 'challenged';
 
+const PAGE_SIZE = 5;
+
 export default function BattleHistoryPage() {
   const [records, setRecords] = useState<BattleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<
+    BattleListResponse['pagination'] | null
+  >(null);
   const { cultivator } = usePlayerStateView();
 
   useEffect(() => {
     let cancelled = false;
 
     const loadBattleHistory = async () => {
+      setLoading(true);
       try {
         const typeParam = activeTab === 'all' ? '' : `&type=${activeTab}`;
         const res = await fetch(
-          `/api/battle-records/v2?page=1&pageSize=100${typeParam}`,
+          `/api/battle-records/v2?page=${page}&pageSize=${PAGE_SIZE}${typeParam}`,
           { cache: 'no-store' },
         );
         if (!res.ok || cancelled) return;
@@ -52,6 +61,7 @@ export default function BattleHistoryPage() {
 
         if (data.success && Array.isArray(data.data)) {
           setRecords(data.data);
+          setPagination(data.pagination ?? null);
         }
       } catch (e) {
         if (!cancelled) {
@@ -69,7 +79,10 @@ export default function BattleHistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab]);
+  }, [activeTab, page]);
+
+  const currentPage = pagination?.page ?? page;
+  const hasMore = Boolean(pagination?.hasMore);
 
   return (
     <GameSceneFrame
@@ -80,8 +93,16 @@ export default function BattleHistoryPage() {
         <>
           <GameSceneAsideSection title="卷宗摘要">
             <div className="space-y-2 text-sm leading-7">
-              <p>当前筛选：{activeTab === 'all' ? '全部' : activeTab === 'challenge' ? '我的挑战' : '我被挑战'}</p>
-              <p>收录战绩：{records.length} 场</p>
+              <p>
+                当前筛选：
+                {activeTab === 'all'
+                  ? '全部'
+                  : activeTab === 'challenge'
+                    ? '我的挑战'
+                    : '我被挑战'}
+              </p>
+              <p>本页战绩：{records.length} 场</p>
+              <p>当前页：{currentPage}</p>
             </div>
           </GameSceneAsideSection>
           <GameSceneAsideSection
@@ -101,7 +122,10 @@ export default function BattleHistoryPage() {
     >
       <GameSceneTabs
         activeValue={activeTab}
-        onChange={(val) => setActiveTab(val as TabType)}
+        onChange={(val) => {
+          setActiveTab(val as TabType);
+          setPage(1);
+        }}
         items={[
           { label: '全部', value: 'all' },
           { label: '我的挑战', value: 'challenge' },
@@ -123,6 +147,21 @@ export default function BattleHistoryPage() {
           ))}
         </InkList>
       )}
+      <div className="border-ink/10 mt-3 flex items-center justify-between border-t pt-2 text-sm">
+        <InkButton
+          onClick={() => setPage((value) => Math.max(1, value - 1))}
+          disabled={loading || currentPage <= 1}
+        >
+          上一页
+        </InkButton>
+        <span className="text-ink-secondary">第 {currentPage} 页</span>
+        <InkButton
+          onClick={() => setPage((value) => value + 1)}
+          disabled={loading || !hasMore}
+        >
+          下一页
+        </InkButton>
+      </div>
     </GameSceneFrame>
   );
 }

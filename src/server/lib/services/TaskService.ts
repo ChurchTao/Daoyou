@@ -1299,9 +1299,24 @@ async function syncCultivatorTasksWithContext(
   await ensureCurrentTaskRecords(context, options);
   const records = await listCultivatorTasks(context.cultivatorId, {
     q: options.tx,
-    hideCompletedBreakthrough: options.hideCompletedBreakthrough,
   });
-  return Promise.all(records.map((record) => syncTaskRecord(context, record, options)));
+  const tasks = await Promise.all(
+    records.map((record) => syncTaskRecord(context, record, options)),
+  );
+
+  if (!options.hideCompletedBreakthrough) {
+    return tasks;
+  }
+
+  const currentMajorDefinition = getCurrentMajorDefinition(context);
+  return tasks.filter(
+    (task) =>
+      !(
+        task.category === 'breakthrough_major' &&
+        task.status === 'completed' &&
+        task.definitionId !== currentMajorDefinition?.id
+      ),
+  );
 }
 
 async function resolveMissingTaskRewardAttachments(

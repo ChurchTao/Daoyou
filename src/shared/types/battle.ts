@@ -1,14 +1,14 @@
-import type { LogSpan } from '@shared/engine/battle-v5/systems/log/types';
-import type {
-  BattleStateTimeline,
-  UnitStateSnapshot,
-} from '@shared/engine/battle-v5/systems/state/types';
 import type {
   BattleInitConfigV5,
   BattleUnitInitSpec,
   PersistentCombatStatusV5,
   ResourcePointState,
 } from '@shared/engine/battle-v5/setup/types';
+import type { LogSpan } from '@shared/engine/battle-v5/systems/log/types';
+import type {
+  BattleStateTimeline,
+  UnitStateSnapshot,
+} from '@shared/engine/battle-v5/systems/state/types';
 import type { Cultivator } from '@shared/types/cultivator';
 
 export type {
@@ -33,13 +33,15 @@ export interface BattleRecord {
 
 export type BattleRecordType = 'challenge' | 'challenged' | 'normal';
 
+export type BattleRecordUnitSummary = Pick<Cultivator, 'id' | 'name'>;
+
 export interface BattleRecordV2Summary {
   id: string;
   createdAt: Date | null;
   battleType: BattleRecordType;
   opponentCultivatorId: string | null;
-  winner: Cultivator;
-  loser: Cultivator;
+  winner: BattleRecordUnitSummary;
+  loser: BattleRecordUnitSummary;
   turns: number;
 }
 
