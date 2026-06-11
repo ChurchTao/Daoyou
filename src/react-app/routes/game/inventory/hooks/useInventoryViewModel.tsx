@@ -1,6 +1,10 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import {
+  usePlayerStateDomainVersion,
+  usePlayerStateView,
+  type PlayerStateView,
+} from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
@@ -88,9 +92,9 @@ async function fetchInventoryWithDedupe(
 
 export interface UseInventoryViewModelReturn {
   // 数据
-  cultivator: ReturnType<typeof useCultivator>['cultivator'];
+  cultivator: PlayerStateView['cultivator'];
   inventory: InventoryByTab;
-  equipped: ReturnType<typeof useCultivator>['equipped'];
+  equipped: PlayerStateView['equipped'];
   isLoading: boolean;
   isTabLoading: boolean;
   note: string | undefined;
@@ -143,8 +147,9 @@ export interface UseInventoryViewModelReturn {
 export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const PAGE_SIZE = 20;
 
-  const { cultivator, equipped, isLoading, refreshInventory, note } =
-    useCultivator();
+  const { cultivator, equipped, isLoading, note } = usePlayerStateView();
+  const inventoryVersion = usePlayerStateDomainVersion('inventory');
+  const productsVersion = usePlayerStateDomainVersion('products');
 
   const { pushToast } = useInkUI();
   const { mutate } = usePlayerStateActions();
@@ -325,7 +330,15 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     return () => {
       cancelled = true;
     };
-  }, [PAGE_SIZE, activeTab, cultivator?.id, materialFilters, pushToast]);
+  }, [
+    PAGE_SIZE,
+    activeTab,
+    cultivator?.id,
+    inventoryVersion,
+    materialFilters,
+    productsVersion,
+    pushToast,
+  ]);
 
   // 打开物品详情
   const openItemDetail = useCallback((item: ItemDetailPayload) => {
@@ -366,8 +379,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         );
 
         pushToast({ message: '物品已丢弃', tone: 'success' });
-        await refreshInventory([activeTab]);
-        await fetchTabPage(activeTab, paginationByTab[activeTab].page);
       } catch (error) {
         pushToast({
           message:
@@ -382,13 +393,9 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       }
     },
     [
-      activeTab,
       cultivator,
-      fetchTabPage,
       mutate,
-      paginationByTab,
       pushToast,
-      refreshInventory,
     ],
   );
 
@@ -437,7 +444,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         );
 
         pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
-        await fetchTabPage('artifacts', paginationByTab.artifacts.page);
       } catch (error) {
         pushToast({
           message:
@@ -452,9 +458,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     },
     [
       cultivator,
-      fetchTabPage,
       mutate,
-      paginationByTab.artifacts.page,
       pushToast,
     ],
   );
@@ -504,7 +508,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
           tone: 'success',
         });
 
-        await fetchTabPage('consumables', paginationByTab.consumables.page);
       } catch (error) {
         pushToast({
           message:
@@ -517,9 +520,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     },
     [
       cultivator,
-      fetchTabPage,
       mutate,
-      paginationByTab.consumables.page,
       pushToast,
     ],
   );
@@ -572,7 +573,6 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
           });
         }
 
-        await fetchTabPage('materials', paginationByTab.materials.page);
       } catch (error) {
         pushToast({
           message:
@@ -585,9 +585,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     },
     [
       cultivator,
-      fetchTabPage,
       mutate,
-      paginationByTab.materials.page,
       pushToast,
     ],
   );

@@ -12,7 +12,7 @@ import {
   InkNotice,
   InkTag,
 } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
@@ -226,7 +226,7 @@ function ResultMiniCard({ material }: { material: Material }) {
 export default function ManualDrawPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { cultivator, note, isLoading } = useCultivator();
+  const { cultivator, note, isLoading } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
   const [activeTab, setActiveTab] = useState<ManualDrawKind>(

@@ -1,4 +1,4 @@
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import type { BattleRecord } from '@shared/types/battle';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -34,7 +34,7 @@ export interface UseBattleViewModelReturn {
  */
 export function useBattleViewModel(): UseBattleViewModelReturn {
   const [searchParams] = useSearchParams();
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
 
   const [player, setPlayer] = useState<Cultivator | null>(null);
   const [opponent, setOpponent] = useState<EnemyData | null>(null);

@@ -4,7 +4,11 @@ import {
   type ProductDisplayModel,
 } from '@app/components/feature/products';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import {
+  usePlayerStateDomainVersion,
+  usePlayerStateView,
+  type PlayerStateView,
+} from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { MAX_OWNED_CREATION_PRODUCTS_PER_TYPE } from '@shared/config/creationProductLimits';
 import { useCallback, useEffect, useState } from 'react';
@@ -12,7 +16,7 @@ import { useCallback, useEffect, useState } from 'react';
 export type V2Skill = ProductDisplayModel & { id: string };
 
 export interface UseSkillsViewModelReturn {
-  cultivator: ReturnType<typeof useCultivator>['cultivator'];
+  cultivator: PlayerStateView['cultivator'];
   skills: V2Skill[];
   isLoading: boolean;
   note: string | undefined;
@@ -28,11 +32,11 @@ export interface UseSkillsViewModelReturn {
   closeSkillDetail: () => void;
   toggleSkillEnabled: (skill: V2Skill) => Promise<void>;
   openForgetConfirm: (skill: V2Skill) => void;
-  refreshSkills: () => void;
 }
 
 export function useSkillsViewModel(): UseSkillsViewModelReturn {
-  const { cultivator, isLoading, note } = useCultivator();
+  const { cultivator, isLoading, note } = usePlayerStateView();
+  const productsVersion = usePlayerStateDomainVersion('products');
   const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
@@ -47,36 +51,15 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
   const maxOwnedSkills = MAX_OWNED_CREATION_PRODUCTS_PER_TYPE;
   const enabledSkillCount = skills.filter((skill) => skill.isEquipped).length;
 
-  const fetchSkills = useCallback(async () => {
-    if (!cultivator) return;
-    setSkillsLoading(true);
-    try {
-      const res = await fetch('/api/v2/products?type=skill');
-      const data = await res.json();
-      if (data.success) {
-        const parsed: V2Skill[] = (data.data ?? []).map(
-          (r: Record<string, unknown>) => ({
-            id: r.id as string,
-            ...toProductDisplayModel(r),
-          }),
-        );
-        setSkills(parsed);
-      }
-    } catch (e) {
-      console.error('加载神通失败:', e);
-    } finally {
-      setSkillsLoading(false);
-    }
-  }, [cultivator]);
-
   useEffect(() => {
-    if (!cultivator) {
+    if (!cultivator?.id) {
       return;
     }
 
     let cancelled = false;
 
-    const loadInitialSkills = async () => {
+    const loadSkills = async () => {
+      setSkillsLoading(true);
       try {
         const res = await fetch('/api/v2/products?type=skill');
         const data = await res.json();
@@ -92,8 +75,9 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
           setSkills(parsed);
         }
       } catch (e) {
-        if (cancelled) return;
-        console.error('加载神通失败:', e);
+        if (!cancelled) {
+          console.error('加载神通失败:', e);
+        }
       } finally {
         if (!cancelled) {
           setSkillsLoading(false);
@@ -101,12 +85,12 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
       }
     };
 
-    void loadInitialSkills();
+    void loadSkills();
 
     return () => {
       cancelled = true;
     };
-  }, [cultivator]);
+  }, [cultivator?.id, productsVersion]);
 
   const closeDialog = useCallback(() => setDialog(null), []);
 
@@ -143,7 +127,6 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
             : `【${skill.name}】已停用`,
           tone: 'success',
         });
-        await fetchSkills();
       } catch (e) {
         pushToast({
           message: e instanceof Error ? e.message : '神通启停失败',
@@ -153,7 +136,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         setPendingToggleId(null);
       }
     },
-    [cultivator, mutate, pushToast, fetchSkills],
+    [cultivator, mutate, pushToast],
   );
 
   const openForgetConfirm = useCallback(
@@ -178,7 +161,6 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
               message: `【${skill.name}】已从道基消散`,
               tone: 'default',
             });
-            await fetchSkills();
           } catch (e) {
             pushToast({
               message: e instanceof Error ? e.message : '遗忘失败',
@@ -188,7 +170,7 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
         },
       });
     },
-    [openDialog, mutate, pushToast, fetchSkills],
+    [openDialog, mutate, pushToast],
   );
 
   return {
@@ -208,6 +190,5 @@ export function useSkillsViewModel(): UseSkillsViewModelReturn {
     closeSkillDetail,
     toggleSkillEnabled,
     openForgetConfirm,
-    refreshSkills: fetchSkills,
   };
 }

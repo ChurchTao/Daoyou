@@ -12,7 +12,7 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import { TypewriterText } from '@app/components/ui/TypewriterText';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePaginatedInventoryArtifacts } from '@app/lib/hooks/usePaginatedInventoryArtifacts';
 import { usePaginatedInventoryMaterials } from '@app/lib/hooks/usePaginatedInventoryMaterials';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
@@ -168,7 +168,7 @@ async function fetchAllLowTierArtifactIds(
 }
 
 export default function MarketRecyclePage() {
-  const { cultivator, equipped } = useCultivator();
+  const { cultivator, equipped } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const [activeTab, setActiveTab] = useState<RecycleTab>('materials');
   const [dialog, setDialog] = useState<RecycleDialogState | null>(null);

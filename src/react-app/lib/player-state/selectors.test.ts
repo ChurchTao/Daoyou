@@ -1,10 +1,8 @@
 import type { PlayerCultivatorView } from '@shared/contracts/player';
 import type { Cultivator } from '@shared/types/cultivator';
 import { describe, expect, it } from 'vitest';
-import {
-  buildFetchStateFromPlayerView,
-  buildLegacyFetchStateFromPlayerState,
-} from './useCultivatorBundle';
+import type { PlayerStateStoreData } from './store';
+import { selectActiveCultivatorProfile, selectCultivatorDisplay } from './selectors';
 
 function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
   return {
@@ -28,22 +26,14 @@ function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
     cultivations: [],
     skills: [],
     inventory: {
-      artifacts: [
-        {
-          id: 'artifact-1',
-          name: '玄木佩',
-          slot: 'accessory',
-          element: '木',
-          attributeModifiers: [],
-        },
-      ],
+      artifacts: [],
       consumables: [],
       materials: [],
     },
     equipped: {
       weapon: null,
       armor: null,
-      accessory: 'artifact-1',
+      accessory: null,
     },
     max_skills: 3,
     spirit_stones: 120,
@@ -118,34 +108,36 @@ function createCultivatorView(): PlayerCultivatorView {
   };
 }
 
-describe('buildFetchStateFromPlayerView', () => {
-  it('keeps the raw cultivator and server-derived display snapshot together', () => {
-    const cultivatorView = createCultivatorView();
+function createStoreState(
+  overrides: Partial<PlayerStateStoreData>,
+): PlayerStateStoreData {
+  return {
+    userId: 'user-1',
+    cultivatorId: 'cultivator-1',
+    globalVersion: 1,
+    domainVersions: {
+      profile: 1,
+      condition: 0,
+      progress: 0,
+      currency: 0,
+      inventory: 0,
+      products: 0,
+      mail: 0,
+      tasks: 0,
+    },
+    snapshot: {},
+    loading: false,
+    isRefreshing: false,
+    isRecovering: false,
+    refreshingDomains: new Set(),
+    staleDomains: new Set(),
+    lastSyncAt: null,
+    error: null,
+    ...overrides,
+  };
+}
 
-    const state = buildFetchStateFromPlayerView({
-      cultivatorView,
-      unreadMailCount: 4,
-    });
-
-    expect(state.cultivator?.id).toBe('cultivator-1');
-    expect(state.display).toBe(cultivatorView.display);
-    expect(state.display?.attrs.maxMp).toBe(777);
-    expect(state.display?.resources.mp).toEqual({
-      current: 512,
-      max: 777,
-      percent: 65.89,
-    });
-    expect(state.inventory.artifacts).toHaveLength(1);
-    expect(state.inventoryLoaded).toEqual({
-      artifacts: true,
-      materials: false,
-      consumables: false,
-    });
-    expect(state.unreadMailCount).toBe(4);
-  });
-});
-
-describe('buildLegacyFetchStateFromPlayerState', () => {
+describe('player state selectors', () => {
   it('derives display resources from patched condition instead of stale profile display', () => {
     const cultivatorView = createCultivatorView();
     const nextCondition = {
@@ -156,9 +148,7 @@ describe('buildLegacyFetchStateFromPlayerState', () => {
       },
     };
 
-    const state = buildLegacyFetchStateFromPlayerState({
-      userId: 'user-1',
-      cultivatorId: 'cultivator-1',
+    const state = createStoreState({
       globalVersion: 2,
       domainVersions: {
         profile: 1,
@@ -174,26 +164,20 @@ describe('buildLegacyFetchStateFromPlayerState', () => {
         profile: cultivatorView,
         condition: nextCondition,
       },
-      loading: false,
-      isRefreshing: false,
-      isRecovering: false,
-      refreshingDomains: new Set(),
-      staleDomains: new Set(),
-      lastSyncAt: null,
-      error: null,
     });
 
-    expect(state.cultivator?.condition).toBe(nextCondition);
-    expect(state.display?.resources.hp.current).toBe(12);
-    expect(state.display?.resources.mp.current).toBe(34);
+    const cultivator = selectActiveCultivatorProfile(state);
+    const display = selectCultivatorDisplay(state);
+
+    expect(cultivator?.condition).toBe(nextCondition);
+    expect(display?.resources.hp.current).toBe(12);
+    expect(display?.resources.mp.current).toBe(34);
   });
 
   it('restores live exp cap when event progress patches omit persisted exp_cap', () => {
     const cultivatorView = createCultivatorView();
 
-    const state = buildLegacyFetchStateFromPlayerState({
-      userId: 'user-1',
-      cultivatorId: 'cultivator-1',
+    const state = createStoreState({
       globalVersion: 2,
       domainVersions: {
         profile: 1,
@@ -212,16 +196,11 @@ describe('buildLegacyFetchStateFromPlayerState', () => {
           comprehension_insight: 8,
         },
       },
-      loading: false,
-      isRefreshing: false,
-      isRecovering: false,
-      refreshingDomains: new Set(),
-      staleDomains: new Set(),
-      lastSyncAt: null,
-      error: null,
     });
 
-    expect(state.cultivator?.cultivation_progress?.exp_cap).toBe(250);
-    expect(state.cultivator?.cultivation_progress?.cultivation_exp).toBe(120);
+    const cultivator = selectActiveCultivatorProfile(state);
+
+    expect(cultivator?.cultivation_progress?.exp_cap).toBe(250);
+    expect(cultivator?.cultivation_progress?.cultivation_exp).toBe(120);
   });
 });

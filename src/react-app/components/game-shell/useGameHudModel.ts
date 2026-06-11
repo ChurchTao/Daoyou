@@ -1,4 +1,4 @@
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView, type PlayerStateView } from '@app/lib/player-state/selectors';
 import {
   getPillToxicityStage,
   isConditionStatusActive,
@@ -52,8 +52,8 @@ function formatHudResourcePair(current: number, max: number): string {
 }
 
 export function buildGameHudSnapshot(input: {
-  cultivator: ReturnType<typeof useCultivator>['cultivator'];
-  display: ReturnType<typeof useCultivator>['display'];
+  cultivator: PlayerStateView['cultivator'];
+  display: PlayerStateView['display'];
   unreadMailCount: number;
   now?: Date;
 }): GameHudSnapshot | null {
@@ -140,7 +140,7 @@ export function buildGameHudSnapshot(input: {
 }
 
 export function useGameHudModel() {
-  const { cultivator, display, unreadMailCount } = useCultivator();
+  const { cultivator, display, unreadMailCount } = usePlayerStateView();
 
   return buildGameHudSnapshot({
     cultivator,

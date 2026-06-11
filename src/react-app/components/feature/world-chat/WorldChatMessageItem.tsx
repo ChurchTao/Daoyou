@@ -1,6 +1,6 @@
 import type { Tier } from '@app/components/ui/InkBadge';
 import { InkBadge, tierColorMap } from '@app/components/ui/InkBadge';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
 import type { ItemDetailPayload } from '@app/routes/game/inventory/components/itemDetailPayload';
 import { cn } from '@shared/lib/cn';
@@ -161,7 +161,7 @@ interface WorldChatMessageItemProps {
 }
 
 export function WorldChatMessageItem({ message }: WorldChatMessageItemProps) {
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const [detailItem, setDetailItem] = useState<ItemDetailPayload | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const isSystemRumor =

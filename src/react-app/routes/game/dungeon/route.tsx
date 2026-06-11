@@ -1,4 +1,4 @@
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { useDungeonViewModel } from '@app/lib/hooks/dungeon/useDungeonViewModel';
 import { Suspense, useCallback } from 'react';
@@ -20,7 +20,7 @@ function DungeonContent() {
     cultivator,
     display,
     isLoading: isCultivatorLoading,
-  } = useCultivator();
+  } = usePlayerStateView();
   const { tasks } = useTaskList(cultivator?.id);
   const [searchParams] = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');

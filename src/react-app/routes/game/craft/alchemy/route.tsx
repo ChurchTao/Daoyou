@@ -35,7 +35,7 @@ import {
   STARTER_ALCHEMY_PROMPT,
   selectRecommendedStarterAlchemyMaterials,
 } from '@app/lib/alchemy/starterAlchemy';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
@@ -591,7 +591,7 @@ export function AlchemyFormulaDiscoveryModal({
 }
 
 export default function AlchemyPage() {
-  const { cultivator, note, isLoading } = useCultivator();
+  const { cultivator, note, isLoading } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const cultivatorId = cultivator?.id ?? null;
   const { tasks } = useTaskList(cultivatorId ?? undefined);

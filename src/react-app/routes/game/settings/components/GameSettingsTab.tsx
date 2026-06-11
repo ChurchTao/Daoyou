@@ -1,6 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import { useActiveCultivatorProfile } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { usePlayer } from '@app/lib/player/usePlayer';
 import { cn } from '@shared/lib/cn';
 import type {
   PlayerSettingsResponse,
@@ -102,7 +102,7 @@ function StrategyRange({
 }
 
 export function GameSettingsTab() {
-  const { cultivator } = usePlayer();
+  const cultivator = useActiveCultivatorProfile();
   const { mutate } = usePlayerStateActions();
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [strategy, setStrategy] = useState<BattleAbilityStrategySettings>(() =>

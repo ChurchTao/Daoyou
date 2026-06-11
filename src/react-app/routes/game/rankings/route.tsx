@@ -15,7 +15,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import { RANKING_REWARDS } from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -43,7 +43,7 @@ type DirectEntryResponse = {
 export default function RankingsPage() {
   const navigate = useNavigate();
   const { pushToast } = useInkUI();
-  const { cultivator, isLoading, note } = useCultivator();
+  const { cultivator, isLoading, note } = usePlayerStateView();
   const [activeTab, setActiveTab] = useState<RankingTab>('battle');
   const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);

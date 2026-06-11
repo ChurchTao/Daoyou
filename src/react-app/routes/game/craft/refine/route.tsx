@@ -24,7 +24,7 @@ import {
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { EquipmentSlot } from '@shared/types/constants';
@@ -60,7 +60,7 @@ type PreviewValidation = {
 };
 
 export default function RefinePage() {
-  const { cultivator, note, isLoading } = useCultivator();
+  const { cultivator, note, isLoading } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [selectedMaterialMap, setSelectedMaterialMap] = useState<

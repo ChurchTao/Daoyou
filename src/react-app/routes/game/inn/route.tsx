@@ -1,7 +1,7 @@
 import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   calculateInnRecoverySpiritStoneCost,
@@ -23,7 +23,7 @@ type InnRecoveryResponse = {
 };
 
 export default function InnRecoveryPage() {
-  const { cultivator, display, isLoading } = useCultivator();
+  const { cultivator, display, isLoading } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const { openDialog, pushToast } = useInkUI();
   const [isSubmitting, setIsSubmitting] = useState(false);

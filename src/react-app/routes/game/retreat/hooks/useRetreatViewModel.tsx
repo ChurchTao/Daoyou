@@ -3,7 +3,7 @@ import {
   getQiErrorMessage,
   useQiActionConfirm,
 } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView, type PlayerStateView } from '@app/lib/player-state/selectors';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
@@ -42,7 +42,7 @@ export interface BreakthroughChancePreviewData {
 }
 
 export interface UseRetreatViewModelReturn {
-  cultivator: ReturnType<typeof useCultivator>['cultivator'];
+  cultivator: PlayerStateView['cultivator'];
   isLoading: boolean;
   note: string | undefined;
   remainingLifespan: number;
@@ -83,7 +83,7 @@ type RetreatRequestOutcome =
   | { ok: false; payload: RetreatFailurePayload | null };
 
 export function useRetreatViewModel(): UseRetreatViewModelReturn {
-  const { cultivator, isLoading, note } = useCultivator();
+  const { cultivator, isLoading, note } = usePlayerStateView();
   const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
   const { consumeStateMeta } = usePlayerStateActions();
@@ -92,7 +92,6 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     tasks,
     loading: tasksLoading,
     error: taskError,
-    reload: reloadTasks,
   } = useTaskList(cultivator?.id);
   const [retreatYears, setRetreatYears] = useState('10');
   const [retreatResult, setRetreatResult] = useState<RetreatResultData | null>(
@@ -365,7 +364,6 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
 
       if (!outcome.ok) {
         if (outcome.payload?.errorCode === 'MAJOR_BREAKTHROUGH_TASK_REQUIRED') {
-          await reloadTasks();
           pushToast({
             message:
               typeof outcome.payload.error === 'string'
@@ -385,7 +383,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         tone: 'danger',
       });
     }
-  }, [cultivator, pushToast, reloadTasks, streamRetreatAction]);
+  }, [cultivator, pushToast, streamRetreatAction]);
 
   const closeRetreatResult = useCallback(() => {
     if (retreatResultStreaming || retreatResult?.depleted) {

@@ -21,7 +21,7 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { isPillConsumable } from '@shared/lib/consumables';
 import {
@@ -52,7 +52,7 @@ type AuctionListing = {
 const SPIRIT_STONES_INFO = getGameConceptInfo('spirit_stones');
 
 export default function AuctionPage() {
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const [activeTab, setActiveTab] = useState('browse');
   const [browseListings, setBrowseListings] = useState<AuctionListing[]>([]);
   const [myListings, setMyListings] = useState<AuctionListing[]>([]);

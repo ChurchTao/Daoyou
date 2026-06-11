@@ -4,7 +4,7 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/useBattle
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { useTowerBattle } from '@app/lib/hooks/tower/useTowerBattle';
 import { useTowerBattleContext } from '@app/lib/hooks/tower/useTowerBattleContext';
 import { useEffect, useRef, useState } from 'react';
@@ -15,7 +15,7 @@ export default function TowerBattlePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const battleId = searchParams.get('battleId');
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const { context, error: contextError, loading: contextLoading } =
     useTowerBattleContext(battleId);
   const { battleResult, loading: battleLoading, executeBattle } = useTowerBattle();

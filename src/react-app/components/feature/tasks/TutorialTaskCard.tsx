@@ -1,6 +1,6 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { claimTaskReward } from '@app/lib/tasks/taskClient';
 import { cn } from '@shared/lib/cn';
 import { getNoviceEquipmentState } from '@shared/lib/noviceGuidance';
@@ -33,14 +33,12 @@ function StatusPill({
 export function TutorialTaskCard({
   task,
   className,
-  onClaimed,
 }: {
   task: TaskInstance;
   className?: string;
-  onClaimed?: () => Promise<void> | void;
 }) {
   const { pushToast } = useInkUI();
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const [claiming, setClaiming] = useState(false);
   const currentStage =
     task.snapshot.stages.find((stage) => stage.current) ??
@@ -63,7 +61,6 @@ export function TutorialTaskCard({
     setClaiming(true);
     try {
       const result = await claimTaskReward(task.id);
-      await onClaimed?.();
       pushToast({
         message: `奖励邮件已送达：${result.data.rewards.join('，')}`,
         tone: 'success',

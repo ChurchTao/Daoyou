@@ -5,7 +5,7 @@ import {
 } from '@app/components/game-shell';
 import Zhanji from '@app/components/func/Zhanji';
 import { InkList, InkNotice } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import type { BattleRecord } from '@shared/types/battle';
 import { useEffect, useState } from 'react';
 
@@ -33,7 +33,7 @@ export default function BattleHistoryPage() {
   const [records, setRecords] = useState<BattleSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('all');
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
 
   useEffect(() => {
     let cancelled = false;

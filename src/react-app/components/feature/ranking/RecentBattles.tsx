@@ -4,7 +4,7 @@ import { InkList } from '@app/components/ui/InkList';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import type { BattleRecord } from '@shared/types/battle';
 import { fetchJsonCached } from '@app/lib/client/requestCache';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { useEffect, useState } from 'react';
 
 type BattleSummary = {
@@ -15,7 +15,7 @@ type BattleSummary = {
 export function RecentBattles() {
   const [records, setRecords] = useState<BattleSummary[]>([]);
   const [loading, setLoading] = useState(false);
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
 
   useEffect(() => {
     let cancelled = false;

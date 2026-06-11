@@ -4,7 +4,7 @@ import { HomeAside } from '@app/components/feature/home/HomeAside';
 import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
 import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
 import { getNextNoviceHomeAction } from '@app/lib/tasks/noviceHomeAction';
@@ -27,7 +27,7 @@ function calculateYieldHours(lastYieldAt: Date | string | undefined) {
 }
 
 export function HomeView() {
-  const { cultivator, isLoading, display } = useCultivator();
+  const { cultivator, isLoading, display } = usePlayerStateView();
   const {
     tasks,
     loading: tasksLoading,

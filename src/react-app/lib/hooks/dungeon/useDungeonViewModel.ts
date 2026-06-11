@@ -92,9 +92,7 @@ export function useDungeonViewModel(
   hasCultivator: boolean,
   cultivatorId: string | undefined,
   preSelectedNodeId: string | null,
-  refreshCultivator?: () => Promise<void> | void,
 ) {
-  void refreshCultivator;
   // 副本状态管理
   const {
     state,

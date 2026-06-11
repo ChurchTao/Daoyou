@@ -6,7 +6,7 @@ import {
   GameSceneNote,
   GameSceneSection,
 } from '@app/components/game-shell';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import {
   useTowerActions,
   type TowerProbeResponse,
@@ -584,7 +584,7 @@ function TowerSettlementCard({
 
 export default function TowerPage() {
   const { cultivator, display, isLoading: cultivatorLoading } =
-    useCultivator();
+    usePlayerStateView();
   const { openDialog } = useInkUI();
   const navigate = useNavigate();
   const { payload, setPayload, loading } = useTowerState(!!cultivator);

@@ -40,20 +40,20 @@ function createTask(id: string): TaskInstance {
 describe('useTaskList helpers', () => {
   it('builds a stable request key from cultivator and status filters', () => {
     expect(createTaskListRequestKey('cultivator-1', 'active')).toBe(
-      'cultivator-1:active',
+      'cultivator-1:active:0',
     );
-    expect(createTaskListRequestKey(undefined)).toBe(':');
+    expect(createTaskListRequestKey(undefined)).toBe('::0');
   });
 
   it('hides stale task results while a new request key is loading', () => {
     const view = deriveTaskListViewState(
       {
-        requestKey: 'cultivator-1:active',
+        requestKey: 'cultivator-1:active:1',
         tasks: [createTask('task-1')],
         loading: false,
         error: undefined,
       },
-      'cultivator-1:completed',
+      'cultivator-1:completed:1',
       'cultivator-1',
     );
 

@@ -5,10 +5,10 @@ import {
 } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 
 export default function CraftPage() {
-  const { note } = useCultivator();
+  const { note } = usePlayerStateView();
 
   return (
     <GameSceneFrame

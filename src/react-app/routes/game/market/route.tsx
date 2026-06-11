@@ -13,7 +13,7 @@ import {
   InkListItem,
   InkNotice,
 } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { getMapNode } from '@shared/lib/game/mapSystem';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
@@ -91,7 +91,7 @@ async function readMarketSnapshot(
 export default function MarketPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
 

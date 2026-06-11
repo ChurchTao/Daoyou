@@ -4,12 +4,12 @@ import { TutorialTaskCard } from '@app/components/feature/tasks/TutorialTaskCard
 import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
 import { InkNotice } from '@app/components/ui';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
 
 export function TasksView() {
-  const { cultivator, isLoading } = useCultivator();
-  const { tasks, loading, error, reload } = useTaskList(cultivator?.id);
+  const { cultivator, isLoading } = usePlayerStateView();
+  const { tasks, loading, error } = useTaskList(cultivator?.id);
 
   if (isLoading && !cultivator) {
     return (
@@ -57,7 +57,6 @@ export function TasksView() {
               <TutorialTaskCard
                 key={nextTutorialTask.id}
                 task={nextTutorialTask}
-                onClaimed={reload}
               />
             ) : null}
             {!nextTutorialTask ? (

@@ -10,6 +10,15 @@ interface FetchJsonCachedOptions extends RequestInit {
 
 const dataCache = new Map<string, CacheEntry<unknown>>();
 const inflightCache = new Map<string, Promise<unknown>>();
+const privatePlayerStateKeyPrefixes = [
+  'player:',
+  'cultivator:',
+  'inventory:',
+  'mail:',
+  'tasks:',
+  'products:',
+  'qi:',
+];
 
 /**
  * Client-side request dedupe with short-lived cache.
@@ -20,6 +29,15 @@ export async function fetchJsonCached<T>(
   input: RequestInfo | URL,
   { key, ttlMs = 0, ...init }: FetchJsonCachedOptions,
 ): Promise<T> {
+  const isPrivatePlayerStateKey = privatePlayerStateKeyPrefixes.some((prefix) =>
+    key.startsWith(prefix),
+  );
+  if (import.meta.env.DEV && isPrivatePlayerStateKey) {
+    console.warn(
+      `[request-cache] ${key} looks like private player state; use PlayerStateStore instead of TTL cache.`,
+    );
+  }
+
   const now = Date.now();
   const cached = dataCache.get(key);
   if (cached && cached.expiresAt > now) {
@@ -39,7 +57,7 @@ export async function fetchJsonCached<T>(
           typeof json?.error === 'string' ? json.error : `HTTP ${res.status}`,
         );
       }
-      if (ttlMs > 0) {
+      if (ttlMs > 0 && !isPrivatePlayerStateKey) {
         dataCache.set(key, { data: json, expiresAt: Date.now() + ttlMs });
       }
       return json as T;

@@ -22,7 +22,8 @@ import {
   InkTag,
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   CHARACTER_GENERATION_DAILY_LIMIT,
   type CharacterGenerationQuota,
@@ -127,7 +128,8 @@ function chunkPairs<T>(items: T[]): T[][] {
 export default function CreatePage() {
   const navigate = useNavigate();
   const { pushToast, openDialog } = useInkUI();
-  const { hasActiveCultivator, isLoading, refresh } = useCultivator();
+  const { hasActiveCultivator, isLoading } = usePlayerStateView();
+  const { refresh } = usePlayerStateActions();
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

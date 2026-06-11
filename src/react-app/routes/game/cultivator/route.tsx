@@ -3,10 +3,10 @@ import {
   GameSceneFrame,
 } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 
 export default function CultivatorPage() {
-  const { cultivator, isLoading } = useCultivator();
+  const { cultivator, isLoading } = usePlayerStateView();
 
   if (isLoading && !cultivator) {
     return (

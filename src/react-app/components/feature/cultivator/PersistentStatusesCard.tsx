@@ -1,6 +1,6 @@
 import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
 import { InkDialog, type InkDialogState } from '@app/components/ui';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { cn } from '@shared/lib/cn';
 import {
   getBreakthroughPenaltyPercent,
@@ -74,7 +74,7 @@ function formatRecoveryPerHour(value: number): string {
 }
 
 function usePersistentStatusState() {
-  const { cultivator, display } = useCultivator();
+  const { cultivator, display } = usePlayerStateView();
   const [now] = useState(() => Date.now());
 
   if (!cultivator) return null;

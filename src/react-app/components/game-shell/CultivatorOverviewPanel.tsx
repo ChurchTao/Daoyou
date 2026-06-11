@@ -23,7 +23,7 @@ import {
   type InkDialogState,
 } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { AttributeType } from '@shared/engine/battle-v5/core/types';
@@ -189,7 +189,7 @@ function OverviewDetailItem({
 }
 
 export function CultivatorOverviewPanel() {
-  const { cultivator, inventory, skills, equipped } = useCultivator();
+  const { cultivator, inventory, skills, equipped } = usePlayerStateView();
   const navigate = useNavigate();
   const { pushToast } = useInkUI();
   const { mutate } = usePlayerStateActions();

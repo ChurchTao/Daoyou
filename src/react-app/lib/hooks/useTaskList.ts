@@ -1,4 +1,5 @@
 import { fetchTaskList } from '@app/lib/tasks/taskClient';
+import { usePlayerStateDomainVersion } from '@app/lib/player-state/selectors';
 import type { TaskInstance, TaskStatus } from '@shared/types/task';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -12,8 +13,9 @@ interface TaskListState {
 export function createTaskListRequestKey(
   cultivatorId: string | undefined,
   status?: TaskStatus,
+  domainVersion = 0,
 ) {
-  return `${cultivatorId ?? ''}:${status ?? ''}`;
+  return `${cultivatorId ?? ''}:${status ?? ''}:${domainVersion}`;
 }
 
 export function deriveTaskListViewState(
@@ -53,7 +55,12 @@ export function useTaskList(
   cultivatorId: string | undefined,
   status?: TaskStatus,
 ) {
-  const requestKey = createTaskListRequestKey(cultivatorId, status);
+  const tasksVersion = usePlayerStateDomainVersion('tasks');
+  const requestKey = createTaskListRequestKey(
+    cultivatorId,
+    status,
+    tasksVersion,
+  );
   const requestVersionRef = useRef(0);
   const [state, setState] = useState<TaskListState>(() => ({
     requestKey,
@@ -95,29 +102,6 @@ export function useTaskList(
     [status],
   );
 
-  const reload = useCallback(async () => {
-    if (!cultivatorId) {
-      requestVersionRef.current += 1;
-      setState({
-        requestKey,
-        tasks: [],
-        loading: false,
-        error: undefined,
-      });
-      return;
-    }
-
-    const version = requestVersionRef.current + 1;
-    requestVersionRef.current = version;
-    setState((prev) => ({
-      requestKey,
-      tasks: prev.requestKey === requestKey ? prev.tasks : [],
-      loading: true,
-      error: undefined,
-    }));
-    await runTaskListRequest(requestKey, version);
-  }, [cultivatorId, requestKey, runTaskListRequest]);
-
   useEffect(() => {
     const version = requestVersionRef.current + 1;
     requestVersionRef.current = version;
@@ -139,6 +123,5 @@ export function useTaskList(
     tasks,
     loading,
     error,
-    reload,
   };
 }

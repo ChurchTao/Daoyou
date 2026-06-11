@@ -8,7 +8,7 @@ import { ArtifactListCard } from '@app/components/feature/products';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkNotice } from '@app/components/ui';
 import { InkButton } from '@app/components/ui/InkButton';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
@@ -116,7 +116,7 @@ export function DungeonRunPanel({
   displayResources,
   onQuit,
 }: DungeonRunPanelProps) {
-  const { equipped } = useCultivator();
+  const { equipped } = usePlayerStateView();
   const { pushToast } = useInkUI();
   const { mutate } = usePlayerStateActions();
   const [expanded, setExpanded] = useState(false);

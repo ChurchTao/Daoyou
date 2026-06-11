@@ -20,7 +20,7 @@ import {
   InkTag,
 } from '@app/components/ui';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { Suspense, useEffect, useState } from 'react';
@@ -36,7 +36,7 @@ function ReplaceContent() {
   const {
     cultivator,
     isLoading: cultivatorLoading,
-  } = useCultivator();
+  } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 

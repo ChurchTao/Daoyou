@@ -3,7 +3,10 @@ import {
   toProductDisplayModel,
   type ProductDisplayModel,
 } from '@app/components/feature/products';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import {
+  usePlayerStateDomainVersion,
+  usePlayerStateView,
+} from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   MAX_EQUIPPED_GONGFA,
@@ -14,7 +17,8 @@ import { useCallback, useEffect, useState } from 'react';
 export type V2Technique = ProductDisplayModel & { id: string };
 
 export function useTechniquesViewModel() {
-  const { cultivator, isLoading, note } = useCultivator();
+  const { cultivator, isLoading, note } = usePlayerStateView();
+  const productsVersion = usePlayerStateDomainVersion('products');
   const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
@@ -29,36 +33,15 @@ export function useTechniquesViewModel() {
     (technique) => technique.isEquipped,
   ).length;
 
-  const fetchTechniques = useCallback(async () => {
-    if (!cultivator) return;
-    setTechniquesLoading(true);
-    try {
-      const res = await fetch('/api/v2/products?type=gongfa');
-      const data = await res.json();
-      if (data.success) {
-        const parsed: V2Technique[] = (data.data ?? []).map(
-          (r: Record<string, unknown>) => ({
-            id: r.id as string,
-            ...toProductDisplayModel(r),
-          }),
-        );
-        setTechniques(parsed);
-      }
-    } catch (e) {
-      console.error('加载功法失败:', e);
-    } finally {
-      setTechniquesLoading(false);
-    }
-  }, [cultivator]);
-
   useEffect(() => {
-    if (!cultivator) {
+    if (!cultivator?.id) {
       return;
     }
 
     let cancelled = false;
 
-    const loadInitialTechniques = async () => {
+    const loadTechniques = async () => {
+      setTechniquesLoading(true);
       try {
         const res = await fetch('/api/v2/products?type=gongfa');
         const data = await res.json();
@@ -74,8 +57,9 @@ export function useTechniquesViewModel() {
           setTechniques(parsed);
         }
       } catch (e) {
-        if (cancelled) return;
-        console.error('加载功法失败:', e);
+        if (!cancelled) {
+          console.error('加载功法失败:', e);
+        }
       } finally {
         if (!cancelled) {
           setTechniquesLoading(false);
@@ -83,12 +67,12 @@ export function useTechniquesViewModel() {
       }
     };
 
-    void loadInitialTechniques();
+    void loadTechniques();
 
     return () => {
       cancelled = true;
     };
-  }, [cultivator]);
+  }, [cultivator?.id, productsVersion]);
 
   const openTechniqueDetail = useCallback((technique: V2Technique) => {
     setSelectedTechnique(technique);
@@ -123,7 +107,6 @@ export function useTechniquesViewModel() {
             : `【${technique.name}】已停用`,
           tone: 'success',
         });
-        await fetchTechniques();
       } catch (e) {
         pushToast({
           message: e instanceof Error ? e.message : '功法启停失败',
@@ -133,7 +116,7 @@ export function useTechniquesViewModel() {
         setPendingToggleId(null);
       }
     },
-    [cultivator, mutate, pushToast, fetchTechniques],
+    [cultivator, mutate, pushToast],
   );
 
   const openForgetConfirm = useCallback(
@@ -163,7 +146,6 @@ export function useTechniquesViewModel() {
               message: `【${technique.name}】已从道基消散`,
               tone: 'default',
             });
-            await fetchTechniques();
           } catch (e) {
             pushToast({
               message: e instanceof Error ? e.message : '废除失败',
@@ -173,7 +155,7 @@ export function useTechniquesViewModel() {
         },
       });
     },
-    [openDialog, mutate, pushToast, fetchTechniques],
+    [openDialog, mutate, pushToast],
   );
 
   return {
@@ -191,6 +173,5 @@ export function useTechniquesViewModel() {
     closeTechniqueDetail,
     toggleTechniqueEnabled,
     openForgetConfirm,
-    refreshTechniques: fetchTechniques,
   };
 }

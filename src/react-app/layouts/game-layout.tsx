@@ -8,7 +8,11 @@ import {
   WorldChatFeedProvider,
 } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { InkButton } from '@app/components/ui/InkButton';
-import { PlayerProvider, usePlayer } from '@app/lib/player/PlayerProvider';
+import { PlayerProvider } from '@app/lib/player/PlayerProvider';
+import {
+  useActiveCultivatorProfile,
+  usePlayerStateStatus,
+} from '@app/lib/player-state/selectors';
 import {
   resolveGameScene,
   resolveRouteTitle,
@@ -62,7 +66,8 @@ function LoadingScreen({ message }: { message: string }) {
 }
 
 function PlayerShell() {
-  const { cultivator, note, hasActiveCultivator, isLoading } = usePlayer();
+  const cultivator = useActiveCultivatorProfile();
+  const { note, hasActiveCultivator, isLoading } = usePlayerStateStatus();
 
   if (isLoading && !cultivator && !hasActiveCultivator) {
     return <LoadingScreen message="正在推演命盘……" />;

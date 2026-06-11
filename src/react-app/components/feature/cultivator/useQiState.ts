@@ -3,26 +3,6 @@ import { QI_MAX } from '@shared/config/qiSystem';
 import type { QiState } from '@shared/contracts/qi';
 import { useCallback, useEffect, useState } from 'react';
 
-const QI_STATE_INVALIDATED_EVENT = 'daoyou:qi-state-invalidated';
-
-export function getQiStateCacheKey(cultivatorId: string) {
-  return `cultivator:qi:${cultivatorId}`;
-}
-
-export function invalidateQiState(
-  cultivatorId: string | undefined | null,
-  options: { notify?: boolean } = {},
-) {
-  if (!cultivatorId) return;
-
-  if (options.notify === false || typeof window === 'undefined') return;
-  window.dispatchEvent(
-    new CustomEvent(QI_STATE_INVALIDATED_EVENT, {
-      detail: { cultivatorId },
-    }),
-  );
-}
-
 export function useQiState({
   cultivatorId,
   autoRefresh = false,
@@ -49,31 +29,11 @@ export function useQiState({
   }, [cultivatorId, refreshPlayerState]);
 
   useEffect(() => {
-    if (!cultivatorId) return;
+    if (!cultivatorId || !autoRefresh || refreshInterval <= 0) return;
 
-    const handleQiInvalidated = (event: Event) => {
-      const detail = (event as CustomEvent<{ cultivatorId?: string }>).detail;
-      if (detail?.cultivatorId !== cultivatorId) return;
-      void refresh();
-    };
-    window.addEventListener(QI_STATE_INVALIDATED_EVENT, handleQiInvalidated);
-
-    if (autoRefresh && refreshInterval > 0) {
-      const timer = window.setInterval(refresh, refreshInterval);
-      return () => {
-        window.removeEventListener(
-          QI_STATE_INVALIDATED_EVENT,
-          handleQiInvalidated,
-        );
-        window.clearInterval(timer);
-      };
-    }
-
+    const timer = window.setInterval(refresh, refreshInterval);
     return () => {
-      window.removeEventListener(
-        QI_STATE_INVALIDATED_EVENT,
-        handleQiInvalidated,
-      );
+      window.clearInterval(timer);
     };
   }, [autoRefresh, cultivatorId, refresh, refreshInterval]);
 

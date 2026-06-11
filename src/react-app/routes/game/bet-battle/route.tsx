@@ -18,7 +18,7 @@ import {
 } from '@app/components/ui';
 import { tierColorMap, type Tier } from '@app/components/ui/InkBadge';
 import { ItemCard } from '@app/components/ui/ItemCard';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
 import {
@@ -440,7 +440,7 @@ function useInventorySelector() {
 }
 
 export default function BetBattlePage() {
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const { pushToast } = useInkUI();
   const { mutate } = usePlayerStateActions();
   const cultivatorId = cultivator?.id;
@@ -865,7 +865,7 @@ function BetBattleCreateModal({
   onSuccess: () => Promise<void>;
 }) {
   const { pushToast } = useInkUI();
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const { mutate } = usePlayerStateActions();
   const [selectedStakeType, setSelectedStakeType] = useState<
     'spirit_stones' | 'material' | 'artifact'
@@ -1210,7 +1210,7 @@ function BetBattleChallengeModal({
   onClose: () => void;
 }) {
   const { pushToast } = useInkUI();
-  const { cultivator } = useCultivator();
+  const { cultivator } = usePlayerStateView();
   const navigate = useNavigate();
   const creatorStake = battle.creatorStakeSnapshot;
   const [selectedItem, setSelectedItem] = useState<SelectedStake | null>(null);

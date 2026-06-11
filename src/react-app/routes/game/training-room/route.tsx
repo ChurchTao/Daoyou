@@ -9,7 +9,7 @@ import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
 import { AttributeType, ModifierType } from '@shared/engine/battle-v5/core/types';
 import type { TrainingRoomModifierDraft } from '@shared/engine/battle-v5/setup/types';
 import { ATTR_LABELS } from '@shared/engine/battle-v5/effects/affixText/attributes';
-import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import type { BattleRecord } from '@shared/types/battle';
 import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import { getResourceText } from '@shared/lib/gameConceptDisplay';
@@ -216,7 +216,7 @@ function ModifierEditor({
 
 export default function TrainingRoomPage() {
   const navigate = useNavigate();
-  const { cultivator, isLoading } = useCultivator();
+  const { cultivator, isLoading } = usePlayerStateView();
   const [isFighting, setIsFighting] = useState(false);
   const [battleResult, setBattleResult] = useState<BattleRecord>();
   const [draft, setDraft] = useState<TrainingRoomDraft>(() => {

@@ -1,13 +1,19 @@
-import { useCultivatorBundle } from '@app/lib/hooks/useCultivatorBundle';
+import { GAME_ROUTE_ID, type UserLoaderData } from '@app/lib/router/routeData';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { ReactNode } from 'react';
-import { PlayerContext } from './playerContext';
+import { useEffect } from 'react';
+import { useRouteLoaderData } from 'react-router';
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const playerState = useCultivatorBundle();
+  const gameLoaderData = useRouteLoaderData(GAME_ROUTE_ID) as
+    | UserLoaderData
+    | undefined;
+  const userId = gameLoaderData?.userId ?? null;
+  const actions = usePlayerStateActions();
 
-  return (
-    <PlayerContext.Provider value={playerState}>
-      {children}
-    </PlayerContext.Provider>
-  );
+  useEffect(() => {
+    void actions.initialize(userId);
+  }, [actions, userId]);
+
+  return children;
 }
