@@ -86,6 +86,12 @@ export interface MysteryDetails {
     identifyCost: number;
     disguiseTier: Quality;
     purchasedAt: number;
+    type?: MaterialType;
+    rankRange?: { min: Quality; max: Quality };
+    anchorPrice?: number;
+    nodeId?: string;
+    layer?: MarketLayer;
+    regionTags?: string[];
   };
 }
 
@@ -99,10 +105,14 @@ export type MarketListing = MarketListingBase &
     };
   };
 
-export interface MysteryRevealPayload {
-  material: Material;
+export interface MysteryRevealContext {
+  type: MaterialType;
+  rankRange: { min: Quality; max: Quality };
+  anchorPrice: number;
+  nodeId: string;
+  layer: MarketLayer;
+  regionTags: string[];
   createdAt: number;
-  disguiseTier: Quality;
 }
 
 export type SellPhase = 'preview' | 'confirm';

@@ -11,9 +11,9 @@ import {
   listLatestMessages,
   listMessages,
 } from '@server/lib/repositories/worldChatRepository';
+import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter';
 import {
-  getCultivatorArtifacts,
   getCultivatorConsumables,
   getCultivatorMaterials,
 } from '@server/lib/services/cultivatorService';
@@ -42,24 +42,44 @@ function normalizeText(
 async function buildItemShowcasePayload(params: {
   userId: string;
   cultivatorId: string;
-  itemType: 'artifact' | 'material' | 'consumable';
+  itemType: 'artifact' | 'material' | 'consumable' | 'skill' | 'gongfa';
   itemId: string;
   text?: string;
 }): Promise<WorldChatItemShowcasePayload | null> {
   const { userId, cultivatorId, itemType, itemId, text } = params;
   const showcaseText = text?.trim() || undefined;
 
-  if (itemType === 'artifact') {
-    const artifacts = await getCultivatorArtifacts(userId, cultivatorId);
-    const item = artifacts.find((artifact) => artifact.id === itemId);
-    if (!item) return null;
-    const snapshot: ItemShowcaseSnapshotMap['artifact'] = {
-      id: item.id || itemId,
+  if (itemType === 'artifact' || itemType === 'skill' || itemType === 'gongfa') {
+    const item = await creationProductRepository.findById(itemId);
+    if (
+      !item ||
+      item.cultivatorId !== cultivatorId ||
+      item.productType !== itemType
+    ) {
+      return null;
+    }
+
+    if (itemType === 'artifact') {
+      const snapshot: ItemShowcaseSnapshotMap['artifact'] = {
+        id: item.id,
+        name: item.name,
+        slot: item.slot as ItemShowcaseSnapshotMap['artifact']['slot'],
+        element: item.element as ItemShowcaseSnapshotMap['artifact']['element'],
+        quality: item.quality as ItemShowcaseSnapshotMap['artifact']['quality'],
+        description: item.description ?? undefined,
+        productModel: item.productModel,
+      };
+      return { itemType, itemId, snapshot, text: showcaseText };
+    }
+
+    const snapshot: ItemShowcaseSnapshotMap[typeof itemType] = {
+      id: item.id,
       name: item.name,
-      slot: item.slot,
-      element: item.element,
-      quality: item.quality,
+      productType: itemType,
+      element: item.element as ItemShowcaseSnapshotMap[typeof itemType]['element'],
+      quality: item.quality as ItemShowcaseSnapshotMap[typeof itemType]['quality'],
       description: item.description,
+      score: item.score ?? 0,
       productModel: item.productModel,
     };
     return { itemType, itemId, snapshot, text: showcaseText };

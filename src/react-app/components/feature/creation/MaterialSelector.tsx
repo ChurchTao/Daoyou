@@ -37,6 +37,11 @@ export interface MaterialSelectorProps {
 
 const compactSelectClassName = cn(inkFieldVariants({ size: 'sm' }), 'mt-1');
 
+function isMysteryMaterial(material: Material): boolean {
+  const details = material.details;
+  return !!details && typeof details === 'object' && 'mystery' in details;
+}
+
 export function MaterialSelector({
   cultivatorId,
   selectedMaterialIds,
@@ -286,6 +291,7 @@ export function MaterialSelector({
               ? selectedMaterialIds.includes(materialId)
               : false;
             const typeInfo = getMaterialTypeInfo(material.type);
+            const isMystery = isMysteryMaterial(material);
             return (
               <button
                 key={materialId ?? `${material.name}-${index}`}
@@ -293,17 +299,21 @@ export function MaterialSelector({
                 className={cn(
                   'border-ink/10 hover:border-crimson flex w-full items-center justify-between gap-3 border px-3 py-2 text-left transition',
                   isSelected && 'border-crimson bg-crimson/5',
+                  isMystery && 'cursor-not-allowed opacity-70 hover:border-ink/10',
                 )}
                 onClick={() => {
-                  if (materialId) {
+                  if (materialId && !isMystery) {
                     onToggleMaterial(materialId, material);
                   }
                 }}
-                disabled={isSubmitting || !materialId}
+                disabled={isSubmitting || !materialId || isMystery}
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{`${typeInfo?.icon} ${material.name}`}</span>
+                    {isMystery ? (
+                      <InkBadge compact>待鉴定</InkBadge>
+                    ) : null}
                     {material.rank ? (
                       <InkBadge tier={material.rank as Quality} compact>
                         {typeInfo?.label}
@@ -320,11 +330,16 @@ export function MaterialSelector({
                       {material.description}
                     </div>
                   ) : null}
+                  {isMystery ? (
+                    <div className="text-crimson mt-1 text-xs leading-6">
+                      待鉴定材料无法投入造物，请先鉴定。
+                    </div>
+                  ) : null}
                 </div>
                 <div className="shrink-0 text-right">
                   <div className="font-medium">x{material.quantity}</div>
                   <div className="text-ink-secondary text-xs">
-                    {isSelected ? '已投入' : '可投入'}
+                    {isMystery ? '不可投入' : isSelected ? '已投入' : '可投入'}
                   </div>
                 </div>
               </button>

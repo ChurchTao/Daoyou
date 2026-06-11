@@ -54,6 +54,7 @@ import {
   addConsumableToInventory,
   getCultivatorByIdUnsafe,
 } from './cultivatorService';
+import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 
 export { synthesizeAlchemyFromPlan as synthesizeAlchemy } from './AlchemyRecipeRules';
 export { AlchemyServiceError } from './AlchemyServiceError';
@@ -134,6 +135,10 @@ function pickHighestRank(materialRows: MaterialRow[]): Quality | null {
 }
 
 function validateMaterialRow(material: MaterialRow): string | null {
+  const mysteryReason = getMysteryMaterialBlockingReason([material]);
+  if (mysteryReason) {
+    return mysteryReason;
+  }
   if (!material.element) {
     return `材料 ${material.name} 缺少五行属性，当前无法入炉。`;
   }
@@ -295,6 +300,10 @@ async function loadOwnedMaterials(
     if (row.cultivatorId !== cultivatorId) {
       throw new AlchemyServiceError('非本人材料，不可动用。', 403);
     }
+  }
+  const mysteryReason = getMysteryMaterialBlockingReason(rows);
+  if (mysteryReason) {
+    throw new AlchemyServiceError(mysteryReason, 400);
   }
 
   return rows;

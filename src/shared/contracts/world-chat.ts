@@ -12,7 +12,7 @@ export const WorldChatTextMessageSchema = z.object({
 
 export const WorldChatItemShowcaseMessageSchema = z.object({
   messageType: z.literal('item_showcase'),
-  itemType: z.enum(['artifact', 'material', 'consumable']),
+  itemType: z.enum(['artifact', 'material', 'consumable', 'skill', 'gongfa']),
   itemId: z.string().trim().min(1),
   textContent: z.string().trim().max(100).optional(),
   payload: z

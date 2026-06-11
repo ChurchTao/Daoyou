@@ -89,9 +89,49 @@ describe('world chat feed model helpers', () => {
       textContent: null,
       payload: { text: '诸位道友，今晚子时再会。' },
     });
+    const skillShowcase = createMessage('skill', '2026-05-17T08:08:00.000Z', {
+      messageType: 'item_showcase',
+      textContent: null,
+      payload: {
+        itemType: 'skill',
+        itemId: 'skill-1',
+        snapshot: {
+          id: 'skill-1',
+          name: '紫霄引雷诀',
+          productType: 'skill',
+          element: '雷',
+          quality: '真品',
+          description: '引雷入术。',
+          score: 1280,
+          productModel: {},
+        },
+        text: '灵韵自生。',
+      },
+    });
+    const gongfaShowcase = createMessage('gongfa', '2026-05-17T08:09:00.000Z', {
+      messageType: 'item_showcase',
+      textContent: null,
+      payload: {
+        itemType: 'gongfa',
+        itemId: 'gongfa-1',
+        snapshot: {
+          id: 'gongfa-1',
+          name: '太虚凝元篇',
+          productType: 'gongfa',
+          element: '水',
+          quality: '地品',
+          description: '凝元守一。',
+          score: 1560,
+          productModel: {},
+        },
+        text: '足令诸修侧目。',
+      },
+    });
 
     expect(getWorldChatMessageBody(duelInvite)).toBe('赌战台已有战帖，速来应战。');
     expect(getWorldChatMessageBody(showcase)).toBe('展示了「玄雷剑胚」 今日刚出炉。');
     expect(getWorldChatMessageBody(textMessage)).toBe('诸位道友，今晚子时再会。');
+    expect(getWorldChatMessageBody(skillShowcase)).toBe('展示了「紫霄引雷诀」 灵韵自生。');
+    expect(getWorldChatMessageBody(gongfaShowcase)).toBe('展示了「太虚凝元篇」 足令诸修侧目。');
   });
 });

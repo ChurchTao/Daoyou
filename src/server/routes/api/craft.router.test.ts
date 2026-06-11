@@ -7,6 +7,9 @@ vi.mock('@server/lib/hono/middleware', () => ({
       context.set('user', { id: 'user-1' });
       context.set('cultivator', {
         id: 'cultivator-1',
+        name: '林玄',
+        realm: '筑基',
+        realm_stage: '中期',
         spirit_stones: 50000,
       });
       await next();
@@ -28,6 +31,10 @@ vi.mock('@server/lib/services/creationServiceV2', () => ({
   getPendingCreation: vi.fn(),
   previewCreationSelection: vi.fn(),
   processCreation: vi.fn(),
+}));
+
+vi.mock('@server/lib/repositories/worldChatRepository', () => ({
+  createMessage: vi.fn(),
 }));
 
 vi.mock('@server/lib/services/alchemyServiceV2', () => ({
@@ -115,18 +122,26 @@ import {
   previewAlchemySelection,
   processAlchemyCraft,
 } from '@server/lib/services/alchemyServiceV2';
+import {
+  confirmCreation,
+  processCreation,
+} from '@server/lib/services/creationServiceV2';
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
 import { QiService } from '@server/lib/services/QiService';
 import { TaskService } from '@server/lib/services/TaskService';
 import {
   commitPlayerStateMutation,
 } from '@server/lib/services/PlayerStateMutationService';
+import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import craftRouter from './craft.router';
 
 const previewAlchemySelectionMock = previewAlchemySelection as unknown as Mock;
 const previewFormulaCraftMock = previewFormulaCraft as unknown as Mock;
 const processAlchemyCraftMock = processAlchemyCraft as unknown as Mock;
 const craftFromFormulaMock = craftFromFormula as unknown as Mock;
+const processCreationMock = processCreation as unknown as Mock;
+const confirmCreationMock = confirmCreation as unknown as Mock;
+const createMessageMock = createMessage as unknown as Mock;
 const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
 const recordTaskEventMock = TaskService.recordTaskEvent as unknown as Mock;
 const reserveQiMock = QiService.reserveQi as unknown as Mock;
@@ -388,6 +403,80 @@ describe('craft router alchemy routes', () => {
         source: 'alchemy_improvised',
       }),
     );
+    expect(createMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        senderCultivatorId: null,
+        senderName: '修仙界传闻',
+        senderRealmStage: '系统',
+        messageType: 'item_showcase',
+        payload: expect.objectContaining({
+          itemType: 'consumable',
+          itemId: 'pill-1',
+          text: '由林玄炼成，丹品已入真品，药香化霞，足令诸修侧目。',
+          snapshot: expect.objectContaining({
+            id: 'pill-1',
+            name: '青木疗伤丹',
+            quality: '真品',
+            quantity: 1,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('does not broadcast low-tier alchemy results', async () => {
+    processAlchemyCraftMock.mockResolvedValueOnce({
+      consumable: {
+        id: 'pill-low',
+        name: '青木疗伤丹',
+        type: '丹药',
+        quality: '玄品',
+        quantity: 1,
+        description: '药性平稳，可缓解伤势。',
+        spec: {
+          kind: 'pill',
+          family: 'healing',
+          operations: [
+            {
+              type: 'restore_resource',
+              resource: 'hp',
+              mode: 'percent',
+              value: 0.08,
+            },
+          ],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'none',
+          },
+          alchemyMeta: {
+            source: 'improvised',
+            sourceMaterials: ['青岚草'],
+            analysisVersion: 2,
+            propertyVector: [{ key: 'restore_hp', weight: 0.5 }],
+            sourceMaterialVectors: [],
+            stability: 60,
+            toxicityRating: 8,
+            tags: ['restore_hp', 'healing'],
+          },
+        },
+      },
+    });
+
+    const response = await createApp().request('/api/craft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'alchemy',
+        materialIds: ['m1'],
+        materialQuantities: { m1: 1 },
+        userPrompt: '疗伤为主',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(createMessageMock).not.toHaveBeenCalled();
   });
 
   it('routes formula crafting via POST /api/craft', async () => {
@@ -582,5 +671,210 @@ describe('craft router alchemy routes', () => {
     );
     expect(refundReservationMock).not.toHaveBeenCalled();
     expect(commitReservationMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('craft router creation broadcasts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    reserveQiMock.mockResolvedValue({
+      success: true,
+      actionInstanceId: 'qi-action-1',
+      qiBefore: 200,
+      qiAfter: 192,
+      consumed: 8,
+    });
+    commitReservationMock.mockResolvedValue(undefined);
+    createMessageMock.mockResolvedValue({
+      id: 'chat-1',
+      channel: 'world',
+    });
+  });
+
+  function creationResult(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'product-1',
+      productType: 'artifact',
+      name: '玄雷剑胚',
+      description: '雷光隐现。',
+      element: '雷',
+      quality: '真品',
+      slot: 'weapon',
+      score: 1200,
+      productModel: {
+        productType: 'artifact',
+        name: '玄雷剑胚',
+        projectionQuality: '真品',
+      },
+      affixes: [],
+      ...overrides,
+    };
+  }
+
+  it('broadcasts a system item showcase when high-tier creation is inserted directly', async () => {
+    processCreationMock.mockResolvedValueOnce(creationResult());
+
+    const response = await createApp().request('/api/craft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'refine',
+        materialIds: ['m1'],
+        requestedSlot: 'weapon',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          id: 'product-1',
+          quality: '真品',
+        }),
+      }),
+    );
+    expect(createMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        senderCultivatorId: null,
+        senderName: '修仙界传闻',
+        senderRealmStage: '系统',
+        messageType: 'item_showcase',
+        payload: expect.objectContaining({
+          itemType: 'artifact',
+          itemId: 'product-1',
+          text: '由林玄炼成，品阶已入真品，灵韵自生，足令诸修侧目。',
+          snapshot: expect.objectContaining({
+            id: 'product-1',
+            name: '玄雷剑胚',
+            quality: '真品',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('does not broadcast creation below true quality', async () => {
+    processCreationMock.mockResolvedValueOnce(
+      creationResult({
+        quality: '玄品',
+        productModel: {
+          productType: 'artifact',
+          name: '玄雷剑胚',
+          projectionQuality: '玄品',
+        },
+      }),
+    );
+
+    const response = await createApp().request('/api/craft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'refine',
+        materialIds: ['m1'],
+        requestedSlot: 'weapon',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(createMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('does not broadcast pending replacement results before they are inserted', async () => {
+    processCreationMock.mockResolvedValueOnce(
+      creationResult({
+        id: '',
+        productType: 'skill',
+        slot: null,
+        needs_replace: true,
+      }),
+    );
+
+    const response = await createApp().request('/api/craft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'create_skill',
+        materialIds: ['m1'],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(createMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('broadcasts high-tier creation after replacement confirmation inserts it', async () => {
+    confirmCreationMock.mockResolvedValueOnce(
+      creationResult({
+        id: 'skill-1',
+        productType: 'skill',
+        element: '雷',
+        slot: null,
+      }),
+    );
+
+    const response = await createApp().request('/api/craft/confirm', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'create_skill',
+        replaceId: null,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(createMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageType: 'item_showcase',
+        payload: expect.objectContaining({
+          itemType: 'skill',
+          itemId: 'skill-1',
+          snapshot: expect.objectContaining({
+            productType: 'skill',
+            quality: '真品',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('keeps creation response successful when world chat broadcast fails', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    processCreationMock.mockResolvedValueOnce(creationResult());
+    createMessageMock.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    const response = await createApp().request('/api/craft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        craftType: 'refine',
+        materialIds: ['m1'],
+        requestedSlot: 'weapon',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+      }),
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '造物传闻发送失败:',
+      expect.any(Error),
+    );
+    consoleErrorSpy.mockRestore();
   });
 });

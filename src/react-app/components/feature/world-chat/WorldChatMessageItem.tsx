@@ -128,6 +128,54 @@ function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
     };
   }
 
+  if (payload.itemType === 'skill') {
+    const item = payload.snapshot as ItemShowcaseSnapshotMap['skill'];
+    if (typeof item.name !== 'string') {
+      return null;
+    }
+    return {
+      name: item.name,
+      tier: item.quality as Tier | undefined,
+      text: payload.text,
+      detailItem: {
+        kind: 'skill',
+        item: {
+          id: item.id || payload.itemId,
+          name: item.name,
+          element: item.element,
+          quality: item.quality,
+          description: item.description ?? undefined,
+          score: item.score,
+          productModel: item.productModel,
+        } as ItemDetailPayload['item'],
+      } as ItemDetailPayload,
+    };
+  }
+
+  if (payload.itemType === 'gongfa') {
+    const item = payload.snapshot as ItemShowcaseSnapshotMap['gongfa'];
+    if (typeof item.name !== 'string') {
+      return null;
+    }
+    return {
+      name: item.name,
+      tier: item.quality as Tier | undefined,
+      text: payload.text,
+      detailItem: {
+        kind: 'gongfa',
+        item: {
+          id: item.id || payload.itemId,
+          name: item.name,
+          element: item.element ?? undefined,
+          quality: item.quality ?? undefined,
+          description: item.description ?? undefined,
+          score: item.score,
+          productModel: item.productModel,
+        },
+      },
+    };
+  }
+
   const item = payload.snapshot as ItemShowcaseSnapshotMap['consumable'];
   if (
     typeof item.name !== 'string' ||

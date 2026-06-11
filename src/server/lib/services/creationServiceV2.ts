@@ -54,6 +54,7 @@ import type {
 import type { Material, PreHeavenFate } from '@shared/types/cultivator';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { getCultivatorByIdUnsafe } from './cultivatorService';
+import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 
 /**
  * processCreation 时的玩家侧可选入参。
@@ -249,6 +250,7 @@ function toCreationMaterials(
 async function loadOwnedMaterials(
   cultivatorId: string,
   materialIds: string[],
+  options: { rejectMystery?: boolean } = {},
 ): Promise<MaterialRow[]> {
   const selectedMaterials = await getExecutor()
     .select()
@@ -262,6 +264,12 @@ async function loadOwnedMaterials(
   for (const material of selectedMaterials) {
     if (material.cultivatorId !== cultivatorId) {
       throw new CreationServiceError('非本人材料，不可动用', 403);
+    }
+  }
+  if (options.rejectMystery ?? true) {
+    const mysteryReason = getMysteryMaterialBlockingReason(selectedMaterials);
+    if (mysteryReason) {
+      throw new CreationServiceError(mysteryReason, 400);
     }
   }
 
@@ -387,7 +395,22 @@ export async function previewCreationSelection(
     throw new CreationServiceError(`未知的造物类型: ${craftType}`);
   }
 
-  const selectedMaterials = await loadOwnedMaterials(cultivatorId, materialIds);
+  const selectedMaterials = await loadOwnedMaterials(cultivatorId, materialIds, {
+    rejectMystery: false,
+  });
+  const mysteryReason = getMysteryMaterialBlockingReason(selectedMaterials);
+  if (mysteryReason) {
+    return {
+      productType,
+      materials: selectedMaterials,
+      validation: {
+        valid: false,
+        blockingReason: mysteryReason,
+        warnings: [],
+        missingMatchingManual: false,
+      },
+    };
+  }
   const baseValidation = buildCreationPreviewValidation(
     productType,
     toCreationMaterials(selectedMaterials),

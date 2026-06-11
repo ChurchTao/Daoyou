@@ -19,7 +19,6 @@ import {
   getRefreshInterval,
   isMarketNodeEnabled,
   MARKET_STALE_RETRY_MS,
-  MYSTERY_MAPPING_TTL_SEC,
   resolveLayerConfig,
   validateLayerAccess,
 } from '@shared/lib/game/marketConfig';
@@ -27,12 +26,16 @@ import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
-import { QUALITY_ORDER } from '@shared/types/constants';
+import {
+  MATERIAL_TYPE_VALUES,
+  QUALITY_ORDER,
+  QUALITY_VALUES,
+} from '@shared/types/constants';
 import type {
   MarketAccessState,
   MarketLayer,
   MarketListing,
-  MysteryRevealPayload,
+  MysteryRevealContext,
   RegionProfile,
   ResolvedLayerConfig,
 } from '@shared/types/market';
@@ -59,7 +62,7 @@ type CachedMarketData = {
 };
 
 type InternalMarketListing = MarketListing & {
-  mysteryPayload?: MysteryRevealPayload;
+  mysteryContext?: MysteryRevealContext;
 };
 
 export type BuyInput = {
@@ -207,6 +210,49 @@ function computePrice(
   return Math.max(1, Math.floor(base * typeMultiplier * regionFactor));
 }
 
+function getQualityByOrder(order: number): Quality {
+  return (
+    QUALITY_VALUES.find((quality) => QUALITY_ORDER[quality] === order) ??
+    QUALITY_VALUES[0]
+  );
+}
+
+function clampQualityOrder(order: number, range: { min: Quality; max: Quality }) {
+  return Math.max(
+    QUALITY_ORDER[range.min],
+    Math.min(QUALITY_ORDER[range.max], order),
+  );
+}
+
+function estimateQualityFromPrice(price: number, type: MaterialType): Quality {
+  const typeMultiplier = TYPE_MULTIPLIERS[type] ?? 1;
+  const normalizedPrice = Math.max(1, price / Math.max(0.1, typeMultiplier));
+
+  return QUALITY_VALUES.reduce((best, quality) => {
+    const bestDistance = Math.abs(
+      Math.log(normalizedPrice) - Math.log(BASE_PRICES[best]),
+    );
+    const distance = Math.abs(
+      Math.log(normalizedPrice) - Math.log(BASE_PRICES[quality]),
+    );
+    return distance < bestDistance ? quality : best;
+  }, QUALITY_VALUES[0]);
+}
+
+function buildPriceAnchoredRankRange(
+  price: number,
+  type: MaterialType,
+  layerRange: { min: Quality; max: Quality },
+): { min: Quality; max: Quality } {
+  const anchorQuality = estimateQualityFromPrice(price, type);
+  const anchorOrder = QUALITY_ORDER[anchorQuality];
+
+  return {
+    min: getQualityByOrder(clampQualityOrder(anchorOrder - 2, layerRange)),
+    max: getQualityByOrder(clampQualityOrder(anchorOrder + 2, layerRange)),
+  };
+}
+
 // ─── 神秘物品伪装 ───
 
 function buildMysteryMask(type: MaterialType) {
@@ -275,41 +321,183 @@ function buildMysteryMask(type: MaterialType) {
 function applyMysteryLayer(
   listings: InternalMarketListing[],
   mysteryChance: number,
+  layerConfig: ResolvedLayerConfig,
 ): InternalMarketListing[] {
   return listings.map((item) => {
     if (Math.random() > mysteryChance) return item;
 
     const mask = buildMysteryMask(item.type);
     const disguiseRank = rollDisguiseRank();
-    const mysteryPayload: MysteryRevealPayload = {
-      material: {
-        name: item.name,
-        type: item.type,
-        rank: item.rank,
-        element: item.element,
-        description: item.description,
-        details: item.details,
-        quantity: 1,
-      },
-      createdAt: Date.now(),
-      disguiseTier: disguiseRank,
-    };
-
     const noisyMultiplier = 0.1 + Math.random() * 2.2;
     const disguisedPrice = Math.max(1, Math.floor(item.price * noisyMultiplier));
+    const mysteryContext: MysteryRevealContext = {
+      type: item.type,
+      rankRange: buildPriceAnchoredRankRange(
+        disguisedPrice,
+        item.type,
+        layerConfig.rankRange,
+      ),
+      anchorPrice: disguisedPrice,
+      nodeId: item.nodeId,
+      layer: item.layer,
+      regionTags: getNodeRegionTags(item.nodeId),
+      createdAt: Date.now(),
+    };
 
     return {
       ...item,
       name: mask.disguisedName,
       description: mask.description,
       rank: disguiseRank,
+      element: undefined,
+      details: {},
       quantity: 1,
       isMystery: true,
       mysteryMask: { badge: '?', disguisedName: mask.disguisedName },
       price: disguisedPrice,
-      mysteryPayload,
+      mysteryContext,
     };
   });
+}
+
+function isQuality(value: unknown): value is Quality {
+  return typeof value === 'string' && value in QUALITY_ORDER;
+}
+
+function isMaterialType(value: unknown): value is MaterialType {
+  return (
+    typeof value === 'string' &&
+    (MATERIAL_TYPE_VALUES as readonly string[]).includes(value)
+  );
+}
+
+function isMarketLayer(value: unknown): value is MarketLayer {
+  return (
+    value === 'common' ||
+    value === 'treasure' ||
+    value === 'heaven' ||
+    value === 'black'
+  );
+}
+
+function normalizeRankRange(
+  value: unknown,
+  fallback: { min: Quality; max: Quality },
+): { min: Quality; max: Quality } {
+  if (!value || typeof value !== 'object') return fallback;
+  const range = value as { min?: unknown; max?: unknown };
+  if (!isQuality(range.min) || !isQuality(range.max)) return fallback;
+  return { min: range.min, max: range.max };
+}
+
+function getMysteryContextForListing(
+  item: InternalMarketListing,
+): MysteryRevealContext {
+  if (item.mysteryContext) {
+    return {
+      ...item.mysteryContext,
+      anchorPrice: item.mysteryContext.anchorPrice ?? item.price,
+    };
+  }
+
+  const layer = isMarketLayer(item.layer) ? item.layer : 'black';
+  const nodeId = item.nodeId || getDefaultMarketNodeId();
+  const layerConfig = resolveLayerConfig(layer, getRegionProfile(nodeId));
+  return {
+    type: isMaterialType(item.type) ? item.type : 'aux',
+    rankRange: layerConfig.rankRange,
+    anchorPrice: item.price,
+    nodeId,
+    layer,
+    regionTags: getNodeRegionTags(nodeId),
+    createdAt: Date.now(),
+  };
+}
+
+function buildMysteryDetails(
+  item: InternalMarketListing,
+  mysteryId: string,
+) {
+  const context = getMysteryContextForListing(item);
+  return {
+    mysteryId,
+    identifyCost: rollIdentifyCost(item.rank),
+    disguiseTier: item.rank,
+    purchasedAt: Date.now(),
+    type: context.type,
+    rankRange: context.rankRange,
+    anchorPrice: context.anchorPrice,
+    nodeId: context.nodeId,
+    layer: context.layer,
+    regionTags: context.regionTags,
+  };
+}
+
+function resolveMysteryRevealContext(
+  target: typeof materials.$inferSelect,
+  mystery: {
+    type?: unknown;
+    rankRange?: unknown;
+    anchorPrice?: unknown;
+    nodeId?: unknown;
+    layer?: unknown;
+    regionTags?: unknown;
+  },
+): MysteryRevealContext {
+  const nodeId =
+    typeof mystery.nodeId === 'string' && mystery.nodeId.length > 0
+      ? mystery.nodeId
+      : getDefaultMarketNodeId();
+  const layer = isMarketLayer(mystery.layer) ? mystery.layer : 'black';
+  const fallbackRange = resolveLayerConfig(
+    layer,
+    getRegionProfile(nodeId),
+  ).rankRange;
+
+  return {
+    type: isMaterialType(mystery.type)
+      ? mystery.type
+      : isMaterialType(target.type)
+        ? target.type
+        : 'aux',
+    rankRange: normalizeRankRange(mystery.rankRange, fallbackRange),
+    anchorPrice:
+      typeof mystery.anchorPrice === 'number' && Number.isFinite(mystery.anchorPrice)
+        ? mystery.anchorPrice
+        : 0,
+    nodeId,
+    layer,
+    regionTags: Array.isArray(mystery.regionTags)
+      ? mystery.regionTags.filter((tag): tag is string => typeof tag === 'string')
+      : getNodeRegionTags(nodeId),
+    createdAt: Date.now(),
+  };
+}
+
+async function rollMysteryRevealMaterial(
+  context: MysteryRevealContext,
+) {
+  const [generated] = await MaterialGenerator.generateRandom(1, {
+    specifiedType: context.type,
+    rankRange: context.rankRange,
+    regionTags: context.regionTags,
+    allowMystery: false,
+    mysteryChance: 0,
+  });
+
+  if (!generated) {
+    throw new MarketServiceError(503, '鉴定天机紊乱，请稍后重试');
+  }
+
+  return {
+    name: generated.name,
+    type: generated.type,
+    rank: generated.rank,
+    element: generated.element,
+    description: generated.description,
+    details: generated.details || {},
+    quantity: 1,
+  };
 }
 
 // ─── 列表清理 ───
@@ -420,7 +608,7 @@ async function generateListings(
   // 黑市应用神秘层
   if (layer === 'black') {
     const mysteryChance = layerConfig.mysteryChance ?? 0.7;
-    listings = applyMysteryLayer(listings, mysteryChance);
+    listings = applyMysteryLayer(listings, mysteryChance, layerConfig);
   }
 
   return listings;
@@ -625,17 +813,8 @@ export async function buyMarketItem(input: BuyInput) {
         throw new MarketServiceError(400, '囊中羞涩，灵石不足');
       }
 
-      if (item.isMystery && item.mysteryPayload) {
+      if (item.isMystery) {
         const mysteryId = crypto.randomUUID();
-        const mysteryKey = getMysteryKey(cultivatorId, mysteryId);
-        afterCommitJobs.push(() =>
-          redis.set(
-            mysteryKey,
-            JSON.stringify(item.mysteryPayload),
-            'EX',
-            MYSTERY_MAPPING_TTL_SEC,
-          ).then(() => undefined),
-        );
 
         await tx.insert(materials).values({
           cultivatorId,
@@ -647,12 +826,7 @@ export async function buyMarketItem(input: BuyInput) {
           quantity,
           details: {
             ...(item.details || {}),
-            mystery: {
-              mysteryId,
-              identifyCost: rollIdentifyCost(item.rank),
-              disguiseTier: item.rank,
-              purchasedAt: Date.now(),
-            },
+            mystery: buildMysteryDetails(item, mysteryId),
           },
         });
       } else {
@@ -774,17 +948,8 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
       }
 
       for (const { item, quantity } of processItems) {
-        if (item.isMystery && item.mysteryPayload) {
+        if (item.isMystery) {
           const mysteryId = crypto.randomUUID();
-          const mysteryKey = getMysteryKey(cultivatorId, mysteryId);
-          afterCommitJobs.push(() =>
-            redis.set(
-              mysteryKey,
-              JSON.stringify(item.mysteryPayload),
-              'EX',
-              MYSTERY_MAPPING_TTL_SEC,
-            ).then(() => undefined),
-          );
 
           await tx.insert(materials).values({
             cultivatorId,
@@ -796,12 +961,7 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
             quantity,
             details: {
               ...(item.details || {}),
-              mystery: {
-                mysteryId,
-                identifyCost: rollIdentifyCost(item.rank),
-                disguiseTier: item.rank,
-                purchasedAt: Date.now(),
-              },
+              mystery: buildMysteryDetails(item, mysteryId),
             },
           });
         } else {
@@ -905,6 +1065,11 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
       mysteryId?: string;
       identifyCost?: number;
       disguiseTier?: keyof typeof QUALITY_ORDER;
+      type?: MaterialType;
+      rankRange?: { min: Quality; max: Quality };
+      nodeId?: string;
+      layer?: MarketLayer;
+      regionTags?: string[];
     } | null;
 
     if (!mystery?.mysteryId) {
@@ -912,18 +1077,12 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
     }
 
     const mysteryKey = getMysteryKey(cultivatorId, mystery.mysteryId);
-    const payload = parseRedisJson<MysteryRevealPayload>(
-      await redis.get(mysteryKey),
-      mysteryKey,
-    );
-    if (!payload) {
-      throw new MarketServiceError(410, '线索已散，请重新寻宝');
-    }
-
     const cost = Math.max(
       1,
       mystery.identifyCost ?? rollIdentifyCost(target.rank as keyof typeof QUALITY_ORDER),
     );
+    const revealContext = resolveMysteryRevealContext(target, mystery);
+    const revealedMaterial = await rollMysteryRevealMaterial(revealContext);
 
     let revealedMaterialId = materialId;
     const writeReveal = async (tx: DbTransaction) => {
@@ -951,13 +1110,13 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
         .insert(materials)
         .values({
           cultivatorId,
-          name: payload.material.name,
-          type: payload.material.type,
-          rank: payload.material.rank,
-          element: payload.material.element,
-          description: payload.material.description,
+          name: revealedMaterial.name,
+          type: revealedMaterial.type,
+          rank: revealedMaterial.rank,
+          element: revealedMaterial.element,
+          description: revealedMaterial.description,
           quantity: 1,
-          details: payload.material.details || {},
+          details: revealedMaterial.details || {},
         })
         .returning({ id: materials.id });
       revealedMaterialId = insertedMaterial.id;
@@ -971,7 +1130,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
 
     const disguiseOrder =
       QUALITY_ORDER[(mystery.disguiseTier || target.rank) as keyof typeof QUALITY_ORDER];
-    const realOrder = QUALITY_ORDER[payload.material.rank];
+    const realOrder = QUALITY_ORDER[revealedMaterial.rank];
     const delta = realOrder - disguiseOrder;
     const jackpotLevel =
       delta >= 3 ? 'legendary_win' : delta >= 1 ? 'win' : delta <= -2 ? 'big_loss' : 'normal';
@@ -988,7 +1147,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
         .where(eq(cultivators.id, cultivatorId))
         .limit(1);
       if (sender) {
-        const rumorText = `鉴宝司金光冲霄，${sender.name}鉴出${payload.material.rank}「${payload.material.name}」，天降异象，诸界皆闻。`;
+        const rumorText = `鉴宝司金光冲霄，${sender.name}鉴出${revealedMaterial.rank}「${revealedMaterial.name}」，天降异象，诸界皆闻。`;
         try {
           await createMessage({
             senderUserId: sender.userId,
@@ -1003,11 +1162,11 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
               itemId: revealedMaterialId,
               snapshot: {
                 id: revealedMaterialId,
-                name: payload.material.name,
-                type: payload.material.type,
-                rank: payload.material.rank,
-                element: payload.material.element,
-                description: payload.material.description,
+                name: revealedMaterial.name,
+                type: revealedMaterial.type,
+                rank: revealedMaterial.rank,
+                element: revealedMaterial.element,
+                description: revealedMaterial.description,
                 quantity: 1,
               },
               text: rumorText,
@@ -1025,7 +1184,7 @@ export async function identifyMysteryMaterial(input: IdentifyInput) {
 
     return {
       success: true,
-      revealedItem: { id: revealedMaterialId, ...payload.material, quantity: 1 },
+      revealedItem: { id: revealedMaterialId, ...revealedMaterial, quantity: 1 },
       cost,
       jackpotLevel,
       revealEffect: delta >= 2 ? '金光冲霄' : delta <= -2 ? '灵尘散尽' : '封印破除',

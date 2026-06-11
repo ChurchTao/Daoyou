@@ -74,6 +74,7 @@ import {
   addConsumableToInventory,
   getCultivatorByIdUnsafe,
 } from './cultivatorService';
+import { getMysteryMaterialBlockingReason } from './materialMysteryGuard';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
@@ -335,6 +336,10 @@ function buildPreparedMaterial(
   index: number,
   materialQuantities?: Record<string, number>,
 ): PreparedAlchemyMaterial {
+  const mysteryReason = getMysteryMaterialBlockingReason([material]);
+  if (mysteryReason) {
+    throw new AlchemyServiceError(mysteryReason, 400);
+  }
   if (!material.element) {
     throw new AlchemyServiceError(`材料 ${material.name} 缺少五行属性`, 400);
   }

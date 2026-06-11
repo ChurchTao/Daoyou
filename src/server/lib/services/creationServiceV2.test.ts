@@ -92,4 +92,40 @@ describe('previewCreationSelection', () => {
     expect(getExecutorMock).toHaveBeenCalledTimes(1);
     expect(inArrayMock).toHaveBeenCalledWith('id', ['manual-1']);
   });
+
+  it('应阻止待鉴定材料进入造物预览', async () => {
+    executorState.materialRows = [
+      {
+        id: 'mystery-1',
+        cultivatorId: 'cultivator-1',
+        name: '封泥药囊',
+        type: 'herb',
+        rank: '玄品',
+        quantity: 1,
+        element: '木',
+        description: '药香被封泥遮蔽，真实品相难辨。',
+        details: {
+          mystery: {
+            mysteryId: 'mystery-token-1',
+            identifyCost: 200,
+            disguiseTier: '玄品',
+            purchasedAt: Date.now(),
+          },
+        },
+      },
+    ];
+
+    const preview = await previewCreationSelection(
+      'cultivator-1',
+      ['mystery-1'],
+      'refine',
+    );
+
+    expect(preview.validation).toEqual({
+      valid: false,
+      blockingReason: '待鉴定材料无法入炉，请先鉴定。',
+      warnings: [],
+      missingMatchingManual: false,
+    });
+  });
 });

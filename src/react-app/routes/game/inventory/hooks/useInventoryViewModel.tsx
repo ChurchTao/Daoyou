@@ -55,6 +55,7 @@ interface InventoryApiPayload {
 interface IdentifyApiResult {
   success: boolean;
   revealedItem?: Material;
+  cost?: number;
   revealEffect?: string;
   jackpotLevel?: 'legendary_win' | 'win' | 'big_loss' | 'normal';
   error?: string;
@@ -68,6 +69,30 @@ const inFlightInventoryRequestMap = new Map<
   string,
   Promise<InventoryApiPayload>
 >();
+
+const IDENTIFY_COST_BY_RANK: Record<Quality, number> = {
+  凡品: 20,
+  灵品: 80,
+  玄品: 200,
+  真品: 600,
+  地品: 1600,
+  天品: 4000,
+  仙品: 12000,
+  神品: 36000,
+};
+
+function getIdentifyCostText(item: Material): string {
+  const details = item.details;
+  const mystery =
+    details && typeof details === 'object'
+      ? (details as { mystery?: { identifyCost?: unknown } }).mystery
+      : null;
+  const cost = mystery?.identifyCost;
+  if (typeof cost === 'number' && Number.isFinite(cost)) {
+    return `${Math.max(1, Math.floor(cost))} 灵石`;
+  }
+  return `约 ${IDENTIFY_COST_BY_RANK[item.rank] ?? 200} 灵石`;
+}
 
 async function fetchInventoryWithDedupe(
   url: string,
@@ -535,53 +560,74 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         });
         return;
       }
+      const materialId = item.id;
 
-      setPendingId(item.id);
-      try {
-        const result = await mutate<IdentifyApiResult>(
-          fetch('/api/cultivator/inventory/identify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ materialId: item.id }),
-          }),
-        );
+      const executeIdentify = async () => {
+        setPendingId(materialId);
+        try {
+          const result = await mutate<IdentifyApiResult>(
+            fetch('/api/cultivator/inventory/identify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ materialId }),
+            }),
+          );
 
-        const revealed = result.revealedItem
-          ? {
-              ...result.revealedItem,
-              quantity: result.revealedItem.quantity || 1,
-            }
-          : null;
+          const revealed = result.revealedItem
+            ? {
+                ...result.revealedItem,
+                quantity: result.revealedItem.quantity || 1,
+              }
+            : null;
 
-        pushToast({
-          message: `鉴定完成：${result.revealedItem?.name || '未知宝物'}`,
-          tone: 'success',
-        });
-
-        if (revealed) {
-          setSelectedItem({ kind: 'material', item: revealed });
-          setIsModalOpen(true);
-        }
-
-        const isHeavenOrAbove =
-          revealed &&
-          QUALITY_ORDER[revealed.rank] >= QUALITY_ORDER['天品'];
-
-        if (isHeavenOrAbove) {
-          setIdentifyCelebration({
-            rank: revealed.rank,
+          pushToast({
+            message: `鉴定完成：${result.revealedItem?.name || '未知宝物'}`,
+            tone: 'success',
           });
-        }
 
-      } catch (error) {
-        pushToast({
-          message:
-            error instanceof Error ? `鉴定失败：${error.message}` : '鉴定失败',
-          tone: 'danger',
-        });
-      } finally {
-        setPendingId(null);
-      }
+          if (revealed) {
+            setSelectedItem({ kind: 'material', item: revealed });
+            setIsModalOpen(true);
+          }
+
+          const isHeavenOrAbove =
+            revealed &&
+            QUALITY_ORDER[revealed.rank] >= QUALITY_ORDER['天品'];
+
+          if (isHeavenOrAbove) {
+            setIdentifyCelebration({
+              rank: revealed.rank,
+            });
+          }
+
+        } catch (error) {
+          pushToast({
+            message:
+              error instanceof Error ? `鉴定失败：${error.message}` : '鉴定失败',
+            tone: 'danger',
+          });
+        } finally {
+          setPendingId(null);
+        }
+      };
+
+      setDialog({
+        id: 'identify-confirm',
+        title: '鉴定确认',
+        content: (
+          <p className="py-4 text-center">
+            鉴定 <span className="font-bold">{item.name}</span> 需要消耗{' '}
+            <span className="font-bold">{getIdentifyCostText(item)}</span>。
+            <br />
+            <span className="text-ink-secondary text-xs">
+              鉴定后才会揭开真实材料，结果无法预先得知。
+            </span>
+          </p>
+        ),
+        confirmLabel: '确认鉴定',
+        loadingLabel: '鉴定中...',
+        onConfirm: executeIdentify,
+      });
     },
     [
       cultivator,

@@ -137,7 +137,10 @@ vi.mock('./AlchemyNarrativeEnricher', () => ({
 }));
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAlchemyService } from './alchemyServiceV2';
+import {
+  createAlchemyService,
+  previewAlchemySelection,
+} from './alchemyServiceV2';
 
 describe('processAlchemyCraft narrative copy', () => {
   beforeEach(() => {
@@ -279,5 +282,40 @@ describe('processAlchemyCraft narrative copy', () => {
 
     expect(planMock).toHaveBeenCalledTimes(1);
     expect(generateImprovisedPillCopyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects mystery materials during preview and crafting', async () => {
+    executorState.materialRows = [
+      {
+        ...executorState.materialRows[0],
+        details: {
+          mystery: {
+            mysteryId: 'mystery-1',
+            identifyCost: 200,
+            disguiseTier: '玄品',
+            purchasedAt: Date.now(),
+          },
+        },
+      },
+    ];
+    const planMock = vi.fn();
+    const service = createAlchemyService({ plan: planMock } as any);
+
+    const preview = await previewAlchemySelection(
+      'cultivator-1',
+      50000,
+      ['m1'],
+    );
+    expect(preview.validation).toMatchObject({
+      valid: false,
+      blockingReason: '待鉴定材料无法入炉，请先鉴定。',
+    });
+
+    await expect(
+      service.processAlchemyCraft('cultivator-1', ['m1'], {
+        userPrompt: '疗伤为主',
+      }),
+    ).rejects.toThrow('待鉴定材料无法入炉，请先鉴定。');
+    expect(planMock).not.toHaveBeenCalled();
   });
 });

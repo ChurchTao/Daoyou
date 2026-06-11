@@ -1,4 +1,9 @@
-import type { Artifact, Consumable, Material } from './cultivator';
+import type {
+  Artifact,
+  Consumable,
+  Material,
+} from './cultivator';
+import type { ElementType, Quality } from './constants';
 
 export type WorldChatChannel = 'world';
 
@@ -19,7 +24,12 @@ export interface WorldChatDuelInvitePayload {
   expiresAt?: string;
 }
 
-export type WorldChatShowcaseItemType = 'artifact' | 'material' | 'consumable';
+export type WorldChatShowcaseItemType =
+  | 'artifact'
+  | 'material'
+  | 'consumable'
+  | 'skill'
+  | 'gongfa';
 
 export type ItemShowcaseSnapshotMap = {
   artifact: Pick<
@@ -34,6 +44,26 @@ export type ItemShowcaseSnapshotMap = {
     Consumable,
     'id' | 'name' | 'type' | 'quality' | 'quantity' | 'description' | 'spec'
   >;
+  skill: {
+    id: string;
+    name: string;
+    productType: 'skill';
+    element: ElementType | null;
+    quality: Quality | null;
+    description: string | null;
+    score: number;
+    productModel: unknown;
+  };
+  gongfa: {
+    id: string;
+    name: string;
+    productType: 'gongfa';
+    element: ElementType | null;
+    quality: Quality | null;
+    description: string | null;
+    score: number;
+    productModel: unknown;
+  };
 };
 
 export type ItemShowcaseSnapshot =

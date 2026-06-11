@@ -28,6 +28,7 @@ import {
   toPlayerStateMutationResponse,
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
+import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import {
   requireActiveCultivator,
 } from '@server/lib/hono/middleware';
@@ -40,9 +41,17 @@ import {
   isCreationCraftType,
   type CreationCraftType,
 } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
+import type { CreationProductType } from '@shared/engine/creation-v2/types';
 import type { QiAction } from '@shared/config/qiSystem';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
-import { EQUIPMENT_SLOT_VALUES, type Quality } from '@shared/types/constants';
+import {
+  EQUIPMENT_SLOT_VALUES,
+  QUALITY_ORDER,
+  type ElementType,
+  type Quality,
+} from '@shared/types/constants';
+import type { Consumable } from '@shared/types/cultivator';
+import type { ItemShowcaseSnapshotMap } from '@shared/types/world-chat';
 import { randomUUID } from 'crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -195,6 +204,141 @@ function buildCreationStateChanges(args: {
   }
 
   return changes;
+}
+
+type BroadcastableCreationResult = {
+  id: string;
+  productType: CreationProductType;
+  name: string;
+  description: string | null;
+  element: string | null;
+  quality: string | null;
+  slot: string | null;
+  score: number;
+  productModel: Record<string, unknown>;
+  needs_replace?: boolean;
+};
+
+function isBroadcastQuality(quality: string | null): quality is Quality {
+  return (
+    typeof quality === 'string' &&
+    quality in QUALITY_ORDER &&
+    QUALITY_ORDER[quality as Quality] >= QUALITY_ORDER['真品']
+  );
+}
+
+function buildCreationShowcaseSnapshot(
+  item: BroadcastableCreationResult,
+): ItemShowcaseSnapshotMap[CreationProductType] {
+  if (item.productType === 'artifact') {
+    return {
+      id: item.id,
+      name: item.name,
+      slot: item.slot as ItemShowcaseSnapshotMap['artifact']['slot'],
+      element: item.element as ItemShowcaseSnapshotMap['artifact']['element'],
+      quality: item.quality as ItemShowcaseSnapshotMap['artifact']['quality'],
+      description: item.description ?? undefined,
+      productModel: item.productModel,
+    };
+  }
+
+  if (item.productType === 'skill') {
+    return {
+      id: item.id,
+      name: item.name,
+      productType: 'skill',
+      element: item.element as ElementType | null,
+      quality: item.quality as Quality | null,
+      description: item.description,
+      score: item.score,
+      productModel: item.productModel,
+    };
+  }
+
+  return {
+    id: item.id,
+    name: item.name,
+    productType: 'gongfa',
+    element: item.element as ElementType | null,
+    quality: item.quality as Quality | null,
+    description: item.description,
+    score: item.score,
+    productModel: item.productModel,
+  };
+}
+
+async function broadcastCreationRumor(args: {
+  userId: string;
+  cultivatorName: string;
+  item: BroadcastableCreationResult;
+}) {
+  const { item } = args;
+  if (!item.id || item.needs_replace || !isBroadcastQuality(item.quality)) {
+    return;
+  }
+
+  const text = `由${args.cultivatorName}炼成，品阶已入${item.quality}，灵韵自生，足令诸修侧目。`;
+
+  try {
+    await createMessage({
+      senderUserId: args.userId,
+      senderCultivatorId: null,
+      senderName: '修仙界传闻',
+      senderRealm: '炼气',
+      senderRealmStage: '系统',
+      messageType: 'item_showcase',
+      textContent: text,
+      payload: {
+        itemType: item.productType,
+        itemId: item.id,
+        snapshot: buildCreationShowcaseSnapshot(item),
+        text,
+      },
+    });
+  } catch (error) {
+    console.error('造物传闻发送失败:', error);
+  }
+}
+
+async function broadcastAlchemyRumor(args: {
+  userId: string;
+  cultivatorName: string;
+  consumable?: Consumable;
+}) {
+  const { consumable } = args;
+  if (!consumable?.id || !isBroadcastQuality(consumable.quality ?? null)) {
+    return;
+  }
+
+  const text = `由${args.cultivatorName}炼成，丹品已入${consumable.quality}，药香化霞，足令诸修侧目。`;
+
+  try {
+    await createMessage({
+      senderUserId: args.userId,
+      senderCultivatorId: null,
+      senderName: '修仙界传闻',
+      senderRealm: '炼气',
+      senderRealmStage: '系统',
+      messageType: 'item_showcase',
+      textContent: text,
+      payload: {
+        itemType: 'consumable',
+        itemId: consumable.id,
+        snapshot: {
+          id: consumable.id,
+          name: consumable.name,
+          type: consumable.type,
+          quality: consumable.quality,
+          quantity: consumable.quantity,
+          description: consumable.description,
+          spec: consumable.spec,
+        },
+        text,
+      },
+    });
+  } catch (error) {
+    console.error('造物传闻发送失败:', error);
+  }
 }
 
 router.get('/', requireActiveCultivator(), async (c) => {
@@ -433,6 +577,11 @@ router.post('/', requireActiveCultivator(), async (c) => {
       if (afterCommit) {
         await afterCommit();
       }
+      await broadcastAlchemyRumor({
+        userId: user.id,
+        cultivatorName: cultivator.name,
+        consumable: committed.result.consumable,
+      });
 
       return c.json(toPlayerStateMutationResponse(committed));
     }
@@ -486,6 +635,11 @@ router.post('/', requireActiveCultivator(), async (c) => {
     if (afterCommit) {
       await afterCommit();
     }
+    await broadcastCreationRumor({
+      userId: user.id,
+      cultivatorName: cultivator.name,
+      item: committed.result as BroadcastableCreationResult,
+    });
 
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
@@ -572,6 +726,11 @@ confirmRouter.post('/', requireActiveCultivator(), async (c) => {
     if (afterCommit) {
       await afterCommit();
     }
+    await broadcastCreationRumor({
+      userId: user.id,
+      cultivatorName: cultivator.name,
+      item: committed.result.item as BroadcastableCreationResult,
+    });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof z.ZodError) {

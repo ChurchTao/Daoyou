@@ -159,6 +159,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   analyzeFormulaMaterials,
   craftFromFormula,
+  previewFormulaCraft,
 } from './AlchemyFormulaService';
 
 function createAnalysisPayload(
@@ -426,6 +427,55 @@ describe('craftFromFormula narrative copy', () => {
     await expect(
       craftFromFormula('cultivator-1', 'formula-1', ['m1']),
     ).rejects.toThrow('请先按方辨材。');
+  });
+
+  it('rejects mystery materials during formula preview, analysis, and crafting', async () => {
+    executorState.materialRows = [
+      {
+        ...executorState.materialRows[0],
+        details: {
+          mystery: {
+            mysteryId: 'mystery-1',
+            identifyCost: 200,
+            disguiseTier: '玄品',
+            purchasedAt: Date.now(),
+          },
+        },
+      },
+    ];
+
+    const preview = await previewFormulaCraft(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+      50000,
+    );
+    expect(preview.validation).toMatchObject({
+      valid: false,
+      blockingReason: '待鉴定材料无法入炉，请先鉴定。',
+    });
+
+    const analysis = await analyzeFormulaMaterials(
+      'cultivator-1',
+      'formula-1',
+      ['m1'],
+    );
+    expect(analysis).toMatchObject({
+      valid: false,
+      staticBlockingReason: '待鉴定材料无法入炉，请先鉴定。',
+      fitBand: 'blocked',
+    });
+    expect(analyzerAnalyzeMock).not.toHaveBeenCalled();
+
+    await expect(
+      craftFromFormula(
+        'cultivator-1',
+        'formula-1',
+        ['m1'],
+        undefined,
+        'analysis-1',
+      ),
+    ).rejects.toThrow('待鉴定材料无法入炉，请先鉴定。');
   });
 
   it('rejects formula crafting when the cached analysis has expired', async () => {
