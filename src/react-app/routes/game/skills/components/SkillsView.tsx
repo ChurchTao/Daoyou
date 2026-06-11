@@ -69,7 +69,7 @@ export function SkillsView() {
             </div>
           </GameSceneAsideSection>
           <GameSceneAsideSection title="下一步" className="text-sm leading-7">
-            <p>想补底稿可去问法寻卷，想创造新术可直入藏经阁。</p>
+            <p>想补底稿可去问法寻卷，想创造新术可直入悟道室。</p>
           </GameSceneAsideSection>
         </>
       }
@@ -77,7 +77,7 @@ export function SkillsView() {
       {!cultivator ? (
         <InkNotice>还未觉醒道身，何谈神通？先去首页觉醒吧。</InkNotice>
       ) : skills.length === 0 ? (
-        <InkNotice>尚未领悟任何神通，前往藏经阁参悟吧。</InkNotice>
+        <InkNotice>尚未领悟任何神通，前往悟道室参悟吧。</InkNotice>
       ) : (
         <>
           <div className="space-y-3">

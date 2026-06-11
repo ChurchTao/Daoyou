@@ -45,7 +45,7 @@ export function TechniquesView() {
     <GameSceneFrame
       variant="lite"
       title="【所修功法】"
-      description="根基所系的功法都在此归档。这里强调数量、取舍与回藏经阁继续参悟，而不再沿用旧文书页壳。"
+      description="根基所系的功法都在此归档。这里强调数量、取舍与回悟道室继续参悟，而不再沿用旧文书页壳。"
       headerMeta={
         note ? (
           <GameSceneNote>
@@ -63,7 +63,7 @@ export function TechniquesView() {
             </div>
           </GameSceneAsideSection>
           <GameSceneAsideSection title="下一步" className="text-sm leading-7">
-            <p>若功法稀缺，可先去问法寻卷；若想再造新法，则回藏经阁继续参悟。</p>
+            <p>若功法稀缺，可先去问法寻卷；若想再造新法，则回悟道室继续参悟。</p>
           </GameSceneAsideSection>
         </>
       }
@@ -71,7 +71,7 @@ export function TechniquesView() {
       {!cultivator ? (
         <InkNotice>还未觉醒道身，何谈功法？先去首页觉醒吧。</InkNotice>
       ) : techniques.length === 0 ? (
-        <InkNotice>尚未参悟任何功法，前往藏经阁修行吧。</InkNotice>
+        <InkNotice>尚未参悟任何功法，前往悟道室修行吧。</InkNotice>
       ) : (
         <>
           <div className="space-y-3">

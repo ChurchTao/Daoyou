@@ -13,7 +13,7 @@ export default function EnlightenmentPage() {
   return (
     <GameSceneFrame
       variant="lite"
-      title="【藏经阁】"
+      title="【悟道室】"
       description="万法归宗，神念通玄。这里不再只是门户，而是决定你此刻要推演神通、参悟功法，还是先去求卷补足底稿。"
       headerMeta={
         note ? (
@@ -31,10 +31,10 @@ export default function EnlightenmentPage() {
             </div>
           </GameSceneAsideSection>
           <GameSceneAsideSection
-            title="藏经说明"
+            title="悟道说明"
             className="text-sm leading-7"
             help={{
-              title: '藏经阁参悟说明',
+              title: '悟道室参悟说明',
               content: (
                 <div className="space-y-3 text-sm leading-7">
                   <div>
@@ -47,7 +47,7 @@ export default function EnlightenmentPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-ink font-medium">藏经细则</p>
+                    <p className="text-ink font-medium">悟道细则</p>
                     <p className="text-ink-secondary">
                       神通推演更偏施法方向，功法参悟更偏根基与长期成长。
                     </p>

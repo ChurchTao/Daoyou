@@ -148,12 +148,12 @@ export function evaluateNoviceReadiness(
 
   if (hpPercent < NOVICE_DUNGEON_RESOURCE_THRESHOLD) {
     reasons.push(`气血仅 ${hpPercent}%，低于首次探秘建议值。`);
-    hints.push('先去客栈调息，或服用疗伤丹后再出发。');
+    hints.push('先去灵眼之泉调息，或服用疗伤丹后再出发。');
   }
 
   if (mpPercent < NOVICE_DUNGEON_RESOURCE_THRESHOLD) {
     reasons.push(`法力仅 ${mpPercent}%，低于首次探秘建议值。`);
-    hints.push('先去客栈调息，或服用回元丹后再出发。');
+    hints.push('先去灵眼之泉调息，或服用回元丹后再出发。');
   }
 
   if (!noviceEquipmentState.hasFullSet) {

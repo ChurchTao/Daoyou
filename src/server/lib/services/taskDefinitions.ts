@@ -1002,7 +1002,7 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
         completionText: '第一次探秘已结算，你已经走完修炼、准备、探索、恢复的基础循环。',
         links: [
           { label: '去云游探秘', kind: 'dungeon' },
-          { label: '去客栈调息', kind: 'inn' },
+          { label: '去灵眼之泉', kind: 'inn' },
           { label: '去练功房', kind: 'training' },
         ],
         objectives: [

@@ -233,9 +233,9 @@ export const router = createBrowserRouter(
                 {
                   id: 'inn',
                   presentation: 'service',
-                  summary: '付灵石养伤住店，稳住道体再续行。',
+                  summary: '借灵眼之泉温养伤势，稳住道体再续行。',
                 },
-                '客栈',
+                '灵眼之泉',
               )}
             />
             <Route
@@ -312,7 +312,7 @@ export const router = createBrowserRouter(
                   presentation: 'hub',
                   summary: '推演、求卷与取舍都归书案。',
                 },
-                '【藏经阁】',
+                '【悟道室】',
               )}
             />
             <Route

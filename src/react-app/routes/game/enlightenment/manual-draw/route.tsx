@@ -403,7 +403,7 @@ export default function ManualDrawPage() {
               content: (
                 <div className="space-y-2 text-sm leading-7">
                   <p>{currentConfig.usageHint}</p>
-                  <p>抽出的秘籍会直接落入材料背包，供藏经阁后续使用。</p>
+                  <p>抽出的秘籍会直接落入材料背包，供悟道室后续使用。</p>
                 </div>
               ),
             }}
@@ -438,7 +438,7 @@ export default function ManualDrawPage() {
                   </div>
                   <p className="text-ink-secondary max-w-2xl text-sm leading-6">
                     {currentConfig.intro}
-                    抽到后会直接放入材料背包，可在藏经阁用于
+                    抽到后会直接放入材料背包，可在悟道室用于
                     {activeTab === 'gongfa' ? '参悟功法' : '推演神通'}。
                   </p>
                 </div>

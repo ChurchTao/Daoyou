@@ -175,7 +175,7 @@ function renderPreparationNotice(
             {selectedNode ? '重选秘境' : '前往地图'}
           </InkButton>
           <InkButton href="/game/inn" variant="secondary">
-            去客栈调息
+            去灵眼之泉
           </InkButton>
           <InkButton href="/game/craft/alchemy" variant="secondary">
             去炼丹房

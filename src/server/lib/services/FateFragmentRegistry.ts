@@ -251,15 +251,15 @@ const POSITIVE_EFFECTS = [
     polarity: 'boon',
     family: 'inn_loss',
     weight: 0.75,
-    label: '住店修为损耗降低',
-    keywords: ['住店', '疗伤', '养伤', '静养', '修为'],
+    label: '灵泉疗伤修为损耗降低',
+    keywords: ['灵泉', '疗伤', '养伤', '静养', '修为'],
     suffix: '脉',
     valueKind: 'multiplier_down',
     baseRange: [0.08, 0.15],
     roundingStep: 0.01,
-    buildLabel: (value) => `住店修为损耗 ${formatReduction(value)}`,
+    buildLabel: (value) => `灵泉疗伤修为损耗 ${formatReduction(value)}`,
     buildDescription: (value) =>
-      `此人道体更易稳住散乱真气，住店修为损耗 ${formatReduction(value)}。`,
+      `此人道体更易借灵泉稳住散乱真气，疗伤修为损耗 ${formatReduction(value)}。`,
   }),
 ] as const satisfies readonly FateEffectDefinition[];
 

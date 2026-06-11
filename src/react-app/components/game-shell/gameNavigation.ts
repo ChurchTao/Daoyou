@@ -55,19 +55,16 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'retreat',
         sceneLabel: '修炼室',
         href: '/game/retreat',
-        expandedDockLabel: '🧘 修炼室',
       },
       {
         id: 'inn',
-        sceneLabel: '客栈',
+        sceneLabel: '灵眼之泉',
         href: '/game/inn',
-        expandedDockLabel: '🛏️ 客栈',
       },
       {
         id: 'enlightenment',
-        sceneLabel: '藏经阁',
+        sceneLabel: '悟道室',
         href: '/game/enlightenment',
-        expandedDockLabel: '📚 藏经阁',
       },
       {
         id: 'techniques',
@@ -85,14 +82,12 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'training-room',
         sceneLabel: '练功房',
         href: '/game/training-room',
-        expandedDockLabel: '👊 练功房',
       },
       {
         id: 'inventory',
         sceneLabel: '储物袋',
         href: '/game/inventory',
         coreDockLabel: '储物袋',
-        expandedDockLabel: '🪞 储物袋',
       },
       {
         id: 'battle-history',
@@ -140,7 +135,6 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'craft',
         sceneLabel: '造物仙炉',
         href: '/game/craft',
-        expandedDockLabel: '⚗️ 造物仙炉',
       },
       {
         id: 'fate-reshape',
@@ -158,7 +152,6 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'manual-draw',
         sceneLabel: '悟道演法',
         href: '/game/enlightenment/manual-draw',
-        expandedDockLabel: '🪄 悟道演法',
       },
       {
         id: 'alchemy',
@@ -207,7 +200,6 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '传音玉简',
         href: '/game/mail',
         coreDockLabel: '传音玉简',
-        expandedDockLabel: '🔔 传音玉简',
       },
       {
         id: 'world-chat',
