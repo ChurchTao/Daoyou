@@ -191,17 +191,15 @@ router.get('/state/stream', requireActiveCultivatorRef(), async (c) => {
         }
 
         const lastEventId = events[events.length - 1]?.globalVersion;
-        safeSend(
+        const frame =
           [
             'event: player-state',
-            lastEventId ? `id: ${lastEventId}` : null,
+            lastEventId ? `id: ${lastEventId}` : undefined,
             `data: ${JSON.stringify(payload)}`,
-            '',
-            '',
           ]
-            .filter(Boolean)
-            .join('\n'),
-        );
+            .filter((line): line is string => Boolean(line))
+            .join('\n') + '\n\n';
+        safeSend(frame);
       };
       const sendEvents = (events: Awaited<ReturnType<typeof listStateEventsAfter>>) => {
         sendPayload(events, { events });

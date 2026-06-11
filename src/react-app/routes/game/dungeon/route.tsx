@@ -40,7 +40,7 @@ function DungeonContent() {
 
   // 修正加载状态：ViewModel 内部已经处理了副本状态的加载
   // 这里只需要处理用户信息的加载
-  if (isCultivatorLoading) {
+  if (isCultivatorLoading && !cultivator) {
     const descriptor = resolveDungeonSceneDescriptor('loading');
     return (
       <DungeonSceneScreen descriptor={descriptor}>

@@ -2,10 +2,13 @@ import { GAME_ROUTE_ID, type UserLoaderData } from '@app/lib/router/routeData';
 import type { PlayerCultivatorView } from '@shared/contracts/player';
 import type {
   Cultivator,
+  CultivationProgress,
   EquippedItems,
   Inventory,
   Skill,
 } from '@shared/types/cultivator';
+import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import { EXP_CAP_TABLE } from '@shared/config/cultivationProgress';
 import type { PlayerStateStoreData } from '@app/lib/player-state/store';
 import {
   usePlayerState,
@@ -205,7 +208,7 @@ export function useCultivatorBundle() {
   };
 }
 
-function buildLegacyFetchStateFromPlayerState(
+export function buildLegacyFetchStateFromPlayerState(
   storeState: PlayerStateStoreData,
 ): FetchState {
   const profile = storeState.snapshot.profile;
@@ -228,13 +231,23 @@ function buildLegacyFetchStateFromPlayerState(
   };
   const equipped = products?.equipped ?? cultivator.equipped ?? defaultEquipped;
   const skills = products?.skills ?? cultivator.skills ?? [];
+  const patchedProgress =
+    'cultivation_exp' in (storeState.snapshot.progress ?? {})
+      ? (storeState.snapshot.progress as CultivationProgress)
+      : null;
+  const cultivationProgress = patchedProgress
+    ? {
+        ...patchedProgress,
+        exp_cap:
+          patchedProgress.exp_cap ??
+          EXP_CAP_TABLE[cultivator.realm]?.[cultivator.realm_stage] ??
+          EXP_CAP_TABLE['炼气']['初期'],
+      }
+    : cultivator.cultivation_progress;
   const fullCultivator: Cultivator = {
     ...cultivator,
     condition: storeState.snapshot.condition ?? cultivator.condition,
-    cultivation_progress:
-      'cultivation_exp' in (storeState.snapshot.progress ?? {})
-        ? (storeState.snapshot.progress as Cultivator['cultivation_progress'])
-        : cultivator.cultivation_progress,
+    cultivation_progress: cultivationProgress,
     spirit_stones:
       storeState.snapshot.currency?.spiritStones ?? cultivator.spirit_stones,
     inventory,
@@ -242,10 +255,11 @@ function buildLegacyFetchStateFromPlayerState(
     cultivations: products?.cultivations ?? cultivator.cultivations ?? [],
     equipped,
   };
+  const display = getCultivatorDisplaySnapshot(fullCultivator);
 
   return {
     cultivator: fullCultivator,
-    display: profile?.display ?? null,
+    display,
     inventory,
     inventoryLoaded: {
       artifacts: Boolean(storeState.snapshot.inventory || products),

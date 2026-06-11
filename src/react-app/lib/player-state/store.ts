@@ -21,6 +21,9 @@ export type PlayerStateStoreData = {
   domainVersions: PlayerStateDomainVersions;
   snapshot: Partial<PlayerStateSnapshot>;
   loading: boolean;
+  isRefreshing: boolean;
+  isRecovering: boolean;
+  refreshingDomains: Set<PlayerStateDomain>;
   staleDomains: Set<PlayerStateDomain>;
   lastSyncAt: number | null;
   error: string | null;
@@ -34,19 +37,29 @@ const emptyDomainVersions = PLAYER_STATE_DOMAINS.reduce(
   {} as PlayerStateDomainVersions,
 );
 
-const initialState: PlayerStateStoreData = {
-  userId: null,
-  cultivatorId: null,
-  globalVersion: 0,
-  domainVersions: emptyDomainVersions,
-  snapshot: {},
-  loading: false,
-  staleDomains: new Set(),
-  lastSyncAt: null,
-  error: null,
-};
+function createInitialState(): PlayerStateStoreData {
+  return {
+    userId: null,
+    cultivatorId: null,
+    globalVersion: 0,
+    domainVersions: { ...emptyDomainVersions },
+    snapshot: {},
+    loading: false,
+    isRefreshing: false,
+    isRecovering: false,
+    refreshingDomains: new Set(),
+    staleDomains: new Set(),
+    lastSyncAt: null,
+    error: null,
+  };
+}
+
+const initialState: PlayerStateStoreData = createInitialState();
 
 type Listener = () => void;
+type MutationOptions = {
+  deferRecovery?: boolean;
+};
 
 export class PlayerStateStore {
   private state: PlayerStateStoreData = initialState;
@@ -73,7 +86,7 @@ export class PlayerStateStore {
       this.initializePromise = null;
       this.disconnectStream();
       this.processedEventIds.clear();
-      this.setState({ ...initialState });
+      this.setState(createInitialState());
       return;
     }
 
@@ -94,11 +107,19 @@ export class PlayerStateStore {
     if (!userId) {
       this.disconnectStream();
       this.processedEventIds.clear();
-      this.setState({ ...initialState });
+      this.setState(createInitialState());
       return;
     }
 
-    this.setState({ ...this.state, userId, loading: true, error: null });
+    const hasUsableSnapshot = Boolean(this.state.snapshot.profile);
+    this.setState({
+      ...this.state,
+      userId,
+      loading: !hasUsableSnapshot,
+      isRefreshing: hasUsableSnapshot,
+      refreshingDomains: new Set(domains ?? PLAYER_STATE_DOMAINS),
+      error: null,
+    });
 
     try {
       const params = domains?.length
@@ -121,7 +142,7 @@ export class PlayerStateStore {
         this.state.cultivatorId !== nextCultivatorId;
       const baseState = cultivatorChanged
         ? {
-            ...initialState,
+            ...createInitialState(),
             userId,
             loading: true,
           }
@@ -143,6 +164,8 @@ export class PlayerStateStore {
           ...json.data.snapshot,
         },
         loading: false,
+        isRefreshing: false,
+        refreshingDomains: new Set(),
         staleDomains,
         lastSyncAt: Date.now(),
         error: null,
@@ -153,12 +176,14 @@ export class PlayerStateStore {
         ...this.state,
         userId,
         loading: false,
+        isRefreshing: false,
+        refreshingDomains: new Set(),
         error: error instanceof Error ? error.message : '玩家状态同步失败',
       });
     }
   }
 
-  applyEvents(events: PlayerStateEvent[]): void {
+  applyEvents(events: PlayerStateEvent[], options: MutationOptions = {}): void {
     if (events.length === 0) {
       return;
     }
@@ -174,13 +199,19 @@ export class PlayerStateStore {
       if (event.globalVersion > nextState.globalVersion + 1) {
         needsRecovery = true;
       }
-      nextState = this.applyEvent(nextState, event);
+      nextState = this.applyEvent(nextState, event, {
+        allowGapPatch: options.deferRecovery === true,
+      });
     }
 
     this.setState(nextState);
 
     if (needsRecovery) {
-      this.scheduleEventRecovery(recoveryAfter);
+      if (options.deferRecovery) {
+        setTimeout(() => this.scheduleEventRecovery(recoveryAfter), 0);
+      } else {
+        this.scheduleEventRecovery(recoveryAfter);
+      }
       return;
     }
 
@@ -199,6 +230,7 @@ export class PlayerStateStore {
 
   async mutate<T>(
     request: Promise<Response | PlayerStateMutationResponse<T> | ApiFailure>,
+    options: MutationOptions = {},
   ): Promise<T> {
     const raw = await request;
     const json =
@@ -219,8 +251,14 @@ export class PlayerStateStore {
       return json.data;
     }
 
+    const localGlobalVersionBeforeEvents = this.state.globalVersion;
+    const hasDeferredGap =
+      options.deferRecovery === true &&
+      Boolean(json.state?.events?.length) &&
+      hasVersionGap(json.state?.events ?? [], localGlobalVersionBeforeEvents);
+
     if (json.state?.events?.length) {
-      this.applyEvents(json.state.events);
+      this.applyEvents(json.state.events, options);
     }
 
     if (json.state?.domainVersions) {
@@ -230,10 +268,9 @@ export class PlayerStateStore {
           ...this.state.domainVersions,
           ...json.state.domainVersions,
         },
-        globalVersion: Math.max(
-          this.state.globalVersion,
-          json.state.globalVersion,
-        ),
+        globalVersion: hasDeferredGap
+          ? this.state.globalVersion
+          : Math.max(this.state.globalVersion, json.state.globalVersion),
       });
     }
 
@@ -243,6 +280,7 @@ export class PlayerStateStore {
   private applyEvent(
     state: PlayerStateStoreData,
     event: PlayerStateEvent,
+    options: { allowGapPatch?: boolean } = {},
   ): PlayerStateStoreData {
     if (
       state.cultivatorId &&
@@ -261,7 +299,11 @@ export class PlayerStateStore {
       return state;
     }
 
-    if (event.globalVersion > state.globalVersion + 1) {
+    const isDeferredGapPatch =
+      event.globalVersion > state.globalVersion + 1 &&
+      options.allowGapPatch === true;
+
+    if (event.globalVersion > state.globalVersion + 1 && !isDeferredGapPatch) {
       const staleDomains = new Set(state.staleDomains);
       staleDomains.add(event.domain);
       for (const domain of event.invalidates) {
@@ -275,12 +317,16 @@ export class PlayerStateStore {
       staleDomains.add(domain);
     }
 
-    this.rememberProcessedEvent(event.id);
+    if (!isDeferredGapPatch) {
+      this.rememberProcessedEvent(event.id);
+    }
 
     return {
       ...state,
       cultivatorId: event.cultivatorId,
-      globalVersion: Math.max(state.globalVersion, event.globalVersion),
+      globalVersion: isDeferredGapPatch
+        ? state.globalVersion
+        : Math.max(state.globalVersion, event.globalVersion),
       domainVersions: {
         ...state.domainVersions,
         [event.domain]: Math.max(
@@ -312,6 +358,11 @@ export class PlayerStateStore {
   }
 
   private async recoverEvents(after: number): Promise<void> {
+    this.setState({
+      ...this.state,
+      isRecovering: true,
+      error: null,
+    });
     try {
       const response = await fetch(
         `/api/player/state/events?after=${encodeURIComponent(String(after))}`,
@@ -349,6 +400,7 @@ export class PlayerStateStore {
         this.setState({
           ...this.state,
           loading: false,
+          isRecovering: false,
           error:
             refreshError instanceof Error
               ? refreshError.message
@@ -356,6 +408,11 @@ export class PlayerStateStore {
                 ? error.message
                 : '玩家状态同步失败',
         });
+      });
+    } finally {
+      this.setState({
+        ...this.state,
+        isRecovering: false,
       });
     }
   }
@@ -508,6 +565,28 @@ function applyEventPatch(
     next.progress = patch.progress as PlayerStateSnapshot['progress'];
   }
 
+  if (event.domain === 'profile' && snapshot.profile) {
+    const profilePatch = patch.profile as
+      | Partial<PlayerStateSnapshot['profile']>
+      | undefined;
+    const cultivatorPatch = (patch.cultivator ??
+      (typeof patch.last_yield_at !== 'undefined'
+        ? { last_yield_at: patch.last_yield_at }
+        : undefined)) as
+      | Partial<PlayerStateSnapshot['profile']['cultivator']>
+      | undefined;
+
+    next.profile = {
+      ...snapshot.profile,
+      ...(profilePatch ?? {}),
+      cultivator: {
+        ...snapshot.profile.cultivator,
+        ...(profilePatch?.cultivator ?? {}),
+        ...(cultivatorPatch ?? {}),
+      },
+    };
+  }
+
   return next;
 }
 
@@ -515,8 +594,23 @@ export const playerStateStore = new PlayerStateStore();
 
 export async function consumePlayerStateMutation<T>(
   input: Response | PlayerStateMutationResponse<T> | ApiFailure,
+  options?: MutationOptions,
 ): Promise<T> {
-  return playerStateStore.mutate(Promise.resolve(input));
+  return playerStateStore.mutate(Promise.resolve(input), options);
+}
+
+export async function consumePlayerStateMeta(
+  state: PlayerStateMutationResponse<unknown>['state'],
+  options?: MutationOptions,
+): Promise<null> {
+  return consumePlayerStateMutation(
+    {
+      success: true,
+      data: null,
+      state,
+    },
+    options,
+  );
 }
 
 export function usePlayerState<T>(
@@ -556,7 +650,8 @@ export function usePlayerStateActions() {
     () => ({
       initialize: playerStateStore.initialize.bind(playerStateStore),
       refresh: playerStateStore.refresh.bind(playerStateStore),
-      applyEvents: playerStateStore.applyEvents.bind(playerStateStore),
+      consumeMutationResponse: consumePlayerStateMutation,
+      consumeStateMeta: consumePlayerStateMeta,
       markStale: playerStateStore.markStale.bind(playerStateStore),
       mutate: playerStateStore.mutate.bind(playerStateStore),
     }),

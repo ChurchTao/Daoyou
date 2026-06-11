@@ -86,7 +86,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
   const { cultivator, isLoading, note } = useCultivator();
   const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
-  const { applyEvents } = usePlayerStateActions();
+  const { consumeStateMeta } = usePlayerStateActions();
   const navigate = useNavigate();
   const {
     tasks,
@@ -258,7 +258,22 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
           },
           onStoryUpdate: setRetreatResult,
           onReincarnateContext: setReincarnateContext,
-          onStateEvents: applyEvents,
+          onStateEvents: (events) => {
+            if (events.length === 0) return;
+            void consumeStateMeta(
+              {
+                cultivatorId: events[0].cultivatorId,
+                globalVersion: Math.max(
+                  ...events.map((event) => event.globalVersion),
+                ),
+                domainVersions: Object.fromEntries(
+                  events.map((event) => [event.domain, event.domainVersion]),
+                ),
+                events,
+              },
+              { deferRecovery: true },
+            );
+          },
           onError: (message) => {
             setRetreatResultStreaming(false);
             pushToast({
@@ -274,7 +289,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         setRetreatLoading(false);
       }
     },
-    [applyEvents, cultivator, pushToast],
+    [consumeStateMeta, cultivator, pushToast],
   );
 
   const handleRetreat = useCallback(async () => {

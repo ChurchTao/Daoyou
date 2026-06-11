@@ -1,5 +1,5 @@
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
-import { dungeonHistories } from '@server/lib/drizzle/schema';
+import { cultivators, dungeonHistories } from '@server/lib/drizzle/schema';
 import {
   requireActiveCultivator,
 } from '@server/lib/hono/middleware';
@@ -17,6 +17,7 @@ import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/lib/services/QiService';
+import { redis } from '@server/lib/redis';
 import { TaskService } from '@server/lib/services/TaskService';
 import {
   commitPlayerStateMutation,
@@ -24,9 +25,13 @@ import {
   type StateChangeDescriptor,
 } from '@server/lib/services/PlayerStateMutationService';
 import { getCultivatorByIdUnsafe } from '@server/lib/services/cultivatorService';
+import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import type { ResourceOperation } from '@shared/engine/resource/types';
 import { getMapNode, isSatelliteNode } from '@shared/lib/game/mapSystem';
 import { evaluateNoviceReadiness } from '@shared/lib/noviceGuidance';
+import type { RealmStage, RealmType } from '@shared/types/constants';
+import type { CultivationProgress } from '@shared/types/cultivator';
 import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -62,6 +67,7 @@ const BattleIdQuerySchema = z.object({
 
 const BattleIdBodySchema = z.object({
   battleId: z.string().min(1),
+  requestId: z.string().min(1).max(120).optional(),
 });
 
 type DungeonResultHooks = {
@@ -69,26 +75,145 @@ type DungeonResultHooks = {
   afterCommit?: () => Promise<void>;
 };
 
-function dungeonStateChanges(includeTasks = false): StateChangeDescriptor[] {
-  const changes: StateChangeDescriptor[] = [
-    {
+function getDungeonBattleResultCacheKey(args: {
+  cultivatorId: string;
+  battleId: string;
+  requestId: string;
+}) {
+  return `dungeon:battle-result:${args.cultivatorId}:${args.battleId}:${args.requestId}`;
+}
+
+type DungeonPlayerStateRow = {
+  condition: unknown;
+  spiritStones: number;
+  qi: number;
+  qiLastRefreshedAt: Date | null;
+  cultivationProgress: unknown;
+  realm: RealmType;
+  realmStage: RealmStage;
+};
+
+async function readDungeonPlayerState(
+  tx: DbTransaction,
+  cultivatorId: string,
+): Promise<DungeonPlayerStateRow | null> {
+  const [row] = await tx
+    .select({
+      condition: cultivators.condition,
+      spiritStones: cultivators.spirit_stones,
+      qi: cultivators.qi,
+      qiLastRefreshedAt: cultivators.qiLastRefreshedAt,
+      cultivationProgress: cultivators.cultivation_progress,
+      realm: cultivators.realm,
+      realmStage: cultivators.realm_stage,
+    })
+    .from(cultivators)
+    .where(eq(cultivators.id, cultivatorId))
+    .limit(1);
+
+  if (!row) return null;
+  return {
+    ...row,
+    realm: row.realm as RealmType,
+    realmStage: row.realmStage as RealmStage,
+  };
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(value ?? null);
+}
+
+function getDungeonResultGains(result: unknown): ResourceOperation[] {
+  if (!result || typeof result !== 'object') return [];
+  const record = result as Record<string, unknown>;
+  if (Array.isArray(record.realGains)) {
+    return record.realGains as ResourceOperation[];
+  }
+  const callbackData = record.callbackData;
+  if (
+    callbackData &&
+    typeof callbackData === 'object' &&
+    Array.isArray((callbackData as Record<string, unknown>).realGains)
+  ) {
+    return (callbackData as Record<string, unknown>).realGains as ResourceOperation[];
+  }
+  return [];
+}
+
+function buildDungeonStateChanges(args: {
+  before: DungeonPlayerStateRow | null;
+  after: DungeonPlayerStateRow | null;
+  result: unknown;
+  includeTasks?: boolean;
+}): StateChangeDescriptor[] {
+  const changes: StateChangeDescriptor[] = [];
+  const { before, after } = args;
+
+  if (after && stableJson(before?.condition) !== stableJson(after.condition)) {
+    changes.push({
       domain: 'condition',
       eventType: 'condition.changed',
-      invalidates: ['condition'],
-    },
-    {
+      patch: { condition: after.condition },
+    });
+  }
+
+  if (
+    after &&
+    (before?.spiritStones !== after.spiritStones ||
+      before?.qi !== after.qi ||
+      before?.qiLastRefreshedAt?.toISOString() !==
+        after.qiLastRefreshedAt?.toISOString())
+  ) {
+    changes.push({
       domain: 'currency',
       eventType: 'currency.changed',
-      invalidates: ['currency'],
-    },
-    {
+      patch: {
+        currency: {
+          spiritStones: after.spiritStones,
+          qi: after.qi,
+          qiLastRefreshedAt: after.qiLastRefreshedAt?.toISOString() ?? null,
+        },
+      },
+    });
+  }
+
+  if (
+    after &&
+    stableJson(before?.cultivationProgress) !==
+      stableJson(after.cultivationProgress)
+  ) {
+    changes.push({
+      domain: 'progress',
+      eventType: 'progress.changed',
+      patch: {
+        progress: getOrInitCultivationProgress(
+          (after.cultivationProgress ?? {}) as CultivationProgress,
+          after.realm,
+          after.realmStage,
+        ),
+      },
+    });
+  }
+
+  const gains = getDungeonResultGains(args.result);
+  if (
+    gains.some((gain) => gain.type === 'material' || gain.type === 'consumable')
+  ) {
+    changes.push({
       domain: 'inventory',
       eventType: 'inventory.changed',
       invalidates: ['inventory'],
-    },
-  ];
+    });
+  }
+  if (gains.some((gain) => gain.type === 'artifact')) {
+    changes.push({
+      domain: 'products',
+      eventType: 'products.changed',
+      invalidates: ['products'],
+    });
+  }
 
-  if (includeTasks) {
+  if (args.includeTasks) {
     changes.push({
       domain: 'tasks',
       eventType: 'tasks.changed',
@@ -105,6 +230,7 @@ async function commitDungeonResponse<T>(args: {
   source: string;
   result: T;
   includeTasks?: boolean;
+  requestId?: string | null;
 }) {
   const resultWithHooks =
     args.result && typeof args.result === 'object'
@@ -127,13 +253,22 @@ async function commitDungeonResponse<T>(args: {
     userId: args.userId,
     cultivatorId: args.cultivatorId,
     source: args.source,
+    requestId: args.requestId ?? null,
+    allowEmpty: true,
     run: async (tx) => {
+      const before = await readDungeonPlayerState(tx, args.cultivatorId);
       if (persist) {
         await persist(tx);
       }
+      const after = await readDungeonPlayerState(tx, args.cultivatorId);
       return {
         result: responseResult,
-        changes: dungeonStateChanges(args.includeTasks),
+        changes: buildDungeonStateChanges({
+          before,
+          after,
+          result: responseResult,
+          includeTasks: args.includeTasks,
+        }),
       };
     },
   });
@@ -527,15 +662,30 @@ battleRouter.post('/execute/v5', requireActiveCultivator(), async (c) => {
       return c.json({ error: '未授权访问' }, 401);
     }
 
-    const { battleId } = BattleIdBodySchema.parse(await c.req.json());
+    const { battleId, requestId } = BattleIdBodySchema.parse(await c.req.json());
+    const resultCacheKey = requestId
+      ? getDungeonBattleResultCacheKey({
+          cultivatorId: cultivator.id,
+          battleId,
+          requestId,
+        })
+      : null;
+    if (resultCacheKey) {
+      const cached = await redis.get(resultCacheKey);
+      if (cached) {
+        return c.json(JSON.parse(cached));
+      }
+    }
+
     const result = await dungeonService.executeBattle(cultivator.id, battleId, {
       deferPersistence: true,
     });
     const hooks = result as DungeonResultHooks;
-    return c.json(await commitDungeonResponse({
+    const responsePayload = await commitDungeonResponse({
       userId: user.id,
       cultivatorId: cultivator.id,
       source: 'dungeon_battle_execute',
+      requestId,
       result: {
         battleResult: result.battleResult,
         callbackData: {
@@ -549,7 +699,11 @@ battleRouter.post('/execute/v5', requireActiveCultivator(), async (c) => {
         afterCommit: hooks.afterCommit,
       },
       includeTasks: Boolean(result.isFinished),
-    }));
+    });
+    if (resultCacheKey) {
+      await redis.set(resultCacheKey, JSON.stringify(responsePayload), 'EX', 3600);
+    }
+    return c.json(responsePayload);
   } catch (error) {
     if (error instanceof DungeonFlowError) {
       return jsonWithStatus(

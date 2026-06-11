@@ -67,7 +67,37 @@ const {
     }
   },
   commitPlayerStateMutationMock: vi.fn(async (input: any) => {
-    const { result, changes } = await input.run({ __tx: true });
+    const stateRows = [
+      {
+        condition: { resources: { hp: { current: 10 }, mp: { current: 10 } } },
+        spiritStones: 10,
+        qi: 10,
+        qiLastRefreshedAt: null,
+        cultivationProgress: { cultivation_exp: 1 },
+        realm: '炼气',
+        realmStage: '初期',
+      },
+      {
+        condition: { resources: { hp: { current: 9 }, mp: { current: 10 } } },
+        spiritStones: 9,
+        qi: 9,
+        qiLastRefreshedAt: null,
+        cultivationProgress: { cultivation_exp: 2 },
+        realm: '炼气',
+        realmStage: '初期',
+      },
+    ];
+    const tx = {
+      __tx: true,
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn(async () => [stateRows.shift()]),
+          })),
+        })),
+      })),
+    };
+    const { result, changes } = await input.run(tx);
     return {
       result,
       state: {
@@ -230,7 +260,7 @@ describe('dungeon battle router', () => {
     expect(startDungeonMock).toHaveBeenCalledWith('cultivator-1', 'node-1', {
       deferPersistence: true,
     });
-    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(persist).toHaveBeenCalledWith(expect.objectContaining({ __tx: true }));
     expect(afterCommit).toHaveBeenCalledTimes(1);
     expect(persist.mock.invocationCallOrder[0]).toBeLessThan(
       afterCommit.mock.invocationCallOrder[0],
@@ -547,7 +577,7 @@ describe('dungeon battle router', () => {
       'battle-1',
       { deferPersistence: true },
     );
-    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(persist).toHaveBeenCalledWith(expect.objectContaining({ __tx: true }));
     expect(afterCommit).toHaveBeenCalledTimes(1);
   });
 
@@ -579,7 +609,7 @@ describe('dungeon battle router', () => {
     expect(quitDungeonMock).toHaveBeenCalledWith('cultivator-1', {
       deferPersistence: true,
     });
-    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(persist).toHaveBeenCalledWith(expect.objectContaining({ __tx: true }));
     expect(afterCommit).toHaveBeenCalledTimes(1);
   });
 

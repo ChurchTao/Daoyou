@@ -64,11 +64,13 @@ import {
   getPaginatedInventoryByType,
   updateCultivationExp,
   updateCultivator,
-  updateLastYieldAt,
   updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import { stream_text } from '@server/utils/aiClient';
-import { stripExpCapForStorage } from '@server/utils/cultivationUtils';
+import {
+  getOrInitCultivationProgress,
+  stripExpCapForStorage,
+} from '@server/utils/cultivationUtils';
 import {
   getBreakthroughStoryPrompt,
   getLifespanExhaustedStoryPrompt,
@@ -102,11 +104,13 @@ import {
   type ElementType,
   type MaterialType,
   type Quality,
+  type RealmStage,
   type RealmType,
 } from '@shared/types/constants';
 import type {
   Artifact,
   BreakthroughHistoryEntry,
+  CultivationProgress,
   Consumable,
   Material,
 } from '@shared/types/cultivator';
@@ -283,6 +287,8 @@ function buildMailStateChanges(args: {
   gains?: ResourceOperation[];
   spiritStones?: number;
   cultivationProgress?: unknown;
+  realm?: RealmType;
+  realmStage?: RealmStage;
 }): StateChangeDescriptor[] {
   const gains = args.gains ?? [];
   const affectedDomains = getRewardAffectedDomains(gains);
@@ -326,12 +332,18 @@ function buildMailStateChanges(args: {
   }
 
   if (affectedDomains.has('progress')) {
+    const progress =
+      args.cultivationProgress && args.realm && args.realmStage
+        ? getOrInitCultivationProgress(
+            args.cultivationProgress as CultivationProgress,
+            args.realm,
+            args.realmStage,
+          )
+        : args.cultivationProgress;
     changes.push({
       domain: 'progress',
       eventType: 'progress.changed',
-      patch: args.cultivationProgress
-        ? { progress: args.cultivationProgress }
-        : {},
+      patch: progress ? { progress } : {},
     });
   }
 
@@ -1544,13 +1556,21 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
       cultivatorId,
       source: 'yield_claim',
       run: async (tx) => {
+        let nextSpiritStones = fullCultivator.spirit_stones;
+        let nextCultivationProgress = fullCultivator.cultivation_progress;
+        const claimedAt = new Date();
         for (const gain of operations) {
           switch (gain.type) {
             case 'spirit_stones':
-              await updateSpiritStones(userId, cultivatorId, gain.value, tx);
+              nextSpiritStones = await updateSpiritStones(
+                userId,
+                cultivatorId,
+                gain.value,
+                tx,
+              );
               break;
             case 'cultivation_exp':
-              await updateCultivationExp(
+              nextCultivationProgress = await updateCultivationExp(
                 userId,
                 cultivatorId,
                 gain.value,
@@ -1559,7 +1579,7 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
               );
               break;
             case 'comprehension_insight':
-              await updateCultivationExp(
+              nextCultivationProgress = await updateCultivationExp(
                 userId,
                 cultivatorId,
                 0,
@@ -1574,7 +1594,10 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
           }
         }
 
-        await updateLastYieldAt(userId, cultivatorId, tx);
+        await tx
+          .update(cultivators)
+          .set({ last_yield_at: claimedAt })
+          .where(eq(cultivators.id, cultivatorId));
 
         return {
           result,
@@ -1582,17 +1605,25 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
             {
               domain: 'profile',
               eventType: 'profile.yield.changed',
-              invalidates: ['profile'],
+              patch: { last_yield_at: claimedAt.toISOString() },
             },
             {
               domain: 'currency',
               eventType: 'currency.yield.gained',
-              invalidates: ['currency'],
+              patch: {
+                currency: {
+                  spiritStones: nextSpiritStones,
+                  qi: activeCultivator.qi,
+                  qiLastRefreshedAt:
+                    activeCultivator.qiLastRefreshedAt?.toISOString?.() ??
+                    null,
+                },
+              },
             },
             {
               domain: 'progress',
               eventType: 'progress.yield.gained',
-              invalidates: ['progress'],
+              patch: { progress: nextCultivationProgress },
             },
           ],
         };
@@ -1701,7 +1732,7 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
           if (committed.state.events.length > 0) {
             const stateData = JSON.stringify({
               type: 'state',
-              events: committed.state.events,
+              state: committed.state,
             });
             controller.enqueue(encoder.encode(`data: ${stateData}\n\n`));
           }
@@ -2124,6 +2155,8 @@ mailRouter.post('/claim', requireActiveCultivator(), async (c) => {
           .select({
             spiritStones: cultivators.spirit_stones,
             cultivationProgress: cultivators.cultivation_progress,
+            realm: cultivators.realm,
+            realmStage: cultivators.realm_stage,
           })
           .from(cultivators)
           .where(eq(cultivators.id, cultivator.id))
@@ -2142,6 +2175,8 @@ mailRouter.post('/claim', requireActiveCultivator(), async (c) => {
             gains,
             spiritStones: cultivatorState?.spiritStones,
             cultivationProgress: cultivatorState?.cultivationProgress,
+            realm: cultivatorState?.realm as RealmType | undefined,
+            realmStage: cultivatorState?.realmStage as RealmStage | undefined,
           }),
         };
       },
@@ -2224,6 +2259,8 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
           .select({
             spiritStones: cultivators.spirit_stones,
             cultivationProgress: cultivators.cultivation_progress,
+            realm: cultivators.realm,
+            realmStage: cultivators.realm_stage,
           })
           .from(cultivators)
           .where(eq(cultivators.id, cultivator.id))
@@ -2243,6 +2280,8 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
             gains,
             spiritStones: cultivatorState?.spiritStones,
             cultivationProgress: cultivatorState?.cultivationProgress,
+            realm: cultivatorState?.realm as RealmType | undefined,
+            realmStage: cultivatorState?.realmStage as RealmStage | undefined,
           }),
         };
       },

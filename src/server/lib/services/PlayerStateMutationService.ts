@@ -1,6 +1,7 @@
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
   bumpStateVersions,
+  getOrCreateStateVersion,
   insertStateEvents,
 } from '@server/lib/repositories/playerStateRepository';
 import { publishPlayerStateEvents } from '@server/lib/services/playerStateBroadcaster';
@@ -23,6 +24,7 @@ export async function commitPlayerStateMutation<T>(args: {
   cultivatorId: string;
   source: string;
   requestId?: string | null;
+  allowEmpty?: boolean;
   run: (tx: DbTransaction) => Promise<{
     result: T;
     changes: StateChangeDescriptor[];
@@ -35,6 +37,18 @@ export async function commitPlayerStateMutation<T>(args: {
     const { result, changes } = await args.run(tx);
 
     if (changes.length === 0) {
+      if (args.allowEmpty) {
+        const version = await getOrCreateStateVersion(args.cultivatorId, tx);
+        return {
+          result,
+          state: {
+            cultivatorId: args.cultivatorId,
+            globalVersion: version.globalVersion,
+            domainVersions: {},
+            events: [],
+          },
+        };
+      }
       throw new Error('玩家状态写操作缺少状态变更描述');
     }
 
@@ -69,7 +83,9 @@ export async function commitPlayerStateMutation<T>(args: {
     };
   });
 
-  publishPlayerStateEvents(args.cultivatorId, committed.state.events);
+  if (committed.state.events.length > 0) {
+    publishPlayerStateEvents(args.cultivatorId, committed.state.events);
+  }
 
   return committed;
 }

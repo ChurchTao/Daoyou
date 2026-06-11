@@ -1502,7 +1502,7 @@ export async function updateSpiritStones(
   cultivatorId: string,
   delta: number,
   tx?: DbTransaction,
-): Promise<void> {
+): Promise<number> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
   // [安全守卫] 夹紧变化量并施加上限
@@ -1535,6 +1535,7 @@ export async function updateSpiritStones(
     .update(schema.cultivators)
     .set({ spirit_stones: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
+  return newValue;
 }
 
 /**
@@ -1589,7 +1590,7 @@ export async function updateCultivationExp(
   cultivationExpDelta: number,
   comprehensionInsightDelta?: number,
   tx?: DbTransaction,
-): Promise<void> {
+): Promise<CultivationProgress> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = getExecutor(tx);
@@ -1652,6 +1653,7 @@ export async function updateCultivationExp(
     .update(schema.cultivators)
     .set({ cultivation_progress: stripExpCapForStorage(updatedProgress) })
     .where(eq(schema.cultivators.id, cultivatorId));
+  return updatedProgress;
 }
 
 /**

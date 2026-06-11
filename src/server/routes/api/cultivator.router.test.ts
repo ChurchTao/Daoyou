@@ -210,7 +210,9 @@ import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
   getCultivatorById,
+  updateCultivationExp,
   updateCultivator,
+  updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import { stream_text } from '@server/utils/aiClient';
 import {
@@ -251,6 +253,8 @@ const addBreakthroughHistoryEntryMock =
 const addRetreatRecordMock = addRetreatRecord as unknown as Mock;
 const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
 const updateCultivatorMock = updateCultivator as unknown as Mock;
+const updateCultivationExpMock = updateCultivationExp as unknown as Mock;
+const updateSpiritStonesMock = updateSpiritStones as unknown as Mock;
 const streamTextMock = stream_text as unknown as Mock;
 const attemptBreakthroughMock = attemptBreakthrough as unknown as Mock;
 const performCultivationMock = performCultivation as unknown as Mock;
@@ -981,6 +985,12 @@ describe('cultivator yield route', () => {
     });
     streamTextMock.mockReturnValue(createTextStream('福缘乍现，', '清光落袖。'));
     runDetachedMock.mockImplementation(() => undefined);
+    updateSpiritStonesMock.mockResolvedValue(1210);
+    updateCultivationExpMock.mockResolvedValue({
+      cultivation_exp: 80,
+      exp_cap: 100,
+      comprehension_insight: 0,
+    });
     const insertReturning = vi
       .fn()
       .mockResolvedValueOnce([
@@ -1019,7 +1029,14 @@ describe('cultivator yield route', () => {
       onConflictDoUpdate: vi.fn(() => ({ returning: insertReturning })),
       returning: insertReturning,
     }));
-    const tx = { insert: vi.fn(() => ({ values })) };
+    const tx = {
+      insert: vi.fn(() => ({ values })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(async () => undefined),
+        })),
+      })),
+    };
     dbMock.mockReturnValue({
       transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
         callback(tx),
@@ -1082,12 +1099,14 @@ describe('cultivator yield route', () => {
     });
     expect(events[1]).toEqual({
       type: 'state',
-      events: expect.arrayContaining([
-        expect.objectContaining({
-          domain: 'currency',
-          source: 'yield_claim',
-        }),
-      ]),
+      state: expect.objectContaining({
+        events: expect.arrayContaining([
+          expect.objectContaining({
+            domain: 'currency',
+            source: 'yield_claim',
+          }),
+        ]),
+      }),
     });
     expect(events.slice(2)).toEqual([
       { type: 'chunk', text: '福缘乍现，' },

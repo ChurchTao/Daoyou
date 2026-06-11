@@ -36,6 +36,7 @@ export function HomeView() {
   const [yieldHours, setYieldHours] = useState(() =>
     calculateYieldHours(cultivator?.last_yield_at),
   );
+  const [yieldInteractionActive, setYieldInteractionActive] = useState(false);
 
   useEffect(() => {
     const update = () =>
@@ -163,9 +164,14 @@ export function HomeView() {
     );
   }
 
-  if (hasYieldAlert) {
+  if (hasYieldAlert || yieldInteractionActive) {
     urgentItems.push(
-      <YieldCard key="yield" cultivator={cultivator} variant="compact" />,
+      <YieldCard
+        key="yield"
+        cultivator={cultivator}
+        variant="compact"
+        onInteractionActiveChange={setYieldInteractionActive}
+      />,
     );
   }
 

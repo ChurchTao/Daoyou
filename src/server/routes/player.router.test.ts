@@ -7,6 +7,7 @@ const {
   executorMock,
   commitPlayerStateMutationMock,
   listStateEventsAfterMock,
+  subscribePlayerStateEventsMock,
 } =
   vi.hoisted(() => ({
   activeCultivatorRecord: {
@@ -17,6 +18,7 @@ const {
   },
   executorMock: {},
   listStateEventsAfterMock: vi.fn(),
+  subscribePlayerStateEventsMock: vi.fn(() => vi.fn()),
   commitPlayerStateMutationMock: vi.fn(async (input: any) => {
     const { result, changes } = await input.run({ __tx: true });
     return {
@@ -102,6 +104,10 @@ vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
 
 vi.mock('@server/lib/repositories/playerStateRepository', () => ({
   listStateEventsAfter: listStateEventsAfterMock,
+}));
+
+vi.mock('@server/lib/services/playerStateBroadcaster', () => ({
+  subscribePlayerStateEvents: subscribePlayerStateEventsMock,
 }));
 
 vi.mock('@server/lib/services/PlayerStateSnapshotService', () => ({
@@ -199,6 +205,22 @@ function createCultivator(overrides: Partial<Cultivator> = {}): Cultivator {
       statuses: [],
       timestamps: {},
     },
+    ...overrides,
+  };
+}
+
+function createStateEvent(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    cultivatorId: 'cultivator-1',
+    globalVersion: 11,
+    domainVersion: 4,
+    domain: 'mail',
+    eventType: 'mail.changed',
+    patch: {},
+    invalidates: [],
+    source: 'test',
+    createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -407,5 +429,34 @@ describe('player router', () => {
         }),
       }),
     );
+  });
+
+  it('terminates player state stream frames with an SSE blank line', async () => {
+    listStateEventsAfterImportedMock.mockResolvedValueOnce([
+      createStateEvent(),
+    ]);
+    const controller = new AbortController();
+
+    const response = await createApp().request('/player/state/stream?after=10', {
+      signal: controller.signal,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    const reader = response.body?.getReader();
+    expect(reader).toBeDefined();
+
+    const chunk = await reader!.read();
+    const text = new TextDecoder().decode(chunk.value);
+    const dataLine = text
+      .split('\n')
+      .find((line) => line.startsWith('data: '));
+
+    expect(text).toContain('event: player-state\nid: 11\ndata: ');
+    expect(text.endsWith('\n\n')).toBe(true);
+    expect(() => JSON.parse(dataLine!.slice('data: '.length))).not.toThrow();
+
+    await reader!.cancel();
+    controller.abort();
   });
 });

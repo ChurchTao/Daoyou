@@ -49,6 +49,28 @@ function createSnapshotResponse(
   };
 }
 
+function createProfileSnapshot() {
+  return {
+    profile: {
+      cultivator: {
+        id: 'cultivator-1',
+        name: '韩立',
+        realm: '炼气',
+        realm_stage: '初期',
+        spirit_stones: 10,
+        inventory: { artifacts: [], consumables: [], materials: [] },
+        equipped: { weapon: null, armor: null, accessory: null },
+      },
+      display: {
+        resources: {
+          hp: { current: 10, max: 10, percent: 100 },
+          mp: { current: 10, max: 10, percent: 100 },
+        },
+      },
+    },
+  } as PlayerStateSnapshotResponse['data']['snapshot'];
+}
+
 function jsonResponse(body: unknown): Response {
   return {
     ok: true,
@@ -211,6 +233,55 @@ describe('PlayerStateStore', () => {
     ]);
   });
 
+  it('keeps page-level loading false during background domain refreshes', async () => {
+    const store = new PlayerStateStore();
+    let resolveRefresh: (response: Response) => void = () => {};
+    const pendingRefresh = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(createSnapshotResponse(createProfileSnapshot(), 1)))
+      .mockReturnValueOnce(pendingRefresh);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await store.refresh(undefined, 'user-1');
+    const refreshPromise = store.refresh(['condition'], 'user-1');
+
+    expect(store.getSnapshot().loading).toBe(false);
+    expect(store.getSnapshot().isRefreshing).toBe(true);
+    expect(Array.from(store.getSnapshot().refreshingDomains)).toEqual([
+      'condition',
+    ]);
+
+    resolveRefresh(
+      jsonResponse(
+        createSnapshotResponse(
+          {
+            condition: {
+              resources: {
+                hp: { current: 5 },
+                mp: { current: 6 },
+              },
+            } as never,
+          },
+          2,
+        ),
+      ),
+    );
+    await refreshPromise;
+
+    expect(store.getSnapshot().loading).toBe(false);
+    expect(store.getSnapshot().isRefreshing).toBe(false);
+    expect(store.getSnapshot().snapshot.profile).toBeDefined();
+    expect(store.getSnapshot().snapshot.condition).toEqual({
+      resources: {
+        hp: { current: 5 },
+        mp: { current: 6 },
+      },
+    });
+  });
+
   it('merges mutation domain versions and ignores duplicate events', async () => {
     const store = new PlayerStateStore();
     const event = createEvent({
@@ -239,6 +310,73 @@ describe('PlayerStateStore', () => {
     expect(snapshot.globalVersion).toBe(1);
     expect(snapshot.domainVersions.mail).toBe(5);
     expect(snapshot.snapshot.mail?.unreadCount).toBe(7);
+  });
+
+  it('defers global version advancement for gap mutation patches until recovery completes', async () => {
+    const store = new PlayerStateStore();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(createSnapshotResponse(createProfileSnapshot(), 1)))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            after: 1,
+            requiresSnapshot: false,
+            events: [
+              createEvent({
+                id: 2,
+                globalVersion: 2,
+                domainVersion: 1,
+                domain: 'mail',
+                patch: { unreadMailCount: 1 },
+              }),
+              createEvent({
+                id: 3,
+                globalVersion: 3,
+                domainVersion: 1,
+                domain: 'currency',
+                eventType: 'currency.changed',
+                patch: { currency: { spiritStones: 99 } },
+              }),
+            ],
+          },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await store.refresh(undefined, 'user-1');
+    await store.mutate(
+      Promise.resolve({
+        success: true,
+        data: { ok: true },
+        state: {
+          cultivatorId: 'cultivator-1',
+          globalVersion: 3,
+          domainVersions: { currency: 1 },
+          events: [
+            createEvent({
+              id: 3,
+              globalVersion: 3,
+              domainVersion: 1,
+              domain: 'currency',
+              eventType: 'currency.changed',
+              patch: { currency: { spiritStones: 99 } },
+            }),
+          ],
+        },
+      }),
+      { deferRecovery: true },
+    );
+
+    expect(store.getSnapshot().snapshot.currency?.spiritStones).toBe(99);
+    expect(store.getSnapshot().globalVersion).toBe(1);
+
+    await flushAsyncWork();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/player/state/events?after=1');
+    expect(store.getSnapshot().globalVersion).toBe(3);
+    expect(store.getSnapshot().snapshot.mail?.unreadCount).toBe(1);
   });
 
   it('refreshes snapshot when event recovery requires a snapshot', async () => {

@@ -3,7 +3,10 @@ import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
-import { consumePlayerStateMutation } from '@app/lib/player-state/store';
+import {
+  consumePlayerStateMeta,
+  consumePlayerStateMutation,
+} from '@app/lib/player-state/store';
 import { GeneratedMaterial } from '@shared/engine/material/creation/types';
 import type { Cultivator } from '@shared/types/cultivator';
 import { useEffect, useState } from 'react';
@@ -11,12 +14,14 @@ import { useEffect, useState } from 'react';
 interface YieldCardProps {
   cultivator: Cultivator;
   onOk?: () => void;
+  onInteractionActiveChange?: (active: boolean) => void;
   variant?: 'card' | 'compact';
 }
 
 export function YieldCard({
   cultivator,
   onOk,
+  onInteractionActiveChange,
   variant = 'card',
 }: YieldCardProps) {
   const { pushToast } = useInkUI();
@@ -37,6 +42,7 @@ export function YieldCard({
   const handleClaimYield = async () => {
     if (!cultivator) return;
     setClaiming(true);
+    onInteractionActiveChange?.(true);
 
     try {
       const response = await fetch('/api/cultivator/yield', {
@@ -64,61 +70,81 @@ export function YieldCard({
       });
 
       let currentStory = '';
+      let streamBuffer = '';
+      const processSseData = (dataStr: string) => {
+        if (!dataStr || dataStr === '[DONE]') return;
+
+        try {
+          const data = JSON.parse(dataStr);
+          if (data.type === 'result') {
+            // Initial calculation result
+            setYieldResult(() => ({
+              amount: data.data.amount,
+              hours: data.data.hours,
+              materials: data.data.materials,
+              expGain: data.data.expGain,
+              insightGain: data.data.insightGain,
+              materialCount: data.data.materialCount,
+              story: currentStory || '',
+            }));
+          } else if (data.type === 'chunk') {
+            // Story text chunk
+            currentStory += data.text;
+            setYieldResult((prev) =>
+              prev ? { ...prev, story: currentStory } : null,
+            );
+          } else if (data.type === 'state' && data.state) {
+            void consumePlayerStateMeta(data.state, {
+              deferRecovery: true,
+            }).catch((error) => {
+              console.error('Error applying yield state meta', error);
+            });
+          } else if (data.type === 'state' && Array.isArray(data.events)) {
+            void consumePlayerStateMutation(
+              {
+                success: true,
+                data: null,
+                state: {
+                  cultivatorId: data.cultivatorId ?? cultivator.id,
+                  globalVersion: data.globalVersion ?? 0,
+                  domainVersions: data.domainVersions ?? {},
+                  events: data.events,
+                },
+              },
+              { deferRecovery: true },
+            ).catch((error) => {
+              console.error('Error applying yield state events', error);
+            });
+          } else if (data.type === 'error') {
+            pushToast({ message: data.error, tone: 'danger' });
+          }
+        } catch (e) {
+          console.error('Error parsing SSE data', e);
+        }
+      };
 
       while (!done) {
         const { value, done: doneReading } = await reader.read();
         done = doneReading;
-        const chunkValue = decoder.decode(value, { stream: true });
+        const chunkValue = decoder.decode(value, { stream: !doneReading });
+        streamBuffer += chunkValue;
 
         // Process SSE chunks
-        const lines = chunkValue.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6);
-            if (!dataStr || dataStr === '[DONE]') continue;
-
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.type === 'result') {
-                // Initial calculation result
-                setYieldResult(() => ({
-                  amount: data.data.amount,
-                  hours: data.data.hours,
-                  materials: data.data.materials,
-                  expGain: data.data.expGain,
-                  insightGain: data.data.insightGain,
-                  materialCount: data.data.materialCount,
-                  story: currentStory || '',
-                }));
-              } else if (data.type === 'chunk') {
-                // Story text chunk
-                currentStory += data.text;
-                setYieldResult((prev) =>
-                  prev ? { ...prev, story: currentStory } : null,
-                );
-              } else if (data.type === 'state' && data.state) {
-                await consumePlayerStateMutation({
-                  success: true,
-                  data: null,
-                  state: data.state,
-                });
-              } else if (data.type === 'state' && Array.isArray(data.events)) {
-                await consumePlayerStateMutation({
-                  success: true,
-                  data: null,
-                  state: {
-                    cultivatorId: data.cultivatorId ?? cultivator.id,
-                    globalVersion: data.globalVersion ?? 0,
-                    domainVersions: data.domainVersions ?? {},
-                    events: data.events,
-                  },
-                });
-              } else if (data.type === 'error') {
-                pushToast({ message: data.error, tone: 'danger' });
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data', e);
+        const frames = streamBuffer.split('\n\n');
+        streamBuffer = frames.pop() ?? '';
+        for (const frame of frames) {
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('data: ')) {
+              processSseData(line.slice(6));
             }
+          }
+        }
+      }
+
+      if (streamBuffer.trim()) {
+        for (const line of streamBuffer.split('\n')) {
+          if (line.startsWith('data: ')) {
+            processSseData(line.slice(6));
           }
         }
       }
@@ -128,6 +154,7 @@ export function YieldCard({
         tone: 'danger',
       });
       setYieldResult(null); // Close modal on error
+      onInteractionActiveChange?.(false);
     } finally {
       setClaiming(false);
     }
@@ -135,6 +162,7 @@ export function YieldCard({
 
   const handleCloseYieldModal = () => {
     setYieldResult(null);
+    onInteractionActiveChange?.(false);
     onOk?.();
   };
 
