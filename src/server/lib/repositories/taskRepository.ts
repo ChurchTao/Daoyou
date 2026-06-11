@@ -18,21 +18,25 @@ export async function listCultivatorTasks(
   cultivatorId: string,
   options: {
     status?: TaskStatus;
+    hideCompletedBreakthrough?: boolean;
     q?: DbExecutor | DbTransaction;
   } = {},
 ): Promise<CultivatorTaskRecord[]> {
   const executor = getTaskExecutor(options.q);
-  const where = options.status
-    ? and(
-        eq(schema.cultivatorTasks.cultivatorId, cultivatorId),
-        eq(schema.cultivatorTasks.status, options.status),
-      )
-    : eq(schema.cultivatorTasks.cultivatorId, cultivatorId);
+  const clauses = [eq(schema.cultivatorTasks.cultivatorId, cultivatorId)];
+  if (options.status) {
+    clauses.push(eq(schema.cultivatorTasks.status, options.status));
+  }
+  if (options.hideCompletedBreakthrough) {
+    clauses.push(
+      sql`not (${schema.cultivatorTasks.category} = 'breakthrough_major' and ${schema.cultivatorTasks.status} = 'completed')`,
+    );
+  }
 
   return executor
     .select()
     .from(schema.cultivatorTasks)
-    .where(where)
+    .where(and(...clauses))
     .orderBy(asc(schema.cultivatorTasks.createdAt));
 }
 

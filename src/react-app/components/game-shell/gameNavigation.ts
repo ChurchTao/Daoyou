@@ -93,7 +93,7 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'battle-history',
         sceneLabel: '全部战绩',
         href: '/game/battle/history',
-        expandedDockLabel: '🗡️ 全部战绩',
+        expandedDockLabel: '⚔️ 全部战绩',
       },
       {
         id: 'dungeon-history',

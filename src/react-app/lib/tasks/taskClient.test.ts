@@ -73,7 +73,7 @@ function createTask(
     completedAt: overrides.completedAt ?? null,
     snapshot: overrides.snapshot ?? {
       title: '筑基前引',
-      summary: '备妥筑基丹，再经药园试炼稳住根基。',
+      summary: '先凝住一口破境心气，再经药园试炼稳住根基。',
       fromRealm: '炼气',
       toRealm: '筑基',
       isCompleted: false,

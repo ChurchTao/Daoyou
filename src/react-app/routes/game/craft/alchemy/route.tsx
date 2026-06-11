@@ -236,29 +236,35 @@ export function AlchemyGuideModal({
       <div className="space-y-4 text-sm leading-7">
         <section>
           <div className="text-battle-muted mb-2 text-[0.75rem] tracking-[0.2em]">
-            药路趋向
+            即兴炼丹
           </div>
           <div className="text-ink-secondary space-y-1">
             <p>
-              草木多引生机，则丹势常偏疗伤与回元；火雷燥烈，则更易逼出破境之锋。
+              先挑灵材，再写丹意。你写的是想成什么丹，炉中灵材决定这股药力能往哪条路走：疗伤、回元、积修、启悟、破境、清心、护脉、延寿、炼体、洗髓，都会从这里分出路数。
             </p>
             <p>
-              矿骨重躯壳，常把药力牵向炼体与洗髓；若炉中养气之材得势，亦可缓缓积修。
+              丹意写得越清楚，炉火越容易顺着你的意思走；灵材本性若不相合，也会把丹势带偏。想炼筑基丹，可投些温稳灵草或辅材，再写“冲关蓄势、辅助筑基、破境凝神”。
             </p>
-            <p>心识澄明之物不必暴烈，若能收束杂念，往往更容易引出启悟之丹。</p>
+            <p>
+              偶有一炉火候极顺、药路分明，出丹时便可能悟出丹方。留下丹方后，下次就能按方复炼。
+            </p>
           </div>
         </section>
 
         <section>
           <div className="text-battle-muted mb-2 text-[0.75rem] tracking-[0.2em]">
-            材性偏向
+            丹方炼制
           </div>
           <div className="text-ink-secondary space-y-1">
-            <p>金水草木易养元，若药性不散，常能将炉火化作绵长修为。</p>
             <p>
-              水冰矿辅多启悟，风寒清材若配得当，往往比烈火之物更能开阔心境。
+              丹方记的是成丹路数，不是死记哪几味药。先选丹方，再把你手头相近的灵材投入炉中；若炉位、品阶或灵石不够，炉前会直接拦下。
             </p>
-            <p>若一炉兼纳多条药路，丹意虽广，最终多半只会留下最强的一脉。</p>
+            <p>
+              投料后先“引炉观脉”。这一步会看每味材料是能当主材、只能凑用，还是会冲了丹方。
+            </p>
+            <p>
+              观脉若见“契合”，便可安心开炉；若只是“勉强”，也能成丹，只是药力会折几分；若成了“冲方”，就别强开，换材或调剂量后再观一次。
+            </p>
           </div>
         </section>
 
@@ -267,12 +273,17 @@ export function AlchemyGuideModal({
             炉火提醒
           </div>
           <div className="text-ink-secondary space-y-1">
-            <p>药性越杂，炉势越浮。稳度若失，成丹虽未必废，却常会折损药力。</p>
             <p>
-              修为丹可细水长流，但道基自有承载之限，不宜把它当作无穷无尽的捷径。
+              一炉里药味越多、方向越杂，火势越难稳。炉势不稳时即便成丹，疗伤、修为、感悟、炼体、延寿等药力也会打折。
             </p>
             <p>
-              感悟丹不记此限，却也未必次次见效如新，仍需看你此刻心神是否澄明。
+              猛药常带丹毒，燥烈材料用得多，服后更要记得调息。解毒一类丹药能化浊，但这一炉的主要药力也会分去一部分。
+            </p>
+            <p>
+              修为、启悟、破境、清心、护脉、延寿、炼体、洗髓都不是一口吞尽的便宜事。同一炉最好只求一条主路，丹意写得太散，反而什么都留不深。
+            </p>
+            <p>
+              破境丹服下后，可能留下破境凝神、清心或护脉之效。破境前看的是你身上有没有这份准备，不问这枚丹是不是亲手炼成。
             </p>
           </div>
         </section>
@@ -348,7 +359,7 @@ export function AlchemyFormulaAnalysisCard({
             {getFormulaFitBandLabel(analysis.fitBand)}
           </InkBadge>
           <span className="text-ink-secondary">
-            药性拟合 {Math.round(analysis.fitScore * 100)}%
+            合方程度 {Math.round(analysis.fitScore * 100)}%
           </span>
           <span className="text-ink-secondary">
             炸炉线 {Math.round(analysis.hardBlockThreshold * 100)}%
@@ -1055,11 +1066,11 @@ export default function AlchemyPage() {
       return;
     }
     if (!hasFreshPreview || estimatedSpiritStones === null) {
-      pushToast({ message: '静态预检尚未完成。', tone: 'warning' });
+      pushToast({ message: '炉前验材尚未完成。', tone: 'warning' });
       return;
     }
     if (previewError || displayValidation?.valid === false || !displayCanAfford) {
-      pushToast({ message: '请先通过静态预检。', tone: 'warning' });
+      pushToast({ message: '请先让这一炉通过验材。', tone: 'warning' });
       return;
     }
     if (analysisCooldownRemaining > 0) {
@@ -1100,7 +1111,7 @@ export default function AlchemyPage() {
 
       if (!result.data.valid) {
         clearFormulaAnalysis();
-        setFormulaAnalysisError(result.data.staticBlockingReason || '当前炉材未通过静态预检。');
+        setFormulaAnalysisError(result.data.staticBlockingReason || '当前炉材未通过炉前验材。');
         return;
       }
 
@@ -1482,7 +1493,7 @@ export default function AlchemyPage() {
             ) : activeMode === 'formula' ? (
               <p>请先选定丹方，再投入灵材。</p>
             ) : (
-              <p>请投入灵材并注入丹意，系统会按材料药性与意图共振出丹。</p>
+              <p>请投入灵材并注入丹意，炉火会顺着材料药性与这缕心意凝成丹形。</p>
             )}
             {previewError ? (
               <p className="text-crimson mt-2">{previewError}</p>
@@ -1623,7 +1634,7 @@ export default function AlchemyPage() {
         ) : (
           <InkNotice>
             {activeMode === 'formula'
-              ? '请先选定丹方并投入材料，完成静态预检。'
+              ? '请先选定丹方并投入材料，过一遍炉前验材。'
               : '请先选择材料以查看本炉消耗。'}
           </InkNotice>
         )}

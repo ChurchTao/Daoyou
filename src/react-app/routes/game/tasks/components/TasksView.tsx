@@ -39,10 +39,6 @@ export function TasksView() {
   const activeBreakthroughTasks = tasks.filter(
     (task) => task.category === 'breakthrough_major' && task.status === 'active',
   );
-  const completedBreakthroughTasks = tasks.filter(
-    (task) =>
-      task.category === 'breakthrough_major' && task.status === 'completed',
-  );
   const nextTutorialTask = findNextTutorialTask(tasks);
 
   return (
@@ -104,16 +100,6 @@ export function TasksView() {
               ))}
             </div>
           )}
-        </GameSceneSection>
-      ) : null}
-
-      {!loading && !error && completedBreakthroughTasks.length > 0 ? (
-        <GameSceneSection title="已归卷宗">
-          <div className="space-y-4">
-            {completedBreakthroughTasks.map((task) => (
-              <BreakthroughTaskCard key={task.id} task={task} />
-            ))}
-          </div>
         </GameSceneSection>
       ) : null}
     </GameSceneFrame>

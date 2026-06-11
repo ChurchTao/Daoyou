@@ -71,6 +71,10 @@ interface TaskServiceWriteOptions {
   tx?: DbTransaction;
 }
 
+interface TaskSyncOptions extends TaskServiceWriteOptions {
+  hideCompletedBreakthrough?: boolean;
+}
+
 export interface TaskChallengeResult {
   task: TaskInstance;
   battleResult: BattleRecord;
@@ -979,6 +983,106 @@ function getCurrentMajorDefinition(
   );
 }
 
+function isOutdatedBreakthroughDefinition(
+  context: Pick<TaskProgressContext, 'realm'>,
+  definition: RuntimeTaskDefinition,
+): definition is BreakthroughTaskDefinition {
+  return (
+    definition.category === 'breakthrough_major' &&
+    REALM_ORDER[context.realm] >= REALM_ORDER[definition.toRealm]
+  );
+}
+
+function buildArchivedBreakthroughObjectiveState(
+  objective: TaskObjectiveDefinition,
+  nowIso: string,
+): TaskObjectiveState {
+  return completeObjectiveState(
+    {
+      ...createDefaultObjectiveState(objective.id),
+      objectiveId: objective.id,
+    },
+    1,
+    nowIso,
+  );
+}
+
+function buildArchivedBreakthroughSnapshot(
+  definition: BreakthroughTaskDefinition,
+): TaskProgressSnapshot {
+  return {
+    title: definition.title,
+    summary: definition.summary,
+    fromRealm: definition.fromRealm,
+    toRealm: definition.toRealm,
+    isCompleted: true,
+    currentStageId: null,
+    currentStageIndex: definition.stages.length,
+    totalStages: definition.stages.length,
+    missingRequirements: [],
+    rewardSummary: undefined,
+    stages: definition.stages.map((stage) => ({
+      id: stage.id,
+      title: stage.title,
+      description: stage.description,
+      completionText: stage.completionText,
+      completed: true,
+      current: false,
+      links: [],
+      objectives: stage.objectives.map((objective) => ({
+        id: objective.id,
+        kind: objective.kind,
+        title: objective.title,
+        description: objective.description,
+        completed: true,
+        progressText: '已随境界推进归档',
+      })),
+    })),
+  };
+}
+
+async function archiveOutdatedBreakthroughRecord(
+  context: TaskProgressContext,
+  record: CultivatorTaskRecord,
+  definition: BreakthroughTaskDefinition,
+  nowIso: string,
+  options: TaskServiceWriteOptions = {},
+): Promise<TaskInstance> {
+  const archivedObjectiveStates = definition.stages.flatMap((stage) =>
+    stage.objectives.map((objective) =>
+      buildArchivedBreakthroughObjectiveState(objective, nowIso),
+    ),
+  );
+  const completedAt = record.completedAt ?? new Date(nowIso);
+  const needsArchiveUpdate =
+    record.status !== 'completed' ||
+    record.currentStage !== null ||
+    !record.completedAt ||
+    serializeObjectiveStates(normalizeObjectiveStates(record.objectives)) !==
+      serializeObjectiveStates(archivedObjectiveStates);
+
+  const archivedRecord =
+    needsArchiveUpdate
+      ? (await updateCultivatorTask(record.id, context.cultivatorId, {
+          status: 'completed',
+          currentStage: null,
+          objectives: archivedObjectiveStates,
+          completedAt,
+        }, options.tx)) ?? {
+          ...record,
+          status: 'completed',
+          currentStage: null,
+          objectives: archivedObjectiveStates,
+          completedAt,
+        }
+      : record;
+
+  return mapTaskInstance(
+    archivedRecord,
+    buildArchivedBreakthroughSnapshot(definition),
+  );
+}
+
 function isDailyTaskDefinition(
   definition: RuntimeTaskDefinition,
 ): definition is DailyTaskDefinition {
@@ -1104,13 +1208,23 @@ async function syncTaskRecord(
     throw new Error(`缺少任务定义：${record.definitionId}`);
   }
 
+  const nowIso = new Date().toISOString();
+  if (isOutdatedBreakthroughDefinition(context, definition)) {
+    return archiveOutdatedBreakthroughRecord(
+      context,
+      record,
+      definition,
+      nowIso,
+      options,
+    );
+  }
+
   const preparedRecord = await resetRepeatableTaskRecordIfNeeded(
     context,
     record,
     definition,
     options,
   );
-  const nowIso = new Date().toISOString();
   const resolved = buildTaskSnapshot(preparedRecord, definition, context, nowIso);
   const serializedCurrent = serializeObjectiveStates(
     normalizeObjectiveStates(preparedRecord.objectives),
@@ -1180,11 +1294,12 @@ async function loadBundleOrThrow(cultivatorId: string): Promise<Cultivator> {
 
 async function syncCultivatorTasksWithContext(
   context: TaskProgressContext,
-  options: TaskServiceWriteOptions = {},
+  options: TaskSyncOptions = {},
 ): Promise<TaskInstance[]> {
   await ensureCurrentTaskRecords(context, options);
   const records = await listCultivatorTasks(context.cultivatorId, {
     q: options.tx,
+    hideCompletedBreakthrough: options.hideCompletedBreakthrough,
   });
   return Promise.all(records.map((record) => syncTaskRecord(context, record, options)));
 }
@@ -1261,7 +1376,10 @@ export const TaskService = {
     cultivatorId: string,
     status?: TaskStatus,
   ): Promise<TaskInstance[]> {
-    const tasks = await this.syncCultivatorTasks(cultivatorId);
+    const context = await loadTaskProgressContextOrThrow(cultivatorId);
+    const tasks = await syncCultivatorTasksWithContext(context, {
+      hideCompletedBreakthrough: true,
+    });
     if (!status) {
       return tasks;
     }

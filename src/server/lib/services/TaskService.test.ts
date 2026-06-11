@@ -139,6 +139,22 @@ function createCultivatorRecord(overrides: Record<string, unknown> = {}) {
   } as any;
 }
 
+function createBreakthroughFocusCondition() {
+  return {
+    statuses: [
+      {
+        key: 'breakthrough_focus',
+        stacks: 1,
+        source: 'pill',
+        duration: { kind: 'until_removed' },
+        usesRemaining: 1,
+        createdAt: '2026-05-26T01:00:00.000Z',
+        updatedAt: '2026-05-26T01:00:00.000Z',
+      },
+    ],
+  };
+}
+
 function createFoundationTaskRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'task-major-1',
@@ -149,7 +165,7 @@ function createFoundationTaskRecord(overrides: Record<string, unknown> = {}) {
     currentStage: 'foundation-pill',
     objectives: [
       {
-        objectiveId: 'craft-pill',
+        objectiveId: 'breakthrough-focus',
         completed: false,
       },
       {
@@ -259,16 +275,26 @@ function installTaskStoreMocks() {
       _cultivatorId: string,
       options: {
         status?: 'active' | 'completed';
+        hideCompletedBreakthrough?: boolean;
       } = {},
     ) => {
       const tasks = [...taskStore.values()].sort((left, right) =>
         left.createdAt.getTime() - right.createdAt.getTime(),
       );
+      const visibleTasks = options.hideCompletedBreakthrough
+        ? tasks.filter(
+            (task) =>
+              !(
+                task.category === 'breakthrough_major' &&
+                task.status === 'completed'
+              ),
+          )
+        : tasks;
       if (!options.status) {
-        return tasks;
+        return visibleTasks;
       }
 
-      return tasks.filter((task) => task.status === options.status);
+      return visibleTasks.filter((task) => task.status === options.status);
     },
   );
 
@@ -396,7 +422,30 @@ describe('TaskService', () => {
     vi.useRealTimers();
   });
 
-  it('syncs task progress from lightweight context without loading full cultivator', async () => {
+  it('completes the foundation task when breakthrough focus is active', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        condition: createBreakthroughFocusCondition(),
+      }),
+    );
+    taskStore.set('task-major-1', createFoundationTaskRecord());
+
+    const tasks = await TaskService.syncCultivatorTasks('cultivator-1');
+
+    expect(getCultivatorByIdUnsafeMock).not.toHaveBeenCalled();
+    expect(updateCultivatorTaskMock).toHaveBeenCalled();
+    expect(
+      tasks.find((task) => task.definitionId === 'major_breakthrough_炼气_筑基'),
+    ).toMatchObject({
+      status: 'completed',
+      snapshot: {
+        isCompleted: true,
+        currentStageId: null,
+      },
+    });
+  });
+
+  it('does not complete the foundation task from a stored breakthrough pill alone', async () => {
     taskStore.set('task-major-1', createFoundationTaskRecord());
     listCultivatorBreakthroughPillsMock.mockResolvedValue([
       {
@@ -423,18 +472,125 @@ describe('TaskService', () => {
     ]);
 
     const tasks = await TaskService.syncCultivatorTasks('cultivator-1');
+    const breakthroughTask = tasks.find(
+      (task) => task.definitionId === 'major_breakthrough_炼气_筑基',
+    );
 
     expect(getCultivatorByIdUnsafeMock).not.toHaveBeenCalled();
     expect(updateCultivatorTaskMock).toHaveBeenCalled();
-    expect(
-      tasks.find((task) => task.definitionId === 'major_breakthrough_炼气_筑基'),
-    ).toMatchObject({
+    expect(breakthroughTask).toMatchObject({
+      status: 'active',
+      snapshot: {
+        isCompleted: false,
+        currentStageId: 'foundation-pill',
+      },
+    });
+    expect(breakthroughTask?.snapshot.missingRequirements).toEqual([
+      '具备破境凝神：尚未具备破境凝神状态',
+    ]);
+  });
+
+  it('archives stale active major breakthrough tasks after the realm has advanced', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        realm: '筑基',
+        realm_stage: '初期',
+      }),
+    );
+    taskStore.set(
+      'task-major-1',
+      createFoundationTaskRecord({
+        objectives: [
+          {
+            objectiveId: 'breakthrough-focus',
+            completed: false,
+            progressValue: 0,
+          },
+          {
+            objectiveId: 'clear-garden',
+            completed: false,
+            progressValue: 0,
+          },
+        ],
+      }),
+    );
+
+    const tasks = await TaskService.syncCultivatorTasks('cultivator-1');
+    const archivedTask = tasks.find(
+      (task) => task.definitionId === 'major_breakthrough_炼气_筑基',
+    );
+
+    expect(archivedTask).toMatchObject({
       status: 'completed',
+      currentStage: null,
       snapshot: {
         isCompleted: true,
         currentStageId: null,
       },
     });
+    expect(archivedTask?.objectives.every((objective) => objective.completed)).toBe(
+      true,
+    );
+    expect(updateCultivatorTaskMock).toHaveBeenCalledWith(
+      'task-major-1',
+      'cultivator-1',
+      expect.objectContaining({
+        status: 'completed',
+        currentStage: null,
+        completedAt: expect.any(Date),
+      }),
+      undefined,
+    );
+  });
+
+  it('hides completed major breakthrough tasks from the default task list', async () => {
+    taskStore.set(
+      'task-old-major',
+      createFoundationTaskRecord({
+        id: 'task-old-major',
+        definitionId: 'major_breakthrough_筑基_金丹',
+        status: 'completed',
+        currentStage: null,
+        objectives: [
+          {
+            objectiveId: 'craft-pill',
+            completed: true,
+            progressValue: 1,
+            completedAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          {
+            objectiveId: 'quality-threshold',
+            completed: true,
+            progressValue: 2,
+            completedAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+          {
+            objectiveId: 'clear-trial',
+            completed: true,
+            progressValue: 1,
+            completedAt: '2026-05-20T00:00:00.000Z',
+            updatedAt: '2026-05-20T00:00:00.000Z',
+          },
+        ],
+        completedAt: new Date('2026-05-20T00:00:00.000Z'),
+        metadata: {
+          fromRealm: '筑基',
+          toRealm: '金丹',
+          taskTheme: 'core',
+        },
+      }),
+    );
+    taskStore.set('task-major-1', createFoundationTaskRecord());
+
+    const tasks = await TaskService.listCultivatorTasks('cultivator-1');
+
+    expect(listCultivatorTasksMock).toHaveBeenLastCalledWith('cultivator-1', {
+      q: undefined,
+      hideCompletedBreakthrough: true,
+    });
+    expect(tasks.map((task) => task.id)).not.toContain('task-old-major');
   });
 
   it('creates the three fixed daily task records during sync', async () => {
@@ -458,13 +614,18 @@ describe('TaskService', () => {
   });
 
   it('links specified dungeon objectives to a preselected map node', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        condition: createBreakthroughFocusCondition(),
+      }),
+    );
     taskStore.set(
       'task-major-1',
       createFoundationTaskRecord({
         currentStage: 'foundation-trial',
         objectives: [
           {
-            objectiveId: 'craft-pill',
+            objectiveId: 'breakthrough-focus',
             completed: true,
             progressValue: 1,
             completedAt: '2026-05-21T00:00:00.000Z',
