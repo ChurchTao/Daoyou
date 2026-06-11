@@ -24,6 +24,11 @@ import {
 import { TaskService } from '@server/lib/services/TaskService';
 import { getCultivatorById } from '@server/lib/services/cultivatorService';
 import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+  type StateChangeDescriptor,
+} from '@server/lib/services/PlayerStateMutationService';
+import {
   requireActiveCultivator,
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
@@ -115,6 +120,81 @@ function qiErrorPayload(error: unknown) {
     };
   }
   return null;
+}
+
+function buildAlchemyStateChanges(args: {
+  qiAfter: number;
+  taskSynced: boolean;
+}): StateChangeDescriptor[] {
+  const changes: StateChangeDescriptor[] = [
+    {
+      domain: 'currency',
+      eventType: 'currency.changed',
+      patch: {
+        currency: {
+          qi: args.qiAfter,
+        },
+      },
+      invalidates: ['currency'],
+    },
+    {
+      domain: 'inventory',
+      eventType: 'inventory.changed',
+      invalidates: ['inventory'],
+    },
+  ];
+
+  if (args.taskSynced) {
+    changes.push({
+      domain: 'tasks',
+      eventType: 'tasks.changed',
+      invalidates: ['tasks'],
+    });
+  }
+
+  return changes;
+}
+
+function buildCreationStateChanges(args: {
+  craftType: CreationCraftType;
+  qiAfter: number;
+  needsReplace?: boolean;
+}): StateChangeDescriptor[] {
+  const changes: StateChangeDescriptor[] = [
+    {
+      domain: 'currency',
+      eventType: 'currency.changed',
+      patch: {
+        currency: {
+          qi: args.qiAfter,
+        },
+      },
+      invalidates: ['currency'],
+    },
+    {
+      domain: 'inventory',
+      eventType: 'inventory.changed',
+      invalidates: ['inventory'],
+    },
+  ];
+
+  if (args.craftType === 'create_skill' || args.craftType === 'create_gongfa') {
+    changes.push({
+      domain: 'progress',
+      eventType: 'progress.changed',
+      invalidates: ['progress'],
+    });
+  }
+
+  if (!args.needsReplace) {
+    changes.push({
+      domain: 'products',
+      eventType: 'products.changed',
+      invalidates: ['products'],
+    });
+  }
+
+  return changes;
 }
 
 router.get('/', requireActiveCultivator(), async (c) => {
@@ -236,13 +316,11 @@ router.get('/', requireActiveCultivator(), async (c) => {
 });
 
 router.post('/', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
-
-  let qiActionInstanceId: string | null = null;
-  let qiReservationOpen = false;
 
   try {
     const parsed = CraftSchema.safeParse(await c.req.json());
@@ -283,89 +361,134 @@ router.post('/', requireActiveCultivator(), async (c) => {
         return c.json({ error: '请先按方辨材。' }, 400);
       }
 
-      qiActionInstanceId = randomUUID();
-      await QiService.reserveQi({
+      const craftQiActionInstanceId = randomUUID();
+      let afterCommit: (() => Promise<void>) | undefined;
+      const committed = await commitPlayerStateMutation({
+        userId: user.id,
         cultivatorId: cultivator.id,
-        action: getCraftQiAction({
-          craftType,
-          alchemyMode: resolvedAlchemyMode,
-        }),
-        actionInstanceId: qiActionInstanceId,
-        metadata: {
-          craftType,
-          alchemyMode: resolvedAlchemyMode,
-          materialCount: materialIds.length,
-          formulaId,
-        },
-      });
-      qiReservationOpen = true;
-
-      const result = resolvedAlchemyMode === 'formula'
-        ? await craftFromFormula(
-            cultivator.id,
-            formulaId!,
-            materialIds,
-            materialQuantities,
-            analysisId,
-          )
-        : await processAlchemyCraft(cultivator.id, materialIds, {
-            materialQuantities,
-            userPrompt: normalizedUserPrompt,
+        source: `alchemy_${resolvedAlchemyMode}`,
+        run: async (tx) => {
+          const qiReservation = await QiService.reserveQi({
+            cultivatorId: cultivator.id,
+            action: getCraftQiAction({
+              craftType,
+              alchemyMode: resolvedAlchemyMode,
+            }),
+            actionInstanceId: craftQiActionInstanceId,
+            metadata: {
+              craftType,
+              alchemyMode: resolvedAlchemyMode,
+              materialCount: materialIds.length,
+              formulaId,
+            },
+            tx,
           });
 
-      await QiService.commitReservation({
-        actionInstanceId: qiActionInstanceId,
-        metadata: { committedAt: new Date().toISOString() },
-      });
-      qiReservationOpen = false;
+          const craftResult =
+            resolvedAlchemyMode === 'formula'
+              ? await craftFromFormula(
+                  cultivator.id,
+                  formulaId!,
+                  materialIds,
+                  materialQuantities,
+                  analysisId,
+                  { tx, deferSideEffects: true },
+                )
+              : await processAlchemyCraft(cultivator.id, materialIds, {
+                  materialQuantities,
+                  userPrompt: normalizedUserPrompt,
+                  tx,
+                });
+          if ('afterCommit' in craftResult) {
+            afterCommit = craftResult.afterCommit;
+          }
+          const result = { ...craftResult };
+          delete (result as { afterCommit?: unknown }).afterCommit;
 
-      try {
-        await TaskService.recordTaskEvent(cultivator.id, 'alchemy_crafted');
-      } catch (syncError) {
-        console.error('炼丹后同步任务失败:', syncError);
+          await QiService.commitReservation({
+            actionInstanceId: craftQiActionInstanceId,
+            metadata: { committedAt: new Date().toISOString() },
+            tx,
+          });
+
+          let taskSynced = false;
+          try {
+            await TaskService.recordTaskEvent(cultivator.id, 'alchemy_crafted', {
+              tx,
+            });
+            taskSynced = true;
+          } catch (syncError) {
+            console.error('炼丹后同步任务失败:', syncError);
+          }
+
+          return {
+            result,
+            changes: buildAlchemyStateChanges({
+              qiAfter: qiReservation.qiAfter,
+              taskSynced,
+            }),
+          };
+        },
+      });
+      if (afterCommit) {
+        await afterCommit();
       }
 
-      return c.json({ success: true, data: result });
+      return c.json(toPlayerStateMutationResponse(committed));
     }
 
-    qiActionInstanceId = randomUUID();
-    await QiService.reserveQi({
+    const craftQiActionInstanceId = randomUUID();
+    let afterCommit: (() => Promise<void>) | undefined;
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
       cultivatorId: cultivator.id,
-      action: getCraftQiAction({ craftType }),
-      actionInstanceId: qiActionInstanceId,
-      metadata: {
-        craftType,
-        materialCount: materialIds.length,
-        requestedSlot,
+      source: `creation_${craftType}`,
+      run: async (tx) => {
+        const qiReservation = await QiService.reserveQi({
+          cultivatorId: cultivator.id,
+          action: getCraftQiAction({ craftType }),
+          actionInstanceId: craftQiActionInstanceId,
+          metadata: {
+            craftType,
+            materialCount: materialIds.length,
+            requestedSlot,
+          },
+          tx,
+        });
+
+        const { afterCommit: creationAfterCommit, ...result } =
+          await processCreation(cultivator.id, materialIds, craftType, {
+            materialQuantities,
+            userPrompt: normalizedUserPrompt,
+            requestedSlot,
+            requestedTargetPolicy,
+            tx,
+            deferSideEffects: true,
+          });
+        afterCommit = creationAfterCommit;
+
+        await QiService.commitReservation({
+          actionInstanceId: craftQiActionInstanceId,
+          metadata: { committedAt: new Date().toISOString() },
+          tx,
+        });
+
+        return {
+          result,
+          changes: buildCreationStateChanges({
+            craftType,
+            qiAfter: qiReservation.qiAfter,
+            needsReplace: Boolean(result.needs_replace),
+          }),
+        };
       },
     });
-    qiReservationOpen = true;
-
-    const result = await processCreation(cultivator.id, materialIds, craftType, {
-      materialQuantities,
-      userPrompt: normalizedUserPrompt,
-      requestedSlot,
-      requestedTargetPolicy,
-    });
-
-    await QiService.commitReservation({
-      actionInstanceId: qiActionInstanceId,
-      metadata: { committedAt: new Date().toISOString() },
-    });
-    qiReservationOpen = false;
-
-    return c.json({ success: true, data: result });
-  } catch (error) {
-    if (qiReservationOpen && qiActionInstanceId) {
-      try {
-        await QiService.refundReservation({
-          actionInstanceId: qiActionInstanceId,
-          reason: 'craft_route_error',
-        });
-      } catch (refundError) {
-        console.error('造物失败后回滚灵气预扣失败:', refundError);
-      }
+    if (afterCommit) {
+      await afterCommit();
     }
+
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
     const qiError = qiErrorPayload(error);
     if (qiError) {
       return jsonWithStatus(c, qiError.body, qiError.status);
@@ -403,9 +526,10 @@ pendingRouter.get('/', requireActiveCultivator(), async (c) => {
 });
 
 confirmRouter.post('/', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   try {
@@ -418,12 +542,37 @@ confirmRouter.post('/', requireActiveCultivator(), async (c) => {
       });
     }
 
-    const result = await confirmCreation(cultivator.id, craftType, replaceId ?? null);
-    return c.json({
-      success: true,
-      message: '领悟成功，已纳入道基',
-      data: result,
+    let afterCommit: (() => Promise<void>) | undefined;
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'creation_confirm',
+      run: async (tx) => {
+        const { afterCommit: confirmAfterCommit, ...result } =
+          await confirmCreation(cultivator.id, craftType, replaceId ?? null, {
+            tx,
+            deferSideEffects: true,
+          });
+        afterCommit = confirmAfterCommit;
+        return {
+          result: {
+            message: '领悟成功，已纳入道基',
+            item: result,
+          },
+          changes: [
+            {
+              domain: 'products',
+              eventType: 'products.changed',
+              invalidates: ['products'],
+            },
+          ],
+        };
+      },
     });
+    if (afterCommit) {
+      await afterCommit();
+    }
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: error.issues[0]?.message || '请求参数格式错误' }, 400);

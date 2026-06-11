@@ -122,13 +122,13 @@ describe('taskDefinitions heart demon challenge', () => {
       challengeId: 'tribulation_deity',
       realm: '元婴',
       realmStage: '圆满',
-      enemyDifficulty: 70,
+      enemyDifficulty: 65,
     },
     {
       challengeId: 'law_insight_void',
       realm: '化神',
       realmStage: '圆满',
-      enemyDifficulty: 80,
+      enemyDifficulty: 75,
     },
     {
       challengeId: 'tribulation_body',

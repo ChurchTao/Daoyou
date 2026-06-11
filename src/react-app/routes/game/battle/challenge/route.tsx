@@ -4,7 +4,7 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/useBattle
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
-import { fetchJsonCached } from '@app/lib/client/requestCache';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -25,6 +25,65 @@ type ChallengeBattleResponse =
         remainingChallenges: number;
       };
     };
+
+type ChallengeMutate = <T>(
+  request: Promise<Response>,
+  options?: { deferRecovery?: boolean },
+) => Promise<T>;
+
+const challengeExecutionRequests = new Map<
+  string,
+  Promise<ChallengeBattleResponse>
+>();
+const challengeExecutionResults = new Map<string, ChallengeBattleResponse>();
+
+function getChallengeExecutionKey(targetId: string | null) {
+  return targetId?.trim() || 'direct-entry';
+}
+
+function clearChallengeExecutionCache(key: string) {
+  challengeExecutionRequests.delete(key);
+  challengeExecutionResults.delete(key);
+}
+
+async function executeChallengeBattleOnce(
+  key: string,
+  targetId: string | null,
+  mutate: ChallengeMutate,
+) {
+  const cached = challengeExecutionResults.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  const inFlight = challengeExecutionRequests.get(key);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const request = mutate<ChallengeBattleResponse>(
+    fetch('/api/rankings/challenge-battle/v5', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId: targetId?.trim() || null }),
+    }),
+    { deferRecovery: true },
+  )
+    .then((data) => {
+      challengeExecutionResults.set(key, data);
+      return data;
+    })
+    .catch((error) => {
+      clearChallengeExecutionCache(key);
+      throw error;
+    })
+    .finally(() => {
+      challengeExecutionRequests.delete(key);
+    });
+
+  challengeExecutionRequests.set(key, request);
+  return request;
+}
 
 export function ChallengeDirectEntryCard({
   rank,
@@ -62,8 +121,15 @@ function ChallengeBattlePageContent() {
     rank: number;
   } | null>(null);
   const playback = useBattlePlaybackState(battleResult);
+  const { mutate } = usePlayerStateActions();
 
   const targetId = searchParams.get('targetId');
+  const challengeKey = getChallengeExecutionKey(targetId);
+
+  const backToRankings = () => {
+    clearChallengeExecutionCache(challengeKey);
+    navigate('/game/rankings');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -76,14 +142,10 @@ function ChallengeBattlePageContent() {
       setRankingUpdate(null);
 
       try {
-        const data = await fetchJsonCached<ChallengeBattleResponse>(
-          '/api/rankings/challenge-battle/v5',
-          {
-            key: `rankings:challenge-battle:${targetId ?? 'direct-entry'}`,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ targetId: targetId || null }),
-          },
+        const data = await executeChallengeBattleOnce(
+          challengeKey,
+          targetId,
+          mutate,
         );
         if (cancelled) return;
 
@@ -112,14 +174,14 @@ function ChallengeBattlePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [targetId]);
+  }, [challengeKey, mutate, targetId]);
 
   if (error) {
     return (
       <div className="flex h-full items-center justify-center px-4 py-20">
         <div className="border-battle-rule-strong bg-[rgba(248,243,230,0.92)] max-w-md border border-dashed px-5 py-5 text-center">
           <p className="text-crimson mb-4">{error}</p>
-          <InkButton onClick={() => navigate('/game/rankings')}>
+          <InkButton onClick={backToRankings}>
             返回排行榜
           </InkButton>
         </div>
@@ -131,7 +193,7 @@ function ChallengeBattlePageContent() {
     return (
       <ChallengeDirectEntryCard
         rank={directEntry.rank}
-        onBack={() => navigate('/game/rankings')}
+        onBack={backToRankings}
       />
     );
   }
@@ -155,7 +217,7 @@ function ChallengeBattlePageContent() {
         open={!!battleResult && playback.isPlaybackFinished}
         title={isWin ? '挑战成功' : '挑战失利'}
         confirmLabel="返回排行榜"
-        onConfirm={() => navigate('/game/rankings')}
+        onConfirm={backToRankings}
         content={
           <div className="space-y-1 leading-8">
             {rankingUpdate?.challengerRank != null && isWin && (

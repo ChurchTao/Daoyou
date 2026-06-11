@@ -12,6 +12,11 @@ const {
   runTaskChallengeMock: vi.fn(),
 }));
 
+vi.mock('@server/lib/drizzle/db', () => ({
+  db: vi.fn(),
+  getExecutor: vi.fn(),
+}));
+
 vi.mock('@server/lib/hono/middleware', () => ({
   requireActiveCultivator: () => async (context: any, next: () => Promise<void>) => {
     context.set('user', {
@@ -22,6 +27,18 @@ vi.mock('@server/lib/hono/middleware', () => ({
     });
     await next();
   },
+  requireActiveCultivatorRef:
+    () => async (context: any, next: () => Promise<void>) => {
+      context.set('user', {
+        id: 'user-1',
+      });
+      context.set('activeCultivatorRef', {
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
+        status: 'active',
+      });
+      await next();
+    },
 }));
 
 vi.mock('@server/lib/services/TaskService', () => ({
@@ -33,10 +50,65 @@ vi.mock('@server/lib/services/TaskService', () => ({
   },
 }));
 
+import { db } from '@server/lib/drizzle/db';
 import taskRouter from './tasks.router';
+
+const dbMock = db as unknown as ReturnType<typeof vi.fn>;
 
 function createApp() {
   return new Hono().route('/api/tasks', taskRouter);
+}
+
+function mockTaskClaimTransaction(unreadMailCount: number) {
+  const selectWhere = vi.fn().mockResolvedValue([{ count: unreadMailCount }]);
+  const from = vi.fn(() => ({ where: selectWhere }));
+  const select = vi.fn(() => ({ from }));
+  const versionRow = {
+    cultivatorId: 'cultivator-1',
+    globalVersion: 1,
+    profileVersion: 0,
+    conditionVersion: 0,
+    progressVersion: 0,
+    currencyVersion: 0,
+    inventoryVersion: 0,
+    productsVersion: 0,
+    mailVersion: 1,
+    tasksVersion: 1,
+    updatedAt: new Date('2026-06-10T00:00:00.000Z'),
+  };
+  const eventRows = [
+    {
+      id: 41,
+      cultivatorId: 'cultivator-1',
+      userId: 'user-1',
+      globalVersion: 1,
+      domain: 'tasks',
+      eventType: 'tasks.reward_claimed',
+      patch: {},
+      invalidates: ['tasks'],
+      source: 'task_claim_reward',
+      requestId: null,
+      createdAt: new Date('2026-06-10T00:00:00.000Z'),
+    },
+  ];
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([versionRow])
+    .mockResolvedValueOnce(eventRows);
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { select, insert };
+
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  });
+
+  return txMock;
 }
 
 describe('tasks router', () => {
@@ -118,6 +190,7 @@ describe('tasks router', () => {
   });
 
   it('claims tutorial rewards through the active user and cultivator', async () => {
+    const txMock = mockTaskClaimTransaction(3);
     claimTaskRewardMock.mockResolvedValueOnce({
       task: {
         id: 'task-1',
@@ -140,11 +213,33 @@ describe('tasks router', () => {
         },
         rewards: ['修为 x40'],
       },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+        domainVersions: {
+          tasks: 1,
+          mail: 1,
+        },
+        events: [
+          {
+            id: 41,
+            cultivatorId: 'cultivator-1',
+            globalVersion: 1,
+            domain: 'tasks',
+            eventType: 'tasks.reward_claimed',
+            patch: {},
+            invalidates: ['tasks'],
+            source: 'task_claim_reward',
+            createdAt: '2026-06-10T00:00:00.000Z',
+          },
+        ],
+      },
     });
     expect(claimTaskRewardMock).toHaveBeenCalledWith(
       'user-1',
       'cultivator-1',
       'task-1',
+      { tx: txMock },
     );
   });
 });

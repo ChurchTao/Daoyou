@@ -10,6 +10,7 @@ const {
   getBattleContextMock,
   executeBattleMock,
   getLeaderboardMock,
+  commitPlayerStateMutationMock,
 } = vi.hoisted(() => ({
   startRunMock: vi.fn(),
   getStateMock: vi.fn(),
@@ -19,10 +20,35 @@ const {
   getBattleContextMock: vi.fn(),
   executeBattleMock: vi.fn(),
   getLeaderboardMock: vi.fn(),
+  commitPlayerStateMutationMock: vi.fn(async (input: any) => {
+    const { result, changes } = await input.run({ __tx: true });
+    return {
+      result,
+      state: {
+        cultivatorId: input.cultivatorId,
+        globalVersion: 30,
+        domainVersions: Object.fromEntries(
+          changes.map((change: any) => [change.domain, 30]),
+        ),
+        events: changes.map((change: any, index: number) => ({
+          id: index + 1,
+          cultivatorId: input.cultivatorId,
+          globalVersion: 30,
+          domain: change.domain,
+          eventType: change.eventType,
+          patch: change.patch ?? {},
+          invalidates: change.invalidates ?? [],
+          source: input.source,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        })),
+      },
+    };
+  }),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
   requireActiveCultivator: () => async (context: any, next: () => Promise<void>) => {
+    context.set('user', { id: 'user-1' });
     context.set('cultivator', { id: 'cultivator-1' });
     await next();
   },
@@ -39,6 +65,15 @@ vi.mock('@server/lib/tower/service', () => ({
     executeBattle: executeBattleMock,
     getLeaderboard: getLeaderboardMock,
   },
+}));
+
+vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  commitPlayerStateMutation: commitPlayerStateMutationMock,
+  toPlayerStateMutationResponse: (committed: any) => ({
+    success: true,
+    data: committed.result,
+    state: committed.state,
+  }),
 }));
 
 import towerRouter from './tower.router';
@@ -137,19 +172,79 @@ describe('tower router', () => {
       },
     );
     expect(executeResponse.status).toBe(200);
-    await expect(executeResponse.json()).resolves.toEqual({
+    await expect(executeResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: {
+          battleResult: {
+            turns: 3,
+            winner: { id: 'cultivator-1', name: '韩立' },
+            loser: { id: 'enemy-1', name: '守塔者' },
+          },
+          callbackData: expect.objectContaining({
+            towerState: { status: 'CHOOSING_BLESSING' },
+            isFinished: false,
+          }),
+        },
+      }),
+    );
+    expect(commitPlayerStateMutationMock).not.toHaveBeenCalled();
+  });
+
+  it('emits only mail state when tower battle creates milestone mail', async () => {
+    const persist = vi.fn().mockResolvedValue(undefined);
+    const afterCommit = vi.fn().mockResolvedValue(undefined);
+    executeBattleMock.mockResolvedValueOnce({
       battleResult: {
-        turns: 3,
+        turns: 4,
         winner: { id: 'cultivator-1', name: '韩立' },
         loser: { id: 'enemy-1', name: '守塔者' },
       },
-      callbackData: {
-        towerState: { status: 'CHOOSING_BLESSING' },
-        isFinished: false,
-        settlement: undefined,
-        milestoneReward: undefined,
-      },
+      state: { status: 'CHOOSING_BLESSING' },
+      isFinished: false,
+      settlement: undefined,
+      milestoneReward: { floor: 5, title: '五层馈赠' },
+      persist,
+      afterCommit,
     });
+
+    const response = await createApp().request('/api/tower/battle/execute/v5', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ battleId: 'battle-1' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          callbackData: expect.objectContaining({
+            milestoneReward: { floor: 5, title: '五层馈赠' },
+          }),
+        }),
+        state: expect.objectContaining({
+          events: [
+            expect.objectContaining({
+              domain: 'mail',
+              eventType: 'mail.tower_milestone.created',
+              source: 'tower_battle_execute',
+            }),
+          ],
+        }),
+      }),
+    );
+    expect(persist).toHaveBeenCalledWith({ __tx: true });
+    expect(afterCommit).toHaveBeenCalledTimes(1);
+    const run = commitPlayerStateMutationMock.mock.calls[0][0].run;
+    const { changes } = await run({ __tx: true });
+    expect(changes).toEqual([
+      {
+        domain: 'mail',
+        eventType: 'mail.tower_milestone.created',
+        invalidates: ['mail'],
+      },
+    ]);
   });
 
   it('returns leaderboard entries for a realm bucket', async () => {

@@ -1,4 +1,5 @@
 import type { ApiSuccess } from './http';
+import type { PlayerStateMutationResponse } from './player';
 import type { TaskInstance } from '@shared/types/task';
 
 export type TaskListResponse = ApiSuccess<{
@@ -16,7 +17,7 @@ export type TaskChallengeResponse = ApiSuccess<{
   challengeTitle: string;
 }>;
 
-export type TaskRewardClaimResponse = ApiSuccess<{
+export type TaskRewardClaimResponse = PlayerStateMutationResponse<{
   task: TaskInstance;
   rewards: string[];
 }>;

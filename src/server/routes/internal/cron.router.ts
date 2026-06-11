@@ -2,6 +2,7 @@ import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
   runMarketRefreshCronJob,
+  runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
   runTowerEnemySetRefreshJob,
 } from '@server/lib/jobs/internalCron';
@@ -75,6 +76,10 @@ router.get('/market-refresh', (c) =>
 
 router.get('/tower-enemy-sets', (c) =>
   handleCronRequest(c.req.raw, runTowerEnemySetRefreshJob),
+);
+
+router.get('/player-state-events-cleanup', (c) =>
+  handleCronRequest(c.req.raw, runPlayerStateEventsCleanupJob),
 );
 
 export default router;

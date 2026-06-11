@@ -33,6 +33,7 @@ import { withPlayerAbilityStrategySettings } from '@shared/lib/battle/abilityStr
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { towerEnemySetService } from './enemySets';
 import { getTowerLeaderboard, updateTowerWeeklyRecord } from './leaderboard';
+import type { DbTransaction } from '@server/lib/drizzle/db';
 
 const RUN_TTL_SECONDS = 8 * 24 * 60 * 60;
 
@@ -47,6 +48,19 @@ interface TowerBattleSession {
 interface TowerBattleCachePayload {
   session: TowerBattleSession;
   enemyObject: Cultivator;
+}
+
+interface TowerMilestoneRewardCommit {
+  reward: TowerMilestoneReward;
+  mail: {
+    title: string;
+    body: string;
+    attachments: MailAttachment[];
+  };
+}
+
+interface TowerBattleExecutionOptions {
+  deferPersistence?: boolean;
 }
 
 function getTowerRunKey(cultivatorId: string) {
@@ -230,7 +244,25 @@ export class TowerService {
     floor: number;
     challengeRealm: RealmType;
     now: Date;
+    tx?: DbTransaction;
   }): Promise<TowerMilestoneReward | undefined> {
+    const commit = this.prepareMilestoneReward(args);
+    if (!commit) {
+      return undefined;
+    }
+
+    await this.sendMilestoneRewardMail(args.cultivatorId, commit, args.tx);
+    this.applyMilestoneReward(args.state, commit.reward);
+    return commit.reward;
+  }
+
+  private prepareMilestoneReward(args: {
+    cultivator: Cultivator;
+    state: TowerState;
+    floor: number;
+    challengeRealm: RealmType;
+    now: Date;
+  }): TowerMilestoneRewardCommit | undefined {
     if (args.state.claimedMilestones.includes(args.floor)) {
       return undefined;
     }
@@ -247,8 +279,6 @@ export class TowerService {
       buildRewardPlayerInfo(args.cultivator),
     );
 
-    // All rewards go into mail attachments for the player to claim
-    // manually — nothing is auto-granted.
     const attachments: MailAttachment[] = rewards.map((item) => {
       const name =
         item.name ??
@@ -276,26 +306,43 @@ export class TowerService {
       '所有奖励已附于此邮件，请及时领取。',
     ].join('\n');
 
-    await MailService.sendMail(
-      args.cultivatorId,
-      mailTitle,
-      mailBody,
-      attachments,
-      'reward',
-    );
-
-    const reward: TowerMilestoneReward = {
-      floor: args.floor,
-      tier,
-      realm: args.challengeRealm,
-      grantedAt: args.now.toISOString(),
-      rewards,
+    return {
+      reward: {
+        floor: args.floor,
+        tier,
+        realm: args.challengeRealm,
+        grantedAt: args.now.toISOString(),
+        rewards,
+      },
+      mail: {
+        title: mailTitle,
+        body: mailBody,
+        attachments,
+      },
     };
+  }
 
-    args.state.claimedMilestones.push(args.floor);
-    args.state.milestoneRewardLog.push(reward);
+  private async sendMilestoneRewardMail(
+    cultivatorId: string,
+    commit: TowerMilestoneRewardCommit,
+    tx?: DbTransaction,
+  ) {
+    await MailService.sendMail(
+      cultivatorId,
+      commit.mail.title,
+      commit.mail.body,
+      commit.mail.attachments,
+      'reward',
+      tx,
+    );
+  }
 
-    return reward;
+  private applyMilestoneReward(
+    state: TowerState,
+    reward: TowerMilestoneReward,
+  ) {
+    state.claimedMilestones.push(reward.floor);
+    state.milestoneRewardLog.push(reward);
   }
 
   async getState(
@@ -519,6 +566,7 @@ export class TowerService {
     cultivatorId: string,
     battleId: string,
     now: Date = new Date(),
+    options: TowerBattleExecutionOptions = {},
   ) {
     const { state } = await this.loadState(cultivatorId, now);
     if (!state || state.activeBattleId !== battleId) {
@@ -577,11 +625,20 @@ export class TowerService {
 
     let settlement: TowerSettlement | undefined;
     let milestoneReward: TowerMilestoneReward | undefined;
+    let milestoneCommit: TowerMilestoneRewardCommit | undefined;
+    let leaderboardUpdate:
+      | {
+          seasonKey: string;
+          seasonEndAt: string;
+          recordedRealm: RealmType;
+          highestFloor: number;
+          firstReachedAt: string;
+        }
+      | undefined;
 
     if (!isWin) {
       state.pendingBlessingChoices = [];
       state.status = 'FINISHED';
-      await this.saveState(cultivatorId, state);
       settlement = buildTowerSettlement(state, 'defeat');
     } else {
       const clearedFloor = payload.session.encounter.floor;
@@ -590,28 +647,47 @@ export class TowerService {
         clearedFloor,
       );
 
-      await updateTowerWeeklyRecord({
+      leaderboardUpdate = {
         seasonKey: state.seasonKey,
         seasonEndAt: getTowerSeasonMeta(now).seasonEndsAt,
-        cultivatorId,
         recordedRealm: challengeRealm,
         highestFloor: state.highestFloorCleared,
         firstReachedAt: now.toISOString(),
-      });
+      };
 
-      milestoneReward = await this.grantMilestoneReward({
-        cultivatorId,
-        cultivator: cultivatorBundle.cultivator,
-        state,
-        floor: clearedFloor,
-        challengeRealm,
-        now,
-      });
+      if (options.deferPersistence) {
+        milestoneCommit = this.prepareMilestoneReward({
+          cultivator: cultivatorBundle.cultivator,
+          state,
+          floor: clearedFloor,
+          challengeRealm,
+          now,
+        });
+        if (milestoneCommit) {
+          milestoneReward = milestoneCommit.reward;
+          this.applyMilestoneReward(state, milestoneReward);
+        }
+      } else {
+        milestoneReward = await this.grantMilestoneReward({
+          cultivatorId,
+          cultivator: cultivatorBundle.cultivator,
+          state,
+          floor: clearedFloor,
+          challengeRealm,
+          now,
+        });
+      }
+
+      if (!options.deferPersistence && leaderboardUpdate) {
+        await updateTowerWeeklyRecord({
+          ...leaderboardUpdate,
+          cultivatorId,
+        });
+      }
 
       if (clearedFloor >= TOWER_MAX_FLOOR) {
         state.pendingBlessingChoices = [];
         state.status = 'FINISHED';
-        await this.saveState(cultivatorId, state);
         settlement = buildTowerSettlement(state, 'clear');
       } else {
         const { maxHp, maxMp } = ConditionService.getMaxResources(
@@ -635,12 +711,31 @@ export class TowerService {
           state.pendingBlessingChoices = choices;
           state.status = 'CHOOSING_BLESSING';
         }
-
-        await this.saveState(cultivatorId, state);
       }
     }
 
-    await redis.del(battleKey);
+    if (!options.deferPersistence) {
+      await this.saveState(cultivatorId, state);
+      await redis.del(battleKey);
+    }
+
+    const persist = options.deferPersistence && milestoneCommit
+      ? async (tx: DbTransaction) => {
+          await this.sendMilestoneRewardMail(cultivatorId, milestoneCommit, tx);
+        }
+      : undefined;
+    const afterCommit = options.deferPersistence
+      ? async () => {
+          await this.saveState(cultivatorId, state);
+          if (leaderboardUpdate) {
+            await updateTowerWeeklyRecord({
+              ...leaderboardUpdate,
+              cultivatorId,
+            });
+          }
+          await redis.del(battleKey);
+        }
+      : undefined;
 
     return {
       battleResult,
@@ -648,6 +743,8 @@ export class TowerService {
       isFinished: state.status === 'FINISHED',
       settlement,
       milestoneReward,
+      persist,
+      afterCommit,
     };
   }
 

@@ -3,6 +3,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useState } from 'react';
 import { Mail } from './MailList';
@@ -20,6 +21,7 @@ export function MailDetailModal({
 }: MailDetailModalProps) {
   const [isClaiming, setIsClaiming] = useState(false);
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
 
   if (!mail) return null;
 
@@ -29,14 +31,13 @@ export function MailDetailModal({
   const handleClaim = async () => {
     try {
       setIsClaiming(true);
-      const res = await fetch('/api/cultivator/mail/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mailId: mail.id }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Claim failed');
+      await mutate(
+        fetch('/api/cultivator/mail/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mailId: mail.id }),
+        }),
+      );
 
       pushToast({ message: '领取成功！', tone: 'success' });
       onUpdate(mail.id);

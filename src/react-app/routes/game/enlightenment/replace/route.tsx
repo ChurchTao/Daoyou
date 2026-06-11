@@ -22,6 +22,7 @@ import {
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -35,8 +36,8 @@ function ReplaceContent() {
   const {
     cultivator,
     isLoading: cultivatorLoading,
-    refreshCultivator,
   } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
   const [loading, setLoading] = useState(false);
@@ -125,24 +126,30 @@ function ReplaceContent() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/craft/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          craftType,
-          replaceId: isAbandon ? null : selectedOldId,
-          abandon: isAbandon,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || '确认失败');
+      const request = fetch('/api/craft/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            craftType,
+            replaceId: isAbandon ? null : selectedOldId,
+            abandon: isAbandon,
+          }),
+        });
+      const data = isAbandon
+        ? await (async () => {
+            const res = await request;
+            const payload = await res.json();
+            if (!res.ok) throw new Error(payload.error || '确认失败');
+            return payload as { message?: string };
+          })()
+        : await mutate<{ message: string; item: CreationProductResultRecord }>(
+            request,
+          );
 
       openDialog({
         title: isAbandon ? '尘缘尽散' : '领悟成功',
         content: <p>{data.message}</p>,
-        onConfirm: async () => {
-          await refreshCultivator();
+        onConfirm: () => {
           navigate(isSkill ? '/game/skills' : '/game/techniques');
         },
         confirmLabel: '善哉',

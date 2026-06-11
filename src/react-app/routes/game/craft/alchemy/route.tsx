@@ -17,10 +17,8 @@ import {
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
-  getQiErrorMessage,
   useQiActionConfirm,
 } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import {
   InkActionGroup,
   InkBadge,
@@ -39,6 +37,7 @@ import {
 } from '@app/lib/alchemy/starterAlchemy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
@@ -581,7 +580,8 @@ export function AlchemyFormulaDiscoveryModal({
 }
 
 export default function AlchemyPage() {
-  const { cultivator, note, isLoading, refreshCultivator } = useCultivator();
+  const { cultivator, note, isLoading } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const cultivatorId = cultivator?.id ?? null;
   const { tasks } = useTaskList(cultivatorId ?? undefined);
   const [activeMode, setActiveMode] = useState<AlchemyMode>('improvised');
@@ -1185,23 +1185,24 @@ export default function AlchemyPage() {
         setIsDiscoveryModalOpen(false);
 
         try {
-          const response = await fetch('/api/craft', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(submitPayload),
-          });
-          const result: AlchemyCraftResponse = await response.json();
+          const result = await mutate<NonNullable<AlchemyCraftResponse['data']>>(
+            fetch('/api/craft', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(submitPayload),
+            }),
+          );
 
-          if (!response.ok || !result.success || !result.data?.consumable) {
-            throw new Error(getQiErrorMessage(result, '炼丹失败'));
+          if (!result.consumable) {
+            throw new Error('炼丹失败');
           }
 
-          const nextConsumable = result.data.consumable;
-          const discoveredFormula = result.data.formulaDiscovery ?? null;
+          const nextConsumable = result.consumable;
+          const discoveredFormula = result.formulaDiscovery ?? null;
           const successMessage = `【${nextConsumable.name}】丹成！`;
           setCreatedConsumable(nextConsumable);
           setFormulaDiscovery(discoveredFormula);
-          setFormulaProgress(result.data.formulaProgress ?? null);
+          setFormulaProgress(result.formulaProgress ?? null);
           setIsResultModalOpen(true);
           setIsDiscoveryModalOpen(false);
           setCelebrationTick((prev) => prev + 1);
@@ -1217,8 +1218,6 @@ export default function AlchemyPage() {
           setPreviewState(DEFAULT_PREVIEW_STATE);
           clearFormulaAnalysis();
           setMaterialsRefreshKey((prev) => prev + 1);
-          await refreshCultivator();
-          invalidateQiState(cultivator.id);
         } catch (error) {
           if (error instanceof Error && error.message.includes('请先按方辨材')) {
             clearFormulaAnalysis({ keepError: true });

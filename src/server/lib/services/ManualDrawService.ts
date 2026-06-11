@@ -13,7 +13,11 @@ import {
   type ManualDrawTalismanCounts,
 } from '@shared/types/manualDraw';
 import { and, eq } from 'drizzle-orm';
-import { getExecutor } from '../drizzle/db';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { consumeConsumableById } from './cultivatorService';
 import { mapConsumableRow, type ConsumableRow } from './consumablePersistence';
@@ -29,9 +33,11 @@ function validateDrawCount(count: number): asserts count is ManualDrawCount {
 async function loadMatchingTalismanRows(
   cultivatorId: string,
   kind: ManualDrawKind,
+  executor?: DbExecutor | DbTransaction,
 ): Promise<ConsumableRow[]> {
   const config = MANUAL_DRAW_CONFIG[kind];
-  const rows = await getExecutor()
+  const q = executor ?? getExecutor();
+  const rows = await q
     .select()
     .from(schema.consumables)
     .where(
@@ -111,15 +117,19 @@ export const ManualDrawService = {
   async getAvailableTalismanCount(
     cultivatorId: string,
     kind: ManualDrawKind,
+    executor?: DbExecutor | DbTransaction,
   ): Promise<number> {
-    const rows = await loadMatchingTalismanRows(cultivatorId, kind);
+    const rows = await loadMatchingTalismanRows(cultivatorId, kind, executor);
     return rows.reduce((sum, row) => sum + row.quantity, 0);
   },
 
-  async getStatus(cultivatorId: string): Promise<ManualDrawStatusDTO> {
+  async getStatus(
+    cultivatorId: string,
+    executor?: DbExecutor | DbTransaction,
+  ): Promise<ManualDrawStatusDTO> {
     const [gongfa, skill] = await Promise.all([
-      this.getAvailableTalismanCount(cultivatorId, 'gongfa'),
-      this.getAvailableTalismanCount(cultivatorId, 'skill'),
+      this.getAvailableTalismanCount(cultivatorId, 'gongfa', executor),
+      this.getAvailableTalismanCount(cultivatorId, 'skill', executor),
     ]);
 
     const talismanCounts: ManualDrawTalismanCounts = { gongfa, skill };
@@ -131,11 +141,12 @@ export const ManualDrawService = {
     cultivatorId: string,
     kind: ManualDrawKind,
     count: number,
+    options: { tx?: DbTransaction } = {},
   ): Promise<ManualDrawResultDTO> {
     validateDrawCount(count);
 
     const config = MANUAL_DRAW_CONFIG[kind];
-    const rows = await loadMatchingTalismanRows(cultivatorId, kind);
+    const rows = await loadMatchingTalismanRows(cultivatorId, kind, options.tx);
     const totalCount = rows.reduce((sum, row) => sum + row.quantity, 0);
     if (totalCount < count) {
       throw new ManualDrawServiceError(
@@ -157,27 +168,32 @@ export const ManualDrawService = {
       );
     }
 
-    const result = await resourceEngine.gain(
-      userId,
-      cultivatorId,
-      rewards.map((reward) => ({
-        type: 'material' as const,
-        value: reward.quantity,
-        name: reward.name,
-        data: reward,
-      })),
-      async (tx) => {
-        for (const step of plan) {
-          await consumeConsumableById(
-            userId,
-            cultivatorId,
-            step.consumableId,
-            step.quantity,
-            tx,
-          );
-        }
-      },
-    );
+    const gains = rewards.map((reward) => ({
+      type: 'material' as const,
+      value: reward.quantity,
+      name: reward.name,
+      data: reward,
+    }));
+    const action = async (tx: DbTransaction) => {
+      for (const step of plan) {
+        await consumeConsumableById(
+          userId,
+          cultivatorId,
+          step.consumableId,
+          step.quantity,
+          tx,
+        );
+      }
+    };
+    const result = options.tx
+      ? await resourceEngine.gainInTransaction(
+          userId,
+          cultivatorId,
+          gains,
+          options.tx,
+          action,
+        )
+      : await resourceEngine.gain(userId, cultivatorId, gains, action);
 
     if (!result.success) {
       throw new ManualDrawServiceError(
@@ -186,7 +202,7 @@ export const ManualDrawService = {
       );
     }
 
-    const status = await this.getStatus(cultivatorId);
+    const status = await this.getStatus(cultivatorId, options.tx);
 
     return {
       kind,

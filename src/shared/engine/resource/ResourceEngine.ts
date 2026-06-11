@@ -1,4 +1,5 @@
 import { getExecutor } from '@server/lib/drizzle/db';
+import { invalidateActiveCultivatorRef } from '@server/lib/hono/middleware';
 import { eq } from 'drizzle-orm';
 import * as schema from '@server/lib/drizzle/schema';
 import {
@@ -202,6 +203,7 @@ export class ResourceEngine {
 
     // 执行资源消耗（在事务中）
     const errors: string[] = [];
+    let depleted = false;
 
     try {
       await getExecutor().transaction(async (tx) => {
@@ -226,6 +228,7 @@ export class ResourceEngine {
                     .update(schema.cultivators)
                     .set({ status: 'dead' })
                     .where(eq(schema.cultivators.id, cultivatorId));
+                  depleted = true;
                 }
               }
               break;
@@ -285,6 +288,10 @@ export class ResourceEngine {
         }
       });
 
+      if (depleted) {
+        await invalidateActiveCultivatorRef(userId);
+      }
+
       return {
         success: errors.length === 0,
         operations: costs,
@@ -299,6 +306,118 @@ export class ResourceEngine {
         ],
       };
     }
+  }
+
+  async consumeInTransaction(
+    userId: string,
+    cultivatorId: string,
+    costs: ResourceOperation[],
+    tx: DbTransaction,
+    action?: (tx: DbTransaction) => Promise<void>,
+  ): Promise<ResourceOperationResult> {
+    for (const cost of costs) {
+      if (!Number.isFinite(cost.value)) {
+        return {
+          success: false,
+          operations: costs,
+          errors: [`非法的资源数值: ${cost.type}=${cost.value}（必须为有限数）`],
+        };
+      }
+      if (cost.value < 0) {
+        return {
+          success: false,
+          operations: costs,
+          errors: [`非法的负值成本: ${cost.type}=${cost.value}（cost.value 必须非负）`],
+        };
+      }
+    }
+
+    const validation = await this.validate(userId, cultivatorId, costs);
+    if (!validation.valid) {
+      return {
+        success: false,
+        operations: costs,
+        errors: validation.errors,
+      };
+    }
+
+    const errors: string[] = [];
+    let depleted = false;
+    for (const cost of costs) {
+      switch (cost.type) {
+        case 'spirit_stones':
+          await updateSpiritStones(userId, cultivatorId, -cost.value, tx);
+          break;
+        case 'lifespan':
+          await updateLifespan(userId, cultivatorId, -cost.value, tx);
+          {
+            const lifespanCheck = await tx
+              .select({
+                age: schema.cultivators.age,
+                lifespan: schema.cultivators.lifespan,
+                status: schema.cultivators.status,
+              })
+              .from(schema.cultivators)
+              .where(eq(schema.cultivators.id, cultivatorId))
+              .limit(1);
+            if (lifespanCheck.length > 0 && lifespanCheck[0].status === 'active') {
+              if (lifespanCheck[0].age >= lifespanCheck[0].lifespan) {
+                await tx
+                  .update(schema.cultivators)
+                  .set({ status: 'dead' })
+                  .where(eq(schema.cultivators.id, cultivatorId));
+                depleted = true;
+              }
+            }
+          }
+          break;
+        case 'cultivation_exp':
+          await updateCultivationExp(
+            userId,
+            cultivatorId,
+            -cost.value,
+            undefined,
+            tx,
+          );
+          break;
+        case 'comprehension_insight':
+          await updateCultivationExp(userId, cultivatorId, 0, -cost.value, tx);
+          break;
+        case 'material':
+          if (cost.name) {
+            await removeMaterialFromInventory(
+              userId,
+              cultivatorId,
+              cost.name,
+              cost.value,
+              tx,
+            );
+          }
+          break;
+        case 'hp_loss':
+        case 'mp_loss':
+        case 'weak':
+        case 'battle':
+        case 'artifact_damage':
+          break;
+        default:
+          errors.push(`未知的资源类型: ${cost.type}`);
+      }
+    }
+
+    if (action) {
+      await action(tx);
+    }
+
+    if (depleted) {
+      await invalidateActiveCultivatorRef(userId);
+    }
+
+    return {
+      success: errors.length === 0,
+      operations: costs,
+      errors: errors.length > 0 ? errors : undefined,
+    };
   }
 
   /**
@@ -342,96 +461,14 @@ export class ResourceEngine {
 
     try {
       await getExecutor().transaction(async (tx) => {
-        // 1. 获取资源
-        for (const gain of gains) {
-          switch (gain.type) {
-            case 'spirit_stones':
-              await updateSpiritStones(userId, cultivatorId, gain.value, tx);
-              break;
-
-            case 'lifespan':
-              await updateLifespan(userId, cultivatorId, gain.value, tx);
-              break;
-
-            case 'cultivation_exp':
-              await updateCultivationExp(
-                userId,
-                cultivatorId,
-                gain.value,
-                undefined,
-                tx,
-              );
-              break;
-
-            case 'comprehension_insight':
-              // 只修改感悟值，修为变化为0
-              await updateCultivationExp(
-                userId,
-                cultivatorId,
-                0,
-                gain.value,
-                tx,
-              );
-              break;
-
-            case 'material':
-              if (gain.data && 'name' in gain.data) {
-                // Ensure the material's quantity matches the operation value
-                const material = { ...gain.data } as Material;
-                material.quantity = gain.value;
-                await addMaterialToInventory(
-                  userId,
-                  cultivatorId,
-                  material,
-                  tx,
-                );
-              } else {
-                errors.push('材料数据不完整，缺少 name 字段');
-              }
-              break;
-
-            case 'artifact':
-              if (gain.data && 'name' in gain.data) {
-                const artifact = { ...gain.data } as Artifact;
-                artifact.score = calculateSingleArtifactScore(artifact);
-                await addArtifactToInventory(
-                  userId,
-                  cultivatorId,
-                  artifact,
-                  tx,
-                );
-              } else {
-                errors.push('法宝数据不完整，缺少 name 字段');
-              }
-              break;
-
-            case 'consumable':
-              if (gain.data && 'name' in gain.data) {
-                // Ensure the consumable's quantity matches the operation value
-                const consumable = { ...gain.data } as Consumable;
-                consumable.quantity = gain.value;
-                consumable.score = calculateSingleElixirScore(consumable);
-                await addConsumableToInventory(
-                  userId,
-                  cultivatorId,
-                  consumable,
-                  tx,
-                );
-              } else {
-                errors.push('消耗品数据不完整，缺少 name 字段');
-              }
-              break;
-
-            default:
-              errors.push(`未知的资源类型: ${gain.type}`);
-          }
-        }
-
-        // 2. 如果提供了 action，执行它
-        // 如果 action 失败，会抛出异常，导致事务回滚
-        if (action) {
-          await action(tx);
-        }
+        await this.applyGainInTransaction(
+          userId,
+          cultivatorId,
+          gains,
+          tx,
+          errors,
+          action,
+        );
       });
 
       return {
@@ -447,6 +484,120 @@ export class ResourceEngine {
           `操作失败已回滚: ${error instanceof Error ? error.message : String(error)}`,
         ],
       };
+    }
+  }
+
+  async gainInTransaction(
+    userId: string,
+    cultivatorId: string,
+    gains: ResourceOperation[],
+    tx: DbTransaction,
+    action?: (tx: DbTransaction) => Promise<void>,
+  ): Promise<ResourceOperationResult> {
+    for (const gain of gains) {
+      if (!Number.isFinite(gain.value)) {
+        return {
+          success: false,
+          operations: gains,
+          errors: [`非法的资源数值: ${gain.type}=${gain.value}（必须为有限数）`],
+        };
+      }
+      if (gain.value < 0) {
+        return {
+          success: false,
+          operations: gains,
+          errors: [`非法的负值收益: ${gain.type}=${gain.value}（gain.value 必须非负）`],
+        };
+      }
+    }
+
+    const errors: string[] = [];
+    await this.applyGainInTransaction(
+      userId,
+      cultivatorId,
+      gains,
+      tx,
+      errors,
+      action,
+    );
+
+    return {
+      success: errors.length === 0,
+      operations: gains,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  }
+
+  private async applyGainInTransaction(
+    userId: string,
+    cultivatorId: string,
+    gains: ResourceOperation[],
+    tx: DbTransaction,
+    errors: string[],
+    action?: (tx: DbTransaction) => Promise<void>,
+  ): Promise<void> {
+    for (const gain of gains) {
+      switch (gain.type) {
+        case 'spirit_stones':
+          await updateSpiritStones(userId, cultivatorId, gain.value, tx);
+          break;
+
+        case 'lifespan':
+          await updateLifespan(userId, cultivatorId, gain.value, tx);
+          break;
+
+        case 'cultivation_exp':
+          await updateCultivationExp(
+            userId,
+            cultivatorId,
+            gain.value,
+            undefined,
+            tx,
+          );
+          break;
+
+        case 'comprehension_insight':
+          await updateCultivationExp(userId, cultivatorId, 0, gain.value, tx);
+          break;
+
+        case 'material':
+          if (gain.data && 'name' in gain.data) {
+            const material = { ...gain.data } as Material;
+            material.quantity = gain.value;
+            await addMaterialToInventory(userId, cultivatorId, material, tx);
+          } else {
+            errors.push('材料数据不完整，缺少 name 字段');
+          }
+          break;
+
+        case 'artifact':
+          if (gain.data && 'name' in gain.data) {
+            const artifact = { ...gain.data } as Artifact;
+            artifact.score = calculateSingleArtifactScore(artifact);
+            await addArtifactToInventory(userId, cultivatorId, artifact, tx);
+          } else {
+            errors.push('法宝数据不完整，缺少 name 字段');
+          }
+          break;
+
+        case 'consumable':
+          if (gain.data && 'name' in gain.data) {
+            const consumable = { ...gain.data } as Consumable;
+            consumable.quantity = gain.value;
+            consumable.score = calculateSingleElixirScore(consumable);
+            await addConsumableToInventory(userId, cultivatorId, consumable, tx);
+          } else {
+            errors.push('消耗品数据不完整，缺少 name 字段');
+          }
+          break;
+
+        default:
+          errors.push(`未知的资源类型: ${gain.type}`);
+      }
+    }
+
+    if (action) {
+      await action(tx);
     }
   }
 

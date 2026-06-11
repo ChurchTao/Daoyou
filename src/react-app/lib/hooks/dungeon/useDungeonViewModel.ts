@@ -9,7 +9,6 @@ import type {
   DungeonState,
 } from '@shared/lib/dungeon/types';
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { useMemo, useState } from 'react';
 import { useDungeonActions } from './useDungeonActions';
@@ -82,11 +81,8 @@ export function resolveDungeonMutationResult(
 export function shouldRefreshCultivatorAfterDungeonMutation(
   resolution: DungeonMutationResolution,
 ) {
-  return (
-    resolution.type === 'state' ||
-    resolution.type === 'settlement' ||
-    resolution.type === 'clear'
-  );
+  void resolution;
+  return false;
 }
 
 /**
@@ -98,6 +94,7 @@ export function useDungeonViewModel(
   preSelectedNodeId: string | null,
   refreshCultivator?: () => Promise<void> | void,
 ) {
+  void refreshCultivator;
   // 副本状态管理
   const {
     state,
@@ -220,7 +217,6 @@ export function useDungeonViewModel(
         const newState = await startDungeon(nodeId);
         if (newState) {
           setState(newState);
-          invalidateQiState(cultivatorId);
         }
       },
     });
@@ -231,31 +227,28 @@ export function useDungeonViewModel(
    */
   const handlePerformAction = async (option: DungeonOption) => {
     const data = await performAction(option);
-    await applyMutationResult(data);
+    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
   };
 
   const handleContinueLooting = async () => {
     const data = await continueLooting();
-    await applyMutationResult(data);
+    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
   };
 
   const handleEscapeLooting = async () => {
     const data = await escapeLooting();
-    await applyMutationResult(data);
+    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
   };
 
   const handleRecoverDungeon = async (action: DungeonRecoverAction) => {
     const data = await recoverDungeon(action);
-    await applyMutationResult(data);
+    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
   };
 
   const applyMutationResult = async (
     data: Parameters<typeof resolveDungeonMutationResult>[0],
   ) => {
     const resolution = resolveDungeonMutationResult(data);
-    const shouldRefreshCultivator =
-      shouldRefreshCultivatorAfterDungeonMutation(resolution);
-
     if (resolution.type === 'refresh') {
       refresh();
       return;
@@ -277,9 +270,6 @@ export function useDungeonViewModel(
       setState(null);
     }
 
-    if (shouldRefreshCultivator) {
-      await refreshCultivator?.();
-    }
   };
 
   /**
@@ -305,7 +295,6 @@ export function useDungeonViewModel(
     result: DungeonAbandonBattleResult,
   ) => {
     setActiveBattleId(undefined);
-    void refreshCultivator?.();
     if (result.isFinished) {
       setState((prev) =>
         prev
@@ -328,8 +317,6 @@ export function useDungeonViewModel(
    */
   const handleBattleComplete = (data: BattleCallbackData | null) => {
     setActiveBattleId(undefined);
-    void refreshCultivator?.();
-
     if (data?.isFinished) {
       setState((prev) =>
         prev

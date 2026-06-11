@@ -1,7 +1,5 @@
-import {
-  fetchJsonCached,
-  invalidateCachedRequest,
-} from '@app/lib/client/requestCache';
+import { usePlayerState, usePlayerStateActions } from '@app/lib/player-state/store';
+import { QI_MAX } from '@shared/config/qiSystem';
 import type { QiState } from '@shared/contracts/qi';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -16,7 +14,6 @@ export function invalidateQiState(
   options: { notify?: boolean } = {},
 ) {
   if (!cultivatorId) return;
-  invalidateCachedRequest(getQiStateCacheKey(cultivatorId));
 
   if (options.notify === false || typeof window === 'undefined') return;
   window.dispatchEvent(
@@ -35,90 +32,35 @@ export function useQiState({
   autoRefresh?: boolean;
   refreshInterval?: number;
 }) {
-  const [state, setState] = useState<QiState | null>(null);
-  const [loading, setLoading] = useState(Boolean(cultivatorId));
-  const [error, setError] = useState<string | null>(null);
+  const currency = usePlayerState((store) => store.snapshot.currency);
+  const storeLoading = usePlayerState((store) => store.loading);
+  const storeError = usePlayerState((store) => store.error);
+  const { refresh: refreshPlayerState } = usePlayerStateActions();
+  const [refreshing, setRefreshing] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!cultivatorId) {
-      setState(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
+    if (!cultivatorId) return;
+    setRefreshing(true);
     try {
-      invalidateQiState(cultivatorId, { notify: false });
-      const result = await fetchJsonCached<{
-        success: boolean;
-        data?: QiState;
-        error?: string;
-      }>('/api/cultivator/qi', {
-        key: getQiStateCacheKey(cultivatorId),
-        ttlMs: autoRefresh ? Math.min(refreshInterval, 5000) : 30_000,
-      });
-
-      if (!result.success || !result.data) {
-        throw new Error(result.error || '获取灵气状态失败');
-      }
-      setState(result.data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '获取灵气状态失败');
+      await refreshPlayerState(['currency']);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
-  }, [autoRefresh, cultivatorId, refreshInterval]);
+  }, [cultivatorId, refreshPlayerState]);
 
   useEffect(() => {
-    if (!cultivatorId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const result = await fetchJsonCached<{
-          success: boolean;
-          data?: QiState;
-          error?: string;
-        }>('/api/cultivator/qi', {
-          key: getQiStateCacheKey(cultivatorId),
-          ttlMs: autoRefresh ? Math.min(refreshInterval, 5000) : 30_000,
-        });
-
-        if (cancelled) return;
-        if (!result.success || !result.data) {
-          throw new Error(result.error || '获取灵气状态失败');
-        }
-        setState(result.data);
-        setError(null);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : '获取灵气状态失败');
-          setState(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void load();
+    if (!cultivatorId) return;
 
     const handleQiInvalidated = (event: Event) => {
       const detail = (event as CustomEvent<{ cultivatorId?: string }>).detail;
       if (detail?.cultivatorId !== cultivatorId) return;
-      void load();
+      void refresh();
     };
     window.addEventListener(QI_STATE_INVALIDATED_EVENT, handleQiInvalidated);
 
     if (autoRefresh && refreshInterval > 0) {
-      const timer = window.setInterval(load, refreshInterval);
+      const timer = window.setInterval(refresh, refreshInterval);
       return () => {
-        cancelled = true;
         window.removeEventListener(
           QI_STATE_INVALIDATED_EVENT,
           handleQiInvalidated,
@@ -128,18 +70,25 @@ export function useQiState({
     }
 
     return () => {
-      cancelled = true;
       window.removeEventListener(
         QI_STATE_INVALIDATED_EVENT,
         handleQiInvalidated,
       );
     };
-  }, [autoRefresh, cultivatorId, refreshInterval]);
+  }, [autoRefresh, cultivatorId, refresh, refreshInterval]);
+
+  const state: QiState | null =
+    cultivatorId && currency
+      ? {
+          current: currency.qi,
+          max: QI_MAX,
+        }
+      : null;
 
   return {
-    state: cultivatorId ? state : null,
-    loading: cultivatorId ? loading : false,
-    error: cultivatorId ? error : null,
+    state,
+    loading: cultivatorId ? storeLoading || refreshing : false,
+    error: cultivatorId ? storeError : null,
     refresh,
   };
 }

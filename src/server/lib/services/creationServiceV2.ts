@@ -39,7 +39,7 @@ import {
   MAX_EQUIPPED_GONGFA,
   MAX_OWNED_CREATION_PRODUCTS_PER_TYPE,
 } from '@shared/config/creationProductLimits';
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators, materials } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
@@ -70,6 +70,8 @@ export interface ProcessCreationOptions {
   requestedSlot?: EquipmentSlot;
   /** 仅神通有效：玩家指定的目标策略（单体/AOE/队友等）。其它产物传入会被忽略。 */
   requestedTargetPolicy?: { team: 'enemy' | 'ally' | 'self' | 'any'; scope: 'single' | 'aoe' | 'random'; maxTargets?: number };
+  tx?: DbTransaction;
+  deferSideEffects?: boolean;
 }
 
 export class CreationServiceError extends Error {
@@ -104,6 +106,10 @@ export interface CreationV2Result {
   currentCount?: number;
   maxCount?: number;
 }
+
+type CreationV2ServiceResult = CreationV2Result & {
+  afterCommit?: () => Promise<void>;
+};
 
 export interface PendingCreationItem {
   snapshot: string;
@@ -419,13 +425,18 @@ export async function processCreation(
   materialIds: string[],
   craftType: string,
   options: ProcessCreationOptions = {},
-): Promise<CreationV2Result> {
+): Promise<CreationV2ServiceResult> {
   const productType = getCreationProductTypeFromCraftType(craftType);
   if (!productType) {
     throw new CreationServiceError(`未知的造物类型: ${craftType}`);
   }
 
-  const { materialQuantities, userPrompt, requestedSlot, requestedTargetPolicy } = options;
+  const {
+    materialQuantities,
+    userPrompt,
+    requestedSlot,
+    requestedTargetPolicy,
+  } = options;
 
   // Slot 只对 artifact 生效，其它产物传了也忽略，避免下游歧义。
   const effectiveRequestedSlot =
@@ -447,7 +458,8 @@ export async function processCreation(
     const selectedMaterials = await loadOwnedMaterials(cultivatorId, materialIds);
 
     // 3. 加载角色（用于资源校验和容量检查）
-    const [cultivator] = await getExecutor()
+    const q = options.tx ?? getExecutor();
+    const [cultivator] = await q
       .select()
       .from(cultivators)
       .where(eq(cultivators.id, cultivatorId))
@@ -457,7 +469,7 @@ export async function processCreation(
       throw new CreationServiceError('道友查无此人', 404);
     }
 
-    const fullCultivator = await getCultivatorByIdUnsafe(cultivatorId);
+    const fullCultivator = await getCultivatorByIdUnsafe(cultivatorId, q);
     const fateContext = evaluateFateContext(
       fullCultivator?.cultivator.pre_heaven_fates ?? [],
     );
@@ -570,7 +582,8 @@ export async function processCreation(
     let currentCount = 0;
     let maxCount = 0;
 
-    await getExecutor().transaction(async (tx) => {
+    let afterCommit: (() => Promise<void>) | undefined;
+    const writeCreation = async (tx: DbTransaction) => {
       // 7.1 扣除资源
       if (resourceType === 'spiritStone') {
         await tx
@@ -634,13 +647,24 @@ export async function processCreation(
           previewElement: row.element ?? null,
         });
         const pendingKey = `creation_pending_v2:${cultivatorId}:${craftType}`;
-        await redis.set(pendingKey, pendingPayload, 'EX', 3600);
+        afterCommit = async () => {
+          await redis.set(pendingKey, pendingPayload, 'EX', 3600);
+        };
       } else {
         // 直接写入
         const record = await creationProductRepository.insert(row, tx);
         insertedId = record.id;
       }
-    });
+    };
+
+    if (options.tx) {
+      await writeCreation(options.tx);
+    } else {
+      await getExecutor().transaction(writeCreation);
+    }
+    if (afterCommit && !options.deferSideEffects) {
+      await afterCommit();
+    }
 
     if (needsReplace) {
       // 返回"需要替换"标识，不含 id
@@ -649,6 +673,7 @@ export async function processCreation(
         needs_replace: true,
         currentCount,
         maxCount,
+        afterCommit: options.deferSideEffects ? afterCommit : undefined,
       };
     }
 
@@ -690,7 +715,8 @@ export async function confirmCreation(
   cultivatorId: string,
   craftType: string,
   replaceId: string | null,
-): Promise<CreationV2Result> {
+  options: { tx?: DbTransaction; deferSideEffects?: boolean } = {},
+): Promise<CreationV2ServiceResult> {
   const pendingKey = `creation_pending_v2:${cultivatorId}:${craftType}`;
   const payload = parseRedisJson<{ snapshot: string }>(
     await redis.get(pendingKey),
@@ -704,7 +730,8 @@ export async function confirmCreation(
   const row = toRow(outcome, cultivatorId);
   const productType = row.productType as CreationProductType;
 
-  const [cultivator] = await getExecutor()
+  const q = options.tx ?? getExecutor();
+  const [cultivator] = await q
     .select()
     .from(cultivators)
     .where(eq(cultivators.id, cultivatorId))
@@ -714,7 +741,7 @@ export async function confirmCreation(
   }
 
   let insertedId!: string;
-  await getExecutor().transaction(async (tx) => {
+  const writeConfirm = async (tx: DbTransaction) => {
     let replacedWasEquipped = false;
     if (replaceId) {
       // 验证被替换产物归属
@@ -758,11 +785,24 @@ export async function confirmCreation(
 
     const record = await creationProductRepository.insert(row, tx);
     insertedId = record.id;
-  });
+  };
 
-  await redis.del(pendingKey);
+  if (options.tx) {
+    await writeConfirm(options.tx);
+  } else {
+    await getExecutor().transaction(writeConfirm);
+  }
+  const afterCommit = async () => {
+    await redis.del(pendingKey);
+  };
+  if (!options.deferSideEffects) {
+    await afterCommit();
+  }
 
-  return buildCreationResult(outcome, row, insertedId);
+  return {
+    ...buildCreationResult(outcome, row, insertedId),
+    afterCommit: options.deferSideEffects ? afterCommit : undefined,
+  };
 }
 
 /**

@@ -39,7 +39,7 @@ import { getNextStage } from '@server/utils/breakthroughCalculator';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { simulateBattleV5 } from './simulateBattleV5';
 import { getCultivatorByIdUnsafe, getInventory } from './cultivatorService';
-import { getExecutor } from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import { calculateSceneCultivationExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
 import {
   createCultivatorTask,
@@ -66,6 +66,10 @@ import {
   type TaskStageTemplate,
 } from './taskDefinitions';
 import { MailService } from './MailService';
+
+interface TaskServiceWriteOptions {
+  tx?: DbTransaction;
+}
 
 export interface TaskChallengeResult {
   task: TaskInstance;
@@ -349,11 +353,13 @@ function createTaskProgressContextFromCultivator(
 
 async function loadTaskProgressContextOrThrow(
   cultivatorId: string,
+  options: TaskServiceWriteOptions = {},
 ): Promise<TaskProgressContext> {
+  const q = options.tx;
   const [record, techniqueRows, breakthroughPills] = await Promise.all([
-    findActiveCultivatorRecordById(cultivatorId),
-    listCultivatorTechniqueQualities(cultivatorId),
-    listCultivatorBreakthroughPills(cultivatorId),
+    findActiveCultivatorRecordById(cultivatorId, q),
+    listCultivatorTechniqueQualities(cultivatorId, q),
+    listCultivatorBreakthroughPills(cultivatorId, q),
   ]);
 
   if (!record) {
@@ -773,6 +779,7 @@ async function grantDailyTaskRewardIfNeeded(
   definition: DailyTaskDefinition,
   task: TaskInstance,
   resetKey: string,
+  options: TaskServiceWriteOptions = {},
 ): Promise<boolean> {
   const grantKey = `${definition.id}:${resetKey}`;
   if (task.metadata.rewardGrantedKey === grantKey) {
@@ -787,6 +794,7 @@ async function grantDailyTaskRewardIfNeeded(
       ...task.metadata,
       rewardGrantPendingKey: grantKey,
     },
+    options.tx,
   );
   if (!pendingRecord) {
     return false;
@@ -810,6 +818,7 @@ async function grantDailyTaskRewardIfNeeded(
         `道友已办妥"${task.snapshot.title}"，这份薄礼已由传音玉简送达，请查收附件。`,
         rewardAttachments,
         'reward',
+        options.tx,
       );
     }
 
@@ -821,6 +830,7 @@ async function grantDailyTaskRewardIfNeeded(
         ...withoutRewardGrantPendingKey(grantMetadata),
         rewardGrantedKey: grantKey,
       },
+      options.tx,
     );
     return true;
   } catch (error) {
@@ -829,6 +839,7 @@ async function grantDailyTaskRewardIfNeeded(
       cultivatorId,
       grantKey,
       withoutRewardGrantPendingKey(grantMetadata),
+      options.tx,
     );
     throw error;
   }
@@ -983,10 +994,12 @@ function isTutorialTaskDefinition(
 async function createTaskRecordIfMissing(
   context: TaskProgressContext,
   definition: RuntimeTaskDefinition,
+  options: TaskServiceWriteOptions = {},
 ): Promise<void> {
   const existing = await findCultivatorTaskByDefinition(
     context.cultivatorId,
     definition.id,
+    options.tx,
   );
   if (existing) {
     return;
@@ -1009,7 +1022,7 @@ async function createTaskRecordIfMissing(
         context.realmStage,
         context.cultivationProgress?.exp_cap,
       ),
-    });
+    }, options.tx);
   } catch (error) {
     if (
       !error ||
@@ -1023,6 +1036,7 @@ async function createTaskRecordIfMissing(
 
 async function ensureCurrentTaskRecords(
   context: TaskProgressContext,
+  options: TaskServiceWriteOptions = {},
 ): Promise<void> {
   const currentMajorDefinition = getCurrentMajorDefinition(context);
   const definitions: RuntimeTaskDefinition[] = [
@@ -1032,7 +1046,7 @@ async function ensureCurrentTaskRecords(
   ];
 
   for (const definition of definitions) {
-    await createTaskRecordIfMissing(context, definition);
+    await createTaskRecordIfMissing(context, definition, options);
   }
 }
 
@@ -1040,6 +1054,7 @@ async function resetRepeatableTaskRecordIfNeeded(
   context: TaskProgressContext,
   record: CultivatorTaskRecord,
   definition: RuntimeTaskDefinition,
+  options: TaskServiceWriteOptions = {},
 ): Promise<CultivatorTaskRecord> {
   if (!isDailyTaskDefinition(definition) || definition.repeat !== 'daily') {
     return record;
@@ -1068,7 +1083,7 @@ async function resetRepeatableTaskRecordIfNeeded(
       objectives: nextObjectives,
       metadata: nextMetadata,
       completedAt: null,
-    })) ?? {
+    }, options.tx)) ?? {
       ...record,
       status: 'active',
       currentStage: definition.stages[0]?.id ?? null,
@@ -1082,6 +1097,7 @@ async function resetRepeatableTaskRecordIfNeeded(
 async function syncTaskRecord(
   context: TaskProgressContext,
   record: CultivatorTaskRecord,
+  options: TaskServiceWriteOptions = {},
 ): Promise<TaskInstance> {
   const definition = getTaskDefinition(record.definitionId);
   if (!definition) {
@@ -1092,6 +1108,7 @@ async function syncTaskRecord(
     context,
     record,
     definition,
+    options,
   );
   const nowIso = new Date().toISOString();
   const resolved = buildTaskSnapshot(preparedRecord, definition, context, nowIso);
@@ -1135,8 +1152,8 @@ async function syncTaskRecord(
             resolved.status === 'completed'
               ? preparedRecord.completedAt ?? new Date(nowIso)
               : null,
-          ...(metadataNeedsUpdate ? { metadata: nextMetadata } : {}),
-        })) ?? {
+        ...(metadataNeedsUpdate ? { metadata: nextMetadata } : {}),
+        }, options.tx)) ?? {
           ...preparedRecord,
           status: resolved.status,
           currentStage: resolved.currentStage,
@@ -1163,10 +1180,13 @@ async function loadBundleOrThrow(cultivatorId: string): Promise<Cultivator> {
 
 async function syncCultivatorTasksWithContext(
   context: TaskProgressContext,
+  options: TaskServiceWriteOptions = {},
 ): Promise<TaskInstance[]> {
-  await ensureCurrentTaskRecords(context);
-  const records = await listCultivatorTasks(context.cultivatorId);
-  return Promise.all(records.map((record) => syncTaskRecord(context, record)));
+  await ensureCurrentTaskRecords(context, options);
+  const records = await listCultivatorTasks(context.cultivatorId, {
+    q: options.tx,
+  });
+  return Promise.all(records.map((record) => syncTaskRecord(context, record, options)));
 }
 
 async function resolveMissingTaskRewardAttachments(
@@ -1281,10 +1301,14 @@ export const TaskService = {
   async recordDungeonCompletion(
     cultivatorId: string,
     mapNodeId: string,
+    options: TaskServiceWriteOptions = {},
   ): Promise<TaskInstance[]> {
-    const context = await loadTaskProgressContextOrThrow(cultivatorId);
-    await ensureCurrentTaskRecords(context);
-    const records = await listCultivatorTasks(cultivatorId, { status: 'active' });
+    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
+    await ensureCurrentTaskRecords(context, options);
+    const records = await listCultivatorTasks(cultivatorId, {
+      status: 'active',
+      q: options.tx,
+    });
     const nowIso = new Date().toISOString();
 
     for (const record of records) {
@@ -1334,21 +1358,24 @@ export const TaskService = {
       if (changed) {
         await updateCultivatorTask(record.id, cultivatorId, {
           objectives: nextStates,
-        });
+        }, options.tx);
       }
     }
 
-    return syncCultivatorTasksWithContext(context);
+    return syncCultivatorTasksWithContext(context, options);
   },
 
   async recordTaskEvent(
     cultivatorId: string,
     event: TaskEvent,
+    options: TaskServiceWriteOptions = {},
   ): Promise<TaskInstance[]> {
-    const context = await loadTaskProgressContextOrThrow(cultivatorId);
-    await ensureCurrentTaskRecords(context);
+    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
+    await ensureCurrentTaskRecords(context, options);
 
-    const records = await listCultivatorTasks(cultivatorId);
+    const records = await listCultivatorTasks(cultivatorId, {
+      q: options.tx,
+    });
     const currentResetKey = getTaskResetKey();
     let changedAny = false;
 
@@ -1367,6 +1394,7 @@ export const TaskService = {
             context,
             originalRecord,
             definition,
+            options,
           )
         : originalRecord;
 
@@ -1377,7 +1405,7 @@ export const TaskService = {
           currentResetKey &&
         definitionHandlesEvent(definition, event)
       ) {
-        const task = await syncTaskRecord(context, record);
+        const task = await syncTaskRecord(context, record, options);
         const granted = await grantDailyTaskRewardIfNeeded(
           cultivatorId,
           context,
@@ -1385,6 +1413,7 @@ export const TaskService = {
           definition,
           task,
           currentResetKey,
+          options,
         );
         changedAny = changedAny || granted;
         continue;
@@ -1464,12 +1493,12 @@ export const TaskService = {
         (await updateCultivatorTask(record.id, cultivatorId, {
           objectives: nextStates,
           metadata: nextMetadata,
-        })) ?? {
+        }, options.tx)) ?? {
           ...record,
           objectives: nextStates,
           metadata: nextMetadata,
         };
-      const task = await syncTaskRecord(context, record);
+      const task = await syncTaskRecord(context, record, options);
       changedAny = true;
 
       if (task.status === 'completed' && isDailyTaskDefinition(definition)) {
@@ -1480,21 +1509,23 @@ export const TaskService = {
           definition,
           task,
           currentResetKey,
+          options,
         );
       }
     }
 
     if (!changedAny) {
-      return this.listCultivatorTasks(cultivatorId);
+      return syncCultivatorTasksWithContext(context, options);
     }
 
-    return this.listCultivatorTasks(cultivatorId);
+    return syncCultivatorTasksWithContext(context, options);
   },
 
   async claimTaskReward(
     userId: string,
     cultivatorId: string,
     taskId: string,
+    options: { tx?: DbTransaction } = {},
   ): Promise<TaskRewardClaimResult> {
     const context = await loadTaskProgressContextOrThrow(cultivatorId);
     await ensureCurrentTaskRecords(context);
@@ -1539,7 +1570,8 @@ export const TaskService = {
     const currentMetadata = task.metadata;
     const claimedTask = task;
 
-    await getExecutor().transaction(async (tx) => {
+    let grantedRecord: CultivatorTaskRecord | null = null;
+    const grantReward = async (tx: DbTransaction) => {
       const pendingRecord = await markTaskRewardGrantPendingForKey(
         taskId,
         cultivatorId,
@@ -1567,7 +1599,7 @@ export const TaskService = {
         );
       }
 
-      const grantedRecord = await markTaskRewardGrantedForKey(
+      grantedRecord = await markTaskRewardGrantedForKey(
         taskId,
         cultivatorId,
         grantKey,
@@ -1582,12 +1614,25 @@ export const TaskService = {
       if (!grantedRecord) {
         throw new Error('奖励已经领取');
       }
-    });
+    };
 
-    task = await this.getCultivatorTask(cultivatorId, taskId);
-    if (!task) {
-      throw new Error('任务不存在');
+    if (options.tx) {
+      await grantReward(options.tx);
+    } else {
+      await getExecutor().transaction(grantReward);
     }
+
+    if (!grantedRecord) {
+      throw new Error('奖励已经领取');
+    }
+
+    const updatedSnapshot = buildTaskSnapshot(
+      grantedRecord,
+      definition,
+      context,
+      new Date().toISOString(),
+    );
+    task = mapTaskInstance(grantedRecord, updatedSnapshot.snapshot);
 
     return {
       task,

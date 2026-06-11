@@ -40,7 +40,7 @@ export function TutorialTaskCard({
   onClaimed?: () => Promise<void> | void;
 }) {
   const { pushToast } = useInkUI();
-  const { cultivator, refreshCultivator, refreshInventory } = useCultivator();
+  const { cultivator } = useCultivator();
   const [claiming, setClaiming] = useState(false);
   const currentStage =
     task.snapshot.stages.find((stage) => stage.current) ??
@@ -63,11 +63,7 @@ export function TutorialTaskCard({
     setClaiming(true);
     try {
       const result = await claimTaskReward(task.id);
-      await Promise.all([
-        refreshCultivator(),
-        refreshInventory(['materials', 'artifacts', 'consumables']),
-        onClaimed?.(),
-      ]);
+      await onClaimed?.();
       pushToast({
         message: `奖励邮件已送达：${result.data.rewards.join('，')}`,
         tone: 'success',

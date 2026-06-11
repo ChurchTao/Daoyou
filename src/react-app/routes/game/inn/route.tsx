@@ -2,6 +2,7 @@ import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   calculateInnRecoverySpiritStoneCost,
   calculateInnRecoveryLossRange,
@@ -22,8 +23,8 @@ type InnRecoveryResponse = {
 };
 
 export default function InnRecoveryPage() {
-  const { cultivator, display, isLoading, refreshCultivator } =
-    useCultivator();
+  const { cultivator, display, isLoading } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { openDialog, pushToast } = useInkUI();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,27 +94,23 @@ export default function InnRecoveryPage() {
   const handleRecovery = async () => {
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/cultivator/inn-recovery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const result = (await response.json()) as InnRecoveryResponse;
-
-      if (!response.ok || !result.success || !result.data) {
-        throw new Error(result.error || '住店疗伤失败');
-      }
+      const result = await mutate<NonNullable<InnRecoveryResponse['data']>>(
+        fetch('/api/cultivator/inn-recovery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        }),
+      );
 
       const recoveryMessage =
-        result.data.cultivationLossAmount > 0
-          ? `你在客栈歇过一夜，气息已稳。修为折损 ${result.data.cultivationLossAmount} 点。`
+        result.cultivationLossAmount > 0
+          ? `你在客栈歇过一夜，气息已稳。修为折损 ${result.cultivationLossAmount} 点。`
           : '你在客栈歇过一夜，气息已稳。';
 
       pushToast({
         message: recoveryMessage,
         tone: 'success',
       });
-      await refreshCultivator();
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '住店疗伤失败',

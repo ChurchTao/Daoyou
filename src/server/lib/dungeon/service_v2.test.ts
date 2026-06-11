@@ -930,6 +930,7 @@ describe('DungeonService looting continuation', () => {
         currentRound: 6,
         maxRounds: 5,
       }),
+      { deferPersistence: undefined },
     );
   });
 

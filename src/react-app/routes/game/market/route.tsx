@@ -14,6 +14,7 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { getMapNode } from '@shared/lib/game/mapSystem';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import { Material } from '@shared/types/cultivator';
@@ -90,7 +91,8 @@ async function readMarketSnapshot(
 export default function MarketPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { cultivator, refresh } = useCultivator();
+  const { cultivator } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast } = useInkUI();
 
   const nodeId = searchParams.get('nodeId') || DEFAULT_NODE_ID;
@@ -239,23 +241,19 @@ export default function MarketPage() {
 
     setBuyingId(item.id);
     try {
-      const res = await fetch(`/api/market/${nodeId}/buy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          listingId: item.id,
-          quantity: 1,
-          layer: activeLayer,
+      await mutate(
+        fetch(`/api/market/${nodeId}/buy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            listingId: item.id,
+            quantity: 1,
+            layer: activeLayer,
+          }),
         }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        pushToast({ message: `成功购入 ${item.name}`, tone: 'success' });
-        await refresh();
-        void fetchMarket({ showLoading: false });
-      } else {
-        throw new Error(result.error);
-      }
+      );
+      pushToast({ message: `成功购入 ${item.name}`, tone: 'success' });
+      void fetchMarket({ showLoading: false });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '购买失败';
       pushToast({ message, tone: 'danger' });
@@ -306,30 +304,26 @@ export default function MarketPage() {
         // 更新对话框显示 loading
         setBatchBuyDialog((prev) => (prev ? { ...prev, loading: true } : null));
         try {
-          const res = await fetch(`/api/market/${nodeId}/buy`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              items: selectedItems.map((i) => ({
-                listingId: i.id,
-                quantity: 1,
-              })),
-              layer: activeLayer,
+          await mutate(
+            fetch(`/api/market/${nodeId}/buy`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                items: selectedItems.map((i) => ({
+                  listingId: i.id,
+                  quantity: 1,
+                })),
+                layer: activeLayer,
+              }),
             }),
+          );
+          pushToast({
+            message: `成功批量购入 ${selectedIds.size} 件物品`,
+            tone: 'success',
           });
-          const result = await res.json();
-          if (result.success) {
-            pushToast({
-              message: `成功批量购入 ${selectedIds.size} 件物品`,
-              tone: 'success',
-            });
-            setSelectedIds(new Set());
-            setIsBatchMode(false);
-            await refresh();
-            void fetchMarket({ showLoading: false });
-          } else {
-            throw new Error(result.error);
-          }
+          setSelectedIds(new Set());
+          setIsBatchMode(false);
+          void fetchMarket({ showLoading: false });
         } catch (e: unknown) {
           pushToast({
             message: e instanceof Error ? e.message : '批量购买失败',

@@ -5,9 +5,15 @@ import {
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
+  commitPlayerStateMutation,
+  type StateChangeDescriptor,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
+import {
   AuctionServiceError,
   buyItem,
   cancelListing,
+  clearAuctionListingsCache,
   listItem,
 } from '@server/lib/services/AuctionService';
 import { Hono } from 'hono';
@@ -92,24 +98,51 @@ router.get('/listings', async (c) => {
 });
 
 router.post('/buy', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   try {
     const { listingId } = BuySchema.parse(await c.req.json());
 
-    await buyItem({
-      listingId,
-      buyerCultivatorId: cultivator.id,
-      buyerCultivatorName: cultivator.name,
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'auction_buy',
+      run: async (tx) => {
+        await buyItem(
+          {
+            listingId,
+            buyerCultivatorId: cultivator.id,
+            buyerCultivatorName: cultivator.name,
+          },
+          { tx, deferCacheClear: true },
+        );
+
+        return {
+          result: {
+            message: '成功购入物品，请查收邮件',
+          },
+          changes: [
+            {
+              domain: 'currency',
+              eventType: 'currency.auction.spent',
+              invalidates: ['currency'],
+            },
+            {
+              domain: 'mail',
+              eventType: 'mail.auction.purchase.created',
+              invalidates: ['mail'],
+            },
+          ],
+        };
+      },
     });
 
-    return c.json({
-      success: true,
-      message: '成功购入物品，请查收邮件',
-    });
+    await clearAuctionListingsCache();
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: '参数错误', details: error.issues }, 400);
@@ -125,9 +158,10 @@ router.post('/buy', requireActiveCultivator(), async (c) => {
 });
 
 router.post('/list', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   try {
@@ -135,19 +169,47 @@ router.post('/list', requireActiveCultivator(), async (c) => {
       await c.req.json(),
     );
 
-    const result = await listItem({
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
       cultivatorId: cultivator.id,
-      cultivatorName: cultivator.name,
-      itemType,
-      itemId,
-      price,
-      quantity,
+      source: 'auction_list',
+      run: async (tx) => {
+        const result = await listItem(
+          {
+            cultivatorId: cultivator.id,
+            cultivatorName: cultivator.name,
+            itemType,
+            itemId,
+            price,
+            quantity,
+          },
+          { tx, deferCacheClear: true },
+        );
+
+        const changes: StateChangeDescriptor[] = [
+          {
+            domain: 'inventory',
+            eventType: 'inventory.auction.listed',
+            invalidates: ['inventory'],
+          },
+        ];
+        if (itemType === 'artifact') {
+          changes.push({
+            domain: 'products',
+            eventType: 'products.auction.listed',
+            invalidates: ['products'],
+          });
+        }
+
+        return {
+          result,
+          changes,
+        };
+      },
     });
 
-    return c.json({
-      success: true,
-      message: result.message,
-    });
+    await clearAuctionListingsCache();
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json({ error: '参数错误', details: error.issues }, 400);
@@ -163,17 +225,38 @@ router.post('/list', requireActiveCultivator(), async (c) => {
 });
 
 router.delete('/:id', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   try {
-    await cancelListing(c.req.param('id'), cultivator.id);
-    return c.json({
-      success: true,
-      message: '物品已下架，将通过邮件返还',
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'auction_cancel',
+      run: async (tx) => {
+        await cancelListing(c.req.param('id'), cultivator.id, {
+          tx,
+          deferCacheClear: true,
+        });
+        return {
+          result: {
+            message: '物品已下架，将通过邮件返还',
+          },
+          changes: [
+            {
+              domain: 'mail',
+              eventType: 'mail.auction.cancel.created',
+              invalidates: ['mail'],
+            },
+          ],
+        };
+      },
     });
+    await clearAuctionListingsCache();
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof AuctionServiceError) {
       return jsonWithStatus(c, { error: error.message }, getAuctionErrorStatus(error));

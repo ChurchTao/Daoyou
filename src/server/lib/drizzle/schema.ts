@@ -1,5 +1,6 @@
 import {
   boolean,
+  bigint,
   doublePrecision,
   index,
   integer,
@@ -23,6 +24,7 @@ import type {
 } from '@shared/lib/itemLibrary';
 import type { MailAttachment } from '@shared/types/mail';
 import type { TowerPreparedEnemy } from '@shared/lib/tower';
+import type { PlayerStateDomain } from '@shared/contracts/player';
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
@@ -116,6 +118,80 @@ export const qiLogs = pgTable(
       table.createdAt,
     ),
     index('qi_logs_status_created_idx').on(table.status, table.createdAt),
+  ],
+);
+
+export const cultivatorStateVersions = pgTable(
+  'wanjiedaoyou_cultivator_state_versions',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    globalVersion: bigint('global_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    profileVersion: bigint('profile_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    conditionVersion: bigint('condition_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    progressVersion: bigint('progress_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    currencyVersion: bigint('currency_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    inventoryVersion: bigint('inventory_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    productsVersion: bigint('products_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    mailVersion: bigint('mail_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    tasksVersion: bigint('tasks_version', { mode: 'number' })
+      .notNull()
+      .default(0),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+);
+
+export const playerStateEvents = pgTable(
+  'wanjiedaoyou_player_state_events',
+  {
+    id: bigint('id', { mode: 'number' })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: uuid('user_id').notNull(),
+    globalVersion: bigint('global_version', { mode: 'number' }).notNull(),
+    domainVersion: bigint('domain_version', { mode: 'number' }).notNull(),
+    domain: varchar('domain', { length: 32 }).$type<PlayerStateDomain>().notNull(),
+    eventType: varchar('event_type', { length: 96 }).notNull(),
+    patch: jsonb('patch').notNull().default({}),
+    invalidates: jsonb('invalidates')
+      .$type<PlayerStateDomain[]>()
+      .notNull()
+      .default([]),
+    source: varchar('source', { length: 96 }).notNull(),
+    requestId: varchar('request_id', { length: 128 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('player_state_events_cultivator_version_idx').on(
+      table.cultivatorId,
+      table.globalVersion,
+      table.id,
+    ),
+    index('player_state_events_user_idx').on(table.userId),
+    index('player_state_events_created_idx').on(table.createdAt),
   ],
 );
 

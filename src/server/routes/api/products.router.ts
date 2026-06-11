@@ -1,8 +1,14 @@
 import {
   requireActiveCultivator,
+  requireActiveCultivatorRef,
 } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
+import {
+  commitPlayerStateMutation,
+  toPlayerStateMutationResponse,
+  type StateChangeDescriptor,
+} from '@server/lib/services/PlayerStateMutationService';
 import {
   MAX_EQUIPPED_GONGFA,
 } from '@shared/config/creationProductLimits';
@@ -38,9 +44,9 @@ function withRehydratedProductModel<
   };
 }
 
-router.get('/', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+router.get('/', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
@@ -50,7 +56,7 @@ router.get('/', requireActiveCultivator(), async (c) => {
   }
 
   const products = await creationProductRepository.findByTypeAndCultivator(
-    cultivator.id,
+    ref.cultivatorId,
     type as CreationProductType,
   );
 
@@ -60,13 +66,15 @@ router.get('/', requireActiveCultivator(), async (c) => {
   });
 });
 
-router.get('/equip', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+router.get('/equip', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const equipped = await creationProductRepository.findEquippedArtifacts(cultivator.id);
+  const equipped = await creationProductRepository.findEquippedArtifacts(
+    ref.cultivatorId,
+  );
   return c.json({
     success: true,
     data: equipped.map(withRehydratedProductModel),
@@ -74,9 +82,10 @@ router.get('/equip', requireActiveCultivator(), async (c) => {
 });
 
 router.post('/equip', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   const { productId } = EquipSchema.parse(await c.req.json());
@@ -96,23 +105,57 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
       return c.json({ error: '法宝缺少槽位信息' }, 400);
     }
 
-    if (product.isEquipped) {
-      await creationProductRepository.unequipArtifact(productId);
-      return c.json({ success: true, equipped: false });
-    }
+    const equipped = !product.isEquipped;
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'product_equip',
+      run: async (tx) => {
+        if (product.isEquipped) {
+          await creationProductRepository.unequipArtifact(productId, tx);
+        } else {
+          await creationProductRepository.equipArtifact(
+            productId,
+            cultivator.id,
+            product.slot!,
+            tx,
+          );
+        }
 
-    await creationProductRepository.equipArtifact(
-      productId,
-      cultivator.id,
-      product.slot,
-    );
-
-    return c.json({ success: true, equipped: true });
+        return {
+          result: {
+            productId,
+            productType,
+            equipped,
+          },
+          changes: buildProductStateChanges(productType, 'products.equipped'),
+        };
+      },
+    });
+    const response = toPlayerStateMutationResponse(committed);
+    return c.json({ ...response, equipped });
   }
 
   if (product.isEquipped) {
-    await creationProductRepository.setProductEquipped(productId, false);
-    return c.json({ success: true, equipped: false });
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'product_equip',
+      run: async (tx) => {
+        await creationProductRepository.setProductEquipped(productId, false, tx);
+
+        return {
+          result: {
+            productId,
+            productType,
+            equipped: false,
+          },
+          changes: buildProductStateChanges(productType, 'products.equipped'),
+        };
+      },
+    });
+    const response = toPlayerStateMutationResponse(committed);
+    return c.json({ ...response, equipped: false });
   }
 
   const maxEquipped =
@@ -132,8 +175,25 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
     );
   }
 
-  await creationProductRepository.setProductEquipped(productId, true);
-  return c.json({ success: true, equipped: true });
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'product_equip',
+    run: async (tx) => {
+      await creationProductRepository.setProductEquipped(productId, true, tx);
+
+      return {
+        result: {
+          productId,
+          productType,
+          equipped: true,
+        },
+        changes: buildProductStateChanges(productType, 'products.equipped'),
+      };
+    },
+  });
+  const response = toPlayerStateMutationResponse(committed);
+  return c.json({ ...response, equipped: true });
 });
 
 router.get('/:id', requireActiveCultivator(), async (c) => {
@@ -151,9 +211,10 @@ router.get('/:id', requireActiveCultivator(), async (c) => {
 });
 
 router.delete('/:id', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   const id = c.req.param('id');
@@ -162,8 +223,53 @@ router.delete('/:id', requireActiveCultivator(), async (c) => {
     return c.json({ error: '产物不存在或不属于你' }, 404);
   }
 
-  await creationProductRepository.deleteById(id);
-  return c.json({ success: true });
+  const productType = product.productType as CreationProductType;
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'product_delete',
+    run: async (tx) => {
+      await creationProductRepository.deleteById(id, tx);
+
+      return {
+        result: {
+          productId: id,
+          productType,
+        },
+        changes: buildProductStateChanges(productType, 'products.deleted'),
+      };
+    },
+  });
+
+  return c.json(toPlayerStateMutationResponse(committed));
 });
+
+function buildProductStateChanges(
+  productType: CreationProductType,
+  eventType: string,
+): StateChangeDescriptor[] {
+  const changes: StateChangeDescriptor[] = [
+    {
+      domain: 'products',
+      eventType,
+      invalidates: ['products'],
+    },
+    {
+      domain: 'profile',
+      eventType: 'profile.products.changed',
+      invalidates: ['profile'],
+    },
+  ];
+
+  if (productType === 'artifact') {
+    changes.push({
+      domain: 'inventory',
+      eventType: 'inventory.artifacts.changed',
+      invalidates: ['inventory'],
+    });
+  }
+
+  return changes;
+}
 
 export default router;

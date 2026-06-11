@@ -19,15 +19,14 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import {
-  getQiErrorMessage,
   useQiActionConfirm,
 } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { EquipmentSlot } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
@@ -62,6 +61,7 @@ type PreviewValidation = {
 
 export default function RefinePage() {
   const { cultivator, note, isLoading } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [selectedMaterialMap, setSelectedMaterialMap] = useState<
     Record<string, Material>
@@ -216,18 +216,13 @@ export default function RefinePage() {
         setIsResultModalOpen(false);
 
         try {
-          const response = await fetch('/api/craft', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(submitPayload),
-          });
-
-          const result = await response.json();
-          if (!response.ok || !result.success) {
-            throw new Error(getQiErrorMessage(result, '炼制失败'));
-          }
-
-          const artifact = result.data as CreationProductResultRecord;
+          const artifact = await mutate<CreationProductResultRecord>(
+            fetch('/api/craft', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(submitPayload),
+            }),
+          );
           const successMessage = `【${artifact.name}】出世！`;
           setCreatedResult(artifact);
           setIsResultModalOpen(true);
@@ -239,7 +234,6 @@ export default function RefinePage() {
           setDoseMap({});
           setIsMaterialModalOpen(false);
           setMaterialsRefreshKey((prev) => prev + 1);
-          invalidateQiState(cultivator.id);
         } catch (error) {
           const failMessage =
             error instanceof Error

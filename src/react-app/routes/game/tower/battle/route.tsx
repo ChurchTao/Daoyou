@@ -15,7 +15,7 @@ export default function TowerBattlePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const battleId = searchParams.get('battleId');
-  const { cultivator, refreshCultivator } = useCultivator();
+  const { cultivator } = useCultivator();
   const { context, error: contextError, loading: contextLoading } =
     useTowerBattleContext(battleId);
   const { battleResult, loading: battleLoading, executeBattle } = useTowerBattle();
@@ -39,13 +39,10 @@ export default function TowerBattlePage() {
       }
 
       setHasBattleCallback(true);
-      if (result.callbackData.milestoneReward) {
-        await refreshCultivator();
-      }
     };
 
     void runBattle();
-  }, [battleId, executeBattle, refreshCultivator]);
+  }, [battleId, executeBattle]);
 
   if (!battleId) {
     return (

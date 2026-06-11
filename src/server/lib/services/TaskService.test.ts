@@ -642,6 +642,7 @@ describe('TaskService', () => {
         { type: 'cultivation_exp', name: '修为', quantity: 16 },
       ],
       'reward',
+      undefined,
     );
 
     await TaskService.recordTaskEvent('cultivator-1', 'dungeon_completed');
@@ -695,6 +696,7 @@ describe('TaskService', () => {
         { type: 'cultivation_exp', name: '修为', quantity: 577500 },
       ],
       'reward',
+      undefined,
     );
   });
 

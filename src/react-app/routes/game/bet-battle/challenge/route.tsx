@@ -4,7 +4,7 @@ import { useBattlePlaybackState } from '@app/components/feature/battle/useBattle
 import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
-import { fetchJsonCached } from '@app/lib/client/requestCache';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { BattleRecord } from '@shared/types/battle';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -25,6 +25,7 @@ function BetBattleChallengePageContent() {
   const [error, setError] = useState<string>();
   const [settlement, setSettlement] = useState<SettlementState | null>(null);
   const playback = useBattlePlaybackState(battleResult);
+  const { mutate } = usePlayerStateActions();
 
   const battleId = searchParams.get('battleId');
   const stakeType = searchParams.get('stakeType');
@@ -53,22 +54,24 @@ function BetBattleChallengePageContent() {
       setSettlement(null);
 
       try {
-        const data = await fetchJsonCached<{
+        const data = await mutate<{
+          type: 'battle_result';
           battleResult: BattleRecord;
           settlement: SettlementState;
-        }>(`/api/bet-battles/${battleId}/challenge/v5`, {
-          key: `bet-battles:challenge:${challengeRequestKey}`,
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            stakeType,
-            spiritStones: stakeType === 'spirit_stones' ? spiritStones : 0,
-            stakeItem:
-              stakeType === 'item' && itemType && itemId
-                ? { itemType, itemId, quantity }
-                : null,
+        }>(
+          fetch(`/api/bet-battles/${battleId}/challenge/v5`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stakeType,
+              spiritStones: stakeType === 'spirit_stones' ? spiritStones : 0,
+              stakeItem:
+                stakeType === 'item' && itemType && itemId
+                  ? { itemType, itemId, quantity }
+                  : null,
+            }),
           }),
-        });
+        );
         if (cancelled) return;
 
         setBattleResult(data.battleResult);
@@ -92,7 +95,16 @@ function BetBattleChallengePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [battleId, challengeRequestKey, itemId, itemType, quantity, spiritStones, stakeType]);
+  }, [
+    battleId,
+    challengeRequestKey,
+    itemId,
+    itemType,
+    mutate,
+    quantity,
+    spiritStones,
+    stakeType,
+  ]);
 
   if (error) {
     return (

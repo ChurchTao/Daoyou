@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('@server/lib/drizzle/db', () => ({
+  db: vi.fn(),
   getExecutor: vi.fn(),
 }));
 
@@ -18,6 +19,17 @@ vi.mock('@server/lib/hono/middleware', () => ({
       context.set('user', { id: 'user-1' });
       context.set('cultivator', {
         id: 'cultivator-1',
+        status: 'active',
+        qi: 100,
+      });
+      await next();
+    },
+  requireActiveCultivatorRef:
+    () => async (context: any, next: () => Promise<void>) => {
+      context.set('user', { id: 'user-1' });
+      context.set('activeCultivatorRef', {
+        userId: 'user-1',
+        cultivatorId: 'cultivator-1',
         status: 'active',
       });
       await next();
@@ -169,6 +181,7 @@ vi.mock('@shared/engine/material/creation/MaterialGenerator', () => ({
 vi.mock('@shared/engine/resource/ResourceEngine', () => ({
   resourceEngine: {
     applyOperations: vi.fn(),
+    gainInTransaction: vi.fn(),
   },
 }));
 
@@ -181,6 +194,7 @@ vi.mock('@shared/engine/yield/YieldCalculator', () => ({
 }));
 
 import { getExecutor } from '@server/lib/drizzle/db';
+import { db } from '@server/lib/drizzle/db';
 import { runDetached } from '@server/lib/http/response';
 import { consumeLifespanAndHandleDepletion } from '@server/lib/lifespan/handleLifespan';
 import { renderPrompt } from '@server/lib/prompts';
@@ -196,7 +210,9 @@ import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
   getCultivatorById,
+  updateCultivationExp,
   updateCultivator,
+  updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import { stream_text } from '@server/utils/aiClient';
 import {
@@ -208,6 +224,7 @@ import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
 import cultivatorRouter from './cultivator.router';
 
 const getExecutorMock = getExecutor as unknown as Mock;
+const dbMock = db as unknown as Mock;
 const runDetachedMock = runDetached as unknown as Mock;
 const consumeLifespanAndHandleDepletionMock =
   consumeLifespanAndHandleDepletion as unknown as Mock;
@@ -236,6 +253,8 @@ const addBreakthroughHistoryEntryMock =
 const addRetreatRecordMock = addRetreatRecord as unknown as Mock;
 const getCultivatorByIdMock = getCultivatorById as unknown as Mock;
 const updateCultivatorMock = updateCultivator as unknown as Mock;
+const updateCultivationExpMock = updateCultivationExp as unknown as Mock;
+const updateSpiritStonesMock = updateSpiritStones as unknown as Mock;
 const streamTextMock = stream_text as unknown as Mock;
 const attemptBreakthroughMock = attemptBreakthrough as unknown as Mock;
 const performCultivationMock = performCultivation as unknown as Mock;
@@ -325,19 +344,251 @@ function createCultivator(): Cultivator {
   };
 }
 
+function createStateVersionRow(overrides: Record<string, unknown> = {}) {
+  return {
+    cultivatorId: 'cultivator-1',
+    globalVersion: 1,
+    profileVersion: 0,
+    conditionVersion: 0,
+    progressVersion: 0,
+    currencyVersion: 0,
+    inventoryVersion: 0,
+    productsVersion: 0,
+    mailVersion: 0,
+    tasksVersion: 0,
+    updatedAt: new Date('2026-06-10T00:00:00.000Z'),
+    ...overrides,
+  };
+}
+
+function createStateEventRows(
+  events: Array<{
+    id?: number;
+    domain: string;
+    eventType: string;
+    patch?: unknown;
+    invalidates?: string[];
+    source: string;
+  }>,
+) {
+  return events.map((event, index) => ({
+    id: event.id ?? index + 1,
+    cultivatorId: 'cultivator-1',
+    userId: 'user-1',
+    globalVersion: 1,
+    domain: event.domain,
+    eventType: event.eventType,
+    patch: event.patch ?? {},
+    invalidates: event.invalidates ?? [],
+    source: event.source,
+    requestId: null,
+    createdAt: new Date('2026-06-10T00:00:00.000Z'),
+  }));
+}
+
+function mockStateOnlyTransaction(args: {
+  versionRow?: Record<string, unknown>;
+  eventRows: ReturnType<typeof createStateEventRows>;
+}) {
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([args.versionRow ?? createStateVersionRow()])
+    .mockResolvedValueOnce(args.eventRows);
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { insert };
+
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  } as any);
+
+  return txMock;
+}
+
 function mockTransactionReturning(rows: unknown[]) {
   const returning = vi.fn().mockResolvedValue(rows);
   const where = vi.fn(() => ({ returning }));
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
+  const versionRow = {
+    cultivatorId: 'cultivator-1',
+    globalVersion: 1,
+    profileVersion: 0,
+    conditionVersion: 1,
+    progressVersion: 1,
+    currencyVersion: 1,
+    inventoryVersion: 0,
+    productsVersion: 0,
+    mailVersion: 0,
+    tasksVersion: 0,
+    updatedAt: new Date('2026-06-10T00:00:00.000Z'),
+  };
+  const eventRows = [
+    {
+      id: 1,
+      cultivatorId: 'cultivator-1',
+      userId: 'user-1',
+      globalVersion: 1,
+      domain: 'condition',
+      eventType: 'condition.recovered',
+      patch: {},
+      invalidates: [],
+      source: 'inn_recovery',
+      requestId: null,
+      createdAt: new Date('2026-06-10T00:00:00.000Z'),
+    },
+  ];
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([versionRow])
+    .mockResolvedValueOnce(eventRows);
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { update, insert };
 
   getExecutorMock.mockReturnValue({
     transaction: async (
       callback: (tx: { update: typeof update }) => Promise<unknown>,
     ) => callback({ update }),
   } as any);
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  } as any);
 
-  return { update, set, where, returning };
+  return { update, set, where, returning, insert, values, insertReturning };
+}
+
+function mockMailReadTransaction(unreadCount: number) {
+  const updateWhere = vi.fn();
+  const set = vi.fn(() => ({ where: updateWhere }));
+  const update = vi.fn(() => ({ set }));
+  const selectWhere = vi.fn().mockResolvedValue([{ count: unreadCount }]);
+  const from = vi.fn(() => ({ where: selectWhere }));
+  const select = vi.fn(() => ({ from }));
+  const versionRow = {
+    cultivatorId: 'cultivator-1',
+    globalVersion: 1,
+    profileVersion: 0,
+    conditionVersion: 0,
+    progressVersion: 0,
+    currencyVersion: 0,
+    inventoryVersion: 0,
+    productsVersion: 0,
+    mailVersion: 1,
+    tasksVersion: 0,
+    updatedAt: new Date('2026-06-10T00:00:00.000Z'),
+  };
+  const eventRows = [
+    {
+      id: 11,
+      cultivatorId: 'cultivator-1',
+      userId: 'user-1',
+      globalVersion: 1,
+      domain: 'mail',
+      eventType: 'mail.read',
+      patch: {
+        unreadMailCount: unreadCount,
+        mailIds: ['mail-1'],
+      },
+      invalidates: ['mail'],
+      source: 'mail_read',
+      requestId: null,
+      createdAt: new Date('2026-06-10T00:00:00.000Z'),
+    },
+  ];
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([versionRow])
+    .mockResolvedValueOnce(eventRows);
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { update, select, insert };
+
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  } as any);
+
+  return { update, set, updateWhere, select, from, selectWhere, insert };
+}
+
+function mockConsumeTransaction() {
+  const selectedCultivator = {
+    condition: {},
+    cultivationProgress: {},
+    spiritStones: 128,
+    qi: 150,
+    lifespan: 120,
+    vitality: 10,
+    spirit: 10,
+    wisdom: 10,
+    speed: 10,
+    willpower: 10,
+  };
+  const limit = vi.fn().mockResolvedValue([selectedCultivator]);
+  const where = vi.fn(() => ({ limit }));
+  const from = vi.fn(() => ({ where }));
+  const select = vi.fn(() => ({ from }));
+  const versionRow = {
+    cultivatorId: 'cultivator-1',
+    globalVersion: 1,
+    profileVersion: 0,
+    conditionVersion: 0,
+    progressVersion: 0,
+    currencyVersion: 1,
+    inventoryVersion: 1,
+    productsVersion: 0,
+    mailVersion: 0,
+    tasksVersion: 1,
+    updatedAt: new Date('2026-06-10T00:00:00.000Z'),
+  };
+  const eventRows = [
+    {
+      id: 21,
+      cultivatorId: 'cultivator-1',
+      userId: 'user-1',
+      globalVersion: 1,
+      domain: 'inventory',
+      eventType: 'inventory.consumable.used',
+      patch: {},
+      invalidates: ['inventory'],
+      source: 'consumable_use',
+      requestId: null,
+      createdAt: new Date('2026-06-10T00:00:00.000Z'),
+    },
+  ];
+  const insertReturning = vi
+    .fn()
+    .mockResolvedValueOnce([versionRow])
+    .mockResolvedValueOnce(eventRows);
+  const onConflictDoUpdate = vi.fn(() => ({ returning: insertReturning }));
+  const values = vi.fn(() => ({
+    onConflictDoUpdate,
+    returning: insertReturning,
+  }));
+  const insert = vi.fn(() => ({ values }));
+  const txMock = { select, insert };
+
+  dbMock.mockReturnValue({
+    transaction: async (callback: (tx: typeof txMock) => Promise<unknown>) =>
+      callback(txMock),
+  } as any);
+
+  return txMock;
 }
 
 function createLimiterMocks() {
@@ -388,6 +639,29 @@ describe('cultivator redeem route', () => {
 
   it('claims a snapshot-backed redeem code and sends a reward mail', async () => {
     const insertValuesMock = vi.fn().mockResolvedValue(undefined);
+    const stateInsertReturning = vi
+      .fn()
+      .mockResolvedValueOnce([
+        createStateVersionRow({
+          mailVersion: 1,
+        }),
+      ])
+      .mockResolvedValueOnce(
+        createStateEventRows([
+          {
+            domain: 'mail',
+            eventType: 'mail.redeem_code.created',
+            patch: { unreadMailCount: 1 },
+            invalidates: ['mail'],
+            source: 'redeem_code_claim',
+          },
+        ]),
+      );
+    const stateInsertValues = vi.fn(() => ({
+      onConflictDoUpdate: vi.fn(() => ({ returning: stateInsertReturning })),
+      returning: stateInsertReturning,
+    }));
+    let insertCallCount = 0;
     const tx = {
       query: {
         redeemCodes: {
@@ -421,12 +695,25 @@ describe('cultivator redeem route', () => {
           })),
         })),
       })),
-      insert: vi.fn(() => ({
-        values: insertValuesMock,
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([{ count: 1 }]),
+        })),
       })),
+      insert: vi.fn(() => {
+        insertCallCount += 1;
+        if (insertCallCount === 1) {
+          return {
+            values: insertValuesMock,
+          };
+        }
+        return {
+          values: stateInsertValues,
+        };
+      }),
     };
 
-    getExecutorMock.mockReturnValue({
+    dbMock.mockReturnValue({
       transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
         callback(tx),
     } as any);
@@ -453,10 +740,16 @@ describe('cultivator redeem route', () => {
       'reward',
       tx,
     );
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toMatchObject({
       success: true,
-      message: '兑换成功，奖励已通过传音玉简发放',
-      mailId: 'mail-1',
+      data: {
+        message: '兑换成功，奖励已通过传音玉简发放',
+        mailId: 'mail-1',
+      },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+      },
     });
   });
 
@@ -485,7 +778,7 @@ describe('cultivator redeem route', () => {
       insert: vi.fn(),
     };
 
-    getExecutorMock.mockReturnValue({
+    dbMock.mockReturnValue({
       transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
         callback(tx),
     } as any);
@@ -594,9 +887,15 @@ describe('cultivator qi routes', () => {
       consumable: {
         id: '11111111-1111-4111-8111-111111111111',
         name: '小聚灵符',
+        spec: {
+          kind: 'talisman',
+          scenario: 'dungeon_start',
+          sessionMode: 'consume_on_action',
+        },
       },
     });
     syncCultivatorTasksMock.mockResolvedValueOnce(undefined);
+    const txMock = mockConsumeTransaction();
 
     const response = await createApp().request('/api/cultivator/consume', {
       method: 'POST',
@@ -612,18 +911,47 @@ describe('cultivator qi routes', () => {
         consumable: {
           id: '11111111-1111-4111-8111-111111111111',
           name: '小聚灵符',
+          spec: {
+            kind: 'talisman',
+            scenario: 'dungeon_start',
+            sessionMode: 'consume_on_action',
+          },
         },
+      },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+        domainVersions: {
+          currency: 1,
+          inventory: 1,
+          tasks: 1,
+        },
+        events: [
+          {
+            id: 21,
+            cultivatorId: 'cultivator-1',
+            globalVersion: 1,
+            domain: 'inventory',
+            eventType: 'inventory.consumable.used',
+            patch: {},
+            invalidates: ['inventory'],
+            source: 'consumable_use',
+            createdAt: '2026-06-10T00:00:00.000Z',
+          },
+        ],
       },
     });
     expect(consumeMock).toHaveBeenCalledWith(
       'user-1',
       'cultivator-1',
       '11111111-1111-4111-8111-111111111111',
+      { tx: txMock },
     );
     expect(syncCultivatorTasksMock).toHaveBeenCalledWith('cultivator-1');
   });
 
   it('passes qi restore errors through the unified consume route', async () => {
+    mockConsumeTransaction();
     consumeMock.mockRejectedValueOnce(
       new QiServiceError('今日聚灵符使用次数已达上限。', 409),
     );
@@ -657,6 +985,62 @@ describe('cultivator yield route', () => {
     });
     streamTextMock.mockReturnValue(createTextStream('福缘乍现，', '清光落袖。'));
     runDetachedMock.mockImplementation(() => undefined);
+    updateSpiritStonesMock.mockResolvedValue(1210);
+    updateCultivationExpMock.mockResolvedValue({
+      cultivation_exp: 80,
+      exp_cap: 100,
+      comprehension_insight: 0,
+    });
+    const insertReturning = vi
+      .fn()
+      .mockResolvedValueOnce([
+        createStateVersionRow({
+          profileVersion: 1,
+          currencyVersion: 1,
+          progressVersion: 1,
+        }),
+      ])
+      .mockResolvedValueOnce(
+        createStateEventRows([
+          {
+            domain: 'currency',
+            eventType: 'currency.yield.gained',
+            invalidates: ['currency'],
+            source: 'yield_claim',
+          },
+        ]),
+      )
+      .mockResolvedValueOnce([
+        createStateVersionRow({
+          mailVersion: 1,
+        }),
+      ])
+      .mockResolvedValueOnce(
+        createStateEventRows([
+          {
+            domain: 'mail',
+            eventType: 'mail.yield_material.created',
+            invalidates: ['mail'],
+            source: 'yield_material_mail',
+          },
+        ]),
+      );
+    const values = vi.fn(() => ({
+      onConflictDoUpdate: vi.fn(() => ({ returning: insertReturning })),
+      returning: insertReturning,
+    }));
+    const tx = {
+      insert: vi.fn(() => ({ values })),
+      update: vi.fn(() => ({
+        set: vi.fn(() => ({
+          where: vi.fn(async () => undefined),
+        })),
+      })),
+    };
+    dbMock.mockReturnValue({
+      transaction: async (callback: (innerTx: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    } as any);
   });
 
   it('passes realm-based quality chances to material generation', async () => {
@@ -713,7 +1097,18 @@ describe('cultivator yield route', () => {
         materials: [],
       }),
     });
-    expect(events.slice(1)).toEqual([
+    expect(events[1]).toEqual({
+      type: 'state',
+      state: expect.objectContaining({
+        events: expect.arrayContaining([
+          expect.objectContaining({
+            domain: 'currency',
+            source: 'yield_claim',
+          }),
+        ]),
+      }),
+    });
+    expect(events.slice(2)).toEqual([
       { type: 'chunk', text: '福缘乍现，' },
       { type: 'chunk', text: '清光落袖。' },
     ]);
@@ -744,6 +1139,7 @@ describe('cultivator yield route', () => {
         },
       ],
       'reward',
+      expect.any(Object),
     );
   });
 });
@@ -791,6 +1187,26 @@ describe('cultivator retreat route', () => {
     streamTextMock.mockReturnValue(
       createTextStream('灵潮翻卷，', '石门洞开。'),
     );
+    mockStateOnlyTransaction({
+      versionRow: createStateVersionRow({
+        profileVersion: 1,
+        conditionVersion: 1,
+        progressVersion: 1,
+        currencyVersion: 1,
+      }),
+      eventRows: createStateEventRows([
+        {
+          domain: 'progress',
+          eventType: 'progress.cultivation.changed',
+          patch: {
+            progress: {
+              cultivation_exp: 904,
+            },
+          },
+          source: 'retreat_cultivate',
+        },
+      ]),
+    });
   });
 
   it('streams a plain cultivate result without story chunks', async () => {
@@ -827,12 +1243,21 @@ describe('cultivator retreat route', () => {
     expect(response.headers.get('Content-Type')).toContain('text/event-stream');
 
     const events = parseSseEvents(await response.text());
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(2);
     expect(events[0]).toEqual({
       type: 'result',
       data: expect.objectContaining({
         action: 'cultivate',
       }),
+    });
+    expect(events[1]).toEqual({
+      type: 'state',
+      events: expect.arrayContaining([
+        expect.objectContaining({
+          domain: 'progress',
+          source: 'retreat_cultivate',
+        }),
+      ]),
     });
     expect(streamTextMock).not.toHaveBeenCalled();
     expect(addRetreatRecordMock).toHaveBeenCalled();
@@ -903,7 +1328,11 @@ describe('cultivator retreat route', () => {
         depleted: true,
       }),
     });
-    expect(events.slice(1)).toEqual([
+    expect(events[1]).toEqual({
+      type: 'state',
+      events: expect.any(Array),
+    });
+    expect(events.slice(2)).toEqual([
       { type: 'chunk', text: '炉火将熄，' },
       { type: 'chunk', text: '余念仍指向大道。' },
     ]);
@@ -985,7 +1414,11 @@ describe('cultivator retreat route', () => {
         storyType: 'breakthrough',
       }),
     });
-    expect(events.slice(1)).toEqual([
+    expect(events[1]).toEqual({
+      type: 'state',
+      events: expect.any(Array),
+    });
+    expect(events.slice(2)).toEqual([
       { type: 'chunk', text: '天光一线，' },
       { type: 'chunk', text: '丹田轰鸣。' },
     ]);
@@ -1115,6 +1548,28 @@ describe('cultivator inn recovery route', () => {
         cultivationLossAmount: 71,
         clearedStatusCount: 2,
       },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+        domainVersions: {
+          condition: 1,
+          currency: 1,
+          progress: 1,
+        },
+        events: [
+          {
+            id: 1,
+            cultivatorId: 'cultivator-1',
+            globalVersion: 1,
+            domain: 'condition',
+            eventType: 'condition.recovered',
+            patch: {},
+            invalidates: [],
+            source: 'inn_recovery',
+            createdAt: '2026-06-10T00:00:00.000Z',
+          },
+        ],
+      },
     });
     expect(getCultivatorByIdMock).toHaveBeenCalledWith(
       'user-1',
@@ -1147,6 +1602,65 @@ describe('cultivator inn recovery route', () => {
     await expect(response.json()).resolves.toEqual({
       success: false,
       error: '囊中羞涩，灵石不足（至少需要 3000 灵石）',
+    });
+  });
+});
+
+describe('cultivator mail state sync route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns state events when marking a mail as read', async () => {
+    getExecutorMock.mockReturnValue({
+      query: {
+        mails: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'mail-1',
+            cultivatorId: 'cultivator-1',
+            isRead: false,
+          }),
+        },
+      },
+    } as any);
+    mockMailReadTransaction(2);
+
+    const response = await createApp().request('/api/cultivator/mail/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mailId: 'mail-1' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: {
+        mailId: 'mail-1',
+        unreadMailCount: 2,
+      },
+      state: {
+        cultivatorId: 'cultivator-1',
+        globalVersion: 1,
+        domainVersions: {
+          mail: 1,
+        },
+        events: [
+          {
+            id: 11,
+            cultivatorId: 'cultivator-1',
+            globalVersion: 1,
+            domain: 'mail',
+            eventType: 'mail.read',
+            patch: {
+              unreadMailCount: 2,
+              mailIds: ['mail-1'],
+            },
+            invalidates: ['mail'],
+            source: 'mail_read',
+            createdAt: '2026-06-10T00:00:00.000Z',
+          },
+        ],
+      },
     });
   });
 });

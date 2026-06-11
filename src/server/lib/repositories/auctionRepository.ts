@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
-import { getExecutor, type DbTransaction } from '../drizzle/db';
+import { getExecutor, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 
 /**
@@ -40,8 +40,11 @@ export async function createListing(data: {
 /**
  * 查询单个拍卖记录
  */
-export async function findById(id: string): Promise<AuctionListing | null> {
-  const q = getExecutor();
+export async function findById(
+  id: string,
+  executor?: DbExecutor,
+): Promise<AuctionListing | null> {
+  const q = executor ?? getExecutor();
   const [listing] = await q
     .select()
     .from(schema.auctionListings)
@@ -130,8 +133,11 @@ export async function findActiveListings(
 /**
  * 统计卖家进行中的拍卖数量
  */
-export async function countActiveBySeller(sellerId: string): Promise<number> {
-  const q = getExecutor();
+export async function countActiveBySeller(
+  sellerId: string,
+  executor?: DbExecutor,
+): Promise<number> {
+  const q = executor ?? getExecutor();
   const result = await q
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.auctionListings)

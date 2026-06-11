@@ -20,7 +20,6 @@ function DungeonContent() {
     cultivator,
     display,
     isLoading: isCultivatorLoading,
-    refresh,
   } = useCultivator();
   const { tasks } = useTaskList(cultivator?.id);
   const [searchParams] = useSearchParams();
@@ -32,18 +31,16 @@ function DungeonContent() {
     !!cultivator,
     cultivator?.id,
     preSelectedNodeId,
-    refresh,
   );
 
   // 结算确认回调：刷新库存后跳转首页
-  const handleSettlementConfirm = useCallback(async () => {
-    await refresh();
+  const handleSettlementConfirm = useCallback(() => {
     navigate('/game');
-  }, [navigate, refresh]);
+  }, [navigate]);
 
   // 修正加载状态：ViewModel 内部已经处理了副本状态的加载
   // 这里只需要处理用户信息的加载
-  if (isCultivatorLoading) {
+  if (isCultivatorLoading && !cultivator) {
     const descriptor = resolveDungeonSceneDescriptor('loading');
     return (
       <DungeonSceneScreen descriptor={descriptor}>

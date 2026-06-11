@@ -1,13 +1,32 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { getQiErrorMessage } from '@app/components/feature/cultivator/useQiActionConfirm';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import type {
   DungeonOption,
   DungeonRecoverAction,
+  DungeonState,
 } from '@shared/lib/dungeon/types';
 import { useState } from 'react';
 
 function createActionId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
+async function readDungeonMutation<T>(
+  response: Response,
+): Promise<T | { conflict: true }> {
+  const data = await response.json();
+  if (!response.ok || data.error) {
+    if (response.status === 409) {
+      return { conflict: true };
+    }
+    throw new Error(data.message || data.error || `HTTP ${response.status}`);
+  }
+
+  if (data.success && data.state) {
+    return consumePlayerStateMutation<T>(data);
+  }
+
+  return data as T;
 }
 
 /**
@@ -32,10 +51,9 @@ export function useDungeonActions() {
         }),
       });
 
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(getQiErrorMessage(data, '启动秘境失败'));
+      const data = await readDungeonMutation<{ state?: DungeonState }>(res);
+      if ('conflict' in data) {
+        throw new Error('启动秘境失败');
       }
 
       pushToast({ message: '秘境已开启', tone: 'success' });
@@ -66,13 +84,7 @@ export function useDungeonActions() {
         }),
       });
 
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      return data;
+      return await readDungeonMutation(res);
     } catch (e) {
       pushToast({
         message: e instanceof Error ? e.message : '操作失败',
@@ -128,15 +140,7 @@ export function useDungeonActions() {
     try {
       setProcessing(true);
       const res = await fetch('/api/dungeon/looting/continue', { method: 'POST' });
-      const data = await res.json();
-      if (data.error) {
-        if (res.status === 409) {
-          pushToast({ message: data.error, tone: 'danger' });
-          return { conflict: true };
-        }
-        throw new Error(data.error);
-      }
-      return data;
+      return await readDungeonMutation(res);
     } catch (e) {
       pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
       return null;
@@ -152,15 +156,7 @@ export function useDungeonActions() {
     try {
       setProcessing(true);
       const res = await fetch('/api/dungeon/looting/escape', { method: 'POST' });
-      const data = await res.json();
-      if (data.error) {
-        if (res.status === 409) {
-          pushToast({ message: data.error, tone: 'danger' });
-          return { conflict: true };
-        }
-        throw new Error(data.error);
-      }
-      return data;
+      return await readDungeonMutation(res);
     } catch (e) {
       pushToast({ message: e instanceof Error ? e.message : '操作失败', tone: 'danger' });
       return null;
@@ -177,15 +173,7 @@ export function useDungeonActions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       });
-      const data = await res.json();
-      if (data.error) {
-        if (res.status === 409) {
-          pushToast({ message: data.error, tone: 'danger' });
-          return { conflict: true };
-        }
-        throw new Error(data.error);
-      }
-      return data;
+      return await readDungeonMutation(res);
     } catch (e) {
       pushToast({
         message: e instanceof Error ? e.message : '副本恢复失败',

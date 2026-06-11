@@ -4,6 +4,7 @@ import {
   type ProductDisplayModel,
 } from '@app/components/feature/products';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import {
   MAX_EQUIPPED_GONGFA,
   MAX_OWNED_CREATION_PRODUCTS_PER_TYPE,
@@ -13,7 +14,8 @@ import { useCallback, useEffect, useState } from 'react';
 export type V2Technique = ProductDisplayModel & { id: string };
 
 export function useTechniquesViewModel() {
-  const { cultivator, isLoading, note, refreshCultivator } = useCultivator();
+  const { cultivator, isLoading, note } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const { pushToast, openDialog } = useInkUI();
 
   const [selectedTechnique, setSelectedTechnique] = useState<V2Technique | null>(null);
@@ -104,22 +106,23 @@ export function useTechniquesViewModel() {
 
       setPendingToggleId(technique.id);
       try {
-        const res = await fetch('/api/v2/products/equip', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: technique.id }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || '功法启停失败');
-        }
+        const data = await mutate<{
+          productId: string;
+          productType: string;
+          equipped: boolean;
+        }>(
+          fetch('/api/v2/products/equip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: technique.id }),
+          }),
+        );
         pushToast({
           message: data.equipped
             ? `【${technique.name}】已启用`
             : `【${technique.name}】已停用`,
           tone: 'success',
         });
-        await refreshCultivator();
         await fetchTechniques();
       } catch (e) {
         pushToast({
@@ -130,7 +133,7 @@ export function useTechniquesViewModel() {
         setPendingToggleId(null);
       }
     },
-    [cultivator, pushToast, refreshCultivator, fetchTechniques],
+    [cultivator, mutate, pushToast, fetchTechniques],
   );
 
   const openForgetConfirm = useCallback(
@@ -151,16 +154,15 @@ export function useTechniquesViewModel() {
         cancelLabel: '不可',
         onConfirm: async () => {
           try {
-            const res = await fetch(`/api/v2/products/${technique.id}`, {
-              method: 'DELETE',
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            await mutate(
+              fetch(`/api/v2/products/${technique.id}`, {
+                method: 'DELETE',
+              }),
+            );
             pushToast({
               message: `【${technique.name}】已从道基消散`,
               tone: 'default',
             });
-            await refreshCultivator();
             await fetchTechniques();
           } catch (e) {
             pushToast({
@@ -171,7 +173,7 @@ export function useTechniquesViewModel() {
         },
       });
     },
-    [openDialog, pushToast, refreshCultivator, fetchTechniques],
+    [openDialog, mutate, pushToast, fetchTechniques],
   );
 
   return {

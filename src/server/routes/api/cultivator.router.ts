@@ -1,4 +1,8 @@
-import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db';
 import {
   breakthroughHistory,
   consumables,
@@ -9,7 +13,9 @@ import {
   redeemCodes,
 } from '@server/lib/drizzle/schema';
 import {
+  invalidateActiveCultivatorRef,
   requireActiveCultivator,
+  requireActiveCultivatorRef,
   requireUser,
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
@@ -28,6 +34,11 @@ import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import {
+  commitPlayerStateMutation,
+  type StateChangeDescriptor,
+  toPlayerStateMutationResponse,
+} from '@server/lib/services/PlayerStateMutationService';
+import {
   MailService,
   type MailAttachment,
 } from '@server/lib/services/MailService';
@@ -45,7 +56,6 @@ import { TaskService } from '@server/lib/services/TaskService';
 import {
   addBreakthroughHistoryEntry,
   addRetreatRecord,
-  equipEquipment,
   getCultivatorArtifacts,
   getCultivatorById,
   getCultivatorConsumables,
@@ -54,11 +64,13 @@ import {
   getPaginatedInventoryByType,
   updateCultivationExp,
   updateCultivator,
-  updateLastYieldAt,
   updateSpiritStones,
 } from '@server/lib/services/cultivatorService';
 import { stream_text } from '@server/utils/aiClient';
-import { stripExpCapForStorage } from '@server/utils/cultivationUtils';
+import {
+  getOrInitCultivationProgress,
+  stripExpCapForStorage,
+} from '@server/utils/cultivationUtils';
 import {
   getBreakthroughStoryPrompt,
   getLifespanExhaustedStoryPrompt,
@@ -68,10 +80,15 @@ import {
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
+import { isTalismanConsumable } from '@shared/lib/consumables';
 import type {
   RetreatResultData,
   RetreatStreamEvent,
 } from '@shared/contracts/retreat';
+import type {
+  PlayerStateDomain,
+  PlayerStateEvent,
+} from '@shared/contracts/player';
 import {
   attemptBreakthrough,
   performCultivation,
@@ -88,11 +105,13 @@ import {
   type ElementType,
   type MaterialType,
   type Quality,
+  type RealmStage,
   type RealmType,
 } from '@shared/types/constants';
 import type {
   Artifact,
   BreakthroughHistoryEntry,
+  CultivationProgress,
   Consumable,
   Material,
 } from '@shared/types/cultivator';
@@ -173,6 +192,183 @@ function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
     return jsonWithStatus(c, { error: error.message }, error.status);
   }
   return null;
+}
+
+async function countUnreadMail(
+  cultivatorId: string,
+  q: DbExecutor | DbTransaction = getExecutor(),
+): Promise<number> {
+  const [result] = await q
+    .select({ count: sql<number>`count(*)::int` })
+    .from(mails)
+    .where(and(eq(mails.cultivatorId, cultivatorId), eq(mails.isRead, false)));
+
+  return Number(result?.count ?? 0);
+}
+
+function attachmentsToResourceOperations(
+  attachments: MailAttachment[],
+): ResourceOperation[] {
+  const gains: ResourceOperation[] = [];
+
+  for (const item of attachments) {
+    switch (item.type) {
+      case 'spirit_stones':
+        gains.push({ type: 'spirit_stones', value: item.quantity });
+        break;
+      case 'material':
+        gains.push({
+          type: 'material',
+          value: item.quantity,
+          data: item.data as Material,
+        });
+        break;
+      case 'consumable':
+        gains.push({
+          type: 'consumable',
+          value: item.quantity,
+          data: item.data as Consumable,
+        });
+        break;
+      case 'artifact':
+        for (let i = 0; i < (item.quantity || 1); i++) {
+          gains.push({
+            type: 'artifact',
+            value: 1,
+            data: item.data as Artifact,
+          });
+        }
+        break;
+      case 'cultivation_exp':
+        gains.push({ type: 'cultivation_exp', value: item.quantity });
+        break;
+      case 'comprehension_insight':
+        gains.push({ type: 'comprehension_insight', value: item.quantity });
+        break;
+    }
+  }
+
+  return gains;
+}
+
+function getRewardAffectedDomains(
+  gains: ResourceOperation[],
+): Set<PlayerStateDomain> {
+  const domains = new Set<PlayerStateDomain>(['mail']);
+
+  for (const gain of gains) {
+    if (
+      gain.type === 'material' ||
+      gain.type === 'consumable' ||
+      gain.type === 'artifact'
+    ) {
+      domains.add('inventory');
+    }
+    if (gain.type === 'artifact') {
+      domains.add('products');
+    }
+    if (gain.type === 'spirit_stones') {
+      domains.add('currency');
+    }
+    if (
+      gain.type === 'cultivation_exp' ||
+      gain.type === 'comprehension_insight'
+    ) {
+      domains.add('progress');
+    }
+  }
+
+  return domains;
+}
+
+function buildMailStateChanges(args: {
+  eventType: string;
+  unreadMailCount: number;
+  mailIds?: string[];
+  gains?: ResourceOperation[];
+  spiritStones?: number;
+  cultivationProgress?: unknown;
+  realm?: RealmType;
+  realmStage?: RealmStage;
+}): StateChangeDescriptor[] {
+  const gains = args.gains ?? [];
+  const affectedDomains = getRewardAffectedDomains(gains);
+  const changes: StateChangeDescriptor[] = [
+    {
+      domain: 'mail',
+      eventType: args.eventType,
+      patch: {
+        unreadMailCount: args.unreadMailCount,
+        ...(args.mailIds ? { mailIds: args.mailIds } : {}),
+      },
+      invalidates: ['mail'],
+    },
+  ];
+
+  if (affectedDomains.has('inventory')) {
+    changes.push({
+      domain: 'inventory',
+      eventType: 'inventory.changed',
+      invalidates: ['inventory'],
+    });
+  }
+
+  if (affectedDomains.has('products')) {
+    changes.push({
+      domain: 'products',
+      eventType: 'products.changed',
+      invalidates: ['products'],
+    });
+  }
+
+  if (affectedDomains.has('currency')) {
+    changes.push({
+      domain: 'currency',
+      eventType: 'currency.changed',
+      patch:
+        typeof args.spiritStones === 'number'
+          ? { currency: { spiritStones: args.spiritStones } }
+          : {},
+    });
+  }
+
+  if (affectedDomains.has('progress')) {
+    const progress =
+      args.cultivationProgress && args.realm && args.realmStage
+        ? getOrInitCultivationProgress(
+            args.cultivationProgress as CultivationProgress,
+            args.realm,
+            args.realmStage,
+          )
+        : args.cultivationProgress;
+    changes.push({
+      domain: 'progress',
+      eventType: 'progress.changed',
+      patch: progress ? { progress } : {},
+    });
+  }
+
+  return changes;
+}
+
+function buildArtifactEquipStateChanges(eventType: string): StateChangeDescriptor[] {
+  return [
+    {
+      domain: 'products',
+      eventType,
+      invalidates: ['products'],
+    },
+    {
+      domain: 'inventory',
+      eventType: 'inventory.artifacts.changed',
+      invalidates: ['inventory'],
+    },
+    {
+      domain: 'profile',
+      eventType: 'profile.products.changed',
+      invalidates: ['profile'],
+    },
+  ];
 }
 
 function parsePositiveInt(
@@ -277,6 +473,7 @@ function encodeSseEvent(
 
 function createRetreatStreamResponse(args: {
   result: RetreatResultData;
+  stateEvents?: PlayerStateEvent[];
   storySource: RetreatStorySource;
   onStoryComplete?: (story: string) => Promise<void> | void;
 }): Response {
@@ -290,6 +487,14 @@ function createRetreatStreamResponse(args: {
           data: args.result,
         }),
       );
+      if (args.stateEvents?.length) {
+        controller.enqueue(
+          encodeSseEvent(encoder, {
+            type: 'state',
+            events: args.stateEvents,
+          }),
+        );
+      }
 
       if (!args.storySource) {
         controller.close();
@@ -365,8 +570,9 @@ router.get('/reincarnate-context', requireUser(), async (c) => {
 });
 
 router.post('/active-reincarnate', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
+  if (!user || !cultivator) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
@@ -392,6 +598,8 @@ router.post('/active-reincarnate', requireActiveCultivator(), async (c) => {
     });
   });
 
+  await invalidateActiveCultivatorRef(user.id);
+
   return c.json({ success: true, message: '兵解成功，轮回已开' });
 });
 
@@ -408,23 +616,93 @@ router.post('/consume', requireActiveCultivator(), async (c) => {
   }
 
   try {
-    const result = await ConsumableUseEngine.consume(
-      user.id,
-      cultivator.id,
-      parsed.data.consumableId,
-    );
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'consumable_use',
+      run: async (tx) => {
+        const result = await ConsumableUseEngine.consume(
+          user.id,
+          cultivator.id,
+          parsed.data.consumableId,
+          { tx },
+        );
+        const [cultivatorState] = await tx
+          .select({
+            condition: cultivators.condition,
+            cultivationProgress: cultivators.cultivation_progress,
+            spiritStones: cultivators.spirit_stones,
+            qi: cultivators.qi,
+            lifespan: cultivators.lifespan,
+            vitality: cultivators.vitality,
+            spirit: cultivators.spirit,
+            wisdom: cultivators.wisdom,
+            speed: cultivators.speed,
+            willpower: cultivators.willpower,
+          })
+          .from(cultivators)
+          .where(eq(cultivators.id, cultivator.id))
+          .limit(1);
+
+        const changes: StateChangeDescriptor[] = [
+          {
+            domain: 'inventory',
+            eventType: 'inventory.consumable.used',
+            invalidates: ['inventory'],
+          },
+          {
+            domain: 'tasks',
+            eventType: 'tasks.maybe_changed',
+            invalidates: ['tasks'],
+          },
+        ];
+
+        if (isTalismanConsumable(result.consumable)) {
+          changes.push({
+            domain: 'currency',
+            eventType: 'currency.qi.changed',
+            patch: {
+              currency: {
+                spiritStones: cultivatorState?.spiritStones,
+                qi: cultivatorState?.qi,
+              },
+            },
+          });
+        } else {
+          changes.push(
+            {
+              domain: 'condition',
+              eventType: 'condition.consumable.changed',
+              patch: { condition: cultivatorState?.condition ?? {} },
+            },
+            {
+              domain: 'progress',
+              eventType: 'progress.consumable.changed',
+              patch: { progress: cultivatorState?.cultivationProgress ?? {} },
+            },
+            {
+              domain: 'profile',
+              eventType: 'profile.consumable.changed',
+              invalidates: ['profile'],
+            },
+          );
+        }
+
+        return {
+          result: {
+            message: result.message,
+            consumable: result.consumable,
+          },
+          changes,
+        };
+      },
+    });
     try {
       await TaskService.syncCultivatorTasks(cultivator.id);
     } catch (syncError) {
       console.error('使用消耗品后同步任务失败:', syncError);
     }
-    return c.json({
-      success: true,
-      data: {
-        message: result.message,
-        consumable: result.consumable,
-      },
-    });
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     const qiResponse = qiErrorResponse(c, error);
     if (qiResponse) return qiResponse;
@@ -451,28 +729,82 @@ router.post('/inn-recovery', requireActiveCultivator(), async (c) => {
   }
 
   const recovery = InnRecoveryService.buildRecoveryResult(cultivator);
-  const updatedBalance = await getExecutor().transaction(async (tx) => {
-    const [updatedCultivator] = await tx
-      .update(cultivators)
-      .set({
-        spirit_stones: sql`${cultivators.spirit_stones} - ${recovery.spiritStoneCost}`,
-        cultivation_progress: stripExpCapForStorage(recovery.nextCultivationProgress),
-        condition: recovery.nextCondition,
-      })
-      .where(
-        and(
-          eq(cultivators.id, activeCultivator.id),
-          sql`${cultivators.spirit_stones} >= ${recovery.spiritStoneCost}`,
-        ),
-      )
-      .returning({
-        spiritStones: cultivators.spirit_stones,
-      });
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: activeCultivator.id,
+    source: 'inn_recovery',
+    run: async (tx) => {
+      const [updatedCultivator] = await tx
+        .update(cultivators)
+        .set({
+          spirit_stones: sql`${cultivators.spirit_stones} - ${recovery.spiritStoneCost}`,
+          cultivation_progress: stripExpCapForStorage(recovery.nextCultivationProgress),
+          condition: recovery.nextCondition,
+        })
+        .where(
+          and(
+            eq(cultivators.id, activeCultivator.id),
+            sql`${cultivators.spirit_stones} >= ${recovery.spiritStoneCost}`,
+          ),
+        )
+        .returning({
+          spiritStones: cultivators.spirit_stones,
+        });
 
-    return updatedCultivator ?? null;
+      if (!updatedCultivator) {
+        throw new Error(
+          `囊中羞涩，灵石不足（至少需要 ${recovery.spiritStoneCost} 灵石）`,
+        );
+      }
+
+      return {
+        result: {
+          cultivator: {
+            ...cultivator,
+            spirit_stones: updatedCultivator.spiritStones,
+            cultivation_progress: recovery.nextCultivationProgress,
+            condition: recovery.nextCondition,
+          },
+          spiritStoneCost: recovery.spiritStoneCost,
+          cultivationLossPercent: recovery.cultivationLossPercent,
+          cultivationLossAmount: recovery.cultivationLossAmount,
+          clearedStatusCount: recovery.clearedStatusCount,
+        },
+        changes: [
+          {
+            domain: 'condition' as const,
+            eventType: 'condition.recovered',
+            patch: { condition: recovery.nextCondition },
+          },
+          {
+            domain: 'currency' as const,
+            eventType: 'currency.spirit_stones.changed',
+            patch: {
+              currency: {
+                spiritStones: updatedCultivator.spiritStones,
+                qi: activeCultivator.qi,
+              },
+            },
+          },
+          {
+            domain: 'progress' as const,
+            eventType: 'progress.inn_recovery_adjusted',
+            patch: { progress: recovery.nextCultivationProgress },
+          },
+        ],
+      };
+    },
+  }).catch((error) => {
+    if (
+      error instanceof Error &&
+      error.message.startsWith('囊中羞涩，灵石不足')
+    ) {
+      return null;
+    }
+    throw error;
   });
 
-  if (!updatedBalance) {
+  if (!committed) {
     return c.json(
       {
         success: false,
@@ -482,21 +814,7 @@ router.post('/inn-recovery', requireActiveCultivator(), async (c) => {
     );
   }
 
-  return c.json({
-    success: true,
-    data: {
-      cultivator: {
-        ...cultivator,
-        spirit_stones: updatedBalance.spiritStones,
-        cultivation_progress: recovery.nextCultivationProgress,
-        condition: recovery.nextCondition,
-      },
-      spiritStoneCost: recovery.spiritStoneCost,
-      cultivationLossPercent: recovery.cultivationLossPercent,
-      cultivationLossAmount: recovery.cultivationLossAmount,
-      clearedStatusCount: recovery.clearedStatusCount,
-    },
-  });
+  return c.json(toPlayerStateMutationResponse(committed));
 });
 
 router.get('/equip', requireActiveCultivator(), async (c) => {
@@ -527,15 +845,51 @@ router.post('/equip', requireActiveCultivator(), async (c) => {
   }
 
   const { artifactId } = EquipSchema.parse(await c.req.json());
-  const equippedItems = await equipEquipment(
-    user.id,
-    cultivator.id,
-    artifactId,
-  );
-  return c.json({
-    success: true,
-    data: equippedItems,
+  const product = await creationProductRepository.findById(artifactId);
+  if (
+    !product ||
+    product.cultivatorId !== cultivator.id ||
+    product.productType !== 'artifact'
+  ) {
+    return c.json({ error: '装备不存在或无权限操作' }, 404);
+  }
+
+  const slot = product.slot || 'weapon';
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'artifact_equip',
+    run: async (tx) => {
+      if (product.isEquipped) {
+        await creationProductRepository.unequipArtifact(artifactId, tx);
+      } else {
+        await creationProductRepository.equipArtifact(
+          artifactId,
+          cultivator.id,
+          slot,
+          tx,
+        );
+      }
+
+      const equippedArtifacts =
+        await creationProductRepository.findEquippedArtifacts(cultivator.id, tx);
+      const equippedItems = {
+        weapon:
+          equippedArtifacts.find((item) => item.slot === 'weapon')?.id ?? null,
+        armor:
+          equippedArtifacts.find((item) => item.slot === 'armor')?.id ?? null,
+        accessory:
+          equippedArtifacts.find((item) => item.slot === 'accessory')?.id ?? null,
+      };
+
+      return {
+        result: equippedItems,
+        changes: buildArtifactEquipStateChanges('products.artifact.equipped'),
+      };
+    },
   });
+
+  return c.json(toPlayerStateMutationResponse(committed));
 });
 
 router.get('/lifespan-status', requireActiveCultivator(), async (c) => {
@@ -561,14 +915,14 @@ router.get('/lifespan-status', requireActiveCultivator(), async (c) => {
   });
 });
 
-router.get('/qi', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+router.get('/qi', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
   try {
-    const data = await QiService.getQiState(cultivator.id);
+    const data = await QiService.getQiState(ref.cultivatorId);
     return c.json({ success: true, data });
   } catch (error) {
     const qiResponse = qiErrorResponse(c, error);
@@ -594,19 +948,38 @@ router.get('/qi/logs', requireActiveCultivator(), async (c) => {
 });
 
 router.post('/title', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   const { title } = TitleSchema.parse(await c.req.json());
-  const updated = await getExecutor()
-    .update(cultivators)
-    .set({ title: title || null })
-    .where(eq(cultivators.id, cultivator.id))
-    .returning();
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'profile_title',
+    run: async (tx) => {
+      const updated = await tx
+        .update(cultivators)
+        .set({ title: title || null })
+        .where(eq(cultivators.id, cultivator.id))
+        .returning();
 
-  return c.json({ success: true, data: updated[0] });
+      return {
+        result: updated[0],
+        changes: [
+          {
+            domain: 'profile',
+            eventType: 'profile.title.changed',
+            invalidates: ['profile'],
+          },
+        ],
+      };
+    },
+  });
+
+  return c.json(toPlayerStateMutationResponse(committed));
 });
 
 router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
@@ -626,85 +999,106 @@ router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
     return c.json({ error: '兑换码格式错误，仅支持 6-64 位大写字母数字' }, 400);
   }
 
-  let mailId = '';
-
   try {
-    await getExecutor().transaction(async (tx) => {
-      const redeemCode = await tx.query.redeemCodes.findFirst({
-        where: eq(redeemCodes.code, normalizedCode),
-      });
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'redeem_code_claim',
+      run: async (tx) => {
+        const redeemCode = await tx.query.redeemCodes.findFirst({
+          where: eq(redeemCodes.code, normalizedCode),
+        });
 
-      if (!redeemCode) {
-        throw new RedeemClaimError('兑换码不存在', 404);
-      }
+        if (!redeemCode) {
+          throw new RedeemClaimError('兑换码不存在', 404);
+        }
 
-      const now = new Date();
-      if (redeemCode.status !== 'active') {
-        throw new RedeemClaimError('兑换码已停用');
-      }
-      if (redeemCode.startsAt && redeemCode.startsAt > now) {
-        throw new RedeemClaimError('兑换码尚未生效');
-      }
-      if (redeemCode.endsAt && redeemCode.endsAt < now) {
-        throw new RedeemClaimError('兑换码已过期');
-      }
+        const now = new Date();
+        if (redeemCode.status !== 'active') {
+          throw new RedeemClaimError('兑换码已停用');
+        }
+        if (redeemCode.startsAt && redeemCode.startsAt > now) {
+          throw new RedeemClaimError('兑换码尚未生效');
+        }
+        if (redeemCode.endsAt && redeemCode.endsAt < now) {
+          throw new RedeemClaimError('兑换码已过期');
+        }
 
-      const claimed = await tx.query.redeemCodeClaims.findFirst({
-        where: and(
-          eq(redeemCodeClaims.redeemCodeId, redeemCode.id),
-          eq(redeemCodeClaims.userId, user.id),
-        ),
-      });
-      if (claimed) {
-        throw new RedeemClaimError('该兑换码你已使用过');
-      }
-
-      let rewardAttachments: MailAttachment[] = [];
-      try {
-        rewardAttachments = resolveRedeemCodeRewardAttachments(redeemCode);
-      } catch (error) {
-        throw new RedeemClaimError(
-          error instanceof Error ? error.message : '兑换码已失效',
-        );
-      }
-
-      const [reservedCode] = await tx
-        .update(redeemCodes)
-        .set({
-          claimedCount: sql`${redeemCodes.claimedCount} + 1`,
-        })
-        .where(
-          and(
-            eq(redeemCodes.id, redeemCode.id),
-            eq(redeemCodes.status, 'active'),
-            sql`(${redeemCodes.startsAt} IS NULL OR ${redeemCodes.startsAt} <= NOW())`,
-            sql`(${redeemCodes.endsAt} IS NULL OR ${redeemCodes.endsAt} >= NOW())`,
-            sql`(${redeemCodes.totalLimit} IS NULL OR ${redeemCodes.claimedCount} < ${redeemCodes.totalLimit})`,
+        const claimed = await tx.query.redeemCodeClaims.findFirst({
+          where: and(
+            eq(redeemCodeClaims.redeemCodeId, redeemCode.id),
+            eq(redeemCodeClaims.userId, user.id),
           ),
-        )
-        .returning({ id: redeemCodes.id });
+        });
+        if (claimed) {
+          throw new RedeemClaimError('该兑换码你已使用过');
+        }
 
-      if (!reservedCode) {
-        throw new RedeemClaimError('兑换码已被领完或失效');
-      }
+        let rewardAttachments: MailAttachment[] = [];
+        try {
+          rewardAttachments = resolveRedeemCodeRewardAttachments(redeemCode);
+        } catch (error) {
+          throw new RedeemClaimError(
+            error instanceof Error ? error.message : '兑换码已失效',
+          );
+        }
 
-      const mail = await MailService.sendMail(
-        cultivator.id,
-        redeemCode.mailTitle,
-        redeemCode.mailContent,
-        rewardAttachments,
-        'reward',
-        tx,
-      );
-      mailId = mail.id;
+        const [reservedCode] = await tx
+          .update(redeemCodes)
+          .set({
+            claimedCount: sql`${redeemCodes.claimedCount} + 1`,
+          })
+          .where(
+            and(
+              eq(redeemCodes.id, redeemCode.id),
+              eq(redeemCodes.status, 'active'),
+              sql`(${redeemCodes.startsAt} IS NULL OR ${redeemCodes.startsAt} <= NOW())`,
+              sql`(${redeemCodes.endsAt} IS NULL OR ${redeemCodes.endsAt} >= NOW())`,
+              sql`(${redeemCodes.totalLimit} IS NULL OR ${redeemCodes.claimedCount} < ${redeemCodes.totalLimit})`,
+            ),
+          )
+          .returning({ id: redeemCodes.id });
 
-      await tx.insert(redeemCodeClaims).values({
-        redeemCodeId: redeemCode.id,
-        userId: user.id,
-        cultivatorId: cultivator.id,
-        mailId: mail.id,
-      });
+        if (!reservedCode) {
+          throw new RedeemClaimError('兑换码已被领完或失效');
+        }
+
+        const mail = await MailService.sendMail(
+          cultivator.id,
+          redeemCode.mailTitle,
+          redeemCode.mailContent,
+          rewardAttachments,
+          'reward',
+          tx,
+        );
+
+        await tx.insert(redeemCodeClaims).values({
+          redeemCodeId: redeemCode.id,
+          userId: user.id,
+          cultivatorId: cultivator.id,
+          mailId: mail.id,
+        });
+
+        const unreadMailCount = await countUnreadMail(cultivator.id, tx);
+
+        return {
+          result: {
+            message: '兑换成功，奖励已通过传音玉简发放',
+            mailId: mail.id,
+          },
+          changes: [
+            {
+              domain: 'mail',
+              eventType: 'mail.redeem_code.created',
+              patch: { unreadMailCount },
+              invalidates: ['mail'],
+            },
+          ],
+        };
+      },
     });
+
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (isUniqueViolation(error)) {
       return c.json({ error: '该兑换码你已使用过' }, 400);
@@ -715,12 +1109,6 @@ router.post('/redeem-code/claim', requireActiveCultivator(), async (c) => {
     console.error('Redeem claim error:', error);
     return c.json({ error: '兑换失败，请稍后重试' }, 500);
   }
-
-  return c.json({
-    success: true,
-    message: '兑换成功，奖励已通过传音玉简发放',
-    mailId,
-  });
 });
 
 router.post('/retreat', requireActiveCultivator(), async (c) => {
@@ -734,8 +1122,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
   const cultivatorId = activeCultivator.id;
   let years = 0;
   let lockAcquired = false;
-  let qiActionInstanceId: string | null = null;
-  let qiReservationOpen = false;
+  let qiAfter: number | null = null;
 
   try {
     const { years: inputYears, action } = RetreatSchema.parse(
@@ -761,80 +1148,127 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
         return c.json({ error: '道友，您没有这么多寿元了' }, 400);
       }
 
-      qiActionInstanceId = randomUUID();
-      await QiService.reserveQi({
-        cultivatorId,
-        action: 'retreat_10_years',
-        actionInstanceId: qiActionInstanceId,
-        cost: getRetreatQiCost(years),
-        metadata: {
-          years,
-          retreatAction: action,
-        },
-      });
-      qiReservationOpen = true;
-
+      const cultivateQiActionInstanceId = randomUUID();
       const result = performCultivation(cultivator, years);
-      await addRetreatRecord(user.id, cultivatorId, result.record);
-
-      const saved = await updateCultivator(cultivatorId, {
-        age: result.cultivator.age,
-        closed_door_years_total: result.cultivator.closed_door_years_total,
-        cultivation_progress: result.cultivator.cultivation_progress,
-      });
-
-      if (!saved) {
-        if (qiActionInstanceId) {
-          await QiService.refundReservation({
-            actionInstanceId: qiActionInstanceId,
-            reason: 'cultivator_update_failed',
-          });
-          qiReservationOpen = false;
-        }
-        throw new Error('更新角色数据失败');
-      }
-
-      if (qiActionInstanceId) {
-        await QiService.commitReservation({
-          actionInstanceId: qiActionInstanceId,
-          metadata: { committedAt: new Date().toISOString() },
-        });
-        qiReservationOpen = false;
-      }
 
       let streamResult: RetreatResultData = {
         summary: result.summary,
         action: 'cultivate',
       };
       let storySource: RetreatStorySource = null;
+      let lifespanStoryPayload: LifespanExhaustedStoryPayload | null = null;
+      let afterCommit: (() => Promise<void>) | undefined;
 
-      try {
-        const lifespanResult = await consumeLifespanAndHandleDepletion(
-          cultivatorId,
-          years,
-        );
-        if (lifespanResult.depleted) {
-          streamResult = {
-            ...streamResult,
-            storyType: lifespanResult.storyPayload ? 'lifespan' : null,
-            depleted: true,
+      const committed = await commitPlayerStateMutation({
+        userId: user.id,
+        cultivatorId,
+        source: 'retreat_cultivate',
+        run: async (tx) => {
+          const qiReservation = await QiService.reserveQi({
+            cultivatorId,
+            action: 'retreat_10_years',
+            actionInstanceId: cultivateQiActionInstanceId,
+            cost: getRetreatQiCost(years),
+            metadata: {
+              years,
+              retreatAction: action,
+            },
+            tx,
+          });
+          qiAfter =
+            typeof qiReservation?.qiAfter === 'number'
+              ? qiReservation.qiAfter
+              : null;
+
+          await addRetreatRecord(user.id, cultivatorId, result.record, tx);
+
+          const saved = await updateCultivator(cultivatorId, {
+            age: result.cultivator.age,
+            closed_door_years_total: result.cultivator.closed_door_years_total,
+            cultivation_progress: result.cultivator.cultivation_progress,
+          }, tx);
+
+          if (!saved) {
+            throw new Error('更新角色数据失败');
+          }
+
+          await QiService.commitReservation({
+            actionInstanceId: cultivateQiActionInstanceId,
+            metadata: { committedAt: new Date().toISOString() },
+            tx,
+          });
+
+          try {
+            const lifespanResult = await consumeLifespanAndHandleDepletion(
+              cultivatorId,
+              years,
+              { executor: tx, deferSideEffects: true },
+            );
+            if (lifespanResult.depleted) {
+              streamResult = {
+                ...streamResult,
+                storyType: lifespanResult.storyPayload ? 'lifespan' : null,
+                depleted: true,
+              };
+              storySource = lifespanResult.storyPayload
+                ? {
+                    type: 'lifespan',
+                    payload: lifespanResult.storyPayload,
+                  }
+                : null;
+              lifespanStoryPayload =
+                storySource?.type === 'lifespan' ? storySource.payload : null;
+              afterCommit = lifespanResult.afterCommit;
+            }
+          } catch (error) {
+            console.warn('处理寿元耗尽失败：', error);
+          }
+
+          const changes: StateChangeDescriptor[] = [
+            {
+              domain: 'profile',
+              eventType: 'profile.retreat.changed',
+              invalidates: ['profile'],
+            },
+            {
+              domain: 'progress',
+              eventType: 'progress.cultivation.changed',
+              patch: {
+                progress: result.cultivator.cultivation_progress,
+              },
+            },
+            {
+              domain: 'currency',
+              eventType: 'currency.qi.spent',
+              patch: qiAfter === null ? {} : { currency: { qi: qiAfter } },
+            },
+          ];
+          if (streamResult.depleted) {
+            changes.push({
+              domain: 'condition',
+              eventType: 'condition.lifespan.depleted',
+              invalidates: ['condition'],
+            });
+          }
+
+          return {
+            result: streamResult,
+            changes,
           };
-          storySource = lifespanResult.storyPayload
-            ? {
-                type: 'lifespan',
-                payload: lifespanResult.storyPayload,
-              }
-            : null;
+        },
+      });
+
+      if (afterCommit) {
+        try {
+          await afterCommit();
+        } catch (error) {
+          console.error('闭关寿元耗尽后置副作用失败:', error);
         }
-      } catch (error) {
-        console.warn('处理寿元耗尽失败：', error);
       }
 
-      const lifespanStoryPayload =
-        storySource?.type === 'lifespan' ? storySource.payload : null;
-
       return createRetreatStreamResponse({
-        result: streamResult,
+        result: committed.result,
+        stateEvents: committed.state.events,
         storySource,
         onStoryComplete: async (story) => {
           if (!lifespanStoryPayload) {
@@ -865,16 +1299,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
       );
     }
 
-    qiActionInstanceId = randomUUID();
-    await QiService.reserveQi({
-      cultivatorId,
-      action: 'breakthrough_attempt',
-      actionInstanceId: qiActionInstanceId,
-      metadata: {
-        retreatAction: action,
-      },
-    });
-    qiReservationOpen = true;
+    const breakthroughQiActionInstanceId = randomUUID();
 
     const result = attemptBreakthrough(cultivator);
     result.cultivator.condition =
@@ -906,76 +1331,124 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
         }
       : null;
 
-    if (result.summary.success) {
-      const isMajorBreakthrough =
-        result.summary.toRealm &&
-        result.summary.toRealm !== result.summary.fromRealm;
-      if (isMajorBreakthrough) {
-        const rumor = buildMajorBreakthroughRumor(
-          result.cultivator.name,
-          result.summary.toRealm,
-          result.summary.toStage,
-        );
-        try {
-          await createMessage({
-            senderUserId: user.id,
-            senderCultivatorId: null,
-            senderName: '修仙界传闻',
-            senderRealm: '炼气',
-            senderRealmStage: '系统',
-            messageType: 'text',
-            textContent: rumor,
-            payload: { text: rumor },
-          });
-        } catch (chatError) {
-          console.error('突破传闻发送失败:', chatError);
+    const isMajorBreakthrough =
+      result.summary.success &&
+      result.summary.toRealm &&
+      result.summary.toRealm !== result.summary.fromRealm;
+    const sendBreakthroughRumor = isMajorBreakthrough
+      ? async () => {
+          const rumor = buildMajorBreakthroughRumor(
+            result.cultivator.name,
+            result.summary.toRealm,
+            result.summary.toStage,
+          );
+          try {
+            await createMessage({
+              senderUserId: user.id,
+              senderCultivatorId: null,
+              senderName: '修仙界传闻',
+              senderRealm: '炼气',
+              senderRealmStage: '系统',
+              messageType: 'text',
+              textContent: rumor,
+              payload: { text: rumor },
+            });
+          } catch (chatError) {
+            console.error('突破传闻发送失败:', chatError);
+          }
         }
-      }
-    }
+      : null;
 
-    const saved = await updateCultivator(cultivatorId, {
-      realm: result.cultivator.realm,
-      realm_stage: result.cultivator.realm_stage,
-      age: result.cultivator.age,
-      lifespan: result.cultivator.lifespan,
-      attributes: result.cultivator.attributes,
-      cultivation_progress: result.cultivator.cultivation_progress,
-      condition: result.cultivator.condition,
-    });
-
-    if (!saved) {
-      if (qiActionInstanceId) {
-        await QiService.refundReservation({
-          actionInstanceId: qiActionInstanceId,
-          reason: 'breakthrough_update_failed',
-        });
-        qiReservationOpen = false;
-      }
-      throw new Error('更新角色数据失败');
-    }
-
-    if (qiActionInstanceId) {
-      if (result.summary.success) {
-        await QiService.commitReservation({
-          actionInstanceId: qiActionInstanceId,
-          metadata: { committedAt: new Date().toISOString() },
-        });
-      } else {
-        await QiService.markNoRefund({
-          actionInstanceId: qiActionInstanceId,
-          reason: 'breakthrough_failed_normally',
-          metadata: { committedAt: new Date().toISOString() },
-        });
-      }
-      qiReservationOpen = false;
-    }
-
-    return createRetreatStreamResponse({
-      result: {
+    const retreatResult: RetreatResultData = {
         summary: result.summary,
         storyType: storySource ? 'breakthrough' : null,
         action: 'breakthrough',
+    };
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId,
+      source: 'retreat_breakthrough',
+      run: async (tx) => {
+        const qiReservation = await QiService.reserveQi({
+          cultivatorId,
+          action: 'breakthrough_attempt',
+          actionInstanceId: breakthroughQiActionInstanceId,
+          metadata: {
+            retreatAction: action,
+          },
+          tx,
+        });
+        qiAfter =
+          typeof qiReservation?.qiAfter === 'number'
+            ? qiReservation.qiAfter
+            : null;
+
+        const saved = await updateCultivator(cultivatorId, {
+          realm: result.cultivator.realm,
+          realm_stage: result.cultivator.realm_stage,
+          age: result.cultivator.age,
+          lifespan: result.cultivator.lifespan,
+          attributes: result.cultivator.attributes,
+          cultivation_progress: result.cultivator.cultivation_progress,
+          condition: result.cultivator.condition,
+        }, tx);
+
+        if (!saved) {
+          throw new Error('更新角色数据失败');
+        }
+
+        if (result.summary.success) {
+          await QiService.commitReservation({
+            actionInstanceId: breakthroughQiActionInstanceId,
+            metadata: { committedAt: new Date().toISOString() },
+            tx,
+          });
+        } else {
+          await QiService.markNoRefund({
+            actionInstanceId: breakthroughQiActionInstanceId,
+            reason: 'breakthrough_failed_normally',
+            metadata: { committedAt: new Date().toISOString() },
+            tx,
+          });
+        }
+
+        return {
+          result: retreatResult,
+          changes: [
+            {
+              domain: 'profile',
+              eventType: 'profile.breakthrough.changed',
+              invalidates: ['profile'],
+            },
+            {
+              domain: 'condition',
+              eventType: 'condition.breakthrough.changed',
+              patch: { condition: result.cultivator.condition },
+            },
+            {
+              domain: 'progress',
+              eventType: 'progress.breakthrough.changed',
+              patch: {
+                progress: result.cultivator.cultivation_progress,
+              },
+            },
+            {
+              domain: 'currency',
+              eventType: 'currency.qi.spent',
+              patch: qiAfter === null ? {} : { currency: { qi: qiAfter } },
+            },
+          ],
+        };
       },
+    });
+
+    if (sendBreakthroughRumor) {
+      await sendBreakthroughRumor();
+    }
+
+    return createRetreatStreamResponse({
+      result: committed.result,
+      stateEvents: committed.state.events,
       storySource,
       onStoryComplete: async (story) => {
         if (!result.summary.success || !result.historyEntry) {
@@ -996,19 +1469,6 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
   } catch (err) {
     const qiResponse = qiErrorResponse(c, err);
     if (qiResponse) return qiResponse;
-    if (qiReservationOpen && qiActionInstanceId) {
-      try {
-        await QiService.refundReservation({
-          actionInstanceId: qiActionInstanceId,
-          reason: 'retreat_route_error',
-          metadata: {
-            years,
-          },
-        });
-      } catch (rollbackErr) {
-        console.error('回滚灵气预扣失败:', rollbackErr);
-      }
-    }
     console.error('闭关突破 API 错误:', err);
     throw err;
   } finally {
@@ -1071,53 +1531,6 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
     );
     const materialCount = YieldCalculator.calculateMaterialCount(hoursElapsed);
 
-    let success = true;
-    let error: string | undefined;
-
-    try {
-      await getExecutor().transaction(async (tx) => {
-        for (const gain of operations) {
-          switch (gain.type) {
-            case 'spirit_stones':
-              await updateSpiritStones(userId, cultivatorId, gain.value, tx);
-              break;
-            case 'cultivation_exp':
-              await updateCultivationExp(
-                userId,
-                cultivatorId,
-                gain.value,
-                undefined,
-                tx,
-              );
-              break;
-            case 'comprehension_insight':
-              await updateCultivationExp(
-                userId,
-                cultivatorId,
-                0,
-                gain.value,
-                tx,
-              );
-              break;
-            default:
-              if (gain.type !== 'material') {
-                throw new Error(`未知的资源类型: ${gain.type}`);
-              }
-          }
-        }
-
-        await updateLastYieldAt(userId, cultivatorId, tx);
-      });
-    } catch (e) {
-      success = false;
-      error = e instanceof Error ? e.message : String(e);
-    }
-
-    if (!success) {
-      await redis.del(lockKey);
-      return c.json({ success: false, error: error || '发放奖励失败' }, 500);
-    }
-
     const spiritStonesGain =
       operations.find((operation) => operation.type === 'spirit_stones')
         ?.value || 0;
@@ -1138,6 +1551,85 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
       hours: hoursElapsed,
       materialCount,
     };
+
+    const committed = await commitPlayerStateMutation({
+      userId,
+      cultivatorId,
+      source: 'yield_claim',
+      run: async (tx) => {
+        let nextSpiritStones = fullCultivator.spirit_stones;
+        let nextCultivationProgress = fullCultivator.cultivation_progress;
+        const claimedAt = new Date();
+        for (const gain of operations) {
+          switch (gain.type) {
+            case 'spirit_stones':
+              nextSpiritStones = await updateSpiritStones(
+                userId,
+                cultivatorId,
+                gain.value,
+                tx,
+              );
+              break;
+            case 'cultivation_exp':
+              nextCultivationProgress = await updateCultivationExp(
+                userId,
+                cultivatorId,
+                gain.value,
+                undefined,
+                tx,
+              );
+              break;
+            case 'comprehension_insight':
+              nextCultivationProgress = await updateCultivationExp(
+                userId,
+                cultivatorId,
+                0,
+                gain.value,
+                tx,
+              );
+              break;
+            default:
+              if (gain.type !== 'material') {
+                throw new Error(`未知的资源类型: ${gain.type}`);
+              }
+          }
+        }
+
+        await tx
+          .update(cultivators)
+          .set({ last_yield_at: claimedAt })
+          .where(eq(cultivators.id, cultivatorId));
+
+        return {
+          result,
+          changes: [
+            {
+              domain: 'profile',
+              eventType: 'profile.yield.changed',
+              patch: { last_yield_at: claimedAt.toISOString() },
+            },
+            {
+              domain: 'currency',
+              eventType: 'currency.yield.gained',
+              patch: {
+                currency: {
+                  spiritStones: nextSpiritStones,
+                  qi: activeCultivator.qi,
+                  qiLastRefreshedAt:
+                    activeCultivator.qiLastRefreshedAt?.toISOString?.() ??
+                    null,
+                },
+              },
+            },
+            {
+              domain: 'progress',
+              eventType: 'progress.yield.gained',
+              patch: { progress: nextCultivationProgress },
+            },
+          ],
+        };
+      },
+    });
 
     // 异步生成材料并发送邮件，带重试与 fallback 兜底，避免灵材永久丢失
     if (materialCount > 0) {
@@ -1183,13 +1675,31 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
 
         for (let attempt = 1; attempt <= MAX_MAIL_RETRIES; attempt++) {
           try {
-            await MailService.sendMail(
+            await commitPlayerStateMutation({
+              userId,
               cultivatorId,
-              '历练机缘',
-              '道友历练途中，偶得天材地宝，特以此传音玉简送达。',
-              attachments,
-              'reward',
-            );
+              source: 'yield_material_mail',
+              run: async (tx) => {
+                await MailService.sendMail(
+                  cultivatorId,
+                  '历练机缘',
+                  '道友历练途中，偶得天材地宝，特以此传音玉简送达。',
+                  attachments,
+                  'reward',
+                  tx,
+                );
+                return {
+                  result: null,
+                  changes: [
+                    {
+                      domain: 'mail',
+                      eventType: 'mail.yield_material.created',
+                      invalidates: ['mail'],
+                    },
+                  ],
+                };
+              },
+            });
             console.log('[Yield] 材料奖励邮件已发送');
             return; // 成功，退出
           } catch (mailErr) {
@@ -1217,9 +1727,16 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
         try {
           const initialData = JSON.stringify({
             type: 'result',
-            data: result,
+            data: committed.result,
           });
           controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
+          if (committed.state.events.length > 0) {
+            const stateData = JSON.stringify({
+              type: 'state',
+              state: committed.state,
+            });
+            controller.enqueue(encoder.encode(`data: ${stateData}\n\n`));
+          }
 
           const { system, user } = renderPrompt('yield-story', {
             cultivatorRealm: result.cultivatorRealm,
@@ -1272,10 +1789,10 @@ router.post('/yield', requireActiveCultivator(), async (c) => {
   }
 });
 
-inventoryRouter.get('/', requireActiveCultivator(), async (c) => {
+inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
   const user = c.get('user');
-  const cultivator = c.get('cultivator');
-  if (!user || !cultivator) {
+  const ref = c.get('activeCultivatorRef');
+  if (!user || !ref) {
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
 
@@ -1361,7 +1878,7 @@ inventoryRouter.get('/', requireActiveCultivator(), async (c) => {
       );
     }
 
-    const result = await getPaginatedInventoryByType(user.id, cultivator.id, {
+    const result = await getPaginatedInventoryByType(user.id, ref.cultivatorId, {
       type: type as 'artifacts' | 'materials' | 'consumables',
       page,
       pageSize,
@@ -1387,9 +1904,9 @@ inventoryRouter.get('/', requireActiveCultivator(), async (c) => {
   }
 
   const [consumableItems, materialItems, artifactItems] = await Promise.all([
-    getCultivatorConsumables(user.id, cultivator.id),
-    getCultivatorMaterials(user.id, cultivator.id),
-    getCultivatorArtifacts(user.id, cultivator.id),
+    getCultivatorConsumables(user.id, ref.cultivatorId),
+    getCultivatorMaterials(user.id, ref.cultivatorId),
+    getCultivatorArtifacts(user.id, ref.cultivatorId),
   ]);
 
   return c.json({
@@ -1403,68 +1920,132 @@ inventoryRouter.get('/', requireActiveCultivator(), async (c) => {
 });
 
 inventoryRouter.post('/discard', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ success: false, error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ success: false, error: '未授权访问' }, 401);
   }
 
   const { itemId, itemType } = DiscardSchema.parse(await c.req.json());
-  let deleted = false;
 
-  if (itemType === 'artifact') {
-    const product = await creationProductRepository.findById(itemId);
-    if (
-      product &&
-      product.cultivatorId === cultivator.id &&
-      product.productType === 'artifact'
-    ) {
-      await creationProductRepository.deleteById(itemId);
-      deleted = true;
-    }
-  } else if (itemType === 'consumable') {
-    const result = await getExecutor()
-      .delete(consumables)
-      .where(
-        and(
-          eq(consumables.id, itemId),
-          eq(consumables.cultivatorId, cultivator.id),
-        ),
-      )
-      .returning();
-    deleted = result.length > 0;
-  } else {
-    const result = await getExecutor()
-      .delete(materials)
-      .where(
-        and(
-          eq(materials.id, itemId),
-          eq(materials.cultivatorId, cultivator.id),
-        ),
-      )
-      .returning();
-    deleted = result.length > 0;
-  }
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'inventory_discard',
+    run: async (tx) => {
+      let deleted = false;
 
-  if (!deleted) {
-    return c.json({ success: false, error: '物品未找到或无法删除' }, 404);
-  }
+      if (itemType === 'artifact') {
+        const product = await creationProductRepository.findById(itemId, tx);
+        if (
+          product &&
+          product.cultivatorId === cultivator.id &&
+          product.productType === 'artifact'
+        ) {
+          await creationProductRepository.deleteById(itemId, tx);
+          deleted = true;
+        }
+      } else if (itemType === 'consumable') {
+        const result = await tx
+          .delete(consumables)
+          .where(
+            and(
+              eq(consumables.id, itemId),
+              eq(consumables.cultivatorId, cultivator.id),
+            ),
+          )
+          .returning();
+        deleted = result.length > 0;
+      } else {
+        const result = await tx
+          .delete(materials)
+          .where(
+            and(
+              eq(materials.id, itemId),
+              eq(materials.cultivatorId, cultivator.id),
+            ),
+          )
+          .returning();
+        deleted = result.length > 0;
+      }
 
-  return c.json({ success: true, message: '物品已丢弃' });
+      if (!deleted) {
+        throw new MarketServiceError(404, '物品未找到或无法删除');
+      }
+
+      const changes: StateChangeDescriptor[] = [
+        {
+          domain: 'inventory',
+          eventType: 'inventory.discarded',
+          invalidates: ['inventory'],
+        },
+      ];
+      if (itemType === 'artifact') {
+        changes.push({
+          domain: 'products',
+          eventType: 'products.artifact.discarded',
+          invalidates: ['products'],
+        });
+      }
+
+      return {
+        result: { message: '物品已丢弃' },
+        changes,
+      };
+    },
+  });
+
+  return c.json(toPlayerStateMutationResponse(committed));
 });
 
 inventoryRouter.post('/identify', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   try {
     const { materialId } = IdentifySchema.parse(await c.req.json());
-    const result = await identifyMysteryMaterial({
-      materialId,
+    let afterCommit: (() => Promise<void>) | undefined;
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
       cultivatorId: cultivator.id,
+      source: 'inventory_identify',
+      run: async (tx) => {
+        const { afterCommit: identifyAfterCommit, ...result } =
+          await identifyMysteryMaterial({
+          materialId,
+          cultivatorId: cultivator.id,
+          tx,
+          deferSideEffects: true,
+        });
+        afterCommit = identifyAfterCommit;
+        return {
+          result,
+          changes: [
+            {
+              domain: 'inventory',
+              eventType: 'inventory.material.identified',
+              invalidates: ['inventory'],
+            },
+            {
+              domain: 'currency',
+              eventType: 'currency.spirit_stones.spent',
+              invalidates: ['currency'],
+            },
+          ],
+        };
+      },
     });
-    return c.json(result);
+    if (afterCommit) {
+      try {
+        await afterCommit();
+      } catch (error) {
+        console.error('鉴定后置副作用失败:', error);
+      }
+    }
+    return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
     if (error instanceof MarketServiceError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
@@ -1477,9 +2058,9 @@ inventoryRouter.post('/identify', requireActiveCultivator(), async (c) => {
   }
 });
 
-mailRouter.get('/', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+mailRouter.get('/', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
@@ -1492,7 +2073,7 @@ mailRouter.get('/', requireActiveCultivator(), async (c) => {
   const offset = (page - 1) * pageSize;
 
   const userMails = await getExecutor().query.mails.findMany({
-    where: eq(mails.cultivatorId, cultivator.id),
+    where: eq(mails.cultivatorId, ref.cultivatorId),
     orderBy: [desc(mails.createdAt)],
     limit: pageSize + 1,
     offset,
@@ -1543,66 +2124,68 @@ mailRouter.post('/claim', requireActiveCultivator(), async (c) => {
       return c.json({ message: 'No attachments' });
     }
 
-    const gains: ResourceOperation[] = [];
-    for (const item of attachments) {
-      switch (item.type) {
-        case 'spirit_stones':
-          gains.push({ type: 'spirit_stones', value: item.quantity });
-          break;
-        case 'material':
-          gains.push({
-            type: 'material',
-            value: item.quantity,
-            data: item.data as Material,
-          });
-          break;
-        case 'consumable':
-          gains.push({
-            type: 'consumable',
-            value: item.quantity,
-            data: item.data as Consumable,
-          });
-          break;
-        case 'artifact':
-          for (let i = 0; i < (item.quantity || 1); i++) {
-            gains.push({
-              type: 'artifact',
-              value: 1,
-              data: item.data as Artifact,
-            });
-          }
-          break;
-        case 'cultivation_exp':
-          gains.push({ type: 'cultivation_exp', value: item.quantity });
-          break;
-        case 'comprehension_insight':
-          gains.push({ type: 'comprehension_insight', value: item.quantity });
-          break;
-      }
-    }
+    const gains = attachmentsToResourceOperations(attachments);
 
-    const result = await resourceEngine.gain(
-      user.id,
-      cultivator.id,
-      gains,
-      async (tx: DbTransaction) => {
-        // [安全] 条件更新：仅当 isClaimed=false 时才标记，防止并发双领
-        const [updated] = await tx
-          .update(mails)
-          .set({ isClaimed: true, isRead: true })
-          .where(and(eq(mails.id, mailId), eq(mails.isClaimed, false)))
-          .returning({ id: mails.id });
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'mail_claim',
+      run: async (tx) => {
+        const result = await resourceEngine.gainInTransaction(
+          user.id,
+          cultivator.id,
+          gains,
+          tx,
+          async (resourceTx) => {
+            // [安全] 条件更新：仅当 isClaimed=false 时才标记，防止并发双领
+            const [updated] = await resourceTx
+              .update(mails)
+              .set({ isClaimed: true, isRead: true })
+              .where(and(eq(mails.id, mailId), eq(mails.isClaimed, false)))
+              .returning({ id: mails.id });
 
-        if (!updated) {
-          throw new Error('邮件已被领取（并发冲突）');
+            if (!updated) {
+              throw new Error('邮件已被领取（并发冲突）');
+            }
+          },
+        );
+
+        if (!result.success) {
+          throw new Error(result.errors?.[0] || '领取失败');
         }
-      },
-    );
 
-    if (!result.success) {
-      return c.json({ error: result.errors?.[0] || '领取失败' }, 500);
-    }
-    return c.json({ success: true });
+        const [cultivatorState] = await tx
+          .select({
+            spiritStones: cultivators.spirit_stones,
+            cultivationProgress: cultivators.cultivation_progress,
+            realm: cultivators.realm,
+            realmStage: cultivators.realm_stage,
+          })
+          .from(cultivators)
+          .where(eq(cultivators.id, cultivator.id))
+          .limit(1);
+        const unreadMailCount = await countUnreadMail(cultivator.id, tx);
+
+        return {
+          result: {
+            claimedMailId: mailId,
+            unreadMailCount,
+          },
+          changes: buildMailStateChanges({
+            eventType: 'mail.claimed',
+            unreadMailCount,
+            mailIds: [mailId],
+            gains,
+            spiritStones: cultivatorState?.spiritStones,
+            cultivationProgress: cultivatorState?.cultivationProgress,
+            realm: cultivatorState?.realm as RealmType | undefined,
+            realmStage: cultivatorState?.realmStage as RealmStage | undefined,
+          }),
+        };
+      },
+    });
+
+    return c.json(toPlayerStateMutationResponse(committed));
   } finally {
     await redis.del(claimLockKey);
   }
@@ -1640,84 +2223,84 @@ mailRouter.post('/claim-all', requireActiveCultivator(), async (c) => {
       return c.json({ success: true, claimedCount: 0, claimedMailIds: [] });
     }
 
-    const gains: ResourceOperation[] = [];
     const claimedMailIds = claimableMails.map((mail) => mail.id);
-    for (const mail of claimableMails) {
-      const attachments = (mail.attachments as MailAttachment[]) || [];
-      for (const item of attachments) {
-        switch (item.type) {
-          case 'spirit_stones':
-            gains.push({ type: 'spirit_stones', value: item.quantity });
-            break;
-          case 'material':
-            gains.push({
-              type: 'material',
-              value: item.quantity,
-              data: item.data as Material,
-            });
-            break;
-          case 'consumable':
-            gains.push({
-              type: 'consumable',
-              value: item.quantity,
-              data: item.data as Consumable,
-            });
-            break;
-          case 'artifact':
-            for (let i = 0; i < (item.quantity || 1); i++) {
-              gains.push({
-                type: 'artifact',
-                value: 1,
-                data: item.data as Artifact,
-              });
-            }
-            break;
-          case 'cultivation_exp':
-            gains.push({ type: 'cultivation_exp', value: item.quantity });
-            break;
-          case 'comprehension_insight':
-            gains.push({ type: 'comprehension_insight', value: item.quantity });
-            break;
-        }
-      }
-    }
-
-    const result = await resourceEngine.gain(
-      user.id,
-      cultivator.id,
-      gains,
-      async (tx: DbTransaction) => {
-        // [安全] 条件更新：仅当 isClaimed=false 时才标记，防止并发双领
-        const updatedRows = await tx
-          .update(mails)
-          .set({ isClaimed: true, isRead: true })
-          .where(and(inArray(mails.id, claimedMailIds), eq(mails.isClaimed, false)))
-          .returning({ id: mails.id });
-
-        if (updatedRows.length !== claimedMailIds.length) {
-          throw new Error('部分邮件已被领取（并发冲突）');
-        }
-      },
+    const gains = claimableMails.flatMap((mail) =>
+      attachmentsToResourceOperations((mail.attachments as MailAttachment[]) || []),
     );
 
-    if (!result.success) {
-      return c.json({ error: result.errors?.[0] || '一键领取失败' }, 500);
-    }
+    const committed = await commitPlayerStateMutation({
+      userId: user.id,
+      cultivatorId: cultivator.id,
+      source: 'mail_claim_all',
+      run: async (tx) => {
+        const result = await resourceEngine.gainInTransaction(
+          user.id,
+          cultivator.id,
+          gains,
+          tx,
+          async (resourceTx) => {
+            // [安全] 条件更新：仅当 isClaimed=false 时才标记，防止并发双领
+            const updatedRows = await resourceTx
+              .update(mails)
+              .set({ isClaimed: true, isRead: true })
+              .where(
+                and(inArray(mails.id, claimedMailIds), eq(mails.isClaimed, false)),
+              )
+              .returning({ id: mails.id });
 
-    return c.json({
-      success: true,
-      claimedCount: claimedMailIds.length,
-      claimedMailIds,
+            if (updatedRows.length !== claimedMailIds.length) {
+              throw new Error('部分邮件已被领取（并发冲突）');
+            }
+          },
+        );
+
+        if (!result.success) {
+          throw new Error(result.errors?.[0] || '一键领取失败');
+        }
+
+        const [cultivatorState] = await tx
+          .select({
+            spiritStones: cultivators.spirit_stones,
+            cultivationProgress: cultivators.cultivation_progress,
+            realm: cultivators.realm,
+            realmStage: cultivators.realm_stage,
+          })
+          .from(cultivators)
+          .where(eq(cultivators.id, cultivator.id))
+          .limit(1);
+        const unreadMailCount = await countUnreadMail(cultivator.id, tx);
+
+        return {
+          result: {
+            claimedCount: claimedMailIds.length,
+            claimedMailIds,
+            unreadMailCount,
+          },
+          changes: buildMailStateChanges({
+            eventType: 'mail.claimed_all',
+            unreadMailCount,
+            mailIds: claimedMailIds,
+            gains,
+            spiritStones: cultivatorState?.spiritStones,
+            cultivationProgress: cultivatorState?.cultivationProgress,
+            realm: cultivatorState?.realm as RealmType | undefined,
+            realmStage: cultivatorState?.realmStage as RealmStage | undefined,
+          }),
+        };
+      },
     });
+
+    return c.json(toPlayerStateMutationResponse(committed));
   } finally {
     await redis.del(claimAllLockKey);
   }
 });
 
 mailRouter.post('/read', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
   const { mailId } = ReadMailSchema.parse(await c.req.json());
@@ -1728,40 +2311,88 @@ mailRouter.post('/read', requireActiveCultivator(), async (c) => {
     return c.json({ error: 'Mail not found' }, 404);
   }
 
-  await getExecutor()
-    .update(mails)
-    .set({ isRead: true })
-    .where(eq(mails.id, mailId));
-  return c.json({ success: true });
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'mail_read',
+    run: async (tx) => {
+      await tx
+        .update(mails)
+        .set({ isRead: true })
+        .where(and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivator.id)));
+      const unreadMailCount = await countUnreadMail(cultivator.id, tx);
+
+      return {
+        result: {
+          mailId,
+          unreadMailCount,
+        },
+        changes: [
+          {
+            domain: 'mail' as const,
+            eventType: 'mail.read',
+            patch: { unreadMailCount, mailIds: [mailId] },
+            invalidates: ['mail' as const],
+          },
+        ],
+      };
+    },
+  });
+
+  return c.json(toPlayerStateMutationResponse(committed));
 });
 
 mailRouter.post('/read-all', requireActiveCultivator(), async (c) => {
+  const user = c.get('user');
   const cultivator = c.get('cultivator');
-  if (!cultivator) {
-    return c.json({ error: '当前没有活跃角色' }, 404);
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
   }
 
-  const updatedRows = await getExecutor()
-    .update(mails)
-    .set({ isRead: true })
-    .where(and(eq(mails.cultivatorId, cultivator.id), eq(mails.isRead, false)))
-    .returning({ id: mails.id });
+  const committed = await commitPlayerStateMutation({
+    userId: user.id,
+    cultivatorId: cultivator.id,
+    source: 'mail_read_all',
+    run: async (tx) => {
+      const updatedRows = await tx
+        .update(mails)
+        .set({ isRead: true })
+        .where(
+          and(eq(mails.cultivatorId, cultivator.id), eq(mails.isRead, false)),
+        )
+        .returning({ id: mails.id });
+      const unreadMailCount = await countUnreadMail(cultivator.id, tx);
 
-  return c.json({ success: true, updatedCount: updatedRows.length });
+      return {
+        result: {
+          updatedCount: updatedRows.length,
+          unreadMailCount,
+        },
+        changes: [
+          {
+            domain: 'mail' as const,
+            eventType: 'mail.read_all',
+            patch: {
+              unreadMailCount,
+              mailIds: updatedRows.map((row) => row.id),
+            },
+            invalidates: ['mail' as const],
+          },
+        ],
+      };
+    },
+  });
+
+  return c.json(toPlayerStateMutationResponse(committed));
 });
 
-mailRouter.get('/unread-count', requireActiveCultivator(), async (c) => {
-  const cultivator = c.get('cultivator');
-  if (!cultivator) {
+mailRouter.get('/unread-count', requireActiveCultivatorRef(), async (c) => {
+  const ref = c.get('activeCultivatorRef');
+  if (!ref) {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const result = await getExecutor()
-    .select({ count: sql<number>`count(*)` })
-    .from(mails)
-    .where(and(eq(mails.cultivatorId, cultivator.id), eq(mails.isRead, false)));
-
-  return c.json({ count: Number(result[0].count) });
+  return c.json({ count: await countUnreadMail(ref.cultivatorId) });
 });
 
 router.route('/inventory', inventoryRouter);

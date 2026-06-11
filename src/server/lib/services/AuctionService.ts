@@ -9,7 +9,7 @@ import { isPillConsumable } from '@shared/lib/consumables';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { and, eq, sql } from 'drizzle-orm';
-import { getExecutor, type DbExecutor } from '../drizzle/db';
+import { getExecutor, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
 import { MailService } from './MailService';
 import { mapConsumableRow } from './consumablePersistence';
@@ -97,6 +97,11 @@ export interface BuyItemInput {
   buyerCultivatorName: string;
 }
 
+export interface AuctionMutationOptions {
+  tx?: DbTransaction;
+  deferCacheClear?: boolean;
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -168,7 +173,7 @@ async function getItemSnapshot(
 /**
  * 清除拍卖列表缓存
  */
-async function clearAuctionListingsCache(): Promise<void> {
+export async function clearAuctionListingsCache(): Promise<void> {
   // 使用 SCAN 查找所有拍卖列表缓存并删除
   // 简化实现：使用模式匹配删除
   // 注意：生产环境可能需要更精细的缓存管理
@@ -201,8 +206,11 @@ function isAuctionListableQuality(quality: Quality): boolean {
 /**
  * 上架物品
  */
-export async function listItem(input: ListItemInput): Promise<ListItemResult> {
-  const q = getExecutor();
+export async function listItem(
+  input: ListItemInput,
+  options: AuctionMutationOptions = {},
+): Promise<ListItemResult> {
+  const q = getExecutor(options.tx);
   const { cultivatorId, cultivatorName, itemType, itemId, price, quantity } =
     input;
 
@@ -259,8 +267,10 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
 
   try {
     // 5. 校验寄售位数量
-    const activeCount =
-      await auctionRepository.countActiveBySeller(cultivatorId);
+    const activeCount = await auctionRepository.countActiveBySeller(
+      cultivatorId,
+      q,
+    );
     if (activeCount >= MAX_ACTIVE_LISTINGS_PER_SELLER) {
       throw new AuctionServiceError(
         AuctionError.MAX_LISTINGS,
@@ -271,9 +281,9 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     // 6. 获取物品快照并校验所有权
     const artifactProduct =
       itemType === 'artifact'
-        ? await getArtifactProductSnapshot(itemId, cultivatorId)
+        ? await getArtifactProductSnapshot(itemId, cultivatorId, q)
         : null;
-    const itemSnapshot = await getItemSnapshot(itemType, itemId, cultivatorId);
+    const itemSnapshot = await getItemSnapshot(itemType, itemId, cultivatorId, q);
     if (!itemSnapshot) {
       throw new AuctionServiceError(
         AuctionError.ITEM_NOT_FOUND,
@@ -335,7 +345,7 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + LISTING_DURATION_HOURS);
 
-    await q.transaction(async (tx) => {
+    const persistListing = async (tx: DbTransaction) => {
       // 事务内二次校验并按数量扣减
       const ownedItem = await getItemSnapshot(
         itemType,
@@ -463,10 +473,18 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
         expiresAt,
         tx,
       });
-    });
+    };
+
+    if (options.tx) {
+      await persistListing(options.tx);
+    } else {
+      await getExecutor().transaction(persistListing);
+    }
 
     // 8. 清除缓存
-    await clearAuctionListingsCache();
+    if (!options.deferCacheClear) {
+      await clearAuctionListingsCache();
+    }
 
     return {
       listingId: itemId, // 实际上是拍卖记录ID，这里简化返回
@@ -480,8 +498,11 @@ export async function listItem(input: ListItemInput): Promise<ListItemResult> {
 /**
  * 购买物品
  */
-export async function buyItem(input: BuyItemInput): Promise<void> {
-  const q = getExecutor();
+export async function buyItem(
+  input: BuyItemInput,
+  options: AuctionMutationOptions = {},
+): Promise<void> {
+  const q = getExecutor(options.tx);
   const { listingId, buyerCultivatorId } = input;
 
   // 1. 获取分布式锁
@@ -497,7 +518,7 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
 
   try {
     // 2. 查询拍卖记录
-    const listing = await auctionRepository.findById(listingId);
+    const listing = await auctionRepository.findById(listingId, q);
     if (!listing) {
       throw new AuctionServiceError(
         AuctionError.LISTING_NOT_FOUND,
@@ -532,7 +553,7 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
     const sellerAmount = price - feeAmount;
 
     // 5. 事务：扣除买家灵石 + 更新拍卖状态 + 发送邮件
-    await q.transaction(async (tx) => {
+    const persistPurchase = async (tx: DbTransaction) => {
       // 5.0 禁止同一用户（userId）下不同角色之间的交易（防止小号对敲刷灵石）
       const [buyerRow] = await tx
         .select({ userId: schema.cultivators.userId })
@@ -624,10 +645,18 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
         `道友寄售的【${itemSnapshot.name}】已售出，扣除${FEE_RATE * 100}%手续费后获得 ${sellerAmount} 灵石（已直接入账）。`,
         tx,
       );
-    });
+    };
+
+    if (options.tx) {
+      await persistPurchase(options.tx);
+    } else {
+      await getExecutor().transaction(persistPurchase);
+    }
 
     // 6. 清除缓存
-    await clearAuctionListingsCache();
+    if (!options.deferCacheClear) {
+      await clearAuctionListingsCache();
+    }
   } finally {
     await redis.del(lockKey);
   }
@@ -639,10 +668,11 @@ export async function buyItem(input: BuyItemInput): Promise<void> {
 export async function cancelListing(
   listingId: string,
   cultivatorId: string,
+  options: AuctionMutationOptions = {},
 ): Promise<void> {
-  const q = getExecutor();
+  const q = getExecutor(options.tx);
   // 1. 查询拍卖记录（快速前置校验，减少无效事务开销）
-  const listing = await auctionRepository.findById(listingId);
+  const listing = await auctionRepository.findById(listingId, q);
   if (!listing) {
     throw new AuctionServiceError(AuctionError.LISTING_NOT_FOUND, '拍卖不存在');
   }
@@ -661,7 +691,7 @@ export async function cancelListing(
   }
 
   // 4. 事务：行锁 + 二次校验状态 + 更新 + 发送邮件
-  await q.transaction(async (tx) => {
+  const persistCancel = async (tx: DbTransaction) => {
     // 使用 SELECT FOR UPDATE 获取行锁，防止与购买/过期操作并发冲突
     const [locked] = await tx
       .select()
@@ -701,10 +731,18 @@ export async function cancelListing(
       'reward',
       tx,
     );
-  });
+  };
+
+  if (options.tx) {
+    await persistCancel(options.tx);
+  } else {
+    await getExecutor().transaction(persistCancel);
+  }
 
   // 5. 清除缓存
-  await clearAuctionListingsCache();
+  if (!options.deferCacheClear) {
+    await clearAuctionListingsCache();
+  }
 }
 
 /**

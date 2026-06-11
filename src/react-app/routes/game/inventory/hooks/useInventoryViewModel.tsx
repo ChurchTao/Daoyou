@@ -1,7 +1,7 @@
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import type { InkDialogState } from '@app/components/ui/InkDialog';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { isQiRestoreTalismanScenario } from '@shared/config/qiSystem';
 import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import {
@@ -143,10 +143,11 @@ export interface UseInventoryViewModelReturn {
 export function useInventoryViewModel(): UseInventoryViewModelReturn {
   const PAGE_SIZE = 20;
 
-  const { cultivator, equipped, isLoading, refresh, refreshInventory, note } =
+  const { cultivator, equipped, isLoading, refreshInventory, note } =
     useCultivator();
 
   const { pushToast } = useInkUI();
+  const { mutate } = usePlayerStateActions();
 
   // Tab 状态
   const [activeTab, setActiveTab] = useState<InventoryTab>('artifacts');
@@ -356,16 +357,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
           loading: true,
         }));
 
-        const response = await fetch(`/api/cultivator/inventory/discard`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ itemId: item.id, itemType: type }),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '丢弃失败');
-        }
+        await mutate(
+          fetch(`/api/cultivator/inventory/discard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemId: item.id, itemType: type }),
+          }),
+        );
 
         pushToast({ message: '物品已丢弃', tone: 'success' });
         await refreshInventory([activeTab]);
@@ -387,6 +385,7 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
       activeTab,
       cultivator,
       fetchTabPage,
+      mutate,
       paginationByTab,
       pushToast,
       refreshInventory,
@@ -429,19 +428,15 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
       setPendingId(item.id);
       try {
-        const response = await fetch(`/api/cultivator/equip`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ artifactId: item.id }),
-        });
-
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '装备操作失败');
-        }
+        await mutate(
+          fetch(`/api/cultivator/equip`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ artifactId: item.id }),
+          }),
+        );
 
         pushToast({ message: '法宝灵性已调顺。', tone: 'success' });
-        await refresh();
         await fetchTabPage('artifacts', paginationByTab.artifacts.page);
       } catch (error) {
         pushToast({
@@ -458,9 +453,9 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     [
       cultivator,
       fetchTabPage,
+      mutate,
       paginationByTab.artifacts.page,
       pushToast,
-      refresh,
     ],
   );
 
@@ -493,25 +488,22 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
       setPendingId(item.id);
       try {
-        const response = await fetch('/api/cultivator/consume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ consumableId: item.id }),
-        });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '服用失败');
-        }
+        const result = await mutate<{
+          message: string;
+          consumable: Consumable;
+        }>(
+          fetch('/api/cultivator/consume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ consumableId: item.id }),
+          }),
+        );
 
         pushToast({
-          message: result.data?.message || `${item.name}已使用。`,
+          message: result.message || `${item.name}已使用。`,
           tone: 'success',
         });
 
-        if (isTalismanConsumable(item)) {
-          invalidateQiState(cultivator.id);
-        }
-        await refresh();
         await fetchTabPage('consumables', paginationByTab.consumables.page);
       } catch (error) {
         pushToast({
@@ -526,9 +518,9 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
     [
       cultivator,
       fetchTabPage,
+      mutate,
       paginationByTab.consumables.page,
       pushToast,
-      refresh,
     ],
   );
 
@@ -545,16 +537,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
 
       setPendingId(item.id);
       try {
-        const response = await fetch('/api/cultivator/inventory/identify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ materialId: item.id }),
-        });
-        const result = (await response.json()) as IdentifyApiResult;
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || '鉴定失败');
-        }
+        const result = await mutate<IdentifyApiResult>(
+          fetch('/api/cultivator/inventory/identify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ materialId: item.id }),
+          }),
+        );
 
         const revealed = result.revealedItem
           ? {
@@ -594,7 +583,13 @@ export function useInventoryViewModel(): UseInventoryViewModelReturn {
         setPendingId(null);
       }
     },
-    [cultivator, fetchTabPage, paginationByTab.materials.page, pushToast],
+    [
+      cultivator,
+      fetchTabPage,
+      mutate,
+      paginationByTab.materials.page,
+      pushToast,
+    ],
   );
 
   const pagination = paginationByTab[activeTab];

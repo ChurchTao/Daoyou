@@ -1,7 +1,10 @@
 import {
   getCultivatorBasicsByIdUnsafe,
+  getCultivatorOwnerId,
   updateCultivator,
 } from '@server/lib/services/cultivatorService';
+import { invalidateActiveCultivatorRef } from '@server/lib/hono/middleware';
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import type { BreakthroughModifiers } from '@server/utils/breakthroughCalculator';
 import type { LifespanExhaustedStoryPayload } from '@server/utils/prompts';
 import { RealmStage, RealmType } from '@shared/types/constants';
@@ -10,6 +13,7 @@ import { Cultivator } from '@shared/types/cultivator';
 export interface ConsumeLifespanResult {
   depleted: boolean;
   storyPayload?: LifespanExhaustedStoryPayload;
+  afterCommit?: () => Promise<void>;
 }
 
 /**
@@ -20,12 +24,17 @@ export interface ConsumeLifespanResult {
 export async function consumeLifespanAndHandleDepletion(
   cultivatorId: string,
   years: number,
+  options: {
+    executor?: DbExecutor | DbTransaction;
+    deferSideEffects?: boolean;
+  } = {},
 ): Promise<ConsumeLifespanResult> {
   if (years <= 0) {
     return { depleted: false };
   }
 
-  const cultivator = await getCultivatorBasicsByIdUnsafe(cultivatorId);
+  const q = options.executor;
+  const cultivator = await getCultivatorBasicsByIdUnsafe(cultivatorId, q);
   if (!cultivator) {
     return { depleted: false };
   }
@@ -36,11 +45,20 @@ export async function consumeLifespanAndHandleDepletion(
   if (newAge >= (cultivator.lifespan || 0)) {
     // 更新角色为已死，确保 age 被同步为新的年龄
     let updatedCultivator = null;
+    let afterCommit: (() => Promise<void>) | undefined;
     try {
+      const ownerId = await getCultivatorOwnerId(cultivatorId, q);
       updatedCultivator = await updateCultivator(cultivatorId, {
         age: newAge,
         status: 'dead',
-      });
+      }, q);
+      if (ownerId) {
+        if (options.deferSideEffects) {
+          afterCommit = () => invalidateActiveCultivatorRef(ownerId);
+        } else {
+          await invalidateActiveCultivatorRef(ownerId);
+        }
+      }
     } catch (err) {
       console.error('更新角色为死时失败：', err);
     }
@@ -70,6 +88,7 @@ export async function consumeLifespanAndHandleDepletion(
           modifiers: {} as BreakthroughModifiers,
         },
       },
+      afterCommit,
     };
   }
 

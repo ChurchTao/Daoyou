@@ -4,9 +4,16 @@ import { cultivators } from '@server/lib/drizzle/schema';
 
 export type ActiveCultivator = typeof cultivators.$inferSelect;
 
+export type ActiveCultivatorRef = {
+  userId: string;
+  cultivatorId: string;
+  status: 'active';
+};
+
 export type AppVariables = {
   user: AuthUser;
   cultivator: ActiveCultivator;
+  activeCultivatorRef: ActiveCultivatorRef;
   executor: DbExecutor;
   llmConfig: {
     provider: string;

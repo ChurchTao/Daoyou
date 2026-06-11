@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import { usePlayer } from '@app/lib/player/usePlayer';
 import { cn } from '@shared/lib/cn';
 import type {
@@ -101,7 +102,8 @@ function StrategyRange({
 }
 
 export function GameSettingsTab() {
-  const { cultivator, refreshCultivator } = usePlayer();
+  const { cultivator } = usePlayer();
+  const { mutate } = usePlayerStateActions();
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [strategy, setStrategy] = useState<BattleAbilityStrategySettings>(() =>
     normalizeBattleAbilityStrategySettings(
@@ -189,27 +191,20 @@ export function GameSettingsTab() {
           battleAbilityStrategy: strategy,
         },
       };
-      const response = await fetch('/api/player/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      const json = (await response.json()) as PlayerSettingsResponse;
-      if (!response.ok || !json.success) {
-        throw new Error(
-          'error' in json && typeof json.error === 'string'
-            ? json.error
-            : '保存战斗策略失败',
-        );
-      }
+      const updated = await mutate<PlayerSettingsResponse['data']>(
+        fetch('/api/player/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }),
+      );
       setStrategy(
         normalizeBattleAbilityStrategySettings(
-          json.data.battleAbilityStrategy,
+          updated.battleAbilityStrategy,
         ),
       );
-      await refreshCultivator();
       setSettingsMessage('战斗策略已保存');
     } catch (error) {
       setSettingsMessage(

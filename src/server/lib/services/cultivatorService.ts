@@ -723,10 +723,11 @@ export interface CultivatorBasic {
  */
 export async function getCultivatorOwnerId(
   cultivatorId: string,
+  executor?: DbExecutor | DbTransaction,
 ): Promise<string | null> {
   const record = await findCultivatorOwnerStatusById(
     cultivatorId,
-    getExecutor(),
+    executor ?? getExecutor(),
   );
   if (!record || record.status !== 'active') {
     return null;
@@ -762,8 +763,9 @@ export async function getCultivatorByIdUnsafe(
 
 export async function getCultivatorBasicsByIdUnsafe(
   cultivatorId: string,
+  executor?: DbExecutor | DbTransaction,
 ): Promise<CultivatorBasic | null> {
-  const q = getExecutor();
+  const q = executor ?? getExecutor();
   const record = await q
     .select()
     .from(schema.cultivators)
@@ -952,7 +954,7 @@ export async function updateCultivator(
     .update(schema.cultivators)
     .set(updateData)
     .where(eq(schema.cultivators.id, cultivatorId));
-  const res = await getCultivatorByIdUnsafe(cultivatorId);
+  const res = await getCultivatorByIdUnsafe(cultivatorId, q);
   return res?.cultivator || null;
 }
 
@@ -985,9 +987,13 @@ export async function addRetreatRecord(
   userId: string,
   cultivatorId: string,
   record: RetreatRecord,
+  executor?: DbExecutor | DbTransaction,
 ): Promise<void> {
-  await assertCultivatorOwnership(userId, cultivatorId);
-  await getExecutor()
+  const q = executor ?? getExecutor();
+  if (!(await hasCultivatorOwnership(userId, cultivatorId, q))) {
+    throw new Error('角色不存在或无权限操作');
+  }
+  await q
     .insert(schema.retreatRecords)
     .values({
       cultivatorId,
@@ -1496,7 +1502,7 @@ export async function updateSpiritStones(
   cultivatorId: string,
   delta: number,
   tx?: DbTransaction,
-): Promise<void> {
+): Promise<number> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
   // [安全守卫] 夹紧变化量并施加上限
@@ -1529,6 +1535,7 @@ export async function updateSpiritStones(
     .update(schema.cultivators)
     .set({ spirit_stones: newValue })
     .where(eq(schema.cultivators.id, cultivatorId));
+  return newValue;
 }
 
 /**
@@ -1583,7 +1590,7 @@ export async function updateCultivationExp(
   cultivationExpDelta: number,
   comprehensionInsightDelta?: number,
   tx?: DbTransaction,
-): Promise<void> {
+): Promise<CultivationProgress> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
   const dbInstance = getExecutor(tx);
@@ -1646,6 +1653,7 @@ export async function updateCultivationExp(
     .update(schema.cultivators)
     .set({ cultivation_progress: stripExpCapForStorage(updatedProgress) })
     .where(eq(schema.cultivators.id, cultivatorId));
+  return updatedProgress;
 }
 
 /**

@@ -210,6 +210,7 @@ export class QiService {
     actionInstanceId: string;
     cost?: number;
     metadata?: QiLogMetadata;
+    tx?: DbTransaction;
   }): Promise<QiReservationResult> {
     const cost = input.cost ?? this.getCost(input.action);
 
@@ -225,7 +226,7 @@ export class QiService {
       };
     }
 
-    return getExecutor().transaction(async (tx) => {
+    const run = async (tx: DbTransaction) => {
       const [existing] = await tx
         .select()
         .from(qiLogs)
@@ -286,16 +287,22 @@ export class QiService {
         qiAfter,
         consumed: cost,
       };
-    });
+    };
+
+    if (input.tx) {
+      return run(input.tx);
+    }
+    return getExecutor().transaction(run);
   }
 
   static async commitReservation(input: {
     actionInstanceId: string;
     metadata?: QiLogMetadata;
+    tx?: DbTransaction;
   }): Promise<void> {
     if (!isQiEnabled()) return;
 
-    await getExecutor().transaction(async (tx) => {
+    const run = async (tx: DbTransaction) => {
       const log = await this.lockReservation(tx, input.actionInstanceId);
       if (log.status === 'committed') return;
       if (log.status !== 'reserved') {
@@ -313,17 +320,24 @@ export class QiService {
           updatedAt: new Date(),
         })
         .where(eq(qiLogs.id, log.id));
-    });
+    };
+
+    if (input.tx) {
+      await run(input.tx);
+      return;
+    }
+    await getExecutor().transaction(run);
   }
 
   static async markNoRefund(input: {
     actionInstanceId: string;
     reason: string;
     metadata?: QiLogMetadata;
+    tx?: DbTransaction;
   }): Promise<void> {
     if (!isQiEnabled()) return;
 
-    await getExecutor().transaction(async (tx) => {
+    const run = async (tx: DbTransaction) => {
       const log = await this.lockReservation(tx, input.actionInstanceId);
       if (log.status === 'failed_no_refund') return;
       if (log.status !== 'reserved') {
@@ -342,17 +356,24 @@ export class QiService {
           updatedAt: new Date(),
         })
         .where(eq(qiLogs.id, log.id));
-    });
+    };
+
+    if (input.tx) {
+      await run(input.tx);
+      return;
+    }
+    await getExecutor().transaction(run);
   }
 
   static async refundReservation(input: {
     actionInstanceId: string;
     reason: string;
     metadata?: QiLogMetadata;
+    tx?: DbTransaction;
   }): Promise<void> {
     if (!isQiEnabled()) return;
 
-    await getExecutor().transaction(async (tx) => {
+    const run = async (tx: DbTransaction) => {
       const log = await this.lockReservation(tx, input.actionInstanceId);
       if (log.status === 'refunded') return;
       if (log.status !== 'reserved') {
@@ -380,7 +401,13 @@ export class QiService {
           updatedAt: new Date(),
         })
         .where(eq(qiLogs.id, log.id));
-    });
+    };
+
+    if (input.tx) {
+      await run(input.tx);
+      return;
+    }
+    await getExecutor().transaction(run);
   }
 
   static async restoreQi(input: {

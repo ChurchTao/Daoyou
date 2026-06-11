@@ -13,6 +13,7 @@ const {
   createBattleRecordV2Mock,
   releaseChallengeLockMock,
   recordTaskEventMock,
+  commitPlayerStateMutationMock,
   updateRankingMock,
 } = vi.hoisted(() => ({
   checkDailyChallengesMock: vi.fn(),
@@ -26,6 +27,28 @@ const {
   createBattleRecordV2Mock: vi.fn(),
   releaseChallengeLockMock: vi.fn(),
   recordTaskEventMock: vi.fn(),
+  commitPlayerStateMutationMock: vi.fn(async (input: any) => {
+    const result = await input.run('tx');
+    return {
+      result: result.result,
+      state: {
+        cultivatorId: input.cultivatorId,
+        globalVersion: 1,
+        domainVersions: { tasks: 1 },
+        events: result.changes.map((change: any, index: number) => ({
+          id: index + 1,
+          cultivatorId: input.cultivatorId,
+          globalVersion: 1,
+          domainVersion: 1,
+          source: input.source,
+          patch: {},
+          invalidates: change.invalidates ?? [],
+          createdAt: '2026-06-10T00:00:00.000Z',
+          ...change,
+        })),
+      },
+    };
+  }),
   updateRankingMock: vi.fn(),
 }));
 
@@ -95,6 +118,15 @@ vi.mock('@server/lib/services/TaskService', () => ({
   },
 }));
 
+vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
+  commitPlayerStateMutation: commitPlayerStateMutationMock,
+  toPlayerStateMutationResponse: (committed: any) => ({
+    success: true,
+    data: committed.result,
+    state: committed.state,
+  }),
+}));
+
 import rankingsRouter from './rankings.router';
 
 function createApp() {
@@ -159,6 +191,7 @@ describe('rankings router', () => {
     expect(recordTaskEventMock).toHaveBeenCalledWith(
       'cultivator-1',
       'ranking_challenge_battled',
+      { tx: 'tx' },
     );
     expect(createBattleRecordV2Mock).toHaveBeenCalledTimes(1);
   });

@@ -20,15 +20,14 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import {
-  getQiErrorMessage,
   useQiActionConfirm,
 } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { invalidateQiState } from '@app/components/feature/cultivator/useQiState';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { CREATION_INPUT_CONSTRAINTS } from '@shared/engine/creation-v2/config/CreationBalance';
 import { getAllowedMaterialTypesForCraftType } from '@shared/engine/creation-v2/config/CreationCraftPolicy';
 import { useCultivator } from '@app/lib/contexts/CultivatorContext';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
+import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -82,7 +81,8 @@ const TARGET_SCOPE_OPTIONS: { value: 'single' | 'aoe' | 'random'; label: string 
 
 export default function SkillCreationPage() {
   const navigate = useNavigate();
-  const { cultivator, refreshCultivator, note, isLoading } = useCultivator();
+  const { cultivator, note, isLoading } = useCultivator();
+  const { mutate } = usePlayerStateActions();
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [selectedMaterialMap, setSelectedMaterialMap] = useState<
     Record<string, Material>
@@ -275,18 +275,13 @@ export default function SkillCreationPage() {
         setIsResultModalOpen(false);
 
         try {
-          const response = await fetch('/api/craft', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(submitPayload),
-          });
-
-          const result = await response.json();
-          if (!response.ok || !result.success) {
-            throw new Error(getQiErrorMessage(result, '推演失败'));
-          }
-
-          const skill = result.data as CreationProductResultRecord;
+          const skill = await mutate<CreationProductResultRecord>(
+            fetch('/api/craft', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(submitPayload),
+            }),
+          );
           const successMessage = `神通【${skill.name}】推演成功！`;
 
           setCreatedResult(skill);
@@ -298,7 +293,6 @@ export default function SkillCreationPage() {
           setSelectedMaterialMap({});
           setDoseMap({});
           setIsMaterialModalOpen(false);
-          invalidateQiState(cultivator.id);
           setMaterialsRefreshKey((prev) => prev + 1);
 
           if (skill.needs_replace) {
@@ -307,7 +301,6 @@ export default function SkillCreationPage() {
           }
 
           setPendingReplaceHref(null);
-          await refreshCultivator();
         } catch (error) {
           const failMessage =
             error instanceof Error

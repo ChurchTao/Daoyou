@@ -4,6 +4,7 @@ import type {
   TaskListResponse,
   TaskRewardClaimResponse,
 } from '@shared/contracts/task';
+import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import { getNextMajorRealm } from '@shared/lib/breakthroughPill';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { TaskInstance, TaskStatus } from '@shared/types/task';
@@ -50,7 +51,11 @@ export async function claimTaskReward(taskId: string) {
   const response = await fetch(`/api/tasks/${taskId}/claim-reward`, {
     method: 'POST',
   });
-  return readJsonOrThrow<TaskRewardClaimResponse>(response);
+  const payload = await readJsonOrThrow<TaskRewardClaimResponse>(response);
+  if (payload.state) {
+    await consumePlayerStateMutation(payload);
+  }
+  return payload;
 }
 
 export function findCurrentMajorBreakthroughTask(
