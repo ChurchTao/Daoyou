@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DungeonDifficultyTier, MapNodeInfo } from './mapSystem';
 import {
+  canChallengeDungeonRealm,
   clampDungeonEnemyRealmStage,
   getAllMapNodes,
   getAllSatelliteNodes,
@@ -103,6 +104,12 @@ describe('resolveDungeonMapConfig', () => {
     expect(getDungeonRewardBonus('hard')).toBe(1.2);
     expect(getDungeonRewardBonus('elite')).toBe(1.3);
     expect(getDungeonRewardBonus('boss')).toBe(1.5);
+  });
+
+  it('allows dungeon challenges only up to the player realm', () => {
+    expect(canChallengeDungeonRealm('筑基', '炼气')).toBe(true);
+    expect(canChallengeDungeonRealm('筑基', '筑基')).toBe(true);
+    expect(canChallengeDungeonRealm('筑基', '金丹')).toBe(false);
   });
 
   it('keeps curated map data explicitly classified', () => {

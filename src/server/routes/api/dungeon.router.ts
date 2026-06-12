@@ -28,7 +28,11 @@ import { getCultivatorByIdUnsafe } from '@server/lib/services/cultivatorService'
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { getCultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import { getMapNode, isSatelliteNode } from '@shared/lib/game/mapSystem';
+import {
+  canChallengeDungeonRealm,
+  getMapNode,
+  isSatelliteNode,
+} from '@shared/lib/game/mapSystem';
 import { evaluateNoviceReadiness } from '@shared/lib/noviceGuidance';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
@@ -308,6 +312,18 @@ router.post('/start', requireActiveCultivator(), async (c) => {
     selectedNode && 'realm_requirement' in selectedNode
       ? selectedNode.realm_requirement
       : null;
+  if (
+    selectedNodeRealm &&
+    !canChallengeDungeonRealm(bundle.cultivator.realm, selectedNodeRealm)
+  ) {
+    return c.json(
+      {
+        error: `当前境界${bundle.cultivator.realm}不可挑战${selectedNodeRealm}副本，请先提升大境界`,
+      },
+      409,
+    );
+  }
+
   const display = getCultivatorDisplaySnapshot(bundle.cultivator);
   const readiness = evaluateNoviceReadiness({
     cultivator: bundle.cultivator,

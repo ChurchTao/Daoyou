@@ -15,6 +15,7 @@ const {
   getCultivatorDisplaySnapshotMock,
   getMapNodeMock,
   isSatelliteNodeMock,
+  canChallengeDungeonRealmMock,
   DungeonFlowErrorMock,
   QiInsufficientErrorMock,
   QiServiceErrorMock,
@@ -34,6 +35,7 @@ const {
   getCultivatorDisplaySnapshotMock: vi.fn(),
   getMapNodeMock: vi.fn(),
   isSatelliteNodeMock: vi.fn(),
+  canChallengeDungeonRealmMock: vi.fn(),
   DungeonFlowErrorMock: class DungeonFlowError extends Error {
     code: string;
     status: 404 | 409;
@@ -168,6 +170,7 @@ vi.mock('@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter', () => ({
 }));
 
 vi.mock('@shared/lib/game/mapSystem', () => ({
+  canChallengeDungeonRealm: canChallengeDungeonRealmMock,
   getMapNode: getMapNodeMock,
   isSatelliteNode: isSatelliteNodeMock,
 }));
@@ -222,6 +225,7 @@ describe('dungeon battle router', () => {
       realm_requirement: '炼气',
     });
     isSatelliteNodeMock.mockReturnValue(true);
+    canChallengeDungeonRealmMock.mockReturnValue(true);
   });
 
   it('starts a dungeon when novice readiness passes', async () => {
@@ -348,6 +352,47 @@ describe('dungeon battle router', () => {
     };
     expect(payload.error).toContain('气血仅 40%');
     expect(payload.readiness.shouldBlock).toBe(true);
+    expect(startDungeonMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects dungeon start when selected node is above player realm', async () => {
+    getCultivatorByIdUnsafeMock.mockResolvedValueOnce({
+      cultivator: {
+        id: 'cultivator-1',
+        realm: '筑基',
+        inventory: {
+          artifacts: [],
+          consumables: [],
+          materials: [],
+        },
+        equipped: {
+          weapon: null,
+          armor: null,
+          accessory: null,
+        },
+      },
+    });
+    getMapNodeMock.mockReturnValueOnce({
+      id: 'node-1',
+      realm_requirement: '金丹',
+    });
+    canChallengeDungeonRealmMock.mockReturnValueOnce(false);
+
+    const response = await createApp().request('/api/dungeon/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mapNodeId: 'node-1',
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    const payload = (await response.json()) as { error: string };
+    expect(payload.error).toBe(
+      '当前境界筑基不可挑战金丹副本，请先提升大境界',
+    );
     expect(startDungeonMock).not.toHaveBeenCalled();
   });
 

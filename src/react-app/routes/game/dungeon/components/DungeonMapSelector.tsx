@@ -4,12 +4,15 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import { MapNodeInfo } from '@shared/lib/game/mapSystem';
 import { MapNodeCard } from '../MapNodeCard';
 import type { NoviceDungeonReadiness } from '@shared/lib/noviceGuidance';
+import type { RealmType } from '@shared/types/constants';
 
 interface DungeonMapSelectorProps {
   selectedNode: MapNodeInfo | null;
   onStart: (nodeId: string) => Promise<void>;
   isStarting: boolean;
   readiness: NoviceDungeonReadiness | null;
+  realmBlockReason?: string | null;
+  playerRealm?: RealmType;
 }
 
 /**
@@ -21,6 +24,8 @@ export function DungeonMapSelector({
   onStart,
   isStarting,
   readiness,
+  realmBlockReason,
+  playerRealm,
 }: DungeonMapSelectorProps) {
   if (!selectedNode) {
     return (
@@ -35,7 +40,10 @@ export function DungeonMapSelector({
 
   return (
     <div className="space-y-4">
-      <MapNodeCard node={selectedNode} />
+      <MapNodeCard node={selectedNode} playerRealm={playerRealm} />
+      {realmBlockReason ? (
+        <InkNotice tone="warning">{realmBlockReason}</InkNotice>
+      ) : null}
       {readiness?.shouldBlock ? (
         <InkNotice tone="warning">
           {readiness.reasons[0] ?? '首次探秘前还需准备。'}
@@ -48,11 +56,13 @@ export function DungeonMapSelector({
         <InkButton
           variant="primary"
           onClick={() => onStart(selectedNode.id)}
-          disabled={isStarting || readiness?.shouldBlock}
+          disabled={isStarting || Boolean(realmBlockReason) || readiness?.shouldBlock}
         >
           {isStarting
             ? '启动中...'
-            : readiness?.shouldBlock
+            : realmBlockReason
+              ? '境界不足'
+              : readiness?.shouldBlock
               ? '准备未足'
               : '开始探索'}
         </InkButton>

@@ -17,6 +17,7 @@ const {
   redisSetMock,
   resourceConsumeMock,
   resourceGainMock,
+  reserveQiMock,
 } = vi.hoisted(() => ({
     buildDraftMock: vi.fn(),
     enrichNarrativeMock: vi.fn(),
@@ -24,6 +25,7 @@ const {
     redisSetMock: vi.fn(),
     resourceConsumeMock: vi.fn(),
     resourceGainMock: vi.fn(),
+    reserveQiMock: vi.fn(),
   }));
 
 vi.mock('@server/lib/prompts', () => ({
@@ -96,6 +98,14 @@ vi.mock('../services/TaskService', () => ({
   TaskService: {
     recordDungeonCompletion: vi.fn(),
     recordTaskEvent: vi.fn(),
+  },
+}));
+
+vi.mock('../services/QiService', () => ({
+  QiService: {
+    reserveQi: reserveQiMock,
+    commitReservation: vi.fn(),
+    refundReservation: vi.fn(),
   },
 }));
 
@@ -476,6 +486,50 @@ describe('DungeonService dungeon enemy difficulty', () => {
       stage: '圆满',
       difficulty: 90,
     });
+  });
+});
+
+describe('DungeonService dungeon start eligibility', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    redisSetMock.mockResolvedValue('OK');
+  });
+
+  it('rejects dungeon starts above the player realm before reserving qi', async () => {
+    vi.mocked(getExecutor).mockReturnValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            orderBy: vi.fn(() => ({
+              limit: vi.fn(async () => []),
+            })),
+          })),
+        })),
+      })),
+    } as unknown as ReturnType<typeof getExecutor>);
+    getMapNodeMock.mockReturnValueOnce({
+      id: 'SAT_TN_01',
+      name: '太岳山·无名古修士洞府',
+      parent_id: 'TN_YUE_01',
+      type: '隐秘地点',
+      realm_requirement: '筑基',
+      tags: [],
+      description: '',
+      connections: [],
+      x: 82,
+      y: 88,
+      dungeon_config: { difficulty: 'normal' },
+    });
+    const service = new DungeonService();
+    vi.spyOn(service, 'getPlayer').mockResolvedValueOnce({
+      ...createPlayerInfo(),
+      realm: '炼气 后期',
+    } as unknown as Awaited<ReturnType<DungeonService['getPlayer']>>);
+
+    await expect(
+      service.startDungeon('cultivator-1', 'SAT_TN_01'),
+    ).rejects.toThrow('当前境界炼气不可挑战筑基副本，请先提升大境界');
+    expect(reserveQiMock).not.toHaveBeenCalled();
   });
 });
 

@@ -1,4 +1,4 @@
-import type { RealmType } from '@shared/types/constants';
+import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 import type { RealmStage } from '@shared/types/constants';
 import type { MarketLayer, RegionProfileKey } from '@shared/types/market';
 import mapData from '../../data/map.json';
@@ -186,6 +186,13 @@ export function resolveDungeonEnemyDifficulty(
   tier: DungeonDifficultyTier,
 ): number {
   return DUNGEON_ENEMY_DIFFICULTY_TABLE[realm]?.[tier] ?? 24;
+}
+
+export function canChallengeDungeonRealm(
+  playerRealm: RealmType,
+  dungeonRealm: RealmType,
+): boolean {
+  return REALM_ORDER[playerRealm] >= REALM_ORDER[dungeonRealm];
 }
 
 export function clampDungeonEnemyRealmStage(

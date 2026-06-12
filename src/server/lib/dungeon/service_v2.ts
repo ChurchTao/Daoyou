@@ -8,6 +8,7 @@ import { TYPE_DESCRIPTIONS } from '@shared/engine/material/creation/config';
 import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
+  canChallengeDungeonRealm,
   getMapNode,
   isSatelliteNode,
   clampDungeonEnemyRealmStage,
@@ -163,6 +164,17 @@ const COST_LIMITS: Partial<Record<DungeonOptionCost['type'], number>> = {
 const DUNGEON_MATERIAL_TYPE_TABLE = Object.entries(TYPE_DESCRIPTIONS)
   .map(([key, desc]) => `| ${key} | ${desc} |`)
   .join('\n');
+
+function assertDungeonRealmEligible(
+  playerRealm: RealmType,
+  dungeonRealm: RealmType,
+) {
+  if (!canChallengeDungeonRealm(playerRealm, dungeonRealm)) {
+    throw new Error(
+      `当前境界${playerRealm}不可挑战${dungeonRealm}副本，请先提升大境界`,
+    );
+  }
+}
 
 // Helper to generate Redis key
 function getDungeonKey(cultivatorId: string) {
@@ -578,6 +590,9 @@ export class DungeonService {
         throw new Error('只有秘境节点可以进行副本挑战');
       }
 
+      // 1. 获取玩家与地图数据 (逻辑同你之前)
+      const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
+
       qiActionInstanceId = randomUUID();
       if (!options.deferPersistence) {
         await QiService.reserveQi({
@@ -590,9 +605,6 @@ export class DungeonService {
         });
         qiReservationOpen = true;
       }
-
-      // 1. 获取玩家与地图数据 (逻辑同你之前)
-      const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
 
       // 2. 初始状态
       const state: DungeonState = {
@@ -2041,6 +2053,10 @@ export class DungeonService {
   async prepareDungeonContext(cultivatorId: string, mapNodeId: string) {
     const player = await this.getPlayer(cultivatorId);
     const mapNode = this.getMapNode(mapNodeId);
+    assertDungeonRealmEligible(
+      player.realm.split(' ')[0] as RealmType,
+      mapNode.realm_requirement,
+    );
     return {
       playerInfo: player,
       location: {

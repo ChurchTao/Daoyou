@@ -123,17 +123,19 @@ function makeCultivator(realm: Cultivator['realm']): Cultivator {
   };
 }
 
-function makePreparedEnemy() {
+function makePreparedEnemy(overrides: { floor?: number; kind?: 'normal' | 'elite' | 'boss' } = {}) {
+  const floor = overrides.floor ?? 1;
+  const kind = overrides.kind ?? 'normal';
   return {
-    floor: 1,
+    floor,
     encounter: {
-      floor: 1,
-      kind: 'normal' as const,
+      floor,
+      kind,
       difficulty: 5,
       race: '人族' as const,
       realm: '金丹' as const,
       realmStage: '初期' as const,
-      isBoss: false,
+      isBoss: kind === 'boss',
     },
     enemy: {
       ...makeCultivator('金丹'),
@@ -208,6 +210,73 @@ describe('tower service prepared enemies', () => {
 
     expect(result.state?.challengeRealm).toBe('金丹');
     expect(savedState.challengeRealm).toBe('金丹');
+  });
+
+  it('carries the selected blessing into the next floor battle init', async () => {
+    const season = getTowerSeasonMeta();
+    redisStore.set(
+      'tower:run:cultivator-1',
+      JSON.stringify({
+        runId: 'run-1',
+        seasonKey: season.seasonKey,
+        challengeRealm: '金丹',
+        status: 'CHOOSING_BLESSING',
+        currentFloor: 1,
+        highestFloorCleared: 1,
+        condition,
+        blessings: {},
+        pendingBlessingChoices: [
+          {
+            id: 'vitality_surge',
+            name: '体魄澎湃',
+            description: '战斗时体魄提升 8%，可叠加至 5 层。',
+            currentStacks: 0,
+            nextStacks: 1,
+            maxStacks: 5,
+          },
+        ],
+        claimedMilestones: [],
+        milestoneRewardLog: [],
+      }),
+    );
+    loadTowerEnemyForBattleMock.mockResolvedValueOnce(
+      makePreparedEnemy({ floor: 2 }),
+    );
+    simulateBattleV5Mock.mockReturnValueOnce({
+      winner: { id: 'cultivator-1' },
+      winnerSnapshot: {
+        hp: { current: 80 },
+        mp: { current: 70 },
+      },
+    });
+
+    await towerService.chooseBlessing('cultivator-1', 'vitality_surge');
+    const battleContext = await towerService.probeBattle('cultivator-1');
+    await towerService.executeBattle(
+      'cultivator-1',
+      battleContext.battleId,
+      new Date(),
+      { deferPersistence: true },
+    );
+
+    expect(loadTowerEnemyForBattleMock).toHaveBeenCalledWith(
+      expect.objectContaining({ floor: 2 }),
+    );
+    expect(simulateBattleV5Mock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        player: expect.objectContaining({
+          modifiers: expect.arrayContaining([
+            expect.objectContaining({
+              attrType: 'vitality',
+              type: 'multiply',
+              value: 1.08,
+            }),
+          ]),
+        }),
+      }),
+    );
   });
 
   it('adds reputation to milestone rewards', async () => {

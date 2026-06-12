@@ -13,11 +13,11 @@ function createActionId() {
 
 async function readDungeonMutation<T>(
   response: Response,
-): Promise<T | { conflict: true }> {
+): Promise<T | { conflict: true; message?: string }> {
   const data = await response.json();
   if (!response.ok || data.error) {
     if (response.status === 409) {
-      return { conflict: true };
+      return { conflict: true, message: data.message || data.error };
     }
     throw new Error(data.message || data.error || `HTTP ${response.status}`);
   }
@@ -53,7 +53,7 @@ export function useDungeonActions() {
 
       const data = await readDungeonMutation<{ state?: DungeonState }>(res);
       if ('conflict' in data) {
-        throw new Error('启动秘境失败');
+        throw new Error(data.message ?? '启动秘境失败');
       }
 
       pushToast({ message: '秘境已开启', tone: 'success' });

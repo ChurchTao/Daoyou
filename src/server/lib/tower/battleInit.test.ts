@@ -1,4 +1,5 @@
 import { BASIC_SKILLS, BASIC_TECHNIQUES } from '@shared/engine/cultivator/creation/config';
+import { createBattleUnitsWithInit } from '@shared/engine/battle-v5/setup/BattleInitApplier';
 import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { Cultivator } from '@shared/types/cultivator';
@@ -119,6 +120,41 @@ describe('tower battle init', () => {
         expect.objectContaining({ attrType: 'maxHp', value: 1.18 }),
       ]),
     );
+  });
+
+  it('applies tower blessing modifiers to battle unit snapshots', () => {
+    const cultivator = createCultivator();
+    const opponent = {
+      ...createCultivator(),
+      id: 'opponent-1',
+      name: '厉飞雨',
+    };
+    const { playerUnit: baselineUnit } = createBattleUnitsWithInit(
+      cultivator,
+      opponent,
+    );
+    const { battleInit } = buildTowerBattleInit({
+      cultivator,
+      condition: createCondition(),
+      blessings: {
+        vitality_surge: 1,
+        jade_bones: 1,
+      },
+      encounterKind: 'normal',
+    });
+    const { playerUnit: blessedUnit } = createBattleUnitsWithInit(
+      cultivator,
+      opponent,
+      battleInit,
+    );
+
+    const baseline = baselineUnit.getSnapshot();
+    const blessed = blessedUnit.getSnapshot();
+
+    expect(blessed.attributes.vitality).toBeGreaterThan(
+      baseline.attributes.vitality,
+    );
+    expect(blessed.maxHp).toBeGreaterThan(baseline.maxHp);
   });
 
   it('marks defeat as near death without natural recovery', () => {

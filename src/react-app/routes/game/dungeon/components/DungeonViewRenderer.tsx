@@ -8,10 +8,9 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { getMapNode } from '@shared/lib/game/mapSystem';
+import { canChallengeDungeonRealm, getMapNode } from '@shared/lib/game/mapSystem';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { REALM_ORDER } from '@shared/types/constants';
 import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
 import { DungeonAbandonBattleResult } from '@app/lib/hooks/dungeon/useEnemyProbe';
 import { Cultivator } from '@shared/types/cultivator';
@@ -89,9 +88,9 @@ function renderPreparationNotice(
   const mpPercent = Math.max(0, Math.min(100, Math.round(mp?.percent ?? 0)));
   const nodeRealm = selectedNode?.realm_requirement;
   const realmRisk =
-    nodeRealm && REALM_ORDER[nodeRealm] > REALM_ORDER[cultivator.realm]
+    nodeRealm && !canChallengeDungeonRealm(cultivator.realm, nodeRealm)
       ? 'danger'
-      : nodeRealm && REALM_ORDER[nodeRealm] === REALM_ORDER[cultivator.realm]
+      : nodeRealm === cultivator.realm
         ? 'warning'
         : 'info';
   const reminder =
@@ -381,6 +380,12 @@ export function DungeonViewRenderer({
       selectedNode && 'realm_requirement' in selectedNode
         ? selectedNode.realm_requirement
         : null;
+    const realmBlockReason =
+      cultivator &&
+      selectedNodeRealm &&
+      !canChallengeDungeonRealm(cultivator.realm, selectedNodeRealm)
+        ? `当前境界${cultivator.realm}不可挑战${selectedNodeRealm}副本，请先提升大境界。`
+        : null;
     const readiness =
       cultivator && displayResources
         ? evaluateNoviceReadiness({
@@ -412,6 +417,8 @@ export function DungeonViewRenderer({
             onStart={actions.startDungeon}
             isStarting={processing}
             readiness={readiness}
+            realmBlockReason={realmBlockReason}
+            playerRealm={cultivator?.realm}
           />
         </InkSection>
         {renderPreparationNotice(
