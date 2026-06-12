@@ -282,7 +282,7 @@ export default function AdminReputationShopPage() {
             hint={`最高 ${REPUTATION_SHOP_MAX_PRICE}`}
           />
           <InkInput
-            label="发放数量"
+            label="单次获得"
             value={normalizeQuantityForItem(draft.quantity, selectedLibraryItem)}
             onChange={(quantity) =>
               setDraft((current) => ({ ...current, quantity }))
@@ -365,7 +365,7 @@ export default function AdminReputationShopPage() {
                     </InkBadge>
                   </div>
                 }
-                meta={`价格 ${item.price} 声望 · 数量 ${item.quantity} · 每周限购 ${
+                meta={`价格 ${item.price} 声望 · 单次获得 ${item.quantity} · 每周限购 ${
                   item.perUserLimit ?? '不限'
                 } · 排序 ${item.sortOrder}`}
                 description={item.item.description ?? item.item.payload.description}
