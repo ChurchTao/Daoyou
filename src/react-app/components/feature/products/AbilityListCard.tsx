@@ -23,7 +23,7 @@ function getAbilityIcon(product: ProductDisplayModel): string {
     return getGameConceptIcon('skill');
   }
 
-  return '🗡️';
+  return getGameConceptIcon('artifact');
 }
 
 export function AbilityListCard({

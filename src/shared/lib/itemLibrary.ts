@@ -1,5 +1,6 @@
 import type { MailAttachment } from '@shared/types/mail';
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
   CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
@@ -387,7 +388,7 @@ export function resolveItemLibrarySelections(
     if (selection.type === 'spirit_stones') {
       return {
         type: 'spirit_stones',
-        name: '灵石',
+        name: getGameConceptLabel('spirit_stones'),
         quantity: selection.quantity,
       };
     }
@@ -395,7 +396,7 @@ export function resolveItemLibrarySelections(
     if (selection.type === 'reputation') {
       return {
         type: 'reputation',
-        name: '声望',
+        name: getGameConceptLabel('reputation'),
         quantity: selection.quantity,
       };
     }

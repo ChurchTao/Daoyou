@@ -3,6 +3,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { useEffect, useState } from 'react';
 import {
@@ -24,19 +25,8 @@ interface ItemLibraryResponse {
   error?: string;
 }
 
-function getItemLibraryTypeLabel(item: ItemLibraryEntry) {
-  switch (item.type) {
-    case 'material':
-      return '材料';
-    case 'consumable':
-      return '消耗品';
-    case 'artifact':
-      return '法宝';
-  }
-}
-
 function getItemLibraryItemLabel(item: ItemLibraryEntry) {
-  return `${item.name}（${getItemLibraryTypeLabel(item)} / ${item.itemId}）`;
+  return `${item.name}（${getGameConceptLabel(item.type)} / ${item.itemId}）`;
 }
 
 function getDraftSummary(
@@ -44,11 +34,13 @@ function getDraftSummary(
   itemLibraryItems: ItemLibraryEntry[],
 ): string {
   if (draft.type === 'spirit_stones') {
-    return draft.quantity.trim() ? `灵石 x${draft.quantity.trim()}` : '灵石';
+    const label = getGameConceptLabel('spirit_stones');
+    return draft.quantity.trim() ? `${label} x${draft.quantity.trim()}` : label;
   }
 
   if (draft.type === 'reputation') {
-    return draft.quantity.trim() ? `声望 x${draft.quantity.trim()}` : '声望';
+    const label = getGameConceptLabel('reputation');
+    return draft.quantity.trim() ? `${label} x${draft.quantity.trim()}` : label;
   }
 
   const item = itemLibraryItems.find(
@@ -228,8 +220,12 @@ export function RewardSelectionEditor({
                 }}
                 disabled={disabled}
               >
-                <option value="spirit_stones">灵石</option>
-                <option value="reputation">声望</option>
+                <option value="spirit_stones">
+                  {getGameConceptLabel('spirit_stones')}
+                </option>
+                <option value="reputation">
+                  {getGameConceptLabel('reputation')}
+                </option>
                 <option value="item_library">道具库道具</option>
               </InkSelect>
 
@@ -261,7 +257,7 @@ export function RewardSelectionEditor({
                     奖励项
                   </span>
                   <div className="border-ink/15 bg-bgpaper/70 text-ink rounded-sm border border-dashed px-3 py-2">
-                    {draft.type === 'spirit_stones' ? '灵石' : '声望'}
+                    {getGameConceptLabel(draft.type)}
                   </div>
                 </div>
               )}

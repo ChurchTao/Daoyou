@@ -16,6 +16,7 @@ import {
   REPUTATION_SHOP_MAX_PRICE,
   REPUTATION_SHOP_MAX_STACK_QUANTITY,
 } from '@shared/contracts/reputationShop';
+import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -49,17 +50,6 @@ const emptyDraft: DraftState = {
   status: 'active',
   sortOrder: '0',
 };
-
-function getItemTypeLabel(item: ItemLibraryEntry) {
-  switch (item.type) {
-    case 'material':
-      return '材料';
-    case 'consumable':
-      return '消耗品';
-    case 'artifact':
-      return '法宝';
-  }
-}
 
 function toQualityTier(quality: string | null | undefined): Quality | undefined {
   return QUALITY_VALUES.includes(quality as Quality)
@@ -270,7 +260,7 @@ export default function AdminReputationShopPage() {
             ) : (
               libraryItems.map((item) => (
                 <option key={item.id} value={item.itemId}>
-                  {item.name} / {getItemTypeLabel(item)} / {item.itemId}
+                  {item.name} / {getGameConceptLabel(item.type)} / {item.itemId}
                 </option>
               ))
             )}

@@ -4,6 +4,7 @@ import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
+import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
 import { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useState } from 'react';
 import { Mail } from './MailList';
@@ -12,27 +13,6 @@ interface MailDetailModalProps {
   mail: Mail | null;
   onClose: () => void;
   onUpdate: (mailId: string) => void; // Update list after claim
-}
-
-function getAttachmentIcon(type: string): string {
-  switch (type) {
-    case 'spirit_stones':
-      return '💰';
-    case 'reputation':
-      return '🏅';
-    case 'cultivation_exp':
-      return '📜';
-    case 'comprehension_insight':
-      return '💡';
-    case 'material':
-      return '🧱';
-    case 'consumable':
-      return '🧪';
-    case 'artifact':
-      return '⚔️';
-    default:
-      return '🎁';
-  }
 }
 
 export function MailDetailModal({
@@ -99,7 +79,9 @@ export function MailDetailModal({
                   className="bg-paper-2 border-ink/10 flex items-center justify-between border border-dashed p-2 text-sm"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span aria-hidden="true">{getAttachmentIcon(item.type)}</span>
+                    <span aria-hidden="true">
+                      {getGameConceptIcon(item.type) || '🎁'}
+                    </span>
                     {item.type === 'spirit_stones' && (
                       <span className="text-ink">{item.name}</span>
                     )}
