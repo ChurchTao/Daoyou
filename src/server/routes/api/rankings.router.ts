@@ -13,6 +13,7 @@ import {
 import type { AppEnv } from '@server/lib/hono/types';
 import {
   acquireChallengeLock,
+  addToRankingTailIfVacant,
   addToRanking,
   checkDailyChallenges,
   getCultivatorRank,
@@ -26,6 +27,7 @@ import {
   updateRanking,
 } from '@server/lib/redis/rankings';
 import { createBattleRecordV2 } from '@server/lib/repositories/battleRecordV2Repository';
+import { createMessage } from '@server/lib/repositories/worldChatRepository';
 import {
   commitPlayerStateMutation,
   toPlayerStateMutationResponse,
@@ -63,6 +65,8 @@ const ChallengeBattleSchema = z.object({
   targetId: z.string().optional().nullable(),
   realm: z.enum(REALM_VALUES).optional(),
 });
+
+type RankingChangeType = 'challenge_win' | 'vacancy_entry' | null;
 
 const router = new Hono<AppEnv>();
 const publicRouter = new Hono<AppEnv>();
@@ -102,6 +106,49 @@ function parseRealmQuery(raw: string | undefined | null): RealmType | null {
 
 function getCultivatorRealm(cultivator: { realm?: string | null }): RealmType {
   return parseRealmQuery(cultivator.realm) ?? '炼气';
+}
+
+function buildRankingChangeRumor(params: {
+  changeType: Exclude<RankingChangeType, null> | 'direct_entry';
+  challengerName: string;
+  targetName?: string;
+  realm: RealmType;
+  rank: number;
+}) {
+  if (params.changeType === 'direct_entry') {
+    return `万界金榜初开，${params.challengerName}登临${params.realm}天骄榜第${params.rank}名。`;
+  }
+
+  if (params.changeType === 'vacancy_entry') {
+    return `万界金榜有感，${params.challengerName}虽挑战${params.targetName ?? '榜上修士'}未胜，仍补入${params.realm}天骄榜第${params.rank}名。`;
+  }
+
+  return `万界金榜有感，${params.challengerName}击败${params.targetName ?? '榜上修士'}，登临${params.realm}天骄榜第${params.rank}名。`;
+}
+
+async function broadcastRankingChange(params: {
+  userId: string;
+  changeType: Exclude<RankingChangeType, null> | 'direct_entry';
+  challengerName: string;
+  targetName?: string;
+  realm: RealmType;
+  rank: number;
+}) {
+  const rumor = buildRankingChangeRumor(params);
+  try {
+    await createMessage({
+      senderUserId: params.userId,
+      senderCultivatorId: null,
+      senderName: '修仙界传闻',
+      senderRealm: '炼气',
+      senderRealmStage: '系统',
+      messageType: 'text',
+      textContent: rumor,
+      payload: { text: rumor },
+    });
+  } catch (chatError) {
+    console.error('天骄榜名次变动传音发送失败:', chatError);
+  }
 }
 
 publicRouter.get('/', async (c) => {
@@ -503,6 +550,13 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
           ],
         }),
       });
+      await broadcastRankingChange({
+        userId: user.id,
+        changeType: 'direct_entry',
+        challengerName: challenger.name,
+        realm: rankingRealm,
+        rank: 1,
+      });
       return c.json(toPlayerStateMutationResponse(committed));
     }
 
@@ -549,6 +603,7 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
     const isWin = battleResult.winner.id === challenger.id;
     let newChallengerRank: number | null = challengerRank;
     let newTargetRank: number | null = targetRank;
+    let rankChangeType: RankingChangeType = null;
 
     if (
       affectsRanking &&
@@ -558,6 +613,18 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
       await updateRanking(rankingRealm, cultivatorId, targetId);
       newChallengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
       newTargetRank = await getCultivatorRank(rankingRealm, targetId);
+      if (newChallengerRank !== null) {
+        rankChangeType = 'challenge_win';
+      }
+    } else if (affectsRanking && !isWin && challengerRank === null) {
+      newChallengerRank = await addToRankingTailIfVacant(
+        rankingRealm,
+        cultivatorId,
+        user.id,
+      );
+      if (newChallengerRank !== null) {
+        rankChangeType = 'vacancy_entry';
+      }
     }
 
     const remainingChallenges = await incrementDailyChallenges(cultivatorId);
@@ -594,6 +661,7 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
               challengerRank: newChallengerRank,
               targetRank: newTargetRank,
               remainingChallenges,
+              rankChangeType,
             },
           },
           changes: [
@@ -606,6 +674,17 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
         };
       },
     });
+
+    if (rankChangeType && newChallengerRank !== null) {
+      await broadcastRankingChange({
+        userId: user.id,
+        changeType: rankChangeType,
+        challengerName: challengerRecord.cultivator.name,
+        targetName: targetRecord.cultivator.name,
+        realm: rankingRealm,
+        rank: newChallengerRank,
+      });
+    }
 
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {

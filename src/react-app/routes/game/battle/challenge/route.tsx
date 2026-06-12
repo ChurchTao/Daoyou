@@ -27,6 +27,7 @@ type ChallengeBattleResponse =
         challengerRank: number | null;
         targetRank: number | null;
         remainingChallenges: number;
+        rankChangeType: 'challenge_win' | 'vacancy_entry' | null;
       };
     };
 
@@ -126,6 +127,7 @@ function ChallengeBattlePageContent() {
     challengerRank: number | null;
     targetRank: number | null;
     remainingChallenges: number;
+    rankChangeType: 'challenge_win' | 'vacancy_entry' | null;
   } | null>(null);
   const [directEntry, setDirectEntry] = useState<{
     rank: number;
@@ -243,6 +245,10 @@ function ChallengeBattlePageContent() {
             {rankingUpdate?.challengerRank != null && isWin && (
               <p>你的排名已更新为第 {rankingUpdate.challengerRank} 名。</p>
             )}
+            {rankingUpdate?.rankChangeType === 'vacancy_entry' &&
+              rankingUpdate.challengerRank != null && (
+                <p>榜单尚有席位，你已补入第 {rankingUpdate.challengerRank} 名。</p>
+              )}
             {rankingUpdate?.affectsRanking === false && (
               <p>此战为越境切磋，不改变{rankingUpdate.realm}榜名次。</p>
             )}

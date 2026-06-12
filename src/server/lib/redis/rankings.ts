@@ -178,6 +178,33 @@ export async function addToRanking(
 }
 
 /**
+ * 排行榜未满时补入榜尾。
+ * @returns 实际名次；若榜单已满或并发修剪后未能留在榜内则返回 null。
+ */
+export async function addToRankingTailIfVacant(
+  realm: RealmType,
+  cultivatorId: string,
+): Promise<number | null> {
+  const existingRank = await getCultivatorRank(realm, cultivatorId);
+  if (existingRank !== null) return existingRank;
+
+  const rankingKey = getRankingListKey(realm);
+  const currentSize = await redis.zcard(rankingKey);
+  if (currentSize >= MAX_RANKING_SIZE) return null;
+
+  await redis.zadd(rankingKey, currentSize + 1, cultivatorId);
+  await redis.zremrangebyrank(rankingKey, MAX_RANKING_SIZE, -1);
+
+  const actualRank = await getCultivatorRank(realm, cultivatorId);
+  if (actualRank === null || actualRank > MAX_RANKING_SIZE) return null;
+
+  const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
+  await redis.set(protectionKey, Date.now().toString(), 'EX', PROTECTION_DURATION);
+
+  return actualRank;
+}
+
+/**
  * 调整插入后的排名（将targetRank及之后的排名+1）
  */
 async function adjustRankingsAfterInsert(

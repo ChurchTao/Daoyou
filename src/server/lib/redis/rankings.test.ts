@@ -97,6 +97,7 @@ vi.mock('@server/lib/services/cultivatorService', () => ({
 
 import {
   addToRanking,
+  addToRankingTailIfVacant,
   getCultivatorRank,
   getRankingList,
   getTopRankingCultivatorIds,
@@ -146,5 +147,30 @@ describe('ranking redis helpers', () => {
     await expect(getCultivatorRank('炼气', 'cultivator-1')).resolves.toBeNull();
     await expect(getCultivatorRank('筑基', 'cultivator-1')).resolves.toBeNull();
     await expect(getCultivatorRank('金丹', 'cultivator-1')).resolves.toBe(1);
+  });
+
+  it('adds an unranked cultivator to the tail when the ranking has vacancies', async () => {
+    await addToRanking('筑基', 'foundation-1', 'user-1', 1);
+    await addToRanking('筑基', 'foundation-2', 'user-2', 2);
+
+    await expect(
+      addToRankingTailIfVacant('筑基', 'foundation-3', 'user-3'),
+    ).resolves.toBe(3);
+    await expect(getTopRankingCultivatorIds('筑基')).resolves.toEqual([
+      'foundation-1',
+      'foundation-2',
+      'foundation-3',
+    ]);
+  });
+
+  it('does not add an unranked cultivator to the tail when the ranking is full', async () => {
+    for (let index = 1; index <= 100; index++) {
+      await addToRanking('筑基', `foundation-${index}`, `user-${index}`, index);
+    }
+
+    await expect(
+      addToRankingTailIfVacant('筑基', 'foundation-101', 'user-101'),
+    ).resolves.toBeNull();
+    await expect(getCultivatorRank('筑基', 'foundation-101')).resolves.toBeNull();
   });
 });

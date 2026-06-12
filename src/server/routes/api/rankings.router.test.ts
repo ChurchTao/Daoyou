@@ -15,10 +15,12 @@ const {
   recordTaskEventMock,
   commitPlayerStateMutationMock,
   updateRankingMock,
+  addToRankingTailIfVacantMock,
   addToRankingMock,
   getRankingListMock,
   getRemainingChallengesMock,
   isLockedMock,
+  createMessageMock,
 } = vi.hoisted(() => ({
   checkDailyChallengesMock: vi.fn(),
   isRankingEmptyMock: vi.fn(),
@@ -54,10 +56,12 @@ const {
     };
   }),
   updateRankingMock: vi.fn(),
+  addToRankingTailIfVacantMock: vi.fn(),
   addToRankingMock: vi.fn(),
   getRankingListMock: vi.fn(),
   getRemainingChallengesMock: vi.fn(),
   isLockedMock: vi.fn(() => false),
+  createMessageMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -66,6 +70,7 @@ vi.mock('@server/lib/hono/middleware', () => ({
       context.set('user', { id: 'user-1' });
       context.set('cultivator', {
         id: 'cultivator-1',
+        name: '韩立',
         realm: '筑基',
       });
       await next();
@@ -96,6 +101,7 @@ vi.mock('@server/lib/drizzle/schema', () => ({
 
 vi.mock('@server/lib/redis/rankings', () => ({
   acquireChallengeLock: acquireChallengeLockMock,
+  addToRankingTailIfVacant: addToRankingTailIfVacantMock,
   addToRanking: addToRankingMock,
   checkDailyChallenges: checkDailyChallengesMock,
   getCultivatorRank: getCultivatorRankMock,
@@ -111,6 +117,10 @@ vi.mock('@server/lib/redis/rankings', () => ({
 
 vi.mock('@server/lib/repositories/battleRecordV2Repository', () => ({
   createBattleRecordV2: createBattleRecordV2Mock,
+}));
+
+vi.mock('@server/lib/repositories/worldChatRepository', () => ({
+  createMessage: createMessageMock,
 }));
 
 vi.mock('@server/lib/services/cultivatorService', () => ({
@@ -181,8 +191,10 @@ describe('rankings router', () => {
     releaseChallengeLockMock.mockResolvedValue(undefined);
     recordTaskEventMock.mockResolvedValue([]);
     updateRankingMock.mockResolvedValue(undefined);
+    addToRankingTailIfVacantMock.mockResolvedValue(null);
     addToRankingMock.mockResolvedValue(undefined);
     getRankingListMock.mockResolvedValue([]);
+    createMessageMock.mockResolvedValue({ id: 'chat-1' });
   });
 
   it('loads battle ranking and my rank from the requested realm bucket', async () => {
@@ -239,6 +251,17 @@ describe('rankings router', () => {
       '筑基',
       'cultivator-1',
       'target-1',
+    );
+    expect(createMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        senderCultivatorId: null,
+        senderName: '修仙界传闻',
+        messageType: 'text',
+        textContent: '万界金榜有感，韩立击败厉飞雨，登临筑基天骄榜第1名。',
+        payload: {
+          text: '万界金榜有感，韩立击败厉飞雨，登临筑基天骄榜第1名。',
+        },
+      }),
     );
   });
 
@@ -400,6 +423,12 @@ describe('rankings router', () => {
       'user-1',
       1,
     );
+    expect(createMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        textContent: '万界金榜初开，韩立登临筑基天骄榜第1名。',
+        payload: { text: '万界金榜初开，韩立登临筑基天骄榜第1名。' },
+      }),
+    );
 
     vi.clearAllMocks();
     checkDailyChallengesMock.mockResolvedValue({ success: true, remaining: 10 });
@@ -443,5 +472,132 @@ describe('rankings router', () => {
 
     expect(response.status).toBe(404);
     expect(updateRankingMock).not.toHaveBeenCalled();
+  });
+
+  it('adds an unranked loser to the ranking tail when own-realm ranking has vacancies', async () => {
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(1);
+    simulateBattleV5Mock.mockReturnValueOnce({
+      winner: { id: 'target-1' },
+      loser: { id: 'cultivator-1' },
+    });
+    addToRankingTailIfVacantMock.mockResolvedValueOnce(2);
+
+    const response = await createApp().request(
+      '/api/rankings/challenge-battle/v5',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: 'target-1',
+        }),
+      },
+    );
+    const result = (await response.json()) as {
+      data: {
+        rankingUpdate: {
+          isWin: boolean;
+          challengerRank: number | null;
+          rankChangeType: string | null;
+        };
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(result.data.rankingUpdate).toMatchObject({
+      isWin: false,
+      challengerRank: 2,
+      rankChangeType: 'vacancy_entry',
+    });
+    expect(addToRankingTailIfVacantMock).toHaveBeenCalledWith(
+      '筑基',
+      'cultivator-1',
+      'user-1',
+    );
+    expect(incrementDailyChallengesMock).toHaveBeenCalledTimes(1);
+    expect(createBattleRecordV2Mock).toHaveBeenCalledTimes(1);
+    expect(recordTaskEventMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'ranking_challenge_battled',
+      { tx: 'tx' },
+    );
+    expect(createMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        textContent:
+          '万界金榜有感，韩立虽挑战厉飞雨未胜，仍补入筑基天骄榜第2名。',
+        payload: {
+          text: '万界金榜有感，韩立虽挑战厉飞雨未胜，仍补入筑基天骄榜第2名。',
+        },
+      }),
+    );
+  });
+
+  it('does not broadcast when an unranked loser cannot enter a full ranking', async () => {
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(1);
+    simulateBattleV5Mock.mockReturnValueOnce({
+      winner: { id: 'target-1' },
+      loser: { id: 'cultivator-1' },
+    });
+    addToRankingTailIfVacantMock.mockResolvedValueOnce(null);
+
+    const response = await createApp().request(
+      '/api/rankings/challenge-battle/v5',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: 'target-1',
+        }),
+      },
+    );
+    const result = (await response.json()) as {
+      data: {
+        rankingUpdate: {
+          challengerRank: number | null;
+          rankChangeType: string | null;
+        };
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(result.data.rankingUpdate).toMatchObject({
+      challengerRank: null,
+      rankChangeType: null,
+    });
+    expect(createMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps ranking challenge successful when world chat broadcast fails', async () => {
+    createMessageMock.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    const response = await createApp().request(
+      '/api/rankings/challenge-battle/v5',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: 'target-1',
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateRankingMock).toHaveBeenCalledWith(
+      '筑基',
+      'cultivator-1',
+      'target-1',
+    );
+    expect(createMessageMock).toHaveBeenCalledTimes(1);
   });
 });
