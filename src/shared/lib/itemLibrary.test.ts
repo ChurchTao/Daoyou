@@ -41,6 +41,7 @@ describe('item library helpers', () => {
       resolveItemLibrarySelections(
         [
           { type: 'spirit_stones', quantity: 1200 },
+          { type: 'reputation', quantity: 20 },
           { type: 'item_library', itemId: 'refined_iron', quantity: 3 },
         ],
         [item],
@@ -50,6 +51,11 @@ describe('item library helpers', () => {
         type: 'spirit_stones',
         name: '灵石',
         quantity: 1200,
+      },
+      {
+        type: 'reputation',
+        name: '声望',
+        quantity: 20,
       },
       {
         type: 'material',

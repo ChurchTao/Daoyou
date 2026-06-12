@@ -7,6 +7,7 @@ import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { useEffect, useState } from 'react';
 import {
   createItemLibraryItemDraft,
+  createReputationDraft,
   createSpiritStoneDraft,
   type RewardSelectionDraft,
 } from './RewardSelectionEditor.helpers';
@@ -44,6 +45,10 @@ function getDraftSummary(
 ): string {
   if (draft.type === 'spirit_stones') {
     return draft.quantity.trim() ? `灵石 x${draft.quantity.trim()}` : '灵石';
+  }
+
+  if (draft.type === 'reputation') {
+    return draft.quantity.trim() ? `声望 x${draft.quantity.trim()}` : '声望';
   }
 
   const item = itemLibraryItems.find(
@@ -137,6 +142,10 @@ export function RewardSelectionEditor({
     onChange([...value, createSpiritStoneDraft()]);
   };
 
+  const addReputation = () => {
+    onChange([...value, createReputationDraft()]);
+  };
+
   const addCatalogItem = () => {
     if (itemLibraryItems.length === 0) {
       pushToast({
@@ -167,6 +176,14 @@ export function RewardSelectionEditor({
         <InkButton
           type="button"
           variant="secondary"
+          onClick={addReputation}
+          disabled={disabled}
+        >
+          添加声望
+        </InkButton>
+        <InkButton
+          type="button"
+          variant="secondary"
           onClick={addCatalogItem}
           disabled={disabled || itemLibraryLoading}
         >
@@ -180,7 +197,7 @@ export function RewardSelectionEditor({
 
       {!itemLibraryLoading && itemLibraryItems.length === 0 ? (
         <InkNotice tone="warning">
-          当前道具库没有 published 道具，暂时只能添加灵石奖励。
+          当前道具库没有 published 道具，暂时只能添加灵石或声望奖励。
         </InkNotice>
       ) : null}
 
@@ -198,17 +215,21 @@ export function RewardSelectionEditor({
               <InkSelect
                 label={`奖励类型 #${index + 1}`}
                 value={draft.type}
-                onChange={(nextType) =>
-                  updateDraft(
-                    index,
+                onChange={(nextType) => {
+                  const nextDraft =
                     nextType === 'spirit_stones'
                       ? createSpiritStoneDraft()
-                      : createItemLibraryItemDraft(itemLibraryItems[0]?.itemId ?? ''),
-                  )
-                }
+                      : nextType === 'reputation'
+                        ? createReputationDraft()
+                        : createItemLibraryItemDraft(
+                            itemLibraryItems[0]?.itemId ?? '',
+                          );
+                  updateDraft(index, nextDraft);
+                }}
                 disabled={disabled}
               >
                 <option value="spirit_stones">灵石</option>
+                <option value="reputation">声望</option>
                 <option value="item_library">道具库道具</option>
               </InkSelect>
 
@@ -240,7 +261,7 @@ export function RewardSelectionEditor({
                     奖励项
                   </span>
                   <div className="border-ink/15 bg-bgpaper/70 text-ink rounded-sm border border-dashed px-3 py-2">
-                    灵石
+                    {draft.type === 'spirit_stones' ? '灵石' : '声望'}
                   </div>
                 </div>
               )}

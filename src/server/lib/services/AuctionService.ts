@@ -604,18 +604,10 @@ export async function buyItem(
         );
       }
 
-      // 5.2 增加卖家灵石（扣除手续费后）
-      await tx
-        .update(schema.cultivators)
-        .set({
-          spirit_stones: sql`${schema.cultivators.spirit_stones} + ${sellerAmount}`,
-        })
-        .where(eq(schema.cultivators.id, listing.sellerId));
-
-      // 5.3 更新拍卖状态
+      // 5.2 更新拍卖状态
       await auctionRepository.updateStatus(tx, listingId, 'sold', new Date());
 
-      // 5.4 发送邮件给买家（物品）
+      // 5.3 发送邮件给买家（物品）
       const itemSnapshot = listing.itemSnapshot as
         | Material
         | Artifact
@@ -638,11 +630,19 @@ export async function buyItem(
         tx,
       );
 
-      // 5.5 发送邮件通知卖家（灵石已在 5.2 直接入账，此处仅通知，不含附件）
-      await MailService.sendSystemMail(
+      // 5.4 发送邮件给卖家（扣除手续费后的灵石）
+      await MailService.sendMail(
         listing.sellerId,
         '拍卖行物品售出',
-        `道友寄售的【${itemSnapshot.name}】已售出，扣除${FEE_RATE * 100}%手续费后获得 ${sellerAmount} 灵石（已直接入账）。`,
+        `道友寄售的【${itemSnapshot.name}】已售出，扣除${FEE_RATE * 100}%手续费后获得 ${sellerAmount} 灵石，请收取附件。`,
+        [
+          {
+            type: 'spirit_stones',
+            name: '灵石',
+            quantity: sellerAmount,
+          },
+        ],
+        'reward',
         tx,
       );
     };

@@ -18,12 +18,16 @@ import {
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { consumePlayerStateMutation } from '@app/lib/player-state/store';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
-import { RANKING_REWARDS } from '@shared/types/constants';
+import {
+  RANKING_REWARDS,
+  REALM_VALUES,
+  type RealmType,
+} from '@shared/types/constants';
 import type { Cultivator } from '@shared/types/cultivator';
 import { ItemRankingEntry, RankingsDisplayItem } from '@shared/types/rankings';
 import { useCallback, useEffect, useState } from 'react';
 import { toRankingDetailItem } from './rankingDetailItem';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 type MyRankInfo = {
   rank: number | null;
@@ -38,12 +42,20 @@ const REPUTATION_INFO = getGameConceptInfo('reputation');
 
 type DirectEntryResponse = {
   type: 'direct_entry';
+  realm: RealmType;
   rank: number;
   remainingChallenges: number;
 };
 
+function resolveRealm(value?: string | null): RealmType {
+  return REALM_VALUES.includes(value as RealmType)
+    ? (value as RealmType)
+    : '炼气';
+}
+
 export default function RankingsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { pushToast } = useInkUI();
   const { cultivator, isLoading, note } = usePlayerStateView();
   const [activeTab, setActiveTab] = useState<RankingTab>('battle');
@@ -59,13 +71,14 @@ export default function RankingsPage() {
     useState<Cultivator | null>(null);
   const [selectedItemDetail, setSelectedItemDetail] =
     useState<ItemDetailPayload | null>(null);
+  const activeRealm = resolveRealm(searchParams.get('realm') ?? cultivator?.realm);
 
   const loadRankings = useCallback(
-    async (tab: RankingTab) => {
+    async (tab: RankingTab, realm: RealmType = activeRealm) => {
       setLoadingRankings(true);
       setError('');
       try {
-        let url = '/api/rankings';
+        let url = `/api/rankings?realm=${encodeURIComponent(realm)}`;
         if (tab !== 'battle') {
           url = `/api/rankings/items?type=${tab}`;
         }
@@ -86,15 +99,17 @@ export default function RankingsPage() {
         setLoadingRankings(false);
       }
     },
-    [pushToast],
+    [activeRealm, pushToast],
   );
 
-  const loadMyRankInfo = useCallback(async () => {
+  const loadMyRankInfo = useCallback(async (realm: RealmType = activeRealm) => {
     if (!cultivator?.id) return;
 
     setMyRankInfoLoadingState('loading');
     try {
-      const response = await fetch('/api/rankings/my-rank');
+      const response = await fetch(
+        `/api/rankings/my-rank?realm=${encodeURIComponent(realm)}`,
+      );
       const result = await response.json();
       if (response.ok && result.success) {
         setMyRankInfo({
@@ -109,14 +124,14 @@ export default function RankingsPage() {
       pushToast({ message: '获取排名信息失败', tone: 'danger' });
       setMyRankInfoLoadingState('loaded');
     }
-  }, [cultivator?.id, pushToast]);
+  }, [activeRealm, cultivator?.id, pushToast]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadInitialRankings = async () => {
       try {
-        let url = '/api/rankings';
+        let url = `/api/rankings?realm=${encodeURIComponent(activeRealm)}`;
         if (activeTab !== 'battle') {
           url = `/api/rankings/items?type=${activeTab}`;
         }
@@ -150,7 +165,7 @@ export default function RankingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, pushToast]);
+  }, [activeRealm, activeTab, pushToast]);
 
   useEffect(() => {
     if (!cultivator?.id || activeTab !== 'battle') {
@@ -161,7 +176,9 @@ export default function RankingsPage() {
 
     const loadInitialMyRank = async () => {
       try {
-        const response = await fetch('/api/rankings/my-rank');
+        const response = await fetch(
+          `/api/rankings/my-rank?realm=${encodeURIComponent(activeRealm)}`,
+        );
         const result = await response.json();
         if (cancelled) return;
 
@@ -188,7 +205,7 @@ export default function RankingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, cultivator?.id, pushToast]);
+  }, [activeRealm, activeTab, cultivator?.id, pushToast]);
 
   const handleTabChange = (val: string) => {
     setRankings([]);
@@ -205,10 +222,14 @@ export default function RankingsPage() {
         },
         body: JSON.stringify({
           targetId: null,
+          realm: activeRealm,
         }),
       }),
     );
-    await Promise.all([loadRankings(activeTab), loadMyRankInfo()]);
+    await Promise.all([
+      loadRankings(activeTab, activeRealm),
+      loadMyRankInfo(activeRealm),
+    ]);
     pushToast({
       message: `成功上榜，占据第${data.rank}名！`,
       tone: 'success',
@@ -226,6 +247,7 @@ export default function RankingsPage() {
         },
         body: JSON.stringify({
           targetId,
+          realm: activeRealm,
         }),
       });
 
@@ -273,7 +295,11 @@ export default function RankingsPage() {
       }
 
       // 验证通过，跳转到挑战战斗页面
-      navigate(`/game/battle/challenge?targetId=${targetId}`);
+      const params = new URLSearchParams({
+        targetId,
+        realm: activeRealm,
+      });
+      navigate(`/game/battle/challenge?${params.toString()}`);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : '挑战验证失败，请稍后重试';
@@ -296,6 +322,7 @@ export default function RankingsPage() {
         },
         body: JSON.stringify({
           targetId: null, // null表示直接上榜
+          realm: activeRealm,
         }),
       });
 
@@ -332,6 +359,7 @@ export default function RankingsPage() {
   const remainingChallenges = myRankInfo?.remainingChallenges;
   const isEmpty = rankings.length === 0;
   const isLoadingChallenges = myRankInfoLoadingState !== 'loaded';
+  const isOwnRealmRanking = activeRealm === resolveRealm(cultivator?.realm);
   const rankingTabs = [
     { label: '天骄榜', value: 'battle' },
     { label: '法宝榜', value: 'artifact' },
@@ -341,19 +369,20 @@ export default function RankingsPage() {
   ];
   const activeTabLabel =
     rankingTabs.find((tab) => tab.value === activeTab)?.label ?? '天骄榜';
+  const realmTabs = REALM_VALUES.map((realm) => ({ label: realm, value: realm }));
 
   return (
     <>
       <GameSceneFrame
         variant="workflow"
         title="【万界金榜】"
-        description="战天下英豪，登万界金榜。榜单切换、挑战校验与物品详情都保留原逻辑，只把战况摘要与奖励规则归到侧栏。"
+        description="同境争锋可夺天骄位，越境切磋只论胜负不改名次。每周一按各境界榜单结算声望，破入新大境界后会离开旧榜。"
         headerMeta={
           <div className="space-y-2">
             {activeTab === 'battle' && myRankInfo ? (
               <GameSceneNote>
                 <p className="text-sm leading-7">
-                  我的排名：{myRank ? `第${myRank}名` : '未上榜'} ｜ 今日剩余挑战：
+                  {activeRealm}榜排名：{myRank ? `第${myRank}名` : '未上榜'} ｜ 今日剩余挑战：
                   {isLoadingChallenges ? '推演中…' : `${remainingChallenges}/10`}
                 </p>
               </GameSceneNote>
@@ -370,6 +399,7 @@ export default function RankingsPage() {
             <GameSceneAsideSection title="榜单摘要">
               <div className="space-y-2 text-sm leading-7">
                 <p>当前榜单：{activeTabLabel}</p>
+                {activeTab === 'battle' ? <p>当前分榜：{activeRealm}</p> : null}
                 <p>
                   {REPUTATION_INFO.label}：{cultivator?.reputation ?? 0}
                 </p>
@@ -392,7 +422,7 @@ export default function RankingsPage() {
                 content: (
                   <div className="space-y-3">
                     <InkNotice tone="info" className="text-sm">
-                      每周一凌晨自动结算，根据排名发放声望。
+                      每周一凌晨分别结算各大境界分榜；同境界胜者夺位，越境切磋不改名次。
                     </InkNotice>
                     <InkList dense>
                       <InkListItem
@@ -440,9 +470,28 @@ export default function RankingsPage() {
           onChange={handleTabChange}
           items={rankingTabs}
         />
+        {activeTab === 'battle' ? (
+          <GameSceneTabs
+            activeValue={activeRealm}
+            onChange={(value) => {
+              const nextRealm = value as RealmType;
+              setRankings([]);
+              setMyRankInfo(null);
+              setMyRankInfoLoadingState('idle');
+              setLoadingRankings(true);
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('realm', nextRealm);
+                return next;
+              });
+            }}
+            items={realmTabs}
+            className="mt-1"
+          />
+        ) : null}
         <div className="flex flex-wrap items-center justify-end gap-2">
           <InkButton
-            onClick={() => loadRankings(activeTab)}
+            onClick={() => loadRankings(activeTab, activeRealm)}
             disabled={loadingRankings}
           >
             {loadingRankings ? '推演中…' : '刷新榜单'}
@@ -455,9 +504,9 @@ export default function RankingsPage() {
           <div className="text-muted animate-pulse py-12 text-center opacity-80">
             <div>正在推演金榜天机...</div>
           </div>
-        ) : isEmpty && myRank === null && activeTab === 'battle' ? (
+        ) : isEmpty && myRank === null && activeTab === 'battle' && isOwnRealmRanking ? (
           <div className="space-y-4">
-            <InkNotice>万界金榜当前为空，你可以直接上榜占据第一名！</InkNotice>
+            <InkNotice>{activeRealm}天骄榜当前为空，你可以直接上榜占据第一名！</InkNotice>
             <InkButton
               onClick={handleDirectEntry}
               variant="primary"
@@ -467,8 +516,12 @@ export default function RankingsPage() {
               {challenging === 'direct' ? '上榜中…' : '直接上榜'}
             </InkButton>
           </div>
-        ) : isEmpty && activeTab !== 'battle' ? (
-          <InkNotice>此榜单暂无记录，静待宝物出世。</InkNotice>
+        ) : isEmpty ? (
+          <InkNotice>
+            {activeTab === 'battle'
+              ? `${activeRealm}天骄榜暂无记录。越境榜单不可直接上榜，需等待本境修士留名后方可切磋。`
+              : '此榜单暂无记录，静待宝物出世。'}
+          </InkNotice>
         ) : (
           <>
             {activeTab === 'battle' &&

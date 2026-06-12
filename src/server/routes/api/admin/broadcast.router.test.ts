@@ -150,6 +150,7 @@ describe('admin broadcast router', () => {
         content: '请查收补偿。',
         rewardSelections: [
           { type: 'spirit_stones', quantity: 300 },
+          { type: 'reputation', quantity: 20 },
           { type: 'item_library', itemId: 'refined_iron', quantity: 2 },
         ],
       }),
@@ -165,6 +166,11 @@ describe('admin broadcast router', () => {
             type: 'spirit_stones',
             name: '灵石',
             quantity: 300,
+          },
+          {
+            type: 'reputation',
+            name: '声望',
+            quantity: 20,
           },
           {
             type: 'material',
@@ -188,7 +194,7 @@ describe('admin broadcast router', () => {
       success: true,
       totalRecipients: 2,
       mailType: 'reward',
-      rewardSummary: ['灵石 x300', '精炼玄铁 x2'],
+      rewardSummary: ['灵石 x300', '声望 x20', '精炼玄铁 x2'],
     });
   });
 

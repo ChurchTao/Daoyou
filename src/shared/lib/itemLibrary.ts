@@ -277,6 +277,10 @@ export const ItemLibraryRewardSelectionSchema = z.discriminatedUnion('type', [
     quantity: z.number().int().min(1).max(100000000),
   }),
   z.object({
+    type: z.literal('reputation'),
+    quantity: z.number().int().min(1).max(100000000),
+  }),
+  z.object({
     type: z.literal('item_library'),
     itemId: ItemLibraryItemIdSchema,
     quantity: z.number().int().min(1).max(100000000),
@@ -384,6 +388,14 @@ export function resolveItemLibrarySelections(
       return {
         type: 'spirit_stones',
         name: '灵石',
+        quantity: selection.quantity,
+      };
+    }
+
+    if (selection.type === 'reputation') {
+      return {
+        type: 'reputation',
+        name: '声望',
         quantity: selection.quantity,
       };
     }

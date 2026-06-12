@@ -128,6 +128,7 @@ import { renderPrompt } from '@server/lib/prompts';
 import {
   getCultivatorByIdUnsafe,
   getCultivatorOwnerId,
+  getPaginatedInventoryByType,
   updateCultivator,
 } from '../services/cultivatorService';
 import { ConditionService } from '../services/ConditionService';
@@ -754,6 +755,82 @@ describe('DungeonService action recovery', () => {
       'cultivator-1',
       { condition: nextCondition },
       tx,
+    );
+  });
+
+  it('matches dungeon material costs from lowest acceptable quality first', async () => {
+    const service = new DungeonService();
+    const state = createDungeonState('easy-map');
+    state.currentOptions = [
+      {
+        id: 1,
+        text: '以灵草试探禁制',
+        risk_level: 'medium',
+        potential_cost: '消耗一株灵草',
+        costs: [
+          {
+            type: 'material',
+            value: 1,
+            required_type: 'herb',
+            required_quality: '灵品',
+          },
+        ],
+      },
+    ];
+    state.history.push({
+      round: 1,
+      scene: '禁制前草木灵机涌动。',
+    });
+    vi.mocked(getPaginatedInventoryByType).mockResolvedValue({
+      type: 'materials',
+      items: [
+        {
+          id: 'low-material',
+          name: '低品灵草',
+          type: 'herb',
+          rank: '灵品',
+          quantity: 1,
+        },
+      ],
+      pagination: {
+        page: 1,
+        pageSize: 10,
+        total: 1,
+        totalPages: 1,
+        hasMore: false,
+      },
+    } as Awaited<ReturnType<typeof getPaginatedInventoryByType>>);
+    vi.spyOn(service, 'getState').mockResolvedValueOnce(state);
+    vi.spyOn(service as any, 'callAI').mockResolvedValueOnce(
+      createRound('灵草化作微光，禁制随之散开。'),
+    );
+    vi.spyOn(service, 'saveState').mockResolvedValue();
+
+    await service.handleAction('cultivator-1', 1, 'material-action-1');
+
+    expect(getPaginatedInventoryByType).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      expect.objectContaining({
+        type: 'materials',
+        materialTypes: ['herb'],
+        materialRanks: expect.arrayContaining(['灵品', '真品', '地品']),
+        materialSortBy: 'rank',
+        materialSortOrder: 'asc',
+      }),
+    );
+    expect(resourceConsumeMock).toHaveBeenCalledWith(
+      'user-1',
+      'cultivator-1',
+      [
+        expect.objectContaining({
+          type: 'material',
+          name: '低品灵草',
+          value: 1,
+        }),
+      ],
+      undefined,
+      true,
     );
   });
 });

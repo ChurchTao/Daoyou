@@ -41,6 +41,9 @@ import { getCreationProductTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
   EquipmentSlot,
   QUALITY_VALUES,
+  REALM_VALUES,
+  type ElementType,
+  type RealmType,
 } from '@shared/types/constants';
 import {
   getConsumableTypeLabel,
@@ -50,14 +53,15 @@ import type { ItemRankingEntry } from '@shared/types/rankings';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import type { ElementType } from '@shared/types/constants';
 
 const ChallengeSchema = z.object({
   targetId: z.string().optional().nullable(),
+  realm: z.enum(REALM_VALUES).optional(),
 });
 
 const ChallengeBattleSchema = z.object({
   targetId: z.string().optional().nullable(),
+  realm: z.enum(REALM_VALUES).optional(),
 });
 
 const router = new Hono<AppEnv>();
@@ -91,12 +95,23 @@ function getRehydratedProductModel(
   );
 }
 
+function parseRealmQuery(raw: string | undefined | null): RealmType | null {
+  if (!raw) return null;
+  return REALM_VALUES.includes(raw as RealmType) ? (raw as RealmType) : null;
+}
+
+function getCultivatorRealm(cultivator: { realm?: string | null }): RealmType {
+  return parseRealmQuery(cultivator.realm) ?? '炼气';
+}
+
 publicRouter.get('/', async (c) => {
   try {
-    const rankings = await getRankingList();
+    const realm = parseRealmQuery(c.req.query('realm')) ?? '炼气';
+    const rankings = await getRankingList(realm);
     return c.json({
       success: true,
       data: rankings,
+      realm,
     });
   } catch (error) {
     console.error('获取排行榜 API 错误:', error);
@@ -294,7 +309,8 @@ challengeRouter.get('/my-rank', requireActiveCultivator(), async (c) => {
     return c.json({ error: '当前没有活跃角色' }, 404);
   }
 
-  const rank = await getCultivatorRank(cultivator.id);
+  const realm = parseRealmQuery(c.req.query('realm')) ?? getCultivatorRealm(cultivator);
+  const rank = await getCultivatorRank(realm, cultivator.id);
   const remainingChallenges = await getRemainingChallenges(cultivator.id);
   const isProtectedStatus = await isProtected(cultivator.id);
 
@@ -302,6 +318,7 @@ challengeRouter.get('/my-rank', requireActiveCultivator(), async (c) => {
     success: true,
     data: {
       rank,
+      realm,
       remainingChallenges,
       isProtected: isProtectedStatus,
     },
@@ -351,22 +368,33 @@ challengeRouter.post('/challenge', requireActiveCultivator(), async (c) => {
     return c.json({ error: '未授权访问' }, 401);
   }
 
-  const { targetId } = ChallengeSchema.parse(await c.req.json());
+  const { targetId, realm: requestedRealm } = ChallengeSchema.parse(
+    await c.req.json(),
+  );
   const cultivatorId = cultivator.id;
+  const ownRealm = getCultivatorRealm(cultivator);
+  const rankingRealm = requestedRealm ?? ownRealm;
+  const isOwnRealmRanking = rankingRealm === ownRealm;
   const challengeCheck = await checkDailyChallenges(cultivatorId);
   if (!challengeCheck.success) {
     return c.json({ error: '今日挑战次数已用完（每日限10次）' }, 400);
   }
 
-  const isEmpty = await isRankingEmpty();
-  const challengerRank = await getCultivatorRank(cultivatorId);
+  const isEmpty = await isRankingEmpty(rankingRealm);
+  const challengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
 
-  if ((!targetId || targetId === '') && isEmpty && challengerRank === null) {
+  if (
+    (!targetId || targetId === '') &&
+    isOwnRealmRanking &&
+    isEmpty &&
+    challengerRank === null
+  ) {
     return c.json({
       success: true,
       message: '可直接上榜',
       data: {
         directEntry: true,
+        realm: rankingRealm,
         rank: 1,
         remainingChallenges: challengeCheck.remaining,
       },
@@ -374,10 +402,17 @@ challengeRouter.post('/challenge', requireActiveCultivator(), async (c) => {
   }
 
   if (!targetId || targetId.trim() === '') {
-    return c.json({ error: '请提供被挑战者ID' }, 400);
+    return c.json(
+      {
+        error: isOwnRealmRanking
+          ? '请提供被挑战者ID'
+          : '越境榜单不可直接上榜，请选择榜上修士切磋',
+      },
+      400,
+    );
   }
 
-  const targetRank = await getCultivatorRank(targetId);
+  const targetRank = await getCultivatorRank(rankingRealm, targetId);
   if (targetRank === null) {
     return c.json({ error: '被挑战者不在排行榜上' }, 404);
   }
@@ -396,8 +431,10 @@ challengeRouter.post('/challenge', requireActiveCultivator(), async (c) => {
     data: {
       cultivatorId,
       targetId,
+      realm: rankingRealm,
       challengerRank,
       targetRank,
+      affectsRanking: isOwnRealmRanking,
       remainingChallenges: challengeCheck.remaining,
     },
   });
@@ -427,17 +464,25 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
     const parsed = ChallengeBattleSchema.parse(await c.req.json());
     targetId = parsed.targetId || null;
     const cultivatorId = challenger.id;
+    const ownRealm = getCultivatorRealm(challenger);
+    const rankingRealm = parsed.realm ?? ownRealm;
+    const affectsRanking = rankingRealm === ownRealm;
 
     const challengeCheck = await checkDailyChallenges(cultivatorId);
     if (!challengeCheck.success) {
       return c.json({ error: '今日挑战次数已用完（每日限10次）' }, 403);
     }
 
-    const isEmpty = await isRankingEmpty();
-    const challengerRank = await getCultivatorRank(cultivatorId);
+    const isEmpty = await isRankingEmpty(rankingRealm);
+    const challengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
 
-    if ((!targetId || targetId === '') && isEmpty && challengerRank === null) {
-      await addToRanking(cultivatorId, user.id, 1);
+    if (
+      (!targetId || targetId === '') &&
+      affectsRanking &&
+      isEmpty &&
+      challengerRank === null
+    ) {
+      await addToRanking(rankingRealm, cultivatorId, user.id, 1);
       const committed = await commitPlayerStateMutation({
         userId: user.id,
         cultivatorId,
@@ -445,6 +490,7 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
         run: async () => ({
           result: {
             type: 'direct_entry' as const,
+            realm: rankingRealm,
             rank: 1,
             remainingChallenges: challengeCheck.remaining,
           },
@@ -461,10 +507,17 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
     }
 
     if (!targetId || targetId.trim() === '') {
-      return c.json({ error: '请提供被挑战者ID' }, 400);
+      return c.json(
+        {
+          error: affectsRanking
+            ? '请提供被挑战者ID'
+            : '越境榜单不可直接上榜，请选择榜上修士切磋',
+        },
+        400,
+      );
     }
 
-    const targetRank = await getCultivatorRank(targetId);
+    const targetRank = await getCultivatorRank(rankingRealm, targetId);
     if (targetRank === null) {
       return c.json({ error: '被挑战者不在排行榜上' }, 404);
     }
@@ -497,10 +550,14 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
     let newChallengerRank: number | null = challengerRank;
     let newTargetRank: number | null = targetRank;
 
-    if (isWin && (challengerRank === null || challengerRank > targetRank)) {
-      await updateRanking(cultivatorId, targetId);
-      newChallengerRank = await getCultivatorRank(cultivatorId);
-      newTargetRank = await getCultivatorRank(targetId);
+    if (
+      affectsRanking &&
+      isWin &&
+      (challengerRank === null || challengerRank > targetRank)
+    ) {
+      await updateRanking(rankingRealm, cultivatorId, targetId);
+      newChallengerRank = await getCultivatorRank(rankingRealm, cultivatorId);
+      newTargetRank = await getCultivatorRank(rankingRealm, targetId);
     }
 
     const remainingChallenges = await incrementDailyChallenges(cultivatorId);
@@ -532,6 +589,8 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
             battleResult,
             rankingUpdate: {
               isWin,
+              realm: rankingRealm,
+              affectsRanking,
               challengerRank: newChallengerRank,
               targetRank: newTargetRank,
               remainingChallenges,

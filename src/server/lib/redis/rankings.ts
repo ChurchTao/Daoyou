@@ -2,9 +2,11 @@ import {
   CultivatorBasic,
   getCultivatorBasicsByIdsUnsafe,
 } from '@server/lib/services/cultivatorService';
+import { REALM_VALUES, type RealmType } from '@shared/types/constants';
 import { redis } from './index';
 
-const RANKING_LIST_KEY = 'golden_rank:list';
+const RANKING_LIST_PREFIX = 'golden_rank:list:';
+const LEGACY_RANKING_LIST_KEY = 'golden_rank:list';
 const PROTECTION_PREFIX = 'golden_rank:protection:';
 const DAILY_CHALLENGES_PREFIX = 'golden_rank:daily_challenges:';
 const CHALLENGE_LOCK_PREFIX = 'golden_rank:challenge_lock:';
@@ -39,13 +41,23 @@ function getTodayString(): string {
   return `${year}-${month}-${day}`;
 }
 
+function getRankingListKey(realm: RealmType): string {
+  return `${RANKING_LIST_PREFIX}${realm}`;
+}
+
 /**
  * 获取排行榜顺序及保护信息
  */
-async function getRankingOrder(): Promise<
+async function getRankingOrder(
+  realm: RealmType,
+): Promise<
   { cultivatorId: string; rank: number; isNewcomer: boolean }[]
 > {
-  const members = await redis.zrange(RANKING_LIST_KEY, 0, MAX_RANKING_SIZE - 1);
+  const members = await redis.zrange(
+    getRankingListKey(realm),
+    0,
+    MAX_RANKING_SIZE - 1,
+  );
 
   const items: { cultivatorId: string; rank: number; isNewcomer: boolean }[] =
     [];
@@ -72,18 +84,23 @@ async function getRankingOrder(): Promise<
  * 获取排行榜前 N 名 ID（按名次升序）
  */
 export async function getTopRankingCultivatorIds(
+  realm: RealmType,
   limit = MAX_RANKING_SIZE,
 ): Promise<string[]> {
   const safeLimit = Math.max(0, Math.min(limit, MAX_RANKING_SIZE));
   if (safeLimit === 0) return [];
-  return (await redis.zrange(RANKING_LIST_KEY, 0, safeLimit - 1)) as string[];
+  return (await redis.zrange(
+    getRankingListKey(realm),
+    0,
+    safeLimit - 1,
+  )) as string[];
 }
 
 /**
  * 获取排行榜列表（回表查询最新数据）
  */
-export async function getRankingList(): Promise<RankingItem[]> {
-  const order = await getRankingOrder();
+export async function getRankingList(realm: RealmType): Promise<RankingItem[]> {
+  const order = await getRankingOrder(realm);
   const ids = order.map((item) => item.cultivatorId);
   const cultivators = await getCultivatorBasicsByIdsUnsafe(ids);
   const map = new Map(cultivators.map((item) => [item.id, item]));
@@ -122,10 +139,11 @@ export async function getRankingList(): Promise<RankingItem[]> {
  * 获取角色在排行榜中的排名
  */
 export async function getCultivatorRank(
+  realm: RealmType,
   cultivatorId: string,
 ): Promise<number | null> {
   // Upstash Redis: zrank(key, member) 返回 number | null
-  const rank = await redis.zrank(RANKING_LIST_KEY, cultivatorId);
+  const rank = await redis.zrank(getRankingListKey(realm), cultivatorId);
   return rank !== null ? rank + 1 : null; // zrank返回0-based索引，需要+1
 }
 
@@ -133,6 +151,7 @@ export async function getCultivatorRank(
  * 添加角色到排行榜
  */
 export async function addToRanking(
+  realm: RealmType,
   cultivatorId: string,
   _userId: string,
   targetRank?: number,
@@ -140,12 +159,12 @@ export async function addToRanking(
   // 添加到排行榜（使用排名作为score）
   // 如果指定了排名，需要先调整后续排名，再插入
   if (targetRank) {
-    await adjustRankingsAfterInsert(targetRank);
-    await redis.zadd(RANKING_LIST_KEY, targetRank, cultivatorId);
+    await adjustRankingsAfterInsert(realm, targetRank);
+    await redis.zadd(getRankingListKey(realm), targetRank, cultivatorId);
   } else {
-    const currentSize = await redis.zcard(RANKING_LIST_KEY);
+    const currentSize = await redis.zcard(getRankingListKey(realm));
     const rank = currentSize + 1;
-    await redis.zadd(RANKING_LIST_KEY, rank, cultivatorId);
+    await redis.zadd(getRankingListKey(realm), rank, cultivatorId);
   }
 
   // 设置新上榜保护（2小时）
@@ -155,16 +174,20 @@ export async function addToRanking(
 
   // 限制排行榜大小（只保留前100名）
   // Upstash Redis: zremrangebyrank(key, start, stop)
-  await redis.zremrangebyrank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
+  await redis.zremrangebyrank(getRankingListKey(realm), MAX_RANKING_SIZE, -1);
 }
 
 /**
  * 调整插入后的排名（将targetRank及之后的排名+1）
  */
-async function adjustRankingsAfterInsert(targetRank: number): Promise<void> {
+async function adjustRankingsAfterInsert(
+  realm: RealmType,
+  targetRank: number,
+): Promise<void> {
   // 获取从targetRank开始的所有成员（0-based索引，所以是targetRank-1）
+  const rankingKey = getRankingListKey(realm);
   const members = (await redis.zrange(
-    RANKING_LIST_KEY,
+    rankingKey,
     targetRank - 1,
     -1,
   )) as string[];
@@ -178,7 +201,7 @@ async function adjustRankingsAfterInsert(targetRank: number): Promise<void> {
   for (let i = 0; i < members.length; i++) {
     const cultivatorId = members[i];
     const newRank = targetRank + i + 1; // 所有排名+1
-    pipeline.zadd(RANKING_LIST_KEY, newRank, cultivatorId);
+    pipeline.zadd(rankingKey, newRank, cultivatorId);
   }
   await pipeline.exec();
 }
@@ -187,37 +210,39 @@ async function adjustRankingsAfterInsert(targetRank: number): Promise<void> {
  * 更新排名（挑战成功）
  */
 export async function updateRanking(
+  realm: RealmType,
   challengerId: string,
   targetId: string,
 ): Promise<void> {
+  const rankingKey = getRankingListKey(realm);
   // 获取被挑战者当前排名
-  const targetRank = await redis.zrank(RANKING_LIST_KEY, targetId);
+  const targetRank = await redis.zrank(rankingKey, targetId);
   if (targetRank === null) {
     throw new Error('被挑战者不在排行榜上');
   }
   const targetRank1Based = targetRank + 1;
 
   // 获取挑战者当前排名（如果不在榜上则为null）
-  const challengerRank = await redis.zrank(RANKING_LIST_KEY, challengerId);
+  const challengerRank = await redis.zrank(rankingKey, challengerId);
 
   // 使用 pipeline 确保原子性
   const pipeline = redis.pipeline();
 
   if (challengerRank === null) {
     // 挑战者不在榜上，直接插入到被挑战者的位置
-    pipeline.zadd(RANKING_LIST_KEY, targetRank1Based, challengerId);
+    pipeline.zadd(rankingKey, targetRank1Based, challengerId);
     // 将被挑战者及其下方所有角色排名+1
     // 注意：zrange 的 start 是 0-based 索引，需要从 targetRank 开始，
     // 否则会漏掉被挑战者，导致与挑战者同分并出现顺序异常
     const members = (await redis.zrange(
-      RANKING_LIST_KEY,
+      rankingKey,
       targetRank,
       -1,
     )) as string[];
     for (let i = 0; i < members.length; i++) {
       const id = members[i];
       if (id !== challengerId) {
-        pipeline.zadd(RANKING_LIST_KEY, targetRank1Based + i + 1, id);
+        pipeline.zadd(rankingKey, targetRank1Based + i + 1, id);
       }
     }
   } else {
@@ -230,7 +255,7 @@ export async function updateRanking(
     // 获取被挑战者位置开始的所有成员（需要下移）
     // 使用 targetRank（0-based）作为起始索引
     const members = (await redis.zrange(
-      RANKING_LIST_KEY,
+      rankingKey,
       targetRank,
       -1,
     )) as string[];
@@ -244,18 +269,18 @@ export async function updateRanking(
 
       // 分配新排名：被挑战者原排名 + 偏移量
       const newRank = targetRank1Based + rankOffset;
-      pipeline.zadd(RANKING_LIST_KEY, newRank, id);
+      pipeline.zadd(rankingKey, newRank, id);
       rankOffset++; // 下一个成员的偏移量增加
     }
 
     // 将挑战者排名设为被挑战者的排名
-    pipeline.zadd(RANKING_LIST_KEY, targetRank1Based, challengerId);
+    pipeline.zadd(rankingKey, targetRank1Based, challengerId);
   }
 
   await pipeline.exec();
 
   // 限制排行榜大小
-  await redis.zremrangebyrank(RANKING_LIST_KEY, MAX_RANKING_SIZE, -1);
+  await redis.zremrangebyrank(rankingKey, MAX_RANKING_SIZE, -1);
 }
 
 /**
@@ -374,18 +399,35 @@ export async function isLocked(cultivatorId: string): Promise<boolean> {
 /**
  * 从排行榜移除角色
  */
-export async function removeFromRanking(cultivatorId: string): Promise<void> {
-  await redis.zrem(RANKING_LIST_KEY, cultivatorId);
+export async function removeFromRanking(
+  realm: RealmType,
+  cultivatorId: string,
+): Promise<void> {
+  await redis.zrem(getRankingListKey(realm), cultivatorId);
   // 兼容旧数据，清理遗留哈希
   const infoKey = `${LEGACY_CULTIVATOR_INFO_PREFIX}${cultivatorId}`;
   await redis.del(infoKey);
 }
 
+export async function removeFromAllRankingRealmsExcept(
+  cultivatorId: string,
+  currentRealm: RealmType,
+): Promise<void> {
+  const pipeline = redis.pipeline();
+  for (const realm of REALM_VALUES) {
+    if (realm === currentRealm) continue;
+    pipeline.zrem(getRankingListKey(realm), cultivatorId);
+  }
+  pipeline.zrem(LEGACY_RANKING_LIST_KEY, cultivatorId);
+  pipeline.del(`${LEGACY_CULTIVATOR_INFO_PREFIX}${cultivatorId}`);
+  await pipeline.exec();
+}
+
 /**
  * 检查排行榜是否为空
  */
-export async function isRankingEmpty(): Promise<boolean> {
-  const count = await redis.zcard(RANKING_LIST_KEY);
+export async function isRankingEmpty(realm: RealmType): Promise<boolean> {
+  const count = await redis.zcard(getRankingListKey(realm));
   return count === 0;
 }
 

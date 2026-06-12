@@ -1,5 +1,6 @@
 import {
   createItemLibraryItemDraft,
+  createReputationDraft,
   createSpiritStoneDraft,
   parseRewardSelectionDrafts,
 } from './RewardSelectionEditor.helpers';
@@ -9,11 +10,16 @@ describe('reward selection editor helpers', () => {
     expect(
       parseRewardSelectionDrafts([
         createSpiritStoneDraft(),
+        createReputationDraft(),
         createItemLibraryItemDraft('refined_iron'),
       ]),
     ).toEqual([
       {
         type: 'spirit_stones',
+        quantity: 1,
+      },
+      {
+        type: 'reputation',
         quantity: 1,
       },
       {

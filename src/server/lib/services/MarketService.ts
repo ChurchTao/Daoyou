@@ -25,6 +25,7 @@ import {
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
+import { addMaterialStackToInventory } from './materialInventory';
 import type { MaterialType, Quality, RealmType } from '@shared/types/constants';
 import {
   MATERIAL_TYPE_VALUES,
@@ -830,16 +831,19 @@ export async function buyMarketItem(input: BuyInput) {
           },
         });
       } else {
-        await tx.insert(materials).values({
+        await addMaterialStackToInventory(
           cultivatorId,
-          name: item.name,
-          type: item.type,
-          rank: item.rank,
-          element: item.element,
-          description: item.description,
-          quantity,
-          details: item.details || {},
-        });
+          {
+            name: item.name,
+            type: item.type,
+            rank: item.rank,
+            element: item.element,
+            description: item.description,
+            quantity,
+            details: item.details || {},
+          },
+          tx,
+        );
       }
     };
 
@@ -965,33 +969,9 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
             },
           });
         } else {
-          const existing = await tx
-            .select()
-            .from(materials)
-            .where(
-              and(
-                eq(materials.cultivatorId, cultivatorId),
-                eq(materials.name, item.name),
-                eq(materials.type, item.type),
-                eq(materials.rank, item.rank),
-                item.element ? eq(materials.element, item.element) : sql`${materials.element} IS NULL`,
-              ),
-            )
-            .limit(1);
-
-          const target = existing[0];
-          const isSameDetails =
-            JSON.stringify(target?.details || {}) ===
-            JSON.stringify(item.details || {});
-
-          if (target && isSameDetails) {
-            await tx
-              .update(materials)
-              .set({ quantity: sql`${materials.quantity} + ${quantity}` })
-              .where(eq(materials.id, target.id));
-          } else {
-            await tx.insert(materials).values({
-              cultivatorId,
+          await addMaterialStackToInventory(
+            cultivatorId,
+            {
               name: item.name,
               type: item.type,
               rank: item.rank,
@@ -999,8 +979,9 @@ export async function batchBuyMarketItems(input: BatchBuyInput) {
               description: item.description,
               quantity,
               details: item.details || {},
-            });
-          }
+            },
+            tx,
+          );
         }
       }
     };

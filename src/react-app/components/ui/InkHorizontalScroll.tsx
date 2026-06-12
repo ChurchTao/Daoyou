@@ -14,6 +14,7 @@ export interface InkHorizontalScrollProps {
   viewportClassName?: string;
   contentClassName?: string;
   edgeClassName?: string;
+  edgeVerticalClassName?: string;
   showStartHint?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function InkHorizontalScroll({
   viewportClassName = '',
   contentClassName = '',
   edgeClassName = '',
+  edgeVerticalClassName = 'top-1/2 -translate-y-1/2',
   showStartHint = true,
 }: InkHorizontalScrollProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -82,7 +84,8 @@ export function InkHorizontalScroll({
       {showStartHint ? (
         <div
           className={cn(
-            'pointer-events-none absolute top-1/2 left-0 grid h-6 w-4 -translate-y-1/2 place-items-center opacity-0 transition-opacity duration-150',
+            'pointer-events-none absolute left-0 grid h-6 w-4 place-items-center opacity-0 transition-opacity duration-150',
+            edgeVerticalClassName,
             canScrollStart && 'opacity-100',
             edgeClassName,
           )}
@@ -109,7 +112,8 @@ export function InkHorizontalScroll({
 
       <div
         className={cn(
-          'pointer-events-none absolute top-1/2 -right-px grid h-6 -translate-y-1/2 place-items-center opacity-0 transition-opacity duration-150',
+          'pointer-events-none absolute -right-px grid h-6 place-items-center opacity-0 transition-opacity duration-150',
+          edgeVerticalClassName,
           canScrollEnd && 'opacity-100',
           edgeClassName,
         )}

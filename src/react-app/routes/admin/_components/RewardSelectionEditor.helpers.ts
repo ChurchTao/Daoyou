@@ -4,6 +4,10 @@ export type RewardSelectionDraft =
       quantity: string;
     }
   | {
+      type: 'reputation';
+      quantity: string;
+    }
+  | {
       type: 'item_library';
       itemId: string;
       quantity: string;
@@ -12,6 +16,13 @@ export type RewardSelectionDraft =
 export function createSpiritStoneDraft(): RewardSelectionDraft {
   return {
     type: 'spirit_stones',
+    quantity: '1',
+  };
+}
+
+export function createReputationDraft(): RewardSelectionDraft {
+  return {
+    type: 'reputation',
     quantity: '1',
   };
 }
@@ -46,6 +57,13 @@ export function parseRewardSelectionDrafts(
     if (draft.type === 'spirit_stones') {
       return {
         type: 'spirit_stones' as const,
+        quantity,
+      };
+    }
+
+    if (draft.type === 'reputation') {
+      return {
+        type: 'reputation' as const,
         quantity,
       };
     }

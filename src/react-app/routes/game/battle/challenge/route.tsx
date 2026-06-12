@@ -6,12 +6,14 @@ import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
 import type { BattleRecord } from '@shared/types/battle';
+import type { RealmType } from '@shared/types/constants';
 import { Suspense, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 type ChallengeBattleResponse =
   | {
       type: 'direct_entry';
+      realm: RealmType;
       rank: number;
       remainingChallenges: number;
     }
@@ -20,6 +22,8 @@ type ChallengeBattleResponse =
       battleResult: BattleRecord;
       rankingUpdate: {
         isWin: boolean;
+        realm: RealmType;
+        affectsRanking: boolean;
         challengerRank: number | null;
         targetRank: number | null;
         remainingChallenges: number;
@@ -37,8 +41,8 @@ const challengeExecutionRequests = new Map<
 >();
 const challengeExecutionResults = new Map<string, ChallengeBattleResponse>();
 
-function getChallengeExecutionKey(targetId: string | null) {
-  return targetId?.trim() || 'direct-entry';
+function getChallengeExecutionKey(targetId: string | null, realm: string | null) {
+  return `${realm?.trim() || 'default'}:${targetId?.trim() || 'direct-entry'}`;
 }
 
 function clearChallengeExecutionCache(key: string) {
@@ -49,6 +53,7 @@ function clearChallengeExecutionCache(key: string) {
 async function executeChallengeBattleOnce(
   key: string,
   targetId: string | null,
+  realm: string | null,
   mutate: ChallengeMutate,
 ) {
   const cached = challengeExecutionResults.get(key);
@@ -65,7 +70,10 @@ async function executeChallengeBattleOnce(
     fetch('/api/rankings/challenge-battle/v5', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetId: targetId?.trim() || null }),
+      body: JSON.stringify({
+        targetId: targetId?.trim() || null,
+        realm: realm?.trim() || undefined,
+      }),
     }),
     { deferRecovery: true },
   )
@@ -113,6 +121,8 @@ function ChallengeBattlePageContent() {
   const [error, setError] = useState<string>();
   const [rankingUpdate, setRankingUpdate] = useState<{
     isWin: boolean;
+    realm: RealmType;
+    affectsRanking: boolean;
     challengerRank: number | null;
     targetRank: number | null;
     remainingChallenges: number;
@@ -124,11 +134,16 @@ function ChallengeBattlePageContent() {
   const { mutate } = usePlayerStateActions();
 
   const targetId = searchParams.get('targetId');
-  const challengeKey = getChallengeExecutionKey(targetId);
+  const realm = searchParams.get('realm');
+  const challengeKey = getChallengeExecutionKey(targetId, realm);
 
   const backToRankings = () => {
     clearChallengeExecutionCache(challengeKey);
-    navigate('/game/rankings');
+    navigate(
+      realm
+        ? `/game/rankings?realm=${encodeURIComponent(realm)}`
+        : '/game/rankings',
+    );
   };
 
   useEffect(() => {
@@ -145,6 +160,7 @@ function ChallengeBattlePageContent() {
         const data = await executeChallengeBattleOnce(
           challengeKey,
           targetId,
+          realm,
           mutate,
         );
         if (cancelled) return;
@@ -174,7 +190,7 @@ function ChallengeBattlePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [challengeKey, mutate, targetId]);
+  }, [challengeKey, mutate, realm, targetId]);
 
   if (error) {
     return (
@@ -203,7 +219,11 @@ function ChallengeBattlePageContent() {
   return (
     <BattlePageLayout
       title={`排行榜挑战 · ${battleResult ? `${playback.playerName} vs ${playback.opponentName}` : '加载中'}`}
-      subtitle="这一战会直接影响你的榜单名次。"
+      subtitle={
+        rankingUpdate?.affectsRanking === false
+          ? '越境切磋只记胜负，不改榜单名次。'
+          : '这一战会直接影响你的榜单名次。'
+      }
       variant="immersive-battle"
       error={error}
       loading={loading}
@@ -222,6 +242,9 @@ function ChallengeBattlePageContent() {
           <div className="space-y-1 leading-8">
             {rankingUpdate?.challengerRank != null && isWin && (
               <p>你的排名已更新为第 {rankingUpdate.challengerRank} 名。</p>
+            )}
+            {rankingUpdate?.affectsRanking === false && (
+              <p>此战为越境切磋，不改变{rankingUpdate.realm}榜名次。</p>
             )}
             {rankingUpdate && (
               <p>今日剩余挑战次数：{rankingUpdate.remainingChallenges}/10。</p>

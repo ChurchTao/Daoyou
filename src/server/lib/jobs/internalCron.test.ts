@@ -126,9 +126,10 @@ describe('internal cron jobs', () => {
   });
 
   it('settles weekly rank rewards as reputation and emits currency events', async () => {
-    getTopRankingCultivatorIdsMock.mockResolvedValueOnce(
-      Array.from({ length: 51 }, (_, index) => `cultivator-${index + 1}`),
-    );
+    getTopRankingCultivatorIdsMock.mockImplementation(async (realm: string) => {
+      if (realm !== '筑基') return [];
+      return Array.from({ length: 51 }, (_, index) => `cultivator-${index + 1}`);
+    });
     updateReputationMock.mockImplementation(
       async (_userId, _cultivatorId, delta) => delta + 1,
     );
@@ -139,15 +140,17 @@ describe('internal cron jobs', () => {
       skipped: false,
       settlementDate: '2026-06-15',
       logs: expect.arrayContaining([
-        'Rank 1: +100 reputation',
-        'Rank 2: +50 reputation',
-        'Rank 10: +50 reputation',
-        'Rank 11: +25 reputation',
-        'Rank 50: +25 reputation',
-        'Rank 51: +15 reputation',
+        '筑基 Rank 1: +100 reputation',
+        '筑基 Rank 2: +50 reputation',
+        '筑基 Rank 10: +50 reputation',
+        '筑基 Rank 11: +25 reputation',
+        '筑基 Rank 50: +25 reputation',
+        '筑基 Rank 51: +15 reputation',
       ]),
     });
 
+    expect(getTopRankingCultivatorIdsMock).toHaveBeenCalledWith('炼气', 100);
+    expect(getTopRankingCultivatorIdsMock).toHaveBeenCalledWith('筑基', 100);
     expect(commitPlayerStateMutationMock).toHaveBeenCalledTimes(51);
     expect(updateReputationMock).toHaveBeenNthCalledWith(
       1,

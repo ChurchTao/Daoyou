@@ -783,6 +783,8 @@ export class DungeonService {
               materialTypes: reqType ? [reqType] : undefined,
               materialRanks:
                 validRanks.length > 0 ? (validRanks as Quality[]) : undefined,
+              materialSortBy: 'rank',
+              materialSortOrder: 'asc',
             },
           );
 

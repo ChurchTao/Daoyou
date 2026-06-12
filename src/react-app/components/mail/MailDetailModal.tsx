@@ -14,6 +14,27 @@ interface MailDetailModalProps {
   onUpdate: (mailId: string) => void; // Update list after claim
 }
 
+function getAttachmentIcon(type: string): string {
+  switch (type) {
+    case 'spirit_stones':
+      return '💰';
+    case 'reputation':
+      return '🏅';
+    case 'cultivation_exp':
+      return '📜';
+    case 'comprehension_insight':
+      return '💡';
+    case 'material':
+      return '🧱';
+    case 'consumable':
+      return '🧪';
+    case 'artifact':
+      return '⚔️';
+    default:
+      return '🎁';
+  }
+}
+
 export function MailDetailModal({
   mail,
   onClose,
@@ -77,39 +98,42 @@ export function MailDetailModal({
                   key={idx}
                   className="bg-paper-2 border-ink/10 flex items-center justify-between border border-dashed p-2 text-sm"
                 >
-                  {item.type === 'spirit_stones' && (
-                    <span className="text-ink">{item.name}</span>
-                  )}
-                  {item.type === 'reputation' && (
-                    <span className="text-ink">{item.name}</span>
-                  )}
-                  {item.type === 'cultivation_exp' && (
-                    <span className="text-ink">{item.name}</span>
-                  )}
-                  {item.type === 'comprehension_insight' && (
-                    <span className="text-ink">{item.name}</span>
-                  )}
-                  {item.type === 'material' && (
-                    <InkBadge tier={(item.data as Material)?.rank} hideTierText>
-                      {item.name}
-                    </InkBadge>
-                  )}
-                  {item.type === 'consumable' && (
-                    <InkBadge
-                      tier={(item.data as Consumable)?.quality}
-                      hideTierText
-                    >
-                      {item.name}
-                    </InkBadge>
-                  )}
-                  {item.type === 'artifact' && (
-                    <InkBadge
-                      tier={(item.data as Artifact)?.quality}
-                      hideTierText
-                    >
-                      {item.name}
-                    </InkBadge>
-                  )}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span aria-hidden="true">{getAttachmentIcon(item.type)}</span>
+                    {item.type === 'spirit_stones' && (
+                      <span className="text-ink">{item.name}</span>
+                    )}
+                    {item.type === 'reputation' && (
+                      <span className="text-ink">{item.name}</span>
+                    )}
+                    {item.type === 'cultivation_exp' && (
+                      <span className="text-ink">{item.name}</span>
+                    )}
+                    {item.type === 'comprehension_insight' && (
+                      <span className="text-ink">{item.name}</span>
+                    )}
+                    {item.type === 'material' && (
+                      <InkBadge tier={(item.data as Material)?.rank} hideTierText>
+                        {item.name}
+                      </InkBadge>
+                    )}
+                    {item.type === 'consumable' && (
+                      <InkBadge
+                        tier={(item.data as Consumable)?.quality}
+                        hideTierText
+                      >
+                        {item.name}
+                      </InkBadge>
+                    )}
+                    {item.type === 'artifact' && (
+                      <InkBadge
+                        tier={(item.data as Artifact)?.quality}
+                        hideTierText
+                      >
+                        {item.name}
+                      </InkBadge>
+                    )}
+                  </div>
                   <span className="opacity-70">x{item.quantity}</span>
                 </div>
               ))}

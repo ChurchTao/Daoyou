@@ -31,6 +31,7 @@ import { redis } from '@server/lib/redis';
 import { getRetreatLock } from '@server/lib/redis/retreatLock';
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
 import { createMessage } from '@server/lib/repositories/worldChatRepository';
+import { removeFromAllRankingRealmsExcept } from '@server/lib/redis/rankings';
 import { ConsumableUseEngine } from '@server/lib/services/ConsumableUseEngine';
 import { InnRecoveryService } from '@server/lib/services/InnRecoveryService';
 import {
@@ -1389,6 +1390,17 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
 
     if (sendBreakthroughRumor) {
       await sendBreakthroughRumor();
+    }
+
+    if (isMajorBreakthrough) {
+      try {
+        await removeFromAllRankingRealmsExcept(
+          cultivatorId,
+          result.summary.toRealm as RealmType,
+        );
+      } catch (rankingError) {
+        console.error('大境界突破后清理天骄榜旧境界失败:', rankingError);
+      }
     }
 
     return createRetreatStreamResponse({

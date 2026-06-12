@@ -41,7 +41,7 @@ function SceneSurface({
   return (
     <Tag
       className={cn(
-        'animate-fade-in bg-[rgba(248,243,230,0.82)] bg-[linear-gradient(180deg,rgba(255,252,245,0.42),rgba(248,243,230,0))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] backdrop-blur-[2px] md:px-5 md:py-5',
+        'animate-fade-in min-w-0 bg-[rgba(248,243,230,0.82)] bg-[linear-gradient(180deg,rgba(255,252,245,0.42),rgba(248,243,230,0))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] backdrop-blur-[2px] md:px-5 md:py-5',
         className,
       )}
     >
@@ -227,7 +227,7 @@ export function GameSceneFrame({
           frameWidthClass,
         )}
       >
-        <div className={cn('grid gap-4', aside ? asideWidthClass : '')}>
+        <div className={cn('grid min-w-0 gap-4', aside ? asideWidthClass : '')}>
           <SceneSurface>
             <SceneStrip
               group={sceneGroup}

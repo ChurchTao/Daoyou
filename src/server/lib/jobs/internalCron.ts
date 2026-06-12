@@ -10,7 +10,7 @@ import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
 import { updateReputation } from '@server/lib/services/cultivatorService';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
-import { RANKING_REWARDS } from '@shared/types/constants';
+import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
 
 const AUCTION_EXPIRE_LOCK_KEY = 'cron:auction-expire:lock';
@@ -179,50 +179,55 @@ export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
       };
     }
 
-    const topCultivatorIds = await getTopRankingCultivatorIds(100);
     const logs: string[] = [];
+    let processed = 0;
 
-    for (let i = 0; i < topCultivatorIds.length; i++) {
-      const rank = i + 1;
-      const reward = getRewardByRank(rank);
+    for (const realm of REALM_VALUES) {
+      const topCultivatorIds = await getTopRankingCultivatorIds(realm, 100);
+      processed += topCultivatorIds.length;
 
-      const [cultivator] = await getExecutor()
-        .select({ userId: cultivators.userId })
-        .from(cultivators)
-        .where(eq(cultivators.id, topCultivatorIds[i]))
-        .limit(1);
+      for (let i = 0; i < topCultivatorIds.length; i++) {
+        const rank = i + 1;
+        const reward = getRewardByRank(rank);
 
-      if (!cultivator) {
-        logs.push(`Rank ${rank}: skipped missing cultivator`);
-        continue;
+        const [cultivator] = await getExecutor()
+          .select({ userId: cultivators.userId })
+          .from(cultivators)
+          .where(eq(cultivators.id, topCultivatorIds[i]))
+          .limit(1);
+
+        if (!cultivator) {
+          logs.push(`${realm} Rank ${rank}: skipped missing cultivator`);
+          continue;
+        }
+
+        await commitPlayerStateMutation({
+          userId: cultivator.userId,
+          cultivatorId: topCultivatorIds[i],
+          source: 'rank_weekly_rewards',
+          run: async (tx) => {
+            const reputation = await updateReputation(
+              cultivator.userId,
+              topCultivatorIds[i],
+              reward,
+              tx,
+            );
+            return {
+              result: null,
+              changes: [
+                {
+                  domain: 'currency',
+                  eventType: 'currency.reputation.gained',
+                  patch: { currency: { reputation } },
+                  invalidates: ['currency'],
+                },
+              ],
+            };
+          },
+        });
+
+        logs.push(`${realm} Rank ${rank}: +${reward} reputation`);
       }
-
-      await commitPlayerStateMutation({
-        userId: cultivator.userId,
-        cultivatorId: topCultivatorIds[i],
-        source: 'rank_weekly_rewards',
-        run: async (tx) => {
-          const reputation = await updateReputation(
-            cultivator.userId,
-            topCultivatorIds[i],
-            reward,
-            tx,
-          );
-          return {
-            result: null,
-            changes: [
-              {
-                domain: 'currency',
-                eventType: 'currency.reputation.gained',
-                patch: { currency: { reputation } },
-                invalidates: ['currency'],
-              },
-            ],
-          };
-        },
-      });
-
-      logs.push(`Rank ${rank}: +${reward} reputation`);
     }
 
     await redis.set(settledKey, Date.now().toString(), 'EX', SETTLED_TTL_SECONDS);
@@ -230,7 +235,7 @@ export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
     return {
       success: true,
       settlementDate,
-      processed: topCultivatorIds.length,
+      processed,
       skipped: false,
       logs,
     };

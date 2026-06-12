@@ -293,7 +293,7 @@ describe('AuctionService', () => {
       score: 88,
       spec: createPillSpec(),
     };
-    const { executor } = createExecutor({
+    const { executor, updateCalls } = createExecutor({
       consumableRow: null,
     });
     getExecutorMock.mockReturnValue(executor);
@@ -339,5 +339,23 @@ describe('AuctionService', () => {
       'reward',
       executor,
     );
+    expect(sendMailMock).toHaveBeenNthCalledWith(
+      2,
+      'seller-1',
+      '拍卖行物品售出',
+      expect.stringContaining('270 灵石，请收取附件'),
+      [
+        {
+          type: 'spirit_stones',
+          name: '灵石',
+          quantity: 270,
+        },
+      ],
+      'reward',
+      executor,
+    );
+    expect(
+      updateCalls.filter((call) => call.table === schema.cultivators),
+    ).toHaveLength(1);
   });
 });

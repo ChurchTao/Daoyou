@@ -69,6 +69,7 @@ import {
 } from './consumablePersistence';
 import { toArtifactFromProduct } from './creationProductArtifactSupport';
 import { FateEngine } from './FateEngine';
+import { addMaterialStackToInventory } from './materialInventory';
 
 async function assembleCultivatorFromRelations(
   cultivatorRecord: CultivatorRecord,
@@ -1744,7 +1745,7 @@ export async function hasMaterial(
     return false;
   }
 
-  return materials[0].quantity >= quantity;
+  return materials.reduce((sum, material) => sum + material.quantity, 0) >= quantity;
 }
 
 /**
@@ -1757,39 +1758,7 @@ export async function addMaterialToInventory(
   tx?: DbTransaction,
 ): Promise<void> {
   await assertCultivatorOwnership(userId, cultivatorId);
-
-  const dbInstance = getExecutor(tx);
-  // 检查是否已经有相同的材料（名称和品质都必须一致）
-  const existing = await dbInstance
-    .select()
-    .from(schema.materials)
-    .where(
-      and(
-        eq(schema.materials.cultivatorId, cultivatorId),
-        eq(schema.materials.name, material.name),
-        eq(schema.materials.rank, material.rank),
-      ),
-    );
-
-  if (existing.length > 0) {
-    // 增加数量
-    await dbInstance
-      .update(schema.materials)
-      .set({ quantity: existing[0].quantity + material.quantity })
-      .where(eq(schema.materials.id, existing[0].id));
-  } else {
-    // 添加新材料
-    await dbInstance.insert(schema.materials).values({
-      cultivatorId,
-      name: material.name,
-      type: material.type,
-      rank: material.rank,
-      element: material.element || null,
-      description: material.description || null,
-      details: (material.details as Record<string, unknown>) || null,
-      quantity: material.quantity,
-    });
-  }
+  await addMaterialStackToInventory(cultivatorId, material, tx);
 }
 
 /**
@@ -1815,29 +1784,59 @@ export async function removeMaterialFromInventory(
       ),
     );
 
-  if (materials.length === 0) {
+  const sortedMaterials = sortMaterialsByQualityAsc(materials);
+  if (sortedMaterials.length === 0) {
     throw new Error(`材料 ${materialName} 不存在`);
   }
 
-  const material = materials[0];
-  if (material.quantity < quantity) {
+  const totalQuantity = sortedMaterials.reduce(
+    (sum, material) => sum + material.quantity,
+    0,
+  );
+  if (totalQuantity < quantity) {
     throw new Error(
-      `材料 ${materialName} 不足，需要 ${quantity}，当前拥有 ${material.quantity}`,
+      `材料 ${materialName} 不足，需要 ${quantity}，当前拥有 ${totalQuantity}`,
     );
   }
 
-  if (material.quantity === quantity) {
-    // 删除材料
-    await dbInstance
-      .delete(schema.materials)
-      .where(eq(schema.materials.id, material.id));
-  } else {
-    // 减少数量
-    await dbInstance
-      .update(schema.materials)
-      .set({ quantity: material.quantity - quantity })
-      .where(eq(schema.materials.id, material.id));
+  let remaining = quantity;
+  for (const material of sortedMaterials) {
+    if (remaining <= 0) break;
+
+    const consumeQuantity = Math.min(material.quantity, remaining);
+    remaining -= consumeQuantity;
+
+    if (consumeQuantity === material.quantity) {
+      await dbInstance
+        .delete(schema.materials)
+        .where(eq(schema.materials.id, material.id));
+    } else {
+      await dbInstance
+        .update(schema.materials)
+        .set({ quantity: material.quantity - consumeQuantity })
+        .where(eq(schema.materials.id, material.id));
+    }
   }
+}
+
+function sortMaterialsByQualityAsc<T extends {
+  id: string;
+  rank: string;
+  quantity: number;
+  createdAt: Date | null;
+}>(materials: T[]): T[] {
+  return [...materials].sort((a, b) => {
+    const rankDiff =
+      (QUALITY_ORDER[a.rank as Quality] ?? Number.MAX_SAFE_INTEGER) -
+      (QUALITY_ORDER[b.rank as Quality] ?? Number.MAX_SAFE_INTEGER);
+    if (rankDiff !== 0) return rankDiff;
+
+    const createdDiff =
+      (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+    if (createdDiff !== 0) return createdDiff;
+
+    return a.id.localeCompare(b.id);
+  });
 }
 
 /**

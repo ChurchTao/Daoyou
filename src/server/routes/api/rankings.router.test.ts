@@ -15,6 +15,10 @@ const {
   recordTaskEventMock,
   commitPlayerStateMutationMock,
   updateRankingMock,
+  addToRankingMock,
+  getRankingListMock,
+  getRemainingChallengesMock,
+  isLockedMock,
 } = vi.hoisted(() => ({
   checkDailyChallengesMock: vi.fn(),
   isRankingEmptyMock: vi.fn(),
@@ -50,6 +54,10 @@ const {
     };
   }),
   updateRankingMock: vi.fn(),
+  addToRankingMock: vi.fn(),
+  getRankingListMock: vi.fn(),
+  getRemainingChallengesMock: vi.fn(),
+  isLockedMock: vi.fn(() => false),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -58,6 +66,7 @@ vi.mock('@server/lib/hono/middleware', () => ({
       context.set('user', { id: 'user-1' });
       context.set('cultivator', {
         id: 'cultivator-1',
+        realm: '筑基',
       });
       await next();
     },
@@ -87,13 +96,13 @@ vi.mock('@server/lib/drizzle/schema', () => ({
 
 vi.mock('@server/lib/redis/rankings', () => ({
   acquireChallengeLock: acquireChallengeLockMock,
-  addToRanking: vi.fn(),
+  addToRanking: addToRankingMock,
   checkDailyChallenges: checkDailyChallengesMock,
   getCultivatorRank: getCultivatorRankMock,
-  getRankingList: vi.fn(),
-  getRemainingChallenges: vi.fn(),
+  getRankingList: getRankingListMock,
+  getRemainingChallenges: getRemainingChallengesMock,
   incrementDailyChallenges: incrementDailyChallengesMock,
-  isLocked: vi.fn(() => false),
+  isLocked: isLockedMock,
   isProtected: isProtectedMock,
   isRankingEmpty: isRankingEmptyMock,
   releaseChallengeLock: releaseChallengeLockMock,
@@ -138,6 +147,7 @@ describe('rankings router', () => {
     vi.clearAllMocks();
     checkDailyChallengesMock.mockResolvedValue({ success: true, remaining: 10 });
     isRankingEmptyMock.mockResolvedValue(false);
+    getRemainingChallengesMock.mockResolvedValue(10);
     getCultivatorRankMock
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(1)
@@ -171,6 +181,37 @@ describe('rankings router', () => {
     releaseChallengeLockMock.mockResolvedValue(undefined);
     recordTaskEventMock.mockResolvedValue([]);
     updateRankingMock.mockResolvedValue(undefined);
+    addToRankingMock.mockResolvedValue(undefined);
+    getRankingListMock.mockResolvedValue([]);
+  });
+
+  it('loads battle ranking and my rank from the requested realm bucket', async () => {
+    getRankingListMock.mockResolvedValueOnce([{ id: 'target-1', rank: 1 }]);
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock.mockResolvedValueOnce(3);
+
+    const listResponse = await createApp().request(
+      '/api/rankings?realm=%E9%87%91%E4%B8%B9',
+    );
+    const listJson = (await listResponse.json()) as {
+      realm: string;
+      data: unknown;
+    };
+
+    expect(listResponse.status).toBe(200);
+    expect(listJson.realm).toBe('金丹');
+    expect(getRankingListMock).toHaveBeenCalledWith('金丹');
+
+    const rankResponse = await createApp().request(
+      '/api/rankings/my-rank?realm=%E9%87%91%E4%B8%B9',
+    );
+    const rankJson = (await rankResponse.json()) as {
+      data: { realm: string; rank: number | null };
+    };
+
+    expect(rankResponse.status).toBe(200);
+    expect(rankJson.data).toMatchObject({ realm: '金丹', rank: 3 });
+    expect(getCultivatorRankMock).toHaveBeenCalledWith('金丹', 'cultivator-1');
   });
 
   it('records the daily ranking task only after a challenge battle completes', async () => {
@@ -194,6 +235,11 @@ describe('rankings router', () => {
       { tx: 'tx' },
     );
     expect(createBattleRecordV2Mock).toHaveBeenCalledTimes(1);
+    expect(updateRankingMock).toHaveBeenCalledWith(
+      '筑基',
+      'cultivator-1',
+      'target-1',
+    );
   });
 
   it('starts ranking challenge battles with full hp/mp instead of persisted resources', async () => {
@@ -276,5 +322,126 @@ describe('rankings router', () => {
         },
       },
     );
+  });
+
+  it('does not update ranking for cross-realm challenge battles', async () => {
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(1);
+
+    const response = await createApp().request(
+      '/api/rankings/challenge-battle/v5',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: 'target-1',
+          realm: '金丹',
+        }),
+      },
+    );
+    const result = (await response.json()) as {
+      data: {
+        rankingUpdate: {
+          isWin: boolean;
+          realm: string;
+          affectsRanking: boolean;
+          challengerRank: number | null;
+          targetRank: number | null;
+          remainingChallenges: number;
+        };
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(result.data.rankingUpdate).toMatchObject({
+      isWin: true,
+      realm: '金丹',
+      affectsRanking: false,
+      challengerRank: null,
+      targetRank: 1,
+      remainingChallenges: 9,
+    });
+    expect(updateRankingMock).not.toHaveBeenCalled();
+    expect(createBattleRecordV2Mock).toHaveBeenCalledTimes(1);
+    expect(recordTaskEventMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      'ranking_challenge_battled',
+      { tx: 'tx' },
+    );
+  });
+
+  it('allows direct entry only on the cultivator own realm ranking', async () => {
+    isRankingEmptyMock.mockResolvedValue(true);
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock.mockResolvedValue(null);
+
+    const ownRealmResponse = await createApp().request(
+      '/api/rankings/challenge-battle/v5',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: null,
+          realm: '筑基',
+        }),
+      },
+    );
+
+    expect(ownRealmResponse.status).toBe(200);
+    expect(addToRankingMock).toHaveBeenCalledWith(
+      '筑基',
+      'cultivator-1',
+      'user-1',
+      1,
+    );
+
+    vi.clearAllMocks();
+    checkDailyChallengesMock.mockResolvedValue({ success: true, remaining: 10 });
+    isRankingEmptyMock.mockResolvedValue(true);
+    getCultivatorRankMock.mockResolvedValue(null);
+
+    const crossRealmResponse = await createApp().request(
+      '/api/rankings/challenge-battle/v5',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId: null,
+          realm: '金丹',
+        }),
+      },
+    );
+
+    expect(crossRealmResponse.status).toBe(400);
+    expect(addToRankingMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a target that is not on the requested realm ranking', async () => {
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    const response = await createApp().request('/api/rankings/challenge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        targetId: 'target-1',
+        realm: '金丹',
+      }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(updateRankingMock).not.toHaveBeenCalled();
   });
 });
