@@ -392,7 +392,7 @@ export default function RankingsPage() {
                 content: (
                   <div className="space-y-3">
                     <InkNotice tone="info" className="text-sm">
-                      每日凌晨自动结算，根据排名发放声望值。
+                      每周一凌晨自动结算，根据排名发放声望。
                     </InkNotice>
                     <InkList dense>
                       <InkListItem
@@ -400,16 +400,8 @@ export default function RankingsPage() {
                         meta={`${RANKING_REWARDS[1]} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
-                        title="🥈 第二名"
-                        meta={`${RANKING_REWARDS[2]} ${REPUTATION_INFO.label}`}
-                      />
-                      <InkListItem
-                        title="🥉 第三名"
-                        meta={`${RANKING_REWARDS[3]} ${REPUTATION_INFO.label}`}
-                      />
-                      <InkListItem
-                        title="✨ 第 4-10 名"
-                        meta={`${RANKING_REWARDS['4-10']} ${REPUTATION_INFO.label}`}
+                        title="✨ 第 2-10 名"
+                        meta={`${RANKING_REWARDS['2-10']} ${REPUTATION_INFO.label}`}
                       />
                       <InkListItem
                         title="🔹 第 11-50 名"
@@ -428,10 +420,16 @@ export default function RankingsPage() {
                 第一名：{RANKING_REWARDS[1]} {REPUTATION_INFO.label}
               </p>
               <p>
-                第二名：{RANKING_REWARDS[2]} {REPUTATION_INFO.label}
+                第 2-10 名：{RANKING_REWARDS['2-10']}{' '}
+                {REPUTATION_INFO.label}
               </p>
               <p>
-                第三名：{RANKING_REWARDS[3]} {REPUTATION_INFO.label}
+                第 11-50 名：{RANKING_REWARDS['11-50']}{' '}
+                {REPUTATION_INFO.label}
+              </p>
+              <p>
+                第 51-100 名：{RANKING_REWARDS['51-100']}{' '}
+                {REPUTATION_INFO.label}
               </p>
             </GameSceneAsideSection>
           </>

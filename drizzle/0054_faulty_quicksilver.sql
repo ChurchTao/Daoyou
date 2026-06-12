@@ -1,0 +1,2 @@
+ALTER TABLE "wanjiedaoyou_reputation_shop_purchases" ADD COLUMN "purchase_week" varchar(10) NOT NULL;--> statement-breakpoint
+CREATE INDEX "reputation_shop_purchases_week_idx" ON "wanjiedaoyou_reputation_shop_purchases" USING btree ("cultivator_id","shop_item_id","purchase_week");

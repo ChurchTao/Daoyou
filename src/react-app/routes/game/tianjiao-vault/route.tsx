@@ -51,7 +51,7 @@ async function fetchVaultItems(): Promise<ReputationShopListResponse> {
 
 export default function TianjiaoVaultPage() {
   const { cultivator } = usePlayerStateView();
-  const { mutate } = usePlayerStateActions();
+  const { mutate, refresh: refreshPlayerState } = usePlayerStateActions();
   const { pushToast } = useInkUI();
   const [items, setItems] = useState<ReputationShopItemView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +77,10 @@ export default function TianjiaoVaultPage() {
     void Promise.resolve().then(refresh);
   }, [refresh]);
 
+  useEffect(() => {
+    void Promise.resolve().then(() => refreshPlayerState(['currency']));
+  }, [refreshPlayerState]);
+
   const handleBuy = async (item: ReputationShopItemView) => {
     if (!cultivator) return;
     if (item.remainingPurchases === 0) {
@@ -84,7 +88,7 @@ export default function TianjiaoVaultPage() {
       return;
     }
     if (reputation < item.price) {
-      pushToast({ message: '声望值不足', tone: 'warning' });
+      pushToast({ message: '声望不足', tone: 'warning' });
       return;
     }
 
@@ -165,7 +169,7 @@ export default function TianjiaoVaultPage() {
                     <span>
                       数量 x{item.quantity}
                       {item.perUserLimit
-                        ? ` · 已兑 ${item.purchasedCount}/${item.perUserLimit}`
+                        ? ` · 本周已兑 ${item.purchasedCount}/${item.perUserLimit}`
                         : ''}
                     </span>
                   </div>

@@ -86,9 +86,9 @@ describe('item library helpers', () => {
   it('converts reputation attachments into resource operations', () => {
     expect(
       attachmentsToResourceOperations([
-        { type: 'reputation', name: '声望值', quantity: 2500 },
+        { type: 'reputation', name: '声望', quantity: 20 },
       ]),
-    ).toEqual([{ type: 'reputation', value: 2500 }]);
+    ).toEqual([{ type: 'reputation', value: 20 }]);
   });
 
   it('accepts creation-v2 artifact payloads with rehydratable productModel', () => {

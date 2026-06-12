@@ -37,10 +37,10 @@ import type { DbTransaction } from '@server/lib/drizzle/db';
 
 const RUN_TTL_SECONDS = 8 * 24 * 60 * 60;
 const TOWER_REPUTATION_REWARDS: Record<TowerMilestoneReward['tier'], number> = {
-  C: 1000,
-  B: 2500,
-  A: 5000,
-  S: 10000,
+  C: 5,
+  B: 10,
+  A: 15,
+  S: 20,
 };
 
 interface TowerBattleSession {

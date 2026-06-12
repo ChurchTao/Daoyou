@@ -4,11 +4,20 @@ const {
   archiveReputationShopItemMock,
   createReputationShopItemMock,
   listReputationShopItemsMock,
+  ReputationShopErrorMock,
   updateReputationShopItemMock,
 } = vi.hoisted(() => ({
   archiveReputationShopItemMock: vi.fn(),
   createReputationShopItemMock: vi.fn(),
   listReputationShopItemsMock: vi.fn(),
+  ReputationShopErrorMock: class ReputationShopError extends Error {
+    constructor(
+      public status: number,
+      message: string,
+    ) {
+      super(message);
+    }
+  },
   updateReputationShopItemMock: vi.fn(),
 }));
 
@@ -32,14 +41,7 @@ vi.mock('@server/lib/services/ReputationShopService', () => ({
   createReputationShopItem: createReputationShopItemMock,
   listReputationShopItems: listReputationShopItemsMock,
   updateReputationShopItem: updateReputationShopItemMock,
-  ReputationShopError: class ReputationShopError extends Error {
-    constructor(
-      public status: number,
-      message: string,
-    ) {
-      super(message);
-    }
-  },
+  ReputationShopError: ReputationShopErrorMock,
 }));
 
 import reputationShopAdminRouter from './reputation-shop.router';
@@ -128,6 +130,93 @@ describe('admin reputation shop router', () => {
         price: 1000,
       }),
       userId: '11111111-1111-4111-8111-111111111111',
+    });
+  });
+
+  it('rejects price above the reputation cap', async () => {
+    const response = await createApp().request('/api/admin/reputation-shop', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        itemLibraryItemId: 'refined_iron',
+        price: 10000,
+        quantity: 2,
+        perUserLimit: 3,
+        status: 'active',
+        sortOrder: 10,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(createReputationShopItemMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts the maximum reputation price', async () => {
+    createReputationShopItemMock.mockResolvedValueOnce({
+      ...shopItem,
+      price: 9999,
+    });
+
+    const response = await createApp().request('/api/admin/reputation-shop', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        itemLibraryItemId: 'refined_iron',
+        price: 9999,
+        quantity: 2,
+        perUserLimit: 3,
+        status: 'active',
+        sortOrder: 10,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(createReputationShopItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ price: 9999 }),
+      }),
+    );
+  });
+
+  it('rejects stacked quantity above 30 before service calls', async () => {
+    const response = await createApp().request('/api/admin/reputation-shop', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        itemLibraryItemId: 'refined_iron',
+        price: 9999,
+        quantity: 31,
+        perUserLimit: 3,
+        status: 'active',
+        sortOrder: 10,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(createReputationShopItemMock).not.toHaveBeenCalled();
+  });
+
+  it('maps service rejection for artifact quantity above 1', async () => {
+    createReputationShopItemMock.mockRejectedValueOnce(
+      new ReputationShopErrorMock(400, '法宝类商品每次只能发放 1 件'),
+    );
+
+    const response = await createApp().request('/api/admin/reputation-shop', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        itemLibraryItemId: 'artifact_sword',
+        price: 100,
+        quantity: 2,
+        perUserLimit: 3,
+        status: 'active',
+        sortOrder: 10,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: '法宝类商品每次只能发放 1 件',
     });
   });
 

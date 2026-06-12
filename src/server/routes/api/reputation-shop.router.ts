@@ -1,7 +1,11 @@
 import { requireActiveCultivator } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
-import { redis } from '@server/lib/redis';
+import {
+  createRedisLock,
+  LockAcquisitionError,
+  releaseRedisLock,
+} from '@server/lib/redis/lock';
 import {
   commitPlayerStateMutation,
   toPlayerStateMutationResponse,
@@ -19,7 +23,7 @@ import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
 
-const BUY_LOCK_TTL_SECONDS = 10;
+const BUY_LOCK_TTL_MS = 10_000;
 
 function buildBuyChanges(args: {
   reputation: number;
@@ -85,17 +89,13 @@ router.post('/:id/buy', requireActiveCultivator(), async (c) => {
     const params = ReputationShopBuyParamsSchema.parse({
       id: c.req.param('id'),
     });
-    const lockKey = `reputation-shop:buy:lock:${cultivator.id}:${params.id}`;
-    const acquiredLock = await redis.set(
-      lockKey,
-      'locked',
-      'EX',
-      BUY_LOCK_TTL_SECONDS,
-      'NX',
-    );
-    if (!acquiredLock) {
-      return c.json({ error: '兑换正在处理中，请稍后' }, 429);
-    }
+    const lockKey = `reputation-shop:buy:lock:${cultivator.id}`;
+    const lock = createRedisLock({
+      timeout: BUY_LOCK_TTL_MS,
+      retries: 0,
+      delay: 50,
+    });
+    await lock.acquire(lockKey);
 
     try {
       const committed = await commitPlayerStateMutation({
@@ -125,9 +125,12 @@ router.post('/:id/buy', requireActiveCultivator(), async (c) => {
 
       return c.json(toPlayerStateMutationResponse(committed));
     } finally {
-      await redis.del(lockKey);
+      await releaseRedisLock(lock, lockKey);
     }
   } catch (error) {
+    if (error instanceof LockAcquisitionError) {
+      return c.json({ error: '兑换正在处理中，请稍后' }, 429);
+    }
     if (error instanceof ReputationShopError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }

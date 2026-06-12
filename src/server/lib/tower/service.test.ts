@@ -263,7 +263,7 @@ describe('tower service prepared enemies', () => {
     );
 
     expect(result.milestoneReward?.rewards).toEqual(
-      expect.arrayContaining([{ type: 'reputation', value: 1000 }]),
+      expect.arrayContaining([{ type: 'reputation', value: 5 }]),
     );
   });
 

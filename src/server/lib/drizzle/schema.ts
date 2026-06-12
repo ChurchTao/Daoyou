@@ -60,7 +60,7 @@ export const cultivators = pgTable(
     willpower: integer('willpower').notNull(),
 
     spirit_stones: integer('spirit_stones').notNull().default(0), // 灵石
-    reputation: integer('reputation').notNull().default(0), // 声望值
+    reputation: integer('reputation').notNull().default(0), // 声望
     qi: integer('qi').notNull().default(200), // 天地灵气
     qiLastRefreshedAt: timestamp('qi_last_refreshed_at').notNull().defaultNow(),
     last_yield_at: timestamp('last_yield_at').defaultNow(),
@@ -681,12 +681,18 @@ export const reputationShopPurchases = pgTable(
     itemLibraryItemId: varchar('item_library_item_id', { length: 120 }).notNull(),
     quantity: integer('quantity').notNull(),
     reputationCost: integer('reputation_cost').notNull(),
+    purchaseWeek: varchar('purchase_week', { length: 10 }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
     index('reputation_shop_purchases_cultivator_item_idx').on(
       table.cultivatorId,
       table.shopItemId,
+    ),
+    index('reputation_shop_purchases_week_idx').on(
+      table.cultivatorId,
+      table.shopItemId,
+      table.purchaseWeek,
     ),
     index('reputation_shop_purchases_created_idx').on(table.createdAt),
   ],

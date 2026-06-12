@@ -54,7 +54,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     description: '通用货币',
   },
   reputation: {
-    label: '声望值',
+    label: '声望',
     icon: '🏵️',
     description: '天骄宝阁兑换所需的声望',
   },

@@ -9,20 +9,23 @@ import { findPublishedItemLibraryByItemIds } from '@server/lib/repositories/item
 import { resourceEngine } from '@shared/engine/resource/ResourceEngine';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import {
+  REPUTATION_SHOP_MAX_PRICE,
+  REPUTATION_SHOP_MAX_STACK_QUANTITY,
+  type ReputationShopItemMutation,
+  type ReputationShopItemStatus,
+  type ReputationShopItemView,
+} from '@shared/contracts/reputationShop';
+import {
   attachmentsToResourceOperations,
   buildAttachmentFromItemLibraryEntry,
   parseItemLibraryEntry,
   type ItemLibraryEntry,
 } from '@shared/lib/itemLibrary';
-import type {
-  ReputationShopItemMutation,
-  ReputationShopItemStatus,
-  ReputationShopItemView,
-} from '@shared/contracts/reputationShop';
 import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
 
 type ShopItemRow = typeof reputationShopItems.$inferSelect;
 type ItemLibraryRow = typeof itemLibrary.$inferSelect;
+const PURCHASE_WEEK_TIME_ZONE = 'Asia/Shanghai';
 
 export class ReputationShopError extends Error {
   status: number;
@@ -36,6 +39,23 @@ export class ReputationShopError extends Error {
 function toIso(value: Date | string | null | undefined): string {
   if (!value) return new Date(0).toISOString();
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+export function getReputationShopPurchaseWeek(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: PURCHASE_WEEK_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const year = Number(value.year);
+  const month = Number(value.month);
+  const day = Number(value.day);
+  const localDate = new Date(Date.UTC(year, month - 1, day));
+  const dayOffset = (localDate.getUTCDay() + 6) % 7;
+  localDate.setUTCDate(localDate.getUTCDate() - dayOffset);
+  return localDate.toISOString().slice(0, 10);
 }
 
 function parseItem(row: ItemLibraryRow): ItemLibraryEntry {
@@ -61,6 +81,7 @@ function parseItem(row: ItemLibraryRow): ItemLibraryEntry {
 async function countPurchases(
   cultivatorId: string,
   shopItemId: string,
+  purchaseWeek: string,
   q: DbExecutor | DbTransaction,
 ): Promise<number> {
   const [row] = await q
@@ -70,6 +91,7 @@ async function countPurchases(
       and(
         eq(reputationShopPurchases.cultivatorId, cultivatorId),
         eq(reputationShopPurchases.shopItemId, shopItemId),
+        eq(reputationShopPurchases.purchaseWeek, purchaseWeek),
       ),
     );
 
@@ -82,8 +104,9 @@ async function buildView(args: {
   cultivatorId?: string;
   q: DbExecutor | DbTransaction;
 }): Promise<ReputationShopItemView> {
+  const purchaseWeek = getReputationShopPurchaseWeek();
   const purchasedCount = args.cultivatorId
-    ? await countPurchases(args.cultivatorId, args.row.id, args.q)
+    ? await countPurchases(args.cultivatorId, args.row.id, purchaseWeek, args.q)
     : 0;
   const remainingPurchases =
     typeof args.row.perUserLimit === 'number'
@@ -168,18 +191,73 @@ export async function listReputationShopItems(args: {
   );
 }
 
-async function assertPublishedItem(itemId: string): Promise<void> {
-  const [item] = await findPublishedItemLibraryByItemIds([itemId]);
+function assertQuantityForItemType(args: {
+  itemType: ItemLibraryEntry['type'] | ItemLibraryRow['type'];
+  quantity: number;
+}): void {
+  if (!Number.isInteger(args.quantity) || args.quantity < 1) {
+    throw new ReputationShopError(400, '商品发放数量配置异常');
+  }
+  if (args.itemType === 'artifact' && args.quantity !== 1) {
+    throw new ReputationShopError(400, '法宝类商品每次只能发放 1 件');
+  }
+  if (
+    args.itemType !== 'artifact' &&
+    args.quantity > REPUTATION_SHOP_MAX_STACK_QUANTITY
+  ) {
+    throw new ReputationShopError(
+      400,
+      `材料和消耗品每次最多发放 ${REPUTATION_SHOP_MAX_STACK_QUANTITY} 件`,
+    );
+  }
+}
+
+function assertStoredShopItem(row: ShopItemRow, item: ItemLibraryRow): void {
+  if (row.status !== 'active' || item.status !== 'published') {
+    throw new ReputationShopError(400, '此物暂不可兑换');
+  }
+  if (!Number.isInteger(row.price) || row.price < 1) {
+    throw new ReputationShopError(400, '商品声望价格配置异常');
+  }
+  if (row.price > REPUTATION_SHOP_MAX_PRICE) {
+    throw new ReputationShopError(
+      400,
+      `商品声望价格不能超过 ${REPUTATION_SHOP_MAX_PRICE}`,
+    );
+  }
+  if (
+    row.perUserLimit !== null &&
+    (!Number.isInteger(row.perUserLimit) || row.perUserLimit < 1)
+  ) {
+    throw new ReputationShopError(400, '商品每周限购配置异常');
+  }
+  assertQuantityForItemType({
+    itemType: item.type,
+    quantity: row.quantity,
+  });
+}
+
+async function assertPublishedItemAndQuantity(input: {
+  itemLibraryItemId: string;
+  quantity: number;
+}): Promise<void> {
+  const [item] = await findPublishedItemLibraryByItemIds([
+    input.itemLibraryItemId,
+  ]);
   if (!item) {
     throw new ReputationShopError(400, '请选择已发布的道具库道具');
   }
+  assertQuantityForItemType({
+    itemType: item.type,
+    quantity: input.quantity,
+  });
 }
 
 export async function createReputationShopItem(params: {
   input: ReputationShopItemMutation;
   userId: string;
 }): Promise<ReputationShopItemView> {
-  await assertPublishedItem(params.input.itemLibraryItemId);
+  await assertPublishedItemAndQuantity(params.input);
   const q = getExecutor();
   const [row] = await q
     .insert(reputationShopItems)
@@ -205,7 +283,7 @@ export async function updateReputationShopItem(params: {
   input: ReputationShopItemMutation;
   userId: string;
 }): Promise<ReputationShopItemView | null> {
-  await assertPublishedItem(params.input.itemLibraryItemId);
+  await assertPublishedItemAndQuantity(params.input);
   const q = getExecutor();
   const [row] = await q
     .update(reputationShopItems)
@@ -263,13 +341,13 @@ export async function buyReputationShopItem(params: {
   if (!loaded) {
     throw new ReputationShopError(404, '天骄宝阁商品不存在');
   }
-  if (loaded.row.status !== 'active' || loaded.item.status !== 'published') {
-    throw new ReputationShopError(400, '此物暂不可兑换');
-  }
+  assertStoredShopItem(loaded.row, loaded.item);
 
+  const purchaseWeek = getReputationShopPurchaseWeek();
   const purchasedCount = await countPurchases(
     params.cultivatorId,
     loaded.row.id,
+    purchaseWeek,
     params.tx,
   );
   if (
@@ -286,7 +364,7 @@ export async function buyReputationShopItem(params: {
     params.tx,
   );
   if (!consumeResult.success) {
-    throw new ReputationShopError(400, consumeResult.errors?.[0] ?? '声望值不足');
+    throw new ReputationShopError(400, consumeResult.errors?.[0] ?? '声望不足');
   }
 
   const attachment = buildAttachmentFromItemLibraryEntry(
@@ -310,6 +388,7 @@ export async function buyReputationShopItem(params: {
     itemLibraryItemId: loaded.row.itemLibraryItemId,
     quantity: loaded.row.quantity,
     reputationCost: loaded.row.price,
+    purchaseWeek,
   });
 
   const [cultivatorRow] = await params.tx

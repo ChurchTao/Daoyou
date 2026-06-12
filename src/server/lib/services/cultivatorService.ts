@@ -1478,8 +1478,8 @@ const RESOURCE_SAFETY = {
     ceiling: 1_000_000_000,  // 灵石绝对上限 10 亿
   },
   reputation: {
-    maxDelta: 10_000_000,    // 单次最多变动 1000 万声望
-    ceiling: 1_000_000_000,  // 声望绝对上限 10 亿
+    maxDelta: 9999,          // 单次最多变动 9999 声望
+    ceiling: 1_000_000,      // 声望绝对上限 100 万
   },
   lifespan: {
     maxDelta: 100_000,       // 单次最多变动 10 万年寿元
@@ -1500,6 +1500,16 @@ function clampResourceDelta(delta: number, maxDelta: number): number {
     throw new Error(`非法的资源变化量: ${delta}（必须为有限数）`);
   }
   return Math.max(-maxDelta, Math.min(maxDelta, delta));
+}
+
+function assertResourceDeltaInRange(delta: number, maxDelta: number): number {
+  if (!Number.isFinite(delta)) {
+    throw new Error(`非法的资源变化量: ${delta}（必须为有限数）`);
+  }
+  if (Math.abs(delta) > maxDelta) {
+    throw new Error(`资源变化量超出上限: ${delta}（单次最多 ${maxDelta}）`);
+  }
+  return delta;
 }
 
 /**
@@ -1547,7 +1557,7 @@ export async function updateSpiritStones(
 }
 
 /**
- * 更新角色声望值
+ * 更新角色声望
  */
 export async function updateReputation(
   userId: string,
@@ -1557,7 +1567,10 @@ export async function updateReputation(
 ): Promise<number> {
   await assertCultivatorOwnership(userId, cultivatorId);
 
-  const safeDelta = clampResourceDelta(delta, RESOURCE_SAFETY.reputation.maxDelta);
+  const safeDelta = assertResourceDeltaInRange(
+    delta,
+    RESOURCE_SAFETY.reputation.maxDelta,
+  );
 
   const dbInstance = getExecutor(tx);
   const cultivator = await dbInstance
@@ -1577,7 +1590,7 @@ export async function updateReputation(
   );
   if (newValue < 0) {
     throw new Error(
-      `声望值不足，需要 ${-safeDelta}，当前拥有 ${cultivator[0].reputation}`,
+      `声望不足，需要 ${-safeDelta}，当前拥有 ${cultivator[0].reputation}`,
     );
   }
 

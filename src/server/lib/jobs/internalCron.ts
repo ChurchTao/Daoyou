@@ -7,6 +7,7 @@ import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/player
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
+import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
 import { updateReputation } from '@server/lib/services/cultivatorService';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS } from '@shared/types/constants';
@@ -18,7 +19,7 @@ const RANK_REWARD_LOCK_KEY = 'golden_rank:rewards:lock';
 const TOWER_ENEMY_SETS_LOCK_KEY = 'cron:tower-enemy-sets:lock';
 const PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY =
   'cron:player-state-events-cleanup:lock';
-const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:rewards:settled:';
+const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -44,9 +45,7 @@ export type TowerEnemySetsJobResult = CronJobResult & {
 
 function getRewardByRank(rank: number): number {
   if (rank === 1) return RANKING_REWARDS[1];
-  if (rank === 2) return RANKING_REWARDS[2];
-  if (rank === 3) return RANKING_REWARDS[3];
-  if (rank <= 10) return RANKING_REWARDS['4-10'];
+  if (rank <= 10) return RANKING_REWARDS['2-10'];
   if (rank <= 50) return RANKING_REWARDS['11-50'];
   return RANKING_REWARDS['51-100'];
 }
@@ -58,6 +57,15 @@ function getSettlementDateCN(now = new Date()): string {
     month: '2-digit',
     day: '2-digit',
   }).format(now);
+}
+
+function isSettlementMondayCN(now = new Date()): boolean {
+  return (
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Shanghai',
+      weekday: 'short',
+    }).format(now) === 'Mon'
+  );
 }
 
 async function releaseJobLock(lockKey: string, lockToken: string): Promise<void> {
@@ -146,7 +154,18 @@ export async function runBetBattleExpireJob(): Promise<CronJobResult> {
 
 export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
   return withJobLock('rank-rewards', RANK_REWARD_LOCK_KEY, async () => {
-    const settlementDate = getSettlementDateCN();
+    const now = new Date();
+    const settlementDate = getSettlementDateCN(now);
+    if (!isSettlementMondayCN(now)) {
+      return {
+        success: true,
+        processed: 0,
+        skipped: true,
+        reason: 'not_settlement_day',
+        settlementDate,
+      };
+    }
+
     const settledKey = `${RANK_REWARD_SETTLED_PREFIX}${settlementDate}`;
     const alreadySettled = await redis.exists(settledKey);
 
@@ -178,7 +197,30 @@ export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
         continue;
       }
 
-      await updateReputation(cultivator.userId, topCultivatorIds[i], reward);
+      await commitPlayerStateMutation({
+        userId: cultivator.userId,
+        cultivatorId: topCultivatorIds[i],
+        source: 'rank_weekly_rewards',
+        run: async (tx) => {
+          const reputation = await updateReputation(
+            cultivator.userId,
+            topCultivatorIds[i],
+            reward,
+            tx,
+          );
+          return {
+            result: null,
+            changes: [
+              {
+                domain: 'currency',
+                eventType: 'currency.reputation.gained',
+                patch: { currency: { reputation } },
+                invalidates: ['currency'],
+              },
+            ],
+          };
+        },
+      });
 
       logs.push(`Rank ${rank}: +${reward} reputation`);
     }

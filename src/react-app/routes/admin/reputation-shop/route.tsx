@@ -12,6 +12,10 @@ import type {
   ReputationShopItemMutation,
   ReputationShopItemView,
 } from '@shared/contracts/reputationShop';
+import {
+  REPUTATION_SHOP_MAX_PRICE,
+  REPUTATION_SHOP_MAX_STACK_QUANTITY,
+} from '@shared/contracts/reputationShop';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -71,13 +75,41 @@ function parsePositiveInt(value: string, label: string) {
   return parsed;
 }
 
-function toMutation(draft: DraftState): ReputationShopItemMutation {
+function normalizeQuantityForItem(
+  quantity: string,
+  item: ItemLibraryEntry | undefined,
+) {
+  return item?.type === 'artifact' ? '1' : quantity;
+}
+
+function toMutation(
+  draft: DraftState,
+  item: ItemLibraryEntry | undefined,
+): ReputationShopItemMutation {
+  const price = parsePositiveInt(draft.price, '价格');
+  if (price > REPUTATION_SHOP_MAX_PRICE) {
+    throw new Error(`价格最高为 ${REPUTATION_SHOP_MAX_PRICE}`);
+  }
+
+  const quantity = parsePositiveInt(
+    normalizeQuantityForItem(draft.quantity, item),
+    '数量',
+  );
+  if (item?.type === 'artifact' && quantity !== 1) {
+    throw new Error('法宝类商品每次只能发放 1 件');
+  }
+  if (item?.type !== 'artifact' && quantity > REPUTATION_SHOP_MAX_STACK_QUANTITY) {
+    throw new Error(
+      `材料和消耗品每次最多发放 ${REPUTATION_SHOP_MAX_STACK_QUANTITY} 件`,
+    );
+  }
+
   return {
     itemLibraryItemId: draft.itemLibraryItemId,
-    price: parsePositiveInt(draft.price, '价格'),
-    quantity: parsePositiveInt(draft.quantity, '数量'),
+    price,
+    quantity,
     perUserLimit: draft.perUserLimit.trim()
-      ? parsePositiveInt(draft.perUserLimit, '个人限购')
+      ? parsePositiveInt(draft.perUserLimit, '每周限购')
       : null,
     status: draft.status,
     sortOrder: Number.isInteger(Number(draft.sortOrder))
@@ -98,6 +130,7 @@ export default function AdminReputationShopPage() {
     () => new Map(libraryItems.map((item) => [item.itemId, item])),
     [libraryItems],
   );
+  const selectedLibraryItem = libraryByItemId.get(draft.itemLibraryItemId);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,7 +154,14 @@ export default function AdminReputationShopPage() {
       setDraft((current) =>
         current.itemLibraryItemId || nextLibraryItems.length === 0
           ? current
-          : { ...current, itemLibraryItemId: nextLibraryItems[0].itemId },
+          : {
+              ...current,
+              itemLibraryItemId: nextLibraryItems[0].itemId,
+              quantity: normalizeQuantityForItem(
+                current.quantity,
+                nextLibraryItems[0],
+              ),
+            },
       );
     } catch (error) {
       pushToast({
@@ -141,6 +181,7 @@ export default function AdminReputationShopPage() {
     setDraft({
       ...emptyDraft,
       itemLibraryItemId: libraryItems[0]?.itemId ?? '',
+      quantity: normalizeQuantityForItem('1', libraryItems[0]),
     });
   };
 
@@ -149,7 +190,7 @@ export default function AdminReputationShopPage() {
       id: item.id,
       itemLibraryItemId: item.itemLibraryItemId,
       price: String(item.price),
-      quantity: String(item.quantity),
+      quantity: normalizeQuantityForItem(String(item.quantity), item.item),
       perUserLimit: item.perUserLimit ? String(item.perUserLimit) : '',
       status: item.status,
       sortOrder: String(item.sortOrder),
@@ -159,7 +200,7 @@ export default function AdminReputationShopPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const payload = toMutation(draft);
+      const payload = toMutation(draft, selectedLibraryItem);
       const response = await fetch(
         draft.id
           ? `/api/admin/reputation-shop/${draft.id}`
@@ -214,9 +255,14 @@ export default function AdminReputationShopPage() {
           <InkSelect
             label="道具库道具"
             value={draft.itemLibraryItemId}
-            onChange={(itemLibraryItemId) =>
-              setDraft((current) => ({ ...current, itemLibraryItemId }))
-            }
+            onChange={(itemLibraryItemId) => {
+              const item = libraryByItemId.get(itemLibraryItemId);
+              setDraft((current) => ({
+                ...current,
+                itemLibraryItemId,
+                quantity: normalizeQuantityForItem(current.quantity, item),
+              }));
+            }}
             disabled={libraryItems.length === 0}
           >
             {libraryItems.length === 0 ? (
@@ -233,16 +279,23 @@ export default function AdminReputationShopPage() {
             label="声望价格"
             value={draft.price}
             onChange={(price) => setDraft((current) => ({ ...current, price }))}
+            hint={`最高 ${REPUTATION_SHOP_MAX_PRICE}`}
           />
           <InkInput
             label="发放数量"
-            value={draft.quantity}
+            value={normalizeQuantityForItem(draft.quantity, selectedLibraryItem)}
             onChange={(quantity) =>
               setDraft((current) => ({ ...current, quantity }))
             }
+            disabled={selectedLibraryItem?.type === 'artifact'}
+            hint={
+              selectedLibraryItem?.type === 'artifact'
+                ? '法宝固定发放 1 件'
+                : `材料/消耗品最高 ${REPUTATION_SHOP_MAX_STACK_QUANTITY} 件`
+            }
           />
           <InkInput
-            label="每人限购"
+            label="每周限购"
             value={draft.perUserLimit}
             onChange={(perUserLimit) =>
               setDraft((current) => ({ ...current, perUserLimit }))
@@ -312,7 +365,7 @@ export default function AdminReputationShopPage() {
                     </InkBadge>
                   </div>
                 }
-                meta={`价格 ${item.price} 声望 · 数量 ${item.quantity} · 限购 ${
+                meta={`价格 ${item.price} 声望 · 数量 ${item.quantity} · 每周限购 ${
                   item.perUserLimit ?? '不限'
                 } · 排序 ${item.sortOrder}`}
                 description={item.item.description ?? item.item.payload.description}

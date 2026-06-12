@@ -8,10 +8,13 @@ export const ReputationShopListQuerySchema = z.object({
   status: ReputationShopItemStatusSchema.optional(),
 });
 
+export const REPUTATION_SHOP_MAX_PRICE = 9999;
+export const REPUTATION_SHOP_MAX_STACK_QUANTITY = 30;
+
 export const ReputationShopItemMutationSchema = z.object({
   itemLibraryItemId: ItemLibraryItemIdSchema,
-  price: z.number().int().min(1).max(100000000),
-  quantity: z.number().int().min(1).max(100000000),
+  price: z.number().int().min(1).max(REPUTATION_SHOP_MAX_PRICE),
+  quantity: z.number().int().min(1).max(REPUTATION_SHOP_MAX_STACK_QUANTITY),
   perUserLimit: z.number().int().min(1).max(100000000).nullable().optional(),
   status: ReputationShopItemStatusSchema.default('active'),
   sortOrder: z.number().int().min(-1000000).max(1000000).default(0),

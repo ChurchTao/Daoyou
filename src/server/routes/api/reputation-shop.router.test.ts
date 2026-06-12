@@ -2,12 +2,21 @@ import { Hono } from 'hono';
 
 const {
   buyReputationShopItemMock,
+  createRedisLockMock,
   commitPlayerStateMutationMock,
   listReputationShopItemsMock,
-  redisDelMock,
-  redisSetMock,
+  lockAcquireMock,
+  lockReleaseMock,
+  LockAcquisitionErrorMock,
 } = vi.hoisted(() => ({
   buyReputationShopItemMock: vi.fn(),
+  lockAcquireMock: vi.fn(),
+  lockReleaseMock: vi.fn(),
+  LockAcquisitionErrorMock: class LockAcquisitionError extends Error {},
+  createRedisLockMock: vi.fn(() => ({
+    acquire: lockAcquireMock,
+    release: lockReleaseMock,
+  })),
   commitPlayerStateMutationMock: vi.fn(async (input: any) => {
     const { result, changes } = await input.run({ __tx: true });
     return {
@@ -34,8 +43,6 @@ const {
     };
   }),
   listReputationShopItemsMock: vi.fn(),
-  redisDelMock: vi.fn(),
-  redisSetMock: vi.fn(),
 }));
 
 vi.mock('@server/lib/hono/middleware', () => ({
@@ -56,11 +63,10 @@ vi.mock('@server/lib/hono/response', () => ({
     context.json(body, status),
 }));
 
-vi.mock('@server/lib/redis', () => ({
-  redis: {
-    del: redisDelMock,
-    set: redisSetMock,
-  },
+vi.mock('@server/lib/redis/lock', () => ({
+  createRedisLock: createRedisLockMock,
+  LockAcquisitionError: LockAcquisitionErrorMock,
+  releaseRedisLock: vi.fn(async (lock: any) => lock.release()),
 }));
 
 vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
@@ -129,7 +135,8 @@ describe('reputation shop router', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    redisSetMock.mockResolvedValue('OK');
+    lockAcquireMock.mockResolvedValue(null);
+    lockReleaseMock.mockResolvedValue(null);
   });
 
   it('lists visible shop items with current reputation', async () => {
@@ -185,20 +192,21 @@ describe('reputation shop router', () => {
         }),
       }),
     );
-    expect(redisSetMock).toHaveBeenCalledWith(
-      'reputation-shop:buy:lock:11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222',
-      'locked',
-      'EX',
-      10,
-      'NX',
+    expect(createRedisLockMock).toHaveBeenCalledWith({
+      timeout: 10000,
+      retries: 0,
+      delay: 50,
+    });
+    expect(lockAcquireMock).toHaveBeenCalledWith(
+      'reputation-shop:buy:lock:11111111-1111-4111-8111-111111111111',
     );
-    expect(redisDelMock).toHaveBeenCalledWith(
-      'reputation-shop:buy:lock:11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222',
-    );
+    expect(lockReleaseMock).toHaveBeenCalledTimes(1);
   });
 
   it('rejects concurrent buys with a lock conflict', async () => {
-    redisSetMock.mockResolvedValueOnce(null);
+    lockAcquireMock.mockRejectedValueOnce(
+      new LockAcquisitionErrorMock('lock conflict'),
+    );
 
     const response = await createApp().request(
       '/api/reputation-shop/22222222-2222-4222-8222-222222222222/buy',
@@ -208,7 +216,7 @@ describe('reputation shop router', () => {
     expect(response.status).toBe(429);
     expect(commitPlayerStateMutationMock).not.toHaveBeenCalled();
     expect(buyReputationShopItemMock).not.toHaveBeenCalled();
-    expect(redisDelMock).not.toHaveBeenCalled();
+    expect(lockReleaseMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({
       error: '兑换正在处理中，请稍后',
     });
