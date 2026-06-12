@@ -1,6 +1,7 @@
 import { useQiState } from '@app/components/feature/cultivator/useQiState';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import Link from '@app/components/router/AppLink';
+import { InkHorizontalScroll } from '@app/components/ui';
 import {
   BOTTLENECK_THRESHOLD,
   BREAKTHROUGH_MIN_PROGRESS,
@@ -17,6 +18,7 @@ import {
 import { cn } from '@shared/lib/cn';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 import type { GameHudSnapshot } from './useGameHudModel';
 
 function HudMeter({
@@ -147,11 +149,13 @@ function InfoTable({
 }
 
 function HudTag({
+  className: extraClassName,
   label,
   value,
   tone = 'default',
   onClick,
 }: {
+  className?: string;
   label?: string;
   value: ReactNode;
   tone?: 'default' | 'qi' | 'wealth';
@@ -162,6 +166,7 @@ function HudTag({
     tone === 'qi' && 'border-teal/35 text-teal',
     tone === 'wealth' && 'border-wood/35 text-wood',
     onClick && 'hover:border-crimson/45 hover:text-crimson transition-colors',
+    extraClassName,
   );
   const content = (
     <>
@@ -181,8 +186,17 @@ function HudTag({
   return <span className={className}>{content}</span>;
 }
 
+type HudStatusItem = {
+  key: string;
+  label?: string;
+  value: ReactNode;
+  tone?: 'default' | 'qi' | 'wealth';
+  onClick?: () => void;
+};
+
 export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const { openDialog } = useInkUI();
+  const navigate = useNavigate();
   const {
     state: qiState,
     loading: qiLoading,
@@ -419,6 +433,41 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     });
   };
 
+  const hudStatusItems: HudStatusItem[] = [
+    {
+      key: 'status',
+      label: '状态',
+      value: snapshot.statusText,
+    },
+    {
+      key: 'realm',
+      value: `${snapshot.realm}·${snapshot.realmStage}`,
+      onClick: openRealmInfo,
+    },
+    {
+      key: 'qi',
+      label: `${qiInfo.icon} ${qiInfo.label}`,
+      value: qiDisplay,
+      tone: 'qi',
+      onClick: openQiInfo,
+    },
+    {
+      key: 'spirit-stones',
+      label: `${spiritStonesInfo.icon} ${spiritStonesInfo.label}`,
+      value: formatSpiritStones(snapshot.spiritStones),
+      tone: 'wealth',
+    },
+    {
+      key: 'reputation',
+      label: `${reputationInfo.icon} ${reputationInfo.label}`,
+      value: formatSpiritStones(snapshot.reputation),
+      tone: 'wealth',
+      onClick: () => {
+        void navigate('/game/tianjiao-vault');
+      },
+    },
+  ];
+
   return (
     <header className="border-ink/10 sticky top-0 z-30 border-b border-dashed backdrop-blur-sm">
       <div className="mx-auto block w-full max-w-5xl px-2.5 py-2 text-left sm:px-3 md:px-6">
@@ -465,31 +514,36 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
           </div>
         </div>
 
-        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-1.5">
-          <HudTag label="状态" value={snapshot.statusText} />
-          <HudTag
-            value={`${snapshot.realm}·${snapshot.realmStage}`}
-            onClick={openRealmInfo}
-          />
-          <HudTag
-            label={`${qiInfo.icon} ${qiInfo.label}`}
-            value={qiDisplay}
-            tone="qi"
-            onClick={openQiInfo}
-          />
-          <HudTag
-            label={`${spiritStonesInfo.icon} ${spiritStonesInfo.label}`}
-            value={formatSpiritStones(snapshot.spiritStones)}
-            tone="wealth"
-          />
-          <HudTag
-            label={`${reputationInfo.icon} ${reputationInfo.label}`}
-            value={formatSpiritStones(snapshot.reputation)}
-            tone="wealth"
-            onClick={() => {
-              window.location.href = '/game/tianjiao-vault';
-            }}
-          />
+        <div className="mt-3 hidden min-w-0 flex-wrap items-center gap-1.5 md:flex">
+          {hudStatusItems.map((item) => (
+            <HudTag
+              key={item.key}
+              label={item.label}
+              value={item.value}
+              tone={item.tone}
+              onClick={item.onClick}
+            />
+          ))}
+        </div>
+
+        <div className="mt-3 md:hidden">
+          <InkHorizontalScroll
+            ariaLabel="角色状态，可横向滑动查看更多"
+            viewportClassName="pr-7"
+            contentClassName="items-center gap-1.5"
+            showStartHint={false}
+          >
+            {hudStatusItems.map((item) => (
+              <HudTag
+                key={item.key}
+                className="max-w-[13rem] shrink-0 whitespace-nowrap"
+                label={item.label}
+                value={item.value}
+                tone={item.tone}
+                onClick={item.onClick}
+              />
+            ))}
+          </InkHorizontalScroll>
         </div>
       </div>
     </header>
