@@ -620,7 +620,6 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
       newChallengerRank = await addToRankingTailIfVacant(
         rankingRealm,
         cultivatorId,
-        user.id,
       );
       if (newChallengerRank !== null) {
         rankChangeType = 'vacancy_entry';

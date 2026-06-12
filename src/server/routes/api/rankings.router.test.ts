@@ -516,7 +516,6 @@ describe('rankings router', () => {
     expect(addToRankingTailIfVacantMock).toHaveBeenCalledWith(
       '筑基',
       'cultivator-1',
-      'user-1',
     );
     expect(incrementDailyChallengesMock).toHaveBeenCalledTimes(1);
     expect(createBattleRecordV2Mock).toHaveBeenCalledTimes(1);

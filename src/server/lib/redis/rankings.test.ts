@@ -154,7 +154,7 @@ describe('ranking redis helpers', () => {
     await addToRanking('筑基', 'foundation-2', 'user-2', 2);
 
     await expect(
-      addToRankingTailIfVacant('筑基', 'foundation-3', 'user-3'),
+      addToRankingTailIfVacant('筑基', 'foundation-3'),
     ).resolves.toBe(3);
     await expect(getTopRankingCultivatorIds('筑基')).resolves.toEqual([
       'foundation-1',
@@ -169,7 +169,7 @@ describe('ranking redis helpers', () => {
     }
 
     await expect(
-      addToRankingTailIfVacant('筑基', 'foundation-101', 'user-101'),
+      addToRankingTailIfVacant('筑基', 'foundation-101'),
     ).resolves.toBeNull();
     await expect(getCultivatorRank('筑基', 'foundation-101')).resolves.toBeNull();
   });
