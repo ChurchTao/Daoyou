@@ -21,7 +21,6 @@ import {
   getRemainingChallenges,
   incrementDailyChallenges,
   isLocked,
-  isProtected,
   isRankingEmpty,
   releaseChallengeLock,
   updateRanking,
@@ -359,7 +358,6 @@ challengeRouter.get('/my-rank', requireActiveCultivator(), async (c) => {
   const realm = parseRealmQuery(c.req.query('realm')) ?? getCultivatorRealm(cultivator);
   const rank = await getCultivatorRank(realm, cultivator.id);
   const remainingChallenges = await getRemainingChallenges(cultivator.id);
-  const isProtectedStatus = await isProtected(cultivator.id);
 
   return c.json({
     success: true,
@@ -367,7 +365,6 @@ challengeRouter.get('/my-rank', requireActiveCultivator(), async (c) => {
       rank,
       realm,
       remainingChallenges,
-      isProtected: isProtectedStatus,
     },
   });
 });
@@ -462,10 +459,6 @@ challengeRouter.post('/challenge', requireActiveCultivator(), async (c) => {
   const targetRank = await getCultivatorRank(rankingRealm, targetId);
   if (targetRank === null) {
     return c.json({ error: '被挑战者不在排行榜上' }, 404);
-  }
-
-  if (await isProtected(targetId)) {
-    return c.json({ error: '被挑战者处于新天骄保护期（2小时内不可挑战）' }, 400);
   }
 
   if (await isLocked(targetId)) {
@@ -574,10 +567,6 @@ challengeRouter.post('/challenge-battle/v5', requireActiveCultivator(), async (c
     const targetRank = await getCultivatorRank(rankingRealm, targetId);
     if (targetRank === null) {
       return c.json({ error: '被挑战者不在排行榜上' }, 404);
-    }
-
-    if (await isProtected(targetId)) {
-      return c.json({ error: '被挑战者处于新天骄保护期（2小时内不可挑战）' }, 403);
     }
 
     if (!(await acquireChallengeLock(targetId))) {

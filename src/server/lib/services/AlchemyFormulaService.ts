@@ -33,6 +33,7 @@ import {
 import {
   getBreakthroughPillLabel,
   getNextMajorRealm,
+  hasBreakthroughFocusEffect,
 } from '@shared/lib/breakthroughPill';
 import {
   evaluateFateContext,
@@ -1333,17 +1334,22 @@ export async function craftFromFormula(
       formula.family === 'breakthrough'
         ? getNextMajorRealm(cultivator.realm as RealmType)
         : null;
-    if (formula.family === 'breakthrough' && breakthroughTargetRealm) {
+    const usesFixedBreakthroughName =
+      formula.family === 'breakthrough' &&
+      breakthroughTargetRealm !== null &&
+      hasBreakthroughFocusEffect(spec.operations);
+    if (usesFixedBreakthroughName) {
       spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
       spec.alchemyMeta.breakthroughLabel = getBreakthroughPillLabel(
         breakthroughTargetRealm,
       );
+    } else if (formula.family === 'breakthrough' && breakthroughTargetRealm) {
+      spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
     }
     const consumable: Consumable = {
-      name:
-        formula.family === 'breakthrough' && breakthroughTargetRealm
-          ? getBreakthroughPillLabel(breakthroughTargetRealm)
-          : getFormulaProductName(formula.name),
+      name: usesFixedBreakthroughName
+        ? getBreakthroughPillLabel(breakthroughTargetRealm)
+        : getFormulaProductName(formula.name),
       type: '丹药',
       quality: highestMaterialRank,
       quantity: 1,

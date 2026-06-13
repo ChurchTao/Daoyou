@@ -7,26 +7,22 @@ import { redis } from './index';
 
 const RANKING_LIST_PREFIX = 'golden_rank:list:';
 const LEGACY_RANKING_LIST_KEY = 'golden_rank:list';
-const PROTECTION_PREFIX = 'golden_rank:protection:';
 const DAILY_CHALLENGES_PREFIX = 'golden_rank:daily_challenges:';
 const CHALLENGE_LOCK_PREFIX = 'golden_rank:challenge_lock:';
 const LEGACY_CULTIVATOR_INFO_PREFIX = 'golden_rank:cultivator:'; // 兼容老数据清理
 
 const MAX_RANKING_SIZE = 100;
-const PROTECTION_DURATION = 1800; // 30分钟，单位：秒
 const LOCK_DURATION = 300; // 5分钟，单位：秒
 const MAX_DAILY_CHALLENGES = 10;
 
 export interface RankingItem extends CultivatorBasic {
   rank: number;
   faction?: string;
-  is_new_comer: boolean; // 是否为新天骄（2小时内）
   updated_at: number;
 }
 
 export interface CultivatorRankInfo {
   rank: number | null; // null表示不在榜上
-  isProtected: boolean;
   remainingChallenges: number;
 }
 
@@ -46,38 +42,21 @@ function getRankingListKey(realm: RealmType): string {
 }
 
 /**
- * 获取排行榜顺序及保护信息
+ * 获取排行榜顺序
  */
 async function getRankingOrder(
   realm: RealmType,
-): Promise<
-  { cultivatorId: string; rank: number; isNewcomer: boolean }[]
-> {
+): Promise<{ cultivatorId: string; rank: number }[]> {
   const members = await redis.zrange(
     getRankingListKey(realm),
     0,
     MAX_RANKING_SIZE - 1,
   );
 
-  const items: { cultivatorId: string; rank: number; isNewcomer: boolean }[] =
-    [];
-  for (let i = 0; i < members.length; i++) {
-    const cultivatorId = members[i] as string;
-    const rank = i + 1;
-    const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-    const protectionTime = await redis.get(protectionKey);
-    const isNewcomer = protectionTime
-      ? Date.now() - parseInt(protectionTime, 10) < PROTECTION_DURATION * 1000
-      : false;
-
-    items.push({
-      cultivatorId,
-      rank,
-      isNewcomer,
-    });
-  }
-
-  return items;
+  return members.map((cultivatorId, index) => ({
+    cultivatorId: cultivatorId as string,
+    rank: index + 1,
+  }));
 }
 
 /**
@@ -120,7 +99,6 @@ export async function getRankingList(realm: RealmType): Promise<RankingItem[]> {
       realm: record.realm,
       realm_stage: record.realm_stage,
       origin: record.origin,
-      is_new_comer: entry.isNewcomer,
       updated_at:
         record.updatedAt instanceof Date
           ? record.updatedAt.getTime()
@@ -167,11 +145,6 @@ export async function addToRanking(
     await redis.zadd(getRankingListKey(realm), rank, cultivatorId);
   }
 
-  // 设置新上榜保护（2小时）
-  const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-  // Upstash Redis: setex(key, seconds, value)
-  await redis.set(protectionKey, Date.now().toString(), 'EX', PROTECTION_DURATION);
-
   // 限制排行榜大小（只保留前100名）
   // Upstash Redis: zremrangebyrank(key, start, stop)
   await redis.zremrangebyrank(getRankingListKey(realm), MAX_RANKING_SIZE, -1);
@@ -197,9 +170,6 @@ export async function addToRankingTailIfVacant(
 
   const actualRank = await getCultivatorRank(realm, cultivatorId);
   if (actualRank === null || actualRank > MAX_RANKING_SIZE) return null;
-
-  const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-  await redis.set(protectionKey, Date.now().toString(), 'EX', PROTECTION_DURATION);
 
   return actualRank;
 }
@@ -363,21 +333,6 @@ export async function getRemainingChallenges(
   const count = current ? parseInt(current, 10) : 0;
 
   return Math.max(0, MAX_DAILY_CHALLENGES - count);
-}
-
-/**
- * 检查是否在保护期
- */
-export async function isProtected(cultivatorId: string): Promise<boolean> {
-  const protectionKey = `${PROTECTION_PREFIX}${cultivatorId}`;
-  const protectionTime = await redis.get(protectionKey);
-
-  if (!protectionTime) {
-    return false;
-  }
-
-  const timeDiff = Date.now() - parseInt(protectionTime, 10);
-  return timeDiff < PROTECTION_DURATION * 1000;
 }
 
 /**

@@ -805,7 +805,7 @@ describe('craftFromFormula narrative copy', () => {
       'analysis-1',
     );
 
-    expect(result.consumable.name).toBe('护婴丹');
+    expect(result.consumable.name).toBe('清心护婴');
     expect(result.consumable.spec.kind).toBe('pill');
     expect(
       (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
@@ -817,9 +817,11 @@ describe('craftFromFormula narrative copy', () => {
     });
     expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
       breakthroughTargetRealm: '元婴',
-      breakthroughLabel: '护婴丹',
       propertyVector: [{ key: 'clear_mind_support', weight: 1 }],
     });
+    expect(
+      (result.consumable.spec as PillSpec).alchemyMeta.breakthroughLabel,
+    ).toBeUndefined();
   });
 
   it('preserves protect_meridians status effects when crafting higher-realm breakthrough formulas', async () => {
@@ -830,12 +832,18 @@ describe('craftFromFormula narrative copy', () => {
         description: '此方重在护脉稳络，专为化神前的大境界冲关所备。',
         family: 'breakthrough',
         pattern: {
-          targetPropertyVector: [{ key: 'protect_meridians_support', weight: 1 }],
+          targetPropertyVector: [
+            { key: 'protect_meridians_support', weight: 1 },
+          ],
           slotCount: 1,
         },
         blueprint: {
           operations: [
-            { type: 'add_status', status: 'protect_meridians', usesRemaining: 1 },
+            {
+              type: 'add_status',
+              status: 'protect_meridians',
+              usesRemaining: 1,
+            },
             { type: 'change_gauge', gauge: 'pillToxicity', delta: 11 },
           ],
           consumeRules: {
@@ -869,7 +877,9 @@ describe('craftFromFormula narrative copy', () => {
             intentVector: [],
             focusMode: 'balanced',
           },
-          aggregatedPropertyVector: [{ key: 'protect_meridians_support', weight: 1 }],
+          aggregatedPropertyVector: [
+            { key: 'protect_meridians_support', weight: 1 },
+          ],
           fitScore: 1,
           fitBand: 'aligned',
         }),
@@ -888,7 +898,7 @@ describe('craftFromFormula narrative copy', () => {
       'analysis-1',
     );
 
-    expect(result.consumable.name).toBe('叩神丹');
+    expect(result.consumable.name).toBe('稳络叩神');
     expect(result.consumable.spec.kind).toBe('pill');
     expect(
       (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
@@ -900,9 +910,11 @@ describe('craftFromFormula narrative copy', () => {
     });
     expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
       breakthroughTargetRealm: '化神',
-      breakthroughLabel: '叩神丹',
       propertyVector: [{ key: 'protect_meridians_support', weight: 1 }],
     });
+    expect(
+      (result.consumable.spec as PillSpec).alchemyMeta.breakthroughLabel,
+    ).toBeUndefined();
   });
 
   it('stores formula target vector and fit metrics in formula alchemy meta', async () => {

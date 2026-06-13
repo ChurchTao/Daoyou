@@ -5,7 +5,6 @@ const {
   checkDailyChallengesMock,
   isRankingEmptyMock,
   getCultivatorRankMock,
-  isProtectedMock,
   acquireChallengeLockMock,
   getCultivatorByIdUnsafeMock,
   simulateBattleV5Mock,
@@ -25,7 +24,6 @@ const {
   checkDailyChallengesMock: vi.fn(),
   isRankingEmptyMock: vi.fn(),
   getCultivatorRankMock: vi.fn(),
-  isProtectedMock: vi.fn(),
   acquireChallengeLockMock: vi.fn(),
   getCultivatorByIdUnsafeMock: vi.fn(),
   simulateBattleV5Mock: vi.fn(),
@@ -109,7 +107,6 @@ vi.mock('@server/lib/redis/rankings', () => ({
   getRemainingChallenges: getRemainingChallengesMock,
   incrementDailyChallenges: incrementDailyChallengesMock,
   isLocked: isLockedMock,
-  isProtected: isProtectedMock,
   isRankingEmpty: isRankingEmptyMock,
   releaseChallengeLock: releaseChallengeLockMock,
   updateRanking: updateRankingMock,
@@ -163,7 +160,6 @@ describe('rankings router', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    isProtectedMock.mockResolvedValue(false);
     acquireChallengeLockMock.mockResolvedValue(true);
     getCultivatorByIdUnsafeMock
       .mockResolvedValueOnce({

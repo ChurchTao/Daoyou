@@ -1,4 +1,4 @@
-import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
+import { getBreakthroughFocusPillLabel } from '@shared/lib/breakthroughPill';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
@@ -89,12 +89,7 @@ function getLifespanGainText(value: number): string {
 }
 
 function getBreakthroughPurposeLabel(spec: PillSpec): string | null {
-  return (
-    spec.alchemyMeta.breakthroughLabel ??
-    (spec.alchemyMeta.breakthroughTargetRealm
-      ? getBreakthroughPillLabel(spec.alchemyMeta.breakthroughTargetRealm)
-      : null)
-  );
+  return getBreakthroughFocusPillLabel(spec);
 }
 
 function getPillUsageLimit(

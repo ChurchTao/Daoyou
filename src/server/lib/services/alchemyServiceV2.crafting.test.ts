@@ -136,6 +136,7 @@ vi.mock('./AlchemyNarrativeEnricher', () => ({
   },
 }));
 
+import type { PillSpec } from '@shared/types/consumable';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createAlchemyService,
@@ -250,6 +251,70 @@ describe('processAlchemyCraft narrative copy', () => {
     expect(result.consumable.description).toContain(
       '药性归于补充气血 63%、治愈伤势 37%',
     );
+  });
+
+  it('does not override generated names for non-focus breakthrough effects', async () => {
+    generateImprovisedPillCopyMock.mockResolvedValueOnce({
+      name: '静心护识丹',
+      description: '清宁药性护住识海，冲关前可平复心魔杂念。',
+    });
+    const service = createAlchemyService({
+      plan: vi.fn().mockResolvedValue({
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '青岚草',
+            properties: [{ key: 'clear_mind_support', weight: 1 }],
+          },
+        ],
+        intentVector: [{ key: 'clear_mind_support', weight: 1 }],
+        focusMode: 'focused',
+      }),
+    } as any);
+
+    const result = await service.processAlchemyCraft('cultivator-1', ['m1'], {
+      userPrompt: '清心守神',
+    });
+
+    expect(result.consumable.name).toBe('静心护识丹');
+    expect(result.consumable.spec.kind).toBe('pill');
+    expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
+      breakthroughTargetRealm: '金丹',
+    });
+    expect(
+      (result.consumable.spec as PillSpec).alchemyMeta.breakthroughLabel,
+    ).toBeUndefined();
+  });
+
+  it('keeps fixed names for breakthrough focus effects', async () => {
+    generateImprovisedPillCopyMock.mockResolvedValueOnce({
+      name: '凝神冲关丹',
+      description: '丹气收束心神，为破境聚势。',
+    });
+    const service = createAlchemyService({
+      plan: vi.fn().mockResolvedValue({
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '青岚草',
+            properties: [{ key: 'breakthrough_support', weight: 1 }],
+          },
+        ],
+        intentVector: [{ key: 'breakthrough_support', weight: 1 }],
+        focusMode: 'focused',
+      }),
+    } as any);
+
+    const result = await service.processAlchemyCraft('cultivator-1', ['m1'], {
+      userPrompt: '破境凝神',
+    });
+
+    expect(result.consumable.name).toBe('降尘丹');
+    expect(result.consumable.spec.kind).toBe('pill');
+    expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
+      breakthroughTargetRealm: '金丹',
+      breakthroughLabel: '降尘丹',
+    });
   });
 
   it('uses one planner call and one naming call for improvised crafting', async () => {

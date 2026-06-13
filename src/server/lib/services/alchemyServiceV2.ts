@@ -22,6 +22,7 @@ import {
 import {
   getBreakthroughPillLabel,
   getNextMajorRealm,
+  hasBreakthroughFocusEffect,
 } from '@shared/lib/breakthroughPill';
 import {
   evaluateFateContext,
@@ -438,11 +439,21 @@ export function createAlchemyService(
           preparedMaterials.map((material) => material.name),
         );
 
-        if (synthesis.family === 'breakthrough' && breakthroughTargetRealm) {
+        const usesFixedBreakthroughName =
+          synthesis.family === 'breakthrough' &&
+          breakthroughTargetRealm !== null &&
+          hasBreakthroughFocusEffect(spec.operations);
+
+        if (usesFixedBreakthroughName) {
           spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
           spec.alchemyMeta.breakthroughLabel = getBreakthroughPillLabel(
             breakthroughTargetRealm,
           );
+        } else if (
+          synthesis.family === 'breakthrough' &&
+          breakthroughTargetRealm
+        ) {
+          spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
         }
 
         const generatedCopy =
@@ -458,14 +469,13 @@ export function createAlchemyService(
             userPrompt: prompt,
             focusMode: synthesis.focusMode,
           });
-        const resolvedName =
-          synthesis.family === 'breakthrough' && breakthroughTargetRealm
-            ? getBreakthroughPillLabel(breakthroughTargetRealm)
-            : (generatedCopy?.name ??
-              buildFallbackName(
-                preparedMaterials.map((material) => material.name),
-                synthesis.dominantElement,
-              ));
+        const resolvedName = usesFixedBreakthroughName
+          ? getBreakthroughPillLabel(breakthroughTargetRealm)
+          : (generatedCopy?.name ??
+            buildFallbackName(
+              preparedMaterials.map((material) => material.name),
+              synthesis.dominantElement,
+            ));
         const consumable: Consumable = {
           name: resolvedName,
           type: '丹药',

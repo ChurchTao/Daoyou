@@ -305,15 +305,15 @@ describe('toPillDisplayModel', () => {
       { realm: '金丹' },
     );
 
-    expect(model.primaryEffect).toContain('护婴丹');
+    expect(model.primaryEffect).not.toContain('护婴丹');
     expect(model.primaryEffect).toContain('清心');
     expect(model.primaryEffect).not.toContain('clear_mind');
-    expect(model.keywordLabels).toContain('护婴丹');
+    expect(model.keywordLabels).not.toContain('护婴丹');
     expect(model.detailGroups[2].lines).toContain('目标大境界：元婴');
     expect(model.detailGroups[2].lines).toContain('成丹层级：契合成丹');
   });
 
-  it('renders protect_meridians breakthrough pills with the shared higher-realm label fallback', () => {
+  it('renders protect_meridians breakthrough pills without fixed breakthrough names', () => {
     const model = toPillDisplayModel(
       createPill({
         kind: 'pill',
@@ -342,10 +342,10 @@ describe('toPillDisplayModel', () => {
       { realm: '大乘' },
     );
 
-    expect(model.primaryEffect).toContain('应劫丹');
+    expect(model.primaryEffect).not.toContain('应劫丹');
     expect(model.primaryEffect).toContain('护脉');
     expect(model.primaryEffect).not.toContain('protect_meridians');
-    expect(model.keywordLabels).toContain('应劫丹');
+    expect(model.keywordLabels).not.toContain('应劫丹');
     expect(model.detailGroups[2].lines).toContain('目标大境界：渡劫');
   });
 

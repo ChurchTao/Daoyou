@@ -2,24 +2,43 @@ import {
   PillKeywordLine,
   toPillDisplayModel,
 } from '@app/components/feature/consumables';
-import { InkBadge, type Tier } from '@app/components/ui/InkBadge';
-import { InkButton } from '@app/components/ui/InkButton';
+import { InkBadge, InkButton, type Tier } from '@app/components/ui';
+import { cn } from '@shared/lib/cn';
 import { isPillSpec } from '@shared/lib/consumables';
-import type { RealmType } from '@shared/types/constants';
-import type { PillSpec } from '@shared/types/consumable';
-import type { Consumable } from '@shared/types/cultivator';
 import {
   CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
 } from '@shared/lib/gameConceptDisplay';
-import {
+import type { RealmType } from '@shared/types/constants';
+import type { PillSpec } from '@shared/types/consumable';
+import type { Consumable } from '@shared/types/cultivator';
+import type {
   BattleRankingItem,
   ItemRankingEntry,
   RankingsDisplayItem,
 } from '@shared/types/rankings';
 import { memo } from 'react';
 
-interface RankingListItemProps {
+interface BattleRankingCardProps {
+  item: BattleRankingItem;
+  isSelf: boolean;
+  canChallenge: boolean;
+  challengeUnavailableReason?: string;
+  isChallenging: boolean;
+  isProbing: boolean;
+  onChallenge: (targetId: string) => Promise<void>;
+  onProbe: (targetId: string) => Promise<void>;
+  variant?: 'list' | 'podium';
+}
+
+interface ItemRankingCardProps {
+  item: ItemRankingEntry;
+  viewerRealm?: RealmType;
+  onViewDetails?: (item: ItemRankingEntry) => void;
+  variant?: 'list' | 'podium';
+}
+
+interface LegacyRankingListItemProps {
   item: RankingsDisplayItem;
   isSelf: boolean;
   canChallenge: boolean;
@@ -34,6 +53,257 @@ interface RankingListItemProps {
   onViewDetails?: (item: ItemRankingEntry) => void;
 }
 
+function resolveBattleRankTone(rank: number) {
+  if (rank === 1) {
+    return {
+      label: '榜首',
+      className: 'border-gold/55 text-wood',
+    };
+  }
+  if (rank <= 3) {
+    return {
+      label: `#${rank}`,
+      className: 'border-crimson/35 text-crimson',
+    };
+  }
+  return {
+    label: `#${rank}`,
+    className: 'border-ink/18 text-ink-secondary',
+  };
+}
+
+function resolveItemRankTone(rank: number) {
+  if (rank === 1) {
+    return {
+      label: '榜首',
+      className: 'border-gold/55 text-wood',
+    };
+  }
+  if (rank <= 3) {
+    return {
+      label: `#${rank}`,
+      className: 'border-crimson/35 text-crimson',
+    };
+  }
+  return {
+    label: `#${rank}`,
+    className: 'border-ink/18 text-ink-secondary',
+  };
+}
+
+function resolveItemIcon(item: ItemRankingEntry) {
+  if (item.itemType === 'artifact') {
+    return getEquipmentSlotInfo(
+      (item.slot as 'weapon' | 'armor' | 'accessory') || 'weapon',
+    ).icon;
+  }
+
+  if (item.itemType === 'elixir') {
+    return CONSUMABLE_TYPE_DISPLAY_MAP[(item.type as '丹药' | '符箓') || '丹药']
+      .icon;
+  }
+
+  return item.itemType === 'technique' ? '典' : '诀';
+}
+
+function RankSeal({ label, className }: { label: string; className: string }) {
+  return (
+    <div
+      className={cn(
+        'inline-flex h-7 min-w-11 shrink-0 items-center justify-center border-0 px-1.5 text-center text-sm leading-none font-semibold lg:h-12 lg:min-w-[4.5rem] lg:border lg:border-dashed lg:px-2 lg:text-base',
+        className,
+      )}
+    >
+      {label}
+    </div>
+  );
+}
+
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="border-ink/10 text-ink-secondary inline-flex min-h-6 items-center border border-dashed px-2 text-xs leading-5">
+      {children}
+    </span>
+  );
+}
+
+function BattleRankingCardComponent({
+  item,
+  isSelf,
+  canChallenge,
+  challengeUnavailableReason,
+  isChallenging,
+  isProbing,
+  onChallenge,
+  onProbe,
+}: BattleRankingCardProps) {
+  const rankTone = resolveBattleRankTone(item.rank);
+  const origin = item.origin ?? '散修';
+  const realmLabel = [item.realm, item.realm_stage].filter(Boolean).join(' · ');
+  const hasActions = !isSelf || Boolean(challengeUnavailableReason);
+
+  return (
+    <article
+      className={cn(
+        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
+        isSelf && 'border-crimson/30 bg-amber-200/30',
+      )}
+    >
+      <div
+        className={cn(
+          'grid min-w-0 gap-2 px-3 py-3 lg:grid-cols-[4.75rem_minmax(0,1fr)_7rem] lg:items-start lg:gap-4 lg:px-4 lg:py-3',
+          !hasActions && 'lg:grid-cols-[4.75rem_minmax(0,1fr)]',
+        )}
+      >
+        <div className="absolute top-3 right-3 flex items-start lg:static">
+          <RankSeal label={rankTone.label} className={rankTone.className} />
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h3 className="text-ink text-[1.05rem] leading-6 font-semibold wrap-break-word sm:text-lg sm:leading-7">
+              {item.name}
+            </h3>
+            {item.title ? (
+              <span className="text-ink-secondary text-sm leading-6 wrap-break-word">
+                「{item.title}」
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+            {realmLabel ? (
+              <MetaChip>
+                <span className="text-crimson font-semibold">{realmLabel}</span>
+              </MetaChip>
+            ) : null}
+            <MetaChip>{item.age} 岁</MetaChip>
+            <MetaChip>{origin}</MetaChip>
+          </div>
+        </div>
+
+        {hasActions ? (
+          <div className="mt-2 flex min-w-0 items-center justify-end gap-2 lg:mt-0">
+            {challengeUnavailableReason ? (
+              <span className="text-battle-muted mr-auto text-xs leading-5 lg:mr-0 lg:text-right">
+                {challengeUnavailableReason}
+              </span>
+            ) : null}
+            {!isSelf ? (
+              <>
+                <InkButton
+                  onClick={() => onProbe(item.id)}
+                  variant="secondary"
+                  disabled={isProbing}
+                  className="text-sm"
+                >
+                  {isProbing ? '查探中' : '查探'}
+                </InkButton>
+                {canChallenge ? (
+                  <InkButton
+                    onClick={() => onChallenge(item.id)}
+                    variant="primary"
+                    disabled={isChallenging}
+                    className="text-sm"
+                  >
+                    {isChallenging ? '挑战中' : '挑战'}
+                  </InkButton>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function ItemRankingCardComponent({
+  item,
+  viewerRealm,
+  onViewDetails,
+  variant = 'list',
+}: ItemRankingCardProps) {
+  const pillDisplay =
+    item.itemType === 'elixir' && isPillSpec(item.spec as PillSpec | undefined)
+      ? toPillDisplayModel(
+          {
+            id: item.id,
+            name: item.name,
+            type: (item.type as Consumable['type']) || '丹药',
+            quality: item.quality as Consumable['quality'],
+            quantity: item.quantity || 1,
+            description: item.description,
+            spec: item.spec as PillSpec,
+          },
+          { realm: viewerRealm },
+        )
+      : null;
+  const icon = resolveItemIcon(item);
+  const rankTone = resolveItemRankTone(item.rank);
+
+  return (
+    <article
+      className={cn(
+        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
+        variant === 'podium' && 'border-gold/30 bg-gold/15',
+      )}
+    >
+      <div className="grid min-w-0 gap-2 px-3 py-3 lg:grid-cols-[4.75rem_minmax(0,1fr)_6.25rem] lg:items-start lg:gap-4 lg:px-4 lg:py-3">
+        <div className="absolute top-3 right-3 flex items-start lg:static">
+          <RankSeal label={rankTone.label} className={rankTone.className} />
+        </div>
+
+        <div className="min-w-0">
+          <div className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2">
+            <span className="text-ink inline-flex h-7 w-7 items-center justify-center text-sm">
+              {icon}
+            </span>
+            <h3 className="text-ink min-w-0 text-[1.05rem] leading-6 font-semibold wrap-break-word sm:text-lg sm:leading-7">
+              {item.name}
+            </h3>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <MetaChip>
+              <span className="text-wood font-semibold">评分 {item.score}</span>
+            </MetaChip>
+            <MetaChip>持有者：{item.ownerName}</MetaChip>
+            {item.quality ? (
+              <InkBadge tier={item.quality as Tier}>
+                {item.type || '品质'}
+              </InkBadge>
+            ) : null}
+            {item.element ? (
+              <InkBadge tone="default">{item.element}</InkBadge>
+            ) : null}
+          </div>
+
+          <div className="mt-2 min-w-0 space-y-1">
+            <p className="text-ink-secondary line-clamp-2 text-xs leading-5">
+              {pillDisplay?.primaryEffect || item.description || '暂无描述'}
+            </p>
+            {pillDisplay ? (
+              <PillKeywordLine labels={pillDisplay.keywordLabels} />
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-2 flex justify-end lg:mt-0 lg:items-start lg:justify-end">
+          <InkButton
+            variant="secondary"
+            onClick={() => onViewDetails?.(item)}
+            className="text-sm"
+          >
+            瞻仰一二
+          </InkButton>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export const BattleRankingCard = memo(BattleRankingCardComponent);
+export const ItemRankingCard = memo(ItemRankingCardComponent);
+
 function RankingListItemComponent({
   item,
   isSelf,
@@ -42,167 +312,31 @@ function RankingListItemComponent({
   isProbing,
   onChallenge,
   onProbe,
-  customSubtitle,
-  customMeta,
   isItem = false,
   viewerRealm,
   onViewDetails,
-}: RankingListItemProps) {
-  // Type guards/assertions for convenience
-  const battleItem = !isItem ? (item as BattleRankingItem) : null;
-  const rankItem = isItem ? (item as ItemRankingEntry) : null;
-
-  // 获取性别符号 (Only for characters)
-  const genderSymbol =
-    battleItem && battleItem.gender
-      ? battleItem.gender === '男'
-        ? '☯'
-        : '🌸'
-      : '';
-
-  if (isItem && rankItem) {
-    const pillDisplay =
-      rankItem.itemType === 'elixir' &&
-      isPillSpec(rankItem.spec as PillSpec | undefined)
-        ? toPillDisplayModel({
-            id: rankItem.id,
-            name: rankItem.name,
-            type: (rankItem.type as Consumable['type']) || '丹药',
-            quality: rankItem.quality as Consumable['quality'],
-            quantity: rankItem.quantity || 1,
-            description: rankItem.description,
-            spec: rankItem.spec as PillSpec,
-          }, { realm: viewerRealm })
-        : null;
-    const icon =
-      rankItem.itemType === 'artifact'
-        ? getEquipmentSlotInfo(
-            (rankItem.slot as 'weapon' | 'armor' | 'accessory') || 'weapon',
-          ).icon
-        : rankItem.itemType === 'elixir'
-          ? CONSUMABLE_TYPE_DISPLAY_MAP[
-              (rankItem.type as '丹药' | '符箓') || '丹药'
-            ].icon
-          : rankItem.itemType === 'technique'
-            ? '📘'
-          : '📜';
-    const rankClass =
-      rankItem.rank <= 3 ? 'text-crimson font-semibold' : 'text-ink-secondary';
-
+}: LegacyRankingListItemProps) {
+  if (isItem) {
     return (
-      <div className="border-ink/20 border-b border-dashed py-3">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className={`min-w-16 text-sm ${rankClass}`}>
-              第 {rankItem.rank} 名
-            </span>
-            <span>{icon}</span>
-            <span className="truncate font-semibold">{rankItem.name}</span>
-          </div>
-          <span className="text-gold">评分 {rankItem.score}</span>
-        </div>
-        <div className="ml-16 flex flex-wrap items-center gap-2 pb-2">
-          {rankItem.quality && (
-            <InkBadge tier={rankItem.quality as Tier}>
-              {rankItem.type || '品质'}
-            </InkBadge>
-          )}
-          {rankItem.element && <InkBadge tone="default">{rankItem.element}</InkBadge>}
-          <span className="text-sm opacity-80">持有者: {rankItem.ownerName}</span>
-        </div>
-        <div className="ml-16 space-y-1 pb-2">
-          <p className="text-sm opacity-80">
-            {pillDisplay?.primaryEffect || rankItem.description || '暂无描述'}
-          </p>
-          {pillDisplay ? (
-            <PillKeywordLine labels={pillDisplay.keywordLabels} />
-          ) : null}
-        </div>
-        <div className="ml-16 flex justify-end">
-          <InkButton
-            variant="secondary"
-            onClick={() => onViewDetails?.(rankItem)}
-            className="px-3 py-1 text-sm"
-          >
-            瞻仰一二
-          </InkButton>
-        </div>
-      </div>
+      <ItemRankingCard
+        item={item as ItemRankingEntry}
+        viewerRealm={viewerRealm}
+        onViewDetails={onViewDetails}
+      />
     );
   }
 
   return (
-    <div
-      className={`border-ink/20 border-b border-dashed py-3 ${isSelf ? 'bg-ink-bg-highlight' : ''}`}
-    >
-      {/* 第一行：排名、姓名、性别、标题/品质、标记 */}
-      <div className="mb-1 flex items-baseline gap-2">
-        <span className="min-w-8 text-lg font-bold">{item.rank}.</span>
-        <span className="font-bold">
-          {genderSymbol} {item.name}{' '}
-          {!isItem && item.title ? `「${item.title}」` : ''}
-        </span>
-        {isSelf && <span className="equipped-mark text-sm">← 你</span>}
-        {item.is_new_comer && <InkBadge tone="accent">[新天骄]</InkBadge>}
-        {isItem && rankItem?.quality && (
-          <InkBadge tier={rankItem.quality as Tier}>
-            {rankItem.type}
-          </InkBadge>
-        )}
-      </div>
-
-      {/* 第二行：信息展示 (Battle: Realm/Age, Item: Subtitle/Meta) */}
-      <div className="mb-2 ml-10 flex flex-wrap gap-2">
-        {!isItem && battleItem ? (
-          <>
-            <InkBadge tier={battleItem.realm as Tier}>
-              {battleItem.realm_stage}
-            </InkBadge>
-            <span className="text-sm opacity-70">「{battleItem.age}岁」</span>
-          </>
-        ) : (
-          <>
-            {customSubtitle && (
-              <span className="text-sm opacity-70">{customSubtitle}</span>
-            )}
-            {customMeta && (
-              <span className="text-sm font-semibold">{customMeta}</span>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* 来源 / 描述 */}
-      <p className="mb-2 ml-10 text-sm opacity-70">
-        {!isItem && battleItem
-          ? (battleItem.origin ?? '散修')
-          : rankItem?.description || '暂无描述'}
-      </p>
-
-      {/* 第三行：操作按钮（仅非自己时显示，且仅Battle榜显示） */}
-      {!isSelf && !isItem && (
-        <div className="ml-10 flex justify-end gap-2">
-          {canChallenge && (
-            <InkButton
-              onClick={() => onChallenge(item.id)}
-              variant="primary"
-              disabled={isChallenging}
-            >
-              {isChallenging ? '挑战中…' : '挑战'}
-            </InkButton>
-          )}
-          <InkButton
-            onClick={() => onProbe(item.id)}
-            variant="secondary"
-            disabled={isProbing}
-          >
-            {isProbing ? '查探中…' : '神识查探'}
-          </InkButton>
-        </div>
-      )}
-    </div>
+    <BattleRankingCard
+      item={item as BattleRankingItem}
+      isSelf={isSelf}
+      canChallenge={canChallenge}
+      isChallenging={isChallenging}
+      isProbing={isProbing}
+      onChallenge={onChallenge}
+      onProbe={onProbe}
+    />
   );
 }
 
-// 使用 React.memo 优化，仅在 props 变化时重新渲染
 export const RankingListItem = memo(RankingListItemComponent);

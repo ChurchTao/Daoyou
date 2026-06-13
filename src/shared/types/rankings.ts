@@ -24,7 +24,6 @@ export interface ItemRankingEntry {
 
   // Optional properties for UI compatibility
   title?: string;
-  is_new_comer?: boolean;
 }
 
 export type RankingsDisplayItem = BattleRankingItem | ItemRankingEntry;
