@@ -31,7 +31,7 @@ describe('game concept display registry', () => {
     });
     expect(getGameConceptInfo('spirit_stones')).toMatchObject({
       label: '灵石',
-      icon: '💎',
+      icon: '💰',
     });
     expect(getGameConceptInfo('cultivation_exp')).toMatchObject({
       label: '修为',

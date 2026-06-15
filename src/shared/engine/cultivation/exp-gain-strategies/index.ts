@@ -77,8 +77,8 @@ export const retreatStrategy: CultivationExpGainStrategy<RetreatExpContext> = {
     return {
       cap: resolveExpCap(context),
       percent:
-        RETREAT_EXP_BUDGET.percentByRealm[context.realm] ??
-        RETREAT_EXP_BUDGET.percentByRealm['炼气'],
+        RETREAT_EXP_BUDGET.percentPerYear *
+        resolveRealmPaceMultiplier(context.realm),
       units,
       minBaseExp: RETREAT_EXP_BUDGET.minBaseExp,
     };

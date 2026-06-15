@@ -3,27 +3,17 @@ import type { Quality, RealmType } from '@shared/types/constants';
 export const EXP_GAIN_REALM_PACE_MULTIPLIER = {
   炼气: 3.0,
   筑基: 2.0,
-  金丹: 1.4,
-  元婴: 1.0,
-  化神: 0.78,
-  炼虚: 0.62,
-  合体: 0.5,
-  大乘: 0.42,
-  渡劫: 0.35,
+  金丹: 0.32,
+  元婴: 0.16,
+  化神: 0.08,
+  炼虚: 0.04,
+  合体: 0.02,
+  大乘: 0.01,
+  渡劫: 0.005,
 } satisfies Record<RealmType, number>;
 
 export const RETREAT_EXP_BUDGET = {
-  percentByRealm: {
-    炼气: 0.04,
-    筑基: 0.01667,
-    金丹: 0.00667,
-    元婴: 0.00273,
-    化神: 0.00106,
-    炼虚: 0.000471,
-    合体: 0.000333,
-    大乘: 0.00025,
-    渡劫: 0.00016,
-  } satisfies Record<RealmType, number>,
+  percentPerYear: 0.005,
   maxYears: 200,
   minBaseExp: 1,
 } as const;
