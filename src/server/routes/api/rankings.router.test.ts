@@ -449,6 +449,41 @@ describe('rankings router', () => {
     expect(addToRankingMock).not.toHaveBeenCalled();
   });
 
+  it('allows cross-realm challenge validation without ranking changes', async () => {
+    getCultivatorRankMock.mockReset();
+    getCultivatorRankMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(1);
+
+    const response = await createApp().request('/api/rankings/challenge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        targetId: 'target-1',
+        realm: '金丹',
+      }),
+    });
+    const result = (await response.json()) as {
+      data: {
+        realm: string;
+        challengerRank: number | null;
+        targetRank: number | null;
+        affectsRanking: boolean;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(result.data).toMatchObject({
+      realm: '金丹',
+      challengerRank: null,
+      targetRank: 1,
+      affectsRanking: false,
+    });
+    expect(updateRankingMock).not.toHaveBeenCalled();
+  });
+
   it('rejects a target that is not on the requested realm ranking', async () => {
     getCultivatorRankMock.mockReset();
     getCultivatorRankMock

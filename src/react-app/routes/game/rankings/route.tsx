@@ -423,6 +423,7 @@ export default function RankingsPage() {
         },
         body: JSON.stringify({
           targetId,
+          realm: activeRealm,
         }),
       });
 
