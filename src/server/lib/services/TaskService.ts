@@ -623,8 +623,8 @@ function resolveObjectiveProgress(
           description: definition.description,
           completed,
           progressText: completed
-            ? `已具备${getStatusName(definition.statusKey)}状态`
-            : `尚未具备${getStatusName(definition.statusKey)}状态`,
+            ? `已备妥${getStatusName(definition.statusKey)}`
+            : `尚未备妥${getStatusName(definition.statusKey)}`,
         },
       };
     }
@@ -740,6 +740,8 @@ function resolveStageLinks(
         };
       case 'inn':
         return { label: link.label, href: '/game/inn' };
+      case 'market':
+        return { label: link.label, href: '/game/map?intent=market' };
       case 'inventory':
         return { label: link.label, href: '/game/inventory' };
       case 'ranking':

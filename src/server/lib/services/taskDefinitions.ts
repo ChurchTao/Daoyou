@@ -53,6 +53,7 @@ type TaskLinkKind =
   | 'dungeon'
   | 'inn'
   | 'inventory'
+  | 'market'
   | 'retreat'
   | 'challenge'
   | 'tasks'
@@ -266,18 +267,19 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'foundation-pill',
         title: '凝破境意',
-        description: '筑基前先把心神收住，让身上留一缕破境凝神之气。若还没有，可去炼丹房投些温稳灵材，写下“冲关蓄势、辅助筑基”之类丹意，炼成筑基丹后在储物袋服下。',
+        description: '筑基前先把心神收住，借筑基丹引动一口破境心气。筑基丹可在炼丹房用温稳灵材配合“冲关蓄势、辅助筑基”之类丹意炼制，也可去修仙坊市寻访成丹。',
         completionText: '破境凝神已成，药力可引灵气归府。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
           { label: '看任务中心', kind: 'tasks' },
         ],
         objectives: [
           {
             id: 'breakthrough-focus',
             kind: 'status_active',
-            title: '具备破境凝神',
-            description: '身上带着破境凝神即可。丹药不必亲手炼出；若缺这一口气，就去炼丹房以破境、冲关蓄势、辅助筑基等丹意炼一枚筑基丹，再于储物袋服用。',
+            title: '凝成破境心气',
+            description: '服用筑基丹，让药力在丹田中化开，稳住冲击筑基前的第一口气。',
             statusKey: 'breakthrough_focus',
           },
         ],
@@ -316,19 +318,20 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'core-prep',
         title: '丹法并备',
-        description: '结丹前需功法与丹药并进，两者缺一都会让丹田难以承受。',
-        completionText: '丹药与功法已备，凝丹条件已成。',
+        description: '结丹前需借降尘丹压住丹田火候，再以玄品功法稳住成丹根基。降尘丹可在炼丹房以“结丹、凝丹、冲关蓄势”之类丹意炼制，也可去修仙坊市寻访。',
+        completionText: '破境凝神与功法已备，凝丹条件已成。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
           { label: '看所修功法', kind: 'tasks' },
         ],
         objectives: [
           {
-            id: 'craft-pill',
-            kind: 'craft_breakthrough_pill',
-            title: '炼出降尘丹',
-            description: '炼成一枚可用于结丹的大丹。',
-            targetRealm: '金丹',
+            id: 'breakthrough-focus',
+            kind: 'status_active',
+            title: '稳住凝丹火候',
+            description: '服用降尘丹，让丹意沉入气海，先把结丹前的火候压稳。',
+            statusKey: 'breakthrough_focus',
           },
           {
             id: 'quality-threshold',
@@ -373,18 +376,19 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'nascent-mind',
         title: '先清心',
-        description: '以清心类丹药或机缘安定识海，否则心魔一来便会神魂失守。',
+        description: '元婴问心之前，先用清心丹洗去识海杂念。清心丹可在炼丹房以“清心、定神、心魔”之类丹意炼制，也可去修仙坊市碰碰机缘。',
         completionText: '识海已稳，杂念稍歇。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
           { label: '看任务中心', kind: 'tasks' },
         ],
         objectives: [
           {
             id: 'clear-mind',
             kind: 'status_active',
-            title: '具备清心准备',
-            description: '当前身上需有清心状态，方可应对心魔幻境。',
+            title: '安定识海',
+            description: '服用清心丹，让识海归于澄明，再去应对心魔幻境。',
             statusKey: 'clear_mind',
           },
         ],
@@ -422,25 +426,26 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'deity-prep',
         title: '护脉清心',
-        description: '护脉与清心都不可少，少一分准备，化神反噬便会重一分。',
+        description: '化神前反噬极重，经脉与识海都要提前安顿。护脉丹、清心丹可在炼丹房按“护脉、清心、化神反噬”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '道体与识海都已做足准备。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
           { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
           {
             id: 'protect-meridians',
             kind: 'status_active',
-            title: '具备护脉准备',
-            description: '当前身上需有护脉状态，以减轻破境时的经脉反噬。',
+            title: '护住经脉',
+            description: '服用护脉丹，让药力先行护住经络，免得化神反噬伤及根本。',
             statusKey: 'protect_meridians',
           },
           {
             id: 'clear-mind',
             kind: 'status_active',
-            title: '具备清心准备',
-            description: '当前身上需有清心状态，以免化神时神识动摇。',
+            title: '安定识海',
+            description: '服用清心丹，压下杂念与惊悸，免得化神时神识动摇。',
             statusKey: 'clear_mind',
           },
         ],
@@ -543,11 +548,12 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'body-prep',
         title: '稳道体',
-        description: '道体不稳，合体之前先被雷劫撕碎。',
+        description: '合体前要先让道体能承住雷劫余威。护脉丹可在炼丹房按“护脉、稳固道体、承雷”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '道体准备已足，足可尝试承雷。',
         links: [
           { label: '返回静室', kind: 'retreat' },
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
         ],
         objectives: [
           {
@@ -560,8 +566,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
           {
             id: 'protect-meridians',
             kind: 'status_active',
-            title: '具备护脉准备',
-            description: '护脉状态能让道体更稳，降低合体前反噬。',
+            title: '护住道体经脉',
+            description: '服用护脉丹，让经脉先稳下来，才好承受合体前的雷劫反噬。',
             statusKey: 'protect_meridians',
           },
         ],
@@ -607,10 +613,11 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'grand-prep',
         title: '先稳心神',
-        description: '若不能先稳住心神，大乘门前最容易被执念反噬。',
+        description: '大乘门前最怕执念反噬，先以清心丹稳住心神。清心丹可在炼丹房按“清心、定神、斩执念”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '心神已定，可入更深层试炼。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
           { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
@@ -624,8 +631,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
           {
             id: 'clear-mind',
             kind: 'status_active',
-            title: '具备清心准备',
-            description: '以清心状态稳住神识，不被执念拉回旧路。',
+            title: '稳住心神',
+            description: '服用清心丹，把识海中的杂念压下去，不被执念拉回旧路。',
             statusKey: 'clear_mind',
           },
         ],
@@ -671,10 +678,11 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'tribulation-prep',
         title: '备渡劫身',
-        description: '渡劫之前，护脉与清心都要到位，否则一击之下形神俱散。',
+        description: '渡劫前要同时稳住道体与识海。护脉丹、清心丹可在炼丹房按“护脉、清心、渡劫”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '形神两端都已尽量稳住。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
+          { label: '去修仙坊市', kind: 'market' },
           { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
@@ -688,15 +696,15 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
           {
             id: 'protect-meridians',
             kind: 'status_active',
-            title: '具备护脉准备',
-            description: '护脉状态能减轻渡劫前的道体崩裂风险。',
+            title: '护住道体经脉',
+            description: '服用护脉丹，让经络先承一层药力，降低劫雷前的道体崩裂风险。',
             statusKey: 'protect_meridians',
           },
           {
             id: 'clear-mind',
             kind: 'status_active',
-            title: '具备清心准备',
-            description: '清心状态能降低渡劫前的识海震荡。',
+            title: '安定识海',
+            description: '服用清心丹，让神识沉静下来，免得天威未至便先乱了心神。',
             statusKey: 'clear_mind',
           },
         ],

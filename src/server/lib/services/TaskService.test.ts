@@ -188,6 +188,40 @@ function createFoundationTaskRecord(overrides: Record<string, unknown> = {}) {
   } as any;
 }
 
+function createCoreTaskRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'task-major-core',
+    cultivatorId: 'cultivator-1',
+    definitionId: 'major_breakthrough_筑基_金丹',
+    category: 'breakthrough_major',
+    status: 'active',
+    currentStage: 'core-prep',
+    objectives: [
+      {
+        objectiveId: 'breakthrough-focus',
+        completed: false,
+      },
+      {
+        objectiveId: 'quality-threshold',
+        completed: false,
+      },
+      {
+        objectiveId: 'clear-trial',
+        completed: false,
+      },
+    ],
+    metadata: {
+      fromRealm: '筑基',
+      toRealm: '金丹',
+      taskTheme: 'core',
+    },
+    completedAt: null,
+    createdAt: new Date('2026-05-21T00:00:00.000Z'),
+    updatedAt: new Date('2026-05-21T00:00:00.000Z'),
+    ...overrides,
+  } as any;
+}
+
 function createDailyTaskRecord(
   definitionId: 'daily_alchemy_once' | 'daily_dungeon_once' | 'daily_ranking_once',
   overrides: Record<string, unknown> = {},
@@ -486,8 +520,66 @@ describe('TaskService', () => {
       },
     });
     expect(breakthroughTask?.snapshot.missingRequirements).toEqual([
-      '具备破境凝神：尚未具备破境凝神状态',
+      '凝成破境心气：尚未备妥破境凝神',
     ]);
+    expect(
+      breakthroughTask?.snapshot.stages.find((stage) => stage.current)?.links,
+    ).toContainEqual({
+      label: '去修仙坊市',
+      href: '/game/map?intent=market',
+    });
+  });
+
+  it('completes the core preparation when breakthrough focus is active', async () => {
+    findActiveCultivatorRecordByIdMock.mockResolvedValue(
+      createCultivatorRecord({
+        realm: '筑基',
+        realm_stage: '圆满',
+        condition: createBreakthroughFocusCondition(),
+      }),
+    );
+    listCultivatorTechniqueQualitiesMock.mockResolvedValue([{ quality: '玄品' }]);
+    taskStore.set(
+      'task-major-core',
+      createCoreTaskRecord({
+        objectives: [
+          {
+            objectiveId: 'breakthrough-focus',
+            completed: false,
+          },
+          {
+            objectiveId: 'quality-threshold',
+            completed: false,
+          },
+          {
+            objectiveId: 'clear-trial',
+            completed: true,
+            progressValue: 1,
+            completedAt: '2026-05-21T00:00:00.000Z',
+            updatedAt: '2026-05-21T00:00:00.000Z',
+          },
+        ],
+      }),
+    );
+
+    const tasks = await TaskService.syncCultivatorTasks('cultivator-1');
+    const breakthroughTask = tasks.find(
+      (task) => task.definitionId === 'major_breakthrough_筑基_金丹',
+    );
+
+    expect(breakthroughTask).toMatchObject({
+      status: 'completed',
+      snapshot: {
+        isCompleted: true,
+        currentStageId: null,
+      },
+    });
+    expect(breakthroughTask?.snapshot.stages[0]?.objectives[0]).toMatchObject({
+      id: 'breakthrough-focus',
+      kind: 'status_active',
+      title: '稳住凝丹火候',
+      progressText: '已备妥破境凝神',
+    });
   });
 
   it('archives stale active major breakthrough tasks after the realm has advanced', async () => {
@@ -594,19 +686,19 @@ describe('TaskService', () => {
       createCultivatorRecord({
         realm: '筑基',
         realm_stage: '圆满',
+        condition: createBreakthroughFocusCondition(),
       }),
     );
     listCultivatorTechniqueQualitiesMock.mockResolvedValue([{ quality: '玄品' }]);
     taskStore.set(
       'task-current-major',
-      createFoundationTaskRecord({
+      createCoreTaskRecord({
         id: 'task-current-major',
-        definitionId: 'major_breakthrough_筑基_金丹',
         status: 'completed',
         currentStage: null,
         objectives: [
           {
-            objectiveId: 'craft-pill',
+            objectiveId: 'breakthrough-focus',
             completed: true,
             progressValue: 1,
             completedAt: '2026-05-20T00:00:00.000Z',
