@@ -14,6 +14,7 @@ export interface ItemShowcaseModalProps {
   onClose: () => void;
   icon: string;
   name: string;
+  nameMark?: ReactNode;
   badges?: ReactNode[];
   summary?: ReactNode;
   metaSection?: ReactNode;
@@ -28,6 +29,7 @@ export function ItemShowcaseModal({
   onClose,
   icon,
   name,
+  nameMark,
   badges = [],
   summary,
   metaSection,
@@ -41,7 +43,16 @@ export function ItemShowcaseModal({
       <div className="space-y-3">
         <div className="flex flex-col items-center gap-2 p-4 text-center">
           <div className="mb-2 text-4xl">{icon}</div>
-          <h4 className="text-lg font-semibold">{name}</h4>
+          <h4
+            className={`relative inline-flex max-w-full items-baseline text-lg font-semibold ${
+              nameMark ? 'pr-7' : ''
+            }`}
+          >
+            <span className="truncate">{name}</span>
+            {nameMark && (
+              <span className="absolute -top-2 right-0">{nameMark}</span>
+            )}
+          </h4>
           {badges.length > 0 && (
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               {badges.map((badge, index) => (

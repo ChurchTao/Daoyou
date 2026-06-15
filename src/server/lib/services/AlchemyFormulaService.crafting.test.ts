@@ -215,6 +215,7 @@ function createAnalysisPayload(
 
 describe('craftFromFormula narrative copy', () => {
   beforeEach(() => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     executorState.formulaRows = [
       {
         id: 'formula-1',
@@ -652,10 +653,18 @@ describe('craftFromFormula narrative copy', () => {
       status: 'cultivation_boost',
       usesRemaining: 1,
       payload: {
-        boostPercent: 0.253,
-        retreatExpMultiplier: 1.253,
+        boostPercent: 0.5586,
+        retreatExpMultiplier: 1.5586,
       },
     });
+    expect((result.consumable.spec as PillSpec).operations).toContainEqual({
+      type: 'change_gauge',
+      gauge: 'pillToxicity',
+      delta: 23,
+    });
+    expect((result.consumable.spec as PillSpec).alchemyMeta.appearance).toBe(
+      'middle',
+    );
     expect(
       (result.consumable.spec as PillSpec).operations.some(
         (operation) =>
@@ -734,7 +743,7 @@ describe('craftFromFormula narrative copy', () => {
     ).toBe('longevity');
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'increase_lifespan',
-      value: 57,
+      value: 104,
     });
   });
 
@@ -812,7 +821,10 @@ describe('craftFromFormula narrative copy', () => {
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
       type: 'add_status',
       status: 'clear_mind',
-      usesRemaining: 1,
+      usesRemaining: 2,
+      payload: {
+        preventsInnerDemon: true,
+      },
     });
     expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
       breakthroughTargetRealm: '元婴',
@@ -906,6 +918,9 @@ describe('craftFromFormula narrative copy', () => {
       type: 'add_status',
       status: 'protect_meridians',
       usesRemaining: 1,
+      payload: {
+        failureExpLossReductionPercent: 0.4764,
+      },
     });
     expect((result.consumable.spec as PillSpec).alchemyMeta).toMatchObject({
       breakthroughTargetRealm: '化神',

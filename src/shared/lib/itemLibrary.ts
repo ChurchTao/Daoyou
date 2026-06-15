@@ -11,6 +11,7 @@ import {
   REALM_VALUES,
 } from '@shared/types/constants';
 import {
+  PILL_APPEARANCE_GRADE_VALUES,
   PILL_FAMILY_VALUES,
   PILL_QUOTA_CATEGORY_VALUES,
   TALISMAN_SESSION_MODE_VALUES,
@@ -85,6 +86,7 @@ const PillSpecSchema = z.object({
     dominantElement: z.enum(ELEMENT_VALUES).optional(),
     stability: z.number(),
     toxicityRating: z.number(),
+    appearance: z.enum(PILL_APPEARANCE_GRADE_VALUES).optional(),
     tags: z.array(z.string()),
   }),
 });

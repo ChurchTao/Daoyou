@@ -23,6 +23,13 @@ import {
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostPercent,
 } from '@shared/lib/cultivationBoost';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  getBreakthroughFocusBonus,
+  getProtectMeridiansReductionPercent,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
 import { ConditionService } from './ConditionService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 
@@ -266,6 +273,44 @@ function applyAddStatusOperation(
     return condition;
   }
 
+  if (
+    operation.status === BREAKTHROUGH_FOCUS_STATUS_KEY &&
+    existing &&
+    getBreakthroughFocusBonus(existing) >= getBreakthroughFocusBonus(operation)
+  ) {
+    return condition;
+  }
+
+  if (
+    operation.status === PROTECT_MERIDIANS_STATUS_KEY &&
+    existing &&
+    getProtectMeridiansReductionPercent(existing) >=
+      getProtectMeridiansReductionPercent(operation)
+  ) {
+    return condition;
+  }
+
+  if (operation.status === CLEAR_MIND_STATUS_KEY && existing) {
+    const existingUses = existing.usesRemaining ?? 1;
+    const nextUses = operation.usesRemaining ?? 1;
+    const nextStatus: ConditionStatusInstance = {
+      ...existing,
+      stacks: Math.max(1, existing.stacks),
+      source: 'pill',
+      duration: operation.duration ?? existing.duration,
+      usesRemaining: Math.max(existingUses, nextUses),
+      payload: {
+        ...existing.payload,
+        ...operation.payload,
+      },
+      updatedAt: now.toISOString(),
+    };
+    return {
+      ...condition,
+      statuses: replaceStatus(condition.statuses, nextStatus),
+    };
+  }
+
   const nextStatus: ConditionStatusInstance = {
     key: operation.status,
     stacks: Math.max(1, (existing?.stacks ?? 0) + Math.floor(operation.stacks ?? 1)),
@@ -483,6 +528,17 @@ export const PillOperationExecutor = {
           nextCondition = applyRemoveStatusOperation(nextCondition, operation);
           break;
         case 'add_status':
+          if (operation.status === CLEAR_MIND_STATUS_KEY) {
+            const progress = getOrInitCultivationProgress(
+              (nextCultivator.cultivation_progress ?? {}) as CultivationProgress,
+              nextCultivator.realm,
+              nextCultivator.realm_stage,
+            );
+            nextCultivator.cultivation_progress = {
+              ...progress,
+              inner_demon: false,
+            };
+          }
           nextCondition = applyAddStatusOperation(nextCondition, operation, now);
           break;
         case 'advance_track': {

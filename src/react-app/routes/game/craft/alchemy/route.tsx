@@ -1,4 +1,5 @@
 import {
+  PillAppearanceMark,
   PillDetailGroups,
   getPillFamilyLabel,
   toPillDisplayModel,
@@ -479,6 +480,14 @@ export function AlchemyResultModal({
       onClose={onClose}
       icon="🌕"
       name={consumable.name}
+      nameMark={
+        model.appearance ? (
+          <PillAppearanceMark
+            appearance={model.appearance}
+            className="text-xs"
+          />
+        ) : undefined
+      }
       badges={[
         consumable.quality ? (
           <InkBadge key="quality" tier={consumable.quality}>

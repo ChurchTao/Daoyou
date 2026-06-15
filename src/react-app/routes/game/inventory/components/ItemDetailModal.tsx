@@ -4,6 +4,7 @@ import {
   type ProductRecordLike,
 } from '@app/components/feature/products';
 import {
+  PillAppearanceMark,
   PillDetailGroups,
   toPillDisplayModel,
 } from '@app/components/feature/consumables';
@@ -127,6 +128,14 @@ export function ItemDetailModal({
           onClose={onClose}
           icon={typeInfo.icon}
           name={consumable.name}
+          nameMark={
+            model.appearance ? (
+              <PillAppearanceMark
+                appearance={model.appearance}
+                className="text-xs"
+              />
+            ) : undefined
+          }
           badges={[
             consumable.quality ? (
               <InkBadge key="type" tier={consumable.quality}>

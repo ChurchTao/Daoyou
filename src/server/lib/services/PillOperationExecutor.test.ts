@@ -221,6 +221,49 @@ function createBreakthroughPill(): Consumable {
   };
 }
 
+function createBreakthroughStatusPill(
+  status: 'breakthrough_focus' | 'protect_meridians' | 'clear_mind',
+  payload: Record<string, number | string | boolean> = {},
+  usesRemaining = 1,
+  id = `pill-${status}`,
+): Consumable {
+  return {
+    id,
+    name: '破境丹',
+    type: '丹药',
+    quality: '真品',
+    quantity: 1,
+    description: '助力破境。',
+    spec: {
+      kind: 'pill',
+      family: 'breakthrough',
+      operations: [
+        {
+          type: 'add_status',
+          status,
+          usesRemaining,
+          payload,
+        },
+      ],
+      consumeRules: {
+        scene: 'out_of_battle_only',
+        quotaCategory: 'none',
+      },
+      alchemyMeta: {
+        source: 'improvised',
+        sourceMaterials: ['静神芝'],
+        analysisVersion: 2,
+        propertyVector: [{ key: 'breakthrough_support', weight: 1 }],
+        sourceMaterialVectors: [],
+        dominantElement: '水',
+        stability: 74,
+        toxicityRating: 10,
+        tags: ['breakthrough'],
+      },
+    },
+  };
+}
+
 function createTemperingPill(): Consumable {
   return {
     id: 'pill-tempering',
@@ -482,6 +525,83 @@ describe('PillOperationExecutor', () => {
         (status) => status.key === 'clear_mind',
       ),
     ).toBe(true);
+  });
+
+  it('clear mind pills remove existing inner demon and keep the highest breakthrough uses', () => {
+    const cultivator = createCultivator();
+    cultivator.cultivation_progress = {
+      cultivation_exp: 80,
+      exp_cap: 100,
+      comprehension_insight: 30,
+      breakthrough_failures: 2,
+      bottleneck_state: true,
+      inner_demon: true,
+      deviation_risk: 40,
+    };
+    cultivator.condition = {
+      ...ConditionService.normalizeCondition(cultivator),
+      statuses: [
+        {
+          key: 'clear_mind',
+          stacks: 1,
+          source: 'pill',
+          duration: { kind: 'until_removed' },
+          usesRemaining: 2,
+          payload: { preventsInnerDemon: true },
+          createdAt: '2026-05-25T10:00:00.000Z',
+          updatedAt: '2026-05-25T10:00:00.000Z',
+        },
+      ],
+    };
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      createBreakthroughStatusPill(
+        'clear_mind',
+        { preventsInnerDemon: true },
+        3,
+      ),
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.cultivator.cultivation_progress?.inner_demon).toBe(false);
+    expect(
+      result.cultivator.condition?.statuses.find(
+        (status) => status.key === 'clear_mind',
+      )?.usesRemaining,
+    ).toBe(3);
+  });
+
+  it('keeps stronger breakthrough payload statuses when weaker pills are consumed', () => {
+    const cultivator = createCultivator();
+    const now = new Date('2026-05-25T12:00:00.000Z');
+
+    const strong = PillOperationExecutor.execute(
+      cultivator,
+      createBreakthroughStatusPill(
+        'protect_meridians',
+        { failureExpLossReductionPercent: 0.7 },
+        1,
+        'strong-protect',
+      ),
+      now,
+    );
+    const weak = PillOperationExecutor.execute(
+      strong.cultivator,
+      createBreakthroughStatusPill(
+        'protect_meridians',
+        { failureExpLossReductionPercent: 0.2 },
+        1,
+        'weak-protect',
+      ),
+      now,
+    );
+
+    expect(
+      weak.cultivator.condition?.statuses.find(
+        (status) => status.key === 'protect_meridians',
+      )?.payload,
+    ).toEqual({ failureExpLossReductionPercent: 0.7 });
   });
 
   it('applies longevity pills to lifespan and an isolated longevity quota counter', () => {

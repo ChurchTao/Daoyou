@@ -14,6 +14,16 @@ import {
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostDisplayText,
 } from '@shared/lib/cultivationBoost';
+import {
+  getPillAppearanceLabel,
+} from '@shared/lib/pillAppearance';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  getBreakthroughFocusBonus,
+  getProtectMeridiansReductionPercent,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
 import type {
   ConditionStatusKey,
   CultivatorCondition,
@@ -40,6 +50,10 @@ export interface PillDetailGroup {
 
 export interface PillDisplayModel {
   familyLabel: string;
+  appearance?: {
+    grade: PillSpec['alchemyMeta']['appearance'];
+    label: string;
+  };
   primaryEffect: string;
   effectSummary: string;
   keywordLabels: string[];
@@ -80,12 +94,22 @@ function getGaugeChangeText(delta: number): string {
   return `丹毒 ${delta > 0 ? '+' : ''}${delta}`;
 }
 
+function getAppearanceDisplay(spec: PillSpec): PillDisplayModel['appearance'] {
+  const { appearance } = spec.alchemyMeta;
+  if (!appearance) return undefined;
+
+  return {
+    grade: appearance,
+    label: getPillAppearanceLabel(appearance),
+  };
+}
+
 function getProgressTargetLabel(
   target: Extract<ConditionOperation, { type: 'gain_progress' }>['target'],
 ): string {
   return target === 'cultivation_exp'
     ? getResourceText('cultivation_exp')
-    : getGameConceptLabel('comprehension_insight');
+    : '感悟';
 }
 
 function getLifespanGainText(value: number): string {
@@ -178,7 +202,7 @@ export function getPillFamilyLabel(family: PillFamily): string {
     case 'cultivation':
       return getGameConceptLabel('cultivation_exp');
     case 'insight':
-      return getGameConceptLabel('comprehension_insight');
+      return '感悟';
     case 'breakthrough':
       return '破境';
     case 'tempering':
@@ -207,6 +231,21 @@ export function describePillOperation(operation: ConditionOperation): string {
     case 'add_status':
       if (operation.status === CULTIVATION_BOOST_STATUS_KEY) {
         return `${getCultivationBoostDisplayText(operation)}（可用 ${
+          operation.usesRemaining ?? 1
+        } 次）`;
+      }
+      if (operation.status === BREAKTHROUGH_FOCUS_STATUS_KEY) {
+        return `${getStatusName(operation.status)}：破境成功率 +${formatPercent(
+          getBreakthroughFocusBonus(operation),
+        )}（可用 ${operation.usesRemaining ?? 1} 次）`;
+      }
+      if (operation.status === PROTECT_MERIDIANS_STATUS_KEY) {
+        return `${getStatusName(operation.status)}：突破失败修为损失降低 ${formatPercent(
+          getProtectMeridiansReductionPercent(operation),
+        )}（可用 ${operation.usesRemaining ?? 1} 次）`;
+      }
+      if (operation.status === CLEAR_MIND_STATUS_KEY) {
+        return `${getStatusName(operation.status)}：突破失败不会滋生心魔（可用 ${
           operation.usesRemaining ?? 1
         } 次）`;
       }
@@ -471,6 +510,7 @@ export function toPillDisplayModel(
 ): PillDisplayModel {
   return {
     familyLabel: getPillFamilyLabel(consumable.spec.family),
+    appearance: getAppearanceDisplay(consumable.spec),
     primaryEffect: buildPrimaryEffect(consumable.spec),
     effectSummary: buildEffectSummary(consumable.spec),
     keywordLabels: buildKeywordLabels(consumable.spec, options),

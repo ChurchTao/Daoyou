@@ -3,7 +3,34 @@ import {
   getAffixUnderlineStyle,
 } from '@app/components/feature/products/affixPresentation';
 import { InkBadge } from '@app/components/ui/InkBadge';
+import { getPillAppearanceColorClass } from '@shared/lib/pillAppearance';
+import { cn } from '@shared/lib/cn';
 import type { PillDetailGroup, PillDisplayModel } from './pillDisplayModel';
+
+type PillAppearanceDisplay = NonNullable<PillDisplayModel['appearance']>;
+
+export function PillAppearanceMark({
+  appearance,
+  className,
+}: {
+  appearance?: PillAppearanceDisplay;
+  className?: string;
+}) {
+  if (!appearance) return null;
+
+  return (
+    <span
+      className={cn(
+        'relative inline-flex max-w-full text-sm font-semibold leading-none',
+        getPillAppearanceColorClass(appearance.grade),
+        className,
+      )}
+      data-pill-appearance={appearance.grade}
+    >
+      {appearance.label}
+    </span>
+  );
+}
 
 export function PillKeywordLine({ labels }: { labels: string[] }) {
   if (labels.length === 0) return null;
@@ -43,6 +70,11 @@ export function PillKeywordLine({ labels }: { labels: string[] }) {
 export function PillSummary({ model }: { model: PillDisplayModel }) {
   return (
     <div className="border-ink/10 space-y-2 border border-dashed px-3 py-2 text-left">
+      {model.appearance && (
+        <div className="flex items-center justify-end">
+          <PillAppearanceMark appearance={model.appearance} />
+        </div>
+      )}
       <div className="text-ink text-sm leading-relaxed font-semibold">
         {model.primaryEffect}
       </div>

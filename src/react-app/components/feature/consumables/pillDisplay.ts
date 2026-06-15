@@ -1,4 +1,5 @@
 export {
+  PillAppearanceMark,
   PillDetailGroups,
   PillKeywordBadges,
   PillKeywordLine,

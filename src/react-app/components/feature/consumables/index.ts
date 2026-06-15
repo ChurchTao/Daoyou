@@ -1,6 +1,7 @@
 export {
   describePillOperation,
   getPillFamilyLabel,
+  PillAppearanceMark,
   PillDetailGroups,
   PillKeywordBadges,
   PillKeywordLine,

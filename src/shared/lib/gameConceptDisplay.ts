@@ -64,7 +64,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     description: '修为进度',
   },
   comprehension_insight: {
-    label: '道心感悟',
+    label: '感悟',
     shortLabel: '感悟',
     icon: '💡',
     description: '突破、推演功法与神通所需的感悟',
@@ -467,17 +467,17 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   status_breakthrough_focus: {
     label: '破境凝神',
     icon: '🕯️',
-    description: '心神收束，为下一次破境做足准备',
+    description: '心神收束，下一次破境成功率提升',
   },
   status_protect_meridians: {
     label: '护脉',
     icon: '🪢',
-    description: '药力护住经脉，可减轻破境反噬',
+    description: '药力护住经脉，突破失败时降低修为损失',
   },
   status_clear_mind: {
     label: '清心',
     icon: '🪷',
-    description: '心境澄明，可减少杂念干扰',
+    description: '心境澄明，突破失败不会滋生心魔',
   },
   status_cultivation_boost: {
     label: '养元',

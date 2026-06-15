@@ -9,6 +9,13 @@ import {
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostDisplayText,
 } from '@shared/lib/cultivationBoost';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  getBreakthroughFocusBonus,
+  getProtectMeridiansReductionPercent,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
 import type {
   ConditionStatusInstance,
   CultivatorCondition,
@@ -41,7 +48,38 @@ export function getStatusEffectDetails(
     ];
   }
 
+  if (status.key === BREAKTHROUGH_FOCUS_STATUS_KEY) {
+    return [
+      `下次突破成功率 +${formatPercent(getBreakthroughFocusBonus(status))}。`,
+      `剩余 ${status.usesRemaining ?? 1} 次突破尝试。`,
+      ...details,
+    ];
+  }
+
+  if (status.key === PROTECT_MERIDIANS_STATUS_KEY) {
+    return [
+      `突破失败时修为损失降低 ${formatPercent(
+        getProtectMeridiansReductionPercent(status),
+      )}。`,
+      `剩余 ${status.usesRemaining ?? 1} 次突破尝试。`,
+      ...details,
+    ];
+  }
+
+  if (status.key === CLEAR_MIND_STATUS_KEY) {
+    return [
+      '突破失败不会滋生心魔；服用时已清除既有心魔。',
+      `剩余 ${status.usesRemaining ?? 1} 次突破尝试。`,
+      ...details,
+    ];
+  }
+
   return details;
+}
+
+function formatPercent(value: number): string {
+  const percent = Number((value * 100).toFixed(1));
+  return `${Number.isInteger(percent) ? percent.toFixed(0) : percent}%`;
 }
 
 export function getPillToxicityEffectDetails(

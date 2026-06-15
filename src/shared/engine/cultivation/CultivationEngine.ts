@@ -6,11 +6,18 @@ import {
 import {
   evaluateFateContext,
 } from '@shared/lib/fates';
-import { hasActiveConditionStatus } from '@shared/lib/condition';
+import { isConditionStatusActive } from '@shared/lib/condition';
 import {
   consumeCultivationBoostStatus,
   getCultivationBoostRetreatMultiplier,
 } from '@shared/lib/cultivationBoost';
+import {
+  getProtectMeridiansReductionPercent,
+} from '@shared/lib/pillEffectScaling';
+import type {
+  ConditionStatusInstance,
+  ConditionStatusKey,
+} from '@shared/types/condition';
 import type {
   Attributes,
   BreakthroughHistoryEntry,
@@ -64,6 +71,30 @@ function getMajorDeviationGain(
     default:
       return randomInt(12, 20, rng);
   }
+}
+
+function getActiveStatus(
+  cultivator: Cultivator,
+  statusKey: ConditionStatusKey,
+): ConditionStatusInstance | null {
+  return (
+    cultivator.condition?.statuses.find(
+      (status) => status.key === statusKey && isConditionStatusActive(status),
+    ) ?? null
+  );
+}
+
+function getInnerDemonTriggerChance(
+  consecutiveFailures: number,
+  isMajorBreakthrough: boolean,
+): number {
+  return clamp(
+    0.15 +
+      Math.max(0, consecutiveFailures - 1) * 0.2 +
+      (isMajorBreakthrough ? 0.15 : 0),
+    0,
+    0.9,
+  );
 }
 
 /**
@@ -267,12 +298,12 @@ export function attemptBreakthrough(
   let insight_change = 0;
   let exp_lost = 0;
   const isMajorBreakthrough = nextStage.realm !== fromRealm;
-  const hasProtectMeridians = hasActiveConditionStatus(
-    cultivator.condition,
+  const protectMeridiansStatus = getActiveStatus(
+    cultivator,
     'protect_meridians',
   );
-  const hasClearMind = hasActiveConditionStatus(
-    cultivator.condition,
+  const clearMindStatus = getActiveStatus(
+    cultivator,
     'clear_mind',
   );
 
@@ -367,15 +398,18 @@ export function attemptBreakthrough(
   } else {
     // 突破失败
     exp_lost = calculateExpLossOnFailure(progress, rng);
-    if (isMajorBreakthrough && hasProtectMeridians) {
-      exp_lost = Math.floor(exp_lost * 0.6);
+    if (protectMeridiansStatus) {
+      exp_lost = Math.floor(
+        exp_lost *
+          (1 - getProtectMeridiansReductionPercent(protectMeridiansStatus)),
+      );
     }
     progress.cultivation_exp = Math.max(0, progress.cultivation_exp - exp_lost);
 
     // 感悟值降低
     const insightLoss = Math.floor(10 + rng() * 10); // 10-20
     const finalInsightLoss =
-      isMajorBreakthrough && hasClearMind
+      isMajorBreakthrough && clearMindStatus
         ? Math.max(4, Math.floor(insightLoss * 0.7))
         : insightLoss;
     insight_change = -finalInsightLoss;
@@ -389,10 +423,10 @@ export function attemptBreakthrough(
 
     if (isMajorBreakthrough) {
       let deviationGain = getMajorDeviationGain(fromRealm, rng);
-      if (hasClearMind) {
+      if (clearMindStatus) {
         deviationGain = Math.max(5, Math.floor(deviationGain * 0.65));
       }
-      if (hasProtectMeridians) {
+      if (protectMeridiansStatus) {
         deviationGain = Math.max(4, Math.floor(deviationGain * 0.8));
       }
 
@@ -402,27 +436,15 @@ export function attemptBreakthrough(
         100,
       );
 
-      if (fromRealm === '金丹') {
-        if (
-          progress.deviation_risk >= 45 ||
-          progress.breakthrough_failures >= 2
-        ) {
-          progress.inner_demon = true;
-        }
-      } else if (
-        ['元婴', '化神', '炼虚', '合体', '大乘'].includes(fromRealm)
-      ) {
-        if (
-          progress.deviation_risk >= 30 ||
-          progress.breakthrough_failures >= 1
-        ) {
-          progress.inner_demon = true;
-        }
-      }
     }
 
-    // 小境界维持原有心魔触发逻辑
-    if (!isMajorBreakthrough && progress.breakthrough_failures >= 3) {
+    if (
+      !clearMindStatus &&
+      rng() < getInnerDemonTriggerChance(
+        progress.breakthrough_failures,
+        isMajorBreakthrough,
+      )
+    ) {
       progress.inner_demon = true;
     }
   }

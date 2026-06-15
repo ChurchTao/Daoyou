@@ -244,6 +244,7 @@ function buildAlchemySpec(
       dominantElement: synthesis.dominantElement,
       stability: synthesis.stability,
       toxicityRating: synthesis.toxicityRating,
+      appearance: synthesis.appearance,
       tags: buildAlchemyPropertyTags(
         synthesis.propertyVector,
         synthesis.family,

@@ -98,6 +98,19 @@ function withCultivationBoost(cultivator: Cultivator, boostPercent: number) {
   } satisfies Cultivator;
 }
 
+function withStatus(
+  cultivator: Cultivator,
+  status: NonNullable<Cultivator['condition']>['statuses'][number],
+) {
+  return {
+    ...cultivator,
+    condition: {
+      ...cultivator.condition!,
+      statuses: [status],
+    },
+  } satisfies Cultivator;
+}
+
 describe('CultivationEngine cultivation boost', () => {
   it('applies cultivation boost to retreat exp once and then consumes it', () => {
     const base = performCultivation(createCultivator(), 10, () => 0.5);
@@ -129,5 +142,82 @@ describe('CultivationEngine cultivation boost', () => {
         (status) => status.key === 'cultivation_boost',
       ),
     ).toBe(true);
+  });
+
+  it('reads breakthrough focus payload as a success-rate bonus', () => {
+    const baseCultivator = createCultivator();
+    baseCultivator.cultivation_progress!.cultivation_exp = 80_000;
+    const focused = withStatus(createCultivator(), {
+      key: 'breakthrough_focus',
+      stacks: 1,
+      source: 'pill',
+      duration: { kind: 'until_removed' },
+      usesRemaining: 1,
+      payload: { breakthroughChanceBonus: 0.12 },
+      createdAt: '2026-05-25T12:00:00.000Z',
+      updatedAt: '2026-05-25T12:00:00.000Z',
+    });
+    focused.cultivation_progress!.cultivation_exp = 80_000;
+
+    const base = attemptBreakthrough(baseCultivator, () => 0.99);
+    const boosted = attemptBreakthrough(focused, () => 0.99);
+
+    expect(boosted.summary.chance).toBeCloseTo(base.summary.chance + 0.12, 4);
+  });
+
+  it('uses protect meridians payload to reduce failed breakthrough exp loss', () => {
+    const baseCultivator = createCultivator();
+    baseCultivator.cultivation_progress!.cultivation_exp = 80_000;
+    const protectedCultivator = withStatus(createCultivator(), {
+      key: 'protect_meridians',
+      stacks: 1,
+      source: 'pill',
+      duration: { kind: 'until_removed' },
+      usesRemaining: 1,
+      payload: { failureExpLossReductionPercent: 0.7 },
+      createdAt: '2026-05-25T12:00:00.000Z',
+      updatedAt: '2026-05-25T12:00:00.000Z',
+    });
+    protectedCultivator.cultivation_progress!.cultivation_exp = 80_000;
+
+    const base = attemptBreakthrough(baseCultivator, () => 0.99);
+    const protectedResult = attemptBreakthrough(
+      protectedCultivator,
+      () => 0.99,
+    );
+
+    expect(protectedResult.summary.exp_lost).toBe(
+      Math.floor((base.summary.exp_lost ?? 0) * 0.3),
+    );
+  });
+
+  it('clear mind prevents failed breakthroughs from creating inner demon', () => {
+    const unprotected = createCultivator();
+    unprotected.cultivation_progress!.cultivation_exp = 80_000;
+    const clearMind = withStatus(createCultivator(), {
+      key: 'clear_mind',
+      stacks: 1,
+      source: 'pill',
+      duration: { kind: 'until_removed' },
+      usesRemaining: 1,
+      payload: { preventsInnerDemon: true },
+      createdAt: '2026-05-25T12:00:00.000Z',
+      updatedAt: '2026-05-25T12:00:00.000Z',
+    });
+    clearMind.cultivation_progress!.cultivation_exp = 80_000;
+
+    const unprotectedRolls = [0.99, 0.5, 0.5, 0];
+    const unprotectedResult = attemptBreakthrough(
+      unprotected,
+      () => unprotectedRolls.shift() ?? 0,
+    );
+    const rolls = [0.99, 0.5, 0.5, 0];
+    const result = attemptBreakthrough(clearMind, () => rolls.shift() ?? 0);
+
+    expect(unprotectedResult.cultivator.cultivation_progress?.inner_demon).toBe(
+      true,
+    );
+    expect(result.summary.success).toBe(false);
+    expect(result.cultivator.cultivation_progress?.inner_demon).toBe(false);
   });
 });

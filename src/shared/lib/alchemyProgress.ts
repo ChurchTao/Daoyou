@@ -1,16 +1,6 @@
 import { calculateSceneCultivationExp } from '@shared/engine/cultivation/ExpBudgetCalculator';
+import { buildInsightGain as buildInsightGainV2 } from '@shared/lib/pillEffectScaling';
 import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
-
-const INSIGHT_GAIN_BY_QUALITY: Record<Quality, number> = {
-  凡品: 1,
-  灵品: 2,
-  玄品: 3,
-  真品: 4,
-  地品: 6,
-  天品: 8,
-  仙品: 11,
-  神品: 15,
-};
 
 export interface CultivationGainSnapshotInput {
   realm: RealmType;
@@ -50,7 +40,7 @@ export function buildCultivationGain(
 }
 
 export function buildInsightGain(quality: Quality): number {
-  return INSIGHT_GAIN_BY_QUALITY[quality];
+  return buildInsightGainV2(quality);
 }
 
 export function scaleProgressGain(value: number, factor: number): number {

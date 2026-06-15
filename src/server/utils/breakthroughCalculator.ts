@@ -21,8 +21,15 @@ import {
 } from '@shared/lib/fates';
 import {
   getBreakthroughPenalty,
-  hasActiveConditionStatus,
+  isConditionStatusActive,
 } from '@shared/lib/condition';
+import {
+  getBreakthroughFocusBonus,
+} from '@shared/lib/pillEffectScaling';
+import type {
+  ConditionStatusInstance,
+  ConditionStatusKey,
+} from '@shared/types/condition';
 import { format } from 'd3-format';
 import { calculateExpProgress, getBreakthroughType } from './cultivationUtils';
 import { getRealmStageAttributeCap } from './cultivatorUtils';
@@ -75,6 +82,17 @@ export interface BreakthroughChanceResult {
   recommendation: string; // 突破建议
 }
 
+function getActiveStatus(
+  cultivator: Cultivator,
+  statusKey: ConditionStatusKey,
+): ConditionStatusInstance | null {
+  return (
+    cultivator.condition?.statuses.find(
+      (status) => status.key === statusKey && isConditionStatusActive(status),
+    ) ?? null
+  );
+}
+
 /**
  * 计算突破成功率（新版）
  *
@@ -106,12 +124,12 @@ export function calculateBreakthroughChance(
   }
 
   const isMajorBreakthrough = nextStage.realm !== cultivator.realm;
-  const hasBreakthroughFocus = hasActiveConditionStatus(
-    cultivator.condition,
+  const breakthroughFocusStatus = getActiveStatus(
+    cultivator,
     'breakthrough_focus',
   );
-  const hasClearMind = hasActiveConditionStatus(
-    cultivator.condition,
+  const clearMindStatus = getActiveStatus(
+    cultivator,
     'clear_mind',
   );
 
@@ -131,16 +149,17 @@ export function calculateBreakthroughChance(
 
   // 5. 心魔惩罚
   const demonPenalty = progress.inner_demon
-    ? hasClearMind
-      ? 0.98
+    ? clearMindStatus
+      ? 1
       : isMajorBreakthrough
         ? 0.9
         : 0.95
     : 1.0;
   const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
   const fateBonus = fateContext.breakthroughChanceBonus;
-  const pillBonus =
-    (hasBreakthroughFocus ? 0.06 : 0) + (hasClearMind ? 0.04 : 0);
+  const pillBonus = breakthroughFocusStatus
+    ? getBreakthroughFocusBonus(breakthroughFocusStatus)
+    : 0;
   const toxicityPenalty = getBreakthroughPenalty(
     cultivator.condition,
     fateContext.toxicityPenaltyMultiplier,

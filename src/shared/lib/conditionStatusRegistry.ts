@@ -176,6 +176,7 @@ registry.register({
   key: 'breakthrough_focus',
   name: getGameConceptInfo('status_breakthrough_focus').label,
   description: getGameConceptInfo('status_breakthrough_focus').description ?? '',
+  effectDetails: ['下一次突破按药力获得额外成功率。'],
   display: {
     icon: getGameConceptInfo('status_breakthrough_focus').icon,
     shortDesc: '突破前凝神蓄势',
@@ -187,6 +188,7 @@ registry.register({
   key: 'protect_meridians',
   name: getGameConceptInfo('status_protect_meridians').label,
   description: getGameConceptInfo('status_protect_meridians').description ?? '',
+  effectDetails: ['突破失败时按药力降低修为损失。'],
   display: {
     icon: getGameConceptInfo('status_protect_meridians').icon,
     shortDesc: '护住经脉，降低反噬',
@@ -198,6 +200,7 @@ registry.register({
   key: 'clear_mind',
   name: getGameConceptInfo('status_clear_mind').label,
   description: getGameConceptInfo('status_clear_mind').description ?? '',
+  effectDetails: ['突破失败不会滋生心魔，服用时清除既有心魔。'],
   display: {
     icon: getGameConceptInfo('status_clear_mind').icon,
     shortDesc: '清心定神，减少杂念',

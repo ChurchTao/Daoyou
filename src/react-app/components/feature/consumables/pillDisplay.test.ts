@@ -83,6 +83,45 @@ describe('toPillDisplayModel', () => {
     expect(model.keywordLabels).toEqual(['疗伤', '丹毒 +4']);
   });
 
+  it('keeps appearance as a dedicated display mark without multiplier text', () => {
+    const model = toPillDisplayModel(
+      createPill({
+        kind: 'pill',
+        family: 'healing',
+        operations: [
+          {
+            type: 'restore_resource',
+            resource: 'hp',
+            mode: 'percent',
+            value: 0.42,
+          },
+        ],
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'none',
+        },
+        alchemyMeta: {
+          source: 'improvised',
+          sourceMaterials: ['赤阳草'],
+          stability: 88,
+          toxicityRating: 0,
+          tags: ['healing'],
+          appearance: 'perfect',
+        },
+      }),
+      { realm: '金丹' },
+    );
+    const detailText = model.detailGroups
+      .flatMap((group) => group.lines)
+      .join(' / ');
+
+    expect(model.appearance).toEqual({ grade: 'perfect', label: '完美' });
+    expect(model.keywordLabels).toEqual(['疗伤']);
+    expect(detailText).not.toContain('品相');
+    expect(detailText).not.toContain('药效 +');
+    expect(detailText).not.toContain('丹毒为零');
+  });
+
   it('combines hybrid hp and mp recovery into one primary line', () => {
     const model = toPillDisplayModel(
       createPill({
@@ -159,7 +198,7 @@ describe('toPillDisplayModel', () => {
 
     expect(model.primaryEffect).toBe('恢复最大气血 12%');
     expect(model.effectSummary).toBe(
-      '恢复最大气血 12% / 恢复最大法力 8% / 获得「清心」（可用 1 次）',
+      '恢复最大气血 12% / 恢复最大法力 8% / 清心：突破失败不会滋生心魔（可用 1 次）',
     );
   });
 

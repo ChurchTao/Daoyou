@@ -33,6 +33,16 @@ export const ALCHEMY_MODE_VALUES = ['improvised', 'formula'] as const;
 
 export type AlchemyMode = (typeof ALCHEMY_MODE_VALUES)[number];
 
+export const PILL_APPEARANCE_GRADE_VALUES = [
+  'low',
+  'middle',
+  'high',
+  'perfect',
+] as const;
+
+export type PillAppearanceGrade =
+  (typeof PILL_APPEARANCE_GRADE_VALUES)[number];
+
 export const ALCHEMY_PROPERTY_KEY_VALUES = [
   'restore_hp',
   'heal_wounds',
@@ -120,6 +130,7 @@ export type PillAlchemyMeta =
       dominantElement?: ElementType;
       stability: number;
       toxicityRating: number;
+      appearance?: PillAppearanceGrade;
       tags: string[];
       breakthroughTargetRealm?: RealmType;
       breakthroughLabel?: string;
@@ -137,6 +148,7 @@ export type PillAlchemyMeta =
       dominantElement?: ElementType;
       stability: number;
       toxicityRating: number;
+      appearance?: PillAppearanceGrade;
       tags: string[];
       breakthroughTargetRealm?: RealmType;
       breakthroughLabel?: string;

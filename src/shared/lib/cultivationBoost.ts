@@ -10,17 +10,17 @@ export const CULTIVATION_BOOST_STATUS_KEY = 'cultivation_boost' as const;
 
 export const CULTIVATION_BOOST_BY_QUALITY: Record<Quality, number> = {
   凡品: 0.1,
-  灵品: 0.14,
-  玄品: 0.18,
-  真品: 0.22,
-  地品: 0.27,
-  天品: 0.32,
-  仙品: 0.36,
-  神品: 0.4,
+  灵品: 0.2286,
+  玄品: 0.3571,
+  真品: 0.4857,
+  地品: 0.6143,
+  天品: 0.7429,
+  仙品: 0.8714,
+  神品: 1,
 };
 
-const MIN_CULTIVATION_BOOST = 0.1;
-const MAX_CULTIVATION_BOOST = 0.4;
+const MIN_CULTIVATION_BOOST = 0.08;
+const MAX_CULTIVATION_BOOST = 2;
 
 export interface CultivationBoostPayload
   extends Record<string, string | number | boolean> {

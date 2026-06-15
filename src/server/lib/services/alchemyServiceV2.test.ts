@@ -67,6 +67,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
 
     expect(result.family).toBe('healing');
@@ -78,7 +79,7 @@ describe('synthesizeAlchemy', () => {
       type: 'restore_resource',
       resource: 'hp',
       mode: 'percent',
-      value: 0.1992,
+      value: 0.4,
     });
     expect(result.operations).toContainEqual({
       type: 'remove_status',
@@ -135,6 +136,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
     const manaResult = synthesizeAlchemy(
       materials,
@@ -162,6 +164,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
 
     expect(healingResult.propertyVector).not.toEqual(manaResult.propertyVector);
@@ -175,6 +178,104 @@ describe('synthesizeAlchemy', () => {
       type: 'restore_resource',
       resource: 'mp',
     });
+  });
+
+  it('rolls pill appearance from rng and removes positive toxicity for perfect pills', () => {
+    const craft = (rng: () => number) =>
+      synthesizeAlchemy(
+        [
+          createMaterial({
+            id: 'm1',
+            materialRef: 'material_1',
+            name: '回春草',
+            description: '可补充气血。',
+            element: '木',
+            type: 'herb',
+          }),
+        ],
+        {
+          materialVectors: [
+            {
+              materialRef: 'material_1',
+              materialName: '回春草',
+              properties: [{ key: 'restore_hp', weight: 1 }],
+            },
+          ],
+          intentVector: [{ key: 'restore_hp', weight: 1 }],
+          focusMode: 'focused',
+        },
+        '真品',
+        '筑基',
+        { rng },
+      );
+
+    expect(craft(() => 0).appearance).toBe('low');
+    expect(craft(() => 0.3).appearance).toBe('middle');
+    expect(craft(() => 0.7).appearance).toBe('high');
+    const perfect = craft(() => 0.9);
+    expect(perfect.appearance).toBe('perfect');
+    expect(
+      perfect.operations.some(
+        (operation) =>
+          operation.type === 'change_gauge' && operation.delta > 0,
+      ),
+    ).toBe(false);
+  });
+
+  it('does not add extra toxicity when detox is part of a compound route', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '净心叶',
+          description: '可化解丹毒，也能温养气血。',
+          element: '木',
+          type: 'herb',
+        }),
+        createMaterial({
+          id: 'm2',
+          materialRef: 'material_2',
+          name: '回春草',
+          description: '可补充气血。',
+          element: '木',
+          type: 'herb',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '净心叶',
+            properties: [{ key: 'detox', weight: 1 }],
+          },
+          {
+            materialRef: 'material_2',
+            materialName: '回春草',
+            properties: [{ key: 'restore_hp', weight: 1 }],
+          },
+        ],
+        intentVector: [
+          { key: 'detox', weight: 0.5 },
+          { key: 'restore_hp', weight: 0.5 },
+        ],
+        focusMode: 'balanced',
+      },
+      '真品',
+      '筑基',
+      { rng: () => 0.5 },
+    );
+
+    const toxicityOperations = result.operations.filter(
+      (operation) => operation.type === 'change_gauge',
+    );
+    expect(toxicityOperations).toEqual([
+      {
+        type: 'change_gauge',
+        gauge: 'pillToxicity',
+        delta: -23,
+      },
+    ]);
   });
 
   it('derives a hybrid family when hp and mp recovery stay close enough', () => {
@@ -218,6 +319,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
 
     expect(result.family).toBe('hybrid');
@@ -225,13 +327,13 @@ describe('synthesizeAlchemy', () => {
       type: 'restore_resource',
       resource: 'hp',
       mode: 'percent',
-      value: 0.1992,
+      value: 0.4,
     });
     expect(result.operations).toContainEqual({
       type: 'restore_resource',
       resource: 'mp',
       mode: 'percent',
-      value: 0.1121,
+      value: 0.3,
     });
   });
 
@@ -261,6 +363,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
     const riskyResult = synthesizeAlchemy(
       materials,
@@ -277,6 +380,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
 
     expect(riskyResult.propertyVector).toEqual(balancedResult.propertyVector);
@@ -288,6 +392,9 @@ describe('synthesizeAlchemy', () => {
       type: 'add_status',
       status: 'breakthrough_focus',
       usesRemaining: 1,
+      payload: {
+        breakthroughChanceBonus: 0.0629,
+      },
     });
   });
 
@@ -316,6 +423,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '金丹',
+      { rng: () => 0.5 },
     );
 
     expect(result.family).toBe('breakthrough');
@@ -325,7 +433,10 @@ describe('synthesizeAlchemy', () => {
     expect(result.operations).toContainEqual({
       type: 'add_status',
       status: 'clear_mind',
-      usesRemaining: 1,
+      usesRemaining: 2,
+      payload: {
+        preventsInnerDemon: true,
+      },
     });
     expect(
       result.operations.some(
@@ -361,6 +472,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '元婴',
+      { rng: () => 0.5 },
     );
 
     expect(result.family).toBe('breakthrough');
@@ -371,6 +483,9 @@ describe('synthesizeAlchemy', () => {
       type: 'add_status',
       status: 'protect_meridians',
       usesRemaining: 1,
+      payload: {
+        failureExpLossReductionPercent: 0.4143,
+      },
     });
     expect(
       result.operations.some(
@@ -406,6 +521,7 @@ describe('synthesizeAlchemy', () => {
       },
       '真品',
       '筑基',
+      { rng: () => 0.5 },
     );
 
     expect(result.family).toBe('cultivation');
@@ -414,10 +530,11 @@ describe('synthesizeAlchemy', () => {
       status: 'cultivation_boost',
       usesRemaining: 1,
       payload: {
-        boostPercent: 0.22,
-        retreatExpMultiplier: 1.22,
+        boostPercent: 0.4857,
+        retreatExpMultiplier: 1.4857,
       },
     });
+    expect(result.appearance).toBe('middle');
     expect(
       result.operations.some(
         (operation) =>
@@ -485,6 +602,7 @@ describe('synthesizeAlchemy', () => {
       },
       '地品',
       '金丹',
+      { rng: () => 0.5 },
     );
 
     const boost = result.operations.find(
@@ -498,8 +616,8 @@ describe('synthesizeAlchemy', () => {
       type: 'add_status',
       status: 'cultivation_boost',
       payload: {
-        boostPercent: 0.1188,
-        retreatExpMultiplier: 1.1188,
+        boostPercent: 0.2703,
+        retreatExpMultiplier: 1.2703,
       },
     });
   });
@@ -536,12 +654,12 @@ describe('synthesizeAlchemy', () => {
     expect(result.propertyVector).toEqual([{ key: 'extend_lifespan', weight: 1 }]);
     expect(result.operations).toContainEqual({
       type: 'increase_lifespan',
-      value: 50,
+      value: 91,
     });
     expect(result.operations).toContainEqual({
       type: 'change_gauge',
       gauge: 'pillToxicity',
-      delta: 2,
+      delta: 23,
     });
   });
 });

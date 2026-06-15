@@ -22,14 +22,25 @@ import {
   calculateHighestMaterialRank,
 } from '@shared/engine/creation-v2/CraftCostCalculator';
 import {
-  buildCultivationBoostOperation,
-  scaleCultivationBoostOperation,
   CULTIVATION_BOOST_STATUS_KEY,
 } from '@shared/lib/cultivationBoost';
+import { buildInsightGain } from '@shared/lib/alchemyProgress';
 import {
-  buildInsightGain,
-  scaleProgressGain,
-} from '@shared/lib/alchemyProgress';
+  getPillAppearanceToxicityMultiplier,
+  rollPillAppearance,
+} from '@shared/lib/pillAppearance';
+import {
+  applyPillAppearanceToOperations,
+  buildBreakthroughFocusOperation,
+  buildClearMindOperation,
+  buildCultivationBoostOperationV2,
+  buildDetoxPower,
+  buildLifespanGain,
+  buildPositivePillToxicity,
+  buildProtectMeridiansOperation,
+  buildRestorePercent,
+  scalePillEffectOperation,
+} from '@shared/lib/pillEffectScaling';
 import {
   formatAlchemyPropertyVector,
   sortWeightedAlchemyProperties,
@@ -63,6 +74,7 @@ import type {
   FormulaAnalysisResult,
   FormulaFitBand,
   FormulaMaterialJudgment,
+  PillAppearanceGrade,
   PillSpec,
   WeightedAlchemyProperty,
 } from '@shared/types/consumable';
@@ -146,23 +158,6 @@ interface DiscoveryContext {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-function scaleRestoreOperationValue(
-  operation: Extract<ConditionOperation, { type: 'restore_resource' }>,
-  factor: number,
-): Extract<ConditionOperation, { type: 'restore_resource' }> {
-  if (operation.mode === 'percent') {
-    return {
-      ...operation,
-      value: Math.max(0.0001, Number((operation.value * factor).toFixed(4))),
-    };
-  }
-
-  return {
-    ...operation,
-    value: Math.max(1, Math.floor(operation.value * factor)),
-  };
 }
 
 function sortJsonValue(value: unknown): unknown {
@@ -661,22 +656,34 @@ function scaleFormulaOperations(
   fitMultiplier: number,
   quality: Quality,
 ): ConditionOperation[] {
-  return operations.map((operation) => {
+  return operations.flatMap((operation): ConditionOperation[] => {
     if (operation.type === 'restore_resource') {
-      return scaleRestoreOperationValue(operation, fitMultiplier);
+      return [
+        scalePillEffectOperation(
+          {
+            ...operation,
+            mode: 'percent',
+            value: buildRestorePercent(quality),
+          },
+          fitMultiplier,
+        ),
+      ];
     }
 
     if (operation.type === 'gain_progress') {
       if (operation.target === 'cultivation_exp') {
-        return buildCultivationBoostOperation(quality, fitMultiplier);
+        return [buildCultivationBoostOperationV2(quality, fitMultiplier)];
       }
 
-      const baseValue =
-        buildInsightGain(quality);
-      return {
-        ...operation,
-        value: scaleProgressGain(baseValue, fitMultiplier),
-      };
+      return [
+        scalePillEffectOperation(
+          {
+            ...operation,
+            value: buildInsightGain(quality),
+          },
+          fitMultiplier,
+        ),
+      ];
     }
 
     if (
@@ -685,35 +692,107 @@ function scaleFormulaOperations(
         operation.status === 'major_wound' ||
         operation.status === 'near_death')
     ) {
-      return {
-        ...operation,
-        status: getHealingCuredStatus(quality),
-      };
+      return [
+        {
+          ...operation,
+          status: getHealingCuredStatus(quality),
+        },
+      ];
     }
 
     if (operation.type === 'advance_track') {
-      return {
-        ...operation,
-        value: Math.max(1, Math.floor(operation.value * fitMultiplier)),
-      };
+      return [scalePillEffectOperation(operation, fitMultiplier)];
     }
 
     if (operation.type === 'increase_lifespan') {
-      return {
-        ...operation,
-        value: Math.max(1, Math.floor(operation.value * fitMultiplier)),
-      };
+      return [
+        scalePillEffectOperation(
+          {
+            ...operation,
+            value: buildLifespanGain(quality),
+          },
+          fitMultiplier,
+        ),
+      ];
+    }
+
+    if (operation.type === 'change_gauge') {
+      if (operation.delta >= 0) {
+        return [];
+      }
+      return [
+        scalePillEffectOperation(
+          {
+            ...operation,
+            delta: -buildDetoxPower(quality),
+          },
+          fitMultiplier,
+        ),
+      ];
     }
 
     if (
       operation.type === 'add_status' &&
       operation.status === CULTIVATION_BOOST_STATUS_KEY
     ) {
-      return scaleCultivationBoostOperation(operation, fitMultiplier);
+      return [buildCultivationBoostOperationV2(quality, fitMultiplier)];
     }
 
-    return operation;
+    if (
+      operation.type === 'add_status' &&
+      operation.status === 'breakthrough_focus'
+    ) {
+      return [buildBreakthroughFocusOperation(quality, fitMultiplier)];
+    }
+
+    if (
+      operation.type === 'add_status' &&
+      operation.status === 'protect_meridians'
+    ) {
+      return [buildProtectMeridiansOperation(quality, fitMultiplier)];
+    }
+
+    if (
+      operation.type === 'add_status' &&
+      operation.status === 'clear_mind'
+    ) {
+      return [buildClearMindOperation(quality)];
+    }
+
+    return [operation];
   });
+}
+
+function appendFormulaPositiveToxicity(
+  operations: ConditionOperation[],
+  quality: Quality,
+  appearance: PillAppearanceGrade,
+  propertyVector: WeightedAlchemyProperty[],
+): ConditionOperation[] {
+  if (propertyVector.some((property) => property.key === 'detox')) {
+    return operations;
+  }
+
+  if (!propertyVector.some((property) => property.key !== 'detox')) {
+    return operations;
+  }
+
+  const delta = Math.round(
+    buildPositivePillToxicity(quality) *
+      getPillAppearanceToxicityMultiplier(appearance),
+  );
+  if (delta <= 0) {
+    return operations;
+  }
+
+  return [
+    ...operations,
+    {
+      type: 'change_gauge',
+      gauge: 'pillToxicity',
+      delta,
+    },
+  ];
 }
 
 export function advanceFormulaMastery(mastery: AlchemyFormulaMastery): {
@@ -1268,6 +1347,24 @@ export async function craftFromFormula(
         ) * degradedPenaltyFactor
       ).toFixed(4),
     );
+    const appearance = rollPillAppearance({
+      stability: aggregated.stability,
+      propertyVector: formula.pattern.targetPropertyVector,
+      masteryLevel: formula.mastery.level,
+    });
+    const operations = appendFormulaPositiveToxicity(
+      applyPillAppearanceToOperations(
+        scaleFormulaOperations(
+          formula.blueprint.operations,
+          fitMultiplier,
+          highestMaterialRank,
+        ),
+        appearance,
+      ),
+      highestMaterialRank,
+      appearance,
+      formula.pattern.targetPropertyVector,
+    );
     const masteryBonusStability = formula.mastery.level * 2;
     const masteryBonusToxicity = formula.mastery.level;
     const degradedStabilityPenalty =
@@ -1281,11 +1378,7 @@ export async function craftFromFormula(
     const spec: PillSpec = {
       kind: 'pill',
       family: formula.family,
-      operations: scaleFormulaOperations(
-        formula.blueprint.operations,
-        fitMultiplier,
-        highestMaterialRank,
-      ),
+      operations,
       consumeRules: {
         ...formula.blueprint.consumeRules,
         quotaCategory: getQuotaCategoryForFamily(formula.family),
@@ -1315,6 +1408,7 @@ export async function craftFromFormula(
           0,
           100,
         ),
+        appearance,
         tags: buildAlchemyPropertyTags(
           formula.pattern.targetPropertyVector,
           formula.family,

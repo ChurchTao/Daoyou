@@ -5,24 +5,28 @@ import {
   QUALITY_STABILITY_BONUS,
   type AlchemyMaterialType,
 } from '@shared/config/alchemyConfig';
-import {
-  getConsumableQualityScalar,
-  rollLifespanPillGain,
-} from '@shared/config/consumableSystem';
+import { getConsumableQualityScalar } from '@shared/config/consumableSystem';
 import {
   buildCultivationBoostOperation,
-  scaleCultivationBoostOperation,
   CULTIVATION_BOOST_STATUS_KEY,
   getCultivationBoostPercent,
   buildCultivationBoostPayload,
   normalizeCultivationBoostPercent,
   type CultivationBoostPayload,
 } from '@shared/lib/cultivationBoost';
+import { buildInsightGain } from '@shared/lib/alchemyProgress';
+import { rollPillAppearance } from '@shared/lib/pillAppearance';
 import {
-  buildInsightGain,
-  scaleProgressGain,
-  type CultivationGainSnapshotInput,
-} from '@shared/lib/alchemyProgress';
+  applyPillAppearanceToOperations,
+  buildBreakthroughFocusOperation,
+  buildClearMindOperation,
+  buildDetoxPower,
+  buildLifespanGain,
+  buildPositivePillToxicity,
+  buildProtectMeridiansOperation,
+  buildRestorePercent,
+  scalePillEffectOperation,
+} from '@shared/lib/pillEffectScaling';
 import {
   getAlchemyPropertyFamily,
   getAlchemyPropertyLabel,
@@ -44,6 +48,7 @@ import type {
   AlchemyPropertyKey,
   AlchemyRecipePlan,
   ConditionOperation,
+  PillAppearanceGrade,
   PillFamily,
   PillQuotaCategory,
   WeightedAlchemyProperty,
@@ -74,6 +79,7 @@ export interface AggregatedAlchemyProperties {
 export interface SynthesizedAlchemyResult extends AggregatedAlchemyProperties {
   family: PillFamily;
   operations: ConditionOperation[];
+  appearance: PillAppearanceGrade;
 }
 
 export interface AlchemyCultivationSnapshotContext {
@@ -98,106 +104,17 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function buildRestoreValue(baseRatio: number, scalar: number): number {
-  return Number((baseRatio * scalar).toFixed(4));
-}
-
-function scaleRestoreOperationValue(
-  operation: Extract<ConditionOperation, { type: 'restore_resource' }>,
-  factor: number,
-): Extract<ConditionOperation, { type: 'restore_resource' }> {
-  if (operation.mode === 'percent') {
-    return {
-      ...operation,
-      value: Math.max(0.0001, Number((operation.value * factor).toFixed(4))),
-    };
-  }
-
-  return {
-    ...operation,
-    value: Math.max(1, Math.floor(operation.value * factor)),
-  };
-}
-
 function scalePropertyOperation(
   operation: ConditionOperation,
   factor: number,
 ): ConditionOperation {
-  if (factor === 1) {
-    return operation;
-  }
-
-  switch (operation.type) {
-    case 'restore_resource':
-      return scaleRestoreOperationValue(operation, factor);
-    case 'advance_track':
-      return {
-        ...operation,
-        value: Math.max(1, Math.floor(operation.value * factor)),
-      };
-    case 'gain_progress':
-      return {
-        ...operation,
-        value: scaleProgressGain(operation.value, factor),
-      };
-    case 'increase_lifespan':
-      return {
-        ...operation,
-        value: Math.max(1, Math.floor(operation.value * factor)),
-      };
-    case 'change_gauge':
-      return {
-        ...operation,
-        delta:
-          operation.delta > 0
-            ? Math.max(1, Math.round(operation.delta * factor))
-            : Math.min(-1, Math.round(operation.delta * factor)),
-      };
-    case 'add_status':
-      return scaleCultivationBoostOperation(operation, factor);
-    default:
-      return operation;
-  }
+  return scalePillEffectOperation(operation, factor);
 }
 
 function applyLowStabilityPenalty(
   operations: ConditionOperation[],
 ): ConditionOperation[] {
-  return operations.map((operation) => {
-    if (operation.type === 'restore_resource') {
-      return scaleRestoreOperationValue(operation, 0.8);
-    }
-
-    if (operation.type === 'advance_track') {
-      return {
-        ...operation,
-        value: Math.max(1, Math.floor(operation.value * 0.8)),
-      };
-    }
-
-    if (operation.type === 'gain_progress') {
-      return {
-        ...operation,
-        value: scaleProgressGain(operation.value, 0.8),
-      };
-    }
-
-    if (operation.type === 'increase_lifespan') {
-      return {
-        ...operation,
-        value: Math.max(1, Math.floor(operation.value * 0.8)),
-      };
-    }
-
-    if (
-      operation.type === 'add_status' &&
-      operation.status === CULTIVATION_BOOST_STATUS_KEY
-    ) {
-      return scaleCultivationBoostOperation(operation, 0.8);
-    }
-
-    return operation;
-  });
+  return operations.map((operation) => scalePillEffectOperation(operation, 0.8));
 }
 
 function getMaterialContribution(material: PreparedAlchemyMaterial): number {
@@ -264,8 +181,6 @@ export function chooseDominantElement(
 function buildBasePropertyOperation(
   key: AlchemyPropertyKey,
   quality: Quality,
-  cultivationContext: CultivationGainSnapshotInput,
-  options: AlchemySynthesisOptions = {},
 ): ConditionOperation {
   const scalar = getConsumableQualityScalar(quality);
 
@@ -275,7 +190,7 @@ function buildBasePropertyOperation(
         type: 'restore_resource',
         resource: 'hp',
         mode: 'percent',
-        value: buildRestoreValue(0.12, scalar),
+        value: buildRestorePercent(quality),
       };
     case 'heal_wounds':
       return {
@@ -287,13 +202,13 @@ function buildBasePropertyOperation(
         type: 'restore_resource',
         resource: 'mp',
         mode: 'percent',
-        value: buildRestoreValue(0.09, scalar),
+        value: buildRestorePercent(quality),
       };
     case 'detox':
       return {
         type: 'change_gauge',
         gauge: 'pillToxicity',
-        delta: -Math.floor(18 * scalar),
+        delta: -buildDetoxPower(quality),
       };
     case 'cultivation':
       return buildCultivationBoostOperation(quality);
@@ -304,27 +219,15 @@ function buildBasePropertyOperation(
         value: buildInsightGain(quality),
       };
     case 'clear_mind_support':
-      return {
-        type: 'add_status',
-        status: 'clear_mind',
-        usesRemaining: 1,
-      };
+      return buildClearMindOperation(quality);
     case 'protect_meridians_support':
-      return {
-        type: 'add_status',
-        status: 'protect_meridians',
-        usesRemaining: 1,
-      };
+      return buildProtectMeridiansOperation(quality);
     case 'breakthrough_support':
-      return {
-        type: 'add_status',
-        status: 'breakthrough_focus',
-        usesRemaining: 1,
-      };
+      return buildBreakthroughFocusOperation(quality);
     case 'extend_lifespan':
       return {
         type: 'increase_lifespan',
-        value: rollLifespanPillGain(quality, options.rng),
+        value: buildLifespanGain(quality),
       };
     case 'marrow_wash':
       return {
@@ -369,9 +272,14 @@ function mergeCultivationBoostOperation(
 }
 
 function buildPositiveToxicityDelta(
-  toxicityRating: number,
+  quality: Quality,
+  appearance: PillAppearanceGrade,
   selectedProperties: WeightedAlchemyProperty[],
 ): number {
+  if (selectedProperties.some((property) => property.key === 'detox')) {
+    return 0;
+  }
+
   const positivePropertyCount = selectedProperties.filter(
     (property) => property.key !== 'detox',
   ).length;
@@ -379,7 +287,40 @@ function buildPositiveToxicityDelta(
     return 0;
   }
 
-  return clamp(Math.round(toxicityRating / 2), 2, 14);
+  const multiplier =
+    appearance === 'low'
+      ? 1.5
+      : appearance === 'middle'
+        ? 1
+        : appearance === 'high'
+          ? 0.6
+          : 0;
+  return Math.round(buildPositivePillToxicity(quality) * multiplier);
+}
+
+function appendPositiveToxicityOperation(
+  operations: ConditionOperation[],
+  quality: Quality,
+  appearance: PillAppearanceGrade,
+  selectedProperties: WeightedAlchemyProperty[],
+): ConditionOperation[] {
+  const delta = buildPositiveToxicityDelta(
+    quality,
+    appearance,
+    selectedProperties,
+  );
+  if (delta <= 0) {
+    return operations;
+  }
+
+  return [
+    ...operations,
+    {
+      type: 'change_gauge',
+      gauge: 'pillToxicity',
+      delta,
+    },
+  ];
 }
 
 function selectEffectiveProperties(
@@ -416,52 +357,16 @@ function selectEffectiveProperties(
 function buildPropertyOperationSet(
   selectedProperties: WeightedAlchemyProperty[],
   quality: Quality,
-  cultivationContext: AlchemyCultivationSnapshotContext,
-  toxicityRating: number,
-  options: AlchemySynthesisOptions = {},
 ): ConditionOperation[] {
-  const cultivationGainContext: CultivationGainSnapshotInput = {
-    ...cultivationContext,
-    quality,
-  };
   const operations = selectedProperties.map((property, index) => {
     const baseOperation = buildBasePropertyOperation(
       property.key,
       quality,
-      cultivationGainContext,
-      options,
     );
     const scalar =
       PROPERTY_OPERATION_SCALARS[index] ?? PROPERTY_OPERATION_SCALARS[2];
     return scalePropertyOperation(baseOperation, scalar);
   });
-
-  const existingGaugeIndex = operations.findIndex(
-    (operation) =>
-      operation.type === 'change_gauge' && operation.gauge === 'pillToxicity',
-  );
-  const positiveToxicityDelta = buildPositiveToxicityDelta(
-    toxicityRating,
-    selectedProperties,
-  );
-
-  if (positiveToxicityDelta > 0) {
-    if (existingGaugeIndex >= 0) {
-      const current = operations[existingGaugeIndex];
-      if (current?.type === 'change_gauge') {
-        operations[existingGaugeIndex] = {
-          ...current,
-          delta: current.delta + positiveToxicityDelta,
-        };
-      }
-    } else {
-      operations.push({
-        type: 'change_gauge',
-        gauge: 'pillToxicity',
-        delta: positiveToxicityDelta,
-      });
-    }
-  }
 
   const cultivationBoostOperations = operations.filter(
     (
@@ -673,31 +578,38 @@ export function synthesizeAlchemyFromPlan(
   materials: PreparedAlchemyMaterial[],
   plan: AlchemyRecipePlan,
   quality: Quality,
-  cultivationContextOrRealm: AlchemyCultivationSnapshotContext | RealmType,
+  _cultivationContextOrRealm: AlchemyCultivationSnapshotContext | RealmType,
   options: AlchemySynthesisOptions = {},
 ): SynthesizedAlchemyResult {
-  const cultivationContext =
-    typeof cultivationContextOrRealm === 'string'
-      ? { realm: cultivationContextOrRealm }
-      : cultivationContextOrRealm;
   const aggregated = aggregateAlchemyProperties(materials, plan);
   const family = determineAlchemyFamily(aggregated.propertyVector);
   let operations = buildPropertyOperationSet(
     aggregated.propertyVector,
     quality,
-    cultivationContext,
-    aggregated.toxicityRating,
-    options,
   );
+  const appearance = rollPillAppearance({
+    stability: aggregated.stability,
+    propertyVector: aggregated.propertyVector,
+    rng: options.rng,
+  });
 
   if (aggregated.stability < 45) {
     operations = applyLowStabilityPenalty(operations);
   }
 
+  operations = applyPillAppearanceToOperations(operations, appearance);
+  operations = appendPositiveToxicityOperation(
+    operations,
+    quality,
+    appearance,
+    aggregated.propertyVector,
+  );
+
   return {
     ...aggregated,
     family,
     operations,
+    appearance,
   };
 }
 

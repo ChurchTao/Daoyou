@@ -13,6 +13,7 @@ import { InkListItem } from './InkList';
 export interface ItemCardProps {
   icon?: string;
   name: string;
+  nameMark?: ReactNode;
   quality?: Quality;
   badgeExtra?: ReactNode;
   description?: string;
@@ -26,6 +27,7 @@ export interface ItemCardProps {
 export function ItemCard({
   icon,
   name,
+  nameMark,
   quality,
   badgeExtra,
   description,
@@ -39,8 +41,17 @@ export function ItemCard({
     <InkListItem
       title={
         <div className="flex flex-wrap items-center gap-1">
-          {icon && <span>{icon}</span>}
-          <span className="text-ink-secondary">{name}</span>
+          {icon && <span className="shrink-0">{icon}</span>}
+          <span
+            className={`text-ink-secondary relative inline-flex max-w-full items-baseline ${
+              nameMark ? 'pr-7' : ''
+            }`}
+          >
+            <span className="truncate">{name}</span>
+            {nameMark && (
+              <span className="absolute -top-2 right-0">{nameMark}</span>
+            )}
+          </span>
           {quality && <InkBadge tier={quality} />}
           {badgeExtra}
         </div>

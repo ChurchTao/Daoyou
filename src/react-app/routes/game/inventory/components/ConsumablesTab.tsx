@@ -1,8 +1,9 @@
 import {
+  PillAppearanceMark,
   PillKeywordLine,
   toPillDisplayModel,
 } from '@app/components/feature/consumables';
-import { InkBadge, InkButton, InkList, InkNotice } from '@app/components/ui';
+import { InkButton, InkList, InkNotice } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import {
   isPillConsumable,
@@ -12,7 +13,7 @@ import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
 import {
-  getConsumableTypeLabel,
+  CONSUMABLE_TYPE_DISPLAY_MAP,
   getResourceTypeLabel,
 } from '@shared/lib/gameConceptDisplay';
 import {
@@ -74,6 +75,7 @@ export function ConsumablesTab({
         const scenarioHref = getTalismanActionHref(item);
         const scenarioActionLabel = getTalismanActionLabel(item);
         const canNavigateToScenario = Boolean(item.id && scenarioHref);
+        const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
         const pillDisplay = isPillConsumable(item)
           ? toPillDisplayModel(item, { realm, condition })
           : null;
@@ -85,17 +87,21 @@ export function ConsumablesTab({
           <ItemCard
             key={item.id || idx}
             layout="col"
+            icon={typeInfo.icon}
             name={item.name}
+            nameMark={
+              pillDisplay?.appearance ? (
+                <PillAppearanceMark
+                  appearance={pillDisplay.appearance}
+                  className="text-[0.68rem]"
+                />
+              ) : undefined
+            }
             quality={item.quality}
             badgeExtra={
-              <>
-                <InkBadge tone="default">
-                  {getConsumableTypeLabel(isTalisman ? '符箓' : '丹药')}
-                </InkBadge>
-                <span className="text-ink-secondary text-sm">
-                  x{item.quantity}
-                </span>
-              </>
+              <span className="text-ink-secondary text-sm">
+                x{item.quantity}
+              </span>
             }
             meta={
               isDirectlyUsable && pillDisplay ? (
