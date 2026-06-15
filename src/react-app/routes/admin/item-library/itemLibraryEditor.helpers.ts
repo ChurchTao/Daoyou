@@ -11,12 +11,19 @@ import {
   type RealmType,
 } from '@shared/types/constants';
 import {
+  type PillAppearanceGrade,
   TALISMAN_SESSION_MODE_VALUES,
   type ConditionOperation,
   type PillFamily,
   type PillQuotaCategory,
   type TalismanSessionMode,
 } from '@shared/types/consumable';
+import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
 import type {
   CreateItemLibraryEntry,
   ItemLibraryEntry,
@@ -74,7 +81,7 @@ export const TRACK_OPTIONS = [
 
 export const PILL_OPERATION_LABELS = {
   restore_resource: '恢复气血/法力',
-  gain_progress: '增加修为/悟性',
+  gain_progress: '增加感悟/历史修为',
   increase_lifespan: '增加寿元',
   change_gauge: '增加/降低丹毒',
   add_status: '添加状态',
@@ -105,6 +112,9 @@ export type VisualPillOperation =
       usesRemaining: string;
       durationKind: '' | 'until_removed' | 'time';
       expiresAt: string;
+      boostPercent: string;
+      breakthroughChanceBonus: string;
+      failureExpLossReductionPercent: string;
     }
   | {
       type: 'advance_track';
@@ -142,6 +152,7 @@ export interface ItemLibraryDraft {
   consumableScore: string;
   pillFamily: PillFamily;
   pillQuotaCategory: PillQuotaCategory;
+  pillAppearance: '' | PillAppearanceGrade;
   pillStability: string;
   pillToxicity: string;
   pillSourceMaterials: string;
@@ -191,6 +202,24 @@ function parseOptionalPositiveInt(value: string, label: string): number | undefi
   return parsed;
 }
 
+function percentTextToRate(value: string, label: string): number {
+  return parsePositiveNumber(value, label) / 100;
+}
+
+function rateToPercentText(value: unknown, fallback: string): string {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? String(Number((value * 100).toFixed(4)))
+    : fallback;
+}
+
+function getPayloadNumber(
+  payload: Record<string, number | string | boolean> | undefined,
+  key: string,
+): number | undefined {
+  const value = payload?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 function splitSourceMaterials(value: string): string[] {
   return value
     .split(/[,\n，、]/)
@@ -214,9 +243,15 @@ function buildDefaultPillOperation(family: PillFamily): VisualPillOperation {
       };
     case 'cultivation':
       return {
-        type: 'gain_progress',
-        target: 'cultivation_exp',
-        value: '50',
+        type: 'add_status',
+        status: CULTIVATION_BOOST_STATUS_KEY,
+        stacks: '',
+        usesRemaining: '1',
+        durationKind: 'until_removed',
+        expiresAt: '',
+        boostPercent: '10',
+        breakthroughChanceBonus: '2',
+        failureExpLossReductionPercent: '20',
       };
     case 'insight':
       return {
@@ -232,6 +267,9 @@ function buildDefaultPillOperation(family: PillFamily): VisualPillOperation {
         usesRemaining: '1',
         durationKind: '',
         expiresAt: '',
+        boostPercent: '10',
+        breakthroughChanceBonus: '2',
+        failureExpLossReductionPercent: '20',
       };
     case 'tempering':
       return {
@@ -284,6 +322,9 @@ export function createDefaultPillOperation(
         usesRemaining: '1',
         durationKind: '',
         expiresAt: '',
+        boostPercent: '10',
+        breakthroughChanceBonus: '2',
+        failureExpLossReductionPercent: '20',
       };
     case 'advance_track':
       return { type, track: 'tempering.vitality', value: '10' };
@@ -311,6 +352,7 @@ export function createEmptyDraft(): ItemLibraryDraft {
     consumableScore: '80',
     pillFamily: 'healing',
     pillQuotaCategory: 'none',
+    pillAppearance: 'middle',
     pillStability: '80',
     pillToxicity: '5',
     pillSourceMaterials: '',
@@ -350,7 +392,13 @@ function visualOperationFromConditionOperation(
         status: operation.status,
         removeAll: Boolean(operation.removeAll),
       };
-    case 'add_status':
+    case 'add_status': {
+      const boostPercent =
+        getPayloadNumber(operation.payload, 'boostPercent') ??
+        (typeof getPayloadNumber(operation.payload, 'retreatExpMultiplier') ===
+        'number'
+          ? getPayloadNumber(operation.payload, 'retreatExpMultiplier')! - 1
+          : undefined);
       return {
         type: 'add_status',
         status: operation.status,
@@ -363,7 +411,17 @@ function visualOperationFromConditionOperation(
             : '',
         expiresAt:
           operation.duration?.kind === 'time' ? operation.duration.expiresAt : '',
+        boostPercent: rateToPercentText(boostPercent, '10'),
+        breakthroughChanceBonus: rateToPercentText(
+          getPayloadNumber(operation.payload, 'breakthroughChanceBonus'),
+          '2',
+        ),
+        failureExpLossReductionPercent: rateToPercentText(
+          getPayloadNumber(operation.payload, 'failureExpLossReductionPercent'),
+          '20',
+        ),
       };
+    }
     case 'advance_track':
       return {
         type: 'advance_track',
@@ -404,6 +462,7 @@ export function entryToDraft(entry: ItemLibraryEntry): ItemLibraryDraft {
     if (entry.payload.spec.kind === 'pill') {
       draft.pillFamily = entry.payload.spec.family;
       draft.pillQuotaCategory = entry.payload.spec.consumeRules.quotaCategory;
+      draft.pillAppearance = entry.payload.spec.alchemyMeta.appearance ?? '';
       draft.pillStability = String(entry.payload.spec.alchemyMeta.stability);
       draft.pillToxicity = String(entry.payload.spec.alchemyMeta.toxicityRating);
       draft.consumableElement =
@@ -481,12 +540,43 @@ function conditionOperationFromVisualOperation(
         operation.usesRemaining,
         `${label}的可用次数`,
       );
+      const status = operation.status.trim() as ConditionStatusKey;
+      const payload =
+        status === CULTIVATION_BOOST_STATUS_KEY
+          ? (() => {
+              const boostPercent = percentTextToRate(
+                operation.boostPercent,
+                `${label}的下次闭关修为提升百分比`,
+              );
+              return {
+                boostPercent,
+                retreatExpMultiplier: 1 + boostPercent,
+              };
+            })()
+          : status === BREAKTHROUGH_FOCUS_STATUS_KEY
+            ? {
+                breakthroughChanceBonus: percentTextToRate(
+                  operation.breakthroughChanceBonus,
+                  `${label}的破境成功率提升百分比`,
+                ),
+              }
+            : status === PROTECT_MERIDIANS_STATUS_KEY
+              ? {
+                  failureExpLossReductionPercent: percentTextToRate(
+                    operation.failureExpLossReductionPercent,
+                    `${label}的失败修为损失降低百分比`,
+                  ),
+                }
+              : status === CLEAR_MIND_STATUS_KEY
+                ? { preventsInnerDemon: true }
+                : undefined;
 
       return {
         type: 'add_status',
-        status: operation.status.trim() as ConditionStatusKey,
+        status,
         ...(stacks ? { stacks } : {}),
         ...(usesRemaining ? { usesRemaining } : {}),
+        ...(payload ? { payload } : {}),
         ...(operation.durationKind === 'until_removed'
           ? { duration: { kind: 'until_removed' as const } }
           : {}),
@@ -621,6 +711,9 @@ export function buildItemLibrarySubmitBody(
               : {}),
             stability,
             toxicityRating,
+            ...(draft.pillAppearance
+              ? { appearance: draft.pillAppearance }
+              : {}),
             tags: [
               draft.pillFamily,
               ...(draft.consumableElement ? [draft.consumableElement] : []),

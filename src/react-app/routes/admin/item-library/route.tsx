@@ -5,6 +5,7 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { DEFAULT_AFFIX_REGISTRY } from '@shared/engine/creation-v2/affixes';
 import { getAllConditionStatusTemplates } from '@shared/lib/conditionStatusRegistry';
+import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
 import {
   ELEMENT_VALUES,
   EQUIPMENT_SLOT_VALUES,
@@ -15,10 +16,17 @@ import {
 } from '@shared/types/constants';
 import { getEquipmentSlotLabel, getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import {
+  PILL_APPEARANCE_GRADE_VALUES,
   PILL_FAMILY_VALUES,
   PILL_QUOTA_CATEGORY_VALUES,
   TALISMAN_SESSION_MODE_VALUES,
 } from '@shared/types/consumable';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
+import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
 import type {
   CreateItemLibraryEntry,
   ItemLibraryEntry,
@@ -64,6 +72,15 @@ const conditionStatusOptions = getAllConditionStatusTemplates().map((status) => 
   key: status.key,
   name: status.name,
 }));
+
+function isDedicatedPillStatus(status: string) {
+  return (
+    status === CULTIVATION_BOOST_STATUS_KEY ||
+    status === BREAKTHROUGH_FOCUS_STATUS_KEY ||
+    status === PROTECT_MERIDIANS_STATUS_KEY ||
+    status === CLEAR_MIND_STATUS_KEY
+  );
+}
 
 function getEntryMeta(entry: ItemLibraryEntry) {
   const parts = [ITEM_LIBRARY_TYPE_LABELS[entry.type]];
@@ -581,7 +598,7 @@ export default function ItemLibraryAdminPage() {
 
               {draft.consumableKind === 'pill' ? (
                 <div className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-4">
+                  <div className="grid gap-3 md:grid-cols-5">
                     <InkSelect
                       label="丹药用途"
                       value={draft.pillFamily}
@@ -613,6 +630,23 @@ export default function ItemLibraryAdminPage() {
                       {PILL_QUOTA_CATEGORY_VALUES.map((value) => (
                         <option key={value} value={value}>
                           {PILL_QUOTA_LABELS[value]}
+                        </option>
+                      ))}
+                    </InkSelect>
+                    <InkSelect
+                      label="品相"
+                      value={draft.pillAppearance}
+                      onChange={(value) =>
+                        setDraftField(
+                          'pillAppearance',
+                          value as ItemLibraryDraft['pillAppearance'],
+                        )
+                      }
+                    >
+                      <option value="">旧制/未设置</option>
+                      {PILL_APPEARANCE_GRADE_VALUES.map((value) => (
+                        <option key={value} value={value}>
+                          {getPillAppearanceLabel(value)}
                         </option>
                       ))}
                     </InkSelect>
@@ -756,7 +790,9 @@ export default function ItemLibraryAdminPage() {
                                 })
                               }
                             >
-                              <option value="cultivation_exp">修为</option>
+                              <option value="cultivation_exp">
+                                修为（历史丹药）
+                              </option>
                               <option value="comprehension_insight">悟性</option>
                             </InkSelect>
                             <InkInput
@@ -769,6 +805,11 @@ export default function ItemLibraryAdminPage() {
                                 })
                               }
                               type="number"
+                              hint={
+                                operation.target === 'cultivation_exp'
+                                  ? '仅用于历史丹药，不建议新建修为丹使用。'
+                                  : undefined
+                              }
                             />
                           </div>
                         ) : null}
@@ -820,20 +861,60 @@ export default function ItemLibraryAdminPage() {
                                 </option>
                               ))}
                             </InkSelect>
+
+                            {operation.status === CULTIVATION_BOOST_STATUS_KEY ? (
+                              <InkInput
+                                label="下次闭关修为提升百分比"
+                                value={operation.boostPercent}
+                                onChange={(value) =>
+                                  updatePillOperation(index, {
+                                    ...operation,
+                                    boostPercent: value,
+                                  })
+                                }
+                                type="number"
+                                hint="填写 20 表示下次闭关修为提升 20%。"
+                              />
+                            ) : null}
+
+                            {operation.status ===
+                            BREAKTHROUGH_FOCUS_STATUS_KEY ? (
+                              <InkInput
+                                label="破境成功率提升百分比"
+                                value={operation.breakthroughChanceBonus}
+                                onChange={(value) =>
+                                  updatePillOperation(index, {
+                                    ...operation,
+                                    breakthroughChanceBonus: value,
+                                  })
+                                }
+                                type="number"
+                                hint="填写 6 表示破境成功率 +6%。"
+                              />
+                            ) : null}
+
+                            {operation.status ===
+                            PROTECT_MERIDIANS_STATUS_KEY ? (
+                              <InkInput
+                                label="失败修为损失降低百分比"
+                                value={operation.failureExpLossReductionPercent}
+                                onChange={(value) =>
+                                  updatePillOperation(index, {
+                                    ...operation,
+                                    failureExpLossReductionPercent: value,
+                                  })
+                                }
+                                type="number"
+                                hint="填写 40 表示失败修为损失降低 40%。"
+                              />
+                            ) : null}
+
                             <InkInput
-                              label="状态层数"
-                              value={operation.stacks}
-                              onChange={(value) =>
-                                updatePillOperation(index, {
-                                  ...operation,
-                                  stacks: value,
-                                })
+                              label={
+                                operation.status === CLEAR_MIND_STATUS_KEY
+                                  ? '可用突破次数'
+                                  : '可用次数'
                               }
-                              type="number"
-                              placeholder="可选"
-                            />
-                            <InkInput
-                              label="可用次数"
                               value={operation.usesRemaining}
                               onChange={(value) =>
                                 updatePillOperation(index, {
@@ -844,33 +925,52 @@ export default function ItemLibraryAdminPage() {
                               type="number"
                               placeholder="可选"
                             />
-                            <InkSelect
-                              label="持续方式"
-                              value={operation.durationKind}
-                              onChange={(value) =>
-                                updatePillOperation(index, {
-                                  ...operation,
-                                  durationKind:
-                                    value as typeof operation.durationKind,
-                                })
-                              }
-                            >
-                              <option value="">默认</option>
-                              <option value="until_removed">直到被移除</option>
-                              <option value="time">指定结束时间</option>
-                            </InkSelect>
-                            {operation.durationKind === 'time' ? (
-                              <InkInput
-                                label="结束时间"
-                                value={operation.expiresAt}
-                                onChange={(value) =>
-                                  updatePillOperation(index, {
-                                    ...operation,
-                                    expiresAt: value,
-                                  })
-                                }
-                                placeholder="ISO 时间"
-                              />
+
+                            {!isDedicatedPillStatus(operation.status) ? (
+                              <>
+                                <InkInput
+                                  label="状态层数"
+                                  value={operation.stacks}
+                                  onChange={(value) =>
+                                    updatePillOperation(index, {
+                                      ...operation,
+                                      stacks: value,
+                                    })
+                                  }
+                                  type="number"
+                                  placeholder="可选"
+                                />
+                                <InkSelect
+                                  label="持续方式"
+                                  value={operation.durationKind}
+                                  onChange={(value) =>
+                                    updatePillOperation(index, {
+                                      ...operation,
+                                      durationKind:
+                                        value as typeof operation.durationKind,
+                                    })
+                                  }
+                                >
+                                  <option value="">默认</option>
+                                  <option value="until_removed">
+                                    直到被移除
+                                  </option>
+                                  <option value="time">指定结束时间</option>
+                                </InkSelect>
+                                {operation.durationKind === 'time' ? (
+                                  <InkInput
+                                    label="结束时间"
+                                    value={operation.expiresAt}
+                                    onChange={(value) =>
+                                      updatePillOperation(index, {
+                                        ...operation,
+                                        expiresAt: value,
+                                      })
+                                    }
+                                    placeholder="ISO 时间"
+                                  />
+                                ) : null}
+                              </>
                             ) : null}
                           </div>
                         ) : null}

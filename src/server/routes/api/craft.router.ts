@@ -59,6 +59,7 @@ import { z } from 'zod';
 const SUPPORTED_CRAFT_TYPES = [...CREATION_CRAFT_TYPES, 'alchemy'] as const;
 const { minQuantityPerMaterial, maxQuantityPerMaterial } =
   CREATION_INPUT_CONSTRAINTS;
+const WORLD_CHAT_BROADCAST_QUALITY_FLOOR: Quality = '天品';
 
 const CraftSchema = z.object({
   materialIds: z.array(z.string()).optional(),
@@ -223,7 +224,8 @@ function isBroadcastQuality(quality: string | null): quality is Quality {
   return (
     typeof quality === 'string' &&
     quality in QUALITY_ORDER &&
-    QUALITY_ORDER[quality as Quality] >= QUALITY_ORDER['真品']
+    QUALITY_ORDER[quality as Quality] >=
+      QUALITY_ORDER[WORLD_CHAT_BROADCAST_QUALITY_FLOOR]
   );
 }
 

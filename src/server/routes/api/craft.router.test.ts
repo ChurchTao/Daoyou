@@ -268,7 +268,7 @@ describe('craft router alchemy routes', () => {
         id: 'pill-1',
         name: '青木疗伤丹',
         type: '丹药',
-        quality: '真品',
+        quality: '天品',
         quantity: 1,
         description: '药性平稳，可缓解伤势。',
         prompt: '疗伤为主',
@@ -412,11 +412,11 @@ describe('craft router alchemy routes', () => {
         payload: expect.objectContaining({
           itemType: 'consumable',
           itemId: 'pill-1',
-          text: '由林玄炼成，丹品已入真品，药香化霞，足令诸修侧目。',
+          text: '由林玄炼成，丹品已入天品，药香化霞，足令诸修侧目。',
           snapshot: expect.objectContaining({
             id: 'pill-1',
             name: '青木疗伤丹',
-            quality: '真品',
+            quality: '天品',
             quantity: 1,
           }),
         }),
@@ -424,13 +424,13 @@ describe('craft router alchemy routes', () => {
     );
   });
 
-  it('does not broadcast low-tier alchemy results', async () => {
+  it('does not broadcast alchemy results below heaven quality', async () => {
     processAlchemyCraftMock.mockResolvedValueOnce({
       consumable: {
         id: 'pill-low',
         name: '青木疗伤丹',
         type: '丹药',
-        quality: '玄品',
+        quality: '真品',
         quantity: 1,
         description: '药性平稳，可缓解伤势。',
         spec: {
@@ -698,13 +698,13 @@ describe('craft router creation broadcasts', () => {
       name: '玄雷剑胚',
       description: '雷光隐现。',
       element: '雷',
-      quality: '真品',
+      quality: '天品',
       slot: 'weapon',
       score: 1200,
       productModel: {
         productType: 'artifact',
         name: '玄雷剑胚',
-        projectionQuality: '真品',
+        projectionQuality: '天品',
       },
       affixes: [],
       ...overrides,
@@ -732,7 +732,7 @@ describe('craft router creation broadcasts', () => {
         success: true,
         data: expect.objectContaining({
           id: 'product-1',
-          quality: '真品',
+          quality: '天品',
         }),
       }),
     );
@@ -745,25 +745,25 @@ describe('craft router creation broadcasts', () => {
         payload: expect.objectContaining({
           itemType: 'artifact',
           itemId: 'product-1',
-          text: '由林玄炼成，品阶已入真品，灵韵自生，足令诸修侧目。',
+          text: '由林玄炼成，品阶已入天品，灵韵自生，足令诸修侧目。',
           snapshot: expect.objectContaining({
             id: 'product-1',
             name: '玄雷剑胚',
-            quality: '真品',
+            quality: '天品',
           }),
         }),
       }),
     );
   });
 
-  it('does not broadcast creation below true quality', async () => {
+  it('does not broadcast creation below heaven quality', async () => {
     processCreationMock.mockResolvedValueOnce(
       creationResult({
-        quality: '玄品',
+        quality: '地品',
         productModel: {
           productType: 'artifact',
           name: '玄雷剑胚',
-          projectionQuality: '玄品',
+          projectionQuality: '地品',
         },
       }),
     );
@@ -839,7 +839,7 @@ describe('craft router creation broadcasts', () => {
           itemId: 'skill-1',
           snapshot: expect.objectContaining({
             productType: 'skill',
-            quality: '真品',
+            quality: '天品',
           }),
         }),
       }),

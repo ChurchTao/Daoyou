@@ -2,8 +2,15 @@ import {
   buildItemLibrarySubmitBody,
   createEmptyDraft,
   entryToDraft,
+  resetPillOperationsForFamily,
 } from './itemLibraryEditor.helpers';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
+import { CULTIVATION_BOOST_STATUS_KEY } from '@shared/lib/cultivationBoost';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@shared/lib/pillEffectScaling';
 
 describe('item library editor helpers', () => {
   it('builds material payloads from visual draft fields', () => {
@@ -91,7 +98,140 @@ describe('item library editor helpers', () => {
             sourceMaterials: ['青木芝', '灵露'],
             stability: 72,
             toxicityRating: 8,
+            appearance: 'middle',
           },
+        },
+      },
+    });
+  });
+
+  it('builds new cultivation pills as retreat boost status by default', () => {
+    const draft = resetPillOperationsForFamily(
+      {
+        ...createEmptyDraft(),
+        itemId: 'cultivation_boost_pill',
+        type: 'consumable',
+        name: '养元丹',
+        consumableKind: 'pill',
+        pillQuotaCategory: 'cultivation',
+      },
+      'cultivation',
+    );
+
+    expect(buildItemLibrarySubmitBody(draft)).toMatchObject({
+      type: 'consumable',
+      payload: {
+        spec: {
+          family: 'cultivation',
+          operations: [
+            {
+              type: 'add_status',
+              status: CULTIVATION_BOOST_STATUS_KEY,
+              usesRemaining: 1,
+              duration: { kind: 'until_removed' },
+              payload: {
+                boostPercent: 0.1,
+                retreatExpMultiplier: 1.1,
+              },
+            },
+          ],
+          alchemyMeta: {
+            appearance: 'middle',
+          },
+        },
+      },
+    });
+  });
+
+  it('round-trips dedicated pill status payload fields', () => {
+    const entry: ItemLibraryEntry = {
+      id: '11111111-1111-4111-8111-111111111111',
+      itemId: 'breakthrough_pill',
+      type: 'consumable',
+      status: 'published',
+      name: '破境丹组',
+      description: '',
+      payload: {
+        name: '破境丹组',
+        type: '丹药',
+        quality: '天品',
+        spec: {
+          kind: 'pill',
+          family: 'breakthrough',
+          operations: [
+            {
+              type: 'add_status',
+              status: BREAKTHROUGH_FOCUS_STATUS_KEY,
+              usesRemaining: 1,
+              payload: { breakthroughChanceBonus: 0.08 },
+            },
+            {
+              type: 'add_status',
+              status: PROTECT_MERIDIANS_STATUS_KEY,
+              usesRemaining: 1,
+              payload: { failureExpLossReductionPercent: 0.45 },
+            },
+            {
+              type: 'add_status',
+              status: CLEAR_MIND_STATUS_KEY,
+              usesRemaining: 2,
+            },
+          ],
+          consumeRules: {
+            scene: 'out_of_battle_only',
+            quotaCategory: 'none',
+          },
+          alchemyMeta: {
+            source: 'improvised',
+            sourceMaterials: [],
+            stability: 80,
+            toxicityRating: 5,
+            appearance: 'high',
+            tags: ['breakthrough'],
+          },
+        },
+      },
+      editorConfig: {},
+      createdBy: '11111111-1111-4111-8111-111111111111',
+      updatedBy: '11111111-1111-4111-8111-111111111111',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    };
+
+    const draft = entryToDraft(entry);
+    expect(draft).toMatchObject({
+      pillAppearance: 'high',
+      pillOperations: [
+        {
+          status: BREAKTHROUGH_FOCUS_STATUS_KEY,
+          breakthroughChanceBonus: '8',
+        },
+        {
+          status: PROTECT_MERIDIANS_STATUS_KEY,
+          failureExpLossReductionPercent: '45',
+        },
+        {
+          status: CLEAR_MIND_STATUS_KEY,
+          usesRemaining: '2',
+        },
+      ],
+    });
+
+    expect(buildItemLibrarySubmitBody(draft)).toMatchObject({
+      payload: {
+        spec: {
+          operations: [
+            {
+              payload: { breakthroughChanceBonus: 0.08 },
+            },
+            {
+              payload: { failureExpLossReductionPercent: 0.45 },
+            },
+            {
+              usesRemaining: 2,
+              payload: { preventsInnerDemon: true },
+            },
+          ],
         },
       },
     });
@@ -177,6 +317,7 @@ describe('item library editor helpers', () => {
       consumableKind: 'pill',
       pillFamily: 'cultivation',
       pillQuotaCategory: 'cultivation',
+      pillAppearance: '',
       consumableElement: '金',
       pillSourceMaterials: '金霞芝',
       pillOperations: [
@@ -186,6 +327,23 @@ describe('item library editor helpers', () => {
           value: '48',
         },
       ],
+    });
+
+    expect(buildItemLibrarySubmitBody(entryToDraft(entry))).toMatchObject({
+      payload: {
+        spec: {
+          operations: [
+            {
+              type: 'gain_progress',
+              target: 'cultivation_exp',
+              value: 48,
+            },
+          ],
+          alchemyMeta: expect.not.objectContaining({
+            appearance: expect.anything(),
+          }),
+        },
+      },
     });
   });
 
