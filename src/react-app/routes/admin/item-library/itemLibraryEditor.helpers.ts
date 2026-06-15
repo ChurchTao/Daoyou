@@ -541,7 +541,7 @@ function conditionOperationFromVisualOperation(
         `${label}的可用次数`,
       );
       const status = operation.status.trim() as ConditionStatusKey;
-      const payload =
+      const payload: Record<string, number | string | boolean> | undefined =
         status === CULTIVATION_BOOST_STATUS_KEY
           ? (() => {
               const boostPercent = percentTextToRate(
