@@ -7,6 +7,10 @@ import {
   evaluateFateContext,
 } from '@shared/lib/fates';
 import { hasActiveConditionStatus } from '@shared/lib/condition';
+import {
+  consumeCultivationBoostStatus,
+  getCultivationBoostRetreatMultiplier,
+} from '@shared/lib/cultivationBoost';
 import type {
   Attributes,
   BreakthroughHistoryEntry,
@@ -135,7 +139,9 @@ export function performCultivation(
   const finalExpGain = Math.max(
     0,
     Math.floor(
-      expResult.exp_gained * fateContext.retreatExpMultiplier,
+      expResult.exp_gained *
+        fateContext.retreatExpMultiplier *
+        getCultivationBoostRetreatMultiplier(cultivator.condition),
     ),
   );
   const finalInsightGain = Math.max(
@@ -157,6 +163,10 @@ export function performCultivation(
       100,
       progress.comprehension_insight + finalInsightGain,
     );
+  }
+
+  if (cultivator.condition) {
+    cultivator.condition = consumeCultivationBoostStatus(cultivator.condition);
   }
 
   // 检查是否进入瓶颈期

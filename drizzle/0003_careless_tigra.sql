@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_cultivators" ADD COLUMN "balance_notes" text;

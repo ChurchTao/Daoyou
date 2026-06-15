@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_alchemy_formulas" ADD COLUMN "description" text DEFAULT '' NOT NULL;

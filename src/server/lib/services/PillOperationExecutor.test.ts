@@ -105,6 +105,50 @@ function createCultivationPill(): Consumable {
   };
 }
 
+function createCultivationBoostPill(
+  boostPercent: number,
+  id = 'pill-cultivation-boost',
+): Consumable {
+  return {
+    id,
+    name: '养元丹',
+    type: '丹药',
+    quality: '玄品',
+    quantity: 1,
+    description: '养元蓄气。',
+    spec: {
+      kind: 'pill',
+      family: 'cultivation',
+      operations: [
+        {
+          type: 'add_status',
+          status: 'cultivation_boost',
+          usesRemaining: 1,
+          payload: {
+            boostPercent,
+            retreatExpMultiplier: 1 + boostPercent,
+          },
+        },
+      ],
+      consumeRules: {
+        scene: 'out_of_battle_only',
+        quotaCategory: 'cultivation',
+      },
+      alchemyMeta: {
+        source: 'improvised',
+        sourceMaterials: ['金霞芝'],
+        analysisVersion: 2,
+        propertyVector: [{ key: 'cultivation', weight: 1 }],
+        sourceMaterialVectors: [],
+        dominantElement: '金',
+        stability: 72,
+        toxicityRating: 9,
+        tags: ['cultivation'],
+      },
+    },
+  };
+}
+
 function createInsightPill(): Consumable {
   return {
     id: 'pill-insight',
@@ -272,7 +316,7 @@ describe('PillOperationExecutor', () => {
     expect(result.cultivator.condition?.resources.hp.current).toBeLessThan(maxHp);
   });
 
-  it('applies cultivation pills to cultivation progress and independent quota counters', () => {
+  it('keeps historical direct cultivation pills working and tracks independent quota counters', () => {
     const cultivator = createCultivator();
     cultivator.cultivation_progress = {
       cultivation_exp: 12,
@@ -297,6 +341,60 @@ describe('PillOperationExecutor', () => {
     expect(
       result.cultivator.condition?.counters.longTermPillUsesByRealm.筑基 ?? 0,
     ).toBe(0);
+  });
+
+  it('adds cultivation boost status for new cultivation pills', () => {
+    const cultivator = createCultivator();
+
+    const result = PillOperationExecutor.execute(
+      cultivator,
+      createCultivationBoostPill(0.18),
+      new Date('2026-05-25T12:00:00.000Z'),
+    );
+
+    expect(result.cultivator.condition?.statuses).toContainEqual(
+      expect.objectContaining({
+        key: 'cultivation_boost',
+        source: 'pill',
+        usesRemaining: 1,
+        payload: {
+          boostPercent: 0.18,
+          retreatExpMultiplier: 1.18,
+        },
+      }),
+    );
+    expect(
+      result.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基,
+    ).toBe(1);
+  });
+
+  it('keeps the strongest cultivation boost when weaker pills are consumed later', () => {
+    const cultivator = createCultivator();
+    const now = new Date('2026-05-25T12:00:00.000Z');
+    const strong = PillOperationExecutor.execute(
+      cultivator,
+      createCultivationBoostPill(0.32, 'strong-pill'),
+      now,
+    );
+
+    const weak = PillOperationExecutor.execute(
+      strong.cultivator,
+      createCultivationBoostPill(0.14, 'weak-pill'),
+      now,
+    );
+
+    const boosts =
+      weak.cultivator.condition?.statuses.filter(
+        (status) => status.key === 'cultivation_boost',
+      ) ?? [];
+    expect(boosts).toHaveLength(1);
+    expect(boosts[0]?.payload).toEqual({
+      boostPercent: 0.32,
+      retreatExpMultiplier: 1.32,
+    });
+    expect(
+      weak.cultivator.condition?.counters.cultivationPillUsesByRealm.筑基,
+    ).toBe(2);
   });
 
   it('rejects cultivation pills above the current realm quality tolerance without mutating state', () => {

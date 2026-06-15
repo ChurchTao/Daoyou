@@ -1,2 +1,0 @@
-ALTER TABLE "wanjiedaoyou_artifacts" ADD COLUMN "passive_traits" jsonb DEFAULT '[]'::jsonb;--> statement-breakpoint
-ALTER TABLE "wanjiedaoyou_cultivation_techniques" ADD COLUMN "passive_traits" jsonb DEFAULT '[]'::jsonb;

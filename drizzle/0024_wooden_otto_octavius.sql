@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_cultivation_techniques" ADD COLUMN "description" text;

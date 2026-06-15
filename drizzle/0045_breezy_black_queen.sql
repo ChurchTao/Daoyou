@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_redeem_codes" ADD COLUMN "reward_attachments" jsonb;

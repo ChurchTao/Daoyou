@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_creation_products" DROP COLUMN "ability_config";

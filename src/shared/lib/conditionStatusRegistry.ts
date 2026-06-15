@@ -205,6 +205,18 @@ registry.register({
   hooks: {},
 });
 
+registry.register({
+  key: 'cultivation_boost',
+  name: getGameConceptInfo('status_cultivation_boost').label,
+  description: getGameConceptInfo('status_cultivation_boost').description ?? '',
+  effectDetails: ['下一次闭关修炼获得的修为按药力百分比提升。'],
+  display: {
+    icon: getGameConceptInfo('status_cultivation_boost').icon,
+    shortDesc: '下一次闭关修为提升',
+  },
+  hooks: {},
+});
+
 export function getConditionStatusTemplate(key: ConditionStatusKey) {
   return registry.get(key);
 }

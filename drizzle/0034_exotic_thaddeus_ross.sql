@@ -1,1 +1,0 @@
-DROP TABLE "wanjiedaoyou_dungeon_runs" CASCADE;

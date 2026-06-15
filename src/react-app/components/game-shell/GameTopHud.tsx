@@ -33,9 +33,9 @@ function HudMeter({
       ? 'bg-crimson'
       : tone === 'mp'
         ? 'bg-[var(--color-tier-xuan)]'
-      : tone === 'progress'
-        ? 'bg-ink'
-        : 'bg-wood';
+        : tone === 'progress'
+          ? 'bg-ink'
+          : 'bg-wood';
 
   const className = cn(
     'min-w-0 space-y-1',
@@ -80,6 +80,10 @@ function formatSpiritStones(value: number): string {
     return `${Math.floor(value / 10000)}万`;
   }
   return String(value);
+}
+
+function formatHudNumber(value: number): string {
+  return new Intl.NumberFormat('zh-CN').format(value);
 }
 
 function formatQiDateTime(value: string | null): string {
@@ -214,9 +218,6 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     : qiLoading
       ? '汇聚中'
       : '--';
-  const cultivationMetric = snapshot.metrics.find(
-    (metric) => metric.key === 'cultivation',
-  );
   const insightMetric = snapshot.metrics.find(
     (metric) => metric.key === 'insight',
   );
@@ -281,37 +282,73 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
 
   const openCultivationInfo = () => {
     const cultivationLabel = getGameConceptInfo('cultivation_exp').label;
+    const progress = snapshot.cultivationProgress;
+    const nextThreshold = Math.ceil(
+      (progress.cap * BREAKTHROUGH_MIN_PROGRESS) / 100,
+    );
+    const normalThreshold = Math.ceil(
+      (progress.cap * NORMAL_BREAKTHROUGH_THRESHOLD) / 100,
+    );
+    const bottleneckThreshold = Math.ceil(
+      (progress.cap * BOTTLENECK_THRESHOLD) / 100,
+    );
     openDialog({
       title: cultivationLabel,
       content: (
         <div className="space-y-3 text-sm leading-7">
           <p>
             {cultivationLabel}
-            是当前境界内的积累进度。闭关、秘境、任务与部分丹药都可能带来
+            是当前小阶段内的积累。闭关、秘境、任务与部分丹药都可能带来
             {cultivationLabel}
-            增长，达到门槛后可在静室考虑冲关。
+            增长；突破成功后会进入下一阶段或大境界，当前阶段的修为进度会重新计算。
+          </p>
+          <p>
+            进度越接近上限，越适合在静室冲关。未满时也可强行尝试，但失败会折损修为，并可能提高走火入魔风险。
           </p>
           <InfoTable
             rows={[
               {
+                label: '当前修为',
+                value: `${formatHudNumber(progress.current)} / ${formatHudNumber(progress.cap)}`,
+              },
+              {
                 label: '当前进度',
-                value: cultivationMetric?.display ?? '--',
+                value: `${progress.percent}%`,
+              },
+              {
+                label: insightInfo.label,
+                value: `${progress.insight} / 100`,
               },
               {
                 label: '强行突破',
-                value: `${BREAKTHROUGH_MIN_PROGRESS}% 起可尝试`,
+                value: `${formatHudNumber(nextThreshold)} 修为起可尝试（${BREAKTHROUGH_MIN_PROGRESS}%）`,
               },
               {
                 label: '常规突破',
-                value: `${NORMAL_BREAKTHROUGH_THRESHOLD}% 起较稳`,
+                value: `${formatHudNumber(normalThreshold)} 修为起较稳（${NORMAL_BREAKTHROUGH_THRESHOLD}%）`,
               },
               {
                 label: '圆满突破',
-                value: `100% 且${insightInfo.label} ${PERFECT_BREAKTHROUGH_INSIGHT}+`,
+                value: `${formatHudNumber(progress.cap)} 修为且${insightInfo.label} ${PERFECT_BREAKTHROUGH_INSIGHT}+`,
               },
               {
                 label: '瓶颈期',
-                value: `${BOTTLENECK_THRESHOLD}% 后闭关收益会衰减`,
+                value: progress.bottleneckState
+                  ? `已进入，闭关收益衰减（阈值 ${formatHudNumber(bottleneckThreshold)}）`
+                  : `${formatHudNumber(bottleneckThreshold)} 修为后可能进入（${BOTTLENECK_THRESHOLD}%）`,
+              },
+              {
+                label: '冲关失败',
+                value:
+                  progress.breakthroughFailures > 0
+                    ? `连续 ${progress.breakthroughFailures} 次`
+                    : '暂无连续失败',
+              },
+              {
+                label: '走火风险',
+                value: progress.innerDemon
+                  ? `心魔缠身，风险 ${progress.deviationRisk}%`
+                  : `${progress.deviationRisk}%`,
               },
             ]}
           />
@@ -417,7 +454,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                     {QI_ACTION_COSTS.creation_artifact}
                   </td>
                 </tr>
-                  <tr>
+                <tr>
                   <td className="px-3 py-1.5">创造功法/神通</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
                     {QI_ACTION_COSTS.creation_gongfa}

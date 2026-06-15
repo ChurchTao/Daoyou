@@ -10,6 +10,10 @@ import {
 } from '@shared/lib/pillUsageText';
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostDisplayText,
+} from '@shared/lib/cultivationBoost';
 import type {
   ConditionStatusKey,
   CultivatorCondition,
@@ -201,6 +205,11 @@ export function describePillOperation(operation: ConditionOperation): string {
     case 'remove_status':
       return `化解「${getStatusName(operation.status)}」`;
     case 'add_status':
+      if (operation.status === CULTIVATION_BOOST_STATUS_KEY) {
+        return `${getCultivationBoostDisplayText(operation)}（可用 ${
+          operation.usesRemaining ?? 1
+        } 次）`;
+      }
       return `获得「${getStatusName(operation.status)}」${
         typeof operation.usesRemaining === 'number'
           ? `（可用 ${operation.usesRemaining} 次）`
@@ -255,8 +264,31 @@ function buildPrimaryEffect(spec: PillSpec): string {
       );
       return detox ? getGaugeChangeText(detox.delta) : '调理丹毒';
     }
-    case 'cultivation':
     case 'insight': {
+      const gain = spec.operations.find(
+        (
+          operation,
+        ): operation is Extract<
+          ConditionOperation,
+          { type: 'gain_progress' }
+        > => operation.type === 'gain_progress',
+      );
+      return gain
+        ? `${getProgressTargetLabel(gain.target)} +${gain.value}`
+        : `${getPillFamilyLabel(spec.family)}药效`;
+    }
+    case 'cultivation': {
+      const cultivationBoost = spec.operations.find(
+        (
+          operation,
+        ): operation is Extract<ConditionOperation, { type: 'add_status' }> =>
+          operation.type === 'add_status' &&
+          operation.status === CULTIVATION_BOOST_STATUS_KEY,
+      );
+      if (cultivationBoost) {
+        return getCultivationBoostDisplayText(cultivationBoost);
+      }
+
       const gain = spec.operations.find(
         (
           operation,

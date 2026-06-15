@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_dungeon_histories" ADD COLUMN "real_gains" jsonb;

@@ -1,5 +1,9 @@
 import { InkCard } from '@app/components/ui/InkCard';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostDisplayText,
+} from '@shared/lib/cultivationBoost';
 import type { ConditionStatusInstance } from '@shared/types/condition';
 
 interface StatusCardProps {
@@ -24,7 +28,12 @@ export function StatusCard({
     return {
       key: `${buff.key}:${index}`,
       name: config?.name || buff.key,
-      description: config?.description || '未知状态',
+      description:
+        buff.key === CULTIVATION_BOOST_STATUS_KEY
+          ? `${getCultivationBoostDisplayText(buff)}，剩余 ${
+              buff.usesRemaining ?? 1
+            } 次闭关`
+          : config?.description || '未知状态',
       stacks: buff.stacks,
       icon: config?.display.icon || '💫',
     };

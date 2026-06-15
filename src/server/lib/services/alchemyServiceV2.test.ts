@@ -381,6 +381,129 @@ describe('synthesizeAlchemy', () => {
     ).toBe(false);
   });
 
+  it('turns cultivation routes into one-use retreat cultivation boost pills', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '金霞芝',
+          description: '芝气温养，可积蓄修为。',
+          element: '金',
+          type: 'herb',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '金霞芝',
+            properties: [{ key: 'cultivation', weight: 1 }],
+          },
+        ],
+        intentVector: [{ key: 'cultivation', weight: 1 }],
+        focusMode: 'focused',
+      },
+      '真品',
+      '筑基',
+    );
+
+    expect(result.family).toBe('cultivation');
+    expect(result.operations).toContainEqual({
+      type: 'add_status',
+      status: 'cultivation_boost',
+      usesRemaining: 1,
+      payload: {
+        boostPercent: 0.22,
+        retreatExpMultiplier: 1.22,
+      },
+    });
+    expect(
+      result.operations.some(
+        (operation) =>
+          operation.type === 'gain_progress' &&
+          operation.target === 'cultivation_exp',
+      ),
+    ).toBe(false);
+  });
+
+  it('scales cultivation boost by property order and low stability while clamping the final range', () => {
+    const result = synthesizeAlchemy(
+      [
+        createMaterial({
+          id: 'm1',
+          materialRef: 'material_1',
+          name: '妖丹',
+          description: '药力驳杂，主养气，兼可疗伤回元。',
+          element: '火',
+          type: 'monster',
+          rank: '地品',
+        }),
+        createMaterial({
+          id: 'm2',
+          materialRef: 'material_2',
+          name: '兽骨粉',
+          description: '燥烈难驯，药路偏杂。',
+          element: '土',
+          type: 'monster',
+          rank: '地品',
+        }),
+        createMaterial({
+          id: 'm3',
+          materialRef: 'material_3',
+          name: '血晶砂',
+          description: '性烈，炉中易冲。',
+          element: '火',
+          type: 'monster',
+          rank: '地品',
+        }),
+      ],
+      {
+        materialVectors: [
+          {
+            materialRef: 'material_1',
+            materialName: '妖丹',
+            properties: [{ key: 'restore_hp', weight: 1 }],
+          },
+          {
+            materialRef: 'material_2',
+            materialName: '兽骨粉',
+            properties: [{ key: 'restore_mp', weight: 1 }],
+          },
+          {
+            materialRef: 'material_3',
+            materialName: '血晶砂',
+            properties: [{ key: 'cultivation', weight: 1 }],
+          },
+        ],
+        intentVector: [
+          { key: 'restore_hp', weight: 0.34 },
+          { key: 'restore_mp', weight: 0.33 },
+          { key: 'cultivation', weight: 0.33 },
+        ],
+        focusMode: 'risky',
+      },
+      '地品',
+      '金丹',
+    );
+
+    const boost = result.operations.find(
+      (operation) =>
+        operation.type === 'add_status' &&
+        operation.status === 'cultivation_boost',
+    );
+
+    expect(result.stability).toBeLessThan(45);
+    expect(boost).toMatchObject({
+      type: 'add_status',
+      status: 'cultivation_boost',
+      payload: {
+        boostPercent: 0.1188,
+        retreatExpMultiplier: 1.1188,
+      },
+    });
+  });
+
   it('turns lifespan routes into longevity pills with a fixed rolled lifespan value', () => {
     const result = synthesizeAlchemy(
       [

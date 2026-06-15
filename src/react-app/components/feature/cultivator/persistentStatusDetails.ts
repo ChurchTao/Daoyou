@@ -5,6 +5,10 @@ import {
 } from '@shared/lib/condition';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostDisplayText,
+} from '@shared/lib/cultivationBoost';
 import type {
   ConditionStatusInstance,
   CultivatorCondition,
@@ -24,6 +28,15 @@ export function getStatusEffectDetails(
     );
     return [
       `当前 ${stacks} 层：体魄、灵力、悟性、身法、神识降低 ${penaltyPercent}%。`,
+      ...details,
+    ];
+  }
+
+  if (status.key === CULTIVATION_BOOST_STATUS_KEY) {
+    return [
+      `${getCultivationBoostDisplayText(status)}。`,
+      '该药力只影响闭关修炼获得的修为，不影响闭关感悟。',
+      '完成一次闭关修炼后消耗；尝试突破不会消耗。',
       ...details,
     ];
   }

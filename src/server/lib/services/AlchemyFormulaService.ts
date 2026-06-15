@@ -22,7 +22,11 @@ import {
   calculateHighestMaterialRank,
 } from '@shared/engine/creation-v2/CraftCostCalculator';
 import {
-  buildCultivationGain,
+  buildCultivationBoostOperation,
+  scaleCultivationBoostOperation,
+  CULTIVATION_BOOST_STATUS_KEY,
+} from '@shared/lib/cultivationBoost';
+import {
   buildInsightGain,
   scaleProgressGain,
 } from '@shared/lib/alchemyProgress';
@@ -47,7 +51,6 @@ import {
   type ElementType,
   type MaterialType,
   type Quality,
-  type RealmStage,
   type RealmType,
 } from '@shared/types/constants';
 import type {
@@ -657,11 +660,6 @@ function scaleFormulaOperations(
   operations: ConditionOperation[],
   fitMultiplier: number,
   quality: Quality,
-  cultivationContext: {
-    realm: RealmType;
-    realmStage?: RealmStage;
-    expCap?: number;
-  },
 ): ConditionOperation[] {
   return operations.map((operation) => {
     if (operation.type === 'restore_resource') {
@@ -669,20 +667,15 @@ function scaleFormulaOperations(
     }
 
     if (operation.type === 'gain_progress') {
+      if (operation.target === 'cultivation_exp') {
+        return buildCultivationBoostOperation(quality, fitMultiplier);
+      }
+
       const baseValue =
-        operation.target === 'cultivation_exp'
-          ? buildCultivationGain({
-              ...cultivationContext,
-              quality,
-              fitMultiplier,
-            })
-          : buildInsightGain(quality);
+        buildInsightGain(quality);
       return {
         ...operation,
-        value:
-          operation.target === 'cultivation_exp'
-            ? baseValue
-            : scaleProgressGain(baseValue, fitMultiplier),
+        value: scaleProgressGain(baseValue, fitMultiplier),
       };
     }
 
@@ -710,6 +703,13 @@ function scaleFormulaOperations(
         ...operation,
         value: Math.max(1, Math.floor(operation.value * fitMultiplier)),
       };
+    }
+
+    if (
+      operation.type === 'add_status' &&
+      operation.status === CULTIVATION_BOOST_STATUS_KEY
+    ) {
+      return scaleCultivationBoostOperation(operation, fitMultiplier);
     }
 
     return operation;
@@ -1278,10 +1278,6 @@ export async function craftFromFormula(
       fitBand === 'degraded'
         ? Math.round((FIT_ALIGNED_THRESHOLD - fit) * 30)
         : 0;
-    const cultivationProgress = cultivator.cultivation_progress as
-      | { exp_cap?: number }
-      | null
-      | undefined;
     const spec: PillSpec = {
       kind: 'pill',
       family: formula.family,
@@ -1289,11 +1285,6 @@ export async function craftFromFormula(
         formula.blueprint.operations,
         fitMultiplier,
         highestMaterialRank,
-        {
-          realm: cultivator.realm as RealmType,
-          realmStage: (cultivator.realm_stage ?? '初期') as RealmStage,
-          expCap: cultivationProgress?.exp_cap,
-        },
       ),
       consumeRules: {
         ...formula.blueprint.consumeRules,

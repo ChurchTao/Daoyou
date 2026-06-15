@@ -1,11 +1,17 @@
-import { usePlayerStateView, type PlayerStateView } from '@app/lib/player-state/selectors';
+import {
+  usePlayerStateView,
+  type PlayerStateView,
+} from '@app/lib/player-state/selectors';
 import {
   getPillToxicityStage,
   isConditionStatusActive,
 } from '@shared/lib/condition';
 import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
-import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
+import {
+  getGameConceptLabel,
+  getResourceLabel,
+  getResourceText,
+} from '@shared/lib/gameConceptDisplay';
 import { RealmType } from '@shared/types/constants';
 
 export interface GameHudMetric {
@@ -22,6 +28,18 @@ export interface GameHudStatusTag {
   icon: string;
 }
 
+export interface GameHudCultivationProgress {
+  current: number;
+  cap: number;
+  remaining: number;
+  percent: number;
+  insight: number;
+  bottleneckState: boolean;
+  innerDemon: boolean;
+  deviationRisk: number;
+  breakthroughFailures: number;
+}
+
 export interface GameHudSnapshot {
   cultivatorId: string;
   name: string;
@@ -32,6 +50,7 @@ export interface GameHudSnapshot {
   reputation: number;
   unreadMailCount: number;
   statusText: string;
+  cultivationProgress: GameHudCultivationProgress;
   metrics: GameHudMetric[];
   activeStatuses: GameHudStatusTag[];
 }
@@ -108,6 +127,21 @@ export function buildGameHudSnapshot(input: {
     unreadMailCount,
     statusText: statusLabels.join(' ｜ ') || '安稳',
     activeStatuses,
+    cultivationProgress: {
+      current: cultivationExp,
+      cap: cultivationCap,
+      remaining: Math.max(0, cultivationCap - cultivationExp),
+      percent: cultivationPercent,
+      insight,
+      bottleneckState:
+        cultivator.cultivation_progress?.bottleneck_state ?? false,
+      innerDemon: cultivator.cultivation_progress?.inner_demon ?? false,
+      deviationRisk: Math.round(
+        clamp(cultivator.cultivation_progress?.deviation_risk ?? 0, 0, 100),
+      ),
+      breakthroughFailures:
+        cultivator.cultivation_progress?.breakthrough_failures ?? 0,
+    },
     metrics: [
       {
         key: 'hp',

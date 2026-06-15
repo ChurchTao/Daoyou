@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_bet_battles" ADD COLUMN "taunt" varchar(20);

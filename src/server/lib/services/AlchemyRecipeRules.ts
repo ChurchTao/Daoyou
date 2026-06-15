@@ -10,7 +10,15 @@ import {
   rollLifespanPillGain,
 } from '@shared/config/consumableSystem';
 import {
-  buildCultivationGain,
+  buildCultivationBoostOperation,
+  scaleCultivationBoostOperation,
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostPercent,
+  buildCultivationBoostPayload,
+  normalizeCultivationBoostPercent,
+  type CultivationBoostPayload,
+} from '@shared/lib/cultivationBoost';
+import {
   buildInsightGain,
   scaleProgressGain,
   type CultivationGainSnapshotInput,
@@ -145,6 +153,8 @@ function scalePropertyOperation(
             ? Math.max(1, Math.round(operation.delta * factor))
             : Math.min(-1, Math.round(operation.delta * factor)),
       };
+    case 'add_status':
+      return scaleCultivationBoostOperation(operation, factor);
     default:
       return operation;
   }
@@ -177,6 +187,13 @@ function applyLowStabilityPenalty(
         ...operation,
         value: Math.max(1, Math.floor(operation.value * 0.8)),
       };
+    }
+
+    if (
+      operation.type === 'add_status' &&
+      operation.status === CULTIVATION_BOOST_STATUS_KEY
+    ) {
+      return scaleCultivationBoostOperation(operation, 0.8);
     }
 
     return operation;
@@ -279,11 +296,7 @@ function buildBasePropertyOperation(
         delta: -Math.floor(18 * scalar),
       };
     case 'cultivation':
-      return {
-        type: 'gain_progress',
-        target: 'cultivation_exp',
-        value: buildCultivationGain(cultivationContext),
-      };
+      return buildCultivationBoostOperation(quality);
     case 'insight':
       return {
         type: 'gain_progress',
@@ -336,6 +349,23 @@ function buildBasePropertyOperation(
       };
     }
   }
+}
+
+function mergeCultivationBoostOperation(
+  left: Extract<ConditionOperation, { type: 'add_status' }>,
+  right: Extract<ConditionOperation, { type: 'add_status' }>,
+): Extract<ConditionOperation, { type: 'add_status' }> {
+  const boostPercent = normalizeCultivationBoostPercent(
+    getCultivationBoostPercent(left) + getCultivationBoostPercent(right),
+  );
+  const payload: CultivationBoostPayload =
+    buildCultivationBoostPayload(boostPercent);
+
+  return {
+    ...left,
+    usesRemaining: 1,
+    payload,
+  };
 }
 
 function buildPositiveToxicityDelta(
@@ -431,6 +461,27 @@ function buildPropertyOperationSet(
         delta: positiveToxicityDelta,
       });
     }
+  }
+
+  const cultivationBoostOperations = operations.filter(
+    (
+      operation,
+    ): operation is Extract<ConditionOperation, { type: 'add_status' }> =>
+      operation.type === 'add_status' &&
+      operation.status === CULTIVATION_BOOST_STATUS_KEY,
+  );
+  if (cultivationBoostOperations.length > 1) {
+    const mergedBoost = cultivationBoostOperations.reduce(
+      mergeCultivationBoostOperation,
+    );
+    return [
+      ...operations.filter(
+        (operation) =>
+          operation.type !== 'add_status' ||
+          operation.status !== CULTIVATION_BOOST_STATUS_KEY,
+      ),
+      mergedBoost,
+    ];
   }
 
   return operations;

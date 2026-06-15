@@ -1208,6 +1208,10 @@ describe('cultivator retreat route', () => {
         ...cultivator,
         age: 42,
         closed_door_years_total: 12,
+        condition: {
+          ...cultivator.condition!,
+          statuses: [],
+        },
       },
       summary: {
         exp_gained: 24,
@@ -1253,6 +1257,18 @@ describe('cultivator retreat route', () => {
     });
     expect(streamTextMock).not.toHaveBeenCalled();
     expect(addRetreatRecordMock).toHaveBeenCalled();
+    expect(updateCultivatorMock).toHaveBeenCalledWith(
+      'cultivator-1',
+      expect.objectContaining({
+        age: 42,
+        closed_door_years_total: 12,
+        cultivation_progress: expect.any(Object),
+        condition: expect.objectContaining({
+          statuses: [],
+        }),
+      }),
+      expect.any(Object),
+    );
     expect(consumeLifespanAndHandleDepletionMock).toHaveBeenCalledWith(
       'cultivator-1',
       12,

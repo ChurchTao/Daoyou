@@ -19,6 +19,10 @@ import {
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
 import { QUALITY_ORDER } from '@shared/types/constants';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostPercent,
+} from '@shared/lib/cultivationBoost';
 import { ConditionService } from './ConditionService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 
@@ -254,6 +258,14 @@ function applyAddStatusOperation(
   now: Date,
 ): CultivatorCondition {
   const existing = condition.statuses.find((status) => status.key === operation.status);
+  if (
+    operation.status === CULTIVATION_BOOST_STATUS_KEY &&
+    existing &&
+    getCultivationBoostPercent(existing) >= getCultivationBoostPercent(operation)
+  ) {
+    return condition;
+  }
+
   const nextStatus: ConditionStatusInstance = {
     key: operation.status,
     stacks: Math.max(1, (existing?.stacks ?? 0) + Math.floor(operation.stacks ?? 1)),

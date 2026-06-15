@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_cultivators" ADD COLUMN "persistent_statuses" jsonb DEFAULT '[]'::jsonb;

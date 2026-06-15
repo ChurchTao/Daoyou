@@ -29,7 +29,8 @@ export type ConditionStatusKey =
   | 'near_death'
   | 'breakthrough_focus'
   | 'protect_meridians'
-  | 'clear_mind';
+  | 'clear_mind'
+  | 'cultivation_boost';
 
 export type ConditionStatusSource = 'battle' | 'pill' | 'event' | 'system';
 

@@ -48,6 +48,7 @@ export const STATUS_EFFECT_VALUES = [
   'breakthrough_focus',
   'protect_meridians',
   'clear_mind',
+  'cultivation_boost',
   'artifact_damaged',
   'mana_depleted',
   'hp_deficit',

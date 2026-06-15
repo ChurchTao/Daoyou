@@ -479,6 +479,11 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     icon: '🪷',
     description: '心境澄明，可减少杂念干扰',
   },
+  status_cultivation_boost: {
+    label: '养元',
+    icon: '🌿',
+    description: '药力温养丹田，下一次闭关修为提升',
+  },
   status_artifact_damaged: {
     label: '法宝受损',
     icon: '💔',
@@ -753,6 +758,7 @@ export const STATUS_EFFECT_DISPLAY_MAP: Record<
   breakthrough_focus: getStatusConceptInfo('status_breakthrough_focus'),
   protect_meridians: getStatusConceptInfo('status_protect_meridians'),
   clear_mind: getStatusConceptInfo('status_clear_mind'),
+  cultivation_boost: getStatusConceptInfo('status_cultivation_boost'),
   artifact_damaged: getStatusConceptInfo('status_artifact_damaged'),
   mana_depleted: getStatusConceptInfo('status_mana_depleted'),
   hp_deficit: getStatusConceptInfo('status_hp_deficit'),

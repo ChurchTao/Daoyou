@@ -1128,6 +1128,7 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
             age: result.cultivator.age,
             closed_door_years_total: result.cultivator.closed_door_years_total,
             cultivation_progress: result.cultivator.cultivation_progress,
+            condition: result.cultivator.condition,
           }, tx);
 
           if (!saved) {
@@ -1182,6 +1183,11 @@ router.post('/retreat', requireActiveCultivator(), async (c) => {
               patch: {
                 progress: result.cultivator.cultivation_progress,
               },
+            },
+            {
+              domain: 'condition',
+              eventType: 'condition.retreat.changed',
+              patch: { condition: result.cultivator.condition },
             },
             {
               domain: 'currency',

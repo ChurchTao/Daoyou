@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_cultivators" ADD COLUMN "last_yield_at" timestamp DEFAULT now();

@@ -5,6 +5,10 @@ import { getConditionStatusTemplate } from '@shared/lib/conditionStatusRegistry'
 import { getResourceLabel, getResourceText } from '@shared/lib/gameConceptDisplay';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostDisplayText,
+} from '@shared/lib/cultivationBoost';
 import type {
   ConditionStatusKey,
   ConditionTrackPath,
@@ -71,6 +75,9 @@ function describeOperation(operation: ConditionOperation): string {
     case 'remove_status':
       return `化解「${getStatusName(operation.status)}」`;
     case 'add_status':
+      if (operation.status === CULTIVATION_BOOST_STATUS_KEY) {
+        return getCultivationBoostDisplayText(operation);
+      }
       return `获得「${getStatusName(operation.status)}」`;
     case 'advance_track':
       return `推进${getTrackConfig(operation.track).name} +${operation.value}`;

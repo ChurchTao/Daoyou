@@ -153,7 +153,6 @@ vi.mock('./AlchemyFormulaAnalyzer', () => ({
   },
 }));
 
-import { buildCultivationGain } from '@shared/lib/alchemyProgress';
 import type { PillSpec } from '@shared/types/consumable';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -573,7 +572,7 @@ describe('craftFromFormula narrative copy', () => {
     });
   });
 
-  it('recalculates cultivation gain by the current crafter realm instead of blueprint value', async () => {
+  it('converts legacy cultivation gain blueprints into retreat boost pills', async () => {
     executorState.formulaRows = [
       {
         ...executorState.formulaRows[0],
@@ -649,21 +648,21 @@ describe('craftFromFormula narrative copy', () => {
       (result.consumable.spec as PillSpec).consumeRules.quotaCategory,
     ).toBe('cultivation');
     expect((result.consumable.spec as PillSpec).operations).toContainEqual({
-      type: 'gain_progress',
-      target: 'cultivation_exp',
-      value: buildCultivationGain({
-        realm: '筑基',
-        realmStage: '后期',
-        expCap: 5000,
-        quality: '真品',
-        fitMultiplier: 1.15,
-      }),
+      type: 'add_status',
+      status: 'cultivation_boost',
+      usesRemaining: 1,
+      payload: {
+        boostPercent: 0.253,
+        retreatExpMultiplier: 1.253,
+      },
     });
-    expect((result.consumable.spec as PillSpec).operations).not.toContainEqual({
-      type: 'gain_progress',
-      target: 'cultivation_exp',
-      value: 9999,
-    });
+    expect(
+      (result.consumable.spec as PillSpec).operations.some(
+        (operation) =>
+          operation.type === 'gain_progress' &&
+          operation.target === 'cultivation_exp',
+      ),
+    ).toBe(false);
   });
 
   it('scales longevity formula lifespan gains and keeps the isolated longevity quota', async () => {
