@@ -1,17 +1,24 @@
-import { randomUUID } from 'node:crypto';
-import { getExecutor } from '@server/lib/drizzle/db';
-import { cultivators } from '@server/lib/drizzle/schema';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db';
+import { cultivators, mails } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
 import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
+import {
+  MailService,
+  type MailAttachment,
+} from '@server/lib/services/MailService';
 import { runMarketRefreshJob } from '@server/lib/services/MarketScheduler';
 import { commitPlayerStateMutation } from '@server/lib/services/PlayerStateMutationService';
-import { updateReputation } from '@server/lib/services/cultivatorService';
 import { towerEnemySetService } from '@server/lib/tower/enemySets';
 import { RANKING_REWARDS, REALM_VALUES } from '@shared/types/constants';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 const AUCTION_EXPIRE_LOCK_KEY = 'cron:auction-expire:lock';
 const BET_BATTLE_EXPIRE_LOCK_KEY = 'cron:bet-battle-expire:lock';
@@ -50,6 +57,41 @@ function getRewardByRank(rank: number): number {
   return RANKING_REWARDS['51-100'];
 }
 
+function buildRankingRewardAttachment(reward: number): MailAttachment[] {
+  return [
+    {
+      type: 'reputation',
+      name: '声望',
+      quantity: reward,
+    },
+  ];
+}
+
+function buildRankingRewardMailContent(args: {
+  realm: string;
+  rank: number;
+  reward: number;
+  settlementDate: string;
+}): string {
+  return [
+    `本周天骄榜已于 ${args.settlementDate} 结算。`,
+    `道友在${args.realm}天骄榜位列第 ${args.rank} 名，可领取声望 ${args.reward}。`,
+    '请查收附件，领取后声望将计入道途声名。',
+  ].join('\n');
+}
+
+async function countUnreadMail(
+  cultivatorId: string,
+  q: DbExecutor | DbTransaction = getExecutor(),
+): Promise<number> {
+  const [result] = await q
+    .select({ count: sql<number>`count(*)::int` })
+    .from(mails)
+    .where(and(eq(mails.cultivatorId, cultivatorId), eq(mails.isRead, false)));
+
+  return Number(result?.count ?? 0);
+}
+
 function getSettlementDateCN(now = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai',
@@ -68,7 +110,10 @@ function isSettlementMondayCN(now = new Date()): boolean {
   );
 }
 
-async function releaseJobLock(lockKey: string, lockToken: string): Promise<void> {
+async function releaseJobLock(
+  lockKey: string,
+  lockToken: string,
+): Promise<void> {
   await redis.eval(
     "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
     1,
@@ -142,14 +187,18 @@ export async function runAuctionExpireJob(): Promise<CronJobResult> {
 }
 
 export async function runBetBattleExpireJob(): Promise<CronJobResult> {
-  return withJobLock('bet-battle-expire', BET_BATTLE_EXPIRE_LOCK_KEY, async () => {
-    const processed = await expireBetBattles();
-    return {
-      success: true,
-      processed,
-      skipped: false,
-    };
-  });
+  return withJobLock(
+    'bet-battle-expire',
+    BET_BATTLE_EXPIRE_LOCK_KEY,
+    async () => {
+      const processed = await expireBetBattles();
+      return {
+        success: true,
+        processed,
+        skipped: false,
+      };
+    },
+  );
 }
 
 export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
@@ -206,31 +255,51 @@ export async function runRankRewardsJob(): Promise<RankRewardsJobResult> {
           cultivatorId: topCultivatorIds[i],
           source: 'rank_weekly_rewards',
           run: async (tx) => {
-            const reputation = await updateReputation(
-              cultivator.userId,
+            const mail = await MailService.sendMail(
               topCultivatorIds[i],
-              reward,
+              '天骄榜每周声望奖励',
+              buildRankingRewardMailContent({
+                realm,
+                rank,
+                reward,
+                settlementDate,
+              }),
+              buildRankingRewardAttachment(reward),
+              'reward',
               tx,
             );
+            const unreadMailCount = await countUnreadMail(
+              topCultivatorIds[i],
+              tx,
+            );
+
             return {
               result: null,
               changes: [
                 {
-                  domain: 'currency',
-                  eventType: 'currency.reputation.gained',
-                  patch: { currency: { reputation } },
-                  invalidates: ['currency'],
+                  domain: 'mail',
+                  eventType: 'mail.rank_weekly_reward.created',
+                  patch: {
+                    unreadMailCount,
+                    mailIds: [mail.id],
+                  },
+                  invalidates: ['mail'],
                 },
               ],
             };
           },
         });
 
-        logs.push(`${realm} Rank ${rank}: +${reward} reputation`);
+        logs.push(`${realm} Rank ${rank}: mailed +${reward} reputation`);
       }
     }
 
-    await redis.set(settledKey, Date.now().toString(), 'EX', SETTLED_TTL_SECONDS);
+    await redis.set(
+      settledKey,
+      Date.now().toString(),
+      'EX',
+      SETTLED_TTL_SECONDS,
+    );
 
     return {
       success: true,
@@ -253,16 +322,25 @@ export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
   });
 }
 
-export async function runTowerEnemySetRefreshJob(): Promise<TowerEnemySetsJobResult | CronJobResult> {
+export async function runTowerEnemySetRefreshJob(): Promise<
+  TowerEnemySetsJobResult | CronJobResult
+> {
   return withJobLock(
     'tower-enemy-sets',
     TOWER_ENEMY_SETS_LOCK_KEY,
     async () => {
-      const results = await towerEnemySetService.refreshCurrentAndNextIfNeeded();
-      const generated = results.reduce((sum, result) => sum + result.generated, 0);
+      const results =
+        await towerEnemySetService.refreshCurrentAndNextIfNeeded();
+      const generated = results.reduce(
+        (sum, result) => sum + result.generated,
+        0,
+      );
       const failed = results.reduce((sum, result) => sum + result.failed, 0);
       const skipped = results.reduce((sum, result) => sum + result.skipped, 0);
-      const processed = results.reduce((sum, result) => sum + result.processed, 0);
+      const processed = results.reduce(
+        (sum, result) => sum + result.processed,
+        0,
+      );
 
       return {
         success: true,
@@ -274,7 +352,8 @@ export async function runTowerEnemySetRefreshJob(): Promise<TowerEnemySetsJobRes
           `season ${result.seasonKey}`,
           ...result.logs,
         ]),
-        reason: generated === 0 && failed === 0 ? `existing:${skipped}` : undefined,
+        reason:
+          generated === 0 && failed === 0 ? `existing:${skipped}` : undefined,
       };
     },
     TOWER_ENEMY_SETS_LOCK_TTL_SECONDS,

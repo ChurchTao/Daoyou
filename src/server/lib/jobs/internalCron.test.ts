@@ -4,35 +4,43 @@ const {
   getExecutorMock,
   getTopRankingCultivatorIdsMock,
   commitPlayerStateMutationMock,
+  sendMailMock,
   prunePlayerStateEventsOlderThanMock,
   redisMock,
-  updateReputationMock,
-} = vi.hoisted(() => ({
-  getExecutorMock: vi.fn(),
-  getTopRankingCultivatorIdsMock: vi.fn(),
-  commitPlayerStateMutationMock: vi.fn(async (input: any) => {
-    const { changes } = await input.run('tx');
-    return {
-      result: null,
-      state: {
-        cultivatorId: input.cultivatorId,
-        globalVersion: 1,
-        domainVersions: { currency: 1 },
-        events: changes.map((change: any, index: number) => ({
-          id: index + 1,
-          ...change,
-        })),
-      },
-    };
-  }),
-  prunePlayerStateEventsOlderThanMock: vi.fn(),
-  redisMock: {
-    set: vi.fn(),
-    eval: vi.fn(),
-    exists: vi.fn(),
-  },
-  updateReputationMock: vi.fn(),
-}));
+  transactionMock,
+} = vi.hoisted(() => {
+  const tx = {
+    select: vi.fn(),
+  };
+
+  return {
+    getExecutorMock: vi.fn(),
+    getTopRankingCultivatorIdsMock: vi.fn(),
+    commitPlayerStateMutationMock: vi.fn(async (input: any) => {
+      const { changes } = await input.run(tx);
+      return {
+        result: null,
+        state: {
+          cultivatorId: input.cultivatorId,
+          globalVersion: 1,
+          domainVersions: { mail: 1 },
+          events: changes.map((change: any, index: number) => ({
+            id: index + 1,
+            ...change,
+          })),
+        },
+      };
+    }),
+    prunePlayerStateEventsOlderThanMock: vi.fn(),
+    redisMock: {
+      set: vi.fn(),
+      eval: vi.fn(),
+      exists: vi.fn(),
+    },
+    sendMailMock: vi.fn(),
+    transactionMock: tx,
+  };
+});
 
 vi.mock('@server/lib/drizzle/db', () => ({
   getExecutor: getExecutorMock,
@@ -64,12 +72,8 @@ vi.mock('@server/lib/services/BetBattleService', () => ({
 
 vi.mock('@server/lib/services/MailService', () => ({
   MailService: {
-    sendMail: vi.fn(),
+    sendMail: sendMailMock,
   },
-}));
-
-vi.mock('@server/lib/services/cultivatorService', () => ({
-  updateReputation: updateReputationMock,
 }));
 
 vi.mock('@server/lib/services/MarketScheduler', () => ({
@@ -95,6 +99,14 @@ describe('internal cron jobs', () => {
     redisMock.set.mockResolvedValue('OK');
     redisMock.eval.mockResolvedValue(1);
     redisMock.exists.mockResolvedValue(0);
+    sendMailMock.mockImplementation(async (cultivatorId: string) => ({
+      id: `mail-${cultivatorId}`,
+    }));
+    transactionMock.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(async () => [{ count: 1 }]),
+      })),
+    });
     getExecutorMock.mockReturnValue({
       select: vi.fn(() => ({
         from: vi.fn(() => ({
@@ -125,14 +137,14 @@ describe('internal cron jobs', () => {
     );
   });
 
-  it('settles weekly rank rewards as reputation and emits currency events', async () => {
+  it('settles weekly rank rewards as reputation mail and emits mail events', async () => {
     getTopRankingCultivatorIdsMock.mockImplementation(async (realm: string) => {
       if (realm !== '筑基') return [];
-      return Array.from({ length: 51 }, (_, index) => `cultivator-${index + 1}`);
+      return Array.from(
+        { length: 51 },
+        (_, index) => `cultivator-${index + 1}`,
+      );
     });
-    updateReputationMock.mockImplementation(
-      async (_userId, _cultivatorId, delta) => delta + 1,
-    );
 
     await expect(runRankRewardsJob()).resolves.toMatchObject({
       success: true,
@@ -140,38 +152,45 @@ describe('internal cron jobs', () => {
       skipped: false,
       settlementDate: '2026-06-15',
       logs: expect.arrayContaining([
-        '筑基 Rank 1: +100 reputation',
-        '筑基 Rank 2: +50 reputation',
-        '筑基 Rank 10: +50 reputation',
-        '筑基 Rank 11: +25 reputation',
-        '筑基 Rank 50: +25 reputation',
-        '筑基 Rank 51: +15 reputation',
+        '筑基 Rank 1: mailed +100 reputation',
+        '筑基 Rank 2: mailed +50 reputation',
+        '筑基 Rank 10: mailed +50 reputation',
+        '筑基 Rank 11: mailed +25 reputation',
+        '筑基 Rank 50: mailed +25 reputation',
+        '筑基 Rank 51: mailed +15 reputation',
       ]),
     });
 
     expect(getTopRankingCultivatorIdsMock).toHaveBeenCalledWith('炼气', 100);
     expect(getTopRankingCultivatorIdsMock).toHaveBeenCalledWith('筑基', 100);
     expect(commitPlayerStateMutationMock).toHaveBeenCalledTimes(51);
-    expect(updateReputationMock).toHaveBeenNthCalledWith(
+    expect(sendMailMock).toHaveBeenCalledTimes(51);
+    expect(sendMailMock).toHaveBeenNthCalledWith(
       1,
-      'user-1',
       'cultivator-1',
-      100,
-      'tx',
+      '天骄榜每周声望奖励',
+      expect.stringContaining('筑基天骄榜位列第 1 名'),
+      [{ type: 'reputation', name: '声望', quantity: 100 }],
+      'reward',
+      transactionMock,
     );
-    expect(updateReputationMock).toHaveBeenNthCalledWith(
+    expect(sendMailMock).toHaveBeenNthCalledWith(
       11,
-      'user-1',
       'cultivator-11',
-      25,
-      'tx',
+      '天骄榜每周声望奖励',
+      expect.stringContaining('筑基天骄榜位列第 11 名'),
+      [{ type: 'reputation', name: '声望', quantity: 25 }],
+      'reward',
+      transactionMock,
     );
-    expect(updateReputationMock).toHaveBeenNthCalledWith(
+    expect(sendMailMock).toHaveBeenNthCalledWith(
       51,
-      'user-1',
       'cultivator-51',
-      15,
-      'tx',
+      '天骄榜每周声望奖励',
+      expect.stringContaining('筑基天骄榜位列第 51 名'),
+      [{ type: 'reputation', name: '声望', quantity: 15 }],
+      'reward',
+      transactionMock,
     );
     expect(commitPlayerStateMutationMock.mock.calls[0][0]).toEqual(
       expect.objectContaining({
@@ -186,9 +205,12 @@ describe('internal cron jobs', () => {
       state: {
         events: [
           expect.objectContaining({
-            domain: 'currency',
-            eventType: 'currency.reputation.gained',
-            patch: { currency: { reputation: 101 } },
+            domain: 'mail',
+            eventType: 'mail.rank_weekly_reward.created',
+            patch: {
+              unreadMailCount: 1,
+              mailIds: ['mail-cultivator-1'],
+            },
           }),
         ],
       },
