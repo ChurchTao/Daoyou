@@ -3,12 +3,16 @@ import { Hono } from 'hono';
 const {
   runAuctionExpireJobMock,
   runBetBattleExpireJobMock,
+  runExpiredDataCleanupJobMock,
+  runMarketRefreshCronJobMock,
   runPlayerStateEventsCleanupJobMock,
   runRankRewardsJobMock,
   runTowerEnemySetRefreshJobMock,
 } = vi.hoisted(() => ({
   runAuctionExpireJobMock: vi.fn(),
   runBetBattleExpireJobMock: vi.fn(),
+  runExpiredDataCleanupJobMock: vi.fn(),
+  runMarketRefreshCronJobMock: vi.fn(),
   runPlayerStateEventsCleanupJobMock: vi.fn(),
   runRankRewardsJobMock: vi.fn(),
   runTowerEnemySetRefreshJobMock: vi.fn(),
@@ -17,6 +21,8 @@ const {
 vi.mock('@server/lib/jobs/internalCron', () => ({
   runAuctionExpireJob: runAuctionExpireJobMock,
   runBetBattleExpireJob: runBetBattleExpireJobMock,
+  runExpiredDataCleanupJob: runExpiredDataCleanupJobMock,
+  runMarketRefreshCronJob: runMarketRefreshCronJobMock,
   runPlayerStateEventsCleanupJob: runPlayerStateEventsCleanupJobMock,
   runRankRewardsJob: runRankRewardsJobMock,
   runTowerEnemySetRefreshJob: runTowerEnemySetRefreshJobMock,
@@ -43,12 +49,14 @@ describe('cron router', () => {
   it.each([
     ['/internal/cron/auction-expire', runAuctionExpireJobMock],
     ['/internal/cron/bet-battle-expire', runBetBattleExpireJobMock],
+    ['/internal/cron/market-refresh', runMarketRefreshCronJobMock],
     ['/internal/cron/rank-rewards', runRankRewardsJobMock],
     ['/internal/cron/tower-enemy-sets', runTowerEnemySetRefreshJobMock],
     [
       '/internal/cron/player-state-events-cleanup',
       runPlayerStateEventsCleanupJobMock,
     ],
+    ['/internal/cron/expired-data-cleanup', runExpiredDataCleanupJobMock],
   ])('rejects unauthorized requests for %s', async (path, runner) => {
     const response = await createApp().request(path);
 
@@ -70,6 +78,11 @@ describe('cron router', () => {
       '/internal/cron/bet-battle-expire',
       runBetBattleExpireJobMock,
       { success: true, processed: 1, skipped: false },
+    ],
+    [
+      '/internal/cron/market-refresh',
+      runMarketRefreshCronJobMock,
+      { success: true, processed: 12, skipped: false },
     ],
     [
       '/internal/cron/rank-rewards',
@@ -97,6 +110,24 @@ describe('cron router', () => {
       '/internal/cron/player-state-events-cleanup',
       runPlayerStateEventsCleanupJobMock,
       { success: true, processed: 42, skipped: false },
+    ],
+    [
+      '/internal/cron/expired-data-cleanup',
+      runExpiredDataCleanupJobMock,
+      {
+        success: true,
+        processed: 35,
+        skipped: false,
+        deleted: {
+          mails: 2,
+          qiLogs: 3,
+          dungeonHistories: 4,
+          dungeonRuns: 5,
+          battleRecordsV2: 6,
+          reputationShopPurchases: 7,
+          auctionListings: 8,
+        },
+      },
     ],
   ])('runs %s when bearer auth is valid', async (path, runner, result) => {
     runner.mockResolvedValueOnce(result);

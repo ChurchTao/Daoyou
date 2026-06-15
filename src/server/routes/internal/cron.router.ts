@@ -1,6 +1,7 @@
 import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
+  runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
@@ -80,6 +81,10 @@ router.get('/tower-enemy-sets', (c) =>
 
 router.get('/player-state-events-cleanup', (c) =>
   handleCronRequest(c.req.raw, runPlayerStateEventsCleanupJob),
+);
+
+router.get('/expired-data-cleanup', (c) =>
+  handleCronRequest(c.req.raw, runExpiredDataCleanupJob),
 );
 
 export default router;

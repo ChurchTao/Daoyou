@@ -553,9 +553,9 @@ export const redeemCodeClaims = pgTable(
     cultivatorId: uuid('cultivator_id')
       .references(() => cultivators.id, { onDelete: 'cascade' })
       .notNull(),
-    mailId: uuid('mail_id')
-      .references(() => mails.id, { onDelete: 'cascade' })
-      .notNull(),
+    mailId: uuid('mail_id').references(() => mails.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [

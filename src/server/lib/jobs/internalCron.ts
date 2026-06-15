@@ -7,6 +7,10 @@ import { cultivators, mails } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
 import { prunePlayerStateEventsOlderThan } from '@server/lib/repositories/playerStateRepository';
+import {
+  pruneExpiredData,
+  type ExpiredDataCleanupResult,
+} from '@server/lib/repositories/retentionRepository';
 import { expireListings } from '@server/lib/services/AuctionService';
 import { expireBetBattles } from '@server/lib/services/BetBattleService';
 import {
@@ -26,11 +30,19 @@ const RANK_REWARD_LOCK_KEY = 'golden_rank:rewards:lock';
 const TOWER_ENEMY_SETS_LOCK_KEY = 'cron:tower-enemy-sets:lock';
 const PLAYER_STATE_EVENTS_CLEANUP_LOCK_KEY =
   'cron:player-state-events-cleanup:lock';
+const EXPIRED_DATA_CLEANUP_LOCK_KEY = 'cron:expired-data-cleanup:lock';
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
 const LOCK_TTL_SECONDS = 15 * 60;
 const TOWER_ENEMY_SETS_LOCK_TTL_SECONDS = 2 * 60 * 60;
 const SETTLED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const PLAYER_STATE_EVENT_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+const MAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+const QI_LOG_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+const DUNGEON_HISTORY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const DUNGEON_RUN_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const BATTLE_RECORD_V2_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const REPUTATION_SHOP_PURCHASE_RETENTION_MS = 21 * 24 * 60 * 60 * 1000;
+const AUCTION_LISTING_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type CronJobResult = {
   success: true;
@@ -48,6 +60,10 @@ export type TowerEnemySetsJobResult = CronJobResult & {
   generated: number;
   failed: number;
   logs: string[];
+};
+
+export type ExpiredDataCleanupJobResult = CronJobResult & {
+  deleted: ExpiredDataCleanupResult;
 };
 
 function getRewardByRank(rank: number): number {
@@ -371,6 +387,40 @@ export async function runPlayerStateEventsCleanupJob(): Promise<CronJobResult> {
         success: true,
         processed,
         skipped: false,
+      };
+    },
+  );
+}
+
+export async function runExpiredDataCleanupJob(): Promise<
+  ExpiredDataCleanupJobResult | CronJobResult
+> {
+  return withJobLock(
+    'expired-data-cleanup',
+    EXPIRED_DATA_CLEANUP_LOCK_KEY,
+    async () => {
+      const now = Date.now();
+      const deleted = await pruneExpiredData({
+        mails: new Date(now - MAIL_RETENTION_MS),
+        qiLogs: new Date(now - QI_LOG_RETENTION_MS),
+        dungeonHistories: new Date(now - DUNGEON_HISTORY_RETENTION_MS),
+        dungeonRuns: new Date(now - DUNGEON_RUN_RETENTION_MS),
+        battleRecordsV2: new Date(now - BATTLE_RECORD_V2_RETENTION_MS),
+        reputationShopPurchases: new Date(
+          now - REPUTATION_SHOP_PURCHASE_RETENTION_MS,
+        ),
+        auctionListings: new Date(now - AUCTION_LISTING_RETENTION_MS),
+      });
+      const processed = Object.values(deleted).reduce(
+        (sum, count) => sum + count,
+        0,
+      );
+
+      return {
+        success: true,
+        processed,
+        skipped: false,
+        deleted,
       };
     },
   );

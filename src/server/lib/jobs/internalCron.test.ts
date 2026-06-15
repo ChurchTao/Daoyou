@@ -5,6 +5,7 @@ const {
   getTopRankingCultivatorIdsMock,
   commitPlayerStateMutationMock,
   sendMailMock,
+  pruneExpiredDataMock,
   prunePlayerStateEventsOlderThanMock,
   redisMock,
   transactionMock,
@@ -31,6 +32,7 @@ const {
         },
       };
     }),
+    pruneExpiredDataMock: vi.fn(),
     prunePlayerStateEventsOlderThanMock: vi.fn(),
     redisMock: {
       set: vi.fn(),
@@ -56,6 +58,10 @@ vi.mock('@server/lib/redis/rankings', () => ({
 
 vi.mock('@server/lib/repositories/playerStateRepository', () => ({
   prunePlayerStateEventsOlderThan: prunePlayerStateEventsOlderThanMock,
+}));
+
+vi.mock('@server/lib/repositories/retentionRepository', () => ({
+  pruneExpiredData: pruneExpiredDataMock,
 }));
 
 vi.mock('@server/lib/services/PlayerStateMutationService', () => ({
@@ -87,6 +93,7 @@ vi.mock('@server/lib/tower/enemySets', () => ({
 }));
 
 import {
+  runExpiredDataCleanupJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
 } from './internalCron';
@@ -135,6 +142,44 @@ describe('internal cron jobs', () => {
     expect(prunePlayerStateEventsOlderThanMock).toHaveBeenCalledWith(
       new Date('2026-06-09T00:00:00.000Z'),
     );
+  });
+
+  it('cleans expired durable data with table-specific retention windows', async () => {
+    vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'));
+    pruneExpiredDataMock.mockResolvedValueOnce({
+      mails: 2,
+      qiLogs: 3,
+      dungeonHistories: 4,
+      dungeonRuns: 5,
+      battleRecordsV2: 6,
+      reputationShopPurchases: 7,
+      auctionListings: 8,
+    });
+
+    await expect(runExpiredDataCleanupJob()).resolves.toEqual({
+      success: true,
+      processed: 35,
+      skipped: false,
+      deleted: {
+        mails: 2,
+        qiLogs: 3,
+        dungeonHistories: 4,
+        dungeonRuns: 5,
+        battleRecordsV2: 6,
+        reputationShopPurchases: 7,
+        auctionListings: 8,
+      },
+    });
+
+    expect(pruneExpiredDataMock).toHaveBeenCalledWith({
+      mails: new Date('2026-06-01T12:00:00.000Z'),
+      qiLogs: new Date('2026-06-01T12:00:00.000Z'),
+      dungeonHistories: new Date('2026-06-08T12:00:00.000Z'),
+      dungeonRuns: new Date('2026-06-08T12:00:00.000Z'),
+      battleRecordsV2: new Date('2026-06-08T12:00:00.000Z'),
+      reputationShopPurchases: new Date('2026-05-25T12:00:00.000Z'),
+      auctionListings: new Date('2026-06-01T12:00:00.000Z'),
+    });
   });
 
   it('settles weekly rank rewards as reputation mail and emits mail events', async () => {

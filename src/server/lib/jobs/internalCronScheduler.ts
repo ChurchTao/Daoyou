@@ -1,6 +1,7 @@
 import {
   runAuctionExpireJob,
   runBetBattleExpireJob,
+  runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runPlayerStateEventsCleanupJob,
   runRankRewardsJob,
@@ -26,6 +27,7 @@ const RANK_REWARDS_SCHEDULE = '0 16 * * *';
 const MARKET_REFRESH_SCHEDULE = '*/5 * * * *';
 const TOWER_ENEMY_SETS_SCHEDULE = '0 * * * *';
 const PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE = '30 18 * * *';
+const EXPIRED_DATA_CLEANUP_SCHEDULE = '45 18 * * *';
 
 let schedulerRegistered = false;
 let scheduledTasks: BunCronTask[] = [];
@@ -86,6 +88,9 @@ export function registerInternalCronJobs(options: {
         runPlayerStateEventsCleanupJob,
       ),
     ),
+    bunCron(EXPIRED_DATA_CLEANUP_SCHEDULE, () =>
+      runScheduledJob('expired-data-cleanup', runExpiredDataCleanupJob),
+    ),
   ];
   schedulerRegistered = true;
 
@@ -97,6 +102,7 @@ export function registerInternalCronJobs(options: {
     marketRefresh: MARKET_REFRESH_SCHEDULE,
     towerEnemySets: TOWER_ENEMY_SETS_SCHEDULE,
     playerStateEventsCleanupUtc: PLAYER_STATE_EVENTS_CLEANUP_SCHEDULE,
+    expiredDataCleanupUtc: EXPIRED_DATA_CLEANUP_SCHEDULE,
   });
 
   return scheduledTasks;
