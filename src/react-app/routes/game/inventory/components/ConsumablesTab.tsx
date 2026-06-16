@@ -1,27 +1,15 @@
 import {
-  PillAppearanceMark,
-  PillKeywordLine,
-  toPillDisplayModel,
+  ConsumableListCard,
+  getTalismanActionHref,
+  getTalismanActionLabel,
+  isQiRestoreTalisman,
 } from '@app/components/feature/consumables';
 import { InkButton, InkList, InkNotice } from '@app/components/ui';
-import { ItemCard } from '@app/components/ui/ItemCard';
-import {
-  isPillConsumable,
-  isTalismanConsumable,
-} from '@shared/lib/consumables';
+import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type { Consumable } from '@shared/types/cultivator';
-import {
-  CONSUMABLE_TYPE_DISPLAY_MAP,
-  getResourceTypeLabel,
-} from '@shared/lib/gameConceptDisplay';
-import {
-  getTalismanActionHref,
-  getTalismanActionLabel,
-  getTalismanUsageHint,
-  isQiRestoreTalisman,
-} from './talismanDisplay';
+import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 
 interface ConsumablesTabProps {
   consumables: Consumable[];
@@ -75,46 +63,13 @@ export function ConsumablesTab({
         const scenarioHref = getTalismanActionHref(item);
         const scenarioActionLabel = getTalismanActionLabel(item);
         const canNavigateToScenario = Boolean(item.id && scenarioHref);
-        const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[item.type];
-        const pillDisplay = isPillConsumable(item)
-          ? toPillDisplayModel(item, { realm, condition })
-          : null;
-        const usageHint = isTalisman
-          ? getTalismanUsageHint(item)
-          : '【仅可在场外服用，药力会直接回写当前状态】';
 
         return (
-          <ItemCard
+          <ConsumableListCard
             key={item.id || idx}
-            layout="col"
-            icon={typeInfo.icon}
-            name={item.name}
-            nameMark={
-              pillDisplay?.appearance ? (
-                <PillAppearanceMark
-                  appearance={pillDisplay.appearance}
-                  className="text-[0.68rem]"
-                />
-              ) : undefined
-            }
-            quality={item.quality}
-            badgeExtra={
-              <span className="text-ink-secondary text-sm">
-                x{item.quantity}
-              </span>
-            }
-            meta={
-              isDirectlyUsable && pillDisplay ? (
-                <PillKeywordLine labels={pillDisplay.keywordLabels} />
-              ) : usageHint ? (
-                <div className="text-ink-primary text-xs">{usageHint}</div>
-              ) : null
-            }
-            description={
-              isDirectlyUsable && pillDisplay
-                ? pillDisplay.effectSummary
-                : item.description
-            }
+            consumable={item}
+            realm={realm}
+            condition={condition}
             actions={
               <div className="flex gap-2">
                 <InkButton

@@ -19,7 +19,7 @@ import {
 } from '@shared/types/constants';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ItemDetailPayload } from '../components/itemDetailPayload';
+import type { ItemDetailPayload } from '@app/components/feature/items';
 
 export type InventoryTab = 'artifacts' | 'materials' | 'consumables';
 export type InventoryItem = Artifact | Consumable | Material;

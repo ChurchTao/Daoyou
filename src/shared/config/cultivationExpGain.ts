@@ -12,8 +12,8 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
  * - 改这里通常也要同步重算 EXP_CAP_TABLE，否则目标天数只作为文档参考。
  */
 export const REALM_TARGET_DAYS = {
-  炼气: 7,
-  筑基: 14,
+  炼气: 3,
+  筑基: 7,
   金丹: 21,
   元婴: 42,
   化神: 70,

@@ -1,5 +1,7 @@
-import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
-import type { ItemDetailPayload } from '@app/routes/game/inventory/components/itemDetailPayload';
+import {
+  ItemDetailModal,
+  type ItemDetailPayload,
+} from '@app/components/feature/items';
 import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
 import {
   BattleRankingCard,

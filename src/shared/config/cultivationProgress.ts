@@ -27,16 +27,16 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
  */
 export const EXP_CAP_TABLE: Record<RealmType, Record<RealmStage, number>> = {
   炼气: {
-    初期: 1_100,
-    中期: 1_400,
-    后期: 1_800,
-    圆满: 2_800,
+    初期: 500,
+    中期: 600,
+    后期: 800,
+    圆满: 1_200,
   },
   筑基: {
-    初期: 3_800,
-    中期: 5_000,
-    后期: 6_300,
-    圆满: 10_000,
+    初期: 1_900,
+    中期: 2_500,
+    后期: 3_200,
+    圆满: 5_000,
   },
   金丹: {
     初期: 10_000,

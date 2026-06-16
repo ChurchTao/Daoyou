@@ -1,7 +1,7 @@
 import { InkModal } from '@app/components/layout/InkModal';
 import {
-  PillKeywordLine,
-  toPillDisplayModel,
+  ConsumableListCard,
+  getConsumableListSummary,
 } from '@app/components/feature/consumables';
 import {
   TEMP_DISABLED_MESSAGES,
@@ -480,7 +480,6 @@ export function ListItemModal({
     const baseInfo = {
       name: item.name,
       description: item.description,
-      pillKeywordLabels: undefined as string[] | undefined,
     };
 
     switch (item.itemType) {
@@ -518,27 +517,60 @@ export function ListItemModal({
       }
       case 'consumable': {
         const consumable = item as Consumable;
-        const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
-        const pillDisplay = isPillConsumable(consumable)
-          ? toPillDisplayModel(consumable, {
-              realm: cultivator?.realm,
-              condition: cultivator?.condition,
-            })
-          : null;
         return {
           ...baseInfo,
-          icon: typeInfo.icon,
           quality: consumable.quality,
-          description: pillDisplay?.primaryEffect ?? consumable.description,
-          pillKeywordLabels: pillDisplay?.keywordLabels,
-          badgeExtra: (
-            <>
-              <InkBadge tone="default">{consumable.type}</InkBadge>
-            </>
-          ),
+          description: getConsumableListSummary(consumable, {
+            realm: cultivator?.realm,
+            condition: cultivator?.condition,
+          }),
+          badgeExtra: null,
         };
       }
     }
+  };
+
+  const renderSelectedItemSummary = () => {
+    if (!selectedItem) return null;
+
+    if (selectedItem.itemType === 'consumable') {
+      return (
+        <div className="bg-ink/5 border-ink/20 border border-dashed p-4">
+          <ConsumableListCard
+            consumable={selectedItem as Consumable}
+            realm={cultivator?.realm}
+            condition={cultivator?.condition}
+            actions={null}
+            contextMeta={
+              <p className="text-ink-secondary text-sm">
+                当前拥有: x
+                {isStackableItem(selectedItem) ? selectedItem.quantity : 1}
+              </p>
+            }
+          />
+        </div>
+      );
+    }
+
+    const displayProps = getItemDisplayProps(selectedItem);
+
+    return (
+      <div className="bg-ink/5 border-ink/20 border border-dashed p-4">
+        <div className="flex items-center gap-2">
+          <span className="font-bold">{selectedItem.name}</span>
+          {displayProps.badgeExtra}
+        </div>
+        <p className="text-ink-secondary mt-1 text-sm">
+          {displayProps.description}
+        </p>
+        {selectedItem.itemType !== 'artifact' && (
+          <p className="text-ink-secondary mt-2 text-sm">
+            当前拥有: x
+            {isStackableItem(selectedItem) ? selectedItem.quantity : 1}
+          </p>
+        )}
+      </div>
+    );
   };
 
   const currentPagination = paginationByType[activeType];
@@ -976,6 +1008,33 @@ export function ListItemModal({
               <InkList>
                 {currentItems.map((item) => {
                   const displayProps = getItemDisplayProps(item);
+                  if (item.itemType === 'consumable') {
+                    return (
+                      <ConsumableListCard
+                        key={item.id}
+                        consumable={item as Consumable}
+                        realm={cultivator?.realm}
+                        condition={cultivator?.condition}
+                        contextMeta={
+                          <div className="text-ink-secondary text-xs">
+                            数量: x{isStackableItem(item) ? item.quantity : 1}
+                          </div>
+                        }
+                        actions={
+                          <div className="flex w-full justify-end">
+                            <InkButton
+                              onClick={() => handleSelectItem(item)}
+                              variant="primary"
+                              className="min-w-16"
+                            >
+                              选择
+                            </InkButton>
+                          </div>
+                        }
+                      />
+                    );
+                  }
+
                   return (
                     <ItemCard
                       key={item.id}
@@ -983,9 +1042,6 @@ export function ListItemModal({
                       {...displayProps}
                       meta={
                         <div className="text-ink-secondary mt-1 space-y-1 text-xs">
-                          {displayProps.pillKeywordLabels ? (
-                            <PillKeywordLine labels={displayProps.pillKeywordLabels} />
-                          ) : null}
                           <div>数量: x{isStackableItem(item) ? item.quantity : 1}</div>
                         </div>
                       }
@@ -1049,34 +1105,7 @@ export function ListItemModal({
         </>
       ) : (
         <div className="space-y-4">
-          {selectedItem && (
-            <div className="bg-ink/5 border-ink/20 border border-dashed p-4">
-              <div className="flex items-center gap-2">
-                <span className="font-bold">{selectedItem.name}</span>
-                {(() => {
-                  const displayProps = getItemDisplayProps(selectedItem);
-                  return displayProps.badgeExtra;
-                })()}
-              </div>
-              {(() => {
-                const displayProps = getItemDisplayProps(selectedItem);
-                return displayProps.pillKeywordLabels ? (
-                  <div className="mt-2">
-                    <PillKeywordLine labels={displayProps.pillKeywordLabels} />
-                  </div>
-                ) : null;
-              })()}
-              <p className="text-ink-secondary mt-1 text-sm">
-                {getItemDisplayProps(selectedItem).description}
-              </p>
-              {selectedItem.itemType !== 'artifact' && (
-                <p className="text-ink-secondary mt-2 text-sm">
-                  当前拥有: x
-                  {isStackableItem(selectedItem) ? selectedItem.quantity : 1}
-                </p>
-              )}
-            </div>
-          )}
+          {renderSelectedItemSummary()}
 
           {selectedItem?.itemType !== 'artifact' && (
             <div>

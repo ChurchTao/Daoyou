@@ -1,13 +1,14 @@
-import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
 import {
-  toInventoryItemDetail, type ItemDetailPayload, } from '@app/routes/game/inventory/components/itemDetailPayload';
+  ConsumableListCard,
+} from '@app/components/feature/consumables';
+import {
+  ItemDetailModal,
+  toInventoryItemDetail,
+  type ItemDetailPayload,
+} from '@app/components/feature/items';
 import {
   TEMP_DISABLED_MESSAGES, temporaryRestrictions, } from '@shared/config/temporaryRestrictions';
 import { ListItemModal } from '@app/components/auction/ListItemModal';
-import {
-  PillKeywordLine,
-  toPillDisplayModel,
-} from '@app/components/feature/consumables';
 import {
   GameSceneAsideSection,
   GameSceneFrame,
@@ -23,15 +24,12 @@ import {
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { isPillConsumable } from '@shared/lib/consumables';
 import {
-  CONSUMABLE_TYPE_DISPLAY_MAP,
   getEquipmentSlotInfo,
   getGameConceptInfo,
   getMaterialTypeInfo,
 } from '@shared/lib/gameConceptDisplay';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
-import { getConsumableRankInfo } from '@shared/types/dictionaries';
 import { useEffect, useState } from 'react';
 
 
@@ -278,7 +276,6 @@ export default function AuctionPage() {
     const baseProps = {
       name: item.name,
       description: item.description,
-      pillKeywordLabels: undefined as string[] | undefined,
     };
 
     switch (listing.itemType) {
@@ -314,27 +311,8 @@ export default function AuctionPage() {
           ),
         };
       }
-      case 'consumable': {
-        const consumable = item as Consumable;
-        const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
-        const rankInfo = getConsumableRankInfo(consumable.quality || '凡品');
-        const pillDisplay = isPillConsumable(consumable)
-          ? toPillDisplayModel(consumable, { realm: cultivator?.realm })
-          : null;
-        return {
-          ...baseProps,
-          icon: typeInfo.icon,
-          quality: consumable.quality,
-          description: pillDisplay?.primaryEffect ?? consumable.description,
-          pillKeywordLabels: pillDisplay?.keywordLabels,
-          badgeExtra: (
-            <>
-              <InkBadge tone="default">{rankInfo.label}</InkBadge>
-              <InkBadge tone="default">{consumable.type}</InkBadge>
-            </>
-          ),
-        };
-      }
+      case 'consumable':
+        return baseProps;
     }
   };
 
@@ -348,75 +326,87 @@ export default function AuctionPage() {
     const timeLeft = formatTime(listing.expiresAt);
     const listedQuantity =
       'quantity' in listing.itemSnapshot ? listing.itemSnapshot.quantity : 1;
+    const listingMeta = (
+      <div className="text-ink-secondary mt-1 space-y-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              卖家: {listing.sellerName}
+              {listing.sellerId === cultivator?.id ? ' (我)' : ''}
+            </span>
+            <span>数量: x{listedQuantity}</span>
+            <span className="text-gold text-sm font-semibold">
+              {SPIRIT_STONES_INFO.icon} {listing.price}{' '}
+              {SPIRIT_STONES_INFO.label}
+            </span>
+          </div>
+          <span className="whitespace-nowrap">剩余: {timeLeft}</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+          {isMyListing && (
+            <span className="text-ink-secondary text-[0.75rem] opacity-75">
+              预计到手: {Math.floor(listing.price * 0.9)} 灵石
+            </span>
+          )}
+        </div>
+      </div>
+    );
+    const actions = (
+      <div className="flex w-full justify-end gap-2">
+        <InkButton
+          variant="secondary"
+          onClick={() =>
+            setSelectedItem(
+              toInventoryItemDetail(listing.itemType, listing.itemSnapshot),
+            )
+          }
+        >
+          详情
+        </InkButton>
+        {isMyListing ? (
+          <InkButton
+            onClick={() => handleCancel(listing)}
+            disabled={!!cancellingId}
+            variant="secondary"
+          >
+            {cancellingId === listing.id ? '处理中' : '下架'}
+          </InkButton>
+        ) : (
+          <InkButton
+            onClick={() => handleBuy(listing)}
+            disabled={!!buyingId || listing.sellerId === cultivator?.id}
+            variant="primary"
+          >
+            {buyingId === listing.id
+              ? '交易中'
+              : listing.sellerId === cultivator?.id
+                ? '自己的'
+                : '购买'}
+          </InkButton>
+        )}
+      </div>
+    );
+
+    if (listing.itemType === 'consumable') {
+      return (
+        <ConsumableListCard
+          key={listing.id}
+          consumable={listing.itemSnapshot as Consumable}
+          realm={cultivator?.realm}
+          condition={cultivator?.condition}
+          contextMeta={listingMeta}
+          actions={actions}
+        />
+      );
+    }
 
     return (
       <ItemCard
         key={listing.id}
         layout="col"
         {...displayProps}
-        meta={
-          <div className="text-ink-secondary mt-1 space-y-2 text-xs">
-            {displayProps.pillKeywordLabels ? (
-              <PillKeywordLine labels={displayProps.pillKeywordLabels} />
-            ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span>
-                  卖家: {listing.sellerName}
-                  {listing.sellerId === cultivator?.id ? ' (我)' : ''}
-                </span>
-                <span>数量: x{listedQuantity}</span>
-                <span className="text-gold text-sm font-semibold">
-                  {SPIRIT_STONES_INFO.icon} {listing.price}{' '}
-                  {SPIRIT_STONES_INFO.label}
-                </span>
-              </div>
-              <span className="whitespace-nowrap">剩余: {timeLeft}</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-              {isMyListing && (
-                <span className="text-ink-secondary text-[0.75rem] opacity-75">
-                  预计到手: {Math.floor(listing.price * 0.9)} 灵石
-                </span>
-              )}
-            </div>
-          </div>
-        }
-        actions={
-          <div className="flex w-full justify-end gap-2">
-            <InkButton
-              variant="secondary"
-              onClick={() =>
-                setSelectedItem(
-                  toInventoryItemDetail(listing.itemType, listing.itemSnapshot),
-                )
-              }
-            >
-              详情
-            </InkButton>
-            {isMyListing ? (
-              <InkButton
-                onClick={() => handleCancel(listing)}
-                disabled={!!cancellingId}
-                variant="secondary"
-              >
-                {cancellingId === listing.id ? '处理中' : '下架'}
-              </InkButton>
-            ) : (
-              <InkButton
-                onClick={() => handleBuy(listing)}
-                disabled={!!buyingId || listing.sellerId === cultivator?.id}
-                variant="primary"
-              >
-                {buyingId === listing.id
-                  ? '交易中'
-                  : listing.sellerId === cultivator?.id
-                    ? '自己的'
-                    : '购买'}
-              </InkButton>
-            )}
-          </div>
-        }
+        meta={listingMeta}
+        actions={actions}
       />
     );
   };

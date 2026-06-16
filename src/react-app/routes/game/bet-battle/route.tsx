@@ -20,11 +20,11 @@ import { tierColorMap, type Tier } from '@app/components/ui/InkBadge';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
 import {
+  ItemDetailModal,
   toInventoryItemDetail,
   type ItemDetailPayload,
-} from '@app/routes/game/inventory/components/itemDetailPayload';
+} from '@app/components/feature/items';
 import {
   TEMP_DISABLED_MESSAGES,
   temporaryRestrictions,

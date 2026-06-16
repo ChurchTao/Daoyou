@@ -1,16 +1,11 @@
+import { ConsumableDetailModal } from '@app/components/feature/consumables';
 import {
   getProductShowcaseProps,
   toProductDisplayModel,
   type ProductRecordLike,
 } from '@app/components/feature/products';
-import {
-  PillAppearanceMark,
-  PillDetailGroups,
-  toPillDisplayModel,
-} from '@app/components/feature/consumables';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { ItemShowcaseModal } from '@app/components/ui/ItemShowcaseModal';
-import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import type {
@@ -19,12 +14,8 @@ import type {
   Material,
   Skill,
 } from '@shared/types/cultivator';
-import {
-  CONSUMABLE_TYPE_DISPLAY_MAP,
-  getMaterialTypeInfo,
-} from '@shared/lib/gameConceptDisplay';
+import { getMaterialTypeInfo } from '@shared/lib/gameConceptDisplay';
 import type { ItemDetailPayload } from './itemDetailPayload';
-import { buildTalismanDetailText } from './talismanDisplay';
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -34,7 +25,6 @@ interface ItemDetailModalProps {
   viewerCondition?: CultivatorCondition;
 }
 
-// 持有数量信息组件
 function QuantityInfo({ quantity }: { quantity: number }) {
   return (
     <div className="border-border/50 flex justify-between border-b pb-2">
@@ -44,17 +34,6 @@ function QuantityInfo({ quantity }: { quantity: number }) {
   );
 }
 
-function buildTalismanDescription(consumable: Consumable): string {
-  if (isTalismanConsumable(consumable)) {
-    return buildTalismanDetailText(consumable);
-  }
-
-  return consumable.description ?? '';
-}
-
-/**
- * 物品详情弹窗
- */
 export function ItemDetailModal({
   isOpen,
   onClose,
@@ -113,68 +92,13 @@ export function ItemDetailModal({
   }
 
   if (item.kind === 'consumable') {
-    const consumable = item.item as Consumable;
-    const typeInfo = CONSUMABLE_TYPE_DISPLAY_MAP[consumable.type];
-
-    if (isPillConsumable(consumable)) {
-      const model = toPillDisplayModel(consumable, {
-        realm: viewerRealm,
-        condition: viewerCondition,
-      });
-
-      return (
-        <ItemShowcaseModal
-          isOpen
-          onClose={onClose}
-          icon={typeInfo.icon}
-          name={consumable.name}
-          nameMark={
-            model.appearance ? (
-              <PillAppearanceMark
-                appearance={model.appearance}
-                className="text-xs"
-              />
-            ) : undefined
-          }
-          badges={[
-            consumable.quality ? (
-              <InkBadge key="type" tier={consumable.quality}>
-                {typeInfo.label}
-              </InkBadge>
-            ) : (
-              <InkBadge key="type" tone="default">
-                {typeInfo.label}
-              </InkBadge>
-            ),
-          ].filter(Boolean)}
-          metaSection={<QuantityInfo quantity={consumable.quantity} />}
-          extraInfo={<PillDetailGroups groups={model.detailGroups} />}
-          description={model.flavorText}
-          descriptionTitle="丹成评述"
-        />
-      );
-    }
-
     return (
-      <ItemShowcaseModal
+      <ConsumableDetailModal
         isOpen
         onClose={onClose}
-        icon={typeInfo.icon}
-        name={consumable.name}
-        badges={[
-          consumable.quality ? (
-            <InkBadge key="type" tier={consumable.quality}>
-              {typeInfo.label}
-            </InkBadge>
-          ) : (
-            <InkBadge key="type" tone="default">
-              {typeInfo.label}
-            </InkBadge>
-          ),
-        ].filter(Boolean)}
-        extraInfo={<QuantityInfo quantity={consumable.quantity} />}
-        description={buildTalismanDescription(consumable)}
-        descriptionTitle="符箓说明"
+        consumable={item.item as Consumable}
+        viewerRealm={viewerRealm}
+        viewerCondition={viewerCondition}
       />
     );
   }

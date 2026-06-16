@@ -200,7 +200,7 @@ describe('player state selectors', () => {
 
     const cultivator = selectActiveCultivatorProfile(state);
 
-    expect(cultivator?.cultivation_progress?.exp_cap).toBe(1_100);
+    expect(cultivator?.cultivation_progress?.exp_cap).toBe(500);
     expect(cultivator?.cultivation_progress?.cultivation_exp).toBe(120);
   });
 });

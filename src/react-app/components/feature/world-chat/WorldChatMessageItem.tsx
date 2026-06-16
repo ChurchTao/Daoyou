@@ -1,8 +1,10 @@
 import type { Tier } from '@app/components/ui/InkBadge';
 import { InkBadge, tierColorMap } from '@app/components/ui/InkBadge';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
-import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
-import type { ItemDetailPayload } from '@app/routes/game/inventory/components/itemDetailPayload';
+import {
+  ItemDetailModal,
+  type ItemDetailPayload,
+} from '@app/components/feature/items';
 import { cn } from '@shared/lib/cn';
 import type {
   ItemShowcaseSnapshotMap,

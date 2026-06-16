@@ -4,35 +4,28 @@ import {
   GameSceneTabs,
 } from '@app/components/game-shell';
 import {
-  PillKeywordLine,
-  toPillDisplayModel,
+  ConsumableListCard,
 } from '@app/components/feature/consumables';
+import {
+  ItemDetailModal,
+  toInventoryItemDetail,
+  type ItemDetailPayload,
+} from '@app/components/feature/items';
 import { ArtifactListCard } from '@app/components/feature/products';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge, InkButton, InkList, InkNotice } from '@app/components/ui';
 import { ItemCard } from '@app/components/ui/ItemCard';
 import { usePlayerStateView } from '@app/lib/player-state/selectors';
 import { usePlayerStateActions } from '@app/lib/player-state/store';
-import { ItemDetailModal } from '@app/routes/game/inventory/components/ItemDetailModal';
-import {
-  toInventoryItemDetail,
-  type ItemDetailPayload,
-} from '@app/routes/game/inventory/components/itemDetailPayload';
-import {
-  buildTalismanDetailText,
-  getTalismanUsageHint,
-} from '@app/routes/game/inventory/components/talismanDisplay';
 import type {
   ReputationShopBuyResponse,
   ReputationShopItemView,
   ReputationShopListResponse,
 } from '@shared/contracts/reputationShop';
 import {
-  getConsumableTypeLabel,
   getGameConceptInfo,
   getMaterialTypeInfo,
 } from '@shared/lib/gameConceptDisplay';
-import { isPillConsumable, isTalismanConsumable } from '@shared/lib/consumables';
 import type { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -270,51 +263,18 @@ export default function TianjiaoVaultPage() {
 
     if (item.item.type === 'consumable') {
       const consumable = preview as Consumable;
-      const isPill = isPillConsumable(consumable);
-      const isTalisman = isTalismanConsumable(consumable);
-      const pillDisplay = isPill
-        ? toPillDisplayModel(consumable, {
-            realm: cultivator?.realm,
-            condition: cultivator?.condition,
-          })
-        : null;
-      const typeLabel = getConsumableTypeLabel(isTalisman ? '符箓' : '丹药');
 
       return (
-        <ItemCard
+        <ConsumableListCard
           key={item.id}
-          layout="col"
-          name={consumable.name}
-          quality={toQualityTier(consumable.quality)}
-          badgeExtra={
-            <>
-              <InkBadge tone="default">{typeLabel}</InkBadge>
-              {item.quantity > 1 ? (
-                <span className="text-ink-secondary text-sm">
-                  x{item.quantity}
-                </span>
-              ) : null}
-            </>
-          }
-          meta={
-            <div className="space-y-1">
-              <div>{buildPurchaseMeta(item)}</div>
-              {pillDisplay ? (
-                <PillKeywordLine labels={pillDisplay.keywordLabels} />
-              ) : isTalisman ? (
-                <div className="text-ink-primary text-xs">
-                  {getTalismanUsageHint(consumable)}
-                </div>
-              ) : null}
-            </div>
-          }
-          description={
-            pillDisplay
-              ? pillDisplay.effectSummary
-              : isTalisman
-                ? buildTalismanDetailText(consumable)
-                : consumable.description
-          }
+          consumable={{
+            ...consumable,
+            quality: toQualityTier(consumable.quality),
+          }}
+          realm={cultivator?.realm}
+          condition={cultivator?.condition}
+          contextMeta={<div>{buildPurchaseMeta(item)}</div>}
+          contextMetaPlacement="before"
           actions={actions}
         />
       );

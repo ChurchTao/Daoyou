@@ -14,7 +14,7 @@ import {
 } from '../hooks/useInventoryViewModel';
 import { ArtifactsTab } from './ArtifactsTab';
 import { ConsumablesTab } from './ConsumablesTab';
-import { ItemDetailModal } from './ItemDetailModal';
+import { ItemDetailModal } from '@app/components/feature/items';
 import { MaterialsTab } from './MaterialsTab';
 import { getResourceTypeLabel } from '@shared/lib/gameConceptDisplay';
 

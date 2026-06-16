@@ -1,4 +1,4 @@
-import type { ItemDetailPayload } from '@app/routes/game/inventory/components/itemDetailPayload';
+import type { ItemDetailPayload } from '@app/components/feature/items';
 import { assertConsumableSpec } from '@shared/lib/consumables';
 import type {
   Artifact,

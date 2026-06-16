@@ -54,7 +54,9 @@ export function getTalismanScenarioLabel(scenario: string): string {
   return TALISMAN_SCENARIO_LABELS[scenario] ?? '专属玩法符箓';
 }
 
-export function getTalismanActionHref(consumable: Consumable): string | undefined {
+export function getTalismanActionHref(
+  consumable: Consumable,
+): string | undefined {
   if (!isTalismanConsumable(consumable)) return undefined;
   return TALISMAN_SCENARIO_HREFS[consumable.spec.scenario];
 }
